@@ -6,6 +6,7 @@
 #include "stringlist.h"
 #include "mailbox.h"
 #include "address.h"
+#include "field.h"
 
 
 class SieveProductionData
@@ -197,7 +198,8 @@ SieveArgument::SieveArgument()
 }
 
 
-/*! Notifies this object that it has a tag, and that its tag is \a t.
+/*! Notifies this object that it has a tag, and that its tag is \a
+    t. \a t should start with ':'.
 
 */
 
@@ -208,9 +210,8 @@ void SieveArgument::setTag( const String & t )
 }
 
 
-/*! Returns the object's tag, or an empty string if this object
-    doesn't have a tag (in which case it has a stringList(), number()
-    or a nonempty error()).
+/*! Returns the object's tag, which always starts with ':', or an
+    empty string if this object doesn't have a tag.
 */
 
 String SieveArgument::tag() const
@@ -540,7 +541,7 @@ public:
 */
 
 SieveTest::SieveTest()
-    : SieveProduction( "command" ), d( new SieveTestData )
+    : SieveProduction( "test" ), d( new SieveTestData )
 {
 }
 
@@ -811,36 +812,36 @@ void SieveTest::parse()
                     d->comparator = c;
                 }
             }
-            else if ( t == "is" ||
-                      t == "contains" ||
-                      t == "matches" ) {
+            else if ( t == ":is" ||
+                      t == ":contains" ||
+                      t == ":matches" ) {
                 if ( mta ) {
                     mta->setError( "Match type specified twice" );
                     i->setError( "Match type specified twice" );
                 }
                 mta = i;
                 i->setParsed( true );
-                if ( t == "is" )
+                if ( t == ":is" )
                     d->matchType = Is;
-                if ( t == "contains" )
+                if ( t == ":contains" )
                     d->matchType = Contains;
-                if ( t == "matches" )
+                if ( t == ":matches" )
                     d->matchType = Matches;
             }
-            else if ( t == "localpart" ||
-                      t == "domain" ||
-                      t == "all" ) {
+            else if ( t == ":localpart" ||
+                      t == ":domain" ||
+                      t == ":all" ) {
                 if ( apa ) {
                     apa->setError( "Address part specified twice" );
                     i->setError( "Address part specified twice" );
                 }
                 apa = i;
                 i->setParsed( true );
-                if ( t == "localpart" )
+                if ( t == ":localpart" )
                     d->addressPart = Localpart;
-                else if ( t == "domain" )
+                else if ( t == ":domain" )
                     d->addressPart = Domain;
-                else if ( t == "all" )
+                else if ( t == ":all" )
                     d->addressPart = All;
             }
             ++i;
@@ -851,12 +852,12 @@ void SieveTest::parse()
         cok = true;
         mtok = true;
         apok = true;
-        d->headers = takeStringList();
+        d->headers = takeHeaderFieldList();
         d->keys = takeStringList();
     }
     else if ( identifier() == "allof" ||
               identifier() == "anyof" ) {
-        if ( arguments()->arguments() )
+        if ( !arguments()->arguments()->isEmpty() )
             setError( "Test '" +
                       identifier() + 
                       "' does not accept arguments, only a list of tests" );
@@ -876,9 +877,21 @@ void SieveTest::parse()
         apok = true;
         d->envelopeParts = takeStringList();
         d->keys = takeStringList();
+        StringList::Iterator i( d->envelopeParts );
+        while ( i ) {
+            String s = i->lower();
+            if ( s == "from" || s == "to" ) {
+            } // else if and blah for extensions - extensions are only
+              // valid after the right require
+            else {
+                // better if we could setError on the right item, but it's gone
+                setError( "Unsupported envelope part: " + s );
+            }
+            ++i;
+        }
     }
     else if ( identifier() == "exists" ) {
-        d->headers = takeStringList();
+        d->headers = takeHeaderFieldList();
     }
     else if ( identifier() == "false" ) {
         // I wish all the tests were this easy
@@ -886,7 +899,7 @@ void SieveTest::parse()
     else if ( identifier() == "header" ) {
         cok = true;
         mtok = true;
-        d->headers = takeStringList();
+        d->headers = takeHeaderFieldList();
     }
     else if ( identifier() == "not" ) {
         if ( arguments()->arguments() )
@@ -950,16 +963,16 @@ void SieveTest::parse()
             // it's okay
         }
         else if ( i->number() ) {
-            setError( "Why is this number here?" );
+            i->setError( "Why is this number here?" );
         }
         else if ( i->stringList() ) {
-            setError( "Why is this string/list here?" );
+            i->setError( "Why is this string/list here?" );
         }
         else if ( !i->tag().isEmpty() ) {
-            setError( "Unknown tag" );
+            i->setError( "Unknown tag: " + i->tag() );
         }
         else {
-            setError( "What happened? I'm dazed and confused" );
+            i->setError( "What happened? I'm dazed and confused" );
         }
         ++i;
     }
@@ -1009,9 +1022,51 @@ StringList * SieveTest::takeStringList()
     while ( i && ( i->parsed() || !i->stringList() ) )
         ++i;
     if ( !i ) {
-        setError( "Wanted another string/list" );
+        setError( "Missing string/list argument" );
         return 0;
     }
     i->setParsed( true );
     return i->stringList();
 }
+
+
+/*! As takeStringList(), and additionally checks that each string is a
+    valid header field name according to RFC 2822 section 3.6.8, and
+    if identifier() is "address", that each refers to an address
+    field.
+*/
+
+StringList * SieveTest::takeHeaderFieldList()
+{
+    List<SieveArgument>::Iterator a( arguments()->arguments() );
+    while ( a && ( a->parsed() || !a->stringList() ) )
+        ++a;
+    if ( !a ) {
+        setError( "Missing string/list argument" );
+        return 0;
+    }
+    a->setParsed( true );
+
+    StringList::Iterator h( a->stringList() );
+    while ( h ) {
+        String s = *h;
+        if ( s.isEmpty() )
+            a->setError( "Empty header field names are not allowed" );
+        uint i = 0;
+        while ( i < s.length() ) {
+            if ( s[i] < 33 || s[i] == 58 || s[i] > 126 )
+                a->setError( "Illegal character (ASCII " + fn( s[i] ) + ") "
+                             "seen in header field name: " + s );
+            ++i;
+        }
+        if ( identifier() == "address" ) {
+            uint t = HeaderField::fieldType( s );
+            if ( t == 0 || t > HeaderField::LastAddressField )
+                a->setError( "Not an address field: " + s.headerCased() );
+        }
+        ++h;
+    }
+
+    return a->stringList();
+}
+

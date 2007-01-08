@@ -136,6 +136,7 @@ public:
 
 private:
     StringList * takeStringList();
+    StringList * takeHeaderFieldList();
 
 private:
     class SieveTestData * d;
