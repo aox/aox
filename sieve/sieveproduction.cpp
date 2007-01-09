@@ -914,7 +914,10 @@ void SieveTest::parse()
         List<SieveArgument>::Iterator i( arguments()->arguments() );
         while ( i && i->parsed() )
             ++i;
-        if ( i ) {
+        if ( !i ) {
+            setError( ":over/:under and number not supplied" );
+        }
+        else {
             String t = i->tag();
             if ( t == ":over" )
                 d->sizeOver = true;
@@ -925,17 +928,12 @@ void SieveTest::parse()
             if ( !i ) {
                 setError( "Number not supplied" );
             }
-            else if ( !i->tag().isEmpty() || i->stringList() ) {
-                i->setError( "Need a number" );
-            }
             else {
+                if ( !i->tag().isEmpty() || i->stringList() )
+                    i->setError( "Need a number" );
                 d->sizeLimit = i->number();
                 i->setParsed( true );
             }
-            ++i;
-        }
-        else {
-            setError( ":over/:under and number not supplied" );
         }
     }
     else if ( identifier() == "true" ) {

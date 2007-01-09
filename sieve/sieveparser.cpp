@@ -319,7 +319,7 @@ SieveArgument * SieveParser::argument()
     sa->setStart( pos() );
 
     if ( nextChar() == ':' )
-        sa->setTag( tag() );
+        sa->setTag( tag().lower() );
     else if ( nextChar() >= '0' && nextChar() <= '9' )
         sa->setNumber( number() );
     else
@@ -327,6 +327,12 @@ SieveArgument * SieveParser::argument()
 
     sa->setError( error() );
     sa->setEnd( pos() );
+
+    // hack: if we set a number, clear the error so the arguments()
+    // will read the next argument, too
+    if ( sa->number() )
+        setError( "" );
+
     return sa;
 }
 
