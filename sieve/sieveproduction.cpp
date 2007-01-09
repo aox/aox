@@ -900,9 +900,10 @@ void SieveTest::parse()
         cok = true;
         mtok = true;
         d->headers = takeHeaderFieldList();
+        d->keys = takeStringList();
     }
     else if ( identifier() == "not" ) {
-        if ( arguments()->arguments() )
+        if ( !arguments()->arguments()->isEmpty() )
             setError( "Test 'not' does not accept arguments, only a test" );
         if ( !arguments()->tests() ||
              arguments()->tests()->count() != 1 )
