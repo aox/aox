@@ -55,6 +55,10 @@ is to try $PGUSER (if set), postgres and pgsql in turn.
 .IP "-a address"
 Allows you to specify a different address for the Postgres server. The
 default is $DBADDRESS.
+.IP "-t port"
+Allows you to specify a different port for the Postgres server. The
+default is 5432. (This value is used only if the server address does
+not refer to a Unix socket.)
 .PP
 The defaults come from
 .IR Jamsettings .

@@ -39,6 +39,8 @@ String * dbpass;
 String * dbowner;
 String * dbownerpass;
 
+uint dbport = 0;
+
 int todo = 0;
 bool generatedPass = false;
 bool generatedOwnerPass = false;
@@ -119,6 +121,16 @@ int main( int ac, char *av[] )
                 *dbaddress = *av++;
             ac--;
         }
+        else if ( s == "-t" ) {
+            if ( ac == 1 )
+                error( s + " specified with no argument." );
+            String p( *av++ );
+            bool ok;
+            dbport = p.number( &ok );
+            if ( !ok )
+                error( "Invalid port number " + p );
+            ac--;
+        }
         else if ( s == "-v" ) {
             verbosity++;
         }
@@ -177,7 +189,7 @@ void help()
         "  Archiveopteryx installer\n\n"
         "  Synopsis:\n\n"
         "    installer [-n] [-q] [-g group] [-u user] [-p postgres] "
-        "[-a address]\n\n"
+        "[-a address] [-t port]\n\n"
         "  This program does the following:\n\n"
         "    1. Creates a Unix group named %s.\n"
         "    2. Creates a Unix user named %s.\n"
@@ -201,6 +213,8 @@ void help()
         "  set), postgres and pgsql in turn.\n\n"
         "  The \"-a address\" flag allows you to specify a different\n"
         "  address for the Postgres server. The default is '%s'.\n\n"
+        "  The \"-t port\" flag allows you to specify a different port\n"
+        "  for the Postgres server. The default is 5432.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
         AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
         dbowner->cstr(), dbuser->cstr(),
@@ -266,6 +280,9 @@ void configure()
 
     if ( Configuration::present( Configuration::DbAddress ) )
         *dbaddress = Configuration::text( Configuration::DbAddress );
+
+    if ( Configuration::present( Configuration::DbPort ) )
+        dbport = Configuration::scalar( Configuration::DbPort );
 
     if ( Configuration::present( Configuration::DbUser ) )
         *dbuser = Configuration::text( Configuration::DbUser );
@@ -445,6 +462,8 @@ void database()
         Configuration::add( "db-address = '" + *dbaddress + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
+        if ( dbport != 0 )
+            Configuration::add( "db-port = " + fn( dbport ) );
 
         Database::setup( 1 );
 
@@ -686,6 +705,9 @@ void database()
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
         Configuration::add( "db-address = '" + *dbaddress + "'" );
+        if ( dbport != 0 )
+            Configuration::add( "db-port = " + fn( dbport ) );
+
         Database::setup( 1 );
 
         d->ssa = new Query( "set session authorization " + d->owner, d );
@@ -1058,8 +1080,13 @@ void configFile()
         "# Automatically generated while installing Archiveopteryx "
         + v + ".\n\n"
     );
+
+    String dbhost( "db-address = " + *dbaddress + "\n" );
+    if ( dbport != 0 )
+        dbhost.append( "db-port = " + fn( dbport ) + "\n" );
+
     String cfg(
-        "db-address = " + *dbaddress + "\n"
+        dbhost +
         "db-name = " + *dbname + "\n"
         "db-user = " + *dbuser + "\n"
         "db-password = " + p + "\n\n"
