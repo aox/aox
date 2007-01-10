@@ -568,8 +568,8 @@ void database()
                 d->state = CheckSuperuser;
                 printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
-                        "psql -d template1 -qc \"%s\"\n\n",
-                        dbuser->cstr(), PGUSER, create.cstr() );
+                        "%s -d template1 -qc \"%s\"\n\n",
+                        dbuser->cstr(), PGUSER, PSQL, create.cstr() );
             }
             else {
                 d->state = CreatingUser;
@@ -621,8 +621,8 @@ void database()
                 d->state = CreateDatabase;
                 printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
-                        "psql -d template1 -qc \"%s\"\n\n",
-                        dbowner->cstr(), PGUSER, create.cstr() );
+                        "%s -d template1 -qc \"%s\"\n\n",
+                        dbowner->cstr(), PGUSER, PSQL, create.cstr() );
             }
             else {
                 d->state = CreatingSuperuser;
@@ -661,8 +661,8 @@ void database()
                 todo++;
                 printf( " - Create a database named '%s'.\n"
                         "   As user %s, run:\n\n"
-                        "psql -d template1 -qc \"%s\"\n\n",
-                        dbname->cstr(), PGUSER, create.cstr() );
+                        "%s -d template1 -qc \"%s\"\n\n",
+                        dbname->cstr(), PGUSER, PSQL, create.cstr() );
 
                 // We fool CreateSchema into thinking that the mailstore
                 // query returned 0 rows, so that it displays a suitable
@@ -776,8 +776,8 @@ void database()
                 todo++;
                 printf( " - Load the database schema.\n   "
                         "As user %s, run:\n\n"
-                        "psql %s -f - <<PSQL;\n%sPSQL\n\n",
-                        PGUSER, dbname->cstr(), cmd.cstr() );
+                        "%s %s -f - <<PSQL;\n%sPSQL\n\n",
+                        PGUSER, PSQL, dbname->cstr(), cmd.cstr() );
             }
             else {
                 if ( !silent )
@@ -893,9 +893,9 @@ void database()
             todo++;
             printf( " - Alter owner of database '%s' from '%s' to '%s'.\n"
                     "   As user %s, run:\n\n"
-                    "psql -d template1 -qc \"%s\"\n\n",
+                    "%s -d template1 -qc \"%s\"\n\n",
                     dbname->cstr(), d->owner.cstr(), dbowner->cstr(),
-                    PGUSER, alter.cstr() );
+                    PGUSER, PSQL, alter.cstr() );
             d->state = SelectObjects;
         }
         else {
@@ -1046,8 +1046,9 @@ void database()
             todo++;
             printf( " - Alter privileges on database '%s'.\n"
                     "   As user %s, run:\n\n"
-                    "psql %s -f - <<PSQL;\n%sPSQL\n\n",
-                    dbname->cstr(), PGUSER, dbname->cstr(), cmd.cstr() );
+                    "%s %s -f - <<PSQL;\n%sPSQL\n\n",
+                    dbname->cstr(), PGUSER, PSQL, dbname->cstr(),
+                    cmd.cstr() );
         }
         else {
             if ( !silent )
@@ -1379,7 +1380,7 @@ int psql( const String &cmd )
         if ( silent )
             if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                 exit( -1 );
-        execlp( "psql", "psql", dbname->cstr(), "-f", "-",
+        execlp( PSQL, PSQL, dbname->cstr(), "-f", "-",
                 (const char *) 0 );
         exit( -1 );
     }
@@ -1398,8 +1399,8 @@ int psql( const String &cmd )
                 fprintf( stderr, "(No psql in PATH=%s)\n", getenv( "PATH" ) );
             fprintf( stderr, "Please re-run the installer after "
                      "doing the following as user %s:\n\n"
-                     "psql %s -f - <<PSQL;\n%sPSQL\n\n",
-                     PGUSER, dbname->cstr(), cmd.cstr() );
+                     "%s %s -f - <<PSQL;\n%sPSQL\n\n",
+                     PGUSER, PSQL, dbname->cstr(), cmd.cstr() );
             EventLoop::shutdown();
             return -1;
         }
