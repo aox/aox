@@ -985,23 +985,9 @@ NOTIFY implementation
   above NOTIFY.
 
 
-Sieve design
+Cybertec replicator
 
-  Right now the command looks goodish, test not.
-
-  SieveTest::parse() should set some new enums and provide getters for
-  that. For example SieveTest::MatchType SieveTest::matchType(). I've
-  not done this, will start on it tonight so my thinking is clear and
-  complete.
-
-  Sieve should take a Message, a List<SieveCommand> and a mailbox (the
-  destination for keep), some setters and push the commands. A
-  separate function executes as much as possible, sets done() if
-  appropriate, and creates SieveAction objects. SMTP creates a Sieve
-  object, somehow finding the active script (who does that?) and tries
-  to execute it several times: After MAIL FROM, after RCPT TO and
-  after DATA. As soon as the script is done(), SMTP may reject the
-  DATA command or whatever.
+  Is it good? What are people saying about it? What should we do about it?
 
 
 Todo list: AMS
