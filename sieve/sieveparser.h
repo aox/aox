@@ -19,6 +19,9 @@ public:
     List<class SieveProduction> * bad( class SieveProduction * );
     void rememberBadProduction( class SieveProduction * );
 
+    class StringList * extensionsNeeded() const;
+    void rememberNeededExtension( const String & );
+
     // productions in RFC3028bis section 8.1
 
     void bracketComment();

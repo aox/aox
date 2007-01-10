@@ -28,6 +28,8 @@ public:
     void setError( const String & );
     String error() const;
 
+    void require( const String & );
+
     static bool supportedExtension( const String & );
 
 private:
@@ -133,6 +135,12 @@ public:
     MatchType matchType() const;
     AddressPart addressPart() const;
     String comparator() const;
+
+    StringList * headers() const;
+    StringList * keys() const;
+    StringList * envelopeParts() const;
+    bool sizeOverLimit() const;
+    uint sizeLimit() const;
 
 private:
     StringList * takeStringList();

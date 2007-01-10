@@ -71,6 +71,47 @@ void SieveScript::parse( const String & script )
         ++s;
     }
 
+    // check that require lists the right extensions
+    StringList * extensions = p.extensionsNeeded();
+    StringList declared;
+    s = d->script->first();
+    while ( s && s->identifier() == "require" ) {
+        if ( s->error().isEmpty() ) {
+            StringList unused;
+            StringList * r 
+                = s->arguments()->arguments()->first()->stringList();
+            StringList::Iterator i( r );
+            while ( i ) {
+                if ( extensions->find( *i ) )
+                    declared.append( *i );
+                else
+                    unused.append( i );
+                ++i;
+            }
+            if ( !unused.isEmpty() )
+                s->setError( "Extension(s) not used: " + unused.join( " " ) );
+        }
+        ++s;
+    }
+    declared.removeDuplicates();
+    if ( extensions->count() > declared.count() && d->script->first() ) {
+        StringList::Iterator i( extensions );
+        StringList undeclared;
+        while ( i ) {
+            if ( !declared.contains( *i ) )
+                undeclared.append( i->quoted() );
+            ++i;
+        }
+        SieveCommand * f = d->script->first();
+        if ( f->identifier() == "require" )
+            f->setError( "Extensions used but not declared: " +
+                         undeclared.join( ", " ) );
+        else
+            f->setError( "Missing require: require [ " +
+                         undeclared.join( ", " ) + " ];" );
+            
+    }
+
     // and find all the errors
     d->errors = p.bad( this );
 }

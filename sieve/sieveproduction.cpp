@@ -144,6 +144,19 @@ void SieveProduction::setError( const String & e )
 }
 
 
+/*! Records that the sieve script requires \a extension. Should be
+    called whenever a part of the parser sees that the input depends
+    on a given extension. SieveScript::parse() checks that the
+    "require" names this set of extensions.
+*/
+
+void SieveProduction::require( const String & extension )
+{
+    if ( d->parser )
+        d->parser->rememberNeededExtension( extension );
+}
+
+
 /*! Returns what setError() set, or an empty string if no error has
     occured.
 */
@@ -1069,3 +1082,55 @@ StringList * SieveTest::takeHeaderFieldList()
     return a->stringList();
 }
 
+
+
+/*! Returns a list of the headers to which the identifier() pertains,
+    or a null pointer if the identifier() is of a type that doesn't
+    use any header fields.
+*/
+
+StringList * SieveTest::headers() const
+{
+    return d->headers;
+}
+
+
+/*! Returns a list of the keys to be searched for, or a null pointer
+    if none are known (which is the case e.g. if identifier() is
+    "exists" or "true").
+*/
+
+StringList * SieveTest::keys() const
+{
+    return d->keys;
+}
+
+
+/*! Returns a list of the envelope parts the test "envelope" should
+    look at, or a null pointer if identifier() is not "envelope".
+*/
+
+StringList * SieveTest::envelopeParts() const
+{
+    return d->envelopeParts;
+}
+
+
+/*! Returns true if the test identifier() is "size" and the tag :over
+    is active, and false in all other cases.
+*/
+
+bool SieveTest::sizeOverLimit() const
+{
+    return d->sizeOver;
+}
+
+
+/*! Returns the size limit for identifier() "test", and 0 for all
+    other tests.
+*/
+
+uint SieveTest::sizeLimit() const
+{
+    return d->sizeLimit;
+}

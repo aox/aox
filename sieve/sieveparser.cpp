@@ -14,6 +14,7 @@ public:
     SieveParserData(): bad( 0 ) {}
 
     List<SieveProduction> * bad;
+    StringList extensions;
 };
 
 
@@ -85,6 +86,29 @@ void SieveParser::rememberBadProduction( class SieveProduction * p )
         d->bad->append( p );
     else if ( i != p )
         d->bad->insert( i, p );
+}
+
+
+/*! Returns a list of the strings specified to
+    rememberNeededExtension(), freed of duplication. The return value
+    is never a null pointer.
+*/
+
+StringList * SieveParser::extensionsNeeded() const
+{
+    d->extensions.removeDuplicates();
+    return &d->extensions;
+}
+
+
+/*! Adds \a extension to the list of extensions needed by the
+    generated productions. The SieveProduction subclasses call this,
+    ie. using SieveParser as a common storage object.
+*/
+
+void SieveParser::rememberNeededExtension( const String & extension )
+{
+    d->extensions.append( extension );
 }
 
 
