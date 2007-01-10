@@ -18,6 +18,7 @@ public:
     void append( const char * );
 
     void removeDuplicates( bool = true );
+    bool contains( const String & ) const;
 
     String join( const String & );
     static StringList *split( char, const String & );

@@ -130,3 +130,16 @@ void StringList::removeDuplicates( bool caseSensitive )
         }
     }
 }
+
+
+/*! Returns true if \a s occurs in this string list, and false if not. */
+
+bool StringList::contains( const String & s ) const
+{
+    Iterator i( this );
+    while ( i && s != *i )
+        ++i;
+    if ( i )
+        return true;
+    return false;
+}
