@@ -97,7 +97,7 @@ class SieveCommand
 public:
     SieveCommand();
 
-    void parse();
+    void parse( const String & );
 
     void setIdentifier( const String & );
     String identifier() const;

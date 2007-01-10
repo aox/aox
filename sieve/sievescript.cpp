@@ -65,9 +65,11 @@ void SieveScript::parse( const String & script )
 
     // do the semantic bits of parsing
     s = d->script->first();
+    String prev;
     while ( s ) {
         s->setParent( this );
-        s->parse();
+        s->parse( prev );
+        prev = s->identifier();
         ++s;
     }
 

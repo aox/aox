@@ -178,6 +178,8 @@ bool SieveProduction::supportedExtension( const String & s )
         return true;
     if ( s == "reject" )
         return true;
+    if ( s == "redirect" )
+        return true;
     return false;
 }
 
@@ -607,7 +609,7 @@ SieveArgumentList * SieveTest::arguments() const
     name is supported and that the arguments fit the command.
 */
 
-void SieveCommand::parse()
+void SieveCommand::parse( const String & previous )
 {
     if ( identifier().isEmpty() )
         setError( "Command name is empty" );
@@ -618,31 +620,51 @@ void SieveCommand::parse()
     bool mailboxes = false;
     bool extensions = false;
     bool test = false;
+    bool blk = false;
 
     String i = identifier();
-    if ( i == "if" ) {
+    if ( i == "if" || i == "elsif" ) {
         test = true;
-        maxargs = UINT_MAX;
-    } else if ( i == "require" ) {
+        blk = true;
+        if ( i == "elsif" && previous != "if" && previous != "elsif" )
+            setError( "elsif is only permitted after if/elsif" );
+    }
+    else if ( i == "else" ) {
+        blk = true;
+        if ( previous != "if" && previous != "elsif" )
+            setError( "else is only permitted after if/elsif" );
+    }
+    else if ( i == "require" ) {
         extensions = true;
         minargs = 1;
         if ( !d->require )
             setError( "require is only permitted as the first command." );
-    } else if ( i == "stop" ) {
+    }
+    else if ( i == "stop" ) {
         // nothing needed
-    } else if ( i == "reject" ) {
+    }
+    else if ( i == "reject" ) {
         // nothing needed
-    } else if ( i == "fileinto" ) {
+    }
+    else if ( i == "fileinto" ) {
         mailboxes = true;
         minargs = 1;
-    } else if ( i == "redirect" ) {
+        maxargs = 1;
+        require( "fileinto" );
+    }
+    else if ( i == "redirect" ) {
         addrs = true;
         minargs = 1;
-    } else if ( i == "keep" ) {
+        maxargs = 1;
+        require( "redirect" );
+    }
+    else if ( i == "keep" ) {
         // nothing needed
-    } else if ( i == "discard" ) {
+    }
+    else if ( i == "discard" ) {
         // nothing needed
-    } else {
+    }
+    else {
         setError( "Command unknown: " + identifier() );
     }
 
@@ -675,7 +697,7 @@ void SieveCommand::parse()
             SieveArgument * a = i;
             ++i;
             if ( a->number() ) {
-                a->setError( "Numeric not permitted as argument to command " +
+                a->setError( "Number not permitted as argument to command " +
                              identifier() );
             }
             else if ( !a->tag().isEmpty() ) {
@@ -683,29 +705,32 @@ void SieveCommand::parse()
                              identifier() );
             }
             else if ( addrs ) {
-                StringList::Iterator i( a->stringList() );
-                while ( i ) {
-                    AddressParser ap( *i );
-                    if ( !ap.error().isEmpty() )
-                        a->setError( "Each string must be an email address. "
-                                     "This one is not: " + *i );
-                    else if ( ap.addresses()->count() != 1 )
-                        a->setError( "Each string must be 1 email address. "
-                                     "This one represents " +
-                                     fn ( ap.addresses()->count() ) + ": " +
-                                     *i );
-                    else if ( ap.addresses()->first()->type() !=
-                              Address::Normal )
-                        a->setError( "Each string must be an ordinary "
-                                     "email address (localpart@domain). "
-                                     "This one is not: " + *i +
-                                     " (it represents " +
-                                     ap.addresses()->first()->toString() +
-                                     ")" );
-                    ++i;
-                }
+                String s;
+                if ( a->stringList() && a->stringList()->count() > 1 )
+                    a->setError( "Only one address may be specified" );
+                else
+                    s = *a->stringList()->firstElement();
+                AddressParser ap( s );
+                if ( !ap.error().isEmpty() )
+                    a->setError( "The argument must be an email address. "
+                                 "This one is not: " + s );
+                else if ( ap.addresses()->count() != 1 )
+                    a->setError( "The string must be 1 email address. "
+                                 "This one represents " +
+                                 fn ( ap.addresses()->count() ) + ": " +
+                                 s );
+                else if ( ap.addresses()->first()->type() !=
+                          Address::Normal )
+                    a->setError( "The string must be an ordinary "
+                                 "email address (localpart@domain). "
+                                 "This one is not: " + s +
+                                 " (it represents " +
+                                 ap.addresses()->first()->toString() +
+                                 ")" );
             }
             else if ( mailboxes ) {
+                if ( !a->stringList() || a->stringList()->count() != 1 )
+                    a->setError( "Must have exactly one mailbox name" );
                 StringList::Iterator i( a->stringList() );
                 while ( i ) {
                     if ( !Mailbox::validName( *i ) )
@@ -721,7 +746,7 @@ void SieveCommand::parse()
                     if ( !supportedExtension( *i ) )
                         e.append( i->quoted() );
                     ++i;
-                    
+
                 }
                 if ( !e.isEmpty() )
                     a->setError( "Each string must be a supported "
@@ -732,7 +757,7 @@ void SieveCommand::parse()
     }
 
     if ( test ) {
-        // we must have a test and a block
+        // we must have a test
         if ( !arguments() || arguments()->tests()->isEmpty() ) {
             setError( "Command " + identifier() +
                       " requires a test" );
@@ -744,20 +769,9 @@ void SieveCommand::parse()
                 ++i;
             }
         }
-        if ( !block() ) {
-            setError( "Command " + identifier() +
-                      " requires a subsidiary {..} block" );
-        }
-        else {
-            List<SieveCommand>::Iterator i( block()->commands() );
-            while ( i ) {
-                i->parse();
-                ++i;
-            }
-        }
     }
     else {
-        // we cannot have a test or a block
+        // we cannot have a test
         if ( arguments() && arguments()->tests()->isEmpty() ) {
             List<SieveTest>::Iterator i( arguments()->tests() );
             while ( i ) {
@@ -766,13 +780,32 @@ void SieveCommand::parse()
                 ++i;
             }
         }
+    }
+
+    if ( blk ) {
+        // we must have a subsidiary block
+        if ( !block() ) {
+            setError( "Command " + identifier() +
+                      " requires a subsidiary {..} block" );
+        }
+        else {
+            String prev;
+            List<SieveCommand>::Iterator i( block()->commands() );
+            while ( i ) {
+                i->parse( prev );
+                prev = i->identifier();
+                ++i;
+            }
+        }
+    }
+    else {
+        // we cannot have a subsidiary block
         if ( block() )
             block()->setError( "Command " + identifier() +
                                " does not use a subsidiary command block" );
         // in this case we don't even bother syntax-checking the test
         // or block
     }
-
 }
 
 
@@ -860,7 +893,7 @@ void SieveTest::parse()
             ++i;
         }
     }
-        
+
     if ( identifier() == "address" ) {
         cok = true;
         mtok = true;
@@ -872,7 +905,7 @@ void SieveTest::parse()
               identifier() == "anyof" ) {
         if ( !arguments()->arguments()->isEmpty() )
             setError( "Test '" +
-                      identifier() + 
+                      identifier() +
                       "' does not accept arguments, only a list of tests" );
         bool any = false;
         List<SieveTest>::Iterator i( arguments()->tests() );
