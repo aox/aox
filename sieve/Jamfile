@@ -6,7 +6,11 @@ SubInclude TOP sasl ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
+SubInclude TOP imap handlers ; # listext is used for an UGLY HACK
+
 HDRS += [ FDirName $(TOP) sieve ] ;
+HDRS += [ FDirName $(TOP) imap handlers ] ;
+HDRS += [ FDirName $(TOP) imap ] ;
 
 Build sieve : managesieve.cpp managesievecommand.cpp
     sieveaction.cpp sievescript.cpp sieve.cpp
