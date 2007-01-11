@@ -2,7 +2,15 @@
 
 #include "sieve.h"
 
+#include "query.h"
+#include "address.h"
+#include "mailbox.h"
+#include "message.h"
+#include "stringlist.h"
+#include "sievescript.h"
 #include "sieveaction.h"
+#include "addressfield.h"
+#include "sieveproduction.h"
 
 
 class SieveData
@@ -12,25 +20,42 @@ public:
     SieveData()
         : sender( 0 ),
           currentRecipient( 0 ),
-          message( 0 )
+          message( 0 ),
+          ready( 0 )
         {}
 
     class Recipient
         : public Garbage
     {
     public:
-        Recipient( Address * a ): address( a ), done( false ), ok( true ) {}
+        Recipient( Address * a, Mailbox * m, SieveData * data )
+            : d( data ), address( a ), mailbox( m ),
+              done( false ), ok( true ),
+              sq( 0 ), script( new SieveScript )
+        {
+            d->recipients.append( this );
+        }
 
+        SieveData * d;
         Address * address;
+        Mailbox * mailbox;
         bool done;
         bool ok;
         String result;
         List<SieveAction> actions;
+        List<SieveCommand> pending;
+        Query * sq;
+        SieveScript * script;
+
+        bool evaluate( SieveCommand * );
+        enum Result { True, False, Undecidable };
+        Result evaluate( SieveTest * );
     };
     Address * sender;
     List<Recipient> recipients;
     Recipient * currentRecipient;
     Message * message;
+    bool ready;
 
     Recipient * recipient( Address * a );
 };
@@ -63,9 +88,33 @@ SieveData::Recipient * SieveData::recipient( Address * a )
 /*! Constructs an empty message Sieve. */
 
 Sieve::Sieve()
-    : Garbage(), d( new SieveData )
+    : EventHandler(), d( new SieveData )
 {
     
+}
+
+
+/*! Used only for database chores - selecting the scripts
+    mostly. Anything else?
+*/
+
+void Sieve::execute()
+{
+    d->ready = true;
+    List<SieveData::Recipient>::Iterator i( d->recipients );
+    while ( i ) {
+        if ( i->sq ) {
+            Row * r = i->sq->nextRow();
+            if ( r ) {
+                i->sq = 0;
+                i->script->parse( r->getString( "script" ) );
+            }
+            else {
+                d->ready = false;
+            }
+        }
+        ++i;
+    }
 }
 
 
@@ -77,16 +126,26 @@ void Sieve::setSender( Address * address )
 }
 
 
-/*! Records that \a address is one of the recipients for this
-    message. If \a address is not a registered alias, Sieve will
-    refuse mail to it.
+/*! Records that \a address is one of the recipients for this message,
+    and that \a destination is where the mailbox should be stored by
+    default. Sieve will use the active script for the owner of \a
+    destination.
+    
+    If \a address is not a registered alias, Sieve will refuse mail to
+    it.
 */
 
-void Sieve::addRecipient( Address * address )
+void Sieve::addRecipient( Address * address, Mailbox * destination )
 {
-    d->recipients.append( new SieveData::Recipient( address ) );
-    // XXX: start selecting a sieve script
-    // XXX: select ... from aliases
+    SieveData::Recipient * r 
+        = new SieveData::Recipient( address, destination, d );
+    r->sq = new Query( "select scripts.script from scripts s, mailboxes m "
+                       "where s.owner=m.owner "
+                       "and m.id=$1"
+                       "and s.active='t'",
+                       this );
+    r->sq->bind( 1, destination->id() );
+    r->sq->execute();
 }
 
 
@@ -112,7 +171,7 @@ Address * Sieve::sender() const
 }
 
 
-/*! Returns a pointe to the recipient currently being sieved, or a
+/*! Returns a pointer to the recipient currently being sieved, or a
     null pointer if the Sieve engine is not currently working on any
     particular recipient.
 
@@ -135,8 +194,281 @@ Address * Sieve::recipient() const
 
 void Sieve::evaluate()
 {
+    if ( !ready() )
+        return;
     
+    List<SieveData::Recipient>::Iterator i( d->recipients );
+    while ( i ) {
+        if ( !i->done && !i->pending.isEmpty() ) {
+            List<SieveCommand>::Iterator c( i->pending );
+            while ( c && !i->done && i->evaluate( c ) )
+                (void)i->pending.take( c );
+        }
+        ++i;
+    }
 }
+
+
+bool SieveData::Recipient::evaluate( SieveCommand * c )
+{
+    String arg;
+    if ( c->arguments() &&
+         c->arguments()->arguments() &&
+         c->arguments()->arguments()->first() && 
+         c->arguments()->arguments()->first()->stringList() &&
+         !c->arguments()->arguments()->first()->stringList()->isEmpty() )
+        arg = *c->arguments()->arguments()->first()->stringList()->first();
+
+    if ( c->identifier() == "if" ||
+         c->identifier() == "elsif" ) {
+        Result r = evaluate( c->arguments()->tests()->firstElement() );
+        if ( r == Undecidable ) {
+            // cannot evaluate this test with the information
+            // available. must wait until more data is available.
+            return false;
+        }
+        else if ( r == True ) {
+            // if the condition is true, we want to get rid of the
+            // following elsif/else commands and insert the subsidiary
+            // block in their place.
+            List<SieveCommand>::Iterator f( pending );
+            if ( f == c )
+                ++f;
+            while ( f && 
+                    ( f->identifier() == "elsif" ||
+                      f->identifier() == "else" ) )
+                (void)pending.take( f );
+            List<SieveCommand>::Iterator s( c->block()->commands() );
+            while ( s ) {
+                pending.insert( f, s );
+                ++s;
+            }
+        }
+        else if ( r == False ) {
+            // if the condition is false, we'll just proceed to the
+            // next statement. there is nothing to do in this case.
+        }
+    }
+    else if ( c->identifier() == "else" ) {
+        // if we get here, we should evaluate
+    }
+    else if ( c->identifier() == "require" ) {
+        // no action needed
+    }
+    else if ( c->identifier() == "stop" ) {
+        done = true;
+    }
+    else if ( c->identifier() == "reject" ) {
+        SieveAction * a = new SieveAction( SieveAction::Reject );
+        actions.append( a );
+    } else if ( c->identifier() == "fileinto" ) {
+        SieveAction * a = new SieveAction( SieveAction::FileInto );
+        a->setMailbox( Mailbox::find( arg ) );
+        actions.append( a );
+    }
+    else if ( c->identifier() == "redirect" ) {
+        SieveAction * a = new SieveAction( SieveAction::FileInto );
+        AddressParser ap( arg );
+        a->setAddress( ap.addresses()->first() );
+        actions.append( a );
+    } else if ( c->identifier() == "keep" ) {
+        // nothing needed
+    } else if ( c->identifier() == "discard" ) {
+        SieveAction * a = new SieveAction( SieveAction::Reject );
+        actions.append( a );
+    } else {
+        // ?
+    }
+    return true;
+}
+
+
+static void addAddress( StringList * l, Address * a,
+                        SieveTest::AddressPart p )
+{
+    String * s = new String;
+    if ( p != SieveTest::Domain )
+        s->append( a->localpart() );
+    if ( p == SieveTest::All || p == SieveTest::NoAddressPart )
+        s->append( "@" );
+    if ( p != SieveTest::Localpart )
+        s->append( a->domain() );
+    l->append( s );
+}
+
+
+SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
+{
+    StringList * haystack = 0;
+    if ( t->identifier() == "address" ) {
+        if ( !d->message )
+            return Undecidable;
+        haystack = new StringList;
+        List<HeaderField>::Iterator hf( d->message->header()->fields() );
+        while ( hf ) {
+            if ( hf->type() <= HeaderField::LastAddressField &&
+                 t->headers()->contains( hf->name() ) ) {
+                AddressField * af = (AddressField*)((HeaderField*)hf);
+                List<Address>::Iterator a( af->addresses() );
+                while ( a ) {
+                    addAddress( haystack, a, t->addressPart() );
+                    ++a;
+                }
+            }
+            ++hf;
+        }
+    }
+    else if ( t->identifier() == "allof" ) {
+        Result r = True;
+        List<SieveTest>::Iterator i( t->arguments()->tests() );
+        while ( i ) {
+            Result ir = evaluate( i );
+            if ( ir == False )
+                return False;
+            else if ( ir == Undecidable )
+                r = Undecidable;
+            ++i;
+        }
+        return r;
+    }
+    else if ( t->identifier() == "anyof" ) {
+        Result r = False;
+        List<SieveTest>::Iterator i( t->arguments()->tests() );
+        while ( i ) {
+            Result ir = evaluate( i );
+            if ( ir == True )
+                return True;
+            else if ( ir == Undecidable )
+                r = Undecidable;
+            ++i;
+        }
+        return r;
+    }
+    else if ( t->identifier() == "envelope" ) {
+        haystack = new StringList;
+        StringList::Iterator i( t->envelopeParts() );
+        while ( i ) {
+            if ( *i == "from" )
+                addAddress( haystack, d->sender, t->addressPart() );
+            else if ( *i == "to" )
+                addAddress( haystack, address, t->addressPart() );
+            ++i;
+        }
+    }
+    else if ( t->identifier() == "exists" ||
+              t->identifier() == "header" ) {
+        if ( !d->message )
+            return Undecidable;
+        haystack = new StringList;
+        StringList::Iterator i( t->headers() );
+        Result r = True;
+        while ( i ) {
+            uint hft = HeaderField::fieldType( *i );
+            if ( (hft > 0 && hft <= HeaderField::LastAddressField)
+                 ? (!d->message->hasAddresses())
+                 : (!d->message->hasHeaders()) )
+                r = Undecidable;
+            List<HeaderField>::Iterator hf( d->message->header()->fields() );
+            while ( hf && hf->name() != *i )
+                ++hf;
+            if ( t->identifier() == "exists" ) {
+                if ( !hf )
+                    return False;
+            }
+            else {
+                if ( hf )
+                    haystack->append( hf->value() );
+            }
+            ++i;
+        }
+        return r;
+    }
+    else if ( t->identifier() == "false" ) {
+        return False;
+    }
+    else if ( t->identifier() == "not" ) {
+        List<SieveTest>::Iterator i( t->arguments()->tests() );
+        if ( i ) {
+            switch ( evaluate( i ) ) {
+            case True:
+                return False;
+                break;
+            case False:
+                return True;
+                break;
+            case Undecidable:
+                return Undecidable;
+                break;
+            }
+        }
+        return False; // should never happen
+    }
+    else if ( t->identifier() == "size" ) {
+        if ( !d->message )
+            return Undecidable;
+        if ( t->sizeOverLimit() ) {
+            if ( d->message->rfc822Size() > t->sizeLimit() )
+                return True;
+        }
+        else {
+            if ( d->message->rfc822Size() < t->sizeLimit() )
+                return True;
+        }
+        return False;
+    }
+    else if ( t->identifier() == "true" ) {
+        return True;
+    }
+    else {
+        // unknown test. wtf?
+        return False;
+    }
+
+    StringList::Iterator h( haystack );
+    while ( h ) {
+        StringList::Iterator k( t->keys() );
+        String s;
+        switch ( t->comparator() ) {
+        case SieveTest::IAsciiCasemap:
+            s = h->lower();
+            break;
+        case SieveTest::IOctet:
+            s = *h;
+            break;
+        }
+        while ( k ) {
+            String g;
+            switch ( t->comparator() ) {
+            case SieveTest::IAsciiCasemap:
+                g = k->lower();
+                break;
+            case SieveTest::IOctet:
+                g = *k;
+                break;
+            }
+            switch ( t->matchType() ) {
+            case SieveTest::Is:
+                if ( s == g )
+                    return True;
+                break;
+            case SieveTest::Contains:
+                if ( s.contains( k ) )
+                    return True;
+                break;
+            case SieveTest::Matches:
+                //if ( s.matchesGlobPattern( k ) )
+                //return True;
+                break;
+            }
+            ++k;
+        }
+        ++h;
+    }
+
+    return False;
+}
+
+
 
 
 /*! Returns true if delivery to \a address succeeded, and false if it
@@ -247,4 +579,14 @@ List<Address> * Sieve::forwarded() const
 bool Sieve::rejected() const
 {
     return false;
+}
+
+
+/*! Returns true if evaluate() may be called, and false if execute()
+    still has work to do.
+*/
+
+bool Sieve::ready() const
+{
+    return d->ready;
 }

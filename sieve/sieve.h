@@ -3,7 +3,7 @@
 #ifndef SIEVE_H
 #define SIEVE_H
 
-#include "global.h"
+#include "event.h"
 #include "list.h"
 
 
@@ -15,13 +15,15 @@ class SieveAction;
 
 
 class Sieve
-    : public Garbage
+    : public EventHandler
 {
 public:
     Sieve();
 
+    void execute();
+
     void setSender( Address * );
-    void addRecipient( Address * );
+    void addRecipient( Address *, Mailbox * );
     void setMessage( Message * );
 
     Address * sender() const;
@@ -32,6 +34,7 @@ public:
     bool failed( Address * );
     String result( Address * );
     bool done() const;
+    bool ready() const;
 
     List<Mailbox> * mailboxes() const;
     List<Address> * forwarded() const;

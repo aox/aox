@@ -129,12 +129,14 @@ public:
 
     void parse();
 
-    enum MatchType { Is, Contains, Matches, NoMatchType };
+    enum MatchType { Is, Contains, Matches };
     enum AddressPart { Localpart, Domain, All, NoAddressPart };
 
     MatchType matchType() const;
     AddressPart addressPart() const;
-    String comparator() const;
+
+    enum Comparator { IOctet, IAsciiCasemap };
+    Comparator comparator() const;
 
     StringList * headers() const;
     StringList * keys() const;

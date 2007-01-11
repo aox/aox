@@ -528,8 +528,9 @@ class SieveTestData
 public:
     SieveTestData()
         : arguments( 0 ), block( 0 ),
-          matchType( SieveTest::NoMatchType ),
+          matchType( SieveTest::Is ),
           addressPart( SieveTest::NoAddressPart ),
+          comparator( SieveTest::IAsciiCasemap ),
           headers( 0 ), envelopeParts( 0 ), keys( 0 ),
           sizeOver( false ), sizeLimit( 0 )
     {}
@@ -540,7 +541,7 @@ public:
 
     SieveTest::MatchType matchType;
     SieveTest::AddressPart addressPart;
-    String comparator;
+    SieveTest::Comparator comparator;
 
     StringList * headers;
     StringList * envelopeParts;
@@ -606,7 +607,9 @@ SieveArgumentList * SieveTest::arguments() const
 
 
 /*! Performs second-phase parsing of this command. Checks that its
-    name is supported and that the arguments fit the command.
+    name is supported and that the arguments fit the command. Assumes
+    that the \a previous command is, well, \a previous and uses that
+    to verify that there's no if/elsif/else mismatch.
 */
 
 void SieveCommand::parse( const String & previous )
@@ -758,11 +761,9 @@ void SieveCommand::parse( const String & previous )
 
     if ( test ) {
         // we must have a test
-        if ( !arguments() || arguments()->tests()->isEmpty() ) {
-            setError( "Command " + identifier() +
-                      " requires a test" );
-        }
-        else {
+        if ( !arguments() || arguments()->tests()->count() != 1 )
+            setError( "Command " + identifier() + " requires one test" );
+        if ( arguments() ) {
             List<SieveTest>::Iterator i( arguments()->tests() );
             while ( i ) {
                 i->parse();
@@ -854,8 +855,12 @@ void SieveTest::parse()
                     String c = i->stringList()->first()->simplified();
                     if ( c.isEmpty() )
                         i->setError( "Comparator name is empty" );
-                    // XXX: check that c is okay. ick.
-                    d->comparator = c;
+                    if ( c == "i;octet" )
+                        d->comparator = IOctet;
+                    else if ( c == "i;ascii-casemap" )
+                        d->comparator = IAsciiCasemap;
+                    else
+                        setError( "Unknown comparator: " + c );
                 }
             }
             else if ( t == ":is" ||
@@ -1024,7 +1029,7 @@ void SieveTest::parse()
 }
 
 
-/*! Returns the match type specified, or NoMatchType if none has been
+/*! Returns the match type specified, or Is if none has been
     explicitly specified.
 */
 
@@ -1045,11 +1050,11 @@ SieveTest::AddressPart SieveTest::addressPart() const
 }
 
 
-/*! Returns the comparator specified, or an empty string if none has
-    been explicitly specified.
+/*! Returns the comparator specified, or SieveTest::IAsciiCasemap if
+    none has been.
 */
 
-String SieveTest::comparator() const
+SieveTest::Comparator SieveTest::comparator() const
 {
     return d->comparator;
 }
@@ -1078,7 +1083,7 @@ StringList * SieveTest::takeStringList()
 /*! As takeStringList(), and additionally checks that each string is a
     valid header field name according to RFC 2822 section 3.6.8, and
     if identifier() is "address", that each refers to an address
-    field.
+    field. The result is filtered through String::headerCased().
 */
 
 StringList * SieveTest::takeHeaderFieldList()
@@ -1107,8 +1112,11 @@ StringList * SieveTest::takeHeaderFieldList()
         if ( identifier() == "address" ) {
             uint t = HeaderField::fieldType( s );
             if ( t == 0 || t > HeaderField::LastAddressField )
-                a->setError( "Not an address field: " + s.headerCased() );
+                a->setError( "Not an address field: " + s );
         }
+        s = s.headerCased();
+        if ( s != *h )
+            *h = s;
         ++h;
     }
 
@@ -1120,6 +1128,8 @@ StringList * SieveTest::takeHeaderFieldList()
 /*! Returns a list of the headers to which the identifier() pertains,
     or a null pointer if the identifier() is of a type that doesn't
     use any header fields.
+
+    Each string in the list is header-cased (see String::headerCased()).
 */
 
 StringList * SieveTest::headers() const
