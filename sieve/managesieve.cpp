@@ -210,6 +210,8 @@ void ManageSieve::addCommand()
             c = ManageSieveCommand::GetScript;
         else if ( cmd == "deletescript" )
             c = ManageSieveCommand::DeleteScript;
+        else if ( cmd == "x-aox-explain" )
+            c = ManageSieveCommand::XAoxExplain;
     }
 
     d->commands->append( new ManageSieveCommand( this, c, d->arg ) );
@@ -328,4 +330,5 @@ void ManageSieve::capabilities()
     enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) +
              "\"\r\n" );
     enqueue( "\"STARTTLS\"\r\n" );
+    enqueue( "\"X-AOX-EXPLAIN\"" );
 }

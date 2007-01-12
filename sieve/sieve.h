@@ -12,6 +12,7 @@ class Address;
 class Message;
 class Mailbox;
 class SieveAction;
+class SieveScript;
 
 
 class Sieve
@@ -23,7 +24,7 @@ public:
     void execute();
 
     void setSender( Address * );
-    void addRecipient( Address *, Mailbox * );
+    void addRecipient( Address *, Mailbox *, SieveScript * = 0 );
     void setMessage( Message * );
 
     Address * sender() const;
@@ -36,6 +37,8 @@ public:
     bool done() const;
     bool ready() const;
 
+    List<SieveAction> * actions( const Address * ) const;
+    
     List<Mailbox> * mailboxes() const;
     List<Address> * forwarded() const;
     bool rejected() const;

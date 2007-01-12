@@ -129,17 +129,24 @@ void Sieve::setSender( Address * address )
 
 /*! Records that \a address is one of the recipients for this message,
     and that \a destination is where the mailbox should be stored by
-    default. Sieve will use the active script for the owner of \a
-    destination.
+    default. Sieve will use \a script as script, or if \a script is a
+    not supplied (normally the case), Sieve looks up the active script
+    for the owner of \a destination.
     
     If \a address is not a registered alias, Sieve will refuse mail to
     it.
 */
 
-void Sieve::addRecipient( Address * address, Mailbox * destination )
+void Sieve::addRecipient( Address * address, Mailbox * destination,
+                          SieveScript * script )
 {
     SieveData::Recipient * r 
         = new SieveData::Recipient( address, destination, d );
+    if ( script ) {
+        r->script = script;
+        return;
+    }
+        
     r->sq = new Query( "select scripts.script from scripts s, mailboxes m "
                        "where s.owner=m.owner "
                        "and m.id=$1"
@@ -541,6 +548,23 @@ void Sieve::addAction( SieveAction * action )
 {
     if ( d->currentRecipient )
         d->currentRecipient->actions.append( action );
+}
+
+
+/*! Returns a list of all actions this Sieve has decided that \a
+    address need performed. It returns a null pointer if \a address
+    has never been passed to addRecipient(), and a pointer to a
+    (possibly empty) list if \a address has been added.
+*/
+
+List<SieveAction> * Sieve::actions( const Address * address ) const
+{
+    List<SieveData::Recipient>::Iterator i( d->recipients );
+    while ( i && i->address != address )
+        ++i;
+    if ( !i )
+        return 0;
+    return &i->actions;
 }
 
 

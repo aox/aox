@@ -14,6 +14,7 @@ public:
     enum Command {
         Authenticate, StartTls, Logout, Capability, HaveSpace,
         PutScript, ListScripts, SetActive, GetScript, DeleteScript,
+        XAoxExplain,
         Unknown
     };
 
@@ -34,6 +35,7 @@ private:
     bool setActive();
     bool getScript();
     bool deleteScript();
+    bool explain();
 
     String string();
     uint number();

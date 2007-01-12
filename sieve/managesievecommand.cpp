@@ -5,9 +5,15 @@
 #include "tls.h"
 #include "user.h"
 #include "query.h"
+#include "sieve.h"
 #include "buffer.h"
+#include "address.h"
+#include "mailbox.h"
+#include "message.h"
+#include "allocator.h"
 #include "mechanism.h"
 #include "stringlist.h"
+#include "sieveaction.h"
 #include "sievescript.h"
 #include "transaction.h"
 
@@ -126,6 +132,9 @@ void ManageSieveCommand::execute()
     case DeleteScript:
         ok = deleteScript();
         break;
+
+    case XAoxExplain:
+        ok = explain();
 
     case Unknown:
         no( "Unknown command" );
@@ -598,3 +607,170 @@ String ManageSieveCommand::encoded( const String & input )
 }
 
 
+class ExplainStuff
+    : public Garbage
+{
+public:
+    ExplainStuff()
+        : from( 0 ),
+          to( 0 ), keep( 0 ),
+          script( 0 ), message( 0 )
+        {
+            Allocator::addEternal( this, "managesieve explain status" );
+        }
+    Address * from;
+    Address * to;
+    Mailbox * keep;
+    SieveScript * script;
+    Message * message;
+};
+
+static ExplainStuff * x = 0;
+
+
+/*! This Archiveopteryx extension explains what a sieve script (the
+    first argument) does with a given message. It is intended for
+    automated testing at Oryx.
+
+    The command takes a number of name-value pairs as aguments. The
+    possible names are from, to, keep, script and message. The
+    arguments are syntactically valid addresses, mailbox name, sieve
+    scripts and messages.
+
+    It runs the script on the rest of the data and reports what
+    actions would be performed, if any, and whether the script
+    completed. (If the message is not available, the script may or may
+    not be able to complete.)
+
+    NOTE: This command uses static storage. If two managesieve clients
+    use it at the same time, they'll overwrite each other's data.
+*/
+
+bool ManageSieveCommand::explain()
+{
+    if ( !::x )
+        ::x = new ExplainStuff;
+
+    whitespace();
+    while ( d->no.isEmpty() && d->pos < d->arg.length() ) {
+        String name = string();
+        whitespace();
+        String value = string();
+        whitespace();
+        if ( name == "from" || name == "to" ) {
+            if ( value.isEmpty() ) {
+                if ( name == "from" )
+                    ::x->from = 0;
+                else
+                    ::x->to = 0;
+            }
+            else {
+                AddressParser ap( value );
+                if ( ap.addresses()->count() != 1 )
+                    no( "Need exactly one address for " + name );
+                else if ( name == "from" )
+                    ::x->from = ap.addresses()->first();
+                else
+                    ::x->to = ap.addresses()->first();
+            }
+        }
+        else if ( name == "keep" ) {
+            if ( value.isEmpty() ) {
+                ::x->keep = 0;
+            }
+            else {
+                ::x->keep = Mailbox::find( value );
+                if ( ::x->keep )
+                    no( "Need (existing) mailbox name for default keep" );
+            }
+        }
+        else if ( name == "script" ) {
+            if ( value.isEmpty() ) {
+                ::x->script = 0;
+            }
+            else {
+                if ( ::x->script )
+                    ::x->script = new SieveScript;
+                ::x->script->parse( value );
+                if ( ::x->script->isEmpty() )
+                    no( "Script cannot be empty" );
+                String e = ::x->script->parseErrors();
+                if ( !e.isEmpty() )
+                    no( e );
+            }
+        }
+        else if ( name == "message" ) {
+            if ( value.isEmpty() ) {
+                ::x->message = 0;
+            }
+            else {
+                ::x->message = new Message( value );
+                if ( !::x->message->error().isEmpty() )
+                    no( "Message parsing: " + ::x->message->error() );
+            }
+        }
+        else {
+            no( "Unknown name: " + name );
+        }
+    }
+
+    if ( !::x->script )
+        no( "No sieve (yet)" );
+    if ( !::x->from )
+        no( "No sender address (yet)" );
+    if ( !::x->to )
+        no( "No recipient address (yet)" );
+    if ( !::x->keep )
+        no( "No keep mailbox (yet)" );
+
+    if ( !d->no.isEmpty() )
+        return true;
+
+    Sieve s;
+    s.setSender( ::x->from );
+    s.addRecipient( ::x->to, ::x->keep, ::x->script );
+    s.evaluate();
+    uint a = s.actions( ::x->to )->count();
+    bool m = false;
+    if ( ::x->message && !s.done() ) {
+        s.setMessage( ::x->message );
+        s.evaluate();
+        m = true;
+    }
+    if ( ::x->message && !m )
+        d->sieve->send( "Script did not need the message\n" );
+    else if ( !s.done() )
+        d->sieve->send( "Script did not complete\n" );
+
+    uint n = 0;
+    List<SieveAction>::Iterator sa( s.actions( ::x->to ) );
+    while ( sa ) {
+        String r;
+        switch ( sa->type() ) {
+        case SieveAction::Reject:
+            r.append( "reject" );
+            break;
+        case SieveAction::FileInto:
+            r.append( "fileinto " );
+            r.append( sa->mailbox()->name() );
+            break;
+        case SieveAction::Redirect:
+            r.append( "redirect " );
+            r.append( sa->address()->localpart() );
+            r.append( "@ " );
+            r.append( sa->address()->domain() );
+            break;
+        case SieveAction::Discard:
+            r.append( "discard" );
+            break;
+
+        }
+        if ( m && a && n<a )
+            r.append( " (before seeing the message text)" );
+        d->sieve->send( r );
+        ++sa;
+        n++;
+    }
+
+    return true;
+}
