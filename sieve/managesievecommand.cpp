@@ -764,7 +764,7 @@ bool ManageSieveCommand::explain()
         case SieveAction::Redirect:
             r.append( "redirect " );
             r.append( sa->address()->localpart() );
-            r.append( "@ " );
+            r.append( "@" );
             r.append( sa->address()->domain() );
             break;
         case SieveAction::Discard:
