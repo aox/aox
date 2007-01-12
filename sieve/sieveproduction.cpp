@@ -174,9 +174,9 @@ String SieveProduction::error() const
 StringList * SieveProduction::supportedExtensions()
 {
     StringList * r = new StringList;
+    r->append( "envelope" );
     r->append( "fileinto" );
     r->append( "reject" );
-    r->append( "redirect" );
     return r;
 }
 
@@ -656,7 +656,6 @@ void SieveCommand::parse( const String & previous )
         addrs = true;
         minargs = 1;
         maxargs = 1;
-        require( "redirect" );
     }
     else if ( i == "keep" ) {
         // nothing needed
@@ -733,7 +732,8 @@ void SieveCommand::parse( const String & previous )
                     a->setError( "Must have exactly one mailbox name" );
                 StringList::Iterator i( a->stringList() );
                 while ( i ) {
-                    if ( i->lower() != "inbox" && !Mailbox::validName( *i ) )
+                    if ( !Mailbox::validName( *i ) &&
+                         !Mailbox::validName( "/" + *i ) )
                         a->setError( "Each string must be a mailbox name. "
                                      "This one is not: " + *i );
                     ++i;
@@ -920,6 +920,7 @@ void SieveTest::parse()
             setError( "Need at least one subsidiary test" );
     }
     else if ( identifier() == "envelope" ) {
+        require( "envelope" );
         cok = true;
         mtok = true;
         apok = true;
