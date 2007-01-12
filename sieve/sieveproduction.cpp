@@ -167,20 +167,17 @@ String SieveProduction::error() const
 }
 
 
-/*! Returns true if \a s is the name of a supported sieve extension,
-    and false if it is not. \a s is case sensitive.
-
+/*! Returns a list of all supported sieve extensions. The list is
+    allocated for the purpose, so the caller can modify it at will.
 */
 
-bool SieveProduction::supportedExtension( const String & s )
+StringList * SieveProduction::supportedExtensions()
 {
-    if ( s == "fileinto" )
-        return true;
-    if ( s == "reject" )
-        return true;
-    if ( s == "redirect" )
-        return true;
-    return false;
+    StringList * r = new StringList;
+    r->append( "fileinto" );
+    r->append( "reject" );
+    r->append( "redirect" );
+    return r;
 }
 
 
@@ -746,7 +743,7 @@ void SieveCommand::parse( const String & previous )
                 StringList::Iterator i( a->stringList() );
                 StringList e;
                 while ( i ) {
-                    if ( !supportedExtension( *i ) )
+                    if ( !supportedExtensions()->contains( *i ) )
                         e.append( i->quoted() );
                     ++i;
 

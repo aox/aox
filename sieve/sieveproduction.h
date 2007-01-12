@@ -30,7 +30,7 @@ public:
 
     void require( const String & );
 
-    static bool supportedExtension( const String & );
+    static class StringList * supportedExtensions();
 
 private:
     class SieveProductionData * d;

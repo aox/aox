@@ -11,6 +11,7 @@
 #include "eventloop.h"
 #include "stringlist.h"
 #include "configuration.h"
+#include "sieveproduction.h"
 #include "managesievecommand.h"
 
 
@@ -325,10 +326,12 @@ void ManageSieve::setReader( ManageSieveCommand * cmd )
 void ManageSieve::capabilities()
 {
     String v( Configuration::compiledIn( Configuration::Version ) );
-    enqueue( "\"SIEVE\" \"Fileinto Refuse Reject\"\r\n" );
+    enqueue( "\"SIEVE\" " +
+             SieveProduction::supportedExtensions()->join( " " ).quoted() +
+             "\r\n" );
     enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
     enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) +
              "\"\r\n" );
     enqueue( "\"STARTTLS\"\r\n" );
-    enqueue( "\"X-AOX-EXPLAIN\"" );
+    enqueue( "\"X-AOX-EXPLAIN\"\r\n" );
 }

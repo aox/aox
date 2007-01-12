@@ -681,7 +681,7 @@ bool ManageSieveCommand::explain()
             else {
                 ::x->keep = Mailbox::find( value );
                 if ( ::x->keep )
-                    no( "Need (existing) mailbox name for default keep" );
+                    no( "No such mailbox: " + value );
             }
         }
         else if ( name == "script" ) {
