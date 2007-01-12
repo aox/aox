@@ -135,6 +135,7 @@ void ManageSieveCommand::execute()
 
     case XAoxExplain:
         ok = explain();
+        break;
 
     case Unknown:
         no( "Unknown command" );
@@ -705,6 +706,12 @@ bool ManageSieveCommand::explain()
             }
             else {
                 ::x->message = new Message( value );
+                ::x->message->setFlagsFetched( true );
+                ::x->message->setHeadersFetched();
+                ::x->message->setBodiesFetched();
+                ::x->message->setAnnotationsFetched();
+                ::x->message->setAddressesFetched();
+                ::x->message->setRfc822Size( ::x->message->rfc822().length() );
                 if ( !::x->message->error().isEmpty() )
                     no( "Message parsing: " + ::x->message->error() );
             }
