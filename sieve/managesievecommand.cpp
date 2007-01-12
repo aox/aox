@@ -259,7 +259,6 @@ bool ManageSieveCommand::authenticate()
         return false;
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
-        d->sieve->setReader( 0 );
         d->sieve->setUser( d->m->user() );
         d->sieve->setState( ManageSieve::Authorised );
     }
@@ -269,6 +268,7 @@ bool ManageSieveCommand::authenticate()
     else {
         no( "Authentication failed" );
     }
+    d->sieve->setReader( 0 );
 
     return true;
 }
