@@ -738,14 +738,14 @@ bool ManageSieveCommand::explain()
         m = true;
     }
     if ( ::x->message && !m )
-        d->sieve->send( "Script did not need the message\n" );
+        d->sieve->send( "Script did not need the message" );
     else if ( !s.done() )
-        d->sieve->send( "Script did not complete\n" );
+        d->sieve->send( "Script did not complete" );
 
     uint n = 0;
     List<SieveAction>::Iterator sa( s.actions( ::x->to ) );
     while ( sa ) {
-        String r;
+        String r( "Action: " );
         switch ( sa->type() ) {
         case SieveAction::Reject:
             r.append( "reject" );

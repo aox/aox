@@ -20,6 +20,8 @@ public:
 
     bool isEmpty() const;
 
+    List<SieveCommand> * topLevelCommands() const;
+
 private:
     String location( uint ) const;
 

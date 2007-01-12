@@ -194,3 +194,17 @@ String SieveScript::source() const
 {
     return d->source;
 }
+
+
+/*! Returns a list of top-level commands in this script. "if" and
+    other commands may also have children.
+
+    Returns a null pointer if no script has been parsed, or a pointer
+    to a (possiblty empty) list of commands if parse() has been
+    called. The caller should not modify the list.
+*/
+
+List<SieveCommand> * SieveScript::topLevelCommands() const
+{
+    return d->script;
+}

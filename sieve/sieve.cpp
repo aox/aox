@@ -21,8 +21,7 @@ public:
     SieveData()
         : sender( 0 ),
           currentRecipient( 0 ),
-          message( 0 ),
-          ready( 0 )
+          message( 0 )
         {}
 
     class Recipient
@@ -31,7 +30,7 @@ public:
     public:
         Recipient( Address * a, Mailbox * m, SieveData * data )
             : d( data ), address( a ), mailbox( m ),
-              done( false ), ok( true ),
+              done( false ), ok( true ), implicitKeep( true ),
               sq( 0 ), script( new SieveScript )
         {
             d->recipients.append( this );
@@ -42,6 +41,7 @@ public:
         Mailbox * mailbox;
         bool done;
         bool ok;
+        bool implicitKeep;
         String result;
         List<SieveAction> actions;
         List<SieveCommand> pending;
@@ -56,7 +56,6 @@ public:
     List<Recipient> recipients;
     Recipient * currentRecipient;
     Message * message;
-    bool ready;
 
     Recipient * recipient( Address * a );
 };
@@ -101,7 +100,6 @@ Sieve::Sieve()
 
 void Sieve::execute()
 {
-    d->ready = true;
     List<SieveData::Recipient>::Iterator i( d->recipients );
     while ( i ) {
         if ( i->sq ) {
@@ -109,9 +107,11 @@ void Sieve::execute()
             if ( r ) {
                 i->sq = 0;
                 i->script->parse( r->getString( "script" ) );
-            }
-            else {
-                d->ready = false;
+                List<SieveCommand>::Iterator c(i->script->topLevelCommands());
+                while ( c ) {
+                    i->pending.append( c );
+                    ++c;
+                }
             }
         }
         ++i;
@@ -144,6 +144,11 @@ void Sieve::addRecipient( Address * address, Mailbox * destination,
         = new SieveData::Recipient( address, destination, d );
     if ( script ) {
         r->script = script;
+        List<SieveCommand>::Iterator c( script->topLevelCommands() );
+        while ( c ) {
+            r->pending.append( c );
+            ++c;
+        }
         return;
     }
         
@@ -211,6 +216,13 @@ void Sieve::evaluate()
             List<SieveCommand>::Iterator c( i->pending );
             while ( c && !i->done && i->evaluate( c ) )
                 (void)i->pending.take( c );
+            if ( i->pending.isEmpty() )
+                i->done = true;
+            if ( i->done && i->implicitKeep ) {
+                SieveAction * a = new SieveAction( SieveAction::FileInto );
+                a->setMailbox( i->mailbox );
+                i->actions.append( a );
+            }
         }
         ++i;
     }
@@ -267,22 +279,27 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         done = true;
     }
     else if ( c->identifier() == "reject" ) {
+        implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Reject );
         actions.append( a );
     } else if ( c->identifier() == "fileinto" ) {
+        implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
         a->setMailbox( Mailbox::find( arg ) );
         actions.append( a );
     }
     else if ( c->identifier() == "redirect" ) {
-        SieveAction * a = new SieveAction( SieveAction::FileInto );
+        implicitKeep = false;
+        SieveAction * a = new SieveAction( SieveAction::Redirect );
         AddressParser ap( arg );
         a->setAddress( ap.addresses()->first() );
         actions.append( a );
     } else if ( c->identifier() == "keep" ) {
+        implicitKeep = false;
         // nothing needed
     } else if ( c->identifier() == "discard" ) {
-        SieveAction * a = new SieveAction( SieveAction::Reject );
+        implicitKeep = false;
+        SieveAction * a = new SieveAction( SieveAction::Discard );
         actions.append( a );
     } else {
         // ?
@@ -613,5 +630,10 @@ bool Sieve::rejected() const
 
 bool Sieve::ready() const
 {
-    return d->ready;
+    List<SieveData::Recipient>::Iterator i( d->recipients );
+    while ( i && !i->sq )
+        ++i;
+    if ( i )
+        return false;
+    return true;
 }
