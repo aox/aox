@@ -346,7 +346,7 @@ bool ManageSieveCommand::listScripts()
     if ( !d->query ) {
         end();
         d->query =
-            new Query( "select * from scripts where user=$1", this );
+            new Query( "select * from scripts where owner=$1", this );
         d->query->bind( 1, d->sieve->user()->id() );
         if ( d->no.isEmpty() )
             d->query->execute();
@@ -376,13 +376,13 @@ bool ManageSieveCommand::setActive()
         end();
         d->t = new Transaction( this );
         d->query =
-            new Query( "update scripts set active='f' where user=$1 and "
+            new Query( "update scripts set active='f' where owner=$1 and "
                        "active='t' and not name=$2", this );
         d->query->bind( 1, d->sieve->user()->id() );
         d->query->bind( 2, name );
         d->t->enqueue( d->query );
         d->query =
-            new Query( "update scripts set active='t' where user=$1 and "
+            new Query( "update scripts set active='t' where owner=$1 and "
                        "name=$2 and active='f'", this );
         d->query->bind( 1, d->sieve->user()->id() );
         d->query->bind( 2, name );
@@ -408,7 +408,7 @@ bool ManageSieveCommand::getScript()
     if ( !d->query ) {
         end();
         d->query =
-            new Query( "select script from scripts where user=$1 and name=$2",
+            new Query( "select script from scripts where owner=$1 and name=$2",
                        this );
         d->query->bind( 1, d->sieve->user()->id() );
         d->query->bind( 2, string() );
@@ -441,13 +441,13 @@ bool ManageSieveCommand::deleteScript()
         // select first, so the no() calls below work
         d->query =
             new Query( "select active from scripts "
-                       "where user=$1 and name=$2",
+                       "where owner=$1 and name=$2",
                        this );
         d->query->bind( 1, d->sieve->user()->id() );
         d->query->bind( 2, name );
         d->t->enqueue( d->query );
         // then delete
-        Query * q = new Query( "delete from scripts where user=$1 and "
+        Query * q = new Query( "delete from scripts where owner=$1 and "
                                "name=$2 and active='f'", this );
         q->bind( 1, d->sieve->user()->id() );
         q->bind( 2, name );
