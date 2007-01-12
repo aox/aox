@@ -478,7 +478,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                     return True;
                 break;
             case SieveTest::Contains:
-                if ( s.contains( k ) )
+                if ( s.contains( g ) )
                     return True;
                 break;
             case SieveTest::Matches:
