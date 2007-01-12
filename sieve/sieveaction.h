@@ -5,6 +5,7 @@
 
 #include "global.h"
 
+class String;
 class Mailbox;
 class Address;
 class Message;
@@ -15,7 +16,7 @@ class SieveAction
     : public Garbage
 {
 public:
-    enum Type { Reject, FileInto, Redirect, Discard };
+    enum Type { Reject, FileInto, Redirect, Discard, Error };
 
     SieveAction( Type );
 
@@ -26,6 +27,9 @@ public:
 
     void setAddress( Address * );
     Address * address() const;
+
+    void setErrorMessage( const String & );
+    String errorMessage() const;
 
     bool done() const;
     bool failed() const;

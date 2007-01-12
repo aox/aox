@@ -2,6 +2,8 @@
 
 #include "sieveaction.h"
 
+#include "string.h"
+
 
 class SieveActionData
     : public Garbage
@@ -15,6 +17,7 @@ public:
     SieveAction::Type type;
     Mailbox * mailbox;
     Address * address;
+    String errorMessage;
 };
 
 
@@ -113,4 +116,24 @@ bool SieveAction::done() const
 bool SieveAction::failed() const
 {
     return false;
+}
+
+
+/*! Records the error message \a m. Only useful if the action's type()
+    is Error.
+*/
+
+void SieveAction::setErrorMessage( const String & m )
+{
+    d->errorMessage = m;
+}
+
+
+/*! Returns what setErrorMessage() recorded, or an empty string if
+    setErrorMessage() has not been called.
+*/
+
+String SieveAction::errorMessage() const
+{
+    return d->errorMessage;
 }
