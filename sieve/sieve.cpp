@@ -406,7 +406,8 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             }
             ++i;
         }
-        return r;
+        if ( t->identifier() == "exists" )
+            return r;
     }
     else if ( t->identifier() == "false" ) {
         return False;
