@@ -680,7 +680,7 @@ bool ManageSieveCommand::explain()
             }
             else {
                 ::x->keep = Mailbox::find( value );
-                if ( ::x->keep )
+                if ( !::x->keep )
                     no( "No such mailbox: " + value );
             }
         }
@@ -689,7 +689,7 @@ bool ManageSieveCommand::explain()
                 ::x->script = 0;
             }
             else {
-                if ( ::x->script )
+                if ( !::x->script )
                     ::x->script = new SieveScript;
                 ::x->script->parse( value );
                 if ( ::x->script->isEmpty() )
