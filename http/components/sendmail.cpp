@@ -6,6 +6,7 @@
 #include "webpage.h"
 #include "frontmatter.h"
 #include "message.h"
+#include "http.h"
 
 
 class SendmailData
@@ -34,5 +35,13 @@ Sendmail::Sendmail()
 
 void Sendmail::execute()
 {
+    HTTP * server = page()->link()->server();
+
+    String from = server->parameter( "from" );
+    String to = server->parameter( "to" );
+    String cc = server->parameter( "cc" );
+    String subject = server->parameter( "subject" );
+    String body = server->parameter( "body" );
+
     setContents( "sent" );
 }
