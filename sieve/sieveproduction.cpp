@@ -737,7 +737,7 @@ void SieveCommand::parse( const String & previous )
                 StringList::Iterator i( a->stringList() );
                 while ( i ) {
                     if ( !Mailbox::validName( *i ) )
-                        a->setError( "Each string must be an mailbox name. "
+                        a->setError( "Each string must be a mailbox name. "
                                      "This one is not: " + *i );
                     ++i;
                 }
