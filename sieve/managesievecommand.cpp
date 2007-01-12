@@ -770,7 +770,10 @@ bool ManageSieveCommand::explain()
         case SieveAction::Discard:
             r.append( "discard" );
             break;
-
+        case SieveAction::Error:
+            r = "Error: ";
+            r.append( sa->errorMessage().simplified() );
+            break;
         }
         if ( m && a && n<a )
             r.append( " (before seeing the message text)" );

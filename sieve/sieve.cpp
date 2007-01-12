@@ -286,6 +286,11 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
         a->setMailbox( Mailbox::find( arg ) );
+        if ( !a->mailbox() ) {
+            a = new SieveAction( SieveAction::Error );
+            a->setErrorMessage( "No such mailbox: " + arg );
+            done = true;
+        }
         actions.append( a );
     }
     else if ( c->identifier() == "redirect" ) {
