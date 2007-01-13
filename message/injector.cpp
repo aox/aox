@@ -675,7 +675,7 @@ void Injector::resolveAddressLinks()
             String k( a->localpart() + "@" + a->domain() );
 
             if ( naked.contains( k ) ) {
-                Address * same = unique.find( k );
+                Address * same = naked.find( k );
                 if ( a != same ) {
                     d->remoteRecipients->remove( a );
                     d->remoteRecipients->prepend( same );
