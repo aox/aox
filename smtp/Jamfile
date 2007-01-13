@@ -6,4 +6,4 @@ SubInclude TOP message ;
 
 HDRS += [ FDirName $(TOP) smtp ] ;
 
-Build smtp : smtp.cpp smtpparser.cpp ;
+Build smtp : smtp.cpp smtpparser.cpp spoolmanager.cpp ;

@@ -116,7 +116,7 @@ void SpoolManager::execute()
 
     if ( d->state == 1 && d->q->done() ) {
         d->state = 0;
-        d->timer = new Timer( this, 60 );
+        (void)new Timer( this, 60 );
     }
 }
 
