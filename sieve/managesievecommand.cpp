@@ -467,19 +467,19 @@ bool ManageSieveCommand::deleteScript()
             d->t->commit();
     }
 
-    if ( d->query && d->query->done() ) {
+    if ( !d->t->done() )
+        return false;
+
+    if ( d->t->failed() ) {
+        no( "Couldn't delete script: " + d->t->error() );
+    }
+    else {
         Row * r = d->query->nextRow();
         if ( !r )
             no( "No such script" );
         else if ( r->getBoolean( "active" ) )
             no( "Can't delete active script" );
     }
-
-    if ( !d->t->done() )
-        return false;
-
-    if ( d->t->failed() )
-        d->sieve->no( "Couldn't delete script: " + d->t->error() );
 
     return true;
 }
