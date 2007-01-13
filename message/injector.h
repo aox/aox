@@ -37,6 +37,7 @@ public:
     void setFlags( const StringList & );
     void setAnnotations( const List<Annotation> * );
     void setDeliveryAddresses( List<Address> * );
+    void setSender( Address * );
 
     bool done() const;
     bool failed() const;

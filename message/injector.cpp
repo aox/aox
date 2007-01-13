@@ -94,7 +94,7 @@ public:
           uidHelper( 0 ), bidHelper( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 ),
-          remoteRecipients( 0 )
+          remoteRecipients( 0 ), sender( 0 )
     {}
 
     Injector::State state;
@@ -123,6 +123,7 @@ public:
     CacheLookup * addressLookup;
 
     List<Address> * remoteRecipients;
+    Address * sender;
 
     class Flag
         : public Garbage
@@ -313,7 +314,7 @@ void Injector::setMailbox( Mailbox * m )
 }
 
 
-/*! Instructs the Instructs to spool the message for later delivery
+/*! Instructs the Injector to spool the message for later delivery
     via SMTP to \a addresses.
 */
 
@@ -321,6 +322,16 @@ void Injector::setDeliveryAddresses( List<Address> * addresses )
 {
     if ( addresses && !addresses->isEmpty() )
         d->remoteRecipients = addresses;
+}
+
+
+/*! Informs the Injector that rows in deliveries should have the
+    specified \a sender address.
+*/
+
+void Injector::setSender( Address * sender )
+{
+    d->sender = sender;
 }
 
 
@@ -677,10 +688,12 @@ void Injector::resolveAddressLinks()
         }
     }
 
+    if ( d->sender )
+        addresses->append( d->sender );
+
     d->addressLookup =
         AddressCache::lookup( d->transaction, addresses, this );
 }
-
 
 
 /*! This private function builds a list of FieldLinks containing every
@@ -953,13 +966,15 @@ void Injector::insertDeliveries()
         return; // XXX an error, but how to best handle?
     List<Address>::Iterator i( d->remoteRecipients );
     while ( i ) {
-        Query * q = new Query( "insert into deliveries "
-                               "(recipient, mailbox, uid, injected_at, expires_at) "
-                               "values ($1, $2, $3, now(), now()+'2 days'::interval)",
-                               0 );
-        q->bind( 1, i->id() );
-        q->bind( 2, spool->id() );
-        q->bind( 3, uid );
+        Query * q =
+            new Query( "insert into deliveries "
+                       "(sender,recipient,mailbox,uid,injected_at,expires_at) "
+                       "values ($1,$2,$3,$4, now(), now()+'2 days'::interval)",
+                       0 );
+        q->bind( 1, d->sender->id() );
+        q->bind( 2, i->id() );
+        q->bind( 3, spool->id() );
+        q->bind( 4, uid );
         d->transaction->enqueue( q );
         ++i;
     }

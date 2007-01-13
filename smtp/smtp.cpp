@@ -1021,6 +1021,7 @@ void SMTP::inject()
     if ( !d->remoteRecipients.isEmpty() ) {
         mailboxes->insert( d->submissionMailbox );
         d->injector->setDeliveryAddresses( &d->remoteRecipients );
+        d->injector->setSender( d->user->address() );
     }
     d->injector->setMailboxes( mailboxes );
     d->helper->injector = d->injector;
