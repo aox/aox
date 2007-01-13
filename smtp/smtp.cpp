@@ -5,6 +5,7 @@
 #include "imapurlfetcher.h"
 #include "configuration.h"
 #include "addressfield.h"
+#include "spoolmanager.h"
 #include "transaction.h"
 #include "stringlist.h"
 #include "recipient.h"
@@ -1115,9 +1116,13 @@ void SMTP::reportInjection()
         respond( 250, "Done" );
     }
 
+    if ( !d->remoteRecipients.isEmpty() )
+        SpoolManager::run();
+
     sendResponses();
     d->from = 0;
     d->localRecipients.clear();
+    d->remoteRecipients.clear();
     d->body = "";
 }
 
@@ -1196,6 +1201,9 @@ void LMTP::reportInjection()
 
     if ( d->injector && !d->injector->failed() )
         d->injector->announce();
+
+    if ( !d->remoteRecipients.isEmpty() )
+        SpoolManager::run();
 
     sendResponses();
 
