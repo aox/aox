@@ -416,12 +416,13 @@ bool ManageSieveCommand::setActive()
 bool ManageSieveCommand::getScript()
 {
     if ( !d->query ) {
+        String name = string();
         end();
         d->query =
             new Query( "select script from scripts where owner=$1 and name=$2",
                        this );
         d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, string() );
+        d->query->bind( 2, name );
         if ( d->no.isEmpty() )
             d->query->execute();
     }
