@@ -661,7 +661,7 @@ void Injector::resolveAddressLinks()
         while ( ai ) {
             Address * a = ai;
             ++ai;
-            String k = i->address->localpart() + "@" + i->address->domain();
+            String k( a->localpart() + "@" + a->domain() );
 
             if ( naked.contains( k ) ) {
                 Address * same = unique.find( k );
