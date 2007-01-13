@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (34);
+insert into mailstore (revision) values (35);
 
 
 -- One entry for each unique address we've encountered.
@@ -358,6 +358,7 @@ create index ms_mu on modsequences(mailbox,uid);
 
 create table deliveries (
     id          serial primary key,
+    sender      integer not null references addresses(id),
     recipient   integer not null references addresses(id),
     mailbox     integer not null,
     uid         integer not null,

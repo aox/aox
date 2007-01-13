@@ -346,6 +346,8 @@ bool Schema::singleStep()
         c = stepTo33(); break;
     case 33:
         c = stepTo34(); break;
+    case 34:
+        c = stepTo35(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1714,7 +1716,7 @@ bool Schema::stepTo33()
 }
 
 
-/*! Add tried_at to delivieries. */
+/*! Add tried_at to deliveries. */
 
 bool Schema::stepTo34()
 {
@@ -1738,11 +1740,35 @@ bool Schema::stepTo34()
 }
 
 
+/*! Add sender to deliveries too. */
+
+bool Schema::stepTo35()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding deliveries.sender." );
+        d->q = new Query( "alter table deliveries add sender integer "
+                          "not null references addresses(id)", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
 /*! Create and populate the unparsed_messages table.
     XXX: The create will need to be made conditional.
 */
 
-bool Schema::stepTo35()
+bool Schema::stepTo36()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating unparsed_messages table (slow)." );
