@@ -2,7 +2,7 @@ SubDir TOP cryptlib ;
 
 # hide variables that cryptlib shouldn't see
 OrdinaryFLAGS = $(CCFLAGS) ;
-CCFLAGS = -fomit-frame-pointer -O3 ; # -mtune=pentium ;
+CCFLAGS = -O2 ;
 OrdinaryHDRS = $(HDRS) ;
 HDRS = [ FDirName $(TOP) cryptlib ] ;
 OrdinaryDEFINES = $(DEFINES) ;
