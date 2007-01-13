@@ -26,6 +26,8 @@ public:
     Message * message;
     uint deliveryId;
     Query * client;
+    String sender;
+    String recipient;
 };
 
 
@@ -45,12 +47,17 @@ void SpoolManager::execute()
     // Each time we're awoken, we issue this query until it returns no
     // more results.
 
-    if ( d->state == 0 ||
-         ( d->state == 1 && d->q->done() && d->q->rows() != 0 ) )
-    {
+    if ( d->state == 0 ) {
         d->state = 1;
         d->q =
-            new Query( "select * from deliveries where tried_at is null or "
+            new Query( "select d.id, "
+                       "f.localpart||'@'||f.domain as sender, "
+                       "t.localpart||'@'||t.domain as recipient, "
+                       "current_timestamp > expires_at as expired, "
+                       "mailbox, uid from deliveries d "
+                       "join addresses f on (d.sender=f.id) "
+                       "join addresses t on (d.recipient=t.id) "
+                       "where tried_at is null or "
                        "tried_at+'1 hour'::interval < current_timestamp",
                        this );
         d->q->execute();
@@ -66,6 +73,8 @@ void SpoolManager::execute()
             Row * r = d->q->nextRow();
 
             d->deliveryId = r->getInt( "id" );
+            d->sender = r->getString( "sender" );
+            d->recipient = r->getString( "recipient" );
 
             List<Message> messages;
             d->message = new Message;
@@ -91,7 +100,7 @@ void SpoolManager::execute()
 
         if ( !d->client ) {
             // XXX: This should be an SmtpClient, of course.
-            d->client = new Query( "foo bar", this );
+            d->client = new Query( "select 1", this );
             d->client->execute();
         }
 
@@ -116,7 +125,10 @@ void SpoolManager::execute()
 
     if ( d->state == 1 && d->q->done() ) {
         d->state = 0;
-        (void)new Timer( this, 60 );
+        if ( d->q->rows() == 0 )
+            (void)new Timer( this, 120 );
+        else
+            execute();
     }
 }
 
