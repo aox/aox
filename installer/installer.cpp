@@ -915,8 +915,12 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr, "Couldn't alter owner of database '%s' to '%s' "
                      "(%s).\n"
-                     "Please set the owner by hand and re-run the installer.\n",
-                     dbname->cstr(), dbowner->cstr(), d->q->error().cstr() );
+                     "Please set the owner by hand and re-run the installer.\n"
+                     "For Postgres 7.4, run the following query:\n"
+                     "\"update pg_database set datdba=(select usesysid from "
+                     "pg_user where usename='%s') where datname='%s'\"\n",
+                     dbname->cstr(), dbowner->cstr(), d->q->error().cstr(),
+                     dbowner->cstr(), dbname->cstr() );
             EventLoop::shutdown();
             return;
         }
