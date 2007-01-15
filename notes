@@ -44,19 +44,19 @@ Items for web site
   - Client-specific pages
 
 
-1.15: 2007-01-15
+1.16: 2007-02-19
 
   Deliver submitted mail to a smarthost. We've done most of the hard
   work, we just need to complete it.
 
   Sieve + Managesieve.
 
+  Sieve vacation extension.
 
-1.16: 2007-02-19
+  Make aox vacuum work without the great big lock.
 
-  Webmail + web archiving.
-
-  Sieve extensions: Vacation and maybe something more.
+  Some bugfixes, perhaps tih's 30-item list, jason grossman's GC
+  slowness, etc.
 
 
 1.17: 2007-03-26
@@ -66,6 +66,9 @@ Items for web site
   (I moved stuff here from earlier releases so this is now hopelessly
   ambitious --Arnt)
 
+  Webmail + web archiving.
+
+  Sieve extensions: Vacation and maybe something more.
   Memory use improvements
 
   Message retention policy
