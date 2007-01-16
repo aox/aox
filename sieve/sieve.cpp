@@ -602,6 +602,17 @@ List<SieveAction> * Sieve::actions( const Address * address ) const
 List<Mailbox> * Sieve::mailboxes() const
 {
     List<Mailbox> * r = new List<Mailbox>;
+    List<SieveData::Recipient>::Iterator i( d->recipients );
+    while ( i ) {
+        List<SieveAction>::Iterator a( i->actions );
+        while ( a ) {
+            if ( a->type() == SieveAction::FileInto &&
+                 !r->find( a->mailbox() ) )
+                r->append( a->mailbox() );
+            ++a;
+        }
+        ++i;
+    }
     return r;
 }
 
@@ -616,6 +627,23 @@ List<Mailbox> * Sieve::mailboxes() const
 List<Address> * Sieve::forwarded() const
 {
     List<Address> * r = new List<Address>;
+    StringList uniq;
+    List<SieveData::Recipient>::Iterator i( d->recipients );
+    while ( i ) {
+        List<SieveAction>::Iterator a( i->actions );
+        while ( a ) {
+            if ( a->type() == SieveAction::Redirect ) {
+                String s = a->address()->localpart() + "@" +
+                           a->address()->domain();
+                if ( !uniq.contains( s ) ) {
+                    uniq.append( s );
+                    r->append( a->address() );
+                }
+            }
+            ++a;
+        }
+        ++i;
+    }
     return r;
 }
 
@@ -626,7 +654,20 @@ List<Address> * Sieve::forwarded() const
 
 bool Sieve::rejected() const
 {
-    return false;
+    List<SieveData::Recipient>::Iterator i( d->recipients );
+    while ( i ) {
+        bool r = false;
+        List<SieveAction>::Iterator a( i->actions );
+        while ( a ) {
+            if ( a->type() == SieveAction::Reject )
+                r = true;
+            ++a;
+        }
+        ++i;
+        if ( !r )
+            return false;
+    }
+    return true;
 }
 
 
