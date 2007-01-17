@@ -258,8 +258,9 @@ void findPgUser()
         p = getpwnam( PGUSER );
     }
     if ( !p ) {
-        error( "PostgreSQL superuser unknown. Please re-run the "
-               "installer with \"-p username\" to specify one." );
+        error( "PostgreSQL superuser unknown (PGUSER not set, and neither "
+               "\"postgres\" nor \"pgsql\" worked). Please re-run the "
+               "installer with \"-p username\"." );
     }
 
     postgres = p->pw_uid;
