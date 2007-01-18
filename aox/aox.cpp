@@ -531,7 +531,7 @@ int serverPid( const char * s )
 }
 
 
-void startServer( const char * s )
+bool startServer( const char * s )
 {
     String srv( Configuration::compiledIn( Configuration::SbinDir ) );
     srv.append( "/" );
@@ -556,7 +556,7 @@ void startServer( const char * s )
     if ( !use ) {
         if ( opt( 'v' ) > 0 )
             printf( "Don't need to start %s\n", srv.cstr() );
-        return;
+        return false;
     }
 
     int p = serverPid( s );
@@ -567,7 +567,7 @@ void startServer( const char * s )
         else {
             if ( opt( 'v' ) > 0 )
                 printf( "%s(%d) is already running\n", s, p );
-            return;
+            return false;
         }
     }
 
@@ -588,6 +588,8 @@ void startServer( const char * s )
              WIFEXITED( status ) && WEXITSTATUS( status ) != 0 )
             error( "Couldn't exec(" + srv + ")" );
     }
+
+    return true;
 }
 
 
@@ -618,8 +620,13 @@ void start()
                d->query->error() );
 
     int i = 0;
+    bool started = false;
     while ( i < nservers )
-        startServer( servers[i++] );
+        if ( startServer( servers[i++] ) )
+            started = true;
+
+    if ( !started )
+        printf( "No processes need to be started.\n" );
 }
 
 
