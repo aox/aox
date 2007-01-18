@@ -76,6 +76,8 @@ private:
     void linkFlags();
     void linkAnnotations();
     void logMessageDetails();
+
+    uint internalDate( Message * ) const;
 };
 
 

@@ -15,7 +15,6 @@
 #include "maildir.h"
 #include "cyrus.h"
 #include "mbox.h"
-#include "date.h"
 #include "mh.h"
 
 #include <stdio.h>
@@ -301,9 +300,6 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
     m = new Message( o );
     if ( m->error().isEmpty() )
         return;
-    if ( m->header() &&
-         m->header()->date() )
-        m->setInternalDate( m->header()->date()->unixTime() );
 
     if ( Migrator::verbosity() > 0 )
         fprintf( stdout, "Message %s: Working around error: %s\n",

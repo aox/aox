@@ -918,7 +918,7 @@ void Injector::insertMessages()
 
         qm->bind( 1, m->id(), Query::Binary );
         qm->bind( 2, uid, Query::Binary );
-        qm->bind( 3, d->message->internalDate(), Query::Binary );
+        qm->bind( 3, internalDate( d->message ), Query::Binary );
         qm->bind( 4, d->message->rfc822().length(), Query::Binary );
         qm->submitLine();
 
@@ -1354,4 +1354,48 @@ SortedList<Mailbox> * Injector::mailboxes() const
     }
 
     return mailboxes;
+}
+
+
+/*! Returns a sensible internaldate for \a m. If
+    Message::internalDate() is not null, it is used, otherwise this
+    function tries to obtain a date heuristically.
+*/
+
+uint Injector::internalDate( Message * m ) const
+{
+    if ( !m )
+        return 0;
+    if ( m->internalDate() )
+        return m->internalDate();
+    
+    // first: try the most recent received field. this should be
+    // very close to the correct internaldate.
+    Date id;
+    List< HeaderField >::Iterator it( m->header()->fields() );
+    while ( it && !id.valid() ) {
+        if ( it->type() == HeaderField::Received ) {
+            String v = it->value();
+            int i = 0;
+            while ( v.find( ';', i+1 ) > 0 )
+                i = v.find( ';', i+1 );
+            if ( i >= 0 )
+                id.setRfc822( v.mid( i+1 ) );
+        }
+        ++it;
+    }
+
+    // if that fails, try the message's date.
+    if ( !id.valid() ) {
+        Date * date = m->header()->date();
+        if ( date )
+            id.setUnixTime( date->unixTime() ); // ick
+    }
+
+    // and if all else fails, now.
+    if ( !id.valid() )
+        id.setCurrentTime();
+
+    m->setInternalDate( id.unixTime() );
+    return id.unixTime();
 }
