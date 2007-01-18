@@ -652,6 +652,10 @@ The IMAP SORT extension seems really easy
 
   Interacts with ANNOTATE.
 
+  As soon as this is done, it's possible to test the 'now' part of
+  internaldate, by assuming that 'now' is chronologically later than
+  any other date tested.
+
 
 Something like soft-bounce might just be useful
 
