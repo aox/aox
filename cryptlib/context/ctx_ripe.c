@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "ripemd.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/ripemd.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -33,14 +28,15 @@
 /* Test the RIPEMD160 output against the test vectors given in the RIPEMD-160
    paper */
 
-void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-						  const int length, const HASH_STATE hashState );
+void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+						  const int outBufMaxLength, const BYTE *inBuffer, 
+						  const int inLength, const HASH_STATE hashState );
 
-static const FAR_BSS struct {
-	const char *data;							/* Data to hash */
+static const struct {
+	const char FAR_BSS *data;					/* Data to hash */
 	const int length;							/* Length of data */
 	const BYTE digest[ RIPEMD160_DIGEST_LENGTH ];	/* Digest of data */
-	} digestValues[] = {
+	} FAR_BSS digestValues[] = {
 	{ "", 0,
 	  { 0x9C, 0x11, 0x85, 0xA5, 0xC5, 0xE9, 0xFC, 0x54,
 		0x61, 0x28, 0x08, 0x97, 0x7E, 0xE8, 0xF5, 0x48,
@@ -81,7 +77,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getRipemd160Capability();
 	CONTEXT_INFO contextInfo;
 	HASH_INFO contextData;
-	BYTE keyData[ HASH_STATE_SIZE ];
+	BYTE keyData[ HASH_STATE_SIZE + 8 ];
 	int i, status;
 
 	/* Test RIPEMD160 against the test vectors from the RIPEMD-160 paper */
@@ -92,15 +88,15 @@ static int selfTest( void )
 		status = CRYPT_OK ;
 		if( digestValues[ i ].length > 0 )
 			{
-			status = capabilityInfo->encryptFunction( &contextInfo, 
-								( BYTE * ) digestValues[ i ].data, 
+			status = capabilityInfo->encryptFunction( &contextInfo,
+								( BYTE * ) digestValues[ i ].data,
 								digestValues[ i ].length );
 			contextInfo.flags |= CONTEXT_HASH_INITED;
 			}
 		if( cryptStatusOK( status ) )
 			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
 		if( cryptStatusOK( status ) && \
-			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest,
 					RIPEMD160_DIGEST_LENGTH ) )
 			status = CRYPT_ERROR;
 		staticDestroyContext( &contextInfo );
@@ -119,7 +115,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -140,7 +136,7 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	RIPEMD160_CTX *ripemd160Info = ( RIPEMD160_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
-	/* If the hash state was reset to allow another round of hashing, 
+	/* If the hash state was reset to allow another round of hashing,
 	   reinitialise things */
 	if( !( contextInfoPtr->flags & CONTEXT_HASH_INITED ) )
 		RIPEMD160_Init( ripemd160Info );
@@ -156,14 +152,21 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 /* Internal API: Hash a single block of memory without the overhead of
    creating an encryption context */
 
-void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-						  const int length, const HASH_STATE hashState )
+void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+						  const int outBufMaxLength, const BYTE *inBuffer, 
+						  const int inLength, const HASH_STATE hashState )
 	{
 	RIPEMD160_CTX *ripemd160Info = ( RIPEMD160_CTX * ) hashInfo;
 
-	assert( hashState == HASH_ALL || hashInfo != NULL );
-	assert( inBuffer == NULL || length == 0 || \
-			isReadPtr( inBuffer, length ) );
+	assert( ( hashState == HASH_ALL && hashInfo == NULL ) || \
+			( hashState != HASH_ALL && \
+			  isWritePtr( hashInfo, sizeof( HASHINFO ) ) ) );
+	assert( ( ( hashState != HASH_END && hashState != HASH_ALL ) && \
+			  outBuffer == NULL && outBufMaxLength == 0 ) || \
+			( ( hashState == HASH_END || hashState == HASH_ALL ) && \
+			  isWritePtr( outBuffer, outBufMaxLength ) && \
+			  outBufMaxLength >= 20 ) );
+	assert( inBuffer == NULL || isReadPtr( inBuffer, inLength ) );
 
 	switch( hashState )
 		{
@@ -172,12 +175,12 @@ void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuff
 			/* Drop through */
 
 		case HASH_CONTINUE:
-			RIPEMD160_Update( ripemd160Info, ( BYTE * ) inBuffer, length );
+			RIPEMD160_Update( ripemd160Info, ( BYTE * ) inBuffer, inLength );
 			break;
 
 		case HASH_END:
 			if( inBuffer != NULL )
-				RIPEMD160_Update( ripemd160Info, ( BYTE * ) inBuffer, length );
+				RIPEMD160_Update( ripemd160Info, ( BYTE * ) inBuffer, inLength );
 			RIPEMD160_Final( outBuffer, ripemd160Info );
 			break;
 
@@ -186,7 +189,7 @@ void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuff
 			RIPEMD160_CTX ripemd160InfoBuffer;
 
 			RIPEMD160_Init( &ripemd160InfoBuffer );
-			RIPEMD160_Update( &ripemd160InfoBuffer, ( BYTE * ) inBuffer, length );
+			RIPEMD160_Update( &ripemd160InfoBuffer, ( BYTE * ) inBuffer, inLength );
 			RIPEMD160_Final( outBuffer, &ripemd160InfoBuffer );
 			zeroise( &ripemd160InfoBuffer, sizeof( RIPEMD160_CTX ) );
 			break;

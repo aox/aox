@@ -5,18 +5,11 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
@@ -49,7 +42,9 @@ static ATTRIBUTE_LIST *getNextEncodedAttribute( ATTRIBUTE_LIST *attributeListPtr
 	{
 	ATTRIBUTE_LIST *currentAttributeListPtr = NULL;
 	STREAM stream;
-	BYTE currentEncodedForm[ ATTR_ENCODED_SIZE ], buffer[ ATTR_ENCODED_SIZE ];
+	BYTE currentEncodedForm[ ATTR_ENCODED_SIZE + 8 ];
+	BYTE buffer[ ATTR_ENCODED_SIZE + 8 ];
+	int iterationCount = 0;
 
 	/* Connect the output stream and give the current encoded form the
 	   maximum possible value */
@@ -59,7 +54,9 @@ static ATTRIBUTE_LIST *getNextEncodedAttribute( ATTRIBUTE_LIST *attributeListPtr
 
 	/* Write the known attributes until we reach either the end of the list
 	   or the first blob-type attribute */
-	while( attributeListPtr != NULL && !isBlobAttribute( attributeListPtr ) )
+	while( attributeListPtr != NULL && \
+		   !isBlobAttribute( attributeListPtr ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 		{
 		const BOOLEAN isConstructed = ( attributeListPtr->fifoEnd ) ? TRUE : FALSE;
 		const ATTRIBUTE_INFO *attributeInfoPtr = ( isConstructed ) ? \
@@ -99,6 +96,8 @@ static ATTRIBUTE_LIST *getNextEncodedAttribute( ATTRIBUTE_LIST *attributeListPtr
 			   attributeListPtr->attributeID == attributeID )
 			attributeListPtr = attributeListPtr->next;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError_Null();
 
 	/* Write the blob-type attributes */
 	while( attributeListPtr != NULL )
@@ -138,7 +137,7 @@ static ATTRIBUTE_LIST *getNextEncodedAttribute( ATTRIBUTE_LIST *attributeListPtr
 
 int sizeofAttributes( const ATTRIBUTE_LIST *attributeListPtr )
 	{
-	int signUnrecognised, attributeSize = 0;
+	int signUnrecognised, attributeSize = 0, iterationCount = 0;
 
 	/* If there's nothing to write, return now */
 	if( attributeListPtr == NULL )
@@ -147,7 +146,9 @@ int sizeofAttributes( const ATTRIBUTE_LIST *attributeListPtr )
 	assert( isReadPtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
 
 	/* Determine the size of the recognised attributes */
-	while( attributeListPtr != NULL && !isBlobAttribute( attributeListPtr ) )
+	while( attributeListPtr != NULL && \
+		   !isBlobAttribute( attributeListPtr ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 		{
 		const BOOLEAN isConstructed = ( attributeListPtr->fifoEnd ) ? TRUE : FALSE;
 		const ATTRIBUTE_INFO *attributeInfoPtr = ( isConstructed ) ? \
@@ -176,6 +177,8 @@ int sizeofAttributes( const ATTRIBUTE_LIST *attributeListPtr )
 			   attributeListPtr->attributeID == attributeID )
 			attributeListPtr = attributeListPtr->next;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 
 	/* If we're not going to be signing the blob-type attributes, return */
 	krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE, 
@@ -379,12 +382,22 @@ int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 	switch( fieldType )
 		{
 		case FIELDTYPE_BLOB:
+			if( tag != DEFAULT_TAG )
+				{
+				/* This gets a bit messy because the blob is stored in 
+				   encoded form in the attribute, to write it as a tagged 
+				   value we have to write a different first byte */
+				sputc( stream, tag );
+				return( swrite( stream, ( ( BYTE * ) dataPtr ) + 1,
+								attributeListPtr->valueLength - 1 ) );
+				}
 			return( swrite( stream, dataPtr, attributeListPtr->valueLength ) );
 
 		case FIELDTYPE_DN:
 			return( writeDN( stream, attributeListPtr->value, tag ) );
 
 		case FIELDTYPE_IDENTIFIER:
+			assert( tag == DEFAULT_TAG );
 			return( swrite( stream, attributeInfoPtr->oid, size ) );
 
 		case FIELDTYPE_DISPLAYSTRING:
@@ -491,7 +504,7 @@ static int writeAttribute( STREAM *stream,
 					   ( int ) sizeofObject( dataLength ) );
 		swrite( stream, attributeInfoPtr->oid,
 				sizeofOID( attributeInfoPtr->oid ) );
-		if( flagSize )
+		if( flagSize > 0 )
 			writeBoolean( stream, TRUE, DEFAULT_TAG );
 		if( wrapperTagSet )
 			status = writeSet( stream, dataLength );
@@ -504,16 +517,24 @@ static int writeAttribute( STREAM *stream,
 		while( attributeListPtr != NULL && \
 			   attributeListPtr->attributeID == attributeID )
 			{
+			int iterationCount = 0;
+			
 			/* Write any encapsulating SEQUENCEs if necessary, followed by
 			   the field itself.  In some rare instances we may have a zero-
 			   length SEQUENCE (if all the member(s) of the sequence have
 			   default values), so we only try to write the member if there's
 			   encoding information for it present */
 			attributeListPtr->fifoPos = attributeListPtr->fifoEnd;
-			while( cryptStatusOK( status ) && attributeListPtr->fifoPos > 0 )
+			while( cryptStatusOK( status ) && \
+				   attributeListPtr->fifoPos > 0 && \
+				   iterationCount++ < ENCODING_FIFO_SIZE )
+				{
 				status = writeAttributeField( stream, 
 									( ATTRIBUTE_LIST * ) attributeListPtr,
 									complianceLevel );
+				}
+			if( iterationCount >= ENCODING_FIFO_SIZE )
+				retIntError();
 			if( cryptStatusOK( status ) && \
 				attributeListPtr->attributeInfoPtr != NULL )
 				status = writeAttributeField( stream, 
@@ -538,7 +559,7 @@ static int writeAttribute( STREAM *stream,
 				   ( int ) sizeofObject( attributeListPtr->valueLength ) );
 	swrite( stream, attributeListPtr->oid,
 			sizeofOID( attributeListPtr->oid ) );
-	if( flagSize )
+	if( flagSize > 0 )
 		writeBoolean( stream, TRUE, DEFAULT_TAG );
 	if( wrapperTagSet )
 		writeSet( stream, attributeListPtr->valueLength );
@@ -563,7 +584,8 @@ static int writeAttribute( STREAM *stream,
 int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 					 const CRYPT_CERTTYPE_TYPE type, const int attributeSize )
 	{
-	int signUnrecognised, complianceLevel, status = CRYPT_OK;
+	int signUnrecognised, complianceLevel, iterationCount;
+	int status;
 
 	/* If there's nothing to write, return now */
 	if( attributeSize == 0 )
@@ -573,10 +595,16 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 
 	/* Some attributes have odd encoding/handling requirements that can cause
 	   problems for other software, so we only enforce peculiarities required
-	   by the standard at higher compliance levels */
+	   by the standard at higher compliance levels.  In addition we only sign
+	   unrecognised attributes if we're explicitly asked to do so by the 
+	   user */
 	status = krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE,
 							  IMESSAGE_GETATTRIBUTE, &complianceLevel,
 							  CRYPT_OPTION_CERT_COMPLIANCELEVEL );
+	if( cryptStatusOK( status ) )
+		status = krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE, 
+								  IMESSAGE_GETATTRIBUTE, &signUnrecognised,
+								  CRYPT_OPTION_CERT_SIGNUNRECOGNISEDATTRIBUTES );
 	if( cryptStatusError( status ) )
 		return( status );
 
@@ -591,7 +619,7 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 		type == CRYPT_CERTTYPE_RTCS_RESPONSE )
 		{
 		ATTRIBUTE_LIST *currentAttributePtr;
-		BYTE currentEncodedForm[ ATTR_ENCODED_SIZE ];
+		BYTE currentEncodedForm[ ATTR_ENCODED_SIZE + 8 ];
 
 		/* Write the wrapper, depending on the object type */
 		if( type == CRYPT_CERTTYPE_RTCS_REQUEST )
@@ -606,13 +634,17 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 		memset( currentEncodedForm, 0, ATTR_ENCODED_SIZE );	/* Set lowest encoded form */
 		currentAttributePtr = getNextEncodedAttribute( attributeListPtr,
 													   currentEncodedForm );
-		while( currentAttributePtr != NULL && cryptStatusOK( status ) )
+		iterationCount = 0;
+		while( currentAttributePtr != NULL && cryptStatusOK( status ) && \
+			   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 			{
 			status = writeAttribute( stream, &currentAttributePtr, TRUE,
 									 complianceLevel );
 			currentAttributePtr = getNextEncodedAttribute( attributeListPtr,
 														   currentEncodedForm );
 			}
+		if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+			retIntError();
 		return( status );
 		}
 
@@ -628,7 +660,7 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 			writeConstructed( stream, ( int ) sizeofObject( attributeSize ),
 							  ( type == CRYPT_CERTTYPE_CERTIFICATE ) ? \
 							  CTAG_CE_EXTENSIONS : CTAG_CL_EXTENSIONS );
-			writeSequence( stream, attributeSize );
+			status = writeSequence( stream, attributeSize );
 			break;
 
 		case CRYPT_CERTTYPE_CERTREQUEST:
@@ -636,7 +668,7 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 						   ( int ) sizeofObject( sizeofObject( attributeSize ) ) );
 			swrite( stream, OID_PKCS9_EXTREQ, sizeofOID( OID_PKCS9_EXTREQ ) );
 			writeSet( stream, ( int ) sizeofObject( attributeSize ) );
-			writeSequence( stream, attributeSize );
+			status = writeSequence( stream, attributeSize );
 			break;
 
 		case CRYPT_CERTTYPE_REQUEST_CERT:
@@ -647,19 +679,19 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 		case CRYPT_CERTTYPE_ATTRIBUTE_CERT:
 		case CRYPT_CERTTYPE_PKIUSER:
 		case CRYPT_CERTTYPE_NONE:
-			writeSequence( stream, attributeSize );
+			status = writeSequence( stream, attributeSize );
 			break;
 
 		case CRYPT_CERTTYPE_OCSP_REQUEST:
 			writeConstructed( stream, ( int ) sizeofObject( attributeSize ), 
 							  CTAG_OR_EXTENSIONS );
-			writeSequence( stream, attributeSize );
+			status = writeSequence( stream, attributeSize );
 			break;
 
 		case CRYPT_CERTTYPE_OCSP_RESPONSE:
 			writeConstructed( stream, ( int ) sizeofObject( attributeSize ), 
 							  CTAG_OP_EXTENSIONS );
-			writeSequence( stream, attributeSize );
+			status = writeSequence( stream, attributeSize );
 			break;
 
 		default:
@@ -669,23 +701,28 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 
 	/* Write the known attributes until we reach either the end of the list
 	   or the first blob-type attribute */
-	while( attributeListPtr != NULL && \
-		   !isBlobAttribute( attributeListPtr ) && cryptStatusOK( status ) )
+	iterationCount = 0;
+	while( cryptStatusOK( status ) && attributeListPtr != NULL && \
+		   !isBlobAttribute( attributeListPtr ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
+		{
 		status = writeAttribute( stream, &attributeListPtr, FALSE, 
 								 complianceLevel );
-	if( cryptStatusError( status ) )
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
+	if( cryptStatusError( status ) || !signUnrecognised  )
 		return( status );
 
-	/* If we're signing the blob-type attributes, write those as well */
-	krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE, 
-					 &signUnrecognised,
-					 CRYPT_OPTION_CERT_SIGNUNRECOGNISEDATTRIBUTES );
-	if( signUnrecognised )
+	/* Write the blob-type attributes */
+	iterationCount = 0;
+	while( attributeListPtr != NULL && cryptStatusOK( status ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 		{
-		/* Write the blob-type attributes */
-		while( attributeListPtr != NULL && cryptStatusOK( status ) )
-			status = writeAttribute( stream, &attributeListPtr, FALSE, 
-									 complianceLevel );
+		status = writeAttribute( stream, &attributeListPtr, FALSE, 
+								 complianceLevel );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	return( status );
 	}

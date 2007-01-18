@@ -163,11 +163,11 @@ typedef struct {
 	   matches the previous one, we set the user/certInfo changed flag to 
 	   tell the higher-level code to update the user info that it has 
 	   stored */
-	BYTE userID[ CRYPT_MAX_TEXTSIZE + 1 ];	/* User ID */
-	BYTE transID[ CRYPT_MAX_HASHSIZE ];		/* Transaction nonce */
-	BYTE certID[ CRYPT_MAX_HASHSIZE ];		/* Sender cert ID */
-	BYTE senderNonce[ CRYPT_MAX_HASHSIZE ];	/* Sender nonce */
-	BYTE recipNonce[ CRYPT_MAX_HASHSIZE ];	/* Recipient nonce */
+	BYTE userID[ CRYPT_MAX_TEXTSIZE + 1 + 8 ];	/* User ID */
+	BYTE transID[ CRYPT_MAX_HASHSIZE + 8 ];	/* Transaction nonce */
+	BYTE certID[ CRYPT_MAX_HASHSIZE + 8 ];	/* Sender cert ID */
+	BYTE senderNonce[ CRYPT_MAX_HASHSIZE + 8 ];	/* Sender nonce */
+	BYTE recipNonce[ CRYPT_MAX_HASHSIZE + 8 ];	/* Recipient nonce */
 	int userIDsize, transIDsize, certIDsize, senderNonceSize, recipNonceSize;
 	BOOLEAN userIDchanged, certIDchanged;	/* Whether ID info same as prev.*/
 
@@ -200,7 +200,7 @@ typedef struct {
 	   value */
 	CRYPT_ALGO_TYPE hashAlgo;				/* Hash algo for signature */
 	CRYPT_CONTEXT iMacContext;				/* MAC context */
-	BYTE salt[ CRYPT_MAX_HASHSIZE ];		/* MAC password salt  */
+	BYTE salt[ CRYPT_MAX_HASHSIZE + 8 ];	/* MAC password salt  */
 	int saltSize;
 	int iterations;							/* MAC password iterations */
 	BOOLEAN useMACsend, useMACreceive;		/* Use MAC to verify integrity */
@@ -212,7 +212,7 @@ typedef struct {
 	   an alternative MAC context with the returned parameters and use that
 	   instead.  This process is repeated for each message received */
 	CRYPT_CONTEXT iAltMacContext;			/* Alternative MAC context */
-	BYTE altSalt[ CRYPT_MAX_HASHSIZE ];		/* Alternative MAC password salt */
+	BYTE altSalt[ CRYPT_MAX_HASHSIZE + 8 ];	/* Alternative MAC password salt */
 	int altSaltSize;
 	int altIterations;						/* Alt.MAC password iterations */
 	BOOLEAN useAltMAC;						/* Use alternative MAC context */

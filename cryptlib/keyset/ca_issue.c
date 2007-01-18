@@ -5,21 +5,12 @@
 *																			*
 ****************************************************************************/
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "dbms.h"
   #include "asn1.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../keyset/dbms.h"
-  #include "../misc/asn1.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -43,12 +34,12 @@ static int getCertIssueType( DBMS_INFO *dbmsInfo,
 							 const CRYPT_CERTIFICATE iCertificate,
 							 const BOOLEAN isCert )
 	{
-	BYTE certData[ MAX_QUERY_RESULT_SIZE ];
-	char certID[ DBXKEYID_BUFFER_SIZE ];
+	BYTE certData[ MAX_QUERY_RESULT_SIZE + 8 ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int certIDlength, length, status;
 
 	/* Get the certID of the request that resulted in the cert creation */
-	status = certIDlength = getKeyID( certID, iCertificate, 
+	status = certIDlength = getKeyID( certID, iCertificate,
 									  CRYPT_CERTINFO_FINGERPRINT_SHA );
 	if( !cryptStatusError( status ) && isCert )
 		{
@@ -56,7 +47,7 @@ static int getCertIssueType( DBMS_INFO *dbmsInfo,
 		   get the request that resulted in its creation */
 		status = dbmsQuery(
 			"SELECT reqCertID FROM certLog WHERE certID = ?",
-							certData, &length, certID, certIDlength, 0, 
+							certData, &length, certID, certIDlength, 0,
 							DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 		if( cryptStatusOK( status ) )
 			{
@@ -78,7 +69,7 @@ static int getCertIssueType( DBMS_INFO *dbmsInfo,
 	   type */
 	status = dbmsQuery(
 		"SELECT action FROM certLog WHERE certID = ?",
-						certData, &length, certID, certIDlength, 0, 
+						certData, &length, certID, certIDlength, 0,
 						DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -110,8 +101,8 @@ static int completeCert( DBMS_INFO *dbmsInfo,
 						 const CRYPT_CERTIFICATE iCertificate,
 						 const CERTADD_TYPE addType )
 	{
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
-	char certID[ DBXKEYID_BUFFER_SIZE ];
+	char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int length, status;
 
 	assert( addType == CERTADD_PARTIAL || \
@@ -128,7 +119,7 @@ static int completeCert( DBMS_INFO *dbmsInfo,
 					  DBMS_UPDATE_BEGIN );
 	if( cryptStatusOK( status ) )
 		{
-		char specialCertID[ DBXKEYID_BUFFER_SIZE ];
+		char specialCertID[ DBXKEYID_BUFFER_SIZE + 8 ];
 
 		/* Turn the general certID into the form required for special-case
 		   cert data */
@@ -137,7 +128,7 @@ static int completeCert( DBMS_INFO *dbmsInfo,
 				( addType == CERTADD_RENEWAL_COMPLETE ) ? \
 				KEYID_ESC2 : KEYID_ESC1, KEYID_ESC_SIZE );
 		specialCertID[ MAX_ENCODED_DBXKEYID_SIZE ] = '\0';
-		dbmsFormatSQL( sqlBuffer,
+		dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"DELETE FROM certificates WHERE certID = '$'",
 					   specialCertID );
 		status = dbmsUpdate( sqlBuffer, NULL, 0, 0,
@@ -172,7 +163,7 @@ int completeCertRenewal( DBMS_INFO *dbmsInfo,
 						 const CRYPT_CERTIFICATE iReplaceCertificate )
 	{
 	CRYPT_CERTIFICATE iOrigCertificate;
-	char keyID[ DBXKEYID_BUFFER_SIZE ];
+	char keyID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int dummy, length, status;
 
 	/* Extract the key ID from the new cert and use it to fetch the existing
@@ -212,9 +203,10 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 	{
 	CRYPT_CERTIFICATE iLocalCertificate;
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	BYTE certData[ MAX_CERT_SIZE ];
-	char issuerID[ DBXKEYID_BUFFER_SIZE ], certID[ DBXKEYID_BUFFER_SIZE ];
-	char reqCertID[ DBXKEYID_BUFFER_SIZE ];
+	BYTE certData[ MAX_CERT_SIZE + 8 ];
+	char issuerID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char reqCertID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	CERTADD_TYPE addType = CERTADD_NORMAL;
 	int certDataLength, issueType, status;
 
@@ -243,7 +235,7 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 	if( cryptStatusError( status ) )
 		return( status );
 	iLocalCertificate = createInfo.cryptHandle;
-	status = krnlSendMessage( iLocalCertificate, IMESSAGE_SETATTRIBUTE, 
+	status = krnlSendMessage( iLocalCertificate, IMESSAGE_SETATTRIBUTE,
 							  ( void * ) &iCertRequest,
 							  CRYPT_CERTINFO_CERTREQUEST );
 	if( cryptStatusError( status ) )
@@ -252,8 +244,8 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		return( status );
 		}
 
-	/* Sanitise the new cert of potentially dangerous attributes.  For our 
-	   use we clear all CA and CA-equivalent attributes to prevent users 
+	/* Sanitise the new cert of potentially dangerous attributes.  For our
+	   use we clear all CA and CA-equivalent attributes to prevent users
 	   from submitting requests that turn them into CAs */
 	setMessageCreateObjectInfo( &createInfo, CRYPT_CERTTYPE_CERTIFICATE );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_CREATEOBJECT,
@@ -263,31 +255,31 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		const CRYPT_CERTIFICATE iTemplateCertificate = createInfo.cryptHandle;
 		int value;
 
-		/* Add the CA flag, CA-equivalent values (in this case the old 
-		   Netscape usage flags, which (incredibly) are still used today by 
-		   some CAs in place of the X.509 keyUsage extension), and the CA 
+		/* Add the CA flag, CA-equivalent values (in this case the old
+		   Netscape usage flags, which (incredibly) are still used today by
+		   some CAs in place of the X.509 keyUsage extension), and the CA
 		   keyUsages, as disallowed values */
-		status = krnlSendMessage( iTemplateCertificate, IMESSAGE_SETATTRIBUTE, 
+		status = krnlSendMessage( iTemplateCertificate, IMESSAGE_SETATTRIBUTE,
 								  MESSAGE_VALUE_TRUE, CRYPT_CERTINFO_CA );
 		if( cryptStatusOK( status ) )
 			{
 			value = CRYPT_NS_CERTTYPE_SSLCA | CRYPT_NS_CERTTYPE_SMIMECA | \
 					CRYPT_NS_CERTTYPE_OBJECTSIGNINGCA;
-			status = krnlSendMessage( iTemplateCertificate, IMESSAGE_SETATTRIBUTE, 
+			status = krnlSendMessage( iTemplateCertificate, IMESSAGE_SETATTRIBUTE,
 									  &value, CRYPT_CERTINFO_NS_CERTTYPE );
 			}
 		if( cryptStatusOK( status ) )
 			{
 			value = CRYPT_KEYUSAGE_KEYCERTSIGN | CRYPT_KEYUSAGE_CRLSIGN;
-			status = krnlSendMessage( iTemplateCertificate, IMESSAGE_SETATTRIBUTE, 
+			status = krnlSendMessage( iTemplateCertificate, IMESSAGE_SETATTRIBUTE,
 									  &value, CRYPT_CERTINFO_KEYUSAGE );
 			}
 		if( cryptStatusOK( status ) )
-			status = krnlSendMessage( iLocalCertificate, IMESSAGE_SETATTRIBUTE, 
+			status = krnlSendMessage( iLocalCertificate, IMESSAGE_SETATTRIBUTE,
 									  ( void * ) &iTemplateCertificate,
 									  CRYPT_IATTRIBUTE_BLOCKEDATTRS );
 		if( status == CRYPT_ERROR_INVALID )
-			/* If the request would have resulted in the creation of an 
+			/* If the request would have resulted in the creation of an
 			   invalid cert, report it as an error with the request */
 			status = CAMGMT_ARGERROR_REQUEST;
 		krnlSendNotifier( iTemplateCertificate, IMESSAGE_DECREFCOUNT );
@@ -299,7 +291,7 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		}
 
 	/* Finally, sign the cert */
-	status = krnlSendMessage( iLocalCertificate, IMESSAGE_CRT_SIGN, NULL, 
+	status = krnlSendMessage( iLocalCertificate, IMESSAGE_CRT_SIGN, NULL,
 							  caKey );
 	if( cryptStatusError( status ) )
 		{
@@ -309,14 +301,14 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		}
 
 	/* Extract the information that we need from the newly-created cert */
-	status = getKeyID( certID, iLocalCertificate, 
+	status = getKeyID( certID, iLocalCertificate,
 					   CRYPT_CERTINFO_FINGERPRINT_SHA );
 	if( !cryptStatusError( status ) )
 		status = getKeyID( issuerID, iLocalCertificate,
 						   CRYPT_IATTRIBUTE_ISSUERANDSERIALNUMBER );
 	if( !cryptStatusError( status ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, certData, MAX_CERT_SIZE );
 		status = krnlSendMessage( iLocalCertificate, IMESSAGE_CRT_EXPORT,
@@ -365,7 +357,7 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		   is detected at a later stage than it normally would be */
 		if( issueType == CERTADD_PARTIAL )
 			{
-			char keyID[ DBXKEYID_BUFFER_SIZE ];
+			char keyID[ DBXKEYID_BUFFER_SIZE + 8 ];
 			int length;
 
 			status = length = getCertKeyID( keyID, iLocalCertificate );
@@ -399,9 +391,9 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 								DBMS_UPDATE_CONTINUE );
 	if( cryptStatusOK( status ) )
 		{
-		char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+		char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 
-		dbmsFormatSQL( sqlBuffer,
+		dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"DELETE FROM certRequests WHERE certID = '$'",
 					   reqCertID );
 		status = dbmsUpdate( sqlBuffer, NULL, 0, 0, DBMS_UPDATE_COMMIT );
@@ -434,11 +426,11 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 
 /* Complete a previously-started cert issue */
 
-int caIssueCertComplete( DBMS_INFO *dbmsInfo, 
+int caIssueCertComplete( DBMS_INFO *dbmsInfo,
 						 const CRYPT_CERTIFICATE iCertificate,
 						 const CRYPT_CERTACTION_TYPE action )
 	{
-	char certID[ DBXKEYID_BUFFER_SIZE ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
@@ -478,9 +470,9 @@ int caIssueCertComplete( DBMS_INFO *dbmsInfo,
 	   incomplete cert and exit */
 	if( action == CRYPT_CERTACTION_CERT_CREATION_DROP )
 		{
-		char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+		char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 
-		dbmsFormatSQL( sqlBuffer,
+		dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"DELETE FROM certificates WHERE certID = '" KEYID_ESC1 "$'",
 					   certID + 2 );
 		status = dbmsUpdate( sqlBuffer, NULL, 0, 0, DBMS_UPDATE_BEGIN );
@@ -506,8 +498,9 @@ int caIssueCertComplete( DBMS_INFO *dbmsInfo,
 		return( status );
 		}
 
-	/* We're reversing a cert creation, we need to explicitly revoke the cert
-	   rather than just deleting it */
+	/* We're reversing a cert creation as a compensating transaction for an
+	   aborted cert issue, we need to explicitly revoke the cert rather than
+	   just deleting it */
 	assert( action == CRYPT_CERTACTION_CERT_CREATION_REVERSE );
 
 	return( revokeCertDirect( dbmsInfo, iCertificate,

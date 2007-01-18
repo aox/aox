@@ -5,20 +5,14 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "pgp.h"
   #include "misc_rw.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "pgp.h"
-  #include "../misc/misc_rw.h"
 #else
   #include "crypt.h"
-  #include "envelope/pgp.h"
   #include "misc/misc_rw.h"
+  #include "misc/pgp.h"
 #endif /* Compiler-specific includes */
 
 #if defined( USE_PGP ) || defined( USE_PGPKEYS )
@@ -31,11 +25,12 @@
 
 /* Convert algorithm IDs from cryptlib to PGP and back */
 
-static const FAR_BSS struct {
+typedef struct {
 	const int pgpAlgo;
 	const PGP_ALGOCLASS_TYPE pgpAlgoClass;
 	const CRYPT_ALGO_TYPE cryptlibAlgo;
-	} pgpAlgoMap[] = {
+	} PGP_ALGOMAP_INFO;
+static const PGP_ALGOMAP_INFO FAR_BSS pgpAlgoMap[] = {
 	/* Encryption algos */
 	{ PGP_ALGO_3DES, PGP_ALGOCLASS_CRYPT, CRYPT_ALGO_3DES },
 	{ PGP_ALGO_BLOWFISH, PGP_ALGOCLASS_CRYPT, CRYPT_ALGO_BLOWFISH },
@@ -71,6 +66,7 @@ static const FAR_BSS struct {
 	{ PGP_ALGO_RIPEMD160, PGP_ALGOCLASS_HASH, CRYPT_ALGO_RIPEMD160 },
 	{ PGP_ALGO_SHA2_256, PGP_ALGOCLASS_HASH, CRYPT_ALGO_SHA2 },
 
+	{ PGP_ALGO_NONE, 0, CRYPT_ALGO_NONE },
 	{ PGP_ALGO_NONE, 0, CRYPT_ALGO_NONE }
 	};
 
@@ -79,10 +75,17 @@ CRYPT_ALGO_TYPE pgpToCryptlibAlgo( const int pgpAlgo,
 	{
 	int i;
 
+	assert( pgpAlgoClass > PGP_ALGOCLASS_NONE && \
+			pgpAlgoClass < PGP_ALGOCLASS_LAST );
+
 	for( i = 0;
 		 ( pgpAlgoMap[ i ].pgpAlgo != pgpAlgo || \
 		   pgpAlgoMap[ i ].pgpAlgoClass != pgpAlgoClass ) && \
-		 pgpAlgoMap[ i ].pgpAlgo != PGP_ALGO_NONE; i++ );
+			pgpAlgoMap[ i ].pgpAlgo != PGP_ALGO_NONE && \
+			i < FAILSAFE_ARRAYSIZE( pgpAlgoMap, PGP_ALGOMAP_INFO ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( pgpAlgoMap, PGP_ALGOMAP_INFO ) )
+		retIntError_Ext( CRYPT_ALGO_NONE );
 	return( pgpAlgoMap[ i ].cryptlibAlgo );
 	}
 
@@ -90,41 +93,17 @@ int cryptlibToPgpAlgo( const CRYPT_ALGO_TYPE cryptlibAlgo )
 	{
 	int i;
 
-	for( i = 0; pgpAlgoMap[ i ].cryptlibAlgo != cryptlibAlgo && \
-				pgpAlgoMap[ i ].cryptlibAlgo != CRYPT_ALGO_NONE; i++ );
+	assert( cryptlibAlgo > CRYPT_ALGO_NONE && \
+			cryptlibAlgo < CRYPT_ALGO_LAST );
+
+	for( i = 0; 
+		 pgpAlgoMap[ i ].cryptlibAlgo != cryptlibAlgo && \
+			pgpAlgoMap[ i ].cryptlibAlgo != CRYPT_ALGO_NONE && \
+			i < FAILSAFE_ARRAYSIZE( pgpAlgoMap, PGP_ALGOMAP_INFO ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( pgpAlgoMap, PGP_ALGOMAP_INFO ) )
+		retIntError_Ext( PGP_ALGO_NONE );
 	return( pgpAlgoMap[ i ].pgpAlgo );
-	}
-
-/****************************************************************************
-*																			*
-*						PGP Data Packet Read/Write Routines					*
-*																			*
-****************************************************************************/
-
-/* Read/write a multiprecision integer value */
-
-int pgpReadMPI( STREAM *stream, BYTE *data )
-	{
-	int bitLength, length, status;
-
-	bitLength = readUint16( stream );
-	length = bitsToBytes( bitLength );
-	if( length < 1 || length > PGP_MAX_MPISIZE )
-		return( CRYPT_ERROR_BADDATA );
-	if( data == NULL )
-		status = sSkip( stream, length );
-	else
-		status = sread( stream, data, length );
-	return( cryptStatusError( status ) ? status : bitLength );
-	}
-
-int pgpWriteMPI( STREAM *stream, const BYTE *data, const int length )
-	{
-	const int bitLength = bytesToBits( length );
-
-	sputc( stream, ( bitLength >> 8 ) & 0xFF );
-	sputc( stream, bitLength & 0xFF );
-	return( swrite( stream, data, length ) );
 	}
 
 /****************************************************************************
@@ -141,9 +120,18 @@ int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const int optKeyLength,
 					  const int iterations )
 	{
 	CRYPT_ALGO_TYPE algorithm;
-	RESOURCE_DATA msgData;
-	BYTE hashedKey[ CRYPT_MAX_KEYSIZE ];
+	MESSAGE_DATA msgData;
+	BYTE hashedKey[ CRYPT_MAX_KEYSIZE + 8 ];
 	int keySize, status;
+
+	assert( isHandleRangeValid( iCryptContext ) );
+	assert( ( optKeyLength == CRYPT_UNUSED ) || \
+			( optKeyLength >= 8 && optKeyLength <= CRYPT_MAX_KEYSIZE ) );
+	assert( isReadPtr( password, passwordLength ) );
+	assert( hashAlgo >= CRYPT_ALGO_FIRST_HASH && \
+			hashAlgo <= CRYPT_ALGO_LAST_HASH );
+	assert( ( salt == NULL ) || isReadPtr( salt, PGP_SALTSIZE ) );
+	assert( iterations >= 0 );
 
 	/* Get various parameters needed to process the password */
 	status = krnlSendMessage( iCryptContext, IMESSAGE_GETATTRIBUTE,
@@ -196,8 +184,8 @@ int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const int optKeyLength,
 		HASHFUNCTION hashFunction;
 
 		getHashParameters( hashAlgo, &hashFunction, NULL );
-		hashFunction( NULL, hashedKey, ( BYTE * ) password, passwordLength,
-					  HASH_ALL );
+		hashFunction( NULL, hashedKey, CRYPT_MAX_KEYSIZE, 
+					  ( BYTE * ) password, passwordLength, HASH_ALL );
 		}
 
 	/* Load the key into the context */
@@ -209,15 +197,20 @@ int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const int optKeyLength,
 	return( status );
 	}
 
-/* Process a PGP-style IV */
+/* Process a PGP-style IV.  This isn't a standard IV but contains an extra
+   two bytes of check value, which is why it's denoted as 'ivInfo' rather
+   than a pure 'iv' */
 
 int pgpProcessIV( const CRYPT_CONTEXT iCryptContext, BYTE *ivInfo,
 				  const int ivSize, const BOOLEAN isEncrypt,
 				  const BOOLEAN resyncIV )
 	{
 	static const BYTE zeroIV[ CRYPT_MAX_IVSIZE ] = { 0 };
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
+
+	assert( isHandleRangeValid( iCryptContext ) );
+	assert( isReadPtr( ivInfo, ivSize ) );
 
 	/* PGP uses a bizarre way of handling IV's that resyncs the data on
 	   some boundaries, and doesn't actually use an IV but instead prefixes
@@ -252,7 +245,7 @@ int pgpProcessIV( const CRYPT_CONTEXT iCryptContext, BYTE *ivInfo,
 		}
 	else
 		{
-		BYTE ivInfoBuffer[ CRYPT_MAX_IVSIZE + 2 ];
+		BYTE ivInfoBuffer[ CRYPT_MAX_IVSIZE + 2 + 8 ];
 
 		/* Decrypt the first ivSize bytes (the effective IV) and following
 		   2-byte check value.  There's a potential problem here in which an

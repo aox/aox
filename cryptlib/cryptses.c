@@ -5,10 +5,8 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdarg.h>
 #include "crypt.h"
 #ifdef INC_ALL
   #include "asn1.h"
@@ -19,6 +17,19 @@
   #include "io/stream.h"
   #include "session/session.h"
 #endif /* Compiler-specific includes */
+
+/* The number of entries in the SSL session cache.  Note that when changing 
+   the SESSIONCACHE_SIZE value you need to also change MAX_ALLOC_SIZE in 
+   sec_mem.c to allow the allocation of such large amounts of secure 
+   memory */
+
+#if defined( CONFIG_CONSERVE_MEMORY )
+  #define SESSIONCACHE_SIZE			128
+#else
+  #define SESSIONCACHE_SIZE			1024
+#endif /* CONFIG_CONSERVE_MEMORY */
+
+static SCOREBOARD_INFO scoreboardInfo;
 
 #ifdef USE_SESSIONS
 
@@ -69,7 +80,7 @@ int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status,
 	va_list argPtr;
 
 	va_start( argPtr, format );
-	vsnprintf( sessionInfoPtr->errorMessage, MAX_ERRMSG_SIZE, format, argPtr ); 
+	vsprintf_s( sessionInfoPtr->errorMessage, MAX_ERRMSG_SIZE, format, argPtr ); 
 	va_end( argPtr );
 	assert( !cryptArgError( status ) );	/* Catch leaks */
 	return( cryptArgError( status ) ? CRYPT_ERROR_FAILED : status );
@@ -79,7 +90,7 @@ int retExtExFnSession( SESSION_INFO *sessionInfoPtr,
 					   const int status, const CRYPT_HANDLE extErrorObject, 
 					   const char *format, ... )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	va_list argPtr;
 	int extErrorStatus;
 
@@ -90,8 +101,8 @@ int retExtExFnSession( SESSION_INFO *sessionInfoPtr,
 									  &msgData, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE );
 	if( cryptStatusOK( extErrorStatus ) )
 		{
-		char errorString[ MAX_ERRMSG_SIZE + 1 ];
-		char extraErrorString[ MAX_ERRMSG_SIZE + 1 ];
+		char errorString[ MAX_ERRMSG_SIZE + 8 ];
+		char extraErrorString[ MAX_ERRMSG_SIZE + 8 ];
 		int errorStringLen, extraErrorStringLen;
 
 		/* There's additional information present via the additional object, 
@@ -104,7 +115,7 @@ int retExtExFnSession( SESSION_INFO *sessionInfoPtr,
 		else
 			strcpy( extraErrorString, "(None available)" );
 		extraErrorStringLen = strlen( extraErrorString );
-		vsnprintf( errorString, MAX_ERRMSG_SIZE, format, argPtr );
+		vsprintf_s( errorString, MAX_ERRMSG_SIZE, format, argPtr );
 		errorStringLen = strlen( errorString );
 		if( errorStringLen < MAX_ERRMSG_SIZE - 64 )
 			{
@@ -120,366 +131,127 @@ int retExtExFnSession( SESSION_INFO *sessionInfoPtr,
 		strcpy( sessionInfoPtr->errorMessage, errorString );
 		}
 	else
-		vsnprintf( sessionInfoPtr->errorMessage, MAX_ERRMSG_SIZE, format, argPtr ); 
+		vsprintf_s( sessionInfoPtr->errorMessage, MAX_ERRMSG_SIZE, format, argPtr ); 
 	va_end( argPtr );
 	assert( !cryptArgError( status ) );	/* Catch leaks */
 	return( cryptArgError( status ) ? CRYPT_ERROR_FAILED : status );
 	}
 
-/* Reset the internal virtual cursor in a attribute-list item after we've 
-   moved the attribute cursor */
+/* Add the contents of an encoded URL to a session.  This requires parsing
+   the individual session attribute components out of the URL and then 
+   adding each one in turn */
 
-#define resetVirtualCursor( attributeListPtr ) \
-		if( attributeListPtr != NULL ) \
-			attributeListPtr->flags |= ATTR_FLAG_CURSORMOVED
-
-/* Helper function used to access internal attributes within an attribute 
-   group */
-
-#if 0	/* Currently unused, will be enabled in 3.3 with the move to 
-		   composite attributes for host/client info */
-
-static int accessFunction( ATTRIBUTE_LIST *attributeListPtr,
-						   const ATTR_TYPE attrGetType )
+static int addUrl( SESSION_INFO *sessionInfoPtr, const void *url,
+				   const int urlLength )
 	{
-	static const CRYPT_ATTRIBUTE_TYPE attributeOrderList[] = {
-				CRYPT_SESSINFO_NAME, CRYPT_SESSINFO_PASSWORD,
-				CRYPT_SESSINFO_KEY, CRYPT_ATTRIBUTE_NONE, 
-				CRYPT_ATTRIBUTE_NONE };
-	USER_INFO *userInfoPtr = attributeListPtr->value;
-	CRYPT_ATTRIBUTE_TYPE attributeType = userInfoPtr->cursorPos;
-	BOOLEAN doContinue;
+	const PROTOCOL_INFO *protocolInfoPtr = sessionInfoPtr->protocolInfo;
+	URL_INFO urlInfo;
+	int status;
 
-	/* If we've just moved the cursor onto this attribute, reset the 
-	   position to the first internal attribute */
-	if( attributeListPtr->flags & ATTR_FLAG_CURSORMOVED )
+	assert( isWritePtr( sessionInfoPtr, sizeof( SESSION_INFO ) ) );
+	assert( isReadPtr( url, urlLength ) );
+	assert( urlLength > 0 && urlLength < MAX_URL_SIZE );
+
+	/* If there's already a transport session or network socket specified, 
+	   we can't set a server name as well */
+	if( sessionInfoPtr->transportSession != CRYPT_ERROR )
+		return( exitErrorInited( sessionInfoPtr, CRYPT_SESSINFO_SESSION ) );
+	if( sessionInfoPtr->networkSocket != CRYPT_ERROR )
+		return( exitErrorInited( sessionInfoPtr, 
+								 CRYPT_SESSINFO_NETWORKSOCKET ) );
+
+	/* Parse the server name */
+	status = sNetParseURL( &urlInfo, url, urlLength );
+	if( cryptStatusError( status ) )
+		return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
+						   CRYPT_ERRTYPE_ATTR_VALUE, CRYPT_ARGERROR_STR1 ) );
+
+	/* We can only use autodetection with PKI services */
+	if( !strCompare( url, "[Autodetect]", urlLength ) && \
+		!protocolInfoPtr->isReqResp )
+		return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
+						   CRYPT_ERRTYPE_ATTR_VALUE, CRYPT_ARGERROR_STR1 ) );
+
+	/* Remember the server name */
+	if( urlInfo.hostLen + urlInfo.locationLen + 1 > MAX_URL_SIZE )
 		{
-		attributeType = userInfoPtr->cursorPos = \
-						CRYPT_ENVINFO_SIGNATURE_RESULT;
-		attributeListPtr->flags &= ~ATTR_FLAG_CURSORMOVED;
+		/* This should never happen since the overall URL size has to be 
+		   less than MAX_URL_SIZE */
+		assert( NOTREACHED );
+		return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
+						   CRYPT_ERRTYPE_ATTR_VALUE, CRYPT_ARGERROR_STR1 ) );
 		}
-
-	/* If it's an info fetch, return the currently-selected attribute */
-	if( attrGetType == ATTR_NONE )
-		return( attributeType );
-
-	do
-		{
-		int i;
-
-		/* Find the position of the current sub-attribute in the attribute 
-		   order list and use that to get its successor/predecessor sub-
-		   attribute */
-		for( i = 0; \
-			 attributeOrderList[ i ] != attributeType && \
-			 attributeOrderList[ i ] != CRYPT_ATTRIBUTE_NONE; i++ );
-		if( attributeOrderList[ i ] == CRYPT_ATTRIBUTE_NONE )
-			attributeType = CRYPT_ATTRIBUTE_NONE;
-		else
-			if( attrGetType == ATTR_PREV )
-				attributeType = ( i < 1 ) ? CRYPT_ATTRIBUTE_NONE : \
-											attributeOrderList[ i - 1 ];
-			else
-				attributeType = attributeOrderList[ i + 1 ];
-		if( attributeType == CRYPT_ATTRIBUTE_NONE )
-			/* We've reached the first/last sub-attribute within the current 
-			   item/group, tell the caller that there are no more sub-
-			   attributes present and they have to move on to the next 
-			   group */
-			return( FALSE );
-
-		/* Check whether the required sub-attribute is present.  If not, we
-		   continue and try the next one */
-		doContinue = FALSE;
-		switch( attributeType )
-			{
-			case CRYPT_SESSINFO_NAME:
-				break;	/* Always present */
-				
-			case CRYPT_SESSINFO_PASSWORD:
-				if( userInfoPtr->passwordLen <= 0 )
-					doContinue = TRUE;
-				break;
-	
-			case CRYPT_SESSINFO_KEY:
-				if( userInfoPtr->key == CRYPT_ERROR )
-					doContinue = TRUE;
-				break;
-
-			default:
-				assert( NOTREACHED );
-				return( FALSE );
-			}
-		}
-	while( doContinue );
-	attributeListPtr->attributeCursorEntry = attributeType;
-	
-	return( TRUE );
-	}
-#endif /* 0 */
-
-/* Callback function used to provide external access to attribute list-
-   internal fields */
-
-static const void *getAttrFunction( const void *attributePtr, 
-									CRYPT_ATTRIBUTE_TYPE *groupID, 
-									CRYPT_ATTRIBUTE_TYPE *attributeID, 
-									CRYPT_ATTRIBUTE_TYPE *instanceID,
-									const ATTR_TYPE attrGetType )
-	{
-	ATTRIBUTE_LIST *attributeListPtr = ( ATTRIBUTE_LIST * ) attributePtr;
-	BOOLEAN subGroupMove;
-
-	assert( attributeListPtr == NULL || \
-			isReadPtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
-
-	/* Clear return values */
-	if( groupID != NULL )
-		*groupID = CRYPT_ATTRIBUTE_NONE;
-	if( attributeID != NULL )
-		*attributeID = CRYPT_ATTRIBUTE_NONE;
-	if( instanceID != NULL )
-		*instanceID = CRYPT_ATTRIBUTE_NONE;
-
-	/* Move to the next or previous attribute if required.  This isn't just a
-	   case of following the prev/next links because some attribute-list 
-	   items contain an entire attribute group, so positioning by attribute 
-	   merely changes the current selection within the group (== attribute-
-	   list item) rather than moving to the previous/next entry.  Because of 
-	   this we have to special-case the code for composite items and allow 
-	   virtual positioning within the item */
-	if( attributeListPtr == NULL )
-		return( NULL );
-	subGroupMove = ( attrGetType == ATTR_PREV || \
-					 attrGetType == ATTR_NEXT ) && \
-				   ( attributeListPtr->flags & ATTR_FLAG_COMPOSITE );
-	if( subGroupMove )
-		{
-		assert( attrGetType == ATTR_NEXT || attrGetType == ATTR_PREV );
-		assert( attributeListPtr->flags & ATTR_FLAG_COMPOSITE );
-		assert( attributeListPtr->accessFunction != NULL );
-
-		subGroupMove = attributeListPtr->accessFunction( attributeListPtr, 
-														 attrGetType );
-		}
-
-	/* If we're moving by group, move to the next/previous attribute list
-	   item and reset the internal virtual cursor.  Note that we always 
-	   advance the cursor to the next/prev attribute, it's up to the calling 
-	   code to manage attribute by attribute vs.group by group moves */
-	if( !subGroupMove && attrGetType != ATTR_CURRENT )
-		{
-		attributeListPtr = ( attrGetType == ATTR_PREV ) ? \
-						   attributeListPtr->prev : attributeListPtr->next;
-		resetVirtualCursor( attributeListPtr );
-		}
-	if( attributeListPtr == NULL )
-		return( NULL );
-
-	/* Return ID information to the caller.  We only return the group ID if
-	   we've moved within the attribute group, if we've moved from one group
-	   to another we leave it cleared because sessions can contain multiple
-	   groups with the same ID, and returning an ID identical to the one from
-	   the group that we've moved out of would make it look as if we're still 
-	   within the same group.  Note that this relies on the behaviour of the
-	   attribute-move functions, which first get the current group using 
-	   ATTR_CURRENT and then move to the next or previous using ATTR_NEXT/
-	   PREV */
-	if( groupID != NULL && ( attrGetType == ATTR_CURRENT || subGroupMove ) )
-		*groupID = attributeListPtr->attribute;
-	if( attributeID != NULL && \
-		( attributeListPtr->flags & ATTR_FLAG_COMPOSITE ) )
-		*attributeID = attributeListPtr->accessFunction( attributeListPtr, 
-														 ATTR_NONE );
-	return( attributeListPtr );
-	}
-
-/* Add a session attribute */
-
-static int insertSessionAttribute( ATTRIBUTE_LIST **listHeadPtr,
-								   const CRYPT_ATTRIBUTE_TYPE attributeType,
-								   const void *data, const int dataLength,
-								   const int dataMaxLength, 
-								   const ATTRACCESSFUNCTION accessFunction,
-								   const int flags )
-	{
-	ATTRIBUTE_LIST *newElement, *insertPoint = NULL;
-
-	assert( isWritePtr( listHeadPtr, sizeof( ATTRIBUTE_LIST * ) ) );
-	assert( attributeType > CRYPT_SESSINFO_FIRST && \
-			attributeType < CRYPT_SESSINFO_LAST );
-	assert( ( data == NULL ) || \
-			( isReadPtr( data, dataLength ) && \
-			  dataLength <= dataMaxLength ) );
-	assert( dataMaxLength >= 0 );
-	assert( !( flags & ATTR_FLAG_COMPOSITE ) || \
-			accessFunction != NULL );
-
-	/* Make sure that this attribute isn't already present */
-	if( *listHeadPtr != NULL )
-		{
-		ATTRIBUTE_LIST *prevElement = NULL;
-
-		for( insertPoint = *listHeadPtr; insertPoint != NULL;
-			 insertPoint = insertPoint->next )
-			{
-			/* If this is a non-multivalued attribute, make sure that it
-			   attribute isn't already present */
-			if( !( flags & ATTR_FLAG_MULTIVALUED ) && \
-				insertPoint->attribute == attributeType )
-				return( CRYPT_ERROR_INITED );
-
-			prevElement = insertPoint;
-			}
-		insertPoint = prevElement;
-		}
-
-	/* Allocate memory for the new element and copy the information across.  
-	   The data is stored in storage ... storage + dataLength, with storage
-	   reserved up to dataMaxLength (if it's greater than dataLength) to
-	   allow the contents to be replaced with a new fixed-length value  */
-	if( ( newElement = ( ATTRIBUTE_LIST * ) \
-					   clAlloc( "addSessionAttribute", sizeof( ATTRIBUTE_LIST ) + \
-													   dataMaxLength ) ) == NULL )
-		return( CRYPT_ERROR_MEMORY );
-	initVarStruct( newElement, ATTRIBUTE_LIST, dataMaxLength );
-	newElement->attribute = attributeType;
-	newElement->accessFunction = accessFunction;
-	newElement->flags = flags;
-	if( data == NULL )
-		newElement->intValue = dataLength;
+	if( urlInfo.locationLen <= 0 )
+		status = addSessionAttribute( &sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_SERVER_NAME, 
+									  urlInfo.host, urlInfo.hostLen );
 	else
 		{
-		assert( isReadPtr( data, dataLength ) );
+		char urlBuffer[ MAX_URL_SIZE + 8 ];
 
-		memcpy( newElement->value, data, dataLength );
-		newElement->valueLength = dataLength;
+		memcpy( urlBuffer, urlInfo.host, urlInfo.hostLen );
+		memcpy( urlBuffer + urlInfo.hostLen, urlInfo.location, 
+				urlInfo.locationLen );
+		status = addSessionAttribute( &sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_SERVER_NAME, urlBuffer, 
+									  urlInfo.hostLen + urlInfo.locationLen );
 		}
-	insertDoubleListElement( listHeadPtr, insertPoint, newElement );
+	if( cryptStatusError( status ) )
+		return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
+						   CRYPT_ERRTYPE_ATTR_VALUE, CRYPT_ARGERROR_STR1 ) );
+
+	/* If there's a port or user name specified in the URL, remember them.  
+	   We have to add the user name after we add any other attributes 
+	   because it's paired with a password, so adding the user name and then 
+	   following it with something that isn't a password will cause an error 
+	   return */
+	if( urlInfo.port > 0 )
+		{
+		krnlSendMessage( sessionInfoPtr->objectHandle, 
+						 IMESSAGE_DELETEATTRIBUTE, NULL,
+						 CRYPT_SESSINFO_SERVER_PORT );
+		status = krnlSendMessage( sessionInfoPtr->objectHandle, 
+								  IMESSAGE_SETATTRIBUTE, &urlInfo.port,
+								  CRYPT_SESSINFO_SERVER_PORT );
+		}
+	if( cryptStatusOK( status ) && urlInfo.userInfoLen > 0 )
+		{
+		MESSAGE_DATA userInfoMsgData;
+
+		krnlSendMessage( sessionInfoPtr->objectHandle, 
+						 IMESSAGE_DELETEATTRIBUTE, NULL,
+						 CRYPT_SESSINFO_USERNAME );
+		setMessageData( &userInfoMsgData, ( void * ) urlInfo.userInfo, 
+						urlInfo.userInfoLen );
+		status = krnlSendMessage( sessionInfoPtr->objectHandle, 
+								  IMESSAGE_SETATTRIBUTE_S, &userInfoMsgData,
+								  CRYPT_SESSINFO_USERNAME );
+		}
+	if( cryptStatusError( status ) )
+		return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
+						   CRYPT_ERRTYPE_ATTR_VALUE, CRYPT_ARGERROR_STR1 ) );
+
+	/* Remember the transport type */
+	if( protocolInfoPtr->altProtocolInfo != NULL && \
+		urlInfo.schemaLen == \
+					strlen( protocolInfoPtr->altProtocolInfo->uriType ) && \
+		!strCompare( urlInfo.schema, 
+					 protocolInfoPtr->altProtocolInfo->uriType,
+					 strlen( protocolInfoPtr->altProtocolInfo->uriType ) ) )
+		{
+		/* The caller has specified the use of the altnernate transport 
+		   protocol type, switch to that instead of HTTP */
+		sessionInfoPtr->flags &= ~protocolInfoPtr->altProtocolInfo->oldFlagsMask;
+		sessionInfoPtr->flags |= protocolInfoPtr->altProtocolInfo->newFlags;
+		}
+	else
+		if( sessionInfoPtr->protocolInfo->flags & SESSION_ISHTTPTRANSPORT )
+			{
+			sessionInfoPtr->flags &= ~SESSION_USEALTTRANSPORT;
+			sessionInfoPtr->flags |= SESSION_ISHTTPTRANSPORT;
+			}
 
 	return( CRYPT_OK );
-	}
-
-int addSessionAttribute( ATTRIBUTE_LIST **listHeadPtr,
-						 const CRYPT_ATTRIBUTE_TYPE attributeType,
-						 const void *data, const int dataLength )
-	{
-	return( insertSessionAttribute( listHeadPtr, attributeType, data, 
-								    dataLength, dataLength, NULL,
-									ATTR_FLAG_NONE ) );
-	}
-
-int addSessionAttributeEx( ATTRIBUTE_LIST **listHeadPtr,
-						   const CRYPT_ATTRIBUTE_TYPE attributeType,
-						   const void *data, const int dataLength,
-						   const ATTRACCESSFUNCTION accessFunction, 
-						   const int flags )
-	{
-	return( insertSessionAttribute( listHeadPtr, attributeType, data, 
-								    dataLength, dataLength, 
-									accessFunction, flags ) );
-	}
-
-/* Update a session attribute, either by replacing an existing entry if it
-   already exists or by adding a new entry */
-
-int updateSessionAttribute( ATTRIBUTE_LIST **listHeadPtr,
-							const CRYPT_ATTRIBUTE_TYPE attributeType,
-							const void *data, const int dataLength,
-							const int dataMaxLength, const int flags )
-	{
-	ATTRIBUTE_LIST *attributeListPtr = *listHeadPtr;
-
-	assert( !( flags & ATTR_FLAG_MULTIVALUED ) );
-
-	/* Try and find the attribute */
-	while( attributeListPtr != NULL && \
-		   attributeListPtr->attribute != attributeType )
-		attributeListPtr = attributeListPtr->next;
-
-	/* If the attribute is already present, update the value */
-	if( attributeListPtr != NULL )
-		{
-		assert( attributeListPtr->attribute == attributeType );
-		assert( ( attributeListPtr->valueLength == 0 && \
-				  !memcmp( attributeListPtr->value, \
-						   "\x00\x00\x00\x00", 4 ) ) || \
-				attributeListPtr->valueLength > 0 );
-		assert( isReadPtr( data, dataLength ) && \
-				dataLength <= dataMaxLength );
-
-		zeroise( attributeListPtr->value, attributeListPtr->valueLength );
-		memcpy( attributeListPtr->value, data, dataLength );
-		attributeListPtr->valueLength = dataLength;
-		return( CRYPT_OK );
-		}
-
-	/* The attribute isn't already present, it's a straight add */
-	return( insertSessionAttribute( listHeadPtr, attributeType, data, 
-								    dataLength, dataMaxLength, NULL,
-								    flags ) );
-	}
-
-/* Find a session attribute */
-
-const ATTRIBUTE_LIST *findSessionAttribute( const ATTRIBUTE_LIST *attributeListPtr,
-											const CRYPT_ATTRIBUTE_TYPE attributeType )
-	{
-	while( attributeListPtr != NULL && \
-		   attributeListPtr->attribute != attributeType )
-		attributeListPtr = attributeListPtr->next;
-	return( attributeListPtr );
-	}
-
-/* Reset a session attribute.  This is used to clear the data in attributes
-   such as passwords that can be updated over different runs of a session */
-
-void resetSessionAttribute( ATTRIBUTE_LIST *attributeListPtr,
-							const CRYPT_ATTRIBUTE_TYPE attributeType )
-	{
-	/* Find the attribute to reset */
-	attributeListPtr = ( ATTRIBUTE_LIST * ) \
-				findSessionAttribute( attributeListPtr, attributeType );
-	if( attributeListPtr == NULL )
-		return;
-
-	zeroise( attributeListPtr->value, attributeListPtr->valueLength );
-	attributeListPtr->valueLength = 0;
-	}
-
-/* Delete a complete set of session attributes */
-
-void deleteSessionAttribute( ATTRIBUTE_LIST **attributeListHead,
-							 ATTRIBUTE_LIST *attributeListPtr )
-	{
-	/* Remove the item from the list */
-	deleteDoubleListElement( attributeListHead, attributeListPtr );
-
-	/* Clear all data in the list item and free the memory */
-	endVarStruct( attributeListPtr, ATTRIBUTE_LIST );
-	clFree( "deleteSessionAttribute", attributeListPtr );
-	}
-
-void deleteSessionAttributes( ATTRIBUTE_LIST **attributeListHead )
-	{
-	ATTRIBUTE_LIST *attributeListCursor = *attributeListHead;
-
-	assert( isWritePtr( attributeListHead, sizeof( ATTRIBUTE_LIST * ) ) );
-
-	/* If the list was empty, return now */
-	if( attributeListCursor == NULL )
-		return;
-
-	/* Destroy any remaining list items */
-	while( attributeListCursor != NULL )
-		{
-		ATTRIBUTE_LIST *itemToFree = attributeListCursor;
-
-		attributeListCursor = attributeListCursor->next;
-		deleteSessionAttribute( attributeListHead, itemToFree );
-		}
-
-	assert( *attributeListHead == NULL );
 	}
 
 /****************************************************************************
@@ -501,32 +273,21 @@ static int processGetAttribute( SESSION_INFO *sessionInfoPtr,
 		case CRYPT_ATTRIBUTE_CURRENT:
 		case CRYPT_ATTRIBUTE_CURRENT_GROUP:
 			{
-			ATTRIBUTE_LIST *attributeListPtr = \
-								sessionInfoPtr->attributeListCurrent;
+			int value, status;
 
-			/* We're querying something that resides in the attribute list, 
-			   make sure that there's an attribute list present.  If it's 
-			   present but nothing is selected, select the first entry */
-			if( attributeListPtr == NULL )
-				{
-				if( sessionInfoPtr->attributeList == NULL )
-					return( exitErrorNotFound( sessionInfoPtr, 
-											   messageValue ) );
-				attributeListPtr = sessionInfoPtr->attributeListCurrent = \
-								   sessionInfoPtr->attributeList;
-				resetVirtualCursor( attributeListPtr );
-				}
-
-			/* If we're reading the group type or it's a single-attribute 
-			   group, return the overall attribute type */
-			if( ( messageValue == CRYPT_ATTRIBUTE_CURRENT_GROUP ) || \
-				!( attributeListPtr->flags & ATTR_FLAG_COMPOSITE ) )
-				*valuePtr = attributeListPtr->attribute;
+			status = getSessionAttributeCursor( sessionInfoPtr->attributeList,
+									sessionInfoPtr->attributeListCurrent, 
+									messageValue, &value );
+			if( status == OK_SPECIAL )
+				/* The attribute list wasn't initialised yet, initialise it 
+				   now */
+				sessionInfoPtr->attributeListCurrent = \
+										sessionInfoPtr->attributeList;
 			else
-				/* It's a composite type, get the currently-selected sub-
-				   attribute */
-				*valuePtr = attributeListPtr->accessFunction( attributeListPtr, 
-															  ATTR_NONE );
+				if( cryptStatusError( status ) )
+					return( exitError( sessionInfoPtr, messageValue, 
+									   CRYPT_ERRTYPE_ATTR_ABSENT, status ) );
+			*valuePtr = value;
 			return( CRYPT_OK );
 			}
 
@@ -617,58 +378,36 @@ static int processSetAttribute( SESSION_INFO *sessionInfoPtr,
 	const int value = *( int * ) messageDataPtr;
 	int status;
 
+	/* If we're in the middle of a paired-attribute add, make sure that the
+	   conditions under which it's occurring are valid.  In theory since 
+	   non-string attributes are never part of any paired attributes we 
+	   shouldn't really allow them to be added if we're in the middle of a
+	   paired-attribute add, but in practice this isn't such a big deal 
+	   because the only attribute add that can affect an attribute pair is
+	   an attempt to move the attribute cursor, so we only disallow this 
+	   type of attribute add.  This leniency makes it less difficult to add
+	   related attributes like a server URL, user name, and port */
+	if( sessionInfoPtr->lastAddedAttributeID != CRYPT_ATTRIBUTE_NONE && \
+		( messageValue == CRYPT_ATTRIBUTE_CURRENT || \
+		  messageValue == CRYPT_ATTRIBUTE_CURRENT_GROUP ) )
+		return( CRYPT_ARGERROR_VALUE );
+
 	/* Handle the various information types */
 	switch( messageValue )
 		{
 		case CRYPT_ATTRIBUTE_CURRENT:
 		case CRYPT_ATTRIBUTE_CURRENT_GROUP:
 			{
-			const ATTRIBUTE_LIST *attributeListCursor;
+			ATTRIBUTE_LIST *attributeListPtr = \
+									sessionInfoPtr->attributeListCurrent;
 
-			/* If it's an absolute positioning code, pre-set the attribute
-			   cursor if required */
-			if( value == CRYPT_CURSOR_FIRST || value == CRYPT_CURSOR_LAST )
-				{
-				if( sessionInfoPtr->attributeList == NULL )
-					return( CRYPT_ERROR_NOTFOUND );
-
-				/* If it's an absolute attribute positioning code, reset the
-				   attribute cursor to the start of the list before we try 
-				   to move it, and if it's an attribute positioning code, 
-				   initialise the attribute cursor if necessary */
-				if( messageValue == CRYPT_ATTRIBUTE_CURRENT_GROUP || \
-					sessionInfoPtr->attributeListCurrent == NULL )
-					{
-					sessionInfoPtr->attributeListCurrent = \
-										sessionInfoPtr->attributeList;
-					resetVirtualCursor( sessionInfoPtr->attributeListCurrent );
-					}
-
-				/* If there are no attributes present, return the 
-				   appropriate error code */
-				if( sessionInfoPtr->attributeListCurrent == NULL )
-					return( ( value == CRYPT_CURSOR_FIRST || \
-							  value == CRYPT_CURSOR_LAST ) ? \
-							 CRYPT_ERROR_NOTFOUND : CRYPT_ERROR_NOTINITED );
-				}
-			else
-				/* It's a relative positioning code, return a not-inited 
-				   error rather than a not-found error if the cursor isn't 
-				   set since there may be attributes present but the cursor 
-				   hasn't been initialised yet by selecting the first or 
-				   last absolute attribute */
-				if( sessionInfoPtr->attributeListCurrent == NULL )
-					return( CRYPT_ERROR_NOTINITED );
-
-			/* Move the cursor */
-			attributeListCursor = \
-				attributeMoveCursor( sessionInfoPtr->attributeListCurrent, 
-									 getAttrFunction, messageValue, value );
-			if( attributeListCursor == NULL )
-				return( CRYPT_ERROR_NOTFOUND );
-			sessionInfoPtr->attributeListCurrent = \
-							( ATTRIBUTE_LIST * ) attributeListCursor;
-			return( CRYPT_OK );
+			status = setSessionAttributeCursor( sessionInfoPtr->attributeList,
+									&attributeListPtr, messageValue, value );
+			if( cryptStatusError( status ) )
+				return( exitError( sessionInfoPtr, messageValue, 
+								   CRYPT_ERRTYPE_ATTR_ABSENT, status ) );
+			sessionInfoPtr->attributeListCurrent = attributeListPtr;
+			return( status );
 			}
 
 		case CRYPT_OPTION_NET_CONNECTTIMEOUT:
@@ -689,6 +428,9 @@ static int processSetAttribute( SESSION_INFO *sessionInfoPtr,
 			return( CRYPT_OK );
 
 		case CRYPT_SESSINFO_ACTIVE:
+			{
+			CRYPT_ATTRIBUTE_TYPE missingInfo;
+
 			/* Session state and persistent sessions are handled as follows:
 			   The CRYPT_SESSINFO_ACTIVE attribute records the active state
 			   of the session as a whole, and the CRYPT_SESSINFO_-
@@ -726,6 +468,13 @@ static int processSetAttribute( SESSION_INFO *sessionInfoPtr,
 				return( exitErrorInited( sessionInfoPtr,
 										 CRYPT_SESSINFO_AUTHRESPONSE ) );
 
+			/* Make sure that all the information that we need to proceed is 
+			   present */
+			missingInfo = checkMissingInfo( sessionInfoPtr->attributeList,
+								isServer( sessionInfoPtr ) ? TRUE : FALSE );
+			if( missingInfo != CRYPT_ATTRIBUTE_NONE )
+				return( exitErrorNotInited( sessionInfoPtr, missingInfo ) );
+
 			status = activateSession( sessionInfoPtr );
 			if( cryptArgError( status ) )
 				{
@@ -738,6 +487,7 @@ static int processSetAttribute( SESSION_INFO *sessionInfoPtr,
 				status = CRYPT_ERROR_FAILED;
 				}
 			return( status );
+			}
 
 		case CRYPT_SESSINFO_SERVER_PORT:
 			/* If there's already a transport session or network socket 
@@ -762,8 +512,7 @@ static int processSetAttribute( SESSION_INFO *sessionInfoPtr,
 
 		case CRYPT_SESSINFO_PRIVATEKEY:
 			{
-			const int requiredAttributeFlags = \
-					( sessionInfoPtr->flags & SESSION_ISSERVER ) ? \
+			const int requiredAttributeFlags = isServer( sessionInfoPtr ) ? \
 						sessionInfoPtr->serverReqAttrFlags : \
 						sessionInfoPtr->clientReqAttrFlags;
 
@@ -842,7 +591,7 @@ static int processSetAttribute( SESSION_INFO *sessionInfoPtr,
 			   sessions the permitted length/security level is controlled by
 			   the server so we can't really perform much checking */
 			if( sessionInfoPtr->protocolInfo->requiredPrivateKeySize && \
-				( sessionInfoPtr->flags & SESSION_ISSERVER ) )
+				isServer( sessionInfoPtr ) )
 				{
 				int length;
 
@@ -876,22 +625,23 @@ static int processSetAttribute( SESSION_INFO *sessionInfoPtr,
 			int type;
 
 			/* Make sure that it's either a cert store (rather than just a 
-			   generic keyset) or a read-only cert source (and specifically 
-			   not a cert store) if required */
+			   generic keyset) if required, or specifically not a cert 
+			   store.  This is to prevent a session running with unnecessary
+			   privs, we should only be using a cert store if it's actually
+			   required.  The checking is already performed by the kernel,
+			   but we do it again here just to be safe */
+			status = krnlSendMessage( value, IMESSAGE_GETATTRIBUTE, &type, 
+									  CRYPT_IATTRIBUTE_SUBTYPE );
+			if( cryptStatusError( status ) )
+				return( CRYPT_ARGERROR_NUM1 );
 			if( sessionInfoPtr->serverReqAttrFlags & SESSION_NEEDS_CERTSTORE )
 				{
-				status = krnlSendMessage( value, IMESSAGE_GETATTRIBUTE,
-										  &type, CRYPT_IATTRIBUTE_SUBTYPE );
-				if( cryptStatusError( status ) || \
-					( type != SUBTYPE_KEYSET_DBMS_STORE ) )
+				if( type != SUBTYPE_KEYSET_DBMS_STORE )
 					return( CRYPT_ARGERROR_NUM1 );
 				}
-			if( sessionInfoPtr->serverReqAttrFlags & SESSION_NEEDS_CERTSOURCE )
+			else
 				{
-				status = krnlSendMessage( value, IMESSAGE_GETATTRIBUTE,
-										  &type, CRYPT_IATTRIBUTE_SUBTYPE );
-				if( cryptStatusError( status ) || \
-					( type == SUBTYPE_KEYSET_DBMS_STORE ) )
+				if( type != SUBTYPE_KEYSET_DBMS )
 					return( CRYPT_ARGERROR_NUM1 );
 				}
 
@@ -965,7 +715,7 @@ static int processGetAttributeS( SESSION_INFO *sessionInfoPtr,
 								 void *messageDataPtr, const int messageValue )
 	{
 	const ATTRIBUTE_LIST *attributeListPtr;
-	RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+	MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) messageDataPtr;
 
 	/* Handle the various information types */
 	switch( messageValue )
@@ -1009,8 +759,25 @@ static int processGetAttributeS( SESSION_INFO *sessionInfoPtr,
 static int processSetAttributeS( SESSION_INFO *sessionInfoPtr,
 								 void *messageDataPtr, const int messageValue )
 	{
-	RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
-	int status;
+	MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) messageDataPtr;
+
+	/* If we're in the middle of a paired-attribute add, make sure that the
+	   conditions under which it's occurring are valid */
+	if( sessionInfoPtr->lastAddedAttributeID != CRYPT_ATTRIBUTE_NONE )
+		{
+		switch( sessionInfoPtr->lastAddedAttributeID )
+			{
+			case CRYPT_SESSINFO_USERNAME:
+				/* Username must be followed by a password */
+				if( messageValue != CRYPT_SESSINFO_PASSWORD )
+					return( CRYPT_ARGERROR_VALUE );
+				break;
+
+			default:
+				assert( NOTREACHED );
+				return( CRYPT_ERROR_INTERNAL );
+			}
+		}
 
 	/* Handle the various information types */
 	switch( messageValue )
@@ -1025,181 +792,86 @@ static int processSetAttributeS( SESSION_INFO *sessionInfoPtr,
 		case CRYPT_SESSINFO_USERNAME:
 		case CRYPT_SESSINFO_PASSWORD:
 			{
-			int flags = 0;
+			int flags = isServer( sessionInfoPtr ) ? \
+						ATTR_FLAG_MULTIVALUED : ATTR_FLAG_NONE;
+			int status;
 
 			assert( msgData->length > 0 && \
 					msgData->length <= CRYPT_MAX_TEXTSIZE );
 
-			/* If this attribute is already set, we can't add it again */
-			if( findSessionAttribute( sessionInfoPtr->attributeList, 
-									  messageValue ) != NULL && \
-				!( sessionInfoPtr->type == CRYPT_SESSION_SSL && \
-				   sessionInfoPtr->flags & SESSION_ISSERVER ) )
+			/* If this is a client session, we can only have a single 
+			   instance of this attribute */
+			if( !isServer( sessionInfoPtr ) && \
+				findSessionAttribute( sessionInfoPtr->attributeList, 
+									  messageValue ) != NULL )
 				return( exitErrorInited( sessionInfoPtr, messageValue ) );
+				
+			/* If it's a username, make sure that it doesn't duplicate an
+			   existing one */
+			if( messageValue == CRYPT_SESSINFO_USERNAME )
+				{
+				if( findSessionAttributeEx( sessionInfoPtr->attributeList, 
+											messageValue, msgData->data, 
+											msgData->length ) != NULL )
+					return( exitError( sessionInfoPtr, messageValue,
+									   CRYPT_ERRTYPE_ATTR_PRESENT, 
+									   CRYPT_ERROR_DUPLICATE ) );
+				}
+			else
+				{
+				/* It's a password, make sure that there's an associated
+				   username to go with it.  There are two approaches that
+				   we can take here, the first simply requires that the
+				   current cursor position is a username, implying that
+				   the last-added attribute was a username.  The other is
+				   to try and move the cursor to the last username in the
+				   attribute list and check that the next attribute isn't
+				   a password and then add it there, however this is doing
+				   a bit too much behind the user's back, is somewhat 
+				   difficult to back out of, and leads to exceptions to
+				   exceptions, so we keep it simple and only allow passwords
+				   to be added if there's an immediately preceding
+				   username */
+				if( sessionInfoPtr->lastAddedAttributeID != CRYPT_SESSINFO_USERNAME )
+					return( exitErrorNotInited( sessionInfoPtr, 
+												CRYPT_SESSINFO_USERNAME ) );
+				}
 
 			/* If it could be an encoded PKI value, check its validity */
-			if( ( messageValue == CRYPT_SESSINFO_USERNAME || \
-				  messageValue == CRYPT_SESSINFO_PASSWORD ) && \
-				isPKIUserValue( msgData->data, msgData->length ) )
+			if( isPKIUserValue( msgData->data, msgData->length ) )
 				{
-				BYTE decodedValue[ CRYPT_MAX_TEXTSIZE ];
-				int status;
+				BYTE decodedValue[ 64 + 8 ];
 
 				/* It's an encoded value, make sure that it's in order */
-				status = decodePKIUserValue( decodedValue, msgData->data, 
-											 msgData->length );
+				status = decodePKIUserValue( decodedValue, 64, 
+											 msgData->data, msgData->length );
 				zeroise( decodedValue, CRYPT_MAX_TEXTSIZE );
 				if( cryptStatusError( status ) )
 					return( status );
 				flags = ATTR_FLAG_ENCODEDVALUE;
 				}
 
-			/* Remember the value.  SSL server sessions maintain multiple 
-			   username/password entries possible so we perform a 
-			   (potential) update rather than a new add */
-			if( sessionInfoPtr->type == CRYPT_SESSION_SSL && \
-				sessionInfoPtr->flags & SESSION_ISSERVER )
-				status = updateSessionAttribute( &sessionInfoPtr->attributeList,
-												 messageValue, msgData->data, 
-												 msgData->length, 
-												 CRYPT_MAX_TEXTSIZE, flags );
-			else
-				status = insertSessionAttribute( &sessionInfoPtr->attributeList,
-												 messageValue, msgData->data, 
-												 msgData->length, 
-												 CRYPT_MAX_TEXTSIZE, NULL, 
-												 flags );
-			return( status );
+			/* Remember the value */
+			status = addSessionAttributeEx( &sessionInfoPtr->attributeList,
+											messageValue, msgData->data, 
+											msgData->length, flags );
+			if( cryptStatusError( status ) )
+				return( status );
+			sessionInfoPtr->lastAddedAttributeID = \
+							( messageValue == CRYPT_SESSINFO_USERNAME ) ? \
+							CRYPT_SESSINFO_USERNAME : CRYPT_ATTRIBUTE_NONE;
+			return( CRYPT_OK );
 			}
 
 		case CRYPT_SESSINFO_SERVER_FINGERPRINT:
-			/* If this attribute is already set, we can't add it again */
-			if( findSessionAttribute( sessionInfoPtr->attributeList, 
-									  messageValue ) != NULL )
-				return( exitErrorInited( sessionInfoPtr, messageValue ) );
-
 			/* Remember the value */
 			return( addSessionAttribute( &sessionInfoPtr->attributeList,
 										 messageValue, msgData->data, 
 										 msgData->length ) );
 
 		case CRYPT_SESSINFO_SERVER_NAME:
-			{
-			const PROTOCOL_INFO *protocolInfoPtr = \
-										sessionInfoPtr->protocolInfo;
-			URL_INFO urlInfo;
-			int status;
-
-			assert( msgData->length > 0 && msgData->length < MAX_URL_SIZE );
-			if( findSessionAttribute( sessionInfoPtr->attributeList,
-									  CRYPT_SESSINFO_SERVER_NAME ) != NULL )
-				return( exitErrorInited( sessionInfoPtr,
-										 CRYPT_SESSINFO_SERVER_NAME ) );
-
-			/* If there's already a transport session or network socket 
-			   specified, we can't set a server name as well */
-			if( sessionInfoPtr->transportSession != CRYPT_ERROR )
-				return( exitErrorInited( sessionInfoPtr,
-										 CRYPT_SESSINFO_SESSION ) );
-			if( sessionInfoPtr->networkSocket != CRYPT_ERROR )
-				return( exitErrorInited( sessionInfoPtr,
-										 CRYPT_SESSINFO_NETWORKSOCKET ) );
-
-			/* Parse the server name */
-			status = sNetParseURL( &urlInfo, msgData->data, 
-								   msgData->length );
-			if( cryptStatusError( status ) )
-				return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
-								   CRYPT_ERRTYPE_ATTR_VALUE, 
-								   CRYPT_ARGERROR_STR1 ) );
-
-			/* We can only use autodetection with PKI services */
-			if( !strCompare( msgData->data, "[Autodetect]", 
-							 msgData->length ) && \
-				!protocolInfoPtr->isReqResp )
-				return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
-								   CRYPT_ERRTYPE_ATTR_VALUE, 
-								   CRYPT_ARGERROR_STR1 ) );
-
-			/* If there's a port or user name specified in the URL, set the 
-			   appropriate attributes */
-			if( urlInfo.userInfoLen > 0 )
-				{
-				RESOURCE_DATA userInfoMsgData;
-
-				krnlSendMessage( sessionInfoPtr->objectHandle, 
-								 IMESSAGE_DELETEATTRIBUTE, NULL,
-								 CRYPT_SESSINFO_USERNAME );
-				setMessageData( &userInfoMsgData, ( void * ) urlInfo.userInfo, 
-								urlInfo.userInfoLen );
-				status = krnlSendMessage( sessionInfoPtr->objectHandle, 
-										  IMESSAGE_SETATTRIBUTE_S, 
-										  &userInfoMsgData,
-										  CRYPT_SESSINFO_USERNAME );
-				}
-			if( cryptStatusOK( status ) && urlInfo.port > 0 )
-				{
-				krnlSendMessage( sessionInfoPtr->objectHandle, 
-								 IMESSAGE_DELETEATTRIBUTE, NULL,
-								 CRYPT_SESSINFO_SERVER_PORT );
-				status = krnlSendMessage( sessionInfoPtr->objectHandle, 
-										  IMESSAGE_SETATTRIBUTE, &urlInfo.port,
-										  CRYPT_SESSINFO_SERVER_PORT );
-				}
-			if( cryptStatusError( status ) )
-				return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
-								   CRYPT_ERRTYPE_ATTR_VALUE, 
-								   CRYPT_ARGERROR_STR1 ) );
-
-			/* Remember the server name */
-			if( urlInfo.hostLen + urlInfo.locationLen + 1 > MAX_URL_SIZE )
-				{
-				/* This should never happen since the overall URL size has 
-				   to be less than MAX_URL_SIZE */
-				assert( NOTREACHED );
-				return( exitError( sessionInfoPtr, CRYPT_SESSINFO_SERVER_NAME, 
-								   CRYPT_ERRTYPE_ATTR_VALUE, 
-								   CRYPT_ARGERROR_STR1 ) );
-				}
-			if( urlInfo.locationLen <= 0 )
-				status = addSessionAttribute( &sessionInfoPtr->attributeList,
-											  CRYPT_SESSINFO_SERVER_NAME, 
-											  urlInfo.host, urlInfo.hostLen );
-			else
-				{
-				char urlBuffer[ MAX_URL_SIZE ];
-
-				memcpy( urlBuffer, urlInfo.host, urlInfo.hostLen );
-				memcpy( urlBuffer + urlInfo.hostLen, 
-						urlInfo.location, urlInfo.locationLen );
-				status = addSessionAttribute( &sessionInfoPtr->attributeList,
-									CRYPT_SESSINFO_SERVER_NAME, urlBuffer, 
-									urlInfo.hostLen + urlInfo.locationLen );
-				}
-			if( cryptStatusError( status ) )
-				return( status );
-
-			/* Remember the transport type */
-			if( protocolInfoPtr->altProtocolInfo != NULL && \
-				urlInfo.schemaLen == \
-						strlen( protocolInfoPtr->altProtocolInfo->uriType ) && \
-				!strCompare( urlInfo.schema, 
-							 protocolInfoPtr->altProtocolInfo->uriType,
-							 strlen( protocolInfoPtr->altProtocolInfo->uriType ) ) )
-				{
-				/* The caller has specified the use of the altnernate 
-				   transport protocol type, switch to that instead of HTTP */
-				sessionInfoPtr->flags &= ~protocolInfoPtr->altProtocolInfo->oldFlagsMask;
-				sessionInfoPtr->flags |= protocolInfoPtr->altProtocolInfo->newFlags;
-				}
-			else
-				if( sessionInfoPtr->protocolInfo->flags & SESSION_ISHTTPTRANSPORT )
-					{
-					sessionInfoPtr->flags &= ~SESSION_USEALTTRANSPORT;
-					sessionInfoPtr->flags |= SESSION_ISHTTPTRANSPORT;
-					}
-			return( CRYPT_OK );
-			}
+			return( addUrl( sessionInfoPtr, msgData->data, 
+							msgData->length ) );
 		}
 
 	assert( NOTREACHED );
@@ -1246,8 +918,25 @@ static int processDeleteAttribute( SESSION_INFO *sessionInfoPtr,
 			if( attributeListPtr == NULL )
 				return( exitErrorNotFound( sessionInfoPtr, messageValue ) );
 
+			/* If we're in the middle of a paired-attribute add and the 
+			   delete affects the paired attribute, delete it.  This can
+			   get quite complex because the user could (for example) add
+			   a { username, password } pair, then add a second username
+			   (but not password), and then delete the first password, which
+			   will reset the lastAddedAttributeID, leaving an orphaned
+			   password followed by an orphaned username.  There isn't any
+			   easy way to fix this short of forcing some form of group 
+			   delete of paired attributes, but this gets too complicated
+			   both to implement and to explain to the user in an error
+			   status.  What we do here is handle the simple case and let
+			   the pre-session-activation sanity check catch situations 
+			   where the user's gone out of their way to be difficult */
+			if( sessionInfoPtr->lastAddedAttributeID == messageValue )
+				sessionInfoPtr->lastAddedAttributeID = CRYPT_ATTRIBUTE_NONE;
+
 			/* Delete the attribute */
 			deleteSessionAttribute( &sessionInfoPtr->attributeList,
+									&sessionInfoPtr->attributeListCurrent,
 									( ATTRIBUTE_LIST * ) attributeListPtr );
 			return( CRYPT_OK );
 
@@ -1294,7 +983,10 @@ static int sessionMessageFunction( const void *objectInfoPtr,
 		{
 		/* Shut down the session if required.  Nemo nisi mors */
 		if( sessionInfoPtr->flags & SESSION_ISOPEN )
+			{
+			sessionInfoPtr->flags |= SESSION_ISCLOSINGDOWN;
 			sessionInfoPtr->shutdownFunction( sessionInfoPtr );
+			}
 
 		/* Clear and free session state information if necessary */
 		if( sessionInfoPtr->sendBuffer != NULL )
@@ -1312,7 +1004,8 @@ static int sessionMessageFunction( const void *objectInfoPtr,
 
 		/* Clear session attributes if necessary */
 		if( sessionInfoPtr->attributeList != NULL )
-			deleteSessionAttributes( &sessionInfoPtr->attributeList );
+			deleteSessionAttributes( &sessionInfoPtr->attributeList,
+									 &sessionInfoPtr->attributeListCurrent );
 
 		/* Clean up any session-related objects if necessary */
 		if( sessionInfoPtr->iKeyexCryptContext != CRYPT_ERROR )
@@ -1415,7 +1108,7 @@ static int sessionMessageFunction( const void *objectInfoPtr,
 	/* Process object-specific messages */
 	if( message == MESSAGE_ENV_PUSHDATA )
 		{
-		RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+		MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) messageDataPtr;
 		const int length = msgData->length;
 		int bytesCopied, status;
 
@@ -1467,7 +1160,7 @@ static int sessionMessageFunction( const void *objectInfoPtr,
 		}
 	if( message == MESSAGE_ENV_POPDATA )
 		{
-		RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+		MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) messageDataPtr;
 		const int length = msgData->length;
 		int bytesCopied, status;
 
@@ -1512,11 +1205,12 @@ static int openSession( CRYPT_SESSION *iCryptSession,
 	{
 	SESSION_INFO *sessionInfoPtr;
 	const PROTOCOL_INFO *protocolInfoPtr;
-	static const struct {
+	typedef struct {
 		const CRYPT_SESSION_TYPE sessionType;
 		const CRYPT_SESSION_TYPE baseSessionType;
-		const int subType;
-		} sessionTypes[] = {
+		const OBJECT_SUBTYPE subType;
+		} SESSIONTYPE_INFO;
+	static const SESSIONTYPE_INFO sessionTypes[] = {
 	{ CRYPT_SESSION_SSH, CRYPT_SESSION_SSH, SUBTYPE_SESSION_SSH },
 	{ CRYPT_SESSION_SSH_SERVER, CRYPT_SESSION_SSH, SUBTYPE_SESSION_SSH_SVR },
 	{ CRYPT_SESSION_SSL, CRYPT_SESSION_SSL, SUBTYPE_SESSION_SSL },
@@ -1532,9 +1226,10 @@ static int openSession( CRYPT_SESSION *iCryptSession,
 	{ CRYPT_SESSION_SCEP, CRYPT_SESSION_SCEP, SUBTYPE_SESSION_SCEP },
 	{ CRYPT_SESSION_SCEP_SERVER, CRYPT_SESSION_SCEP, SUBTYPE_SESSION_SCEP_SVR },
 	{ CRYPT_SESSION_CERTSTORE_SERVER, CRYPT_SESSION_CERTSTORE_SERVER, SUBTYPE_SESSION_CERT_SVR },
+	{ CRYPT_SESSION_NONE, CRYPT_SESSION_NONE, CRYPT_ERROR },
 	{ CRYPT_SESSION_NONE, CRYPT_SESSION_NONE, CRYPT_ERROR }
 	};
-	int storageSize = 0, i, status;
+	int storageSize, i, status;
 
 	assert( sessionInfoPtrPtr != NULL );
 
@@ -1544,9 +1239,15 @@ static int openSession( CRYPT_SESSION *iCryptSession,
 
 	/* Map the external session type to a base type and internal object
 	   subtype */
-	for( i = 0; sessionTypes[ i ].sessionType != CRYPT_SESSION_NONE; i++ )
+	for( i = 0; sessionTypes[ i ].sessionType != CRYPT_SESSION_NONE && \
+				i < FAILSAFE_ARRAYSIZE( sessionTypes, SESSIONTYPE_INFO ); 
+		 i++ )
+		{
 		if( sessionTypes[ i ].sessionType == sessionType )
 			break;
+		}
+	if( i >= FAILSAFE_ARRAYSIZE( sessionTypes, SESSIONTYPE_INFO ) )
+		retIntError();
 	assert( sessionTypes[ i ].sessionType != CRYPT_SESSION_NONE );
 
 	/* Set up subtype-specific information */
@@ -1567,6 +1268,17 @@ static int openSession( CRYPT_SESSION *iCryptSession,
 		case CRYPT_SESSION_CMP:
 			storageSize = sizeof( CMP_INFO );
 			break;
+		
+		case CRYPT_SESSION_RTCS:
+		case CRYPT_SESSION_OCSP:
+		case CRYPT_SESSION_SCEP:
+		case CRYPT_SESSION_CERTSTORE_SERVER:
+			storageSize = 0;
+			break;
+
+		default:
+			assert( NOTREACHED );
+			return( CRYPT_ARGERROR_NUM1 );
 		}
 
 	/* Create the session object */
@@ -1581,23 +1293,34 @@ static int openSession( CRYPT_SESSION *iCryptSession,
 	*iCryptSession = sessionInfoPtr->objectHandle = status;
 	sessionInfoPtr->ownerHandle = cryptOwner;
 	sessionInfoPtr->type = sessionTypes[ i ].baseSessionType;
-	switch( sessionTypes[ i ].baseSessionType )
+	if( storageSize > 0 )
 		{
-		case CRYPT_SESSION_SSH:
-			sessionInfoPtr->sessionSSH = ( SSH_INFO * ) sessionInfoPtr->storage;
-			break;
+		switch( sessionTypes[ i ].baseSessionType )
+			{
+			case CRYPT_SESSION_SSH:
+				sessionInfoPtr->sessionSSH = \
+								( SSH_INFO * ) sessionInfoPtr->storage;
+				break;
 
-		case CRYPT_SESSION_SSL:
-			sessionInfoPtr->sessionSSL = ( SSL_INFO * ) sessionInfoPtr->storage;
-			break;
+			case CRYPT_SESSION_SSL:
+				sessionInfoPtr->sessionSSL = \
+								( SSL_INFO * ) sessionInfoPtr->storage;
+				break;
 
-		case CRYPT_SESSION_TSP:
-			sessionInfoPtr->sessionTSP = ( TSP_INFO * ) sessionInfoPtr->storage;
-			break;
+			case CRYPT_SESSION_TSP:
+				sessionInfoPtr->sessionTSP = \
+								( TSP_INFO * ) sessionInfoPtr->storage;
+				break;
 
-		case CRYPT_SESSION_CMP:
-			sessionInfoPtr->sessionCMP = ( CMP_INFO * ) sessionInfoPtr->storage;
-			break;
+			case CRYPT_SESSION_CMP:
+				sessionInfoPtr->sessionCMP = \
+								( CMP_INFO * ) sessionInfoPtr->storage;
+				break;
+
+			default:
+				assert( NOTREACHED );
+				return( CRYPT_ERROR );
+			}
 		}
 	sessionInfoPtr->storageSize = storageSize;
 
@@ -1666,9 +1389,15 @@ static int openSession( CRYPT_SESSION *iCryptSession,
 
 		default:
 			assert( NOTREACHED );
+			return( CRYPT_ARGERROR_NUM1 );
 		}
 	if( cryptStatusError( status ) )
 		return( status );
+
+	/* If it's a session type that uses the scoreboard, set up the 
+	   scoreboard information for the session */
+	if( sessionType == CRYPT_SESSION_SSL_SERVER )
+		sessionInfoPtr->sessionSSL->scoreboardInfo = scoreboardInfo;
 
 	/* Check that the protocol info is OK */
 	protocolInfoPtr = sessionInfoPtr->protocolInfo;
@@ -1782,7 +1511,11 @@ int sessionManagementFunction( const MANAGEMENT_ACTION_TYPE action )
 			if( cryptStatusOK( status ) )
 				{
 				initLevel++;
-				status = initSessionCache();
+				if( krnlIsExiting() )
+					/* The kernel is shutting down, exit */
+					return( CRYPT_ERROR_PERMISSION );
+				status = initScoreboard( &scoreboardInfo, 
+										 SESSIONCACHE_SIZE );
 				}
 			if( cryptStatusOK( status ) )
 				initLevel++;
@@ -1798,7 +1531,7 @@ int sessionManagementFunction( const MANAGEMENT_ACTION_TYPE action )
 
 		case MANAGEMENT_ACTION_SHUTDOWN:
 			if( initLevel > 1 )
-				endSessionCache();
+				endScoreboard( &scoreboardInfo );
 			if( initLevel > 0 )
 				netEndTCP();
 			initLevel = 0;

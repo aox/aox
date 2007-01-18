@@ -6,14 +6,8 @@
 ****************************************************************************/
 
 #include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "stream.h"
-  #include "tcp.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "stream.h"
   #include "tcp.h"
 #else
@@ -36,6 +30,10 @@ static int initSocketPool( void );
 static void endSocketPool( void );
 
 #ifdef __WINDOWS__
+
+#ifndef TEXT
+  #define TEXT		/* Win32 windows.h defines this, but not the Win16 one */
+#endif /* TEXT */
 
 /* Global function pointers.  These are necessary because the functions need
    to be dynamically linked since not all systems contain the necessary
@@ -373,7 +371,8 @@ static BOOLEAN transportOKFunction( void )
 		   a test socket here to make sure that everything is OK.  If the
 		   network transport is unavailable, we re-try each time we're
 		   called in case it's been enabled in the meantime */
-		if( !isBadSocket( netSocket = socket( PF_INET, SOCK_STREAM, 0 ) ) )
+		netSocket = socket( PF_INET, SOCK_STREAM, 0 );
+		if( !isBadSocket( netSocket ) )
 			{
 			closesocket( netSocket );
 			transportOK = TRUE;
@@ -401,12 +400,12 @@ typedef struct {
 	const int errorCode;		/* Native error code */
 	const int cryptSpecificCode;/* Specific cryptlib error code */
 	const BOOLEAN isFatal;		/* Seriousness level */
-	const char *errorString;	/* Error message */
+	const char FAR_BSS *errorString;/* Error message */
 	} SOCKETERROR_INFO;
 
 #ifdef __WINDOWS__
 
-static const FAR_BSS SOCKETERROR_INFO socketErrorInfo[] = {
+static const SOCKETERROR_INFO FAR_BSS socketErrorInfo[] = {
 	{ WSAECONNREFUSED, CRYPT_ERROR_PERMISSION, TRUE,
 		"WSAECONNREFUSED: The attempt to connect was rejected" },
 	{ WSAEADDRNOTAVAIL, CRYPT_ERROR_NOTFOUND, TRUE,
@@ -445,7 +444,7 @@ static const FAR_BSS SOCKETERROR_INFO socketErrorInfo[] = {
 		"WSANO_ADDRESS: No address record available for this name" },
 	{ WSANO_DATA,  CRYPT_OK, FALSE,
 		"WSANO_DATA: Valid name, no data record of requested type" },
-	{ CRYPT_ERROR }
+	{ CRYPT_ERROR }, { CRYPT_ERROR }
 	};
 #define hostErrorInfo	socketErrorInfo		/* Winsock uses unified error codes */
 
@@ -453,7 +452,7 @@ static const FAR_BSS SOCKETERROR_INFO socketErrorInfo[] = {
 
 #else
 
-static const FAR_BSS SOCKETERROR_INFO socketErrorInfo[] = {
+static const SOCKETERROR_INFO FAR_BSS socketErrorInfo[] = {
 	{ EADDRNOTAVAIL, CRYPT_ERROR_NOTFOUND, TRUE,
 		"EADDRNOTAVAIL: Specified address is not available from the local "
 		"machine" },
@@ -490,12 +489,12 @@ static const FAR_BSS SOCKETERROR_INFO socketErrorInfo[] = {
 	{ TRY_AGAIN, CRYPT_OK, FALSE,
 		"TRY_AGAIN: Local server did not receive a response from an "
 		"authoritative server" },
-	{ CRYPT_ERROR }
+	{ CRYPT_ERROR }, { CRYPT_ERROR }
 	};
 
 #define TIMEOUT_ERROR	ETIMEDOUT			/* Code for timeout error */
 
-static const FAR_BSS SOCKETERROR_INFO hostErrorInfo[] = {
+static const SOCKETERROR_INFO FAR_BSS hostErrorInfo[] = {
 	{ HOST_NOT_FOUND, CRYPT_ERROR_NOTFOUND, TRUE,
 		"HOST_NOT_FOUND: Host not found" },
 	{ NO_ADDRESS, CRYPT_ERROR_NOTFOUND, TRUE,
@@ -505,20 +504,27 @@ static const FAR_BSS SOCKETERROR_INFO hostErrorInfo[] = {
 	{ TRY_AGAIN,  CRYPT_OK, FALSE,
 		"TRY_AGAIN: Local server did not receive a response from an "
 		"authoritative server" },
-	{ CRYPT_ERROR }
+	{ CRYPT_ERROR }, { CRYPT_ERROR }
 	};
 #endif /* System-specific socket error codes */
 
 /* Get and set the low-level error information from a socket- and host-
    lookup-based error */
 
-static int mapError( STREAM *stream, const SOCKETERROR_INFO *errorInfo,
+static int mapError( STREAM *stream, const BOOLEAN useHostErrorInfo, 
 					 int status )
 	{
+	const SOCKETERROR_INFO *errorInfo = \
+					useHostErrorInfo ? hostErrorInfo : socketErrorInfo;
+	const int errorInfoSize = useHostErrorInfo ? \
+					FAILSAFE_ARRAYSIZE( hostErrorInfo, SOCKETERROR_INFO ) : \
+					FAILSAFE_ARRAYSIZE( socketErrorInfo, SOCKETERROR_INFO );
 	int i;
 
 	*stream->errorMessage = '\0';
-	for( i = 0; errorInfo[ i ].errorCode != CRYPT_ERROR; i++ )
+	for( i = 0; errorInfo[ i ].errorCode != CRYPT_ERROR && \
+				i < errorInfoSize; i++ )
+		{
 		if( errorInfo[ i ].errorCode == stream->errorCode )
 			{
 			strcpy( stream->errorMessage, errorInfo[ i ].errorString );
@@ -531,6 +537,9 @@ static int mapError( STREAM *stream, const SOCKETERROR_INFO *errorInfo,
 				stream->status = status;
 			break;
 			}
+		}
+	if( i >= errorInfoSize )
+		retIntError();
 	return( status );
 	}
 
@@ -539,7 +548,7 @@ int getSocketError( STREAM *stream, const int status )
 	/* Get the low-level error code and map it to an error string if
 	   possible */
 	stream->errorCode = getErrorCode();
-	return( mapError( stream, socketErrorInfo, status ) );
+	return( mapError( stream, FALSE, status ) );
 	}
 
 int getHostError( STREAM *stream, const int status )
@@ -547,7 +556,7 @@ int getHostError( STREAM *stream, const int status )
 	/* Get the low-level error code and map it to an error string if
 	   possible */
 	stream->errorCode = getHostErrorCode();
-	return( mapError( stream, hostErrorInfo, status ) );
+	return( mapError( stream, TRUE, status ) );
 	}
 
 int setSocketError( STREAM *stream, const char *errorMessage,
@@ -618,7 +627,7 @@ static int my_setsockopt( int socket, int level, int option,
 static int my_getsockopt( int socket, int level, int option,
 						  void *data, uint *size )
 	{
-	BYTE buffer[ 8 ];
+	BYTE buffer[ 8 + 8 ];
 	int count;
 
 	if( option != SO_ERROR )
@@ -670,7 +679,17 @@ static int my_getsockopt( int socket, int level, int option,
    against runaway apps and because cryptlib was never designed to function
    as a high-volume server application.  If necessary this can be changed to
    dynamically expand the socket pool in the same way that the kernel
-   dynamically expands its object table */
+   dynamically expands its object table.  However it's not a good idea to
+   simply remove the restriction entirely (or set it to too high a value)
+   because this can cause problems with excess consumption of kernel
+   resources.  For example under Windows opening several tens of thousands
+   of connections will eventually return WSAENOBUFS when the nonpaged pool
+   is exhausted.  At this point things start to get problematic because
+   many drivers don't handle the inability to allocate memory very well, and
+   can start to fail and render the whole system unstable.  This is a
+   general resource-consumption problem that affects all users of the shared
+   nonpaged pool, but we can at least make sure that we're not the cause of
+   any crashes by limiting our own consumption */
 
 #ifdef CONFIG_CONSERVE_MEMORY
   #define SOCKETPOOL_SIZE		16
@@ -721,12 +740,14 @@ static int newSocket( SOCKET *newSocketPtr, struct addrinfo *addrInfoPtr,
 					  const BOOLEAN isServer )
 	{
 	SOCKET netSocket;
-	int i;
+	int i, status;
 
 	/* Clear return value */
 	*newSocketPtr = INVALID_SOCKET;
 
-	krnlEnterMutex( MUTEX_SOCKETPOOL );
+	status = krnlEnterMutex( MUTEX_SOCKETPOOL );
+	if( cryptStatusError( status ) )
+		return( status );
 
 	/* If this is a server socket (i.e. one bound to a specific interface and
 	   port), check to see whether there's already a socket bound here and if
@@ -745,6 +766,7 @@ static int newSocket( SOCKET *newSocketPtr, struct addrinfo *addrInfoPtr,
 										 addrInfoPtr->ai_addrlen );
 
 		for( i = 0; i < SOCKETPOOL_SIZE; i++ )
+			{
 			if( socketInfo[ i ].iChecksum == iCheck && \
 				socketInfo[ i ].iDataLen == addrInfoPtr->ai_addrlen && \
 				!memcmp( socketInfo[ i ].iData, addrInfoPtr->ai_addr,
@@ -758,6 +780,7 @@ static int newSocket( SOCKET *newSocketPtr, struct addrinfo *addrInfoPtr,
 				   initialisation with it */
 				return( CRYPT_OK );
 				}
+			}
 		}
 
 	/* Create a new socket entry */
@@ -771,8 +794,6 @@ static int newSocket( SOCKET *newSocketPtr, struct addrinfo *addrInfoPtr,
 		if( socketInfo[ i ].refCount <= 0 && \
 			socketInfo[ i ].netSocket != INVALID_SOCKET )
 			{
-			int status;
-
 			status = closesocket( socketInfo[ i ].netSocket );
 			if( !isSocketError( status ) )
 				socketInfo[ i ] = SOCKET_INFO_TEMPLATE;
@@ -787,8 +808,9 @@ static int newSocket( SOCKET *newSocketPtr, struct addrinfo *addrInfoPtr,
 		assert( NOTREACHED );
 		return( CRYPT_ERROR_OVERFLOW );	/* Should never happen */
 		}
-	if( isBadSocket( netSocket = socket( addrInfoPtr->ai_family,
-										 addrInfoPtr->ai_socktype, 0 ) ) )
+	netSocket = socket( addrInfoPtr->ai_family,
+						addrInfoPtr->ai_socktype, 0 );
+	if( isBadSocket( netSocket ) )
 		{
 		krnlExitMutex( MUTEX_SOCKETPOOL );
 		return( CRYPT_ERROR_OPEN );
@@ -834,9 +856,11 @@ static void newSocketDone( void )
 
 static int addSocket( const SOCKET netSocket )
 	{
-	int i;
+	int i, status;
 
-	krnlEnterMutex( MUTEX_SOCKETPOOL );
+	status = krnlEnterMutex( MUTEX_SOCKETPOOL );
+	if( cryptStatusError( status ) )
+		return( status );
 
 	/* Add an existing socket entry */
 	for( i = 0; i < SOCKETPOOL_SIZE; i++ )
@@ -859,9 +883,11 @@ static int addSocket( const SOCKET netSocket )
 
 static void deleteSocket( const SOCKET netSocket )
 	{
-	int i;
+	int i, status;
 
-	krnlEnterMutex( MUTEX_SOCKETPOOL );
+	status = krnlEnterMutex( MUTEX_SOCKETPOOL );
+	if( cryptStatusError( status ) )
+		return;
 
 	/* Find the entry for this socket in the pool.  There may not be one
 	   present if the pool has received a shutdown signal and closed all
@@ -880,8 +906,6 @@ static void deleteSocket( const SOCKET netSocket )
 	socketInfo[ i ].refCount--;
 	if( socketInfo[ i ].refCount <= 0 )
 		{
-		int status;
-
 		/* If the reference count has reached zero, close the socket
 		   and delete the pool entry */
 		status = closesocket( socketInfo[ i ].netSocket );
@@ -970,7 +994,7 @@ static int ioWait( STREAM *stream, const time_t timeout,
 						  type == IOWAIT_ACCEPT ) ? &readfds : NULL;
 	fd_set *writeFDPtr = ( type == IOWAIT_WRITE || \
 						   type == IOWAIT_CONNECT ) ? &writefds : NULL;
-	int status;
+	int iterationCount = 0, status;
 
 	/* Set up the information needed to handle timeouts and wait on the
 	   socket.  If there's no timeout, we wait at least 5ms on the theory
@@ -1027,14 +1051,18 @@ static int ioWait( STREAM *stream, const time_t timeout,
 		if( isSocketError( status ) && !isRestartableError() )
 			return( getSocketError( stream, errorInfo[ type ].status ) );
 		}
-	while( isSocketError( status ) && ( getTime() - startTime ) < timeout );
+	while( isSocketError( status ) && \
+		   ( getTime() - startTime ) < timeout && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 
 	/* If the wait timed out, either explicitly in the select (status == 0)
 	   or implicitly in the wait loop (isSocketError()), report it as a
 	   select() timeout error */
 	if( status == 0 || isSocketError( status ) )
 		{
-		char errorMessage[ 128 ];
+		char errorMessage[ 128 + 8 ];
 
 		/* If we've already received data from a previous I/O, it counts as
 		   the transferred byte count even though we timed out this time
@@ -1048,8 +1076,9 @@ static int ioWait( STREAM *stream, const time_t timeout,
 			return( OK_SPECIAL );
 
 		/* The select() timed out, exit */
-		sPrintf( errorMessage, "Timeout on %s (select()) after %d seconds",
-				 errorInfo[ type ].errorString, timeout );
+		sPrintf_s( errorMessage, 128,
+				   "Timeout on %s (select()) after %ld seconds",
+				   errorInfo[ type ].errorString, timeout );
 		return( setSocketError( stream, errorMessage, CRYPT_ERROR_TIMEOUT,
 								FALSE ) );
 		}
@@ -1072,7 +1101,7 @@ static int ioWait( STREAM *stream, const time_t timeout,
 			   and at least one (Tandem) returns EINPROGRESS rather than
 			   ETIMEDOUT, so we insert a timeout error code ourselves */
 			stream->errorCode = TIMEOUT_ERROR;
-			mapError( stream, socketErrorInfo, CRYPT_UNUSED );
+			mapError( stream, FALSE, CRYPT_UNUSED );
 			}
 		return( status );
 		}
@@ -1105,7 +1134,7 @@ static int ioWait( STREAM *stream, const time_t timeout,
 			   at least one (Tandem) returns EINPROGRESS rather than
 			   ETIMEDOUT, so we insert a timeout error code ourselves */
 			stream->errorCode = TIMEOUT_ERROR;
-			mapError( stream, socketErrorInfo, CRYPT_UNUSED );
+			mapError( stream, FALSE, CRYPT_UNUSED );
 			}
 		return( status );
 		}
@@ -1140,7 +1169,7 @@ static int preOpenSocket( STREAM *stream, const char *server,
 	SOCKET netSocket;
 	struct addrinfo *addrInfoPtr, *addrInfoCursor;
 	BOOLEAN nonBlockWarning = FALSE;
-	int port = serverPort, socketStatus, status;
+	int port = serverPort, socketStatus, iterationCount = 0, status;
 
 	/* Clear return value */
 	stream->netSocket = CRYPT_ERROR;
@@ -1156,7 +1185,9 @@ static int preOpenSocket( STREAM *stream, const char *server,
 	   fail during the second phase where we can no longer try to recover
 	   by falling back to an alternative address, but it's better than just
 	   giving up after the first address we try */
-	for( addrInfoCursor = addrInfoPtr; addrInfoCursor != NULL;
+	for( addrInfoCursor = addrInfoPtr; 
+		 addrInfoCursor != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MED;
 		 addrInfoCursor = addrInfoCursor->ai_next )
 		{
 		status = newSocket( &netSocket, addrInfoCursor, FALSE );
@@ -1178,15 +1209,13 @@ static int preOpenSocket( STREAM *stream, const char *server,
 		socketStatus = getErrorCode();	/* Remember socket error code */
 		deleteSocket( netSocket );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	freeAddressInfo( addrInfoPtr );
 	if( status < 0 && !nonBlockWarning )
-		{
 		/* There was an error condition other than a notification that the
 		   operation hasn't completed yet */
-		status = mapError( stream, socketErrorInfo, CRYPT_ERROR_OPEN );
-		deleteSocket( netSocket );
-		return( status );
-		}
+		return( mapError( stream, FALSE, CRYPT_ERROR_OPEN ) );
 	if( status == 0 )
 		{
 		/* If we're connecting to a local host, the connect can complete
@@ -1241,7 +1270,7 @@ static int completeOpen( STREAM *stream )
 		/* Berkeley-derived implementation, error is in value variable */
 		if( value != 0 )
 			{
-			status = mapError( stream, socketErrorInfo, CRYPT_ERROR_OPEN );
+			status = mapError( stream, FALSE, CRYPT_ERROR_OPEN );
 			stream->transportDisconnectFunction( stream, TRUE );
 			return( status );
 			}
@@ -1278,7 +1307,7 @@ static int openServerSocket( STREAM *stream, const char *server, const int port 
 	struct addrinfo *addrInfoPtr, *addrInfoCursor;
 	static const int trueValue = 1;
 	SIZE_TYPE clientAddrLen = sizeof( SOCKADDR_STORAGE );
-	int socketStatus, status;
+	int socketStatus, iterationCount = 0, status;
 
 	/* Clear return value */
 	stream->netSocket = CRYPT_ERROR;
@@ -1300,7 +1329,9 @@ static int openServerSocket( STREAM *stream, const char *server, const int port 
 	   long comment in getAddressInfo() for more on this), so we have to
 	   step through until we get to an IPv4 interface, or at least one that
 	   we can listen on */
-	for( addrInfoCursor = addrInfoPtr; addrInfoCursor != NULL;
+	for( addrInfoCursor = addrInfoPtr; 
+		 addrInfoCursor != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MED;
 		 addrInfoCursor = addrInfoCursor->ai_next )
 		{
 		status = newSocket( &listenSocket, addrInfoCursor, TRUE );
@@ -1342,11 +1373,13 @@ static int openServerSocket( STREAM *stream, const char *server, const int port 
 		newSocketDone();
 		break;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 	freeAddressInfo( addrInfoPtr );
 	if( cryptStatusError( status ) )
 		/* There was an error setting up the socket, don't try anything
 		   further */
-		return( mapError( stream, socketErrorInfo, CRYPT_ERROR_OPEN ) );
+		return( mapError( stream, FALSE, CRYPT_ERROR_OPEN ) );
 
 	/* Wait for a connection.  At the moment this always waits forever
 	   (actually some select()'s limit the size of the second count, so we
@@ -1622,11 +1655,12 @@ static int readSocketFunction( STREAM *stream, BYTE *buffer,
 	time_t timeout = ( flags & TRANSPORT_FLAG_NONBLOCKING ) ? 0 : \
 					 ( flags & TRANSPORT_FLAG_BLOCKING ) ? \
 						max( 30, stream->timeout ) : stream->timeout;
-	int bytesToRead = length, byteCount = 0;
+	int bytesToRead = length, byteCount = 0, iterationCount = 0;
 
 	assert( timeout >= 0 );
 	while( bytesToRead > 0 && \
-		   ( ( getTime() - startTime < timeout || timeout <= 0 ) ) )
+		   ( ( getTime() - startTime < timeout || timeout <= 0 ) ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX )
 		{
 		int bytesRead, status;
 
@@ -1717,6 +1751,8 @@ static int readSocketFunction( STREAM *stream, BYTE *buffer,
 			( getTime() - startTime ) > ( timeout - 5 ) )
 			timeout += 5;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 	if( length > 0 && byteCount <= 0 )
 		/* We didn't get anything because the other side closed the
 		   connection.  We report this is a read-complete status rather than
@@ -1736,7 +1772,7 @@ static int writeSocketFunction( STREAM *stream, const BYTE *buffer,
 	time_t timeout = ( flags & TRANSPORT_FLAG_NONBLOCKING ) ? 0 : \
 					 ( flags & TRANSPORT_FLAG_BLOCKING ) ? \
 						max( 30, stream->timeout ) : stream->timeout;
-	int bytesToWrite = length, byteCount = 0;
+	int bytesToWrite = length, byteCount = 0, iterationCount = 0;
 
 	/* Send data to the remote system.  As with the receive-data code, we
 	   have to work around a large number of quirks and socket
@@ -1762,7 +1798,8 @@ static int writeSocketFunction( STREAM *stream, const BYTE *buffer,
 	   and try again */
 	assert( timeout >= 0 );
 	while( bytesToWrite > 0 && \
-		   ( ( getTime() - startTime < timeout || timeout <= 0 ) ) )
+		   ( ( getTime() - startTime < timeout || timeout <= 0 ) ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX )
 		{
 		int bytesWritten, status;
 
@@ -1802,6 +1839,8 @@ static int writeSocketFunction( STREAM *stream, const BYTE *buffer,
 		bytesToWrite -= bytesWritten;
 		byteCount += bytesWritten;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 
 	return( byteCount );
 	}

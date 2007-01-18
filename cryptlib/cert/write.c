@@ -5,16 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "misc/asn1.h"
@@ -41,11 +35,13 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 	BOOLEAN isCA = FALSE;
 	int keyUsage, extKeyUsage, status;
 
+	assert( isWritePtr( certInfoPtr, sizeof( CERT_INFO ) ) );
+
 	/* Get various pieces of information about the cert.  We do this before
-	   we make any changes so that we can safely bail out if necessary.  
-	   First we get the implicit key usage flags (based on any extended key 
-	   usage extensions present) and explicit key usage flags.  Since these 
-	   are required to be consistent, we extend the keyUsage with 
+	   we make any changes so that we can safely bail out if necessary.
+	   First we get the implicit key usage flags (based on any extended key
+	   usage extensions present) and explicit key usage flags.  Since these
+	   are required to be consistent, we extend the keyUsage with
 	   extKeyUsage flags further on if necessary */
 	extKeyUsage = getKeyUsageFromExtKeyUsage( certInfoPtr,
 						&certInfoPtr->errorLocus, &certInfoPtr->errorType );
@@ -60,14 +56,14 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 	/* If there's an explicit key usage present, make sure that it's
 	   consistent with the implicit key usage flags derived from the extended
 	   key usage.  We mask out the nonRepudiation bit for reasons given in
-	   certchk.c.
+	   chk_cert.c.
 
 	   This check is also performed by checkCert(), however we need to
 	   explicitly perform it here as well since we need to add a key usage
 	   to match the extKeyUsage before calling checkCert() if one wasn't
 	   explicitly set or checkCert() will reject the cert because of the
 	   inconsistent keyUsage */
-	if( keyUsage )
+	if( keyUsage > 0 )
 		{
 		const int effectiveKeyUsage = \
 						extKeyUsage & ~CRYPT_KEYUSAGE_NONREPUDIATION;
@@ -85,7 +81,7 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 										   CRYPT_CERTINFO_CA,
 										   CRYPT_ATTRIBUTE_NONE );
 	if( attributeListPtr != NULL )
-		isCA = attributeListPtr->intValue;
+		isCA = ( attributeListPtr->intValue > 0 ) ? TRUE : FALSE;
 
 	/* If there's no basicConstraints present, add one and make it a non-CA
 	   cert */
@@ -105,7 +101,7 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 	   speculative reads of keys held in removable tokens, which can result
 	   in spurious insert-token dialogs being presented to the user outside
 	   the control of cryptlib if the token isn't present */
-	if( !keyUsage )
+	if( keyUsage <= 0 )
 		{
 		/* If there's no implicit key usage present, set the key usage flags
 		   based on the algorithm type.  Because no-one can figure out what
@@ -114,7 +110,7 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 		   try and set the keyAgreement encipher/decipher-only flags, which
 		   were tacked on as variants of keyAgreement long after the basic
 		   keyAgreement flag was defined */
-		if( !extKeyUsage && !isCA )
+		if( extKeyUsage <= 0 && !isCA )
 			{
 			if( isSigAlgo( certInfoPtr->publicKeyAlgo ) )
 				keyUsage = CRYPT_KEYUSAGE_DIGITALSIGNATURE;
@@ -128,7 +124,7 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 			/* Make the usage consistent with the extended usage */
 			keyUsage = extKeyUsage;
 
-			/* If it's a CA key, make sure that it's a signing key and 
+			/* If it's a CA key, make sure that it's a signing key and
 			   enable its use for certification-related purposes*/
 			if( isCA )
 				{
@@ -142,7 +138,7 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 							CRYPT_KEYUSAGE_CRLSIGN;
 				}
 			}
-		assert( keyUsage );
+		assert( keyUsage > 0 );
 		status = addCertComponent( certInfoPtr, CRYPT_CERTINFO_KEYUSAGE,
 								   &keyUsage, CRYPT_UNUSED );
 		if( cryptStatusError( status ) )
@@ -164,261 +160,200 @@ static int addStandardExtensions( CERT_INFO *certInfoPtr )
 							  certInfoPtr->publicKeyID, KEYID_SIZE ) );
 	}
 
-/* Prepare the entries in a cert status list prior to encoding them */
+/****************************************************************************
+*																			*
+*							Pre-encode Checking Functions					*
+*																			*
+****************************************************************************/
 
-static int prepareCertStatusEntries( VALIDITY_INFO *listPtr,
-									 VALIDITY_INFO **errorEntry,
-									 CRYPT_ATTRIBUTE_TYPE *errorLocus,
-									 CRYPT_ERRTYPE_TYPE *errorType )
+/* Check whether an empty DN is permitted in a certificate */
+
+static BOOLEAN checkEmptyDnOK( CERT_INFO *subjectCertInfoPtr )
 	{
-	VALIDITY_INFO *validityEntry;
+	ATTRIBUTE_LIST *attributeListPtr;
+	int complianceLevel;
 
-	/* Check the attributes for each entry in a revocation list */
-	for( validityEntry = listPtr; validityEntry != NULL; \
-		 validityEntry = validityEntry->next )
-		{
-		int status;
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
 
-		status = checkAttributes( ATTRIBUTE_CERTIFICATE,
-								  validityEntry->attributes,
-								  errorLocus, errorType );
-		if( cryptStatusError( status ) )
-			{
-			/* Remember the entry that caused the problem */
-			*errorEntry = validityEntry;
-			return( status );
-			}
-		}
+	/* PKIX allows empty subject DNs if a subject altName is present, 
+	   however creating certs like this breaks every cert-using protocol 
+	   supported by cryptlib so we only allow it at the highest compliance 
+	   level */
+	if( cryptStatusError( \
+			krnlSendMessage( subjectCertInfoPtr->ownerHandle,
+							 IMESSAGE_GETATTRIBUTE, &complianceLevel,
+							 CRYPT_OPTION_CERT_COMPLIANCELEVEL ) ) || \
+		complianceLevel < CRYPT_COMPLIANCELEVEL_PKIX_FULL )
+		/* We only allow this behaviour at the highest compliance level */
+		return( FALSE );
+	   
+	/* We also have to be very careful to ensure that the empty subject 
+	   DN can't end up becoming an empty issuer DN, which can occur if it's 
+	   a self-signed cert */
+	if( subjectCertInfoPtr->flags & CERT_FLAG_SELFSIGNED )
+		/* We can't have an empty issuer (== subject) DN */
+		return( FALSE );
 
-	return( CRYPT_OK );
+	/* In addition if it's a CA cert the subject DN can't be empty, for 
+	   obvious reasons */
+	attributeListPtr = findAttributeField( subjectCertInfoPtr->attributes,
+										   CRYPT_CERTINFO_CA, 
+										   CRYPT_ATTRIBUTE_NONE );
+	if( attributeListPtr != NULL && attributeListPtr->intValue > 0 )
+		/* It's a CA cert, the subject DN can't be empty */
+		return( FALSE );
+
+	/* Finally, if there's no subject DN present there has to be an altName
+	   present to take its place */
+	attributeListPtr = findAttributeField( subjectCertInfoPtr->attributes,
+										   CRYPT_CERTINFO_SUBJECTALTNAME,
+										   CRYPT_ATTRIBUTE_NONE );
+	if( attributeListPtr == NULL )
+		/* Either a subject DN or subject altName must be present */
+		return( FALSE );
+
+	/* There's a subject altName present but no subject DN, mark the altName 
+	   as critical */
+	attributeListPtr->flags |= ATTR_FLAG_CRITICAL;
+
+	return( TRUE );
 	}
 
-/* Prepare the entries in a revocation list prior to encoding them */
+/* Before we encode a certificate object, we have to perform various final 
+   setup actions and perform checks to ensure that the object is ready for
+   encoding.  The following setup operations and checks can be requested by
+   the caller:
 
-static int prepareRevocationEntries( REVOCATION_INFO *listPtr,
-									 const time_t defaultTime,
-									 REVOCATION_INFO **errorEntry,
-									 CRYPT_ATTRIBUTE_TYPE *errorLocus,
-									 CRYPT_ERRTYPE_TYPE *errorType )
-	{
-	REVOCATION_INFO *revocationEntry;
-	const time_t currentTime = defaultTime ? defaultTime : getApproxTime();
+	CHECK_DN: Full subject DN is present.
 
-	/* Set the revocation time if this hasn't already been set.  If there's a
-	   default time set we use that, otherwise we use the current time */
-	for( revocationEntry = listPtr; revocationEntry != NULL; \
-		 revocationEntry = revocationEntry->next )
-		{
-		const ATTRIBUTE_LIST *attributeListPtr;
+	CHECK_DN_PARTIAL: Partial subject DN is present.  This is a DN template,
+		so the full DN doesn't have to be present since the CA can fill in
+		the rest later.
 
-		if( !revocationEntry->revocationTime )
-			revocationEntry->revocationTime = currentTime;
+	CHECK_ISSUERDN: Issuer DN is present.
 
-		/* Check whether the cert was revoked with a reason of neverValid,
-		   which requires special handling of dates because X.509 doesn't
-		   formally define a neverValid reason, assuming that all CAs are
-		   perfect and never issue certs in error.  The general idea is to
-		   set the two to the same value, with the invalidity date (which
-		   should be earlier than the revocation date, at least in a sanely-
-		   run CA) taking precedence.  A revocation with this reason code will
-		   in general only be issued by the cryptlib CA (where it's required
-		   to handle problems in the CMP protocol) and this always sets the
-		   invalidity date, so in almost all cases we'll be setting the
-		   revocation date to the (CA-specified) invalidity date, which is
-		   the date of issue of the cert being revoked */
-		attributeListPtr = findAttributeField( revocationEntry->attributes,
-											   CRYPT_CERTINFO_CRLREASON,
-											   CRYPT_ATTRIBUTE_NONE );
-		if( attributeListPtr != NULL && \
-			attributeListPtr->intValue == CRYPT_CRLREASON_NEVERVALID )
-			{
-			/* The cert was revoked with the neverValid code, see if there's
-			   an invalidity date present */
-			attributeListPtr = \
-					findAttributeField( revocationEntry->attributes,
-										CRYPT_CERTINFO_INVALIDITYDATE,
-										CRYPT_ATTRIBUTE_NONE );
-			if( attributeListPtr == NULL )
-				/* There's no invalidity date present, set it to the same as
-				   the revocation date */
-				addAttributeField( &revocationEntry->attributes,
-								   CRYPT_CERTINFO_INVALIDITYDATE,
-								   CRYPT_ATTRIBUTE_NONE,
-								   &revocationEntry->revocationTime,
-								   sizeof( time_t ), ATTR_FLAG_NONE,
-								   NULL, NULL );
-			else
-				/* There's an invalidity date present, make sure the
-				   revocation date is the same as the invalidity date */
-				revocationEntry->revocationTime = \
-						*( time_t * ) attributeListPtr->value;
-			}
-		}
+	CHECK_ISSUERCERTDN: Issuer cert's subject DN == subject cert's issuer DN.
 
-	/* Check the attributes for each entry in a revocation list */
-	for( revocationEntry = listPtr; revocationEntry != NULL; \
-		 revocationEntry = revocationEntry->next )
-		{
-		int status;
+	CHECK_NONSELFSIGNEDDN: Cert's subject DN != cert's issuer DN, which would
+		make it appear to be a self-signed cert.
 
-		status = checkAttributes( ATTRIBUTE_CERTIFICATE,
-								  revocationEntry->attributes,
-								  errorLocus, errorType );
-		if( cryptStatusError( status ) )
-			{
-			/* Remember the entry that caused the problem */
-			*errorEntry = revocationEntry;
-			return( status );
-			}
-		}
+	CHECK_REVENTRIES: At least one revocation entry is present.
 
-	return( CRYPT_OK );
-	}
+	CHECK_SERIALNO: Serial number is present.
 
-/* Prepare to create a certificate object */
+	CHECK_SPKI: SubjectPublicKeyInfo is present.
+
+	CHECK_VALENTRIES: At least one validity entry is present.
+
+	SET_ISSUERATTR: Copy issuer attributes to subject.
+
+	SET_ISSUERDN: Copy issuer DN to subject.
+
+	SET_REVINFO: Set up revocation info.
+
+	SET_STANDARDATTR: Set up standard extensions/attributes.
+
+	SET_VALIDITYPERIOD: Constrain subject validity to issuer validity.
+
+	SET_VALINFO: Set up validity info */
+
+#define PRE_CHECK_NONE			0x0000	/* No check actions */
+#define PRE_CHECK_SPKI			0x0001	/* SPKI present */
+#define PRE_CHECK_DN			0x0002	/* Subject DN present */
+#define PRE_CHECK_DN_PARTIAL	0x0004	/* Partial subject DN present */
+#define PRE_CHECK_ISSUERDN		0x0008	/* Issuer DN present */
+#define PRE_CHECK_ISSUERCERTDN	0x0010	/* Issuer cert DN == subj.issuer DN */
+#define PRE_CHECK_NONSELFSIGNED_DN 0x0020	/* Issuer DN != subject DN */
+#define PRE_CHECK_SERIALNO		0x0040	/* SerialNo present */
+#define PRE_CHECK_VALENTRIES	0x0080	/* Validity entries present */
+#define PRE_CHECK_REVENTRIES	0x0100	/* Revocation entries present */
+
+#define PRE_SET_NONE			0x0000	/* No setup actions */
+#define PRE_SET_STANDARDATTR	0x0001	/* Set up standard extensions */
+#define PRE_SET_ISSUERATTR		0x0002	/* Copy issuer attr.to subject */
+#define PRE_SET_ISSUERDN		0x0004	/* Copy issuer DN to subject */
+#define PRE_SET_VALIDITYPERIOD	0x0008	/* Constrain subj.val.to issuer val.*/
+#define PRE_SET_VALINFO			0x0010	/* Set up validity info */
+#define PRE_SET_REVINFO			0x0020	/* Set up revocation info */
+
+/* Additional flags that control the operations indicated above */
+
+#define PRE_FLAG_NONE			0x0000	/* No special control options */
+#define PRE_FLAG_DN_IN_ISSUERCERT 0x0001/* Issuer DN is in issuer cert */
+
+/* The checks for the different object types are:
+
+				|  Cert	|  Attr	|  P10	|Cr.Req	|Rv.Req	
+	------------+-------+-------+-------+-------+-------+
+	STDATTR		|	X	|		|		|		|		|
+	ISSUERATTR	|	X	|	X	|		|		|		|
+	ISSUERDN	|	X	|	X	|		|		|		|
+	VALPERIOD	|	X	|	X	|		|		|		|
+	VALINFO		|		|		|		|		|		|
+	REVINFO		|		|		|		|		|		|
+	------------+-------+-------+-------+-------+-------+
+	SPKI		|	X	|		|	X	|	X	|		|
+	DN			|	X	|	X	|		|		|		|
+	DN_PART		|		|		|	X	|	X	|		|
+	ISSUERDN	|	X	|	X	|		|		|	X	|
+	ISSUERCRTDN	|		|		|		|		|		|
+	NON_SELFSD	|	X	|	X	|		|		|		|
+	SERIALNO	|	X	|	X	|		|		|	X	|
+	REVENTRIES	|		|		|		|		|		|
+	------------+-------+-------+-------+-------+-------+
+
+				|RTCS Rq|RTCS Rs|OCSP Rq|OCSP Rs|  CRL	|CRLentr|
+	------------+-------+-------+-------+-------+-------+-------+
+	STDATTR		|		|		|		|		|		|		|
+	ISSUERATTR	|		|		|		|		|	X	|		|
+	ISSUERDN	|		|		|		|		|	X	|		|
+	VALPERIOD	|		|		|		|		|		|		|
+	VALINFO		|	X	|		|		|		|		|		|
+	REVINFO		|		|		|	X	|		|	X	|	X	|
+	------------+-------+-------+-------+-------+-------+-------+
+	SPKI		|		|		|		|		|		|		|
+	DN			|		|		|		|	X	|		|		|
+	DN_PART		|		|		|		|		|		|		|
+	ISSUERDN	|		|		|		|		|	X	|		|
+	ISSUERCRTDN	|		|		|		|		|	X	|		|
+	NON_SELFSD	|		|		|		|		|		|		|
+	SERIALNO	|		|		|		|		|		|		|
+	VALENTRIES	|	X	|		|		|		|		|		|
+	REVENTRIES	|		|		|	X	|	X	|		|		|
+	------------+-------+-------+-------+-------+-------+-------+ */
 
 static int preEncodeCertificate( CERT_INFO *subjectCertInfoPtr,
 								 const CERT_INFO *issuerCertInfoPtr,
-								 const CRYPT_CERTTYPE_TYPE type )
+								 const int setActions, 
+								 const int checkActions, const int flags )
 	{
 	int status;
 
-	/* Make sure everything is in order.  We perform the following checks for
-	   the different object types:
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( ( issuerCertInfoPtr == NULL ) || \
+			isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( setActions >= 0 );
+	assert( checkActions >= 0 );
+	assert( ( flags == PRE_FLAG_NONE ) || \
+			( flags == PRE_FLAG_DN_IN_ISSUERCERT ) );
 
-		Object			Checks
-		-----------------------------------------------
-		cert			key		DN		exts	cert
-		attr.cert				DN		exts	cert
-		cert.req		key		DN		exts
-		CRMF cert.req	key		DN(optional)
-		CRMF rev.req					exts
-		CRL								exts	cert
-		RTCS req.						exts
-		RTCS resp.						exts
-		OCSP req.						exts
-		OCSP resp.						exts	cert
-
-	   Since some of the checks depend on data that isn't set up yet, we
-	   break the checking up into two phases, the first one which is
-	   performed immediately and the second one which is performed after
-	   default and issuer-contributed attributes have been added */
-	if( ( type == CRYPT_CERTTYPE_CERTIFICATE || \
-		  type == CRYPT_CERTTYPE_CERTREQUEST || \
-		  type == CRYPT_CERTTYPE_REQUEST_CERT ) && \
-		subjectCertInfoPtr->publicKeyInfo == NULL )
+	/* Make sure that everything is in order.  Some of the checks depend on 
+	   data that isn't set up yet, so first perform all of the setup actions
+	   that add default and issuer-contributed attributes, and then perform
+	   all of the checks */
+	if( setActions & PRE_SET_STANDARDATTR )
 		{
-		setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO,
-					  CRYPT_ERRTYPE_ATTR_ABSENT );
-		return( CRYPT_ERROR_NOTINITED );
-		}
-	if( type == CRYPT_CERTTYPE_CERTIFICATE || \
-		type == CRYPT_CERTTYPE_ATTRIBUTE_CERT || \
-		type == CRYPT_CERTTYPE_CERTREQUEST || \
-		( type == CRYPT_CERTTYPE_REQUEST_CERT && \
-		  subjectCertInfoPtr->subjectName != NULL ) )
-		{
-		/* If it's a cert request, we allow the country to be optional since
-		   some CA's fill this in themselves */
-		status = checkDN( subjectCertInfoPtr->subjectName, TRUE,
-						  ( type == CRYPT_CERTTYPE_CERTREQUEST || \
-							type == CRYPT_CERTTYPE_REQUEST_CERT ) ? TRUE : FALSE,
-						  &subjectCertInfoPtr->errorLocus,
-						  &subjectCertInfoPtr->errorType );
-		if( cryptStatusError( status ) )
-			{
-			ATTRIBUTE_LIST *attributeListPtr;
-			int complianceLevel;
-
-			/* PKIX allows empty subject DNs if a subject altName is present,
-			   however creating certs like this breaks every cert-using 
-			   protocol supported by cryptlib so we only allow it at the
-			   highest compliance level.  In addition we have to be very
-			   careful to ensure that the empty subject DN can't end up 
-			   becoming an empty issuer DN, for example if it's a self-signed
-			   or CA cert */
-			if( status != CRYPT_ERROR_NOTINITED || \
-				( type == CRYPT_CERTTYPE_CERTIFICATE && \
-				  subjectCertInfoPtr->cCertCert->subjectUniqueID != NULL ) || \
-				( subjectCertInfoPtr->flags & CERT_FLAG_SELFSIGNED ) )
-				return( status );
-			if( cryptStatusError( \
-					krnlSendMessage( subjectCertInfoPtr->ownerHandle, 
-									 IMESSAGE_GETATTRIBUTE, &complianceLevel, 
-									 CRYPT_OPTION_CERT_COMPLIANCELEVEL ) ) || \
-				complianceLevel < CRYPT_COMPLIANCELEVEL_PKIX_FULL )
-				/* We only allow this behaviour at the highest compliance 
-				   level */
-				return( status );
-			attributeListPtr = \
-				findAttributeField( subjectCertInfoPtr->attributes,
-									CRYPT_CERTINFO_CA, CRYPT_ATTRIBUTE_NONE );
-			if( attributeListPtr != NULL && attributeListPtr->intValue )
-				/* It's a CA cert, the subject DN can't be empty */
-				return( status );
-			attributeListPtr = \
-				findAttributeField( subjectCertInfoPtr->attributes,
-									CRYPT_CERTINFO_SUBJECTALTNAME, 
-									CRYPT_ATTRIBUTE_NONE );
-			if( attributeListPtr == NULL )
-				/* Either a subject DN or subject altName must be present */
-				return( status );
-
-			/* There's a subject altName present but no subject DN, mark the
-			   altName as critical */
-			attributeListPtr->flags |= ATTR_FLAG_CRITICAL;
-			}
-
-		/* If we're creating a non-self-signed cert, check whether the
-		   subject's DN is the same as the issuer's DN.  If this is the case,
-		   the resulting object would appear to be self-signed so we disallow
-		   it */
-		if( ( type == CRYPT_CERTTYPE_CERTIFICATE || \
-			  type == CRYPT_CERTTYPE_ATTRIBUTE_CERT ) && \
-			!( subjectCertInfoPtr->flags & CERT_FLAG_SELFSIGNED ) && \
-			compareDN( issuerCertInfoPtr->subjectName,
-					   subjectCertInfoPtr->subjectName, FALSE ) )
-			{
-			setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_SUBJECTNAME,
-						  CRYPT_ERRTYPE_ISSUERCONSTRAINT );
-			return( CRYPT_ERROR_NOTINITED );
-			}
-		}
-
-	/* Handle various default certificate extensions if necessary */
-	if( type == CRYPT_CERTTYPE_CERTIFICATE || \
-		type == CRYPT_CERTTYPE_ATTRIBUTE_CERT )
-		{
-		/* Constrain the subject validity period to be within the issuer
-		   validity period */
-		if( subjectCertInfoPtr->startTime < issuerCertInfoPtr->startTime )
-			subjectCertInfoPtr->startTime = issuerCertInfoPtr->startTime;
-		if( subjectCertInfoPtr->endTime > issuerCertInfoPtr->endTime )
-			subjectCertInfoPtr->endTime = issuerCertInfoPtr->endTime;
-
 		/* If it's a >= v3 cert, add the standard X.509v3 extensions if these
 		   aren't already present */
-		if( ( type == CRYPT_CERTTYPE_CERTIFICATE ) && \
-			( subjectCertInfoPtr->version >= 3 ) )
+		if( subjectCertInfoPtr->version >= 3 )
 			{
 			status = addStandardExtensions( subjectCertInfoPtr );
 			if( cryptStatusError( status ) )
 				return( status );
 			}
 		}
-	if( type == CRYPT_CERTTYPE_CERTIFICATE || \
-		type == CRYPT_CERTTYPE_ATTRIBUTE_CERT || \
-		( type == CRYPT_CERTTYPE_CRL && issuerCertInfoPtr != NULL ) )
+	if( setActions & PRE_SET_ISSUERATTR )
 		{
-		/* Copy the issuer DN if this isn't already present */
-		if( subjectCertInfoPtr->issuerName == NULL )
-			{
-			status = copyDN( &subjectCertInfoPtr->issuerName,
-							 issuerCertInfoPtr->subjectName );
-			if( cryptStatusError( status ) )
-				return( status );
-			}
-
 		/* Copy any required extensions from the issuer to the subject cert
 		   if necessary */
 		if( !( subjectCertInfoPtr->flags & CERT_FLAG_SELFSIGNED ) )
@@ -432,31 +367,38 @@ static int preEncodeCertificate( CERT_INFO *subjectCertInfoPtr,
 				return( status );
 			}
 		}
-	if( type == CRYPT_CERTTYPE_CRL && issuerCertInfoPtr != NULL )
+	if( setActions & PRE_SET_ISSUERDN )
 		{
-		/* If it's a CRL, compare the revoked cert issuer DN and signer DN
-		   to make sure we're not trying to revoke someone else's certs, and
-		   prepare the revocation entries */
-		if( !compareDN( subjectCertInfoPtr->issuerName,
-						issuerCertInfoPtr->subjectName, FALSE ) )
+		/* Copy the issuer DN if this isn't already present */
+		if( subjectCertInfoPtr->issuerName == NULL )
 			{
-			setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_ISSUERNAME,
-						  CRYPT_ERRTYPE_ATTR_VALUE );
-			return( CRYPT_ERROR_INVALID );
+			status = copyDN( &subjectCertInfoPtr->issuerName,
+							 issuerCertInfoPtr->subjectName );
+			if( cryptStatusError( status ) )
+				return( status );
 			}
 		}
-	if( type == CRYPT_CERTTYPE_RTCS_RESPONSE )
+	if( setActions & PRE_SET_VALIDITYPERIOD )
+		{
+		/* Constrain the subject validity period to be within the issuer
+		   validity period */
+		if( subjectCertInfoPtr->startTime < issuerCertInfoPtr->startTime )
+			subjectCertInfoPtr->startTime = issuerCertInfoPtr->startTime;
+		if( subjectCertInfoPtr->endTime > issuerCertInfoPtr->endTime )
+			subjectCertInfoPtr->endTime = issuerCertInfoPtr->endTime;
+		}
+	if( setActions & PRE_SET_VALINFO )
 		{
 		/* If it's an RTCS response, prepare the cert status list entries
 		   prior to encoding them */
-		status = prepareCertStatusEntries( subjectCertInfoPtr->cCertVal->validityInfo,
-										   &subjectCertInfoPtr->cCertVal->currentValidity,
-										   &subjectCertInfoPtr->errorLocus,
-										   &subjectCertInfoPtr->errorType );
+		status = prepareValidityEntries( subjectCertInfoPtr->cCertVal->validityInfo,
+										 &subjectCertInfoPtr->cCertVal->currentValidity,
+										 &subjectCertInfoPtr->errorLocus,
+										 &subjectCertInfoPtr->errorType );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
-	if( type == CRYPT_CERTTYPE_CRL || type == CRYPT_CERTTYPE_OCSP_RESPONSE )
+	if( setActions & PRE_SET_REVINFO )
 		{
 		/* If it's a CRL or OCSP response, prepare the revocation list
 		   entries prior to encoding them */
@@ -469,10 +411,144 @@ static int preEncodeCertificate( CERT_INFO *subjectCertInfoPtr,
 			return( status );
 		}
 
+	/* Now that everything's set up, check that the object is reading for 
+	   encoding */
+	if( checkActions & PRE_CHECK_SPKI )
+		{
+		/* Make sure that there's public-key info present */
+		if( subjectCertInfoPtr->publicKeyInfo == NULL )
+			{
+			setErrorInfo( subjectCertInfoPtr, 
+						  CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO,
+						  CRYPT_ERRTYPE_ATTR_ABSENT );
+			return( CRYPT_ERROR_NOTINITED );
+			}
+		}
+	if( checkActions & PRE_CHECK_DN )
+		{
+		/* Make sure that there's a full DN present */
+		status = checkDN( subjectCertInfoPtr->subjectName, TRUE, FALSE,
+						  &subjectCertInfoPtr->errorLocus,
+						  &subjectCertInfoPtr->errorType );
+		if( cryptStatusError( status ) )
+			{
+			/* In some very special cases an empty DN is permitted, so we
+			   only return an error if this really isn't allowed */
+			if( status != CRYPT_ERROR_NOTINITED || \
+				!checkEmptyDnOK( subjectCertInfoPtr ) )
+				return( status );
+			}
+		}
+	if( checkActions & PRE_CHECK_DN_PARTIAL )
+		{
+		/* Make sure that there's at least a partial DN present (some CA's 
+		   will fill the remainder themselves) */
+		status = checkDN( subjectCertInfoPtr->subjectName, TRUE, TRUE,
+						  &subjectCertInfoPtr->errorLocus,
+						  &subjectCertInfoPtr->errorType );
+		if( cryptStatusError( status ) )
+			return( status );
+		}
+	if( checkActions & PRE_CHECK_ISSUERDN )
+		{
+		if( flags & PRE_FLAG_DN_IN_ISSUERCERT )
+			{
+			if( issuerCertInfoPtr == NULL || \
+				issuerCertInfoPtr->subjectDNptr == NULL || \
+				issuerCertInfoPtr->subjectDNsize < 1 )
+				{
+				setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_ISSUERNAME,
+							  CRYPT_ERRTYPE_ATTR_ABSENT );
+				return( CRYPT_ERROR_NOTINITED );
+				}
+			}
+		else
+			{
+			/* The issuer DN can be present either in pre-encoded form (if
+			   it was copied from an issuer cert) or as a full DN (if it's
+			   a self-signed cert), so we check for the presence of either */
+			if( ( subjectCertInfoPtr->issuerName == NULL ) && 
+				( subjectCertInfoPtr->issuerDNptr == NULL || \
+				  subjectCertInfoPtr->issuerDNsize < 1 ) )
+				{
+				setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_ISSUERNAME,
+							  CRYPT_ERRTYPE_ATTR_ABSENT );
+				return( CRYPT_ERROR_NOTINITED );
+				}
+			}
+		}
+	if( checkActions & PRE_CHECK_ISSUERCERTDN )
+		{
+		/* If it's a CRL, compare the revoked cert issuer DN and signer DN
+		   to make sure that we're not trying to revoke someone else's certs, 
+		   and prepare the revocation entries */
+		if( !compareDN( subjectCertInfoPtr->issuerName,
+						issuerCertInfoPtr->subjectName, FALSE ) )
+			{
+			setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_ISSUERNAME,
+						  CRYPT_ERRTYPE_ATTR_VALUE );
+			return( CRYPT_ERROR_INVALID );
+			}
+		}
+	if( checkActions & PRE_CHECK_NONSELFSIGNED_DN )
+		{
+		/* If we're creating a non-self-signed cert, check whether the
+		   subject's DN is the same as the issuer's DN.  If this is the case,
+		   the resulting object would appear to be self-signed so we disallow
+		   it */
+		if( compareDN( issuerCertInfoPtr->subjectName,
+					   subjectCertInfoPtr->subjectName, FALSE ) )
+			{
+			setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_SUBJECTNAME,
+						  CRYPT_ERRTYPE_ISSUERCONSTRAINT );
+			return( CRYPT_ERROR_NOTINITED );
+			}
+		}
+	if( checkActions & PRE_CHECK_SERIALNO )
+		{
+		if( subjectCertInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION )
+			{
+			if( subjectCertInfoPtr->cCertReq->serialNumberLength <= 0 )
+				{
+				setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_SERIALNUMBER,
+							  CRYPT_ERRTYPE_ATTR_ABSENT );
+				return( CRYPT_ERROR_NOTINITED );
+				}
+			}
+		else
+			{
+			if( subjectCertInfoPtr->cCertCert->serialNumberLength <= 0 )
+				{
+				setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_SERIALNUMBER,
+							  CRYPT_ERRTYPE_ATTR_ABSENT );
+				return( CRYPT_ERROR_NOTINITED );
+				}
+			}
+		}
+	if( checkActions & PRE_CHECK_VALENTRIES )
+		{
+		if( subjectCertInfoPtr->cCertVal->validityInfo == NULL )
+			{
+			setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
+						  CRYPT_ERRTYPE_ATTR_ABSENT );
+			return( CRYPT_ERROR_NOTINITED );
+			}
+		}
+	if( checkActions & PRE_CHECK_REVENTRIES )
+		{
+		if( subjectCertInfoPtr->cCertRev->revocations == NULL )
+			{
+			setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
+						  CRYPT_ERRTYPE_ATTR_ABSENT );
+			return( CRYPT_ERROR_NOTINITED );
+			}
+		}
+
 	/* Now that we've set up the attributes, perform the remainder of the
-	   checks.  Because RTCS is a CMS standard rather than PKIX, the RTCS 
+	   checks.  Because RTCS is a CMS standard rather than PKIX, the RTCS
 	   attributes are CMS rather than certificate attributes */
-	status = checkAttributes( ( type == CRYPT_CERTTYPE_RTCS_REQUEST ) ? \
+	status = checkAttributes( ( subjectCertInfoPtr->type == \
+								CRYPT_CERTTYPE_RTCS_REQUEST ) ? \
 							  ATTRIBUTE_CMS : ATTRIBUTE_CERTIFICATE,
 							  subjectCertInfoPtr->attributes,
 							  &subjectCertInfoPtr->errorLocus,
@@ -481,9 +557,15 @@ static int preEncodeCertificate( CERT_INFO *subjectCertInfoPtr,
 		status = checkCert( subjectCertInfoPtr, issuerCertInfoPtr, FALSE,
 							&subjectCertInfoPtr->errorLocus,
 							&subjectCertInfoPtr->errorType );
-	if( cryptStatusOK( status ) && \
-		( subjectCertInfoPtr->type == CRYPT_CERTTYPE_CERTIFICATE || \
-		  subjectCertInfoPtr->type == CRYPT_CERTTYPE_CERTCHAIN ) )
+	if( cryptStatusError( status ) )
+		return( status );
+
+	/* If it's a cert or certchain, remember that it's been checked at full
+	   compliance level.  This short-circuits the need to perform excessive
+	   levels of checking if the caller wants to re-check it after it's been
+	   signed */
+	if( subjectCertInfoPtr->type == CRYPT_CERTTYPE_CERTIFICATE || \
+		subjectCertInfoPtr->type == CRYPT_CERTTYPE_CERTCHAIN )
 		subjectCertInfoPtr->cCertCert->maxCheckLevel = \
 									CRYPT_COMPLIANCELEVEL_PKIX_FULL;
 
@@ -514,13 +596,31 @@ static int writeCertInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 						  const CRYPT_CONTEXT iIssuerCryptContext )
 	{
 	const CERT_CERT_INFO *certCertInfo = subjectCertInfoPtr->cCertCert;
+	const int algoIdInfoSize = \
+			sizeofContextAlgoID( iIssuerCryptContext, certCertInfo->hashAlgo,
+								 ALGOID_FLAG_ALGOID_ONLY );
 	int length, extensionSize, status;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( isHandleRangeValid( iIssuerCryptContext ) );
+
+	if( cryptStatusError( algoIdInfoSize ) )
+		return( algoIdInfoSize  );
 
 	/* Perform any necessary pre-encoding steps */
 	if( sIsNullStream( stream ) )
 		{
 		status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
-									   CRYPT_CERTTYPE_CERTIFICATE );
+						PRE_SET_STANDARDATTR | PRE_SET_ISSUERATTR | \
+						PRE_SET_ISSUERDN | PRE_SET_VALIDITYPERIOD, 
+						PRE_CHECK_SPKI | PRE_CHECK_DN | \
+						PRE_CHECK_ISSUERDN | PRE_CHECK_SERIALNO | \
+						( ( subjectCertInfoPtr->flags & CERT_FLAG_SELFSIGNED ) ? \
+							0 : PRE_CHECK_NONSELFSIGNED_DN ),
+						( issuerCertInfoPtr->subjectDNptr != NULL ) ? \
+							PRE_FLAG_DN_IN_ISSUERCERT : PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
@@ -535,24 +635,24 @@ static int writeCertInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 
 	/* Determine the size of the certificate information */
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
 	length = sizeofInteger( certCertInfo->serialNumber,
 							certCertInfo->serialNumberLength ) + \
-			 sizeofContextAlgoID( iIssuerCryptContext, certCertInfo->hashAlgo,
-								  ALGOID_FLAG_ALGOID_ONLY ) + \
+			 algoIdInfoSize + \
 			 subjectCertInfoPtr->issuerDNsize + \
 			 sizeofObject( sizeofUTCTime() * 2 ) + \
 			 subjectCertInfoPtr->subjectDNsize + \
 			 subjectCertInfoPtr->publicKeyInfoSize;
 	if( extensionSize > 0 )
-		length += ( int ) \
-				  sizeofObject( sizeofShortInteger( X509VERSION_3 ) ) + \
+		length += sizeofObject( sizeofShortInteger( X509VERSION_3 ) ) + \
 				  sizeofObject( sizeofObject( extensionSize ) );
 
 	/* Write the outer SEQUENCE wrapper */
 	writeSequence( stream, length );
 
 	/* If there are extensions present, mark this as a v3 certificate */
-	if( extensionSize )
+	if( extensionSize > 0 )
 		{
 		writeConstructed( stream, sizeofShortInteger( X509VERSION_3 ),
 						  CTAG_CE_VERSION );
@@ -562,7 +662,7 @@ static int writeCertInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	/* Write the serial number and signature algorithm identifier */
 	writeInteger( stream, certCertInfo->serialNumber,
 				  certCertInfo->serialNumberLength, DEFAULT_TAG );
-	status = writeContextAlgoID( stream, iIssuerCryptContext, 
+	status = writeContextAlgoID( stream, iIssuerCryptContext,
 								 certCertInfo->hashAlgo,
 								 ALGOID_FLAG_ALGOID_ONLY );
 	if( cryptStatusError( status ) )
@@ -571,14 +671,12 @@ static int writeCertInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	/* Write the issuer name, validity period, subject name, and public key
 	   information */
 	if( issuerCertInfoPtr->subjectDNptr != NULL )
-		swrite( stream, issuerCertInfoPtr->subjectDNptr,
-				issuerCertInfoPtr->subjectDNsize );
+		status = swrite( stream, issuerCertInfoPtr->subjectDNptr,
+						 issuerCertInfoPtr->subjectDNsize );
 	else
-		{
 		status = writeDN( stream, subjectCertInfoPtr->issuerName, DEFAULT_TAG );
-		if( cryptStatusError( status ) )
-			return( status );
-		}
+	if( cryptStatusError( status ) )
+		return( status );
 	writeSequence( stream, sizeofUTCTime() * 2 );
 	writeUTCTime( stream, subjectCertInfoPtr->startTime, DEFAULT_TAG );
 	writeUTCTime( stream, subjectCertInfoPtr->endTime, DEFAULT_TAG );
@@ -613,13 +711,31 @@ static int writeAttributeCertInfo( STREAM *stream,
 								   const CRYPT_CONTEXT iIssuerCryptContext )
 	{
 	const CERT_CERT_INFO *certCertInfo = subjectCertInfoPtr->cCertCert;
+	const int algoIdInfoSize = \
+			sizeofContextAlgoID( iIssuerCryptContext, certCertInfo->hashAlgo,
+								 ALGOID_FLAG_ALGOID_ONLY );
 	int length, extensionSize, issuerNameSize, status;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( isHandleRangeValid( iIssuerCryptContext ) );
+
+	if( cryptStatusError( algoIdInfoSize ) )
+		return( algoIdInfoSize  );
 
 	/* Perform any necessary pre-encoding steps */
 	if( sIsNullStream( stream ) )
 		{
 		status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
-									   CRYPT_CERTTYPE_ATTRIBUTE_CERT );
+						PRE_SET_ISSUERDN | PRE_SET_ISSUERATTR | \
+						PRE_SET_VALIDITYPERIOD, 
+						PRE_CHECK_DN | PRE_CHECK_ISSUERDN | \
+						PRE_CHECK_SERIALNO | \
+						( ( subjectCertInfoPtr->flags & CERT_FLAG_SELFSIGNED ) ? \
+							0 : PRE_CHECK_NONSELFSIGNED_DN ),
+						( issuerCertInfoPtr->subjectDNptr != NULL ) ? \
+							PRE_FLAG_DN_IN_ISSUERCERT : PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
@@ -631,15 +747,17 @@ static int writeAttributeCertInfo( STREAM *stream,
 
 	/* Determine the size of the certificate information */
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
 	length = ( int ) sizeofObject( sizeofDN( subjectCertInfoPtr->subjectName ) ) + \
 			 issuerNameSize + \
-			 sizeofContextAlgoID( iIssuerCryptContext, certCertInfo->hashAlgo,
-								  ALGOID_FLAG_ALGOID_ONLY ) + \
+			 algoIdInfoSize + \
 			 sizeofInteger( certCertInfo->serialNumber,
 							certCertInfo->serialNumberLength ) + \
 			 sizeofObject( sizeofUTCTime() * 2 ) + \
 			 sizeofObject( 0 ) + \
-			 ( extensionSize ? ( int ) sizeofObject( extensionSize ) : 0 );
+			 ( ( extensionSize > 0 ) ? \
+				( int ) sizeofObject( extensionSize ) : 0 );
 
 	/* Write the outer SEQUENCE wrapper */
 	writeSequence( stream, length );
@@ -651,8 +769,8 @@ static int writeAttributeCertInfo( STREAM *stream,
 	if( cryptStatusOK( status ) )
 		{
 		if( issuerCertInfoPtr->subjectDNptr != NULL )
-			swrite( stream, issuerCertInfoPtr->subjectDNptr,
-					issuerCertInfoPtr->subjectDNsize );
+			status = swrite( stream, issuerCertInfoPtr->subjectDNptr,
+							 issuerCertInfoPtr->subjectDNsize );
 		else
 			status = writeDN( stream, subjectCertInfoPtr->issuerName, DEFAULT_TAG );
 		}
@@ -697,9 +815,7 @@ static int writeAttributeCertInfo( STREAM *stream,
 				<X.509v3 extensions>
 				}
 			}
-		}
-
-   as per the CMMF draft */
+		} */
 
 static int writeCertRequestInfo( STREAM *stream,
 								 CERT_INFO *subjectCertInfoPtr,
@@ -708,25 +824,31 @@ static int writeCertRequestInfo( STREAM *stream,
 	{
 	int length, extensionSize, status;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
 	assert( issuerCertInfoPtr == NULL );
+	assert( isHandleRangeValid( iIssuerCryptContext ) );/* Not used here */
 
-	/* Make sure everything is in order */
+	/* Make sure that everything is in order */
 	if( sIsNullStream( stream ) )
 		{
-		status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
-									   CRYPT_CERTTYPE_CERTREQUEST );
+		status = preEncodeCertificate( subjectCertInfoPtr, NULL,
+						PRE_SET_NONE, 
+						PRE_CHECK_SPKI | PRE_CHECK_DN_PARTIAL,
+						PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
 
 	/* Determine how big the encoded certificate request will be */
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
 	length = sizeofShortInteger( 0 ) + \
 			 sizeofDN( subjectCertInfoPtr->subjectName ) + \
 			 subjectCertInfoPtr->publicKeyInfoSize;
 	if( extensionSize > 0 )
-		length += ( int ) \
-				  sizeofObject( \
+		length += sizeofObject( \
 					sizeofObject( \
 						sizeofOID( OID_PKCS9_EXTREQ ) + \
 						sizeofObject( sizeofObject( extensionSize ) ) ) );
@@ -779,13 +901,20 @@ static int writeCrmfRequestInfo( STREAM *stream,
 	int payloadLength, extensionSize, subjectDNsize = 0, timeSize = 0;
 	int status = CRYPT_OK;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
 	assert( issuerCertInfoPtr == NULL );
+	assert( isHandleRangeValid( iIssuerCryptContext ) );/* Not used here */
 
-	/* Make sure everything is in order */
+	/* Make sure that everything is in order */
 	if( sIsNullStream( stream ) )
 		{
-		status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
-									   CRYPT_CERTTYPE_REQUEST_CERT );
+		status = preEncodeCertificate( subjectCertInfoPtr, NULL,
+						PRE_SET_NONE, 
+						PRE_CHECK_SPKI | \
+						( ( subjectCertInfoPtr->subjectName != NULL ) ? \
+							PRE_CHECK_DN_PARTIAL : 0 ),
+						PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
@@ -794,39 +923,41 @@ static int writeCrmfRequestInfo( STREAM *stream,
 	if( subjectCertInfoPtr->subjectName != NULL )
 		subjectCertInfoPtr->subjectDNsize = subjectDNsize = \
 								sizeofDN( subjectCertInfoPtr->subjectName );
-	if( subjectCertInfoPtr->startTime )
-		timeSize = ( int ) sizeofObject( sizeofGeneralizedTime() );
-	if( subjectCertInfoPtr->endTime )
-		timeSize += ( int ) sizeofObject( sizeofGeneralizedTime() );
+	if( subjectCertInfoPtr->startTime > MIN_TIME_VALUE )
+		timeSize = sizeofObject( sizeofGeneralizedTime() );
+	if( subjectCertInfoPtr->endTime > MIN_TIME_VALUE )
+		timeSize += sizeofObject( sizeofGeneralizedTime() );
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
-	payloadLength = ( timeSize ? ( int ) sizeofObject( timeSize ) : 0 ) + \
-					( subjectDNsize ? ( int ) sizeofObject( subjectDNsize ) : 0 ) + \
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
+	payloadLength = ( ( timeSize > 0 ) ? sizeofObject( timeSize ) : 0 ) + \
+					( ( subjectDNsize > 0 ) ? sizeofObject( subjectDNsize ) : 0 ) + \
 					subjectCertInfoPtr->publicKeyInfoSize;
 	if( extensionSize )
-		payloadLength += ( int ) sizeofObject( extensionSize );
+		payloadLength += sizeofObject( extensionSize );
 
 	/* Write the header, request ID, inner header, DN, and public key */
 	writeSequence( stream, sizeofShortInteger( 0 ) + \
 				   sizeofObject( payloadLength ) );
 	writeShortInteger( stream, 0, DEFAULT_TAG );
 	writeSequence( stream, payloadLength );
-	if( timeSize )
+	if( timeSize > 0 )
 		{
 		writeConstructed( stream, timeSize, CTAG_CF_VALIDITY );
-		if( subjectCertInfoPtr->startTime )
+		if( subjectCertInfoPtr->startTime > MIN_TIME_VALUE )
 			{
 			writeConstructed( stream, sizeofGeneralizedTime(), 0 );
 			writeGeneralizedTime( stream, subjectCertInfoPtr->startTime,
 								  DEFAULT_TAG );
 			}
-		if( subjectCertInfoPtr->endTime )
+		if( subjectCertInfoPtr->endTime > MIN_TIME_VALUE )
 			{
 			writeConstructed( stream, sizeofGeneralizedTime(), 1 );
 			writeGeneralizedTime( stream, subjectCertInfoPtr->endTime,
 								  DEFAULT_TAG );
 			}
 		}
-	if( subjectDNsize )
+	if( subjectDNsize > 0 )
 		{
 		writeConstructed( stream, subjectCertInfoPtr->subjectDNsize,
 						  CTAG_CF_SUBJECT );
@@ -872,24 +1003,31 @@ static int writeRevRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	{
 	int payloadLength, extensionSize, status;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
 	assert( issuerCertInfoPtr == NULL );
 	assert( iIssuerCryptContext == CRYPT_UNUSED );
 
-	/* Make sure everything is in order */
+	/* Make sure that everything is in order */
 	if( sIsNullStream( stream ) )
 		{
-		status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
-									   CRYPT_CERTTYPE_REQUEST_REVOCATION );
+		status = preEncodeCertificate( subjectCertInfoPtr, NULL,
+						PRE_SET_NONE, 
+						PRE_CHECK_ISSUERDN | PRE_CHECK_SERIALNO,
+						PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
 
 	/* Determine how big the encoded certificate request will be */
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
 	payloadLength = sizeofInteger( subjectCertInfoPtr->cCertCert->serialNumber,
 								   subjectCertInfoPtr->cCertCert->serialNumberLength ) + \
 					sizeofObject( subjectCertInfoPtr->issuerDNsize ) + \
-					( extensionSize ? ( int ) sizeofObject( extensionSize ) : 0 );
+					( ( extensionSize > 0 ) ? \
+						sizeofObject( extensionSize ) : 0 );
 
 	/* Write the header, inner header, serial number and issuer DN */
 	writeSequence( stream, sizeofObject( payloadLength ) );
@@ -928,18 +1066,27 @@ static int writeCRLInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	{
 	const CERT_REV_INFO *certRevInfo = subjectCertInfoPtr->cCertRev;
 	REVOCATION_INFO *revocationInfo;
-	int length, extensionSize, revocationInfoLength = 0, status;
+	const BOOLEAN isCrlEntry = ( issuerCertInfoPtr == NULL ) ? TRUE : FALSE;
+	int length, algoIdInfoSize, extensionSize, revocationInfoLength = 0;
+	int status;
 
-	assert( ( isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) && \
-			  isHandleRangeValid( iIssuerCryptContext ) ) || \
-			( issuerCertInfoPtr == NULL && \
-			  iIssuerCryptContext == CRYPT_UNUSED ) );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( ( issuerCertInfoPtr == NULL && \
+			  iIssuerCryptContext == CRYPT_UNUSED ) || \
+			( isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) && \
+			  isHandleRangeValid( iIssuerCryptContext ) ) );
 
 	/* Perform any necessary pre-encoding steps */
 	if( sIsNullStream( stream ) )
 		{
 		status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
-									   CRYPT_CERTTYPE_CRL );
+						( isCrlEntry ? 0 : \
+							PRE_SET_ISSUERDN | PRE_SET_ISSUERATTR ) | \
+						PRE_SET_REVINFO, 
+						( isCrlEntry ? 0 : PRE_CHECK_ISSUERCERTDN | \
+										   PRE_CHECK_ISSUERDN ),
+						PRE_FLAG_DN_IN_ISSUERCERT );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
@@ -950,38 +1097,50 @@ static int writeCRLInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	for( revocationInfo = certRevInfo->revocations;
 		 revocationInfo != NULL; revocationInfo = revocationInfo->next )
 		{
+		const int crlEntrySize = sizeofCRLentry( revocationInfo );
+
+		if( cryptStatusError( crlEntrySize ) )
+			return( crlEntrySize );
+		revocationInfoLength += crlEntrySize;
+
+		/* If there are per-entry extensions present it's a v2 CRL */
 		if( revocationInfo->attributes != NULL )
-			/* If there are per-entry extensions present it's a v2 CRL */
 			subjectCertInfoPtr->version = 2;
-		revocationInfoLength += sizeofCRLentry( revocationInfo );
 		}
 
 	/* If we're being asked to write a single CRL entry, we don't try and go
 	   any further since the remaining CRL fields (and issuer info) may not
 	   be set up */
-	if( issuerCertInfoPtr == NULL )
+	if( isCrlEntry )
 		return( writeCRLentry( stream, certRevInfo->currentRevocation ) );
 
 	/* Determine how big the encoded CRL will be */
+	algoIdInfoSize = sizeofContextAlgoID( iIssuerCryptContext, 
+										  certRevInfo->hashAlgo, 
+										  ALGOID_FLAG_ALGOID_ONLY );
+	if( cryptStatusError( algoIdInfoSize ) )
+		return( algoIdInfoSize  );
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
-	length = sizeofContextAlgoID( iIssuerCryptContext, certRevInfo->hashAlgo,
-								  ALGOID_FLAG_ALGOID_ONLY ) + \
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
+	length = algoIdInfoSize + \
 			 issuerCertInfoPtr->subjectDNsize + sizeofUTCTime() + \
-			 ( subjectCertInfoPtr->endTime ? sizeofUTCTime() : 0 ) + \
+			 ( ( subjectCertInfoPtr->endTime > MIN_TIME_VALUE ) ? \
+				sizeofUTCTime() : 0 ) + \
 			 sizeofObject( revocationInfoLength );
 	if( extensionSize > 0 )
 		length += sizeofShortInteger( X509VERSION_2 ) + \
-			 	  ( int ) sizeofObject( sizeofObject( extensionSize ) );
+			 	  sizeofObject( sizeofObject( extensionSize ) );
 
 	/* Write the outer SEQUENCE wrapper */
 	writeSequence( stream, length );
 
 	/* If there are extensions present, mark this as a v2 CRL */
-	if( extensionSize )
+	if( extensionSize > 0 )
 		writeShortInteger( stream, X509VERSION_2, DEFAULT_TAG );
 
 	/* Write the signature algorithm identifier, issuer name, and CRL time */
-	status = writeContextAlgoID( stream, iIssuerCryptContext, 
+	status = writeContextAlgoID( stream, iIssuerCryptContext,
 								 certRevInfo->hashAlgo,
 								 ALGOID_FLAG_ALGOID_ONLY );
 	if( cryptStatusError( status ) )
@@ -989,7 +1148,7 @@ static int writeCRLInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	swrite( stream, issuerCertInfoPtr->subjectDNptr,
 			issuerCertInfoPtr->subjectDNsize );
 	writeUTCTime( stream, subjectCertInfoPtr->startTime, DEFAULT_TAG );
-	if( subjectCertInfoPtr->endTime )
+	if( subjectCertInfoPtr->endTime > MIN_TIME_VALUE )
 		writeUTCTime( stream, subjectCertInfoPtr->endTime, DEFAULT_TAG );
 
 	/* Write the SEQUENCE OF revoked certificates wrapper and the revoked
@@ -1015,13 +1174,16 @@ static int writeCmsAttributes( STREAM *stream, CERT_INFO *attributeInfoPtr,
 	{
 	int addDefaultAttributes, attributeSize, status;
 
-	UNUSED( issuerCertInfoPtr );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( attributeInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( issuerCertInfoPtr == NULL );
+	assert( iIssuerCryptContext == CRYPT_UNUSED );
 
 	krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE,
 					 &addDefaultAttributes,
 					 CRYPT_OPTION_CMS_DEFAULTATTRIBUTES );
 
-	/* Make sure there's a hash and content type present */
+	/* Make sure that there's a hash and content type present */
 	if( findAttributeField( attributeInfoPtr->attributes,
 							CRYPT_CERTINFO_CMS_MESSAGEDIGEST,
 							CRYPT_ATTRIBUTE_NONE ) == NULL )
@@ -1045,7 +1207,7 @@ static int writeCmsAttributes( STREAM *stream, CERT_INFO *attributeInfoPtr,
 			}
 
 		/* There's no content type present, treat it as straight data (which
-		   means this is signedData) */
+		   means that this is signedData) */
 		status = addCertComponent( attributeInfoPtr, CRYPT_CERTINFO_CMS_CONTENTTYPE,
 								   &value, CRYPT_UNUSED );
 		if( cryptStatusError( status ) )
@@ -1065,7 +1227,7 @@ static int writeCmsAttributes( STREAM *stream, CERT_INFO *attributeInfoPtr,
 
 		/* If the time is screwed up we can't provide a signed indication
 		   of the time */
-		if( currentTime < MIN_TIME_VALUE )
+		if( currentTime <= MIN_TIME_VALUE )
 			{
 			setErrorInfo( attributeInfoPtr, CRYPT_CERTINFO_VALIDFROM,
 						  CRYPT_ERRTYPE_ATTR_VALUE );
@@ -1086,6 +1248,8 @@ static int writeCmsAttributes( STREAM *stream, CERT_INFO *attributeInfoPtr,
 	if( cryptStatusError( status ) )
 		return( status );
 	attributeSize = sizeofAttributes( attributeInfoPtr->attributes );
+	if( cryptStatusError( attributeSize ) )
+		return( attributeSize );
 
 	/* Write the attributes */
 	return( writeAttributes( stream, attributeInfoPtr->attributes,
@@ -1107,15 +1271,13 @@ static int writeRtcsRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	{
 	CERT_VAL_INFO *certValInfo = subjectCertInfoPtr->cCertVal;
 	VALIDITY_INFO *validityInfo;
-	int length, extensionSize, requestInfoLength = 0, status;
+	int length, extensionSize, requestInfoLength = 0;
+	int iterationCount, status;
 
-	/* Make sure that we've actually got some requests present to write */
-	if( certValInfo->validityInfo == NULL )
-		{
-		setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
-					  CRYPT_ERRTYPE_ATTR_ABSENT );
-		return( CRYPT_ERROR_NOTINITED );
-		}
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( issuerCertInfoPtr == NULL );
+	assert( iIssuerCryptContext == CRYPT_UNUSED );
 
 	/* Perform any necessary pre-encoding steps.  We should really update the
 	   nonce when we write the data for real, but to do that we'd have to re-
@@ -1127,7 +1289,7 @@ static int writeRtcsRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	if( sIsNullStream( stream ) )
 		{
 		ATTRIBUTE_LIST *attributeListPtr;
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		/* To ensure freshness we always use a new nonce when we write an
 		   RTCS request */
@@ -1144,7 +1306,7 @@ static int writeRtcsRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 			}
 		else
 			{
-			BYTE nonce[ CRYPT_MAX_HASHSIZE ];
+			BYTE nonce[ CRYPT_MAX_HASHSIZE + 8 ];
 
 			setMessageData( &msgData, nonce, 16 );
 			status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
@@ -1161,28 +1323,49 @@ static int writeRtcsRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 
 		/* Perform the pre-encoding checks */
 		status = preEncodeCertificate( subjectCertInfoPtr, NULL,
-									   CRYPT_CERTTYPE_RTCS_REQUEST );
+						PRE_SET_NONE, 
+						PRE_CHECK_VALENTRIES,
+						PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
 
 	/* Determine how big the encoded RTCS request will be */
+	iterationCount = 0;
 	for( validityInfo = certValInfo->validityInfo;
-		 validityInfo != NULL; validityInfo = validityInfo->next )
-		requestInfoLength += sizeofRtcsRequestEntry( validityInfo );
+		 validityInfo != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_LARGE; 
+		 validityInfo = validityInfo->next )
+		{
+		const int requestEntrySize = sizeofRtcsRequestEntry( validityInfo );
+		
+		if( cryptStatusError( requestEntrySize ) )
+			return( requestEntrySize );
+		requestInfoLength += requestEntrySize;
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
 	length = sizeofObject( requestInfoLength ) + \
-			 ( extensionSize ? sizeofObject( extensionSize ) : 0 );
+			 ( ( extensionSize > 0 ) ? sizeofObject( extensionSize ) : 0 );
 
 	/* Write the outer SEQUENCE wrapper */
 	writeSequence( stream, length );
 
 	/* Write the SEQUENCE OF request wrapper and the request information */
 	status = writeSequence( stream, requestInfoLength );
+	iterationCount = 0;
 	for( validityInfo = certValInfo->validityInfo;
-		 cryptStatusOK( status ) && validityInfo != NULL;
+		 cryptStatusOK( status ) && validityInfo != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_LARGE; 
 		 validityInfo = validityInfo->next )
+		{
 		status = writeRtcsRequestEntry( stream, validityInfo );
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	if( cryptStatusError( status ) || extensionSize <= 0 )
 		return( status );
 
@@ -1207,7 +1390,13 @@ static int writeRtcsResponseInfo( STREAM *stream,
 	{
 	CERT_VAL_INFO *certValInfo = subjectCertInfoPtr->cCertVal;
 	VALIDITY_INFO *validityInfo;
-	int length = 0, extensionSize, validityInfoLength = 0, status;
+	int length = 0, extensionSize, validityInfoLength = 0;
+	int iterationCount, status;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( issuerCertInfoPtr == NULL );
+	assert( iIssuerCryptContext == CRYPT_UNUSED );
 
 	/* RTCS can legitimately return an empty response if there's a problem
 	   with the responder, so we don't require that any responses be present
@@ -1217,31 +1406,49 @@ static int writeRtcsResponseInfo( STREAM *stream,
 	if( sIsNullStream( stream ) )
 		{
 		status = preEncodeCertificate( subjectCertInfoPtr, NULL,
-									   CRYPT_CERTTYPE_RTCS_RESPONSE );
+						PRE_SET_VALINFO, 
+						PRE_CHECK_NONE,
+						PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
 
-	/* Determine how big the encoded OCSP response will be */
+	/* Determine how big the encoded RTCS response will be */
+	iterationCount = 0;
 	for( validityInfo = certValInfo->validityInfo;
-		 validityInfo != NULL; validityInfo = validityInfo->next )
-		validityInfoLength += \
+		 validityInfo != NULL && iterationCount++ < FAILSAFE_ITERATIONS_LARGE; 
+		 validityInfo = validityInfo->next )
+		{
+		const int responseEntrySize = \
 			sizeofRtcsResponseEntry( validityInfo,
 					certValInfo->responseType == RTCSRESPONSE_TYPE_EXTENDED );
+
+		if( cryptStatusError( responseEntrySize ) )
+			return( responseEntrySize );
+		validityInfoLength += responseEntrySize;
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
-	length += ( int ) sizeofObject( validityInfoLength ) + \
-			  ( extensionSize ? sizeofObject( extensionSize ) : 0 );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
+	length += sizeofObject( validityInfoLength ) + \
+			  ( ( extensionSize > 0 ) ? sizeofObject( extensionSize ) : 0 );
 
 	/* Write the SEQUENCE OF status information wrapper and the cert status
 	   information */
 	status = writeSequence( stream, validityInfoLength );
+	iterationCount = 0;
 	for( validityInfo = certValInfo->validityInfo;
-		 cryptStatusOK( status ) && validityInfo != NULL;
+		 cryptStatusOK( status ) && validityInfo != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_LARGE; 
 		 validityInfo = validityInfo->next )
 		{
 		status = writeRtcsResponseEntry( stream, validityInfo,
 					certValInfo->responseType == RTCSRESPONSE_TYPE_EXTENDED );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	if( cryptStatusError( status ) || extensionSize <= 0 )
 		return( status );
 
@@ -1277,15 +1484,15 @@ static int writeOcspRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	{
 	CERT_REV_INFO *certRevInfo = subjectCertInfoPtr->cCertRev;
 	REVOCATION_INFO *revocationInfo;
-	int length, extensionSize, revocationInfoLength = 0, status;
+	int length, extensionSize, revocationInfoLength = 0;
+	int iterationCount, status;
 
-	/* Make sure that we've actually got some requests present to write */
-	if( certRevInfo->revocations == NULL )
-		{
-		setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
-					  CRYPT_ERRTYPE_ATTR_ABSENT );
-		return( CRYPT_ERROR_NOTINITED );
-		}
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( ( issuerCertInfoPtr == NULL ) || \
+			isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( ( iIssuerCryptContext == CRYPT_UNUSED ) || \
+			( isHandleRangeValid( iIssuerCryptContext ) ) );/* Not used here */
 
 	/* Perform any necessary pre-encoding steps.  We should really update the
 	   nonce when we write the data for real, but to do that we'd have to re-
@@ -1297,7 +1504,7 @@ static int writeOcspRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	if( sIsNullStream( stream ) )
 		{
 		ATTRIBUTE_LIST *attributeListPtr;
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		/* To ensure freshness we always use a new nonce when we write an
 		   OCSP request.  We don't check for problems (which, in any case,
@@ -1316,7 +1523,7 @@ static int writeOcspRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 			}
 		else
 			{
-			BYTE nonce[ CRYPT_MAX_HASHSIZE ];
+			BYTE nonce[ CRYPT_MAX_HASHSIZE + 8 ];
 
 			setMessageData( &msgData, nonce, 16 );
 			status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
@@ -1341,28 +1548,52 @@ static int writeOcspRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 			   nonce octet string, we have to tweak the first byte to ensure
 			   that the integer encoding works as a standard OCTET STRING */
 			noncePtr[ 0 ] &= 0x7F;
-			if( !noncePtr[ 0 ] )
+			if( noncePtr[ 0 ] == 0 )
 				noncePtr[ 0 ]++;
 			}
 
 		/* Perform the pre-encoding checks */
-		status = preEncodeCertificate( subjectCertInfoPtr, NULL,
-									   CRYPT_CERTTYPE_OCSP_REQUEST );
+		if( issuerCertInfoPtr != NULL )
+			{
+			/* It's a signed request, there has to be an issuer DN present */
+			status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
+							PRE_SET_REVINFO, 
+							PRE_CHECK_ISSUERDN | PRE_CHECK_REVENTRIES,
+							PRE_FLAG_DN_IN_ISSUERCERT );
+			}
+		else
+			status = preEncodeCertificate( subjectCertInfoPtr, NULL,
+							PRE_SET_REVINFO, 
+							PRE_CHECK_REVENTRIES,
+							PRE_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
 
 	/* Determine how big the encoded OCSP request will be */
+	iterationCount = 0;
 	for( revocationInfo = certRevInfo->revocations;
-		 revocationInfo != NULL; revocationInfo = revocationInfo->next )
-		revocationInfoLength += sizeofOcspRequestEntry( revocationInfo );
+		 revocationInfo != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_LARGE;
+		 revocationInfo = revocationInfo->next )
+		{
+		const int requestEntrySize = sizeofOcspRequestEntry( revocationInfo );
+
+		if( cryptStatusError( requestEntrySize ) )
+			return( requestEntrySize );
+		revocationInfoLength += requestEntrySize;
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
 	length = ( ( subjectCertInfoPtr->version == 2 ) ? \
 				 sizeofObject( sizeofShortInteger( CTAG_OR_VERSION ) ) : 0 ) + \
 			 ( ( issuerCertInfoPtr != NULL ) ? \
 				 sizeofObject( sizeofObject( issuerCertInfoPtr->subjectDNsize ) ) : 0 ) + \
 			 sizeofObject( revocationInfoLength ) + \
-			 ( extensionSize ? \
+			 ( ( extensionSize > 0 ) ? \
 			   sizeofObject( sizeofObject( extensionSize ) ) : 0 );
 
 	/* Write the outer SEQUENCE wrapper */
@@ -1388,10 +1619,16 @@ static int writeOcspRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	/* Write the SEQUENCE OF revocation information wrapper and the
 	   revocation information */
 	status = writeSequence( stream, revocationInfoLength );
+	iterationCount = 0;
 	for( revocationInfo = certRevInfo->revocations;
-		 cryptStatusOK( status ) && revocationInfo != NULL;
+		 cryptStatusOK( status ) && revocationInfo != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_LARGE;
 		 revocationInfo = revocationInfo->next )
+		{
 		status = writeOcspRequestEntry( stream, revocationInfo );
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	if( cryptStatusError( status ) || extensionSize <= 0 )
 		return( status );
 
@@ -1408,11 +1645,6 @@ static int writeOcspRequestInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 		producedAt		GeneralizedTime,
 		responses		SEQUENCE OF Response
 		exts		[1]	EXPLICIT Extensions OPTIONAL,
-		}
-
-	RTCSResponse ::= SEQUENCE {
-		responses		SEQUENCE OF Response,
-		exts			Extensions OPTIONAL
 		} */
 
 static int writeOcspResponseInfo( STREAM *stream,
@@ -1422,40 +1654,52 @@ static int writeOcspResponseInfo( STREAM *stream,
 	{
 	CERT_REV_INFO *certRevInfo = subjectCertInfoPtr->cCertRev;
 	REVOCATION_INFO *revocationInfo;
-	int length = 0, extensionSize, revocationInfoLength = 0, status;
+	int length = 0, extensionSize, revocationInfoLength = 0;
+	int iterationCount, status;
 
-	/* Make sure that we've actually got some responses present to write */
-	if( certRevInfo->revocations == NULL )
-		{
-		setErrorInfo( subjectCertInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
-					  CRYPT_ERRTYPE_ATTR_ABSENT );
-		return( CRYPT_ERROR_NOTINITED );
-		}
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( isHandleRangeValid( iIssuerCryptContext ) );/* Not used here */
 
 	/* Perform any necessary pre-encoding steps */
 	if( sIsNullStream( stream ) )
 		{
-		status = preEncodeCertificate( subjectCertInfoPtr, NULL,
-									   CRYPT_CERTTYPE_OCSP_RESPONSE );
+		status = preEncodeCertificate( subjectCertInfoPtr, issuerCertInfoPtr,
+						PRE_SET_NONE, 
+						PRE_CHECK_ISSUERDN | PRE_CHECK_REVENTRIES,
+						PRE_FLAG_DN_IN_ISSUERCERT );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
 
 	/* Determine how big the encoded OCSP response will be */
+	iterationCount = 0;
 	for( revocationInfo = certRevInfo->revocations;
-		 revocationInfo != NULL; revocationInfo = revocationInfo->next )
-		revocationInfoLength += sizeofOcspResponseEntry( revocationInfo );
+		 revocationInfo != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_LARGE; 
+		 revocationInfo = revocationInfo->next )
+		{
+		const int responseEntrySize = sizeofOcspResponseEntry( revocationInfo );
+
+		if( cryptStatusError( responseEntrySize ) )
+			return( responseEntrySize );
+		revocationInfoLength += responseEntrySize;
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	extensionSize = sizeofAttributes( subjectCertInfoPtr->attributes );
-	length = ( int ) \
-			 sizeofObject( sizeofShortInteger( CTAG_OP_VERSION ) ) + \
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
+	length = sizeofObject( sizeofShortInteger( CTAG_OP_VERSION ) ) + \
 			 sizeofObject( issuerCertInfoPtr->subjectDNsize ) + \
 			 sizeofGeneralizedTime() + \
 			 sizeofObject( revocationInfoLength ) + \
-			 ( extensionSize ? \
+			 ( ( extensionSize > 0 ) ? \
 				sizeofObject( sizeofObject( extensionSize ) ) : 0 );
 
-	/* Write the outer SEQUENCE wrapper, and, if it's an OCSP response, mark
-	   it as a v1 response and write the issuer DN and producedAt time */
+	/* Write the outer SEQUENCE wrapper, version, and issuer DN and 
+	   producedAt time */
 	writeSequence( stream, length );
 	writeConstructed( stream, sizeofShortInteger( 1 ), CTAG_OP_VERSION );
 	writeShortInteger( stream, 1, DEFAULT_TAG );
@@ -1468,11 +1712,17 @@ static int writeOcspResponseInfo( STREAM *stream,
 	/* Write the SEQUENCE OF revocation information wrapper and the
 	   revocation information */
 	status = writeSequence( stream, revocationInfoLength );
+	iterationCount = 0;
 	for( revocationInfo = certRevInfo->revocations;
-		 cryptStatusOK( status ) && revocationInfo != NULL;
+		 cryptStatusOK( status ) && revocationInfo != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_LARGE; 
 		 revocationInfo = revocationInfo->next )
+		{
 		status = writeOcspResponseEntry( stream, revocationInfo,
 										 subjectCertInfoPtr->startTime );
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	if( cryptStatusError( status ) || extensionSize <= 0 )
 		return( status );
 
@@ -1488,15 +1738,18 @@ int writePkiUserInfo( STREAM *stream, CERT_INFO *userInfoPtr,
 					  const CRYPT_CONTEXT iIssuerCryptContext )
 	{
 	CERT_PKIUSER_INFO *certUserInfo = userInfoPtr->cCertUser;
-	BYTE userInfo[ 128 ], algoID[ 128 ];
+	BYTE userInfo[ 128 + 8 ], algoID[ 128 + 8 ];
 	int extensionSize, userInfoSize, algoIDsize, status;
 
-	UNUSED( issuerCertInfoPtr );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( userInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( issuerCertInfoPtr == NULL );
+	assert( iIssuerCryptContext == CRYPT_UNUSED );
 
 	if( sIsNullStream( stream ) )
 		{
-		RESOURCE_DATA msgData;
-		BYTE keyID[ 16 ];
+		MESSAGE_DATA msgData;
+		BYTE keyID[ 16 + 8 ];
 		int keyIDlength;
 
 		/* Generate the key identifier.  Once it's in user-encoded form the
@@ -1533,14 +1786,19 @@ int writePkiUserInfo( STREAM *stream, CERT_INFO *userInfoPtr,
 		}
 	else
 		{
+		static const CRYPT_MODE_TYPE mode = CRYPT_MODE_CFB;
 		MESSAGE_CREATEOBJECT_INFO createInfo;
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		STREAM userInfoStream;
 
-		/* Create an RC4 context and use it to generate the user passwords.
-		   These aren't encryption keys but just authenticators used for
-		   MACing so we don't go to the usual extremes to protect them */
-		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_RC4 );
+		/* Create a stream-cipher encryption context and use it to generate
+		   the user passwords.  These aren't encryption keys but just
+		   authenticators used for MACing so we don't go to the usual
+		   extremes to protect them.  In addition we can't use the most
+		   obvious option for the stream cipher, RC4, since this may be
+		   disabled in some builds, so we rely on 3DES which is always
+		   available */
+		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_3DES );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
 								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
@@ -1549,15 +1807,24 @@ int writePkiUserInfo( STREAM *stream, CERT_INFO *userInfoPtr,
 		sMemOpen( &userInfoStream, userInfo, 128 );
 		writeSequence( &userInfoStream,
 					   2 * sizeofObject( PKIUSER_AUTHENTICATOR_SIZE ) );
-		status = krnlSendMessage( createInfo.cryptHandle, IMESSAGE_CTX_GENKEY,
-								  NULL, FALSE );
+		status = krnlSendMessage( createInfo.cryptHandle,
+								  IMESSAGE_SETATTRIBUTE,
+								  ( void * ) &mode, CRYPT_CTXINFO_MODE );
+		if( cryptStatusOK( status ) )
+			status = krnlSendMessage( createInfo.cryptHandle,
+									  IMESSAGE_CTX_GENKEY, NULL, FALSE );
+		if( cryptStatusOK( status ) )
+			status = krnlSendMessage( createInfo.cryptHandle,
+									  IMESSAGE_CTX_GENIV, NULL, 0 );
 		if( cryptStatusOK( status ) )
 			{
+			memset( certUserInfo->pkiIssuePW, 0, PKIUSER_AUTHENTICATOR_SIZE );
 			krnlSendMessage( createInfo.cryptHandle, IMESSAGE_CTX_ENCRYPT,
 							 certUserInfo->pkiIssuePW,
 							 PKIUSER_AUTHENTICATOR_SIZE );
 			writeOctetString( &userInfoStream, certUserInfo->pkiIssuePW,
 							  PKIUSER_AUTHENTICATOR_SIZE, DEFAULT_TAG );
+			memset( certUserInfo->pkiRevPW, 0, PKIUSER_AUTHENTICATOR_SIZE );
 			status = krnlSendMessage( createInfo.cryptHandle,
 									  IMESSAGE_CTX_ENCRYPT,
 									  certUserInfo->pkiRevPW,
@@ -1618,6 +1885,8 @@ int writePkiUserInfo( STREAM *stream, CERT_INFO *userInfoPtr,
 	/* Write the user DN, encrypted user info, and any supplementary
 	   information */
 	extensionSize = sizeofAttributes( userInfoPtr->attributes );
+	if( cryptStatusError( extensionSize ) )
+		return( extensionSize );
 	writeDN( stream, userInfoPtr->subjectName, DEFAULT_TAG );
 	swrite( stream, algoID, algoIDsize );
 	writeOctetString( stream, userInfo, userInfoSize, DEFAULT_TAG );
@@ -1631,7 +1900,7 @@ int writePkiUserInfo( STREAM *stream, CERT_INFO *userInfoPtr,
 *																			*
 ****************************************************************************/
 
-const CERTWRITE_INFO certWriteTable[] = {
+static const CERTWRITE_INFO FAR_BSS certWriteTable[] = {
 	{ CRYPT_CERTTYPE_CERTIFICATE, writeCertInfo },
 	{ CRYPT_CERTTYPE_CERTCHAIN, writeCertInfo },
 	{ CRYPT_CERTTYPE_ATTRIBUTE_CERT, writeAttributeCertInfo },
@@ -1647,3 +1916,13 @@ const CERTWRITE_INFO certWriteTable[] = {
 	{ CRYPT_CERTTYPE_PKIUSER, writePkiUserInfo },
 	{ CRYPT_CERTTYPE_NONE, NULL }
 	};
+
+const CERTWRITE_INFO *getCertWriteTable( void )
+	{
+	return( certWriteTable );
+	}
+
+int sizeofCertWriteTable( void )
+	{
+	return( FAILSAFE_ARRAYSIZE( certWriteTable, CERTWRITE_INFO ) );
+	}

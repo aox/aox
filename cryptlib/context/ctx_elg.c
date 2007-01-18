@@ -5,12 +5,9 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "context.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "context.h"
 #else
   #include "crypt.h"
@@ -38,7 +35,7 @@ typedef struct {
 	const int yLen; const BYTE y[ 64 ];
 	} DLP_PRIVKEY;
 
-static const FAR_BSS DLP_PRIVKEY dlpTestKey = {
+static const DLP_PRIVKEY FAR_BSS dlpTestKey = {
 	/* p */
 	64,
 	{ 0x8D, 0xF2, 0xA4, 0x94, 0x49, 0x22, 0x76, 0xAA,
@@ -88,14 +85,14 @@ static const FAR_BSS DLP_PRIVKEY dlpTestKey = {
 
 #if 0	/* Only needed for Elgamal signing */
 
-static const FAR_BSS BYTE kVal[] = {
+static const BYTE FAR_BSS kVal[] = {
 	0x35, 0x8D, 0xAD, 0x57, 0x14, 0x62, 0x71, 0x0F,
 	0x50, 0xE2, 0x54, 0xCF, 0x1A, 0x37, 0x6B, 0x2B,
 	0xDE, 0xAA, 0xDF, 0xBF
 	};
 #endif /* 0 */
 
-static const FAR_BSS BYTE kRandomVal[] = {
+static const BYTE FAR_BSS kRandomVal[] = {
 	0x2A, 0x7C, 0x01, 0xFD, 0x62, 0xF7, 0x43, 0x13,
 	0x36, 0xFE, 0xE8, 0xF1, 0x68, 0xB2, 0xA2, 0x2F,
 	0x76, 0x50, 0xA1, 0x2C, 0x3E, 0x64, 0x8E, 0xFE,
@@ -117,23 +114,23 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr,
 	/* Encrypt with the public key */
 	memset( buffer, 0, CRYPT_MAX_PKCSIZE );
 	memcpy( buffer + 1, "abcde", 5 );
-	setDLPParams( &dlpParams, buffer, 
+	setDLPParams( &dlpParams, buffer,
 				  bitsToBytes( contextInfoPtr->ctxPKC->keySizeBits ),
 				  buffer, ( CRYPT_MAX_PKCSIZE * 2 ) + 32 );
 	if( !isGeneratedKey )
 		/* Force the use of a fixed k value for the encryption test to
 		   avoid having to go via the RNG */
 		dlpParams.inLen2 = -999;
-	status = capabilityInfoPtr->encryptFunction( contextInfoPtr, 
+	status = capabilityInfoPtr->encryptFunction( contextInfoPtr,
 						( BYTE * ) &dlpParams, sizeof( DLP_PARAMS ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
 
 	/* Decrypt with the private key */
 	encrSize = dlpParams.outLen;
-	setDLPParams( &dlpParams, buffer, encrSize, 
+	setDLPParams( &dlpParams, buffer, encrSize,
 				  buffer, ( CRYPT_MAX_PKCSIZE * 2 ) + 32 );
-	status = capabilityInfoPtr->decryptFunction( contextInfoPtr, 
+	status = capabilityInfoPtr->decryptFunction( contextInfoPtr,
 						( BYTE * ) &dlpParams, sizeof( DLP_PARAMS ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
@@ -161,9 +158,11 @@ static int selfTest( void )
 	BN_init( &pkcInfo->tmp3 );
 	BN_init( &pkcInfo->dlpTmp1 );
 	BN_init( &pkcInfo->dlpTmp2 );
-	BN_CTX_init( &pkcInfo->bnCTX );
+	pkcInfo->bnCTX = BN_CTX_new();
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_p );
 	contextInfoPtr.capabilityInfo = capabilityInfoPtr;
+	contextInfoPtr.type = CONTEXT_PKC;
+	initKeyRead( &contextInfoPtr );
 	initKeyWrite( &contextInfoPtr );	/* For calcKeyID() */
 	BN_bin2bn( dlpTestKey.p, dlpTestKey.pLen, &pkcInfo->dlpParam_p );
 	BN_bin2bn( dlpTestKey.g, dlpTestKey.gLen, &pkcInfo->dlpParam_g );
@@ -179,7 +178,7 @@ static int selfTest( void )
 		{
 		memmove( buffer + 20, buffer, status );
 		memset( buffer, '*', 20 );
-		status = capabilityInfoPtr->sigCheckFunction( &contextInfoPtr, 
+		status = capabilityInfoPtr->sigCheckFunction( &contextInfoPtr,
 													  buffer, 20 + status );
 		}
 	if( status != CRYPT_OK )
@@ -201,7 +200,7 @@ static int selfTest( void )
 	BN_clear_free( &pkcInfo->tmp3 );
 	BN_clear_free( &pkcInfo->dlpTmp1 );
 	BN_clear_free( &pkcInfo->dlpTmp2 );
-	BN_CTX_free( &pkcInfo->bnCTX );
+	BN_CTX_free( pkcInfo->bnCTX );
 	BN_MONT_CTX_free( &pkcInfo->dlpParam_mont_p );
 	zeroise( &pkcInfoStorage, sizeof( PKC_INFO ) );
 	zeroise( &contextInfoPtr, sizeof( CONTEXT_INFO ) );
@@ -287,31 +286,31 @@ static int sign( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	BN_copy( phi_p, p );
 	BN_sub_word( phi_p, 1 );			/* phi( p ) = p - 1 */
 	BN_mod( k, k, phi_p,				/* Reduce k to the correct range */
-			&pkcInfo->bnCTX );
-	BN_gcd( r, k, phi_p, &pkcInfo->bnCTX );
+			pkcInfo->bnCTX );
+	BN_gcd( r, k, phi_p, pkcInfo->bnCTX );
 	while( !BN_is_one( r ) )
 		{
 		BN_sub_word( k, 1 );
-		BN_gcd( r, k, phi_p, &pkcInfo->bnCTX );
+		BN_gcd( r, k, phi_p, pkcInfo->bnCTX );
 		}
 
 	/* Move the data from the buffer into a bignum */
 	BN_bin2bn( bufPtr, ELGAMAL_SIGPART_SIZE, s );
 
 	/* r = g^k mod p */
-	BN_mod_exp_mont( r, g, k, p, &pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );	
+	BN_mod_exp_mont( r, g, k, p, pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );
 										/* r = g^k mod p */
 
 	/* s = ( k^-1 * ( hash - x * r ) ) mod phi( p ) */
 	kInv = BN_mod_inverse( k, phi_p,	/* k = ( k^-1 ) mod phi( p ) */
-						   &pkcInfo->bnCTX );
+						   pkcInfo->bnCTX );
 	BN_mod_mul( tmp, x, r, phi_p,		/* tmp = ( x * r ) mod phi( p ) */
-				&pkcInfo->bnCTX );
+				pkcInfo->bnCTX );
 	if( BN_cmp( s, tmp ) < 0 )			/* if hash < x * r */
 		BN_add( s, s, phi_p );			/*   hash = hash + phi( p ) (fast mod) */
 	BN_sub( s, s, tmp );				/* s = hash - x * r */
-	BN_mod_mul( s, s, kInv, phi_p,		/* s = ( s * k^-1 ) mod phi( p ) */ 
-				&pkcInfo->bnCTX );
+	BN_mod_mul( s, s, kInv, phi_p,		/* s = ( s * k^-1 ) mod phi( p ) */
+				pkcInfo->bnCTX );
 
 	/* Encode the result as a DL data block */
 	length = encodeDLValues( buffer, r, s );
@@ -351,14 +350,14 @@ static int sigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 		/* u1 = ( y^r * r^s ) mod p */
 		BN_mod_exp_mont( u1, y, r, p,		/* y' = ( y^r ) mod p */
-						 &pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );	
+						 pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );
 		BN_mod_exp_mont( r, r, s, p, 		/* r' = ( r^s ) mod p */
-						 &pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );	
+						 pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );
 		BN_mod_mul_mont( u1, u1, r, p,		/* u1 = ( y' * r' ) mod p */
-						 &pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );	
+						 pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p );
 
 		/* u2 = g^hash mod p */
-		BN_mod_exp_mont( u2, g, hash, p, &pkcInfo->bnCTX,
+		BN_mod_exp_mont( u2, g, hash, p, pkcInfo->bnCTX,
 						 &pkcInfo->dlpParam_mont_p );
 
 		/* if u1 == u2, signature is good */
@@ -380,8 +379,8 @@ static int sigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 *																			*
 ****************************************************************************/
 
-/* Encrypt a single block of data.  We have to append the distinguisher 'Fn' 
-   to the name since some systems already have 'encrypt' and 'decrypt' in 
+/* Encrypt a single block of data.  We have to append the distinguisher 'Fn'
+   to the name since some systems already have 'encrypt' and 'decrypt' in
    their standard headers */
 
 static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
@@ -403,10 +402,10 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	assert( dlpParams->outParam != NULL && \
 			dlpParams->outLen >= ( 2 + length ) * 2 );
 
-	/* Make sure that we're not being fed suspiciously short data 
+	/* Make sure that we're not being fed suspiciously short data
 	   quantities */
 	for( i = 0; i < length; i++ )
-		if( buffer[ i ] )
+		if( buffer[ i ] != 0 )
 			break;
 	if( length - i < 56 )
 		return( CRYPT_ERROR_BADDATA );
@@ -415,11 +414,11 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	   the random data pool may not exist yet, and may in fact never exist in
 	   a satisfactory condition if there isn't enough randomness present in
 	   the system to generate cryptographically strong random numbers.  To
-	   bypass this problem, if the caller passes in a second length parameter 
-	   of -999, we know that it's an internal self-test call and use a fixed 
-	   bit pattern for k that avoids having to call generateBignum().  This 
-	   is a somewhat ugly use of 'magic numbers', but it's safe because this 
-	   function can only be called internally, so all we need to trap is 
+	   bypass this problem, if the caller passes in a second length parameter
+	   of -999, we know that it's an internal self-test call and use a fixed
+	   bit pattern for k that avoids having to call generateBignum().  This
+	   is a somewhat ugly use of 'magic numbers', but it's safe because this
+	   function can only be called internally, so all we need to trap is
 	   accidental use of the parameter which is normally unused */
 	if( dlpParams->inLen2 == -999 )
 		BN_bin2bn( ( BYTE * ) kRandomVal, length, k );
@@ -427,7 +426,7 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		{
 		/* Generate the random value k, with the same 32-bit adjustment used
 		   in the DSA code to avoid bias in the output (the only real
-		   difference is that we eventually reduce it mode phi(p) rather than 
+		   difference is that we eventually reduce it mode phi(p) rather than
 		   mod q) */
 		status = generateBignum( k, bytesToBits( length ) + 32, 0x80, 0 );
 		if( cryptStatusError( status ) )
@@ -444,12 +443,12 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	CKPTR( BN_copy( phi_p, p ) );
 	CK( BN_sub_word( phi_p, 1 ) );		/* phi( p ) = p - 1 */
 	CK( BN_mod( k, k, phi_p,			/* Reduce k to the correct range */
-				&pkcInfo->bnCTX ) );
-	CK( BN_gcd( s, k, phi_p, &pkcInfo->bnCTX ) );
+				pkcInfo->bnCTX ) );
+	CK( BN_gcd( s, k, phi_p, pkcInfo->bnCTX ) );
 	while( bnStatusOK( bnStatus ) && !BN_is_one( s ) )
 		{
 		CK( BN_sub_word( k, 1 ) );
-		CK( BN_gcd( s, k, phi_p, &pkcInfo->bnCTX ) );
+		CK( BN_gcd( s, k, phi_p, pkcInfo->bnCTX ) );
 		}
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
@@ -459,19 +458,20 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 	/* s = ( y^k * M ) mod p */
 	CK( BN_mod_exp_mont( r, y, k, p,	/* y' = y^k mod p */
-						 &pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p ) );
+						 pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p ) );
 	CK( BN_mod_mul( s, r, tmp, p,		/* s = y'M mod p */
-					&pkcInfo->bnCTX ) );
+					pkcInfo->bnCTX ) );
 
 	/* r = g^k mod p */
-	CK( BN_mod_exp_mont( r, g, k, p, &pkcInfo->bnCTX,
+	CK( BN_mod_exp_mont( r, g, k, p, pkcInfo->bnCTX,
 						 &pkcInfo->dlpParam_mont_p ) );
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
 
 	/* Encode the result as a DL data block */
-	status = encodeDLValues( dlpParams->outParam, dlpParams->outLen, r, s,
-							 dlpParams->formatType );
+	status = pkcInfo->encodeDLValuesFunction( dlpParams->outParam, 
+											  dlpParams->outLen, r, s,
+											  dlpParams->formatType );
 	if( !cryptStatusError( status ) )
 		{
 		dlpParams->outLen = status;
@@ -499,8 +499,9 @@ static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 	/* Decode the values from a DL data block and make sure that r and s are
 	   valid */
-	status = decodeDLValues( dlpParams->inParam1, dlpParams->inLen1, &r, &s,
-							 dlpParams->formatType );
+	status = pkcInfo->decodeDLValuesFunction( dlpParams->inParam1, 
+											  dlpParams->inLen1, &r, &s,
+											  dlpParams->formatType );
 	if( cryptStatusError( status ) )
 		return( status );
 	if( BN_cmp( r, p ) >= 0 || BN_cmp( s, p ) >= 0 )
@@ -508,17 +509,17 @@ static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 	/* M = ( s / ( r^x ) ) mod p */
 	CK( BN_mod_exp_mont( r, r, x, p,		/* r' = r^x */
-						 &pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p ) );
+						 pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p ) );
 	CKPTR( BN_mod_inverse( tmp, r, p,		/* r'' = r'^-1 */
-						   &pkcInfo->bnCTX ) );
+						   pkcInfo->bnCTX ) );
 	CK( BN_mod_mul( s, s, tmp, p,			/* s = s * r'^-1 mod p */
-					&pkcInfo->bnCTX ) );
+					pkcInfo->bnCTX ) );
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
 
-	/* Copy the result to the output.  Since the bignum code performs 
-	   leading-zero truncation, we have to adjust where we copy the 
-	   result to in the buffer to take into account extra zero bytes 
+	/* Copy the result to the output.  Since the bignum code performs
+	   leading-zero truncation, we have to adjust where we copy the
+	   result to in the buffer to take into account extra zero bytes
 	   that aren't extracted from the bignum */
 	memset( dlpParams->outParam, 0, 16 );
 	BN_bn2bin( s, dlpParams->outParam + ( length - BN_num_bytes( s ) ) );
@@ -534,7 +535,7 @@ static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Load key components into an encryption context */
 
-static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 					const int keyLength )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
@@ -568,16 +569,16 @@ static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	/* Complete the key checking and setup */
 	status = initDLPkey( contextInfoPtr, FALSE );
 	if( cryptStatusOK( status ) )
-		/* PGP Elgamal keys don't follow X9.42 and are effectively PKCS #3 
-		   keys, so if the key is being instantiated from PGP key data and 
-		   doesn't have a q parameter, we mark it as a PKCS #3 key to 
+		/* PGP Elgamal keys don't follow X9.42 and are effectively PKCS #3
+		   keys, so if the key is being instantiated from PGP key data and
+		   doesn't have a q parameter, we mark it as a PKCS #3 key to
 		   ensure that it doesn't fail the validity check for q != 0 */
-		status = checkDLPkey( contextInfoPtr, 
+		status = checkDLPkey( contextInfoPtr,
 					( key == NULL && pkcInfo->openPgpKeyIDSet && \
 					  BN_is_zero( &pkcInfo->dlpParam_q ) ) ? \
 					TRUE : FALSE );
 	if( cryptStatusOK( status ) )
-		status = calculateKeyID( contextInfoPtr );
+		status = pkcInfo->calculateKeyIDFunction( contextInfoPtr );
 	return( status );
 	}
 
@@ -589,7 +590,7 @@ static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 
 	status = generateDLPkey( contextInfoPtr, keySizeBits, CRYPT_USE_DEFAULT,
 							 TRUE );
-	if( cryptStatusOK( status ) && 
+	if( cryptStatusOK( status ) &&
 #ifndef USE_FIPS140
 		( contextInfoPtr->flags & CONTEXT_SIDECHANNELPROTECTION ) &&
 #endif /* USE_FIPS140 */
@@ -599,7 +600,7 @@ static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 		status = CRYPT_ERROR_FAILED;
 		}
 	if( cryptStatusOK( status ) )
-		status = calculateKeyID( contextInfoPtr );
+		status = contextInfoPtr->ctxPKC->calculateKeyIDFunction( contextInfoPtr );
 	return( status );
 	}
 

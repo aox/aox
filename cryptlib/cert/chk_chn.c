@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  Certificate Chain Checking Routines					*
-*						Copyright Peter Gutmann 1996-2004					*
+*						Copyright Peter Gutmann 1996-2006					*
 *																			*
 ****************************************************************************/
 
@@ -89,20 +89,22 @@
 	(m) If a key usage extension is marked critical, ensure that the 
 		keyCertSign bit is set */
 
-#include <stdlib.h>
-#include <string.h>
-#if defined( INC_ALL ) ||  defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "cert.h"
 #else
   #include "cert/cert.h"
 #endif /* Compiler-specific includes */
 
-/* Prototypes for functions in sign.c */
+/* Prototypes for functions in certsign.c */
 
-int checkX509signature( const void *signedObject, const int signedObjectLength,
-						void **object, int *objectLength, 
-						const CRYPT_CONTEXT sigCheckContext,
-						const int formatInfo );
+int checkCertDetails( CERT_INFO *subjectCertInfoPtr,
+					  CERT_INFO *issuerCertInfoPtr,
+					  const CRYPT_CONTEXT iIssuerPubKey,
+					  const int formatInfo,
+					  const BOOLEAN trustAnchorCheck,
+					  const BOOLEAN shortCircuitCheck,
+					  CRYPT_ATTRIBUTE_TYPE *errorLocus, 
+					  CRYPT_ERRTYPE_TYPE *errorType );
 
 /****************************************************************************
 *																			*
@@ -205,13 +207,16 @@ static int findTrustAnchor( CERT_INFO *certInfoPtr, int *trustAnchorIndexPtr,
 	status = krnlSendMessage( certInfoPtr->ownerHandle, IMESSAGE_SETATTRIBUTE, 
 							  &iIssuerCert, CRYPT_IATTRIBUTE_CERT_TRUSTEDISSUER );
 	while( cryptStatusError( status ) && \
-		   trustAnchorIndex < certChainInfo->chainEnd )
+		   trustAnchorIndex < certChainInfo->chainEnd && 
+		   trustAnchorIndex < MAX_CHAINLENGTH )
 		{
 		iIssuerCert = certChainInfo->chain[ trustAnchorIndex++ ];
 		status = krnlSendMessage( certInfoPtr->ownerHandle, 
 								  IMESSAGE_SETATTRIBUTE, &iIssuerCert, 
 								  CRYPT_IATTRIBUTE_CERT_TRUSTEDISSUER );
 		}
+	if( trustAnchorIndex >= MAX_CHAINLENGTH )
+		retIntError();
 	if( cryptStatusError( status ) || \
 		trustAnchorIndex > certChainInfo->chainEnd )
 		return( CRYPT_ERROR_NOTFOUND );
@@ -333,10 +338,10 @@ static int checkConstraints( CERT_INFO *certInfoPtr, const int startCertIndex,
 	BOOLEAN hasInhibitAnyPolicy = FALSE;
 	int requireExplicitPolicyLevel, inhibitPolicyMapLevel;
 	int inhibitAnyPolicyLevel;
-	int certIndex = startCertIndex, status = CRYPT_OK;
+	int certIndex = startCertIndex, iterationCount = 0, status = CRYPT_OK;
 
 	assert( isWritePtr( certInfoPtr, sizeof( CERT_INFO ) ) );
-	assert( startCertIndex >= -1 );
+	assert( startCertIndex >= -1 && startCertIndex < MAX_CHAINLENGTH );
 	assert( isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) );
 	assert( certInfoPtr != issuerCertInfoPtr );
 
@@ -417,8 +422,9 @@ static int checkConstraints( CERT_INFO *certInfoPtr, const int startCertIndex,
 		}
 
 	/* Walk down the chain checking each cert against the issuer */
-	for( certIndex = startCertIndex; \
-		 cryptStatusOK( status ) && certIndex >= -1; \
+	for( certIndex = startCertIndex; 
+		 cryptStatusOK( status ) && certIndex >= -1 && \
+			iterationCount++ < MAX_CHAINLENGTH; 
 		 certIndex-- )
 		{
 		CERT_INFO *subjectCertInfoPtr;
@@ -570,6 +576,8 @@ static int checkConstraints( CERT_INFO *certInfoPtr, const int startCertIndex,
 		if( certInfoPtr != subjectCertInfoPtr )
 			krnlReleaseObject( subjectCertInfoPtr->objectHandle );
 		}
+	if( iterationCount >= MAX_CHAINLENGTH )
+		retIntError();
 
 	return( status );
 	}
@@ -582,7 +590,7 @@ int checkCertChain( CERT_INFO *certInfoPtr )
 	CERT_CERT_INFO *certChainInfo = certInfoPtr->cCertCert;
 	CERT_INFO *issuerCertInfoPtr, *subjectCertInfoPtr;
 	BOOLEAN explicitPolicy = TRUE;
-	int certIndex, complianceLevel, status;
+	int certIndex, complianceLevel, iterationCount = 0, status;
 
 	assert( isWritePtr( certInfoPtr, sizeof( CERT_INFO ) ) );
 
@@ -610,30 +618,41 @@ int checkCertChain( CERT_INFO *certInfoPtr )
 		return( CRYPT_OK );
 	if( cryptStatusError( status ) )
 		{
+		CRYPT_ATTRIBUTE_TYPE attributeType;
+		const int lastCertIndex = certChainInfo->chainEnd - 1;
 		int value;
+
+		/* Select the cert that caused the problem, which is the highest-
+		   level cert in the chain */
+		certChainInfo->chainPos = lastCertIndex;
 
 		/* We couldn't find a trust anchor, either there's a missing link in 
 		   the chain (CRYPT_ERROR_STUART) and it was truncated before we got 
 		   to a trusted cert, or it goes to a root cert but it isn't 
-		   trusted */
-		certChainInfo->chainPos = certChainInfo->chainEnd - 1;
-		status = krnlSendMessage( certChainInfo->chain[ certChainInfo->chainEnd - 1 ], 
+		   trusted.  Returning error information on this is a bit complex 
+		   since we've selected the cert that caused the problem, which 
+		   means that any attempt to read error status information will read 
+		   it from this cert rather than the encapsulating chain object.  To
+		   get around this, we set the error info for the selected cert
+		   rather than the chain */
+		status = krnlSendMessage( certChainInfo->chain[ lastCertIndex ], 
 								  IMESSAGE_GETATTRIBUTE, &value, 
 								  CRYPT_CERTINFO_SELFSIGNED );
-		if( cryptStatusOK( status ) && value )
-			{
+		if( cryptStatusOK( status ) && value > 0 )
 			/* We got a root cert but it's not trusted */
-			setErrorInfo( certInfoPtr, CRYPT_CERTINFO_TRUSTED_IMPLICIT,
-						  CRYPT_ERRTYPE_ATTR_ABSENT );
-			}
+			attributeType = CRYPT_CERTINFO_TRUSTED_IMPLICIT;
 		else
-			{
 			/* There's a missing link in the chain and it stops at this 
 			   cert */
-			setErrorInfo( certInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
+			attributeType = CRYPT_CERTINFO_CERTIFICATE;
+		status = getCertInfo( certInfoPtr, &subjectCertInfoPtr, 
+							  lastCertIndex );
+		if( cryptStatusOK( status ) )
+			{
+			setErrorInfo( subjectCertInfoPtr, attributeType, 
 						  CRYPT_ERRTYPE_ATTR_ABSENT );
+			krnlReleaseObject( subjectCertInfoPtr->objectHandle );
 			}
-
 		return( CRYPT_ERROR_INVALID );
 		}
 	status = krnlAcquireObject( iIssuerCert, OBJECT_TYPE_CERTIFICATE, 
@@ -653,23 +672,23 @@ int checkCertChain( CERT_INFO *certInfoPtr )
 
 		/* The issuer cert info is coming from the cert trust database, 
 		   don't modify its state when we check it */
-		status = checkCert( issuerCertInfoPtr, issuerCertInfoPtr,
-							TRUE, &dummyLocus, &dummyType );
+		status = checkCertDetails( issuerCertInfoPtr, issuerCertInfoPtr, 
+						( issuerCertInfoPtr->iPubkeyContext != CRYPT_ERROR ) ? \
+							issuerCertInfoPtr->iPubkeyContext : CRYPT_UNUSED,
+						CRYPT_UNUSED, TRUE, TRUE, &dummyLocus, &dummyType );
+
 		}
 	else
+		{
 		/* The issuer cert is contained in the chain, update its state when
 		   we check it */
-		status = checkCert( issuerCertInfoPtr, issuerCertInfoPtr,
-							TRUE, &issuerCertInfoPtr->errorLocus, 
-							&issuerCertInfoPtr->errorType );
-	if( cryptStatusOK( status ) && \
-		( issuerCertInfoPtr->flags & CERT_FLAG_SELFSIGNED ) && \
-		issuerCertInfoPtr->iPubkeyContext != CRYPT_ERROR )
-		status = checkX509signature( issuerCertInfoPtr->certificate, 
-									 issuerCertInfoPtr->certificateSize,
-									 NULL, NULL, 
-									 issuerCertInfoPtr->iPubkeyContext, 
-									 CRYPT_UNUSED );
+		status = checkCertDetails( issuerCertInfoPtr, issuerCertInfoPtr, 
+						( issuerCertInfoPtr->iPubkeyContext != CRYPT_ERROR ) ? \
+							issuerCertInfoPtr->iPubkeyContext : CRYPT_UNUSED,
+						CRYPT_UNUSED, TRUE, TRUE, 
+						&issuerCertInfoPtr->errorLocus, 
+						&issuerCertInfoPtr->errorType );
+		}
 	if( cryptStatusError( status ) )
 		{
 		krnlReleaseObject( issuerCertInfoPtr->objectHandle );
@@ -684,26 +703,21 @@ int checkCertChain( CERT_INFO *certInfoPtr )
 	/* Walk down the chain from the trusted cert checking each link in turn */
 	while( cryptStatusOK( status ) && certIndex >= -1 && \
 		   ( status = getCertInfo( certInfoPtr, &subjectCertInfoPtr,
-								   certIndex ) ) == CRYPT_OK )
+								   certIndex ) ) == CRYPT_OK && \
+		   iterationCount++ < MAX_CHAINLENGTH )
 		{
-		/* Check the chaining from issuer to subject (as well as various 
-		   other required bits and pieces such as whether the issuer is 
-		   really a CA) */
-		status = checkCert( subjectCertInfoPtr, issuerCertInfoPtr,
-							TRUE, &subjectCertInfoPtr->errorLocus, 
-							&subjectCertInfoPtr->errorType );
-
-		/* Check the signature on the subject cert unless it's a data-only
-		   cert for which there isn't a context present.  This is OK since
-		   the only time that we can have a data-only chain is when we're 
-		   reading from an (implicitly trusted) private key store */
-		if( cryptStatusOK( status ) && \
-			issuerCertInfoPtr->iPubkeyContext != CRYPT_ERROR )
-			status = checkX509signature( subjectCertInfoPtr->certificate, 
-										 subjectCertInfoPtr->certificateSize,
-										 NULL, NULL, 
-										 issuerCertInfoPtr->iPubkeyContext, 
-										 CRYPT_UNUSED );
+		/* Check the cert details and signature */
+		status = checkCertDetails( subjectCertInfoPtr, issuerCertInfoPtr, 
+						( issuerCertInfoPtr->iPubkeyContext != CRYPT_ERROR ) ? \
+							issuerCertInfoPtr->iPubkeyContext : CRYPT_UNUSED,
+						CRYPT_UNUSED, FALSE, TRUE, 
+						&subjectCertInfoPtr->errorLocus, 
+						&subjectCertInfoPtr->errorType );
+		if( status == CRYPT_ARGERROR_NUM1 )
+			/* If there's a problem with the issuer's public key, we'll get
+			   a parameter error, the most appropriate standard error code 
+			   that we can translate this to is a standard signature error */
+			status = CRYPT_ERROR_SIGNATURE;
 
 		/* Check any constraints that the issuer cert may place on the rest 
 		   of the chain */
@@ -724,6 +738,8 @@ int checkCertChain( CERT_INFO *certInfoPtr )
 		issuerCertInfoPtr = subjectCertInfoPtr;
 		certIndex--;
 		}
+	if( iterationCount >= MAX_CHAINLENGTH )
+		retIntError();
 
 	/* If we stopped before we processed all the certs in the chain, select
 	   the one that caused the problem.  We also have to unlock the last 

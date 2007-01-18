@@ -1,21 +1,13 @@
 /****************************************************************************
 *																			*
 *				cryptlib Session Read/Write Support Routines				*
-*					  Copyright Peter Gutmann 1998-2004						*
+*					  Copyright Peter Gutmann 1998-2006						*
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "asn1.h"
-  #include "session.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/asn1.h"
   #include "session.h"
 #else
   #include "crypt.h"
@@ -162,7 +154,7 @@ static int tryRead( SESSION_INFO *sessionInfoPtr, READSTATE_INFO *readInfo )
 		sessionInfoPtr->pendingPacketPartialLength < 0 )
 		{
 		assert( NOTREACHED );
-		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
+		retExt( sessionInfoPtr, CRYPT_ERROR_FAILED,
 				"Internal error: Inconsistent state detected in session "
 				"read stream" );
 		}
@@ -224,7 +216,7 @@ static int getData( SESSION_INFO *sessionInfoPtr,
 		sessionInfoPtr->receiveBufEnd > sessionInfoPtr->receiveBufSize )
 		{
 		assert( NOTREACHED );
-		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
+		retExt( sessionInfoPtr, CRYPT_ERROR_FAILED,
 				"Internal error: Inconsistent state detected in session "
 				"read stream" );
 		}
@@ -340,7 +332,7 @@ int getSessionData( SESSION_INFO *sessionInfoPtr, void *data,
 					const int length, int *bytesCopied )
 	{
 	BYTE *dataPtr = data;
-	int dataLength = length, status = CRYPT_OK;
+	int dataLength = length, iterationCount = 0, status = CRYPT_OK;
 
 	/* Clear return value */
 	*bytesCopied = 0;
@@ -363,7 +355,8 @@ int getSessionData( SESSION_INFO *sessionInfoPtr, void *data,
 	sioctl( &sessionInfoPtr->stream, STREAM_IOCTL_READTIMEOUT, NULL,
 			sessionInfoPtr->readTimeout );
 
-	while( cryptStatusOK( status ) && dataLength > 0 )
+	while( cryptStatusOK( status ) && dataLength > 0 && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX )
 		{
 		int count;
 
@@ -393,6 +386,8 @@ int getSessionData( SESSION_INFO *sessionInfoPtr, void *data,
 		assert( sessionInfoPtr->receiveBufPos <= \
 				sessionInfoPtr->receiveBufEnd );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 
 	/* If we got at least some data or encountered a soft timeout, the 
 	   operation was (nominally) successful, otherwise it's an error */
@@ -439,7 +434,8 @@ int readFixedHeader( SESSION_INFO *sessionInfoPtr, const int headerSize )
 	/* Clear the first few bytes of returned data to make sure that the
 	   higher-level code always bails out if the read fails for some reason
 	   without returning an error status */
-	memset( bufPtr, 0, min( headerSize, 8 ) );
+	memset( bufPtr, 0, min( headerSize, \
+							sessionInfoPtr->partialHeaderLength ) );
 
 	/* Try and read the remaining header bytes */
 	status = sread( &sessionInfoPtr->stream, bufPtr,
@@ -630,7 +626,7 @@ int putSessionData( SESSION_INFO *sessionInfoPtr, const void *data,
 					const int length, int *bytesCopied )
 	{
 	BYTE *dataPtr = ( BYTE * ) data;
-	int dataLength = length, status;
+	int dataLength = length, iterationCount = 0, status;
 
 	/* Clear return value */
 	*bytesCopied = 0;
@@ -645,7 +641,7 @@ int putSessionData( SESSION_INFO *sessionInfoPtr, const void *data,
 		sessionInfoPtr->sendBufPartialBufPos >= sessionInfoPtr->sendBufPos )
 		{
 		assert( NOTREACHED );
-		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
+		retExt( sessionInfoPtr, CRYPT_ERROR_FAILED,
 				"Internal error: Inconsistent state detected in session "
 				"write stream" );
 		}
@@ -713,7 +709,8 @@ int putSessionData( SESSION_INFO *sessionInfoPtr, const void *data,
 	   host */
 	while( ( sessionInfoPtr->sendBufPos - \
 			 sessionInfoPtr->sendBufStartOfs ) + dataLength >= \
-		   sessionInfoPtr->maxPacketSize )
+		   sessionInfoPtr->maxPacketSize && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 		{
 		const int bytesToCopy = sessionInfoPtr->maxPacketSize - \
 								( sessionInfoPtr->sendBufPos + \
@@ -761,6 +758,8 @@ int putSessionData( SESSION_INFO *sessionInfoPtr, const void *data,
 			return( status );
 			}
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 
 	/* If there's anything left, it'll fit completely into the send buffer, 
 	   just copy it in */
@@ -785,7 +784,7 @@ int putSessionData( SESSION_INFO *sessionInfoPtr, const void *data,
 *																			*
 ****************************************************************************/
 
-/* Read/write a PKI (i.e.ASN.1-encoded) datagram */
+/* Read/write a PKI (i.e. ASN.1-encoded) datagram */
 
 int readPkiDatagram( SESSION_INFO *sessionInfoPtr )
 	{

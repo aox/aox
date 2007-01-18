@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Internal General Header File 				*
-*						Copyright Peter Gutmann 1992-2005					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
@@ -14,21 +14,18 @@
    recognise '/'s as path delimiters, but work around it by scanning all
    subdirectories and treating the files as if they were in the same
    directory (INC_ALL).  Microsoft C, in a braindamaged exception to all
-   other compilers, treats the subdirectory as the root (INC_CHILD).  The
+   other compilers, treats the subdirectory as the root, unless explicitly
+   told to use the project-file directory by setting Project | Settings |
+   C/C++ | Preprocessor | Additional include directories to '.\'.  The
    Tandem NSK (Guardian) filesystem doesn't have subdirectories, and the C
    compiler zaps '.'s, truncates filenames to 7 characters, and appends a
    'h' to the name (so that asn1misc.h becomes asn1mish).  This
    unfortunately requires a bit of renaming for header files.  Tandem OSS
    (Unix services) on the other hand is just like Unix, so we explicitly
-   distinguish between the two.
-
-   There are also a few systems that have somewhat special requirements,
-   these get their own OS-specific include defines */
+   distinguish between the two */
 
 #if defined( SYMANTEC_C ) && !defined( INC_ALL )
   #error You need to predefine INC_ALL in your project file
-#elif defined( _MSC_VER ) && !defined( INC_CHILD )
-  #error You need to predefine INC_CHILD in your project/make file
 #endif /* Checks for various compiler/OS-dependant include paths */
 
 /* If we're on a new enough version of VC++ or Metrowerks, set a flag to
@@ -37,6 +34,12 @@
 #if ( defined( _MSC_VER ) && ( _MSC_VER >= 1000 ) ) || defined ( __MWERKS__ )
   #pragma once
 #endif /* VC++ 5.0 or higher, Metrowerks */
+
+/* Enable use of the TR 24731 safe stdlib extensions if they're available */
+
+#if !defined( __STDC_WANT_LIB_EXT1__ )
+  #define __STDC_WANT_LIB_EXT1__	1
+#endif /* TR 24731 safe stdlib extensions */
 
 /* If we're building under Win32, don't haul in the huge amount of cruft
    that windows.h brings with it.  We need to define these values before
@@ -63,7 +66,9 @@
   #define NOMEMMGR			/* GMEM_*, LMEM_*, GHND, LHND, etc */
   #define NOMENUS			/* MF_* */
   #define NOMETAFILE		/* typedef METAFILEPICT */
-  #define NOMSG				/* typedef MSG and associated routines */
+  #if defined( _MSC_VER ) && ( _MSC_VER > 800 )
+	#define NOMSG			/* typedef MSG and associated routines */
+  #endif /* !Win16 */
   #define NONLS				/* NLS routines */
   #define NOPROFILER		/* Profiler interface */
   #define NORASTEROPS		/* Binary and Tertiary raster ops */
@@ -154,8 +159,6 @@
   #define DEENVSTATE_LAST		DEENVSTATE_LAST, DEENVSTATE_ENUM = -50000
   #define PGP_DEENVSTATE_LAST	PGP_DEENVSTATE_LAST, PGP_DEENVSTATE_ENUM = -50000
   #define SEGHDRSTATE_LAST		SEGHDRSTATE_LAST, SEGHDRSTATE_ENUM = -50000
-  /* envelope/pgp.h */
-  #define PGP_ALGOCLASS_LAST	PGP_ALGOCLASS_LAST, PGP_ALGOCLASS_ENUM = -50000
   /* kernel/acl.h */
   #define RANGEVAL_LAST			RANGEVAL_LAST, RANGEVAL_ENUM = -50000
   #define ATTRIBUTE_VALUE_LAST	ATTRIBUTE_VALUE_LAST, ATTRIBUTE_VALUE_ENUM = -50000
@@ -173,15 +176,14 @@
   #define PKCS15_SUBTYPE_LAST	PKCS15_SUBTYPE_LAST, PKCS15_SUBTYPE_ENUM = -50000
 //  #define PKCS15_OBJECT_LAST	PKCS15_OBJECT_LAST, PKCS15_OBJECT_ENUM = -50000
   #define PKCS15_KEYID_LAST		PKCS15_KEYID_LAST, PKCS15_KEYID_ENUM = -50000
-  /* misc/ber.h */
+  /* misc/asn1.h */
   #define BER_ID_LAST			BER_ID_LAST, BER_ID_ENUM = -50000
-  /* misc/objinfo.h */
-  #define KEYEX_LAST			KEYEX_LAST, KEYEX_ENUM = -50000
-  #define SIGNATURE_LAST		SIGNATURE_LAST, SIGNATURE_ENUM = -50000
+  /* misc/pgp.h */
+  #define PGP_ALGOCLASS_LAST	PGP_ALGOCLASS_LAST, PGP_ALGOCLASS_ENUM = -50000
   /* misc/rpc.h */
   #define COMMAND_LAST			COMMAND_LAST, COMMAND_ENUM = -50000
   #define DBX_COMMAND_LAST		DBX_COMMAND_LAST, DBX_COMMAND_ENUM = -50000
-  /* misc/stream.h */
+  /* io/stream.h */
   #define STREAM_TYPE_LAST		STREAM_TYPE_LAST, STREAM_TYPE_ENUM = -50000
   #define BUILDPATH_LAST		BUILDPATH_LAST, BUILDPATH_ENUM = -50000
   #define STREAM_IOCTL_LAST		STREAM_IOCTL_LAST, STREAM_IOCTL_ENUM = -50000
@@ -200,6 +202,11 @@
   #define SSL_LAST				SSL_LAST, SSL_ENUM = -50000
   #define TLS_EXT_LAST			TLS_EXT_LAST, TLS_EXT_ENUM = -50000
 #endif /* Palm SDK compiler enum fix */
+
+/* Global headers used in almost every module */
+
+#include <stdlib.h>
+#include <string.h>
 
 /* If the global cryptlib header hasn't been included yet, include it now */
 
@@ -253,7 +260,7 @@
 ****************************************************************************/
 
 /* Pull in the cryptlib initialisation options file, which contains the
-   various USE_xxx defines that enable different cryptlib features.  Note 
+   various USE_xxx defines that enable different cryptlib features.  Note
    that this *must* be included after os_spec.h, which performs OS detection
    used by config.h to enable/disable various code features */
 
@@ -341,35 +348,32 @@ typedef struct {
 	CRYPT_MODE_TYPE cryptMode;		/* The encryption mode */
 
 	/* The key ID for public key objects */
-	BYTE keyID[ CRYPT_MAX_HASHSIZE ];	/* PKC key ID */
+	BYTE keyID[ CRYPT_MAX_HASHSIZE + 8 ];/* PKC key ID */
 	int keyIDlength;
 
 	/* The IV for conventionally encrypted data */
-	BYTE iv[ CRYPT_MAX_IVSIZE ];	/* IV */
+	BYTE iv[ CRYPT_MAX_IVSIZE + 8 ];/* IV */
 	int ivLength;
 
 	/* The key derivation algorithm and iteration count for conventionally
 	   encrypted keys */
 	CRYPT_ALGO_TYPE keySetupAlgo;	/* Key setup algorithm */
 	int keySetupIterations;			/* Key setup iteration count */
-	BYTE salt[ CRYPT_MAX_HASHSIZE ];/* Key setup salt */
+	BYTE salt[ CRYPT_MAX_HASHSIZE + 8 ];/* Key setup salt */
 	int saltLength;
 
 	/* The hash algorithm for signatures */
 	CRYPT_ALGO_TYPE hashAlgo;		/* Hash algorithm */
 
-	/* The start and length of the payload data */
-	void *dataStart;				/* Start of payload data */
-	int dataLength;
+	/* The start and length of the payload data, either the encrypted key or
+	   the signature data */
+	int dataStart, dataLength;
 
-	/* The start and length of the issuerAndSerialNumber and attributes for
-	   CMS objects */
-	void *iAndSStart;				/* Start of issuerAndSerialNumber */
-	int iAndSLength;
-	void *attributeStart;			/* Start of attributes */
-	int attributeLength;
-	void *unauthAttributeStart;		/* Start of unauthenticated attributes */
-	int unauthAttributeLength;
+	/* The start and length of the issuerAndSerialNumber, authenticated 
+	   attributes, and unauthenticated attributes for CMS objects */
+	int iAndSStart, iAndSLength;
+	int attributeStart, attributeLength;
+	int unauthAttributeStart, unauthAttributeLength;
 	} QUERY_INFO;
 
 /* DLP algorithms require composite parameters when en/decrypting and
@@ -436,19 +440,19 @@ typedef struct {
 
 #define UNUSED( arg )	( ( arg ) = ( arg ) )
 
-/* Although min() and max() aren't in the ANSI standard, most stdlib.h's have
-   them anyway for historical reasons.  Just in case they're not defined
-   there by some pedantic compiler (some versions of Borland C do this), we
-   define them here */
+/* Although min() and max() aren't in the ANSI standard, most compilers have
+   them in one form or another, but just enough don't that we need to define 
+   them ourselves in some cases */
 
-#ifndef max
-  #define max( a, b )	( ( ( a ) > ( b ) ) ? ( ( int ) ( a ) ) : \
-											  ( ( int ) ( b ) ) )
-#endif /* !max */
-#ifndef min
-  #define min( a, b )	( ( ( a ) < ( b ) ) ? ( ( int ) ( a ) ) : \
-											  ( ( int ) ( b ) ) )
-#endif /* !min */
+#if !defined( min )
+  #ifdef MIN
+	#define min			MIN
+	#define max			MAX
+  #else
+	#define min( a, b )	( ( ( a ) < ( b ) ) ? ( a ) : ( b ) )
+	#define max( a, b )	( ( ( a ) > ( b ) ) ? ( a ) : ( b ) )
+  #endif /* Various min/max macros */
+#endif /* !min/max */
 
 /* Macros to convert to and from the bit counts used for some encryption
    parameters */
@@ -520,7 +524,33 @@ typedef struct {
    for better checking than this, for example that it points to a block of
    readable or writeable memory.  Under Windows IsBadReadPtr() will always
    succeed if the size is 0, so we have to add a separate check to make sure
-   that it's non-NULL */
+   that it's non-NULL.
+
+   There are additional caveats with the use of the Windows memory-checking
+   functions.  In theory these would be implemented via VirtualQuery(),
+   however this is quite slow, requiring a kernel transition and poking
+   around with the page protection mechanisms.  Instead, they try and read
+   or write the memory, with an exception handler wrapped around the access.
+   If the exception is thrown, they fail.  The problem with this way of
+   doing things is that if the memory address is a stack guard page used to
+   grow the stack (when the system-level exception handler sees an access to
+   the bottom-of-stack guard page, it knows that it has to grow the stack),
+   IsBadXxxPtr() will catch the exception and the system will never see it,
+   so it can't grow the stack past the current limit.  In addition if it's
+   the last guard page then instead of getting an "out of stack" exception,
+   it's turned into a no-op.  The second time the last guard page is hit,
+   the application is terminated by the system, since it's passed its first-
+   chance exception.
+
+   A lesser problem is that there's a race condition in the checking, since
+   the memory can be unmapped between the IsBadXxxPtr() check and the actual
+   access.
+
+   For these reasons we use these functions mostly for debugging, wrapping
+   them up in assert()s.  Under Windows Vista, they've actually been turned
+   into no-ops because of the above problems, although it's probable that
+   they'll be replaced by a code to check for NULL pointers, since
+   Microsoft's docs indicate that this much checking will still be done */
 
 #if defined( __WIN32__ ) || defined( __WINCE__ )
   #define isReadPtr( ptr, size )	( ( ptr ) != NULL && ( size ) > 0 && \
@@ -531,6 +561,36 @@ typedef struct {
   #define isReadPtr( ptr, size )	( ( ptr ) != NULL && ( size ) > 0 )
   #define isWritePtr( ptr, size )	( ( ptr ) != NULL && ( size ) > 0 )
 #endif /* Pointer check macros */
+
+/* Handle internal errors.  These follow a fixed pattern of "throw an 
+   exception, return an internal-error code" (with a few exceptions for
+   functions that return a pointer or void) */
+
+#define retIntError() \
+		{ \
+		assert( NOTREACHED ); \
+		return( CRYPT_ERROR_INTERNAL ); \
+		}
+#define retIntError_Null() \
+		{ \
+		assert( NOTREACHED ); \
+		return( NULL ); \
+		}
+#define retIntError_Boolean() \
+		{ \
+		assert( NOTREACHED ); \
+		return( FALSE ); \
+		}
+#define retIntError_Void() \
+		{ \
+		assert( NOTREACHED ); \
+		return; \
+		}
+#define retIntError_Ext( value ) \
+		{ \
+		assert( NOTREACHED ); \
+		return( value ); \
+		}
 
 /* Clear/set object error information */
 
@@ -626,6 +686,15 @@ typedef struct {
    any release version */
 
 #if defined( __WIN32__ ) && !defined( NDEBUG )
+  #ifdef __STDC_LIB_EXT1__
+	#define OPEN_FILE( filePtr, fileName ) \
+			if( fopen_s( &filePtr, fileName, "wb" ) != 0 ) \
+				filePtr = NULL
+  #else
+	#define OPEN_FILE( filePtr, fileName ) \
+			filePtr = fopen( fileName, "wb" )
+  #endif /* __STDC_LIB_EXT1__ */
+
   #define DEBUG_DUMP( name, data, length ) \
 	{ \
 	FILE *filePtr; \
@@ -635,7 +704,7 @@ typedef struct {
 	strcat( fileName, name ); \
 	strcat( fileName, ".der" ); \
 	\
-	filePtr = fopen( fileName, "wb" ); \
+	OPEN_FILE( filePtr, fileName ); \
 	if( filePtr != NULL ) \
 		{ \
 		if( length > 0 ) \
@@ -655,7 +724,7 @@ typedef struct {
 	strcat( fileName, name ); \
 	strcat( fileName, ".der" ); \
 	\
-	filePtr = fopen( fileName, "wb" ); \
+	OPEN_FILE( filePtr, fileName ); \
 	if( filePtr != NULL ) \
 		{ \
 		setMessageData( &msgData, certData, 2048 ); \

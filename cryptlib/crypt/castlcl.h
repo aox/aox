@@ -213,11 +213,11 @@
 	}
 #endif
 
-extern const CAST_LONG CAST_S_table0[256];
-extern const CAST_LONG CAST_S_table1[256];
-extern const CAST_LONG CAST_S_table2[256];
-extern const CAST_LONG CAST_S_table3[256];
-extern const CAST_LONG CAST_S_table4[256];
-extern const CAST_LONG CAST_S_table5[256];
-extern const CAST_LONG CAST_S_table6[256];
-extern const CAST_LONG CAST_S_table7[256];
+extern const CAST_LONG ASM_EXPORT CAST_S_table0[256];	/* pcg */
+extern const CAST_LONG ASM_EXPORT CAST_S_table1[256];	/* pcg */
+extern const CAST_LONG ASM_EXPORT CAST_S_table2[256];	/* pcg */
+extern const CAST_LONG ASM_EXPORT CAST_S_table3[256];	/* pcg */
+extern const CAST_LONG ASM_EXPORT CAST_S_table4[256];	/* pcg */
+extern const CAST_LONG ASM_EXPORT CAST_S_table5[256];	/* pcg */
+extern const CAST_LONG ASM_EXPORT CAST_S_table6[256];	/* pcg */
+extern const CAST_LONG ASM_EXPORT CAST_S_table7[256];	/* pcg */

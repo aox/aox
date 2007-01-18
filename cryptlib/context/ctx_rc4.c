@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "rc4.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/rc4.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -34,37 +29,37 @@
 
 /* RC4 test vectors from the BSAFE implementation */
 
-static const FAR_BSS BYTE testRC4key1[] =
+static const BYTE FAR_BSS testRC4key1[] =
 	{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
-static const FAR_BSS BYTE testRC4plaintext1[] =
+static const BYTE FAR_BSS testRC4plaintext1[] =
 	{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
-static const FAR_BSS BYTE testRC4ciphertext1[] =
+static const BYTE FAR_BSS testRC4ciphertext1[] =
 	{ 0x75, 0xB7, 0x87, 0x80, 0x99, 0xE0, 0xC5, 0x96 };
 
-static const FAR_BSS BYTE testRC4key2[] =
+static const BYTE FAR_BSS testRC4key2[] =
 	{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
-static const FAR_BSS BYTE testRC4plaintext2[] =
+static const BYTE FAR_BSS testRC4plaintext2[] =
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-static const FAR_BSS BYTE testRC4ciphertext2[] =
+static const BYTE FAR_BSS testRC4ciphertext2[] =
 	{ 0x74, 0x94, 0xC2, 0xE7, 0x10, 0x4B, 0x08, 0x79 };
 
-static const FAR_BSS BYTE testRC4key3[] =
+static const BYTE FAR_BSS testRC4key3[] =
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-static const FAR_BSS BYTE testRC4plaintext3[] =
+static const BYTE FAR_BSS testRC4plaintext3[] =
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-static const FAR_BSS BYTE testRC4ciphertext3[] =
+static const BYTE FAR_BSS testRC4ciphertext3[] =
 	{ 0xDE, 0x18, 0x89, 0x41, 0xA3, 0x37, 0x5D, 0x3A };
 
-static const FAR_BSS BYTE testRC4key4[] =
+static const BYTE FAR_BSS testRC4key4[] =
 	{ 0xEF, 0x01, 0x23, 0x45 };
-static const FAR_BSS BYTE testRC4plaintext4[] =
+static const BYTE FAR_BSS testRC4plaintext4[] =
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-static const FAR_BSS BYTE testRC4ciphertext4[] =
+static const BYTE FAR_BSS testRC4ciphertext4[] =
 	{ 0xD6, 0xA1, 0x41, 0xA7, 0xEC, 0x3C, 0x38, 0xDF, 0xBD, 0x61 };
 
-static const FAR_BSS BYTE testRC4key5[] =
+static const BYTE FAR_BSS testRC4key5[] =
 	{ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
-static const FAR_BSS BYTE testRC4plaintext5[] =
+static const BYTE FAR_BSS testRC4plaintext5[] =
 	{ 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 	  0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 	  0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
@@ -129,7 +124,7 @@ static const FAR_BSS BYTE testRC4plaintext5[] =
 	  0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 	  0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 	  0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 };
-static const FAR_BSS BYTE testRC4ciphertext5[] =
+static const BYTE FAR_BSS testRC4ciphertext5[] =
 	{ 0x75, 0x95, 0xC3, 0xE6, 0x11, 0x4A, 0x09, 0x78,
 	  0x0C, 0x4A, 0xD4, 0x52, 0x33, 0x8E, 0x1F, 0xFD,
 	  0x9A, 0x1B, 0xE9, 0x49, 0x8F, 0x81, 0x3D, 0x76,
@@ -197,11 +192,11 @@ static const FAR_BSS BYTE testRC4ciphertext5[] =
 
 /* Test vector from the State/Commerce Department */
 
-static const FAR_BSS BYTE testRC4key6[] =
+static const BYTE FAR_BSS testRC4key6[] =
 	{ 0x61, 0x8A, 0x63, 0xD2, 0xFB };
-static const FAR_BSS BYTE testRC4plaintext6[] =
+static const BYTE FAR_BSS testRC4plaintext6[] =
 	{ 0xDC, 0xEE, 0x4C, 0xF9, 0x2C };
-static const FAR_BSS BYTE testRC4ciphertext6[] =
+static const BYTE FAR_BSS testRC4ciphertext6[] =
 	{ 0xF1, 0x38, 0x29, 0xC9, 0xDE };
 
 /* Test the RC4 code against the test vectors from the BSAFE implementation */
@@ -213,8 +208,8 @@ static int rc4Test( const BYTE *key, const int keySize,
 	const CAPABILITY_INFO *capabilityInfo = getRC4Capability();
 	CONTEXT_INFO contextInfo;
 	CONV_INFO contextData;
-	BYTE keyData[ RC4_EXPANDED_KEYSIZE ];
-	BYTE temp[ 512 ];
+	BYTE keyData[ RC4_EXPANDED_KEYSIZE + 8 ];
+	BYTE temp[ 512 + 8 ];
 	int status;
 
 	staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,

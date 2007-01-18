@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "blowfish.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/blowfish.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -40,7 +35,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getBlowfishCapability();
 	CONTEXT_INFO contextInfo;
 	CONV_INFO contextData;
-	BYTE keyData[ BLOWFISH_EXPANDED_KEYSIZE ];
+	BYTE keyData[ BLOWFISH_EXPANDED_KEYSIZE + 8 ];
 	BYTE *plain1 = ( BYTE * ) "BLOWFISH";
 	BYTE *key1 = ( BYTE * ) "abcdefghijklmnopqrstuvwxyz";
 	BYTE cipher1[] = { 0x32, 0x4E, 0xD0, 0xFE, 0xF4, 0x13, 0xA2, 0x03 };
@@ -50,7 +45,7 @@ static int selfTest( void )
 	BYTE plain3[] = { 0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10 };
 	BYTE key3[] = { 0x41, 0x79, 0x6E, 0xA0, 0x52, 0x61, 0x6E, 0xE4 };
 	BYTE cipher3[] = { 0xE1, 0x13, 0xF4, 0x10, 0x2C, 0xFC, 0xCE, 0x43 };
-	BYTE buffer[ 8 ];
+	BYTE buffer[ 8 + 8 ];
 	int status;
 
 	/* Test the Blowfish implementation */
@@ -249,7 +244,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BF_KEY *blowfishKey = ( BF_KEY * ) convInfo->key;
-	BYTE temp[ BF_BLOCK ];
+	BYTE temp[ BF_BLOCK + 8 ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */

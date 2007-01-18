@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "rc2.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/rc2.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -28,11 +23,11 @@
 #define RC2_EXPANDED_KEYSIZE		sizeof( RC2_KEY )
 
 /* The RC2 key schedule provides a mechanism for reducing the effective key
-   size for export-control purposes, typically used to create 40-bit 
-   espionage-enabled keys.  BSAFE always sets the bitcount to the actual 
-   key size (so for example for a 128-bit key it first expands it up to 1024 
-   bits and then folds it back down again to 128 bits).  Because this scheme 
-   was copied by early S/MIME implementations (which were just BSAFE 
+   size for export-control purposes, typically used to create 40-bit
+   espionage-enabled keys.  BSAFE always sets the bitcount to the actual
+   key size (so for example for a 128-bit key it first expands it up to 1024
+   bits and then folds it back down again to 128 bits).  Because this scheme
+   was copied by early S/MIME implementations (which were just BSAFE
    wrappers), it's become a part of CMS/SMIME so we use it here even though
    other sources do it differently */
 
@@ -46,11 +41,11 @@
 
 /* RC2 test vectors from RFC 2268 */
 
-static const FAR_BSS struct RC2_TEST {
+static const struct RC2_TEST {
 	const BYTE key[ 16 ];
 	const BYTE plainText[ 8 ];
 	const BYTE cipherText[ 8 ];
-	} testRC2[] = {
+	} FAR_BSS testRC2[] = {
 	{ { 0x88, 0xBC, 0xA9, 0x0E, 0x90, 0x87, 0x5A, 0x7F,
 		0x0F, 0x79, 0xC3, 0x84, 0x62, 0x7B, 0xAF, 0xB2 },
 	  { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
@@ -64,8 +59,8 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getRC2Capability();
 	CONTEXT_INFO contextInfo;
 	CONV_INFO contextData;
-	BYTE keyData[ RC2_EXPANDED_KEYSIZE ];
-	BYTE temp[ RC2_BLOCKSIZE ];
+	BYTE keyData[ RC2_EXPANDED_KEYSIZE + 8 ];
+	BYTE temp[ RC2_BLOCKSIZE + 8 ];
 	int i, status;
 
 	for( i = 0; i < sizeof( testRC2 ) / sizeof( struct RC2_TEST ); i++ )
@@ -73,10 +68,10 @@ static int selfTest( void )
 		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
 						   &contextData, sizeof( CONV_INFO ), keyData );
 		memcpy( temp, testRC2[ i ].plainText, RC2_BLOCKSIZE );
-		status = capabilityInfo->initKeyFunction( &contextInfo, 
+		status = capabilityInfo->initKeyFunction( &contextInfo,
 												  testRC2[ i ].key, 16 );
 		if( cryptStatusOK( status ) )
-			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+			status = capabilityInfo->encryptFunction( &contextInfo, temp,
 													  RC2_BLOCKSIZE );
 		staticDestroyContext( &contextInfo );
 		if( cryptStatusError( status ) || \
@@ -95,7 +90,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -112,7 +107,7 @@ static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 
 /* Encrypt/decrypt data in ECB mode */
 
-static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -131,7 +126,7 @@ static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 	return( CRYPT_OK );
 	}
 
-static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -152,25 +147,25 @@ static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in CBC mode */
 
-static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
 	/* Encrypt the buffer of data */
-	RC2_cbc_encrypt( buffer, buffer, noBytes, ( RC2_KEY * ) convInfo->key, 
+	RC2_cbc_encrypt( buffer, buffer, noBytes, ( RC2_KEY * ) convInfo->key,
 					 convInfo->currentIV, RC2_ENCRYPT );
 
 	return( CRYPT_OK );
 	}
 
-static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
 	/* Decrypt the buffer of data */
-	RC2_cbc_encrypt( buffer, buffer, noBytes, ( RC2_KEY * ) convInfo->key, 
+	RC2_cbc_encrypt( buffer, buffer, noBytes, ( RC2_KEY * ) convInfo->key,
 					 convInfo->currentIV, RC2_DECRYPT );
 
 	return( CRYPT_OK );
@@ -178,7 +173,7 @@ static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in CFB mode */
 
-static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -211,7 +206,7 @@ static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key, 
+		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key,
 						 RC2_ENCRYPT );
 
 		/* XOR the buffer contents with the encrypted IV */
@@ -236,12 +231,12 @@ static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
-	BYTE temp[ RC2_BLOCKSIZE ];
+	BYTE temp[ RC2_BLOCKSIZE + 8 ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
@@ -271,7 +266,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key, 
+		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key,
 						 RC2_ENCRYPT );
 
 		/* Save the ciphertext */
@@ -300,7 +295,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in OFB mode */
 
-static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -332,7 +327,7 @@ static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key, 
+		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key,
 						 RC2_ENCRYPT );
 
 		/* XOR the buffer contents with the encrypted IV */
@@ -352,7 +347,7 @@ static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Decrypt data in OFB mode */
 
-static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -384,7 +379,7 @@ static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key, 
+		RC2_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc2Key,
 						 RC2_ENCRYPT );
 
 		/* XOR the buffer contents with the encrypted IV */
@@ -410,7 +405,7 @@ static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Key schedule an RC2 key */
 
-static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;

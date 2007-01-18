@@ -270,10 +270,11 @@
 
 #elif defined( __WINDOWS__ )
 
-/* Winsock2 wasn't available until eVC++ 4.0, so if we're running an older
-   version we have to use the Winsock1 interface */
+/* Winsock2 wasn't available until VC++/eVC++ 4.0, so if we're running an
+   older version we have to use the Winsock1 interface */
 
-#if defined( __WINCE__ ) && ( _WIN32_WCE < 400 )
+#if defined( _MSC_VER ) && ( _MSC_VER <= 800 ) || \
+	defined( __WINCE__ ) && ( _WIN32_WCE < 400 )
   #include <winsock.h>
 #else
   #include <winsock2.h>
@@ -296,7 +297,7 @@
 
 #if defined( _MSC_VER ) && ( _MSC_VER > 1300 )
   #include <windns.h>
-#else
+#elif defined( _MSC_VER ) && ( _MSC_VER > 800 )
   /* windns.h is quite new and many people don't have it yet, not helped by
      the fact that it's also changed over time.  For example,
      DnsRecordListFree() has also been DnsFreeRecordList() and DnsFree() at
@@ -327,15 +328,15 @@
   #define DNS_TYPE_SRV				33
   #define DNS_QUERY_STANDARD		0
   #define DNS_QUERY_BYPASS_CACHE	8
-  #if defined( _MSC_VER )
-	#pragma warning( disable: 4214 )	/* Non-int bitfields */
-  #endif /* _MSC_VER */
   typedef struct {
-	DWORD Section : 2;
-	DWORD Delete : 1;
-	DWORD CharSet : 2;
-	DWORD Unused : 3;
-	DWORD Reserved : 24;
+	/* Technically these are DWORDs, but only integers are allowed for
+	   bitfields.  This is OK in this case because sizeof( int ) ==
+	   sizeof( DWORD ) */
+	unsigned int Section : 2;
+	unsigned int Delete : 1;
+	unsigned int CharSet : 2;
+	unsigned int Unused : 3;
+	unsigned int Reserved : 24;
 	} DNS_RECORD_FLAGS;
   typedef struct {
 	IP4_ADDRESS IpAddress;
@@ -468,12 +469,30 @@
 #define IP_ADDR_SIZE	4
 #define IP_ADDR_COUNT	16
 
-/* Test for common socket errors */
+/* Test for common socket errors.  For isBadSocket() we don't just compare
+   the socket to INVALID_SOCKET but perform a proper range check both to
+   catch any problems with buggy implementations that may return something
+   other than -1 to indicate an error, and because we're going to use the
+   value in FD_xyz() macros which often don't perform any range checking,
+   and a value outside the range 0...FD_SETSIZE can cause segfaults and
+   other problems.  In addition we exclude stdin/stdout/stderr if they're
+   present, since a socket with these handle values is somewhat suspicious,
+   The one exception to this is Windows sockets, which don't use a Berkeley-
+   type bitflag representation and therefore don't have the range problems 
+   that the Berkeley implementation does */
 
 #ifndef __WINDOWS__
   #define INVALID_SOCKET			-1
 #endif /* __WINDOWS__ */
-#define isBadSocket( socket )		( ( socket ) == INVALID_SOCKET )
+#if defined( __WINDOWS__ )
+  #define isBadSocket( socket )		( ( socket ) <= 0 )
+#elif defined( STDERR_FILENO )
+  #define isBadSocket( socket )		( ( socket ) <= STDERR_FILENO || \
+									  ( socket ) >= FD_SETSIZE )
+#else
+  #define isBadSocket( socket )		( ( socket ) <= 0 || \
+									  ( socket ) >= FD_SETSIZE )
+#endif /* STDERR_FILENO */
 #ifdef __WINDOWS__
   #define isSocketError( status )	( ( status ) == SOCKET_ERROR )
   #define isBadAddress( address )	( ( address ) == INADDR_NONE )
@@ -838,6 +857,14 @@
    obtaining the nonblocking status, it doesn't provide any more
    functionality than ioctlsocket(), returning an error if we try and read
    the FIONBIO value.
+
+   If we're just using this as a basic valid-socket check we could also use 
+   ( GetFileType( ( HANDLE ) stream->netSocket ) == FILE_TYPE_PIPE ) ? 0 : \
+   WSAEBADF to check that it's a socket, but there's a bug under all Win9x 
+   versions for which GetFileType() on a socket returns FILE_TYPE_UNKNOWN, 
+   so we can't reliably detect a socket with this.  In any case though 
+   ioctlsocket() will return WSAENOTSOCK if it's not a socket, so this is 
+   covered by the default handling anyway.
 
    The best that we can do in this case is to force the socket to be
    blocking, which somewhat voids the guarantee that we leave the socket as

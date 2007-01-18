@@ -6,14 +6,9 @@
 ****************************************************************************/
 
 #include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "../misc/asn1.h"
 #else
   #include "cert/cert.h"
   #include "misc/asn1.h"
@@ -27,12 +22,12 @@
    bloated versions of another string type, so we need to account for these 
    as well.
 
-   UTF-8 strings are a pain because they're not supported as any native
-   format.  For this reason we convert them to a more useful local
+   UTF-8 strings are a pain because they're almost never supported as any 
+   native format.  For this reason we convert them to a more useful local
    character set (ASCII, 8859-1, or Unicode as appropriate) when we read 
    them to make them usable.  Although their use is required after the 
    cutover date of December 2003, by unspoken unanimous consensus of 
-   implementors everywhere, implementations are sticking with the existing 
+   implementors everywhere implementations are sticking with the existing 
    DN encoding to avoid breaking things */
 
 typedef enum {
@@ -85,7 +80,7 @@ typedef unsigned short int bmpchar_t;	/* Unicode data type */
 #define I	2						/* IA5String/VisibleString/ISO646String */
 #define PI	( P | I )				/* PrintableString and IA5String */
 
-static const FAR_BSS int asn1CharFlags[] = {
+static const int FAR_BSS asn1CharFlags[] = {
 	/* 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F */
 		0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,
 	/* 10  11  12  13  14  15  16  17  18  19  1A  1B  1C  1D  1E  1F */
@@ -142,11 +137,10 @@ static wchar_t getBmpchar( const BYTE *string )
 
 static BOOLEAN isNativeWidecharString( const BYTE *string, const int length )
 	{
-	const wchar_t wCh = getWidechar( string );
+	wchar_t wCh = getWidechar( string );
 	int hiByte = 0, i;
 
 	assert( !( length % WCSIZE ) );
-	assert( !( ( int ) string & 1 ) );
 
 	/* If it's too short to be a widechar string, it's definitely not 
 	   Unicode */
@@ -156,7 +150,10 @@ static BOOLEAN isNativeWidecharString( const BYTE *string, const int length )
 		return( FALSE );
 
 	/* If wchar_t is > 16 bits and the bits above 16 are set or all zero,
-	   it's either definitely not Unicode or Unicode */
+	   it's either definitely not Unicode or Unicode.  Note that some
+	   compilers will complain of unreachable code here, unfortunately we
+	   can't easily fix this since WCSIZE is usually an expression involving
+	   sizeof(), which we can't handle via the preprocessor */
 #if INT_MAX > 0xFFFFL
 	if( WCSIZE > 2 )
 		return( ( wCh > 0xFFFF ) ? FALSE : TRUE );
@@ -209,8 +206,7 @@ static BOOLEAN isNativeWidecharString( const BYTE *string, const int length )
 	   matter since it'll get "converted" into a non-widechar string later */
 	for( i = 0; i < length; i += WCSIZE )
 		{
-		const wchar_t wCh = getWidechar( string );
-
+		wCh = getWidechar( string );
 		string += WCSIZE;
 		if( wCh > 0xFF )
 			{
@@ -286,7 +282,7 @@ static ASN1_STRINGTYPE getAsn1StringType( const BYTE *string,
 	   using > 8-bit characters everyone will be using UTF8Strings, because 
 	   there's no easy way to distinguish between a byte string which is a 
 	   > 8-bit BMPString and a 7/8-bit string */
-	if( !( stringLen % UCSIZE ) && !*string )
+	if( !( stringLen % UCSIZE ) && *string == '\0' )
 		{
 		BOOLEAN notPrintable = FALSE, notIA5 = FALSE;
 		int length;
@@ -353,7 +349,7 @@ static ASN1_STRINGTYPE getNativeStringType( const BYTE *string,
 			string += WCSIZE;
 
 			/* Safety check */
-			if( ch < 0 )
+			if( ch & 0xFFFF0000L )
 				return( STRINGTYPE_NONE );
 
 			/* If the high bit is set, it's not an ASCII subset */
@@ -632,8 +628,6 @@ int copyFromAsn1String( void *dest, int *destLen, const int maxLen,
 		const int newLen = ( sourceLen / UCSIZE ) * WCSIZE;
 		int i;
 
-		assert( !( ( int ) dest & 1 ) );
-
 		if( newLen > maxLen )
 			return( CRYPT_ERROR_OVERFLOW );
 		
@@ -691,6 +685,7 @@ int copyFromAsn1String( void *dest, int *destLen, const int maxLen,
 		int length = sourceLen, i;
 
 		for( i = 0; i < length - 1; i++ )
+			{
 			if( destPtr[ i ] == 0xC8 )
 				{
 				int ch = destPtr[ i + 1 ];
@@ -702,9 +697,8 @@ int copyFromAsn1String( void *dest, int *destLen, const int maxLen,
 					ch == 0x6F || ch == 0x4F ||		/* o, O */
 					ch == 0x75 || ch == 0x55 )		/* u, U */
 					{
-					static const struct {
-						int src, dest;
-						} charMap[] = {
+					typedef struct { int src, dest; } CHARMAP_INFO;
+					static const CHARMAP_INFO charMap[] = {
 						{ 0x61, 0xE4 }, { 0x41, 0xC4 },	/* a, A */
 						{ 0x6F, 0xF6 }, { 0x4F, 0xD6 },	/* o, O */
 						{ 0x75, 0xFC }, { 0x55, 0xDC },	/* u, U */
@@ -712,8 +706,13 @@ int copyFromAsn1String( void *dest, int *destLen, const int maxLen,
 						};
 					int charIndex;
 
-					for( charIndex = 0; charMap[ charIndex ].src && \
-										charMap[ charIndex ].src != ch; charIndex++ );
+					for( charIndex = 0; 
+						 charMap[ charIndex ].src && \
+							charMap[ charIndex ].src != ch && \
+							charIndex < FAILSAFE_ARRAYSIZE( charMap, CHARMAP_INFO ); 
+						 charIndex++ );
+					if( charIndex >= FAILSAFE_ARRAYSIZE( charMap, CHARMAP_INFO ) )
+						retIntError();
 					destPtr[ i ] = charMap[ charIndex ].dest;
 					if( length - i > 2 )
 						memmove( destPtr + i + 1, destPtr + i + 2,
@@ -721,6 +720,7 @@ int copyFromAsn1String( void *dest, int *destLen, const int maxLen,
 					length--;
 					}
 				}
+			}
 		*destLen = length;
 		}
 

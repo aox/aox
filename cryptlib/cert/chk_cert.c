@@ -6,18 +6,11 @@
 ****************************************************************************/
 
 #include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
@@ -46,12 +39,19 @@ static BOOLEAN isAnyPolicy( const ATTRIBUTE_LIST *attributeListPtr )
 static BOOLEAN containsAnyPolicy( const ATTRIBUTE_LIST *attributeListPtr,
 								  const CRYPT_ATTRIBUTE_TYPE attributeType )
 	{
+	int iterationCount = 0;
+	
 	for( attributeListPtr = findAttributeField( attributeListPtr, \
-								attributeType, CRYPT_ATTRIBUTE_NONE ); \
-		 attributeListPtr != NULL; \
+								attributeType, CRYPT_ATTRIBUTE_NONE ); 
+		 attributeListPtr != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
 		 attributeListPtr = findNextFieldInstance( attributeListPtr ) )
+		{
 		if( isAnyPolicy( attributeListPtr ) )
 			return( TRUE );
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError_Boolean();
 
 	return( FALSE );
 	}
@@ -62,6 +62,8 @@ static BOOLEAN checkPolicyType( const ATTRIBUTE_LIST *attributeListPtr,
 								BOOLEAN *hasPolicy, BOOLEAN *hasAnyPolicy,
 								const BOOLEAN inhibitAnyPolicy )
 	{
+	int iterationCount;
+
 	/* Clear return values */
 	*hasPolicy = *hasAnyPolicy = FALSE;
 
@@ -71,7 +73,10 @@ static BOOLEAN checkPolicyType( const ATTRIBUTE_LIST *attributeListPtr,
 	   with the introduction of anyPolicy) */
 	if( attributeListPtr == NULL )
 		return( FALSE );
-	while( attributeListPtr != NULL )
+	for( iterationCount = 0; 
+		 attributeListPtr != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
+		attributeListPtr = findNextFieldInstance( attributeListPtr ) )
 		{
 		assert( attributeListPtr->fieldID == CRYPT_CERTINFO_CERTPOLICYID );
 
@@ -79,8 +84,9 @@ static BOOLEAN checkPolicyType( const ATTRIBUTE_LIST *attributeListPtr,
 			*hasAnyPolicy = TRUE;
 		else
 			*hasPolicy = TRUE;
-		attributeListPtr = findNextFieldInstance( attributeListPtr );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError_Boolean();
 	if( inhibitAnyPolicy )
 		{
 		/* The wildcard anyPolicy isn't valid for the subject, if there's no
@@ -301,6 +307,7 @@ static BOOLEAN checkAltnameConstraints( const ATTRIBUTE_LIST *subjectAttributes,
 										const BOOLEAN isExcluded )
 	{
 	const ATTRIBUTE_LIST *attributeListPtr, *constrainedAttributeListPtr;
+	int iterationCount = 0;
 
 	/* Check for the presence of constrained or constraining altName 
 	   components.  If either are absent, there are no constraints to 
@@ -316,11 +323,13 @@ static BOOLEAN checkAltnameConstraints( const ATTRIBUTE_LIST *subjectAttributes,
 	for( constrainedAttributeListPtr = \
 			findAttributeField( subjectAttributes, 
 								CRYPT_CERTINFO_SUBJECTALTNAME, attributeType ); 
-		constrainedAttributeListPtr != NULL;
+		constrainedAttributeListPtr != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MAX;
 		constrainedAttributeListPtr = \
 			findNextFieldInstance( constrainedAttributeListPtr ) )
 		{
 		const ATTRIBUTE_LIST *attributeListCursor;
+		int innerIterationCount = 0;
 		BOOLEAN isMatch = FALSE;
 
 		/* Step through the constraining attributes checking if any match 
@@ -328,7 +337,8 @@ static BOOLEAN checkAltnameConstraints( const ATTRIBUTE_LIST *subjectAttributes,
 		   can match, if it's a permitted subtree then at least one must 
 		   match */
 		for( attributeListCursor = attributeListPtr;
-			 attributeListCursor != NULL && !isMatch;
+			 attributeListCursor != NULL && !isMatch && \
+				innerIterationCount++ < FAILSAFE_ITERATIONS_MAX;
 			 attributeListCursor = 
 				findNextFieldInstance( attributeListCursor ) )
 			isMatch = matchAltnameComponent( constrainedAttributeListPtr,
@@ -337,6 +347,8 @@ static BOOLEAN checkAltnameConstraints( const ATTRIBUTE_LIST *subjectAttributes,
 		if( isExcluded == isMatch )
 			return( FALSE );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError_Boolean();
 
 	return( TRUE );
 	}
@@ -394,12 +406,17 @@ int checkNameConstraints( const CERT_INFO *subjectCertInfoPtr,
 										   CRYPT_CERTINFO_DIRECTORYNAME );
 	if( attributeListPtr != NULL )
 		{
-		while( attributeListPtr != NULL && !isMatch )
+		int iterationCount = 0;
+
+		while( attributeListPtr != NULL && !isMatch && \
+			   iterationCount++ < FAILSAFE_ITERATIONS_MAX )
 			{
 			isMatch = compareDN( subjectCertInfoPtr->subjectName,
 								 attributeListPtr->value, TRUE );
 			attributeListPtr = findNextFieldInstance( attributeListPtr );
 			}
+		if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+			retIntError();
 		if( isExcluded == isMatch )
 			{
 			setErrorValues( CRYPT_CERTINFO_SUBJECTNAME, 
@@ -459,6 +476,7 @@ int checkPolicyConstraints( const CERT_INFO *subjectCertInfoPtr,
 	ATTRIBUTE_LIST *attributeCursor;
 	BOOLEAN subjectHasPolicy, issuerHasPolicy;
 	BOOLEAN subjectHasAnyPolicy, issuerHasAnyPolicy;
+	int iterationCount = 0;
 
 	assert( isReadPtr( subjectCertInfoPtr, sizeof( CERT_INFO ) ) );
 	assert( isReadPtr( issuerAttributes, sizeof( ATTRIBUTE_LIST ) ) );
@@ -528,17 +546,20 @@ int checkPolicyConstraints( const CERT_INFO *subjectCertInfoPtr,
 	   but since that in turn contradicts the main text in a number of 
 	   places we take the main text as definitive, not the buggy 
 	   pseudocode */
-	for( attributeCursor = ( ATTRIBUTE_LIST * ) attributeListPtr; \
-		 attributeCursor != NULL; \
+	for( attributeCursor = ( ATTRIBUTE_LIST * ) attributeListPtr; 
+		 attributeCursor != NULL && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
 		 attributeCursor = findNextFieldInstance( attributeCursor ) )
 		{
 		ATTRIBUTE_LIST *constrainedAttributeCursor;	
+		int innerIterationCount = 0;
 
 		assert( attributeCursor->fieldID == CRYPT_CERTINFO_CERTPOLICYID );
 
 		for( constrainedAttributeCursor = \
-					( ATTRIBUTE_LIST * ) constrainedAttributeListPtr; \
-			 constrainedAttributeCursor != NULL; \
+					( ATTRIBUTE_LIST * ) constrainedAttributeListPtr; 
+			 constrainedAttributeCursor != NULL && \
+				innerIterationCount++ < FAILSAFE_ITERATIONS_MAX; 
 			 constrainedAttributeCursor = \
 					findNextFieldInstance( constrainedAttributeCursor ) )
 			{
@@ -552,7 +573,11 @@ int checkPolicyConstraints( const CERT_INFO *subjectCertInfoPtr,
 						 attributeCursor->valueLength ) )
 				return( CRYPT_OK );
 			}
+		if( innerIterationCount >= FAILSAFE_ITERATIONS_MAX )
+			retIntError();
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 
 	/* We couldn't find a matching policy, report an error */
 	setErrorValues( CRYPT_CERTINFO_CERTPOLICYID, CRYPT_ERRTYPE_CONSTRAINT );
@@ -591,7 +616,7 @@ int checkPathConstraints( const CERT_INFO *subjectCertInfoPtr,
 	attributeListPtr = findAttributeField( subjectCertInfoPtr->attributes, 
 										   CRYPT_CERTINFO_CA, 
 										   CRYPT_ATTRIBUTE_NONE );
-	if( attributeListPtr != NULL && attributeListPtr->intValue )
+	if( attributeListPtr != NULL && attributeListPtr->intValue > 0 )
 		{
 		setErrorValues( CRYPT_CERTINFO_PATHLENCONSTRAINT,
 						CRYPT_ERRTYPE_ISSUERCONSTRAINT );
@@ -645,7 +670,8 @@ static int checkCRL( const CERT_INFO *crlInfoPtr,
 
 	/* Make sure that the issuer can sign CRLs and the issuer cert in
 	   general is in order */
-	return( checkKeyUsage( issuerCertInfoPtr, CHECKKEY_FLAG_CA, 
+	return( checkKeyUsage( issuerCertInfoPtr, 
+						   CHECKKEY_FLAG_CA | CHECKKEY_FLAG_GENCHECK, 
 						   CRYPT_KEYUSAGE_CRLSIGN, complianceLevel, 
 						   errorLocus, errorType ) );
 	}
@@ -780,7 +806,7 @@ int checkCert( CERT_INFO *subjectCertInfoPtr,
 	   existing cert then the start time has to be valid, if we're creating
 	   a new cert then it doesn't have to be valid since the cert could be
 	   created for use in the future */
-	if( currentTime < MIN_TIME_VALUE )
+	if( currentTime <= MIN_TIME_VALUE )
 		{
 		/* Time is broken, we can't reliably check for expiry times */
 		setErrorValues( CRYPT_CERTINFO_VALIDFROM, CRYPT_ERRTYPE_CONSTRAINT );
@@ -863,7 +889,7 @@ int checkCert( CERT_INFO *subjectCertInfoPtr,
 	if( subjectCertInfoPtr->cCertCert->maxCheckLevel < CRYPT_COMPLIANCELEVEL_PKIX_PARTIAL && \
 		subjectCertInfoPtr->type != CRYPT_CERTTYPE_ATTRIBUTE_CERT )
 		{
-		status = checkKeyUsage( subjectCertInfoPtr, CHECKKEY_FLAG_NONE, 
+		status = checkKeyUsage( subjectCertInfoPtr, CHECKKEY_FLAG_GENCHECK, 
 								CRYPT_UNUSED, complianceLevel, 
 								errorLocus, errorType );
 		if( cryptStatusError( status ) )
@@ -892,9 +918,15 @@ int checkCert( CERT_INFO *subjectCertInfoPtr,
 	   unrecognised critical extensions */
 	if( subjectCertInfoPtr->certificate != NULL )
 		{
-		for( attributeListPtr = subjectAttributes; \
-			 attributeListPtr != NULL && !isBlobAttribute( attributeListPtr ); \
+		int iterationCount = 0;
+		
+		for( attributeListPtr = subjectAttributes; 
+			 attributeListPtr != NULL && \
+				!isBlobAttribute( attributeListPtr ) && \
+				iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
 			 attributeListPtr = attributeListPtr->next );
+		if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+			retIntError();
 		while( attributeListPtr != NULL )
 			{
 			/* If we've found an unrecognised critical extension, reject the 

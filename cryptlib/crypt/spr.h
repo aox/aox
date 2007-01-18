@@ -56,7 +56,15 @@
  * [including the GNU Public Licence.]
  */
 
-OPENSSL_GLOBAL const DES_LONG des_SPtrans[8][64]={
+#ifndef _OSCONFIG_DEFINED		/* pcg */
+  #if defined( INC_ALL )
+	#include "osconfig.h"
+  #else
+	#include "crypt/osconfig.h"
+  #endif /* Compiler-specific includes */
+#endif /* _OSCONFIG_DEFINED */
+
+OPENSSL_GLOBAL const DES_LONG ASM_EXPORT des_SPtrans[8][64]={	/* pcg */
 {
 /* nibble 0 */
 0x02080800L, 0x00080000L, 0x02000002L, 0x02080802L,

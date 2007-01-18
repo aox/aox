@@ -1,14 +1,11 @@
 /****************************************************************************
 *																			*
 *						  Memory Stream I/O Functions						*
-*						Copyright Peter Gutmann 1993-2004					*
+*						Copyright Peter Gutmann 1993-2005					*
 *																			*
 ****************************************************************************/
 
-#include <string.h>
 #if defined( INC_ALL )
-  #include "stream.h"
-#elif defined( INC_CHILD )
   #include "stream.h"
 #else
   #include "io/stream.h"
@@ -16,13 +13,13 @@
 
 /* Initialise and shut down a memory stream */
 
-static int initMemoryStream( STREAM *stream, const void *buffer, 
+static int initMemoryStream( STREAM *stream, const void *buffer,
 							 const int length, const BOOLEAN nullStreamOK )
 	{
 	/* Check that the input parameters are in order.  Since the return
-	   value for the memory stream open functions is rarely (if ever) 
-	   checked, we validate the buffer and length parameters later and 
-	   create a read-only null stream if they're invalid, so that reads and 
+	   value for the memory stream open functions is rarely (if ever)
+	   checked, we validate the buffer and length parameters later and
+	   create a read-only null stream if they're invalid, so that reads and
 	   writes return error conditions if they're attempted */
 	if( !isWritePtr( stream, sizeof( STREAM ) ) )
 		{
@@ -30,7 +27,9 @@ static int initMemoryStream( STREAM *stream, const void *buffer,
 		return( CRYPT_ERROR_WRITE );
 		}
 
-	/* Clear the stream data and make it a null stream if required */
+	/* Clear the stream data and make it a null stream if required.  Note 
+	   that we specifically check for length == 0, since the length < 0 case
+	   is handled below */
 	memset( stream, 0, sizeof( STREAM ) );
 	if( nullStreamOK && buffer == NULL && length == 0 )
 		{
@@ -38,8 +37,8 @@ static int initMemoryStream( STREAM *stream, const void *buffer,
 		return( CRYPT_OK );
 		}
 
-	/* If there's a problem with the parameters, return an error code but 
-	   also make it a (non-readable, non-writeable) null stream so that it 
+	/* If there's a problem with the parameters, return an error code but
+	   also make it a (non-readable, non-writeable) null stream so that it
 	   can be safely used */
 	if( length < 1 || !isReadPtr( buffer, length ) )
 		{
@@ -57,15 +56,12 @@ static int initMemoryStream( STREAM *stream, const void *buffer,
 	return( CRYPT_OK );
 	}
 
-static int shutdownMemoryStream( STREAM *stream, 
+static int shutdownMemoryStream( STREAM *stream,
 								 const BOOLEAN clearStreamBuffer )
 	{
 	/* Check that the input parameters are in order */
 	if( !isWritePtr( stream, sizeof( STREAM ) ) )
-		{
-		assert( NOTREACHED );
-		return( CRYPT_ERROR_WRITE );
-		}
+		retIntError();
 
 	/* Clear the stream structure */
 	if( clearStreamBuffer && stream->buffer != NULL && stream->bufEnd > 0 )
@@ -75,9 +71,9 @@ static int shutdownMemoryStream( STREAM *stream,
 	return( CRYPT_OK );
 	}
 
-/* Open/close a memory stream.  If the buffer parameter is NULL and the 
-   length is zero, this creates a null stream that serves as a data sink - 
-   this is useful for implementing sizeof() functions by writing data to 
+/* Open/close a memory stream.  If the buffer parameter is NULL and the
+   length is zero, this creates a null stream that serves as a data sink -
+   this is useful for implementing sizeof() functions by writing data to
    null streams */
 
 int sMemOpen( STREAM *stream, void *buffer, const int length )
@@ -93,15 +89,14 @@ int sMemOpen( STREAM *stream, void *buffer, const int length )
 	if( cryptStatusError( status ) )
 		return( status );
 
-	/* If it's not a null stream, clear the stream buffer.  Since this can 
-	   be arbitrarily large, we only clear the entire buffer in the debug 
+	/* If it's not a null stream, clear the stream buffer.  Since this can
+	   be arbitrarily large, we only clear the entire buffer in the debug
 	   version */
 	if( buffer != NULL )
 		{
 #ifdef NDEBUG
 		memset( stream->buffer, 0, min( 16, stream->bufSize ) );
 #else
-		assert( isWritePtr( buffer, length ) );
 		memset( stream->buffer, 0, stream->bufSize );
 #endif /* NDEBUG */
 		}
@@ -119,7 +114,7 @@ int sMemClose( STREAM *stream )
 	return( shutdownMemoryStream( stream, TRUE ) );
 	}
 
-/* Connect/disconnect a memory stream without destroying the buffer 
+/* Connect/disconnect a memory stream without destroying the buffer
    contents */
 
 int sMemConnect( STREAM *stream, const void *buffer, const int length )

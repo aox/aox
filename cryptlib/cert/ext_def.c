@@ -5,18 +5,11 @@
 *																			*
 ****************************************************************************/
 
-#include <ctype.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
@@ -24,14 +17,14 @@
   #include "misc/asn1_ext.h"
 #endif /* Compiler-specific includes */
 
-/* The following certificate extensions are currently supported.  If 
+/* The following certificate extensions are currently supported.  If
    'Enforced' is set to 'Yes', this means that they are constraint extensions
    that are enforced by the cert checking code; if set to '-', they are
    informational extensions for which enforcement doesn't apply; if set to
    'No', they need to be handled by the user (this only applies for
    certificate policies, where the user has to decide whether a given cert
-   policy is acceptable or not).  The Yes/No in policyConstraints means that 
-   everything except the policy mapping constraint is enforced (because 
+   policy is acceptable or not).  The Yes/No in policyConstraints means that
+   everything except the policy mapping constraint is enforced (because
    policyMappings itself isn't enforced).
 
 									Enforced
@@ -113,18 +106,23 @@ static int checkDirectoryName( const ATTRIBUTE_LIST *attributeListPtr );
 /* Forward declarations for alternative encoding tables used by the main
    tables.  These are declared in a somewhat peculiar manner because there's
    no clean way in C to forward declare a static array.  Under VC++ with the
-   highest warning level enabled, this produces a compiler warning, so we
-   turn the warning off for this module */
+   highest warning level enabled this produces a compiler warning, so we
+   turn the warning off for this module.  In addition there are problems with
+   some versions of gcc 4.0.x, these first cropped up when Apple broke gcc
+   4.0.0 in OS X 10.4.2 (and don't seem to be interesgted in fixing it), but
+   since then they seem to have been backported into mainstream gcc 4.0.x
+   releases (and don't look like they'll be fixed any time soon, since 
+   they're still in 4.1.x) so we have to add a special case for this */
 
-#if __GNUC__ > 3
-static const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
-static const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
-static const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
+#if defined( __GNUC__ ) && ( __GNUC__ == 4 )
+  static const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
+  static const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
+  static const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
 #else
-extern const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
-extern const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
-extern const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
-#endif
+  extern const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
+  extern const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
+  extern const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
+#endif /* Some gcc 4 versions */
 
 #if defined( _MSC_VER )
   #pragma warning( disable: 4211 )
@@ -138,11 +136,11 @@ extern const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
 
 /* Certificate extensions are encoded using the following table */
 
-static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
-	/* challengePassword.  This is here even though it's a CMS attribute 
+static const ATTRIBUTE_INFO FAR_BSS extensionInfo[] = {
+	/* challengePassword.  This is here even though it's a CMS attribute
 	   because SCEP stuffs it into PKCS #10 requests:
 
-		OID = 1 2 840 113549 1 9 7 
+		OID = 1 2 840 113549 1 9 7
 		PrintableString */
 	{ MKOID( "\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x09\x07" ), CRYPT_CERTINFO_CHALLENGEPASSWORD,
 	  MKDESC( "challengePassword" )
@@ -224,7 +222,7 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	  MKDESC( "authorityInfoAccess.httpCerts (1 3 6 1 5 5 7 48 6)" )
 	  FIELDTYPE_IDENTIFIER, 0,
 	  FL_MORE, 0, 0, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_AUTHORITYINFO_CERTSTORE, 
+	{ NULL, CRYPT_CERTINFO_AUTHORITYINFO_CERTSTORE,
 	  MKDESC( "authorityInfoAccess.accessDescription.accessLocation (httpCerts)" )
 	  FIELDTYPE_SUBTYPED, 0,
 	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL | FL_SEQEND, 0, 0, 0, ( void * ) generalNameInfo },
@@ -236,7 +234,7 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	  MKDESC( "authorityInfoAccess.httpCRLs (1 3 6 1 5 5 7 48 7)" )
 	  FIELDTYPE_IDENTIFIER, 0,
 	  FL_MORE, 0, 0, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_AUTHORITYINFO_CRLS, 
+	{ NULL, CRYPT_CERTINFO_AUTHORITYINFO_CRLS,
 	  MKDESC( "authorityInfoAccess.accessDescription.accessLocation (httpCRLs)" )
 	  FIELDTYPE_SUBTYPED, 0,
 	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL | FL_SEQEND, 0, 0, 0, ( void * ) generalNameInfo },
@@ -260,7 +258,7 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 				sourceDataUri	IA5String OPTIONAL
 				}
 			} */
-	{ MKOID( "\x06\x08\x2B\x06\x01\x05\x05\x07\x01\x02" ), CRYPT_CERTINFO_BIOMETRICINFO, 
+	{ MKOID( "\x06\x08\x2B\x06\x01\x05\x05\x07\x01\x02" ), CRYPT_CERTINFO_BIOMETRICINFO,
 	  MKDESC( "biometricInfo" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_LEVEL_PKIX_FULL | FL_VALID_CERT | FL_SETOF, 0, 0, 0, NULL },
@@ -268,19 +266,19 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	  MKDESC( "biometricInfo.biometricData" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE, 0, 0, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_TYPE, 
+	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_TYPE,
 	  MKDESC( "biometricInfo.biometricData.typeOfData" )
 	  BER_INTEGER, 0,
 	  FL_MORE | FL_MULTIVALUED, 0, 1, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_HASHALGO, 
+	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_HASHALGO,
 	  MKDESC( "biometricInfo.biometricData.hashAlgorithm" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE | FL_MULTIVALUED, 3, 32, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_HASH, 
+	  FL_MORE | FL_MULTIVALUED, 3, MAX_OID_SIZE, 0, NULL },
+	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_HASH,
 	  MKDESC( "biometricInfo.biometricData.dataHash" )
 	  BER_OCTETSTRING, 0,
 	  FL_MORE | FL_MULTIVALUED, 16, CRYPT_MAX_HASHSIZE, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_URL, 
+	{ NULL, CRYPT_CERTINFO_BIOMETRICINFO_URL,
 	  MKDESC( "biometricInfo.biometricData.sourceDataUri" )
 	  BER_STRING_IA5, 0,
 	  FL_OPTIONAL | FL_MULTIVALUED | FL_SEQEND, MIN_URL_SIZE, MAX_URL_SIZE, 0, ( void * ) checkURL },
@@ -297,10 +295,10 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 					nameRegistrationAuthorities SEQUENCE OF GeneralName
 				}
 			}
-		There are two versions of the statementID OID, one for RFC 3039 and 
-		the other for RFC 3739 (which are actually identical except where 
-		they're not).  To handle this we preferentially encode the RFC 3739 
-		(v2) OID, but allow the v1 OID as a fallback by marking both as 
+		There are two versions of the statementID OID, one for RFC 3039 and
+		the other for RFC 3739 (which are actually identical except where
+		they're not).  To handle this we preferentially encode the RFC 3739
+		(v2) OID, but allow the v1 OID as a fallback by marking both as
 		optional */
 	{ MKOID( "\x06\x08\x2B\x06\x01\x05\x05\x07\x01\x03" ), CRYPT_CERTINFO_QCSTATEMENT,
 	  MKDESC( "qcStatements" )
@@ -322,15 +320,15 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	  MKDESC( "qcStatements.qcStatement.statementInfo (statementID)" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE, 0, 0, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_QCSTATEMENT_SEMANTICS, 
+	{ NULL, CRYPT_CERTINFO_QCSTATEMENT_SEMANTICS,
 	  MKDESC( "qcStatements.qcStatement.statementInfo.semanticsIdentifier (statementID)" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 3, 32, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, 0,
 	  MKDESC( "qcStatements.qcStatement.statementInfo.nameRegistrationAuthorities (statementID)" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_SETOF, 0, 0, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_QCSTATEMENT_REGISTRATIONAUTHORITY, 
+	{ NULL, CRYPT_CERTINFO_QCSTATEMENT_REGISTRATIONAUTHORITY,
 	  MKDESC( "qcStatements.qcStatement.statementInfo.nameRegistrationAuthorities.generalNames" )
 	  FIELDTYPE_SUBTYPED, 0,
 	  FL_MULTIVALUED | FL_SEQEND_3, 0, 0, 0, ( void * ) generalNameInfo },
@@ -386,19 +384,19 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 		OID = 1 3 6 1 5 5 7 48 1 2
 		nonce		INTEGER
 
-	   This value was supposed to be an INTEGER, however alongside a million 
-	   other pieces of braindamage OCSP forgot to actually define this 
-	   anywhere in the spec.  Because of this it's possible to get other 
-	   stuff here as well, the worst-case being OpenSSL 0.9.6/0.9.7a-c which 
-	   just dump a raw blob (not any valid ASN.1 data) in here.  We can't do 
-	   anything with this since we need at least something DER-encoded to be 
+	   This value was supposed to be an INTEGER, however alongside a million
+	   other pieces of braindamage OCSP forgot to actually define this
+	   anywhere in the spec.  Because of this it's possible to get other
+	   stuff here as well, the worst-case being OpenSSL 0.9.6/0.9.7a-c which
+	   just dump a raw blob (not any valid ASN.1 data) in here.  We can't do
+	   anything with this since we need at least something DER-encoded to be
 	   able to read it.  OpenSSL 0.9.7d and later used an OCTET STRING, so we
 	   use the same trick as we do for the certPolicy IA5String/VisibleString
 	   duality where we define the field as if it were a CHOICE { INTEGER,
 	   OCTET STRING }, with the INTEGER first to make sure that we encode that
-	   preferentially.  In addition although the nonce should be an INTEGER 
-	   data value, it's really an INTEGER equivalent of an OCTET STRING hole 
-	   so we call it an octet string to make sure that it gets handled 
+	   preferentially.  In addition although the nonce should be an INTEGER
+	   data value, it's really an INTEGER equivalent of an OCTET STRING hole
+	   so we call it an octet string to make sure that it gets handled
 	   appropriately */
 	{ MKOID( "\x06\x09\x2B\x06\x01\x05\x05\x07\x30\x01\x02" ), CRYPT_CERTINFO_OCSP_NONCE,
 	  MKDESC( "ocspNonce" )
@@ -431,8 +429,8 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 		OID = 1 3 6 1 5 5 7 48 1 5
 		critical = FALSE
 		NULL
-	   This value is treated as a pseudo-numeric value that must be 
-	   CRYPT_UNUSED when written and is explicitly set to CRYPT_UNUSED when 
+	   This value is treated as a pseudo-numeric value that must be
+	   CRYPT_UNUSED when written and is explicitly set to CRYPT_UNUSED when
 	   read */
 	{ MKOID( "\x06\x09\x2B\x06\x01\x05\x05\x07\x30\x01\x05" ), CRYPT_CERTINFO_OCSP_NOCHECK,
 	  MKDESC( "ocspNoCheck" )
@@ -565,7 +563,7 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	{ NULL, CRYPT_CERTINFO_SUBJECTDIR_TYPE,
 	  MKDESC( "subjectDirectoryAttributes.attribute.type" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE | FL_MULTIVALUED, 3, 32, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, 0,
 	  MKDESC( "subjectDirectoryAttributes.attribute.values" )
 	  BER_SET, 0,
@@ -774,7 +772,7 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 				} OPTIONAL,
 			}
 
-		RFC 3280 extended this by adding two additional fields after the 
+		RFC 3280 extended this by adding two additional fields after the
 		GeneralName (probably from X.509v4), but mitigated it by requiring
 		that they never be used, so we leave the definition as is */
 	{ MKOID( "\x06\x03\x55\x1D\x1E" ), CRYPT_CERTINFO_NAMECONSTRAINTS,
@@ -876,7 +874,7 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 			explicitText	DisplayText OPTIONAL
 			}
 
-	   Note that although this extension is decoded at 
+	   Note that although this extension is decoded at
 	   CRYPT_COMPLIANCELEVEL_STANDARD, policy constraints are only enforced
 	   at CRYPT_COMPLIANCELEVEL_PKIX_FULL due to the totally bizarre
 	   requirements that some of them have (see comments in chk_*.c for more
@@ -892,7 +890,7 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	{ NULL, CRYPT_CERTINFO_CERTPOLICYID,
 	  MKDESC( "certPolicies.policyInfo.policyIdentifier" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE | FL_MULTIVALUED, 3, 32, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, 0,
 	  MKDESC( "certPolicies.policyInfo.policyQualifiers" )
 	  BER_SEQUENCE, 0,
@@ -961,11 +959,11 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	{ NULL, CRYPT_CERTINFO_ISSUERDOMAINPOLICY,
 	  MKDESC( "policyMappings.sequenceOf.issuerDomainPolicy" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE | FL_MULTIVALUED, 3, 32, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_SUBJECTDOMAINPOLICY,
 	  MKDESC( "policyMappings.sequenceOf.subjectDomainPolicy" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MULTIVALUED | FL_SEQEND_3, 3, 32, 0, NULL },
+	  FL_MULTIVALUED | FL_SEQEND_3, 3, MAX_OID_SIZE, 0, NULL },
 
 	/* authorityKeyIdentifier:
 		OID = 2 5 29 35
@@ -1358,14 +1356,14 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	{ NULL, CRYPT_CERTINFO_SET_TUNNELINGALGID,
 	  MKDESC( "tunneling.tunnelingAlgIDs.tunnelingAlgID" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MULTIVALUED | FL_SEQEND, 3, 32, 0, NULL },
+	  FL_MULTIVALUED | FL_SEQEND, 3, MAX_OID_SIZE, 0, NULL },
 
-	{ NULL, CRYPT_ERROR }
+	{ NULL, CRYPT_ERROR }, { NULL, CRYPT_ERROR }
 	};
 
 /* Subtable for encoding the holdInstructionCode */
 
-STATIC_DATA const FAR_BSS ATTRIBUTE_INFO holdInstructionInfo[] = {
+STATIC_DATA const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[] = {
 	{ MKOID( "\x06\x07\x2A\x86\x48\xCE\x38\x02\x01" ), CRYPT_HOLDINSTRUCTION_NONE,
 	  MKDESC( "holdInstructionCode.holdinstruction-none (1 2 840 10040 2 1)" )
 	  FIELDTYPE_IDENTIFIER, 0,
@@ -1383,7 +1381,7 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO holdInstructionInfo[] = {
 	  FIELDTYPE_IDENTIFIER, 0,
 	  FL_OPTIONAL, 0, 0, 0, NULL },
 
-	{ NULL, CRYPT_ERROR }
+	{ NULL, CRYPT_ERROR }, { NULL, CRYPT_ERROR }
 	};
 
 /****************************************************************************
@@ -1453,9 +1451,9 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO holdInstructionInfo[] = {
    never seen one before, now you know why they've been so enormously
    successful).
 
-   Note the special-case encoding of the DirectoryName and EDIPartyName.  
-   This is required because (for the DirectoryName) a Name is actually a 
-   CHOICE { RDNSequence }, and if the tagging were implicit then there'd be 
+   Note the special-case encoding of the DirectoryName and EDIPartyName.
+   This is required because (for the DirectoryName) a Name is actually a
+   CHOICE { RDNSequence }, and if the tagging were implicit then there'd be
    no way to tell which of the CHOICE options was being used:
 
 	directoryName	  [ 4 ]	Name OPTIONAL
@@ -1469,8 +1467,8 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO holdInstructionInfo[] = {
    was used (actually there's only one possibility and it's unlikely that
    there'll ever be more, but that's what the encoding rules require - X.208,
    section 26.7c).
-   
-   The same applies to the EDIPartyName, this is a DirectoryString which is 
+
+   The same applies to the EDIPartyName, this is a DirectoryString which is
    a CHOICE of several possible string types.  The end result is that:
 
 	[ 0 ] DirectoryString
@@ -1482,14 +1480,14 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO holdInstructionInfo[] = {
 		option2				T61String OPTIONAL,
 		option3				UTF8String OPTIONAL,
 		option4				BMPString OPTIONAL
-		} 
+		}
 
-   Newer versions of the PKIX core RFC allow the use of 8- and 32-byte CIDR 
-   forms for 4- and 16-byte IP addresses in some instances when they're 
-   being used as constraints.  We'll add support for this if anyone ever 
+   Newer versions of the PKIX core RFC allow the use of 8- and 32-byte CIDR
+   forms for 4- and 16-byte IP addresses in some instances when they're
+   being used as constraints.  We'll add support for this if anyone ever
    asks for it */
 
-STATIC_DATA const FAR_BSS ATTRIBUTE_INFO generalNameInfo[] = {
+STATIC_DATA const ATTRIBUTE_INFO FAR_BSS generalNameInfo[] = {
 	{ NULL, 0,
 	  MKDESC( "generalName.otherName" )
 	  BER_SEQUENCE, CTAG( 0 ),
@@ -1497,7 +1495,7 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO generalNameInfo[] = {
 	{ NULL, CRYPT_CERTINFO_OTHERNAME_TYPEID,
 	  MKDESC( "generalName.otherName.type-id" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE | FL_OPTIONAL, 3, 32, 0, NULL },
+	  FL_MORE | FL_OPTIONAL, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_OTHERNAME_VALUE,
 	  MKDESC( "generalName.otherName.value" )
 	  FIELDTYPE_BLOB, CTAG( 0 ),
@@ -1557,9 +1555,9 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO generalNameInfo[] = {
 	{ NULL, CRYPT_CERTINFO_REGISTEREDID,
 	  MKDESC( "generalName.registeredID" )
 	  BER_OBJECT_IDENTIFIER, CTAG( 8 ),
-	  FL_OPTIONAL, 3, 32, 0, NULL },
+	  FL_OPTIONAL, 3, MAX_OID_SIZE, 0, NULL },
 
-	{ NULL, CRYPT_ERROR }
+	{ NULL, CRYPT_ERROR }, { NULL, CRYPT_ERROR }
 	};
 
 /****************************************************************************
@@ -1570,7 +1568,7 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO generalNameInfo[] = {
 
 /* CMS attributes are encoded using the following table */
 
-static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
+static const ATTRIBUTE_INFO FAR_BSS cmsAttributeInfo[] = {
 	/* contentType:
 		OID = 1 2 840 113549 1 9 3
 		OBJECT IDENTIFIER */
@@ -1785,14 +1783,14 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	  MKDESC( "essSecurityLabel" )
 	  BER_SET, 0,
 	  FL_MORE, 0, 0, 0, NULL },
+	{ NULL, CRYPT_CERTINFO_CMS_SECLABEL_POLICY,
+	  MKDESC( "essSecurityLabel.securityPolicyIdentifier" )
+	  BER_OBJECT_IDENTIFIER, 0,
+	  FL_MORE, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CMS_SECLABEL_CLASSIFICATION,
 	  MKDESC( "essSecurityLabel.securityClassification" )
 	  BER_INTEGER, 0,
 	  FL_MORE | FL_OPTIONAL, CRYPT_CLASSIFICATION_UNMARKED, CRYPT_CLASSIFICATION_LAST, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_CMS_SECLABEL_POLICY,
-	  MKDESC( "essSecurityLabel.securityPolicyIdentifier" )
-	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE, 3, 32, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CMS_SECLABEL_PRIVACYMARK,
 	  MKDESC( "essSecurityLabel.privacyMark" )
 	  BER_STRING_PRINTABLE, 0,
@@ -1808,9 +1806,9 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	{ NULL, CRYPT_CERTINFO_CMS_SECLABEL_CATTYPE,
 	  MKDESC( "essSecurityLabel.securityCategories.securityCategory.type" )
 	  BER_OBJECT_IDENTIFIER, CTAG( 0 ),
-	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 3, 32, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CMS_SECLABEL_CATVALUE,
-	  MKDESC( "essSecurityLabel.securityCategories.securityCategory.type" )
+	  MKDESC( "essSecurityLabel.securityCategories.securityCategory.value" )
 	  FIELDTYPE_BLOB, CTAG( 1 ),
 	  FL_MULTIVALUED | FL_SEQEND_2 | FL_OPTIONAL, 1, 512, 0, NULL },
 
@@ -1928,7 +1926,7 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	{ NULL, CRYPT_CERTINFO_CMS_EQVLABEL_POLICY,
 	  MKDESC( "equivalentLabels.set.securityPolicyIdentifier" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE | FL_MULTIVALUED, 3, 32, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CMS_EQVLABEL_PRIVACYMARK,
 	  MKDESC( "equivalentLabels.set.privacyMark" )
 	  BER_STRING_PRINTABLE, 0,
@@ -1944,7 +1942,7 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	{ NULL, CRYPT_CERTINFO_CMS_EQVLABEL_CATTYPE,
 	  MKDESC( "equivalentLabels.set.securityCategories.securityCategory.type" )
 	  BER_OBJECT_IDENTIFIER, CTAG( 0 ),
-	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 3, 32, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CMS_EQVLABEL_CATVALUE,
 	  MKDESC( "equivalentLabels.set.securityCategories.securityCategory.value" )
 	  FIELDTYPE_BLOB, CTAG( 1 ),
@@ -1983,7 +1981,7 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	{ NULL, CRYPT_CERTINFO_CMS_SIGNINGCERT_POLICIES,
 	  MKDESC( "signingCertificate.policies.policyInfo.policyIdentifier" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MULTIVALUED | FL_OPTIONAL | FL_SEQEND_2, 3, 32, 0, NULL },
+	  FL_MULTIVALUED | FL_OPTIONAL | FL_SEQEND_2, 3, MAX_OID_SIZE, 0, NULL },
 
 	/* signaturePolicyID:
 		OID = 1 2 840 113549 1 9 16 2 15
@@ -2014,7 +2012,7 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	{ NULL, CRYPT_CERTINFO_CMS_SIGPOLICYID,
 	  MKDESC( "signaturePolicyID.sigPolicyID" )
 	  BER_OBJECT_IDENTIFIER, 0,
-	  FL_MORE, 3, 32, 0, NULL },
+	  FL_MORE, 3, MAX_OID_SIZE, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CMS_SIGPOLICYHASH,
 	  MKDESC( "signaturePolicyID.sigPolicyHash" )
 	  FIELDTYPE_BLOB, 0,
@@ -2121,7 +2119,7 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 			OID = 2 16 840 1 113733 1 9 3
 			PrintableString
 		failInfo
-			OID = 2 16 840 1 113733 1 9 4 
+			OID = 2 16 840 1 113733 1 9 4
 			PrintableString
 		senderNonce
 			OID = 2 16 840 1 113733 1 9 5
@@ -2164,7 +2162,7 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 				??? (= [ 0 ] IA5String )
 				}
 			}
-	   The format for this attribute is unknown but it seems to be an 
+	   The format for this attribute is unknown but it seems to be an
 	   unnecessarily nested URL which is probably an IA5String */
 	{ MKOID( "\x06\x0A\x2B\x06\x01\x04\x01\x82\x37\x02\x01\x0A" ), CRYPT_CERTINFO_CMS_SPCAGENCYINFO,
 	  MKDESC( "spcAgencyInfo" )
@@ -2210,8 +2208,8 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 				??? (= [ 0 ] IA5String )
 				}
 			}
-	   The format for this attribute is unknown but it seems to be either an 
-	   empty sequence or some nested set of tagged fields that eventually 
+	   The format for this attribute is unknown but it seems to be either an
+	   empty sequence or some nested set of tagged fields that eventually
 	   end up as text strings */
 	{ MKOID( "\x06\x0A\x2B\x06\x01\x04\x01\x82\x37\x02\x01\x0C" ), CRYPT_CERTINFO_CMS_SPCOPUSINFO,
 	  MKDESC( "spcOpusInfo" )
@@ -2234,12 +2232,12 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	  BER_STRING_IA5, MAKE_CTAG_PRIMITIVE( 0 ),
 	  FL_OPTIONAL | FL_SEQEND, MIN_URL_SIZE, MAX_URL_SIZE, 0, ( void * ) checkHTTP },
 
-	{ NULL, CRYPT_ERROR }
+	{ NULL, CRYPT_ERROR }, { NULL, CRYPT_ERROR }
 	};
 
 /* Subtable for encoding the contentType */
 
-STATIC_DATA const FAR_BSS ATTRIBUTE_INFO contentTypeInfo[] = {
+STATIC_DATA const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[] = {
 	{ OID_CMS_DATA, CRYPT_CONTENT_DATA,
 	  MKDESC( "contentType.data (1 2 840 113549 1 7 1)" )
 	  FIELDTYPE_IDENTIFIER, 0,
@@ -2289,10 +2287,11 @@ STATIC_DATA const FAR_BSS ATTRIBUTE_INFO contentTypeInfo[] = {
 	  FIELDTYPE_IDENTIFIER, 0,
 	  FL_OPTIONAL, 0, 0, 0, NULL },
 
-	{ NULL, CRYPT_ERROR }
+	{ NULL, CRYPT_ERROR }, { NULL, CRYPT_ERROR }
 	};
 
-/* Select the appropriate attribute info table for encoding/type checking */
+/* Select the appropriate attribute info table for encoding/type checking, 
+   and get its size */
 
 const ATTRIBUTE_INFO *selectAttributeInfo( const ATTRIBUTE_TYPE attributeType )
 	{
@@ -2300,7 +2299,7 @@ const ATTRIBUTE_INFO *selectAttributeInfo( const ATTRIBUTE_TYPE attributeType )
 			attributeType == ATTRIBUTE_CMS );
 
 	/* Sanity checks on various encoded attribute info flags. This isn't a
-	   particularly optimal place to put this, but it's better than any 
+	   particularly optimal place to put this, but it's better than any
 	   other */
 	assert( decodeNestingLevel( FL_SEQEND ) == 1 );
 	assert( decodeNestingLevel( FL_SEQEND_1 ) == 1 );
@@ -2316,20 +2315,30 @@ const ATTRIBUTE_INFO *selectAttributeInfo( const ATTRIBUTE_TYPE attributeType )
 			cmsAttributeInfo : extensionInfo );
 	}
 
+const int sizeofAttributeInfo( const ATTRIBUTE_TYPE attributeType )
+	{
+	assert( attributeType == ATTRIBUTE_CERTIFICATE || \
+			attributeType == ATTRIBUTE_CMS );
+
+	return( ( attributeType == ATTRIBUTE_CMS ) ? \
+			FAILSAFE_ARRAYSIZE( cmsAttributeInfo, ATTRIBUTE_INFO ) : \
+			FAILSAFE_ARRAYSIZE( extensionInfo, ATTRIBUTE_INFO ) );
+	}
+
 /****************************************************************************
 *																			*
 *						Extended Validity Checking Functions				*
 *																			*
 ****************************************************************************/
 
-/* Determine whether a variety of URIs are valid.  The PKIX RFC refers to a 
-   pile of complex parsing rules for various URI forms, since cryptlib is 
+/* Determine whether a variety of URIs are valid.  The PKIX RFC refers to a
+   pile of complex parsing rules for various URI forms, since cryptlib is
    neither a resolver nor an MTA nor a web browser it leaves it up to the
-   calling application to decide whether a particular form is acceptable to 
-   it or not.  We do however perform a few basic checks to weed out 
+   calling application to decide whether a particular form is acceptable to
+   it or not.  We do however perform a few basic checks to weed out
    obviously-incorrect forms here */
 
-typedef enum { 
+typedef enum {
 	URL_NONE,				/* No URL */
 	URL_RFC822,				/* Email address */
 	URL_DNS,				/* FQDN */
@@ -2338,21 +2347,34 @@ typedef enum {
 	URL_LAST				/* Last possible URL type */
 	} URL_CHECK_TYPE;
 
-static int checkURLString( const char *url, const int urlLength, 
+static int checkURLString( const char *url, const int urlLength,
 						   const URL_CHECK_TYPE urlType )
 	{
-	const char *schemaPtr;
-	int length = urlLength, i;
+	const char *schemaPtr = NULL;
+	int schemaLength = 0, length = urlLength, i;
 
-	/* Check for a schema separator */
-	schemaPtr = strstr( url, "://" );
-	if( schemaPtr != NULL )
+	/* Check for a schema separator.  This get a bit complicated because
+	   some use "://" (HTTP, FTP, LDAP) and others just use ":" (SMTP, SIP), 
+	   so we have to check for both.  We can't check for a possibly-
+	   malformed ":/" because this could be something like 
+	   "file:/dir/filename", which is valid */
+	for( i = 0; i < urlLength; i++ )
 		{
-		const char *urlStart = url;
+		if( url[ i ] == ':' )
+			{
+			int offset = i + 1; /* Skip schema + ":" */
+			if( offset + 2 <= urlLength && \
+				!memcmp( url + offset, "//", 2 ) )
+				offset += 2;    /* Skip additional "//" */
+			if( offset >= urlLength )
+				return( CRYPT_ERRTYPE_ATTR_VALUE );
 
-		url = schemaPtr + 3;	/* Skip "://" */
-		schemaPtr = urlStart;
-		length = schemaPtr - urlStart;
+			schemaLength = i;
+			schemaPtr = url;
+			url += offset;
+			length = urlLength - offset;
+			break;
+			}
 		}
 
 	/* Make sure that the start of the URL looks valid */
@@ -2385,7 +2407,7 @@ static int checkURLString( const char *url, const int urlLength,
 			break;
 
 		case URL_ANY:
-			if( schemaPtr == NULL || urlLength < 7 )
+			if( schemaPtr == NULL || schemaLength < 3 || length < 3 )
 				return( CRYPT_ERRTYPE_ATTR_VALUE );
 			break;
 
@@ -2411,25 +2433,25 @@ static int checkURLString( const char *url, const int urlLength,
 
 static int checkRFC822( const ATTRIBUTE_LIST *attributeListPtr )
 	{
-	return( checkURLString( attributeListPtr->value, 
+	return( checkURLString( attributeListPtr->value,
 							attributeListPtr->valueLength, URL_RFC822 ) );
 	}
 
 static int checkDNS( const ATTRIBUTE_LIST *attributeListPtr )
 	{
-	return( checkURLString( attributeListPtr->value, 
+	return( checkURLString( attributeListPtr->value,
 							attributeListPtr->valueLength, URL_DNS ) );
 	}
 
 static int checkURL( const ATTRIBUTE_LIST *attributeListPtr )
 	{
-	return( checkURLString( attributeListPtr->value, 
+	return( checkURLString( attributeListPtr->value,
 							attributeListPtr->valueLength, URL_ANY ) );
 	}
 
 static int checkHTTP( const ATTRIBUTE_LIST *attributeListPtr )
 	{
-	return( checkURLString( attributeListPtr->value, 
+	return( checkURLString( attributeListPtr->value,
 							attributeListPtr->valueLength, URL_HTTP ) );
 	}
 

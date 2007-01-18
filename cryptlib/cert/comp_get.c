@@ -1,23 +1,16 @@
 /****************************************************************************
 *																			*
 *						Get/Delete Certificate Components					*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2006					*
 *																			*
 ****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdio.h>		/* For sprintf() */
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
@@ -31,16 +24,32 @@
 *																			*
 ****************************************************************************/
 
+/* The maximum size of an OID value.  Anything larger than this is most
+   likely an error */
+
+#define OID_VALUE_MAX		0x1000000L	/* 2 ^ 28 */
+
+/* The minimum size for an OBJECT IDENTIFIER expressed as ASCII characters */
+
+#define MIN_ASCII_OIDSIZE	7
+
 /* Convert a binary OID to its text form */
 
-int oidToText( const BYTE *binaryOID, char *oid )
+static int oidToText( const BYTE *binaryOID, const int binaryOidLen,
+					  char *oid, const int maxOidLen )
 	{
-	char *outputPtr = oid;
-	int i, j, length = binaryOID[ 1 ];
+	const int oidDataLen = sizeofOID( binaryOID );
+	int i, j, length, subLen;
 	long value;
-#ifdef sun
-	BOOLEAN brokenSprintf = FALSE;
-#endif /* sun */
+
+	assert( isReadPtr( binaryOID, binaryOidLen ) );
+	assert( isWritePtr( oid, maxOidLen ) );
+
+	/* Perform a sanity check on the OID data.  This has already been done
+	   elsewhere, but we check it again here just to be safe */
+	if( oidDataLen < 5 || oidDataLen > MAX_OID_SIZE || \
+		oidDataLen != binaryOidLen )
+		return( CRYPT_ERROR_BADDATA );
 
 	/* Pick apart the OID.  This assumes that no OID component will be
 	   larger than LONG_MAX */
@@ -52,51 +61,170 @@ int oidToText( const BYTE *binaryOID, char *oid )
 		j += ( i - 2 ) * 40;
 		i = 2;
 		}
-#ifdef sun
-	if( sprintf( outputPtr, "X" ) != 1 )
-		{
-		/* SunOS/Slowaris has broken sprintf() handling.  In SunOS 4.x this
-		   was documented as returning a pointer to the output data as per
-		   the Berkeley original.  Under Slowaris the manpage was changed so
-		   that it looks like any other sprintf(), but it still returns the
-		   pointer to the output buffer in some versions so we have to check
-		   at runtime to see what we've got and adjust our behaviour
-		   accordingly.  In addition the standard sprintf()s require casts
-		   of the return value to avoid compile errors when building on SunOS
-		   systems, these are safe because that code path is never taken on
-		   these systems */
-		assert( sprintf( outputPtr, "123" ) >= 4 );	/* Double-check */
-		brokenSprintf = TRUE;
-		outputPtr += strlen( ( void * ) sprintf( outputPtr, "%d %d", i, j ) );
-		}
-	else
-#endif /* Sun braindamage */
-	outputPtr += ( int ) sPrintf( outputPtr, "%d %d", i, j );
+	subLen = sPrintf_s( oid, maxOidLen, "%d %d", i, j );
+	if( subLen < 3 )
+		return( CRYPT_ERROR_BADDATA );
+	length = subLen;
 	value = 0;
-	for( i = 3; i < length + 2; i++ )
+	for( i = 3; i < oidDataLen; i++ )
 		{
-		value = ( value << 7 ) | ( binaryOID[ i ] & 0x7F );
-		if( !( binaryOID[ i ] & 0x80 ) )
+		const BYTE data = binaryOID[ i ];
+		const long valTmp = value << 7;
+
+		if( valTmp < value )
+			return( CRYPT_ERROR_BADDATA );	/* Overflow */
+		value = valTmp | ( data & 0x7F );
+		if( value < 0 || value > OID_VALUE_MAX )
+			return( CRYPT_ERROR_BADDATA );	/* Range error */
+		if( !( data & 0x80 ) )
 			{
-#ifdef sun
-			if( brokenSprintf )
-				outputPtr += strlen( ( void * ) sprintf( outputPtr, " %ld", value ) );
-			else
-#endif /* Sun braindamage */
-			outputPtr += ( int ) sPrintf( outputPtr, " %ld", value );
+			subLen = sPrintf_s( oid + length, maxOidLen - length, 
+								" %ld", value );
+			if( subLen < 2 )
+				return( CRYPT_ERROR_BADDATA );
+			length += subLen;
 			value = 0;
 			}
 
 		/* Make sure that we don't overflow the buffer (the value 20 is the
-		   maximum magnitude of a 64-bit int plus space plus '\0') */
-		if( outputPtr - oid > ( CRYPT_MAX_TEXTSIZE * 2 ) - 20 )
+		   maximum magnitude of a 64-bit int plus space plus 1-byte 
+		   overflow) */
+		if( maxOidLen - length < 20 )
 			return( CRYPT_ERROR_BADDATA );
 		}
-	length = strlen( oid );
-	oid[ length ] = '\0';		/* Not really necessary, but nice */
 
 	return( length );
 	}
+
+/* Convert an ASCII OID arc sequence into an encoded OID and back.  We allow
+   dots as well as whitespace for arc separators, these are an IETF-ism but
+   are in common use */
+
+static int scanValue( const char *string, const int strMaxLength,
+					  long *value )
+	{
+	long retVal = 0;
+	int dataLeft = strMaxLength;
+
+	assert( isReadPtr( string, strMaxLength ) );
+	assert( isWritePtr( value, sizeof( long ) ) );
+
+	/* Clear return value */
+	*value = -1L;
+
+	if( dataLeft <= 0 || dataLeft > CRYPT_MAX_TEXTSIZE || \
+		!isDigit( *string ) )
+		return( -1 );
+	while( dataLeft > 0 && isDigit( *string ) )
+		{
+		const long retTmp = retVal * 10;
+
+		if( retTmp < retVal )
+			return( -1 );	/* Overflow */
+		retVal = retTmp + ( *string++ - '0' );
+		if( retVal < 0 || retVal > OID_VALUE_MAX )
+			return( -1 );	/* Range error */
+		dataLeft--;
+		}
+	if( dataLeft > 0 && ( *string == ' ' || *string == '.' ) )
+		{
+		string++;
+		dataLeft--;
+		}
+	if( dataLeft > 0 && !isDigit( *string ) )
+		return( -1 );
+	*value = retVal;
+	return( strMaxLength - dataLeft );
+	}
+
+int textToOID( const char *oid, const int oidLength, BYTE *binaryOID,
+			   const int maxBinaryOidLen )
+	{
+	long value, value2;
+	int length = 3, subLen, dataLeft = oidLength;
+
+	assert( isReadPtr( oid, oidLength ) );
+	assert( isWritePtr( binaryOID, maxBinaryOidLen ) );
+	assert( maxBinaryOidLen >= 5 );
+
+	/* Clear return value */
+	memset( binaryOID, 0, min( 8, maxBinaryOidLen ) );
+
+	/* Perform some basic checks on the OID data */
+	if( oidLength < MIN_ASCII_OIDSIZE || oidLength > CRYPT_MAX_TEXTSIZE )
+		return( CRYPT_ERROR_BADDATA );
+	while( dataLeft > 0 && ( *oid == ' ' || *oid == '\t' ) )
+		{
+		oid++;		/* Skip leading whitespace */
+		dataLeft--;
+		}
+	while( dataLeft > 0 && \
+		   ( oid[ dataLeft - 1 ] == ' ' || oid[ dataLeft - 1 ] == '\t' ) )
+		dataLeft--;	/* Skip trailing whitespace */
+	if( dataLeft <= 0 )
+		return( CRYPT_ERROR_BADDATA );
+
+	/* Make sure that the first two arcs are in order */
+	subLen = scanValue( oid, dataLeft, &value );
+	if( subLen <= 0 )
+		return( CRYPT_ERROR_BADDATA );
+	oid += subLen;
+	dataLeft -= subLen;
+	subLen = scanValue( oid, dataLeft, &value2 );
+	if( subLen <= 0 )
+		return( CRYPT_ERROR_BADDATA );
+	oid += subLen;
+	dataLeft -= subLen;
+	if( value < 0 || value > 2 || value2 < 1 || \
+		( ( value < 2 && value2 > 39 ) || ( value == 2 && value2 > 175 ) ) )
+		return( CRYPT_ERROR_BADDATA );
+	binaryOID[ 0 ] = 0x06;	/* OBJECT IDENTIFIER tag */
+	binaryOID[ 2 ] = ( BYTE )( ( value * 40 ) + value2 );
+
+	/* Convert the remaining arcs */
+	while( dataLeft > 0 )
+		{
+		BOOLEAN hasHighBits = FALSE;
+
+		/* Scan the next value and write the high octets (if necessary) with
+		   flag bits set, followed by the final octet */
+		subLen = scanValue( oid, dataLeft, &value );
+		if( subLen <= 0 )
+			return( CRYPT_ERROR_BADDATA );
+		oid += subLen;
+		dataLeft -= subLen;
+		if( value >= 0x200000L )					/* 2^21 */
+			{
+			if( length >= maxBinaryOidLen )
+				return( CRYPT_ERROR_BADDATA );
+			binaryOID[ length++ ] = ( BYTE ) ( 0x80 | ( value >> 21 ) );
+			value %= 0x200000L;
+			hasHighBits = TRUE;
+			}
+		if( ( value >= 0x4000 ) || hasHighBits )	/* 2^14 */
+			{
+			if( length >= maxBinaryOidLen )
+				return( CRYPT_ERROR_BADDATA );
+			binaryOID[ length++ ] = ( BYTE ) ( 0x80 | ( value >> 14 ) );
+			value %= 0x4000;
+			hasHighBits = TRUE;
+			}
+		if( ( value >= 0x80 ) || hasHighBits )		/* 2^7 */
+			{
+			if( length >= maxBinaryOidLen )
+				return( CRYPT_ERROR_BADDATA );
+			binaryOID[ length++ ] = ( BYTE ) ( 0x80 | ( value >> 7 ) );
+			value %= 128;
+			}
+		if( length >= maxBinaryOidLen )
+			return( CRYPT_ERROR_BADDATA );
+		binaryOID[ length++ ] = ( BYTE ) value;
+		}
+	binaryOID[ 1 ] = length - 2;
+
+	return( length );
+	}
+
 
 /* Copy data from a cert */
 
@@ -254,11 +382,12 @@ static int findDnInExtension( CERT_INFO *certInfoPtr,
 	assert( selectionInfoConsistent( certInfoPtr ) );
 
 	/* Search for a DN in the current GeneralName */
-	for( attributeListPtr = certInfoPtr->attributeCursor; \
+	for( attributeListPtr = certInfoPtr->attributeCursor; 
 		 attributeListPtr != NULL && \
 			attributeListPtr->attributeID == attributeID && \
-			attributeListPtr->fieldID == fieldID; \
+			attributeListPtr->fieldID == fieldID; 
 		 attributeListPtr = attributeListPtr->next )
+		{
 		if( attributeListPtr->fieldType == FIELDTYPE_DN )
 			{
 			/* We found a DN, select it */
@@ -269,6 +398,7 @@ static int findDnInExtension( CERT_INFO *certInfoPtr,
 			assert( selectionInfoConsistent( certInfoPtr ) );
 			return( CRYPT_OK );
 			}
+		}
 
 	return( CRYPT_ERROR_NOTFOUND );
 	}
@@ -537,12 +667,16 @@ static int getCertAttributeComponentData( const ATTRIBUTE_LIST *attributeListPtr
 	   form before we return it */
 	if( attributeListPtr->fieldType == BER_OBJECT_IDENTIFIER )
 		{
-		char textOID[ CRYPT_MAX_TEXTSIZE * 2 ];
+		char textOID[ ( CRYPT_MAX_TEXTSIZE * 2 ) + 8 ];
 		int length;
 
 		assert( certInfoLength != NULL );
 
-		length = oidToText( attributeListPtr->value, textOID );
+		length = oidToText( attributeListPtr->value, 
+							attributeListPtr->valueLength, 
+							textOID, CRYPT_MAX_TEXTSIZE * 2 );
+		if( cryptStatusError( length ) )
+			return( length );
 		*certInfoLength = length;
 		if( certInfo == NULL )
 			return( CRYPT_OK );
@@ -580,7 +714,7 @@ static int getCertAttributeComponent( CERT_INFO *certInfoPtr,
 
 	assert( ( certInfo == NULL && *certInfoLength == 0 ) || \
 			( certInfoLength == NULL ) || \
-			( *certInfoLength > 0 && *certInfoLength <= 32768 ) );
+			( *certInfoLength > 0 && *certInfoLength <= 16384 ) );
 
 	/* Try and find this attribute in the attribute list */
 	if( isRevocationEntryComponent( certInfoType ) )
@@ -658,7 +792,7 @@ static int getCertHash( CERT_INFO *certInfoPtr,
 				( certInfoType == CRYPT_CERTINFO_FINGERPRINT_MD5 ) ? \
 				CRYPT_ALGO_MD5 : CRYPT_ALGO_SHA;
 	HASHFUNCTION hashFunction;
-	BYTE hash[ CRYPT_MAX_HASHSIZE ];
+	BYTE hash[ CRYPT_MAX_HASHSIZE + 8 ];
 	const int maxLength = *certInfoLength;
 	int hashSize;
 
@@ -679,7 +813,7 @@ static int getCertHash( CERT_INFO *certInfoPtr,
 		memcpy( certInfo, certInfoPtr->certHash, KEYID_SIZE );
 		return( CRYPT_OK );
 		}
-	hashFunction( NULL, hash, certInfoPtr->certificate,
+	hashFunction( NULL, hash, CRYPT_MAX_HASHSIZE, certInfoPtr->certificate,
 				  certInfoPtr->certificateSize, HASH_ALL );
 	memcpy( certInfo, hash, hashSize );
 	if( cryptAlgo == CRYPT_ALGO_SHA )
@@ -699,8 +833,10 @@ static int getCrlEntry( CERT_INFO *certInfoPtr, void *certInfo,
 	{
 	CERT_REV_INFO *certRevInfo = certInfoPtr->cCertRev;
 	STREAM stream;
+	const CERTWRITE_INFO *certWriteInfo;
 	const int maxLength = *certInfoLength;
-	int crlEntrySize, i, status;
+	const int certWriteInfoSize = sizeofCertWriteTable();
+	int crlEntrySize, iterationCount = 0, status;
 
 	assert( certInfoPtr->type == CRYPT_CERTTYPE_CRL );
 
@@ -713,16 +849,20 @@ static int getCrlEntry( CERT_INFO *certInfoPtr, void *certInfo,
 	   pseudo-sign the cert object in order to write the data, which 
 	   doesn't work for CRL entries where we could end up pseudo-singing it 
 	   multiple times */
-	for( i = 0; certWriteTable[ i ].type != CRYPT_CERTTYPE_CRL && \
-				certWriteTable[ i ].type != CRYPT_CERTTYPE_NONE; i++ );
-	if( certWriteTable[ i ].type == CRYPT_CERTTYPE_NONE )
+	for( certWriteInfo = getCertWriteTable();
+		 certWriteInfo->type != CRYPT_CERTTYPE_CRL && \
+			certWriteInfo->type != CRYPT_CERTTYPE_NONE && \
+			iterationCount++ < certWriteInfoSize; 
+		 certWriteInfo++ );
+	if( iterationCount >= certWriteInfoSize || \
+		certWriteInfo->type == CRYPT_CERTTYPE_NONE )
 		{
 		assert( NOTREACHED );
 		return( CRYPT_ERROR_NOTAVAIL );
 		}
 	sMemOpen( &stream, NULL, 0 );
-	status = certWriteTable[ i ].writeFunction( &stream, certInfoPtr,
-												NULL, CRYPT_UNUSED );
+	status = certWriteInfo->writeFunction( &stream, certInfoPtr, NULL, 
+										   CRYPT_UNUSED );
 	crlEntrySize = stell( &stream );
 	sMemClose( &stream );
 	if( cryptStatusError( status ) )
@@ -735,8 +875,8 @@ static int getCrlEntry( CERT_INFO *certInfoPtr, void *certInfo,
 	if( crlEntrySize > maxLength )
 		return( CRYPT_ERROR_OVERFLOW );
 	sMemOpen( &stream, certInfo, crlEntrySize );
-	status = certWriteTable[ i ].writeFunction( &stream, certInfoPtr,
-												NULL, CRYPT_UNUSED );
+	status = certWriteInfo->writeFunction( &stream, certInfoPtr, NULL, 
+										   CRYPT_UNUSED );
 	sMemDisconnect( &stream );
 
 	return( status );
@@ -802,7 +942,8 @@ static int getESSCertID( CERT_INFO *certInfoPtr, void *certInfo,
 	getHashParameters( CRYPT_ALGO_SHA, &hashFunction, &hashSize );
 	if( !certInfoPtr->certHashSet )
 		{
-		hashFunction( NULL, certInfoPtr->certHash, certInfoPtr->certificate,
+		hashFunction( NULL, certInfoPtr->certHash, KEYID_SIZE,
+					  certInfoPtr->certificate, 
 					  certInfoPtr->certificateSize, HASH_ALL );
 		certInfoPtr->certHashSet = TRUE;
 		}
@@ -852,8 +993,8 @@ static int getPkiUserInfo( CERT_INFO *certInfoPtr,
 						   void *certInfo, int *certInfoLength )
 	{
 	CERT_PKIUSER_INFO *certUserInfo = certInfoPtr->cCertUser;
-	char encUserInfo[ 128 ];
-	BYTE userInfo[ 128 ], *userInfoPtr = userInfo;
+	char encUserInfo[ CRYPT_MAX_TEXTSIZE + 8 ];
+	BYTE userInfo[ 128 + 8 ], *userInfoPtr = userInfo;
 	const int maxLength = *certInfoLength;
 	int userInfoLength = 128, status;
 
@@ -869,15 +1010,18 @@ static int getPkiUserInfo( CERT_INFO *certInfoPtr,
 	else
 		userInfoPtr = ( certInfoType == CRYPT_CERTINFO_PKIUSER_ISSUEPASSWORD ) ? \
 					  certUserInfo->pkiIssuePW : certUserInfo->pkiRevPW;
-	*certInfoLength = encodePKIUserValue( encUserInfo, userInfoPtr,
+	status = encodePKIUserValue( encUserInfo, CRYPT_MAX_TEXTSIZE, userInfoPtr,
 				( certInfoType == CRYPT_CERTINFO_PKIUSER_ID ) ? 3 : 4 );
-	zeroise( userInfo, 128 );
+	zeroise( userInfo, CRYPT_MAX_TEXTSIZE );
+	if( cryptStatusError( status ) )
+		return( status );
+	*certInfoLength = status;
 	if( certInfo == NULL )
 		return( CRYPT_OK );
 	if( *certInfoLength > maxLength )
 		return( CRYPT_ERROR_OVERFLOW );
 	memcpy( certInfo, encUserInfo, *certInfoLength );
-	zeroise( encUserInfo, 128 );
+	zeroise( encUserInfo, CRYPT_MAX_TEXTSIZE );
 	return( CRYPT_OK );
 	}
 
@@ -933,7 +1077,7 @@ int getCertComponent( CERT_INFO *certInfoPtr,
 
 	assert( ( certInfo == NULL && *certInfoLength == 0 ) || \
 			( certInfoLength == NULL ) || \
-			( *certInfoLength > 0 && *certInfoLength <= 32768 ) );
+			( *certInfoLength > 0 && *certInfoLength <= 16384 ) );
 
 	/* If it's a GeneralName or DN component, return it.  These are 
 	   special-case attribute values, so they have to come before the 
@@ -1017,7 +1161,7 @@ int getCertComponent( CERT_INFO *certInfoPtr,
 
 		case CRYPT_CERTINFO_XYZZY:
 			{
-			BYTE policyOID[ MAX_OID_SIZE ];
+			BYTE policyOID[ MAX_OID_SIZE + 8 ];
 			int policyOIDLength = MAX_OID_SIZE;
 
 			/* Check for the presence of the XYZZY policy OID */
@@ -1130,7 +1274,7 @@ int getCertComponent( CERT_INFO *certInfoPtr,
 
 		case CRYPT_CERTINFO_VALIDFROM:
 		case CRYPT_CERTINFO_THISUPDATE:
-			if( certInfoPtr->startTime > 0 )
+			if( certInfoPtr->startTime > MIN_CERT_TIME_VALUE )
 				{
 				data = &certInfoPtr->startTime;
 				dataLength = sizeof( time_t );
@@ -1140,7 +1284,7 @@ int getCertComponent( CERT_INFO *certInfoPtr,
 
 		case CRYPT_CERTINFO_VALIDTO:
 		case CRYPT_CERTINFO_NEXTUPDATE:
-			if( certInfoPtr->endTime > 0 )
+			if( certInfoPtr->endTime > MIN_CERT_TIME_VALUE )
 				{
 				data = &certInfoPtr->endTime;
 				dataLength = sizeof( time_t );
@@ -1258,6 +1402,10 @@ int getCertComponent( CERT_INFO *certInfoPtr,
 				*dataStartPtr = BER_SEQUENCE;
 			return( status );
 			}
+
+		case CRYPT_IATTRIBUTE_CERTHASHALGO:
+			return( copyCertInfoValue( certInfo, 
+									   certInfoPtr->cCertCert->hashAlgo ) );
 
 		case CRYPT_IATTRIBUTE_RESPONDERURL:
 			{
@@ -1456,17 +1604,19 @@ int deleteCertComponent( CERT_INFO *certInfoPtr,
 		fieldID = certInfoPtr->attributeCursor->fieldID;
 
 		/* Delete each field in the GeneralName */
-		for( attributeListPtr = certInfoPtr->attributeCursor; \
+		for( attributeListPtr = certInfoPtr->attributeCursor; 
 			 attributeListPtr != NULL && \
 				attributeListPtr->attributeID == attributeID && \
-				attributeListPtr->fieldID == fieldID; \
+				attributeListPtr->fieldID == fieldID; 
 			 attributeListPtr = attributeListPtr->next )
+			{
 			if( deleteAttributeField( &certInfoPtr->attributes,
 						&certInfoPtr->attributeCursor, attributeListPtr,
 						certInfoPtr->currentSelection.dnPtr ) == OK_SPECIAL )
 				/* We've deleted the attribute containing the currently
 				   selected DN, deselect it */
 				certInfoPtr->currentSelection.dnPtr = NULL;
+			}
 		return( CRYPT_OK );
 		}
 	if( isGeneralNameComponent( certInfoType ) )

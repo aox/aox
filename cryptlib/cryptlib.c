@@ -1,13 +1,10 @@
 /****************************************************************************
 *																			*
 *							cryptlib Core Routines							*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "crypt.h"
 
 /* Prototypes for functions in init.c */
@@ -123,13 +120,14 @@ static const MANAGEMENT_FUNCTION asyncInitFunctions[] = {
   #ifdef USE_SESSIONS
 	sessionManagementFunction, 
   #endif /* USE_SESSIONS */
-	NULL 
+	NULL, NULL 
 	};
 static const MANAGEMENT_FUNCTION preShutdownFunctions[] = {
   #ifdef USE_SESSIONS
 	sessionManagementFunction, 
   #endif /* USE_SESSIONS */
-	deviceManagementFunction, NULL 
+	deviceManagementFunction, 
+	NULL, NULL 
 	};
 static const MANAGEMENT_FUNCTION shutdownFunctions[] = {
 	/*userManagementFunction,*/ /*deviceManagementFunction,*/ 
@@ -140,7 +138,7 @@ static const MANAGEMENT_FUNCTION shutdownFunctions[] = {
   #ifdef USE_SESSIONS
 	sessionManagementFunction, 
   #endif /* USE_SESSIONS */
-	NULL 
+	NULL, NULL 
 	};
 
 /* Dispatch a set of management actions */
@@ -150,12 +148,26 @@ static int dispatchManagementAction( const MANAGEMENT_FUNCTION *mgmtFunctions,
 	{
 	int i, status = CRYPT_OK;
 
-	for( i = 0; mgmtFunctions[ i ] != NULL; i++ )
+	/* If we're performing a startup and the kernel is shutting down, bail 
+	   out now */
+	if( ( action == MANAGEMENT_ACTION_INIT ) && krnlIsExiting() )
+		return( CRYPT_ERROR_PERMISSION );
+
+	/* Dispatch each management action in turn */
+	for( i = 0; mgmtFunctions[ i ] != NULL && \
+				i < FAILSAFE_ITERATIONS_MED; i++ )
 		{
 		const int localStatus = mgmtFunctions[ i ]( action );
 		if( cryptStatusError( localStatus ) && cryptStatusOK( status ) )
 			status = localStatus;
+
+		/* If we're performing a startup and the kernel is shutting down, 
+		   bail out now */
+		if( ( action == MANAGEMENT_ACTION_INIT ) && krnlIsExiting() )
+			return( CRYPT_ERROR_PERMISSION );
 		}
+	if( i >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 
 	return( status );
 	}
@@ -171,7 +183,7 @@ static int dispatchManagementAction( const MANAGEMENT_FUNCTION *mgmtFunctions,
 
 #ifdef USE_THREADS
 
-void threadedBind( const THREAD_FUNCTION_PARAMS *threadParams )
+void threadedBind( const THREAD_PARAMS *threadParams )
 	{
 	dispatchManagementAction( threadParams->ptrParam, 
 							  threadParams->intParam );
@@ -190,7 +202,7 @@ int initCryptlib( void )
 
 	if( dwPlatform == CRYPT_ERROR )
 		{
-		OSVERSIONINFO osvi = { sizeof( osvi ) };
+		OSVERSIONINFO osvi = { sizeof( OSVERSIONINFO ) };
 
 		/* Figure out which version of Windows we're running under */
 		GetVersionEx( &osvi );
@@ -226,8 +238,7 @@ int initCryptlib( void )
   #endif /* DATA_LITTLEENDIAN */
 			{
 			/* We should probably sound klaxons as well at this point */
-			assert( NOTREACHED );
-			return( CRYPT_ERROR_INVALID );
+			retIntError();
 			}
 #endif /* Big/little-endian override check */
 
@@ -265,11 +276,11 @@ int initCryptlib( void )
 								  CRYPT_OPTION_MISC_ASYNCINIT );
 		if( cryptStatusOK( status ) && asyncInit )
 			{
-			STATIC_THREADPARAM_STORAGE THREAD_FUNCTION_PARAMS threadParams;
-
-			initThreadParams( &threadParams, ( void * ) asyncInitFunctions, \
-							  MANAGEMENT_ACTION_INIT );
-			status = krnlDispatchThread( threadedBind, &threadParams, 
+			/* We use the kernel's thread storage for this thread, so we 
+			   specify the thread data storage as NULL */
+			status = krnlDispatchThread( threadedBind, NULL, 
+										 asyncInitFunctions, 
+										 MANAGEMENT_ACTION_INIT,
 										 SEMAPHORE_DRIVERBIND );
 			if( cryptStatusError( status ) )
 				/* The thread couldn't be started, try again with a 

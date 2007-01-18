@@ -5,13 +5,8 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "acl.h"
   #include "kernel.h"
 #else
@@ -29,31 +24,11 @@ static KERNEL_DATA *krnlData = NULL;
    a single large chunk of secure memory that goes way over this limit */
 
 #define MIN_ALLOC_SIZE		8
-#define MAX_ALLOC_SIZE		65536L
-
-/* Get the start address of a page and, given an address in a page and a
-   size, determine on which page the data ends.  These are used to determine
-   which pages a memory block covers.
-
-   These macros have portability problems since they assume that
-   sizeof( long ) == sizeof( void * ), but there's no easy way to avoid this
-   since for some strange reason C doesn't allow the perfectly sensible use
-   of logical operations on addresses */
-
-#if defined( __WIN32__ )
-  /* This assumes Intel hardware, which is virtually always the case */
-  #define getPageSize()			4096
-#elif defined( __UNIX__ )
-  #if defined( __hpux ) || defined( _M_XENIX ) || defined( __aux )
-	#define getPageSize()		4096
-  #else
-	#define getPageSize()		getpagesize()
-  #endif /* Unix variant-specific brokenness */
-#endif /* OS-specifc page size determination */
-#define getPageStartAddress( address ) \
-			( ( long ) ( address ) & ~( getPageSize() - 1 ) )
-#define getPageEndAddress( address, size ) \
-			getPageStartAddress( ( long ) address + ( size ) - 1 )
+#ifdef __MSDOS__
+  #define MAX_ALLOC_SIZE	16384
+#else
+  #define MAX_ALLOC_SIZE	65536L
+#endif /* 16 vs. 32-bit systems */
 
 /* To support page locking we need to store some additional information with
    the memory block.  We do this by reserving an extra memory block at the
@@ -213,35 +188,6 @@ static void touchAllocatedPages( void )
 	}
 #endif /* 0 */
 
-#if 0	/* 9/3/04 No longer needed since the kernel tracks allocated obj.data */
-
-/* Determine the size of a krnlMemalloc()'d memory block */
-
-int krnlMemsize( const void *pointer )
-	{
-	MEMLOCK_INFO *memBlockPtr;
-	BYTE *memPtr = ( BYTE * ) pointer;
-
-	/* Make sure that it's a valid pointer */
-	if( !isReadPtr( memPtr, sizeof( MEMLOCK_INFO ) ) )
-		{
-		assert( NOTREACHED );
-		return( 0 );
-		}
-
-	/* Find out how big the memory block is */
-	memPtr -= MEMLOCK_HEADERSIZE;
-	memBlockPtr = ( MEMLOCK_INFO * ) memPtr;
-
-	/* Make sure that nothing's overwritten our memory */
-	assert( !memcmp( memBlockPtr->canary, CANARY_STARTVALUE, CANARY_SIZE ) );
-	assert( !memcmp( memPtr + memBlockPtr->size - CANARY_SIZE,
-					 CANARY_ENDVALUE, CANARY_SIZE ) );
-
-	return( memBlockPtr->size - MEMLOCK_HEADERSIZE );
-	}
-#endif /* 0 */
-
 /****************************************************************************
 *																			*
 *							Init/Shutdown Functions							*
@@ -282,9 +228,28 @@ void endAllocation( void )
 
 #if defined( __WIN32__ )
 
-#if !defined( NDEBUG ) && !defined( NT_DRIVER )
-  #include <crtdbg.h>	/* For heap checking in debug version */
+#if !defined( NDEBUG ) && !defined( NT_DRIVER ) && !defined( __BORLANDC__ )
+  #define USE_HEAP_CHECKING
 #endif /* Win32 debug version */
+
+#ifdef USE_HEAP_CHECKING
+  #include <crtdbg.h>	/* For heap checking in debug version */
+#endif /* USE_HEAP_CHECKING */
+
+/* Get the start address of a page and, given an address in a page and a
+   size, determine on which page the data ends.  These are used to determine
+   which pages a memory block covers */
+
+#if defined( _MSC_VER ) && ( _MSC_VER >= 1400 )
+  #define PTR_TYPE	INT_PTR 
+#else
+  #define PTR_TYPE	long
+#endif /* Newer versions of VC++ */
+
+#define getPageStartAddress( address ) \
+			( ( PTR_TYPE ) ( address ) & ~( pageSize - 1 ) )
+#define getPageEndAddress( address, size ) \
+			getPageStartAddress( ( PTR_TYPE ) address + ( size ) - 1 )
 
 /* A safe malloc function that performs page locking if possible */
 
@@ -346,13 +311,13 @@ int krnlMemalloc( void **pointer, int size )
 	MUTEX_LOCK( allocation );
 	insertMemBlock( krnlData->allocatedListHead, krnlData->allocatedListTail,
 					memBlockPtr );
-#if !defined( NDEBUG ) && !defined( NT_DRIVER )
+#ifdef USE_HEAP_CHECKING
 	/* Sanity check to detect memory chain corruption */
 	assert( _CrtIsValidHeapPointer( memBlockPtr ) );
 	assert( memBlockPtr->next == NULL );
 	assert( krnlData->allocatedListHead == krnlData->allocatedListTail || \
 			_CrtIsValidHeapPointer( memBlockPtr->prev ) );
-#endif /* Debug build && !NT_DRIVER */
+#endif /* USE_HEAP_CHECKING */
 	MUTEX_UNLOCK( allocation );
 
 	return( CRYPT_OK );
@@ -374,14 +339,14 @@ void krnlMemfree( void **pointer )
 	/* Lock the memory list, unlink the new block, and unlock it again */
 	MUTEX_LOCK( allocation );
 	checkMemCanary( memBlockPtr, memPtr );
-#if !defined( NDEBUG ) && !defined( NT_DRIVER )
+#ifdef USE_HEAP_CHECKING
 	/* Sanity check to detect memory chain corruption */
 	assert( _CrtIsValidHeapPointer( memBlockPtr ) );
 	assert( memBlockPtr->next == NULL || \
 			_CrtIsValidHeapPointer( memBlockPtr->next ) );
 	assert( memBlockPtr->prev == NULL || \
 			_CrtIsValidHeapPointer( memBlockPtr->prev ) );
-#endif /* Debug build && !NT_DRIVER */
+#endif /* USE_HEAP_CHECKING */
 	unlinkMemBlock( krnlData->allocatedListHead, krnlData->allocatedListTail,
 					memBlockPtr );
 #if !defined( NT_DRIVER )
@@ -394,17 +359,23 @@ void krnlMemfree( void **pointer )
 	   relatively quick, especially compared to the overhead imposed by the
 	   lethargic VC++ allocator.  The only real disadvantage is that the
 	   allocation objects remain locked while we do the free, but this
-	   isn't any worse than the overhead of touchAllocatedPages().
-
-	   Note that the following code is potentially nonportable in that it
-	   assumes sizeof( long ) == sizeof( void * ), but this is currently
-	   always the case on Wintel hardware.  It also assumes that an
-	   allocated block will never cover more than two pages, which is also
-	   always the case */
+	   isn't any worse than the overhead of touchAllocatedPages().  Note 
+	   that the following code assumes that an allocated block will never 
+	   cover more than two pages, which is always the case */
 	if( memBlockPtr->isLocked )
 		{
 		MEMLOCK_INFO *currentBlockPtr;
-		long block1PageAddress, block2PageAddress;
+		PTR_TYPE block1PageAddress, block2PageAddress;
+		static int pageSize = 0;
+
+		/* If the page size hasn't been determined yet, set it up now */
+		if( pageSize <= 0 )
+			{
+			SYSTEM_INFO systemInfo;
+			
+			GetSystemInfo( &systemInfo );
+			pageSize = systemInfo.dwPageSize;
+			}
 
 		/* Calculate the addresses of the page(s) in which the memory block
 		   resides */
@@ -418,8 +389,10 @@ void krnlMemfree( void **pointer )
 		for( currentBlockPtr = krnlData->allocatedListHead; \
 			 currentBlockPtr != NULL; currentBlockPtr = currentBlockPtr->next )
 			{
-			const long currentPage1Address = getPageStartAddress( currentBlockPtr );
-			long currentPage2Address = getPageEndAddress( currentBlockPtr, currentBlockPtr->size );
+			const PTR_TYPE currentPage1Address = \
+						getPageStartAddress( currentBlockPtr );
+			PTR_TYPE currentPage2Address = \
+						getPageEndAddress( currentBlockPtr, currentBlockPtr->size );
 
 			if( currentPage1Address == currentPage2Address )
 				currentPage2Address = 0;

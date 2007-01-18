@@ -57,7 +57,7 @@
  */
 
 #include <stdio.h>
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "bn_lcl.h"
 #else
   #include "bn/bn_lcl.h"
@@ -97,7 +97,7 @@ void BN_RECP_CTX_free(BN_RECP_CTX *recp)
 int BN_RECP_CTX_set(BN_RECP_CTX *recp, const BIGNUM *d, BN_CTX *ctx)
 	{
 	if (!BN_copy(&(recp->N),d)) return 0;
-	if (!BN_zero(&(recp->Nr))) return 0;
+	BN_zero(&(recp->Nr));
 	recp->num_bits=BN_num_bits(d);
 	recp->shift=0;
 	return(1);
@@ -126,6 +126,7 @@ int BN_mod_mul_reciprocal(BIGNUM *r, const BIGNUM *x, const BIGNUM *y,
 	ret = BN_div_recp(NULL,r,ca,recp,ctx);
 err:
 	BN_CTX_end(ctx);
+	bn_check_top(r);
 	return(ret);
 	}
 
@@ -150,7 +151,7 @@ int BN_div_recp(BIGNUM *dv, BIGNUM *rem, const BIGNUM *m,
 
 	if (BN_ucmp(m,&(recp->N)) < 0)
 		{
-		if (!BN_zero(d)) return 0;
+		BN_zero(d);
 		if (!BN_copy(r,m)) return 0;
 		BN_CTX_end(ctx);
 		return(1);
@@ -193,7 +194,7 @@ int BN_div_recp(BIGNUM *dv, BIGNUM *rem, const BIGNUM *m,
 		{
 		if (j++ > 2)
 			{
-			BNerr(BN_F_BN_MOD_MUL_RECIPROCAL,BN_R_BAD_RECIPROCAL);
+			BNerr(BN_F_BN_DIV_RECP,BN_R_BAD_RECIPROCAL);
 			goto err;
 			}
 		if (!BN_usub(r,r,&(recp->N))) goto err;
@@ -206,6 +207,8 @@ int BN_div_recp(BIGNUM *dv, BIGNUM *rem, const BIGNUM *m,
 	ret=1;
 err:
 	BN_CTX_end(ctx);
+	if(dv) bn_check_top(dv);
+	if(rem) bn_check_top(rem);
 	return(ret);
 	}
 
@@ -217,17 +220,18 @@ err:
 int BN_reciprocal(BIGNUM *r, const BIGNUM *m, int len, BN_CTX *ctx)
 	{
 	int ret= -1;
-	BIGNUM t;
+	BIGNUM *t;
 
-	BN_init(&t);
+	BN_CTX_start(ctx);
+	if((t = BN_CTX_get(ctx)) == NULL) goto err;
 
-	if (!BN_zero(&t)) goto err;
-	if (!BN_set_bit(&t,len)) goto err;
+	if (!BN_set_bit(t,len)) goto err;
 
-	if (!BN_div(r,NULL,&t,m,ctx)) goto err;
+	if (!BN_div(r,NULL,t,m,ctx)) goto err;
 
 	ret=len;
 err:
-	BN_free(&t);
+	bn_check_top(r);
+	BN_CTX_end(ctx);
 	return(ret);
 	}

@@ -12,8 +12,6 @@
 #ifndef _STREAM_DEFINED
   #if defined( INC_ALL )
 	#include "stream.h"
-  #elif defined INC_CHILD
-	#include "../io/stream.h"
   #else
 	#include "io/stream.h"
   #endif /* Compiler-specific includes */
@@ -53,25 +51,39 @@
    data on two parts, with half the information in the one-pass packet and 
    the other half in the signature packet */
 
-#define PGP_PACKET_SIGNATURE_SPECIAL	1002
+#define PGP_PACKET_SIGNATURE_SPECIAL	1000
 
-/* PGP CTB information.  All CTBs have the MSB set, and OpenPGP CTBs have the
-   next-to-MSB set.  We also have a special-case CTB which is used for
-   indefinite-length compressed data */
+/* The PGP packet format (via the CTB) is:
+
+	+---------------+
+	|7 6 5 4 3 2 1 0|
+	+---------------+
+
+	Bit 7: Always one
+	Bit 6: OpenPGP (new) format if set
+
+		PGP 2.x:						OpenPGP:
+	Bits 5-2: Packet type		Bits 5-0: Packet type
+	Bits 1-0: Length type
+
+   All CTBs have the MSB set, and OpenPGP CTBs have the next-to-MSB set.  We 
+   also have a special-case CTB that's used for indefinite-length compressed 
+   data */
 
 #define PGP_CTB				0x80	/* PGP 2.x CTB template */
 #define PGP_CTB_OPENPGP		0xC0	/* OpenPGP CTB template */
 #define PGP_CTB_COMPRESSED	0xA3	/* Compressed indef-length data */
 
-/* A macro to extract the packet type from the full CTB */
+/* Macros to extract packet information from the CTB */
 
-#define getCTB( ctb )		( ( ( ctb & PGP_CTB_OPENPGP ) == PGP_CTB_OPENPGP ) ? \
-							  ( ctb & 0x3F ) : ( ( ctb >> 2 ) & 0x0F ) )
-
-/* A macro to check whether a packet is a private packet type */
-
-#define isPrivatePacket( type ) \
-							( ( type ) >= 60 && ( type ) <= 63 )
+#define pgpIsCTB( ctb )				( ( ctb ) & PGP_CTB )
+#define pgpGetPacketVersion( ctb ) \
+		( ( ( ( ctb ) & PGP_CTB_OPENPGP ) == PGP_CTB_OPENPGP ) ? \
+		  PGP_VERSION_OPENPGP : PGP_VERSION_2 )
+#define pgpGetPacketType( ctb ) \
+		( ( ( ( ctb ) & PGP_CTB_OPENPGP ) == PGP_CTB_OPENPGP ) ? \
+			( ( ctb ) & 0x3F ) : ( ( ( ctb ) >> 2 ) & 0x0F ) )
+#define pgpIsReservedPacket( type )	( ( type ) >= 60 && ( type ) <= 63 )
 
 /* Version information */
 
@@ -136,6 +148,11 @@
 #define PGP_SIG_CRL			0x30	/* Certificate revocation */
 #define	PGP_SIG_TS			0x40	/* Timestamp signature */
 
+/* The size of the PGP version ID and algorithm ID */
+
+#define PGP_VERSION_SIZE	1
+#define PGP_ALGOID_SIZE		1
+
 /* The maximum size of an MPI (4096 bits) */
 
 #define PGP_MAX_MPISIZE		512
@@ -196,8 +213,5 @@ int pgpPasswordToKey( CRYPT_CONTEXT cryptContext, const int optKeyLength,
 int pgpProcessIV( const CRYPT_CONTEXT iCryptContext, BYTE *ivInfo,
 				  const int ivSize, const BOOLEAN isEncrypt, 
 				  const BOOLEAN resyncIV );
-int pgpReadMPI( STREAM *stream, BYTE *data );
-int pgpWriteMPI( STREAM *stream, const BYTE *data, const int length );
-#define sizeofMPI( length )		( ( length ) + 2 )
 
 #endif /* _PGP_DEFINED */

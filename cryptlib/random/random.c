@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					cryptlib Randomness Management Routines					*
-*						Copyright Peter Gutmann 1995-2005					*
+*						Copyright Peter Gutmann 1995-2006					*
 *																			*
 ****************************************************************************/
 
@@ -35,35 +35,27 @@
    if you could make any changes available to the author to allow a
    consistent code base to be maintained */
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "des.h"
   #ifdef CONFIG_RANDSEED
 	#include "stream.h"
   #endif /* CONFIG_RANDSEED */
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../crypt/des.h"
-  #ifdef CONFIG_RANDSEED
-	#include "../misc/stream.h"
-  #endif /* CONFIG_RANDSEED */
 #else
   #include "crypt.h"
   #include "crypt/des.h"
   #ifdef CONFIG_RANDSEED
-	#include "misc/stream.h"
+	#include "io/stream.h"
   #endif /* CONFIG_RANDSEED */
 #endif /* Compiler-specific includes */
 
-/* The maximum amount of random data needed by any cryptlib operation, 
-   equivalent to the size of a maximum-length PKC key.  However this isn't 
-   the absolute length because when generating the k value for DLP 
-   operations we get n + m bits and then reduce via one of the DLP 
-   parameters to get the value within range.  If we just got n bits, this 
-   would introduce a bias into the top bit, see the DLP code for more 
-   details.  Because of this we allow a length slightly larger than the 
+/* The maximum amount of random data needed by any cryptlib operation,
+   equivalent to the size of a maximum-length PKC key.  However this isn't
+   the absolute length because when generating the k value for DLP
+   operations we get n + m bits and then reduce via one of the DLP
+   parameters to get the value within range.  If we just got n bits, this
+   would introduce a bias into the top bit, see the DLP code for more
+   details.  Because of this we allow a length slightly larger than the
    maximum PKC key size */
 
 #define MAX_RANDOM_BYTES	( CRYPT_MAX_PKCSIZE + 8 )
@@ -76,11 +68,11 @@
 	   defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ ) || \
 	   defined( __UNIX__ ) || defined( __VMCMS__ ) || \
 	   defined( __WIN16__ ) || defined( __WIN32__ ) || \
-	   defined( __WINCE__ ) )
+	   defined( __WINCE__ ) || defined( __XMK__ ) )
   #error You need to create OS-specific randomness-gathering functions in random/<os-name>.c
 #endif /* Various OS-specific defines */
 
-/* If we're using stored seed data, make sure that the seed quality setting 
+/* If we're using stored seed data, make sure that the seed quality setting
    is in order */
 
 #ifdef CONFIG_RANDSEED
@@ -105,7 +97,7 @@
 	  !( defined( __MVS__ ) || defined( __TANDEM_NSK__ ) || \
 		 defined( __TANDEM_OSS__ ) )
   void initRandomPolling( void );
-  #define endRandomPolling()
+  void endRandomPolling( void );
   void waitforRandomCompletion( const BOOLEAN force );
 #else
   #define initRandomPolling()
@@ -161,12 +153,21 @@ void fastPoll( void );
 
 #define RANDOMPOOL_MIXES		10
 
-/* The number of samples of previous output that we keep for the FIPS 140
-   continuous tests, and the number of retries that we perform if we detect 
-   a repeat of a previous output */
+/* The number of short samples of previous output that we keep for the FIPS
+   140 continuous tests, and the number of retries that we perform if we
+   detect a repeat of a previous output */
 
 #define RANDOMPOOL_SAMPLES		16
 #define RANDOMPOOL_RETRIES		5
+
+/* In order to perform a FIPS 140-compliant check, we have to signal a hard
+   failure on the first repeat value rather than retrying the operation in
+   case it's a one-off fault.  In order to avoid problems with false
+   positives, we take a larger-than-normal sample of RANDOMPOOL_SAMPLE_SIZE
+   bytes for the first value, which we compare as a backup check if the
+   standard short sample indicates a repeat */
+
+#define RANDOMPOOL_SAMPLE_SIZE	16
 
 /* The number of times that we cycle the X9.17 generator before we load new
    key and state variables.  This means that we re-seed for every
@@ -187,20 +188,20 @@ typedef struct {
 
 #define X917_KEYSIZE	16
 
-/* Random pool information.  We keep track of the write position in the 
-   pool, which tracks where new data is added.  Whenever we add new data the 
-   write position is updated, once we reach the end of the pool we mix the 
-   pool and start again at the beginning.  We track the pool status by 
-   recording the quality of the pool contents (1-100) and the number of 
-   times the pool has been mixed, we can't draw data from the pool unless 
-   both of these values have reached an acceptable level.  In addition to 
-   the pool state information we keep track of the previous 
-   RANDOMPOOL_SAMPLES output samples to check for stuck-at faults or (short) 
+/* Random pool information.  We keep track of the write position in the
+   pool, which tracks where new data is added.  Whenever we add new data the
+   write position is updated, once we reach the end of the pool we mix the
+   pool and start again at the beginning.  We track the pool status by
+   recording the quality of the pool contents (1-100) and the number of
+   times the pool has been mixed, we can't draw data from the pool unless
+   both of these values have reached an acceptable level.  In addition to
+   the pool state information we keep track of the previous
+   RANDOMPOOL_SAMPLES output samples to check for stuck-at faults or (short)
    cyles */
 
 typedef struct {
 	/* Pool state information */
-	BYTE randomPool[ RANDOMPOOL_ALLOCSIZE ];	/* Random byte pool */
+	BYTE randomPool[ RANDOMPOOL_ALLOCSIZE + 8 ];/* Random byte pool */
 	int randomPoolPos;		/* Current write position in the pool */
 
 	/* Pool status information */
@@ -208,17 +209,18 @@ typedef struct {
 	int randomPoolMixes;	/* Number of times pool has been mixed */
 
 	/* X9.17 generator state information */
-	BYTE x917Pool[ X917_POOLSIZE ];	/* Generator state */
-	BYTE x917DT[ X917_POOLSIZE ];	/* Date/time vector */
+	BYTE x917Pool[ X917_POOLSIZE + 8 ];	/* Generator state */
+	BYTE x917DT[ X917_POOLSIZE + 8 ];	/* Date/time vector */
 	X917_3DES_KEY x917Key;	/* Scheduled 3DES key */
 	BOOLEAN x917Inited;		/* Whether generator has been inited */
 	int x917Count;			/* No.of times generator has been cycled */
 	BOOLEAN x917x931;		/* X9.17 vs. X9.31 operation (see code comments */
 
 	/* Information for the FIPS 140 continuous tests */
-	unsigned long prevOutput[ RANDOMPOOL_SAMPLES ];
-	unsigned long x917PrevOutput[ RANDOMPOOL_SAMPLES ];
+	unsigned long prevOutput[ RANDOMPOOL_SAMPLES + 2 ];
+	unsigned long x917PrevOutput[ RANDOMPOOL_SAMPLES + 2 ];
 	int prevOutputIndex;
+	BYTE x917OuputSample[ RANDOMPOOL_SAMPLE_SIZE + 8 ];
 
 	/* Other status information used to check the pool's operation */
 	int entropyByteCount;	/* Number of bytes entropy added */
@@ -271,7 +273,7 @@ int addRandomData( void *statePtr, const void *value,
 				   const int valueLength )
 	{
 	RANDOM_STATE_INFO *state = ( RANDOM_STATE_INFO * ) statePtr;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	const BYTE *valuePtr = value;
 	int length = min( valueLength, state->bufSize - state->bufPos );
 	int totalLength = valueLength, status;
@@ -314,10 +316,10 @@ int addRandomData( void *statePtr, const void *value,
 	if( cryptStatusError( status ) )
 		{
 		/* There was a problem moving the data through, make the error status
-		   persistent.  Normally this is a should-never-occur error, however 
-		   if cryptlib has been shut down from another thread the kernel 
-		   will fail all non shutdown-related calls with a permission error.  
-		   To avoid false alarms, we mask out failures due to permission 
+		   persistent.  Normally this is a should-never-occur error, however
+		   if cryptlib has been shut down from another thread the kernel
+		   will fail all non shutdown-related calls with a permission error.
+		   To avoid false alarms, we mask out failures due to permission
 		   errors */
 		state->updateStatus = status;
 		assert( ( status == CRYPT_ERROR_PERMISSION ) || NOTREACHED );
@@ -348,15 +350,15 @@ int endRandomData( void *statePtr, const int quality )
 	assert( isWritePtr( state, sizeof( RANDOM_STATE_INFO ) ) );
 
 	/* If there's data still in the accumulator, send it through to the
-	   system device.  A failure at this point is a should-never-occur 
-	   error, however if cryptlib has been shut down from another thread 
-	   the kernel will fail all non shutdown-related calls with a permission 
-	   error.  To avoid false alarms, we mask out failures due to permission 
+	   system device.  A failure at this point is a should-never-occur
+	   error, however if cryptlib has been shut down from another thread
+	   the kernel will fail all non shutdown-related calls with a permission
+	   error.  To avoid false alarms, we mask out failures due to permission
 	   errors */
 	if( state->bufPos > 0 && state->bufPos <= state->bufSize && \
 		state->bufSize >= 16 )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, state->buffer, state->bufPos );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
@@ -399,7 +401,7 @@ static void endRandomPool( RANDOM_INFO *randomInfo )
 	zeroise( randomInfo, sizeof( RANDOM_INFO ) );
 	}
 
-/* Stir up the data in the random pool.  Given a circular buffer of length n 
+/* Stir up the data in the random pool.  Given a circular buffer of length n
    bytes, a buffer position p, and a hash output size of h bytes, we hash
    bytes from p - h...p - 1 (to provide chaining across previous hashes) and
    p...p + 64 (to have as much surrounding data as possible affect the
@@ -409,7 +411,7 @@ static void endRandomPool( RANDOM_INFO *randomInfo )
 static void mixRandomPool( RANDOM_INFO *randomInfo )
 	{
 	HASHFUNCTION hashFunction;
-	BYTE dataBuffer[ CRYPT_MAX_HASHSIZE + 64 ];
+	BYTE dataBuffer[ CRYPT_MAX_HASHSIZE + 64 + 8 ];
 	int hashSize, hashIndex;
 	ORIGINAL_INT_VAR( randomPoolMixes, randomInfo->randomPoolMixes );
 
@@ -459,6 +461,7 @@ static void mixRandomPool( RANDOM_INFO *randomInfo )
 		/* Hash the data at position p...p + hashSize in the circular pool
 		   using the surrounding data extracted previously */
 		hashFunction( NULL, randomInfo->randomPool + hashIndex,
+					  RANDOMPOOL_ALLOCSIZE - hashIndex, 
 					  dataBuffer, dataBufIndex, HASH_ALL );
 		}
 	zeroise( dataBuffer, sizeof( dataBuffer ) );
@@ -492,7 +495,7 @@ static void mixRandomPool( RANDOM_INFO *randomInfo )
 /* The ANSI X9.17 Annex C generator has a number of problems (besides just
    being slow) including a tiny internal state, use of fixed keys, no
    entropy update, revealing the internal state to an attacker whenever it
-   generates output, and a horrible vulnerability to state compromise.  For 
+   generates output, and a horrible vulnerability to state compromise.  For
    FIPS 140 compliance however we need to use an approved generator (even
    though Annex C is informative rather than normative and contains only "an
    example of a pseudorandom key and IV generator" so that it could be argued
@@ -506,17 +509,17 @@ static void mixRandomPool( RANDOM_INFO *randomInfo )
    date/time vector which is updated on each key generation", a requirement
    which is met by the fastPoll() which is performed before the main pool is
    mixed.  The cryptlib representation of the date and time vector is as a
-   hash of assorted incidental data and the date and time.  The fact that 
-   99.9999% of the value of the generator is coming from the, uhh, timestamp 
-   is as coincidental as the side effect of the engine cooling fan in the 
+   hash of assorted incidental data and the date and time.  The fact that
+   99.9999% of the value of the generator is coming from the, uhh, timestamp
+   is as coincidental as the side effect of the engine cooling fan in the
    Brabham ground effect cars.
-   
-   Some eval labs may not like this use of DT, in which case it's also 
-   possible to inject the extra seed material into the generator by using 
+
+   Some eval labs may not like this use of DT, in which case it's also
+   possible to inject the extra seed material into the generator by using
    the X9.31 interpretation of X9.17, which makes the V value an externally-
-   modifiable value.  In this interpretation the generator design has 
-   degenerated to little more than a 3DES encryption of V, which can hardly 
-   have been the intent of the X9.17 designers.  In other words the X9.17 
+   modifiable value.  In this interpretation the generator design has
+   degenerated to little more than a 3DES encryption of V, which can hardly
+   have been the intent of the X9.17 designers.  In other words the X9.17
    operation:
 
 	out = Enc( Enc( in ) ^ V(n) );
@@ -526,10 +529,10 @@ static void mixRandomPool( RANDOM_INFO *randomInfo )
 
 	out = Enc( Enc( DT ) ^ in );
 
-   since V is overwritten on each iteration.  If the eval lab requires this 
+   since V is overwritten on each iteration.  If the eval lab requires this
    interpretation rather than the more sensible DT one then this can be
-   enabled by clearing the seedViaDT flag in setKeyX917((), although we 
-   don't do it by default since it's so far removed from the real X9.17 
+   enabled by clearing the seedViaDT flag in setKeyX917((), although we
+   don't do it by default since it's so far removed from the real X9.17
    generator */
 
 /* A macro to make what's being done by the generator easier to follow */
@@ -547,7 +550,7 @@ static int setKeyX917( RANDOM_INFO *randomInfo, const BYTE *key,
 	X917_3DES_KEY *des3Key = &randomInfo->x917Key;
 	int desStatus;
 
-	/* Make sure that the key and seed aren't being taken from the same 
+	/* Make sure that the key and seed aren't being taken from the same
 	   location */
 	assert( memcmp( key, state, X917_POOLSIZE ) );
 
@@ -593,7 +596,7 @@ static int setKeyX917( RANDOM_INFO *randomInfo, const BYTE *key,
 static int generateX917( RANDOM_INFO *randomInfo, BYTE *data,
 						 const int length )
 	{
-	BYTE encTime[ X917_POOLSIZE ], *dataPtr = data;
+	BYTE encTime[ X917_POOLSIZE + 8 ], *dataPtr = data;
 	int dataBlockPos;
 
 	/* Sanity check to make sure that the generator has been initialised */
@@ -618,7 +621,7 @@ static int generateX917( RANDOM_INFO *randomInfo, BYTE *data,
 	   than X917_MAX_CYCLES if we're already close to the limit before we
 	   start, but this isn't a big problem, it's only an approximate reset-
 	   count measure anyway */
-	for( dataBlockPos = 0; dataBlockPos < length; 
+	for( dataBlockPos = 0; dataBlockPos < length;
 		 dataBlockPos += X917_POOLSIZE )
 		{
 		const int bytesToCopy = min( length - dataBlockPos, X917_POOLSIZE );
@@ -634,14 +637,14 @@ static int generateX917( RANDOM_INFO *randomInfo, BYTE *data,
 		   seeding */
 		if( randomInfo->x917x931 )
 			{
-			/* It's the X9.31 interpretation, there's no further user seed 
+			/* It's the X9.31 interpretation, there's no further user seed
 			   input apart from the V and DT that we set initially */
 			memcpy( encTime, randomInfo->x917DT, X917_POOLSIZE );
 			}
 		else
 			{
 			/* It's the X9.17 seed-via-DT interpretation, the user input is
-			   DT.  Copy in as much timestamp (+ other assorted data) as we 
+			   DT.  Copy in as much timestamp (+ other assorted data) as we
 			   can into the DT value */
 			memcpy( encTime, dataPtr, bytesToCopy );
 
@@ -667,8 +670,8 @@ static int generateX917( RANDOM_INFO *randomInfo, BYTE *data,
 			randomInfo->x917Pool[ i ] ^= encTime[ i ];
 		tdesEncrypt( randomInfo->x917Pool, &randomInfo->x917Key );
 
-		/* If we're using the X9.31 interpretation, update DT to meet the 
-		   monotonically increasing time value requirement.  Although the 
+		/* If we're using the X9.31 interpretation, update DT to meet the
+		   monotonically increasing time value requirement.  Although the
 		   spec doesn't explicitly state this, the published test vectors
 		   increment the rightmost byte, so the value is treated as big-
 		   endian */
@@ -678,7 +681,7 @@ static int generateX917( RANDOM_INFO *randomInfo, BYTE *data,
 			ORIGINAL_INT_VAR( lsb2, randomInfo->x917DT[ X917_POOLSIZE - 2 ] );
 			ORIGINAL_INT_VAR( lsb3, randomInfo->x917DT[ X917_POOLSIZE - 3 ] );
 
-#if 1
+#if 1 /* Big-endian */
 			for( i = X917_POOLSIZE - 1; i >= 0; i-- )
 				{
 				randomInfo->x917DT[ i ]++;
@@ -686,7 +689,7 @@ static int generateX917( RANDOM_INFO *randomInfo, BYTE *data,
 					break;
 				i = i;
 				}
-#else
+#else /* Little-endian */
 			for( i = 0; i < X917_POOLSIZE; i++ )
 				{
 				randomInfo->x917DT[ i ]++;
@@ -737,15 +740,20 @@ static int generateX917( RANDOM_INFO *randomInfo, BYTE *data,
 
 /* Add new entropy data and an entropy quality estimate to the random pool */
 
-int addEntropyData( RANDOM_INFO *randomInfo, const void *buffer, 
+int addEntropyData( RANDOM_INFO *randomInfo, const void *buffer,
 					const int length )
 	{
 	const BYTE *bufPtr = ( BYTE * ) buffer;
-	int count = length;
-	ORIGINAL_INT_VAR( entropyByteCount, randomInfo->entropyByteCount );
+	int count = length, status;
+	DECLARE_ORIGINAL_INT( entropyByteCount );
 	ORIGINAL_PTR( buffer );
 
-	/* Preconditions: The input data is valid and the current entropy byte 
+	status = krnlEnterMutex( MUTEX_RANDOM );
+	if( cryptStatusError( status ) )
+		return( status );
+	STORE_ORIGINAL_INT( entropyByteCount, randomInfo->entropyByteCount );
+
+	/* Preconditions: The input data is valid and the current entropy byte
 	   count has a sensible value */
 	PRE( isWritePtr( randomInfo, sizeof( RANDOM_INFO ) ) );
 	PRE( length > 0 && isReadPtr( buffer, length ) );
@@ -753,11 +761,11 @@ int addEntropyData( RANDOM_INFO *randomInfo, const void *buffer,
 		 randomInfo->randomPoolPos <= RANDOMPOOL_SIZE );
 	PRE( randomInfo->entropyByteCount >= 0 );
 
-	/* Mix the incoming data into the pool.  This operation is resistant to 
-	   chosen- and known-input attacks because the pool contents are unknown 
-	   to an attacker, so XORing in known data won't help them.  If an 
-	   attacker could determine pool contents by observing the generator 
-	   output (which is defeated by the postprocessing), we'd have to 
+	/* Mix the incoming data into the pool.  This operation is resistant to
+	   chosen- and known-input attacks because the pool contents are unknown
+	   to an attacker, so XORing in known data won't help them.  If an
+	   attacker could determine pool contents by observing the generator
+	   output (which is defeated by the postprocessing), we'd have to
 	   perform an extra input mixing operation to defeat these attacks */
 	while( count-- > 0 )
 		{
@@ -766,7 +774,7 @@ int addEntropyData( RANDOM_INFO *randomInfo, const void *buffer,
 		DECLARE_ORIGINAL_INT( newPoolVal );
 		DECLARE_ORIGINAL_INT( poolPos );
 
-		/* If the pool write position has reached the end of the pool, mix 
+		/* If the pool write position has reached the end of the pool, mix
 		   the pool */
 		if( randomInfo->randomPoolPos >= RANDOMPOOL_SIZE )
 			mixRandomPool( randomInfo );
@@ -784,11 +792,11 @@ int addEntropyData( RANDOM_INFO *randomInfo, const void *buffer,
 		STORE_ORIGINAL_INT( newPoolVal,
 							randomInfo->randomPool[ randomInfo->randomPoolPos - 1 ] );
 
-		/* Postcondition: We've updated the byte at the current pool 
-		   position, and the value really was XORed into the pool rather 
-		   than (for example) overwriting it as with PGP/xorbytes or 
-		   GPG/add_randomness.  Note that in this case we can use a non-XOR 
-		   operation to check that the XOR succeeded, unlike the pool mixing 
+		/* Postcondition: We've updated the byte at the current pool
+		   position, and the value really was XORed into the pool rather
+		   than (for example) overwriting it as with PGP/xorbytes or
+		   GPG/add_randomness.  Note that in this case we can use a non-XOR
+		   operation to check that the XOR succeeded, unlike the pool mixing
 		   code which requires an XOR to check the original XOR */
 		POST( randomInfo->randomPoolPos == \
 			  ORIGINAL_VALUE( poolPos ) + 1 );
@@ -807,33 +815,76 @@ int addEntropyData( RANDOM_INFO *randomInfo, const void *buffer,
 	POST( randomInfo->entropyByteCount == \
 		  ORIGINAL_VALUE( entropyByteCount ) + length );
 
+	krnlExitMutex( MUTEX_RANDOM );
+
 	return( CRYPT_OK );
 	}
 
 int addEntropyQuality( RANDOM_INFO *randomInfo, const int quality )
 	{
+	int status;
+
+	status = krnlEnterMutex( MUTEX_RANDOM );
+	if( cryptStatusError( status ) )
+		return( status );
+
 	/* Preconditions: The input data is valid */
 	PRE( isWritePtr( randomInfo, sizeof( RANDOM_INFO ) ) );
 	PRE( randomInfo->randomQuality >= 0 && \
 		 randomInfo->randomQuality < 1000 );
 
-	/* If there's not enough entropy data present to justify the claimed 
-	   entropy quality level, signal an error.  We do however retain the
-	   existing entropy byte count for use the next time an entropy quality
-	   estimate is added, since it's still contributing to the total 
-	   entropy quality */
+	/* In theory we could check to ensure that the claimed entropy quality
+	   corresponds approximately to the amount of entropy data added,
+	   however in a multithreaded environment this doesn't work because the
+	   entropy addition is distinct from the entropy quality addition, so
+	   that (for example) with entropy being added by three threads we could
+	   end up with the following:
+
+		entropy1, entropy1,
+		entropy2,
+		entropy1,
+		entropy3,
+		entropy1,
+		entropy3,
+		entropy2,
+		quality2, reset to 0
+		quality1, fail since reset to 0
+		quality3, fail since reset to 0
+
+	   This means that the first entropy quality measure added is applied
+	   to all of the previously added entropy, after which the entropy
+	   byte count is reset, causing subsequent attempts to add entropy
+	   quality to fail.  In addition the first quality value is applied
+	   to all of the entropy added until that point rather than just the
+	   specific entropy samples that it corresponds to.  In theory this
+	   could be addressed by requiring the entropy source to treat entropy
+	   addition as a database-style BEGIN ... COMMIT transaction, but this
+	   makes the interface excessively complex for both source and sink,
+	   and more prone to error than the small gain in entropy quality-
+	   checking is worth */
+#if 0
 	if( randomInfo->entropyByteCount <= 0 || \
 		quality / 2 > randomInfo->entropyByteCount )
 		{
+		/* If there's not enough entropy data present to justify the
+		   claimed entropy quality level, signal an error.  We do however
+		   retain the existing entropy byte count for use the next time an
+		   entropy quality estimate is added, since it's still contributing
+		   to the total entropy quality */
+		krnlExitMutex( MUTEX_RANDOM );
 		assert( NOTREACHED );
 		return( CRYPT_ERROR_RANDOM );
 		}
 	randomInfo->entropyByteCount = 0;
+#endif /* 0 */
 
-	/* If we haven't reached the minimum quality level for generating keys 
+	/* If we haven't reached the minimum quality level for generating keys
 	   yet, update the quality level */
 	if( randomInfo->randomQuality < 100 )
 		randomInfo->randomQuality += quality;
+
+	krnlExitMutex( MUTEX_RANDOM );
+
 	return( CRYPT_OK );
 	}
 
@@ -844,7 +895,7 @@ int addEntropyQuality( RANDOM_INFO *randomInfo, const int quality )
 static void addStoredSeedData( RANDOM_INFO *randomInfo )
 	{
 	STREAM stream;
-	BYTE streamBuffer[ STREAM_BUFSIZE ], seedBuffer[ 1024 ];
+	BYTE streamBuffer[ STREAM_BUFSIZE + 8 ], seedBuffer[ 1024 + 8 ];
 	char seedFilePath[ MAX_PATH_LENGTH + 128 ];	/* Protection for Windows */
 	int poolCount = RANDOMPOOL_SIZE, length, status;
 
@@ -867,23 +918,24 @@ static void addStoredSeedData( RANDOM_INFO *randomInfo )
 	zeroise( streamBuffer, STREAM_BUFSIZE );
 	if( cryptStatusError( status ) || length <= 0 )
 		{
-		/* The seed data is present but we can't read it, don't try and 
+		/* The seed data is present but we can't read it, don't try and
 		   access it again */
 		randomInfo->seedProcessed = TRUE;
 		assert( NOTREACHED );
 		return;
 		}
+	assert( length > 0 );
 	randomInfo->seedSize = length;
 
 	/* Precondition: We got at least some non-zero data */
-	EXISTS( i, 0, length, 
+	EXISTS( i, 0, length,
 			seedBuffer[ i ] != 0 );
 
 	/* Add the seed data to the entropy pool.  Both because the entropy-
 	   management code gets suspicious about very small amounts of data with
 	   claimed high entropy and because it's a good idea to start with all
-	   of the pool set to the seed data (rather than most of it set at zero 
-	   if the seed data is short), we add the seed data repeatedly until 
+	   of the pool set to the seed data (rather than most of it set at zero
+	   if the seed data is short), we add the seed data repeatedly until
 	   we've filled the pool */
 	while( poolCount > 0 )
 		{
@@ -892,18 +944,18 @@ static void addStoredSeedData( RANDOM_INFO *randomInfo )
 		poolCount -= length;
 		}
 
-	/* If there were at least 128 bits of entropy present in the seed, set 
+	/* If there were at least 128 bits of entropy present in the seed, set
 	   the entropy quality to the user-provided value */
 	if( length >= 16 )
 		{
 		status = addEntropyQuality( randomInfo, CONFIG_RANDSEED_QUALITY );
 		assert( cryptStatusOK( status ) );
 		}
-	
+
 	zeroise( seedBuffer, 1024 );
 
 	/* Postcondition: Nulla vestigia retrorsum */
-	FORALL( i, 0, 1024, 
+	FORALL( i, 0, 1024,
 			seedBuffer[ i ] == 0 );
 	}
 #endif /* CONFIG_RANDSEED */
@@ -926,10 +978,10 @@ static void addStoredSeedData( RANDOM_INFO *randomInfo )
 
    This function performs a more paranoid version of the FIPS 140 continuous
    tests on both the main pool contents and the X9.17 generator output to
-   detect stuck-at faults and short cycles in the output.  In addition the 
-   higher-level message handler applies the FIPS 140 statistical tests to 
-   the output and will retry the fetch if the output fails the tests.  This 
-   additional step is performed at a higher level because it's then applied 
+   detect stuck-at faults and short cycles in the output.  In addition the
+   higher-level message handler applies the FIPS 140 statistical tests to
+   the output and will retry the fetch if the output fails the tests.  This
+   additional step is performed at a higher level because it's then applied
    to all randomness sources used by cryptlib, not just the built-in one.
 
    Since the pool output is folded to mask the output, the output from each
@@ -1001,10 +1053,12 @@ static int tryGetRandomOutput( RANDOM_INFO *randomInfo,
 	   output with samples from the previous RANDOMPOOL_SAMPLES outputs */
 	sample = mgetLong( samplePtr );
 	for( i = 0; i < RANDOMPOOL_SAMPLES; i++ )
+		{
 		if( randomInfo->prevOutput[ i ] == sample )
 			/* We're repeating previous output, tell the caller to try
 			   again */
 			return( OK_SPECIAL );
+		}
 
 	/* Postcondition: There are no values seen during a previous run present
 	   in the output */
@@ -1019,13 +1073,33 @@ static int tryGetRandomOutput( RANDOM_INFO *randomInfo,
 
 	/* Check for stuck-at faults in the X9.17 generator by comparing a short
 	   sample from the current output with samples from the previous
-	   RANDOMPOOL_SAMPLES outputs */
+	   RANDOMPOOL_SAMPLES outputs.  If it's the most recent sample, FIPS
+	   140 requires an absolute failure in there's a duplicate (rather than
+	   simply signalling a problem and letting the higher layer handle it),
+	   so if we get a match in the first 32 bits we perform a backup check
+	   on the full RANDOMPOOL_SAMPLE_SIZE bytes and return a hard failure
+	   if all the bits match */
 	sample = mgetLong( x917SamplePtr );
 	for( i = 0; i < RANDOMPOOL_SAMPLES; i++ )
+		{
 		if( randomInfo->x917PrevOutput[ i ] == sample )
+			{
+			/* If we've failed on the first sample and the full match also
+			   fails, return a hard error */
+			if( i == 0 && \
+				!memcmp( randomInfo->x917OuputSample,
+						 exportedRandomInfo->randomPool,
+						 RANDOMPOOL_SAMPLE_SIZE ) )
+				{
+				assert( NOTREACHED );
+				return( CRYPT_ERROR_RANDOM );
+				}
+
 			/* We're repeating previous output, tell the caller to try
 			   again */
 			return( OK_SPECIAL );
+			}
+		}
 
 	/* Postcondition: There are no values seen during a previous run present
 	   in the output */
@@ -1123,6 +1197,8 @@ static int getRandomOutput( RANDOM_INFO *randomInfo, BYTE *buffer,
 	samplePtr = exportedRandomInfo.randomPool;
 	randomInfo->x917PrevOutput[ randomInfo->prevOutputIndex++ ] = mgetLong( samplePtr );
 	randomInfo->prevOutputIndex %= RANDOMPOOL_SAMPLES;
+	memcpy( randomInfo->x917OuputSample, exportedRandomInfo.randomPool,
+			RANDOMPOOL_SAMPLE_SIZE );
 	POST( randomInfo->prevOutputIndex >= 0 && \
 		  randomInfo->prevOutputIndex < RANDOMPOOL_SAMPLES );
 
@@ -1149,19 +1225,23 @@ static int getRandomOutput( RANDOM_INFO *randomInfo, BYTE *buffer,
 int getRandomData( RANDOM_INFO *randomInfo, void *buffer, const int length )
 	{
 	BYTE *bufPtr = buffer;
-	int count;
+	int randomQuality, count, iterationCount, status;
 
 	/* Preconditions: The input data is valid */
 	PRE( isWritePtr( randomInfo, sizeof( RANDOM_INFO ) ) );
 	PRE( length > 0 && isReadPtr( buffer, length ) );
 
-	/* Clear the return value and by extension make sure that we fail the 
+	/* Clear the return value and by extension make sure that we fail the
 	   FIPS 140 tests on the output if there's a problem */
 	zeroise( buffer, length );
 
 	/* Precondition: We're not asking for more data than the maximum that
 	   should be needed */
 	PRE( length >= 1 && length <= MAX_RANDOM_BYTES );
+
+	status = krnlEnterMutex( MUTEX_RANDOM );
+	if( cryptStatusError( status ) )
+		return( status );
 
 	/* If we're using a stored random seed, add it to the entropy pool if
 	   necessary.  Note that we do this here rather than when we initialise
@@ -1174,20 +1254,33 @@ int getRandomData( RANDOM_INFO *randomInfo, void *buffer, const int length )
 		addStoredSeedData( randomInfo );
 #endif /* CONFIG_RANDSEED */
 
+	/* Get the randomness quality before we release the randomness info
+	   again */
+	randomQuality = randomInfo->randomQuality;
+
+	krnlExitMutex( MUTEX_RANDOM );
+
 	/* Perform a failsafe check to make sure that there's data available.
 	   This should only ever be called once per app because after the first
 	   blocking poll the programmer of the calling app will make sure that
 	   there's a slow poll done earlier on */
-	if( randomInfo->randomQuality < 100 )
+	if( randomQuality < 100 )
 		slowPoll();
 
 	/* Make sure that any background randomness-gathering process has
 	   finished */
 	waitforRandomCompletion( FALSE );
 
+	status = krnlEnterMutex( MUTEX_RANDOM );
+	if( cryptStatusError( status ) )
+		return( status );
+
 	/* If we still can't get any random information, let the user know */
 	if( randomInfo->randomQuality < 100 )
+		{
+		krnlExitMutex( MUTEX_RANDOM );
 		return( CRYPT_ERROR_RANDOM );
+		}
 
 	/* If the process has forked, we need to restart the generator output
 	   process, but we can't determine this until after we've already
@@ -1199,19 +1292,22 @@ restartPoint:
 	   perform a final quick poll of the system to get any last bit of
 	   entropy, and mix the entire pool.  If the pool hasn't been sufficiently
 	   mixed, we iterate until we've reached the minimum mix count */
+	iterationCount = 0;
 	do
 		{
 		fastPoll();
 		mixRandomPool( randomInfo );
 		}
-	while( randomInfo->randomPoolMixes < RANDOMPOOL_MIXES );
+	while( randomInfo->randomPoolMixes < RANDOMPOOL_MIXES && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE );
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 
 	/* Keep producing RANDOMPOOL_OUTPUTSIZE bytes of output until the request
 	   is satisfied */
 	for( count = 0; count < length; count += RANDOM_OUTPUTSIZE )
 		{
 		const int outputBytes = min( length - count, RANDOM_OUTPUTSIZE );
-		int status;
 		ORIGINAL_PTR( bufPtr );
 
 		/* Precondition for output quantity: Either we're on the last output
@@ -1223,7 +1319,10 @@ restartPoint:
 
 		status = getRandomOutput( randomInfo, bufPtr, outputBytes );
 		if( cryptStatusError( status ) )
+			{
+			krnlExitMutex( MUTEX_RANDOM );
 			return( status );
+			}
 		bufPtr += outputBytes;
 
 		/* Postcondition: We're filling the output buffer and we wrote the
@@ -1248,6 +1347,8 @@ restartPoint:
 		goto restartPoint;
 		}
 
+	krnlExitMutex( MUTEX_RANDOM );
+
 	return( CRYPT_OK );
 	}
 
@@ -1257,10 +1358,10 @@ restartPoint:
 *																			*
 ****************************************************************************/
 
-/* X9.17/X9.31 generator test vectors.  The first set of values used are 
-   from the NIST publication "The Random Number Generator Validation System 
-   (RNGVS)" (unfortunately the MCT values for this are wrong so they can't 
-   be used), the second set are from test data used by an eval lab, and the 
+/* X9.17/X9.31 generator test vectors.  The first set of values used are
+   from the NIST publication "The Random Number Generator Validation System
+   (RNGVS)" (unfortunately the MCT values for this are wrong so they can't
+   be used), the second set are from test data used by an eval lab, and the
    third set are the values used for cryptlib's FIPS evaluation */
 
 #define RNG_TEST_NIST		0
@@ -1278,18 +1379,20 @@ restartPoint:
 #endif /* VST iterations */
 
 typedef struct {
-	const BYTE key[ X917_KEYSIZE ];
-	const BYTE DT[ X917_POOLSIZE ], V[ X917_POOLSIZE ];
-	const BYTE R[ X917_POOLSIZE ];
+	/* The values are declared with an extra byte of storage since they're
+	   initialised from strings, which have an implicit '\0' at the end */
+	const BYTE key[ X917_KEYSIZE + 1 ];
+	const BYTE DT[ X917_POOLSIZE + 1 ], V[ X917_POOLSIZE + 1 ];
+	const BYTE R[ X917_POOLSIZE + 1 ];
 	} X917_MCT_TESTDATA;
 
 typedef struct {
-	const BYTE key[ X917_KEYSIZE ];
-	const BYTE initDT[ X917_POOLSIZE ], initV[ X917_POOLSIZE ];
-	const BYTE R[ VST_ITERATIONS ][ X917_POOLSIZE ];
+	const BYTE key[ X917_KEYSIZE + 1 ];
+	const BYTE initDT[ X917_POOLSIZE + 1 ], initV[ X917_POOLSIZE + 1 ];
+	const BYTE R[ VST_ITERATIONS ][ X917_POOLSIZE + 1 ];
 	} X917_VST_TESTDATA;
 
-static const X917_MCT_TESTDATA x917MCTdata = {	/* Monte Carlo Test */
+static const X917_MCT_TESTDATA FAR_BSS x917MCTdata = {	/* Monte Carlo Test */
 #if ( RNG_TEST_VALUES == RNG_TEST_NIST )	/* These values are wrong */
 	/* Key1 = 75C71AE5A11A232C
 	   Key2 = 40256DCD94F767B0
@@ -1298,7 +1401,7 @@ static const X917_MCT_TESTDATA x917MCTdata = {	/* Monte Carlo Test */
 	   R = 77C695C33E51C8C0 */
 	"\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
 	"\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3C",
-	"\xD5\x53\x8F\x9C\xF4\x50\xF5\x3C", 
+	"\xD5\x53\x8F\x9C\xF4\x50\xF5\x3C",
 	"\x77\xC6\x95\xC3\x3E\x51\xC8\xC0"
 #elif ( RNG_TEST_VALUES == RNG_TEST_INFOGARD )
 	/* Key1 = 625BB5131A45F492
@@ -1308,7 +1411,7 @@ static const X917_MCT_TESTDATA x917MCTdata = {	/* Monte Carlo Test */
 	   R = C7AC1E8F100CC30A */
 	"\x62\x5B\xB5\x13\x1A\x45\xF4\x92\x70\x97\x1C\x9E\x0D\x4C\x97\x92",
 	"\x5F\x32\x82\x64\xB7\x87\xB0\x98",
-	"\xA2\x4F\x6E\x0E\xE4\x32\x04\xCD", 
+	"\xA2\x4F\x6E\x0E\xE4\x32\x04\xCD",
 	"\xC7\xAC\x1E\x8F\x10\x0C\xC3\x0A"
 #elif ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
 	/* Key1 = A45BF2E50D153710
@@ -1323,12 +1426,12 @@ static const X917_MCT_TESTDATA x917MCTdata = {	/* Monte Carlo Test */
 #endif /* Different test vectors */
 	};
 
-static const X917_VST_TESTDATA x917VSTdata = {	/* Variable Seed Test (VST) */
+static const X917_VST_TESTDATA FAR_BSS x917VSTdata = {	/* Variable Seed Test (VST) */
 #if ( RNG_TEST_VALUES == RNG_TEST_NIST )
 	/* Count = 0
 	   Key1 = 75C71AE5A11A232C
 	   Key2 = 40256DCD94F767B0
-	   DT = C89A1D888ED12F3C 
+	   DT = C89A1D888ED12F3C
 	   V = 80000000000000000 */
 	"\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
 	"\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3C",
@@ -1488,7 +1591,7 @@ static const X917_VST_TESTDATA x917VSTdata = {	/* Variable Seed Test (VST) */
 	   V = 80000000000000000 */
 	"\x3D\x3D\x02\x89\xDA\xEC\x86\x7A\x29\xB3\xF2\xC7\xF1\x2C\x40\xE5",
 	"\x6F\xC8\xAE\x5C\xA6\x78\xE0\x42",
-	"\x80\x00\x00\x00\x00\x00\x00\x00", 
+	"\x80\x00\x00\x00\x00\x00\x00\x00",
 	{ 0 }
 #endif /* Different test vectors */
 	};
@@ -1531,16 +1634,15 @@ static void printVectors( const BYTE *key, const BYTE *dt, const BYTE *v,
 #define DES_BLOCKSIZE	X917_POOLSIZE
 #if defined( INC_ALL )
   #include "testdes.h"
-#elif defined( INC_CHILD )
-  #include "../crypt/testdes.h"
 #else
   #include "crypt/testdes.h"
 #endif /* Compiler-specific includes */
 
 static int des3TestLoop( const DES_TEST *testData, int iterations )
 	{
-	BYTE temp[ DES_BLOCKSIZE ];
-	BYTE key1[ DES_KEYSIZE ], key2[ DES_KEYSIZE ], key3[ DES_KEYSIZE ];
+	BYTE temp[ DES_BLOCKSIZE + 8 ];
+	BYTE key1[ DES_KEYSIZE + 8 ], key2[ DES_KEYSIZE + 8 ];
+	BYTE key3[ DES_KEYSIZE + 8 ];
 	int i;
 
 	for( i = 0; i < iterations; i++ )
@@ -1569,11 +1671,13 @@ static int des3TestLoop( const DES_TEST *testData, int iterations )
 
 static int algorithmSelfTest( void )
 	{
-	static const FAR_BSS struct {
-		const char *data;
+	typedef struct {
+		const char FAR_BSS *data;
 		const int length;
-		const BYTE hashValue[ 20 ];
-		} hashData[] = {	/* FIPS 180-1 SHA-1 test vectors */
+		const BYTE hashValue[ 20 + 8 ];
+		} HASHDATA_INFO;
+	static const HASHDATA_INFO FAR_BSS hashData[] = {
+		/* FIPS 180-1 SHA-1 test vectors */
 		{ "abc", 3,
 		  { 0xA9, 0x99, 0x3E, 0x36, 0x47, 0x06, 0x81, 0x6A,
 			0xBA, 0x3E, 0x25, 0x71, 0x78, 0x50, 0xC2, 0x6C,
@@ -1582,24 +1686,30 @@ static int algorithmSelfTest( void )
 		  { 0x84, 0x98, 0x3E, 0x44, 0x1C, 0x3B, 0xD2, 0x6E,
 			0xBA, 0xAE, 0x4A, 0xA1, 0xF9, 0x51, 0x29, 0xE5,
 			0xE5, 0x46, 0x70, 0xF1 } },
-		{ NULL, 0, { 0 } }
+		{ NULL, 0, { 0 } }, { NULL, 0, { 0 } }
 		};
 	HASHFUNCTION hashFunction;
-	BYTE hashValue[ CRYPT_MAX_HASHSIZE ];
-	int hashSize, i;
+	BYTE hashValue[ CRYPT_MAX_HASHSIZE + 8 ];
+	int hashSize, i, iterationCount = 0;
 
 	getHashParameters( CRYPT_ALGO_SHA, &hashFunction, &hashSize );
 
 	/* Test the SHA-1 code against the values given in FIPS 180-1.  We don't
 	   perform the final test (using 10MB of data) because this takes too
 	   long to run */
-	for( i = 0; hashData[ i ].data != NULL; i++ )
+	for( i = 0; 
+		 hashData[ i ].data != NULL && \
+			iterationCount++ < FAILSAFE_ARRAYSIZE( hashData, HASHDATA_INFO ); 
+		 i++ )
 		{
-		hashFunction( NULL, hashValue, ( BYTE * ) hashData[ i ].data,
-					  hashData[ i ].length, HASH_ALL );
+		hashFunction( NULL, hashValue, CRYPT_MAX_HASHSIZE, 
+					  ( BYTE * ) hashData[ i ].data, hashData[ i ].length, 
+					  HASH_ALL );
 		if( memcmp( hashValue, hashData[ i ].hashValue, hashSize ) )
 			return( CRYPT_ERROR_FAILED );
 		}
+	if( iterationCount >= FAILSAFE_ARRAYSIZE( hashData, HASHDATA_INFO ) )
+		retIntError();
 
 	/* Test the 3DES code against the values given in NIST Special Pub.800-20,
 	   1999, which are actually the same as 500-20, 1980, since they require
@@ -1619,8 +1729,8 @@ static int algorithmSelfTest( void )
 int initRandomInfo( void **randomInfoPtrPtr )
 	{
 	RANDOM_INFO randomInfo;
-	BYTE keyBuffer[ X917_KEYSIZE + X917_KEYSIZE ];
-	BYTE buffer[ 16 ];
+	BYTE keyBuffer[ X917_KEYSIZE + X917_KEYSIZE + 8 ];
+	BYTE buffer[ 16 + 8 ];
 	int i, isX931, status;
 
 	/* Make sure that the crypto that we need is functioning as required */
@@ -1631,24 +1741,24 @@ int initRandomInfo( void **randomInfoPtrPtr )
 		return( status );
 		}
 
-	/* The underlying crypto is OK, check that the cryptlib PRNG is working 
+	/* The underlying crypto is OK, check that the cryptlib PRNG is working
 	   correctly */
 	initRandomPool( &randomInfo );
 	mixRandomPool( &randomInfo );
-	if( memcmp( randomInfo.randomPool, 
+	if( memcmp( randomInfo.randomPool,
 				"\xF6\x8F\x30\xEE\x52\x13\x3E\x40\x06\x06\xA6\xBE\x91\xD2\xD9\x82", 16 ) )
 		status = CRYPT_ERROR_FAILED;
 	if( cryptStatusOK( status ) )
 		{
 		mixRandomPool( &randomInfo );
-		if( memcmp( randomInfo.randomPool, 
+		if( memcmp( randomInfo.randomPool,
 					"\xAE\x94\x3B\xF2\x86\x5F\xCF\x76\x36\x2B\x80\xD5\x73\x86\x9B\x69", 16 ) )
 			status = CRYPT_ERROR_FAILED;
 		}
 	if( cryptStatusOK( status ) )
 		{
 		mixRandomPool( &randomInfo );
-		if( memcmp( randomInfo.randomPool, 
+		if( memcmp( randomInfo.randomPool,
 					"\xBC\x2D\xC1\x03\x8C\x78\x6D\x04\xA8\xBD\xD5\x51\x80\xCA\x42\xF4", 16 ) )
 			status = CRYPT_ERROR_FAILED;
 		}
@@ -1661,7 +1771,7 @@ int initRandomInfo( void **randomInfoPtrPtr )
 
 	/* Check that the ANSI X9.17 PRNG is working correctly */
 	memset( buffer, 0, 16 );
-	status = setKeyX917( &randomInfo, randomInfo.randomPool, 
+	status = setKeyX917( &randomInfo, randomInfo.randomPool,
 						 randomInfo.randomPool + X917_KEYSIZE, NULL );
 	if( cryptStatusOK( status ) )
 		status = generateX917( &randomInfo, buffer, X917_POOLSIZE );
@@ -1685,8 +1795,8 @@ int initRandomInfo( void **randomInfoPtrPtr )
 		return( CRYPT_ERROR_FAILED );
 		}
 
-	/* The underlying PRNGs are OK, check the overall random number 
-	   generation system.  Since we started with an all-zero seed, we have 
+	/* The underlying PRNGs are OK, check the overall random number
+	   generation system.  Since we started with an all-zero seed, we have
 	   to fake the entropy-quality values for the artificial test pool */
 	randomInfo.randomQuality = 100;
 	randomInfo.randomPoolMixes = RANDOMPOOL_MIXES;
@@ -1702,17 +1812,21 @@ int initRandomInfo( void **randomInfoPtrPtr )
 		}
 	endRandomPool( &randomInfo );
 
+	/* The following test can take quite some time on slower CPUs, so we 
+	   only run it if we can assume that there's a reasonably fast CPU
+	   present */
+#if !( defined( __MSDOS16__ ) || defined( __WIN16__ ) )
 	/* Check the ANSI X9.17 PRNG again, this time using X9.31 test vectors.
 	   Specifically, these aren't test vectors from X9.31 but vectors used
 	   to certify an X9.17 generator when run in X9.31 mode (we actually run
 	   the test twice, once in X9.17 seed-via-DT mode and once in X9.31 seed-
-	   via-V mode).  We have to do this after the above test since they're 
-	   run as a unit from the lowest-level cryptlib and ANSI PRNGs to the 
-	   overall random number generation system, inserting this test in the 
+	   via-V mode).  We have to do this after the above test since they're
+	   run as a unit from the lowest-level cryptlib and ANSI PRNGs to the
+	   overall random number generation system, inserting this test in the
 	   middle would upset the final result values */
 	initRandomPool( &randomInfo );
 	memcpy( keyBuffer, x917MCTdata.key, X917_KEYSIZE );
-	status = setKeyX917( &randomInfo, keyBuffer, x917MCTdata.V, 
+	status = setKeyX917( &randomInfo, keyBuffer, x917MCTdata.V,
 						 x917MCTdata.DT );
 	if( cryptStatusOK( status ) )
 		{
@@ -1734,6 +1848,7 @@ int initRandomInfo( void **randomInfoPtrPtr )
 		return( CRYPT_ERROR_FAILED );
 		}
 	endRandomPool( &randomInfo );
+#endif /* Slower CPUs */
 #if ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
 	printf( "[X9.31]\n[2-Key TDES]\n\n" );
 	printVectors( x917MCTdata.key, x917MCTdata.DT, x917MCTdata.V, buffer, 0 );
@@ -1741,7 +1856,7 @@ int initRandomInfo( void **randomInfoPtrPtr )
 #endif /* FIPS eval data output */
 	for( isX931 = FALSE; isX931 <= TRUE; isX931++ )
 		{
-		BYTE V[ X917_POOLSIZE ], DT[ X917_POOLSIZE ];
+		BYTE V[ X917_POOLSIZE + 8 ], DT[ X917_POOLSIZE + 8 ];
 
 		/* Run through the tests twice, once using the X9.17 interpretation,
 		   a second time using the X9.31 interpretation */
@@ -1777,7 +1892,7 @@ int initRandomInfo( void **randomInfoPtrPtr )
 				putchar( '\n' );
 				}
 #endif /* FIPS eval data output */
-			
+
 			/* V = V >> 1, shifting in 1 bits;
 			   DT = DT + 1 */
 			for( j = X917_POOLSIZE - 1; j > 0; j-- )
@@ -1832,7 +1947,7 @@ void endRandomInfo( void **randomInfoPtrPtr )
 *																			*
 ****************************************************************************/
 
-/* Add random data to the random pool.  This should eventually be replaced 
+/* Add random data to the random pool.  This should eventually be replaced
    by some sort of device control mechanism, the problem with doing this is
    that it's handled by the system device which isn't visible to the user */
 
@@ -1855,32 +1970,29 @@ C_RET cryptAddRandom( C_IN void C_PTR randomData, C_IN int randomDataLength )
 
 	/* If we're adding data to the pool, add it now and exit.  Since the data
 	   is of unknown provenance (and empirical evidence indicates that it
-	   won't be very random) we give it a weight of zero for estimation 
+	   won't be very random) we give it a weight of zero for estimation
 	   purposes */
 	if( randomData != NULL )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
-#ifndef NDEBUG	/* For debugging tests only */
+#if defined( __WINDOWS__ ) && !defined( NDEBUG )	/* For debugging tests only */
 if( randomDataLength == 5 && !memcmp( randomData, "xyzzy", 5 ) )
 {
-BYTE buffer[ 256 ];
+BYTE buffer[ 256 + 8 ];
 int kludge = 100;
-#ifndef __MAC__
-printf( "Kludging randomness, file " __FILE__ ", line %d.\n", __LINE__ );
-#endif /* __MAC__ */
 memset( buffer, '*', 256 );
 setMessageData( &msgData, buffer, 256 );
-krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_SETATTRIBUTE_S, 
+krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_SETATTRIBUTE_S,
 				 &msgData, CRYPT_IATTRIBUTE_ENTROPY );
 krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_SETATTRIBUTE,
 				 &kludge, CRYPT_IATTRIBUTE_ENTROPY_QUALITY );
 }
-#endif /* NDEBUG */
+#endif /* Windows debug */
 
 		setMessageData( &msgData, ( void * ) randomData, randomDataLength );
 		return( krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								 IMESSAGE_SETATTRIBUTE_S, &msgData, 
+								 IMESSAGE_SETATTRIBUTE_S, &msgData,
 								 CRYPT_IATTRIBUTE_ENTROPY ) );
 		}
 

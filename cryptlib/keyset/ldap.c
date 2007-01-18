@@ -1,18 +1,22 @@
 /****************************************************************************
 *																			*
 *						cryptlib LDAP Mapping Routines						*
-*					  Copyright Peter Gutmann 1998-2002						*
+*					  Copyright Peter Gutmann 1998-2004						*
 *																			*
 ****************************************************************************/
 
-/* The following code can be built to use the Netscape or Windows LDAP
-   clients.  By default the Windows client is used under Windows and the
-   Netscape client is used elsewhere, this can be overridden by defining
-   NETSCAPE_CLIENT which causes the Netscape client to be used in all
-   cases.  The Windows client appears to be considerably more buggy than
-   the Netscape one, so if you get data corruption and other problems try
-   switching to the Netscape client (see the comment next to ber_free() for
-   more details on some of these problems).
+/* The following code can be built to use most of the various subtly 
+   incompatible LDAP clients.  By default the Windows client is used under 
+   Windows and the OpenLDAP client is used elsewhere, this can be overridden 
+   by defining NETSCAPE_CLIENT which causes the Netscape client to be used 
+   instead.  Old versions of the Windows client were considerably more buggy 
+   than the Netscape one, so if you get data corruption and other problems 
+   try switching to the Netscape client (see the comment next to ber_free() 
+   for more details on some of these problems).  Note that there are at least
+   five incompatible LDAP APIs, the one defined in the RFCs, the older 
+   OpenLDAP API, the newer OpenLDAP API, the Windows API, and the Netscape 
+   API.  The following code tries to auto-adjust itself for all of the
+   different versions, but it may need some hand-tweaking.
 
    A generalisation of this is that you shouldn't be using LDAP for
    certificate storage at all unless you're absolutely forced to.  LDAP
@@ -20,13 +24,8 @@
    technical reasons for this may be found in the Godzilla crypto tutorial
    and in any database text written within the last 20 years */
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "keyset.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "keyset.h"
 #else
   #include "crypt.h"
@@ -46,7 +45,7 @@
    leads to too many complaints from people who don't read the LDAP
    installation section of the manual */
 
-#if defined( __WINDOWS__ ) && !defined( NETSCAPE_CLIENT )
+#if defined( __WINDOWS__ )
   /* cryptlib.h includes a trap for inclusion of wincrypt.h before 
      cryptlib.h which results in a compiler error if both files are 
 	 included.  To disable this, we need to undefine the CRYPT_MODE_ECB 
@@ -55,16 +54,15 @@
   #include <winldap.h>
   #define LDAP_API		LDAPAPI		/* Windows LDAP API type */
   #define timeval		l_timeval	/* Windows uses nonstandard name */
-#else
-  #define NETSCAPE_CLIENT			/* Force use of Netscape on non-Win.sys.*/
-  #if defined( INC_ALL ) || defined( INC_CHILD )
-	#include "ldap.h"
-  #else
-	#include "keyset/ldap.h"
-  #endif /* Compiler-specific includes */
+#elif defined( NETSCAPE_CLIENT )
+  #include <ldap.h>
   #define LDAP_API		LDAP_CALL	/* Netscape LDAP API type */
   #define ber_free		ldap_ber_free	/* Netscape uses nonstandard name */
-#endif /* Windows vs Netscape client */
+#else
+  #include <ldap.h>
+  #include <sys/time.h>				/* For 'struct timeval' */
+  #define LDAP_API					/* OpenLDAP LDAP API type */
+#endif /* Different LDAP client types */
 
 /****************************************************************************
 *																			*
@@ -72,16 +70,14 @@
 *																			*
 ****************************************************************************/
 
-#ifdef __WINDOWS__
+#ifdef DYNAMIC_LOAD
 
 /* Global function pointers.  These are necessary because the functions need
-   to be dynamically linked since few older systems contain the necessary
-   DLL's (LDAP?  Get real).  Explicitly linking to them will make cryptlib
-   unloadable on most systems */
+   to be dynamically linked since older systems won't contain the necessary
+   DLL's.  Explicitly linking to them will make cryptlib unloadable on these 
+   systems */
 
-#define NULL_HINSTANCE	( HINSTANCE ) NULL
-
-static HINSTANCE hLDAP = NULL_HINSTANCE;
+static INSTANCE_HANDLE hLDAP = NULL_INSTANCE;
 
 typedef void ( LDAP_API *BER_FREE )( BerElement *ber, int freebuf );
 typedef int ( LDAP_API *LDAP_ADD_S )( LDAP *ld, const char *dn, LDAPMod **attrs );
@@ -90,11 +86,13 @@ typedef char * ( LDAP_API *LDAP_ERR2STRING )( int err );
 typedef char * ( LDAP_API *LDAP_FIRST_ATTRIBUTE )( LDAP *ld, LDAPMessage *entry,
 										  BerElement **ber );
 typedef LDAPMessage * ( LDAP_API *LDAP_FIRST_ENTRY )( LDAP *ld, LDAPMessage *result );
-#ifdef NETSCAPE_CLIENT
+#if defined( __WINDOWS__ )
+  typedef int ( LDAP_API *LDAP_GETLASTERROR )( void );
+#elif defined( NETSCAPE_CLIENT )
   typedef int ( LDAP_API *LDAP_GET_LDERRNO )( LDAP *ld, char **m, char **s );
 #else
-  typedef int ( LDAP_API *LDAP_GETLASTERROR )( void );
-#endif /* NETSCAPE_CLIENT */
+  typedef int ( LDAP_API *LDAP_GET_OPTION )( LDAP *ld, int option, void *outvalue );
+#endif /* Different LDAP client types */
 typedef struct berval ** ( LDAP_API *LDAP_GET_VALUES_LEN )( LDAP *ld, LDAPMessage *entry,
 												   const char *attr );
 typedef LDAP * ( LDAP_API *LDAP_INIT )( const char *host, int port );
@@ -115,17 +113,21 @@ typedef int ( LDAP_API *LDAP_URL_SEARCH_ST )( LDAP *ld, char *url, int attrsonly
 											  struct timeval *timeout,
 											  LDAPMessage **res );
 typedef void ( LDAP_API *LDAP_VALUE_FREE_LEN )( struct berval **vals );
-static BER_FREE p_ber_free = NULL;
+#if defined( __WINDOWS__ ) || defined( NETSCAPE_CLIENT )
+  static BER_FREE p_ber_free = NULL;
+#endif /* __WINDOWS__ || NETSCAPE_CLIENT */
 static LDAP_ADD_S p_ldap_add_s = NULL;
 static LDAP_DELETE_S p_ldap_delete_s = NULL;
 static LDAP_ERR2STRING p_ldap_err2string = NULL;
 static LDAP_FIRST_ATTRIBUTE p_ldap_first_attribute = NULL;
 static LDAP_FIRST_ENTRY p_ldap_first_entry = NULL;
-#ifdef NETSCAPE_CLIENT
+#if defined( __WINDOWS__ )
+  static LDAP_GETLASTERROR p_LdapGetLastError = NULL;
+#elif defined( NETSCAPE_CLIENT )
   static LDAP_GET_LDERRNO p_ldap_get_lderrno = NULL;
 #else
-  static LDAP_GETLASTERROR p_LdapGetLastError = NULL;
-#endif /* NETSCAPE_CLIENT */
+  static LDAP_GET_OPTION p_ldap_get_option = NULL;
+#endif /* Different LDAP client types */
 static LDAP_GET_VALUES_LEN p_ldap_get_values_len = NULL;
 static LDAP_INIT p_ldap_init = NULL;
 static LDAP_IS_LDAP_URL p_ldap_is_ldap_url = NULL;
@@ -139,7 +141,7 @@ static LDAP_UNBIND p_ldap_unbind = NULL;
 static LDAP_URL_SEARCH_ST p_ldap_url_search_st = NULL;
 static LDAP_VALUE_FREE_LEN p_ldap_value_free_len = NULL;
 
-/* The use of dynamically bound function pointers vs statically linked
+/* The use of dynamically bound function pointers vs.statically linked
    functions requires a bit of sleight of hand since we can't give the
    pointers the same names as prototyped functions.  To get around this we
    redefine the actual function names to the names of the pointers */
@@ -150,11 +152,13 @@ static LDAP_VALUE_FREE_LEN p_ldap_value_free_len = NULL;
 #define ldap_err2string			p_ldap_err2string
 #define ldap_first_attribute	p_ldap_first_attribute
 #define ldap_first_entry		p_ldap_first_entry
-#ifdef NETSCAPE_CLIENT
+#if defined( __WINDOWS__ )
+  #define LdapGetLastError		p_LdapGetLastError
+#elif defined( NETSCAPE_CLIENT )
   #define ldap_get_lderrno		p_ldap_get_lderrno
 #else
-  #define LdapGetLastError		p_LdapGetLastError
-#endif /* NETSCAPE_CLIENT */
+  #define ldap_get_option		p_ldap_get_option
+#endif /* Different LDAP client types */
 #define ldap_get_values_len		p_ldap_get_values_len
 #define ldap_init				p_ldap_init
 #define ldap_is_ldap_url		p_ldap_is_ldap_url
@@ -172,13 +176,18 @@ static LDAP_VALUE_FREE_LEN p_ldap_value_free_len = NULL;
 
 #ifdef __WIN16__
   #define LDAP_LIBNAME			"NSLDSS16.DLL"
-#else
-  #ifdef NETSCAPE_CLIENT
-	#define LDAP_LIBNAME		"NSLDAP32v30.DLL"
+#elif defined( __WIN32__ )
+  #define LDAP_LIBNAME			"wldap32.dll"
+#elif defined( __UNIX__ )
+  #if defined( __APPLE__ )
+	/* OS X has built-in LDAP support via OpenLDAP */
+	#define LDAP_LIBNAME		"libldap.dylib"
+  #elif defined NETSCAPE_CLIENT
+	#define LDAP_LIBNAME		"libldap50.so"
   #else
-	#define LDAP_LIBNAME		"wldap32.dll"
+	#define LDAP_LIBNAME		"libldap.so"
   #endif /* NETSCAPE_CLIENT */
-#endif /* __WIN16__ */
+#endif /* System-specific ODBC library names */
 
 /* Dynamically load and unload any necessary LDAP libraries */
 
@@ -189,7 +198,7 @@ int dbxInitLDAP( void )
 #endif /* __WIN16__ */
 
 	/* If the LDAP module is already linked in, don't do anything */
-	if( hLDAP != NULL_HINSTANCE )
+	if( hLDAP != NULL_INSTANCE )
 		return( CRYPT_OK );
 
 	/* Obtain a handle to the module containing the LDAP functions */
@@ -199,44 +208,46 @@ int dbxInitLDAP( void )
 	SetErrorMode( errorMode );
 	if( hLDAP < HINSTANCE_ERROR )
 		{
-		hLDAP = NULL_HINSTANCE;
+		hLDAP = NULL_INSTANCE;
 		return( CRYPT_ERROR );
 		}
 #else
-	if( ( hLDAP = LoadLibrary( LDAP_LIBNAME ) ) == NULL_HINSTANCE )
+	if( ( hLDAP = DynamicLoad( LDAP_LIBNAME ) ) == NULL_INSTANCE )
 		return( CRYPT_ERROR );
 #endif /* __WIN32__ */
 
 	/* Now get pointers to the functions */
-#ifdef NETSCAPE_CLIENT
-	p_ber_free = ( BER_FREE ) GetProcAddress( hLDAP, "ldap_ber_free" );
+#if defined( __WINDOWS__ )
+	p_ber_free = ( BER_FREE ) DynamicBind( hLDAP, "ber_free" );
+#elif defined( NETSCAPE_CLIENT )
+	p_ber_free = ( BER_FREE ) DynamicBind( hLDAP, "ldap_ber_free" );
+#endif /* __WINDOWS__ || NETSCAPE_CLIENT */
+	p_ldap_add_s = ( LDAP_ADD_S ) DynamicBind( hLDAP, "ldap_add_s" );
+	p_ldap_delete_s = ( LDAP_DELETE_S ) DynamicBind( hLDAP, "ldap_delete_s" );
+	p_ldap_err2string = ( LDAP_ERR2STRING ) DynamicBind( hLDAP, "ldap_err2string" );
+	p_ldap_first_attribute = ( LDAP_FIRST_ATTRIBUTE ) DynamicBind( hLDAP, "ldap_first_attribute" );
+	p_ldap_first_entry = ( LDAP_FIRST_ENTRY ) DynamicBind( hLDAP, "ldap_first_entry" );
+#if defined( __WINDOWS__ )
+	p_LdapGetLastError = ( LDAP_GETLASTERROR ) DynamicBind( hLDAP, "LdapGetLastError" );
+#elif defined( NETSCAPE_CLIENT )
+	p_ldap_get_lderrno = ( LDAP_GET_LDERRNO ) DynamicBind( hLDAP, "ldap_get_lderrno" );
 #else
-	p_ber_free = ( BER_FREE ) GetProcAddress( hLDAP, "ber_free" );
-#endif /* NETSCAPE_CLIENT */
-	p_ldap_add_s = ( LDAP_ADD_S ) GetProcAddress( hLDAP, "ldap_add_s" );
-	p_ldap_delete_s = ( LDAP_DELETE_S ) GetProcAddress( hLDAP, "ldap_delete_s" );
-	p_ldap_err2string = ( LDAP_ERR2STRING ) GetProcAddress( hLDAP, "ldap_err2string" );
-	p_ldap_first_attribute = ( LDAP_FIRST_ATTRIBUTE ) GetProcAddress( hLDAP, "ldap_first_attribute" );
-	p_ldap_first_entry = ( LDAP_FIRST_ENTRY ) GetProcAddress( hLDAP, "ldap_first_entry" );
-#ifdef NETSCAPE_CLIENT
-	p_ldap_get_lderrno = ( LDAP_GET_LDERRNO ) GetProcAddress( hLDAP, "ldap_get_lderrno" );
-#else
-	p_LdapGetLastError = ( LDAP_GETLASTERROR ) GetProcAddress( hLDAP, "LdapGetLastError" );
-#endif /* NETSCAPE_CLIENT */
-	p_ldap_get_values_len = ( LDAP_GET_VALUES_LEN ) GetProcAddress( hLDAP, "ldap_get_values_len" );
-	p_ldap_init = ( LDAP_INIT ) GetProcAddress( hLDAP, "ldap_init" );
-	p_ldap_is_ldap_url = ( LDAP_IS_LDAP_URL ) GetProcAddress( hLDAP, "ldap_is_ldap_url" );
-	p_ldap_memfree = ( LDAP_MEMFREE ) GetProcAddress( hLDAP, "ldap_memfree" );
-	p_ldap_msgfree = ( LDAP_MSGFREE ) GetProcAddress( hLDAP, "ldap_msgfree" );
-	p_ldap_next_entry = ( LDAP_NEXT_ENTRY ) GetProcAddress( hLDAP, "ldap_next_entry" );
-	p_ldap_search_st = ( LDAP_SEARCH_ST ) GetProcAddress( hLDAP, "ldap_search_st" );
-	p_ldap_set_option = ( LDAP_SET_OPTION ) GetProcAddress( hLDAP, "ldap_set_option" );
-	p_ldap_simple_bind_s = ( LDAP_SIMPLE_BIND_S ) GetProcAddress( hLDAP, "ldap_simple_bind_s" );
-	p_ldap_unbind = ( LDAP_UNBIND ) GetProcAddress( hLDAP, "ldap_unbind" );
-	p_ldap_url_search_st = ( LDAP_URL_SEARCH_ST ) GetProcAddress( hLDAP, "ldap_url_search_st" );
-	p_ldap_value_free_len = ( LDAP_VALUE_FREE_LEN ) GetProcAddress( hLDAP, "ldap_value_free_len" );
+	p_ldap_get_option = ( LDAP_GET_OPTION ) DynamicBind( hLDAP, "ldap_get_option" );
+#endif /* Different LDAP client types */
+	p_ldap_get_values_len = ( LDAP_GET_VALUES_LEN ) DynamicBind( hLDAP, "ldap_get_values_len" );
+	p_ldap_init = ( LDAP_INIT ) DynamicBind( hLDAP, "ldap_init" );
+	p_ldap_is_ldap_url = ( LDAP_IS_LDAP_URL ) DynamicBind( hLDAP, "ldap_is_ldap_url" );
+	p_ldap_memfree = ( LDAP_MEMFREE ) DynamicBind( hLDAP, "ldap_memfree" );
+	p_ldap_msgfree = ( LDAP_MSGFREE ) DynamicBind( hLDAP, "ldap_msgfree" );
+	p_ldap_next_entry = ( LDAP_NEXT_ENTRY ) DynamicBind( hLDAP, "ldap_next_entry" );
+	p_ldap_search_st = ( LDAP_SEARCH_ST ) DynamicBind( hLDAP, "ldap_search_st" );
+	p_ldap_set_option = ( LDAP_SET_OPTION ) DynamicBind( hLDAP, "ldap_set_option" );
+	p_ldap_simple_bind_s = ( LDAP_SIMPLE_BIND_S ) DynamicBind( hLDAP, "ldap_simple_bind_s" );
+	p_ldap_unbind = ( LDAP_UNBIND ) DynamicBind( hLDAP, "ldap_unbind" );
+	p_ldap_url_search_st = ( LDAP_URL_SEARCH_ST ) DynamicBind( hLDAP, "ldap_url_search_st" );
+	p_ldap_value_free_len = ( LDAP_VALUE_FREE_LEN ) DynamicBind( hLDAP, "ldap_value_free_len" );
 
-	/* Make sure we got valid pointers for every LDAP function */
+	/* Make sure that we got valid pointers for every LDAP function */
 	if( p_ldap_add_s == NULL ||
 #ifdef NETSCAPE_CLIENT
 		p_ber_free == NULL ||
@@ -244,11 +255,13 @@ int dbxInitLDAP( void )
 		p_ldap_delete_s == NULL || p_ldap_err2string == NULL || \
 		p_ldap_first_attribute == NULL || p_ldap_first_entry == NULL || \
 		p_ldap_init == NULL ||
-#ifdef NETSCAPE_CLIENT
+#if defined( __WINDOWS__ )
+		p_LdapGetLastError == NULL ||
+#elif defined( NETSCAPE_CLIENT )
 		p_ldap_get_lderrno == NULL || p_ldap_is_ldap_url == NULL ||
 		p_ldap_url_search_st == NULL ||
 #else
-		p_LdapGetLastError == NULL ||
+		p_ldap_get_option == NULL ||
 #endif /* NETSCAPE_CLIENT */
 		p_ldap_get_values_len == NULL || p_ldap_memfree == NULL || \
 		p_ldap_msgfree == NULL || p_ldap_next_entry == NULL || \
@@ -257,19 +270,35 @@ int dbxInitLDAP( void )
 		p_ldap_value_free_len == NULL )
 		{
 		/* Free the library reference and reset the handle */
-		FreeLibrary( hLDAP );
-		hLDAP = NULL_HINSTANCE;
+		DynamicUnload( hLDAP );
+		hLDAP = NULL_INSTANCE;
 		return( CRYPT_ERROR );
 		}
+
+	/* Some versions of OpenLDAP define ldap_is_ldap_url() but not 
+	   ldap_url_search_st() (which makes the former more or less useless), 
+	   so if the latter isn't defined we remove the former as well */
+	if( p_ldap_url_search_st == NULL )
+		p_ldap_is_ldap_url = NULL;
 
 	return( CRYPT_OK );
 	}
 
 void dbxEndLDAP( void )
 	{
-	if( hLDAP != NULL_HINSTANCE )
-		FreeLibrary( hLDAP );
-	hLDAP = NULL_HINSTANCE;
+	if( hLDAP != NULL_INSTANCE )
+		DynamicUnload( hLDAP );
+	hLDAP = NULL_INSTANCE;
+	}
+#else
+
+int dbxInitLDAP( void )
+	{
+	return( CRYPT_OK );
+	}
+
+void dbxEndLDAP( void )
+	{
 	}
 #endif /* __WINDOWS__ */
 
@@ -284,7 +313,7 @@ void dbxEndLDAP( void )
 static void assignFieldName( const CRYPT_USER cryptOwner, char *buffer,
 							 CRYPT_ATTRIBUTE_TYPE option )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	setMessageData( &msgData, buffer, CRYPT_MAX_TEXTSIZE );
@@ -301,10 +330,7 @@ static void getErrorInfo( KEYSET_INFO *keysetInfo, int ldapStatus )
 	LDAP_INFO *ldapInfo = keysetInfo->keysetLDAP;
 	char *errorMessage;
 
-#ifdef NETSCAPE_CLIENT
-	keysetInfo->errorCode = ldap_get_lderrno( ldapInfo->ld, NULL,
-											  &errorMessage );
-#else
+#if defined( __WINDOWS__ )
 	ldapInfo->errorCode = LdapGetLastError();
 	if( ldapInfo->errorCode == LDAP_SUCCESS )
 		/* In true Microsoft fashion LdapGetLastError() can return
@@ -324,7 +350,22 @@ static void getErrorInfo( KEYSET_INFO *keysetInfo, int ldapStatus )
 				   MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
 				   ldapInfo->errorMessage, MAX_ERRMSG_SIZE - 1, NULL );
   #endif /* 0 */
-#endif /* Netscape vs MS LDAP client */
+#elif defined( NETSCAPE_CLIENT )
+	ldapInfo->errorCode = ldap_get_lderrno( ldapInfo->ld, NULL,
+											&errorMessage );
+#else
+  /* As usual there are various incompatible ways of getting the necessary
+	 information, we use whatever's available */
+  #ifdef LDAP_OPT_ERROR_NUMBER
+	ldap_get_option( ldapInfo->ld, LDAP_OPT_ERROR_NUMBER, 
+					 &ldapInfo->errorCode );
+  #else
+	ldap_get_option( ldapInfo->ld, LDAP_OPT_RESULT_CODE, 
+					 &ldapInfo->errorCode );
+  #endif /* Various ways of getting the error info */
+	ldap_get_option( ldapInfo->ld, LDAP_OPT_ERROR_STRING, 
+					 &errorMessage );
+#endif /* Different LDAP client types */
 	if( errorMessage != NULL )
 		{
 		strncpy( ldapInfo->errorMessage, errorMessage, MAX_ERRMSG_SIZE - 1 );
@@ -334,39 +375,55 @@ static void getErrorInfo( KEYSET_INFO *keysetInfo, int ldapStatus )
 		*ldapInfo->errorMessage = '\0';
 	}
 
-/* Map an LDAP error to the corresponding cryptlib error.  Some Windows LDAP
-   error codes differ slightly from the standard LDAP names so we have to
+/* Map an LDAP error to the corresponding cryptlib error.  The various LDAP
+   imlpementations differ slightly in their error codes, so we have to 
    adjust them as appropriate */
 
-static int mapLDAPerror( const int ldapError, const int defaultError )
+static int mapLdapError( const int ldapError, const int defaultError )
 	{
 	switch( ldapError )
 		{
 		case LDAP_INAPPROPRIATE_AUTH:
 		case LDAP_INVALID_CREDENTIALS:
 		case LDAP_AUTH_UNKNOWN:
-#ifdef NETSCAPE_CLIENT
-		case LDAP_INSUFFICIENT_ACCESS:
-#else
+#if defined( __WINDOWS__ )
 		case LDAP_INSUFFICIENT_RIGHTS:
 		case LDAP_AUTH_METHOD_NOT_SUPPORTED:
-#endif /* NETSCAPE_CLIENT */
+#elif defined( NETSCAPE_CLIENT )
+		case LDAP_INSUFFICIENT_ACCESS:
+#else
+		case LDAP_INSUFFICIENT_ACCESS:
+		case LDAP_AUTH_METHOD_NOT_SUPPORTED:
+#endif /* Different client types */
 			return( CRYPT_ERROR_PERMISSION );
 
-#ifdef NETSCAPE_CLIENT
+#if defined( __WINDOWS__ )
+		case LDAP_ATTRIBUTE_OR_VALUE_EXISTS:
+		case LDAP_ALREADY_EXISTS:
+#elif defined( NETSCAPE_CLIENT )
 		case LDAP_TYPE_OR_VALUE_EXISTS:
 #else
-		case LDAP_ATTRIBUTE_OR_VALUE_EXISTS:
-#endif /* NETSCAPE_CLIENT */
+		case LDAP_TYPE_OR_VALUE_EXISTS:
+		case LDAP_ALREADY_EXISTS:
+#endif /* Different client types */
 			return( CRYPT_ERROR_DUPLICATE );
 
-#ifndef NETSCAPE_CLIENT
+#if defined( __WINDOWS__ )
 		case LDAP_CONFIDENTIALITY_REQUIRED:
+#elif defined( NETSCAPE_CLIENT )
+		/* Nothing */
+#else
+		case LDAP_CONFIDENTIALITY_REQUIRED:
+		case LDAP_STRONG_AUTH_REQUIRED:
 			return( CRYPT_ERROR_NOSECURE );
-#endif /* NETSCAPE_CLIENT */
+#endif /* Different client types */
 
 		case LDAP_INVALID_DN_SYNTAX:
 			return( CRYPT_ARGERROR_STR1 );
+
+		case LDAP_TIMELIMIT_EXCEEDED:
+		case LDAP_TIMEOUT:
+			return( CRYPT_ERROR_TIMEOUT );
 
 #ifndef NETSCAPE_CLIENT
 		case LDAP_NO_RESULTS_RETURNED:
@@ -377,11 +434,16 @@ static int mapLDAPerror( const int ldapError, const int defaultError )
 
 #ifndef NETSCAPE_CLIENT
 		case LDAP_NOT_SUPPORTED:
+		case LDAP_UNAVAILABLE:
 			return( CRYPT_ERROR_NOTAVAIL );
 #endif /* NETSCAPE_CLIENT */
 
+		case LDAP_SIZELIMIT_EXCEEDED:
 		case LDAP_RESULTS_TOO_LARGE:
 			return( CRYPT_ERROR_OVERFLOW );
+
+		case LDAP_NO_MEMORY:
+			return( CRYPT_ERROR_MEMORY );
 		}
 
 	return( defaultError );
@@ -439,11 +501,13 @@ static LDAPMod *copyAttribute( const char *attributeName,
 
 /* Encode DN information in the RFC 1779 reversed format.  We don't have to
    check for overflows because the cert.management code limits the size of
-   each component to a small fraction of the total buffer size */
+   each component to a small fraction of the total buffer size.  Besides 
+   which, it's LDAP, anyone using this crap as a cert store is asking for
+   it anyway :-) */
 
 static void copyComponent( char *dest, char *src )
 	{
-	while( *src )
+	while( *src != '\0' )
 		{
 		const char ch = *src++;
 
@@ -538,12 +602,14 @@ static int parseURL( char *ldapServer, char **ldapUser, int *ldapPort )
    This is necessary because the complex LDAP open may require a fairly
    extensive cleanup afterwards */
 
-static void shutdownFunction( KEYSET_INFO *keysetInfo )
+static int shutdownFunction( KEYSET_INFO *keysetInfo )
 	{
 	LDAP_INFO *ldapInfo = keysetInfo->keysetLDAP;
 
 	ldap_unbind( ldapInfo->ld );
 	ldapInfo->ld = NULL;
+
+	return( CRYPT_OK );
 	}
 
 /* Open a connection to an LDAP directory */
@@ -552,10 +618,10 @@ static int initFunction( KEYSET_INFO *keysetInfo, const char *server,
 						 const CRYPT_KEYOPT_TYPE options )
 	{
 	LDAP_INFO *ldapInfo = keysetInfo->keysetLDAP;
-	char ldapServer[ MAX_URL_SIZE ], *ldapUser;
+	char ldapServer[ MAX_URL_SIZE + 8 ], *ldapUser;
 	int maxEntries = 2, timeout, ldapPort, ldapStatus = LDAP_OTHER, status;
 
-	/* Check the URL.  The Netscape API provides the function
+	/* Check the URL.  The Netscape and OpenLDAP APIs provide the function
 	   ldap_is_ldap_url() for this, but this requires a complete LDAP URL
 	   rather than just a server name and port */
 	if( strlen( server ) > MAX_URL_SIZE - 1 )
@@ -574,7 +640,7 @@ static int initFunction( KEYSET_INFO *keysetInfo, const char *server,
 		getErrorInfo( keysetInfo, ldapStatus );
 		ldap_unbind( ldapInfo->ld );
 		ldapInfo->ld = NULL;
-		return( mapLDAPerror( ldapStatus, CRYPT_ERROR_OPEN ) );
+		return( mapLdapError( ldapStatus, CRYPT_ERROR_OPEN ) );
 		}
 
 	/* Set the search timeout and limit the maximum number of returned
@@ -616,13 +682,82 @@ static int initFunction( KEYSET_INFO *keysetInfo, const char *server,
 *																			*
 ****************************************************************************/
 
+/* Send a query to an LDAP server */
+
+static int sendLdapQuery( LDAP_INFO *ldapInfo, LDAPMessage **resultPtr,
+						  const CRYPT_HANDLE iOwnerHandle, const char *dn )
+	{
+	const CRYPT_CERTTYPE_TYPE objectType = ldapInfo->objectType;
+	const char *certAttributes[] = { ldapInfo->nameCert, NULL };
+	const char *caCertAttributes[] = { ldapInfo->nameCACert, NULL };
+	const char *crlAttributes[] = { ldapInfo->nameCRL, NULL };
+	struct timeval ldapTimeout = { 0, 0 };
+	int ldapStatus = LDAP_OTHER, timeout;
+
+	/* Network I/O may be set to be nonblocking, so we make sure we try for 
+	   at least 15s before timing out */
+	krnlSendMessage( iOwnerHandle, IMESSAGE_GETATTRIBUTE, &timeout, 
+					 CRYPT_OPTION_NET_READTIMEOUT );
+	ldapTimeout.tv_sec = max( timeout, 15 );
+
+	/* If the LDAP search-by-URL functions are available and the key ID is 
+	   an LDAP URL, perform a search by URL */
+	if( ldap_is_ldap_url != NULL && ldap_is_ldap_url( ( char * ) dn ) )
+		return( ldap_url_search_st( ldapInfo->ld, ( char * ) dn, FALSE, 
+									&ldapTimeout, resultPtr ) );
+
+	/* Try and retrieve the entry for this DN from the directory.  We use a 
+	   base specified by the DN, a chop of 0 (to return only the current 
+	   entry), any object class (to get around the problem of 
+	   implementations which stash certs in whatever they feel like), and 
+	   look for a certificate attribute.  If the search fails for this 
+	   attribute, we try again but this time go for a CA certificate 
+	   attribute which unfortunately slows down the search somewhat when the 
+	   cert isn't found but can't really be avoided since there's no way to 
+	   tell in advance whether a cert will be an end entity or a CA cert.  
+	   To complicate things even further, we may also need to check for a 
+	   CRL in case this is what the user is after */
+	if( objectType == CRYPT_CERTTYPE_NONE || \
+		objectType == CRYPT_CERTTYPE_CERTIFICATE )
+		{
+		ldapStatus = ldap_search_st( ldapInfo->ld, dn, LDAP_SCOPE_BASE,
+									 ldapInfo->nameFilter,
+									 ( char ** ) certAttributes, 0,
+									 &ldapTimeout, resultPtr );
+		if( ldapStatus == LDAP_SUCCESS )
+			return( ldapStatus );
+		}
+	if( objectType == CRYPT_CERTTYPE_NONE || \
+		objectType == CRYPT_CERTTYPE_CERTIFICATE )
+		{
+		ldapStatus = ldap_search_st( ldapInfo->ld, dn, LDAP_SCOPE_BASE,
+									 ldapInfo->nameFilter,
+									 ( char ** ) caCertAttributes, 0,
+									 &ldapTimeout, resultPtr );
+		if( ldapStatus == LDAP_SUCCESS )
+			return( ldapStatus );
+		}
+	if( objectType == CRYPT_CERTTYPE_NONE || \
+		objectType == CRYPT_CERTTYPE_CRL )
+		{
+		ldapStatus = ldap_search_st( ldapInfo->ld, dn, LDAP_SCOPE_BASE,
+									 ldapInfo->nameFilter,
+									 ( char ** ) crlAttributes, 0,
+									 &ldapTimeout, resultPtr );
+		if( ldapStatus == LDAP_SUCCESS )
+			return( ldapStatus );
+		}
+
+	return( ldapStatus );
+	}
+
 /* Retrieve a key attribute from an LDAP directory */
 
 static int getItemFunction( KEYSET_INFO *keysetInfo,
 							CRYPT_HANDLE *iCryptHandle,
 							const KEYMGMT_ITEM_TYPE itemType,
 							const CRYPT_KEYID_TYPE keyIDtype,
-							const void *keyID,  const int keyIDlength,
+							const void *keyID, const int keyIDlength,
 							void *auxInfo, int *auxInfoLength,
 							const int flags )
 	{
@@ -641,22 +776,8 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 	   server */
 	if( !ldapInfo->queryInProgress )
 		{
-		const CRYPT_CERTTYPE_TYPE objectType = ldapInfo->objectType;
-		const char *certAttributes[] = { ldapInfo->nameCert, NULL };
-		const char *caCertAttributes[] = { ldapInfo->nameCACert, NULL };
-		const char *crlAttributes[] = { ldapInfo->nameCRL, NULL };
-		struct timeval ldapTimeout = { 0 };
-		char dn[ MAX_DN_STRINGSIZE ];
-		int ldapStatus = LDAP_OTHER, timeout;
-
-		assert( keyIDtype == CRYPT_KEYID_NAME || \
-				keyIDtype == CRYPT_KEYID_URI );
-
-		/* Network I/O may be set to be nonblocking, so we make sure we try
-		   for at least 15s before timing out */
-		krnlSendMessage( keysetInfo->ownerHandle, IMESSAGE_GETATTRIBUTE, 
-						 &timeout, CRYPT_OPTION_NET_READTIMEOUT );
-		ldapTimeout.tv_sec = max( timeout, 15 );
+		char dn[ MAX_DN_STRINGSIZE + 8 ];
+		int ldapStatus;
 
 		/* Convert the DN into a null-terminated form */
 		if( keyIDlength > MAX_DN_STRINGSIZE - 1 )
@@ -664,50 +785,13 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 		memcpy( dn, keyID, keyIDlength );
 		dn[ keyIDlength ] = '\0';
 
-		/* If the LDAP search-by-URL functions are available and the key ID
-		   is an LDAP URL, perform a search by URL */
-		if( ldap_is_ldap_url != NULL && ldap_is_ldap_url( dn ) )
-			ldapStatus = ldap_url_search_st( ldapInfo->ld, dn, FALSE, 
-											 &ldapTimeout, &result );
-		else
-			{
-			/* Try and retrieve the entry for this DN from the directory.
-			   We use a base specified by the DN, a chop of 0 (to return
-			   only the current entry), any object class (to get around the
-			   problem of implementations which stash certs in whatever they
-			   feel like), and look for a certificate attribute.  If the
-			   search fails for this attribute, we try again but this time
-			   go for a CA certificate attribute which unfortunately slows
-			   down the search somewhat when the cert isn't found but can't
-			   really be avoided since there's no way to tell in advance
-			   whether a cert will be an end entity or a CA cert.  To
-			   complicate things even further, we may also need to check for
-			   a CRL in case this is what the user is after */
-			if( objectType == CRYPT_CERTTYPE_NONE || \
-				objectType == CRYPT_CERTTYPE_CERTIFICATE )
-				ldapStatus = ldap_search_st( ldapInfo->ld, dn, LDAP_SCOPE_BASE,
-											 ldapInfo->nameFilter,
-											 ( char ** ) certAttributes, 0,
-											 &ldapTimeout, &result );
-			if( ldapStatus != LDAP_SUCCESS && \
-				( objectType == CRYPT_CERTTYPE_NONE || \
-				  objectType == CRYPT_CERTTYPE_CERTIFICATE ) )
-				ldapStatus = ldap_search_st( ldapInfo->ld, dn, LDAP_SCOPE_BASE,
-											 ldapInfo->nameFilter,
-											 ( char ** ) caCertAttributes, 0,
-											 &ldapTimeout, &result );
-			if( ldapStatus != LDAP_SUCCESS && \
-				( objectType == CRYPT_CERTTYPE_NONE || \
-				  objectType == CRYPT_CERTTYPE_CRL ) )
-				ldapStatus = ldap_search_st( ldapInfo->ld, dn, LDAP_SCOPE_BASE,
-											 ldapInfo->nameFilter,
-											 ( char ** ) crlAttributes, 0,
-											 &ldapTimeout, &result );
-			}
+		/* Send the LDAP query to the server */
+		ldapStatus = sendLdapQuery( ldapInfo, &result, 
+									keysetInfo->ownerHandle, dn );
 		if( ldapStatus != LDAP_SUCCESS )
 			{
 			getErrorInfo( keysetInfo, ldapStatus );
-			return( mapLDAPerror( ldapStatus, CRYPT_ERROR_READ ) );
+			return( mapLdapError( ldapStatus, CRYPT_ERROR_READ ) );
 			}
 
 		/* We got something, start fetching the results */
@@ -772,12 +856,12 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 
 	/* Clean up.  The ber_free() function is rather problematic because
 	   Netscape uses the nonstandard ldap_ber_free() name (which can be fixed
-	   with proprocessor trickery) and Microsoft first omitted it entirely
-	   (up to NT4 SP4) and then later added it as a stub (Win2K, rumour has
-	   it that the only reason this function even exists is because the
-	   Netscape client required it).  Because it may or may not exist in the
-	   MS client, we call it if we resolved its address, otherwise we skip
-	   it.
+	   with proprocessor trickery), Microsoft first omitted it entirely (up 
+	   to NT4 SP4) and then later added it as a stub (Win2K, rumour has it 
+	   that the only reason this function even exists is because the Netscape 
+	   client required it), and OpenLDAP doesn't use it at all.  Because it 
+	   may or may not exist in the MS client, we call it if we resolved its 
+	   address, otherwise we skip it.
 
 	   The function is further complicated by the fact that LDAPv3 says the
 	   second parameter should be 0, however the Netscape client docs used to
@@ -799,7 +883,7 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 	   It gets worse than this though.  Calling ber_free() with newer
 	   versions of the Windows LDAP client with any argument at all causes
 	   internal data corruption which typically first results in a soft
-	   failure (eg a data fetch fails) and then eventually a hard failure
+	   failure (e.g. a data fetch fails) and then eventually a hard failure
 	   such as an access violation after further calls are made.  The only
 	   real way to fix this is to avoid calling it entirely, this doesn't
 	   seem to leak any more memory than Winsock leaks anyway (that is,
@@ -807,7 +891,7 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 	   number doesn't increase if ber_free() isn't called).
 
 	   There have been reports that with some older versions of the Windows
-	   LDAP client (eg the one in Win95) the ldap_msgfree() call generates
+	   LDAP client (e.g. the one in Win95) the ldap_msgfree() call generates
 	   an exception in wldap.dll, if this is a problem you need to either
 	   install a newer LDAP DLL or switch to the Netscape one.
 
@@ -837,14 +921,14 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 static int addCert( KEYSET_INFO *keysetInfo, const CRYPT_HANDLE iCryptHandle )
 	{
 	LDAP_INFO *ldapInfo = keysetInfo->keysetLDAP;
-	LDAPMod *ldapMod[ MAX_LDAP_ATTRIBUTES ];
-	RESOURCE_DATA msgData;
-	BYTE keyData[ MAX_CERT_SIZE ];
-	char dn[ MAX_DN_STRINGSIZE ];
-	char C[ CRYPT_MAX_TEXTSIZE + 1 ], SP[ CRYPT_MAX_TEXTSIZE + 1 ],
-		L[ CRYPT_MAX_TEXTSIZE + 1 ], O[ CRYPT_MAX_TEXTSIZE + 1 ],
-		OU[ CRYPT_MAX_TEXTSIZE + 1 ], CN[ CRYPT_MAX_TEXTSIZE + 1 ],
-		email[ CRYPT_MAX_TEXTSIZE + 1 ];
+	LDAPMod *ldapMod[ MAX_LDAP_ATTRIBUTES + 8 ];
+	MESSAGE_DATA msgData;
+	BYTE keyData[ MAX_CERT_SIZE + 8 ];
+	char dn[ MAX_DN_STRINGSIZE + 8 ];
+	char C[ CRYPT_MAX_TEXTSIZE + 1 + 8 ], SP[ CRYPT_MAX_TEXTSIZE + 1 + 8 ],
+		L[ CRYPT_MAX_TEXTSIZE + 1 + 8 ], O[ CRYPT_MAX_TEXTSIZE + 1 + 8 ],
+		OU[ CRYPT_MAX_TEXTSIZE + 1 + 8 ], CN[ CRYPT_MAX_TEXTSIZE + 1 + 8 ],
+		email[ CRYPT_MAX_TEXTSIZE + 1 + 8 ];
 	int keyDataLength, ldapModIndex = 1, status = CRYPT_OK;
 
 	*C = *SP = *L = *O = *OU = *CN = *email = '\0';
@@ -961,7 +1045,7 @@ static int addCert( KEYSET_INFO *keysetInfo, const CRYPT_HANDLE iCryptHandle )
 									   ldapMod ) ) != LDAP_SUCCESS )
 			{
 			getErrorInfo( keysetInfo, ldapStatus );
-			status = mapLDAPerror( ldapStatus, CRYPT_ERROR_WRITE );
+			status = mapLdapError( ldapStatus, CRYPT_ERROR_WRITE );
 			}
 		}
 
@@ -972,7 +1056,8 @@ static int addCert( KEYSET_INFO *keysetInfo, const CRYPT_HANDLE iCryptHandle )
 	   possibly because it's trying to free the mod_values[] entries
 	   which are statically allocated, and for the MS client the
 	   function doesn't exist */
-	for( ldapModIndex = 0; ldapMod[ ldapModIndex ] != NULL;
+	for( ldapModIndex = 0; ldapMod[ ldapModIndex ] != NULL && \
+						   ldapModIndex < MAX_LDAP_ATTRIBUTES;
 		 ldapModIndex++ )
 		{
 		if( ldapMod[ ldapModIndex ]->mod_op & LDAP_MOD_BVALUES )
@@ -980,6 +1065,8 @@ static int addCert( KEYSET_INFO *keysetInfo, const CRYPT_HANDLE iCryptHandle )
 		clFree( "addCert", ldapMod[ ldapModIndex ]->mod_values );
 		clFree( "addCert", ldapMod[ ldapModIndex ] );
 		}
+	if( ldapModIndex >= MAX_LDAP_ATTRIBUTES )
+		retIntError();
 	return( status );
 	}
 
@@ -990,7 +1077,7 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 							const int flags )
 	{
 	BOOLEAN seenNonDuplicate = FALSE;
-	int type, status;
+	int type, iterationCount = 0, status;
 
 	assert( itemType == KEYMGMT_ITEM_PUBLICKEY );
 	assert( password == NULL ); assert( passwordLength == 0 );
@@ -1032,7 +1119,10 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 	while( cryptStatusOK( status ) && \
 		   krnlSendMessage( iCryptHandle, IMESSAGE_SETATTRIBUTE,
 							MESSAGE_VALUE_CURSORNEXT,
-							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK );
+							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	krnlSendMessage( iCryptHandle, IMESSAGE_SETATTRIBUTE, 
 					 MESSAGE_VALUE_FALSE, CRYPT_IATTRIBUTE_LOCKED );
 	if( cryptStatusOK( status ) && !seenNonDuplicate )
@@ -1051,7 +1141,7 @@ static int deleteItemFunction( KEYSET_INFO *keysetInfo,
 							   const void *keyID, const int keyIDlength )
 	{
 	LDAP_INFO *ldapInfo = keysetInfo->keysetLDAP;
-	char dn[ MAX_DN_STRINGSIZE ];
+	char dn[ MAX_DN_STRINGSIZE + 8 ];
 	int ldapStatus;
 
 	assert( itemType == KEYMGMT_ITEM_PUBLICKEY );
@@ -1067,7 +1157,7 @@ static int deleteItemFunction( KEYSET_INFO *keysetInfo,
 	if( ( ldapStatus = ldap_delete_s( ldapInfo->ld, dn ) ) != LDAP_SUCCESS )
 		{
 		getErrorInfo( keysetInfo, ldapStatus );
-		return( mapLDAPerror( ldapStatus, CRYPT_ERROR_WRITE ) );
+		return( mapLdapError( ldapStatus, CRYPT_ERROR_WRITE ) );
 		}
 
 	return( CRYPT_OK );
@@ -1154,7 +1244,7 @@ static int getAttributeFunction( KEYSET_INFO *keysetInfo, void *data,
 static int setAttributeFunction( KEYSET_INFO *keysetInfo, const void *data,
 								 const CRYPT_ATTRIBUTE_TYPE type )
 	{
-	const RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) data;
+	const MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) data;
 	BYTE *attributeDataPtr = getAttributeDataPtr( keysetInfo, type );
 
 	assert( msgData->length <= CRYPT_MAX_TEXTSIZE );
@@ -1168,11 +1258,11 @@ static int setAttributeFunction( KEYSET_INFO *keysetInfo, const void *data,
 
 int setAccessMethodLDAP( KEYSET_INFO *keysetInfo )
 	{
-#ifdef __WINDOWS__
-	/* Make sure the LDAP driver is bound in */
-	if( hLDAP == NULL_HINSTANCE )
+#ifdef DYNAMIC_LOAD
+	/* Make sure that the LDAP driver is bound in */
+	if( hLDAP == NULL_INSTANCE )
 		return( CRYPT_ERROR_OPEN );
-#endif /* __WINDOWS__ */
+#endif /* DYNAMIC_LOAD */
 
 	/* Set the access method pointers */
 	keysetInfo->initFunction = initFunction;

@@ -5,21 +5,12 @@
 *																			*
 ****************************************************************************/
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "dbms.h"
   #include "asn1.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../keyset/dbms.h"
-  #include "../misc/asn1.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -41,7 +32,7 @@
 BOOLEAN checkRequest( const CRYPT_CERTIFICATE iCertRequest,
 					  const CRYPT_CERTACTION_TYPE action )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int certType, value, status;
 
 	/* Make sure that the request type is consistent with the operation
@@ -164,7 +155,8 @@ BOOLEAN checkRequest( const CRYPT_CERTIFICATE iCertRequest,
 static int checkRevRequest( DBMS_INFO *dbmsInfo,
 							const CRYPT_CERTIFICATE iCertRequest )
 	{
-	char certID[ DBXKEYID_BUFFER_SIZE ], issuerID[ DBXKEYID_BUFFER_SIZE ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char issuerID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int length, status;
 
 	/* Check that the cert being referred to in the request is present and
@@ -205,9 +197,9 @@ static int checkRevRequest( DBMS_INFO *dbmsInfo,
 
 int caAddPKIUser( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iPkiUser )
 	{
-	RESOURCE_DATA msgData;
-	BYTE certData[ MAX_CERT_SIZE ];
-	char certID[ DBXKEYID_BUFFER_SIZE ];
+	MESSAGE_DATA msgData;
+	BYTE certData[ MAX_CERT_SIZE + 8 ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int certDataLength, status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
@@ -249,8 +241,8 @@ int caDeletePKIUser( DBMS_INFO *dbmsInfo, const CRYPT_KEYID_TYPE keyIDtype,
 					 const void *keyID, const int keyIDlength )
 	{
 	CRYPT_CERTIFICATE iPkiUser;
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
-	char certID[ DBXKEYID_BUFFER_SIZE ];
+	char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int dummy, status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
@@ -271,7 +263,7 @@ int caDeletePKIUser( DBMS_INFO *dbmsInfo, const CRYPT_KEYID_TYPE keyIDtype,
 		return( status );
 
 	/* Delete the PKI user info and record the deletion */
-	dbmsFormatSQL( sqlBuffer,
+	dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"DELETE FROM pkiUsers WHERE certID = '$'",
 				   certID );
 	status = dbmsUpdate( sqlBuffer, NULL, 0, 0, DBMS_UPDATE_BEGIN );
@@ -293,9 +285,9 @@ int caAddCertRequest( DBMS_INFO *dbmsInfo,
 					  const CRYPT_CERTTYPE_TYPE requestType,
 					  const BOOLEAN isRenewal )
 	{
-	BYTE certData[ MAX_CERT_SIZE ];
-	char certID[ DBXKEYID_BUFFER_SIZE ];
-	char reqCertID[ DBXKEYID_BUFFER_SIZE ], *reqCertIDptr = reqCertID;
+	BYTE certData[ MAX_CERT_SIZE + 8 ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char reqCertID[ DBXKEYID_BUFFER_SIZE + 8 ], *reqCertIDptr = reqCertID;
 	int reqCertIDlength, certDataLength, status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
@@ -321,7 +313,7 @@ int caAddCertRequest( DBMS_INFO *dbmsInfo,
 					   CRYPT_CERTINFO_FINGERPRINT_SHA );
 	if( !cryptStatusError( status ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, certData, MAX_CERT_SIZE );
 		status = krnlSendMessage( iCertRequest, IMESSAGE_CRT_EXPORT,
@@ -428,18 +420,18 @@ int caAddCertRequest( DBMS_INFO *dbmsInfo,
 	   the cert ID */
 	if( requestType == CRYPT_CERTTYPE_REQUEST_REVOCATION )
 		{
-		char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+		char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 
 		if( !hasBinaryBlobs( dbmsInfo ) )
 			{
-			char encodedCertData[ MAX_ENCODED_CERT_SIZE ];
+			char encodedCertData[ MAX_ENCODED_CERT_SIZE + 8 ];
 			int length;
 
 			length = base64encode( encodedCertData, MAX_ENCODED_CERT_SIZE,
 								   certData, certDataLength,
 								   CRYPT_CERTTYPE_NONE );
 			encodedCertData[ length ] = '\0';
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 				"INSERT INTO certRequests VALUES ("
 				TEXT_CERTTYPE_REQUEST_REVOCATION ", '', '', '', '', '', '', "
 				"'', '$', '$')",
@@ -447,7 +439,7 @@ int caAddCertRequest( DBMS_INFO *dbmsInfo,
 			}
 		else
 			{
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 				"INSERT INTO certRequests VALUES ("
 				TEXT_CERTTYPE_REQUEST_REVOCATION ", '', '', '', '', '', '', "
 				"'', '$', ?)",

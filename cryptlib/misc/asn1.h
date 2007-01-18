@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						  ASN.1 Constants and Structures					*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -10,16 +10,120 @@
 #define _ASN1_DEFINED
 
 #include <time.h>
-#if defined( INC_ALL ) 
+#if defined( INC_ALL )
   #include "stream.h"
-  #include "ber.h"
-#elif defined( INC_CHILD )
-  #include "../io/stream.h"
-  #include "ber.h"
 #else
   #include "io/stream.h"
-  #include "misc/ber.h"
 #endif /* Compiler-specific includes */
+
+/****************************************************************************
+*																			*
+*						BER/DER Constants and Macros						*
+*																			*
+****************************************************************************/
+
+/* Definitions for the ISO 8825:1990 Basic Encoding Rules */
+
+/* Tag class */
+
+#define BER_UNIVERSAL			0x00
+#define BER_APPLICATION			0x40
+#define BER_CONTEXT_SPECIFIC	0x80
+#define BER_PRIVATE				0xC0
+
+/* Whether the encoding is constructed or primitive */
+
+#define BER_CONSTRUCTED			0x20
+#define BER_PRIMITIVE			0x00
+
+/* The ID's for universal tag numbers 0-31.  Tag number 0 is reserved for
+   encoding the end-of-contents value when an indefinite-length encoding
+   is used */
+
+enum { BER_ID_RESERVED, BER_ID_BOOLEAN, BER_ID_INTEGER, BER_ID_BITSTRING,
+	   BER_ID_OCTETSTRING, BER_ID_NULL, BER_ID_OBJECT_IDENTIFIER,
+	   BER_ID_OBJECT_DESCRIPTOR, BER_ID_EXTERNAL, BER_ID_REAL,
+	   BER_ID_ENUMERATED, BER_ID_EMBEDDED_PDV, BER_ID_STRING_UTF8, BER_ID_13,
+	   BER_ID_14, BER_ID_15, BER_ID_SEQUENCE, BER_ID_SET,
+	   BER_ID_STRING_NUMERIC, BER_ID_STRING_PRINTABLE, BER_ID_STRING_T61,
+	   BER_ID_STRING_VIDEOTEX, BER_ID_STRING_IA5, BER_ID_TIME_UTC,
+	   BER_ID_TIME_GENERALIZED, BER_ID_STRING_GRAPHIC, BER_ID_STRING_ISO646,
+	   BER_ID_STRING_GENERAL, BER_ID_STRING_UNIVERSAL, BER_ID_29,
+	   BER_ID_STRING_BMP, BER_ID_LAST };
+
+/* The encodings for the universal types */
+
+#define BER_EOC					0	/* Pseudo-type for first EOC octet */
+#define BER_RESERVED			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_RESERVED )
+#define BER_BOOLEAN				( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_BOOLEAN )
+#define BER_INTEGER				( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_INTEGER )
+#define BER_BITSTRING			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_BITSTRING )
+#define BER_OCTETSTRING			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_OCTETSTRING )
+#define BER_NULL				( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_NULL )
+#define BER_OBJECT_IDENTIFIER	( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_OBJECT_IDENTIFIER )
+#define BER_OBJECT_DESCRIPTOR	( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_OBJECT_DESCRIPTOR )
+#define BER_EXTERNAL			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_EXTERNAL )
+#define BER_REAL				( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_REAL )
+#define BER_ENUMERATED			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_ENUMERATED )
+#define BER_EMBEDDED_PDV		( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_EMBEDDED_PDV )
+#define BER_STRING_UTF8			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_UTF8 )
+#define BER_13					( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_13 )
+#define BER_14					( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_14 )
+#define BER_15					( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_15 )
+#define BER_SEQUENCE			( BER_UNIVERSAL | BER_CONSTRUCTED | BER_ID_SEQUENCE )
+#define BER_SET					( BER_UNIVERSAL | BER_CONSTRUCTED | BER_ID_SET )
+#define BER_STRING_NUMERIC		( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_NUMERIC )
+#define BER_STRING_PRINTABLE	( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_PRINTABLE )
+#define BER_STRING_T61			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_T61 )
+#define BER_STRING_VIDEOTEX		( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_VIDEOTEX )
+#define BER_STRING_IA5			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_IA5 )
+#define BER_TIME_UTC			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_TIME_UTC )
+#define BER_TIME_GENERALIZED	( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_TIME_GENERALIZED )
+#define BER_STRING_GRAPHIC		( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_GRAPHIC )
+#define BER_STRING_ISO646		( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_ISO646 )
+#define BER_STRING_GENERAL		( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_GENERAL )
+#define BER_STRING_UNIVERSAL	( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_UNIVERSAL )
+#define BER_29					( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_BER29 )
+#define BER_STRING_BMP			( BER_UNIVERSAL | BER_PRIMITIVE | BER_ID_STRING_BMP )
+
+/* The encodings for constructed, indefinite-length tags and lengths */
+
+#define BER_OCTETSTRING_INDEF	( ( BYTE * ) "\x24\x80" )
+#define BER_SEQUENCE_INDEF		( ( BYTE * ) "\x30\x80" )
+#define BER_SET_INDEF			( ( BYTE * ) "\x31\x80" )
+#define BER_CTAG0_INDEF			( ( BYTE * ) "\xA0\x80" )
+#define BER_END_INDEF			( ( BYTE * ) "\x00\x00" )
+
+/* Masks to extract information from a tag number */
+
+#define BER_CLASS_MASK			0xC0
+#define BER_CONSTRUCTED_MASK	0x20
+#define BER_SHORT_ID_MASK		0x1F
+
+/* The maximum size for the short tag number encoding, and the magic value
+   which indicates that a long encoding of the number is being used */
+
+#define MAX_SHORT_BER_ID		30
+#define LONG_BER_ID				0x1F
+
+/* Turn an identifier into a context-specific tag, and extract the value from
+   a tag.  Normally these are constructed, but in a few special cases they
+   are primitive */
+
+#define MAKE_CTAG( identifier ) \
+		( BER_CONTEXT_SPECIFIC | BER_CONSTRUCTED | ( identifier ) )
+#define MAKE_CTAG_PRIMITIVE( identifier ) \
+		( BER_CONTEXT_SPECIFIC | ( identifier ) )
+#define EXTRACT_CTAG( tag ) \
+		( ( tag ) & ~( BER_CONTEXT_SPECIFIC | BER_CONSTRUCTED ) )
+
+/* Macros to read and write primitive tags.  These translate directly to
+   sgetc()/sputc()/sPeek(), but we use these macros instead to make it more
+   obvious what's going on */
+
+#define writeTag( stream, tag )	sputc( stream, tag )
+#define readTag( stream )		sgetc( stream )
+#define peekTag( stream )		sPeek( stream )
 
 /****************************************************************************
 *																			*
@@ -28,20 +132,21 @@
 ****************************************************************************/
 
 /* Special-case tags.  If DEFAULT_TAG is given the basic type (e.g. INTEGER,
-   ENUMERATED) is used, otherwise the value is used as a context-specific 
+   ENUMERATED) is used, otherwise the value is used as a context-specific
    tag.  If NO_TAG is given, processing of the tag is skipped.  If ANY_TAG
-   is given, the tag is ignored */
+   is given, the tag is ignored.  The ranges are chosen so as not to 
+   conflict with any of the values in cryptlib.h/crypt.h */
 
-#define DEFAULT_TAG			-1
-#define NO_TAG				-2
-#define ANY_TAG				-3
+#define DEFAULT_TAG			-200
+#define NO_TAG				-201
+#define ANY_TAG				-202
 
 /* The maximum allowed size for an (encoded) object identifier */
 
 #define MAX_OID_SIZE		32
 
-/* Macros and functions to work with indefinite-length tags.  The only ones 
-   used are SEQUENCE and [0] (for the outer encapsulation) and OCTET STRING 
+/* Macros and functions to work with indefinite-length tags.  The only ones
+   used are SEQUENCE and [0] (for the outer encapsulation) and OCTET STRING
    (for the data itself) */
 
 #define writeOctetStringIndef( stream )	swrite( stream, BER_OCTETSTRING_INDEF, 2 )
@@ -51,130 +156,64 @@
 #define writeEndIndef( stream )			swrite( stream, BER_END_INDEF, 2 )
 int checkEOC( STREAM *stream );
 
-/* The use of the preprocessor to hide function details for the read/read-
-   tag/read-data variants screws up the use of autocomplete in the VC++ 
-   editor, Microsoft get around this in some unknown fashion for Win32 API 
-   functions by including a custom debug database Win32.ncb in the VC98 
-   directory, but it's not known how they generate this.  To fix this, we 
-   prototype the following (nonexistent) functions when we're building with 
-   VC++ */
-
-#ifdef _MSC_VER
-
-int readRawObject( STREAM *stream, BYTE *buffer, int *bufferLength,
-				   const int maxLength );
-int readRawObjectData( STREAM *stream, BYTE *buffer, int *bufferLength,
-					   const int maxLength );
-int writeRawObject( STREAM *stream, const void *object, const int size );
-
-int sizeofOID( const BYTE *oid );
-int writeOID( STREAM *stream, const BYTE *oid );
-
-int sizeofInteger( const void *integer, const int integerLength );
-int readInteger( STREAM *stream, BYTE *integer, int *integerLength,
-				 const int maxLength );
-int readIntegerData( STREAM *stream, BYTE *integer, int *integerLength,
-					 const int maxLength );
-
-int sizeofBignum( const void *bignum );
-int writeBignum( STREAM *stream, const void *bignum );
-int writeBignumData( STREAM *stream, const void *bignum );
-
-int sizeofShortInteger( const int value );
-int readShortInteger( STREAM *stream, long *value );
-int readShortIntegerData( STREAM *stream, long *value );
-
-int sizeofEnumerated( const int value );
-int readEnumerated( STREAM *stream, int *enumeration );
-int readEnumeratedData( STREAM *stream, int *enumeration );
-
-int sizeofBoolean( void );
-int readBoolean( STREAM *stream, BOOLEAN *boolean );
-int readBooleanData( STREAM *stream, BOOLEAN *boolean );
-
-int sizeofNull( void );
-int readNull( STREAM *stream );
-int readNullData( STREAM *stream );
-
-int readOctetString( STREAM *stream, BYTE *string, int *stringLength,
-					 const int maxLength );
-int readOctetStringData( STREAM *stream, BYTE *string, int *stringLength,
-						 const int maxLength );
-
-int sizeofBitString( const int value );
-int readBitString( STREAM *stream, int *bitString );
-int readBitStringData( STREAM *stream, int *bitString );
-
-int sizeofUTCTime( void );
-int readUTCTime( STREAM *stream, time_t *timeVal );
-int readUTCTimeData( STREAM *stream, time_t *timeVal );
-
-int sizeofGeneralizedTime( void );
-int readGeneralizedTime( STREAM *stream, time_t *timeVal );
-int readGeneralizedTimeData( STREAM *stream, time_t *timeVal );
-
-#endif /* VC++ */
-
 /****************************************************************************
 *																			*
 *							ASN.1 Function Prototypes						*
 *																			*
 ****************************************************************************/
 
-/* Determine the size of an object once it's wrapped up with a tag and 
+/* Determine the size of an object once it's wrapped up with a tag and
    length */
 
 long sizeofObject( const long length );
 
 /* Generalized ASN.1 type manipulation routines.  readRawObject() reads a
-   complete object (including tag and length data) while readUniversal() 
-   just skips it */
+   complete object (including tag and length data) while readUniversal()
+   just skips it.  Since readRawObject() always requires a tag, we don't
+   have the xxx/xxxData() variants that exist for other functions */
 
 int readUniversalData( STREAM *stream );
 int readUniversal( STREAM *stream );
-int readRawObjectTag( STREAM *stream, BYTE *buffer, int *bufferLength,
-					  const int maxLength, const int tag );
-
-#define readRawObject( stream, buffer, bufferLength, maxLength, tag ) \
-		readRawObjectTag( stream, buffer, bufferLength, maxLength, tag )
-#define readRawObjectData( stream, buffer, bufferLength, maxLength ) \
-		readRawObjectTag( stream, buffer, bufferLength, maxLength, NO_TAG )
+int readRawObject( STREAM *stream, BYTE *buffer, int *bufferLength,
+				   const int maxLength, const int tag );
 
 #define writeRawObject( stream, object, size ) \
 		swrite( stream, object, size )
 
-/* Routines for handling OBJECT IDENTIFIERS.  The sizeof() macro determines 
-   the length of an encoded object identifier as tag + length + value.  
-   Write OID routines equivalent to the ones for other ASN.1 types don't 
+/* Routines for handling OBJECT IDENTIFIERS.  The sizeof() macro determines
+   the length of an encoded object identifier as tag + length + value.
+   Write OID routines equivalent to the ones for other ASN.1 types don't
    exist since OIDs are always read and written as a blob with sread()/
-   swrite().  OIDs are never tagged so we don't need any special-case 
+   swrite().  OIDs are never tagged so we don't need any special-case
    handling for tags.
-   
-   When there's a choice of possible OIDs, the list of OID values and 
-   corresponding selection IDs is provided in an OID_INFO structure (we also
-   provide a shortcut readFixedOID() function when there's only a single OID 
-   that's valid at that point).  The read OID value is checked against each 
-   OID in the OID_INFO list, if a match is found the selectionID is returned.  
 
-   The OID_INFO includes a pointer to further user-supplied information 
-   related to this OID that may be used by the user, set when the OID list 
-   is initialised.  For example it could point to OID-specific handlers for 
-   the data.  When the caller needs to work with the extraInfo field, it's 
-   necessary to return the complete OID_INFO entry rather than just the 
+   When there's a choice of possible OIDs, the list of OID values and
+   corresponding selection IDs is provided in an OID_INFO structure (we also
+   provide a shortcut readFixedOID() function when there's only a single OID
+   that's valid at that point).  The read OID value is checked against each
+   OID in the OID_INFO list, if a match is found the selectionID is returned.
+
+   The OID_INFO includes a pointer to further user-supplied information
+   related to this OID that may be used by the user, set when the OID list
+   is initialised.  For example it could point to OID-specific handlers for
+   the data.  When the caller needs to work with the extraInfo field, it's
+   necessary to return the complete OID_INFO entry rather than just the
    selection ID, which is done by the ..Ex() form of the function */
 
 typedef struct {
-	const BYTE *oid;		/* OID */
+	const BYTE FAR_BSS *oid;/* OID */
 	const int selectionID;	/* Value to return for this OID */
 	const void *extraInfo;	/* Additional info for this selection */
 	} OID_INFO;
 
 #define sizeofOID( oid )	( 1 + 1 + ( int ) oid[ 1 ] )
-int readOID( STREAM *stream, const OID_INFO *oidSelection, 
+int readOID( STREAM *stream, const OID_INFO *oidSelection,
 			 int *selectionID );
-int readOIDEx( STREAM *stream, const OID_INFO *oidSelection, 
+int readOIDEx( STREAM *stream, const OID_INFO *oidSelection,
 			   const OID_INFO **oidSelectionValue );
 int readFixedOID( STREAM *stream, const BYTE *oid );
+int readEncodedOID( STREAM *stream, BYTE *oid, int *oidLength,
+					const int maxLength, const int tag );
 #define writeOID( stream, oid ) \
 				  swrite( ( stream ), ( oid ), sizeofOID( oid ) )
 
@@ -190,7 +229,7 @@ int readFixedOID( STREAM *stream, const BYTE *oid );
 
 int readIntegerTag( STREAM *stream, BYTE *integer, int *integerLength,
 					const int maxLength, const int tag );
-int writeInteger( STREAM *stream, const BYTE *integer, 
+int writeInteger( STREAM *stream, const BYTE *integer,
 				  const int integerLength, const int tag );
 
 #define readIntegerData( stream, integer, integerLength, maxLength )	\
@@ -217,10 +256,10 @@ int writeBignumTag( STREAM *stream, const void *bignum, const int tag );
    routines to handle values that will fit into a machine word */
 
 #define sizeofShortInteger( value )	\
-	( ( ( value ) < 128 ) ? 3 : \
-	  ( ( ( long ) value ) < 32768L ) ? 4 : \
-	  ( ( ( long ) value ) < 8388608L ) ? 5 : \
-	  ( ( ( long ) value ) < 2147483648UL ) ? 6 : 7 )
+	( ( ( value ) < 0x80 ) ? 3 : \
+	  ( ( ( long ) value ) < 0x8000L ) ? 4 : \
+	  ( ( ( long ) value ) < 0x800000L ) ? 5 : \
+	  ( ( ( long ) value ) < 0x80000000UL ) ? 6 : 7 )
 int writeShortInteger( STREAM *stream, const long value, const int tag );
 int readShortIntegerTag( STREAM *stream, long *value, const int tag );
 
@@ -265,12 +304,13 @@ int readNullTag( STREAM *stream, const int tag );
 int writeOctetString( STREAM *stream, const BYTE *string, const int length, \
 					  const int tag );
 int readOctetStringTag( STREAM *stream, BYTE *string, int *stringLength,
-						const int maxLength, const int tag );
+						const int minLength, const int maxLength, 
+						const int tag );
 
-#define readOctetStringData( stream, string, stringLength, maxLength ) \
-		readOctetStringTag( stream, string, stringLength, maxLength, NO_TAG )
-#define readOctetString( stream, string, stringLength, maxLength ) \
-		readOctetStringTag( stream, string, stringLength, maxLength, DEFAULT_TAG )
+#define readOctetStringData( stream, string, stringLength, minLength, maxLength ) \
+		readOctetStringTag( stream, string, stringLength, minLength, maxLength, NO_TAG )
+#define readOctetString( stream, string, stringLength, minLength, maxLength ) \
+		readOctetStringTag( stream, string, stringLength, minLength, maxLength, DEFAULT_TAG )
 
 /* Routines for handling character strings.  There are a number of oddball
    character string types that are all handled through the same functions -
@@ -315,18 +355,21 @@ int readGeneralizedTimeTag( STREAM *stream, time_t *timeVal, const int tag );
 #define readGeneralizedTime( stream, time )	\
 		readGeneralizedTimeTag( stream, time, DEFAULT_TAG )
 
-/* Utilitity routines for reading and writing constructed objects and 
+/* Utilitity routines for reading and writing constructed objects and
    equivalent holes.  The difference between writeOctet/BitStringHole() and
    writeGenericHole() is that the octet/bit-string versions create a normal
-   or context-specific-tagged string while the generic version creates a 
+   or context-specific-tagged string while the generic version creates a
    pure hole with no processing of tags */
 
 int readSequence( STREAM *stream, int *length );
 int readSet( STREAM *stream, int *length );
 int readConstructed( STREAM *stream, int *length, const int tag );
-int readOctetStringHole( STREAM *stream, int *length, const int tag );
-int readBitStringHole( STREAM *stream, int *length, const int tag );
-int readGenericHole( STREAM *stream, int *length, const int tag );
+int readOctetStringHole( STREAM *stream, int *length, const int minLength, 
+						 const int tag );
+int readBitStringHole( STREAM *stream, int *length, const int minLength,
+					   const int tag );
+int readGenericHole( STREAM *stream, int *length, const int minLength,
+					 const int tag );
 int writeSequence( STREAM *stream, const int length );
 int writeSet( STREAM *stream, const int length );
 int writeConstructed( STREAM *stream, const int length, const int tag );
@@ -341,7 +384,8 @@ int writeGenericHole( STREAM *stream, const int length, const int tag );
 int readSequenceI( STREAM *stream, int *length );
 int readSetI( STREAM *stream, int *length );
 int readConstructedI( STREAM *stream, int *length, const int tag );
-int readGenericHoleI( STREAM *stream, int *length, const int tag );
+int readGenericHoleI( STREAM *stream, int *length, const int minLength, 
+					  const int tag );
 
 /* Determine the length of an ASN.1-encoded object (this just reads the
    outer length if present, but will burrow down into the object if necessary
@@ -351,14 +395,16 @@ int getStreamObjectLength( STREAM *stream );
 int getObjectLength( const void *certObjectPtr, const int length );
 int checkObjectEncoding( const void *objectPtr, const int length );
 
-/* Full-length equivalents of length/encapsulating-object read routines.  
+/* Full-length equivalents of length/encapsulating-object read routines.
    These are used explicitly in the rare situations where long lengths are
    valid, all other ASN.1 code only works with short lengths.  Because these
    can be quite long, they allow definite or indefinite lengths */
 
 int readLongSequence( STREAM *stream, long *length );
+int readLongSet( STREAM *stream, long *length );
 int readLongConstructed( STREAM *stream, long *length, const int tag );
 int readLongGenericHole( STREAM *stream, long *length, const int tag );
+long getLongStreamObjectLength( STREAM *stream );
 long getLongObjectLength( const void *certObjectPtr, const long length );
 
 #endif /* !_ASN1_DEFINED */

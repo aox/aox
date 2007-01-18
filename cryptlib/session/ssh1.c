@@ -5,14 +5,8 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "session.h"
-  #include "ssh.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "session.h"
   #include "ssh.h"
 #else
@@ -25,7 +19,7 @@
 
 #error The SSHv1 protocol is insecure and obsolete, you should only enable this if absolutely necessary.
 
-/* Determine the number of padding bytes required to make the packet size a 
+/* Determine the number of padding bytes required to make the packet size a
    multiple of 8 bytes */
 
 #define getPadLength( length ) \
@@ -37,16 +31,16 @@
 *																			*
 ****************************************************************************/
 
-/* Byte-reverse an array of 32-bit words, needed for Blowfish encryption, 
-   which in the original SSH implementation got the endianness wrong.  This 
+/* Byte-reverse an array of 32-bit words, needed for Blowfish encryption,
+   which in the original SSH implementation got the endianness wrong.  This
    code is safe even for CPUs with a word size > 32 bits since on a little-
-   endian CPU the important 32 bits are stored first, so that by zeroizing 
-   the first 32 bits and or-ing the reversed value back in we don't have to 
+   endian CPU the important 32 bits are stored first, so that by zeroizing
+   the first 32 bits and or-ing the reversed value back in we don't have to
    rely on the processor only writing 32 bits into memory */
 
 static void longReverse( unsigned long *buffer, int count )
 	{
-#if defined( _BIG_WORDS )
+#if defined( SYSTEM_64BIT )
 	BYTE *bufPtr = ( BYTE * ) buffer, temp;
 
 	assert( ( count % 4 ) == 0 );
@@ -82,7 +76,7 @@ static void longReverse( unsigned long *buffer, int count )
 #elif defined( __WIN32__ )
 	assert( ( count % 4 ) == 0 );
 
-	/* The following code, which makes use of bswap, is rather faster than 
+	/* The following code, which makes use of bswap, is rather faster than
 	   what the compiler would otherwise generate */
 __asm {
 	mov ecx, count
@@ -110,15 +104,15 @@ swapLoop:
 				( ( value & 0x00FF00FFUL ) << 8 );
 		*buffer++ = ( value << 16 ) | ( value >> 16 );
 		}
-#endif /* _BIG_WORDS */
+#endif /* SYSTEM_64BIT */
 	}
 
 /* Calculate the CRC32 for a data block.  This uses the slightly nonstandard
-   variant from the original SSH code, which calculates the UART-style 
-   reflected value and doesn't pre-set the value to all ones (done to to 
-   catch leading zero bytes, which happens quite a bit with SSH because of 
-   the 32-bit length at the start) or XOR it with all ones before returning 
-   it.  This means that the resulting CRC is not the same as the one in 
+   variant from the original SSH code, which calculates the UART-style
+   reflected value and doesn't pre-set the value to all ones (done to to
+   catch leading zero bytes, which happens quite a bit with SSH because of
+   the 32-bit length at the start) or XOR it with all ones before returning
+   it.  This means that the resulting CRC is not the same as the one in
    Ethernet, Pkzip, and most other implementations */
 
 static const FAR_BSS unsigned long crc32table[] = {
@@ -200,30 +194,30 @@ static unsigned long calculateCRC( const BYTE *data, const int dataLength )
 	}
 
 /* If we detect that the other side is also running cryptlib, we use a
-   truncated MAC instead of a CRC32 once we're running in secure mode.  This 
-   prevents extension attacks on the CRC-protected data.  The reason for 
-   the truncation is to make it the same length as the CRC, this makes it a 
-   bit weaker than a full-length MAC but no weaker than a cryptographically 
+   truncated MAC instead of a CRC32 once we're running in secure mode.  This
+   prevents extension attacks on the CRC-protected data.  The reason for
+   the truncation is to make it the same length as the CRC, this makes it a
+   bit weaker than a full-length MAC but no weaker than a cryptographically
    strong CRC (in any case the chances of a successful attack are only 1/2^31,
    since you only get one chance to get it right) */
 
 static unsigned long calculateTruncatedMAC( const CRYPT_CONTEXT iMacContext,
-											const BYTE *data, 
+											const BYTE *data,
 											const int dataLength )
 	{
-	RESOURCE_DATA msgData;
-	BYTE macBuffer[ CRYPT_MAX_HASHSIZE ], *bufPtr = macBuffer;
+	MESSAGE_DATA msgData;
+	BYTE macBuffer[ CRYPT_MAX_HASHSIZE + 8 ], *bufPtr = macBuffer;
 	unsigned long macValue;
 	int status;
 
 	/* MAC the data and return the 32-bit truncated MAC value */
-	krnlSendMessage( iMacContext, IMESSAGE_DELETEATTRIBUTE, NULL, 
+	krnlSendMessage( iMacContext, IMESSAGE_DELETEATTRIBUTE, NULL,
 					 CRYPT_CTXINFO_HASHVALUE );
-	krnlSendMessage( iMacContext, IMESSAGE_CTX_HASH, ( void * ) data, 
+	krnlSendMessage( iMacContext, IMESSAGE_CTX_HASH, ( void * ) data,
 					 dataLength );
 	krnlSendMessage( iMacContext, IMESSAGE_CTX_HASH, "", 0 );
 	setMessageData( &msgData, macBuffer, CRYPT_MAX_HASHSIZE );
-	status = krnlSendMessage( iMacContext, IMESSAGE_GETATTRIBUTE_S, 
+	status = krnlSendMessage( iMacContext, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_CTXINFO_HASHVALUE );
 	if( cryptStatusError( status ) )
 		return( 0 );	/* Will cause a protocol failure */
@@ -232,12 +226,12 @@ static unsigned long calculateTruncatedMAC( const CRYPT_CONTEXT iMacContext,
 	return( macValue );
 	}
 
-/* Convert an SSHv1 algorithm ID to a cryptlib ID in preferred-algorithm 
-   order, and return a list of available algorithms in SSHv1 cipher-mask 
-   format.  We can't use 3DES since this uses inner-CBC which is both 
-   nonstandard and has known (although not serious) weaknesses.  If we 
-   wanted to implement it in a portable manner (i.e. usable with external 
-   drivers and devices) we'd have to synthesize it using three lots of 
+/* Convert an SSHv1 algorithm ID to a cryptlib ID in preferred-algorithm
+   order, and return a list of available algorithms in SSHv1 cipher-mask
+   format.  We can't use 3DES since this uses inner-CBC which is both
+   nonstandard and has known (although not serious) weaknesses.  If we
+   wanted to implement it in a portable manner (i.e. usable with external
+   drivers and devices) we'd have to synthesize it using three lots of
    DES-CBC since nothing implements the variant that SSHv1 uses.  SSHv2
    fixed this so it's no longer a problem in that case */
 
@@ -266,15 +260,15 @@ static CRYPT_ALGO_TYPE sshIDToAlgoID( const int value )
 			if( algoAvailable( CRYPT_ALGO_IDEA ) )
 				return( CRYPT_ALGO_IDEA );
 			break;
-	
+
 		case SSH1_CIPHER_DES:
 			return( CRYPT_ALGO_DES );
-	
+
 		case SSH1_CIPHER_RC4:
 			if( algoAvailable( CRYPT_ALGO_RC4 ) )
 				return( CRYPT_ALGO_RC4 );
 			break;
-	
+
 		case SSH1_CIPHER_BLOWFISH:
 			if( algoAvailable( CRYPT_ALGO_BLOWFISH ) )
 				return( CRYPT_ALGO_BLOWFISH );
@@ -302,7 +296,7 @@ static long getAlgorithmMask( void )
 
 /* Encode a value as an SSH string */
 
-static int encodeString( BYTE *buffer, const BYTE *string, 
+static int encodeString( BYTE *buffer, const BYTE *string,
 						 const int stringLength )
 	{
 	BYTE *bufPtr = buffer;
@@ -323,16 +317,16 @@ static void generateSessionID( SSH_HANDSHAKE_INFO *handshakeInfo )
 	HASHFUNCTION hashFunction;
 	HASHINFO hashInfo;
 
-	/* Get the hash algorithm information and hash the server key modulus, 
+	/* Get the hash algorithm information and hash the server key modulus,
 	   host key modulus, and cookie.  The SSH documentation and source code
-	   are quite confusing on this issue, giving the key components to be 
-	   hashed multiple names (server key, host key, session key, public key, 
+	   are quite confusing on this issue, giving the key components to be
+	   hashed multiple names (server key, host key, session key, public key,
 	   etc etc).  The correct order is:
 		hash( host modulus || server modulus || cookie ) */
 	getHashParameters( CRYPT_ALGO_MD5, &hashFunction, NULL );
-	hashFunction( hashInfo, NULL, handshakeInfo->hostModulus, 
+	hashFunction( hashInfo, NULL, handshakeInfo->hostModulus,
 				  handshakeInfo->hostModulusLength, HASH_START );
-	hashFunction( hashInfo, NULL, handshakeInfo->serverModulus, 
+	hashFunction( hashInfo, NULL, handshakeInfo->serverModulus,
 				  handshakeInfo->serverModulusLength, HASH_CONTINUE );
 	hashFunction( hashInfo, handshakeInfo->sessionID,
 				  handshakeInfo->cookie, SSH1_COOKIE_SIZE, HASH_END );
@@ -351,7 +345,7 @@ static int processKeyFingerprint( SESSION_INFO *sessionInfoPtr,
 	const ATTRIBUTE_LIST *attributeListPtr = \
 				findSessionAttribute( sessionInfoPtr->attributeList,
 									  CRYPT_SESSINFO_SERVER_FINGERPRINT );
-	BYTE fingerPrint[ CRYPT_MAX_HASHSIZE ];
+	BYTE fingerPrint[ CRYPT_MAX_HASHSIZE + 8 ];
 	int hashSize;
 
 	getHashParameters( CRYPT_ALGO_MD5, &hashFunction, &hashSize );
@@ -360,10 +354,10 @@ static int processKeyFingerprint( SESSION_INFO *sessionInfoPtr,
 	if( attributeListPtr == NULL )
 		/* Remember the value for the caller */
 		return( addSessionAttribute( &sessionInfoPtr->attributeList,
-									 CRYPT_SESSINFO_SERVER_FINGERPRINT, 
+									 CRYPT_SESSINFO_SERVER_FINGERPRINT,
 									 fingerPrint, hashSize ) );
 
-	/* There's an existing fingerprint value, make sure that it matches what 
+	/* There's an existing fingerprint value, make sure that it matches what
 	   we just calculated */
 	if( attributeListPtr->valueLength != hashSize || \
 		memcmp( attributeListPtr->value, fingerPrint, hashSize ) )
@@ -375,7 +369,7 @@ static int processKeyFingerprint( SESSION_INFO *sessionInfoPtr,
 
 /* Generate a response to an RSA authentication challenge */
 
-static void generateChallengeResponse( BYTE *response, 
+static void generateChallengeResponse( BYTE *response,
 									   const SSH_HANDSHAKE_INFO *handshakeInfo,
 									   const BYTE *challenge )
 	{
@@ -385,21 +379,21 @@ static void generateChallengeResponse( BYTE *response,
 	/* Hash the session ID and challenge:
 		hash( sessionID || challenge ) */
 	getHashParameters( CRYPT_ALGO_MD5, &hashFunction, NULL );
-	hashFunction( hashInfo, NULL, ( BYTE * ) handshakeInfo->sessionID, 
+	hashFunction( hashInfo, NULL, ( BYTE * ) handshakeInfo->sessionID,
 				  handshakeInfo->sessionIDlength, HASH_START );
 	hashFunction( hashInfo, response, ( BYTE * ) challenge,
 				  SSH1_CHALLENGE_SIZE, HASH_END );
 	}
 
-/* Process the public key data.  The preceding key length value isn't useful 
-   because it contains the nominal key size in bits rather than the size of 
-   the following data, so we have to dig into the data to find out how much 
-   there is.  In addition we need to take a copy of the key modulus since 
+/* Process the public key data.  The preceding key length value isn't useful
+   because it contains the nominal key size in bits rather than the size of
+   the following data, so we have to dig into the data to find out how much
+   there is.  In addition we need to take a copy of the key modulus since
    it's needed later for calculating the session ID */
 
-static int processPublickeyData( SSH_HANDSHAKE_INFO *handshakeInfo, 
+static int processPublickeyData( SSH_HANDSHAKE_INFO *handshakeInfo,
 								 const void *data, const int dataLength,
-								 const BOOLEAN isServerKey, 
+								 const BOOLEAN isServerKey,
 								 SESSION_INFO *sessionInfoPtr )
 	{
 	BYTE *dataPtr = ( BYTE * ) data, *ePtr;
@@ -424,7 +418,7 @@ static int processPublickeyData( SSH_HANDSHAKE_INFO *handshakeInfo,
 	nLength = bitsToBytes( nLength );
 	if( nLength != nominalLength )
 		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
-				"Public key size %d doesn't match modulus size %d", 
+				"Public key size %d doesn't match modulus size %d",
 				nominalLength, nLength );
 	if( isServerKey )
 		{
@@ -440,12 +434,12 @@ static int processPublickeyData( SSH_HANDSHAKE_INFO *handshakeInfo,
 		{
 		int status;
 
-		status = processKeyFingerprint( sessionInfoPtr, dataPtr, nLength, 
+		status = processKeyFingerprint( sessionInfoPtr, dataPtr, nLength,
 										ePtr, eLength );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
-	
+
 	return( LENGTH_SIZE + SSH1_MPI_LENGTH_SIZE + eLength + \
 						  SSH1_MPI_LENGTH_SIZE + nLength );
 	}
@@ -455,7 +449,7 @@ static int processPublickeyData( SSH_HANDSHAKE_INFO *handshakeInfo,
 static int initSecurityInfoSSH1( SESSION_INFO *sessionInfoPtr,
 								 SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int keySize, ivSize, status;
 
 	/* Create the security contexts required for the session */
@@ -463,7 +457,7 @@ static int initSecurityInfoSSH1( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		return( status );
 	if( sessionInfoPtr->cryptAlgo == CRYPT_ALGO_BLOWFISH )
-		/* For Blowfish the session key size doesn't match the default 
+		/* For Blowfish the session key size doesn't match the default
 		   Blowfish key size so we explicitly specify its length */
 		keySize = SSH1_SECRET_SIZE;
 	else
@@ -476,23 +470,23 @@ static int initSecurityInfoSSH1( SESSION_INFO *sessionInfoPtr,
 		/* It's a stream cipher */
 		ivSize = 0;
 
-	/* Load the keys.  For RC4, which is IV-less, the session key is split 
-	   into two parts, with the first part being the receive key and the 
+	/* Load the keys.  For RC4, which is IV-less, the session key is split
+	   into two parts, with the first part being the receive key and the
 	   second part being the send key.  For other algorithms, the entire
 	   session key is used for both send and receive contexts, leading to
-	   a simple attack on the first data block since the initial IV is all 
+	   a simple attack on the first data block since the initial IV is all
 	   zeroes */
 	setMessageData( &msgData, ( sessionInfoPtr->cryptAlgo == CRYPT_ALGO_RC4 ) ? \
 					handshakeInfo->secretValue + 16 : handshakeInfo->secretValue,
 					keySize );
-	status = krnlSendMessage( sessionInfoPtr->iCryptOutContext, 
-							  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+	status = krnlSendMessage( sessionInfoPtr->iCryptOutContext,
+							  IMESSAGE_SETATTRIBUTE_S, &msgData,
 							  CRYPT_CTXINFO_KEY );
 	if( cryptStatusOK( status ) )
 		{
 		setMessageData( &msgData, handshakeInfo->secretValue, keySize );
-		status = krnlSendMessage( sessionInfoPtr->iCryptInContext, 
-								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+		status = krnlSendMessage( sessionInfoPtr->iCryptInContext,
+								  IMESSAGE_SETATTRIBUTE_S, &msgData,
 								  CRYPT_CTXINFO_KEY );
 		}
 	if( cryptStatusOK( status ) && ivSize > 0 )
@@ -500,25 +494,25 @@ static int initSecurityInfoSSH1( SESSION_INFO *sessionInfoPtr,
 		static const char iv[ CRYPT_MAX_IVSIZE ] = { 0 };
 
 		setMessageData( &msgData, ( void * ) iv, ivSize );
-		krnlSendMessage( sessionInfoPtr->iCryptOutContext, 
+		krnlSendMessage( sessionInfoPtr->iCryptOutContext,
 						 IMESSAGE_SETATTRIBUTE_S, &msgData, CRYPT_CTXINFO_IV );
 		setMessageData( &msgData, ( void * ) iv, ivSize );
-		krnlSendMessage( sessionInfoPtr->iCryptInContext, 
+		krnlSendMessage( sessionInfoPtr->iCryptInContext,
 						 IMESSAGE_SETATTRIBUTE_S, &msgData, CRYPT_CTXINFO_IV );
 		}
 	if( cryptStatusError( status ) )
 		return( status );
 
-	/* If we're talking to a cryptlib peer, set up the MAC context which is 
-	   used instead of a CRC32.  The key we use for this is taken from the 
+	/* If we're talking to a cryptlib peer, set up the MAC context which is
+	   used instead of a CRC32.  The key we use for this is taken from the
 	   end of the SSH secret data, which isn't used for any cipher except
 	   Blowfish */
 	if( sessionInfoPtr->flags & SESSION_ISCRYPTLIB )
 		{
-		setMessageData( &msgData, 
+		setMessageData( &msgData,
 				handshakeInfo->secretValue + ( SSH1_SECRET_SIZE - 16 ), 16 );
-		status = krnlSendMessage( sessionInfoPtr->iAuthInContext, 
-								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+		status = krnlSendMessage( sessionInfoPtr->iAuthInContext,
+								  IMESSAGE_SETATTRIBUTE_S, &msgData,
 								  CRYPT_CTXINFO_KEY );
 		if( cryptStatusError( status ) )
 			return( status );
@@ -532,7 +526,7 @@ static int initSecurityInfoSSH1( SESSION_INFO *sessionInfoPtr,
 
 /* Read an SSH packet */
 
-static int decryptPayload( SESSION_INFO *sessionInfoPtr, BYTE *buffer, 
+static int decryptPayload( SESSION_INFO *sessionInfoPtr, BYTE *buffer,
 						   const int length )
 	{
 	int status;
@@ -550,14 +544,14 @@ static int decryptPayload( SESSION_INFO *sessionInfoPtr, BYTE *buffer,
 	return( status );
 	}
 
-static BOOLEAN checksumPayload( SESSION_INFO *sessionInfoPtr, 
+static BOOLEAN checksumPayload( SESSION_INFO *sessionInfoPtr,
 								const BYTE *buffer, const int length )
 	{
 	const int dataLength = length - SSH1_CRC_SIZE;	/* CRC isn't part of payload */
 	BYTE *bufPtr = ( BYTE * ) buffer + dataLength;
 	unsigned long crc32, storedCrc32;
 
-	/* Calculate the checksum over the padding, type, and data and make sure 
+	/* Calculate the checksum over the padding, type, and data and make sure
 	   that it matches the transmitted value */
 	if( ( sessionInfoPtr->flags & ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_READ ) ) == \
 								  ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_READ ) )
@@ -591,10 +585,10 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 	long length;
 	int padLength, packetType, iterationCount = 0;
 
-	/* Alongside the expected packets the server can also send us all sorts 
-	   of no-op messages, ranging from explicit no-ops (SSH_MSG_IGNORE) 
-	   through to general chattiness (SSH_MSG_DEBUG).  Because we can 
-	   receive any quantity of these at any time, we have to run the receive 
+	/* Alongside the expected packets the server can also send us all sorts
+	   of no-op messages, ranging from explicit no-ops (SSH_MSG_IGNORE)
+	   through to general chattiness (SSH_MSG_DEBUG).  Because we can
+	   receive any quantity of these at any time, we have to run the receive
 	   code in a loop to strip them out */
 	do
 		{
@@ -609,8 +603,8 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 			byte[]		data
 			uint32		crc32
 
-		  The padding length is implicitly calculated as 
-		  8 - ( length & 7 ) bytes, and the CRC is calculated over the 
+		  The padding length is implicitly calculated as
+		  8 - ( length & 7 ) bytes, and the CRC is calculated over the
 		  padding, type, and data */
 		assert( sessionInfoPtr->receiveBufEnd == 0 );
 		status = readFixedHeader( sessionInfoPtr, LENGTH_SIZE );
@@ -623,11 +617,11 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 			length + padLength >= sessionInfoPtr->receiveBufSize )
 			retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 					"Invalid packet length %d", length );
-		status = sread( &sessionInfoPtr->stream, 
+		status = sread( &sessionInfoPtr->stream,
 						sessionInfoPtr->receiveBuffer, padLength + length );
 		if( cryptStatusError( status ) )
 			{
-			sNetGetErrorInfo( &sessionInfoPtr->stream, 
+			sNetGetErrorInfo( &sessionInfoPtr->stream,
 							  sessionInfoPtr->errorMessage,
 							  &sessionInfoPtr->errorCode );
 			return( status );
@@ -638,18 +632,18 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 					"%d bytes", status, padLength + length );
 		if( sessionInfoPtr->flags & SESSION_ISSECURE_READ )
 			{
-			status = decryptPayload( sessionInfoPtr, 
-									 sessionInfoPtr->receiveBuffer, 
+			status = decryptPayload( sessionInfoPtr,
+									 sessionInfoPtr->receiveBuffer,
 									 padLength + length );
 			if( cryptStatusError( status ) )
 				return( status );
 			}
-		if( !checksumPayload( sessionInfoPtr, sessionInfoPtr->receiveBuffer, 
+		if( !checksumPayload( sessionInfoPtr, sessionInfoPtr->receiveBuffer,
 							  padLength + length ) )
-			/* If we're expecting a success packet after a key exchange or an 
-			   immediate post key-exchange packet and don't get it then it's 
-			   more likely that the problem is due to the wrong key being 
-			   used than data corruption, so we return a wrong key error 
+			/* If we're expecting a success packet after a key exchange or an
+			   immediate post key-exchange packet and don't get it then it's
+			   more likely that the problem is due to the wrong key being
+			   used than data corruption, so we return a wrong key error
 			   instead of bad data */
 			retExt( sessionInfoPtr, ( expectedType == SSH1_SMSG_SUCCESS ) ? \
 						CRYPT_ERROR_WRONGKEY : CRYPT_ERROR_BADDATA,
@@ -659,20 +653,20 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 	while( ( packetType == SSH1_MSG_IGNORE || \
 			 packetType == SSH1_MSG_DEBUG ) && iterationCount++ < 1000 );
 	if( iterationCount >= 1000 )
-		retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW, 
+		retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW,
 				"Peer sent excessive number of no-op packets" );
 	length -= ID_SIZE + UINT_SIZE;	/* Remove fixed fields */
 
-	/* Make sure we either got what we asked for or one of the allowed 
+	/* Make sure we either got what we asked for or one of the allowed
 	   special-case packets */
 	if( packetType == SSH1_MSG_DISCONNECT )
-		return( getDisconnectInfoSSH1( sessionInfoPtr, 
+		return( getDisconnectInfoSSH1( sessionInfoPtr,
 					sessionInfoPtr->receiveBuffer + padLength + ID_SIZE ) );
 	if( expectedType == SSH1_MSG_SPECIAL_USEROPT )
 		{
-		/* Sending an SSH1_CMSG_USER can result in an SSH1_SMSG_FAILURE if the 
-		   user needs some form of authentiction to log on, so we have to 
-		   filter this and convert it into a CRYPT_OK/OK_SPECIAL value to 
+		/* Sending an SSH1_CMSG_USER can result in an SSH1_SMSG_FAILURE if the
+		   user needs some form of authentiction to log on, so we have to
+		   filter this and convert it into a CRYPT_OK/OK_SPECIAL value to
 		   let the caller know whether they have to send a password or not */
 		if( packetType == SSH1_SMSG_SUCCESS )
 			return( CRYPT_OK );
@@ -692,9 +686,9 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 		}
 	if( expectedType == SSH1_MSG_SPECIAL_RSAOPT )
 		{
-		/* If we're reading a response to an RSA key ID then getting a 
-		   failure response is valid (even if it's not what we're expecting) 
-		   since it's an indication that an incorrect key was used rather 
+		/* If we're reading a response to an RSA key ID then getting a
+		   failure response is valid (even if it's not what we're expecting)
+		   since it's an indication that an incorrect key was used rather
 		   than that there was some general type of failure */
 		if( packetType == SSH1_SMSG_FAILURE )
 			retExt( sessionInfoPtr, CRYPT_ERROR_WRONGKEY,
@@ -704,9 +698,9 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 	if( expectedType == SSH1_MSG_SPECIAL_ANY )
 		{
 		/* If we're expecting any kind of data, save the type at the start
-		   of the buffer.  The length increment means that we move one byte 
-		   of data too much down, but this isn't a big deal since the 
-		   returned data length excludes it, and it's not processed anyway - 
+		   of the buffer.  The length increment means that we move one byte
+		   of data too much down, but this isn't a big deal since the
+		   returned data length excludes it, and it's not processed anyway -
 		   this packet pseudo-type is only used to eat client or server
 		   chattiness at the end of the handshake */
 		*bufPtr++ = packetType;
@@ -715,31 +709,31 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 	else
 		if( packetType != expectedType )
 			retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
-					"Invalid packet type 0x%02X, expected 0x%02X", 
+					"Invalid packet type 0x%02X, expected 0x%02X",
 					packetType, expectedType );
 
-	/* Move the data down in the buffer to get rid of the padding.  This 
+	/* Move the data down in the buffer to get rid of the padding.  This
 	   isn't as inefficient as it seems since it's only used for short
 	   handshake messages */
-	memmove( bufPtr, sessionInfoPtr->receiveBuffer + padLength + ID_SIZE, 
+	memmove( bufPtr, sessionInfoPtr->receiveBuffer + padLength + ID_SIZE,
 			 length );
 
 	return( length );
 	}
 
-/* Send an SSHv1 packet.  SSHv1 uses an awkward variable-length padding at 
-   the start, when we're sending short control packets we can pre-calculate 
-   the data start position or memmove() it into place, with longer payload 
-   data quantities we can no longer easily do this so we build the header 
-   backwards from the start of the data in the buffer.  Because of this we 
-   perform all operations on the data relative to a variable start position 
+/* Send an SSHv1 packet.  SSHv1 uses an awkward variable-length padding at
+   the start, when we're sending short control packets we can pre-calculate
+   the data start position or memmove() it into place, with longer payload
+   data quantities we can no longer easily do this so we build the header
+   backwards from the start of the data in the buffer.  Because of this we
+   perform all operations on the data relative to a variable start position
    given by the parameter delta */
 
-static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr, 
+static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 						   const int packetType, const int dataLength,
 						   const int delta )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	BYTE *bufStartPtr = sessionInfoPtr->sendBuffer + \
 						( ( delta != CRYPT_UNUSED ) ? delta : 0 );
 	BYTE *bufPtr = bufStartPtr;
@@ -757,13 +751,13 @@ static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 		uint32		crc32	- Calculated over padding, type, and data */
 	mputLong( bufPtr, ( long ) length );
 	setMessageData( &msgData, bufPtr, padLength );
-	krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S, 
+	krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
 					 &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
 	bufPtr[ padLength ] = packetType;
 	if( ( sessionInfoPtr->flags & ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_WRITE ) ) == \
 								  ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_WRITE ) )
 		crc32 = calculateTruncatedMAC( sessionInfoPtr->iAuthInContext,
-									   bufPtr, 
+									   bufPtr,
 									   padLength + ID_SIZE + dataLength );
 	else
 		crc32 = calculateCRC( bufPtr, padLength + ID_SIZE + dataLength );
@@ -777,8 +771,8 @@ static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 			longReverse( ( unsigned long * ) ( bufStartPtr + LENGTH_SIZE ),
 						 padLength + length );
 		status = krnlSendMessage( sessionInfoPtr->iCryptOutContext,
-								  IMESSAGE_CTX_ENCRYPT, 
-								  bufStartPtr + LENGTH_SIZE, 
+								  IMESSAGE_CTX_ENCRYPT,
+								  bufStartPtr + LENGTH_SIZE,
 								  padLength + length );
 		if( sessionInfoPtr->cryptAlgo == CRYPT_ALGO_BLOWFISH )
 			longReverse( ( unsigned long * ) ( bufStartPtr + LENGTH_SIZE ),
@@ -788,12 +782,12 @@ static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 		}
 	if( delta != CRYPT_UNUSED )
 		{
-		/* If we're sending payload data the send is interruptible, it's the 
+		/* If we're sending payload data the send is interruptible, it's the
 		   caller's responsibility to handle this.  Since the caller expects
 		   to write data from the start of the buffer, we have to move it
 		   down to line it up correctly.  This is somewhat inefficient, but
 		   since SSHv1 is virtually extinct it's not worth going to a lot of
-		   effort to work around this (the same applies to other SSHv1 
+		   effort to work around this (the same applies to other SSHv1
 		   issues like the Blowfish endianness problem and the weird 3DES
 		   mode) */
 		if( delta )
@@ -801,11 +795,11 @@ static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 					 LENGTH_SIZE + padLength + length );
 		return( LENGTH_SIZE + padLength + length );
 		}
-	status = swrite( &sessionInfoPtr->stream, bufStartPtr, 
+	status = swrite( &sessionInfoPtr->stream, bufStartPtr,
 					 LENGTH_SIZE + padLength + length );
 	if( cryptStatusError( status ) )
 		{
-		sNetGetErrorInfo( &sessionInfoPtr->stream, 
+		sNetGetErrorInfo( &sessionInfoPtr->stream,
 						  sessionInfoPtr->errorMessage,
 						  &sessionInfoPtr->errorCode );
 		return( status );
@@ -821,11 +815,11 @@ static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 
 /* Perform the initial part of the handshake with the server */
 
-static int beginClientHandshake( SESSION_INFO *sessionInfoPtr, 
+static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 								 SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	BYTE *bufPtr;
 	const BOOLEAN hasPassword = \
 			( findSessionAttribute( sessionInfoPtr->attributeList,
@@ -838,21 +832,21 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 	BOOLEAN rsaOK, pwOK;
 	int hostKeyLength, serverKeyLength, keyDataLength, length, value, status;
 
-	/* The higher-level code has already read the server session info, send 
-	   back our own version info (SSHv1 uses only a LF as terminator).  For 
-	   SSHv1 we use the lowest common denominator of our version (1.5, 
-	   described in the only existing spec for SSHv1) and whatever the 
+	/* The higher-level code has already read the server session info, send
+	   back our own version info (SSHv1 uses only a LF as terminator).  For
+	   SSHv1 we use the lowest common denominator of our version (1.5,
+	   described in the only existing spec for SSHv1) and whatever the
 	   server can handle */
 	strcpy( sessionInfoPtr->sendBuffer, SSH1_ID_STRING "\n" );
 	if( sessionInfoPtr->receiveBuffer[ 2 ] < \
 							SSH1_ID_STRING[ SSH_ID_SIZE + 2 ] )
 		sessionInfoPtr->sendBuffer[ SSH_ID_SIZE + 2 ] = \
 								sessionInfoPtr->receiveBuffer[ 2 ];
-	status = swrite( &sessionInfoPtr->stream, sessionInfoPtr->sendBuffer, 
+	status = swrite( &sessionInfoPtr->stream, sessionInfoPtr->sendBuffer,
 					 strlen( sessionInfoPtr->sendBuffer ) );
 	if( cryptStatusError( status ) )
 		{
-		sNetGetErrorInfo( &sessionInfoPtr->stream, 
+		sNetGetErrorInfo( &sessionInfoPtr->stream,
 						  sessionInfoPtr->errorMessage,
 						  &sessionInfoPtr->errorCode );
 		return( status );
@@ -860,7 +854,7 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 
 	/* Create the contexts to hold the server and host keys */
 	setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_RSA );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_CREATEOBJECT, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_CREATEOBJECT,
 							  &createInfo, OBJECT_TYPE_CONTEXT );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -877,7 +871,7 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 		{
 		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_HMAC_SHA );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		if( cryptStatusError( status ) )
 			return( status );
@@ -903,27 +897,27 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 	memcpy( handshakeInfo->cookie, bufPtr, SSH1_COOKIE_SIZE );
 	bufPtr += SSH1_COOKIE_SIZE;
 	length -= SSH1_COOKIE_SIZE;
-	keyDataLength = status = processPublickeyData( handshakeInfo, bufPtr, 
+	keyDataLength = status = processPublickeyData( handshakeInfo, bufPtr,
 												   length, TRUE, NULL );
 	if( cryptStatusError( status ) )
 		return( status );
 	setMessageData( &msgData, bufPtr, keyDataLength );
-	status = krnlSendMessage( handshakeInfo->iServerCryptContext, 
-							  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+	status = krnlSendMessage( handshakeInfo->iServerCryptContext,
+							  IMESSAGE_SETATTRIBUTE_S, &msgData,
 							  CRYPT_IATTRIBUTE_KEY_SSH1 );
 	if( cryptStatusError( status ) )
 		return( status );
 	serverKeyLength = mgetLong( bufPtr );
 	bufPtr += keyDataLength - LENGTH_SIZE;
 	length -= keyDataLength;
-	keyDataLength = status = processPublickeyData( handshakeInfo, bufPtr, 
-												   length, FALSE, 
+	keyDataLength = status = processPublickeyData( handshakeInfo, bufPtr,
+												   length, FALSE,
 												   sessionInfoPtr );
 	if( cryptStatusError( status ) )
 		return( status );
 	setMessageData( &msgData, bufPtr, keyDataLength );
-	status = krnlSendMessage( sessionInfoPtr->iKeyexCryptContext, 
-							  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+	status = krnlSendMessage( sessionInfoPtr->iKeyexCryptContext,
+							  IMESSAGE_SETATTRIBUTE_S, &msgData,
 							  CRYPT_IATTRIBUTE_KEY_SSH1 );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -932,7 +926,7 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 	length -= keyDataLength + UINT_SIZE;
 	if( length != UINT_SIZE + UINT_SIZE )
 		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
-				"Invalid length %d, should be %d", length, 
+				"Invalid length %d, should be %d", length,
 				UINT_SIZE + UINT_SIZE );
 	value = ( int ) mgetLong( bufPtr );		/* Offered ciphers */
 	sessionInfoPtr->cryptAlgo = maskToAlgoID( value );
@@ -945,7 +939,7 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 	rsaOK = hasPrivkey && ( value & ( 1 << SSH1_AUTH_RSA ) );
 	if( !pwOK )
 		{
-		/* If neither RSA nor password authentication is possible, we can't 
+		/* If neither RSA nor password authentication is possible, we can't
 		   authenticate ourselves */
 		if( !rsaOK )
 			{
@@ -964,7 +958,7 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 					"key was available" );
 			}
 
-		/* Either the client or the server won't do passwords, turn it off 
+		/* Either the client or the server won't do passwords, turn it off
 		   explicitly at the client in case it's the server */
 		if( hasPassword )
 			{
@@ -977,11 +971,11 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 			}
 		}
 
-	/* Although in theory the server key has to fit inside the host key, the 
-	   spec is vague enough to allow either of the keys to be larger (and at 
-	   least one SSH implementation has them the wrong way around), requiring 
-	   that the two be swapped before they can be used (which makes you 
-	   wonder why there's any distinction, since the two must be 
+	/* Although in theory the server key has to fit inside the host key, the
+	   spec is vague enough to allow either of the keys to be larger (and at
+	   least one SSH implementation has them the wrong way around), requiring
+	   that the two be swapped before they can be used (which makes you
+	   wonder why there's any distinction, since the two must be
 	   interchangeable in order for this to work) */
 	if( hostKeyLength < serverKeyLength )
 		{
@@ -997,11 +991,11 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 		serverKeyLength = temp;
 		}
 
-	/* Make sure that the smaller of the two keys will fit inside the 
+	/* Make sure that the smaller of the two keys will fit inside the
 	   larger */
 	if( hostKeyLength < serverKeyLength + 128 )
-		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA, 
-				"Invalid host vs.server key lengths %d:%d bytes", 
+		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
+				"Invalid host vs.server key lengths %d:%d bytes",
 				hostKeyLength, serverKeyLength );
 
 	return( CRYPT_OK );
@@ -1009,12 +1003,12 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 
 /* Exchange keys with the server */
 
-static int exchangeClientKeys( SESSION_INFO *sessionInfoPtr, 
+static int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 							   SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
 	MECHANISM_WRAP_INFO mechanismInfo;
-	RESOURCE_DATA msgData;
-	BYTE buffer[ CRYPT_MAX_PKCSIZE ];
+	MESSAGE_DATA msgData;
+	BYTE buffer[ CRYPT_MAX_PKCSIZE + 8 ];
 	BYTE *bufPtr = sessionInfoPtr->sendBuffer;
 	int length, dataLength, value, i, status;
 
@@ -1046,7 +1040,7 @@ static int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 	memcpy( bufPtr, handshakeInfo->cookie, SSH1_COOKIE_SIZE );
 	bufPtr += SSH1_COOKIE_SIZE;
 
-	/* Generate the session ID and secure state information and XOR the 
+	/* Generate the session ID and secure state information and XOR the
 	   secure state with the session ID */
 	generateSessionID( handshakeInfo );
 	setMessageData( &msgData, handshakeInfo->secretValue, SSH1_SECRET_SIZE );
@@ -1058,22 +1052,22 @@ static int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 	for( i = 0; i < SSH1_SESSIONID_SIZE; i++ )
 		handshakeInfo->secretValue[ i ] ^= handshakeInfo->sessionID[ i ];
 
-	/* Export the secure state information in double-encrypted form, 
+	/* Export the secure state information in double-encrypted form,
 	   encrypted first with the server key, then with the host key */
-	setMechanismWrapInfo( &mechanismInfo, buffer, CRYPT_MAX_PKCSIZE, 
-						  handshakeInfo->secretValue, SSH1_SECRET_SIZE, 
-						  CRYPT_UNUSED, handshakeInfo->iServerCryptContext, 
+	setMechanismWrapInfo( &mechanismInfo, buffer, CRYPT_MAX_PKCSIZE,
+						  handshakeInfo->secretValue, SSH1_SECRET_SIZE,
+						  CRYPT_UNUSED, handshakeInfo->iServerCryptContext,
 						  CRYPT_UNUSED );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_EXPORT, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_EXPORT,
 							  &mechanismInfo, MECHANISM_ENC_PKCS1_RAW );
 	if( cryptStatusError( status ) )
 		return( status );
 	length = mechanismInfo.wrappedDataLength;
-	setMechanismWrapInfo( &mechanismInfo, 
-						  bufPtr + SSH1_MPI_LENGTH_SIZE, CRYPT_MAX_PKCSIZE, 
-						  buffer, length, CRYPT_UNUSED, 
+	setMechanismWrapInfo( &mechanismInfo,
+						  bufPtr + SSH1_MPI_LENGTH_SIZE, CRYPT_MAX_PKCSIZE,
+						  buffer, length, CRYPT_UNUSED,
 						  sessionInfoPtr->iKeyexCryptContext, CRYPT_UNUSED );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_EXPORT, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_EXPORT,
 							  &mechanismInfo, MECHANISM_ENC_PKCS1_RAW );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1101,7 +1095,7 @@ static int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 
 /* Complete the handshake with the server */
 
-static int completeClientHandshake( SESSION_INFO *sessionInfoPtr, 
+static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 									SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
 	const ATTRIBUTE_LIST *userNamePtr = \
@@ -1127,20 +1121,20 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 	bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + padLength + ID_SIZE;
 	encodeString( bufPtr, userNamePtr->value, userNamePtr->valueLength );
 	status = sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_USER,
-							 LENGTH_SIZE + userNamePtr->valueLength, 
+							 LENGTH_SIZE + userNamePtr->valueLength,
 							 CRYPT_UNUSED );
 	if( cryptStatusError( status ) )
 		return( status );
 
-	/* Read back the server ack and send the authentication information if 
-	   required.  This information is optional, if the server returns a 
-	   failure packet (converted to an OK_SPECIAL return status) it means 
-	   authentication is required, otherwise it isn't and we're already 
+	/* Read back the server ack and send the authentication information if
+	   required.  This information is optional, if the server returns a
+	   failure packet (converted to an OK_SPECIAL return status) it means
+	   authentication is required, otherwise it isn't and we're already
 	   logged in */
 	status = readPacketSSH1( sessionInfoPtr, SSH1_MSG_SPECIAL_USEROPT );
 	if( status == OK_SPECIAL )
 		{
-		/* If there's a password present, we're using password-based 
+		/* If there's a password present, we're using password-based
 		   authentication:
 			string		password */
 		if( passwordPtr != NULL )
@@ -1148,7 +1142,7 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 			int maxLen, packetType, i;
 
 			/* Since SSHv1 sends the packet length in the clear and uses
-			   implicit-length padding, it reveals the length of the 
+			   implicit-length padding, it reveals the length of the
 			   encrypted password to an observer.  To get around this, we
 			   send a series of packets of length 4...maxLen to the server,
 			   one of which is the password, the rest are SSH_MSG_IGNOREs.
@@ -1156,15 +1150,15 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 			   precise timing measurements to determine which one is the
 			   password based on server response time, but it's a lot less
 			   problematic than with a single packet.  Unfortunately, it's
-			   also possible for an attacker to determine the password packet 
+			   also possible for an attacker to determine the password packet
 			   by checking which one generates the password response, unless
-			   the server somehow knows how many packets are coming reads 
-			   them all in a loop and only then sends a response, which 
+			   the server somehow knows how many packets are coming reads
+			   them all in a loop and only then sends a response, which
 			   means that this defence isn't as effective as it seems */
 			status = CRYPT_OK;
 			for( maxLen = 16; maxLen <= passwordPtr->valueLength;
 				 maxLen <<= 1 );
-			for( i = min( 4, passwordPtr->valueLength ); 
+			for( i = min( 4, passwordPtr->valueLength );
 				 i < maxLen && cryptStatusOK( status ); i++ )
 				{
 				padLength = getPadLength( LENGTH_SIZE + i );
@@ -1172,18 +1166,18 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 													  padLength + ID_SIZE;
 				if( i == passwordPtr->valueLength )
 					{
-					encodeString( bufPtr, passwordPtr->value, 
+					encodeString( bufPtr, passwordPtr->value,
 								  passwordPtr->valueLength );
 					packetType = SSH1_CMSG_AUTH_PASSWORD;
 					}
 				else
 					{
-					RESOURCE_DATA msgData;
+					MESSAGE_DATA msgData;
 
-					setMessageData( &msgData, sessionInfoPtr->receiveBuffer, 
+					setMessageData( &msgData, sessionInfoPtr->receiveBuffer,
 									i );
-					krnlSendMessage( SYSTEM_OBJECT_HANDLE, 
-									 IMESSAGE_GETATTRIBUTE_S, &msgData, 
+					krnlSendMessage( SYSTEM_OBJECT_HANDLE,
+									 IMESSAGE_GETATTRIBUTE_S, &msgData,
 									 CRYPT_IATTRIBUTE_RANDOM_NONCE );
 					encodeString( bufPtr, sessionInfoPtr->receiveBuffer, i );
 					packetType = SSH1_MSG_IGNORE;
@@ -1192,16 +1186,18 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 										 LENGTH_SIZE + i, CRYPT_UNUSED );
 				if( cryptStatusOK( status ) && \
 					packetType == SSH1_CMSG_AUTH_PASSWORD )
-					status = readPacketSSH1( sessionInfoPtr, 
+					status = readPacketSSH1( sessionInfoPtr,
 											 SSH1_MSG_SPECIAL_PWOPT );
 				}
 			}
 		else
 			{
 			MECHANISM_WRAP_INFO mechanismInfo;
-			RESOURCE_DATA msgData;
-			BYTE challenge[ SSH1_CHALLENGE_SIZE ], response[ SSH1_RESPONSE_SIZE ];
-			BYTE modulusBuffer[ ( SSH1_MPI_LENGTH_SIZE + CRYPT_MAX_PKCSIZE ) * 2 ];
+			MESSAGE_DATA msgData;
+			BYTE challenge[ SSH1_CHALLENGE_SIZE + 8 ];
+			BYTE response[ SSH1_RESPONSE_SIZE ];
+			BYTE modulusBuffer[ ( ( SSH1_MPI_LENGTH_SIZE + \
+									CRYPT_MAX_PKCSIZE ) * 2 ) + 8 ];
 			BYTE *modulusPtr;
 
 			/* We're using RSA authentication, initially we send just the user's
@@ -1212,13 +1208,13 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 			   First we get the modulus used to identify the client's key.
 			   For no adequately explored reason this is only the modulus and
 			   not the usual exponent+modulus combination, which means that
-			   there's no way for a cryptlib server to identify the public 
-			   key from it, although at a pinch we could try with e=17, 257, 
+			   there's no way for a cryptlib server to identify the public
+			   key from it, although at a pinch we could try with e=17, 257,
 			   or F4 */
-			setMessageData( &msgData, modulusBuffer, 
+			setMessageData( &msgData, modulusBuffer,
 							( SSH1_MPI_LENGTH_SIZE + CRYPT_MAX_PKCSIZE ) * 2 );
-			status = krnlSendMessage( sessionInfoPtr->privateKey, 
-									  IMESSAGE_GETATTRIBUTE_S, &msgData, 
+			status = krnlSendMessage( sessionInfoPtr->privateKey,
+									  IMESSAGE_GETATTRIBUTE_S, &msgData,
 									  CRYPT_IATTRIBUTE_KEY_SSH1 );
 			if( cryptStatusError( status ) )
 				return( status );
@@ -1240,16 +1236,16 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 			bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + \
 												  padLength + ID_SIZE;
 			memcpy( bufPtr, modulusPtr, length );
-			status = sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_AUTH_RSA, 
+			status = sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_AUTH_RSA,
 									 length, CRYPT_UNUSED );
 			if( cryptStatusOK( status ) )
-				status = readPacketSSH1( sessionInfoPtr, 
+				status = readPacketSSH1( sessionInfoPtr,
 										 SSH1_MSG_SPECIAL_RSAOPT );
 			if( cryptStatusError( status ) )
 				return( status );
 
 			/* The server recognises our key (no mean feat, considering that
-			   e could be anything) and has sent an RSA challenge, decrypt 
+			   e could be anything) and has sent an RSA challenge, decrypt
 			   it:
 
 				mpint	encrypted_challenge */
@@ -1260,11 +1256,11 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 				retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 						"Invalid encrypted challenge length %d for modulus "
 						"length %d", length, modulusLength );
-			setMechanismWrapInfo( &mechanismInfo, bufPtr, length, 
-								  challenge, SSH1_CHALLENGE_SIZE, CRYPT_UNUSED, 
+			setMechanismWrapInfo( &mechanismInfo, bufPtr, length,
+								  challenge, SSH1_CHALLENGE_SIZE, CRYPT_UNUSED,
 								  sessionInfoPtr->privateKey, CRYPT_UNUSED );
 			status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-									  IMESSAGE_DEV_IMPORT, &mechanismInfo, 
+									  IMESSAGE_DEV_IMPORT, &mechanismInfo,
 									  MECHANISM_ENC_PKCS1_RAW );
 			clearMechanismInfo( &mechanismInfo );
 			if( cryptStatusError( status ) )
@@ -1274,18 +1270,18 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 
 				byte[16]	MD5 of decrypted challenge
 
-			   Since this completes the authentication, we expect to see 
+			   Since this completes the authentication, we expect to see
 			   either a success or failure packet once we're done */
 			generateChallengeResponse( response, handshakeInfo, challenge );
 			padLength = getPadLength( SSH1_RESPONSE_SIZE );
-			bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + 
+			bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE +
 												  padLength + ID_SIZE;
 			memcpy( bufPtr, response, SSH1_RESPONSE_SIZE );
-			status = sendPacketSsh1( sessionInfoPtr, 
-									 SSH1_CMSG_AUTH_RSA_RESPONSE, 
+			status = sendPacketSsh1( sessionInfoPtr,
+									 SSH1_CMSG_AUTH_RSA_RESPONSE,
 									 SSH1_RESPONSE_SIZE, CRYPT_UNUSED );
 			if( cryptStatusOK( status ) )
-				status = readPacketSSH1( sessionInfoPtr, 
+				status = readPacketSSH1( sessionInfoPtr,
 										 SSH1_MSG_SPECIAL_PWOPT );
 			}
 		}
@@ -1301,7 +1297,7 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 							  EXTRA_PACKET_SIZE;
 
 		padLength = getPadLength( LENGTH_SIZE );
-		bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + padLength + ID_SIZE; 
+		bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + padLength + ID_SIZE;
 		mputLong( bufPtr, maxLength );
 		status = sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_MAX_PACKET_SIZE,
 								 LENGTH_SIZE, CRYPT_UNUSED );
@@ -1320,7 +1316,7 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 		uint32		pixel_height = 0
 		byte		tty_mode_info = 0 */
 	padLength = getPadLength( ( LENGTH_SIZE + 5 ) + ( UINT_SIZE * 4 ) + 1 );
-	bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + padLength + ID_SIZE; 
+	bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + padLength + ID_SIZE;
 	bufPtr += encodeString( bufPtr, "vt100", 0 );	/* Generic terminal type */
 	mputLong( bufPtr, 24 );
 	mputLong( bufPtr, 80 );			/* 24 x 80 */
@@ -1328,7 +1324,7 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 	mputLong( bufPtr, 0 );			/* No graphics capabilities */
 	*bufPtr = 0;					/* No special TTY modes */
 	status = sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_REQUEST_PTY,
-							 ( LENGTH_SIZE + 5 ) + ( UINT_SIZE * 4 ) + 1, 
+							 ( LENGTH_SIZE + 5 ) + ( UINT_SIZE * 4 ) + 1,
 							 CRYPT_UNUSED );
 	if( cryptStatusOK( status ) )
 		status = readPacketSSH1( sessionInfoPtr, SSH1_SMSG_SUCCESS );
@@ -1336,11 +1332,11 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 		return( status );
 
 	/* Tell the server to create a shell for us.  This moves the server into
-	   the interactive session mode, if we're talking to a standard Unix 
-	   server implementing a remote shell we could read the stdout data 
-	   response from starting the shell but this may not be the case so we 
+	   the interactive session mode, if we're talking to a standard Unix
+	   server implementing a remote shell we could read the stdout data
+	   response from starting the shell but this may not be the case so we
 	   leave the response for the user to process explicitly */
-	return( sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_EXEC_SHELL, 0, 
+	return( sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_EXEC_SHELL, 0,
 							CRYPT_UNUSED ) );
 	}
 
@@ -1352,22 +1348,22 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 
 /* Perform the initial part of the handshake with the client */
 
-static int beginServerHandshake( SESSION_INFO *sessionInfoPtr, 
+static int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 								 SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	BYTE *bufPtr = sessionInfoPtr->sendBuffer;
 	static const int keyLength = bitsToBytes( 768 );
 	long value;
 	int length, status;
 
-	krnlSendMessage( sessionInfoPtr->privateKey, IMESSAGE_GETATTRIBUTE, 
+	krnlSendMessage( sessionInfoPtr->privateKey, IMESSAGE_GETATTRIBUTE,
 					 &handshakeInfo->serverKeySize, CRYPT_CTXINFO_KEYSIZE );
 
 	/* Generate the 768-bit RSA server key.  It would be better to do this
-	   before the listen on the socket, but we can't do it until we know that 
-	   the client is v1, which we only know after the initial message 
+	   before the listen on the socket, but we can't do it until we know that
+	   the client is v1, which we only know after the initial message
 	   exchange */
 	setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_RSA );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_CREATEOBJECT,
@@ -1375,15 +1371,15 @@ static int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		return( status );
 	setMessageData( &msgData, "SSH server key", 14 );
-	status = krnlSendMessage( createInfo.cryptHandle, 
-							  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+	status = krnlSendMessage( createInfo.cryptHandle,
+							  IMESSAGE_SETATTRIBUTE_S, &msgData,
 							  CRYPT_CTXINFO_LABEL );
 	if( cryptStatusOK( status ) )
-		status = krnlSendMessage( createInfo.cryptHandle, 
-								  IMESSAGE_SETATTRIBUTE, ( int * ) &keyLength, 
+		status = krnlSendMessage( createInfo.cryptHandle,
+								  IMESSAGE_SETATTRIBUTE, ( int * ) &keyLength,
 								  CRYPT_CTXINFO_KEYSIZE );
 	if( cryptStatusOK( status ) )
-		status = krnlSendMessage( createInfo.cryptHandle, 
+		status = krnlSendMessage( createInfo.cryptHandle,
 								  IMESSAGE_CTX_GENKEY, NULL, FALSE );
 	if( cryptStatusError( status ) )
 		{
@@ -1405,7 +1401,7 @@ static int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 		uint32		offered_ciphers
 		uint32		offered_authent */
 	setMessageData( &msgData, handshakeInfo->cookie, SSH1_COOKIE_SIZE );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1413,22 +1409,22 @@ static int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 	bufPtr += SSH1_COOKIE_SIZE;
 	setMessageData( &msgData, bufPtr, LENGTH_SIZE + \
 					( ( SSH1_MPI_LENGTH_SIZE + CRYPT_MAX_PKCSIZE ) * 2 ) );
-	status = krnlSendMessage( handshakeInfo->iServerCryptContext, 
-							  IMESSAGE_GETATTRIBUTE_S, &msgData, 
+	status = krnlSendMessage( handshakeInfo->iServerCryptContext,
+							  IMESSAGE_GETATTRIBUTE_S, &msgData,
 							  CRYPT_IATTRIBUTE_KEY_SSH1 );
 	if( cryptStatusError( status ) )
 		return( status );
-	length = processPublickeyData( handshakeInfo, bufPtr, msgData.length, 
+	length = processPublickeyData( handshakeInfo, bufPtr, msgData.length,
 								   TRUE, NULL );
 	bufPtr += length;
 	setMessageData( &msgData, bufPtr, LENGTH_SIZE + \
 					( ( SSH1_MPI_LENGTH_SIZE + CRYPT_MAX_PKCSIZE ) * 2 ) );
-	status = krnlSendMessage( sessionInfoPtr->privateKey, 
-							  IMESSAGE_GETATTRIBUTE_S, &msgData, 
+	status = krnlSendMessage( sessionInfoPtr->privateKey,
+							  IMESSAGE_GETATTRIBUTE_S, &msgData,
 							  CRYPT_IATTRIBUTE_KEY_SSH1 );
 	if( cryptStatusError( status ) )
 		return( status );
-	length = processPublickeyData( handshakeInfo, bufPtr, msgData.length, 
+	length = processPublickeyData( handshakeInfo, bufPtr, msgData.length,
 								   FALSE, NULL );
 	bufPtr += length;
 	mputLong( bufPtr, 0 );		/* No protocol flags */
@@ -1443,9 +1439,9 @@ static int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 	   padding and send it to the client */
 	length = bufPtr - sessionInfoPtr->sendBuffer;
 	memmove( sessionInfoPtr->sendBuffer + LENGTH_SIZE + \
-			 getPadLength( length ) + ID_SIZE, sessionInfoPtr->sendBuffer, 
+			 getPadLength( length ) + ID_SIZE, sessionInfoPtr->sendBuffer,
 			 length );
-	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_PUBLIC_KEY, length, 
+	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_PUBLIC_KEY, length,
 							 CRYPT_UNUSED );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1455,7 +1451,7 @@ static int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 		{
 		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_HMAC_SHA );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		if( cryptStatusError( status ) )
 			return( status );
@@ -1467,11 +1463,12 @@ static int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 
 /* Exchange keys with the client */
 
-static int exchangeServerKeys( SESSION_INFO *sessionInfoPtr, 
+static int exchangeServerKeys( SESSION_INFO *sessionInfoPtr,
 							   SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
 	MECHANISM_WRAP_INFO mechanismInfo;
-	BYTE buffer[ CRYPT_MAX_PKCSIZE ], *bufPtr = sessionInfoPtr->receiveBuffer;
+	BYTE buffer[ CRYPT_MAX_PKCSIZE + 8 ];
+	BYTE *bufPtr = sessionInfoPtr->receiveBuffer;
 	int length, keyLength, i, status;
 
 	/* Read the client's encrypted session key info:
@@ -1504,17 +1501,17 @@ static int exchangeServerKeys( SESSION_INFO *sessionInfoPtr,
 
 	/* Import the double-encrypted secure state information, first decrypting
 	   with the host key, then with the server key */
-	setMechanismWrapInfo( &mechanismInfo, bufPtr, keyLength, 
-						  buffer, CRYPT_MAX_PKCSIZE, CRYPT_UNUSED, 
+	setMechanismWrapInfo( &mechanismInfo, bufPtr, keyLength,
+						  buffer, CRYPT_MAX_PKCSIZE, CRYPT_UNUSED,
 						  sessionInfoPtr->privateKey, CRYPT_UNUSED );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_IMPORT, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_IMPORT,
 							  &mechanismInfo, MECHANISM_ENC_PKCS1_RAW );
 	if( cryptStatusError( status ) )
 		return( status );
-	setMechanismWrapInfo( &mechanismInfo, buffer, mechanismInfo.keyDataLength, 
-						  handshakeInfo->secretValue, SSH1_SECRET_SIZE, CRYPT_UNUSED, 
+	setMechanismWrapInfo( &mechanismInfo, buffer, mechanismInfo.keyDataLength,
+						  handshakeInfo->secretValue, SSH1_SECRET_SIZE, CRYPT_UNUSED,
 						  handshakeInfo->iServerCryptContext, CRYPT_UNUSED );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_IMPORT, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_IMPORT,
 							  &mechanismInfo, MECHANISM_ENC_PKCS1_RAW );
 	if( cryptStatusOK( status ) && \
 		mechanismInfo.keyDataLength != SSH1_SECRET_SIZE )
@@ -1524,8 +1521,8 @@ static int exchangeServerKeys( SESSION_INFO *sessionInfoPtr,
 		return( status );
 	handshakeInfo->secretValueLength = SSH1_SECRET_SIZE;
 
-	/* Generate the session ID from the handshake info and XOR it with the 
-	   recovered secure state information to get the final secure state 
+	/* Generate the session ID from the handshake info and XOR it with the
+	   recovered secure state information to get the final secure state
 	   data */
 	generateSessionID( handshakeInfo );
 	for( i = 0; i < SSH1_SESSIONID_SIZE; i++ )
@@ -1536,7 +1533,7 @@ static int exchangeServerKeys( SESSION_INFO *sessionInfoPtr,
 
 /* Complete the handshake with the client */
 
-static int completeServerHandshake( SESSION_INFO *sessionInfoPtr, 
+static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 									SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
 	BYTE *bufPtr;
@@ -1550,7 +1547,7 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 	/* Send the server ack and read back the user name:
 
 		string		username */
-	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_SUCCESS, 0, 
+	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_SUCCESS, 0,
 							 CRYPT_UNUSED );
 	if( cryptStatusOK( status ) )
 		length = status = readPacketSSH1( sessionInfoPtr, SSH1_CMSG_USER );
@@ -1564,16 +1561,16 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 				"Invalid user name packet length %d, name length %d",
 				length, stringLength );
 	updateSessionAttribute( &sessionInfoPtr->attributeList,
-							CRYPT_SESSINFO_USERNAME, bufPtr, 
+							CRYPT_SESSINFO_USERNAME, bufPtr,
 							stringLength, CRYPT_MAX_TEXTSIZE,
 							ATTR_FLAG_NONE );
 
 	/* Send the server ack (which is actually a nack since the user needs
 	   to submit a password) and read back the password */
-	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_FAILURE, 0, 
+	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_FAILURE, 0,
 							 CRYPT_UNUSED );
 	if( cryptStatusOK( status ) )
-		length = status = readPacketSSH1( sessionInfoPtr, 
+		length = status = readPacketSSH1( sessionInfoPtr,
 										  SSH1_CMSG_AUTH_PASSWORD );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1585,16 +1582,16 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 				"Invalid password packet length %d, password length %d",
 				length, stringLength );
 	updateSessionAttribute( &sessionInfoPtr->attributeList,
-							CRYPT_SESSINFO_PASSWORD, bufPtr, 
+							CRYPT_SESSINFO_PASSWORD, bufPtr,
 							stringLength, CRYPT_MAX_TEXTSIZE,
 							ATTR_FLAG_NONE );
 
-	/* Send the server ack and process any further junk that the caller may 
-	   throw at us until we get an exec shell or command request.  At the 
-	   moment it's set up in allow-all mode, it may be necessary to switch 
-	   to deny-all instead if clients pop up which submit things that cause 
+	/* Send the server ack and process any further junk that the caller may
+	   throw at us until we get an exec shell or command request.  At the
+	   moment it's set up in allow-all mode, it may be necessary to switch
+	   to deny-all instead if clients pop up which submit things that cause
 	   problems */
-	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_SUCCESS, 0, 
+	status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_SUCCESS, 0,
 							 CRYPT_UNUSED );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1611,19 +1608,19 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 			case SSH1_CMSG_PORT_FORWARD_REQUEST:
 			case SSH1_CMSG_AGENT_REQUEST_FORWARDING:
 				/* Special operations aren't supported by cryptlib */
-				status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_FAILURE, 
+				status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_FAILURE,
 										 0, CRYPT_UNUSED );
 				break;
 
 			case SSH1_CMSG_EXEC_SHELL:
 			case SSH1_CMSG_EXEC_CMD:
-				/* These commands move the server into the interactive 
+				/* These commands move the server into the interactive
 				   session mode and aren't explicitly acknowledged */
 				break;
 
 			case SSH1_CMSG_REQUEST_PTY:
 			default:
-				status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_SUCCESS, 
+				status = sendPacketSsh1( sessionInfoPtr, SSH1_SMSG_SUCCESS,
 										 0, CRYPT_UNUSED );
 			}
 		}
@@ -1631,7 +1628,7 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 		   ( packetType != SSH1_CMSG_EXEC_SHELL && \
 			 packetType != SSH1_CMSG_EXEC_CMD ) && iterationCount++ < 50 );
 	if( iterationCount >= 50 )
-		retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW, 
+		retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW,
 				"Peer sent excessive number of session open packets" );
 
 	return( cryptStatusError( status ) ? status : CRYPT_OK );
@@ -1645,7 +1642,7 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 
 /* Read data over the SSHv1 link */
 
-static int readHeaderFunction( SESSION_INFO *sessionInfoPtr, 
+static int readHeaderFunction( SESSION_INFO *sessionInfoPtr,
 							   READSTATE_INFO *readInfo )
 	{
 	BYTE *bufPtr = sessionInfoPtr->receiveBuffer + \
@@ -1669,11 +1666,11 @@ static int readHeaderFunction( SESSION_INFO *sessionInfoPtr,
 	length = mgetLong( bufPtr );
 	if( length < SSH1_HEADER_SIZE || \
 		length > sessionInfoPtr->receiveBufSize - 8 )
-		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA, 
+		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 				"Invalid packet length %d", length );
 
-	/* Determine how much data we'll be expecting.  We set the remaining 
-	   data length to the actual length plus the padding length since we 
+	/* Determine how much data we'll be expecting.  We set the remaining
+	   data length to the actual length plus the padding length since we
 	   need to read this much to get to the end of the packet */
 	sessionInfoPtr->pendingPacketLength = length;
 	sessionInfoPtr->pendingPacketRemaining = length + \
@@ -1701,14 +1698,14 @@ static int processBodyFunction( SESSION_INFO *sessionInfoPtr,
 	padLength = 8 - ( sessionInfoPtr->pendingPacketLength & 7 );
 	assert( bufPtr == sessionInfoPtr->receiveBuffer + \
 					  sessionInfoPtr->receiveBufEnd - \
-					  ( padLength + sessionInfoPtr->pendingPacketLength ) ); 
+					  ( padLength + sessionInfoPtr->pendingPacketLength ) );
 	status = decryptPayload( sessionInfoPtr, bufPtr,
 							 padLength + sessionInfoPtr->pendingPacketLength );
 	if( cryptStatusError( status ) )
 		return( status );
-	if( !checksumPayload( sessionInfoPtr, bufPtr, 
+	if( !checksumPayload( sessionInfoPtr, bufPtr,
 						  padLength + sessionInfoPtr->pendingPacketLength ) )
-		retExt( sessionInfoPtr, CRYPT_ERROR_SIGNATURE, 
+		retExt( sessionInfoPtr, CRYPT_ERROR_SIGNATURE,
 				"Bad message checksum" );
 
 	/* See what we got */
@@ -1723,12 +1720,12 @@ static int processBodyFunction( SESSION_INFO *sessionInfoPtr,
 		return( OK_SPECIAL );	/* Tell the caller to try again */
 		}
 	if( *bufPtr == SSH1_MSG_DISCONNECT )
-		return( getDisconnectInfoSSH1( sessionInfoPtr, 
+		return( getDisconnectInfoSSH1( sessionInfoPtr,
 					sessionInfoPtr->receiveBuffer + padLength + ID_SIZE ) );
 	if( *bufPtr == SSH1_SMSG_EXITSTATUS )
 		{
 		/* Confirm the server exit and bail out */
-		sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_EXIT_CONFIRMATION, 0, 
+		sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_EXIT_CONFIRMATION, 0,
 						CRYPT_UNUSED );
 		sessionInfoPtr->receiveBufEnd = sessionInfoPtr->receiveBufPos;
 		sessionInfoPtr->pendingPacketLength = 0;
@@ -1736,13 +1733,13 @@ static int processBodyFunction( SESSION_INFO *sessionInfoPtr,
 		}
 	bufPtr++;
 
-	/* It's payload data, move it down next to the previous data.  This 
+	/* It's payload data, move it down next to the previous data.  This
 	   doesn't help performance much, but it shouldn't be a major problem
 	   since SSHv1 is deprecated anyway */
 	length = mgetLong( bufPtr );
 	if( length < 0 || length > sessionInfoPtr->pendingPacketLength - \
 							   ( ID_SIZE + LENGTH_SIZE + SSH1_CRC_SIZE ) )
-		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA, 
+		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 				"Invalid payload length %d", length );
 	if( length > 0 )
 		memmove( bufStartPtr, bufPtr, length );
@@ -1771,16 +1768,15 @@ static int preparePacketFunction( SESSION_INFO *sessionInfoPtr )
 					( LENGTH_SIZE + getPadLength( LENGTH_SIZE + dataLength ) + \
 					  ID_SIZE + LENGTH_SIZE );
 
-	/* Wrap up the payload ready for sending.  This doesn't actually send 
+	/* Wrap up the payload ready for sending.  This doesn't actually send
 	   the data since we're specifying the delta parameter, which tells the
 	   send-packet code that it's an interruptible write that'll be handled
 	   by the caller:
 
 		string		data */
 	mputLong( bufPtr, dataLength );
-	return( sendPacketSsh1( sessionInfoPtr, 
-							( sessionInfoPtr->flags & SESSION_ISSERVER ) ? \
-								SSH1_SMSG_STDOUT_DATA : SSH1_CMSG_STDIN_DATA, 
+	return( sendPacketSsh1( sessionInfoPtr, isServer( sessionInfoPtr ) ? \
+								SSH1_SMSG_STDOUT_DATA : SSH1_CMSG_STDIN_DATA,
 							LENGTH_SIZE + dataLength, delta ) );
 	}
 
@@ -1797,7 +1793,7 @@ static void shutdownFunction( SESSION_INFO *sessionInfoPtr )
 *																			*
 ****************************************************************************/
 
-void initSSH1processing( SESSION_INFO *sessionInfoPtr, 
+void initSSH1processing( SESSION_INFO *sessionInfoPtr,
 						 SSH_HANDSHAKE_INFO *handshakeInfo,
 						 const BOOLEAN isServer )
 	{
@@ -1810,13 +1806,13 @@ void initSSH1processing( SESSION_INFO *sessionInfoPtr,
 			SESSION_NEEDS_PASSWORD | \
 			SESSION_NEEDS_KEYORPASSWORD | \
 			SESSION_NEEDS_PRIVKEYCRYPT,
-				/* The client private key is optional but if present, it has 
+				/* The client private key is optional but if present, it has
 				   to be encryption-capable */
 		SESSION_NEEDS_PRIVATEKEY |	/* Server attributes */
 			SESSION_NEEDS_PRIVKEYCRYPT,
 		1, 1, 2,					/* Version 1 */
 		NULL, NULL,					/* Content-type */
-	
+
 		/* Protocol-specific information */
 		EXTRA_PACKET_SIZE + \
 			DEFAULT_PACKET_SIZE,	/* Send/receive buffer size */
@@ -1824,7 +1820,7 @@ void initSSH1processing( SESSION_INFO *sessionInfoPtr,
 		DEFAULT_PACKET_SIZE,		/* (Default) maximum packet size */
 		NULL,						/* Alt.transport protocol */
 		128							/* Required priv.key size */
-			/* The SSHv1 host key has to be at least 1024 bits long so that 
+			/* The SSHv1 host key has to be at least 1024 bits long so that
 			   it can be used to wrap the 768-bit server key */
 		};
 
@@ -1848,8 +1844,8 @@ void initSSH1processing( SESSION_INFO *sessionInfoPtr,
 			}
 		}
 
-	/* SSHv1 has slightly different data handling than SSHv2, if we're 
-	   targeted at SSHv2 we need to override the SSHv2 shutdown function 
+	/* SSHv1 has slightly different data handling than SSHv2, if we're
+	   targeted at SSHv2 we need to override the SSHv2 shutdown function
 	   with a default one */
 	sessionInfoPtr->shutdownFunction = shutdownFunction;
 	}

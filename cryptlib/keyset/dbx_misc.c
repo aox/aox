@@ -5,20 +5,12 @@
 *																			*
 ****************************************************************************/
 
-#include <stdarg.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "dbms.h"
   #include "asn1.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../keyset/dbms.h"
-  #include "../misc/asn1.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -206,7 +198,7 @@ int makeKeyID( char *keyIDbuffer, const int keyIDbufSize,
 			   const CRYPT_KEYID_TYPE keyIDtype, 
 			   const void *keyID, const int keyIDlength )
 	{
-	BYTE hashBuffer[ CRYPT_MAX_HASHSIZE ];
+	BYTE hashBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
 	int idLength = keyIDlength, status;
 
 	assert( ( keyIDtype == CRYPT_KEYID_NAME || \
@@ -246,8 +238,8 @@ int makeKeyID( char *keyIDbuffer, const int keyIDbufSize,
 		/* Get the hash algorithm information and hash the keyID to get
 		   the fixed-length keyID */
 		getHashParameters( CRYPT_ALGO_SHA, &hashFunction, NULL );
-		hashFunction( NULL, hashBuffer, ( void * ) keyID, keyIDlength,
-					  HASH_ALL );
+		hashFunction( NULL, hashBuffer, CRYPT_MAX_HASHSIZE,
+					  ( void * ) keyID, keyIDlength, HASH_ALL );
 		keyID = hashBuffer;
 		idLength = DBXKEYID_SIZE;
 		}
@@ -269,7 +261,7 @@ int makeKeyID( char *keyIDbuffer, const int keyIDbufSize,
 int getKeyID( char *keyIDbuffer, const CRYPT_HANDLE cryptHandle,
 			  const CRYPT_ATTRIBUTE_TYPE keyIDtype )
 	{
-	BYTE hashBuffer[ CRYPT_MAX_HASHSIZE ];
+	BYTE hashBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
 	int status;
 
 	assert( ( keyIDtype == CRYPT_CERTINFO_FINGERPRINT_SHA || \
@@ -285,7 +277,7 @@ int getKeyID( char *keyIDbuffer, const CRYPT_HANDLE cryptHandle,
 	if( keyIDtype == CRYPT_CERTINFO_FINGERPRINT_SHA || \
 		keyIDtype == CRYPT_IATTRIBUTE_AUTHCERTID )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, hashBuffer, CRYPT_MAX_HASHSIZE );
 		status = krnlSendMessage( cryptHandle, IMESSAGE_GETATTRIBUTE_S,
@@ -305,8 +297,8 @@ int getKeyID( char *keyIDbuffer, const CRYPT_HANDLE cryptHandle,
 		if( cryptStatusError( status ) )
 			return( status );
 		getHashParameters( CRYPT_ALGO_SHA, &hashFunction, &hashSize );
-		hashFunction( NULL, hashBuffer, dynData( idDB ), dynLength( idDB ),
-					  HASH_ALL );
+		hashFunction( NULL, hashBuffer, CRYPT_MAX_HASHSIZE,
+					  dynData( idDB ), dynLength( idDB ), HASH_ALL );
 		assert( hashSize == KEYID_SIZE );
 		dynDestroy( &idDB );
 		}
@@ -566,7 +558,7 @@ static int createDatabase( DBMS_INFO *dbmsInfo,
 			"CREATE UNIQUE INDEX logCertIDIdx ON certLog (certID)" );
 	if( cryptStatusOK( status ) && isCertStore( dbmsInfo ) )
 		{
-		char dummyCertID[ DBXKEYID_BUFFER_SIZE ];
+		char dummyCertID[ DBXKEYID_BUFFER_SIZE + 8 ];
 
 		/* Create a special dummy certID with an out-of-band value to mark
 		   the first entry in the log */
@@ -763,7 +755,7 @@ static int initFunction( KEYSET_INFO *keysetInfo, const char *name,
 
 /* Close the connection to a database */
 
-static void shutdownFunction( KEYSET_INFO *keysetInfo )
+static int shutdownFunction( KEYSET_INFO *keysetInfo )
 	{
 	DBMS_INFO *dbmsInfo = keysetInfo->keysetDBMS;
 
@@ -781,7 +773,7 @@ static void shutdownFunction( KEYSET_INFO *keysetInfo )
 		dbmsStaticQuery( NULL, DBMS_CACHEDQUERY_NONE, DBMS_QUERY_CANCEL );
 
 	dbmsClose();
-	endDbxSession( keysetInfo );
+	return( endDbxSession( keysetInfo ) );
 	}
 
 /****************************************************************************

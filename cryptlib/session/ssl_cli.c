@@ -5,16 +5,9 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "misc_rw.h"
-  #include "session.h"
-  #include "ssl.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/misc_rw.h"
   #include "session.h"
   #include "ssl.h"
 #else
@@ -32,96 +25,108 @@
 *																			*
 ****************************************************************************/
 
-/* Encode a list of available algorithms.  Some buggy older versions of IIS 
-   that only support crippled crypto drop the connection when they see a 
-   client hello advertising strong crypto, rather than sending an alert as 
-   they should.  To work around this, we advertise a dummy cipher suite 
-   SSL_RSA_EXPORT_WITH_RC4_40_MD5 as a canary to force IIS to send back a 
-   response that we can then turn into an error message.  The need to do 
-   this is somewhat unfortunate since it will appear to an observer that 
-   cryptlib will use crippled crypto, but there's no other way to detect the 
-   buggy IIS apart from completely restarting the session activation at the 
+/* Encode a list of available algorithms.  Some buggy older versions of IIS
+   that only support crippled crypto drop the connection when they see a
+   client hello advertising strong crypto, rather than sending an alert as
+   they should.  To work around this, we advertise a dummy cipher suite
+   SSL_RSA_EXPORT_WITH_RC4_40_MD5 as a canary to force IIS to send back a
+   response that we can then turn into an error message.  The need to do
+   this is somewhat unfortunate since it will appear to an observer that
+   cryptlib will use crippled crypto, but there's no other way to detect the
+   buggy IIS apart from completely restarting the session activation at the
    session level with crippled-crypto advertised in the restarted session */
 
 static int writeCipherSuiteList( STREAM *stream, const BOOLEAN usePSK )
 	{
-	const static struct {
+	typedef struct {
 		const CRYPT_ALGO_TYPE cryptAlgo;
 		const int cipherSuite;
-		} cipherSuiteList[] = {
-		{ CRYPT_ALGO_3DES, TLS_PSK_WITH_3DES_EDE_CBC_SHA }, 
-		{ CRYPT_ALGO_AES, TLS_PSK_WITH_AES_256_CBC_SHA }, 
-		{ CRYPT_ALGO_AES, TLS_PSK_WITH_AES_128_CBC_SHA }, 
-		{ CRYPT_ALGO_RC4, TLS_PSK_WITH_RC4_128_SHA }, 
+		const BOOLEAN isPSK;
+		} CIPHERSUITE_INFO;
+	const static CIPHERSUITE_INFO cipherSuiteList[] = {
+		{ CRYPT_ALGO_3DES, TLS_PSK_WITH_3DES_EDE_CBC_SHA, TRUE },
+		{ CRYPT_ALGO_AES, TLS_PSK_WITH_AES_256_CBC_SHA, TRUE },
+		{ CRYPT_ALGO_AES, TLS_PSK_WITH_AES_128_CBC_SHA, TRUE },
+		{ CRYPT_ALGO_RC4, TLS_PSK_WITH_RC4_128_SHA, TRUE },
 #ifdef PREFER_DH_SUITES
-		{ CRYPT_ALGO_3DES, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_256_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_128_CBC_SHA },
-		{ CRYPT_ALGO_3DES, SSL_RSA_WITH_3DES_EDE_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_256_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_128_CBC_SHA },
+		{ CRYPT_ALGO_3DES, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_3DES, SSL_RSA_WITH_3DES_EDE_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_256_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_128_CBC_SHA, FALSE },
 #else
-		{ CRYPT_ALGO_3DES, SSL_RSA_WITH_3DES_EDE_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_256_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_128_CBC_SHA },
-		{ CRYPT_ALGO_3DES, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_256_CBC_SHA },
-		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_128_CBC_SHA },
+		{ CRYPT_ALGO_3DES, SSL_RSA_WITH_3DES_EDE_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_256_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_RSA_WITH_AES_128_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_3DES, TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_AES, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, FALSE },
 #endif /* PREFER_DH_SUITES */
-		{ CRYPT_ALGO_IDEA, SSL_RSA_WITH_IDEA_CBC_SHA },
-		{ CRYPT_ALGO_RC4, SSL_RSA_WITH_RC4_128_SHA },
-		{ CRYPT_ALGO_RC4, SSL_RSA_WITH_RC4_128_MD5 },
-		{ CRYPT_ALGO_DES, SSL_RSA_WITH_DES_CBC_SHA },
-		{ CRYPT_ALGO_DES, TLS_DHE_RSA_WITH_DES_CBC_SHA },
-		{ CRYPT_ALGO_SHA, SSL_RSA_EXPORT_WITH_RC4_40_MD5 },	/* Canary */
-		{ CRYPT_ALGO_NONE, SSL_NULL_WITH_NULL }
+		{ CRYPT_ALGO_IDEA, SSL_RSA_WITH_IDEA_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_RC4, SSL_RSA_WITH_RC4_128_SHA, FALSE },
+		{ CRYPT_ALGO_RC4, SSL_RSA_WITH_RC4_128_MD5, FALSE },
+		{ CRYPT_ALGO_DES, SSL_RSA_WITH_DES_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_DES, TLS_DHE_RSA_WITH_DES_CBC_SHA, FALSE },
+		{ CRYPT_ALGO_SHA, SSL_RSA_EXPORT_WITH_RC4_40_MD5, FALSE },	/* Canary */
+		{ CRYPT_ALGO_NONE, SSL_NULL_WITH_NULL, FALSE },
+		{ CRYPT_ALGO_NONE, SSL_NULL_WITH_NULL, FALSE }
 		};
-	int availableSuites[ 32 ], cipherSuiteCount = 0, suiteIndex = 0, status;
+	int availableSuites[ 32 + 8 ], cipherSuiteCount = 0, suiteIndex = 0;
+	int status;
 
-	/* Walk down the list of algorithms (and the corresponding cipher 
+	/* Walk down the list of algorithms (and the corresponding cipher
 	   suites) remembering each one that's available for use */
 	while( cipherSuiteList[ suiteIndex ].cryptAlgo != CRYPT_ALGO_NONE && \
-		   cipherSuiteCount < 32 )
+		   cipherSuiteCount < 32 && \
+		   suiteIndex < FAILSAFE_ARRAYSIZE( cipherSuiteList, CIPHERSUITE_INFO ) )
 		{
 		const CRYPT_ALGO_TYPE cryptAlgo = \
 								cipherSuiteList[ suiteIndex ].cryptAlgo;
 
-		if( !usePSK && \
-			cipherSuiteList[ suiteIndex ].cipherSuite >= TLS_PSK_WITH_RC4_128_SHA )
+		if( !usePSK && cipherSuiteList[ suiteIndex ].isPSK )
 			{
-			/* It's a PSK suite but we're not using a PSK handshake, skip 
+			/* It's a PSK suite but we're not using a PSK handshake, skip
 			   it */
 			suiteIndex++;
 			continue;
 			}
 		if( !algoAvailable( cipherSuiteList[ suiteIndex ].cryptAlgo ) )
 			{
-			while( cipherSuiteList[ suiteIndex ].cryptAlgo == cryptAlgo )
+			while( cipherSuiteList[ suiteIndex ].cryptAlgo == cryptAlgo && \
+				   suiteIndex < FAILSAFE_ITERATIONS_MED )
 				suiteIndex++;
 			continue;
 			}
 		while( cipherSuiteList[ suiteIndex ].cryptAlgo == cryptAlgo && \
-			   cipherSuiteCount < 32 )
+			   cipherSuiteCount < 32 && \
+			   suiteIndex < FAILSAFE_ARRAYSIZE( cipherSuiteList, CIPHERSUITE_INFO ) )
+			{
 			availableSuites[ cipherSuiteCount++ ] = \
 						cipherSuiteList[ suiteIndex++ ].cipherSuite;
+			}
+		if( suiteIndex >= FAILSAFE_ARRAYSIZE( cipherSuiteList, CIPHERSUITE_INFO ) )
+			retIntError();
 		}
+	if( suiteIndex >= FAILSAFE_ARRAYSIZE( cipherSuiteList, CIPHERSUITE_INFO ) )
+		retIntError();
 	assert( cipherSuiteCount < 32 );
 
 	/* Encode the list of available cipher suites */
 	status = writeUint16( stream, cipherSuiteCount * UINT16_SIZE );
-	for( suiteIndex = 0; \
-		 cryptStatusOK( status ) && suiteIndex < cipherSuiteCount; \
+	for( suiteIndex = 0; 
+		 cryptStatusOK( status ) && suiteIndex < cipherSuiteCount; 
 		 suiteIndex++ )
 		status = writeUint16( stream, availableSuites[ suiteIndex ] );
 
 	return( status );
 	}
 
-/* Make sure that the server URL matches the value in the returned 
-   certificate.  This code isn't currently called because it's not certain 
-   what the best way is to report this to the user is, and more importantly 
-   because there are quite a few servers out there where the server name 
-   doesn't match what's in the cert but for which the user will just click 
+/* Make sure that the server URL matches the value in the returned
+   certificate.  This code isn't currently called because it's not certain
+   what the best way is to report this to the user is, and more importantly
+   because there are quite a few servers out there where the server name
+   doesn't match what's in the cert but for which the user will just click
    "OK" anyway even if we can tunnel a warning indication back to them, so
    we leave it to the caller to perform whatever checking and take whatever
    action they consider necessary */
@@ -130,8 +135,8 @@ static int writeCipherSuiteList( STREAM *stream, const BOOLEAN usePSK )
 
 static int checkURL( SESSION_INFO *sessionInfoPtr )
 	{
-	RESOURCE_DATA msgData;
-	char hostName[ MAX_URL_SIZE ];
+	MESSAGE_DATA msgData;
+	char hostName[ MAX_URL_SIZE + 8 ];
 	const int serverNameLength = strlen( sessionInfoPtr->serverName );
 	int hostNameLength, splatPos = CRYPT_ERROR, postSplatLen, i, status;
 
@@ -205,7 +210,7 @@ static int checkURL( SESSION_INFO *sessionInfoPtr )
 
 /* Perform the initial part of the handshake with the server */
 
-int beginClientHandshake( SESSION_INFO *sessionInfoPtr, 
+int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 						  SSL_HANDSHAKE_INFO *handshakeInfo )
 	{
 	STREAM *stream = &handshakeInfo->stream;
@@ -214,12 +219,12 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 				findSessionAttribute( sessionInfoPtr->attributeList,
 									  CRYPT_SESSINFO_USERNAME );
 #endif /* 0 */
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int packetOffset, length, status;
 
 	/* Get the nonce that's used to randomise all crypto ops */
 	setMessageData( &msgData, handshakeInfo->clientNonce, SSL_NONCE_SIZE );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -236,12 +241,12 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 		uint16		suiteLen
 		uint16[]	suite
 		byte		coprLen = 1
-		byte[]		copr = { 0x00 } 
+		byte[]		copr = { 0x00 }
 		[ uint16	extListLen		| RFC 3546
 			byte	extType
 			uint16	extLen
 			byte[]	extData ] */
-	openPacketStreamSSL( stream, sessionInfoPtr, CRYPT_USE_DEFAULT, 
+	openPacketStreamSSL( stream, sessionInfoPtr, CRYPT_USE_DEFAULT,
 						 SSL_MSG_HANDSHAKE );
 	packetOffset = continueHSPacketStream( stream, SSL_HAND_CLIENT_HELLO );
 	sputc( stream, SSL_MAJOR_VERSION );
@@ -253,11 +258,11 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 		{
 		BYTE buffer[ SESSIONID_SIZE + 8 ];
 
-		/* If there's a user name present, we're "resuming" a session based 
+		/* If there's a user name present, we're "resuming" a session based
 		   on a shared secret, send the user name as the session ID */
 		sputc( stream, SESSIONID_SIZE );
 		memset( buffer, 0, SESSIONID_SIZE );
-		memcpy( buffer, attributeListPtr->value, 
+		memcpy( buffer, attributeListPtr->value,
 				min( attributeListPtr->valueLength, SESSIONID_SIZE ) );
 		swrite( stream, buffer, SESSIONID_SIZE );
 		}
@@ -266,7 +271,7 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 #else
 	sputc( stream, 0 );	/* No session ID */
 #endif /* 0 */
-	writeCipherSuiteList( stream, 
+	writeCipherSuiteList( stream,
 						  findSessionAttribute( sessionInfoPtr->attributeList,
 												CRYPT_SESSINFO_USERNAME ) ? \
 						  TRUE : FALSE );
@@ -277,8 +282,8 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 		   we have to fake it ourselves for testing purpose.  In addition
 		   the RFC rather optimistically expects implementations to handle
 		   the presence of unexpected data at the end of the hello packet,
-		   since this is often not the case (quite a few servers fail the 
-		   handshake if extension data is present) we leave the following 
+		   since this is often not the case (quite a few servers fail the
+		   handshake if extension data is present) we leave the following
 		   disabled by default */
 	writeUint16( stream, UINT16_SIZE + UINT16_SIZE + 1 );
 	writeUint16( stream, TLS_EXT_MAX_FRAGMENT_LENTH );
@@ -293,13 +298,13 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 		return( status );
 		}
 
-	/* Perform the dual MAC'ing of the client hello in between the network 
+	/* Perform the dual MAC'ing of the client hello in between the network
 	   ops where it's effectively free */
 	dualMacData( handshakeInfo, stream, FALSE );
 	sMemDisconnect( stream );
 
 	/* Process the server hello */
-	length = readPacketSSL( sessionInfoPtr, handshakeInfo, 
+	length = readPacketSSL( sessionInfoPtr, handshakeInfo,
 							SSL_MSG_FIRST_HANDSHAKE );
 	if( cryptStatusError( length ) )
 		return( length );
@@ -308,15 +313,15 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 #if 0	/* Old PSK mechanism */
 	if( status == OK_SPECIAL )
 		{
-		/* It's a (pseudo-)resumed session using a pre-shared secret key, 
-		   there's no more packets to read, disconnect the stream and create 
+		/* It's a (pseudo-)resumed session using a pre-shared secret key,
+		   there's no more packets to read, disconnect the stream and create
 		   the master secret from the user-supplied password */
 		sMemDisconnect( stream );
 		status = createSharedMasterSecret( handshakeInfo->premasterSecret,
 										   &handshakeInfo->premasterSecretSize,
 										   sessionInfoPtr );
 		if( cryptStatusError( status ) )
-			retExt( sessionInfoPtr, status, 
+			retExt( sessionInfoPtr, status,
 					"Couldn't create SSL master secret from shared "
 					"secret/password value" );
 		return( OK_SPECIAL );
@@ -333,7 +338,7 @@ int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 
 /* Exchange keys with the server */
 
-int exchangeClientKeys( SESSION_INFO *sessionInfoPtr, 
+int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 						SSL_HANDSHAKE_INFO *handshakeInfo )
 	{
 	STREAM *stream = &handshakeInfo->stream;
@@ -351,8 +356,8 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 		status = refreshHSStream( sessionInfoPtr, handshakeInfo );
 		if( cryptStatusError( status ) )
 			return( status );
-		status = readSSLCertChain( sessionInfoPtr, handshakeInfo, 
-							stream, &sessionInfoPtr->iKeyexCryptContext, 
+		status = readSSLCertChain( sessionInfoPtr, handshakeInfo,
+							stream, &sessionInfoPtr->iKeyexCryptContext,
 							FALSE );
 		if( cryptStatusError( status ) )
 			{
@@ -382,8 +387,8 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 		status = refreshHSStream( sessionInfoPtr, handshakeInfo );
 		if( cryptStatusError( status ) )
 			return( status );
-		length = checkHSPacketHeader( sessionInfoPtr, stream, 
-							SSL_HAND_SERVER_KEYEXCHANGE, 
+		length = checkHSPacketHeader( sessionInfoPtr, stream,
+							SSL_HAND_SERVER_KEYEXCHANGE,
 							UINT16_SIZE + bitsToBytes( MIN_PKCSIZE_BITS ) + \
 							UINT16_SIZE + 1 + \
 							UINT16_SIZE + bitsToBytes( MIN_PKCSIZE_BITS ) + \
@@ -402,7 +407,7 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 						CRYPT_MAX_PKCSIZE );
 		status = readInteger16U( stream, NULL, NULL, 1, CRYPT_MAX_PKCSIZE );
 		if( cryptStatusOK( status ) )
-			status = initDHcontextSSL( &handshakeInfo->dhContext, keyData, 
+			status = initDHcontextSSL( &handshakeInfo->dhContext, keyData,
 									   stell( stream ) - keyDataOffset );
 		if( cryptStatusOK( status ) )
 			status = readInteger16U( stream, keyAgreeParams.publicValue,
@@ -413,24 +418,24 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 			{
 			sMemDisconnect( stream );
 			retExt( sessionInfoPtr, cryptArgError( status ) ? \
-					CRYPT_ERROR_BADDATA : status, 
+					CRYPT_ERROR_BADDATA : status,
 					"Invalid server key agreement parameters" );
 			}
 
 		/* Check the server's signature on the DH parameters */
 		status = checkKeyexSignature( sessionInfoPtr, handshakeInfo,
-									  stream, keyData, 
+									  stream, keyData,
 									  stell( stream ) - keyDataOffset );
 		if( cryptStatusError( status ) )
 			{
 			sMemDisconnect( stream );
-			retExt( sessionInfoPtr, status, 
+			retExt( sessionInfoPtr, status,
 					"Bad server key agreement parameter signature" );
 			}
 
 		/* Perform phase 2 of the DH key agreement */
 		status = krnlSendMessage( handshakeInfo->dhContext,
-								  IMESSAGE_CTX_DECRYPT, &keyAgreeParams, 
+								  IMESSAGE_CTX_DECRYPT, &keyAgreeParams,
 								  sizeof( KEYAGREE_PARAMS ) );
 		if( cryptStatusError( status ) )
 			{
@@ -454,16 +459,16 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 			uint16	caNameLen
 			byte[]	caName
 
-	   We don't really care what's in the cert request packet since the 
-	   contents are irrelevant, in a number of cases servers have been 
-	   known to send out superfluous cert requests without the admins even 
-	   knowning that they're doing it.  All we do here is perform a basic 
-	   sanity check and remember that we may need to submit a cert later 
+	   We don't really care what's in the cert request packet since the
+	   contents are irrelevant, in a number of cases servers have been
+	   known to send out superfluous cert requests without the admins even
+	   knowning that they're doing it.  All we do here is perform a basic
+	   sanity check and remember that we may need to submit a cert later
 	   on.
 
-	   Since we're about to peek ahead into the stream to see if we need to 
-	   process a server cert request, we have to refresh the stream at this 
-	   point in case the cert request wasn't bundled with the preceding 
+	   Since we're about to peek ahead into the stream to see if we need to
+	   process a server cert request, we have to refresh the stream at this
+	   point in case the cert request wasn't bundled with the preceding
 	   packets */
 	status = refreshHSStream( sessionInfoPtr, handshakeInfo );
 	if( cryptStatusError( status ) )
@@ -472,12 +477,12 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 		{
 		int length;
 
-		/* Although the spec says that at least one CA name entry must be 
-		   present, some implementations send a zero-length list, so we 
-		   allow this as well.  The spec was changed in late TLS 1.1 drafts 
+		/* Although the spec says that at least one CA name entry must be
+		   present, some implementations send a zero-length list, so we
+		   allow this as well.  The spec was changed in late TLS 1.1 drafts
 		   to reflect this practice */
-		status = checkHSPacketHeader( sessionInfoPtr, stream, 
-									  SSL_HAND_SERVER_CERTREQUEST, 
+		status = checkHSPacketHeader( sessionInfoPtr, stream,
+									  SSL_HAND_SERVER_CERTREQUEST,
 									  1 + 1 + UINT16_SIZE );
 		if( cryptStatusError( status ) )
 			{
@@ -511,7 +516,7 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 	status = refreshHSStream( sessionInfoPtr, handshakeInfo );
 	if( cryptStatusError( status ) )
 		return( status );
-	status = checkHSPacketHeader( sessionInfoPtr, stream, 
+	status = checkHSPacketHeader( sessionInfoPtr, stream,
 								  SSL_HAND_SERVER_HELLODONE, 0 );
 	if( cryptStatusError( status ) )
 		{
@@ -520,7 +525,7 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 		}
 
 	/* If we need a client cert, build the client cert packet */
-	openPacketStreamSSL( stream, sessionInfoPtr, CRYPT_USE_DEFAULT, 
+	openPacketStreamSSL( stream, sessionInfoPtr, CRYPT_USE_DEFAULT,
 						 SSL_MSG_HANDSHAKE );
 	if( needClientCert )
 		{
@@ -531,11 +536,11 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 		   empty client cert packet, which is handled further on */
 		if( sessionInfoPtr->privateKey == CRYPT_ERROR )
 			{
-			setErrorInfo( sessionInfoPtr, CRYPT_SESSINFO_PRIVATEKEY, 
+			setErrorInfo( sessionInfoPtr, CRYPT_SESSINFO_PRIVATEKEY,
 						  CRYPT_ERRTYPE_ATTR_ABSENT );
 			if( sessionInfoPtr->version == SSL_MINOR_VERSION_SSL )
 				{
-				static const FAR_BSS BYTE noCertAlertSSLTemplate[] = {
+				static const BYTE FAR_BSS noCertAlertSSLTemplate[] = {
 					SSL_MSG_ALERT,							/* ID */
 					SSL_MAJOR_VERSION, SSL_MINOR_VERSION_SSL,/* Version */
 					0, 2,									/* Length */
@@ -549,7 +554,7 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 				sentResponse = TRUE;
 				}
 
-			/* The reaction to the lack of a cert is up to the server (some 
+			/* The reaction to the lack of a cert is up to the server (some
 			   just request one anyway even though they can't do anything
 			   with it), so from here on we just continue as if nothing had
 			   happened */
@@ -574,14 +579,14 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 		uint24		len
 	   DH:
 		uint16		yLen
-		byte[]		y 
+		byte[]		y
 	   PSK:
 		uint16		userIDLen
-		byte[]		userID 
+		byte[]		userID
 	   RSA:
 	  [ uint16		encKeyLen - TLS only ]
 		byte[]		rsaPKCS1( byte[2] { 0x03, 0x0n } || byte[46] random ) */
-	packetOffset = continueHSPacketStream( stream, 
+	packetOffset = continueHSPacketStream( stream,
 										   SSL_HAND_CLIENT_KEYEXCHANGE );
 	if( isKeyxAlgo( handshakeInfo->keyexAlgo ) )
 		{
@@ -598,7 +603,7 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 			sMemDisconnect( stream );
 			return( status );
 			}
-		writeInteger16U( stream, keyAgreeParams.publicValue, 
+		writeInteger16U( stream, keyAgreeParams.publicValue,
 						 keyAgreeParams.publicValueLen );
 		zeroise( &keyAgreeParams, sizeof( KEYAGREE_PARAMS ) );
 		}
@@ -607,21 +612,24 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 			{
 			const ATTRIBUTE_LIST *attributeListPtr = \
 				findSessionAttribute( sessionInfoPtr->attributeList,
-									  CRYPT_SESSINFO_USERNAME );
+									  CRYPT_SESSINFO_PASSWORD );
 
 			/* Create the shared premaster secret from the user password */
 			status = createSharedPremasterSecret( \
 									handshakeInfo->premasterSecret,
-									&handshakeInfo->premasterSecretSize, 
-									sessionInfoPtr );
+									&handshakeInfo->premasterSecretSize,
+									attributeListPtr );
 			if( cryptStatusError( status ) )
-				retExt( sessionInfoPtr, status, 
+				retExt( sessionInfoPtr, status,
 						"Couldn't create SSL master secret from shared "
 						"secret/password value" );
 
 			/* Write the PSK client identity */
+			attributeListPtr = \
+					findSessionAttribute( sessionInfoPtr->attributeList,
+										  CRYPT_SESSINFO_USERNAME );
 			writeUint16( stream, attributeListPtr->valueLength );
-			swrite( stream, attributeListPtr->value, 
+			swrite( stream, attributeListPtr->value,
 					attributeListPtr->valueLength );
 			}
 		else
@@ -637,11 +645,11 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 				return( status );
 				}
 			if( sessionInfoPtr->version == SSL_MINOR_VERSION_SSL )
-				/* The original Netscape SSL implementation didn't provide a 
-				   length for the encrypted key and everyone copied that so 
-				   it became the de facto standard way to do it (Sic faciunt 
-				   omnes.  The spec itself is ambiguous on the topic).  This 
-				   was fixed in TLS (although the spec is still ambiguous) so 
+				/* The original Netscape SSL implementation didn't provide a
+				   length for the encrypted key and everyone copied that so
+				   it became the de facto standard way to do it (Sic faciunt
+				   omnes.  The spec itself is ambiguous on the topic).  This
+				   was fixed in TLS (although the spec is still ambiguous) so
 				   the encoding differs slightly between SSL and TLS */
 				swrite( stream, wrappedKey, wrappedKeyLength );
 			else
@@ -649,12 +657,12 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 			}
 	completeHSPacketStream( stream, packetOffset );
 
-	/* If we need to supply a client cert, send the signature generated with 
+	/* If we need to supply a client cert, send the signature generated with
 	   the cert to prove possession of the private key */
 	if( needClientCert )
 		{
 		/* Write the packet header and drop in the signature data */
-		packetOffset = continueHSPacketStream( stream, 
+		packetOffset = continueHSPacketStream( stream,
 											   SSL_HAND_CLIENT_CERTVERIFY );
 		status = createCertVerify( sessionInfoPtr, handshakeInfo, stream );
 		if( cryptStatusError( status ) )

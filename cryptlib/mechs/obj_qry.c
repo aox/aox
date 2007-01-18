@@ -1,32 +1,22 @@
 /****************************************************************************
 *																			*
 *						Encoded Object Query Routines						*
-*					  Copyright Peter Gutmann 1992-2004						*
+*					  Copyright Peter Gutmann 1992-2006						*
 *																			*
 ****************************************************************************/
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
-  #include "pgp.h"
-  #include "mechanism.h"
+  #include "mech.h"
   #include "asn1.h"
   #include "asn1_ext.h"
   #include "misc_rw.h"
-#elif defined( INC_CHILD )
-  #include "../envelope/pgp.h"
-  #include "mechanism.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
-  #include "../misc/misc_rw.h"
+  #include "pgp.h"
 #else
-  #include "envelope/pgp.h"
-  #include "mechs/mechanism.h"
+  #include "mechs/mech.h"
   #include "misc/asn1.h"
   #include "misc/asn1_ext.h"
   #include "misc/misc_rw.h"
+  #include "misc/pgp.h"
 #endif /* Compiler-specific includes */
 
 /****************************************************************************
@@ -43,7 +33,10 @@ static int getObjectInfo( STREAM *stream, QUERY_INFO *queryInfo )
 	long value;
 	int tag, status;
 
-	/* We always need at least MIN_CRYPT_OBJECTSIZE more bytes to do 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( queryInfo, sizeof( QUERY_INFO ) ) );
+
+	/* We always need at least MIN_CRYPT_OBJECTSIZE more bytes to do
 	   anything */
 	if( sMemDataLeft( stream ) < MIN_CRYPT_OBJECTSIZE )
 		return( CRYPT_ERROR_UNDERFLOW );
@@ -55,7 +48,7 @@ static int getObjectInfo( STREAM *stream, QUERY_INFO *queryInfo )
 	queryInfo->formatType = CRYPT_FORMAT_CRYPTLIB;
 	queryInfo->size = value;
 	tag = peekTag( stream );
-	readGenericHole( stream, NULL, tag );
+	readGenericHole( stream, NULL, 16, tag );
 	status = readShortInteger( stream, &value );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -63,7 +56,7 @@ static int getObjectInfo( STREAM *stream, QUERY_INFO *queryInfo )
 	switch( tag )
 		{
 		case BER_SEQUENCE:
-			/* This could be a signature or a PKC-encrypted key, see what 
+			/* This could be a signature or a PKC-encrypted key, see what
 			   follows */
 			switch( value )
 				{
@@ -101,7 +94,7 @@ static int getObjectInfo( STREAM *stream, QUERY_INFO *queryInfo )
 			return( CRYPT_ERROR_BADDATA );
 		}
 
-	/* Reset the stream and make sure that all the data is present */
+	/* Reset the stream and make sure that all of the data is present */
 	sseek( stream, startPos );
 	return( sMemDataLeft( stream ) < queryInfo->size ? \
 			CRYPT_ERROR_UNDERFLOW : CRYPT_OK );
@@ -109,36 +102,30 @@ static int getObjectInfo( STREAM *stream, QUERY_INFO *queryInfo )
 
 #ifdef USE_PGP
 
-/* Get information on a PGP data object.  This doesn't reset the stream like 
-   the ASN.1 equivalent because the PGP header is complex enough that it 
+/* Get information on a PGP data object.  This doesn't reset the stream like
+   the ASN.1 equivalent because the PGP header is complex enough that it
    can't be read inline like the ASN.1 header */
 
 int getPacketInfo( STREAM *stream, QUERY_INFO *queryInfo )
 	{
 	const long startPos = stell( stream );
 	long length;
-	int ctb, packetType, status;
+	int ctb, status;
 
-	/* Read the packet header and extract information from the CTB.  Note 
-	   that the assignment of version numbers is speculative only, since 
-	   it's possible to use PGP 2.x packet headers to wrap up OpenPGP 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( queryInfo, sizeof( QUERY_INFO ) ) );
+
+	/* Read the packet header and extract information from the CTB.  Note
+	   that the assignment of version numbers is speculative only, since
+	   it's possible to use PGP 2.x packet headers to wrap up OpenPGP
 	   packets */
-	status = pgpReadPacketHeader( stream, &ctb, &length );
+	status = pgpReadPacketHeader( stream, &ctb, &length, 8 );
 	if( cryptStatusError( status ) )
 		return( status );
 	queryInfo->formatType = CRYPT_FORMAT_PGP;
-	if( ( ctb & PGP_CTB_OPENPGP ) == PGP_CTB_OPENPGP )
-		{
-		queryInfo->version = PGP_VERSION_OPENPGP;
-		packetType = ctb & 0x3F;
-		}
-	else
-		{
-		queryInfo->version = PGP_VERSION_2;
-		packetType = ( ctb >> 2 ) & 0x0F;
-		}
+	queryInfo->version = pgpGetPacketVersion( ctb );
 	queryInfo->size = length + ( stell( stream ) - startPos );
-	switch( packetType )
+	switch( pgpGetPacketType( ctb ) )
 		{
 		case PGP_PACKET_SKE:
 			queryInfo->type = CRYPT_OBJECT_ENCRYPTED_KEY;
@@ -153,7 +140,7 @@ int getPacketInfo( STREAM *stream, QUERY_INFO *queryInfo )
 			break;
 
 		case PGP_PACKET_SIGNATURE_ONEPASS:
-			/* First half of a one-pass signature, this is given a special 
+			/* First half of a one-pass signature, this is given a special
 			   type of 'none' since it's not a normal packet */
 			queryInfo->type = CRYPT_OBJECT_NONE;
 			break;
@@ -163,7 +150,8 @@ int getPacketInfo( STREAM *stream, QUERY_INFO *queryInfo )
 			return( CRYPT_ERROR_BADDATA );
 		}
 
-	/* Make sure that all the data is present without resetting the stream */
+	/* Make sure that all of the data is present without resetting the 
+	   stream */
 	return( sMemDataLeft( stream ) < ( queryInfo->size - stell( stream ) ) ? \
 			CRYPT_ERROR_UNDERFLOW : CRYPT_OK );
 	}
@@ -183,7 +171,11 @@ int queryAsn1Object( void *streamPtr, QUERY_INFO *queryInfo )
 	const long startPos = stell( stream );
 	int status;
 
-	/* Clear the return value and determine basic object information */
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( queryInfo, sizeof( QUERY_INFO ) ) );
+
+	/* Clear the return value and determine basic object information.  This 
+	   also verifies that all of the object data is present in the stream */
 	memset( queryInfo, 0, sizeof( QUERY_INFO ) );
 	status = getObjectInfo( stream, queryInfo );
 	if( cryptStatusError( status ) )
@@ -193,15 +185,27 @@ int queryAsn1Object( void *streamPtr, QUERY_INFO *queryInfo )
 	switch( queryInfo->type )
 		{
 		case CRYPT_OBJECT_ENCRYPTED_KEY:
-			status = kekReadTable[ KEYEX_CMS ]( stream, queryInfo );
+			{
+			const READKEK_FUNCTION readKekFunction = \
+									getReadKekFunction( KEYEX_CMS );
+
+			if( readKekFunction == NULL )
+				return( CRYPT_ERROR_NOTAVAIL );
+			status = readKekFunction( stream, queryInfo );
 			break;
+			}
 
 		case CRYPT_OBJECT_PKCENCRYPTED_KEY:
-			if( queryInfo->formatType == CRYPT_FORMAT_CMS )
-				status = keytransReadTable[ KEYEX_CMS ]( stream, queryInfo );
-			else
-				status = keytransReadTable[ KEYEX_CRYPTLIB ]( stream, queryInfo );
+			{
+			const READKEYTRANS_FUNCTION readKeytransFunction = \
+				getReadKeytransFunction( ( queryInfo->formatType == CRYPT_FORMAT_CMS ) ? \
+										 KEYEX_CMS : KEYEX_CRYPTLIB );
+
+			if( readKeytransFunction == NULL )
+				return( CRYPT_ERROR_NOTAVAIL );
+			status = readKeytransFunction( stream, queryInfo );
 			break;
+			}
 
 #if 0	/* 24/11/02 Removed since it was only used for Fortezza */
 		case CRYPT_OBJECT_KEYAGREEMENT:
@@ -210,12 +214,16 @@ int queryAsn1Object( void *streamPtr, QUERY_INFO *queryInfo )
 #endif /* 0 */
 
 		case CRYPT_OBJECT_SIGNATURE:
-			if( queryInfo->formatType == CRYPT_FORMAT_CMS )
-				status = sigReadTable[ SIGNATURE_CMS ]( stream, queryInfo );
-			else
-				status = sigReadTable[ SIGNATURE_CRYPTLIB ]( stream,
-															 queryInfo );
+			{
+			const READSIG_FUNCTION readSigFunction = \
+				getReadSigFunction( ( queryInfo->formatType == CRYPT_FORMAT_CMS ) ? \
+									SIGNATURE_CMS : SIGNATURE_CRYPTLIB );
+
+			if( readSigFunction == NULL )
+				return( CRYPT_ERROR_NOTAVAIL );
+			status = readSigFunction( stream, queryInfo );
 			break;
+			}
 
 		case CRYPT_OBJECT_NONE:
 			/* New, unrecognised RecipientInfo type */
@@ -240,7 +248,11 @@ int queryPgpObject( void *streamPtr, QUERY_INFO *queryInfo )
 	const long startPos = stell( stream );
 	int status;
 
-	/* Clear the return value and determine basic object information */
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( queryInfo, sizeof( QUERY_INFO ) ) );
+
+	/* Clear the return value and determine basic object information.  This 
+	   also verifies that all of the object data is present in the stream */
 	memset( queryInfo, 0, sizeof( QUERY_INFO ) );
 	status = getPacketInfo( stream, queryInfo );
 	sseek( stream, startPos );
@@ -251,16 +263,35 @@ int queryPgpObject( void *streamPtr, QUERY_INFO *queryInfo )
 	switch( queryInfo->type )
 		{
 		case CRYPT_OBJECT_ENCRYPTED_KEY:
-			status = kekReadTable[ KEYEX_PGP ]( stream, queryInfo );
+			{
+			const READKEK_FUNCTION readKekFunction = \
+									getReadKekFunction( KEYEX_PGP );
+
+			if( readKekFunction == NULL )
+				return( CRYPT_ERROR_NOTAVAIL );
+			status = readKekFunction( stream, queryInfo );
 			break;
+			}
 
 		case CRYPT_OBJECT_PKCENCRYPTED_KEY:
-			status = keytransReadTable[ KEYEX_PGP ]( stream, queryInfo );
+			{
+			const READKEYTRANS_FUNCTION readKeytransFunction = getReadKeytransFunction( KEYEX_PGP );
+
+			if( readKeytransFunction == NULL )
+				return( CRYPT_ERROR_NOTAVAIL );
+			status = readKeytransFunction( stream, queryInfo );
 			break;
+			}
 
 		case CRYPT_OBJECT_SIGNATURE:
-			status = sigReadTable[ SIGNATURE_PGP ]( stream, queryInfo );
+			{
+			const READSIG_FUNCTION readSigFunction = getReadSigFunction( SIGNATURE_PGP );
+
+			if( readSigFunction == NULL )
+				return( CRYPT_ERROR_NOTAVAIL );
+			status = readSigFunction( stream, queryInfo );
 			break;
+			}
 
 		case CRYPT_OBJECT_NONE:
 			/* First half of a one-pass signature */
@@ -284,7 +315,7 @@ int queryPgpObject( void *streamPtr, QUERY_INFO *queryInfo )
 *																			*
 ****************************************************************************/
 
-/* Query an object.  This is just a wrapper which provides an external
+/* Query an object.  This is just a wrapper that provides an external
    interface for the lower-level object-query routines */
 
 C_RET cryptQueryObject( C_IN void C_PTR objectData,
@@ -293,10 +324,14 @@ C_RET cryptQueryObject( C_IN void C_PTR objectData,
 	{
 	QUERY_INFO queryInfo;
 	STREAM stream;
-	int value, status;
+	int value, length = objectDataLength, status;
 
-	/* Perform basic error checking and clear the return value */
-	if( objectDataLength < MIN_CRYPT_OBJECTSIZE )
+	/* Perform basic error checking and clear the return value.  Although
+	   it would be nice to use checkObjectEncoding() to make sure that the
+	   input is valid, we can't use it yet at this point because we don't 
+	   know whether we've been given ASN.1 data or not */
+	if( objectDataLength < MIN_CRYPT_OBJECTSIZE || \
+		objectDataLength > MAX_INTLENGTH )
 		return( CRYPT_ERROR_PARAM2 );
 	if( !isReadPtr( objectData, objectDataLength ) )
 		return( CRYPT_ERROR_PARAM1 );
@@ -306,32 +341,34 @@ C_RET cryptQueryObject( C_IN void C_PTR objectData,
 
 	/* Query the object.  This is just a wrapper for the lower-level object-
 	   query functions */
-	sMemConnect( &stream, ( void * ) objectData, objectDataLength );
-	value = *( ( BYTE * ) objectData );
+	sMemConnect( &stream, ( void * ) objectData, length );
+	value = sPeek( &stream );
 	if( value == BER_SEQUENCE || value == MAKE_CTAG( 3 ) )
 		status = queryAsn1Object( &stream, &queryInfo );
-#ifdef USE_PGP
 	else
+		{
+#ifdef USE_PGP
 		status = queryPgpObject( &stream, &queryInfo );
+#else
+		status = CRYPT_ERROR_BADDATA;
 #endif /* USE_PGP */
+		}
 	sMemDisconnect( &stream );
+	if( cryptStatusError( status ) )
+		return( status );
 
 	/* Copy the externally-visible fields across */
-	if( cryptStatusOK( status ) )
+	cryptObjectInfo->objectType = queryInfo.type;
+	cryptObjectInfo->cryptAlgo = queryInfo.cryptAlgo;
+	cryptObjectInfo->cryptMode = queryInfo.cryptMode;
+	if( queryInfo.type == CRYPT_OBJECT_SIGNATURE )
+		cryptObjectInfo->hashAlgo = queryInfo.hashAlgo;
+	if( queryInfo.type == CRYPT_OBJECT_ENCRYPTED_KEY && \
+		queryInfo.saltLength > 0 )
 		{
-		cryptObjectInfo->objectType = queryInfo.type;
-		cryptObjectInfo->cryptAlgo = queryInfo.cryptAlgo;
-		cryptObjectInfo->cryptMode = queryInfo.cryptMode;
-		if( queryInfo.type == CRYPT_OBJECT_SIGNATURE )
-			cryptObjectInfo->hashAlgo = queryInfo.hashAlgo;
-		if( queryInfo.type == CRYPT_OBJECT_ENCRYPTED_KEY && \
-			queryInfo.saltLength )
-			{
-			memcpy( cryptObjectInfo->salt, queryInfo.salt, 
-					queryInfo.saltLength );
-			cryptObjectInfo->saltSize = queryInfo.saltLength;
-			}
+		memcpy( cryptObjectInfo->salt, queryInfo.salt, queryInfo.saltLength );
+		cryptObjectInfo->saltSize = queryInfo.saltLength;
 		}
 
-	return( status );
+	return( CRYPT_OK );
 	}

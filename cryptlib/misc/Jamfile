@@ -1,4 +1,4 @@
 SubDir TOP cryptlib misc ;
 
 Build cryptlib : asn1_chk.c asn1_ext.c asn1_rd.c asn1_wr.c base64.c misc_rw.c
-    os_spec.c ;
+    os_spec.c pgp_misc.c int_api.c int_attr.c int_env.c ;

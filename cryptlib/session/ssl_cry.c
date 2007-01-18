@@ -5,16 +5,9 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "misc_rw.h"
-  #include "session.h"
-  #include "ssl.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/misc_rw.h"
   #include "session.h"
   #include "ssl.h"
 #else
@@ -49,7 +42,7 @@
 *																			*
 ****************************************************************************/
 
-/* Initialise and destroy the crypto information in the handshake state 
+/* Initialise and destroy the crypto information in the handshake state
    info */
 
 int initHandshakeCryptInfo( SSL_HANDSHAKE_INFO *handshakeInfo )
@@ -64,21 +57,21 @@ int initHandshakeCryptInfo( SSL_HANDSHAKE_INFO *handshakeInfo )
 				handshakeInfo->serverSHA1context = \
 					handshakeInfo->dhContext = CRYPT_ERROR;
 
-	/* Create the MAC/dual-hash contexts for incoming and outgoing data.  
-	   SSL uses a pre-HMAC variant for which we can't use real HMAC but have 
+	/* Create the MAC/dual-hash contexts for incoming and outgoing data.
+	   SSL uses a pre-HMAC variant for which we can't use real HMAC but have
 	   to construct it ourselves from MD5 and SHA-1, TLS uses a straight dual
 	   hash and MACs that once a MAC key becomes available at the end of the
 	   handshake */
 	setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_MD5 );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+							  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 							  OBJECT_TYPE_CONTEXT );
 	if( cryptStatusOK( status ) )
 		{
 		handshakeInfo->clientMD5context = createInfo.cryptHandle;
 		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_MD5 );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		}
 	if( cryptStatusOK( status ) )
@@ -86,7 +79,7 @@ int initHandshakeCryptInfo( SSL_HANDSHAKE_INFO *handshakeInfo )
 		handshakeInfo->serverMD5context = createInfo.cryptHandle;
 		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_SHA );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		}
 	if( cryptStatusOK( status ) )
@@ -94,7 +87,7 @@ int initHandshakeCryptInfo( SSL_HANDSHAKE_INFO *handshakeInfo )
 		handshakeInfo->clientSHA1context = createInfo.cryptHandle;
 		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_SHA );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		}
 	if( cryptStatusOK( status ) )
@@ -142,14 +135,14 @@ int initSecurityContextsSSL( SESSION_INFO *sessionInfoPtr )
 
 	setMessageCreateObjectInfo( &createInfo, sessionInfoPtr->integrityAlgo );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+							  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 							  OBJECT_TYPE_CONTEXT );
 	if( cryptStatusOK( status ) )
 		{
 		sessionInfoPtr->iAuthInContext = createInfo.cryptHandle;
 		setMessageCreateObjectInfo( &createInfo, sessionInfoPtr->integrityAlgo );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		}
 	if( cryptStatusOK( status ) )
@@ -157,7 +150,7 @@ int initSecurityContextsSSL( SESSION_INFO *sessionInfoPtr )
 		sessionInfoPtr->iAuthOutContext = createInfo.cryptHandle;
 		setMessageCreateObjectInfo( &createInfo, sessionInfoPtr->cryptAlgo );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		}
 	if( cryptStatusOK( status ) )
@@ -165,13 +158,13 @@ int initSecurityContextsSSL( SESSION_INFO *sessionInfoPtr )
 		sessionInfoPtr->iCryptInContext = createInfo.cryptHandle;
 		setMessageCreateObjectInfo( &createInfo, sessionInfoPtr->cryptAlgo );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );
 		}
 	if( cryptStatusOK( status ) )
 		sessionInfoPtr->iCryptOutContext = createInfo.cryptHandle;
 	else
-		/* One or more of the contexts couldn't be created, destroy all of 
+		/* One or more of the contexts couldn't be created, destroy all of
 		   the contexts that have been created so far */
 		destroySecurityContextsSSL( sessionInfoPtr );
 	return( status );
@@ -218,14 +211,14 @@ void destroySecurityContextsSSL( SESSION_INFO *sessionInfoPtr )
 *																			*
 ****************************************************************************/
 
-/* Load a DH key into a context, with the fixed value below being used for 
-   the SSL server.  The prime is the value 2^1024 - 2^960 - 1 + 
-   2^64 * { [2^894 pi] + 129093 }, from the Oakley spec (RFC 2412, other 
-   locations omit the q value).  Unfortunately the choice of q leads to 
-   horribly inefficient operations since it's 860 bits larger than it needs 
+/* Load a DH key into a context, with the fixed value below being used for
+   the SSL server.  The prime is the value 2^1024 - 2^960 - 1 +
+   2^64 * { [2^894 pi] + 129093 }, from the Oakley spec (RFC 2412, other
+   locations omit the q value).  Unfortunately the choice of q leads to
+   horribly inefficient operations since it's 860 bits larger than it needs
    to be */
 
-static const FAR_BSS BYTE dh1024SSL[] = {
+static const BYTE FAR_BSS dh1024SSL[] = {
 	0x00, 0x80,		/* p */
 		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xC9, 0x0F, 0xDA, 0xA2, 0x21, 0x68, 0xC2, 0x34,
@@ -245,13 +238,13 @@ static const FAR_BSS BYTE dh1024SSL[] = {
 		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0x00, 0x01,		/* g */
 		0x02
-	};	
+	};
 
-int initDHcontextSSL( CRYPT_CONTEXT *iCryptContext, const void *keyData, 
+int initDHcontextSSL( CRYPT_CONTEXT *iCryptContext, const void *keyData,
 					  const int keyDataLength )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	assert( ( keyData == NULL && keyDataLength == 0 ) || \
@@ -272,13 +265,13 @@ int initDHcontextSSL( CRYPT_CONTEXT *iCryptContext, const void *keyData,
 							  &msgData, CRYPT_CTXINFO_LABEL );
 	if( cryptStatusOK( status ) )
 		{
-		/* If we're being given externally-supplied DH key components, load 
+		/* If we're being given externally-supplied DH key components, load
 		   them, otherwise use the built-in key */
 		if( keyData != NULL )
-			{ setMessageData( &msgData, ( void * ) keyData, 
+			{ setMessageData( &msgData, ( void * ) keyData,
 							  keyDataLength ); }
 		else
-			{ setMessageData( &msgData, ( void * ) dh1024SSL, 
+			{ setMessageData( &msgData, ( void * ) dh1024SSL,
 							  sizeof( dh1024SSL ) ); }
 		status = krnlSendMessage( createInfo.cryptHandle,
 								  IMESSAGE_SETATTRIBUTE_S, &msgData,
@@ -293,14 +286,14 @@ int initDHcontextSSL( CRYPT_CONTEXT *iCryptContext, const void *keyData,
 	return( CRYPT_OK );
 	}
 
-/* Create the master secret from a shared secret value, typically a 
+/* Create the master secret from a shared secret value, typically a
    password.  The expandSharedSecret function uses a slightly different
    coding style because it's taken directly from the RFC */
 
 #if 0	/* Old PSK mechanism */
 
-static void expandSharedSecret( BYTE *premaster_secret, 
-								const BYTE *shared_secret, 
+static void expandSharedSecret( BYTE *premaster_secret,
+								const BYTE *shared_secret,
 							    const int shared_secret_length )
 	{
 	int premaster_index;
@@ -328,12 +321,12 @@ int createSharedMasterSecret( void *masterSecret, int *masterSecretLength,
 	/* Expand the shared secret to create the premaster secret */
 	if( attributeListPtr->flags & ATTR_FLAG_ENCODEDVALUE )
 		{
-		BYTE decodedValue[ CRYPT_MAX_TEXTSIZE ];
+		BYTE decodedValue[ 64 + 8 ];
 		int decodedValueLength;
 
-		/* It's a cryptlib-style encoded password, decode it into its binary 
+		/* It's a cryptlib-style encoded password, decode it into its binary
 		   value */
-		decodedValueLength = decodePKIUserValue( decodedValue,
+		decodedValueLength = decodePKIUserValue( decodedValue, 64,
 											attributeListPtr->value,
 											attributeListPtr->valueLength );
 		if( cryptStatusError( decodedValueLength ) )
@@ -341,25 +334,25 @@ int createSharedMasterSecret( void *masterSecret, int *masterSecretLength,
 			assert( NOTREACHED );
 			return( decodedValueLength );
 			}
-		expandSharedSecret( premasterSecret, decodedValue, 
+		expandSharedSecret( premasterSecret, decodedValue,
 							min( decodedValueLength, SSL_SECRET_SIZE ) );
 		zeroise( decodedValue, CRYPT_MAX_TEXTSIZE );
 		}
 	else
-		expandSharedSecret( premasterSecret, attributeListPtr->value, 
-							min( attributeListPtr->valueLength, 
+		expandSharedSecret( premasterSecret, attributeListPtr->value,
+							min( attributeListPtr->valueLength,
 								 SSL_SECRET_SIZE ) );
 
-	/* Create the master secret from the expanded user-supplied password.  
-	   Note that since the use of shared secrets is specified only for TLS, 
-	   we always use the TLS key derivation even if it's with the SSL 
+	/* Create the master secret from the expanded user-supplied password.
+	   Note that since the use of shared secrets is specified only for TLS,
+	   we always use the TLS key derivation even if it's with the SSL
 	   protocol */
 	setMechanismDeriveInfo( &mechanismInfo,
 							masterSecret, SSL_SECRET_SIZE,
 							premasterSecret, SSL_SECRET_SIZE,
 							CRYPT_USE_DEFAULT, "shared secret", 13, 1 );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_DERIVE, &mechanismInfo, 
+							  IMESSAGE_DEV_DERIVE, &mechanismInfo,
 							  MECHANISM_DERIVE_TLS );
 	zeroise( premasterSecret, SSL_SECRET_SIZE );
 	if( cryptStatusOK( status ) )
@@ -368,41 +361,40 @@ int createSharedMasterSecret( void *masterSecret, int *masterSecretLength,
 	}
 #else
 
-int createSharedPremasterSecret( void *premasterSecret, 
+int createSharedPremasterSecret( void *premasterSecret,
 								 int *premasterSecretLength,
-								 const SESSION_INFO *sessionInfoPtr )
+								 const ATTRIBUTE_LIST *attributeListPtr )
 	{
-	const ATTRIBUTE_LIST *attributeListPtr = \
-				findSessionAttribute( sessionInfoPtr->attributeList,
-									  CRYPT_SESSINFO_PASSWORD );
 	STREAM stream;
 	BYTE zeroes[ CRYPT_MAX_TEXTSIZE + 8 ];
+
+	assert( attributeListPtr->attributeID == CRYPT_SESSINFO_PASSWORD );
 
 	/* Write the PSK-derived premaster secret value:
 
 		uint16	otherSecretLen
 		byte[]	otherSecret
 		uint16	pskLen
-		byte[]	psk 
-	
+		byte[]	psk
+
 	   Because the TLS PRF splits the input into two halves, one half which
 	   is processed by HMAC-MD5 and the other by HMAC-SHA1, it's necessary
 	   to extend the PSK in some way to provide input to both halves of the
 	   PRF.  In a rather dubious decision, the spec requires that the MD5
 	   half be set to all zeroes, with only the SHA1 half being used.  To
-	   achieve this, we write otherSecret as a number of zero bytes equal in 
+	   achieve this, we write otherSecret as a number of zero bytes equal in
 	   length to the password */
 	memset( zeroes, 0, CRYPT_MAX_TEXTSIZE );
-	sMemOpen( &stream, premasterSecret, 
+	sMemOpen( &stream, premasterSecret,
 			  ( UINT16_SIZE + CRYPT_MAX_TEXTSIZE ) * 2 );
 	if( attributeListPtr->flags & ATTR_FLAG_ENCODEDVALUE )
 		{
-		BYTE decodedValue[ CRYPT_MAX_TEXTSIZE + 8 ];
+		BYTE decodedValue[ 64 + 8 ];
 		int decodedValueLength;
 
-		/* It's a cryptlib-style encoded password, decode it into its binary 
+		/* It's a cryptlib-style encoded password, decode it into its binary
 		   value */
-		decodedValueLength = decodePKIUserValue( decodedValue,
+		decodedValueLength = decodePKIUserValue( decodedValue, 64,
 											attributeListPtr->value,
 											attributeListPtr->valueLength );
 		if( cryptStatusError( decodedValueLength ) )
@@ -421,7 +413,7 @@ int createSharedPremasterSecret( void *premasterSecret,
 		writeUint16( &stream, attributeListPtr->valueLength );
 		swrite( &stream, zeroes, attributeListPtr->valueLength );
 		writeUint16( &stream, attributeListPtr->valueLength );
-		swrite( &stream, attributeListPtr->value, 
+		swrite( &stream, attributeListPtr->value,
 				attributeListPtr->valueLength );
 		}
 	*premasterSecretLength = stell( &stream );
@@ -433,39 +425,39 @@ int createSharedPremasterSecret( void *premasterSecret,
 
 /* Wrap/unwrap the pre-master secret */
 
-int wrapPremasterSecret( SESSION_INFO *sessionInfoPtr, 
+int wrapPremasterSecret( SESSION_INFO *sessionInfoPtr,
 						 SSL_HANDSHAKE_INFO *handshakeInfo,
 						 void *data, int *dataLength )
 	{
 	MECHANISM_WRAP_INFO mechanismInfo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	/* Clear return value */
 	*dataLength = 0;
 
-	/* Create the premaster secret and wrap it using the server's public 
-	   key.  Note that the version that we advertise at this point is the 
-	   version originally offered by the client in its hello message, not 
-	   the version eventually negotiated for the connection.  This is 
+	/* Create the premaster secret and wrap it using the server's public
+	   key.  Note that the version that we advertise at this point is the
+	   version originally offered by the client in its hello message, not
+	   the version eventually negotiated for the connection.  This is
 	   designed to prevent rollback attacks (but see also the comment in
 	   unwrapPremasterSecret() below) */
 	handshakeInfo->premasterSecretSize = SSL_SECRET_SIZE;
 	handshakeInfo->premasterSecret[ 0 ] = SSL_MAJOR_VERSION;
 	handshakeInfo->premasterSecret[ 1 ] = handshakeInfo->clientOfferedVersion;
-	setMessageData( &msgData, 
-					handshakeInfo->premasterSecret + VERSIONINFO_SIZE, 
+	setMessageData( &msgData,
+					handshakeInfo->premasterSecret + VERSIONINFO_SIZE,
 					handshakeInfo->premasterSecretSize - VERSIONINFO_SIZE );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
 							  IMESSAGE_GETATTRIBUTE_S, &msgData,
 							  CRYPT_IATTRIBUTE_RANDOM );
 	if( cryptStatusError( status ) )
 		return( status );
-	setMechanismWrapInfo( &mechanismInfo, data, CRYPT_MAX_PKCSIZE, 
-						  handshakeInfo->premasterSecret, 
-						  handshakeInfo->premasterSecretSize, CRYPT_UNUSED, 
+	setMechanismWrapInfo( &mechanismInfo, data, CRYPT_MAX_PKCSIZE,
+						  handshakeInfo->premasterSecret,
+						  handshakeInfo->premasterSecretSize, CRYPT_UNUSED,
 						  sessionInfoPtr->iKeyexCryptContext, CRYPT_UNUSED );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_EXPORT, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_EXPORT,
 							  &mechanismInfo, MECHANISM_ENC_PKCS1_RAW );
 	if( cryptStatusOK( status ) )
 		*dataLength = mechanismInfo.wrappedDataLength;
@@ -474,27 +466,27 @@ int wrapPremasterSecret( SESSION_INFO *sessionInfoPtr,
 	return( status );
 	}
 
-int unwrapPremasterSecret( SESSION_INFO *sessionInfoPtr, 
+int unwrapPremasterSecret( SESSION_INFO *sessionInfoPtr,
 						   SSL_HANDSHAKE_INFO *handshakeInfo,
 						   const void *data, const int dataLength )
 	{
 	MECHANISM_WRAP_INFO mechanismInfo;
 	int status;
 
-	/* Decrypt the encrypted premaster secret.  In theory we could 
-	   explicitly defend against Bleichenbacher-type attacks at this point 
-	   by setting the premaster secret to a pseudorandom value if we get a 
-	   bad data or (later) an incorrect version error and continuing as 
-	   normal, however the attack depends on the server returning 
-	   information required to pinpoint the cause of the failure and 
-	   cryptlib just returns a generic "failed" response for any handshake 
+	/* Decrypt the encrypted premaster secret.  In theory we could
+	   explicitly defend against Bleichenbacher-type attacks at this point
+	   by setting the premaster secret to a pseudorandom value if we get a
+	   bad data or (later) an incorrect version error and continuing as
+	   normal, however the attack depends on the server returning
+	   information required to pinpoint the cause of the failure and
+	   cryptlib just returns a generic "failed" response for any handshake
 	   failure, so this explicit defence isn't really necessary */
 	handshakeInfo->premasterSecretSize = SSL_SECRET_SIZE;
-	setMechanismWrapInfo( &mechanismInfo, ( void * ) data, dataLength, 
-						  handshakeInfo->premasterSecret, 
-						  handshakeInfo->premasterSecretSize, CRYPT_UNUSED, 
+	setMechanismWrapInfo( &mechanismInfo, ( void * ) data, dataLength,
+						  handshakeInfo->premasterSecret,
+						  handshakeInfo->premasterSecretSize, CRYPT_UNUSED,
 						  sessionInfoPtr->privateKey, CRYPT_UNUSED );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_IMPORT, 
+	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_IMPORT,
 							  &mechanismInfo, MECHANISM_ENC_PKCS1_RAW );
 	if( cryptStatusOK( status ) && \
 		mechanismInfo.keyDataLength != handshakeInfo->premasterSecretSize )
@@ -503,9 +495,9 @@ int unwrapPremasterSecret( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		return( status );
 
-	/* Make sure that it looks OK.  Note that the version that we check for 
-	   at this point is the version originally offered by the client in its 
-	   hello message, not the version eventually negotiated for the 
+	/* Make sure that it looks OK.  Note that the version that we check for
+	   at this point is the version originally offered by the client in its
+	   hello message, not the version eventually negotiated for the
 	   connection.  This is designed to prevent rollback attacks */
 	if( handshakeInfo->premasterSecret[ 0 ] != SSL_MAJOR_VERSION || \
 		handshakeInfo->premasterSecret[ 1 ] != handshakeInfo->clientOfferedVersion )
@@ -529,32 +521,32 @@ int unwrapPremasterSecret( SESSION_INFO *sessionInfoPtr,
 					handshakeInfo->premasterSecret[ 1 ],
 					handshakeInfo->clientOfferedVersion );
 		}
-	
+
 	return( CRYPT_OK );
 	}
 
-/* Convert a pre-master secret to a master secret, and a master secret to 
+/* Convert a pre-master secret to a master secret, and a master secret to
    keying material */
 
-int premasterToMaster( const SESSION_INFO *sessionInfoPtr, 
-					   const SSL_HANDSHAKE_INFO *handshakeInfo, 
+int premasterToMaster( const SESSION_INFO *sessionInfoPtr,
+					   const SSL_HANDSHAKE_INFO *handshakeInfo,
 					   void *masterSecret, const int masterSecretLength )
 	{
 	MECHANISM_DERIVE_INFO mechanismInfo;
-	BYTE nonceBuffer[ 64 + SSL_NONCE_SIZE + SSL_NONCE_SIZE ];
+	BYTE nonceBuffer[ 64 + SSL_NONCE_SIZE + SSL_NONCE_SIZE + 8 ];
 
 	if( sessionInfoPtr->version == SSL_MINOR_VERSION_SSL )
 		{
 		memcpy( nonceBuffer, handshakeInfo->clientNonce, SSL_NONCE_SIZE );
 		memcpy( nonceBuffer + SSL_NONCE_SIZE, handshakeInfo->serverNonce,
 				SSL_NONCE_SIZE );
-		setMechanismDeriveInfo( &mechanismInfo, masterSecret, 
+		setMechanismDeriveInfo( &mechanismInfo, masterSecret,
 								masterSecretLength,
-								handshakeInfo->premasterSecret, 
+								handshakeInfo->premasterSecret,
 								handshakeInfo->premasterSecretSize,
 								CRYPT_USE_DEFAULT, nonceBuffer,
 								SSL_NONCE_SIZE + SSL_NONCE_SIZE, 1 );
-		return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE, 
+		return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE,
 								 &mechanismInfo, MECHANISM_DERIVE_SSL ) );
 		}
 
@@ -563,21 +555,21 @@ int premasterToMaster( const SESSION_INFO *sessionInfoPtr,
 	memcpy( nonceBuffer + 13 + SSL_NONCE_SIZE, handshakeInfo->serverNonce,
 			SSL_NONCE_SIZE );
 	setMechanismDeriveInfo( &mechanismInfo, masterSecret, masterSecretLength,
-							handshakeInfo->premasterSecret, 
+							handshakeInfo->premasterSecret,
 							handshakeInfo->premasterSecretSize,
 							CRYPT_USE_DEFAULT, nonceBuffer,
 							13 + SSL_NONCE_SIZE + SSL_NONCE_SIZE, 1 );
-	return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE, 
+	return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE,
 							 &mechanismInfo, MECHANISM_DERIVE_TLS ) );
 	}
 
-int masterToKeys( const SESSION_INFO *sessionInfoPtr, 
-				  const SSL_HANDSHAKE_INFO *handshakeInfo, 
+int masterToKeys( const SESSION_INFO *sessionInfoPtr,
+				  const SSL_HANDSHAKE_INFO *handshakeInfo,
 				  const void *masterSecret, const int masterSecretLength,
 				  void *keyBlock, const int keyBlockLength )
 	{
 	MECHANISM_DERIVE_INFO mechanismInfo;
-	BYTE nonceBuffer[ 64 + SSL_NONCE_SIZE + SSL_NONCE_SIZE ];
+	BYTE nonceBuffer[ 64 + SSL_NONCE_SIZE + SSL_NONCE_SIZE + 8 ];
 
 	if( sessionInfoPtr->version == SSL_MINOR_VERSION_SSL )
 		{
@@ -587,7 +579,7 @@ int masterToKeys( const SESSION_INFO *sessionInfoPtr,
 		setMechanismDeriveInfo( &mechanismInfo, keyBlock, keyBlockLength,
 								masterSecret, masterSecretLength, CRYPT_USE_DEFAULT,
 								nonceBuffer, SSL_NONCE_SIZE + SSL_NONCE_SIZE, 1 );
-		return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE, 
+		return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE,
 								 &mechanismInfo, MECHANISM_DERIVE_SSL ) );
 		}
 
@@ -598,18 +590,18 @@ int masterToKeys( const SESSION_INFO *sessionInfoPtr,
 	setMechanismDeriveInfo( &mechanismInfo, keyBlock, keyBlockLength,
 							masterSecret, masterSecretLength, CRYPT_USE_DEFAULT,
 							nonceBuffer, 13 + SSL_NONCE_SIZE + SSL_NONCE_SIZE, 1 );
-	return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE, 
+	return( krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE,
 							 &mechanismInfo, MECHANISM_DERIVE_TLS ) );
 	}
 
 /* Load the SSL/TLS cryptovariables */
 
-int loadKeys( SESSION_INFO *sessionInfoPtr, 
-			  const SSL_HANDSHAKE_INFO *handshakeInfo, 
+int loadKeys( SESSION_INFO *sessionInfoPtr,
+			  const SSL_HANDSHAKE_INFO *handshakeInfo,
 			  const BOOLEAN isClient, const void *keyBlock )
 	{
 	SSL_INFO *sslInfo = sessionInfoPtr->sessionSSL;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	BYTE *keyBlockPtr = ( BYTE * ) keyBlock;
 	int status;
 
@@ -638,7 +630,7 @@ int loadKeys( SESSION_INFO *sessionInfoPtr,
 		status = krnlSendMessage( isClient ? \
 										sessionInfoPtr->iAuthOutContext : \
 										sessionInfoPtr->iAuthInContext,
-								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+								  IMESSAGE_SETATTRIBUTE_S, &msgData,
 								  CRYPT_CTXINFO_KEY );
 		if( cryptStatusError( status ) )
 			return( status );
@@ -647,7 +639,7 @@ int loadKeys( SESSION_INFO *sessionInfoPtr,
 		status = krnlSendMessage( isClient ? \
 										sessionInfoPtr->iAuthInContext: \
 										sessionInfoPtr->iAuthOutContext,
-								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+								  IMESSAGE_SETATTRIBUTE_S, &msgData,
 								  CRYPT_CTXINFO_KEY );
 		if( cryptStatusError( status ) )
 			return( status );
@@ -659,7 +651,7 @@ int loadKeys( SESSION_INFO *sessionInfoPtr,
 	status = krnlSendMessage( isClient ? \
 									sessionInfoPtr->iCryptOutContext : \
 									sessionInfoPtr->iCryptInContext,
-							  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+							  IMESSAGE_SETATTRIBUTE_S, &msgData,
 							  CRYPT_CTXINFO_KEY );
 	keyBlockPtr += handshakeInfo->cryptKeysize;
 	if( cryptStatusError( status ) )
@@ -668,7 +660,7 @@ int loadKeys( SESSION_INFO *sessionInfoPtr,
 	status = krnlSendMessage( isClient ? \
 									sessionInfoPtr->iCryptInContext : \
 									sessionInfoPtr->iCryptOutContext,
-							  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+							  IMESSAGE_SETATTRIBUTE_S, &msgData,
 							  CRYPT_CTXINFO_KEY );
 	keyBlockPtr += handshakeInfo->cryptKeysize;
 	if( cryptStatusError( status ) )
@@ -683,14 +675,14 @@ int loadKeys( SESSION_INFO *sessionInfoPtr,
 					sessionInfoPtr->cryptBlocksize );
 	krnlSendMessage( isClient ? sessionInfoPtr->iCryptOutContext : \
 								sessionInfoPtr->iCryptInContext,
-					 IMESSAGE_SETATTRIBUTE_S, &msgData, 
+					 IMESSAGE_SETATTRIBUTE_S, &msgData,
 					 CRYPT_CTXINFO_IV );
 	keyBlockPtr += sessionInfoPtr->cryptBlocksize;
 	setMessageData( &msgData, keyBlockPtr,
 					sessionInfoPtr->cryptBlocksize );
 	return( krnlSendMessage( isClient ? sessionInfoPtr->iCryptInContext : \
 										sessionInfoPtr->iCryptOutContext,
-							 IMESSAGE_SETATTRIBUTE_S, &msgData, 
+							 IMESSAGE_SETATTRIBUTE_S, &msgData,
 							 CRYPT_CTXINFO_IV ) );
 	}
 
@@ -699,7 +691,7 @@ int loadKeys( SESSION_INFO *sessionInfoPtr,
 
 int loadExplicitIV( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	BYTE iv[ CRYPT_MAX_IVSIZE + 8 ];
 	int status;
 
@@ -709,7 +701,7 @@ int loadExplicitIV( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 		{
 		setMessageData( &msgData, iv, sessionInfoPtr->cryptBlocksize );
 		status = krnlSendMessage( sessionInfoPtr->iCryptInContext,
-								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+								  IMESSAGE_SETATTRIBUTE_S, &msgData,
 								  CRYPT_CTXINFO_IV );
 		}
 	if( cryptStatusError( status ) )
@@ -719,7 +711,7 @@ int loadExplicitIV( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 	   block, can be used when we can't reload an IV during decryption */
 #if 0
 	status = krnlSendMessage( sessionInfoPtr->iCryptInContext,
-							  IMESSAGE_CTX_DECRYPT, iv, 
+							  IMESSAGE_CTX_DECRYPT, iv,
 							  sessionInfoPtr->cryptBlocksize );
 #endif /* 0 */
 
@@ -775,28 +767,28 @@ int decryptData( SESSION_INFO *sessionInfoPtr, BYTE *data,
 	status = krnlSendMessage( sessionInfoPtr->iCryptInContext,
 							  IMESSAGE_CTX_DECRYPT, data, length );
 	if( cryptStatusError( status ) )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Packet decryption failed" );
 
 	/* If it's a block cipher, we need to remove end-of-block padding.  Up
-	   until TLS 1.1 the spec was silent about any requirement to check the 
-	   padding (and for SSLv3 it didn't specify the padding format at all) 
-	   so it's not really safe to reject an SSL message if we don't find the 
-	   correct padding because many SSL implementations didn't process the 
-	   padded space in any way, leaving it containing whatever was there 
-	   before (which can include old plaintext (!!)).  Almost all TLS 
-	   implementations get it right (even though in TLS 1.0 there was only a 
-	   requirement to generate, but not to check, the PKCS #5-style padding).  
-	   Because of this we only check the padding bytes if we're talking 
+	   until TLS 1.1 the spec was silent about any requirement to check the
+	   padding (and for SSLv3 it didn't specify the padding format at all)
+	   so it's not really safe to reject an SSL message if we don't find the
+	   correct padding because many SSL implementations didn't process the
+	   padded space in any way, leaving it containing whatever was there
+	   before (which can include old plaintext (!!)).  Almost all TLS
+	   implementations get it right (even though in TLS 1.0 there was only a
+	   requirement to generate, but not to check, the PKCS #5-style padding).
+	   Because of this we only check the padding bytes if we're talking
 	   TLS */
 	if( sessionInfoPtr->cryptBlocksize > 1 )
 		{
 		const int padSize = data[ dataLength - 1 ];
 
-		/* Make sure that the padding info looks OK.  TLS allows up to 256 
-		   bytes of padding (only GnuTLS actually seems to use this 
-		   capability though) so we can't check for a sensible (small) 
-		   padding length, however we can check this for SSL, which is good 
+		/* Make sure that the padding info looks OK.  TLS allows up to 256
+		   bytes of padding (only GnuTLS actually seems to use this
+		   capability though) so we can't check for a sensible (small)
+		   padding length, however we can check this for SSL, which is good
 		   because for that we can't check the padding itself */
 		if( padSize < 0 || \
 			( sessionInfoPtr->version == SSL_MINOR_VERSION_SSL && \
@@ -816,11 +808,13 @@ int decryptData( SESSION_INFO *sessionInfoPtr, BYTE *data,
 			int i;
 
 			for( i = 0; i < padSize; i++ )
+				{
 				if( data[ length + i ] != padSize )
 					retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 							"Invalid encryption padding byte 0x%02X at "
-							"position %d, should be 0x%02X", 
+							"position %d, should be 0x%02X",
 							data[ length + i ], length + i, padSize );
+				}
 			}
 		}
 
@@ -838,13 +832,13 @@ int decryptData( SESSION_INFO *sessionInfoPtr, BYTE *data,
    these as a kludge in SSL/TLS 1.0 to work around chosen-IV attacks */
 
 int macDataSSL( SESSION_INFO *sessionInfoPtr, const void *data,
-				const int dataLength, const int type, const BOOLEAN isRead, 
+				const int dataLength, const int type, const BOOLEAN isRead,
 				const BOOLEAN noReportError )
 	{
 	SSL_INFO *sslInfo = sessionInfoPtr->sessionSSL;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	STREAM stream;
-	BYTE buffer[ 128 ];
+	BYTE buffer[ 128 + 8 ];
 	const CRYPT_CONTEXT iHashContext = isRead ? \
 			sessionInfoPtr->iAuthInContext : sessionInfoPtr->iAuthOutContext;
 	const void *macSecret = isRead ? sslInfo->macReadSecret : \
@@ -872,12 +866,12 @@ int macDataSSL( SESSION_INFO *sessionInfoPtr, const void *data,
 		hash( MAC_secret || pad1 || seq_num || type || length || data ) */
 	krnlSendMessage( iHashContext, IMESSAGE_DELETEATTRIBUTE, NULL,
 					 CRYPT_CTXINFO_HASHVALUE );
-	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) macSecret, 
+	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) macSecret,
 					 sessionInfoPtr->authBlocksize );
-	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, buffer, 
+	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, buffer,
 					 padSize + length );
 	if( dataLength > 0 )
-		krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) data, 
+		krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) data,
 						 dataLength );
 	status = krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, "", 0 );
 	if( cryptStatusError( status ) )
@@ -896,9 +890,9 @@ int macDataSSL( SESSION_INFO *sessionInfoPtr, const void *data,
 		hash( MAC_secret || pad2 || inner_hash ) */
 	krnlSendMessage( iHashContext, IMESSAGE_DELETEATTRIBUTE, NULL,
 					 CRYPT_CTXINFO_HASHVALUE );
-	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) macSecret, 
+	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) macSecret,
 					 sessionInfoPtr->authBlocksize );
-	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, buffer, 
+	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, buffer,
 					 padSize + msgData.length );
 	status = krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, "", 0 );
 	if( cryptStatusError( status ) )
@@ -908,11 +902,9 @@ int macDataSSL( SESSION_INFO *sessionInfoPtr, const void *data,
 	   end of the data */
 	if( isRead )
 		{
-		RESOURCE_DATA msgData;
-
-		setMessageData( &msgData, ( BYTE * ) data + dataLength, 
+		setMessageData( &msgData, ( BYTE * ) data + dataLength,
 						sessionInfoPtr->authBlocksize );
-		status = krnlSendMessage( iHashContext, IMESSAGE_COMPARE, 
+		status = krnlSendMessage( iHashContext, IMESSAGE_COMPARE,
 								  &msgData, MESSAGE_COMPARE_HASH );
 		if( cryptStatusError( status ) )
 			{
@@ -929,21 +921,21 @@ int macDataSSL( SESSION_INFO *sessionInfoPtr, const void *data,
 		}
 
 	/* Set the MAC value at the end of the packet */
-	setMessageData( &msgData, ( BYTE * ) data + dataLength, 
+	setMessageData( &msgData, ( BYTE * ) data + dataLength,
 					sessionInfoPtr->authBlocksize );
-	status = krnlSendMessage( iHashContext, IMESSAGE_GETATTRIBUTE_S, 
+	status = krnlSendMessage( iHashContext, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_CTXINFO_HASHVALUE );
 	return( cryptStatusOK( status ) ? dataLength + msgData.length : status );
 	}
 
 int macDataTLS( SESSION_INFO *sessionInfoPtr, const void *data,
-				const int dataLength, const int type, const BOOLEAN isRead, 
+				const int dataLength, const int type, const BOOLEAN isRead,
 				const BOOLEAN noReportError )
 	{
 	SSL_INFO *sslInfo = sessionInfoPtr->sessionSSL;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	STREAM stream;
-	BYTE buffer[ 64 ];
+	BYTE buffer[ 64 + 8 ];
 	const CRYPT_CONTEXT iHashContext = isRead ? \
 			sessionInfoPtr->iAuthInContext : sessionInfoPtr->iAuthOutContext;
 	const long seqNo = isRead ? sslInfo->readSeqNo++ : sslInfo->writeSeqNo++;
@@ -970,7 +962,7 @@ int macDataTLS( SESSION_INFO *sessionInfoPtr, const void *data,
 					 CRYPT_CTXINFO_HASHVALUE );
 	krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, buffer, length );
 	if( dataLength > 0 )
-		krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) data, 
+		krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, ( void * ) data,
 						 dataLength );
 	status = krnlSendMessage( iHashContext, IMESSAGE_CTX_HASH, "", 0 );
 	if( cryptStatusError( status ) )
@@ -980,11 +972,9 @@ int macDataTLS( SESSION_INFO *sessionInfoPtr, const void *data,
 	   end of the data */
 	if( isRead )
 		{
-		RESOURCE_DATA msgData;
-
-		setMessageData( &msgData, ( BYTE * ) data + dataLength, 
+		setMessageData( &msgData, ( BYTE * ) data + dataLength,
 						sessionInfoPtr->authBlocksize );
-		status = krnlSendMessage( iHashContext, IMESSAGE_COMPARE, 
+		status = krnlSendMessage( iHashContext, IMESSAGE_COMPARE,
 								  &msgData, MESSAGE_COMPARE_HASH );
 		if( cryptStatusError( status ) )
 			{
@@ -1001,14 +991,14 @@ int macDataTLS( SESSION_INFO *sessionInfoPtr, const void *data,
 		}
 
 	/* Set the MAC value at the end of the packet */
-	setMessageData( &msgData, ( BYTE * ) data + dataLength, 
+	setMessageData( &msgData, ( BYTE * ) data + dataLength,
 					sessionInfoPtr->authBlocksize );
-	status = krnlSendMessage( iHashContext, IMESSAGE_GETATTRIBUTE_S, 
+	status = krnlSendMessage( iHashContext, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_CTXINFO_HASHVALUE );
 	return( cryptStatusOK( status ) ? dataLength + msgData.length : status );
 	}
 
-int dualMacData( const SSL_HANDSHAKE_INFO *handshakeInfo, 
+int dualMacData( const SSL_HANDSHAKE_INFO *handshakeInfo,
 				 const STREAM *stream, const BOOLEAN isRawData )
 	{
 	const int dataLength = isRawData ? sMemDataLeft( stream ) : \
@@ -1020,19 +1010,19 @@ int dualMacData( const SSL_HANDSHAKE_INFO *handshakeInfo,
 	assert( dataLength > 0 );
 
 	status = krnlSendMessage( handshakeInfo->clientMD5context,
-							  IMESSAGE_CTX_HASH, ( void * ) data, 
+							  IMESSAGE_CTX_HASH, ( void * ) data,
 							  dataLength );
 	if( cryptStatusOK( status ) )
 		status = krnlSendMessage( handshakeInfo->clientSHA1context,
-								  IMESSAGE_CTX_HASH, ( void * ) data, 
+								  IMESSAGE_CTX_HASH, ( void * ) data,
 								  dataLength );
 	if( cryptStatusOK( status ) )
 		status = krnlSendMessage( handshakeInfo->serverMD5context,
-								  IMESSAGE_CTX_HASH, ( void * ) data, 
+								  IMESSAGE_CTX_HASH, ( void * ) data,
 								  dataLength );
 	if( cryptStatusOK( status ) )
 		status = krnlSendMessage( handshakeInfo->serverSHA1context,
-								  IMESSAGE_CTX_HASH, ( void * ) data, 
+								  IMESSAGE_CTX_HASH, ( void * ) data,
 								  dataLength );
 	return( status );
 	}
@@ -1040,10 +1030,10 @@ int dualMacData( const SSL_HANDSHAKE_INFO *handshakeInfo,
 /* Complete the dual MD5/SHA1 hash/MAC used in the finished message */
 
 int completeSSLDualMAC( const CRYPT_CONTEXT md5context,
-						const CRYPT_CONTEXT sha1context, BYTE *hashValues, 
+						const CRYPT_CONTEXT sha1context, BYTE *hashValues,
 						const char *label, const BYTE *masterSecret )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	/* Generate the inner portion of the handshake message's MAC:
@@ -1052,13 +1042,13 @@ int completeSSLDualMAC( const CRYPT_CONTEXT md5context,
 
 	   Note that the SHA-1 pad size is 40 bytes and not 44 (to get a total
 	   length of 64 bytes), this is due to an error in the spec */
-	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, ( void * ) label, 
+	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, ( void * ) label,
 					 SSL_SENDERLABEL_SIZE );
-	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, ( void * ) label, 
+	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, ( void * ) label,
 					 SSL_SENDERLABEL_SIZE );
-	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, ( void * ) masterSecret, 
+	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, ( void * ) masterSecret,
 					 SSL_SECRET_SIZE );
-	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, ( void * ) masterSecret, 
+	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, ( void * ) masterSecret,
 					 SSL_SECRET_SIZE );
 	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, PROTOHMAC_PAD1, 48 );
 	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, PROTOHMAC_PAD1, 40 );
@@ -1077,23 +1067,23 @@ int completeSSLDualMAC( const CRYPT_CONTEXT md5context,
 		return( status );
 
 	/* Reset the hash contexts */
-	krnlSendMessage( md5context, IMESSAGE_DELETEATTRIBUTE, NULL, 
+	krnlSendMessage( md5context, IMESSAGE_DELETEATTRIBUTE, NULL,
 					 CRYPT_CTXINFO_HASHVALUE );
-	krnlSendMessage( sha1context, IMESSAGE_DELETEATTRIBUTE, NULL, 
+	krnlSendMessage( sha1context, IMESSAGE_DELETEATTRIBUTE, NULL,
 					 CRYPT_CTXINFO_HASHVALUE );
 
 	/* Generate the outer portion of the handshake message's MAC:
 
 		hash( master_secret || pad2 || inner_hash ) */
-	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, ( void * ) masterSecret, 
+	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, ( void * ) masterSecret,
 					 SSL_SECRET_SIZE );
-	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, ( void * ) masterSecret, 
+	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, ( void * ) masterSecret,
 					 SSL_SECRET_SIZE );
 	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, PROTOHMAC_PAD2, 48 );
 	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, PROTOHMAC_PAD2, 40 );
-	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, hashValues, 
+	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, hashValues,
 					 MD5MAC_SIZE );
-	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, hashValues + MD5MAC_SIZE, 
+	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, hashValues + MD5MAC_SIZE,
 					 SHA1MAC_SIZE );
 	krnlSendMessage( md5context, IMESSAGE_CTX_HASH, "", 0 );
 	krnlSendMessage( sha1context, IMESSAGE_CTX_HASH, "", 0 );
@@ -1110,12 +1100,12 @@ int completeSSLDualMAC( const CRYPT_CONTEXT md5context,
 	}
 
 int completeTLSHashedMAC( const CRYPT_CONTEXT md5context,
-						  const CRYPT_CONTEXT sha1context, BYTE *hashValues, 
+						  const CRYPT_CONTEXT sha1context, BYTE *hashValues,
 						  const char *label, const BYTE *masterSecret )
 	{
 	MECHANISM_DERIVE_INFO mechanismInfo;
-	RESOURCE_DATA msgData;
-	BYTE hashBuffer[ 64 + CRYPT_MAX_HASHSIZE * 2 ];
+	MESSAGE_DATA msgData;
+	BYTE hashBuffer[ 64 + ( CRYPT_MAX_HASHSIZE * 2 ) + 8 ];
 	const int labelLength = strlen( label );
 	int status;
 
@@ -1140,7 +1130,7 @@ int completeTLSHashedMAC( const CRYPT_CONTEXT md5context,
 	/* Generate the TLS check value.  This isn't really a hash or a MAC, but
 	   is generated by feeding the MD5 and SHA1 hashes of the handshake
 	   messages into the TLS key derivation (PRF) function and truncating
-	   the result to 12 bytes (96 bits) for no adequately explored reason, 
+	   the result to 12 bytes (96 bits) for no adequately explored reason,
 	   most probably it's IPsec cargo cult protocol design:
 
 		TLS_PRF( label || MD5_hash || SHA1_hash ) */
@@ -1157,29 +1147,29 @@ int completeTLSHashedMAC( const CRYPT_CONTEXT md5context,
 *																			*
 ****************************************************************************/
 
-/* Create/check the signature on an SSL certificate verify message.  
+/* Create/check the signature on an SSL certificate verify message.
    SSLv3/TLS use a weird signature format that dual-MACs (SSLv3) or hashes
-   (TLS) all of the handshake messages exchanged to date (SSLv3 additionally 
-   hashes in further data like the master secret), then signs them using 
-   nonstandard PKCS #1 RSA without the ASN.1 wrapper (that is, it uses the 
-   private key to encrypt the concatenated SHA-1 and MD5 MAC or hash of the 
-   handshake messages with PKCS #1 padding prepended), unless we're using 
-   DSA in which case it drops the MD5 MAC/hash and uses only the SHA-1 one.  
-   This is an incredible pain to support because it requires running a 
-   parallel hash of handshake messages that terminates before the main 
-   hashing does, further hashing/MAC'ing of additional data, and the use of 
-   weird nonstandard data formats and signature mechanisms that aren't 
-   normally supported by anything.  For example if the signing is to be done 
-   via a smart card then we can't use the standard PKCS #1 sig mechanism, we 
-   can't even use raw RSA and kludge the format together ourselves because 
-   some PKCS #11 implementations don't support the _X509 (raw) mechanism, 
-   what we have to do is tunnel the nonstandard sig.format info down through 
-   several cryptlib layers and then hope that the PKCS #11 implementation 
-   that we're using (a) supports this format and (b) gets it right.  Another 
-   problem (which only occurs for SSLv3) is that the MAC requires the use of 
-   the master secret, which isn't available for several hundred more lines 
-   of code, so we have to delay producing any more data packets until the 
-   master secret is available, which severely screws up the handshake 
+   (TLS) all of the handshake messages exchanged to date (SSLv3 additionally
+   hashes in further data like the master secret), then signs them using
+   nonstandard PKCS #1 RSA without the ASN.1 wrapper (that is, it uses the
+   private key to encrypt the concatenated SHA-1 and MD5 MAC or hash of the
+   handshake messages with PKCS #1 padding prepended), unless we're using
+   DSA in which case it drops the MD5 MAC/hash and uses only the SHA-1 one.
+   This is an incredible pain to support because it requires running a
+   parallel hash of handshake messages that terminates before the main
+   hashing does, further hashing/MAC'ing of additional data, and the use of
+   weird nonstandard data formats and signature mechanisms that aren't
+   normally supported by anything.  For example if the signing is to be done
+   via a smart card then we can't use the standard PKCS #1 sig mechanism, we
+   can't even use raw RSA and kludge the format together ourselves because
+   some PKCS #11 implementations don't support the _X509 (raw) mechanism,
+   what we have to do is tunnel the nonstandard sig.format info down through
+   several cryptlib layers and then hope that the PKCS #11 implementation
+   that we're using (a) supports this format and (b) gets it right.  Another
+   problem (which only occurs for SSLv3) is that the MAC requires the use of
+   the master secret, which isn't available for several hundred more lines
+   of code, so we have to delay producing any more data packets until the
+   master secret is available, which severely screws up the handshake
    processing flow.
 
    The chances of all of this working correctly are fairly low, and in any
@@ -1197,13 +1187,13 @@ int completeTLSHashedMAC( const CRYPT_CONTEXT md5context,
 static CRYPT_CONTEXT createCertVerifyHash( const SSL_HANDSHAKE_INFO *handshakeInfo )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	BYTE nonceBuffer[ 64 + SSL_NONCE_SIZE + SSL_NONCE_SIZE ];
+	BYTE nonceBuffer[ 64 + SSL_NONCE_SIZE + SSL_NONCE_SIZE + 8 ];
 	int status;
 
 	/* Hash the client and server nonces */
 	setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_SHA );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+							  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 							  OBJECT_TYPE_CONTEXT );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1231,15 +1221,15 @@ int createCertVerify( const SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( iHashContext ) )
 		return( iHashContext );
 
-	/* Create the signature.  The reason for the min() part of the 
-	   expression is that iCryptCreateSignatureEx() gets suspicious of very 
-	   large buffer sizes, for example when the user has specified the use 
+	/* Create the signature.  The reason for the min() part of the
+	   expression is that iCryptCreateSignatureEx() gets suspicious of very
+	   large buffer sizes, for example when the user has specified the use
 	   of a 1MB send buffer */
-	status = iCryptCreateSignatureEx( sMemBufPtr( stream ), &length, 
+	status = iCryptCreateSignatureEx( sMemBufPtr( stream ), &length,
 									  min( sMemDataLeft( stream ), 16384 ),
 									  CRYPT_FORMAT_CRYPTLIB,
-									  sessionInfoPtr->privateKey, 
-									  iHashContext, CRYPT_UNUSED, 
+									  sessionInfoPtr->privateKey,
+									  iHashContext, CRYPT_UNUSED,
 									  CRYPT_UNUSED );
 	if( cryptStatusOK( status ) )
 		status = sSkip( stream, length );
@@ -1261,11 +1251,11 @@ int checkCertVerify( const SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( iHashContext ) )
 		return( iHashContext );
 
-	/* Verify the signature.  The reason for the min() part of the 
-	   expression is that iCryptCheckSignatureEx() gets suspicious of very 
-	   large buffer sizes, for example when the user has specified the use 
+	/* Verify the signature.  The reason for the min() part of the
+	   expression is that iCryptCheckSignatureEx() gets suspicious of very
+	   large buffer sizes, for example when the user has specified the use
 	   of a 1MB send buffer */
-	status = iCryptCheckSignatureEx( sMemBufPtr( stream ), 
+	status = iCryptCheckSignatureEx( sMemBufPtr( stream ),
 									 min( sigLength, 16384 ),
 									 CRYPT_FORMAT_CRYPTLIB,
 									 sessionInfoPtr->iKeyexAuthContext,
@@ -1288,14 +1278,14 @@ static int createKeyexHashes( const SSL_HANDSHAKE_INFO *handshakeInfo,
 	/* Create the dual hash contexts */
 	setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_MD5 );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+							  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 							  OBJECT_TYPE_CONTEXT );
 	if( cryptStatusError( status ) )
 		return( status );
 	*md5Context = createInfo.cryptHandle;
 	setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_SHA );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_CREATEOBJECT, &createInfo, 
+							  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 							  OBJECT_TYPE_CONTEXT );
 	if( cryptStatusError( status ) )
 		{
@@ -1324,16 +1314,16 @@ static int createKeyexHashes( const SSL_HANDSHAKE_INFO *handshakeInfo,
 	return( CRYPT_OK );
 	}
 
-int createKeyexSignature( SESSION_INFO *sessionInfoPtr, 
+int createKeyexSignature( SESSION_INFO *sessionInfoPtr,
 						  SSL_HANDSHAKE_INFO *handshakeInfo,
-						  STREAM *stream, const void *keyData, 
+						  STREAM *stream, const void *keyData,
 						  const int keyDataLength )
 	{
 	CRYPT_CONTEXT md5Context, shaContext;
 	int sigLength, status;
 
 	/* Hash the data to be signed */
-	status = createKeyexHashes( handshakeInfo, keyData, keyDataLength, 
+	status = createKeyexHashes( handshakeInfo, keyData, keyDataLength,
 								&md5Context, &shaContext );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1355,9 +1345,9 @@ int createKeyexSignature( SESSION_INFO *sessionInfoPtr,
 	return( status );
 	}
 
-int checkKeyexSignature( SESSION_INFO *sessionInfoPtr, 
+int checkKeyexSignature( SESSION_INFO *sessionInfoPtr,
 						 SSL_HANDSHAKE_INFO *handshakeInfo,
-						 STREAM *stream, const void *keyData, 
+						 STREAM *stream, const void *keyData,
 						 const int keyDataLength )
 	{
 	CRYPT_CONTEXT md5Context, shaContext;
@@ -1369,18 +1359,18 @@ int checkKeyexSignature( SESSION_INFO *sessionInfoPtr,
 		return( CRYPT_ERROR_BADDATA );
 
 	/* Hash the data to be signed */
-	status = createKeyexHashes( handshakeInfo, keyData, keyDataLength, 
+	status = createKeyexHashes( handshakeInfo, keyData, keyDataLength,
 								&md5Context, &shaContext );
 	if( cryptStatusError( status ) )
 		return( status );
 
-	/* Check the signature on the hashes.  The reason for the min() part of 
-	   the expression is that iCryptCreateSignatureEx() gets suspicious of 
-	   very large buffer sizes, for example when the user has specified the 
+	/* Check the signature on the hashes.  The reason for the min() part of
+	   the expression is that iCryptCreateSignatureEx() gets suspicious of
+	   very large buffer sizes, for example when the user has specified the
 	   use of a 1MB send buffer */
-	status = iCryptCheckSignatureEx( sMemBufPtr( stream ), 
+	status = iCryptCheckSignatureEx( sMemBufPtr( stream ),
 									 min( sMemDataLeft( stream ), 16384 ),
-									 CRYPT_IFORMAT_SSL, 
+									 CRYPT_IFORMAT_SSL,
 									 sessionInfoPtr->iKeyexCryptContext,
 									 md5Context, &shaContext );
 	if( cryptStatusOK( status ) )

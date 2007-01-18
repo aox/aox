@@ -61,9 +61,6 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "ripemd.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "ripemd.h"
 #else
   #include "crypt.h"
   #include "crypt/ripemd.h"
@@ -114,7 +111,7 @@ void ripemd160_block_data_order (RIPEMD160_CTX *c, const void *p,int num);
 #define HASH_BLOCK_DATA_ORDER   ripemd160_block_data_order
 #endif
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "md32com.h"
 #else
   #include "crypt/md32com.h"
@@ -143,7 +140,7 @@ void ripemd160_block_data_order (RIPEMD160_CTX *c, const void *p,int num);
 #define RIPEMD160_D	0x10325476L
 #define RIPEMD160_E	0xC3D2E1F0L
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "rmdconst.h"
 #else
   #include "crypt/rmdconst.h"

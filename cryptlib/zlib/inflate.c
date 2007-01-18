@@ -99,7 +99,7 @@
   #pragma csect( TEST, "inflateT" )
 #endif /* __MVS__ */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "zutil.h"
   #include "inftrees.h"
   #include "inflate.h"
@@ -163,7 +163,7 @@ int ZEXPORT inflatePrime(z_streamp strm, int bits, int value)
     return Z_OK;
 }
 
-int ZEXPORT inflateInit2_(z_streamp strm, int windowBits, 
+int ZEXPORT inflateInit2_(z_streamp strm, int windowBits,
 						  const char *version, int stream_size)
 {
     struct inflate_state FAR *state;
@@ -203,7 +203,7 @@ int ZEXPORT inflateInit2_(z_streamp strm, int windowBits,
     return inflateReset(strm);
 }
 
-int ZEXPORT inflateInit_(z_streamp strm, const char *version, 
+int ZEXPORT inflateInit_(z_streamp strm, const char *version,
 						 int stream_size)
 {
     return inflateInit2_(strm, DEF_WBITS, version, stream_size);
@@ -253,7 +253,11 @@ local void fixedtables(struct inflate_state FAR *state)
         virgin = 0;
     }
 #else /* !BUILDFIXED */
-#   include "inffixed.h"
+  #if defined( INC_ALL )
+	#include "inffixed.h"
+  #else
+	#include "zlib/inffixed.h"
+  #endif /* Compiler-specific includes */
 #endif /* BUILDFIXED */
     state->lencode = lenfix;
     state->lenbits = 9;

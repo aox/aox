@@ -128,9 +128,9 @@
 	defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ )
   #include <utime.h>			/* It's a SYSV thing... */
 #endif /* SYSV Unixen */
-#ifdef __APPLE__
-  #include <sys/time.h>
-#endif /* OS X */
+#if defined( __APPLE__ ) || defined( __linux__ )
+  #include <sys/time.h>			/* For futimes() */
+#endif /* OS X || Linux */
 #ifdef __CYGWIN__
   #include <sys/utime.h>
 #endif /* __CYGWIN__ */

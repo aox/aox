@@ -1,7 +1,6 @@
 /*
  ---------------------------------------------------------------------------
- Copyright (c) 2003, Dr Brian Gladman <brg@gladman.me.uk>, Worcester, UK.
- All rights reserved.
+ Copyright (c) 2003, Dr Brian Gladman, Worcester, UK.   All rights reserved.
 
  LICENSE TERMS
 
@@ -28,17 +27,21 @@
  in respect of its properties, including, but not limited to, correctness
  and/or fitness for purpose.
  ---------------------------------------------------------------------------
- Issue Date: 26/08/2003
-
- This file contains the code for implementing the key schedule for AES
- (Rijndael) for block and key sizes of 16, 24, and 32 bytes. See aesopt.h
- for further details including optimisation.
+ Issue 31/01/2006
 */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )		/* pcg */
   #include "aesopt.h"
+  #include "aestab.h"
+  #ifdef USE_VIA_ACE_IF_PRESENT
+      #include "via_ace.h"
+  #endif
 #else
   #include "crypt/aesopt.h"
+  #include "crypt/aestab.h"
+  #ifdef USE_VIA_ACE_IF_PRESENT
+      #include "crypt/via_ace.h"
+  #endif
 #endif /* Compiler-specific includes */
 
 #if defined(__cplusplus)
@@ -64,52 +67,28 @@ extern "C"
     cx->n_col = 8   29 23 19 17 14
 */
 
-#define ke4(k,i) \
-{   k[4*(i)+4] = ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; k[4*(i)+5] = ss[1] ^= ss[0]; \
-    k[4*(i)+6] = ss[2] ^= ss[1]; k[4*(i)+7] = ss[3] ^= ss[2]; \
-}
-#define kel4(k,i) \
-{   k[4*(i)+4] = ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; k[4*(i)+5] = ss[1] ^= ss[0]; \
-    k[4*(i)+6] = ss[2] ^= ss[1]; k[4*(i)+7] = ss[3] ^= ss[2]; \
-}
-
-#define ke6(k,i) \
-{   k[6*(i)+ 6] = ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; k[6*(i)+ 7] = ss[1] ^= ss[0]; \
-    k[6*(i)+ 8] = ss[2] ^= ss[1]; k[6*(i)+ 9] = ss[3] ^= ss[2]; \
-    k[6*(i)+10] = ss[4] ^= ss[3]; k[6*(i)+11] = ss[5] ^= ss[4]; \
-}
-#define kel6(k,i) \
-{   k[6*(i)+ 6] = ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; k[6*(i)+ 7] = ss[1] ^= ss[0]; \
-    k[6*(i)+ 8] = ss[2] ^= ss[1]; k[6*(i)+ 9] = ss[3] ^= ss[2]; \
-}
-
-#define ke8(k,i) \
-{   k[8*(i)+ 8] = ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; k[8*(i)+ 9] = ss[1] ^= ss[0]; \
-    k[8*(i)+10] = ss[2] ^= ss[1]; k[8*(i)+11] = ss[3] ^= ss[2]; \
-    k[8*(i)+12] = ss[4] ^= ls_box(ss[3],0); k[8*(i)+13] = ss[5] ^= ss[4]; \
-    k[8*(i)+14] = ss[6] ^= ss[5]; k[8*(i)+15] = ss[7] ^= ss[6]; \
-}
-#define kel8(k,i) \
-{   k[8*(i)+ 8] = ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; k[8*(i)+ 9] = ss[1] ^= ss[0]; \
-    k[8*(i)+10] = ss[2] ^= ss[1]; k[8*(i)+11] = ss[3] ^= ss[2]; \
-}
-
-#if defined(ENCRYPTION_KEY_SCHEDULE)
+#if (FUNCS_IN_C & ENC_KEYING_IN_C)
 
 #if defined(AES_128) || defined(AES_VAR)
 
-aes_rval aes_encrypt_key128(const void *in_key, aes_encrypt_ctx cx[1])
-{   aes_32t    ss[4];
+#define ke4(k,i) \
+{   k[4*(i)+4] = ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; \
+    k[4*(i)+5] = ss[1] ^= ss[0]; \
+    k[4*(i)+6] = ss[2] ^= ss[1]; \
+    k[4*(i)+7] = ss[3] ^= ss[2]; \
+}
 
-    cx->ks[0] = ss[0] = word_in(in_key, 0);
-    cx->ks[1] = ss[1] = word_in(in_key, 1);
-    cx->ks[2] = ss[2] = word_in(in_key, 2);
-    cx->ks[3] = ss[3] = word_in(in_key, 3);
+AES_RETURN aes_encrypt_key128(const unsigned char *key, aes_encrypt_ctx cx[1])
+{   uint_32t    ss[4];
+
+    cx->ks[0] = ss[0] = word_in(key, 0);
+    cx->ks[1] = ss[1] = word_in(key, 1);
+    cx->ks[2] = ss[2] = word_in(key, 2);
+    cx->ks[3] = ss[3] = word_in(key, 3);
 
 #if ENC_UNROLL == NONE
-    {   aes_32t i;
-
-        for(i = 0; i < ((11 * N_COLS - 1) / 4); ++i)
+    {   uint_32t i;
+        for(i = 0; i < 9; ++i)
             ke4(cx->ks, i);
     }
 #else
@@ -117,15 +96,19 @@ aes_rval aes_encrypt_key128(const void *in_key, aes_encrypt_ctx cx[1])
     ke4(cx->ks, 2);  ke4(cx->ks, 3);
     ke4(cx->ks, 4);  ke4(cx->ks, 5);
     ke4(cx->ks, 6);  ke4(cx->ks, 7);
-    ke4(cx->ks, 8); kel4(cx->ks, 9);
+    ke4(cx->ks, 8);
+#endif
+    ke4(cx->ks, 9);
+    cx->inf.l = 0;
+    cx->inf.b[0] = 10 * 16;
+
+#ifdef USE_VIA_ACE_IF_PRESENT
+    if(VIA_ACE_AVAILABLE)
+        cx->inf.b[1] = 0xff;
 #endif
 
-    /* cx->ks[45] ^ cx->ks[52] ^ cx->ks[53] is zero for a 256 bit       */
-    /* key and must be non-zero for 128 and 192 bits keys   */
-    cx->ks[53] = cx->ks[45] = 0;
-    cx->ks[52] = 10;
-#ifdef AES_ERR_CHK
-    return aes_good;
+#if defined( AES_ERR_CHK )
+    return EXIT_SUCCESS;
 #endif
 }
 
@@ -133,35 +116,51 @@ aes_rval aes_encrypt_key128(const void *in_key, aes_encrypt_ctx cx[1])
 
 #if defined(AES_192) || defined(AES_VAR)
 
-aes_rval aes_encrypt_key192(const void *in_key, aes_encrypt_ctx cx[1])
-{   aes_32t    ss[6];
+#define kef6(k,i) \
+{   k[6*(i)+ 6] = ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; \
+    k[6*(i)+ 7] = ss[1] ^= ss[0]; \
+    k[6*(i)+ 8] = ss[2] ^= ss[1]; \
+    k[6*(i)+ 9] = ss[3] ^= ss[2]; \
+}
 
-    cx->ks[0] = ss[0] = word_in(in_key, 0);
-    cx->ks[1] = ss[1] = word_in(in_key, 1);
-    cx->ks[2] = ss[2] = word_in(in_key, 2);
-    cx->ks[3] = ss[3] = word_in(in_key, 3);
-    cx->ks[4] = ss[4] = word_in(in_key, 4);
-    cx->ks[5] = ss[5] = word_in(in_key, 5);
+#define ke6(k,i) \
+{   kef6(k,i); \
+    k[6*(i)+10] = ss[4] ^= ss[3]; \
+    k[6*(i)+11] = ss[5] ^= ss[4]; \
+}
+
+AES_RETURN aes_encrypt_key192(const unsigned char *key, aes_encrypt_ctx cx[1])
+{   uint_32t    ss[6];
+
+    cx->ks[0] = ss[0] = word_in(key, 0);
+    cx->ks[1] = ss[1] = word_in(key, 1);
+    cx->ks[2] = ss[2] = word_in(key, 2);
+    cx->ks[3] = ss[3] = word_in(key, 3);
+    cx->ks[4] = ss[4] = word_in(key, 4);
+    cx->ks[5] = ss[5] = word_in(key, 5);
 
 #if ENC_UNROLL == NONE
-    {   aes_32t i;
-
-        for(i = 0; i < (13 * N_COLS - 1) / 6; ++i)
+    {   uint_32t i;
+        for(i = 0; i < 7; ++i)
             ke6(cx->ks, i);
     }
 #else
     ke6(cx->ks, 0);  ke6(cx->ks, 1);
     ke6(cx->ks, 2);  ke6(cx->ks, 3);
     ke6(cx->ks, 4);  ke6(cx->ks, 5);
-    ke6(cx->ks, 6); kel6(cx->ks, 7);
+    ke6(cx->ks, 6);
+#endif
+    kef6(cx->ks, 7);
+    cx->inf.l = 0;
+    cx->inf.b[0] = 12 * 16;
+
+#ifdef USE_VIA_ACE_IF_PRESENT
+    if(VIA_ACE_AVAILABLE)
+        cx->inf.b[1] = 0xff;
 #endif
 
-    /* cx->ks[45] ^ cx->ks[52] ^ cx->ks[53] is zero for a 256 bit       */
-    /* key and must be non-zero for 128 and 192 bits keys   */
-    cx->ks[53] = cx->ks[45];
-    cx->ks[52] = 12;
-#ifdef AES_ERR_CHK
-    return aes_good;
+#if defined( AES_ERR_CHK )
+    return EXIT_SUCCESS;
 #endif
 }
 
@@ -169,32 +168,54 @@ aes_rval aes_encrypt_key192(const void *in_key, aes_encrypt_ctx cx[1])
 
 #if defined(AES_256) || defined(AES_VAR)
 
-aes_rval aes_encrypt_key256(const void *in_key, aes_encrypt_ctx cx[1])
-{   aes_32t    ss[8];
+#define kef8(k,i) \
+{   k[8*(i)+ 8] = ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; \
+    k[8*(i)+ 9] = ss[1] ^= ss[0]; \
+    k[8*(i)+10] = ss[2] ^= ss[1]; \
+    k[8*(i)+11] = ss[3] ^= ss[2]; \
+}
 
-    cx->ks[0] = ss[0] = word_in(in_key, 0);
-    cx->ks[1] = ss[1] = word_in(in_key, 1);
-    cx->ks[2] = ss[2] = word_in(in_key, 2);
-    cx->ks[3] = ss[3] = word_in(in_key, 3);
-    cx->ks[4] = ss[4] = word_in(in_key, 4);
-    cx->ks[5] = ss[5] = word_in(in_key, 5);
-    cx->ks[6] = ss[6] = word_in(in_key, 6);
-    cx->ks[7] = ss[7] = word_in(in_key, 7);
+#define ke8(k,i) \
+{   kef8(k,i); \
+    k[8*(i)+12] = ss[4] ^= ls_box(ss[3],0); \
+    k[8*(i)+13] = ss[5] ^= ss[4]; \
+    k[8*(i)+14] = ss[6] ^= ss[5]; \
+    k[8*(i)+15] = ss[7] ^= ss[6]; \
+}
+
+AES_RETURN aes_encrypt_key256(const unsigned char *key, aes_encrypt_ctx cx[1])
+{   uint_32t    ss[8];
+
+    cx->ks[0] = ss[0] = word_in(key, 0);
+    cx->ks[1] = ss[1] = word_in(key, 1);
+    cx->ks[2] = ss[2] = word_in(key, 2);
+    cx->ks[3] = ss[3] = word_in(key, 3);
+    cx->ks[4] = ss[4] = word_in(key, 4);
+    cx->ks[5] = ss[5] = word_in(key, 5);
+    cx->ks[6] = ss[6] = word_in(key, 6);
+    cx->ks[7] = ss[7] = word_in(key, 7);
 
 #if ENC_UNROLL == NONE
-    {   aes_32t i;
-
-        for(i = 0; i < (15 * N_COLS - 1) / 8; ++i)
+    {   uint_32t i;
+        for(i = 0; i < 6; ++i)
             ke8(cx->ks,  i);
     }
 #else
     ke8(cx->ks, 0); ke8(cx->ks, 1);
     ke8(cx->ks, 2); ke8(cx->ks, 3);
     ke8(cx->ks, 4); ke8(cx->ks, 5);
-    kel8(cx->ks, 6);
 #endif
-#ifdef AES_ERR_CHK
-    return aes_good;
+    kef8(cx->ks, 6);
+    cx->inf.l = 0;
+    cx->inf.b[0] = 14 * 16;
+
+#ifdef USE_VIA_ACE_IF_PRESENT
+    if(VIA_ACE_AVAILABLE)
+        cx->inf.b[1] = 0xff;
+#endif
+
+#if defined( AES_ERR_CHK )
+    return EXIT_SUCCESS;
 #endif
 }
 
@@ -202,19 +223,19 @@ aes_rval aes_encrypt_key256(const void *in_key, aes_encrypt_ctx cx[1])
 
 #if defined(AES_VAR)
 
-aes_rval aes_encrypt_key(const void *in_key, int key_len, aes_encrypt_ctx cx[1])
+AES_RETURN aes_encrypt_key(const unsigned char *key, int key_len, aes_encrypt_ctx cx[1])
 {
     switch(key_len)
     {
-#ifdef AES_ERR_CHK
-    case 16: case 128: return aes_encrypt_key128(in_key, cx);
-    case 24: case 192: return aes_encrypt_key192(in_key, cx);
-    case 32: case 256: return aes_encrypt_key256(in_key, cx);
-    default: return aes_error;
+#if defined( AES_ERR_CHK )
+    case 16: case 128: return aes_encrypt_key128(key, cx);
+    case 24: case 192: return aes_encrypt_key192(key, cx);
+    case 32: case 256: return aes_encrypt_key256(key, cx);
+    default: return EXIT_FAILURE;
 #else
-    case 16: case 128: aes_encrypt_key128(in_key, cx); return;
-    case 24: case 192: aes_encrypt_key192(in_key, cx); return;
-    case 32: case 256: aes_encrypt_key256(in_key, cx); return;
+    case 16: case 128: aes_encrypt_key128(key, cx); return;
+    case 24: case 192: aes_encrypt_key192(key, cx); return;
+    case 32: case 256: aes_encrypt_key256(key, cx); return;
 #endif
     }
 }
@@ -223,111 +244,106 @@ aes_rval aes_encrypt_key(const void *in_key, int key_len, aes_encrypt_ctx cx[1])
 
 #endif
 
-#if defined(DECRYPTION_KEY_SCHEDULE)
+#if (FUNCS_IN_C & DEC_KEYING_IN_C)
+
+/* this is used to store the decryption round keys  */
+/* in forward or reverse order                      */
+
+#ifdef AES_REV_DKS
+#define v(n,i)  ((n) - (i) + 2 * ((i) & 3))
+#else
+#define v(n,i)  (i)
+#endif
 
 #if DEC_ROUND == NO_TABLES
 #define ff(x)   (x)
 #else
 #define ff(x)   inv_mcol(x)
-#ifdef  dec_imvars
+#if defined( dec_imvars )
 #define d_vars  dec_imvars
 #endif
 #endif
 
-#if 1
-#define kdf4(k,i) \
-{   ss[0] = ss[0] ^ ss[2] ^ ss[1] ^ ss[3]; ss[1] = ss[1] ^ ss[3]; ss[2] = ss[2] ^ ss[3]; ss[3] = ss[3]; \
-    ss[4] = ls_box(ss[(i+3) % 4], 3) ^ t_use(r,c)[i]; ss[i % 4] ^= ss[4]; \
-    ss[4] ^= k[4*(i)];   k[4*(i)+4] = ff(ss[4]); ss[4] ^= k[4*(i)+1]; k[4*(i)+5] = ff(ss[4]); \
-    ss[4] ^= k[4*(i)+2]; k[4*(i)+6] = ff(ss[4]); ss[4] ^= k[4*(i)+3]; k[4*(i)+7] = ff(ss[4]); \
-}
-#define kd4(k,i) \
-{   ss[4] = ls_box(ss[(i+3) % 4], 3) ^ t_use(r,c)[i]; ss[i % 4] ^= ss[4]; ss[4] = ff(ss[4]); \
-    k[4*(i)+4] = ss[4] ^= k[4*(i)]; k[4*(i)+5] = ss[4] ^= k[4*(i)+1]; \
-    k[4*(i)+6] = ss[4] ^= k[4*(i)+2]; k[4*(i)+7] = ss[4] ^= k[4*(i)+3]; \
-}
-#define kdl4(k,i) \
-{   ss[4] = ls_box(ss[(i+3) % 4], 3) ^ t_use(r,c)[i]; ss[i % 4] ^= ss[4]; \
-    k[4*(i)+4] = (ss[0] ^= ss[1]) ^ ss[2] ^ ss[3]; k[4*(i)+5] = ss[1] ^ ss[3]; \
-    k[4*(i)+6] = ss[0]; k[4*(i)+7] = ss[1]; \
-}
-#else
-#define kdf4(k,i) \
-{   ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; k[4*(i)+ 4] = ff(ss[0]); ss[1] ^= ss[0]; k[4*(i)+ 5] = ff(ss[1]); \
-    ss[2] ^= ss[1]; k[4*(i)+ 6] = ff(ss[2]); ss[3] ^= ss[2]; k[4*(i)+ 7] = ff(ss[3]); \
-}
-#define kd4(k,i) \
-{   ss[4] = ls_box(ss[3],3) ^ t_use(r,c)[i]; \
-    ss[0] ^= ss[4]; ss[4] = ff(ss[4]); k[4*(i)+ 4] = ss[4] ^= k[4*(i)]; \
-    ss[1] ^= ss[0]; k[4*(i)+ 5] = ss[4] ^= k[4*(i)+ 1]; \
-    ss[2] ^= ss[1]; k[4*(i)+ 6] = ss[4] ^= k[4*(i)+ 2]; \
-    ss[3] ^= ss[2]; k[4*(i)+ 7] = ss[4] ^= k[4*(i)+ 3]; \
-}
-#define kdl4(k,i) \
-{   ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; k[4*(i)+ 4] = ss[0]; ss[1] ^= ss[0]; k[4*(i)+ 5] = ss[1]; \
-    ss[2] ^= ss[1]; k[4*(i)+ 6] = ss[2]; ss[3] ^= ss[2]; k[4*(i)+ 7] = ss[3]; \
-}
-#endif
-
-#define kdf6(k,i) \
-{   ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; k[6*(i)+ 6] = ff(ss[0]); ss[1] ^= ss[0]; k[6*(i)+ 7] = ff(ss[1]); \
-    ss[2] ^= ss[1]; k[6*(i)+ 8] = ff(ss[2]); ss[3] ^= ss[2]; k[6*(i)+ 9] = ff(ss[3]); \
-    ss[4] ^= ss[3]; k[6*(i)+10] = ff(ss[4]); ss[5] ^= ss[4]; k[6*(i)+11] = ff(ss[5]); \
-}
-#define kd6(k,i) \
-{   ss[6] = ls_box(ss[5],3) ^ t_use(r,c)[i]; \
-    ss[0] ^= ss[6]; ss[6] = ff(ss[6]); k[6*(i)+ 6] = ss[6] ^= k[6*(i)]; \
-    ss[1] ^= ss[0]; k[6*(i)+ 7] = ss[6] ^= k[6*(i)+ 1]; \
-    ss[2] ^= ss[1]; k[6*(i)+ 8] = ss[6] ^= k[6*(i)+ 2]; \
-    ss[3] ^= ss[2]; k[6*(i)+ 9] = ss[6] ^= k[6*(i)+ 3]; \
-    ss[4] ^= ss[3]; k[6*(i)+10] = ss[6] ^= k[6*(i)+ 4]; \
-    ss[5] ^= ss[4]; k[6*(i)+11] = ss[6] ^= k[6*(i)+ 5]; \
-}
-#define kdl6(k,i) \
-{   ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; k[6*(i)+ 6] = ss[0]; ss[1] ^= ss[0]; k[6*(i)+ 7] = ss[1]; \
-    ss[2] ^= ss[1]; k[6*(i)+ 8] = ss[2]; ss[3] ^= ss[2]; k[6*(i)+ 9] = ss[3]; \
-}
-
-#define kdf8(k,i) \
-{   ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; k[8*(i)+ 8] = ff(ss[0]); ss[1] ^= ss[0]; k[8*(i)+ 9] = ff(ss[1]); \
-    ss[2] ^= ss[1]; k[8*(i)+10] = ff(ss[2]); ss[3] ^= ss[2]; k[8*(i)+11] = ff(ss[3]); \
-    ss[4] ^= ls_box(ss[3],0); k[8*(i)+12] = ff(ss[4]); ss[5] ^= ss[4]; k[8*(i)+13] = ff(ss[5]); \
-    ss[6] ^= ss[5]; k[8*(i)+14] = ff(ss[6]); ss[7] ^= ss[6]; k[8*(i)+15] = ff(ss[7]); \
-}
-#define kd8(k,i) \
-{   aes_32t g = ls_box(ss[7],3) ^ t_use(r,c)[i]; \
-    ss[0] ^= g; g = ff(g); k[8*(i)+ 8] = g ^= k[8*(i)]; \
-    ss[1] ^= ss[0]; k[8*(i)+ 9] = g ^= k[8*(i)+ 1]; \
-    ss[2] ^= ss[1]; k[8*(i)+10] = g ^= k[8*(i)+ 2]; \
-    ss[3] ^= ss[2]; k[8*(i)+11] = g ^= k[8*(i)+ 3]; \
-    g = ls_box(ss[3],0); \
-    ss[4] ^= g; g = ff(g); k[8*(i)+12] = g ^= k[8*(i)+ 4]; \
-    ss[5] ^= ss[4]; k[8*(i)+13] = g ^= k[8*(i)+ 5]; \
-    ss[6] ^= ss[5]; k[8*(i)+14] = g ^= k[8*(i)+ 6]; \
-    ss[7] ^= ss[6]; k[8*(i)+15] = g ^= k[8*(i)+ 7]; \
-}
-#define kdl8(k,i) \
-{   ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; k[8*(i)+ 8] = ss[0]; ss[1] ^= ss[0]; k[8*(i)+ 9] = ss[1]; \
-    ss[2] ^= ss[1]; k[8*(i)+10] = ss[2]; ss[3] ^= ss[2]; k[8*(i)+11] = ss[3]; \
-}
-
 #if defined(AES_128) || defined(AES_VAR)
 
-aes_rval aes_decrypt_key128(const void *in_key, aes_decrypt_ctx cx[1])
-{   aes_32t    ss[5];
-#ifdef  d_vars
+#define k4e(k,i) \
+{   k[v(40,(4*(i))+4)] = ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; \
+    k[v(40,(4*(i))+5)] = ss[1] ^= ss[0]; \
+    k[v(40,(4*(i))+6)] = ss[2] ^= ss[1]; \
+    k[v(40,(4*(i))+7)] = ss[3] ^= ss[2]; \
+}
+
+#if 1
+
+#define kdf4(k,i) \
+{   ss[0] = ss[0] ^ ss[2] ^ ss[1] ^ ss[3]; \
+    ss[1] = ss[1] ^ ss[3]; \
+    ss[2] = ss[2] ^ ss[3]; \
+    ss[4] = ls_box(ss[(i+3) % 4], 3) ^ t_use(r,c)[i]; \
+    ss[i % 4] ^= ss[4]; \
+    ss[4] ^= k[v(40,(4*(i)))];   k[v(40,(4*(i))+4)] = ff(ss[4]); \
+    ss[4] ^= k[v(40,(4*(i))+1)]; k[v(40,(4*(i))+5)] = ff(ss[4]); \
+    ss[4] ^= k[v(40,(4*(i))+2)]; k[v(40,(4*(i))+6)] = ff(ss[4]); \
+    ss[4] ^= k[v(40,(4*(i))+3)]; k[v(40,(4*(i))+7)] = ff(ss[4]); \
+}
+
+#define kd4(k,i) \
+{   ss[4] = ls_box(ss[(i+3) % 4], 3) ^ t_use(r,c)[i]; \
+    ss[i % 4] ^= ss[4]; ss[4] = ff(ss[4]); \
+    k[v(40,(4*(i))+4)] = ss[4] ^= k[v(40,(4*(i)))]; \
+    k[v(40,(4*(i))+5)] = ss[4] ^= k[v(40,(4*(i))+1)]; \
+    k[v(40,(4*(i))+6)] = ss[4] ^= k[v(40,(4*(i))+2)]; \
+    k[v(40,(4*(i))+7)] = ss[4] ^= k[v(40,(4*(i))+3)]; \
+}
+
+#define kdl4(k,i) \
+{   ss[4] = ls_box(ss[(i+3) % 4], 3) ^ t_use(r,c)[i]; ss[i % 4] ^= ss[4]; \
+    k[v(40,(4*(i))+4)] = (ss[0] ^= ss[1]) ^ ss[2] ^ ss[3]; \
+    k[v(40,(4*(i))+5)] = ss[1] ^ ss[3]; \
+    k[v(40,(4*(i))+6)] = ss[0]; \
+    k[v(40,(4*(i))+7)] = ss[1]; \
+}
+
+#else
+
+#define kdf4(k,i) \
+{   ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; k[v(40,(4*(i))+ 4)] = ff(ss[0]); \
+    ss[1] ^= ss[0]; k[v(40,(4*(i))+ 5)] = ff(ss[1]); \
+    ss[2] ^= ss[1]; k[v(40,(4*(i))+ 6)] = ff(ss[2]); \
+    ss[3] ^= ss[2]; k[v(40,(4*(i))+ 7)] = ff(ss[3]); \
+}
+
+#define kd4(k,i) \
+{   ss[4] = ls_box(ss[3],3) ^ t_use(r,c)[i]; \
+    ss[0] ^= ss[4]; ss[4] = ff(ss[4]); k[v(40,(4*(i))+ 4)] = ss[4] ^= k[v(40,(4*(i)))]; \
+    ss[1] ^= ss[0]; k[v(40,(4*(i))+ 5)] = ss[4] ^= k[v(40,(4*(i))+ 1)]; \
+    ss[2] ^= ss[1]; k[v(40,(4*(i))+ 6)] = ss[4] ^= k[v(40,(4*(i))+ 2)]; \
+    ss[3] ^= ss[2]; k[v(40,(4*(i))+ 7)] = ss[4] ^= k[v(40,(4*(i))+ 3)]; \
+}
+
+#define kdl4(k,i) \
+{   ss[0] ^= ls_box(ss[3],3) ^ t_use(r,c)[i]; k[v(40,(4*(i))+ 4)] = ss[0]; \
+    ss[1] ^= ss[0]; k[v(40,(4*(i))+ 5)] = ss[1]; \
+    ss[2] ^= ss[1]; k[v(40,(4*(i))+ 6)] = ss[2]; \
+    ss[3] ^= ss[2]; k[v(40,(4*(i))+ 7)] = ss[3]; \
+}
+
+#endif
+
+AES_RETURN aes_decrypt_key128(const unsigned char *key, aes_decrypt_ctx cx[1])
+{   uint_32t    ss[5];
+#if defined( d_vars )
         d_vars;
 #endif
-    cx->ks[0] = ss[0] = word_in(in_key, 0);
-    cx->ks[1] = ss[1] = word_in(in_key, 1);
-    cx->ks[2] = ss[2] = word_in(in_key, 2);
-    cx->ks[3] = ss[3] = word_in(in_key, 3);
+    cx->ks[v(40,(0))] = ss[0] = word_in(key, 0);
+    cx->ks[v(40,(1))] = ss[1] = word_in(key, 1);
+    cx->ks[v(40,(2))] = ss[2] = word_in(key, 2);
+    cx->ks[v(40,(3))] = ss[3] = word_in(key, 3);
 
 #if DEC_UNROLL == NONE
-    {   aes_32t i;
-
-        for(i = 0; i < (11 * N_COLS - 1) / 4; ++i)
-            ke4(cx->ks, i);
+    {   uint_32t i;
+        for(i = 0; i < 10; ++i)
+            k4e(cx->ks, i);
 #if !(DEC_ROUND == NO_TABLES)
         for(i = N_COLS; i < 10 * N_COLS; ++i)
             cx->ks[i] = inv_mcol(cx->ks[i]);
@@ -340,13 +356,16 @@ aes_rval aes_decrypt_key128(const void *in_key, aes_decrypt_ctx cx[1])
      kd4(cx->ks, 6);  kd4(cx->ks, 7);
      kd4(cx->ks, 8); kdl4(cx->ks, 9);
 #endif
+    cx->inf.l = 0;
+    cx->inf.b[0] = 10 * 16;
 
-    /* cx->ks[45] ^ cx->ks[52] ^ cx->ks[53] is zero for a 256 bit       */
-    /* key and must be non-zero for 128 and 192 bits keys   */
-    cx->ks[53] = cx->ks[45] = 0;
-    cx->ks[52] = 10;
-#ifdef AES_ERR_CHK
-    return aes_good;
+#ifdef USE_VIA_ACE_IF_PRESENT
+    if(VIA_ACE_AVAILABLE)
+        cx->inf.b[1] = 0xff;
+#endif
+
+#if defined( AES_ERR_CHK )
+    return EXIT_SUCCESS;
 #endif
 }
 
@@ -354,43 +373,86 @@ aes_rval aes_decrypt_key128(const void *in_key, aes_decrypt_ctx cx[1])
 
 #if defined(AES_192) || defined(AES_VAR)
 
-aes_rval aes_decrypt_key192(const void *in_key, aes_decrypt_ctx cx[1])
-{   aes_32t    ss[7];
-#ifdef  d_vars
+#define k6ef(k,i) \
+{   k[v(48,(6*(i))+ 6)] = ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; \
+    k[v(48,(6*(i))+ 7)] = ss[1] ^= ss[0]; \
+    k[v(48,(6*(i))+ 8)] = ss[2] ^= ss[1]; \
+    k[v(48,(6*(i))+ 9)] = ss[3] ^= ss[2]; \
+}
+
+#define k6e(k,i) \
+{   k6ef(k,i); \
+    k[v(48,(6*(i))+10)] = ss[4] ^= ss[3]; \
+    k[v(48,(6*(i))+11)] = ss[5] ^= ss[4]; \
+}
+
+#define kdf6(k,i) \
+{   ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; k[v(48,(6*(i))+ 6)] = ff(ss[0]); \
+    ss[1] ^= ss[0]; k[v(48,(6*(i))+ 7)] = ff(ss[1]); \
+    ss[2] ^= ss[1]; k[v(48,(6*(i))+ 8)] = ff(ss[2]); \
+    ss[3] ^= ss[2]; k[v(48,(6*(i))+ 9)] = ff(ss[3]); \
+    ss[4] ^= ss[3]; k[v(48,(6*(i))+10)] = ff(ss[4]); \
+    ss[5] ^= ss[4]; k[v(48,(6*(i))+11)] = ff(ss[5]); \
+}
+
+#define kd6(k,i) \
+{   ss[6] = ls_box(ss[5],3) ^ t_use(r,c)[i]; \
+    ss[0] ^= ss[6]; ss[6] = ff(ss[6]); k[v(48,(6*(i))+ 6)] = ss[6] ^= k[v(48,(6*(i)))]; \
+    ss[1] ^= ss[0]; k[v(48,(6*(i))+ 7)] = ss[6] ^= k[v(48,(6*(i))+ 1)]; \
+    ss[2] ^= ss[1]; k[v(48,(6*(i))+ 8)] = ss[6] ^= k[v(48,(6*(i))+ 2)]; \
+    ss[3] ^= ss[2]; k[v(48,(6*(i))+ 9)] = ss[6] ^= k[v(48,(6*(i))+ 3)]; \
+    ss[4] ^= ss[3]; k[v(48,(6*(i))+10)] = ss[6] ^= k[v(48,(6*(i))+ 4)]; \
+    ss[5] ^= ss[4]; k[v(48,(6*(i))+11)] = ss[6] ^= k[v(48,(6*(i))+ 5)]; \
+}
+
+#define kdl6(k,i) \
+{   ss[0] ^= ls_box(ss[5],3) ^ t_use(r,c)[i]; k[v(48,(6*(i))+ 6)] = ss[0]; \
+    ss[1] ^= ss[0]; k[v(48,(6*(i))+ 7)] = ss[1]; \
+    ss[2] ^= ss[1]; k[v(48,(6*(i))+ 8)] = ss[2]; \
+    ss[3] ^= ss[2]; k[v(48,(6*(i))+ 9)] = ss[3]; \
+}
+
+AES_RETURN aes_decrypt_key192(const unsigned char *key, aes_decrypt_ctx cx[1])
+{   uint_32t    ss[7];
+#if defined( d_vars )
         d_vars;
 #endif
-    cx->ks[0] = ss[0] = word_in(in_key, 0);
-    cx->ks[1] = ss[1] = word_in(in_key, 1);
-    cx->ks[2] = ss[2] = word_in(in_key, 2);
-    cx->ks[3] = ss[3] = word_in(in_key, 3);
+    cx->ks[v(48,(0))] = ss[0] = word_in(key, 0);
+    cx->ks[v(48,(1))] = ss[1] = word_in(key, 1);
+    cx->ks[v(48,(2))] = ss[2] = word_in(key, 2);
+    cx->ks[v(48,(3))] = ss[3] = word_in(key, 3);
 
 #if DEC_UNROLL == NONE
-    cx->ks[4] = ss[4] = word_in(in_key, 4);
-    cx->ks[5] = ss[5] = word_in(in_key, 5);
-    {   aes_32t i;
+    cx->ks[v(48,(4))] = ss[4] = word_in(key, 4);
+    cx->ks[v(48,(5))] = ss[5] = word_in(key, 5);
+    {   uint_32t i;
 
-        for(i = 0; i < (13 * N_COLS - 1) / 6; ++i)
-            ke6(cx->ks, i);
+        for(i = 0; i < 7; ++i)
+            k6e(cx->ks, i);
+        k6ef(cx->ks, 7);
 #if !(DEC_ROUND == NO_TABLES)
         for(i = N_COLS; i < 12 * N_COLS; ++i)
             cx->ks[i] = inv_mcol(cx->ks[i]);
 #endif
     }
 #else
-    cx->ks[4] = ff(ss[4] = word_in(in_key, 4));
-    cx->ks[5] = ff(ss[5] = word_in(in_key, 5));
+    cx->ks[v(48,(4))] = ff(ss[4] = word_in(key, 4));
+    cx->ks[v(48,(5))] = ff(ss[5] = word_in(key, 5));
     kdf6(cx->ks, 0); kd6(cx->ks, 1);
     kd6(cx->ks, 2);  kd6(cx->ks, 3);
     kd6(cx->ks, 4);  kd6(cx->ks, 5);
     kd6(cx->ks, 6); kdl6(cx->ks, 7);
 #endif
+    cx->inf.l = 0;
+    cx->inf.b[0] = 12 * 16;
 
-    /* cx->ks[45] ^ cx->ks[52] ^ cx->ks[53] is zero for a 256 bit       */
-    /* key and must be non-zero for 128 and 192 bits keys   */
-    cx->ks[53] = cx->ks[45];
-    cx->ks[52] = 12;
-#ifdef AES_ERR_CHK
-    return aes_good;
+#ifdef USE_VIA_ACE_IF_PRESENT
+    if(VIA_ACE_AVAILABLE)
+        cx->inf.b[1] = 0xff;
+#endif
+
+#if defined( AES_ERR_CHK )
+    return EXIT_SUCCESS;
 #endif
 }
 
@@ -398,42 +460,98 @@ aes_rval aes_decrypt_key192(const void *in_key, aes_decrypt_ctx cx[1])
 
 #if defined(AES_256) || defined(AES_VAR)
 
-aes_rval aes_decrypt_key256(const void *in_key, aes_decrypt_ctx cx[1])
-{   aes_32t    ss[8];
-#ifdef  d_vars
+#define k8ef(k,i) \
+{   k[v(56,(8*(i))+ 8)] = ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; \
+    k[v(56,(8*(i))+ 9)] = ss[1] ^= ss[0]; \
+    k[v(56,(8*(i))+10)] = ss[2] ^= ss[1]; \
+    k[v(56,(8*(i))+11)] = ss[3] ^= ss[2]; \
+}
+
+#define k8e(k,i) \
+{   k8ef(k,i); \
+    k[v(56,(8*(i))+12)] = ss[4] ^= ls_box(ss[3],0); \
+    k[v(56,(8*(i))+13)] = ss[5] ^= ss[4]; \
+    k[v(56,(8*(i))+14)] = ss[6] ^= ss[5]; \
+    k[v(56,(8*(i))+15)] = ss[7] ^= ss[6]; \
+}
+
+#define kdf8(k,i) \
+{   ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; k[v(56,(8*(i))+ 8)] = ff(ss[0]); \
+    ss[1] ^= ss[0]; k[v(56,(8*(i))+ 9)] = ff(ss[1]); \
+    ss[2] ^= ss[1]; k[v(56,(8*(i))+10)] = ff(ss[2]); \
+    ss[3] ^= ss[2]; k[v(56,(8*(i))+11)] = ff(ss[3]); \
+    ss[4] ^= ls_box(ss[3],0); k[v(56,(8*(i))+12)] = ff(ss[4]); \
+    ss[5] ^= ss[4]; k[v(56,(8*(i))+13)] = ff(ss[5]); \
+    ss[6] ^= ss[5]; k[v(56,(8*(i))+14)] = ff(ss[6]); \
+    ss[7] ^= ss[6]; k[v(56,(8*(i))+15)] = ff(ss[7]); \
+}
+
+#define kd8(k,i) \
+{   ss[8] = ls_box(ss[7],3) ^ t_use(r,c)[i]; \
+    ss[0] ^= ss[8]; ss[8] = ff(ss[8]); k[v(56,(8*(i))+ 8)] = ss[8] ^= k[v(56,(8*(i)))]; \
+    ss[1] ^= ss[0]; k[v(56,(8*(i))+ 9)] = ss[8] ^= k[v(56,(8*(i))+ 1)]; \
+    ss[2] ^= ss[1]; k[v(56,(8*(i))+10)] = ss[8] ^= k[v(56,(8*(i))+ 2)]; \
+    ss[3] ^= ss[2]; k[v(56,(8*(i))+11)] = ss[8] ^= k[v(56,(8*(i))+ 3)]; \
+    ss[8] = ls_box(ss[3],0); \
+    ss[4] ^= ss[8]; ss[8] = ff(ss[8]); k[v(56,(8*(i))+12)] = ss[8] ^= k[v(56,(8*(i))+ 4)]; \
+    ss[5] ^= ss[4]; k[v(56,(8*(i))+13)] = ss[8] ^= k[v(56,(8*(i))+ 5)]; \
+    ss[6] ^= ss[5]; k[v(56,(8*(i))+14)] = ss[8] ^= k[v(56,(8*(i))+ 6)]; \
+    ss[7] ^= ss[6]; k[v(56,(8*(i))+15)] = ss[8] ^= k[v(56,(8*(i))+ 7)]; \
+}
+
+#define kdl8(k,i) \
+{   ss[0] ^= ls_box(ss[7],3) ^ t_use(r,c)[i]; k[v(56,(8*(i))+ 8)] = ss[0]; \
+    ss[1] ^= ss[0]; k[v(56,(8*(i))+ 9)] = ss[1]; \
+    ss[2] ^= ss[1]; k[v(56,(8*(i))+10)] = ss[2]; \
+    ss[3] ^= ss[2]; k[v(56,(8*(i))+11)] = ss[3]; \
+}
+
+AES_RETURN aes_decrypt_key256(const unsigned char *key, aes_decrypt_ctx cx[1])
+{   uint_32t    ss[9];
+#if defined( d_vars )
         d_vars;
 #endif
-    cx->ks[0] = ss[0] = word_in(in_key, 0);
-    cx->ks[1] = ss[1] = word_in(in_key, 1);
-    cx->ks[2] = ss[2] = word_in(in_key, 2);
-    cx->ks[3] = ss[3] = word_in(in_key, 3);
+    cx->ks[v(56,(0))] = ss[0] = word_in(key, 0);
+    cx->ks[v(56,(1))] = ss[1] = word_in(key, 1);
+    cx->ks[v(56,(2))] = ss[2] = word_in(key, 2);
+    cx->ks[v(56,(3))] = ss[3] = word_in(key, 3);
 
 #if DEC_UNROLL == NONE
-    cx->ks[4] = ss[4] = word_in(in_key, 4);
-    cx->ks[5] = ss[5] = word_in(in_key, 5);
-    cx->ks[6] = ss[6] = word_in(in_key, 6);
-    cx->ks[7] = ss[7] = word_in(in_key, 7);
-    {   aes_32t i;
+    cx->ks[v(56,(4))] = ss[4] = word_in(key, 4);
+    cx->ks[v(56,(5))] = ss[5] = word_in(key, 5);
+    cx->ks[v(56,(6))] = ss[6] = word_in(key, 6);
+    cx->ks[v(56,(7))] = ss[7] = word_in(key, 7);
+    {   uint_32t i;
 
-        for(i = 0; i < (15 * N_COLS - 1) / 8; ++i)
-            ke8(cx->ks,  i);
+        for(i = 0; i < 6; ++i)
+            k8e(cx->ks,  i);
+        k8ef(cx->ks,  6);
 #if !(DEC_ROUND == NO_TABLES)
         for(i = N_COLS; i < 14 * N_COLS; ++i)
             cx->ks[i] = inv_mcol(cx->ks[i]);
+
 #endif
     }
 #else
-    cx->ks[4] = ff(ss[4] = word_in(in_key, 4));
-    cx->ks[5] = ff(ss[5] = word_in(in_key, 5));
-    cx->ks[6] = ff(ss[6] = word_in(in_key, 6));
-    cx->ks[7] = ff(ss[7] = word_in(in_key, 7));
+    cx->ks[v(56,(4))] = ff(ss[4] = word_in(key, 4));
+    cx->ks[v(56,(5))] = ff(ss[5] = word_in(key, 5));
+    cx->ks[v(56,(6))] = ff(ss[6] = word_in(key, 6));
+    cx->ks[v(56,(7))] = ff(ss[7] = word_in(key, 7));
     kdf8(cx->ks, 0); kd8(cx->ks, 1);
     kd8(cx->ks, 2);  kd8(cx->ks, 3);
     kd8(cx->ks, 4);  kd8(cx->ks, 5);
     kdl8(cx->ks, 6);
 #endif
-#ifdef AES_ERR_CHK
-    return aes_good;
+    cx->inf.l = 0;
+    cx->inf.b[0] = 14 * 16;
+
+#ifdef USE_VIA_ACE_IF_PRESENT
+    if(VIA_ACE_AVAILABLE)
+        cx->inf.b[1] = 0xff;
+#endif
+
+#if defined( AES_ERR_CHK )
+    return EXIT_SUCCESS;
 #endif
 }
 
@@ -441,19 +559,19 @@ aes_rval aes_decrypt_key256(const void *in_key, aes_decrypt_ctx cx[1])
 
 #if defined(AES_VAR)
 
-aes_rval aes_decrypt_key(const void *in_key, int key_len, aes_decrypt_ctx cx[1])
+AES_RETURN aes_decrypt_key(const unsigned char *key, int key_len, aes_decrypt_ctx cx[1])
 {
     switch(key_len)
     {
-#ifdef AES_ERR_CHK
-    case 16: case 128: return aes_decrypt_key128(in_key, cx);
-    case 24: case 192: return aes_decrypt_key192(in_key, cx);
-    case 32: case 256: return aes_decrypt_key256(in_key, cx);
-    default: return aes_error;
+#if defined( AES_ERR_CHK )
+    case 16: case 128: return aes_decrypt_key128(key, cx);
+    case 24: case 192: return aes_decrypt_key192(key, cx);
+    case 32: case 256: return aes_decrypt_key256(key, cx);
+    default: return EXIT_FAILURE;
 #else
-    case 16: case 128: aes_decrypt_key128(in_key, cx); return;
-    case 24: case 192: aes_decrypt_key192(in_key, cx); return;
-    case 32: case 256: aes_decrypt_key256(in_key, cx); return;
+    case 16: case 128: aes_decrypt_key128(key, cx); return;
+    case 24: case 192: aes_decrypt_key192(key, cx); return;
+    case 32: case 256: aes_decrypt_key256(key, cx); return;
 #endif
     }
 }

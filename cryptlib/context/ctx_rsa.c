@@ -8,12 +8,10 @@
 /* I suppose if we all used pure RSA, the Illuminati would blackmail God into
    putting a trapdoor into the laws of mathematics.
 														-- Lyle Seaman */
-#include <stdlib.h>
+
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "context.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "context.h"
 #else
   #include "crypt.h"
@@ -42,7 +40,7 @@ typedef struct {
 	const int e2Len; const BYTE e2[ 32 ];
 	} RSA_PRIVKEY;
 
-static const FAR_BSS RSA_PRIVKEY rsaTestKey = {
+static const RSA_PRIVKEY FAR_BSS rsaTestKey = {
 	/* n */
 	64,
 	{ 0xE1, 0x95, 0x41, 0x17, 0xB4, 0xCB, 0xDC, 0xD0,
@@ -107,13 +105,13 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr )
 	/* Encrypt with the public key */
 	memset( buffer, 0, CRYPT_MAX_PKCSIZE );
 	memcpy( buffer + 1, "abcde", 5 );
-	status = capabilityInfoPtr->encryptFunction( contextInfoPtr, buffer, 
+	status = capabilityInfoPtr->encryptFunction( contextInfoPtr, buffer,
 						 bitsToBytes( contextInfoPtr->ctxPKC->keySizeBits ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
 
 	/* Decrypt with the private key */
-	status = capabilityInfoPtr->decryptFunction( contextInfoPtr, buffer, 
+	status = capabilityInfoPtr->decryptFunction( contextInfoPtr, buffer,
 						 bitsToBytes( contextInfoPtr->ctxPKC->keySizeBits ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
@@ -125,7 +123,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfoPtr = getRSACapability();
 	CONTEXT_INFO contextInfoPtr;
 	PKC_INFO pkcInfoStorage, *pkcInfo;
-	BYTE buffer[ 64 ];
+	BYTE buffer[ 64 + 8 ];
 	int status;
 
 	/* Initialise the key components */
@@ -143,11 +141,13 @@ static int selfTest( void )
 	BN_init( &pkcInfo->tmp1 );
 	BN_init( &pkcInfo->tmp2 );
 	BN_init( &pkcInfo->tmp3 );
-	BN_CTX_init( &pkcInfo->bnCTX );
+	pkcInfo->bnCTX = BN_CTX_new();
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_n );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_p );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_q );
 	contextInfoPtr.capabilityInfo = capabilityInfoPtr;
+	contextInfoPtr.type = CONTEXT_PKC;
+	initKeyRead( &contextInfoPtr );
 	initKeyWrite( &contextInfoPtr );	/* For calcKeyID() */
 	BN_bin2bn( rsaTestKey.n, rsaTestKey.nLen, &pkcInfo->rsaParam_n );
 	BN_bin2bn( rsaTestKey.e, rsaTestKey.eLen, &pkcInfo->rsaParam_e );
@@ -165,31 +165,33 @@ static int selfTest( void )
 		status = CRYPT_ERROR;
 	else
 		{
-		/* Try it again with blinding enabled */
+		/* Try it again with blinding enabled.  Note that this uses the
+		   randomness subsystem, which can significantly slow down the self-
+		   test if it's being performed before the polling has completed */
 		memset( buffer, 0, 64 );
 		memcpy( buffer, "abcde", 5 );
 		contextInfoPtr.flags |= CONTEXT_SIDECHANNELPROTECTION;
 		status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 		if( cryptStatusOK( status ) )
-			status = capabilityInfoPtr->encryptFunction( &contextInfoPtr, 
+			status = capabilityInfoPtr->encryptFunction( &contextInfoPtr,
 														 buffer, 64 );
 		if( cryptStatusOK( status ) )
-			status = capabilityInfoPtr->decryptFunction( &contextInfoPtr, 
+			status = capabilityInfoPtr->decryptFunction( &contextInfoPtr,
 														 buffer, 64 );
 		if( cryptStatusError( status ) || memcmp( buffer, "abcde", 5 ) )
 			status = CRYPT_ERROR;
 		else
 			{
-			/* And one last time to ensure that the blinding value update 
+			/* And one last time to ensure that the blinding value update
 			   works */
 			memset( buffer, 0, 64 );
 			memcpy( buffer, "abcde", 5 );
 			status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 			if( cryptStatusOK( status ) )
-				status = capabilityInfoPtr->encryptFunction( &contextInfoPtr, 
+				status = capabilityInfoPtr->encryptFunction( &contextInfoPtr,
 															 buffer, 64 );
 			if( cryptStatusOK( status ) )
-				status = capabilityInfoPtr->decryptFunction( &contextInfoPtr, 
+				status = capabilityInfoPtr->decryptFunction( &contextInfoPtr,
 															 buffer, 64 );
 			if( cryptStatusError( status ) || memcmp( buffer, "abcde", 5 ) )
 				status = CRYPT_ERROR;
@@ -208,7 +210,7 @@ static int selfTest( void )
 	BN_clear_free( &pkcInfo->tmp1 );
 	BN_clear_free( &pkcInfo->tmp2 );
 	BN_clear_free( &pkcInfo->tmp3 );
-	BN_CTX_free( &pkcInfo->bnCTX );
+	BN_CTX_free( pkcInfo->bnCTX );
 	BN_MONT_CTX_free( &pkcInfo->rsaParam_mont_n );
 	BN_MONT_CTX_free( &pkcInfo->rsaParam_mont_p );
 	BN_MONT_CTX_free( &pkcInfo->rsaParam_mont_q );
@@ -224,8 +226,8 @@ static int selfTest( void )
 *																			*
 ****************************************************************************/
 
-/* Encrypt/signature check a single block of data.  We have to append the 
-   distinguisher 'Fn' to the name since some systems already have 'encrypt' 
+/* Encrypt/signature check a single block of data.  We have to append the
+   distinguisher 'Fn' to the name since some systems already have 'encrypt'
    and 'decrypt' in their standard headers */
 
 static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
@@ -238,10 +240,10 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 	assert( noBytes == length );
 
-	/* Make sure that we're not being fed suspiciously short data 
+	/* Make sure that we're not being fed suspiciously short data
 	   quantities */
 	for( i = 0; i < length; i++ )
-		if( buffer[ i ] )
+		if( buffer[ i ] != 0 )
 			break;
 	if( length - i < 56 )
 		return( CRYPT_ERROR_BADDATA );
@@ -253,7 +255,7 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	   extracted from the bignum */
 	BN_bin2bn( buffer, length, data );
 	zeroise( buffer, length );	/* Clear buffer while data is in bignum */
-	CK( BN_mod_exp_mont( data, data, e, n, &pkcInfo->bnCTX, 
+	CK( BN_mod_exp_mont( data, data, e, n, pkcInfo->bnCTX,
 						 &pkcInfo->rsaParam_mont_n ) );
 	BN_bn2bin( data, buffer + ( length - BN_num_bytes( data ) ) );
 
@@ -262,30 +264,30 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Use the Chinese Remainder Theorem shortcut for RSA decryption/signature
    generation.  n isn't needed because of this.
-   
+
    There are two types of side-channel attack protection that we employ for
-   prvate-key operations, the first being standard blinding included in the 
-   code below.  The second type applies to CRT-based RSA implementations and 
-   is based on the fact that if a fault occurs during the computation of p2 
-   or q2 (to give, say, p2') then applying the CRT will yield a faulty 
-   signature M'.  An attacker can then compute q from 
+   prvate-key operations, the first being standard blinding included in the
+   code below.  The second type applies to CRT-based RSA implementations and
+   is based on the fact that if a fault occurs during the computation of p2
+   or q2 (to give, say, p2') then applying the CRT will yield a faulty
+   signature M'.  An attacker can then compute q from
    gcd( M' ** e - ( C mod n ), n ), and the same for q2' and p.  The chances
    of this actually occurring are... unlikely, given that it requires a
    singleton failure inside the CPU (with data running over ECC-protected
    buses) at the exact moment of CRT computation (the original threat model
-   assumed a fault-injection attack on a smart card), however we can still 
+   assumed a fault-injection attack on a smart card), however we can still
    provide protection against the problem for people who consider it a
    genuine threat.
 
    The problem was originally pointed out by Marc Joye, Arjen Lenstra, and
    Jean-Jacques Quisquater in "Chinese Remaindering Based Cryptosystems in
-   the Presence of Faults", Journal of Cryptology, Vol.12, No.4 (Autumn 
+   the Presence of Faults", Journal of Cryptology, Vol.12, No.4 (Autumn
    1999), p.241, based on an earlier result "On the importance of checking
    cryptographic protocols for faults", Dan Boneh, Richard DeMillo, and
    Richard Lipton, EuroCrypt'97, LNCS Vol.1233, p.37.  Adi Shamir presented
-   one possible solution to the problem in the conference's rump session in 
-   "How to check modular exponentiation", which performs a parallel 
-   computation of the potentially fault-affected portions of the CRT 
+   one possible solution to the problem in the conference's rump session in
+   "How to check modular exponentiation", which performs a parallel
+   computation of the potentially fault-affected portions of the CRT
    operation in blinded form and then checks that the two outputs are
    consistent.  This has three drawbacks: It's slow, Shamir patented it
    (US Patent 5,991,415), and if one CRT is faulty there's no guarantee
@@ -294,18 +296,18 @@ static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
    Moon in "RSA Speedup with Residue Number System Immune against Hardware
    Fault Cryptanalysis", ICISC'01, LNCS Vol.2288, p.397.  These have less
    overhead than Shamir's approach and are also less patented, but like
-   Shamir's approach they involve messing around with the CRT computation.  
+   Shamir's approach they involve messing around with the CRT computation.
    A further update to this given by Sung-Ming Yen, Sangjae Kim, and Jae-
-   Cheol Ha in "Hardware Fault Attack on RSA with CRT Revisited", ICISC'02, 
-   LNCS Vol.2587, p.374, which updated the earlier work and also found flaws 
+   Cheol Ha in "Hardware Fault Attack on RSA with CRT Revisited", ICISC'02,
+   LNCS Vol.2587, p.374, which updated the earlier work and also found flaws
    in Shamir's solution.
-   
+
    A much simpler solution is just to verify the CRT-based private-key
-   operation with the matching public-key operation after we perform it.  
-   Since this is only required for signatures (the output of a decrypt is 
-   (a) never visible to an attacker and (b) verified via the PKCS #1 
-   padding), we perform this operation at a higher level, performing a 
-   signature verify after each signature generation at the crypto mechanism 
+   operation with the matching public-key operation after we perform it.
+   Since this is only required for signatures (the output of a decrypt is
+   (a) never visible to an attacker and (b) verified via the PKCS #1
+   padding), we perform this operation at a higher level, performing a
+   signature verify after each signature generation at the crypto mechanism
    level */
 
 static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
@@ -316,16 +318,16 @@ static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	BIGNUM *e2 = &pkcInfo->rsaParam_exponent2;
 	BIGNUM *data = &pkcInfo->tmp1, *p2 = &pkcInfo->tmp2, *q2 = &pkcInfo->tmp3;
 	const int length = bitsToBytes( pkcInfo->keySizeBits );
-	int i, bnStatus = BN_STATUS;
+	int i, iterationCount = 0, bnStatus = BN_STATUS;
 
 	assert( noBytes == length );
 
-	/* Make sure that we're not being fed suspiciously short data quantities.  
-	   We need to make one unfortunate exception for this to handle SSL's 
-	   weird signatures, which sign a raw concatenated MD5 and SHA-1 hash 
+	/* Make sure that we're not being fed suspiciously short data quantities.
+	   We need to make one unfortunate exception for this to handle SSL's
+	   weird signatures, which sign a raw concatenated MD5 and SHA-1 hash
 	   with a total length of 36 bytes */
 	for( i = 0; i < length; i++ )
-		if( buffer[ i ] )
+		if( buffer[ i ] != 0 )
 			break;
 	if( ( length - i < 56 ) && ( length - i ) != 36 )
 		return( CRYPT_ERROR_BADDATA );
@@ -333,49 +335,51 @@ static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	BN_bin2bn( buffer, length, data );
 	zeroise( buffer, length );	/* Clear buffer while data is in bignum */
 
-	/* If we're blinding the RSA operation, set 
+	/* If we're blinding the RSA operation, set
 	   data = ( ( rand^e ) * data ) mod n */
 	if( contextInfoPtr->flags & CONTEXT_SIDECHANNELPROTECTION )
-		CK( BN_mod_mul( data, data, &pkcInfo->rsaParam_blind_k, 
-						&pkcInfo->rsaParam_n, &pkcInfo->bnCTX ) );
+		CK( BN_mod_mul( data, data, &pkcInfo->rsaParam_blind_k,
+						&pkcInfo->rsaParam_n, pkcInfo->bnCTX ) );
 
-	/* Rather than decrypting by computing a modexp with full mod n 
+	/* Rather than decrypting by computing a modexp with full mod n
 	   precision, compute a shorter modexp with mod p and mod q precision:
 		p2 = ( ( C mod p ) ** exponent1 ) mod p
 		q2 = ( ( C mod q ) ** exponent2 ) mod q */
 	CK( BN_mod( p2, data, p,			/* p2 = C mod p  */
-				&pkcInfo->bnCTX ) );
-	CK( BN_mod_exp_mont( p2, p2, e1, p, &pkcInfo->bnCTX, 
+				pkcInfo->bnCTX ) );
+	CK( BN_mod_exp_mont( p2, p2, e1, p, pkcInfo->bnCTX,
 						 &pkcInfo->rsaParam_mont_p ) );
 	CK( BN_mod( q2, data, q,			/* q2 = C mod q  */
-				&pkcInfo->bnCTX ) );
-	CK( BN_mod_exp_mont( q2, q2, e2, q, &pkcInfo->bnCTX, 
+				pkcInfo->bnCTX ) );
+	CK( BN_mod_exp_mont( q2, q2, e2, q, pkcInfo->bnCTX,
 						 &pkcInfo->rsaParam_mont_q ) );
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
 
-	/* p2 = p2 - q2; if p2 < 0 then p2 = p2 + p.  In some extremely rare 
-	   cases (q2 large, p2 small) we have to add p twice to get p2 
+	/* p2 = p2 - q2; if p2 < 0 then p2 = p2 + p.  In some extremely rare
+	   cases (q2 large, p2 small) we have to add p twice to get p2
 	   positive */
 	CK( BN_sub( p2, p2, q2 ) );
-	while( p2->neg )
+	while( p2->neg && iterationCount++ < FAILSAFE_ITERATIONS_SMALL )
 		{
 		CK( BN_add( p2, p2, p ) );
 		if( bnStatusError( bnStatus ) )
 			return( getBnStatus( bnStatus ) );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_SMALL )
+		retIntError();
 
 	/* M = ( ( ( p2 * u ) mod p ) * q ) + q2 */
 	CK( BN_mod_mul( data, p2, u, p,		/* data = ( p2 * u ) mod p */
-					&pkcInfo->bnCTX ) );
+					pkcInfo->bnCTX ) );
 	CK( BN_mul( p2, data, q,			/* p2 = data * q (bn can't reuse data) */
-				&pkcInfo->bnCTX ) );
+				pkcInfo->bnCTX ) );
 	CK( BN_add( data, p2, q2 ) );		/* data = p2 + q2 */
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
 
-	/* If we're blinding the RSA operation, set 
-	   data = ( ( data^e ) / rand ) mod n 
+	/* If we're blinding the RSA operation, set
+	   data = ( ( data^e ) / rand ) mod n
 			= ( rand^-1 * data ) mod n */
 	if( contextInfoPtr->flags & CONTEXT_SIDECHANNELPROTECTION )
 		{
@@ -383,23 +387,23 @@ static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		BIGNUM *k = &pkcInfo->rsaParam_blind_k;
 		BIGNUM *kInv = &pkcInfo->rsaParam_blind_kInv;
 
-		CK( BN_mod_mul( data, data, kInv, n, &pkcInfo->bnCTX ) );
-		
+		CK( BN_mod_mul( data, data, kInv, n, pkcInfo->bnCTX ) );
+
 		/* Update the blinding values in such a way that we get new random
 		   (that is, unpredictable to an outsider) numbers of the correct
 		   form without having to do a full modexp as we would if starting
 		   with new random data:
-	
+
 			k = ( k^2 ) mod n */
-		CK( BN_mod_mul( k, k, k, n, &pkcInfo->bnCTX ) );
-		CK( BN_mod_mul( kInv, kInv, kInv, n, &pkcInfo->bnCTX ) );
+		CK( BN_mod_mul( k, k, k, n, pkcInfo->bnCTX ) );
+		CK( BN_mod_mul( kInv, kInv, kInv, n, pkcInfo->bnCTX ) );
 		if( bnStatusError( bnStatus ) )
 			return( getBnStatus( bnStatus ) );
 		}
 
-	/* Copy the result to the output buffer.  Since the bignum code performs 
-	   leading-zero truncation, we have to adjust where we copy the result 
-	   to in the buffer to take into account extra zero bytes that aren't 
+	/* Copy the result to the output buffer.  Since the bignum code performs
+	   leading-zero truncation, we have to adjust where we copy the result
+	   to in the buffer to take into account extra zero bytes that aren't
 	   extracted from the bignum */
 	BN_bn2bin( data, buffer + ( length - BN_num_bytes( data ) ) );
 
@@ -414,7 +418,7 @@ static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Load key components into an encryption context */
 
-static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 					const int keyLength )
 	{
 	int status;
@@ -455,7 +459,7 @@ static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	/* Complete the key checking and setup */
 	status = initCheckRSAkey( contextInfoPtr );
 	if( cryptStatusOK( status ) )
-		status = calculateKeyID( contextInfoPtr );
+		status = contextInfoPtr->ctxPKC->calculateKeyIDFunction( contextInfoPtr );
 	return( status );
 	}
 
@@ -466,7 +470,7 @@ static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	int status;
 
 	status = generateRSAkey( contextInfoPtr, keySizeBits );
-	if( cryptStatusOK( status ) && 
+	if( cryptStatusOK( status ) &&
 #ifndef USE_FIPS140
 		( contextInfoPtr->flags & CONTEXT_SIDECHANNELPROTECTION ) &&
 #endif /* USE_FIPS140 */
@@ -476,7 +480,7 @@ static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 		status = CRYPT_ERROR_FAILED;
 		}
 	if( cryptStatusOK( status ) )
-		status = calculateKeyID( contextInfoPtr );
+		status = contextInfoPtr->ctxPKC->calculateKeyIDFunction( contextInfoPtr );
 	return( status );
 	}
 

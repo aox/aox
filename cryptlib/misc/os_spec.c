@@ -1,17 +1,14 @@
 /****************************************************************************
 *																			*
 *					cryptlib OS-specific Support Routines					*
-*					  Copyright Peter Gutmann 1992-2005						*
+*					  Copyright Peter Gutmann 1992-2006						*
 *																			*
 ****************************************************************************/
 
 #include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
 #else
   #include "crypt.h"
 #endif /* Compiler-specific includes */
@@ -25,10 +22,10 @@
 #if defined( __AMX__ )
 
 /* The AMX task-priority function returns the priority via a reference
-   parameter.  Because of this we have to provide a wrapper that returns 
+   parameter.  Because of this we have to provide a wrapper that returns
    it as a return value */
 
-int threadPriority( void )	
+int threadPriority( void )
 	{
 	int priority = 0;
 
@@ -85,8 +82,8 @@ int stricmp( const char *src, const char *dest )
 
 #elif defined( __UCOS__ )
 
-/* uC/OS-II doesn't have a thread-self function, but allows general task 
-   info to be queried.  Because of this we provide a wrapper that returns 
+/* uC/OS-II doesn't have a thread-self function, but allows general task
+   info to be queried.  Because of this we provide a wrapper that returns
    the task ID as its return value */
 
 INT8U threadSelf( void )
@@ -323,7 +320,8 @@ const BYTE asciiCtypeTbl[ 256 ] = {
 
 int strCompare( const char *src, const char *dest, int length )
 	{
-	BYTE buffer1[ MAX_ATTRIBUTE_SIZE ], buffer2[ MAX_ATTRIBUTE_SIZE ];
+	BYTE buffer1[ MAX_ATTRIBUTE_SIZE + 8 ];
+	BYTE buffer2[ MAX_ATTRIBUTE_SIZE + 8 ];
 
 	assert( isReadPtr( src, length ) );
 
@@ -352,12 +350,13 @@ int strCompareZ( const char *src, const char *dest )
 	return( strCompare( src, dest, length ) );
 	}
 
-/* sprintf() that takes an ASCII format string */
+/* sprintf_s() that takes an ASCII format string */
 
-int sPrintf( char *buffer, const char *format, ... )
+int sPrintf_s( char *buffer, const int bufSize, const char *format, ... )
 	{
-	BYTE formatBuffer[ MAX_ATTRIBUTE_SIZE ];
+	BYTE formatBuffer[ MAX_ATTRIBUTE_SIZE + 8 ];
 	va_list argPtr;
+	const int formatLen = strlen( format ) - 1;
 #ifndef NDEBUG
 	int i;
 #endif /* NDEBUG */
@@ -366,13 +365,13 @@ int sPrintf( char *buffer, const char *format, ... )
 #ifndef NDEBUG
 	/* Make sure that we don't have any string args, which would require
 	   their own conversion to EBCDIC */
-	for( i = 0; i < strlen( format ) - 1; i++ )
+	for( i = 0; i < formatLen; i++ )
 		if( format[ i ] == '%' && format[ i + 1 ] == 's' )
 			assert( NOTREACHED );
 #endif /* NDEBUG */
 	format = bufferToEbcdic( formatBuffer, format );
 	va_start( argPtr, format );
-	status = vsprintf( buffer, format, argPtr );
+	status = vsnprintf( buffer, bufSize, format, argPtr );
 	if( status > 0 )
 		ebcdicToAscii( buffer, status );
 	va_end( argPtr );
@@ -383,7 +382,7 @@ int sPrintf( char *buffer, const char *format, ... )
 
 int aToI( const char *str )
 	{
-	BYTE buffer[ 16 ];
+	BYTE buffer[ 16 + 8 ];
 
 	/* The maximum length of a numeric string value that can be converted
 	   to a 4-byte integer is considered as 10 characters (9,999,999,999) */
@@ -501,7 +500,7 @@ long getTickCount( long startTime )
 	timeLSB = tv.tv_usec;
 
 	/* If we're getting an initial time, return an absolute value */
-	if( !startTime )
+	if( startTime <= 0 )
 		return( timeLSB );
 
 	/* We're getting a time difference */
@@ -512,12 +511,37 @@ long getTickCount( long startTime )
 		timeDifference = ( 1000000L - startTime ) + timeLSB;
 	if( timeDifference <= 0 )
 		{
-		printf( "Error: Time difference = %X, startTime = %X, endTime = %X.\n",
-				timeDifference, startTime, timeLSB );
+		printf( "Error: Time difference = %lX, startTime = %lX, "
+				"endTime = %lX.\n", timeDifference, startTime, timeLSB );
 		return( 1 );
 		}
 	return( timeDifference );
 	}
+
+/* SunOS and older Slowaris have broken sprintf() handling.  In SunOS 4.x
+   this was documented as returning a pointer to the output data as per the
+   Berkeley original.  Under Slowaris the manpage was changed so that it
+   looks like any other sprintf(), but it still returns the pointer to the
+   output buffer in some versions so we use a wrapper that checks at
+   runtime to see what we've got and adjusts its behaviour accordingly.  In
+   fact it's much easier to fix than that, since we have to use vsprintf()
+   anyway and this doesn't have the sprintf() problem, this fixes itself
+   simply from the use of the wrapper */
+
+#if defined( sun ) && ( OSVERSION <= 5 )
+
+int fixedSprintf( char *buffer, const int bufSize, const char *format, ... )
+	{
+	va_list argPtr;
+	int length;
+
+	va_start( argPtr, format );
+	length = vsnprintf( buffer, bufSize, format, argPtr );
+	va_end( argPtr );
+
+	return( length );
+	}
+#endif /* Old SunOS */
 
 /****************************************************************************
 *																			*
@@ -532,6 +556,68 @@ long getTickCount( long startTime )
 
 BOOLEAN isWin95;
 
+/* Yielding a thread on an SMP or HT system is a tricky process,
+   particularly on an HT system.  On an HT CPU the OS (or at least apps
+   running under the OS) think that there are two independent CPUs present,
+   but it's really just one CPU with partitioning of pipeline slots.  So
+   when one thread yields, the only effect is that all of its pipeline slots
+   get marked as available.  Since the other thread can't utilise those
+   slots, the first thread immediately reclaims them and continues to run.
+   In addition thread scheduling varies across OS versions, the WinXP
+   scheduler was changed to preferentially schedule threads on idle physical
+   processors rather than an idle logical processor on a physical processor
+   whose other logical processor is (potentially) busy.
+
+   There isn't really any easy way to fix this since it'd require a sleep
+   that works across all CPUs, however a somewhat suboptimal solution is
+   to make the thread sleep for a nonzero time limit iff it's running on a
+   multi-CPU system.  The following code implements this, performing a
+   standard yield on a uniprocessor system and a minimum-time-quantum sleep
+   on an HT/SMP system.
+
+   Another problem concerns thread priorities.  If we're at a higher
+   priority than the other thread then we can call Sleep( 0 ) as much as we
+   like, but the scheduler will never allow the other thread to run since
+   we're a higher-priority runnable thread, so as soon as we release our
+   timeslice the scheduler will restart us again (the Windows scheduler has a
+   starvation-prevention mechanism, but this various across scheduler
+   versions and isn't something that we want to rely on).  In theory we
+   could do:
+
+		x = GetThreadPriority( GetCurrentThread() );
+		SetThreadPriority( GetCurrentThread(), x - 5 );
+		Sleep( 0 );		// Needed to effect priority change
+		<wait loop>
+		SetThreadPriority( GetCurrentThread(), x );
+		Sleep( 0 );
+
+	however this is somewhat problematic if the caller is also messing with
+	priorities at the same time.
+
+	(Actually this simplified view isn't quite accurate since on a HT system
+	the scheduler executes the top *two* threads on the two logical
+	processors and on a dual-CPU system they're executed on a physical
+	processor.  In addition on a HT system a lower-priority thread on one
+	logical processor can compete with a higher-priority thread on the other
+	logical processor since the hardware isn't aware of thread priorities) */
+
+void threadYield( void )
+	{
+	static int sleepTime = -1;
+
+	/* If the sleep time hasn't been determined yet, get it now */
+	if( sleepTime < 0 )
+		{
+		SYSTEM_INFO systemInfo;
+
+		GetSystemInfo( &systemInfo );
+		sleepTime = ( systemInfo.dwNumberOfProcessors > 1 ) ? 5 : 0;
+		}
+
+	/* Yield the CPU for this thread */
+	Sleep( sleepTime );
+	}
+
 /* For performance evaluation purposes we provide the following function,
    which returns ticks of the 3.579545 MHz hardware timer (see the long
    comment in rndwin32.c for more details on Win32 timing issues) */
@@ -540,7 +626,7 @@ long getTickCount( long startTime )
 	{
 	long timeLSB, timeDifference;
 
-#if 1
+#ifndef __BORLANDC__
 	LARGE_INTEGER performanceCount;
 
 	/* Sensitive to context switches */
@@ -548,16 +634,15 @@ long getTickCount( long startTime )
 	timeLSB = performanceCount.LowPart;
 #else
 	FILETIME dummyTime, kernelTime, userTime;
-	int status;
 
 	/* Only accurate to 10ms, returns constant values in VC++ debugger */
 	GetThreadTimes( GetCurrentThread(), &dummyTime, &dummyTime,
 					&kernelTime, &userTime );
 	timeLSB = userTime.dwLowDateTime;
-#endif /* 0 */
+#endif /* BC++ vs. everything else */
 
 	/* If we're getting an initial time, return an absolute value */
-	if( !startTime )
+	if( startTime <= 0 )
 		return( timeLSB );
 
 	/* We're getting a time difference */
@@ -574,6 +659,24 @@ long getTickCount( long startTime )
 		}
 	return( timeDifference );
 	}
+
+/* Borland C++ before 5.50 doesn't have snprintf() so we fake it using
+   sprintf() */
+
+#if defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x0550 )
+
+int bcSnprintf( char *buffer, const int bufSize, const char *format, ... )
+	{
+	va_list argPtr;
+	int length;
+
+	va_start( argPtr, format );
+	length = vsprintf( buffer, format, argPtr );
+	va_end( argPtr );
+
+	return( length );
+	}
+#endif /* BC++ before 5.50 */
 
 /* Windows NT/2000/XP support ACL-based access control mechanisms for system
    objects, so when we create objects such as files and threads we give them
@@ -609,8 +712,8 @@ typedef struct {
 	SECURITY_DESCRIPTOR pSecurityDescriptor;
 	PACL pAcl;
 	PTOKEN_USER pTokenUser;
-	BYTE aclBuffer[ ACL_BUFFER_SIZE ];
-	BYTE tokenBuffer[ TOKEN_BUFFER_SIZE ];
+	BYTE aclBuffer[ ACL_BUFFER_SIZE + 8 ];
+	BYTE tokenBuffer[ TOKEN_BUFFER_SIZE + 8 ];
 	} SECURITY_INFO;
 
 /* Initialise an ACL allowing only the creator access and return it to the
@@ -765,6 +868,8 @@ BOOL WINAPI DllMain( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
 	}
 #endif /* !( NT_DRIVER || STATIC_LIB ) */
 
+#ifdef _MSC_VER
+
 /* Idiot-proofing.  Yes, there really are people who'll try and register a
    straight DLL */
 
@@ -784,6 +889,19 @@ STDAPI DllRegisterServer( void )
 				 MB_ICONQUESTION | MB_OK );
 	return( E_NOINTERFACE );
 	}
+#endif /* VC++ */
+
+/* Borland's archaic compilers don't recognise DllMain() but still use the
+   OS/2-era DllEntryPoint(), so we have to alias it to DllMain() in order
+   for things to be initialised properly */
+
+#if defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x550 )
+
+BOOL WINAPI DllEntryPoint( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
+	{
+	return( DllMain( hinstDLL, fdwReason, lpvReserved ) );
+	}
+#endif /* BC++ */
 
 #elif defined( __WIN16__ )
 
@@ -1053,14 +1171,14 @@ BOOL WINAPI DllMain( HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved )
 *																			*
 ****************************************************************************/
 
-#if defined( __WIN32__ )
+#if defined( __WIN32__ )  && !defined( NO_ASM )
 
 int getSysCaps( void )
 	{
 	static BOOLEAN sysCapsSet = FALSE;
 	static int sysCaps = 0;
 	BOOLEAN hasAdvFeatures = 0;
-	char vendorID[ 12 ];
+	char vendorID[ 12 + 8 ];
 #if 0	/* Not needed for now */
 	unsigned long processorID, featureFlags;
 #endif /* 0 */
@@ -1070,13 +1188,16 @@ int getSysCaps( void )
 	if( sysCapsSet )
 		return( sysCaps );
 
-	/* Check whether the CPU supports extended features like CPUID and 
+	/* Remember that the sysCaps will have been set on the next call */
+	sysCapsSet = TRUE;
+
+	/* Check whether the CPU supports extended features like CPUID and
 	   RDTSC, and get any info we need related to this.  There is an
-	   IsProcessorFeaturePresent() function, but all that this provides is 
-	   an indication of the availability of rdtsc (alongside some stuff we 
-	   don't care about, like MMX and 3DNow).  Since we still need to check 
+	   IsProcessorFeaturePresent() function, but all that this provides is
+	   an indication of the availability of rdtsc (alongside some stuff we
+	   don't care about, like MMX and 3DNow).  Since we still need to check
 	   for the presence of other features, we do the whole thing ourselves */
-	_asm {
+	__asm {
 		/* Detect the CPU type */
 		pushfd
 		pop eax				/* Get EFLAGS in eax */
@@ -1091,7 +1212,7 @@ int getSysCaps( void )
 		xor eax, ebx		/* Check if we could toggle CPUID bit */
 		jz noCPUID			/* Nope, we can't do anything further */
 		mov [hasAdvFeatures], 1	/* Remember that we have CPUID */
-		or [sysCaps], SYSCAP_FLAG_RDTSC	/* Remember that we have RDTSC */
+		mov [sysCaps], SYSCAP_FLAG_RDTSC	/* Remember that we have RDTSC */
 
 		/* We have CPUID, see what we've got */
 		xor ecx, ecx
@@ -1115,11 +1236,11 @@ int getSysCaps( void )
 	if( !hasAdvFeatures )
 		return( SYSCAP_FLAG_NONE );
 
-	/* If there's a vendor ID present, check for vendor-specific special 
+	/* If there's a vendor ID present, check for vendor-specific special
 	   features */
 	if( hasAdvFeatures && !memcmp( vendorID, "CentaurHauls", 12 ) )
 		{
-	_asm {
+	__asm {
 		xor ebx, ebx
 		xor ecx, ecx		/* Tell VC++ that EBX, ECX will be trashed */
 		mov eax, 0xC0000000	/* Centaur extended CPUID info */
@@ -1134,16 +1255,142 @@ int getSysCaps( void )
 		jz noRNG			/* No, RNG not present or enabled */
 		or [sysCaps], SYSCAP_FLAG_XSTORE	/* Remember that we have a HW RNG */
 	noRNG:
+		mov eax, edx
 		and eax, 011000000b
 		cmp eax, 011000000b	/* Check for ACE present + enabled flags */
-		jz endCheck			/* No, ACE not present or enabled */
-		or [sysCaps], SYSCAP_FLAG_XCRYPT	/* Remember that we have HW crypto */
+		jz noACE			/* No, ACE not present or enabled */
+		or [sysCaps], SYSCAP_FLAG_XCRYPT	/* Remember that we have HW AES */
+	noACE:
+		mov eax, edx
+		and eax, 0110000000000b
+		cmp eax, 0110000000000b	/* Check for PHE present + enabled flags */
+		jz noPHE			/* No, PHE not present or enabled */
+		or [sysCaps], SYSCAP_FLAG_XSHA	/* Remember that we have HW SHA-1/SHA-2 */
+	noPHE:
+		mov eax, edx
+		and eax, 011000000000000b
+		cmp eax, 011000000000000b /* Check for PMM present + enabled flags */
+		jz endCheck			/* No, PMM not present or enabled */
+		or [sysCaps], SYSCAP_FLAG_MONTMUL	/* Remember that we have HW bignum */
 	endCheck:
 		}
 		}
 
 	return( sysCaps );
 	}
+
+#elif defined( __GNUC__ ) && defined( __i386__ )
+
+#if SYSCAP_FLAG_RDTSC != 0x01
+  #error Need to sync SYSCAP_FLAG_RDTSC with equivalent asm definition
+#endif /* SYSCAP_FLAG_RDTSC */
+
+int getSysCaps( void )
+	{
+	static BOOLEAN sysCapsSet = FALSE;
+	static int sysCaps = 0;
+	int hasAdvFeatures = 0;
+	char vendorID[ 12 + 8 ];
+
+	/* If we've already established the system hardware capabilities,
+	   return the cached result of the lookup */
+	if( sysCapsSet )
+		return( sysCaps );
+
+	/* Remember that the sysCaps will have been set on the next call */
+	sysCapsSet = TRUE;
+
+	/* Check whether the CPU supports extended features like CPUID and
+	   RDTSC, and get any info we need related to this.  The use of ebx is a
+	   bit problematic because gcc (via the IA32 ABI) uses ebx to store the
+	   address of the global offset table and gets rather upset if it gets
+	   changed, so we have to save/restore it around the cpuid call.  We
+	   have to be particularly careful here because ebx is used implicitly
+	   in references to sysCaps (which is a static int), so we save it as
+	   close to the cpuid instruction as possible and restore it immediately
+	   afterwards, away from any memory-referencing instructions that 
+	   implicitly use ebx */
+	asm volatile( "pushf\n\t"
+		"popl %%eax\n\t"
+		"movl %%eax, %%ecx\n\t"
+		"xorl $0x200000, %%eax\n\t"
+		"pushl %%eax\n\t"
+		"popf\n\t"
+		"pushf\n\t"
+		"popl %%eax\n\t"
+		"pushl %%ecx\n\t"
+		"popf\n\t"
+		"xorl %%ecx, %%eax\n\t"
+		"jz noCPUID\n\t"
+		"movl $1, %0\n\t"
+		"movl $1, %1\n\t"	/* SYSCAP_FLAG_RDTSC */
+		"pushl %%ebx\n\t"	/* Save PIC register */
+		"xorl %%eax, %%eax\n\t"
+		"cpuid\n\t"
+		"leal %2, %%eax\n\t"
+		"movl %%ebx, (%%eax)\n\t"
+		"movl %%edx, 4(%%eax)\n\t"
+		"movl %%ecx, 8(%%eax)\n\t"
+		"popl %%ebx\n"		/* Restore PIC register */
+	"noCPUID:\n"
+		: "=m"(hasAdvFeatures), "=m"(sysCaps),
+			"=m"(vendorID)						/* Output */
+		: 										/* Input */
+		: "%eax", "%ecx", "%edx"				/* Registers clobbered */
+		);
+
+	/* If there's no CPUID support, there are no special HW capabilities
+	   available */
+	if( !hasAdvFeatures )
+		return( SYSCAP_FLAG_NONE );
+
+	/* If there's a vendor ID present, check for vendor-specific special
+	   features.  Again, we have to be extremely careful with ebx */
+	if( hasAdvFeatures && !memcmp( vendorID, "CentaurHauls", 12 ) )
+		{
+	asm volatile( "pushl %%ebx\n\t"	/* Save PIC register */
+		"movl $0xC0000000, %%eax\n\t"
+		"cpuid\n\t"
+		"popl %%ebx\n\t"	/* Restore PIC register */
+		"cmpl $0xC0000001, %%eax\n\t"
+		"jb endCheck\n\t"
+		"pushl %%ebx\n\t"	/* Re-save PIC register */
+		"movl $0xC0000001, %%eax\n\t"
+		"cpuid\n\t"
+		"popl %%ebx\n\t"	/* Re-restore PIC register */
+		"movl %%edx, %%eax\n\t"
+		"andl $0xC, %%edx\n\t"
+		"cmpl $0xC, %%edx\n\t"
+		"jz noRNG\n\t"
+		"orl $2, %0\n"		/* SYSCAP_FLAG_XSTORE */
+	"noRNG:\n\t"
+		"movl %%edx, %%eax\n\t"
+		"andl $0xC0, %%eax\n\t"
+		"cmpl $0xC0, %%eax\n\t"
+		"jz noACE\n\t"
+		"orl $4, %0\n"		/* SYSCAP_FLAG_XCRYPT */
+	"noACE:\n\t"
+		"movl %%edx, %%eax\n\t"
+		"andl $0xC00, %%eax\n\t"
+		"cmpl $0xC00, %%eax\n\t"
+		"jz noPHE\n\t"
+		"orl $8, %0\n"		/* SYSCAP_FLAG_XSHA */
+	"noPHE:\n\t"
+		"movl %%edx, %%eax\n\t"
+		"andl $0x3000, %%eax\n\t"
+		"cmpl $0x3000, %%eax\n\t"
+		"jz endCheck\n\t"
+		"orl $10, %0\n"		/* SYSCAP_FLAG_MONTMUL */
+	"endCheck:\n"
+		 : "=m"(sysCaps)					/* Output */
+		 :
+		 : "%eax", "%ecx", "%edx"	/* Registers clobbered */
+		);
+		}
+
+	return( sysCaps );
+	}
+
 #else
 
 int getSysCaps( void )

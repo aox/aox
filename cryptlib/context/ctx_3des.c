@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "des.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/des.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -26,8 +21,6 @@
 
 #if defined( INC_ALL )
   #include "testdes.h"
-#elif defined( INC_CHILD )
-  #include "../crypt/testdes.h"
 #else
   #include "crypt/testdes.h"
 #endif /* Compiler-specific includes */
@@ -59,15 +52,15 @@ typedef struct {
 static int testLoop( const DES_TEST *testData, int iterations )
 	{
 	const CAPABILITY_INFO *capabilityInfo = get3DESCapability();
-	BYTE temp[ DES_BLOCKSIZE ];
+	BYTE temp[ DES_BLOCKSIZE + 8 ];
 	int i;
 
 	for( i = 0; i < iterations; i++ )
 		{
 		CONTEXT_INFO contextInfo;
 		CONV_INFO contextData;
-		BYTE keyData[ DES3_KEYSIZE ];
-		BYTE desKeyData[ DES_BLOCKSIZE * 3 ];
+		BYTE keyData[ DES3_KEYSIZE + 8 ];
+		BYTE desKeyData[ ( DES_BLOCKSIZE * 3 ) + 8 ];
 		int status;
 
 		memcpy( temp, testData[ i ].plaintext, DES_BLOCKSIZE );
@@ -274,7 +267,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
-	BYTE temp[ DES_BLOCKSIZE ];
+	BYTE temp[ DES_BLOCKSIZE + 8 ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
@@ -476,7 +469,11 @@ static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 	/* Call the libdes key schedule code.  Returns with -1 if the key parity
 	   is wrong (which never occurs since we force the correct parity) or -2
-	   if a weak key is used */
+	   if a weak key is used.  In theory this could leave us open to timing
+	   attacks (a memcmp() implemented as a bytewise operation will exit on 
+	   the first mis-matching byte), but in practice the trip through the
+	   kernel adds enough skew to make the one or two clock cycle difference
+	   undetectable */
 	des_set_odd_parity( ( C_Block * ) convInfo->userKey );
 	if( des_key_sched( ( des_cblock * ) convInfo->userKey, des3Key->desKey1 ) )
 		return( CRYPT_ARGERROR_STR1 );

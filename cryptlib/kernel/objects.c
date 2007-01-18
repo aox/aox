@@ -1,17 +1,12 @@
 /****************************************************************************
 *																			*
 *							Kernel Object Management						*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "acl.h"
   #include "kernel.h"
 #else
@@ -41,7 +36,7 @@ static KERNEL_DATA *krnlData = NULL;
    for which 0 is significant (so they're set to CRYPT_UNUSED), because of
    this we can't just memset the entry to all zeroes */
 
-static const OBJECT_INFO OBJECT_INFO_TEMPLATE = {
+static const OBJECT_INFO FAR_BSS OBJECT_INFO_TEMPLATE = {
 	OBJECT_TYPE_NONE, 0,		/* Type, subtype */
 	NULL, 0,					/* Object data and size */
 	OBJECT_FLAG_INTERNAL | OBJECT_FLAG_NOTINITED,	/* Flags */
@@ -62,7 +57,7 @@ static const OBJECT_INFO OBJECT_INFO_TEMPLATE = {
 
 /* A template used to initialise the object allocation state data */
 
-static const OBJECT_STATE_INFO OBJECT_STATE_INFO_TEMPLATE = {
+static const OBJECT_STATE_INFO FAR_BSS OBJECT_STATE_INFO_TEMPLATE = {
 	OBJECT_TABLE_ALLOCSIZE,		/* Mask for LFSR output */
 	INITIAL_LFSRPOLY,			/* LFSR polynomial */
 	-1							/* Initial-1'th object handle */
@@ -146,7 +141,7 @@ void endObjects( void )
 	{
 	/* Hinc igitur effuge */
 	MUTEX_LOCK( objectTable );
-	zeroise( krnlData->objectTable, 
+	zeroise( krnlData->objectTable,
 			 krnlData->objectTableSize * sizeof( OBJECT_INFO ) );
 	clFree( "endObjectTable", krnlData->objectTable );
 	krnlData->objectTable = NULL;
@@ -191,7 +186,7 @@ static void destroyObject( const int objectHandle )
 	const MESSAGE_FUNCTION messageFunction = \
 					krnlData->objectTable[ objectHandle ].messageFunction;
 
-	/* If there's no object present at this position, just clear the 
+	/* If there's no object present at this position, just clear the
 	   entry (it should be cleared anyway) */
 	if( messageFunction == NULL )
 		{
@@ -200,7 +195,7 @@ static void destroyObject( const int objectHandle )
 		}
 
 	/* Destroy the object and its object table entry */
-	messageFunction( krnlData->objectTable[ objectHandle ].objectPtr, 
+	messageFunction( krnlData->objectTable[ objectHandle ].objectPtr,
 					 MESSAGE_DESTROY, NULL, 0 );
 	destroyObjectData( objectHandle );
 	}
@@ -213,7 +208,8 @@ static int destroySelectedObjects( const int currentDepth )
 	int objectHandle, status = CRYPT_OK;
 
 	for( objectHandle = NO_SYSTEM_OBJECTS; \
-		 objectHandle < krnlData->objectTableSize; \
+		 objectHandle < krnlData->objectTableSize && \
+			objectHandle < MAX_OBJECTS; \
 		 objectHandle++ )
 		{
 		const int dependentObject = \
@@ -256,6 +252,8 @@ static int destroySelectedObjects( const int currentDepth )
 			MUTEX_LOCK( objectTable );
 			}
 		}
+	if( objectHandle >= MAX_OBJECTS )
+		retIntError();
 
 	return( status );
 	}
@@ -267,27 +265,29 @@ int destroyObjects( void )
 	OBJECT_INFO *objectTable = krnlData->objectTable;
 	int depth, objectHandle, status = CRYPT_OK;
 
-	/* Indicate that we're in the middle of a shutdown.  From now on all
-	   messages other than object-destruction ones will be rejected by the
-	   kernel.  This is needed in order to have any remaining active objects
-	   exit quickly, since we don't want them to block the shutdown.  Note
-	   that we do this before we lock the object table to encourage anything
-	   that might have the table locked to exit quickly once we try and lock
-	   the table */
-	krnlData->isClosingDown = TRUE;
+	PRE( krnlData->shutdownLevel == SHUTDOWN_LEVEL_THREADS );
+
+	/* Indicate that we're shutting down the object handling.  From now on
+	   all messages other than object-destruction ones will be rejected by
+	   the kernel.  This is needed in order to have any remaining active
+	   objects exit quickly, since we don't want them to block the shutdown.
+	   Note that we do this before we lock the object table to encourage
+	   anything that might have the table locked to exit quickly once we try
+	   and lock the table */
+	krnlData->shutdownLevel = SHUTDOWN_LEVEL_MESSAGES;
 
 	/* Lock the object table to ensure that other threads don't try to
 	   access it */
 	MUTEX_LOCK( objectTable );
 
-	/* Destroy all system objects except the root system object ("The death 
+	/* Destroy all system objects except the root system object ("The death
 	   of God left the angels in a strange position" - Donald Barthelme, "On
-	   Angels").  We have to do this before we destroy any unclaimed 
-	   leftover objects because some of them may depend on system objects, 
-	   if the system objects aren't destroyed they'll be erroneously flagged 
-	   as leftover objects.  The destruction is done explicitly by invoking 
-	   the object's message function directly because the message dispatcher 
-	   checks to make sure that they're never destroyed through a standard 
+	   Angels").  We have to do this before we destroy any unclaimed
+	   leftover objects because some of them may depend on system objects,
+	   if the system objects aren't destroyed they'll be erroneously flagged
+	   as leftover objects.  The destruction is done explicitly by invoking
+	   the object's message function directly because the message dispatcher
+	   checks to make sure that they're never destroyed through a standard
 	   message, which would indicate a programming error */
 	for( objectHandle = SYSTEM_OBJECT_HANDLE + 1;
 		 objectHandle < NO_SYSTEM_OBJECTS; objectHandle++ )
@@ -307,7 +307,7 @@ int destroyObjects( void )
 	   we're trying to delete a non-present object).  Because of this we have
 	   to delete the objects in order of depth, first all three-level objects
 	   (e.g. cert -> context -> device), then all two-level objects, and
-	   finally all one-level objects.  This means that we can never delete 
+	   finally all one-level objects.  This means that we can never delete
 	   another object out from under a dependent object */
 	for( depth = 3; depth > 0; depth-- )
 		{
@@ -390,12 +390,12 @@ int destroyObjects( void )
    created in its place without the caller or owning object realizing that
    they're now working with a different object (although the kernel can tell
    them apart because it maintains an internal unique ID for each object).
-   Unix systems handle this by always incrementing pids and assuming that 
+   Unix systems handle this by always incrementing pids and assuming that
    there won't be any problems when they wrap, we do the same thing but in
    addition allocate handles in a non-sequential manner using an LFSR to
-   step through the object table.  There's no strong reason for this apart 
-   from helping disabuse users of the notion that any cryptlib objects have 
-   stdin/stdout-style fixed handles, but it only costs a few extra clocks so 
+   step through the object table.  There's no strong reason for this apart
+   from helping disabuse users of the notion that any cryptlib objects have
+   stdin/stdout-style fixed handles, but it only costs a few extra clocks so
    we may as well do it */
 
 static int findFreeResource( int value )
@@ -409,7 +409,8 @@ static int findFreeResource( int value )
 
 	/* Step through the entire table looking for a free entry */
 	for( iterations = 0; isValidHandle( value ) && \
-						 iterations < krnlData->objectTableSize; \
+						 iterations < krnlData->objectTableSize && \
+						 iterations < MAX_OBJECTS; 
 		 iterations++ )
 		{
 		INV( iterations < krnlData->objectTableSize );
@@ -421,21 +422,23 @@ static int findFreeResource( int value )
 
 		INV( isValidHandle( value ) );
 
-		/* If we've found a free object or we've covered the entire table, 
+		/* If we've found a free object or we've covered the entire table,
 		   exit.  We do this check after we update the value rather than as
 		   part of the loop test to ensure that we always progress to a new
-		   object handle whenever we call this function.  If we did the 
+		   object handle whenever we call this function.  If we did the
 		   check as part of the loop test then deleting and creating an
 		   object would result in the handle of the deleted object being
 		   re-assigned to the new object */
 		if( isFreeObject( value ) || value == oldValue )
 			break;
 		}
+	if( iterations >= MAX_OBJECTS )
+		retIntError();
 	if( value == oldValue || iterations >= krnlData->objectTableSize || \
 		!isValidHandle( value ) )
 		{
 		/* Postcondition: We tried all locations and there are no free slots
-		   available (or, vastly less likely, an internal error has 
+		   available (or, vastly less likely, an internal error has
 		   occurred) */
 		POST( iterations == krnlData->objectTableSize - 2 );
 		FORALL( i, 0, krnlData->objectTableSize,
@@ -453,11 +456,11 @@ static int findFreeResource( int value )
 
 static int expandObjectTable( void )
 	{
-	static const int lfsrPolyTable[] = \
-							{	  0x83,	   0x11D,	 0x211,	   0x409,
-								 0x805,   0x1053,   0x201B,   0x402B,
-								0x8003,  0x1002D,  0x20009,  0x40027,
-							   0x80027, 0x100009, 0x200005, 0x400003 };
+	static const long FAR_BSS lfsrPolyTable[] = \
+							{	  0x83,		 0x11D,	   0x211,	  0x409,
+								 0x805,		0x1053,   0x201B,	 0x402B,
+								0x8003L,  0x1002DL,  0x20009L,  0x40027L,
+							   0x80027L, 0x100009L, 0x200005L, 0x400003L };
 	OBJECT_INFO *newTable;
 	int objectHandle, i;
 	ORIGINAL_INT_VAR( oldLfsrPoly, krnlData->objectStateInfo.lfsrPoly );
@@ -482,9 +485,11 @@ static int expandObjectTable( void )
 	   allocated entries, and clear the old table */
 	memcpy( newTable, krnlData->objectTable,
 			krnlData->objectTableSize * sizeof( OBJECT_INFO ) );
-	for( i = krnlData->objectTableSize; \
-		 i < krnlData->objectTableSize * 2; i++ )
+	for( i = krnlData->objectTableSize; i < krnlData->objectTableSize * 2 && \
+										i < MAX_OBJECTS; i++ )
 		newTable[ i ] = OBJECT_INFO_TEMPLATE;
+	if( i >= MAX_OBJECTS )
+		retIntError();
 	zeroise( krnlData->objectTable, \
 			 krnlData->objectTableSize * sizeof( OBJECT_INFO ) );
 	clFree( "krnlCreateObject", krnlData->objectTable );
@@ -500,10 +505,10 @@ static int expandObjectTable( void )
 	objectHandle = findFreeResource( krnlData->objectStateInfo.objectHandle );
 
 	/* Postcondition: We've moved on to the next LFSR polynomial value,
-	   the LFSR output covers the entire table, and we now have roonm for 
+	   the LFSR output covers the entire table, and we now have roonm for
 	   the new object */
 	POST( ( krnlData->objectStateInfo.lfsrPoly & ~0x7F ) == \
-		  ( ORIGINAL_VALUE( oldLfsrPoly ) & ~0xFF ) << 1 );
+		  ( ( ORIGINAL_VALUE( oldLfsrPoly ) & ~0xFF ) << 1 ) );
 	POST( krnlData->objectStateInfo.lfsrMask == \
 		  ( krnlData->objectStateInfo.lfsrPoly & ~0x7F ) );
 	POST( krnlData->objectTableSize == krnlData->objectStateInfo.lfsrMask );
@@ -513,14 +518,15 @@ static int expandObjectTable( void )
 	}
 
 int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
-					  const OBJECT_TYPE type, const int subType,
+					  const OBJECT_TYPE type, const OBJECT_SUBTYPE subType,
 					  const int createObjectFlags, const CRYPT_USER owner,
 					  const int actionFlags,
 					  MESSAGE_FUNCTION messageFunction )
 	{
 	OBJECT_INFO objectInfo;
 	OBJECT_STATE_INFO *objectStateInfo = &krnlData->objectStateInfo;
-	int objectHandle = objectStateInfo->objectHandle, bitCount;
+	OBJECT_SUBTYPE bitCount;
+	int objectHandle = objectStateInfo->objectHandle;
 
 	/* Preconditions (the subType check is just the standard hakmem bitcount
 	   which ensures that we don't try and create multi-typed objects, the
@@ -531,9 +537,9 @@ int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
 	PRE( objectDataSize > 16 && objectDataSize < 16384 );
 	PRE( isValidType( type ) );
 	PRE( ( bitCount = ( subType & ~SUBTYPE_CLASS_MASK ) - \
-						( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 1 ) & 033333333333 ) - \
-						( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 2 ) & 011111111111 ) ) != 0 );
-	PRE( ( ( bitCount + ( bitCount >> 3 ) ) & 030707070707 ) % 63 == 1 );
+						( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 1 ) & 033333333333L ) - \
+						( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 2 ) & 011111111111L ) ) != 0 );
+	PRE( ( ( bitCount + ( bitCount >> 3 ) ) & 030707070707L ) % 63 == 1 );
 	PRE( !( createObjectFlags & \
 			~( CREATEOBJECT_FLAG_SECUREMALLOC | CREATEOBJECT_FLAG_DUMMY ) ) );
 	PRE( owner == CRYPT_UNUSED || isValidHandle( owner ) );
@@ -542,12 +548,12 @@ int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
 
 	/* Enforce the parameter check explicitly at runtime as well */
 	bitCount = ( subType & ~SUBTYPE_CLASS_MASK ) - \
-			   ( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 1 ) & 033333333333 ) - \
-			   ( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 2 ) & 011111111111 );
+			   ( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 1 ) & 033333333333L ) - \
+			   ( ( ( subType & ~SUBTYPE_CLASS_MASK ) >> 2 ) & 011111111111L );
 	if( !isWritePtr( objectDataPtr, sizeof( void * ) ) || \
 		objectDataSize <= 16 || objectDataSize >= 16384 || \
 		!isValidType( type ) || \
-		( ( bitCount + ( bitCount >> 3 ) ) & 030707070707 ) % 63 != 1 || \
+		( ( bitCount + ( bitCount >> 3 ) ) & 030707070707L ) % 63 != 1 || \
 		( createObjectFlags & \
 			~( CREATEOBJECT_FLAG_SECUREMALLOC | CREATEOBJECT_FLAG_DUMMY ) ) || \
 		( owner != CRYPT_UNUSED && !isValidHandle( owner ) ) || \
@@ -560,12 +566,12 @@ int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
 
 	*objectDataPtr = NULL;
 
-	/* If we haven't been initialised yet or we're in the middle of a 
+	/* If we haven't been initialised yet or we're in the middle of a
 	   shutdown, we can't create any new objects */
 	if( !isWritePtr( krnlData, sizeof( KERNEL_DATA ) ) || \
 		!krnlData->isInitialised )
 		return( CRYPT_ERROR_NOTINITED );
-	if( krnlData->isClosingDown )
+	if( krnlData->shutdownLevel >= SHUTDOWN_LEVEL_MESSAGES )
 		{
 		assert( NOTREACHED );
 		return( CRYPT_ERROR_PERMISSION );
@@ -598,7 +604,7 @@ int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
 	objectInfo.uniqueID = krnlData->objectUniqueID;
 	objectInfo.messageFunction = messageFunction;
 
-	/* Make sure that the kernel has been initialised and lock the object 
+	/* Make sure that the kernel has been initialised and lock the object
 	   table for exclusive access */
 	MUTEX_LOCK( initialisation );
 	MUTEX_LOCK( objectTable );
@@ -639,7 +645,7 @@ int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
 			{
 			MUTEX_UNLOCK( objectTable );
 
-			/* Free the object instance data storage that we allocated 
+			/* Free the object instance data storage that we allocated
 			   earlier */
 			if( objectInfo.flags & OBJECT_FLAG_SECUREMALLOC )
 				krnlMemfree( &objectInfo.objectPtr );
@@ -666,7 +672,7 @@ int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
 		objectStateInfo->objectHandle = \
 			( ( int ) getTime() ) & ( objectStateInfo->lfsrMask - 1 );
 		if( objectStateInfo->objectHandle < NO_SYSTEM_OBJECTS )
-			/* Can occur with probability 
+			/* Can occur with probability
 			   NO_SYSTEM_OBJECTS / OBJECT_TABLE_ALLOCSIZE */
 			objectStateInfo->objectHandle = NO_SYSTEM_OBJECTS + 42;
 		}

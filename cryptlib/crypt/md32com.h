@@ -7,7 +7,7 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer. 
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
@@ -128,6 +128,10 @@
  *					<appro@fy.chalmers.se>
  */
 
+#if defined( _MSC_VER )
+  #pragma warning( disable: 4311 )	/* Warning about ugly 32-bit align ptr.cast - pcg */
+#endif /* VC++ */
+
 #if !defined(DATA_ORDER_IS_BIG_ENDIAN) && !defined(DATA_ORDER_IS_LITTLE_ENDIAN)
 #error "DATA_ORDER must be defined!"
 #endif
@@ -179,7 +183,7 @@
  */
 #undef ROTATE
 #ifndef PEDANTIC
-# if defined(_MSC_VER)
+# if defined(_MSC_VER) || defined( __BORLANDC__ )
 #  define ROTATE(a,n)	_lrotl(a,n)
 # elif defined(__MWERKS__)
 #  if defined(__POWERPC__)

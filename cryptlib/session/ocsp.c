@@ -5,17 +5,11 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-  #include "session.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
   #include "session.h"
 #else
   #include "crypt.h"
@@ -54,18 +48,60 @@ typedef struct {
 ****************************************************************************/
 
 /* Deliver an Einladung betreff Kehrseite to the client.  We don't bother
-   checking the return value since there's nothing that we can do in the 
-   case of an error except close the connection, which we do anyway since 
+   checking the return value since there's nothing that we can do in the
+   case of an error except close the connection, which we do anyway since
    this is the last message */
 
-static void sendErrorResponse( SESSION_INFO *sessionInfoPtr, 
-							   const void *responseData, 
+static void sendErrorResponse( SESSION_INFO *sessionInfoPtr,
+							   const void *responseData,
 							   const int responseDataLength )
 	{
-	memcpy( sessionInfoPtr->receiveBuffer, responseData, 
+	memcpy( sessionInfoPtr->receiveBuffer, responseData,
 			responseDataLength );
 	sessionInfoPtr->receiveBufEnd = responseDataLength;
 	writePkiDatagram( sessionInfoPtr );
+	}
+
+/* Compare the nonce in a request with the returned nonce in the response */
+
+static BOOLEAN checkNonce( const CRYPT_CERTIFICATE iCertResponse,
+						   const void *requestNonce, 
+						   const int requestNonceLength )
+	{
+	MESSAGE_DATA responseMsgData;
+	BYTE responseNonceBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
+
+	/* Make sure that the nonce has a plausible length */
+	if( requestNonceLength < 4 )
+		return( FALSE );
+
+	/* Try and read the nonce from the response */
+	setMessageData( &responseMsgData, responseNonceBuffer,
+					CRYPT_MAX_HASHSIZE );
+	if( cryptStatusError( \
+			krnlSendMessage( iCertResponse, IMESSAGE_GETATTRIBUTE_S,
+							 &responseMsgData, CRYPT_CERTINFO_OCSP_NONCE ) ) )
+		return( FALSE );
+
+	/* Make sure that the two nonces match.  The comparison is somewhat 
+	   complex because for no known reason OCSP uses integers rather than 
+	   octet strings as nonces, so the nonce is encoded using the integer 
+	   analog to an OCTET STRING hole and may have a leading zero byte if 
+	   the high bit is set.  Because of this we treat the two as equal if 
+	   they really are equal or if they differ only by a leading zero byte 
+	   (in practice the cert-handling code ensures that the high bit is 
+	   never set, but we leave the extra checking in there just in case) */
+	if( requestNonceLength == responseMsgData.length && \
+		!memcmp( requestNonce, responseMsgData.data, requestNonceLength ) )
+		/* Literal nonce comparison */
+		return( TRUE );
+	if( requestNonceLength == responseMsgData.length - 1 && \
+		responseNonceBuffer[ 0 ] == 0 && \
+		!memcmp( requestNonce, responseNonceBuffer + 1, requestNonceLength ) )
+		/* INTEGER-encoding nonce comparison */
+		return( TRUE );
+
+	return( FALSE );
 	}
 
 /****************************************************************************
@@ -76,7 +112,7 @@ static void sendErrorResponse( SESSION_INFO *sessionInfoPtr,
 
 /* OID information used to read responses */
 
-static const FAR_BSS OID_INFO ocspOIDinfo[] = {
+static const OID_INFO FAR_BSS ocspOIDinfo[] = {
 	{ OID_OCSP_RESPONSE_OCSP, OCSPRESPONSE_TYPE_OCSP },
 	{ NULL, 0 }
 	};
@@ -85,7 +121,7 @@ static const FAR_BSS OID_INFO ocspOIDinfo[] = {
 
 static int sendClientRequest( SESSION_INFO *sessionInfoPtr )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	/* Get the encoded request data.  We store this in the send buffer, which
@@ -94,13 +130,13 @@ static int sendClientRequest( SESSION_INFO *sessionInfoPtr )
 	setMessageData( &msgData, sessionInfoPtr->receiveBuffer,
 					sessionInfoPtr->receiveBufSize );
 	status = krnlSendMessage( sessionInfoPtr->iCertRequest,
-							  IMESSAGE_CRT_EXPORT, &msgData, 
+							  IMESSAGE_CRT_EXPORT, &msgData,
 							  CRYPT_ICERTFORMAT_DATA );
 	if( cryptStatusError( status ) )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Couldn't get OCSP request data from OCSP request object" );
 	sessionInfoPtr->receiveBufEnd = msgData.length;
-	DEBUG_DUMP( "ocsp_req", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "ocsp_req", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
 
 	/* Send the request to the responder */
@@ -112,20 +148,20 @@ static int sendClientRequest( SESSION_INFO *sessionInfoPtr )
 static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 	{
 	CRYPT_CERTIFICATE iCertResponse;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	STREAM stream;
-	BYTE nonceBuffer[ CRYPT_MAX_HASHSIZE ];
+	BYTE nonceBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
 	int value, responseType, length, status;
 
 	/* Read the response from the responder */
 	status = readPkiDatagram( sessionInfoPtr );
 	if( cryptStatusError( status ) )
 		return( status );
-	DEBUG_DUMP( "ocsp_resp", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "ocsp_resp", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
 
 	/* Try and extract an OCSP status code from the returned object */
-	sMemConnect( &stream, sessionInfoPtr->receiveBuffer, 
+	sMemConnect( &stream, sessionInfoPtr->receiveBuffer,
 				 sessionInfoPtr->receiveBufEnd );
 	readSequence( &stream, NULL );
 	status = readEnumerated( &stream, &value );
@@ -165,9 +201,9 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 				break;
 			}
 		if( errorString != NULL )
-			sPrintf( sessionInfoPtr->errorMessage, 
-					 "OCSP server returned status %d: %s", 
-					 value, errorString );
+			sPrintf_s( sessionInfoPtr->errorMessage, MAX_ERRMSG_SIZE,
+					   "OCSP server returned status %d: %s",
+					   value, errorString );
 		}
 	if( cryptStatusError( status ) )
 		{
@@ -176,66 +212,42 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 		}
 
 	/* We've got a valid response, read the [0] EXPLICIT SEQUENCE { OID,
-	   OCTET STRING { encapsulation and import the response into an OCSP 
+	   OCTET STRING { encapsulation and import the response into an OCSP
 	   cert object */
 	readConstructed( &stream, NULL, 0 );		/* responseBytes */
 	readSequence( &stream, NULL );
 	readOID( &stream, ocspOIDinfo,				/* responseType */
 			 &responseType );
-	status = readGenericHole( &stream, &length, DEFAULT_TAG );
+	status = readGenericHole( &stream, &length, 16, DEFAULT_TAG );
 	if( cryptStatusError( status ) )
 		{
 		sMemDisconnect( &stream );
 		retExt( sessionInfoPtr, status, "Invalid OCSP response header" );
 		}
-	status = importCertFromStream( &stream, &iCertResponse, length,
-								   CRYPT_CERTTYPE_OCSP_RESPONSE );
+	status = importCertFromStream( &stream, &iCertResponse,
+								   CRYPT_CERTTYPE_OCSP_RESPONSE, length );
 	sMemDisconnect( &stream );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status, "Invalid OCSP response data" );
 
 	/* If the request went out with a nonce included (which it does by
-	   default), make sure that it matches the nonce in the response.  The
-	   comparison is somewhat complex because for no known reason OCSP uses
-	   integers rather than octet strings as nonces, so the nonce is encoded 
-	   using the integer analog to an OCTET STRING hole and may have a 
-	   leading zero byte if the high bit is set.  Because of this we treat the
-	   two as equal if they really are equal or if they differ only by a
-	   leading zero byte (in practice the cert-handling code ensures that 
-	   the high bit is never set, but we leave the extra checking in there 
-	   just in case) */
+	   default), make sure that it matches the nonce in the response */
 	setMessageData( &msgData, nonceBuffer, CRYPT_MAX_HASHSIZE );
 	status = krnlSendMessage( sessionInfoPtr->iCertRequest,
-							  IMESSAGE_GETATTRIBUTE_S, &msgData, 
+							  IMESSAGE_GETATTRIBUTE_S, &msgData,
 							  CRYPT_CERTINFO_OCSP_NONCE );
-	if( cryptStatusOK( status ) )
+	if( cryptStatusOK( status ) && \
+		!checkNonce( iCertResponse, msgData.data, msgData.length ) )
 		{
-		RESOURCE_DATA responseMsgData;
-		BYTE responseNonceBuffer[ CRYPT_MAX_HASHSIZE ];
-
-		setMessageData( &responseMsgData, responseNonceBuffer,
-						CRYPT_MAX_HASHSIZE );
-		status = krnlSendMessage( iCertResponse, IMESSAGE_GETATTRIBUTE_S, 
-								  &responseMsgData, 
-								  CRYPT_CERTINFO_OCSP_NONCE );
-		if( cryptStatusError( status ) || msgData.length < 4 || \
-			!( ( msgData.length == responseMsgData.length && \
-				 !memcmp( msgData.data, responseMsgData.data, msgData.length ) ) || \
-			   ( msgData.length == responseMsgData.length - 1 && \
-				 responseNonceBuffer[ 0 ] == 0 && \
-				 !memcmp( msgData.data, responseNonceBuffer + 1, msgData.length ) ) ) )
-			{
-			/* The response doesn't contain a nonce or it doesn't match what
-			   we sent, we can't trust it.  The best error that we can return 
-			   here is a signature error to indicate that the integrity check
-			   failed */
-			krnlSendNotifier( iCertResponse, IMESSAGE_DECREFCOUNT );
-			retExt( sessionInfoPtr, CRYPT_ERROR_SIGNATURE,
-					cryptStatusError( status ) ? \
-					"OCSP response doesn't contain a nonce" : \
-					"OCSP response nonce doesn't match the one in the "
-					"request" );
-			}
+		/* The response doesn't contain a nonce or it doesn't match what we 
+		   sent, we can't trust it.  The best error that we can return here 
+		   is a signature error to indicate that the integrity check 
+		   failed */
+		krnlSendNotifier( iCertResponse, IMESSAGE_DECREFCOUNT );
+		retExt( sessionInfoPtr, CRYPT_ERROR_SIGNATURE,
+				cryptStatusError( status ) ? \
+				"OCSP response doesn't contain a nonce" : \
+				"OCSP response nonce doesn't match the one in the request" );
 		}
 	krnlSendNotifier( sessionInfoPtr->iCertRequest, IMESSAGE_DECREFCOUNT );
 	sessionInfoPtr->iCertRequest = CRYPT_ERROR;
@@ -256,10 +268,10 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 
 #define RESPONSE_SIZE		5
 
-static const FAR_BSS BYTE respBadRequest[] = {
+static const BYTE FAR_BSS respBadRequest[] = {
 	0x30, 0x03, 0x0A, 0x01, 0x01	/* Rejection, malformed request */
 	};
-static const FAR_BSS BYTE respIntError[] = {
+static const BYTE FAR_BSS respIntError[] = {
 	0x30, 0x03, 0x0A, 0x01, 0x02	/* Rejection, internal error */
 	};
 
@@ -273,16 +285,16 @@ static int readClientRequest( SESSION_INFO *sessionInfoPtr )
 	int status;
 
 	/* Read the request data from the client.  We don't write an error
-	   response at this initial stage to prevent scanning/DOS attacks 
+	   response at this initial stage to prevent scanning/DOS attacks
 	   (vir sapit qui pauca loquitur) */
 	status = readPkiDatagram( sessionInfoPtr );
 	if( cryptStatusError( status ) )
 		return( status );
-	DEBUG_DUMP( "ocsp_sreq", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "ocsp_sreq", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
 
 	/* Basic lint filter to check for approximately-OK requests */
-	sMemConnect( &stream, sessionInfoPtr->receiveBuffer, 
+	sMemConnect( &stream, sessionInfoPtr->receiveBuffer,
 				 sessionInfoPtr->receiveBufEnd );
 	readSequence( &stream, NULL );
 	readSequence( &stream, NULL );
@@ -298,7 +310,7 @@ static int readClientRequest( SESSION_INFO *sessionInfoPtr )
 
 	/* Import the request as a cryptlib object */
 	setMessageCreateObjectIndirectInfo( &createInfo,
-										sessionInfoPtr->receiveBuffer, 
+										sessionInfoPtr->receiveBuffer,
 										sessionInfoPtr->receiveBufEnd,
 										CRYPT_CERTTYPE_OCSP_REQUEST );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
@@ -329,7 +341,7 @@ static int readClientRequest( SESSION_INFO *sessionInfoPtr )
 		{
 		krnlSendNotifier( createInfo.cryptHandle, IMESSAGE_DECREFCOUNT );
 		sendErrorResponse( sessionInfoPtr, respIntError, RESPONSE_SIZE );
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Couldn't create OCSP response from request" );
 		}
 	sessionInfoPtr->iCertResponse = createInfo.cryptHandle;
@@ -340,7 +352,7 @@ static int readClientRequest( SESSION_INFO *sessionInfoPtr )
 
 static int sendServerResponse( SESSION_INFO *sessionInfoPtr )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	STREAM stream;
 	int responseLength, responseDataLength, status;
 
@@ -354,7 +366,7 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr )
 	if( cryptStatusError( status ) && status != CRYPT_ERROR_INVALID )
 		{
 		sendErrorResponse( sessionInfoPtr, respIntError, RESPONSE_SIZE );
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Couldn't check OCSP request against certificate store" );
 		}
 	setMessageData( &msgData, NULL, 0 );
@@ -363,13 +375,13 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr )
 							  sessionInfoPtr->privateKey );
 	if( cryptStatusOK( status ) )
 		status = krnlSendMessage( sessionInfoPtr->iCertResponse,
-								  IMESSAGE_CRT_EXPORT, &msgData, 
+								  IMESSAGE_CRT_EXPORT, &msgData,
 								  CRYPT_CERTFORMAT_CERTIFICATE );
 	responseDataLength = msgData.length;
 	if( cryptStatusError( status ) )
 		{
 		sendErrorResponse( sessionInfoPtr, respIntError, RESPONSE_SIZE );
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Couldn't create signed OCSP response" );
 		}
 
@@ -387,7 +399,7 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr )
 	writeOctetStringHole( &stream, responseDataLength, DEFAULT_TAG );
 													/* response */
 	/* Get the encoded response data */
-	status = exportCertToStream( &stream, sessionInfoPtr->iCertResponse, 
+	status = exportCertToStream( &stream, sessionInfoPtr->iCertResponse,
 								 CRYPT_CERTFORMAT_CERTIFICATE );
 	sessionInfoPtr->receiveBufEnd = stell( &stream );
 	sMemDisconnect( &stream );
@@ -396,7 +408,7 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr )
 		sendErrorResponse( sessionInfoPtr, respIntError, RESPONSE_SIZE );
 		return( status );
 		}
-	DEBUG_DUMP( "ocsp_sresp", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "ocsp_sresp", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
 
 	/* Send the response to the client */
@@ -444,7 +456,7 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 								 const CRYPT_ATTRIBUTE_TYPE type )
 	{
 	const CRYPT_CERTIFICATE ocspRequest = *( ( CRYPT_CERTIFICATE * ) data );
-	RESOURCE_DATA msgData = { NULL, 0 };
+	MESSAGE_DATA msgData = { NULL, 0 };
 	int status;
 
 	assert( type == CRYPT_SESSINFO_REQUEST );
@@ -455,7 +467,7 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 	   the cert export code will return an error status if there's a
 	   problem with the request.  If not, it pseudo-signs the request (if it
 	   hasn't already done so) and prepares it for use */
-	status = krnlSendMessage( ocspRequest, IMESSAGE_CRT_EXPORT, &msgData, 
+	status = krnlSendMessage( ocspRequest, IMESSAGE_CRT_EXPORT, &msgData,
 							  CRYPT_ICERTFORMAT_DATA );
 	if( cryptStatusError( status ) )
 		return( CRYPT_ARGERROR_NUM1 );
@@ -465,14 +477,14 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 	if( findSessionAttribute( sessionInfoPtr->attributeList,
 							  CRYPT_SESSINFO_SERVER_NAME ) == NULL )
 		{
-		char buffer[ MAX_URL_SIZE ];
+		char buffer[ MAX_URL_SIZE + 8 ];
 
 		setMessageData( &msgData, buffer, MAX_URL_SIZE );
 		status = krnlSendMessage( ocspRequest, IMESSAGE_GETATTRIBUTE_S,
 								  &msgData, CRYPT_IATTRIBUTE_RESPONDERURL );
 		if( cryptStatusOK( status ) )
-			krnlSendMessage( sessionInfoPtr->objectHandle, 
-							 IMESSAGE_SETATTRIBUTE_S, &msgData, 
+			krnlSendMessage( sessionInfoPtr->objectHandle,
+							 IMESSAGE_SETATTRIBUTE_S, &msgData,
 							 CRYPT_SESSINFO_SERVER_NAME );
 		}
 
@@ -510,7 +522,7 @@ int setAccessMethodOCSP( SESSION_INFO *sessionInfoPtr )
 
 	/* Set the access method pointers */
 	sessionInfoPtr->protocolInfo = &protocolInfo;
-	if( sessionInfoPtr->flags & SESSION_ISSERVER )
+	if( isServer( sessionInfoPtr ) )
 		sessionInfoPtr->transactFunction = serverTransact;
 	else
 		sessionInfoPtr->transactFunction = clientTransact;

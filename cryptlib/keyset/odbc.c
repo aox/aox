@@ -1,18 +1,13 @@
 /****************************************************************************
 *																			*
 *						 cryptlib ODBC Mapping Routines						*
-*						Copyright Peter Gutmann 1996-2004					*
+*						Copyright Peter Gutmann 1996-2006					*
 *																			*
 ****************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
+#include <stdio.h>		/* For sprintf() */
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "keyset.h"
-  #include "dbms.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "keyset.h"
   #include "dbms.h"
 #else
@@ -21,9 +16,8 @@
   #include "keyset/dbms.h"
 #endif /* Compiler-specific includes */
 
-/* The following code can be run under any version of ODBC from 1.x to 3.x,
-   although it assumes that a 3.x-level SDK is being used.  This is fairly
-   likely, since this has been around since mid-1995.  If a pre-3.0 SDK is
+/* The following code assumes that a 3.x-level SDK is being used, which is 
+   fairly likely since it's been around since mid-1995.  If a 1.x SDK is
    being used, then the following mappings will need to be applied:
 
 	SQL_C_SLONG -> SQL_C_LONG
@@ -41,8 +35,12 @@
 
    Note that this can't be done automatically because the values are
    typedefs rather than #defines, which can't be detected at compile time.
-   In addition under Windows the ODBC1x define needs to be used to enable
-   the mapping of ODBC 1.x functions */
+
+   If a 2.x SDK is being used (which unfortunately is the case with Borland 
+   C++ before 5.5, which is still using ancient early-1995 headers) then a
+   large number of typedefs and defines introduced in 3.0 need to be added.
+   In general this is too complex to do manually, it's easier to just copy
+   the necessary headers from the Windows SDK across */
 
 /* The ODBC 1.x SQLError() function returns error information at various
    levels and is rather unstable in its handling of input parameters, for
@@ -64,6 +62,10 @@
 
 #define sqlStatusOK( status ) \
 		( ( status ) == SQL_SUCCESS || ( status ) == SQL_SUCCESS_WITH_INFO )
+
+/* DBMS backends that require special handling */
+
+enum { DBMS_NONE, DBMS_ACCESS, DBMS_INTERBASE, DBMS_POSTGRES };
 
 #ifdef USE_ODBC
 
@@ -144,25 +146,6 @@ typedef SQLRETURN ( SQL_API *SQLSETENVATTR )( SQLHENV EnvironmentHandle,
 typedef SQLRETURN ( SQL_API *SQLSETSTMTATTR )( SQLHSTMT StatementHandle,
 					SQLINTEGER Attribute, SQLPOINTER ValuePtr,
 					SQLINTEGER StringLength );
-#ifdef ODBC1x
-typedef SQLRETURN ( SQL_API *SQLALLOCENV )( SQLHENV *phEnv );
-typedef SQLRETURN ( SQL_API *SQLALLOCCONNECT )( SQLHENV hEnv,
-					SQLHDBC *phDbc );
-typedef SQLRETURN ( SQL_API *SQLALLOCSTMT )( SQLHDBC hDbc,
-					SQLHSTMT *phStmt );
-typedef SQLRETURN ( SQL_API *SQLERROR )( SQLHENV henv, SQLHDBC hDbc,
-					SQLHSTMT hStmt, SQLCHAR *szSqlState,
-					SQLINTEGER *pfNativeError, SQLCHAR *szErrorMsg,
-					SQLSMALLINT cbErrorMsgMax, SQLSMALLINT *pcbErrorMsg );
-typedef SQLRETURN ( SQL_API *SQLFREECONNECT )( SQLHDBC hDbc );
-typedef SQLRETURN ( SQL_API *SQLFREEENV )( SQLHENV hEnv );
-typedef SQLRETURN ( SQL_API *SQLFREESTMT )( SQLHSTMT hStmt, SQLUSMALLINT fOption );
-typedef SQLRETURN ( SQL_API *SQLSETCONNECTOPTION )( SQLHDBC hdbc, UWORD fOption,
-					UDWORD vParam );
-typedef SQLRETURN ( SQL_API *SQLSETSTMTOPTION )( SQLHSTMT hstmt, UWORD fOption,
-				  UDWORD vParam );
-typedef SQLRETURN ( SQL_API *SQLTRANSACT )( SQLHENV hEnv, SQLHDBC hDbc, SQLUSMALLINT fType );
-#endif /* ODBC1x */
 
 static SQLALLOCHANDLE pSQLAllocHandle = NULL;
 static SQLBINDPARAMETER pSQLBindParameter = NULL;
@@ -186,19 +169,6 @@ static SQLROWCOUNT_FN pSQLRowCount = NULL;
 static SQLSETCONNECTATTR pSQLSetConnectAttr = NULL;
 static SQLSETENVATTR pSQLSetEnvAttr = NULL;
 static SQLSETSTMTATTR pSQLSetStmtAttr = NULL;
-
-#ifdef ODBC1x
-static SQLALLOCCONNECT pSQLAllocConnect = NULL;
-static SQLALLOCENV pSQLAllocEnv = NULL;
-static SQLALLOCSTMT pSQLAllocStmt = NULL;
-static SQLERROR pSQLError = NULL;
-static SQLFREECONNECT pSQLFreeConnect = NULL;
-static SQLFREEENV pSQLFreeEnv = NULL;
-static SQLFREESTMT pSQLFreeStmt = NULL;
-static SQLSETCONNECTOPTION pSQLSetConnectOption = NULL;
-static SQLSETSTMTOPTION pSQLSetStmtOption = NULL;
-static SQLTRANSACT pSQLTransact = NULL;
-#endif /* ODBC1x */
 
 /* The use of dynamically bound function pointers vs. statically linked
    functions requires a bit of sleight of hand since we can't give the
@@ -228,32 +198,24 @@ static SQLTRANSACT pSQLTransact = NULL;
 #define SQLSetEnvAttr			pSQLSetEnvAttr
 #define SQLSetStmtAttr			pSQLSetStmtAttr
 
-#ifdef ODBC1x
-#define SQLAllocConnect			pSQLAllocConnect
-#define SQLAllocEnv				pSQLAllocEnv
-#define SQLAllocStmt			pSQLAllocStmt
-#define SQLError				pSQLError
-#define SQLFreeConnect			pSQLFreeConnect
-#define SQLFreeEnv				pSQLFreeEnv
-#define SQLFreeStmt				pSQLFreeStmt
-#define SQLSetConnectOption		pSQLSetConnectOption
-#define SQLSetStmtOption		pSQLSetStmtOption
-#define SQLTransact				pSQLTransact
-#endif /* ODBC1x */
-
 /* Depending on whether we're running under Win16, Win32, or Unix we load the
    ODBC driver under a different name */
 
 #if defined( __WIN16__ )
-  #define ODBC_LIBNAME  "ODBC.DLL"
+  #define ODBC_LIBNAME			"ODBC.DLL"
 #elif defined( __WIN32__ )
-  #define ODBC_LIBNAME  "ODBC32.DLL"
+  #define ODBC_LIBNAME			"ODBC32.DLL"
 #elif defined( __UNIX__ )
   #if defined( __APPLE__ )
 	/* OS X has built-in ODBC support via iODBC */
-	#define ODBC_LIBNAME  "libiodbc.dylib"
+	#define ODBC_LIBNAME		"libiodbc.dylib"
   #else
-	#define ODBC_LIBNAME  "libodbc.so"
+	/* Currently we default to UnixODBC, which uses libodbc.so.  If this
+	   fails, we fall back to the next-most-common one, iODBC.  If you're
+	   using something else, you'll need to change the entry below to
+	   specify your library name */
+	#define ODBC_LIBNAME		"libodbc.so"
+	#define ODBC_ALT_LIBNAME	"libiodbc.so"
   #endif /* Mac OS X vs. other Unixen */
 #endif /* System-specific ODBC library names */
 
@@ -270,7 +232,7 @@ int dbxInitODBC( void )
 		return( CRYPT_OK );
 
 	/* Obtain a handle to the module containing the ODBC functions */
-#ifdef __WIN16__
+#if defined( __WIN16__ )
 	errorMode = SetErrorMode( SEM_NOOPENFILEERRORBOX );
 	hODBC = LoadLibrary( ODBC_LIBNAME );
 	SetErrorMode( errorMode );
@@ -279,6 +241,10 @@ int dbxInitODBC( void )
 		hODBC = NULL_INSTANCE;
 		return( CRYPT_ERROR );
 		}
+#elif defined( __UNIX__ ) && !defined( __APPLE__ )
+	if( ( hODBC = DynamicLoad( ODBC_LIBNAME ) ) == NULL_INSTANCE && \
+		( hODBC = DynamicLoad( ODBC_ALT_LIBNAME ) ) == NULL_INSTANCE )
+		return( CRYPT_ERROR );
 #else
 	if( ( hODBC = DynamicLoad( ODBC_LIBNAME ) ) == NULL_INSTANCE )
 		return( CRYPT_ERROR );
@@ -307,19 +273,6 @@ int dbxInitODBC( void )
 	pSQLSetConnectAttr = ( SQLSETCONNECTATTR ) DynamicBind( hODBC, "SQLSetConnectAttr" );
 	pSQLSetEnvAttr = ( SQLSETENVATTR ) DynamicBind( hODBC, "SQLSetEnvAttr" );
 	pSQLSetStmtAttr = ( SQLSETSTMTATTR ) DynamicBind( hODBC, "SQLSetStmtAttr" );
-
-#ifdef ODBC1x
-	pSQLAllocConnect = ( SQLALLOCCONNECT ) DynamicBind( hODBC, "SQLAllocConnect" );
-	pSQLAllocEnv = ( SQLALLOCENV ) DynamicBind( hODBC, "SQLAllocEnv" );
-	pSQLAllocStmt = ( SQLALLOCSTMT ) DynamicBind( hODBC, "SQLAllocStmt" );
-	pSQLError = ( SQLERROR ) DynamicBind( hODBC, "SQLError" );
-	pSQLFreeConnect = ( SQLFREECONNECT ) DynamicBind( hODBC, "SQLFreeConnect" );
-	pSQLFreeEnv = ( SQLFREEENV ) DynamicBind( hODBC, "SQLFreeEnv" );
-	pSQLFreeStmt = ( SQLFREESTMT ) DynamicBind( hODBC, "SQLFreeStmt" );
-	pSQLSetConnectOption = ( SQLSETCONNECTOPTION ) DynamicBind( hODBC, "SQLSetConnectOption" );
-	pSQLSetStmtOption = ( SQLSETSTMTOPTION ) DynamicBind( hODBC, "SQLSetStmtOption" );
-	pSQLTransact = ( SQLTRANSACT ) DynamicBind( hODBC, "SQLTransact" );
-#endif /* ODBC1x */
 
 	/* Make sure that we got valid pointers for every ODBC function */
 	if( pSQLAllocHandle == NULL || pSQLBindParameter == NULL ||
@@ -374,10 +327,6 @@ void dbxEndODBC( void )
 static int getErrorInfo( DBMS_STATE_INFO *dbmsInfo, const int errorLevel,
 						 SQLHSTMT hStmt, const int defaultStatus )
 	{
-#ifdef ODBC1x
-	SQLHDBC hdbc = ( errorLevel < 1 ) ? SQL_NULL_HDBC : dbmsInfo->hDbc;
-	SQLHSTMT hstmt = ( errorLevel < 2 ) ? SQL_NULL_HSTMT : dbmsInfo->hStmt;
-#else
 	const SQLSMALLINT handleType = ( errorLevel == SQL_ERRLVL_STMT ) ? \
 										SQL_HANDLE_STMT : \
 								   ( errorLevel == SQL_ERRLVL_DBC ) ? \
@@ -386,36 +335,11 @@ static int getErrorInfo( DBMS_STATE_INFO *dbmsInfo, const int errorLevel,
 								hStmt : \
 							 ( errorLevel == SQL_ERRLVL_DBC ) ? \
 								dbmsInfo->hDbc : dbmsInfo->hEnv;
-#endif /* ODBC1x */
-	char szSqlState[ SQL_SQLSTATE_SIZE ];
+	char szSqlState[ SQL_SQLSTATE_SIZE + 8 ];
 	SQLUINTEGER dwNativeError = 0;
 	SQLSMALLINT dummy;
 	SQLRETURN sqlStatus;
 
-#ifdef ODBC1x
-	/* Get the initial ODBC error info.  Some of the information returned by
-	   SQLError() is pretty odd.  It usually returns an ANSI SQL2 error
-	   state in SQLSTATE, but also returns a native error code in NativeError.
-	   However the NativeError codes aren't documented anywhere, so we rely
-	   on SQLSTATE having a useful value.  We pre-set the native error codes
-	   to zero because they sometimes aren't set by SQLError() */
-	sqlStatus = SQLError( dbmsInfo->hEnv, hdbc, hstmt, szSqlState,
-						  &dwNativeError, dbmsInfo->errorMessage,
-						  MAX_ERRMSG_SIZE - 1, &dummy );
-	dbmsInfo->errorCode = ( int ) dwNativeError;	/* Usually 0 */
-	if( !strncmp( szSqlState, "01004", 5 ) )
-		{
-		/* Work around a bug in ODBC 2.0 drivers (still present on older
-		   NT 4 machines) in which the primary error is some bizarre
-		   nonsense value (string data right truncated, even though there's
-		   no output data to truncate) and the actual error is present at
-		   the second level, obtained by calling SQLError() a second time */
-		dwNativeError = 0;
-		sqlStatus = SQLError( dbmsInfo->hEnv, hdbc, hstmt, szSqlState,
-							  &dwNativeError, dbmsInfo->errorMessage,
-							  MAX_ERRMSG_SIZE - 1, &dummy );
-		}
-#else
 	/* Get the ODBC error info at the most detailed level we can manage */
 	sqlStatus = SQLGetDiagRec( handleType, handle, 1, szSqlState,
 							   &dwNativeError, dbmsInfo->errorMessage,
@@ -434,7 +358,6 @@ static int getErrorInfo( DBMS_STATE_INFO *dbmsInfo, const int errorLevel,
 				"from database backend" );
 		return( CRYPT_ERROR_FAILED );
 		}
-#endif /* ODBC1x */
 
 	/* Check for a not-found error status.  We can also get an sqlStatus of
 	   SQL_NO_DATA with SQLSTATE set to "00000" and the error message string
@@ -446,7 +369,7 @@ static int getErrorInfo( DBMS_STATE_INFO *dbmsInfo, const int errorLevel,
 		{
 		/* Make sure that the caller gets a sensible error message if they
 		   try to examine the extended error information */
-		if( !*dbmsInfo->errorMessage )
+		if( *dbmsInfo->errorMessage == '\0' )
 			strcpy( dbmsInfo->errorMessage, "No data found" );
 		return( CRYPT_ERROR_NOTFOUND );
 		}
@@ -481,9 +404,7 @@ static int getErrorInfo( DBMS_STATE_INFO *dbmsInfo, const int errorLevel,
 static void convertQuery( DBMS_STATE_INFO *dbmsInfo, char *query,
 						  const char *command )
 	{
-	SQLRETURN sqlStatus;
-	SQLSMALLINT bufLen;
-	char *keywordPtr, buffer[ 128 ];
+	char *keywordPtr;
 
 	assert( command != NULL );
 	strcpy( query, command );
@@ -516,23 +437,36 @@ static void convertQuery( DBMS_STATE_INFO *dbmsInfo, char *query,
 			}
 		}
 
-	/* If it's not a SELECT/DELETE with wildcards used, there's nothing to
-	   do */
-	if( ( strncmp( query, "SELECT", 6 ) && strncmp( query, "DELETE", 6 ) ) || \
-		  strstr( query, " LIKE " ) == NULL )
-		return;
-
-	/* It's a potential problem command, check for the presence of Access */
-	sqlStatus = SQLGetInfo( dbmsInfo->hDbc, SQL_DBMS_NAME, buffer,
-							sizeof( buffer ), &bufLen );
-	if( sqlStatusOK( sqlStatus ) && \
-		strCompare( buffer, "Access", 6 ) )
-		return;
+	/* If it's not one of the back-ends that require special-case handling,  
+	   we're done */
+	if( dbmsInfo->backendType == DBMS_ACCESS )
+		{
+		/* If it's not a SELECT/DELETE with wildcards used, there's nothing to
+		   do */
+		if( ( strncmp( query, "SELECT", 6 ) && \
+			  strncmp( query, "DELETE", 6 ) ) || \
+			  strstr( query, " LIKE " ) == NULL )
+			return;
+		}
+	else
+		if( dbmsInfo->backendType == DBMS_INTERBASE )
+			{
+			/* If it's not an INSERT/DELETE/SELECT with the TYPE column 
+			   involved, there's nothing to do */
+			if( ( strncmp( query, "SELECT", 6 ) && \
+				  strncmp( query, "DELETE", 6 ) && \
+				  strncmp( query, "INSERT", 6 ) ) || \
+				  strstr( query, " TYPE " ) == NULL )
+				return;
+			}
+		else
+			return;
 
 	/* Unlike everything else in the known universe, Access uses * and ?
 	   instead of the standard SQL wildcards so if we find a LIKE ... %
 	   we rewrite the % as a * */
-	if( ( keywordPtr = strstr( query, " LIKE " ) ) != NULL )
+	if( ( dbmsInfo->backendType == DBMS_ACCESS ) && \
+		( keywordPtr = strstr( query, " LIKE " ) ) != NULL )
 		{
 		int i;
 
@@ -578,8 +512,11 @@ static int getBlobInfo( DBMS_STATE_INFO *dbmsInfo, const SQLSMALLINT type )
 	if( !sqlStatusOK( sqlStatus ) )
 		return( CRYPT_ERROR );
 
-	/* We've got the blob type, remember the details */
-	if( type == SQL_LONGVARBINARY )
+	/* We've got the blob type, remember the details.  Postgres has problems
+	   handling blobs via ODBC, so even though it supports them we can't
+	   actually use them */
+	if( ( type == SQL_LONGVARBINARY ) && \
+		( dbmsInfo->backendType != DBMS_POSTGRES ) )
 		dbmsInfo->hasBinaryBlobs = TRUE;
 	dbmsInfo->blobType = type;
 	return( count );
@@ -593,7 +530,7 @@ static int getDatatypeInfo( DBMS_STATE_INFO *dbmsInfo, int *featureFlags )
 	SQLUSMALLINT transactBehaviour;
 	SQLINTEGER attrLength;
 	SQLUINTEGER privileges;
-	char buffer[ 8 ];
+	char buffer[ 8 + 8 ];
 	int count;
 
 	/* First we see what the back-end's blob data type is.  Usually it'll
@@ -691,6 +628,16 @@ static int getDatatypeInfo( DBMS_STATE_INFO *dbmsInfo, int *featureFlags )
 				dbmsInfo->dateTimeNameColSize = columnSize;
 			}
 		SQLCloseCursor( hStmt );
+
+		/* The Postgres driver doesn't correctly detect the date/time type
+		   in the database, so we override the reported length with the 
+		   actual value used by the backend */
+		if( dbmsInfo->backendType == DBMS_POSTGRES )
+			{
+			strcpy( dbmsInfo->dateTimeName, "timestamp" );
+			dbmsInfo->dateTimeNameColSize = 16;
+			sqlStatus = SQL_SUCCESS;
+			}
 		}
 	if( !sqlStatusOK( sqlStatus ) )
 		return( getErrorInfo( dbmsInfo, SQL_ERRLVL_STMT, hStmt,
@@ -767,6 +714,30 @@ static int getDatatypeInfo( DBMS_STATE_INFO *dbmsInfo, int *featureFlags )
 	return( CRYPT_OK );
 	}
 
+/* Get any additional info for this data source */
+
+static int getAdditionalInfo( DBMS_STATE_INFO *dbmsInfo )
+	{
+	SQLRETURN sqlStatus;
+	SQLSMALLINT bufLen;
+	char buffer[ 128 + 8 ];
+
+	/* Check for various back-ends that require special-case handling */
+	sqlStatus = SQLGetInfo( dbmsInfo->hDbc, SQL_DBMS_NAME, buffer,
+							sizeof( buffer ), &bufLen );
+	if( sqlStatusOK( sqlStatus ) )
+		{
+		if( strCompare( buffer, "Access", 6 ) )
+			dbmsInfo->backendType = DBMS_ACCESS;
+		if( strCompare( buffer, "Interbase", 9 ) )
+			dbmsInfo->backendType = DBMS_INTERBASE;
+		if( strCompare( buffer, "PostgreSQL", 10 ) )
+			dbmsInfo->backendType = DBMS_POSTGRES;
+		}
+
+	return( CRYPT_OK );
+	}
+
 /* Bind parameters for a query/update.  The caller has to supply the bound
    data storage since it still has to exist later on when the query is
    executed */
@@ -788,12 +759,15 @@ static int bindParameters( const SQLHSTMT hStmt, const char *boundData,
 	if( boundDate > 0 )
 		{
 		SQLRETURN sqlStatus;
-		const struct tm *timeInfo = gmtime( &boundDate );
-
+		struct tm timeInfo, *timeInfoPtr = &timeInfo;
+		
 		assert( isWritePtr( timestampStorage, sizeof( TIMESTAMP_STRUCT ) ) );
 
-		/* Sanity check on input parameters */
+		/* Sanity check the input parameters */
 		if( timestampStorage == NULL )
+			return( CRYPT_ERROR_BADDATA );
+		timeInfoPtr = gmTime_s( &boundDate, timeInfoPtr );
+		if( timeInfoPtr == NULL )
 			return( CRYPT_ERROR_BADDATA );
 
 		/* Bind in the date.  The handling of the ColumnSize parameter is
@@ -815,12 +789,12 @@ static int bindParameters( const SQLHSTMT hStmt, const char *boundData,
 		   running into something that both requires the parameter and fails
 		   the guesstimation procedure used in getDatatypeInfo() is small */
 		memset( timestampStorage, 0, sizeof( TIMESTAMP_STRUCT ) );
-		timestampStorage->year = timeInfo->tm_year + 1900;
-		timestampStorage->month = timeInfo->tm_mon + 1;
-		timestampStorage->day = timeInfo->tm_mday;
-		timestampStorage->hour = timeInfo->tm_hour;
-		timestampStorage->minute = timeInfo->tm_min;
-		timestampStorage->second = timeInfo->tm_sec;
+		timestampStorage->year = timeInfoPtr->tm_year + 1900;
+		timestampStorage->month = timeInfoPtr->tm_mon + 1;
+		timestampStorage->day = timeInfoPtr->tm_mday;
+		timestampStorage->hour = timeInfoPtr->tm_hour;
+		timestampStorage->minute = timeInfoPtr->tm_min;
+		timestampStorage->second = timeInfoPtr->tm_sec;
 		sqlStatus = SQLBindParameter( hStmt, paramNo++, SQL_PARAM_INPUT,
 									  SQL_C_TIMESTAMP, SQL_TIMESTAMP,
 									  dbmsInfo->dateTimeNameColSize, 0,
@@ -1056,6 +1030,8 @@ static int openDatabase( DBMS_STATE_INFO *dbmsInfo, const char *name,
 	/* Get various driver and data source-specific information that we may
 	   need later on */
 	status = getDatatypeInfo( dbmsInfo, featureFlags );
+	if( cryptStatusOK( status ) )
+		status = getAdditionalInfo( dbmsInfo );
 	if( cryptStatusError( status ) )
 		{
 		closeDatabase( dbmsInfo );
@@ -1182,7 +1158,7 @@ static int performQuery( DBMS_STATE_INFO *dbmsInfo, const char *command,
 			/* Execute the query */
 			if( queryEntry == DBMS_CACHEDQUERY_NONE )
 				{
-				char query[ MAX_SQL_QUERY_SIZE ];
+				char query[ MAX_SQL_QUERY_SIZE + 8 ];
 
 				convertQuery( dbmsInfo, query, command );
 				sqlStatus = SQLExecDirect( hStmt, query, SQL_NTS );
@@ -1232,7 +1208,7 @@ static int performQuery( DBMS_STATE_INFO *dbmsInfo, const char *command,
 			/* Execute the SQL statement and fetch the results */
 			if( queryEntry == DBMS_CACHEDQUERY_NONE )
 				{
-				char query[ MAX_SQL_QUERY_SIZE ];
+				char query[ MAX_SQL_QUERY_SIZE + 8 ];
 
 				convertQuery( dbmsInfo, query, command );
 				sqlStatus = SQLExecDirect( hStmt, query, SQL_NTS );
@@ -1253,14 +1229,11 @@ static int performQuery( DBMS_STATE_INFO *dbmsInfo, const char *command,
 			SQLSetStmtAttr( hStmt, SQL_ATTR_MAX_ROWS, ( SQLPOINTER ) 0,
 							SQL_IS_INTEGER );
 			return( status );
-
-		default:
-			assert( NOTREACHED );
-			return( CRYPT_ERROR_NOTAVAIL );
 		}
 
+	/* Invalid query type */
 	assert( NOTREACHED );
-	return( CRYPT_ERROR );
+	return( CRYPT_ERROR_NOTAVAIL );
 	}
 
 /* Fetch extended error information from the database state info */
@@ -1336,41 +1309,17 @@ static int performUpdate( DBMS_STATE_INFO *dbmsInfo, const char *command,
 							 dbmsInfo, FALSE );
 	if( cryptStatusError( status ) )
 		return( status );
-#ifdef ODBC1x
-	if( boundData != NULL )
-		{
-		dbmsInfo->cbBlobLength = SQL_LEN_DATA_AT_EXEC( boundDataLength );
-		SQLBindParameter( hStmt, paramNo++, SQL_PARAM_INPUT,
-						  dbmsInfo->hasBinaryBlobs ? SQL_C_BINARY : SQL_C_CHAR,
-						  dbmsInfo->blobType, boundDataLength, 0,
-						  ( SQLPOINTER ) 6, 0, &dbmsInfo->cbBlobLength );
-		}
-#endif /* ODBC1x */
 
 	/* Execute the command/hStmt as appropriate */
 	if( command == NULL )
 		sqlStatus = SQLExecute( hStmt );
 	else
 		{
-		char query[ MAX_SQL_QUERY_SIZE ];
+		char query[ MAX_SQL_QUERY_SIZE + 8 ];
 
 		convertQuery( dbmsInfo, query, command );
 		sqlStatus = SQLExecDirect( hStmt, query, SQL_NTS );
 		}
-#ifdef ODBC1x
-	if( sqlStatus == SQL_NEED_DATA )
-		{
-		SQLPOINTER pToken;
-
-		/* Add the key data and perform a dummy SQLParamData() call to tell
-		   the ODBC driver that we've finished with the operation */
-		SQLParamData( hStmt, &pToken );
-		sqlStatus = SQLPutData( hStmt, ( SQLPOINTER ) boundData,
-								boundDataLength );
-		if( sqlStatusOK( sqlStatus ) )
-			sqlStatus = SQLParamData( hStmt, &pToken );
-		}
-#endif /* ODBC1x */
 	if( !sqlStatusOK( sqlStatus ) )
 		{
 		/* The return status from a delete operation can be reported in

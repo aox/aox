@@ -9,17 +9,13 @@
   #include "crypt.h"
   #include "acl.h"
   #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
 #else
   #include "crypt.h"
   #include "kernel/acl.h"
   #include "kernel/kernel.h"
 #endif /* Compiler-specific includes */
 
-/* Macro to access the secondary parameter ACL information for a given 
+/* Macro to access the secondary parameter ACL information for a given
    parameter in a list of parameter ACLs */
 
 #define secParamInfo( parentACL, paramNo )	parentACL->secParamACL[ paramNo ]
@@ -36,9 +32,9 @@ static KERNEL_DATA *krnlData = NULL;
 
 /* The ACL tables for each cert management action */
 
-static const FAR_BSS CERTMGMT_ACL certMgmtACLTbl[] = {
+static const CERTMGMT_ACL FAR_BSS certMgmtACLTbl[] = {
 	/* Create cert store */
-	{ CRYPT_CERTACTION_CREATE,		
+	{ CRYPT_CERTACTION_CREATE,
 	  ACTION_PERM_NONE,					/* Cert dbx.use only */
 	  { MKACP_END() } },
 
@@ -160,6 +156,9 @@ static const FAR_BSS CERTMGMT_ACL certMgmtACLTbl[] = {
 
 	{ CRYPT_CERTACTION_NONE,
 	  ACTION_PERM_NONE,
+	  { MKACP_END() } },
+	{ CRYPT_CERTACTION_NONE,
+	  ACTION_PERM_NONE,
 	  { MKACP_END() } }
 	};
 
@@ -174,7 +173,8 @@ int initCertMgmtACL( KERNEL_DATA *krnlDataPtr )
 	int i;
 
 	/* Perform a consistency check on the cert management ACLs */
-	for( i = 0; certMgmtACLTbl[ i ].action != MECHANISM_NONE; i++ )
+	for( i = 0; certMgmtACLTbl[ i ].action != MECHANISM_NONE && \
+				i < FAILSAFE_ARRAYSIZE( certMgmtACLTbl, CERTMGMT_ACL ); i++ )
 		{
 		const CERTMGMT_ACL *certMgmtACL = &certMgmtACLTbl[ i ];
 
@@ -195,7 +195,7 @@ int initCertMgmtACL( KERNEL_DATA *krnlDataPtr )
 			continue;
 			}
 
-		/* If it's an internal-only ACL, it always needs a request 
+		/* If it's an internal-only ACL, it always needs a request
 		   parameter */
 		if( certMgmtACL->access == ACTION_PERM_NONE_EXTERNAL )
 			{
@@ -207,7 +207,7 @@ int initCertMgmtACL( KERNEL_DATA *krnlDataPtr )
 				return( CRYPT_ERROR_FAILED );
 			}
 
-		/* If it requires a CA key parameter, it must be a private-key 
+		/* If it requires a CA key parameter, it must be a private-key
 		   context with the key loaded and an attached CA certificate */
 		if( paramInfo( certMgmtACL, 0 ).valueType == PARAM_VALUE_OBJECT )
 			{
@@ -225,7 +225,9 @@ int initCertMgmtACL( KERNEL_DATA *krnlDataPtr )
 		if( paramInfo( certMgmtACL, 0 ).valueType != PARAM_VALUE_UNUSED )
 			return( CRYPT_ERROR_FAILED );
 		}
-	
+	if( i >= FAILSAFE_ARRAYSIZE( certMgmtACLTbl, CERTMGMT_ACL ) )
+		retIntError();
+
 	/* Set up the reference to the kernel data block */
 	krnlData = krnlDataPtr;
 
@@ -266,7 +268,11 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 
 	/* Find the appropriate ACL for this mechanism */
 	for( i = 0; certMgmtACL[ i ].action != messageValue && \
-				certMgmtACL[ i ].action != MECHANISM_NONE; i++ );
+				certMgmtACL[ i ].action != MECHANISM_NONE && \
+				i < FAILSAFE_ARRAYSIZE( certMgmtACLTbl, CERTMGMT_ACL ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( certMgmtACLTbl, CERTMGMT_ACL ) )
+		retIntError();
 	if( certMgmtACL[ i ].action == MECHANISM_NONE )
 		{
 		assert( NOTREACHED );
@@ -274,10 +280,10 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 		}
 	certMgmtACL = &certMgmtACL[ i ];
 
-	/* Make sure that the access is valid.  Most cert management actions can 
-	   never be initiated explicitly (they're only used internally by the 
+	/* Make sure that the access is valid.  Most cert management actions can
+	   never be initiated explicitly (they're only used internally by the
 	   cert management code), a few can be initiated explicitly but only
-	   internally by some cert management protocols, and an even smaller 
+	   internally by some cert management protocols, and an even smaller
 	   number can be initiated externally */
 	switch( certMgmtACL->access )
 		{
@@ -286,7 +292,7 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 			break;
 
 		case ACTION_PERM_NONE_EXTERNAL:
-			/* Only internal access (e.g. from a cert management protocol) 
+			/* Only internal access (e.g. from a cert management protocol)
 			   is permitted */
 			if( !( message & MESSAGE_FLAG_INTERNAL ) )
 				return( CRYPT_ARGERROR_VALUE );
@@ -309,12 +315,12 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 			!isSameOwningObject( objectHandle, mechanismInfo->caKey ) )
 			return( CRYPT_ARGERROR_NUM1 );
 		if( !checkParamObject( paramInfo( certMgmtACL, 0 ), \
-							   mechanismInfo->caKey ) ) 
+							   mechanismInfo->caKey ) )
 			return( CRYPT_ARGERROR_NUM1 );
 
 		/* If there's a secondary parameter present, check it agains the
-		   dependent object.  We perform a basic isValidObject() check 
-		   rather than a fullObjectCheck() since the dependent object is 
+		   dependent object.  We perform a basic isValidObject() check
+		   rather than a fullObjectCheck() since the dependent object is
 		   usually internal, and this would fail with an external message */
 		if( secParamInfo( certMgmtACL, 0 ).valueType == PARAM_VALUE_OBJECT )
 			{
@@ -324,7 +330,7 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 			if( !isValidObject( dependentObject ) )
 				return( CRYPT_ARGERROR_NUM1 );
 			if( !checkParamObject( secParamInfo( certMgmtACL, 0 ), \
-								   dependentObject ) ) 
+								   dependentObject ) )
 				return( CRYPT_ARGERROR_NUM1 );
 			}
 		}
@@ -341,7 +347,7 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 			!isSameOwningObject( objectHandle, mechanismInfo->request ) )
 			return( CRYPT_ARGERROR_NUM2 );
 		if( !checkParamObject( paramInfo( certMgmtACL, 1 ), \
-							   mechanismInfo->request ) ) 
+							   mechanismInfo->request ) )
 			return( CRYPT_ARGERROR_NUM2 );
 		}
 	else

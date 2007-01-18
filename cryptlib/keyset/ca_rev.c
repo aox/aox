@@ -5,21 +5,12 @@
 *																			*
 ****************************************************************************/
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "dbms.h"
   #include "asn1.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../keyset/dbms.h"
-  #include "../misc/asn1.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -42,7 +33,7 @@ static int getCertToRevoke( DBMS_INFO *dbmsInfo,
 							CRYPT_CERTIFICATE *iCertificate,
 							const CRYPT_CERTIFICATE iCertRequest )
 	{
-	char issuerID[ DBXKEYID_BUFFER_SIZE ];
+	char issuerID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int dummy, length, status;
 
 	*iCertificate = CRYPT_ERROR;
@@ -96,7 +87,7 @@ int revokeCertDirect( DBMS_INFO *dbmsInfo,
 	/* Get any information needed for the revocation from the cert */
 	if( action == CRYPT_CERTACTION_CERT_CREATION_REVERSE )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, &certDate, sizeof( time_t ) );
 		status = krnlSendMessage( iCertificate, IMESSAGE_GETATTRIBUTE_S,
@@ -133,7 +124,7 @@ int revokeCertDirect( DBMS_INFO *dbmsInfo,
 		else
 			{
 			static const int crlReason = CRYPT_CRLREASON_NEVERVALID;
-			RESOURCE_DATA msgData;
+			MESSAGE_DATA msgData;
 
 			/* We're revoking a cert issued in error, set the revocation and
 			   invalidity dates to the same value (the time of cert issue) in
@@ -176,9 +167,9 @@ int caRevokeCert( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCertRequest,
 	{
 	CRYPT_CERTIFICATE iLocalCertificate = iCertificate;
 	CRYPT_CERTIFICATE iLocalCRL = iCertRequest;
-	BYTE certData[ MAX_CERT_SIZE ];
-	char reqCertID[ DBXKEYID_BUFFER_SIZE ], *reqCertIDptr = reqCertID;
-	char subjCertID[ DBXKEYID_BUFFER_SIZE ];
+	BYTE certData[ MAX_CERT_SIZE + 8 ];
+	char reqCertID[ DBXKEYID_BUFFER_SIZE + 8 ], *reqCertIDptr = reqCertID;
+	char subjCertID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	const BOOLEAN reqPresent = \
 					( action == CRYPT_CERTACTION_RESTART_REVOKE_CERT || \
 					  ( action == CRYPT_CERTACTION_REVOKE_CERT && \
@@ -259,7 +250,7 @@ int caRevokeCert( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCertRequest,
 						   CRYPT_CERTINFO_FINGERPRINT_SHA );
 	if( !cryptStatusError( status ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, certData, MAX_CERT_SIZE );
 		status = krnlSendMessage( iLocalCRL, IMESSAGE_GETATTRIBUTE_S,
@@ -292,23 +283,23 @@ int caRevokeCert( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCertRequest,
 								DBMS_UPDATE_CONTINUE );
 	if( cryptStatusOK( status ) && reqPresent )
 		{
-		char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+		char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 
-		dbmsFormatSQL( sqlBuffer,
+		dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"DELETE FROM certRequests WHERE certID = '$'",
 					   reqCertID );
 		status = dbmsUpdate( sqlBuffer, NULL, 0, 0, DBMS_UPDATE_CONTINUE );
 		}
 	if( cryptStatusOK( status ) )
 		{
-		char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+		char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 
 		if( action == CRYPT_CERTACTION_CERT_CREATION_REVERSE )
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 				"DELETE FROM certificates WHERE certID = '" KEYID_ESC1 "$'",
 						   subjCertID + 2 );
 		else
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 				"DELETE FROM certificates WHERE certID = '$'",
 						   subjCertID );
 		status = dbmsUpdate( sqlBuffer, NULL, 0, 0, DBMS_UPDATE_COMMIT );
@@ -342,17 +333,17 @@ int caRevokeCert( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCertRequest,
 							NULL, reqCertIDptr, NULL, NULL, 0 );
 		if( !reqPresent )
 			{
-			char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+			char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 
 			assert( action == CRYPT_CERTACTION_CERT_CREATION_REVERSE || \
 					action == CRYPT_CERTACTION_REVOKE_CERT );
 
 			if( action == CRYPT_CERTACTION_CERT_CREATION_REVERSE )
-				dbmsFormatSQL( sqlBuffer,
+				dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 					"DELETE FROM certificates WHERE certID = '" KEYID_ESC1 "$'",
 							   subjCertID + 2 );
 			else
-				dbmsFormatSQL( sqlBuffer,
+				dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 					"DELETE FROM certificates WHERE certID = '$'",
 							   subjCertID );
 			status = dbmsStaticUpdate( sqlBuffer );
@@ -371,11 +362,11 @@ int caIssueCRL( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCryptCRL,
 				const CRYPT_CONTEXT caKey )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	BYTE crlEntry[ MAX_QUERY_RESULT_SIZE ];
+	BYTE crlEntry[ MAX_QUERY_RESULT_SIZE + 8 ];
 	BOOLEAN crlEntryAdded = FALSE;
-	char crlEntryBuffer[ MAX_QUERY_RESULT_SIZE ];
+	char crlEntryBuffer[ MAX_QUERY_RESULT_SIZE + 8 ];
 	void *crlEntryPtr = crlEntryBuffer;
-	char nameID[ DBXKEYID_BUFFER_SIZE ];
+	char nameID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	char *operationString;
 	int operationStatus = CRYPT_OK, errorCount = 0, length, status;
 
@@ -422,7 +413,7 @@ int caIssueCRL( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCryptCRL,
 	   somewhere we create a log entry to record it */
 	do
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		int crlEntryLength;
 
 		/* Read the CRL entry data */
@@ -479,7 +470,8 @@ int caIssueCRL( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCryptCRL,
 
 		crlEntryAdded = TRUE;
 		}
-	while( status != CRYPT_ERROR_COMPLETE && errorCount < 10 );
+	while( status != CRYPT_ERROR_COMPLETE && \
+		   errorCount < FAILSAFE_ITERATIONS_SMALL );
 	if( cryptStatusError( operationStatus ) )
 		{
 		/* If nothing could be added to the CRL, something is wrong, don't

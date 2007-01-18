@@ -61,9 +61,6 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "md4.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "md4.h"
 #else
   #include "crypt.h"
   #include "crypt/md4.h"
@@ -139,7 +136,7 @@ void md4_block_data_order (MD4_CTX *c, const void *p,int num);
  */
 #endif
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "md32com.h"
 #else
   #include "crypt/md32com.h"

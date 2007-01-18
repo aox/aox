@@ -56,7 +56,7 @@
  * [including the GNU Public Licence.]
  */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "osconfig.h"
   #include "des.h"
   #include "deslocl.h"
@@ -67,6 +67,8 @@
   #include "crypt/deslocl.h"
   #include "crypt/spr.h"
 #endif /* Compiler-specific includes */
+
+#if 0	/* pcg */
 
 const char *des_options(void)
 	{
@@ -106,7 +108,7 @@ const char *des_options(void)
 		}
 	return(buf);
 	}
-
+#endif /* 0 */
 
 void des_ecb_encrypt(const_des_cblock *input, des_cblock *output,
 	     des_key_schedule ks,

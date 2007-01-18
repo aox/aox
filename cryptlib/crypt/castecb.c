@@ -56,7 +56,7 @@
  * [including the GNU Public Licence.]
  */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "osconfig.h"
   #include "cast.h"
   #include "castlcl.h"

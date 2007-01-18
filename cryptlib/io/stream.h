@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						STREAM Class Constants and Structures				*
-*						  Copyright Peter Gutmann 1993-2004					*
+*						  Copyright Peter Gutmann 1993-2005					*
 *																			*
 ****************************************************************************/
 
@@ -11,8 +11,6 @@
 
 #if defined( INC_ALL )
   #include "crypt.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
 #else
   #include "crypt.h"
 #endif /* Compiler-specific includes */
@@ -239,7 +237,7 @@ typedef struct ST {
 	char name[ 8 + 1 ];			/* Data item associated with stream */
 	BOOLEAN isSensitive;		/* Whether stream contains sensitive data */
   #elif defined( __VMCMS__ )
-	char name[ FILENAME_MAX ];	/* Data item associated with stream */
+	char name[ FILENAME_MAX + 8 ];/* Data item associated with stream */
   #endif /* Nonstandard I/O enviroments */
 #else
 	FILE *filePtr;				/* The file associated with this stream */
@@ -303,9 +301,9 @@ typedef struct ST {
 											 const int flags );
 
 	/* Protocol-specific infomation for network I/O */
-	char contentType[ CRYPT_MAX_TEXTSIZE + 1 ];	/* HTTP content type */
+	char contentType[ CRYPT_MAX_TEXTSIZE + 8 ];	/* HTTP content type */
 	char *query;				/* HTTP query URI portion */
-	int queryLen;
+	int queryBufSize;
 	CALLBACKFUNCTION callbackFunction;
 	void *callbackParams;		/* Callback to change I/O buffer size */
 
@@ -319,7 +317,7 @@ typedef struct ST {
 #endif /* USE_TCP */
 	} STREAM;
 
-/* Parsed URL information */
+/* Parsed URL information: schema://user@host:port/location */
 
 typedef enum { URL_TYPE_NONE, URL_TYPE_HTTP, URL_TYPE_HTTPS, URL_TYPE_SSH,
 			   URL_TYPE_CMP, URL_TYPE_TSP, URL_TYPE_LAST } URL_TYPE;
@@ -330,6 +328,17 @@ typedef struct {
 	int schemaLen, userInfoLen, hostLen, locationLen;
 	int port;
 	} URL_INFO;
+
+/* Parsed HTTP URI information: location?attribute=value.  The contents of a
+   string-form URI are broken down into the following fields by the HTTP
+   read code */
+
+typedef struct {
+	char location[ CRYPT_MAX_TEXTSIZE + 8 ];
+	char attribute[ CRYPT_MAX_TEXTSIZE + 8 ];
+	char value[ CRYPT_MAX_TEXTSIZE + 8 ];
+	int locationLen, attributeLen, valueLen;
+	} HTTP_URI_INFO;
 
 /* Information required when connecting a network stream.  There are so many
    parameters required that we pack them into a struct to keep the interface
@@ -416,13 +425,21 @@ int sPeek( STREAM *stream );
 								 ( error ) : ( stream )->status )
 #define sClearError( stream )		( stream )->status = CRYPT_OK
 
-/* Return after setting extended error information for the stream.  We use a 
-   macro to make it match the standard return statement, the slightly unusual
-   form is required to handle the fact that the helper function is a varargs
-   function */
+/* Return after setting extended error information for the stream.  If the 
+   compiler doesn't support varargs macros then we have to use a macro set 
+   up to make it match the standard return statement.*/
 
-int retExtStreamFn( STREAM *stream, const int status, const char *format, ... );
-#define retExtStream	return retExtStreamFn
+#if defined( USE_ERRMSGS ) || !defined( VARARGS_MACROS )
+  int retExtStreamFn( STREAM *stream, const int status, 
+					  const char *format, ... );
+
+  #define retExtStream		return retExtStreamFn
+#else
+  int retExtStreamFn( STREAM *stream, const int status );
+
+  #define retExtStream( stream, status, format, ... ) \
+		  return( retExtStreamFn( stream, status ) )
+#endif /* USE_ERRMSGS */
 
 /* Stream query functions to determine whether a stream is a null stream or
    a memory-mapped file stream.  This is used to short-circuit unnecessary 
@@ -480,7 +497,8 @@ void sNetGetErrorInfo( STREAM *stream, char *errorString, int *errorCode );
 BOOLEAN fileReadonly( const char *fileName );
 void fileClearToEOF( const STREAM *stream );
 void fileErase( const char *fileName );
-void fileBuildCryptlibPath( char *path, const char *fileName,
+void fileBuildCryptlibPath( char *path, const int pathMaxLen, 
+							const char *fileName,
 							const BUILDPATH_OPTION_TYPE option );
 
 /* Initialisation/shutdown functions for network stream interfaces */

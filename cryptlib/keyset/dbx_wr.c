@@ -5,20 +5,12 @@
 *																			*
 ****************************************************************************/
 
-#include <stdarg.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "dbms.h"
   #include "asn1.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../keyset/dbms.h"
-  #include "../misc/asn1.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -31,91 +23,85 @@
 
 /* Get a commonName or commonName-equivalent from a certificate */
 
-static int getCommonName( CRYPT_CERTIFICATE iCryptCert, char *CN,
+static int extractDnComponent( const char *encodedDn, 
+							   const int encodedDnLength, 
+							   const char *componentName, 
+							   const int componentNameLength,
+							   int *startPosPtr )
+	{
+	int startPos, endPos;
+
+	/* Clear return value */
+	*startPosPtr = 0;
+	
+	/* Try and find the component name in the encoded DN string */
+	startPos = strFindStr( encodedDn, encodedDnLength, 
+						   componentName, componentNameLength );
+	if( startPos < 0 )
+		return( -1 );
+	startPos += componentNameLength;	/* Skip type indicator */
+	
+	/* Extract the component value */
+	for( endPos = startPos; endPos < encodedDnLength && \
+							encodedDn[ endPos ] != ',' && \
+							encodedDn[ endPos ] != '+'; endPos++ );
+	if( encodedDn[ endPos ] == '+' && \
+		encodedDn[ endPos - 1 ] == ' ' )
+		endPos--;	/* Strip trailing space */
+	
+	*startPosPtr = startPos;
+	return( endPos - startPos );
+	}
+
+static int getCommonName( CRYPT_CERTIFICATE iCryptCert, 
+						  char *CN, const int cnMaxLength,
 						  const char *OU, const char *O )
 	{
-	RESOURCE_DATA msgData;
-	char buffer[ MAX_ATTRIBUTE_SIZE ], *strPtr;
-	int status;
+	MESSAGE_DATA msgData;
+	char encodedDnBuffer[ MAX_ATTRIBUTE_SIZE + 8 ];
+	int encodedDnLength, startPos, length, status;
 
 	/* First, we try for a CN */
-	setMessageData( &msgData, CN, CRYPT_MAX_TEXTSIZE );
+	setMessageData( &msgData, CN, cnMaxLength );
 	status = krnlSendMessage( iCryptCert, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_CERTINFO_COMMONNAME );
 	if( cryptStatusOK( status ) )
-		{
-		CN[ msgData.length ] = '\0';
-		return( CRYPT_OK );
-		}
+		return( msgData.length );
 
 	/* If that fails, we try for either a pseudonym or givenName + surname.
 	   Since these are part of the vast collection of oddball DN attributes
 	   that aren't handled directly, we have to get the encoded DN form and
 	   look for them by OID */
-	setMessageData( &msgData, buffer, MAX_ATTRIBUTE_SIZE - 1 );
+	setMessageData( &msgData, encodedDnBuffer, MAX_ATTRIBUTE_SIZE );
 	status = krnlSendMessage( iCryptCert, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_CERTINFO_DN );
 	if( cryptStatusError( status ) )
 		return( status );
-	buffer[ msgData.length ] = '\0';
+	encodedDnLength = msgData.length;
 
 	/* Look for a pseudonym */
-	strPtr = strstr( buffer, "oid.2.5.4.65=" );
-	if( strPtr != NULL )
+	length = extractDnComponent( encodedDnBuffer, encodedDnLength, 
+								 "oid.2.5.4.65=", 13, &startPos );
+	if( length > 0 && length <= cnMaxLength )
 		{
-		int length;
-
-		strPtr += 13;	/* Skip type indicator */
-		for( length = 0; strPtr[ length ] != '\0' && \
-						 strPtr[ length ] != ',' && \
-						 strPtr[ length ] != '+'; length++ );
-		if( length > 0 && strPtr[ length ] == '+' && \
-						  strPtr[ length - 1 ] == ' ' )
-			length--;	/* Strip trailing space */
-		if( length <= CRYPT_MAX_TEXTSIZE )
-			{
-			memcpy( CN, strPtr, length );
-			CN[ length ] = '\0';
-			return( CRYPT_OK );
-			}
+		memcpy( CN, encodedDnBuffer + startPos, length );
+		return( length );
 		}
 
 	/* Look for givenName + surname */
-	strPtr = strstr( buffer, "G=" );
-	if( strPtr != NULL )
+	length = extractDnComponent( encodedDnBuffer, encodedDnLength, 
+								 "G=", 2, &startPos );
+	if( length > 0 && length <= cnMaxLength )
 		{
-		char *surnameStrPtr;
-		int length, surnameLength;
+		int startPos2, length2;
 
-		strPtr += 2;	/* Skip type indicator */
-		for( length = 0; \
-			 strPtr[ length ] != '\0' && \
-				strPtr[ length ] != ',' && \
-				strPtr[ length ] != '+'; \
-			 length++ );
-		if( length > 0 && strPtr[ length ] == '+' && \
-						  strPtr[ length - 1 ] == ' ' )
-			length--;	/* Strip trailing space */
-		surnameStrPtr = strstr( buffer, "S=" );
-		if( surnameStrPtr != NULL )
+		length2 = extractDnComponent( encodedDnBuffer, encodedDnLength, 
+									  "S=", 2, &startPos2 );
+		if( length2 > 0 && length + length2 <= cnMaxLength )
 			{
-			surnameStrPtr += 2;	/* Skip type indicator */
-			for( surnameLength = 0; \
-				 surnameStrPtr[ surnameLength ] != '\0' && \
-					surnameStrPtr[ surnameLength ] != ',' && \
-					surnameStrPtr[ length ] != '+'; \
-				 surnameLength++ );
-			if( surnameLength > 0 && \
-				surnameStrPtr[ surnameLength ] == '+' && \
-				surnameStrPtr[ surnameLength - 1 ] == ' ' )
-				surnameLength--;	/* Strip trailing space */
-			if( length + surnameLength <= CRYPT_MAX_TEXTSIZE )
-				{
-				memcpy( CN, strPtr, length );
-				memcpy( CN + length, surnameStrPtr, surnameLength );
-				CN[ length + surnameLength ] = '\0';
-				return( CRYPT_OK );
-				}
+			memcpy( CN, encodedDnBuffer + startPos, length );
+			memcpy( CN + length, encodedDnBuffer + startPos2, length2 );
+			return( length + length2 );
 			}
 		}
 
@@ -124,9 +110,17 @@ static int getCommonName( CRYPT_CERTIFICATE iCryptCert, char *CN,
 	   instead.  If that also fails, we use the O.  This gets a bit messy, 
 	   but duplicating the OU / O into the CN seems to be the best way to 
 	   handle this */
-	strcpy( CN, *OU ? OU : O );
-
-	return( CRYPT_OK );
+	if( *OU != '\0' )
+		{
+		length = strlen( OU );
+		memcpy( CN, OU, length );
+		}
+	else
+		{
+		length = strlen( O );
+		memcpy( CN, O, length );
+		}
+	return( length );
 	}
 
 /* Add a certificate object (cert, cert request, PKI user) to a database.  
@@ -137,15 +131,16 @@ int addCert( DBMS_INFO *dbmsInfo, const CRYPT_HANDLE iCryptHandle,
 			 const CRYPT_CERTTYPE_TYPE certType, const CERTADD_TYPE addType,
 			 const DBMS_UPDATE_TYPE updateType )
 	{
-	RESOURCE_DATA msgData;
-	BYTE certData[ MAX_CERT_SIZE ];
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
-	char nameID[ DBXKEYID_BUFFER_SIZE ], issuerID[ DBXKEYID_BUFFER_SIZE ];
-	char keyID[ DBXKEYID_BUFFER_SIZE ], certID[ DBXKEYID_BUFFER_SIZE ];
-	char C[ CRYPT_MAX_TEXTSIZE + 1 ], SP[ CRYPT_MAX_TEXTSIZE + 1 ],
-		 L[ CRYPT_MAX_TEXTSIZE + 1 ], O[ CRYPT_MAX_TEXTSIZE + 1 ],
-		 OU[ CRYPT_MAX_TEXTSIZE + 1 ], CN[ CRYPT_MAX_TEXTSIZE + 1 ],
-		 uri[ CRYPT_MAX_TEXTSIZE + 1 ];
+	MESSAGE_DATA msgData;
+	BYTE certData[ MAX_CERT_SIZE + 8 ];
+	char sqlBuffer[ MAX_SQL_QUERY_SIZE + 8 ];
+	char nameID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char issuerID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char keyID[ DBXKEYID_BUFFER_SIZE + 8 ], certID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char C[ CRYPT_MAX_TEXTSIZE + 1 + 8 ], SP[ CRYPT_MAX_TEXTSIZE + 1 + 8 ],
+		 L[ CRYPT_MAX_TEXTSIZE + 1 + 8 ], O[ CRYPT_MAX_TEXTSIZE + 1 + 8 ],
+		 OU[ CRYPT_MAX_TEXTSIZE + 1 + 8 ], CN[ CRYPT_MAX_TEXTSIZE + 1 + 8 ],
+		 uri[ CRYPT_MAX_TEXTSIZE + 1 + 8 ];
 	time_t boundDate = 0;
 	int certDataLength, status;
 
@@ -202,7 +197,12 @@ int addCert( DBMS_INFO *dbmsInfo, const CRYPT_HANDLE iCryptHandle,
 		{
 		/* The handling of the CN (or CN-equivalent) is somewhat complex so 
 		   we use a separate function for this */
-		status = getCommonName( iCryptHandle, CN, OU, O );
+		status = getCommonName( iCryptHandle, CN, CRYPT_MAX_TEXTSIZE, OU, O );
+		if( !cryptStatusError( status ) )
+			{
+			CN[ status ] = '\0';
+			status = CRYPT_OK;	/* getCommonName() returns a length */
+			}
 		}
 	if( ( cryptStatusOK( status ) || status == CRYPT_ERROR_NOTFOUND ) && \
 		( certType != CRYPT_CERTTYPE_PKIUSER ) )
@@ -272,7 +272,7 @@ int addCert( DBMS_INFO *dbmsInfo, const CRYPT_HANDLE iCryptHandle,
 		}
 	if( certType == CRYPT_CERTTYPE_PKIUSER )
 		{
-		char encKeyID[ 128 ];
+		char encKeyID[ CRYPT_MAX_TEXTSIZE + 8 ];
 
 		/* Get the PKI user ID.  We can't read this directly since it's
 		   returned in text form for use by end users so we have to read the
@@ -281,15 +281,15 @@ int addCert( DBMS_INFO *dbmsInfo, const CRYPT_HANDLE iCryptHandle,
 		   (== subjectKeyIdentifier, which it isn't really) but we need to
 		   use this to ensure that it's hashed/expanded out to the correct
 		   size */
-		setMessageData( &msgData, encKeyID, 128 );
+		setMessageData( &msgData, encKeyID, CRYPT_MAX_TEXTSIZE );
 		status = krnlSendMessage( iCryptHandle, IMESSAGE_GETATTRIBUTE_S,
 								  &msgData, CRYPT_CERTINFO_PKIUSER_ID );
 		if( cryptStatusOK( status ) )
 			{
-			BYTE binaryKeyID[ 128 ];
+			BYTE binaryKeyID[ 64 + 8 ];
 			int length;
 
-			status = length = decodePKIUserValue( binaryKeyID, encKeyID, 
+			status = length = decodePKIUserValue( binaryKeyID, 64, encKeyID, 
 												  msgData.length );
 			if( !cryptStatusError( status ) )
 				{
@@ -347,7 +347,7 @@ int addCert( DBMS_INFO *dbmsInfo, const CRYPT_HANDLE iCryptHandle,
 	/* Set up the cert object data to write */
 	if( !hasBinaryBlobs( dbmsInfo ) )
 		{
-		char encodedCertData[ MAX_ENCODED_CERT_SIZE ];
+		char encodedCertData[ MAX_ENCODED_CERT_SIZE + 8 ];
 		int length;
 
 		length = base64encode( encodedCertData, MAX_ENCODED_CERT_SIZE,
@@ -355,21 +355,21 @@ int addCert( DBMS_INFO *dbmsInfo, const CRYPT_HANDLE iCryptHandle,
 							   CRYPT_CERTTYPE_NONE );
 		encodedCertData[ length ] = '\0';
 		if( certType == CRYPT_CERTTYPE_CERTIFICATE )
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO certificates VALUES ('$', '$', '$', '$', '$', '$', "
 											 "'$', ?, '$', '$', '$', '$', '$')",
 						   C, SP, L, O, OU, CN, uri, nameID, issuerID,
 						   keyID, certID, encodedCertData );
 		else
 			if( certType == CRYPT_CERTTYPE_REQUEST_CERT )
-				dbmsFormatSQL( sqlBuffer,
+				dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO certRequests VALUES ('" TEXT_CERTTYPE_REQUEST_CERT "', "
 											 "'$', '$', '$', '$', '$', '$', "
 											 "'$', '$', '$')",
 							   C, SP, L, O, OU, CN, uri, certID,
 							   encodedCertData );
 			else
-				dbmsFormatSQL( sqlBuffer,
+				dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO pkiUsers VALUES ('$', '$', '$', '$', '$', '$', "
 										 "'$', '$', '$', '$')",
 							   C, SP, L, O, OU, CN, nameID, keyID, certID,
@@ -378,20 +378,20 @@ int addCert( DBMS_INFO *dbmsInfo, const CRYPT_HANDLE iCryptHandle,
 	else
 		{
 		if( certType == CRYPT_CERTTYPE_CERTIFICATE )
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO certificates VALUES ('$', '$', '$', '$', '$', '$', "
 											 "'$', ?, '$', '$', '$', '$', ?)",
 						   C, SP, L, O, OU, CN, uri, nameID, issuerID,
 						   keyID, certID );
 		else
 			if( certType == CRYPT_CERTTYPE_REQUEST_CERT )
-				dbmsFormatSQL( sqlBuffer,
+				dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO certRequests VALUES ('" TEXT_CERTTYPE_REQUEST_CERT "', "
 											 "'$', '$', '$', '$', '$', '$', "
 											 "'$', '$', ?)",
 							   C, SP, L, O, OU, CN, uri, certID );
 			else
-				dbmsFormatSQL( sqlBuffer,
+				dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO pkiUsers VALUES ('$', '$', '$', '$', '$', '$', "
 										 "'$', '$', '$', ?)",
 							   C, SP, L, O, OU, CN, nameID, keyID, certID );
@@ -409,10 +409,11 @@ int addCRL( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCryptCRL,
 			const CRYPT_CERTIFICATE iCryptRevokeCert,
 			const DBMS_UPDATE_TYPE updateType )
 	{
-	BYTE certData[ MAX_CERT_SIZE ];
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
-	char nameID[ DBXKEYID_BUFFER_SIZE ], issuerID[ DBXKEYID_BUFFER_SIZE ];
-	char certID[ DBXKEYID_BUFFER_SIZE ];
+	BYTE certData[ MAX_CERT_SIZE + 8 ];
+	char sqlBuffer[ MAX_SQL_QUERY_SIZE + 8 ];
+	char nameID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char issuerID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	time_t expiryDate = 0;
 	int certDataLength, status;
 
@@ -426,7 +427,7 @@ int addCRL( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCryptCRL,
 					   CRYPT_IATTRIBUTE_ISSUERANDSERIALNUMBER );
 	if( !cryptStatusError( status ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, certData, MAX_CERT_SIZE );
 		status = krnlSendMessage( iCryptCRL, IMESSAGE_GETATTRIBUTE_S,
@@ -445,7 +446,7 @@ int addCRL( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCryptCRL,
 							   CRYPT_IATTRIBUTE_ISSUER );
 		if( !cryptStatusError( status ) )
 			{
-			RESOURCE_DATA msgData;
+			MESSAGE_DATA msgData;
 
 			setMessageData( &msgData, &expiryDate, sizeof( time_t ) );
 			status = krnlSendMessage( iCryptRevokeCert,
@@ -463,7 +464,7 @@ int addCRL( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCryptCRL,
 	   depending on the keyset type */
 	if( !hasBinaryBlobs( dbmsInfo ) )
 		{
-		char encodedCertData[ MAX_ENCODED_CERT_SIZE ];
+		char encodedCertData[ MAX_ENCODED_CERT_SIZE + 8 ];
 		int length;
 
 		length = base64encode( encodedCertData, MAX_ENCODED_CERT_SIZE,
@@ -471,11 +472,11 @@ int addCRL( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCryptCRL,
 							   CRYPT_CERTTYPE_NONE );
 		encodedCertData[ length ] = '\0';
 		if( isCertStore( dbmsInfo ) )
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO CRLs VALUES (?, '$', '$', '$', '$')",
 						   nameID, issuerID, certID, encodedCertData );
 		else
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO CRLs VALUES ('$', '$')",
 						   issuerID, encodedCertData );
 		certDataLength = 0;	/* It's encoded in the SQL string */
@@ -483,11 +484,11 @@ int addCRL( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCryptCRL,
 	else
 		{
 		if( isCertStore( dbmsInfo ) )
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO CRLs VALUES (?, '$', '$', '$', ?)",
 						   nameID, issuerID, certID );
 		else
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"INSERT INTO CRLs VALUES ('$', ?)",
 						   issuerID );
 		}
@@ -508,7 +509,7 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 	{
 	DBMS_INFO *dbmsInfo = keysetInfo->keysetDBMS;
 	BOOLEAN seenNonDuplicate = FALSE;
-	int type, status;
+	int type, iterationCount = 0, status;
 
 	assert( itemType == KEYMGMT_ITEM_PUBLICKEY || \
 			itemType == KEYMGMT_ITEM_REVOCATIONINFO || \
@@ -586,7 +587,10 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 	while( cryptStatusOK( status ) && \
 		   krnlSendMessage( iCryptHandle, IMESSAGE_SETATTRIBUTE,
 							MESSAGE_VALUE_CURSORNEXT,
-							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK );
+							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	krnlSendMessage( iCryptHandle, IMESSAGE_SETATTRIBUTE,
 					 MESSAGE_VALUE_FALSE, CRYPT_IATTRIBUTE_LOCKED );
 	if( cryptStatusOK( status ) && !seenNonDuplicate )
@@ -605,8 +609,8 @@ static int deleteItemFunction( KEYSET_INFO *keysetInfo,
 							   const void *keyID, const int keyIDlength )
 	{
 	DBMS_INFO *dbmsInfo = keysetInfo->keysetDBMS;
-	char keyIDbuffer[ CRYPT_MAX_TEXTSIZE * 2 ];
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+	char keyIDbuffer[ ( CRYPT_MAX_TEXTSIZE * 2 ) + 8 ];
+	char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 	int status;
 
 	assert( itemType == KEYMGMT_ITEM_PUBLICKEY || \
@@ -628,7 +632,7 @@ static int deleteItemFunction( KEYSET_INFO *keysetInfo,
 
 		return( caDeletePKIUser( dbmsInfo, keyIDtype, keyID, keyIDlength ) );
 		}
-	dbmsFormatSQL( sqlBuffer,
+	dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"DELETE FROM $ WHERE $ = '$'",
 				   getTableName( itemType ), getKeyName( keyIDtype ), 
 				   keyIDbuffer );

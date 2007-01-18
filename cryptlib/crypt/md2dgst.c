@@ -62,9 +62,6 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "md2.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "md2.h"
 #else
   #include "crypt.h"
   #include "crypt/md2.h"

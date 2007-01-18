@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							cryptlib Kernel Header File						*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,7 +9,7 @@
 
 #define _KERNEL_DEFINED
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "thread.h"
 #else
   #include "kernel/thread.h"
@@ -28,9 +28,10 @@
    RAY: No!  Nobody ever made them like this!  The architect was either a
         certified genius or an authentic wacko! */
 
-/* "There is a fine line between genius and insanity.  I have erased this
-    line" - Oscar Levant (or "Nullum magnum ingenium sine mixtura dementiae"
-	if you want it in the usual style) */
+/* "There is a fine line between genius and insanity.
+    I have erased this line" - Oscar Levant
+	(or "Nullum magnum ingenium sine mixtura dementiae" if you want it in
+	the usual style) */
 
 /****************************************************************************
 *																			*
@@ -101,14 +102,14 @@
 #define isValidSubtype( subtypeMask, subtype ) \
 		( ( ( subtypeMask ) & ( subtype ) ) == ( subtype ) )
 
-/* The set of object checks is used frequently enough that we combine them 
+/* The set of object checks is used frequently enough that we combine them
    into a composite check that performs all of the checks in one place */
 
 #define fullObjectCheck( objectHandle, message ) \
 		( isValidObject( objectHandle ) && \
 		  isObjectAccessValid( objectHandle, message ) && \
 		  checkObjectOwnership( objectTable[ objectHandle ] ) )
-		
+
 /* Macros to test whether a message falls into a certain class.  These tests
    are:
 
@@ -125,7 +126,7 @@
 		  THREAD_SAME( ( objectPtr ).objectOwner, THREAD_SELF() ) )
 
 /* A macro to turn an abnormal status indicated in an object's flags into a
-   status code.  The values are prioritised so that notinited > signalled > 
+   status code.  The values are prioritised so that notinited > signalled >
    busy */
 
 #define getObjectStatusValue( flags ) \
@@ -144,7 +145,7 @@
 typedef struct {
 	/* Object type and value */
 	OBJECT_TYPE type;			/* Object type */
-	int subType;				/* Object subtype */
+	OBJECT_SUBTYPE subType;		/* Object subtype */
 	void *objectPtr;			/* Object data */
 	int objectSize;				/* Object data size */
 
@@ -203,21 +204,21 @@ typedef struct {
 *																			*
 ****************************************************************************/
 
-/* The object allocation state data.  This controls the allocation of 
-   handles to newly-created objects.  The first NO_SYSTEM_OBJECTS handles 
-   are system objects that exist with fixed handles, the remainder are 
+/* The object allocation state data.  This controls the allocation of
+   handles to newly-created objects.  The first NO_SYSTEM_OBJECTS handles
+   are system objects that exist with fixed handles, the remainder are
    allocated pseudorandomly under the control of an LFSR */
 
 typedef struct {
-	int lfsrMask, lfsrPoly;		/* LFSR state values */
+	long lfsrMask, lfsrPoly;	/* LFSR state values */
 	int objectHandle;			/* Current object handle */
 	} OBJECT_STATE_INFO;
 
 /* A structure to store the details of a message sent to an object, and the
    size of the message queue.  This defines the maximum nesting depth of
    messages sent by an object.  Because of the way krnlSendMessage() handles
-   message processing, it's extremely difficult to ever have more than two 
-   or three messages in the queue unless an object starts recursively 
+   message processing, it's extremely difficult to ever have more than two
+   or three messages in the queue unless an object starts recursively
    sending itself messages */
 
 typedef struct {
@@ -238,7 +239,7 @@ typedef struct {
 	Clear -> Clear
 
    The handling is complicated somewhat by the fact that on some systems the
-   semaphore has to be explicitly deleted, but only the last thread to use 
+   semaphore has to be explicitly deleted, but only the last thread to use
    it can safely delete it.  In order to handle this, we reference-count the
    semaphore and let the last thread out delete it.  In order to do this we
    introduce an additional state, preClear, which indicates that while the
@@ -259,6 +260,29 @@ typedef struct {
 	int refCount;				/* Reference count for handle */
 	} SEMAPHORE_INFO;
 
+/* A structure to store the details of a thread */
+
+typedef struct {
+	THREAD_FUNCTION threadFunction;	/* Function to call from thread */
+	THREAD_PARAMS threadParams;		/* Thread function parameters */
+	SEMAPHORE_TYPE semaphore;		/* Optional semaphore to set */
+	MUTEX_HANDLE syncHandle;		/* Handle to use for thread sync */
+	} THREAD_INFO;
+
+/* When the kernel closes down, it does so in a multi-stage process that's
+   equivalent to Unix runlevels.  At the first level, all internal worker
+   threads/tasks must exist.  At the next level, all messages to objects
+   except destroy messages fail.  At the final level, all kernel-managed
+   primitives such as mutexes and semaphores are no longer available */
+
+typedef enum {
+	SHUTDOWN_LEVEL_NONE,		/* Normal operation */
+	SHUTDOWN_LEVEL_THREADS,		/* Internal threads must exit */
+	SHUTDOWN_LEVEL_MESSAGES,	/* Only destroy messages are valid */
+	SHUTDOWN_LEVEL_MUTEXES,		/* Kernel objects become invalid */
+	SHUTDOWN_LEVEL_ALL			/* Complete shutdown */
+	} SHUTDOWN_LEVEL;
+
 /* The information needed for each block of secure memory */
 
 #define CANARY_SIZE		4		/* Size of canary used to spot overwrites */
@@ -276,18 +300,22 @@ typedef struct {
 #endif /* NDEBUG */
 	} MEMLOCK_INFO;
 
-/* The kernel data block, containing all variables used by the kernel.  All
-   values in this block should be set to use zero/NULL as their ground state
-   (for example a boolean variable should have a ground state of FALSE (zero) 
-   rather than TRUE (nonzero)) */
+/* The kernel data block, containing all variables used by the kernel.  With
+   the exception of the special-case values at the start, all values in this
+   block should be set to use zero/NULL as their ground state (for example a
+   boolean variable should have a ground state of FALSE (zero) rather than
+   TRUE (nonzero)) */
 
 typedef struct {
-	/* The kernel initialisation state and a lock to protect it */
+	/* The kernel initialisation state and a lock to protect it.  The
+	   lock and shutdown level value are handled externally and aren't
+	   cleared when the kernel data block as a whole is cleared */
 #ifdef USE_THREADS
 	MUTEX_DECLARE_STORAGE( initialisation );
 #endif /* USE_THREADS */
+	SHUTDOWN_LEVEL shutdownLevel;		/* Kernel shutting level */
+	/* Everything from this point on is cleared at init and shutdown */
 	BOOLEAN isInitialised;				/* Whether kernel initialised */
-	BOOLEAN isClosingDown;				/* Whether kernel shutting down */
 
 	/* The kernel object table and object table management info */
 	OBJECT_INFO *objectTable;			/* Pointer to object table */
@@ -299,23 +327,28 @@ typedef struct {
 #endif /* USE_THREADS */
 
 	/* The kernel message dispatcher queue */
-	MESSAGE_QUEUE_DATA messageQueue[ MESSAGE_QUEUE_SIZE ];
+	MESSAGE_QUEUE_DATA messageQueue[ MESSAGE_QUEUE_SIZE + 8 ];
 	int queueEnd;						/* Points past last queue element */
 
 	/* The kernel semaphores */
-	SEMAPHORE_INFO semaphoreInfo[ SEMAPHORE_LAST ];
+	SEMAPHORE_INFO semaphoreInfo[ SEMAPHORE_LAST + 8 ];
 #ifdef USE_THREADS
 	MUTEX_DECLARE_STORAGE( semaphore );
 #endif /* USE_THREADS */
 
-	/* The kernel mutexes.  Since mutexes usually aren't scalar values and 
-	   are declared and accessed via macros that manipulate various fields, 
-	   we have to declare a pile of them individually rather than using an 
+	/* The kernel mutexes.  Since mutexes usually aren't scalar values and
+	   are declared and accessed via macros that manipulate various fields,
+	   we have to declare a pile of them individually rather than using an
 	   array of mutexes */
 #ifdef USE_THREADS
 	MUTEX_DECLARE_STORAGE( mutex1 );
 	MUTEX_DECLARE_STORAGE( mutex2 );
-	MUTEX_DECLARE_STORAGE( mutex3 );
+	MUTEX_DECLARE_STORAGE( mutex3);
+#endif /* USE_THREADS */
+
+	/* The kernel thread data */
+#ifdef USE_THREADS
+	THREAD_INFO threadInfo;
 #endif /* USE_THREADS */
 
 	/* The kernel secure memory list and a lock to protect it */
@@ -328,13 +361,17 @@ typedef struct {
 	int endMarker;
 	} KERNEL_DATA;
 
-/* When we start up and shut down the kernel, we need to clear the kernel 
+/* When we start up and shut down the kernel, we need to clear the kernel
    data.  However, the init lock may have been set by an external management
-   function, so we can't clear that part of the kernel data.  To handle this,
-   we use the following macros to define what needs to be cleared */
+   function, so we can't clear that part of the kernel data.  In addition,
+   on shutdown the shutdown level value must stay set so that any threads
+   still running will be forced to exit at the earliest possible instance,
+   and remain set after the shutdown has completed.  To handle this, we use
+   the following macro to clear only the appropriate area of the kernel data
+   block */
 
-#define krnlDataStart	( void * ) ( &krnlDataBlock.isInitialised )
-#define KRNL_DATA_SIZE	( &krnlDataBlock.endMarker - &krnlDataBlock.isInitialised )
+#define CLEAR_KERNEL_DATA()	zeroise( ( void * ) ( &krnlDataBlock.isInitialised ), \
+									 &krnlDataBlock.endMarker - &krnlDataBlock.isInitialised )
 
 /****************************************************************************
 *																			*
@@ -482,18 +519,18 @@ int incRefCount( const int objectHandle, const int dummy1,
 int decRefCount( const int objectHandle, const int dummy1,
 				 const void *dummy2, const BOOLEAN isInternal );
 int getDependentObject( const int objectHandle, const int targetType,
-						const void *messageDataPtr, 
+						const void *messageDataPtr,
 						const BOOLEAN dummy );
 int setDependentObject( const int objectHandle, const int incReferenceCount,
-						const void *messageDataPtr, 
+						const void *messageDataPtr,
 						const BOOLEAN dummy );
 int cloneObject( const int objectHandle, const int clonedObject,
 				 const void *dummy1, const BOOLEAN dummy2 );
 
 /* Prototypes for functions in sendmsg.c */
 
-int findTargetType( const int originalObjectHandle, const int targets );
-int checkTargetType( const int objectHandle, const int targets );
+int checkTargetType( const int objectHandle, const long targets );
+int findTargetType( const int originalObjectHandle, const long targets );
 int waitForObject( const int objectHandle, OBJECT_INFO **objectInfoPtrPtr );
 
 /* Prototypes for functions in objects.c */

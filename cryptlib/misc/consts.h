@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *				cryptlib Data Size and Crypto-related Constants 			*
-*						Copyright Peter Gutmann 1992-2005					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
@@ -13,11 +13,11 @@
    quite allow the maximum possible length since most data/message formats
    impose some extra overhead themselves */
 
-#if INT_MAX < 0x10000L
+#ifdef SYSTEM_16BIT
   #define MAX_INTLENGTH_DELTA	8192
 #else
   #define MAX_INTLENGTH_DELTA	1048576
-#endif /* 16- vs. 32-bit systems */
+#endif /* 16- vs. 32/64-bit systems */
 #define MAX_INTLENGTH			( INT_MAX - MAX_INTLENGTH_DELTA )
 
 /* The size of a cryptlib key ID, an SHA-1 hash of the SubjectPublicKeyInfo,
@@ -118,10 +118,61 @@
 #define MAX_ERRMSG_SIZE			512
 
 /* The maximum number of iterations that we allow for an iterated key setup
-   such as a hashed password.  This is used to prevent DOS attacks from data
+   such as a hashed password.  This is used to prevent DoS attacks from data
    containing excessive iteration counts */
 
 #define MAX_KEYSETUP_ITERATIONS	20000
+
+/* All non-constant loops contain a guard to prevent excessive looping.  
+   This is a generalisation of the programming practice that when looping on 
+   externally-supplied data, we should perform a sanity check on loop 
+   iterations to prevent DoS attacks due to malformed data.  The exception
+   to the guard-condition requirement is pointer-chasing loops, for which 
+   (if the pointers become corrupted so the loop doesn't terminate as it
+   should) we'd segfault long before the guard would ever be reached.
+   
+   Apart from the data safety checking, this checking catches two things:
+
+	1. Running off the end of a lookup table.
+	
+	2. A loop that uses a function as its terminating condition and doesn't
+	   exit at the expected point:
+
+		do {
+			term = foo();
+		   }
+		while( !term );
+	
+		for( ptr = listHead; ptr != NULL; ptr = getNextValue( ptr ) );
+   
+   The following bounds on loop iterations apply:
+
+	FAILSAFE_SMALL: Expect 1 but can have a few more.
+	FAILSAFE_MED: Expect 10-20 but can have a few more.
+	FAILSAFE_LARGE: Expect many, but not too many.
+
+  In addition to these values there's a special value FAILSAFE_MAX which
+  is equivalent to the ASN.1 (1...MAX) construct in setting an upper bound 
+  on loop iterations without necessarily setting any specific limit:
+
+	FAILSAFE_MAX: A value that's unlikely to be reached during normal 
+				  operation, but that also won't result in an excessive 
+				  stall if it's exceeded */
+
+#define FAILSAFE_ITERATIONS_SMALL	10
+#define FAILSAFE_ITERATIONS_MED		50
+#define FAILSAFE_ITERATIONS_LARGE	1000
+#ifdef SYSTEM_16BIT
+  #define FAILSAFE_ITERATIONS_MAX	10000
+#else
+  #define FAILSAFE_ITERATIONS_MAX	100000
+#endif /* 16-bit vs 32/64-bit systems */
+
+/* Pseudo-constants used for array bounds-checking.  These provide a more
+   precise limit than the FAILSAFE_ITERATIONS_xxx values above */
+
+#define FAILSAFE_ARRAYSIZE( array, elementType ) \
+		( sizeof( array ) / sizeof( elementType ) )
 
 /* The minimum and maximum size of various Internet-related values, used for
    range checking */
@@ -185,8 +236,8 @@ typedef enum {
 	KEYFORMAT_NONE,		/* No key format */
 	KEYFORMAT_CERT,		/* X.509 SubjectPublicKeyInfo */
 /*	KEYFORMAT_PUBLIC,	// PKCS #15 public key - currently unused */
+	KEYFORMAT_SSH,		/* SSHv2 public key */
 	KEYFORMAT_SSH1,		/* SSHv1 public key */
-	KEYFORMAT_SSH2,		/* SSHv2 public key */
 	KEYFORMAT_SSL,		/* SSL public key */
 	KEYFORMAT_PGP,		/* PGP public key */
 	KEYFORMAT_PRIVATE,	/* Private key */

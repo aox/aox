@@ -68,7 +68,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "osconfig.h"
   #include "des.h"
 #else
@@ -399,7 +399,7 @@
 	PERM_OP(l,r,tt, 4,0x0f0f0f0fL); \
 	}
 
-OPENSSL_EXTERN const DES_LONG des_SPtrans[8][64];
+OPENSSL_EXTERN const DES_LONG ASM_EXPORT des_SPtrans[8][64];	/* pcg */
 
 void fcrypt_body(DES_LONG *out,des_key_schedule ks,
 	DES_LONG Eswap0, DES_LONG Eswap1);

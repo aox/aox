@@ -1,21 +1,14 @@
 /****************************************************************************
 *																			*
 *						   ASN.1 Checking Routines							*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
 #include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "bn.h"
-  #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../bn/bn.h"
   #include "asn1.h"
 #else
   #include "crypt.h"
@@ -95,10 +88,13 @@ static int getItem( STREAM *stream, ASN1_ITEM *item )
 
 	memset( item, 0, sizeof( ASN1_ITEM ) );
 	item->tag = peekTag( stream );
-	if( checkEOC( stream ) )
+	status = checkEOC( stream );
+	if( cryptStatusError( status ) )
+		return( STATE_ERROR );
+	if( status == TRUE )
 		{
 		item->headerSize = 2;
-		return( sStatusOK( stream ) ? STATE_NONE : STATE_ERROR );
+		return( STATE_NONE );
 		}
 	status = readLongGenericHole( stream, &length, item->tag );
 	if( cryptStatusError( status ) )
@@ -121,8 +117,9 @@ static BOOLEAN checkEncapsulation( STREAM *stream, const int length,
 								   const ASN1_STATE state )
 	{
 	BOOLEAN isEncapsulated = TRUE;
-	long streamPos = stell( stream );
-	int tag = peekTag( stream ), innerLength, status;
+	const long streamPos = stell( stream );
+	const int tag = peekTag( stream );
+	int innerLength, status;
 
 	/* Make sure that there's an encapsulated object present.  This is a
 	   reasonably effective check, but unfortunately its effectiveness
@@ -131,7 +128,7 @@ static BOOLEAN checkEncapsulation( STREAM *stream, const int length,
 	   due to true OCTET/BIT STRINGs that look like they might contain
 	   nested data, or there'll be no false positives but nested content
 	   with slightly incorrect encodings will be missed */
-	status = readGenericHole( stream, &innerLength, DEFAULT_TAG );
+	status = readGenericHole( stream, &innerLength, 1, DEFAULT_TAG );
 	if( cryptStatusError( status ) || \
 		( stell( stream ) - streamPos ) + innerLength != length )
 		{
@@ -146,7 +143,7 @@ static BOOLEAN checkEncapsulation( STREAM *stream, const int length,
 		{
 		/* Make sure that there's a SEQUENCE containing an INTEGER present */
 		if( tag != BER_SEQUENCE || peekTag( stream ) != BER_INTEGER || \
-			cryptStatusError( readGenericHole( stream, &innerLength, 
+			cryptStatusError( readGenericHole( stream, &innerLength, 1,
 											   BER_INTEGER ) ) || \
 			innerLength > length - 4 )
 			isEncapsulated = FALSE;
@@ -348,7 +345,7 @@ static ASN1_STATE checkPrimitive( STREAM *stream, const ASN1_ITEM *item,
 			for( i = 0; i < length - 1; i++ )
 				{
 				ch = sgetc( stream );
-				if( ch < '0' || ch > '9' )
+				if( !isDigit( ch ) )
 					return( STATE_ERROR );
 				}
 			if( sgetc( stream ) != 'Z' )
@@ -464,6 +461,7 @@ static ASN1_STATE checkASN1( STREAM *stream, long length, const int isIndefinite
 	ASN1_ITEM item;
 	long lastPos = stell( stream );
 	ASN1_STATE status;
+	int iterationCount = 0;
 
 	assert( state >= STATE_NONE && state <= STATE_ERROR );
 	assert( level > 0 || length == LENGTH_MAGIC );
@@ -471,10 +469,12 @@ static ASN1_STATE checkASN1( STREAM *stream, long length, const int isIndefinite
 			( !isIndefinite && length >= 0 ) );
 
 	/* Perform a sanity check of input data */
-	if( level >= MAX_NESTING_LEVEL || state == STATE_ERROR || length < 0 )
+	if( level < 0 || level >= MAX_NESTING_LEVEL || state == STATE_ERROR || \
+		length < 0 )
 		return( STATE_ERROR );
 
-	while( ( status = getItem( stream, &item ) ) == STATE_NONE )
+	while( ( status = getItem( stream, &item ) ) == STATE_NONE && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 		{
 		/* If this is the top level (for which the level isn't known in
 		   advance) and the item has a definite length, set the length to 
@@ -491,8 +491,9 @@ static ASN1_STATE checkASN1( STREAM *stream, long length, const int isIndefinite
 		if( !checkDataElements && item.length > 0 )
 			{
 			/* Shortcut to save a level of recursion, if we're not 
-			   interested in the data elements and the item has a definite 
-			   length, just skip over it and continue */
+			   interested in the data elements (i.e. if we're just doing a
+			   length check) and the item has a definite length, just skip 
+			   over it and continue */
 			if( cryptStatusError( sSkip( stream, item.length ) ) )
 				state = STATE_ERROR;
 			}
@@ -522,6 +523,8 @@ static ASN1_STATE checkASN1( STREAM *stream, long length, const int isIndefinite
 		if( length <= 0 )
 			return( ( length < 0 ) ? STATE_ERROR : state );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 
 	return( ( status == STATE_NONE ) ? STATE_NONE : STATE_ERROR );
 	}
@@ -557,7 +560,7 @@ static long findObjectLength( STREAM *stream, const BOOLEAN isLongObject )
 	if( isLongObject )
 		status = readLongGenericHole( stream, &length, DEFAULT_TAG );
 	else
-		status = readGenericHoleI( stream, &shortLength, DEFAULT_TAG );
+		status = readGenericHoleI( stream, &shortLength, 0, DEFAULT_TAG );
 	if( cryptStatusError( status ) )
 		return( status );
 	if( !isLongObject )
@@ -587,6 +590,13 @@ int getStreamObjectLength( STREAM *stream )
 	return( findObjectLength( stream, FALSE ) );
 	}
 
+long getLongStreamObjectLength( STREAM *stream )
+	{
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+
+	return( findObjectLength( stream, TRUE ) );
+	}
+
 int getObjectLength( const void *objectPtr, const int objectLength )
 	{
 	STREAM stream;
@@ -598,8 +608,6 @@ int getObjectLength( const void *objectPtr, const int objectLength )
 	sMemConnect( &stream, objectPtr, objectLength );
 	if( peekTag( &stream ) == BER_INTEGER )
 		{
-		int status;
-
 		/* Sometimes we're asked to find the length of non-hole items that 
 		   will be rejected by findObjectLength(), which calls down to 
 		   readGenericHoleI().  Since these items are primitive and non-
@@ -608,8 +616,8 @@ int getObjectLength( const void *objectPtr, const int objectLength )
 		   
 		   An alternative processing mechanism would be to use peekTag() and
 		   readGenericHole() in combination with the peekTag() results */
-		status = length = readUniversal( &stream );
-		if( cryptStatusOK( status ) )
+		length = readUniversal( &stream );
+		if( cryptStatusOK( length ) )
 			length = stell( &stream );
 		}
 	else

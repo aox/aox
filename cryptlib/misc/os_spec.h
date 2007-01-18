@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib OS-Specific Defines Header File 				*
-*						Copyright Peter Gutmann 1992-2005					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
@@ -20,7 +20,7 @@
 
 /* #define STATIC_LIB */
 
-/* os_spec.h performs OS and compiler detection that's used by config.h, so 
+/* os_spec.h performs OS and compiler detection that's used by config.h, so
    this file must be applied before config.h */
 
 #ifdef _CONFIG_DEFINED
@@ -29,7 +29,7 @@
 
 /****************************************************************************
 *																			*
-*								OS Detection								*
+*									OS Detection							*
 *																			*
 ****************************************************************************/
 
@@ -65,9 +65,17 @@
 #if defined( __MSDOS__ ) && !defined( __MSDOS32__ )
   #define __MSDOS16__
 #endif /* 16-bit DOS */
+#if defined( __WATCOMC__ ) && defined( __DOS__ )
+  #ifndef __MSDOS__
+	#define __MSDOS__
+  #endif /* 16- or 32-bit DOS */
+  #if defined( __386__ ) && !defined( __MSDOS32__ )
+	#define __MSDOS32__
+  #endif /* 32-bit DOS */
+#endif /* Watcom C under DOS */
 
-/* Make the Tandem, Macintosh, AS/400, and PalmOS defines look a bit more 
-   like the usual ANSI defines used to identify the other OS types */
+/* Make the Tandem, Macintosh, AS/400, PalmOS, and VMS defines look a bit 
+   more like the usual ANSI defines used to identify the other OS types */
 
 #ifdef __TANDEM
   #if defined( _OSS_TARGET )
@@ -91,6 +99,10 @@
   #define __PALMOS__
 #endif /* Palm OS */
 
+#ifdef __VMS
+  #define __VMS__
+#endif /* VMS */
+
 /* In some cases we're using a DOS or Windows system as a cross-development
    platform, if we are we add extra defines to turn off some Windows-
    specific features */
@@ -105,19 +117,47 @@
 *																			*
 ****************************************************************************/
 
+/* Visual C++ capabilities have changed somewhat over the years, the 
+   following defines make explicit what we're testing for in a check of 
+   _MSC_VER.
+
+	Visual C++ 1.5 _MSC_VER = 800
+	Visual C++ 5.0 _MSC_VER = 1100
+	Visual C++ 6.0 _MSC_VER = 1200
+	Visual C++ 7.0 (VC2002) _MSC_VER = 1300
+	Visual C++ 7.1 (VC2003) _MSC_VER = 1310
+	Visual C++ 8.0 (VC2005) _MSC_VER = 1400 */
+
+#ifdef _MSC_VER
+  #define VC_16BIT( _MSC_VER )		( _MSC_VER <= 800 )
+  #define VC_LT_2005( _MSC_VER )	( _MSC_VER < 1400 )
+  #define VC_GE_2005( _MSC_VER )	( _MSC_VER >= 1400 )
+#else
+  /* These aren't specifically required on non-VC++ systems, but some 
+     preprocessors get confused if they aren't defined since they're used */
+  #define VC_16BIT( _MSC_VER )		0
+  #define VC_LT_2005( _MSC_VER )	0
+  #define VC_GE_2005( _MSC_VER )	0
+#endif /* Visual C++ */
+
 /* If we're compiling under VC++ with the maximum level of warnings, turn
    off some of the more irritating warnings */
 
 #if defined( _MSC_VER )
+  #if VC_16BIT( _MSC_VER )
+	#pragma warning( disable: 4135 )/* Conversion bet.diff.integral types */
+	#pragma warning( disable: 4761 )/* Integral size mismatch in argument */
+  #endif /* 16-bit VC++ */
+
   /* Warning level 3 */
   #pragma warning( disable: 4018 )	/* Comparing signed <-> unsigned value */
   #pragma warning( disable: 4127 )	/* Conditional is constant: while( TRUE ) */
 
-  /* Warning level 4.  The function <-> data pointer cast warnings are 
-	 orthogonal and impossible to disable (they override the universal 
-	 'void *' pointer type), the signed/unsigned and size warnings are 
-	 more compiler peeves as for the level 3 warnings, and the struct 
-	 initialisation warnings are standards extensions that the struct 
+  /* Warning level 4.  The function <-> data pointer cast warnings are
+	 orthogonal and impossible to disable (they override the universal
+	 'void *' pointer type), the signed/unsigned and size warnings are
+	 more compiler peeves as for the level 3 warnings, and the struct
+	 initialisation warnings are standards extensions that the struct
 	 STATIC_INIT macros manage for us */
   #pragma warning( disable: 4054 )	/* Cast from fn.ptr -> generic (data) ptr.*/
   #pragma warning( disable: 4055 )	/* Cast from generic (data) ptr. -> fn.ptr.*/
@@ -126,6 +166,9 @@
   #pragma warning( disable: 4221 )	/* Struct initialised with addr.of auto.var */
   #pragma warning( disable: 4244 )	/* int <-> unsigned char/short */
   #pragma warning( disable: 4245 )	/* int <-> unsigned long */
+  #pragma warning( disable: 4267 )	/* int <-> size_t */
+  #pragma warning( disable: 4305 )	/* long <-> size_t */
+  #pragma warning( disable: 4389 )	/* signed ==/!= unsigned compare */
 
   /* gcc -wall type warnings.  The highest warning level generates large
      numbers of spurious warnings (including ones in VC++ headers), so it's
@@ -139,6 +182,39 @@
 	#pragma warning( disable: 4701 )	/* Variable used before initialised */
   #endif /* 1 */
 #endif /* Visual C++ */
+
+/* VC++ 2005 implements the TR 24731 security extensions but doesn't yet 
+   define __STDC_LIB_EXT1__, so if we detect this version of the compiler we 
+   define it ourselves */
+
+#if defined( _MSC_VER ) && VC_GE_2005( _MSC_VER ) && \
+	!defined( __STDC_LIB_EXT1__ )
+  #define __STDC_LIB_EXT1__
+#endif /* VC++ 2005 without __STDC_LIB_EXT1__ defined */
+
+/* The ability to modify warnings via the project file in BC++ 5.0x is
+   completely broken, the only way to do this is via pragmas in the source
+   code */
+
+#if defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x550 )
+  /* Spurious warnings to disable */
+  #pragma warn -aus						/* Assigned but never used.  This is
+										   frequently misreported even when
+										   the value is quite obviously used */
+  #pragma warn -csu						/* Comparing signed/unsigned value */
+  #pragma warn -par						/* Parameter is never used	*/
+  #pragma warn -sig						/* Conversion may lose significant digits */
+  #pragma warn -ucp						/* Signed/unsigned char assignment */
+
+  /* Useful warnings to enable */
+  #pragma warn +amb						/* Ambiguous operators need parentheses */
+  #pragma warn +amp						/* Superfluous & with function */
+  #pragma warn +asm						/* Unknown assembler instruction */
+  #pragma warn +ccc						/* Condition is always true/false */
+  #pragma warn +cln						/* Constant is long */
+  #pragma warn +def						/* Use of ident before definition */
+  #pragma warn +stv						/* Structure passed by value */
+#endif /* Broken BC++ 5.0x warning handling */
 
 /* All Windows CE functions are Unicode-only, this was an attempt to clean
    up the ASCII vs. Unicode kludges in Win32 but unfortunately was made just
@@ -182,28 +258,24 @@
   #pragma enum int
 #endif /* QNX and Watcom C */
 
-/* PalmOS is a bit more picky than other OSes about what has to be in which
-   header, in particular shared data segments can't be easily exported from
-   libraries so the isXYZ() macros (which use lookup tables) that are
-   generally available elsewhere have to be explicitly enabled via ctype.h,
-   and the native strcpy()/memcpy() used by most compilers may not be
-   available in some cases either so we have to explicitly pull them in via
-   string.h */
+/* If it's a C99-compliant compiler, enable the use of varags macros */
 
-#ifdef __PALMOS__
-  #include <ctype.h>
-  #include <string.h>
-#endif /* __PALMOS__ */
+#if ( defined( __STDC_VERSION__ ) && ( __STDC_VERSION__ >= 199901L ) ) || \
+	( defined( __GNUC__ ) && ( __GNUC__ >= 3 ) )
+  #define VARARGS_MACROS
+#endif /* C99 compilers with varargs macro support */
 
-/* Some encryption algorithms that rely on longints having 32 bits won't
-   work on 64- or 128-bit machines due to problems with sign extension and
-   whatnot.  The following define can be used to enable special handling for
-   processors with a > 32 bit word size */
+/* A few rare operations are word-size-dependant, which we detect via
+   limits.h */
 
 #include <limits.h>
-#if ULONG_MAX > 0xFFFFFFFFUL
-  #define _BIG_WORDS
-#endif /* 64-bit system */
+#if INT_MAX <= 32768L
+  #define SYSTEM_16BIT
+#elif ULONG_MAX > 0xFFFFFFFFUL
+  #define SYSTEM_64BIT
+#else
+  #define SYSTEM_32BIT
+#endif /* 16- vs.32- vs.64-bit system */
 
 /* Useful data types */
 
@@ -226,7 +298,11 @@ typedef unsigned char		BYTE;
    its own segment with the following define */
 
 #if defined( __WIN16__ )
-  #define FAR_BSS	far
+  #ifdef _MSC_VER
+	#define FAR_BSS	__far
+  #else
+	#define FAR_BSS	far
+  #endif /* VC++ vs.other compilers */
 #else
   #define FAR_BSS
 #endif /* 16-bit systems */
@@ -245,10 +321,12 @@ typedef unsigned char		BYTE;
 
 /* Some systems (typically 16-bit or embedded ones) have rather limited
    amounts of memory available, if we're building on one of these we limit
-   the size of some of the buffers that we use */
+   the size of some of the buffers that we use and the size of the object
+   table */
 
 #if defined( __MSDOS16__ ) || defined( __uClinux__ )
   #define CONFIG_CONSERVE_MEMORY
+  #define CONFIG_NUM_OBJECTS		128
 #endif /* Memory-starved systems */
 
 /* Win32 consists of Win95/98/ME and WinNT/2000/XP, Win95 doesn't have a
@@ -274,15 +352,24 @@ typedef unsigned char		BYTE;
   #define TRUE			!FALSE
 #endif /* Boolean values */
 
-/* cryptlib contains a few forward declarations for static data.  Compiler
-   opinions on this vary.  Some compile it as is, some don't allow the
-   'static', some allow both variants, and some produce warnings with both
-   but allow them anyway (there are probably more variants with further
-   compilers).  To get around this, we use the following define and then
-   vary it for broken compilers (the following is the minimum required to
-   get it to compile, other broken compilers will still produce warnings) */
+/* cryptlib contains a few locations that require forward declarations for
+   static data:
 
-#if ( defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x600 ) ) || \
+	extern const int foo[];
+
+	foo[ i ] = bar;
+
+	static const int foo[] = { ... };
+
+   Compiler opinions on how to handle this vary.  Some compile it as is
+   (i.e. 'static const ...'), some don't allow the 'static', some allow both
+   variants, and some produce warnings with both but allow them anyway
+   (there are probably more variants with further compilers).  To get around
+   this, we use the following define and then vary it for broken compilers
+   (the following is the minimum required to get it to compile, other broken
+   compilers will still produce warnings) */
+
+#if ( defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x550 ) ) || \
 	defined( __VMCMS__ ) || defined( __MVS__ ) || defined( __MRC__ ) || \
 	defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ ) || \
 	( defined( __UNIX__ ) && defined( _MPRAS ) )
@@ -304,7 +391,8 @@ typedef unsigned char		BYTE;
    the last one being a terminator entry, so we provide a simplified form
    that only sets the required fields */
 
-#if ( defined( __hpux ) && !defined( __GNUC__ ) ) || \
+#if ( defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x550 ) ) || \
+	( defined( __hpux ) && !defined( __GNUC__ ) ) || \
 	( defined( __QNX__ ) && ( OSVERSION <= 4 ) ) || \
 	defined( __SUNPRO_C ) || defined( __SCO_VERSION__ ) || \
 	defined( _CRAY )
@@ -337,6 +425,17 @@ typedef unsigned char		BYTE;
   #define CONST_SET_STRUCT_A( init )
 #endif /* Watcom C || SunPro C || SCO C */
 
+/* gcc provides extra parameter checking for printf-like functions, which
+   we enable for the extended-return functions */
+
+#ifdef __GNUC__
+  #define PRINTF_FN		__attribute__ (( format( printf, 3, 4 ) ))
+  #define PRINTF_FN_EX	__attribute__ (( format( printf, 4, 5 ) ))
+#else
+  #define PRINTF_FN
+  #define PRINTF_FN_EX
+#endif /* gcc */
+
 /* The Tandem mktime() is broken and can't convert dates beyond 2023, so we
    replace it with our own version which can */
 
@@ -347,9 +446,11 @@ typedef unsigned char		BYTE;
 /* Support for vsnprintf() (used for assembling the
    CRYPT_ATTRIBUTE_INT_ERRORMESSAGE value) is a bit hit-and-miss on non-Unix
    systems and also on older Unixen, if it's not available we alias it to
-   vsprintf() */
+   vsprintf().  Luckily this works because vs{n}printf() has a fixed arg
+   count, unlike s{n}printf(), which are varargs functions */
 
 #if defined( __ITRON__ ) || \
+	defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x550 ) || \
 	defined( __UNIX__ ) && \
 		( ( defined( __SCO_VERSION__ ) && OSVERSION < 5 ) || \
 		  ( defined( sun ) && OSVERSION < 5 ) || \
@@ -362,38 +463,39 @@ typedef unsigned char		BYTE;
   #define vsnprintf		_vsnprintf
 #endif /* Systems without vsnprintf() */
 
-/* Unlike the equivalent crypto code, the MD5, RIPEMD-160, and SHA-1 hashing
-   code needs special defines set to enable the use of asm alternatives.
-   Since this works by triggering redefines of function names in the source
-   code, we can only do this under Windows because for other systems you'd
-   need to conditionally alter the makefile as well.  Since these two defines
-   were left accidentally unset for about five years and were only noticed
-   when someone benchmarked the code against BSAFE, it's unlikely that this
-   is of any real concern */
+/* Enable use of assembly-language alternatives to C functions if possible */
 
-#ifdef __WIN32__
+#if defined( __WIN32__ ) && !defined( __BORLANDC__ )
+  /* Unlike the equivalent crypto code, the MD5, RIPEMD-160, and SHA-1
+	 hashing code needs special defines set to enable the use of asm
+	 alternatives.  Since this works by triggering redefines of function
+	 names in the source code, we can only do this under Windows because for
+	 other systems you'd need to conditionally alter the makefile as well.
+	 Since these two defines were left accidentally unset for about five
+	 years and were only noticed when someone benchmarked the code against
+	 BSAFE, it's unlikely that this is of any real concern */
   #define MD5_ASM
   #define SHA1_ASM
   #define RMD160_ASM
-#endif /* Win32 */
 
-/* Enable use of the AES ASM code where possible */
+  /* Turn on bignum asm as well.  By default this is done anyway, but the
+     x86 asm code contains some additional routines not present in the
+     asm modules for other CPUs, so we have to define this to disable the
+     equivalent C code, which must be present for non-x86 asm modules */
+  #define USE_ASM
 
-#ifdef __WIN32__
+  /* Enable use of the AES ASM code */
   #define AES_ASM
-#endif /* Win32 */
 
-/* Enable use of zlib ASM longest-match code where possible.  zlib comes
-   with two asm files, of which match.asm (assemble with "ml /Zp /coff 
-   /c match.asm") causes segfaults, so we use gvmat32.asm */
-
-#if defined( __WIN32__ )
+  /* Enable use of zlib ASM longest-match code.  zlib comes with two asm
+     files, of which match.asm (assemble with "ml /Zp /coff /c match.asm")
+	 causes segfaults, so we use gvmat32.asm */
   #define ASMV
 #endif /* Win32 */
 
 /****************************************************************************
 *																			*
-*							Dynamic Loading Support							*
+*								Dynamic Loading Support						*
 *																			*
 ****************************************************************************/
 
@@ -442,7 +544,7 @@ typedef unsigned char		BYTE;
 
 /****************************************************************************
 *																			*
-*							Endianness Defines								*
+*								Endianness Defines							*
 *																			*
 ****************************************************************************/
 
@@ -525,7 +627,7 @@ typedef unsigned char		BYTE;
 
 /****************************************************************************
 *																			*
-*							Filesystem Values								*
+*								Filesystem Values							*
 *																			*
 ****************************************************************************/
 
@@ -582,13 +684,13 @@ typedef unsigned char		BYTE;
 
 /****************************************************************************
 *																			*
-*								Charset Support								*
+*									Charset Support							*
 *																			*
 ****************************************************************************/
 
-/* Widechar handling.  Most systems now support this, the only support that 
+/* Widechar handling.  Most systems now support this, the only support that
    we only require is the wchar_t type define.
-   
+
    Unfortunately in order to check for explicitly enabled widechar support
    via config.h we have to include config.h at this point, because this
    file, containing OS- and compiler-specific settings, both detects the
@@ -598,7 +700,7 @@ typedef unsigned char		BYTE;
    disable widechars as required, so we need to slip it in between the two
    sections */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "config.h"
 #else
   #include "misc/config.h"
@@ -606,7 +708,9 @@ typedef unsigned char		BYTE;
 
 #ifdef USE_WIDECHARS
   #if !( ( defined( __QNX__ ) && ( OSVERSION <= 4 ) ) || \
-		 ( defined( __WINCE__ ) && _WIN32_WCE < 400 ) )
+		 ( defined( __WIN32__ ) && defined( __BORLANDC__ ) ) || \
+		 ( defined( __WINCE__ ) && _WIN32_WCE < 400 ) || \
+		 defined( __XMK__ ) )
 	#include <wchar.h>
   #endif /* Systems with widechar support in stdlib.h */
   #define WCSIZE	( sizeof( wchar_t ) )
@@ -630,11 +734,14 @@ typedef unsigned char		BYTE;
   #define WCSIZE	( sizeof( wchar_t ) )
 #endif /* USE_WIDECHARS */
 
-/* The EOL convention used when outputting text */
+/* The EOL convention used when outputting text.  Technically speaking
+   XMK doesn't use any particular EOL convention, but since the
+   typical development environment is debug output sent to a Windows
+   terminal emulator, we use CRLF */
 
 #if defined( __MSDOS16__ ) || defined( __MSDOS32__ ) || \
 	defined( __OS2__ ) || defined( __SYMBIAN32__ ) || \
-	defined( __WINDOWS__ )
+	defined( __WINDOWS__ ) || defined( __XMK__ )
   #define EOL		"\r\n"
   #define EOL_LEN	2
 #elif ( defined( __APPLE__ ) && !defined( __MAC__ ) ) || \
@@ -704,9 +811,11 @@ typedef unsigned char		BYTE;
 		  ( ( asciiCtypeTbl[ ch ] & ASCII_LOWER ) ? ( ch ) - 32 : ( ch ) )
   int strCompareZ( const char *src, const char *dest );
   int strCompare( const char *src, const char *dest, int length );
-  int sPrintf( char *buffer, const char *format, ... );
+  int sPrintf_s( char *buffer, const int bufSize, const char *format, ... );
   int aToI( const char *str );
 #else
+  #include <ctype.h>
+
   #define isAlnum( ch )		isalnum( ch )
   #define isAlpha( ch )		isalpha( ch )
   #define isDigit( ch )		isdigit( ch )
@@ -718,8 +827,83 @@ typedef unsigned char		BYTE;
 							stricmp( str1, str2 )
   #define strCompare( str1, str2, len )	\
 							strnicmp( str1, str2, len )
-  #define sPrintf			sprintf
+  #define sPrintf_s			sprintf_s
   #define aToI				atoi
 #endif /* EBCDIC_CHARS */
+
+/* SunOS and older Slowaris have broken sprintf() handling.  In SunOS 4.x
+   this was documented as returning a pointer to the output data as per the
+   Berkeley original.  Under Slowaris the manpage was changed so that it
+   looks like any other sprintf(), but it still returns the pointer to the
+   output buffer in some versions so we use a wrapper that checks at
+   runtime to see what we've got and adjusts its behaviour accordingly */
+
+#if defined( sun ) && ( OSVERSION <= 5 )
+  int fixedSprintf( char *buffer, const int bufSize,
+					const char *format, ... );
+
+  #undef sPrintf_s
+  #define sPrintf_s			fixedSprintf
+#endif /* Old SunOS */
+
+/* Borland C++ before 5.50 doesn't have snprintf() */
+
+#if defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x550 )
+  int bcSnprintf( char *buffer, const int bufSize,
+				  const char *format, ... );
+#endif /* BC++ before 5.50 */
+
+/****************************************************************************
+*																			*
+*						TR 24731 Safe stdlib Extensions						*
+*																			*
+****************************************************************************/
+
+/* ISO/IEC TR 24731 defines alternative stdlib functions designed to perform
+   additional parameter checking and avoid some types of common buffer
+   overflows.  We use these if possible, if they're not available we map
+   them down to the traditional stdlib equivalents, via the preprocessor if
+   possible or using wrapper functions if not */
+
+#ifdef __STDC_LIB_EXT1__
+  #if defined( _MSC_VER ) && VC_GE_2005( _MSC_VER )
+	/* The VC++ implementation of TR 24731 is based on preliminary versions 
+	   of the design for the spec, and in some cases needs re-mapping onto 
+	   the final versions.  Instances of this are:
+   
+		TR 24731: struct tm *gmtime_s( const time_t *timer, struct tm *result );
+		VC++: errno_t gmtime_s( struct tm *result, const time_t timer );
+
+	   Because this could potentially result in a circular definition, we 
+	   have to kludge in an intermediate layer by renaming the call to 
+	   gmTime_s(), which we then re-map to the VC++ gmtime_s() */
+	#define gmTime_s( timer, result )	\
+			( ( gmtime_s( result, timer ) == 0 ) ? result : NULL )
+  #else
+	#define gmTime_s						gmtime_s
+  #endif /* VC++ 2005 */
+#else
+  /* String functions */
+  #define strcpy_s( s1, s1max, s2 )		strcpy( s1, s2 )
+
+  /* Widechar functions */
+  int mbstowcs_s( size_t *retval, wchar_t *dst, size_t dstmax, \
+				  const char *src, size_t len );
+  int wcstombs_s( size_t *retval, char *dst, size_t dstmax, \
+				  const wchar_t *src, size_t len );
+
+  /* printf() */
+  #define vsprintf_s					vsnprintf
+  #if defined( _MSC_VER ) && VC_LT_2005( _MSC_VER )
+	#define sprintf_s					_snprintf
+  #elif defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x550 )
+	#define sprintf_s					bcSnprintf
+  #else
+	#define sprintf_s					snprintf
+  #endif /* VC++ 6 or below */
+
+  /* Misc.functions */
+  #define gmTime_s( timer, result )		gmtime( timer )
+#endif /* TR 24731 safe stdlib extensions */
 
 #endif /* _OSSPEC_DEFINED */

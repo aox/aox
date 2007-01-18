@@ -5,19 +5,15 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "context.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "context.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
 #endif /* Compiler-specific includes */
 
-#ifdef USE_SKIPJACK 
+#ifdef USE_SKIPJACK
 
 /* Size of the Skipjack block and key size */
 
@@ -44,11 +40,11 @@ void skipjackDecrypt( BYTE tab[ SKIPJACK_KEYSIZE ][ 256 ],
 
 /* Skipjack test vectors from the NSA Skipjack specification */
 
-static const FAR_BSS struct SKIPJACK_TEST {
+static const struct SKIPJACK_TEST {
 	const BYTE key[ 10 ];
 	const BYTE plainText[ 8 ];
 	const BYTE cipherText[ 8 ];
-	} testSkipjack[] = {
+	} FAR_BSS testSkipjack[] = {
 	{ { 0x00, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11 },
 	  { 0x33, 0x22, 0x11, 0x00, 0xDD, 0xCC, 0xBB, 0xAA },
 	  { 0x25, 0x87, 0xCA, 0xE2, 0x7A, 0x12, 0xD3, 0x00 } }
@@ -61,8 +57,8 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getSkipjackCapability();
 	CONTEXT_INFO contextInfo;
 	CONV_INFO contextData;
-	BYTE keyData[ SKIPJACK_EXPANDED_KEYSIZE ];
-	BYTE temp[ SKIPJACK_BLOCKSIZE ];
+	BYTE keyData[ SKIPJACK_EXPANDED_KEYSIZE + 8 ];
+	BYTE temp[ SKIPJACK_BLOCKSIZE + 8 ];
 	int i, status;
 
 	for( i = 0; i < sizeof( testSkipjack ) / sizeof( struct SKIPJACK_TEST ); i++ )
@@ -70,10 +66,10 @@ static int selfTest( void )
 		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
 						   &contextData, sizeof( CONV_INFO ), keyData );
 		memcpy( temp, testSkipjack[ i ].plainText, SKIPJACK_BLOCKSIZE );
-		status = capabilityInfo->initKeyFunction( &contextInfo, 
+		status = capabilityInfo->initKeyFunction( &contextInfo,
 					( BYTE * ) testSkipjack[ i ].key, SKIPJACK_KEYSIZE );
 		if( cryptStatusOK( status ) )
-			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+			status = capabilityInfo->encryptFunction( &contextInfo, temp,
 													  SKIPJACK_BLOCKSIZE );
 		staticDestroyContext( &contextInfo );
 		if( cryptStatusError( status ) || \
@@ -92,7 +88,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -109,7 +105,7 @@ static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 
 /* Encrypt/decrypt data in ECB mode */
 
-static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -127,7 +123,7 @@ static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 	return( CRYPT_OK );
 	}
 
-static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -147,7 +143,7 @@ static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in CBC mode */
 
-static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -174,11 +170,11 @@ static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 	return( CRYPT_OK );
 	}
 
-static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
-	BYTE temp[ SKIPJACK_BLOCKSIZE ];
+	BYTE temp[ SKIPJACK_BLOCKSIZE + 8 ];
 	int blockCount = noBytes / SKIPJACK_BLOCKSIZE;
 
 	while( blockCount-- > 0 )
@@ -210,7 +206,7 @@ static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in CFB mode */
 
-static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -243,7 +239,7 @@ static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 													 noBytes;
 
 		/* Encrypt the IV */
-		skipjackEncrypt( convInfo->key, convInfo->currentIV, 
+		skipjackEncrypt( convInfo->key, convInfo->currentIV,
 						 convInfo->currentIV );
 
 		/* XOR the buffer contents with the encrypted IV */
@@ -268,11 +264,11 @@ static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
-	BYTE temp[ SKIPJACK_BLOCKSIZE ];
+	BYTE temp[ SKIPJACK_BLOCKSIZE + 8 ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
@@ -332,7 +328,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in OFB mode */
 
-static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -384,7 +380,7 @@ static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Decrypt data in OFB mode */
 
-static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -442,7 +438,7 @@ static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Key schedule a Skipjack key */
 
-static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;

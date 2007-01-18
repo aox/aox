@@ -13,19 +13,11 @@
    who shall remain anonymous put it, "We don't want to put our keys anywhere 
    where MS software can get to them" */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "keyset.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -71,15 +63,15 @@
 typedef struct {
 	/* General information */
 	int index;						/* Unique value for this personality */
-	char label[ CRYPT_MAX_TEXTSIZE ];/* PKCS #12 object label */
+	char label[ CRYPT_MAX_TEXTSIZE + 8 ];/* PKCS #12 object label */
 	int labelLength;
 
 	/* Key wrap and MAC information */
-	BYTE wrapSalt[ CRYPT_MAX_HASHSIZE ];
+	BYTE wrapSalt[ CRYPT_MAX_HASHSIZE + 8 ];
 	int wrapSaltSize;				/* Salt for key wrap key */
 	int wrapIterations;				/* Number of iters.to derive key wrap key */
 	CRYPT_CONTEXT iMacContext;		/* MAC context */
-	BYTE macSalt[ CRYPT_MAX_HASHSIZE ];
+	BYTE macSalt[ CRYPT_MAX_HASHSIZE + 8 ];
 	int macSaltSize;				/* Salt for MAC key */
 	int macIterations;				/* Number of iters.to derive MAC key */
 
@@ -144,8 +136,8 @@ static int createKeyWrapContext( CRYPT_CONTEXT *iCryptContext,
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	MECHANISM_DERIVE_INFO deriveInfo;
-	BYTE key[ CRYPT_MAX_KEYSIZE ], iv[ CRYPT_MAX_IVSIZE ];
-	BYTE saltData[ 1 + KEYWRAP_SALTSIZE ];
+	BYTE key[ CRYPT_MAX_KEYSIZE + 8 ], iv[ CRYPT_MAX_IVSIZE + 8 ];
+	BYTE saltData[ 1 + KEYWRAP_SALTSIZE + 8 ];
 	int status;
 
 	/* Derive the encryption key and IV from the password */
@@ -188,7 +180,7 @@ static int createKeyWrapContext( CRYPT_CONTEXT *iCryptContext,
 							  &createInfo, OBJECT_TYPE_CONTEXT );
 	if( cryptStatusOK( status ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setResourceData( &msgData, key, 16 );
 		status = krnlSendMessage( createInfo.cryptHandle,
@@ -223,7 +215,7 @@ static int createMacContext( PKCS12_INFO *pkcs12info,
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	MECHANISM_DERIVE_INFO deriveInfo;
-	BYTE key[ CRYPT_MAX_KEYSIZE ], saltData[ 1 + KEYWRAP_SALTSIZE ];
+	BYTE key[ CRYPT_MAX_KEYSIZE + 8 ], saltData[ 1 + KEYWRAP_SALTSIZE + 8 ];
 	int status;
 
 	/* Derive the MAC key from the password */
@@ -254,7 +246,7 @@ static int createMacContext( PKCS12_INFO *pkcs12info,
 							  &createInfo, OBJECT_TYPE_CONTEXT );
 	if( cryptStatusOK( status ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setResourceData( &msgData, key, 20 );
 		status = krnlSendMessage( createInfo.cryptHandle,
@@ -322,7 +314,7 @@ static void writeItem( STREAM *stream, const PKCS12_INFO *pkcs12info,
 					   const BOOLEAN isPrivateKey, const BOOLEAN macData )
 	{
 	STREAM memStream;
-	BYTE buffer[ 256 ];
+	BYTE buffer[ 256 + 8 ];
 	void *dataPtr;
 	const int idDataSize = ( int ) \
 						( sizeofOID( OID_PKCS9_LOCALKEYID ) + \
@@ -392,12 +384,15 @@ static void writeItem( STREAM *stream, const PKCS12_INFO *pkcs12info,
 	writeSet( &memStream, ( int ) sizeofObject( pkcs12info->labelLength * 2 ) );
 	writeGenericHole( &memStream, pkcs12info->labelLength * 2,
 					  BER_STRING_BMP );
-	for( i = 0, j = 0; i < pkcs12info->labelLength; i++ )
+	for( i = 0, j = 0; i < pkcs12info->labelLength && \
+					   i < CRYPT_MAX_TEXTSIZE; i++ )
 		{
 		/* Convert the ASCII string to a BMP string */
 		sputc( &memStream, 0 );
 		sputc( &memStream, pkcs12info->label[ i ] );
 		}
+	if( i >= CRYPT_MAX_TEXTSIZE )
+		retIntError();
 	assert( stell( &memStream ) < 256 );
 	swrite( stream, buffer, stell( &memStream ) );
 
@@ -413,8 +408,8 @@ static void writeItem( STREAM *stream, const PKCS12_INFO *pkcs12info,
 static int pkcs12Flush( STREAM *stream, const PKCS12_INFO *pkcs12info )
 	{
 	STREAM memStream;
-	RESOURCE_DATA msgData;
-	BYTE buffer[ 32 ];
+	MESSAGE_DATA msgData;
+	BYTE buffer[ 32 + 8 ];
 	BOOLEAN privateKeyPresent = FALSE;
 	int safeDataSize, authSafeDataSize, macDataSize, i, status;
 
@@ -422,12 +417,12 @@ static int pkcs12Flush( STREAM *stream, const PKCS12_INFO *pkcs12info )
 	sMemOpen( &memStream, NULL, 0 );
 	for( i = 0; i < MAX_PKCS12_OBJECTS; i++ )
 		{
-		if( pkcs12info[ i ].privKeyDataSize )
+		if( pkcs12info[ i ].privKeyDataSize > 0 )
 			{
 			privateKeyPresent = TRUE;
 			writeItem( &memStream, pkcs12info, TRUE, FALSE );
 			}
-		if( pkcs12info[ i ].certDataSize )
+		if( pkcs12info[ i ].certDataSize > 0 )
 			writeItem( &memStream, pkcs12info, FALSE, FALSE );
 		}
 	safeDataSize = stell( &memStream );
@@ -483,9 +478,9 @@ static int pkcs12Flush( STREAM *stream, const PKCS12_INFO *pkcs12info )
 	/* Write the individual objects */
 	for( i = 0; i < MAX_PKCS12_OBJECTS; i++ )
 		{
-		if( pkcs12info[ i ].privKeyDataSize )
+		if( pkcs12info[ i ].privKeyDataSize > 0 )
 			writeItem( stream, pkcs12info, TRUE, TRUE );
-		if( pkcs12info[ i ].certDataSize )
+		if( pkcs12info[ i ].certDataSize > 0 )
 			writeItem( stream, pkcs12info, FALSE, TRUE );
 		}
 
@@ -538,7 +533,7 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 	/* If there's already a key and cert present, we can't add anything
 	   else.  This check also catches the (invalid) case of a cert being
 	   present without a corresponding private key */
-	if( pkcs12infoPtr->certDataSize )
+	if( pkcs12infoPtr->certDataSize > 0 )
 		return( CRYPT_ERROR_INITED );
 
 	/* Check the object and extract ID information from it */
@@ -605,7 +600,7 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 	/* Get what little index information PKCS #12 stores with a key */
 	if( !pkcs12keyPresent )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setResourceData( &msgData, pkcs12infoPtr->label, CRYPT_MAX_TEXTSIZE );
 		status = krnlSendMessage( cryptHandle, IMESSAGE_GETATTRIBUTE_S,
@@ -625,7 +620,7 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 	   easiest to back out of */
 	if( certPresent )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		/* Select the leaf cert in case it's a cert chain */
 		krnlSendMessage( cryptHandle, IMESSAGE_SETATTRIBUTE,
@@ -744,9 +739,11 @@ static int setItemFunction( KEYSET_INFO *keysetInfo,
 static int unwrapOctetString( STREAM *stream, BYTE *buffer,
 							  const int totalLength )
 	{
-	int bufPos = 0, status;
+	int bufPos = 0, iterationCount = 0, status;
 
-	while( checkEOC( stream ) != TRUE )
+	status = checkEOC( stream );
+	while( !cryptStatusError( status ) && status != TRUE && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 		{
 		int length;
 
@@ -765,7 +762,13 @@ static int unwrapOctetString( STREAM *stream, BYTE *buffer,
 		if( cryptStatusError( status ) )
 			return( status );
 		bufPos += length;
+
+		status = checkEOC( stream );
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
+	if( cryptStatusError( status ) )
+		return( status );
 
 	return( bufPos );
 	}

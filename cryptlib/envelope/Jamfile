@@ -1,4 +1,4 @@
 SubDir TOP cryptlib envelope ;
 
 Build cryptlib : cms_denv.c cms_env.c decode.c encode.c pgp_denv.c pgp_env.c
-    pgp_misc.c res_denv.c res_env.c ;
+    res_denv.c res_env.c res_actn.c ;

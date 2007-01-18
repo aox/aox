@@ -5,21 +5,13 @@
 *																			*
 ****************************************************************************/
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
+#include <stdio.h>		/* For snprintf() */
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "dbms.h"
   #include "asn1.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../keyset/dbms.h"
-  #include "../misc/asn1.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -44,23 +36,23 @@ static int getSuccessorCert( DBMS_INFO *dbmsInfo,
 							 CRYPT_CERTIFICATE *iCertificate,
 							 const char *initialCertID )
 	{
-	char certID[ DBXKEYID_BUFFER_SIZE ];
-	int status;
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
+	int chainingLevel = 0, status;
 
 	/* Walk through the chain of renewals in the cert log until we find the
 	   ultimate successor cert to the current one */
 	strcpy( certID, initialCertID );
 	do
 		{
-		BYTE keyCertID[ DBXKEYID_SIZE + BASE64_OVFL_SIZE ];
-		char certData[ MAX_QUERY_RESULT_SIZE ];
+		BYTE keyCertID[ DBXKEYID_SIZE + BASE64_OVFL_SIZE + 8 ];
+		char certData[ MAX_QUERY_RESULT_SIZE + 8 ];
 		int certDataLength, length, dummy;
 
 		/* Find the request to renew this certificate */
-		status = dbmsQuery( 
+		status = dbmsQuery(
 			"SELECT certID FROM certLog WHERE subjCertID = ? "
 			"AND action = " TEXT_CERTACTION_REQUEST_RENEWAL,
-							certData, &certDataLength, certID, 
+							certData, &certDataLength, certID,
 							strlen( certID ), 0, DBMS_CACHEDQUERY_NONE,
 							DBMS_QUERY_NORMAL );
 		if( cryptStatusError( status ) )
@@ -70,11 +62,11 @@ static int getSuccessorCert( DBMS_INFO *dbmsInfo,
 		memcpy( certID, certData,
 				min( certDataLength, MAX_ENCODED_DBXKEYID_SIZE + 1 ) );
 		certID[ MAX_ENCODED_DBXKEYID_SIZE ] = '\0';
-		status = dbmsQuery( 
+		status = dbmsQuery(
 			"SELECT certID FROM certLog WHERE reqCertID = ? "
 				"AND action = " TEXT_CERTACTION_CERT_CREATION,
-							certData, &certDataLength, certID, 
-							strlen( certID ), 0, DBMS_CACHEDQUERY_NONE, 
+							certData, &certDataLength, certID,
+							strlen( certID ), 0, DBMS_CACHEDQUERY_NONE,
 							DBMS_QUERY_NORMAL );
 		if( cryptStatusOK( status ) )
 			{
@@ -89,18 +81,22 @@ static int getSuccessorCert( DBMS_INFO *dbmsInfo,
 
 		/* Try and get the replacement cert */
 		status = getItemData( dbmsInfo, iCertificate, &dummy,
-							  getKeyName( CRYPT_IKEYID_CERTID ), 
-							  keyCertID, length, KEYMGMT_ITEM_PUBLICKEY, 
+							  getKeyName( CRYPT_IKEYID_CERTID ),
+							  keyCertID, length, KEYMGMT_ITEM_PUBLICKEY,
 							  KEYMGMT_FLAG_NONE );
 		}
-	while( status == CRYPT_ERROR_NOTFOUND );
+	while( status == CRYPT_ERROR_NOTFOUND && \
+		   chainingLevel++ < FAILSAFE_ITERATIONS_MED );
+	if( chainingLevel >= FAILSAFE_ITERATIONS_MED )
+		/* We've chained through too many entries, bail out */
+		return( CRYPT_ERROR_OVERFLOW );
 
 	return( status );
 	}
 #endif /* 0 */
 
 /* Get the PKI user that originally authorised the issuance of a cert.  This
-   can involve chaining back through multiple generations of certificates, 
+   can involve chaining back through multiple generations of certificates,
    for example to check authorisation on a revocation request we might have
    to go through:
 
@@ -110,29 +106,30 @@ static int getSuccessorCert( DBMS_INFO *dbmsInfo,
 	init_req:	get reqCertID = pki_user */
 
 static int getIssuingUser( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iPkiUser,
-						   const char *initialCertID, 
+						   const char *initialCertID,
 						   const int initialCertIDlength )
 	{
-	char certID[ DBXKEYID_BUFFER_SIZE ];
+	char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int certIDlength, chainingLevel, dummy, status;
 
 	/* Walk through the chain of updates in the cert log until we find the
 	   PKI user that authorised the first cert issue */
 	memcpy( certID, initialCertID, initialCertIDlength );
 	certIDlength = initialCertIDlength;
-	for( chainingLevel = 0; chainingLevel < 25; chainingLevel++ )
+	for( chainingLevel = 0; chainingLevel < FAILSAFE_ITERATIONS_MED; 
+		 chainingLevel++ )
 		{
-		char certData[ MAX_QUERY_RESULT_SIZE ];
+		char certData[ MAX_QUERY_RESULT_SIZE + 8 ];
 		int certDataLength;
 
-		/* Find out whether this is a PKI user.  The comparison for the 
-		   action type is a bit odd since some back-ends will return the 
-		   action as text and some as a binary numeric value.  Rather than 
-		   relying on the back-end glue code to perform the appropriate 
+		/* Find out whether this is a PKI user.  The comparison for the
+		   action type is a bit odd since some back-ends will return the
+		   action as text and some as a binary numeric value.  Rather than
+		   relying on the back-end glue code to perform the appropriate
 		   conversion we just check for either value type */
-		status = dbmsQuery( 
+		status = dbmsQuery(
 			"SELECT action FROM certLog WHERE certID = ?",
-							certData, &certDataLength, certID, certIDlength, 
+							certData, &certDataLength, certID, certIDlength,
 							0, DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 		if( cryptStatusError( status ) )
 			return( status );
@@ -141,12 +138,12 @@ static int getIssuingUser( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iPkiUser,
 			/* We've found the PKI user, we're done */
 			break;
 
-		/* Find the certificate that was issued, recorded either as a 
-		   CERTACTION_CERT_CREATION for a multi-phase CMP-based cert 
+		/* Find the certificate that was issued, recorded either as a
+		   CERTACTION_CERT_CREATION for a multi-phase CMP-based cert
 		   creation or a CERTACTION_ISSUE_CERT for a one-step creation */
-		status = dbmsQuery( 
+		status = dbmsQuery(
 			"SELECT reqCertID FROM certLog WHERE certID = ?",
-							certData, &certDataLength, certID, certIDlength, 
+							certData, &certDataLength, certID, certIDlength,
 							0, DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 		if( cryptStatusError( status ) )
 			return( status );
@@ -156,23 +153,22 @@ static int getIssuingUser( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iPkiUser,
 		/* Find the request to issue this certificate.  For a CMP-based issue
 		   this will have an authorising object (found in the next iteration
 		   through the loop), for a one-step issue it won't */
-		status = dbmsQuery( 
+		status = dbmsQuery(
 			"SELECT reqCertID FROM certLog WHERE certID = ?",
-							certData, &certDataLength, certID, certIDlength, 
+							certData, &certDataLength, certID, certIDlength,
 							0, DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 		if( cryptStatusError( status ) )
 			return( status );
 		certIDlength = min( certDataLength, MAX_ENCODED_DBXKEYID_SIZE );
 		memcpy( certID, certData, certIDlength );
 		}
-
-	/* If we've chained through too many entries, bail out */
-	if( chainingLevel >= 25 )
+	if( chainingLevel >= FAILSAFE_ITERATIONS_MED )
+		/* We've chained through too many entries, bail out */
 		return( CRYPT_ERROR_OVERFLOW );
 
 	/* We've found the original PKI user, get the user info */
-	return( getItemData( dbmsInfo, iPkiUser, &dummy, CRYPT_IKEYID_CERTID, 
-						 certID, certIDlength, KEYMGMT_ITEM_PKIUSER, 
+	return( getItemData( dbmsInfo, iPkiUser, &dummy, CRYPT_IKEYID_CERTID,
+						 certID, certIDlength, KEYMGMT_ITEM_PKIUSER,
 						 KEYMGMT_FLAG_NONE ) );
 	}
 
@@ -185,28 +181,28 @@ static int getNextPartialCert( DBMS_INFO *dbmsInfo,
 							   BYTE *prevCertData, const BOOLEAN isRenewal )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	BYTE certificate[ MAX_QUERY_RESULT_SIZE ];
-	char encodedCertData[ MAX_QUERY_RESULT_SIZE ];
+	BYTE certificate[ MAX_QUERY_RESULT_SIZE + 8 ];
+	char encodedCertData[ MAX_QUERY_RESULT_SIZE + 8 ];
 	void *certPtr = hasBinaryBlobs( dbmsInfo ) ? \
 					( void * ) certificate : encodedCertData;
 	int certSize, status;			/* Cast needed for gcc */
 
 	*iCertificate = CRYPT_ERROR;
 
-	/* Find the next cert and import it.  Although this would appear to be 
-	   fetching the same cert over and over again, the caller will be 
+	/* Find the next cert and import it.  Although this would appear to be
+	   fetching the same cert over and over again, the caller will be
 	   deleting the currently-fetched cert after we return it to them, so
 	   in practice it fetches a new cert each time */
 	status = dbmsQuery( isRenewal ? \
 				"SELECT certData FROM certificates WHERE keyID LIKE '" KEYID_ESC2 "%'" : \
 				"SELECT certData FROM certificates WHERE keyID LIKE '" KEYID_ESC1 "%'",
-						certPtr, &certSize, NULL, 0, 0, 
+						certPtr, &certSize, NULL, 0, 0,
 						DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 	if( cryptStatusError( status ) )
 		return( status );
 	if( !hasBinaryBlobs( dbmsInfo ) )
 		{
-		certSize = base64decode( certificate, MAX_CERT_SIZE, 
+		certSize = base64decode( certificate, MAX_CERT_SIZE,
 								 encodedCertData, certSize,
 								 CRYPT_CERTFORMAT_NONE );
 		if( cryptStatusError( certSize ) )
@@ -225,7 +221,7 @@ static int getNextPartialCert( DBMS_INFO *dbmsInfo,
 		}
 	memcpy( prevCertData, certificate, 128 );
 
-	/* Reset the first byte of the cert data from the not-present magic 
+	/* Reset the first byte of the cert data from the not-present magic
 	   value to allow it to be imported and create a certificate from it */
 	certificate[ 0 ] = BER_SEQUENCE;
 	setMessageCreateObjectIndirectInfo( &createInfo, certificate, certSize,
@@ -246,15 +242,15 @@ static int getNextPartialCert( DBMS_INFO *dbmsInfo,
 
 /* Add an entry to the CA log */
 
-int updateCertLog( DBMS_INFO *dbmsInfo, const int action, const char *certID, 
-				   const char *reqCertID, const char *subjCertID, 
+int updateCertLog( DBMS_INFO *dbmsInfo, const int action, const char *certID,
+				   const char *reqCertID, const char *subjCertID,
 				   const void *data, const int dataLength,
 				   const DBMS_UPDATE_TYPE updateType )
 	{
-	char sqlFormatBuffer[ MAX_SQL_QUERY_SIZE ];
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ], actionString[ 5 ];
-	char certIDbuffer[ DBXKEYID_BUFFER_SIZE ];
-	char encodedCertData[ MAX_ENCODED_CERT_SIZE ];
+	char sqlFormatBuffer[ MAX_SQL_QUERY_SIZE + 8 ];
+	char sqlBuffer[ MAX_SQL_QUERY_SIZE + 8 ], actionString[ 16 + 8 ];
+	char certIDbuffer[ DBXKEYID_BUFFER_SIZE + 8 ];
+	char encodedCertData[ MAX_ENCODED_CERT_SIZE + 8 ];
 	char *certIDptr = ( char * ) certID;
 	const void *dataPtr = data;
 	const void *param1ptr, *param2ptr = "", *param3ptr = "";
@@ -312,25 +308,25 @@ int updateCertLog( DBMS_INFO *dbmsInfo, const int action, const char *certID,
 	   four characters to an out-of-band value */
 	if( certID == NULL )
 		{
-		RESOURCE_DATA msgData;
-		BYTE nonce[ KEYID_SIZE ];
+		MESSAGE_DATA msgData;
+		BYTE nonce[ KEYID_SIZE + 8 ];
 		int status;
 
 		certIDptr = certIDbuffer;
 		setMessageData( &msgData, nonce, KEYID_SIZE );
-		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S, 
+		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
 								  &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
 		if( cryptStatusOK( status ) )
 			{
-			status = base64encode( certIDptr, DBXKEYID_BUFFER_SIZE, nonce, 
+			status = base64encode( certIDptr, DBXKEYID_BUFFER_SIZE, nonce,
 								   DBXKEYID_SIZE, CRYPT_CERTTYPE_NONE );
 			certIDptr[ MAX_ENCODED_DBXKEYID_SIZE ] = '\0';
 			}
 		if( cryptStatusError( status ) )
 			{
-			/* Normally this is a should-never-occur error, however if 
+			/* Normally this is a should-never-occur error, however if
 			   cryptlib has been shut down from another thread the kernel
-			   will fail all non shutdown-related calls with a permission 
+			   will fail all non shutdown-related calls with a permission
 			   error.  To avoid false alarms, we mask out failures due to
 			   permission errors */
 			assert( ( status == CRYPT_ERROR_PERMISSION ) || NOTREACHED );
@@ -340,10 +336,10 @@ int updateCertLog( DBMS_INFO *dbmsInfo, const int action, const char *certID,
 		}
 
 	/* Update the cert log */
-	sPrintf( actionString, "%d", action );
+	sPrintf_s( actionString, 8, "%d", action );
 	if( data != NULL && !hasBinaryBlobs( dbmsInfo ) )
 		{
-		dataPtrLength = base64encode( encodedCertData, MAX_ENCODED_CERT_SIZE, 
+		dataPtrLength = base64encode( encodedCertData, MAX_ENCODED_CERT_SIZE,
 									  data, dataLength, CRYPT_CERTTYPE_NONE );
 		if( cryptStatusError( dataPtrLength ) )
 			{
@@ -353,9 +349,10 @@ int updateCertLog( DBMS_INFO *dbmsInfo, const int action, const char *certID,
 		encodedCertData[ dataPtrLength ] = '\0';
 		dataPtr = encodedCertData;
 		}
-	dbmsFormatSQL( sqlBuffer, sqlFormatBuffer, actionString, certIDptr,
-				   param1ptr, param2ptr, param3ptr );
-	return( dbmsUpdate( sqlBuffer, dataPtr, dataPtrLength, boundDate, 
+	dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE, sqlFormatBuffer, 
+				   actionString, certIDptr, param1ptr, param2ptr, 
+				   param3ptr );
+	return( dbmsUpdate( sqlBuffer, dataPtr, dataPtrLength, boundDate,
 						updateType ) );
 	}
 
@@ -365,7 +362,7 @@ int updateCertErrorLog( DBMS_INFO *dbmsInfo, const int errorStatus,
 						const void *data, const int dataLength )
 	{
 	STREAM stream;
-	BYTE errorData[ MAX_CERT_SIZE ];
+	BYTE errorData[ MAX_CERT_SIZE + 8 ];
 	const int errorStringLength = strlen( errorString );
 	int errorDataLength, status;
 
@@ -419,7 +416,7 @@ int updateCertErrorLogMsg( DBMS_INFO *dbmsInfo, const int errorStatus,
 /* Get the PKI user that originally authorised the issuing of a cert */
 
 int caGetIssuingUser( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iPkiUser,
-					  const char *initialCertID, 
+					  const char *initialCertID,
 					  const int initialCertIDlength )
 	{
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
@@ -427,7 +424,7 @@ int caGetIssuingUser( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iPkiUser,
 	assert( isReadPtr( initialCertID, MAX_ENCODED_DBXKEYID_SIZE ) );
 	assert( initialCertIDlength >= MAX_ENCODED_DBXKEYID_SIZE );
 
-	return( getIssuingUser( dbmsInfo, iPkiUser, initialCertID, 
+	return( getIssuingUser( dbmsInfo, iPkiUser, initialCertID,
 							initialCertIDlength ) );
 	}
 
@@ -437,8 +434,8 @@ int caGetIssuingUser( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iPkiUser,
 static int caCleanup( DBMS_INFO *dbmsInfo,
 					  const CRYPT_CERTACTION_TYPE action )
 	{
-	BYTE prevCertData[ 128 ];
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+	BYTE prevCertData[ 128 + 8 ];
+	char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 	const time_t currentTime = getTime();
 	int errorCount, status;
 
@@ -446,10 +443,10 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 	assert( action == CRYPT_CERTACTION_EXPIRE_CERT || \
 			action == CRYPT_CERTACTION_CLEANUP );
 
-	/* If the time is screwed up we can't perform time-based cleanup 
+	/* If the time is screwed up we can't perform time-based cleanup
 	   actions */
 	if( action == CRYPT_CERTACTION_EXPIRE_CERT && \
-		currentTime < MIN_TIME_VALUE )
+		currentTime <= MIN_TIME_VALUE )
 		return( CRYPT_ERROR_FAILED );
 
 	/* Rumble through the cert store either deleting leftover requests or
@@ -460,15 +457,15 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 	errorCount = 0;
 	do
 		{
-		char certID[ MAX_QUERY_RESULT_SIZE ];
+		char certID[ MAX_QUERY_RESULT_SIZE + 8 ];
 		int certIDlength;
 
 		/* Find the cert ID of the next expired cert or next cert request
 		   (revocation requests are handled later by completing the
 		   revocation).  Note that the select requires that the database
-		   glue code be capable of returning a single result and then 
-		   finishing the query, for some back-ends there may be a need to 
-		   explicitly cancel the query after the first result is returned if 
+		   glue code be capable of returning a single result and then
+		   finishing the query, for some back-ends there may be a need to
+		   explicitly cancel the query after the first result is returned if
 		   the database returns an entire result set */
 		if( action == CRYPT_CERTACTION_EXPIRE_CERT )
 			status = dbmsQuery(
@@ -479,7 +476,7 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 			status = dbmsQuery(
 						"SELECT certID FROM certRequests WHERE type = "
 							TEXT_CERTTYPE_REQUEST_CERT,
-								certID, &certIDlength, NULL, 0, 0, 
+								certID, &certIDlength, NULL, 0, 0,
 								DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 		if( cryptStatusError( status ) || \
 			certIDlength > MAX_ENCODED_DBXKEYID_SIZE )
@@ -504,7 +501,7 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 								DBMS_UPDATE_BEGIN );
 		if( cryptStatusOK( status ) )
 			{
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 					   ( action == CRYPT_CERTACTION_EXPIRE_CERT ) ? \
 				"DELETE FROM certificates WHERE certID = '$'" : \
 				"DELETE FROM certRequests WHERE certID = '$'",
@@ -518,7 +515,8 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 			errorCount++;
 			}
 		}
-	while( status != CRYPT_ERROR_NOTFOUND && errorCount < 10 );
+	while( status != CRYPT_ERROR_NOTFOUND && \
+		   errorCount < FAILSAFE_ITERATIONS_SMALL );
 
 	/* If we ran into a problem, perform a fallback general delete of
 	   entries that caused the problem */
@@ -563,7 +561,8 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 	/* It's a restart, process any incompletely-issued certificates in the
 	   same manner as the expiry/cleanup is handled.  Since we don't know at
 	   what stage the issue process was interrupted, we have to make a worst-
-	   case assumption and do a full reversal */
+	   case assumption and do a full reversal as a compensating transaction
+	   for an aborted cert issue */
 	memset( prevCertData, 0, 8 );
 	errorCount = 0;
 	do
@@ -587,7 +586,8 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 		else
 			errorCount++;
 		}
-	while( status != CRYPT_ERROR_NOTFOUND && errorCount < 10 );
+	while( status != CRYPT_ERROR_NOTFOUND && \
+		   errorCount < FAILSAFE_ITERATIONS_SMALL );
 
 	/* If we ran into a problem, perform a fallback general delete of
 	   entries that caused the problem */
@@ -626,7 +626,8 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 		else
 			errorCount++;
 		}
-	while( status != CRYPT_ERROR_NOTFOUND && errorCount < 10 );
+	while( status != CRYPT_ERROR_NOTFOUND && \
+		   errorCount < FAILSAFE_ITERATIONS_SMALL );
 
 	/* Finally, process any pending revocations */
 	memset( prevCertData, 0, 8 );
@@ -634,7 +635,7 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 	do
 		{
 		CRYPT_CERTIFICATE iCertRequest;
-		char certID[ MAX_QUERY_RESULT_SIZE ];
+		char certID[ MAX_QUERY_RESULT_SIZE + 8 ];
 		int certIDlength, dummy;
 
 		/* Find the next revocation request and import it.  This is slightly
@@ -646,7 +647,7 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 		status = dbmsQuery(
 					"SELECT certID FROM certRequests WHERE type = "
 						TEXT_CERTTYPE_REQUEST_REVOCATION,
-							certID, &certIDlength, NULL, 0, 0, 
+							certID, &certIDlength, NULL, 0, 0,
 							DBMS_CACHEDQUERY_NONE, DBMS_QUERY_NORMAL );
 		if( cryptStatusError( status ) || \
 			certIDlength > MAX_ENCODED_DBXKEYID_SIZE )
@@ -659,8 +660,8 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 			   make an emergency exit */
 			break;
 		memcpy( prevCertData, certID, certIDlength );
-		status = getItemData( dbmsInfo, &iCertRequest, &dummy, 
-							  CRYPT_IKEYID_CERTID, certID, certIDlength, 
+		status = getItemData( dbmsInfo, &iCertRequest, &dummy,
+							  CRYPT_IKEYID_CERTID, certID, certIDlength,
 							  KEYMGMT_ITEM_REQUEST, KEYMGMT_FLAG_NONE );
 		if( cryptStatusError( status ) )
 			{
@@ -673,11 +674,11 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 							   CRYPT_CERTACTION_RESTART_REVOKE_CERT );
 		if( status == CRYPT_ERROR_NOTFOUND )
 			{
-			/* This is an allowable error type since the cert may have 
-			   expired or been otherwise removed after the revocation 
+			/* This is an allowable error type since the cert may have
+			   expired or been otherwise removed after the revocation
 			   request was received, just delete the entry */
 			certID[ certIDlength ] = '\0';
-			dbmsFormatSQL( sqlBuffer,
+			dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 				"DELETE FROM certRequests WHERE certID = '$'",
 						   certID );
 			status = dbmsStaticUpdate( sqlBuffer );
@@ -687,7 +688,8 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 			}
 		krnlSendNotifier( iCertRequest, IMESSAGE_DECREFCOUNT );
 		}
-	while( status != CRYPT_ERROR_NOTFOUND && errorCount < 10 );
+	while( status != CRYPT_ERROR_NOTFOUND && \
+		   errorCount < FAILSAFE_ITERATIONS_SMALL );
 
 	/* If we ran into a problem, perform a fallback general delete of
 	   entries that caused the problem */
@@ -723,7 +725,7 @@ static int certMgmtFunction( KEYSET_INFO *keysetInfo,
 							 const CRYPT_CERTACTION_TYPE action )
 	{
 	DBMS_INFO *dbmsInfo = keysetInfo->keysetDBMS;
-	char reqCertID[ DBXKEYID_BUFFER_SIZE ];
+	char reqCertID[ DBXKEYID_BUFFER_SIZE + 8 ];
 	int length, status;
 
 	/* In order for various SQL query strings to use the correct values the
@@ -776,28 +778,28 @@ static int certMgmtFunction( KEYSET_INFO *keysetInfo,
 		return( caIssueCertComplete( dbmsInfo, request, action ) );
 		}
 
-	/* Check that the CA key that we've been passed is in order.  These 
-	   checks are performed automatically during the issue process by the 
-	   kernel when we try and convert the request into a cert, however we 
-	   perform them explicitly here so that we can return a more meaningful 
+	/* Check that the CA key that we've been passed is in order.  These
+	   checks are performed automatically during the issue process by the
+	   kernel when we try and convert the request into a cert, however we
+	   perform them explicitly here so that we can return a more meaningful
 	   error message to the caller */
 	if( action == CRYPT_CERTACTION_ISSUE_CRL )
 		{
 		int value;
 
 		/* If we're issuing a CRL, the key must be capable of CRL signing */
-		status = krnlSendMessage( caKey, IMESSAGE_GETATTRIBUTE, &value, 
+		status = krnlSendMessage( caKey, IMESSAGE_GETATTRIBUTE, &value,
 								  CRYPT_CERTINFO_KEYUSAGE );
 		if( cryptStatusError( status ) || \
 			!( value & CRYPT_KEYUSAGE_CRLSIGN ) )
 			return( CAMGMT_ARGERROR_CAKEY );
 		}
 	else
-		/* For anything other than a revocation action (which just updates the 
+		/* For anything other than a revocation action (which just updates the
 		   cert store without doing anything else), the key must be a CA key */
 		if( action != CRYPT_CERTACTION_REVOKE_CERT && \
 			cryptStatusError( \
-				krnlSendMessage( caKey, IMESSAGE_CHECK, NULL, 
+				krnlSendMessage( caKey, IMESSAGE_CHECK, NULL,
 								 MESSAGE_CHECK_CA ) ) )
 			return( CAMGMT_ARGERROR_CAKEY );
 
@@ -810,21 +812,21 @@ static int certMgmtFunction( KEYSET_INFO *keysetInfo,
 		return( caIssueCRL( dbmsInfo, iCertificate, caKey ) );
 		}
 
-	/* We're processing an action that request an explicit cert request, 
+	/* We're processing an action that request an explicit cert request,
 	   perform further checks on the request */
 	if( !checkRequest( request, action ) )
 		return( CAMGMT_ARGERROR_REQUEST );
 
-	/* Make sure that the request is present in the request table in order 
-	   to issue a certificate for it.  Again, this will be checked later, 
+	/* Make sure that the request is present in the request table in order
+	   to issue a certificate for it.  Again, this will be checked later,
 	   but we can return a more meaningful error here */
-	status = length = getKeyID( reqCertID, request, 
+	status = length = getKeyID( reqCertID, request,
 								CRYPT_CERTINFO_FINGERPRINT_SHA );
 	if( cryptStatusError( status ) )
 		return( CAMGMT_ARGERROR_REQUEST );
-	status = dbmsQuery( 
+	status = dbmsQuery(
 		"SELECT certData FROM certRequests WHERE certID = ?",
-						NULL, 0, reqCertID, length, 0, 
+						NULL, 0, reqCertID, length, 0,
 						DBMS_CACHEDQUERY_NONE, DBMS_QUERY_CHECK );
 	if( cryptStatusError( status ) )
 		return( CRYPT_ERROR_NOTFOUND );

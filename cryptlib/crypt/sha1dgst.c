@@ -63,7 +63,7 @@
 
 /* The implementation is in ../md32_common.h */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "osconfig.h"
   #include "sha1locl.h"
 #else

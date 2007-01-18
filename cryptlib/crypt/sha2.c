@@ -27,7 +27,7 @@
  in respect of its properties, including, but not limited to, correctness
  and/or fitness for purpose.
  ---------------------------------------------------------------------------
- Issue Date: 23/02/2005
+ Issue Date: 01/08/2005
 
  This is a byte oriented version of SHA2 that operates on arrays of bytes
  stored in memory. This code implements sha256, sha384 and sha512 but the
@@ -78,12 +78,13 @@
 #endif
 
 #include <string.h>     /* for memcpy() etc.        */
-#include <stdlib.h>     /* for _lrotr with VC++     */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "sha2.h"
+  #include "brg_endian.h"
 #else
   #include "crypt/sha2.h"
+  #include "crypt/brg_endian.h"
 #endif
 
 #if defined(__cplusplus)
@@ -91,125 +92,7 @@ extern "C"
 {
 #endif
 
-/*  PLATFORM SPECIFIC INCLUDES AND BYTE ORDER IN 32-BIT WORDS
-
-    To obtain the highest speed on processors with 32-bit words, this code
-    needs to determine the byte order of the target machine. The following
-    block of code is an attempt to capture the most obvious ways in which
-    various environemnts define byte order. It may well fail, in which case
-    the definitions will need to be set by editing at the points marked
-    **** EDIT HERE IF NECESSARY **** below.  My thanks go to Peter Gutmann
-    for his assistance with this endian detection nightmare.
-*/
-
-#define BRG_LITTLE_ENDIAN   1234 /* byte 0 is least significant (i386) */
-#define BRG_BIG_ENDIAN      4321 /* byte 0 is most significant (mc68k) */
-
-#define __CRYPTLIB__
-
-#if defined(__CRYPTLIB__)
-#  if defined( INC_ALL )
-#    include "crypt.h"
-#  elif defined( INC_CHILD )
-#    include "../crypt.h"
-#  else
-#    include "crypt.h"
-#  endif
-#  if defined(DATA_LITTLEENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#  else
-#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#  endif
-#else
-
-#if defined(__GNUC__) || defined(__GNU_LIBRARY__)
-#  if defined(__FreeBSD__) || defined(__OpenBSD__)
-#    include <sys/endian.h>
-#  elif defined( BSD ) && ( BSD >= 199103 )
-#      include <machine/endian.h>
-#  elif defined( __DJGPP__ ) || defined( __CYGWIN32__ )
-#      include <machine/endian.h>
-#  elif defined(__APPLE__)
-#    if defined(__BIG_ENDIAN__) && !defined( BIG_ENDIAN )
-#      define BIG_ENDIAN
-#    elif defined(__LITTLE_ENDIAN__) && !defined( LITTLE_ENDIAN )
-#      define LITTLE_ENDIAN
-#    endif
-#  else
-#    include <endian.h>
-#    if !defined(__BEOS__)
-#      include <byteswap.h>
-#    endif
-#  endif
-#endif
-
-#endif /* cryptlib */
-
-#if !defined(PLATFORM_BYTE_ORDER)
-#  if defined(LITTLE_ENDIAN) || defined(BIG_ENDIAN)
-#    if    defined(LITTLE_ENDIAN) && !defined(BIG_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#    elif !defined(LITTLE_ENDIAN) &&  defined(BIG_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#    elif defined(BYTE_ORDER) && (BYTE_ORDER == LITTLE_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#    elif defined(BYTE_ORDER) && (BYTE_ORDER == BIG_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#    endif
-#  elif defined(_LITTLE_ENDIAN) || defined(_BIG_ENDIAN)
-#    if    defined(_LITTLE_ENDIAN) && !defined(_BIG_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#    elif !defined(_LITTLE_ENDIAN) &&  defined(_BIG_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#    elif defined(_BYTE_ORDER) && (_BYTE_ORDER == _LITTLE_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#    elif defined(_BYTE_ORDER) && (_BYTE_ORDER == _BIG_ENDIAN)
-#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#   endif
-#  elif defined(__LITTLE_ENDIAN__) || defined(__BIG_ENDIAN__)
-#    if    defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
-#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#    elif !defined(__LITTLE_ENDIAN__) &&  defined(__BIG_ENDIAN__)
-#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#    elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __LITTLE_ENDIAN__)
-#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#    elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __BIG_ENDIAN__)
-#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#    endif
-#  endif
-#endif
-
-/*  if the platform is still unknown, try to find its byte order    */
-/*  from commonly used machine defines                              */
-
-#if !defined(PLATFORM_BYTE_ORDER)
-
-#if   defined( __alpha__ ) || defined( __alpha ) || defined( i386 )       || \
-      defined( __i386__ )  || defined( _M_I86 )  || defined( _M_IX86 )    || \
-      defined( __OS2__ )   || defined( sun386 )  || defined( __TURBOC__ ) || \
-      defined( vax )       || defined( vms )     || defined( VMS )        || \
-      defined( __VMS )
-#  define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-
-#elif defined( AMIGA )    || defined( applec )  || defined( __AS400__ )  || \
-      defined( _CRAY )    || defined( __hppa )  || defined( __hp9000 )   || \
-      defined( ibm370 )   || defined( mc68000 ) || defined( m68k )       || \
-      defined( __MRC__ )  || defined( __MVS__ ) || defined( __MWERKS__ ) || \
-      defined( sparc )    || defined( __sparc)  || defined( SYMANTEC_C ) || \
-      defined( __TANDEM ) || defined( THINK_C ) || defined( __VMCMS__ )
-#  define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-
-#elif 0     /* **** EDIT HERE IF NECESSARY **** */
-#  define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#elif 0     /* **** EDIT HERE IF NECESSARY **** */
-#  define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#else
-#  error Please edit sha2.c (line 185 or 187) to set the platform byte order
-#endif
-
-#endif
-
-#ifdef _MSC_VER
+#if defined( _MSC_VER ) && ( _MSC_VER > 800 )
 #pragma intrinsic(memcpy)
 #endif
 
@@ -222,10 +105,10 @@ extern "C"
 #endif
 
 #if !defined(bswap_32)
-#define bswap_32(x) (rotr32((x), 24) & 0x00ff00ff | rotr32((x), 8) & 0xff00ff00)
+#define bswap_32(x) ((rotr32((x), 24) & 0x00ff00ff) | (rotr32((x), 8) & 0xff00ff00))
 #endif
 
-#if (PLATFORM_BYTE_ORDER == BRG_LITTLE_ENDIAN)
+#if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
 #define SWAP_BYTES
 #else
 #undef  SWAP_BYTES
@@ -262,7 +145,7 @@ extern "C"
 
 #if defined(SWAP_BYTES)
 #define bsw_32(p,n) \
-    { int _i = (n); while(_i--) ((sha2_32t*)p)[_i] = bswap_32(((sha2_32t*)p)[_i]); }
+    { int _i = (n); while(_i--) ((uint_32t*)p)[_i] = bswap_32(((uint_32t*)p)[_i]); }
 #else
 #define bsw_32(p,n)
 #endif
@@ -285,7 +168,7 @@ extern "C"
 
 /* SHA256 mixing data   */
 
-const sha2_32t k256[64] =
+const uint_32t k256[64] =
 {   0x428a2f98ul, 0x71374491ul, 0xb5c0fbcful, 0xe9b5dba5ul,
     0x3956c25bul, 0x59f111f1ul, 0x923f82a4ul, 0xab1c5ed5ul,
     0xd807aa98ul, 0x12835b01ul, 0x243185beul, 0x550c7dc3ul,
@@ -310,13 +193,13 @@ const sha2_32t k256[64] =
 /* in the ORIGINAL byte stream will go into the high end of */
 /* words on BOTH big and little endian systems              */
 
-sha2_void sha256_compile(sha256_ctx ctx[1])
+VOID_RETURN sha256_compile(sha256_ctx ctx[1])
 {
 #if !defined(UNROLL_SHA2)
 
-    sha2_32t j, *p = ctx->wbuf, v[8];
+    uint_32t j, *p = ctx->wbuf, v[8];
 
-    memcpy(v, ctx->hash, 8 * sizeof(sha2_32t));
+    memcpy(v, ctx->hash, 8 * sizeof(uint_32t));
 
     for(j = 0; j < 64; j += 16)
     {
@@ -337,7 +220,7 @@ sha2_void sha256_compile(sha256_ctx ctx[1])
 
 #else
 
-    sha2_32t *p = ctx->wbuf,v0,v1,v2,v3,v4,v5,v6,v7;
+    uint_32t *p = ctx->wbuf,v0,v1,v2,v3,v4,v5,v6,v7;
 
     v0 = ctx->hash[0]; v1 = ctx->hash[1];
     v2 = ctx->hash[2]; v3 = ctx->hash[3];
@@ -422,8 +305,8 @@ sha2_void sha256_compile(sha256_ctx ctx[1])
 /* SHA256 hash data in an array of bytes into hash buffer   */
 /* and call the hash_compile function as required.          */
 
-sha2_void sha256_hash(const unsigned char data[], unsigned long len, sha256_ctx ctx[1])
-{   sha2_32t pos = (sha2_32t)(ctx->count[0] & SHA256_MASK),
+VOID_RETURN sha256_hash(const unsigned char data[], unsigned long len, sha256_ctx ctx[1])
+{   uint_32t pos = (uint_32t)(ctx->count[0] & SHA256_MASK),
              space = SHA256_BLOCK_SIZE - pos;
     const unsigned char *sp = data;
 
@@ -443,8 +326,8 @@ sha2_void sha256_hash(const unsigned char data[], unsigned long len, sha256_ctx 
 
 /* SHA256 Final padding and digest calculation  */
 
-static sha2_void sha_end1(unsigned char hval[], sha256_ctx ctx[1], const unsigned int hlen)
-{   sha2_32t    i = (sha2_32t)(ctx->count[0] & SHA256_MASK);
+static void sha_end1(unsigned char hval[], sha256_ctx ctx[1], const unsigned int hlen)
+{   uint_32t    i = (uint_32t)(ctx->count[0] & SHA256_MASK);
 
     /* put bytes in the buffer in an order in which references to   */
     /* 32-bit words will put bytes with lower addresses into the    */
@@ -491,24 +374,24 @@ static sha2_void sha_end1(unsigned char hval[], sha256_ctx ctx[1], const unsigne
 
 #if defined(SHA_224)
 
-const sha2_32t i224[8] =
+const uint_32t i224[8] =
 {
     0xc1059ed8ul, 0x367cd507ul, 0x3070dd17ul, 0xf70e5939ul,
     0xffc00b31ul, 0x68581511ul, 0x64f98fa7ul, 0xbefa4fa4ul
 };
 
-sha2_void sha224_begin(sha224_ctx ctx[1])
+VOID_RETURN sha224_begin(sha224_ctx ctx[1])
 {
     ctx->count[0] = ctx->count[1] = 0;
-    memcpy(ctx->hash, i224, 8 * sizeof(sha2_32t));
+    memcpy(ctx->hash, i224, 8 * sizeof(uint_32t));
 }
 
-sha2_void sha224_end(unsigned char hval[], sha224_ctx ctx[1])
+VOID_RETURN sha224_end(unsigned char hval[], sha224_ctx ctx[1])
 {
     sha_end1(hval, ctx, SHA224_DIGEST_SIZE);
 }
 
-sha2_void sha224(unsigned char hval[], const unsigned char data[], unsigned long len)
+VOID_RETURN sha224(unsigned char hval[], const unsigned char data[], unsigned long len)
 {   sha224_ctx  cx[1];
 
     sha224_begin(cx);
@@ -520,24 +403,24 @@ sha2_void sha224(unsigned char hval[], const unsigned char data[], unsigned long
 
 #if defined(SHA_256)
 
-const sha2_32t i256[8] =
+const uint_32t i256[8] =
 {
     0x6a09e667ul, 0xbb67ae85ul, 0x3c6ef372ul, 0xa54ff53aul,
     0x510e527ful, 0x9b05688cul, 0x1f83d9abul, 0x5be0cd19ul
 };
 
-sha2_void sha256_begin(sha256_ctx ctx[1])
+VOID_RETURN sha256_begin(sha256_ctx ctx[1])
 {
     ctx->count[0] = ctx->count[1] = 0;
-    memcpy(ctx->hash, i256, 8 * sizeof(sha2_32t));
+    memcpy(ctx->hash, i256, 8 * sizeof(uint_32t));
 }
 
-sha2_void sha256_end(unsigned char hval[], sha256_ctx ctx[1])
+VOID_RETURN sha256_end(unsigned char hval[], sha256_ctx ctx[1])
 {
     sha_end1(hval, ctx, SHA256_DIGEST_SIZE);
 }
 
-sha2_void sha256(unsigned char hval[], const unsigned char data[], unsigned long len)
+VOID_RETURN sha256(unsigned char hval[], const unsigned char data[], unsigned long len)
 {   sha256_ctx  cx[1];
 
     sha256_begin(cx);
@@ -554,12 +437,12 @@ sha2_void sha256(unsigned char hval[], const unsigned char data[], unsigned long
 #define rotr64(x,n)   (((x) >> n) | ((x) << (64 - n)))
 
 #if !defined(bswap_64)
-#define bswap_64(x) (((sha2_64t)(bswap_32((sha2_32t)(x)))) << 32 | bswap_32((sha2_32t)((x) >> 32)))
+#define bswap_64(x) (((uint_64t)(bswap_32((uint_32t)(x)))) << 32 | bswap_32((uint_32t)((x) >> 32)))
 #endif
 
 #if defined(SWAP_BYTES)
 #define bsw_64(p,n) \
-    { int _i = (n); while(_i--) ((sha2_64t*)p)[_i] = bswap_64(((sha2_64t*)p)[_i]); }
+    { int _i = (n); while(_i--) ((uint_64t*)p)[_i] = bswap_64(((uint_64t*)p)[_i]); }
 #else
 #define bsw_64(p,n)
 #endif
@@ -582,7 +465,7 @@ sha2_void sha256(unsigned char hval[], const unsigned char data[], unsigned long
 
 /* SHA384/SHA512 mixing data    */
 
-const sha2_64t  k512[80] =
+const uint_64t  k512[80] =
 {
     li_64(428a2f98d728ae22), li_64(7137449123ef65cd),
     li_64(b5c0fbcfec4d3b2f), li_64(e9b5dba58189dbbc),
@@ -632,11 +515,11 @@ const sha2_64t  k512[80] =
 /* in the ORIGINAL byte stream will go into the high end of */
 /* words on BOTH big and little endian systems              */
 
-sha2_void sha512_compile(sha512_ctx ctx[1])
-{   sha2_64t    v[8], *p = ctx->wbuf;
-    sha2_32t    j;
+VOID_RETURN sha512_compile(sha512_ctx ctx[1])
+{   uint_64t    v[8], *p = ctx->wbuf;
+    uint_32t    j;
 
-    memcpy(v, ctx->hash, 8 * sizeof(sha2_64t));
+    memcpy(v, ctx->hash, 8 * sizeof(uint_64t));
 
     for(j = 0; j < 80; j += 16)
     {
@@ -663,8 +546,8 @@ sha2_void sha512_compile(sha512_ctx ctx[1])
 /* buffer will now go to the high end of words on BOTH big  */
 /* and little endian systems                                */
 
-sha2_void sha512_hash(const unsigned char data[], unsigned long len, sha512_ctx ctx[1])
-{   sha2_32t pos = (sha2_32t)(ctx->count[0] & SHA512_MASK),
+VOID_RETURN sha512_hash(const unsigned char data[], unsigned long len, sha512_ctx ctx[1])
+{   uint_32t pos = (uint_32t)(ctx->count[0] & SHA512_MASK),
              space = SHA512_BLOCK_SIZE - pos;
     const unsigned char *sp = data;
 
@@ -685,7 +568,7 @@ sha2_void sha512_hash(const unsigned char data[], unsigned long len, sha512_ctx 
 /* SHA384/512 Final padding and digest calculation  */
 
 static void sha_end2(unsigned char hval[], sha512_ctx ctx[1], const unsigned int hlen)
-{   sha2_32t    i = (sha2_32t)(ctx->count[0] & SHA512_MASK);
+{   uint_32t    i = (uint_32t)(ctx->count[0] & SHA512_MASK);
 
     /* put bytes in the buffer in an order in which references to   */
     /* 32-bit words will put bytes with lower addresses into the    */
@@ -734,7 +617,7 @@ static void sha_end2(unsigned char hval[], sha512_ctx ctx[1], const unsigned int
 
 /* SHA384 initialisation data   */
 
-const sha2_64t  i384[80] =
+const uint_64t  i384[80] =
 {
     li_64(cbbb9d5dc1059ed8), li_64(629a292a367cd507),
     li_64(9159015a3070dd17), li_64(152fecd8f70e5939),
@@ -742,18 +625,18 @@ const sha2_64t  i384[80] =
     li_64(db0c2e0d64f98fa7), li_64(47b5481dbefa4fa4)
 };
 
-sha2_void sha384_begin(sha384_ctx ctx[1])
+VOID_RETURN sha384_begin(sha384_ctx ctx[1])
 {
     ctx->count[0] = ctx->count[1] = 0;
-    memcpy(ctx->hash, i384, 8 * sizeof(sha2_64t));
+    memcpy(ctx->hash, i384, 8 * sizeof(uint_64t));
 }
 
-sha2_void sha384_end(unsigned char hval[], sha384_ctx ctx[1])
+VOID_RETURN sha384_end(unsigned char hval[], sha384_ctx ctx[1])
 {
     sha_end2(hval, ctx, SHA384_DIGEST_SIZE);
 }
 
-sha2_void sha384(unsigned char hval[], const unsigned char data[], unsigned long len)
+VOID_RETURN sha384(unsigned char hval[], const unsigned char data[], unsigned long len)
 {   sha384_ctx  cx[1];
 
     sha384_begin(cx);
@@ -767,7 +650,7 @@ sha2_void sha384(unsigned char hval[], const unsigned char data[], unsigned long
 
 /* SHA512 initialisation data   */
 
-const sha2_64t  i512[80] =
+const uint_64t  i512[80] =
 {
     li_64(6a09e667f3bcc908), li_64(bb67ae8584caa73b),
     li_64(3c6ef372fe94f82b), li_64(a54ff53a5f1d36f1),
@@ -775,18 +658,18 @@ const sha2_64t  i512[80] =
     li_64(1f83d9abfb41bd6b), li_64(5be0cd19137e2179)
 };
 
-sha2_void sha512_begin(sha512_ctx ctx[1])
+VOID_RETURN sha512_begin(sha512_ctx ctx[1])
 {
     ctx->count[0] = ctx->count[1] = 0;
-    memcpy(ctx->hash, i512, 8 * sizeof(sha2_64t));
+    memcpy(ctx->hash, i512, 8 * sizeof(uint_64t));
 }
 
-sha2_void sha512_end(unsigned char hval[], sha512_ctx ctx[1])
+VOID_RETURN sha512_end(unsigned char hval[], sha512_ctx ctx[1])
 {
     sha_end2(hval, ctx, SHA512_DIGEST_SIZE);
 }
 
-sha2_void sha512(unsigned char hval[], const unsigned char data[], unsigned long len)
+VOID_RETURN sha512(unsigned char hval[], const unsigned char data[], unsigned long len)
 {   sha512_ctx  cx[1];
 
     sha512_begin(cx);
@@ -805,7 +688,7 @@ sha2_void sha512(unsigned char hval[], const unsigned char data[], unsigned long
 
 /* SHA2 initialisation */
 
-sha2_int sha2_begin(unsigned long len, sha2_ctx ctx[1])
+INT_RETURN sha2_begin(unsigned long len, sha2_ctx ctx[1])
 {
     switch(len)
     {
@@ -813,31 +696,31 @@ sha2_int sha2_begin(unsigned long len, sha2_ctx ctx[1])
         case 224:
         case  28:   CTX_256(ctx)->count[0] = CTX_256(ctx)->count[1] = 0;
                     memcpy(CTX_256(ctx)->hash, i224, 32);
-                    ctx->sha2_len = 28; return SHA2_GOOD;
+                    ctx->sha2_len = 28; return EXIT_SUCCESS;
 #endif
 #if defined(SHA_256)
         case 256:
         case  32:   CTX_256(ctx)->count[0] = CTX_256(ctx)->count[1] = 0;
                     memcpy(CTX_256(ctx)->hash, i256, 32);
-                    ctx->sha2_len = 32; return SHA2_GOOD;
+                    ctx->sha2_len = 32; return EXIT_SUCCESS;
 #endif
 #if defined(SHA_384)
         case 384:
         case  48:   CTX_384(ctx)->count[0] = CTX_384(ctx)->count[1] = 0;
                     memcpy(CTX_384(ctx)->hash, i384, 64);
-                    ctx->sha2_len = 48; return SHA2_GOOD;
+                    ctx->sha2_len = 48; return EXIT_SUCCESS;
 #endif
 #if defined(SHA_512)
         case 512:
         case  64:   CTX_512(ctx)->count[0] = CTX_512(ctx)->count[1] = 0;
                     memcpy(CTX_512(ctx)->hash, i512, 64);
-                    ctx->sha2_len = 64; return SHA2_GOOD;
+                    ctx->sha2_len = 64; return EXIT_SUCCESS;
 #endif
-        default:    return SHA2_BAD;
+        default:    return EXIT_FAILURE;
     }
 }
 
-sha2_void sha2_hash(const unsigned char data[], unsigned long len, sha2_ctx ctx[1])
+VOID_RETURN sha2_hash(const unsigned char data[], unsigned long len, sha2_ctx ctx[1])
 {
     switch(ctx->sha2_len)
     {
@@ -856,7 +739,7 @@ sha2_void sha2_hash(const unsigned char data[], unsigned long len, sha2_ctx ctx[
     }
 }
 
-sha2_void sha2_end(unsigned char hval[], sha2_ctx ctx[1])
+VOID_RETURN sha2_end(unsigned char hval[], sha2_ctx ctx[1])
 {
     switch(ctx->sha2_len)
     {
@@ -875,16 +758,16 @@ sha2_void sha2_end(unsigned char hval[], sha2_ctx ctx[1])
     }
 }
 
-sha2_int sha2(unsigned char hval[], unsigned long size,
+INT_RETURN sha2(unsigned char hval[], unsigned long size,
                                 const unsigned char data[], unsigned long len)
 {   sha2_ctx    cx[1];
 
-    if(sha2_begin(size, cx) == SHA2_GOOD)
+    if(sha2_begin(size, cx) == EXIT_SUCCESS)
     {
-        sha2_hash(data, len, cx); sha2_end(hval, cx); return SHA2_GOOD;
+        sha2_hash(data, len, cx); sha2_end(hval, cx); return EXIT_SUCCESS;
     }
     else
-        return SHA2_BAD;
+        return EXIT_FAILURE;
 }
 
 #endif

@@ -5,24 +5,16 @@
 *																			*
 ****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #ifdef INC_ALL
   #include "crypt.h"
-  #include "pgp.h"
   #include "asn1.h"
   #include "misc_rw.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../envelope/pgp.h"
-  #include "../misc/asn1.h"
-  #include "../misc/misc_rw.h"
+  #include "pgp.h"
 #else
   #include "crypt.h"
-  #include "envelope/pgp.h"
   #include "misc/asn1.h"
   #include "misc/misc_rw.h"
+  #include "misc/pgp.h"
 #endif /* Compiler-specific includes */
 
 /* Prototypes for kernel-internal access functions */
@@ -149,7 +141,7 @@ static int privateKeyWrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 								   formatType );
 	if( cryptStatusOK( status ) )
 		{
-		BYTE startSample[ 8 ], endSample[ 8 ];
+		BYTE startSample[ 8 + 8 ], endSample[ 8 + 8 ];
 		const void *endSamplePtr = ( BYTE * ) mechanismInfo->wrappedData + \
 								   stell( &stream ) - 8;
 		int i;
@@ -394,13 +386,14 @@ static int privateKeyUnwrapPGP( void *dummy,
 		if( mechanismInfo->wrappedDataLength - streamPos == 20 )
 			{
 			HASHFUNCTION hashFunction;
-			BYTE hashValue[ CRYPT_MAX_HASHSIZE ];
+			BYTE hashValue[ CRYPT_MAX_HASHSIZE + 8 ];
 			int hashSize;
 
 			/* There's too much data present for it to be a simple checksum,
 			   it must be an SHA-1 hash */
 			getHashParameters( CRYPT_ALGO_SHA, &hashFunction, &hashSize );
-			hashFunction( NULL, hashValue, buffer, streamPos, HASH_ALL );
+			hashFunction( NULL, hashValue, CRYPT_MAX_HASHSIZE, buffer, 
+						  streamPos, HASH_ALL );
 			if( mechanismInfo->wrappedDataLength - streamPos != hashSize || \
 				memcmp( hashValue, sMemBufPtr( &stream ), hashSize ) )
 				status = CRYPT_ERROR_WRONGKEY;

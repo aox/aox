@@ -18,16 +18,13 @@
    the cert.  The modification for trusting the key in the cert is fairly
    simple to make if required */
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
+  #include "trustmgr.h"
   #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "../misc/asn1.h"
 #else
   #include "cert/cert.h"
+  #include "cert/trustmgr.h"
   #include "misc/asn1.h"
 #endif /* Compiler-specific includes */
 
@@ -45,7 +42,7 @@ typedef struct TI {
 	/* Identification information, the checksum and hash of the cert
 	   subjectName and subjectKeyIdentifier */
 	int sCheck, kCheck;
-	BYTE sHash[ HASH_SIZE ], kHash[ HASH_SIZE ];
+	BYTE sHash[ HASH_SIZE + 4 ], kHash[ HASH_SIZE + 4 ];
 
 	/* The trusted certificate.  When we read trusted certs from a config
 	   file, the cert is stored in the encoded form to save creating a pile
@@ -69,7 +66,8 @@ typedef struct TI {
 
 /* Hash data */
 
-static void hashData( BYTE *hash, const void *data, const int dataLength )
+static void hashData( BYTE *hash, const int hashMaxLen, 
+					  const void *data, const int dataLength )
 	{
 	static HASHFUNCTION hashFunction = NULL;
 
@@ -81,7 +79,8 @@ static void hashData( BYTE *hash, const void *data, const int dataLength )
 	if( dataLength <= 0 )
 		memset( hash, 0, HASH_SIZE );
 	else
-		hashFunction( NULL, hash, ( BYTE * ) data, dataLength, HASH_ALL );
+		hashFunction( NULL, hash, hashMaxLen, ( BYTE * ) data, dataLength, 
+					  HASH_ALL );
 	}
 
 /****************************************************************************
@@ -98,7 +97,7 @@ void *findTrustEntry( void *trustInfoPtr, const CRYPT_CERTIFICATE iCryptCert,
 	TRUST_INFO **trustInfoIndex = ( TRUST_INFO ** ) trustInfoPtr;
 	const TRUST_INFO *trustInfoCursor;
 	DYNBUF nameDB;
-	BYTE sHash[ HASH_SIZE ];
+	BYTE sHash[ HASH_SIZE + 8 ];
 	BOOLEAN nameHashed = FALSE;
 	int sCheck, status;
 
@@ -134,7 +133,7 @@ void *findTrustEntry( void *trustInfoPtr, const CRYPT_CERTIFICATE iCryptCert,
 			{
 			if( !nameHashed )
 				{
-				hashData( sHash, dynData( nameDB ), dynLength( nameDB ) );
+				hashData( sHash, HASH_SIZE, dynData( nameDB ), dynLength( nameDB ) );
 				nameHashed = TRUE;
 				}
 			if( !memcmp( trustInfoCursor->sHash, sHash, HASH_SIZE ) )
@@ -313,20 +312,20 @@ static int addEntry( void *trustInfoPtr, const CRYPT_CERTIFICATE iCryptCert,
 			hasSKID = TRUE;
 		newElement->sCheck = checksumData( dynData( subjectDB ), 
 										   dynLength( subjectDB ) );
-		hashData( newElement->sHash, dynData( subjectDB ), 
+		hashData( newElement->sHash, HASH_SIZE, dynData( subjectDB ), 
 				  dynLength( subjectDB ) );
 		if( hasSKID )
 			{
 			newElement->kCheck = checksumData( dynData( subjectKeyDB ), 
 											   dynLength( subjectKeyDB ) );
-			hashData( newElement->kHash, dynData( subjectKeyDB ), 
+			hashData( newElement->kHash, HASH_SIZE, dynData( subjectKeyDB ), 
 					  dynLength( subjectKeyDB ) );
 			dynDestroy( &subjectKeyDB );
 			}
 		else
 			{
 			newElement->kCheck = 0;
-			hashData( newElement->kHash, NULL, 0 );
+			hashData( newElement->kHash, HASH_SIZE, NULL, 0 );
 			}
 		dynDestroy( &subjectDB );
 		}
@@ -428,9 +427,12 @@ static int addEntry( void *trustInfoPtr, const CRYPT_CERTIFICATE iCryptCert,
 			/* Generate the checksum and hash of the encoded cert's subject 
 			   name and key ID */
 			newElement->sCheck = checksumData( subjectDNptr, subjectDNsize );
-			hashData( newElement->sHash, subjectDNptr, subjectDNsize );
-			newElement->kCheck = checksumData( subjectKeyIDptr, subjectKeyIDsize );
-			hashData( newElement->kHash, subjectKeyIDptr, subjectKeyIDsize );
+			hashData( newElement->sHash, HASH_SIZE, 
+					  subjectDNptr, subjectDNsize );
+			newElement->kCheck = checksumData( subjectKeyIDptr, 
+											   subjectKeyIDsize );
+			hashData( newElement->kHash, HASH_SIZE, 
+					  subjectKeyIDptr, subjectKeyIDsize );
 			}
 
 		/* Remember the trusted cert data for later use */
@@ -481,7 +483,7 @@ int addTrustEntry( void *trustInfoPtr, const CRYPT_CERTIFICATE iCryptCert,
 				   const BOOLEAN addSingleCert )
 	{
 	BOOLEAN seenNonDuplicate = FALSE;
-	int status;
+	int iterationCount = 0, status;
 
 	assert( ( isHandleRangeValid( iCryptCert ) && certObject == NULL ) || \
 			( iCryptCert == CRYPT_UNUSED && certObject != NULL ) );
@@ -513,7 +515,10 @@ int addTrustEntry( void *trustInfoPtr, const CRYPT_CERTIFICATE iCryptCert,
 	while( cryptStatusOK( status ) && !addSingleCert && \
 		   krnlSendMessage( iCryptCert, IMESSAGE_SETATTRIBUTE,
 							MESSAGE_VALUE_CURSORNEXT,
-							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK );
+							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE );
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	krnlSendMessage( iCryptCert, IMESSAGE_SETATTRIBUTE, 
 					 MESSAGE_VALUE_FALSE, CRYPT_IATTRIBUTE_LOCKED );
 	if( cryptStatusOK( status ) && !seenNonDuplicate )

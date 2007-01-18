@@ -12,8 +12,8 @@
 
 /* Set up query data so it can be sent to the database back-end */
 
-static void extractQueryData( COMMAND_INFO *cmd, time_t *timeValuePtrPtr, 
-							  void **dataValuePtrPtr, 
+static void extractQueryData( COMMAND_INFO *cmd, time_t *timeValuePtrPtr,
+							  void **dataValuePtrPtr,
 							  int *dataValueLengthPtr )
 	{
 	/* Clear return values */
@@ -35,18 +35,18 @@ static void extractQueryData( COMMAND_INFO *cmd, time_t *timeValuePtrPtr,
 						   ( time_t ) timeValuePtr[ 5 ] << 16 | \
 						   ( time_t ) timeValuePtr[ 6 ] << 8 | \
 						   ( time_t ) timeValuePtr[ 7 ];
-#ifdef _BIG_WORDS
+#ifdef SYSTEM_64BIT
 		*timeValuePtrPtr |= ( time_t ) timeValuePtr[ 3 ] << 32;
-#endif /* _BIG_WORDS */
+#endif /* SYSTEM_64BIT */
 
-		/* Since the first arg is the date, the data (if any) will be in 
+		/* Since the first arg is the date, the data (if any) will be in
 		   the second arg */
 		if( cmd->strArgLen[ 2 ] > 0 )
 			{
 			*dataValuePtrPtr = cmd->strArg[ 2 ];
 			*dataValueLengthPtr = cmd->strArgLen[ 2 ];
 			}
-		
+
 		return;
 		}
 
@@ -119,8 +119,8 @@ int cmdQuery( void *stateInfo, COMMAND_INFO *cmd )
 
 	extractQueryData( cmd, &timeValue, &dataValue, &dataValueLength );
 	status = performQuery( stateInfo, cmd->strArg[ 0 ],
-						   cmd->strArg[ argIndex ], &dataLength, dataValue, 
-						   dataValueLength, timeValue, cmd->arg[ 1 ], 
+						   cmd->strArg[ argIndex ], &dataLength, dataValue,
+						   dataValueLength, timeValue, cmd->arg[ 1 ],
 						   cmd->arg[ 0 ] );
 	if( cryptStatusOK( status ) )
 		cmd->strArgLen[ argIndex ] = \
@@ -143,7 +143,7 @@ int cmdUpdate( void *stateInfo, COMMAND_INFO *cmd )
 
 	extractQueryData( cmd, &timeValue, &dataValue, &dataValueLength );
 	return( performUpdate( stateInfo, cmd->strArg[ 0 ],
-						   dataValueLength > 0 ? dataValue : NULL, 
+						   dataValueLength > 0 ? dataValue : NULL,
 						   dataValueLength, timeValue, cmd->arg[ 0 ] ) );
 	}
 

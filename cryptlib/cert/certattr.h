@@ -89,38 +89,38 @@
 	FL_MORE: Another field in the current extension follows.  The last field
 		in the extension has FL_MORE clear */
 
-#define FL_SEQEND			0x0000001	/* End of constructed object */
-#define FL_SEQEND_1			0x0000001	/*  End of cons.obj, one nesting lvl.*/
-#define FL_SEQEND_2			0x0000002	/*  End of cons.obj, two nesting lvl.*/
-#define FL_SEQEND_3			0x0000003	/*  End of cons.obj, three nesting lvls.*/
-#define FL_SEQEND_MASK		0x0000003	/* Mask for sequence control value */
+#define FL_SEQEND			0x0000001L	/* End of constructed object */
+#define FL_SEQEND_1			0x0000001L	/*  End of cons.obj, one nesting lvl.*/
+#define FL_SEQEND_2			0x0000002L	/*  End of cons.obj, two nesting lvl.*/
+#define FL_SEQEND_3			0x0000003L	/*  End of cons.obj, three nesting lvls.*/
+#define FL_SEQEND_MASK		0x0000003L	/* Mask for sequence control value */
 
-#define FL_LEVEL_OBLIVIOUS	0x0000000	/* Process at oblivious compliance level */
-#define FL_LEVEL_REDUCED	0x0000010	/* Process at reduced compliance level */
-#define FL_LEVEL_STANDARD	0x0000020	/* Process at standard compliance level */
-#define FL_LEVEL_PKIX_PARTIAL 0x0000030	/* Process at partial PKIX compliance level */
-#define FL_LEVEL_PKIX_FULL	0x0000040	/* Process at full PKIX compliance level */
-#define FL_LEVEL_MASK		0x0000070	/* Mask for compliance level value */
+#define FL_LEVEL_OBLIVIOUS	0x0000000L	/* Process at oblivious compliance level */
+#define FL_LEVEL_REDUCED	0x0000010L	/* Process at reduced compliance level */
+#define FL_LEVEL_STANDARD	0x0000020L	/* Process at standard compliance level */
+#define FL_LEVEL_PKIX_PARTIAL 0x0000030L/* Process at partial PKIX compliance level */
+#define FL_LEVEL_PKIX_FULL	0x0000040L	/* Process at full PKIX compliance level */
+#define FL_LEVEL_MASK		0x0000070L	/* Mask for compliance level value */
 
-#define FL_VALID_CERT		0x0000100	/* Valid in a cert */
-#define FL_VALID_ATTRCERT	0x0000200	/* Valid in an attrib.cert */
-#define FL_VALID_CRL		0x0000400	/* Valid in a CRL */
-#define FL_VALID_CERTREQ	0x0000800	/* Valid in a cert.request */
-#define FL_VALID_REVREQ		0x0001000	/* Valid in a rev.request */
-#define FL_VALID_OCSPREQ	0x0001000	/* Valid in an OCSP request */
-#define FL_VALID_OCSPRESP	0x0001000	/* Valid in an OCSP response */
+#define FL_VALID_CERT		0x0000100L	/* Valid in a cert */
+#define FL_VALID_ATTRCERT	0x0000200L	/* Valid in an attrib.cert */
+#define FL_VALID_CRL		0x0000400L	/* Valid in a CRL */
+#define FL_VALID_CERTREQ	0x0000800L	/* Valid in a cert.request */
+#define FL_VALID_REVREQ		0x0001000L	/* Valid in a rev.request */
+#define FL_VALID_OCSPREQ	0x0001000L	/* Valid in an OCSP request */
+#define FL_VALID_OCSPRESP	0x0001000L	/* Valid in an OCSP response */
 
-#define FL_OPTIONAL			0x0002000	/* Field is optional */
-#define FL_DEFAULT			0x0004000	/* Field has default value */
-#define FL_EXPLICIT			0x0008000	/* Field is explicitly tagged */
-#define FL_IDENTIFIER		0x0010000	/* Following field contains selection OID */
-#define FL_SETOF			0x0020000	/* Start of SET/SEQ OF values */
-#define FL_NONEMPTY			0x0040000	/* SET/SEQ must contain at least one entry */
-#define FL_NONENCODING		0x0080000	/* Field is a non-encoding value */
-#define FL_MULTIVALUED		0x0100000	/* Field can occur multiple times */
-#define FL_NOCOPY			0x0200000	/* Attr.isn't copied when attrs.copied*/
-#define FL_CRITICAL			0x0400000	/* Extension is marked critical */
-#define FL_MORE				0x0800000	/* Further entries follow */
+#define FL_OPTIONAL			0x0002000L	/* Field is optional */
+#define FL_DEFAULT			0x0004000L	/* Field has default value */
+#define FL_EXPLICIT			0x0008000L	/* Field is explicitly tagged */
+#define FL_IDENTIFIER		0x0010000L	/* Following field contains selection OID */
+#define FL_SETOF			0x0020000L	/* Start of SET/SEQ OF values */
+#define FL_NONEMPTY			0x0040000L	/* SET/SEQ must contain at least one entry */
+#define FL_NONENCODING		0x0080000L	/* Field is a non-encoding value */
+#define FL_MULTIVALUED		0x0100000L	/* Field can occur multiple times */
+#define FL_NOCOPY			0x0200000L	/* Attr.isn't copied when attrs.copied*/
+#define FL_CRITICAL			0x0400000L	/* Extension is marked critical */
+#define FL_MORE				0x0800000L	/* Further entries follow */
 
 /* If a constructed field is nested (for example a SEQUENCE OF SEQUENCE), the
    FL_SEQEND may need to denote multiple levels of unnesting.  This is done
@@ -257,9 +257,11 @@ typedef int ( *VALIDATION_FUNCTION )( const ATTRIBUTE_LIST *attributeListPtr );
 const ATTRIBUTE_INFO *oidToAttribute( const ATTRIBUTE_TYPE attributeType,
 									  const BYTE *oid );
 
-/* Select the appropriate attribute info table for encoding/type checking */
+/* Select the appropriate attribute info table for encoding/type checking, 
+   and get its size */
 
 const ATTRIBUTE_INFO *selectAttributeInfo( const ATTRIBUTE_TYPE attributeType );
+const int sizeofAttributeInfo( const ATTRIBUTE_TYPE attributeType );
 
 /* Get the attribute and attributeID for a field ID */
 

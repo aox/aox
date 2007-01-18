@@ -31,13 +31,10 @@
    } From this demonstration you can see that there is only one prime, and
    } it is ten. Therefore, the largest prime is ten.
 													-- The Usenet Oracle */
-#include <stdlib.h>
+
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "context.h"
-  #include "keygen.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "context.h"
   #include "keygen.h"
 #else
@@ -47,8 +44,6 @@
 #endif /* Compiler-specific includes */
 #if defined( INC_ALL )
   #include "bn_prime.h"
-#elif defined( INC_CHILD )
-  #include "../bn/bn_prime.h"
 #else
   #include "bn/bn_prime.h"
 #endif /* Compiler-specific includes */
@@ -140,11 +135,11 @@ static void initSieve( BOOLEAN *sieveArray, const BIGNUM *candidate )
 		if( sieveIndex & 1 )
 			sieveIndex = ( step - sieveIndex ) / 2;
 		else
-			if( sieveIndex )
+			if( sieveIndex > 0 )
 				sieveIndex = ( ( step * 2 ) - sieveIndex ) / 2;
 
 		/* Mark each multiple of the divisor as being divisible */
-		while( sieveIndex < SIEVE_SIZE )
+		while( sieveIndex >= 0 && sieveIndex < SIEVE_SIZE )
 			{
 			sieveArray[ sieveIndex ] = 1;
 			sieveIndex += step;
@@ -205,14 +200,14 @@ static int witnessOld( PKC_INFO *pkcInfo, BIGNUM *a, BIGNUM *n, BIGNUM *n1,
 	{
 	BIGNUM *y = &pkcInfo->param6;
 	BIGNUM *yPrime = &pkcInfo->param7;		/* Safe to destroy */
-	BN_CTX *ctx = &pkcInfo->bnCTX;
+	BN_CTX *ctx = pkcInfo->bnCTX;
 	BIGNUM *mont_a = &ctx->bn[ ctx->tos++ ];
 	const int k = BN_num_bits( n1 );
 	int i, bnStatus = BN_STATUS;
 
 	/* All values are manipulated in their Montgomery form, so before we 
 	   begin we have to convert a to this form as well */
-	if( !BN_to_montgomery( mont_a, a, montCTX_n, &pkcInfo->bnCTX ) )
+	if( !BN_to_montgomery( mont_a, a, montCTX_n, pkcInfo->bnCTX ) )
 		{
 		ctx->tos--;
 		return( CRYPT_ERROR_FAILED );
@@ -224,7 +219,7 @@ static int witnessOld( PKC_INFO *pkcInfo, BIGNUM *a, BIGNUM *n, BIGNUM *n1,
 		/* Perform the y^2 mod n check.  yPrime = y^2 mod n, if yPrime == 1
 		   it's composite (this condition is virtually never met) */
 		CK( BN_mod_mul_montgomery( yPrime, y, y, montCTX_n, 
-								   &pkcInfo->bnCTX ) );
+								   pkcInfo->bnCTX ) );
 		if( bnStatusError( bnStatus ) || \
 			( !BN_cmp( yPrime, mont_1 ) && \
 			  BN_cmp( y, mont_1 ) && BN_cmp( y, mont_n1 ) ) )
@@ -236,7 +231,7 @@ static int witnessOld( PKC_INFO *pkcInfo, BIGNUM *a, BIGNUM *n, BIGNUM *n1,
 		/* Perform another step of the modexp */
 		if( BN_is_bit_set( n1, i ) )
 			CK( BN_mod_mul_montgomery( y, yPrime, mont_a, montCTX_n, 
-									   &pkcInfo->bnCTX ) );
+									   pkcInfo->bnCTX ) );
 		else
 			{
 			BIGNUM *tmp;
@@ -267,13 +262,13 @@ static int primeProbableOld( PKC_INFO *pkcInfo, BIGNUM *candidate,
 	int i, bnStatus = BN_STATUS, status;
 
 	/* Set up various values */
-	CK( BN_MONT_CTX_set( montCTX_candidate, candidate, &pkcInfo->bnCTX ) );
+	CK( BN_MONT_CTX_set( montCTX_candidate, candidate, pkcInfo->bnCTX ) );
 	CK( BN_to_montgomery( mont_1, BN_value_one(), montCTX_candidate, 
-						  &pkcInfo->bnCTX ) );
+						  pkcInfo->bnCTX ) );
 	CKPTR( BN_copy( candidate_1, candidate ) );
 	CK( BN_sub_word( candidate_1, 1 ) );
 	CK( BN_to_montgomery( mont_candidate_1, candidate_1, montCTX_candidate, 
-						  &pkcInfo->bnCTX ) );
+						  pkcInfo->bnCTX ) );
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
 
@@ -356,7 +351,7 @@ static int witness( PKC_INFO *pkcInfo, BIGNUM *a, const BIGNUM *n,
 
 	/* x(0) = a^u mod n.  If x(0) == 1 || x(0) == n - 1 it's probably
 	   prime */
-	CK( BN_mod_exp_mont( a, a, u, n, &pkcInfo->bnCTX, montCTX_n ) );
+	CK( BN_mod_exp_mont( a, a, u, n, pkcInfo->bnCTX, montCTX_n ) );
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
 	if( BN_is_one( a ) || !BN_cmp( a, n_1 ) )
@@ -365,7 +360,7 @@ static int witness( PKC_INFO *pkcInfo, BIGNUM *a, const BIGNUM *n,
 	for( i = 1; i < k; i++ )
 		{
 		/* x(i) = x(i-1)^2 mod n */
-		CK( BN_mod_mul( a, a, a, n, &pkcInfo->bnCTX ) );
+		CK( BN_mod_mul( a, a, a, n, pkcInfo->bnCTX ) );
 		if( bnStatusError( bnStatus ) )
 			return( getBnStatus( bnStatus ) );
 		if( !BN_cmp( a, n_1 ) )
@@ -394,10 +389,10 @@ int primeProbable( PKC_INFO *pkcInfo, BIGNUM *n, const int noChecks,
 				   const void *callbackArg )
 	{
 	BIGNUM *a = &pkcInfo->tmp1, *n_1 = &pkcInfo->tmp2, *u = &pkcInfo->tmp3;
-	int i, k, bnStatus = BN_STATUS, status;
+	int i, k, iterationCount = 0, bnStatus = BN_STATUS, status;
 
 	/* Set up various values */
-	CK( BN_MONT_CTX_set( &pkcInfo->montCTX1, n, &pkcInfo->bnCTX ) );
+	CK( BN_MONT_CTX_set( &pkcInfo->montCTX1, n, pkcInfo->bnCTX ) );
 
 	/* Evaluate u as n - 1 = 2^k * u.  Obviously the less one bits in the 
 	   LSBs of n, the more efficient this test becomes, however with a 
@@ -406,7 +401,10 @@ int primeProbable( PKC_INFO *pkcInfo, BIGNUM *n, const int noChecks,
 	   since n starts out being odd */
 	CKPTR( BN_copy( n_1, n ) );
 	CK( BN_sub_word( n_1, 1 ) );
-	for( k = 1; !BN_is_bit_set( n_1, k ); k++ );
+	for( k = 1; !BN_is_bit_set( n_1, k ) && \
+				iterationCount++ < FAILSAFE_ITERATIONS_MAX; k++ );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 	CK( BN_rshift( u, n_1, k ) );
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
@@ -468,10 +466,11 @@ int primeProbable( PKC_INFO *pkcInfo, BIGNUM *n, const int noChecks,
 int generatePrime( PKC_INFO *pkcInfo, BIGNUM *candidate, const int noBits, 
 				   const long exponent, const void *callbackArg )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	const int noChecks = getNoPrimeChecks( noBits );
 	BOOLEAN *sieveArray;
-	int offset, oldOffset = 0, startPoint, bnStatus = BN_STATUS, status;
+	int offset, oldOffset = 0, startPoint, iterationCount = 0;
+	int bnStatus = BN_STATUS, status;
 
 	/* Start with a cryptographically strong odd random number ("There is a 
 	   divinity in odd numbers", William Shakespeare, "Merry Wives of 
@@ -488,6 +487,8 @@ int generatePrime( PKC_INFO *pkcInfo, BIGNUM *candidate, const int noBits,
 
 	do
 		{
+		int innerIterationCount = 0;
+
 		/* Set up the sieve array for the number and pick a random starting
 		   point */
 		initSieve( sieveArray, candidate );
@@ -501,7 +502,9 @@ int generatePrime( PKC_INFO *pkcInfo, BIGNUM *candidate, const int noBits,
 
 		/* Perform a random-probing search for a prime.  Poli, poli, di 
 		   umbuendo */
-		for( offset = nextEntry( startPoint ); offset != startPoint;
+		for( offset = nextEntry( startPoint ); \
+			 offset != startPoint && \
+				innerIterationCount++ < SIEVE_SIZE + 10; \
 			 offset = nextEntry( offset ) )
 			{
 #ifdef CHECK_PRIMETEST
@@ -512,7 +515,7 @@ int generatePrime( PKC_INFO *pkcInfo, BIGNUM *candidate, const int noBits,
 			long remainder;
 
 			/* If this candidate is divisible by anything, continue */
-			if( sieveArray[ offset ] )
+			if( sieveArray[ offset ] != 0 )
 				continue;
 
 			/* Adjust the candidate by the number of nonprimes we've
@@ -527,16 +530,16 @@ int generatePrime( PKC_INFO *pkcInfo, BIGNUM *candidate, const int noBits,
 			/* Perform a Fermat test to the base 2 (Fermat = a^p-1 mod p == 1
 			   -> a^p mod p == a, for all a), which isn't as reliable as
 			   Miller-Rabin but may be quicker if a fast base 2 modexp is
-			   available (currently it provides no improvement at all over the
-			   use of straight Miller-Rabin).  Currently it's only used to
-			   sanity-check the MR test, but if a faster version is 
-			   available, it can be used as a filter to weed out most
-			   pseudoprimes */
+			   available (currently it provides no improvement at all over 
+			   the use of straight Miller-Rabin).  At the moment it's only 
+			   used to sanity-check the MR test, but if a faster version is 
+			   ever made available, it can be used as a filter to weed out 
+			   most pseudoprimes */
 			CK( BN_MONT_CTX_set( &pkcInfo->montCTX1, candidate, 
-								 &pkcInfo->bnCTX ) );
+								 pkcInfo->bnCTX ) );
 			CK( BN_set_word( &pkcInfo->tmp1, 2 ) );
 			CK( BN_mod_exp_mont( &pkcInfo->tmp2, &pkcInfo->tmp1, candidate, 
-								 candidate, &pkcInfo->bnCTX,
+								 candidate, pkcInfo->bnCTX,
 								 &pkcInfo->montCTX1 ) );
 			passedFermat = ( bnStatusOK( bnStatus ) && \
 						     BN_is_word( &pkcInfo->tmp2, 2 ) ) ? TRUE : FALSE;
@@ -592,8 +595,13 @@ int generatePrime( PKC_INFO *pkcInfo, BIGNUM *candidate, const int noBits,
 			if( bnStatusOK( bnStatus ) && remainder )
 				break;	/* status = TRUE from above */
 			}
+		if( innerIterationCount >= SIEVE_SIZE + 10 )
+			retIntError();
 		}
-	while( status == FALSE );	/* -ve = error, TRUE = success */
+	while( status == FALSE &&	/* -ve = error, TRUE = success */
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 
 	/* Clean up */
 	zeroise( sieveArray, SIEVE_SIZE * sizeof( BOOLEAN ) );
@@ -621,7 +629,7 @@ int generatePrime( PKC_INFO *pkcInfo, BIGNUM *candidate, const int noBits,
 int generateBignum( BIGNUM *bn, const int noBits, const BYTE high,
 					const BYTE low )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	BYTE buffer[ CRYPT_MAX_PKCSIZE + 8 ];
 	int noBytes = bitsToBytes( noBits ), status;
 

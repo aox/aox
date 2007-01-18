@@ -9,10 +9,6 @@
   #include "crypt.h"
   #include "acl.h"
   #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
 #else
   #include "crypt.h"
   #include "kernel/acl.h"
@@ -31,20 +27,20 @@ static KERNEL_DATA *krnlData = NULL;
 
 /* The ACL tables for each object dependency type */
 
-static const FAR_BSS DEPENDENCY_ACL dependencyACLTbl[] = {
-	/* Envelopes and sessions can have conventional encryption and MAC 
+static const DEPENDENCY_ACL FAR_BSS dependencyACLTbl[] = {
+	/* Envelopes and sessions can have conventional encryption and MAC
 	   contexts attached */
 	MK_DEPACL( OBJECT_TYPE_ENVELOPE, ST_NONE, ST_ENV_ANY, \
-			   OBJECT_TYPE_CONTEXT, ST_CTX_CONV | ST_CTX_MAC, ST_NONE ),	
+			   OBJECT_TYPE_CONTEXT, ST_CTX_CONV | ST_CTX_MAC, ST_NONE ),
 	MK_DEPACL( OBJECT_TYPE_SESSION, ST_NONE, ST_SESS_ANY, \
-			   OBJECT_TYPE_CONTEXT, ST_CTX_CONV | ST_CTX_MAC, ST_NONE ),	
+			   OBJECT_TYPE_CONTEXT, ST_CTX_CONV | ST_CTX_MAC, ST_NONE ),
 
-	/* PKC contexts can have certs attached and vice versa.  Since the 
+	/* PKC contexts can have certs attached and vice versa.  Since the
 	   certificate can change the permissions on the context, we set the
 	   DEP_FLAG_UPDATEDEP flag to ensure that the cert permissions get
 	   reflected onto the context */
 	MK_DEPACL_EX( OBJECT_TYPE_CONTEXT, ST_CTX_PKC, ST_NONE, \
-				  OBJECT_TYPE_CERTIFICATE, ST_CERT_ANY, ST_NONE, 
+				  OBJECT_TYPE_CERTIFICATE, ST_CERT_ANY, ST_NONE,
 				  DEP_FLAG_UPDATEDEP ),
 	MK_DEPACL_EX( OBJECT_TYPE_CERTIFICATE, ST_CERT_ANY, ST_NONE, \
 				  OBJECT_TYPE_CONTEXT, ST_CTX_PKC, ST_NONE,
@@ -58,21 +54,21 @@ static const FAR_BSS DEPENDENCY_ACL dependencyACLTbl[] = {
 	/* Anything can have the system device attached, since all objects not
 	   created via crypto devices are created via the system device */
 	MK_DEPACL( OBJECT_TYPE_CONTEXT, ST_CTX_ANY, ST_NONE, \
-			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),	
+			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),
 	MK_DEPACL( OBJECT_TYPE_CERTIFICATE, ST_CERT_ANY, ST_NONE, \
-			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),	
+			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),
 	MK_DEPACL( OBJECT_TYPE_KEYSET, ST_KEYSET_ANY, ST_NONE, \
-			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),	
+			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),
 	MK_DEPACL( OBJECT_TYPE_ENVELOPE, ST_NONE, ST_ENV_ANY, \
-			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),	
+			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),
 	MK_DEPACL( OBJECT_TYPE_SESSION, ST_NONE, ST_SESS_ANY, \
-			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),	
+			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),
 	MK_DEPACL( OBJECT_TYPE_DEVICE, ST_DEV_ANY_STD, ST_NONE, \
-			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),	
+			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),
 	MK_DEPACL( OBJECT_TYPE_USER, ST_NONE, ST_USER_ANY, \
 			   OBJECT_TYPE_DEVICE, ST_DEV_SYSTEM, ST_NONE ),
 
-	MK_DEPACL_END()
+	MK_DEPACL_END(), MK_DEPACL_END()
 	};
 
 /****************************************************************************
@@ -83,7 +79,7 @@ static const FAR_BSS DEPENDENCY_ACL dependencyACLTbl[] = {
 
 /* Update an action permission.  This implements a ratchet that only allows
    permissions to be made more restrictive after they've initially been set,
-   so that once a permission is set to a given level it can't be set back to 
+   so that once a permission is set to a given level it can't be set back to
    a less restrictive one (i.e. it's a write-up policy) */
 
 static int updateActionPerms( int currentPerm, const int newPerm )
@@ -116,13 +112,13 @@ static int updateActionPerms( int currentPerm, const int newPerm )
    is necessary because the dependent object may be owned by another thread,
    and if we were to leave the object table locked the two would deadlock if
    we were sending the object a message while owning the object table at the
-   same time that the other thread was sending a message while owning the 
+   same time that the other thread was sending a message while owning the
    object.
 
-   There is one (rather unlikely) potential race condition possible here in 
-   which the object is destroyed and replaced by a new one while the object 
-   table is unlocked, so we end up updating the action permissions for a 
-   different object.  To protect against this, we check the unique ID after 
+   There is one (rather unlikely) potential race condition possible here in
+   which the object is destroyed and replaced by a new one while the object
+   table is unlocked, so we end up updating the action permissions for a
+   different object.  To protect against this, we check the unique ID after
    we re-lock the object table to make sure that it's the same object */
 
 static int updateDependentObjectPerms( const CRYPT_HANDLE objectHandle,
@@ -141,7 +137,7 @@ static int updateDependentObjectPerms( const CRYPT_HANDLE objectHandle,
 	/* Preconditions: Objects are valid, one is a cert and the other a
 	   context, and they aren't dependent on each other (which would create
 	   a dependency update loop).  Note that these checks aren't performed
-	   at runtime since they've already been performed by the calling 
+	   at runtime since they've already been performed by the calling
 	   function, all we're doing here is establishing preconditions rather
 	   than performing actual parameter checking */
 	PRE( isValidObject( objectHandle ) );
@@ -157,7 +153,7 @@ static int updateDependentObjectPerms( const CRYPT_HANDLE objectHandle,
 	   unlock the object table */
 	MUTEX_UNLOCK( objectTable );
 
-	/* Make sure that we're not making a private key dependent on a cert, 
+	/* Make sure that we're not making a private key dependent on a cert,
 	   which is a public-key object.  We check this here rather than having
 	   the caller check it because it requires having the object table
 	   unlocked */
@@ -172,14 +168,14 @@ static int updateDependentObjectPerms( const CRYPT_HANDLE objectHandle,
 		}
 
 	/* For each action type, enable its continued use only if the cert
-	   allows it.  Because the certificate may not have been fully 
+	   allows it.  Because the certificate may not have been fully
 	   initialised yet (for example if we're attaching a context to a
-	   cert that's in the process of being created), we have to perform 
-	   a passive-container action-available check that also works on a 
+	   cert that's in the process of being created), we have to perform
+	   a passive-container action-available check that also works on a
 	   low-state object rather than a standard active-object check.
-	   
-	   Because a key with a certificate attached indicates that it's 
-	   (probably) being used for some function that involves interaction 
+
+	   Because a key with a certificate attached indicates that it's
+	   (probably) being used for some function that involves interaction
 	   with a relying party (i.e. that it probably has more value than a raw
 	   key with no strings attached), we set the action permission to
 	   ACTION_PERM_NONE_EXTERNAL rather than allowing ACTION_PERM_ALL.  This
@@ -212,6 +208,12 @@ static int updateDependentObjectPerms( const CRYPT_HANDLE objectHandle,
 		actionFlags |= \
 			MK_ACTION_PERM( MESSAGE_CTX_DECRYPT, ACTION_PERM_NONE_EXTERNAL );
 
+	/* Inner precondition: The usage shouldn't be all-zero.  Technically it
+	   can be since there are bound to be certs out there broken enough to do
+	   this, and certainly under the stricter compliance levels this *will*
+	   happen, so we make it a warning that's only produced in debug mode */
+	PRE( actionFlags != 0 );
+
 	/* We're done querying the dependent object, re-lock the object table and
 	   make sure that the original object hasn't been touched */
 	MUTEX_LOCK( objectTable );
@@ -240,7 +242,9 @@ int initInternalMsgs( KERNEL_DATA *krnlDataPtr )
 	int i;
 
 	/* Perform a consistency check on the object dependency ACL */
-	for( i = 0; dependencyACLTbl[ i ].type != OBJECT_TYPE_NONE; i++ )
+	for( i = 0; dependencyACLTbl[ i ].type != OBJECT_TYPE_NONE && \
+				i < FAILSAFE_ARRAYSIZE( dependencyACLTbl, DEPENDENCY_ACL ); 
+		 i++ )
 		{
 		const DEPENDENCY_ACL *dependencyACL = &dependencyACLTbl[ i ];
 
@@ -255,6 +259,8 @@ int initInternalMsgs( KERNEL_DATA *krnlDataPtr )
 			( dependencyACL->dSubTypeB & SUBTYPE_CLASS_A ) )
 			return( CRYPT_ERROR_FAILED );
 		}
+	if( i >= FAILSAFE_ARRAYSIZE( dependencyACLTbl, DEPENDENCY_ACL ) )
+		retIntError();
 
 	/* Set up the reference to the kernel data block */
 	krnlData = krnlDataPtr;
@@ -563,7 +569,7 @@ int setPropertyAttribute( const int objectHandle,
 				objectInfoPtr->lockCount--;
 				}
 
-			/* If it's a certificate, notify it that it should save/restore 
+			/* If it's a certificate, notify it that it should save/restore
 			   its internal state */
 			if( objectInfoPtr->type == OBJECT_TYPE_CERTIFICATE )
 				objectInfoPtr->messageFunction( objectInfoPtr->objectPtr,
@@ -622,9 +628,9 @@ int decRefCount( const int objectHandle, const int dummy1,
 	PRE( isValidObject( objectHandle ) );
 
 	/* If the message is coming from an external source (in other words if
-	   it's an external caller destroying the object), make the object 
+	   it's an external caller destroying the object), make the object
 	   internal.  This marks it as invalid for any external access, so that
-	   to the caller it looks like it's been destroyed even if its reference 
+	   to the caller it looks like it's been destroyed even if its reference
 	   count keeps it active */
 	if( !isInternal )
 		{
@@ -691,7 +697,7 @@ int getDependentObject( const int objectHandle, const int targetType,
 	return( CRYPT_OK );
 	}
 
-int setDependentObject( const int objectHandle, const int incReferenceCount,
+int setDependentObject( const int objectHandle, const int option,
 						const void *messageDataPtr, const BOOLEAN dummy )
 	{
 	OBJECT_INFO *objectTable = krnlData->objectTable;
@@ -703,10 +709,10 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 
 	/* Preconditions: Parameters are valid */
 	PRE( isValidObject( objectHandle ) );
-	PRE( incReferenceCount == TRUE || incReferenceCount == FALSE );
+	PRE( option == SETDEP_OPTION_NOINCREF || option == SETDEP_OPTION_INCREF );
 	PRE( isValidHandle( dependentObject ) );
 
-	/* Make sure that the object is valid, it may have been signalled after 
+	/* Make sure that the object is valid, it may have been signalled after
 	   the message was sent */
 	if( !isValidObject( dependentObject ) )
 		return( CRYPT_ERROR_SIGNALLED );
@@ -722,11 +728,11 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 		assert( NOTREACHED );
 		return( CRYPT_ARGERROR_VALUE );
 		}
-	
-	/* More complex validity checks to ensure that the object table is 
-	   consistent: The object isn't already dependent on the dependent object 
-	   (making the dependent object then dependent on the object would 
-	   create a loop), and the object won't be dependent on its own object 
+
+	/* More complex validity checks to ensure that the object table is
+	   consistent: The object isn't already dependent on the dependent object
+	   (making the dependent object then dependent on the object would
+	   create a loop), and the object won't be dependent on its own object
 	   type unless it's a device dependent on the system device */
 	if( ( ( ( objectInfoPtr->type == OBJECT_TYPE_DEVICE ) ? \
 			  dependentObjectInfoPtr->dependentDevice : \
@@ -738,10 +744,13 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 		return( CRYPT_ARGERROR_VALUE );
 		}
 
-	/* Find the dependency ACL entry for this object/dependent object 
+	/* Find the dependency ACL entry for this object/dependent object
 	   combination.  Since there can be more than one dependent object
 	   type for an object, we check subtypes as well */
-	for( i = 0; dependencyACLTbl[ i ].type != OBJECT_TYPE_NONE; i++ )
+	for( i = 0; dependencyACLTbl[ i ].type != OBJECT_TYPE_NONE && \
+				i < FAILSAFE_ARRAYSIZE( dependencyACLTbl, DEPENDENCY_ACL ); 
+		 i++ )
+		{
 		if( dependencyACLTbl[ i ].type == objectInfoPtr->type && \
 			dependencyACLTbl[ i ].dType == dependentObjectInfoPtr->type && \
 			( isValidSubtype( dependencyACLTbl[ i ].dSubTypeA, \
@@ -752,13 +761,16 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 			dependencyACL = &dependencyACLTbl[ i ];
 			break;
 			}
+		}
+	if( i >= FAILSAFE_ARRAYSIZE( dependencyACLTbl, DEPENDENCY_ACL ) )
+		retIntError();
 	if( dependencyACL == NULL )
 		{
 		assert( NOTREACHED );
 		return( CRYPT_ARGERROR_VALUE );
 		}
 
-	/* Inner precondition: We have the appropriate ACL for this combination 
+	/* Inner precondition: We have the appropriate ACL for this combination
 	   of object and dependent object */
 	PRE( dependencyACL->type == objectInfoPtr->type && \
 		 dependencyACL->dType == dependentObjectInfoPtr->type && \
@@ -768,7 +780,7 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 						   dependentObjectInfoPtr->subType ) ) );
 
 	/* Type-specific checks.  For PKC context -> cert and cert -> PKC context
-	   attaches we should also check that the primary PKC object is a 
+	   attaches we should also check that the primary PKC object is a
 	   private-key object and the dependent PKC object is a public-key object
 	   to catch things like a private key depending on a (public-key) cert,
 	   however this requires unlocking the object table in order to send the
@@ -800,7 +812,7 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 	   constrain the use of the context beyond its normal level.  If we're
 	   performing this type of object attachment, we have to adjust one
 	   object's behaviour based on the permissions of the other one.  We do
-	   this before we increment the reference count because the latter can 
+	   this before we increment the reference count because the latter can
 	   never fail so we don't have to worry about undoing the update */
 	if( dependencyACL->flags & DEP_FLAG_UPDATEDEP )
 		{
@@ -821,7 +833,7 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 	   (the cert request is referenced by both the caller and the cert), an
 	   example of the latter operation is attaching a data-only cert to a
 	   context (the cert is only referenced by the context) */
-	if( incReferenceCount )
+	if( option == SETDEP_OPTION_INCREF )
 		{
 		status = incRefCount( dependentObject, 0, NULL, TRUE );
 		if( cryptStatusError( status ) )
@@ -836,11 +848,11 @@ int setDependentObject( const int objectHandle, const int incReferenceCount,
 	return( CRYPT_OK );
 	}
 
-/* Clone an object.  The older copy-on-write implementation didn't actually 
-   do anything at this point except check that the access was valid and set 
-   the aliased and cloned flags to indicate that the object needed to be 
+/* Clone an object.  The older copy-on-write implementation didn't actually
+   do anything at this point except check that the access was valid and set
+   the aliased and cloned flags to indicate that the object needed to be
    handled specially if a write access was made to it, but with the kernel
-   tracking instance data we can do a copy immediately to create two 
+   tracking instance data we can do a copy immediately to create two
    distinct objects */
 
 int cloneObject( const int objectHandle, const int clonedObject,
@@ -889,7 +901,7 @@ int cloneObject( const int objectHandle, const int clonedObject,
 	   Keygen is disabled entirely (there should already be a key loaded),
 	   and signing isn't possible with a non-PKC object anyway.  This takes
 	   advantage of the ratchet enforced for the action permissions, which
-	   can only make them more restrictive than the existing permissions, to 
+	   can only make them more restrictive than the existing permissions, to
 	   avoid having to read and modify each permission individually */
 	actionFlags = \
 		MK_ACTION_PERM( MESSAGE_CTX_ENCRYPT, ACTION_PERM_NONE_EXTERNAL ) | \
@@ -903,14 +915,14 @@ int cloneObject( const int objectHandle, const int clonedObject,
 	/* Postcondition: The cloned object can only be used internally */
 	POST( ( clonedObjectInfoPtr->actionFlags & ~ACTION_PERM_NONE_EXTERNAL_ALL ) == 0 );
 
-	/* Inner precondition: The instance data is valid and ready to be 
+	/* Inner precondition: The instance data is valid and ready to be
 	   copied */
 	PRE( isWritePtr( objectInfoPtr->objectPtr, objectInfoPtr->objectSize ) );
-	PRE( isWritePtr( clonedObjectInfoPtr->objectPtr, 
+	PRE( isWritePtr( clonedObjectInfoPtr->objectPtr,
 					 clonedObjectInfoPtr->objectSize ) );
 	PRE( objectInfoPtr->objectSize == clonedObjectInfoPtr->objectSize );
 
-#if 0	/* 18/2/04 No need for copy-on-write any more since we can just copy 
+#if 0	/* 18/2/04 No need for copy-on-write any more since we can just copy
 				   across the instance data referenced in the object table */
 	/* Mark the two objects as being aliases, and the (incomplete) clone as
 	   a cloned object */
@@ -927,19 +939,19 @@ int cloneObject( const int objectHandle, const int clonedObject,
 	POST( isClonedObject( objectInfoPtr->clonedObject ) );
 	POST( objectHandle != clonedObject );
 #else
-	/* Copy across the object contents and reset any instance-specific 
+	/* Copy across the object contents and reset any instance-specific
 	   information.  We only update the owning object if required, in
 	   almost all cases this will be the system device so there's no need
 	   to perform the update */
 	memcpy( clonedObjectInfoPtr->objectPtr, objectInfoPtr->objectPtr,
 			objectInfoPtr->objectSize );
 	objectInfoPtr->messageFunction( clonedObjectInfoPtr->objectPtr,
-									MESSAGE_CHANGENOTIFY, 
+									MESSAGE_CHANGENOTIFY,
 									( void * ) &clonedObject,
 									MESSAGE_CHANGENOTIFY_OBJHANDLE );
 	if( objectInfoPtr->owner != clonedObjectInfoPtr->owner )
 		objectInfoPtr->messageFunction( clonedObjectInfoPtr->objectPtr,
-										MESSAGE_CHANGENOTIFY, 
+										MESSAGE_CHANGENOTIFY,
 										&clonedObjectInfoPtr->owner,
 										MESSAGE_CHANGENOTIFY_OWNERHANDLE );
 

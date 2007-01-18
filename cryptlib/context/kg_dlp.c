@@ -5,13 +5,9 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "context.h"
-  #include "keygen.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "context.h"
   #include "keygen.h"
 #else
@@ -169,11 +165,11 @@ static int findGeneratorForPQ( PKC_INFO *pkcInfo )
 	BIGNUM *p = &pkcInfo->dlpParam_p, *q = &pkcInfo->dlpParam_q;
 	BIGNUM *g = &pkcInfo->dlpParam_g;
 	BIGNUM *j = &pkcInfo->tmp1, *gCounter = &pkcInfo->tmp2;
-	int bnStatus = BN_STATUS;
+	int bnStatus = BN_STATUS, iterationCount = 0;
 
 	/* j = (p - 1) / q */
 	CK( BN_sub_word( p, 1 ) );
-	CK( BN_div( j, NULL, p, q, &pkcInfo->bnCTX ) );
+	CK( BN_div( j, NULL, p, q, pkcInfo->bnCTX ) );
 	CK( BN_add_word( p, 1 ) );
 	if( bnStatusError( bnStatus ) )
 		return( getBnStatus( bnStatus ) );
@@ -187,9 +183,12 @@ static int findGeneratorForPQ( PKC_INFO *pkcInfo )
 	do
 		{
 		CK( BN_add_word( gCounter, 1 ) );
-		CK( BN_mod_exp( g, gCounter, j, p, &pkcInfo->bnCTX ) );
+		CK( BN_mod_exp( g, gCounter, j, p, pkcInfo->bnCTX ) );
 		}
-	while( bnStatusOK( bnStatus ) && BN_is_one( g ) );
+	while( bnStatusOK( bnStatus ) && BN_is_one( g ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 
 	return( getBnStatus( bnStatus ) );
 	}
@@ -203,11 +202,12 @@ static int generateDLPublicValues( PKC_INFO *pkcInfo, const int pBits,
 	{
 	const int safeExpSizeBits = getDLPexpSize( pBits );
 	const int noChecks = getNoPrimeChecks( pBits );
-	BIGNUM llPrimes[ MAX_NO_PRIMES ], llProducts[ MAX_NO_FACTORS ];
+	BIGNUM llPrimes[ MAX_NO_PRIMES + 8 ], llProducts[ MAX_NO_FACTORS + 8 ];
 	BIGNUM *p = &pkcInfo->dlpParam_p, *q = &pkcInfo->dlpParam_q;
 	BOOLEAN primeFound = FALSE;
-	int indices[ MAX_NO_FACTORS ];
-	int nPrimes, nFactors, factorBits, i, bnStatus = BN_STATUS, status;
+	int indices[ MAX_NO_FACTORS + 8 ];
+	int nPrimes, nFactors, factorBits, i, iterationCount = 0;
+	int bnStatus = BN_STATUS, status;
 
 	assert( p != NULL );
 	assert( pBits >= 512 && pBits <= MAX_PKCSIZE_BITS );
@@ -256,7 +256,7 @@ static int generateDLPublicValues( PKC_INFO *pkcInfo, const int pBits,
 
 	do
 		{
-		int indexMoved;
+		int indexMoved, innerIterationCount = 0;
 
 		/* Initialize the indices for the permutation.  We try the first 
 		   nFactors factors first, since any new primes are added at the end */
@@ -264,7 +264,7 @@ static int generateDLPublicValues( PKC_INFO *pkcInfo, const int pBits,
 		for( i = nFactors - 2; i >= 0; i-- )
 			indices[ i ] = indices[ i + 1 ] - 1;
 		BN_mul( &llProducts[ nFactors - 1 ], q, &llPrimes[ nPrimes - 1 ], 
-				&pkcInfo->bnCTX );
+				pkcInfo->bnCTX );
 		indexMoved = nFactors - 2;
 
 		/* Test all possible new prime permutations until a prime is found or 
@@ -275,7 +275,7 @@ static int generateDLPublicValues( PKC_INFO *pkcInfo, const int pBits,
 			   currently indexed random primes */
 			for( i = indexMoved; i >= 0; i-- )
 				CK( BN_mul( &llProducts[ i ], &llProducts[ i + 1 ],
-							&llPrimes[ indices[ i ] ], &pkcInfo->bnCTX ) );
+							&llPrimes[ indices[ i ] ], pkcInfo->bnCTX ) );
 			CKPTR( BN_copy( p, &llProducts[ 0 ] ) );
 			CK( BN_add_word( p, 1 ) );
 			if( bnStatusError( bnStatus ) )
@@ -301,12 +301,14 @@ static int generateDLPublicValues( PKC_INFO *pkcInfo, const int pBits,
 			/* Find the lowest index which is not already at the lowest 
 			   possible point and move it down one */
 			for( i = 0; i < nFactors; i++ )
+				{
 				if( indices[ i ] > i )
 					{
 					indices[ i ]--;
 					indexMoved = i;
 					break;
 					}
+				}
 
 			/* If we moved down the highest index, we've exhausted all the 
 			   permutations so we have to start over with another prime */
@@ -319,7 +321,10 @@ static int generateDLPublicValues( PKC_INFO *pkcInfo, const int pBits,
 			for( i = indexMoved - 1; i >= 0; i-- )
 				indices[ i ] = indices[ i + 1 ] - 1;
 			} 
-		while( indices[ nFactors - 1 ] > 0 );
+		while( indices[ nFactors - 1 ] > 0 && \
+			   innerIterationCount++ < FAILSAFE_ITERATIONS_LARGE );
+		if( innerIterationCount >= FAILSAFE_ITERATIONS_LARGE )
+			retIntError();
 
 		/* If we haven't found a prime yet, add a new prime to the pool and
 		   try again */
@@ -339,7 +344,9 @@ static int generateDLPublicValues( PKC_INFO *pkcInfo, const int pBits,
 				goto cleanup;
 			}
 		}
-	while( !primeFound );
+	while( !primeFound && iterationCount++ < FAILSAFE_ITERATIONS_LARGE );
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 
 	/* Recover the original value of q by dividing by 2 and find a generator 
 	   suitable for p and q */
@@ -387,7 +394,7 @@ static int generateDLPrivateValue( PKC_INFO *pkcInfo )
 		{
 		/* Trim x down to size.  Actually we get the upper bound as q-3,
 		   but over a 160-bit (minimum) number range this doesn't matter */
-		CK( BN_mod( x, x, q, &pkcInfo->bnCTX ) );
+		CK( BN_mod( x, x, q, pkcInfo->bnCTX ) );
 
 		/* If the value we ended up with is too small, just generate a new
 		   value one bit shorter, which guarantees that it'll fit the 
@@ -428,11 +435,11 @@ int generateDLPkey( CONTEXT_INFO *contextInfoPtr, const int keyBits,
 	/* Evaluate the Montgomery forms and calculate y */
 	BN_MONT_CTX_init( &pkcInfo->dlpParam_mont_p );
 	CK( BN_MONT_CTX_set( &pkcInfo->dlpParam_mont_p, &pkcInfo->dlpParam_p, 
-						 &pkcInfo->bnCTX ) );
+						 pkcInfo->bnCTX ) );
 	if( bnStatusOK( bnStatus ) )
 		CK( BN_mod_exp_mont( &pkcInfo->dlpParam_y, &pkcInfo->dlpParam_g,
 							 &pkcInfo->dlpParam_x, &pkcInfo->dlpParam_p, 
-							 &pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p ) );
+							 pkcInfo->bnCTX, &pkcInfo->dlpParam_mont_p ) );
 	return( getBnStatus( bnStatus ) );
 	}
 
@@ -451,7 +458,7 @@ int checkDLPkey( const CONTEXT_INFO *contextInfoPtr, const BOOLEAN isPKCS3 )
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	BIGNUM *p = &pkcInfo->dlpParam_p, *g = &pkcInfo->dlpParam_g;
 	BIGNUM *tmp = &pkcInfo->tmp1;
-	int bnStatus = BN_STATUS;
+	int length, bnStatus = BN_STATUS;
 
 	/* Make sure that the necessary key parameters have been initialised.  
 	   Since PKCS #3 doesn't use the q parameter, we only require it for 
@@ -464,10 +471,18 @@ int checkDLPkey( const CONTEXT_INFO *contextInfoPtr, const BOOLEAN isPKCS3 )
 	if( !isPKCS3 && BN_is_zero( &pkcInfo->dlpParam_q ) )
 		return( CRYPT_ARGERROR_STR1 );
 
-	/* Make sure that the key paramters are valid: p > MIN_PKCSIZE_BITS 
-	   (nominally 512 bits), 2 <= g <= p-2, and g a generator of order q if 
-	   the q parameter is present (i.e. it's a non-PKCS #3 key) */
-	if( BN_num_bits( p ) < MIN_PKCSIZE_BITS || BN_num_bits( g ) < 2 )
+	/* Make sure that the key paramters are valid:
+
+		pLen >= MIN_PKCSIZE_BITS, pLen <= MAX_PKCSIZE_BITS
+
+		2 <= g <= p - 2, g a generator of order q if the q parameter is 
+			present (i.e. it's a non-PKCS #3 key)
+
+		y < p */
+	length = BN_num_bits( p );
+	if( length < MIN_PKCSIZE_BITS || length > MAX_PKCSIZE_BITS )
+		return( CRYPT_ARGERROR_STR1 );
+	if( BN_num_bits( g ) < 2 )
 		return( CRYPT_ARGERROR_STR1 );
 	CKPTR( BN_copy( tmp, p ) );
 	CK( BN_sub_word( tmp, 1 ) );
@@ -475,16 +490,18 @@ int checkDLPkey( const CONTEXT_INFO *contextInfoPtr, const BOOLEAN isPKCS3 )
 		return( CRYPT_ARGERROR_STR1 );
 	if( !isPKCS3 )
 		{
-		CK( BN_mod_exp_mont( tmp, g, &pkcInfo->dlpParam_q, p, &pkcInfo->bnCTX,
+		CK( BN_mod_exp_mont( tmp, g, &pkcInfo->dlpParam_q, p, pkcInfo->bnCTX,
 							 &pkcInfo->dlpParam_mont_p ) );
 		if( bnStatusError( bnStatus ) || !BN_is_one( tmp ) )
 			return( CRYPT_ARGERROR_STR1 );
 		}
+	if( BN_cmp( &pkcInfo->dlpParam_y, p ) >= 0 )
+		return( CRYPT_ARGERROR_STR1 );
 
 	/* Make sure that the private key value is valid */
 	if( !( contextInfoPtr->flags & CONTEXT_ISPUBLICKEY ) )
 		{
-		CK( BN_mod_exp_mont( tmp, g, &pkcInfo->dlpParam_x, p, &pkcInfo->bnCTX,
+		CK( BN_mod_exp_mont( tmp, g, &pkcInfo->dlpParam_x, p, pkcInfo->bnCTX,
 							 &pkcInfo->dlpParam_mont_p ) );
 		if( bnStatusError( bnStatus ) || BN_cmp( tmp, &pkcInfo->dlpParam_y ) )
 			return( CRYPT_ARGERROR_STR1 );
@@ -515,7 +532,6 @@ int initDLPkey( CONTEXT_INFO *contextInfoPtr, const BOOLEAN isDH )
 		if( cryptStatusError( status ) )
 			return( status );
 		contextInfoPtr->flags &= ~CONTEXT_ISPUBLICKEY;
-		contextInfoPtr->flags |= CONTEXT_ISPRIVATEKEY;
 		}
 
 	/* Some sources (specifically PKCS #11) don't make y available for
@@ -529,9 +545,9 @@ int initDLPkey( CONTEXT_INFO *contextInfoPtr, const BOOLEAN isDH )
 
 	/* Evaluate the Montgomery form and calculate y if necessary */
 	BN_MONT_CTX_init( &pkcInfo->dlpParam_mont_p );
-	CK( BN_MONT_CTX_set( &pkcInfo->dlpParam_mont_p, p, &pkcInfo->bnCTX ) );
+	CK( BN_MONT_CTX_set( &pkcInfo->dlpParam_mont_p, p, pkcInfo->bnCTX ) );
 	if( bnStatusOK( bnStatus ) && BN_is_zero( &pkcInfo->dlpParam_y ) )
-		CK( BN_mod_exp_mont( &pkcInfo->dlpParam_y, g, x, p, &pkcInfo->bnCTX, 
+		CK( BN_mod_exp_mont( &pkcInfo->dlpParam_y, g, x, p, pkcInfo->bnCTX, 
 							 &pkcInfo->dlpParam_mont_p ) );
 
 	pkcInfo->keySizeBits = BN_num_bits( p );

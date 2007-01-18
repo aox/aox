@@ -5,20 +5,12 @@
 *																			*
 ****************************************************************************/
 
-#include <stdarg.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "dbms.h"
   #include "asn1.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../keyset/dbms.h"
-  #include "../misc/asn1.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -170,10 +162,10 @@ int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	const DBMS_CACHEDQUERY_TYPE cachedQueryType = \
 								getCachedQueryType( itemType, keyIDtype );
-	BYTE certificate[ MAX_CERT_SIZE + BASE64_OVFL_SIZE ];
-	char certDataBuffer[ MAX_QUERY_RESULT_SIZE ];
+	BYTE certificate[ MAX_CERT_SIZE + BASE64_OVFL_SIZE + 8 ];
+	char certDataBuffer[ MAX_QUERY_RESULT_SIZE + 8 ];
 	void *certDataPtr = certDataBuffer;
-	char sqlBuffer[ MAX_SQL_QUERY_SIZE ], *sqlBufPtr;
+	char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ], *sqlBufPtr;
 	DBMS_QUERY_TYPE queryType;
 	BOOLEAN multiCertQuery = ( options & KEYMGMT_MASK_USAGEOPTIONS ) ? \
 							 TRUE : FALSE;
@@ -220,7 +212,7 @@ int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 	/* Set the query to begin the fetch */
 	if( stateInfo != NULL )
 		{
-		dbmsFormatSQL( sqlBuffer,
+		dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"SELECT certData FROM $ WHERE $ = ?",
 					   getTableName( itemType ), 
 					   ( keyIDtype == CRYPT_KEYID_LAST ) ? \
@@ -236,7 +228,7 @@ int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		}
 
 	/* Retrieve the results from the query */
-	while( continueFetch && iterationCount++ < 100 )
+	while( continueFetch && iterationCount++ < FAILSAFE_ITERATIONS_MED )
 		{
 		/* Retrieve the record and base64-decode the binary cert data if
 		   necessary */
@@ -297,7 +289,7 @@ int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		/* We got what we wanted, exit */
 		continueFetch = FALSE;
 		}
-	if( iterationCount >= 100 )
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
 		return( CRYPT_ERROR_NOTFOUND );
 
 	/* If we've been looking through multiple certs, cancel the outstanding
@@ -341,13 +333,13 @@ static int getFirstItemFunction( KEYSET_INFO *keysetInfo,
 								 const int options )
 	{
 	DBMS_INFO *dbmsInfo = keysetInfo->keysetDBMS;
-	char keyIDbuffer[ CRYPT_MAX_TEXTSIZE * 2 ];
+	char keyIDbuffer[ ( CRYPT_MAX_TEXTSIZE * 2 ) + 8 ];
 	int length, status;
 
 	/* If it's a general query, submit the query to the database */
 	if( stateInfo == NULL )
 		{
-		char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+		char sqlBuffer[ MAX_SQL_QUERY_SIZE + 8 ];
 		int sqlLength;
 
 		assert( itemType == KEYMGMT_ITEM_PUBLICKEY || \
@@ -373,12 +365,13 @@ static int getFirstItemFunction( KEYSET_INFO *keysetInfo,
 		   parameters because the query data must be interpreted as SQL, 
 		   unlike standard queries where we definitely don't want it (mis-)
 		   interpreted as SQL */
-		dbmsFormatSQL( sqlBuffer,
+		dbmsFormatSQL( sqlBuffer, MAX_SQL_QUERY_SIZE,
 			"SELECT certData FROM $ WHERE ",
 					   getTableName( itemType ) );
 		sqlLength = strlen( sqlBuffer );
-		dbmsFormatQuery( sqlBuffer + sqlLength, keyID, keyIDlength,
-						 ( MAX_SQL_QUERY_SIZE - 1 ) - sqlLength );
+		dbmsFormatQuery( sqlBuffer + sqlLength, 
+						 ( MAX_SQL_QUERY_SIZE - 1 ) - sqlLength, 
+						 keyID, keyIDlength );
 		return( dbmsStaticQuery( sqlBuffer, DBMS_CACHEDQUERY_NONE, 
 								 DBMS_QUERY_START ) );
 		}
@@ -404,7 +397,7 @@ static int getNextItemFunction( KEYSET_INFO *keysetInfo,
 	   keysets, so we use the non-ID type CRYPT_KEYID_LAST to signify its use */
 	if( stateInfo != NULL )
 		{
-		char keyIDbuffer[ CRYPT_MAX_TEXTSIZE * 2 ];
+		char keyIDbuffer[ ( CRYPT_MAX_TEXTSIZE * 2 ) + 8 ];
 		int length, status;
 
 		status = length = getKeyID( keyIDbuffer, *stateInfo,
@@ -467,7 +460,7 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 		if( itemType == KEYMGMT_ITEM_PKIUSER && \
 			( flags & KEYMGMT_FLAG_GETISSUER ) )
 			{
-			char certID[ DBXKEYID_BUFFER_SIZE ];
+			char certID[ DBXKEYID_BUFFER_SIZE + 8 ];
 			int certIDlength;
 
 			assert( keyIDtype == CRYPT_IKEYID_CERTID );
@@ -503,8 +496,8 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 	   without fetching any data */
 	if( flags & KEYMGMT_FLAG_CHECK_ONLY )
 		{
-		char keyIDbuffer[ DBXKEYID_BUFFER_SIZE ];
-		char sqlBuffer[ MAX_SQL_QUERY_SIZE ];
+		char keyIDbuffer[ DBXKEYID_BUFFER_SIZE + 8 ];
+		char sqlBuffer[ STANDARD_SQL_QUERY_SIZE + 8 ];
 		int length;
 
 		assert( itemType == KEYMGMT_ITEM_PUBLICKEY || \
@@ -520,7 +513,7 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 									 keyIDtype, keyID, KEYID_SIZE );
 		if( cryptStatusError( status ) )
 			return( CRYPT_ARGERROR_STR1 );
-		dbmsFormatSQL( sqlBuffer,
+		dbmsFormatSQL( sqlBuffer, STANDARD_SQL_QUERY_SIZE,
 			"SELECT certData FROM $ WHERE $ = ?",
 					   getTableName( itemType ), getKeyName( keyIDtype ) );
 		return( dbmsQuery( sqlBuffer, NULL, 0, keyIDbuffer, length, 0,

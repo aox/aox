@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "md4.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/md4.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -32,11 +27,11 @@
 
 /* Test the MD4 output against the test vectors given in RFC 1320 */
 
-static const FAR_BSS struct {
+static const struct {
 	const char *data;						/* Data to hash */
 	const int length;						/* Length of data */
 	const BYTE digest[ MD4_DIGEST_LENGTH ];	/* Digest of data */
-	} digestValues[] = {
+	} FAR_BSS digestValues[] = {
 	{ "", 0,
 	  { 0x31, 0xD6, 0xCF, 0xE0, 0xD1, 0x6A, 0xE9, 0x31,
 		0xB7, 0x3C, 0x59, 0xD7, 0xE0, 0xC0, 0x89, 0xC0 } },
@@ -66,7 +61,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getMD4Capability();
 	CONTEXT_INFO contextInfo;
 	HASH_INFO contextData;
-	BYTE keyData[ HASH_STATE_SIZE ];
+	BYTE keyData[ HASH_STATE_SIZE + 8 ];
 	int i, status;
 
 	/* Test MD4 against the test vectors given in RFC 1320 */
@@ -77,15 +72,15 @@ static int selfTest( void )
 		status = CRYPT_OK ;
 		if( digestValues[ i ].length > 0 )
 			{
-			status = capabilityInfo->encryptFunction( &contextInfo, 
-								( BYTE * ) digestValues[ i ].data, 
+			status = capabilityInfo->encryptFunction( &contextInfo,
+								( BYTE * ) digestValues[ i ].data,
 								digestValues[ i ].length );
 			contextInfo.flags |= CONTEXT_HASH_INITED;
 			}
 		if( cryptStatusOK( status ) )
 			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
 		if( cryptStatusOK( status ) && \
-			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest,
 					MD4_DIGEST_LENGTH ) )
 			status = CRYPT_ERROR;
 		staticDestroyContext( &contextInfo );
@@ -104,7 +99,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -125,7 +120,7 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	MD4_CTX *md4Info = ( MD4_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
-	/* If the hash state was reset to allow another round of hashing, 
+	/* If the hash state was reset to allow another round of hashing,
 	   reinitialise things */
 	if( !( contextInfoPtr->flags & CONTEXT_HASH_INITED ) )
 		MD4_Init( md4Info );

@@ -5,17 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
@@ -89,13 +82,16 @@ const ATTRIBUTE_INFO *oidToAttribute( const ATTRIBUTE_TYPE attributeType,
 	{
 	const ATTRIBUTE_INFO *attributeInfoPtr;
 	const int length = sizeofOID( oid );
+	const int attributeInfoSize = sizeofAttributeInfo( attributeType );
+	int iterationCount = 0;
 
 	assert( isReadPtr( selectAttributeInfo( attributeType ), 
 					   sizeof( ATTRIBUTE_INFO ) ) );
 	assert( isReadPtr( oid, sizeofOID( oid ) ) );
 
 	for( attributeInfoPtr = selectAttributeInfo( attributeType );
-		 attributeInfoPtr->fieldID != CRYPT_ERROR;
+		 attributeInfoPtr->fieldID != CRYPT_ERROR && \
+			iterationCount++ < attributeInfoSize; \
 		 attributeInfoPtr++ )
 		{
 		assert( isReadPtr( attributeInfoPtr, sizeof( ATTRIBUTE_INFO ) ) );
@@ -105,6 +101,8 @@ const ATTRIBUTE_INFO *oidToAttribute( const ATTRIBUTE_TYPE attributeType,
 			!memcmp( attributeInfoPtr->oid, oid, length ) )
 			return( attributeInfoPtr );
 		}
+	if( iterationCount >= attributeInfoSize )
+		retIntError_Null();
 
 	/* It's an unknown attribute */
 	return( NULL );
@@ -119,6 +117,7 @@ const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
 	{
 	const ATTRIBUTE_INFO *attributeInfoPtr = \
 							selectAttributeInfo( attributeType );
+	const int attributeInfoSize = sizeofAttributeInfo( attributeType );
 	int i;
 
 	assert( isReadPtr( attributeInfoPtr, sizeof( ATTRIBUTE_INFO ) ) );
@@ -132,7 +131,8 @@ const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
 		*attributeID = CRYPT_ATTRIBUTE_NONE;
 
 	/* Find the information on this attribute field */
-	for( i = 0; attributeInfoPtr[ i ].fieldID != CRYPT_ERROR; i++ )
+	for( i = 0; attributeInfoPtr[ i ].fieldID != CRYPT_ERROR && \
+				i < attributeInfoSize; i++ )
 		{
 		assert( isReadPtr( attributeInfoPtr, sizeof( ATTRIBUTE_INFO ) ) );
 
@@ -154,8 +154,10 @@ const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
 			   FIELDID_FOLLOWS, if this happens we have to look ahead to 
 			   find the fieldID */
 			for( offset = 0; 
-				 attributeInfoPtr[ i + offset ].fieldID == FIELDID_FOLLOWS;
-				 offset++ );
+				 attributeInfoPtr[ i + offset ].fieldID == FIELDID_FOLLOWS && \
+					i + offset < attributeInfoSize; offset++ );
+			if( i + offset >= attributeInfoSize )
+				retIntError_Null();
 			*attributeID = attributeInfoPtr[ i + offset ].fieldID;
 			}
 
@@ -163,17 +165,28 @@ const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
 		   want */
 		if( attributeInfoPtr[ i ].fieldID == fieldID )
 			{
-			const ATTRIBUTE_INFO *altEncodingTable = \
-											attributeInfoPtr[ i ].extraData;
-
 			/* If we're after a subfield match as well, try and match the
 			   subfield */
-			if( subFieldID != CRYPT_ATTRIBUTE_NONE && altEncodingTable != NULL )
+			if( subFieldID != CRYPT_ATTRIBUTE_NONE && \
+				attributeInfoPtr[ i ].extraData != NULL )
 				{
-				for( i = 0; altEncodingTable[ i ].fieldID != CRYPT_ERROR; i++ )
+				const ATTRIBUTE_INFO *altEncodingTable = \
+											attributeInfoPtr[ i ].extraData;
+
+				/* Unfortunately we can't use the attributeInfoSize bounds 
+				   check limit here because we don't know the size of the 
+				   alternative encoding table, so we have to use a generic
+				   large value */
+				for( i = 0; altEncodingTable[ i ].fieldID != CRYPT_ERROR && \
+							i < FAILSAFE_ITERATIONS_LARGE; i++ )
+					{
 					if( altEncodingTable[ i ].fieldID == subFieldID )
 						return( &altEncodingTable[ i ] );
+					}
 
+				/* If we reach this point for any reason it's an error, so 
+				   we don't have to perform an explicit iteration-count 
+				   check */
 				assert( NOTREACHED );
 				return( NULL );
 				}
@@ -182,6 +195,8 @@ const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
 			}
 		}
 
+	/* If we reach this point for any reason it's an error, so we don't have
+	   to perform an explicit iteration-count check */
 	assert( NOTREACHED );
 	return( NULL );
 	}
@@ -210,6 +225,7 @@ ATTRIBUTE_LIST *findAttributeByOID( const ATTRIBUTE_LIST *attributeListPtr,
 									const BYTE *oid )
 	{
 	const int length = sizeofOID( oid );
+	int iterationCount = 0;
 
 	assert( isReadPtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
 	assert( isReadPtr( oid, sizeofOID( oid ) ) );
@@ -218,8 +234,11 @@ ATTRIBUTE_LIST *findAttributeByOID( const ATTRIBUTE_LIST *attributeListPtr,
 	while( attributeListPtr != NULL && \
 		   ( !isBlobAttribute( attributeListPtr ) || \
 			 sizeofOID( attributeListPtr->oid ) != length || \
-			 memcmp( attributeListPtr->oid, oid, length ) ) )
+			 memcmp( attributeListPtr->oid, oid, length ) ) &&\
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX  )
 		 attributeListPtr = attributeListPtr->next;
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError_Null();
 
 	return( ( ATTRIBUTE_LIST * ) attributeListPtr );
 	}
@@ -248,6 +267,7 @@ ATTRIBUTE_LIST *findAttributeFieldEx( const ATTRIBUTE_LIST *attributeListPtr,
 							( fieldID >= CRYPT_CERTINFO_FIRST_CMS ) ? \
 							ATTRIBUTE_CMS : ATTRIBUTE_CERTIFICATE;
 	CRYPT_ATTRIBUTE_TYPE attributeID;
+	int iterationCount = 0;
 
 	assert( attributeListPtr == NULL || \
 			isReadPtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
@@ -277,8 +297,11 @@ ATTRIBUTE_LIST *findAttributeFieldEx( const ATTRIBUTE_LIST *attributeListPtr,
 	   field is present in the list of attribute fields */
 	for( attributeListCursor = attributeListPtr;
 		 isValidAttributeField( attributeListCursor ) && \
-			attributeListCursor->attributeID != attributeID;
+			attributeListCursor->attributeID != attributeID && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
 		 attributeListCursor = attributeListCursor->next );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError_Null();
 	if( !isValidAttributeField( attributeListCursor ) )
 		return( NULL );
 
@@ -317,6 +340,7 @@ ATTRIBUTE_LIST *findAttribute( const ATTRIBUTE_LIST *attributeListPtr,
 							   const BOOLEAN isFieldID )
 	{
 	CRYPT_ATTRIBUTE_TYPE localAttributeID = attributeID;
+	int iterationCount = 0;
 
 	assert( attributeListPtr == NULL || \
 			isReadPtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
@@ -349,12 +373,15 @@ ATTRIBUTE_LIST *findAttribute( const ATTRIBUTE_LIST *attributeListPtr,
 
 	/* Check whether this attribute is present in the list of attribute 
 	   fields */
-	while( isValidAttributeField( attributeListPtr ) )
+	while( isValidAttributeField( attributeListPtr ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX )
 		{
 		if( attributeListPtr->attributeID == localAttributeID )
 			return( ( ATTRIBUTE_LIST * ) attributeListPtr );
 		attributeListPtr = attributeListPtr->next;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError_Null();
 
 	return( NULL );
 	}
@@ -368,9 +395,9 @@ BOOLEAN checkAttributePresent( const ATTRIBUTE_LIST *attributeListPtr,
 
 /* Move the attribute cursor relative to the current cursor position */
 
-ATTRIBUTE_LIST *moveAttributeCursor( const ATTRIBUTE_LIST *currentCursor,
-									 const CRYPT_ATTRIBUTE_TYPE certInfoType, 
-									 const int position )
+ATTRIBUTE_LIST *certMoveAttributeCursor( const ATTRIBUTE_LIST *currentCursor,
+										 const CRYPT_ATTRIBUTE_TYPE certInfoType, 
+										 const int position )
 	{
 	assert( currentCursor == NULL || \
 			isReadPtr( currentCursor, sizeof( ATTRIBUTE_LIST ) ) );

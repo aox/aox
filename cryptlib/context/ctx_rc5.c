@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "rc5.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/rc5.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -40,11 +35,11 @@
 
 /* RC5 test vectors from RC5 specification */
 
-static const FAR_BSS struct RC5_TEST {
+static const struct RC5_TEST {
 	const BYTE key[ 16 ];
 	const BYTE plainText[ 8 ];
 	const BYTE cipherText[ 8 ];
-	} testRC5[] = {
+	} FAR_BSS testRC5[] = {
 	{ { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
 	  { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
@@ -74,8 +69,8 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getRC5Capability();
 	CONTEXT_INFO contextInfo;
 	CONV_INFO contextData;
-	BYTE keyData[ RC5_EXPANDED_KEYSIZE ];
-	BYTE temp[ RC5_BLOCKSIZE ];
+	BYTE keyData[ RC5_EXPANDED_KEYSIZE + 8 ];
+	BYTE temp[ RC5_BLOCKSIZE + 8 ];
 	int i, status;
 
 	for( i = 0; i < sizeof( testRC5 ) / sizeof( struct RC5_TEST ); i++ )
@@ -83,10 +78,10 @@ static int selfTest( void )
 		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
 						   &contextData, sizeof( CONV_INFO ), keyData );
 		memcpy( temp, testRC5[ i ].plainText, RC5_BLOCKSIZE );
-		status = capabilityInfo->initKeyFunction( &contextInfo, 
+		status = capabilityInfo->initKeyFunction( &contextInfo,
 												  testRC5[ i ].key, 16 );
 		if( cryptStatusOK( status ) )
-			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+			status = capabilityInfo->encryptFunction( &contextInfo, temp,
 													  RC5_BLOCKSIZE );
 		staticDestroyContext( &contextInfo );
 		if( cryptStatusError( status ) || \
@@ -105,7 +100,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -122,7 +117,7 @@ static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 
 /* Encrypt/decrypt data in ECB mode */
 
-static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -141,7 +136,7 @@ static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 	return( CRYPT_OK );
 	}
 
-static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -162,7 +157,7 @@ static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in CBC mode */
 
-static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -173,7 +168,7 @@ static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 	return( CRYPT_OK );
 	}
 
-static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -186,7 +181,7 @@ static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in CFB mode */
 
-static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -219,7 +214,7 @@ static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC5_BLOCKSIZE ) ? RC5_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key, 
+		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key,
 							RC5_ENCRYPT );
 
 		/* XOR the buffer contents with the encrypted IV */
@@ -244,12 +239,12 @@ static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC5_KEY *rc5Key = ( RC5_KEY * ) convInfo->key;
-	BYTE temp[ RC5_BLOCKSIZE ];
+	BYTE temp[ RC5_BLOCKSIZE + 8 ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
@@ -279,7 +274,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC5_BLOCKSIZE ) ? RC5_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key, 
+		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key,
 							RC5_ENCRYPT );
 
 		/* Save the ciphertext */
@@ -308,7 +303,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Encrypt/decrypt data in OFB mode */
 
-static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -340,7 +335,7 @@ static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC5_BLOCKSIZE ) ? RC5_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key, 
+		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key,
 							RC5_ENCRYPT );
 
 		/* XOR the buffer contents with the encrypted IV */
@@ -360,7 +355,7 @@ static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Decrypt data in OFB mode */
 
-static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
@@ -392,7 +387,7 @@ static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 		ivCount = ( noBytes > RC5_BLOCKSIZE ) ? RC5_BLOCKSIZE : noBytes;
 
 		/* Encrypt the IV */
-		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key, 
+		RC5_32_ecb_encrypt( convInfo->currentIV, convInfo->currentIV, rc5Key,
 							RC5_ENCRYPT );
 
 		/* XOR the buffer contents with the encrypted IV */
@@ -418,7 +413,7 @@ static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 
 /* Key schedule a RC5 key */
 
-static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;

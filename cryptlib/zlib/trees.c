@@ -33,11 +33,14 @@
 
 /* #define GEN_TREES_H */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "deflate.h"
 #else
   #include "zlib/deflate.h"
 #endif /* Compiler-specific includes */
+#if defined( _MSC_VER )
+  #pragma warning( disable: 4267 )	/* Warning about data size cast - pcg */
+#endif /* VC++ */
 
 #ifdef DEBUG
 #  include <ctype.h>
@@ -119,7 +122,11 @@ local int base_dist[D_CODES];
 /* First normalized distance for each code (0 = distance of 1) */
 
 #else
-#  include "trees.h"
+  #if defined( INC_ALL )
+	#include "trees.h"
+  #else
+	#include "zlib/trees.h"
+  #endif /* Compiler-specific includes */
 #endif /* GEN_TREES_H */
 
 struct static_tree_desc_s {

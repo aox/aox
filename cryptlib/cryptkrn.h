@@ -97,11 +97,7 @@
 *																			*
 ****************************************************************************/
 
-/* The object types.  Sometimes several object types can be packed into
-   a single object-type variable (for example an indication than both a
-   context and a cert are valid at this location), to ensure that the data
-   type is wide enough to contain it we use a range-extension to force it
-   to 32 bits */
+/* The object types */
 
 typedef enum {
 	OBJECT_TYPE_NONE,				/* No object type */
@@ -112,8 +108,7 @@ typedef enum {
 	OBJECT_TYPE_DEVICE,				/* Crypto device */
 	OBJECT_TYPE_SESSION,			/* Secure session */
 	OBJECT_TYPE_USER,				/* User object */
-	OBJECT_TYPE_LAST,				/* Last object type */
-	OBJECT_RANGEEXTEND = 0x0FFFFFFL	/* Range extension */
+	OBJECT_TYPE_LAST				/* Last object type */
 	} OBJECT_TYPE;
 
 /* Object subtypes.  The subtype names aren't needed by the kernel (it just
@@ -203,6 +198,14 @@ typedef enum {
 #define SUBTYPE_USER_SO				0x40040000L
 #define SUBTYPE_USER_NORMAL			0x40080000L
 #define SUBTYPE_USER_CA				0x40100000L
+
+/* The data type used to store subtype values */
+
+#ifdef SYSTEM_16BIT
+  typedef unsigned long OBJECT_SUBTYPE;
+#else
+  typedef unsigned int OBJECT_SUBTYPE;
+#endif /* 16- vs.32-bit systems */
 
 /* Message flags.  Normally messages can only be sent to external objects,
    however we can also explicitly send them to internal objects which means
@@ -437,9 +440,9 @@ typedef enum {
 	MESSAGE_CHECK_PKC_KA_IMPORT_AVAIL,	/* Key agreement - import available */
 
 	/* Misc.checks for meta-capabilities not directly connected with object
-	   actions.  The CA check applies to both PKC contexts and certificates, 
-	   when the message is forwarded to a dependent CA cert it's forwarded 
-	   as the internal MESSAGE_CHECK_CACERT check type, since 
+	   actions.  The CA check applies to both PKC contexts and certificates,
+	   when the message is forwarded to a dependent CA cert it's forwarded
+	   as the internal MESSAGE_CHECK_CACERT check type, since
 	   MESSAGE_CHECK_CA requires both a PKC context and a certificate */
 	MESSAGE_CHECK_CA,				/* Cert signing capability */
 	MESSAGE_CHECK_CACERT,			/* Internal value used for CA checks */
@@ -457,10 +460,14 @@ typedef enum {
 	MESSAGE_CHANGENOTIFY_LAST		/* Last possible notification type */
 	} MESSAGE_CHANGENOTIFY_TYPE;
 
-/* Symbolic defines for the MESSAGE_SETDEPENDENT message */
+/* Options for the MESSAGE_SETDEPENDENT message */
 
-#define SETDEP_OPTION_INCREF	TRUE	/* Increment dep.objs reference count */
-#define SETDEP_OPTION_NOINCREF	FALSE	/* Don't inc.dep.objs reference count */
+typedef enum {
+	SETDEP_OPTION_NONE,				/* No option */
+	SETDEP_OPTION_NOINCREF,			/* Don't inc.dep.objs reference count */
+	SETDEP_OPTION_INCREF,			/* Increment dep.objs reference count */
+	SETDEP_OPTION_LAST				/* Last possible option type */
+	} MESSAGE_SETDEPENDENT_TYPE;
 
 /* When getting/setting string data that consists of (value, length) pairs,
    we pass a pointer to a value-and-length structure rather than a pointer to
@@ -469,7 +476,7 @@ typedef enum {
 typedef struct {
 	void *data;							/* Data */
 	int length;							/* Length */
-	} RESOURCE_DATA;
+	} MESSAGE_DATA;
 
 #define setMessageData( msgDataPtr, dataPtr, dataLength ) \
 	{ \
@@ -886,7 +893,7 @@ typedef struct {
 
 /****************************************************************************
 *																			*
-*							Object Management Functions						*
+*								Kernel Functions							*
 *																			*
 ****************************************************************************/
 
@@ -919,7 +926,7 @@ typedef int ( *MESSAGE_FUNCTION )( const void *objectInfoPtr,
 #define CREATEOBJECT_FLAG_DUMMY		0x02	/* Dummy obj.used as placeholder */
 
 int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
-					  const OBJECT_TYPE type, const int subType,
+					  const OBJECT_TYPE type, const OBJECT_SUBTYPE subType,
 					  const int createObjectFlags, const CRYPT_USER owner,
 					  const int actionFlags,
 					  MESSAGE_FUNCTION messageFunction );
@@ -946,17 +953,27 @@ int krnlAcquireObject( const int objectHandle, const OBJECT_TYPE type,
 int krnlReleaseObject( const int objectHandle );
 
 /* In even rarer cases, we have to allow a second thread access to an object
-   when another thread has it locked.  This only occurs in one case, when a
-   background polling thread is adding entropy to the system device.  The way
-   this works is that the calling thread hands ownership over to the polling
-   thread and suspends itself until the polling thread completes.  When the
-   polling thread has completed, it terminates, whereupon ownership passes
-   back to the original thread.  The value passed to the release call is
-   actually a thread ID, but since this isn't visible outside the kernel we
-   just us a generic int */
+   when another thread has it locked, providing a (somewhat crude) mechanism
+   for making kernel calls interruptible and resumable.  This only occurs in
+   two cases, for the system object when a background polling thread is
+   adding entropy to the system device and for the user object when we're
+   saving configuration data to persistent storage (we temporarily unlock it
+   to allow other threads access, since the act of writing the marshalled
+   data to storage doesn't require the user object) */
 
-int krnlRelinquishSystemObject( const int /* THREAD_HANDLE */ objectOwnerThread );
-int krnlReacquireSystemObject( void );
+int krnlSuspendObject( const int objectHandle, int *refCount );
+int krnlResumeObject( const int objectHandle, const int refCount );
+
+/* When the kernel is closing down, any cryptlib-internal threads should exit
+   as quickly as possible.  For threads coming in from the outside this
+   happens automatically because any message it tries to send fails, but for
+   internal worker threads (for example the async driver-binding thread or
+   randomness polling threads) that don't perform many kernel calls, the
+   thread has to periodically check whether the kernel is still active.  The
+   following function is used to indicate whether the kernel is shutting
+   down */
+
+BOOLEAN krnlIsExiting( void );
 
 /* Semaphores and mutexes */
 
@@ -968,56 +985,48 @@ typedef enum {
 
 typedef enum {
 	MUTEX_NONE,						/* No mutex */
-	MUTEX_SESSIONCACHE,				/* SSL/TLS session cache */
+	MUTEX_SCOREBOARD,				/* Session scoreboard */
 	MUTEX_SOCKETPOOL,				/* Network socket pool */
-	MUTEX_RANDOMPOLLING,			/* Randomness polling */
+	MUTEX_RANDOM,					/* Randomness subsystem */
 	MUTEX_LAST						/* Last mutex */
 	} MUTEX_TYPE;
 
 /* Execute a function in a background thread.  This takes a pointer to the
-   function to execute in the background thread, a set of parameters to pass
-   to the function, and an optional semaphore ID to set once the thread is
-   started.  A function is run via a background thread as follows:
+   function to execute in the background thread, a block of memory for 
+   thread state storage, a set of parameters to pass to the thread function, 
+   and an optional semaphore ID to set once the thread is started.  A 
+   function is run via a background thread as follows:
 
-	void threadFunction( const THREAD_FUNCTION_PARAMS *threadParams )
+	void threadFunction( const THREAD_PARAMS *threadParams )
 		{
 		}
 
-	initThreadParams( &threadParams, ptrParam, intParam );
-	krnlDispatchThread( threadFunction, &threadParams, SEMAPHORE_ID );
+	krnlDispatchThread( threadFunction, &threadState, ptrParam, intParam, 
+						SEMAPHORE_ID );
 
    Note that the parameters must be held in static storage because the
    caller's stack frame may have long since disappeared before the thread
-   gets to access them.  To emphasise this, we define the storage specifier
-   STATIC_THREADPARAM_STORAGE for when we declare the variables */
+   gets to access them */
 
 struct TF;
 
 typedef void ( *THREAD_FUNCTION )( const struct TF *threadParams );
 
+typedef BYTE THREAD_STATE[ 48 ];
+
 typedef struct TF {
-	THREAD_FUNCTION threadFunction;	/* Function to call from thread */
-	void *ptrParam;					/* Thread function parameters */
-	int intParam;
-	SEMAPHORE_TYPE semaphore;		/* Optional semaphore to set */
-	long syncHandle;				/* Handle to use for thread sync */
-	} THREAD_FUNCTION_PARAMS;
-
-#define STATIC_THREADPARAM_STORAGE	static
-
-#define initThreadParams( threadParams, pParam, iParam ) \
-		memset( ( threadParams ), 0, sizeof( THREAD_FUNCTION_PARAMS ) ); \
-		( threadParams )->ptrParam = ( void * )( pParam ); \
-		( threadParams )->intParam = ( iParam );
+	void *ptrParam;					/* Pointer parameter */
+	int intParam;					/* Integer parameter */
+	} THREAD_PARAMS;
 
 int krnlDispatchThread( THREAD_FUNCTION threadFunction,
-						THREAD_FUNCTION_PARAMS *threadParams,
-						const SEMAPHORE_TYPE semaphore );
+						THREAD_STATE threadState, void *ptrParam, 
+						const int intParam, const SEMAPHORE_TYPE semaphore );
 
 /* Wait on a semaphore, enter and exit a mutex */
 
-void krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore );
-void krnlEnterMutex( const MUTEX_TYPE mutex );
+BOOLEAN krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore );
+int krnlEnterMutex( const MUTEX_TYPE mutex );
 void krnlExitMutex( const MUTEX_TYPE mutex );
 
 /* Secure memory handling functions */

@@ -5,26 +5,15 @@
 *																			*
 ****************************************************************************/
 
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
   #include "misc/asn1.h"
 #endif /* Compiler-specific includes */
-
-/* Prototypes for functions in cryptcrt.c */
-
-int textToOID( const char *oid, const int oidLength, BYTE *binaryOID );
 
 /* Prototypes for functions in ext.c */
 
@@ -38,12 +27,21 @@ ATTRIBUTE_LIST *findAttributeStart( const ATTRIBUTE_LIST *attributeListPtr );
 
 /* Check the validity of an attribute field */
 
+typedef enum { 
+	CHECKATTR_INFO_NONE,		/* No special return info */
+	CHECKATTR_INFO_ZEROLENGTH,	/* Zero-length data, e.g.int, bool, DN placeholder */
+	CHECKATTR_INFO_NEWLENGTH,	/* Data length change, value in newDataLength */
+	CHECKATTR_INFO_LAST			/* Last possible return info type */
+	} CHECKATTR_INFO_TYPE;
+
 static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 								const ATTRIBUTE_INFO *attributeInfoPtr,
 								const CRYPT_ATTRIBUTE_TYPE fieldID,
 								const CRYPT_ATTRIBUTE_TYPE subFieldID,
 								const void *data, const int dataLength,
 								const int flags, 
+								CHECKATTR_INFO_TYPE *infoType, 
+								int *newDataLength, 
 								CRYPT_ERRTYPE_TYPE *errorType )
 	{
 	assert( attributeListPtr == NULL || \
@@ -54,7 +52,13 @@ static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 	assert( dataLength == CRYPT_UNUSED || \
 			( dataLength > 0 && dataLength <= MAX_ATTRIBUTE_SIZE ) );
 	assert( dataLength == CRYPT_UNUSED || isReadPtr( data, dataLength ) );
+	assert( isWritePtr( infoType, sizeof( CHECKATTR_INFO_TYPE ) ) );
+	assert( isWritePtr( newDataLength, sizeof( int ) ) );
 	assert( !( flags & ATTR_FLAG_INVALID ) );
+
+	/* Clear return values */
+	*infoType = CHECKATTR_INFO_NONE;
+	*newDataLength = 0;
 
 	/* Make sure that a valid field has been specified, and that this field
 	   isn't already present as a non-default entry unless it's a field for
@@ -89,6 +93,9 @@ static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 			if( *( ( int * ) data ) != CRYPT_UNUSED )
 				return( CRYPT_ARGERROR_NUM1 );
 
+			/* Tell the caller that this is a special-case entry with 
+			   zero-length data */
+			*infoType = CHECKATTR_INFO_ZEROLENGTH;
 			return( CRYPT_OK );
 
 		case FIELDTYPE_DN:
@@ -97,12 +104,16 @@ static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 			   instantiated.  When reading an encoded cert, this is the 
 			   decoded DN structure */
 			assert( dataLength == CRYPT_UNUSED );
+
+			/* Tell the caller that this is a special-case entry with 
+			   zero-length data */
+			*infoType = CHECKATTR_INFO_ZEROLENGTH;
 			return( CRYPT_OK );
 
 		case BER_OBJECT_IDENTIFIER:
 			{
 			const BYTE *oidPtr = data;
-			BYTE binaryOID[ MAX_OID_SIZE ];
+			BYTE binaryOID[ MAX_OID_SIZE + 8 ];
 
 			/* If it's a BER/DER-encoded OID, make sure that it's valid 
 			   ASN.1 */
@@ -112,10 +123,23 @@ static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 					return( CRYPT_OK );
 				}
 			else
+				{
+				int status;
+
 				/* It's a text OID, check the syntax and make sure that the 
 				   length is valid */
-				if( textToOID( data, dataLength, binaryOID ) )
+				status = textToOID( data, dataLength, binaryOID, 
+									MAX_OID_SIZE );
+				if( !cryptStatusError( status ) )
+					{
+					/* The binary form of the OID differs in length from the 
+					   string form, tell the caller that the data length has
+					   changed */
+					*infoType = CHECKATTR_INFO_NEWLENGTH;
+					*newDataLength = status;
 					return( CRYPT_OK );
+					}
+				}
 
 			if( errorType != NULL )
 				*errorType = CRYPT_ERRTYPE_ATTR_VALUE;
@@ -127,8 +151,9 @@ static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 
 			/* BOOLEAN data is accepted as zero/nonzero so it's always 
 			   valid, however we let the caller know that this is non-string 
-			   data */
-			return( OK_SPECIAL );
+			   data with no storage requirements */
+			*infoType = CHECKATTR_INFO_ZEROLENGTH;
+			return( CRYPT_OK );
 
 		case BER_INTEGER:
 		case BER_ENUMERATED:
@@ -147,8 +172,10 @@ static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 				return( CRYPT_ARGERROR_NUM1 );
 				}
 
-			/* Let the caller know that this is non-string data */
-			return( OK_SPECIAL );
+			/* Let the caller know that this is non-string data with no 
+			   storage requirements */
+			*infoType = CHECKATTR_INFO_ZEROLENGTH;
+			return( CRYPT_OK );
 			}
 
 		}
@@ -188,12 +215,14 @@ static int checkAttributeField( const ATTRIBUTE_LIST *attributeListPtr,
 
 			/* Make sure that it's a numeric string */
 			for( i = 0; i < dataLength; i++ )
+				{
 				if( !isDigit( dataPtr[ i ] ) )
 					{
 					if( errorType != NULL )
 						*errorType = CRYPT_ERRTYPE_ATTR_VALUE;
 					return( CRYPT_ARGERROR_STR1 );
 					}
+				}
 			return( CRYPT_OK );
 			}
 
@@ -306,8 +335,8 @@ int addAttributeField( ATTRIBUTE_LIST **attributeListPtr,
 	const ATTRIBUTE_INFO *attributeInfoPtr = fieldIDToAttribute( attributeType,
 										fieldID, subFieldID, &attributeID );
 	ATTRIBUTE_LIST *newElement, *insertPoint, *prevElement = NULL;
-	BOOLEAN isNumeric = FALSE;
-	int storageSize, status;
+	CHECKATTR_INFO_TYPE infoType;
+	int storageSize, newDataLength, status;
 
 	assert( isWritePtr( attributeListPtr, sizeof( ATTRIBUTE_LIST * ) ) );
 	assert( fieldID >= CRYPT_CERTINFO_FIRST_EXTENSION && \
@@ -321,27 +350,17 @@ int addAttributeField( ATTRIBUTE_LIST **attributeListPtr,
 	/* Check the field's validity */
 	status = checkAttributeField( *attributeListPtr, attributeInfoPtr, 
 								  fieldID, subFieldID, data, dataLength, 
-								  flags, errorType );
+								  flags, &infoType, &newDataLength, 
+								  errorType );
 	if( cryptStatusError( status ) )
 		{
-		if( status == OK_SPECIAL )
-			/* Special indicator to tell us that the value is non-string
-			   numeric data */
-			isNumeric = TRUE;
-		else
-			{
-			if( errorType != NULL && *errorType != CRYPT_ERRTYPE_NONE )
-				/* If we encountered an error that sets the error type, 
-				   record the locus */
-				*errorLocus = fieldID;
-			return( status );
-			}
+		if( errorType != NULL && *errorType != CRYPT_ERRTYPE_NONE )
+			/* If we encountered an error that sets the error type, record 
+			   the locus */
+			*errorLocus = fieldID;
+		return( status );
 		}
-	assert( isNumeric || \
-			( ( attributeInfoPtr->fieldType == FIELDTYPE_DN || \
-				attributeInfoPtr->fieldType == FIELDTYPE_IDENTIFIER ) && \
-			  dataLength == CRYPT_UNUSED ) || \
-			dataLength > 0 );
+	assert( infoType == CHECKATTR_INFO_ZEROLENGTH || dataLength > 0 );
 
 	/* Find the location at which to insert this attribute field (this 
 	   assumes that the fieldIDs are defined in sorted order) */
@@ -374,10 +393,27 @@ int addAttributeField( ATTRIBUTE_LIST **attributeListPtr,
 	   Something that encodes to NULL isn't really a numeric type, but we 
 	   class it as such so that any attempt to read it returns CRYPT_UNUSED 
 	   as the value */
-	storageSize = ( isNumeric || \
-					attributeInfoPtr->fieldType == FIELDTYPE_DN || \
-					attributeInfoPtr->fieldType == FIELDTYPE_IDENTIFIER ) ? \
-				  0 : dataLength; 
+	switch( infoType )
+		{
+		case CHECKATTR_INFO_NONE:
+			/* No special-case length handling */
+			storageSize = dataLength;
+			break;
+
+		case CHECKATTR_INFO_ZEROLENGTH:
+			/* Zero-length data, e.g. integer, boolean, DN placeholder */
+			storageSize = 0;
+			break;
+
+		case CHECKATTR_INFO_NEWLENGTH:
+			/* The length has changed due to data en/decoding, use the 
+			   en/decoded length for the storage size */
+			storageSize = newDataLength;
+			break;
+
+		default:
+			retIntError();
+		}
 	if( ( newElement = ( ATTRIBUTE_LIST * ) \
 					   clAlloc( "addAttributeField", sizeof( ATTRIBUTE_LIST ) + \
 													 storageSize ) ) == NULL )
@@ -408,15 +444,23 @@ int addAttributeField( ATTRIBUTE_LIST **attributeListPtr,
 
 		case BER_OBJECT_IDENTIFIER:
 			/* If it's a BER/DER-encoded OID copy it in as is, otherwise 
-			   convert it from the text form */
+			   convert it from the text form.  In the latter case the 
+			   amount of storage allocated is the space required by the
+			   text form which is more than the BER/DER-encoded form, but
+			   we can't tell in advance how much we actually need to 
+			   allocate until we've performed the decoding */
 			if( ( ( BYTE * ) data )[ 0 ] == BER_OBJECT_IDENTIFIER )
 				{
 				memcpy( newElement->value, data, dataLength );
 				newElement->valueLength = dataLength;
 				}
 			else
+				{
 				newElement->valueLength = textToOID( data, dataLength,
-													 newElement->value );
+													 newElement->value,
+													 storageSize );
+				assert( !cryptStatusError( newElement->valueLength ) );
+				}
 			break;
 
 		case FIELDTYPE_DN:

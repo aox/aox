@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "des.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/des.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -26,8 +21,6 @@
 
 #if defined( INC_ALL )
   #include "testdes.h"
-#elif defined( INC_CHILD )
-  #include "../crypt/testdes.h"
 #else
   #include "crypt/testdes.h"
 #endif /* Compiler-specific includes */
@@ -49,14 +42,14 @@
 static int testLoop( const DES_TEST *testData, int iterations, BOOLEAN isEncrypt )
 	{
 	const CAPABILITY_INFO *capabilityInfo = getDESCapability();
-	BYTE temp[ DES_BLOCKSIZE ];
+	BYTE temp[ DES_BLOCKSIZE + 8 ];
 	int i;
 
 	for( i = 0; i < iterations; i++ )
 		{
 		CONTEXT_INFO contextInfo;
 		CONV_INFO contextData;
-		BYTE keyData[ DES_KEYSIZE ];
+		BYTE keyData[ DES_KEYSIZE + 8 ];
 		int status;
 
 		memcpy( temp, testData[ i ].plaintext, DES_BLOCKSIZE );
@@ -255,7 +248,7 @@ static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
 					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
-	BYTE temp[ DES_BLOCKSIZE ];
+	BYTE temp[ DES_BLOCKSIZE + 8 ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
@@ -435,7 +428,11 @@ static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 	/* Call the libdes key schedule code.  Returns with -1 if the key parity
 	   is wrong (which never occurs since we force the correct parity) or -2
-	   if a weak key is used */
+	   if a weak key is used.  In theory this could leave us open to timing
+	   attacks (a memcmp() implemented as a bytewise operation will exit on 
+	   the first mis-matching byte), but in practice the trip through the
+	   kernel adds enough skew to make the one or two clock cycle difference
+	   undetectable */
 	des_set_odd_parity( ( C_Block * ) convInfo->userKey );
 	if( des_key_sched( ( C_Block * ) convInfo->userKey, 
 					   *( DES_KEY * ) convInfo->key ) )

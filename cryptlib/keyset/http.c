@@ -5,16 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "keyset.h"
-  #include "../misc/asn1.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -37,7 +31,7 @@
 
 /* Set up key information for a query */
 
-static char *getKeyName( const CRYPT_KEYID_TYPE keyIDtype )
+static const char *getKeyName( const CRYPT_KEYID_TYPE keyIDtype )
 	{
 	switch( keyIDtype )
 		{
@@ -115,7 +109,7 @@ static int getItemFunction( KEYSET_INFO *keysetInfo,
 	if( keyIDlength != 6 || strCompare( keyID, "[none]", 6 ) )
 		{
 		const char *keyName = getKeyName( keyIDtype );
-		char queryBuffer[ 1024 ], *queryBufPtr = queryBuffer;
+		char queryBuffer[ 1024 + 8 ], *queryBufPtr = queryBuffer;
 		const int keyNameLen = strlen( keyName );
 
 		if( keyIDlength > 1024 - 64 && \
@@ -211,7 +205,7 @@ static int initFunction( KEYSET_INFO *keysetInfo, const char *name,
 
 /* Close a previously-opened HTTP connection */
 
-static void shutdownFunction( KEYSET_INFO *keysetInfo )
+static int shutdownFunction( KEYSET_INFO *keysetInfo )
 	{
 	HTTP_INFO *httpInfo = keysetInfo->keysetHTTP;
 
@@ -222,6 +216,8 @@ static void shutdownFunction( KEYSET_INFO *keysetInfo )
 		clFree( "getItemFunction", keysetInfo->keyData );
 		keysetInfo->keyData = NULL;
 		}
+
+	return( CRYPT_OK );
 	}
 
 int setAccessMethodHTTP( KEYSET_INFO *keysetInfo )

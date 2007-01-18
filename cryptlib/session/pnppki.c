@@ -5,14 +5,8 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "session.h"
-  #include "cmp.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "session.h"
   #include "cmp.h"
 #else
@@ -143,8 +137,8 @@ static int recreateCert( CRYPT_CERTIFICATE *iNewCert,
 						 const BOOLEAN isDataOnlyCert )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	RESOURCE_DATA msgData;
-	BYTE buffer[ 2048 ], *bufPtr = buffer;
+	MESSAGE_DATA msgData;
+	BYTE buffer[ 2048 + 8 ], *bufPtr = buffer;
 	int status;
 
 	*iNewCert = CRYPT_ERROR;
@@ -203,7 +197,8 @@ static int getCACert( CRYPT_CERTIFICATE *iNewCert,
 		return( status );
 	if( certIDlength > 0 )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
+		int iterationCount = 0;
 
 		setMessageData( &msgData, ( void * ) certID, KEYID_SIZE );
 		do
@@ -214,7 +209,10 @@ static int getCACert( CRYPT_CERTIFICATE *iNewCert,
 		while( cryptStatusError( status ) && \
 			   krnlSendMessage( iCTL, IMESSAGE_SETATTRIBUTE,
 								MESSAGE_VALUE_CURSORNEXT,
-								CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK );
+								CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK && \
+			   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+		if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+			retIntError();
 		if( cryptStatusError( status ) )
 			return( CRYPT_ERROR_NOTFOUND );
 		}
@@ -239,7 +237,7 @@ static int generateKey( CRYPT_CONTEXT *iPrivateKey,
 	{
 	CRYPT_QUERY_INFO queryInfo;
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int value, status;
 
 	/* Clear return value */
@@ -297,7 +295,8 @@ static int generateKey( CRYPT_CONTEXT *iPrivateKey,
 	if( cryptStatusOK( status ) )
 		{
 		setMessageData( &msgData, ( void * ) keyInfo[ keyType ].label, 
-						strlen( keyInfo[ keyType ].label ) );
+						min( strlen( keyInfo[ keyType ].label ),
+							 CRYPT_MAX_TEXTSIZE ) );
 		status = krnlSendMessage( createInfo.cryptHandle, 
 								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
 								  CRYPT_CTXINFO_LABEL );
@@ -425,7 +424,7 @@ static int updateTrustedCerts( const CRYPT_HANDLE iCryptHandle,
 							   const CRYPT_HANDLE iLeafCert )
 	{
 	CRYPT_CERTIFICATE iCertCursor = iLeafCert;
-	int status;
+	int iterationCount = 0, status;
 
 	do
 		{
@@ -445,7 +444,10 @@ static int updateTrustedCerts( const CRYPT_HANDLE iCryptHandle,
 									  &setkeyInfo, KEYMGMT_ITEM_PUBLICKEY );
 			}
 		}
-	while( cryptStatusOK( status ) );
+	while( cryptStatusOK( status ) && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 
 	return( CRYPT_OK );
 	}

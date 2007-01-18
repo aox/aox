@@ -5,16 +5,12 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #include "crypt.h"
 #ifdef INC_ALL
   #include "envelope.h"
 #else
   #include "envelope/envelope.h"
 #endif /* Compiler-specific includes */
-
-#ifdef USE_ENVELOPES
 
 /* The default size for the envelope buffer.  On 16-bit systems they're
    smaller because of memory and int size limitations */
@@ -34,6 +30,8 @@
 #define isRecoverableError( status ) \
 		( ( status ) == CRYPT_ERROR_OVERFLOW || \
 		  ( status ) == CRYPT_ERROR_UNDERFLOW )
+
+#ifdef USE_ENVELOPES
 
 /****************************************************************************
 *																			*
@@ -65,6 +63,7 @@ static BOOLEAN moveVirtualCursor( CONTENT_LIST *contentListPtr,
 	CONTENT_SIG_INFO *sigInfo = &contentListPtr->clSigInfo;
 	CRYPT_ATTRIBUTE_TYPE attributeType = sigInfo->attributeCursorEntry;
 	BOOLEAN doContinue;
+	int iterationCount = 0;
 
 	assert( attrGetType == ATTR_NEXT || attrGetType == ATTR_PREV );
 	assert( sigInfo->attributeCursorEntry != CRYPT_ATTRIBUTE_NONE );
@@ -76,9 +75,13 @@ static BOOLEAN moveVirtualCursor( CONTENT_LIST *contentListPtr,
 		/* Find the position of the current sub-attribute in the attribute 
 		   order list and use that to get its successor/predecessor sub-
 		   attribute */
-		for( i = 0; \
+		for( i = 0; 
 			 attributeOrderList[ i ] != attributeType && \
-			 attributeOrderList[ i ] != CRYPT_ATTRIBUTE_NONE; i++ );
+				attributeOrderList[ i ] != CRYPT_ATTRIBUTE_NONE && \
+				i < FAILSAFE_ARRAYSIZE( attributeOrderList, CRYPT_ATTRIBUTE_TYPE ); 
+			 i++ );
+		if( i >= FAILSAFE_ARRAYSIZE( attributeOrderList, CRYPT_ATTRIBUTE_TYPE ) )
+			retIntError();
 		if( attributeOrderList[ i ] == CRYPT_ATTRIBUTE_NONE )
 			attributeType = CRYPT_ATTRIBUTE_NONE;
 		else
@@ -122,7 +125,9 @@ static BOOLEAN moveVirtualCursor( CONTENT_LIST *contentListPtr,
 				return( FALSE );
 			}
 		}
-	while( doContinue );
+	while( doContinue && iterationCount++ < FAILSAFE_ITERATIONS_SMALL );
+	if( iterationCount >= FAILSAFE_ITERATIONS_SMALL )
+		retIntError();
 	sigInfo->attributeCursorEntry = attributeType;
 	
 	return( TRUE );
@@ -581,9 +586,9 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			   signature check.  Adding the key increments its reference 
 			   count since the key is usually user-supplied and we need to 
 			   keep a reference for use by the envelope, however since the 
-			   key we're using here is an internal-use-only key we don't 
-			   want to do this so we decrement it again after it's been 
-			   added */
+			   key that we're using here is an internal-use-only key we 
+			   don't want to do this so we decrement it again after it's 
+			   been added */
 			*valuePtr = envelopeInfoPtr->addInfo( envelopeInfoPtr,
 								CRYPT_ENVINFO_SIGNATURE, &iCryptHandle, TRUE );
 			krnlSendNotifier( iCryptHandle, IMESSAGE_DECREFCOUNT );
@@ -602,8 +607,8 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 								envelopeInfoPtr->contentListCurrent;
 			CONTENT_SIG_INFO *sigInfo = &contentListItem->clSigInfo;
 			MESSAGE_CREATEOBJECT_INFO createInfo;
-			RESOURCE_DATA msgData;
-			BYTE certData[ 2048 ], *certDataPtr = certData;
+			MESSAGE_DATA msgData;
+			BYTE certData[ 2048 + 8 ], *certDataPtr = certData;
 
 			assert( contentListItem != NULL );
 
@@ -652,7 +657,7 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			if( status == CRYPT_ERROR_OVERFLOW )
 				{
 				if( ( certDataPtr = clAlloc( "processGetAttribute", \
-											 msgData.length ) ) == NULL )
+											 msgData.length + 8 ) ) == NULL )
 					return( CRYPT_ERROR_MEMORY );
 				setMessageData( &msgData, certDataPtr, msgData.length );
 				status = krnlSendMessage( sigInfo->iSigCheckKey,
@@ -745,7 +750,7 @@ static int processGetAttributeS( ENVELOPE_INFO *envelopeInfoPtr,
 	if( messageValue == CRYPT_ENVINFO_PRIVATEKEY_LABEL )
 		{
 		MESSAGE_KEYMGMT_INFO getkeyInfo;
-		char label[ CRYPT_MAX_TEXTSIZE ];
+		char label[ CRYPT_MAX_TEXTSIZE + 8 ];
 
 		/* Make sure that the current required resource is a private key and
 		   that there's a keyset available to pull the key from */
@@ -797,11 +802,16 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 	{
 	MESSAGE_CHECK_TYPE checkType = MESSAGE_CHECK_NONE;
 	ACTION_TYPE usage = ACTION_NONE;
-	static const struct {
+	typedef struct {
 		const CRYPT_ATTRIBUTE_TYPE type;	/* Attribute type */
 		const ACTION_TYPE usage;			/* Corresponding usage type */
 		const MESSAGE_CHECK_TYPE checkType;	/*  and check type */
-		} checkTable[] = {
+		} CHECK_INFO;
+	static const CHECK_INFO checkTable[] = {
+		/* The following checks are fairly stereotyped and can be selected 
+		   via a lookup table.  Envelope attributes that require more
+		   specialised checking are handled via custom code in a case 
+		   statement */
 #ifdef USE_COMPRESSION
 		{ CRYPT_ENVINFO_COMPRESSION, ACTION_COMPRESS, MESSAGE_CHECK_NONE },
 #endif /* USE_COMPRESSION */
@@ -815,7 +825,7 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 		{ CRYPT_ENVINFO_DETACHEDSIGNATURE, ACTION_SIGN, MESSAGE_CHECK_NONE },
 		{ CRYPT_IATTRIBUTE_INCLUDESIGCERT, ACTION_SIGN, MESSAGE_CHECK_NONE },
 		{ CRYPT_IATTRIBUTE_ATTRONLY, ACTION_SIGN, MESSAGE_CHECK_NONE },
-		{ CRYPT_ATTRIBUTE_NONE, ACTION_NONE }
+		{ CRYPT_ATTRIBUTE_NONE, ACTION_NONE }, { CRYPT_ATTRIBUTE_NONE, ACTION_NONE }
 		};
 	const int value = *( int * ) messageDataPtr;
 	int i, status;
@@ -922,7 +932,9 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 	   indeterminate time in the future.  Since much of the checking is
 	   similar, we use a table-driven check for most types and fall back to
 	   custom checking for special cases */
-	for( i = 0; checkTable[ i ].type != ACTION_NONE; i++ )
+	for( i = 0; checkTable[ i ].type != ACTION_NONE && \
+				i < FAILSAFE_ARRAYSIZE( checkTable, CHECK_INFO ); i++ )
+		{
 		if( checkTable[ i ].type == messageValue )
 			{
 			if( envelopeInfoPtr->usage != ACTION_NONE && \
@@ -932,6 +944,9 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			checkType = checkTable[ i ].checkType;
 			break;
 			}
+		}
+	if( i >= FAILSAFE_ARRAYSIZE( checkTable, CHECK_INFO ) )
+		retIntError();
 	if( usage != ACTION_NONE )
 		{
 		/* Make sure that the usage requirements for the item that we're 
@@ -948,25 +963,22 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 		switch( messageValue )
 			{
 			case CRYPT_OPTION_ENCR_ALGO:
-				if( cryptStatusError( \
-						envelopeInfoPtr->checkCryptAlgo( value, 
-								isStreamCipher( value ) ? CRYPT_MODE_OFB : \
-								( envelopeInfoPtr->type == CRYPT_FORMAT_PGP ) ? \
-								CRYPT_MODE_CFB : CRYPT_MODE_CBC ) ) )
+				if( !envelopeInfoPtr->checkAlgo( value, 
+							isStreamCipher( value ) ? CRYPT_MODE_OFB : \
+							( envelopeInfoPtr->type == CRYPT_FORMAT_PGP ) ? \
+							CRYPT_MODE_CFB : CRYPT_MODE_CBC ) )
 					return( CRYPT_ARGERROR_VALUE );
 				envelopeInfoPtr->defaultAlgo = value;
 				return( CRYPT_OK );
 
 			case CRYPT_OPTION_ENCR_HASH:
-				if( cryptStatusError( \
-						envelopeInfoPtr->checkHashAlgo( value ) ) )
+				if( !envelopeInfoPtr->checkAlgo( value, CRYPT_MODE_NONE ) )
 					return( CRYPT_ARGERROR_VALUE );
 				envelopeInfoPtr->defaultHash = value;
 				return( CRYPT_OK );
 
 			case CRYPT_OPTION_ENCR_MAC:
-				if( cryptStatusError( \
-						envelopeInfoPtr->checkHashAlgo( value ) ) )
+				if( !envelopeInfoPtr->checkAlgo( value, CRYPT_MODE_NONE ) )
 					return( CRYPT_ARGERROR_VALUE );
 				envelopeInfoPtr->defaultMAC = value;
 				return( CRYPT_OK );
@@ -1072,6 +1084,7 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 
 			default:
 				assert( NOTREACHED );
+				return( CRYPT_ERROR );
 			}
 		}
 	if( checkType != MESSAGE_CHECK_NONE )
@@ -1090,29 +1103,29 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 
 		/* Make sure that the object corresponds to a representable algorithm
 		   type.  Note that this check isn't totally foolproof on de-
-		   enveloping PGP data since the user can push the hash context 
-		   before they push the signed data (to signifiy the use of a 
-		   detached signature) so that it's checked using the default 
-		   (CMS) algorithm values rather then PGP ones */
-		if( checkType == MESSAGE_CHECK_CRYPT || \
+		   enveloping PGP data since the user can push in the hash context 
+		   before they push in the signed data (to signifiy the use of a 
+		   detached signature), so it'd be checked using the default (CMS) 
+		   algorithm values rather than the PGP ones */
+		if( checkType == MESSAGE_CHECK_PKC_ENCRYPT || \
+			checkType == MESSAGE_CHECK_PKC_DECRYPT || \
+			checkType == MESSAGE_CHECK_PKC_SIGN || \
+			checkType == MESSAGE_CHECK_PKC_SIGCHECK || \
+			checkType == MESSAGE_CHECK_CRYPT || \
 			checkType == MESSAGE_CHECK_HASH || \
 			checkType == MESSAGE_CHECK_MAC )
 			{
 			CRYPT_ALGO_TYPE algorithm;
+			CRYPT_MODE_TYPE mode = CRYPT_MODE_NONE;
 
 			krnlSendMessage( value, IMESSAGE_GETATTRIBUTE, &algorithm,
 							 CRYPT_CTXINFO_ALGO );
 			if( checkType == MESSAGE_CHECK_CRYPT )
-				{
-				CRYPT_MODE_TYPE mode;
-
+				/* It's a conventional-encryption context, get the mode as 
+				   well */
 				krnlSendMessage( value, IMESSAGE_GETATTRIBUTE, &mode,
 								 CRYPT_CTXINFO_MODE );
-				status = envelopeInfoPtr->checkCryptAlgo( algorithm, mode );
-				}
-			else
-				status = envelopeInfoPtr->checkHashAlgo( algorithm );
-			if( cryptStatusError( status ) )
+			if( !envelopeInfoPtr->checkAlgo( algorithm, mode ) )
 				return( CRYPT_ERROR_NOTAVAIL );
 			}
 
@@ -1162,7 +1175,7 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 static int processSetAttributeS( ENVELOPE_INFO *envelopeInfoPtr,
 								 void *messageDataPtr, const int messageValue )
 	{
-	RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+	MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) messageDataPtr;
 	ACTION_TYPE usage = ACTION_NONE;
 	int status;
 
@@ -1249,6 +1262,7 @@ static int processSetAttributeS( ENVELOPE_INFO *envelopeInfoPtr,
 
 		default:
 			assert( NOTREACHED );
+			return( CRYPT_ERROR );
 		}
 
 	if( cryptStatusError( status ) )
@@ -1286,7 +1300,7 @@ static int envelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 		{
 		CRYPT_ATTRIBUTE_TYPE missingInfo;
 
-		/* Make sure that all the information we need to proceed is 
+		/* Make sure that all the information that we need to proceed is 
 		   present */
 		assert( envelopeInfoPtr->checkMissingInfo != NULL );
 		missingInfo = envelopeInfoPtr->checkMissingInfo( envelopeInfoPtr );
@@ -1298,7 +1312,7 @@ static int envelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 			{
 			if( ( envelopeInfoPtr->buffer = \
 							clAlloc( "envelopePush", \
-									 envelopeInfoPtr->bufSize ) ) == NULL )
+									 envelopeInfoPtr->bufSize + 8 ) ) == NULL )
 				return( CRYPT_ERROR_MEMORY );
 			memset( envelopeInfoPtr->buffer, 0, envelopeInfoPtr->bufSize );
 			}
@@ -1323,7 +1337,7 @@ static int envelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 	   any necessary actions on it */
 	if( envelopeInfoPtr->state == STATE_DATA )
 		{
-		if( length )
+		if( length > 0 )
 			{
 			/* Copy the data to the envelope */
 			status = envelopeInfoPtr->copyToEnvelopeFunction( envelopeInfoPtr,
@@ -1379,7 +1393,7 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 			/* Allocate the envelope buffer */
 			if( ( envelopeInfoPtr->buffer = \
 							clAlloc( "deenvelopePush", \
-									 envelopeInfoPtr->bufSize ) ) == NULL )
+									 envelopeInfoPtr->bufSize + 8 ) ) == NULL )
 				return( CRYPT_ERROR_MEMORY );
 			memset( envelopeInfoPtr->buffer, 0, envelopeInfoPtr->bufSize );
 
@@ -1387,14 +1401,12 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 			/* Try and determine what the data format being used is.  If it 
 			   looks like PGP data, try and process it as such, otherwise 
 			   default to PKCS #7/CMS/S/MIME */
-			if( length && ( bufPtr[ 0 ] & 0x80 ) )
+			if( length > 0 && ( bufPtr[ 0 ] & 0x80 ) )
 				{
 				/* When we initially created the envelope we defaulted to CMS
-				   formatting, so we first switch to PGP enveloping to 
-				   override the CMS default and then finally select PGP de-
-				   enveloping */
+				   formatting, so we have to select PGP de-enveloping before
+				   we can continue */
 				envelopeInfoPtr->type = CRYPT_FORMAT_PGP;
-				initPGPEnveloping( envelopeInfoPtr );
 				initPGPDeenveloping( envelopeInfoPtr );
 				}
 #endif /* USE_PGP */
@@ -1402,11 +1414,11 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 
 		/* Since we're processing out-of-band information, just copy it in
 		   directly */
-		if( bytesIn )
+		if( bytesIn > 0 )
 			{
 			int bytesToCopy = min( envelopeInfoPtr->bufSize - envelopeInfoPtr->bufPos,
 								   bytesIn );
-			if( bytesToCopy )
+			if( bytesToCopy > 0 )
 				{
 				memcpy( envelopeInfoPtr->buffer + envelopeInfoPtr->bufPos,
 						bufPtr, bytesToCopy );
@@ -1444,7 +1456,7 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 		   everything was consumed by the preamble processing, or there may
 		   be room to copy more in now if the preamble processing consumed 
 		   some of what was present */
-		if( bytesIn )
+		if( bytesIn > 0 )
 			{
 			/* Copy the data to the envelope */
 			const int byteCount = \
@@ -1482,7 +1494,7 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 		{
 		/* Since we're processing trailer information, just copy it in
 		   directly */
-		if( bytesIn )
+		if( bytesIn > 0 )
 			{
 /* The handling of EOC information in all situations is very tricky.  With
    PKCS #5 padded data the contents look like:
@@ -1514,7 +1526,7 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 			const int bytesToCopy = \
 					min( envelopeInfoPtr->bufSize - envelopeInfoPtr->bufPos,
 						 bytesIn );
-			if( bytesToCopy )
+			if( bytesToCopy > 0 )
 				{
 				memcpy( envelopeInfoPtr->buffer + envelopeInfoPtr->bufPos,
 						bufPtr, bytesToCopy );
@@ -1525,7 +1537,7 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 			const int bytesToCopy = \
 					min( envelopeInfoPtr->bufSize - envelopeInfoPtr->dataLeft,
 						 bytesIn );
-			if( bytesToCopy )
+			if( bytesToCopy > 0 )
 				{
 				memcpy( envelopeInfoPtr->buffer + envelopeInfoPtr->dataLeft,
 						bufPtr, bytesToCopy );
@@ -1598,7 +1610,7 @@ static int deenvelopePush( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 		if( cryptStatusOK( status ) )
 			{
 			*bytesCopied = length;
-			if( !length )
+			if( length <= 0 )
 				envelopeInfoPtr->state = STATE_FINISHED;
 			}
 		}
@@ -1791,7 +1803,7 @@ static int envelopeMessageFunction( const void *objectInfoPtr,
 	/* Process object-specific messages */
 	if( message == MESSAGE_ENV_PUSHDATA )
 		{
-		RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+		MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) messageDataPtr;
 		const int length = msgData->length;
 		int bytesCopied, status;
 
@@ -1869,7 +1881,7 @@ static int envelopeMessageFunction( const void *objectInfoPtr,
 		}
 	if( message == MESSAGE_ENV_POPDATA )
 		{
-		RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+		MESSAGE_DATA *msgData = ( MESSAGE_DATA * ) messageDataPtr;
 		const int length = msgData->length;
 		int bytesCopied, status;
 
@@ -1954,26 +1966,24 @@ static int initEnvelope( CRYPT_ENVELOPE *iCryptEnvelope,
 	envelopeInfoPtr->payloadSize = CRYPT_UNUSED;
 
 	/* Set up the enveloping methods */
-	if( formatType == CRYPT_FORMAT_PGP )
-		initPGPEnveloping( envelopeInfoPtr );
-	else
-		initCMSEnveloping( envelopeInfoPtr );
 	if( isDeenvelope )
 		{
+		/* For de-enveloping we default to PKCS #7/CMS/SMIME, if the data 
+		   is in some other format we'll adjust the function pointers once 
+		   the user pushes in the first data quantity */
+		initCMSDeenveloping( envelopeInfoPtr );
 		initDeenvelopeStreaming( envelopeInfoPtr );
 		initDenvResourceHandling( envelopeInfoPtr );
 		}
 	else
 		{
+		if( formatType == CRYPT_FORMAT_PGP )
+			initPGPEnveloping( envelopeInfoPtr );
+		else
+			initCMSEnveloping( envelopeInfoPtr );
 		initEnvelopeStreaming( envelopeInfoPtr );
 		initEnvResourceHandling( envelopeInfoPtr );
 		}
-
-	/* Set up the de-enveloping methods.  We default to PKCS #7/CMS/SMIME, 
-	   if the data is in some other format we'll adjust the function 
-	   pointers once the user pushes in the first data quantity */
-	if( isDeenvelope )
-		initCMSDeenveloping( envelopeInfoPtr );
 
 	return( CRYPT_OK );
 	}

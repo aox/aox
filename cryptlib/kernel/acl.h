@@ -19,7 +19,7 @@
 *																			*
 ****************************************************************************/
 
-/* Bit flags for specifying valid object subtypes.  Since the full field names 
+/* Bit flags for specifying valid object subtypes.  Since the full field names
    are rather long, we define a shortened form (only visible within the ACL
    definitions) that reduces the space required to define them */
 
@@ -115,7 +115,7 @@
 #define ST_USER_ANY				( SUBTYPE_USER_NORMAL | SUBTYPE_USER_SO | \
 								  SUBTYPE_USER_CA )
 
-/* Subtype values that allow access for any object subtype and for no 
+/* Subtype values that allow access for any object subtype and for no
    object subtypes */
 
 #define ST_ANY_A				( ST_CTX_ANY | ST_CERT_ANY | \
@@ -123,23 +123,15 @@
 #define ST_ANY_B				( ST_ENV_ANY | ST_SESS_ANY | ST_USER_ANY )
 #define ST_NONE					0
 
-/* The data type used to store subtype values */
-
-#if INT_MAX <= 65535L
-  typedef unsigned long OBJECT_SUBTYPE;
-#else
-  typedef unsigned int OBJECT_SUBTYPE;
-#endif /* 16- vs.32-bit systems */
-
 /****************************************************************************
 *																			*
 *							Access Permission Information					*
 *																			*
 ****************************************************************************/
 
-/* Read/write/delete permission flags.  Each object can have two modes, "low" 
-   and "high", whose exact definition depends on the object type.  At some 
-   point an operation on an object (loading a key for a context, signing a 
+/* Read/write/delete permission flags.  Each object can have two modes, "low"
+   and "high", whose exact definition depends on the object type.  At some
+   point an operation on an object (loading a key for a context, signing a
    cert) will move it from the low to the high state, at which point a much
    more restrictive set of permissions apply.  The permissions are given as
    RWD_RWD with the first set being for the object in the high state and the
@@ -150,13 +142,13 @@
    and external-access permssions but the internal-access-only ones have the
    external-access permissions turned off.
 
-   Some of the odder combinations arise from ACLs with sub-ACLs, for which 
+   Some of the odder combinations arise from ACLs with sub-ACLs, for which
    the overall access permission is the union of the permissions in all the
    sub-ACLs.  For example if one sub-ACL has xxx_RWx and another has xWD_xxx,
-   the parent ACL will have xWD_RWx.  Finally, there are a small number of 
-   special-case permissions in which internal access differs from external 
-   access.  This is used for attributes that are used for control purposes 
-   (e.g. identifier information in cert requests) and can be set internally 
+   the parent ACL will have xWD_RWx.  Finally, there are a small number of
+   special-case permissions in which internal access differs from external
+   access.  This is used for attributes that are used for control purposes
+   (e.g. identifier information in cert requests) and can be set internally
    but are read-only externally.
 
 			  Internal low ----++---- External high
@@ -199,7 +191,10 @@
 #define ACCESS_INT_RWx_RWx	0x6600	/* Internal: Read/write, read/write */
 
 #define ACCESS_SPECIAL_Rxx_RWx_Rxx_Rxx \
-							0x4644	/* Internal = Read-only, read/write, 
+							0x4644	/* Internal = Read-only, read/write,
+									   External = Read-only, read-only */
+#define ACCESS_SPECIAL_Rxx_RWD_Rxx_Rxx \
+							0x4744	/* Internal = Read-only, all access,
 									   External = Read-only, read-only */
 
 #define ACCESS_FLAG_R		0x0004	/* Read access permitted */
@@ -214,22 +209,22 @@
 
 #define MK_ACCESS_INTERNAL( value )	( ( value ) << 8 )
 
-/* The basic RWD access flags above are also used for checking some 
-   parameters passed with keyset mechanism messages, however in addition to 
-   these we have flags for getFirst/getNext functions that are only used 
+/* The basic RWD access flags above are also used for checking some
+   parameters passed with keyset mechanism messages, however in addition to
+   these we have flags for getFirst/getNext functions that are only used
    with keysets.  Note that although these partially overlap with the high-
-   mode access flags for attributes this isn't a problem since keysets don't 
-   distinguish between high and low states.  In addition some of the 
-   combinations may seem a bit odd, but that's because they're for mechanism 
-   parameters such as key ID information which is needed for reads and 
-   deletes but not writes, since it's implicitly included with the key which 
-   is being written.  Finally, one type of mechanism has parameter semantics 
-   that are too complex to express via a simple ACL entry, these are given a 
-   different-looking ACL entry xxXXxx to indicate to readers that this isn't 
-   the same as a normal entry with the same value.  In addition to this, the 
-   semantics of some of the getFirst/Next accesses are complex enough that 
-   we need to hardcode them into the ACL checking, leaving only a 
-   representative entry on the ACL definition itself (see key_acl.c for more 
+   mode access flags for attributes this isn't a problem since keysets don't
+   distinguish between high and low states.  In addition some of the
+   combinations may seem a bit odd, but that's because they're for mechanism
+   parameters such as key ID information which is needed for reads and
+   deletes but not writes, since it's implicitly included with the key which
+   is being written.  Finally, one type of mechanism has parameter semantics
+   that are too complex to express via a simple ACL entry, these are given a
+   different-looking ACL entry xxXXxx to indicate to readers that this isn't
+   the same as a normal entry with the same value.  In addition to this, the
+   semantics of some of the getFirst/Next accesses are complex enough that
+   we need to hardcode them into the ACL checking, leaving only a
+   representative entry on the ACL definition itself (see key_acl.c for more
    details) */
 
 #define ACCESS_KEYSET_xxxxx	0x0000	/* No access */
@@ -250,9 +245,9 @@
 *																			*
 ****************************************************************************/
 
-/* Routing types, which specify the routing used for the message.  This 
-   routing applies not only for attribute manipulation messages but for all 
-   messages in general, so that some of the routing types defined below only 
+/* Routing types, which specify the routing used for the message.  This
+   routing applies not only for attribute manipulation messages but for all
+   messages in general, so that some of the routing types defined below only
    apply for non-attribute messages.  The routing types are:
 
 	ROUTE_NONE
@@ -262,8 +257,8 @@
 	ROUTE_ALT( target, altTarget )
 	ROUTE_ALT2( target, altTarget1, altTarget2 )
 		Fixed-target messages always routed to a particular object type or
-		set of types (e.g. a certificate attribute is always routed to a 
-		certificate object; a generate key message is always routed to a 
+		set of types (e.g. a certificate attribute is always routed to a
+		certificate object; a generate key message is always routed to a
 		context).  In some cases alternative targets are possible, e.g. a
 		get-key message can be sent to a keyset or a device.
 
@@ -271,12 +266,12 @@
 	ROUTE_FIXED_ALT( target, altTarget )
 		Not routed, but checked to make sure that they're addressed to the
 		required target type.  These message types aren't routed because
-		they're specific to a particular object and are explicitly 
-		unroutable.  For example, a get key message sent to a cert or 
-		context tied to a device shouldn't be forwarded on to the device, 
-		since it would result in the cert acting as a keyset.  This is 
-		theoretically justifiable - "Get me another cert from the same place 
-		that this one came from" - but it's stretching the orthogonality of 
+		they're specific to a particular object and are explicitly
+		unroutable.  For example, a get key message sent to a cert or
+		context tied to a device shouldn't be forwarded on to the device,
+		since it would result in the cert acting as a keyset.  This is
+		theoretically justifiable - "Get me another cert from the same place
+		that this one came from" - but it's stretching the orthogonality of
 		objects a bit far.
 
 	ROUTE_IMPLICIT
@@ -314,11 +309,11 @@
 *																			*
 ****************************************************************************/
 
-/* The value range (for numeric or boolean values) or length range (for 
-   variable-length data).  Some values aren't amenable to a simple range 
-   check so we also allow various extended types of checking.  To denote that 
-   an extended check needs to be performed, we set the low range value to 
-   RANGE_EXT_MARKER and the high range value to an indicator of the type of 
+/* The value range (for numeric or boolean values) or length range (for
+   variable-length data).  Some values aren't amenable to a simple range
+   check so we also allow various extended types of checking.  To denote that
+   an extended check needs to be performed, we set the low range value to
+   RANGE_EXT_MARKER and the high range value to an indicator of the type of
    check to be performed.  The range types are:
 
 	RANGE_ANY
@@ -336,9 +331,9 @@
 		specific object sub-type.
 	RANGE_SELECTVALUE
 		Special-case value that would normally be a RANGE_SUBTYPED value but
-		which is used frequently enough that it's handled specially.  On 
-		write this value is CRYPT_UNUSED to select this attribute, on read 
-		it's a presence check and returns TRUE or FALSE.  This is used for 
+		which is used frequently enough that it's handled specially.  On
+		write this value is CRYPT_UNUSED to select this attribute, on read
+		it's a presence check and returns TRUE or FALSE.  This is used for
 		composite attributes with sub-components, e.g. DNs */
 
 typedef enum {
@@ -361,9 +356,9 @@ typedef enum {
 #define RANGE( low, high )	( low ), ( high )
 
 /* The maximum possible integer value, used to indicate that any value is
-   allowed (e.g. when returning device-specific error codes).  Note that 
-   this differs from the MAX_INTLENGTH value defined in crypt.h, which 
-   defines the maximum data length value that can be safely specified by a 
+   allowed (e.g. when returning device-specific error codes).  Note that
+   this differs from the MAX_INTLENGTH value defined in crypt.h, which
+   defines the maximum data length value that can be safely specified by a
    signed integer */
 
 #define RANGE_MAX			( INT_MAX - 128 )
@@ -410,13 +405,13 @@ typedef struct { const int lowRange, highRange; } RANGE_SUBRANGE_TYPE;
 
 	FLAG_ROUTE_TO_CTX
 	FLAG_ROUTE_TO_CERT
-		Whether routing should be applied to an object to locate an 
-		underlying object (e.g. a PKC object for a certificate or a 
-		certificate for a PKC object).  The need to apply routing is 
-		unfortunate but is required in order to apply the subtype check to 
-		PKC/cert objects, sorting out which (pre-routed) object types are 
-		permissible is beyond the scope of the ACL validation routines, 
-		which would have to take into consideration the intricacies of all 
+		Whether routing should be applied to an object to locate an
+		underlying object (e.g. a PKC object for a certificate or a
+		certificate for a PKC object).  The need to apply routing is
+		unfortunate but is required in order to apply the subtype check to
+		PKC/cert objects, sorting out which (pre-routed) object types are
+		permissible is beyond the scope of the ACL validation routines,
+		which would have to take into consideration the intricacies of all
 		manner of certificate objects paired with public and private keys */
 
 #define ACL_FLAG_NONE			0x00
@@ -478,18 +473,23 @@ typedef struct {
 	const int access;				/* Permitted access type */
 	const int flags;				/* Attribute flags */
 
-	/* Routing information: The object type that the attribute applies to, 
+	/* Routing information: The object type (or types, packed into a single
+	   value if there are more than one type) that the attribute applies to,
 	   and the routing function applied to the attribute message */
-	const OBJECT_TYPE routingTarget;	/* Target type if routable */
-	int ( *routingFunction )( const int objectHandle, const int arg );
+	const long routingTarget;		/* Target type(s) if routable */
+	int ( *routingFunction )( const int objectHandle, const long arg );
 
 	/* Attribute value checking information */
 	const int lowRange;				/* Min/max allowed if numeric/boolean, */
+#ifdef SYSTEM_16BIT
+	const long highRange;			/*	length if string */
+#else
 	const int highRange;			/*	length if string */
+#endif /* 16- vs. 32-bit systems */
 	const void *extendedInfo;		/* Extended ACL/checking information */
 	} ATTRIBUTE_ACL;
 
-/* Macros to set up attribute ACL's.  We have one for each of the basic types 
+/* Macros to set up attribute ACL's.  We have one for each of the basic types
    and two general-purpose ones that provide more control over the values */
 
 #ifndef NDEBUG
@@ -541,11 +541,10 @@ typedef struct {
 			{ attribute, valueType, subTypeA, subTypeB, access, flags, \
 			  routing, range, allowed }
 
-  /* End-of-ACL canary.  Note that the comma is necessary in order to allow
-     the non-debug version to evaluate to nothing */
+  /* End-of-ACL canary */
   #define MKACL_END() \
-			, { CRYPT_ERROR, ATTRIBUTE_VALUE_NONE, 0, 0, ACCESS_xxx_xxx, \
-				0, 0, NULL, 0, 0, NULL }
+			{ CRYPT_ERROR, ATTRIBUTE_VALUE_NONE, 0, 0, ACCESS_xxx_xxx, \
+			  0, 0, NULL, 0, 0, NULL }
 
   /* End-of-ACL marker, used to terminate variable-length sub-ACL lists.  The
      ST_ANY_A/B match ensures that it matches any object types */
@@ -600,7 +599,9 @@ typedef struct {
 			{ valueType, subTypeA, subTypeB, access, flags, routing, range, allowed }
 
   /* End-of-ACL canary */
-  #define MKACL_END()
+  #define MKACL_END() \
+			{ ATTRIBUTE_VALUE_NONE, 0, 0, ACCESS_xxx_xxx, \
+			  0, 0, NULL, 0, 0, NULL }
 
   /* End-of-ACL marker, used to terminate variable-length sub-ACL lists.  The
      ST_ANY_A/B match ensures that it matches any object types */
@@ -609,16 +610,16 @@ typedef struct {
 			  0, 0, NULL, 0, 0, NULL }
 #endif /* NDEBUG */
 
-/* The attribute ACLs are usually implemented as a lookup table, but in some 
-   cases we may use sparse ACLs to handle special-case situations where only 
-   a few attributes need to be checked.  In order to locate the appropriate 
-   ACL entry, the 'attribute' member (normally only used for debugging 
-   purposes) needs to be present.  To handle this, we define an alternative 
+/* The attribute ACLs are usually implemented as a lookup table, but in some
+   cases we may use sparse ACLs to handle special-case situations where only
+   a few attributes need to be checked.  In order to locate the appropriate
+   ACL entry, the 'attribute' member (normally only used for debugging
+   purposes) needs to be present.  To handle this, we define an alternative
    ACL entry entry type (and associated setup macros) that differs from the
    standard one in that the attribute member is present unconditionally.
-   
-   We have to be especially careful here because the parent type differs 
-   depending on whether it's a normal or debug build.  For the debug build 
+
+   We have to be especially careful here because the parent type differs
+   depending on whether it's a normal or debug build.  For the debug build
    the 'attribute' member is present at the start, for the release build
    it's absent so we place it at the end where it doesn't interfere with the
    other struct members */
@@ -631,8 +632,8 @@ typedef struct {
 	const OBJECT_SUBTYPE subTypeA, subTypeB;
 	const int access;				/* Permitted access type */
 	const int flags;				/* Attribute flags */
-	const OBJECT_TYPE routingTarget;	/* Target type if routable */
-	int ( *routingFunction )( const int objectHandle, const int arg );
+	const long routingTarget;		/* Target type if routable */
+	int ( *routingFunction )( const int objectHandle, const long arg );
 	const int lowRange;				/* Min/max allowed if numeric/boolean, */
 	const int highRange;			/*	length if string */
 	const void *extendedInfo;		/* Extended access information */
@@ -678,9 +679,9 @@ typedef struct {
 	const int allowedFlags;			/* Permitted key management flags */
 
 	/* Parameter flags for the mechanism information.  These define which
-	   types of optional/mandatory parameters can and can't be present, 
-	   using an extended form of the ACCESS_xxx flags to indicate whether 
-	   the parameter is required or not/permitted or not for read, write, 
+	   types of optional/mandatory parameters can and can't be present,
+	   using an extended form of the ACCESS_xxx flags to indicate whether
+	   the parameter is required or not/permitted or not for read, write,
 	   and delete messages */
 	const int idUseFlags;			/* ID required/not permitted */
 	const int pwUseFlags;			/* Password required/not permitted */
@@ -697,9 +698,9 @@ typedef struct {
 	const OBJECT_SUBTYPE specificObjSubTypeA, specificObjSubTypeB;
 	} KEYMGMT_ACL;
 
-/* Macros to set up key management ACLs.  The basic form treats the RWD and 
-   FnQ groups as one value, the _RWD form specifies individual RWD and FnQ 
-   values, and the _EX form adds special-case checking for specific object 
+/* Macros to set up key management ACLs.  The basic form treats the RWD and
+   FnQ groups as one value, the _RWD form specifies individual RWD and FnQ
+   values, and the _EX form adds special-case checking for specific object
    types that must be written to some keyset types */
 
 #define MK_KEYACL( itemType, keysetRWDSubType, keysetFNQSubType, \
@@ -730,8 +731,8 @@ typedef struct {
 *																			*
 ****************************************************************************/
 
-/* The parameter's type.  The basic values are boolean, numeric, or byte 
-   string, there are also some special types such as object handles that 
+/* The parameter's type.  The basic values are boolean, numeric, or byte
+   string, there are also some special types such as object handles that
    place extra constraints on the attribute */
 
 typedef enum {
@@ -780,7 +781,7 @@ typedef struct {
 #define MKACP_END() \
 			{ PARAM_VALUE_NONE, 0, 0, 0, 0 }
 
-/* Macro to access the parameter ACL information for a given parameter in a 
+/* Macro to access the parameter ACL information for a given parameter in a
    list of parameter ACLs */
 
 #define paramInfo( parentACL, paramNo )		parentACL->paramACL[ paramNo ]
@@ -823,7 +824,7 @@ typedef struct {
 *																			*
 ****************************************************************************/
 
-/* Object ACL entry for object parameters for messages.  This is used as a 
+/* Object ACL entry for object parameters for messages.  This is used as a
    composite entry in various ACLs that apply to objects */
 
 typedef struct {
@@ -850,7 +851,7 @@ typedef struct {
    mechanism ACLs, except that only a small subset (objects and unused) are
    used in practice.  In addition some objects require the presence of
    secondary objects (dependent objects for the main object), for example
-   a CA's PKC context requires an attached CA certificate.  This is 
+   a CA's PKC context requires an attached CA certificate.  This is
    specified in the secondary parameter ACL, which mirrors the main
    parameter ACL */
 
@@ -881,24 +882,24 @@ typedef struct {
 			{ ST_NONE, ST_NONE, ACL_FLAG_NONE }, \
 			{ MKACP_END() }
 
-/* Check-message ACL entry.  Most checks are for the same capability in a 
-   single object type (e.g. encryption capability in a PKC context and/or 
-   cert), for which we check the object type and action corresponding to the 
+/* Check-message ACL entry.  Most checks are for the same capability in a
+   single object type (e.g. encryption capability in a PKC context and/or
+   cert), for which we check the object type and action corresponding to the
    check.  However, some checks apply to dependent but object pairs but with
    different capabilities (for example a PKC context and a CA certificate).
-   In this case the check can be applied to either of the two object types, 
-   so we allow for a secondary ACL entry for the related object type.  In 
-   addition once we've applied the check to the primary object, we have to 
-   forward it to the secondary object, however in order to avoid message 
-   loops the forwarded check type applies only to the secondary object 
-   rather than being the same as the one that was applied to the primary 
+   In this case the check can be applied to either of the two object types,
+   so we allow for a secondary ACL entry for the related object type.  In
+   addition once we've applied the check to the primary object, we have to
+   forward it to the secondary object, however in order to avoid message
+   loops the forwarded check type applies only to the secondary object
+   rather than being the same as the one that was applied to the primary
    object */
 
 typedef struct {
 	const MESSAGE_CHECK_TYPE checkType;	/* Check message type */
 	const MESSAGE_TYPE actionType;	/* Action corresponding to check */
 	const OBJECT_ACL objectACL;		/* Valid objects for message type */
-	const struct CAA *altACL;		/* Ptr. to alt.ACL */	
+	const struct CAA *altACL;		/* Ptr. to alt.ACL */
 	} CHECK_ACL;
 
 typedef struct CAA {
@@ -909,8 +910,8 @@ typedef struct CAA {
 	const MESSAGE_TYPE fdCheckType;	/* Fwded check type for related obj.*/
 	} CHECK_ALT_ACL;
 
-/* Macros to set up check ACLs.  For the standard check ACL the first 
-   parameter, the check type, is supplied explicitly and isn't present in 
+/* Macros to set up check ACLs.  For the standard check ACL the first
+   parameter, the check type, is supplied explicitly and isn't present in
    the macro */
 
 #define MK_CHKACL( action, objSTA ) \
@@ -928,7 +929,7 @@ typedef struct CAA {
 			MESSAGE_NONE, \
 			OBJECT_TYPE_NONE, { ST_NONE, ST_NONE, ACL_FLAG_NONE }, MESSAGE_NONE
 
-/* Object dependency ACL entry, used when making one object dependent on 
+/* Object dependency ACL entry, used when making one object dependent on
    another */
 
 typedef struct {

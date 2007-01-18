@@ -57,7 +57,7 @@
  */
 
 #define CHECK_ENDIANNESS	/* One-off sanity check for osconfig.h */
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "osconfig.h"
   #include "des.h"
   #include "deslocl.h"

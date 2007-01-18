@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "sha.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/sha.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -38,13 +33,13 @@ typedef struct {
 
 /* Test the HMAC-SHA output against the test vectors given in RFC ???? */
 
-static const FAR_BSS struct {
-	const char *key;						/* HMAC key */
+static const struct {
+	const char FAR_BSS *key;				/* HMAC key */
 	const int keyLength;					/* Length of key */
-	const char *data;						/* Data to hash */
+	const char FAR_BSS *data;				/* Data to hash */
 	const int length;						/* Length of data */
 	const BYTE digest[ SHA_DIGEST_LENGTH ];	/* Digest of data */
-	} hmacValues[] = {
+	} FAR_BSS hmacValues[] = {
 	{ "\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B"
 	  "\x0B\x0B\x0B\x0B", 20,
 	  "Hi There", 8,
@@ -117,7 +112,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getHmacSHA1Capability();
 	CONTEXT_INFO contextInfo;
 	MAC_INFO contextData;
-	BYTE keyData[ MAC_STATE_SIZE ];
+	BYTE keyData[ MAC_STATE_SIZE + 8 ];
 	int i, status;
 
 	/* Test HMAC-SHA against the test vectors given in RFC ???? */
@@ -125,12 +120,12 @@ static int selfTest( void )
 		{
 		staticInitContext( &contextInfo, CONTEXT_MAC, capabilityInfo,
 						   &contextData, sizeof( MAC_INFO ), keyData );
-		status = capabilityInfo->initKeyFunction( &contextInfo, 
+		status = capabilityInfo->initKeyFunction( &contextInfo,
 						hmacValues[ i ].key, hmacValues[ i ].keyLength );
 		contextInfo.flags |= CONTEXT_HASH_INITED;
 		if( cryptStatusOK( status ) )
-			status = capabilityInfo->encryptFunction( &contextInfo, 
-						( BYTE * ) hmacValues[ i ].data, 
+			status = capabilityInfo->encryptFunction( &contextInfo,
+						( BYTE * ) hmacValues[ i ].data,
 						hmacValues[ i ].length );
 		if( cryptStatusOK( status ) )
 			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
@@ -154,7 +149,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -176,13 +171,13 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	SHA_CTX *shaInfo = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
 
-	/* If the hash state was reset to allow another round of MAC'ing, copy 
+	/* If the hash state was reset to allow another round of MAC'ing, copy
 	   the initial MAC state over into the current MAC state */
 	if( !( contextInfoPtr->flags & CONTEXT_HASH_INITED ) )
 		{
 		MAC_STATE *macState = macInfo->macInfo;
 
-		memcpy( &macState->macState, &macState->initialMacState, 
+		memcpy( &macState->macState, &macState->initialMacState,
 				sizeof( SHA_CTX ) );
 		}
 
@@ -190,7 +185,8 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		SHA1_Update( shaInfo, buffer, noBytes );
 	else
 		{
-		BYTE hashBuffer[ SHA_CBLOCK ], digestBuffer[ SHA_DIGEST_LENGTH ];
+		BYTE hashBuffer[ SHA_CBLOCK + 8 ];
+		BYTE digestBuffer[ SHA_DIGEST_LENGTH + 8 ];
 		int i;
 
 		/* Complete the inner hash and extract the digest */
@@ -222,12 +218,12 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Set up an HMAC-SHA key */
 
-static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 					const int keyLength )
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	SHA_CTX *shaInfo = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
-	BYTE hashBuffer[ SHA_CBLOCK ];
+	BYTE hashBuffer[ SHA_CBLOCK + 8 ];
 	int i;
 
 	SHA1_Init( shaInfo );
@@ -265,7 +261,7 @@ static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	memset( hashBuffer, 0, SHA_CBLOCK );
 
 	/* Save a copy of the initial state in case it's needed later */
-	memcpy( &( ( MAC_STATE * ) macInfo->macInfo )->initialMacState, shaInfo, 
+	memcpy( &( ( MAC_STATE * ) macInfo->macInfo )->initialMacState, shaInfo,
 			sizeof( SHA_CTX ) );
 
 	return( CRYPT_OK );

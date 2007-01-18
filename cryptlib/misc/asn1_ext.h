@@ -1,21 +1,13 @@
 /****************************************************************************
 *																			*
 *				ASN.1 Supplementary Constants and Structures				*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
 #ifndef _ASN1OID_DEFINED
 
 #define _ASN1OID_DEFINED
-
-#ifndef _STREAM_DEFINED
-  #if defined( INC_ALL ) ||  defined( INC_CHILD )
-	#include "stream.h"
-  #else
-	#include "misc/stream.h"
-  #endif /* Compiler-specific includes */
-#endif /* _STREAM_DEFINED */
 
 /* The cryptlib (strictly speaking DDS) OID arc is as follows:
 
@@ -42,11 +34,11 @@
 					 4 = content-type
 					   1 = cryptlib
 						 1 = cryptlibConfigData
-						 2 = cryptlibUserIndex 
+						 2 = cryptlibUserIndex
 						 3 = cryptlibUserInfo
 						 4 = cryptlibRtcsRequest
 						 5 = cryptlibRtcsResponse
-						 5 = cryptlibRtcsResponseExt
+						 6 = cryptlibRtcsResponseExt
 					 x58 x59 x5A x5A x59 = XYZZY cert policy */
 
 /* A macro to make make declaring OIDs simpler */
@@ -100,20 +92,18 @@
 #define OID_CRYPTLIB_XYZZYCERT	MKOID( "\x06\x0C\x2B\x06\x01\x04\x01\x97\x55\x58\x59\x5A\x5A\x59" )
 #define OID_PKCS12_PBEWITHSHAAND3KEYTRIPLEDESCBC MKOID( "\x06\x0A\x2A\x86\x48\x86\xF7\x0D\x01\x0C\x01\x03" )
 #define OID_PKCS12_PBEWITHSHAAND2KEYTRIPLEDESCBC MKOID( "\x06\x0A\x2A\x86\x48\x86\xF7\x0D\x01\x0C\x01\x04" )
+#define OID_ZLIB				MKOID( "\x06\x0B\x2A\x86\x48\x86\xF7\x0D\x01\x09\x10\x03\x08" )
 
 /* AlgorithmIdentifiers that are used in various places.  The Fortezza key
    wrap one is keyExchangeAlgorithm { fortezzaWrap80Algorithm } */
 
-#define ALGOID_CMS_ZLIB			MKOID( "\x30\x0F" \
-									   "\x06\x0B\x2A\x86\x48\x86\xF7\x0D\x01\x09\x10\x03\x08" \
-									   "\x05\x00" )
 #define ALGOID_FORTEZZA_KEYWRAP	MKOID( "\x30\x18" \
 									   "\x06\x09\x60\x86\x48\x01\x65\x02\x01\x01\x16" \
 									   "\x30\x0B" \
 									   "\x06\x09\x60\x86\x48\x01\x65\x02\x01\x01\x17" )
 
-/* Additional information required when reading a CMS header.  This is 
-   pointed to by the extraInfo member of the ASN.1 OID_INFO structure and 
+/* Additional information required when reading a CMS header.  This is
+   pointed to by the extraInfo member of the ASN.1 OID_INFO structure and
    contains CMS version number information */
 
 typedef struct {
@@ -121,7 +111,7 @@ typedef struct {
 	const int maxVersion;	/* Maximum version number for content type */
 	} CMS_CONTENT_INFO;
 
-/* When reading/writing an AlgorithmIdentifier there are all sorts of 
+/* When reading/writing an AlgorithmIdentifier there are all sorts of
    variations.  Setting the algoID-only flag will only read or write the
    basic algorithm information, by default the algorithm and all parameter
    information are written */
@@ -131,37 +121,41 @@ typedef struct {
 
 /* AlgorithmIdentifier routines */
 
-BOOLEAN checkAlgoID( const CRYPT_ALGO_TYPE algorithm, 
+BOOLEAN checkAlgoID( const CRYPT_ALGO_TYPE algorithm,
 					 const CRYPT_MODE_TYPE mode );
 int sizeofAlgoID( const CRYPT_ALGO_TYPE algorithm );
-int sizeofAlgoIDex( const CRYPT_ALGO_TYPE algorithm, 
-					const CRYPT_ALGO_TYPE subAlgorithm, 
-					const int extraLength );
+int sizeofAlgoIDex( const CRYPT_ALGO_TYPE algorithm,
+					const int parameter, const int extraLength );
 int writeAlgoID( STREAM *stream, const CRYPT_ALGO_TYPE algorithm );
 int writeAlgoIDex( STREAM *stream, const CRYPT_ALGO_TYPE algorithm,
-				   const CRYPT_ALGO_TYPE subAlgorithm, const int extraLength );
+				   const int parameter, const int extraLength );
 int readAlgoID( STREAM *stream, CRYPT_ALGO_TYPE *cryptAlgo );
 int readAlgoIDex( STREAM *stream, CRYPT_ALGO_TYPE *cryptAlgo,
-				  CRYPT_ALGO_TYPE *cryptSubAlgo, int *extraLength );
+				  CRYPT_ALGO_TYPE *altCryptAlgo, int *extraLength );
 
-/* Alternative versions that read/write various algorithm ID types (algo and 
-   mode only or full details depending on the option parameter) from encryption 
+/* Alternative versions that read/write various algorithm ID types (algo and
+   mode only or full details depending on the option parameter) from encryption
    contexts */
 
 int sizeofContextAlgoID( const CRYPT_CONTEXT iCryptContext,
-						 const CRYPT_ALGO_TYPE subAlgorithm,
-						 const int flags );
+						 const int parameter, const int flags );
 int readContextAlgoID( STREAM *stream, CRYPT_CONTEXT *iCryptContext,
 					   QUERY_INFO *queryInfo, const int tag );
 int writeContextAlgoID( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
-						const CRYPT_ALGO_TYPE subAlgorithm, 
-						const int flags );
+						const int parameter, const int flags );
+
+/* Another alternative that reads/writes a non-crypto algorithm identifier,
+   used for things like content types.  This just wraps the given OID up
+   in the AlgorithmIdentifier and writes it */
+
+int readGenericAlgoID( STREAM *stream, const BYTE *oid );
+int writeGenericAlgoID( STREAM *stream, const BYTE *oid );
 
 /* Read/write a message digest */
 
-int readMessageDigest( STREAM *stream, CRYPT_ALGO_TYPE *hashAlgo, 
-					   void *hash, int *hashSize );
-int writeMessageDigest( STREAM *stream, const CRYPT_ALGO_TYPE hashAlgo, 
+int readMessageDigest( STREAM *stream, CRYPT_ALGO_TYPE *hashAlgo,
+					   void *hash, const int hashMaxLen, int *hashSize );
+int writeMessageDigest( STREAM *stream, const CRYPT_ALGO_TYPE hashAlgo,
 						const void *hash, const int hashSize );
 #define sizeofMessageDigest( hashAlgo, hashSize ) \
 		( int ) sizeofObject( sizeofAlgoID( hashAlgo ) + \
@@ -169,9 +163,9 @@ int writeMessageDigest( STREAM *stream, const CRYPT_ALGO_TYPE hashAlgo,
 
 /* Read/write CMS headers */
 
-int readCMSheader( STREAM *stream, const OID_INFO *oidInfo, long *dataSize, 
+int readCMSheader( STREAM *stream, const OID_INFO *oidInfo, long *dataSize,
 				   const BOOLEAN isInnerHeader );
-int writeCMSheader( STREAM *stream, const BYTE *contentOID, 
+int writeCMSheader( STREAM *stream, const BYTE *contentOID,
 					const long dataSize, const BOOLEAN isInnerHeader );
 int sizeofCMSencrHeader( const BYTE *contentOID, const long dataSize,
 						 const CRYPT_CONTEXT iCryptContext );

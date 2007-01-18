@@ -7,7 +7,7 @@ OrdinaryHDRS = $(HDRS) ;
 HDRS = [ FDirName $(TOP) cryptlib ] ;
 OrdinaryDEFINES = $(DEFINES) ;
 DEFINES = DATA_LITTLEENDIAN NO_THREADS NDEBUG OSVERSION=2
-    _REENTRANT __UNIX__ ;
+    _REENTRANT __UNIX__ OPENSSL_NO_ASM ;
 
 if $(USE_X86_ASM) {
     DEFINES += USE_ASM ;
@@ -43,7 +43,7 @@ SubInclude TOP cryptlib session ;
 SubInclude TOP cryptlib zlib ;
 
 Build cryptlib : cryptapi.c cryptcfg.c cryptcrt.c cryptctx.c cryptdev.c
-    cryptenv.c cryptkey.c cryptlib.c cryptmis.c cryptses.c cryptusr.c ;
+    cryptenv.c cryptkey.c cryptlib.c cryptses.c cryptusr.c ;
 
 # work around brokenness by including test last, with an extra define
 # DEFINES += strnicmp=strncasecmp ;

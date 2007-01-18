@@ -5,18 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-  #include "session.h"
-  #include "cmp.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
   #include "session.h"
   #include "cmp.h"
 #else
@@ -100,20 +92,20 @@ static void debugDump( const int type, const int phase,
 							   ( type == CTAG_PB_ERROR ) ? errorStrings : \
 							  unkStrings;
 	FILE *filePtr;
-	char fileName[ 1024 ];
+	char fileName[ 1024 + 8 ];
 
 #ifndef DUMP_SERVER_MESSAGES
 	/* Server messages have complex names based on the server DN, so we only 
 	   dump them if explicitly requested */
-	if( sessionInfoPtr->flags & SESSION_ISSERVER )
+	if( isServer( sessionInfoPtr ) )
 		return;
 #endif /* !DUMP_SERVER_MESSAGES */
 
 /*	GetTempPath( 512, fileName ); */
 	strcpy( fileName, "/tmp/" );
-	if( sessionInfoPtr->flags & SESSION_ISSERVER )
+	if( isServer( sessionInfoPtr ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		const int pathLength = strlen( fileName );
 		int i;
 
@@ -134,7 +126,12 @@ static void debugDump( const int type, const int phase,
 	strcat( fileName, fnStringPtr[ phase - 1 ] );
 	strcat( fileName, ".der" );
 
+#ifdef __STDC_LIB_EXT1__
+	if( fopen_s( &filePtr, fileName, "wb" ) != 0 )
+		filePtr = NULL;
+#else
 	filePtr = fopen( fileName, "wb" );
+#endif /* __STDC_LIB_EXT1__ */
 	if( filePtr != NULL )
 		{
 		fwrite( sessionInfoPtr->receiveBuffer, 1,
@@ -146,10 +143,11 @@ static void debugDump( const int type, const int phase,
 
 /* Map request to response types */
 
-static const struct {
+typedef struct {
 	const int request, response;
 	const int cryptlibRequest;
-	} reqRespMapTbl[] = {
+	} RESPMAP_INFO;
+static const RESPMAP_INFO reqRespMapTbl[] = {
 	{ CTAG_PB_IR, CTAG_PB_IP, CRYPT_REQUESTTYPE_INITIALISATION },
 	{ CTAG_PB_CR, CTAG_PB_CP, CRYPT_REQUESTTYPE_CERTIFICATE },
 	{ CTAG_PB_P10CR, CTAG_PB_CP, CRYPT_REQUESTTYPE_CERTIFICATE },
@@ -159,6 +157,7 @@ static const struct {
 	{ CTAG_PB_RR, CTAG_PB_RP, CRYPT_REQUESTTYPE_REVOCATION },
 	{ CTAG_PB_CCR, CTAG_PB_CCP, CRYPT_ERROR },
 	{ CTAG_PB_GENM, CTAG_PB_GENP, CRYPT_REQUESTTYPE_PKIBOOT },
+	{ CTAG_PB_LAST, CTAG_PB_LAST, CRYPT_ERROR },
 	{ CTAG_PB_LAST, CTAG_PB_LAST, CRYPT_ERROR }
 	};
 
@@ -167,7 +166,11 @@ int reqToResp( const int reqType )
 	int i;
 
 	for( i = 0; reqRespMapTbl[ i ].request != reqType && \
-				reqRespMapTbl[ i ].request != CTAG_PB_LAST; i++ );
+				reqRespMapTbl[ i ].request != CTAG_PB_LAST && \
+				i < FAILSAFE_ARRAYSIZE( reqRespMapTbl, RESPMAP_INFO ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( reqRespMapTbl, RESPMAP_INFO ) )
+		retIntError();
 	return( reqRespMapTbl[ i ].response );
 	}
 static int reqToClibReq( const int reqType )
@@ -175,7 +178,11 @@ static int reqToClibReq( const int reqType )
 	int i;
 
 	for( i = 0; reqRespMapTbl[ i ].request != reqType && \
-				reqRespMapTbl[ i ].request != CTAG_PB_LAST; i++ );
+				reqRespMapTbl[ i ].request != CTAG_PB_LAST && \
+				i < FAILSAFE_ARRAYSIZE( reqRespMapTbl, RESPMAP_INFO ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( reqRespMapTbl, RESPMAP_INFO ) )
+		retIntError();
 	return( reqRespMapTbl[ i ].cryptlibRequest );
 	}
 static int clibReqToReq( const int reqType )
@@ -183,7 +190,11 @@ static int clibReqToReq( const int reqType )
 	int i;
 
 	for( i = 0; reqRespMapTbl[ i ].cryptlibRequest != reqType && \
-				reqRespMapTbl[ i ].request != CTAG_PB_LAST; i++ );
+				reqRespMapTbl[ i ].request != CTAG_PB_LAST && \
+				i < FAILSAFE_ARRAYSIZE( reqRespMapTbl, RESPMAP_INFO ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( reqRespMapTbl, RESPMAP_INFO ) )
+		retIntError();
 	return( reqRespMapTbl[ i ].request );
 	}
 
@@ -194,8 +205,8 @@ int initMacInfo( const CRYPT_CONTEXT iMacContext, const void *userPassword,
 				 const int saltLength, const int iterations )
 	{
 	MECHANISM_DERIVE_INFO mechanismInfo;
-	RESOURCE_DATA msgData;
-	BYTE macKey[ CRYPT_MAX_HASHSIZE ];
+	MESSAGE_DATA msgData;
+	BYTE macKey[ CRYPT_MAX_HASHSIZE + 8 ];
 	const void *passwordPtr = userPassword;
 	int passwordLength = userPasswordLength, status;
 
@@ -242,7 +253,7 @@ static int setProtocolInfo( CMP_PROTOCOL_INFO *protocolInfo,
 							const void *userID, const int userIDlength, 
 							const int flags )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	/* Set state info */
@@ -351,6 +362,7 @@ int initServerAuthentMAC( SESSION_INFO *sessionInfoPtr,
 				findSessionAttribute( sessionInfoPtr->attributeList,
 									  CRYPT_SESSINFO_USERNAME );
 		char userID[ CRYPT_MAX_TEXTSIZE + 8 ];
+		int userIDlen;
 
 		if( userNamePtr->flags & ATTR_FLAG_ENCODEDVALUE && \
 			userNamePtr->valueLength > 10 && \
@@ -358,13 +370,17 @@ int initServerAuthentMAC( SESSION_INFO *sessionInfoPtr,
 			{
 			memcpy( userID, userNamePtr->value, userNamePtr->valueLength );
 			userID[ userNamePtr->valueLength ] = '\0';
+			userIDlen = userNamePtr->valueLength;
 			}
 		else
+			{
 			strcpy( userID, "the requested user" );
+			userIDlen = 18;
+			}
 		protocolInfo->pkiFailInfo = CMPFAILINFO_SIGNERNOTTRUSTED;
 		retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
 				  "Couldn't find PKI user information for %s",
-				  userID );
+				  sanitiseString( userID, userIDlen ) );
 		}
 	cmpInfo->userInfo = getkeyInfo.cryptHandle;
 	protocolInfo->userIDchanged = FALSE;
@@ -373,7 +389,7 @@ int initServerAuthentMAC( SESSION_INFO *sessionInfoPtr,
 	if( findSessionAttribute( sessionInfoPtr->attributeList,
 							  CRYPT_SESSINFO_PASSWORD ) == NULL )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		char password[ CRYPT_MAX_TEXTSIZE + 8 ];
 
 		setMessageData( &msgData, password, CRYPT_MAX_TEXTSIZE );
@@ -439,7 +455,7 @@ int initServerAuthentSign( SESSION_INFO *sessionInfoPtr,
 	if( userNamePtr == NULL || \
 		!( userNamePtr->flags & ATTR_FLAG_ENCODEDVALUE ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		char userName[ CRYPT_MAX_TEXTSIZE + 8 ];
 
 		setMessageData( &msgData, userName, CRYPT_MAX_TEXTSIZE );
@@ -488,7 +504,7 @@ int hashMessageContents( const CRYPT_CONTEXT iHashContext,
 						 const void *data, const int length )
 	{
 	STREAM stream;
-	BYTE buffer[ 8 ];
+	BYTE buffer[ 8 + 8 ];
 
 	/* Delete the hash/MAC value, which resets the context */
 	krnlSendMessage( iHashContext, IMESSAGE_DELETEATTRIBUTE, NULL, 
@@ -541,10 +557,12 @@ static int initClientInfo( SESSION_INFO *sessionInfoPtr,
 									  CRYPT_SESSINFO_PASSWORD );
 	int status;
 
-	assert( !( sessionInfoPtr->flags & SESSION_ISSERVER ) );
+	assert( !isServer( sessionInfoPtr ) );
 
 	/* Determine what we need to do based on the request type */
 	protocolInfo->operation = clibReqToReq( cmpInfo->requestType );
+	if( cryptStatusError( protocolInfo->operation ) )
+		return( protocolInfo->operation );
 
 	/* If we're using public key-based authentication, set up the key and 
 	   user ID information */
@@ -577,8 +595,8 @@ static int initClientInfo( SESSION_INFO *sessionInfoPtr,
 		   automatically using the private key */
 		if( !protocolInfo->isCryptlib )
 			{
-			RESOURCE_DATA msgData;
-			BYTE userID[ CRYPT_MAX_HASHSIZE ];
+			MESSAGE_DATA msgData;
+			BYTE userID[ CRYPT_MAX_HASHSIZE + 8 ];
 
 			setMessageData( &msgData, userID, CRYPT_MAX_HASHSIZE );
 			status = krnlSendMessage( protocolInfo->authContext, 
@@ -612,12 +630,12 @@ static int initClientInfo( SESSION_INFO *sessionInfoPtr,
 	/* We're using MAC authentication, initialise the protocol info */
 	if( userNamePtr->flags & ATTR_FLAG_ENCODEDVALUE )
 		{
-		BYTE decodedValue[ CRYPT_MAX_TEXTSIZE ];
+		BYTE decodedValue[ 64 + 8 ];
 		int decodedValueLength;
 
 		/* It's a cryptlib-style encoded user ID, decode it into its binary 
 		   value */
-		decodedValueLength = decodePKIUserValue( decodedValue,
+		decodedValueLength = decodePKIUserValue( decodedValue, 64,
 												 userNamePtr->value, 
 												 userNamePtr->valueLength );
 		if( cryptStatusError( decodedValueLength ) )
@@ -641,12 +659,12 @@ static int initClientInfo( SESSION_INFO *sessionInfoPtr,
 	/* Set up the MAC context used to authenticate messages */
 	if( passwordPtr->flags & ATTR_FLAG_ENCODEDVALUE )
 		{
-		BYTE decodedValue[ CRYPT_MAX_TEXTSIZE ];
+		BYTE decodedValue[ 64 + 8 ];
 		int decodedValueLength;
 
 		/* It's a cryptlib-style encoded password, decode it into its binary 
 		   value */
-		decodedValueLength = decodePKIUserValue( decodedValue,
+		decodedValueLength = decodePKIUserValue( decodedValue, 64,
 						passwordPtr->value, passwordPtr->valueLength );
 		if( cryptStatusError( decodedValueLength ) )
 			{
@@ -826,9 +844,12 @@ static int clientTransact( SESSION_INFO *sessionInfoPtr )
 	status = readPkiDatagram( sessionInfoPtr );
 	if( cryptStatusOK( status ) )
 		{
+		const int responseType = reqToResp( protocolInfo.operation );
+
 		DEBUG_DUMP_CMP( protocolInfo.operation, 2, sessionInfoPtr );
-		status = readPkiMessage( sessionInfoPtr, &protocolInfo, 
-								 reqToResp( protocolInfo.operation ) );
+		if( !cryptStatusError( responseType ) )
+			status = readPkiMessage( sessionInfoPtr, &protocolInfo, 
+									 responseType );
 		}
 	if( cryptStatusOK( status ) && protocolInfo.operation == CTAG_PB_GENM )
 		{
@@ -940,6 +961,7 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 			   binary value */
 			protocolInfo.userIDsize = \
 					decodePKIUserValue( protocolInfo.userID,
+										CRYPT_MAX_TEXTSIZE,
 										userNamePtr->value,
 										userNamePtr->valueLength );
 		else
@@ -964,6 +986,12 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 		}
 	status = readPkiMessage( sessionInfoPtr, &protocolInfo,
 							 CRYPT_UNUSED );
+	if( cryptStatusOK( status ) )
+		{
+		cmpInfo->requestType = reqToClibReq( protocolInfo.operation );
+		if( cryptStatusError( cmpInfo->requestType ) )
+			status = cmpInfo->requestType;
+		}
 	if( cryptStatusError( status ) )
 		{
 		sendErrorResponse( sessionInfoPtr, &protocolInfo, status );
@@ -971,7 +999,6 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 		return( status );
 		}
 	DEBUG_DUMP_CMP( protocolInfo.operation, 1, sessionInfoPtr );
-	cmpInfo->requestType = reqToClibReq( protocolInfo.operation );
 
 	/* If it's a PKIBoot request, send the PKIBoot response and retry the 
 	   read unless the client closes the stream.  This assumes that the 
@@ -1430,7 +1457,7 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 			if( cmpInfo->requestType == CRYPT_REQUESTTYPE_CERTIFICATE || \
 				cmpInfo->requestType == CRYPT_REQUESTTYPE_KEYUPDATE )
 				{
-				RESOURCE_DATA msgData = { NULL, 0 };
+				MESSAGE_DATA msgData = { NULL, 0 };
 
 				status = krnlSendMessage( cryptCert, IMESSAGE_GETATTRIBUTE_S, 
 										  &msgData, CRYPT_IATTRIBUTE_SUBJECT );
@@ -1476,7 +1503,7 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 		}
 	else
 		{
-		RESOURCE_DATA msgData = { NULL, 0 };
+		MESSAGE_DATA msgData = { NULL, 0 };
 
 		/* Make sure that everything is set up ready to go.  Since revocation
 		   requests aren't signed like normal cert objects we can't just
@@ -1537,7 +1564,7 @@ int setAccessMethodCMP( SESSION_INFO *sessionInfoPtr )
 
 	/* Set the access method pointers */
 	sessionInfoPtr->protocolInfo = &protocolInfo;
-	if( sessionInfoPtr->flags & SESSION_ISSERVER )
+	if( isServer( sessionInfoPtr ) )
 		sessionInfoPtr->transactFunction = serverTransact;
 	else
 		{

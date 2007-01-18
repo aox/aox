@@ -64,7 +64,7 @@
  * 1.0 First working version
  */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "osconfig.h"
   #include "des.h"
   #include "deslocl.h"
@@ -96,10 +96,11 @@ static const unsigned char odd_parity[256]={
 
 void des_set_odd_parity(des_cblock *key)
 	{
+	unsigned char *keyPtr = *key;	/* Work around XMK compiler bug - pcg */
 	int i;
 
 	for (i=0; i<DES_KEY_SZ; i++)
-		(*key)[i]=odd_parity[(*key)[i]];
+		keyPtr[i]=odd_parity[keyPtr[i]];
 	}
 
 int des_check_key_parity(const_des_cblock *key)

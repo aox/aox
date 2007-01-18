@@ -5,18 +5,11 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
@@ -108,14 +101,14 @@ static int copyRevocationInfo( CERT_INFO *certInfoPtr,
 									 &certInfoPtr->cCertRev->currentRevocation,
 									 CRYPT_IKEYID_ISSUERANDSERIALNUMBER,
 									 revInfoPtr->cCertReq->serialNumber,
-									 revInfoPtr->cCertReq->serialNumberLength, 
+									 revInfoPtr->cCertReq->serialNumberLength,
 									 FALSE );
 	else
 		status = addRevocationEntry( &certInfoPtr->cCertRev->revocations,
 									 &certInfoPtr->cCertRev->currentRevocation,
 									 CRYPT_IKEYID_ISSUERANDSERIALNUMBER,
 									 revInfoPtr->cCertCert->serialNumber,
-									 revInfoPtr->cCertCert->serialNumberLength, 
+									 revInfoPtr->cCertCert->serialNumberLength,
 									 FALSE );
 	if( status == CRYPT_ERROR_DUPLICATE )
 		/* If this cert is already present in the list, set the extended
@@ -124,295 +117,6 @@ static int copyRevocationInfo( CERT_INFO *certInfoPtr,
 					  CRYPT_ERRTYPE_ATTR_PRESENT );
 	return( status );
 	}
-
-/* Convert a DN in string form into a certificate DN */
-
-static int getEncodedDn( CERT_INFO *certInfoPtr, const void *dnString,
-						 const int dnStringLength )
-	{
-	SELECTION_STATE savedState;
-	int status;
-
-	/* If there's already a DN set, we can't do anything else */
-	saveSelectionState( savedState, certInfoPtr );
-	status = selectDN( certInfoPtr, CRYPT_ATTRIBUTE_NONE, MUST_BE_PRESENT );
-	if( cryptStatusOK( status ) && \
-		*certInfoPtr->currentSelection.dnPtr == NULL )
-		/* There's a DN selected but it's empty, we're OK */
-		status = CRYPT_ERROR;
-	restoreSelectionState( savedState, certInfoPtr );
-	if( cryptStatusOK( status ) )
-		return( CRYPT_ERROR_INITED );
-	status = selectDN( certInfoPtr, CRYPT_ATTRIBUTE_NONE, CREATE_IF_ABSENT );
-	if( cryptStatusError( status ) )
-		return( status );
-
-	/* Read the entire DN from its string form into the selected DN */
-	status = readDNstring( dnString, dnStringLength,
-						   certInfoPtr->currentSelection.dnPtr );
-	if( cryptStatusOK( status ) && \
-		certInfoPtr->currentSelection.updateCursor )
-		/* If we couldn't update the cursor earlier on because the attribute
-		   field in question hadn't been created yet, do it now */
-		selectGeneralName( certInfoPtr,
-						   certInfoPtr->currentSelection.generalName,
-						   MAY_BE_ABSENT );
-	return( status );
-	}
-
-/* The OCSPv1 ID doesn't contain any usable fields so we pre-encode it when
-   the cert is added to the OCSP request and treat it as a blob thereafter */
-
-static int writeOCSPv1ID( STREAM *stream, const CERT_INFO *certInfoPtr,
-						  const void *issuerKeyHash )
-	{
-	HASHFUNCTION hashFunction;
-	BYTE hashBuffer[ CRYPT_MAX_HASHSIZE ];
-	int hashSize;
-
-	assert( certInfoPtr->issuerDNptr != NULL );
-	assert( certInfoPtr->cCertCert->serialNumber != NULL );
-
-	/* Get the issuerName hash */
-	getHashParameters( CRYPT_ALGO_SHA, &hashFunction, &hashSize );
-	hashFunction( NULL, hashBuffer, certInfoPtr->issuerDNptr,
-				  certInfoPtr->issuerDNsize, HASH_ALL );
-
-	/* Write the request data */
-	writeSequence( stream, 
-			sizeofAlgoID( CRYPT_ALGO_SHA ) + \
-			sizeofObject( hashSize ) + sizeofObject( hashSize ) + \
-			sizeofInteger( certInfoPtr->cCertCert->serialNumber,
-						   certInfoPtr->cCertCert->serialNumberLength ) );
-	writeAlgoID( stream, CRYPT_ALGO_SHA );
-	writeOctetString( stream, hashBuffer, hashSize, DEFAULT_TAG );
-	writeOctetString( stream, issuerKeyHash, 20, DEFAULT_TAG );
-	return( writeInteger( stream, certInfoPtr->cCertCert->serialNumber,
-						  certInfoPtr->cCertCert->serialNumberLength, 
-						  DEFAULT_TAG ) );
-	}
-
-/* Sanitise cert attributes based on a user-supplied template.  This is
-   used to prevent a user from supplying potentially dangerous attributes
-   in a cert request, for example to request a CA certificate by setting the 
-   basicConstraints/keyUsage = CA extensions in the request in a manner that 
-   would result in the creation of a CA cert when the request is processed.  
-   We use an allow-all default rather than deny-all since deny-all would 
-   require the caller to specify a vast range of (mostly never-used) 
-   attributes to permit, when usually all they want to block is the CA flag 
-   and equivalent mechanisms */
-
-static int sanitiseCertAttributes( CERT_INFO *certInfoPtr,
-								   const ATTRIBUTE_LIST *templateListPtr )
-	{
-	const ATTRIBUTE_LIST *attributeListCursor;
-
-	/* If there's no attributes present or no disallowed attribute template,
-	   we're done */
-	if( certInfoPtr->attributes == NULL || templateListPtr == NULL )
-		return( CRYPT_OK );
-
-	/* Walk down the template attribute list applying each one in turn to 
-	   the certificate attributes */
-	for( attributeListCursor = templateListPtr;
-		 attributeListCursor != NULL && \
-			!isBlobAttribute( attributeListCursor );
-		 attributeListCursor = attributeListCursor->next )
-		{
-		ATTRIBUTE_LIST *attributeList;
-		int value;
-
-		/* Check to see whether there's a constrained attribute present in 
-		   the cert attributes and if it is, whether it conflicts with the
-		   constraining attribute */
-		attributeList = findAttributeField( certInfoPtr->attributes,
-											attributeListCursor->fieldID, 
-											attributeListCursor->subFieldID );
-		if( attributeList == NULL || \
-			!( attributeList->intValue & attributeListCursor->intValue ) )
-			continue;
-
-		/* If the cert attribute was provided through the application of
-		   PKI user data (indicated by it having the locked flag set), allow 
-		   it even if it conflicts with the constraining attribute.  This is 
-		   permitted because the PKI user data was explicitly set by the 
-		   issuing CA rather than being user-supplied in the cert request, 
-		   so it has to be OK */
-		if( attributeList->flags & ATTR_FLAG_LOCKED )
-			continue;
-
-		/* The attribute contains a value that's disallowed by the 
-		   constraining attribute, correct it if possible */
-		value = attributeList->intValue & ~attributeListCursor->intValue;
-		if( !value )
-			{
-			/* The attribute contains only invalid bits and can't be 
-			   permitted */
-			certInfoPtr->errorLocus = attributeList->fieldID;
-			certInfoPtr->errorType = CRYPT_ERRTYPE_ATTR_VALUE;
-			return( CRYPT_ERROR_INVALID );
-			}
-		attributeList->intValue = value;	/* Set adjusted value */
-		}
-
-	return( CRYPT_OK );
-	}
-
-/****************************************************************************
-*																			*
-*							Serial-Number Routines							*
-*																			*
-****************************************************************************/
-
-/* Set the serial number for a certificate.  Ideally we would store this as
-   a static value in the configuration database, but this has three
-   disadvantages: Updating the serial number updates the entire
-   configuration database (including things the user might not want
-   updated), if the config database update fails the serial number never
-   changes, and the predictable serial number allows tracking of the number
-   of certificates which have been issued by the CA.  Because of this, we
-   just use a 64-bit nonce if the user doesn't supply a value */
-
-int setSerialNumber( CERT_INFO *certInfoPtr, const void *serialNumber,
-					 const int serialNumberLength )
-	{
-	RESOURCE_DATA msgData;
-	BYTE buffer[ 128 ];
-	void *serialNumberPtr;
-	int length = ( serialNumberLength > 0 ) ? \
-				 serialNumberLength : DEFAULT_SERIALNO_SIZE;
-	int bufPos = 0, status;
-
-	assert( certInfoPtr->type == CRYPT_CERTTYPE_CERTIFICATE || \
-			certInfoPtr->type == CRYPT_CERTTYPE_ATTRIBUTE_CERT || \
-			certInfoPtr->type == CRYPT_CERTTYPE_CERTCHAIN || \
-			certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION );
-	assert( ( serialNumber == NULL && serialNumberLength == 0 ) || \
-			( serialNumber != NULL && serialNumberLength > 0 && \
-									  serialNumberLength <= 100 ) );
-
-	/* If a serial number has already been set explicitly, don't override
-	   it with an implicitly-set one */
-	serialNumberPtr = \
-			( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION ) ? \
-				certInfoPtr->cCertReq->serialNumber : \
-				certInfoPtr->cCertCert->serialNumber;
-	if( serialNumberPtr != NULL )
-		{
-		assert( isReadPtr( serialNumberPtr, SERIALNO_BUFSIZE ) );
-		assert( serialNumber == NULL && serialNumberLength == 0 );
-		return( CRYPT_OK );
-		}
-	serialNumberPtr = \
-			( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION ) ? \
-				certInfoPtr->cCertReq->serialNumberBuffer : \
-				certInfoPtr->cCertCert->serialNumberBuffer;
-
-	/* If we're using user-supplied serial number data, canonicalise it into
-	   a form suitable for use as an INTEGER-hole */
-	if( serialNumber != NULL )
-		{
-		STREAM stream;
-
-		assert( isReadPtr( serialNumber, serialNumberLength ) );
-
-		sMemOpen( &stream, buffer, 128 );
-		status = writeInteger( &stream, serialNumber, serialNumberLength,
-							   DEFAULT_TAG );
-		length = stell( &stream ) - 2;
-		sMemDisconnect( &stream );
-		bufPos = 2;		/* Skip tag + length */
-		if( cryptStatusError( status ) )
-			return( status );
-		}
-	else
-		{
-		/* Generate a random (but fixed-length) serial number and ensure 
-		   that the first byte of the value we use is nonzero (to guarantee 
-		   a DER encoding) and clear the high bit to provide a constant-
-		   length ASN.1 encoded value */
-		setMessageData( &msgData, buffer, DEFAULT_SERIALNO_SIZE + 1 );
-		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_GETATTRIBUTE_S, &msgData,
-								  CRYPT_IATTRIBUTE_RANDOM_NONCE );
-		if( cryptStatusError( status ) )
-			return( status );
-		buffer[ 0 ] &= 0x7F;	/* Clear the sign bit */
-		if( buffer[ 0 ] == 0 )
-			{
-			/* The first byte is zero, try for a nonzero byte in the extra
-			   data we fetched.  If that's zero too, just set it to 1 */
-			buffer[ 0 ] = buffer[ DEFAULT_SERIALNO_SIZE ] & 0x7F;
-			if( buffer[ 0 ] == 0 )
-				buffer[ 0 ] = 1;
-			}
-		}
-
-	/* Copy across the canonicalised serial number value */
-	if( length >= SERIALNO_BUFSIZE && \
-		( serialNumberPtr = clDynAlloc( "setSerialNumber", length ) ) == NULL )
-		return( CRYPT_ERROR_MEMORY );
-	if( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION )
-		{
-		certInfoPtr->cCertReq->serialNumber = serialNumberPtr;
-		certInfoPtr->cCertReq->serialNumberLength = length;
-		}
-	else
-		{
-		certInfoPtr->cCertCert->serialNumber = serialNumberPtr;
-		certInfoPtr->cCertCert->serialNumberLength = length;
-		}
-	memcpy( serialNumberPtr, buffer + bufPos, length );
-
-	return( CRYPT_OK );
-	}
-
-/* Compare a serial number in canonical form to a generic serial number, 
-   with special handling for leading-zero truncation.  This one can get a 
-   bit tricky because Microsoft fairly consistently encode the serial 
-   numbers incorrectly, so we normalise the values to have no leading zero, 
-   which is the lowest common denominator */
-
-int compareSerialNumber( const void *canonSerialNumber, 
-						 const int canonSerialNumberLength,
-						 const void *serialNumber, 
-						 const int serialNumberLength )
-	{
-	const BYTE *canonSerialNumberPtr = canonSerialNumber;
-	const BYTE *serialNumberPtr = serialNumber;
-	int canonSerialLength = canonSerialNumberLength;
-	int serialLength = serialNumberLength;
-
-	/* Internal serial numbers are canonicalised, so all we need to do is
-	   strip a possible leading zero */
-	if( !canonSerialNumberPtr[ 0 ] )
-		{
-		canonSerialNumberPtr++;
-		canonSerialLength--;
-		}
-	assert( canonSerialLength == 0 || canonSerialNumberPtr[ 0 ] );
-
-	/* Serial numbers from external sources can be arbitarily strangely 
-	   encoded, so we strip leading zeroes until we get to actual data */
-	while( serialLength > 0 && !serialNumberPtr[ 0 ] )
-		{
-		serialNumberPtr++;
-		serialLength--;
-		}
-
-	/* Finally we've got them in a form where we can compare them */
-	if( canonSerialLength != serialLength || \
-		memcmp( canonSerialNumberPtr, serialNumberPtr, serialLength ) )
-		return( 1 );
-
-	return( 0 );
-	}
-
-/****************************************************************************
-*																			*
-*								Copy Cert Info								*
-*																			*
-****************************************************************************/
 
 /* Copy public key data into a certificate object */
 
@@ -455,7 +159,7 @@ static int copyPublicKeyInfo( CERT_INFO *certInfoPtr,
 	else
 		{
 		CRYPT_CONTEXT iCryptContext;
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		/* Get the context handle.  All other checking has already been
 		   performed by the kernel */
@@ -524,6 +228,300 @@ static int copyPublicKeyInfo( CERT_INFO *certInfoPtr,
 	return( CRYPT_OK );
 	}
 
+/* Convert a DN in string form into a certificate DN */
+
+static int getEncodedDn( CERT_INFO *certInfoPtr, const void *dnString,
+						 const int dnStringLength )
+	{
+	SELECTION_STATE savedState;
+	int status;
+
+	/* If there's already a DN set, we can't do anything else */
+	saveSelectionState( savedState, certInfoPtr );
+	status = selectDN( certInfoPtr, CRYPT_ATTRIBUTE_NONE, MUST_BE_PRESENT );
+	if( cryptStatusOK( status ) && \
+		*certInfoPtr->currentSelection.dnPtr == NULL )
+		/* There's a DN selected but it's empty, we're OK */
+		status = CRYPT_ERROR;
+	restoreSelectionState( savedState, certInfoPtr );
+	if( cryptStatusOK( status ) )
+		return( CRYPT_ERROR_INITED );
+	status = selectDN( certInfoPtr, CRYPT_ATTRIBUTE_NONE, CREATE_IF_ABSENT );
+	if( cryptStatusError( status ) )
+		return( status );
+
+	/* Read the entire DN from its string form into the selected DN */
+	status = readDNstring( dnString, dnStringLength,
+						   certInfoPtr->currentSelection.dnPtr );
+	if( cryptStatusOK( status ) && \
+		certInfoPtr->currentSelection.updateCursor )
+		/* If we couldn't update the cursor earlier on because the attribute
+		   field in question hadn't been created yet, do it now */
+		selectGeneralName( certInfoPtr,
+						   certInfoPtr->currentSelection.generalName,
+						   MAY_BE_ABSENT );
+	return( status );
+	}
+
+/* The OCSPv1 ID doesn't contain any usable fields so we pre-encode it when
+   the cert is added to the OCSP request and treat it as a blob thereafter */
+
+static int writeOCSPv1ID( STREAM *stream, const CERT_INFO *certInfoPtr,
+						  const void *issuerKeyHash )
+	{
+	HASHFUNCTION hashFunction;
+	BYTE hashBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
+	int hashSize;
+
+	assert( certInfoPtr->issuerDNptr != NULL );
+	assert( certInfoPtr->cCertCert->serialNumber != NULL );
+
+	/* Get the issuerName hash */
+	getHashParameters( CRYPT_ALGO_SHA, &hashFunction, &hashSize );
+	hashFunction( NULL, hashBuffer, CRYPT_MAX_HASHSIZE,
+				  certInfoPtr->issuerDNptr,
+				  certInfoPtr->issuerDNsize, HASH_ALL );
+
+	/* Write the request data */
+	writeSequence( stream,
+			sizeofAlgoID( CRYPT_ALGO_SHA ) + \
+			sizeofObject( hashSize ) + sizeofObject( hashSize ) + \
+			sizeofInteger( certInfoPtr->cCertCert->serialNumber,
+						   certInfoPtr->cCertCert->serialNumberLength ) );
+	writeAlgoID( stream, CRYPT_ALGO_SHA );
+	writeOctetString( stream, hashBuffer, hashSize, DEFAULT_TAG );
+	writeOctetString( stream, issuerKeyHash, 20, DEFAULT_TAG );
+	return( writeInteger( stream, certInfoPtr->cCertCert->serialNumber,
+						  certInfoPtr->cCertCert->serialNumberLength,
+						  DEFAULT_TAG ) );
+	}
+
+/* Sanitise cert attributes based on a user-supplied template.  This is
+   used to prevent a user from supplying potentially dangerous attributes
+   in a cert request, for example to request a CA certificate by setting the
+   basicConstraints/keyUsage = CA extensions in the request in a manner that
+   would result in the creation of a CA cert when the request is processed.
+   We use an allow-all default rather than deny-all since deny-all would
+   require the caller to specify a vast range of (mostly never-used)
+   attributes to permit, when usually all they want to block is the CA flag
+   and equivalent mechanisms */
+
+static int sanitiseCertAttributes( CERT_INFO *certInfoPtr,
+								   const ATTRIBUTE_LIST *templateListPtr )
+	{
+	const ATTRIBUTE_LIST *attributeListCursor;
+	int iterationCount = 0;
+
+	/* If there's no attributes present or no disallowed attribute template,
+	   we're done */
+	if( certInfoPtr->attributes == NULL || templateListPtr == NULL )
+		return( CRYPT_OK );
+
+	/* Walk down the template attribute list applying each one in turn to
+	   the certificate attributes */
+	for( attributeListCursor = templateListPtr;
+		 attributeListCursor != NULL && \
+			!isBlobAttribute( attributeListCursor ) && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
+		 attributeListCursor = attributeListCursor->next )
+		{
+		ATTRIBUTE_LIST *attributeList;
+		int value;
+
+		/* Check to see whether there's a constrained attribute present in
+		   the cert attributes and if it is, whether it conflicts with the
+		   constraining attribute */
+		attributeList = findAttributeField( certInfoPtr->attributes,
+											attributeListCursor->fieldID,
+											attributeListCursor->subFieldID );
+		if( attributeList == NULL || \
+			!( attributeList->intValue & attributeListCursor->intValue ) )
+			continue;
+
+		/* If the cert attribute was provided through the application of
+		   PKI user data (indicated by it having the locked flag set), allow
+		   it even if it conflicts with the constraining attribute.  This is
+		   permitted because the PKI user data was explicitly set by the
+		   issuing CA rather than being user-supplied in the cert request,
+		   so it has to be OK */
+		if( attributeList->flags & ATTR_FLAG_LOCKED )
+			continue;
+
+		/* The attribute contains a value that's disallowed by the
+		   constraining attribute, correct it if possible */
+		value = attributeList->intValue & ~attributeListCursor->intValue;
+		if( !value )
+			{
+			/* The attribute contains only invalid bits and can't be
+			   permitted */
+			certInfoPtr->errorLocus = attributeList->fieldID;
+			certInfoPtr->errorType = CRYPT_ERRTYPE_ATTR_VALUE;
+			return( CRYPT_ERROR_INVALID );
+			}
+		attributeList->intValue = value;	/* Set adjusted value */
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
+
+	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
+*							Serial-Number Routines							*
+*																			*
+****************************************************************************/
+
+/* Set the serial number for a certificate.  Ideally we would store this as
+   a static value in the configuration database, but this has three
+   disadvantages: Updating the serial number updates the entire
+   configuration database (including things the user might not want
+   updated), if the config database update fails the serial number never
+   changes, and the predictable serial number allows tracking of the number
+   of certificates which have been issued by the CA.  Because of this, we
+   just use a 64-bit nonce if the user doesn't supply a value */
+
+int setSerialNumber( CERT_INFO *certInfoPtr, const void *serialNumber,
+					 const int serialNumberLength )
+	{
+	MESSAGE_DATA msgData;
+	BYTE buffer[ 128 + 8 ];
+	void *serialNumberPtr;
+	int length = ( serialNumberLength > 0 ) ? \
+				 serialNumberLength : DEFAULT_SERIALNO_SIZE;
+	int bufPos = 0, status;
+
+	assert( certInfoPtr->type == CRYPT_CERTTYPE_CERTIFICATE || \
+			certInfoPtr->type == CRYPT_CERTTYPE_ATTRIBUTE_CERT || \
+			certInfoPtr->type == CRYPT_CERTTYPE_CERTCHAIN || \
+			certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION );
+	assert( ( serialNumber == NULL && serialNumberLength == 0 ) || \
+			( serialNumber != NULL && serialNumberLength > 0 && \
+									  serialNumberLength <= 100 ) );
+
+	/* If a serial number has already been set explicitly, don't override
+	   it with an implicitly-set one */
+	serialNumberPtr = \
+			( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION ) ? \
+				certInfoPtr->cCertReq->serialNumber : \
+				certInfoPtr->cCertCert->serialNumber;
+	if( serialNumberPtr != NULL )
+		{
+		assert( isReadPtr( serialNumberPtr, SERIALNO_BUFSIZE ) );
+		assert( serialNumber == NULL && serialNumberLength == 0 );
+		return( CRYPT_OK );
+		}
+	serialNumberPtr = \
+			( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION ) ? \
+				certInfoPtr->cCertReq->serialNumberBuffer : \
+				certInfoPtr->cCertCert->serialNumberBuffer;
+
+	/* If we're using user-supplied serial number data, canonicalise it into
+	   a form suitable for use as an INTEGER-hole */
+	if( serialNumber != NULL )
+		{
+		STREAM stream;
+
+		assert( isReadPtr( serialNumber, serialNumberLength ) );
+
+		sMemOpen( &stream, buffer, 128 );
+		status = writeInteger( &stream, serialNumber, serialNumberLength,
+							   DEFAULT_TAG );
+		length = stell( &stream ) - 2;
+		sMemDisconnect( &stream );
+		bufPos = 2;		/* Skip tag + length */
+		if( cryptStatusError( status ) )
+			return( status );
+		}
+	else
+		{
+		/* Generate a random (but fixed-length) serial number and ensure
+		   that the first byte of the value we use is nonzero (to guarantee
+		   a DER encoding) and clear the high bit to provide a constant-
+		   length ASN.1 encoded value */
+		setMessageData( &msgData, buffer, DEFAULT_SERIALNO_SIZE + 1 );
+		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
+								  IMESSAGE_GETATTRIBUTE_S, &msgData,
+								  CRYPT_IATTRIBUTE_RANDOM_NONCE );
+		if( cryptStatusError( status ) )
+			return( status );
+		buffer[ 0 ] &= 0x7F;	/* Clear the sign bit */
+		if( buffer[ 0 ] == 0 )
+			{
+			/* The first byte is zero, try for a nonzero byte in the extra
+			   data we fetched.  If that's zero too, just set it to 1 */
+			buffer[ 0 ] = buffer[ DEFAULT_SERIALNO_SIZE ] & 0x7F;
+			if( buffer[ 0 ] == 0 )
+				buffer[ 0 ] = 1;
+			}
+		}
+
+	/* Copy across the canonicalised serial number value */
+	if( length >= SERIALNO_BUFSIZE && \
+		( serialNumberPtr = clDynAlloc( "setSerialNumber", length ) ) == NULL )
+		return( CRYPT_ERROR_MEMORY );
+	if( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION )
+		{
+		certInfoPtr->cCertReq->serialNumber = serialNumberPtr;
+		certInfoPtr->cCertReq->serialNumberLength = length;
+		}
+	else
+		{
+		certInfoPtr->cCertCert->serialNumber = serialNumberPtr;
+		certInfoPtr->cCertCert->serialNumberLength = length;
+		}
+	memcpy( serialNumberPtr, buffer + bufPos, length );
+
+	return( CRYPT_OK );
+	}
+
+/* Compare a serial number in canonical form to a generic serial number,
+   with special handling for leading-zero truncation.  This one can get a
+   bit tricky because Microsoft fairly consistently encode the serial
+   numbers incorrectly, so we normalise the values to have no leading zero,
+   which is the lowest common denominator */
+
+BOOLEAN compareSerialNumber( const void *canonSerialNumber,
+							 const int canonSerialNumberLength,
+							 const void *serialNumber,
+							 const int serialNumberLength )
+	{
+	const BYTE *canonSerialNumberPtr = canonSerialNumber;
+	const BYTE *serialNumberPtr = serialNumber;
+	int canonSerialLength = canonSerialNumberLength;
+	int serialLength = serialNumberLength;
+
+	/* Internal serial numbers are canonicalised, so all we need to do is
+	   strip a possible leading zero */
+	if( canonSerialNumberPtr[ 0 ] == 0 )
+		{
+		canonSerialNumberPtr++;
+		canonSerialLength--;
+		}
+	assert( canonSerialLength == 0 || canonSerialNumberPtr[ 0 ] );
+
+	/* Serial numbers from external sources can be arbitarily strangely
+	   encoded, so we strip leading zeroes until we get to actual data */
+	while( serialLength > 0 && serialNumberPtr[ 0 ] == 0 )
+		{
+		serialNumberPtr++;
+		serialLength--;
+		}
+
+	/* Finally we've got them in a form where we can compare them */
+	if( canonSerialLength != serialLength || \
+		memcmp( canonSerialNumberPtr, serialNumberPtr, serialLength ) )
+		return( TRUE );
+
+	return( FALSE );
+	}
+
+/****************************************************************************
+*																			*
+*							Copy Cert Request Info							*
+*																			*
+****************************************************************************/
+
 /* Copy cert request info into a certificate object.  This copies the public
    key context, the DN, any valid attributes, and any other relevant bits and
    pieces if it's a CRMF request */
@@ -576,10 +574,10 @@ static int copyCertReqInfo( CERT_INFO *certInfoPtr,
 		/* We don't allow start times backdated by more than a year, or end
 		   times before the start time.  Since these are trivial things, we
 		   don't abort if there's a problem but just quietly fix the value */
-		if( certRequestInfoPtr->startTime > 0 && \
-			certRequestInfoPtr->startTime > currentTime - ( 86400 * 365 ) )
+		if( certRequestInfoPtr->startTime > MIN_TIME_VALUE && \
+			certRequestInfoPtr->startTime > currentTime - ( 86400L * 365 ) )
 			certInfoPtr->startTime = certRequestInfoPtr->startTime;
-		if( certRequestInfoPtr->endTime > 0 && \
+		if( certRequestInfoPtr->endTime > MIN_TIME_VALUE && \
 			certRequestInfoPtr->endTime > certInfoPtr->startTime )
 			certInfoPtr->endTime = certRequestInfoPtr->endTime;
 		}
@@ -603,113 +601,237 @@ static int copyRevReqInfo( CERT_INFO *certInfoPtr,
 									  revRequestInfoPtr->attributes ) );
 	}
 
+/* Copy revocation information from an RTCS or OCSP request to a response */
+
+static int copyRtcsReqInfo( CERT_INFO *certInfoPtr,
+							CERT_INFO *rtcsRequestInfoPtr )
+	{
+	int status;
+
+	/* Copy the cert validity information and extensions */
+	status = copyValidityEntries( &certInfoPtr->cCertVal->validityInfo,
+								  rtcsRequestInfoPtr->cCertVal->validityInfo );
+	if( cryptStatusOK( status ) )
+		status = copyOCSPRequestAttributes( &certInfoPtr->attributes,
+											rtcsRequestInfoPtr->attributes );
+	return( status );
+	}
+
+static int copyOcspReqInfo( CERT_INFO *certInfoPtr,
+							CERT_INFO *ocspRequestInfoPtr )
+	{
+	int status;
+
+	/* Copy the revocation information and extensions */
+	status = copyRevocationEntries( &certInfoPtr->cCertRev->revocations,
+									ocspRequestInfoPtr->cCertRev->revocations );
+	if( cryptStatusOK( status ) )
+		status = copyOCSPRequestAttributes( &certInfoPtr->attributes,
+											ocspRequestInfoPtr->attributes );
+	if( cryptStatusError( status ) )
+		return( status );
+
+	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
+*							Copy Cert Template Info							*
+*																			*
+****************************************************************************/
+
+/* Copy the public key, DN, and any attributes that need to be copied across.  
+   We copy the full DN rather than just the encoded form in case the user 
+   wants to query the request details after creating it */
+
+static int copyToCRMFRequest( CERT_INFO *crmfRequestInfoPtr,
+							  CERT_INFO *certInfoPtr,
+							  const CRYPT_HANDLE iCryptHandle )
+	{
+	int status;
+
+	status = copyDN( &crmfRequestInfoPtr->subjectName,
+					 certInfoPtr->subjectName );
+	if( cryptStatusError( status ) )
+		return( status );
+	if( crmfRequestInfoPtr->iPubkeyContext == CRYPT_ERROR && \
+		crmfRequestInfoPtr->publicKeyInfo == NULL )
+		{
+		/* Only copy the key across if a key hasn't already been added 
+		   earlier as CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO.  Checking for 
+		   this special case (rather than returning an error) allows the DN 
+		   information from an existing cert to be copied into a request for 
+		   a new key */
+		status = copyPublicKeyInfo( crmfRequestInfoPtr, iCryptHandle, NULL );
+		}
+	if( cryptStatusOK( status ) )
+		{
+		/* We copy the attributes across after the DN because that copy is 
+		   the hardest to undo: If there are already attributes present, the 
+		   copied attributes will be mixed in among them so it's not really 
+		   possible to undo the copy later without performing a complex 
+		   selective delete */
+		status = copyCRMFRequestAttributes( &crmfRequestInfoPtr->attributes,
+											certInfoPtr->attributes );
+		}
+	if( cryptStatusError( status ) )
+		deleteDN( &crmfRequestInfoPtr->subjectName );
+
+	return( status );
+	}
+
+/* Copy across the issuer and subject DN and serial number */
+
+static int copyToCRMFRevRequest( CERT_INFO *crmfRevRequestInfoPtr,
+								 CERT_INFO *certInfoPtr )
+	{
+	int status;
+
+	/* If the info is already present we can't add it again */
+	if( crmfRevRequestInfoPtr->issuerName != NULL )
+		{
+		setErrorInfo( crmfRevRequestInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
+					  CRYPT_ERRTYPE_ATTR_PRESENT );
+		return( CRYPT_ERROR_INITED );
+		}
+
+	/* Copy across the issuer name and allocate the storage that we need to 
+	   copy the subject name.  We don't care about any internal structure of 
+	   the DNs so we just copy the pre-encoded form, we could in theory copy 
+	   the full DN but it isn't really the issuer (creator) of the object so 
+	   it's better if it appears to have no issuer DN than a misleading one */
+	status = copyIssuerDnData( crmfRevRequestInfoPtr, certInfoPtr );
+	if( cryptStatusError( status ) )
+		return( status );
+	status = setSerialNumber( crmfRevRequestInfoPtr,
+							  certInfoPtr->cCertCert->serialNumber,
+							  certInfoPtr->cCertCert->serialNumberLength );
+	if( cryptStatusOK( status ) && \
+		( crmfRevRequestInfoPtr->subjectDNdata = \
+				  clAlloc( "copyToCRMFRevRequest",
+						   certInfoPtr->subjectDNsize ) ) == NULL )
+		status = CRYPT_ERROR_MEMORY;
+	if( cryptStatusError( status ) )
+		{
+		clFree( "copyToCRMFRevRequest", 
+				crmfRevRequestInfoPtr->issuerDNdata );
+		crmfRevRequestInfoPtr->issuerDNptr = \
+			crmfRevRequestInfoPtr->issuerDNdata = NULL;
+		crmfRevRequestInfoPtr->issuerDNsize = 0;
+		if( crmfRevRequestInfoPtr->cCertCert->serialNumber != NULL && \
+			crmfRevRequestInfoPtr->cCertCert->serialNumber != \
+				crmfRevRequestInfoPtr->cCertCert->serialNumberBuffer )
+			clFree( "copyToCRMFRevRequest",
+					crmfRevRequestInfoPtr->cCertCert->serialNumber );
+		crmfRevRequestInfoPtr->cCertCert->serialNumber = NULL;
+		return( status );
+		}
+
+	/* Copy the subject DN for use in CMP */
+	memcpy( crmfRevRequestInfoPtr->subjectDNdata, certInfoPtr->subjectDNptr,
+			certInfoPtr->subjectDNsize );
+	crmfRevRequestInfoPtr->subjectDNptr = crmfRevRequestInfoPtr->subjectDNdata;
+	crmfRevRequestInfoPtr->subjectDNsize = certInfoPtr->subjectDNsize;
+
+	return( CRYPT_OK );
+	}
+
+/* Copy the cert information to the revocation list.  First we make sure 
+   that the CA cert hash (needed for the weird cert ID) is present.  We add 
+   the necessary information as a pre-encoded blob since we can't do much 
+   with the ID fields */
+
+static int copyToOCSPRequest( CERT_INFO *ocspRequestInfoPtr,
+							  CERT_INFO *certInfoPtr )
+	{
+	STREAM stream;
+	BYTE idBuffer[ 256 + 8 ], *idBufPtr = idBuffer;
+	const int idLength = ( int ) sizeofObject( \
+			sizeofAlgoID( CRYPT_ALGO_SHA ) + \
+			sizeofObject( 20 ) + sizeofObject( 20 ) + \
+			sizeofInteger( certInfoPtr->cCertCert->serialNumber, \
+						   certInfoPtr->cCertCert->serialNumberLength ) );
+	int status;
+
+	/* Make sure there's a CA cert hash present */
+	if( !ocspRequestInfoPtr->certHashSet )
+		{
+		setErrorInfo( ocspRequestInfoPtr, CRYPT_CERTINFO_CACERTIFICATE,
+					  CRYPT_ERRTYPE_ATTR_ABSENT );
+		return( CRYPT_ERROR_NOTINITED );
+		}
+
+	/* Generate the OCSPv1 cert ID */
+	if( idLength > 256 && \
+	    ( idBufPtr = clDynAlloc( "copyToOCSPRequest", \
+								 idLength ) ) == NULL )
+		return( CRYPT_ERROR_MEMORY );
+	sMemOpen( &stream, idBufPtr, idLength );
+	status = writeOCSPv1ID( &stream, certInfoPtr, ocspRequestInfoPtr->certHash );
+	sMemDisconnect( &stream );
+	if( cryptStatusOK( status ) )
+		status = addRevocationEntry( &ocspRequestInfoPtr->cCertRev->revocations,
+									 &ocspRequestInfoPtr->cCertRev->currentRevocation,
+									 CRYPT_KEYID_NONE, idBufPtr,
+									 idLength, FALSE );
+	if( idBufPtr != idBuffer )
+		clFree( "copyToOCSPRequest", idBufPtr );
+
+	/* Add the cert information again as an ESSCertID extension to work 
+	   around the problems inherent in OCSPv1 IDs.  This isn't currently 
+	   used because non-cryptlib v1 responders won't understand it and 
+	   cryptlib uses RTCS, which doesn't have the OCSP problems */
+	if( status == CRYPT_ERROR_DUPLICATE )
+		{
+		/* If this cert is already present in the list, set the extended
+		   error code for it */
+		setErrorInfo( ocspRequestInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
+					  CRYPT_ERRTYPE_ATTR_PRESENT );
+		}
+	return( status );
+	}
+
+/* Copy the cert hash.  We read the value indirectly since it's computed on 
+   demand and may not have been evaluated yet */
+
+static int copyToRTCSRequest( CERT_INFO *rtcsRequestInfoPtr,
+							  CERT_INFO *certInfoPtr )
+	{
+	BYTE certHash[ CRYPT_MAX_HASHSIZE + 8 ];
+	int certHashLength = CRYPT_MAX_HASHSIZE, status;
+
+	status = getCertComponent( certInfoPtr,
+							   CRYPT_CERTINFO_FINGERPRINT_SHA, certHash,
+							   &certHashLength );
+	if( cryptStatusOK( status ) )
+		status = addValidityEntry( &rtcsRequestInfoPtr->cCertVal->validityInfo,
+								   &rtcsRequestInfoPtr->cCertVal->currentValidity,
+								   certHash, certHashLength );
+	if( status == CRYPT_ERROR_DUPLICATE )
+		{
+		/* If this cert is already present in the list, set the extended
+		   error code for it */
+		setErrorInfo( rtcsRequestInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
+					  CRYPT_ERRTYPE_ATTR_PRESENT );
+		}
+	return( status );
+	}
+
 /* Copy user certificate info into a certificate object */
 
 static int copyUserCertInfo( CERT_INFO *certInfoPtr,
 							 CERT_INFO *userCertInfoPtr,
 							 const CRYPT_HANDLE iCryptHandle )
 	{
-	STREAM stream;
-	BYTE certHash[ CRYPT_MAX_HASHSIZE ];
-	int certHashLength = CRYPT_MAX_HASHSIZE, status;
+	int status;
 
 	assert( userCertInfoPtr->type == CRYPT_CERTTYPE_CERTIFICATE || \
 			userCertInfoPtr->type == CRYPT_CERTTYPE_CERTCHAIN );
 	assert( userCertInfoPtr->certificate != NULL );
 
-	/* If it's a CRL, copy the revocation information across */
-	if( certInfoPtr->type == CRYPT_CERTTYPE_CRL )
-		return( copyRevocationInfo( certInfoPtr, userCertInfoPtr ) );
-
-	/* If it's a CRMF cert request, copy the public key and DN.  We copy the
-	   full DN rather than just the encoded form in case the user wants to
-	   query the request details after creating it */
-	if( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_CERT )
-		{
-		status = copyDN( &certInfoPtr->subjectName,
-						 userCertInfoPtr->subjectName );
-		if( cryptStatusError( status ) )
-			return( status );
-		if( certInfoPtr->iPubkeyContext != CRYPT_ERROR || \
-			certInfoPtr->publicKeyInfo != NULL )
-			/* If a key has already been added as
-			   CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO, there's nothing further
-			   to do.  Checking for this (rather than returning an error)
-			   allows the DN information from an existing cert to be copied
-			   into a request for a new key */
-			return( CRYPT_OK );
-		status = copyPublicKeyInfo( certInfoPtr, iCryptHandle, NULL );
-		if( cryptStatusError( status ) )
-			deleteDN( &certInfoPtr->subjectName );
-		return( status );
-		}
-
-	/* If it's a CRMF revocation request, copy across the issuer and serial
-	   number */
-	if( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION )
-		{
-		/* If the info is already present we can't add it again */
-		if( certInfoPtr->issuerName != NULL )
-			{
-			setErrorInfo( certInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
-						  CRYPT_ERRTYPE_ATTR_PRESENT );
-			return( CRYPT_ERROR_INITED );
-			}
-
-		/* Copy across the issuer name and allocate any further storage that
-		   we need.  We don't care about any internal structure of the issuer
-		   DN so we just copy the pre-encoded form, we could in theory copy
-		   the full DN but it isn't really the issuer (creator) of the object
-		   so it's better if it appears to have no issuer DN than a
-		   misleading one */
-		status = copyIssuerDnData( certInfoPtr, userCertInfoPtr );
-		if( cryptStatusError( status ) )
-			return( status );
-		status = setSerialNumber( certInfoPtr, 
-								  userCertInfoPtr->cCertCert->serialNumber,
-								  userCertInfoPtr->cCertCert->serialNumberLength );
-		if( cryptStatusOK( status ) && \
-			certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION && \
-			( certInfoPtr->subjectDNdata = \
-					  clAlloc( "copyUserCertInfo",
-							   userCertInfoPtr->subjectDNsize ) ) == NULL )
-			status = CRYPT_ERROR_MEMORY;
-		if( cryptStatusError( status ) )
-			{
-			clFree( "copyUserCertInfo", certInfoPtr->issuerDNdata );
-			certInfoPtr->issuerDNptr = certInfoPtr->issuerDNdata = NULL;
-			certInfoPtr->issuerDNsize = 0;
-			if( certInfoPtr->cCertCert->serialNumber != NULL && \
-				certInfoPtr->cCertCert->serialNumber != \
-					certInfoPtr->cCertCert->serialNumberBuffer )
-				clFree( "copyUserCertInfo", 
-						certInfoPtr->cCertCert->serialNumber );
-			certInfoPtr->cCertCert->serialNumber = NULL;
-			return( status );
-			}
-
-		/* If it's a CRMF revocation request, copy the subject DN for use in
-		   CMP */
-		if( certInfoPtr->type == CRYPT_CERTTYPE_REQUEST_REVOCATION )
-			{
-			memcpy( certInfoPtr->subjectDNdata, userCertInfoPtr->subjectDNptr,
-					userCertInfoPtr->subjectDNsize );
-			certInfoPtr->subjectDNptr = certInfoPtr->subjectDNdata;
-			certInfoPtr->subjectDNsize = userCertInfoPtr->subjectDNsize;
-			}
-
-		return( CRYPT_OK );
-		}
-
-	/* It's an RTCS or OCSP request, remember the responder URL if there's
-	   one present (we can't leave it to be read out of the cert because
-	   authorityInfoAccess isn't a valid attribute for RTCS/OCSP requests)
-	   and copy the cert information to the validity/revocation list */
-	assert( certInfoPtr->type == CRYPT_CERTTYPE_RTCS_REQUEST || \
-			certInfoPtr->type == CRYPT_CERTTYPE_OCSP_REQUEST );
-
-	/* If there's no responder URL set, check whether the user cert contains
-	   a responder URL in the RTCS/OCSP authorityInfoAccess GeneralName */
+	/* If it's an RTCS or OCSP request, remember the responder URL if there's
+	   one present.  We can't leave it to be read out of the cert because
+	   authorityInfoAccess isn't a valid attribute for RTCS/OCSP requests */
 	if( ( certInfoPtr->type == CRYPT_CERTTYPE_RTCS_REQUEST && \
 		  certInfoPtr->cCertVal->responderUrl == NULL ) || \
 		( certInfoPtr->type == CRYPT_CERTTYPE_OCSP_REQUEST && \
@@ -723,6 +845,9 @@ static int copyUserCertInfo( CERT_INFO *certInfoPtr,
 		void *responderUrl;
 		int urlSize = 0;
 
+		/* There's no responder URL set, check whether the user cert 
+		   contains a responder URL in the RTCS/OCSP authorityInfoAccess 
+		   GeneralName */
 		saveSelectionState( savedState, userCertInfoPtr );
 		status = selectGeneralName( userCertInfoPtr, aiaAttribute,
 									MAY_BE_ABSENT );
@@ -769,73 +894,35 @@ static int copyUserCertInfo( CERT_INFO *certInfoPtr,
 			return( status );
 		}
 
-	/* If we're using OCSP, make sure that the CA cert hash (needed for the
-	   weird cert ID) is present.  We add the necessary information as a
-	   pre-encoded blob since we can't do much with the ID fields */
-	if( certInfoPtr->type == CRYPT_CERTTYPE_OCSP_REQUEST )
+	/* Copy the required information across to the cert */
+	switch( certInfoPtr->type )
 		{
-		BYTE idBuffer[ 256 ], *idBufPtr = idBuffer;
-		const int idLength = ( int ) sizeofObject( \
-				sizeofAlgoID( CRYPT_ALGO_SHA ) + \
-				sizeofObject( 20 ) + sizeofObject( 20 ) + \
-				sizeofInteger( userCertInfoPtr->cCertCert->serialNumber, \
-							   userCertInfoPtr->cCertCert->serialNumberLength ) );
+		case CRYPT_CERTTYPE_CRL:
+			return( copyRevocationInfo( certInfoPtr, userCertInfoPtr ) );
 
-		/* Make sure there's a CA cert hash present */
-		if( !certInfoPtr->certHashSet )
-			{
-			setErrorInfo( certInfoPtr, CRYPT_CERTINFO_CACERTIFICATE,
-						  CRYPT_ERRTYPE_ATTR_ABSENT );
-			return( CRYPT_ERROR_NOTINITED );
-			}
+		case CRYPT_CERTTYPE_REQUEST_CERT:
+			return( copyToCRMFRequest( certInfoPtr, userCertInfoPtr,
+									   iCryptHandle ) );
 
-		/* Generate the OCSPv1 cert ID */
-		if( idLength > 256 && \
-		    ( idBufPtr = clDynAlloc( "copyUserCertInfo", \
-									 idLength ) ) == NULL )
-			return( CRYPT_ERROR_MEMORY );
-		sMemOpen( &stream, idBufPtr, idLength );
-		status = writeOCSPv1ID( &stream, userCertInfoPtr,
-								certInfoPtr->certHash );
-		sMemDisconnect( &stream );
-		if( cryptStatusOK( status ) )
-			status = addRevocationEntry( &certInfoPtr->cCertRev->revocations,
-										 &certInfoPtr->cCertRev->currentRevocation,
-										 CRYPT_KEYID_NONE, idBufPtr,
-										 idLength, FALSE );
-		if( idBufPtr != idBuffer )
-			clFree( "copyUserCertInfo", idBufPtr );
+		case CRYPT_CERTTYPE_REQUEST_REVOCATION:
+			return( copyToCRMFRevRequest( certInfoPtr, userCertInfoPtr ) );
 
-		/* Add the cert information again as an ESSCertID extension to work
-		   around the problems inherent in OCSPv1 IDs.  This isn't currently
-		   used because non-cryptlib v1 responders won't understand it and
-		   cryptlib uses RTCS that doesn't have the OCSP problems */
+		case CRYPT_CERTTYPE_OCSP_REQUEST:
+			return( copyToOCSPRequest( certInfoPtr, userCertInfoPtr ) );
 
-		if( status == CRYPT_ERROR_DUPLICATE )
-			/* If this cert is already present in the list, set the extended
-			   error code for it */
-			setErrorInfo( certInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
-						  CRYPT_ERRTYPE_ATTR_PRESENT );
-		return( status );
+		case CRYPT_CERTTYPE_RTCS_REQUEST:
+			return( copyToRTCSRequest( certInfoPtr, userCertInfoPtr ) );
 		}
 
-	/* It's an RTCS request, add the cert hash.  We read the cert hash
-	   indirectly since it's computed on demand and may not have been
-	   evaluated yet */
-	status = getCertComponent( userCertInfoPtr,
-							   CRYPT_CERTINFO_FINGERPRINT_SHA, certHash,
-							   &certHashLength );
-	if( cryptStatusOK( status ) )
-		status = addValidityEntry( &certInfoPtr->cCertVal->validityInfo,
-								   &certInfoPtr->cCertVal->currentValidity, 
-								   certHash, certHashLength );
-	if( status == CRYPT_ERROR_DUPLICATE )
-		/* If this cert is already present in the list, set the extended
-		   error code for it */
-		setErrorInfo( certInfoPtr, CRYPT_CERTINFO_CERTIFICATE,
-					  CRYPT_ERRTYPE_ATTR_PRESENT );
-	return( status );
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );	/* Get rid of compiler warning */
 	}
+
+/****************************************************************************
+*																			*
+*							Copy Misc. Cert Info							*
+*																			*
+****************************************************************************/
 
 /* Get the hash of the public key (for an OCSPv1 request), possibly
    overwriting a previous hash if there are multiple entries in the
@@ -862,7 +949,7 @@ static int copyCaCertInfo( CERT_INFO *certInfoPtr,
 				 caCertInfoPtr->publicKeyInfoSize );
 	readSequence( &stream, NULL );	/* Wrapper */
 	readUniversal( &stream );		/* AlgoID */
-	status = readBitStringHole( &stream, &length, DEFAULT_TAG );
+	status = readBitStringHole( &stream, &length, 16, DEFAULT_TAG );
 	if( cryptStatusError( status ) )/* BIT STRING wrapper */
 		{
 		/* There's a problem with the format of the key */
@@ -871,43 +958,10 @@ static int copyCaCertInfo( CERT_INFO *certInfoPtr,
 					  CRYPT_ERRTYPE_ATTR_VALUE );
 		return( CRYPT_ERROR_INVALID );
 		}
-	hashFunction( NULL, certInfoPtr->certHash, sMemBufPtr( &stream ),
-				  length, HASH_ALL );
+	hashFunction( NULL, certInfoPtr->certHash, KEYID_SIZE,
+				  sMemBufPtr( &stream ), length, HASH_ALL );
 	certInfoPtr->certHashSet = TRUE;
 	sMemDisconnect( &stream );
-
-	return( CRYPT_OK );
-	}
-
-/* Copy revocation information from an RTCS or OCSP request to a response */
-
-static int copyRtcsReqInfo( CERT_INFO *certInfoPtr,
-							CERT_INFO *rtcsRequestInfoPtr )
-	{
-	int status;
-
-	/* Copy the cert validity information and extensions */
-	status = copyValidityEntries( &certInfoPtr->cCertVal->validityInfo,
-								  rtcsRequestInfoPtr->cCertVal->validityInfo );
-	if( cryptStatusOK( status ) )
-		status = copyOCSPRequestAttributes( &certInfoPtr->attributes,
-											rtcsRequestInfoPtr->attributes );
-	return( status );
-	}
-
-static int copyOcspReqInfo( CERT_INFO *certInfoPtr,
-							CERT_INFO *ocspRequestInfoPtr )
-	{
-	int status;
-
-	/* Copy the revocation information and extensions */
-	status = copyRevocationEntries( &certInfoPtr->cCertRev->revocations,
-									ocspRequestInfoPtr->cCertRev->revocations );
-	if( cryptStatusOK( status ) )
-		status = copyOCSPRequestAttributes( &certInfoPtr->attributes,
-											ocspRequestInfoPtr->attributes );
-	if( cryptStatusError( status ) )
-		return( status );
 
 	return( CRYPT_OK );
 	}
@@ -921,7 +975,7 @@ static int copyPkiUserAttributes( CERT_INFO *certInfoPtr,
 	int status;
 
 	/* There's one rather ugly special-case situation that we have to handle
-	   which is when the user has submitted a PnP PKI request for a generic 
+	   which is when the user has submitted a PnP PKI request for a generic
 	   signing cert but their PKI user info indicates that they're intended
 	   to be a CA user.  The processing flow for this is as follows:
 
@@ -930,24 +984,24 @@ static int copyPkiUserAttributes( CERT_INFO *certInfoPtr,
 			Read request into state=high cert request object;
 			Add PKI user info to request;
 
-		ca_issue: caIssuerCert() 
+		ca_issue: caIssuerCert()
 
 			Add request to newly-created cert object;
 			Sign cert;
-	   
-	   When augmenting the request with the PKI user info, the incoming 
-	   request will contain a keyUsage of digitalSignature while the PKI 
-	   user info will contain a keyUsage of keyCertSign and/or crlSign.  We 
-	   can't fix this up at the CMP level because the request is in the high 
-	   state and no changes to the attributes can be made (the PKI user info 
-	   is a special case that can added to an object in the high state but 
+
+	   When augmenting the request with the PKI user info, the incoming
+	   request will contain a keyUsage of digitalSignature while the PKI
+	   user info will contain a keyUsage of keyCertSign and/or crlSign.  We
+	   can't fix this up at the CMP level because the request is in the high
+	   state and no changes to the attributes can be made (the PKI user info
+	   is a special case that can added to an object in the high state but
 	   which modifies attributes in it as if it were still in the low state).
-	   
-	   To avoid the attribute conflict, if we find this situation in the 
-	   request/pkiUser combination we delete the keyUsage in the request to 
-	   allow it to be replaced by the pkiUser attributes.  Hardcoding in 
-	   this special case isn't very elegant, but it's the only way to make 
-	   the PnP PKI issue work without requiring that the user explicitly 
+
+	   To avoid the attribute conflict, if we find this situation in the
+	   request/pkiUser combination we delete the keyUsage in the request to
+	   allow it to be replaced by the pkiUser attributes.  Hardcoding in
+	   this special case isn't very elegant, but it's the only way to make
+	   the PnP PKI issue work without requiring that the user explicitly
 	   specify that they want to be a CA, which makes it rather non-PnP */
 	attributeListPtr = findAttributeField( certInfoPtr->attributes,
 										   CRYPT_CERTINFO_KEYUSAGE,
@@ -972,18 +1026,18 @@ static int copyPkiUserAttributes( CERT_INFO *certInfoPtr,
 		}
 
 	/* Copy the attributes from the PKI user info into the cert */
-	status = copyAttributes( &certInfoPtr->attributes, pkiUserAttributes, 
-							 &certInfoPtr->errorLocus, 
+	status = copyAttributes( &certInfoPtr->attributes, pkiUserAttributes,
+							 &certInfoPtr->errorLocus,
 							 &certInfoPtr->errorType );
 	if( cryptStatusError( status ) )
 		return( status );
 
 	/* The PKI user info contains an sKID that's used to uniquely identify
 	   the user, this applies to the user info itself rather than the cert
-	   that'll be issued from it.  Since this will have been copied over 
-	   alongside the other attributes, we need to explicitly delete it 
+	   that'll be issued from it.  Since this will have been copied over
+	   alongside the other attributes, we need to explicitly delete it
 	   before we continue */
-	attributeListPtr = findAttributeField( certInfoPtr->attributes, 
+	attributeListPtr = findAttributeField( certInfoPtr->attributes,
 										   CRYPT_CERTINFO_SUBJECTKEYIDENTIFIER,
 										   CRYPT_ATTRIBUTE_NONE );
 	if( attributeListPtr != NULL )
@@ -999,7 +1053,7 @@ static int copyPkiUserAttributes( CERT_INFO *certInfoPtr,
 static int copyPkiUserInfo( CERT_INFO *certInfoPtr,
 							CERT_INFO *pkiUserInfoPtr )
 	{
-	char commonName[ CRYPT_MAX_TEXTSIZE ];
+	char commonName[ CRYPT_MAX_TEXTSIZE + 8 ];
 	int commonNameLength, status;
 
 	assert( pkiUserInfoPtr->type == CRYPT_CERTTYPE_PKIUSER );
@@ -1036,15 +1090,15 @@ static int copyPkiUserInfo( CERT_INFO *certInfoPtr,
 		certInfoPtr->subjectDNsize = pkiUserInfoPtr->subjectDNsize;
 
 		/* Copy any additional attributes across */
-		return( copyPkiUserAttributes( certInfoPtr, 
+		return( copyPkiUserAttributes( certInfoPtr,
 									   pkiUserInfoPtr->attributes ) );
 		}
 
 	/* If there's no PKI user DN with the potential to conflict with the one
-	   in the request present, copy any additional attributes across and 
+	   in the request present, copy any additional attributes across and
 	   exit */
 	if( pkiUserInfoPtr->subjectName == NULL )
-		return( copyPkiUserAttributes( certInfoPtr, 
+		return( copyPkiUserAttributes( certInfoPtr,
 									   pkiUserInfoPtr->attributes ) );
 
 	/* There's both a request DN and PKI user DN present.  If the request
@@ -1117,7 +1171,7 @@ static int copyPkiUserInfo( CERT_INFO *certInfoPtr,
 			certInfoPtr->subjectDNsize = tempDNsize;
 
 			/* Copy any additional attributes across */
-			return( copyPkiUserAttributes( certInfoPtr, 
+			return( copyPkiUserAttributes( certInfoPtr,
 										   pkiUserInfoPtr->attributes ) );
 			}
 		}
@@ -1127,7 +1181,7 @@ static int copyPkiUserInfo( CERT_INFO *certInfoPtr,
 	if( !compareDN( certInfoPtr->subjectName,
 					pkiUserInfoPtr->subjectName, FALSE ) )
 		return( CRYPT_ERROR_INVALID );
-	return( copyPkiUserAttributes( certInfoPtr, 
+	return( copyPkiUserAttributes( certInfoPtr,
 								   pkiUserInfoPtr->attributes ) );
 	}
 
@@ -1174,7 +1228,7 @@ static int setXyzzyInfo( CERT_INFO *certInfoPtr )
 	   with all key usage types enabled, and set the policy OID to identify
 	   it as a XYZZY cert */
 	certInfoPtr->startTime = currentTime;
-	certInfoPtr->endTime = certInfoPtr->startTime + ( 86400 * 365 * 20 );
+	certInfoPtr->endTime = certInfoPtr->startTime + ( 86400L * 365 * 20 );
 	certInfoPtr->flags |= CERT_FLAG_SELFSIGNED;
 	status = addCertComponent( certInfoPtr, CRYPT_CERTINFO_CA,
 							   MESSAGE_VALUE_TRUE, CRYPT_UNUSED );
@@ -1209,7 +1263,7 @@ static int setCertCursorInfo( CERT_INFO *certInfoPtr, const int value )
 			certInfoPtr->type == CRYPT_CERTTYPE_OCSP_RESPONSE );
 
 	/* If it's a single cert, there's nothing to do.  See the
-	   CRYPT_CERTINFO_CURRENT_CERTIFICATE ACL comment for why we 
+	   CRYPT_CERTINFO_CURRENT_CERTIFICATE ACL comment for why we
 	   (apparently) allow cursor movement movement on single certificates */
 	if( certInfoPtr->type == CRYPT_CERTTYPE_CERTIFICATE )
 		{
@@ -1224,6 +1278,9 @@ static int setCertCursorInfo( CERT_INFO *certInfoPtr, const int value )
 		{
 		case CRYPT_CURSOR_FIRST:
 			if( isCertChain )
+				/* Set the chain position to -1 (= CRYPT_ERROR) to indicate 
+				   that it's at the leaf cert, which is logically at 
+				   position -1 in the chain */
 				certInfoPtr->cCertCert->chainPos = CRYPT_ERROR;
 			else
 				if( isRTCS )
@@ -1247,6 +1304,9 @@ static int setCertCursorInfo( CERT_INFO *certInfoPtr, const int value )
 		case CRYPT_CURSOR_PREVIOUS:
 			if( isCertChain )
 				{
+				/* Adjust the chain position.  Note that the value can go to
+				   -1 (= CRYPT_ERROR) to indicate that it's at the leaf 
+				   cert, which is logically at position -1 in the chain */
 				if( certInfoPtr->cCertCert->chainPos < 0 )
 					return( CRYPT_ERROR_NOTFOUND );
 				certInfoPtr->cCertCert->chainPos--;
@@ -1402,7 +1462,7 @@ static int setCursorInfo( CERT_INFO *certInfoPtr,
 				if( certInfoPtr->attributeCursor == NULL )
 					certInfoPtr->attributeCursor = certInfoPtr->attributes;
 
-			/* If there are no attributes present, return the appropriate 
+			/* If there are no attributes present, return the appropriate
 			   error code */
 			if( certInfoPtr->attributeCursor == NULL )
 				return( ( value == CRYPT_CURSOR_FIRST || \
@@ -1419,8 +1479,8 @@ static int setCursorInfo( CERT_INFO *certInfoPtr,
 				return( CRYPT_ERROR_NOTINITED );
 
 		/* Move the attribute cursor */
-		attributeCursor = moveAttributeCursor( certInfoPtr->attributeCursor,
-											   certInfoType, value );
+		attributeCursor = certMoveAttributeCursor( certInfoPtr->attributeCursor,
+												   certInfoType, value );
 		if( attributeCursor == NULL )
 			return( CRYPT_ERROR_NOTFOUND );
 		certInfoPtr->attributeCursor = attributeCursor;
@@ -1650,7 +1710,9 @@ int addCertComponent( CERT_INFO *certInfoPtr,
 
 				/* Perform a simple check to make sure that it hasn't been
 				   added already */
-				for( i = 0; i < certInfoPtr->cCertCert->chainEnd; i++ )
+				for( i = 0; i < certInfoPtr->cCertCert->chainEnd && \
+							i < MAX_CHAINLENGTH; i++ )
+					{
 					if( cryptStatusOK( \
 						krnlSendMessage( addedCert, IMESSAGE_COMPARE,
 										 &certInfoPtr->cCertCert->chain[ i ],
@@ -1661,6 +1723,9 @@ int addCertComponent( CERT_INFO *certInfoPtr,
 									  CRYPT_ERRTYPE_ATTR_PRESENT );
 						return( CRYPT_ERROR_INITED );
 						}
+					}
+				if( i >= MAX_CHAINLENGTH )
+					retIntError();
 
 				/* Add the user cert and increment its reference count */
 				krnlSendNotifier( addedCert, IMESSAGE_INCREFCOUNT );
@@ -1735,13 +1800,14 @@ int addCertComponent( CERT_INFO *certInfoPtr,
 			{
 			time_t certTime = *( ( time_t * ) certInfo );
 
-			if( certInfoPtr->startTime )
+			if( certInfoPtr->startTime > 0 )
 				{
 				setErrorInfo( certInfoPtr, certInfoType,
 							  CRYPT_ERRTYPE_ATTR_PRESENT );
 				return( CRYPT_ERROR_INITED );
 				}
-			if( certInfoPtr->endTime && certTime >= certInfoPtr->endTime )
+			if( certInfoPtr->endTime > 0 && \
+				certTime >= certInfoPtr->endTime )
 				{
 				setErrorInfo( certInfoPtr,
 							  ( certInfoType == CRYPT_CERTINFO_VALIDFROM ) ? \
@@ -1758,13 +1824,14 @@ int addCertComponent( CERT_INFO *certInfoPtr,
 			{
 			time_t certTime = *( ( time_t * ) certInfo );
 
-			if( certInfoPtr->endTime )
+			if( certInfoPtr->endTime > 0 )
 				{
 				setErrorInfo( certInfoPtr, certInfoType,
 							  CRYPT_ERRTYPE_ATTR_PRESENT );
 				return( CRYPT_ERROR_INITED );
 				}
-			if( certInfoPtr->startTime && certTime <= certInfoPtr->startTime )
+			if( certInfoPtr->startTime > 0 && \
+				certTime <= certInfoPtr->startTime )
 				{
 				setErrorInfo( certInfoPtr,
 							  ( certInfoType == CRYPT_CERTINFO_VALIDTO ) ? \
@@ -1803,7 +1870,7 @@ int addCertComponent( CERT_INFO *certInfoPtr,
 			time_t certTime = *( ( time_t * ) certInfo );
 			time_t *revocationTimePtr = getRevocationTimePtr( certInfoPtr );
 
-			if( *revocationTimePtr )
+			if( *revocationTimePtr > 0 )
 				{
 				setErrorInfo( certInfoPtr, certInfoType,
 							  CRYPT_ERRTYPE_ATTR_PRESENT );
@@ -1826,7 +1893,7 @@ int addCertComponent( CERT_INFO *certInfoPtr,
 			   encoded form from a cert store, decode it so that we can add
 			   it to the CRL */
 			sMemConnect( &stream, certInfo, certInfoLength );
-			status = readCRLentry( &stream, 
+			status = readCRLentry( &stream,
 								   &certInfoPtr->cCertRev->revocations,
 								   &certInfoPtr->errorLocus,
 								   &certInfoPtr->errorType );
@@ -1890,10 +1957,9 @@ int addCertComponent( CERT_INFO *certInfoPtr,
 										CRYPT_ARGERROR_NUM1 );
 			if( cryptStatusError( status ) )
 				return( status );
-			status = sanitiseCertAttributes( certInfoPtr, 
+			status = sanitiseCertAttributes( certInfoPtr,
 											 addedCertInfoPtr->attributes );
 			krnlReleaseObject( addedCertInfoPtr->objectHandle );
-			return( status );
 			return( status );
 
 		case CRYPT_IATTRIBUTE_AUTHCERTID:

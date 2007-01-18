@@ -1,21 +1,14 @@
 /****************************************************************************
 *																			*
 *								ASN.1 Read Routines							*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
 #include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "bn.h"
-  #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../bn/bn.h"
   #include "asn1.h"
 #else
   #include "crypt.h"
@@ -34,8 +27,8 @@
    selects the correct value.  Since these are all primitive objects, we
    force the tag type to a primitive tag */
 
-#define selectTag( tag, default )	\
-		( ( ( tag ) == DEFAULT_TAG ) ? ( default ) : \
+#define selectTag( tag, defaultTag )	\
+		( ( ( tag ) == DEFAULT_TAG ) ? ( defaultTag ) : \
 									   ( MAKE_CTAG_PRIMITIVE( tag ) ) )
 
 /* Read the length octets for an ASN.1 data type, with special-case handling
@@ -56,11 +49,14 @@ typedef enum {
 
 static long readLengthValue( STREAM *stream, const READLENGTH_TYPE readType )
 	{
-	BYTE buffer[ 16 ], *bufPtr = buffer;
+	BYTE buffer[ 8 + 8 ], *bufPtr = buffer;
 	BOOLEAN shortLen = ( readType == READLENGTH_SHORT || \
 						 readType == READLENGTH_SHORT_INDEF );
 	long length;
 	int noLengthOctets, status;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( readType > READLENGTH_NONE && readType < READLENGTH_LAST );
 
 	/* Read the first byte of length data.  If it's a short length, we're
 	   done */
@@ -92,12 +88,12 @@ static long readLengthValue( STREAM *stream, const READLENGTH_TYPE readType )
 	   for everything) we allow up to 8 bytes of non-DER length data, but 
 	   only the last 2 or 4 of these (for short or long lengths 
 	   respectively) can be nonzero */
-	if( !buffer[ 0 ] )
+	if( buffer[ 0 ] == 0 )
 		{
 		int i;
 
 		/* Oddball length encoding with leading zero(es) */
-		for( i = 0; i < noLengthOctets && !buffer[ i ]; i++ );
+		for( i = 0; i < noLengthOctets && buffer[ i ] == 0; i++ );
 		noLengthOctets -= i;
 		if( noLengthOctets <= 0 )
 			return( 0 );		/* Very broken encoding of a zero length */
@@ -105,18 +101,18 @@ static long readLengthValue( STREAM *stream, const READLENGTH_TYPE readType )
 		}
 
 	/* Make sure that the length size is reasonable */
-	if( shortLen && noLengthOctets > 2 )
-		return( sSetError( stream, CRYPT_ERROR_OVERFLOW ) );
 	if( noLengthOctets > 4 )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+	if( shortLen && noLengthOctets > 2 )
+		return( sSetError( stream, CRYPT_ERROR_OVERFLOW ) );
 
 	/* Read and check the length value */
 	length = 0;
 	while( noLengthOctets-- > 0 )
-		length = length << 8 | *bufPtr++;
+		length = ( length << 8 ) | *bufPtr++;
 	if( shortLen )
 		{
-		if( length & 0xFFFF8000UL )
+		if( length & 0xFFFF8000UL || length > 32767L )
 			/* Length must be < 32K for short lengths */
 			return( sSetError( stream, CRYPT_ERROR_OVERFLOW ) );
 		}
@@ -136,7 +132,9 @@ static long readLengthValue( STREAM *stream, const READLENGTH_TYPE readType )
 
 static int readIntegerHeader( STREAM *stream, const int tag )
 	{
-	int length;
+	int length, iterationCount = 0;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 
 	/* Read the identifier field if necessary and the length */
 	if( tag != NO_TAG && readTag( stream ) != selectTag( tag, BER_INTEGER ) )
@@ -150,7 +148,8 @@ static int readIntegerHeader( STREAM *stream, const int tag )
 	   that has the high bit set.  If we get a value with the (supposed) 
 	   sign bit set we treat it as an unsigned value, since a number of 
 	   implementations get this wrong */
-	while( length > 0 && sPeek( stream ) == 0 )
+	while( length > 0 && sPeek( stream ) == 0 && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED )
 		{
 		int status;
 
@@ -159,6 +158,8 @@ static int readIntegerHeader( STREAM *stream, const int tag )
 			return( status );
 		length--;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	return( length );
 	}
 
@@ -167,6 +168,8 @@ static int readIntegerHeader( STREAM *stream, const int tag )
 static int readObjectTag( STREAM *stream, const int tag )
 	{
 	int tagValue;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 
 	tagValue = readTag( stream );
 	if( cryptStatusError( tagValue ) )
@@ -189,11 +192,14 @@ static int readObjectTag( STREAM *stream, const int tag )
 	return( CRYPT_OK );
 	}
 
-static int readObjectHeader( STREAM *stream, int *length, const int tag,
-							 const BOOLEAN isBitString, 
+static int readObjectHeader( STREAM *stream, int *length, const int minLength, 
+							 const int tag, const BOOLEAN isBitString, 
 							 const BOOLEAN indefOK )
 	{
 	int dataLength, status;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
 
 	/* Clear return value */
 	if( length != NULL )
@@ -217,7 +223,7 @@ static int readObjectHeader( STREAM *stream, int *length, const int tag,
 		{
 		/* If we've asked for an indication of indefinite-length values and we
 		   got one, convert the length to CRYPT_UNUSED */
-		if( indefOK && dataLength == OK_SPECIAL )
+		if( dataLength == OK_SPECIAL )
 			dataLength = CRYPT_UNUSED;
 		else
 			return( dataLength );
@@ -239,6 +245,10 @@ static int readObjectHeader( STREAM *stream, int *length, const int tag,
 			return( value );
 		}
 
+	/* Make sure that the length is in order and return it to the caller if 
+	   necessary */
+	if( ( dataLength != CRYPT_UNUSED ) && ( dataLength < minLength ) )
+		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 	if( length != NULL )
 		*length = dataLength;
 	return( CRYPT_OK );
@@ -249,9 +259,12 @@ static int readLongObjectHeader( STREAM *stream, long *length, const int tag )
 	long dataLength;
 	int status;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( length == NULL || isWritePtr( length, sizeof( long ) ) );
+
 	/* Clear return value */
 	if( length != NULL )
-		*length = 0;
+		*length = 0L;
 
 	/* Read the object tag */
 	status = readObjectTag( stream, tag );
@@ -279,8 +292,12 @@ static int readLongObjectHeader( STREAM *stream, long *length, const int tag )
 
 static int readNumeric( STREAM *stream, long *value )
 	{
-	BYTE buffer[ 8 ], *bufPtr = buffer;
+	BYTE buffer[ 4 + 8 ], *bufPtr = buffer;
+	long localValue = 0;
 	int length, status;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( value == NULL || isWritePtr( value, sizeof( long ) ) );
 
 	/* Clear return value */
 	if( value != NULL )
@@ -298,8 +315,13 @@ static int readNumeric( STREAM *stream, long *value )
 	if( cryptStatusError( status ) || value == NULL )
 		return( status );
 	while( length-- > 0 )
-		*value = ( *value << 8 ) | *bufPtr++;
-
+		{
+		localValue = ( localValue << 8 ) | *bufPtr++;
+		if( localValue < 0 )
+			/* Integer overflow */
+			return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+		}
+	*value = localValue;
 	return( CRYPT_OK );
 	}
 
@@ -311,7 +333,11 @@ static int readConstrainedData( STREAM *stream, BYTE *buffer,
 	{
 	int dataLength = length, remainder = 0, status;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length > 0 && maxLength > 0 );
+	assert( buffer == NULL || isWritePtr( buffer, length ) );
+	assert( bufferLength == NULL || \
+			isWritePtr( bufferLength, sizeof( int ) ) );
 
 	if( bufferLength != NULL )
 		*bufferLength = dataLength;
@@ -330,7 +356,7 @@ static int readConstrainedData( STREAM *stream, BYTE *buffer,
 	status = sread( stream, buffer, dataLength );
 
 	/* Skip any remaining data if necessary */
-	if( remainder > 0 && cryptStatusOK( status ) )
+	if( remainder > 0 && !cryptStatusError( status ) )
 		status = sSkip( stream, remainder );
 
 	return( status );
@@ -342,14 +368,22 @@ static int readConstrainedData( STREAM *stream, BYTE *buffer,
 *																			*
 ****************************************************************************/
 
-/* Check for constructed data end-of-contents octets */
+/* Check for constructed data end-of-contents octets.  Note that this 
+   is a standard integer-return function that can return either a boolean 
+   TRUE/FALSE or alternatively a stream error code if there's a problem, so 
+   it's not a purely boolean function */
 
 int checkEOC( STREAM *stream )
 	{
+	int tag;
+
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 
 	/* Read the tag and check for an EOC octet pair */
-	if( peekTag( stream ) != BER_EOC )
+	tag = peekTag( stream );
+	if( cryptStatusError( tag ) )
+		return( tag );
+	if( tag != BER_EOC )
 		return( FALSE );
 	readTag( stream );
 	if( sgetc( stream ) != 0 )
@@ -363,28 +397,31 @@ int checkEOC( STREAM *stream )
    to read short data blocks like object identifiers, which are only ever
    handled in encoded form */
 
-int readRawObjectTag( STREAM *stream, BYTE *buffer, int *bufferLength,
-					  const int maxLength, const int tag )
+int readRawObject( STREAM *stream, BYTE *buffer, int *bufferLength,
+				   const int maxLength, const int tag )
 	{
 	int length, offset = 0;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( maxLength >= 2 );
 	assert( isWritePtr( buffer, maxLength ) );
 	assert( isWritePtr( bufferLength, sizeof( int ) ) );
+	assert( tag == NO_TAG || tag > 0 );
 
 	/* Clear return value */
 	*buffer = '\0';
 	*bufferLength = 0;
 
-	/* Read the identifier field and length.  Since we need to remember each
-	   byte as it's read we can't just call readLengthValue() for the length, 
+	/* Read the identifier field and length.  We need to remember each byte 
+	   as it's read so we can't just call readLengthValue() for the length, 
 	   but since we only need to handle lengths that can be encoded in one 
-	   or two bytes this isn't a problem */
+	   or two bytes this isn't a problem.  Since this function reads a 
+	   complete encoded object, the tag (if known) must be specified, so 
+	   there's no capability to use DEFAULT_TAG */
 	if( tag != NO_TAG )
 		{
 		const int objectTag = readTag( stream );
-
-		if( tag != CRYPT_UNUSED && tag != objectTag )
+		if( tag != objectTag )
 			return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 		if( buffer != NULL )
 			buffer[ offset++ ] = objectTag;
@@ -446,6 +483,8 @@ int readIntegerTag( STREAM *stream, BYTE *integer, int *integerLength,
 								 maxLength ) );
 	}
 
+#ifdef USE_PKC
+
 /* Read a bignum integer value */
 
 int readBignumTag( STREAM *stream, void *bignum, const int tag )
@@ -459,7 +498,12 @@ int readBignumTag( STREAM *stream, void *bignum, const int tag )
 	/* Read the integer header info */
 	length = readIntegerHeader( stream, tag );
 	if( length <= 0 )
+		{
+		if( length == 0 )
+			/* Make the zero read value explicit */
+			BN_zero( bignum );
 		return( length );	/* Error or zero length */
+		}
 
 	/* Read the value into a fixed buffer */
 	if( length > CRYPT_MAX_PKCSIZE )
@@ -476,6 +520,7 @@ int readBignumTag( STREAM *stream, void *bignum, const int tag )
 		}
 	return( status );
 	}
+#endif /* USE_PKC */
 
 /* Read a universal type and discard it (used to skip unknown or unwanted
    types) */
@@ -535,8 +580,13 @@ int readEnumeratedTag( STREAM *stream, int *enumeration, const int tag )
 	if( tag != NO_TAG && readTag( stream ) != selectTag( tag, BER_ENUMERATED ) )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 	status = readNumeric( stream, &value );
-	if( cryptStatusOK( status ) && enumeration != NULL )
-		*enumeration = ( int ) value;
+	if( cryptStatusOK( status ) )
+		{
+		if( value > 1000 )
+			return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+		if( enumeration != NULL )
+			*enumeration = ( int ) value;
+		}
 	return( status );
 	}
 
@@ -558,7 +608,8 @@ int readNullTag( STREAM *stream, const int tag )
 
 int readBooleanTag( STREAM *stream, BOOLEAN *boolean, const int tag )
 	{
-	int value;
+	BYTE buffer[ 2 + 8 ];
+	int status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( boolean == NULL || \
@@ -570,13 +621,13 @@ int readBooleanTag( STREAM *stream, BOOLEAN *boolean, const int tag )
 
 	if( tag != NO_TAG && readTag( stream ) != selectTag( tag, BER_BOOLEAN ) )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
-	if( sgetc( stream ) != 1 )
+	status = sread( stream, buffer, 2 );
+	if( cryptStatusError( status ) )
+		return( status );
+	if( buffer[ 0 ] != 1 )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
-	value = sgetc( stream );
-	if( cryptStatusError( value ) )
-		return( value );
 	if( boolean != NULL )
-		*boolean = value ? TRUE : FALSE;
+		*boolean = buffer[ 1 ] ? TRUE : FALSE;
 	return( CRYPT_OK );
 	}
 
@@ -588,11 +639,12 @@ int readOIDEx( STREAM *stream, const OID_INFO *oidSelection,
 	{
 	static const OID_INFO nullOidSelection = { NULL, CRYPT_ERROR, NULL };
 	BYTE buffer[ MAX_OID_SIZE + 8 ];
-	int length, oidEntry, status;
+	int length, oidEntry, iterationCount = 0, status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( isReadPtr( oidSelection, sizeof( OID_INFO ) * 2 ) );
-	assert( isReadPtr( oidSelectionValue, sizeof( OID_INFO * ) ) );
+	assert( oidSelectionValue == NULL || \
+			isReadPtr( oidSelectionValue, sizeof( OID_INFO * ) ) );
 
 	/* Clear return value */
 	if( oidSelectionValue != NULL )
@@ -607,10 +659,16 @@ int readOIDEx( STREAM *stream, const OID_INFO *oidSelection,
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 
 	/* Try and find the entry for the OID */
-	for( oidEntry = 0; oidSelection[ oidEntry ].oid != NULL; oidEntry++ )
+	for( oidEntry = 0; oidSelection[ oidEntry ].oid != NULL && \
+					   iterationCount++ < FAILSAFE_ITERATIONS_MED; 
+		 oidEntry++ )
+		{
 		if( length == sizeofOID( oidSelection[ oidEntry ].oid ) && \
 			!memcmp( buffer, oidSelection[ oidEntry ].oid, length ) )
 			break;
+		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	if( oidSelection[ oidEntry ].oid == NULL )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 
@@ -624,6 +682,10 @@ int readOID( STREAM *stream, const OID_INFO *oidInfo, int *selectionID )
 	const OID_INFO *oidSelectionInfo;
 	int status;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isReadPtr( oidInfo, sizeof( OID_INFO ) * 2 ) );
+	assert( isWritePtr( selectionID, sizeof( int ) ) );
+
 	/* Clear return value */
 	*selectionID = CRYPT_ERROR;
 
@@ -635,30 +697,54 @@ int readOID( STREAM *stream, const OID_INFO *oidInfo, int *selectionID )
 
 int readFixedOID( STREAM *stream, const BYTE *oid )
 	{
-	const OID_INFO *dummy;
 	CONST_INIT_STRUCT_A2( OID_INFO oidInfo[ 2 ], oid, NULL );
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isReadPtr( oid, sizeofOID( oid ) ) );
+	assert( isReadPtr( oid, sizeofOID( oid ) ) && \
+			oid[ 0 ] == BER_OBJECT_IDENTIFIER );
 
 	/* Set up a one-entry OID_INFO list to pass down to readOID() */
 	CONST_SET_STRUCT_A( memset( oidInfo, 0, sizeof( OID_INFO ) * 2 ); \
 						oidInfo[ 0 ].oid = oid );
-	return( readOIDEx( stream, oidInfo, &dummy ) );
+	return( readOIDEx( stream, oidInfo, NULL ) );
+	}
+
+/* Read a raw OID in encoded form */
+
+int readEncodedOID( STREAM *stream, BYTE *oid, int *oidLength,
+					const int maxLength, const int tag )
+	{
+	int length, status;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( maxLength >= 5 );
+	assert( isWritePtr( oid, maxLength ) );
+	assert( isWritePtr( oidLength, sizeof( int ) ) );
+	assert( tag == NO_TAG || tag > 0 );
+
+	/* Clear return values */
+	*oid = '\0';
+	*oidLength = 0;
+
+	/* Read the encoded OID and make sure that it's the right size for a
+	   minimal-length OID: tag (optional) + length + minimal-length OID 
+	   data */
+	status = readRawObject( stream, oid, &length, maxLength, tag );
+	if( cryptStatusError( status ) )
+		return( status );
+	if( length < ( tag == NO_TAG ? 0 : 1 ) + 1 + 3 || length > maxLength )
+		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+	*oidLength = length;
+	return( CRYPT_OK );
 	}
 
 /* Read an octet string value */
 
-int readOctetStringTag( STREAM *stream, BYTE *string, int *stringLength,
-						const int maxLength, const int tag )
+static int readString( STREAM *stream, BYTE *string, int *stringLength,
+					   const int minLength, const int maxLength, 
+					   const int tag, const BOOLEAN useLiteralTag )
 	{
 	int length;
-
-	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( string == NULL || isWritePtr( string, maxLength ) );
-	assert( stringLength == NULL || \
-			isWritePtr( stringLength, sizeof( int ) ) );
-	assert( maxLength > 0 );
 
 	/* Clear return value */
 	if( string != NULL )
@@ -668,13 +754,40 @@ int readOctetStringTag( STREAM *stream, BYTE *string, int *stringLength,
 		}
 
 	/* Read the string, limiting the size to the maximum buffer size */
-	if( tag != NO_TAG && readTag( stream ) != selectTag( tag, BER_OCTETSTRING ) )
-		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+	if( useLiteralTag )
+		{
+		if( readTag( stream ) != tag )
+			return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+		}
+	else
+		{
+		if( tag != NO_TAG && readTag( stream ) != selectTag( tag, BER_OCTETSTRING ) )
+			return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+		}
 	length = readLengthValue( stream, READLENGTH_SHORT );
+	if( cryptStatusError( length ) )
+		return( length );
+	if( length < minLength )
+		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 	if( length <= 0 )
-		return( length );	/* Error or zero length */
+		return( length );	/* Zero length */
 	return( readConstrainedData( stream, string, stringLength, length, 
 								 maxLength ) );
+	}
+
+int readOctetStringTag( STREAM *stream, BYTE *string, int *stringLength,
+						const int minLength, const int maxLength, 
+						const int tag )
+	{
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( string == NULL || isWritePtr( string, maxLength ) );
+	assert( stringLength == NULL || \
+			isWritePtr( stringLength, sizeof( int ) ) );
+	assert( maxLength > 0 );
+
+	return( readString( stream, string, stringLength, minLength, maxLength, \
+						tag, FALSE ) );
 	}
 
 /* Read a character string.  This handles any of the myriad ASN.1 character
@@ -688,38 +801,22 @@ int readOctetStringTag( STREAM *stream, BYTE *string, int *stringLength,
 int readCharacterString( STREAM *stream, BYTE *string, int *stringLength,
 						 const int maxLength, const int tag )
 	{
-	int length;
-
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( string == NULL || isWritePtr( string, maxLength ) );
 	assert( stringLength == NULL || \
 			isWritePtr( stringLength, sizeof( int ) ) );
 	assert( maxLength > 0 );
-	assert( tag != NO_TAG && tag != DEFAULT_TAG );
+	assert( tag > 0 );
 
-	/* Clear return value */
-	if( string != NULL )
-		{
-		*string = '\0';
-		*stringLength = 0;
-		}
-
-	/* Read the string, limiting the size to the maximum buffer size */
-	if( readTag( stream ) != tag )
-		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
-	length = readLengthValue( stream, READLENGTH_SHORT );
-	if( length <= 0 )
-		return( length );	/* Error or zero length */
-	return( readConstrainedData( stream, string, stringLength, length, 
-								 maxLength ) );
+	return( readString( stream, string, stringLength, 1, maxLength, \
+						tag, TRUE ) );
 	}
 
 /* Read a bit string */
 
 int readBitStringTag( STREAM *stream, int *bitString, const int tag )
 	{
-	unsigned int data, mask = 0x80;
-	int length, flag = 1, value = 0, noBits, i;
+	int length, data, mask = 0x80, flag = 1, value = 0, noBits, i;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( bitString == NULL || isWritePtr( bitString, sizeof( int ) ) );
@@ -732,28 +829,36 @@ int readBitStringTag( STREAM *stream, int *bitString, const int tag )
 	   bits.  This isn't as machine-dependant as it seems, the only place 
 	   where bit strings longer than one or two bytes are used is with the 
 	   more obscure CMP error subcodes that just provide further information
-	   above and beyond the main error code and text message, which are 
-	   unlikely to be used on a 16-bit machine */
+	   above and beyond the main error code and text message, and CMP is 
+	   highly unlikely to be used on a 16-bit machine */
 	if( tag != NO_TAG && readTag( stream ) != selectTag( tag, BER_BITSTRING ) )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 	length = sgetc( stream ) - 1;
 	noBits = sgetc( stream );
+	if( cryptStatusError( noBits ) )
+		return( noBits );
 	if( length < 0 || length > sizeof( int ) || noBits < 0 || noBits > 7 )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 	if( length <= 0 )
 		return( CRYPT_OK );		/* Zero value */
+	assert( length >= 1 && length <= sizeof( int ) );
+	assert( noBits >= 0 && noBits <= 7 );
 	noBits = ( length * 8 ) - noBits;
 
 	/* ASN.1 bitstrings start at bit 0, so we need to reverse the order of
 	   the bits before we return the value */
 	data = sgetc( stream );
+	if( cryptStatusError( data ) )
+		return( data );
 	for( i = noBits - 8; i > 0; i -= 8 )
 		{
-		data = ( data << 8 ) | sgetc( stream );
+		const int dataTmp = sgetc( stream );
+
+		if( cryptStatusError( dataTmp ) )
+			return( dataTmp );
+		data = ( data << 8 ) | dataTmp;
 		mask <<= 8;
 		}
-	if( !sStatusOK( stream ) )
-		return( sGetStatus( stream ) );
 	for( i = 0; i < noBits; i++ )
 		{
 		if( data & mask )
@@ -762,7 +867,11 @@ int readBitStringTag( STREAM *stream, int *bitString, const int tag )
 		data <<= 1;
 		}
 	if( bitString != NULL )
+		{
+		if( value < 0 )
+			return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 		*bitString = value;
+		}
 
 	return( CRYPT_OK );
 	}
@@ -776,8 +885,8 @@ static int getDigits( const BYTE *bufPtr )
 
 static int readTime( STREAM *stream, time_t *timePtr, const BOOLEAN isUTCTime )
 	{
-	BYTE buffer[ 32 ], *bufPtr = buffer;
-	struct tm theTime,  *gm_tm;
+	BYTE buffer[ 16 + 8 ], *bufPtr = buffer;
+	struct tm theTime,  gmTimeInfo, *gmTimeInfoPtr = &gmTimeInfo;
 	time_t utcTime, gmTime;
 #if 0
 	time_t localTime;
@@ -792,19 +901,23 @@ static int readTime( STREAM *stream, time_t *timePtr, const BOOLEAN isUTCTime )
 	   encoded without seconds, and Sweden Post haven't realised that this 
 	   has changed yet */
 	length = sgetc( stream );
+	if( cryptStatusError( length ) )
+		return( length );
 	if( ( isUTCTime && length != 13 && length != 11 ) || \
 		( !isUTCTime && length != 15 ) )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 
 	/* Read the encoded time data and make sure that the contents are 
 	   valid */
-	memset( buffer, 0, 32 );
+	memset( buffer, 0, 16 );
 	status = sread( stream, buffer, length );
 	if( cryptStatusError( status ) )
 		return( status );
 	for( i = 0; i < length - 1; i++ )
-		if( buffer[ i ] < '0' || buffer[ i ] > '9' )
+		{
+		if( !isDigit( buffer[ i ] ) )
 			return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
+		}
 	if( buffer[ length - 1 ] != 'Z' )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 
@@ -876,26 +989,26 @@ static int readTime( STREAM *stream, time_t *timePtr, const BOOLEAN isUTCTime )
 	/* Convert the UTC time to local time.  This is complicated by the fact 
 	   that although the C standard library can convert from local time -> 
 	   UTC, it can't convert the time back, so we treat the UTC time as 
-	   local time (gmtime() always assumes that the input is local time) and 
-	   covert to GMT and back, which should give the offset from GMT.  Since 
-	   we can't assume that time_t is signed, we have to treat a negative 
-	   and positive offset separately.  An extra complication is added by 
-	   daylight savings time adjustment, some systems adjust for DST by 
-	   default, some don't, and some allow you to set it in the Control 
-	   Panel so it varies from machine to machine (thanks Bill!), so we have 
-	   to make it explicit as part of the conversion process.  Even this 
-	   still isn't perfect because it displays the time adjusted for DST now 
-	   rather than DST when the cert was created, however this problem is 
-	   more or less undecidable, the code used here has the property that 
-	   the values for Windows agree with those for Unix and everything else 
-	   which is the main thing */
-	gm_tm = gmtime( &utcTime );
-	if( gm_tm != NULL )
+	   local time (gmtime_s() always assumes that the input is local time) 
+	   and covert to GMT and back, which should give the offset from GMT.  
+	   Since we can't assume that time_t is signed, we have to treat a 
+	   negative and positive offset separately.  An extra complication is 
+	   added by daylight savings time adjustment, some systems adjust for 
+	   DST by default, some don't, and some allow you to set it in the 
+	   Control Panel so it varies from machine to machine (thanks Bill!), so 
+	   we have to make it explicit as part of the conversion process.  Even 
+	   this still isn't perfect because it displays the time adjusted for 
+	   DST now rather than DST when the cert was created, however this 
+	   problem is more or less undecidable, the code used here has the 
+	   property that the values for Windows agree with those for Unix and 
+	   everything else which is the main thing */
+	gmTimeInfoPtr = gmTime_s( &utcTime, gmTimeInfoPtr );
+	if( gmTimeInfoPtr != NULL )
 		{
-		gm_tm->tm_isdst = -1;		/* Force correct DST adjustment */
-		gmTime = mktime( gm_tm );
+		gmTimeInfoPtr->tm_isdst = -1;		/* Force correct DST adjustment */
+		gmTime = mktime( gmTimeInfoPtr );
 		}
-	if( gm_tm == NULL || gmTime < 0 )
+	if( gmTimeInfoPtr == NULL || gmTime < 0 )
 		return( sSetError( stream, CRYPT_ERROR_BADDATA ) );
 	if( timePtr != NULL )
 		{
@@ -910,18 +1023,17 @@ static int readTime( STREAM *stream, time_t *timePtr, const BOOLEAN isUTCTime )
 		   GMT as a sanity check and applying a +/- 1 hour correction if 
 		   there's a mismatch */
   #if 0
-		gm_tm = gmtime( timePtr );
-		gm_tm->tm_isdst = -1;
-		gmTime = mktime( gm_tm );
+		gmTimeInfoPtr = gmTime_s( timePtr );
+		gmTimeInfoPtr->tm_isdst = -1;
+		gmTime = mktime( gmTimeInfoPtr );
 		if( gmTime != utcTime )
 			{
-			*timePtr = ( *timePtr ) + 3600;	/* Try +1 first */
-			gm_tm = gmtime( timePtr );
-			gm_tm->tm_isdst = -1;
-			gmTime = mktime( gm_tm );
+			*timePtr += 3600;		/* Try +1 first */
+			gmTimeInfoPtr = gmTime_s( timePtr, gmTimeInfoPtr );
+			gmTimeInfoPtr->tm_isdst = -1;
+			gmTime = mktime( gmTimeInfoPtr );
 			if( gmTime != utcTime )
-				/* Nope, use -1 instead */
-				*timePtr = ( *timePtr ) -7200;
+				*timePtr -= 7200;	/* Nope, use -1 instead */
 			}
   #endif /* 0 */
 		}
@@ -970,7 +1082,7 @@ int readSequence( STREAM *stream, int *length )
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
 
-	return( readObjectHeader( stream, length, BER_SEQUENCE, FALSE, FALSE ) );
+	return( readObjectHeader( stream, length, 0, BER_SEQUENCE, FALSE, FALSE ) );
 	}
 
 int readSequenceI( STREAM *stream, int *length )
@@ -978,7 +1090,7 @@ int readSequenceI( STREAM *stream, int *length )
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
 
-	return( readObjectHeader( stream, length, BER_SEQUENCE, FALSE, TRUE ) );
+	return( readObjectHeader( stream, length, 0, BER_SEQUENCE, FALSE, TRUE ) );
 	}
 
 int readSet( STREAM *stream, int *length )
@@ -986,7 +1098,7 @@ int readSet( STREAM *stream, int *length )
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
 
-	return( readObjectHeader( stream, length, BER_SET, FALSE, FALSE ) );
+	return( readObjectHeader( stream, length, 0, BER_SET, FALSE, FALSE ) );
 	}
 
 int readSetI( STREAM *stream, int *length )
@@ -994,15 +1106,16 @@ int readSetI( STREAM *stream, int *length )
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
 
-	return( readObjectHeader( stream, length, BER_SET, FALSE, TRUE ) );
+	return( readObjectHeader( stream, length, 0, BER_SET, FALSE, TRUE ) );
 	}
 
 int readConstructed( STREAM *stream, int *length, const int tag )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
+	assert( ( tag == DEFAULT_TAG ) || ( tag >= 0 ) );
 
-	return( readObjectHeader( stream, length, ( tag == DEFAULT_TAG ) ? \
+	return( readObjectHeader( stream, length, 0, ( tag == DEFAULT_TAG ) ? \
 							  BER_SEQUENCE : MAKE_CTAG( tag ), FALSE, FALSE ) );
 	}
 
@@ -1010,56 +1123,67 @@ int readConstructedI( STREAM *stream, int *length, const int tag )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
+	assert( ( tag == DEFAULT_TAG ) || ( tag >= 0 ) );
 
-	return( readObjectHeader( stream, length, ( tag == DEFAULT_TAG ) ? \
+	return( readObjectHeader( stream, length, 0, ( tag == DEFAULT_TAG ) ? \
 							  BER_SEQUENCE : MAKE_CTAG( tag ), FALSE, TRUE ) );
 	}
 
-int readOctetStringHole( STREAM *stream, int *length, const int tag )
+int readOctetStringHole( STREAM *stream, int *length, const int minLength, 
+						 const int tag )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
+	assert( ( tag == DEFAULT_TAG ) || ( tag >= 0 ) );
 
-	return( readObjectHeader( stream, length, ( tag == DEFAULT_TAG ) ? \
-							  BER_OCTETSTRING : MAKE_CTAG_PRIMITIVE( tag ),
+	return( readObjectHeader( stream, length, minLength, 
+							  ( tag == DEFAULT_TAG ) ? \
+								BER_OCTETSTRING : MAKE_CTAG_PRIMITIVE( tag ),
 							  FALSE, FALSE ) );
 	}
 
-int readBitStringHole( STREAM *stream, int *length, const int tag )
+int readBitStringHole( STREAM *stream, int *length, const int minLength, 
+					   const int tag )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
+	assert( ( tag == DEFAULT_TAG ) || ( tag >= 0 ) );
 
-	return( readObjectHeader( stream, length, ( tag == DEFAULT_TAG ) ? \
-							  BER_BITSTRING : MAKE_CTAG_PRIMITIVE( tag ),
+	return( readObjectHeader( stream, length, minLength, 
+							  ( tag == DEFAULT_TAG ) ? \
+								BER_BITSTRING : MAKE_CTAG_PRIMITIVE( tag ),
 							  TRUE, FALSE ) );
 	}
 
-int readGenericHole( STREAM *stream, int *length, const int tag )
+int readGenericHole( STREAM *stream, int *length, const int minLength, 
+					 const int tag )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
+	assert( ( tag == DEFAULT_TAG ) || ( tag >= 0 ) );
 
-	return( readObjectHeader( stream, length, 
+	return( readObjectHeader( stream, length, minLength, 
 							  ( tag == DEFAULT_TAG ) ? ANY_TAG : tag, 
 							  FALSE, FALSE ) );
 	}
 
-int readGenericHoleI( STREAM *stream, int *length, const int tag )
+int readGenericHoleI( STREAM *stream, int *length, const int minLength, 
+					  const int tag )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( length == NULL || isWritePtr( length, sizeof( int ) ) );
+	assert( ( tag == DEFAULT_TAG ) || ( tag >= 0 ) );
 
-	return( readObjectHeader( stream, length, 
+	return( readObjectHeader( stream, length, minLength, 
 							  ( tag == DEFAULT_TAG ) ? ANY_TAG : tag, 
 							  FALSE, TRUE ) );
 	}
 
 /* Read an abnormally-long encapsulating SEQUENCE or OCTET STRING hole.  
-   This is used in place of the usual read in places where potentially huge 
-   data quantities would fail the sanity check enforced by the standard 
-   read.  This form always allows indefinite lengths, which are likely for 
-   large objects */
+   This is used in place of the usual read in situations where potentially 
+   huge data quantities would fail the sanity check enforced by the 
+   standard read.  This form always allows indefinite lengths, which are 
+   likely for large objects */
 
 int readLongSequence( STREAM *stream, long *length )
 	{
@@ -1067,6 +1191,14 @@ int readLongSequence( STREAM *stream, long *length )
 	assert( length == NULL || isWritePtr( length, sizeof( long ) ) );
 
 	return( readLongObjectHeader( stream, length, BER_SEQUENCE ) );
+	}
+
+int readLongSet( STREAM *stream, long *length )
+	{
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( length == NULL || isWritePtr( length, sizeof( long ) ) );
+
+	return( readLongObjectHeader( stream, length, BER_SET ) );
 	}
 
 int readLongConstructed( STREAM *stream, long *length, const int tag )

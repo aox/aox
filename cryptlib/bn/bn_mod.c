@@ -111,7 +111,7 @@
  * [including the GNU Public Licence.]
  */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "bn_lcl.h"
 #else
   #include "bn/bn_lcl.h"
@@ -151,7 +151,7 @@ int BN_mod_add(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, const BIGNUM *m, BN_
  * and less than  m */
 int BN_mod_add_quick(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, const BIGNUM *m)
 	{
-	if (!BN_add(r, a, b)) return 0;
+	if (!BN_uadd(r, a, b)) return 0;
 	if (BN_ucmp(r, m) >= 0)
 		return BN_usub(r, r, m);
 	return 1;
@@ -194,6 +194,7 @@ int BN_mod_mul(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, const BIGNUM *m,
 	else
 		{ if (!BN_mul(t,a,b,ctx)) goto err; }
 	if (!BN_nnmod(r,t,m,ctx)) goto err;
+	bn_check_top(r);
 	ret=1;
 err:
 	BN_CTX_end(ctx);
@@ -212,6 +213,7 @@ int BN_mod_sqr(BIGNUM *r, const BIGNUM *a, const BIGNUM *m, BN_CTX *ctx)
 int BN_mod_lshift1(BIGNUM *r, const BIGNUM *a, const BIGNUM *m, BN_CTX *ctx)
 	{
 	if (!BN_lshift1(r, a)) return 0;
+	bn_check_top(r);
 	return BN_nnmod(r, r, m, ctx);
 	}
 
@@ -221,6 +223,7 @@ int BN_mod_lshift1(BIGNUM *r, const BIGNUM *a, const BIGNUM *m, BN_CTX *ctx)
 int BN_mod_lshift1_quick(BIGNUM *r, const BIGNUM *a, const BIGNUM *m)
 	{
 	if (!BN_lshift1(r, a)) return 0;
+	bn_check_top(r);
 	if (BN_cmp(r, m) >= 0)
 		return BN_sub(r, r, m);
 	return 1;
@@ -242,6 +245,7 @@ int BN_mod_lshift(BIGNUM *r, const BIGNUM *a, int n, const BIGNUM *m, BN_CTX *ct
 		}
 
 	ret = BN_mod_lshift_quick(r, r, n, (abs_m ? abs_m : m));
+	bn_check_top(r);
 
 	if (abs_m)
 		BN_free(abs_m);
@@ -293,6 +297,7 @@ int BN_mod_lshift_quick(BIGNUM *r, const BIGNUM *a, int n, const BIGNUM *m)
 			if (!BN_sub(r, r, m)) return 0;
 			}
 		}
+	bn_check_top(r);
 
 	return 1;
 	}

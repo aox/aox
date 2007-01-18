@@ -33,19 +33,6 @@
 #define MIN_PACKET_SIZE				4	/* Minimum SSL packet size */
 #define MAX_PACKET_SIZE				16384	/* Maximum SSL packet size */
 
-/* The number of entries in the SSL session cache and the maximum amount of 
-   time that an entry is retained in the cache.  Note that when changing the
-   SESSIONCACHE_SIZE value you need to also change MAX_ALLOC_SIZE in 
-   sec_mem.c to allow the allocation of such large amounts of secure 
-   memory */
-
-#if defined( CONFIG_CONSERVE_MEMORY )
-  #define SESSIONCACHE_SIZE			128
-#else
-  #define SESSIONCACHE_SIZE			1024
-#endif /* CONFIG_CONSERVE_MEMORY */
-#define SESSIONCACHE_TIMEOUT		3600
-
 /* SSL packet/buffer size information.  The extra packet size is somewhat 
    large because it can contains the packet header (5 bytes), IV (0/8/16 
    bytes), MAC (16/20 bytes), and cipher block padding (up to 256 bytes) */
@@ -187,10 +174,24 @@ typedef enum {
 	TLS_DH_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
 	TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_DH_anon_WITH_AES_256_CBC_SHA,
 
-	/* Unknown suites (59-137) */
+	/* Unknown suites (59-64) */
+
+	/* Camellia (RFC 4132) suites (65-70) */
+	TLS_RSA_WITH_CAMELLIA_128_CBC_SHA = 65, 
+	TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA, TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA,
+	TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA, TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,
+	TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA,
+
+	/* Unknown suites (71-131) */
+
+	/* Camellia (RFC 4132) suites (132-137) */
+	TLS_RSA_WITH_CAMELLIA_256_CBC_SHA = 132,
+	TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA, TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA,
+	TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA, TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA,
+	TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA,
 
 	/* TLS-PSK cipher suites (138-149) */
-	TLS_PSK_WITH_RC4_128_SHA = 138, TLS_PSK_WITH_3DES_EDE_CBC_SHA, 
+	TLS_PSK_WITH_RC4_128_SHA, TLS_PSK_WITH_3DES_EDE_CBC_SHA, 
 	TLS_PSK_WITH_AES_128_CBC_SHA, TLS_PSK_WITH_AES_256_CBC_SHA, 
 	TLS_DHE_PSK_WITH_RC4_128_SHA, TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA,
 	TLS_DHE_PSK_WITH_AES_128_CBC_SHA, TLS_DHE_PSK_WITH_AES_256_CBC_SHA,
@@ -271,16 +272,6 @@ typedef struct SL {
 						   struct SL *handshakeInfo );
 	} SSL_HANDSHAKE_INFO;
 
-/* Session cache management functions */
-
-int findSessionCacheEntryID( const void *sessionID, 
-							 const int sessionIDlength );
-int addSessionCacheEntry( const void *sessionID, const int sessionIDlength, 
-						  const void *masterSecret, 
-						  const int masterSecretLength, 
-						  const BOOLEAN isFixedEntry );
-void deleteSessionCacheEntry( const int uniqueID );
-
 /* Prototypes for functions in ssl.c */
 
 int readUint24( STREAM *stream );
@@ -339,7 +330,7 @@ int initDHcontextSSL( CRYPT_CONTEXT *iCryptContext, const void *keyData,
 					  const int keyDataLength );
 int createSharedPremasterSecret( void *premasterSecret, 
 								 int *premasterSecretLength,
-								 const SESSION_INFO *sessionInfoPtr );
+								 const ATTRIBUTE_LIST *attributeListPtr );
 int wrapPremasterSecret( SESSION_INFO *sessionInfoPtr, 
 						 SSL_HANDSHAKE_INFO *handshakeInfo,
 						 void *data, int *dataLength );

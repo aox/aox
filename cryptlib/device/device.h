@@ -71,23 +71,23 @@ typedef struct {
 typedef struct {
 	/* General device information */
 	int minPinSize, maxPinSize;		/* Minimum, maximum PIN lengths */
-	char labelBuffer[ CRYPT_MAX_TEXTSIZE + 1 ];		/* Device label */
+	char labelBuffer[ CRYPT_MAX_TEXTSIZE + 8 ];		/* Device label */
 
 	/* Device type-specific information */
 	unsigned long hSession;			/* Session handle */
 	long slotID;					/* Slot ID for multi-slot device */
 	int deviceNo;					/* Index into PKCS #11 token table */
 	void *functionListPtr;			/* PKCS #11 driver function list pointer */
-	char defaultSSOPIN[ CRYPT_MAX_TEXTSIZE + 1 ];	/* SSO PIN from dev.init */
+	char defaultSSOPIN[ CRYPT_MAX_TEXTSIZE + 8 ];	/* SSO PIN from dev.init */
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 	} PKCS11_INFO;
 
 typedef struct {
 	/* General device information */
-	char labelBuffer[ CRYPT_MAX_TEXTSIZE + 1 ];		/* Device label */
+	char labelBuffer[ CRYPT_MAX_TEXTSIZE + 8 ];		/* Device label */
 
 	/* Device type-specific information */
 	int hProv;						/* CryptoAPI provider handle */
@@ -98,13 +98,13 @@ typedef struct {
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 	} CRYPTOAPI_INFO;
 
 typedef struct {
 	/* General device information */
 	int minPinSize, maxPinSize;		/* Minimum, maximum PIN lengths */
-	char labelBuffer[ CRYPT_MAX_TEXTSIZE + 1 ];		/* Device label */
+	char labelBuffer[ CRYPT_MAX_TEXTSIZE + 8 ];		/* Device label */
 
 	/* Device type-specific information */
 	int socketIndex;				/* Slot index for multi-slot reader */
@@ -121,11 +121,11 @@ typedef struct {
 
 	/* Other information */
 	BYTE leafString[ 16 ];			/* LEAF-suppressed string */
-	char initPIN[ CRYPT_MAX_TEXTSIZE + 1 ];	/* Initialisation PIN */
+	char initPIN[ CRYPT_MAX_TEXTSIZE + 8 ];	/* Initialisation PIN */
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 	} FORTEZZA_INFO;
 
 /* Defines to make access to the union fields less messy */
@@ -200,6 +200,7 @@ typedef struct DI {
 	const MECHANISM_FUNCTION_INFO *mechanismFunctions;
 	const CREATEOBJECT_FUNCTION_INFO *createObjectFunctions;
 	void *randomInfo;
+	int mechanismFunctionCount, createObjectFunctionCount;
 
 	/* Error information */
 	CRYPT_ATTRIBUTE_TYPE errorLocus;/* Error locus */

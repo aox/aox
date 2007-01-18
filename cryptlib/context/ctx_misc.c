@@ -5,12 +5,9 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "context.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "context.h"
 #else
   #include "crypt.h"
@@ -156,8 +153,8 @@ void getCapabilityInfo( CRYPT_QUERY_INFO *cryptQueryInfo,
 						const CAPABILITY_INFO FAR_BSS *capabilityInfoPtr )
 	{
 	memset( cryptQueryInfo, 0, sizeof( CRYPT_QUERY_INFO ) );
-	strcpy( ( char * ) cryptQueryInfo->algoName, 
-			capabilityInfoPtr->algoName );
+	strcpy_s( ( char * ) cryptQueryInfo->algoName, CRYPT_MAX_TEXTSIZE,
+			  capabilityInfoPtr->algoName );
 	cryptQueryInfo->blockSize = capabilityInfoPtr->blockSize;
 	cryptQueryInfo->minKeySize = capabilityInfoPtr->minKeySize;
 	cryptQueryInfo->keySize = capabilityInfoPtr->keySize;
@@ -207,6 +204,94 @@ int getDefaultInfo( const CAPABILITY_INFO_TYPE type,
 	assert( NOTREACHED );
 	return( CRYPT_ERROR );	/* Get rid of compiler warning */
 	}
+
+/****************************************************************************
+*																			*
+*							Bignum Support Routines 						*
+*																			*
+****************************************************************************/
+
+#ifdef USE_PKC
+
+/* Clear temporary bignum values used during PKC operations */
+
+void clearTempBignums( PKC_INFO *pkcInfo )
+	{
+	BN_clear( &pkcInfo->tmp1 );
+	BN_clear( &pkcInfo->tmp2 );
+	BN_clear( &pkcInfo->tmp3 );
+	BN_CTX_clear( pkcInfo->bnCTX );
+	}
+
+/* Initialse and free the bignum information in a context */
+
+void initContextBignums( PKC_INFO *pkcInfo, 
+						 const BOOLEAN useSideChannelProtection )
+	{
+	/* Initialise the bignum information */
+	BN_init( &pkcInfo->param1 );
+	BN_init( &pkcInfo->param2 );
+	BN_init( &pkcInfo->param3 );
+	BN_init( &pkcInfo->param4 );
+	BN_init( &pkcInfo->param5 );
+	BN_init( &pkcInfo->param6 );
+	BN_init( &pkcInfo->param7 );
+	BN_init( &pkcInfo->param8 );
+	if( useSideChannelProtection )
+		{
+		BN_init( &pkcInfo->blind1 );
+		BN_init( &pkcInfo->blind2 );
+		}
+	BN_init( &pkcInfo->tmp1 );
+	BN_init( &pkcInfo->tmp2 );
+	BN_init( &pkcInfo->tmp3 );
+	pkcInfo->bnCTX = BN_CTX_new();
+	BN_MONT_CTX_init( &pkcInfo->montCTX1 );
+	BN_MONT_CTX_init( &pkcInfo->montCTX2 );
+	BN_MONT_CTX_init( &pkcInfo->montCTX3 );
+	}
+
+void freeContextBignums( PKC_INFO *pkcInfo, int contextFlags )
+	{
+	if( !( contextFlags & CONTEXT_DUMMY ) )
+		{
+		BN_clear_free( &pkcInfo->param1 );
+		BN_clear_free( &pkcInfo->param2 );
+		BN_clear_free( &pkcInfo->param3 );
+		BN_clear_free( &pkcInfo->param4 );
+		BN_clear_free( &pkcInfo->param5 );
+		BN_clear_free( &pkcInfo->param6 );
+		BN_clear_free( &pkcInfo->param7 );
+		BN_clear_free( &pkcInfo->param8 );
+		if( contextFlags & CONTEXT_SIDECHANNELPROTECTION )
+			{
+			BN_clear_free( &pkcInfo->blind1 );
+			BN_clear_free( &pkcInfo->blind2 );
+			}
+		BN_clear_free( &pkcInfo->tmp1 );
+		BN_clear_free( &pkcInfo->tmp2 );
+		BN_clear_free( &pkcInfo->tmp3 );
+		BN_MONT_CTX_free( &pkcInfo->montCTX1 );
+		BN_MONT_CTX_free( &pkcInfo->montCTX2 );
+		BN_MONT_CTX_free( &pkcInfo->montCTX3 );
+		BN_CTX_free( pkcInfo->bnCTX );
+		}
+	if( pkcInfo->publicKeyInfo != NULL )
+		clFree( "contextMessageFunction", pkcInfo->publicKeyInfo );
+	}
+#else
+
+void clearTempBignums( PKC_INFO *pkcInfo )
+	{
+	}
+void initContextBignums( PKC_INFO *pkcInfo, 
+						 const BOOLEAN useSideChannelProtection )
+	{
+	}
+void freeContextBignums( PKC_INFO *pkcInfo, int contextFlags )
+	{
+	}
+#endif /* USE_PKC */
 
 /****************************************************************************
 *																			*

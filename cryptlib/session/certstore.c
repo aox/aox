@@ -1,19 +1,13 @@
 /****************************************************************************
 *																			*
 *					cryptlib HTTP Certstore Session Management				*
-*						Copyright Peter Gutmann 1998-2004					*
+*						Copyright Peter Gutmann 1998-2006					*
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "misc_rw.h"
-  #include "session.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/misc_rw.h"
   #include "session.h"
 #else
   #include "crypt.h"
@@ -49,6 +43,7 @@ static const CERTSTORE_READ_INFO certstoreReadInfo[] = {
 	{ "iAndSHash", 9, CRYPT_IKEYID_ISSUERANDSERIALNUMBER, CERTSTORE_FLAG_BASE64 },
 	{ "sKIDHash", 8, CRYPT_IKEYID_KEYID, CERTSTORE_FLAG_BASE64 },
 	{ NULL, CRYPT_KEYID_NONE, CERTSTORE_FLAG_NONE },
+	{ NULL, CRYPT_KEYID_NONE, CERTSTORE_FLAG_NONE }
 	};
 
 /****************************************************************************
@@ -64,66 +59,35 @@ static const CERTSTORE_READ_INFO certstoreReadInfo[] = {
 static void sendErrorResponse( SESSION_INFO *sessionInfoPtr,	
 							   const int errorStatus )
 	{
-	BYTE *bufPtr = sessionInfoPtr->receiveBuffer;
+	STREAM stream;
+	int length;
 
-	mputWord( bufPtr, errorStatus );
-	swrite( &sessionInfoPtr->stream, sessionInfoPtr->receiveBuffer, 2 );
-	}
-
-/* Read a value from the HTTP GET */
-
-static int readValue( STREAM *stream, char **valuePtrPtr, int *valueLen )
-	{
-	int status;
-
-	/* Clear return values */
-	if( valuePtrPtr != NULL )
-		{
-		*valuePtrPtr = NULL;
-		*valueLen = 0;
-		}
-
-	/* Read the { length, data } information */
-	status = readUint16( stream );
-	if( cryptStatusError( status ) )
-		return( status );
-	if( status <= 0 )
-		/* If we're not interested in the data then a length of zero (item
-		   not present) is OK, otherwise it's an error */
-		return( ( valuePtrPtr == NULL ) ? \
-				CRYPT_OK : CRYPT_ERROR_UNDERFLOW );
-	if( status > CRYPT_MAX_TEXTSIZE )
-		return( CRYPT_ERROR_OVERFLOW );
-	if( valuePtrPtr != NULL )
-		{
-		char *valuePtr = sMemBufPtr( stream );
-
-		valuePtr[ status ] = '\0';
-		*valuePtrPtr = valuePtr;
-		*valueLen = status;
-		}
-	return( sSkip( stream, status ) );
+	sMemOpen( &stream, sessionInfoPtr->receiveBuffer, 8 );
+	writeUint16( &stream, errorStatus );
+	length = stell( &stream );
+	sMemDisconnect( &stream );
+	swrite( &sessionInfoPtr->stream, sessionInfoPtr->receiveBuffer, length );
 	}
 
 /* Exchange data with an HTTP client */
 
 static int serverTransact( SESSION_INFO *sessionInfoPtr )
 	{
-	const CERTSTORE_READ_INFO *certstoreInfoPtr;
+	const CERTSTORE_READ_INFO *certstoreInfoPtr = NULL;
+	HTTP_URI_INFO queryInfo;
 	MESSAGE_KEYMGMT_INFO getkeyInfo;
-	RESOURCE_DATA msgData;
 	STREAM stream;
-	BYTE buffer[ 128 ];
-	char *attrPtr, *valuePtr, valueBuffer[ CRYPT_MAX_TEXTSIZE + 1 ];
-	char firstChar;
-	int attrLen, valueLen, length, i, status;
+	BYTE buffer[ CRYPT_MAX_TEXTSIZE + 8 ];
+	char sanitisedQueryValue[ CRYPT_MAX_TEXTSIZE + 8 ];
+	char *valuePtr, firstChar;
+	int valueLen, length, i, status;
 
-	/* Read the request data from the client.  Note that we do a direct read 
-	   rather than using readPkiDatagram() since we're reading an idempotent
-	   HTTP GET request and not a PKI datagram submitted via an HTTP POST */
+	/* Read the request data from the client.  We do a direct read rather 
+	   than using readPkiDatagram() since we're reading an idempotent HTTP 
+	   GET request and not a PKI datagram submitted via an HTTP POST */
 	sioctl( &sessionInfoPtr->stream, STREAM_IOCTL_IDEMPOTENT, NULL, TRUE );
-	length = sread( &sessionInfoPtr->stream, sessionInfoPtr->receiveBuffer, 
-					sessionInfoPtr->receiveBufSize );
+	length = sread( &sessionInfoPtr->stream, &queryInfo, 
+					sizeof( HTTP_URI_INFO ) );
 	if( cryptStatusError( length ) )
 		{
 		sNetGetErrorInfo( &sessionInfoPtr->stream,
@@ -132,64 +96,70 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 		return( length );
 		}
 
-	/* Read the { attribute, value } pair from the HTTP GET:
-
-		word	uriLen
-		byte[]	uri
-		word	attrLen
-		byte[]	attr
-		word	valueLen
-		byte[]	value */
-	sMemConnect( &stream, sessionInfoPtr->receiveBuffer, length );
-	status = readValue( &stream, NULL, NULL );
-	if( cryptStatusOK( status ) )
-		status = readValue( &stream, &attrPtr, &attrLen );
-	if( cryptStatusOK( status ) )
-		status = readValue( &stream, &valuePtr, &valueLen );
-	sMemDisconnect( &stream );
-	if( cryptStatusError( status ) )
-		{
-		/* This shouldn't ever occur since it would mean that the HTTP layer 
-		   has sent us invalid data */
-		assert( NOTREACHED );
-		retExt( sessionInfoPtr, status, "Invalid cert store query data" );
-		}
-	strcpy( valueBuffer, valuePtr );
+	/* Save a copy of the query value for use in reporting errors */
+	length = min( queryInfo.valueLen, CRYPT_MAX_TEXTSIZE );
+	memcpy( sanitisedQueryValue, queryInfo.value, length );
+	buffer[ length ] = '\0';
+	sanitiseString( sanitisedQueryValue, length );
 
 	/* Convert the search attribute type into a cryptlib key ID */
-	firstChar = toLower( *attrPtr );
+	firstChar = toLower( queryInfo.attribute[ 0 ] );
 	for( i = 0; 
 		 certstoreReadInfo[ i ].attrName != NULL && \
-		 ( attrLen != certstoreReadInfo[ i ].attrNameLen || \
-		   certstoreReadInfo[ i ].attrName[ 0 ] != firstChar || \
-		   strCompare( attrPtr, certstoreReadInfo[ i ].attrName, \
-					   certstoreReadInfo[ i ].attrNameLen ) ); 
-		 i++ );
-	certstoreInfoPtr = &certstoreReadInfo[ i ];
-	if( certstoreInfoPtr->attrName == NULL )
+			i < FAILSAFE_ARRAYSIZE( certstoreReadInfo, CERTSTORE_READ_INFO ); 
+		 i++ )
+		{
+		if( queryInfo.attributeLen == certstoreReadInfo[ i ].attrNameLen && \
+			certstoreReadInfo[ i ].attrName[ 0 ] == firstChar && \
+			!strCompare( queryInfo.attribute, \
+						 certstoreReadInfo[ i ].attrName, \
+						 certstoreReadInfo[ i ].attrNameLen ) )
+			{
+			certstoreInfoPtr = &certstoreReadInfo[ i ];
+			break;
+			}
+		}
+	if( i >= FAILSAFE_ARRAYSIZE( certstoreReadInfo, CERTSTORE_READ_INFO ) )
+		retIntError();
+	if( certstoreInfoPtr == NULL )
 		{
 		sendErrorResponse( sessionInfoPtr, CRYPT_ERROR_BADDATA );
+		length = min( queryInfo.attributeLen, CRYPT_MAX_TEXTSIZE );
+		memcpy( buffer, queryInfo.attribute, length );
 		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA, 
-				"Invalid cert store query attribute '%s'", attrPtr );
+				"Invalid certificate store query attribute '%s'", 
+				sanitiseString( buffer, length ) );
 		}
 
 	/* If the value was base64-encoded in transit, decode it to get the 
 	   actual query data */
 	if( certstoreInfoPtr->flags & CERTSTORE_FLAG_BASE64 )
 		{
-		status = base64decode( buffer, 64, valuePtr, valueLen, 
-							   CRYPT_CERTFORMAT_NONE );
-		if( cryptStatusError( status ) )
+		length = base64decode( buffer, CRYPT_MAX_TEXTSIZE, queryInfo.value, 
+							   queryInfo.valueLen, CRYPT_CERTFORMAT_NONE );
+		if( cryptStatusError( length ) )
 			{
 			sendErrorResponse( sessionInfoPtr, CRYPT_ERROR_BADDATA );
 			retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA, 
-					"Invalid base64-encoded query value '%s'", valueBuffer );
+					"Invalid base64-encoded query value '%s'", 
+					sanitisedQueryValue );
 			}
 		valuePtr = buffer;
-		valueLen = status;
+		valueLen = length;
+		}
+	else
+		{
+		/* The value is used as is */
+		valuePtr = queryInfo.value;
+		valueLen = queryInfo.valueLen;
 		}
 
-	/* Try and fetch the requested cert */
+	/* Try and fetch the requested cert.  Note that this is somewhat 
+	   suboptimal since we have to instantiate the cert only to destroy it
+	   again immediately afterwards as soon as we've exported the cert data,
+	   for a proper high-performance implementation the server would query
+	   the cert database directly and send the stored encoded value to the
+	   client */
 	setMessageKeymgmtInfo( &getkeyInfo, certstoreInfoPtr->attribute, 
 						   valuePtr, valueLen, NULL, 0, KEYMGMT_FLAG_NONE );
 	status = krnlSendMessage( sessionInfoPtr->cryptKeyset,
@@ -201,25 +171,32 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 		   all we do is return a warning to the caller */
 		sendErrorResponse( sessionInfoPtr, status );
 		retExt( sessionInfoPtr, CRYPT_OK, 
-				"Warning: Couldn't find certificate for '%s'", valueBuffer );
+				"Warning: Couldn't find certificate for '%s'", 
+				sanitisedQueryValue );
 		}
-	memset( sessionInfoPtr->receiveBuffer, 0, 2 );	/* Returned status value */
-	setMessageData( &msgData, sessionInfoPtr->receiveBuffer + 2,
-					sessionInfoPtr->receiveBufSize - 2 );
-	status = krnlSendMessage( getkeyInfo.cryptHandle, IMESSAGE_CRT_EXPORT, 
-							  &msgData, CRYPT_CERTFORMAT_CERTIFICATE );
+
+	/* Write the cert to the session buffer, preceded by the status code for
+	   the operation.  Since it's a response to an idempotent read, it'll be 
+	   mapped by the HTTP layer into the appropriate HTTP response type */
+	sMemOpen( &stream, sessionInfoPtr->receiveBuffer, 
+			  sessionInfoPtr->receiveBufSize );
+	writeUint16( &stream, CRYPT_OK );	/* Returned status value */
+	status = exportCertToStream( &stream, getkeyInfo.cryptHandle,
+								 CRYPT_CERTFORMAT_CERTIFICATE );
+	length = stell( &stream );
+	sMemDisconnect( &stream );
 	krnlSendNotifier( getkeyInfo.cryptHandle, IMESSAGE_DESTROY );
 	if( cryptStatusError( status ) )
 		{
 		sendErrorResponse( sessionInfoPtr, status );
 		retExt( sessionInfoPtr, status, 
 				"Couldn't export requested certificate for '%s'", 
-				valueBuffer );
+				sanitisedQueryValue );
 		}
 
 	/* Send the result to the client */
 	status = swrite( &sessionInfoPtr->stream, sessionInfoPtr->receiveBuffer, 
-					 msgData.length + 2 );
+					 length );
 	if( cryptStatusError( status ) )
 		{
 		sNetGetErrorInfo( &sessionInfoPtr->stream,
@@ -244,8 +221,7 @@ int setAccessMethodCertstore( SESSION_INFO *sessionInfoPtr )
 		SESSION_ISHTTPTRANSPORT,	/* Flags */
 		80,							/* HTTP port */
 		0,							/* Client flags */
-		SESSION_NEEDS_KEYSET |		/* Server flags */
-			SESSION_NEEDS_CERTSOURCE,
+		SESSION_NEEDS_KEYSET,		/* Server flags */
 		1, 1, 1,					/* Version 1 */
 		"application/pkix-cert",	/* Client content-type */
 		"application/pkix-cert",	/* Server content-type */
@@ -253,9 +229,11 @@ int setAccessMethodCertstore( SESSION_INFO *sessionInfoPtr )
 		/* Protocol-specific information */
 		};
 
-	/* Set the access method pointers */
+	/* Set the access method pointers.  The client-side implementation is 
+	  just a standard HTTP fetch so there's no explicit certstore client
+	  implementation */
 	sessionInfoPtr->protocolInfo = &protocolInfo;
-	if( sessionInfoPtr->flags & SESSION_ISSERVER )
+	if( isServer( sessionInfoPtr ) )
 		sessionInfoPtr->transactFunction = serverTransact;
 	else
 		return( CRYPT_ERROR_NOTAVAIL );

@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "md5.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/md5.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -30,14 +25,15 @@
 
 /* Test the MD5 output against the test vectors given in RFC 1321 */
 
-void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-					const int length, const HASH_STATE hashState );
+void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+					const int outBufMaxLength, const BYTE *inBuffer, 
+					const int inLength, const HASH_STATE hashState );
 
-static const FAR_BSS struct {
+static const struct {
 	const char *data;						/* Data to hash */
 	const int length;						/* Length of data */
 	const BYTE digest[ MD5_DIGEST_LENGTH ];	/* Digest of data */
-	} digestValues[] = {
+	} FAR_BSS digestValues[] = {
 	{ "", 0,
 	  { 0xD4, 0x1D, 0x8C, 0xD9, 0x8F, 0x00, 0xB2, 0x04,
 		0xE9, 0x80, 0x09, 0x98, 0xEC, 0xF8, 0x42, 0x7E } },
@@ -67,7 +63,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getMD5Capability();
 	CONTEXT_INFO contextInfo;
 	HASH_INFO contextData;
-	BYTE keyData[ HASH_STATE_SIZE ];
+	BYTE keyData[ HASH_STATE_SIZE + 8 ];
 	int i, status;
 
 	/* Test MD5 against the test vectors given in RFC 1320 */
@@ -78,15 +74,15 @@ static int selfTest( void )
 		status = CRYPT_OK ;
 		if( digestValues[ i ].length > 0 )
 			{
-			status = capabilityInfo->encryptFunction( &contextInfo, 
-								( BYTE * ) digestValues[ i ].data, 
+			status = capabilityInfo->encryptFunction( &contextInfo,
+								( BYTE * ) digestValues[ i ].data,
 								digestValues[ i ].length );
 			contextInfo.flags |= CONTEXT_HASH_INITED;
 			}
 		if( cryptStatusOK( status ) )
 			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
 		if( cryptStatusOK( status ) && \
-			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest,
 					MD5_DIGEST_LENGTH ) )
 			status = CRYPT_ERROR;
 		staticDestroyContext( &contextInfo );
@@ -105,7 +101,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -126,7 +122,7 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	MD5_CTX *md5Info = ( MD5_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
-	/* If the hash state was reset to allow another round of hashing, 
+	/* If the hash state was reset to allow another round of hashing,
 	   reinitialise things */
 	if( !( contextInfoPtr->flags & CONTEXT_HASH_INITED ) )
 		MD5_Init( md5Info );
@@ -142,14 +138,21 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 /* Internal API: Hash a single block of memory without the overhead of
    creating an encryption context */
 
-void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-					const int length, const HASH_STATE hashState )
+void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+					const int outBufMaxLength, const BYTE *inBuffer, 
+					const int inLength, const HASH_STATE hashState )
 	{
 	MD5_CTX *md5Info = ( MD5_CTX * ) hashInfo;
 
-	assert( hashState == HASH_ALL || hashInfo != NULL );
-	assert( inBuffer == NULL || length == 0 || \
-			isReadPtr( inBuffer, length ) );
+	assert( ( hashState == HASH_ALL && hashInfo == NULL ) || \
+			( hashState != HASH_ALL && \
+			  isWritePtr( hashInfo, sizeof( HASHINFO ) ) ) );
+	assert( ( ( hashState != HASH_END && hashState != HASH_ALL ) && \
+			  outBuffer == NULL && outBufMaxLength == 0 ) || \
+			( ( hashState == HASH_END || hashState == HASH_ALL ) && \
+			  isWritePtr( outBuffer, outBufMaxLength ) && \
+			  outBufMaxLength >= 16 ) );
+	assert( inBuffer == NULL || isReadPtr( inBuffer, inLength ) );
 
 	switch( hashState )
 		{
@@ -158,12 +161,12 @@ void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 			/* Drop through */
 
 		case HASH_CONTINUE:
-			MD5_Update( md5Info, ( BYTE * ) inBuffer, length );
+			MD5_Update( md5Info, ( BYTE * ) inBuffer, inLength );
 			break;
 
 		case HASH_END:
 			if( inBuffer != NULL )
-				MD5_Update( md5Info, ( BYTE * ) inBuffer, length );
+				MD5_Update( md5Info, ( BYTE * ) inBuffer, inLength );
 			MD5_Final( outBuffer, md5Info );
 			break;
 
@@ -172,7 +175,7 @@ void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 			MD5_CTX md5InfoBuffer;
 
 			MD5_Init( &md5InfoBuffer );
-			MD5_Update( &md5InfoBuffer, ( BYTE * ) inBuffer, length );
+			MD5_Update( &md5InfoBuffer, ( BYTE * ) inBuffer, inLength );
 			MD5_Final( outBuffer, &md5InfoBuffer );
 			zeroise( &md5InfoBuffer, sizeof( MD5_CTX ) );
 			break;

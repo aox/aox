@@ -1,21 +1,14 @@
 /****************************************************************************
 *																			*
 *					cryptlib Signature Mechanism Routines					*
-*					  Copyright Peter Gutmann 1992-2004						*
+*					  Copyright Peter Gutmann 1992-2006						*
 *																			*
 ****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #ifdef INC_ALL
   #include "crypt.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "crypt.h"
   #include "misc/asn1.h"
@@ -33,6 +26,52 @@ int pgpExtractKey( CRYPT_CONTEXT *iCryptContext, STREAM *stream,
 
 /****************************************************************************
 *																			*
+*								Utility Routines							*
+*																			*
+****************************************************************************/
+
+/* Decode PKCS #1 padding */
+
+static int decodePKCS1( STREAM *stream, const int length )
+	{
+	int ch = 0xFF, i;
+
+	/* Decode the payload using the PKCS #1 format:
+
+		[ 0 ][ 1 ][ 0xFF padding ][ 0 ][ payload ]
+
+	   Unlike PKCS #1 encryption there isn't any minimum-weight requirement 
+	   for the padding, however we require at least 16 bytes 0xFF padding 
+	   because if they're not present then there's something funny going on.  
+	   For a minimum-length 512-bit key, we have 64 bytes data - ( 3 bytes 
+	   other PKCS #1 + 15 bytes ASN.1 wrapper + 20 bytes SHA1 hash ) = 26 
+	   bytes, so requiring at least 16 is a safe limit (in theory someone
+	   could be using one of the larger SHA2's, but doing that with a 512-
+	   bit key doesn't make any sense so there shouldn't be a problem 
+	   rejecting a signature like that).
+			
+	   Note that some implementations may have bignum code that zero-
+	   truncates the result, which would produce a CRYPT_ERROR_BADDATA error, 
+	   it's the responsibility of the lower-level crypto layer to reformat 
+	   the data to return a correctly-formatted result if necessary */
+	if( sgetc( stream ) != 0 || sgetc( stream ) != 1 )
+		/* No [ 0 ][ 1 ] at start */
+		return( CRYPT_ERROR_BADDATA );
+	for( i = 0; ( i < length - 3 ) && ( ch == 0xFF ); i++ )
+		{
+		ch = sgetc( stream );
+		if( cryptStatusError( ch ) )
+			return( CRYPT_ERROR_BADDATA );
+		}
+	if( ch != 0 || i < 16 )
+		/* No [ 0 ] at end or unsufficient 0xFF padding */
+		return( CRYPT_ERROR_BADDATA );
+
+	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
 *								Signature Mechanisms 						*
 *																			*
 ****************************************************************************/
@@ -47,9 +86,9 @@ typedef enum { SIGN_PKCS1, SIGN_SSL } SIGN_TYPE;
 static int sign( MECHANISM_SIGN_INFO *mechanismInfo, const SIGN_TYPE type )
 	{
 	CRYPT_ALGO_TYPE hashAlgo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	STREAM stream;
-	BYTE hash[ CRYPT_MAX_HASHSIZE ], hash2[ CRYPT_MAX_HASHSIZE ];
+	BYTE hash[ CRYPT_MAX_HASHSIZE + 8 ], hash2[ CRYPT_MAX_HASHSIZE + 8 ];
 	BYTE preSigData[ CRYPT_MAX_PKCSIZE + 8 ];
 	BOOLEAN useSideChannelProtection;
 	int hashSize, hashSize2, length, i, status;
@@ -202,11 +241,11 @@ static int sign( MECHANISM_SIGN_INFO *mechanismInfo, const SIGN_TYPE type )
 int sigcheck( MECHANISM_SIGN_INFO *mechanismInfo, const SIGN_TYPE type )
 	{
 	CRYPT_ALGO_TYPE contextHashAlgo, hashAlgo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	STREAM stream;
 	BYTE decryptedSignature[ CRYPT_MAX_PKCSIZE + 8 ];
-	BYTE hash[ CRYPT_MAX_HASHSIZE ], hash2[ CRYPT_MAX_HASHSIZE ];
-	int length, hashSize, hashSize2 = 0, ch, i, status;
+	BYTE hash[ CRYPT_MAX_HASHSIZE + 8 ], hash2[ CRYPT_MAX_HASHSIZE + 8 ];
+	int length, hashSize, hashSize2 = 0, status;
 
 	/* Sanity check the input data */
 	assert( mechanismInfo->signatureLength >= 60 );
@@ -241,29 +280,11 @@ int sigcheck( MECHANISM_SIGN_INFO *mechanismInfo, const SIGN_TYPE type )
 	switch( type )
 		{
 		case SIGN_PKCS1:
-			/* Decode the payload using the PKCS #1 format:
-
-				[ 0 ][ 1 ][ 0xFF padding ][ 0 ][ payload ]
-			
-			   Note that some implementations may have bignum code that 
-			   zero-truncates the result, which would produce a 
-			   CRYPT_ERROR_BADDATA error, it's the responsibility of the 
-			   lower-level crypto layer to reformat the data to return a
-			   correctly-formatted result if necessary */
-			if( sgetc( &stream ) != 0 || sgetc( &stream ) != 1 )
-				{
-				status = CRYPT_ERROR_BADDATA;
-				break;
-				}
-			for( i = 0; i < length - 3; i++ )
-				if( ( ch = sgetc( &stream ) ) != 0xFF )
-					break;
-			if( ch != 0 )
-				{
-				status = CRYPT_ERROR_BADDATA;
-				break;
-				}
-			status = readMessageDigest( &stream, &hashAlgo, hash, &hashSize );
+			/* The payload is an ASN.1-encoded hash */
+			status = decodePKCS1( &stream, length );
+			if( cryptStatusOK ( status ) )
+				status = readMessageDigest( &stream, &hashAlgo, hash, 
+											CRYPT_MAX_HASHSIZE, &hashSize );
 			if( cryptStatusOK( status ) && contextHashAlgo != hashAlgo )
 				status = CRYPT_ERROR_SIGNATURE;
 			break;
@@ -271,24 +292,11 @@ int sigcheck( MECHANISM_SIGN_INFO *mechanismInfo, const SIGN_TYPE type )
 		case SIGN_SSL:
 			assert( contextHashAlgo == CRYPT_ALGO_MD5 );
 
-			/* Decode the payload using the PKCS #1 SSL format:
-
-				[ 0 ][ 1 ][ 0xFF padding ][ 0 ][ MD5 hash ][ SHA1 hash ] */
+			/* The payload is [ MD5 hash ][ SHA1 hash ] */
 			hashSize = 16; hashSize2 = 20;
-			if( sgetc( &stream ) != 0 || sgetc( &stream ) != 1 )
-				{
-				status = CRYPT_ERROR_BADDATA;
-				break;
-				}
-			for( i = 0; i < ( hashSize + hashSize2 - 3 ); i++ )
-				if( ( ch = sgetc( &stream ) ) != 0xFF )
-					break;
-			if( ch != 0 )
-				{
-				status = CRYPT_ERROR_BADDATA;
-				break;
-				}
-			status = sread( &stream, hash, hashSize );
+			status = decodePKCS1( &stream, hashSize + hashSize2 );
+			if( cryptStatusOK ( status ) )
+				status = sread( &stream, hash, hashSize );
 			if( cryptStatusOK( status ) )
 				status = sread( &stream, hash2, hashSize2 );
 			break;
@@ -297,6 +305,10 @@ int sigcheck( MECHANISM_SIGN_INFO *mechanismInfo, const SIGN_TYPE type )
 			assert( NOTREACHED );
 			return( CRYPT_ERROR_NOTAVAIL );
 		}
+	if( cryptStatusOK( status ) && sMemDataLeft( &stream ) != 0 )
+		/* Make sure that's all that there is.  This is already checked 
+		   implicitly anderswhere, but we make the check explicit here */
+		status = CRYPT_ERROR_BADDATA;
 	sMemDisconnect( &stream );
 	zeroise( decryptedSignature, CRYPT_MAX_PKCSIZE );
 	if( cryptStatusError( status ) )

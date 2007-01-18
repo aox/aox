@@ -1,16 +1,12 @@
 /****************************************************************************
 *																			*
 *							Semaphores and Mutexes							*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "acl.h"
   #include "kernel.h"
 #else
@@ -66,8 +62,13 @@ int initSemaphores( KERNEL_DATA *krnlDataPtr )
 
 void endSemaphores( void )
 	{
+	PRE( krnlData->shutdownLevel == SHUTDOWN_LEVEL_MESSAGES );
+
+	/* Signal that kernel mechanisms are no longer available */
+	krnlData->shutdownLevel = SHUTDOWN_LEVEL_MUTEXES;
+
 	/* Shut down the mutexes */
-	MUTEX_DESTROY( mutex3 );
+	MUTEX_DESTROY( mutex3);
 	MUTEX_DESTROY( mutex2 );
 	MUTEX_DESTROY( mutex1 );
 
@@ -177,7 +178,7 @@ void clearSemaphore( const SEMAPHORE_TYPE semaphore )
 	MUTEX_UNLOCK( semaphore );
 	}
 
-/* Wait for a semaphore.  This occurs in two phases, first we extract the
+/* Wait on a semaphore.  This occurs in two phases, first we extract the
    information that we need from the semaphore table, then we unlock it and 
    wait on the semaphore if necessary.  This is necessary because the wait 
    can take an indeterminate amount of time and we don't want to tie up the 
@@ -188,22 +189,30 @@ void clearSemaphore( const SEMAPHORE_TYPE semaphore )
    few ms.  Once the wait has completed, we update the semaphore state as
    per the longer description above */
 
-void krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore )
+BOOLEAN krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore )
 	{
 	SEMAPHORE_INFO *semaphoreInfo;
 	MUTEX_HANDLE object;
 	BOOLEAN semaphoreSet = FALSE;
+	int status = CRYPT_OK;
 
 	/* Make sure that the selected semaphore is valid */
 	if( semaphore <= SEMAPHORE_NONE || semaphore >= SEMAPHORE_LAST )
 		{
 		assert( NOTREACHED );
-		return;
+		return( FALSE );
 		}
-	semaphoreInfo = &krnlData->semaphoreInfo[ semaphore ];
 
-	/* Lock the semaphore table, extract the information we need, and unlock
-	   it again */
+	/* If we're in a shutdown and the semaphores have been destroyed, don't
+	   try and acquire the semaphore mutex.  In this case anything that 
+	   they're protecting should be set to a shutdown state in which any 
+	   access fails, so this isn't a problem */
+	if( krnlData->shutdownLevel >= SHUTDOWN_LEVEL_MUTEXES )
+		return( FALSE );
+
+	/* Lock the semaphore table, extract the information that we need, and 
+	   unlock it again */
+	semaphoreInfo = &krnlData->semaphoreInfo[ semaphore ];
 	MUTEX_LOCK( semaphore );
 	if( semaphoreInfo->state == SEMAPHORE_STATE_SET )
 		{
@@ -220,12 +229,17 @@ void krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore )
 
 	/* If the semaphore wasn't set or is in use, exit now */
 	if( !semaphoreSet )
-		return;
+		return( TRUE );
 
 	/* Wait on the object */
 	assert( memcmp( &object, &SEMAPHORE_INFO_TEMPLATE.object,
 					sizeof( MUTEX_HANDLE ) ) );
-	THREAD_WAIT( object );
+	THREAD_WAIT( object, status );
+	if( cryptStatusError( status ) )
+		{
+		assert( NOTREACHED );
+		return( FALSE );
+		}
 
 	/* Lock the semaphore table, update the information, and unlock it
 	   again */
@@ -250,6 +264,8 @@ void krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore )
 			}
 		}
 	MUTEX_UNLOCK( semaphore );
+	
+	return( TRUE );
 	}
 
 /****************************************************************************
@@ -260,18 +276,25 @@ void krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore )
 
 /* Enter and exit a mutex */
 
-void krnlEnterMutex( const MUTEX_TYPE mutex )
+int krnlEnterMutex( const MUTEX_TYPE mutex )
 	{
 	/* Make sure that the selected mutex is valid */
 	if( mutex <= MUTEX_NONE || mutex >= MUTEX_LAST )
 		{
 		assert( NOTREACHED );
-		return;
+		return( CRYPT_ERROR_PERMISSION );
 		}
+
+	/* If we're in a shutdown and the mutexes have been destroyed, don't
+	   try and acquire them.  In this case anything that they're protecting
+	   should be set to a shutdown state in which any access fails, so this
+	   isn't a problem */
+	if( krnlData->shutdownLevel >= SHUTDOWN_LEVEL_MUTEXES )
+		return( CRYPT_ERROR_PERMISSION );
 
 	switch( mutex )
 		{
-		case MUTEX_SESSIONCACHE:
+		case MUTEX_SCOREBOARD:
 			MUTEX_LOCK( mutex1 );
 			break;
 
@@ -279,13 +302,15 @@ void krnlEnterMutex( const MUTEX_TYPE mutex )
 			MUTEX_LOCK( mutex2 );
 			break;
 
-		case MUTEX_RANDOMPOLLING:
+		case MUTEX_RANDOM:
 			MUTEX_LOCK( mutex3 );
 			break;
 
 		default:
 			assert( NOTREACHED );
 		}
+
+	return( CRYPT_OK );
 	}
 
 void krnlExitMutex( const MUTEX_TYPE mutex )
@@ -297,9 +322,16 @@ void krnlExitMutex( const MUTEX_TYPE mutex )
 		return;
 		}
 
+	/* If we're in a shutdown and the mutexes have been destroyed, don't
+	   try and acquire them.  In this case anything that they're protecting
+	   should be set to a shutdown state in which any access fails, so this
+	   isn't a problem */
+	if( krnlData->shutdownLevel >= SHUTDOWN_LEVEL_MUTEXES )
+		return;
+
 	switch( mutex )
 		{
-		case MUTEX_SESSIONCACHE:
+		case MUTEX_SCOREBOARD:
 			MUTEX_UNLOCK( mutex1 );
 			break;
 
@@ -307,7 +339,7 @@ void krnlExitMutex( const MUTEX_TYPE mutex )
 			MUTEX_UNLOCK( mutex2 );
 			break;
 
-		case MUTEX_RANDOMPOLLING:
+		case MUTEX_RANDOM:
 			MUTEX_UNLOCK( mutex3 );
 			break;
 

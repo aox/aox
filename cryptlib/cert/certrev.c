@@ -5,16 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "misc/asn1.h"
@@ -26,9 +20,9 @@
 
 #define MAX_ID_SIZE		128
 
-/* Usually when we add revocation information we perform various checks such 
-   as making sure we're not adding duplicate information, however when 
-   processing the mega-CRLs from some CAs this becomes prohibitively 
+/* Usually when we add revocation information we perform various checks such
+   as making sure we're not adding duplicate information, however when
+   processing the mega-CRLs from some CAs this becomes prohibitively
    expensive.  To solve this problem, we perform checking up to a certain
    number of entries and after that just drop in any further entries as is
    in order to provide same-day service.  The following value defines the
@@ -51,18 +45,18 @@ enum { OCSP_STATUS_NOTREVOKED, OCSP_STATUS_REVOKED, OCSP_STATUS_UNKNOWN };
 *																			*
 ****************************************************************************/
 
-/* Find an entry in a revocation list.  This is done using a linear search, 
-   which isn't very optimal but anyone trying to do anything useful with 
-   mega-CRLs (or with CRLs in general) is in more trouble than basic search 
-   algorithm choice.  In other words it doesn't really make much difference 
-   whether we have an optimal or suboptimal implementation of a 
+/* Find an entry in a revocation list.  This is done using a linear search,
+   which isn't very optimal but anyone trying to do anything useful with
+   mega-CRLs (or with CRLs in general) is in more trouble than basic search
+   algorithm choice.  In other words it doesn't really make much difference
+   whether we have an optimal or suboptimal implementation of a
    fundamentally broken mechanism like CRLs.
-   
-   The value is either a serialNumber or a hash of some form (issuerID, 
-   certHash), we don't bother distinguishing the exact type since the 
+
+   The value is either a serialNumber or a hash of some form (issuerID,
+   certHash), we don't bother distinguishing the exact type since the
    chances of a hash collision are virtually nonexistant */
 
-static int findRevocationEntry( const REVOCATION_INFO *listPtr, 
+static int findRevocationEntry( const REVOCATION_INFO *listPtr,
 								REVOCATION_INFO **insertPoint,
 								const void *value, const int valueLength,
 								const BOOLEAN sortEntries )
@@ -79,10 +73,10 @@ static int findRevocationEntry( const REVOCATION_INFO *listPtr,
 		*insertPoint = NULL;
 
 	/* Find the correct place in the list to insert the new element and check
-	   for duplicates.  If requested we sort the entries by serial number 
-	   (or, more generally, data value) for no adequately explored reason 
-	   (some implementations can optimise the searching of CRLs based on 
-	   this, but since there's no agreement on whether to do it or not you 
+	   for duplicates.  If requested we sort the entries by serial number
+	   (or, more generally, data value) for no adequately explored reason
+	   (some implementations can optimise the searching of CRLs based on
+	   this, but since there's no agreement on whether to do it or not you
 	   can't tell whether it's safe to rely on it) */
 	while( listPtr != NULL )
 		{
@@ -94,7 +88,7 @@ static int findRevocationEntry( const REVOCATION_INFO *listPtr,
 
 			if( !compareStatus )
 				{
-				/* We found a matching entry, tell the caller which one it 
+				/* We found a matching entry, tell the caller which one it
 				   is if required */
 				if( insertPoint != NULL )
 					*insertPoint = ( REVOCATION_INFO * ) listPtr;
@@ -111,7 +105,7 @@ static int findRevocationEntry( const REVOCATION_INFO *listPtr,
 		listPtr = listPtr->next;
 		}
 
-	/* We can't find a matching entry, return the revocation entry after 
+	/* We can't find a matching entry, return the revocation entry after
 	   which we should insert the new value */
 	if( insertPoint != NULL )
 		*insertPoint = ( REVOCATION_INFO * ) prevElement;
@@ -120,7 +114,7 @@ static int findRevocationEntry( const REVOCATION_INFO *listPtr,
 
 /* Check whether a cert has been revoked */
 
-int checkRevocation( const CERT_INFO *certInfoPtr, 
+int checkRevocation( const CERT_INFO *certInfoPtr,
 					 CERT_INFO *revocationInfoPtr )
 	{
 	CERT_REV_INFO *certRevInfo = revocationInfoPtr->cCertRev;
@@ -145,9 +139,9 @@ int checkRevocation( const CERT_INFO *certInfoPtr,
 			return( CRYPT_OK );
 
 		/* Check whether there's an entry for this cert in the list */
-		status = findRevocationEntry( certRevInfo->revocations, 
-									  &revocationEntry, 
-									  certInfoPtr->cCertCert->serialNumber, 
+		status = findRevocationEntry( certRevInfo->revocations,
+									  &revocationEntry,
+									  certInfoPtr->cCertCert->serialNumber,
 									  certInfoPtr->cCertCert->serialNumberLength,
 									  FALSE );
 		if( status == CRYPT_ERROR_NOTFOUND )
@@ -156,21 +150,21 @@ int checkRevocation( const CERT_INFO *certInfoPtr,
 		}
 	else
 		{
-		BYTE certHash[ CRYPT_MAX_HASHSIZE ];
-		int certHashLength;
+		BYTE certHash[ CRYPT_MAX_HASHSIZE + 8 ];
+		int certHashLength = CRYPT_MAX_HASHSIZE;
 
 		assert( revocationInfoPtr->type == CRYPT_CERTTYPE_OCSP_RESPONSE );
 
 		/* Get the cert hash and use it to check whether there's an entry
-		   for this cert in the list.  We read the cert hash indirectly 
-		   since it's computed on demand and may not have been evaluated 
+		   for this cert in the list.  We read the cert hash indirectly
+		   since it's computed on demand and may not have been evaluated
 		   yet */
-		status = getCertComponent( ( CERT_INFO * ) certInfoPtr, 
+		status = getCertComponent( ( CERT_INFO * ) certInfoPtr,
 								   CRYPT_CERTINFO_FINGERPRINT_SHA,
 								   certHash, &certHashLength );
 		if( cryptStatusOK( status ) )
-			status = findRevocationEntry( certRevInfo->revocations, 
-										  &revocationEntry, certHash, 
+			status = findRevocationEntry( certRevInfo->revocations,
+										  &revocationEntry, certHash,
 										  certHashLength, FALSE );
 		if( cryptStatusError( status ) )
 			/* No entry, either good or bad, we can't report anything about
@@ -178,11 +172,11 @@ int checkRevocation( const CERT_INFO *certInfoPtr,
 			return( status );
 		}
 
-	/* Select the entry that contains the revocation information and return 
-	   the cert's status.  For CRLs the presence of an entry means that the 
-	   cert is invalid, for OCSP the validity information is contained in 
-	   the entry.  The unknown status is a bit difficult to report, the best 
-	   we can do is report notfound, although the notfound occurred at the 
+	/* Select the entry that contains the revocation information and return
+	   the cert's status.  For CRLs the presence of an entry means that the
+	   cert is invalid, for OCSP the validity information is contained in
+	   the entry.  The unknown status is a bit difficult to report, the best
+	   we can do is report notfound, although the notfound occurred at the
 	   responder rather than here */
 	certRevInfo->currentRevocation = revocationEntry;
 	if( revocationInfoPtr->type == CRYPT_CERTTYPE_CRL )
@@ -195,7 +189,7 @@ int checkRevocation( const CERT_INFO *certInfoPtr,
 
 /* Add an entry to a revocation list */
 
-int addRevocationEntry( REVOCATION_INFO **listHeadPtr, 
+int addRevocationEntry( REVOCATION_INFO **listHeadPtr,
 						REVOCATION_INFO **newEntryPosition,
 						const CRYPT_KEYID_TYPE valueType,
 						const void *value, const int valueLength,
@@ -214,13 +208,13 @@ int addRevocationEntry( REVOCATION_INFO **listHeadPtr,
 
 	/* Find the insertion point for the new entry, unless we're reading data
 	   from a pre-encoded CRL, in which case we just drop it in at the start.
-	   The absence of checking for data from an existing CRL is necessary in 
+	   The absence of checking for data from an existing CRL is necessary in
 	   order to provide same-day service for large CRLs */
 	if( !noCheck && *listHeadPtr != NULL && \
 		cryptStatusOK( \
-			findRevocationEntry( *listHeadPtr, &insertPoint, value, 
+			findRevocationEntry( *listHeadPtr, &insertPoint, value,
 								  valueLength, TRUE ) ) )
-		/* If we get an OK status it means that we've found an existing 
+		/* If we get an OK status it means that we've found an existing
 		   entry that matches the one being added, we can't add it again */
 		return( CRYPT_ERROR_DUPLICATE );
 
@@ -231,7 +225,7 @@ int addRevocationEntry( REVOCATION_INFO **listHeadPtr,
 	memset( newElement, 0, sizeof( REVOCATION_INFO ) );
 	if( valueLength > 128 )
 		{
-		if( ( newElement->dataPtr = clDynAlloc( "addRevocationEntry", 
+		if( ( newElement->dataPtr = clDynAlloc( "addRevocationEntry",
 												valueLength ) ) == NULL )
 			{
 			clFree( "addRevocationEntry", newElement );
@@ -248,8 +242,8 @@ int addRevocationEntry( REVOCATION_INFO **listHeadPtr,
 	/* Insert the new element into the list */
 	if( noCheck )
 		{
-		/* If we're adding data from an existing CRL, drop it in at the 
-		   quickest insert point.  This is necessary for quick operation 
+		/* If we're adding data from an existing CRL, drop it in at the
+		   quickest insert point.  This is necessary for quick operation
 		   when handling mega-CRLs */
 		newElement->next = *listHeadPtr;
 		*listHeadPtr = newElement;
@@ -305,17 +299,17 @@ int copyRevocationEntries( REVOCATION_INFO **destListHeadPtr,
 		{
 		REVOCATION_INFO *newElement;
 
-		/* Allocate the new entry and copy the data from the existing one 
+		/* Allocate the new entry and copy the data from the existing one
 		   across.  We don't copy the attributes because there aren't any
 		   that should be carried from request to response */
 		if( ( newElement = ( REVOCATION_INFO * ) \
-					clAlloc( "copyRevocationEntries", 
+					clAlloc( "copyRevocationEntries",
 							 sizeof( REVOCATION_INFO ) ) ) == NULL )
 			return( CRYPT_ERROR_MEMORY );
 		memcpy( newElement, srcListCursor, sizeof( REVOCATION_INFO ) );
 		if( srcListCursor->dataLength > 128 )
 			{
-			/* If the ID information doesn't fit into the fixed buffer, 
+			/* If the ID information doesn't fit into the fixed buffer,
 			   allocate a variable-length one and copy it across */
 			if( ( newElement->dataPtr = \
 					clDynAlloc( "copyRevocationEntries",
@@ -332,7 +326,7 @@ int copyRevocationEntries( REVOCATION_INFO **destListHeadPtr,
 		newElement->attributes = NULL;
 		newElement->next = NULL;
 
-		/* Set the status to 'unknown' by default, this means that any 
+		/* Set the status to 'unknown' by default, this means that any
 		   entries that we can't do anything with automatically get the
 		   correct status associated with them */
 		newElement->status = CRYPT_OCSPSTATUS_UNKNOWN;
@@ -344,6 +338,89 @@ int copyRevocationEntries( REVOCATION_INFO **destListHeadPtr,
 			{
 			destListCursor->next = newElement;
 			destListCursor = newElement;
+			}
+		}
+
+	return( CRYPT_OK );
+	}
+
+/* Prepare the entries in a revocation list prior to encoding them */
+
+int prepareRevocationEntries( REVOCATION_INFO *listPtr, 
+							  const time_t defaultTime,
+							  REVOCATION_INFO **errorEntry,
+							  CRYPT_ATTRIBUTE_TYPE *errorLocus,
+							  CRYPT_ERRTYPE_TYPE *errorType )
+	{
+	REVOCATION_INFO *revocationEntry;
+	const time_t currentTime = ( defaultTime > MIN_TIME_VALUE ) ? \
+							   defaultTime : getApproxTime();
+
+	/* Set the revocation time if this hasn't already been set.  If there's a
+	   default time set we use that, otherwise we use the current time */
+	for( revocationEntry = listPtr; revocationEntry != NULL; \
+		 revocationEntry = revocationEntry->next )
+		{
+		const ATTRIBUTE_LIST *attributeListPtr;
+
+		if( revocationEntry->revocationTime <= MIN_TIME_VALUE )
+			revocationEntry->revocationTime = currentTime;
+
+		/* Check whether the cert was revoked with a reason of neverValid,
+		   which requires special handling of dates because X.509 doesn't
+		   formally define a neverValid reason, assuming that all CAs are
+		   perfect and never issue certs in error.  The general idea is to
+		   set the two to the same value, with the invalidity date (which
+		   should be earlier than the revocation date, at least in a sanely-
+		   run CA) taking precedence.  A revocation with this reason code will
+		   in general only be issued by the cryptlib CA (where it's required
+		   to handle problems in the CMP protocol) and this always sets the
+		   invalidity date, so in almost all cases we'll be setting the
+		   revocation date to the (CA-specified) invalidity date, which is
+		   the date of issue of the cert being revoked */
+		attributeListPtr = findAttributeField( revocationEntry->attributes,
+											   CRYPT_CERTINFO_CRLREASON,
+											   CRYPT_ATTRIBUTE_NONE );
+		if( attributeListPtr != NULL && \
+			attributeListPtr->intValue == CRYPT_CRLREASON_NEVERVALID )
+			{
+			/* The cert was revoked with the neverValid code, see if there's
+			   an invalidity date present */
+			attributeListPtr = \
+					findAttributeField( revocationEntry->attributes,
+										CRYPT_CERTINFO_INVALIDITYDATE,
+										CRYPT_ATTRIBUTE_NONE );
+			if( attributeListPtr == NULL )
+				/* There's no invalidity date present, set it to the same as
+				   the revocation date */
+				addAttributeField( &revocationEntry->attributes,
+								   CRYPT_CERTINFO_INVALIDITYDATE,
+								   CRYPT_ATTRIBUTE_NONE,
+								   &revocationEntry->revocationTime,
+								   sizeof( time_t ), ATTR_FLAG_NONE,
+								   NULL, NULL );
+			else
+				/* There's an invalidity date present, make sure the
+				   revocation date is the same as the invalidity date */
+				revocationEntry->revocationTime = \
+						*( time_t * ) attributeListPtr->value;
+			}
+		}
+
+	/* Check the attributes for each entry in a revocation list */
+	for( revocationEntry = listPtr; revocationEntry != NULL; \
+		 revocationEntry = revocationEntry->next )
+		{
+		int status;
+
+		status = checkAttributes( ATTRIBUTE_CERTIFICATE,
+								  revocationEntry->attributes,
+								  errorLocus, errorType );
+		if( cryptStatusError( status ) )
+			{
+			/* Remember the entry that caused the problem */
+			*errorEntry = revocationEntry;
+			return( status );
 			}
 		}
 
@@ -380,11 +457,11 @@ int sizeofCRLentry( REVOCATION_INFO *crlEntry )
 	}
 
 int readCRLentry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
-				  CRYPT_ATTRIBUTE_TYPE *errorLocus, 
+				  CRYPT_ATTRIBUTE_TYPE *errorLocus,
 				  CRYPT_ERRTYPE_TYPE *errorType )
 	{
 	REVOCATION_INFO *currentEntry;
-	BYTE serialNumber[ MAX_SERIALNO_SIZE ];
+	BYTE serialNumber[ MAX_SERIALNO_SIZE + 8 ];
 	int serialNumberLength, endPos, length, status;
 	time_t revocationTime;
 
@@ -396,30 +473,30 @@ int readCRLentry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 
 	/* Read the integer component of the serial number (limited to a sane
 	   length) and the revocation time */
-	readInteger( stream, serialNumber, &serialNumberLength, 
+	readInteger( stream, serialNumber, &serialNumberLength,
 				 MAX_SERIALNO_SIZE );
 	status = readUTCTime( stream, &revocationTime );
 	if( cryptStatusError( status ) )
 		return( status );
 
-	/* Add the entry to the revocation information list.  The ID type isn't 
+	/* Add the entry to the revocation information list.  The ID type isn't
 	   quite an issueAndSerialNumber, but the checking code eventually
 	   converts it into this form using the supplied issuer cert DN */
-	status = addRevocationEntry( listHeadPtr, &currentEntry, 
+	status = addRevocationEntry( listHeadPtr, &currentEntry,
 								 CRYPT_IKEYID_ISSUERANDSERIALNUMBER,
-								 serialNumber, serialNumberLength, 
+								 serialNumber, serialNumberLength,
 								 ( endPos > CRL_SORT_LIMIT ) ? TRUE : FALSE );
 	if( cryptStatusError( status ) )
 		return( status );
 	currentEntry->revocationTime = revocationTime;
 
 	/* Read the extensions if there are any present.  Since these are per-
-	   entry extensions we read the extensions themselves as 
-	   CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_CRL to make sure 
+	   entry extensions we read the extensions themselves as
+	   CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_CRL to make sure
 	   that they're processed as required */
 	if( stell( stream ) <= endPos - MIN_ATTRIBUTE_SIZE )
 		status = readAttributes( stream, &currentEntry->attributes,
-								 CRYPT_CERTTYPE_NONE, length, 
+								 CRYPT_CERTTYPE_NONE, length,
 								 errorLocus, errorType );
 
 	return( status );
@@ -443,10 +520,10 @@ int writeCRLentry( STREAM *stream, const REVOCATION_INFO *crlEntry )
 	if( cryptStatusError( status ) || crlEntry->attributeSize <= 0 )
 		return( status );
 
-	/* Write the per-entry extensions.  Since these are per-entry extensions 
-	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_CRL to 
+	/* Write the per-entry extensions.  Since these are per-entry extensions
+	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_CRL to
 	   make sure that they're processed as required  */
-	return( writeAttributes( stream, crlEntry->attributes, 
+	return( writeAttributes( stream, crlEntry->attributes,
 							 CRYPT_CERTTYPE_NONE, crlEntry->attributeSize ) );
 	}
 
@@ -466,7 +543,7 @@ int writeCRLentry( STREAM *stream, const REVOCATION_INFO *crlEntry )
 			serialNo	INTEGER
 				},
 		certificate	[0]	EXPLICIT [0] EXPLICIT Certificate,
-		certIdWithSignature	
+		certIdWithSignature
 					[1]	EXPLICIT SEQUENCE {
 			iAndS		IssuerAndSerialNumber,
 			tbsCertHash	BIT STRING,
@@ -488,7 +565,7 @@ static int sizeofOcspID( const REVOCATION_INFO *ocspEntry )
 	return( ocspEntry->dataLength );
 	}
 
-static int readOcspID( STREAM *stream, CRYPT_KEYID_TYPE *idType, 
+static int readOcspID( STREAM *stream, CRYPT_KEYID_TYPE *idType,
 					   BYTE *idBuffer, int *idLen, const int idMaxLen )
 	{
 	HASHFUNCTION hashFunction;
@@ -502,8 +579,8 @@ static int readOcspID( STREAM *stream, CRYPT_KEYID_TYPE *idType,
 		{
 		case BER_SEQUENCE:
 			/* We can't really do anything with v1 IDs since the one-way
-			   hashing process destroys any chance of being able to work 
-			   with them, and the fact that no useful cert info is hashed 
+			   hashing process destroys any chance of being able to work
+			   with them, and the fact that no useful cert info is hashed
 			   means that we can't use them to identify a cert.  As a
 			   result, the following ID type will always produce a result
 			   of "unknown" */
@@ -524,17 +601,17 @@ static int readOcspID( STREAM *stream, CRYPT_KEYID_TYPE *idType,
 			status = readConstructed( stream, &length, 0 );
 			if( cryptStatusError( status ) )
 				return( status );
-			hashFunction( NULL, idBuffer, sMemBufPtr( stream ), length, 
-						  HASH_ALL );
+			hashFunction( NULL, idBuffer, KEYID_SIZE, sMemBufPtr( stream ), 
+						  length, HASH_ALL );
 			return( readUniversal( stream ) );
-		
+
 		case MAKE_CTAG( CTAG_OI_CERTIDWITHSIG ):
 			{
 			void *iAndSPtr;
 
-			/* A bizarro ID dreamed up by Denis Pinkas that manages to carry 
-			   over all the problems of the v1 ID without being compatible 
-			   with it.  It's almost as unworkable as the v1 original, but 
+			/* A bizarro ID dreamed up by Denis Pinkas that manages to carry
+			   over all the problems of the v1 ID without being compatible
+			   with it.  It's almost as unworkable as the v1 original, but
 			   we can convert the iAndS to an issuerID and use that */
 			*idType = CRYPT_IKEYID_ISSUERID;
 			*idLen = KEYID_SIZE;
@@ -544,8 +621,8 @@ static int readOcspID( STREAM *stream, CRYPT_KEYID_TYPE *idType,
 			status = readSequence( stream, &length );
 			if( cryptStatusError( status ) )
 				return( status );
-			hashFunction( NULL, idBuffer, iAndSPtr, sizeofObject( length ), 
-						  HASH_ALL );
+			hashFunction( NULL, idBuffer, KEYID_SIZE, iAndSPtr, 
+						  sizeofObject( length ), HASH_ALL );
 			sSkip( stream, length );			/* issuerAndSerialNumber */
 			readUniversal( stream );			/* tbsCertificateHash */
 			return( readUniversal( stream ) );	/* certSignature */
@@ -586,7 +663,7 @@ int readOcspRequestEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 						  CERT_INFO *certInfoPtr )
 	{
 	REVOCATION_INFO *currentEntry;
-	BYTE idBuffer[ MAX_ID_SIZE ];
+	BYTE idBuffer[ MAX_ID_SIZE + 8 ];
 	CRYPT_KEYID_TYPE idType;
 	int endPos, length, status;
 
@@ -603,22 +680,22 @@ int readOcspRequestEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 		return( status );
 
 	/* Add the entry to the revocation information list */
-	status = addRevocationEntry( listHeadPtr, &currentEntry, idType, 
+	status = addRevocationEntry( listHeadPtr, &currentEntry, idType,
 								 idBuffer, length, FALSE );
 	if( cryptStatusError( status ) || \
 		stell( stream ) > endPos - MIN_ATTRIBUTE_SIZE )
 		return( status );
 
-	/* Read the extensions.  Since these are per-entry extensions we read 
-	   the wrapper here and read the extensions themselves as 
-	   CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP to make sure that 
+	/* Read the extensions.  Since these are per-entry extensions we read
+	   the wrapper here and read the extensions themselves as
+	   CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP to make sure that
 	   they're processed as required */
 	status = readConstructed( stream, &length, CTAG_OR_EXTENSIONS );
 	if( cryptStatusError( status ) )
 		return( status );
 	return( readAttributes( stream, &currentEntry->attributes,
 							CRYPT_CERTTYPE_NONE, length,
-							&certInfoPtr->errorLocus, 
+							&certInfoPtr->errorLocus,
 							&certInfoPtr->errorType ) );
 	}
 
@@ -636,10 +713,10 @@ int writeOcspRequestEntry( STREAM *stream, const REVOCATION_INFO *ocspEntry )
 	if( cryptStatusError( status ) || ocspEntry->attributeSize <= 0 )
 		return( status );
 
-	/* Write the per-entry extensions.  Since these are per-entry extensions 
-	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP 
+	/* Write the per-entry extensions.  Since these are per-entry extensions
+	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP
 	   to make sure that they're processed as required */
-	return( writeAttributes( stream, ocspEntry->attributes, 
+	return( writeAttributes( stream, ocspEntry->attributes,
 							 CRYPT_CERTTYPE_NONE, ocspEntry->attributeSize ) );
 	}
 
@@ -650,13 +727,13 @@ int writeOcspRequestEntry( STREAM *stream, const REVOCATION_INFO *ocspEntry )
 		certStatus		CHOICE {
 			notRevd	[0]	IMPLICIT NULL,
 			revd	[1]	SEQUENCE {
-				revTime	GeneralizedTime, 
+				revTime	GeneralizedTime,
 				revReas	[0] EXPLICIT CRLReason Optional
 							},
-			unknown	[2] IMPLICIT NULL 
-						}, 
-		thisUpdate		GeneralizedTime, 
-		extensions	[1]	EXPLICIT Extensions OPTIONAL 
+			unknown	[2] IMPLICIT NULL
+						},
+		thisUpdate		GeneralizedTime,
+		extensions	[1]	EXPLICIT Extensions OPTIONAL
 		} */
 
 int sizeofOcspResponseEntry( REVOCATION_INFO *ocspEntry )
@@ -684,7 +761,7 @@ int readOcspResponseEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 						   CERT_INFO *certInfoPtr )
 	{
 	REVOCATION_INFO *currentEntry;
-	BYTE idBuffer[ MAX_ID_SIZE ];
+	BYTE idBuffer[ MAX_ID_SIZE + 8 ];
 	CRYPT_KEYID_TYPE idType;
 	int endPos, length, crlReason = 0, status;
 
@@ -701,7 +778,7 @@ int readOcspResponseEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 		return( status );
 
 	/* Add the entry to the revocation information list */
-	status = addRevocationEntry( listHeadPtr, &currentEntry, idType, 
+	status = addRevocationEntry( listHeadPtr, &currentEntry, idType,
 								 idBuffer, length, FALSE );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -745,7 +822,7 @@ int readOcspResponseEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 
 	/* Read the extensions if there are any present.  Since these are per-
 	   entry extensions we read the wrapper here and read the extensions
-	   themselves as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP to 
+	   themselves as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP to
 	   make sure that they're processed as required */
 	if( stell( stream ) <= endPos - MIN_ATTRIBUTE_SIZE )
 		{
@@ -758,18 +835,18 @@ int readOcspResponseEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 			return( status );
 		}
 
-	/* If there's a crlReason present in the response and none as an 
-	   extension, add it as an extension (OCSP allows the same information 
-	   to be specified in two different places, to make it easier we always 
-	   return it as a crlReason extension, however some implementations 
-	   return it in both places so we have to make sure that we don't try and 
+	/* If there's a crlReason present in the response and none as an
+	   extension, add it as an extension (OCSP allows the same information
+	   to be specified in two different places, to make it easier we always
+	   return it as a crlReason extension, however some implementations
+	   return it in both places so we have to make sure that we don't try and
 	   add it a second time) */
-	if( findAttributeField( currentEntry->attributes, 
-							CRYPT_CERTINFO_CRLREASON, 
+	if( findAttributeField( currentEntry->attributes,
+							CRYPT_CERTINFO_CRLREASON,
 							CRYPT_ATTRIBUTE_NONE ) == NULL )
 		status = addAttributeField( &currentEntry->attributes,
-						CRYPT_CERTINFO_CRLREASON, CRYPT_ATTRIBUTE_NONE, 
-						&crlReason, CRYPT_UNUSED, ATTR_FLAG_NONE, 
+						CRYPT_CERTINFO_CRLREASON, CRYPT_ATTRIBUTE_NONE,
+						&crlReason, CRYPT_UNUSED, ATTR_FLAG_NONE,
 						&certInfoPtr->errorLocus, &certInfoPtr->errorType );
 
 	return( status );
@@ -796,20 +873,20 @@ int writeOcspResponseEntry( STREAM *stream, const REVOCATION_INFO *ocspEntry,
 	/* Write the cert status */
 	if( ocspEntry->status == CRYPT_OCSPSTATUS_REVOKED )
 		{
-		writeConstructed( stream, sizeofGeneralizedTime(), 
+		writeConstructed( stream, sizeofGeneralizedTime(),
 						  CRYPT_OCSPSTATUS_REVOKED );
-		writeGeneralizedTime( stream, ocspEntry->revocationTime, 
+		writeGeneralizedTime( stream, ocspEntry->revocationTime,
 							  DEFAULT_TAG );
 		}
 	else
-		/* An other-than-revoked status is communicated as a tagged NULL 
+		/* An other-than-revoked status is communicated as a tagged NULL
 		   value.  For no known reason this portion of OCSP uses implicit
 		   tagging, since it's the one part of the PDU in which an
 		   explicit tag would actually make sense */
 		writeNull( stream, ocspEntry->status );
 
-	/* Write the current update time, which should be the current time. 
-	   Since new status information is always available, we don't write a 
+	/* Write the current update time, which should be the current time.
+	   Since new status information is always available, we don't write a
 	   nextUpdate time (in fact there is some disagreement over whether these
 	   times are based on CRL info, responder info, the response dispatch
 	   time, or a mixture of the above, implementations can be found that
@@ -818,9 +895,9 @@ int writeOcspResponseEntry( STREAM *stream, const REVOCATION_INFO *ocspEntry,
 	if( cryptStatusError( status ) || ocspEntry->attributeSize <= 0 )
 		return( status );
 
-	/* Write the per-entry extensions.  Since these are per-entry extensions 
-	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP 
+	/* Write the per-entry extensions.  Since these are per-entry extensions
+	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_OCSP
 	   to make sure that they're processed as required */
-	return( writeAttributes( stream, ocspEntry->attributes, 
+	return( writeAttributes( stream, ocspEntry->attributes,
 							 CRYPT_CERTTYPE_NONE, ocspEntry->attributeSize ) );
 	}

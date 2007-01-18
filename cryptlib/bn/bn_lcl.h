@@ -115,9 +115,6 @@
 #if defined( INC_ALL )
   #include "osconfig.h"
   #include "bn.h"
-#elif defined( INC_CHILD )
-  #include "../crypt/osconfig.h"
-  #include "bn.h"
 #else
   #include "crypt/osconfig.h"
   #include "bn/bn.h"
@@ -170,6 +167,45 @@ extern "C" {
 		 (b) >  17 ? 3 : 1)
 #endif
 
+
+
+/* BN_mod_exp_mont_conttime is based on the assumption that the
+ * L1 data cache line width of the target processor is at least
+ * the following value.
+ */
+#define MOD_EXP_CTIME_MIN_CACHE_LINE_WIDTH	( 64 )
+#define MOD_EXP_CTIME_MIN_CACHE_LINE_MASK	(MOD_EXP_CTIME_MIN_CACHE_LINE_WIDTH - 1)
+
+/* Window sizes optimized for fixed window size modular exponentiation
+ * algorithm (BN_mod_exp_mont_consttime).
+ *
+ * To achieve the security goals of BN_mode_exp_mont_consttime, the
+ * maximum size of the window must not exceed
+ * log_2(MOD_EXP_CTIME_MIN_CACHE_LINE_WIDTH).
+ *
+ * Window size thresholds are defined for cache line sizes of 32 and 64,
+ * cache line sizes where log_2(32)=5 and log_2(64)=6 respectively. A
+ * window size of 7 should only be used on processors that have a 128
+ * byte or greater cache line size.
+ */
+#if MOD_EXP_CTIME_MIN_CACHE_LINE_WIDTH == 64
+
+#  define BN_window_bits_for_ctime_exponent_size(b) \
+		((b) > 937 ? 6 : \
+		 (b) > 306 ? 5 : \
+		 (b) >  89 ? 4 : \
+		 (b) >  22 ? 3 : 1)
+#  define BN_MAX_WINDOW_BITS_FOR_CTIME_EXPONENT_SIZE	(6)
+
+#elif MOD_EXP_CTIME_MIN_CACHE_LINE_WIDTH == 32
+
+#  define BN_window_bits_for_ctime_exponent_size(b) \
+		((b) > 306 ? 5 : \
+		 (b) >  89 ? 4 : \
+		 (b) >  22 ? 3 : 1)
+#  define BN_MAX_WINDOW_BITS_FOR_CTIME_EXPONENT_SIZE	(5)
+
+#endif
 
 
 /* Pentium pro 16,16,16,32,64 */
@@ -249,44 +285,17 @@ extern "C" {
 #define Lw(t)    (((BN_ULONG)(t))&BN_MASK2)
 #define Hw(t)    (((BN_ULONG)((t)>>BN_BITS2))&BN_MASK2)
 
-/* This is used for internal error checking and is not normally used */
-#ifdef BN_DEBUG
-# include <assert.h>
-# define bn_check_top(a) assert ((a)->top >= 0 && (a)->top <= (a)->dmax);
-#else
-# define bn_check_top(a)
-#endif
-
-/* This macro is to add extra stuff for development checking */
-#ifdef BN_DEBUG
-#define	bn_set_max(r) ((r)->max=(r)->top,BN_set_flags((r),BN_FLG_STATIC_DATA))
-#else
-#define	bn_set_max(r)
-#endif
-
-/* These macros are used to 'take' a section of a bignum for read only use */
-#define bn_set_low(r,a,n) \
+#ifdef BN_DEBUG_RAND
+#define bn_clear_top2max(a) \
 	{ \
-	(r)->top=((a)->top > (n))?(n):(a)->top; \
-	(r)->d=(a)->d; \
-	(r)->neg=(a)->neg; \
-	(r)->flags|=BN_FLG_STATIC_DATA; \
-	bn_set_max(r); \
+	int      ind = (a)->dmax - (a)->top; \
+	BN_ULONG *ftl = &(a)->d[(a)->top-1]; \
+	for (; ind != 0; ind--) \
+		*(++ftl) = 0x0; \
 	}
-
-#define bn_set_high(r,a,n) \
-	{ \
-	if ((a)->top > (n)) \
-		{ \
-		(r)->top=(a)->top-n; \
-		(r)->d= &((a)->d[n]); \
-		} \
-	else \
-		(r)->top=0; \
-	(r)->neg=(a)->neg; \
-	(r)->flags|=BN_FLG_STATIC_DATA; \
-	bn_set_max(r); \
-	}
+#else
+#define bn_clear_top2max(a)
+#endif
 
 #ifdef BN_LLONG
 #define mul_add(r,a,w,c) { \
@@ -428,19 +437,20 @@ void bn_sqr_comba4(BN_ULONG *r,const BN_ULONG *a);
 int bn_cmp_words(const BN_ULONG *a,const BN_ULONG *b,int n);
 int bn_cmp_part_words(const BN_ULONG *a, const BN_ULONG *b,
 	int cl, int dl);
-#if 0
-/* bn_mul.c rollback <appro> */
 void bn_mul_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,int n2,
 	int dna,int dnb,BN_ULONG *t);
 void bn_mul_part_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,
 	int n,int tna,int tnb,BN_ULONG *t);
-#endif
 void bn_sqr_recursive(BN_ULONG *r,const BN_ULONG *a, int n2, BN_ULONG *t);
 void bn_mul_low_normal(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b, int n);
 void bn_mul_low_recursive(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,int n2,
 	BN_ULONG *t);
 void bn_mul_high(BN_ULONG *r,BN_ULONG *a,BN_ULONG *b,BN_ULONG *l,int n2,
 	BN_ULONG *t);
+BN_ULONG bn_add_part_words(BN_ULONG *r, const BN_ULONG *a, const BN_ULONG *b,
+	int cl, int dl);
+BN_ULONG bn_sub_part_words(BN_ULONG *r, const BN_ULONG *a, const BN_ULONG *b,
+	int cl, int dl);
 
 #ifdef  __cplusplus
 }

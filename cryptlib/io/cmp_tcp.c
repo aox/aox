@@ -5,20 +5,15 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "stream.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "stream.h"
 #else
   #include "crypt.h"
   #include "io/stream.h"
 #endif /* Compiler-specific includes */
 
-#ifdef USE_CMP
+#ifdef USE_CMP_TRANSPORT
 
 /****************************************************************************
 *																			*
@@ -81,7 +76,7 @@ static int readHeader( STREAM *stream, BYTE *buffer, int *length,
 	if( headerLength < CMP_MIN_PACKET_SIZE || headerLength > maxLength || \
 		*bufPtr++ != CMP_TCP_VERSION )
 		return( CRYPT_ERROR_BADDATA );
-	if( *bufPtr++ )
+	if( *bufPtr++ != 0 )
 		/* This is the last message, close the connection */
 		sioctl( stream, STREAM_IOCTL_CONNSTATE, NULL, FALSE );
 	headerType = *bufPtr++;
@@ -194,7 +189,7 @@ static int readFunction( STREAM *stream, void *buffer, int length )
 static int writeFunction( STREAM *stream, const void *buffer,
 						  const int length )
 	{
-	BYTE headerBuffer[ 64 ];
+	BYTE headerBuffer[ 64 + 8 ];
 	int headerLength, status;
 
 	/* Write the CMP packet header */
@@ -226,4 +221,4 @@ int setStreamLayerCMP( STREAM *stream )
 
 	return( CRYPT_OK );
 	}
-#endif /* USE_CMP */
+#endif /* USE_CMP_TRANSPORT */

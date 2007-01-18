@@ -62,9 +62,6 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "sha.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "sha.h"
 #else
   #include "crypt.h"
   #include "crypt/sha.h"
@@ -138,7 +135,7 @@
 # error "Either SHA_0 or SHA_1 must be defined."
 #endif
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "md32com.h"
 #else
   #include "crypt/md32com.h"

@@ -25,7 +25,7 @@
 #endif /* __MVS__ */
 
 #define ZLIB_INTERNAL
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "zlib.h"
 #else
   #include "zlib/zlib.h"

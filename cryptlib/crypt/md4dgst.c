@@ -57,7 +57,7 @@
  */
 
 #include <stdio.h>
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "md4locl.h"
 #else
   #include "crypt/md4locl.h"

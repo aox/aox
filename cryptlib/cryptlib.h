@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *								cryptlib Interface							*
-*						Copyright Peter Gutmann 1992-2005					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
@@ -9,9 +9,9 @@
 
 #define _CRYPTLIB_DEFINED
 
-/* The current cryptlib version: 3.2.1.0 */
+/* The current cryptlib version: 3.3.0.0 */
 
-#define CRYPTLIB_VERSION	3210
+#define CRYPTLIB_VERSION	3300
 
 /* Fixup for Windows support.  We need to include windows.h for various types
    and prototypes needed for DLL's.  In addition wincrypt.h defines some
@@ -94,6 +94,12 @@
 	  #define C_RET	__declspec( dllimport ) int	/* Shared lib import ret.val.*/
 	#endif /* CRYPT_DEFINED */
   #endif /* Static vs. shared lib */
+#elif defined( __SYMBIAN__ )
+  #ifdef _CRYPT_DEFINED
+	#define C_RET	EXPORT_C					/* DLL export ret.val.*/
+  #else
+	#define C_RET	IMPORT_C					/* DLL import ret.val.*/
+  #endif /* CRYPT_DEFINED */
 #else
   #define C_PTR	*
   #define C_CHR char
@@ -162,7 +168,8 @@ typedef enum {						/* Algorithms */
 
 	/* MAC's */
 	CRYPT_ALGO_HMAC_MD5 = 300,		/* HMAC-MD5 */
-	CRYPT_ALGO_HMAC_SHA,			/* HMAC-SHA */
+	CRYPT_ALGO_HMAC_SHA1,			/* HMAC-SHA */
+		CRYPT_ALGO_HMAC_SHA = CRYPT_ALGO_HMAC_SHA1,	/* Older form */
 	CRYPT_ALGO_HMAC_RIPEMD160,		/* HMAC-RIPEMD-160 */
 
 	/* Vendors may want to use their own algorithms that aren't part of the
@@ -501,11 +508,6 @@ typedef enum {
 		CRYPT_CERTINFO_FINGERPRINT_MD5 = CRYPT_CERTINFO_FINGERPRINT,
 	CRYPT_CERTINFO_FINGERPRINT_SHA,
 	CRYPT_CERTINFO_CURRENT_CERTIFICATE,/* Cursor mgt: Rel.pos in chain/CRL/OCSP */
-#if 1	/* To be removed in cryptlib 3.2 */
-	CRYPT_CERTINFO_CURRENT_EXTENSION,/* Cursor mgt: Rel.pos.or abs.extension */
-	CRYPT_CERTINFO_CURRENT_FIELD,	/* Cursor mgt: Rel.pos.or abs.field in ext */
-	CRYPT_CERTINFO_CURRENT_COMPONENT,/* Cursor mgt: Rel.pos in multival.field */
-#endif /* 1 */
 	CRYPT_CERTINFO_TRUSTED_USAGE,	/* Usage that cert is trusted for */
 	CRYPT_CERTINFO_TRUSTED_IMPLICIT,/* Whether cert is implicitly trusted */
 	CRYPT_CERTINFO_SIGNATURELEVEL,	/* Amount of detail to include in sigs.*/
@@ -853,8 +855,8 @@ typedef enum {
 
 	/* 1 2 840 113549 1 9 16 2 2 essSecurityLabel */
 	CRYPT_CERTINFO_CMS_SECURITYLABEL,
-	CRYPT_CERTINFO_CMS_SECLABEL_CLASSIFICATION, /* securityClassification */
 	CRYPT_CERTINFO_CMS_SECLABEL_POLICY,		/* securityPolicyIdentifier */
+	CRYPT_CERTINFO_CMS_SECLABEL_CLASSIFICATION, /* securityClassification */
 	CRYPT_CERTINFO_CMS_SECLABEL_PRIVACYMARK,/* privacyMark */
 	CRYPT_CERTINFO_CMS_SECLABEL_CATTYPE,	/* securityCategories.securityCategory.type */
 	CRYPT_CERTINFO_CMS_SECLABEL_CATVALUE,	/* securityCategories.securityCategory.value */
@@ -1005,9 +1007,6 @@ typedef enum {
 	/* Session attributes */
 	/**********************/
 
-	/* Pseudo-information on a session or meta-information which is used to
-	   control the way that a session is managed */
-
 	/* Pseudo-information about the session */
 	CRYPT_SESSINFO_ACTIVE,			/* Whether session is active */
 	CRYPT_SESSINFO_CONNECTIONACTIVE,/* Whether network connection is active */
@@ -1101,8 +1100,8 @@ typedef enum {
 	CRYPT_IATTRIBUTE_KEY_KEAPUBLICVALUE,/* Ctx: Key agreement public value */
 	CRYPT_IATTRIBUTE_KEY_SPKI,		/* Ctx: SubjectPublicKeyInfo */
 	CRYPT_IATTRIBUTE_KEY_PGP,		/* Ctx: PGP-format public key */
+	CRYPT_IATTRIBUTE_KEY_SSH,		/* Ctx: SSH-format public key */
 	CRYPT_IATTRIBUTE_KEY_SSH1,		/* Ctx: SSHv1-format public key */
-	CRYPT_IATTRIBUTE_KEY_SSH2,		/* Ctx: SSHv2-format public key */
 	CRYPT_IATTRIBUTE_KEY_SSL,		/* Ctx: SSL-format public key */
 	CRYPT_IATTRIBUTE_KEY_SPKI_PARTIAL,/* Ctx: SubjectPublicKeyInfo w/o trigger */
 	CRYPT_IATTRIBUTE_KEY_PGP_PARTIAL,/* Ctx: PGP public key w/o trigger */
@@ -1113,6 +1112,7 @@ typedef enum {
 	CRYPT_IATTRIBUTE_ISSUER,		/* Cert: IssuerName */
 	CRYPT_IATTRIBUTE_ISSUERANDSERIALNUMBER,	/* Cert: IssuerAndSerial */
 	CRYPT_IATTRIBUTE_SPKI,			/* Cert: Encoded SubjectPublicKeyInfo */
+	CRYPT_IATTRIBUTE_CERTHASHALGO,	/* Cert: Hash algo.used for cert */
 	CRYPT_IATTRIBUTE_CERTCOLLECTION,/* Cert: Certs added to cert chain */
 	CRYPT_IATTRIBUTE_RESPONDERURL,	/* Cert: RTCS/OCSP responder name */
 	CRYPT_IATTRIBUTE_RTCSREQUEST,	/* Cert: RTCS req.info added to RTCS resp.*/
@@ -1435,28 +1435,30 @@ typedef enum {
 /* A magic value indicating that the default setting for this parameter
    should be used */
 
-#define CRYPT_USE_DEFAULT		-10
+#define CRYPT_USE_DEFAULT		-100
 
 /* A magic value for unused parameters */
 
-#define CRYPT_UNUSED			-11
+#define CRYPT_UNUSED			-101
+
+/* Cursor positioning codes for certificate/CRL extensions */
+
+#define CRYPT_CURSOR_FIRST		-200
+#define CRYPT_CURSOR_PREVIOUS	-201
+#define CRYPT_CURSOR_NEXT		-202
+#define CRYPT_CURSOR_LAST		-203
+
+/* The type of information polling to perform to get random seed 
+   information.  These values have to be negative because they're used
+   as magic length values for cryptAddRandom() */
+
+#define CRYPT_RANDOM_FASTPOLL	-300
+#define CRYPT_RANDOM_SLOWPOLL	-301
 
 /* Whether the PKC key is a public or private key */
 
 #define CRYPT_KEYTYPE_PRIVATE	0
 #define CRYPT_KEYTYPE_PUBLIC	1
-
-/* The type of information polling to perform to get random seed information */
-
-#define CRYPT_RANDOM_FASTPOLL	-10
-#define CRYPT_RANDOM_SLOWPOLL	-11
-
-/* Cursor positioning codes for certificate/CRL extensions */
-
-#define CRYPT_CURSOR_FIRST		-20
-#define CRYPT_CURSOR_PREVIOUS	-21
-#define CRYPT_CURSOR_NEXT		-22
-#define CRYPT_CURSOR_LAST		-23
 
 /* Keyset open options */
 
@@ -1599,7 +1601,7 @@ typedef struct {
 
 /* No error in function call */
 
-#define CRYPT_OK					0	/* No error */
+#define CRYPT_OK				0	/* No error */
 
 /* Error in parameters passed to function */
 
@@ -1619,6 +1621,7 @@ typedef struct {
 #define CRYPT_ERROR_NOSECURE	-13	/* Opn.not avail.at requested sec.level */
 #define CRYPT_ERROR_RANDOM		-14	/* No reliable random data available */
 #define CRYPT_ERROR_FAILED		-15	/* Operation failed */
+#define CRYPT_ERROR_INTERNAL	-16	/* Internal consistency check failed */
 
 /* Security violations */
 

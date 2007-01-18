@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "sha.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/sha2.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -43,8 +38,9 @@
   #define sha2_end( hash, ctx )			sha256_end( hash, ( ctx )->uu->ctx256 )
 #endif /* SHA384_DIGEST_SIZE */
 
-void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-					 const int length, const HASH_STATE hashState );
+void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+					 const int outBufMaxLength, const BYTE *inBuffer, 
+					 const int inLength, const HASH_STATE hashState );
 
 static const struct {
 	const char *data;							/* Data to hash */
@@ -52,7 +48,7 @@ static const struct {
 	const BYTE dig256[ SHA256_DIGEST_SIZE ];	/* Digest of data */
 	const BYTE dig384[ SHA384_DIGEST_SIZE ];	/* Digest of data */
 	const BYTE dig512[ SHA512_DIGEST_SIZE ];	/* Digest of data */
-	} sha2Values[] = {
+	} FAR_BSS sha2Values[] = {
 	{ "abc", 3,
 	  { 0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,
 	    0x41, 0x41, 0x40, 0xde, 0x5d, 0xae, 0x22, 0x23,
@@ -122,10 +118,10 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getSHA2Capability();
 	CONTEXT_INFO contextInfo;
 	HASH_INFO contextData;
-	BYTE keyData[ HASH_STATE_SIZE ];
+	BYTE keyData[ HASH_STATE_SIZE + 8 ];
 	int i, status;
 
-	/* SHA-2 requires the largest amount of context state so we check to 
+	/* SHA-2 requires the largest amount of context state so we check to
 	   make sure that the HASH_STATE_SIZE is large enough */
 	assert( sizeof( HASHINFO ) <= HASH_STATE_SIZE );
 
@@ -195,13 +191,21 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 /* Internal API: Hash a single block of memory without the overhead of
    creating an encryption context.*/
 
-void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-					 const int length, const HASH_STATE hashState )
+void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+					 const int outBufMaxLength, const BYTE *inBuffer, 
+					 const int inLength, const HASH_STATE hashState )
 	{
 	sha2_ctx *shaInfo = ( sha2_ctx * ) hashInfo;
-
-	assert( hashState == HASH_ALL || hashInfo != NULL );
-	assert( inBuffer == NULL || isReadPtr( inBuffer, length ) );
+	
+	assert( ( hashState == HASH_ALL && hashInfo == NULL ) || \
+			( hashState != HASH_ALL && \
+			  isWritePtr( hashInfo, sizeof( HASHINFO ) ) ) );
+	assert( ( ( hashState != HASH_END && hashState != HASH_ALL ) && \
+			  outBuffer == NULL && outBufMaxLength == 0 ) || \
+			( ( hashState == HASH_END || hashState == HASH_ALL ) && \
+			  isWritePtr( outBuffer, outBufMaxLength ) && \
+			  outBufMaxLength >= 32 ) );
+	assert( inBuffer == NULL || isReadPtr( inBuffer, inLength ) );
 
 	switch( hashState )
 		{
@@ -210,12 +214,12 @@ void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 			/* Drop through */
 
 		case HASH_CONTINUE:
-			sha2_hash( ( BYTE * ) inBuffer, length, shaInfo );
+			sha2_hash( ( BYTE * ) inBuffer, inLength, shaInfo );
 			break;
 
 		case HASH_END:
 			if( inBuffer != NULL )
-				sha2_hash( ( BYTE * ) inBuffer, length, shaInfo );
+				sha2_hash( ( BYTE * ) inBuffer, inLength, shaInfo );
 			sha2_end( outBuffer, shaInfo );
 			break;
 
@@ -224,7 +228,7 @@ void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 			sha2_ctx shaInfoBuffer;
 
 			sha2_begin( SHA256_DIGEST_SIZE, &shaInfoBuffer );
-			sha2_hash( ( BYTE * ) inBuffer, length, &shaInfoBuffer );
+			sha2_hash( ( BYTE * ) inBuffer, inLength, &shaInfoBuffer );
 			sha2_end( outBuffer, &shaInfoBuffer );
 			zeroise( &shaInfoBuffer, sizeof( sha2_ctx ) );
 			break;

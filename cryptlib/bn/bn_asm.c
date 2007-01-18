@@ -56,13 +56,16 @@
  * [including the GNU Public Licence.]
  */
 
+/* Removed NDEBUG redefinition - pcg */
+
 #include <stdio.h>
+#include <assert.h>
 #if defined( _WIN32_WCE ) && _WIN32_WCE < 400
   #define assert( x )
 #else
   #include <assert.h>
 #endif /* Systems without assert() */
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "bn_lcl.h"
 #else
   #include "bn/bn_lcl.h"
@@ -239,7 +242,7 @@ BN_ULONG bn_div_words(BN_ULONG h, BN_ULONG l, BN_ULONG d)
 	if (d == 0) return(BN_MASK2);
 
 	i=BN_num_bits_word(d);
-	assert((i == BN_BITS2) || (h > (BN_ULONG)1<<i));
+	assert((i == BN_BITS2) || (h <= (BN_ULONG)1<<i));
 
 	i=BN_BITS2-i;
 	if (h >= d) h-=d;

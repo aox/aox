@@ -12,8 +12,6 @@
 #include <time.h>
 #if defined( INC_ALL )
   #include "stream.h"
-#elif defined( INC_CHILD )
-  #include "../io/stream.h"
 #else
   #include "io/stream.h"
 #endif /* Compiler-specific includes */
@@ -37,7 +35,7 @@
 ****************************************************************************/
 
 /* Read 16-bit integer values.  Although in theory we could perform the read
-   much more simply with ( sgetc( stream ) << 8 ) | sgetc( stream ), this 
+   much more simply with ( sgetc( stream ) << 8 ) | sgetc( stream ), this
    will break with some compilers that reorder expressions */
 
 int readUint16( STREAM *stream );
@@ -46,9 +44,9 @@ int writeUint16( STREAM *stream, const int value );
 /* Read and write 32- and 64-bit integer values */
 
 int readUint32( STREAM *stream );
-int writeUint32( STREAM *stream, const int value );
+int writeUint32( STREAM *stream, const long value );
 int readUint64( STREAM *stream );
-int writeUint64( STREAM *stream, const int value );
+int writeUint64( STREAM *stream, const long value );
 
 /* Read and write 32- and 64-bit time values */
 
@@ -79,9 +77,10 @@ int readRawObject32( STREAM *stream, void *buffer, int *bufferLength,
 int readUniversal16( STREAM *stream );
 int readUniversal32( STREAM *stream );
 
-/* Read and write unsigned (large) integers preceded by 16- and 32-bit 
+/* Read and write unsigned (large) integers preceded by 16- and 32-bit
    lengths, lengths in bits */
 
+#define sizeofInteger16U( integerLength )	( UINT16_SIZE + integerLength )
 #define sizeofInteger32( integer, integerLength ) \
 		( UINT32_SIZE + ( ( ( ( BYTE * ) integer )[ 0 ] & 0x80 ) ? 1 : 0 ) + \
 						integerLength )
@@ -105,22 +104,30 @@ int writeInteger32Ubits( STREAM *stream, const void *integer,
 
 /* Read and write bignum integers */
 
-int readBignumInteger16U( STREAM *stream, void *bignum, const int minLength, 
+int readBignumInteger16U( STREAM *stream, void *bignum, const int minLength,
 						  const int maxLength );
 int writeBignumInteger16U( STREAM *stream, const void *bignum );
-int readBignumInteger16Ubits( STREAM *stream, void *bignum, const int minBits, 
+int readBignumInteger16Ubits( STREAM *stream, void *bignum, const int minBits,
 							  const int maxBits );
 int writeBignumInteger16Ubits( STREAM *stream, const void *bignum );
 int sizeofBignumInteger32( const void *bignum );
-int readBignumInteger32( STREAM *stream, void *bignum, const int minLength, 
+int readBignumInteger32( STREAM *stream, void *bignum, const int minLength,
 						 const int maxLength );
 int writeBignumInteger32( STREAM *stream, const void *bignum );
 
-/* PGP-specific read/write routines */
+/* PGP-specific read/write routines.  The difference between
+   pgpReadPacketHeader() and pgpReadPacketHeaderI() is that the latter
+   allows indefinite-length encoding for partial lengths.  Once we've
+   read an indefinite length, we have to use pgpReadPartialLengh() to
+   read subsequence partial-length values */
 
 int pgpReadShortLength( STREAM *stream, const int ctb );
-int pgpWriteLength( STREAM *stream, const int length );
-int pgpReadPacketHeader( STREAM *stream, int *ctb, long *length );
+int pgpWriteLength( STREAM *stream, const long length );
+int pgpReadPacketHeader( STREAM *stream, int *ctb, long *length, 
+						 const int minLength );
+int pgpReadPacketHeaderI( STREAM *stream, int *ctb, long *length, 
+						  const int minLength );
+int pgpReadPartialLength( STREAM *stream, long *length );
 int pgpWritePacketHeader( STREAM *stream, const int packetType,
 						  const long length );
 

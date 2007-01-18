@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "ripemd.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/ripemd.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -38,13 +33,13 @@ typedef struct {
 
 /* Test the HMAC-RIPEMD-160 output against the test vectors given in ???? */
 
-static const FAR_BSS struct {
-	const char *key;							/* HMAC key */
+static const struct {
+	const char FAR_BSS *key;					/* HMAC key */
 	const int keyLength;						/* Length of key */
-	const char *data;							/* Data to hash */
+	const char FAR_BSS *data;					/* Data to hash */
 	const int length;							/* Length of data */
 	const BYTE digest[ RIPEMD160_DIGEST_LENGTH ];	/* Digest of data */
-	} hmacValues[] = {
+	} FAR_BSS hmacValues[] = {
 	/* No known test vectors for this algorithm */
 	{ "", 0, NULL, 0, { 0 } }
 	};
@@ -54,7 +49,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getHmacRipemd160Capability();
 	CONTEXT_INFO contextInfo;
 	MAC_INFO contextData;
-	BYTE keyData[ MAC_STATE_SIZE ];
+	BYTE keyData[ MAC_STATE_SIZE + 8 ];
 	int i, status;
 
 	/* Test HMAC-RIPEMD-160 against the test vectors given in RFC ???? */
@@ -127,7 +122,8 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		RIPEMD160_Update( ripemdInfo, buffer, noBytes );
 	else
 		{
-		BYTE hashBuffer[ RIPEMD160_CBLOCK ], digestBuffer[ RIPEMD160_DIGEST_LENGTH ];
+		BYTE hashBuffer[ RIPEMD160_CBLOCK + 8 ];
+		BYTE digestBuffer[ RIPEMD160_DIGEST_LENGTH + 8 ];
 		int i;
 
 		/* Complete the inner hash and extract the digest */
@@ -164,7 +160,7 @@ static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	RIPEMD160_CTX *ripemdInfo = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
-	BYTE hashBuffer[ RIPEMD160_CBLOCK ];
+	BYTE hashBuffer[ RIPEMD160_CBLOCK + 8 ];
 	int i;
 
 	RIPEMD160_Init( ripemdInfo );

@@ -9,40 +9,33 @@
 
 #define _CRYPTCTX_DEFINED
 
-/* Various include files needed by contexts */
+/* Various include files needed by contexts.  Since the bignum and stream
+   headers are only needed by PKC contexts, we only apply them in modules 
+   that use PKC contexts */
 
-#ifndef _STREAM_DEFINED
-  #if defined( INC_ALL )
-	#include "stream.h"
-  #elif defined( INC_CHILD )
-	#include "../io/stream.h"
-  #else
-	#include "io/stream.h"
-  #endif /* Compiler-specific includes */
-#endif /* _STREAM_DEFINED */
-#ifndef BN_H
-  #if defined( INC_ALL )
-	#include "bn.h"
-  #elif defined( INC_CHILD )
-	#include "../bn/bn.h"
-  #else
-	#include "bn/bn.h"
-  #endif /* Compiler-specific includes */
-#endif /* BN_H */
+#ifdef PKC_CONTEXT
+  #ifndef _STREAM_DEFINED
+	#if defined( INC_ALL )
+	  #include "stream.h"
+	#else
+	  #include "io/stream.h"
+	#endif /* Compiler-specific includes */
+  #endif /* _STREAM_DEFINED */
+  #ifndef BN_H
+	#if defined( INC_ALL )
+	  #include "bn.h"
+	#else
+	  #include "bn/bn.h"
+	#endif /* Compiler-specific includes */
+  #endif /* BN_H */
+#endif /* Extra eaders needed only for PKC contexts */
 #ifndef _CRYPTCAP_DEFINED
   #if defined( INC_ALL )
 	#include "capabil.h"
-  #elif defined( INC_CHILD )
-	#include "../device/capabil.h"
   #else
 	#include "device/capabil.h"
   #endif /* Compiler-specific includes */
 #endif /* _CRYPTCAP_DEFINED */
-
-/* We need to include the following because the encryption context stores
-   validity information for private keys */
-
-#include <time.h>
 
 /* Context information flags.  Most of these flags are context-type-specific,
    and are only used with some context types:
@@ -150,6 +143,8 @@ typedef struct {
 	CRYPT_ALGO_TYPE keySetupAlgorithm; /* Algorithm used for key setup */
 	} CONV_INFO;
 
+#ifdef PKC_CONTEXT
+
 typedef struct {
 	/* General information on the key: The nominal key size in bits, the key
 	   IDs, and key-related meta-info.  Since the OpenPGP key ID can't be
@@ -185,7 +180,8 @@ typedef struct {
 	   temporary vars also reuse the last three general-purpose bignums
 	   above, since they're not used for keying material */
 	BIGNUM tmp1, tmp2, tmp3;
-	BN_CTX bnCTX;					/* Temporary workspace */
+/*	BN_CTX bnCTX;					// Temporary workspace */
+	BN_CTX *bnCTX;
 	#define CONTEXT_PBO	0x08
 
 	/* If we're using side-channel protection, we also need to store values
@@ -213,6 +209,7 @@ typedef struct {
 	/* Pointers to functions to public-key context access methods.  The
 	   functions to read and write public and private keys are kept distinct
 	   to enforce red/black separation */
+	int ( *calculateKeyIDFunction )( struct CI *contextInfoPtr );
 	int ( *readPublicKeyFunction )( STREAM *stream, struct CI *contextInfoPtr,
 									const KEYFORMAT_TYPE formatType );
 	int ( *readPrivateKeyFunction )( STREAM *stream, struct CI *contextInfoPtr,
@@ -225,12 +222,20 @@ typedef struct {
 									  const struct CI *contextInfoPtr,
 									  const KEYFORMAT_TYPE formatType,
 									  const char *accessKey );
+	int ( *encodeDLValuesFunction )( BYTE *buffer, const int bufSize, 
+									 const BIGNUM *value1, 
+									 const BIGNUM *value2, 
+									 const CRYPT_FORMAT_TYPE formatType );
+	int ( *decodeDLValuesFunction )( const BYTE *buffer, const int bufSize, 
+									 BIGNUM **value1, BIGNUM **value2, 
+									 const CRYPT_FORMAT_TYPE formatType );
 
 	/* State information needed to allow background key generation */
 #ifdef USE_THREADS
-	THREAD_FUNCTION_PARAMS threadParams;
+	THREAD_STATE threadState;
 #endif /* OS's with threads */
 	} PKC_INFO;
+#endif /* PKC_CONTEXT */
 
 typedef struct {
 	/* The current state of the hashing and the result from the last
@@ -278,7 +283,9 @@ typedef struct CI {
 	/* Context type-specific information */
 	union {
 		CONV_INFO *convInfo;
+#ifdef PKC_CONTEXT
 		PKC_INFO *pkcInfo;
+#endif /* PKC_CONTEXT */
 		HASH_INFO *hashInfo;
 		MAC_INFO *macInfo;
 		} keyingInfo;
@@ -294,7 +301,7 @@ typedef struct CI {
 #endif /* USE_DEVICES */
 
 	/* The label for this object, typically used to identify stored keys */
-	char label[ CRYPT_MAX_TEXTSIZE ];/* Text string identifying key */
+	char label[ CRYPT_MAX_TEXTSIZE + 8 ];/* Text string identifying key */
 	int labelSize;
 
 #ifdef USE_THREADS
@@ -422,6 +429,8 @@ int initKeyParams( CONTEXT_INFO *contextInfoPtr, const void *iv,
 
 /* Key-generation and related routines */
 
+#ifdef PKC_CONTEXT
+
 int initDLPkey( CONTEXT_INFO *contextInfoPtr, const BOOLEAN isDH );
 int checkDLPkey( const CONTEXT_INFO *contextInfoPtr, const BOOLEAN isPKCS3 );
 int generateDLPkey( CONTEXT_INFO *contextInfoPtr, const int keyBits,
@@ -430,12 +439,9 @@ int initCheckRSAkey( CONTEXT_INFO *contextInfoPtr );
 int generateRSAkey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits );
 int generateBignum( BIGNUM *bn, const int noBits, const BYTE high,
 					const BYTE low );
-int calculateKeyID( CONTEXT_INFO *contextInfoPtr );
-int encodeDLValues( BYTE *buffer, const int bufSize, BIGNUM *value1,
-					BIGNUM *value2, const CRYPT_FORMAT_TYPE formatType );
-int decodeDLValues( const BYTE *buffer, const int bufSize, BIGNUM **value1,
-					BIGNUM **value2, const CRYPT_FORMAT_TYPE formatType );
 int keygenCallback( void *callbackArg );
+
+#endif /* PKC_CONTEXT */
 
 /* Key read/write routines */
 

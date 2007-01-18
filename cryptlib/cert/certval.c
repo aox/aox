@@ -5,16 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
-#if defined( INC_ALL ) 
+#if defined( INC_ALL )
   #include "cert.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "misc/asn1.h"
@@ -29,8 +23,8 @@
 
 /* Find an entry in a validity info list */
 
-static VALIDITY_INFO *findValidityEntry( const VALIDITY_INFO *listPtr, 
-										 const void *value, 
+static VALIDITY_INFO *findValidityEntry( const VALIDITY_INFO *listPtr,
+										 const void *value,
 										 const int valueLength )
 	{
 	const int vCheck = checksumData( value, valueLength );
@@ -51,37 +45,37 @@ static VALIDITY_INFO *findValidityEntry( const VALIDITY_INFO *listPtr,
 
 /* Check whether a cert is valid */
 
-int checkValidity( const CERT_INFO *certInfoPtr, 
+int checkValidity( const CERT_INFO *certInfoPtr,
 				   CERT_INFO *validityInfoPtr )
 	{
 	CERT_VAL_INFO *certValInfo = validityInfoPtr->cCertVal;
 	VALIDITY_INFO *validityEntry;
-	BYTE certHash[ CRYPT_MAX_HASHSIZE ];
-	int certHashLength, status;
+	BYTE certHash[ CRYPT_MAX_HASHSIZE + 8 ];
+	int certHashLength = CRYPT_MAX_HASHSIZE, status;
 
 	assert( isReadPtr( certInfoPtr, sizeof( CERT_INFO ) ) );
 	assert( isWritePtr( validityInfoPtr, sizeof( CERT_INFO ) ) );
 	assert( validityInfoPtr->type == CRYPT_CERTTYPE_RTCS_RESPONSE );
 
-	/* If there's no validity information present, we can't say anything 
+	/* If there's no validity information present, we can't say anything
 	   about the cert */
 	if( certValInfo->validityInfo == NULL )
 		return( CRYPT_ERROR_NOTFOUND );
 
-	/* Get the cert hash and use it to check whether there's an entry for 
-	   this cert in the list.  We read the cert hash indirectly since it's 
+	/* Get the cert hash and use it to check whether there's an entry for
+	   this cert in the list.  We read the cert hash indirectly since it's
 	   computed on demand and may not have been evaluated yet */
-	status = getCertComponent( ( CERT_INFO * ) certInfoPtr, 
+	status = getCertComponent( ( CERT_INFO * ) certInfoPtr,
 							   CRYPT_CERTINFO_FINGERPRINT_SHA,
 							   certHash, &certHashLength );
 	if( cryptStatusError( status ) )
 		return( status );
-	validityEntry = findValidityEntry( certValInfo->validityInfo, 
+	validityEntry = findValidityEntry( certValInfo->validityInfo,
 									   certHash, certHashLength );
 	if( validityEntry == NULL )
 		return( CRYPT_ERROR_NOTFOUND );
 
-	/* Select the entry that contains the validity info and return the 
+	/* Select the entry that contains the validity info and return the
 	   cert's status */
 	certValInfo->currentValidity = validityEntry;
 	return( ( validityEntry->status == TRUE ) ? \
@@ -90,7 +84,7 @@ int checkValidity( const CERT_INFO *certInfoPtr,
 
 /* Add an entry to a revocation list */
 
-int addValidityEntry( VALIDITY_INFO **listHeadPtr, 
+int addValidityEntry( VALIDITY_INFO **listHeadPtr,
 					  VALIDITY_INFO **newEntryPosition,
 					  const void *value, const int valueLength )
 	{
@@ -102,11 +96,11 @@ int addValidityEntry( VALIDITY_INFO **listHeadPtr,
 
 	/* Find the insertion point for the new entry, unless we're reading data
 	   from a pre-encoded CRL, in which case we just drop it in at the start.
-	   The absence of checking for data from a  existing CRL is necessary in 
+	   The absence of checking for data from a  existing CRL is necessary in
 	   order to provide same-day service for large CRLs */
 	if( *listHeadPtr != NULL && \
 		findValidityEntry( *listHeadPtr, value, valueLength ) != NULL )
-		/* If we found an entry that matches the one being added, we can't 
+		/* If we found an entry that matches the one being added, we can't
 		   add it again */
 		return( CRYPT_ERROR_DUPLICATE );
 
@@ -165,7 +159,7 @@ int copyValidityEntries( VALIDITY_INFO **destListHeadPtr,
 		{
 		VALIDITY_INFO *newElement;
 
-		/* Allocate the new entry and copy the data from the existing one 
+		/* Allocate the new entry and copy the data from the existing one
 		   across.  We don't copy the attributes because there aren't any
 		   that should be carried from request to response */
 		if( ( newElement = ( VALIDITY_INFO * ) \
@@ -176,8 +170,8 @@ int copyValidityEntries( VALIDITY_INFO **destListHeadPtr,
 		newElement->attributes = NULL;
 		newElement->next = NULL;
 
-		/* Set the status to invalid/unknown by default, this means that any 
-		   entries that we can't do anything with automatically get the 
+		/* Set the status to invalid/unknown by default, this means that any
+		   entries that we can't do anything with automatically get the
 		   correct status associated with them */
 		newElement->status = FALSE;
 		newElement->extStatus = CRYPT_CERTSTATUS_UNKNOWN;
@@ -189,6 +183,35 @@ int copyValidityEntries( VALIDITY_INFO **destListHeadPtr,
 			{
 			destListCursor->next = newElement;
 			destListCursor = newElement;
+			}
+		}
+
+	return( CRYPT_OK );
+	}
+
+/* Prepare the entries in a cert validity list prior to encoding them */
+
+int prepareValidityEntries( VALIDITY_INFO *listPtr, 
+							VALIDITY_INFO **errorEntry,
+							CRYPT_ATTRIBUTE_TYPE *errorLocus,
+							CRYPT_ERRTYPE_TYPE *errorType )
+	{
+	VALIDITY_INFO *validityEntry;
+
+	/* Check the attributes for each entry in a revocation list */
+	for( validityEntry = listPtr; validityEntry != NULL; \
+		 validityEntry = validityEntry->next )
+		{
+		int status;
+
+		status = checkAttributes( ATTRIBUTE_CERTIFICATE,
+								  validityEntry->attributes,
+								  errorLocus, errorType );
+		if( cryptStatusError( status ) )
+			{
+			/* Remember the entry that caused the problem */
+			*errorEntry = validityEntry;
+			return( status );
 			}
 		}
 
@@ -218,7 +241,7 @@ int sizeofRtcsRequestEntry( VALIDITY_INFO *rtcsEntry )
 int readRtcsRequestEntry( STREAM *stream, VALIDITY_INFO **listHeadPtr,
 						  CERT_INFO *certInfoPtr )
 	{
-	BYTE idBuffer[ CRYPT_MAX_HASHSIZE ];
+	BYTE idBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
 	int endPos, length, status;
 
 	assert( isWritePtr( listHeadPtr, sizeof( VALIDITY_INFO * ) ) );
@@ -229,16 +252,16 @@ int readRtcsRequestEntry( STREAM *stream, VALIDITY_INFO **listHeadPtr,
 	endPos = stell( stream ) + length;
 
 	/* Read the cert ID and add it to the validity information list */
-	status = readOctetString( stream, idBuffer, &length, 
-							  CRYPT_MAX_HASHSIZE );
+	status = readOctetString( stream, idBuffer, &length,
+							  8, CRYPT_MAX_HASHSIZE );
 	if( cryptStatusOK( status ) )
 		{
 		if( length != KEYID_SIZE )
 			status = CRYPT_ERROR_BADDATA;
 		else
 			if( stell( stream ) <= endPos - MIN_ATTRIBUTE_SIZE )
-			/* Skip the legacy ID */
-			status = readUniversal( stream );
+				/* Skip the legacy ID */
+				status = readUniversal( stream );
 		}
 	if( cryptStatusOK( status ) )
 		status = addValidityEntry( listHeadPtr, NULL, idBuffer, KEYID_SIZE );
@@ -251,7 +274,7 @@ int writeRtcsRequestEntry( STREAM *stream, const VALIDITY_INFO *rtcsEntry )
 
 	/* Write the header and ID information */
 	writeSequence( stream, sizeofObject( KEYID_SIZE ) );
-	return( writeOctetString( stream, rtcsEntry->data, KEYID_SIZE, 
+	return( writeOctetString( stream, rtcsEntry->data, KEYID_SIZE,
 							  DEFAULT_TAG ) );
 	}
 
@@ -261,7 +284,7 @@ int writeRtcsRequestEntry( STREAM *stream, const VALIDITY_INFO *rtcsEntry )
 		certHash		OCTET STRING SIZE(20),
 		status			BOOLEAN
 		}
-	
+
 	Entry ::= SEQUENCE {				-- Full response
 		certHash		OCTET STRING SIZE(20),
 		status			ENUMERATED,
@@ -269,7 +292,7 @@ int writeRtcsRequestEntry( STREAM *stream, const VALIDITY_INFO *rtcsEntry )
 		extensions	[0]	Extensions OPTIONAL
 		} */
 
-int sizeofRtcsResponseEntry( VALIDITY_INFO *rtcsEntry, 
+int sizeofRtcsResponseEntry( VALIDITY_INFO *rtcsEntry,
 							 const BOOLEAN isFullResponse )
 	{
 	assert( isWritePtr( rtcsEntry, sizeof( VALIDITY_INFO ) ) );
@@ -290,11 +313,11 @@ int sizeofRtcsResponseEntry( VALIDITY_INFO *rtcsEntry,
 	}
 
 int readRtcsResponseEntry( STREAM *stream, VALIDITY_INFO **listHeadPtr,
-						   CERT_INFO *certInfoPtr, 
+						   CERT_INFO *certInfoPtr,
 						   const BOOLEAN isFullResponse )
 	{
 	VALIDITY_INFO *newEntry;
-	BYTE idBuffer[ CRYPT_MAX_HASHSIZE ];
+	BYTE idBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
 	int endPos, length, status;
 
 	assert( isWritePtr( listHeadPtr, sizeof( VALIDITY_INFO * ) ) );
@@ -305,7 +328,8 @@ int readRtcsResponseEntry( STREAM *stream, VALIDITY_INFO **listHeadPtr,
 	endPos = stell( stream ) + length;
 
 	/* Read the ID information */
-	status = readOctetString( stream, idBuffer, &length, KEYID_SIZE );
+	status = readOctetString( stream, idBuffer, &length, \
+							  KEYID_SIZE, KEYID_SIZE );
 	if( cryptStatusError( status ) )
 		return( status );
 	if( length != KEYID_SIZE )
@@ -333,16 +357,16 @@ int readRtcsResponseEntry( STREAM *stream, VALIDITY_INFO **listHeadPtr,
 		stell( stream ) > endPos - MIN_ATTRIBUTE_SIZE )
 		return( status );
 
-	/* Read the extensions.  Since these are per-entry extensions we read 
-	   the wrapper here and read the extensions themselves as 
-	   CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_RTCS to make sure 
+	/* Read the extensions.  Since these are per-entry extensions we read
+	   the wrapper here and read the extensions themselves as
+	   CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_RTCS to make sure
 	   that they're processed as required */
 	status = readConstructed( stream, &length, 0 );
 	if( cryptStatusError( status ) )
 		return( status );
 	return( readAttributes( stream, &newEntry->attributes,
 							CRYPT_CERTTYPE_NONE, length,
-							&certInfoPtr->errorLocus, 
+							&certInfoPtr->errorLocus,
 							&certInfoPtr->errorType ) );
 	}
 
@@ -355,11 +379,11 @@ int writeRtcsResponseEntry( STREAM *stream, const VALIDITY_INFO *rtcsEntry,
 	assert( rtcsEntry->extStatus >= CRYPT_CERTSTATUS_VALID && \
 			rtcsEntry->extStatus <= CRYPT_CERTSTATUS_UNKNOWN );
 
-	/* If it's a basic response, it's a straightforward fixed-length 
+	/* If it's a basic response, it's a straightforward fixed-length
 	   object */
 	if( !isFullResponse )
 		{
-		writeSequence( stream, sizeofObject( KEYID_SIZE ) + 
+		writeSequence( stream, sizeofObject( KEYID_SIZE ) +
 							   sizeofBoolean() );
 		writeOctetString( stream, rtcsEntry->data, KEYID_SIZE, DEFAULT_TAG );
 		return( writeBoolean( stream, rtcsEntry->status, DEFAULT_TAG ) );
@@ -372,9 +396,9 @@ int writeRtcsResponseEntry( STREAM *stream, const VALIDITY_INFO *rtcsEntry,
 	if( cryptStatusError( status ) || rtcsEntry->attributeSize <= 0 )
 		return( status );
 
-	/* Write the per-entry extensions.  Since these are per-entry extensions 
-	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_RTCS 
+	/* Write the per-entry extensions.  Since these are per-entry extensions
+	   we write them as CRYPT_CERTTYPE_NONE rather than CRYPT_CERTTYPE_RTCS
 	   to make sure that they're processed as required */
-	return( writeAttributes( stream, rtcsEntry->attributes, 
+	return( writeAttributes( stream, rtcsEntry->attributes,
 							 CRYPT_CERTTYPE_NONE, rtcsEntry->attributeSize ) );
 	}

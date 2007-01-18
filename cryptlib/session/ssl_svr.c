@@ -5,16 +5,9 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "misc_rw.h"
-  #include "session.h"
-  #include "ssl.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/misc_rw.h"
   #include "session.h"
   #include "ssl.h"
 #else
@@ -25,300 +18,6 @@
 #endif /* Compiler-specific includes */
 
 #ifdef USE_SSL
-
-/****************************************************************************
-*																			*
-*									Session Cache							*
-*																			*
-****************************************************************************/
-
-/* Session cache data and index information */
-
-typedef BYTE SESSIONCACHE_DATA[ SSL_SECRET_SIZE ];
-typedef struct {
-	/* Identification information: The checksum and hash of the session ID */
-	int checkValue;
-	BYTE hashValue[ 20 ];
-
-	/* Misc info */
-	time_t timeStamp;		/* Time entry was added to the cache */
-	int uniqueID;			/* Unique ID for this entry */
-	BOOLEAN fixedEntry;		/* Whether entry was added manually */
-	} SESSIONCACHE_INDEX;
-
-/* A template used to initialise session cache entries */
-
-static const SESSIONCACHE_INDEX SESSIONCACHE_INDEX_TEMPLATE = \
-								{ 0, { 0 }, 0, 0, 0 };
-
-/* The action to perform on the cache */
-
-typedef enum { CACHE_ACTION_NONE, CACHE_ACTION_PRESENCECHECK, 
-			   CACHE_ACTION_LOOKUP, CACHE_ACTION_ADD, 
-			   CACHE_ACTION_LAST } CACHE_ACTION;
-
-/* Session cache information */
-
-static SESSIONCACHE_INDEX *sessionCacheIndex;
-static SESSIONCACHE_DATA *sessionCacheData;
-static int sessionCacheLastEntry;
-static int sesionCacheUniqueID;
-
-/* Hash data */
-
-static void hashData( BYTE *hash, const void *data, const int dataLength )
-	{
-	static HASHFUNCTION hashFunction = NULL;
-
-	/* Get the hash algorithm information if necessary */
-	if( hashFunction == NULL )
-		getHashParameters( CRYPT_ALGO_SHA, &hashFunction, NULL );
-
-	/* Hash the data */
-	hashFunction( NULL, hash, ( BYTE * ) data, dataLength, HASH_ALL );
-	}
-
-/* Handle the session cache.  This function currently uses a straightforward 
-   linear search with entries clustered towards the start of the cache.  
-   Although this may seem somewhat suboptimal, since cryptlib isn't a high-
-   performance server the cache will rarely contain more than a handful of 
-   entries (if any).  In any case a quick scan through a small number of 
-   integers is probably still faster than the complex in-memory database 
-   lookup schemes used by many servers, and is also required to handle things 
-   like cache LRU management */
-
-static int handleSessionCache( const void *sessionID, 
-							   const int sessionIDlength, void *masterKey, 
-							   const BOOLEAN isFixedEntry,
-							   const CACHE_ACTION cacheAction )
-	{
-	BYTE hashValue[ 20 ];
-	BOOLEAN dataHashed = FALSE;
-	const time_t currentTime = getTime();
-	time_t oldestTime = currentTime;
-	const int checkValue = checksumData( sessionID, sessionIDlength );
-	int nextFreeEntry = CRYPT_ERROR, lastUsedEntry = 0, oldestEntry = 0;
-	int cachePos, uniqueID = 0, i;
-
-	assert( isReadPtr( sessionID, sessionIDlength ) && sessionIDlength >= 8 );
-	assert( ( cacheAction == CACHE_ACTION_PRESENCECHECK && masterKey == NULL ) || \
-			( cacheAction == CACHE_ACTION_LOOKUP && masterKey != NULL ) || \
-			( cacheAction == CACHE_ACTION_ADD && masterKey != NULL ) );
-	assert( isWritePtr( sessionCacheIndex, 
-						SESSIONCACHE_SIZE * sizeof( SESSIONCACHE_INDEX ) ) );
-	assert( isWritePtr( sessionCacheData, 
-						SESSIONCACHE_SIZE * sizeof( SESSIONCACHE_DATA ) ) );
-
-	/* If there's something wrong with the time, we can't perform (time-
-	   based) cache management */
-	if( currentTime < MIN_TIME_VALUE )
-		return( 0 );
-
-	krnlEnterMutex( MUTEX_SESSIONCACHE );
-
-	for( i = 0; i < sessionCacheLastEntry; i++ )
-		{
-		SESSIONCACHE_INDEX *sessionCacheInfo = &sessionCacheIndex[ i ];
-
-		/* If this entry has expired, delete it */
-		if( sessionCacheInfo->timeStamp + SESSIONCACHE_TIMEOUT < currentTime )
-			{
-			sessionCacheIndex[ i ] = SESSIONCACHE_INDEX_TEMPLATE;
-			zeroise( sessionCacheData[ i ], sizeof( SESSIONCACHE_DATA ) );
-			}
-
-		/* Check for a free entry and the oldest non-free entry.  We could
-		   perform an early-out once we find a free entry, but this would
-		   prevent any following expired entries from being deleted */
-		if( sessionCacheInfo->timeStamp <= 0 )
-			{
-			/* We've found a free entry, remember it for future use if 
-			   required and continue */
-			if( nextFreeEntry == CRYPT_ERROR )
-				nextFreeEntry = i;
-			continue;
-			}
-		lastUsedEntry = i;
-		if( sessionCacheInfo->timeStamp < oldestTime )
-			{
-			/* We've found an older entry than the current oldest entry, 
-			   remember it */
-			oldestTime = sessionCacheInfo->timeStamp;
-			oldestEntry = i;
-			}
-
-		/* Perform a quick check using a checksum of the name to weed out
-		   most entries */
-		if( sessionCacheInfo->checkValue == checkValue )
-			{
-			if( !dataHashed )	
-				{
-				hashData( hashValue, sessionID, sessionIDlength );
-				dataHashed = TRUE;
-				}
-			if( !memcmp( sessionCacheInfo->hashValue, hashValue, 20 ) )
-				{
-				uniqueID = sessionCacheInfo->uniqueID;
-
-				/* We've found a matching entry in the cache, if we're
-				   looking for an existing entry return its data */
-				if( cacheAction == CACHE_ACTION_LOOKUP )
-					{
-					memcpy( masterKey, sessionCacheData[ i ], SSL_SECRET_SIZE );
-					sessionCacheInfo->timeStamp = currentTime;
-#if 0	/* Old PSK mechanism */
-					if( sessionCacheInfo->fixedEntry )
-						/* Indicate that this entry corresponds to a fixed 
-						   entry that was added manually rather than a true 
-						   resumed session */
-						uniqueID = -uniqueID;
-#endif /* 0 */
-					}
-
-				krnlExitMutex( MUTEX_SESSIONCACHE );
-				return( uniqueID );
-				}
-			}
-		}
-
-	/* If the total number of entries has shrunk due to old entries expiring, 
-	   reduce the overall cache size */
-	if( lastUsedEntry + 1 < sessionCacheLastEntry )
-		sessionCacheLastEntry = lastUsedEntry + 1;
-
-	/* No match found, if we're adding a new entry, add it at the 
-	   appropriate location */
-	if( cacheAction == CACHE_ACTION_ADD )
-		{
-		if( !dataHashed )
-			hashData( hashValue, sessionID, sessionIDlength );
-		cachePos = ( nextFreeEntry > 0 ) ? nextFreeEntry : \
-				   ( sessionCacheLastEntry >= SESSIONCACHE_SIZE ) ? \
-				   oldestEntry : sessionCacheLastEntry++;
-		assert( cachePos >= 0 && cachePos < SESSIONCACHE_SIZE );
-		sessionCacheIndex[ cachePos ].checkValue = checkValue;
-		memcpy( sessionCacheIndex[ cachePos ].hashValue, hashValue, 20 );
-		sessionCacheIndex[ cachePos ].timeStamp = currentTime;
-		sessionCacheIndex[ cachePos ].uniqueID = uniqueID = \
-													sesionCacheUniqueID++;
-#if 0	/* Old PSK mechanism */
-		sessionCacheIndex[ cachePos ].fixedEntry = isFixedEntry;
-#endif /* 0 */
-		memcpy( sessionCacheData[ cachePos ], masterKey, SSL_SECRET_SIZE );
-		}
-
-	krnlExitMutex( MUTEX_SESSIONCACHE );
-	return( uniqueID );
-	}
-
-/* Add and delete entries to/from the session cache.  These are just wrappers 
-   for the local cache-access function, for use by external code */
-
-int findSessionCacheEntryID( const void *sessionID, 
-							 const int sessionIDlength )
-	{
-	return( handleSessionCache( sessionID, sessionIDlength, NULL,
-								FALSE, CACHE_ACTION_PRESENCECHECK ) );
-	}
-
-static int findSessionCacheEntry( const void *sessionID, 
-								  const int sessionIDlength, 
-								  void *masterSecret, 
-								  int *masterSecretLength )
-	{
-	const int resumedSessionID = \
-			handleSessionCache( sessionID, sessionIDlength, masterSecret,
-								FALSE, CACHE_ACTION_LOOKUP );
-	*masterSecretLength = ( resumedSessionID != 0 ) ? SSL_SECRET_SIZE : 0;
-	return( resumedSessionID );
-	}
-
-int addSessionCacheEntry( const void *sessionID, const int sessionIDlength, 
-						  const void *masterSecret, 
-						  const int masterSecretLength, 
-						  const BOOLEAN isFixedEntry )
-	{
-	assert( isReadPtr( masterSecret, masterSecretLength ) && \
-			masterSecretLength == SSL_SECRET_SIZE );
-
-	/* If we're not doing resumes (or the ID is suspiciously short), don't 
-	   try and update the session cache */
-	if( sessionIDlength < 8 )
-		return( 0 );
-
-	/* Add the entry to the cache */
-	return( handleSessionCache( sessionID, sessionIDlength,
-								( void * ) masterSecret, isFixedEntry,
-								CACHE_ACTION_ADD ) );
-	}
-
-void deleteSessionCacheEntry( const int uniqueID )
-	{
-	int i;
-
-	krnlEnterMutex( MUTEX_SESSIONCACHE );
-
-	/* Search the cache for the entry with the given ID */
-	for( i = 0; i < sessionCacheLastEntry; i++ )
-		{
-		SESSIONCACHE_INDEX *sessionCacheInfo = &sessionCacheIndex[ i ];
-
-		/* If we've found the entry we're after, clear it and exit */
-		if( sessionCacheInfo->uniqueID == uniqueID )
-			{
-			sessionCacheIndex[ i ] = SESSIONCACHE_INDEX_TEMPLATE;
-			zeroise( sessionCacheData[ i ], sizeof( SESSIONCACHE_DATA ) );
-			break;
-			}
-		}
-
-	krnlExitMutex( MUTEX_SESSIONCACHE );
-	}
-
-/* Initialise and shut down the session cache */
-
-int initSessionCache( void )
-	{
-	int i, status;
-
-	krnlEnterMutex( MUTEX_SESSIONCACHE );
-
-	/* Initialise the session cache */
-	if( ( sessionCacheIndex = clAlloc( "initSessionCache", \
-				SESSIONCACHE_SIZE * sizeof( SESSIONCACHE_INDEX ) ) ) == NULL )
-		return( CRYPT_ERROR_MEMORY );
-	status = krnlMemalloc( ( void ** ) &sessionCacheData, 
-						   SESSIONCACHE_SIZE * sizeof( SESSIONCACHE_DATA ) );
-	if( cryptStatusError( status ) )
-		{
-		clFree( "initSessionCache", sessionCacheIndex );
-		return( status );
-		}
-	for( i = 0; i < SESSIONCACHE_SIZE; i++ )
-		sessionCacheIndex[ i ] = SESSIONCACHE_INDEX_TEMPLATE;
-	memset( sessionCacheData, 0, SESSIONCACHE_SIZE * \
-								 sizeof( SESSIONCACHE_DATA ) );
-	sessionCacheLastEntry = 0;
-	sesionCacheUniqueID = 1;
-
-	krnlExitMutex( MUTEX_SESSIONCACHE );
-	return( CRYPT_OK );
-	}
-
-void endSessionCache( void )
-	{
-	int i;
-
-	krnlEnterMutex( MUTEX_SESSIONCACHE );
-
-	/* Clear and free the session cache */
-	krnlMemfree( ( void ** ) &sessionCacheData );
-	for( i = 0; i < SESSIONCACHE_SIZE; i++ )
-		sessionCacheIndex[ i ] = SESSIONCACHE_INDEX_TEMPLATE;
-	clFree( "endSessionCache", sessionCacheIndex );
-
-	krnlExitMutex( MUTEX_SESSIONCACHE );
-	}
 
 /****************************************************************************
 *																			*
@@ -380,7 +79,7 @@ int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 						  SSL_HANDSHAKE_INFO *handshakeInfo )
 	{
 	STREAM *stream = &handshakeInfo->stream;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int length, resumedSessionID = 0, packetOffset, status;
 
 	/* Read the hello packet from the client */
@@ -407,10 +106,11 @@ int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 	/* Handle session resumption */
 	if( status == OK_SPECIAL && \
 		( resumedSessionID = \
-			findSessionCacheEntry( handshakeInfo->sessionID, 
-								   handshakeInfo->sessionIDlength,
-								   handshakeInfo->premasterSecret,
-								   &handshakeInfo->premasterSecretSize ) ) != 0 )
+			findScoreboardEntry( &sessionInfoPtr->sessionSSL->scoreboardInfo,
+								 handshakeInfo->sessionID, 
+								 handshakeInfo->sessionIDlength,
+								 handshakeInfo->premasterSecret,
+								 &handshakeInfo->premasterSecretSize ) ) != 0 )
 		{
 #if 0	/* Old PSK mechanism */
 		/* It's a resumed session, if it's a fixed entry that was added 
@@ -554,8 +254,7 @@ int beginServerHandshake( SESSION_INFO *sessionInfoPtr,
 		keyData = sMemBufPtr( stream );
 		keyDataOffset = stell( stream );
 		status = exportAttributeToStream( stream, handshakeInfo->dhContext,
-										  CRYPT_IATTRIBUTE_KEY_SSL,
-										  CRYPT_USE_DEFAULT );
+										  CRYPT_IATTRIBUTE_KEY_SSL );
 		if( cryptStatusOK( status ) )
 			{
 			writeInteger16U( stream, keyAgreeParams.publicValue, 
@@ -628,9 +327,8 @@ int exchangeServerKeys( SESSION_INFO *sessionInfoPtr,
 	if( sessionInfoPtr->cryptKeyset != CRYPT_ERROR )
 		{
 		MESSAGE_KEYMGMT_INFO getkeyInfo;
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		BYTE certID[ KEYID_SIZE + 8 ];
-		int status;
 
 		/* Process the client cert chain */
 		status = readSSLCertChain( sessionInfoPtr, handshakeInfo,
@@ -727,9 +425,22 @@ int exchangeServerKeys( SESSION_INFO *sessionInfoPtr,
 	else
 		if( handshakeInfo->authAlgo == CRYPT_ALGO_NONE )
 			{
+			const ATTRIBUTE_LIST *attributeListPtr;
 			BYTE userID[ CRYPT_MAX_TEXTSIZE + 8 ];
 
-			/* Read the client user ID and remember it for later */
+			/* Read the client user ID and make sure that it's a valid 
+			   user.  Handling non-valid users is somewhat problematic,
+			   we can either bail out immediately or invent a fake 
+			   password for the (non-)user and continue with that.  The
+			   problem with this is that it doesn't really help hide 
+			   whether the user is valid or not because we're still 
+			   vulnerable to a timing attack because it takes considerably 
+			   longer to generate the fake password than it does to read a 
+			   fixed password string from memory, so an attacker can tell 
+			   from the timing whether the username is valid or not.  
+			   Because of this we don't try and fake out the valid/invalid 
+			   user name indication but just exit immediately if an invalid
+			   name is found */
 			length = readUint16( stream );
 			if( length < 1 || length > CRYPT_MAX_TEXTSIZE || \
 				cryptStatusError( sread( stream, userID, length ) ) )
@@ -738,20 +449,37 @@ int exchangeServerKeys( SESSION_INFO *sessionInfoPtr,
 				retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 						"Invalid client user ID" );
 				}
-			updateSessionAttribute( &sessionInfoPtr->attributeList, 
-									CRYPT_SESSINFO_USERNAME, 
-									handshakeInfo->sessionID, length, 
-									CRYPT_MAX_TEXTSIZE, ATTR_FLAG_NONE );
+			attributeListPtr = \
+				findSessionAttributeEx( sessionInfoPtr->attributeList,
+										CRYPT_SESSINFO_USERNAME, userID, 
+										length );
+			if( attributeListPtr == NULL )
+				{
+				sMemDisconnect( stream );
+				retExt( sessionInfoPtr, CRYPT_ERROR_WRONGKEY,
+						"Unknown user name '%s'", 
+						sanitiseString( userID, length ) );
+				}
+
+			/* Select the attribute with the user ID and move on to the
+			   associated password */
+			sessionInfoPtr->attributeListCurrent = \
+								( ATTRIBUTE_LIST * ) attributeListPtr;
+			attributeListPtr = attributeListPtr->next;
+			assert( attributeListPtr->attributeID == CRYPT_SESSINFO_PASSWORD );
 
 			/* Create the shared premaster secret from the user password */
 			status = createSharedPremasterSecret( \
 									handshakeInfo->premasterSecret,
 									&handshakeInfo->premasterSecretSize, 
-									sessionInfoPtr );
+									attributeListPtr );
 			if( cryptStatusError( status ) )
+				{
+				sMemDisconnect( stream );
 				retExt( sessionInfoPtr, status, 
 						"Couldn't create SSL master secret from shared "
 						"secret/password value" );
+				}
 			}
 		else
 			{

@@ -6,15 +6,10 @@
 ****************************************************************************/
 
 #include <stdarg.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "keyset.h"
   #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../keyset/keyset.h"
-  #include "../misc/rpc.h"
 #else
   #include "crypt.h"
   #include "keyset/keyset.h"
@@ -56,6 +51,12 @@
 #define MAX_SQL_QUERY_SIZE		( ( 7 * CRYPT_MAX_TEXTSIZE ) + \
 								  ( 3 * MAX_ENCODED_DBXKEYID_SIZE ) + \
 								  MAX_ENCODED_CERT_SIZE + 128 )
+
+/* For most of the queries that don't add cert data we don't need to use the 
+   worst-case buffer size, so we define an alternative smaller-size buffer for
+   use with standard queries */
+
+#define STANDARD_SQL_QUERY_SIZE	256
 
 /* When performing a query the database glue code limits the maximum returned
    data size to a certain size, the following define allows us to declare a
@@ -162,10 +163,10 @@ typedef enum {
    be used by backend-specific connect functions */
 
 typedef struct {
-	char userBuffer[ CRYPT_MAX_TEXTSIZE + 1 ], *user;
-	char passwordBuffer[ CRYPT_MAX_TEXTSIZE + 1 ], *password;
-	char serverBuffer[ CRYPT_MAX_TEXTSIZE + 1 ], *server;
-	char nameBuffer[ CRYPT_MAX_TEXTSIZE + 1 ], *name;
+	char userBuffer[ CRYPT_MAX_TEXTSIZE + 8 ], *user;
+	char passwordBuffer[ CRYPT_MAX_TEXTSIZE + 8 ], *password;
+	char serverBuffer[ CRYPT_MAX_TEXTSIZE + 8 ], *server;
+	char nameBuffer[ CRYPT_MAX_TEXTSIZE + 8 ], *name;
 	int userLen, passwordLen, serverLen, nameLen;
 	} DBMS_NAME_INFO;
 
@@ -198,9 +199,10 @@ int cmdUpdate( void *stateInfo, COMMAND_INFO *cmd );
 
 /* Other non-macro functions */
 
-void dbmsFormatSQL( char *buffer, const char *format, ... );
-int dbmsFormatQuery( char *output, const char *input, const int inputLength,
-					 const int maxLength );
+void dbmsFormatSQL( char *buffer, const int bufMaxLen, 
+					const char *format, ... );
+int dbmsFormatQuery( char *output, const int outMaxLength, 
+					 const char *input, const int inputLength );
 int dbmsParseName( DBMS_NAME_INFO *nameInfo, const char *name,
 				   const int lengthMarker );
 

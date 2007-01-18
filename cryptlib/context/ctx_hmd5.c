@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "md5.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/md5.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -39,13 +34,13 @@ typedef struct {
 /* Test the HMAC-MD5 output against the test vectors given in RFC 2104 and
    RFC ???? */
 
-static const FAR_BSS struct {
-	const char *key;						/* HMAC key */
+static const struct {
+	const char FAR_BSS *key;				/* HMAC key */
 	const int keyLength;					/* Length of key */
-	const char *data;						/* Data to hash */
+	const char FAR_BSS *data;				/* Data to hash */
 	const int length;						/* Length of data */
 	const BYTE digest[ MD5_DIGEST_LENGTH ];	/* Digest of data */
-	} hmacValues[] = {
+	} FAR_BSS hmacValues[] = {
 	{ "\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B", 16,
 	  "Hi There", 8,
 	  { 0x92, 0x94, 0x72, 0x7A, 0x36, 0x38, 0xBB, 0x1C,
@@ -108,7 +103,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getHmacMD5Capability();
 	CONTEXT_INFO contextInfo;
 	MAC_INFO contextData;
-	BYTE keyData[ MAC_STATE_SIZE ];
+	BYTE keyData[ MAC_STATE_SIZE + 8 ];
 	int i, status;
 
 	/* Test HMAC-MD5 against the test vectors given in RFC 2104 */
@@ -181,7 +176,7 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		MD5_Update( md5Info, buffer, noBytes );
 	else
 		{
-		BYTE hashBuffer[ MD5_CBLOCK ], digestBuffer[ MD5_CBLOCK ];
+		BYTE hashBuffer[ MD5_CBLOCK + 8 ], digestBuffer[ MD5_CBLOCK + 8 ];
 		int i;
 
 		/* Complete the inner hash and extract the digest */
@@ -218,7 +213,7 @@ static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	MD5_CTX *md5Info = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
-	BYTE hashBuffer[ MD5_CBLOCK ];
+	BYTE hashBuffer[ MD5_CBLOCK + 8 ];
 	int i;
 
 	MD5_Init( md5Info );

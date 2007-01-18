@@ -59,6 +59,14 @@
 #ifndef HEADER_CAST_H
 #define HEADER_CAST_H
 
+#ifndef _OSCONFIG_DEFINED		/* pcg */
+  #if defined( INC_ALL )
+	#include "osconfig.h"
+  #else
+	#include "crypt/osconfig.h"
+  #endif /* Compiler-specific includes */
+#endif /* _OSCONFIG_DEFINED */
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -83,18 +91,18 @@ typedef struct cast_key_st
 
  
 void CAST_set_key(CAST_KEY *key, int len, const unsigned char *data);
-void CAST_ecb_encrypt(const unsigned char *in,unsigned char *out,CAST_KEY *key,
-		      int enc);
-void CAST_encrypt(CAST_LONG *data,CAST_KEY *key);
-void CAST_decrypt(CAST_LONG *data,CAST_KEY *key);
-void CAST_cbc_encrypt(const unsigned char *in, unsigned char *out, long length,
-		      CAST_KEY *ks, unsigned char *iv, int enc);
-void CAST_cfb64_encrypt(const unsigned char *in, unsigned char *out,
+void ASM_EXPORT CAST_ecb_encrypt(const unsigned char *in,unsigned char *out,CAST_KEY *key,
+		      int enc);											/* pcg */
+void ASM_EXPORT CAST_encrypt(CAST_LONG *data,CAST_KEY *key);	/* pcg */
+void ASM_EXPORT CAST_decrypt(CAST_LONG *data,CAST_KEY *key);	/* pcg */
+void ASM_EXPORT CAST_cbc_encrypt(const unsigned char *in, unsigned char *out, long length,
+		      CAST_KEY *ks, unsigned char *iv, int enc);		/* pcg */
+void ASM_EXPORT CAST_cfb64_encrypt(const unsigned char *in, unsigned char *out,
 			long length, CAST_KEY *schedule, unsigned char *ivec,
-			int *num, int enc);
-void CAST_ofb64_encrypt(const unsigned char *in, unsigned char *out, 
+			int *num, int enc);									/* pcg */
+void ASM_EXPORT CAST_ofb64_encrypt(const unsigned char *in, unsigned char *out, 
 			long length, CAST_KEY *schedule, unsigned char *ivec,
-			int *num);
+			int *num);											/* pcg */
 
 #ifdef  __cplusplus
 }

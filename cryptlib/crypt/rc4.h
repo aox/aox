@@ -59,6 +59,14 @@
 #ifndef HEADER_RC4_H
 #define HEADER_RC4_H
 
+#ifndef _OSCONFIG_DEFINED		/* pcg */
+  #if defined( INC_ALL )
+	#include "osconfig.h"
+  #else
+	#include "crypt/osconfig.h"
+  #endif /* Compiler-specific includes */
+#endif /* _OSCONFIG_DEFINED */
+
 #ifdef NO_RC4
 #error RC4 is disabled.
 #endif
@@ -82,8 +90,8 @@ typedef struct rc4_key_st
 
 const char *RC4_options(void);
 void RC4_set_key(RC4_KEY *key, int len, const unsigned char *data);
-void RC4(RC4_KEY *key, unsigned long len, const unsigned char *indata,
-		unsigned char *outdata);
+void ASM_EXPORT RC4(RC4_KEY *key, unsigned long len, const unsigned char *indata,
+		unsigned char *outdata);								/* pcg */
 
 #ifdef  __cplusplus
 }

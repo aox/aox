@@ -59,7 +59,15 @@
 #ifndef HEADER_DES_H
 #define HEADER_DES_H
 
-#ifdef __osf__
+#ifndef _OSCONFIG_DEFINED		/* pcg */
+  #if defined( INC_ALL )
+	#include "osconfig.h"
+  #else
+	#include "crypt/osconfig.h"
+  #endif /* Compiler-specific includes */
+#endif /* _OSCONFIG_DEFINED */
+
+#ifdef DES_INT	/* pcg */
   #define DES_LONG	unsigned int
 #else
   #define DES_LONG	unsigned long
@@ -129,9 +137,9 @@ DES_LONG des_cbc_cksum(const unsigned char *input,des_cblock *output,
 void des_cbc_encrypt(const unsigned char *input,unsigned char *output,
 		     long length,des_key_schedule schedule,des_cblock *ivec,
 		     int enc);
-void des_ncbc_encrypt(const unsigned char *input,unsigned char *output,
+void ASM_EXPORT des_ncbc_encrypt(const unsigned char *input,unsigned char *output,
 		      long length,des_key_schedule schedule,des_cblock *ivec,
-		      int enc);
+		      int enc);										/* pcg */
 void des_xcbc_encrypt(const unsigned char *input,unsigned char *output,
 		      long length,des_key_schedule schedule,des_cblock *ivec,
 		      const_des_cblock *inw,const_des_cblock *outw,int enc);
@@ -150,7 +158,7 @@ void des_ecb_encrypt(const_des_cblock *input,des_cblock *output,
 	Data is a pointer to 2 unsigned long's and ks is the
 	des_key_schedule to use.  enc, is non zero specifies encryption,
 	zero if decryption. */
-void des_encrypt1(DES_LONG *data,des_key_schedule ks, int enc);
+void ASM_EXPORT des_encrypt1(DES_LONG *data,des_key_schedule ks, int enc);	/* pcg */
 
 /* 	This functions is the same as des_encrypt1() except that the DES
 	initial permutation (IP) and final permutation (FP) have been left
@@ -160,14 +168,14 @@ void des_encrypt1(DES_LONG *data,des_key_schedule ks, int enc);
 	as des_encrypt1() des_encrypt1() des_encrypt1() except faster :-). */
 void des_encrypt2(DES_LONG *data,des_key_schedule ks, int enc);
 
-void des_encrypt3(DES_LONG *data, des_key_schedule ks1,
+void ASM_EXPORT des_encrypt3(DES_LONG *data, des_key_schedule ks1,			/* pcg */
 	des_key_schedule ks2, des_key_schedule ks3);
-void des_decrypt3(DES_LONG *data, des_key_schedule ks1,
+void ASM_EXPORT des_decrypt3(DES_LONG *data, des_key_schedule ks1,			/* pcg */
 	des_key_schedule ks2, des_key_schedule ks3);
 void des_ede3_cbc_encrypt(const unsigned char *input,unsigned char *output,
 			  long length,
 			  des_key_schedule ks1,des_key_schedule ks2,
-			  des_key_schedule ks3,des_cblock *ivec,int enc);
+			  des_key_schedule ks3,des_cblock *ivec,int enc);				/* pcg */
 void des_ede3_cbcm_encrypt(const unsigned char *in,unsigned char *out,
 			   long length,
 			   des_key_schedule ks1,des_key_schedule ks2,

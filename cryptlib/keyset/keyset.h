@@ -62,8 +62,6 @@
 #ifndef _STREAM_DEFINED
   #if defined( INC_ALL )
 	#include "stream.h"
-  #elif defined( INC_CHILD )
-	#include "../io/stream.h"
   #else
 	#include "io/stream.h"
   #endif /* Compiler-specific includes */
@@ -171,12 +169,12 @@ typedef struct {
 	/* DBMS status information */
 	BOOLEAN needsUpdate;			/* Whether data remains to be committed */
 	BOOLEAN hasBinaryBlobs;			/* Whether back-end supports binary blobs */
-	char blobName[ CRYPT_MAX_TEXTSIZE + 1 ];/* Name of blob data type */
+	char blobName[ CRYPT_MAX_TEXTSIZE + 8 ];/* Name of blob data type */
 
 	/* Pointers to error information returned by the back-end.  This is 
 	   copied into the keyset object storage as required */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 
 	/* Database-specific information */
   #ifdef USE_ODBC
@@ -187,9 +185,10 @@ typedef struct {
 	BOOLEAN hStmtPrepared[ NO_CACHED_QUERIES ];/* Whether stmt is prepared on handle */
 	BOOLEAN transactIsDestructive;	/* Whether commit/rollback destroys prep'd queries */
 	SQLSMALLINT blobType;			/* SQL type of blob data type */
-	char dateTimeName[ CRYPT_MAX_TEXTSIZE + 1 ];/* Name of datetime data type */
+	char dateTimeName[ CRYPT_MAX_TEXTSIZE + 8 ];/* Name of datetime data type */
 	SQLINTEGER dateTimeNameColSize;	/* Back-end specific size of datetime column */
 	BOOLEAN needLongLength;			/* Back-end needs blob length at bind.time */
+	int backendType;				/* Back-end type if special handling is req'd */
 	char escapeChar;				/* SQL query escape char */
   #endif /* USE_ODBC */
   #ifdef USE_DATABASE
@@ -211,7 +210,7 @@ struct KI;	/* Forward declaration for argument to function pointers */
 typedef struct {
 	/* The I/O stream and file name */
 	STREAM stream;					/* I/O stream for key file */
-	char fileName[ FILENAME_MAX ];	/* Name of key file */
+	char fileName[ FILENAME_MAX + 8 ];	/* Name of key file */
 	} FILE_INFO;
 
 typedef struct DI {
@@ -225,7 +224,7 @@ typedef struct DI {
 	   amount of time after we initiate the update, so we copy it to the
 	   following staging area before we pass control to the database 
 	   back-end */
-	char boundData[ MAX_ENCODED_CERT_SIZE ];
+	char boundData[ MAX_ENCODED_CERT_SIZE + 8 ];
 
 	/* The data being sent to the back-end can be communicated over a variety
 	   of channels.  If we're using the RPC API, there's a single dispatch 
@@ -290,7 +289,7 @@ typedef struct DI {
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 	} DBMS_INFO;
 
 typedef struct {
@@ -306,7 +305,7 @@ typedef struct {
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 	} HTTP_INFO;
 
 typedef struct {
@@ -319,25 +318,25 @@ typedef struct {
 
 	/* The names of the object class and various attributes.  These are
 	   stored as part of the keyset context since they may be user-defined */
-	char nameObjectClass[ CRYPT_MAX_TEXTSIZE + 1 ];	/* Name of object class */
-	char nameFilter[ CRYPT_MAX_TEXTSIZE + 1 ];	/* Name of query filter */
-	char nameCACert[ CRYPT_MAX_TEXTSIZE + 1 ];	/* Name of CA cert attribute */
-	char nameCert[ CRYPT_MAX_TEXTSIZE + 1 ];	/* Name of cert attribute */
-	char nameCRL[ CRYPT_MAX_TEXTSIZE + 1 ];		/* Name of CRL attribute */
-	char nameEmail[ CRYPT_MAX_TEXTSIZE + 1 ];	/* Name of email addr.attr.*/
+	char nameObjectClass[ CRYPT_MAX_TEXTSIZE + 8 ];	/* Name of object class */
+	char nameFilter[ CRYPT_MAX_TEXTSIZE + 8 ];	/* Name of query filter */
+	char nameCACert[ CRYPT_MAX_TEXTSIZE + 8 ];	/* Name of CA cert attribute */
+	char nameCert[ CRYPT_MAX_TEXTSIZE + 8 ];	/* Name of cert attribute */
+	char nameCRL[ CRYPT_MAX_TEXTSIZE + 8 ];		/* Name of CRL attribute */
+	char nameEmail[ CRYPT_MAX_TEXTSIZE + 8 ];	/* Name of email addr.attr.*/
 	CRYPT_CERTTYPE_TYPE objectType;				/* Preferred obj.type to fetch */
 
 	/* When storing a cert we need the certificate DN, email address,
 	   and cert expiry date */
-	char C[ CRYPT_MAX_TEXTSIZE + 1 ], SP[ CRYPT_MAX_TEXTSIZE + 1 ],
-		L[ CRYPT_MAX_TEXTSIZE + 1 ], O[ CRYPT_MAX_TEXTSIZE + 1 ],
-		OU[ CRYPT_MAX_TEXTSIZE + 1 ], CN[ CRYPT_MAX_TEXTSIZE + 1 ];
-	char email[ CRYPT_MAX_TEXTSIZE + 1 ];
+	char C[ CRYPT_MAX_TEXTSIZE + 8 ], SP[ CRYPT_MAX_TEXTSIZE + 8 ],
+		L[ CRYPT_MAX_TEXTSIZE + 8 ], O[ CRYPT_MAX_TEXTSIZE + 8 ],
+		OU[ CRYPT_MAX_TEXTSIZE + 8 ], CN[ CRYPT_MAX_TEXTSIZE + 8 ];
+	char email[ CRYPT_MAX_TEXTSIZE + 8 ];
 	time_t date;
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 	} LDAP_INFO;
 
 /* Defines to make access to the union fields less messy */
@@ -367,7 +366,7 @@ typedef struct KI {
 	/* Pointers to keyset access methods */
 	int ( *initFunction )( struct KI *keysetInfo, const char *name,
 						   const CRYPT_KEYOPT_TYPE options );
-	void ( *shutdownFunction )( struct KI *keysetInfo );
+	int ( *shutdownFunction )( struct KI *keysetInfo );
 	int ( *getAttributeFunction )( struct KI *keysetInfo, void *data,
 								   const CRYPT_ATTRIBUTE_TYPE type );
 	int ( *setAttributeFunction )( struct KI *keysetInfo, const void *data,
@@ -401,9 +400,13 @@ typedef struct KI {
 	BOOLEAN ( *isBusyFunction )( struct KI *keysetInfo );
 
 	/* Some keysets require keyset-type-specific data storage, which is
-	   managed via the following variables */
+	   managed via the following variables. keyDataSize denotes the total
+	   size in bytes of the keyData buffer, keyDataNoObjects is the number
+	   of objects in the buffer if it's implemented as an array of key data
+	   objects */
 	void *keyData;					/* Keyset data buffer */
 	int keyDataSize;				/* Buffer size */
+	int keyDataNoObjects;			/* No.of objects in key data buffer */
 
 	/* Error information */
 	CRYPT_ATTRIBUTE_TYPE errorLocus;/* Error locus */
@@ -427,14 +430,21 @@ typedef struct KI {
 ****************************************************************************/
 
 /* Prototypes for various utility functions in cryptdbx.c.  retExt() returns 
-   after setting extended error information for the keyset.  We use a macro 
-   to make it match the standard return statement, the slightly unusual form 
-   is required to handle the fact that the helper function is a varargs
-   function */
+   after setting extended error information for the keyset.  If the compiler
+   doesn't support varargs macros then we have to use a macro set up to make 
+   it match the standard return statement */
 
-int retExtFnKeyset( KEYSET_INFO *keysetInfoPtr, const int status, 
-					const char *format, ... );
-#define retExt	return retExtFnKeyset
+#if defined( USE_ERRMSGS ) || !defined( VARARGS_MACROS )
+  int retExtFnKeyset( KEYSET_INFO *keysetInfoPtr, const int status, 
+					  const char *format, ... ) PRINTF_FN;
+
+  #define retExt		return retExtFnKeyset
+#else
+  int retExtFnKeyset( KEYSET_INFO *keysetInfoPtr, const int status );
+
+  #define retExt( stream, status, format, ... ) \
+		  return( retExtFnKeyset( stream, status ) )
+#endif /* USE_ERRMSGS */
 
 /* Prototypes for keyset mapping functions */
 

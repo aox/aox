@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							Object Alternative Access						*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -19,10 +19,6 @@
 
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "acl.h"
   #include "kernel.h"
 #else
@@ -44,41 +40,47 @@ static KERNEL_DATA *krnlData = NULL;
 /* The type of checking that we perform for the object access.  The check 
    types are:
 
-	CHECK_EXTERNAL
-		Kernel-external call with a cert or user object.
-
-	CHECK_EXTERNAL_RELEASE
-		Kernel-external call, as CHECK_EXTERNAL except that we can also 
-		release the system object when we don't need it any more but need to 
-		carry out further operations with other objects.
+	CHECK_EXTACCESS
+		Kernel-external call with a cert or crypto device to allow access to
+		object-internal data.
 
 	CHECK_KEYACCESS
-		Kernel-internal call with a context for key export/import */
+		Kernel-internal call with a context for key export/import.
+
+	CHECK_SUSPEND
+		Kernel-external call with a user or system object to temporarily
+		suspend object use and allow others access, providing a (somewhat 
+		crude) mechanism for making kernel calls interruptible */
 
 typedef enum {
 	ACCESS_CHECK_NONE,		/* No access check type */
-	ACCESS_CHECK_EXTERNAL,	/* Generic external call: Cert or user obj.*/
-	ACCESS_CHECK_EXTERNAL_RELEASE,	/* Generic external call: Cert or user obj.*/
+	ACCESS_CHECK_EXTACCESS,	/* Generic external call: Cert or crypt.dev.*/
 	ACCESS_CHECK_KEYACCESS,	/* Internal call: Context for key export */
+	ACCESS_CHECK_SUSPEND,	/* Suspend object use: User or sys.obj.*/
 	ACCESS_CHECK_LAST		/* Last access check type */
 	} ACCESS_CHECK_TYPE;
 
 /* Check that this is an object for which direct access is valid.  We can 
    only access the following object types:
 
-	Contexts: Used when importing/exporting keys to/from contexts during
-		key wrap/unwrap operations.
+	Certificates: EXTACCESS, used when copying internal state such as cert 
+		extensions or CRL info from one cert object to another.
 
-	Certificates: Used when copying internal state such as cert extensions 
-		or CRL info from one cert object to another.
-	
-	Crypto hardware devices other than the system object: Used when a 
-		context tied to a device needs to perform an operation using the 
-		device.
-	
-	User objects: Used when committing config data to persistent storage, we 
-		don't actually use the object data but merely unlock it to allow 
-		others access while performing the potentially lengthy update */
+	Contexts: KEYACCESS, used when importing/exporting keys to/from contexts 
+		during key wrap/unwrap operations.
+
+	Crypto hardware devices other than the system object: EXTACCESS, used 
+		when a context tied to a device needs to perform an operation using 
+		the device.
+
+	System object: ACCESS_CHECK_SUSPEND, used when performing a randomness 
+		data read/write, which can take some time to complete.
+
+	User objects: ACCESS_CHECK_SUSPEND, used when committing config data to 
+		persistent storage.  We don't actually use the object data but 
+		merely unlock it to allow others access while performing the 
+		potentially lengthy update.  Also used when performing the self-
+		test */
 
 static int checkAccessValid( const int objectHandle,
 							 const ACCESS_CHECK_TYPE checkType,
@@ -117,40 +119,40 @@ static int checkAccessValid( const int objectHandle,
 		case OBJECT_TYPE_CERTIFICATE:
 			/* Used when copying internal state such as cert extensions or
 			   CRL info from one cert object to another.  This is valid for
-			   all cert types when called from the cert code outside the 
-			   kernel */
-			if( checkType != ACCESS_CHECK_EXTERNAL && \
-				checkType != ACCESS_CHECK_EXTERNAL_RELEASE )
+			   all cert types */
+			if( checkType != ACCESS_CHECK_EXTACCESS )
 				return( errorCode );
 			break;
 
 		case OBJECT_TYPE_DEVICE:
-			/* Used when a context tied to a crypto hardware device needs to
-			   perform an operation using the device.  This is valid for all 
-			   devices other than the system object, however it can be used 
-			   to release the system object during a lengthy operation */
-			if( checkType != ACCESS_CHECK_EXTERNAL && \
-				checkType != ACCESS_CHECK_EXTERNAL_RELEASE )
-				return( CRYPT_ERROR );
-			if( !isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_FORTEZZA ) && \
-				!isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_PKCS11 ) && \
-				!isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_CRYPTOAPI ) && \
-				!( checkType == ACCESS_CHECK_EXTERNAL_RELEASE && \
-				   isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_SYSTEM ) ) )
-				return( errorCode );
-
-			/* Perform an additional explicit check for the system object */
-			if( checkType != ACCESS_CHECK_EXTERNAL_RELEASE && \
-				objectHandle == SYSTEM_OBJECT_HANDLE )
-				return( errorCode );
+			/* If it's an external access operation, it's used when a 
+			   context tied to a crypto hardware device needs to perform an 
+			   operation using the device.  This is valid for all devices 
+			   other than the system object */
+			if( checkType == ACCESS_CHECK_EXTACCESS )
+				{
+				if( !isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_FORTEZZA ) && \
+					!isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_PKCS11 ) && \
+					!isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_CRYPTOAPI ) )
+					return( errorCode );
+				}
+			else
+				{
+				/* If it's a suspend operation, it's used to temporarily 
+				   allow access to the system object while other operations
+				   are being performed */
+				if( checkType != ACCESS_CHECK_SUSPEND )
+					return( errorCode );
+				if( !isValidSubtype( objectInfoPtr->subType, SUBTYPE_DEV_SYSTEM ) )
+					return( errorCode );
+				}
 			break;
 
 		case OBJECT_TYPE_USER:
 			/* Used when updating config data, which can take awhile.  The 
 			   default user is an SO user, which is why we check for this 
 			   user type */
-			if( checkType != ACCESS_CHECK_EXTERNAL && \
-				checkType != ACCESS_CHECK_EXTERNAL_RELEASE )
+			if( checkType != ACCESS_CHECK_SUSPEND )
 				return( errorCode );
 			if( !isValidSubtype( objectInfoPtr->subType, SUBTYPE_USER_SO ) )
 				return( errorCode );
@@ -162,13 +164,15 @@ static int checkAccessValid( const int objectHandle,
 		}
 
 	/* Postcondition: The object is of the appropriate type for the access */
-	POST( ( ( checkType == ACCESS_CHECK_EXTERNAL || \
-			  checkType == ACCESS_CHECK_EXTERNAL_RELEASE ) && \
+	POST( ( ( checkType == ACCESS_CHECK_EXTACCESS ) && \
 			( objectInfoPtr->type == OBJECT_TYPE_CERTIFICATE || \
-			  objectInfoPtr->type == OBJECT_TYPE_DEVICE || \
-			  objectInfoPtr->type == OBJECT_TYPE_USER ) ) || \
+			  objectInfoPtr->type == OBJECT_TYPE_DEVICE ) ) || \
 		  ( checkType == ACCESS_CHECK_KEYACCESS && \
-		    objectInfoPtr->type == OBJECT_TYPE_CONTEXT ) );
+		    objectInfoPtr->type == OBJECT_TYPE_CONTEXT ) || \
+		  ( checkType == ACCESS_CHECK_SUSPEND && \
+		    ( objectInfoPtr->type == OBJECT_TYPE_DEVICE || \
+			  objectInfoPtr->type == OBJECT_TYPE_USER ) ) );
+
 
 	return( CRYPT_OK );
 	}
@@ -177,24 +181,30 @@ static int checkAccessValid( const int objectHandle,
 
 int getObject( const int objectHandle, const OBJECT_TYPE type,
 			   const ACCESS_CHECK_TYPE checkType, void **objectPtr, 
-			   const int errorCode )
+			   const int refCount, const int errorCode )
 	{
 	OBJECT_INFO *objectTable = krnlData->objectTable;
 	OBJECT_INFO *objectInfoPtr;
 	int status = CRYPT_OK;
 
 	/* Preconditions: It's a valid object */
-	PRE( isValidHandle( objectHandle ) && \
-		 objectHandle != SYSTEM_OBJECT_HANDLE );
+	PRE( isValidHandle( objectHandle ) );
 	PRE( isValidType( type ) && \
 		 ( type == OBJECT_TYPE_CONTEXT || type == OBJECT_TYPE_CERTIFICATE || \
 		   type == OBJECT_TYPE_DEVICE || type == OBJECT_TYPE_USER ) );
-	PRE( checkType == ACCESS_CHECK_EXTERNAL || \
-		 checkType == ACCESS_CHECK_KEYACCESS );
-	PRE( isWritePtr( objectPtr, sizeof( void * ) ) );
+	PRE( checkType > ACCESS_CHECK_NONE && \
+		 checkType < ACCESS_CHECK_LAST );
+	PRE( ( ( objectHandle == SYSTEM_OBJECT_HANDLE || \
+			 objectHandle == DEFAULTUSER_OBJECT_HANDLE ) && \
+		   objectPtr == NULL && refCount > 0 ) || \
+		 ( !( objectHandle == SYSTEM_OBJECT_HANDLE || \
+			  objectHandle == DEFAULTUSER_OBJECT_HANDLE ) && \
+		   isWritePtr( objectPtr, sizeof( void * ) ) && \
+		   refCount == CRYPT_UNUSED ) );
 
 	/* Clear the return value */
-	*objectPtr = NULL;
+	if( objectPtr != NULL )
+		*objectPtr = NULL;
 
 	MUTEX_LOCK( objectTable );
 
@@ -210,7 +220,9 @@ int getObject( const int objectHandle, const OBJECT_TYPE type,
 		}
 
 	/* Perform additional checks for correct object types */
-	if( objectHandle == SYSTEM_OBJECT_HANDLE || \
+	if( ( ( objectHandle == SYSTEM_OBJECT_HANDLE || \
+			objectHandle == DEFAULTUSER_OBJECT_HANDLE ) && \
+		  objectPtr != NULL ) || \
 		objectTable[ objectHandle ].type != type )
 		{
 		MUTEX_UNLOCK( objectTable );
@@ -231,26 +243,43 @@ int getObject( const int objectHandle, const OBJECT_TYPE type,
 	/* If the object is busy, wait for it to become available */
 	if( isInUse( objectHandle ) && !isObjectOwner( objectHandle ) )
 		status = waitForObject( objectHandle, &objectInfoPtr );
-	if( cryptStatusOK( status ) )
+	if( cryptStatusError( status ) )
 		{
-		objectInfoPtr->lockCount++;
-#ifdef USE_THREADS
-		objectInfoPtr->lockOwner = THREAD_SELF();
-#endif /* USE_THREADS */
-		*objectPtr = objectInfoPtr->objectPtr;
+		MUTEX_UNLOCK( objectTable );
+		return( status );
 		}
+
+	/* If it's an external access to certificate/device info or an internal 
+	   access to access the object's keying data, increment the object's 
+	   reference count to reserve it for our exclusive use */
+	if( checkType == ACCESS_CHECK_EXTACCESS || \
+		checkType == ACCESS_CHECK_KEYACCESS )
+		objectInfoPtr->lockCount++;
+	else
+		{
+		/* If we're resuming use of an object that we suspended to allow 
+		   others access, reset the reference count */
+		PRE( checkType == ACCESS_CHECK_SUSPEND );
+		PRE( objectInfoPtr->lockCount == 0 );
+		PRE( refCount > 0 && refCount < 100 );
+
+		objectInfoPtr->lockCount = refCount;
+		}
+#ifdef USE_THREADS
+	objectInfoPtr->lockOwner = THREAD_SELF();
+#endif /* USE_THREADS */
+	if( objectPtr != NULL )
+		*objectPtr = objectInfoPtr->objectPtr;
 
 	MUTEX_UNLOCK( objectTable );
 	return( status );
 	}
 
-/* Release an object that we previously acquired directly.  Note that we can
-   release the system object here (done when we don't need it any more but
-   need to carry out further operations with other objects), but we can't
-   ever acquire it */
+/* Release an object that we previously acquired directly */
 
 static int releaseObject( const int objectHandle,
-						  const ACCESS_CHECK_TYPE checkType )
+						  const ACCESS_CHECK_TYPE checkType,
+						  int *refCount )
 	{
 	OBJECT_INFO *objectTable = krnlData->objectTable;
 	OBJECT_INFO *objectInfoPtr;
@@ -262,8 +291,8 @@ static int releaseObject( const int objectHandle,
 	/* Preconditions: It's a valid object in use by the caller */
 	PRE( isValidObject( objectHandle ) );
 	PRE( isInUse( objectHandle ) && isObjectOwner( objectHandle ) );
-	PRE( checkType == ACCESS_CHECK_EXTERNAL_RELEASE || \
-		 checkType == ACCESS_CHECK_KEYACCESS );
+	PRE( checkType > ACCESS_CHECK_NONE && \
+		 checkType < ACCESS_CHECK_LAST );
 
 	/* Perform similar access checks to the ones performed in
 	   krnlSendMessage(), as well as situation-specific additional checks 
@@ -278,9 +307,9 @@ static int releaseObject( const int objectHandle,
 		}
 
 	/* Perform additional checks for correct object types.  The ownership 
-	   check in checkAccessValid() checks whether the current thread is the
-	   overall object owner, isObjectOwner() checks whether the current 
-	   thread owns the current lock on the object */
+	   check in checkAccessValid() simply checks whether the current thread 
+	   is the overall object owner, isObjectOwner() checks whether the 
+	   current thread owns the lock on the object */
 	if( !isInUse( objectHandle ) || !isObjectOwner( objectHandle ) )
 		{
 		MUTEX_UNLOCK( objectTable );
@@ -290,15 +319,35 @@ static int releaseObject( const int objectHandle,
 
 	/* It's a valid object, get its info */
 	objectInfoPtr = &objectTable[ objectHandle ];
-	STORE_ORIGINAL_INT( lockCount, objectInfoPtr->lockCount );
 
-	objectInfoPtr->lockCount--;
+	/* If it was an external access to certificate/device info or an 
+	   internal access to the object's keying data, decrement the object's 
+	   reference count to allow others access again */
+	if( checkType == ACCESS_CHECK_EXTACCESS || \
+		checkType == ACCESS_CHECK_KEYACCESS )
+		{
+		STORE_ORIGINAL_INT( lockCount, objectInfoPtr->lockCount );
 
-	/* Postcondition: The object's lock count has been decremented and is
-	   non-negative */
-	POST( objectInfoPtr->lockCount == \
-							ORIGINAL_VALUE( lockCount ) - 1 );
-	POST( objectInfoPtr->lockCount >= 0 );
+		objectInfoPtr->lockCount--;
+
+		/* Postcondition: The object's lock count has been decremented and 
+		   is non-negative */
+		POST( objectInfoPtr->lockCount == \
+								ORIGINAL_VALUE( lockCount ) - 1 );
+		POST( objectInfoPtr->lockCount >= 0 );
+		}
+	else
+		{
+		/* It's an external access to free the object for access by others, 
+		   clear the reference count */
+		PRE( checkType == ACCESS_CHECK_SUSPEND );
+
+		*refCount = objectInfoPtr->lockCount;
+		objectInfoPtr->lockCount = 0;
+
+		/* Postcondition: The object has been completely released */
+		POST( !isInUse( objectHandle ) );
+		}
 
 	MUTEX_UNLOCK( objectTable );
 	return( CRYPT_OK );
@@ -334,91 +383,30 @@ void endObjectAltAccess( void )
 int krnlAcquireObject( const int objectHandle, const OBJECT_TYPE type,
 					   void **objectPtr, const int errorCode )
 	{
-	return( getObject( objectHandle, type, ACCESS_CHECK_EXTERNAL, 
-					   objectPtr, errorCode ) );
+	return( getObject( objectHandle, type, ACCESS_CHECK_EXTACCESS, 
+					   objectPtr, CRYPT_UNUSED, errorCode ) );
 	}
 
 int krnlReleaseObject( const int objectHandle )
 	{
-	return( releaseObject( objectHandle, ACCESS_CHECK_EXTERNAL_RELEASE ) );
+	return( releaseObject( objectHandle, ACCESS_CHECK_EXTACCESS, NULL ) );
 	}
 
-/* Relinquish ownership of the system object to another thread.  This
-   procedure is needed to allow a background polling thread to add entropy
-   to the system device.  The way it works is that the calling thread hands
-   ownership over to the polling thread and suspends itself until the
-   polling thread completes.  When the polling thread has completed, it
-   terminates, whereupon the original thread wakes up and reacquires
-   ownership.  The value passed to the release call is actually a thread ID,
-   but since this type isn't visible outside the kernel we just us a generic
-   int */
+/* Temporarily suspend use of an object to allow other threads access, and
+   resume object use afterwards */
 
-int krnlRelinquishSystemObject( const int /* THREAD_HANDLE */ objectOwner )
+int krnlSuspendObject( const int objectHandle, int *refCount )
 	{
-	OBJECT_INFO *objectTable = krnlData->objectTable;
-#ifdef USE_THREADS
-	OBJECT_INFO *objectInfoPtr = &objectTable[ SYSTEM_OBJECT_HANDLE ];
-#endif /* USE_THREADS */
-
-	/* Preconditions: The object is valid and in use */
-	PRE( isValidObject( SYSTEM_OBJECT_HANDLE ) );
-	PRE( isInUse( SYSTEM_OBJECT_HANDLE ) );
-
-	MUTEX_LOCK( objectTable );
-
-	/* Precondition: We're relinquishing ownership, we must currently be
-	   the owner */
-	PRE( isObjectOwner( SYSTEM_OBJECT_HANDLE ) );
-
-	/* Check that the access is valid */
-	if( !isValidObject( SYSTEM_OBJECT_HANDLE ) || \
-		!isInUse( SYSTEM_OBJECT_HANDLE ) || \
-		!checkObjectOwnership( objectTable[ SYSTEM_OBJECT_HANDLE ] ) )
-		{
-		MUTEX_UNLOCK( objectTable );
-		assert( NOTREACHED );
-		return( CRYPT_ERROR_PERMISSION );
-		}
-
-#ifdef USE_THREADS
-	objectInfoPtr->lockOwner = ( THREAD_HANDLE ) objectOwner;
-#endif /* USE_THREADS */
-
-	MUTEX_UNLOCK( objectTable );
-	return( CRYPT_OK );
+	return( releaseObject( objectHandle, ACCESS_CHECK_SUSPEND, refCount ) );
 	}
 
-int krnlReacquireSystemObject( void )
+int krnlResumeObject( const int objectHandle, const int refCount )
 	{
-#ifdef USE_THREADS
-	OBJECT_INFO *objectInfoPtr = &krnlData->objectTable[ SYSTEM_OBJECT_HANDLE ];
-#endif /* USE_THREADS */
-
-	/* Preconditions: The object is valid and in use */
-	PRE( isValidObject( SYSTEM_OBJECT_HANDLE ) );
-	PRE( isInUse( SYSTEM_OBJECT_HANDLE ) );
-
-	MUTEX_LOCK( objectTable );
-
-	/* Precondition: Since we're reacquiring ownership, we're not currently 
-	   the owner  */
-	PRE( !isObjectOwner( SYSTEM_OBJECT_HANDLE ) );
-
-	/* Check that the access is valid */
-	if( !isValidObject( SYSTEM_OBJECT_HANDLE ) || \
-		!isInUse( SYSTEM_OBJECT_HANDLE ) )
-		{
-		MUTEX_UNLOCK( objectTable );
-		assert( NOTREACHED );
-		return( CRYPT_ERROR_PERMISSION );
-		}
-
-#ifdef USE_THREADS
-	objectInfoPtr->lockOwner = THREAD_SELF();
-#endif /* USE_THREADS */
-
-	MUTEX_UNLOCK( objectTable );
-	return( CRYPT_OK );
+	return( getObject( objectHandle, 
+					   ( objectHandle == SYSTEM_OBJECT_HANDLE ) ? \
+						 OBJECT_TYPE_DEVICE : OBJECT_TYPE_USER, 
+					   ACCESS_CHECK_SUSPEND, NULL, refCount, 
+					   CRYPT_ERROR_FAILED ) );
 	}
 
 /****************************************************************************
@@ -440,12 +428,16 @@ int krnlReacquireSystemObject( void )
 	exportPrivateKey: Write private key data to a stream prior to encryption
 					  with a KEK.
 	importPrivateKey: Read private key data from a stream after decryption
-					  with a KEK */
+					  with a KEK.  We use this rather than a generic 
+					  external private key load to avoid having the key 
+					  marked as an untrusted user-set key, and also because
+					  it's easier to read the key data directly into the
+					  context's bignum storage rather than adding indirection
+					  via a CRYPT_PKCINFO_xxx structure */
 
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "context.h"
-#elif defined( INC_CHILD )
-  #include "../context/context.h"
 #else
   #include "context/context.h"
 #endif /* Compiler-specific includes */
@@ -463,14 +455,15 @@ int extractKeyData( const CRYPT_CONTEXT iCryptContext, void *keyData )
 	   level, but we perform a sanity check here to be safe */
 	status = getObject( iCryptContext, OBJECT_TYPE_CONTEXT,
 						ACCESS_CHECK_KEYACCESS,
-						( void ** ) &contextInfoPtr, CRYPT_ARGERROR_OBJECT );
+						( void ** ) &contextInfoPtr, CRYPT_UNUSED, 
+						CRYPT_ARGERROR_OBJECT );
 	if( cryptStatusError( status ) )
 		return( status );
 	if( ( contextInfoPtr->type != CONTEXT_CONV && \
 		  contextInfoPtr->type != CONTEXT_MAC ) || \
 		!( contextInfoPtr->flags & CONTEXT_KEY_SET ) )
 		{
-		releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS );
+		releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS, NULL );
 		return( CRYPT_ARGERROR_OBJECT );
 		}
 
@@ -491,7 +484,7 @@ int extractKeyData( const CRYPT_CONTEXT iCryptContext, void *keyData )
 			assert( NOTREACHED );
 			status = CRYPT_ARGERROR_OBJECT;
 		}
-	releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS );
+	releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS, NULL );
 	return( status );
 	}
 
@@ -506,21 +499,22 @@ int exportPrivateKeyData( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
 	   perform a sanity check here to be safe */
 	status = getObject( iCryptContext, OBJECT_TYPE_CONTEXT, 
 						ACCESS_CHECK_KEYACCESS,
-						( void ** ) &contextInfoPtr, CRYPT_ARGERROR_OBJECT );
+						( void ** ) &contextInfoPtr, CRYPT_UNUSED, 
+						CRYPT_ARGERROR_OBJECT );
 	if( cryptStatusError( status ) )
 		return( status );
-	if( contextInfoPtr->type != CONTEXT_PKC ||
+	if( contextInfoPtr->type != CONTEXT_PKC || \
 		!( contextInfoPtr->flags & CONTEXT_KEY_SET ) || \
 		( contextInfoPtr->flags & CONTEXT_ISPUBLICKEY ) )
 		{
-		releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS );
+		releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS, NULL );
 		return( CRYPT_ARGERROR_OBJECT );
 		}
 
 	/* Export the key data from the context */
 	status = contextInfoPtr->ctxPKC->writePrivateKeyFunction( stream, 
 										contextInfoPtr, formatType, "private" );
-	releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS );
+	releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS, NULL );
 	return( status );
 	}
 
@@ -535,14 +529,15 @@ int importPrivateKeyData( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
 	   perform a sanity check here to be safe */
 	status = getObject( iCryptContext, OBJECT_TYPE_CONTEXT, 
 						ACCESS_CHECK_KEYACCESS,
-						( void ** ) &contextInfoPtr, CRYPT_ARGERROR_OBJECT );
+						( void ** ) &contextInfoPtr, CRYPT_UNUSED, 
+						CRYPT_ARGERROR_OBJECT );
 	if( cryptStatusError( status ) )
 		return( status );
-	if( contextInfoPtr->type != CONTEXT_PKC ||
+	if( contextInfoPtr->type != CONTEXT_PKC || \
 		( contextInfoPtr->flags & CONTEXT_KEY_SET ) || \
 		( contextInfoPtr->flags & CONTEXT_ISPUBLICKEY ) )
 		{
-		releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS );
+		releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS, NULL );
 		return( CRYPT_ARGERROR_OBJECT );
 		}
 
@@ -562,10 +557,11 @@ int importPrivateKeyData( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
 			contextInfoPtr->flags |= CONTEXT_KEY_SET;
 			}
 		else
+			/* If the problem was indicated as a function argument error, 
+			   map it to a more appropriate code */
 			if( cryptArgError( status ) )
-				/* Map the status to a more appropriate code */
 				status = CRYPT_ERROR_BADDATA;
 		}
-	releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS );
+	releaseObject( iCryptContext, ACCESS_CHECK_KEYACCESS, NULL );
 	return( status );
 	}

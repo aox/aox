@@ -5,19 +5,11 @@
 *																			*
 ****************************************************************************/
 
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "certattr.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "certattr.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
   #include "cert/certattr.h"
@@ -160,11 +152,8 @@ static int updateStackedInfo( ATTRIBUTE_STACK *stack, int *stackPosPtr,
 		assert( stackPos >= 0 && stackPos < ATTRIBUTE_STACKSIZE );
 
 		/* Sanity check */
-		if( stackPos < 0 || size < 0 )
-			{
-			assert( NOTREACHED );
-			return( CRYPT_ERROR_FAILED );
-			}
+		if( stackPos < 0 || stackPos >= ATTRIBUTE_STACKSIZE || size < 0 )
+			retIntError();
 
 		/* If there's nothing to encode, continue.  There are a few special
 		   cases here where even if the sequence is of zero length, we may
@@ -182,9 +171,10 @@ static int updateStackedInfo( ATTRIBUTE_STACK *stack, int *stackPosPtr,
 		   stacked attributeFifoPtr is NULL and the size is zero, so we
 		   perform an additional check to make sure that the pointer is non-
 		   null */
-		if( !( size || ( attributeFifoPtr != NULL && \
-						 ( ( attributeFifoPtr->flags & ATTR_FLAG_DEFAULTVALUE ) || \
-						   ( attributeInfoPtr->flags & FL_NONENCODING ) ) ) ) )
+		if( !( size > 0 || \
+			   ( attributeFifoPtr != NULL && \
+				 ( ( attributeFifoPtr->flags & ATTR_FLAG_DEFAULTVALUE ) || \
+				   ( attributeInfoPtr->flags & FL_NONENCODING ) ) ) ) )
 			continue;
 
 		assert( isWritePtr( attributeFifoPtr, sizeof( ATTRIBUTE_LIST ) ) );
@@ -240,25 +230,28 @@ static int updateStackedInfo( ATTRIBUTE_STACK *stack, int *stackPosPtr,
    field is marked as optional.  The following function checks whether a 
    named value component is present in the item */
 
-static BOOLEAN checkComponentPresent( const CRYPT_ATTRIBUTE_TYPE fieldID,
-									  ATTRIBUTE_INFO **attributeInfoPtrPtr )
+static int checkComponentPresent( const CRYPT_ATTRIBUTE_TYPE fieldID,
+								  ATTRIBUTE_INFO **attributeInfoPtrPtr )
 	{
 	const ATTRIBUTE_INFO *attributeInfoPtr = *attributeInfoPtrPtr;
-	int nestLevel = 0;
+	int nestLevel = 0, iterationCount;
 
 	assert( isWritePtr( attributeInfoPtrPtr, sizeof( ATTRIBUTE_INFO * ) ) );
 	assert( isReadPtr( *attributeInfoPtrPtr, sizeof( ATTRIBUTE_INFO ) ) );
 
 	/* Check each field we find until we find the end of the
-	   attributeTypeAndValue */
-	while( TRUE )
+	   attributeTypeAndValue.  Unfortunately we don't know how many 
+	   attribute table entries are left, so we have to use the generic
+	   FAILSAFE_ITERATIONS_LARGE for the bounds check */
+	for( iterationCount = 0; iterationCount < FAILSAFE_ITERATIONS_LARGE; \
+		 iterationCount++ )
 		{
 		/* Sanity check to make sure that we don't fall off the end of the 
 		   table */
 		if( attributeInfoPtr->fieldID == CRYPT_ERROR )
 			{
 			assert( NOTREACHED );
-			return( FALSE );
+			return( CRYPT_ERROR_INTERNAL );
 			}
 
 		/* Adjust the nesting level depending on whether we're entering or
@@ -269,7 +262,7 @@ static BOOLEAN checkComponentPresent( const CRYPT_ATTRIBUTE_TYPE fieldID,
 
 		/* If the field is present in this attributeTypeAndValue, return */
 		if( attributeInfoPtr->fieldID == fieldID )
-			return( TRUE );
+			return( CRYPT_OK );
 
 		/* If we're at the end of the attribute or the attributeTypeAndValue,
 		   exit the loop before adjusting the attributeInfoPtr so that we're
@@ -279,11 +272,13 @@ static BOOLEAN checkComponentPresent( const CRYPT_ATTRIBUTE_TYPE fieldID,
 
 		attributeInfoPtr++;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 
 	/* The field isn't present, update the pointer to the next
 	   attributeTypeAndValue or the end of the attribute */
 	*attributeInfoPtrPtr = ( ATTRIBUTE_INFO * ) attributeInfoPtr;
-	return( FALSE );
+	return( CRYPT_ERROR_NOTFOUND );
 	}
 
 /* State machine for checking a CHOICE.  When we get to the start of a
@@ -319,7 +314,7 @@ typedef struct {
 	   items from both the subfield and the encapsulating field, so we also
 	   record the current stack top to make sure that we don't go past this 
 	   level when popping items after we've finished encoding a subfield */
-	ATTRIBUTE_STACK stack[ ATTRIBUTE_STACKSIZE ];
+	ATTRIBUTE_STACK stack[ ATTRIBUTE_STACKSIZE + 8 ];
 	int stackPos;					/* Encoding stack position */
 	int stackTop;
 
@@ -336,7 +331,7 @@ static int stackInfo( ATTRIBUTE_CHECK_INFO *attributeCheckInfo,
 
 	if( attributeCheckInfo->stackPos >= ATTRIBUTE_STACKSIZE - 1 )
 		{
-		assert( NOTREACHED );
+		assert( NOTREACHED );	/* Should never happen */
 		return( CRYPT_ERROR_OVERFLOW );
 		}
 	stack[ attributeCheckInfo->stackPos ].size = 0;
@@ -358,7 +353,8 @@ static int checkAttributeEntry( ATTRIBUTE_CHECK_INFO *attributeCheckInfo )
 	assert( isWritePtr( attributeCheckInfo, sizeof( ATTRIBUTE_CHECK_INFO ) ) );
 
 	/* Determine the fieldID for the current attribute field */
-	if( attributeListPtr == NULL || attributeListPtr->fieldID == CRYPT_ATTRIBUTE_NONE )
+	if( attributeListPtr == NULL || \
+		attributeListPtr->fieldID == CRYPT_ATTRIBUTE_NONE )
 		/* If we've reached the end of the list of recognised attributes, 
 		   use a non-ID that doesn't match any table entry */
 		fieldID = CRYPT_UNUSED;
@@ -446,7 +442,8 @@ static int checkAttributeEntry( ATTRIBUTE_CHECK_INFO *attributeCheckInfo )
 						writeAttributeField( NULL, attributeListPtr, 
 											 CRYPT_COMPLIANCELEVEL_STANDARD );
 		if( attributeCheckInfo->stackPos > 0 )
-			stack[ attributeCheckInfo->stackPos - 1 ].size += attributeListPtr->encodedSize;
+			stack[ attributeCheckInfo->stackPos - 1 ].size += \
+										attributeListPtr->encodedSize;
 
 		/* If this is a CHOICE field, update the choice state */
 		if( attributeCheckInfo->choiceState != CHOICE_NONE )
@@ -475,7 +472,8 @@ static int checkAttributeEntry( ATTRIBUTE_CHECK_INFO *attributeCheckInfo )
 		BOOLEAN endOfAttributeField = FALSE;
 		int status;
 
-		if( !checkComponentPresent( fieldID, &attributeInfoPtr ) )
+		status = checkComponentPresent( fieldID, &attributeInfoPtr );
+		if( status == CRYPT_ERROR_NOTFOUND )
 			{
 			/* Since we've jumped over several items we may be pointing at an
 			   end-of-sequence flag for which no sequence start was stacked,
@@ -483,6 +481,8 @@ static int checkAttributeEntry( ATTRIBUTE_CHECK_INFO *attributeCheckInfo )
 			attributeCheckInfo->attributeInfoPtr = attributeInfoPtr;
 			return( OK_SPECIAL );
 			}
+		if( cryptStatusError( status ) )
+			return( status );
 
 		/* Stack the position of the sequence start and the following OID */
 		status = stackInfo( attributeCheckInfo, attributeListPtr, 
@@ -567,10 +567,7 @@ static int checkAttribute( ATTRIBUTE_CHECK_INFO *attributeCheckInfo )
 		/* Sanity check to make sure that we don't fall off the end of the 
 		   encoding table */
 		if( attributeCheckInfo->attributeInfoPtr->fieldID == CRYPT_ERROR )
-			{
-			assert( NOTREACHED );
-			return( CRYPT_ERROR_FAILED );
-			}
+			retIntError();
 
 		/* Check whether this is a repeated instance of the same attribute
 		   and if it is, remember the encoding restart point.  We have to do
@@ -650,15 +647,11 @@ static int checkAttribute( ATTRIBUTE_CHECK_INFO *attributeCheckInfo )
 				TRUE : FALSE;
 		attributeCheckInfo->attributeInfoPtr++;
 		}
-	while( attributeContinues && iterationCount++ < CERT_MAX_ITERATIONS );
+	while( attributeContinues && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE );
+	if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError();
 	attributeCheckInfo->choiceState = CHOICE_NONE;
-
-	/* Safety check */
-	if( iterationCount >= CERT_MAX_ITERATIONS )
-		{
-		assert( NOTREACHED );
-		return( CRYPT_ERROR_FAILED );
-		}
 	
 	/* We've reached the end of the attribute, if there are still constructed
 	   objects stacked, unstack them and update their length information.  If
@@ -681,28 +674,29 @@ int checkAttributes( const ATTRIBUTE_TYPE attributeType,
 	const ATTRIBUTE_INFO *attributeInfoStartPtr = \
 							selectAttributeInfo( attributeType );
 	ATTRIBUTE_LIST *attributeListPtr;
+	int iterationCount = 0;
 
 	/* If we've already done a validation pass, some of the fields will
 	   contain values that were previously set, so before we begin we walk
 	   down the list resetting the fields that are updated by this
 	   function */
 	for( attributeListPtr = ( ATTRIBUTE_LIST * ) listHeadPtr;
-		 isValidAttributeField( attributeListPtr );
+		 isValidAttributeField( attributeListPtr ) && \
+			iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
 		 attributeListPtr = attributeListPtr->next )
 		{
 		if( isValidAttributeField( attributeListPtr->next ) && \
 			attributeListPtr->attributeID > \
 						attributeListPtr->next->attributeID )
-			{
 			/* Safety check in case of an invalid attribute list */
-			assert( NOTREACHED );
-			return( CRYPT_ERROR_FAILED );
-			}
+			retIntError();
 		attributeListPtr->attributeInfoPtr = NULL;
 		attributeListPtr->encodedSize = attributeListPtr->fifoPos = \
 			attributeListPtr->fifoEnd = 0;
 		attributeListPtr->flags &= ~ATTR_FLAG_DEFAULTVALUE;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 
 	/* Set up the attribute-checking state information */
 	memset( &attributeCheckInfo, 0, sizeof( ATTRIBUTE_CHECK_INFO ) );
@@ -711,10 +705,12 @@ int checkAttributes( const ATTRIBUTE_TYPE attributeType,
 
 	/* Walk down the list of known attributes checking each one for
 	   consistency */
+	iterationCount = 0;
 	while( attributeCheckInfo.attributeListPtr != NULL && \
-		   attributeCheckInfo.attributeListPtr->fieldID != CRYPT_ATTRIBUTE_NONE )
+		   attributeCheckInfo.attributeListPtr->fieldID != CRYPT_ATTRIBUTE_NONE && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX )
 		{
-		int status;
+		int innerIterationCount = 0, status;
 
 		/* Find the start of this attribute in the attribute info table and
 		   remember it as an encoding sync point.  Comparing the field ID
@@ -727,17 +723,19 @@ int checkAttributes( const ATTRIBUTE_TYPE attributeType,
 		   the attribute/fieldID */
 		while( ( attributeCheckInfo.attributeInfoPtr->fieldID != \
 				 attributeCheckInfo.attributeListPtr->attributeID ) && \
-			   attributeCheckInfo.attributeInfoPtr->fieldID != CRYPT_ERROR )
+			   attributeCheckInfo.attributeInfoPtr->fieldID != CRYPT_ERROR && \
+			   innerIterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 			attributeCheckInfo.attributeInfoPtr++;
-		if( attributeCheckInfo.attributeInfoPtr->fieldID == CRYPT_ERROR )
-			{
-			/* Safety check in case of an invalid encoding table */
-			assert( NOTREACHED );
-			return( CRYPT_ERROR_FAILED );
-			}
+		if( innerIterationCount >= FAILSAFE_ITERATIONS_LARGE || \
+			attributeCheckInfo.attributeInfoPtr->fieldID == CRYPT_ERROR )
+			retIntError();
+		innerIterationCount = 0;
 		while( attributeCheckInfo.attributeInfoPtr != attributeInfoStartPtr && \
-			   attributeCheckInfo.attributeInfoPtr[ -1 ].fieldID == FIELDID_FOLLOWS )
+			   attributeCheckInfo.attributeInfoPtr[ -1 ].fieldID == FIELDID_FOLLOWS && \
+			   innerIterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 			attributeCheckInfo.attributeInfoPtr--;
+		if( innerIterationCount >= FAILSAFE_ITERATIONS_LARGE )
+			retIntError();
 
 		/* Check this attribute */
 		status = checkAttribute( &attributeCheckInfo );
@@ -748,6 +746,8 @@ int checkAttributes( const ATTRIBUTE_TYPE attributeType,
 			return( status );
 			}
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError();
 
 	return( CRYPT_OK );
 	}

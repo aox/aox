@@ -5,21 +5,29 @@
 
 #define OPENSSL_EXTERN	extern
 #define OPENSSL_GLOBAL
-#if defined( _WINDOWS ) && !defined( WINDOWS )
+#if defined( _WINDOWS ) && !defined( WINDOWS )	/* Windows */
   #define WINDOWS				/* Old format */
   #define OPENSSL_SYS_WINDOWS	/* New fomat */
 #endif /* OpenSSL Windows not defined */
-#if defined( _WIN32 ) && !defined( WIN32 )
+#if defined( _WIN32 ) && !defined( WIN32 )		/* Win32 and WinCE */
   #define WIN32					/* Old format */
   #define OPENSSL_SYS_WIN32		/* New format */
+  #if !defined( _WIN32_WCE ) && !defined( __BORLANDC__ )
+	#define USE_ASM				/* Always enabled for x86 Win32 */
+  #endif /* WinCE */
 #endif /* OpenSSL Win32 not defined */
 #include <stdlib.h>			/* For malloc() */
 #include <string.h>			/* For memset() */
-#ifdef USE_ASM
+#ifdef USE_ASM				/* Defined via makefile for Unix systems */
   #define MD5_ASM
   #define RMD160_ASM
   #define SHA1_ASM
 #endif /* USE_ASM */
+#if defined( USE_ASM ) && defined( __WATCOMC__ )
+  #define ASM_EXPORT	__cdecl
+#else
+  #define ASM_EXPORT
+#endif /* System-specific interface to ASM files */
 
 /* General defines */
 
@@ -49,6 +57,7 @@
 #if defined( __osf__ ) || defined( __alpha__ )
   #define L_ENDIAN
   #define SIXTY_FOUR_BIT_LONG
+  #define DES_INT
   #define DES_UNROLL
   #define DES_RISC1
   #define RC4_CHUNK
@@ -105,6 +114,26 @@
   #define DES_UNROLL
 #endif /* DGUX */
 
+/* DOS */
+#if defined( MSDOS ) || defined( __MSDOS__ )
+  #if defined(__WATCOMC__)
+	/* 32-bit DOS */
+	#define L_ENDIAN
+	#define BN_LLONG
+	#define RC4_INDEX
+  #else
+	/* 16-bit DOS */
+	#define L_ENDIAN
+	#define BN_LLONG
+	#define MD2_CHAR
+	#define DES_UNROLL
+	#define DES_PTR
+	#define RC4_INDEX
+	#undef THIRTY_TWO_BIT
+	#define SIXTEEN_BIT
+  #endif /* 16- vs.32-bit DOS */
+#endif /* DOS */
+
 /* Irix */
 #ifdef __sgi
 
@@ -140,18 +169,13 @@
 
 /* Linux */
 #ifdef __linux__
-  #if defined( __i386__ ) || defined( __i486__ ) || \
-	  defined( __pentium__ ) || defined( __pentiumpro__ ) || \
-	  defined( __k6__ ) || defined( __athlon__ )
-	#define L_ENDIAN
-	#define BN_LLONG
-	#define DES_PTR
-	#define DES_RISC1
-	#define DES_UNROLL
-	#define RC4_INDEX
-  #elif defined( __x86_64__ )
-	/* 'long' and 'long long' are both 64 bits, we also use DES_INT since
-	   int's are 64-bit */
+  #if defined( __x86_64__ ) || defined( __amd64__ )
+	/* 64-bit x86 has both 'long' and 'long long' as 64 bits.  In addition
+	   we use DES_INT since int's are 64-bit.  We have to check for the
+	   64-bit x86 variants before the generic ones because they're a
+	   variation on the generics (e.g. AMD64 defines both __athlon__ and
+	   __x86_64__, so it we checked for __athlon__ first we'd identify it
+	   as a generic rather than 64-bit build) */
 	#define L_ENDIAN
 	#undef SIXTY_FOUR_BIT
 	#define SIXTY_FOUR_BIT_LONG
@@ -159,7 +183,16 @@
 	#define DES_RISC1
 	#define DES_UNROLL
 	#define RC4_INDEX
-  #elif defined( __ppc__ )
+  #elif defined( __i386__ ) || defined( __i486__ ) || \
+		defined( __pentium__ ) || defined( __pentiumpro__ ) || \
+		defined( __k6__ ) || defined( __athlon__ )
+	#define L_ENDIAN
+	#define BN_LLONG
+	#define DES_PTR
+	#define DES_RISC1
+	#define DES_UNROLL
+	#define RC4_INDEX
+  #elif defined( __ppc__ ) || defined( __powerpc__ )
 	#define B_ENDIAN
 	#define BN_LLONG
 	#define BF_PTR
@@ -172,6 +205,11 @@
   #else
 	#error Need to define CPU type for non-x86/non-PPC Linux
   #endif /* Linux variants */
+#endif /* Linux */
+#if defined( __LINUX__ ) && defined(__WATCOMC__)
+  #define L_ENDIAN
+  #define BN_LLONG
+  #define RC4_INDEX
 #endif /* Linux */
 
 /* Mac */
@@ -198,6 +236,18 @@
   #define RC4_CHUNK
 #endif /* Mac OS X */
 
+/* MSDOS */
+#ifdef __MSDOS__
+  #define L_ENDIAN
+  #define BN_LLONG
+  #define MD2_CHAR
+  #define DES_UNROLL
+  #define DES_PTR
+  #define RC4_INDEX
+  #undef THIRTY_TWO_BIT
+  #define SIXTEEN_BIT
+#endif /* __MSDOS__ */
+
 /* MVS */
 #ifdef __MVS__
   #define B_ENDIAN
@@ -222,7 +272,6 @@
 	#error Need to define architecture-specific values for crypto code
   #endif /* Palm OS variants */
 #endif /* Palm OS */
-
 
 /* PHUX */
 #ifdef __hpux
@@ -431,12 +480,12 @@
   #define DES_RISC1
   #define DES_UNROLL
   #define RC4_INDEX
-#endif /* gcc native under Cygwin (i.e. not a Cygwin-hosted 
+#endif /* gcc native under Cygwin (i.e. not a Cygwin-hosted
 		  cross-development toolchain */
 
 /* Xilinx XMK */
 
-#if defined ( _XMK )
+#if defined ( _XMK ) || defined( __XMK__ )
   #if defined( __mb__ )
 	#define B_ENDIAN
 	/* Not sure what other options the MicroBlaze build should enable... */
@@ -467,11 +516,7 @@
   #error You need to add system-specific configuration settings to osconfig.h
 #endif /* Endianness not defined */
 #ifdef CHECK_ENDIANNESS		/* One-off check in des_enc.c */
-  #if defined( INC_CHILD )
-	#include "../crypt.h"
-  #else
-	#include "crypt.h"
-  #endif /* Compiler-specific includes */
+  #include "crypt.h"
   #if ( defined( L_ENDIAN ) && !defined( DATA_LITTLEENDIAN ) ) || \
 	  ( defined( B_ENDIAN ) && !defined( DATA_BIGENDIAN ) )
 	#error You need to update the system-specific configuration settings in osconfig.h

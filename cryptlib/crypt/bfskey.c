@@ -58,7 +58,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "osconfig.h"
   #include "blowfish.h"
   #include "bflocl.h"

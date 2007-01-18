@@ -11,20 +11,13 @@
    from the (exportable) printed manuals rather than through access to any
    original code */
 
-#include <stdlib.h>
-#include <string.h>
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "device.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../context/context.h"
-  #include "device.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -406,7 +399,7 @@ static int mapError( const int errorCode, const int defaultError )
 static void initPIN( CI_PIN pinBuffer, const void *pin, const int pinLength )
 	{
 	memset( pinBuffer, 0, sizeof( CI_PIN ) );
-	if( pinLength )
+	if( pinLength > 0 )
 		memcpy( pinBuffer, pin, pinLength );
 	pinBuffer[ pinLength ] = '\0';	/* Ensure PIN is null-terminated */	
 	}
@@ -416,7 +409,7 @@ static void initPIN( CI_PIN pinBuffer, const void *pin, const int pinLength )
 static time_t getTokenTime( CI_TIME cardTime )
 	{
 	STREAM stream;
-	BYTE buffer[ 32 ];
+	BYTE buffer[ 32 + 8 ];
 	time_t theTime = MIN_TIME_VALUE + 1;
 	int length, status;
 
@@ -442,14 +435,17 @@ static int findFreeKeyRegister( const FORTEZZA_INFO *fortezzaInfo )
 	int mask = 2, i;
 
 	/* Search the register-in-use flags for a free register */
-	for( i = 1; i < fortezzaInfo->keyRegisterCount; i++ )
+	for( i = 1; i < fortezzaInfo->keyRegisterCount && \
+				i < FAILSAFE_ITERATIONS_MED; i++ )
 		{
 		if( !( fortezzaInfo->keyRegisterFlags & mask ) )
 			break;
 		mask <<= 1;
 		}
+	if( i >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	
-	return( ( i == fortezzaInfo->keyRegisterCount ) ? \
+	return( ( i >= fortezzaInfo->keyRegisterCount ) ? \
 			CRYPT_ERROR_OVERFLOW : i );
 	}
 
@@ -460,10 +456,15 @@ static int findFreeCertificate( const FORTEZZA_INFO *fortezzaInfo )
 	CI_PERSON *personalityList = fortezzaInfo->personalities;
 	int certIndex;
 
-	for( certIndex = 0; certIndex < fortezzaInfo->personalityCount; 
+	for( certIndex = 0; certIndex < fortezzaInfo->personalityCount && \
+						certIndex < FAILSAFE_ITERATIONS_MED; 
 		 certIndex++ )
+		{
 		if( personalityList[ certIndex ].CertLabel[ 0 ] == '\0' )
 			return( certIndex );
+		}
+	if( certIndex >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 
 	return( CRYPT_ERROR );
 	}
@@ -478,16 +479,17 @@ static int findFreeCertificate( const FORTEZZA_INFO *fortezzaInfo )
 
 static void getCertificateLabel( const int certIndex, const int parentIndex,
 								 const CRYPT_CERTIFICATE iCryptCert, 
-								 const BOOLEAN newEntry, char *label )
+								 const BOOLEAN newEntry, char *label,
+								 const int labelMaxLen )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int value, status;
 
 	memset( label, 0, sizeof( CI_CERT_STR ) );
 
 	/* If this is certificate slot 0, it's a PAA cert being installed by the 
 	   SSO */
-	if( !certIndex )
+	if( certIndex <= 0 )
 		{
 		memcpy( label, "PAA1FFFF", 8 );
 
@@ -498,10 +500,10 @@ static void getCertificateLabel( const int certIndex, const int parentIndex,
 	   generic CA key (which encompasses all of CA/PCA/PAA) */
 	status = krnlSendMessage( iCryptCert, IMESSAGE_GETATTRIBUTE,
 							  &value, CRYPT_CERTINFO_CA );
-	if( cryptStatusOK( status ) && value )
+	if( cryptStatusOK( status ) && value > 0 )
 		{
-		sprintf( label, "CAX1FF%02X", 
-				 ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
+		sPrintf_s( label, labelMaxLen, "CAX1FF%02X", 
+				   ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
 		
 		return;
 		}
@@ -514,8 +516,8 @@ static void getCertificateLabel( const int certIndex, const int parentIndex,
 					CRYPT_KEYUSAGE_ENCIPHERONLY | \
 					CRYPT_KEYUSAGE_DECIPHERONLY ) ) )
 		{
-		sprintf( label, "KEAKFF%02X", 
-				 ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
+		sPrintf_s( label, labelMaxLen, "KEAKFF%02X", 
+				   ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
 
 		return;
 		}
@@ -540,15 +542,15 @@ static void getCertificateLabel( const int certIndex, const int parentIndex,
 								  CRYPT_CERTINFO_ORGANIZATIONALUNITNAME );
 		}
 	if( cryptStatusError( status ) )
-		sprintf( label, "DSAIFF%02X", 
-				 ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
+		sPrintf_s( label, labelMaxLen, "DSAIFF%02X", 
+				   ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
 	else
-		sprintf( label, "DSAOFF%02X", 
-				 ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
+		sPrintf_s( label, labelMaxLen, "DSAOFF%02X", 
+				   ( parentIndex != CRYPT_UNUSED ) ? parentIndex : 0xFF );
 
 	/* If it's a completely new entry (i.e. one that doesn't correspond to a 
 	   private key), mark it as a cert-only key */
-	if( newEntry )
+	if( newEntry > 0 )
 		label[ 3 ] = 'X';
 	}
 
@@ -565,7 +567,7 @@ static int findCertificateFromLabel( const FORTEZZA_INFO *fortezzaInfo,
 		"CAX1", "PCA1", "PAA1",		/* DSA CA, PCA, PAA */
 		"INKS", "ONKS",				/* Legacy DSA+KEA individual, org */
 		"INKX", "ONKX",				/* Legacy KEA individual, org */
-		NULL };
+		NULL, NULL };
 	CI_PERSON *personalityList = fortezzaInfo->personalities;
 	int labelIndex, certIndex;
 
@@ -573,24 +575,40 @@ static int findCertificateFromLabel( const FORTEZZA_INFO *fortezzaInfo,
 	   the given label */
 	if( label != NULL )
 		{
-		for( certIndex = 0; certIndex < fortezzaInfo->personalityCount; 
+		for( certIndex = 0; certIndex < fortezzaInfo->personalityCount && \
+							certIndex < FAILSAFE_ITERATIONS_MED; \
 			 certIndex++ )
+			{
 			if( !memcmp( personalityList[ certIndex ].CertLabel + 8, label, 
 						 labelLength ) )
 				return( certIndex );
-		
+			}
+		if( certIndex >= FAILSAFE_ITERATIONS_MED )
+			retIntError();
+
 		return( CRYPT_ERROR );
 		}
 
 	/* No label given, look for the certificate in order of likeliness.  
 	   First we look for a personal certificate with a signing key, if that
 	   fails we look for an organisational certificate with a signing key */
-	for( labelIndex = 0; names[ labelIndex ] != NULL; labelIndex++ )
-		for( certIndex = 0; certIndex < fortezzaInfo->personalityCount; 
+	for( labelIndex = 0; names[ labelIndex ] != NULL && \
+						 labelIndex < FAILSAFE_ARRAYSIZE( names, char * ); 
+		 labelIndex++ )
+		{
+		for( certIndex = 0; certIndex < fortezzaInfo->personalityCount && \
+							certIndex < FAILSAFE_ITERATIONS_MED; \
 			 certIndex++ )
+			{
 			if( !strncmp( personalityList[ certIndex ].CertLabel, \
 						  names[ labelIndex ], 4 ) )
 				return( certIndex );
+			}
+		if( certIndex >= FAILSAFE_ITERATIONS_MED )
+			retIntError();
+		}
+	if( labelIndex >= FAILSAFE_ARRAYSIZE( names, char * ) )
+		retIntError();
 
 	return( CRYPT_ERROR );
 	}
@@ -607,13 +625,14 @@ static void getCertificateInfo( FORTEZZA_INFO *fortezzaInfo )
 
 	getHashParameters( CRYPT_ALGO_SHA, &hashFunction, NULL );
 	memset( hashList, 0, fortezzaInfo->personalityCount * sizeof( CI_HASHVALUE ) );
-	for( certIndex = 0; certIndex < fortezzaInfo->personalityCount; certIndex++ )
+	for( certIndex = 0; certIndex < fortezzaInfo->personalityCount && \
+						certIndex < FAILSAFE_ITERATIONS_MED; certIndex++ )
 		{
 		STREAM stream;
 		int status;
 
 		/* If there's no cert present at this location, continue */
-		if( !personalityList[ certIndex ].CertLabel[ 0 ] || \
+		if( personalityList[ certIndex ].CertLabel[ 0 ] == '\0' || \
 			pCI_GetCertificate( certIndex, certificate ) != CI_OK )
 			continue;
 
@@ -626,9 +645,12 @@ static void getCertificateInfo( FORTEZZA_INFO *fortezzaInfo )
 		if( cryptStatusError( status ) || \
 			certSize < 256 || certSize > CI_CERT_SIZE - 4 )
 			continue;
-		hashFunction( NULL, hashList[ certIndex ], certificate, 
-					  ( int ) sizeofObject( certSize ), HASH_ALL );
+		hashFunction( NULL, hashList[ certIndex ], sizeof( CI_HASHVALUE ),
+					  certificate, ( int ) sizeofObject( certSize ), 
+					  HASH_ALL );
 		}
+	if( certIndex >= FAILSAFE_ITERATIONS_MED )
+		retIntError_Void();
 	fortezzaInfo->certHashesInitialised = TRUE;
 	}
 
@@ -640,11 +662,16 @@ static int findCertFromHash( const FORTEZZA_INFO *fortezzaInfo,
 	CI_HASHVALUE *hashList = fortezzaInfo->certHashes;
 	int certIndex;
 
-	for( certIndex = 0; certIndex < fortezzaInfo->personalityCount; \
+	for( certIndex = 0; certIndex < fortezzaInfo->personalityCount && \
+						certIndex < FAILSAFE_ITERATIONS_MED; \
 		 certIndex++ )
+		{
 		if( !memcmp( hashList[ certIndex ], certHash, 
 			sizeof( CI_HASHVALUE ) ) )
 			return( certIndex );
+		}
+	if( certIndex >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 
 	return( CRYPT_ERROR_NOTFOUND );
 	}
@@ -666,8 +693,8 @@ static void updateCertificateInfo( FORTEZZA_INFO *fortezzaInfo,
 		HASHFUNCTION hashFunction;
 
 		getHashParameters( CRYPT_ALGO_SHA, &hashFunction, NULL );
-		hashFunction( NULL, hashList[ certIndex ], ( void * ) certificate, 
-					  certSize, HASH_ALL );
+		hashFunction( NULL, hashList[ certIndex ], sizeof( CI_HASHVALUE ),
+					  ( void * ) certificate, certSize, HASH_ALL );
 		}
 	else
 		/* There's no cert present at this location (for example because 
@@ -688,12 +715,12 @@ static int updateCertificate( FORTEZZA_INFO *fortezzaInfo, const int certIndex,
 	CI_PERSON *personality = getPersonality( fortezzaInfo, certIndex );
 	CI_CERTIFICATE certificate;
 	CI_CERT_STR label;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int certificateLength, status;
 
 	/* If we're trying to load the PAA cert, the device must be in the SSO 
 	   initialised state */
-	if( !certIndex )
+	if( certIndex <= 0 )
 		{
 		CI_STATE deviceState;
 
@@ -704,7 +731,8 @@ static int updateCertificate( FORTEZZA_INFO *fortezzaInfo, const int certIndex,
 
 	/* Get the SDN.605 label for the cert */
 	getCertificateLabel( certIndex, parentIndex, iCryptCert, 
-						 personality->CertLabel[ 0 ] ? FALSE : TRUE, label );
+						 personality->CertLabel[ 0 ] ? FALSE : TRUE, 
+						 label, sizeof( CI_CERT_STR ) );
 
 	/* If there's label data supplied (which happens for data-only certs 
 	   with no associated personality), use that */
@@ -795,8 +823,8 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 							const CRYPT_CERTIFICATE iCryptCert )
 	{
 	CI_PERSON *personalityList = fortezzaInfo->personalities;
-	CARDCERT_INFO cardCertInfo[ 16 ];
-	int chainIndex = -1, oldCertIndex, value, i;
+	CARDCERT_INFO cardCertInfo[ 16 + 8 ];
+	int chainIndex = -1, oldCertIndex, value, i, iterationCount = 0;
 
 	/* Initialise the certificate index information and hashes for the certs
 	   on the card if necessary.  certList[] contains the mapping of certs in
@@ -824,7 +852,7 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 	   mapping from cert chain position to parent cert position in the card */
 	do
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		CI_HASHVALUE hash;
 		BOOLEAN isPresent = FALSE;
 		int certIndex;
@@ -859,10 +887,13 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 			int freeCertIndex;;
 
 			/* Allocate this cert to the next free position in the card */
-			for( freeCertIndex = 0; \
+			for( freeCertIndex = 0; 
 				 freeCertIndex < fortezzaInfo->personalityCount && \
-				 personalityList[ freeCertIndex ].CertLabel[ 0 ] != '\0'; \
+					personalityList[ freeCertIndex ].CertLabel[ 0 ] != '\0' && \
+					freeCertIndex < FAILSAFE_ITERATIONS_MED; 
 				 freeCertIndex++ );
+			if( freeCertIndex >= FAILSAFE_ITERATIONS_MED )
+				retIntError();
 			if( freeCertIndex >= fortezzaInfo->personalityCount )
 				/* There's no more room for any new certificates in the 
 				   card */
@@ -875,7 +906,10 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 		}
 	while( krnlSendMessage( iCryptCert, IMESSAGE_SETATTRIBUTE, 
 							MESSAGE_VALUE_CURSORPREVIOUS,
-							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK );
+							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 
 	/* The last cert in the chain will either already be present or will be 
 	   present in raw-key form.  If it's present in raw-key form the previous
@@ -884,8 +918,8 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 	if( !cardCertInfo[ chainIndex ].certPresent )
 		{
 		HASHFUNCTION hashFunction;
-		RESOURCE_DATA msgData;
-		BYTE hash[ CRYPT_MAX_HASHSIZE ], keyDataBuffer[ 1024 ];
+		MESSAGE_DATA msgData;
+		BYTE hash[ CRYPT_MAX_HASHSIZE + 8 ], keyDataBuffer[ 1024 + 8 ];
 		int certIndex;
 
 		/* Get the keyID for the leaf certificate */
@@ -895,7 +929,8 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 			krnlSendMessage( iCryptCert, IMESSAGE_GETATTRIBUTE_S,
 							 &msgData, CRYPT_IATTRIBUTE_SPKI ) ) )
 			return( CRYPT_ARGERROR_NUM1 );
-		hashFunction( NULL, hash, keyDataBuffer, msgData.length, HASH_ALL );
+		hashFunction( NULL, hash, CRYPT_MAX_HASHSIZE, keyDataBuffer, 
+					  msgData.length, HASH_ALL );
 
 		/* If we're not adding the cert as a data-only PAA cert in the 0-th
 		   slot (which is a special case with no corresponding personality 
@@ -919,10 +954,11 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 					 CRYPT_CERTINFO_CURRENT_CERTIFICATE );
 	value = CRYPT_CURSOR_PREVIOUS;
 	chainIndex = 0;
+	iterationCount = 0;
 	do
 		{
 		CARDCERT_INFO *currentCertInfo = &cardCertInfo[ chainIndex++ ];
-		char name[ CRYPT_MAX_TEXTSIZE + 1 ], *labelPtr = NULL;
+		char name[ CRYPT_MAX_TEXTSIZE + 1 + 8 ], *labelPtr = NULL;
 		int status;
 
 		/* If the cert is already present, make sure that the parent index 
@@ -931,7 +967,7 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 			{
 			CI_CERTIFICATE certificate;
 			const int certIndex = currentCertInfo->index;
-			char buffer[ 8 ];
+			char buffer[ 16 + 8 ];
 			int index;
 
 			/* If the cert is present and the parent cert index is correct,
@@ -944,7 +980,7 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 
 			/* Update the parent cert index in the label, read the cert, and 
 			   write it back out with the new label */
-			sprintf( buffer, "%02X", currentCertInfo->parentIndex );
+			sPrintf_s( buffer, 8, "%02X", currentCertInfo->parentIndex );
 			memcpy( personalityList[ certIndex ].CertLabel + 6, buffer, 2 );
 			status = pCI_GetCertificate( certIndex, certificate );
 #ifndef NO_UPDATE
@@ -968,7 +1004,7 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 		   identifying it as a generic CA cert */
 		if( !currentCertInfo->personalityPresent )
 			{
-			RESOURCE_DATA msgData;
+			MESSAGE_DATA msgData;
 
 			value = CRYPT_UNUSED;
 			krnlSendMessage( iCryptCert, IMESSAGE_SETATTRIBUTE, &value, 
@@ -997,8 +1033,11 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 			return( status );
 		}
 	while( krnlSendMessage( iCryptCert, IMESSAGE_SETATTRIBUTE, &value,
-							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK );
-	
+							CRYPT_CERTINFO_CURRENT_CERTIFICATE ) == CRYPT_OK && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
+
 	return( CRYPT_OK );
 	}
 
@@ -1014,10 +1053,10 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 static int exportKEA( DEVICE_INFO *deviceInfo, MECHANISM_WRAP_INFO *mechanismInfo );
 static int importKEA( DEVICE_INFO *deviceInfo, MECHANISM_WRAP_INFO *mechanismInfo );
 
-static const MECHANISM_FUNCTION_INFO objectMechanisms[] = {
+static const MECHANISM_FUNCTION_INFO mechanismFunctions[] = {
 	{ MESSAGE_DEV_EXPORT, MECHANISM_ENC_KEA, exportKEA },
 	{ MESSAGE_DEV_IMPORT, MECHANISM_ENC_KEA, importKEA },
-	{ MESSAGE_NONE, MECHANISM_NONE, NULL }
+	{ MESSAGE_NONE, MECHANISM_NONE, NULL }, { MESSAGE_NONE, MECHANISM_NONE, NULL }
 	};
 
 /* Close a previously-opened session with the device.  We have to have this
@@ -1063,7 +1102,8 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 	FORTEZZA_INFO *fortezzaInfo = deviceInfo->deviceFortezza;
 	CI_CONFIG deviceConfiguration;
 	CI_TIME cardTime;
-	int socket, i, fortezzaStatus, status = CRYPT_ERROR_OPEN;
+	int socket, i, fortezzaStatus, iterationCount = 0;
+	int status = CRYPT_ERROR_OPEN;
 
 	UNUSED( name );
 
@@ -1096,7 +1136,9 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 	   actually present (see the comments above - the NSA must be using 
 	   their own drivers recovered from crashed UFOs if their ones really do 
 	   behave as documented) */
-	for( socket = 0; socket <= noSockets; socket++ )
+	for( socket = 0; socket <= noSockets && \
+					 iterationCount++ < FAILSAFE_ITERATIONS_MED; 
+		 socket++ )
 		{
 		CI_STATE deviceState;
 
@@ -1141,6 +1183,8 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 		status = CRYPT_OK;
 		break;
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	if( cryptStatusError( status ) )
 		{
 		fortezzaInfo->errorCode = fortezzaStatus;
@@ -1149,9 +1193,8 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 
 	/* Since the onboard clock could be arbitrarily inaccurate (and even 
 	   nonfunctional by now on older cards, since the design life was only
-	   7 years), we compare it with the system 
-	   time and only rely on it if it's within +/- 1 day of the system 
-	   time */
+	   7 years), we compare it with the system time and only rely on it if 
+	   it's within +/- 1 day of the system time */
 	status = pCI_GetTime( cardTime );
 	if( status == CI_OK )
 		{
@@ -1182,7 +1225,8 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 	fortezzaInfo->certHashes = \
 					clAlloc( "initFunction", fortezzaInfo->personalityCount * \
 											 sizeof( CI_HASHVALUE ) );
-	if( fortezzaInfo->personalities == NULL || fortezzaInfo->certHashes == NULL )
+	if( fortezzaInfo->personalities == NULL || \
+		fortezzaInfo->certHashes == NULL )
 		{
 		shutdownFunction( deviceInfo );
 		return( CRYPT_ERROR_MEMORY );
@@ -1196,8 +1240,9 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 	memcpy( fortezzaInfo->labelBuffer, deviceConfiguration.ProductName, 
 			CI_NAME_SIZE );
 	for( i = CI_NAME_SIZE;
-		 i && ( fortezzaInfo->labelBuffer[ i - 1 ] == ' ' || \
-				!fortezzaInfo->labelBuffer[ i - 1 ] ); i-- );
+		 i > 0 && ( fortezzaInfo->labelBuffer[ i - 1 ] == ' ' || \
+					!fortezzaInfo->labelBuffer[ i - 1 ] ); 
+		 i-- );
 	fortezzaInfo->labelBuffer[ i ] = '\0';
 	deviceInfo->label = fortezzaInfo->labelBuffer;
 
@@ -1219,7 +1264,7 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 		{
 		CI_PERSON *personalityList = fortezzaInfo->personalities;
 		CI_PIN pin;
-		BYTE ivBuffer[ 64 ];	/* For LEAF handling */
+		BYTE ivBuffer[ 64 + 8 ];	/* For LEAF handling */
 		int certIndex;
 
 		initPIN( pin, data, dataLength );
@@ -1253,9 +1298,11 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 			   matches the personality index (skipping the zero-th 
 			   personality), but doesn't seem to mandate this anywhere so 
 			   we make sure that things really are set up this way */
-			for( index = 0; index < fortezzaInfo->personalityCount; index++ )
+			for( index = 0; index < fortezzaInfo->personalityCount && \
+							index < FAILSAFE_ITERATIONS_MED; index++ )
 				{
-				CI_PERSON *personality = getPersonality( fortezzaInfo, index );
+				CI_PERSON *personality = getPersonality( fortezzaInfo, 
+														 index );
 
 				if( personality->CertificateIndex != 0 && \
 					personality->CertificateIndex != index )
@@ -1264,6 +1311,8 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 					break;
 					}
 				}
+			if( index >= FAILSAFE_ITERATIONS_MED )
+				retIntError();
 			}
 		if( status == CI_OK )
 			status = pCI_Lock( CI_NULL_FLAG );
@@ -1280,7 +1329,7 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 		   fails we stay with the default personality for lack of any 
 		   better way to handle it */
 		certIndex = findCertificateFromLabel( fortezzaInfo, NULL, 0 );
-		if( !cryptStatusError( certIndex ) && certIndex )
+		if( !cryptStatusError( certIndex ) && certIndex > 0 )
 			{
 			pCI_SetPersonality( certIndex );
 			fortezzaInfo->currentPersonality = certIndex;
@@ -1459,7 +1508,7 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 		status = pCI_GetTime( cardTime );
 		if( status != CI_OK )
 			return( mapError( status, CRYPT_ERROR_FAILED ) );
-		if( ( theTime = getTokenTime( cardTime ) ) < MIN_TIME_VALUE )
+		if( ( theTime = getTokenTime( cardTime ) ) <= MIN_TIME_VALUE )
 			return( CRYPT_ERROR_NOTAVAIL );
 		*timePtr = getTime();
 		return( CRYPT_OK );
@@ -1525,7 +1574,7 @@ static int getItemFunction( DEVICE_INFO *deviceInfo,
 	FORTEZZA_INFO *fortezzaInfo = deviceInfo->deviceFortezza;
 	CI_PERSON *personality;
 	CI_CERTIFICATE certificate;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	BOOLEAN certPresent = TRUE;
 	int certIndex, status;
 
@@ -1628,7 +1677,7 @@ static int getItemFunction( DEVICE_INFO *deviceInfo,
 			   the cert if necessary */
 			if( cryptAlgo == CRYPT_ALGO_KEA )
 				{
-				BYTE keyDataBuffer[ 1024 ];
+				BYTE keyDataBuffer[ 1024 + 8 ];
 
 				setMessageData( &msgData, keyDataBuffer, 1024 );
 				status = krnlSendMessage( iCryptCert, IMESSAGE_GETATTRIBUTE_S, 
@@ -1669,14 +1718,15 @@ static int getItemFunction( DEVICE_INFO *deviceInfo,
 	krnlSendMessage( *iCryptContext, IMESSAGE_SETATTRIBUTE, &certIndex, 
 					 CRYPT_IATTRIBUTE_DEVICEOBJECT );
 	setMessageData( &msgData, personality->CertLabel + 8,
-					 strlen( personality->CertLabel + 8 ) );
+					 min( strlen( personality->CertLabel + 8 ),
+						  CRYPT_MAX_TEXTSIZE ) );
 	krnlSendMessage( *iCryptContext, IMESSAGE_SETATTRIBUTE_S, &msgData, 
 					 CRYPT_CTXINFO_LABEL );
 	krnlSendMessage( *iCryptContext, IMESSAGE_SETATTRIBUTE,
 					 ( void * ) &keySize, CRYPT_IATTRIBUTE_KEYSIZE );
 	if( certPresent && cryptAlgo == CRYPT_ALGO_KEA )
 		{
-		BYTE keyDataBuffer[ 1024 ];
+		BYTE keyDataBuffer[ 1024 + 8 ];
 
 		/* Set up the keying info in the context based on the data from the 
 		   cert if necessary */
@@ -1767,7 +1817,7 @@ static int getFirstItemFunction( DEVICE_INFO *deviceInfo,
 	{
 	FORTEZZA_INFO *fortezzaInfo = deviceInfo->deviceFortezza;
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	BYTE buffer[ CI_CERT_SIZE ];
+	BYTE buffer[ CI_CERT_SIZE + 8 ];
 	int status;
 
 	assert( keyIDtype == CRYPT_KEYID_NAME && keyID != NULL );
@@ -1802,7 +1852,7 @@ static int getNextItemFunction( DEVICE_INFO *deviceInfo,
 	FORTEZZA_INFO *fortezzaInfo = deviceInfo->deviceFortezza;
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	CI_PERSON *personality;
-	BYTE buffer[ CI_CERT_SIZE ];
+	BYTE buffer[ CI_CERT_SIZE + 8 ];
 	int status;
 
 	assert( stateInfo != NULL );
@@ -1963,7 +2013,7 @@ static int initKeyParamsFunction( CONTEXT_INFO *contextInfoPtr, const void *iv,
 								  const int ivLength, 
 								  const CRYPT_MODE_TYPE mode )
 	{
-	BYTE ivBuffer[ FORTEZZA_IVSIZE ];
+	BYTE ivBuffer[ FORTEZZA_IVSIZE + 8 ];
 	int status;
 
 	assert( iv != NULL || mode != CRYPT_MODE_NONE );
@@ -2121,7 +2171,7 @@ static int generateKeyFunction( CONTEXT_INFO *contextInfoPtr,
 	CRYPT_DEVICE iCryptDevice;
 	DEVICE_INFO *deviceInfo;
 	FORTEZZA_INFO *fortezzaInfo;
-	BYTE yBuffer[ 128 ], keyDataBuffer[ 1024 ];
+	BYTE yBuffer[ 128 + 8 ], keyDataBuffer[ 1024 + 8 ];
 	int certIndex, keyDataSize, status;
 
 	assert( keySizeBits == 80 || keySizeBits == bytesToBits( 128 ) );
@@ -2216,7 +2266,7 @@ static int generateKeyFunction( CONTEXT_INFO *contextInfoPtr,
 									 p, 128, q, 20, g, 128, yBuffer, 128 );
 	if( cryptStatusOK( status ) )
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 
 		setMessageData( &msgData, keyDataBuffer, keyDataSize );
 		status = krnlSendMessage( contextInfoPtr->objectHandle, 
@@ -2425,7 +2475,7 @@ static int sigCheckFunction( CONTEXT_INFO *contextInfoPtr, void *buffer,
 	status = selectPersonalityContext( contextInfoPtr );
 	if( status == CI_OK )
 		{
-		BYTE yBuffer[ CRYPT_MAX_PKCSIZE ];
+		BYTE yBuffer[ CRYPT_MAX_PKCSIZE + 8 ];
 		int yLength;
 
 		yLength = BN_bn2bin( &contextInfoPtr->ctxPKC->dlpParam_y, yBuffer );
@@ -2472,8 +2522,8 @@ static const CI_RB Rb = {
 static int exportKEA( DEVICE_INFO *deviceInfo, 
 					  MECHANISM_WRAP_INFO *mechanismInfo )
 	{
-	RESOURCE_DATA msgData;
-	BYTE recipientPublicValue[ 128 ], ivBuffer[ FORTEZZA_IVSIZE ];
+	MESSAGE_DATA msgData;
+	BYTE recipientPublicValue[ 128 + 8 ], ivBuffer[ FORTEZZA_IVSIZE + 8 ];
 	void *wrappedKeyPtr = mechanismInfo->wrappedData;
 	void *ukmPtr = ( BYTE * ) mechanismInfo->wrappedData + sizeof( CI_KEY );
 	int tekIndex, mekIndex, status;
@@ -2741,7 +2791,7 @@ static const CAPABILITY_INFO capabilities[] = {
 
 	/* The end-of-list marker.  This value isn't linked into the 
 	   capabilities list when we call initCapabilities() */
-	{ CRYPT_ALGO_NONE }
+	{ CRYPT_ALGO_NONE }, { CRYPT_ALGO_NONE }
 	};
 
 static CAPABILITY_INFO_LIST capabilityInfoList[ 4 ];
@@ -2755,7 +2805,8 @@ static void initCapabilities( void )
 	/* Build the list of available capabilities */
 	memset( capabilityInfoList, 0, 
 			sizeof( CAPABILITY_INFO_LIST ) * 4 );
-	for( i = 0; capabilities[ i ].cryptAlgo != CRYPT_ALGO_NONE; i++ )
+	for( i = 0; capabilities[ i ].cryptAlgo != CRYPT_ALGO_NONE && \
+				i < FAILSAFE_ARRAYSIZE( capabilities, CAPABILITY_INFO ); i++ )
 		{
 		assert( capabilities[ i ].cryptAlgo == CRYPT_ALGO_KEA || \
 				capabilityInfoOK( &capabilities[ i ], FALSE ) );
@@ -2765,6 +2816,8 @@ static void initCapabilities( void )
 		if( i > 0 )
 			capabilityInfoList[ i - 1 ].next = &capabilityInfoList[ i ];
 		}
+	if( i >= FAILSAFE_ARRAYSIZE( capabilities, CAPABILITY_INFO ) )
+		retIntError_Void();
 	}
 
 /****************************************************************************
@@ -2795,7 +2848,9 @@ int setDeviceFortezza( DEVICE_INFO *deviceInfo )
 	deviceInfo->getNextItemFunction = getNextItemFunction;
 	deviceInfo->getRandomFunction = getRandomFunction;
 	deviceInfo->capabilityInfoList = capabilityInfoList;
-	deviceInfo->mechanismFunctions = objectMechanisms;
+	deviceInfo->mechanismFunctions = mechanismFunctions;
+	deviceInfo->mechanismFunctionCount = \
+		FAILSAFE_ARRAYSIZE( mechanismFunctions, MECHANISM_FUNCTION_INFO );
 
 	return( CRYPT_OK );
 	}

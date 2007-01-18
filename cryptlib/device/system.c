@@ -1,18 +1,12 @@
 /****************************************************************************
 *																			*
 *						cryptlib System Device Routines						*
-*						Copyright Peter Gutmann 1995-2004					*
+*						Copyright Peter Gutmann 1995-2005					*
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "capabil.h"
-  #include "device.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
   #include "capabil.h"
   #include "device.h"
 #else
@@ -24,13 +18,15 @@
 /* Mechanisms supported by the system device.  These are sorted in order of
    frequency of use in order to make lookups a bit faster */
 
-static const FAR_BSS MECHANISM_FUNCTION_INFO mechanismFunctions[] = {
+static const MECHANISM_FUNCTION_INFO FAR_BSS mechanismFunctions[] = {
+#ifdef USE_PKC
 	{ MESSAGE_DEV_EXPORT, MECHANISM_ENC_PKCS1, ( MECHANISM_FUNCTION ) exportPKCS1 },
 	{ MESSAGE_DEV_IMPORT, MECHANISM_ENC_PKCS1, ( MECHANISM_FUNCTION ) importPKCS1 },
 	{ MESSAGE_DEV_SIGN, MECHANISM_SIG_PKCS1, ( MECHANISM_FUNCTION ) signPKCS1 },
 	{ MESSAGE_DEV_SIGCHECK, MECHANISM_SIG_PKCS1, ( MECHANISM_FUNCTION ) sigcheckPKCS1 },
 	{ MESSAGE_DEV_EXPORT, MECHANISM_ENC_PKCS1_RAW, ( MECHANISM_FUNCTION ) exportPKCS1 },
 	{ MESSAGE_DEV_IMPORT, MECHANISM_ENC_PKCS1_RAW, ( MECHANISM_FUNCTION ) importPKCS1 },
+#endif /* USE_PKC */
 #ifdef USE_PGP
 	{ MESSAGE_DEV_EXPORT, MECHANISM_ENC_PKCS1_PGP, ( MECHANISM_FUNCTION ) exportPKCS1PGP },
 	{ MESSAGE_DEV_IMPORT, MECHANISM_ENC_PKCS1_PGP, ( MECHANISM_FUNCTION ) importPKCS1PGP },
@@ -53,15 +49,17 @@ static const FAR_BSS MECHANISM_FUNCTION_INFO mechanismFunctions[] = {
 #ifdef USE_PKCS12
 	{ MESSAGE_DEV_DERIVE, MECHANISM_DERIVE_PKCS12, ( MECHANISM_FUNCTION ) derivePKCS12 },
 #endif /* USE_PKCS12 */
+#ifdef USE_PKC
 	{ MESSAGE_DEV_EXPORT, MECHANISM_PRIVATEKEYWRAP, ( MECHANISM_FUNCTION ) exportPrivateKey },
 	{ MESSAGE_DEV_IMPORT, MECHANISM_PRIVATEKEYWRAP, ( MECHANISM_FUNCTION ) importPrivateKey },
 	{ MESSAGE_DEV_EXPORT, MECHANISM_PRIVATEKEYWRAP_PKCS8, ( MECHANISM_FUNCTION ) exportPrivateKeyPKCS8 },
 	{ MESSAGE_DEV_IMPORT, MECHANISM_PRIVATEKEYWRAP_PKCS8, ( MECHANISM_FUNCTION ) importPrivateKeyPKCS8 },
+#endif /* USE_PKC */
 #ifdef USE_PGPKEYS
 	{ MESSAGE_DEV_IMPORT, MECHANISM_PRIVATEKEYWRAP_PGP, ( MECHANISM_FUNCTION ) importPrivateKeyPGP },
 	{ MESSAGE_DEV_IMPORT, MECHANISM_PRIVATEKEYWRAP_OPENPGP, ( MECHANISM_FUNCTION ) importPrivateKeyOpenPGP },
 #endif /* USE_PGPKEYS */
-	{ MESSAGE_NONE, MECHANISM_NONE, NULL }
+	{ MESSAGE_NONE, MECHANISM_NONE, NULL }, { MESSAGE_NONE, MECHANISM_NONE, NULL }
 	};
 
 /* Object creation functions supported by the system device.  These are
@@ -83,9 +81,11 @@ int createDevice( MESSAGE_CREATEOBJECT_INFO *createInfo,
 int createUser( MESSAGE_CREATEOBJECT_INFO *createInfo,
 				const void *auxDataPtr, const int auxValue );
 
-static const FAR_BSS CREATEOBJECT_FUNCTION_INFO createObjectFunctions[] = {
+static const CREATEOBJECT_FUNCTION_INFO FAR_BSS createObjectFunctions[] = {
 	{ OBJECT_TYPE_CONTEXT, createContext },
+#ifdef USE_CERTIFICATES
 	{ OBJECT_TYPE_CERTIFICATE, createCertificate },
+#endif /* USE_CERTIFICATES */
 #ifdef USE_ENVELOPES
 	{ OBJECT_TYPE_ENVELOPE, createEnvelope },
 #endif /* USE_ENVELOPES */
@@ -97,17 +97,116 @@ static const FAR_BSS CREATEOBJECT_FUNCTION_INFO createObjectFunctions[] = {
 #endif /* USE_KEYSETS */
 	{ OBJECT_TYPE_DEVICE, createDevice },
 	{ OBJECT_TYPE_USER, createUser },
-	{ OBJECT_TYPE_NONE, NULL }
+	{ OBJECT_TYPE_NONE, NULL }, { OBJECT_TYPE_NONE, NULL }
 	};
 
 /* Prototypes for functions in random.c */
 
 int initRandomInfo( void **randomInfoPtrPtr );
 void endRandomInfo( void **randomInfoPtrPtr );
-int addEntropyData( void *randomInfo, const void *buffer, 
+int addEntropyData( void *randomInfo, const void *buffer,
 					const int length );
 int addEntropyQuality( void *randomInfo, const int quality );
 int getRandomData( void *randomInfo, void *buffer, const int length );
+
+/****************************************************************************
+*																			*
+*								Utility Functions							*
+*																			*
+****************************************************************************/
+
+/* Get a random (but not necessarily cryptographically strong random) nonce.
+   Some nonces can simply be fresh (for which a monotonically increasing
+   sequence will do), some should be random (for which a hash of the
+   sequence is adequate), and some need to be unpredictable.  In order to
+   avoid problems arising from the inadvertent use of a nonce with the wrong
+   properties, we use unpredictable nonces in all cases, even where it isn't
+   strictly necessary.
+
+   This simple generator divides the nonce state into a public section of
+   the same size as the hash output and a private section that contains 64
+   bits of data from the crypto RNG, which influences the public section.
+   The public and private sections are repeatedly hashed to produce the
+   required amount of output.  Note that this leaks a small amount of
+   information about the crypto RNG output since an attacker knows that
+   public_state_n = hash( public_state_n - 1, private_state ), but this
+   isn't a major weakness */
+
+static int getNonce( SYSTEMDEV_INFO *systemInfo, const void *data,
+					 const int dataLength )
+	{
+	BYTE *noncePtr = ( BYTE * ) data;
+	int nonceLength = dataLength;
+
+	/* If the nonce generator hasn't been initialised yet, we set up the
+	   hashing and get 64 bits of private nonce state.  What to do if the
+	   attempt to initialise the state fails is somewhat debatable.  Since
+	   nonces are only ever used in protocols alongside crypto keys and an
+	   RNG failure will be detected when the key is generated, we can
+	   generally ignore a failure at this point.  However, nonces are
+	   sometimes also used in non-crypto contexts (for example to generate
+	   cert serial numbers) where this detection in the RNG won't happen.
+	   On the other hand we shouldn't really abort processing just because
+	   we can't get some no-value nonce data, so what we do is retry the
+	   fetch of nonce data (in case the system object was busy and the first
+	   attempt timed out), and if that fails too fall back to the system
+	   time.  This is no longer unpredictable, but the only location where
+	   unpredictability matters is when used in combination with crypto
+	   operations, for which the absence of random data will be detected
+	   during key generation */
+	if( !systemInfo->nonceDataInitialised )
+		{
+		MESSAGE_DATA msgData;
+		int status;
+
+		getHashParameters( CRYPT_ALGO_SHA, &systemInfo->hashFunction,
+						   &systemInfo->hashSize );
+		setMessageData( &msgData, systemInfo->nonceData + \
+								  systemInfo->hashSize, 8 );
+		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
+								  IMESSAGE_GETATTRIBUTE_S, &msgData,
+								  CRYPT_IATTRIBUTE_RANDOM );
+		if( cryptStatusError( status ) )
+			status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
+									  IMESSAGE_GETATTRIBUTE_S, &msgData,
+									  CRYPT_IATTRIBUTE_RANDOM );
+		if( cryptStatusError( status ) )
+			{
+			const time_t theTime = getTime();
+
+			memcpy( systemInfo->nonceData + systemInfo->hashSize, &theTime,
+					sizeof( time_t ) );
+			}
+		systemInfo->nonceDataInitialised = TRUE;
+		}
+
+	/* Safety check to ensure that the hash function is initialised and that 
+	   the following loop will always terminate */
+	if( systemInfo->hashFunction == NULL || systemInfo->hashSize <= 0 )
+		retIntError();
+
+	/* Shuffle the public state and copy it to the output buffer until it's
+	   full */
+	while( nonceLength > 0 )
+		{
+		const int bytesToCopy = min( nonceLength, systemInfo->hashSize );
+
+		assert( nonceLength > 0 && systemInfo->hashSize > 0 );
+
+		/* Hash the state and copy the appropriate amount of data to the
+		   output buffer */
+		systemInfo->hashFunction( NULL, systemInfo->nonceData, 
+								  CRYPT_MAX_HASHSIZE, systemInfo->nonceData,
+								  systemInfo->hashSize + 8, HASH_ALL );
+		memcpy( noncePtr, systemInfo->nonceData, bytesToCopy );
+
+		/* Move on to the next block of the output buffer */
+		noncePtr += bytesToCopy;
+		nonceLength -= bytesToCopy;
+		}
+
+	return( CRYPT_OK );
+	}
 
 /****************************************************************************
 *																			*
@@ -149,13 +248,22 @@ static void shutdownFunction( DEVICE_INFO *deviceInfo )
 static int getRandomFunction( DEVICE_INFO *deviceInfo, void *buffer,
 							  const int length )
 	{
+	int refCount, status;
+
 	assert( isWritePtr( buffer, length ) );
 
 	/* Clear the return value and make sure that we fail the FIPS 140 tests
 	   on the output if there's a problem */
 	zeroise( buffer, length );
 
-	return( getRandomData( deviceInfo->randomInfo, buffer, length ) );
+	/* Since the entropy fetch can take awhile, we do it with the system
+	   object unlocked */
+	status = krnlSuspendObject( SYSTEM_OBJECT_HANDLE, &refCount );
+	if( cryptStatusError( status ) )
+		return( status );
+	status = getRandomData( deviceInfo->randomInfo, buffer, length );
+	krnlResumeObject( SYSTEM_OBJECT_HANDLE, refCount );
+	return( status );
 	}
 
 /* Handle device control functions */
@@ -170,103 +278,36 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 			type == CRYPT_IATTRIBUTE_SELFTEST || \
 			type == CRYPT_IATTRIBUTE_TIME );
 
-	/* Handle entropy addition */
+	/* Handle entropy addition.  Since this can take awhile, we do it with
+	   the system object unlocked */
 	if( type == CRYPT_IATTRIBUTE_ENTROPY )
-		return( addEntropyData( deviceInfo->randomInfo, data, dataLength ) );
+		{
+		int refCount, status;
+
+		status = krnlSuspendObject( SYSTEM_OBJECT_HANDLE, &refCount );
+		if( cryptStatusError( status ) )
+			return( status );
+		status = addEntropyData( deviceInfo->randomInfo, data, dataLength );
+		krnlResumeObject( SYSTEM_OBJECT_HANDLE, refCount );
+		return( status );
+		}
 	if( type == CRYPT_IATTRIBUTE_ENTROPY_QUALITY )
-		return( addEntropyQuality( deviceInfo->randomInfo, dataLength ) );
+		{
+		int refCount, status;
+
+		status = krnlSuspendObject( SYSTEM_OBJECT_HANDLE, &refCount );
+		if( cryptStatusError( status ) )
+			return( status );
+		status = addEntropyQuality( deviceInfo->randomInfo, dataLength );
+		krnlResumeObject( SYSTEM_OBJECT_HANDLE, refCount );
+		return( status );
+		}
 
 	/* Handle nonces */
 	if( type == CRYPT_IATTRIBUTE_RANDOM_NONCE )
-		{
-		SYSTEMDEV_INFO *systemInfo = deviceInfo->deviceSystem;
-		BYTE *noncePtr = ( BYTE * ) data;
-		int nonceLength = dataLength;
+		return( getNonce( deviceInfo->deviceSystem, data, dataLength ) );
 
-		/* Get a random (but not necessarily cryptographically strong random) 
-		   nonce.  Some nonces can simply be fresh (for which a monotonically 
-		   increasing sequence will do), some should be random (for which a 
-		   hash of the sequence is adequate), and some need to be 
-		   unpredictable.  In order to avoid problems arising from the
-		   inadvertent use of a nonce with the wrong properties, we use 
-		   unpredictable nonces in all cases, even where it isn't strictly 
-		   necessary.
-   
-		   This simple generator divides the nonce state into a public 
-		   section of the same size as the hash output and a private section 
-		   that contains 64 bits of data from the crypto RNG, which 
-		   influences the public section.  The public and private sections 
-		   are repeatedly hashed to produce the required amount of output.  
-		   Note that this leaks a small amount of information about the 
-		   crypto RNG output since an attacker knows that 
-		   public_state_n = hash( public_state_n - 1, private_state ), but 
-		   this isn't a major weakness.
-
-		   If the nonce generator hasn't been initialised yet, we set up the 
-		   hashing and get 64 bits of private nonce state.  What to do if 
-		   the attempt to initialise the state fails is somewhat debatable.  
-		   Since nonces are only ever used in protocols alongside crypto 
-		   keys, and an RNG failure will be detected when the key is 
-		   generated, we can generally ignore a failure at this point.
-		   However, nonces are sometimes also used in non-crypto contexts 
-		   (for example to generate cert serial numbers) where this 
-		   detection in the RNG won't happen.  On the other hand we 
-		   shouldn't really abort processing just because we can't get some 
-		   no-value nonce data, so what we do is retry the fetch of nonce 
-		   data (in case the system object was busy and the first attempt 
-		   timed out), and if that fails too fall back to the system time.  
-		   This is no longer unpredictable, but the only location where 
-		   unpredictability matters is when used in combination with crypto 
-		   operations, for which the absence of random data will be detected 
-		   during key generation */
-		if( !systemInfo->nonceDataInitialised )
-			{
-			RESOURCE_DATA msgData;
-			int status;
-
-			getHashParameters( CRYPT_ALGO_SHA, &systemInfo->hashFunction, 
-							   &systemInfo->hashSize );
-			setMessageData( &msgData, systemInfo->nonceData + \
-									  systemInfo->hashSize, 8 );
-			status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, 
-									  IMESSAGE_GETATTRIBUTE_S, &msgData, 
-									  CRYPT_IATTRIBUTE_RANDOM );
-			if( cryptStatusError( status ) )
-				status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, 
-										  IMESSAGE_GETATTRIBUTE_S, &msgData, 
-										  CRYPT_IATTRIBUTE_RANDOM );
-			if( cryptStatusError( status ) )
-				{
-				const time_t theTime = getTime();
-
-				memcpy( systemInfo->nonceData + systemInfo->hashSize, 
-						&theTime, sizeof( time_t ) );
-				}
-			systemInfo->nonceDataInitialised = TRUE;
-			}
-
-		/* Shuffle the public state and copy it to the output buffer until 
-		   it's full */
-		while( nonceLength > 0 )
-			{
-			const int bytesToCopy = min( nonceLength, systemInfo->hashSize );
-
-			/* Hash the state and copy the appropriate amount of data to the 
-			   output buffer */
-			systemInfo->hashFunction( NULL, systemInfo->nonceData, 
-									  systemInfo->nonceData, 
-									  systemInfo->hashSize + 8, HASH_ALL );
-			memcpy( noncePtr, systemInfo->nonceData, bytesToCopy );
-
-			/* Move on to the next block of the output buffer */
-			noncePtr += bytesToCopy;
-			nonceLength -= bytesToCopy;
-			}
-
-		return( CRYPT_OK );
-		}
-
-	/* Handle algorithm self-test.  This tests either the algorithm indicated 
+	/* Handle algorithm self-test.  This tests either the algorithm indicated
 	   by the caller, or all algorithms if CRYPT_USE_DEFAULT is given */
 	if( type == CRYPT_IATTRIBUTE_SELFTEST )
 		{
@@ -322,10 +363,10 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 
 #define MAX_NO_CAPABILITIES		32
 
-static const GETCAPABILITY_FUNCTION getCapabilityTable[] = {
-	get3DESCapability, 
+static const GETCAPABILITY_FUNCTION FAR_BSS getCapabilityTable[] = {
+	get3DESCapability,
 #ifdef USE_AES
-	getAESCapability, 
+	getAESCapability,
 #endif /* USE_AES */
 #ifdef USE_BLOWFISH
 	getBlowfishCapability,
@@ -356,7 +397,9 @@ static const GETCAPABILITY_FUNCTION getCapabilityTable[] = {
 #ifdef USE_MD4
 	getMD4Capability,
 #endif /* USE_MD4 */
+#ifdef USE_MD5
 	getMD5Capability,
+#endif /* USE_MD5 */
 #ifdef USE_RIPEMD160
 	getRipemd160Capability,
 #endif /* USE_RIPEMD160 */
@@ -373,12 +416,18 @@ static const GETCAPABILITY_FUNCTION getCapabilityTable[] = {
 #endif /* USE_HMAC_RIPEMD160 */
 	getHmacSHA1Capability,
 
+#ifdef USE_DH
 	getDHCapability,
+#endif /* USE_DH */
+#ifdef USE_DSA
 	getDSACapability,
+#endif /* USE_DSA */
 #ifdef USE_ELGAMAL
 	getElgamalCapability,
 #endif /* USE_ELGAMAL */
+#ifdef USE_RSA
 	getRSACapability,
+#endif /* USE_RSA */
 
 	/* Vendors may want to use their own algorithms, which aren't part of the
 	   general cryptlib suite.  The following provides the ability to include
@@ -389,10 +438,10 @@ static const GETCAPABILITY_FUNCTION getCapabilityTable[] = {
 #endif /* USE_VENDOR_ALGOS */
 
 	/* End-of-list marker */
-	NULL
+	NULL, NULL
 	};
 
-static CAPABILITY_INFO_LIST capabilityInfoList[ MAX_NO_CAPABILITIES ];
+static CAPABILITY_INFO_LIST FAR_BSS capabilityInfoList[ MAX_NO_CAPABILITIES ];
 
 /* Initialise the capability info */
 
@@ -408,9 +457,12 @@ static void initCapabilities( void )
 			CRYPT_MODE_LAST == CRYPT_MODE_OFB + 1 );
 
 	/* Build the list of available capabilities */
-	memset( capabilityInfoList, 0, 
+	memset( capabilityInfoList, 0,
 			sizeof( CAPABILITY_INFO_LIST ) * MAX_NO_CAPABILITIES );
-	for( i = 0; getCapabilityTable[ i ] != NULL; i++ )
+	for( i = 0; 
+		 getCapabilityTable[ i ] != NULL && \
+			i < FAILSAFE_ARRAYSIZE( getCapabilityTable, GETCAPABILITY_FUNCTION ); 
+		 i++ )
 		{
 		const CAPABILITY_INFO *capabilityInfoPtr = getCapabilityTable[ i ]();
 
@@ -420,6 +472,8 @@ static void initCapabilities( void )
 		if( i > 0 )
 			capabilityInfoList[ i - 1 ].next = &capabilityInfoList[ i ];
 		}
+	if( i >= FAILSAFE_ARRAYSIZE( getCapabilityTable, GETCAPABILITY_FUNCTION ) )
+		retIntError_Void();
 	}
 
 /****************************************************************************
@@ -438,7 +492,11 @@ int setDeviceSystem( DEVICE_INFO *deviceInfo )
 	deviceInfo->getRandomFunction = getRandomFunction;
 	deviceInfo->capabilityInfoList = capabilityInfoList;
 	deviceInfo->createObjectFunctions = createObjectFunctions;
+	deviceInfo->createObjectFunctionCount = \
+		FAILSAFE_ARRAYSIZE( createObjectFunctions, CREATEOBJECT_FUNCTION_INFO );
 	deviceInfo->mechanismFunctions = mechanismFunctions;
+	deviceInfo->mechanismFunctionCount = \
+		FAILSAFE_ARRAYSIZE( mechanismFunctions, MECHANISM_FUNCTION_INFO );
 
 	return( CRYPT_OK );
 	}

@@ -9,10 +9,6 @@
   #include "crypt.h"
   #include "acl.h"
   #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
 #else
   #include "crypt.h"
   #include "kernel/acl.h"
@@ -31,7 +27,7 @@ static KERNEL_DATA *krnlData = NULL;
 
 /* The ACL tables for each mechanism class */
 
-static const FAR_BSS MECHANISM_ACL mechanismWrapACL[] = {
+static const MECHANISM_ACL FAR_BSS mechanismWrapACL[] = {
 	/* PKCS #1 encrypt */
 	{ MECHANISM_ENC_PKCS1,
 	  { MKACP_S_OPT( 64, MAX_PKCENCRYPTED_SIZE ),/* Wrapped key */
@@ -41,7 +37,7 @@ static const FAR_BSS MECHANISM_ACL mechanismWrapACL[] = {
 		MKACP_O( ST_CTX_PKC,				/* Wrap PKC context */
 				 ACL_FLAG_HIGH_STATE | ACL_FLAG_ROUTE_TO_CTX ),
 		MKACP_UNUSED() } },
-	
+
 	/* PKCS #1 encrypt using PGP formatting */
 	{ MECHANISM_ENC_PKCS1_PGP,
 	  { MKACP_S_OPT( 64, MAX_PKCENCRYPTED_SIZE ),/* Wrapped key */
@@ -51,7 +47,7 @@ static const FAR_BSS MECHANISM_ACL mechanismWrapACL[] = {
 		MKACP_O( ST_CTX_PKC,				/* Wrap PKC context */
 				 ACL_FLAG_HIGH_STATE | ACL_FLAG_ROUTE_TO_CTX ),
 		MKACP_UNUSED() } },
-	
+
 	/* PKCS #1 encrypt of raw data */
 	{ MECHANISM_ENC_PKCS1_RAW,
 	  { MKACP_S_OPT( 64, CRYPT_MAX_PKCSIZE ),/* Wrapped raw data */
@@ -71,7 +67,7 @@ static const FAR_BSS MECHANISM_ACL mechanismWrapACL[] = {
 				 ACL_FLAG_HIGH_STATE ),
 		MKACP_UNUSED() } },
 
-	/* KEA key agreement */	
+	/* KEA key agreement */
 	{ MECHANISM_ENC_KEA,
 	  { MKACP_S( 140, 140 ),				/* sizeof( TEK( MEK ) + Ra ) */
 		MKACP_S_NONE(),
@@ -103,10 +99,12 @@ static const FAR_BSS MECHANISM_ACL mechanismWrapACL[] = {
 		MKACP_UNUSED() } },
 
 	{ MECHANISM_NONE,
+	  { MKACP_END() } },
+	{ MECHANISM_NONE,
 	  { MKACP_END() } }
 	};
 
-static const FAR_BSS MECHANISM_ACL mechanismUnwrapACL[] = {
+static const MECHANISM_ACL FAR_BSS mechanismUnwrapACL[] = {
 	/* PKCS #1 decrypt */
 	{ MECHANISM_ENC_PKCS1,
 	  { MKACP_S_OPT( 60, CRYPT_MAX_PKCSIZE ),/* Wrapped key */
@@ -187,10 +185,12 @@ static const FAR_BSS MECHANISM_ACL mechanismUnwrapACL[] = {
 		MKACP_UNUSED() } },
 
 	{ MECHANISM_NONE,
+	  { MKACP_END() } },
+	{ MECHANISM_NONE,
 	  { MKACP_END() } }
 	};
 
-static const FAR_BSS MECHANISM_ACL mechanismSignACL[] = {
+static const MECHANISM_ACL FAR_BSS mechanismSignACL[] = {
 	/* PKCS #1 sign */
 	{ MECHANISM_SIG_PKCS1,
 	  { MKACP_S_OPT( 64, CRYPT_MAX_PKCSIZE ),/* Signature */
@@ -211,10 +211,12 @@ static const FAR_BSS MECHANISM_ACL mechanismSignACL[] = {
 				 ACL_FLAG_HIGH_STATE | ACL_FLAG_ROUTE_TO_CTX ) } },
 
 	{ MECHANISM_NONE,
+	  { MKACP_END() } },
+	{ MECHANISM_NONE,
 	  { MKACP_END() } }
 	};
 
-static const FAR_BSS MECHANISM_ACL mechanismSigCheckACL[] = {
+static const MECHANISM_ACL FAR_BSS mechanismSigCheckACL[] = {
 	/* PKCS #1 sig check */
 	{ MECHANISM_SIG_PKCS1,
 	  { MKACP_S( 60, CRYPT_MAX_PKCSIZE ),	/* Signature */
@@ -235,10 +237,12 @@ static const FAR_BSS MECHANISM_ACL mechanismSigCheckACL[] = {
 				 ACL_FLAG_HIGH_STATE | ACL_FLAG_ROUTE_TO_CTX ) } },
 
 	{ MECHANISM_NONE,
+	  { MKACP_END() } },
+	{ MECHANISM_NONE,
 	  { MKACP_END() } }
 	};
 
-static const FAR_BSS MECHANISM_ACL mechanismDeriveACL[] = {
+static const MECHANISM_ACL FAR_BSS mechanismDeriveACL[] = {
 	/* PKCS #5 derive */
 	{ MECHANISM_DERIVE_PKCS5,
 	  { MKACP_S( 1, CRYPT_MAX_KEYSIZE ),	/* Key data */
@@ -255,9 +259,9 @@ static const FAR_BSS MECHANISM_ACL mechanismDeriveACL[] = {
 		MKACP_S( 64, 64 ),					/* Salt */
 		MKACP_N( 1, 1 ) } },				/* Iterations */
 
-	/* TLS derive.  The odd lower bounds on the output and salt are needed 
-	   when generating the TLS hashed MAC and (for the salt and output) and 
-	   when generating a master secret from a fixed shared key (for the 
+	/* TLS derive.  The odd lower bounds on the output and salt are needed
+	   when generating the TLS hashed MAC and (for the salt and output) and
+	   when generating a master secret from a fixed shared key (for the
 	   input) */
 	{ MECHANISM_DERIVE_TLS,
 	  { MKACP_S( 12, 512 ),					/* Master secret/key data (usually 48) */
@@ -290,6 +294,8 @@ static const FAR_BSS MECHANISM_ACL mechanismDeriveACL[] = {
 		MKACP_S( 9, 9 ),					/* Salt (+ ID byte) */
 		MKACP_N( 1, INT_MAX ) } },			/* Iterations */
 
+	{ MECHANISM_NONE,
+	  { MKACP_END() } },
 	{ MECHANISM_NONE,
 	  { MKACP_END() } }
 	};
@@ -333,6 +339,10 @@ int preDispatchCheckMechanismWrapAccess( const int objectHandle,
 				( ( message & MESSAGE_MASK ) == MESSAGE_DEV_EXPORT ) ? \
 				mechanismWrapACL : mechanismUnwrapACL;
 	const OBJECT_INFO *objectTable = krnlData->objectTable;
+	const int mechanismAclSize = \
+				( ( message & MESSAGE_MASK ) == MESSAGE_DEV_EXPORT ) ? \
+				FAILSAFE_ARRAYSIZE( mechanismWrapACL, MECHANISM_ACL ) : \
+				FAILSAFE_ARRAYSIZE( mechanismUnwrapACL, MECHANISM_ACL );
 	BOOLEAN isRawMechanism;
 	int contextHandle, i;
 
@@ -353,7 +363,10 @@ int preDispatchCheckMechanismWrapAccess( const int objectHandle,
 
 	/* Find the appropriate ACL for this mechanism */
 	for( i = 0; mechanismACL[ i ].type != messageValue && \
-				mechanismACL[ i ].type != MECHANISM_NONE; i++ );
+				mechanismACL[ i ].type != MECHANISM_NONE && \
+				i < mechanismAclSize; i++ );
+	if( i >= mechanismAclSize )
+		retIntError();
 	if( mechanismACL[ i ].type == MECHANISM_NONE )
 		{
 		assert( NOTREACHED );
@@ -402,13 +415,13 @@ int preDispatchCheckMechanismWrapAccess( const int objectHandle,
 		}
 	else
 		/* For raw wrap/unwrap mechanisms the data is supplied as string
-		   data.  In theory this would be somewhat risky since it allows 
-		   bypassing of object ownership checks, however these mechanisms 
-		   are only accessed from deep within cryptlib (e.g. by the SSH and 
-		   SSL/TLS session code, which needs to handle protocol-specific 
-		   secret data in special ways) so there's no chance for problems 
-		   since the contexts it ends up in are cryptlib-internal, 
-		   automatically-created ones belonging to the owner of the session 
+		   data.  In theory this would be somewhat risky since it allows
+		   bypassing of object ownership checks, however these mechanisms
+		   are only accessed from deep within cryptlib (e.g. by the SSH and
+		   SSL/TLS session code, which needs to handle protocol-specific
+		   secret data in special ways) so there's no chance for problems
+		   since the contexts it ends up in are cryptlib-internal,
+		   automatically-created ones belonging to the owner of the session
 		   object */
 		PRE( checkParamObject( paramInfo( mechanismACL, 2 ),
 							   mechanismInfo->keyContext ) );
@@ -478,6 +491,10 @@ int preDispatchCheckMechanismSignAccess( const int objectHandle,
 				( ( message & MESSAGE_MASK ) == MESSAGE_DEV_SIGN ) ? \
 				mechanismSignACL : mechanismSigCheckACL;
 	const OBJECT_INFO *objectTable = krnlData->objectTable;
+	const int mechanismAclSize = \
+				( ( message & MESSAGE_MASK ) == MESSAGE_DEV_SIGN ) ? \
+				FAILSAFE_ARRAYSIZE( mechanismSignACL, MECHANISM_ACL ) : \
+				FAILSAFE_ARRAYSIZE( mechanismSigCheckACL, MECHANISM_ACL );
 	int contextHandle, i;
 
 	/* Precondition */
@@ -490,7 +507,10 @@ int preDispatchCheckMechanismSignAccess( const int objectHandle,
 
 	/* Find the appropriate ACL for this mechanism */
 	for( i = 0; mechanismACL[ i ].type != messageValue && \
-				mechanismACL[ i ].type != MECHANISM_NONE; i++ );
+				mechanismACL[ i ].type != MECHANISM_NONE && \
+				i < mechanismAclSize; i++ );
+	if( i >= mechanismAclSize )
+		retIntError();
 	if( mechanismACL[ i ].type == MECHANISM_NONE )
 		{
 		assert( NOTREACHED );
@@ -595,7 +615,11 @@ int preDispatchCheckMechanismDeriveAccess( const int objectHandle,
 
 	/* Find the appropriate ACL for this mechanism */
 	for( i = 0; mechanismACL[ i ].type != messageValue && \
-				mechanismACL[ i ].type != MECHANISM_NONE; i++ );
+				mechanismACL[ i ].type != MECHANISM_NONE && \
+				i < FAILSAFE_ARRAYSIZE( mechanismDeriveACL, MECHANISM_ACL ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( mechanismDeriveACL, MECHANISM_ACL ) )
+		retIntError();
 	if( mechanismACL[ i ].type == MECHANISM_NONE )
 		{
 		assert( NOTREACHED );

@@ -5,7 +5,7 @@
 
 /* @(#) $Id$ */
 
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "zutil.h"
 #else
   #include "zlib/zutil.h"

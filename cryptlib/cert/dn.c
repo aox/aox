@@ -5,15 +5,9 @@
 *																			*
 ****************************************************************************/
 
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "cert.h"
   #include "asn1.h"
-#elif defined( INC_CHILD )
-  #include "cert.h"
-  #include "../misc/asn1.h"
 #else
   #include "cert/cert.h"
   #include "misc/asn1.h"
@@ -97,7 +91,7 @@ typedef struct {
 	const BOOLEAN wcsOK;			/* Whether widechar is allowed for comp.*/
 	} DN_COMPONENT_INFO;
 
-static const FAR_BSS DN_COMPONENT_INFO certInfoOIDs[] = {
+static const DN_COMPONENT_INFO FAR_BSS certInfoOIDs[] = {
 	/* Useful components */
 	{ CRYPT_CERTINFO_COMMONNAME, MKDNOID( "\x55\x04\x03" ), "cn", "oid.2.5.4.3", CRYPT_MAX_TEXTSIZE, FALSE, TRUE },
 	{ CRYPT_CERTINFO_COUNTRYNAME, MKDNOID( "\x55\x04\x06" ), "c", "oid.2.5.4.6", 2, FALSE, FALSE },
@@ -202,8 +196,8 @@ static const FAR_BSS DN_COMPONENT_INFO certInfoOIDs[] = {
 	{ CRYPT_ATTRIBUTE_NONE, ( const BYTE * ) "\x06\x07\x02\x82\x06\x01\x0A\x07\x14", "oid.0.2.262.1.10.7.20", NULL, CRYPT_MAX_TEXTSIZE, TRUE, FALSE },
 							/* nameDistinguisher (0 2 262 1 10 7 20) */
 
-	{ CRYPT_ATTRIBUTE_NONE, NULL }
-	} ;
+	{ CRYPT_ATTRIBUTE_NONE, NULL }, { CRYPT_ATTRIBUTE_NONE, NULL }
+	};
 
 /* If the OID doesn't correspond to a valid cryptlib component (i.e. it's one
    of the 1,001 other odd things which can be crammed into a DN), we can't
@@ -296,10 +290,11 @@ static DN_COMPONENT *findDNComponent( const void *dnListHead,
 									  const void *value,
 									  const int valueLength )
 	{
-	DN_COMPONENT *listPtr = ( DN_COMPONENT * ) dnListHead;
+	DN_COMPONENT *listPtr;
 
 	/* Find the position of this component in the list */
-	while( listPtr != NULL )
+	for( listPtr = ( DN_COMPONENT * ) dnListHead; listPtr != NULL;
+		 listPtr = listPtr->next )
 		{
 		assert( isReadPtr( listPtr, sizeof( DN_COMPONENT ) ) );
 
@@ -308,7 +303,6 @@ static DN_COMPONENT *findDNComponent( const void *dnListHead,
 			  ( listPtr->valueLength == valueLength && \
 				!memcmp( listPtr->value, value, valueLength ) ) ) )
 			break;
-		listPtr = listPtr->next;
 		}
 
 	return( listPtr );
@@ -317,17 +311,17 @@ static DN_COMPONENT *findDNComponent( const void *dnListHead,
 static DN_COMPONENT *findDNComponentByOID( const void *dnListHead,
 										   const BYTE *oid )
 	{
-	DN_COMPONENT *listPtr = ( DN_COMPONENT * ) dnListHead;
+	DN_COMPONENT *listPtr;
 	const int oidLen = sizeofOID( oid );
 
 	/* Find the position of this component in the list */
-	while( listPtr != NULL )
+	for( listPtr = ( DN_COMPONENT * ) dnListHead; listPtr != NULL; 
+		 listPtr = listPtr->next )
 		{
 		const DN_COMPONENT_INFO *dnComponentInfo = listPtr->typeInfo;
 
 		if( !memcmp( dnComponentInfo->oid, oid, oidLen ) )
 			break;
-		listPtr = listPtr->next;
 		}
 
 	return( listPtr );
@@ -355,7 +349,7 @@ static int insertDNstring( void **dnListHead, const CRYPT_ATTRIBUTE_TYPE type,
 
 	/* If the DN is locked against modification we can't make any further
 	   updates */
-	if( listHeadPtr != NULL && listHeadPtr->flags & DN_FLAG_LOCKED )
+	if( listHeadPtr != NULL && ( listHeadPtr->flags & DN_FLAG_LOCKED ) )
 		return( CRYPT_ERROR_INITED );
 
 	/* Find the type information for this component if it's a recognised
@@ -365,12 +359,18 @@ static int insertDNstring( void **dnListHead, const CRYPT_ATTRIBUTE_TYPE type,
 		int i;
 
 		/* It's a handled component, get the pointer to the OID */
-		for( i = 0; certInfoOIDs[ i ].type != CRYPT_ATTRIBUTE_NONE; i++ )
+		for( i = 0; certInfoOIDs[ i ].type != CRYPT_ATTRIBUTE_NONE && \
+					i < FAILSAFE_ARRAYSIZE( certInfoOIDs, DN_COMPONENT_INFO ); 
+			 i++ )
+			{
 			if( certInfoOIDs[ i ].type == type )
 				{
 				dnComponentInfo = &certInfoOIDs[ i ];
 				break;
 				}
+			}
+		if( i >= FAILSAFE_ARRAYSIZE( certInfoOIDs, DN_COMPONENT_INFO ) )
+			retIntError();
 		if( certInfoOIDs[ i ].type == CRYPT_ATTRIBUTE_NONE )
 			{
 			assert( NOTREACHED );
@@ -383,18 +383,22 @@ static int insertDNstring( void **dnListHead, const CRYPT_ATTRIBUTE_TYPE type,
 		   bug (detect with '#if defined( __GNUC__ ) && ( __GNUC__ == 2 )').
 		   If we use the expression '&certInfoOIDs[ type - DN_OID_OFFSET ]'
 		   what we should get is:
+
 				leal -1000(%ebp,%ebp,2),%eax
 				movl certInfoOIDs(,%eax,4),%eax
+
 		   but what we actually get is:
+
 				leal -3000(%ebp,%ebp,2),%eax
 				movl certInfoOIDs(,%eax,4),%eax
+
 		   To fix this we need to insert some form of dummy evaluation in a
 		   form which ensures that it can't be optimised away (which is
 		   actually quite difficult with gcc because it optimises any simple
 		   code way).  To work around this we insert a dummy expression to
 		   keep the value live */
 		{
-#if defined( __GNUC__ ) && ( __GNUC__ == 2 )
+#if defined( __GNUC__ ) && ( __GNUC__ == 2 ) && ( __GNUC_MINOR__ <= 7 )
 		int i = type - DN_OID_OFFSET;
 		dnComponentInfo = &certInfoOIDs[ i ];
 		if( dnComponentInfo < 0 )	/* Dummy code to keep i live */
@@ -442,19 +446,25 @@ static int insertDNstring( void **dnListHead, const CRYPT_ATTRIBUTE_TYPE type,
 		/* If it's being read from an external cert item, just append it to
 		   the end of the list */
 		if( flags & DN_FLAG_NOCHECK )
+			{
 			for( insertPoint = listHeadPtr; insertPoint->next != NULL;
 				 insertPoint = insertPoint->next );
+			}
 		else
 			{
-			for( insertPoint = listHeadPtr; insertPoint != NULL && \
-				 dnSortOrder( type ) >= dnSortOrder( insertPoint->type );
+			int iterationCount = 0;
+			
+			for( insertPoint = listHeadPtr; 
+				 insertPoint != NULL && \
+					dnSortOrder( type ) >= dnSortOrder( insertPoint->type ) && \
+					iterationCount++ < FAILSAFE_ITERATIONS_MAX; 
 				 insertPoint = insertPoint->next )
 				{
-				/* Make sure this component isn't already present.  For now
-				   we only allow a single DN component of any type to keep
-				   things simple for the user, if it's necessary to allow
-				   multiple components of the same type we need to check the
-				   value and valueLength as well */
+				/* Make sure that this component isn't already present.  For 
+				   now we only allow a single DN component of any type to 
+				   keep things simple for the user, if it's necessary to 
+				   allow multiple components of the same type we need to 
+				   check the value and valueLength as well */
 				if( insertPoint->type == type )
 					{
 					if( errorType != NULL )
@@ -464,6 +474,8 @@ static int insertDNstring( void **dnListHead, const CRYPT_ATTRIBUTE_TYPE type,
 
 				prevElement = insertPoint;
 				}
+			if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+				retIntError();
 			insertPoint = prevElement;
 			}
 		}
@@ -487,18 +499,17 @@ static int insertDNstring( void **dnListHead, const CRYPT_ATTRIBUTE_TYPE type,
 
 		dnStrPtr[ 0 ] = toUpper( dnStrPtr[ 0 ] );
 		dnStrPtr[ 1 ] = toUpper( dnStrPtr[ 1 ] );
-
 		if( flags & DN_FLAG_NOCHECK )
 			{
 			/* 'UK' isn't an ISO 3166 country code but may be found in some
 			   certificates.  If we find this, we quietly convert it to the
 			   correct value */
-			if( !memcmp( newElement->value, "UK", 2 ) )
-				memcpy( newElement->value, "GB", 2 );
+			if( !memcmp( dnStrPtr, "UK", 2 ) )
+				memcpy( dnStrPtr, "GB", 2 );
 			}
 		else
-			/* Make sure the country code is valid */
-			if( !checkCountryCode( ( char * ) newElement->value ) )
+			/* Make sure that the country code is valid */
+			if( !checkCountryCode( dnStrPtr ) )
 				{
 				endVarStruct( newElement, DN_COMPONENT );
 				clFree( "insertDNstring", newElement );
@@ -705,7 +716,7 @@ int checkDN( const void *dnComponentListHead,
 			 CRYPT_ERRTYPE_TYPE *errorType )
 	{
 	DN_COMPONENT *dnComponentListPtr;
-	BOOLEAN hasCountry = TRUE, hasCommonName = FALSE;
+	BOOLEAN hasCountry = FALSE, hasCommonName = FALSE;
 
 	/* Clear the return values */
 	*errorType = CRYPT_OK;
@@ -819,7 +830,7 @@ int convertEmail( CERT_INFO *certInfoPtr, void **dnListHead,
 static int readAVA( STREAM *stream, CRYPT_ATTRIBUTE_TYPE *type, int *length,
 					int *stringTag )
 	{
-	BYTE oid[ MAX_OID_SIZE ];
+	BYTE oid[ MAX_OID_SIZE + 8 ];
 	int oidLength, tag, i, status;
 
 	/* Clear return values */
@@ -833,36 +844,42 @@ static int readAVA( STREAM *stream, CRYPT_ATTRIBUTE_TYPE *type, int *length,
 	   accessed by the user (although it can still be accessed using the
 	   cursor functions) */
 	readSequence( stream, NULL );
-	status = readRawObject( stream, oid, &oidLength, MAX_OID_SIZE,
-							BER_OBJECT_IDENTIFIER );
+	status = readEncodedOID( stream, oid, &oidLength, MAX_OID_SIZE,
+							 BER_OBJECT_IDENTIFIER );
 	if( cryptStatusError( status ) )
 		return( status );
-	for( i = 0; certInfoOIDs[ i ].oid != NULL; i++ )
+	for( i = 0; certInfoOIDs[ i ].oid != NULL && \
+				i < FAILSAFE_ARRAYSIZE( certInfoOIDs, DN_COMPONENT_INFO ); 
+		 i++ )
+		{
 		if( !memcmp( certInfoOIDs[ i ].oid, oid, oidLength ) )
 			{
 			*type = ( certInfoOIDs[ i ].type != CRYPT_ATTRIBUTE_NONE ) ?
 					certInfoOIDs[ i ].type : i + DN_OID_OFFSET;
 			break;
 			}
-	if( *type == CRYPT_ATTRIBUTE_NONE )
+		}
+	if( i >= FAILSAFE_ARRAYSIZE( certInfoOIDs, DN_COMPONENT_INFO ) )
+		retIntError();
+	if( certInfoOIDs[ i ].oid == NULL )
 		{
 		/* If we don't recognise the component type, skip it */
 		readUniversal( stream );
 		return( OK_SPECIAL );
 		}
 
-	/* We've reached the data value, make sure it's in order */
+	/* We've reached the data value, make sure that it's in order */
 	tag = peekTag( stream );
 	if( tag == BER_BITSTRING )
 		{
 		/* Bitstrings are used for uniqueIdentifiers, however these usually
 		   encapsulate something else so we dig one level deeper to find the
 		   encapsulated string */
-		readBitStringHole( stream, NULL, DEFAULT_TAG );
+		readBitStringHole( stream, NULL, 2, DEFAULT_TAG );
 		tag = peekTag( stream );
 		}
 	*stringTag = tag;
-	return( readGenericHole( stream, length, tag ) );
+	return( readGenericHole( stream, length, 1, tag ) );
 	}
 
 /* Read an RDN component */
@@ -871,7 +888,7 @@ static int readRDNcomponent( STREAM *stream, void **dnComponentListHead,
 							 const int rdnDataLeft )
 	{
 	CRYPT_ATTRIBUTE_TYPE type;
-	BYTE stringBuffer[ MAX_ATTRIBUTE_SIZE ], *value;
+	BYTE stringBuffer[ MAX_ATTRIBUTE_SIZE + 8 ], *value;
 	const int rdnStart = stell( stream );
 	int valueLength, stringTag;
 	int flags = DN_FLAG_NOCHECK, status;
@@ -916,15 +933,16 @@ static int readRDNcomponent( STREAM *stream, void **dnComponentListHead,
 
 int readDN( STREAM *stream, void **dnComponentListHead )
 	{
-	int length, status;
+	int length, iterationCount = 0, status;
 
 	status = readSequence( stream, &length );
 	if( cryptStatusError( status ) )
 		return( status );
-	while( length > 0 )
+	while( length > 0 && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 		{
 		const int startPos = stell( stream );
-		int rdnLength;
+		int rdnLength, innerIterationCount = 0;
 
 		/* Read the start of the RDN */
 		status = readSet( stream, &rdnLength );
@@ -932,7 +950,8 @@ int readDN( STREAM *stream, void **dnComponentListHead )
 			return( status );
 
 		/* Read each RDN component */
-		while( rdnLength > 0 )
+		while( rdnLength > 0 && \
+			   innerIterationCount++ < FAILSAFE_ITERATIONS_LARGE )
 			{
 			const int rdnStart = stell( stream );
 
@@ -943,15 +962,16 @@ int readDN( STREAM *stream, void **dnComponentListHead )
 
 			rdnLength -= stell( stream ) - rdnStart;
 			}
-		if( rdnLength < 0 )
+		if( rdnLength < 0 || \
+			innerIterationCount >= FAILSAFE_ITERATIONS_LARGE )
 			return( CRYPT_ERROR_BADDATA );
 
 		length -= stell( stream ) - startPos;
 		}
-	if( length < 0 )
+	if( length < 0 || iterationCount >= FAILSAFE_ITERATIONS_LARGE )
 		return( CRYPT_ERROR_BADDATA );
 
-	return( sGetStatus( stream ) );
+	return( CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -981,6 +1001,7 @@ static int preEncodeDN( DN_COMPONENT *dnComponentPtr )
 		{
 		DN_COMPONENT *rdnStartPtr = dnComponentPtr;
 		BOOLEAN isContinued;
+		int iterationCount = 0;
 
 		/* If this component has already had pre-encoding processing 
 		   applied, there's no need to do it again */
@@ -1015,7 +1036,10 @@ static int preEncodeDN( DN_COMPONENT *dnComponentPtr )
 			isContinued = dnComponentPtr->flags & DN_FLAG_CONTINUED;
 			dnComponentPtr = dnComponentPtr->next;
 			}
-		while( isContinued && dnComponentPtr != NULL );
+		while( isContinued && dnComponentPtr != NULL && \
+			   iterationCount++ < FAILSAFE_ITERATIONS_MAX );
+		if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+			retIntError();
 
 		/* Calculate the overall size of the RDN */
 		size += ( int ) sizeofObject( rdnStartPtr->encodedRDNdataSize );
@@ -1047,11 +1071,11 @@ int writeDN( STREAM *stream, const void *dnComponentListHead, const int tag )
 		 dnComponentPtr = dnComponentPtr->next )
 		{
 		const DN_COMPONENT_INFO *dnComponentInfo = dnComponentPtr->typeInfo;
-		BYTE dnString[ MAX_ATTRIBUTE_SIZE ];
+		BYTE dnString[ MAX_ATTRIBUTE_SIZE + 8 ];
 		int dnStringLength;
 
 		/* Write the RDN wrapper */
-		if( dnComponentPtr->encodedRDNdataSize )
+		if( dnComponentPtr->encodedRDNdataSize > 0 )
 			/* If it's the start of an RDN, write the RDN header */
 			writeSet( stream, dnComponentPtr->encodedRDNdataSize );
 		writeSequence( stream, dnComponentPtr->encodedAVAdataSize );
@@ -1102,7 +1126,7 @@ static BOOLEAN parseDNString( DN_STRING_INFO *dnStringInfo,
 	memset( dnStringInfo, 0,
 			sizeof( DN_STRING_INFO ) * ( MAX_DNSTRING_COMPONENTS + 1 ) );
 
-	/* Make sure there are no control characters in the string */
+	/* Make sure that there are no control characters in the string */
 	for( i = 0; i < stringLength; i++ )
 		if( ( string[ i ] & 0x7F ) < ' ' )
 			return( FALSE );
@@ -1125,7 +1149,7 @@ static BOOLEAN parseDNString( DN_STRING_INFO *dnStringInfo,
 			if( ch == '=' || ch == ',' || ch == '+' )
 				break;
 			}
-		if( i == stringPos || i == stringLength || \
+		if( i <= stringPos || i >= stringLength || \
 			string[ i ] == ',' || string[ i ] == '+' )
 			return( FALSE );	/* No text or no '=' or spurious ',' */
 		dnStringInfoPtr->label = string + stringPos;
@@ -1138,15 +1162,14 @@ static BOOLEAN parseDNString( DN_STRING_INFO *dnStringInfo,
 			 !( string[ i - 1 ] != '\\' && \
 				( string[ i ] == ',' || string[ i ] == '+' || \
 				  string[ i ] == '=' ) ); i++ );
-		if( i == stringPos || string[ i ] == '=' )
+		if( i <= stringPos || string[ i ] == '=' )
 			return( FALSE );	/* No text or spurious '=' */
 		dnStringInfoPtr->text = string + stringPos;
 		dnStringInfoPtr->textLen = i - stringPos;
 		dnStringInfoPtr->isContinued = ( i < stringLength && \
 										 string[ i ] == '+' ) ? TRUE : FALSE;
 		stringPos = i;			/* Skip text + optional ',' */
-		if( stringPos != stringLength && \
-			++stringPos == stringLength )
+		if( stringPos != stringLength && ++stringPos >= stringLength )
 			/* Trailing ',' */
 			return( FALSE );
 
@@ -1179,7 +1202,7 @@ static BOOLEAN parseDNString( DN_STRING_INFO *dnStringInfo,
 int readDNstring( const char *string, const int stringLength,
 				  void **dnComponentListHead )
 	{
-	DN_STRING_INFO dnStringInfo[ MAX_DNSTRING_COMPONENTS + 1 ];
+	DN_STRING_INFO dnStringInfo[ MAX_DNSTRING_COMPONENTS + 1 + 8 ];
 	DN_COMPONENT *dnComponentPtr;
 	int stringInfoIndex;
 
@@ -1188,21 +1211,25 @@ int readDNstring( const char *string, const int stringLength,
 	   it forwards to separate out the RDN components, then we move through
 	   the parsed information backwards adding it to the RDN (with special
 	   handling for multi-AVA RDNs as for writeDNstring()).  Overall this
-	   isn't so bad because it means we can perform a general firewall check
-	   to make sure the DN string is well-formed and then leave the encoding
-	   as a separate pass */
+	   isn't so bad because it means that we can perform a general firewall 
+	   check to make sure that the DN string is well-formed and then leave 
+	   the encoding as a separate pass */
 	if( !parseDNString( dnStringInfo, string, stringLength ) )
 		return( CRYPT_ARGERROR_STR1 );
 
 	/* Find the end of the DN components */
 	for( stringInfoIndex = 0;
-		 dnStringInfo[ stringInfoIndex + 1 ].label != NULL;
+		 dnStringInfo[ stringInfoIndex + 1 ].label != NULL && \
+			stringInfoIndex < MAX_DNSTRING_COMPONENTS;
 		 stringInfoIndex++ );
+	if( stringInfoIndex >= MAX_DNSTRING_COMPONENTS )
+		retIntError();
 
 	do
 		{
 		const DN_STRING_INFO *dnStringInfoPtr;
 		BOOLEAN isContinued;
+		int iterationCount = 0;
 
 		/* Find the start of the RDN */
 		while( stringInfoIndex > 0 && \
@@ -1213,12 +1240,15 @@ int readDNstring( const char *string, const int stringLength,
 		do
 			{
 			const DN_COMPONENT_INFO *dnComponentInfo = NULL;
-			BYTE textBuffer[ MAX_ATTRIBUTE_SIZE + 1 ];
+			BYTE textBuffer[ MAX_ATTRIBUTE_SIZE + 1 + 8 ];
 			CRYPT_ATTRIBUTE_TYPE type;
 			int i, textIndex = 0, status;
 
 			/* Look up the DN component information */
-			for( i = 0; certInfoOIDs[ i ].oid != NULL; i++ )
+			for( i = 0; certInfoOIDs[ i ].oid != NULL && \
+						i < FAILSAFE_ARRAYSIZE( certInfoOIDs, DN_COMPONENT_INFO ); 
+				 i++ )
+				{
 				if( ( strlen( certInfoOIDs[ i ].name ) == \
 										dnStringInfoPtr->labelLen && \
 					  !strCompare( certInfoOIDs[ i ].name, dnStringInfoPtr->label,
@@ -1232,6 +1262,9 @@ int readDNstring( const char *string, const int stringLength,
 					dnComponentInfo = &certInfoOIDs[ i ];
 					break;
 					}
+				}
+			if( i >= FAILSAFE_ARRAYSIZE( certInfoOIDs, DN_COMPONENT_INFO ) )
+				retIntError();
 			if( dnComponentInfo == NULL )
 				return( CRYPT_ARGERROR_STR1 );
 			type = ( dnComponentInfo->type != CRYPT_ATTRIBUTE_NONE ) ?
@@ -1282,7 +1315,9 @@ int readDNstring( const char *string, const int stringLength,
 			isContinued = dnStringInfoPtr->isContinued;
 			dnStringInfoPtr++;
 			}
-		while( isContinued );
+		while( isContinued && iterationCount++ < FAILSAFE_ITERATIONS_LARGE );
+		if( iterationCount >= FAILSAFE_ITERATIONS_LARGE )
+			retIntError();
 		}
 	while( --stringInfoIndex >= 0 );
 
@@ -1314,6 +1349,7 @@ int writeDNstring( STREAM *stream, const void *dnComponentListHead )
 		{
 		const DN_COMPONENT *dnComponentCursor;
 		BOOLEAN isContinued;
+		int iterationCount = 0;
 
 		/* Find the start of the RDN */
 		while( dnComponentPtr->prev != NULL && \
@@ -1352,7 +1388,9 @@ int writeDNstring( STREAM *stream, const void *dnComponentListHead )
 				dnComponentCursor = dnComponentCursor->next;
 				}
 			}
-		while( isContinued );
+		while( isContinued && iterationCount++ < FAILSAFE_ITERATIONS_MAX );
+		if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+			retIntError();
 
 		/* If there are more components to come, print an RDN separator */
 		if( dnComponentPtr != NULL )

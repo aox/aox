@@ -5,17 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "asn1.h"
   #include "asn1_ext.h"
-  #include "session.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
   #include "session.h"
 #else
   #include "crypt.h"
@@ -40,9 +33,9 @@ typedef enum {
    subfunctions that handle individual parts of the protocol */
 
 typedef struct {
-	/* State variable information.  The nonce is copied from the request to 
+	/* State variable information.  The nonce is copied from the request to
 	   the response to prevent replay attacks */
-	BYTE nonce[ CRYPT_MAX_HASHSIZE ];
+	BYTE nonce[ CRYPT_MAX_HASHSIZE + 8 ];
 	int nonceSize;
 	} RTCS_PROTOCOL_INFO;
 
@@ -54,10 +47,10 @@ typedef struct {
 
 /* Check for a valid-looking RTCS request/response header */
 
-static const FAR_BSS CMS_CONTENT_INFO oidInfoSignedData = { 0, 3 };
-static const FAR_BSS CMS_CONTENT_INFO oidInfoEnvelopedData = { 0, 3 };
+static const CMS_CONTENT_INFO FAR_BSS oidInfoSignedData = { 0, 3 };
+static const CMS_CONTENT_INFO FAR_BSS oidInfoEnvelopedData = { 0, 3 };
 
-static const FAR_BSS OID_INFO envelopeOIDinfo[] = {
+static const OID_INFO FAR_BSS envelopeOIDinfo[] = {
 	{ OID_CRYPTLIB_RTCSREQ, ACTION_UNWRAP },
 	{ OID_CRYPTLIB_RTCSRESP, ACTION_UNWRAP },
 	{ OID_CRYPTLIB_RTCSRESP_EXT, ACTION_UNWRAP },
@@ -94,28 +87,28 @@ static int checkRtcsHeader( const void *rtcsData, const int rtcsDataLength,
 
 static int sendClientRequest( SESSION_INFO *sessionInfoPtr )
 	{
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	/* Get the encoded request data and wrap it up for sending */
 	setMessageData( &msgData, sessionInfoPtr->receiveBuffer,
 					sessionInfoPtr->receiveBufSize );
 	status = krnlSendMessage( sessionInfoPtr->iCertRequest,
-							  IMESSAGE_CRT_EXPORT, &msgData, 
+							  IMESSAGE_CRT_EXPORT, &msgData,
 							  CRYPT_ICERTFORMAT_DATA );
 	if( cryptStatusError( status ) )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Couldn't get RTCS request data from RTCS request object" );
 	status = envelopeWrap( sessionInfoPtr->receiveBuffer, msgData.length,
-						   sessionInfoPtr->receiveBuffer, 
-						   &sessionInfoPtr->receiveBufEnd, 
-						   sessionInfoPtr->receiveBufSize, 
-						   CRYPT_FORMAT_CMS, CRYPT_CONTENT_RTCSREQUEST, 
+						   sessionInfoPtr->receiveBuffer,
+						   &sessionInfoPtr->receiveBufEnd,
+						   sessionInfoPtr->receiveBufSize,
+						   CRYPT_FORMAT_CMS, CRYPT_CONTENT_RTCSREQUEST,
 						   CRYPT_UNUSED );
 	if( cryptStatusError( status ) )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Couldn't CMS wrap RTCS request data" );
-	DEBUG_DUMP( "rtcs_req", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "rtcs_req", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
 
 	/* Send the request to the responder */
@@ -128,51 +121,51 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 	{
 	CRYPT_CERTIFICATE iCmsAttributes;
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	ACTION_TYPE actionType;
-	BYTE nonceBuffer[ CRYPT_MAX_HASHSIZE ];
+	BYTE nonceBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
 	int dataLength, sigResult, status;
 
 	/* Read the response from the responder */
 	status = readPkiDatagram( sessionInfoPtr );
 	if( cryptStatusError( status ) )
 		return( status );
-	DEBUG_DUMP( "rtcs_resp", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "rtcs_resp", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
-	status = checkRtcsHeader( sessionInfoPtr->receiveBuffer, 
+	status = checkRtcsHeader( sessionInfoPtr->receiveBuffer,
 							  sessionInfoPtr->receiveBufEnd, &actionType );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status, "Invalid RTCS response header" );
 	if( actionType != ACTION_SIGN )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Unexpected RTCS encapsulation type %d", actionType );
 
 	/* Sig.check the data using the responder's key */
-	status = envelopeSigCheck( sessionInfoPtr->receiveBuffer, 
+	status = envelopeSigCheck( sessionInfoPtr->receiveBuffer,
 							   sessionInfoPtr->receiveBufEnd,
-							   sessionInfoPtr->receiveBuffer, &dataLength, 
-							   sessionInfoPtr->receiveBufSize, 
-							   CRYPT_UNUSED, &sigResult, NULL, 
+							   sessionInfoPtr->receiveBuffer, &dataLength,
+							   sessionInfoPtr->receiveBufSize,
+							   CRYPT_UNUSED, &sigResult, NULL,
 							   &iCmsAttributes );
 	if( cryptStatusError( status ) )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Invalid RTCS response data (CMS enveloped data)" );
 
-	/* Make sure that the nonce in the response matches the one in the 
+	/* Make sure that the nonce in the response matches the one in the
 	   request */
 	setMessageData( &msgData, nonceBuffer, CRYPT_MAX_HASHSIZE );
-	status = krnlSendMessage( iCmsAttributes, IMESSAGE_GETATTRIBUTE_S, 
+	status = krnlSendMessage( iCmsAttributes, IMESSAGE_GETATTRIBUTE_S,
 							  &msgData, CRYPT_CERTINFO_CMS_NONCE );
 	krnlSendNotifier( iCmsAttributes, IMESSAGE_DECREFCOUNT );
 	if( cryptStatusOK( status ) )
 		{
-		RESOURCE_DATA responseMsgData;
-		BYTE responseNonceBuffer[ CRYPT_MAX_HASHSIZE ];
+		MESSAGE_DATA responseMsgData;
+		BYTE responseNonceBuffer[ CRYPT_MAX_HASHSIZE + 8 ];
 
 		setMessageData( &responseMsgData, responseNonceBuffer,
 						CRYPT_MAX_HASHSIZE );
-		status = krnlSendMessage( sessionInfoPtr->iCertRequest, 
-								  IMESSAGE_GETATTRIBUTE_S, &responseMsgData, 
+		status = krnlSendMessage( sessionInfoPtr->iCertRequest,
+								  IMESSAGE_GETATTRIBUTE_S, &responseMsgData,
 								  CRYPT_CERTINFO_CMS_NONCE );
 		if( cryptStatusOK( status ) && \
 			( msgData.length < 4 || \
@@ -184,10 +177,10 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 	sessionInfoPtr->iCertRequest = CRYPT_ERROR;
 	if( cryptStatusError( status ) )
 		/* The response doesn't contain a nonce or it doesn't match what
-		   we sent, we can't trust it.  The best error that we can return 
+		   we sent, we can't trust it.  The best error that we can return
 		   here is a signature error to indicate that the integrity check
 		   failed */
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				( status != CRYPT_ERROR_SIGNATURE ) ? \
 				"RTCS response doesn't contain a nonce" : \
 				"RTCS response nonce doesn't match the one in the request" );
@@ -218,34 +211,34 @@ static int readClientRequest( SESSION_INFO *sessionInfoPtr,
 							  RTCS_PROTOCOL_INFO *protocolInfo )
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	ACTION_TYPE actionType;
 	int dataLength, status;
 
 	/* Read the request data from the client.  We don't write an error
-	   response at this initial stage to prevent scanning/DOS attacks 
+	   response at this initial stage to prevent scanning/DOS attacks
 	   (vir sapit qui pauca loquitur) */
 	status = readPkiDatagram( sessionInfoPtr );
 	if( cryptStatusError( status ) )
 		return( status );
-	DEBUG_DUMP( "rtcs_sreq", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "rtcs_sreq", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
-	status = checkRtcsHeader( sessionInfoPtr->receiveBuffer, 
+	status = checkRtcsHeader( sessionInfoPtr->receiveBuffer,
 							  sessionInfoPtr->receiveBufEnd, &actionType );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status, "Invalid RTCS request header" );
 	if( actionType != ACTION_UNWRAP )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Unexpected RTCS encapsulation type %d", actionType );
-	status = envelopeUnwrap( sessionInfoPtr->receiveBuffer, 
+	status = envelopeUnwrap( sessionInfoPtr->receiveBuffer,
 							 sessionInfoPtr->receiveBufEnd,
-							 sessionInfoPtr->receiveBuffer, &dataLength, 
+							 sessionInfoPtr->receiveBuffer, &dataLength,
 							 sessionInfoPtr->receiveBufSize, CRYPT_UNUSED );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status,
 				"Invalid RTCS request data (CMS enveloped data)" );
 
-	/* Create an RTCS response.  We always create this since an empty 
+	/* Create an RTCS response.  We always create this since an empty
 	   response is sent to indicate an error condition */
 	setMessageCreateObjectInfo( &createInfo, CRYPT_CERTTYPE_RTCS_RESPONSE );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_CREATEOBJECT,
@@ -265,20 +258,20 @@ static int readClientRequest( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status, "Invalid RTCS request contents" );
 	setMessageData( &msgData, protocolInfo->nonce, CRYPT_MAX_HASHSIZE );
-	status = krnlSendMessage( createInfo.cryptHandle, 
-							  IMESSAGE_GETATTRIBUTE_S, &msgData, 
+	status = krnlSendMessage( createInfo.cryptHandle,
+							  IMESSAGE_GETATTRIBUTE_S, &msgData,
 							  CRYPT_CERTINFO_CMS_NONCE );
 	if( cryptStatusOK( status ) )
 		protocolInfo->nonceSize = msgData.length;
 
 	/* Create an RTCS response and add the request information to it */
 	status = krnlSendMessage( sessionInfoPtr->iCertResponse,
-							  IMESSAGE_SETATTRIBUTE, 
+							  IMESSAGE_SETATTRIBUTE,
 							  &createInfo.cryptHandle,
 							  CRYPT_IATTRIBUTE_RTCSREQUEST );
 	krnlSendNotifier( createInfo.cryptHandle, IMESSAGE_DECREFCOUNT );
 	if( cryptStatusError( status ) )
-		retExt( sessionInfoPtr, status, 
+		retExt( sessionInfoPtr, status,
 				"Couldn't create RTCS response from request" );
 	return( CRYPT_OK );
 	}
@@ -289,7 +282,7 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr,
 							   RTCS_PROTOCOL_INFO *protocolInfo )
 	{
 	CRYPT_CERTIFICATE iCmsAttributes = CRYPT_UNUSED;
-	RESOURCE_DATA msgData;
+	MESSAGE_DATA msgData;
 	int status;
 
 	/* Check the entries from the request against the cert store and sign
@@ -308,7 +301,7 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr,
 		{
 		MESSAGE_CREATEOBJECT_INFO createInfo;
 
-		setMessageCreateObjectInfo( &createInfo, 
+		setMessageCreateObjectInfo( &createInfo,
 									CRYPT_CERTTYPE_CMS_ATTRIBUTES );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
 								  IMESSAGE_DEV_CREATEOBJECT,
@@ -316,9 +309,9 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr,
 		if( cryptStatusError( status ) )
 			return( status );
 		iCmsAttributes = createInfo.cryptHandle;
-		setMessageData( &msgData, protocolInfo->nonce, 
+		setMessageData( &msgData, protocolInfo->nonce,
 						protocolInfo->nonceSize );
-		status = krnlSendMessage( iCmsAttributes, IMESSAGE_SETATTRIBUTE_S, 
+		status = krnlSendMessage( iCmsAttributes, IMESSAGE_SETATTRIBUTE_S,
 								  &msgData, CRYPT_CERTINFO_CMS_NONCE );
 		if( cryptStatusError( status ) )
 			{
@@ -327,18 +320,18 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr,
 			}
 		}
 
-	/* Sign the response data using the responder's key and send it to the 
+	/* Sign the response data using the responder's key and send it to the
 	   client */
 	setMessageData( &msgData, sessionInfoPtr->receiveBuffer,
 					sessionInfoPtr->receiveBufSize );
 	status = krnlSendMessage( sessionInfoPtr->iCertResponse,
-							  IMESSAGE_CRT_EXPORT, &msgData, 
+							  IMESSAGE_CRT_EXPORT, &msgData,
 							  CRYPT_ICERTFORMAT_DATA );
 	if( cryptStatusOK( status ) )
 		status = envelopeSign( sessionInfoPtr->receiveBuffer, msgData.length,
-							   sessionInfoPtr->receiveBuffer, 
-							   &sessionInfoPtr->receiveBufEnd, 
-							   sessionInfoPtr->receiveBufSize, 
+							   sessionInfoPtr->receiveBuffer,
+							   &sessionInfoPtr->receiveBufEnd,
+							   sessionInfoPtr->receiveBufSize,
 							   CRYPT_CONTENT_RTCSRESPONSE,
 							   sessionInfoPtr->privateKey, iCmsAttributes );
 	if( iCmsAttributes != CRYPT_UNUSED )
@@ -346,7 +339,7 @@ static int sendServerResponse( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status,
 				"Couldn't create RTCS response (CMS enveloped data)" );
-	DEBUG_DUMP( "rtcs_sresp", sessionInfoPtr->receiveBuffer, 
+	DEBUG_DUMP( "rtcs_sresp", sessionInfoPtr->receiveBuffer,
 				sessionInfoPtr->receiveBufEnd );
 	return( writePkiDatagram( sessionInfoPtr ) );
 	}
@@ -394,18 +387,18 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 								 const CRYPT_ATTRIBUTE_TYPE type )
 	{
 	const CRYPT_CERTIFICATE rtcsRequest = *( ( CRYPT_CERTIFICATE * ) data );
-	RESOURCE_DATA msgData = { NULL, 0 };
+	MESSAGE_DATA msgData = { NULL, 0 };
 	int status;
 
 	assert( type == CRYPT_SESSINFO_REQUEST );
 
 	/* Make sure that everything is set up ready to go.  Since RTCS requests
-	   aren't signed like normal cert objects, we can't just check the 
-	   immutable attribute but have to perform a dummy export for which the 
-	   cert export code will return an error status if there's a problem 
-	   with the request.  If not, it pseudo-signs the request (if it hasn't 
+	   aren't signed like normal cert objects, we can't just check the
+	   immutable attribute but have to perform a dummy export for which the
+	   cert export code will return an error status if there's a problem
+	   with the request.  If not, it pseudo-signs the request (if it hasn't
 	   already done so) and prepares it for use */
-	status = krnlSendMessage( rtcsRequest, IMESSAGE_CRT_EXPORT, &msgData, 
+	status = krnlSendMessage( rtcsRequest, IMESSAGE_CRT_EXPORT, &msgData,
 							  CRYPT_ICERTFORMAT_DATA );
 	if( cryptStatusError( status ) )
 		return( CRYPT_ARGERROR_NUM1 );
@@ -415,14 +408,14 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 	if( findSessionAttribute( sessionInfoPtr->attributeList,
 							  CRYPT_SESSINFO_SERVER_NAME ) == NULL )
 		{
-		char buffer[ MAX_URL_SIZE ];
+		char buffer[ MAX_URL_SIZE + 8 ];
 
 		setMessageData( &msgData, buffer, MAX_URL_SIZE );
 		status = krnlSendMessage( rtcsRequest, IMESSAGE_GETATTRIBUTE_S,
 								  &msgData, CRYPT_IATTRIBUTE_RESPONDERURL );
 		if( cryptStatusOK( status ) )
-			krnlSendMessage( sessionInfoPtr->objectHandle, 
-							 IMESSAGE_SETATTRIBUTE_S, &msgData, 
+			krnlSendMessage( sessionInfoPtr->objectHandle,
+							 IMESSAGE_SETATTRIBUTE_S, &msgData,
 							 CRYPT_SESSINFO_SERVER_NAME );
 		}
 
@@ -456,13 +449,13 @@ int setAccessMethodRTCS( SESSION_INFO *sessionInfoPtr )
 		1, 1, 1,					/* Version 1 */
 		"application/rtcs-request",	/* Client content-type */
 		"application/rtcs-response",/* Server content-type */
-	
+
 		/* Protocol-specific information */
 		};
 
 	/* Set the access method pointers */
 	sessionInfoPtr->protocolInfo = &protocolInfo;
-	if( sessionInfoPtr->flags & SESSION_ISSERVER )
+	if( isServer( sessionInfoPtr ) )
 		sessionInfoPtr->transactFunction = serverTransact;
 	else
 		sessionInfoPtr->transactFunction = clientTransact;

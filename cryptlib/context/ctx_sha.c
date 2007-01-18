@@ -5,15 +5,10 @@
 *																			*
 ****************************************************************************/
 
-#include <stdlib.h>
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
   #include "sha.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "context.h"
-  #include "../crypt/sha.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
@@ -28,18 +23,19 @@
 *																			*
 ****************************************************************************/
 
-/* Test the SHA output against the test vectors given in FIPS 180-1.  We skip 
-   the third test since this takes several seconds to execute, which leads to 
+/* Test the SHA output against the test vectors given in FIPS 180-1.  We skip
+   the third test since this takes several seconds to execute, which leads to
    an unacceptable delay */
 
-void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-					const int length, const HASH_STATE hashState );
+void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+					const int outBufMaxLength, const BYTE *inBuffer, 
+					const int inLength, const HASH_STATE hashState );
 
-static const FAR_BSS struct {
-	const char *data;						/* Data to hash */
+static const struct {
+	const char FAR_BSS *data;				/* Data to hash */
 	const int length;						/* Length of data */
 	const BYTE digest[ SHA_DIGEST_LENGTH ];	/* Digest of data */
-	} digestValues[] = {
+	} FAR_BSS digestValues[] = {
 	{ "abc", 3,
 	  { 0xA9, 0x99, 0x3E, 0x36, 0x47, 0x06, 0x81, 0x6A,
 		0xBA, 0x3E, 0x25, 0x71, 0x78, 0x50, 0xC2, 0x6C,
@@ -60,7 +56,7 @@ static int selfTest( void )
 	const CAPABILITY_INFO *capabilityInfo = getSHA1Capability();
 	CONTEXT_INFO contextInfo;
 	HASH_INFO contextData;
-	BYTE keyData[ HASH_STATE_SIZE ];
+	BYTE keyData[ HASH_STATE_SIZE + 8 ];
 	int i, status;
 
 	/* Test SHA-1 against values given in FIPS 180-1 */
@@ -68,14 +64,14 @@ static int selfTest( void )
 		{
 		staticInitContext( &contextInfo, CONTEXT_HASH, capabilityInfo,
 						   &contextData, sizeof( HASH_INFO ), keyData );
-		status = capabilityInfo->encryptFunction( &contextInfo, 
-							( BYTE * ) digestValues[ i ].data, 
+		status = capabilityInfo->encryptFunction( &contextInfo,
+							( BYTE * ) digestValues[ i ].data,
 							digestValues[ i ].length );
 		contextInfo.flags |= CONTEXT_HASH_INITED;
 		if( cryptStatusOK( status ) )
 			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
 		if( cryptStatusOK( status ) && \
-			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest,
 					SHA_DIGEST_LENGTH ) )
 			status = CRYPT_ERROR;
 		staticDestroyContext( &contextInfo );
@@ -94,7 +90,7 @@ static int selfTest( void )
 
 /* Return context subtype-specific information */
 
-static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
 					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
@@ -115,7 +111,7 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	SHA_CTX *shaInfo = ( SHA_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
-	/* If the hash state was reset to allow another round of hashing, 
+	/* If the hash state was reset to allow another round of hashing,
 	   reinitialise things */
 	if( !( contextInfoPtr->flags & CONTEXT_HASH_INITED ) )
 		SHA1_Init( shaInfo );
@@ -131,13 +127,21 @@ static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 /* Internal API: Hash a single block of memory without the overhead of
    creating an encryption context.  This always uses SHA1 */
 
-void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
-					const int length, const HASH_STATE hashState )
+void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer, 
+					const int outBufMaxLength, const BYTE *inBuffer, 
+					const int inLength, const HASH_STATE hashState )
 	{
 	SHA_CTX *shaInfo = ( SHA_CTX * ) hashInfo;
 
-	assert( hashState == HASH_ALL || hashInfo != NULL );
-	assert( inBuffer == NULL || isReadPtr( inBuffer, length ) );
+	assert( ( hashState == HASH_ALL && hashInfo == NULL ) || \
+			( hashState != HASH_ALL && \
+			  isWritePtr( hashInfo, sizeof( HASHINFO ) ) ) );
+	assert( ( ( hashState != HASH_END && hashState != HASH_ALL ) && \
+			  outBuffer == NULL && outBufMaxLength == 0 ) || \
+			( ( hashState == HASH_END || hashState == HASH_ALL ) && \
+			  isWritePtr( outBuffer, outBufMaxLength ) && \
+			  outBufMaxLength >= 20 ) );
+	assert( inBuffer == NULL || isReadPtr( inBuffer, inLength ) );
 
 	switch( hashState )
 		{
@@ -146,21 +150,21 @@ void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 			/* Drop through */
 
 		case HASH_CONTINUE:
-			SHA1_Update( shaInfo, ( BYTE * ) inBuffer, length );
+			SHA1_Update( shaInfo, ( BYTE * ) inBuffer, inLength );
 			break;
 
 		case HASH_END:
 			if( inBuffer != NULL )
-				SHA1_Update( shaInfo, ( BYTE * ) inBuffer, length );
+				SHA1_Update( shaInfo, ( BYTE * ) inBuffer, inLength );
 			SHA1_Final( outBuffer, shaInfo );
 			break;
-			
+
 		case HASH_ALL:
 			{
 			SHA_CTX shaInfoBuffer;
 
 			SHA1_Init( &shaInfoBuffer );
-			SHA1_Update( &shaInfoBuffer, ( BYTE * ) inBuffer, length );
+			SHA1_Update( &shaInfoBuffer, ( BYTE * ) inBuffer, inLength );
 			SHA1_Final( outBuffer, &shaInfoBuffer );
 			zeroise( &shaInfoBuffer, sizeof( SHA_CTX ) );
 			break;

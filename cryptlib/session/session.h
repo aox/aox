@@ -12,8 +12,6 @@
 #ifndef _STREAM_DEFINED
   #if defined( INC_ALL )
 	#include "stream.h"
-  #elif defined( INC_CHILD )
-	#include "../io/stream.h"
   #else
 	#include "io/stream.h"
   #endif /* Compiler-specific includes */
@@ -39,6 +37,10 @@
 			which means that no more data can be sent to it.  This does not 
 			however mean that no more data can be received on our receive 
 			channel.
+
+	SESSION_ISCLOSINGDOWN: The session is in the shutdown stage, if further
+			requests from the remote system arrive they should be NACK'd or
+			ignored.
 
 	SESSION_NOREPORTERROR: Don't update the extended error information if
 			an error occurs, since this has already been set.  This is
@@ -69,19 +71,20 @@
 			HTTP proxy.  In other words if CRYPT_OPTION_NET_HTTP_PROXY is
 			set, the protocol talks through an HTTP proxy rather than a
 			direct connection */
-
+	
 #define SESSION_NONE				0x0000	/* No session flags */
 #define SESSION_ISOPEN				0x0001	/* Session is active */
 #define SESSION_PARTIALOPEN			0x0002	/* Session is partially active */
 #define SESSION_SENDCLOSED			0x0004	/* Send channel is closed */
-#define SESSION_NOREPORTERROR		0x0008	/* Don't report network-level errors */
-#define SESSION_ISSERVER			0x0010	/* Session is server session */
-#define SESSION_ISSECURE_READ		0x0020	/* Session read ch.in secure state */
-#define SESSION_ISSECURE_WRITE		0x0040	/* Session write ch.in secure state */
-#define SESSION_ISCRYPTLIB			0x0080	/* Peer is running cryptlib */
-#define SESSION_ISHTTPTRANSPORT		0x0100	/* Session using HTTP transport */
-#define SESSION_USEHTTPTUNNEL		0x0200	/* Session uses HTTP tunnel */
-#define SESSION_USEALTTRANSPORT		0x0400	/* Use alternative to HTTP xport */
+#define SESSION_ISCLOSINGDOWN		0x0008	/* Session is in process of shutdown */
+#define SESSION_NOREPORTERROR		0x0010	/* Don't report network-level errors */
+#define SESSION_ISSERVER			0x0020	/* Session is server session */
+#define SESSION_ISSECURE_READ		0x0040	/* Session read ch.in secure state */
+#define SESSION_ISSECURE_WRITE		0x0080	/* Session write ch.in secure state */
+#define SESSION_ISCRYPTLIB			0x0100	/* Peer is running cryptlib */
+#define SESSION_ISHTTPTRANSPORT		0x0200	/* Session using HTTP transport */
+#define SESSION_USEHTTPTUNNEL		0x0400	/* Session uses HTTP tunnel */
+#define SESSION_USEALTTRANSPORT		0x0800	/* Use alternative to HTTP xport */
 
 /* Needed-information flags used by protocol-specific handlers to indicate
    that the caller must set the given attributes in the session information
@@ -104,7 +107,6 @@
 #define SESSION_NEEDS_REQUEST		0x0100	/* Must have request obj.*/
 #define SESSION_NEEDS_KEYSET		0x0200	/* Must have cert keyset */
 #define SESSION_NEEDS_CERTSTORE		0x0400	/* Keyset must be cert store */
-#define SESSION_NEEDS_CERTSOURCE	0x0800	/* Keyset must be R/O non-certstore */
 
 /* When reading packets for a secure session protocol, we need to 
    communicate read state information which is more complex than the usual 
@@ -216,7 +218,7 @@ typedef int ( *ATTRACCESSFUNCTION )( struct AL *attributeListPtr,
 
 typedef struct AL {
 	/* Identification and other information for this attribute */
-	CRYPT_ATTRIBUTE_TYPE attribute;		/* Attribute type */
+	CRYPT_ATTRIBUTE_TYPE groupID, attributeID;	/* Attribute group and type */
 	ATTRACCESSFUNCTION accessFunction;	/* Internal attribute access fn.*/
 	int flags;							/* Attribute data flags */
 
@@ -234,6 +236,22 @@ typedef struct AL {
 	/* Variable-length storage for the attribute data */
 	DECLARE_VARSTRUCT_VARS;
 	} ATTRIBUTE_LIST;
+
+/* Scoreboard information */
+
+typedef struct {
+	/* Scoreboard index and data storage, and the total number of entries in
+	   the scoreboard */
+	void *index, *data;			/* Scoreboard index and data */
+	int size;					/* Scoreboard total size */
+
+	/* The last used entry in the scoreboard, and a unique ID for each 
+	   scoreboard entry.  This is incremented for each index entry added,
+	   so even if an entry is deleted and then another one with the same
+	   index value added, the uniqueID for the two will be different */
+	int lastEntry;				/* Last used entry in scoreboard */
+	int uniqueID;				/* Unique ID for scoreboard entry */
+	} SCOREBOARD_INFO;
 
 /* Deferred response information.  When we get a request, we may be in the 
    middle of assembling or sending a data packet, so the response has to be 
@@ -267,6 +285,9 @@ typedef struct {
 	   means that recovering it from swap afterwards isn't a problem */
 	BYTE macReadSecret[ CRYPT_MAX_HASHSIZE ];
 	BYTE macWriteSecret[ CRYPT_MAX_HASHSIZE ];
+
+	/* The session scoreboard, used for the SSL session cache */
+	SCOREBOARD_INFO scoreboardInfo;		/* Session scoreboard */
 	} SSL_INFO;
 
 typedef struct {
@@ -423,8 +444,12 @@ typedef struct SI {
 	CRYPT_KEYSET cryptKeyset;			/* Certificate store */
 	CRYPT_HANDLE privKeyset;			/* Private-key keyset/device */
 
-	/* Session-related attributes such as username and password */
+	/* Session-related attributes, a current-position cursor in the 
+	   attribute list, and the ID of the last attribute added, used to
+	   handle the addition of elements of attribute groups such as 
+	   username+password */
 	ATTRIBUTE_LIST *attributeList, *attributeListCurrent;
+	CRYPT_ATTRIBUTE_TYPE lastAddedAttributeID;
 
 	/* Network connection information.  The reason why the client and server
 	   info require separate storage is that (on the server) we may be 
@@ -440,7 +465,7 @@ typedef struct SI {
 	/* Last-error information.  To help developers in debugging, we store
 	   the error code and error text (if available) */
 	int errorCode;
-	char errorMessage[ MAX_ERRMSG_SIZE + 1 ];
+	char errorMessage[ MAX_ERRMSG_SIZE + 8 ];
 
 	/* Pointers to session access methods.  Stateful sessions use the read/
 	   write functions, stateless ones use the transact function */
@@ -482,10 +507,9 @@ typedef struct SI {
 ****************************************************************************/
 
 /* Prototypes for utility functions in cryptses.c.  retExt() returns after 
-   setting extended error information for the session.  We use a macro to 
-   make it match the standard return statement, the slightly unusual form is 
-   required to handle the fact that the helper function is a varargs 
-   function.
+   setting extended error information for the session.  If the compiler
+   doesn't support varargs macros then we have to use a macro set up to make 
+   it match the standard return statement.
    
    In addition to the standard retExt() we also have an extended-form version
    of the function that takes an additional parameter, a handle to an object
@@ -493,35 +517,94 @@ typedef struct SI {
    example) an operation references a keyset, where the keyset also contains
    extended error information */
 
-int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status, 
-					 const char *format, ... );
-#define retExt	return retExtFnSession
+#if defined( USE_ERRMSGS ) || !defined( VARARGS_MACROS )
+  int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status, 
+					   const char *format, ... ) PRINTF_FN;
+  int retExtExFnSession( SESSION_INFO *sessionInfoPtr, 
+						 const int status, const CRYPT_HANDLE extErrorObject, 
+						 const char *format, ... ) PRINTF_FN_EX;
 
-int retExtExFnSession( SESSION_INFO *sessionInfoPtr, 
-					   const int status, const CRYPT_HANDLE extErrorObject, 
-					   const char *format, ... );
-#define retExtEx	return retExtExFnSession
+  #define retExt		return retExtFnSession
+  #define retExtEx		return retExtExFnSession
+#else
+  int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status );
+  int retExtExFnSession( SESSION_INFO *sessionInfoPtr, const int status );
+
+  #define retExt( stream, status, format, ... ) \
+		  return( retExtFnSession( stream, status ) )
+  #define retExtEx( stream, status, extErrorObject, format, ... ) \
+		  return( retExtFnSession( stream, status ) )
+#endif /* USE_ERRMSGS */
+
+/* Macros to make handling of error reporting on shutdown a bit more 
+   obvious */
+
+#define disableErrorReporting( sessionInfoPtr )	\
+		( sessionInfoPtr )->flags |= SESSION_NOREPORTERROR
+#define enableErrorReporting( sessionInfoPtr )	\
+		( sessionInfoPtr )->flags &= ~SESSION_NOREPORTERROR
+
+/* The SESSION_ISSERVER flag is checked so often that we define a macro to 
+   handle it */
+
+#define isServer( sessionInfoPtr ) \
+		( sessionInfoPtr->flags & SESSION_ISSERVER )
 
 /* Session attribute management functions */
 
 int addSessionAttribute( ATTRIBUTE_LIST **listHeadPtr,
-						 const CRYPT_ATTRIBUTE_TYPE attributeType,
+						 const CRYPT_ATTRIBUTE_TYPE attributeID,
 						 const void *data, const int dataLength );
 int addSessionAttributeEx( ATTRIBUTE_LIST **listHeadPtr,
-						   const CRYPT_ATTRIBUTE_TYPE attributeType,
-						   const void *data, const int dataLength,
-						   const ATTRACCESSFUNCTION accessFunction, 
+						   const CRYPT_ATTRIBUTE_TYPE attributeID,
+						   const void *data, const int dataLength, 
 						   const int flags );
+int addSessionAttributeComposite( ATTRIBUTE_LIST **listHeadPtr,
+								  const CRYPT_ATTRIBUTE_TYPE attributeID,
+								  const ATTRACCESSFUNCTION accessFunction, 
+								  const void *data, const int dataLength,
+								  const int flags );
 int updateSessionAttribute( ATTRIBUTE_LIST **listHeadPtr,
 							const CRYPT_ATTRIBUTE_TYPE attributeType,
 							const void *data, const int dataLength,
 							const int dataMaxLength, const int flags );
+int getSessionAttributeCursor( ATTRIBUTE_LIST *attributeListHead,
+							   ATTRIBUTE_LIST *attributeListCursor, 
+							   const CRYPT_ATTRIBUTE_TYPE sessionInfoType,
+							   int *valuePtr );
+int setSessionAttributeCursor( ATTRIBUTE_LIST *attributeListHead,
+							   ATTRIBUTE_LIST **attributeListCursorPtr, 
+							   const CRYPT_ATTRIBUTE_TYPE sessionInfoType,
+							   const int position );
 const ATTRIBUTE_LIST *findSessionAttribute( const ATTRIBUTE_LIST *attributeListPtr,
-											const CRYPT_ATTRIBUTE_TYPE attributeType );
+								const CRYPT_ATTRIBUTE_TYPE attributeType );
+const ATTRIBUTE_LIST *findSessionAttributeEx( const ATTRIBUTE_LIST *attributeListPtr,
+								const CRYPT_ATTRIBUTE_TYPE attributeType,
+								const void *value, const int valueLength );
 void resetSessionAttribute( ATTRIBUTE_LIST *attributeListPtr,
 							const CRYPT_ATTRIBUTE_TYPE attributeType );
 void deleteSessionAttribute( ATTRIBUTE_LIST **attributeListHead,
+							 ATTRIBUTE_LIST **attributeListCurrent,
 							 ATTRIBUTE_LIST *attributeListPtr );
+void deleteSessionAttributes( ATTRIBUTE_LIST **attributeListHead,
+							  ATTRIBUTE_LIST **attributeListCurrent );
+CRYPT_ATTRIBUTE_TYPE checkMissingInfo( const ATTRIBUTE_LIST *attributeListHead,
+									   const BOOLEAN isServer );
+
+/* Session scoreboard management functions */
+
+int findScoreboardEntry( SCOREBOARD_INFO *scoreboardInfo,
+						 const void *sessionID, const int sessionIDlength,
+						 void *masterSecret, int *masterSecretLength );
+int findScoreboardEntryID( SCOREBOARD_INFO *scoreboardInfo,
+						   const void *sessionID, const int sessionIDlength );
+int addScoreboardEntry( SCOREBOARD_INFO *scoreboardInfo,
+						const void *sessionID, const int sessionIDlength, 
+						const void *masterSecret, 
+						const int masterSecretLength, 
+						const BOOLEAN isFixedEntry );
+void deleteScoreboardEntry( SCOREBOARD_INFO *scoreboardInfo, 
+							const int uniqueID );
 
 /* Prototypes for functions in session.c */
 
@@ -566,19 +649,20 @@ int sendCloseNotification( SESSION_INFO *sessionInfoPtr,
 #else
   #define setAccessMethodSCEP( x )	CRYPT_ARGERROR_NUM1
 #endif /* USE_SCEP */
-#if defined( USE_SSH1 ) || defined( USE_SSH2 )
+#if defined( USE_SSH ) || defined( USE_SSH1 )
   int setAccessMethodSSH( SESSION_INFO *sessionInfoPtr );
 #else
   #define setAccessMethodSSH( x )	CRYPT_ARGERROR_NUM1
-#endif /* USE_SSH1 || USE_SSH2 */
+#endif /* USE_SSH || USE_SSH1 */
 #ifdef USE_SSL
   int setAccessMethodSSL( SESSION_INFO *sessionInfoPtr );
-  int initSessionCache( void );
-  void endSessionCache( void );
+  int initScoreboard( SCOREBOARD_INFO *scoreboardInfo,
+					  const int scoreboardSize );
+  void endScoreboard( SCOREBOARD_INFO *scoreboardInfo );
 #else
   #define setAccessMethodSSL( x )	CRYPT_ARGERROR_NUM1
-  #define initSessionCache()		CRYPT_OK
-  #define endSessionCache()
+  #define initScoreboard( scoreboardInfo, scoreboardSize )	CRYPT_OK
+  #define endScoreboard( scoreboardInfo )
 #endif /* USE_SSL */
 #ifdef USE_TSP
   int setAccessMethodTSP( SESSION_INFO *sessionInfoPtr );

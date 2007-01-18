@@ -1,32 +1,24 @@
 /****************************************************************************
 *																			*
 *						Public/Private Key Read Routines					*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2006					*
 *																			*
 ****************************************************************************/
 
-#include <ctype.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#define PKC_CONTEXT		/* Indicate that we're working with PKC context */
 #if defined( INC_ALL )
   #include "context.h"
-  #include "pgp.h"
   #include "asn1.h"
   #include "asn1_ext.h"
   #include "misc_rw.h"
-#elif defined( INC_CHILD )
-  #include "context.h"
-  #include "../envelope/pgp.h"
-  #include "../misc/asn1.h"
-  #include "../misc/asn1_ext.h"
-  #include "../misc/misc_rw.h"
+  #include "pgp.h"
 #else
   #include "context/context.h"
-  #include "envelope/pgp.h"
   #include "misc/asn1.h"
   #include "misc/asn1_ext.h"
   #include "misc/misc_rw.h"
+  #include "misc/pgp.h"
 #endif /* Compiler-specific includes */
 
 /* Although there is a fair amount of commonality between public and private-
@@ -58,6 +50,8 @@
 		( ( cryptAlgo ) == CRYPT_ALGO_DH || \
 		  ( cryptAlgo ) == CRYPT_ALGO_ELGAMAL )
 
+#ifdef USE_PKC
+
 /****************************************************************************
 *																			*
 *								Utility Routines							*
@@ -74,23 +68,29 @@
    potential key ID clashes */
 
 static void calculateFlatKeyID( const void *keyInfo, const int keyInfoSize,
-								BYTE *keyID )
+								BYTE *keyID, const int keyIdMaxLen )
 	{
 	HASHFUNCTION hashFunction;
 
+	assert( isReadPtr( keyInfo, keyInfoSize ) );
+	assert( isWritePtr( keyID, CRYPT_MAX_HASHSIZE ) );
+
 	/* Hash the key info to get the key ID */
 	getHashParameters( CRYPT_ALGO_SHA, &hashFunction, NULL );
-	hashFunction( NULL, keyID, ( BYTE * ) keyInfo, keyInfoSize, HASH_ALL );
+	hashFunction( NULL, keyID, keyIdMaxLen, ( BYTE * ) keyInfo, keyInfoSize, 
+				  HASH_ALL );
 	}
 
-int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
+static int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
 	{
 	PKC_INFO *publicKey = contextInfoPtr->ctxPKC;
 	STREAM stream;
-	BYTE buffer[ ( CRYPT_MAX_PKCSIZE * 4 ) + 50 ];
+	BYTE buffer[ ( CRYPT_MAX_PKCSIZE * 4 ) + 50 + 8 ];
 	const CRYPT_ALGO_TYPE cryptAlgo = contextInfoPtr->capabilityInfo->cryptAlgo;
 	int status;
 
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC );
 	assert( publicKey->writePublicKeyFunction != NULL );
 
 	/* If the public key info is present in pre-encoded form, calculate the
@@ -100,7 +100,8 @@ int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
 		int length;
 
 		calculateFlatKeyID( publicKey->publicKeyInfo, 
-							publicKey->publicKeyInfoSize, publicKey->keyID );
+							publicKey->publicKeyInfoSize, 
+							publicKey->keyID, KEYID_SIZE );
 		if( cryptAlgo != CRYPT_ALGO_KEA && cryptAlgo != CRYPT_ALGO_RSA )
 			return( CRYPT_OK );
 
@@ -112,10 +113,12 @@ int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
 						 publicKey->publicKeyInfoSize );
 			readSequence( &stream, NULL );
 			readUniversal( &stream );
-			readBitStringHole( &stream, &length, DEFAULT_TAG );
+			readBitStringHole( &stream, &length, 
+							   bitsToBytes( MIN_PKCSIZE_BITS ), DEFAULT_TAG );
 			readSequence( &stream, NULL );
 			readInteger( &stream, buffer, &length, CRYPT_MAX_PKCSIZE );
-			assert( sGetStatus( &stream ) == CRYPT_OK );
+			assert( readInteger( &stream, NULL, NULL, \
+								 CRYPT_MAX_PKCSIZE ) == CRYPT_OK );
 			sMemDisconnect( &stream );
 
 			if( length > PGP_KEYID_SIZE )
@@ -133,14 +136,16 @@ int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
 		readSequence( &stream, NULL );
 		readSequence( &stream, NULL );
 		readUniversal( &stream );
-		readOctetStringHole( &stream, &length, DEFAULT_TAG );
+		readOctetStringHole( &stream, &length, 
+							 bitsToBytes( MIN_PKCSIZE_BITS ), DEFAULT_TAG );
 		publicKey->domainParamPtr = sMemBufPtr( &stream );
 		publicKey->domainParamSize = ( int ) length;
 		sSkip( &stream, length );
-		readBitStringHole( &stream, &length, DEFAULT_TAG );
+		readBitStringHole( &stream, &length, bitsToBytes( MIN_PKCSIZE_BITS ), 
+						   DEFAULT_TAG );
 		publicKey->publicValuePtr = sMemBufPtr( &stream );
 		publicKey->publicValueSize = ( int ) length - 1;
-		assert( sGetStatus( &stream ) == CRYPT_OK );
+		assert( sSkip( &stream, length ) == CRYPT_OK );
 		sMemDisconnect( &stream );
 #endif /* USE_KEA */
 
@@ -152,7 +157,8 @@ int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
 	sMemOpen( &stream, buffer, ( CRYPT_MAX_PKCSIZE * 4 ) + 50 );
 	status = publicKey->writePublicKeyFunction( &stream, contextInfoPtr, 
 												KEYFORMAT_CERT, "public" );
-	calculateFlatKeyID( buffer, stell( &stream ), publicKey->keyID );
+	calculateFlatKeyID( buffer, stell( &stream ), 
+						publicKey->keyID, KEYID_SIZE );
 	sMemClose( &stream );
 
 	/* If it's an RSA key, we need to calculate the PGP key ID alongside the
@@ -172,18 +178,21 @@ int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
 	if( publicKey->openPgpKeyIDSet )
 		return( status );
 
-	/* Finally, set the OpenPGP key ID.  Since calculation of the OpenPGP ID 
-	   requires the presence of data that isn't usually present in a non-
-	   PGP key, we can't calculate a real OpenPGP ID for some keys but have 
-	   to use the next-best thing, the first 64 bits of the key ID.  This 
-	   shouldn't be a major problem because it's really only going to be 
-	   used with private keys, public keys will be in PGP format and selected 
-	   by user ID (for encryption) or PGP ID/genuine OpenPGP ID (signing) */
-	if( publicKey->pgpCreationTime )
+	/* Finally, set the OpenPGP key ID if it's a PGP algorithm type.  Since 
+	   calculation of the OpenPGP ID requires the presence of data that 
+	   isn't usually present in a non-PGP key, we can't calculate a real 
+	   OpenPGP ID for some keys but have to use the next-best thing, the 
+	   first 64 bits of the key ID.  This shouldn't be a major problem 
+	   because it's really only going to be used with private keys, public 
+	   keys will be in PGP format and selected by user ID (for encryption) 
+	   or PGP ID/genuine OpenPGP ID (signing) */
+	if( ( cryptAlgo == CRYPT_ALGO_RSA || cryptAlgo == CRYPT_ALGO_DSA || \
+		  cryptAlgo == CRYPT_ALGO_ELGAMAL ) && \
+		publicKey->pgpCreationTime > MIN_TIME_VALUE )
 		{
 		HASHFUNCTION hashFunction;
 		HASHINFO hashInfo;
-		BYTE hash[ CRYPT_MAX_HASHSIZE ], packetHeader[ 64 ];
+		BYTE hash[ CRYPT_MAX_HASHSIZE + 8 ], packetHeader[ 64 + 8 ];
 		int hashSize, length;
 
 		/* There's a creation time present, generate a real OpenPGP key ID:
@@ -206,14 +215,15 @@ int calculateKeyID( CONTEXT_INFO *contextInfoPtr )
 
 		/* Hash the data needed to generate the OpenPGP keyID */
 		getHashParameters( CRYPT_ALGO_SHA, &hashFunction, &hashSize );
-		hashFunction( hashInfo, NULL, packetHeader, 1 + 2, HASH_START );
-		hashFunction( hashInfo, hash, buffer, length, HASH_END );
+		hashFunction( hashInfo, NULL, 0, packetHeader, 1 + 2, HASH_START );
+		hashFunction( hashInfo, hash, CRYPT_MAX_HASHSIZE, buffer, length, 
+					  HASH_END );
 		memcpy( publicKey->openPgpKeyID, 
 				hash + hashSize - PGP_KEYID_SIZE, PGP_KEYID_SIZE );
 		sMemClose( &stream );
 		}
 	else
-		/* No creation time, fake it */
+		/* No creation time or non-PGP algorithm, fake it */
 		memcpy( publicKey->openPgpKeyID, publicKey->keyID,
 				PGP_KEYID_SIZE );
 	publicKey->openPgpKeyIDSet = TRUE;
@@ -235,12 +245,19 @@ static int readRsaSubjectPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr
 	PKC_INFO *rsaKey = contextInfoPtr->ctxPKC;
 	int status;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
+
 	/* Read the SubjectPublicKeyInfo header field and parameter data if
 	   there's any present.  We read the outer wrapper in generic form since
 	   it may be context-specific-tagged if it's coming from a keyset (RSA
 	   public keys is the one place where PKCS #15 keys differ from X.509
 	   ones) or something odd from CRMF */
-	readGenericHole( stream, NULL, DEFAULT_TAG );
+	readGenericHole( stream, NULL, 8 + bitsToBytes( MIN_PKCSIZE_BITS ), 
+					 DEFAULT_TAG );
 	status = readAlgoID( stream, NULL );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -256,10 +273,13 @@ static int readRsaSubjectPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr
 				   MK_ACTION_PERM( MESSAGE_CTX_SIGCHECK, ACTION_PERM_ALL );
 
 	/* Read the BITSTRING encapsulation and the public key fields */
-	readBitStringHole( stream, NULL, DEFAULT_TAG );
+	readBitStringHole( stream, NULL, bitsToBytes( MIN_PKCSIZE_BITS ), 
+					   DEFAULT_TAG );
 	readSequence( stream, NULL );
-	readBignum( stream, &rsaKey->rsaParam_n );
-	return( readBignum( stream, &rsaKey->rsaParam_e ) );
+	status = readBignum( stream, &rsaKey->rsaParam_n );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_e );
+	return( status );
 	}
 
 static int readDlpSubjectPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
@@ -269,11 +289,21 @@ static int readDlpSubjectPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr
 	CRYPT_ALGO_TYPE cryptAlgo;
 	int extraLength, status;
 
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL ) );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
+
 	/* Read the SubjectPublicKeyInfo header field and parameter data if
 	   there's any present */
-	readGenericHole( stream, NULL, DEFAULT_TAG );
+	readGenericHole( stream, NULL, \
+					 8 + ( bitsToBytes( MIN_PKCSIZE_BITS ) + \
+						   bitsToBytes( MIN_PKCSIZE_BITS ) ), DEFAULT_TAG );
 	status = readAlgoIDex( stream, &cryptAlgo, NULL, &extraLength );
-	if( cryptStatusOK( status ) && extraLength )
+	if( cryptStatusOK( status ) && extraLength > 0 )
 		{
 		assert( contextInfoPtr->capabilityInfo->cryptAlgo == cryptAlgo );
 
@@ -282,13 +312,15 @@ static int readDlpSubjectPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr
 		readBignum( stream, &dlpKey->dlpParam_p );
 		if( hasReversedParams( cryptAlgo ) )
 			{
-			readBignum( stream, &dlpKey->dlpParam_g );
-			status = readBignum( stream, &dlpKey->dlpParam_q );
+			status = readBignum( stream, &dlpKey->dlpParam_g );
+			if( cryptStatusOK( status ) )
+				status = readBignum( stream, &dlpKey->dlpParam_q );
 			}
 		else
 			{
-			readBignum( stream, &dlpKey->dlpParam_q );
-			status = readBignum( stream, &dlpKey->dlpParam_g );
+			status = readBignum( stream, &dlpKey->dlpParam_q );
+			if( cryptStatusOK( status ) )
+				status = readBignum( stream, &dlpKey->dlpParam_g );
 			}
 		}
 	if( cryptStatusError( status ) )
@@ -311,7 +343,8 @@ static int readDlpSubjectPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr
 									   ACTION_PERM_NONE_EXTERNAL );
 
 	/* Read the BITSTRING encapsulation and the public key fields */
-	readBitStringHole( stream, NULL, DEFAULT_TAG );
+	readBitStringHole( stream, NULL, bitsToBytes( MIN_PKCSIZE_BITS ), 
+					   DEFAULT_TAG );
 	return( readBignum( stream, &dlpKey->dlpParam_y ) );
 	}
 
@@ -330,7 +363,11 @@ int readSsh1RsaPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 	const int length = readUint32( stream );
 	int status;
 
-	assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
 
 	/* Make sure that the nominal keysize value is valid */
 	if( length < MIN_PKCSIZE_BITS || \
@@ -352,6 +389,8 @@ int readSsh1RsaPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 	}
 #endif /* USE_SSH1 */
 
+#ifdef USE_SSH
+
 /* Read SSHv2 public keys:
 
 	string	certificate
@@ -361,14 +400,18 @@ int readSsh1RsaPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 		mpint				g
 		mpint				y */
 
-int readSsh2RsaPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
-						  int *actionFlags )
+int readSshRsaPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
+						 int *actionFlags )
 	{
 	PKC_INFO *rsaKey = contextInfoPtr->ctxPKC;
-	char buffer[ 16 ];
+	char buffer[ 16 + 8 ];
 	int length, status;
 
-	assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
 
 	/* Read the wrapper and make sure that it's OK */
 	readUint32( stream );
@@ -392,17 +435,21 @@ int readSsh2RsaPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 	return( status );
 	}
 
-int readSsh2DlpPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
-						  int *actionFlags )
+int readSshDlpPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
+						 int *actionFlags )
 	{
 	PKC_INFO *dsaKey = contextInfoPtr->ctxPKC;
 	const BOOLEAN isDH = \
 			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH );
-	char buffer[ 16 ];
+	char buffer[ 16 + 8 ];
 	int length, status;
 
-	assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
-			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA ) );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
 
 	/* Read the wrapper and make sure that it's OK.  SSHv2 uses PKCS #3 
 	   rather than X9.42-style DH keys, so we have to treat this algorithm 
@@ -468,6 +515,9 @@ int readSsh2DlpPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 									  CRYPT_MAX_PKCSIZE );
 	return( status );
 	}
+#endif /* USE_SSH */
+
+#ifdef USE_SSL
 
 /* Read SSL public keys:
 
@@ -488,7 +538,11 @@ int readSslDlpPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 	PKC_INFO *dhKey = contextInfoPtr->ctxPKC;
 	int status;
 
-	assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
 
 	/* Set the maximum permitted actions.  SSL keys are only used 
 	   internally, so we restrict the usage to internal-only.  Since DH 
@@ -510,12 +564,15 @@ int readSslDlpPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 									   CRYPT_MAX_PKCSIZE );
 	return( status );
 	}
+#endif /* USE_SSL */
+
+#ifdef USE_PGP 
 
 /* Read PGP public keys:
 
 	byte		version
 	uint32		creationTime
-	[ uint16	validity - version 3 only ]
+	[ uint16	validity - version 2 or 3 only ]
 	byte		RSA		DSA		Elgamal
 	mpi			n		p		p
 	mpi			e		q		g
@@ -529,7 +586,11 @@ int readPgpRsaPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 	time_t creationTime;
 	int value, status;
 
-	assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
 
 	/* Read the header info */
 	value = sgetc( stream );
@@ -581,8 +642,12 @@ int readPgpDlpPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 	time_t creationTime;
 	int value, status;
 
-	assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
-			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL );
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL ) );
+	assert( isWritePtr( actionFlags, sizeof( int ) ) );
 
 	/* Read the header info */
 	value = sgetc( stream );
@@ -628,6 +693,7 @@ int readPgpDlpPublicKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr,
 										   bytesToBits( PGP_MAX_MPISIZE ) );
 	return( status );
 	}
+#endif /* USE_PGP */
 
 /* Umbrella public-key read functions */
 
@@ -637,7 +703,11 @@ static int readPublicKeyRsaFunction( STREAM *stream, CONTEXT_INFO *contextInfoPt
 	int actionFlags, status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( formatType == KEYFORMAT_CERT || formatType == KEYFORMAT_SSH || \
+			formatType == KEYFORMAT_SSH1 || formatType == KEYFORMAT_PGP );
 
 	switch( formatType )
 		{
@@ -653,15 +723,19 @@ static int readPublicKeyRsaFunction( STREAM *stream, CONTEXT_INFO *contextInfoPt
 			break;
 #endif /* USE_SSH1 */
 
-		case KEYFORMAT_SSH2:
-			status = readSsh2RsaPublicKey( stream, contextInfoPtr, 
-										   &actionFlags );
+#ifdef USE_SSH
+		case KEYFORMAT_SSH:
+			status = readSshRsaPublicKey( stream, contextInfoPtr, 
+										  &actionFlags );
 			break;
+#endif /* USE_SSH */
 
+#ifdef USE_PGP
 		case KEYFORMAT_PGP:
 			status = readPgpRsaPublicKey( stream, contextInfoPtr, 
 										  &actionFlags );
 			break;
+#endif /* USE_PGP */
 
 		default:
 			assert( NOTREACHED );
@@ -680,7 +754,13 @@ static int readPublicKeyDlpFunction( STREAM *stream, CONTEXT_INFO *contextInfoPt
 	int actionFlags, status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL ) );
+	assert( formatType == KEYFORMAT_CERT || formatType == KEYFORMAT_SSH || \
+			formatType == KEYFORMAT_SSL || formatType == KEYFORMAT_PGP );
 
 	switch( formatType )
 		{
@@ -689,20 +769,26 @@ static int readPublicKeyDlpFunction( STREAM *stream, CONTEXT_INFO *contextInfoPt
 											  &actionFlags );
 			break;
 
-		case KEYFORMAT_SSH2:
-			status = readSsh2DlpPublicKey( stream, contextInfoPtr, 
-										   &actionFlags );
+#ifdef USE_SSH
+		case KEYFORMAT_SSH:
+			status = readSshDlpPublicKey( stream, contextInfoPtr, 
+										  &actionFlags );
 			break;
+#endif /* USE_SSH */
 
+#ifdef USE_SSL
 		case KEYFORMAT_SSL:
 			status = readSslDlpPublicKey( stream, contextInfoPtr, 
 										  &actionFlags );
 			break;
+#endif /* USE_SSL */
 		
+#ifdef USE_PGP
 		case KEYFORMAT_PGP:
 			status = readPgpDlpPublicKey( stream, contextInfoPtr, 
 										  &actionFlags );
 			break;
+#endif /* USE_PGP */
 
 		default:
 			assert( NOTREACHED );
@@ -730,27 +816,53 @@ static int readRsaPrivateKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr )
 	int status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
 
 	/* Read the header and key components */
-	readSequence( stream, NULL );
+	status = readSequence( stream, NULL );
 	if( peekTag( stream ) == MAKE_CTAG( 0 ) )
 		/* Erroneously written in older code */
 		readConstructed( stream, NULL, 0 );
-	if( peekTag( stream ) == MAKE_CTAG_PRIMITIVE( 0 ) )
+	if( cryptStatusOK( status ) && \
+		peekTag( stream ) == MAKE_CTAG_PRIMITIVE( 0 ) )
 		{
-		readBignumTag( stream, &rsaKey->rsaParam_n, 0 );
-		readBignumTag( stream, &rsaKey->rsaParam_e, 1 );
+		/* The public components may already have been read when we read a
+		   corresponding public key or certificate, so we only read them if
+		   they're not already present */
+		if( BN_is_zero( &rsaKey->rsaParam_n ) )
+			status = readBignumTag( stream, &rsaKey->rsaParam_n, 0 );
+		else
+			status = readUniversal( stream );
+		if( cryptStatusOK( status ) )
+			{
+			if( BN_is_zero( &rsaKey->rsaParam_e ) )
+				status = readBignumTag( stream, &rsaKey->rsaParam_e, 1 );
+			else
+				status = readUniversal( stream );
+			}
 		}
-	if( peekTag( stream ) == MAKE_CTAG_PRIMITIVE( 2 ) )
-		readBignumTag( stream, &rsaKey->rsaParam_d, 2 );
-	readBignumTag( stream, &rsaKey->rsaParam_p, 3 );
-	status = readBignumTag( stream, &rsaKey->rsaParam_q, 4 );
-	if( peekTag( stream ) == MAKE_CTAG_PRIMITIVE( 5 ) )
+	else
 		{
-		readBignumTag( stream, &rsaKey->rsaParam_exponent1, 5 );
-		readBignumTag( stream, &rsaKey->rsaParam_exponent2, 6 );
-		status = readBignumTag( stream, &rsaKey->rsaParam_u, 7 );
+		assert( !BN_is_zero( &rsaKey->rsaParam_n ) );
+		assert( !BN_is_zero( &rsaKey->rsaParam_e ) );
+		}
+	if( cryptStatusOK( status ) && \
+		peekTag( stream ) == MAKE_CTAG_PRIMITIVE( 2 ) )
+		status = readBignumTag( stream, &rsaKey->rsaParam_d, 2 );
+	if( cryptStatusOK( status ) )
+		status = readBignumTag( stream, &rsaKey->rsaParam_p, 3 );
+	if( cryptStatusOK( status ) )
+		status = readBignumTag( stream, &rsaKey->rsaParam_q, 4 );
+	if( cryptStatusOK( status ) && \
+		peekTag( stream ) == MAKE_CTAG_PRIMITIVE( 5 ) )
+		{
+		status = readBignumTag( stream, &rsaKey->rsaParam_exponent1, 5 );
+		if( cryptStatusOK( status ) )
+			status = readBignumTag( stream, &rsaKey->rsaParam_exponent2, 6 );
+		if( cryptStatusOK( status ) )
+			status = readBignumTag( stream, &rsaKey->rsaParam_u, 7 );
 		}
 	return( status );
 	}
@@ -758,22 +870,35 @@ static int readRsaPrivateKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr )
 static int readRsaPrivateKeyOld( STREAM *stream, CONTEXT_INFO *contextInfoPtr )
 	{
 	PKC_INFO *rsaKey = contextInfoPtr->ctxPKC;
+	int status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
 
 	/* Read the header and key components */
-	readOctetStringHole( stream, NULL, DEFAULT_TAG );
+	readOctetStringHole( stream, NULL, 
+						 ( 4 * bitsToBytes( MIN_PKCSIZE_BITS ) ), 
+						 DEFAULT_TAG );
 	readSequence( stream, NULL );
 	readShortInteger( stream, NULL );
-	readBignum( stream, &rsaKey->rsaParam_n );
-	readBignum( stream, &rsaKey->rsaParam_e );
-	readBignum( stream, &rsaKey->rsaParam_d );
-	readBignum( stream, &rsaKey->rsaParam_p );
-	readBignum( stream, &rsaKey->rsaParam_q );
-	readBignum( stream, &rsaKey->rsaParam_exponent1 );
-	readBignum( stream, &rsaKey->rsaParam_exponent2 );
-	return( readBignum( stream, &rsaKey->rsaParam_u ) );
+	status = readBignum( stream, &rsaKey->rsaParam_n );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_e );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_d );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_p );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_q );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_exponent1 );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_exponent2 );
+	if( cryptStatusOK( status ) )
+		status = readBignum( stream, &rsaKey->rsaParam_u );
+	return( status );
 	}
 
 static int readDlpPrivateKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr )
@@ -781,7 +906,11 @@ static int readDlpPrivateKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr )
 	PKC_INFO *dlpKey = contextInfoPtr->ctxPKC;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL ) );
 
 	/* Read the header and key components */
 	if( peekTag( stream ) == BER_SEQUENCE )
@@ -802,7 +931,9 @@ static int readPgpRsaPrivateKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr )
 	int status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
 
 	/* Read the PGP private key information */
 	status = readBignumInteger16Ubits( stream, &rsaKey->rsaParam_d, 
@@ -828,7 +959,10 @@ static int readPgpDlpPrivateKey( STREAM *stream, CONTEXT_INFO *contextInfoPtr )
 	PKC_INFO *dlpKey = contextInfoPtr->ctxPKC;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL ) );
 
 	/* Read the PGP private key information */
 	return( readBignumInteger16Ubits( stream, &dlpKey->dlpParam_x, 155, 
@@ -842,7 +976,12 @@ static int readPrivateKeyRsaFunction( STREAM *stream,
 									  const KEYFORMAT_TYPE formatType )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA );
+	assert( formatType == KEYFORMAT_PRIVATE || \
+			formatType == KEYFORMAT_PRIVATE_OLD || \
+			formatType == KEYFORMAT_PGP );
 
 	switch( formatType )
 		{
@@ -852,12 +991,13 @@ static int readPrivateKeyRsaFunction( STREAM *stream,
 		case KEYFORMAT_PRIVATE_OLD:
 			return( readRsaPrivateKeyOld( stream, contextInfoPtr ) );
 
+#ifdef USE_PGP
 		case KEYFORMAT_PGP:
 			return( readPgpRsaPrivateKey( stream, contextInfoPtr ) );
+#endif /* USE_PGP */
 		}
 
-	assert( NOTREACHED );
-	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	retIntError();
 	}
 
 static int readPrivateKeyDlpFunction( STREAM *stream, 
@@ -865,19 +1005,26 @@ static int readPrivateKeyDlpFunction( STREAM *stream,
 									  const KEYFORMAT_TYPE formatType )
 	{
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) );
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC && \
+			( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DH || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+			  contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL ) );
+	assert( formatType == KEYFORMAT_PRIVATE || \
+			formatType == KEYFORMAT_PGP );
 
 	switch( formatType )
 		{
 		case KEYFORMAT_PRIVATE:
 			return( readDlpPrivateKey( stream, contextInfoPtr ) );
 
+#ifdef USE_PGP
 		case KEYFORMAT_PGP:
 			return( readPgpDlpPrivateKey( stream, contextInfoPtr ) );
+#endif /* USE_PGP */
 		}
 
-	assert( NOTREACHED );
-	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	retIntError();
 	}
 
 /****************************************************************************
@@ -892,11 +1039,19 @@ static int readPrivateKeyDlpFunction( STREAM *stream,
    blocks of 20 bytes, so we can't use the normal read/write routines to 
    handle these values */
 
-int decodeDLValues( const BYTE *buffer, const int bufSize, BIGNUM **value1,
-					BIGNUM **value2, const CRYPT_FORMAT_TYPE formatType )
+static int decodeDLValuesFunction( const BYTE *buffer, const int bufSize, 
+								   BIGNUM **value1, BIGNUM **value2, 
+								   const CRYPT_FORMAT_TYPE formatType )
 	{
 	STREAM stream;
 	int status;
+
+	assert( isReadPtr( buffer, bufSize ) );
+	assert( isWritePtr( value1, sizeof( BIGNUM * ) ) );
+	assert( isWritePtr( value2, sizeof( BIGNUM * ) ) );
+	assert( formatType == CRYPT_FORMAT_CRYPTLIB || \
+			formatType == CRYPT_FORMAT_PGP || \
+			formatType == CRYPT_IFORMAT_SSH );
 
 	sMemConnect( &stream, buffer, bufSize );
 
@@ -910,6 +1065,7 @@ int decodeDLValues( const BYTE *buffer, const int bufSize, BIGNUM **value1,
 				status = readBignum( &stream, *value2 );
 			break;
 
+#ifdef USE_PGP
 		case CRYPT_FORMAT_PGP:
 			status = readBignumInteger16Ubits( &stream, *value1, 160 - 24,
 											   bytesToBits( PGP_MAX_MPISIZE ) );
@@ -917,13 +1073,16 @@ int decodeDLValues( const BYTE *buffer, const int bufSize, BIGNUM **value1,
 				status = readBignumInteger16Ubits( &stream, *value2, 160 - 24,
 												   bytesToBits( PGP_MAX_MPISIZE ) );
 			break;
+#endif /* USE_PGP */
 	
+#ifdef USE_SSH
 		case CRYPT_IFORMAT_SSH:
 			status = CRYPT_OK;
 			if( BN_bin2bn( buffer, 20, *value1 ) == NULL || \
 				BN_bin2bn( buffer + 20, 20, *value2 ) == NULL )
 				status = CRYPT_ERROR_MEMORY;
 			break;
+#endif /* USE_SSH */
 
 		default:
 			assert( NOTREACHED );
@@ -945,11 +1104,16 @@ void initKeyRead( CONTEXT_INFO *contextInfoPtr )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 
+	assert( isWritePtr( contextInfoPtr, sizeof( CONTEXT_INFO ) ) && \
+			contextInfoPtr->type == CONTEXT_PKC );
+
 	/* Set the access method pointers */
+	pkcInfo->calculateKeyIDFunction = calculateKeyID;
 	if( isDlpAlgo( contextInfoPtr->capabilityInfo->cryptAlgo ) )
 		{
 		pkcInfo->readPublicKeyFunction = readPublicKeyDlpFunction;
 		pkcInfo->readPrivateKeyFunction = readPrivateKeyDlpFunction;
+		pkcInfo->decodeDLValuesFunction = decodeDLValuesFunction;
 		}
 	else
 		{
@@ -957,3 +1121,9 @@ void initKeyRead( CONTEXT_INFO *contextInfoPtr )
 		pkcInfo->readPrivateKeyFunction = readPrivateKeyRsaFunction;
 		}
 	}
+#else
+
+void initKeyRead( CONTEXT_INFO *contextInfoPtr )
+	{
+	}
+#endif /* USE_PKC */

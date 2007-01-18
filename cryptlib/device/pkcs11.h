@@ -223,7 +223,7 @@ extern "C" {
 
 /* All the various Cryptoki types and #define'd values are in the
  * file pkcs11t.h. */
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "pkcs11t.h"
 #else
   #include "device/pkcs11t.h"
@@ -243,7 +243,7 @@ extern "C" {
 
 /* pkcs11f.h has all the information about the Cryptoki
  * function prototypes. */
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "pkcs11f.h"
 #else
   #include "device/pkcs11f.h"
@@ -266,7 +266,7 @@ extern "C" {
 
 /* pkcs11f.h has all the information about the Cryptoki
  * function prototypes. */
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "pkcs11f.h"
 #else
   #include "device/pkcs11f.h"
@@ -295,7 +295,7 @@ struct CK_FUNCTION_LIST {
 /* Pile all the function pointers into the CK_FUNCTION_LIST. */
 /* pkcs11f.h has all the information about the Cryptoki
  * function prototypes. */
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "pkcs11f.h"
 #else
   #include "device/pkcs11f.h"

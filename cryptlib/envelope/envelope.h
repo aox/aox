@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						 Enveloping Routines Header File					*
-*						Copyright Peter Gutmann 1996-2004					*
+*						Copyright Peter Gutmann 1996-2006					*
 *																			*
 ****************************************************************************/
 
@@ -12,8 +12,6 @@
 #ifndef _STREAM_DEFINED
   #if defined( INC_ALL )
 	#include "stream.h"
-  #elif defined INC_CHILD
-	#include "../io/stream.h"
   #else
 	#include "io/stream.h"
   #endif /* Compiler-specific includes */
@@ -21,8 +19,6 @@
 #ifdef USE_COMPRESSION
   #if defined( INC_ALL )
 	#include "zlib.h"
-  #elif defined( INC_CHILD )
-	#include "../zlib/zlib.h"
   #else
 	#include "zlib/zlib.h"
   #endif /* Compiler-specific includes */
@@ -210,16 +206,16 @@ typedef struct CL {
 
 	/* The object contained in this list element.  All object type-specific
 	   pointers in the xxxInfo data point into fields inside this data */
-	void *object;					/* The object data */
+	const void *object;				/* The object data */
 	int objectSize;					/* Size of the object */
 
 	/* Details on the object.  Here we store whatever is required to process
 	   the object without having to call queryXXXObject() for the details */
 	BYTE keyID[ CRYPT_MAX_HASHSIZE ];/* cryptlib key ID */
 	int keyIDsize;
-	void *issuerAndSerialNumber;	/* CMS key ID */
+	const void *issuerAndSerialNumber;/* CMS key ID */
 	int issuerAndSerialNumberSize;
-	void *payload;					/* Payload data (e.g. encr.key) */
+	const void *payload;			/* Payload data (e.g. encr.key) */
 	int payloadSize;
 	union {
 		CONTENT_ENCR_INFO contentEncrInfo;	/* Encryption obj-specific infor.*/
@@ -362,20 +358,6 @@ typedef enum {
 	PGP_DEENVSTATE_LAST				/* Last valid de-enveloping state */
 	} PGP_DEENV_STATE;
 
-/* The current state of processing of headers for data segments nested inside
-   the OCTET STRING that contains the envelope's content.  Since we can run
-   out of data at any point, we have to preserve the current state so that we 
-   can continue when we get more data */
-
-typedef enum {
-	SEGHDRSTATE_NONE,				/* No header processing/before header */
-	SEGHDRSTATE_LEN_OF_LEN,			/* Expecting OCTET STRING len-of-len */
-	SEGHDRSTATE_LEN,				/* Processing OCTET STRING length */
-	SEGHDRSTATE_END,				/* Expecting second end-of-contents oct.*/
-	SEGHDRSTATE_DONE,				/* Parsed entire header */
-	SEGHDRSTATE_LAST				/* Last valid header state */
-	} SEGHDR_STATE;
-
 /* Envelope information flags.  These are:
 
 	ENVELOPE_ISDEENVELOPE: The envelope is a de-enveloping envelope.
@@ -420,6 +402,10 @@ typedef enum {
 	ENVDATA_NEEDSPADDING: Before (encrypted) enveloping can been completed 
 			the payload data needs PKCS #5 padding added to it.
 
+	ENVDATA_HASATTACHEDOOB: The envelope has out-of-band additional data
+			attached to the payload data.  This is used by OpenPGP to tack
+			an MDC packet onto the end of encrypted data.
+
    The handling of several of these flags is quite complex, more details can 
    be found in encode/decode.c */
 
@@ -429,6 +415,7 @@ typedef enum {
 #define ENVDATA_SEGMENTCOMPLETE	0x08	/* Current segment has been completed */
 #define ENVDATA_ENDOFCONTENTS	0x10	/* EOC reached */
 #define ENVDATA_NEEDSPADDING	0x20	/* Whether to add PKCS #5 padding */
+#define ENVDATA_HASATTACHEDOOB	0x40	/* Whether data has attached OOB extra */
 
 /* The size of the buffer used to handle read-ahead into out-of-band data at 
    the start of the payload */
@@ -562,7 +549,7 @@ typedef struct EI {
 #ifdef USE_PGP
 	PGP_DEENV_STATE pgpDeenvState;	/* Current state of PGP de-env.n-d proc.*/
 #endif /* USE_PGP */
-	int hdrSetLength;				/* Remaining bytes in SET OF EKeyInfo */
+	long hdrSetLength;				/* Remaining bytes in SET OF EKeyInfo */
 
 	/* Some data formats place out-of-band data at the start of the payload
 	   rather than putting it in the header, the data-left variable keeps
@@ -580,7 +567,7 @@ typedef struct EI {
 	   into the output stream on the next read call */
 	int oobDataLeft;				/* Remaining out-of-band data in payload */
 	int oobEventCount;				/* No.events left to process */
-	BYTE oobBuffer[ OOB_BUFFER_SIZE ];	/* Buffered OOB data */
+	BYTE oobBuffer[ OOB_BUFFER_SIZE + 8 ];	/* Buffered OOB data */
 	int oobBufPos;
 
 	/* Information on the current OCTET STRING segment in the buffer during
@@ -605,15 +592,6 @@ typedef struct EI {
 	   that can still be added to the envelope.  During de-enveloping, it's 
 	   used to record how much data is left in the current segment */
 	long segmentSize;				/* Remaining data in segment */
-
-	/* If the amount of data pushed in results in only part of a segment
-	   header being available during the decoding process, we need to record
-	   the state information so we can continue parsing the header when more
-	   data is pushed.  The following variables record the state information
-	   so that processing can be interrupted and resumed at any point */
-	SEGHDR_STATE segHdrState;		/* State of segment header processing */
-	long segHdrSegLength;			/* Current len.of seg.being processed */
-	int segHdrCount;				/* Current length-of-length for seg.*/
 
 	/* Once the low-level segment-processing code sees the end-of-contents
 	   octets for the payload, we need to notify the higher-level code that
@@ -651,15 +629,14 @@ typedef struct EI {
 					  const CRYPT_ATTRIBUTE_TYPE envInfo,
 					  const void *value, const int valueLength );
 	CRYPT_ATTRIBUTE_TYPE ( *checkMissingInfo )( struct EI *envelopeInfoPtr );
-	int ( *checkCryptAlgo )( const CRYPT_ALGO_TYPE cryptAlgo, 
-							 const CRYPT_ALGO_TYPE cryptMode );
-	int ( *checkHashAlgo )( const CRYPT_ALGO_TYPE hashAlgo );
+	BOOLEAN ( *checkAlgo )( const CRYPT_ALGO_TYPE cryptAlgo, 
+							const CRYPT_ALGO_TYPE cryptMode );
 	int ( *processPreambleFunction )( struct EI *envelopeInfoPtr );
 	int ( *processPostambleFunction )( struct EI *envelopeInfoPtr );
 	int ( *copyToEnvelopeFunction )( struct EI *envelopeInfoPtr, 
 									 const BYTE *buffer, const int length );
 	int ( *copyFromEnvelopeFunction )( struct EI *envelopeInfoPtr, 
-									   BYTE *buffer, int length );
+									   BYTE *buffer, const int length );
 	int ( *processExtraData )( struct EI *envelopeInfoPtr, const void *buffer,
 							   const int length );
 	int ( *syncDeenvelopeData )( struct EI *envelopeInfoPtr, 
@@ -697,15 +674,15 @@ ACTION_RESULT checkAction( const ACTION_LIST *actionListStart,
 						   const CRYPT_HANDLE cryptHandle );
 ACTION_LIST *findAction( ACTION_LIST *actionListPtr,
 						 const ACTION_TYPE actionType );
+ACTION_LIST *findLastAction( ACTION_LIST *actionListPtr,
+							 const ACTION_TYPE actionType );
 void deleteAction( ACTION_LIST **actionListHead, 
 				   MEMPOOL_STATE memPoolState,	
 				   ACTION_LIST *actionListItem );
 void deleteActionList( MEMPOOL_STATE memPoolState,
 					   ACTION_LIST *actionListPtr );
 void deleteUnusedActions( ENVELOPE_INFO *envelopeInfoPtr );
-#ifndef NDEBUG
-  BOOLEAN actionsOK( ENVELOPE_INFO *envelopeInfoPtr );
-#endif /* !NDEBUG */
+BOOLEAN checkActions( ENVELOPE_INFO *envelopeInfoPtr );
 
 /* Prototypes for content list management functions */
 
@@ -720,9 +697,9 @@ void deleteContentList( MEMPOOL_STATE memPoolState,
 
 /* Prototypes for misc.management functions */
 
-int addKeyset( ENVELOPE_INFO *envelopeInfoPtr,
-			   const CRYPT_ATTRIBUTE_TYPE keysetFunction,
-			   const CRYPT_KEYSET keyset );
+int addKeysetInfo( ENVELOPE_INFO *envelopeInfoPtr,
+				   const CRYPT_ATTRIBUTE_TYPE keysetFunction,
+				   const CRYPT_KEYSET keyset );
 
 /* Prepare the envelope for data en/decryption */
 

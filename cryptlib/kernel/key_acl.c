@@ -9,10 +9,6 @@
   #include "crypt.h"
   #include "acl.h"
   #include "kernel.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "acl.h"
-  #include "kernel.h"
 #else
   #include "crypt.h"
   #include "kernel/acl.h"
@@ -46,20 +42,20 @@ static KERNEL_DATA *krnlData = NULL;
   access types aren't currently allowed by the valid access types entry.
   This is to allow them to be enabled by changing only the valid access
   types entry without having to update the other two entries as well.
-  
+
   In addition, there are a few access types (specifically getFirst/Next and
   private key reads) for which the semantics of password/aux info use are
-  complex enough that we have to hardcode them, leaving only a 
+  complex enough that we have to hardcode them, leaving only a
   representative entry in the ACL definition.  Examples of this are keyset
   vs. crypto device reads (keysets usually need passwords while a logged-
   in device doesn't), speculative reads from the keyset to determine
   presence (which don't require a password), and so on.
 
   The (optional) specific object types entry is required for some keysets
-  that require a specific object (typically a certificate or cert chain) 
+  that require a specific object (typically a certificate or cert chain)
   rather than just a generic PKC context for the overall keyset item type */
 
-static const FAR_BSS KEYMGMT_ACL keyManagementACL[] = {
+static const KEYMGMT_ACL FAR_BSS keyManagementACL[] = {
 	/* Access public key */
 	MK_KEYACL_EX( KEYMGMT_ITEM_PUBLICKEY,
 		/* R */	ST_KEYSET_ANY | ST_DEV_FORT | ST_DEV_P11 | ST_DEV_CAPI,
@@ -76,7 +72,7 @@ static const FAR_BSS KEYMGMT_ACL keyManagementACL[] = {
 		ST_KEYSET_DBMS | ST_KEYSET_DBMS_STORE | ST_KEYSET_LDAP | \
 						 ST_DEV_FORT | ST_DEV_P11 | ST_DEV_CAPI,
 		ST_CERT_CERT | ST_CERT_CERTCHAIN ),
-	
+
 	/* Access private key */
 	MK_KEYACL_RWD( KEYMGMT_ITEM_PRIVATEKEY,
 		/* R */	ST_KEYSET_FILE | ST_KEYSET_FILE_PARTIAL | ST_DEV_FORT | ST_DEV_P11 | ST_DEV_CAPI,
@@ -90,7 +86,7 @@ static const FAR_BSS KEYMGMT_ACL keyManagementACL[] = {
 	/* Access secret key */
 	MK_KEYACL( KEYMGMT_ITEM_SECRETKEY,
 		/*RWD*/	ST_KEYSET_FILE,
-		/*FnQ*/	ST_NONE, 
+		/*FnQ*/	ST_NONE,
 		/*Obj*/	ST_CTX_CONV,
 		/*Flg*/	KEYMGMT_FLAG_NONE,
 		ACCESS_KEYSET_xxRxD, ACCESS_KEYSET_xxRWx ),
@@ -102,7 +98,7 @@ static const FAR_BSS KEYMGMT_ACL keyManagementACL[] = {
 		/*Obj*/	ST_CERT_CERTREQ | ST_CERT_REQ_CERT | ST_CERT_REQ_REV,
 		/*Flg*/	KEYMGMT_FLAG_UPDATE,
 		ACCESS_KEYSET_FxRxD, ACCESS_KEYSET_FNxxx ),
-	
+
 	/* Access PKI user info */
 	MK_KEYACL_RWD( KEYMGMT_ITEM_PKIUSER,
 		/*RWD*/	ST_KEYSET_DBMS_STORE, ST_KEYSET_DBMS_STORE, ST_KEYSET_DBMS_STORE,
@@ -110,7 +106,7 @@ static const FAR_BSS KEYMGMT_ACL keyManagementACL[] = {
 		/*Obj*/	ST_CERT_PKIUSER,
 		/*Flg*/	KEYMGMT_FLAG_GETISSUER,
 		ACCESS_KEYSET_FxRxD, ACCESS_KEYSET_FNxxx ),
-	
+
 	/* Access revocation info/CRL */
 	MK_KEYACL_RWD( KEYMGMT_ITEM_REVOCATIONINFO,
 		/*RWD*/	ST_KEYSET_DBMS | ST_KEYSET_DBMS_STORE, ST_KEYSET_DBMS, ST_NONE,
@@ -118,7 +114,7 @@ static const FAR_BSS KEYMGMT_ACL keyManagementACL[] = {
 		/*Obj*/	ST_CERT_CRL,
 		/*Flg*/	KEYMGMT_FLAG_CHECK_ONLY,
 		ACCESS_KEYSET_FxRxD, ACCESS_KEYSET_FNxxx ),
-	
+
 	/* Other data (for PKCS #15 tokens) */
 	MK_KEYACL_RWD( KEYMGMT_ITEM_DATA,
 		/*RWD*/	ST_KEYSET_FILE, ST_KEYSET_FILE, ST_NONE,
@@ -126,8 +122,14 @@ static const FAR_BSS KEYMGMT_ACL keyManagementACL[] = {
 		/*Obj*/	ST_NONE,
 		/*Flg*/	KEYMGMT_FLAG_NONE,
 		ACCESS_KEYSET_xxRWD, ACCESS_KEYSET_FNxxx ),
-	
+
 	/* Last item type */
+	MK_KEYACL( KEYMGMT_ITEM_NONE,
+		/*RWD*/	ST_NONE,
+		/*FnQ*/	ST_NONE,
+		/*Obj*/	ST_NONE,
+		/*Flg*/	KEYMGMT_FLAG_NONE,
+		ACCESS_KEYSET_xxxxx, ACCESS_KEYSET_xxxxx ),
 	MK_KEYACL( KEYMGMT_ITEM_NONE,
 		/*RWD*/	ST_NONE,
 		/*FnQ*/	ST_NONE,
@@ -147,7 +149,9 @@ int initKeymgmtACL( KERNEL_DATA *krnlDataPtr )
 	int i;
 
 	/* Perform a consistency check on the cert management ACLs */
-	for( i = 0; keyManagementACL[ i ].itemType != KEYMGMT_ITEM_NONE; i++ )
+	for( i = 0; keyManagementACL[ i ].itemType != KEYMGMT_ITEM_NONE && \
+				i < FAILSAFE_ARRAYSIZE( keyManagementACL, KEYMGMT_ACL ); 
+		 i++ )
 		{
 		const KEYMGMT_ACL *keyMgmtACL = &keyManagementACL[ i ];
 
@@ -208,7 +212,9 @@ int initKeymgmtACL( KERNEL_DATA *krnlDataPtr )
 			keyMgmtACL->specificObjSubTypeB != ST_NONE )
 			return( CRYPT_ERROR_FAILED );
 		}
-	
+	if( i >= FAILSAFE_ARRAYSIZE( keyManagementACL, KEYMGMT_ACL ) )
+		retIntError();
+
 	/* Set up the reference to the kernel data block */
 	krnlData = krnlDataPtr;
 
@@ -263,7 +269,11 @@ int preDispatchCheckKeysetAccess( const int objectHandle,
 
 	/* Find the appropriate ACL for this mechanism */
 	for( i = 0; keyManagementACL[ i ].itemType != messageValue && \
-				keyManagementACL[ i ].itemType != KEYMGMT_ITEM_NONE; i++ );
+				keyManagementACL[ i ].itemType != KEYMGMT_ITEM_NONE && \
+				i < FAILSAFE_ARRAYSIZE( keyManagementACL, KEYMGMT_ACL ); 
+		 i++ );
+	if( i >= FAILSAFE_ARRAYSIZE( keyManagementACL, KEYMGMT_ACL ) )
+		retIntError();
 	if( keyManagementACL[ i ].itemType == KEYMGMT_ITEM_NONE )
 		{
 		assert( NOTREACHED );
@@ -271,7 +281,7 @@ int preDispatchCheckKeysetAccess( const int objectHandle,
 		}
 	keymgmtACL = &keyManagementACL[ i ];
 
-	/* Perform a combined check to ensure that the item type being accessed 
+	/* Perform a combined check to ensure that the item type being accessed
 	   is appropriate for this keyset type and the access type is valid */
 	subType = objectST( objectHandle );
 	switch( localMessage )
@@ -346,14 +356,14 @@ int preDispatchCheckKeysetAccess( const int objectHandle,
 			return( CRYPT_ARGERROR_STR1 );
 		}
 
-	/* Make sure that there's a password present/not present if required.  
-	   We only check for incorrect parameters here if they were supplied by 
-	   the user, non-user-supplied parameters (which come from within 
-	   cryptlib) are checked by an assertion later on.  For keyset objects 
-	   the password is optional on reads since it may be a label-only read 
-	   or an opportunistic read that tries to read the key without a 
-	   password initially and falls back to retrying with a password if this 
-	   fails, for device objects the password is never used since it was 
+	/* Make sure that there's a password present/not present if required.
+	   We only check for incorrect parameters here if they were supplied by
+	   the user, non-user-supplied parameters (which come from within
+	   cryptlib) are checked by an assertion later on.  For keyset objects
+	   the password is optional on reads since it may be a label-only read
+	   or an opportunistic read that tries to read the key without a
+	   password initially and falls back to retrying with a password if this
+	   fails, for device objects the password is never used since it was
 	   supplied when the user logged on to the device.
 
 	   Since the semantics of passwords for private keys are too complex to
@@ -433,10 +443,10 @@ int preDispatchCheckKeysetAccess( const int objectHandle,
 		case MESSAGE_KEY_SETKEY:
 			/* Make sure that the object being set is valid and its type is
 			   appropriate for this key management item (and via previous
-			   checks, keyset) type.  Note that this checks for inclusion in 
-			   the set of valid objects, in particular a public-key context 
-			   can have almost any type of certificate object attached but 
-			   will still be regarded as valid since the context meets the 
+			   checks, keyset) type.  Note that this checks for inclusion in
+			   the set of valid objects, in particular a public-key context
+			   can have almost any type of certificate object attached but
+			   will still be regarded as valid since the context meets the
 			   check requirements.  More specific object checks are performed
 			   further on */
 			paramObjectHandle = mechanismInfo->cryptHandle;
@@ -461,7 +471,7 @@ int preDispatchCheckKeysetAccess( const int objectHandle,
 			if( !isInHighState( paramObjectHandle ) && \
 				!( subType == ST_CERT_PKIUSER || subType == ST_CERT_REQ_REV ) )
 				/* PKI user info and revocation requests aren't signed.  Like
-				   private key password semantics, these are a bit too 
+				   private key password semantics, these are a bit too
 				   complex to express in the ACL so they're hardcoded */
 				return( CRYPT_ARGERROR_NUM1 );
 
@@ -472,7 +482,7 @@ int preDispatchCheckKeysetAccess( const int objectHandle,
 				!isValidSubtype( keymgmtACL->specificKeysetSubTypeB, subType ) )
 				break;
 
-			/* We need a specific cert type for this keyset, make sure that 
+			/* We need a specific cert type for this keyset, make sure that
 			   we've been passed this and not just a generic PKC-equivalent
 			   object */
 			paramObjectHandle = findTargetType( mechanismInfo->cryptHandle,

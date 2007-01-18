@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						  Unix Randomness-Gathering Code					*
-*	Copyright Peter Gutmann, Paul Kendall, and Chris Wedgwood 1996-2005		*
+*	Copyright Peter Gutmann, Paul Kendall, and Chris Wedgwood 1996-2006		*
 *																			*
 ****************************************************************************/
 
@@ -20,9 +20,7 @@
 
 /* General includes */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <time.h>
 #include "crypt.h"
 
@@ -55,6 +53,9 @@
 #if defined( __VXWORKS__ )
   #error For the VxWorks build you need to edit $MISCOBJS in the makefile to use 'vxworks' and not 'unix'
 #endif /* VxWorks has its own randomness-gathering file */
+#if defined( __XMK__ )
+  #error For the Xilinx XMK build you need to edit $MISCOBJS in the makefile to use 'xmk' and not 'unix'
+#endif /* XMK has its own randomness-gathering file */
 
 /* OS-specific includes */
 
@@ -101,6 +102,9 @@
 #if !( defined( __QNX__ ) || defined( __CYGWIN__ ) )
   #include <sys/shm.h>
 #endif /* QNX || Cygwin */
+#if defined( __linux__ ) && ( defined(__i386__) || defined(__x86_64__) )
+  #include <asm/msr.h>
+#endif /* Linux on x86 */
 #ifndef __MVS__
   #if 0		/* Deprecated - 6/4/03 */
 	#include <sys/signal.h>
@@ -132,16 +136,32 @@
   struct rusage { int dummy; };
 #endif /* Systems without rlimit/rusage */
 
+/* If we're using threads, we have to protect the entropy gatherer with
+   a mutex to prevent multiple threads from trying to initate polls at the
+   same time.  Unlike the kernel mutexes, we don't have to worry about
+   being called recursively, so there's no need for special-case handling
+   for Posix' nasty non-reentrant mutexes */
+
+#ifdef USE_THREADS
+  #include <pthread.h>
+
+  #define lockPollingMutex()	pthread_mutex_lock( &gathererMutex )
+  #define unlockPollingMutex()	pthread_mutex_unlock( &gathererMutex )
+#else
+  #define lockPollingMutex()
+  #define unlockPollingMutex()
+#endif /* USE_THREADS */
+
 /* The size of the intermediate buffer used to accumulate polled data */
 
 #define RANDOM_BUFSIZE	4096
 
-/* The structure containing information on random-data sources.  Each record
-   contains the source and a relative estimate of its usefulness (weighting)
-   which is used to scale the number of kB of output from the source (total =
-   data_bytes / usefulness).  Usually the weighting is in the range 1-3 (or 0
-   for especially useless sources), resulting in a usefulness rating of 1...3
-   for each kB of source output (or 0 for the useless sources).
+/* The structure containing information on random-data sources.  Each record 
+   contains the source and a relative estimate of its usefulness (weighting) 
+   which is used to scale the number of kB of output from the source (total 
+   = data_bytes / usefulness).  Usually the weighting is in the range 1-3 
+   (or 0 for especially useless sources), resulting in a usefulness rating 
+   of 1...3 for each kB of source output (or 0 for the useless sources).
 
    If the source is constantly changing (certain types of network statistics
    have this characteristic) but the amount of output is small, the weighting
@@ -152,7 +172,11 @@
 
    In order to provide enough randomness to satisfy the requirements for a
    slow poll, we need to accumulate at least 20 points of usefulness (a
-   typical system should get about 30 points).
+   typical system should get about 30 points).  This is useful not only for 
+   use on source-starved systems but also in special circumstances like 
+   running in a *BSD jail, in which only other processes running in the jail
+   are visible, severely restricting the amount of entropy that can be 
+   collected.
 
    Some potential options are missed out because of special considerations.
    pstat -i and pstat -f can produce amazing amounts of output (the record is
@@ -190,8 +214,8 @@
    In order to maximise use of the buffer, the code performs a form of run-
    length compression on its input where a repeated sequence of bytes is
    replaced by the occurrence count mod 256.  Some commands output an awful
-   lot of whitespace, this measure greatly increases the amount of data we
-   can fit in the buffer.
+   lot of whitespace, this measure greatly increases the amount of data that 
+   we can fit in the buffer.
 
    When we scale the weighting using the SC() macro, some preprocessors may
    give a division by zero warning for the most obvious expression 'weight ?
@@ -271,11 +295,17 @@ static struct RI {
 	{ "", NULL, SC( SC_0 ), NULL, 0, 0, 0, FALSE },
 
 	/* Potentially heavyweight or low-value sources that are only polled if
-	   alternative sources aren't available */
+	   alternative sources aren't available.  ntptrace is somewhat
+	   problematic in that some versions don't support -r and -t, made worse
+	   by the fact that various servers in the commonly-used pool.ntp.org
+	   cluster refuse to answer ntptrace.  As a result, using this can hang
+	   for quite awhile before it times out, so we treat it as a heavyweight
+	   source even though in theory it's a nice high-entropy lightweight
+	   one */
+	{ "/usr/sbin/ntptrace", "-r2 -t1 -nv", SC( -1 ), NULL, 0, 0, 0, FALSE },
 #if defined( __sgi ) || defined( __hpux )
 	{ "/bin/ps", "-el", SC( 0.3 ), NULL, 0, 0, 0, TRUE },
 #endif /* SGI || PHUX */
-	{ "/usr/sbin/ntptrace", "-r2 -t1 -nv", SC( -1 ), NULL, 0, 0, 0, FALSE },
 	{ "/usr/ucb/ps", "aux", SC( 0.3 ), NULL, 0, 0, 0, TRUE },
 	{ "/usr/bin/ps", "aux", SC( 0.3 ), NULL, 0, 0, 0, TRUE },
 	{ "/bin/ps", "aux", SC( 0.3 ), NULL, 0, 0, 0, FALSE },
@@ -356,6 +386,9 @@ static BYTE *gathererBuffer;	/* Shared buffer for gathering random noise */
 static int gathererMemID;		/* ID for shared memory */
 static int gathererBufSize;		/* Size of the shared memory buffer */
 static struct sigaction gathererOldHandler;	/* Previous signal handler */
+#ifdef USE_THREADS
+  static pthread_mutex_t gathererMutex;	/* Mutex to protect the polling */
+#endif /* USE_THREADS */
 
 /* The struct at the start of the shared memory buffer used to communicate
    information from the child to the parent */
@@ -434,8 +467,15 @@ pid_t wait4( pid_t pid, int *status, int options, struct rusage *rusage )
 
 static FILE *my_popen( struct RI *entry )
 	{
-	int pipedes[ 2 ];
+	int pipedes[ 2 + 8 ];
 	FILE *stream;
+
+	/* Sanity check for stdin and stdout */
+	if( STDIN_FILENO > 1 || STDOUT_FILENO > 1 )
+		{
+		assert( NOTREACHED );
+		return NULL;
+		}
 
 	/* Create the pipe.  Note that under QNX the pipe resource manager
 	   'pipe' must be running in order to use pipes */
@@ -484,12 +524,20 @@ static FILE *my_popen( struct RI *entry )
 	if( entry->pid == ( pid_t ) 0 )
 		{
 		struct passwd *passwd;
+		int fd;
 
-		/* We are the child.  Make the read side of the pipe be stdout */
+		/* We are the child, connect the read side of the pipe to stdout and
+		   unplug stdin and stderr */
 		if( dup2( pipedes[ STDOUT_FILENO ], STDOUT_FILENO ) < 0 )
 			exit( 127 );
+		if( ( fd = open ( "/dev/null", O_RDWR ) ) > 0 )
+			{
+			dup2( fd, STDIN_FILENO );
+			dup2( fd, STDERR_FILENO );
+			close( fd );
+			}
 
-		/* If we're root, give up our permissions to make sure we don't
+		/* If we're root, give up our permissions to make sure that we don't
 		   inadvertently read anything sensitive.  If the getpwnam() fails
 		   (this can happen if we're chrooted with no "nobody" entry in the
 		   local passwd file) we default to -1, which is usually nobody.  We
@@ -560,7 +608,7 @@ static FILE *my_popen( struct RI *entry )
 static int my_pclose( struct RI *entry, struct rusage *rusage )
 	{
 	pid_t pid;
-	int status = 0;
+	int iterationCount = 0, status = 0;
 
 	/* Close the pipe */
 	fclose( entry->pipe );
@@ -573,10 +621,13 @@ static int my_pclose( struct RI *entry, struct rusage *rusage )
 	   filter out any programs that exit with a usage message without
 	   producing useful output */
 	do
+		{
 		/* We use wait4() instead of waitpid() to get the last bit of
 		   entropy data, the resource usage of the child */
 		pid = wait4( entry->pid, NULL, 0, rusage );
-	while( pid == -1 && errno == EINTR );
+		}
+	while( pid == -1 && errno == EINTR && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MED );
 	if( pid != entry->pid )
 		status = -1;
 	entry->pid = 0;
@@ -600,7 +651,7 @@ static int my_pclose( struct RI *entry, struct rusage *rusage )
 void fastPoll( void )
 	{
 	RANDOM_STATE randomState;
-	BYTE buffer[ RANDOM_BUFSIZE ];
+	BYTE buffer[ RANDOM_BUFSIZE + 8 ];
 #if !( defined( _CRAY ) || defined( _M_XENIX ) )
 	struct timeval tv;
   #if !( defined( __QNX__ ) && OSVERSION <= 4 )
@@ -658,6 +709,15 @@ void fastPoll( void )
 	hrTime = gethrtime();
 	addRandomData( randomState, &hrTime, sizeof( hrtime_t ) );
 #endif /* Slowaris */
+#ifdef rdtscl
+	if( getSysCaps() & SYSCAP_FLAG_RDTSC )
+		{
+		unsigned long tscValue;
+
+		rdtscl( tscValue );
+		addRandomValue( randomState, tscValue );
+		}
+#endif /* rdtsc available */
 #if ( defined( __QNX__ ) && OSVERSION >= 5 )
 	/* Return the output of RDTSC or its equivalent on other systems.  We
 	   don't worry about locking the thread to a CPU since we're not using
@@ -692,7 +752,7 @@ static int getKstatData( void )
 	kstat_ctl_t *kc;
 	kstat_t *ksp;
 	RANDOM_STATE randomState;
-	BYTE buffer[ BIG_RANDOM_BUFSIZE ];
+	BYTE buffer[ BIG_RANDOM_BUFSIZE + 8 ];
 	int noEntries = 0, quality;
 
 	/* Try and open a kernel stats handle */
@@ -707,12 +767,12 @@ static int getKstatData( void )
 	for( ksp = kc->kc_chain; ksp != NULL; ksp = ksp->ks_next )
 		{
 		if( kstat_read( kc, ksp, NULL ) == -1 || \
-			!ksp->ks_data_size )
+			ksp->ks_data_size <= 0 )
 			continue;
 		addRandomData( randomState, ksp, sizeof( kstat_t ) );
 		if( ksp->ks_data_size > BIG_RANDOM_BUFSIZE )
 			{
-			RESOURCE_DATA msgData;
+			MESSAGE_DATA msgData;
 
 			setMessageData( &msgData, ksp->ks_data, ksp->ks_data_size );
 			krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_SETATTRIBUTE_S,
@@ -756,14 +816,14 @@ static int getProcData( void )
 	prusage_t prUsage;
 #endif /* PIOCUSAGE */
 	RANDOM_STATE randomState;
-	BYTE buffer[ RANDOM_BUFSIZE ];
-	char fileName[ 128 ];
+	BYTE buffer[ RANDOM_BUFSIZE + 8 ];
+	char fileName[ 128 + 8 ];
 	int fd, noEntries = 0, quality;
 
 	/* Try and open the process info for this process */
-	sPrintf( fileName, "/proc/%d", getpid() );
+	sPrintf_s( fileName, 128, "/proc/%d", getpid() );
 	if( ( fd = open( fileName, O_RDONLY ) ) == -1 )
-		return;
+		return( 0 );
 
 	initRandomData( randomState, buffer, RANDOM_BUFSIZE );
 
@@ -823,8 +883,8 @@ static int getProcData( void )
 
 static int getDevRandomData( void )
 	{
-	RESOURCE_DATA msgData;
-	BYTE buffer[ DEVRANDOM_BYTES ];
+	MESSAGE_DATA msgData;
+	BYTE buffer[ DEVRANDOM_BYTES + 8 ];
 #if defined( __APPLE__ ) || ( defined( __FreeBSD__ ) && OSVERSION == 5 )
 	static const int quality = 50;	/* See comment below */
 #else
@@ -868,9 +928,9 @@ static int getDevRandomData( void )
 static int getEGDdata( void )
 	{
 	static const char *egdSources[] = {
-		"/var/run/egd-pool", "/dev/egd-pool", "/etc/egd-pool", NULL };
-	RESOURCE_DATA msgData;
-	BYTE buffer[ DEVRANDOM_BYTES ];
+		"/var/run/egd-pool", "/dev/egd-pool", "/etc/egd-pool", NULL, NULL };
+	MESSAGE_DATA msgData;
+	BYTE buffer[ DEVRANDOM_BYTES + 8 ];
 	static const int quality = 75;
 	int egdIndex, sockFD, noBytes = CRYPT_ERROR, status;
 
@@ -881,7 +941,9 @@ static int getEGDdata( void )
 	sockFD = socket( AF_UNIX, SOCK_STREAM, 0 );
 	if( sockFD < 0 )
 		return( 0 );
-	for( egdIndex = 0; egdSources[ egdIndex ] != NULL; egdIndex++ )
+	for( egdIndex = 0; egdSources[ egdIndex ] != NULL && \
+					   egdIndex < FAILSAFE_ITERATIONS_SMALL; 
+		 egdIndex++ )
 		{
 		struct sockaddr_un sockAddr;
 
@@ -892,6 +954,8 @@ static int getEGDdata( void )
 					 sizeof( struct sockaddr_un ) ) >= 0 )
 			break;
 		}
+	if( egdIndex >= FAILSAFE_ITERATIONS_SMALL )
+		retIntError();
 	if( egdSources[ egdIndex ] == NULL )
 		{
 		close( sockFD );
@@ -949,14 +1013,16 @@ static int getProcFSdata( void )
 		"/proc/slabinfo", "/proc/stat", "/proc/sys/fs/inode-state",
 		"/proc/sys/fs/file-nr", "/proc/sys/fs/dentry-state",
 		"/proc/sysvipc/msg", "/proc/sysvipc/sem", "/proc/sysvipc/shm",
-		NULL };
-	RESOURCE_DATA msgData;
-	BYTE buffer[ 1024 ];
+		NULL, NULL };
+	MESSAGE_DATA msgData;
+	BYTE buffer[ 1024 + 8 ];
 	int procIndex, procFD, procCount = 0, quality;
 
 	/* Read the first 1K of data from some of the more useful sources (most
 	   of these produce far less than 1K output) */
-	for( procIndex = 0; procSources[ procIndex ] != NULL; procIndex++ )
+	for( procIndex = 0; procSources[ procIndex ] != NULL && \
+						procIndex < FAILSAFE_ITERATIONS_MED; 
+		 procIndex++ )
 		{
 		if( ( procFD = open( procSources[ procIndex ], O_RDONLY ) ) >= 0 )
 			{
@@ -977,6 +1043,8 @@ static int getProcFSdata( void )
 			close( procFD );
 			}
 		}
+	if( procIndex >= FAILSAFE_ITERATIONS_MED )
+		retIntError();
 	zeroise( buffer, 1024 );
 	if( procCount < 5 )
 		return( 0 );
@@ -1130,13 +1198,13 @@ void slowPoll( void )
 	int maxFD = 0;
 #endif /* OS-specific brokenness */
 	int extraEntropy = 0, usefulness = 0;
-	int fd, bufPos, i, value;
+	int fd, bufPos, i, iterationCount;
 
 	/* Make sure we don't start more than one slow poll at a time */
-	krnlEnterMutex( MUTEX_RANDOMPOLLING );
+	lockPollingMutex();
 	if( gathererProcess	)
 		{
-		krnlExitMutex( MUTEX_RANDOMPOLLING );
+		unlockPollingMutex();
 		return;
 		}
 
@@ -1168,7 +1236,7 @@ void slowPoll( void )
 		{
 		/* We got enough entropy from the additional sources, we don't
 		   have to go through with the full (heavyweight) poll */
-		krnlExitMutex( MUTEX_RANDOMPOLLING );
+		unlockPollingMutex();
 		return;
 		}
 
@@ -1234,7 +1302,7 @@ void slowPoll( void )
 			shmctl( gathererMemID, IPC_RMID, NULL );
 		if( gathererOldHandler.sa_handler != SIG_DFL )
 			sigaction( SIGCHLD, &gathererOldHandler, NULL );
-		krnlExitMutex( MUTEX_RANDOMPOLLING );
+		unlockPollingMutex();
 		return; /* Something broke */
 		}
 
@@ -1244,7 +1312,7 @@ void slowPoll( void )
 	   to a nonzero value (which marks it as busy) and exit the mutex, then
 	   overwrite it with the real PID (also nonzero) from the fork */
 	gathererProcess = -1;
-	krnlExitMutex( MUTEX_RANDOMPOLLING );
+	unlockPollingMutex();
 
 	/* Fork off the gatherer, the parent process returns to the caller */
 	if( ( gathererProcess = fork() ) != 0 )
@@ -1257,11 +1325,11 @@ void slowPoll( void )
 			fprintf( stderr, "cryptlib: fork() failed, errno = %d, "
 					 "file = %s, line = %d.\n", errno, __FILE__, __LINE__ );
 #endif /* DEBUG_CONFLICTS */
-			krnlEnterMutex( MUTEX_RANDOMPOLLING );
+			lockPollingMutex();
 			shmctl( gathererMemID, IPC_RMID, NULL );
 			sigaction( SIGCHLD, &gathererOldHandler, NULL );
 			gathererProcess = 0;
-			krnlExitMutex( MUTEX_RANDOMPOLLING );
+			unlockPollingMutex();
 			}
 		return;	/* Error/parent process returns */
 		}
@@ -1301,7 +1369,8 @@ void slowPoll( void )
 
 	/* Fire up each randomness source */
 	FD_ZERO( &fds );
-	for( i = 0; dataSources[ i ].path != NULL; i++ )
+	for( i = 0; dataSources[ i ].path != NULL && \
+				i < FAILSAFE_ITERATIONS_LARGE; i++ )
 		{
 		/* Check for the end-of-lightweight-sources marker */
 		if( dataSources[ i ].path[ 0 ] == '\0' )
@@ -1336,34 +1405,53 @@ void slowPoll( void )
 			}
 		else
 			dataSources[ i ].pipe = my_popen( &dataSources[ i ] );
-		if( dataSources[ i ].pipe != NULL )
+		if( dataSources[ i ].pipe == NULL )
+			continue;
+		if( fileno( dataSources[ i ].pipe ) >= FD_SETSIZE )
 			{
-			dataSources[ i ].pipeFD = fileno( dataSources[ i ].pipe );
-			if( dataSources[ i ].pipeFD > maxFD )
-				maxFD = dataSources[ i ].pipeFD;
-			fcntl( dataSources[ i ].pipeFD, F_SETFL, O_NONBLOCK );
-			FD_SET( dataSources[ i ].pipeFD, &fds );
-			dataSources[ i ].length = 0;
-
-			/* If there are alternatives for this command, don't try and
-			   execute them */
-			while( dataSources[ i ].hasAlternative )
-				{
-#ifdef DEBUG_RANDOM
-				printf( "rndunix: Skipping %s.\n",
-						dataSources[ i + 1 ].path );
-#endif /* DEBUG_RANDOM */
-				i++;
-				}
+			/* The fd is larger than what can be fitted into an fd_set, don't
+			   try and use it.  This can happen if the calling app opens a
+			   large number of files, since most FD_SET() macros don't
+			   perform any safety checks this can cause segfaults and other
+			   problems if we don't perform the check ourselves */
+			fclose( dataSources[ i ].pipe );
+			dataSources[ i ].pipe = NULL;
+			continue;
 			}
+
+		/* Set up the data source information */
+		dataSources[ i ].pipeFD = fileno( dataSources[ i ].pipe );
+		if( dataSources[ i ].pipeFD > maxFD )
+			maxFD = dataSources[ i ].pipeFD;
+		fcntl( dataSources[ i ].pipeFD, F_SETFL, O_NONBLOCK );
+		FD_SET( dataSources[ i ].pipeFD, &fds );
+		dataSources[ i ].length = 0;
+
+		/* If there are alternatives for this command, don't try and execute
+		   them */
+		iterationCount = 0;
+		while( dataSources[ i ].hasAlternative && \
+			   iterationCount++ < FAILSAFE_ITERATIONS_MED ) 
+			{
+#ifdef DEBUG_RANDOM
+			printf( "rndunix: Skipping %s.\n", dataSources[ i + 1 ].path );
+#endif /* DEBUG_RANDOM */
+			i++;
+			}
+		if( iterationCount >= FAILSAFE_ITERATIONS_MED )
+			retIntError_Void();
 		}
+	if( i >= FAILSAFE_ITERATIONS_LARGE )
+		retIntError_Void();
 	gathererInfo = ( GATHERER_INFO * ) gathererBuffer;
 	bufPos = sizeof( GATHERER_INFO );	/* Start of buf.has status info */
 
 	/* Suck all the data that we can get from each of the sources */
 	moreSources = TRUE;
 	startTime = getTime();
-	while( moreSources && bufPos < gathererBufSize )
+	iterationCount = 0;
+	while( moreSources && bufPos < gathererBufSize && \
+		   iterationCount++ < FAILSAFE_ITERATIONS_MAX )
 		{
 		/* Wait for data to become available from any of the sources, with a
 		   timeout of 10 seconds.  This adds even more randomness since data
@@ -1380,30 +1468,42 @@ void slowPoll( void )
 			break;
 
 		/* One of the sources has data available, read it into the buffer */
-		for( i = 0; dataSources[ i ].path != NULL; i++ )
+		for( i = 0; dataSources[ i ].path != NULL && \
+					i < FAILSAFE_ITERATIONS_LARGE; i++ )
+			{
 			if( dataSources[ i ].pipe != NULL && \
 				FD_ISSET( dataSources[ i ].pipeFD, &fds ) )
 				usefulness += getEntropySourceData( &dataSources[ i ],
 													gathererBuffer + bufPos,
 													gathererBufSize - bufPos,
 													&bufPos );
+			}
+		if( i >= FAILSAFE_ITERATIONS_LARGE )
+			retIntError_Void();
 
 		/* Check if there's more input available on any of the sources */
 		moreSources = FALSE;
 		FD_ZERO( &fds );
-		for( i = 0; dataSources[ i ].path != NULL; i++ )
+		for( i = 0; dataSources[ i ].path != NULL && \
+					i < FAILSAFE_ITERATIONS_LARGE; i++ )
+			{
 			if( dataSources[ i ].pipe != NULL )
 				{
 				FD_SET( dataSources[ i ].pipeFD, &fds );
 				moreSources = TRUE;
 				}
+			}
+		if( i >= FAILSAFE_ITERATIONS_LARGE )
+			retIntError_Void();
 
 		/* If we've gone over our time limit, kill anything still hanging
 		   around and exit.  This prevents problems with input from blocked
 		   sources */
 		if( getTime() > startTime + SLOWPOLL_TIMEOUT )
 			{
-			for( i = 0; dataSources[ i ].path != NULL; i++ )
+			for( i = 0; dataSources[ i ].path != NULL && \
+						i < FAILSAFE_ITERATIONS_LARGE; i++ )
+				{
 				if( dataSources[ i ].pipe != NULL )
 					{
 #ifdef DEBUG_RANDOM
@@ -1415,6 +1515,9 @@ void slowPoll( void )
 					dataSources[ i ].pipe = NULL;
 					dataSources[ i ].pid = 0;
 					}
+				}
+			if( i >= FAILSAFE_ITERATIONS_LARGE )
+				retIntError_Void();
 			moreSources = FALSE;
 #ifdef DEBUG_RANDOM
 			puts( "rndunix: Poll timed out, probably due to blocked data "
@@ -1422,6 +1525,8 @@ void slowPoll( void )
 #endif /* DEBUG_RANDOM */
 			}
 		}
+	if( iterationCount >= FAILSAFE_ITERATIONS_MAX )
+		retIntError_Void();
 	gathererInfo->usefulness = usefulness;
 	gathererInfo->noBytes = bufPos;
 #ifdef DEBUG_RANDOM
@@ -1435,22 +1540,29 @@ void slowPoll( void )
 #endif /* !QNX 4.x */
 	}
 
-/* Wait for the randomness gathering to finish.  Cray Unicos doesn't have
-   sched_yield() and OpenBSD has its sched_yield() in libpthread so it
-   doesn't exist if we're not building with USE_THREADS, in which case we
-   have to no-op it out */
+/* Wait for the randomness gathering to finish */
 
-#if defined( _CRAY ) || \
-	( defined( __OpenBSD__ ) && !defined( USE_THREADS ) )
+#if !defined( _POSIX_PRIORITY_SCHEDULING ) || ( _POSIX_PRIORITY_SCHEDULING < 0 )
+  /* No sched_yield() or sched_yield() not supported */
   #define sched_yield()
+#elif ( _POSIX_PRIORITY_SCHEDULING == 0 )
+
+static void my_sched_yield( void )
+	{
+	/* sched_yield() is only supported if sysconf() tells us it is */
+	if( sysconf( _SC_PRIORITY_SCHEDULING ) > 0 )
+		sched_yield();
+	}
+#define sched_yield		my_sched_yield
+
 #endif /* Systems without sched_yield() */
 
 void waitforRandomCompletion( const BOOLEAN force )
 	{
-	krnlEnterMutex( MUTEX_RANDOMPOLLING );
+	lockPollingMutex();
 	if( gathererProcess	)
 		{
-		RESOURCE_DATA msgData;
+		MESSAGE_DATA msgData;
 		GATHERER_INFO *gathererInfo = ( GATHERER_INFO * ) gathererBuffer;
 		int quality, status;
 
@@ -1462,8 +1574,9 @@ void waitforRandomCompletion( const BOOLEAN force )
 			   yield our timeslice a few times so that the shutdown can
 			   take effect. This is unfortunately somewhat implementation-
 			   dependant in that in some cases it'll only yield the current
-			   thread's timeslice, or if it's a high-priority thread it'll
-			   be scheduled again before any lower-priority threads get to
+			   thread's timeslice rather than the overall process'
+			   timeslice, or if it's a high-priority thread it'll be
+			   scheduled again before any lower-priority threads get to
 			   run */
 			kill( gathererProcess, SIGTERM );
 			sched_yield();
@@ -1542,7 +1655,7 @@ void waitforRandomCompletion( const BOOLEAN force )
 #endif /* !QNX 4.x */
 		gathererProcess = 0;
 		}
-	krnlExitMutex( MUTEX_RANDOMPOLLING );
+	unlockPollingMutex();
 	}
 
 /* Check whether we've forked and we're the child.  The mechanism used varies
@@ -1571,16 +1684,17 @@ void waitforRandomCompletion( const BOOLEAN force )
 #ifdef USE_THREADS
 
 static BOOLEAN forked = FALSE;
+static pthread_mutex_t forkedMutex;
 
 BOOLEAN checkForked( void )
 	{
 	BOOLEAN hasForked;
 
 	/* Read the forked-t flag in a thread-safe manner */
-	krnlEnterMutex( MUTEX_RANDOMPOLLING );
+	pthread_mutex_lock( &forkedMutex );
 	hasForked = forked;
 	forked = FALSE;
-	krnlExitMutex( MUTEX_RANDOMPOLLING );
+	pthread_mutex_unlock( &forkedMutex );
 
 	return( hasForked );
 	}
@@ -1588,9 +1702,9 @@ BOOLEAN checkForked( void )
 void setForked( void )
 	{
 	/* Set the forked-t flag in a thread-safe manner */
-	krnlEnterMutex( MUTEX_RANDOMPOLLING );
+	pthread_mutex_lock( &forkedMutex );
 	forked = TRUE;
-	krnlExitMutex( MUTEX_RANDOMPOLLING );
+	pthread_mutex_unlock( &forkedMutex );
 	}
 
 #else
@@ -1626,5 +1740,16 @@ void initRandomPolling( void )
 	   sides remix the pool thoroughly */
 #ifdef USE_THREADS
 	pthread_atfork( NULL, setForked, setForked );
+
+	pthread_mutex_init( &gathererMutex, NULL );
+	pthread_mutex_init( &forkedMutex, NULL );
+#endif /* USE_THREADS */
+	}
+
+void endRandomPolling( void )
+	{
+#ifdef USE_THREADS
+	pthread_mutex_destroy( &forkedMutex );
+	pthread_mutex_destroy( &gathererMutex );
 #endif /* USE_THREADS */
 	}
