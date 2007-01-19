@@ -340,15 +340,6 @@ ocd needs work (mike@waspfactory.org)
   1. The code (along with user/mailbox) needs cleaning up.
   2. Should synchronise field names etc.
 
-  Note that we can drop ocd in the non-cluster case starting with
-  1.07. Simply not start it.
-
-
-Don't duplicate the contents of address_fields in header_fields.
-
-  The Injector should avoid inserting address fields into header_fields,
-  and the HeaderFetcher should assemble addresses from address_fields.
-
 
 AddressCache and FieldNameCache are utter crocks, and must die.
 
@@ -495,9 +486,6 @@ SASL LOGIN authentication
   There's a draft by Ken Murchison.
 
 
-httpd segfaults when you click on a message (Harri).
-
-
 Make the httpd do archive pages
 
   Shouldn't we be most of the way there? Need partial result pages and
@@ -539,9 +527,6 @@ DELETE of mailboxes in inappropriately qualified (security problem)
 Split the folder view into pages.
 
   The injector needs to do threading to make the paging possible.
-
-
-A failing parse message should invalidate the prepared statement cache.
 
 
 We need mUTF-7 support.
@@ -873,12 +858,6 @@ PGP automatic processing
   detect four and transform them to the proper MIME format.
 
 
-imap/hackedsize#2 doesn't work.
-
-  - The Received field added by smtpd changes.
-  - The x-obliterate breaks ocd, so the select response is weird.
-
-
 LDAP server/address book
 
   Joins rock. We can join ALL OUR TABLES and get INCREDIBLE
@@ -961,6 +940,8 @@ RFC 4616
 
 tlsproxy needs better diagnostics
 
+  Reports from Daniel Ceregatti (Primer on #postgresql).
+
   - Primer tried to use it with an OpenSSL key, and it exited silently.
     Now it's not silent, but it's not helpful either.
   - We should document /somewhere/ how to use pemtrans to produce keys
@@ -971,8 +952,6 @@ tlsproxy needs better diagnostics
     does explain).
   - We should regenerate the automatic-key.p15 if we find that the
     existing key's CN doesn't match our current hostname.
-
-  (Who is Primer?)
 
 
 NOTIFY implementation
@@ -995,7 +974,6 @@ Todo list: AMS
 
   - Figure out why tlsproxy segfaults on Thomas's box.
   - Go through ANNOTATE and make sure we have and test everything.
-  - Fix imap/view and the recent problems.
   - Figure out the Injector upper bound on Injector speed.
   - Log single-row query values?
   - Use writev in Buffer::write.
@@ -1006,8 +984,6 @@ Todo list: AMS
     update on mailstore from aox.
   - Restart Postgres while we're running, and see what happens. We
     should be able to cope with that gracefully, but we don't.
-  - Add some test cases and so on so problems aren't only recorded in
-    an "owned by AMS" list.
   - We seem to be mangling Tom Simnett's PGP-signed email. Get him to
     send something to ams@toroid.org and make a canonical test case.
   - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query
