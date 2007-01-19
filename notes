@@ -1007,10 +1007,7 @@ Todo list: AMS
   - Use writev in Buffer::write.
   - canonical problems.
   - Poke hdp and jd@commandprompt.
-  - Revive dbtest
   - Investigate Scalix/Zimbra/TeamXchange.
-  - Make sure LIKE parameters in selector.cpp (whereAddressField in
-    particular) are [\%_]-escaped as in q().
   - Make Schema::check independent of upgrade so that we can revoke
     update on mailstore from aox.
   - Restart Postgres while we're running, and see what happens. We
@@ -1021,6 +1018,5 @@ Todo list: AMS
     send something to ams@toroid.org and make a canonical test case.
   - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query
     an address book.
-  - aox start should say "already running" if that's true.
   - DIGEST-MD5 reauth doesn't work for Dave.
   - Date::valid doesn't reject February 29th 2007.
