@@ -25,7 +25,7 @@ public:
     String quotedString();
     String atom();
 
-    String esmtpParam();
+    String esmtpKeyword();
     String esmtpValue();
 };
 

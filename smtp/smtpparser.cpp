@@ -203,3 +203,46 @@ String SmtpParser::atom()
         setError( "Expected atom, saw: " + following() );
     return r;
 }
+
+
+/*! Parses and returns an ESMTP parameter name: esmtp-keyword = (ALPHA
+    / DIGIT) *(ALPHA / DIGIT / "-")
+
+*/
+
+String SmtpParser::esmtpKeyword()
+{
+    char c = nextChar();
+    String r;
+    while ( ( c >= 'a' && c <= 'z' ) ||
+            ( c >= 'A' && c <= 'Z' ) ||
+            ( c >= '0' && c <= '9' ) ||
+            ( c == '-' && !r.isEmpty() ) ) {
+        r.append( c );
+        step();
+        c = nextChar();
+    }
+    if ( r.isEmpty() )
+        setError( "Expected esmtp parameter keyword, saw: " + following() );
+    return r;
+    
+}
+
+
+/*! Parses an ESMTP parameter value: esmtp-value = 1*(%d33-60 /
+    %d62-127)
+*/
+
+String SmtpParser::esmtpValue()
+{
+    String r;
+    char c = nextChar();
+    while ( !atEnd() && c != '=' && c > 32 && c < 128 ) {
+        r.append( c );
+        step();
+        c = nextChar();
+    }
+    if ( r.isEmpty() )
+        setError( "Expected esmtp parameter value, saw: " + following() );
+    return r;
+}

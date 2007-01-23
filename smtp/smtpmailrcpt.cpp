@@ -22,7 +22,7 @@ public:
 
 
 /*! \class SmtpMailFrom smtpmailrcpt.h
-  
+
     The SmtpMailFrom class parses and acts on the "mail from" command,
     with whatever extensions we like. Bothersome.
 */
@@ -43,8 +43,8 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     p->whitespace();
 
     while ( p->ok() && !p->atEnd() ) {
-        String name = p->esmtpParam();
-        p->whitespace();
+        String name = p->esmtpKeyword();
+        p->require( "=" );
         String value = p->esmtpValue();
         p->whitespace();
         if ( p->ok() )
@@ -101,8 +101,8 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
     p->whitespace();
 
     while ( p->ok() && !p->atEnd() ) {
-        String name = p->esmtpParam();
-        p->whitespace();
+        String name = p->esmtpKeyword();
+        p->require( "=" );
         String value = p->esmtpValue();
         p->whitespace();
         if ( p->ok() )
@@ -137,7 +137,7 @@ void SmtpRcptTo::execute()
             server()->sieve()->addRecipient( d->address, d->mailbox, script );
         }
     }
-    
+
     if ( !d->query->done() )
         return;
 

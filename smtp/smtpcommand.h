@@ -65,6 +65,11 @@ class SmtpStarttls
 {
 public:
     SmtpStarttls( SMTP *, SmtpParser * );
+
+    void execute();
+
+private:
+    class TlsServer * tlsServer;
 };
 
 
@@ -73,6 +78,8 @@ class SmtpQuit
 {
 public:
     SmtpQuit( SMTP *, SmtpParser * );
+
+    void execute();
 };
 
 

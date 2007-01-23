@@ -10,6 +10,7 @@
 #include "smtpparser.h"
 #include "stringlist.h"
 #include "smtp.h"
+#include "tls.h"
 
 
 class SmtpCommandData
@@ -188,7 +189,7 @@ SmtpCommand * SmtpCommand::create( SMTP * server, const String & command )
         r->respond( 501, p->error() );
         r->finish();
     }
-    
+
     return r;
 }
 
@@ -211,5 +212,66 @@ void SmtpRset::execute()
 {
     server()->reset();
     respond( 250, "OK" );
+    finish();
+}
+
+
+SmtpNoop::SmtpNoop( SMTP * s, SmtpParser * )
+    : SmtpCommand( s )
+{
+    respond( 250, "OK" );
+    finish();
+}
+
+
+/*! Issues help, except not. \a s is the SMTP server, as usual. */
+
+SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
+    : SmtpCommand( s )
+{
+    respond( 250, "See http://aox.org" );
+}
+
+
+/*! Starts TLS negotiation as server. */
+
+SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
+    : SmtpCommand( s ), tlsServer( 0 )
+{
+    tlsServer = new TlsServer( this, server()->peer(), "SMTP" );
+}
+
+
+void SmtpStarttls::execute()
+{
+    if ( server()->hasTls() ) {
+        respond( 502, "Already using TLS" );
+        finish();
+        return;
+    }
+
+    if ( !tlsServer->done() )
+        return;
+
+    server()->enqueue( "220 Start negotiating TLS now.\r\n" );
+    server()->write();
+    finish();
+    log( "Negotiating TLS", Log::Debug );
+    server()->startTls( tlsServer );
+
+}
+
+
+SmtpQuit::SmtpQuit( SMTP * s, SmtpParser * )
+    : SmtpCommand( s )
+{
+    // nothing
+}
+
+
+void SmtpQuit::execute()
+{
+    server()->setState( Connection::Closing );
+    respond( 221, "Have a nice day." );
     finish();
 }

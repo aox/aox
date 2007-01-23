@@ -38,7 +38,7 @@ private:
 
 
 class SmtpBurl
-    : public SmtpCommand
+    : public SmtpData
 {
 public:
     SmtpBurl( SMTP *, SmtpParser * );

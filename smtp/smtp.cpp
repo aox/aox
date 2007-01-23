@@ -2,6 +2,7 @@
 
 #include "smtp.h"
 
+#include "smtpmailrcpt.h"
 #include "smtpcommand.h"
 #include "transaction.h"
 #include "eventloop.h"
@@ -19,7 +20,8 @@ public:
         executing( false ), executeAgain( false ),
         inputState( SMTP::Command ),
         dialect( SMTP::Smtp ),
-        sieve( 0 ), user( 0 ) {}
+        sieve( 0 ), user( 0 ),
+        recipients( new List<SmtpRcptTo> ){}
 
     bool executing;
     bool executeAgain;
@@ -29,6 +31,7 @@ public:
     List<SmtpCommand> commands;
     String heloName;
     User * user;
+    List<SmtpRcptTo> * recipients;
 };
 
 
@@ -261,6 +264,7 @@ String SMTP::heloName() const
 void SMTP::reset()
 {
     d->sieve = 0;
+    d->recipients = new List<SmtpRcptTo>;
 }
 
 
@@ -284,4 +288,46 @@ class Sieve * SMTP::sieve() const
 class User * SMTP::user() const
 {
     return d->user;
+}
+
+
+/*! Returns the current input state, which is Command initially. */
+
+SMTP::InputState SMTP::inputState() const
+{
+    return d->inputState;
+}
+
+
+/*! Notifies this SMTP server that its input state is now \a s. If the
+    state is anything other than Command, the SMTP server calls the
+    last SmtpCommand every time there's more input. Eventually, the
+    SmtpCommand has to call setInputState( Command ) again.
+
+*/
+
+void SMTP::setInputState( InputState s )
+{
+    d->inputState = s;
+}
+
+
+/*! Notifies this SMTP server that \a r is a valid rcpt to
+    command. SMTP records that so the LMTP SmtpData command can use
+    the list later.
+*/
+
+void SMTP::addRecipient( class SmtpRcptTo * r )
+{
+    d->recipients->append( r );
+}
+
+
+/*! Returns a list of all valid SmtpRcptTo commands. This is never a
+    null pointer, but may be an empty list.
+*/
+
+List<class SmtpRcptTo> * SMTP::rcptTo() const
+{
+    return d->recipients;
 }
