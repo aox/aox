@@ -31,9 +31,9 @@ public:
     Address * recipient() const;
 
     void evaluate();
-    bool succeeded( Address * );
-    bool failed( Address * );
-    String result( Address * );
+    bool rejected( Address * ) const;
+    bool succeeded( Address * ) const;
+    bool failed( Address * ) const;
     bool done() const;
     bool ready() const;
 

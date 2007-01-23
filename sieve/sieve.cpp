@@ -506,7 +506,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
     failed or if evaluation is not yet complete.
 */
 
-bool Sieve::succeeded( Address * address )
+bool Sieve::succeeded( Address * address ) const
 {
     SieveData::Recipient * i = d->recipient( address );
     if ( i )
@@ -519,7 +519,7 @@ bool Sieve::succeeded( Address * address )
     false if it succeeded or if evaluation is not yet complete.
 */
 
-bool Sieve::failed( Address * address )
+bool Sieve::failed( Address * address ) const
 {
     SieveData::Recipient * i = d->recipient( address );
     if ( i )
@@ -528,17 +528,24 @@ bool Sieve::failed( Address * address )
 }
 
 
-/*! Returns a single-line result string for use e.g. as SMTP/LMTP
-    response. If neither failed() nor succeeded() returns true for \a
-    address, the result of result() is undefined.
+/*! Returns true if delivery to \a address should be rejected, and
+    false if it should be accepted, if evaluation is not yet complete
+    or if \a address is not managed by this sieve.
 */
 
-String Sieve::result( Address * address )
+bool Sieve::rejected( Address * address ) const
 {
     SieveData::Recipient * i = d->recipient( address );
-    if ( i )
-        return i->result;
-    return "";
+    if ( !i )
+        return false;
+
+    List<SieveAction>::Iterator a( i->actions );
+    while ( a ) {
+        if ( a->type() == SieveAction::Reject )
+            return true;
+        ++a;
+    }
+    return false;
 }
 
 
