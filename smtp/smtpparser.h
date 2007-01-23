@@ -11,6 +11,22 @@ class SmtpParser
 {
 public:
     SmtpParser( const String & );
+
+    String command();
+
+    void whitespace();
+
+    String domain();
+    String subDomain();
+
+    class Address * address();
+
+    String dotString();
+    String quotedString();
+    String atom();
+
+    String esmtpParam();
+    String esmtpValue();
 };
 
 

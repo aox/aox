@@ -4,12 +4,11 @@
 #define SMTP_H
 
 #include "connection.h"
+#include "list.h"
 
 
 class String;
-class Command;
-class Mailbox;
-class Address;
+class SmtpCommand;
 
 
 class SMTP 
@@ -22,65 +21,50 @@ public:
 
     void parse();
 
-    virtual void helo();
-    virtual void ehlo();
-    virtual void lhlo();
-    void rset();
-    void mail();
-    void rcpt();
-    void data();
-    void bdat();
-    void burl();
-    void body( String & );
-    virtual void noop();
-    void help();
-    void quit();
-    void starttls();
-    void auth();
+    void execute();
+    
+    enum InputState { Command, Sasl, Chunk, Data };
+    InputState inputState() const;
+    void setInputState( InputState );
 
-    void saslNeg();
+    enum Dialect{ Smtp, Lmtp, Submit };
+    void setDialect( Dialect );
+    Dialect dialect() const;
 
-    Address * address();
-    void respond( int, const String & );
-    void sendResponses();
-    bool ok() const;
-    void inject();
-    virtual void reportInjection();
-    void rcptAnswer( Address *, Mailbox * );
-    bool writeCopy();
+    void setHeloName( const String & );
+    String heloName() const;
 
-    enum State {
-        Initial,
-        SaslNeg,
-        MailFrom,
-        RcptTo,
-        Data,
-        Bdat,
-        Body,
-        Injecting
-    };
-    State state() const;
+    class Sieve * sieve() const;
 
-    void setHeloString();
+    void reset();
 
-    void sendGenericError();
+    class User * user() const;
+
+    void addRecipient( class SmtpRcptTo * );
+    List<class SmtpRcptTo> * rcptTo() const;
+    
+private:
+    void parseCommand();
 
 private:
     class SMTPData * d;
-    friend class LMTP;
-    friend class BurlHelper;
+
 };
 
-class LMTP 
-    : public SMTP 
+
+class LMTP
+    : public SMTP
 {
 public:
     LMTP( int s );
+};
 
-    void helo();
-    void ehlo();
-    void lhlo();
-    void reportInjection();
+
+class SMTPSubmit
+    : public SMTP
+{
+public:
+    SMTPSubmit( int s );
 };
 
 

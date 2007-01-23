@@ -90,7 +90,7 @@ int main( int argc, char *argv[] )
         Configuration::LmtpAddress, Configuration::LmtpPort,
         false
         );
-    Listener< SMTP >::create(
+    Listener< SMTPSubmit >::create(
         "SMTP-Submit", Configuration::toggle( Configuration::UseSmtpSubmit ),
         Configuration::SmtpSubmitAddress, Configuration::SmtpSubmitPort,
         false

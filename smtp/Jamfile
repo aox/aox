@@ -1,9 +1,12 @@
 SubDir TOP smtp ;
 SubInclude TOP abnf ;
-SubInclude TOP imap ;
+SubInclude TOP sasl ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
 HDRS += [ FDirName $(TOP) smtp ] ;
 
-Build smtp : smtp.cpp smtpparser.cpp spoolmanager.cpp ;
+Build smtp : smtp.cpp
+    smtpparser.cpp
+    smtpcommand.cpp smtphelo.cpp smtpmailrcpt.cpp
+    spoolmanager.cpp ;
