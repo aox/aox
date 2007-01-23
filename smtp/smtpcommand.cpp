@@ -5,6 +5,7 @@
 #include "smtphelo.h"
 #include "smtpdata.h"
 #include "smtpmailrcpt.h"
+#include "smtpauth.h"
 
 #include "smtpparser.h"
 #include "stringlist.h"
