@@ -197,6 +197,7 @@ String SmtpParser::atom()
             c == '~' ) {
         r.append( c );
         step();
+        c = nextChar();
     }
     if ( r.isEmpty() )
         setError( "Expected atom, saw: " + following() );
