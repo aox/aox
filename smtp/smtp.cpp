@@ -291,6 +291,14 @@ class User * SMTP::user() const
 }
 
 
+/*! Sets this server's authenticated user to \a user. */
+
+void SMTP::authenticated( User * user )
+{
+    d->user = user;
+}
+
+
 /*! Returns the current input state, which is Command initially. */
 
 SMTP::InputState SMTP::inputState() const

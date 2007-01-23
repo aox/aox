@@ -7,6 +7,7 @@
 #include "list.h"
 
 
+class User;
 class String;
 class SmtpCommand;
 
@@ -38,7 +39,8 @@ public:
 
     void reset();
 
-    class User * user() const;
+    User * user() const;
+    void authenticated( User * );
 
     void addRecipient( class SmtpRcptTo * );
     List<class SmtpRcptTo> * rcptTo() const;
