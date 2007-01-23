@@ -8,5 +8,5 @@ HDRS += [ FDirName $(TOP) smtp ] ;
 
 Build smtp : smtp.cpp
     smtpparser.cpp
-    smtpcommand.cpp smtphelo.cpp smtpmailrcpt.cpp
+    smtpcommand.cpp smtphelo.cpp smtpmailrcpt.cpp smtpauth.cpp
     spoolmanager.cpp ;

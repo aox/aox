@@ -14,7 +14,7 @@ class SmtpCommand
 {
 public:
     SmtpCommand( class SMTP * );
-    
+
     bool done() const;
     String response() const;
     bool ok() const;
@@ -39,7 +39,7 @@ class SmtpRset
 {
 public:
     SmtpRset( SMTP *, SmtpParser * );
-    
+
     void execute();
 };
 
@@ -73,14 +73,6 @@ class SmtpQuit
 {
 public:
     SmtpQuit( SMTP *, SmtpParser * );
-};
-
-
-class SmtpAuth
-    : public SmtpCommand
-{
-public:
-    SmtpAuth( SMTP *, SmtpParser * );
 };
 
 
