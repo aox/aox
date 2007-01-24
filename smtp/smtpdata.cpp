@@ -27,7 +27,7 @@ class SmtpDataData
 {
 public:
     SmtpDataData()
-        : state( 0 ), message( 0 ), injector( 0 ), now( 0 ), ok( "Ok" ) {}
+        : state( 0 ), message( 0 ), injector( 0 ), now( 0 ), ok( "OK" ) {}
     String id;
     String body;
     uint state;
