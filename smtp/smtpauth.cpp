@@ -113,7 +113,7 @@ void SmtpAuth::execute()
             String c = d->m->challenge().e64();
 
             if ( !d->m->done() ) {
-                server()->enqueue( "+ "+ c +"\r\n" );
+                server()->enqueue( "334 "+ c +"\r\n" );
                 d->m->setState( SaslMechanism::AwaitingResponse );
                 return;
             }
