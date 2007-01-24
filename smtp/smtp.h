@@ -45,6 +45,11 @@ public:
     void addRecipient( class SmtpRcptTo * );
     List<class SmtpRcptTo> * rcptTo() const;
     
+    void setBody( const String & );
+    String body() const;
+
+    bool isFirstCommand( SmtpCommand * ) const;
+
 private:
     void parseCommand();
 

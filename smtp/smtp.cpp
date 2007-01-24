@@ -32,6 +32,7 @@ public:
     String heloName;
     User * user;
     List<SmtpRcptTo> * recipients;
+    String body;
 };
 
 
@@ -267,6 +268,7 @@ void SMTP::reset()
 {
     d->sieve = 0;
     d->recipients = new List<SmtpRcptTo>;
+    d->body.truncate();
 }
 
 
@@ -340,4 +342,35 @@ void SMTP::addRecipient( SmtpRcptTo * r )
 List<SmtpRcptTo> * SMTP::rcptTo() const
 {
     return d->recipients;
+}
+
+
+/*! Records \a b for later recall. reset() clears this. */
+
+void SMTP::setBody( const String & b )
+{
+    d->body = b;
+}
+
+
+/*! Returns what setBody() set. Used for SmtpBdat instances to
+    coordinate the body.
+*/
+
+String SMTP::body() const
+{
+    return d->body;
+}
+
+
+/*! Returns true if \a c is the oldest command in the SMTP server's
+    queue of outstanding commands, and false if the queue is empty or
+    there is a command older than \a c in the queue.
+*/
+
+bool SMTP::isFirstCommand( SmtpCommand * c ) const
+{
+    if ( c == d->commands.firstElement() )
+        return true;
+    return false;
 }
