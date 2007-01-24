@@ -67,8 +67,6 @@ SmtpAuth::SmtpAuth( SMTP * s, SmtpParser * p )
             c = p->nextChar();
         }
     }
-
-    p->require( "\r\n" );
     p->end();
 }
 
