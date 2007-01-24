@@ -166,24 +166,18 @@ void SMTP::parse()
 void SMTP::parseCommand()
 {
     Buffer * r = readBuffer();
-    uint i = 0;
-    while ( i < r->size() && (*r)[i] != 10 )
-        i++;
-    if ( i >= 4096 ) {
-        log( "Connection closed due to overlong line (" +
-             fn( i ) + " bytes)", Log::Error );
+    String * line = r->removeLine( 4096 );
+    if ( !line && r->size() > 4096 ) {
+        log( "Connection closed due to overlong line", Log::Error );
         enqueue( "500 Line too long (legal maximum is 998 bytes)\r\n" );
         Connection::setState( Closing );
         return;
     }
-    if ( i >= r->size() )
+    if ( !line )
         return;
     
-    // we have a line; read it
-    String line = r->string( ++i ).crlf();
-    r->remove( i );
-    log( "Received: '" + line.simplified() + "'", Log::Debug );
-    d->commands.append( SmtpCommand::create( this, line ) );
+    log( "Received: '" + line->simplified() + "'", Log::Debug );
+    d->commands.append( SmtpCommand::create( this, *line ) );
 }
 
 

@@ -61,8 +61,8 @@ void SmtpData::execute()
     if ( d->state == 0 ) {
         d->id = id();
 
-        uint local;
-        uint remote;
+        uint local = 0;
+        uint remote = 0;
         List<SmtpRcptTo>::Iterator i( server()->rcptTo() );
         while ( i ) {
             if ( i->remote() )
@@ -151,7 +151,7 @@ void SmtpData::execute()
             d->injector->setSender( server()->user()->address() );
 
         if ( l->isEmpty() ) {
-            // we don't want to inject at all. what do we want to do? 
+            // we don't want to inject at all. what do we want to do?
             // the sieve should know.
             d->state = 4;
         }
@@ -177,13 +177,24 @@ void SmtpData::execute()
     // state 4: we're done. give the report suggested by the sieve.
     if ( d->state == 4 ) {
         if ( server()->dialect() == SMTP::Lmtp ) {
+            Sieve * s = server()->sieve();
+            List<SmtpRcptTo>::Iterator i( server()->rcptTo() );
+            while ( i ) {
+                String prefix = i->address()->toString();
+                if ( s->rejected( i->address() ) )
+                    respond( 551, prefix + ": Rejected" );
+                else
+                    respond( 250, prefix + ": OK" );
+                ++i;
+            }
         }
         else {
             if ( server()->sieve()->rejected() )
                 respond( 551, "Rejected by all recipients" );
             else
-                respond( 250, "asfds" );
+                respond( 250, "Done" );
         }
+        finish();
     }
 }
 
@@ -332,24 +343,24 @@ Date * SmtpData::now()
 SmtpBdat::SmtpBdat( SMTP * s, SmtpParser * )
     : SmtpData( s, 0 ), d( 0 )
 {
-    
+
 }
 
 
 void SmtpBdat::execute()
 {
-    
+
 }
 
 
 SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * )
     : SmtpData( s, 0 ), d( 0 )
 {
-    
+
 }
 
 
 void SmtpBurl::execute()
 {
-    
+
 }
