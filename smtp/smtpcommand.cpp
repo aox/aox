@@ -214,7 +214,7 @@ SmtpRset::SmtpRset( SMTP * s, SmtpParser * )
 void SmtpRset::execute()
 {
     server()->reset();
-    respond( 250, "OK" );
+    respond( 250, "State reset" );
     finish();
 }
 
