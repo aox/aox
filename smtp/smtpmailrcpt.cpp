@@ -154,7 +154,7 @@ void SmtpRcptTo::execute()
 
     if ( d->mailbox ) {
         // the recipient is local
-        server()->sieve()->execute();
+        server()->sieve()->evaluate();
         if ( server()->sieve()->rejected( d->address ) )
             respond( 550, d->address->toString() + " rejects mail" );
         else

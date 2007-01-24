@@ -107,12 +107,16 @@ void SmtpData::execute()
         }
         if ( !line )
             return;
+
         if ( *line == "." )
             d->state = 2;
         else if ( (*line)[0] == '.' )
             *line = line->mid( 1 );
-        if ( d->state == 1 )
+
+        if ( d->state == 1 ) {
             d->body.append( *line );
+            d->body.append( "\r\n" );
+        }
     }
 
     // state 2: have received CR LF "." CR LF, have not started injection
@@ -130,7 +134,7 @@ void SmtpData::execute()
             // the next line means that what we sieve is the wrapper
             server()->sieve()->setMessage( m );
         }
-        server()->sieve()->execute();
+        server()->sieve()->evaluate();
         d->injector = new Injector( d->message, this );
 
         SortedList<Mailbox> * l = new SortedList<Mailbox>;
@@ -184,7 +188,7 @@ void SmtpData::execute()
                 if ( s->rejected( i->address() ) )
                     respond( 551, prefix + ": Rejected" );
                 else
-                    respond( 250, prefix + ": OK" );
+                    respond( 250, prefix + ": Ok" );
                 ++i;
             }
         }
