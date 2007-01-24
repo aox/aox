@@ -70,6 +70,14 @@ public:
     CHUNKING) and RFC 4468 (BURL).
 */
 
+/*! \class LMTP smtp.h
+    This subclass of SMTP implements LMTP (RFC 2033).
+*/
+
+/*! \class SMTPSubmit smtp.h
+    This subclass of SMTP implements SMTP submission (RFC 4409).
+*/
+
 /*!  Constructs an (E)SMTP server for socket \a s. */
 
 SMTP::SMTP( int s )
@@ -325,7 +333,7 @@ void SMTP::setInputState( InputState s )
     the list later.
 */
 
-void SMTP::addRecipient( class SmtpRcptTo * r )
+void SMTP::addRecipient( SmtpRcptTo * r )
 {
     d->recipients->append( r );
 }
@@ -335,7 +343,7 @@ void SMTP::addRecipient( class SmtpRcptTo * r )
     null pointer, but may be an empty list.
 */
 
-List<class SmtpRcptTo> * SMTP::rcptTo() const
+List<SmtpRcptTo> * SMTP::rcptTo() const
 {
     return d->recipients;
 }

@@ -27,6 +27,9 @@ public:
     with whatever extensions we like. Bothersome.
 */
 
+/*! Creates a new SmtpMailFrom handler from the command issued to \a s,
+    which is parsed using \a p.
+*/
 
 SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     : SmtpCommand( s ), d( new SmtpMailFromData )
@@ -90,6 +93,14 @@ public:
     Query * query;
 };
 
+
+/*! \class SmtpRcptTo smtpmailrcpt.h
+    This class handles the RCPT TO command.
+*/
+
+/*! Creates a new handler for \a s, using \a p to parsed the RCPT TO
+    command.
+*/
 
 SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
     : SmtpCommand( s ), d( new SmtpRcptToData )

@@ -25,6 +25,14 @@ public:
 };
 
 
+/*! \class SmtpAuth smtpauth.h
+    This SmtpCommand subclass handles SMTP authentication.
+
+    The SMTP AUTH extension is specified in RFC 2554, and is undergoing
+    revision in draft-siemborski-rfc2554bis-*.
+*/
+
+
 /*! Creates a new SmtpAuth object for the SMTP server \a s, and uses the
     specified parser \a p to parse a single AUTH command.
 */

@@ -35,9 +35,7 @@ public:
 */
 
 
-/*!  Constructs an empty command.
-
-*/
+/*! Constructs an empty command for the server \a s. */
 
 SmtpCommand::SmtpCommand( class SMTP * s )
     : EventHandler(), d( new SmtpCommandData )
@@ -48,7 +46,7 @@ SmtpCommand::SmtpCommand( class SMTP * s )
 
 /*! Records that this command is finished and tells the SMTP server to
     emit responses and generally get on with life. The response may be
-    sent, and SMTP::run() should not call execute() again.
+    sent, and SMTP::execute() should not call execute() again.
 */
 
 void SmtpCommand::finish()
@@ -202,6 +200,12 @@ SMTP * SmtpCommand::server() const
 }
 
 
+/*! \class SmtpRset smtpcommand.h
+    Handles the RSET command.
+*/
+
+/*! Creates a new SmtpRset handler for \a s. */
+
 SmtpRset::SmtpRset( SMTP * s, SmtpParser * )
     : SmtpCommand( s )
 {
@@ -215,6 +219,11 @@ void SmtpRset::execute()
     finish();
 }
 
+/*! \class SmtpNoop smtpcommand.h
+    Handles the NOOP command.
+*/
+
+/*! Creates a new NOOP handler for \a s. */
 
 SmtpNoop::SmtpNoop( SMTP * s, SmtpParser * )
     : SmtpCommand( s )
@@ -223,6 +232,10 @@ SmtpNoop::SmtpNoop( SMTP * s, SmtpParser * )
     finish();
 }
 
+
+/*! \class SmtpHelp smtpcommand.h
+    Handles the HELP command.
+*/
 
 /*! Issues help, except not. \a s is the SMTP server, as usual. */
 
@@ -233,7 +246,11 @@ SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
 }
 
 
-/*! Starts TLS negotiation as server. */
+/*! \class SmtpStarttls smtpcommand.h
+    Handles the STARTTLS command.
+*/
+
+/*! Starts TLS negotiation as server for \a s. */
 
 SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
     : SmtpCommand( s ), tlsServer( 0 )
@@ -261,6 +278,11 @@ void SmtpStarttls::execute()
 
 }
 
+/*! \class SmtpQuit smtpcommand.h
+    Handles the QUIT command.
+*/
+
+/*! Creates a new SmtpQuit handler for \a s. */
 
 SmtpQuit::SmtpQuit( SMTP * s, SmtpParser * )
     : SmtpCommand( s )
