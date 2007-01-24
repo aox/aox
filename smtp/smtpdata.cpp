@@ -27,13 +27,14 @@ class SmtpDataData
 {
 public:
     SmtpDataData()
-        : state( 0 ), message( 0 ), injector( 0 ), now( 0 ) {}
+        : state( 0 ), message( 0 ), injector( 0 ), now( 0 ), ok( "Ok" ) {}
     String id;
     String body;
     uint state;
     Message * message;
     Injector * injector;
     Date * now;
+    String ok;
 };
 
 
@@ -93,6 +94,7 @@ void SmtpData::execute()
         }
         r.append( ")\r\n" );
         server()->enqueue( r );
+        server()->setInputState( SMTP::Data );
         d->state = 1;
     }
 
@@ -108,12 +110,15 @@ void SmtpData::execute()
         if ( !line )
             return;
 
-        if ( *line == "." )
+        if ( *line == "." ) {
             d->state = 2;
-        else if ( (*line)[0] == '.' )
-            *line = line->mid( 1 );
-
-        if ( d->state == 1 ) {
+            server()->setInputState( SMTP::Command );
+        }
+        else if ( (*line)[0] == '.' ) {
+            d->body.append( line->mid( 1 ) );
+            d->body.append( "\r\n" );
+        }
+        else {
             d->body.append( *line );
             d->body.append( "\r\n" );
         }
@@ -129,6 +134,8 @@ void SmtpData::execute()
                                                           "but could not be "
                                                           "stored",
                                                           id() );
+            // the next line changes the SMTP/LMTP response
+            d->ok = "Worked around: " + d->message->error();
             // the next line means that what we store is the wrapper
             d->message = m;
             // the next line means that what we sieve is the wrapper
@@ -188,7 +195,7 @@ void SmtpData::execute()
                 if ( s->rejected( i->address() ) )
                     respond( 551, prefix + ": Rejected" );
                 else
-                    respond( 250, prefix + ": Ok" );
+                    respond( 250, prefix + ": " + d->ok );
                 ++i;
             }
         }
@@ -196,7 +203,7 @@ void SmtpData::execute()
             if ( server()->sieve()->rejected() )
                 respond( 551, "Rejected by all recipients" );
             else
-                respond( 250, "Done" );
+                respond( 250, d->ok );
         }
         finish();
     }
