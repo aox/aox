@@ -443,7 +443,7 @@ void SmtpBdat::execute()
         SmtpData::execute();
     }
     else {
-        respond( 250, "Fine!" );
+        respond( 250, "OK" );
         finish();
     }
 }
@@ -523,7 +523,7 @@ void SmtpBurl::execute()
         SmtpData::execute();
     }
     else {
-        respond( 250, "Fine!" );
+        respond( 250, "OK" );
         finish();
     }
 }
