@@ -76,7 +76,6 @@ String SmtpCommand::response() const
     String n = fn( d->responseCode );
     StringList::Iterator it( d->response );
     do {
-        String r;
         String l = *it;
         ++it;
         r.append( n );
