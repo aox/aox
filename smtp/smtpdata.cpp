@@ -217,6 +217,7 @@ void SmtpData::execute()
                 respond( 250, d->ok );
         }
         finish();
+        server()->reset();
     }
 }
 
@@ -365,7 +366,7 @@ Date * SmtpData::now()
 SmtpBdat::SmtpBdat( SMTP * s, SmtpParser * )
     : SmtpData( s, 0 ), d( 0 )
 {
-
+    
 }
 
 
