@@ -2,12 +2,14 @@
 
 #include "smtpdata.h"
 
+#include "imapurlfetcher.h"
 #include "configuration.h"
 #include "addressfield.h"
 #include "smtpmailrcpt.h"
 #include "smtpparser.h"
 #include "injector.h"
 #include "address.h"
+#include "imapurl.h"
 #include "mailbox.h"
 #include "message.h"
 #include "buffer.h"
@@ -27,7 +29,7 @@ class SmtpDataData
 {
 public:
     SmtpDataData()
-        : state( 0 ), message( 0 ), injector( 0 ), now( 0 ), ok( "OK" ) {}
+        : state( 2 ), message( 0 ), injector( 0 ), now( 0 ), ok( "OK" ) {}
     String id;
     String body;
     uint state;
@@ -38,26 +40,42 @@ public:
 };
 
 
+/*! \class SmtpData smtpdata.h
+  
+    This is also the superclass for SmtpBdat and SmtpBurl, and does
+    the injection.
+*/
 
-/*!  Constructs an empty
 
+
+/*! Constructs a SMTP DATA handler. \a s must be the SMTP server, as
+    usual, and \a p may be either null or a parser to be used for
+    parsing DATA. If it's null, this function assumes it's really
+    working on a BDAT/BURL command.
 */
 
 SmtpData::SmtpData( SMTP * s, SmtpParser * p )
     : SmtpCommand( s ), d( new SmtpDataData )
 {
-    if ( p )
-        p->end();
+    if ( !p )
+        return;
+
+    p->end();
     d->state = 0;
+    // d->state starts at 2 for bdat/burl, and at 0 for data.
 }
 
 
-/*!
+/*! Does input for DATA and injection for DATA, BDAT and BURL.
 
 */
 
 void SmtpData::execute()
 {
+    // we can't do anything until all older commands have completed.
+    if ( !server()->isFirstCommand( this ) )
+        return;
+
     // state 0: not yet sent 354
     if ( d->state == 0 ) {
         d->id = id();
@@ -113,6 +131,7 @@ void SmtpData::execute()
         if ( *line == "." ) {
             d->state = 2;
             server()->setInputState( SMTP::Command );
+            server()->setBody( d->body );
         }
         else if ( (*line)[0] == '.' ) {
             d->body.append( line->mid( 1 ) );
@@ -123,6 +142,8 @@ void SmtpData::execute()
             d->body.append( "\r\n" );
         }
     }
+
+    // bdat/burl start at state 2.
 
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
@@ -363,27 +384,146 @@ Date * SmtpData::now()
 }
 
 
-SmtpBdat::SmtpBdat( SMTP * s, SmtpParser * )
-    : SmtpData( s, 0 ), d( 0 )
+class SmtpBdatData
+    : public Garbage
 {
-    
+public:
+    SmtpBdatData()
+        : size( 0 ), read( false ), last( false ) {}
+    uint size;
+    bool read;
+    String chunk;
+    bool last;
+};
+
+
+/*! \class SmtpBdat smtpdata.h
+
+    The BDAT command is an alternative to DATA, defined by RFC
+    3030. It doesn't seem to have much point on its own, but together
+    with BURL (RFC 4468) and URLAUTH (RFC 4467) it allows
+    forward-without-download.
+*/
+
+
+SmtpBdat::SmtpBdat( SMTP * s, SmtpParser * p )
+    : SmtpData( s, 0 ), d( new SmtpBdatData )
+{
+    p->whitespace();
+    d->size = p->number();
+    if ( !p->atEnd() ) {
+        p->whitespace();
+        p->require( "last" );
+        d->last = true;
+    }
+    p->end();
+    server()->setInputState( SMTP::Chunk );
 }
 
 
 void SmtpBdat::execute()
 {
+    if ( !d->read ) {
+        Buffer * r = server()->readBuffer();
+        if ( r->size() < d->size )
+            return;
+        d->chunk = r->string( d->size );
+        r->remove( d->size );
+        server()->setInputState( SMTP::Command );
+        d->read = true;
+    }
 
+    if ( !server()->isFirstCommand( this ) )
+        return;
+
+    String b = server()->body();
+    b.append( d->chunk );
+    server()->setBody( b );
+    if ( d->last ) {
+        SmtpData::execute();
+    }
+    else {
+        respond( 250, "Fine!" );
+        finish();
+    }
 }
 
 
-SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * )
-    : SmtpData( s, 0 ), d( 0 )
+class SmtpBurlData
+    : public Garbage
 {
+public:
+    SmtpBurlData() : last( false ), url( 0 ), fetcher( 0 ) {}
 
+    bool last;
+    ImapUrl * url;
+    ImapUrlFetcher * fetcher;
+};
+
+
+SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
+    : SmtpData( s, 0 ), d( new SmtpBurlData )
+{
+    p->whitespace();
+    String u;
+    while ( !p->atEnd() && p->nextChar() != ' ' ) {
+        u.append( p->nextChar() );
+        p->step();
+    }
+    d->url = new ImapUrl( u );
+    if ( !d->url->valid() ) {
+        respond( 501, "Can't parse that URL" );
+        finish();
+        return;
+    }
+    String a = d->url->access().lower();
+    u.truncate();
+    if ( server()->user() )
+        u = server()->user()->login().lower();
+    if ( !( a == "anonymous" ||
+            ( server()->user() && ( a == "authuser" ||
+                                    a == "user+" + u ||
+                                    a == "submit+" + u ) ) ) ) {
+        respond( 554, "Do not have permission to read that URL" );
+        finish();
+        return;
+    }
+    if ( !p->atEnd() ) {
+        p->whitespace();
+        p->require( "last" );
+        d->last = true;
+    }
+    p->end();
+
+    List<ImapUrl> * l = new List<ImapUrl>;
+    l->append( d->url );
+    d->fetcher = new ImapUrlFetcher( l, this );
+    d->fetcher->execute();
 }
 
 
 void SmtpBurl::execute()
 {
-
+    if ( !d->fetcher )
+        return;
+    if ( !d->fetcher->done() )
+        return;
+    if ( d->fetcher->failed() ) {
+        respond( 554, "URL resolution problem: " + d->fetcher->error() );
+        finish();
+        return;
+    }
+    if ( !server()->isFirstCommand( this ) )
+        return;
+    
+    String b( server()->body() );
+    b.append( d->url->text() );
+    server()->setBody( b );
+    if ( d->last ) {
+        SmtpData::execute();
+    }
+    else {
+        respond( 250, "Fine!" );
+        finish();
+    }
 }
