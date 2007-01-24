@@ -216,13 +216,13 @@ void Sieve::evaluate()
             List<SieveCommand>::Iterator c( i->pending );
             while ( c && !i->done && i->evaluate( c ) )
                 (void)i->pending.take( c );
-            if ( i->pending.isEmpty() )
-                i->done = true;
-            if ( i->done && i->implicitKeep ) {
-                SieveAction * a = new SieveAction( SieveAction::FileInto );
-                a->setMailbox( i->mailbox );
-                i->actions.append( a );
-            }
+        }
+        if ( i->pending.isEmpty() )
+            i->done = true;
+        if ( i->done && i->implicitKeep ) {
+            SieveAction * a = new SieveAction( SieveAction::FileInto );
+            a->setMailbox( i->mailbox );
+            i->actions.append( a );
         }
         ++i;
     }
