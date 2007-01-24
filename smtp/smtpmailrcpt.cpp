@@ -74,6 +74,17 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
 
 void SmtpMailFrom::execute()
 {
+    if ( !server()->isFirstCommand( this ) )
+        return;
+
+    if ( server()->sieve()->sender() ) {
+        respond( 500, "Sender address already specified: " + 
+                 server()->sieve()->sender()->toString() );
+        finish();
+        return;
+    }
+    // checking rcpt to is not necessary, since it already checks mail friom
+
     server()->sieve()->setSender( d->address );
     if ( d->address->type() == Address::Bounce )
         respond( 250, "Accepted message from mailer-daemon" );
@@ -124,11 +135,6 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
 
 void SmtpRcptTo::execute()
 {
-    if ( !server()->sieve()->sender() ) {
-        respond( 550, "Must send MAIL FROM before RCPT TO" );
-        finish();
-        return;
-    }
     if ( !d->query ) {
         d->query = new Query(
             "select al.mailbox, s.script, m.owner "
@@ -156,6 +162,15 @@ void SmtpRcptTo::execute()
 
     if ( !d->query->done() )
         return;
+
+    if ( !server()->isFirstCommand( this ) )
+        return;
+
+    if ( !server()->sieve()->sender() ) {
+        respond( 550, "Must send MAIL FROM before RCPT TO" );
+        finish();
+        return;
+    }
 
     if ( d->mailbox ) {
         // the recipient is local
