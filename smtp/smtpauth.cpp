@@ -13,10 +13,8 @@ class SmtpAuthData
 {
 public:
     SmtpAuthData()
-        : smtp( 0 ), r( 0 ), m( 0 )
+        : r( 0 ), m( 0 )
     {}
-
-    SMTP * smtp;
 
     String mech;
     String * r;
@@ -40,8 +38,6 @@ public:
 SmtpAuth::SmtpAuth( SMTP * s, SmtpParser * p )
     : SmtpCommand( s ), d( new SmtpAuthData )
 {
-    d->smtp = s;
-
     p->require( " " );
 
     // Accept a sasl-mech (including *gasp* lowercase letters).
@@ -81,20 +77,20 @@ SmtpAuth::SmtpAuth( SMTP * s, SmtpParser * p )
 void SmtpAuth::execute()
 {
     if ( !d->m ) {
-        if ( d->smtp->user() ) {
+        if ( server()->user() ) {
             respond( 503, "Already authenticated" );
             finish();
             return;
         }
 
-        d->m = SaslMechanism::create( d->mech, this, d->smtp->hasTls() );
+        d->m = SaslMechanism::create( d->mech, this, server()->hasTls() );
         if ( !d->m ) {
             respond( 504, "Mechanism not supported" );
             finish();
             return;
         }
 
-        d->smtp->setInputState( SMTP::Sasl );
+        server()->setInputState( SMTP::Sasl );
 
         if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
             if ( d->r ) {
@@ -118,13 +114,13 @@ void SmtpAuth::execute()
             String c = d->m->challenge().e64();
 
             if ( !d->m->done() ) {
-                d->smtp->enqueue( "+ "+ c +"\r\n" );
+                server()->enqueue( "+ "+ c +"\r\n" );
                 d->m->setState( SaslMechanism::AwaitingResponse );
                 return;
             }
         }
         if ( d->m->state() == SaslMechanism::AwaitingResponse ) {
-            Buffer * r = d->smtp->readBuffer();
+            Buffer * r = server()->readBuffer();
             String * s = r->removeLine();
             if ( !s ) {
                 return;
@@ -147,7 +143,7 @@ void SmtpAuth::execute()
         return;
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
-        d->smtp->authenticated( d->m->user() );
+        server()->authenticated( d->m->user() );
         respond( 235, "OK" );
     }
     else if ( d->m->state() == SaslMechanism::Terminated ) {
@@ -157,6 +153,6 @@ void SmtpAuth::execute()
         respond( 535, "Authentication failed" );
     }
 
-    d->smtp->setInputState( SMTP::Command );
+    server()->setInputState( SMTP::Command );
     finish();
 }
