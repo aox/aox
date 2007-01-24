@@ -156,9 +156,9 @@ void SmtpRcptTo::execute()
         // the recipient is local
         server()->sieve()->evaluate();
         if ( server()->sieve()->rejected( d->address ) )
-            respond( 550, d->address->toString() + " rejects mail" );
+            respond( 550, d->address->toString().lower() + " rejects mail" );
         else
-            respond( 250, "Will send to " + d->address->toString() );
+            respond( 250, "Will send to " + d->address->toString().lower() );
     }
     else {
         // the recipient is remote
