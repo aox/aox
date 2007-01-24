@@ -124,6 +124,11 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
 
 void SmtpRcptTo::execute()
 {
+    if ( !server()->sieve()->sender() ) {
+        respond( 550, "Must send MAIL FROM before RCPT TO" );
+        finish();
+        return;
+    }
     if ( !d->query ) {
         d->query = new Query(
             "select al.mailbox, s.script, m.owner "
