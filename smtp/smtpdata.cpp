@@ -127,7 +127,18 @@ void SmtpData::execute()
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
         server()->sieve()->setMessage( message( d->body ) );
-        if ( !d->message->error().isEmpty() ) {
+        if ( d->message->error().isEmpty() ) {
+            // the common case: all ok
+        }
+        else if ( server()->dialect() == SMTP::Submit ) {
+            // for Submit, we reject the message at once, since we
+            // have the sender there.
+            respond( 554, "Syntax error: " + d->message->error() );
+            finish();
+            return;
+        }
+        else {
+            // for SMTP/LMTP, we wrap the unparsable message
             Message * m = Message::wrapUnparsableMessage( d->body,
                                                           d->message->error(),
                                                           "Message arrived "
