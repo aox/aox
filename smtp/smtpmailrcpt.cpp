@@ -189,9 +189,9 @@ void SmtpRcptTo::execute()
             respond( 450, d->address->toString() +
                      " is not a legal destination address" );
     }
-    finish();
     if ( ok() )
         server()->addRecipient( this );
+    finish();
 }
 
 
