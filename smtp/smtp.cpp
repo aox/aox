@@ -208,13 +208,14 @@ void SMTP::execute()
             if ( !c->done() )
                 c->execute();
         }
-    }
 
-    // see if any old commands may be retired
-    List<SmtpCommand>::Iterator i( d->commands );
-    while ( i && i->done() ) {
-        enqueue( i->response() );
-        d->commands.take( i );
+        // see if any old commands may be retired
+        i = d->commands.first();
+        while ( i && i->done() ) {
+            d->executeAgain = true;
+            enqueue( i->response() );
+            d->commands.take( i );
+        }
     }
 
     // allow execute() to be called again
@@ -370,10 +371,7 @@ String SMTP::body() const
 
 bool SMTP::isFirstCommand( SmtpCommand * c ) const
 {
-    List<SmtpCommand>::Iterator i (d->commands );
-    while ( i && i != c && i->done() )
-        ++i;
-    if ( c == i )
+    if ( c == d->commands.firstElement() )
         return true;
     return false;
 }
