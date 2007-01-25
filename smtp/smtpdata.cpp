@@ -209,6 +209,7 @@ void SmtpData::execute()
         if ( !d->injector->done() )
             return;
         if ( d->injector->error().isEmpty() ) {
+            d->helper->injector->announce();
             d->state = 4;
         }
         else {
@@ -243,8 +244,8 @@ void SmtpData::execute()
 }
 
 
-/*! Return a pointer to the parsed message, including a prepended
-    Received field.
+/*! Parses \a body and returns a pointer to the parsed message,
+    including a prepended Received field.
 
     This may also do some of the submission-time changes suggested by
     RFC 4409.
