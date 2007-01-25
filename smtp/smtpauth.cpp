@@ -3,6 +3,7 @@
 #include "smtpauth.h"
 
 #include "smtp.h"
+#include "user.h"
 #include "buffer.h"
 #include "mechanism.h"
 #include "smtpparser.h"
@@ -142,8 +143,13 @@ void SmtpAuth::execute()
         return;
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
-        server()->authenticated( d->m->user() );
-        respond( 235, "OK" );
+        if ( d->m->user()->login() == "anonymous" ) {
+            respond( 235, "You may not submit mail" );
+        }
+        else {
+            server()->authenticated( d->m->user() );
+            respond( 235, "OK" );
+        }
     }
     else if ( d->m->state() == SaslMechanism::Terminated ) {
         respond( 501, "Authentication terminated" );
