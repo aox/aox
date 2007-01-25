@@ -209,7 +209,7 @@ void SmtpData::execute()
         if ( !d->injector->done() )
             return;
         if ( d->injector->error().isEmpty() ) {
-            d->helper->injector->announce();
+            d->injector->announce();
             d->state = 4;
         }
         else {
