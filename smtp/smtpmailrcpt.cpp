@@ -154,7 +154,7 @@ void SmtpRcptTo::execute()
         if ( r ) {
             SieveScript * script = new SieveScript;
             d->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
-            if ( !r->isNull( "owner" ) )
+            if ( !r->isNull( "script" ) )
                 script->parse( r->getString( "script" ) );
             server()->sieve()->addRecipient( d->address, d->mailbox, script );
         }
