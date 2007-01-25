@@ -138,7 +138,8 @@ String SieveScript::parseErrors() const
         e.append( ": " );
         e.append( p->error() );
         e.append( "\r\n" );
-        while ( p->parent() && p->parent() != this ) {
+        while ( p->parent() && 
+                p->parent() != (SieveProduction*)this ) {
             p = p->parent();
             String l = location( p->start() );
             l.append( "While parsing " );
