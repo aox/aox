@@ -370,7 +370,10 @@ String SMTP::body() const
 
 bool SMTP::isFirstCommand( SmtpCommand * c ) const
 {
-    if ( c == d->commands.firstElement() )
+    List<SmtpCommand>::Iterator i (d->commands );
+    while ( i && i != c && i->done() )
+        ++i;
+    if ( c == i )
         return true;
     return false;
 }
