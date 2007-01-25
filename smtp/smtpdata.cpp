@@ -147,7 +147,7 @@ void SmtpData::execute()
 
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
-        server()->sieve()->setMessage( message( d->body ) );
+        server()->sieve()->setMessage( message( server()->body() ) );
         if ( d->message->error().isEmpty() ) {
             // the common case: all ok
         }
@@ -262,16 +262,15 @@ Message * SmtpData::message( const String & body )
     received.append( server()->heloName() );
     received.append( ") by " );
     received.append( Configuration::hostname() );
-    received.append( " with " );
     switch ( server()->dialect() ) {
     case SMTP::Smtp:
-        received.append( " esmtp " );
+        received.append( " with esmtp" );
         break;
     case SMTP::Lmtp:
-        received.append( " lmtp " );
+        received.append( " with lmtp" );
         break;
     case SMTP::Submit:
-        received.append( " esmtpa " );
+        received.append( " with esmtp" );
         break;
     }
     received.append( " id " );
@@ -322,7 +321,7 @@ Message * SmtpData::message( const String & body )
         // add a message-id if there isn't any
         if ( !h->field( HeaderField::MessageId ) ) {
             MD5 x;
-            x.add( d->body );
+            x.add( body );
             h->add( "Message-Id",
                     "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" +
                     Configuration::hostname() + ">" );
