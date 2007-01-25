@@ -6,6 +6,8 @@
 #include "buffer.h"
 #include "configuration.h"
 #include "eventloop.h"
+#include "address.h"
+#include "message.h"
 
 
 class SmtpClientData
@@ -13,10 +15,14 @@ class SmtpClientData
 {
 public:
     SmtpClientData()
-        : failed( false ), connected( false ), owner( 0 )
+        : done( false ),
+          failed( false ), permanent( false ),
+          connected( false ), owner( 0 )
     {}
 
+    bool done;
     bool failed;
+    bool permanent;
     bool connected;
 
     String sent;
@@ -68,6 +74,28 @@ SmtpClient::SmtpClient( const String &sender,
     connect( e );
     EventLoop::global()->addConnection( this );
     setTimeoutAfter( 10 ); // ### not RFC-compliant
+}
+
+/*!  Constructs an SMTP client which connects to \a smarthost and
+     sends it \a message from \a sender to \a recipient, and then
+     notifies \a owner.
+*/
+
+SmtpClient::SmtpClient( const Endpoint & smarthost,
+                        Message * message,
+                        const String & sender, const String & recipient,
+                        EventHandler * owner )
+    : Connection( Connection::socket( smarthost.protocol() ),
+                  Connection::SmtpClient ),
+      d( new SmtpClientData )
+{
+    d->owner = owner;
+    d->sender = sender;
+    d->recipient = recipient;
+    d->message = message->rfc822();
+    connect( smarthost );
+    EventLoop::global()->addConnection( this );
+    setTimeoutAfter( 30 ); // ### not RFC-compliant
 }
 
 
@@ -150,6 +178,15 @@ void SmtpClient::parse()
             // it's a continuation line
             ok = true;
         }
+        else if ( (*s)[0] == '5' ) {
+            d->error = *s;
+            d->failed = true;
+            d->permanent = true;
+        }
+        else if ( (*s)[0] == '4' ) {
+            d->error = *s;
+            d->failed = true;
+        }
         else if ( d->sent == "data" ) {
             if ( (*s)[0] == '3' ) {
                 ok = true;
@@ -161,6 +198,8 @@ void SmtpClient::parse()
         else {
             if ( (*s)[0] == '2' ) {
                 ok = true;
+                if ( d->sent == "body" && d->owner )
+                    d->owner->execute();
                 sendCommand();
             }
         }
@@ -185,7 +224,7 @@ void SmtpClient::sendCommand()
         if ( peer().port() != 25 )
             send = "lhlo";
         else
-            send = "helo";
+            send = "ehlo";
         send = send + " " + Configuration::hostname();
         break;
     case 'e':
@@ -249,4 +288,25 @@ String SmtpClient::dotted( const String & s )
     r.append( ".\r\n" );
 
     return r;
+}
+
+
+/*! Returns true if this SmtpClient has seen a permanent failure, and
+    false if it either hasn't seen a failure or only a temporary
+    problem.
+*/
+
+bool SmtpClient::permanentFailure() const
+{
+    return d->failed && d->permanent;
+}
+
+
+/*! Returns true if this SmtpClient has done its work or failed, and
+    false if it's still working.
+*/
+
+bool SmtpClient::done() const
+{
+    return d->done || d->failed;
 }

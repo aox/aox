@@ -18,11 +18,16 @@ class SmtpClient
 public:
     SmtpClient( const String &, const String &, const String &,
                 EventHandler * );
+    SmtpClient( const Endpoint &, Message *,
+                const String &, const String &, 
+                EventHandler * );
 
     void react( Event );
 
+    bool done() const;
     bool failed() const;
     String error() const;
+    bool permanentFailure() const;
 
 private:
     class SmtpClientData * d;

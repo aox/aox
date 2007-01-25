@@ -2,11 +2,17 @@
 
 #include "spoolmanager.h"
 
+#include "dsn.h"
+#include "date.h"
 #include "query.h"
 #include "timer.h"
+#include "address.h"
 #include "mailbox.h"
 #include "message.h"
 #include "fetcher.h"
+#include "injector.h"
+#include "recipient.h"
+#include "smtpclient.h"
 
 
 static SpoolManager * sm;
@@ -25,7 +31,7 @@ public:
     Query * q;
     Message * message;
     uint deliveryId;
-    Query * client;
+    SmtpClient * client;
     String sender;
     String recipient;
 };
@@ -74,6 +80,8 @@ void SpoolManager::execute()
 
             d->deliveryId = r->getInt( "id" );
             d->sender = r->getString( "sender" );
+            if ( d->sender == "@" )
+                d->sender = "";
             d->recipient = r->getString( "recipient" );
 
             List<Message> messages;
@@ -100,21 +108,57 @@ void SpoolManager::execute()
 
         if ( !d->client ) {
             // XXX: This should be an SmtpClient, of course.
-            d->client = new Query( "select 1", this );
-            d->client->execute();
+            Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
+                        25 );
+            d->client = new SmtpClient( e, d->message,
+                                        d->sender, d->recipient, this );
         }
 
         if ( !d->client->done() )
             return;
 
-        Query * q;
-        if ( d->client->failed() )
+        Query * q = 0;
+        if ( d->client->permanentFailure() ) {
+            if ( !d->sender.isEmpty() ) {
+                Recipient * r = new Recipient;
+                AddressParser p( d->recipient );
+                r->setFinalRecipient( p.addresses()->first() );
+                Date * now = new Date;
+                now->setCurrentTime();
+                r->setLastAttempt( now );
+                // XXX: we don't set a diagnostic code. we'll do that when
+                // we have good smtp client code. perhaps SmtpClient
+                // should take a Recipient.
+                DSN * dsn = new DSN;
+                dsn->addRecipient( r );
+                dsn->setMessage( d->message );
+
+                Injector * injector = new Injector( dsn->result(), 0 );
+                SortedList<Mailbox> * l;
+                l->insert( Mailbox::find( "/archiveopteryx/spool" ) );
+                List<Address> * dl = new List<Address>;
+                dl->append( r->finalRecipient() );
+                injector->setDeliveryAddresses( dl );
+                injector->setMailboxes( l );
+                injector->setSender( new Address( "", "", "" ) );
+                injector->execute();
+                // we forget the injector. the bounce will be lost if
+                // the process crashes before the injectorf finishes
+                // its work.
+            }
+            q = new Query( "delete from deliveries where id=$1", 0 );
+        }
+        else if ( d->client->failed() ) {
             q = new Query( "update deliveries set tried_at=current_timestamp "
                            "where id=$1", 0 );
-        else
+        }
+        else {
             q = new Query( "delete from deliveries where id=$1", 0 );
-        q->bind( 1, d->deliveryId );
-        q->execute();
+        }
+        if ( q ) {
+            q->bind( 1, d->deliveryId );
+            q->execute();
+        }
 
         d->message = 0;
         d->client = 0;
