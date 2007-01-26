@@ -779,18 +779,31 @@ String Selector::whereAddressFields( const StringList & fields,
                 dc = "a.domain ilike $" + fn( dom ) + "||'%'";
             }
         }
-        if ( lc.isEmpty() && dc.isEmpty() ) {
-            // imap SEARCH FROM "@" matches messages with a nonempty
-            // from field. the sort of thing only a test suite would
-            // do.
+        if ( !lc.isEmpty() && !dc.isEmpty() ) {
+            r.append( s );
+            bool paren = true;
+            if ( r.isEmpty() )
+                paren = false;
+            if ( paren )
+                r.append( "(" );
+            r.append( lc );
+            r.append( " and " );
+            r.append( dc );
+            if ( paren )
+                r.append( ")" );
         }
-        if ( !lc.isEmpty() ) {
+        else if ( !lc.isEmpty() ) {
             r.append( s );
             r.append( lc );
         }
-        if ( !dc.isEmpty() ) {
+        else if ( !dc.isEmpty() ) {
             r.append( s );
             r.append( dc );
+        }
+        else {
+            // imap SEARCH FROM "@" matches messages with a nonempty
+            // from field. the sort of thing only a test suite would
+            // do.
         }
     }
     r.append( ")" );
@@ -1008,6 +1021,15 @@ String Selector::whereModseq()
 }
 
 
+static bool isAddressField( const String & s )
+{
+    uint t = HeaderField::fieldType( s );
+    if ( t > 0 && t <= HeaderField::LastAddressField )
+        return true;
+    return false;
+}
+
+
 /*! This implements any search that's not bound to a specific field,
     generally booleans and "all".
 
@@ -1030,31 +1052,29 @@ String Selector::whereNoField()
         StringList addressFields;
         if ( d->a == Or ) {
             List<Selector>::Iterator i( d->children );
-            while ( i && ( i->d->f != Header || i->d->s8.isEmpty() ) )
+            while ( i && ( i->d->f != Header || !isAddressField( i->d->s8 ) ) )
                 i++;
             if ( i )
-                address = i->d->s16; // this is the address we optimze for
+                address = i->d->s16; // this is the address we optimize for
         }
         List<Selector>::Iterator i( d->children );
         while ( i ) {
-            bool af = false;
             if ( d->a == Or &&
                  i->d->f == Header &&
                  !address.isEmpty() &&
-                 !i->d->s8.isEmpty() &&
-                 address == i->d->s16 ) {
-                uint t = HeaderField::fieldType( i->d->s8 );
-                if ( t > 0 && t <= HeaderField::LastAddressField )
-                    af = true;
-            }
-            if ( af )
+                 isAddressField( i->d->s8 ) &&
+                 address == i->d->s16 )
                 addressFields.append( i->d->s8.headerCased() );
             else
                 conditions.append( i->where() );
             i++;
         }
-        if ( !addressFields.isEmpty() )
+        if ( !addressFields.isEmpty() ) {
+            addressFields.removeDuplicates();
+            if ( addressFields.count() == 12 )
+                addressFields.clear(); // there are only 12, so look for all
             conditions.append( whereAddressFields( addressFields, address ) );
+        }
         String r = "(";
         if ( d->a == And )
             r.append( conditions.join( " and " ) );
