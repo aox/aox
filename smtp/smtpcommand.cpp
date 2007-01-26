@@ -292,6 +292,8 @@ SmtpQuit::SmtpQuit( SMTP * s, SmtpParser * )
 
 void SmtpQuit::execute()
 {
+    if ( !server()->isFirstCommand() )
+        return;
     respond( 221, "Have a nice day." );
     finish();
     server()->setState( Connection::Closing );
