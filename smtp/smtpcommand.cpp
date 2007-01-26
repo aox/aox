@@ -84,10 +84,10 @@ String SmtpCommand::response() const
         else
             r.append( "-" );
         r.append( l );
-        log( "Sending response '" + r + "'",
-             d->responseCode >= 400 ? Log::Info : Log::Debug );
         r.append( "\r\n" );
     } while ( it );
+    log( "Sending response '" + r + "'",
+         d->responseCode >= 400 ? Log::Info : Log::Debug );
     return r;
 }
 
