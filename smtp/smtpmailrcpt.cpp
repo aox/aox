@@ -75,6 +75,14 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
     else if ( name == "envid" ) {
         // XXX do what?
     }
+    else if ( name == "body" ) {
+        if ( value.lower() == "7bit" || value.lower() == "8bitmime" ) {
+            // nothing needed
+        }
+        else {
+            respond( 501, "BODY must be 7BIT or 8BITMIME" );
+        }
+    }
     else {
         respond( 501,
                  "Unknown ESMTP parameter: " + name +
