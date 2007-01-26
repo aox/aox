@@ -213,6 +213,8 @@ SmtpRset::SmtpRset( SMTP * s, SmtpParser * )
 
 void SmtpRset::execute()
 {
+    if ( !server()->isFirstCommand( this ) )
+        return;
     server()->reset();
     respond( 250, "State reset" );
     finish();
@@ -269,6 +271,9 @@ void SmtpStarttls::execute()
     if ( !tlsServer->done() )
         return;
 
+    if ( !server()->isFirstCommand( this ) )
+        return;
+
     server()->enqueue( "220 Start negotiating TLS now.\r\n" );
     server()->write();
     finish();
@@ -292,7 +297,7 @@ SmtpQuit::SmtpQuit( SMTP * s, SmtpParser * )
 
 void SmtpQuit::execute()
 {
-    if ( !server()->isFirstCommand() )
+    if ( !server()->isFirstCommand( this ) )
         return;
     respond( 221, "Have a nice day." );
     finish();
