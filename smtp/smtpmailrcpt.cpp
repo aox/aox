@@ -4,6 +4,7 @@
 
 #include "sievescript.h"
 #include "smtpparser.h"
+#include "stringlist.h"
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
@@ -63,8 +64,22 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
 
 void SmtpMailFrom::addParam( const String & name, const String & value )
 {
-    respond( 501,
-             "Unknown ESMTP parameter: " + name + " (value: " + value + ")" );
+    if ( name == "ret" ) {
+        if ( value.lower() == "full" || value.lower() == "hdrs" ) {
+            // XXX do what?
+        }
+        else {
+            respond( 501, "RET must be FULL or HDRS" );
+        }
+    }
+    else if ( name == "envid" ) {
+        // XXX do what?
+    }
+    else {
+        respond( 501,
+                 "Unknown ESMTP parameter: " + name +
+                 " (value: " + value + ")" );
+    }
 }
 
 
@@ -202,8 +217,53 @@ void SmtpRcptTo::execute()
 
 void SmtpRcptTo::addParam( const String & name, const String & value )
 {
-    respond( 501,
-             "Unknown ESMTP parameter: " + name + " (value: " + value + ")" );
+    if ( name == "notify" ) {
+        if ( value.lower() == "never" ) {
+        }
+        else {
+            StringList::Iterator v( StringList::split( ',', value.lower() ) );
+            while ( v ) {
+                if ( v->lower() == "success" ) {
+                    // but what do we do with these values?
+                }
+                else if ( v->lower() == "delay" ) {
+                }
+                else if ( v->lower() == "failure" ) {
+                }
+                else {
+                    respond( 501, "Bad NOTIFY value: " + v->quoted() );
+                }
+                ++v;
+            }
+        }
+    }
+    else if ( name == "orcpt" ) {
+        if ( value.lower().startsWith( "rfc822;" ) ) {
+            // the original address may legitimately be non-822
+            AddressParser p( value.mid( 7 ) );
+            if ( !p.error().isEmpty() ) {
+                respond( 501, "Bad ORCPT: " + p.error() );
+            } else if ( p.addresses()->count() != 1 ) {
+                respond( 501, "Bad ORCPT: " + fn( p.addresses()->count() ) +
+                         " addresses instead of one" );
+            }
+            else {
+                if ( d->address->toString() ==
+                     p.addresses()->first()->toString() ) {
+                    // unnecessary orcpt, ignore this case
+                }
+                else {
+                    // XXX real orcpt. what to do?
+                }
+            }
+            
+        }
+    }
+    else {
+        respond( 501,
+                 "Unknown ESMTP parameter: " + name +
+                 " (value: " + value + ")" );
+    }
 }
 
 

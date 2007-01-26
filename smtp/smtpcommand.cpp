@@ -179,13 +179,13 @@ SmtpCommand * SmtpCommand::create( SMTP * server, const String & command )
     else {
         r = new SmtpCommand( server );
         r->respond( 500, "Unknown command (" + c.upper() + ")" );
-        r->finish();
     }
 
-    if ( !r->done() && r->d->responseCode < 400 && !p->error().isEmpty() ) {
+    if ( !r->done() && r->d->responseCode < 400 && !p->error().isEmpty() )
         r->respond( 501, p->error() );
-        r->finish();
-    }
+
+    if ( !r->d->done && r->d->responseCode >= 400 )
+        r->d->done = true;
 
     return r;
 }

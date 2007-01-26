@@ -208,6 +208,7 @@ String SmtpParser::atom()
 /*! Parses and returns an ESMTP parameter name: esmtp-keyword = (ALPHA
     / DIGIT) *(ALPHA / DIGIT / "-")
 
+    Always returns lower case.
 */
 
 String SmtpParser::esmtpKeyword()
@@ -224,7 +225,7 @@ String SmtpParser::esmtpKeyword()
     }
     if ( r.isEmpty() )
         setError( "Expected esmtp parameter keyword, saw: " + following() );
-    return r;
+    return r.lower();
     
 }
 
