@@ -45,7 +45,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         respond( 0, "CHUNKING" );
         if ( !s->hasTls() )
             respond( 0, "STARTTLS" );
-        respond( 0, "DSN" );
+        //respond( 0, "DSN" );
     }
     finish();
 }
