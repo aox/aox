@@ -3,6 +3,8 @@ SubDir TOP cryptlib ;
 # hide variables that cryptlib shouldn't see
 OrdinaryFLAGS = $(CCFLAGS) ;
 CCFLAGS = -O2 ;
+OrdinaryOPTIM = $(OPTIM) ;
+OPTIM = "" ;
 OrdinaryHDRS = $(HDRS) ;
 HDRS = [ FDirName $(TOP) cryptlib ] ;
 OrdinaryDEFINES = $(DEFINES) ;
@@ -65,3 +67,4 @@ else {
 HDRS = $(OrdinaryHDRS) ;
 DEFINES = $(OrdinaryDEFINES) ;
 CCFLAGS = $(OrdinaryFLAGS) ;
+OPTIM = $(OrdinaryOPTIM) ;
