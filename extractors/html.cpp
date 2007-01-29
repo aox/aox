@@ -22,7 +22,9 @@ UString HTML::asText( const UString &h )
 {
     UString r;
     UString t, s, qs, a;
-    char last, quote, c;
+    char last = 0;
+    char quote = 0;
+    char c;
     uint mark = 0;
 
     int tag = 0;        /* 1 inside <...> */

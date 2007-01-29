@@ -99,7 +99,7 @@ HeaderField *HeaderField::fieldNamed( const String &name )
         i++;
 
     HeaderField::Type t = fieldNames[i].type;
-    HeaderField * hf;
+    HeaderField * hf = 0;
 
     switch ( t ) {
     case InReplyTo:

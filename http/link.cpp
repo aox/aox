@@ -605,7 +605,7 @@ static bool checkForComponent( uint i, Component c, bool wanted )
 
 String Link::canonical() const
 {
-    Component prefix;
+    Component prefix = ArchivePrefix; // set it just to silence gcc -O3
     switch ( d->type ) {
     case Archive:
         prefix = ArchivePrefix;

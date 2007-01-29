@@ -214,7 +214,7 @@ int main( int argc, char ** argv )
         ok = false;
     }
 
-    uint port;
+    uint port = 0;
     if ( ok ) {
         port = String( argv[1] ).number( &ok );
         if ( !ok )
