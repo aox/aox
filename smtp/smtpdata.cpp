@@ -461,6 +461,13 @@ public:
 };
 
 
+/*! \class SmtpBurl smtpdata.h
+
+    The BURL command is defined in RFC 4468, and allows a client to
+    instruct a submit server to include content from an IMAP server
+    (using a URLAUTH-authorized URL).
+*/
+
 SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
     : SmtpData( s, 0 ), d( new SmtpBurlData )
 {
