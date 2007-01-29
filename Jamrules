@@ -8,7 +8,7 @@ VERSION = 1.15 ;
 MKDIR = mkdir -p ;
 
 if $(OPTIM) = "-O" {
-    OPTIM = ;
+    OPTIM = "-O3" ;
 }
 OPTIM ?= ;
 RANLIB = ;
