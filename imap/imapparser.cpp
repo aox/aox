@@ -142,7 +142,7 @@ String ImapParser::listChars()
 {
     String r;
 
-    char c;
+    char c = nextChar();
     while ( c > ' ' && c < 127 && c != '(' && c != ')' && c != '{' &&
             c != '"' && c != '\\' )
     {

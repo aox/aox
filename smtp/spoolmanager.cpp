@@ -134,7 +134,7 @@ void SpoolManager::execute()
                 dsn->setMessage( d->message );
 
                 Injector * injector = new Injector( dsn->result(), 0 );
-                SortedList<Mailbox> * l;
+                SortedList<Mailbox> * l = new SortedList<Mailbox>;
                 l->insert( Mailbox::find( "/archiveopteryx/spool" ) );
                 List<Address> * dl = new List<Address>;
                 dl->append( r->finalRecipient() );
