@@ -443,7 +443,10 @@ void AddressParser::add( String name,
             ( name[i] == '\'' || name[i] == '"' ) )
         i++;
     if ( i > 0 )
-        name = name.mid( i, name.length() - 2*i ).simplified();
+        name = name.mid( i, name.length() - 2*i );
+
+    // for names, we treat all whitespace equally. "a b" == " a   b "
+    name = name.simplified();
 
     // step 2: if the name is the same as the address, kill it.
     if ( ( name.length() == localpart.length() &&
