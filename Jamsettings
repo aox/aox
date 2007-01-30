@@ -72,7 +72,7 @@ AOXGROUP ?= aox ;
 
 # How to compile
 
-C++FLAGS = -g -W -Wall -Werror -funsigned-char ;
+C++FLAGS = -g -Werror -funsigned-char ;
 LINKFLAGS = -g ;
 
 

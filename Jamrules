@@ -20,13 +20,13 @@ if ( $(JAMUNAME[1]) = "i686" || $(JAMUNAME[1]) = "i586" ) {
 
 if $(ICC) {
     C++ = icc ;
-    C++FLAGS += -wd1476 ;
+    C++FLAGS += -wd1476 -wd654 -wd913 -wd873 -wd1125 ;
     BUILD = build/icc ;
     LINKFLAGS += -lcxa -lunwind ;
 }
 else {
     C++ = g++ ;
-    C++FLAGS += -Wall ;
+    C++FLAGS += -W -Wall ;
     BUILD = build/gcc ;
     if $(OPTIM) {
         BUILD = build/gcc$(OPTIM) ;
