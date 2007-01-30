@@ -580,8 +580,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body.crlf() );
 
-        if ( !c->valid() &&
-             ( c->name() == "GB2312" || c->name() == "ISO-2022-JP" ) ) {
+        if ( c->name() == "GB2312" || c->name() == "ISO-2022-JP" ) {
             // undefined code point usage in GB2312 spam is much too
             // common. (GB2312 spam is much too common, but that's
             // another matter.) Gb2312Codec turns all undefined code
@@ -590,27 +589,33 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // later reads the message, it gets the text in unicode,
             // including U+FFFD.
 
+            bool bad = !c->valid();
+
             // the header may contain some unencoded gb2312. we bang
             // it by hand, ignoring errors.
             List<HeaderField>::Iterator hf( h->fields() );
             while ( hf ) {
-                if ( !hf->parsed() &&
+                if ( !hf->valid() &&
                      hf->type() == HeaderField::Subject ) {
                     // is it right to bang only Subject?
-                    UString u = c->toUnicode( hf->value() );
+                    c->reset();
+                    UString u = c->toUnicode( hf->data() );
                     Utf8Codec utf8;
-                    String s( utf8.fromUnicode( u ) );
-                    hf->setData( HeaderField::encodeText( s ) );
+                    hf->setData( utf8.fromUnicode( u ) );
                 }
                 ++hf;
             }
 
-            // bp->d->text is already good(ish), so what we need to do
-            // to the body is only:
-            c = new Utf8Codec;
+            // if the body was bad, we prefer the (unicode) in
+            // bp->d->text and pretend it arrived as UTF-8:
+            if ( bad ) {
+                c = new Utf8Codec;
+                body = c->fromUnicode( bp->d->text );
+            }
         }
 
-        if ( ( !specified && ( !c->wellformed() || ct->subtype() == "html" ) ) ||
+        if ( ( !specified && ( !c->wellformed() ||
+                               ct->subtype() == "html" ) ) ||
              ( specified &&  ( !c->valid() ) ) ) {
             Codec * g = 0;
             if ( ct->subtype() == "html" )

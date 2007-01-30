@@ -126,7 +126,6 @@ void Header::add( HeaderField * hf )
                 ++it;
             }
             Address::uniquify( old );
-            first->update();
             return;
         }
     }
@@ -573,15 +572,8 @@ void Header::simplify()
 
 void Header::repair( Multipart * p )
 {
-    if ( valid() ) {
-        // it seems to be valid, but have we been able to parse everything?
-        List<HeaderField>::Iterator it( d->fields );
-        while ( it && it->parsed() )
-            ++it;
-        // we parsed everything and it's valid. repair not necessary.
-        if ( !it )
-            return;
-    }
+    if ( valid() )
+        return;
 
     // We remove duplicates of any field that may occur only once.
     // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T/M-I.)
@@ -672,7 +664,7 @@ void Header::repair( Multipart * p )
     
     if ( mode() == Rfc2822 &&
          ( occurrences[(int)HeaderField::Date] == 0 ||
-           !field( HeaderField::Date )->parsed() ||
+           !field( HeaderField::Date )->valid() ||
            !date()->valid() ) ) {
         List< HeaderField >::Iterator it( d->fields );
         Date date;
@@ -826,7 +818,7 @@ void Header::repair( Multipart * p )
             List<HeaderField>::Iterator h( it );
             ++it;
             if ( h->type() == HeaderField::Received ) {
-                if ( !h->parsed() )
+                if ( !h->valid() )
                     bad = true;
                 if ( bad )
                     d->fields.take( h );
@@ -910,7 +902,7 @@ void Header::fix8BitFields( class Codec * c )
     while ( it ) {
         List< HeaderField >::Iterator f = it;
         ++it;
-        if ( !f->parsed() &&
+        if ( !f->valid() &&
              ( f->type() == HeaderField::Subject ||
                f->type() == HeaderField::Comments ||
                f->type() == HeaderField::Keywords ||
@@ -918,7 +910,7 @@ void Header::fix8BitFields( class Codec * c )
                // XXX: This should be more fine-grained:
                f->type() == HeaderField::Other ) )
         {
-            String v = f->value();
+            String v = f->data();
             uint i = 0;
             while ( v[i] < 128 && v[i] > 0 )
                 i++;
@@ -927,14 +919,14 @@ void Header::fix8BitFields( class Codec * c )
                 UString u = c->toUnicode( v );
                 if ( c->wellformed() ) {
                     String s( utf8.fromUnicode( u ) );
-                    f->parse( HeaderField::encodeText( s ) );
+                    f->setData( s );
                 }
                 else if ( f->type() == HeaderField::Other ) {
                     d->fields.remove( f );
                 }
                 else if ( f->type() == HeaderField::Subject ) {
                     String s( utf8.fromUnicode( u ) );
-                    f->parse( HeaderField::encodeText( s ) );
+                    f->setData( s );
                 }
                 else if ( d->error.isEmpty() ) {
                     d->error = "Cannot parse header field " + f->name() +

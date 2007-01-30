@@ -14,17 +14,18 @@
 
 DateField::DateField( HeaderField::Type t )
     : HeaderField( t ),
-      d( new ::Date )
+      d( 0 )
 {
 }
 
 
 void DateField::parse( const String &s )
 {
+    d = new ::Date;
     d->setRfc822( s );
-    if ( !d->valid() )
-        setError( "Could not parse '" + s.simplified() + "'" );
     setData( d->rfc822() );
+    if ( !date()->valid() )
+        setError( "Could not parse " + s.quoted() );
 }
 
 
@@ -32,5 +33,12 @@ void DateField::parse( const String &s )
 
 ::Date *DateField::date() const
 {
-    return d;
+    if ( d )
+        return d;
+
+    // d is mutable, constructed on demand, so since we don't use the
+    // mutable keyword, let's override the const.
+    ((DateField*)this)->d = new ::Date;
+    ((DateField*)this)->d->setRfc822( data() );
+    return ((DateField*)this)->d;
 }

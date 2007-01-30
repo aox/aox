@@ -15,7 +15,8 @@ public:
     AddressField( HeaderField::Type );
 
     void parse( const String & );
-    void update();
+
+    String value() const;
 
     List< Address > *addresses() const;
 

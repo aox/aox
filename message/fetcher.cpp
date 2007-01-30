@@ -372,11 +372,6 @@ void MessageAddressFetcher::setDone( Message * m )
     if ( fallbackNeeded.last() == m )
         return;
 
-    List<AddressField>::Iterator i( l );
-    while ( i ) {
-        i->update();
-        ++i;
-    }
     l.clear();
 
     m->setAddressesFetched();

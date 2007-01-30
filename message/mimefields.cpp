@@ -169,7 +169,7 @@ void MimeField::parseParameters( Parser822 *p )
 }
 
 
-String MimeField::value()
+String MimeField::value() const
 {
     String s = HeaderField::data();
     s.append( parameterString() );
@@ -177,7 +177,7 @@ String MimeField::value()
 }
 
 
-String MimeField::data()
+String MimeField::data() const
 {
     String s = HeaderField::data();
     s.append( parameterString() );
@@ -276,6 +276,9 @@ void ContentType::parse( const String &s )
         }
     }
 
+    String v = t + "/" + st;
+    setData( v );
+
     if ( t.isEmpty() || st.isEmpty() )
         setError( "Both type and subtype must be nonempty: '" + s + "'" );
 
@@ -286,9 +289,6 @@ void ContentType::parse( const String &s )
          s.mid( p.index() ).lower().contains( "charset" ) )
         setError( "Parse error at position " + fn( p.index() ) +
                   ", before charset" );
-
-    String v = t + "/" + st;
-    setData( v );
 }
 
 
@@ -334,20 +334,19 @@ void ContentTransferEncoding::parse( const String &s )
 
     String t = p.mimeToken().lower();
     p.comment();
+    // XXX shouldn't we do p.end() here and record parse errors?
 
     if ( t == "7bit" || t == "8bit" || t == "8bits" || t == "binary" ||
          t == "unknown" )
-        e = String::Binary;
+        setEncoding( String::Binary );
     else if ( t == "quoted-printable" )
-        e = String::QP;
+        setEncoding( String::QP );
     else if ( t == "base64" )
-        e = String::Base64;
+        setEncoding( String::Base64 );
     else if ( t == "x-uuencode" || t == "uuencode" )
-        e = String::Uuencode;
+        setEncoding( String::Uuencode );
     else
         setError( "Invalid c-t-e value: '" + t + "'" );
-
-    setData( t );
 }
 
 
@@ -410,18 +409,18 @@ void ContentDisposition::parse( const String &s )
 {
     Parser822 p( s );
 
-    String t;
-    if ( ( t = p.mimeToken().lower() ) != "" ) {
-        if ( t == "inline" )
-            d = Inline;
-        else // if ( t == "attachment" )
-            d = Attachment;
-        parseParameters( &p );
-        setData( t );
+    String t = p.mimeToken().lower();
+    if ( t.isEmpty() ) {
+        setError( "Invalid disposition" );
         return;
     }
 
-    setError( "Invalid disposition: '" + s.simplified() + "'" );
+    setData( t );
+    if ( t == "inline" )
+        d = Inline;
+    else // if ( t == "attachment" ) // XXX: why not check? see change 3143
+        d = Attachment;
+    parseParameters( &p );
 }
 
 
@@ -465,6 +464,8 @@ ContentLanguage::~ContentLanguage()
 
 void ContentLanguage::parse( const String &s )
 {
+    setData( s );
+
     Parser822 p( s );
 
     do {
@@ -478,8 +479,6 @@ void ContentLanguage::parse( const String &s )
 
     if ( !p.atEnd() || l.count() == 0 )
         setError( "Unparseable value: '" + s.simplified() + "'" );
-
-    setData( s );
 }
 
 

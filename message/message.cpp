@@ -137,7 +137,7 @@ void Message::recomputeError()
             }
             List<HeaderField>::Iterator it( b->header()->fields() );
             while ( it && d->error.isEmpty() ) {
-                if ( !it->parsed() )
+                if ( !it->valid() )
                     d->error = "In bodypart " + partNumber( b ) +
                                ": Unable to parse header field " + it->name();
                 ++it;
@@ -148,7 +148,7 @@ void Message::recomputeError()
                                ".1: " + b->message()->header()->error();
                 it = b->message()->header()->fields()->first();
                 while ( it && d->error.isEmpty() ) {
-                    if ( !it->parsed() )
+                    if ( !it->valid() )
                         d->error = "In bodypart " + partNumber( b ) +
                                    ".1: Unable to parse header field " +
                                    it->name();
@@ -165,8 +165,8 @@ void Message::recomputeError()
     // about anything else
     List<HeaderField>::Iterator it( header()->fields() );
     while ( it && d->error.isEmpty() ) {
-        if ( !it->parsed() )
-            d->error = ": Unable to parse header field " + it->name();
+        if ( !it->valid() )
+            d->error = "Unable to parse header field " + it->name();
         ++it;
     }
 }
@@ -740,6 +740,19 @@ List< Annotation > * Message::annotations() const
 }
 
 
+static String badFields( Header * h )
+{
+    StringList bad;
+    List<HeaderField>::Iterator hf( h->fields() );
+    while ( hf ) {
+        if ( !hf->valid() )
+            bad.append( hf->data() );
+        ++hf;
+    }
+    return bad.join( "\n" );
+}
+
+
 /*! Tries to handle unlabelled 8-bit content in header fields, in
     cooperation with Header::fix8BitFields().
 
@@ -781,7 +794,7 @@ void Message::fix8BitHeaderFields()
     if ( !charset.isEmpty() )
         c = Codec::byName( charset );
     else
-        c = Codec::byString( header()->asText() );
+        c = Codec::byString( badFields( header() ) );
     if ( !c )
         c = Codec::byName( fallback );
     if ( !c )
@@ -799,7 +812,7 @@ void Message::fix8BitHeaderFields()
 }
 
 
-/*! returns a short string, e.g. "c", which can be used as a mime
+/*! Returns a short string, e.g. "c", which can be used as a mime
     boundary surrounding \a parts without causing problems.
 
     \a parts may be one bodypart, or several separated by CRLF. The

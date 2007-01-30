@@ -83,18 +83,15 @@ void AddressField::parse( const String &s )
 
     if ( type() != HeaderField::ReturnPath )
         outlawBounce();
-
-    update();
 }
 
 
-/*! Updates the value() and data() for this AddressField. This function
-    must be called after any changes to the addresses().
-*/
+/*! Generates the value of the field, based on the addresses(). */
 
-void AddressField::update()
+String AddressField::value() const
 {
     String s;
+    s.reserve( 30 * addresses()->count() );
     HeaderField::Type t = type();
     List< Address >::Iterator it( addresses() );
 
@@ -105,6 +102,10 @@ void AddressField::update()
             s = "<>";
         else if ( it->type() == Address::Normal )
             s = "<" + it->localpart() + "@" + it->domain() + ">";
+    }
+    else if ( t == HeaderField::References && !it )
+    {
+        s = data();
     }
     else if ( t <= HeaderField::LastAddressField ||
               t == HeaderField::References )
@@ -155,9 +156,11 @@ void AddressField::update()
     {
         if ( it )
             s = "<" + it->toString() + ">";
+        else
+            s = data();
     }
 
-    setData( s );
+    return s;
 }
 
 
@@ -214,8 +217,9 @@ void AddressField::parseMailbox( const String &s )
 void AddressField::parseReferences( const String &s )
 {
     AddressParser *ap = AddressParser::references( s );
-    setError( ap->error() );
     a = ap->addresses();
+    setData( value() );
+    setError( ap->error() );
 }
 
 
@@ -227,12 +231,16 @@ void AddressField::parseMessageId( const String &s )
 {
     AddressParser *ap = AddressParser::references( s );
 
-    if ( !ap->error().isEmpty() )
+    if ( !ap->error().isEmpty() ) {
         setError( ap->error() );
-    else if ( ap->addresses()->count() == 1 )
+    }
+    else if ( ap->addresses()->count() == 1 ) {
         a = ap->addresses();
-    else
+        setData( value() );
+    }
+    else {
         setError( "Need exactly one" );
+    }
 }
 
 
