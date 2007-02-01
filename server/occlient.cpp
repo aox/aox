@@ -184,11 +184,9 @@ void OCClient::updateMailbox( const String & arg )
                    Log::Error );
         }
         else {
-            if ( m->uidnext() < n ) {
-                ::log( "OCClient set mailbox " + m->name() +
-                       " to uidnext " + fn( n ), Log::Debug );
-                m->setUidnext( n );
-            }
+            ::log( "OCClient set mailbox " + m->name() +
+                   " to uidnext " + fn( n ), Log::Debug );
+            m->setUidnext( n );
         }
     }
     else {
