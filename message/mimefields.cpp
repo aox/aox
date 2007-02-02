@@ -169,6 +169,10 @@ void MimeField::parseParameters( Parser822 *p )
 }
 
 
+/*! Like HeaderField::value(), returns the RFC 2822 representation of
+    this MIME field.
+*/
+
 String MimeField::value() const
 {
     String s = HeaderField::data();
@@ -176,6 +180,10 @@ String MimeField::value() const
     return wrap( s );
 }
 
+
+/*! Like HeaderField::data(), returns the contents of this MIME field in
+    a representation suitable for storage.
+*/
 
 String MimeField::data() const
 {
