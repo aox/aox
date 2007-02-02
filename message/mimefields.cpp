@@ -422,16 +422,18 @@ void ContentDisposition::parse( const String &s )
         setError( "Invalid disposition" );
         return;
     }
+    parseParameters( &p );
 
-    // We are required to treat unknown types as "attachment".
+    // We are required to treat unknown types as "attachment". If they
+    // are syntactically invalid, we replace them with "attachment".
     if ( t == "inline" )
         d = Inline;
     else {
         d = Attachment;
-        t = "attachment";
+        if ( !p.atEnd() )
+            t = "attachment";
     }
     setData( t );
-    parseParameters( &p );
 }
 
 
