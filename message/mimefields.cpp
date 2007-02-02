@@ -423,11 +423,14 @@ void ContentDisposition::parse( const String &s )
         return;
     }
 
-    setData( t );
+    // We are required to treat unknown types as "attachment".
     if ( t == "inline" )
         d = Inline;
-    else // if ( t == "attachment" ) // XXX: why not check? see change 3143
+    else {
         d = Attachment;
+        t = "attachment";
+    }
+    setData( t );
     parseParameters( &p );
 }
 
