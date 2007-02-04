@@ -47,6 +47,7 @@ public:
         List<SieveCommand> pending;
         Query * sq;
         SieveScript * script;
+        String error;
 
         bool evaluate( SieveCommand * );
         enum Result { True, False, Undecidable };
@@ -285,10 +286,13 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     } else if ( c->identifier() == "fileinto" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
+        //if ( user ) arg = user->mailboxName( arg );
         a->setMailbox( Mailbox::find( arg ) );
         if ( !a->mailbox() ) {
             a = new SieveAction( SieveAction::Error );
-            a->setErrorMessage( "No such mailbox: " + arg );
+            error = "No such mailbox: " + arg;
+            a->setErrorMessage( error );
+            implicitKeep = true;
             done = true;
         }
         actions.append( a );
@@ -546,6 +550,35 @@ bool Sieve::rejected( Address * address ) const
         ++a;
     }
     return false;
+}
+
+
+/*! Returns an error message if delivery to \a address caused a
+    run-time error, and an empty string if all is in order or \a
+    address is not a valid address.
+*/
+
+String Sieve::error( Address * address ) const
+{
+    SieveData::Recipient * i = d->recipient( address );
+    if ( !i )
+        return "";
+    return i->error;
+}
+
+
+/*! Returns an error message if delivery to any address caused a
+    run-time error, and an empty string in all other cases.
+*/
+
+String Sieve::error() const
+{
+    List<SieveData::Recipient>::Iterator it( d->recipients );
+    while ( it && it->error.isEmpty() )
+        ++it;
+    if ( it )
+        return it->error;
+    return "";
 }
 
 

@@ -34,6 +34,8 @@ public:
     bool rejected( Address * ) const;
     bool succeeded( Address * ) const;
     bool failed( Address * ) const;
+    String error( Address * ) const;
+    String error() const;
     bool done() const;
     bool ready() const;
 

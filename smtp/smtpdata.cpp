@@ -227,14 +227,19 @@ void SmtpData::execute()
                 String prefix = i->address()->toString();
                 if ( s->rejected( i->address() ) )
                     respond( 551, prefix + ": Rejected" );
-                else
+                else if ( s->error().isEmpty() )
                     respond( 250, prefix + ": " + d->ok );
+                else
+                    respond( 450, prefix + ": " + s->error() );
                 ++i;
             }
         }
         else {
             if ( server()->sieve()->rejected() )
                 respond( 551, "Rejected by all recipients" );
+            if ( !server()->sieve()->error().isEmpty() )
+                respond( 451, "Sieve runtime error: " + 
+                         server()->sieve()->error() );
             else
                 respond( 250, d->ok );
         }
