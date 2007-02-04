@@ -48,6 +48,7 @@ public:
         Query * sq;
         SieveScript * script;
         String error;
+        String prefix;
 
         bool evaluate( SieveCommand * );
         enum Result { True, False, Undecidable };
@@ -286,11 +287,15 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     } else if ( c->identifier() == "fileinto" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
-        //if ( user ) arg = user->mailboxName( arg );
-        a->setMailbox( Mailbox::find( arg ) );
+        String n = arg;
+        if ( !arg.startsWith( "/" ) )
+            n = prefix + arg;
+        a->setMailbox( Mailbox::find( n ) );
         if ( !a->mailbox() ) {
             a = new SieveAction( SieveAction::Error );
             error = "No such mailbox: " + arg;
+            if ( n != arg )
+                error.append( " (" + n + ")" );
             a->setErrorMessage( error );
             implicitKeep = true;
             done = true;
@@ -723,4 +728,20 @@ bool Sieve::ready() const
     if ( i )
         return false;
     return true;
+}
+
+
+/*! Records that when evaluating mailbox names in the context of \a
+    address, a mailbox name which does not start with '/' is relative
+    to \a prefix.
+
+    \a prefix must end with '/'. Does nothing unless \a address is a
+    known recipient for this sieve.
+*/
+
+void Sieve::setPrefix( Address * address, const String & prefix )
+{
+    SieveData::Recipient * i = d->recipient( address );
+    if ( i )
+        i->prefix = prefix;
 }

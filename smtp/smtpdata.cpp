@@ -227,10 +227,10 @@ void SmtpData::execute()
                 String prefix = i->address()->toString();
                 if ( s->rejected( i->address() ) )
                     respond( 551, prefix + ": Rejected" );
-                else if ( s->error().isEmpty() )
+                else if ( s->error( i->address() ).isEmpty() )
                     respond( 250, prefix + ": " + d->ok );
                 else
-                    respond( 450, prefix + ": " + s->error() );
+                    respond( 450, prefix + ": " + s->error( i->address() ) );
                 ++i;
             }
         }

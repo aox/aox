@@ -27,6 +27,8 @@ public:
     void addRecipient( Address *, Mailbox *, SieveScript * = 0 );
     void setMessage( Message * );
 
+    void setPrefix( Address *, const String & );
+
     Address * sender() const;
     Address * recipient() const;
 

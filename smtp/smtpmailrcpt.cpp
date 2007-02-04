@@ -160,11 +160,14 @@ void SmtpRcptTo::execute()
 {
     if ( !d->query ) {
         d->query = new Query(
-            "select al.mailbox, s.script, m.owner "
+            "select al.mailbox, s.script, m.owner, "
+            "n.name, u.login "
             "from aliases al "
             "join addresses a on (al.address=a.id) "
             "join mailboxes m on (al.mailbox=m.id) "
             "left join scripts s on (s.owner=m.owner and s.active='t') "
+            "left join users u on (s.owner=u.id) "
+            "left join namespaces n on (u.parentspace=n.id) "
             "where m.deleted='f' and "
             "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
         d->query->bind( 1, d->address->localpart().lower() );
@@ -180,6 +183,10 @@ void SmtpRcptTo::execute()
             if ( !r->isNull( "script" ) )
                 script->parse( r->getString( "script" ) );
             server()->sieve()->addRecipient( d->address, d->mailbox, script );
+            if ( !r->isNull( "login" ) )
+                server()->sieve()->setPrefix( d->address, 
+                                              r->getString( "name" ) + "/" +
+                                              r->getString( "login" ) + "/" );
         }
     }
 
