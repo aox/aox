@@ -52,6 +52,7 @@ public:
         DbHandleInterval,
         ManageSievePort,
         UndeleteTime,
+        SmartHostPort,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };

@@ -340,11 +340,20 @@ specifies which port
 should listen to. The default is
 .IR 587 .
 .IP smarthost-address
-species the address of the SMTP server which is used to relay mail to
+specifies the address of the SMTP server which is used to relay mail to
 remote recipients. The default is
-.IR 127.0.0.1 ,
-and port used (which cannot be changed at the moment) is
+.IR 127.0.0.1 .
+.IP smarthost-port
+specifies the port to use when forwarding mail to a smarthost. The
+default is
 .IR 25 .
+(These defaults thus conflict with the default values of
+.I smtp-address
+and
+.I smtp-port
+when
+.I use-smtp
+is enabled.)
 .SS IMAP
 .IP use-imap
 must be enabled for
