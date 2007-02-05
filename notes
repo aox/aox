@@ -122,7 +122,8 @@ Release cycle
   t-38: we decide on a feature list for the release.
 
   t-14: Whatever hasn't been started is dropped, whatever cannot be
-  completed before t-7 is laid aside for the next release.
+  completed before t-7 is laid aside for the next release. Write the
+  announcement text.
 
   t-7: Fork the release and remove any code that needs to be removed.
 
