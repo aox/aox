@@ -25,6 +25,7 @@
 
 /*! \nodoc */
 
+
 int main( int argc, char *argv[] )
 {
     Scope global;
@@ -54,6 +55,41 @@ int main( int argc, char *argv[] )
             log( "Invalid value for message-copy: " + mc, Log::Disaster );
         }
     }
+
+
+    String sA( Configuration::text( Configuration::SmartHostAddress ) );
+    uint sP( Configuration::scalar( Configuration::SmartHostPort ) );
+
+    if ( Configuration::toggle( Configuration::UseSmtp ) &&
+         Configuration::scalar( Configuration::SmtpPort ) == sP &&
+         ( Configuration::text( Configuration::SmtpAddress ) == sA ||
+           ( Configuration::text( Configuration::SmtpAddress ) == "" &&
+             sA == "127.0.0.1" ) ) )
+    {
+        log( "smarthost-address/port are the same as smtp-address/port",
+             Log::Disaster );
+    }
+
+    if ( Configuration::toggle( Configuration::UseLmtp ) &&
+         Configuration::scalar( Configuration::LmtpPort ) == sP &&
+         ( Configuration::text( Configuration::LmtpAddress ) == sA ||
+           ( Configuration::text( Configuration::LmtpAddress ) == "" &&
+             sA == "127.0.0.1" ) ) )
+    {
+        log( "smarthost-address/port are the same as lmtp-address/port",
+             Log::Disaster );
+    }
+
+    if ( Configuration::toggle( Configuration::UseSmtpSubmit ) &&
+         Configuration::scalar( Configuration::SmtpSubmitPort ) == sP &&
+         ( Configuration::text( Configuration::SmtpSubmitAddress ) == sA ||
+           ( Configuration::text( Configuration::SmtpSubmitAddress ) == "" &&
+             sA == "127.0.0.1" ) ) )
+    {
+        log( "smarthost-address/port are the same as "
+             "smtp-submit-address/port", Log::Disaster );
+    }
+
 
     Listener< IMAP >::create(
         "IMAP", Configuration::toggle( Configuration::UseImap ),
