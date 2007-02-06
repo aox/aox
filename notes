@@ -884,6 +884,9 @@ LDAP server/address book
   talks about some clients. I suggest that working with those clients
   is all we aim for.
 
+  - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query an
+    address book.
+
 
 Groups and ACL
 
@@ -971,23 +974,20 @@ Cybertec replicator
   Is it good? What are people saying about it? What should we do about it?
 
 
-Todo list: AMS
+DIGEST-MD5 reauth doesn't work for Dave Cridland
 
-  - Figure out why tlsproxy segfaults on Thomas's box.
-  - Go through ANNOTATE and make sure we have and test everything.
-  - Figure out the Injector upper bound on Injector speed.
-  - Log single-row query values?
-  - Use writev in Buffer::write.
-  - canonical problems.
-  - Poke hdp and jd@commandprompt.
-  - Investigate Scalix/Zimbra/TeamXchange.
-  - Make Schema::check independent of upgrade so that we can revoke
-    update on mailstore from aox.
-  - Restart Postgres while we're running, and see what happens. We
-    should be able to cope with that gracefully, but we don't.
-  - We seem to be mangling Tom Simnett's PGP-signed email. Get him to
-    send something to ams@toroid.org and make a canonical test case.
-  - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query
-    an address book.
-  - DIGEST-MD5 reauth doesn't work for Dave.
-  - Date::valid doesn't reject February 29th 2007.
+  (I haven't tried to reproduce it yet, because Polymer needs more
+  Python stuff installed than I had the patience for.)
+
+
+tlsproxy segfaults on Thomas's box (and it's not -O3).
+
+
+We should cope with Postgres being restarted
+
+  But we don't, so we need to test and fix whatever the problems are.
+
+
+Make Schema::check independent of upgrade
+
+  Then we can revoke update on mailstore from aox.
