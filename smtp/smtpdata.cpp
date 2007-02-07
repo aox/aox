@@ -6,6 +6,7 @@
 #include "configuration.h"
 #include "addressfield.h"
 #include "smtpmailrcpt.h"
+#include "spoolmanager.h"
 #include "smtpparser.h"
 #include "injector.h"
 #include "address.h"
@@ -29,7 +30,10 @@ class SmtpDataData
 {
 public:
     SmtpDataData()
-        : state( 2 ), message( 0 ), injector( 0 ), now( 0 ), ok( "OK" ) {}
+        : state( 2 ), message( 0 ), injector( 0 ), now( 0 ), ok( "OK" ),
+          spooled( false )
+    {}
+
     String id;
     String body;
     uint state;
@@ -37,6 +41,7 @@ public:
     Injector * injector;
     Date * now;
     String ok;
+    bool spooled;
 };
 
 
@@ -185,11 +190,21 @@ void SmtpData::execute()
         }
 
         List<Address> * f = server()->sieve()->forwarded();
+        List<SmtpRcptTo>::Iterator it( server()->rcptTo() );
+        while ( it ) {
+            if ( it->remote() )
+                f->append( it->address() );
+            ++it;
+        }
+
         if ( !f->isEmpty() ) {
             l->insert( Mailbox::find( "/archiveopteryx/spool" ) );
             d->injector->setDeliveryAddresses( f );
+            d->spooled = true;
         }
+
         d->injector->setMailboxes( l );
+
         if ( server()->user() )
             d->injector->setSender( server()->user()->address() );
 
@@ -243,6 +258,10 @@ void SmtpData::execute()
             else
                 respond( 250, d->ok );
         }
+
+        if ( d->spooled )
+            SpoolManager::run();
+
         finish();
         server()->reset();
     }
