@@ -348,6 +348,8 @@ bool Schema::singleStep()
         c = stepTo34(); break;
     case 34:
         c = stepTo35(); break;
+    case 35:
+        c = stepTo36(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1764,44 +1766,16 @@ bool Schema::stepTo35()
 }
 
 
-/*! Create and populate the unparsed_messages table.
-    XXX: The create will need to be made conditional.
+/*! Grant "update" on deliveries to aox, because although stepTo28() did
+    that, schema/grant-privileges did not.
 */
 
 bool Schema::stepTo36()
 {
     if ( d->substate == 0 ) {
-        describeStep( "Creating unparsed_messages table (slow)." );
+        describeStep( "Granting update on deliveries." );
         String dbuser( Configuration::text( Configuration::DbUser ) );
-        d->q = new Query( "create table unparsed_messages (bodypart "
-                          "integer not null references bodyparts(id) "
-                          "on delete cascade, primary key(bodypart))",
-                          this );
-        d->t->enqueue( d->q );
-        d->q = new Query( "grant insert on unparsed_messages to " +
-                          dbuser, this );
-        d->t->enqueue( d->q );
-        d->q = new Query(
-            // this breaks the 80-column limit. that's not its worst problem.
-            "insert into unparsed_messages(bodypart) "
-            "select distinct pn2.bodypart"
-            " from messages m"
-            " left join deleted_messages dm on (m.uid=dm.uid and"
-            " m.mailbox=dm.mailbox)"
-            " join header_fields hf on (hf.uid=m.uid and m.mailbox=hf.mailbox)"
-            " join address_fields af on (af.uid=m.uid and m.mailbox=af.mailbox)"
-            " join addresses a on (af.address=a.id)"
-            " join part_numbers pn1 on (pn1.uid=m.uid and m.mailbox=pn1.mailbox)"
-            " join part_numbers pn2 on (pn2.uid=m.uid and m.mailbox=pn2.mailbox)"
-            " join bodyparts bp on (bp.id=pn1.bodypart)"
-            " where pn1.part=1"
-            " and pn2.part=2"
-            " and dm.uid is null"
-            " and bp.text ilike 'The appended message was received, but could not be stored'"
-            " and ((hf.field=20"
-            "       and hf.value ilike 'message arrived but could not be stored')"
-            "      or (af.field=1 and a.name='Mail Storage Database'))"
-            " order by pn2.bodypart", this );
+        d->q = new Query( "grant update on deliveries to " + dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
