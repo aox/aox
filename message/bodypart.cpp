@@ -520,7 +520,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         uint i = 0;
         bool any = false;
         HeaderField * f = 0;
-        while ( (f=h->field( HeaderField::ContentTransferEncoding, i )) != 0 ) {
+        while ( (f=h->field(HeaderField::ContentTransferEncoding,i)) != 0 ) {
             if ( ((ContentTransferEncoding*)f)->encoding() == String::QP )
                 any = true;
             i++;
@@ -533,8 +533,12 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte )
         e = cte->encoding();
-    if ( !body.isEmpty() )
-        body = body.crlf().decode( e );
+    if ( !body.isEmpty() ) {
+        if ( e == String::Base64 || e == String::Uuencode )
+            body = body.decode( e );
+        else
+            body = body.crlf().decode( e );
+    }
 
     ContentType * ct = h->contentType();
     if ( !ct ) {
