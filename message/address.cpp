@@ -885,9 +885,9 @@ String AddressParser::atom( int & i )
 String AddressParser::phrase( int & i )
 {
     String r;
-    int start = i;
     comment( i );
     bool done = false;
+    bool drop = false;
     while ( !done && i >= 0 ) {
         String word;
         if ( i > 0 && d->s[i] == '"' ) {
@@ -907,6 +907,14 @@ String AddressParser::phrase( int & i )
                 error( "quoted phrase must begin with '\"'", i );
             word = d->s.mid( i, j + 1 - i ).unquoted();
             i--;
+            if ( !word.isEmpty() ) {
+                // if word contained unabelled 8-bit, detect and eliminate.
+                uint n = 0;
+                while ( n < word.length() && word[n] < 128 )
+                    n++;
+                if ( word[n] >= 128 )
+                    drop = true;
+            }
         }
         else if ( d->s[i] == '.' ) {
             // obs-phrase allows a single dot as alternative to word.
@@ -919,8 +927,24 @@ String AddressParser::phrase( int & i )
         else {
             // single word
             word = atom( i );
+            // outlook or something close to it seems to occasionally
+            // put backslashes into otherwise unquoted names. work
+            // around that:
+            uint l = word.length();
+            while ( l > 0 && i >= 0 && d->s[i] == '\\' ) {
+                i--;
+                String w = atom( i );
+                l = w.length();
+                word = w + word;
+            }
             if ( word.isEmpty() )
                 done = true;
+            if ( word.startsWith( "=?" ) ) {
+                Parser822 p( word );
+                String tmp( p.phrase() );
+                if ( !tmp.isEmpty() )
+                    word = tmp;
+            }
         }
         if ( r.isEmpty() ) {
             r = word;
@@ -936,23 +960,8 @@ String AddressParser::phrase( int & i )
         }
         comment( i );
     }
-    if ( !r.isEmpty() ) {
-        // if r was/contained a "quoted-phrase" containing unabelled
-        // 8-bit, detect and eliminate.
-        uint n = 0;
-        while ( n < r.length() && r[n] < 128 )
-            n++;
-        if ( r[n] >= 128 )
-            r = "";
-    }
-    if ( i < start && r.contains( '=' ) ) {
-        // if it seems to be an encoded-word, we parse the same input
-        // using Parser822 and let it decode 2047. slow and wasteful.
-        Parser822 p( d->s.mid( i+1, start-i ) );
-        String tmp( p.phrase() );
-        if ( !tmp.isEmpty() )
-            r = tmp;
-    }
+    if ( drop )
+        r.truncate();
     return r;
 }
 
