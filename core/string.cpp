@@ -1665,9 +1665,26 @@ String String::anonymised() const
 
 String String::crlf() const
 {
+    bool copy = true;
+    if ( d->len < 2 ||
+         d->str[d->len-1] != 10 ||
+         d->str[d->len-2] != 13 )
+        copy = false;
+    uint i = 0;
+    while ( copy && i < d->len ) {
+        if ( d->str[i] == 13 && i < d->len && d->str[i+1] == 10 )
+            i += 2;
+        else if ( d->str[i] == 13 || d->str[i] == 10 )
+            copy = false;
+        else
+            i++;
+    }
+    if ( copy )
+        return *this;
+        
     String r;
     r.reserve( length() );
-    uint i = 0;
+    r.append( mid( 0, i ) );
     bool lf = false;
     uint len = 0;
     if ( d )
