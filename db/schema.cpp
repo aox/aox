@@ -350,6 +350,8 @@ bool Schema::singleStep()
         c = stepTo35(); break;
     case 35:
         c = stepTo36(); break;
+    case 36:
+        c = stepTo37(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1782,6 +1784,51 @@ bool Schema::stepTo36()
     }
 
     if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create the unparsed_messages table if it doesn't exist already.
+    After this revision, the table exists, but is unfilled; and the
+    upgraded schema and schema.pg ought to be in sync.
+*/
+
+bool Schema::stepTo37()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Creating unparsed_messages if necessary" );
+        d->q = new Query( "select * from information_schema.tables where "
+                          "table_name='unparsed_messages'", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        if ( !d->q->hasResults() ) {
+            d->q =
+                new Query( "create table unparsed_messages ("
+                           "bodypart integer not null references "
+                           "bodyparts(id) on delete cascade, "
+                           "primary key(bodypart))", this );
+            d->t->enqueue( d->q );
+            d->t->execute();
+            d->substate = 2;
+        }
+        else {
+            d->substate = 0;
+        }
+    }
+
+    if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
