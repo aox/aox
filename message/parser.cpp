@@ -420,7 +420,8 @@ String Parser822::encodedWord( EncodedText type )
                       ( c >= 'a' && c <= 'z' ) ||
                       ( c >= 'A' && c <= 'Z' ) ||
                       ( c == '!' || c == '*' || c == '-' ||
-                        c == '/' || c == '=' || c == '_' ) ) )
+                        c == '/' || c == '=' || c == '_' ||
+                        c == '\'' ) ) )
             {
                 text.append( c );
                 c = s[++m];
