@@ -90,7 +90,7 @@ void ManageSieve::react( Event e )
 
     case Timeout:
         log( "Idle timeout" );
-        send( "BYE Idle timeout" );
+        send( "BYE \"Idle timeout\"" );
         Connection::setState( Closing );
         break;
 
@@ -100,7 +100,7 @@ void ManageSieve::react( Event e )
         break;
 
     case Shutdown:
-        send( "BYE Server shutdown" );
+        send( "BYE \"Server shutdown\"" );
         break;
     }
 }
@@ -133,7 +133,7 @@ void ManageSieve::parse()
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +
                      fn( b->size() ) + " bytes)", Log::Error );
-                send( "BYE Line too long. Closing connection." );
+                send( "BYE \"Line too long\"" );
                 Connection::setState( Closing );
                 return;
             }
@@ -155,7 +155,7 @@ void ManageSieve::parse()
                         // close the connection?
                         log( "Connection closed due to large literal (" +
                              s->mid( b, e-b ) + " bytes)", Log::Error );
-                        send( "BYE Literal too large. Closing connection." );
+                        send( "BYE \"Literal too large\"" );
                         Connection::setState( Closing );
                     }
                     d->arg.append( "\r\n" );
