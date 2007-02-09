@@ -316,6 +316,10 @@ bool ManageSieveCommand::putScript()
             no( e );
             return true;
         }
+        if ( name.isEmpty() ) {
+            // Our very own syntax-checking hack.
+            return true;
+        }
 
         // push the script into the database. we need to either update
         // a table row or insert a new one. ManageSieveCommand doesn't
