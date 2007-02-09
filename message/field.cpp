@@ -249,7 +249,9 @@ void HeaderField::setName( const String &n )
 
 String HeaderField::value() const
 {
-    if ( d->type == Subject || d->type == Comments )
+    if ( d->type == Subject ||
+         d->type == Comments ||
+         d->type == ContentDescription )
         return wrap( encodeText( d->data ) );
 
     if ( d->type == Other )
