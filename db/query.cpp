@@ -3,6 +3,7 @@
 #include "query.h"
 
 #include "log.h"
+#include "utf.h"
 #include "event.h"
 #include "scope.h"
 #include "string.h"
@@ -239,6 +240,20 @@ void Query::bind( uint n, const String &s, Format f )
 {
     Value *v = new Value( n, s, f );
     d->values->insert( v );
+}
+
+
+/*! \overload
+    Converts \a s to the database's unicode encoding and binds the
+    result to the parameter \a n of this Query in the specified format
+    \a f (Binary or Text; Text by default).
+
+*/
+
+void Query::bind( uint n, const UString &s, Format f )
+{
+    PgUtf8Codec p;
+    bind( n, p.fromUnicode( s ), f );
 }
 
 
