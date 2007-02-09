@@ -7,6 +7,8 @@
 #include "sys.h"
 #include "string.h"
 
+#include "../encodings/utf.h"
+
 
 /*! \class UStringData ustring.h
 
@@ -220,6 +222,27 @@ void UString::truncate( uint l )
 }
 
 
+/*! Returns true if this string contains only printable tab, cr, lf
+    and ASCII characters, and false if it contains one or more other
+    characters.
+*/
+
+bool UString::isAscii() const
+{
+    if ( isEmpty() )
+        return true;
+    uint i = 0;
+    while ( i < d->len ) {
+        if ( d->str[i] >= 128 ||
+             ( d->str[i] < 32 &&
+               d->str[i] != 9 && d->str[i] != 10 && d->str[i] != 13 ) )
+            return false;
+        i++;
+    }
+    return true;
+}
+
+
 /*! Returns a copy of this string in 7-bit ASCII. Any characters that
     aren't printable ascii are changed into '?'. (Is '?' the right
     choice?)
@@ -286,3 +309,111 @@ uint UString::number( bool * ok, uint base ) const
 {
     return ascii().number( ok, base );
 }
+
+
+/*! Returns a copy of this string where each run of whitespace is
+    compressed to a single space character, and where leading and
+    trailing whitespace is removed altogether. Most spaces are mapped
+    to U+0020, but the Ogham space dominates and ZWNBSP recedes.
+
+    Unicode space characters are as listed in
+    http://en.wikipedia.org/wiki/Space_character
+*/
+
+UString UString::simplified() const
+{
+    // scan for the first nonwhitespace character
+    uint i = 0;
+    uint first = 0;
+    while ( i < length() && first == i ) {
+        int c = d->str[i];
+        if ( c == 9 || c == 10 || c == 13 || c == 32 ||
+             c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
+             c == 0x2003 || c == 0x2004 || c == 0x2005 ||
+             c == 0x2006 || c == 0x2007 || c == 0x2008 ||
+             c == 0x2009 || c == 0x200A || c == 0x200B ||
+             c == 0x202F || c == 0x205F || c == 0x2060 ||
+             c == 0x3000 || c == 0xFEFF )
+            first++;
+        i++;
+    }
+
+    // scan on to find the last nonwhitespace character and detect any
+    // sequences of two or more whitespace characters within the
+    // string.
+    uint last = first;
+    uint spaces = 0;
+    bool identity = true;
+    while ( identity && i < length() ) {
+        int c = d->str[i];
+        if ( c == 9 || c == 10 || c == 13 || c == 32 ||
+             c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
+             c == 0x2003 || c == 0x2004 || c == 0x2005 ||
+             c == 0x2006 || c == 0x2007 || c == 0x2008 ||
+             c == 0x2009 || c == 0x200A || c == 0x200B ||
+             c == 0x202F || c == 0x205F || c == 0x2060 ||
+             c == 0x3000 || c == 0xFEFF ) {
+            spaces++;
+        }
+        else {
+            if ( spaces > 1 )
+                identity = false;
+            spaces = 0;
+            last = i;
+        }
+        i++;
+    }
+    if ( identity )
+        return mid( first, last+1-first );
+
+    UString result;
+    result.reserve( length() );
+    i = 0;
+    spaces = 0;
+    bool ogham = false;
+    bool zwnbsp = true;
+    while ( i < length() ) {
+        int c = d->str[i];
+        if ( c == 9 || c == 10 || c == 13 || c == 32 ||
+             c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
+             c == 0x2003 || c == 0x2004 || c == 0x2005 ||
+             c == 0x2006 || c == 0x2007 || c == 0x2008 ||
+             c == 0x2009 || c == 0x200A || c == 0x200B ||
+             c == 0x202F || c == 0x205F || c == 0x2060 ||
+             c == 0x3000 || c == 0xFEFF ) {
+            if ( c == 0x1680 )
+                ogham = true;
+            else if ( c != 0xFEFF )
+                zwnbsp = false;
+            spaces++;
+        }
+        else {
+            if ( spaces && !result.isEmpty() ) {
+                if ( ogham )
+                    result.append( 0x1680 );
+                else if ( zwnbsp )
+                    result.append( 0xFEFF );
+                else
+                    result.append( ' ' );
+            }
+            spaces = 0;
+            result.append( c );
+            ogham = false;
+            zwnbsp = true;
+        }
+        i++;
+    }
+    return result;
+}
+
+
+/*! Returns an UTF8-encoded version of this UString.
+*/
+
+String UString::utf8() const
+{
+    Utf8Codec u;
+    return u.fromUnicode( *this );
+}
+
+

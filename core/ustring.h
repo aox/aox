@@ -56,10 +56,13 @@ public:
     void reserve( uint );
     void truncate( uint = 0 );
 
+    bool isAscii() const;
     String ascii() const;
+    String utf8() const;
 
     UString mid( uint, uint = UINT_MAX ) const;
     uint number( bool *, uint = 10 ) const;
+    UString simplified() const;
 
     inline void detach() { if ( !modifiable() ) reserve( length() ); }
 
