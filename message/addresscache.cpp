@@ -4,10 +4,11 @@
 
 #include "transaction.h"
 #include "allocator.h"
+#include "address.h"
+#include "ustring.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
-#include "address.h"
 #include "dict.h"
 #include "list.h"
 #include "map.h"
@@ -112,16 +113,14 @@ public:
         queries = l;
         transaction = t;
 
-        String un = a->uname();
-
         Query *i = new Query( *addressInsert, this );
-        i->bind( 1, un );
+        i->bind( 1, a->uname() );
         i->bind( 2, a->localpart() );
         i->bind( 3, a->domain() );
         transaction->enqueue( i );
 
         q = new Query( *addressLookup, this );
-        q->bind( 1, un );
+        q->bind( 1, a->uname() );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
         transaction->enqueue( q );
@@ -147,9 +146,16 @@ void AddressLookup::execute() {
 
         uint id = r->getInt( "id" );
         address->setId( id );
-        Address *a = new Address( address->uname().cstr(),
-                                  address->localpart().cstr(),
-                                  address->domain().cstr() );
+        // get the strings, detach them so we don't accidentally keep
+        // pointers into any large input buffers, and create a
+        // long-lived cache object.
+        UString un( address->uname() );
+        String lp( address->localpart() );
+        String dom( address->domain() );
+        un.detach();
+        lp.detach();
+        dom.detach();
+        Address *a = new Address( un, lp, dom );
         a->setId( id );
 
         String s( a->toString() );

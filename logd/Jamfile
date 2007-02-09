@@ -6,5 +6,5 @@ HDRS += [ FDirName $(TOP) logd ] ;
 
 Build logd : logserver.cpp selflogger.cpp ;
 Build logdmain : logd.cpp ;
-Server logd : logdmain logd server database core ;
+Server logd : logdmain logd server database core encodings ;
 

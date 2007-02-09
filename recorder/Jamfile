@@ -5,5 +5,5 @@ SubInclude TOP server ;
 Build recorder : recorder.cpp ;
 
 # we put this in the INSTALLDIR/sbin directory
-Server recorder : recorder server database core ;
+Server recorder : recorder server database core encodings ;
 

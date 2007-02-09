@@ -17,7 +17,7 @@ public:
     AddressData(): id( 0 ), type( Address::Invalid ) {}
 
     uint id;
-    String name;
+    UString name;
     String localpart;
     String domain;
     Address::Type type;
@@ -82,7 +82,6 @@ public:
 Address::Address()
     : d( new AddressData )
 {
-    d->id = 0;
 }
 
 
@@ -90,10 +89,32 @@ Address::Address()
     is \a l and whose domain is \a o.
 */
 
+Address::Address( const UString &n, const String &l, const String &o )
+    : d( new AddressData )
+{
+    init( n, l, o );
+}
+
+
+/*! Constructs an address whose display-name is \a n (which must be
+    in ASCII), whose localpart is \a l and whose domain is \a o.
+*/
+
 Address::Address( const String &n, const String &l, const String &o )
     : d( new AddressData )
 {
-    d->id = 0;
+    AsciiCodec a;
+    UString un( a.toUnicode( n ) );
+    if ( !a.valid() )
+        un.truncate();
+    init( un, l, o );
+}
+
+
+/*! This private function contains the shared part of the constructors. */
+
+void Address::init( const UString &n, const String &l, const String &o )
+{
     d->name = n;
     d->localpart = l;
     d->domain = o;
@@ -170,7 +191,7 @@ String Address::name() const
 
     uint i = 0;
     while ( i < d->name.length() ) {
-        char c = d->name[i];
+        int c = d->name[i];
 
         // source: 2822 section 3.2.4
         if ( ( c >= 'a' && c <= 'z' ) ||
@@ -197,20 +218,19 @@ String Address::name() const
     }
 
     if ( atom || i == 0 )
-        return d->name;
+        return d->name.ascii();
 
     if ( ascii )
-        return d->name.quoted( '"', '\\' );
+        return d->name.ascii().quoted( '"', '\\' );
 
-    return HeaderField::encodePhrase( d->name );
+    return HeaderField::encodePhrase( d->name.utf8() );
 }
 
 
-/*! Returns a UTF-8 encoded string containing the RFC 2047-decoded
-    name() belonging to this address.
+/*! Returns the canonical name belonging to this address.
 */
 
-String Address::uname() const
+UString Address::uname() const
 {
     return d->name;
 }
@@ -250,7 +270,7 @@ String Address::toString() const
         r = "<>";
         break;
     case EmptyGroup:
-        r = d->name + ":;";
+        r = name() + ":;";
         break;
     case Local:
         // note that this returns the localpart unquoted, no matter
@@ -293,7 +313,7 @@ String Address::toString() const
     there before.
 */
 
-void Address::setName( const String & n )
+void Address::setName( const UString & n )
 {
     d->name = n;
 }
@@ -423,7 +443,7 @@ List<Address> * AddressParser::addresses() const
     \a name is adjusted heuristically.
 */
 
-void AddressParser::add( String name,
+void AddressParser::add( UString name,
                          const String & localpart,
                          const String & domain )
 {
@@ -439,8 +459,8 @@ void AddressParser::add( String name,
     // anti-outlook hackery, step 1: remove extra surrounding quotes
     uint i = 0;
     while ( i < name.length()-1 &&
-            name[i] == name[name.length()-1-i] &&
-            ( name[i] == '\'' || name[i] == '"' ) )
+            ( name[i] == name[name.length()-1-i] &&
+              ( name[i] == '\'' || name[i] == '"' ) ) )
         i++;
     if ( i > 0 )
         name = name.mid( i, name.length() - 2*i );
@@ -448,15 +468,30 @@ void AddressParser::add( String name,
     // for names, we treat all whitespace equally. "a b" == " a   b "
     name = name.simplified();
 
-    // step 2: if the name is the same as the address, kill it.
-    if ( ( name.length() == localpart.length() &&
-           name.lower() == localpart.lower() ) ||
-         ( name.length() == localpart.length()+domain.length()+1 &&
-           name.lower() == localpart.lower()+"@"+domain.lower() ) )
-        name = "";
+    // sometimes a@b (c) is munged as (c) <a@b>, let's unmunge that.
+    if ( name.length() > 1 && name[0] == '(' && name[name.length()-1] == ')' )
+        name = name.mid( 1, name.length() - 2 ).simplified();
+
+    // anti-outlook, step 2: if the name is the same as the address,
+    // just kill it.
+    String an = name.ascii().lower();
+    if ( an == localpart.lower() ||
+         ( an.length() == localpart.length()+1+domain.length() &&
+           an == localpart.lower()+"@"+domain.lower() ) )
+        name.truncate();
 
     Address * a = new Address( name, localpart, domain );
     d->a.prepend( a );
+}
+
+
+/*! This version of add() uses only \a localpart and \a domain. */
+
+void AddressParser::add( const String & localpart,
+                         const String & domain )
+{
+    UString n;
+    add( n, localpart, domain );
 }
 
 
@@ -503,7 +538,7 @@ AddressParser * AddressParser::references( const String & r )
             }
         }
         if ( ok && !dom.isEmpty() && !lp.isEmpty() ) {
-            ap->add( 0, lp, dom );
+            ap->add( lp, dom );
         }
         else {
             i = l;
@@ -537,13 +572,13 @@ void AddressParser::address( int & i )
     }
     else if ( i > 0 && s[i-1] == '<' && s[i] == '>' ) {
         // the address is <>. whether that's legal is another matter.
-        add( "", "", "" );
+        add( "", "" );
         i = i - 2;
     }
     else if ( i > 2 && s[i] == '>' && s[i-1] == ';' && s[i-2] == ':' ) {
         // it's a microsoft-broken '<Unknown-Recipient:;>'
         i = i - 3;
-        String name = phrase( i );
+        UString name = phrase( i );
         add( name, 0, 0 );
         if ( s[i] == '<' )
             i--;
@@ -553,7 +588,7 @@ void AddressParser::address( int & i )
         i--;
         String dom = domain( i );
         String lp;
-        String name;
+        UString name;
         if ( s[i] == '<' ) {
             lp = dom;
             dom = "";
@@ -576,18 +611,19 @@ void AddressParser::address( int & i )
                 // ignoring the display-name.
                 i--;
                 (void)phrase( i );
-                name = "";
+                name.truncate();
             }
-            // if the display-name contains unknown-8bit, we drop the
+            // if the display-name contains unknown-8bit, the
+            // undisplayable marker control characters, we drop the
             // display-name.
-            Utf8Codec u;
-            UString real = u.toUnicode( name );
             uint i = 0;
-            while ( i < real.length() &&
-                    ( real[i] < 0xED80 || real[i] > 0xEDFF ) )
+            while ( i < name.length() &&
+                    ( name[i] < 0xED80 || name[i] > 0xEDFF ) &&
+                    name[i] >= ' ' &&
+                    name[i] != 0xFFFD )
                 i++;
-            if ( i < real.length() )
-                name = "";
+            if ( i < name.length() )
+                name.truncate();
         }
         if ( lp.isEmpty() )
             error( "Empty localpart ", i );
@@ -604,7 +640,7 @@ void AddressParser::address( int & i )
             if ( s[i] == '<' ) {
                 i--;
                 (void)atom( i ); // discard the "supplied" display-name
-                add( "", lp, dom );
+                add( lp, dom );
             }
             else {
                 error( "Expected '<' while in "
@@ -642,14 +678,15 @@ void AddressParser::address( int & i )
         }
         if ( s[i] == ':' ) {
             i--;
-            String name = phrase( i );
+            UString name = phrase( i );
             if ( empty )
                 add( name, 0, 0 );
         }
     }
     else {
         // addr-spec
-        String name = d->lastComment;
+        AsciiCodec a;
+        UString name = a.toUnicode( d->lastComment );
         String dom = domain( i );
         String lp;
         if ( s[i] == '@' ) {
@@ -666,7 +703,7 @@ void AddressParser::address( int & i )
             // To: unlisted-recipients:; (no To-header on input)@zmailer.site
             int j = i;
             i -= 2;
-            String n = phrase( i );
+            UString n = phrase( i );
             if ( n.isEmpty() ) {
                 i = j;
             }
@@ -882,14 +919,17 @@ String AddressParser::atom( int & i )
     string.
 */
 
-String AddressParser::phrase( int & i )
+UString AddressParser::phrase( int & i )
 {
-    String r;
+    UString r;
     comment( i );
     bool done = false;
     bool drop = false;
+    bool enc = false;
     while ( !done && i >= 0 ) {
-        String word;
+        UString word;
+        AsciiCodec ac;
+        bool encw = false;
         if ( i > 0 && d->s[i] == '"' ) {
             // quoted phrase
             int j = i;
@@ -905,60 +945,70 @@ String AddressParser::phrase( int & i )
             }
             if ( i < 0 || d->s[i] != '"' )
                 error( "quoted phrase must begin with '\"'", i );
-            word = d->s.mid( i, j + 1 - i ).unquoted();
+            word = ac.toUnicode(  d->s.mid( i, j + 1 - i ).unquoted() );
             i--;
-            if ( !word.isEmpty() ) {
-                // if word contained unabelled 8-bit, detect and eliminate.
-                uint n = 0;
-                while ( n < word.length() && word[n] < 128 )
-                    n++;
-                if ( word[n] >= 128 )
-                    drop = true;
-            }
         }
         else if ( d->s[i] == '.' ) {
             // obs-phrase allows a single dot as alternative to word.
             // we allow atom "." as an alternative, too, to handle
             // initials.
             i--;
-            word = atom( i );
-            word.append( "." );
+            word = ac.toUnicode( atom( i ) );
+            word.append( '.' );
         }
         else {
             // single word
-            word = atom( i );
+            String a = atom( i );
             // outlook or something close to it seems to occasionally
             // put backslashes into otherwise unquoted names. work
             // around that:
-            uint l = word.length();
+            uint l = a.length();
             while ( l > 0 && i >= 0 && d->s[i] == '\\' ) {
                 i--;
                 String w = atom( i );
                 l = w.length();
-                word = w + word;
+                a = w + a;
             }
-            if ( word.isEmpty() )
+            if ( a.isEmpty() )
                 done = true;
-            if ( word.startsWith( "=?" ) ) {
-                Parser822 p( word );
-                String tmp( p.phrase() );
-                if ( !tmp.isEmpty() )
-                    word = tmp;
+            if ( a.startsWith( "=?" ) ) {
+                Parser822 p( a );
+                String tmp = p.phrase().simplified();
+                if ( tmp.startsWith( "=?" ) ||
+                     tmp.contains( " =?" ) )
+                    drop = true;
+                if ( !tmp.isEmpty() ) {
+                    // XXX fixme: Parser822::phrase() blah.
+                    Utf8Codec u;
+                    word = u.toUnicode( tmp ); // phrase() did fromUnicode()
+                    encw = true;
+                }
+                else {
+                    word = ac.toUnicode( a );
+                }
+            }
+            else {
+                word = ac.toUnicode( a );
             }
         }
         if ( r.isEmpty() ) {
             r = word;
         }
-        else if ( word.endsWith( " " ) ) {
+        else if ( word[word.length()-1] == ' ' ) {
             word.append( r );
             r = word;
         }
         else if ( !word.isEmpty() ) {
-            word.append( " " );
+            if ( !enc || !encw ||
+                 ( word.length() + r.length() < 50 && r[0] <= 'Z' ) )
+                word.append( ' ' );
             word.append( r );
             r = word;
         }
         comment( i );
+        enc = encw;
+        if ( !ac.valid() )
+            drop = true;
     }
     if ( drop )
         r.truncate();
@@ -979,10 +1029,16 @@ String AddressParser::localpart( int & i )
     bool more = true;
     while ( more ) {
         String w;
-        if ( d->s[i] == '"' )
-            w = phrase( i );
-        else
+        if ( d->s[i] == '"' ) {
+            UString u = phrase( i );
+            if ( u.isAscii() )
+                w = u.ascii();
+            else
+                error( "Only ASCII allowed in localparts", i );
+        }
+        else {
             w = atom( i );
+        }
         String t = w;
         t.append( s );
         t.append( r );
@@ -1025,7 +1081,7 @@ static String key( Address * a )
 {
     String t;
 
-    t.append( a->uname() );
+    t.append( a->uname().utf8() );
     t.append( " " );
     t.append( a->localpart() );
     t.append( "@" );

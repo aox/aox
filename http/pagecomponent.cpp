@@ -4,6 +4,7 @@
 
 #include "webpage.h"
 #include "address.h"
+#include "ustring.h"
 
 
 class PageComponentData
@@ -172,7 +173,7 @@ String PageComponent::quoted( const String & s )
 String PageComponent::address( Address * a )
 {
     String s( "<span class=address>" );
-    s.append( quoted( a->uname() ) );
+    s.append( quoted( a->uname().utf8() ) );
     s.append( " &lt;" );
     s.append( quoted( a->localpart() ) );
     s.append( "@" );

@@ -7,11 +7,15 @@
 #include "list.h"
 
 
+class UString;
+
+
 class Address
     : public Garbage
 {
 public:
     Address();
+    Address( const UString &, const String &, const String & );
     Address( const String &, const String &, const String & );
     Address( const Address & );
     ~Address();
@@ -25,7 +29,7 @@ public:
     void setId( uint );
 
     String name() const;
-    String uname() const;
+    UString uname() const;
     String localpart() const;
     String domain() const;
 
@@ -33,7 +37,7 @@ public:
 
     bool valid() const { return type() != Invalid; }
 
-    void setName( const String & );
+    void setName( const UString & );
 
     static void uniquify( List<Address> * );
 
@@ -44,7 +48,7 @@ public:
 private:
     class AddressData * d;
 
-    void init( const String &, const String &, const String & );
+    void init( const UString &, const String &, const String & );
 };
 
 
@@ -66,7 +70,7 @@ private:
     void comment( int & );
     void ccontent( int & );
     String domain( int & );
-    String phrase( int & );
+    UString phrase( int & );
     String localpart( int & );
     String atom( int & );
     static String unqp( const String & );
@@ -74,7 +78,8 @@ private:
 
     void error( const char *, int );
 
-    void add( String, const String &, const String & );
+    void add( UString, const String &, const String & );
+    void add( const String &, const String & );
 
     class AddressParserData * d;
 };

@@ -960,7 +960,7 @@ static String hf( Header * f, HeaderField::Type t )
             r.append( " NIL)(NIL NIL NIL NIL" );
         } else if ( it->type() == Address::Local ||
                     it->type() == Address::Normal ) {
-            r.append( Command::imapQuoted( HeaderField::encodePhrase( it->uname() ),
+            r.append( Command::imapQuoted( HeaderField::encodePhrase( it->uname().utf8() ),
                                            Command::NString ) );
             r.append( " NIL " );
             r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
