@@ -205,6 +205,13 @@ bool ManageSieveCommand::authenticate()
 {
     if ( !d->m ) {
         String t = string().lower();
+        whitespace();
+        String r = string();
+        end();
+
+        if ( !d->no.isEmpty() )
+            return true;
+
         d->m = SaslMechanism::create( t, this, d->sieve->hasTls() );
         if ( !d->m ) {
             no( "SASL mechanism " + t + " not supported" );
@@ -212,9 +219,6 @@ bool ManageSieveCommand::authenticate()
         }
         d->sieve->setReader( this );
 
-        whitespace();
-
-        String r = string();
         if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
             if ( !r.isEmpty() ) {
                 d->m->readResponse( r.de64() );
@@ -225,10 +229,6 @@ bool ManageSieveCommand::authenticate()
                 d->m->setState( SaslMechanism::IssuingChallenge );
             }
         }
-
-        end();
-        if ( !d->no.isEmpty() )
-            return true;
     }
 
     // This code is essentially a mangled copy of imapd/handlers/authenticate.
