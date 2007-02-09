@@ -615,6 +615,42 @@ void Header::repair( Multipart * p )
         i++;
     }
 
+    // If there are several content-type fields, and they agree except
+    // that one has options and the others not, remove the option-less
+    // ones.
+
+    if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
+        ContentType * ct = contentType();
+        ContentType * other = ct;
+        ContentType * good = 0;
+        uint n = 0;
+        bool bad = false;
+        while ( other && !bad ) {
+            if ( other->parameter( "charset" ).lower() == "us-ascii" )
+                // XXX: wrong place for this code
+                other->removeParameter( "charset" );
+            if ( other->type() != ct->type() ||
+                 other->subtype() != ct->subtype() ) {
+                bad = true;
+            }
+            else if ( !other->parameters()->isEmpty() ) {
+                if ( good )
+                    bad = true;
+                good = other;
+            }
+            other = (ContentType *)field( HeaderField::ContentType, ++n );
+        }
+        if ( good && !bad ) {
+            List<HeaderField>::Iterator it( d->fields );
+            while ( it ) {
+                if ( it->type() == HeaderField::ContentType && it != good )
+                    d->fields.take( it );
+                else
+                    ++it;
+            }
+        }
+    }
+
     // We retain only the first valid Date field, Return-Path,
     // Message-Id, References and Content-Type fields. If there is one
     // or more valid such field, we delete all invalid fields and
@@ -772,42 +808,6 @@ void Header::repair( Multipart * p )
             add( "From", a->first()->toString() );
     }
     
-    // If there are several content-type fields, and they agree except
-    // that one has options and the others not, remove the option-less
-    // ones.
-
-    if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
-        ContentType * ct = contentType();
-        ContentType * other = ct;
-        ContentType * good = 0;
-        uint n = 0;
-        bool bad = false;
-        while ( other && !bad ) {
-            if ( other->parameter( "charset" ).lower() == "us-ascii" )
-                // XXX: wrong place for this code
-                other->removeParameter( "charset" );
-            if ( other->type() != ct->type() ||
-                 other->subtype() != ct->subtype() ) {
-                bad = true;
-            }
-            else if ( !other->parameters()->isEmpty() ) {
-                if ( good )
-                    bad = true;
-                good = other;
-            }
-            other = (ContentType *)field( HeaderField::ContentType, ++n );
-        }
-        if ( good && !bad ) {
-            List<HeaderField>::Iterator it( d->fields );
-            while ( it ) {
-                if ( it->type() == HeaderField::ContentType && it != good )
-                    d->fields.take( it );
-                else
-                    ++it;
-            }
-        }
-    }
-
     // If there is an unacceptable Received field somewhere, remove it
     // and all the older Received fields.
 
