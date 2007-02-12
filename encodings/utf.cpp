@@ -117,7 +117,7 @@ UString Utf8Codec::toUnicode( const String & s )
 {
     UString u;
     uint i = 0;
-    while ( valid() && i < s.length() ) {
+    while ( i < s.length() ) {
         int c = 0;
         if ( s[i] < 0x80 ) {
             // 0000 0000-0000 007F   0xxxxxxx
@@ -163,7 +163,8 @@ UString Utf8Codec::toUnicode( const String & s )
         }
         else {
             recordError( i, s );
-            return u;
+            c = 0xFFFD;
+            i++;
         }
         u.append( c );
     }
