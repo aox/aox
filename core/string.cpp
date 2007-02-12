@@ -1666,7 +1666,7 @@ String String::anonymised() const
 String String::crlf() const
 {
     bool copy = true;
-    if ( d->len < 2 ||
+    if ( length() < 2 ||
          d->str[d->len-1] != 10 ||
          d->str[d->len-2] != 13 )
         copy = false;
