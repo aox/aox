@@ -94,7 +94,7 @@ public:
           uidHelper( 0 ), bidHelper( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 ),
-          remoteRecipients( 0 ), sender( 0 )
+          remoteRecipients( 0 ), sender( 0 ), wrapped( false )
     {}
 
     Injector::State state;
@@ -136,6 +136,8 @@ public:
 
     List<Flag> flags;
     List<Annotation> annotations;
+
+    bool wrapped;
 };
 
 
@@ -332,6 +334,17 @@ void Injector::setDeliveryAddresses( List<Address> * addresses )
 void Injector::setSender( Address * sender )
 {
     d->sender = sender;
+}
+
+
+/*! Informs the Injector that this message is wrapped around one that
+    could not be parsed; and that it should therefore insert the right
+    entry into unparsed_messages for the original.
+*/
+
+void Injector::setWrapped()
+{
+    d->wrapped = true;
 }
 
 
@@ -555,6 +568,7 @@ void Injector::execute()
             ++i;
         }
         linkAnnotations();
+        handleWrapping();
         d->state = LinkingAddresses;
     }
 
@@ -1336,6 +1350,34 @@ void Injector::linkAnnotations()
             ++m;
         }
         ++it;
+    }
+}
+
+
+/*! If setWrapped() has been called, this function inserts a single row
+    into the unparsed_messages table, referencing the second bodypart.
+*/
+
+void Injector::handleWrapping()
+{
+    if ( !d->wrapped )
+        return;
+
+    List< ObjectId >::Iterator bi( d->bodyparts );
+    while ( bi ) {
+        uint bid = bi->id;
+        Bodypart *b = bi->bodypart;
+        String pn = d->message->partNumber( b );
+
+        if ( pn == "2" ) {
+            Query * q = new Query( "insert into unparsed_messages (bodypart) "
+                                   "values ($1)", this );
+            q->bind( 1, bid );
+            d->transaction->enqueue( q );
+            break;
+        }
+
+        ++bi;
     }
 }
 

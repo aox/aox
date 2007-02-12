@@ -152,6 +152,7 @@ void SmtpData::execute()
 
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
+        bool wrapped = false;
         server()->sieve()->setMessage( message( server()->body() ) );
         if ( d->message->error().isEmpty() ) {
             // the common case: all ok
@@ -175,11 +176,15 @@ void SmtpData::execute()
             d->ok = "Worked around: " + d->message->error();
             // the next line means that what we store is the wrapper
             d->message = m;
+            wrapped = true;
             // the next line means that what we sieve is the wrapper
             server()->sieve()->setMessage( m );
         }
         server()->sieve()->evaluate();
         d->injector = new Injector( d->message, this );
+
+        if ( wrapped )
+            d->injector->setWrapped();
 
         SortedList<Mailbox> * l = new SortedList<Mailbox>;
         List<Mailbox>::Iterator i( server()->sieve()->mailboxes() );

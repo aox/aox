@@ -38,6 +38,7 @@ public:
     void setAnnotations( const List<Annotation> * );
     void setDeliveryAddresses( List<Address> * );
     void setSender( Address * );
+    void setWrapped();
 
     bool done() const;
     bool failed() const;
@@ -75,6 +76,7 @@ private:
     void createAnnotationNames();
     void linkFlags();
     void linkAnnotations();
+    void handleWrapping();
     void logMessageDetails();
 
     uint internalDate( Message * ) const;
