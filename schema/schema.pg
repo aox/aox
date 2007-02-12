@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (37);
+insert into mailstore (revision) values (38);
 
 
 -- One entry for each unique address we've encountered.
