@@ -293,7 +293,8 @@ void ContentType::parse( const String &s )
     if ( valid() && t == "multipart" && parameter( "boundary" ).isEmpty() )
         setError( "Multipart entities must have a boundary parameter." );
 
-    if ( valid() && !p.atEnd() && parameter( "charset" ).isEmpty() &&
+    if ( valid() && !p.atEnd() &&
+         t == "text" && parameter( "charset" ).isEmpty() &&
          s.mid( p.index() ).lower().contains( "charset" ) )
         setError( "Parse error at position " + fn( p.index() ) +
                   ", before charset" );
