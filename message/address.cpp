@@ -111,7 +111,10 @@ Address::Address( const String &n, const String &l, const String &o )
 }
 
 
-/*! This private function contains the shared part of the constructors. */
+/*! This private function contains the shared part of the constructors,
+    initialising the object with the display-name \a n, localpart \a l,
+    and domain \a o and an appropriate type().
+*/
 
 void Address::init( const UString &n, const String &l, const String &o )
 {
