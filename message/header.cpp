@@ -9,6 +9,7 @@
 #include "multipart.h"
 #include "address.h"
 #include "ustring.h"
+#include "parser.h"
 #include "codec.h"
 #include "date.h"
 #include "utf.h"
@@ -930,20 +931,21 @@ void Header::fix8BitFields( class Codec * c )
             if ( i < v.length() ) {
                 c->setState( Codec::Valid );
                 UString u = c->toUnicode( v );
-                if ( c->wellformed() ) {
-                    String s( utf8.fromUnicode( u ) );
-                    f->setData( s );
-                }
-                else if ( f->type() == HeaderField::Other ) {
+                bool ok = false;
+                if ( c->wellformed() )
+                    ok = true;
+                else if ( f->type() == HeaderField::Other )
                     d->fields.remove( f );
-                }
-                else if ( f->type() == HeaderField::Subject ) {
-                    String s( utf8.fromUnicode( u ) );
-                    f->setData( s );
-                }
-                else if ( f->error().isEmpty() ) {
+                else if ( f->type() == HeaderField::Subject )
+                    ok = true;
+                else if ( f->error().isEmpty() )
                     f->setError( "Cannot parse either as US-ASCII or " +
                                  c->name() );
+                if ( ok ) {
+                    String s = utf8.fromUnicode( u );
+                    s = HeaderField::encodeText( s );
+                    Parser822 p( s );
+                    f->setData( p.text() );
                 }
             }
         }
