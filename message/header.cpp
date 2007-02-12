@@ -379,7 +379,7 @@ static struct {
     { HeaderField::From, 1, 1, Header::Rfc2822 },
     { HeaderField::Date, 1, 1, Header::Rfc2822 },
     { HeaderField::MimeVersion, 0, 1, Header::Rfc2822 },
-    { HeaderField::MimeVersion, 0, 0, Header::Mime },
+    { HeaderField::MimeVersion, 0, 1, Header::Mime },
     { HeaderField::ContentType, 0, 1, Header::Rfc2822 },
     { HeaderField::ContentType, 0, 1, Header::Mime },
     { HeaderField::ContentTransferEncoding, 0, 1, Header::Rfc2822 },
@@ -488,6 +488,29 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 
 void Header::simplify()
 {
+    // we generally don't want to remove illegal fields. it often
+    // corrupts the intended meaning of the message.
+    List<HeaderField>::Iterator it( d->fields );
+    while ( it ) {
+        if ( !it->valid() &&
+             // list all fields that we don't remove if bad.
+             ( it->type() == HeaderField::ContentDescription ||
+               it->type() == HeaderField::ContentTransferEncoding ||
+               it->type() == HeaderField::ContentDisposition ||
+               it->type() == HeaderField::ContentType ||
+               it->type() == HeaderField::MessageId ||
+               it->type() == HeaderField::ReplyTo ||
+               it->type() == HeaderField::Sender ||
+               it->type() == HeaderField::From ||
+               it->type() == HeaderField::ReturnPath ||
+               it->type() == HeaderField::To ||
+               it->type() == HeaderField::Cc ||
+               it->type() == HeaderField::Bcc ||
+               it->type() == HeaderField::ReplyTo ) )
+            return;
+        ++it;
+    }
+
     HeaderField *cde = field( HeaderField::ContentDescription );
     if ( cde && cde->value().isEmpty() ) {
         removeField( HeaderField::ContentDescription );
