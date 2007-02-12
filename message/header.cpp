@@ -488,28 +488,8 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 
 void Header::simplify()
 {
-    // we generally don't want to remove illegal fields. it often
-    // corrupts the intended meaning of the message.
-    List<HeaderField>::Iterator it( d->fields );
-    while ( it ) {
-        if ( !it->valid() &&
-             // list all fields that we don't remove if bad.
-             ( it->type() == HeaderField::ContentDescription ||
-               it->type() == HeaderField::ContentTransferEncoding ||
-               it->type() == HeaderField::ContentDisposition ||
-               it->type() == HeaderField::ContentType ||
-               it->type() == HeaderField::MessageId ||
-               it->type() == HeaderField::ReplyTo ||
-               it->type() == HeaderField::Sender ||
-               it->type() == HeaderField::From ||
-               it->type() == HeaderField::ReturnPath ||
-               it->type() == HeaderField::To ||
-               it->type() == HeaderField::Cc ||
-               it->type() == HeaderField::Bcc ||
-               it->type() == HeaderField::ReplyTo ) )
-            return;
-        ++it;
-    }
+    if ( !valid() )
+        return;
 
     HeaderField *cde = field( HeaderField::ContentDescription );
     if ( cde && cde->value().isEmpty() ) {
@@ -676,9 +656,13 @@ void Header::repair( Multipart * p )
 
     // We retain only the first valid Date field, Return-Path,
     // Message-Id, References and Content-Type fields. If there is one
-    // or more valid such field, we delete all invalid fields and
-    // subsequent valid fields, otherwise we leave the fields as they
-    // are.
+    // or more valid such field, we delete all invalid fields,
+    // otherwise we leave the fields as they are.
+
+    // For most of these, we also delete subsequent valid fields. For
+    // Content-Type we only delete invalid fields, since there isn't
+    // any strong reason to believe that the one we would keep enables
+    // correct interpretation of the body.
 
     // Several senders appear to send duplicate dates. qmail is
     // mentioned in the references chains of most examples we have.
@@ -706,9 +690,13 @@ void Header::repair( Multipart * p )
                 ++it;
             }
             if ( firstValid ) {
+                bool alsoValid = true;
+                if ( i == HeaderField::ContentType )
+                    alsoValid = false;
                 List< HeaderField >::Iterator it( d->fields );
                 while ( it ) {
-                    if ( it->type() == i && it != firstValid )
+                    if ( it->type() == i && it != firstValid &&
+                         ( alsoValid || !it->valid() ) )
                         d->fields.take( it );
                     else
                         ++it;
@@ -920,6 +908,8 @@ void Header::appendField( String &r, HeaderField *hf ) const
 
 void Header::fix8BitFields( class Codec * c )
 {
+    d->verified = false;
+
     Utf8Codec utf8;
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
@@ -951,9 +941,9 @@ void Header::fix8BitFields( class Codec * c )
                     String s( utf8.fromUnicode( u ) );
                     f->setData( s );
                 }
-                else if ( d->error.isEmpty() ) {
-                    d->error = "Cannot parse header field " + f->name() +
-                               " either as US-ASCII or " + c->name();
+                else if ( f->error().isEmpty() ) {
+                    f->setError( "Cannot parse either as US-ASCII or " +
+                                 c->name() );
                 }
             }
         }

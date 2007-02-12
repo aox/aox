@@ -104,9 +104,8 @@ Message::Message( const String & rfc2822, Multipart * p )
         children()->append( bp );
     }
 
-    header()->simplify();
-
     fix8BitHeaderFields();
+    header()->simplify();
 
     String e = d->error;
     recomputeError();
