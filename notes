@@ -44,10 +44,25 @@ Items for web site
   - Client-specific pages
 
 
-1.16: 2007-02-19
+1.17: 2007-03-26
 
-  Deliver submitted mail to a smarthost. We've done most of the hard
-  work, we just need to complete it.
+  Webmail. Preferably including sending mail.
+
+  Web archive use.
+
+  Archive search.
+
+  Setting up and editing views.
+
+  Searching in own mail while logged in.
+
+
+What we never did and may never to
+
+  This sounds like the last 1.x release before 2.0.
+
+  (I moved stuff here from earlier releases so this is now hopelessly
+  ambitious --Arnt)
 
   Sieve + Managesieve.
 
@@ -58,17 +73,8 @@ Items for web site
   Some bugfixes, perhaps tih's 30-item list, jason grossman's GC
   slowness, etc.
 
-
-1.17: 2007-03-26
-
-  This sounds like the last 1.x release before 2.0.
-
-  (I moved stuff here from earlier releases so this is now hopelessly
-  ambitious --Arnt)
-
   Webmail + web archiving.
 
-  Sieve extensions: Vacation and maybe something more.
   Memory use improvements
 
   Message retention policy
