@@ -103,15 +103,23 @@ int main( int argc, char *argv[] )
         exit( -1 );
     }
 
-    File message( filename );
-    if ( !message.valid() ) {
-        fprintf( stderr, "Unable to open message file %s\n", filename.cstr() );
-        exit( -1 );
+    String contents;
+    if ( filename.isEmpty() ) {
+        char s[128];
+        while ( fgets( s, 128, stdin ) != 0 )
+            contents.append( s );
+    }
+    else {
+        File message( filename );
+        if ( !message.valid() ) {
+            fprintf( stderr, "Unable to open message file %s\n",
+                     filename.cstr() );
+            exit( -1 );
+        }
+        contents = message.contents();
     }
 
     Configuration::setup( "archiveopteryx.conf" );
-
-    String contents = message.contents();
 
     if ( sender.isEmpty() &&
          ( contents.startsWith( "From " ) ||
