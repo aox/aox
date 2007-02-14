@@ -703,6 +703,22 @@ void AddressParser::address( int & i )
                 add( name, 0, 0 );
         }
     }
+    else if ( s[i] == '"' && s.mid( 0, i ).contains( "%\"" ) ) {
+        // quite likely we're looking at x%"y@z", as once used on vms
+        int x = i;
+        x--;
+        String dom = domain( x );
+        if ( x > 0 && s[x] == '@' ) {
+            x--;
+            String lp = localpart( x );
+            if ( x > 2 && s[x] == '"' && s[x-1] == '%' ) {
+                x = x - 2;
+                (void)domain( x );
+                add( lp, dom );
+                i = x;
+            }
+        }
+    }
     else {
         // addr-spec
         AsciiCodec a;
