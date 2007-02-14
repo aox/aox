@@ -586,6 +586,23 @@ void AddressParser::address( int & i )
         if ( s[i] == '<' )
             i--;
     }
+    else if ( i > 2 && s[i] == '>' && s[i-1] == ';' &&
+              s.mid( 0, i ).contains( ":@" ) < i ) {
+        // it may be a sendmail-broken '<Unknown-Recipient:@x.y;>'
+        uint x = i;
+        i = i - 2;
+        (void)domain( i );
+        if ( i > 1 && s[i] == '@' && s[i-1] == ':' ) {
+            i = i - 2;
+            UString name = phrase( i );
+            add( name, 0, 0 );
+            if ( i >= 0 && s[i] == '<' )
+                i--;
+        }
+        else {
+            i = x;
+        }
+    }
     else if ( s[i] == '>' ) {
         // name-addr
         i--;
@@ -608,10 +625,10 @@ void AddressParser::address( int & i )
         if ( i >= 0 && s[i] == '<' ) {
             i--;
             name = phrase( i );
-            while ( i >= 0 && ( s[i] > 127 || s[i] == '@' ) ) {
+            while ( i >= 0 && ( s[i] > 127 || s[i] == '@' || s[i] == '<' ) ) {
                 // we're looking at an unencoded 8-bit name, or at
-                // 'lp@domain<lp@domain>'. we react to that by
-                // ignoring the display-name.
+                // 'lp@domain<lp@domain>', or at 'x<y<z@domain>'. we
+                // react to that by ignoring the display-name.
                 i--;
                 (void)phrase( i );
                 name.truncate();
@@ -690,6 +707,8 @@ void AddressParser::address( int & i )
         // addr-spec
         AsciiCodec a;
         UString name = a.toUnicode( d->lastComment );
+        if ( !a.wellformed() || d->lastComment.contains( "=?" ) )
+            name.truncate();
         String dom = domain( i );
         String lp;
         if ( s[i] == '@' ) {
