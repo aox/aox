@@ -360,7 +360,8 @@ void MessageAddressFetcher::decode( Message * m, Row * r )
         h->add( f );
         l.append( f );
     }
-    Address * a = new Address( r->getString( "name" ),
+    Utf8Codec u;
+    Address * a = new Address( u.toUnicode( r->getString( "name" ) ),
                                r->getString( "localpart" ),
                                r->getString( "domain" ) );
     f->addresses()->append( a );
