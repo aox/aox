@@ -416,19 +416,19 @@ void Date::setRfc822( const String & s )
         return;
     p.character();
 
-    a = p.string();
-    d->minute = a.number( &ok );
-    if ( !ok || d->minute > 59 )
+    d->minute = p.number();
+    if ( p.hasError() || d->minute > 59 )
         return;
 
     p.comment();
     if ( p.next() == ':' || p.next() == '.' ) {
         p.character();
 
-        a = p.string();
-        d->second = a.number( &ok );
-        if ( !ok || d->second > 60 )
+        d->second = p.number();
+        if ( p.hasError() || d->second > 60 )
             return;
+        if ( p.next() == '-' )
+            p.step();
     }
 
     // timezone: +0530. we're stricter than the rfc: we demand that

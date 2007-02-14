@@ -33,6 +33,7 @@ public:
     String atom();
     String mimeToken();
     String mimeValue();
+    uint number();
 
     enum EncodedText { Text, Comment, Phrase };
     String encodedWord( EncodedText = Text );

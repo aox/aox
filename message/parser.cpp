@@ -643,3 +643,25 @@ int Parser822::cfws()
 
     return n;
 }
+
+
+/*! Skips past whitespace, parses a decimal number and returns that
+    number.
+*/
+
+uint Parser822::number()
+{
+    comment();
+    uint b = i;
+    while ( i < s.length() && s[i] >= '0' && s[i] <= '9' )
+        i++;
+    if ( i == b )
+        error( "expected decimal number" );
+    bool ok = false;
+    uint n = s.mid( b, i-b ).number( &ok );
+    if ( !ok ) {
+        String e = "number " + s.mid( b, i-b ) + " is bad somehow";
+        error( e.cstr() );
+    }
+    return n;
+}
