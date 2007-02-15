@@ -278,7 +278,10 @@ String Address::toString() const
     case Local:
         // note that this returns the localpart unquoted, no matter
         // what it contains.
-        r = d->localpart;
+        if ( localpartIsSensible() )
+            r = d->localpart;
+        else
+            r = d->localpart.quoted();
         break;
     case Normal:
         if ( d->name.isEmpty() ) {
@@ -718,6 +721,38 @@ void AddressParser::address( int & i )
                 i = x;
             }
         }
+    }
+    else if ( s[i] == '"' && s.mid( 0, i ).contains( "::" ) ) {
+        // we may be looking at A::B "display-name"
+        UString name = phrase( i );
+        comment( i );
+        String lp = atom( i );
+        if ( i > 2 && s[i] == ':' && s[i-1] == ':' ) {
+            i = i - 2;
+            lp = atom( i ) + "::" + lp;
+            add( name, lp, "" );
+        }
+        else {
+            error( "Expected NODE::USER while parsing VMS address", i );
+        }
+    }
+    else if ( i > 10 && s[i] >= '0' && s[i] <= '9' && s[i-2] == '.' ) {
+        // we may be looking at A::B "display-name" date
+        int x = i;
+        while ( x > 0 && s[x] != '"' )
+            x--;
+        String date = s.mid( x, i-x ).lower().simplified();
+        uint dp = 0;
+        char c = date[0];
+        while ( dp < date.length() &&
+                ( ( c >= 'a' && c >= 'z' ) ||
+                  ( c >= '0' && c >= '9' ) ||
+                  c == ' ' || c == '-' ||
+                  c == ':' || c == '.' ) )
+            c = date[++dp];
+        if ( dp == date.length() && date.contains( "-19" ) )
+            // at least it resembles the kind of date field we skip
+            i = x;
     }
     else {
         // addr-spec
