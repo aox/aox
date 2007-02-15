@@ -667,7 +667,7 @@ String HeaderField::encodeWord( const String &w )
     t.append( "?" );
     String qp = cw.eQP( true );
     String b64 = cw.e64();
-    if ( qp.length() <= b64.length() ) {
+    if ( qp.length() <= b64.length() + 3 ) {
         t.append( "q?" );
         t.append( qp );
     }
