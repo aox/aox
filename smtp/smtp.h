@@ -16,7 +16,9 @@ class SMTP
     : public Connection 
 {
 public:
-    SMTP( int s );
+    enum Dialect{ Smtp, Lmtp, Submit };
+
+    SMTP( int s, Dialect=Smtp );
 
     void react( Event e );
 
@@ -28,8 +30,6 @@ public:
     InputState inputState() const;
     void setInputState( InputState );
 
-    enum Dialect{ Smtp, Lmtp, Submit };
-    void setDialect( Dialect );
     Dialect dialect() const;
 
     void setHeloName( const String & );

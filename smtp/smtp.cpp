@@ -79,12 +79,23 @@ public:
     This subclass of SMTP implements SMTP submission (RFC 4409).
 */
 
-/*!  Constructs an (E)SMTP server for socket \a s. */
+/*!  Constructs an (E)SMTP server for socket \a s, speaking \a dialect. */
 
-SMTP::SMTP( int s )
+SMTP::SMTP( int s, Dialect dialect )
     : Connection( s, Connection::SmtpServer ), d( new SMTPData )
 {
-    enqueue( "220 ESMTP + LMTP " );
+    d->dialect = dialect;
+    switch( dialect ) {
+    case Smtp:
+        enqueue( "220 ESMTP " );
+        break;
+    case Lmtp:
+        enqueue( "220 LMTP " );
+        break;
+    case Submit:
+        enqueue( "220 SMTP Submission " );
+        break;
+    }
     enqueue( Configuration::hostname() );
     enqueue( "\r\n" );
     setTimeoutAfter( 1800 );
@@ -96,18 +107,16 @@ SMTP::SMTP( int s )
 /*! Constructs an LMTP server of socket \a s. */
 
 LMTP::LMTP( int s )
-    : SMTP( s )
+    : SMTP( s, SMTP::Lmtp )
 {
-    setDialect( Lmtp );
 }
 
 
 /*!  Constructs a SMTP/submit server (see RFC 4409) for socket \a s. */
 
 SMTPSubmit::SMTPSubmit( int s )
-    : SMTP( s )
+    : SMTP( s, SMTP::Lmtp )
 {
-    setDialect( Submit );
 }
 
 
@@ -220,14 +229,6 @@ void SMTP::execute()
 
     // allow execute() to be called again
     d->executing = false;
-}
-
-
-/*! Records that this server servers the specified \a dialect of SMTP. */
-
-void SMTP::setDialect( Dialect dialect )
-{
-    d->dialect = dialect;
 }
 
 
