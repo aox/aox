@@ -13,7 +13,7 @@ is an internal server which receives, buffers and filters log entries
 from other parts of Archiveopteryx, so that useful messages are logged, while
 noise is suppressed.
 .PP
-Archiveopteryx's log system uses transactions and four log levels:
+Archiveopteryx's log system uses four log levels:
 .IR Disaster ,
 .IR Error ,
 .I Info
@@ -21,22 +21,14 @@ and
 .IR Debug .
 Each program in Archiveopteryx sends its log messages to
 .BR logd ,
-which stores them in RAM until a transaction ends.
+which writes them to a logfile.
 .PP
 If a message is logged with severity
 .IR log-level
 (set to
 .I Info
-by default) or greater, it is immediately written to the log file. If
-the severity is
-.IR Error
-or greater, all preceding messages of lower severity are also logged.
-Otherwise, when a transaction ends, 
-.I Debug
-output is suppressed.
-.PP
-If a process dies unexpectedly, all of its open transactions are
-logged as if a disaster happened.
+by default) or greater, it is immediately written to the log file. All
+messages of lower severity are discarded.
 .PP
 If
 .B logd

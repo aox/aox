@@ -149,10 +149,7 @@ in increasing order of severity (it is
 .I info
 by default). If a message is logged with this severity or above, the log
 server writes it to the logfile immediately. Messages with lower severity
-are considered only when the transaction is commited, or when a message
-is logged with a severity of
-.I error 
-or greater.
+are discarded.
 .SS Security
 .IP security
 is
