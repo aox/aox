@@ -17,13 +17,14 @@ public:
     SmtpClientData()
         : done( false ),
           failed( false ), permanent( false ),
-          connected( false ), owner( 0 )
+          connected( false ), lmtp( false ), owner( 0 )
     {}
 
     bool done;
     bool failed;
     bool permanent;
     bool connected;
+    bool lmtp;
 
     String sent;
     String error;
@@ -74,6 +75,7 @@ SmtpClient::SmtpClient( const String &sender,
     connect( e );
     EventLoop::global()->addConnection( this );
     setTimeoutAfter( 10 ); // ### not RFC-compliant
+    log( "Connecting to " + e.string() );
 }
 
 /*!  Constructs an SMTP client which connects to \a smarthost and
@@ -198,8 +200,17 @@ void SmtpClient::parse()
         else {
             if ( (*s)[0] == '2' ) {
                 ok = true;
-                if ( d->sent == "body" && d->owner )
+                if ( d->sent == "body" && d->owner ) {
                     d->owner->execute();
+                }
+                else if ( d->sent.isEmpty() && peer().port() != 25 ) {
+                    // try to autodetect LMTP
+                    String banner = " " + s->simplified().lower() + " ";
+                    if ( banner.contains( " lmtp " ) )
+                        d->lmtp = true;
+                    // should we also require that it does not contain
+                    // SMTP/ESMTP?
+                }
                 sendCommand();
             }
         }
@@ -221,7 +232,7 @@ void SmtpClient::sendCommand()
     String send;
     switch ( d->sent[0] ) {
     case '\0':
-        if ( peer().port() != 25 )
+        if ( d->lmtp )
             send = "lhlo";
         else
             send = "ehlo";
