@@ -115,7 +115,7 @@ LMTP::LMTP( int s )
 /*!  Constructs a SMTP/submit server (see RFC 4409) for socket \a s. */
 
 SMTPSubmit::SMTPSubmit( int s )
-    : SMTP( s, SMTP::Lmtp )
+    : SMTP( s, SMTP::Submit )
 {
 }
 
