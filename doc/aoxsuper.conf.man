@@ -54,8 +54,8 @@ The database password used for the
 .IR db-owner .
 The default is an empty string.
 .IP
-Unless a password is specified, Archiveopteryx sets up a randomly-chosen
-password and writes it to the configuration file during installation.
+Unless a password is specified, the Archiveopteryx installer sets up a
+randomly-chosen password and writes it to the configuration file.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
