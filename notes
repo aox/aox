@@ -46,15 +46,17 @@ Items for web site
 
 1.17: 2007-03-26
 
-  Webmail. Preferably including sending mail.
+  In order of importance:
 
-  Web archive use.
+  1. Web archive use.
+  2. Archive search.
+  3. Setting up (and editing?) views.
+  4. Searching in own mail while logged in.
+  5. aox reparse.
+  6. Webmail. Preferably including sending mail.
 
-  Archive search.
-
-  Setting up and editing views.
-
-  Searching in own mail while logged in.
+  Also sieve bugfixes and updating SessionInitialiser to check the
+  modseq first and avoid sending queries when nothing has changed.
 
 
 What we never did and may never to
