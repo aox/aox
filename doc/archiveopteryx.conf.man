@@ -442,12 +442,31 @@ The default value is empty.
 is the common prefix for all URLs offering authenticated webmail access
 to mailboxes via the web. The default value is
 .IR /webmail .
+.IP webmail-css-url
+points to the style sheet used for webmail and archive pages.
+The default value is
+.IR http://www.archiveopteryx.org/webmail/default.css .
+By using a different URL you can change the appearance of the pages
+completely.
+.IP webmail-js-url
+points to a javascript which will be included in all webmail and
+archive pages. The default is an empty string, which means to not
+include any external javascript. This can be used together with
+.I webmail-css-url
+to change the behaviour of the webmail and archive pages.
+.IP favicon-url
+is the URL of the favicon displayed for your site by many web browsers.
+The default value is
+.IR http://www.archiveopteryx.org/favicon.ico ,
+but you can change it to anything. When the browser requests the favicon, 
+.BR archiveopteryx (8)
+responds with a redirect to this URL.
 .SS SIEVE
 .IP use-sieve
 controls whether or not the
 .I managesieve
 server is started. The default is
-.IR disabled .
+.IR enabled .
 .IP managesieve-address
 specifies the address where
 .BR archiveopteryx (8)

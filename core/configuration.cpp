@@ -192,10 +192,10 @@ static struct {
     { "archive-prefix", Configuration::ArchivePrefix, "" },
     { "webmail-prefix", Configuration::WebmailPrefix, "/webmail" },
     { "favicon-url", Configuration::FaviconURL,
-        "http://www.oryx.com/favicon.ico" },
-    { "webmail-css-page", Configuration::WebmailCSS,
-        "http://www.oryx.com/webmail/default.css" },
-    { "webmail-js-page", Configuration::WebmailJS, "" },
+        "http://www.archiveopteryx.org/favicon.ico" },
+    { "webmail-css-url", Configuration::WebmailCSS,
+        "http://www.archiveopteryx.org/webmail/default.css" },
+    { "webmail-js-url", Configuration::WebmailJS, "" },
     { "message-copy", Configuration::MessageCopy, "none" },
     { "message-copy-directory", Configuration::MessageCopyDir, MESSAGEDIR },
     { "entropy-source", Configuration::EntropySource, "/dev/urandom" },
@@ -226,7 +226,7 @@ static struct {
     { "auth-anonymous", Configuration::AuthAnonymous, false },
     { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true },
     { "announce-draft-support", Configuration::AnnounceDraftSupport, false },
-    { "use-sieve", Configuration::UseSieve, false }
+    { "use-sieve", Configuration::UseSieve, true }
 };
 
 
