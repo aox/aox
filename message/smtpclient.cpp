@@ -201,6 +201,7 @@ void SmtpClient::parse()
             if ( (*s)[0] == '2' ) {
                 ok = true;
                 if ( d->sent == "body" && d->owner ) {
+                    d->done = true;
                     d->owner->execute();
                 }
                 else if ( d->sent.isEmpty() && peer().port() != 25 ) {
@@ -254,6 +255,7 @@ void SmtpClient::sendCommand()
         break;
     case 'q':
     default:
+        d->done = true;
         setState( Closing );
         d->owner->execute();
         return;
