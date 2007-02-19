@@ -144,6 +144,7 @@ void Sieve::addRecipient( Address * address, Mailbox * destination,
 {
     SieveData::Recipient * r 
         = new SieveData::Recipient( address, destination, d );
+    d->currentRecipient = r;
     if ( script ) {
         r->script = script;
         List<SieveCommand>::Iterator c( script->topLevelCommands() );

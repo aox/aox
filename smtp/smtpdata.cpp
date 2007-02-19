@@ -205,6 +205,7 @@ void SmtpData::execute()
         if ( !f->isEmpty() ) {
             l->insert( Mailbox::find( "/archiveopteryx/spool" ) );
             d->injector->setDeliveryAddresses( f );
+            d->injector->setSender( server()->sieve()->recipient() );
             d->spooled = true;
         }
 
