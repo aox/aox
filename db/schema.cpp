@@ -1753,7 +1753,10 @@ bool Schema::stepTo35()
     if ( d->substate == 0 ) {
         describeStep( "Adding deliveries.sender." );
         d->q = new Query( "alter table deliveries add sender integer "
-                          "not null references addresses(id)", this );
+                          "references addresses(id)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deliveries alter sender set "
+                          "not null", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
