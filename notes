@@ -988,9 +988,6 @@ DIGEST-MD5 reauth doesn't work for Dave Cridland
   Python stuff installed than I had the patience for.)
 
 
-tlsproxy segfaults on Thomas's box (and it's not -O3).
-
-
 We should cope with Postgres being restarted
 
   But we don't, so we need to test and fix whatever the problems are.
