@@ -10,10 +10,12 @@
 #include "addresscache.h"
 #include "transaction.h"
 #include "eventloop.h"
+#include "injector.h"
 #include "database.h"
 #include "occlient.h"
 #include "address.h"
 #include "mailbox.h"
+#include "message.h"
 #include "schema.h"
 #include "logger.h"
 #include "query.h"
@@ -95,6 +97,7 @@ void anonymise( const String & );
 void help();
 void checkFilePermissions();
 void checkConfigConsistency();
+void reparse();
 
 
 /*! \nodoc */
@@ -235,6 +238,9 @@ int main( int ac, char *av[] )
     else if ( verb == "check" ) {
         checkConfigConsistency();
     }
+    else if ( verb == "reparse" ) {
+        reparse();
+    }
     else {
         if ( verb != "help" )
             args->prepend( new String( verb ) );
@@ -342,7 +348,7 @@ public:
         ListMailboxes, ListUsers, ListAliases, CreateUser, DeleteUser,
         ChangePassword, ChangeUsername, ChangeAddress, CreateMailbox,
         DeleteMailbox, CreateAlias, DeleteAlias, Vacuum,
-        CheckConfigConsistency
+        CheckConfigConsistency, Reparse
     };
 
     List< Query > * chores;
@@ -364,6 +370,8 @@ public:
     CacheLookup * cacheLookup;
     Dict<void> * uniq;
     List<AddressMap> * addressMap;
+    Injector * injector;
+    Row * row;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
@@ -372,7 +380,8 @@ public:
           schema( 0 ), state( 0 ), ids( 0 ), addressCache( 0 ),
           parsers( 0 ), unknownAddresses( 0 ), headerFieldRows( 0 ),
           cacheLookup( 0 ), uniq( new Dict<void>( 1000 ) ),
-          addressMap( new List<AddressMap> )
+          addressMap( new List<AddressMap> ), injector( 0 ),
+          row( 0 )
     {
         Allocator::addEternal( this, "an aox dispatcher" );
     }
@@ -485,6 +494,10 @@ public:
 
         case CheckConfigConsistency:
             checkConfigConsistency();
+            break;
+
+        case Reparse:
+            reparse();
             break;
         }
 
@@ -2884,5 +2897,56 @@ void checkConfigConsistency()
                      "so anonymous authentication will not work. "
                      "You may wish to run\n"
                      "  aox add user anonymous '' email@address.here.\n" );
+    }
+}
+
+
+void reparse()
+{
+    if ( !d ) {
+        end();
+
+        Database::setup( 1, Configuration::DbOwner );
+
+        d = new Dispatcher( Dispatcher::Reparse );
+        d->query = new Query( "select p.mailbox,p.uid,b.id as bodypart,"
+                              "b.text from unparsed_messages u join "
+                              "bodyparts b on (u.bodypart=b.id) join "
+                              "part_numbers p on (p.bodypart=b.id)", d );
+        Mailbox::setup( d );
+        d->query->execute();
+    }
+
+    if ( d->injector ) {
+        if ( !d->injector->done() )
+            return;
+        if ( !d->injector->failed() ) {
+            Query * q =
+                new Query( "insert into deleted_messages "
+                           "(mailbox,uid,deleted_by,reason) "
+                           "values ($1,$2,$3,$4)", d );
+            q->bind( 1, d->row->getInt( "mailbox" ) );
+            q->bind( 2, d->row->getInt( "uid" ) );
+            q->bindNull( 3 ); // XXX: What to do here?
+            q->bind( 4, "reparsed" );
+            q->execute();
+        }
+    }
+
+    while ( d->query->hasResults() ) {
+        Row * r = d->query->nextRow();
+
+        String text( r->getString( "text" ) );
+        Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+        Message * msg = new Message( text );
+        if ( m && msg->valid() ) {
+            d->row = r;
+            d->injector = new Injector( msg, d );
+            SortedList<Mailbox> * l = new SortedList<Mailbox>;
+            l->append( m );
+            d->injector->setMailboxes( l );
+            d->injector->execute();
+            return;
+        }
     }
 }
