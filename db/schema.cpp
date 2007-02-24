@@ -354,6 +354,8 @@ bool Schema::singleStep()
         c = stepTo37(); break;
     case 37:
         c = stepTo38(); break;
+    case 38:
+        c = stepTo39(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1853,6 +1855,31 @@ bool Schema::stepTo38()
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant insert on unparsed_messages "
                           "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add a unique constraint to scripts. */
+
+bool Schema::stepTo39()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding unique constraint to scripts" );
+        d->q =
+            new Query( "alter table scripts add constraint "
+                       "scripts_owner_key unique(owner,name)", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;

@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (38);
+insert into mailstore (revision) values (39);
 
 
 -- One entry for each unique address we've encountered.
@@ -320,7 +320,8 @@ create table scripts (
     owner       integer not null references users(id),
     name        text,
     active      boolean not null default 'f',
-    script      text
+    script      text,
+    unique(owner, name)
 );
 
 
