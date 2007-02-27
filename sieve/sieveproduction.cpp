@@ -733,9 +733,19 @@ void SieveCommand::parse( const String & previous )
                 StringList::Iterator i( a->stringList() );
                 while ( i ) {
                     if ( !Mailbox::validName( *i ) &&
-                         !Mailbox::validName( "/" + *i ) )
+                         !Mailbox::validName( "/" + *i ) ) {
                         a->setError( "Each string must be a mailbox name. "
                                      "This one is not: " + *i );
+                    }
+                    else if ( i->startsWith( "INBOX." ) ) {
+                        // a sieve script which wants to reference a
+                        // mailbox called INBOX.X must use lower case
+                        // (inbox.x).
+                        String aox = i->mid( 6 );
+                        aox = StringList::split( '.', aox )->join( "/" );
+                        a->setError( i->quoted() + " is Cyrus syntax. "
+                                     "Archiveopteryx uses " + aox.quoted() );
+                    }
                     ++i;
                 }
             }
