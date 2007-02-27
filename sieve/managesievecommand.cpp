@@ -3,6 +3,7 @@
 #include "managesievecommand.h"
 
 #include "tls.h"
+#include "dict.h"
 #include "user.h"
 #include "query.h"
 #include "sieve.h"
@@ -10,6 +11,7 @@
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
+#include "occlient.h"
 #include "allocator.h"
 #include "mechanism.h"
 #include "stringlist.h"
@@ -25,7 +27,7 @@ public:
     ManageSieveCommandData()
         : sieve( 0 ), pos( 0 ), done( false ),
           tlsServer( 0 ), m( 0 ), r( 0 ),
-          user( 0 ), t( 0 ), query( 0 )
+          user( 0 ), t( 0 ), query( 0 ), step( 0 )
     {}
 
     ManageSieve * sieve;
@@ -43,6 +45,13 @@ public:
     Transaction * t;
     Query * query;
     String no;
+    String ok;
+    uint step;
+
+    // for putscript. I think we need subclasses here too.
+    Dict<Mailbox> create;
+    String name;
+    String script;
 };
 
 
@@ -155,11 +164,19 @@ void ManageSieveCommand::execute()
 
     d->done = true;
     if ( d->no.isEmpty() ) {
-        d->sieve->enqueue( "OK\r\n" );
+        d->sieve->enqueue( "OK" );
+        if ( !d->ok.isEmpty() ) {
+            d->sieve->enqueue( " " );
+            d->sieve->enqueue( encoded( d->ok ) );
+        }
+        d->sieve->enqueue( "\r\n" );
     }
     else {
-        d->sieve->enqueue( "NO " );
-        d->sieve->enqueue( encoded( d->no ) );
+        d->sieve->enqueue( "NO" );
+        if ( !d->no.isEmpty() ) {
+            d->sieve->enqueue( " " );
+            d->sieve->enqueue( encoded( d->no ) );
+        }
         d->sieve->enqueue( "\r\n" );
     };
     d->sieve->write();
@@ -297,15 +314,30 @@ bool ManageSieveCommand::haveSpace()
 }
 
 
-/*! Handles the PUTSCRIPT command. */
+/*! Handles the PUTSCRIPT command.
+  
+    Silently creates any mailboxes referred to by fileinto commands,
+    provided they're in the user's own namespace.
+
+    This solves the major problem caused fileinto commands that refer
+    to unknown mailbox names. People can still delete or rename
+    mailboxes while a script refers to them, and it's possible to
+    fileinto "/users/someoneelse/inbox", but those are much smaller
+    problem by comparison.
+    
+    I also like the timing of this: Uploading a script containing
+    fileinto "x" creates x at once (instead of later, which sendmail
+    does).
+*/
 
 bool ManageSieveCommand::putScript()
 {
-    if ( !d->query ) {
-        String name = string();
+    if ( !d->t ) {
+        d->name = string();
         whitespace();
+        d->script = string();
         SieveScript script;
-        script.parse( string() );
+        script.parse( d->script );
         end();
         if ( script.isEmpty() ) {
             no( "Script cannot be empty" );
@@ -316,37 +348,91 @@ bool ManageSieveCommand::putScript()
             no( e );
             return true;
         }
-        if ( name.isEmpty() ) {
+        if ( d->name.isEmpty() ) {
             // Our very own syntax-checking hack.
             return true;
         }
 
-        // push the script into the database. we need to either update
-        // a table row or insert a new one. ManageSieveCommand doesn't
-        // really have the infrastructure to do that. let's hack!
-        d->query = new Query( "insert into scripts (owner,name,script,active) "
-                              "values($1,$2,$3,false)", this );
-        d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, name );
-        d->query->bind( 3, script.source() );
-        d->query->allowFailure();
-        if ( d->no.isEmpty() )
-            d->query->execute();
+        // at this point, nothing can prevent us from completing.
+
+        d->t = new Transaction( this );
+        
+        d->query = new Query( "select * from scripts "
+                              "where name=$1 and owner=$2", this );
+        d->query->bind( 1, d->name );
+        d->query->bind( 2, d->sieve->user()->id() );
+        d->t->enqueue( d->query );
+        d->t->execute();
+
+        List<SieveCommand> stack;
+        List<SieveCommand>::Iterator i( script.topLevelCommands() );
+        while ( i ) {
+            stack.append( i );
+            ++i;
+        }
+        while ( !stack.isEmpty() ) {
+            SieveCommand * c = stack.shift();
+            if ( c->block() ) {
+                List<SieveCommand>::Iterator i( c->block()->commands() );
+                while ( i ) {
+                    stack.append( i );
+                    ++i;
+                }
+            }
+            if ( c->error().isEmpty() && c->identifier() == "fileinto" ) {
+                SieveArgumentList * l = c->arguments();
+                List<SieveArgument>::Iterator a( l->arguments() );
+                while ( a ) {
+                    String n = *a->stringList()->first();
+                    String p = d->sieve->user()->home()->name() + "/";
+                    if ( !n.startsWith( "/" ) )
+                        n = p + n;
+                    if ( n.lower().startsWith( p.lower() ) ) {
+                        Mailbox * m = Mailbox::find( n );
+                        if ( !d->create.contains( n ) &&
+                             ( !m || m->synthetic() || m->deleted() ) ) {
+                            m = Mailbox::obtain( n, true );
+                            d->create.insert( n, m );
+                            (void)m->create( d->t, d->sieve->user() );
+                        }
+                    }
+                    ++a;
+                }
+            }
+        }
     }
 
     if ( !d->query->done() )
         return false;
 
-    if ( d->query->failed() &&
-         d->query->string().startsWith( "insert" ) ) {
-        // a magnificent hack: If insert into didn't work, we set the
-        // state back, change the query string to one that should
-        // work, and execute the query again! yaaaaay!
-        d->query->setState( Query::Inactive );
-        d->query->setString( "update scripts set script=$3 where "
-                             "owner=$1 and name=$2" );
-        d->query->execute();
+    if ( d->step == 0 ) {
+        if ( d->query->nextRow() )
+            d->query = new Query( "update scripts set script=$3 where "
+                                  "owner=$1 and name=$2", 0 );
+        else
+            d->query = new Query( "insert into scripts "
+                                  "(owner,name,script,active) "
+                                  "values($1,$2,$3,false)", 0 );
+        d->query->bind( 1, d->sieve->user()->id() );
+        d->query->bind( 2, d->name );
+        d->query->bind( 3, d->script );
+        d->t->enqueue( d->query );
+
+
+        d->step = 1;
+        d->t->commit();
         return false;
+    }
+
+    if ( !d->t->done() )
+        return false;
+
+    StringList::Iterator i( d->create.keys() );
+    while ( i ) {
+        d->ok.append( "Created mailbox " + i->quoted() + "." );
+        ++i;
+        if ( i )
+            d->ok.append( "\r\n" );
     }
 
     return true;
