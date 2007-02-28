@@ -146,6 +146,9 @@ public:
     String getString( uint ) const;
     String getString( const char * ) const;
 
+    UString getUString( uint ) const;
+    UString getUString( const char * ) const;
+
 private:
     uint n;
     Column *columns;

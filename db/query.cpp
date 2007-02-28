@@ -7,6 +7,7 @@
 #include "event.h"
 #include "scope.h"
 #include "string.h"
+#include "ustring.h"
 #include "database.h"
 #include "stringlist.h"
 #include "transaction.h"
@@ -697,6 +698,36 @@ String Row::getString( const char *f ) const
     if ( i < 0 )
         return "";
     return getString( i );
+}
+
+
+/*! Returns the string value of the column at index \a i if it exists
+    and is NOT NULL, and an empty string otherwise.
+*/
+
+UString Row::getUString( uint i ) const
+{
+    UString r;
+    if ( badFetch( i, Column::Bytes ) )
+        return r;
+
+    PgUtf8Codec c;
+    r = c.toUnicode( columns[i].value );
+    return r;
+}
+
+
+/*! \overload
+    As above, but returns the string value of the column named \a f.
+*/
+
+UString Row::getUString( const char * f ) const
+{
+    int i = findColumn( f );
+    if ( i >= 0 )
+        return getUString( i );
+    UString r;
+    return r;
 }
 
 
