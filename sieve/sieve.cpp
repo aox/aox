@@ -243,8 +243,11 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         arg = *c->arguments()->arguments()->first()->stringList()->first();
 
     if ( c->identifier() == "if" ||
-         c->identifier() == "elsif" ) {
-        Result r = evaluate( c->arguments()->tests()->firstElement() );
+         c->identifier() == "elsif" ||
+         c->identifier() == "else" ) {
+        Result r = True;
+        if ( c->identifier() != "else" )
+            r = evaluate( c->arguments()->tests()->firstElement() );
         if ( r == Undecidable ) {
             // cannot evaluate this test with the information
             // available. must wait until more data is available.
@@ -271,9 +274,6 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             // if the condition is false, we'll just proceed to the
             // next statement. there is nothing to do in this case.
         }
-    }
-    else if ( c->identifier() == "else" ) {
-        // if we get here, we should evaluate
     }
     else if ( c->identifier() == "require" ) {
         // no action needed
