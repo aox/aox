@@ -724,7 +724,7 @@ static uint max( uint a, uint b )
 void Search::sendEsearchResponse()
 {
     ImapSession * s = imap()->session();
-    String result = "ESEARCH (tag \"" + tag() + "\")";
+    String result = "ESEARCH (tag " + tag().quoted() + ")";
     if ( d->uid )
         result.append( " uid" );
     if ( d->returnCount ) {
