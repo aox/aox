@@ -177,6 +177,7 @@ StringList * SieveProduction::supportedExtensions()
     r->append( "envelope" );
     r->append( "fileinto" );
     r->append( "reject" );
+    r->append( "body" );
     return r;
 }
 
@@ -528,7 +529,9 @@ public:
           matchType( SieveTest::Is ),
           addressPart( SieveTest::NoAddressPart ),
           comparator( SieveTest::IAsciiCasemap ),
+          bodyMatchType( SieveTest::Text ),
           headers( 0 ), envelopeParts( 0 ), keys( 0 ),
+          contentTypes( 0 ),
           sizeOver( false ), sizeLimit( 0 )
     {}
 
@@ -539,10 +542,12 @@ public:
     SieveTest::MatchType matchType;
     SieveTest::AddressPart addressPart;
     SieveTest::Comparator comparator;
+    SieveTest::BodyMatchType bodyMatchType;
 
     StringList * headers;
     StringList * envelopeParts;
     StringList * keys;
+    StringList * contentTypes;
     bool sizeOver;
     uint sizeLimit;
 };
@@ -999,6 +1004,51 @@ void SieveTest::parse()
     else if ( identifier() == "true" ) {
         // much like false.
     }
+    else if ( identifier() == "body" ) {
+        require( "body" );
+        cok = true;
+        mtok = true;
+        List<SieveArgument>::Iterator i( arguments()->arguments() );
+        while ( i && i->parsed() )
+            ++i;
+        if ( !i )
+            setError( "Need a string to look for" );
+        String t;
+        if ( i )
+            t = i->tag();
+        if ( t == ":raw" ) {
+            d->bodyMatchType = Rfc822;
+            i->setParsed( true );
+            ++i;
+        }
+        else if ( t == ":text" ) {
+            d->bodyMatchType = Text;
+            i->setParsed( true );
+            ++i;
+        }
+        else if ( t == ":content" ) {
+            d->bodyMatchType = SpecifiedTypes;
+            i->setParsed( true );
+            SieveArgument * c = i;
+            ++i;
+            if ( i->stringList() ) {
+                d->contentTypes = i->stringList();
+                i->setParsed( true );
+                ++i;
+            }
+            else {
+                c->setError( ":content must be followed "
+                             "by a string list" );
+            }
+        }
+        while ( i && i->parsed() )
+            ++i;
+        if ( i ) {
+            d->keys = i->stringList();
+            i->setParsed( true );
+            ++i;
+        }
+    }
     else {
         setError( "Unknown test: " + identifier() );
     }
@@ -1132,6 +1182,27 @@ StringList * SieveTest::takeHeaderFieldList()
 }
 
 
+/*! Takes the first tag and returns it. Returns an empty string if
+    there aren't any tags. Marks an error if there's an unparsed
+    argument before the first unparsed tag.
+*/
+
+String SieveTest::takeTag()
+{
+    List<SieveArgument>::Iterator a( arguments()->arguments() );
+    while ( a && a->parsed() )
+        ++a;
+    while ( a && a->parsed() && a->tag().isEmpty() ) {
+        a->setError( "Could not parse this argument (was looking for a tag)" );
+        ++a;
+    }
+    if ( !a )
+        return "";
+    a->setParsed( true );
+    return a->tag();
+}
+
+
 
 /*! Returns a list of the headers to which the identifier() pertains,
     or a null pointer if the identifier() is of a type that doesn't
@@ -1164,6 +1235,28 @@ StringList * SieveTest::keys() const
 StringList * SieveTest::envelopeParts() const
 {
     return d->envelopeParts;
+}
+
+
+/*! Returns the body match type for this test, or Text for the
+    default. The result is meaningful only when identifier() is
+    "body".
+*/
+
+SieveTest::BodyMatchType SieveTest::bodyMatchType() const
+{
+    return d->bodyMatchType;
+}
+
+
+/*! Returns a pointer to a list of the content types to be used for
+    the "body" test, assuming that bodyMatchType() returns
+    SpecifiedTypes. May return a null pointer.
+*/
+
+StringList * SieveTest::contentTypes() const
+{
+    return d->contentTypes;
 }
 
 

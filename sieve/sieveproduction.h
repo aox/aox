@@ -130,23 +130,28 @@ public:
     void parse();
 
     enum MatchType { Is, Contains, Matches };
-    enum AddressPart { Localpart, Domain, All, NoAddressPart };
-
     MatchType matchType() const;
+
+    enum AddressPart { Localpart, Domain, All, NoAddressPart };
     AddressPart addressPart() const;
 
     enum Comparator { IOctet, IAsciiCasemap };
     Comparator comparator() const;
 
+    enum BodyMatchType { Rfc822, Text, SpecifiedTypes };
+    BodyMatchType bodyMatchType() const;
+
     StringList * headers() const;
     StringList * keys() const;
     StringList * envelopeParts() const;
+    StringList * contentTypes() const;
     bool sizeOverLimit() const;
     uint sizeLimit() const;
 
 private:
     StringList * takeStringList();
     StringList * takeHeaderFieldList();
+    String takeTag();
 
 private:
     class SieveTestData * d;

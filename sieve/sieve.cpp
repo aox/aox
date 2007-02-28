@@ -2,10 +2,13 @@
 
 #include "sieve.h"
 
+#include "html.h"
 #include "query.h"
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
+#include "bodypart.h"
+#include "mimefields.h"
 #include "stringlist.h"
 #include "sievescript.h"
 #include "sieveaction.h"
@@ -463,6 +466,84 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
     }
     else if ( t->identifier() == "true" ) {
         return True;
+    }
+    else if ( t->identifier() == "body" ) {
+        if ( !d->message ) {
+            return Undecidable;
+        }
+        else if ( t->bodyMatchType() == SieveTest::Rfc822 ) {
+            haystack = new StringList;
+            haystack->append( d->message->body() );
+        }
+        else {
+            haystack = new StringList;
+            List<Bodypart>::Iterator i( d->message->allBodyparts() );
+            while ( i ) {
+                Header * h = i->header();
+                String ct;
+                if ( !h->contentType() ) {
+                    switch( h->defaultType() ) {
+                    case Header::TextPlain:
+                        ct = "text/plain";
+                        break;
+                    case Header::MessageRfc822:
+                        ct = "message/rfc822";
+                        break;
+                    }
+                }
+                else {
+                    ct = h->contentType()->type() + "/" +
+                         h->contentType()->subtype();
+                }
+
+                bool include = false;
+                if ( t->bodyMatchType() == SieveTest::Text ) {
+                    if ( ct.startsWith( "text/" ) )
+                        include = true;
+                }
+                else {
+                    StringList::Iterator k( t->contentTypes() );
+                    while ( k ) {
+                        // this logic is based exactly on the draft.
+                        if ( k->startsWith( "/" ) ||
+                             k->endsWith( "/" ) ||
+                             ( k->find( '/' ) >= 0 &&
+                               k->find( k->find( '/' ) + 1 ) >= 0 ) ) {
+                            // matches no types
+                        }
+                        else if ( k->contains( '/' ) ) {
+                            // matches ->type()/->subtype()
+                            if ( ct == k->lower() )
+                                include = true;
+                        }
+                        else if ( k->isEmpty() ) {
+                            // matches all types
+                            include = true;
+                        }
+                        else {
+                            // matches ->type();
+                            if ( ct.startsWith( k->lower() + "/" ) )
+                                include = true;
+                        }
+                        
+                        ++k;
+                    }
+                }
+                if ( include ) {
+                    if ( ct == "text/html" )
+                        haystack->append( HTML::asText( i->text() ).utf8() );
+                    else if ( ct.startsWith( "multipart/" ) )
+                        haystack->append( "" ); // draft says prologue+epilogue
+                    else if ( ct == "message/rfc822" )
+                        haystack->append( i->message()->header()->asText() );
+                    else if ( ct.startsWith( "text/" ) )
+                        haystack->append( i->text().utf8() );
+                    else
+                        haystack->append( i->data() );
+                }
+                ++i;
+            }
+        }
     }
     else {
         // unknown test. wtf?
