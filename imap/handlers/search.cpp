@@ -725,6 +725,8 @@ void Search::sendEsearchResponse()
 {
     ImapSession * s = imap()->session();
     String result = "ESEARCH (tag \"" + tag() + "\")";
+    if ( d->uid )
+        result.append( " uid" );
     if ( d->returnCount ) {
         result.append( " count " );
         result.append( fn( d->matches.count() ) );
