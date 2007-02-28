@@ -30,7 +30,8 @@ public:
     public:
         Recipient( Address * a, Mailbox * m, SieveData * data )
             : d( data ), address( a ), mailbox( m ),
-              done( false ), ok( true ), implicitKeep( true ),
+              done( false ), ok( true ),
+              implicitKeep( true ), explicitKeep( false ),
               sq( 0 ), script( new SieveScript )
         {
             d->recipients.append( this );
@@ -42,6 +43,7 @@ public:
         bool done;
         bool ok;
         bool implicitKeep;
+        bool explicitKeep;
         String result;
         List<SieveAction> actions;
         List<SieveCommand> pending;
@@ -222,7 +224,8 @@ void Sieve::evaluate()
         }
         if ( i->pending.isEmpty() )
             i->done = true;
-        if ( i->done && i->implicitKeep ) {
+        if ( i->done && 
+             ( i->implicitKeep || i->explicitKeep ) ) {
             SieveAction * a = new SieveAction( SieveAction::FileInto );
             a->setMailbox( i->mailbox );
             i->actions.append( a );
@@ -311,6 +314,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         actions.append( a );
     } else if ( c->identifier() == "keep" ) {
         implicitKeep = false;
+        explicitKeep = true;
         // nothing needed
     } else if ( c->identifier() == "discard" ) {
         implicitKeep = false;
