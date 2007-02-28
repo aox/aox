@@ -301,7 +301,7 @@ void ContentType::parse( const String &s )
 }
 
 
-/*! Returns the media type. */
+/*! Returns the media type as a lower-case string. */
 
 String ContentType::type() const
 {
@@ -309,7 +309,7 @@ String ContentType::type() const
 }
 
 
-/*! Returns the media subtype. */
+/*! Returns the media subtype as a lower-case string. */
 
 String ContentType::subtype() const
 {
