@@ -136,8 +136,8 @@ String::Encoding Bodypart::contentTransferEncoding() const
 }
 
 
-/*! Returns this Bodypart's content in 8-bit form. If this Bodypart is
-    a text part, data() returns the UTF-encoded version of text().
+/*! Returns this Bodypart's content, provided it has an 8-bit type. If
+    this Bodypart is a text part, data() returns an empty string.
 */
 
 String Bodypart::data() const
@@ -162,16 +162,11 @@ void Bodypart::setData( const String &s )
 
 UString Bodypart::text() const
 {
-    // When retrieved from the database, a text bodypart will have the
-    // correct d->data, but d->text will not be set (because the text
-    // may be shared with an existing non-text bodyparts entry).
-    if ( !d->hasText ) {
-        Utf8Codec u;
-        d->text = u.toUnicode( d->data );
-        d->hasText = true;
-    }
+    if ( d->hasText )
+        return d->text;
 
-    return d->text;
+    Utf8Codec c;
+    return c.toUnicode( d->data );
 }
 
 
@@ -181,6 +176,7 @@ UString Bodypart::text() const
 
 void Bodypart::setText( const UString &s )
 {
+    d->hasText = true;
     d->text = s;
 }
 
