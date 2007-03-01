@@ -301,6 +301,8 @@ void Fetch::parseAttribute( bool alsoMacro )
         s->id = "size";
         if ( s->partial )
             error( Bad, "Fetching partial BINARY.SIZE is not meaningful" );
+        if ( s->part.isEmpty() )
+            d->rfc822size = true;
     }
     else if ( keyword == "modseq" ) {
         d->modseq = true;
@@ -795,10 +797,8 @@ String Fetch::sectionData( Section * s, Message * m )
             ContentType * ct = 0;
             if ( bp )
                 ct = bp->contentType();
-            if ( ct && ct->type() != "text" ) {
-                data = bp->data();
-            }
-            else {
+            data = bp->data();
+            if ( data.isEmpty() ) {
                 Codec * c = 0;
                 if ( ct )
                     c = Codec::byName( ct->parameter( "charset" ) );
@@ -835,15 +835,25 @@ String Fetch::sectionData( Section * s, Message * m )
 
     else if ( s->id == "size" ) {
         if ( s->part.isEmpty() ) {
-            data = m->rfc822();
+            data = fn( m->rfc822Size() );
         }
         else {
-            Bodypart *bp = m->bodypart( s->part, false );
+            Bodypart * bp = m->bodypart( s->part, false );
+            ContentType * ct = 0;
             if ( bp )
-                data = bp->data();
+                ct = bp->contentType();
+            data = bp->data();
+            if ( data.isEmpty() ) {
+                Codec * c = 0;
+                if ( ct )
+                    c = Codec::byName( ct->parameter( "charset" ) );
+                if ( !c )
+                    c = new Utf8Codec;
+                data = c->fromUnicode( bp->text() );
+            }
+            data = fn( data.length() );
         }
         item = "BINARY.SIZE[" + s->part + "]";
-        data = fn( data.length() );
     }
 
     if ( s->partial ) {
