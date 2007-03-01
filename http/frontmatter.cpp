@@ -7,6 +7,19 @@
 
 
 /*! \class FrontMatter frontmatter.h
+    Provides front matter needed to render the rest of a WebPage.
+
+    This class inherits from String and provides a collection of static
+    functions that return a pointer to a new FrontMatter object, whose
+    contents are an HTML string suitable for inclusion into a WebPage.
+
+    PageComponent constructors call PageComponent::addFrontMatter() on
+    the FrontMatter objects they need, and the WebPage includes their
+    contents in the <HEAD> section while rendering itself.
+
+    For example, the title() function returns a FrontMatter object whose
+    String value is "<title>sometitle</title>". Other functions include
+    a styleSheet(), declare necessary Javascript functions, and so on.
 */
 
 /*! Returns a link to the stylesheet. */
