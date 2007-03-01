@@ -10,11 +10,12 @@ class LsubData
     : public Garbage
 {
 public:
-    LsubData() : q( 0 ), ref( 0 ) {}
+    LsubData() : q( 0 ), top( 0 ), ref( 0 ), prefix( 0 ) {}
 
     Query * q;
-    Mailbox * ref;
     Mailbox * top;
+    Mailbox * ref;
+    String refname;
     uint prefix;
     String pat;
 
@@ -54,12 +55,14 @@ void Lsub::parse()
 void Lsub::execute()
 {
     if ( !d->q ) {
-        d->q = new Query( "select mailbox from subscriptions where owner=$1",
-                       this );
+        d->q = new Query( "select mailbox from subscriptions s "
+                          "join mailboxes m on (s.mailbox=m.id) "
+                          "where s.owner=$1 order by m.name",
+                          this );
         d->q->bind( 1, imap()->user()->id() );
         d->q->execute();
 
-        if ( d->pat[0] == '/' || d->pat[0] == '*' ) {
+        if ( d->pat[0] == '/' ) {
             d->top = Mailbox::root();
             d->prefix = 0;
         }
@@ -111,16 +114,17 @@ void Lsub::execute()
 
 void Lsub::reference()
 {
-    String name = astring();
+    d->refname = astring();
 
-    if ( name[0] == '/' )
-        d->ref = Mailbox::obtain( name, false );
-    else if ( name.isEmpty() )
+    if ( d->refname[0] == '/' )
+        d->ref = Mailbox::obtain( d->refname, false );
+    else if ( d->refname.isEmpty() )
         d->ref = imap()->user()->home();
     else
-        d->ref = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
+        d->ref = Mailbox::obtain( imap()->user()->home()->name() +
+                                  "/" + d->refname,
                                   false );
 
     if ( !d->ref )
-        error( No, "Cannot find reference name " + name );
+        error( No, "Cannot find reference name " + d->refname );
 }
