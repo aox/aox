@@ -62,6 +62,7 @@
 {"cp869", "IBM869"},
 {"cp932", "Shift_JIS"},
 {"cp936", "GBK"},
+{"cp949", "CP949"},
 {"cp950", "Big5"},
 {"csascii", "US-ASCII"},
 {"csbig5", "Big5"},

@@ -1,4 +1,5 @@
 if ( name == "Big5" ) codec = new Cp950Codec;
+else if ( name == "CP949" ) codec = new Cp949Codec;
 else if ( name == "EUC-JP" ) codec = new EucJpCodec;
 else if ( name == "EUC-KR" ) codec = new EucKrCodec;
 else if ( name == "GB2312" ) codec = new Gb2312Codec;

@@ -14,6 +14,7 @@
 #include "unknown.h"
 #include "gb2312.h"
 #include "cp932.h"
+#include "cp949.h"
 #include "cp950.h"
 #include "eucjp.h"
 #include "euckr.h"
