@@ -16,6 +16,7 @@
 #include "cp932.h"
 #include "cp950.h"
 #include "eucjp.h"
+#include "euckr.h"
 #include "gbk.h"
 
 
