@@ -16,8 +16,8 @@ static const uint toE[65536] = {
 
 /*! \class EucKrCodec euckr.h
 
-    This codec translates between Unicode and KS C 5601 1987, encoded
-    with EUC-KR.
+    This codec translates between Unicode and KS C 5601-1992 (apparently
+    also known as KS X 1001:1992), encoded with EUC-KR.
 */
 
 /*! Creates a new EucKrCodec object. */
