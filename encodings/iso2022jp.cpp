@@ -17,9 +17,14 @@ static const uint toE[65536] = {
 /*! \class Iso2022JpCodec iso2022jp.h
 
     This class implements a translator between Unicode and the JIS X
-    0208:1990 character set using the ISO-2022-JP encoding.
+    0208:1990 character set using the ISO-2022-JP encoding, which is
+    described in RFC1468.
 
-    This class has some relation to RFC 1468. Crab, could you elaborate?
+    In summary: text starts as ASCII, but can switch to either JIS X
+    0201 (the "Roman" character set) or JIS X 0208 through an escape
+    sequence; a different escape sequence switches back to ASCII. In
+    double-byte JIS X 0208 mode, successive bytes are ku/ten indexes
+    (0+33 to 93+33) into an ISO-2022 style 94x94 character grid.
 */
 
 /*! Creates a new Iso2022JpCodec object. */
