@@ -1,3 +1,43 @@
+1.17: 2007-03-26
+
+  In order of importance:
+
+  1. Web archive use.
+  2. Archive search.
+  3. Setting up (and editing?) views.
+  4. Searching in own mail while logged in.
+  5. aox reparse
+
+     The code in bin/aox is simple, and done. There's one problem. We
+     need to insert a row into deleted_messages, which does not allow
+     a NULL deleted_by field, and reparse() doesn't have a user id.
+     Is relaxing the constraint justified in this case?
+
+     The code in db/schema is harder, but I'll go back to it after I
+     work on http for a while.
+
+  6. Webmail. Preferably including sending mail.
+
+  Also sieve bugfixes and updating SessionInitialiser to check the
+  modseq first and avoid sending queries when nothing has changed.
+
+
+The value of features
+
+  Archiveopteryx provides online archiving. We want the features we
+  add to improve one or more of these:
+  - adding mail to the archive
+  - accessing the archive
+  - managing the archive
+
+  For nontechnical reasons I add a fourth goal:
+  - making current users happy
+
+  Each new feature should help in some way; the new features that help
+  the most are the ones we need most (in the long term - in the short
+  term we also need to help existing users).
+
+
 The next eight months
 
   - Message retention
@@ -44,29 +84,9 @@ Items for web site
   - Client-specific pages
 
 
-1.17: 2007-03-26
-
-  In order of importance:
-
-  1. Web archive use.
-  2. Archive search.
-  3. Setting up (and editing?) views.
-  4. Searching in own mail while logged in.
-  5. aox reparse.
-  6. Webmail. Preferably including sending mail.
-
-  Also sieve bugfixes and updating SessionInitialiser to check the
-  modseq first and avoid sending queries when nothing has changed.
-
-
-What we never did and may never to
+Various TODO items from earlier releases.
 
   This sounds like the last 1.x release before 2.0.
-
-  (I moved stuff here from earlier releases so this is now hopelessly
-  ambitious --Arnt)
-
-  Sieve + Managesieve.
 
   Sieve vacation extension.
 
@@ -140,22 +160,6 @@ Release cycle
   t-3: See t-38 above.
 
   t-0: A crontab does what it needs to do.
-
-
-The value of features
-
-  Archiveopteryx provides online archiving. We want the features we
-  add to improve one or more of these:
-  - adding mail to the archive
-  - accessing the archive
-  - managing the archive
-
-  For nontechnical reasons I add a fourth goal:
-  - making current users happy
-
-  Each new feature should help in some way; the new features that help
-  the most are the ones we need most (in the long term - in the short
-  term we also need to help existing users).
 
 
 Undefined codepoints
