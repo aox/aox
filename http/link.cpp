@@ -8,6 +8,7 @@
 #include "stringlist.h"
 #include "webpage.h"
 
+#include "components/error301.h"
 #include "components/error404.h"
 #include "components/archivemailboxes.h"
 #include "components/archivemailbox.h"
@@ -210,6 +211,14 @@ static WebPage * errorPage( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new Error404( link ) );
+    return p;
+}
+
+
+static WebPage * trailingSlash( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new Error301( link ) );
     return p;
 }
 
@@ -538,10 +547,16 @@ void Link::parse( const String & s )
 
         if ( chosen == Void && legalComponents[Void] ) {
             if ( p->atEnd() ) {
-                chosen = Void;
+                // ok - we've reached the end and reaching the end is
+                // legal
+            }
+            else if ( p->pos() == 0 && p->input() == "/" ) {
+                // ok - it's "/" and we normally take slashes along
+                // with the component following them.
+                p->step();
             }
             else {
-                chosen = Void;
+                // we couldn't use the rest of the string.
             }
         }
 
@@ -555,10 +570,16 @@ void Link::parse( const String & s )
         }
 
         i++;
+        if ( i < 5 && chosen == Void && h.count() <= 1 )
+            i = 5;
     }
 
-    if ( h.count() == 1 && p->atEnd() &&
-         ( i == 5 || h.first()->components[i] == Void ) )
+    if ( p->input().mid( p->pos() ) == "/" ) {
+        // it's a valid URL with a trailing slash. we redirect.
+        d->webpage = trailingSlash( this );
+    }
+    else if ( h.count() == 1 && p->atEnd() &&
+              ( i == 5 || h.first()->components[i] == Void ) )
     {
         WebPage *(*handler)( Link * ) = h.first()->handler;
         if ( d->suffix != None ) {

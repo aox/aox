@@ -712,7 +712,9 @@ void HTTP::parseContentLength( const String &s )
 }
 
 
-/*! Records \a s as a reply header to be sent. */
+/*! Records \a s as a reply header to be sent. \a s should not contain
+    CR or LF.
+*/
 
 void HTTP::addHeader( const String & s )
 {

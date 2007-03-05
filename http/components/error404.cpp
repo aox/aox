@@ -23,4 +23,5 @@ Error404::Error404( Link * link )
                  "<p>No such file: " + quoted( link->original() ) +
                  "<p>(Additionally, we couldn't find a haiku to process "
                  "the error.)" );
+    setStatus( 404 );
 }
