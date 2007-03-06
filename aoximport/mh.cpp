@@ -63,11 +63,12 @@ public:
 
 /*! \class MhMailbox mh.h
 
-    This class models an MH mailbox: a directory full of numbered files,
-    each containing one message. A directory is identified as a valid MH
-    mailbox by the presence of an .mh_sequences file. At this time, only
-    files whose names do not begin with a comma are considered, and the
-    messages are not ordered.
+    This class models an MH mailbox: a directory full of numbered
+    files, each containing one message. A directory is identified as a
+    valid MH mailbox by the presence of an .mh_sequences file. At this
+    time, only files whose names do not begin with a comma are
+    considered. The messages are imported in numeric order and
+    compacted (the smallest becomes 1, etc).
 */
 
 
