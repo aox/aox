@@ -19,10 +19,11 @@ class ArchiveThreadData
 {
 public:
     ArchiveThreadData()
-        : link( 0 ), done( false )
+        : link( 0 ), mv( 0 ), done( false )
     {}
 
     Link * link;
+    MailboxView * mv;
     bool done;
 };
 
@@ -48,13 +49,21 @@ void ArchiveThread::execute()
     if ( d->done )
         return;
 
-    MailboxView * mv = MailboxView::find( d->link->mailbox() );
-    if ( !mv->ready() ) {
-        mv->refresh( this );
+    if ( !d->mv ) {
+        Mailbox * m = d->link->mailbox();
+        page()->requireRight( m, Permissions::Read );
+        d->mv = MailboxView::find( m );
+    }
+
+    if ( !page()->permitted() )
+        return;
+
+    if ( !d->mv->ready() ) {
+        d->mv->refresh( this );
         return;
     }
 
-    MailboxView::Thread * thread = mv->thread( d->link->uid() );
+    MailboxView::Thread * thread = d->mv->thread( d->link->uid() );
 
     uint n = 0;
     while ( n < thread->messages() ) {
