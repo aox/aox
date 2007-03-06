@@ -2,11 +2,13 @@
 
 #include "archivemailbox.h"
 
+#include "dict.h"
 #include "link.h"
 #include "field.h"
 #include "frontmatter.h"
 #include "addressfield.h"
 #include "mailboxview.h"
+#include "ustring.h"
 #include "webpage.h"
 #include "message.h"
 #include "header.h"
@@ -62,16 +64,14 @@ void ArchiveMailbox::execute()
         return;
     }
 
+    Dict<Address> addresses;
     String s;
     List<MailboxView::Thread>::Iterator it( d->mv->allThreads() );
     while ( it ) {
+        Dict<Address> contributors;
         MailboxView::Thread * t = it;
         ++it;
         Message * m = t->message( 0 );
-        String url( d->link->canonical() );
-        if ( !url.endsWith( "/" ) )
-            url.append( "/" );
-        url.append( fn( t->uid( 0 ) ) );
 
         HeaderField * hf = m->header()->field( HeaderField::Subject );
         String subject;
@@ -81,39 +81,53 @@ void ArchiveMailbox::execute()
             subject = "(No Subject)";
         s.append( "<div class=thread>\n"
                   "<div class=headerfield>Subject: " );
+        Link ml;
+        ml.setType( d->link->type() );
+        ml.setMailbox( d->link->mailbox() );
+        ml.setSuffix( Link::Thread );
+        ml.setUid( t->uid( 0 ) );
+        s.append( "<a href=\"" );
+        s.append( ml.canonical() );
+        s.append( "\">" );
         s.append( quoted( subject ) );
-        s.append( "</div>\n" ); // subject
+        s.append( "</a></div>\n" ); // subject
 
         s.append( "<div class=threadcontributors>\n" );
         s.append( "<div class=headerfield>From:\n" );
         uint i = 0;
-        while ( i < t->messages() ) {
+        StringList al;
+        while ( i < t->messages() && al.count() < 5 ) {
             m = t->message( i );
-            s.append( "<a href=\"" );
-            s.append( url );
-            if ( i > 0 ) {
-                s.append( "#" );
-                s.append( fn( t->uid( i ) ) );
-            }
-            s.append( "\">" );
             AddressField * af
                 = m->header()->addressField( HeaderField::From );
             if ( af ) {
                 List< Address >::Iterator it( af->addresses() );
                 while ( it ) {
-                    s.append( address( it ) );
+                    String k = it->uname().utf8().lower();
+                    if ( contributors.contains( k ) ) {
+                        // we don't mention the name again
+                    }
+                    else if ( !k.isEmpty() && addresses.contains( k ) ) {
+                        // we mention the name only
+                        al.append( it->uname().utf8() );
+                        contributors.insert( k, it );
+                    }
+                    else {
+                        // we mention name and address
+                        al.append( address( it ) );
+                        contributors.insert( k, it );
+                        addresses.insert( k, it );
+                    }
                     ++it;
-                    if ( it )
-                        s.append( ", " );
                 }
             }
-            s.append( "</a>" );
             i++;
-            if ( i < t->messages() )
-                s.append( "," );
-            s.append( "\n" );
         }
-        s.append( "</div>\n" // headerfield
+        if ( i < t->messages() )
+            al.append( "..." );
+        s.append( al.join( ", " ) );
+        s.append( "\n"
+                  "</div>\n" // headerfield
                   "</div>\n" // threadcontributors
                   "</div>\n" ); // thread
     }
