@@ -18,10 +18,24 @@
 Error404::Error404( Link * link )
     : PageComponent( "error" )
 {
-    addFrontMatter( FrontMatter::title( "File Not Found" ) );
-    setContents( "<h1>File Not Found</h1>"
-                 "<p>No such file: " + quoted( link->original() ) +
-                 "<p>(Additionally, we couldn't find a haiku to process "
-                 "the error.)" );
+    addFrontMatter( FrontMatter::title( "Page Not Found" ) );
+    String r( "<h1>Page Not Found</h1>"
+              "<p>No such page: " );
+    r.append( quoted( link->original() ) );
+    r.append( "\n<p>" );
+    String c( link->canonical() );
+    if ( link->type() == Link::Error || c == link->original() ) {
+        r.append( "(Additionally, we couldn't find a haiku to process "
+                  "the error.)" );
+    }
+    else {
+        r.append( "Perhaps <a href=\"" );
+        r.append( c );
+        r.append( "\">" );
+        r.append( quoted( c ) );
+        r.append( "</a> is the page you want. "
+                  "If not, maybe it can help you find the page you want." );
+    }
+    setContents( r );
     setStatus( 404 );
 }
