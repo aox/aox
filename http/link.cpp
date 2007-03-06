@@ -713,6 +713,9 @@ String Link::canonical() const
         c++;
     }
 
+    if ( r.isEmpty() )
+        r = "/";
+
     return r;
 }
 
