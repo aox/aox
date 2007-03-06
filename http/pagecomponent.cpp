@@ -104,7 +104,7 @@ String PageComponent::contents() const
 void PageComponent::setContents( const String & s )
 {
     d->contents = s;
-    if ( d->page )
+    if ( d->page && done() )
         d->page->execute();
 }
 
