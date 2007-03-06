@@ -8,6 +8,7 @@
 #include "list.h"
 
 
+class UString;
 class FrontMatter;
 class WebPage;
 
@@ -37,6 +38,7 @@ public:
 
     static String quoted( const String & );
     static String address( class Address * );
+    static String address( const UString & );
 
 private:
     class PageComponentData * d;

@@ -173,12 +173,34 @@ String PageComponent::quoted( const String & s )
 String PageComponent::address( Address * a )
 {
     String s( "<span class=address>" );
-    s.append( quoted( a->uname().utf8() ) );
-    s.append( " &lt;" );
+    bool n = true;
+    if ( a->uname().isEmpty() )
+        n = false;
+    if ( n ) {
+        s.append( quoted( a->uname().utf8() ) );
+        s.append( " &lt;" );
+    }
     s.append( quoted( a->localpart() ) );
     s.append( "@" );
     s.append( quoted( a->domain() ) );
-    s.append( "&gt;</span>" );
+    if ( n )
+        s.append( "&gt;" );
+    s.append( "</span>" );
+
+    return s;
+}
+
+
+/*! Returns an HTML representation of \a a, assuming that \a a is
+    really an address or something which reminds the user of an
+    address (such as an alias).
+*/
+
+String PageComponent::address( const UString & a )
+{
+    String s( "<span class=address>" );
+    s.append( quoted( a.utf8() ) );
+    s.append( "</span>" );
 
     return s;
 }
