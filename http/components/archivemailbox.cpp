@@ -7,6 +7,7 @@
 #include "frontmatter.h"
 #include "addressfield.h"
 #include "mailboxview.h"
+#include "webpage.h"
 #include "message.h"
 #include "header.h"
 
@@ -16,10 +17,11 @@ class ArchiveMailboxData
 {
 public:
     ArchiveMailboxData()
-        : link( 0 )
+        : link( 0 ), mv( 0 )
     {}
 
     Link * link;
+    MailboxView * mv;
 };
 
 
@@ -41,19 +43,27 @@ ArchiveMailbox::ArchiveMailbox( Link * link )
 
 void ArchiveMailbox::execute()
 {
-    MailboxView * mv = MailboxView::find( d->link->mailbox() );
-    if ( !mv->ready() ) {
-        mv->refresh( this );
+    if ( !d->mv ) {
+        Mailbox * m = d->link->mailbox();
+        page()->requireRight( m, Permissions::Read );
+        d->mv = MailboxView::find( m );
+    }
+
+    if ( !page()->permitted() )
+        return;
+
+    if ( !d->mv->ready() ) {
+        d->mv->refresh( this );
         return;
     }
 
-    if ( mv->count() == 0 ) {
+    if ( d->mv->count() == 0 ) {
         setContents( "<p>Mailbox is empty" );
         return;
     }
 
     String s;
-    List<MailboxView::Thread>::Iterator it( mv->allThreads() );
+    List<MailboxView::Thread>::Iterator it( d->mv->allThreads() );
     while ( it ) {
         MailboxView::Thread * t = it;
         ++it;
