@@ -16,6 +16,7 @@
 #include "components/archivethread.h"
 #include "components/formmail.h"
 #include "components/sendmail.h"
+#include "components/footer.h"
 
 
 class LinkData
@@ -211,6 +212,7 @@ static WebPage * errorPage( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new Error404( link ) );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -219,6 +221,7 @@ static WebPage * trailingSlash( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new Error301( link ) );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -227,6 +230,7 @@ static WebPage * archiveMailboxes( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMailboxes );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -235,6 +239,7 @@ static WebPage * archiveMailbox( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMailbox( link ) );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -243,6 +248,7 @@ static WebPage * archiveThread( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveThread( link ) );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -251,6 +257,7 @@ static WebPage * archiveMessage( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMessage( link ) );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -259,6 +266,7 @@ static WebPage * webmailMailboxes( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMailboxes );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -266,6 +274,7 @@ static WebPage * webmailMailbox( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMailbox( link ) );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -274,6 +283,7 @@ static WebPage * webmailThread( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveThread( link ) );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -283,6 +293,7 @@ static WebPage * webmailMessage( Link * link )
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMessage( link ) );
     p->addComponent( new FormMail );
+    p->addComponent( new Footer );
     return p;
 }
 
@@ -303,6 +314,7 @@ static WebPage * sendmail( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new Sendmail );
+    p->addComponent( new Footer );
     return p;
 }
 
