@@ -71,5 +71,8 @@ void ArchiveMailboxes::execute()
 
     s.append( "</ul>\n" );
 
+    if ( d->q->rows() == 0 )
+        s.append( "No anonymously accessible archive mailboxes." );
+
     setContents( s );
 }
