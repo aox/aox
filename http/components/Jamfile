@@ -10,4 +10,5 @@ Build http :
     loginform.cpp
     formmail.cpp
     sendmail.cpp
+    footer.cpp
     ;
