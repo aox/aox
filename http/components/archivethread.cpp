@@ -59,7 +59,7 @@ void ArchiveThread::execute()
         return;
 
     if ( !d->mv->ready() ) {
-        d->mv->refresh( this );
+        d->mv->refresh( page() );
         return;
     }
 
@@ -74,10 +74,9 @@ void ArchiveThread::execute()
         l->setMailbox( d->link->mailbox() );
         l->setUid( uid );
 
-        page()->addComponent( new ArchiveMessage( l ) );
+        addSubComponent( new ArchiveMessage( l ) );
         n++;
     }
 
     d->done = true;
-    setContents( " " );
 }

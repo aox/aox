@@ -83,6 +83,12 @@ void WebPage::execute()
     while ( it ) {
         if ( !it->done() ) {
             it->execute();
+            List<PageComponent>::Iterator sc( it->subComponents() );
+            while ( sc ) {
+                if ( !sc->done() )
+                    sc->execute();
+                ++sc;
+            }
             done = false;
         }
         ++it;
@@ -124,11 +130,7 @@ void WebPage::execute()
 
     it = d->components;
     while ( it ) {
-        html.append( "<div class=\"" );
-        html.append( it->divClass() );
-        html.append( "\">\n" );
         html.append( it->contents() );
-        html.append( "\n</div>\n" );
         ++it;
     }
 

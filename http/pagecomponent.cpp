@@ -19,6 +19,7 @@ public:
     String divClass;
     String contents;
     List<FrontMatter> frontMatter;
+    List<PageComponent> subComponents;
     WebPage * page;
 };
 
@@ -44,6 +45,16 @@ PageComponent::PageComponent( const String & divClass )
 
 bool PageComponent::done() const
 {
+    if ( !d->subComponents.isEmpty() ) {
+        List<PageComponent>::Iterator it( d->subComponents );
+        while ( it ) {
+            if ( !it->done() )
+                return false;
+            ++it;
+        }
+        return true;
+    }
+
     return !d->contents.isEmpty();
 }
 
@@ -91,7 +102,23 @@ void PageComponent::setPage( WebPage * page )
 
 String PageComponent::contents() const
 {
-    return d->contents;
+    String s( "<div class=\"" );
+    s.append( d->divClass );
+    s.append( "\">\n" );
+
+    if ( !d->subComponents.isEmpty() ) {
+        List<PageComponent>::Iterator it( d->subComponents );
+        while ( it ) {
+            s.append( it->contents() );
+            ++it;
+        }
+    }
+    else {
+        s.append( d->contents );
+    }
+
+    s.append( "\n</div>\n" );
+    return s;
 }
 
 
@@ -134,6 +161,28 @@ void PageComponent::addFrontMatter( FrontMatter * fm )
 List<FrontMatter> * PageComponent::frontMatter() const
 {
     return &d->frontMatter;
+}
+
+
+/*! Adds \a p to the list of sub-components of this PageComponent. The
+    contents() of this component will be a union of the contents() of
+    its sub-componenets.
+*/
+
+void PageComponent::addSubComponent( PageComponent * p )
+{
+    d->subComponents.append( p );
+    p->setPage( page() );
+}
+
+
+/*! Returns a non-zero pointer to a (possibly empty) list of
+    PageComponent objects that are contained within this one.
+*/
+
+List<PageComponent> * PageComponent::subComponents() const
+{
+    return &d->subComponents;
 }
 
 

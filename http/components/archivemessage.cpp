@@ -62,13 +62,13 @@ void ArchiveMessage::execute()
 
         Fetcher * f;
 
-        f = new MessageHeaderFetcher( m, &messages, this );
+        f = new MessageHeaderFetcher( m, &messages, page() );
         f->execute();
 
-        f = new MessageBodyFetcher( m, &messages, this );
+        f = new MessageBodyFetcher( m, &messages, page() );
         f->execute();
 
-        f = new MessageAddressFetcher( m, &messages, this );
+        f = new MessageAddressFetcher( m, &messages, page() );
         f->execute();
     }
 
