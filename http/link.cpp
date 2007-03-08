@@ -17,6 +17,7 @@
 #include "components/formmail.h"
 #include "components/sendmail.h"
 #include "components/footer.h"
+#include "components/searchbox.h"
 
 
 class LinkData
@@ -238,6 +239,7 @@ static WebPage * archiveMailboxes( Link * link )
 static WebPage * archiveMailbox( Link * link )
 {
     WebPage * p = new WebPage( link );
+    p->addComponent( new SearchBox );
     p->addComponent( new ArchiveMailbox( link ) );
     p->addComponent( new Footer );
     return p;

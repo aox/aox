@@ -11,4 +11,5 @@ Build http :
     formmail.cpp
     sendmail.cpp
     footer.cpp
+    searchbox.cpp
     ;
