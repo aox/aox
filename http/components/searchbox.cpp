@@ -2,6 +2,9 @@
 
 #include "searchbox.h"
 
+#include "link.h"
+#include "webpage.h"
+
 
 /*! \class SearchBox searchbox.h
     This class merely displays a search box on the page.
@@ -17,9 +20,13 @@ SearchBox::SearchBox()
 
 void SearchBox::execute()
 {
+    Link * l = page()->link();
+    String * query = l->arguments()->find( "query" );
     String s( "<form>" );
-    s.append( "<input type=text name=query>" );
-    s.append( "<input type=submit value=Search>" );
+    s.append( "<input type=text name=query value=\"" );
+    if ( query )
+        s.append( *query );
+    s.append( "\"><input type=submit value=Search>" );
     s.append( "</form>" );
     setContents( s );
 }
