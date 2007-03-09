@@ -470,8 +470,9 @@ server is started. The default is
 .IP managesieve-address
 specifies the address where
 .BR archiveopteryx (8)
-should listen for connections. The default is
-.IR 127.0.0.1 .
+should listen for connections. The default is an empty string, which
+means to listen on all available IPv4 and IPv6 addresses.
+.IR an empt
 .IP managesieve-port
 specifies which port
 .BR archiveopteryx (8)
