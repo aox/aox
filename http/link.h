@@ -5,6 +5,7 @@
 
 #include "abnfparser.h"
 #include "string.h"
+#include "dict.h"
 
 
 class HTTP;
@@ -60,6 +61,9 @@ public:
 
     Suffix suffix() const;
     void setSuffix( Suffix );
+
+    Dict<String> * arguments() const;
+    String query() const;
 
     String canonical() const;
     String original() const;

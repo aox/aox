@@ -38,6 +38,7 @@ public:
     uint uid;
     String part;
     Link::Suffix suffix;
+    Dict<String> arguments;
 
     WebPage * webpage;
 
@@ -181,6 +182,36 @@ void Link::setSuffix( Suffix suffix )
 }
 
 
+/*! Returns a non-zero pointer to a (possibly empty) Dict that contains
+    the parameters from the query component of this Link.
+*/
+
+Dict<String> * Link::arguments() const
+{
+    return &d->arguments;
+}
+
+
+/*! Returns the specified query string, if any, or an empty string. */
+
+String Link::query() const
+{
+    String s;
+    StringList::Iterator it( d->arguments.keys() );
+    while ( it ) {
+        // XXX: More %-escaping needed.
+        s.append( *it );
+        s.append( "=" );
+        s.append( *d->arguments.find( *it ) );
+        ++it;
+        if ( it )
+            s.append( "&" );
+    }
+
+    return s;
+}
+
+
 /*! Returns the URL passed to the constructor. */
 
 String Link::original() const
@@ -237,6 +268,16 @@ static WebPage * archiveMailboxes( Link * link )
 
 
 static WebPage * archiveMailbox( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new SearchBox );
+    p->addComponent( new ArchiveMailbox( link ) );
+    p->addComponent( new Footer );
+    return p;
+}
+
+
+static WebPage * archiveSearch( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new SearchBox );
@@ -323,7 +364,7 @@ static WebPage * sendmail( Link * link )
 
 enum Component {
     ArchivePrefix, WebmailPrefix,
-    Magic, MailboxName, Uid, Part, Suffix,
+    Magic, MailboxName, Uid, Part, Suffix, Arguments,
     Void,
     NumComponents
 };
@@ -335,6 +376,7 @@ static const struct Handler {
 } handlers[] = {
     { { ArchivePrefix, Void,        Void, Void,     Void }, &archiveMailboxes },
     { { ArchivePrefix, MailboxName, Void, Void,     Void }, &archiveMailbox },
+    { { ArchivePrefix, MailboxName, Arguments, Void,Void }, &archiveSearch },
     { { ArchivePrefix, MailboxName, Uid,  Suffix,   Void }, &archiveMessage },
     { { ArchivePrefix, MailboxName, Uid,  Part,     Void }, &partPage },
     { { WebmailPrefix, Void,        Void, Void,     Void }, &webmailMailboxes },
@@ -559,6 +601,39 @@ void Link::parse( const String & s )
             }
         }
 
+        if ( chosen == Void && legalComponents[::Arguments] ) {
+            Dict<String> args;
+            p->mark();
+            p->require( "?" );
+            while ( !p->atEnd() ) {
+                String n, v;
+                while ( p->nextChar() != '=' &&
+                        p->nextChar() != '&' &&
+                        !p->atEnd() )
+                    n.append( p->character() );
+                if ( p->present( "=" ) ) {
+                    while ( p->nextChar() != '&' && !p->atEnd() )
+                        v.append( p->character() );
+                }
+                args.insert( n, new String( v ) );
+                if ( p->nextChar() == '&' )
+                    p->step();
+                else
+                    break;
+            }
+            if ( p->ok() ) {
+                chosen = ::Arguments;
+                StringList::Iterator it( args.keys() );
+                while ( it ) {
+                    d->arguments.insert( *it, args.find( *it ) );
+                    ++it;
+                }
+            }
+            else {
+                p->restore();
+            }
+        }
+
         if ( chosen == Void && legalComponents[Void] ) {
             if ( p->atEnd() ) {
                 // ok - we've reached the end and reaching the end is
@@ -719,6 +794,10 @@ String Link::canonical() const
                 r.append( "/" );
                 r.append( suffixes[j].name );
             }
+            break;
+        case ::Arguments:
+            r.append( "?" );
+            r.append( query() );
             break;
         case Void:
         case NumComponents:
