@@ -630,7 +630,7 @@ String ArchiveMessage::jsToggle( const String &t,
     s.append( "</a></div>\n</div>\n" );
 
     s.append( "<div class=jsonly id=" + b + ">" );
-    s.append( "<a onclick=\"reveal('" + a + "')hide('" + b + "')\">" );
+    s.append( "<a onclick=\"reveal('" + a + "');hide('" + b + "')\">" );
     s.append( show );
     s.append( "</a></div>\n" );
 
