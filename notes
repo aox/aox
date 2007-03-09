@@ -22,6 +22,11 @@
   modseq first and avoid sending queries when nothing has changed.
 
 
+1.18: 2007-04-30
+
+  Check hostnames in managesieve-address and elsewhere.
+
+
 The value of features
 
   Archiveopteryx provides online archiving. We want the features we
@@ -87,8 +92,6 @@ Items for web site
 Various TODO items from earlier releases.
 
   This sounds like the last 1.x release before 2.0.
-
-  Sieve vacation extension.
 
   Make aox vacuum work without the great big lock.
 
@@ -172,20 +175,17 @@ Undefined codepoints
   This is done as a special case for GB2312/ISO-2022-JP right now.
 
 
+Sieve
+
+  Alexey suggests the following extensions (in the following order):
+  Vacation, reject, imapflags, subaddress.
+
+
 Better caching.
 
   FieldNameCache etc. can use less memory by reading all field and
   flag names into RAM at startup. That way, the memory used won't be
   scattered across many blocks.
-
-
-Port 587
-
-  Half done. More. Outstanding work: add a smarthost variable, send
-  mail from the deliveries/messages tables to the smarthost.
-
-  Later, when we parse SMTP properly, we'll want to add/replace a
-  Sender field if the authenticating user is not the address in From.
 
 
 RFC 2852
