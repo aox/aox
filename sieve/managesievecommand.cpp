@@ -222,8 +222,11 @@ bool ManageSieveCommand::authenticate()
 {
     if ( !d->m ) {
         String t = string().lower();
-        whitespace();
-        String r = string();
+        String r;
+        if ( d->arg[d->pos] == ' ' ) {
+            whitespace();
+            r = string();
+        }
         end();
 
         if ( !d->no.isEmpty() )
