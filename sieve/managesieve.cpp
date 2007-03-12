@@ -332,6 +332,7 @@ void ManageSieve::capabilities()
     enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
     enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) +
              "\"\r\n" );
-    enqueue( "\"STARTTLS\"\r\n" );
+    if ( !hasTls() )
+        enqueue( "\"STARTTLS\"\r\n" );
     enqueue( "\"X-AOX-EXPLAIN\"\r\n" );
 }
