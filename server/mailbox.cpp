@@ -12,6 +12,7 @@
 #include "string.h"
 #include "message.h"
 #include "fetcher.h"
+#include "session.h"
 #include "allocator.h"
 #include "messageset.h"
 #include "stringlist.h"
@@ -26,7 +27,7 @@ public:
         : type( Mailbox::Synthetic ), id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ),
-          watchers( 0 ),
+          sessions( 0 ),
           nextModSeq( 1 ),
           source( 0 ), sourceUids( 0 )
     {}
@@ -42,7 +43,7 @@ public:
 
     Mailbox * parent;
     List< Mailbox > * children;
-    List<EventHandler> * watchers;
+    List<Session> * sessions;
 
     uint nextModSeq;
 
@@ -546,7 +547,7 @@ void Mailbox::setUidnext( uint n )
     if ( n == d->uidnext )
         return;
     d->uidnext = n;
-    executeWatchers();
+    notifySessions();
 }
 
 
@@ -637,51 +638,61 @@ Query * Mailbox::remove( Transaction * t )
 }
 
 
-/*! Adds \a eh to the list of event handlers that should be notified
-    whenever new messags are injected into this mailbox. In the future
-    other changes may also be communicated via this interface.
+/*! Adds \a s to the list of sessions watching this mailbox. The
+    Mailbox will call Session::refresh() when refreshment seems
+    productive.
 
-    If \a eh watches this mailbox already, addWatcher() does nothing.
+    Does nothing if \a s is already watching this mailbox.
 */
 
-void Mailbox::addWatcher( EventHandler * eh )
+void Mailbox::addSession( Session * s )
 {
-    if ( !d->watchers )
-        d->watchers = new List<EventHandler>;
-    if ( eh && !d->watchers->find( eh ) )
-        d->watchers->append( eh );
+    if ( !d->sessions )
+        d->sessions = new List<Session>;
+    if ( s && !d->sessions->find( s ) )
+        d->sessions->append( s );
 }
 
 
-/*! Removes \a eh from the list of watchers for this mailbox, or does
-    nothing if \a eh doesn't watch this mailbox.
+/*! Removes \a s from the list of sessions for this mailbox, or does
+    nothing if \a s doesn't watch this mailbox.
 */
 
-void Mailbox::removeWatcher( EventHandler * eh )
+void Mailbox::removeSession( Session * s )
 {
-    if ( !d->watchers || !eh )
+    if ( !d->sessions || !s )
         return;
 
-    d->watchers->remove( eh );
-    if ( d->watchers->isEmpty() )
-        d->watchers = 0;
+    d->sessions->remove( s );
+    if ( d->sessions->isEmpty() )
+        d->sessions = 0;
 }
 
 
-/*! Calls the EventHandler::execute() function on each installed
-    watcher.
-*/
+/*! Calls the Session::refresh() function on each session. */
 
-void Mailbox::executeWatchers()
+void Mailbox::notifySessions()
 {
-    if ( !d->watchers )
+    if ( !d->sessions )
         return;
-    List<EventHandler>::Iterator it( d->watchers );
+    List<Session>::Iterator it( d->sessions );
     while ( it ) {
-        EventHandler * h = it;
+        Session * s = it;
         ++it;
-        h->execute();
+        s->refresh( 0 );
     }
+}
+
+
+/*! Returns a pointer to the sessions on this mailbox. The return
+    value may be a null pointer. In the event of client/network
+    problems it may also include sessions that have recently become
+    invalid.
+*/
+
+List<Session> * Mailbox::sessions() const
+{
+    return d->sessions;
 }
 
 
@@ -738,7 +749,10 @@ MessageSet Mailbox::sourceUids( const MessageSet &u ) const
 
 void Mailbox::setNextModSeq( uint n )
 {
+    if ( n == d->nextModSeq )
+        return;
     d->nextModSeq = n;
+    notifySessions();
 }
 
 

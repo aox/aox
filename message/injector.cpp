@@ -19,6 +19,7 @@
 #include "annotation.h"
 #include "allocator.h"
 #include "occlient.h"
+#include "session.h"
 #include "scope.h"
 #include "html.h"
 #include "md5.h"
@@ -1220,17 +1221,30 @@ void Injector::logMessageDetails()
 
 void Injector::announce()
 {
+    List<Message> dummy;
+    dummy.append( d->message );
+
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
-        Mailbox *m = mi->mailbox;
+        Mailbox * m = mi->mailbox;
+
+        List<Session>::Iterator si( m->sessions() );
+        while ( si ) {
+            si->recordChange( &dummy, Session::New );
+            ++si;
+        }
 
         if ( m->uidnext() <= uid ) {
             m->setUidnext( 1 + uid );
             OCClient::send( "mailbox " + m->name().quoted() + " "
                             "uidnext=" + fn( m->uidnext() ) );
         }
-
+        if ( m->nextModSeq() <= d->message->modSeq() ) {
+            m->setNextModSeq( 1 + d->message->modSeq() );
+            OCClient::send( "mailbox " + m->name().quoted() + " "
+                            "nextmodseq=" + fn( m->nextModSeq() ) );
+        }
         ++mi;
     }
 }

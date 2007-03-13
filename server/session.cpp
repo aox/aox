@@ -14,35 +14,36 @@
 #include "log.h"
 
 
-static List<Session> * sessions = 0;
-
-
 class SessionData
     : public Garbage
 {
 public:
     SessionData()
         : readOnly( true ),
-          watchers( 0 ),
           initialiser( 0 ),
           mailbox( 0 ),
-          uidnext( 0 ), firstUnseen( 0 ),
+          uidnext( 0 ), nextModSeq( 0 ),
+          firstUnseen( 0 ),
           permissions( 0 ),
-          announced( 0 )
+          announced( 0 ),
+          reportedExists( 0 )
     {}
 
     bool readOnly;
     bool active;
-    List<EventHandler> * watchers;
     SessionInitialiser * initialiser;
     Mailbox * mailbox;
     MessageSet msns;
     MessageSet recent;
     MessageSet expunges;
     uint uidnext;
+    int64 nextModSeq;
     uint firstUnseen;
     Permissions * permissions;
     uint announced;
+    uint reportedExists;
+    List<Message> newMessages;
+    List<Message> modifiedMessages;
 };
 
 
@@ -61,11 +62,7 @@ Session::Session( Mailbox *m, bool readOnly )
 {
     d->mailbox = m;
     d->readOnly = readOnly;
-    if ( !::sessions ) {
-        ::sessions = new List<Session>;
-        Allocator::addEternal( ::sessions, "list of active sessions" );
-    }
-    ::sessions->append( this );
+    d->mailbox->addSession( this );
 }
 
 
@@ -78,16 +75,12 @@ Session::~Session()
 }
 
 
-/*! Removes this Session from the global list of Session objects.
-*/
+/*! Ensures that the Mailbox will not keep this object alive. */
 
 void Session::end()
 {
-    List<Session>::Iterator it( ::sessions );
-    while ( it && it != this )
-        ++it;
-    if ( it == this )
-        ::sessions->take( it );
+    if ( d->mailbox )
+        d->mailbox->removeSession( this );
 }
 
 
@@ -99,6 +92,10 @@ bool Session::initialised() const
     if ( !d->uidnext )
         return false;
     if ( d->initialiser )
+        return false;
+    if ( d->nextModSeq < d->mailbox->nextModSeq() )
+        return false;
+    if ( d->uidnext < d->mailbox->uidnext() )
         return false;
     return true;
 }
@@ -283,19 +280,46 @@ void Session::addRecent( uint uid )
 
 
 /*! Returns true if this Session needs to refresh the client's
-    world view with some EXPUNGE and/or EXISTS responses.
+    world view in response to \a type changes.
 */
 
-bool Session::responsesNeeded() const
+bool Session::responsesNeeded( ResponseType type ) const
 {
-    if ( d->mailbox->uidnext() > d->uidnext )
-        return true;
-    if ( d->mailbox->type() == Mailbox::View &&
-         d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() )
-        return true;
-    if ( !d->expunges.isEmpty() )
-        return true;
+    // a bit of a hack - if it's a view and it hasn't been updated,
+    // fake an update
+    if ( d->mailbox->type() == Mailbox::View )
+        ((Session*)this)->refresh( 0 );
+
+    switch ( type ) {
+    case New:
+        if ( !d->newMessages.isEmpty() )
+            return true;
+        break;
+    case Modified:
+        if ( !d->modifiedMessages.isEmpty() )
+            return true;
+        break;
+    case Deleted:
+        if ( !d->expunges.isEmpty() )
+            return true;
+        break;
+    }
     return false;
+}
+
+
+/*! Returns false if something's missing before \a type responses can
+    be emitted, and true if nothing is known to be missing.
+*/
+
+bool Session::responsesReady( ResponseType type ) const
+{
+    if ( d->initialiser )
+        return false;
+    if ( !responsesNeeded( type ) )
+        return true;
+
+    return true;
 }
 
 
@@ -307,50 +331,87 @@ void Session::expunge( const MessageSet & uids )
 {
     if ( uids.isEmpty() )
         return;
-    List<Session>::Iterator i( ::sessions );
+    List<Session>::Iterator i( mailbox()->sessions() );
     while ( i ) {
-        if ( i->mailbox() == mailbox() )
-            i->d->expunges.add( uids );
+        i->d->expunges.add( uids );
+        i->emitResponses();
         ++i;
     }
-    mailbox()->executeWatchers();
 }
 
 
-/*! Sends all necessary EXPUNGE, EXISTS and OK[UIDNEXT] responses and
-    updates this Session accordingly.
-
-    emitResponses() uses Connection::writeBuffer() directly.
+/*! Emit all the responses that are necessary and possible at this time.
 */
 
 void Session::emitResponses()
 {
-    bool change = false;
-    uint i = 1;
-    while ( i <= d->expunges.count() ) {
-        uint uid = d->expunges.value( i );
-        uint msn = d->msns.index( uid );
-        if ( msn ) {
-            emitExpunge( msn );
-            change = true;
-            d->msns.remove( uid );
-        }
-        i++;
-    }
-    d->expunges.clear();
-    if ( d->uidnext < d->mailbox->uidnext() ) {
-        change = true;
-        if ( !d->initialiser )
-            (void)new SessionInitialiser( this, 0 );
-    }
-    else if ( d->mailbox->type() == Mailbox::View &&
-              d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() ) {
-        if ( !d->initialiser )
-            (void)new SessionInitialiser( this, 0 );
-    }
+    if ( responsesNeeded( Deleted ) )
+        emitResponses( Deleted );
+    if ( responsesNeeded( Modified ) )
+        emitResponses( Modified );
+    if ( responsesNeeded( New ) )
+        emitResponses( New );
+}
 
-    if ( change )
-        emitExists( d->msns.count() );
+
+/*! Calls emitExpunge(), emitExists(), emitModification() etc. as
+    needed and as indicated by \a type. Only sends the desired \a type
+    of response.
+*/
+
+void Session::emitResponses( ResponseType type )
+{
+    if ( !responsesPermitted( 0, type ) )
+        return;
+
+    if ( type == Deleted ) {
+        uint i = 1;
+        while ( i <= d->expunges.count() ) {
+            uint uid = d->expunges.value( i );
+            uint msn = d->msns.index( uid );
+            if ( msn ) {
+                emitExpunge( msn );
+                d->msns.remove( uid );
+                if ( d->reportedExists > 0 )
+                    d->reportedExists--;
+            }
+            i++;
+        }
+        d->expunges.clear();
+    }
+    else if ( type == Modified ) {
+        List<Message>::Iterator i( d->modifiedMessages );
+        while ( i ) {
+            List<Message>::Iterator m = i;
+            ++i;
+            if ( !msn( m->uid() ) ) {
+                // this message is no longer in our session, so we
+                // don't want to emit anything
+                d->modifiedMessages.take( m );
+            }
+            else if ( responsesPermitted( m, Modified ) ) {
+                // we can notify the client of the modification already
+                emitModification( m );
+                d->modifiedMessages.take( m );
+            }
+            else {
+                // we have to wait for the next opportunity
+            }
+        }
+    }
+    else { // New
+        List<Message>::Iterator i( d->newMessages );
+        while ( i ) {
+            d->msns.add( i->uid() );
+            ++i;
+        }
+        d->newMessages.clear();
+        uint c = d->msns.count();
+        if ( d->reportedExists != c ) {
+            d->reportedExists = c;
+            emitExists( c );
+        }
+    }
 }
 
 
@@ -414,6 +475,8 @@ void Session::refresh( EventHandler * handler )
         d->initialiser->addWatcher( handler );
     else if ( d->uidnext < d->mailbox->uidnext() )
         (void)new SessionInitialiser( this, handler );
+    else if ( d->nextModSeq < d->mailbox->nextModSeq() )
+        (void)new SessionInitialiser( this, handler );
     else if ( d->mailbox->type() == Mailbox::View &&
               d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() )
         (void)new SessionInitialiser( this, handler );
@@ -444,8 +507,12 @@ public:
 
     uint oldUidnext;
     uint newUidnext;
+    int64 oldModSeq;
+    int64 newModSeq;
 
     MessageSet expunged;
+    List<Message> newMessages;
+    List<Message> updated;
 
     bool done;
 };
@@ -474,21 +541,19 @@ SessionInitialiser::SessionInitialiser( Session * session,
 {
     d->session = session;
     addWatcher( owner );
+    d->oldModSeq = d->session->nextModSeq();
+    d->newModSeq = d->session->mailbox()->nextModSeq();
     d->oldUidnext = d->session->uidnext();
-    uint newUidnext = d->session->mailbox()->uidnext();
-    if ( d->oldUidnext >= newUidnext )
+    d->newUidnext = d->session->mailbox()->uidnext();
+    if ( d->oldModSeq >= d->newModSeq && d->oldUidnext >= d->newUidnext )
         return;
 
     log( "Updating session on " + d->session->mailbox()->name() +
-         " for UIDs [" + fn( d->oldUidnext ) + "," +
-         fn( newUidnext ) + ">" );
+         " for modseq [" + fn( d->oldModSeq ) + "," +
+         fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
+         fn( d->newUidnext ) + ">" );
 
     d->session->addSessionInitialiser( this );
-    d->session->setUidnext( newUidnext );
-    if ( d->oldUidnext ) {
-        d->session->insert( d->oldUidnext, newUidnext-1 );
-        d->expunged.add( d->oldUidnext, newUidnext-1 );
-    }
     execute();
 }
 
@@ -504,7 +569,7 @@ void SessionInitialiser::execute()
         d->t = new Transaction( this );
 
         d->nms =
-            new Query( "select last_value::int from nextmodsequence", this );
+            new Query( "select last_value from nextmodsequence", this );
         d->t->enqueue( d->nms );
 
         if ( m->ordinary() ) {
@@ -526,10 +591,14 @@ void SessionInitialiser::execute()
             }
 
             d->messages =
-                new Query( "select uid from messages m left join "
-                           "deleted_messages dm using (mailbox,uid) "
-                           "where m.mailbox=$1 and m.uid>=$2 and "
-                           "dm.uid is null", this );
+                new Query( "select m.uid from messages m "
+                           "join modsequences ms "
+                           " on (m.mailbox=ms.mailbox and m.uid=ms.uid) "
+                           "left join deleted_messages dm "
+                           " on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
+                           "where m.mailbox=$1 and dm.uid is null and "
+                           " (m.uid>=$2 or ms.modseq>=$3)", this );
+            // XXX: I think ms.modseq>=3 in all cases where m.uid>=$2
         }
         else {
             Query * q;
@@ -551,7 +620,7 @@ void SessionInitialiser::execute()
 
             Selector * sel = new Selector;
             sel->add( new Selector( Selector::Modseq, Selector::Larger,
-                                    m->nextModSeq() ) );
+                                    d->oldModSeq ) );
             sel->add( Selector::fromString( m->selector() ) );
             sel->simplify();
 
@@ -571,24 +640,16 @@ void SessionInitialiser::execute()
             d->t->enqueue( q );
 
             // if the search expression is dynamic, we may also need to
-            // delete some rows.
+            // delete some rows for messages that no longer match.
             Selector * tmp = Selector::fromString( m->selector() );
             if ( tmp->dynamic() ) {
-                sel = new Selector;
-                sel->add( tmp );
-                tmp = new Selector( Selector::Not );
-                sel->add( tmp );
-                tmp->add( new Selector( Selector::Modseq, Selector::Larger,
-                                        m->nextModSeq() ) );
-                sel->simplify();
-                q = sel->query( 0, m->source(), 0, 0 );
-                uint view = sel->placeHolder();
-                String s( "delete from view_messages where "
-                          "view=$" + fn( view ) + " and "
-                          "suid in (" + q->string() + ")" );
-                q->setString( s );
-                q->bind( view, m->id() );
-                d->t->enqueue( q );
+                // we want to delete those rows which are modsec >= x
+                // AND NOT tmp.
+                //
+                // complicating matters, some rows may have been
+                // deleted in the database but still be present in our
+                // session (because another archiveopteryx process is
+                // running SessionInitialiser).
             }
 
             q = new Query( "update mailboxes set uidnext=nextval('vs') "
@@ -599,8 +660,10 @@ void SessionInitialiser::execute()
             d->t->enqueue( m->refresh() );
 
             d->messages =
-                new Query( "select uid,suid from view_messages where "
-                           "view=$1 and uid>=$2", this );
+                new Query( "select vm.uid,vm.suid from view_messages "
+                           "join modsequences ms using (mailbox,uid) "
+                           "where vm.view=$1 and "
+                           " (vm.uid>=$2 or ms.modseq>=$3)", this );
 
             q = new Query( "drop sequence vs", 0 );
             d->t->enqueue( q );
@@ -608,13 +671,12 @@ void SessionInitialiser::execute()
 
         d->messages->bind( 1, m->id() );
         d->messages->bind( 2, d->oldUidnext );
+        d->messages->bind( 3, d->oldModSeq );
 
         d->t->enqueue( d->messages );
         d->t->execute();
 
         if ( !d->session->firstUnseen() ) {
-            // XXX: a slightly unpleasant query. three seqscans, two
-            // of them on large tables.
             Flag * seen = Flag::find( "\\seen" );
             if ( seen ) {
                 d->seen =
@@ -635,21 +697,22 @@ void SessionInitialiser::execute()
     Row * r = 0;
 
     while ( (r=d->nms->nextRow()) != 0 ) {
-        uint uid = r->getInt( "last_value" );
-        m->setNextModSeq( uid );
+        int64 ms = r->getBigint( "last_value" );
+        m->setNextModSeq( ms );
         if ( m->view() )
-            m->source()->setNextModSeq( uid );
+            m->source()->setNextModSeq( ms );
     }
 
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
-        if ( d->expunged.contains( uid ) )
-            d->expunged.remove( uid );
-        else
-            d->session->insert( uid );
-
         if ( m->view() )
             m->setSourceUid( uid, r->getInt( "suid" ) );
+        Message * m = new Message;
+        m->setUid( uid );
+        if ( m->uid() >= d->oldUidnext )
+            d->newMessages.append( m );
+        else
+            d->updated.append( m );
     }
 
     if ( d->recent && (r=d->recent->nextRow()) != 0 ) {
@@ -660,8 +723,6 @@ void SessionInitialiser::execute()
     }
 
     if ( !d->t->done() && d->messages->done() && !d->done ) {
-        if ( m->type() == Mailbox::View )
-            d->session->setUidnext( m->uidnext() );
         d->t->commit();
         d->done = true;
     }
@@ -677,7 +738,11 @@ void SessionInitialiser::execute()
             d->session->setFirstUnseen( r->getInt( "uid" ) );
     }
 
-    d->session->expunge( d->expunged );
+    d->session->recordChange( &d->newMessages, Session::New );
+    d->session->recordChange( &d->updated, Session::Modified );
+
+    d->session->setUidnext( m->uidnext() );
+    d->session->setNextModSeq( m->nextModSeq() );
     d->session->removeSessionInitialiser();
 
     List<EventHandler>::Iterator it( d->watchers );
@@ -686,6 +751,7 @@ void SessionInitialiser::execute()
         ++it;
         e->execute();
     }
+    d->session->emitResponses();
 }
 
 
@@ -763,18 +829,83 @@ void Session::addSessionInitialiser( class SessionInitialiser * s )
 }
 
 
-/*! Returns the number of Session objects referencing \a mailbox. This
-    is necessary for RFC 2180 compliance.
+/*! Returns a list of the messages that have been modified and about
+    which which the client may need to be told. The returned list may
+    be empty, but is never a null pointer.
+
 */
 
-uint Session::activeSessions( Mailbox * mailbox )
+List<Message> * Session::modifiedMessages() const
 {
-    uint n = 0;
-    List<Session>::Iterator i( ::sessions );
+    return &d->modifiedMessages;
+}
+
+
+/*! Records that there's been a change of \a type involving \a m, so
+    that the client can be informed of the change. Only types New and
+    Deleted may be used with this function.
+*/
+
+void Session::recordChange( List<Message> * m, ResponseType type )
+{
+    List<Message>::Iterator i( m );
+    List<Message>::Iterator j;
+    List<Message> * l = &d->modifiedMessages;
+    if ( type == New )
+        l = &d->newMessages;
+    uint prev = 0;
     while ( i ) {
-        if ( i->mailbox() == mailbox )
-            n++;
+        if ( !j || i->uid() < prev )
+            j = l->first();
+        while ( j && j->uid() < i->uid() )
+            ++j;
+        if ( !j || j->uid() > i->uid() ) {
+            l->insert( j, i );
+            prev = i->uid();
+        }
         ++i;
     }
-    return n;
+}
+
+
+/*! Returns what setNextModSeq() set. The initial value is 0. */
+
+int64 Session::nextModSeq() const
+{
+    return d->nextModSeq;
+}
+
+
+/*! Records that the next possible modseq for a message in this
+    session is \a ms or higher.
+*/
+
+void Session::setNextModSeq( int64 ms ) const
+{
+    d->nextModSeq = ms;
+}
+
+
+/*! Returns true if this session can notify its client of a \a type
+    event for \a m. \a m may be null, which means "no particular
+    message".
+*/
+
+bool Session::responsesPermitted( Message * m, ResponseType type ) const
+{
+    return true;
+    // and for the warnings...
+    type = type;
+    m = m;
+}
+
+
+/*! This virtual function emits whatever data is necessary and
+    appropriate to inform the client that \a m has changed. The
+    default implementation does nothing.
+*/
+
+void Session::emitModification( Message * m )
+{
+    m = m;
 }

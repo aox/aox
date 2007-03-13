@@ -4,6 +4,7 @@
 #define IMAP_H
 
 #include "connection.h"
+#include "list.h"
 
 class String;
 class Command;
@@ -41,7 +42,7 @@ public:
 
     static void setup();
 
-    uint activeCommands() const;
+    List<Command> * commands() const;
     void unblockCommands();
 
 private:

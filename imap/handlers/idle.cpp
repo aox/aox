@@ -35,20 +35,12 @@ void Idle::execute()
     if ( imap()->session() )
         m = imap()->session()->mailbox();
 
-    // if we're already idling, emit possible responses
-    if ( idling && m )
-        imap()->session()->emitResponses();
-
     // if the connection went away while we were idling, finish off.
-    if ( m && imap()->Connection::state() != Connection::Connected )
+    if ( !m || imap()->Connection::state() != Connection::Connected )
         read();
 
     if ( idling )
         return;
-
-    // if we have to set up idling, do it
-    if ( m )
-        m->addWatcher( this );
 
     imap()->reserve( this );
     imap()->enqueue( "+ idling\r\n" );
@@ -61,13 +53,7 @@ void Idle::execute()
 
 void Idle::read()
 {
-    Mailbox * m = 0;
-    if ( imap()->session() )
-        m = imap()->session()->mailbox();
-
     if ( imap()->Connection::state() != Connection::Connected ) {
-        if ( m )
-            m->removeWatcher( this );
         error( Bad, "Leaving idle mode due to connection state change" );
         imap()->reserve( 0 );
         return;
@@ -84,8 +70,6 @@ void Idle::read()
             error( Bad, "Leaving idle mode due to syntax error: " + r );
     }
 
-    if ( m )
-        m->removeWatcher( this );
     imap()->reserve( 0 );
 
     finish();

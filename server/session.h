@@ -7,6 +7,7 @@
 #include "messageset.h"
 #include "permissions.h"
 #include "event.h"
+#include "list.h"
 
 class Mailbox;
 class Message;
@@ -35,6 +36,10 @@ public:
 
     uint uidnext() const;
     uint uidvalidity() const;
+    void setUidnext( uint );
+
+    int64 nextModSeq() const;
+    void setNextModSeq( int64 ) const;
 
     uint uid( uint ) const;
     uint msn( uint ) const;
@@ -54,24 +59,31 @@ public:
     const MessageSet & expunged() const;
     const MessageSet & messages() const;
 
-    void setUidnext( uint );
     void expunge( const MessageSet & );
     void clearExpunged();
 
     uint announced() const;
     void setAnnounced( uint );
 
-    bool responsesNeeded() const;
+    enum ResponseType { New, Modified, Deleted };
+
+    bool responsesNeeded( ResponseType ) const;
+    bool responsesReady( ResponseType ) const;
+    virtual bool responsesPermitted( Message *, ResponseType ) const;
+
     void emitResponses();
+    void emitResponses( ResponseType );
     virtual void emitExpunge( uint );
     virtual void emitExists( uint );
+
+    List<Message> * modifiedMessages() const;
+    void recordChange( List<Message> *, ResponseType );
+
+    virtual void emitModification( Message * );
 
     void addSessionInitialiser( class SessionInitialiser * );
     void removeSessionInitialiser();
 
-    static uint activeSessions( Mailbox * );
-
-private:
     class SessionData *d;
 };
 

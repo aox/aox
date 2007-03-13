@@ -53,8 +53,9 @@ class CommandData
 public:
     CommandData()
         : args( 0 ),
-          responded( false ), tagged( false ),
-          canExpunge( false ), error( false ),
+          tagged( false ),
+          usesMsn( false ),
+          error( false ),
           state( Command::Unparsed ), group( 0 ),
           permittedStates( 0 ),
           imap( 0 ), checker( 0 )
@@ -68,10 +69,9 @@ public:
 
     List< String > responses;
     String respTextCode;
-    bool responded;
     bool tagged;
-    bool canExpunge;
 
+    bool usesMsn;
     bool error;
     Command::State state;
     uint group;
@@ -103,7 +103,8 @@ public:
 
     setState() and state() decribe a command's state, which is either
     Blocked (waiting until IMAP permits executing this command),
-    Executing or Finished.
+    Executing (Command subclass working), Finished (done, but no
+    response sent) or Retired (done, responses sent).
 
     respond(), emitResponses(), error() and ok() all help sending
     responses to the IMAP client. respond() is mostly used for
@@ -268,7 +269,7 @@ Command * Command::create( IMAP * imap,
         return 0;
 
     c->d->tag = tag;
-    c->d->name = name;
+    c->d->name = name.lower();
     c->d->args = args;
     c->d->imap = imap;
 
@@ -280,12 +281,6 @@ Command * Command::create( IMAP * imap,
         c->d->permittedStates |= ( 1 << IMAP::Selected );
     if ( logout )
         c->d->permittedStates |= ( 1 << IMAP::Logout );
-
-    // we can send expunges provided we're in selected state, and the
-    // command neither uses MSNs nor is called "search". the bit about
-    // search makes little sense, but it's specified in the RFC, so...
-    if ( selected && ( n != "search" || uid ) )
-        c->d->canExpunge = true;
 
     c->setLog( new Log( Log::IMAP ) );
     c->log( "IMAP Command: " + tag + " " + name );
@@ -392,6 +387,8 @@ void Command::setState( State s )
 
     d->state = s;
     switch( s ) {
+    case Retired:
+        break;
     case Unparsed:
         // this is the initial state, it should never be called.
         break;
@@ -437,6 +434,25 @@ bool Command::validIn( IMAP::State s ) const
 String Command::tag() const
 {
     return d->tag;
+}
+
+
+/*! Returns the name of this command, e.g. 'uid fetch', in lower
+    case. */
+
+String Command::name() const
+{
+    return d->name;
+}
+
+
+/*! Returns true if this command has parsed at least one MSN, and
+    false if it has not (ie. it returns false before parse()).
+*/
+
+bool Command::usesMsn() const
+{
+    return d->usesMsn;
 }
 
 
@@ -543,8 +559,8 @@ void Command::error( Error e, const String & t )
 }
 
 
-/*! Sets this Command's state to ::Finished and immediately emits any
-    queued responses.
+/*! Sets this Command's state to ::Finished and emit any queued
+    responses as soon as possible.
 */
 
 void Command::finish()
@@ -566,9 +582,12 @@ void Command::finish()
 
 void Command::emitResponses()
 {
-    if ( d->responded )
+    if ( state() == Retired )
         return;
-    d->responded = true;
+
+    Session * s = imap()->session();
+    if ( s && !s->initialised() )
+            return;
 
     if ( !d->tagged ) {
         if ( !d->error ) {
@@ -589,12 +608,8 @@ void Command::emitResponses()
     while ( it ) {
         String * r = it;
         ++it;
-        if ( !it &&
-             d->canExpunge &&
-             imap()->state() == IMAP::Selected &&
-             imap()->activeCommands() == 0 &&
-             imap()->session()->responsesNeeded() )
-            imap()->session()->emitResponses();
+        if ( s && !it )
+            s->emitResponses();
         imap()->enqueue( *r );
         if ( !it ) {
             int i = r->find( ' ' );
@@ -603,6 +618,7 @@ void Command::emitResponses()
         }
     }
 
+    setState( Retired );
     imap()->write();
 }
 
@@ -931,8 +947,7 @@ uint Command::msn()
         return 1;
     }
 
-    if ( d->name != "copy" ) // see RFC 2180 section 4.4.1/2
-        d->canExpunge = false;
+    d->usesMsn = true;
 
     uint star = session->count();
     uint r = star;

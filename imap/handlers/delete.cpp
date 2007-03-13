@@ -55,7 +55,7 @@ void Delete::execute()
         d->m = Mailbox::obtain( mailboxName( d->n ), false );
         if ( !d->m || d->m->deleted() )
             error( No, "No such mailbox: " + d->n );
-        else if ( Session::activeSessions( d->m ) )
+        else if ( d->m->sessions() )
             error( No, "Mailbox is in use" );
         else if ( d->m->synthetic() )
             error( No, d->m->name() + " does not really exist anyway" );

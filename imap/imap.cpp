@@ -487,6 +487,14 @@ void IMAP::runCommands()
             }
         }
 
+        // are there commands which have finished, but haven't been
+        // retired due to missing Session responses?
+        i = d->commands.first();
+        while ( i && i->state() == Command::Finished ) {
+            i->emitResponses();
+            ++i;
+        }
+
         // if there are any unparsed commands, start at the oldest
         // unparsed commands and parse contiguous commands until a
         // command isn't valid in this state.
@@ -537,7 +545,7 @@ void IMAP::expireCommands()
 {
     List< Command >::Iterator i( d->commands );
     while ( i ) {
-        if ( i->state() == Command::Finished )
+        if ( i->state() == Command::Retired )
             d->commands.take( i );
         else
             ++i;
@@ -637,21 +645,6 @@ void IMAP::endSession()
 }
 
 
-/*! Returns the total number of unfinished commands. */
-
-uint IMAP::activeCommands() const
-{
-    uint n = 0;
-    List<Command>::Iterator i( d->commands );
-    while ( i ) {
-        if ( i->state() != Command::Finished )
-            n++;
-        ++i;
-    }
-    return n;
-}
-
-
 class IMAPSData
     : public Garbage
 {
@@ -730,4 +723,16 @@ bool IMAP::clientSupports( ClientCapability capability ) const
 void IMAP::setClientSupports( ClientCapability capability )
 {
     d->clientCapabilities[capability] = true;
+}
+
+
+/*! Returns a list of all Command objects currently known by this IMAP
+    server. First received command first. Commands in all states may
+    be in the list, although Retired should be unusual.
+
+*/
+
+List<Command> * IMAP::commands() const
+{
+    return &d->commands;
 }

@@ -229,7 +229,7 @@ void Rename::execute()
     if ( !d->ready ) {
         List< RenameData::MailboxPair >::Iterator it( d->renames );
         while ( it ) {
-            if ( Session::activeSessions( it->from ) ) {
+            if ( it->from->sessions() ) {
                 error( No, "Mailbox is in use: " + it->from->name() );
                 break;
             }

@@ -141,7 +141,7 @@ bool Expunge::expunge( bool chat )
 
     if ( chat && imap()->session() ) {
         imap()->session()->expunge( d->uids );
-        imap()->session()->emitResponses();
+        imap()->session()->emitResponses( Session::Deleted );
     }
 
     return true;

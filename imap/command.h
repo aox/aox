@@ -30,18 +30,21 @@ public:
 
     ImapParser * parser() const;
 
-    enum State { Unparsed, Blocked, Executing, Finished };
+    enum State { Unparsed, Blocked, Executing, Finished, Retired };
     State state() const;
     void setState( State );
 
     bool validIn( IMAP::State ) const;
 
     String tag() const;
+    String name() const;
+
+    bool usesMsn() const;
 
     uint group() const;
     void setGroup( uint );
 
-    IMAP *imap() const;
+    IMAP * imap() const;
 
     enum Response { Tagged, Untagged };
     void respond( const String &, Response = Untagged );

@@ -4,8 +4,10 @@
 #define IMAPSESSION_H
 
 #include "session.h"
+#include "list.h"
 
 class Mailbox;
+class Message;
 class IMAP;
 
 
@@ -19,9 +21,14 @@ public:
     IMAP * imap() const;
 
     void emitExpunge( uint );
+    void emitModification( Message * );
     void emitExists( uint );
+    bool responsesPermitted( Message *, ResponseType ) const;
+    bool responsesReady( ResponseType ) const;
 
     void recordExpungedFetch( const MessageSet & );
+
+    void enqueue( const String & );
 
 private:
     class ImapSessionData * d;

@@ -322,11 +322,6 @@ void Append::execute()
         d->injector->execute();
     }
 
-    if ( imap()->session() && !imap()->session()->initialised() ) {
-        imap()->session()->refresh( this );
-        return;
-    }
-
     if ( d->injector->failed() )
         error( No, "Could not append to " + d->mbx );
 

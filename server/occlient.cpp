@@ -175,7 +175,6 @@ void OCClient::updateMailbox( const String & arg )
         m->setDeleted( true );
         m->refresh()->execute();
     }
-
     else if ( rest.startsWith( "uidnext=" ) ) {
         bool ok;
         uint n = rest.mid( 8 ).number( &ok );
@@ -187,6 +186,19 @@ void OCClient::updateMailbox( const String & arg )
             ::log( "OCClient set mailbox " + m->name() +
                    " to uidnext " + fn( n ), Log::Debug );
             m->setUidnext( n );
+        }
+    }
+    else if ( rest.startsWith( "nextmodseq=" ) ) {
+        bool ok;
+        uint n = rest.mid( 11 ).number( &ok ); // XXX: eek! bigint!
+        if ( !ok ) {
+            ::log( "Unable to parse NEXTMODSEQ value: " + rest.mid( 11 ),
+                   Log::Error );
+        }
+        else {
+            ::log( "OCClient set mailbox " + m->name() +
+                   " to nextmodseq " + fn( n ), Log::Debug );
+            m->setNextModSeq( n );
         }
     }
     else {

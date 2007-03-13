@@ -76,9 +76,10 @@ public:
     Query * remove( class Transaction * );
     Query * refresh( EventHandler * = 0 );
 
-    void addWatcher( EventHandler * );
-    void removeWatcher( EventHandler * );
-    void executeWatchers();
+    void addSession( class Session * );
+    void removeSession( class Session * );
+    void notifySessions();
+    List<class Session> * sessions() const;
 
 private:
     class MailboxData *d;
