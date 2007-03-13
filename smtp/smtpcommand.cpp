@@ -244,6 +244,7 @@ SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
     : SmtpCommand( s )
 {
     respond( 250, "See http://aox.org" );
+    finish();
 }
 
 
