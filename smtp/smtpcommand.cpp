@@ -75,7 +75,7 @@ String SmtpCommand::response() const
     String r;
     String n = fn( d->responseCode );
     StringList::Iterator it( d->response );
-    do {
+    while ( it ) {
         String l = *it;
         ++it;
         r.append( n );
@@ -85,7 +85,7 @@ String SmtpCommand::response() const
             r.append( "-" );
         r.append( l );
         r.append( "\r\n" );
-    } while ( it );
+    }
     log( "Sending response '" + r + "'",
          d->responseCode >= 400 ? Log::Info : Log::Debug );
     return r;
