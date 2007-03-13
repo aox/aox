@@ -2928,7 +2928,11 @@ void reparse()
             q->bind( 1, d->row->getInt( "mailbox" ) );
             q->bind( 2, d->row->getInt( "uid" ) );
             q->bindNull( 3 ); // XXX: What to do here?
-            q->bind( 4, "reparsed" );
+            q->bind( 4,
+                     String( "reparsed as uid " ) +
+                     fn(d->injector->uid(d->injector->mailboxes()->first())) +
+                     " by aox " +
+                     Configuration::compiledIn( Configuration::Version ) );
             q->execute();
         }
     }
