@@ -26,8 +26,8 @@ class ManageSieveCommandData
 public:
     ManageSieveCommandData()
         : sieve( 0 ), pos( 0 ), done( false ),
-          startedTls( false ), tlsServer( 0 ),
-          m( 0 ), r( 0 ), user( 0 ), t( 0 ), query( 0 ), step( 0 )
+          tlsServer( 0 ), m( 0 ), r( 0 ),
+          user( 0 ), t( 0 ), query( 0 ), step( 0 )
     {}
 
     ManageSieve * sieve;
@@ -37,7 +37,6 @@ public:
 
     bool done;
 
-    bool startedTls;
     TlsServer * tlsServer;
     SaslMechanism * m;
     String * r;
@@ -189,7 +188,7 @@ void ManageSieveCommand::execute()
 
 bool ManageSieveCommand::startTls()
 {
-    if ( d->startedTls ) {
+    if ( d->sieve->hasTls() ) {
         no( "STARTTLS once = good. STARTTLS twice = bad." );
         return true;
     }
@@ -216,9 +215,6 @@ bool ManageSieveCommand::startTls()
         d->sieve->enqueue( "OK\r\n" );
         d->sieve->write();
         d->sieve->startTls( d->tlsServer );
-    }
-    else {
-        d->startedTls = true;
         d->sieve->capabilities();
         return true;
     }
