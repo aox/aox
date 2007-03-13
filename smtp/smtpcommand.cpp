@@ -254,7 +254,7 @@ SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
 /*! Starts TLS negotiation as server for \a s. */
 
 SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
-    : SmtpCommand( s ), tlsServer( 0 )
+    : SmtpCommand( s ), startedTls( false ), tlsServer( 0 )
 {
     tlsServer = new TlsServer( this, server()->peer(), "SMTP" );
 }
@@ -262,7 +262,7 @@ SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
 
 void SmtpStarttls::execute()
 {
-    if ( server()->hasTls() ) {
+    if ( startedTls ) {
         respond( 502, "Already using TLS" );
         finish();
         return;
@@ -274,13 +274,22 @@ void SmtpStarttls::execute()
     if ( !server()->isFirstCommand( this ) )
         return;
 
-    server()->enqueue( "220 Start negotiating TLS now.\r\n" );
-    server()->write();
-    finish();
-    log( "Negotiating TLS", Log::Debug );
-    server()->startTls( tlsServer );
+    if ( !server()->hasTls() ) {
+        if ( !tlsServer->ok() ) {
+            respond( 454, "Internal error starting TLS engine" );
+            finish();
+            return;
+        }
 
+        startedTls = true;
+        log( "Negotiating TLS", Log::Debug );
+        server()->enqueue( "220 Start negotiating TLS now.\r\n" );
+        server()->write();
+        server()->startTls( tlsServer );
+        finish();
+    }
 }
+
 
 /*! \class SmtpQuit smtpcommand.h
     Handles the QUIT command.

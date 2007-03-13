@@ -69,6 +69,7 @@ public:
     void execute();
 
 private:
+    bool startedTls;
     class TlsServer * tlsServer;
 };
 
