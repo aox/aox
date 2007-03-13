@@ -213,12 +213,12 @@ bool ManageSieveCommand::startTls()
             return true;
         }
 
-        d->startedTls = true;
         d->sieve->enqueue( "OK\r\n" );
         d->sieve->write();
         d->sieve->startTls( d->tlsServer );
     }
     else {
+        d->startedTls = true;
         d->sieve->capabilities();
         return true;
     }
