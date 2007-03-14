@@ -172,7 +172,7 @@ void Select::execute()
         Row * r = d->highestModseq->nextRow();
         int64 hms = 1;
         if ( r )
-            hms = r->getInt( "hms" );
+            hms = r->getBigint( "hms" );
         respond( "OK [HIGHESTMODSEQ " + fn( hms ) + "] highest modseq" );
     }
 
