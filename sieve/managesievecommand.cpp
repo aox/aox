@@ -274,14 +274,22 @@ bool ManageSieveCommand::authenticate()
             }
         }
         else if ( d->m->state() == SaslMechanism::AwaitingResponse ) {
-            if ( !d->r ) {
+            if ( !d->r )
                 return false;
-            }
-            else if ( *d->r == "*" ) {
+
+            // We use this terrible hack to parse the SASL response as a
+            // string().
+            d->arg = *d->r;
+            d->pos = 0;
+            String r( string() );
+
+            if ( !d->no.isEmpty() ||
+                 r == "*" )
+            {
                 d->m->setState( SaslMechanism::Terminated );
             }
             else {
-                d->m->readResponse( d->r->de64() );
+                d->m->readResponse( r.de64() );
                 d->r = 0;
                 if ( !d->m->done() ) {
                     d->m->execute();
