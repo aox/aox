@@ -267,14 +267,7 @@ bool ManageSieveCommand::authenticate()
             String c = d->m->challenge().e64();
 
             if ( !d->m->done() ) {
-                // We always send the challenge as a literal because
-                // some clients expect it.
-                String s( "{" );
-                s.append( fn( c.length() ) );
-                s.append( "}\r\n" );
-                s.append( c );
-                s.append( "\r\n" );
-                d->sieve->enqueue( s );
+                d->sieve->enqueue( encoded( c ) + "\r\n" );
                 d->m->setState( SaslMechanism::AwaitingResponse );
                 d->r = 0;
                 return false;
