@@ -2928,7 +2928,7 @@ void reparse()
                            "values ($1,$2,$3,$4)", d );
             q->bind( 1, d->row->getInt( "mailbox" ) );
             q->bind( 2, d->row->getInt( "uid" ) );
-            q->bindNull( 3 ); // XXX: What to do here?
+            q->bindNull( 3 );
             q->bind( 4,
                      String( "reparsed as uid " ) +
                      fn(d->injector->uid(d->injector->mailboxes()->first())) +
