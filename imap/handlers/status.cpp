@@ -156,6 +156,13 @@ void Status::execute()
     // third part: return the payload.
     StringList status;
 
+    // session hasn't told anyone about its messages, so it won't
+    // admit to their existence. since it's a Session, not an
+    // ImapSession, emitResponses() won't cause output, so we just
+    // force it.
+    if ( d->session )
+        d->session->emitResponses( Session::New );
+
     if ( d->messages )
         status.append( "MESSAGES " + fn( d->session->count() ) );
     if ( d->recent )
