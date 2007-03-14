@@ -587,7 +587,7 @@ void Command::emitResponses()
 
     Session * s = imap()->session();
     if ( s && !s->initialised() )
-            return;
+        return;
 
     if ( !d->tagged ) {
         if ( !d->error ) {
