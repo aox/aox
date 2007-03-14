@@ -356,6 +356,8 @@ bool Schema::singleStep()
         c = stepTo38(); break;
     case 38:
         c = stepTo39(); break;
+    case 39:
+        c = stepTo40(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1880,6 +1882,31 @@ bool Schema::stepTo39()
         d->q =
             new Query( "alter table scripts add constraint "
                        "scripts_owner_key unique(owner,name)", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Relax the deleted_messages.deleted_by constraint. */
+
+bool Schema::stepTo40()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Dropping NOT NULL on deleted_messages.deleted_by" );
+        d->q =
+            new Query( "alter table deleted_messages alter deleted_by "
+                       "drop not null", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
