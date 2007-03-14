@@ -13,10 +13,11 @@ class ImapSessionData
     : public Garbage
 {
 public:
-    ImapSessionData(): i( 0 ), unsolicited( 0 ) {}
+    ImapSessionData(): i( 0 ), unsolicited( 0 ), recent( UINT_MAX ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     uint unsolicited;
+    uint recent;
 };
 
 
@@ -60,6 +61,13 @@ void ImapSession::emitExpunge( uint msn )
 void ImapSession::emitExists( uint number )
 {
     enqueue( "* " + fn( number ) + " EXISTS\r\n" );
+
+    uint r = recent().count();
+    if ( d->recent != r ) {
+        d->recent = r;
+        enqueue( "* " + fn( r ) + " RECENT\r\n" );
+    }
+
     uint n = uidnext();
     if ( n > announced() ) {
         enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );

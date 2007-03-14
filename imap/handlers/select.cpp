@@ -127,6 +127,7 @@ void Select::execute()
             imap()->endSession();
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
+        imap()->beginSession( d->session );
         d->session->refresh( this );
     }
 
@@ -140,7 +141,7 @@ void Select::execute()
     }
 
     if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) ) {
-        d->highestModseq = new Query( "select coalesce(max(modseq),1)::int "
+        d->highestModseq = new Query( "select coalesce(max(modseq),1) "
                                       "as hms from modsequences "
                                       "where mailbox=$1",
                                       this );
@@ -156,7 +157,24 @@ void Select::execute()
 
     if ( !d->session->initialised() )
         return;
+
     d->session->clearExpunged();
+    d->session->emitResponses( Session::New );
+
+    respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
+             " uid validity" );
+
+    uint unseen = d->session->msn( d->session->firstUnseen() );
+    if ( unseen != 0 )
+        respond( "OK [UNSEEN " + fn( unseen ) + "] first unseen" );
+
+    if ( d->highestModseq ) {
+        Row * r = d->highestModseq->nextRow();
+        int64 hms = 1;
+        if ( r )
+            hms = r->getInt( "hms" );
+        respond( "OK [HIGHESTMODSEQ " + fn( hms ) + "] highest modseq" );
+    }
 
     String flags = "\\Deleted \\Answered \\Flagged \\Draft \\Seen";
     if ( d->usedFlags->hasResults() ) {
@@ -171,34 +189,13 @@ void Select::execute()
     }
 
     respond( "FLAGS (" + flags + ")" );
-
-    respond( fn( d->session->count() ) + " EXISTS" );
-    respond( fn( d->session->recent().count() ) + " RECENT" );
-
-    uint unseen = d->session->msn( d->session->firstUnseen() );
-    if ( unseen != 0 )
-        respond( "OK [UNSEEN " + fn( unseen ) + "] first unseen" );
-
-    uint n = d->session->uidnext();
-    respond( "OK [UIDNEXT " + fn( n ) + "] next uid" );
-    d->session->setAnnounced( n );
-    if ( d->highestModseq ) {
-        Row * r = d->highestModseq->nextRow();
-        uint hms = 1;
-        if ( r )
-            hms = r->getInt( "hms" );
-        respond( "OK [HIGHESTMODSEQ " + fn( hms ) + "] highest modseq" );
-    }
-
-    respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
-             " uid validity" );
     respond( "OK [PERMANENTFLAGS (" + flags +" \\*)] permanent flags" );
+
     if ( d->session->readOnly() )
         setRespTextCode( "READ-ONLY" );
     else
         setRespTextCode( "READ-WRITE" );
 
-    imap()->beginSession( d->session );
     finish();
 }
 

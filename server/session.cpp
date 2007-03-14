@@ -345,25 +345,26 @@ void Session::expunge( const MessageSet & uids )
 
 void Session::emitResponses()
 {
-    if ( responsesNeeded( Deleted ) )
+    if ( responsesNeeded( Deleted ) &&
+         responsesPermitted( 0, Deleted ) )
         emitResponses( Deleted );
-    if ( responsesNeeded( Modified ) )
+    if ( responsesNeeded( Modified ) &&
+         responsesPermitted( 0, Modified ) )
         emitResponses( Modified );
-    if ( responsesNeeded( New ) )
+    if ( responsesNeeded( New ) &&
+         responsesPermitted( 0, New ) )
         emitResponses( New );
 }
 
 
 /*! Calls emitExpunge(), emitExists(), emitModification() etc. as
     needed and as indicated by \a type. Only sends the desired \a type
-    of response.
+    of response. Does not check that responses may legally be sent at
+    this point.
 */
 
 void Session::emitResponses( ResponseType type )
 {
-    if ( !responsesPermitted( 0, type ) )
-        return;
-
     if ( type == Deleted ) {
         uint i = 1;
         while ( i <= d->expunges.count() ) {
@@ -407,7 +408,7 @@ void Session::emitResponses( ResponseType type )
         }
         d->newMessages.clear();
         uint c = d->msns.count();
-        if ( d->reportedExists != c ) {
+        if ( c == 0 || c != d->reportedExists ) {
             d->reportedExists = c;
             emitExists( c );
         }
