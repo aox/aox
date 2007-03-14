@@ -716,13 +716,6 @@ void SessionInitialiser::execute()
             d->updated.append( m );
     }
 
-    if ( d->recent && (r=d->recent->nextRow()) != 0 ) {
-        uint recent = r->getInt( "first_recent" );
-        uint n = recent;
-        while ( n < d->session->uidnext() )
-            d->session->addRecent( n++ );
-    }
-
     if ( !d->t->done() && d->messages->done() && !d->done ) {
         d->t->commit();
         d->done = true;
@@ -741,9 +734,15 @@ void SessionInitialiser::execute()
 
     d->session->recordChange( &d->newMessages, Session::New );
     d->session->recordChange( &d->updated, Session::Modified );
-
     d->session->setUidnext( m->uidnext() );
     d->session->setNextModSeq( m->nextModSeq() );
+    if ( d->recent && (r=d->recent->nextRow()) != 0 ) {
+        uint recent = r->getInt( "first_recent" );
+        uint n = recent;
+        while ( n < d->session->uidnext() )
+            d->session->addRecent( n++ );
+    }
+
     d->session->removeSessionInitialiser();
 
     List<EventHandler>::Iterator it( d->watchers );
