@@ -267,7 +267,7 @@ bool ManageSieveCommand::authenticate()
             String c = d->m->challenge().e64();
 
             if ( !d->m->done() ) {
-                d->sieve->enqueue( "+ "+ c +"\r\n" );
+                d->sieve->enqueue( encoded( c ) + "\r\n" );
                 d->m->setState( SaslMechanism::AwaitingResponse );
                 d->r = 0;
                 return false;
