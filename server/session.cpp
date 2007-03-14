@@ -257,7 +257,7 @@ void Session::remove( uint uid )
 
 MessageSet Session::recent() const
 {
-    return d->recent;
+    return d->recent.intersection( d->msns );
 }
 
 
