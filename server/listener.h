@@ -6,6 +6,7 @@
 #include "connection.h"
 #include "configuration.h"
 #include "eventloop.h"
+#include "resolver.h"
 #include "string.h"
 #include "log.h"
 
@@ -62,51 +63,67 @@ public:
         if ( !use )
             return;
 
-        Listener< T > *l = 0;
+        uint c = 0;
         String a = Configuration::text( address );
         uint p = Configuration::scalar( port );
+        StringList addresses;
 
         if ( a.isEmpty() ) {
-            bool use6 = Configuration::toggle( Configuration::UseIPv6 );
-            bool use4 = Configuration::toggle( Configuration::UseIPv4 );
-
-            if ( use6 ) {
-                Listener< T > *six =
-                    new Listener< T >( Endpoint( "::", p ), svc, i );
-                if ( six->state() == Listening )
-                    l = six;
-                else
-                    delete six;
-            }
-
-            if ( use4 ) {
-                Listener< T > *four =
-                    new Listener< T >( Endpoint( "0.0.0.0", p ), svc, i );
-                if ( four->state() == Listening )
-                    l = four;
-                else
-                    delete four;
-            }
-
-            if ( !l )
-                ::log( "Cannot listen for " + svc + " on port " + fn( p ) +
-                       " (tried IPv4 and IPv6)",
-                       Log::Disaster );
-            else
-                ::log( "Started: " + l->description() );
+            addresses.append( "::" );
+            addresses.append( "0.0.0.0" );
         }
         else {
-            Endpoint e( address, port );
-            l = new Listener< T >( e, svc, i );
-            if ( !e.valid() || l->state() != Listening ) {
-                delete l;
-                ::log( "Cannot listen for " + svc + " on " + e.address(),
-                       Log::Disaster );
-            }
-            else {
-                ::log( "Started: " + l->description() );
+            // XXX: Hack to make it compile
+            StringList::Iterator it( Resolver::resolve( a ) );
+            while ( it ) {
+                addresses.append( *it );
+                ++it;
             }
         }
+        
+        StringList::Iterator it( addresses );
+        while ( it ) {
+            Endpoint e( *it, p );
+            if ( e.valid() ) {
+                bool u = true;
+                switch ( e.protocol() ) {
+                case Endpoint::IPv4:
+                    u = Configuration::toggle( Configuration::UseIPv6 );
+                    break;
+                case Endpoint::IPv6:
+                    u = Configuration::toggle( Configuration::UseIPv4 );
+                    break;
+                case Endpoint::Unix:
+                    break;
+                }
+                if ( u ) {
+                    Listener<T> * l = new Listener<T>( e, svc, i );
+                    if ( l->state() != Listening ) {
+                        delete l;
+                        l = 0;
+                        ::log( "Cannot listen for " + svc + " on " + *it,
+                               Log::Disaster );
+                    }
+                    else {
+                        ::log( "Started: " + l->description() );
+                        c++;
+                    }
+                }
+            }
+            else {
+                ::log( "Endpoint invalid: " + *it, Log::Error );
+            }
+            ++it;
+        }
+
+        if ( addresses.isEmpty() )
+            ::log( "Cannot resolve '" + a + "' for " + svc, Log::Disaster );
+        else if ( !c )
+            ::log( "Cannot listen for " + svc + " on port " + fn( p ),
+                   Log::Disaster );
+        else
+            ::log( "Listening for " + svc + " on port " + fn( p ) +
+                   " of " + a + " (" + fn( c ) + " addresses)" );
     }
 
 private:
