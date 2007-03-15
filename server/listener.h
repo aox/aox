@@ -88,10 +88,10 @@ public:
                 bool u = true;
                 switch ( e.protocol() ) {
                 case Endpoint::IPv4:
-                    u = Configuration::toggle( Configuration::UseIPv6 );
+                    u = Configuration::toggle( Configuration::UseIPv4 );
                     break;
                 case Endpoint::IPv6:
-                    u = Configuration::toggle( Configuration::UseIPv4 );
+                    u = Configuration::toggle( Configuration::UseIPv6 );
                     break;
                 case Endpoint::Unix:
                     break;
