@@ -163,6 +163,11 @@ bool ImapSession::responsesReady( ResponseType type ) const
 }
 
 
+/*! Returns true if the server is permitted (and able) to send an
+    unsolicited status response of type \a t for message \a m, and
+    false otherwise.
+*/
+
 bool ImapSession::responsesPermitted( Message * m, ResponseType t ) const
 {
     List<Command>::Iterator c( d->i->commands() );
