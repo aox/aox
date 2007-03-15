@@ -565,6 +565,9 @@ void Command::error( Error e, const String & t )
 
 void Command::finish()
 {
+    if ( state() == Retired )
+        return;
+
     setState( Finished );
     emitResponses();
     imap()->unblockCommands();
