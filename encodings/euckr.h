@@ -3,17 +3,14 @@
 #ifndef EUCKR_H
 #define EUCKR_H
 
-#include "codec.h"
+#include "cp949.h"
 
 
 class EucKrCodec
-    : public Codec
+    : public Cp949Codec
 {
 public:
     EucKrCodec();
-
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
 };
 
 
