@@ -17,7 +17,10 @@ static const uint toE[65536] = {
 /*! \class EucKrCodec euckr.h
 
     This codec translates between Unicode and KS C 5601-1992 (apparently
-    also known as KS X 1001:1992), encoded with EUC-KR.
+    also known as KS X 1001:1992), encoded with EUC-KR. This is what we
+    should use for charset="ks_c_5601-1987".
+
+    In fact, we defer to the cp949 codec instead.
 */
 
 /*! Creates a new EucKrCodec object. */
@@ -90,5 +93,4 @@ UString EucKrCodec::toUnicode( const String &s )
     return u;
 }
 
-// for charset.pl:
-//codec EUC-KR EucKrCodec
+//Nothing for charset.pl

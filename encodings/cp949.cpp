@@ -104,3 +104,5 @@ UString Cp949Codec::toUnicode( const String &s )
 
 // for charset.pl:
 //codec CP949 Cp949Codec
+//codec EUC-KR Cp949Codec
+//codec KS_C_5601-1987 Cp949Codec

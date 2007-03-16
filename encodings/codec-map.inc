@@ -1,7 +1,7 @@
 if ( name == "Big5" ) codec = new Cp950Codec;
 else if ( name == "CP949" ) codec = new Cp949Codec;
 else if ( name == "EUC-JP" ) codec = new EucJpCodec;
-else if ( name == "EUC-KR" ) codec = new EucKrCodec;
+else if ( name == "EUC-KR" ) codec = new Cp949Codec;
 else if ( name == "GB2312" ) codec = new Gb2312Codec;
 else if ( name == "GBK" ) codec = new GbkCodec;
 else if ( name == "IBM437" ) codec = new Cp437Codec;
@@ -35,6 +35,7 @@ else if ( name == "ISO-8859-8" ) codec = new Iso88598Codec;
 else if ( name == "ISO-8859-9" ) codec = new Iso88599Codec;
 else if ( name == "KOI8-R" ) codec = new Koi8RCodec;
 else if ( name == "KOI8-U" ) codec = new Koi8UCodec;
+else if ( name == "KS_C_5601-1987" ) codec = new Cp949Codec;
 else if ( name == "macintosh" ) codec = new MacRomanCodec;
 else if ( name == "Shift_JIS" ) codec = new Cp932Codec;
 else if ( name == "TIS-620" ) codec = new Iso885911Codec;

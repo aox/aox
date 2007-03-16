@@ -152,5 +152,5 @@ UString Iso2022KrCodec::toUnicode( const String &s )
     return u;
 }
 
-// for charset.pl:
-//codec ISO-2022-KR Iso2022KrCodec
+//Nothing for charset.pl (yet).
+//(codec ISO-2022-KR Iso2022KrCodec)
