@@ -13,4 +13,4 @@ Build message :
     field.cpp mimefields.cpp datefield.cpp addressfield.cpp
     address.cpp date.cpp flag.cpp addresscache.cpp fieldcache.cpp
     injector.cpp fetcher.cpp smtpclient.cpp annotation.cpp 
-    dsn.cpp recipient.cpp ;
+    dsn.cpp recipient.cpp listidfield.cpp ;

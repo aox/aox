@@ -7,6 +7,7 @@
 #include "address.h"
 #include "datefield.h"
 #include "mimefields.h"
+#include "listidfield.h"
 #include "addressfield.h"
 #include "stringlist.h"
 #include "parser.h"
@@ -106,7 +107,10 @@ HeaderField *HeaderField::fieldNamed( const String &name )
     case ContentBase:
     case ContentMd5:
     case Other:
-        hf = new HeaderField( fieldNames[i].type );
+        if ( n == "List-Id" )
+            hf = new ListIdField;
+        else
+            hf = new HeaderField( fieldNames[i].type );
         break;
 
     case From:
