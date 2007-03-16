@@ -580,7 +580,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body.crlf() );
 
-        if ( c->name() == "GB2312" || c->name() == "ISO-2022-JP" ) {
+        if ( c->name() == "GB2312" || c->name() == "ISO-2022-JP" ||
+             c->name() == "KS_C_5601-1987" ) {
             // undefined code point usage in GB2312 spam is much too
             // common. (GB2312 spam is much too common, but that's
             // another matter.) Gb2312Codec turns all undefined code
