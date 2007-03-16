@@ -67,6 +67,7 @@ public:
         String a = Configuration::text( address );
         uint p = Configuration::scalar( port );
         StringList addresses;
+        bool any6 = false;
 
         if ( a.isEmpty() ) {
             addresses.append( "::" );
@@ -101,13 +102,41 @@ public:
                     if ( l->state() != Listening ) {
                         delete l;
                         l = 0;
-                        ::log( "Cannot listen for " + svc + " on " + *it,
-                               Log::Disaster );
+                        if ( any6 && *it == "0.0.0.0" ) {
+                            // if we listen on all addresses using
+                            // ipv6 syntax, some platforms also listen
+                            // to all ipv4 addresses, and an explicit
+                            // ipv4 listen will fail. ignore that
+                            // silently.
+                            ::log( "Assuming that listening on all IPv6 "
+                                   "addresses also listens on IPv4." )
+                        }
+                        else {
+                            ::log( "Cannot listen for " + svc + " on " + *it,
+                                   Log::Disaster );
+                        }
                     }
                     else {
                         ::log( "Started: " + l->description() );
                         c++;
+                        if ( *it == "::" )
+                            any6 = true;
                     }
+                }
+                else {
+                    String r;
+                    r.append( "Ignoring address " );
+                    r.append( e.address() );
+                    if ( !a.isEmpty() ) {
+                        r.append( " (from " );
+                        r.append( a );
+                        r.append( ")" );
+                    }
+                    r.append( " for " );
+                    r.append( svc );
+                    r.append( " due to configuration settings "
+                              "(use-ipv4 and use-ipv6)" );
+                    ::log( r );
                 }
             }
             else {
@@ -123,7 +152,7 @@ public:
                    Log::Disaster );
         else
             ::log( "Listening for " + svc + " on port " + fn( p ) +
-                   " of " + a + " (" + fn( c ) + " addresses)" );
+                   " of '" + a + "' (" + fn( c ) + " addresses)" );
     }
 
 private:
