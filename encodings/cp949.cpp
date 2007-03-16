@@ -18,7 +18,7 @@ static const uint toE[65536] = {
 
     This class implements a translator between Unicode and the CP949
     character set, which is a superset of the KS C 5601-1992 Korean
-    character set (see euckr.cpp).
+    character set, EucKrCodec.
 
     http://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP949.TXT
 
@@ -26,6 +26,7 @@ static const uint toE[65536] = {
     is not defined in the IANA charset registry, and it seems that some
     programs use "ks_c_5601" to _mean_ CP949 instead of EUC-KR.
 
+    http://lists.w3.org/Archives/Public/ietf-charsets/2001AprJun/0030.html
     http://lists.w3.org/Archives/Public/ietf-charsets/2001AprJun/0033.html
 */
 
