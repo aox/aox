@@ -109,7 +109,7 @@ public:
                             // ipv4 listen will fail. ignore that
                             // silently.
                             ::log( "Assuming that listening on all IPv6 "
-                                   "addresses also listens on IPv4." )
+                                   "addresses also listens on IPv4." );
                         }
                         else {
                             ::log( "Cannot listen for " + svc + " on " + *it,
