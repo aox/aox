@@ -10,7 +10,7 @@ class Cp949Codec
     : public Codec
 {
 public:
-    Cp949Codec();
+    Cp949Codec( const char * = 0 );
 
     String fromUnicode( const UString & );
     UString toUnicode( const String & );

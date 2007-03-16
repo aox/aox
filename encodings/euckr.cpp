@@ -26,7 +26,7 @@ static const uint toE[65536] = {
 /*! Creates a new EucKrCodec object. */
 
 EucKrCodec::EucKrCodec()
-    : Codec( "EUC-KR" )
+    : Cp949Codec( "EUC-KR" )
 {
 }
 

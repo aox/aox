@@ -21,19 +21,22 @@ static const uint toE[65536] = {
     character set, EucKrCodec.
 
     http://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WINDOWS/CP949.TXT
+    http://www.microsoft.com/globaldev/reference/dbcs/949.mspx
 
-    XXX: It is not yet clear how this charset is used in email. "CP949"
-    is not defined in the IANA charset registry, and it seems that some
-    programs use "ks_c_5601" to _mean_ CP949 instead of EUC-KR.
+    XXX: It is not yet clear how this charset is used in email.
+    "CP949" is not defined in the IANA charset registry, and it seems
+    that some programs use "ks_c_5601" and "kc_c_5601-1987" to mean
+    CP949 instead of EUC-KR.
 
     http://lists.w3.org/Archives/Public/ietf-charsets/2001AprJun/0030.html
     http://lists.w3.org/Archives/Public/ietf-charsets/2001AprJun/0033.html
 */
 
-/*! Creates a new Cp949Codec object. */
+/*! Creates a new Cp949Codec object which pretends its name is \a
+    n. The default, null, means "ks_c_5601-1987". */
 
-Cp949Codec::Cp949Codec()
-    : Codec( "CP949" )
+Cp949Codec::Cp949Codec( const char * n )
+    : Codec( n ? n : "KS_C_5601-1987" )
 {
 }
 
@@ -75,35 +78,30 @@ UString Cp949Codec::toUnicode( const String &s )
     uint n = 0;
     while ( n < s.length() ) {
         char c = s[n];
+        char d = s[n+1];
 
         if ( c < 128 ) {
             u.append( c );
         }
-        else {
-            char d;
-
-            if ( c >= 0x81 && c <= 0xFE ) {
-                d = s[++n];
-            }
-            else {
-                d = c;
-                c = 0;
-            }
-
+        else if ( c >= 0x81 && c <= 0xFE &&
+                  d >= 0x41 && d <= 0xFE ) {
             uint p = (c << 8) | d;
-            if ( toU[p] != 0xFFFD )
-                u.append( toU[p] );
+            if ( toU[p] == 0xFFFD )
+                recordError( n, p );
             else
-                recordError( n-1, p );
+                n++;
+            u.append( toU[p] );
         }
-
+        else {
+            recordError( n );
+            u.append( 0xFFFD );
+        }
         n++;
     }
 
     return u;
 }
 
+
 // for charset.pl:
-//codec CP949 Cp949Codec
-//codec EUC-KR Cp949Codec
 //codec KS_C_5601-1987 Cp949Codec
