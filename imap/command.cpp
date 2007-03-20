@@ -592,6 +592,8 @@ void Command::emitResponses()
     if ( s && !s->initialised() )
         return;
 
+    setState( Retired );
+
     if ( !d->tagged ) {
         if ( !d->error ) {
             if ( d->respTextCode.isEmpty() )
@@ -621,7 +623,6 @@ void Command::emitResponses()
         }
     }
 
-    setState( Retired );
     imap()->write();
 }
 
