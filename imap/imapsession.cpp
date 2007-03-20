@@ -73,13 +73,6 @@ void ImapSession::emitExists( uint number )
         enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
         setAnnounced( n );
     }
-
-    // somehow we need to make the IMAP server go on. as a hack, let's
-    // prod it after sending the EXISTS, which we happen to know are
-    // the last responses sent.
-    List<Command>::Iterator c( d->i->commands() );
-    if ( c && c->state() == Command::Finished )
-        d->i->unblockCommands();
 }
 
 
@@ -231,4 +224,17 @@ void ImapSession::enqueue( const String & r )
         d->unsolicited = 0;
 
     d->i->enqueue( r );
+}
+
+
+/*! This reimplementation tells the IMAP server that it can go on
+    after emitting the responses, if indeed the IMAP server can go on.
+*/
+
+void ImapSession::emitResponses()
+{
+    Session::emitResponses();
+    List<Command>::Iterator c( d->i->commands() );
+    if ( c && c->state() == Command::Finished )
+        d->i->unblockCommands();
 }

@@ -71,7 +71,7 @@ public:
     bool responsesReady( ResponseType ) const;
     virtual bool responsesPermitted( Message *, ResponseType ) const;
 
-    void emitResponses();
+    virtual void emitResponses();
     void emitResponses( ResponseType );
     virtual void emitExpunge( uint );
     virtual void emitExists( uint );

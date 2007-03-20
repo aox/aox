@@ -30,6 +30,8 @@ public:
 
     void enqueue( const String & );
 
+    void emitResponses();
+
 private:
     class ImapSessionData * d;
 };
