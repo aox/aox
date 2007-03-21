@@ -724,8 +724,18 @@ void AddressParser::address( int & i )
     }
     else if ( s[i] == '"' && s.mid( 0, i ).contains( "::" ) ) {
         // we may be looking at A::B "display-name"
-        UString name = phrase( i );
-        comment( i );
+        uint b = i-1;
+        while ( b > 0 && s[b] != '"' )
+            b--;
+        AsciiCodec a;
+        UString name;
+        if ( s[b] == '"' ) {
+            name = a.toUnicode( s.mid( b+1, i-b-1 ) );
+            i = b - 1;
+            if ( !a.wellformed() )
+                name.truncate();
+            name.truncate(); // do it anyway: we don't want name <localpart>.
+        }
         String lp = atom( i );
         if ( i > 2 && s[i] == ':' && s[i-1] == ':' ) {
             i = i - 2;
@@ -741,12 +751,12 @@ void AddressParser::address( int & i )
         int x = i;
         while ( x > 0 && s[x] != '"' )
             x--;
-        String date = s.mid( x, i-x ).lower().simplified();
+        String date = s.mid( x+1, i-x-1 ).lower().simplified();
         uint dp = 0;
         char c = date[0];
         while ( dp < date.length() &&
-                ( ( c >= 'a' && c >= 'z' ) ||
-                  ( c >= '0' && c >= '9' ) ||
+                ( ( c >= 'a' && c <= 'z' ) ||
+                  ( c >= '0' && c <= '9' ) ||
                   c == ' ' || c == '-' ||
                   c == ':' || c == '.' ) )
             c = date[++dp];
