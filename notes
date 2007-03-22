@@ -175,6 +175,24 @@ Undefined codepoints
   This is done as a special case for GB2312/ISO-2022-JP right now.
 
 
+Cleartext passwords
+
+  We help migrating away from cleartext passwords:
+
+  1. We also store SCRAM and similar secrets in the DB (secrets which
+     aren't password equivalents)
+  2. We extend the users table with two new columns, 'last time
+     cleartext was needed' and 'number of successful authentications
+     without cleartext password usage since cleartext'.
+  3. If a client uses SCRAM, we increment the counter.
+  4. If a client uses CRAM or PLAIN, we reset counter and set the time
+     to today.
+  5. We provide some helping code to delete passwords for users with a
+     high count and a long-ago time.
+  6. We add documentation saying that if you diable auth-this and
+     auth-that, you can disable store-plaintext-passwords.
+
+
 Sieve
 
   Alexey suggests the following extensions (in the following order):
