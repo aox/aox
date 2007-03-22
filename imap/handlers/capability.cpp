@@ -33,6 +33,7 @@
     RFC 4469: CATENATE
     RFC 4551: CONDSTORE
     RFC 4467: URLAUTH
+    RFC 4731: ESEARCH (also from RFC 4466)
 
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
