@@ -276,8 +276,6 @@ String Address::toString() const
         r = name() + ":;";
         break;
     case Local:
-        // note that this returns the localpart unquoted, no matter
-        // what it contains.
         if ( localpartIsSensible() )
             r = d->localpart;
         else
