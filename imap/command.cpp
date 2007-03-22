@@ -52,7 +52,7 @@ class CommandData
 {
 public:
     CommandData()
-        : args( 0 ),
+        : args( 0 ), responses( new StringList ),
           tagged( false ),
           usesMsn( false ),
           error( false ),
@@ -67,7 +67,7 @@ public:
     String name;
     ImapParser * args;
 
-    List< String > responses;
+    StringList * responses;
     String respTextCode;
     bool tagged;
 
@@ -533,7 +533,8 @@ void Command::respond( const String & r, Response t )
     tmp->append( " " );
     tmp->append( r );
     tmp->append( "\r\n" );
-    d->responses.append( tmp );
+    if ( d->responses )
+        d->responses->append( tmp );
 }
 
 
@@ -592,8 +593,6 @@ void Command::emitResponses()
     if ( s && !s->initialised() )
         return;
 
-    setState( Retired );
-
     if ( !d->tagged ) {
         if ( !d->error ) {
             if ( d->respTextCode.isEmpty() )
@@ -610,6 +609,7 @@ void Command::emitResponses()
     }
 
     List< String >::Iterator it( d->responses );
+    d->responses = 0;
     while ( it ) {
         String * r = it;
         ++it;
@@ -622,6 +622,8 @@ void Command::emitResponses()
                 log( "Result: " + r->mid( i+1 ) );
         }
     }
+
+    setState( Retired );
 
     imap()->write();
 }
