@@ -490,8 +490,11 @@ void IMAP::runCommands()
         // are there commands which have finished, but haven't been
         // retired due to missing Session responses?
         i = d->commands.first();
-        while ( i && i->state() == Command::Finished ) {
-            i->emitResponses();
+        while ( i && ( i->state() == Command::Finished ||
+                       i->state() == Command::Retired ) )
+        {
+            if ( i->state() == Command::Finished )
+                i->emitResponses();
             ++i;
         }
 
