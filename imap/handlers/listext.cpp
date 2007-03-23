@@ -63,8 +63,8 @@ Listext::Listext()
 }
 
 
-/*! Note that the extensions are always parsed, even if the no
-    extension has been advertised using CAPABILITY.
+/*! Note that the extensions are always parsed, even if no extension
+    has been advertised using CAPABILITY.
 */
 
 void Listext::parse()
