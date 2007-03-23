@@ -24,7 +24,7 @@ class StoreData
 public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
-          checkedPermission( false ), fetching( false ),
+          checkedPermission( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ),
@@ -41,10 +41,9 @@ public:
     bool uid;
     bool checkedPermission;
 
-    bool fetching;
     uint unchangedSince;
     bool seenUnchangedSince;
-    uint modseq;
+    int64 modseq;
     Query * modSeqQuery;
     Query * obtainModSeq;
 
@@ -52,8 +51,6 @@ public:
     List<Flag> flags;
     FlagCreator * flagCreator;
     AnnotationNameCreator * annotationNameCreator;
-
-    List<Message> affectedMessages;
 
     List<Annotation> annotations;
 };
@@ -359,7 +356,7 @@ void Store::execute()
 
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
-        d->obtainModSeq = new Query( "select nextval('nextmodsequence')::int "
+        d->obtainModSeq = new Query( "select nextval('nextmodsequence') "
                                      "as whatever",
                                      this );
         d->transaction->enqueue( d->obtainModSeq );
@@ -395,7 +392,7 @@ void Store::execute()
             error( No, "Could not obtain modseq" );
             return;
         }
-        d->modseq = r->getInt( "whatever" ); // what should it be?
+        d->modseq = r->getBigint( "whatever" ); // what should it be?
         Query * q = new Query( "update modsequences set modseq=$1 "
                                "where mailbox=$2 and " + d->s.where(), 0 );
         q->bind( 1, d->modseq );
@@ -403,48 +400,50 @@ void Store::execute()
         d->transaction->commit();
     }
         
-    if ( !d->fetching ) {
-        if ( !d->transaction->done() )
-            return;
-        if ( d->transaction->failed() ) {
-            error( No, "Database error. Rolling transaction back" );
-            finish();
-            return;
-        }
+    if ( !d->transaction->done() )
+        return;
+    if ( d->transaction->failed() ) {
+        error( No, "Database error. Rolling transaction back" );
+        finish();
+        return;
+    }
 
-        // record the change so that views onto this mailbox update themselves
-        Mailbox * mb = imap()->session()->mailbox();
-        if ( mb->view() )
-            mb->source()->setNextModSeq( d->modseq + 1 );
-        else
-            mb->setNextModSeq( d->modseq + 1 );
+    // record the change so that views onto this mailbox update themselves
+    Mailbox * mb = imap()->session()->mailbox();
+    if ( mb->view() )
+        mb->source()->setNextModSeq( d->modseq + 1 );
+    else
+        mb->setNextModSeq( d->modseq + 1 );
 
-        if ( d->silent ) {
-            if ( imap()->clientSupports( IMAP::Condstore ) )
-                sendModseqResponses();
-        }
-        else {
-            switch( d->op ) {
-            case StoreData::AddFlags:
-            case StoreData::RemoveFlags:
-                d->fetching = true;
-                sendFetches();
-                break;
-            case StoreData::ReplaceFlags:
-                d->fetching = true;
-                break;
-            case StoreData::ReplaceAnnotations:
-                break;
+    // maybe this should check d->silent && d->modseq =
+    // session->mailbox->highestmodseq, so we'll be !silent if there's
+    // any sort of race and someone updates the mailbox at the same
+    // time.
+    if ( d->silent ) {
+        imap()->session()->ignoreModSeq( d->modseq );
+        sendModseqResponses();
+    }
+    else if ( d->op == StoreData::ReplaceFlags ) {
+        List<Message> * l = new List<Message>;
+        uint i = d->s.count();
+        while ( i ) {
+            uint uid = d->s.value( i );
+            i--;
+            Message * m = new Message;
+            List<Flag> * f = m->flags();
+            List<Flag>::Iterator it( d->flags );
+            while ( it ) {
+                f->append( it );
+                ++it;
             }
+            m->setUid( uid );
+            m->setModSeq( d->modseq );
+            m->setFlagsFetched( true );
+            l->prepend( m );
         }
+        imap()->session()->recordChange( l, Session::Modified );
     }
 
-    if ( d->fetching && !d->silent ) {
-        if ( d->op == StoreData::ReplaceFlags )
-            pretendToFetch();
-        else if ( !dumpFetchResponses() )
-            return;
-    }
     if ( !d->silent && !d->expunged.isEmpty() )
         error( No, "Cannot store on expunged messages" );
 
@@ -499,40 +498,6 @@ bool Store::processAnnotationNames()
 }
 
 
-/*! Dumps the command back to the client in the form of fetch
-    responses. This function is used to tell the client "yes, your
-    store flags command was processed as submitted" without bothering
-    the database.
-*/
-
-void Store::pretendToFetch()
-{
-    uint max = d->s.count();
-    uint i = 1;
-    ImapSession * s = imap()->session();
-    String without( " FLAGS (" + d->flagNames.join( " " ) + "))" );
-    String with;
-    if ( d->flagNames.isEmpty() )
-        with = " FLAGS (\\recent))";
-    else
-        with = " FLAGS (\\recent " + d->flagNames.join( " " ) + "))";
-    String modseq;
-    if ( imap()->clientSupports( IMAP::Condstore ) )
-        modseq = " MODSEQ (" + fn( d->modseq ) + ")";
-    while ( i <= max ) {
-        uint uid = d->s.value( i );
-        uint msn = s->msn( uid );
-        i++;
-        if ( s->isRecent( uid ) )
-            respond( fn( msn ) + " FETCH (UID " + modseq +
-                     fn( uid ) + with );
-        else
-            respond( fn( msn ) + " FETCH (UID " + modseq +
-                     fn( uid ) + without );
-    }
-}
-
-
 /*! Tells the client about the modseq assigned. Since we assign only
     one modseq for the entire transaction this is a little
     repetitive. Shall we say: Amenable to compression.
@@ -550,70 +515,6 @@ void Store::sendModseqResponses()
         i++;
         respond( fn( msn ) + " FETCH (UID " + fn( uid ) + rest );
     }
-}
-
-
-/*! Sends a command to the database to get all the flags for the
-    messages we just touched.
-*/
-
-void Store::sendFetches()
-{
-    uint i = d->s.count();
-    while ( i ) {
-        uint uid = d->s.value( i );
-        i--;
-        Message * m = new Message;
-        m->setUid( uid );
-        d->affectedMessages.prepend( m );
-    }
-    if ( d->affectedMessages.isEmpty() )
-        return;
-
-    Fetcher * f = new MessageFlagFetcher( imap()->session()->mailbox(),
-                                          &d->affectedMessages, this );
-    f->execute();
-}
-
-
-/*! Dumps all the flags for all the relevant messages, as fetched from
-    the database or known by earlier commands.  Returns true if it did
-    all its work and false if there's more to do.
-*/
-
-bool Store::dumpFetchResponses()
-{
-    String modseq;
-    if ( imap()->clientSupports( IMAP::Condstore ) )
-        modseq = " MODSEQ (" + fn( d->modseq ) + ")";
-    ImapSession * s = imap()->session();
-    while ( !d->affectedMessages.isEmpty() ) {
-        Message * m = d->affectedMessages.first();
-        if ( !m->hasFlags() )
-            return false;
-        d->affectedMessages.shift();
-
-        String r;
-
-        if ( s->isRecent( m->uid() ) )
-            r = "\\recent";
-
-        List<Flag> * f = m->flags();
-        if ( f && !f->isEmpty() ) {
-            List<Flag>::Iterator it( f );
-            while ( it ) {
-                if ( !r.isEmpty() )
-                    r.append( " " );
-                r.append( it->name() );
-                ++it;
-            }
-        }
-
-        uint msn = s->msn( m->uid() );
-        respond( fn( msn ) + " FETCH (UID " +
-                 fn( m->uid() ) + modseq + " FLAGS (" + r + "))" );
-    }
-    return true;
 }
 
 

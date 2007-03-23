@@ -32,6 +32,8 @@ public:
 
     void emitResponses();
 
+    void ignoreModSeq( int64 );
+
 private:
     class ImapSessionData * d;
 };

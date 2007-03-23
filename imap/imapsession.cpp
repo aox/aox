@@ -13,11 +13,13 @@ class ImapSessionData
     : public Garbage
 {
 public:
-    ImapSessionData(): i( 0 ), unsolicited( 0 ), recent( UINT_MAX ) {}
+    ImapSessionData(): i( 0 ), unsolicited( 0 ), recent( UINT_MAX ), hms( 0 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     uint unsolicited;
     uint recent;
+    List<int64> ignorable;
+    int64 hms;
 };
 
 
@@ -100,6 +102,17 @@ void ImapSession::emitModification( Message * m )
         return;
     if ( !m->hasFlags() )
         return;
+
+    if ( m->modSeq() ) {
+        if ( m->modSeq() > d->hms )
+            d->hms = m->modSeq();
+        List<int64>::Iterator i( d->ignorable );
+        while ( i ) {
+            if ( m->modSeq() == *i )
+                return;
+            ++i;
+        }
+    }
 
     String r = "* ";
     r.append( fn( msn( m->uid() ) ) );
@@ -237,4 +250,26 @@ void ImapSession::emitResponses()
     List<Command>::Iterator c( d->i->commands() );
     if ( c && c->state() == Command::Finished )
         d->i->unblockCommands();
+
+    List<int64>::Iterator i( d->ignorable );
+    while ( i ) {
+        if ( *i < d->hms )
+            d->ignorable.take( i );
+        else
+            ++i;
+    }
+}
+
+
+/*! Instructs this ImapSession to emit no responses for messages whose
+    Message::modSeq() is \a ls.
+
+    This is used by Store to implement its "silent" feature.
+*/
+
+void ImapSession::ignoreModSeq( int64 ms )
+{
+    int64 * i = new int64;
+    *i = ms;
+    d->ignorable.append( i );
 }

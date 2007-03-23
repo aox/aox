@@ -31,10 +31,7 @@ private:
     void removeFlags( bool opposite = false );
     void addFlags();
     void replaceFlags();
-    void pretendToFetch();
     void sendModseqResponses();
-    void sendFetches();
-    bool dumpFetchResponses();
     void replaceAnnotations();
     void parseAnnotationEntry();
 };
