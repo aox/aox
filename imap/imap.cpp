@@ -498,21 +498,19 @@ void IMAP::runCommands()
             ++i;
         }
 
-        // if there are any unparsed commands, start at the oldest
-        // unparsed commands and parse contiguous commands until a
-        // command isn't valid in this state.
+        // look for and parse any unparsed commands, assuming there are
+        // no currently-executing group 0 commands (which delay parsing
+        // because, e.g. MSN arguments will remain invalid until SELECT
+        // has been completed).
+
+        Command * executing = 0;
 
         i = d->commands.first();
-        while ( i && i->state() != Command::Unparsed )
+        while ( i ) {
+            Command * c = i;
             ++i;
-        if ( i ) {
-            // check whether there is at least one executing command
-            while ( i && i->state() == Command::Unparsed ) {
-                List< Command >::Iterator r( d->commands );
-                while ( r && r->state() != Command::Executing )
-                    ++r;
-                Command * c = i;
-                ++i;
+
+            if ( c->state() == Command::Unparsed ) {
                 Scope s( c->log() );
                 if ( c->validIn( d->state ) ) {
                     done = false;
@@ -520,19 +518,25 @@ void IMAP::runCommands()
                     // we've parsed it. did it return an error, should
                     // we block it, or perhaps execute it right away?
                     if ( c->state() == Command::Unparsed && c->ok() ) {
-                        if ( r )
+                        if ( executing )
                             c->setState( Command::Blocked );
                         else
                             c->setState( Command::Executing );
+                        executing = c;
                     }
                 }
-                else if ( !r ) {
+                else if ( !executing ) {
                     done = false;
                     // if this command isn't valid in this state, and
                     // no earlier command can possibly change the
                     // state, then we have to reject the command.
                     c->error( Command::Bad, "Not permitted in this state" );
                 }
+            }
+            else if ( c->state() == Command::Executing ) {
+                if ( c->group() == 0 )
+                    break;
+                executing = c;
             }
         }
     }
