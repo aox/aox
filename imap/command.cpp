@@ -590,8 +590,16 @@ void Command::emitResponses()
         return;
 
     Session * s = imap()->session();
-    if ( s && !s->initialised() )
-        return;
+    if ( !s )
+        return; // can't do that at all
+    if ( !s->initialised() )
+        return; // must wait
+    if ( s->responsesNeeded( Session::Modified ) &&
+         !s->responsesReady( Session::Modified ) )
+        return; // must wait
+    if ( s->responsesNeeded( Session::New ) &&
+         !s->responsesReady( Session::New ) )
+        return; // must wait
 
     if ( !d->tagged ) {
         if ( !d->error ) {
