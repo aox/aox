@@ -23,6 +23,8 @@ public:
 
     void execute();
 
+    void addMessages( List<Message> * );
+
     virtual PreparedStatement * query() const = 0;
     virtual void decode( Message *, Row * ) = 0;
     virtual void setDone( Message * ) = 0;

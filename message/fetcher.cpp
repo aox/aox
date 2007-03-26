@@ -70,7 +70,7 @@ static void setupPreparedStatements()
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
         "order by h.uid, h.part";
     ::oldAddress = new PreparedStatement( q );
-    q = "select m.uid, m.idate, m.rfc822size, ms.modseq::int from messages m "
+    q = "select m.uid, m.idate, m.rfc822size, ms.modseq from messages m "
         "left join modsequences ms using (mailbox,uid) "
         "where m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
         "order by m.uid";
@@ -112,11 +112,8 @@ static void setupPreparedStatements()
     messages. Whenever it finishes its current retrieval, it finds the
     largest range of messages currently needing retrieval, and issues
     an SQL select for them. Typically the select ends with "uid>=x and
-    uid<=y". When the Fetcher isn't useful any more, its Mailbox drops
+    uid<=y". When the Fetcher isn't useful any more, its owner drops
     it on the floor.
-
-    In consequence, we have at most one outstanding Query per Mailbox
-    and type of query, and when it finishes a new is issued.
 */
 
 
@@ -129,6 +126,15 @@ Fetcher::Fetcher( Mailbox * m, List<Message> * messages, EventHandler * e )
     setupPreparedStatements();
     d->mailbox = m;
     d->owner = e;
+    addMessages( messages );
+}
+
+
+/*! Adds \a messages to the list of messages fetched. This does not
+    re-execute the fetcher - the user must execute() it if done(). */
+
+void Fetcher::addMessages( List<Message> * messages )
+{
     List<Message>::Iterator i( messages );
     while ( i ) {
         d->messages.append( i );
@@ -500,7 +506,7 @@ void MessageBodyFetcher::setDone( Message * m )
 
     The MessageTriviaFetcher class is an implementation class
     responsible for fetching, ah, well, for fetching the IMAP
-    internaldate and rfc822.size.
+    internaldate, modseq and rfc822.size.
 
     It has no API of its own and precious little code; Fetcher is the
     entire API.
@@ -524,13 +530,13 @@ void MessageTriviaFetcher::decode( Message * m , Row * r )
     m->setInternalDate( r->getInt( "idate" ) );
     m->setRfc822Size( r->getInt( "rfc822size" ) );
     if ( !r->isNull( "modseq" ) )
-        m->setModSeq( r->getInt( "modseq" ) );
+        m->setModSeq( r->getBigint( "modseq" ) );
 }
 
 
 void MessageTriviaFetcher::setDone( Message * )
 {
-    // hard work
+    // hard work ;-)
 }
 
 
