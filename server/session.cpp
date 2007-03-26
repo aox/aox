@@ -862,22 +862,27 @@ List<Message> * Session::modifiedMessages() const
 
 void Session::recordChange( List<Message> * m, ResponseType type )
 {
-    List<Message>::Iterator i( m );
-    List<Message>::Iterator j;
-    List<Message> * l = &d->modifiedMessages;
-    if ( type == New )
-        l = &d->newMessages;
-    uint prev = 0;
-    while ( i ) {
-        if ( !j || i->uid() < prev )
-            j = l->first();
-        while ( j && j->uid() < i->uid() )
-            ++j;
-        if ( !j || j->uid() > i->uid() ) {
-            l->insert( j, i );
-            prev = i->uid();
+    List<Session>::Iterator s( mailbox()->sessions() );
+    while ( s ) {
+        List<Message>::Iterator i( m );
+        List<Message>::Iterator j;
+        List<Message> * l = &s->d->modifiedMessages;
+        if ( type == New )
+            l = &s->d->newMessages;
+        uint prev = 0;
+        while ( i ) {
+            if ( !j || i->uid() < prev )
+                j = l->first();
+            while ( j && j->uid() < i->uid() )
+                ++j;
+            if ( !j || j->uid() > i->uid() ) {
+                l->insert( j, i );
+                prev = i->uid();
+            }
+            ++i;
         }
-        ++i;
+        s->emitResponses();
+        ++s;
     }
 }
 

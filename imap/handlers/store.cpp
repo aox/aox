@@ -420,11 +420,12 @@ void Store::execute()
     // session->mailbox->highestmodseq, so we'll be !silent if there's
     // any sort of race and someone updates the mailbox at the same
     // time.
-    if ( d->silent ) {
-        imap()->session()->ignoreModSeq( d->modseq );
-        sendModseqResponses();
-    }
-    else if ( !d->notifiedSession ) {
+    if ( !d->notifiedSession ) {
+        if ( d->silent ) {
+            imap()->session()->ignoreModSeq( d->modseq );
+            if ( imap()->clientSupports( IMAP::Condstore ) )
+                sendModseqResponses();
+        }
         List<Message> * l = new List<Message>;
         uint i = d->s.count();
         while ( i ) {
