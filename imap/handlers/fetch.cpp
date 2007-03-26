@@ -894,7 +894,7 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->rfc822size )
         l.append( "RFC822.SIZE " + fn( m->rfc822Size() ) );
     if ( d->flags )
-        l.append( "FLAGS (" + flagList( m, uid ) + ")" );
+        l.append( "FLAGS (" + flagList( m, uid, imap()->session() ) + ")" );
     if ( d->internaldate )
         l.append( "INTERNALDATE " + internalDate( m ) );
     if ( d->envelope )
@@ -904,7 +904,8 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->bodystructure )
         l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
     if ( d->annotation )
-        l.append( "ANNOTATION " + annotation( m ) );
+        l.append( "ANNOTATION " + annotation( m, imap()->user(),
+                                              d->entries, d->attribs ) );
     if ( d->modseq )
         l.append( "MODSEQ (" + fn( m->modSeq() ) + ")" );
 
@@ -920,14 +921,14 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
 
 
 /*! Returns a string containing all the flags that are set for message
-    \a m, which has UID \a uid.
+    \a m, which has UID \a uid and is interpreted within \a session.
 */
 
-String Fetch::flagList( Message * m, uint uid )
+String Fetch::flagList( Message * m, uint uid, Session * session )
 {
     String r;
 
-    if ( imap()->session()->isRecent( uid ) )
+    if ( session && session->isRecent( uid ) )
         r = "\\recent";
 
     List<Flag> * f = m->flags();
@@ -1212,19 +1213,29 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
 }
 
 
-/*! Returns the IMAP ANNOTATION production for \a m. */
+/*! Returns the IMAP ANNOTATION production for \a m, from the point of
+    view of \a u (0 for no user, only public annotations). \a
+    entrySpecs is a list of the entries to be matched, each of which
+    can contain the * and % wildcards. \a attributes is a list of
+    attributes to be returned (each including the .priv or .shared
+    suffix).
+*/
 
-String Fetch::annotation( Multipart * m )
+String Fetch::annotation( Multipart * m, User * u,
+                          const StringList & entrySpecs,
+                          const StringList & attributes )
 {
     if ( !m->isMessage() )
         return "";
 
-    typedef Dict< String > Attributes;
-    Dict< Attributes > entries;
+    typedef Dict< String > AttributeDict;
+    Dict< AttributeDict > entries;
 
     StringList entryNames;
 
-    uint user = imap()->user()->id();
+    uint user = 0;
+    if ( u )
+        user = u->id();
     List<Annotation>::Iterator i( ((Message*)m)->annotations() );
     while ( i ) {
         Annotation * a = i;
@@ -1232,7 +1243,7 @@ String Fetch::annotation( Multipart * m )
 
         String entry( a->entryName()->name() );
         bool entryWanted = false;
-        StringList::Iterator e( d->entries );
+        StringList::Iterator e( entrySpecs );
         while ( e ) {
             if ( Listext::match( *e, 0, entry, 0 ) == 2 ) {
                 if ( !entries.find( entry ) )
@@ -1246,9 +1257,9 @@ String Fetch::annotation( Multipart * m )
         if ( ( a->ownerId() == 0 || a->ownerId() == user ) &&
              entryWanted )
         {
-            Attributes * atts = entries.find( entry );
+            AttributeDict * atts = entries.find( entry );
             if ( !atts ) {
-                atts = new Attributes;
+                atts = new AttributeDict;
                 entries.insert( entry, atts );
             }
 
@@ -1270,12 +1281,12 @@ String Fetch::annotation( Multipart * m )
         String entry( *e );
 
         String tmp;
-        StringList::Iterator a( d->attribs );
+        StringList::Iterator a( attributes );
         while ( a ) {
             String attrib( *a );
 
             String * value = 0;
-            Attributes * atts = entries.find( entry );
+            AttributeDict * atts = entries.find( entry );
             if ( atts )
                 value = atts->find( attrib );
 

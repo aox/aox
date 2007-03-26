@@ -25,6 +25,10 @@ public:
 
     static Section * parseSection( ImapParser *, bool = false );
     static String sectionData( Section *, Message * );
+    static String flagList( Message *, uint, class Session * );
+    static String annotation( Multipart *, class User *,
+                              const StringList &,
+                              const StringList & );
 
 private:
     void parseAttribute( bool );
@@ -33,11 +37,9 @@ private:
     void parseAnnotation();
     void sendFetchQueries();
     String dotLetters( uint, uint );
-    String flagList( Message *, uint );
     String internalDate( Message * );
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
-    String annotation( Multipart * );
     String singlePartStructure( Multipart *, bool );
     String fetchResponse( Message *, uint, uint );
 
