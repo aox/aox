@@ -23,7 +23,7 @@ public:
     void emitExpunge( uint );
     void emitModification( Message * );
     void emitExists( uint );
-    bool responsesPermitted( Message *, ResponseType ) const;
+    bool responsesPermitted( ResponseType ) const;
     bool responsesReady( ResponseType ) const;
 
     void recordExpungedFetch( const MessageSet & );

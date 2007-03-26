@@ -68,8 +68,8 @@ public:
     enum ResponseType { New, Modified, Deleted };
 
     bool responsesNeeded( ResponseType ) const;
-    bool responsesReady( ResponseType ) const;
-    virtual bool responsesPermitted( Message *, ResponseType ) const;
+    virtual bool responsesReady( ResponseType ) const;
+    virtual bool responsesPermitted( ResponseType ) const;
 
     virtual void emitResponses();
     void emitResponses( ResponseType );

@@ -2,7 +2,9 @@
 
 #include "imapsession.h"
 
+#include "handlers/fetch.h"
 #include "command.h"
+#include "fetcher.h"
 #include "mailbox.h"
 #include "message.h"
 #include "imap.h"
@@ -10,16 +12,33 @@
 
 
 class ImapSessionData
-    : public Garbage
+    : public EventHandler
 {
 public:
-    ImapSessionData(): i( 0 ), unsolicited( 0 ), recent( UINT_MAX ), hms( 0 ) {}
+    ImapSessionData(): i( 0 ), unsolicited( 0 ), recent( UINT_MAX ),
+                       hms( 0 ), flagf( 0 ), annof( 0 ), trif( 0 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     uint unsolicited;
     uint recent;
     List<int64> ignorable;
     int64 hms;
+
+    Fetcher * flagf;
+    Fetcher * annof;
+    Fetcher * trif;
+
+    // XXX: A hack. maybe Session should inherit EventHandler instead.
+    void execute() {
+        if ( flagf && flagf->done() )
+            flagf = 0;
+        if ( annof && annof->done() )
+            annof = 0;
+        if ( trif && trif->done() )
+            trif = 0;
+        if ( !flagf && !annof && !trif )
+            i->unblockCommands();
+    }
 };
 
 
@@ -118,63 +137,100 @@ void ImapSession::emitModification( Message * m )
     r.append( fn( msn( m->uid() ) ) );
     r.append( " FETCH (UID " );
     r.append( fn( m->uid() ) );
+
     if ( d->i->clientSupports( IMAP::Condstore ) && m->modSeq() ) {
         r.append( " MODSEQ (" );
         r.append( fn( m->modSeq() ) );
         r.append( ")" );
     }
+
     r.append( " FLAGS (" );
+    r.append( Fetch::flagList( m, m->uid(), this ) );
+    r.append( ")" );
 
-    if ( isRecent( m->uid() ) )
-        r = "\\recent";
-
-    List<Flag> * f = m->flags();
-    if ( f && !f->isEmpty() ) {
-        List<Flag>::Iterator it( f );
-        while ( it ) {
-            if ( !r.isEmpty() )
-                r.append( " " );
-            r.append( it->name() );
-            ++it;
-        }
+    if ( d->i->clientSupports( IMAP::Annotate ) ) {
+        r.append( " ANNOTATION " );
+        // XXX: if we're doing this a lot, maybe we want to store e
+        // and a in ImapSessionData
+        StringList e;
+        e.append( "*" );
+        StringList a;
+        a.append( "value.priv" );
+        a.append( "value.shared" );
+        r.append( Fetch::annotation( m, d->i->user(), e, a ) );
     }
 
-    r.append( "))\r\n" );
+    r.append( ")\r\n" );
     enqueue( r );
 }
 
 
-/*! Returns true we ca send all the \a type responses we need to, and
+/*! Returns true we can send all the \a type responses we need to, and
     false if we're missing any necessary data.
 */
 
 bool ImapSession::responsesReady( ResponseType type ) const
 {
-    bool r = Session::responsesReady( type );
-    if ( type == Modified ) {
-        List<Message>::Iterator i( modifiedMessages() );
-        while ( i && r ) {
-            if ( !i->hasFlags() )
-                r = false;
-            if ( r && d->i->clientSupports( IMAP::Annotate ) &&
-                 !i->hasAnnotations() )
-                r = false;
-            if ( r && d->i->clientSupports( IMAP::Annotate ) &&
-                 !i->modSeq() )
-                r = false;
-            ++i;
-        }
+    if ( !Session::responsesReady( type ) )
+        return false;
+
+    List<Message>::Iterator i;
+    if ( type == Modified )
+        i = modifiedMessages();
+
+    List<Message> * fl = new List<Message>;
+    List<Message> * al = 0;
+    if ( d->i->clientSupports( IMAP::Annotate ) )
+        al = new List<Message>;
+    List<Message> * tl = 0;
+    if ( d->i->clientSupports( IMAP::Condstore ) )
+        tl = new List<Message>;
+    while ( i ) {
+        if ( fl && !i->hasFlags() )
+            fl->append( i );
+        if ( al && !i->hasAnnotations() )
+            al->append( i );
+        if ( tl && !i->modSeq() )
+            tl->append( i );
+        ++i;
     }
-    return r;
+
+    if ( ( !fl || fl->isEmpty() ) && 
+         ( !al || al->isEmpty() ) && 
+         ( !tl || tl->isEmpty() ) )
+        return true;
+
+    if ( fl && !fl->isEmpty() ) {
+        if ( !d->flagf )
+            d->flagf = new MessageFlagFetcher( mailbox(), fl, d );
+        else if ( d->flagf->done() )
+            d->flagf->addMessages( fl );
+        d->flagf->execute();
+    }
+    if ( al && !al->isEmpty() ) {
+        if ( !d->annof )
+            d->annof = new MessageAnnotationFetcher( mailbox(), al, d );
+        else if ( d->annof->done() )
+            d->annof->addMessages( al );
+        d->annof->execute();
+    }
+    if ( tl && !tl->isEmpty() ) {
+        if ( !d->trif )
+            d->trif = new MessageTriviaFetcher( mailbox(), tl, d );
+        else if ( d->trif->done() )
+            d->trif->addMessages( tl );
+        d->trif->execute();
+    }
+
+    return false;
 }
 
 
 /*! Returns true if the server is permitted (and able) to send an
-    unsolicited status response of type \a t for message \a m, and
-    false otherwise.
+    unsolicited status responses of type \a t, and false otherwise.
 */
 
-bool ImapSession::responsesPermitted( Message * m, ResponseType t ) const
+bool ImapSession::responsesPermitted( ResponseType t ) const
 {
     List<Command>::Iterator c( d->i->commands() );
     // if we're currently executing something other than idle, we
@@ -197,16 +253,6 @@ bool ImapSession::responsesPermitted( Message * m, ResponseType t ) const
         return true;
     }
     else {
-        if ( t == Modified && m ) {
-            if ( !m->hasFlags() )
-                return false;
-            if ( d->i->clientSupports( IMAP::Annotate ) &&
-                 !m->hasAnnotations() )
-                return false;
-            if ( d->i->clientSupports( IMAP::Annotate ) &&
-                 !m->modSeq() )
-                return false;
-        }
         if ( !c ) {
             // no commands at all. have we sent anything?
             if ( d->unsolicited > 512 )
@@ -248,7 +294,8 @@ void ImapSession::emitResponses()
 {
     Session::emitResponses();
     List<Command>::Iterator c( d->i->commands() );
-    if ( c && c->state() == Command::Finished )
+    if ( c && c->state() == Command::Finished &&
+         !d->flagf && !d->annof && !d->trif )
         d->i->unblockCommands();
 
     List<int64>::Iterator i( d->ignorable );
@@ -262,7 +309,7 @@ void ImapSession::emitResponses()
 
 
 /*! Instructs this ImapSession to emit no responses for messages whose
-    Message::modSeq() is \a ls.
+    Message::modSeq() is \a ms.
 
     This is used by Store to implement its "silent" feature.
 */

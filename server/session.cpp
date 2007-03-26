@@ -314,11 +314,9 @@ bool Session::responsesNeeded( ResponseType type ) const
 
 bool Session::responsesReady( ResponseType type ) const
 {
+    type = type; // to stop the warnings
     if ( d->initialiser )
         return false;
-    if ( !responsesNeeded( type ) )
-        return true;
-
     return true;
 }
 
@@ -340,20 +338,38 @@ void Session::expunge( const MessageSet & uids )
 }
 
 
-/*! Emit all the responses that are necessary and possible at this time.
+/*! Emit all the responses that are necessary and possible at this
+    time. Carefully ensures that we emit responses in the same order
+    every time - New cannot be sent before Modified.
 */
 
 void Session::emitResponses()
 {
-    if ( responsesNeeded( Deleted ) &&
-         responsesPermitted( 0, Deleted ) )
-        emitResponses( Deleted );
-    if ( responsesNeeded( Modified ) &&
-         responsesPermitted( 0, Modified ) )
-        emitResponses( Modified );
-    if ( responsesNeeded( New ) &&
-         responsesPermitted( 0, New ) )
-        emitResponses( New );
+    bool ok = true;
+    if ( ok &&
+         responsesNeeded( Deleted ) &&
+         responsesPermitted( Deleted ) ) {
+        if ( responsesReady( Deleted ) )
+            emitResponses( Deleted );
+        else
+            ok = false;
+    }
+    if ( ok &&
+         responsesNeeded( Modified ) &&
+         responsesPermitted( Modified ) ) {
+        if ( responsesReady( Modified ) )
+            emitResponses( Modified );
+        else
+            ok = false;
+    }
+    if ( ok &&
+         responsesNeeded( New ) &&
+         responsesPermitted( New ) ) {
+        if ( responsesReady( New ) )
+            emitResponses( New );
+        else
+            ok = false;
+    }
 }
 
 
@@ -381,22 +397,20 @@ void Session::emitResponses( ResponseType type )
         d->expunges.clear();
     }
     else if ( type == Modified ) {
-        List<Message>::Iterator i( d->modifiedMessages );
-        while ( i ) {
-            List<Message>::Iterator m = i;
-            ++i;
-            if ( !msn( m->uid() ) ) {
-                // this message is no longer in our session, so we
-                // don't want to emit anything
-                d->modifiedMessages.take( m );
-            }
-            else if ( responsesPermitted( m, Modified ) ) {
-                // we can notify the client of the modification already
-                emitModification( m );
-                d->modifiedMessages.take( m );
-            }
-            else {
-                // we have to wait for the next opportunity
+        if ( responsesReady( Modified ) ) {
+            List<Message>::Iterator i( d->modifiedMessages );
+            while ( i ) {
+                List<Message>::Iterator m = i;
+                ++i;
+                if ( !msn( m->uid() ) ) {
+                    // this message is no longer in our session, so we
+                    // don't want to emit anything
+                    d->modifiedMessages.take( m );
+                }
+                else {
+                    emitModification( m );
+                    d->modifiedMessages.take( m );
+                }
             }
         }
     }
@@ -699,9 +713,9 @@ void SessionInitialiser::execute()
 
     while ( (r=d->nms->nextRow()) != 0 ) {
         int64 ms = r->getBigint( "last_value" );
-        m->setNextModSeq( ms );
+        m->setNextModSeq( ms + 1 );
         if ( m->view() )
-            m->source()->setNextModSeq( ms );
+            m->source()->setNextModSeq( ms + 1 );
     }
 
     while ( (r=d->messages->nextRow()) != 0 ) {
@@ -887,16 +901,13 @@ void Session::setNextModSeq( int64 ms ) const
 
 
 /*! Returns true if this session can notify its client of a \a type
-    event for \a m. \a m may be null, which means "no particular
-    message".
+    events.
 */
 
-bool Session::responsesPermitted( Message * m, ResponseType type ) const
+bool Session::responsesPermitted( ResponseType type ) const
 {
+    type = type; // for the warnings
     return true;
-    // and for the warnings...
-    type = type;
-    m = m;
 }
 
 
