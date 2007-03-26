@@ -24,7 +24,7 @@ class StoreData
 public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
-          checkedPermission( false ),
+          checkedPermission( false ), notifiedSession( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ),
@@ -40,6 +40,7 @@ public:
     bool silent;
     bool uid;
     bool checkedPermission;
+    bool notifiedSession;
 
     uint unchangedSince;
     bool seenUnchangedSince;
@@ -410,9 +411,9 @@ void Store::execute()
 
     // record the change so that views onto this mailbox update themselves
     Mailbox * mb = imap()->session()->mailbox();
-    if ( mb->view() )
+    if ( mb->view() && mb->source()->nextModSeq() <= d->modseq )
         mb->source()->setNextModSeq( d->modseq + 1 );
-    else
+    else if ( mb->nextModSeq() <= d->modseq )
         mb->setNextModSeq( d->modseq + 1 );
 
     // maybe this should check d->silent && d->modseq =
@@ -423,29 +424,37 @@ void Store::execute()
         imap()->session()->ignoreModSeq( d->modseq );
         sendModseqResponses();
     }
-    else if ( d->op == StoreData::ReplaceFlags ) {
+    else if ( !d->notifiedSession ) {
         List<Message> * l = new List<Message>;
         uint i = d->s.count();
         while ( i ) {
             uint uid = d->s.value( i );
             i--;
             Message * m = new Message;
-            List<Flag> * f = m->flags();
-            List<Flag>::Iterator it( d->flags );
-            while ( it ) {
-                f->append( it );
-                ++it;
-            }
             m->setUid( uid );
             m->setModSeq( d->modseq );
-            m->setFlagsFetched( true );
+            if ( d->op == StoreData::ReplaceFlags ) {
+                List<Flag> * f = m->flags();
+                List<Flag>::Iterator it( d->flags );
+                while ( it ) {
+                    f->append( it );
+                    ++it;
+                }
+                m->setFlagsFetched( true );
+            }
             l->prepend( m );
         }
         imap()->session()->recordChange( l, Session::Modified );
+        d->notifiedSession = true;
     }
 
     if ( !d->silent && !d->expunged.isEmpty() )
         error( No, "Cannot store on expunged messages" );
+
+    if ( !imap()->session()->initialised() ) {
+        imap()->session()->refresh( this );
+        return;
+    }
 
     finish();
 }
