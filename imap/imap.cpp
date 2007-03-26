@@ -506,7 +506,7 @@ void IMAP::runCommands()
         Command * executing = 0;
 
         i = d->commands.first();
-        while ( i ) {
+        while ( i && ( !executing || executing->group() != 0 ) ) {
             Command * c = i;
             ++i;
 
@@ -534,8 +534,6 @@ void IMAP::runCommands()
                 }
             }
             else if ( c->state() == Command::Executing ) {
-                if ( c->group() == 0 )
-                    break;
                 executing = c;
             }
         }
