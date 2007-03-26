@@ -358,6 +358,8 @@ bool Schema::singleStep()
         c = stepTo39(); break;
     case 39:
         c = stepTo40(); break;
+    case 40:
+        c = stepTo41(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1907,6 +1909,41 @@ bool Schema::stepTo40()
         d->q =
             new Query( "alter table deleted_messages alter deleted_by "
                        "drop not null", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Populate unparsed_messages. */
+
+bool Schema::stepTo41()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Populating unparsed_messages" );
+        d->q =
+            new Query(
+                "insert into unparsed_messages select p.bodypart "
+                "from part_numbers p left join deleted_messages dm "
+                "using (mailbox,uid) left join unparsed_messages um "
+                "using (bodypart) "
+                "join header_fields hf using (mailbox,uid) "
+                "where p.part='2' and p.bodypart is not null and "
+                "dm.uid is null and um.bodypart is null "
+                "and hf.part='' and hf.field=20 and "
+                "(hf.value='Message arrived but could not be stored' "
+                "or hf.value like 'Unparsable message:%')", this
+            );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
