@@ -18,7 +18,7 @@ public:
     void parse();
     void react( Event );
 
-    static void send( const String & );
+    static void send( const String &, OCServer * = 0 );
     static List< OCServer > *connections();
 
 private:

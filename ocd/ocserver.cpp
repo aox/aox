@@ -65,15 +65,17 @@ void OCServer::parse()
         String msg = s->mid( i+1 ).stripCRLF();
 
         if ( tag == "*" )
-            OCServer::send( msg );
+            OCServer::send( msg, this );
         s = readBuffer()->removeLine();
     };
 }
 
 
-/*! Sends the message \a s to all connected servers. */
+/*! Sends the message \a s to all connected servers, with one \a
+    exception.
+*/
 
-void OCServer::send( const String &s )
+void OCServer::send( const String &s, OCServer * exception )
 {
     if ( !servers )
         return;
@@ -82,8 +84,8 @@ void OCServer::send( const String &s )
 
     List< OCServer >::Iterator it( servers );
     while ( it ) {
-        it->enqueue( msg );
-        it->write();
+        if ( it != exception )
+            it->enqueue( msg );
         ++it;
     }
 }
