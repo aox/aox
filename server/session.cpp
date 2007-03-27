@@ -407,6 +407,11 @@ void Session::emitResponses( ResponseType type )
                     // don't want to emit anything
                     d->modifiedMessages.take( m );
                 }
+                else if ( d->expunges.contains( m->uid() ) ) {
+                    // we will send an expunge at the next
+                    // opportunity, so why send a a change update now?
+                    d->modifiedMessages.take( m );
+                }
                 else {
                     emitModification( m );
                     d->modifiedMessages.take( m );
@@ -875,6 +880,8 @@ void Session::recordChange( List<Message> * m, ResponseType type )
                 j = l->first();
             while ( j && j->uid() < i->uid() )
                 ++j;
+            if ( j && j->uid() == i->uid() && j->modSeq() < i->modSeq() )
+                l->take( j );
             if ( !j || j->uid() > i->uid() ) {
                 l->insert( j, i );
                 prev = i->uid();
