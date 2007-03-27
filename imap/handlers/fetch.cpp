@@ -87,7 +87,7 @@ public:
         : public EventHandler
     {
     public:
-        SeenFlagSetter( Mailbox *, const MessageSet & m,
+        SeenFlagSetter( ImapSession *, const MessageSet & m,
                         EventHandler * owner );
         void execute();
 
@@ -96,7 +96,7 @@ public:
         Flag * seen;
         Query * f;
         Query * ms;
-        Mailbox * mailbox;
+        ImapSession * session;
         EventHandler * o;
     };
 };
@@ -591,12 +591,12 @@ void Fetch::execute()
         }
         else if ( d->modseq || d->flags ) {
             // to 2 after updating modseq/\seen
-            (void)new FetchData::SeenFlagSetter( s->mailbox(), d->set, this );
+            (void)new FetchData::SeenFlagSetter( s, d->set, this );
             return;
         }
         else {
             // set \seen in parallel with doing the fetch
-            (void)new FetchData::SeenFlagSetter( s->mailbox(), d->set, 0 );
+            (void)new FetchData::SeenFlagSetter( s, d->set, 0 );
         }
     }
 
@@ -1337,10 +1337,11 @@ void Fetch::parseFetchModifier()
 }
 
 
-FetchData::SeenFlagSetter::SeenFlagSetter( Mailbox * m, const MessageSet & ms,
+FetchData::SeenFlagSetter::SeenFlagSetter( ImapSession * s,
+                                           const MessageSet & ms,
                                            EventHandler * owner )
     : EventHandler(),
-      t( 0 ), seen( 0 ), f( 0 ), ms( 0 ), mailbox( m ), o( owner )
+      t( 0 ), seen( 0 ), f( 0 ), ms( 0 ), session( s ), o( owner )
 {
     messages.add( ms );
     execute();
@@ -1353,7 +1354,7 @@ void FetchData::SeenFlagSetter::execute()
         f = new Query( "select uid from flags "
                        "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
                        this );
-        f->bind( 1, mailbox->id() );
+        f->bind( 1, session->mailbox()->id() );
         seen = Flag::find( "\\seen" );
         if ( !seen )
             return;
@@ -1399,18 +1400,19 @@ void FetchData::SeenFlagSetter::execute()
         return; // guards against running the code below twice
 
     int64 modseq = r->getBigint( "ms" );
+    session->ignoreModSeq( modseq );
     Query * q = new Query( "update modsequences "
                            "set modseq=$1 "
                            "where mailbox=$2 and " + messages.where(),
                            0 );
     q->bind( 1, modseq );
-    q->bind( 2, mailbox->id() );
+    q->bind( 2, session->mailbox()->id() );
     t->enqueue( q );
 
-    if ( mailbox->nextModSeq() <= modseq )
-        mailbox->setNextModSeq( modseq + 1 );
+    if ( session->mailbox()->nextModSeq() <= modseq )
+        session->mailbox()->setNextModSeq( modseq + 1 );
 
-    q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
+    q = Store::addFlagsQuery( seen, session->mailbox(), messages, 0 );
     t->enqueue( q );
     t->commit();
 }
