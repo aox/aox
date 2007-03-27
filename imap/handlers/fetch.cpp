@@ -1380,7 +1380,7 @@ void FetchData::SeenFlagSetter::execute()
 
     if ( !t ) {
         t = new Transaction( this );
-        ms = new Query( "select nextval('nextmodsequence')::int as ms", this );
+        ms = new Query( "select nextval('nextmodsequence') as ms", this );
         t->enqueue( ms );
         t->execute();
     }
@@ -1398,15 +1398,17 @@ void FetchData::SeenFlagSetter::execute()
     if ( !r )
         return; // guards against running the code below twice
 
+    int64 modseq = r->getBigint( "ms" );
     Query * q = new Query( "update modsequences "
                            "set modseq=$1 "
                            "where mailbox=$2 and " + messages.where(),
                            0 );
-    q->bind( 1, r->getInt( "ms" ) );
+    q->bind( 1, modseq );
     q->bind( 2, mailbox->id() );
     t->enqueue( q );
 
-    mailbox->setNextModSeq( r->getInt( "ms" ) + 1 );
+    if ( mailbox->nextModSeq() <= modseq )
+        mailbox->setNextModSeq( modseq + 1 );
 
     q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
     t->enqueue( q );
