@@ -743,13 +743,14 @@ void SessionInitialiser::execute()
     if ( !d->t->done() )
         return;
 
-    if ( d->seen ) {
-        if ( !d->seen->done() )
-            return;
+    if ( d->recent && !d->recent->done() )
+        return;
+    if ( d->seen && !d->seen->done() )
+        return;
 
+    if ( d->seen )
         while( (r=d->seen->nextRow()) )
             d->session->setFirstUnseen( r->getInt( "uid" ) );
-    }
 
     d->session->recordChange( &d->newMessages, Session::New );
     d->session->recordChange( &d->updated, Session::Modified );
