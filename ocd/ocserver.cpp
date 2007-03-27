@@ -48,6 +48,13 @@ void OCServer::react( Event e )
         parse();
         break;
 
+    case Error:
+    case Close:
+        if ( servers )
+            servers->take( servers->find( this ) );
+        EventLoop::global()->removeConnection( this );
+        break;
+
     default:
         break;
     }
