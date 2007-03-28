@@ -303,7 +303,7 @@ Log::Severity LogServer::severity( const String &l )
 }
 
 
-/*! Logs a final line in the logfile and reopens it. The unused \a int
+/*! Logs a final line in the logfile and reopens it. The unused int
     argument exists because this function is used as a signal handler.
 */
 
@@ -312,6 +312,7 @@ void LogServer::reopen( int )
     if ( !logFile || logFile->name().isEmpty() )
         return;
 
+    File::unlink( logFile->name() );
     File * l = new File( logFile->name(), File::Append );
     if ( !l->valid() ) {
         ::log( "SIGHUP handler was unable to open new log file" +
@@ -321,8 +322,9 @@ void LogServer::reopen( int )
     }
     ::log( "SIGHUP caught. Closing and reopening log file " + logFile->name(),
            Log::Info );
-    delete logFile;
+    File * old = logFile;
     logFile = l;
+    delete old;
     ::log( "SIGHUP caught. Reopened log file " + logFile->name(),
            Log::Info );
 }
