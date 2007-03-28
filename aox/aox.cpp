@@ -2936,6 +2936,7 @@ void reparse()
             return;
         if ( !d->injector->failed() ) {
             d->injector->announce();
+            Mailbox * m = d->injector->mailboxes()->first();
             Query * q =
                 new Query( "insert into deleted_messages "
                            "(mailbox,uid,deleted_by,reason) "
@@ -2945,11 +2946,15 @@ void reparse()
             q->bindNull( 3 );
             q->bind( 4,
                      String( "reparsed as uid " ) +
-                     fn(d->injector->uid(d->injector->mailboxes()->first())) +
+                     fn( d->injector->uid( m ) )+
                      " by aox " +
                      Configuration::compiledIn( Configuration::Version ) );
             q->execute();
             d->waitFor( q );
+            printf( "- reparsed %s:%d (new UID %d)\n",
+                    m->name().cstr(),
+                    d->row->getInt( "uid" ),
+                    d->injector->uid( m ) );
         }
         d->injector = 0;
     }
@@ -2977,8 +2982,6 @@ void reparse()
             l->append( m );
             d->injector->setMailboxes( l );
             d->injector->execute();
-            printf( "- reparsed %s:%d\n",
-                    m->name().cstr(), r->getInt( "uid" ) );
         }
         else {
             printf( "- parsing %s:%d still fails: %s\n",
