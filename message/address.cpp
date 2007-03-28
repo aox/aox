@@ -404,8 +404,11 @@ AddressParser::AddressParser( String s )
     while ( i >= 0 && i < j ) {
         j = i;
         address( i );
-        if ( i < j && i >= 0 && s[i] == ',' )
+        if ( i < j && i >= 0 && s[i] == ',' ) {
             i--;
+            if ( i >= 0 && s[i] == ';' )
+                i--;
+        }
     }
     Address::uniquify( &d->a );
     if ( i >= 0 )
