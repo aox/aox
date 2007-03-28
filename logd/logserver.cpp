@@ -320,10 +320,12 @@ void LogServer::reopen( int )
                Log::Disaster );
         EventLoop::shutdown(); // XXX: perhaps better to switch to syslog
     }
+    Allocator::addEternal( l, "logfile name" );
     ::log( "SIGHUP caught. Closing and reopening log file " + logFile->name(),
            Log::Info );
     File * old = logFile;
     logFile = l;
+    Allocator::removeEternal( old );
     delete old;
     ::log( "SIGHUP caught. Reopened log file " + logFile->name(),
            Log::Info );
