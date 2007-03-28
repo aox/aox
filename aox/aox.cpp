@@ -2908,6 +2908,8 @@ void reparse()
     if ( !d ) {
         end();
 
+        printf( "Looking for messages with parse failures\n" );
+
         Database::setup( 1, Configuration::DbOwner );
 
         d = new Dispatcher( Dispatcher::Reparse );
@@ -2947,6 +2949,12 @@ void reparse()
             q->execute();
         }
     }
+    else {
+        if ( d->query->done() )
+            printf( "Reparsing %d messages:\n", d->query->rows() );
+        else
+            return;
+    }
 
     while ( d->query->hasResults() ) {
         Row * r = d->query->nextRow();
@@ -2965,8 +2973,8 @@ void reparse()
             l->append( m );
             d->injector->setMailboxes( l );
             d->injector->execute();
-            printf( "- reparsed %s:%d (at least %d more messages)\n",
-                    m->name().cstr(), r->getInt( "uid" ), d->query->rows() );
+            printf( "- reparsed %s:%d\n",
+                    m->name().cstr(), r->getInt( "uid" ) );
             return;
         }
         else {
