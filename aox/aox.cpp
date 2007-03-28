@@ -503,7 +503,9 @@ public:
         }
 
         if ( ( query && !query->done() ) || ( t && !t->done() ) ||
-             ( d->user && d->user->state() == User::Unverified ) )
+             ( d->user && d->user->state() == User::Unverified ) ||
+             ( d->injector && !d->injector->done() ) ||
+             ( !chores->isEmpty() ) )
             return;
 
         if ( query && query->failed() ) {
@@ -2947,6 +2949,7 @@ void reparse()
                      " by aox " +
                      Configuration::compiledIn( Configuration::Version ) );
             q->execute();
+            d->waitFor( q );
         }
         d->injector = 0;
     }
