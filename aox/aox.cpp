@@ -2971,7 +2971,7 @@ void reparse()
         }
         else {
             printf( "- parsing %s:%d still fails: %s\n",
-                    m->name().cstr(), r->getInt( "uid" )
+                    m->name().cstr(), r->getInt( "uid" ),
                     msg->error().simplified().cstr() );
         }
     }
