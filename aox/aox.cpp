@@ -2926,6 +2926,7 @@ void reparse()
         if ( !d->injector->done() )
             return;
         if ( !d->injector->failed() ) {
+            d->injector->announce();
             Query * q =
                 new Query( "insert into deleted_messages "
                            "(mailbox,uid,deleted_by,reason) "
