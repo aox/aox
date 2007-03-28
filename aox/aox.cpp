@@ -2948,6 +2948,7 @@ void reparse()
                      Configuration::compiledIn( Configuration::Version ) );
             q->execute();
         }
+        d->injector = 0;
     }
     else {
         if ( d->query->done() )
@@ -2956,7 +2957,7 @@ void reparse()
             return;
     }
 
-    while ( d->query->hasResults() ) {
+    while ( d->query->hasResults() && !d->injector ) {
         Row * r = d->query->nextRow();
 
         String text;
@@ -2975,7 +2976,6 @@ void reparse()
             d->injector->execute();
             printf( "- reparsed %s:%d\n",
                     m->name().cstr(), r->getInt( "uid" ) );
-            return;
         }
         else {
             printf( "- parsing %s:%d still fails: %s\n",
