@@ -2911,9 +2911,13 @@ void reparse()
 
         d = new Dispatcher( Dispatcher::Reparse );
         d->query = new Query( "select p.mailbox,p.uid,b.id as bodypart,"
-                              "b.text from unparsed_messages u join "
-                              "bodyparts b on (u.bodypart=b.id) join "
-                              "part_numbers p on (p.bodypart=b.id)", d );
+                              "b.text,b.data "
+                              "from unparsed_messages u "
+                              "join bodyparts b on (u.bodypart=b.id) "
+                              "join part_numbers p on (p.bodypart=b.id) "
+                              "left join deleted_messages dm on "
+                              " (p.mailbox=dm.mailbox and p.uid=dm.uid) "
+                              "where dm.mailbox is null", d );
         Mailbox::setup( d );
         d->query->execute();
     }
@@ -2941,9 +2945,15 @@ void reparse()
     while ( d->query->hasResults() ) {
         Row * r = d->query->nextRow();
 
-        String text( r->getString( "text" ) );
+        String text;
+        if ( r->isNull( "data" ) )
+            text = r->getString( "text" );
+        else
+            text = r->getString( "data" );
         Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
         Message * msg = new Message( text );
+        printf( "- reparsing %s:%d (%d more messages)\n",
+                m->name().cstr(), r->getInt( "uid" ), d->query->rows() );
         if ( m && msg->valid() ) {
             d->row = r;
             d->injector = new Injector( msg, d );
@@ -2951,7 +2961,12 @@ void reparse()
             l->append( m );
             d->injector->setMailboxes( l );
             d->injector->execute();
+            printf( "- succeeded\n" );
             return;
+        }
+        else {
+            printf( "- failed: %s\n",
+                    msg->error().simplified().cstr() );
         }
     }
 }
