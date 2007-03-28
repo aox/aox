@@ -680,10 +680,10 @@ void SessionInitialiser::execute()
             d->t->enqueue( m->refresh() );
 
             d->messages =
-                new Query( "select vm.uid,vm.suid from view_messages "
-                           "join modsequences ms using (mailbox,uid) "
-                           "where vm.view=$1 and "
-                           " (vm.uid>=$2 or ms.modseq>=$3)", this );
+                new Query( "select vm.uid,vm.suid from view_messages vm "
+                           "join modsequences ms on (vm.source=ms.mailbox "
+                           "and vm.suid=ms.uid) where vm.view=$1 and "
+                           "(vm.uid>=$2 or ms.modseq>=$3)", this );
 
             q = new Query( "drop sequence vs", 0 );
             d->t->enqueue( q );
