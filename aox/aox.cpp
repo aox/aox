@@ -9,6 +9,7 @@
 #include "stderrlogger.h"
 #include "addresscache.h"
 #include "transaction.h"
+#include "fieldcache.h"
 #include "eventloop.h"
 #include "injector.h"
 #include "database.h"
@@ -2910,6 +2911,11 @@ void reparse()
         Database::setup( 1, Configuration::DbOwner );
 
         d = new Dispatcher( Dispatcher::Reparse );
+
+        AddressCache::setup();
+        FieldNameCache::setup();
+        Mailbox::setup( d );
+
         d->query = new Query( "select p.mailbox,p.uid,b.id as bodypart,"
                               "b.text,b.data "
                               "from unparsed_messages u "
@@ -2918,7 +2924,6 @@ void reparse()
                               "left join deleted_messages dm on "
                               " (p.mailbox=dm.mailbox and p.uid=dm.uid) "
                               "where dm.mailbox is null", d );
-        Mailbox::setup( d );
         d->query->execute();
     }
 
