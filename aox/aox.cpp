@@ -2958,8 +2958,6 @@ void reparse()
             text = r->getString( "data" );
         Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
         Message * msg = new Message( text );
-        printf( "- reparsing %s:%d (%d more messages)\n",
-                m->name().cstr(), r->getInt( "uid" ), d->query->rows() );
         if ( m && msg->valid() ) {
             d->row = r;
             d->injector = new Injector( msg, d );
@@ -2967,11 +2965,13 @@ void reparse()
             l->append( m );
             d->injector->setMailboxes( l );
             d->injector->execute();
-            printf( "- succeeded\n" );
+            printf( "- reparsed %s:%d (at least %d more messages)\n",
+                    m->name().cstr(), r->getInt( "uid" ), d->query->rows() );
             return;
         }
         else {
-            printf( "- failed: %s\n",
+            printf( "- parsing %s:%d still fails: %s\n",
+                    m->name().cstr(), r->getInt( "uid" )
                     msg->error().simplified().cstr() );
         }
     }
