@@ -360,6 +360,8 @@ bool Schema::singleStep()
         c = stepTo40(); break;
     case 40:
         c = stepTo41(); break;
+    case 41:
+        c = stepTo42(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1943,6 +1945,35 @@ bool Schema::stepTo41()
                 "and hf.part='' and hf.field=20 and "
                 "(hf.value='Message arrived but could not be stored' "
                 "or hf.value like 'Unparsable message:%')", this
+            );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Insert modsequences for any messages that don't have them. */
+
+bool Schema::stepTo42()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Populating modsequences for old messages" );
+        d->q =
+            new Query(
+                "insert into modsequences (mailbox,uid,modseq) "
+                "select mailbox,uid,(select nextval('nextmodsequence')) "
+                "from messages m left join modsequences ms "
+                "using (mailbox,uid) where ms.uid is null", this
             );
         d->t->enqueue( d->q );
         d->t->execute();
