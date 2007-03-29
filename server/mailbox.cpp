@@ -29,7 +29,8 @@ public:
           parent( 0 ), children( 0 ),
           sessions( 0 ),
           nextModSeq( 1 ),
-          source( 0 ), sourceUids( 0 )
+          source( 0 ), sourceUids( 0 ),
+          views( 0 )
     {}
 
     String name;
@@ -51,6 +52,8 @@ public:
     String selector;
 
     Map< uint > * sourceUids;
+
+    List<Mailbox> * views;
 };
 
 
@@ -647,6 +650,13 @@ Query * Mailbox::remove( Transaction * t )
 
 void Mailbox::addSession( Session * s )
 {
+    if ( d->source ) {
+        Mailbox * sm = source();
+        if ( sm && !sm->d->views )
+            sm->d->views = new List<Mailbox>;
+        if ( sm && !sm->d->views->find( this ) )
+            sm->d->views->append( this );
+    }
     if ( !d->sessions )
         d->sessions = new List<Session>;
     if ( s && !d->sessions->find( s ) )
@@ -673,13 +683,20 @@ void Mailbox::removeSession( Session * s )
 
 void Mailbox::notifySessions()
 {
-    if ( !d->sessions )
-        return;
+    // our own sessions
     List<Session>::Iterator it( d->sessions );
     while ( it ) {
         Session * s = it;
         ++it;
         s->refresh( 0 );
+    }
+    // and all sessions on a view onto this mailbox
+    List<Mailbox>::Iterator v( d->views );
+    while ( v ) {
+        // d->views is only added to, never pared down, so check
+        if ( v->source() == this )
+            v->notifySessions();
+        ++v;
     }
 }
 

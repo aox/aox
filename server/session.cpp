@@ -285,11 +285,6 @@ void Session::addRecent( uint uid )
 
 bool Session::responsesNeeded( ResponseType type ) const
 {
-    // a bit of a hack - if it's a view and it hasn't been updated,
-    // fake an update
-    if ( d->mailbox->type() == Mailbox::View )
-        ((Session*)this)->refresh( 0 );
-
     switch ( type ) {
     case New:
         if ( !d->newMessages.isEmpty() )
