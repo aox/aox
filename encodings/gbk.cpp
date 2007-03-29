@@ -75,10 +75,13 @@ UString GbkCodec::toUnicode( const String &s )
         else {
             char d = s[++n];
             uint p = (c << 8) | d;
-            if ( gbkToUnicode[p] != 0 )
+            if ( gbkToUnicode[p] != 0 ) {
                 u.append( gbkToUnicode[p] );
-            else
+            }
+            else {
                 recordError( n-1, p );
+                u.append( 0xFFFD );
+            }
         }
 
         n++;

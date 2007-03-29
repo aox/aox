@@ -81,10 +81,9 @@ UString Cp950Codec::toUnicode( const String &s )
             }
 
             uint p = (c << 8) | d;
-            if ( toU[p] != 0xFFFD )
-                u.append( toU[p] );
-            else
+            if ( toU[p] == 0xFFFD )
                 recordError( n-1, p );
+            u.append( toU[p] );
         }
 
         n++;

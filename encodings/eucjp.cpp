@@ -95,12 +95,17 @@ UString EucJpCodec::toUnicode( const String &s )
             uint i = c-128-32-1;
             uint j = d-128-32-1;
 
-            if ( i > 93 || d < 128 || j > 93 )
+            if ( i > 93 || d < 128 || j > 93 ) {
+                u.append( 0xFFFD );
                 recordError( n, s );
-            if ( toU[i][j] == 0xFFFD )
+            }
+            else if ( toU[i][j] == 0xFFFD ) {
                 recordError( n, i * 94 + j );
-            else
+                u.append( 0xFFFD );
+            }
+            else {
                 u.append( toU[i][j] );
+            }
 
             n += 2;
         }

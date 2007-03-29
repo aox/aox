@@ -114,9 +114,9 @@ UString Iso2022JpCodec::toUnicode( const String &s )
                 mode = JIS;
             }
             else {
-                // We reject any unknown escape sequences.
+                // We ignore any unknown escape sequences.
                 recordError( n, s );
-                break;
+                // XXX: should we emit U+FFFD?
             }
             n += 2;
         }
@@ -125,21 +125,23 @@ UString Iso2022JpCodec::toUnicode( const String &s )
             // CRLF (being an ABNF gimmick) are ignored here.
             if ( c == 0x0E || c == 0x0F ) {
                 recordError( n, s );
-                break;
+                u.append( 0xFFFD );
             }
-            u.append( c );
+            else {
+                u.append( c );
+            }
         }
         else if ( mode == JIS ) {
             int ku = c;
             int ten = s[n+1];
 
+            uint cp = 0xFFFD;
             if ( ten == 0x1B ) {
                 // Single byte
                 recordError( n, s );
             }
             else {
                 // Double byte, of whatever legality
-                uint cp = 0xFFFD;
                 ku -= 33;
                 ten -= 33;
                 if ( ku > 93 || ten > 93 )
@@ -148,9 +150,9 @@ UString Iso2022JpCodec::toUnicode( const String &s )
                     recordError( n, ku * 94 + ten );
                 else
                     cp = toU[ku][ten];
-                u.append( cp );
                 n++;
             }
+            u.append( cp );
         }
 
         n++;

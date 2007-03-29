@@ -49,6 +49,7 @@ String Iso2022KrCodec::fromUnicode( const UString &u )
     enum { ASCII, KSC } mode = ASCII;
 
     // XXX: We don't emit the ESC$)C code properly.
+    // XXX: Why don't we do that?
 
     uint i = 0;
     while ( i < u.length() ) {
@@ -101,9 +102,8 @@ UString Iso2022KrCodec::toUnicode( const String &s )
                 // We don't do anything with this valid escape.
             }
             else {
-                // We reject any unknown escape sequences.
+                // We ignore any unknown escape sequences.
                 recordError( n, s );
-                break;
             }
             n += 2;
         }
@@ -113,7 +113,7 @@ UString Iso2022KrCodec::toUnicode( const String &s )
             }
             else if ( c == 0x0F ) {
                 recordError( n, s );
-                break;
+                u.append( 0xFFFD );
             }
             else {
                 u.append( c );
@@ -129,6 +129,7 @@ UString Iso2022KrCodec::toUnicode( const String &s )
             else if ( ten == 0x1B ) {
                 // Single byte
                 recordError( n, s );
+                u.append( 0xFFFD );
             }
             else {
                 // Double byte, of whatever legality
