@@ -49,9 +49,9 @@ public:
 
     Query * query;
     MessageSet matches;
-    uint highestmodseq;
-    uint firstmodseq;
-    uint lastmodseq;
+    int64 highestmodseq;
+    int64 firstmodseq;
+    int64 lastmodseq;
     
     bool returnAll;
     bool returnCount;
@@ -460,7 +460,7 @@ void Search::execute()
     while ( (r=d->query->nextRow()) != 0 ) {
         d->matches.add( r->getInt( "uid" ) );
         if ( d->root->modseqReturned() ) {
-            uint ms = r->getInt( "modseq" );
+            int64 ms = r->getBigint( "modseq" );
             if ( firstRow )
                 d->firstmodseq = ms;
             d->lastmodseq = ms;

@@ -430,7 +430,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->query->bind( d->mboxId, mailbox->id() );
     String q = "select distinct m.uid";
     if ( d->needModsequences )
-        q.append( ", ms.modseq::int" );
+        q.append( ", ms.modseq" );
     q.append( " from messages m"
               " left join deleted_messages dm on"
               " (m.uid=dm.uid and m.mailbox=dm.mailbox)" );
