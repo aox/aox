@@ -614,13 +614,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 body = c->fromUnicode( bp->d->text );
             }
         }
-        else if ( !c->valid() &&
-                  c->error().startsWith( "Parse error at index" ) ) {
-            // we got something badish, and prefer to hand out the
-            // unicode representation, including U+FFFD.
-            c = new Utf8Codec;
-            body = c->fromUnicode( bp->d->text );
-        }
 
         if ( ( !specified && ( !c->wellformed() ||
                                ct->subtype() == "html" ) ) ||
