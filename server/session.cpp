@@ -685,8 +685,14 @@ void SessionInitialiser::execute()
     while ( (r=d->nms->nextRow()) != 0 ) {
         int64 ms = r->getBigint( "last_value" );
         m->setNextModSeq( ms + 1 );
-        if ( m->view() )
+        if ( m->view() ) {
             m->source()->setNextModSeq( ms + 1 );
+            Query * q = new Query( "update views set nextmodseq=$1 "
+                                   "where view=$2", 0 );
+            q->bind( 1, m->nextModSeq() );
+            q->bind( 2, m->id() );
+            d->t->enqueue( q );
+        }
     }
 
     if ( m->view() ) {
