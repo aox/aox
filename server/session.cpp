@@ -675,7 +675,7 @@ void SessionInitialiser::execute()
                       "left join (" + d->messages->string() + ") s on "
                       " m.uid=s.uid "
                       "where m.mailbox=$" + sel->mboxId() +
-                      " and ms.modseq>$" + fn( oms ) + " "
+                      " and ms.modseq>=$" + fn( oms ) + " "
                       "order by m.uid" );
             d->messages->bind( oms, d->oldModSeq );
             d->messages->setString( s );
@@ -730,12 +730,11 @@ void SessionInitialiser::execute()
                 Message * message = new Message;
                 message->setUid( vuid );
                 message->setModSeq( r->getBigint( "modseq" ) );
-                if ( m->sourceUid( vuid ) ) {
-                    // ... then if it's in the session, its modseq increased...
+                // ... then if it's in the session, its modseq increased...
+                if ( d->session->msn( vuid ) ) {
                     d->updated.append( message );
                 }
-                else {
-                    // ... else it's new to this session
+                else { // ... else it's new to this session
                     m->setSourceUid( vuid, uid );
                     d->newMessages.append( message );
                 }
