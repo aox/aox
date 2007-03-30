@@ -755,7 +755,7 @@ void SessionInitialiser::execute()
                 q->bind( 1, m->source()->id() );
                 q->bind( 1, suid );
                 q->bind( 3, m->id() );
-                q->bind( 1, uid );
+                q->bind( 4, uid );
                 q->submitLine();
                 m->setSourceUid( uid, suid );
                 Message * m = new Message;
@@ -778,6 +778,14 @@ void SessionInitialiser::execute()
     }
 
     if ( !d->t->done() && d->messages->done() && !d->done ) {
+        if ( m->view() && d->newUidnext > m->uidnext() ) {
+            m->setUidnext( d->newUidnext );
+            Query * q = new Query( "update mailboxes set uidnext=$1 "
+                                   "where id=$2", 0 );
+            q->bind( 1, d->newUidnext );
+            q->bind( 2, m->id() );
+            d->t->enqueue( q );
+        }
         d->t->commit();
         d->done = true;
     }
