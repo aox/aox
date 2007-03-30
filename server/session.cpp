@@ -761,10 +761,10 @@ void SessionInitialiser::execute()
                 addToDb.remove( suid );
                 uint uid = d->newUidnext;
                 d->newUidnext++;
-                q->bind( 1, m->source()->id() );
-                q->bind( 2, suid );
-                q->bind( 3, m->id() );
-                q->bind( 4, uid );
+                q->bind( 1, m->source()->id(), Query::Binary );
+                q->bind( 2, suid, Query::Binary );
+                q->bind( 3, m->id(), Query::Binary );
+                q->bind( 4, uid, Query::Binary );
                 q->submitLine();
                 m->setSourceUid( uid, suid );
                 Message * m = new Message;
