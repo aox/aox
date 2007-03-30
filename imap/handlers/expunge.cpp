@@ -120,12 +120,18 @@ bool Expunge::expunge( bool chat )
         return true;
 
     if ( !d->e ) {
+        String w( d->uids.where() );
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
+        Query * q 
+            = new Query( "update modsequences "
+                         "set modseq=(select nextval('nextmodsequence')) "
+                         "where mailbox=$1 and (" + w + ")", 0 );
+        q->bind( 1, d->s->mailbox()->id() );
+        q->execute();
         d->e = new Query( "insert into deleted_messages "
                           "(mailbox, uid, deleted_by, reason) "
                           "select mailbox, uid, $2, $3 "
-                          "from messages where mailbox=$1 and "
-                          "(" + d->uids.where() + ")",
+                          "from messages where mailbox=$1 and (" + w + ")",
                           this );
         d->e->bind( 1, d->s->mailbox()->id() );
         d->e->bind( 2, imap()->user()->id() );

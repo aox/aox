@@ -92,11 +92,18 @@ void POP::setState( State s )
     }
     if ( s == Update && user() && !d->toBeDeleted.isEmpty() ) {
         log( "Deleting " + fn( d->toBeDeleted.count() ) + " messages" );
-        Query * q = new Query( "insert into deleted_messages "
-                               "(mailbox, uid, deleted_by, reason) "
-                               "select mailbox, uid, $2, $3 "
-                               "from messages where mailbox=$1 and "
-                               "(" + d->toBeDeleted.where() + ")", 0 );
+        String w = d->toBeDeleted.where();
+        Query * q;
+        q = new Query( "update modsequences "
+                       "set modseq=(select nextval('nextmodsequence')) "
+                       "where mailbox=$1 and (" + w + ")", 0 );
+        q->bind( 1, d->session->mailbox()->id() );
+        q->execute();
+        q = new Query( "insert into deleted_messages "
+                       "(mailbox, uid, deleted_by, reason) "
+                       "select mailbox, uid, $2, $3 "
+                       "from messages where mailbox=$1 and "
+                       "(" + w + ")", 0 );
         q->bind( 1, d->session->mailbox()->id() );
         q->bind( 2, d->user->id() );
         q->bind( 3, "POP delete " + Scope::current()->log()->id() );
