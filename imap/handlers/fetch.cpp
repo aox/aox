@@ -60,6 +60,10 @@ public:
     bool peek;
     MessageSet set;
     MessageSet expunged;
+    struct Message {
+        ::Message * m;
+        uint uid;
+    };
     List<Message> requested;
     uint changedSince;
     Query * notThose;
@@ -616,11 +620,12 @@ void Fetch::execute()
         bool ok = true;
         uint good = 0;
         while ( ok && !d->requested.isEmpty() ) {
-            Message * m = d->requested.first();
-            uint uid = m->uid();
+            Message * m = d->requested.first()->m;
+            uint uid = d->requested.first()->uid;
             uint msn = s->msn( uid );
             if ( ( !d->annotation || m->hasAnnotations() ) &&
-                 ( !d->needHeader || ( m->hasHeaders() && m->hasAddresses() ) ) &&
+                 ( !d->needHeader || ( m->hasHeaders() &&
+                                       m->hasAddresses() ) ) &&
                  ( !d->needBody || m->hasBodies() ) &&
                  ( !d->flags || m->hasFlags() ) &&
                  ( ( !d->rfc822size && !d->internaldate && !d->modseq )
@@ -669,41 +674,52 @@ void Fetch::sendFetchQueries()
 {
     Mailbox * mb = imap()->session()->mailbox();
 
+    List<Message> * l = new List<Message>;
+
     uint n = 0;
     while ( n < 1024 && !d->set.isEmpty() ) {
         uint uid = d->set.value( 1 );
         d->set.remove( uid );
-        Message * m = new Message;
-        m->setUid( uid );
+        FetchData::Message * m = new FetchData::Message;
+        m->m = new Message;
+        m->uid = uid;
+        if ( mb->view() )
+            m->m->setUid( mb->sourceUid( uid ) );
+        else
+            m->m->setUid( uid );
         d->requested.append( m );
+        l->append( m->m );
         n++;
     }
 
+    if ( mb->view() )
+        mb = mb->source();
+
     if ( d->needHeader ) {
         Fetcher * f =
-            new MessageAddressFetcher( mb, &d->requested, this );
+            new MessageAddressFetcher( mb, l, this );
         f->execute();
-        f = new MessageHeaderFetcher( mb, &d->requested, this );
+        f = new MessageHeaderFetcher( mb, l, this );
         f->execute();
     }
     if ( d->needBody ) {
         MessageBodyFetcher * mbf =
-            new MessageBodyFetcher( mb, &d->requested, this );
+            new MessageBodyFetcher( mb, l, this );
         mbf->execute();
     }
     if ( d->flags ) {
         MessageFlagFetcher * mff =
-            new MessageFlagFetcher( mb, &d->requested, this );
+            new MessageFlagFetcher( mb, l, this );
         mff->execute();
     }
     if ( d->rfc822size || d->internaldate || d->modseq ) {
         MessageTriviaFetcher * mtf =
-            new MessageTriviaFetcher( mb, &d->requested, this );
+            new MessageTriviaFetcher( mb, l, this );
         mtf->execute();
     }
     if ( d->annotation ) {
         MessageAnnotationFetcher * maf =
-            new MessageAnnotationFetcher( mb, &d->requested, this );
+            new MessageAnnotationFetcher( mb, l, this );
         maf->execute();
     }
 }
