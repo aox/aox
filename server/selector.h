@@ -76,6 +76,8 @@ public:
 
     bool dynamic() const;
 
+    String mboxId();
+
 private:
     class SelectorData * d;
 
@@ -93,7 +95,6 @@ private:
     String whereAnnotation();
     String whereModseq();
     String whereNoField();
-    String mboxId();
 };
 
 
