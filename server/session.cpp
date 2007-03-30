@@ -729,7 +729,7 @@ void SessionInitialiser::execute()
             if ( !left && vuid ) {
                 Message * message = new Message;
                 message->setUid( vuid );
-                message->setModSeq( r->getInt( "modseq" ) );
+                message->setModSeq( r->getBigint( "modseq" ) );
                 if ( m->sourceUid( vuid ) ) {
                     // ... then if it's in the session, its modseq increased...
                     d->updated.append( message );
