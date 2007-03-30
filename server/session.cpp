@@ -658,18 +658,18 @@ void SessionInitialiser::execute()
             String s( "select m.mailbox, m.uid, "
                       " vm.uid as vuid, "
                       " s.uid as suid, "
-                      " s.modseq, "
+                      " ms.modseq, "
                       " f.flag as seen "
                       "from messages m "
                       "join modsequences ms on "
-                      " (m.mailbox=ms.mailbox and m.uid=ms.suid)"
+                      " (m.mailbox=ms.mailbox and m.uid=ms.uid) "
                       "left join view_messages vm on "
-                      " (m.mailbox=vm.mailbox and m.uid=vm.suid)"
+                      " (m.mailbox=vm.source and m.uid=vm.suid) "
                       "left join flags f on "
                       " (m.mailbox=f.mailbox and m.uid=f.uid and "
-                      "  f.flag=" + fn( seen->id() ) + " )" // seen may be null
+                      "  f.flag=" + fn( seen->id() ) + " ) " // XXX seen 0
                       "left join (" + d->messages->string() + ") s on "
-                      " (m.mailbox=s.mailbox and m.uid=s.uid)"
+                      " m.uid=s.uid "
                       "where m.mailbox=$" + sel->mboxId() +
                       " and ms.modseq>$" + fn( oms ) + " "
                       "order by m.uid" );
