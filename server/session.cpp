@@ -651,9 +651,8 @@ void SessionInitialiser::execute()
             sel->add( Selector::fromString( m->selector() ) );
             sel->simplify();
 
-            uint oms = sel->placeHolder();
-
             d->messages = sel->query( 0, m->source(), 0, this );
+            uint oms = sel->placeHolder();
 
             String s( "select m.mailbox, m.uid, "
                       " vm.uid as vuid, "
