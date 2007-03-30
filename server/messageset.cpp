@@ -252,7 +252,8 @@ uint MessageSet::index( uint value ) const
     uid<77".
 
     If \a table is non-empty, all column references are qualified with
-    its value (i.e., table.column).
+    its value (i.e., table.column). \a table should not contain a
+    trailing dot.
 */
 
 String MessageSet::where( const String & table ) const
