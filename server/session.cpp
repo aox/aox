@@ -587,6 +587,8 @@ void SessionInitialiser::execute()
             new Query( "select last_value from nextmodsequence", this );
         d->t->enqueue( d->nms );
 
+        Flag * seen = Flag::find( "\\seen" );
+
         if ( m->ordinary() ) {
             if ( d->session->readOnly() )
                 d->recent = new Query( "select first_recent from mailboxes "
@@ -614,86 +616,14 @@ void SessionInitialiser::execute()
                            "where m.mailbox=$1 and dm.uid is null and "
                            " (m.uid>=$2 or ms.modseq>=$3)", this );
             // XXX: I think ms.modseq>=3 in all cases where m.uid>=$2
-        }
-        else {
-            Query * q;
 
-            q = new Query( "select uidnext from mailboxes where id=$1 "
-                           "for update", 0 );
-            q->bind( 1, m->id() );
-            d->t->enqueue( q );
+            d->messages->bind( 1, m->id() );
+            d->messages->bind( 2, d->oldUidnext );
+            d->messages->bind( 3, d->oldModSeq );
 
-            q = new Query( "create temporary sequence vs start with " +
-                           fn( m->uidnext() ), 0 );
-            d->t->enqueue( q );
+            d->t->enqueue( d->messages );
 
-            q = new Query( "update views set nextmodseq="
-                           "(select last_value from nextmodsequence) "
-                           "where view=$1", 0 );
-            q->bind( 1, m->id() );
-            d->t->enqueue( q );
-
-            Selector * sel = new Selector;
-            sel->add( new Selector( Selector::Modseq, Selector::Larger,
-                                    d->oldModSeq ) );
-            sel->add( Selector::fromString( m->selector() ) );
-            sel->simplify();
-
-            q = sel->query( 0, m->source(), 0, 0 );
-
-            uint view = sel->placeHolder();
-            uint source = sel->placeHolder();
-
-            String s( "insert into view_messages (view,uid,source,suid) "
-                      "select $" + fn( view ) + ",nextval('vs'),$" +
-                      fn( source ) + ",uid from (" + q->string() + ")"
-                      " as THANK_YOU_SQL_WEENIES" );
-
-            q->setString( s );
-            q->bind( view, m->id() );
-            q->bind( source, m->source()->id() );
-            d->t->enqueue( q );
-
-            // if the search expression is dynamic, we may also need to
-            // delete some rows for messages that no longer match.
-            Selector * tmp = Selector::fromString( m->selector() );
-            if ( tmp->dynamic() ) {
-                // we want to delete those rows which are modsec >= x
-                // AND NOT tmp.
-                //
-                // complicating matters, some rows may have been
-                // deleted in the database but still be present in our
-                // session (because another archiveopteryx process is
-                // running SessionInitialiser).
-            }
-
-            q = new Query( "update mailboxes set uidnext=nextval('vs') "
-                           "where id=$1", 0 );
-            q->bind( 1, m->id() );
-            d->t->enqueue( q );
-
-            d->t->enqueue( m->refresh() );
-
-            d->messages =
-                new Query( "select vm.uid,vm.suid from view_messages vm "
-                           "join modsequences ms on (vm.source=ms.mailbox "
-                           "and vm.suid=ms.uid) where vm.view=$1 and "
-                           "(vm.uid>=$2 or ms.modseq>=$3)", this );
-
-            q = new Query( "drop sequence vs", 0 );
-            d->t->enqueue( q );
-        }
-
-        d->messages->bind( 1, m->id() );
-        d->messages->bind( 2, d->oldUidnext );
-        d->messages->bind( 3, d->oldModSeq );
-
-        d->t->enqueue( d->messages );
-        d->t->execute();
-
-        if ( !d->session->firstUnseen() ) {
-            Flag * seen = Flag::find( "\\seen" );
-            if ( seen ) {
+            if ( seen && !d->session->firstUnseen() ) {
                 d->seen =
                     new Query( "select m.uid from messages m "
                                "left join flags f on "
@@ -707,6 +637,48 @@ void SessionInitialiser::execute()
                 d->seen->execute();
             }
         }
+        else {
+            Query * q;
+
+            q = new Query( "select uidnext from mailboxes where id=$1 "
+                           "for update", 0 );
+            q->bind( 1, m->id() );
+            d->t->enqueue( q );
+
+            Selector * sel = new Selector;
+            sel->add( new Selector( Selector::Modseq, Selector::Larger,
+                                    d->oldModSeq ) );
+            sel->add( Selector::fromString( m->selector() ) );
+            sel->simplify();
+
+            uint oms = sel->placeHolder();
+
+            d->messages = sel->query( 0, m->source(), 0, this );
+
+            String s( "select m.mailbox, m.uid, "
+                      " vm.uid as vuid, "
+                      " s.uid as suid, "
+                      " s.modseq, "
+                      " f.flag as seen "
+                      "from messages m "
+                      "join modsequences ms on "
+                      " (m.mailbox=ms.mailbox and m.uid=ms.suid)"
+                      "left join view_messages vm on "
+                      " (m.mailbox=vm.mailbox and m.uid=vm.suid)"
+                      "left join flags f on "
+                      " (m.mailbox=f.mailbox and m.uid=f.uid and "
+                      "  f.flag=" + fn( seen->id() ) + " )" // seen may be null
+                      "left join (" + d->messages->string() + ") s on "
+                      " (m.mailbox=s.mailbox and m.uid=s.uid)"
+                      "where m.mailbox=$" + sel->mboxId() +
+                      " and ms.modseq>$" + fn( oms ) + " "
+                      "order by m.uid" );
+            d->messages->bind( oms, d->oldModSeq );
+            d->messages->setString( s );
+            d->t->enqueue( d->messages );
+        }
+
+        d->t->execute();
     }
 
     Row * r = 0;
@@ -718,16 +690,92 @@ void SessionInitialiser::execute()
             m->source()->setNextModSeq( ms + 1 );
     }
 
-    while ( (r=d->messages->nextRow()) != 0 ) {
-        uint uid = r->getInt( "uid" );
-        if ( m->view() )
-            m->setSourceUid( uid, r->getInt( "suid" ) );
-        Message * m = new Message;
-        m->setUid( uid );
-        if ( m->uid() >= d->oldUidnext )
-            d->newMessages.append( m );
-        else
-            d->updated.append( m );
+    if ( m->view() ) {
+        MessageSet removeInDb;
+        MessageSet addToDb;
+        while ( (r=d->messages->nextRow()) != 0 ) {
+            bool seen = true;
+            if ( r->isNull( "seen" ) )
+                seen = false;
+
+            uint uid = r->getInt( "uid" );
+            uint vuid = 0;
+            if ( !r->isNull( "vuid" ) )
+                vuid = r->getInt( "vuid" );
+
+            bool left = false;
+            if ( r->isNull( "suid" ) )
+                left = true;
+
+            // if it left the search result but still is in the db, we
+            // want to remove it
+            if ( left && vuid )
+                removeInDb.add( vuid );
+            // if it entered the search result and isn't in the db, wep
+            // want to add it
+            if ( !left && !vuid )
+                addToDb.add( uid );
+            // if it is in the search results and also in the session,
+            // its modseq increased.
+            if ( !left && m->sourceUid( uid ) ) {
+                Message * m = new Message;
+                m->setUid( vuid );
+                m->setModSeq( r->getInt( "modseq" ) );
+                d->updated.append( m );
+            }
+            // if it is in the search results and db, but isn't in the
+            // session, we need to add it
+            if ( !left && vuid && !m->sourceUid( vuid ) ) {
+                m->setSourceUid( r->getInt( "vuid" ), uid );
+                Message * m = new Message;
+                m->setUid( vuid );
+                m->setModSeq( r->getInt( "modseq" ) );
+                d->newMessages.append( m );
+            }
+        }
+
+        if ( !removeInDb.isEmpty() ) {
+            Query * q 
+                = new Query( "delete from view_messages "
+                             "where view=$1 and source=$2 and (" +
+                             removeInDb.where( "" ) + ")", 0 );
+            q->bind( 1, m->id() );
+            q->bind( 2, m->source()->id() );
+            d->t->enqueue( q );
+            d->expunged.add( removeInDb );
+        }
+
+        if ( !addToDb.isEmpty() ) {
+            Query * q = new Query( "copy view_messages (source,suid,view,uid) "
+                                   "from stdin with binary", 0 );
+            while ( !addToDb.isEmpty() ) {
+                uint suid = addToDb.value( 1 );
+                addToDb.remove( suid );
+                uint uid = d->newUidnext;
+                d->newUidnext++;
+                q->bind( 1, m->source()->id() );
+                q->bind( 1, suid );
+                q->bind( 3, m->id() );
+                q->bind( 1, uid );
+                q->submitLine();
+                m->setSourceUid( uid, suid );
+                Message * m = new Message;
+                m->setUid( uid );
+                d->newMessages.append( m );
+            }
+            d->t->enqueue( q );
+        }
+    }
+    else {
+        while ( (r=d->messages->nextRow()) != 0 ) {
+            uint uid = r->getInt( "uid" );
+            Message * m = new Message;
+            m->setUid( uid );
+            if ( m->uid() >= d->oldUidnext )
+                d->newMessages.append( m );
+            else
+                d->updated.append( m );
+        }
     }
 
     if ( !d->t->done() && d->messages->done() && !d->done ) {
@@ -751,6 +799,7 @@ void SessionInitialiser::execute()
     d->session->recordChange( &d->updated, Session::Modified );
     d->session->setUidnext( m->uidnext() );
     d->session->setNextModSeq( m->nextModSeq() );
+    d->session->expunge( d->expunged.intersection( d->session->messages() ) );
     if ( d->recent && (r=d->recent->nextRow()) != 0 ) {
         uint recent = r->getInt( "first_recent" );
         uint n = recent;
