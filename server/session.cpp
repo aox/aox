@@ -488,6 +488,8 @@ void Session::refresh( EventHandler * handler )
 {
     if ( handler && d->initialiser )
         d->initialiser->addWatcher( handler );
+    else if ( d->initialiser )
+        return;
     else if ( d->uidnext < d->mailbox->uidnext() )
         (void)new SessionInitialiser( this, handler );
     else if ( d->nextModSeq < d->mailbox->nextModSeq() )
@@ -575,6 +577,9 @@ SessionInitialiser::SessionInitialiser( Session * session,
 
 void SessionInitialiser::execute()
 {
+    if ( !d->session->isSessionInitialiser( this ) )
+        return;
+
     Mailbox * m = d->session->mailbox();
 
     if ( !d->t ) {
@@ -688,7 +693,7 @@ void SessionInitialiser::execute()
         if ( m->view() ) {
             m->source()->setNextModSeq( ms + 1 );
             Query * q = new Query( "update views set nextmodseq=$1 "
-                                   "where view=$2", 0 );
+                                   "where view=$2 and nextmodseq<$1", 0 );
             q->bind( 1, m->nextModSeq() );
             q->bind( 2, m->id() );
             d->t->enqueue( q );
@@ -720,27 +725,25 @@ void SessionInitialiser::execute()
             // want to add it
             if ( !left && !vuid )
                 addToDb.add( uid );
-            // if it is in the search results and also in the session,
-            // its modseq increased.
-            if ( !left && m->sourceUid( uid ) ) {
-                Message * m = new Message;
-                m->setUid( vuid );
-                m->setModSeq( r->getInt( "modseq" ) );
-                d->updated.append( m );
-            }
-            // if it is in the search results and db, but isn't in the
-            // session, we need to add it
-            if ( !left && vuid && !m->sourceUid( vuid ) ) {
-                m->setSourceUid( r->getInt( "vuid" ), uid );
-                Message * m = new Message;
-                m->setUid( vuid );
-                m->setModSeq( r->getInt( "modseq" ) );
-                d->newMessages.append( m );
+            // if it is in the search results and also in the db...
+            if ( !left && vuid ) {
+                Message * message = new Message;
+                message->setUid( vuid );
+                message->setModSeq( r->getInt( "modseq" ) );
+                if ( m->sourceUid( vuid ) ) {
+                    // ... then if it's in the session, its modseq increased...
+                    d->updated.append( message );
+                }
+                else {
+                    // ... else it's new to this session
+                    m->setSourceUid( vuid, uid );
+                    d->newMessages.append( message );
+                }
             }
         }
 
         if ( !removeInDb.isEmpty() ) {
-            Query * q 
+            Query * q
                 = new Query( "delete from view_messages "
                              "where view=$1 and source=$2 and (" +
                              removeInDb.where( "" ) + ")", 0 );
@@ -759,7 +762,7 @@ void SessionInitialiser::execute()
                 uint uid = d->newUidnext;
                 d->newUidnext++;
                 q->bind( 1, m->source()->id() );
-                q->bind( 1, suid );
+                q->bind( 2, suid );
                 q->bind( 3, m->id() );
                 q->bind( 4, uid );
                 q->submitLine();
@@ -903,6 +906,18 @@ void SessionInitialiser::addWatcher( EventHandler * e )
 void Session::addSessionInitialiser( class SessionInitialiser * s )
 {
     d->initialiser = s;
+}
+
+
+/*! Returns true if \a si is working on this session at the moment,
+    and false otherwise.
+*/
+
+bool Session::isSessionInitialiser( class SessionInitialiser * si )
+{
+    if ( si == d->initialiser )
+        return true;
+    return false;
 }
 
 

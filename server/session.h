@@ -82,6 +82,7 @@ public:
     virtual void emitModification( Message * );
 
     void addSessionInitialiser( class SessionInitialiser * );
+    bool isSessionInitialiser( class SessionInitialiser * );
     void removeSessionInitialiser();
 
     class SessionData *d;
