@@ -348,7 +348,7 @@ String Parser822::encodedWord( EncodedText type )
     Codec *cs = 0;
     bool valid = true;
     String charset, text;
-    char encoding;
+    char encoding = 0;
 
     if ( s[n] != '=' || s[++n] != '?' )
         valid = false;
