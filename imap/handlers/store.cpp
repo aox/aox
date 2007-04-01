@@ -127,6 +127,9 @@ void Store::parse()
         require( ")" );
         end();
         d->op = StoreData::ReplaceAnnotations;
+        if ( imap()->session()->mailbox()->view() )
+            error( No, "Annotation access via views not implemented; "
+                   "please contect info@oryx.com" );
     }
     else {
         if ( present( "-" ) )
@@ -263,6 +266,12 @@ void Store::parseAnnotationEntry()
 
 void Store::execute()
 {
+    Mailbox * m = 0;
+    if ( imap()->session() )
+        m = imap()->session()->mailbox();
+    else
+        error( No, "Left selected mode during execution" );
+
     if ( d->s.isEmpty() ) {
         if ( !d->expunged.isEmpty() )
             error( No, "Cannot store on expunged messages" );
@@ -271,7 +280,6 @@ void Store::execute()
     }
 
     if ( !d->checkedPermission ) {
-        Mailbox * m = imap()->session()->mailbox();
         if ( d->op == StoreData::ReplaceAnnotations ) {
             bool hasPriv = false;
             bool hasShared = false;
@@ -317,11 +325,25 @@ void Store::execute()
 
     if ( d->seenUnchangedSince ) {
         if ( !d->modSeqQuery ) {
-            d->modSeqQuery = new Query( "select uid from modsequences "
-                                        "where mailbox=$1 and modseq>$2 "
-                                        "and " + d->s.where(),
-                                        this );
-            d->modSeqQuery->bind( 1, imap()->session()->mailbox()->id() );
+            if ( m->view() ) {
+                d->modSeqQuery
+                    = new Query( "select vm.uid from view_messages vm "
+                                 "left join modsequences ms "
+                                 " on (vm.source=ms.mailbox and "
+                                 "     vm.suid=ms.uid) "
+                                 "where ms.mailbox=$1 and ms.modseq>$2 "
+                                 " and " + d->s.where( "ms" ),
+                                 this );
+                d->modSeqQuery->bind( 1, m->source()->id() );
+            }
+            else {
+                d->modSeqQuery 
+                    = new Query( "select uid from modsequences "
+                                 "where mailbox=$1 and modseq>$2 "
+                                 "and " + d->s.where(),
+                                 this );
+                d->modSeqQuery->bind( 1, m->id() );
+            }
             d->modSeqQuery->bind( 2, d->unchangedSince );
             d->modSeqQuery->execute();
         }
@@ -362,10 +384,19 @@ void Store::execute()
                                      this );
         d->transaction->enqueue( d->obtainModSeq );
         // and lock the rows we'll change
-        Query * q = new Query( "select uid from modsequences "
-                               "where mailbox=$1 and " + d->s.where() +
-                               " for update", 0 );
-        q->bind( 1, imap()->session()->mailbox()->id() );
+        Query * q = 0;
+        if ( m->view() )
+            q = new Query( "select ms.uid from modsequences ms "
+                           "join view_messages vm "
+                           " on (vm.source=ms.mailbox and "
+                           "     vm.suid=ms.uid) "
+                           "where vm.view=$1 and " + d->s.where( "vm" ) +
+                           " for update", 0 );
+        else
+            q = new Query( "select uid from modsequences "
+                           "where mailbox=$1 and " + d->s.where() +
+                           " for update", 0 );
+        q->bind( 1, m->id() );
         d->transaction->enqueue( q );
         d->transaction->execute();
         switch( d->op ) {
@@ -394,13 +425,20 @@ void Store::execute()
             return;
         }
         d->modseq = r->getBigint( "whatever" ); // what should it be?
-        Query * q = new Query( "update modsequences set modseq=$1 "
-                               "where mailbox=$2 and " + d->s.where(), 0 );
+        Query * q = 0;
+        if ( m->view() )
+            q = new Query( "update modsequences set modseq=$1 "
+                           "where (mailbox,uid) in "
+                           "(select source,suid from view_mesages "
+                           " where view=$2 and (" + d->s.where() + "))", 0 );
+        else
+            q = new Query( "update modsequences set modseq=$1 "
+                           "where mailbox=$2 and (" + d->s.where() + ")", 0 );
         q->bind( 1, d->modseq );
-        q->bind( 2, imap()->session()->mailbox()->id() );
+        q->bind( 2, m->id() );
         d->transaction->commit();
     }
-        
+
     if ( !d->transaction->done() )
         return;
     if ( d->transaction->failed() ) {
@@ -546,7 +584,7 @@ void Store::removeFlags( bool opposite )
         s = m->sourceUids( s );
         m = m->source();
     }
-    else { 
+    else {
         s.addGapsFrom( imap()->session()->messages() );
     }
 
@@ -564,9 +602,19 @@ void Store::removeFlags( bool opposite )
     }
     flags.append( ")" );
 
-    Query * q = new Query( "delete from flags where mailbox=$1 and " +
-                           flags + " and (" + s.where() + ")",
-                           this );
+    Query * q = 0;
+    if ( m->view() ) {
+        q = new Query( "delete from flags "
+                       "where " + flags + " and (mailbox,uid) in "
+                       "(select source,suid from view_messages "
+                       " where view=$1 and " + s.where() + ")",
+                       this );
+    }
+    else {
+        q = new Query( "delete from flags where mailbox=$1 and " +
+                       flags + " and (" + s.where() + ")",
+                       this );
+    }
     q->bind( 1, m->id() );
     d->transaction->enqueue( q );
 }
@@ -583,13 +631,25 @@ void Store::removeFlags( bool opposite )
 Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
                               EventHandler * h )
 {
-    String w = s.where();
-    Query * q = new Query( "insert into flags (flag,uid,mailbox) "
-                           "select $1,uid,$2 from messages where "
-                           "mailbox=$2 and (" + w + ") and uid not in "
-                           "(select uid from flags where "
-                           "flag=$1 and mailbox=$2 and uid>=$3 and uid<=$4)",
-                           h );
+    Query * q = 0;
+    if ( m->view() )
+        q = new Query( "insert into flags (.flag,x.uid,mailbox) "
+                       "select $1,vm.suid,vm.source from view_messages vm "
+                       "left join flags f on "
+                       " (vm.source=f.mailbox and vm.suid=f.uid and "
+                       "  f.flag=$1) "
+                       "where view=$2 and vm.uid>=$3 and vm.uid<=$4 and "
+                       " (" + s.where( "vm" ) + ") and "
+                       "  f.flag is null", h );
+    else
+        q = new Query( "insert into flags (flag,uid,mailbox) "
+                       "select $1,m.uid,$2 from messages m "
+                       "left join flags f on "
+                       " (m.mailbox=f.mailbox and m.uid=f.uid and f.flag=$1) "
+                       "where "
+                       "f.flag is null and m.mailbox=$2 and "
+                       "m.uid>=$3 and m.uid<=$4 and (" + s.where( "m" ) + ")",
+                       h );
     q->bind( 1, f->id() );
     q->bind( 2, m->id() );
     q->bind( 3, s.smallest() );
@@ -610,7 +670,7 @@ void Store::addFlags()
         s = m->sourceUids( s );
         m = m->source();
     }
-    else { 
+    else {
         s.addGapsFrom( imap()->session()->messages() );
     }
 
@@ -657,7 +717,7 @@ void Store::replaceAnnotations()
     else {
         s.addGapsFrom( imap()->session()->messages() );
     }
-        
+
 
     List<Annotation>::Iterator it( d->annotations );
     String w = s.where();
