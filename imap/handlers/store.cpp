@@ -386,11 +386,10 @@ void Store::execute()
         // and lock the rows we'll change
         Query * q = 0;
         if ( m->view() )
-            q = new Query( "select ms.uid from modsequences ms "
-                           "join view_messages vm "
-                           " on (vm.source=ms.mailbox and "
-                           "     vm.suid=ms.uid) "
-                           "where vm.view=$1 and " + d->s.where( "vm" ) +
+            q = new Query( "select uid from modsequences ms "
+                           "where (mailbox,uid) in "
+                           "(select source,suid from view_messages "
+                           " where view=$1 and " + d->s.where() + ")"
                            " for update", 0 );
         else
             q = new Query( "select uid from modsequences "
