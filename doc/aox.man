@@ -163,6 +163,10 @@ This command should be run (we suggest daily) via crontab.
 Reads a mail message from the named file, obscures most or all content
 and prints the result on stdout. The output resembles the original
 closely enough to be used in a bug report.
+.IP "aox reparse"
+Looks for messages that "arrived but could not be stored" and tries to
+parse them using workarounds that have been added more recently. If it
+succeeds, the new message is injected and the old one deleted.
 .SH OPTIONS
 The -v flag enables (slightly) more verbose diagnostic output wherever
 it is supported (see the descriptions of each command above).

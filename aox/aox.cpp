@@ -2581,6 +2581,16 @@ void help()
             "    any problems it finds.\n"
         );
     }
+    else if ( a == "reparse" ) {
+        fprintf(
+            stderr,
+            "  reparse - Retry previously-stored unparsable messages.\n\n"
+            "    Synopsis: aox reparse\n\n"
+            "    Looks for messages that \"arrived but could not be stored\",\n"
+            "    and tries to reparse them with parsing workarounds added more\n"
+            "    recently. If it succeeds, the new messages are injected.\n"
+        );
+    }
     else if ( a == "commands" ) {
         fprintf(
             stderr,
