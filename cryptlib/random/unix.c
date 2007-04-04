@@ -102,9 +102,6 @@
 #if !( defined( __QNX__ ) || defined( __CYGWIN__ ) )
   #include <sys/shm.h>
 #endif /* QNX || Cygwin */
-#if defined( __linux__ ) && ( defined(__i386__) || defined(__x86_64__) )
-  #include <asm/msr.h>
-#endif /* Linux on x86 */
 #ifndef __MVS__
   #if 0		/* Deprecated - 6/4/03 */
 	#include <sys/signal.h>
