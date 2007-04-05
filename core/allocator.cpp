@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 
+
 struct AllocationBlock
 {
     union {
@@ -31,6 +32,8 @@ static uint allocated;
 static uint tos;
 static uint peak;
 static AllocationBlock ** stack;
+
+static Allocator * root = 0;
 
 
 /*! Allocates \a s bytes of collectible memory, which may contain up
@@ -104,9 +107,6 @@ static struct {
 
 static uint numRoots;
 
-static const unsigned long int bufferSize = 0x10000;
-static Allocator * byStart[bufferSize];
-
 static bool verbose;
 
 
@@ -171,7 +171,7 @@ Allocator * Allocator::allocator( uint size )
 Allocator::Allocator( uint s )
     : base( 0 ), step( s ), taken( 0 ), capacity( 0 ),
       used( 0 ), marked( 0 ), buffer( 0 ),
-      next( 0 )
+      next( 0 ), left( 0 ), right( 0 )
 {
     if ( s < ( 1 << 20 ) )
         capacity = ( 1 << 20 ) / ( s );
@@ -200,11 +200,7 @@ Allocator::Allocator( uint s )
     ::heapStart = hs;
     ::heapLength = he - hs;
 
-    ulong bucket = ((ulong)buffer >> 20)%bufferSize;
-    if ( ::byStart[bucket] )
-        die( Memory ); // if this happens, we're almost certainly
-                       // using MUCH too much memory
-    ::byStart[bucket] = this;
+    insert();
 }
 
 
@@ -214,9 +210,32 @@ Allocator::Allocator( uint s )
 
 Allocator::~Allocator()
 {
-    ulong bucket = ((ulong)buffer >> 20)%bufferSize;
-    ::byStart[bucket] = 0;
-
+    Allocator * p = ::root;
+    if ( ::root == this ) {
+        ::root = 0;
+    }
+    else {
+        Allocator * prev = 0;
+        while ( p != prev ) {
+            prev = p;
+            if ( p->right == this )
+                p->right = 0;
+            else if ( p->left == this )
+                p->left = 0;
+            else if ( (ulong)p->buffer < (ulong)buffer )
+                p = p->right;
+            else if ( (ulong)p->buffer > (ulong)buffer )
+                p = p->left;
+        }
+    }
+    if ( right && right != ::root )
+        right->insert();
+    if ( left && left != ::root )
+        left->insert();
+    
+    right = 0;
+    left = 0;
+    
     ::free( buffer );
     ::free( used );
     ::free( marked );
@@ -301,6 +320,33 @@ void Allocator::deallocate( void * p )
 }
 
 
+/*! This private helper inserts the allocator in the tree used by
+    owner().
+*/
+
+void Allocator::insert()
+{
+    if ( !::root ) {
+        ::root = this;
+        return;
+    }
+
+    Allocator * p = ::root;
+    while ( p != this ) {
+        if ( (ulong)p->buffer < (ulong)buffer ) {
+            if ( !p->right )
+                p->right = this;
+            p = p->right;
+        }
+        else if ( (ulong)p->buffer > (ulong)buffer ) {
+            if ( !p->left )
+                p->left = this;
+            p = p->left;
+        }
+    }
+}
+
+
 /*! Returns a pointer to the Allocator in which \a p lies, or a null
     pointer if \a p doesn't seem to be a valid pointer.
 */
@@ -309,16 +355,32 @@ inline Allocator * Allocator::owner( void * p )
 {
     if ( !p )
         return 0;
-    ulong q = (ulong)p - ::heapStart;
-    if ( q >= ::heapLength )
-        return 0;
-    ulong ai = ((ulong)p >> 20)%bufferSize;
-    Allocator * a = 0;
-    do {
-        a = (Allocator*)(::byStart[ai]);
-        ai--;
-    } while ( ai && ( !a || (ulong)a->buffer > (ulong)p ) );
-    return a;
+
+    Allocator * l = 0;
+    Allocator * a = ::root;
+    while ( a ) {
+        // is a to the left of p, and l even further to the left? move
+        // l closer.
+        if ( a && (ulong)a->buffer <= (ulong)p &&
+             ( !l || (ulong)a->buffer > (ulong)l->buffer ) )
+            l = a;
+        // move a towards p - left or right
+        if ( (ulong)a->buffer < (ulong)p )
+            a = a->right;
+        else if ( (ulong)a->buffer > (ulong)p )
+            a = a->left;
+        else
+            a = 0;
+    }
+    // at this point, we know two things:
+
+    // EITHER: on the path from the root towards p, we've visited the
+    // node that's closest to p on its left
+    if ( l )
+        return l;
+
+    // OR: p is to the left of the leftmost node (a)
+    return 0;
 }
 
 

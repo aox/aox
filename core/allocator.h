@@ -56,10 +56,14 @@ private:
     void * buffer;
     Allocator * next;
 
+    Allocator * left;
+    Allocator * right;
+
 private:
     static void mark( void * );
     static void mark();
     void sweep();
+    void insert();
 
     static uint scan1( void *, bool = false, uint = 0, uint = UINT_MAX );
     static void scan2( void * );
