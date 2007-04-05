@@ -1,4 +1,10 @@
-1.17: 2007-04-02
+1.18: 2007-05-08
+
+  Much like 1.17, except that it's polished for pgsql upgrades. Some
+  minor fixes.
+
+
+2.0:
 
   In order of importance:
 
@@ -6,25 +12,7 @@
   2. Archive search.
   3. Setting up (and editing?) views.
   4. Searching in own mail while logged in.
-  5. aox reparse
-
-     The code in bin/aox is simple, and done. There's one problem. We
-     need to insert a row into deleted_messages, which does not allow
-     a NULL deleted_by field, and reparse() doesn't have a user id.
-     Is relaxing the constraint justified in this case?
-
-     The code in db/schema is harder, but I'll go back to it after I
-     work on http for a while.
-
-  6. Webmail. Preferably including sending mail.
-
-  Also sieve bugfixes and updating SessionInitialiser to check the
-  modseq first and avoid sending queries when nothing has changed.
-
-
-1.18: 2007-04-30
-
-  Do we shift this to the first week of May?
+  5. Webmail. Preferably including sending mail.
 
 
 The value of features
@@ -165,6 +153,13 @@ Release cycle
   t-0: A crontab does what it needs to do.
 
 
+Selector uses field_names much too often
+
+  We shouldn't need to do a subselect in order to find the ID of
+  Subject. That should be cached very, very well in RAM. So why are we
+  doing it? It presumably bothers the query planner.
+
+
 Undefined codepoints
 
   When a codec encounters an undefined codepoint, it should substitute
@@ -249,20 +244,6 @@ Message tracking
   in mailchen), and also provide a query interface via the web.
 
 
-aox reinject
-
-  Said command would search for unparsable messages in the DB, try
-  each to see whether it can be parsed by the current version, and if
-  so, inject the message in the relevant mailbox and delete the
-  "cannot parse" message. While it does so, reinject should emit lots
-  of progress information. Lots.
-
-  Some problems there - what if the correct message would be sieved
-  differently? do we have all the information we need, e.g.
-  internaldate? how can we search for these bodyparts in the first
-  place?
-
-
 Bounces and DSNs
 
   Mail is currently fairly reliable. There is one big exception:
@@ -312,34 +293,6 @@ Deleting mailbox has unclear semantics now
   to rename a new mailbox to the name that used to be taken by this
   mailbox? Or creates ditto? What should happen to views onto this
   mailbox?
-
-
-COPY is slow
-
-  Inject 11k messages, copy with thunderbird, watch why it fails.
-
-  Or better: Just fix the code. There are far too many inserts and
-  updates. Two possible approaches.
-
-  1. Identify UID ranges and use seven inserts per UID range.
-
-     This should grow much slower than the size of the copy, since a
-     large copy should generally contain just a few UID ranges. But
-     the worst case is just as bad as before.
-
-  2. Use exactly seven inserts and do the UID range work using
-     CASE/WHEN/+.
-
-     If it's exactly a single range, the target uid is the source uid
-     plus some x we can find. If there are several, CASE/WHEN can be
-     used to select the right x.
-
-  Not sure which is best. Of course the latter has the "advantage" of
-  generating huge SQL statements.
-
-  I implemented approach 1 for now, and it gave me a very large speed
-  improvement - 350 copies/second where it used to be 12-25, so a
-  speedup of 1400-2900%.
 
 
 MULTIAPPEND

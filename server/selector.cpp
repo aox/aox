@@ -651,15 +651,15 @@ String Selector::whereHeaderField()
 
     root()->d->needHeaderFields = true;
 
-    uint fnum = placeHolder();
     uint t = FieldNameCache::translate( d->s8 );
     String r;
     if ( t ) {
-        r = "hf.field=$" + fn( fnum );
-        root()->d->query->bind( fnum, t );
+        r = "hf.field=" + fn( t );
     }
     else {
-        r = "hf.field=(select id from field_names where name=$" + fn( fnum ) + ")";
+        uint fnum = placeHolder();
+        r = "hf.field=(select id from field_names where name=$" +
+            fn( fnum ) + ")";
         root()->d->query->bind( fnum, d->s8 );
     }
 
