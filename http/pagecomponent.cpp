@@ -165,7 +165,7 @@ List<FrontMatter> * PageComponent::frontMatter() const
 
 
 /*! Adds \a p to the list of sub-components of this PageComponent. The
-    contents() of this component will be a union of the contents() of
+    contents() of this component are the concatenated contents() of
     its sub-componenets.
 */
 
