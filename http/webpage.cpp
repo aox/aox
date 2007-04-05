@@ -78,17 +78,31 @@ void WebPage::execute()
     if ( d->responded )
         return;
 
-    bool done = true;
+    // find the top-level components
+    List<PageComponent> l;
     List<PageComponent>::Iterator it( d->components );
+    while ( it ) {
+        l.append( it );
+        ++it;
+    }
+    // find the subcomponents of each component known so far
+    it = l;
+    while ( it ) {
+        if ( it->subComponents() ) {
+            List<PageComponent>::Iterator sub( it->subComponents() );
+            while ( sub ) {
+                l.append( sub );
+                ++sub;
+            }
+        }
+        ++it;
+    }
+    // check whether all known components are done
+    it = l;
+    bool done = true;
     while ( it ) {
         if ( !it->done() ) {
             it->execute();
-            List<PageComponent>::Iterator sc( it->subComponents() );
-            while ( sc ) {
-                if ( !sc->done() )
-                    sc->execute();
-                ++sc;
-            }
             done = false;
         }
         ++it;
