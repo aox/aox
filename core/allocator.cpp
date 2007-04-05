@@ -95,8 +95,6 @@ const uint magic = 0x7d34;
 
 
 static Allocator * allocators[32];
-static unsigned long int heapStart;
-static unsigned long int heapLength;
 
 
 static struct {
@@ -189,24 +187,12 @@ Allocator::Allocator( uint s )
     memset( used, 0, bl );
     memset( marked, 0, bl );
 
-    ulong hs = (ulong)buffer;
-    ulong he = hs + l;
-    if ( heapStart ) {
-        if ( ::heapStart < hs )
-            hs = ::heapStart;
-        if ( ::heapStart + ::heapLength > he )
-            he = ::heapStart + ::heapLength;
-    }
-    ::heapStart = hs;
-    ::heapLength = he - hs;
-
     insert();
 }
 
 
 
-/*! Destroys the object and frees its allocated memory. Does NOT
-    change the heap start/end variables. */
+/*! Destroys the object and frees its allocated memory. */
 
 Allocator::~Allocator()
 {
