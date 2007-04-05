@@ -210,11 +210,11 @@ Allocator::Allocator( uint s )
 
 Allocator::~Allocator()
 {
-    Allocator * p = ::root;
     if ( ::root == this ) {
         ::root = 0;
     }
     else {
+        Allocator * p = ::root;
         Allocator * prev = 0;
         while ( p != prev ) {
             prev = p;
