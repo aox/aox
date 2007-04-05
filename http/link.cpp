@@ -618,8 +618,6 @@ void Link::parse( const String & s )
                 args.insert( n, new String( v ) );
                 if ( p->nextChar() == '&' )
                     p->step();
-                else
-                    break;
             }
             if ( p->ok() ) {
                 chosen = ::Arguments;
