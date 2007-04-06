@@ -612,19 +612,25 @@ void SessionInitialiser::execute()
                 d->t->enqueue( q );
             }
 
-            d->messages =
-                new Query( "select m.uid from messages m "
-                           "join modsequences ms "
-                           " on (m.mailbox=ms.mailbox and m.uid=ms.uid) "
-                           "left join deleted_messages dm "
-                           " on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
-                           "where m.mailbox=$1 and dm.uid is null and "
-                           " (m.uid>=$2 or ms.modseq>=$3)", this );
-            // XXX: I think ms.modseq>=3 in all cases where m.uid>=$2
-
+            bool initialising = false;
+            if ( d->oldUidnext <= 1 || d->oldModSeq <= 1 )
+                initialising = true;
+            String msgs = "select m.uid from messages m ";
+            if ( !initialising )
+                msgs.append( "join modsequences ms "
+                             " on (m.mailbox=ms.mailbox and m.uid=ms.uid) " );
+            msgs.append( "left join deleted_messages dm "
+                         " on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
+                         "where m.mailbox=$1 and dm.uid is null" );
+            if ( !initialising )
+                msgs.append( " and (m.uid>=$2 or ms.modseq>=$3)" );
+            d->messages = new Query( msgs, this );
             d->messages->bind( 1, m->id() );
-            d->messages->bind( 2, d->oldUidnext );
-            d->messages->bind( 3, d->oldModSeq );
+            if ( !initialising ) {
+                // XXX: I think ms.modseq>=3 in all cases where m.uid>=$2
+                d->messages->bind( 2, d->oldUidnext );
+                d->messages->bind( 3, d->oldModSeq );
+            }
 
             d->t->enqueue( d->messages );
 
