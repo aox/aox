@@ -624,6 +624,7 @@ void SessionInitialiser::execute()
                          "where m.mailbox=$1 and dm.uid is null" );
             if ( !initialising )
                 msgs.append( " and (m.uid>=$2 or ms.modseq>=$3)" );
+            msgs.append( " order by m.uid" );
             d->messages = new Query( msgs, this );
             d->messages->bind( 1, m->id() );
             if ( !initialising ) {
