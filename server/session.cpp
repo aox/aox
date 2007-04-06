@@ -948,7 +948,7 @@ void Session::recordChange( List<Message> * m, ResponseType type )
             l = &s->d->newMessages;
         uint prev = 0;
         while ( i ) {
-            if ( !j || i->uid() < prev )
+            if ( !prev || i->uid() < prev )
                 j = l->first();
             while ( j && j->uid() < i->uid() )
                 ++j;
