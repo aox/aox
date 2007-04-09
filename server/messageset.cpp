@@ -135,10 +135,14 @@ void MessageSet::add( uint n1, uint n2 )
 
 void MessageSet::add( const MessageSet & set )
 {
-    List<SetData::Range>::Iterator it( set.d->l );
+    if ( isEmpty() ) {
+        *this = set;
+        return;
+    }
+    List<SetData::Range>::Iterator it( set.d->l.last() );
     while ( it ) {
         add( it->start, it->start + it->length - 1 );
-        ++it;
+        --it;
     }
     // oh. a simple one.
 }
