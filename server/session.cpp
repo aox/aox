@@ -415,11 +415,13 @@ void Session::emitResponses( ResponseType type )
         }
     }
     else { // New
-        List<Message>::Iterator i( d->newMessages );
+        MessageSet n;
+        List<Message>::Iterator i( d->newMessages.last() );
         while ( i ) {
-            d->msns.add( i->uid() );
-            ++i;
+            n.add( i->uid() );
+            --i;
         }
+        d->msns.add( n );
         d->newMessages.clear();
         uint c = d->msns.count();
         if ( c == 0 || c != d->reportedExists ) {
