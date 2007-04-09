@@ -60,7 +60,9 @@ public:
     bool peek;
     MessageSet set;
     MessageSet expunged;
-    struct Message {
+    struct Message
+        : public Garbage
+    {
         ::Message * m;
         uint uid;
     };
