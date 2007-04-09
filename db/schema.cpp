@@ -1935,7 +1935,7 @@ bool Schema::stepTo41()
         describeStep( "Populating unparsed_messages" );
         d->q =
             new Query(
-                "insert into unparsed_messages select p.bodypart "
+                "insert into unparsed_messages select distinct p.bodypart "
                 "from part_numbers p left join deleted_messages dm "
                 "using (mailbox,uid) left join unparsed_messages um "
                 "using (bodypart) "
