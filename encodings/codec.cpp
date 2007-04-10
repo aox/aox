@@ -11,6 +11,7 @@
 #include "mac.h"
 #include "utf.h"
 #include "iso2022jp.h"
+#include "hproman8.h"
 #include "unknown.h"
 #include "gb2312.h"
 #include "cp932.h"
