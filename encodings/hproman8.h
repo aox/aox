@@ -3,7 +3,7 @@
 #ifndef HPROMAN8_H
 #define HPROMAN8_H
 
-#include "global.h"
+#include "codec.h"
 
 
 class HpRoman8Codec: public TableCodec {
