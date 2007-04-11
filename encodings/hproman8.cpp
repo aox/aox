@@ -8,7 +8,7 @@ static const uint tableHpRoman8[256] = {
 };
 
 
-/*! \class HpRoman8Codec
+/*! \class HpRoman8Codec hproman8.h
 
     The HpRoman8Codec models the hp-roman8 character set mostly used
     by HP LaserJet printers, and also (very seldom) in email.
