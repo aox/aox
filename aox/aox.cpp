@@ -2936,7 +2936,7 @@ void reparse()
                               "join bodyparts b on (u.bodypart=b.id) "
                               "join part_numbers p on (p.bodypart=b.id) "
                               "left join deleted_messages dm on "
-                              " (p.mailbox=dm.mailbox and p.uid=dm.uid) "
+                              "(p.mailbox=dm.mailbox and p.uid=dm.uid) "
                               "where dm.mailbox is null", d );
         d->query->execute();
     }
@@ -2947,8 +2947,13 @@ void reparse()
         if ( !d->injector->failed() ) {
             d->injector->announce();
             Mailbox * m = d->injector->mailboxes()->first();
+            Transaction * t = new Transaction( d );
             Query * q =
-                new Query( "insert into deleted_messages "
+                new Query( "delete from unparsed_messages where "
+                           "bodypart=$1", d );
+            q->bind( 1, d->row->getInt( "bodypart" ) );
+            t->enqueue( q );
+            q = new Query( "insert into deleted_messages "
                            "(mailbox,uid,deleted_by,reason) "
                            "values ($1,$2,$3,$4)", d );
             q->bind( 1, d->row->getInt( "mailbox" ) );
@@ -2959,8 +2964,9 @@ void reparse()
                      fn( d->injector->uid( m ) )+
                      " by aox " +
                      Configuration::compiledIn( Configuration::Version ) );
-            q->execute();
+            t->enqueue( q );
             d->waitFor( q );
+            t->commit();
             printf( "- reparsed %s:%d (new UID %d)\n",
                     m->name().cstr(),
                     d->row->getInt( "uid" ),
