@@ -244,6 +244,12 @@ Message tracking
   in mailchen), and also provide a query interface via the web.
 
 
+aox reparse
+
+  Maximilian Mehnert wants to save the failing messages and their
+  current error reports in a format suitable for bug reports.
+
+
 Bounces and DSNs
 
   Mail is currently fairly reliable. There is one big exception:
