@@ -250,6 +250,13 @@ aox reparse
   current error reports in a format suitable for bug reports.
 
 
+Thread-Index from Exchange
+
+  We could look at Thread-Index and reconstruct In-Reply-To in order to
+  properly thread messages we a) aoximport from Exchange, or b) receive
+  during a conversation with an Exchange user.
+
+
 Bounces and DSNs
 
   Mail is currently fairly reliable. There is one big exception:
