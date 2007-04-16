@@ -25,6 +25,9 @@
 #include "list.h"
 #include "user.h"
 #include "log.h"
+#include "md5.h"
+#include "utf.h"
+#include "ustring.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -1242,7 +1245,7 @@ void updateDatabase()
         d->state = 0;
     }
 
-    while ( d->state != 670 ) {
+    while ( d->state != 672 ) {
         if ( d->state == 0 ) {
             printf( "- Checking for unconverted address fields in "
                     "header_fields.\n" );
@@ -1527,6 +1530,40 @@ void updateDatabase()
                     d->state = 670;
                 }
             }
+        }
+
+        if ( d->state == 670 ) {
+            d->query =
+                new Query( "select id,textsend(text) as text "
+                           "from bodyparts where "
+                           "position('\\\\000' in textsend(text)) >= 0", d );
+            d->state = 671;
+            d->query->execute();
+        }
+
+        if ( d->state == 671 ) {
+            while ( d->query->hasResults() ) {
+                Row * r = d->query->nextRow();
+                UString s( r->getUString( "text" ) );
+
+                PgUtf8Codec u;
+                String data( u.fromUnicode( s ) );
+                String h( MD5::hash( data ).hex() );
+
+                Query * q =
+                    new Query( "update bodyparts set text=$1,hash=$2 "
+                               "where id=$3", d );
+                q->bind( 1, s );
+                q->bind( 2, h );
+                q->bind( 3, r->getInt( "id" ) );
+                d->waitFor( q );
+                q->execute();
+            }
+
+            if ( !d->query->done() )
+                return;
+
+            d->state = 672;
         }
     }
 
