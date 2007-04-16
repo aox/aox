@@ -1533,6 +1533,7 @@ void updateDatabase()
         }
 
         if ( d->state == 670 ) {
+            printf( "- Checking for NUL bytes in bodyparts\n" );
             d->query =
                 new Query( "select id,textsend(text) as text "
                            "from bodyparts where "
