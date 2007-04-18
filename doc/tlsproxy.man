@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH tlsproxy 8 2007-04-16 www.oryx.com "Archiveopteryx Documentation"
+.TH tlsproxy 8 2007-06-04 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 tlsproxy - TLS/SSL helper for Archiveopteryx.
 .SH SYNOPSIS
@@ -79,8 +79,8 @@ is used to store the automatically generated key and certificate.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 1.18, released 2007-04-16,
-http://www.archiveopteryx.org/1.18.html.
+This man page covers Archiveopteryx version 2.0, released 2007-06-04,
+http://www.archiveopteryx.org/2.0.html.
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
