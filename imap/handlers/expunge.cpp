@@ -10,6 +10,7 @@
 #include "mailbox.h"
 #include "imapsession.h"
 #include "permissions.h"
+#include "transaction.h"
 #include "messageset.h"
 
 
@@ -18,13 +19,16 @@ class ExpungeData
 {
 public:
     ExpungeData()
-        : uid( false ), s( 0 ), q( 0 ), e( 0 )
+        : uid( false ), s( 0 ),
+          findUids( 0 ), findModseq( 0 ), expunge( 0 ), t( 0 )
     {}
 
     bool uid;
     Session * s;
-    Query * q;
-    Query * e;
+    Query * findUids;
+    Query * findModseq;
+    Query * expunge;
+    Transaction * t;
     MessageSet uids;
 };
 
@@ -86,12 +90,21 @@ bool Expunge::expunge( bool chat )
         requireRight( d->s->mailbox(), Permissions::Expunge );
     }
 
-    if ( !d->q ) {
+    if ( !permitted() || !ok() )
+        return false;
+
+    if ( !d->t ) {
         Flag * f = Flag::find( "\\deleted" );
         if ( !f ) {
             error( No, "Internal error - no \\Deleted flag" );
             return true;
         }
+
+        d->t = new Transaction( this );
+        d->findModseq = new Query( "select nextmodseq from mailboxes "
+                                   "where id=$1 for update", this );
+        d->findModseq->bind( 1, d->s->mailbox()->id() );
+        d->t->enqueue( d->findModseq );
 
         String query( "select uid from flags left join deleted_messages dm "
                       "using (mailbox,uid) where mailbox=$1 and flag=$2 and "
@@ -99,50 +112,60 @@ bool Expunge::expunge( bool chat )
         if ( d->uid )
             query.append( " and (" + d->uids.where() + ")" );
 
-        d->q = new Query( query, this );
-        d->q->bind( 1, d->s->mailbox()->id() );
-        d->q->bind( 2, f->id() );
-        d->q->execute();
+        d->findUids = new Query( query, this );
+        d->findUids->bind( 1, d->s->mailbox()->id() );
+        d->findUids->bind( 2, f->id() );
+        d->t->enqueue( d->findUids );
+        d->t->execute();
         d->uids.clear();
     }
 
-    if ( !ok() || !permitted() )
-        return false;
-
     Row * r;
-    while ( ( r = d->q->nextRow() ) != 0 ) {
+    while ( ( r = d->findUids->nextRow() ) != 0 ) {
         uint n = r->getInt( "uid" );
         d->uids.add( n );
     }
-    if ( !d->q->done() )
+    if ( !d->findUids->done() )
         return false;
     if ( d->uids.isEmpty() )
         return true;
 
-    if ( !d->e ) {
+    if ( !d->expunge ) {
+        r = d->findModseq->nextRow();
+        int64 modseq = r->getBigint( "nextmodseq" ); // XXX 0
+
         String w( d->uids.where() );
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
         Query * q 
             = new Query( "update modsequences "
-                         "set modseq=(select nextval('nextmodsequence')) "
+                         "set modseq=$2 "
                          "where mailbox=$1 and (" + w + ")", 0 );
         q->bind( 1, d->s->mailbox()->id() );
-        q->execute();
-        d->e = new Query( "insert into deleted_messages "
+        q->bind( 1, modseq );
+        d->t->enqueue( q );
+
+        d->expunge = new Query( "insert into deleted_messages "
                           "(mailbox, uid, deleted_by, reason) "
                           "select mailbox, uid, $2, $3 "
                           "from messages where mailbox=$1 and (" + w + ")",
                           this );
-        d->e->bind( 1, d->s->mailbox()->id() );
-        d->e->bind( 2, imap()->user()->id() );
-        d->e->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
-        d->e->execute();
+        d->expunge->bind( 1, d->s->mailbox()->id() );
+        d->expunge->bind( 2, imap()->user()->id() );
+        d->expunge->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
+        d->t->enqueue( d->expunge );
+
+        q = new Query( "update mailboxes set nextmodseq=$1 "
+                       "where mailbox=$2", 0 );
+        q->bind( 1, modseq + 1 );
+        q->bind( 2, d->s->mailbox()->id() );
+        d->t->enqueue( q );
+        d->t->commit();
     }
 
-    if ( !d->e->done() )
+    if ( !d->t->done() )
         return false;
 
-    if ( d->e->failed() )
+    if ( d->t->failed() )
         error( No, "Database error. Messages not expunged." );
 
     if ( chat && imap()->session() ) {

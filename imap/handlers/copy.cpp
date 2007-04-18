@@ -18,7 +18,7 @@ public:
     CopyData() :
         uid( false ), firstUid( 0 ), modseq( 0 ),
         mailbox( 0 ), transaction( 0 ),
-        findUid( 0 ), findModseq( 0 ),
+        findUid( 0 ),
         completedQueries( 0 )
     {}
     bool uid;
@@ -30,7 +30,6 @@ public:
     Transaction * transaction;
     List<Query> queries;
     Query * findUid;
-    Query * findModseq;
     uint completedQueries;
 };
 
@@ -92,32 +91,25 @@ void Copy::execute()
 
     if ( !d->findUid ) {
         d->transaction = new Transaction( this );
-        d->findUid = new Query( "select uidnext from mailboxes "
+        d->findUid = new Query( "select uidnext,nextmodseq from mailboxes "
                                 "where id=$1 for update",
                                 this );
         d->findUid->bind( 1, d->mailbox->id() );
         d->transaction->enqueue( d->findUid );
-        d->findModseq 
-            = new Query( "select nextval('nextmodsequence')::int as ms",
-                         this );
-        d->transaction->enqueue( d->findModseq );
         d->transaction->execute();
     }
-    if ( !d->findUid->done() || !d->findModseq->done() )
+    if ( !d->findUid->done() )
         return;
 
     if ( !d->firstUid ) {
         Row * r = d->findUid->nextRow();
-        if ( r )
+        if ( r ) {
             d->firstUid = r->getInt( "uidnext" );
-        else
-            error( No, "Could not allocate UID in target mailbox" );
-
-        r = d->findModseq->nextRow();
-        if ( r )
-            d->modseq = r->getInt( "ms" );
-        else
-            error( No, "Could not obtain modseq" );
+            d->modseq = r->getInt( "nextmodseq" );
+        }
+        else {
+            error( No, "Could not allocate UID and modseq in target mailbox" );
+        }
 
         if ( !ok() ) {
             d->transaction->rollback();
@@ -245,9 +237,11 @@ void Copy::execute()
         q->bind( 4, tuid );
         enqueue( q );
 
-        q = new Query( "update mailboxes set uidnext=$1 where id=$2",
+        q = new Query( "update mailboxes set uidnext=$1, nextmodseq=$2 "
+                       "where id=$3",
                        this );
         q->bind( 1, tuid );
+        q->bind( 2, d->modseq+1 );
         q->bind( 2, tmailbox );
         d->transaction->enqueue( q );
 

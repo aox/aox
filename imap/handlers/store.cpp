@@ -379,25 +379,14 @@ void Store::execute()
 
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
-        d->obtainModSeq = new Query( "select nextval('nextmodsequence') "
-                                     "as whatever",
-                                     this );
-        d->transaction->enqueue( d->obtainModSeq );
-        // and lock the rows we'll change
-        Query * q = 0;
+        d->obtainModSeq 
+            = new Query( "select nextmodseq from mailboxes "
+                         "where id=$1 for update", this );
         if ( m->view() )
-            q = new Query( "select uid from modsequences ms "
-                           "where (mailbox,uid) in "
-                           "(select source,suid from view_messages "
-                           " where view=$1 and " + d->s.where() + ")"
-                           " for update", 0 );
+            d->obtainModSeq->bind( 1, m->source()->id() );
         else
-            q = new Query( "select uid from modsequences "
-                           "where mailbox=$1 and " + d->s.where() +
-                           " for update", 0 );
-        q->bind( 1, m->id() );
-        d->transaction->enqueue( q );
-        d->transaction->execute();
+            d->obtainModSeq->bind( 1, m->id() );
+        d->transaction->enqueue( d->obtainModSeq );
         switch( d->op ) {
         case StoreData::ReplaceFlags:
             replaceFlags();
@@ -423,7 +412,7 @@ void Store::execute()
             error( No, "Could not obtain modseq" );
             return;
         }
-        d->modseq = r->getBigint( "whatever" ); // what should it be?
+        d->modseq = r->getBigint( "nextmodseq" );
         Query * q = 0;
         if ( m->view() )
             q = new Query( "update modsequences set modseq=$1 "
@@ -435,6 +424,16 @@ void Store::execute()
                            "where mailbox=$2 and (" + d->s.where() + ")", 0 );
         q->bind( 1, d->modseq );
         q->bind( 2, m->id() );
+        d->transaction->enqueue( q );
+        // XXX for no inherent reason this prevents multimailbox views.
+        q = new Query( "update mailboxes set nextmodseq=$1 "
+                       "where id=$2", 0 );
+        q->bind( 1, d->modseq + 1 );
+        if ( m->view() )
+            d->obtainModSeq->bind( 2, m->source()->id() );
+        else
+            d->obtainModSeq->bind( 2, m->id() );
+        d->transaction->enqueue( q );
         d->transaction->commit();
     }
 
