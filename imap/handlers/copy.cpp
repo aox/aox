@@ -217,7 +217,7 @@ void Copy::execute()
 
             q = new Query( "insert into annotations "
                            "(mailbox, uid, owner, name, value) "
-                           "select $1, " + diff + ", $5, name, value "
+                           "select $1, " + diff + ", $6, name, value "
                            "from annotations "
                            "where mailbox=$3 and uid>=$4 and uid<$5 and "
                            "(owner is null or owner=$6)",
