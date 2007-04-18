@@ -11,6 +11,7 @@
   - Change the injector (and other code that performs allowed-to-fail
     inserts to cope with collisions) to use savepoints, and hence...
   - Allow aox vacuum to run without the big lock.
+  - Make archiveopteryx fork after listen if configured to do so.
 
 
 The value of features
