@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (42);
+insert into mailstore (revision) values (43);
 
 
 -- One entry for each unique address we've encountered.
@@ -66,6 +66,9 @@ create table mailboxes (
     -- The UID that will be assigned to the next delivered message.
     -- Incremented after each successful delivery.
     uidnext     integer not null default 1,
+
+    -- The next modsequence for this mailbox.
+    nextmodseq  bigint not null default 1,
 
     -- The UID of the first message that should be marked \Recent.
     -- Set to uidnext when each new IMAP session is created.
@@ -343,7 +346,6 @@ create index dm_mud on deleted_messages(mailbox,uid,deleted_at);
 
 -- One entry per message, changeable by aox
 
-create sequence nextmodsequence;
 create table modsequences (
     mailbox     integer not null,
     uid         integer not null,
