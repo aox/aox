@@ -362,6 +362,8 @@ bool Schema::singleStep()
         c = stepTo41(); break;
     case 41:
         c = stepTo42(); break;
+    case 42:
+        c = stepTo43(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1978,6 +1980,40 @@ bool Schema::stepTo42()
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Make nextmodseq be per-mailbox. */
+
+bool Schema::stepTo43()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Assigning nextmodseq for each mailbox" );
+        d->q = new Query( "alter table mailboxes add nextmodseq bigint", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "update mailboxes set nextmodseq="
+                          "(select nextval('nextmodsequence'))", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table mailboxes alter nextmodseq "
+                          "set not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table mailboxes alter nextmodseq "
+                          "set default 1", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop sequence nextmodsequence", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
     }
 
     if ( d->substate == 1 ) {
