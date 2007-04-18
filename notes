@@ -1,4 +1,4 @@
-2.0 (2007-06-04)
+2.0: 2007-06-04
 
   In order of importance:
 
@@ -12,6 +12,11 @@
     inserts to cope with collisions) to use savepoints, and hence...
   - Allow aox vacuum to run without the big lock.
   - Make archiveopteryx fork after listen if configured to do so.
+  - aox reparse -e, generating error reporting files similar to
+    aoximport -e.
+  - Fix the current canonicals and make aox reparse on kalyani eat
+    most of the unparsable mail (before aox reparse -e is released)
+  - Speed up IMAP SELECT much more.
 
 
 The value of features
