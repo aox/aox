@@ -233,6 +233,32 @@ void Query::bind( uint n, int s, Format f )
 
 
 /*! \overload
+    Binds the 64-bit integer value \a s to the parameter \a n of this
+    Query in the specified format \a f (Binary of Text; Text by
+    default).
+*/
+
+void Query::bind64( uint n, int64 s, Format f )
+{
+    if ( f == Binary ) {
+        String t;
+        t.append( (char)( s >> 56 ) );
+        t.append( (char)( s >> 48 ) );
+        t.append( (char)( s >> 40 ) );
+        t.append( (char)( s >> 32 ) );
+        t.append( (char)( s >> 24 ) );
+        t.append( (char)( s >> 16 ) );
+        t.append( (char)( s >>  8 ) );
+        t.append( (char)( s ) );
+        bind( n, t );
+    }
+    else {
+        bind( n, fn( s ) );
+    }
+}
+
+
+/*! \overload
     Binds the String value \a s to the parameter \a n of this Query in
     the specified format \a f (Binary or Text; Text by default).
 */
