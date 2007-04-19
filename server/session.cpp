@@ -591,7 +591,8 @@ void SessionInitialiser::execute()
         d->t = new Transaction( this );
 
         d->nms =
-            new Query( "select last_value from nextmodsequence", this );
+            new Query( "select nextmodseq from mailboxes where id=$1", this );
+        d->nms->bind( 1, d->session->mailbox()->id() );
         d->t->enqueue( d->nms );
 
         Flag * seen = Flag::find( "\\seen" );
