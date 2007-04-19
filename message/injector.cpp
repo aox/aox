@@ -48,11 +48,12 @@ struct Uid
     : public Garbage
 {
     Uid( Mailbox * m )
-        : mailbox( m ), uid( 0 )
+        : mailbox( m ), uid( 0 ), ms( 0 )
     {}
 
     Mailbox * mailbox;
     uint uid;
+    int64 ms;
 };
 
 
@@ -219,7 +220,9 @@ public:
         if ( !li )
             li = new List< Uid >::Iterator( list );
 
-        (*li)->uid = q->nextRow()->getInt( 0u );
+        Row * r = q->nextRow();
+        (*li)->uid = r->getInt( "uidnext" );
+        (*li)->ms = r->getBigint( "nextmodseq" );
         ++(*li);
     }
 };
@@ -265,13 +268,16 @@ void Injector::setup()
 {
     lockUidnext =
         new PreparedStatement(
-            "select uidnext from mailboxes where id=$1 for update"
+            "select uidnext,nextmodseq from mailboxes "
+            "where id=$1 for update"
         );
     Allocator::addEternal( lockUidnext, "lockUidnext" );
 
     incrUidnext =
         new PreparedStatement(
-            "update mailboxes set uidnext=uidnext+1 where id=$1"
+            "update mailboxes "
+            "set uidnext=uidnext+1,nextmodseq=nextmodseq+1 "
+            "where id=$1"
         );
     Allocator::addEternal( incrUidnext, "incrUidnext" );
 
@@ -979,6 +985,9 @@ void Injector::insertMessages()
     Query *qm =
         new Query( "copy messages (mailbox,uid,idate,rfc822size) "
                    "from stdin with binary", 0 );
+    Query *qms =
+        new Query( "copy modsequences (mailbox,uid,modseq) "
+                   "from stdin with binary", 0 );
 
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
@@ -991,25 +1000,16 @@ void Injector::insertMessages()
         qm->bind( 4, d->message->rfc822().length(), Query::Binary );
         qm->submitLine();
 
+        qms->bind( 1, m->id(), Query::Binary );
+        qms->bind( 2, uid, Query::Binary );
+        qms->bind64( 3, mi->ms, Query::Binary );
+        qms->submitLine();
+
         ++mi;
     }
 
     d->transaction->enqueue( qm );
-
-    // XXX this may be much too slow. Crab, could you look at whether
-    // COPY would work faster?
-    const char * s = "insert into modsequences (mailbox,uid,modseq) "
-                     "values ($1,$2,nextval('nextmodsequence'))";
-    mi = d->mailboxes->first();
-    while ( mi ) {
-        Query * q = new Query( s, 0 );
-        q->bind( 1, mi->mailbox->id() );
-        q->bind( 2, mi->uid );
-        d->transaction->enqueue( q );
-        ++mi;
-        s = "insert into modsequences (mailbox,uid,modseq) "
-            "values ($1,$2,currval('nextmodsequence'))";
-    }
+    d->transaction->enqueue( qms );
 }
 
 
