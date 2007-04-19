@@ -192,10 +192,39 @@ Cleartext passwords
      auth-that, you can disable store-plaintext-passwords.
 
 
+Login failures
+
+  We want to log those a little more, and show them on the
+  webmail/admin pages.
+
+  Specifically, if user x cannot log in, what mechanism was used, what
+  was the problem, etc?
+
+
+aox check schema
+
+  This command would check several things.
+
+  a) that dbuser has the needed rights
+  b) that all the right tables are there, and all the right columns,
+     with the right types, and no unexpected constraints
+  c) that all the right indexes are there
+  d) that dbowner owns everything
+
+  As a bonus, perhaps it could list some unexpected/unknown deviations:
+  e) locally added tables
+  f) locally added columns
+  g) locally added indices
+  h) missing constraints
+
+
 Sieve
 
   Alexey suggests the following extensions (in the following order):
   Vacation, reject, imapflags, subaddress.
+
+  Arnt wants the date tests, in order to use office-hours
+  vs. after-hours work.
 
 
 Better caching.
