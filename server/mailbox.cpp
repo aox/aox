@@ -93,7 +93,8 @@ public:
         : owner( ev ), query( 0 )
     {
         query =
-            new Query( "select m.*,source,view,nextmodseq,selector from "
+            new Query( "select m.*,source,view,v.nextmodseq as viewnms,"
+                       "selector from "
                        "mailboxes m left join views v on (m.id=v.view)",
                        this );
     }
@@ -103,7 +104,8 @@ public:
         : owner( 0 ), query( 0 )
     {
         query =
-            new Query( "select m.*,source,view,nextmodseq,selector from "
+            new Query( "select m.*,source,view,v.nextmodseq as viewnms,"
+                       "selector from "
                        "mailboxes m left join views v on (m.id=v.view) "
                        "where name=$1", this );
         query->bind( 1, n );
@@ -136,7 +138,7 @@ public:
                 if ( !m->d->sourceUids )
                     m->d->sourceUids = new Map< uint >;
                 m->d->source = r->getInt( "source" );
-                m->d->nextModSeq = r->getBigint( "nextmodseq" );
+                m->d->nextModSeq = r->getBigint( "viewnms" );
                 m->d->selector = r->getString( "selector" );
             }
 
