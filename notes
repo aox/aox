@@ -218,6 +218,36 @@ aox check schema
   h) missing constraints
 
 
+Database schema range
+
+  Poeple occasionally need to access the db with an old version of
+  mailstore. I suggest that we:
+
+  a) add a 'writable_from' column specifying the oldest version that
+     can write to the database.
+  b) add a 'readable_from' column specifying the oldest version that
+     can read the database
+
+  aox upgrade schema would update writable_from to the oldest schema
+  version for which a writer would do the right job. This would often
+  change when a table changes, but not when a table is added.
+
+  readable_from would be the oldest revision that can read the database.
+
+  When the server starts up, it would check:
+
+  - am I >writable_from? If so, mailboxes can be read-write
+  - else, am I >readadble_from? If so, startup can proceed, but all
+    mailboxes are read-only. lmtp, smtp and smtp-submit do not start.
+  - else, quit.
+
+  And in order to handle database updates, I suggest another table,
+  'features', with a single string column. When aox update database
+  fixes something, it inserts a row into features. A modern database
+  would have two rows in this table, 'numbered address fields' and 'no
+  nulls in bodyparts'.
+
+
 Sieve
 
   Alexey suggests the following extensions (in the following order):
