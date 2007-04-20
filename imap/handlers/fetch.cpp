@@ -1401,6 +1401,7 @@ void FetchData::SeenFlagSetter::execute()
         t = new Transaction( this );
         ms = new Query( "select nextmodseq from mailboxes "
                         "where id=$1 for update", this );
+        ms->bind( 1, session->mailbox()->id() );
         t->enqueue( ms );
         t->execute();
     }
