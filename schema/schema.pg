@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (44);
+insert into mailstore (revision) values (45);
 
 
 -- One entry for each unique address we've encountered.
@@ -38,6 +38,7 @@ create table users (
     secret      text,
     parentspace integer not null references namespaces(id)
 );
+create index u_l on users (lower(login));
 
 
 -- One entry per named group.

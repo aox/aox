@@ -366,6 +366,8 @@ bool Schema::singleStep()
         c = stepTo43(); break;
     case 43:
         c = stepTo44(); break;
+    case 44:
+        c = stepTo45(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2054,6 +2056,29 @@ bool Schema::stepTo44()
         d->t->enqueue( d->q );
         d->q = new Query( "alter table mailstore add primary key "
                           "(revision)", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add an index on users.login. */
+
+bool Schema::stepTo45()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding an index on users.login" );
+        d->q = new Query( "create index u_l on users(lower(login))", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
