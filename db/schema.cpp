@@ -364,6 +364,8 @@ bool Schema::singleStep()
         c = stepTo42(); break;
     case 42:
         c = stepTo43(); break;
+    case 43:
+        c = stepTo44(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2011,6 +2013,47 @@ bool Schema::stepTo43()
                           "set default 1", this );
         d->t->enqueue( d->q );
         d->q = new Query( "drop sequence nextmodsequence", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add some primary keys (the easy ones). */
+
+bool Schema::stepTo44()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding primary keys to some tables" );
+        d->q = new Query( "alter table annotations add primary key "
+                          "(mailbox,uid,owner,name)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table modsequences add primary key "
+                          "(mailbox,uid)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop index ms_mu", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table permissions add primary key "
+                          "(mailbox,identifier)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table group_members add primary key "
+                          "(groupname,member)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table thread_members add primary key "
+                          "(thread,mailbox,uid)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table mailstore add primary key "
+                          "(revision)", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();

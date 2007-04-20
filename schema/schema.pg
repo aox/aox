@@ -2,9 +2,9 @@
 -- For now, its only purpose is to coordinate schema updates.
 
 create table mailstore (
-    revision    integer not null
+    revision    integer not null primary key
 );
-insert into mailstore (revision) values (43);
+insert into mailstore (revision) values (44);
 
 
 -- One entry for each unique address we've encountered.
@@ -52,7 +52,8 @@ create table groups (
 
 create table group_members (
     groupname   integer not null references groups(id),
-    member      integer not null references users(id)
+    member      integer not null references users(id),
+    primary key (groupname, member)
 );
 
 
@@ -104,7 +105,8 @@ alter table users alter alias set not null;
 create table permissions (
     mailbox     integer not null references mailboxes(id),
     identifier  text not null,
-    rights      text not null
+    rights      text not null,
+    primary key (mailbox, identifier)
 );
 
 
@@ -224,6 +226,7 @@ create table thread_members (
     thread      integer not null references threads(id),
     mailbox     integer not null,
     uid         integer not null,
+    primary key (thread, mailbox, uid),
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
@@ -278,7 +281,7 @@ create table annotations (
     owner       integer references users(id) on delete cascade,
     name        integer not null references annotation_names(id),
     value       text,
-    unique (mailbox, uid, owner, name),
+    primary key (mailbox, uid, owner, name),
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
@@ -350,11 +353,11 @@ create table modsequences (
     mailbox     integer not null,
     uid         integer not null,
     modseq      bigint not null,
+    primary key (mailbox, uid),
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
 );
-create index ms_mu on modsequences(mailbox,uid);
 
 
 -- One entry for each pending SMTP-submitted delivery.
