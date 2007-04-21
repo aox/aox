@@ -5,6 +5,7 @@
 #include "log.h"
 #include "map.h"
 #include "user.h"
+#include "event.h"
 #include "query.h"
 #include "scope.h"
 #include "string.h"
@@ -15,6 +16,7 @@
 #include "eventloop.h"
 #include "popcommand.h"
 #include "stringlist.h"
+#include "transaction.h"
 #include "configuration.h"
 
 
@@ -92,22 +94,77 @@ void POP::setState( State s )
     }
     if ( s == Update && user() && !d->toBeDeleted.isEmpty() ) {
         log( "Deleting " + fn( d->toBeDeleted.count() ) + " messages" );
-        String w = d->toBeDeleted.where();
-        Query * q;
-        q = new Query( "update modsequences "
-                       "set modseq=(select nextval('nextmodsequence')) "
-                       "where mailbox=$1 and (" + w + ")", 0 );
-        q->bind( 1, d->session->mailbox()->id() );
-        q->execute();
-        q = new Query( "insert into deleted_messages "
-                       "(mailbox, uid, deleted_by, reason) "
-                       "select mailbox, uid, $2, $3 "
-                       "from messages where mailbox=$1 and "
-                       "(" + w + ")", 0 );
-        q->bind( 1, d->session->mailbox()->id() );
-        q->bind( 2, d->user->id() );
-        q->bind( 3, "POP delete " + Scope::current()->log()->id() );
-        q->execute();
+
+        class PopDeleter
+            : public EventHandler
+        {
+        private:
+            User * user;
+            Mailbox * mailbox;
+            String w;
+            ::Transaction * t;
+            Query * nms;
+
+        public:
+            PopDeleter( User * u, Mailbox * m, const MessageSet & ms )
+                : user( u ), mailbox( m ), w( ms.where() ),
+                  t( 0 ), nms( 0 )
+            {}
+
+            void execute()
+            {
+                if ( !t ) {
+                    t = new ::Transaction( this );
+                    nms = new Query( "select nextmodseq from mailboxes "
+                                     "where id=$1 for update", this );
+                    nms->bind( 1, mailbox->id() );
+                    t->enqueue( nms );
+                    t->execute();
+                }
+
+                if ( nms ) {
+                    if ( !nms->done() )
+                        return;
+
+                    uint ms( nms->nextRow()->getInt( "nextmodseq" ) );
+                    nms = 0;
+
+                    Query * q;
+                    q = new Query( "update modsequences set modseq=$1 where "
+                                   "mailbox=$2 and (" + w + ")", 0 );
+                    q->bind( 1, ms );
+                    q->bind( 2, mailbox->id() );
+                    t->enqueue( q );
+
+                    q = new Query( "insert into deleted_messages "
+                                   "(mailbox, uid, deleted_by, reason) "
+                                   "select mailbox, uid, $2, $3 "
+                                   "from messages where mailbox=$1 and "
+                                   "(" + w + ")", 0 );
+                    q->bind( 1, mailbox->id() );
+                    q->bind( 2, user->id() );
+                    q->bind( 3, "POP delete " + Scope::current()->log()->id() );
+                    t->enqueue( q );
+
+                    q = new Query( "update mailboxes set "
+                                   "nextmodseq=nextmodseq+1 where id=$1",
+                                   this );
+                    q->bind( 1, mailbox->id() );
+                    t->enqueue( q );
+                    t->commit();
+                }
+
+                if ( !t->done() )
+                    return;
+
+                if ( t->failed() )
+                    log( "Error deleting messages: " + t->error() );
+            }
+        };
+
+        PopDeleter * pd = new PopDeleter( d->user, d->session->mailbox(),
+                                          d->toBeDeleted );
+        pd->execute();
     }
     d->state = s;
 }
