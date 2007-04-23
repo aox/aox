@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (45);
+insert into mailstore (revision) values (46);
 
 
 -- One entry for each unique address we've encountered.
@@ -341,6 +341,7 @@ create table deleted_messages (
     deleted_at  timestamp with time zone not null
                 default current_timestamp,
     reason      text,
+    primary key (mailbox, uid),
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
