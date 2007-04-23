@@ -25,6 +25,7 @@ public:
     bool failed() const;
     bool done() const;
 
+    void clearError();
     void setError( Query *, const String & );
     String error() const;
 

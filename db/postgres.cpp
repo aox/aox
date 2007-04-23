@@ -525,6 +525,10 @@ void Postgres::process( char type )
                     d->transaction->notify();
                     d->transaction = 0;
                 }
+                else if ( state() == FailedTransaction ) {
+                    if ( msg.state() == InTransaction || msg.state() == Idle )
+                        d->transaction->clearError();
+                }
             }
 
             setState( msg.state() );

@@ -97,6 +97,19 @@ bool Transaction::done() const
 }
 
 
+/*! Clears this Transaction's error state (as set with setError()) and
+    places it in Executing state. Used to support savepoints.
+*/
+
+void Transaction::clearError()
+{
+    d->failedQuery = 0;
+    d->error.truncate();
+    d->state = Executing;
+
+}
+
+
 /*! Sets this Transaction's state() to Failed, and records the error
     message \a s. The first \a query that failed is recorded, and is
     returned by failedQuery().
