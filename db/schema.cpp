@@ -368,6 +368,8 @@ bool Schema::singleStep()
         c = stepTo44(); break;
     case 44:
         c = stepTo45(); break;
+    case 45:
+        c = stepTo46(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2079,6 +2081,43 @@ bool Schema::stepTo45()
     if ( d->substate == 0 ) {
         describeStep( "Adding an index on users.login" );
         d->q = new Query( "create index u_l on users(lower(login))", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Remove duplicates from deleted_messages, and add a primary key. */
+
+bool Schema::stepTo46()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding a primary key to deleted_messages" );
+        d->q = new Query( "create aggregate array_accum "
+                          "(basetype=anyelement, sfunc=array_append,"
+                          " stype=anyarray, initcond='{}')", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "delete from deleted_messages where ctid in "
+                          "(select d.ctid from deleted_messages d join "
+                          "(select mailbox,uid,array_accum(ctid) as tids "
+                          "from deleted_messages group by mailbox,uid "
+                          "having count(*)>1) ds using (mailbox,uid) where "
+                          "not (d.ctid=tids[1]))", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop aggregate array_accum (anyelement)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages add "
+                          "primary key (mailbox,uid)", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
