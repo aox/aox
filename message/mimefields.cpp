@@ -141,12 +141,16 @@ void MimeField::removeParameter( const String &n )
 
 void MimeField::parseParameters( Parser822 *p )
 {
-    p->whitespace();
-
-    while ( p->next() == ';' ) {
-        while ( p->next() == ';' )
+    bool first = true;
+    while ( first ||
+            p->next() == ';' ||
+            p->next() == ' ' || p->next() == '\t' ||
+            p->next() == '\r' || p->next() == '\n' ) {
+        while ( p->next() == ';' ||
+                p->next() == ' ' || p->next() == '\t' ||
+                p->next() == '\r' || p->next() == '\n' )
             p->step();
-        p->whitespace();
+        first = false;
         String n = p->mimeToken().lower();
         p->comment();
 
@@ -418,7 +422,12 @@ void ContentDisposition::parse( const String &s )
 {
     Parser822 p( s );
 
+    uint i = p.index();
     String t = p.mimeToken().lower();
+    p.whitespace();
+    if ( s[p.index()] == '=' && t != "inline" && t != "attachment" )
+        p.setIndex( i );
+        
     if ( t.isEmpty() ) {
         setError( "Invalid disposition" );
         return;
