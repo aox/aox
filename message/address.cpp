@@ -4,6 +4,7 @@
 
 #include "field.h"
 #include "stringlist.h"
+#include "endpoint.h"
 #include "ustring.h"
 #include "parser.h"
 #include "dict.h"
@@ -747,7 +748,8 @@ void AddressParser::address( int & i )
             error( "Expected NODE::USER while parsing VMS address", i );
         }
     }
-    else if ( i > 10 && s[i] >= '0' && s[i] <= '9' && s[i-2] == '.' ) {
+    else if ( i > 10 && s[i] >= '0' && s[i] <= '9' && s[i-2] == '.' &&
+              s.contains( '"' ) && s.contains( "-19" ) ) {
         // we may be looking at A::B "display-name" date
         int x = i;
         while ( x > 0 && s[x] != '"' )
@@ -934,6 +936,18 @@ String AddressParser::domain( int & i )
     if ( i < 0 )
         return dom;
 
+    if ( d->s[i] >= '0' && d->s[i] <= '9' ) {
+        // scan for an unquoted IPv4 address and turn that into an
+        // address literal if found.
+        int j = i;
+        while ( ( d->s[i] >= '0' && d->s[i] <= '9' ) || d->s[i] == '.' )
+            i--;
+        Endpoint test( d->s.mid( i+1, j-i ), 1 );
+        if ( test.valid() )
+            return "[" + test.address() + "]";
+        i = j;
+    }
+         
     if ( d->s[i] == ']' ) {
         i--;
         int j = i;
