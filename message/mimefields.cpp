@@ -141,7 +141,9 @@ void MimeField::removeParameter( const String &n )
 
 void MimeField::parseParameters( Parser822 *p )
 {
-    bool first = true;
+    bool first = false;
+    if ( p->string().mid( 0, p->index() ).simplified().isEmpty() )
+        first = true;
     while ( first ||
             p->next() == ';' ||
             p->next() == ' ' || p->next() == '\t' ||
