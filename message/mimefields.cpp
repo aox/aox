@@ -6,6 +6,7 @@
 #include "string.h"
 #include "parser.h"
 #include "list.h"
+#include "map.h"
 
 
 class MimeFieldData
@@ -17,6 +18,7 @@ public:
     {
         String name;
         String value;
+        Map<String> parts;
     };
     List< Parameter > parameters;
 };
@@ -141,36 +143,88 @@ void MimeField::removeParameter( const String &n )
 
 void MimeField::parseParameters( Parser822 *p )
 {
-    bool first = false;
-    if ( p->string().mid( 0, p->index() ).simplified().isEmpty() )
-        first = true;
-    while ( first ||
-            p->next() == ';' ||
-            p->next() == ' ' || p->next() == '\t' ||
-            p->next() == '\r' || p->next() == '\n' ) {
+    bool done = false;
+    while ( valid() && !done ) {
+        done = true;
+        uint i = p->index();
         while ( p->next() == ';' ||
                 p->next() == ' ' || p->next() == '\t' ||
                 p->next() == '\r' || p->next() == '\n' )
             p->step();
-        first = false;
-        String n = p->mimeToken().lower();
-        p->comment();
+        if ( i < p->index() )
+            done = false;
+        if ( p->atEnd() )
+            done = true;
+        if ( !done ) {
+            String n = p->mimeToken().lower();
+            p->comment();
+            bool havePart = false;
+            uint partNumber = 0;
 
-        if ( n.isEmpty() ) {
-            if ( p->atEnd() )
-                return; // for 'Content-Type: text/html;'
-            setError( "Empty parameter" );
-            return;
-        }
-        else if ( p->next() != '=' ) {
-            setError( "Bad parameter: '" + n.simplified() + "'" );
-            return;
-        }
+            if ( n.isEmpty() ) {
+                setError( "Empty parameter" );
+                return;
+            }
+            if ( n.contains( "*" ) ) {
+                uint star = n.find( "*" );
+                bool numberOk = false;
+                partNumber = n.mid( star+1 ).number( &numberOk );
+                if ( numberOk ) {
+                    havePart = true;
+                    n = n.mid( 0, star );
+                }
+            }
+            if ( p->next() != '=' ) {
+                setError( "Bad parameter: '" + n.simplified() + "'" );
+                return;
+            }
 
-        p->step();
-        String v = p->mimeValue();
-        addParameter( n, v );
-        p->comment();
+            p->step();
+            String v;
+            if ( p->next() == '"' ) {
+                v = p->mimeValue();
+            }
+            else {
+                uint start = p->index();
+                v = p->mimeValue();
+                bool ok = true;
+                while ( ok && !p->atEnd() && 
+                        p->next() != ';' &&
+                        p->next() != '"' ) {
+                    if ( p->dotAtom().isEmpty() && p->mimeValue().isEmpty() )
+                        ok = false;
+                }
+                if ( ok )
+                    v = ((String)(*p)).mid( start, p->index()-start );
+            }
+            p->comment();
+            
+            List< MimeFieldData::Parameter >::Iterator it( d->parameters );
+            while ( it && n != it->name )
+                ++it;
+            if ( !it ) {
+                MimeFieldData::Parameter * pm = new MimeFieldData::Parameter;
+                pm->name = n;
+                d->parameters.append( pm );
+                it = d->parameters.find( pm );
+            }
+            if ( havePart )
+                it->parts.insert( partNumber, new String( v ) );
+            else
+                it->value = v;
+        }
+    }
+
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters );
+    while ( it ) {
+        if ( it->value.isEmpty() && it->parts.find( 0 ) ) {
+            // I get to be naughty too sometimes
+            uint n = 0;
+            String * v;
+            while ( (v=it->parts.find( n++ )) )
+                it->value.append( *v );
+        }
+        ++it;
     }
 }
 
