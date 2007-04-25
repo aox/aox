@@ -144,6 +144,7 @@ void MimeField::removeParameter( const String &n )
 void MimeField::parseParameters( Parser822 *p )
 {
     bool done = false;
+    bool first = true;
     while ( valid() && !done ) {
         done = true;
         uint i = p->index();
@@ -153,8 +154,11 @@ void MimeField::parseParameters( Parser822 *p )
             p->step();
         if ( i < p->index() )
             done = false;
+        if ( first )
+            done = false;
         if ( p->atEnd() )
             done = true;
+        first = false;
         if ( !done ) {
             String n = p->mimeToken().lower();
             p->comment();
@@ -180,6 +184,7 @@ void MimeField::parseParameters( Parser822 *p )
             }
 
             p->step();
+            p->whitespace();
             String v;
             if ( p->next() == '"' ) {
                 v = p->mimeValue();
@@ -198,7 +203,7 @@ void MimeField::parseParameters( Parser822 *p )
                     v = ((String)(*p)).mid( start, p->index()-start );
             }
             p->comment();
-            
+
             List< MimeFieldData::Parameter >::Iterator it( d->parameters );
             while ( it && n != it->name )
                 ++it;
