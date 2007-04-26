@@ -407,7 +407,9 @@ AddressParser::AddressParser( String s )
         address( i );
         if ( i < j && i >= 0 && s[i] == ',' ) {
             i--;
-            if ( i >= 0 && s[i] == ';' )
+            space( i );
+            if ( i >= 0 && s[i] == ';' &&
+                 !s.mid( 0, i ).contains( ':' ) )
                 i--;
         }
     }
