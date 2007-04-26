@@ -360,6 +360,7 @@ void HeaderField::parse( const String &s )
         // These should be handled by their own parse().
         break;
 
+    case ContentDescription:
     case Subject:
     case Comments:
         parseText( s );
@@ -375,12 +376,12 @@ void HeaderField::parse( const String &s )
 
     case ContentBase:
         parseContentBase( s );
+        break;
 
     case InReplyTo:
     case Keywords:
     case Received:
     case ContentMd5:
-    case ContentDescription:
     case Other:
         parseOther( s );
         break;
@@ -640,7 +641,7 @@ String HeaderField::wrap( const String &s ) const
             l += 1;
         }
 
-        l += w.length();
+
         t.append( w );
     }
     while ( last > 0 );
