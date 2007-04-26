@@ -29,8 +29,7 @@ create table namespaces (
 insert into namespaces (name) values ('/users');
 
 
--- One entry per Archiveopteryx user.
--- Used for authentication, access control, and mail routing.
+-- One entry per Archiveopteryx user. Used for authentication.
 
 create table users (
     id          serial primary key,
@@ -69,7 +68,7 @@ create table mailboxes (
     -- Incremented after each successful delivery.
     uidnext     integer not null default 1,
 
-    -- The next modsequence for this mailbox.
+    -- The next modsequence value for this mailbox.
     nextmodseq  bigint not null default 1,
 
     -- The UID of the first message that should be marked \Recent.
