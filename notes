@@ -17,6 +17,7 @@
   - Fix the current canonicals and make aox reparse on kalyani eat
     most of the unparsable mail (before aox reparse -e is released)
   - Speed up IMAP SELECT much more.
+  - Make sure the schema documentation is up to date.
 
 
 The value of features
