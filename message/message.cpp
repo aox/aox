@@ -1027,7 +1027,7 @@ Message * Message::wrapUnparsableMessage( const String & message,
 }
 
 
-/*! Records that this message's modseq (see RFC 4451) is \a n. The
+/*! Records that this message's modseq (see RFC 4551) is \a n. The
     initial value is 1. */
 
 void Message::setModSeq( uint n )
@@ -1036,7 +1036,7 @@ void Message::setModSeq( uint n )
 }
 
 
-/*! Returns the RFC 4451 modseq set by setModSeq(). */
+/*! Returns the RFC 4551 modseq set by setModSeq(). */
 
 uint Message::modSeq() const
 {
