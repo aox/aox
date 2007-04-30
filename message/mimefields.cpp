@@ -241,8 +241,36 @@ void MimeField::parseParameters( Parser822 *p )
 String MimeField::value() const
 {
     String s = HeaderField::data();
-    s.append( parameterString() );
-    return wrap( s );
+    uint lineLength = name().length() + 2 + s.length();
+
+    StringList words;
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters );
+    while ( it ) {
+        String s = it->value;
+        if ( !s.boring( String::MIME ) )
+            s = s.quoted();
+        words.append( it->name + "=" + s );
+        ++it;
+    }
+
+    while ( !words.isEmpty() ) {
+        StringList::Iterator i( words );
+        while ( i && lineLength + 2 + i->length() > 72 )
+            ++i;
+        if ( i ) {
+            s.append( "; " );
+            lineLength += 2;
+        }
+        else {
+            i = words;
+            s.append( ";\r\n " );
+            lineLength = 1;
+        }
+        s.append( *i ); // XXX need more elaboration for 2231
+        lineLength += i->length();
+        words.take( i );
+    }
+    return s;
 }
 
 
