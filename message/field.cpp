@@ -641,6 +641,7 @@ String HeaderField::wrap( const String &s ) const
             l += 1;
         }
 
+        l += w.length();
 
         t.append( w );
     }

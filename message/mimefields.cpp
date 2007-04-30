@@ -255,7 +255,7 @@ String MimeField::value() const
 
     while ( !words.isEmpty() ) {
         StringList::Iterator i( words );
-        while ( i && lineLength + 2 + i->length() > 72 )
+        while ( i && lineLength + 2 + i->length() > 78 )
             ++i;
         if ( i ) {
             s.append( "; " );
