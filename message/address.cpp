@@ -1045,7 +1045,20 @@ UString AddressParser::phrase( int & i )
             }
             if ( i < 0 || d->s[i] != '"' )
                 error( "quoted phrase must begin with '\"'", i );
-            word = ac.toUnicode(  d->s.mid( i, j + 1 - i ).unquoted() );
+            String w = d->s.mid( i, j + 1 - i ).unquoted();
+            if ( w.startsWith( "=?" ) && w.endsWith( "?=" ) ) {
+                Utf8Codec uc;
+                Parser822 p( w );
+                String tmp = p.phrase().simplified();
+                p.whitespace();
+                if ( p.index() >= word.length() )
+                    word = uc.toUnicode( tmp );
+                else
+                    drop = true;
+            }
+            else {
+                word = ac.toUnicode( w );
+            }
             i--;
         }
         else if ( d->s[i] == '.' ) {
