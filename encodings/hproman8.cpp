@@ -18,7 +18,7 @@ static const uint tableHpRoman8[256] = {
 
 
 HpRoman8Codec::HpRoman8Codec()
-    : TableCodec( tableHpRoman8, "HP-Roman8" )
+    : TableCodec( tableHpRoman8, "hp-roman8" )
 {
 }
 
