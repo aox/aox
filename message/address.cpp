@@ -1046,18 +1046,31 @@ UString AddressParser::phrase( int & i )
             if ( i < 0 || d->s[i] != '"' )
                 error( "quoted phrase must begin with '\"'", i );
             String w = d->s.mid( i, j + 1 - i ).unquoted();
-            if ( w.startsWith( "=?" ) && w.endsWith( "?=" ) ) {
-                Utf8Codec uc;
-                Parser822 p( w );
-                String tmp = p.phrase().simplified();
-                p.whitespace();
-                if ( p.index() >= word.length() )
-                    word = uc.toUnicode( tmp );
-                else
-                    drop = true;
-            }
-            else {
-                word = ac.toUnicode( w );
+            int l = 0;
+            while ( l >= 0 && !drop ) {
+                int b = w.find( "=?", l );
+                if ( b >= 0 ) {
+                    int e = w.find( "?", b+2 ); // after charset
+                    if ( e > b )
+                        e = w.find( "?", e+1 ); // after codec
+                    if ( e > b )
+                        e = w.find( "?=", e+1 ); // at the end
+                    if ( e > b ) {
+                        UString tmp = Parser822::de2047( w.mid( b, e+2-b ) );
+                        word.append( ac.toUnicode( w.mid( l, b-l ) ) );
+                        word.append( tmp );
+                        if ( tmp.isEmpty() )
+                            drop = true;
+                        l = e + 2;
+                    }
+                    else {
+                        drop = true;
+                    }
+                }
+                else {
+                    word.append( ac.toUnicode( w.mid( l ) ) );
+                    l = -1;
+                }
             }
             i--;
         }
