@@ -28,7 +28,6 @@
 #include "dsn.h"
 
 
-class IdFetcher;
 class UidFetcher;
 class BidFetcher;
 
@@ -57,17 +56,20 @@ struct Uid
 };
 
 
-// This struct contains the id for a Bodypart.
+// This struct contains the id for a Bodypart, as well as the queries
+// used to create and identify it.
 
 struct Bid
     : public Garbage
 {
     Bid( Bodypart * b )
-        : bodypart( b ), bid( 0 )
+        : bodypart( b ), bid( 0 ), insert( 0 ), select( 0 )
     {}
 
     Bodypart *bodypart;
     uint bid;
+    Query * insert;
+    Query * select;
 };
 
 
@@ -106,7 +108,6 @@ public:
     InjectorData()
         : state( Injector::Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
-          beforeTransaction( 0 ),
           mailboxes( 0 ), bodyparts( 0 ),
           uidFetcher( 0 ), bidFetcher( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
@@ -121,7 +122,6 @@ public:
     EventHandler *owner;
     Message *message;
     Transaction *transaction;
-    List<Query> * beforeTransaction;
 
     List< Uid > *mailboxes;
     List< Bid > *bodyparts;
@@ -156,21 +156,33 @@ public:
 };
 
 
-class IdFetcher
+class UidFetcher
     : public EventHandler
 {
 public:
+    List< Uid > *list;
+    List< Uid >::Iterator *li;
     List< Query > *queries;
     List< Query > *inserts;
     EventHandler *owner;
     bool failed;
     String error;
 
-    IdFetcher( List< Query > *q, EventHandler *ev )
-        : queries( q ), inserts( 0 ), owner( ev ), failed( false )
+    UidFetcher( List< Uid > *l, List< Query > *q, EventHandler *ev )
+        : list( l ), li( 0 ), queries( q ), inserts( 0 ), owner( ev ),
+          failed( false )
     {}
 
-    virtual void process( Query * ) {}
+    void process( Query * q )
+    {
+        if ( !li )
+            li = new List< Uid >::Iterator( list );
+
+        Row * r = q->nextRow();
+        (*li)->uid = r->getInt( "uidnext" );
+        (*li)->ms = r->getBigint( "nextmodseq" );
+        ++(*li);
+    }
 
     void execute() {
         Query *q;
@@ -204,48 +216,91 @@ public:
 };
 
 
-class UidFetcher
-    : public IdFetcher
-{
-public:
-    List< Uid > *list;
-    List< Uid >::Iterator *li;
-
-    UidFetcher( List< Uid > *l, List< Query > *q, EventHandler *ev )
-        : IdFetcher( q, ev ), list( l ), li( 0 )
-    {}
-
-    void process( Query * q )
-    {
-        if ( !li )
-            li = new List< Uid >::Iterator( list );
-
-        Row * r = q->nextRow();
-        (*li)->uid = r->getInt( "uidnext" );
-        (*li)->ms = r->getBigint( "nextmodseq" );
-        ++(*li);
-    }
-};
-
-
 class BidFetcher
-    : public IdFetcher
+    : public EventHandler
 {
 public:
-    List< Bid > *list;
-    List< Bid >::Iterator *li;
+    Transaction * transaction;
+    List<Bid> * list;
+    EventHandler * owner;
+    List<Bid>::Iterator * li;
+    uint state;
+    uint savepoint;
+    bool done;
+    bool failed;
+    String error;
 
-    BidFetcher( List< Bid > *l, List< Query > *q, EventHandler *ev )
-        : IdFetcher( q, ev ), list( l ), li( 0 )
+    BidFetcher( Transaction * t, List<Bid> * l, EventHandler * ev )
+        : transaction( t ), list( l ), owner( ev ),
+          li( new List<Bid>::Iterator( list ) ),
+          state( 0 ), savepoint( 0 ), done( false ), failed( false )
     {}
 
-    void process( Query * q )
+    void execute()
     {
-        if ( !li )
-            li = new List< Bid >::Iterator( list );
+        Query * q = 0;
 
-        (*li)->bid = q->nextRow()->getInt( 0u );
-        ++(*li);
+        while ( !done && *li ) {
+            while ( *li && !(*li)->insert )
+                ++(*li);
+            if ( !*li )
+                break;
+
+            struct Bid * b = *li;
+            String s;
+
+            switch ( state ) {
+            case 0:
+                s.append( "savepoint " );
+                s.append( 'a'+savepoint );
+                q = new Query( s, this );
+                transaction->enqueue( q );
+                transaction->enqueue( b->insert );
+                state = 1;
+                transaction->execute();
+                return;
+                break;
+            case 1:
+                if ( !b->insert->done() )
+                    return;
+                if ( b->insert->failed() ) {
+                    // XXX: Here we assume that the only reason for this
+                    // insert to fail is that the row already exists.
+                    String s( "rollback to " );
+                    s.append( 'a'+savepoint );
+                    q = new Query( s, this );
+                    transaction->enqueue( q );
+                }
+                transaction->enqueue( b->select );
+                state = 2;
+                transaction->execute();
+                return;
+                break;
+            case 2:
+                if ( !b->select->done() ) {
+                    return;
+                }
+                else {
+                    Row * r = b->select->nextRow();
+                    if ( b->select->failed() || !r ) {
+                        done = failed = true;
+                        error = b->select->error();
+                        if ( !r && error.isEmpty() )
+                            error = "No matching bodypart found";
+                        owner->execute();
+                        return;
+                    }
+                    b->bid = r->getInt( "id" );
+                }
+                ++(*li);
+                state = 0;
+                savepoint++;
+                break;
+            }
+        }
+
+        done = true;
+        owner->execute();
     }
 };
 
@@ -501,14 +556,6 @@ void Injector::execute()
 {
     Scope x( log() );
 
-    // Conceptually, the Injector does its work in a single transaction.
-    // In practice, however, the need to maintain unique entries in the
-    // bodyparts table demands either an exclusive lock (which we would
-    // rather avoid), the use of savepoints (only in PG8), or INSERTing
-    // bodyparts entries outside the transaction to tolerate failure.
-    //
-    // -- AMS 20050412
-
     if ( d->state == Inactive ) {
         if ( !d->message->valid() ) {
             d->failed = true;
@@ -518,37 +565,37 @@ void Injector::execute()
 
         logMessageDetails();
 
-        // We begin by obtaining a UID for each mailbox we are injecting
-        // a message into, and simultaneously inserting entries into the
-        // bodyparts table. At the same time, we can begin to lookup and
-        // insert the addresses and field names used in the message.
-
         d->transaction = new Transaction( this );
 
-        // The bodyparts inserts happen outside d->transaction, the
-        // concomitant selects go inside.
-        insertBodyparts();
+        // XXX: The following functions insert entries into flag_names
+        // and annotation_names outside the transaction, so we have no
+        // sensible way of dealing with errors.
         createFlags();
         createAnnotationNames();
 
         d->state = InsertingBodyparts;
+        d->bidFetcher  = new BidFetcher( d->transaction, d->bodyparts, this );
+        setupBodyparts();
+        d->bidFetcher->execute();
     }
 
     if ( d->state == InsertingBodyparts ) {
-        // Wait for all queries that have to be run before the
-        // transaction to complete, then start the transaction.
-        List<Query>::Iterator i( d->beforeTransaction );
-        while ( i && i->done() )
-            ++i;
-        if ( i )
+        if ( !d->bidFetcher->done )
             return;
 
-        selectUids();
-        buildFieldLinks();
-        resolveAddressLinks();
-        d->transaction->execute();
+        if ( d->bidFetcher->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
+            selectUids();
+            buildFieldLinks();
+            resolveAddressLinks();
+            d->transaction->execute();
 
-        d->state = SelectingUids;
+            d->state = SelectingUids;
+        }
     }
 
     if ( d->state == SelectingUids && !d->transaction->failed() ) {
@@ -565,19 +612,11 @@ void Injector::execute()
     }
 
     if ( d->state == InsertingMessages && !d->transaction->failed() ) {
-        if ( d->bidFetcher->failed ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-    }
-
-    if ( d->state == InsertingMessages && !d->transaction->failed() ) {
         // We expect buildFieldLinks() to have completed immediately.
         // Once we have the bodypart IDs, we can start adding to the
         // part_numbers, header_fields, and date_fields tables.
 
-        if ( !d->fieldLookup->done() || !d->bidFetcher->done() )
+        if ( !d->fieldLookup->done() )
             return;
 
         linkBodyparts();
@@ -865,114 +904,82 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 }
 
 
-/*! This private function inserts an entry into bodyparts for every MIME
-    bodypart in the message. The IDs are then stored in d->bodyparts.
+/*! This private function looks through d->bodyparts, and fills in the
+    INSERT needed to create, and the SELECT needed to identify, every
+    storable bodypart in the message. The queries are executed by the
+    BidFetcher.
 */
 
-void Injector::insertBodyparts()
+void Injector::setupBodyparts()
 {
-    d->beforeTransaction = new List<Query>;
-    List< Query > *selects = new List< Query >;
-    List< Bid > *insertedParts = new List< Bid >;
-    d->bidFetcher = new BidFetcher( insertedParts, selects, this );
-
     List< Bid >::Iterator bi( d->bodyparts );
     while ( bi ) {
         Bodypart *b = bi->bodypart;
 
         // These decisions should move into Bodypart member functions.
 
-        bool text = false;
-        bool data = false;
+        bool storeText = false;
+        bool storeData = false;
 
         ContentType *ct = b->contentType();
         if ( ct ) {
             if ( ct->type() == "text" ) {
-                text = true;
+                storeText = true;
                 if ( ct->subtype() == "html" )
-                    data = true;
+                    storeData = true;
             }
             else {
-                data = true;
+                storeData = true;
                 if ( ct->type() == "multipart" && ct->subtype() != "signed" )
-                    data = false;
+                    storeData = false;
                 if ( ct->type() == "message" && ct->subtype() == "rfc822" )
-                    data = false;
+                    storeData = false;
             }
         }
         else {
-            text = true;
+            storeText = true;
         }
 
-        if ( text || data ) {
-            insertBodypart( b, data, text, selects );
-            insertedParts->append( bi );
+        if ( storeText || storeData ) {
+            PgUtf8Codec u;
+
+            String data;
+            if ( storeText )
+                data = u.fromUnicode( b->text() );
+            else if ( storeData )
+                data = b->data();
+            String hash = MD5::hash( data ).hex();
+
+            Query * i = new Query( *intoBodyparts, d->bidFetcher );
+            i->bind( 1, hash );
+            i->bind( 2, b->numBytes() );
+
+            if ( storeText ) {
+                String text( data );
+
+                if ( storeData )
+                    text = u.fromUnicode( HTML::asText( b->text() ) );
+
+                i->bind( 3, text, Query::Binary );
+            }
+            else {
+                i->bindNull( 3 );
+            }
+
+            if ( storeData )
+                i->bind( 4, data, Query::Binary );
+            else
+                i->bindNull( 4 );
+
+            i->allowFailure();
+
+            bi->insert = i;
+            bi->select = new Query( *idBodypart, d->bidFetcher );
+            bi->select->bind( 1, hash );
         }
 
         ++bi;
     }
-
-    d->bidFetcher->inserts = d->beforeTransaction;
-}
-
-
-/*! This private function inserts a row corresponding to \a b into the
-    bodyparts table. If \a storeData is true, the contents are stored
-    in the data column. If only \a storeText is true, the contents are
-    stored in the text column instead. If they are both true, the data
-    is stored in the data column, and a searchable representation is
-    stored in the text column.
-
-    It appends any queries it creates to d->beforeTransaction, and
-    appends the id-select to \a selects.
-*/
-
-void Injector::insertBodypart( Bodypart *b,
-                               bool storeData, bool storeText,
-                               List< Query > * selects )
-{
-    PgUtf8Codec u;
-    Query *i, *s;
-
-    String data;
-    if ( storeText )
-        data = u.fromUnicode( b->text() );
-    else if ( storeData )
-        data = b->data();
-    String hash = MD5::hash( data ).hex();
-
-    // This insert may fail if a bodypart with this hash already
-    // exists. We don't care, as long as the select below works.
-    i = new Query( *intoBodyparts, this );
-    i->bind( 1, hash );
-    i->bind( 2, b->numBytes() );
-
-    if ( storeText ) {
-        String text( data );
-
-        // This cannot move into Bodypart::, since it's postgres-specific.
-        if ( storeData )
-            text = u.fromUnicode( HTML::asText( b->text() ) );
-
-        i->bind( 3, text, Query::Binary );
-    }
-    else {
-        i->bindNull( 3 );
-    }
-
-    if ( storeData )
-        i->bind( 4, data, Query::Binary );
-    else
-        i->bindNull( 4 );
-
-    i->allowFailure();
-    d->beforeTransaction->append( i );
-    i->execute();
-
-    s = new Query( *idBodypart, d->bidFetcher );
-    s->bind( 1, hash );
-    selects->append( s );
-    d->transaction->enqueue( s );
 }
 
 
