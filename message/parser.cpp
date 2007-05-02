@@ -451,6 +451,65 @@ String Parser822::encodedWord( EncodedText type )
 }
 
 
+/*! Do RFC 2047 decoding of \a s, totally ignoring what the
+    encoded-text in \a s might be.
+    
+    Depending on circumstances, the encoded-text may contain different
+    sets of characters. Moreover, not every 2047 encoder obeys the
+    rules. This function checks nothing, it just decodes.
+*/
+
+UString Parser822::de2047( const String & s )
+{
+    UString out;
+
+    if ( !s.startsWith( "=?" ) || !s.endsWith( "?=" ) )
+        return out;
+    int cs = 2;
+    int ce = s.find( '*', 2 );
+    int es = s.find( '?', 2 ) + 1;
+    if ( es < cs )
+        return out;
+    if ( ce < cs )
+        ce = es;
+    if ( ce >= es )
+        ce = es-1;
+    Codec * codec = Codec::byName( s.mid( cs, ce-cs ) );
+    if ( s[es+1] != '?' )
+        return out;
+    String encoded = s.mid( es+2, s.length() - es - 2 - 2 );
+    String decoded;
+    switch ( s[es] ) {
+    case 'Q':
+    case 'q':
+        decoded = encoded.deQP( true );
+        break;
+    case 'B':
+    case 'b':
+        decoded = encoded.de64();
+        break;
+    default:
+        return out;
+        break;
+    }
+
+    if ( !codec ) {
+        // if we didn't recognise the codec, we'll assume that it's
+        // ASCII if that would work and otherwise refuse to decode.
+        uint i = 0;
+        while ( i < decoded.length() &&
+                decoded[i] >= ' ' && decoded[i] < 127 )
+            i++;
+        if ( i >= decoded.length() )
+            codec = new AsciiCodec;
+    }
+
+    if ( codec )
+        out = codec->toUnicode( decoded );
+    return out;
+}
+
+
 /*! Steps past a sequence of adjacent encoded-words with whitespace in
     between and returns the decoded UTF-8 representation.
 */

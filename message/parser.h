@@ -5,6 +5,8 @@
 
 #include "string.h"
 
+class UString;
+
 
 class Parser822
     : public Garbage
@@ -48,6 +50,8 @@ public:
     bool atEnd() const { return i >= s.length(); }
 
     bool hasError() { return false; }
+
+    static UString de2047( const String & );
 
 private:
     void error( const char * ) {}
