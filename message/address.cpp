@@ -1138,7 +1138,7 @@ UString AddressParser::phrase( int & i )
     }
     if ( drop )
         r.truncate();
-    return r;
+    return r.simplified();
 }
 
 
