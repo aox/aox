@@ -653,9 +653,6 @@ String HeaderField::wrap( const String &s ) const
 
 /*! This static function returns an RFC 2047 encoded-word representing
     \a w, which is assumed to be a UTF-8 encoded string.
-
-    XXX: This doesn't split encoded-words to ensure that each
-    encoded-word is shorter than 75 characters.
 */
 
 String HeaderField::encodeWord( const String &w )
@@ -673,15 +670,28 @@ String HeaderField::encodeWord( const String &w )
     t.append( "?" );
     String qp = cw.eQP( true );
     String b64 = cw.e64();
-    if ( qp.length() <= b64.length() + 3 ) {
+    if ( qp.length() <= b64.length() + 3 &&
+         t.length() + qp.length() <= 73 ) {
         t.append( "q?" );
         t.append( qp );
+        t.append( "?=" );
     }
     else {
-        t.append( "b?" );
-        t.append( b64 );
+        String prefix = t;
+        prefix.append( "b?" );
+        t = ""; 
+        while ( !b64.isEmpty() ) {
+            uint allowed = 73 - prefix.length();
+            allowed = 4 * (allowed/4);
+            String word = prefix;
+            word.append( b64.mid( 0, allowed ) );
+            word.append( "?=" );
+            b64 = b64.mid( allowed );
+            t.append( word );
+            if ( !b64.isEmpty() )
+                t.append( " " );
+        }
     }
-    t.append( "?=" );
 
     return t;
 }
