@@ -67,6 +67,16 @@ by default.
 is the number of days a message can be undeleted after being deleted,
 .I 7
 by default.
+.IP server-processes
+is the number of processes started to serve IMAP/POP/HTTP clients. This is
+.I 1
+by default. 1 is suitable for a small server.
+.IP
+The
+.I server-processes
+setting should be about as large as the number of CPUs available,
+perhaps a little larger. We advise asking info@oryx.com in unusual
+cases.
 .SS "Database Access"
 .IP db
 The type of database. The default,

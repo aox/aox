@@ -177,7 +177,7 @@ Undefined codepoints
 
 Cleartext passwords
 
-  We help migrating away from cleartext passwords:
+  We help migrating away from cleartext/plaintext passwords:
 
   1. We also store SCRAM and similar secrets in the DB (secrets which
      aren't password equivalents)
@@ -191,6 +191,7 @@ Cleartext passwords
      high count and a long-ago time.
   6. We add documentation saying that if you diable auth-this and
      auth-that, you can disable store-plaintext-passwords.
+  7. We add configuration/db sanity checks for ditto.
 
 
 Login failures
@@ -409,36 +410,17 @@ Consider RFC2231:
 
   2231 says: IMAP4 [RFC-2060] servers SHOULD decode parameter value
   continuations when generating the BODY and BODYSTRUCTURE fetch
-  attributes.
-
-  Hopefully we don't need to care about this at all.
-
-  Arnt's opinion: We're better off doing that at parse time. There's
-  also some outlook breakage to support - it uses 2047 when it
-  shouldn't.
-
-
-ANNOTATE support
-
-  Annotations are good. We want them. They're easy for us. By now the
-  draft should be stable, so we can implement whenever we want to and
-  have the time.
-
-  Status:
-  - schema changes: done
-  - session state: done
-  - SELECT/EXAMINE: done
-  - FETCH: written, not tested, probably broken
-  - STORE: done, currently broken
-  - COPY: done (untested for lack of other support)
-  - APPEND: can call code currently in STORE
-  - SEARCH: done
-  - SORT
+  attributes. I presume we now do this, but I haven't tested it.
 
 
 METADATA
 
-  Ditto. Separate point so that we can do one without the other.
+  Needed for lemonade, as easy as annotate.
+
+
+Session update optimisation
+
+  Injector can tell the SessionInitialiser to skip all DB work.
 
 
 Autoresponder
@@ -494,13 +476,6 @@ C/R
   real mail, while simultaneously challenging most/all messages that
   don't come from valid senders? How can we provide suitable
   configuration?
-
-
-We should figure out some way to not store plaintext passwords.
-
-  In practice, the only way is to subcontract the dirty work to an
-  LDAP server. We act as a MITM while doing SASL authentication and
-  that's all.
 
 
 Using rrdtool

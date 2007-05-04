@@ -90,7 +90,6 @@ int main( int argc, char *argv[] )
              "smtp-submit-address/port", Log::Disaster );
     }
 
-
     Listener< IMAP >::create(
         "IMAP", Configuration::toggle( Configuration::UseImap ),
         Configuration::ImapAddress, Configuration::ImapPort,
@@ -131,6 +130,8 @@ int main( int argc, char *argv[] )
         Configuration::SmtpSubmitAddress, Configuration::SmtpSubmitPort,
         false
         );
+    
+    s.setup( Server::LogStartup );
 
     Database::setup();
 

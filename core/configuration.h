@@ -4,6 +4,7 @@
 #define CONFIGURATION_H
 
 #include "string.h"
+#include "list.h"
 #include "log.h"
 
 
@@ -48,6 +49,7 @@ public:
         LmtpPort,
         SmtpSubmitPort,
         HttpPort,
+        ServerProcesses,
         DbMaxHandles,
         DbHandleInterval,
         ManageSievePort,
@@ -61,7 +63,7 @@ public:
     static const char * name( Scalar );
 
     enum Text {
-        Db,
+        Db, // must be first, see addressVariables()
         DbName,
         DbOwner,
         DbOwnerPassword,
@@ -136,6 +138,8 @@ public:
     static void add( const String & );
 
     static void read( const String &, bool );
+
+    static List<Text> * addressVariables();
 
 private:
     static String osHostname();

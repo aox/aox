@@ -44,6 +44,8 @@ public:
 
     static String name();
 
+    static void killChildren();
+
 private:
     static class ServerData * d;
 

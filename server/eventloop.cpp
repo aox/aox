@@ -444,6 +444,24 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 }
 
 
+/*! Closes all Connection except Listeners. When we fork, this allows
+    us to keep the connections on one side of the fence.
+*/
+
+void EventLoop::closeAllExceptListeners()
+{
+    List< Connection >::Iterator it( d->connections );
+    while ( it ) {
+        Connection * c = it;
+        ++it;
+        if ( c->type() != Connection::Listener ) {
+            removeConnection( c );
+            c->close();
+        }
+    }
+}
+
+
 /*! Flushes the write buffer of all connections. */
 
 void EventLoop::flushAll()

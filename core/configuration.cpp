@@ -148,6 +148,7 @@ static struct {
     { "lmtp-port", Configuration::LmtpPort, 2026 },
     { "smtp-submit-port", Configuration::SmtpSubmitPort, 587 },
     { "http-port", Configuration::HttpPort, 8808 },
+    { "server-processes", Configuration::ServerProcesses, 1 },
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
     { "managesieve-port", Configuration::ManageSievePort, 2000 },
@@ -666,4 +667,25 @@ void Configuration::log( const String & m, Log::Severity s )
     e->e = m;
     e->s = s;
     d->errors->append( e );
+}
+
+
+/*! Returns a list of the variable that refer to addresses. This
+    function is a little slow. It never returns 0.
+*/
+
+List<Configuration::Text> * Configuration::addressVariables()
+{
+    uint i = 0;
+    List<Text> * r = new List<Text>;
+    while ( i < NumTexts ) {
+        String name( textDefaults[i].name );
+        if ( name.endsWith( "-address" ) ) {
+            Configuration::Text * t = new Configuration::Text;
+            *t = (Configuration::Text)i;
+            r->append( t );
+        }
+        i++;
+    }
+    return r;
 }

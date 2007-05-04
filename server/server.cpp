@@ -51,7 +51,9 @@ public:
         : name( n ), stage( Server::Configuration ),
           secured( false ), fork( false ),
           chrootMode( Server::JailDir ),
-          queries( new List< Query > )
+          queries( new List< Query > ),
+          children( 0 ),
+          mainProcess( false )
     {}
 
     String name;
@@ -60,8 +62,9 @@ public:
     bool secured;
     bool fork;
     Server::ChrootMode chrootMode;
-
     List< Query > *queries;
+    List<pid_t> * children;
+    bool mainProcess;
 };
 
 
@@ -221,42 +224,24 @@ void Server::configuration()
 }
 
 
-static Configuration::Text addresses[] = {
-    Configuration::TlsProxyAddress,
-    Configuration::LogAddress,
-    Configuration::OcdAddress,
-    Configuration::OcAdminAddress,
-    Configuration::PopAddress,
-    Configuration::ImapAddress,
-    Configuration::ImapsAddress,
-    Configuration::SmtpAddress,
-    Configuration::LmtpAddress,
-    Configuration::HttpAddress,
-    Configuration::ManageSieveAddress,
-    Configuration::SmartHostAddress,
-
-    // DbAddress MUST be last
-    Configuration::DbAddress 
-};
-
-
 /*! Resolves any domain names used in the configuration file before we
     chroot.
 */
 
 void Server::nameResolution()
 {
-    uint i = 0;
-    do {
+    List<Configuration::Text>::Iterator i( Configuration::addressVariables() );
+    while ( i ) {
         const StringList & r 
-            = Resolver::resolve( Configuration::text( addresses[i] ) );
+            = Resolver::resolve( Configuration::text( *i ) );
         if ( r.isEmpty() ) {
             log( String("Unable to resolve ") +
-                 Configuration::name( addresses[i] ) +
-                 " = " + Configuration::text( addresses[i] ),
+                 Configuration::name( *i ) +
+                 " = " + Configuration::text( *i ),
                  Log::Disaster );
         }
-    } while ( addresses[i++] != Configuration::DbAddress );
+        ++i;
+    }
     if ( !Log::disastersYet() )
         return;
 
@@ -308,7 +293,22 @@ void Server::logSetup()
 
 static void shutdownLoop( int )
 {
+    Server::killChildren();
     EventLoop::shutdown();
+}
+
+
+/*! Called by signal handling to kill any children started in fork().
+
+*/
+
+void Server::killChildren()
+{
+    List<pid_t>::Iterator child( d->children );
+    while ( child ) {
+        ::kill( *child, SIGTERM );
+        ++child;
+    }
 }
 
 
@@ -327,10 +327,13 @@ void Server::loop()
 }
 
 
-/*! Forks the server, if and only of -f was specified. The parent
-    process exits immediately after the fork.
+/*! Forks the server as required by -f and the configuration variable
+    server-processes. 
 
-    Only the child process returns from this function.
+    If -f is specified, the parent exits in this function and does not
+    return from this function.
+
+    As many processes as specified by server-processes return.
 */
 
 void Server::fork()
@@ -346,6 +349,33 @@ void Server::fork()
     } else if ( p > 0 ) {
         exit( 0 );
     }
+    d->mainProcess = true;
+    uint children = 0;
+    if ( d->name == "archiveopteryx" ) {
+        children = Configuration::scalar( Configuration::ServerProcesses );
+        if ( children > 1 )
+            d->children = new List<pid_t>;
+    }
+    uint i = 1;
+    while ( d->children && i < children ) {
+        pid_t * child = new pid_t;
+        *child = ::fork();
+        if ( *child < 0 ) {
+            log( "Unable to fork server; pressing on. Error code " +
+                 fn( errno ), Log::Error );
+        }
+        else if ( *child > 0 ) {
+            log( "Process " + fn( getpid() ) + " forked " + fn( *child ) );
+            d->children->append( child );
+        }
+        else {
+            d->mainProcess = false;
+            d->children = 0;
+            EventLoop::global()->closeAllExceptListeners();
+            log( "Process " + fn( getpid() ) + " started" );
+        }
+        i++;
+    }
 }
 
 
@@ -357,6 +387,9 @@ void Server::fork()
 
 void Server::pidFile()
 {
+    if ( !d->mainProcess )
+        return;
+
     String dir( Configuration::compiledIn( Configuration::PidFileDir ) );
 
     String n = dir + "/" + d->name + ".pid";
