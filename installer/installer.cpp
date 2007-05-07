@@ -142,6 +142,10 @@ int main( int ac, char *av[] )
     Allocator::addEternal( new StderrLogger( "installer", verbosity ),
                            "log object" );
 
+    if ( verbosity )
+        printf( "Archiveopteryx installer version %s\n",
+                Configuration::compiledIn( Configuration::Version ) );
+
     if ( getuid() != 0 )
         error( "Please run the installer as root." );
 
