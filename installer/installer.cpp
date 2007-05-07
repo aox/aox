@@ -53,6 +53,7 @@ const char * DBADDRESS;
 
 void help();
 void error( String );
+const char *pgErr( const String & );
 bool exists( const String & );
 void configure();
 void findPgUser();
@@ -232,6 +233,15 @@ void error( String m )
 {
     fprintf( stderr, "%s\n", m.cstr() );
     exit( -1 );
+}
+
+
+const char * pgErr( const String & s )
+{
+    String p( "PostgreSQL error: " );
+    p.append( s );
+    p.detach();
+    return p.cstr();
 }
 
 
@@ -598,7 +608,7 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
                      "Please create it by hand and re-run the installer.\n",
-                     dbuser->cstr(), d->q->error().cstr() );
+                     dbuser->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
         }
@@ -651,7 +661,7 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
                      "Please create it by hand and re-run the installer.\n",
-                     dbowner->cstr(), d->q->error().cstr() );
+                     dbowner->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
         }
@@ -695,7 +705,7 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr, "Couldn't create database '%s' (%s).\n"
                      "Please create it by hand and re-run the installer.\n",
-                     dbname->cstr(), d->q->error().cstr() );
+                     dbname->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
         }
@@ -735,12 +745,12 @@ void database()
                 printf( " - May need to load the database schema.\n   "
                         "(Couldn't authenticate as user '%s' to make sure "
                         "it's needed: %s.)\n", dbname->cstr(),
-                        d->ssa->error().cstr() );
+                        pgErr( d->ssa->error() ) );
             }
             else {
                 fprintf( stderr, "Couldn't query database '%s' to "
                          "see if the schema needs to be loaded (%s).\n",
-                         dbname->cstr(), d->q->error().cstr() );
+                         dbname->cstr(), pgErr( d->q->error() ) );
                 EventLoop::shutdown();
                 return;
             }
@@ -753,12 +763,12 @@ void database()
                 printf( " - May need to load the database schema.\n   "
                         "(Couldn't query database '%s' to make sure it's "
                         "needed: %s.)\n", dbname->cstr(),
-                        d->q->error().cstr() );
+                        pgErr( d->q->error() ) );
             }
             else {
                 fprintf( stderr, "Couldn't query database '%s' to "
                          "see if the schema needs to be loaded (%s).\n",
-                         dbname->cstr(), d->q->error().cstr() );
+                         dbname->cstr(), pgErr( d->q->error() ) );
                 EventLoop::shutdown();
                 return;
             }
@@ -814,7 +824,7 @@ void database()
             else {
                 fprintf( stderr, "Couldn't query database '%s' to "
                          "see if the schema needs to be upgraded (%s).\n",
-                         dbname->cstr(), d->q->error().cstr() );
+                         dbname->cstr(), pgErr( d->q->error() ) );
                 EventLoop::shutdown();
                 return;
             }
@@ -857,7 +867,7 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr, "Couldn't upgrade schema in database '%s' (%s).\n"
                      "Please run \"aox upgrade schema -n\" by hand.\n",
-                     dbname->cstr(), d->q->error().cstr() );
+                     dbname->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
         }
@@ -888,7 +898,7 @@ void database()
                          "Couldn't reset session authorisation to alter "
                          "ownership and privileges on database '%s' (%s)."
                          "\nSwitching to reporting mode.\n", dbname->cstr(),
-                         d->ssa->error().cstr() );
+                         pgErr( d->ssa->error() ) );
             }
         }
 
@@ -924,7 +934,7 @@ void database()
                      "For Postgres 7.4, run the following query:\n"
                      "\"update pg_database set datdba=(select usesysid from "
                      "pg_user where usename='%s') where datname='%s'\"\n",
-                     dbname->cstr(), dbowner->cstr(), d->q->error().cstr(),
+                     dbname->cstr(), dbowner->cstr(), pgErr( d->q->error() ),
                      dbowner->cstr(), dbname->cstr() );
             EventLoop::shutdown();
             return;
@@ -952,7 +962,7 @@ void database()
             fprintf( stderr,
                      "Couldn't get a list of tables and sequences in database "
                      "'%s' while trying to alter their privileges (%s).\n",
-                     dbname->cstr(), d->q->error().cstr() );
+                     dbname->cstr(), pgErr( d->q->error() ) );
             exit( -1 );
         }
 
