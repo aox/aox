@@ -327,7 +327,8 @@ Message * SmtpData::message( const String & body )
          server()->sieve()->sender() &&
          server()->sieve()->sender()->type() == Address::Normal ) {
         List<Address> * from = m->header()->addresses( HeaderField::From );
-        if ( from->count() == 1 && from->first()->type() == Address::Bounce ) {
+        if ( from && from->count() == 1 &&
+             from->first()->type() == Address::Bounce ) {
             Header * h = m->header();
             AddressField * old = h->addressField( HeaderField::From );
             Address * f = server()->sieve()->sender();
