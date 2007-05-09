@@ -127,8 +127,11 @@ bool Expunge::expunge( bool chat )
     }
     if ( !d->findUids->done() )
         return false;
-    if ( d->uids.isEmpty() )
+
+    if ( d->uids.isEmpty() ) {
+        d->t->rollback();
         return true;
+    }
 
     if ( !d->expunge ) {
         r = d->findModseq->nextRow();
