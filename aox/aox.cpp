@@ -2285,42 +2285,29 @@ void deleteAlias()
 
 void vacuum()
 {
-    if ( !d ) {
-        parseOptions();
-        end();
-
-        Database::setup( 1, Configuration::DbOwner );
-        // it doesn't really matter, but the 1 above ensures that the
-        // two queries below are sent sequentially
-        d = new Dispatcher( Dispatcher::Vacuum );
-        String to = fn( Configuration::scalar( Configuration::UndeleteTime ) );
-        // this needs to become lots more advanced in the coming
-        // versions... sanity-checking on the number of messages is
-        // one thing, retention policies is another.
-        d->query
-            = new Query( "delete from messages "
-                         "where (mailbox,uid) in "
-                         "(select mailbox,uid from deleted_messages "
-                         "where deleted_at<current_timestamp-'" +
-                         to + " days'::interval)", d );
-        d->query->execute();
-    }
-
-    if ( !d->t && !d->query->done() )
+    if ( d )
         return;
+            
+    parseOptions();
+    end();
 
-    if ( !d->t ) {
-        d->t = new Transaction( d );
-        d->query =
-            new Query( "lock mailboxes in exclusive mode", d );
-        d->t->enqueue( d->query );
-        d->query =
-            new Query( "delete from bodyparts where id in (select id "
-                       "from bodyparts b left join part_numbers p on "
-                       "(b.id=p.bodypart) where bodypart is null)", d );
-        d->t->enqueue( d->query );
-        d->t->commit();
-    }
+    Database::setup( 1, Configuration::DbOwner );
+    d = new Dispatcher( Dispatcher::Vacuum );
+    String to = fn( Configuration::scalar( Configuration::UndeleteTime ) );
+    d->t = new Transaction( d );
+    d->query
+        = new Query( "delete from messages "
+                     "where (mailbox,uid) in "
+                     "(select mailbox,uid from deleted_messages "
+                     "where deleted_at<current_timestamp-'" +
+                     to + " days'::interval)", d );
+    d->t->enqueue( d->query );
+    d->query =
+        new Query( "delete from bodyparts where id in (select id "
+                   "from bodyparts b left join part_numbers p on "
+                   "(b.id=p.bodypart) where bodypart is null)", d );
+    d->t->enqueue( d->query );
+    d->t->commit();
 }
 
 
