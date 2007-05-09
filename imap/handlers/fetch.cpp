@@ -300,7 +300,6 @@ void Fetch::parseAttribute( bool alsoMacro )
         parseBody( true );
     }
     else if ( keyword == "binary.size" && nextChar() == '[' ) {
-        d->peek = false;
         step();
         parseBody( true );
         Section * s = d->sections.last();
@@ -1368,18 +1367,27 @@ FetchData::SeenFlagSetter::SeenFlagSetter( ImapSession * s,
 
 void FetchData::SeenFlagSetter::execute()
 {
-    if ( !f ) {
+    if ( !t ) {
+        seen = Flag::find( "\\seen" );
+        if ( !seen )
+            return;
+
+        t = new Transaction( this );
+        ms = new Query( "select nextmodseq from mailboxes "
+                        "where id=$1 for update", this );
+        ms->bind( 1, session->mailbox()->id() );
+        t->enqueue( ms );
+
         f = new Query( "select uid from flags "
                        "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
                        this );
         f->bind( 1, session->mailbox()->id() );
-        seen = Flag::find( "\\seen" );
-        if ( !seen )
-            return;
         f->bind( 2, seen->id() );
         f->bind( 3, messages.smallest() );
         f->bind( 4, messages.largest() );
-        f->execute();
+        t->enqueue( f );
+
+        t->execute();
     }
 
     Row * r = f->nextRow();
@@ -1392,18 +1400,10 @@ void FetchData::SeenFlagSetter::execute()
         return;
 
     if ( messages.isEmpty() ) {
+        t->rollback();
         if ( o )
             o->execute();
         return;
-    }
-
-    if ( !t ) {
-        t = new Transaction( this );
-        ms = new Query( "select nextmodseq from mailboxes "
-                        "where id=$1 for update", this );
-        ms->bind( 1, session->mailbox()->id() );
-        t->enqueue( ms );
-        t->execute();
     }
 
     if ( !ms->done() )
