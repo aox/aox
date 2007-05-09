@@ -287,6 +287,8 @@ void Server::logSetup()
         LogClient::setup( d->name );
     setLog( new Log( Log::General ) );
     Scope::current()->setLog( log() );
+    log( name() + ", Archiveopteryx version " +
+         Configuration::compiledIn( Configuration::Version ) );
     Allocator::setReporting( true );
 }
 
