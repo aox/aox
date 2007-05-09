@@ -77,6 +77,7 @@ public:
     virtual void emitExists( uint );
 
     List<Message> * modifiedMessages() const;
+    List<Message> * newMessages() const;
     void recordChange( List<Message> *, ResponseType );
 
     virtual void emitModification( Message * );

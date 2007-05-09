@@ -567,6 +567,31 @@ SessionInitialiser::SessionInitialiser( Session * session,
     if ( d->oldModSeq >= d->newModSeq && d->oldUidnext >= d->newUidnext )
         return;
 
+    if ( d->watchers.isEmpty() &&
+         d->newModSeq - d->oldModSeq <= 1 &&
+         d->newUidnext > d->oldUidnext ) {
+        // one or more messages have been injected, nothing else
+        // changed, and noone is waiting for a callback. see if we can
+        // skip all the hard work.
+        List<Message> * l = d->session->newMessages();
+        uint uid = d->oldUidnext;
+        bool allKnown = true;
+        while ( allKnown && uid < d->newUidnext ) {
+            List<Message>::Iterator m( l );
+            while ( m && m->uid() != uid )
+                ++m;
+            if ( !m )
+                allKnown = false;
+            uid++;
+        }
+        if ( allKnown ) {
+            d->session->setUidnext( d->newUidnext );
+            d->session->setNextModSeq( d->newModSeq );
+            d->session->emitResponses();
+            return;
+        }
+    }
+
     log( "Updating session on " + d->session->mailbox()->name() +
          " for modseq [" + fn( d->oldModSeq ) + "," +
          fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
@@ -616,7 +641,7 @@ void SessionInitialiser::execute()
             }
 
             bool initialising = false;
-            if ( d->oldUidnext <= 1 || d->oldModSeq <= 1 )
+            if ( d->oldUidnext <= 1 )
                 initialising = true;
             String msgs = "select m.uid from messages m ";
             if ( !initialising )
@@ -698,7 +723,7 @@ void SessionInitialiser::execute()
     Row * r = 0;
 
     while ( (r=d->nms->nextRow()) != 0 ) {
-        int64 ms = r->getBigint( "last_value" );
+        int64 ms = r->getBigint( "nextmodseq" );
         m->setNextModSeq( ms + 1 );
         if ( m->view() ) {
             m->source()->setNextModSeq( ms + 1 );
@@ -939,6 +964,18 @@ bool Session::isSessionInitialiser( class SessionInitialiser * si )
 List<Message> * Session::modifiedMessages() const
 {
     return &d->modifiedMessages;
+}
+
+
+/*! Returns a list of the messages that have added to the session and
+    about which which the client may need to be told. The returned
+    list may be empty, but is never a null pointer.
+
+*/
+
+List<Message> * Session::newMessages() const
+{
+    return &d->newMessages;
 }
 
 
