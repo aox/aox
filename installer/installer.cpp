@@ -506,17 +506,11 @@ void database()
         uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
                        100 * v.section( ".", 2 ).number( &ok ) +
                        v.section( ".", 3 ).number( &ok );
-        if ( !ok || version < 70402 ) {
-            fprintf( stderr, "Archiveopteryx requires PostgreSQL 7.4.2 "
+        if ( !ok || version < 80100 ) {
+            fprintf( stderr, "Archiveopteryx requires PostgreSQL 8.1.0 "
                      "or higher (found only '%s').\n", v.cstr() );
             EventLoop::shutdown();
             return;
-        }
-        else if ( version < 80100 ) {
-            fprintf( stderr, "Note: Starting May 2007, Archiveopteryx "
-                     "will require PostgreSQL 8.1.0 or\nhigher. Please "
-                     "upgrade the running server (%s) at your "
-                     "convenience.\n", v.cstr() );
         }
 
         d->state = CheckDatabase;

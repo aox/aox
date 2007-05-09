@@ -427,8 +427,8 @@ void Database::checkSchemaRevision( EventHandler * owner )
             uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
                            100 * v.section( ".", 2 ).number( &ok ) +
                            v.section( ".", 3 ).number( &ok );
-            if ( !ok || version < 70402 ) {
-                ::log( "Archiveopteryx requires PostgreSQL 7.4.2 "
+            if ( !ok || version < 80100 ) {
+                ::log( "Archiveopteryx requires PostgreSQL 8.1 "
                        "or higher (found only '" + v + "'", Log::Disaster );
             }
             if ( revision != Database::currentRevision() ) {
