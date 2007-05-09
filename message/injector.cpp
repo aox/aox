@@ -34,6 +34,7 @@ class BidFetcher;
 
 static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
+static PreparedStatement *incrUidnextWithRecent;
 static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
 static PreparedStatement *insertFlag;
@@ -41,18 +42,19 @@ static PreparedStatement *insertAnnotation;
 static PreparedStatement *insertAddressField;
 
 
-// This struct contains the "uidnext" value for a Mailbox.
+// This somewhat misnamed struct contains the "uidnext" value for a Mailbox.
 
 struct Uid
     : public Garbage
 {
     Uid( Mailbox * m )
-        : mailbox( m ), uid( 0 ), ms( 0 )
+        : mailbox( m ), uid( 0 ), ms( 0 ), onlyRecent( false )
     {}
 
     Mailbox * mailbox;
     uint uid;
     int64 ms;
+    bool onlyRecent;
 };
 
 
@@ -181,6 +183,16 @@ public:
         Row * r = q->nextRow();
         (*li)->uid = r->getInt( "uidnext" );
         (*li)->ms = r->getBigint( "nextmodseq" );
+        Query * u = 0;
+        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
+            u = new Query( *incrUidnextWithRecent, 0 );
+            (*li)->onlyRecent = true;
+        }
+        else {
+            u = new Query( *incrUidnext, 0 );
+        }
+        u->bind( 1, (*li)->mailbox->id() );
+        q->transaction()->enqueue( u );
         ++(*li);
     }
 
@@ -251,8 +263,8 @@ public:
 
             switch ( state ) {
             case 0:
-                s.append( "savepoint " );
-                s.append( 'a'+savepoint );
+                s.append( "savepoint a" );
+                s.append( fn( savepoint ) );
                 q = new Query( s, this );
                 transaction->enqueue( q );
                 transaction->enqueue( b->insert );
@@ -266,10 +278,13 @@ public:
                 if ( b->insert->failed() ) {
                     // XXX: Here we assume that the only reason for this
                     // insert to fail is that the row already exists.
-                    String s( "rollback to " );
-                    s.append( 'a'+savepoint );
+                    String s( "rollback to a" );
+                    s.append( fn( savepoint ) );
                     q = new Query( s, this );
                     transaction->enqueue( q );
+                }
+                else {
+                    // XXX shouldn't we release the savepoint here?
                 }
                 transaction->enqueue( b->select );
                 state = 2;
@@ -323,7 +338,7 @@ void Injector::setup()
 {
     lockUidnext =
         new PreparedStatement(
-            "select uidnext,nextmodseq from mailboxes "
+            "select uidnext,nextmodseq,first_recent from mailboxes "
             "where id=$1 for update"
         );
     Allocator::addEternal( lockUidnext, "lockUidnext" );
@@ -335,6 +350,16 @@ void Injector::setup()
             "where id=$1"
         );
     Allocator::addEternal( incrUidnext, "incrUidnext" );
+
+    incrUidnextWithRecent =
+        new PreparedStatement(
+            "update mailboxes "
+            "set uidnext=uidnext+1,"
+                 "nextmodseq=nextmodseq+1,"
+                 "first_recent=uidnext+1 "
+            "where id=$1"
+        );
+    Allocator::addEternal( incrUidnextWithRecent, "incrUidnext w/recent" );
 
     idBodypart =
         new PreparedStatement(
@@ -739,10 +764,6 @@ void Injector::selectUids()
         d->transaction->enqueue( q );
         queries->append( q );
 
-        q = new Query( *incrUidnext, d->uidFetcher );
-        q->bind( 1, m->id() );
-        d->transaction->enqueue( q );
-
         ++mi;
     }
 }
@@ -774,7 +795,7 @@ void Injector::resolveAddressLinks()
             k = i->address->localpart() + "@" + i->address->domain();
             naked.insert( k, i->address );
         }
-        
+
         ++i;
     }
 
@@ -1283,7 +1304,10 @@ void Injector::logMessageDetails()
 void Injector::announce()
 {
     List<Message> dummy;
-    dummy.append( d->message );
+    if ( d->mailboxes->count() == 1 ) {
+        dummy.append( d->message );
+        d->message->setUid( d->mailboxes->first()->uid );
+    }
 
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
@@ -1291,10 +1315,17 @@ void Injector::announce()
         Mailbox * m = mi->mailbox;
 
         List<Session>::Iterator si( m->sessions() );
+        bool firstSession = true;
         while ( si ) {
             si->recordChange( &dummy, Session::New );
+            if ( mi->onlyRecent && firstSession )
+                si->addRecent( uid );
+            firstSession = false;
             ++si;
         }
+
+        if ( m->uidnext() <= uid && m->nextModSeq() <= d->message->modSeq() )
+            m->setUidnextAndNextModSeq( 1+uid, 1+d->message->modSeq() );
 
         if ( m->uidnext() <= uid ) {
             m->setUidnext( 1 + uid );
@@ -1485,7 +1516,7 @@ uint Injector::internalDate( Message * m ) const
         return 0;
     if ( m->internalDate() )
         return m->internalDate();
-    
+
     // first: try the most recent received field. this should be
     // very close to the correct internaldate.
     Date id;
