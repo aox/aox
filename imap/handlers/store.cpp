@@ -401,6 +401,7 @@ void Store::execute()
             replaceAnnotations();
             break;
         }
+        d->transaction->execute();
     }
 
     if ( !d->obtainModSeq->done() )
@@ -430,9 +431,9 @@ void Store::execute()
                        "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );
         if ( m->view() )
-            d->obtainModSeq->bind( 2, m->source()->id() );
+            q->bind( 2, m->source()->id() );
         else
-            d->obtainModSeq->bind( 2, m->id() );
+            q->bind( 2, m->id() );
         d->transaction->enqueue( q );
         d->transaction->commit();
     }
