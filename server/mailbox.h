@@ -42,8 +42,9 @@ public:
     void setOwner( uint );
     void setUidnext( uint );
     void setUidvalidity( uint );
-    void setNextModSeq( uint );
+    void setNextModSeq( int64 );
     void setDeleted( bool );
+    void setUidnextAndNextModSeq( uint, int64 );
 
     Mailbox * parent() const;
     List< Mailbox > *children() const;

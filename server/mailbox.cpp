@@ -556,6 +556,22 @@ void Mailbox::setUidnext( uint n )
 }
 
 
+/*! Atomically sets both uidnext() to \a n and nextModSeq() to \a m,
+    so there's no chance notifySessions() might be called between the
+    two changes.
+*/
+
+void Mailbox::setUidnextAndNextModSeq( uint n, int64 m )
+{
+    if ( n == d->uidnext && m == d->nextModSeq )
+        return;
+    d->uidnext = n;
+    d->nextModSeq = m;
+    notifySessions();
+    
+}
+
+
 /*! Changes this Mailbox's deletedness to \a del.
 
     Only OCClient is *meant* to call this function -- see setUidnext().
@@ -766,7 +782,7 @@ MessageSet Mailbox::sourceUids( const MessageSet &u ) const
     MailboxReader updates the nextModSeq() value in case of views.
 */
 
-void Mailbox::setNextModSeq( uint n )
+void Mailbox::setNextModSeq( int64 n )
 {
     if ( n == d->nextModSeq )
         return;
