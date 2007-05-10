@@ -4,40 +4,48 @@
 
 #include "allocator.h"
 #include "global.h"
+#include "list.h"
 #include "log.h"
 
 
-// even if scopes are on the stack, ScopeData objects are on the heap,
-// as is *currentScopeData, so one root is enough to discover all the
-// Scope and Log objects.
-static ScopeData ** currentScopeData = 0;
-
+static List<ScopeData> * scopes = 0;
 
 class ScopeData
     : public Garbage
 {
 public:
-    ScopeData(): parent( 0 ), log( 0 ), scope( 0 ) {
-        if ( !::currentScopeData) {
-            ::currentScopeData = new (ScopeData*);
-            *::currentScopeData = 0;
-            Allocator::addEternal( ::currentScopeData,
+    ScopeData(): log( 0 ), scope( 0 ) {
+        if ( !::scopes) {
+            ::scopes = new List<ScopeData>;
+            Allocator::addEternal( ::scopes,
                                    "(indirect) pointer to current scope" );
         }
 
-        parent = *::currentScopeData;
-        *::currentScopeData = this;
+        ScopeData * parent = 0;
+        if ( ::scopes )
+            parent = ::scopes->firstElement();
+
+        ::scopes->prepend( this );
 
         if ( parent )
             log = parent->log;
     }
     ~ScopeData() {
-        while ( ::currentScopeData && *::currentScopeData &&
-                !(*::currentScopeData)->scope )
-            *::currentScopeData = (*::currentScopeData)->parent;
+        scope = 0;
+        bool bad = false;
+        if ( !::scopes ) {
+            bad = true;
+        }
+        else {
+            if ( scopes->firstElement() != this )
+                bad = true;
+            List<ScopeData>::Iterator i = ::scopes->find( this );
+            ::scopes->take( i );
+        }
+        if ( bad )
+            die( Memory );
     }
 
-    ScopeData * parent;
     Log * log;
     Scope * scope;
 };
@@ -96,10 +104,7 @@ Scope::Scope( Log *l )
 Scope::~Scope()
 {
     d->scope = 0;
-    if ( ::currentScopeData && *::currentScopeData == d )
-        delete d;
-    else
-        die( Memory );
+    delete d;
     d = 0;
 }
 
@@ -110,8 +115,11 @@ Scope::~Scope()
 
 Scope * Scope::current()
 {
-    if ( ::currentScopeData && *::currentScopeData )
-        return (*::currentScopeData)->scope;
+    ScopeData * l = 0;
+    if ( ::scopes )
+        l = ::scopes->firstElement();
+    if ( l )
+        return l->scope;
     return 0;
 }
 
