@@ -220,8 +220,8 @@ void SmtpData::execute()
             d->state = 4;
         }
         else {
-            d->injector->execute();
             d->state = 3;
+            d->injector->execute();
         }
     }
 
@@ -230,8 +230,8 @@ void SmtpData::execute()
         if ( !d->injector->done() )
             return;
         if ( d->injector->error().isEmpty() ) {
-            d->injector->announce();
             d->state = 4;
+            d->injector->announce();
         }
         else {
             respond( 451, "Injection error: " + d->injector->error() );
