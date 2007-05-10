@@ -82,7 +82,8 @@ void Lsub::execute()
             p = p->parent();
         if ( p ) {
             p = m;
-            if ( match( d->pat, 0, p->name().lower(), d->prefix ) == 2 ) {
+            if ( !p->deleted() &&
+                 match( d->pat, 0, p->name().lower(), d->prefix ) == 2 ) {
                 String flags = "";
                 if ( p != m || p->synthetic() || p->deleted() )
                     flags = "\\noselect";
