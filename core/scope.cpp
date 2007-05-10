@@ -7,7 +7,40 @@
 #include "log.h"
 
 
-Scope * currentScope = 0;
+// even if scopes are on the stack, ScopeData objects are on the heap,
+// as is *currentScopeData, so one root is enough to discover all the
+// Scope and Log objects.
+static ScopeData ** currentScopeData = 0;
+
+
+class ScopeData
+    : public Garbage
+{
+public:
+    ScopeData(): parent( 0 ), log( 0 ), scope( 0 ) {
+        if ( !::currentScopeData) {
+            ::currentScopeData = new (ScopeData*);
+            *::currentScopeData = 0;
+            Allocator::addEternal( ::currentScopeData,
+                                   "(indirect) pointer to current scope" );
+        }
+
+        parent = *::currentScopeData;
+        *::currentScopeData = this;
+
+        if ( parent )
+            log = parent->log;
+    }
+    ~ScopeData() {
+        while ( ::currentScopeData && *::currentScopeData &&
+                !(*::currentScopeData)->scope )
+            *::currentScopeData = (*::currentScopeData)->parent;
+    }
+
+    ScopeData * parent;
+    Log * log;
+    Scope * scope;
+};
 
 
 /*! \class Scope scope.h
@@ -20,6 +53,10 @@ Scope * currentScope = 0;
 
     Note that the root scope must be declared with an explicit log, or
     the first logging statement will fail.
+
+    In order to keep track of scopes, there are some rules: If Scope a
+    is created before Scope b, b must be deleted before a. Really
+    deleted, Allocator::free() will not free them.
 */
 
 
@@ -31,11 +68,9 @@ Scope * currentScope = 0;
 */
 
 Scope::Scope()
-    : parent( currentScope ), currentLog( 0 )
+    : d( new ScopeData )
 {
-    currentScope = this;
-    if ( parent )
-        setLog( parent->log() );
+    d->scope = this;
 }
 
 
@@ -44,9 +79,9 @@ Scope::Scope()
 */
 
 Scope::Scope( Log *l )
-    : parent( currentScope ), currentLog( 0 )
+    : d( new ScopeData )
 {
-    currentScope = this;
+    d->scope = this;
     setLog( l );
 }
 
@@ -60,11 +95,12 @@ Scope::Scope( Log *l )
 
 Scope::~Scope()
 {
-    setLog( 0 );
-    if ( currentScope == this )
-        currentScope = parent;
+    d->scope = 0;
+    if ( ::currentScopeData && *::currentScopeData == d )
+        delete d;
     else
         die( Memory );
+    d = 0;
 }
 
 
@@ -72,9 +108,11 @@ Scope::~Scope()
     scope has been created.
 */
 
-Scope *Scope::current()
+Scope * Scope::current()
 {
-    return currentScope;
+    if ( ::currentScopeData && *::currentScopeData )
+        return (*::currentScopeData)->scope;
+    return 0;
 }
 
 
@@ -82,9 +120,9 @@ Scope *Scope::current()
     the current Scope has no Log.
 */
 
-Log *Scope::log() const
+Log * Scope::log() const
 {
-    return currentLog;
+    return d->log;
 }
 
 
@@ -93,14 +131,7 @@ Log *Scope::log() const
     Probably.
 */
 
-void Scope::setLog( Log *l )
+void Scope::setLog( Log * l )
 {
-    if ( currentLog )
-        Allocator::removeEternal( currentLog );
-    currentLog = l;
-    if ( currentLog )
-        Allocator::addEternal( currentLog,
-                               "a log object referred to by Scope" );
+    d->log = l;
 }
-
-

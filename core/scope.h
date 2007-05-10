@@ -22,8 +22,7 @@ public:
     void setLog( Log * );
 
 private:
-    Scope *parent;
-    Log   *currentLog;
+    class ScopeData * d;
 };
 
 
