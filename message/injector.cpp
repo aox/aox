@@ -48,13 +48,13 @@ struct Uid
     : public Garbage
 {
     Uid( Mailbox * m )
-        : mailbox( m ), uid( 0 ), ms( 0 ), onlyRecent( false )
+        : mailbox( m ), uid( 0 ), ms( 0 ), recentIn( 0 )
     {}
 
     Mailbox * mailbox;
     uint uid;
     int64 ms;
-    bool onlyRecent;
+    Session * recentIn;
 };
 
 
@@ -185,12 +185,14 @@ public:
         (*li)->ms = r->getBigint( "nextmodseq" );
         Query * u = 0;
         if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
-            u = new Query( *incrUidnextWithRecent, 0 );
-            (*li)->onlyRecent = true;
+            List<Session>::Iterator i( (*li)->mailbox->sessions() );
+            if ( i ) {
+                (*li)->recentIn = i;
+                u = new Query( *incrUidnextWithRecent, 0 );
+            }
         }
-        else {
+        if ( !u )
             u = new Query( *incrUidnext, 0 );
-        }
         u->bind( 1, (*li)->mailbox->id() );
         q->transaction()->enqueue( u );
         ++(*li);
@@ -356,7 +358,7 @@ void Injector::setup()
             "update mailboxes "
             "set uidnext=uidnext+1,"
                  "nextmodseq=nextmodseq+1,"
-                 "first_recent=uidnext+1 "
+                 "first_recent=first_recent+1 "
             "where id=$1"
         );
     Allocator::addEternal( incrUidnextWithRecent, "incrUidnext w/recent" );
@@ -1315,12 +1317,10 @@ void Injector::announce()
         Mailbox * m = mi->mailbox;
 
         List<Session>::Iterator si( m->sessions() );
-        bool firstSession = true;
         while ( si ) {
             si->recordChange( &dummy, Session::New );
-            if ( mi->onlyRecent && firstSession )
+            if ( si == mi->recentIn )
                 si->addRecent( uid );
-            firstSession = false;
             ++si;
         }
 
