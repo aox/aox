@@ -695,7 +695,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // there may be exceptions. cases where some format really
             // needs another content-transfer-encoding:
             if ( ct->type() == "application" &&
-                 ct->subtype() == "pgp-encrypted" &&
+                 ct->subtype().startsWith( "pgp-" ) &&
                  !body.needsQP() ) {
                 // seems some PGP things need "Version: 1" unencoded
                 e = String::Binary;
