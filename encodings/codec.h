@@ -24,7 +24,7 @@ public:
 
     virtual void reset();
 
-    enum State { Valid, BadlyFormed, Invalid };
+    enum State { Valid, BadlyFormed, Invalid, Aborted };
     void setState( State st ) { s = st; }
     State state() const { return s; }
     String error() const;
@@ -43,6 +43,7 @@ private:
     State s;
     String n;
     String e;
+    bool a;
 };
 
 

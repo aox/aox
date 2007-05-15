@@ -645,6 +645,16 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
         }
 
+        if ( specified && c->state() == Codec::Invalid ) {
+            // the codec was specified, and the specified codec
+            // resulted in an error, but did not abort conversion. we
+            // respond by forgetting the error, using the conversion
+            // result (probably including one or more U+FFFD) and
+            // labelling the message as UTF-8.
+            c = new Utf8Codec;
+            body = c->fromUnicode( bp->d->text );
+        }
+
         // if we ended up using a 16-bit codec and were using q-p, we
         // need to reevaluate without any trailing CRLF
         if ( e == String::QP && c->name().startsWith( "UTF-16" ) )
