@@ -859,6 +859,35 @@ void Header::repair( Multipart * p )
             }
         }
     }
+    
+    // If there's more than one Sender field, preserve the first that
+    // a) is syntactically valid and b) is different from From, and
+    // remove the others.
+
+    if ( occurrences[(int)HeaderField::Sender] > 1 ) {
+        AddressField * good = 0;
+        AddressField * from = addressField( HeaderField::From );
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it && !good ) {
+            if ( it->type() == HeaderField::Sender ) {
+                if ( it->valid() && !good ) {
+                    AddressField * candidate = (AddressField*)(HeaderField*)it;
+                    if ( !sameAddresses( candidate, from ) )
+                        good = candidate;
+                }
+            }
+            ++it;
+        }
+        if ( good ) {
+            it = d->fields;
+            while ( it ) {
+                if ( it->type() == HeaderField::Sender && it != good )
+                    d->fields.take( it );
+                else
+                    ++it;
+            }
+        }
+    }
 
     d->verified = false;
 }
