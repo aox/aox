@@ -95,7 +95,8 @@ void Parser822::stepPast( const char * expect, const char * errorMessage )
 void Parser822::whitespace()
 {
     while ( i < s.length() &&
-            ( s[i] == ' ' || s[i] == 9 || s[i] == 10 || s[i] == 13 ) )
+            ( s[i] == ' ' || s[i] == 9 || s[i] == 10 || s[i] == 13 ||
+              s[i] == 160 ) )
         i++;
 }
 
