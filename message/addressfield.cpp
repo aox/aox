@@ -64,6 +64,18 @@ void AddressField::parse( const String &s )
     case HeaderField::ResentCc:
     case HeaderField::ResentBcc:
         parseAddressList( s );
+        if ( type() == HeaderField::Cc && !valid() && a->count() == 1 ) {
+            // /bin/mail tempts people to type escape, ctrl-d or
+            // similar into the cc field, so we try to recover from
+            // that.
+            uint i = 0;
+            while ( i < s.length() && s[i] >= ' ' )
+                i++;
+            if ( i < s.length() ) {
+                setError( "" );
+                a->clear();
+            }
+        }
         break;
 
     case HeaderField::MessageId:
