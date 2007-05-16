@@ -122,7 +122,7 @@ void Address::init( const UString &n, const String &l, const String &o )
     d->name = n;
     d->localpart = l;
     d->domain = o;
-    if ( !d->localpart.isEmpty() && !d->domain.isEmpty() )
+    if ( !d->domain.isEmpty() )
         d->type = Normal;
     else if ( !d->localpart.isEmpty() )
         d->type = Local;
@@ -652,10 +652,7 @@ void AddressParser::address( int & i )
             if ( i < name.length() )
                 name.truncate();
         }
-        if ( lp.isEmpty() )
-            error( "Empty localpart ", i );
-        else
-            add( name, lp, dom );
+        add( name, lp, dom );
     }
     else if ( i > 1 && s[i] == '=' && s[i-1] == '?' && s[i-2] == '>' ) {
         // we're looking at "=?charset?q?safdsafsdfs<a@b>?=". how ugly.
@@ -779,7 +776,24 @@ void AddressParser::address( int & i )
         String lp;
         if ( s[i] == '@' ) {
             i--;
-            lp = localpart( i );
+            comment( i );
+            if ( i >= 1 && s[i] == ';' && s[i-1] == ':' ) {
+                // To: unlisted-recipients:; (no To-header on input)@do.ma.in
+                int j = i;
+                i -= 2;
+                UString n = phrase( i );
+                if ( n.isEmpty() ) {
+                    i = j;
+                }
+                else {
+                    lp = "";
+                    dom = "";
+                    name = n;
+                }
+            }
+            else {
+                lp = localpart( i );
+            }
         }
         else {
             lp = dom;
@@ -787,25 +801,9 @@ void AddressParser::address( int & i )
         }
         route( i );
         comment( i );
-        if ( lp.isEmpty() && i >= 1 && s[i] == ';' && s[i-1] == ':' ) {
-            // To: unlisted-recipients:; (no To-header on input)@zmailer.site
-            int j = i;
-            i -= 2;
-            UString n = phrase( i );
-            if ( n.isEmpty() ) {
-                i = j;
-            }
-            else {
-                lp = "";
-                dom = "";
-                name = n;
-            }
-        }
         if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
             error( "localpart contains 8-bit character", i );
-        else if ( lp.isEmpty() && !dom.isEmpty() )
-            error( "Empty localpart", i );
-        else
+        else if ( !lp.isEmpty() || !dom.isEmpty() )
             add( name, lp, dom );
     }
     comment( i );
@@ -1148,14 +1146,16 @@ UString AddressParser::phrase( int & i )
 
 String AddressParser::localpart( int & i )
 {
-    if ( i < 0 )
-        return "";
     String r;
     String s;
     bool more = true;
+    if ( i < 0 )
+        more = false;
+    bool atomOnly = true;
     while ( more ) {
         String w;
         if ( d->s[i] == '"' ) {
+            atomOnly = false;
             UString u = phrase( i );
             if ( u.isAscii() )
                 w = u.ascii();
@@ -1180,6 +1180,8 @@ String AddressParser::localpart( int & i )
             more = false;
         }
     }
+    if ( atomOnly && r.isEmpty() )
+        error( "Empty localpart", i );
     return r;
 }
 
@@ -1273,6 +1275,8 @@ Address::Type Address::type() const
 
 bool Address::localpartIsSensible() const
 {
+    if ( d->localpart.isEmpty() )
+        return false;
     uint i = 0;
     while ( i < d->localpart.length() ) {
         char c = d->localpart[i];
