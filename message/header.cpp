@@ -860,6 +860,29 @@ void Header::repair( Multipart * p )
         }
     }
 
+    // If Cc contains control characters and at most one address, we
+    // drop it. /bin/mail invited this kind of breakage.
+
+    if ( occurrences[(int)HeaderField::Cc] ) {
+        uint number = 0;
+        List<Address>::Iterator i( addresses( HeaderField::Cc ) );
+        if ( i ) {
+            number++;
+            ++i;
+            if ( i )
+                number++;
+        }
+        HeaderField * cc = field( HeaderField::Cc );
+        if ( cc && number < 2 ) {
+            String v = cc->data();
+            uint i = 0;
+            while ( i < v.length() && v[i] >= ' ' )
+                i++;
+            if ( i < v.length() )
+                removeField( HeaderField::Cc );
+        }
+    }
+
     d->verified = false;
 }
 
