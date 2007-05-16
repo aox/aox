@@ -803,7 +803,7 @@ void AddressParser::address( int & i )
         comment( i );
         if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
             error( "localpart contains 8-bit character", i );
-        else if ( !lp.isEmpty() || !dom.isEmpty() )
+        else if ( !lp.isEmpty() || !dom.isEmpty() || !name.isEmpty() )
             add( name, lp, dom );
     }
     comment( i );
