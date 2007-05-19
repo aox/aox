@@ -78,32 +78,22 @@ void WebPage::execute()
     if ( d->responded )
         return;
 
-    // find the top-level components
-    List<PageComponent> l;
-    List<PageComponent>::Iterator it( d->components );
-    while ( it ) {
-        l.append( it );
-        ++it;
-    }
-    // find the subcomponents of each component known so far
-    it = l;
-    while ( it ) {
-        if ( it->subComponents() ) {
-            List<PageComponent>::Iterator sub( it->subComponents() );
-            while ( sub ) {
-                l.append( sub );
-                ++sub;
-            }
-        }
-        ++it;
-    }
-    // check whether all known components are done
-    it = l;
+    // XXX: Sub-sub-components don't work right now, because this loop
+    // never gets around to execute()-ing them. Must fix when we have
+    // some sub-sub-components.
+
     bool done = true;
+    List<PageComponent>::Iterator it( d->components );
     while ( it ) {
         PageComponent * p = it;
         if ( !p->done() ) {
             p->execute();
+            List<PageComponent>::Iterator sc( it->subComponents() );
+            while ( sc ) {
+                if ( !sc->done() )
+                    sc->execute();
+                ++sc;
+            }
             done = false;
         }
         ++it;
