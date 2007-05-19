@@ -8,6 +8,7 @@
 #include "addressfield.h"
 #include "multipart.h"
 #include "address.h"
+#include "unknown.h"
 #include "ustring.h"
 #include "parser.h"
 #include "codec.h"
@@ -569,6 +570,7 @@ void Header::simplify()
 }
 
 
+
 /*! Repairs a few harmless and common problems, such as inserting two
     Date fields with the same value. Assumes that \a p is its
     companion body, and may look at it to decide what/how to repair.
@@ -929,6 +931,36 @@ void Header::appendField( String &r, HeaderField *hf ) const
 }
 
 
+// heuristically returns a biggish number if a looks like a message-id
+// and a smallish number if it's either nothing or an email address.
+
+static int msgidness( const Address * a )
+{
+    if ( !a )
+        return 0;
+    String lp = a->localpart();
+    uint score = lp.length();
+    if ( score < 10 )
+        return 0;
+    uint i = 0;
+    while ( i < lp.length() ) {
+        char c = lp[i];
+        if ( c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' ||
+             c == 'A' || c == 'E' || c == 'I' || c == 'O' || c == 'U' )
+            score += 1;
+        else if ( ( c >= 'a' && c <= 'z' ) ||
+                  ( c >= 'A' && c <= 'Z' ) )
+            score += 2;
+        else if ( c >= '0' && c <= '9' )
+            score += 3;
+        else
+            score += 4;
+        i++;
+    }
+    return score/lp.length();
+}
+   
+
 /*! Scans for fields containing unlabelled 8-bit content and encodes
     them using \a c.
 
@@ -1013,6 +1045,33 @@ void Header::fix8BitFields( class Codec * c )
                     }
                 }
             }
+        }
+        else if ( f->type() == HeaderField::InReplyTo ) {
+            StringList::Iterator i( StringList::split( '<', f->data() ) );
+            Address * best = 0;
+            while ( i ) {
+                String c;
+                c.append( "<" );
+                c.append( *i );
+                int e = c.find( '>' );
+                if ( e > 0 ) {
+                    c.truncate( e+1 );
+                    AddressParser * ap = AddressParser::references( c );
+                    if ( ap->error().isEmpty() &&
+                         ap->addresses()->count() == 1 ) {
+                        Address * candidate = ap->addresses()->first();
+                        if ( msgidness( candidate ) > msgidness( best ) &&
+                             candidate->localpartIsSensible() )
+                            best = candidate;
+                    }
+                }
+                ++i;
+            }
+            if ( best )
+                f->setData( "<" + best->localpart() +
+                            "@" + best->domain() + ">" );
+            else
+                d->fields.remove( f );
         }
     }
 }
