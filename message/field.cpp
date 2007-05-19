@@ -563,11 +563,14 @@ const char *HeaderField::fieldName( HeaderField::Type t )
 
 
 /*! Returns the Type corresponding to field name \a n, or 0 if \a n
-    isn't known. */
+    isn't known.
+*/
 
 uint HeaderField::fieldType( const String & n )
 {
     String fn = n.headerCased();
+    if ( fn.endsWith( ":" ) )
+        fn.truncate( fn.length()-1 );
     uint i = 0;
     while ( fieldNames[i].name && fn != fieldNames[i].name )
         i++;
