@@ -101,8 +101,9 @@ void WebPage::execute()
     it = l;
     bool done = true;
     while ( it ) {
-        if ( !it->done() ) {
-            it->execute();
+        PageComponent * p = it;
+        if ( !p->done() ) {
+            p->execute();
             done = false;
         }
         ++it;
