@@ -572,8 +572,9 @@ void Header::simplify()
 
 
 /*! Repairs a few harmless and common problems, such as inserting two
-    Date fields with the same value. Assumes that \a p is its
-    companion body, and may look at it to decide what/how to repair.
+    Date fields with the same value. Assumes that \a p is its companion
+    body (whose text is in \a body), and may look at it to decide
+    what/how to repair.
 */
 
 void Header::repair( Multipart * p, const String & body )
