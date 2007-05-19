@@ -76,6 +76,12 @@ void AddressField::parse( const String &s )
                 a->clear();
             }
         }
+        if ( s.contains( "<>" ) && !s.contains( "," ) && !s.contains( "@" ) ) {
+            // some spammers attempt to send 'To: asdfsaf <>'. we
+            // forget it.
+            setError( "" );
+            a->clear();
+        }
         break;
 
     case HeaderField::MessageId:
