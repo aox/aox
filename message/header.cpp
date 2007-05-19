@@ -1047,31 +1047,37 @@ void Header::fix8BitFields( class Codec * c )
             }
         }
         else if ( f->type() == HeaderField::InReplyTo ) {
-            StringList::Iterator i( StringList::split( '<', f->data() ) );
-            Address * best = 0;
-            while ( i ) {
-                String c;
-                c.append( "<" );
-                c.append( *i );
-                int e = c.find( '>' );
-                if ( e > 0 ) {
-                    c.truncate( e+1 );
-                    AddressParser * ap = AddressParser::references( c );
-                    if ( ap->error().isEmpty() &&
-                         ap->addresses()->count() == 1 ) {
-                        Address * candidate = ap->addresses()->first();
-                        if ( msgidness( candidate ) > msgidness( best ) &&
-                             candidate->localpartIsSensible() )
-                            best = candidate;
+            String v = f->data();
+            uint i = 0;
+            while ( v[i] < 128 && v[i] > 0 )
+                i++;
+            if ( i < v.length() ) {
+                StringList::Iterator i( StringList::split( '<', v ) );
+                Address * best = 0;
+                while ( i ) {
+                    String c;
+                    c.append( "<" );
+                    c.append( *i );
+                    int e = c.find( '>' );
+                    if ( e > 0 ) {
+                        c.truncate( e+1 );
+                        AddressParser * ap = AddressParser::references( c );
+                        if ( ap->error().isEmpty() &&
+                             ap->addresses()->count() == 1 ) {
+                            Address * candidate = ap->addresses()->first();
+                            if ( msgidness( candidate ) > msgidness( best ) &&
+                                 candidate->localpartIsSensible() )
+                                best = candidate;
+                        }
                     }
+                    ++i;
                 }
-                ++i;
+                if ( best )
+                    f->setData( "<" + best->localpart() +
+                                "@" + best->domain() + ">" );
+                else
+                    d->fields.remove( f );
             }
-            if ( best )
-                f->setData( "<" + best->localpart() +
-                            "@" + best->domain() + ">" );
-            else
-                d->fields.remove( f );
         }
     }
 }
