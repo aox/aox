@@ -88,6 +88,7 @@ void MailboxView::refresh( EventHandler * owner )
         return;
     }
 
+    emitResponses( New );
     List<Message> newMessages;
 
     while ( d->uidnext < uidnext() ) {
