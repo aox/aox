@@ -339,7 +339,7 @@ Message * SmtpData::message( const String & body )
             hf->setPosition( old->position() );
             h->removeField( HeaderField::From );
             h->add( hf );
-            h->repair( m );
+            h->repair( m, "" );
             m->recomputeError();
         }
     }

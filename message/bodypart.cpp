@@ -347,7 +347,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                     children->append( bp );
                     pn++;
 
-                    h->repair( bp );
+                    h->repair( bp, "" );
                 }
                 last = l;
                 start = j;

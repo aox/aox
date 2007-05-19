@@ -576,7 +576,7 @@ void Header::simplify()
     companion body, and may look at it to decide what/how to repair.
 */
 
-void Header::repair( Multipart * p )
+void Header::repair( Multipart * p, const String & body )
 {
     if ( valid() )
         return;
@@ -953,6 +953,58 @@ void Header::repair( Multipart * p )
                     else
                         seen = true;
                 }
+            }
+        }
+    }
+
+    // if it's a multipart and the c-t field could not be parsed, try
+    // to find the boundary by inspecting the body.
+
+    if ( occurences[(int)HeaderField::ContentType] && !body.isEmpty() ) {
+        ContentType * ct = contentType();
+        if ( !ct->valid() && 
+             ct->type() == "multipart" &&
+             ct->parameter( "boundary" ).isEmpty() ) {
+            int cand = 0;
+            while ( body[cand] == '\n' )
+                cand++;
+            bool confused = false;
+            String boundary;
+            while ( cand >= 0 && cand < (int)body.length() && !confused ) {
+                if ( body[cand] == '-' && body[cand+1] == '-' ) {
+                    int i = cand+2;
+                    while ( i < (int)body.length() &&
+                            ( body[i] != ' ' && body[i] != '\t' &&
+                              body[i] != '\r' && body[i] != '\n' ) )
+                        i++;
+                    if ( i > cand + 2 &&
+                         ( body[i] == '\r' || body[i] == '\n' ) ) {
+                        // found a candidate line.
+                        String s = body.mid( cand+2, i-cand-2 );
+                        if ( boundary.isEmpty() ) {
+                            boundary = s;
+                        }
+                        else if ( boundary == s ) {
+                            // another boundary, fine
+                        }
+                        else if ( s.length() == boundary.length()+2 &&
+                                  s.startsWith( boundary ) &&
+                                  s.endsWith( "--" ) ) {
+                            // it's the end boundary
+                        }
+                        else {
+                            // we've seen different boundary lines. oops.
+                            confused = true;
+                        }
+                    }
+                }
+                cand = body.find( "\n--", cand+1 );
+                if ( cand >= 0 )
+                    cand++;
+            }
+            if ( !boundary.isEmpty() && !confused ) {
+                ct->addParameter( "boundary", boundary );
+                ct->setError( "" ); // may override other errors. ok.
             }
         }
     }

@@ -49,7 +49,7 @@ public:
     String contentLocation() const;
 
     void simplify();
-    void repair( class Multipart * );
+    void repair( class Multipart *, const String & );
     void fix8BitFields( class Codec * );
 
     String asText() const;

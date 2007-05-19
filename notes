@@ -546,17 +546,11 @@ Miscellaneous cleanups:
 
 Resolving the remaining parse problems
 
-  Kalyani now has 652 messages with parse problems:
+  Kalyani now has 652 messages with parse problems. The ones still not
+  fixed:
 
   3 with conflicting c-t. All are text/html vs. text/plain, which we
   can resolve.
-
-  207 with duplicate subject fields. Most are fixable, perhaps all:
-  - if one field is unparsable and the other is not, take the parsable one
-  - if one field is very long, it's bad
-  - if one field is long and contains other header field names, it's bad
-  - otherwise, the first field comes from the exploited software and
-    the second from the exploiting.
 
   80 have bad content-type fields, so the boundary cannot be read. I
   don't want to generalise from the ones I looked at, other than to
@@ -567,8 +561,6 @@ Resolving the remaining parse problems
   for the encodings are also possible, but invoking the guesser seems
   like a better option.
 
-  23 have From: <>.
-
   104 have syntax errors in From. No analysis yet.
 
   6 have bad mime-versions. We could drop the check (...hmm...)
@@ -578,7 +570,7 @@ Resolving the remaining parse problems
   33 have unhandled 8-bit in the subject.
 
   40 have various forms of syntax error in To. About half seem easily
-  fixable. Most notably, we can drop "To: <>".
+  fixable.
 
   The last few were scattered.
 
