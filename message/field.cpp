@@ -474,8 +474,17 @@ void HeaderField::parseContentLocation( const String &s )
     bool ok = true;
     String r;
     while ( ok ) {
-        ok = false;
+        ok = true;
         char c = p.character();
+        bool q = false;
+        if ( c == '%' ) {
+            String hex;
+            hex.append( p.character() );
+            hex.append( p.character() );
+            c = hex.number( &ok, 16 );
+            q = true;
+        }
+
         // RFC 1738 unreserved
         if ( ( c >= 'a' && c <= 'z' ) || // alpha
              ( c >= 'A' && c <= 'Z' ) ||
@@ -486,35 +495,33 @@ void HeaderField::parseContentLocation( const String &s )
              ( c == '!' || c ==  '*' || // extra
                c ==  '\'' || c ==  '(' ||
                c ==  ')' || c ==  ',' ) ) {
-            ok = true;
             r.append( c );
         }
         // RFC 1738 reserved
         else if ( c == ';' || c == '/' || c == '?' ||
                   c == ':' || c == '@' || c == '&' ||
                   c == '=' ) {
-            ok = true;
             r.append( c );
         }
         // RFC 1738 escape
-        else if ( c == '%' ) {
-            String hex;
-            hex.append( p.character() );
-            hex.append( p.character() );
-            (void)hex.number( &ok, 16 );
-            r.append( '%' );
+        else if ( c == '%' || c >= 127 ) {
+            String hex = String::fromNumber( c, 16 );
+            r.append( "%" );
+            if ( hex.length() < 2 )
+                r.append( "0" );
             r.append( hex.lower() );
         }
         // seen in real life, sent by buggy programs
         else if ( c == ' ' ) {
-            ok = true;
             r.append( "%20" );
         }
         // and another kind of bug, except that in this case, is there
         // a right way? let's not flame programs which do this.
         else if ( c == '\r' || c == '\n' ) {
-            ok = true;
             p.whitespace();
+        }
+        else {
+            ok = false;
         }
         if ( ok )
             e = p.index();
