@@ -366,8 +366,8 @@ ContentLanguage *Header::contentLanguage() const
 
 static struct {
     HeaderField::Type t;
-    int min;
-    int max;
+    uint min;
+    uint max;
     Header::Mode m;
 } conditions[] = {
     { HeaderField::Sender, 0, 1, Header::Rfc2822 },
@@ -412,7 +412,7 @@ void Header::verify() const
         ++it;
     }
 
-    int occurrences[(int)HeaderField::Other];
+    uint occurrences[(int)HeaderField::Other];
     int i = 0;
     while ( i < HeaderField::Other )
         occurrences[i++] = 0;
@@ -584,23 +584,23 @@ void Header::repair( Multipart * p )
     // We remove duplicates of any field that may occur only once.
     // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T/M-I.)
 
-    int occurrences[ (int)HeaderField::Other ];
+    uint occurences[ (int)HeaderField::Other ];
     int i = 0;
     while ( i < HeaderField::Other )
-        occurrences[i++] = 0;
+        occurences[i++] = 0;
 
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
         HeaderField::Type t = it->type();
         if ( t < HeaderField::Other )
-            occurrences[(int)t]++;
+            occurences[(int)t]++;
         ++it;
     }
 
     i = 0;
     while ( conditions[i].t != HeaderField::Other ) {
         if ( conditions[i].m == d->mode &&
-             occurrences[conditions[i].t] > conditions[i].max )
+             occurences[conditions[i].t] > conditions[i].max )
         {
             uint n = 0;
             HeaderField * h = field( conditions[i].t, 0 );
@@ -625,7 +625,7 @@ void Header::repair( Multipart * p )
     // that one has options and the others not, remove the option-less
     // ones.
 
-    if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
+    if ( occurences[(int)HeaderField::ContentType] > 1 ) {
         ContentType * ct = contentType();
         ContentType * other = ct;
         ContentType * good = 0;
@@ -679,7 +679,7 @@ void Header::repair( Multipart * p )
 
     i = 0;
     while ( i < HeaderField::Other ) {
-        if ( occurrences[i] > 1 &&
+        if ( occurences[i] > 1 &&
              ( i == HeaderField::Date ||
                i == HeaderField::ReturnPath ||
                i == HeaderField::MessageId ||
@@ -713,7 +713,7 @@ void Header::repair( Multipart * p )
     // we look for a sensible date.
     
     if ( mode() == Rfc2822 &&
-         ( occurrences[(int)HeaderField::Date] == 0 ||
+         ( occurences[(int)HeaderField::Date] == 0 ||
            !field( HeaderField::Date )->valid() ||
            !date()->valid() ) ) {
         List< HeaderField >::Iterator it( d->fields );
@@ -760,7 +760,7 @@ void Header::repair( Multipart * p )
         }
 
         if ( !date.valid() &&
-             occurrences[(int)HeaderField::Date] == 0 ) {
+             occurences[(int)HeaderField::Date] == 0 ) {
             // As last resort, use the current date, time and
             // timezone.  Only do this if there isn't a date field. If
             // there is one, we'll reject the message (at least for
@@ -786,7 +786,7 @@ void Header::repair( Multipart * p )
     // the Header of the closest encompassing Multipart that has such
     // a field.
 
-    if ( occurrences[(int)HeaderField::From] == 0 && mode() == Rfc2822 ) {
+    if ( occurences[(int)HeaderField::From] == 0 && mode() == Rfc2822 ) {
         Multipart * parent = p;
         Header * h = this;
         List<Address> * a = 0;
@@ -825,7 +825,7 @@ void Header::repair( Multipart * p )
     // If there is an unacceptable Received field somewhere, remove it
     // and all the older Received fields.
 
-    if ( occurrences[(int)HeaderField::Received] > 0 ) {
+    if ( occurences[(int)HeaderField::Received] > 0 ) {
         bool bad = false;
         List<HeaderField>::Iterator it( d->fields );
         while ( it ) {
@@ -845,9 +845,9 @@ void Header::repair( Multipart * p )
     // parsed somehow and can be dropped without changing the meaning
     // of the rest of the message.
 
-    if ( occurrences[(int)HeaderField::ContentLocation] ||
-         occurrences[(int)HeaderField::ContentId] ||
-         occurrences[(int)HeaderField::MessageId] ) {
+    if ( occurences[(int)HeaderField::ContentLocation] ||
+         occurences[(int)HeaderField::ContentId] ||
+         occurences[(int)HeaderField::MessageId] ) {
         List< HeaderField >::Iterator it( d->fields );
         while ( it ) {
             if ( ( it->type() == HeaderField::ContentLocation ||
@@ -866,7 +866,7 @@ void Header::repair( Multipart * p )
     // a) is syntactically valid and b) is different from From, and
     // remove the others.
 
-    if ( occurrences[(int)HeaderField::Sender] > 1 ) {
+    if ( occurences[(int)HeaderField::Sender] > 1 ) {
         AddressField * good = 0;
         AddressField * from = addressField( HeaderField::From );
         List< HeaderField >::Iterator it( d->fields );
@@ -887,6 +887,72 @@ void Header::repair( Multipart * p )
                     d->fields.take( it );
                 else
                     ++it;
+            }
+        }
+    }
+
+    // Various spammers send two subject fields, and the resulting
+    // rejection drag down our parse scores. But we can handle these:
+    // - if one field is unparsable and the other is not, take the
+    //   parsable one
+    // - if one field is very long, it's bad
+    // - if one field is long and contains other header field names,
+    //   it's bad
+    // - otherwise, the first field comes from the exploited software
+    //   and the second from the exploiting.
+
+    if ( occurences[(int)HeaderField::Subject] > 1 ) {
+        List<HeaderField> bad;
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it ) {
+            HeaderField * s = it;
+            ++it;
+            if ( s->type() == HeaderField::Subject ) {
+                String v = s->data();
+                bool b = false;
+                if ( v.length() > 300 ) {
+                    b = true; 
+                }
+                else if ( v.length() > 80 ) {
+                    v = v.simplified();
+                    StringList::Iterator w( StringList::split( ' ', v ) );
+                    while ( w && !b ) {
+                        if ( w->endsWith( ":" ) &&
+                             HeaderField::fieldType( *w ) > 0 )
+                            b = true;
+                        ++w;
+                    }
+                }
+                else {
+                    uint i = 0;
+                    while ( i < v.length() && v[i] < 128 )
+                        i++;
+                    if ( i < v.length() )
+                        b = true;
+                }
+                if ( b )
+                    bad.append( s );
+            }
+        }
+        if ( !bad.isEmpty() &&
+             bad.count() < occurences[(int)HeaderField::Subject] ) {
+            it = bad;
+            while ( it ) {
+                HeaderField * s = it;
+                ++it;
+                d->fields.remove( s );
+            }
+            it = d->fields;
+            bool seen = false;
+            while ( it ) {
+                HeaderField * s = it;
+                ++it;
+                if ( s->type() == HeaderField::Subject ) {
+                    if ( seen )
+                        d->fields.remove( s );
+                    else
+                        seen = true;
+                }
             }
         }
     }
