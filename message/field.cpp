@@ -455,12 +455,21 @@ void HeaderField::parseContentLocation( const String &s )
             ( s[e] == ' ' || s[e] == '\t' || 
               s[e] == '\n' || s[e] == 'r' ) )
         e--;
+    uint b = 0;
+    while ( b < e && 
+            ( s[b] == ' ' || s[b] == '\t' || 
+              s[b] == '\n' || s[b] == 'r' ) )
+        b++;
+    if ( e > b && s[b] == '"' && s[e] == '"' ) {
+        b++;
+        e--;
+    }
 
-    Parser822 p( s.mid( 0, e+1 ) );
+    Parser822 p( s.mid( b, e+1-b ) );
     String t;
 
     p.whitespace();
-    uint b = p.index();
+    b = p.index();
     e = b;
     bool ok = true;
     String r;
