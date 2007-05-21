@@ -678,7 +678,7 @@ void Mailbox::addSession( Session * s )
     if ( !d->sessions )
         d->sessions = new List<Session>;
     if ( s && !d->sessions->find( s ) )
-        d->sessions->append( s );
+        d->sessions->prepend( s );
 }
 
 
