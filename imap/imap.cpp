@@ -299,6 +299,13 @@ void IMAP::addCommand()
     Command * cmd = Command::create( this, tag, name, p );
 
     if ( !cmd ) {
+        if ( Command::create( this, tag, tag, p ) )
+            enqueue( "* Hint: An IMAP command is prefixed by a tag. "
+                     "'a' is valid tag, so you can use\r\n"
+                     "* 'a " + tag + "' "
+                     "instead of '" + tag + "'.\r\n"
+                     "* This syntax error refers to command '" + name +
+                     "', whose tag is '" + tag + "':\r\n" );
         enqueue( tag + " BAD No such command: " + name + "\r\n" );
         log( "Unknown command. Line: '" + p->firstLine() + "'",
              Log::Error );
