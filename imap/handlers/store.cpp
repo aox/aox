@@ -632,7 +632,7 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
 {
     Query * q = 0;
     if ( m->view() )
-        q = new Query( "insert into flags (.flag,x.uid,mailbox) "
+        q = new Query( "insert into flags (flag,uid,mailbox) "
                        "select $1,vm.suid,vm.source from view_messages vm "
                        "left join flags f on "
                        " (vm.source=f.mailbox and vm.suid=f.uid and "
