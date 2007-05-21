@@ -990,9 +990,11 @@ void Session::recordChange( List<Message> * m, ResponseType type )
     while ( s ) {
         List<Message>::Iterator i( m );
         List<Message>::Iterator j;
-        List<Message> * l = &s->d->modifiedMessages;
+        List<Message> * l = 0;
         if ( type == New )
             l = &s->d->newMessages;
+        else
+            l = &s->d->modifiedMessages;
         uint prev = 0;
         while ( i ) {
             if ( !prev || i->uid() < prev )
