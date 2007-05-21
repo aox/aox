@@ -1324,16 +1324,19 @@ void Injector::announce()
             ++si;
         }
 
-        if ( m->uidnext() <= uid && m->nextModSeq() <= d->message->modSeq() )
-            m->setUidnextAndNextModSeq( 1+uid, 1+d->message->modSeq() );
-
-        if ( m->uidnext() <= uid ) {
+        if ( m->uidnext() <= uid && m->nextModSeq() <= mi->ms ) {
+            m->setUidnextAndNextModSeq( 1+uid, 1+mi->ms );
+            OCClient::send( "mailbox " + m->name().quoted() + " "
+                            "uidnext=" + fn( m->uidnext() ) + " "
+                            "nextmodseq=" + fn( m->nextModSeq() ) );
+        }
+        else if ( m->uidnext() <= uid ) {
             m->setUidnext( 1 + uid );
             OCClient::send( "mailbox " + m->name().quoted() + " "
                             "uidnext=" + fn( m->uidnext() ) );
         }
-        if ( m->nextModSeq() <= d->message->modSeq() ) {
-            m->setNextModSeq( 1 + d->message->modSeq() );
+        else if ( m->nextModSeq() <= mi->ms ) {
+            m->setNextModSeq( 1 + mi->ms );
             OCClient::send( "mailbox " + m->name().quoted() + " "
                             "nextmodseq=" + fn( m->nextModSeq() ) );
         }

@@ -284,7 +284,8 @@ void Copy::execute()
     if ( d->mailbox->uidnext() <= next ) {
         d->mailbox->setUidnext( next );
         OCClient::send( "mailbox " + d->mailbox->name().quoted() + " "
-                        "uidnext=" + fn( next ) );
+                        "uidnext=" + fn( next ) + " "
+                        "nextmodseq=" + fn( d->modseq+1 ) );
     }
 
 

@@ -163,45 +163,67 @@ void OCClient::updateMailbox( const String & arg )
         return;
     }
 
-    String rest = arg.mid( i+1 );
-    if ( rest == "new" ) {
-        ::log( "OCClient announced mailbox " + m->name(), Log::Debug );
-        m->setDeleted( false );
-        m->refresh()->execute();
-    }
-    else if ( rest == "deleted" ) {
-        if ( !m->deleted() )
-            ::log( "OCClient deleted mailbox " + m->name(), Log::Debug );
-        m->setDeleted( true );
-        m->refresh()->execute();
-    }
-    else if ( rest.startsWith( "uidnext=" ) ) {
-        bool ok;
-        uint n = rest.mid( 8 ).number( &ok );
-        if ( !ok ) {
-            ::log( "Unable to parse UIDNEXT value: " + rest.mid( 8 ),
-                   Log::Error );
+    uint uidnext = 0;
+    int64 nextmodseq = 0;
+
+    StringList::Iterator a( StringList::split( ' ', arg.mid( i+1 ) ) );
+    while ( a ) {
+        if ( *a == "new" ) {
+            ::log( "OCClient announced mailbox " + m->name(), Log::Debug );
+            m->setDeleted( false );
+            m->refresh()->execute();
+        }
+        else if ( *a == "deleted" ) {
+            if ( !m->deleted() )
+                ::log( "OCClient deleted mailbox " + m->name(), Log::Debug );
+            m->setDeleted( true );
+            m->refresh()->execute();
+        }
+        else if ( a->startsWith( "uidnext=" ) ) {
+            bool ok;
+            uint n = a->mid( 8 ).number( &ok );
+            if ( !ok ) {
+                ::log( "Unable to parse UIDNEXT value: " + a->mid( 8 ),
+                       Log::Error );
+            }
+            else if ( n > m->uidnext() ||
+                      ( n == 1 &&
+                        !Configuration::toggle( Configuration::Security ) ) ) {
+                uidnext = n;
+            }
+        }
+        else if ( a->startsWith( "nextmodseq=" ) ) {
+            bool ok;
+            uint n = a->mid( 11 ).number( &ok ); // XXX: eek! bigint!
+            if ( !ok ) {
+                ::log( "Unable to parse NEXTMODSEQ value: " + a->mid( 11 ),
+                       Log::Error );
+            }
+            else if ( n > m->nextModSeq() ||
+                      ( n == 1 &&
+                        !Configuration::toggle( Configuration::Security ) ) ) {
+                nextmodseq = n;
+            }
         }
         else {
-            ::log( "OCClient set mailbox " + m->name() +
-                   " to uidnext " + fn( n ), Log::Debug );
-            m->setUidnext( n );
+            ::log( "Unable to parse mailbox changes: " + arg, Log::Error );
         }
+        ++a;
     }
-    else if ( rest.startsWith( "nextmodseq=" ) ) {
-        bool ok;
-        uint n = rest.mid( 11 ).number( &ok ); // XXX: eek! bigint!
-        if ( !ok ) {
-            ::log( "Unable to parse NEXTMODSEQ value: " + rest.mid( 11 ),
-                   Log::Error );
-        }
-        else {
-            ::log( "OCClient set mailbox " + m->name() +
-                   " to nextmodseq " + fn( n ), Log::Debug );
-            m->setNextModSeq( n );
-        }
+    if ( uidnext && nextmodseq ) {
+        ::log( "OCClient set mailbox " + m->name() +
+               " to uidnext " + fn( uidnext ) +
+               " and nextmodseq " + fn( nextmodseq ), Log::Debug );
+        m->setUidnextAndNextModSeq( uidnext, nextmodseq );
     }
-    else {
-        ::log( "Unable to parse mailbox changes: " + rest, Log::Error );
+    else if ( uidnext ) {
+        ::log( "OCClient set mailbox " + m->name() +
+               " to uidnext " + fn( uidnext ), Log::Debug );
+        m->setUidnext( uidnext );
+    }
+    else if ( nextmodseq ) {
+        ::log( "OCClient set mailbox " + m->name() +
+               " to nextmodseq " + fn( nextmodseq ), Log::Debug );
+        m->setNextModSeq( nextmodseq );
     }
 }
