@@ -418,7 +418,7 @@ void Store::execute()
         if ( m->view() )
             q = new Query( "update modsequences set modseq=$1 "
                            "where (mailbox,uid) in "
-                           "(select source,suid from view_mesages "
+                           "(select source,suid from view_messages "
                            " where view=$2 and (" + d->s.where() + "))", 0 );
         else
             q = new Query( "update modsequences set modseq=$1 "
