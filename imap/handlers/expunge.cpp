@@ -158,7 +158,7 @@ bool Expunge::expunge( bool chat )
         d->t->enqueue( d->expunge );
 
         q = new Query( "update mailboxes set nextmodseq=$1 "
-                       "where mailbox=$2", 0 );
+                       "where id=$2", 0 );
         q->bind( 1, modseq + 1 );
         q->bind( 2, d->s->mailbox()->id() );
         d->t->enqueue( q );
