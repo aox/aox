@@ -9,8 +9,15 @@
 #include "allocator.h"
 #include "stringlist.h"
 
-#include <unistd.h> // gethostname()
-#include <netdb.h> // gethostbyname()
+// gethostname()
+#include <unistd.h>
+// gethostbyname()
+#include <netdb.h>
+// socket
+#include <sys/types.h>
+#include <sys/socket.h>
+// errno
+#include <errno.h>
 
 #include "sys.h" // memmove()
 
@@ -614,6 +621,16 @@ void Configuration::setup( const String & global, bool allowFailure )
         log( "Hostname does not contain a dot: " + hn, Log::Error );
     if ( hn.lower() == "localhost" || hn.lower().startsWith( "localhost." ) )
         log( "Using localhost as hostname", Log::Error );
+
+    if ( !present( UseIPv6 ) && toggle( UseIPv6 ) ) {
+        int s = ::socket( PF_INET6, SOCK_STREAM, IPPROTO_TCP );
+        if ( s < 0 && errno == EAFNOSUPPORT ) {
+            log( "Setting default use-ipv6=off", Log::Info );
+            add( "use-ipv6 = false" );
+        }
+        if ( s >= 0 )
+            ::close( s );
+    }
 }
 
 
