@@ -72,32 +72,32 @@ void Expunge::parse()
 }
 
 
-/*! This function expunges the current mailbox, emitting EXPUNGE
-    responses if \a chat is true and being silent if \a chat is false.
-
-    It returns true if the job was done, and false if it needs to be
-    called again.
+/*! Remarkable only in that it cooperates with the reimplementation in
+    Close: the ImapSession is copied in on the first call, so that
+    Close can nil it out, and if there isn't a session when execute()
+    finishes its work, no expunge responses are sent.
 */
 
-bool Expunge::expunge( bool chat )
+
+void Expunge::execute()
 {
     if ( !d->s ) {
         d->s = imap()->session();
         if ( !d->s || !d->s->mailbox() ) {
             error( No, "No mailbox to expunge" );
-            return true;
+            return;
         }
         requireRight( d->s->mailbox(), Permissions::Expunge );
     }
 
     if ( !permitted() || !ok() )
-        return false;
+        return;
 
     if ( !d->t ) {
         Flag * f = Flag::find( "\\deleted" );
         if ( !f ) {
             error( No, "Internal error - no \\Deleted flag" );
-            return true;
+            return;
         }
 
         d->t = new Transaction( this );
@@ -126,11 +126,12 @@ bool Expunge::expunge( bool chat )
         d->uids.add( n );
     }
     if ( !d->findUids->done() )
-        return false;
+        return;
 
     if ( d->uids.isEmpty() ) {
         d->t->rollback();
-        return true;
+        finish();
+        return;
     }
 
     if ( !d->expunge ) {
@@ -139,7 +140,7 @@ bool Expunge::expunge( bool chat )
 
         String w( d->uids.where() );
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
-        Query * q 
+        Query * q
             = new Query( "update modsequences "
                          "set modseq=$2 "
                          "where mailbox=$1 and (" + w + ")", 0 );
@@ -166,23 +167,11 @@ bool Expunge::expunge( bool chat )
     }
 
     if ( !d->t->done() )
-        return false;
+        return;
 
     if ( d->t->failed() )
         error( No, "Database error. Messages not expunged." );
 
-    if ( chat && imap()->session() ) {
-        imap()->session()->expunge( d->uids );
-        ((Session*)imap()->session())->emitResponses( Session::Deleted );
-    }
-
-    return true;
-}
-
-
-void Expunge::execute()
-{
-    if ( !expunge( true ) )
-        return;
+    d->s->expunge( d->uids );
     finish();
 }

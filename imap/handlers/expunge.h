@@ -15,7 +15,6 @@ public:
     void parse();
 
     void execute();
-    bool expunge( bool );
 
 private:
     class ExpungeData *d;
