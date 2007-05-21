@@ -68,10 +68,12 @@ public:
         uint p = Configuration::scalar( port );
         StringList addresses;
         bool any6 = false;
+        bool allAddresses = false;
 
         if ( a.isEmpty() ) {
             addresses.append( "::" );
             addresses.append( "0.0.0.0" );
+            allAddresses = true;
         }
         else {
             // XXX: Hack to make it compile
@@ -110,6 +112,10 @@ public:
                             // silently.
                             ::log( "Assuming that listening on all IPv6 "
                                    "addresses also listens on IPv4." );
+                        }
+                        else if ( allAddresses && *it == "::" ) {
+                            ::log( "Listening to all IPv6 addresses failed. "
+                                   "Will also try all IPv4 addresses." );
                         }
                         else {
                             ::log( "Cannot listen for " + svc + " on " + *it,
