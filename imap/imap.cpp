@@ -301,11 +301,10 @@ void IMAP::addCommand()
     if ( !cmd ) {
         if ( Command::create( this, tag, tag, p ) )
             enqueue( "* Hint: An IMAP command is prefixed by a tag. "
-                     "'a' is valid tag, so you can use\r\n"
-                     "* 'a " + tag + "' "
-                     "instead of '" + tag + "'.\r\n"
-                     "* This syntax error refers to command '" + name +
-                     "', whose tag is '" + tag + "':\r\n" );
+                     "The command is the second word\r\n"
+                     "* on the line, after the tag. In your command, '" +
+                     name + "' is the command and\r\n"
+                     "* '" + tag + "' is the tag.\r\n" );
         enqueue( tag + " BAD No such command: " + name + "\r\n" );
         log( "Unknown command. Line: '" + p->firstLine() + "'",
              Log::Error );
