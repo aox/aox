@@ -496,6 +496,16 @@ void EventLoop::setStartup( bool p )
 }
 
 
+/*! Returns true if this EventLoop is shutting down (ie. stop() has
+    been called), and false if it's starting up or operating normally.
+*/
+
+bool EventLoop::inShutdown() const
+{
+    return d->stop;
+}
+
+
 /*! Returns a pointer to the global event loop, or 0 if setup() has not
     yet been called.
 */

@@ -29,6 +29,8 @@ public:
     bool inStartup() const;
     void setStartup( bool );
 
+    bool inShutdown() const;
+
     List< Connection > *connections() const;
 
     static void setup( EventLoop * = 0 );

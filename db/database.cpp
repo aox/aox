@@ -6,6 +6,7 @@
 #include "string.h"
 #include "allocator.h"
 #include "configuration.h"
+#include "eventloop.h"
 #include "event.h"
 #include "query.h"
 #include "file.h"
@@ -210,7 +211,8 @@ void Database::runQueue()
            time( 0 ) - lastCreated >= interval ||
            ( queries->firstElement() == first && connecting == 0 ) ) &&
          ( server().protocol() != Endpoint::Unix ||
-           server().address().startsWith( File::root() ) ) )
+           server().address().startsWith( File::root() ) ) &&
+         !EventLoop::global()->inShutdown() )
     {
         if ( handles->count() >= max ) {
             if ( lastExecuted >= time( 0 ) - interval )
