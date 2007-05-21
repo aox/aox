@@ -13,6 +13,7 @@
 #include "components/archivemailboxes.h"
 #include "components/archivemailbox.h"
 #include "components/archivemessage.h"
+#include "components/archivesearch.h"
 #include "components/archivethread.h"
 #include "components/formmail.h"
 #include "components/sendmail.h"
@@ -281,7 +282,7 @@ static WebPage * archiveSearch( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new SearchBox );
-    p->addComponent( new ArchiveMailbox( link ) );
+    p->addComponent( new ArchiveSearch( link ) );
     p->addComponent( new Footer );
     return p;
 }
