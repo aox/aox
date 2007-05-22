@@ -25,7 +25,7 @@ public:
     MessageSet set;
     String target;
     uint firstUid;
-    uint modseq;
+    int64 modseq;
     Mailbox * mailbox;
     Transaction * transaction;
     List<Query> queries;
@@ -105,7 +105,7 @@ void Copy::execute()
         Row * r = d->findUid->nextRow();
         if ( r ) {
             d->firstUid = r->getInt( "uidnext" );
-            d->modseq = r->getInt( "nextmodseq" );
+            d->modseq = r->getBigint( "nextmodseq" );
         }
         else {
             error( No, "Could not allocate UID and modseq in target mailbox" );
@@ -232,7 +232,7 @@ void Copy::execute()
                        "where mailbox=$1 and uid>=$3 and uid<$4",
                        this );
         q->bind( 1, tmailbox );
-        q->bind( 2, d->modseq );
+        q->bind64( 2, d->modseq );
         q->bind( 3, d->firstUid );
         q->bind( 4, tuid );
         enqueue( q );
@@ -241,7 +241,7 @@ void Copy::execute()
                        "where id=$3",
                        this );
         q->bind( 1, tuid );
-        q->bind( 2, d->modseq+1 );
+        q->bind64( 2, d->modseq+1 );
         q->bind( 2, tmailbox );
         d->transaction->enqueue( q );
 
