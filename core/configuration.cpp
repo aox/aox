@@ -16,6 +16,8 @@
 // socket
 #include <sys/types.h>
 #include <sys/socket.h>
+// IPPROTO_TCP
+#include <netinet/in.h>
 // errno
 #include <errno.h>
 
