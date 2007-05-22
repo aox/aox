@@ -793,7 +793,7 @@ void Mailbox::setNextModSeq( int64 n )
 
 /*! Returns the value last specified by nextModSeq(), or 1 initially. */
 
-uint Mailbox::nextModSeq() const
+int64 Mailbox::nextModSeq() const
 {
     return d->nextModSeq;
 }

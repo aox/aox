@@ -26,7 +26,7 @@ public:
     void setId( uint ) const;
     uint uidnext() const;
     uint uidvalidity() const;
-    uint nextModSeq() const;
+    int64 nextModSeq() const;
 
     void setType( Type );
     Type type() const;
