@@ -935,8 +935,7 @@ void Header::repair( Multipart * p, const String & body )
                     bad.append( s );
             }
         }
-        if ( !bad.isEmpty() &&
-             bad.count() < occurences[(int)HeaderField::Subject] ) {
+        if ( bad.count() < occurences[(int)HeaderField::Subject] ) {
             it = bad;
             while ( it ) {
                 HeaderField * s = it;
