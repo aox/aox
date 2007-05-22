@@ -423,13 +423,13 @@ void Store::execute()
         else
             q = new Query( "update modsequences set modseq=$1 "
                            "where mailbox=$2 and (" + d->s.where() + ")", 0 );
-        q->bind( 1, d->modseq );
+        q->bind64( 1, d->modseq );
         q->bind( 2, m->id() );
         d->transaction->enqueue( q );
         // XXX for no inherent reason this prevents multimailbox views.
         q = new Query( "update mailboxes set nextmodseq=$1 "
                        "where id=$2", 0 );
-        q->bind( 1, d->modseq + 1 );
+        q->bind64( 1, d->modseq + 1 );
         if ( m->view() )
             q->bind( 2, m->source()->id() );
         else

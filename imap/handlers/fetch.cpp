@@ -1425,7 +1425,7 @@ void FetchData::SeenFlagSetter::execute()
                            "set modseq=$1 "
                            "where mailbox=$2 and " + messages.where(),
                            0 );
-    q->bind( 1, modseq );
+    q->bind64( 1, modseq );
     q->bind( 2, session->mailbox()->id() );
     t->enqueue( q );
 
@@ -1436,7 +1436,7 @@ void FetchData::SeenFlagSetter::execute()
     t->enqueue( q );
     q = new Query( "update mailboxes set nextmodseq=$1 "
                    "where id=$2", 0 );
-    q->bind( 1, modseq + 1 );
+    q->bind64( 1, modseq + 1 );
     q->bind( 2, session->mailbox()->id() );
     t->enqueue( q );
     t->commit();

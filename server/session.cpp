@@ -729,7 +729,7 @@ void SessionInitialiser::execute()
             m->source()->setNextModSeq( ms + 1 );
             Query * q = new Query( "update views set nextmodseq=$1 "
                                    "where view=$2 and nextmodseq<$1", 0 );
-            q->bind( 1, m->nextModSeq() );
+            q->bind64( 1, m->nextModSeq() );
             q->bind( 2, m->id() );
             d->t->enqueue( q );
         }
