@@ -402,15 +402,15 @@ AddressParser::AddressParser( String s )
     d->s = s;
     int i = s.length()-1;
     int j = i+1;
+    bool colon = s.contains( ':' );
     while ( i >= 0 && i < j ) {
         j = i;
         address( i );
-        if ( i < j && i >= 0 && s[i] == ',' ) {
+        while ( i < j && i >= 0 &&
+                ( s[i] == ',' ||
+                  ( !colon && s[i] == ';' ) ) ) {
             i--;
             space( i );
-            if ( i >= 0 && s[i] == ';' &&
-                 !s.mid( 0, i ).contains( ':' ) )
-                i--;
         }
     }
     Address::uniquify( &d->a );
@@ -577,6 +577,9 @@ void AddressParser::address( int & i )
         i--;
         comment( i );
     }
+    if ( i >= 0 && s[i] == '>' && s[i-1] == '>' ) {
+        i--;
+    }
     if ( i < 0 ) {
         // nothing there. error of some sort.
     }
@@ -584,6 +587,9 @@ void AddressParser::address( int & i )
         // the address is <>. whether that's legal is another matter.
         add( "", "" );
         i = i - 2;
+        if ( i >= 0 && s[i] == '<' )
+            i--;
+        (void)phrase( i );
     }
     else if ( i > 2 && s[i] == '>' && s[i-1] == ';' && s[i-2] == ':' ) {
         // it's a microsoft-broken '<Unknown-Recipient:;>'
@@ -631,6 +637,8 @@ void AddressParser::address( int & i )
         }
         if ( i >= 0 && s[i] == '<' ) {
             i--;
+            if ( i >= 0 && s[i] == '<' )
+                i--;
             name = phrase( i );
             while ( i >= 0 && ( s[i] > 127 || s[i] == '@' || s[i] == '<' ) ) {
                 // we're looking at an unencoded 8-bit name, or at
@@ -678,7 +686,7 @@ void AddressParser::address( int & i )
             return;
         }
     }
-    else if ( s[i] == ';' ) {
+    else if ( s[i] == ';' && s.mid( 0, i ).contains( ':' ) ) {
         // group
         bool empty = true;
         i--;
