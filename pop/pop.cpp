@@ -126,13 +126,13 @@ void POP::setState( State s )
                     if ( !nms->done() )
                         return;
 
-                    uint ms( nms->nextRow()->getInt( "nextmodseq" ) );
+                    int64 ms( nms->nextRow()->getBigint( "nextmodseq" ) );
                     nms = 0;
 
                     Query * q;
                     q = new Query( "update modsequences set modseq=$1 where "
                                    "mailbox=$2 and (" + w + ")", 0 );
-                    q->bind( 1, ms );
+                    q->bind64( 1, ms );
                     q->bind( 2, mailbox->id() );
                     t->enqueue( q );
 
