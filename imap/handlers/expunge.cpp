@@ -81,6 +81,8 @@ void Expunge::parse()
 
 void Expunge::execute()
 {
+    if ( state() != Executing )
+        return;
     if ( !d->s ) {
         d->s = imap()->session();
         if ( !d->s || !d->s->mailbox() ) {
