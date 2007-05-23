@@ -1008,6 +1008,18 @@ void Header::repair( Multipart * p, const String & body )
             }
         }
     }
+    
+    // If the Reply-To field is bad and From is good, we forget
+    // Reply-To entirely.
+
+    if ( occurences[(int)HeaderField::From] &&
+         occurences[(int)HeaderField::ReplyTo] ) {
+        AddressField * from = addressField( HeaderField::From );
+        AddressField * rt = addressField( HeaderField::ReplyTo );
+        if ( from->valid() && !rt->valid() &&
+             from->addresses() && !from->addresses()->isEmpty() )
+            removeField( HeaderField::ReplyTo );
+    }
 
     // If the from field is bad, but there is a good sender or
     // return-path, copy s/rp into from.
