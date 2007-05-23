@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (46);
+insert into mailstore (revision) values (47);
 
 
 -- One entry for each unique address we've encountered.
@@ -276,12 +276,13 @@ create table annotation_names (
 -- One entry per annotation
 
 create table annotations (
+    id          serial,
     mailbox     integer not null,
     uid         integer not null,
     owner       integer references users(id) on delete cascade,
     name        integer not null references annotation_names(id),
     value       text,
-    primary key (mailbox, uid, owner, name),
+    unique (mailbox, uid, owner, name),
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
