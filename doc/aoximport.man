@@ -34,7 +34,7 @@ message.
 .IP
 The messages in the errors directory may be sent to info@oryx.com, and
 we'll try to find out what the problem is. Please delete
-personal/confidential messages ffrom errors/plaintext first.
+personal/confidential messages from errors/plaintext first.
 .SH SYNTAX
 In the synopsis above,
 .I mailbox
