@@ -957,7 +957,7 @@ void Header::repair( Multipart * p, const String & body )
         }
     }
 
-    // if it's a multipart and the c-t field could not be parsed, try
+    // If it's a multipart and the c-t field could not be parsed, try
     // to find the boundary by inspecting the body.
 
     if ( occurences[(int)HeaderField::ContentType] && !body.isEmpty() ) {
@@ -1005,6 +1005,37 @@ void Header::repair( Multipart * p, const String & body )
             if ( !boundary.isEmpty() && !confused ) {
                 ct->addParameter( "boundary", boundary );
                 ct->setError( "" ); // may override other errors. ok.
+            }
+        }
+    }
+
+    // If the from field is bad, but there is a good sender or
+    // return-path, copy s/rp into from.
+
+    if ( occurences[(int)HeaderField::From] == 1 &&
+         ( occurences[(int)HeaderField::Sender] == 1 ||
+           occurences[(int)HeaderField::ReturnPath] == 1 ) ) {
+        AddressField * from = addressField( HeaderField::From );
+        if ( !from->valid() ) {
+            AddressField * rp = addressField( HeaderField::ReturnPath );
+            AddressField * sender = addressField( HeaderField::Sender );
+            Address * a = 0;
+            if ( rp && rp->valid() ) {
+                List<Address> * l = rp->addresses();
+                if ( l && !l->isEmpty() &&
+                     l->first()->type() != Address::Bounce )
+                    a = l->first();
+            }
+            if ( !a && sender && sender->valid() ) {
+                List<Address> * l = sender->addresses();
+                if ( l && !l->isEmpty() &&
+                     l->first()->type() != Address::Bounce )
+                    a = l->first();
+            }
+            if ( a ) {
+                    from->setError( "" );
+                    from->addresses()->clear();
+                    from->addresses()->append( a );
             }
         }
     }
