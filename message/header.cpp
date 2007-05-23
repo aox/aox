@@ -585,23 +585,23 @@ void Header::repair( Multipart * p, const String & body )
     // We remove duplicates of any field that may occur only once.
     // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T/M-I.)
 
-    uint occurences[ (int)HeaderField::Other ];
+    uint occurrences[ (int)HeaderField::Other ];
     int i = 0;
     while ( i < HeaderField::Other )
-        occurences[i++] = 0;
+        occurrences[i++] = 0;
 
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
         HeaderField::Type t = it->type();
         if ( t < HeaderField::Other )
-            occurences[(int)t]++;
+            occurrences[(int)t]++;
         ++it;
     }
 
     i = 0;
     while ( conditions[i].t != HeaderField::Other ) {
         if ( conditions[i].m == d->mode &&
-             occurences[conditions[i].t] > conditions[i].max )
+             occurrences[conditions[i].t] > conditions[i].max )
         {
             uint n = 0;
             HeaderField * h = field( conditions[i].t, 0 );
@@ -626,7 +626,7 @@ void Header::repair( Multipart * p, const String & body )
     // that one has options and the others not, remove the option-less
     // ones.
 
-    if ( occurences[(int)HeaderField::ContentType] > 1 ) {
+    if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
         ContentType * ct = contentType();
         ContentType * other = ct;
         ContentType * good = 0;
@@ -680,7 +680,7 @@ void Header::repair( Multipart * p, const String & body )
 
     i = 0;
     while ( i < HeaderField::Other ) {
-        if ( occurences[i] > 1 &&
+        if ( occurrences[i] > 1 &&
              ( i == HeaderField::Date ||
                i == HeaderField::ReturnPath ||
                i == HeaderField::MessageId ||
@@ -714,7 +714,7 @@ void Header::repair( Multipart * p, const String & body )
     // we look for a sensible date.
     
     if ( mode() == Rfc2822 &&
-         ( occurences[(int)HeaderField::Date] == 0 ||
+         ( occurrences[(int)HeaderField::Date] == 0 ||
            !field( HeaderField::Date )->valid() ||
            !date()->valid() ) ) {
         List< HeaderField >::Iterator it( d->fields );
@@ -761,7 +761,7 @@ void Header::repair( Multipart * p, const String & body )
         }
 
         if ( !date.valid() &&
-             occurences[(int)HeaderField::Date] == 0 ) {
+             occurrences[(int)HeaderField::Date] == 0 ) {
             // As last resort, use the current date, time and
             // timezone.  Only do this if there isn't a date field. If
             // there is one, we'll reject the message (at least for
@@ -787,7 +787,7 @@ void Header::repair( Multipart * p, const String & body )
     // the Header of the closest encompassing Multipart that has such
     // a field.
 
-    if ( occurences[(int)HeaderField::From] == 0 && mode() == Rfc2822 ) {
+    if ( occurrences[(int)HeaderField::From] == 0 && mode() == Rfc2822 ) {
         Multipart * parent = p;
         Header * h = this;
         List<Address> * a = 0;
@@ -826,7 +826,7 @@ void Header::repair( Multipart * p, const String & body )
     // If there is an unacceptable Received field somewhere, remove it
     // and all the older Received fields.
 
-    if ( occurences[(int)HeaderField::Received] > 0 ) {
+    if ( occurrences[(int)HeaderField::Received] > 0 ) {
         bool bad = false;
         List<HeaderField>::Iterator it( d->fields );
         while ( it ) {
@@ -846,9 +846,9 @@ void Header::repair( Multipart * p, const String & body )
     // parsed somehow and can be dropped without changing the meaning
     // of the rest of the message.
 
-    if ( occurences[(int)HeaderField::ContentLocation] ||
-         occurences[(int)HeaderField::ContentId] ||
-         occurences[(int)HeaderField::MessageId] ) {
+    if ( occurrences[(int)HeaderField::ContentLocation] ||
+         occurrences[(int)HeaderField::ContentId] ||
+         occurrences[(int)HeaderField::MessageId] ) {
         List< HeaderField >::Iterator it( d->fields );
         while ( it ) {
             if ( ( it->type() == HeaderField::ContentLocation ||
@@ -867,7 +867,7 @@ void Header::repair( Multipart * p, const String & body )
     // a) is syntactically valid and b) is different from From, and
     // remove the others.
 
-    if ( occurences[(int)HeaderField::Sender] > 1 ) {
+    if ( occurrences[(int)HeaderField::Sender] > 1 ) {
         AddressField * good = 0;
         AddressField * from = addressField( HeaderField::From );
         List< HeaderField >::Iterator it( d->fields );
@@ -902,7 +902,7 @@ void Header::repair( Multipart * p, const String & body )
     // - otherwise, the first field comes from the exploited software
     //   and the second from the exploiting.
 
-    if ( occurences[(int)HeaderField::Subject] > 1 ) {
+    if ( occurrences[(int)HeaderField::Subject] > 1 ) {
         List<HeaderField> bad;
         List< HeaderField >::Iterator it( d->fields );
         while ( it ) {
@@ -935,7 +935,7 @@ void Header::repair( Multipart * p, const String & body )
                     bad.append( s );
             }
         }
-        if ( bad.count() < occurences[(int)HeaderField::Subject] ) {
+        if ( bad.count() < occurrences[(int)HeaderField::Subject] ) {
             it = bad;
             while ( it ) {
                 HeaderField * s = it;
@@ -960,7 +960,7 @@ void Header::repair( Multipart * p, const String & body )
     // If it's a multipart and the c-t field could not be parsed, try
     // to find the boundary by inspecting the body.
 
-    if ( occurences[(int)HeaderField::ContentType] && !body.isEmpty() ) {
+    if ( occurrences[(int)HeaderField::ContentType] && !body.isEmpty() ) {
         ContentType * ct = contentType();
         if ( !ct->valid() && 
              ct->type() == "multipart" &&
@@ -1024,8 +1024,8 @@ void Header::repair( Multipart * p, const String & body )
     // If the Reply-To field is bad and From is good, we forget
     // Reply-To entirely.
 
-    if ( occurences[(int)HeaderField::From] &&
-         occurences[(int)HeaderField::ReplyTo] ) {
+    if ( occurrences[(int)HeaderField::From] &&
+         occurrences[(int)HeaderField::ReplyTo] ) {
         AddressField * from = addressField( HeaderField::From );
         AddressField * rt = addressField( HeaderField::ReplyTo );
         if ( from->valid() && !rt->valid() &&
@@ -1036,9 +1036,9 @@ void Header::repair( Multipart * p, const String & body )
     // If the from field is bad, but there is a good sender or
     // return-path, copy s/rp into from.
 
-    if ( occurences[(int)HeaderField::From] == 1 &&
-         ( occurences[(int)HeaderField::Sender] == 1 ||
-           occurences[(int)HeaderField::ReturnPath] == 1 ) ) {
+    if ( occurrences[(int)HeaderField::From] == 1 &&
+         ( occurrences[(int)HeaderField::Sender] == 1 ||
+           occurrences[(int)HeaderField::ReturnPath] == 1 ) ) {
         AddressField * from = addressField( HeaderField::From );
         if ( !from->valid() ) {
             AddressField * rp = addressField( HeaderField::ReturnPath );
