@@ -370,6 +370,8 @@ bool Schema::singleStep()
         c = stepTo45(); break;
     case 45:
         c = stepTo46(); break;
+    case 46:
+        c = stepTo47(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2123,6 +2125,48 @@ bool Schema::stepTo46()
         d->t->execute();
     }
 
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Unconstrain annotations.owner and add a surrogate key. */
+
+bool Schema::stepTo47()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding a surrogate key to annotations" );
+        d->q = new Query( "alter table annotations drop constraint "
+                          "annotations_pkey", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations alter owner "
+                          "drop not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations add id serial", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "update annotations set id=nextval("
+                          "pg_get_serial_sequence('annotations','id'))",
+                          this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations alter id "
+                          "set not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations add "
+                          "unique (mailbox,uid,owner,name)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations add "
+                          "primary key (id)", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+    
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
