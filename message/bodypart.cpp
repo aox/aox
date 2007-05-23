@@ -335,6 +335,8 @@ void Bodypart::parseMultipart( uint i, uint end,
                     if ( digest )
                         h->setDefaultType( Header::MessageRfc822 );
 
+                    h->repair();
+
                     // Strip the [CR]LF that belongs to the boundary.
                     if ( rfc2822[i-1] == 10 ) {
                         i--;

@@ -571,13 +571,11 @@ void Header::simplify()
 
 
 
-/*! Repairs a few harmless and common problems, such as inserting two
-    Date fields with the same value. Assumes that \a p is its companion
-    body (whose text is in \a body), and may look at it to decide
-    what/how to repair.
+/*! Repairs problems that can be repaired without knowing the associated
+    bodypart.
 */
 
-void Header::repair( Multipart * p, const String & body )
+void Header::repair()
 {
     if ( valid() )
         return;
@@ -708,6 +706,33 @@ void Header::repair( Multipart * p, const String & body )
             }
         }
         ++i;
+    }
+}
+
+
+/*! Repairs a few harmless and common problems, such as inserting two
+    Date fields with the same value. Assumes that \a p is its companion
+    body (whose text is in \a body), and may look at it to decide
+    what/how to repair.
+*/
+
+void Header::repair( Multipart * p, const String & body )
+{
+    if ( valid() )
+        return;
+
+    // Duplicated from above.
+    uint occurrences[ (int)HeaderField::Other ];
+    int i = 0;
+    while ( i < HeaderField::Other )
+        occurrences[i++] = 0;
+
+    List< HeaderField >::Iterator it( d->fields );
+    while ( it ) {
+        HeaderField::Type t = it->type();
+        if ( t < HeaderField::Other )
+            occurrences[(int)t]++;
+        ++it;
     }
 
     // If there is no valid Date field and this is an RFC822 header,

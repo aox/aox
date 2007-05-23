@@ -89,6 +89,7 @@ Message::Message( const String & rfc2822, Multipart * p )
 
     setParent( p );
     setHeader( parseHeader( i, rfc2822.length(), rfc2822, Header::Rfc2822 ) );
+    header()->repair();
     header()->repair( this, rfc2822.mid( i ) );
 
     ContentType * ct = header()->contentType();
