@@ -441,8 +441,10 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     // it to messages via part_numbers.
     if ( d->needAddresses )
         d->needAddressFields = true;
-    if ( d->needBodyparts )
+    if ( d->needBodyparts ) {
         d->needPartNumbers = true;
+        q->allowSlowness();
+    }
 
     // flags are hard. we need to join in one relation per flag, so
     // that we don't accidentally think 'uid 123 has "\seen"' is
