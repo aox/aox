@@ -925,35 +925,6 @@ PGP automatic processing
   detect four and transform them to the proper MIME format.
 
 
-LDAP server/address book
-
-  Joins rock. We can join ALL OUR TABLES and get INCREDIBLE
-  FLEXIBILITY AND POWER.
-
-  LDAP AB can provide several address books based on the archive:
-
-   - all addresses visible anywhere
-   - all addresses in your mailboxes
-   - all addresses in mailboxes to which your groups have access
-     (the join for this is a little hard)
-   - all v-card bodyparts
-   - all v-cards in your mailboxes
-   - all v-cards in mailboxes to which your groups have access
-     (I suppose one might even say "breathtakingly complex join")
-
-  Admins can enable/disable each of those depending on site policy.
-
-  http://www.onlamp.com/lpt/a/3310 may be helpful wrt i14y testing.
-  thunderbird should do what it says.
-
-  http://www.dice.inf.ed.ac.uk/groups/infrastructure/directory/support/usingldap.html
-  talks about some clients. I suggest that working with those clients
-  is all we aim for.
-
-  - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query an
-    address book.
-
-
 Groups and ACL
 
   We don't need groups as of now, but they do have their handy-dandy
