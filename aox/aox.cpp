@@ -1034,6 +1034,8 @@ void showSchema()
             s = versions[rev];
             if ( rev == nv-1 )
                 s.append( " - latest known version" );
+            else
+                s.append( " - needs to be upgraded" );
         }
 
         if ( !s.isEmpty() )
