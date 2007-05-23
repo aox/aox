@@ -36,6 +36,9 @@ public:
     bool canFail() const;
     void allowFailure();
 
+    bool canBeSlow() const;
+    void allowSlowness();
+
     Transaction *transaction() const;
     void setTransaction( Transaction * );
 

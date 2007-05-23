@@ -21,7 +21,7 @@ public:
         : state( Query::Inactive ),
           values( new Query::InputLine ), inputLines( 0 ),
           transaction( 0 ), owner( 0 ), totalRows( 0 ),
-          canFail( false )
+          canFail( false ), canBeSlow( false )
     {}
 
     Query::State state;
@@ -40,6 +40,7 @@ public:
     String error;
 
     bool canFail;
+    bool canBeSlow;
 };
 
 
@@ -190,6 +191,31 @@ bool Query::canFail() const
 void Query::allowFailure()
 {
     d->canFail = true;
+}
+
+
+/*! Returns true only if allowSlowness() has been called for this query,
+    signifying that the query may take a long time, and that the default
+    query timeout should not apply.
+
+    This function exists only so that Postgres can avoid timing out when
+    it should just wait instead.
+*/
+
+bool Query::canBeSlow() const
+{
+    return d->canBeSlow;
+}
+
+
+/*! If this function is called before execute(), Postgres will not apply
+    the default query timeout to this Query. The query continues to be
+    processed as it would otherwise.
+*/
+
+void Query::allowSlowness()
+{
+    d->canBeSlow = true;
 }
 
 
