@@ -973,10 +973,22 @@ void Header::repair( Multipart * p, const String & body )
             while ( cand >= 0 && cand < (int)body.length() && !confused ) {
                 if ( body[cand] == '-' && body[cand+1] == '-' ) {
                     int i = cand+2;
-                    while ( i < (int)body.length() &&
-                            ( body[i] != ' ' && body[i] != '\t' &&
-                              body[i] != '\r' && body[i] != '\n' ) )
+                    char c = body[i];
+                    // bchars := bcharsnospace / " "
+                    // bcharsnospace := DIGIT / ALPHA / "'" / "(" / ")" /
+                    //                  "+" / "_" / "," / "-" / "." /
+                    //                  "/" / ":" / "=" / "?"
+                    while ( ( c >= 'a' && c <= 'z' ) ||
+                            ( c >= 'A' && c <= 'Z' ) ||
+                            ( c >= '0' && c <= '9' ) ||
+                            c == '\'' || c == '(' || c == ')' ||
+                            c == '+' || c == '_' || c == ',' ||
+                            c == '-' || c == '.' || c == '/' ||
+                            c == ':' || c == '=' || c == '?' ||
+                            c == ' ' ) {
                         i++;
+                        c = body[i];
+                    }
                     if ( i > cand + 2 &&
                          ( body[i] == '\r' || body[i] == '\n' ) ) {
                         // found a candidate line.
@@ -992,7 +1004,7 @@ void Header::repair( Multipart * p, const String & body )
                                   s.endsWith( "--" ) ) {
                             // it's the end boundary
                         }
-                        else {
+                        else if ( s.length() <= 70 ) {
                             // we've seen different boundary lines. oops.
                             confused = true;
                         }
