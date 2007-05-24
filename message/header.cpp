@@ -1168,8 +1168,7 @@ void Header::repair( Multipart * p, const String & body )
     // knows something about the real origin.
 
     if ( occurrences[(int)HeaderField::From] == 1 &&
-         ( occurrences[(int)HeaderField::Sender] == 1 ||
-           occurrences[(int)HeaderField::ReturnPath] == 1 ) ) {
+         occurrences[(int)HeaderField::MessageId] == 1 ) {
         AddressField * from = addressField( HeaderField::From );
         if ( !from->valid() ) {
             List<Address> * l = from->addresses();
