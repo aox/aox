@@ -75,6 +75,40 @@ MboxMailbox::MboxMailbox( const String & path, uint n )
 }
 
 
+static bool isFrom( const char * s )
+{
+    String f( s );
+
+    if ( !f.startsWith( "From " ) )
+        return false;
+
+    uint n = 5;
+    while ( n < f.length() &&
+            !( s[n] == ' ' &&
+               ( s[n+1] >= '0' && s[n+1] <= '9' ) &&
+               ( s[n+2] >= '0' && s[n+2] <= '9' ) &&
+               s[n+3] == ':' &&
+               ( s[n+4] >= '0' && s[n+4] <= '9' ) &&
+               ( s[n+5] >= '0' && s[n+5] <= '9' ) &&
+               s[n+6] == ':' &&
+               ( s[n+7] >= '0' && s[n+7] <= '9' ) &&
+               ( s[n+8] >= '0' && s[n+8] <= '9' ) &&
+               s[n+9] == ' ' &&
+               ( s[n+10] >= '0' && s[n+10] <= '9' ) &&
+               ( s[n+11] >= '0' && s[n+11] <= '9' ) &&
+               ( s[n+12] >= '0' && s[n+12] <= '9' ) &&
+               ( s[n+13] >= '0' && s[n+13] <= '9' ) ) )
+    {
+        n++;
+    }
+
+    if ( f[n] == '\0' )
+        return false;
+
+    return true;
+}
+
+
 /*! This reimplementation does a rough parsing of mbox files. It's
     difficult to know how to parse those things - how flexible should
     we be? Should we insist on a correct date, for example?
@@ -98,12 +132,12 @@ MigratorMessage * MboxMailbox::nextMessage()
     }
 
     String contents;
-    while ( fgets( s, 128, d->file ) != 0 ) {
-        if ( s[0] == 'F' && s[1] == 'r' && s[2] == 'o' && s[3] == 'm' &&
-             s[4] == ' ' )
-            break;
-        // XXX: Should we do ">From " unescaping here? It would be easy.
-        contents.append( s );
+    bool done = false;
+    while ( !done ) {
+        if ( fgets( s, 128, d->file ) != 0 && !isFrom( s ) )
+            contents.append( s );
+        else
+            done = true;
     }
 
     if ( contents.isEmpty() )
