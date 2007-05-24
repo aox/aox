@@ -1017,8 +1017,10 @@ void Header::repair( Multipart * p, const String & body )
             while ( body[cand] == '\n' )
                 cand++;
             bool confused = false;
+            bool done = false;
             String boundary;
-            while ( cand >= 0 && cand < (int)body.length() && !confused ) {
+            while ( cand >= 0 && cand < (int)body.length() &&
+                    !done && !confused ) {
                 if ( body[cand] == '-' && body[cand+1] == '-' ) {
                     int i = cand+2;
                     char c = body[i];
@@ -1051,6 +1053,7 @@ void Header::repair( Multipart * p, const String & body )
                                   s.startsWith( boundary ) &&
                                   s.endsWith( "--" ) ) {
                             // it's the end boundary
+                            done = true;
                         }
                         else if ( s.length() <= 70 ) {
                             // we've seen different boundary lines. oops.
