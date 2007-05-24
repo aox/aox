@@ -1072,18 +1072,6 @@ void Header::repair( Multipart * p, const String & body )
         }
     }
     
-    // If the Reply-To field is bad and From is good, we forget
-    // Reply-To entirely.
-
-    if ( occurrences[(int)HeaderField::From] &&
-         occurrences[(int)HeaderField::ReplyTo] ) {
-        AddressField * from = addressField( HeaderField::From );
-        AddressField * rt = addressField( HeaderField::ReplyTo );
-        if ( from->valid() && !rt->valid() &&
-             from->addresses() && !from->addresses()->isEmpty() )
-            removeField( HeaderField::ReplyTo );
-    }
-
     // If the From field is syntactically invalid, but we could parse
     // one or more good addresses, kill the bad one(s) and go ahead.
 
@@ -1211,6 +1199,18 @@ void Header::repair( Multipart * p, const String & body )
                 }
             }
         }
+    }
+
+    // If the Reply-To field is bad and From is good, we forget
+    // Reply-To entirely.
+
+    if ( occurrences[(int)HeaderField::From] &&
+         occurrences[(int)HeaderField::ReplyTo] ) {
+        AddressField * from = addressField( HeaderField::From );
+        AddressField * rt = addressField( HeaderField::ReplyTo );
+        if ( from->valid() && !rt->valid() &&
+             from->addresses() && !from->addresses()->isEmpty() )
+            removeField( HeaderField::ReplyTo );
     }
 
     d->verified = false;
