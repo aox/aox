@@ -102,6 +102,7 @@ static bool isFrom( const char * s )
         n++;
     }
 
+    // Did we find "11:22:33 4567" in the line?
     if ( f[n] == '\0' )
         return false;
 
