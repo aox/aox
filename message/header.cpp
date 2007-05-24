@@ -1066,25 +1066,48 @@ void Header::repair( Multipart * p, const String & body )
            occurrences[(int)HeaderField::ReturnPath] == 1 ) ) {
         AddressField * from = addressField( HeaderField::From );
         if ( !from->valid() ) {
-            AddressField * rp = addressField( HeaderField::ReturnPath );
-            AddressField * sender = addressField( HeaderField::Sender );
-            Address * a = 0;
-            if ( rp && rp->valid() ) {
-                List<Address> * l = rp->addresses();
-                if ( l && !l->isEmpty() &&
-                     l->first()->type() != Address::Bounce )
-                    a = l->first();
+            // XXX we only consider s/rp good if the received chain is
+            // unbroken. This is a proxy test: We should really be
+            // checking for a pure-smtp received chain and abort if
+            // there are any imap/pop/http/other hops.
+            List<HeaderField>::Iterator it( d->fields );
+            bool seenReceived = false;
+            bool seenOther = false;
+            bool unbrokenReceived = true;
+            while ( it && unbrokenReceived ) {
+                if ( it->type() == HeaderField::Received ) {
+                    if ( seenOther )
+                        unbrokenReceived = false; // rcvd, other, then rcvd
+                    else
+                        seenReceived = true; // true on first received
+                }
+                else {
+                    if ( seenReceived )
+                        seenOther = true; // true on first other after rcvd
+                }
+                ++it;
             }
-            if ( !a && sender && sender->valid() ) {
-                List<Address> * l = sender->addresses();
-                if ( l && !l->isEmpty() &&
-                     l->first()->type() != Address::Bounce )
-                    a = l->first();
-            }
-            if ( a ) {
+            if ( unbrokenReceived ) {
+                AddressField * rp = addressField( HeaderField::ReturnPath );
+                AddressField * sender = addressField( HeaderField::Sender );
+                Address * a = 0;
+                if ( rp && rp->valid() ) {
+                    List<Address> * l = rp->addresses();
+                    if ( l && !l->isEmpty() &&
+                         l->first()->type() != Address::Bounce )
+                        a = l->first();
+                }
+                if ( !a && sender && sender->valid() ) {
+                    List<Address> * l = sender->addresses();
+                    if ( l && !l->isEmpty() &&
+                         l->first()->type() != Address::Bounce )
+                        a = l->first();
+                }
+                if ( a ) {
                     from->setError( "" );
                     from->addresses()->clear();
                     from->addresses()->append( a );
+                }
             }
         }
     }
