@@ -45,6 +45,9 @@ public:
 
     void clone( const Address & );
 
+    void setError( const String & );
+    String error() const;
+
 private:
     class AddressData * d;
 

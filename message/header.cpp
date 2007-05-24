@@ -1058,6 +1058,31 @@ void Header::repair( Multipart * p, const String & body )
             removeField( HeaderField::ReplyTo );
     }
 
+    // If the From field is syntactically invalid, but we could parse
+    // one or more good addresses, kill the bad one(s) and go ahead.
+
+    if ( occurrences[(int)HeaderField::From] == 1 ) {
+        AddressField * from = addressField( HeaderField::From );
+        if ( !from->valid() ) {
+            List<Address>::Iterator it( from->addresses() );
+            List<Address> good;
+            while ( it ) {
+                if ( it->error().isEmpty() && it->localpartIsSensible() )
+                    good.append( it );
+                ++it;
+            }
+            if ( !good.isEmpty() ) {
+                from->addresses()->clear();
+                it = good;
+                while ( it ) {
+                    from->addresses()->append( (Address *)it );
+                    ++it;
+                }
+                from->setError( "" );
+            }
+        }
+    }
+
     // If the from field is bad, but there is a good sender or
     // return-path, copy s/rp into from.
 

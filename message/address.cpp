@@ -22,6 +22,7 @@ public:
     String localpart;
     String domain;
     Address::Type type;
+    String error;
 };
 
 
@@ -331,7 +332,8 @@ public:
     AddressParserData() {}
 
     String s;
-    String e;
+    String firstError;
+    String recentError;
     List<Address> a;
     String lastComment;
 };
@@ -433,7 +435,7 @@ AddressParser::~AddressParser()
 
 String AddressParser::error() const
 {
-    return d->e;
+    return d->firstError;
 }
 
 
@@ -458,12 +460,13 @@ void AddressParser::add( UString name,
                          const String & domain )
 {
     // if the localpart is too long, reject the add()
-    if ( localpart.length() > 128 ) {
-        if ( d->e.isEmpty() )
-            d->e = "Localpart too long (" +
-                   fn( localpart.length() ) +
-                   " characters, RFC 2821's maximum is 64): " +
-                   localpart + "@" + domain;
+    if ( localpart.length() > 256 ) {
+        d->recentError = "Localpart too long (" +
+                         fn( localpart.length() ) +
+                         " characters, RFC 2821's maximum is 64): " +
+                         localpart + "@" + domain;
+        if ( d->firstError.isEmpty() )
+            d->firstError = d->recentError;
         return;
     }
     // anti-outlook hackery, step 1: remove extra surrounding quotes
@@ -491,6 +494,7 @@ void AddressParser::add( UString name,
         name.truncate();
 
     Address * a = new Address( name, localpart, domain );
+    a->setError( d->recentError );
     d->a.prepend( a );
 }
 
@@ -558,7 +562,7 @@ AddressParser * AddressParser::references( const String & r )
             ap->comment( i );
         }
     }
-    ap->d->e = "";
+    ap->d->firstError = "";
     return ap;
 }
 
@@ -571,6 +575,7 @@ void AddressParser::address( int & i )
 {
     // we're presumably looking at an address
     d->lastComment = "";
+    d->recentError.truncate();
     comment( i );
     String & s = d->s;
     while ( i > 0 && s[i] == ',' ) {
@@ -1203,13 +1208,14 @@ String AddressParser::localpart( int & i )
 
 void AddressParser::error( const char * s, int i )
 {
-    if ( !d->e.isEmpty() )
-        return;
     if ( i < 0 )
         i = 0;
-    d->e = String( s ) + " at position " + fn( i ) +
-           " (nearby text: '" +
-           d->s.mid( i > 8 ? i-8 : 0, 20 ).simplified() + ")";
+    d->recentError
+        = String( s ) + " at position " + fn( i ) +
+        " (nearby text: '" +
+        d->s.mid( i > 8 ? i-8 : 0, 20 ).simplified() + ")";
+    if ( d->firstError.isEmpty() )
+        d->firstError = d->recentError;
 }
 
 
@@ -1335,5 +1341,23 @@ void AddressParser::route( int & i )
             i--;
         rdom = domain( i );
     }
-    d->e = "";
+    d->firstError = "";
+}
+
+
+/*! Records \a message as an error message relating to the parsing of
+    this Address. The initial value is empty.
+*/
+
+void Address::setError( const String & message )
+{
+    d->error = message;
+}
+
+
+/*! Returns whatever setError() set, or an empty string. */
+
+String Address::error() const
+{
+    return d->error;
 }
