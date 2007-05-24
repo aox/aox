@@ -5,6 +5,7 @@
 #include "field.h"
 #include "datefield.h"
 #include "mimefields.h"
+#include "configuration.h"
 #include "addressfield.h"
 #include "multipart.h"
 #include "address.h"
@@ -214,7 +215,29 @@ HeaderField * Header::field( HeaderField::Type t, uint n ) const
 
 AddressField *Header::addressField( HeaderField::Type t, uint n ) const
 {
-    return (AddressField *)field( t, n );
+    switch( t ) {
+    case HeaderField::From:
+    case HeaderField::ResentFrom:
+    case HeaderField::Sender:
+    case HeaderField::ResentSender:
+    case HeaderField::ReturnPath:
+    case HeaderField::ReplyTo:
+    case HeaderField::To:
+    case HeaderField::Cc:
+    case HeaderField::Bcc:
+    case HeaderField::ResentTo:
+    case HeaderField::ResentCc:
+    case HeaderField::ResentBcc:
+    case HeaderField::MessageId:
+    case HeaderField::ContentId:
+    case HeaderField::ResentMessageId:
+    case HeaderField::References:
+        return (AddressField *)field( t, n );
+        break;
+    default:
+        break;
+    }
+    return 0;
 }
 
 
@@ -1067,7 +1090,9 @@ void Header::repair( Multipart * p, const String & body )
             List<Address>::Iterator it( from->addresses() );
             List<Address> good;
             while ( it ) {
-                if ( it->error().isEmpty() && it->localpartIsSensible() )
+                if ( it->error().isEmpty() &&
+                     it->type() == Address::Normal &&
+                     it->localpartIsSensible() )
                     good.append( it );
                 ++it;
             }
@@ -1132,6 +1157,55 @@ void Header::repair( Multipart * p, const String & body )
                     from->setError( "" );
                     from->addresses()->clear();
                     from->addresses()->append( a );
+                }
+            }
+        }
+    }
+
+    // If the From field is the bounce address, and we still haven't
+    // salvaged it, and the message-id wasn't added here, we use
+    // postmaster@<message-id-domain> and hope the postmaster there
+    // knows something about the real origin.
+
+    if ( occurrences[(int)HeaderField::From] == 1 &&
+         ( occurrences[(int)HeaderField::Sender] == 1 ||
+           occurrences[(int)HeaderField::ReturnPath] == 1 ) ) {
+        AddressField * from = addressField( HeaderField::From );
+        if ( !from->valid() ) {
+            List<Address> * l = from->addresses();
+            if ( l->count() == 1 &&
+                 l->first()->type() == Address::Bounce ) {
+                Address * msgid = addresses( HeaderField::MessageId )->first();
+                String me = Configuration::hostname().lower();
+                String victim;
+                if ( msgid )
+                    victim = msgid->domain().lower();
+                uint tld = victim.length();
+                if ( victim[tld-3] == '.' )
+                    tld -= 3; // .de
+                else if ( victim[tld-3] == '.' )
+                    tld -= 4; // .com
+                if ( tld < victim.length() ) {
+                    if ( victim[tld-3] == '.' )
+                        tld -= 3; // .co.uk
+                    else if ( victim[tld-4] == '.' )
+                        tld -= 4; // .com.co
+                    else if ( tld == victim.length() - 2 && 
+                              victim[tld-5] == '.' )
+                        tld -= 5; // .priv.no
+                }
+                int dot = victim.find( '.' );
+                if ( dot < (int)tld )
+                    victim = victim.mid( dot+1 );
+                if ( victim != me && !me.endsWith( "." + victim ) ) {
+                    Address * replacement
+                        = new Address( "postmaster "
+                                       "(on behalf of unnamed " +
+                                       msgid->domain() + " user)",
+                                       "postmaster", victim );
+                    l->clear();
+                    l->append( replacement );
+                    from->setError( "" );
                 }
             }
         }
