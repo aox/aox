@@ -164,10 +164,10 @@ generally stored only once, and mail parsing exploits are rendered
 harmless before reaching the MUA. A movie clip sent to a hundred
 recipients is not a problem, because it's stored just once.
 .SH LICENSING
-Starting with version 1.0, Archiveopteryx will be available under two
-licences, namely the OSL 2.1 license and a commercial software license.
+Archiveopteryx is available under two
+licences, namely the OSL 3.0 license and a commercial software license.
 .PP
-The OSL 2.1 (see http://www.archiveopteryx.org/opensource.html) is a
+The OSL 3.0 (see http://www.archiveopteryx.org/opensource.html) is a
 fairly restrictive open source license similar to the more well-known
 GNU licenses. It includes a disclaimer of responsibility.
 .PP
