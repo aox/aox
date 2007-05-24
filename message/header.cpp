@@ -1182,7 +1182,7 @@ void Header::repair( Multipart * p, const String & body )
                 uint tld = victim.length();
                 if ( victim[tld-3] == '.' )
                     tld -= 3; // .de
-                else if ( victim[tld-3] == '.' )
+                else if ( victim[tld-4] == '.' )
                     tld -= 4; // .com
                 if ( tld < victim.length() ) {
                     if ( victim[tld-3] == '.' )
