@@ -591,17 +591,9 @@ void Fetch::execute()
 
     if ( d->state == 1 ) {
         d->state = 2;
-        if ( d->peek ) {
-            // go directly to stage 2
-        }
-        else if ( d->modseq || d->flags ) {
-            // to 2 after updating modseq/\seen
+        if ( !d->peek ) {
             (void)new FetchData::SeenFlagSetter( s, d->set, this );
             return;
-        }
-        else {
-            // set \seen in parallel with doing the fetch
-            (void)new FetchData::SeenFlagSetter( s, d->set, 0 );
         }
     }
 
