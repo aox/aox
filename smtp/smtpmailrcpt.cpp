@@ -100,13 +100,19 @@ void SmtpMailFrom::execute()
     if ( !server()->isFirstCommand( this ) )
         return;
 
+    if ( server()->dialect() == SMTP::Submit && !server()->user() ) {
+        respond( 530, "User not authenticated" );
+        finish();
+        return;
+    }
+
     if ( server()->sieve()->sender() ) {
         respond( 500, "Sender address already specified: " + 
                  server()->sieve()->sender()->toString() );
         finish();
         return;
     }
-    // checking rcpt to is not necessary, since it already checks mail friom
+    // checking rcpt to is not necessary, since it already checks mail from
 
     server()->sieve()->setSender( d->address );
     if ( d->address->type() == Address::Bounce )
