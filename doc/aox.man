@@ -151,10 +151,6 @@ Permanently deletes messages that were marked for deletion more than
 .I undelete-time
 days ago, and removes any bodyparts that are no longer used.
 .IP
-This process holds an exclusive lock on the mailboxes table (i.e. new
-messages cannot be injected until it's done) while removing orphaned
-bodyparts.
-.IP
 This is not a replacement for running VACUUM ANALYSE on the database
 (either with vacuumdb or via autovacuum).
 .IP
