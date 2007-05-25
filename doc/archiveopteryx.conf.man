@@ -339,7 +339,9 @@ should accept mail via SMTP-Submit (RFC 4409). The default is
 .IP smtp-submit-address
 specifies the address where
 .BR archiveopteryx (8)
-should listen for Submit connections. The default is
+should listen for Submit connections. The
+default, an empty string, means to listen on all available IPv4 and
+IPv6 addresses.
 .IR 127.0.0.1 .
 .IP smtp-submit-port
 specifies which port
