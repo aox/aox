@@ -760,7 +760,7 @@ void Header::repair( Multipart * p, const String & body )
 
     // If there is no valid Date field and this is an RFC822 header,
     // we look for a sensible date.
-    
+
     if ( mode() == Rfc2822 &&
          ( occurrences[(int)HeaderField::Date] == 0 ||
            !field( HeaderField::Date )->valid() ||
@@ -870,7 +870,7 @@ void Header::repair( Multipart * p, const String & body )
         if ( a )
             add( "From", a->first()->toString() );
     }
-    
+
     // If there is an unacceptable Received field somewhere, remove it
     // and all the older Received fields.
 
@@ -910,7 +910,7 @@ void Header::repair( Multipart * p, const String & body )
             }
         }
     }
-    
+
     // If there's more than one Sender field, preserve the first that
     // a) is syntactically valid and b) is different from From, and
     // remove the others.
@@ -960,7 +960,7 @@ void Header::repair( Multipart * p, const String & body )
                 String v = s->data();
                 bool b = false;
                 if ( v.length() > 300 ) {
-                    b = true; 
+                    b = true;
                 }
                 else if ( v.length() > 80 ) {
                     v = v.simplified();
@@ -1010,7 +1010,7 @@ void Header::repair( Multipart * p, const String & body )
 
     if ( occurrences[(int)HeaderField::ContentType] && !body.isEmpty() ) {
         ContentType * ct = contentType();
-        if ( !ct->valid() && 
+        if ( !ct->valid() &&
              ct->type() == "multipart" &&
              ct->parameter( "boundary" ).isEmpty() ) {
             int cand = 0;
@@ -1071,7 +1071,7 @@ void Header::repair( Multipart * p, const String & body )
             }
         }
     }
-    
+
     // If the From field is syntactically invalid, but we could parse
     // one or more good addresses, kill the bad one(s) and go ahead.
 
@@ -1184,15 +1184,19 @@ void Header::repair( Multipart * p, const String & body )
                     if ( victim[tld-3] == '.' )
                         tld -= 3; // .co.uk
                     else if ( victim[tld-4] == '.' )
-                        tld -= 4; // .com.co
-                    else if ( tld == victim.length() - 2 && 
+                        tld -= 4; // .com.au
+                    else if ( tld == victim.length() - 2 &&
                               victim[tld-5] == '.' )
                         tld -= 5; // .priv.no
                 }
                 int dot = victim.find( '.' );
-                if ( dot < (int)tld )
+                if ( dot < (int)tld ) {
                     victim = victim.mid( dot+1 );
-                if ( victim != me && !me.endsWith( "." + victim ) ) {
+                    tld = tld - dot - 1;
+                }
+                if ( !victim.isEmpty() && 
+                     victim != me && !me.endsWith( "." + victim ) &&
+                     tld < victim.length() ) {
                     Address * replacement
                         = new Address( "postmaster "
                                        "(on behalf of unnamed " +
@@ -1286,7 +1290,7 @@ static int msgidness( const Address * a )
     }
     return score/lp.length();
 }
-   
+
 
 /*! Scans for fields containing unlabelled 8-bit content and encodes
     them using \a c.
