@@ -1164,8 +1164,13 @@ void Header::repair( Multipart * p, const String & body )
         if ( !from->valid() ) {
             List<Address> * l = from->addresses();
             if ( l->count() == 1 &&
-                 l->first()->type() == Address::Bounce ) {
-                Address * msgid = addresses( HeaderField::MessageId )->first();
+                 l->first()->type() == Address::Bounce )
+            {
+                Address * msgid = 0;
+                List<Address> * al = addresses( HeaderField::MessageId );
+                if ( al )
+                    msgid = al->first();
+
                 String me = Configuration::hostname().lower();
                 String victim;
                 if ( msgid )
