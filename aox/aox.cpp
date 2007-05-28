@@ -358,6 +358,7 @@ public:
     List< Query > * chores;
     Command command;
     Query * query;
+    Query * q;
     User * user;
     uint conversions;
     Transaction * t;
@@ -376,10 +377,11 @@ public:
     List<AddressMap> * addressMap;
     Injector * injector;
     Row * row;
+    String hash;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
-          command( cmd ), query( 0 ),
+          command( cmd ), query( 0 ), q( 0 ),
           user( 0 ), conversions( 0 ), t( 0 ), address( 0 ), m( 0 ),
           schema( 0 ), state( 0 ), ids( 0 ), addressCache( 0 ),
           parsers( 0 ), unknownAddresses( 0 ), headerFieldRows( 0 ),
@@ -1250,7 +1252,7 @@ void updateDatabase()
         d->state = 0;
     }
 
-    while ( d->state != 672 ) {
+    while ( d->state != 675 ) {
         if ( d->state == 0 ) {
             printf( "- Checking for unconverted address fields in "
                     "header_fields.\n" );
@@ -1549,27 +1551,85 @@ void updateDatabase()
 
         if ( d->state == 671 ) {
             while ( d->query->hasResults() ) {
-                Row * r = d->query->nextRow();
-                UString s( r->getUString( "text" ) );
+                d->row = d->query->nextRow();
+                UString s( d->row->getUString( "text" ) );
 
                 PgUtf8Codec u;
                 String data( u.fromUnicode( s ) );
-                String h( MD5::hash( data ).hex() );
+                d->hash = MD5::hash( data ).hex();
 
-                Query * q =
-                    new Query( "update bodyparts set text=$1,hash=$2 "
-                               "where id=$3", d );
-                q->bind( 1, s );
-                q->bind( 2, h );
-                q->bind( 3, r->getInt( "id" ) );
-                d->waitFor( q );
-                q->execute();
+                d->state = 672;
+                d->q = new Query( "update bodyparts set text=$1,hash=$2 "
+                                  "where id=$3", d );
+                d->q->bind( 1, s );
+                d->q->bind( 2, d->hash );
+                d->q->bind( 3, d->row->getInt( "id" ) );
+                d->q->execute();
             }
 
             if ( !d->query->done() )
                 return;
 
-            d->state = 672;
+            d->state = 675;
+        }
+
+        if ( d->state == 672 ) {
+            if ( !d->q->done() )
+                return;
+
+            if ( d->q->failed() ) {
+                if ( d->q->error().contains( "unique constraint" ) ) {
+                    d->state = 673;
+                    d->t = new Transaction( d );
+                    d->q = new Query( "select id from bodyparts where "
+                                      "hash=$1", d );
+                    d->q->bind( 1, d->hash );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                }
+                else {
+                    error( "Error: " + d->q->error() );
+                }
+            }
+            else {
+                d->state = 671;
+            }
+        }
+
+        if ( d->state == 673 ) {
+            if ( !d->q->done() )
+                return;
+
+            Row * r = d->q->nextRow();
+            if ( !r || d->q->failed() ) {
+                String s( "Error: Couldn't fetch colliding bodypart id" );
+                if ( d->q->failed() ) {
+                    s.append( ": " );
+                    s.append( d->q->error() );
+                }
+                error( s );
+            }
+
+            d->state = 674;
+            d->q = new Query( "update part_numbers set bodypart=$1 "
+                              "where bodypart=$2", d );
+            d->q->bind( 1, r->getInt( "id" ) );
+            d->q->bind( 2, d->row->getInt( "id" ) );
+            d->t->enqueue( d->q );
+            d->q = new Query( "delete from bodyparts where id=$1", d );
+            d->q->bind( 1, d->row->getInt( "id" ) );
+            d->t->enqueue( d->q );
+            d->t->commit();
+        }
+
+        if ( d->state == 674 ) {
+            if ( !d->t->done() )
+                return;
+
+            if ( d->t->failed() )
+                error( "Error: " + d->t->error() );
+
+            d->state = 671;
         }
     }
 
