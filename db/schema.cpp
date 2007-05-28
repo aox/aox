@@ -372,6 +372,8 @@ bool Schema::singleStep()
         c = stepTo46(); break;
     case 46:
         c = stepTo47(); break;
+    case 47:
+        c = stepTo48(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2167,6 +2169,31 @@ bool Schema::stepTo47()
         d->t->execute();
     }
     
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Grant select,update on annotations_id_seq. */
+
+bool Schema::stepTo48()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Granting privileges on annotations_id_seq" );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "grant select,update on annotations_id_seq "
+                          "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
