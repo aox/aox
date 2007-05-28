@@ -276,7 +276,7 @@ create table annotation_names (
 -- One entry per annotation
 
 create table annotations (
-    id          serial,
+    id          serial primary key,
     mailbox     integer not null,
     uid         integer not null,
     owner       integer references users(id) on delete cascade,
