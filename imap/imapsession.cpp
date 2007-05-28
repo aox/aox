@@ -294,6 +294,8 @@ void ImapSession::emitResponses()
 {
     Session::emitResponses();
     List<Command>::Iterator c( d->i->commands() );
+    while ( c && c->state() == Command::Retired )
+        ++c;
     if ( c && c->state() == Command::Finished &&
          !d->flagf && !d->annof && !d->trif )
         d->i->unblockCommands();
