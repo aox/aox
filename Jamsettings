@@ -102,7 +102,7 @@ PSQL ?= psql ;
 # the db-address variable in archiveopteryx.conf, and may be the
 # fully-qualified Unix socket path, or an IPv4/6 address.
 #
-DBADDRESS ?= /tmp/.s.PGSQL.5432 ;
+DBADDRESS ?= 127.0.0.1 ;
 
 # By default, LIBDIR/installer will create a Postgres user and database,
 # and an unprivileged database user for the servers to use. If you want
