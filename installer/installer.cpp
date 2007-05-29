@@ -621,11 +621,20 @@ void database()
     }
 
     if ( d->state == CheckSuperuser ) {
-        d->state = CheckingSuperuser;
-        d->q = new Query( "select usename from pg_catalog.pg_user where "
-                          "usename=$1", d );
-        d->q->bind( 1, *dbowner );
-        d->q->execute();
+        if ( *dbowner == *dbuser ) {
+            // This is a concession to automated testing setups where
+            // AOXUSER and AOXSUPER are the same.
+            if ( generatedOwnerPass )
+                *dbownerpass = *dbpass;
+            d->state = CreateDatabase;
+        }
+        else {
+            d->state = CheckingSuperuser;
+            d->q = new Query( "select usename from pg_catalog.pg_user where "
+                              "usename=$1", d );
+            d->q->bind( 1, *dbowner );
+            d->q->execute();
+        }
     }
 
     if ( d->state == CheckingSuperuser ) {
