@@ -10,6 +10,7 @@
 #include "mimefields.h"
 #include "imapparser.h"
 #include "bodypart.h"
+#include "occlient.h"
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
@@ -1421,8 +1422,6 @@ void FetchData::SeenFlagSetter::execute()
     q->bind( 2, session->mailbox()->id() );
     t->enqueue( q );
 
-    if ( session->mailbox()->nextModSeq() <= modseq )
-        session->mailbox()->setNextModSeq( modseq + 1 );
 
     q = Store::addFlagsQuery( seen, session->mailbox(), messages, 0 );
     t->enqueue( q );
@@ -1432,4 +1431,11 @@ void FetchData::SeenFlagSetter::execute()
     q->bind( 2, session->mailbox()->id() );
     t->enqueue( q );
     t->commit();
+
+    // properly speaking we should wait until the commit succeeds
+    if ( session->mailbox()->nextModSeq() <= modseq ) {
+        session->mailbox()->setNextModSeq( modseq + 1 );
+        OCClient::send( "mailbox " + session->mailbox()->name().quoted() + " "
+                        "nextmodseq=" + fn( modseq+1 ) );
+    }
 }

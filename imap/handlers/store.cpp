@@ -7,6 +7,7 @@
 #include "imapsession.h"
 #include "annotation.h"
 #include "messageset.h"
+#include "occlient.h"
 #include "mailbox.h"
 #include "message.h"
 #include "fetcher.h"
@@ -448,10 +449,16 @@ void Store::execute()
 
     // record the change so that views onto this mailbox update themselves
     Mailbox * mb = imap()->session()->mailbox();
-    if ( mb->view() && mb->source()->nextModSeq() <= d->modseq )
+    if ( mb->view() && mb->source()->nextModSeq() <= d->modseq ) {
         mb->source()->setNextModSeq( d->modseq + 1 );
-    else if ( mb->nextModSeq() <= d->modseq )
+        OCClient::send( "mailbox " + mb->source()->name().quoted() + " "
+                        "nextmodseq=" + fn( d->modseq+1 ) );
+    }
+    else if ( mb->nextModSeq() <= d->modseq ) {
         mb->setNextModSeq( d->modseq + 1 );
+        OCClient::send( "mailbox " + mb->name().quoted() + " "
+                        "nextmodseq=" + fn( d->modseq+1 ) );
+    }
 
     // maybe this should check d->silent && d->modseq =
     // session->mailbox->highestmodseq, so we'll be !silent if there's

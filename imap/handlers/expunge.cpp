@@ -8,10 +8,11 @@
 #include "query.h"
 #include "scope.h"
 #include "mailbox.h"
+#include "occlient.h"
+#include "messageset.h"
 #include "imapsession.h"
 #include "permissions.h"
 #include "transaction.h"
-#include "messageset.h"
 
 
 class ExpungeData
@@ -19,11 +20,12 @@ class ExpungeData
 {
 public:
     ExpungeData()
-        : uid( false ), s( 0 ),
+        : uid( false ), modseq( 0 ), s( 0 ),
           findUids( 0 ), findModseq( 0 ), expunge( 0 ), t( 0 )
     {}
 
     bool uid;
+    int64 modseq;
     Session * s;
     Query * findUids;
     Query * findModseq;
@@ -138,7 +140,7 @@ void Expunge::execute()
 
     if ( !d->expunge ) {
         r = d->findModseq->nextRow();
-        int64 modseq = r->getBigint( "nextmodseq" ); // XXX 0
+        d->modseq = r->getBigint( "nextmodseq" ); // XXX 0
 
         String w( d->uids.where() );
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
@@ -147,7 +149,7 @@ void Expunge::execute()
                          "set modseq=$2 "
                          "where mailbox=$1 and (" + w + ")", 0 );
         q->bind( 1, d->s->mailbox()->id() );
-        q->bind( 1, modseq );
+        q->bind( 1, d->modseq );
         d->t->enqueue( q );
 
         d->expunge = new Query( "insert into deleted_messages "
@@ -162,7 +164,7 @@ void Expunge::execute()
 
         q = new Query( "update mailboxes set nextmodseq=$1 "
                        "where id=$2", 0 );
-        q->bind( 1, modseq + 1 );
+        q->bind( 1, d->modseq + 1 );
         q->bind( 2, d->s->mailbox()->id() );
         d->t->enqueue( q );
         d->t->commit();
@@ -175,5 +177,10 @@ void Expunge::execute()
         error( No, "Database error. Messages not expunged." );
 
     d->s->expunge( d->uids );
+    if ( d->s->mailbox()->nextModSeq() <= d->modseq ) {
+        d->s->mailbox()->setNextModSeq( d->modseq + 1 );
+        OCClient::send( "mailbox " + d->s->mailbox()->name().quoted() + " "
+                        "nextmodseq=" + fn( d->modseq+1 ) );
+    }
     finish();
 }
