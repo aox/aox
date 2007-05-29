@@ -363,6 +363,26 @@ and
 when
 .I use-smtp
 is enabled.)
+.IP use-smtps
+controls whether
+.BR archiveopteryx (8)
+should accept SSL-wrapped SMTP connections. The default is
+.IR false 
+(and the use of STARTTLS with SMTP Submit is strongly recommended
+instead).
+.IP smtps-address
+is the address where
+.BR archiveopteryx (8)
+listens for new SSL-wrapped connections. As for
+.IR smtp-address ,
+the default is an empty string, which means all available IPv4 and
+IPv6 addresses.
+.IP smtps-port
+is the port where
+.BR archiveopteryx (8)
+accepts SSL-wrapped connections,
+.I 465
+by default.
 .SS IMAP
 .IP use-imap
 must be enabled for
@@ -382,10 +402,12 @@ accepts connections,
 .I 143
 by default.
 .IP use-imaps
-is enabled if
+controls whether
 .BR archiveopteryx (8)
-should also accept SSL-wrapped connections. The default is
-.IR false .
+should also accept SSL-wrapped IMAP connections. The default is
+.I false
+(and the use of STARTTLS over the standard IMAP port is strongly
+recommended instead).
 .IP imaps-address
 is the address where
 .BR archiveopteryx (8)

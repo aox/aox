@@ -10,6 +10,7 @@
 #include "buffer.h"
 #include "sieve.h"
 #include "user.h"
+#include "tls.h"
 
 
 class SMTPData
@@ -375,4 +376,64 @@ bool SMTP::isFirstCommand( SmtpCommand * c ) const
     if ( c == d->commands.firstElement() )
         return true;
     return false;
+}
+
+
+class SMTPSData
+    : public Garbage
+{
+public:
+    SMTPSData() : tlsServer( 0 ), helper( 0 ) {}
+    TlsServer * tlsServer;
+    String banner;
+    class SmtpsHelper * helper;
+};
+
+class SmtpsHelper: public EventHandler
+{
+public:
+    SmtpsHelper( SMTPS * connection ) : c( connection ) {}
+    void execute() { c->finish(); }
+
+private:
+    SMTPS * c;
+};
+
+/*! \class SMTPS smtp.h
+
+    The SMTPS class implements the old wrapper trick still commonly
+    used on port 465. As befits a hack, it is a bit of a hack, and
+    depends on the ability to empty its writeBuffer().
+*/
+
+/*! Constructs an SMTPS server on file descriptor \a s, and starts to
+    negotiate TLS immediately.
+*/
+
+SMTPS::SMTPS( int s )
+    : SMTPSubmit( s ), d( new SMTPSData )
+{
+    String * tmp = writeBuffer()->removeLine();
+    if ( tmp )
+        d->banner = *tmp;
+    d->helper = new SmtpsHelper( this );
+    d->tlsServer = new TlsServer( d->helper, peer(), "SMTPS" );
+    EventLoop::global()->removeConnection( this );
+}
+
+
+/*! Handles completion of TLS negotiation and sends the banner. */
+
+void SMTPS::finish()
+{
+    if ( !d->tlsServer->done() )
+        return;
+    if ( !d->tlsServer->ok() ) {
+        log( "Cannot negotiate TLS", Log::Error );
+        close();
+        return;
+    }
+
+    startTls( d->tlsServer );
+    enqueue( d->banner + "\r\n" );
 }

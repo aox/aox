@@ -75,4 +75,17 @@ public:
 };
 
 
+class SMTPS
+    : public SMTPSubmit
+{
+public:
+    SMTPS( int );
+
+    void finish();
+
+private:
+    class SMTPSData * d;
+};
+
+
 #endif

@@ -130,6 +130,11 @@ int main( int argc, char *argv[] )
         Configuration::SmtpSubmitAddress, Configuration::SmtpSubmitPort,
         false
         );
+    Listener< SMTPS >::create(
+        "SMTPS", Configuration::toggle( Configuration::UseSmtps ),
+        Configuration::SmtpsAddress, Configuration::SmtpsPort,
+        false
+        );
     
     s.setup( Server::LogStartup );
 
