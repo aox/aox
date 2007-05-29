@@ -476,18 +476,22 @@ uint Command::group() const
 
     The groups are (subject to later change):
 
-    0) Most commands.
+    0) Most commands. All commands which change state() or expunge
+       messages must be here.
 
-    1) UID SEARCH and UID FETCH. (If UID SEARCH sees that there are MSNs
-    in the search arguments, it has to move itself to class 0.)
+    1) UID SEARCH and UID FETCH. (If UID SEARCH sees that there are
+       MSNs in the search arguments, it has to move itself to group
+       0.)
 
     2) FETCH and SEARCH.
 
-    3) STORE and UID STORE. (Note that for this group to work, the server
-    cannot emit side-effect expunges during UID STORE processing.)
+    3) STORE and UID STORE. (Note that for this group to work, the
+       server cannot emit side-effect expunges during UID STORE
+       processing.) This group exists because a fetch after a store
+       could otherwise fetch old data.
 
-    4) EXAMINE, STATUS, LIST. Perhaps other read-only commands that look
-    at mailboxes.
+    4) STATUS, LIST. Perhaps other read-only commands that look at
+       mailboxes.
 
     The initial value is 0.
 */
@@ -579,9 +583,6 @@ void Command::finish()
     execution to the write buffer. This may turn out to be insufficient,
     but for the moment it guarantees that each command's untagged
     responses and final tagged response come together.
-
-    If this function is called multiple times, only the first call does
-    anything.
 */
 
 void Command::emitResponses()
