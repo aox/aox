@@ -33,6 +33,7 @@ bool report = false;
 bool silent = false;
 
 String * dbname;
+String * dbsocket;
 String * dbaddress;
 String * dbuser;
 String * dbpass;
@@ -93,6 +94,8 @@ int main( int ac, char *av[] )
     Allocator::addEternal( dbowner, "DBOWNER" );
     dbownerpass = new String( DBOWNERPASS );
     Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
+    dbsocket = new String( "/tmp/.s.PGSQL.5432" );
+    Allocator::addEternal( dbsocket, "DBSOCKET" );
 
     uint verbosity = 0;
     av++;
@@ -109,7 +112,9 @@ int main( int ac, char *av[] )
         else if ( s == "-n" ) {
             report = true;
         }
-        else if ( s == "-g" || s == "-u" || s == "-p" || s == "-a" ) {
+        else if ( s == "-g" || s == "-u" || s == "-p" || s == "-a" ||
+                  s == "-s" )
+        {
             if ( ac == 1 )
                 error( s + " specified with no argument." );
             if ( s == "-g" )
@@ -120,6 +125,8 @@ int main( int ac, char *av[] )
                 PGUSER = *av++;
             else if ( s == "-a" )
                 *dbaddress = *av++;
+            else if ( s == "-s" )
+                *dbsocket = *av++;
             ac--;
         }
         else if ( s == "-t" ) {
@@ -162,15 +169,17 @@ int main( int ac, char *av[] )
 
     configure();
 
-    if ( dbaddress->startsWith( "/" ) && !exists( *dbaddress ) ) {
-        fprintf( stderr, "Error: DBADDRESS is set to '%s', "
-                 "which does not exist.\n", dbaddress->cstr() );
+    if ( !( dbsocket->startsWith( "/" ) && exists( *dbsocket ) ) ) {
+        fprintf( stderr, "Error: Couldn't find the Postgres listening "
+                 "socket at '%s'.\n", dbsocket->cstr() );
         if ( exists( "/etc/debian_version" ) &&
              exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
         {
             fprintf( stderr, "(On Debian, perhaps it should be "
                      "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
         }
+        fprintf( stderr, "Please rerun the installer with "
+                 "\"-s /path/to/socket\".\n" );
         exit( -1 );
     }
 
@@ -193,18 +202,17 @@ void help()
         stderr,
         "  Archiveopteryx installer\n\n"
         "  Synopsis:\n\n"
-        "    installer [-n] [-q] [-g group] [-u user] [-p postgres] "
-        "[-a address] [-t port]\n\n"
+        "    installer [-n] [-q]\n"
+        "    installer [-g group] [-u user] [-p postgres] [-s socket]\n"
+        "              [-a address] [-t port]\n\n"
         "  This program does the following:\n\n"
-        "    1. Creates a Unix group named %s.\n"
-        "    2. Creates a Unix user named %s.\n"
-        "    3. Creates a Postgres user named %s.\n"
-        "    4. Creates a Postgres user named %s.\n"
-        "    5. Creates a Postgres database named %s owned by %s.\n"
-        "    6. Loads the database schema and grants limited privileges "
+        "    - Creates a Unix group named %s, and a user named %s.\n"
+        "    - Creates Postgres users named %s and %s.\n"
+        "    - Creates a database named %s, owned by %s.\n"
+        "    - Loads the database schema and grants limited privileges "
         "to user %s.\n"
-        "    7. Generates an initial configuration file.\n"
-        "    8. Adjusts ownership and permissions if necessary.\n\n"
+        "    - Generates an initial configuration file.\n"
+        "    - Adjusts ownership and permissions if necessary.\n\n"
         "  Options:\n\n"
         "  The -q flag suppresses all normal output.\n\n"
         "  The -n flag causes the program to report what it would do,\n"
@@ -216,6 +224,9 @@ void help()
         "  The \"-p postgres\" flag allows you to specify the name of\n"
         "  the PostgreSQL superuser. The default is to try $PGSQL (if\n"
         "  set), postgres and pgsql in turn.\n\n"
+        "  The \"-s socket\" flag allows you to specify an alternate\n"
+        "  location for the Postgres server's named listening socket.\n"
+        "  The default is '%s'.\n\n"
         "  The \"-a address\" flag allows you to specify a different\n"
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The \"-t port\" flag allows you to specify a different port\n"
@@ -223,7 +234,7 @@ void help()
         "  The defaults are set at build time in the Jamsettings file.\n\n",
         AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
         dbowner->cstr(), dbuser->cstr(),
-        AOXGROUP, AOXUSER, DBADDRESS
+        AOXGROUP, AOXUSER, dbsocket->cstr(), DBADDRESS
     );
     exit( 0 );
 }
@@ -474,7 +485,7 @@ void database()
     if ( !d ) {
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = '" + *dbaddress + "'" );
+        Configuration::add( "db-address = '" + *dbsocket + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
         if ( dbport != 0 )
@@ -711,9 +722,9 @@ void database()
 
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
+        Configuration::add( "db-address = '" + *dbsocket + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
-        Configuration::add( "db-address = '" + *dbaddress + "'" );
         if ( dbport != 0 )
             Configuration::add( "db-port = " + fn( dbport ) );
 
