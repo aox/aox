@@ -233,20 +233,29 @@ bool ImapSession::responsesReady( ResponseType type ) const
 bool ImapSession::responsesPermitted( ResponseType t ) const
 {
     List<Command>::Iterator c( d->i->commands() );
+    while ( c && c->state() == Command::Retired )
+        ++c;
     // if we're currently executing something other than idle, we
     // don't emit anything
     if ( c && c->state() != Command::Finished && c->name() != "idle" )
         return false;
 
     if ( t == Deleted ) {
+        if ( !c )
+            return false;
         while ( c ) {
+            // we don't need to consider retired commands at all
+            if ( c->state() == Command::Retired )
+                ;
+            // group 2 contains commands during which we may not send
+            // expunge, group 3 contains all commands that change
+            // flags.
+            else if ( c->group() == 2 || c->group() == 3 )
+                return false;
             // if there are MSNs in the pipeline we cannot send
             // expunge. the copy rule is due to RFC 2180 section
             // 4.4.1/2
-            if ( c->usesMsn() && c->name() != "copy" )
-                return false;
-            // the search rule is due to a mistake in 3501
-            if ( c->name() == "search" )
+            else if ( c->usesMsn() && c->name() != "copy" )
                 return false;
             ++c;
         }
