@@ -149,7 +149,7 @@ void Expunge::execute()
                          "set modseq=$2 "
                          "where mailbox=$1 and (" + w + ")", 0 );
         q->bind( 1, d->s->mailbox()->id() );
-        q->bind( 1, d->modseq );
+        q->bind64( 1, d->modseq );
         d->t->enqueue( q );
 
         d->expunge = new Query( "insert into deleted_messages "
@@ -164,7 +164,7 @@ void Expunge::execute()
 
         q = new Query( "update mailboxes set nextmodseq=$1 "
                        "where id=$2", 0 );
-        q->bind( 1, d->modseq + 1 );
+        q->bind64( 1, d->modseq + 1 );
         q->bind( 2, d->s->mailbox()->id() );
         d->t->enqueue( q );
         d->t->commit();
