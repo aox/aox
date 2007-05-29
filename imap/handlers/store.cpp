@@ -120,6 +120,7 @@ void Store::parse()
     }
 
     if ( present( "ANNOTATION (" ) ) {
+        d->silent = true;
         bool more = true;
         while ( more ) {
             parseAnnotationEntry();
