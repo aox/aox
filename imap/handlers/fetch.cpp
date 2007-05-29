@@ -61,12 +61,6 @@ public:
     bool peek;
     MessageSet set;
     MessageSet expunged;
-    struct Message
-        : public Garbage
-    {
-        ::Message * m;
-        uint uid;
-    };
     List<Message> requested;
     uint changedSince;
     Query * notThose;
@@ -612,11 +606,9 @@ void Fetch::execute()
         }
 
         bool ok = true;
-        uint good = 0;
         while ( ok && !d->requested.isEmpty() ) {
-            Message * m = d->requested.first()->m;
-            uint uid = d->requested.first()->uid;
-            uint msn = s->msn( uid );
+            Message * m = d->requested.first();
+            uint msn = s->msn( m->uid() );
             if ( ( !d->annotation || m->hasAnnotations() ) &&
                  ( !d->needHeader || ( m->hasHeaders() &&
                                        m->hasAddresses() ) ) &&
@@ -624,14 +616,13 @@ void Fetch::execute()
                  ( !d->flags || m->hasFlags() ) &&
                  ( ( !d->rfc822size && !d->internaldate && !d->modseq )
                    || m->hasTrivia() ) &&
-                 uid > 0 && msn > 0 )
+                 m->uid() > 0 && msn > 0 )
             {
-                imap()->enqueue( fetchResponse( m, uid, msn ) );
+                imap()->enqueue( fetchResponse( m, m->uid(), msn ) );
                 d->requested.shift();
-                good = uid;
             }
             else {
-                log( "Stopped processing at UID " + fn( uid ) +
+                log( "Stopped processing at UID " + fn( m->uid() ) +
                      " (" + fn( d->requested.count() ) + " messages to go)",
                      Log::Debug );
                 ok = false;
@@ -674,20 +665,12 @@ void Fetch::sendFetchQueries()
     while ( n < 1024 && !d->set.isEmpty() ) {
         uint uid = d->set.value( 1 );
         d->set.remove( uid );
-        FetchData::Message * m = new FetchData::Message;
-        m->m = new Message;
-        m->uid = uid;
-        if ( mb->view() )
-            m->m->setUid( mb->sourceUid( uid ) );
-        else
-            m->m->setUid( uid );
+        Message * m = new Message;
+        m->setUid( uid );
         d->requested.append( m );
-        l->append( m->m );
+        l->append( m );
         n++;
     }
-
-    if ( mb->view() )
-        mb = mb->source();
 
     if ( d->needHeader ) {
         Fetcher * f =

@@ -38,12 +38,19 @@ public:
 
 
 static PreparedStatement * header;
+static PreparedStatement * viewHeader;
 static PreparedStatement * address;
+static PreparedStatement * viewAddress;
 static PreparedStatement * oldAddress;
+static PreparedStatement * viewOldAddress;
 static PreparedStatement * trivia;
+static PreparedStatement * viewTrivia;
 static PreparedStatement * flags;
+static PreparedStatement * viewFlags;
 static PreparedStatement * body;
+static PreparedStatement * viewBody;
 static PreparedStatement * anno;
+static PreparedStatement * viewAnno;
 
 
 static void setupPreparedStatements()
@@ -58,46 +65,125 @@ static void setupPreparedStatements()
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
         "order by h.uid, h.part";
     ::header = new PreparedStatement( q );
+    q = "select vm.uid, h.part, h.position, f.name, h.value from "
+        "header_fields h "
+        "join field_names f on (h.field=f.id) "
+        "join view_messages vm on (vm.source=h.mailbox and vm.suid=h.uid) "
+        "where "
+        "h.field > 12 and "
+        "vm.uid>=$1 and vm.uid<=$2 and vm.view=$3 "
+        "order by vm.uid, h.part";
+    ::viewHeader = new PreparedStatement( q );
+
     q = "select a.name, a.localpart, a.domain, "
         "af.uid, af.part, af.position, af.field, af.number "
         "from address_fields af join addresses a on af.address=a.id "
         "where af.uid>=$1 and af.uid<=$2 and af.mailbox=$3 "
         "order by af.uid, af.part, af.field, af.number";
     ::address = new PreparedStatement( q );
+    q = "select a.name, a.localpart, a.domain, "
+        "vm.uid, af.part, af.position, af.field, af.number "
+        "from address_fields af join addresses a on af.address=a.id "
+        "join view_messages vm on (vm.source=af.mailbox and vm.suid=af.uid) "
+        "where vm.uid>=$1 and vm.uid<=$2 and vm.view=$3 "
+        "order by vm.uid, af.part, af.field, af.number";
+    ::viewAddress = new PreparedStatement( q );
+
     q = "select h.uid, h.part, h.position, f.name, h.value from "
         "header_fields h, field_names f where "
         "h.field = f.id and h.field<=12 and "
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
         "order by h.uid, h.part";
     ::oldAddress = new PreparedStatement( q );
+    q = "select vm.uid, h.part, h.position, f.name, h.value from "
+        "header_fields h, field_names f "
+        "join view_messages vm on (vm.source=h.mailbox and vm.suid=h.uid) "
+        "where "
+        "h.field = f.id and h.field<=12 and "
+        "vm.uid>=$1 and vm.uid<=$2 and vm.view=$3 "
+        "order by vm.uid, h.part";
+    ::viewOldAddress = new PreparedStatement( q );
+
     q = "select m.uid, m.idate, m.rfc822size, ms.modseq from messages m "
         "left join modsequences ms using (mailbox,uid) "
         "where m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
         "order by m.uid";
     ::trivia = new PreparedStatement( q );
+    q = "select vm.uid, m.idate, m.rfc822size, ms.modseq from messages m "
+        "left join modsequences ms using (mailbox,uid) "
+        "join view_messages vm on (vm.source=m.mailbox and vm.suid=m.uid) "
+        "where vm.uid>=$1 and vm.uid<=$2 and vm.view=$3 "
+        "order by vm.uid";
+    ::viewTrivia = new PreparedStatement( q );
+
     q = "select p.uid, p.part, b.text, b.data, "
         "b.bytes as rawbytes, p.bytes, p.lines "
         "from part_numbers p left join bodyparts b on p.bodypart=b.id "
         "where p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 and p.part != '' "
         "order by p.uid, p.part";
     ::body = new PreparedStatement( q );
+    q = "select vm.uid, p.part, b.text, b.data, "
+        "b.bytes as rawbytes, p.bytes, p.lines "
+        "from part_numbers p left join bodyparts b on p.bodypart=b.id "
+        "join view_messages vm on (vm.source=p.mailbox and vm.suid=p.uid) "
+        "where vm.uid>=$1 and vm.uid<=$2 and vm.view=$3 and p.part != '' "
+        "order by vm.uid, p.part";
+    ::viewBody = new PreparedStatement( q );
+
     q = "select uid, flag from flags "
         "where uid>=$1 and uid<=$2 and mailbox=$3 "
         "order by uid, flag";
     ::flags = new PreparedStatement( q );
+    q = "select vm.uid, f.flag from flags f "
+        "join view_messages vm on (vm.source=f.mailbox and vm.suid=f.uid) "
+        "where vm.uid>=$1 and vm.uid<=$2 and vm.view=$3 "
+        "order by vm.uid, f.flag";
+    ::viewFlags = new PreparedStatement( q );
+
     q = "select a.uid, a.owner, a.value, an.name, an.id "
         "from annotations a, annotation_names an "
         "where a.uid>=$1 and a.uid<=$2 and a.mailbox=$3 "
         "and a.name=an.id "
         "order by a.uid, an.id, a.owner";
     ::anno = new PreparedStatement( q );
-    Allocator::addEternal( header, "statement to fetch headers" );
-    Allocator::addEternal( address, "statement to fetch address fields" );
-    Allocator::addEternal( oldAddress, "statement to fetch pre-1.13 address fields" );
-    Allocator::addEternal( trivia, "statement to fetch approximately nothing" );
-    Allocator::addEternal( body, "statement to fetch bodies" );
-    Allocator::addEternal( flags, "statement to fetch flags" );
-    Allocator::addEternal( anno, "statement to fetch annotations" );
+    q = "select vm.uid, a.owner, a.value, an.name, an.id "
+        "from annotations a "
+        "join annotation_names an on (a.name=an.id) "
+        "join view_messages vm on (vm.source=a.mailbox and vm.suid=a.uid) "
+        "where vm.uid>=$1 and vm.uid<=$2 and vm.view=$3 "
+        "order by vm.uid, an.id, a.owner";
+    ::viewAnno = new PreparedStatement( q );
+
+    Allocator::addEternal( header,
+                           "statement to fetch headers" );
+    Allocator::addEternal( viewHeader,
+                           "statement to fetch headers from views" );
+    Allocator::addEternal( address,
+                           "statement to fetch address fields" );
+    Allocator::addEternal( viewAddress,
+                           "statement to fetch address fields from views" );
+    Allocator::addEternal( oldAddress,
+                           "statement to fetch pre-1.13 address fields" );
+    Allocator::addEternal( viewOldAddress,
+                           "statement to fetch pre-1.13 address fields "
+                           "from views" );
+    Allocator::addEternal( trivia,
+                           "statement to fetch approximately nothing" );
+    Allocator::addEternal( viewTrivia,
+                           "statement to fetch approximately nothing "
+                           "from views" );
+    Allocator::addEternal( body,
+                           "statement to fetch bodies" );
+    Allocator::addEternal( viewBody,
+                           "statement to fetch bodies from views" );
+    Allocator::addEternal( flags,
+                           "statement to fetch flags" );
+    Allocator::addEternal( viewFlags,
+                           "statement to fetch flags from views" );
+    Allocator::addEternal( anno,
+                           "statement to fetch annotations" );
+    Allocator::addEternal( viewAnno,
+                           "statement to fetch annotations from views" );
 }
 
 
@@ -220,7 +306,7 @@ void Fetcher::execute()
         while ( i <= still.count() && still.value( i ) - d->smallest < i + 4 )
             d->largest = still.value( i++ );
     }
-    d->query = new Query( *query(), this );
+    d->query = new Query( *query( d->mailbox->view() ), this );
     d->query->bind( 1, d->smallest );
     d->query->bind( 2, d->largest );
     d->query->bind( 3, d->mailbox->id() );
@@ -228,10 +314,11 @@ void Fetcher::execute()
 }
 
 
-/*! \fn PreparedStatement * Fetcher::query() const
+/*! \fn PreparedStatement * Fetcher::query( bool v ) const
 
     Returns a prepared statement to fetch the appropriate sort of
-    message data. The result must demand exactly three Query::bind()
+    message data for a view (if \a v is true) or ordinary mailbox (if
+    \a v is false). The result must demand exactly three Query::bind()
     values, in order: The smallest UID for which data should be
     fetched, the largest, and the mailbox ID.
 */
@@ -274,8 +361,10 @@ void Fetcher::setDone( uint uid )
 */
 
 
-PreparedStatement * MessageHeaderFetcher::query() const
+PreparedStatement * MessageHeaderFetcher::query( bool v ) const
 {
+    if ( v )
+        return ::viewHeader;
     return ::header;
 }
 
@@ -320,8 +409,10 @@ void MessageHeaderFetcher::setDone( Message * m )
 */
 
 
-PreparedStatement * MessageAddressFetcher::query() const
+PreparedStatement * MessageAddressFetcher::query( bool v ) const
 {
+    if ( v )
+        return ::viewAddress;
     return ::address;
 }
 
@@ -413,8 +504,10 @@ void MessageAddressFetcher::execute()
 */
 
 
-PreparedStatement * MessageFlagFetcher::query() const
+PreparedStatement * MessageFlagFetcher::query( bool v ) const
 {
+    if ( v )
+        return ::viewFlags;
     return ::flags;
 }
 
@@ -455,8 +548,10 @@ void MessageFlagFetcher::setDone( Message * m )
 */
 
 
-PreparedStatement * MessageBodyFetcher::query() const
+PreparedStatement * MessageBodyFetcher::query( bool v ) const
 {
+    if ( v )
+        return ::viewBody;
     return ::body;
 }
 
@@ -519,8 +614,10 @@ void MessageBodyFetcher::setDone( Message * m )
 */
 
 
-PreparedStatement * MessageTriviaFetcher::query() const
+PreparedStatement * MessageTriviaFetcher::query( bool v ) const
 {
+    if ( v )
+        return ::viewTrivia;
     return ::trivia;
 }
 
@@ -546,8 +643,10 @@ void MessageTriviaFetcher::setDone( Message * )
     annotations and all private annotations are fetched at once.
 */
 
-PreparedStatement * MessageAnnotationFetcher::query() const
+PreparedStatement * MessageAnnotationFetcher::query( bool v ) const
 {
+    if ( v )
+        return ::viewAnno;
     return ::anno;
 }
 
@@ -594,11 +693,14 @@ void MessageAnnotationFetcher::setDone( Message * m )
 */
 
 /*! The same as the query() in MessageHeaderFetcher, except that it
-    fetches the other header fields.
+    fetches the other header fields. \a v must be true if the mailbox
+    concerned is a view and false if not.
 */
 
-PreparedStatement * MessageOldAddressFetcher::query() const
+PreparedStatement * MessageOldAddressFetcher::query( bool v ) const
 {
+    if ( v )
+        return ::viewOldAddress;
     return ::oldAddress;
 }
 

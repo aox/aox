@@ -25,7 +25,7 @@ public:
 
     void addMessages( List<Message> * );
 
-    virtual PreparedStatement * query() const = 0;
+    virtual PreparedStatement * query( bool ) const = 0;
     virtual void decode( Message *, Row * ) = 0;
     virtual void setDone( Message * ) = 0;
     virtual void setDone( uint );
@@ -46,7 +46,7 @@ public:
     MessageHeaderFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
-    PreparedStatement * query() const;
+    PreparedStatement * query( bool ) const;
     void decode( Message *, Row * );
     void setDone( Message * );
 };
@@ -59,7 +59,7 @@ public:
     MessageAddressFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
-    PreparedStatement * query() const;
+    PreparedStatement * query( bool ) const;
     void decode( Message *, Row * );
     void setDone( Message * );
 
@@ -78,7 +78,7 @@ public:
     MessageOldAddressFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : MessageHeaderFetcher( m, s, e ) {}
 
-    PreparedStatement * query() const;
+    PreparedStatement * query( bool ) const;
     void setDone( Message * );
 };
 
@@ -90,7 +90,7 @@ public:
     MessageFlagFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
-    PreparedStatement * query() const;
+    PreparedStatement * query( bool ) const;
     void decode( Message *, Row * );
     void setDone( Message * );
 };
@@ -103,7 +103,7 @@ public:
     MessageBodyFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
-    PreparedStatement * query() const;
+    PreparedStatement * query( bool ) const;
     void decode( Message *, Row * );
     void setDone( Message * );
 };
@@ -116,7 +116,7 @@ public:
     MessageTriviaFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
-    PreparedStatement * query() const;
+    PreparedStatement * query( bool ) const;
     void decode( Message *, Row * );
     void setDone( Message * );
 };
@@ -129,7 +129,7 @@ public:
     MessageAnnotationFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
-    PreparedStatement * query() const;
+    PreparedStatement * query( bool ) const;
     void decode( Message *, Row * );
     void setDone( Message * );
 
