@@ -34,7 +34,8 @@ class IMAPData
 public:
     IMAPData()
         : state( IMAP::NotAuthenticated ), reader( 0 ),
-          runningCommands( false ), readingLiteral( false ),
+          runningCommands( false ), runCommandsAgain( false ),
+          readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
           bytesArrived( 0 ),
           idle( false )
@@ -51,6 +52,7 @@ public:
     String str;
 
     bool runningCommands;
+    bool runCommandsAgain;
     bool readingLiteral;
     uint literalSize;
 
@@ -438,7 +440,9 @@ void IMAP::reserve( Command * command )
 
 void IMAP::unblockCommands()
 {
-    if ( !d->runningCommands )
+    if ( d->runningCommands )
+        d->runCommandsAgain = true;
+    else
         runCommands();
 }
 
@@ -451,96 +455,84 @@ void IMAP::unblockCommands()
 void IMAP::runCommands()
 {
     d->runningCommands = true;
-    bool done = false;
+    d->runCommandsAgain = true;
 
-    while ( !done ) {
-        done = true;
+    while ( d->runCommandsAgain ) {
+        d->runCommandsAgain = false;
 
         // run all currently executing commands once
         List< Command >::Iterator i( d->commands );
         while ( i ) {
-            run( i );
-            ++i;
-        }
-
-        // if no commands are running, start the oldest blocked command
-        // and any following commands in the same group.
-
-        i = d->commands.first();
-        while ( i && i->state() != Command::Executing )
-            ++i;
-        if ( !i ) {
-            i = d->commands.first();
-            while ( i && i->state() != Command::Blocked )
-                ++i;
-        }
-        if ( i ) {
-            if ( i->state() == Command::Blocked ) {
-                i->setState( Command::Executing );
-                done = false;
-            }
-            if ( i->group() ) {
-                Command * c = i;
-                ++i;
-                while ( i &&
-                        i->group() == c->group() &&
-                        i->state() == Command::Blocked &&
-                        i->ok() ) {
-                    i->setState( Command::Executing );
-                    done = false;
-                    i++;
-                }
-            }
-        }
-
-        // are there commands which have finished, but haven't been
-        // retired due to missing Session responses?
-        i = d->commands.first();
-        while ( i && ( i->state() == Command::Finished ||
-                       i->state() == Command::Retired ) )
-        {
-            if ( i->state() == Command::Finished )
-                i->emitResponses();
-            ++i;
-        }
-
-        // look for and parse any unparsed commands, assuming there are
-        // no currently-executing group 0 commands (which delay parsing
-        // because, e.g. MSN arguments will remain invalid until SELECT
-        // has been completed).
-
-        Command * executing = 0;
-
-        i = d->commands.first();
-        while ( i && ( !executing || executing->group() != 0 ) ) {
             Command * c = i;
             ++i;
+            Scope s( c->log() );
+            if ( c->state() == Command::Executing ) {
+                if ( c->ok() )
+                    c->execute();
+                else
+                    c->finish();
+            }
+            else if ( c->state() == Command::Finished ) {
+                c->emitResponses();
+            }
+        }
 
-            if ( c->state() == Command::Unparsed ) {
-                Scope s( c->log() );
-                if ( c->validIn( d->state ) ) {
-                    done = false;
-                    c->parse();
-                    // we've parsed it. did it return an error, should
-                    // we block it, or perhaps execute it right away?
-                    if ( c->state() == Command::Unparsed && c->ok() ) {
-                        if ( executing )
-                            c->setState( Command::Blocked );
-                        else
-                            c->setState( Command::Executing );
-                        executing = c;
-                    }
-                }
-                else if ( !executing ) {
-                    done = false;
-                    // if this command isn't valid in this state, and
-                    // no earlier command can possibly change the
-                    // state, then we have to reject the command.
+        // we may be able to start new commands. if any commands are
+        // running, then following commands in the same group can be
+        // started.
+        i = d->commands.first();
+        while ( i &&
+                i->state() != Command::Executing &&
+                i->state() != Command::Finished )
+            i++;
+
+        // if not, then the oldest unparsed or blocked message
+        // determines which group can be executed.
+        if ( !i ) {
+            i = d->commands.first();
+            while ( i &&
+                    i->state() != Command::Unparsed &&
+                    i->state() != Command::Blocked )
+                i++;
+        }
+
+        // if we have a leading command, we can parse/execute
+        // followers in the same group.
+        if ( i ) {
+            Command * g = i;
+            while ( i &&
+                    ( i->state() == Command::Executing ||
+                      i->state() == Command::Finished ||
+                      i->state() == Command::Retired ) )
+                i++;
+            while ( g && i &&
+                    ( i->state() == Command::Unparsed ||
+                      i->state() == Command::Blocked ) &&
+                    ( g == i || 
+                      ( g->group() > 0 && g->group() == i->group() ) ) ) {
+                Command * c = i;
+                ++i;
+                if ( !c->validIn( d->state ) ) {
                     c->error( Command::Bad, "Not permitted in this state" );
                 }
-            }
-            else if ( c->state() == Command::Executing ) {
-                executing = c;
+                else if ( c->ok() ) {
+                    Scope s( c->log() );
+                    if ( c->state() == Command::Unparsed )
+                        c->parse();
+                    if ( c->group() != g->group() ) {
+                        // i's group changed, we have to stop
+                        if ( c->group() == Command::Unparsed )
+                            c->setState( Command::Blocked );
+                        g = 0;
+                    }
+                    else if ( c->ok() ) {
+                        c->setState( Command::Executing );
+                        c->execute();
+                    }
+                    else {
+                        // it failed, but we go on.
+                    }
+                }
             }
         }
     }
