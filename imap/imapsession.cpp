@@ -15,12 +15,15 @@ class ImapSessionData
     : public EventHandler
 {
 public:
-    ImapSessionData(): i( 0 ), unsolicited( 0 ), recent( UINT_MAX ),
+    ImapSessionData(): i( 0 ), unsolicited( 0 ),
+                       recent( UINT_MAX ),
+                       uidnext( 0 ),
                        hms( 0 ), flagf( 0 ), annof( 0 ), trif( 0 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     uint unsolicited;
     uint recent;
+    uint uidnext;
     List<int64> ignorable;
     int64 hms;
 
@@ -90,9 +93,9 @@ void ImapSession::emitExists( uint number )
     }
 
     uint n = uidnext();
-    if ( n > announced() ) {
+    if ( n > d->uidnext ) {
+        d->uidnext = n;
         enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
-        setAnnounced( n );
     }
 }
 

@@ -1316,14 +1316,6 @@ void Injector::announce()
         uint uid = mi->uid;
         Mailbox * m = mi->mailbox;
 
-        List<Session>::Iterator si( m->sessions() );
-        while ( si ) {
-            si->recordChange( &dummy, Session::New );
-            if ( si == mi->recentIn )
-                si->addRecent( uid );
-            ++si;
-        }
-
         if ( m->uidnext() <= uid && m->nextModSeq() <= mi->ms ) {
             m->setUidnextAndNextModSeq( 1+uid, 1+mi->ms );
             OCClient::send( "mailbox " + m->name().quoted() + " "
@@ -1340,6 +1332,15 @@ void Injector::announce()
             OCClient::send( "mailbox " + m->name().quoted() + " "
                             "nextmodseq=" + fn( m->nextModSeq() ) );
         }
+
+        List<Session>::Iterator si( m->sessions() );
+        while ( si ) {
+            if ( si == mi->recentIn )
+                si->addRecent( uid );
+            si->recordChange( &dummy, Session::New );
+            ++si;
+        }
+
         ++mi;
     }
 }

@@ -25,7 +25,6 @@ public:
           uidnext( 0 ), nextModSeq( 0 ),
           firstUnseen( 0 ),
           permissions( 0 ),
-          announced( 0 ),
           reportedExists( 0 )
     {}
 
@@ -40,7 +39,6 @@ public:
     int64 nextModSeq;
     uint firstUnseen;
     Permissions * permissions;
-    uint announced;
     uint reportedExists;
     List<Message> newMessages;
     List<Message> modifiedMessages;
@@ -462,27 +460,6 @@ void Session::setUidnext( uint u )
 }
 
 
-/*! Returns the last UIDNEXT value that this session has announced.
-    (Used to decide if a new one needs to be announced.)
-
-    This function may be misnamed, and may not be necessary at all.
-*/
-
-uint Session::announced() const
-{
-    return d->announced;
-}
-
-
-/*! Sets the last announced UIDNEXT value to \a n.
-*/
-
-void Session::setAnnounced( uint n )
-{
-    d->announced = n;
-}
-
-
 /*! Refreshes this session, notifying \a handler when it's done.
 */
 
@@ -623,21 +600,26 @@ void SessionInitialiser::execute()
         Flag * seen = Flag::find( "\\seen" );
 
         if ( m->ordinary() ) {
-            if ( d->session->readOnly() )
-                d->recent = new Query( "select first_recent from mailboxes "
-                                       "where id=$1", this );
-            else
-                d->recent = new Query( "select first_recent from mailboxes "
-                                       "where id=$1 for update", this );
-            d->recent->bind( 1, d->session->mailbox()->id() );
-            d->t->enqueue( d->recent );
+            if ( d->oldUidnext < d->newUidnext ) {
+                if ( d->session->readOnly() )
+                    d->recent 
+                        = new Query( "select first_recent from mailboxes "
+                                     "where id=$1", this );
+                else
+                    d->recent 
+                        = new Query( "select first_recent from mailboxes "
+                                     "where id=$1 for update", this );
+                d->recent->bind( 1, d->session->mailbox()->id() );
+                d->t->enqueue( d->recent );
 
-            if ( !d->session->readOnly() ) {
-                Query * q = new Query( "update mailboxes set first_recent=$2 "
-                                       "where id=$1", 0 );
-                q->bind( 1, d->session->mailbox()->id() );
-                q->bind( 2, d->session->mailbox()->uidnext() );
-                d->t->enqueue( q );
+                if ( !d->session->readOnly() ) {
+                    Query * q 
+                        = new Query( "update mailboxes set first_recent=$2 "
+                                     "where id=$1", 0 );
+                    q->bind( 1, d->session->mailbox()->id() );
+                    q->bind( 2, d->session->mailbox()->uidnext() );
+                    d->t->enqueue( q );
+                }
             }
 
             bool initialising = false;
@@ -649,16 +631,18 @@ void SessionInitialiser::execute()
                              " on (m.mailbox=ms.mailbox and m.uid=ms.uid) " );
             msgs.append( "left join deleted_messages dm "
                          " on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
-                         "where m.mailbox=$1 and dm.uid is null" );
+                         "where m.mailbox=$1 and dm.uid is null "
+                         "and m.uid<$2" );
             if ( !initialising )
-                msgs.append( " and (m.uid>=$2 or ms.modseq>=$3)" );
+                msgs.append( " and (m.uid>=$3 or ms.modseq>=$4)" );
             msgs.append( " order by m.uid" );
             d->messages = new Query( msgs, this );
             d->messages->bind( 1, m->id() );
+            d->messages->bind( 2, d->newUidnext );
             if ( !initialising ) {
                 // XXX: I think ms.modseq>=3 in all cases where m.uid>=$2
-                d->messages->bind( 2, d->oldUidnext );
-                d->messages->bind( 3, d->oldModSeq );
+                d->messages->bind( 3, d->oldUidnext );
+                d->messages->bind64( 4, d->oldModSeq );
             }
 
             d->t->enqueue( d->messages );
@@ -845,8 +829,6 @@ void SessionInitialiser::execute()
         while( (r=d->seen->nextRow()) )
             d->session->setFirstUnseen( r->getInt( "uid" ) );
 
-    d->session->recordChange( &d->newMessages, Session::New );
-    d->session->recordChange( &d->updated, Session::Modified );
     d->session->setUidnext( m->uidnext() );
     d->session->setNextModSeq( m->nextModSeq() );
     d->session->expunge( d->expunged.intersection( d->session->messages() ) );
@@ -856,6 +838,8 @@ void SessionInitialiser::execute()
         while ( n < d->session->uidnext() )
             d->session->addRecent( n++ );
     }
+    d->session->recordChange( &d->newMessages, Session::New );
+    d->session->recordChange( &d->updated, Session::Modified );
 
     d->session->removeSessionInitialiser();
 

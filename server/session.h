@@ -62,9 +62,6 @@ public:
     void expunge( const MessageSet & );
     void clearExpunged();
 
-    uint announced() const;
-    void setAnnounced( uint );
-
     enum ResponseType { New, Modified, Deleted };
 
     bool responsesNeeded( ResponseType ) const;
