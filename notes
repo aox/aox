@@ -999,12 +999,6 @@ NOTIFY implementation
 
   Implement NOTIFY after revision -04 of the draft.
 
-  We can also autodetect client smarts: If we haven't sent any
-  unsolicited EXISTS, we just send one, and if the client reacts to
-  that, we can send more. Sounds difficult to explain but I suspect
-  the implementation will be less than five lines of code over and
-  above NOTIFY.
-
 
 Cybertec replicator
 
@@ -1015,6 +1009,16 @@ DIGEST-MD5 reauth doesn't work for Dave Cridland
 
   (I haven't tried to reproduce it yet, because Polymer needs more
   Python stuff installed than I had the patience for.)
+
+
+Delaying seen-flag setting
+
+  We can move the seenflagsetter to imapsession, build up flags to
+  set, flush the write cache before fetch flags, store, state-altering
+  commands and searches which use either modseq or flags.
+
+  This ought to cut down the number of transactions issued per imap
+  command nicely.
 
 
 We should cope with Postgres being restarted
