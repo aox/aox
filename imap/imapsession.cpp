@@ -183,7 +183,8 @@ bool ImapSession::responsesReady( ResponseType type ) const
     if ( d->i->clientSupports( IMAP::Annotate ) )
         al = new List<Message>;
     List<Message> * tl = 0;
-    if ( d->i->clientSupports( IMAP::Condstore ) )
+    if ( d->i->clientSupports( IMAP::Condstore ) ||
+         !d->ignorable.isEmpty() )
         tl = new List<Message>;
     while ( i ) {
         if ( fl && !i->hasFlags() )
