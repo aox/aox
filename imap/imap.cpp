@@ -472,9 +472,20 @@ void IMAP::runCommands()
                 else
                     c->finish();
             }
-            else if ( c->state() == Command::Finished ) {
-                c->emitResponses();
+        }
+
+        // emit responses for zero or more finished commands and
+        // retire them.
+        i = d->commands.first();
+        bool emitErrorsOnly = false;
+        while ( i ) {
+            if ( i->state() == Command::Finished &&
+                 ( emitErrorsOnly || i->ok() ) ) {
+                i->emitResponses();
+                if ( i->state() == Command::Finished )
+                    emitErrorsOnly = true;
             }
+            ++i;
         }
 
         // we may be able to start new commands. if any commands are
@@ -512,7 +523,9 @@ void IMAP::runCommands()
                       ( g->group() > 0 && g->group() == i->group() ) ) ) {
                 Command * c = i;
                 ++i;
-                if ( !c->validIn( d->state ) ) {
+                if ( !c->validIn( d->state ) &&
+                     ( c->state() == Command::Unparsed ||
+                       c->state() == Command::Blocked ) ) {
                     c->error( Command::Bad, "Not permitted in this state" );
                 }
                 else if ( c->ok() ) {
@@ -520,7 +533,7 @@ void IMAP::runCommands()
                     if ( c->state() == Command::Unparsed )
                         c->parse();
                     if ( c->group() != g->group() ) {
-                        // i's group changed, we have to stop
+                        // c's group changed, we have to stop
                         if ( c->group() == Command::Unparsed )
                             c->setState( Command::Blocked );
                         g = 0;

@@ -129,7 +129,6 @@ void Select::execute()
             imap()->endSession();
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
-        imap()->beginSession( d->session );
         d->session->refresh( this );
     }
 
@@ -161,6 +160,7 @@ void Select::execute()
         return;
 
     d->session->clearExpunged();
+    imap()->beginSession( d->session );
     ((Session*)d->session)->emitResponses( Session::New );
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"

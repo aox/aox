@@ -25,7 +25,7 @@ public:
           uidnext( 0 ), nextModSeq( 0 ),
           firstUnseen( 0 ),
           permissions( 0 ),
-          reportedExists( 0 )
+          reportedExists( UINT_MAX/7 ) // random large number
     {}
 
     bool readOnly;
@@ -422,7 +422,7 @@ void Session::emitResponses( ResponseType type )
         d->msns.add( n );
         d->newMessages.clear();
         uint c = d->msns.count();
-        if ( c == 0 || c != d->reportedExists ) {
+        if ( c != d->reportedExists ) {
             d->reportedExists = c;
             emitExists( c );
         }
