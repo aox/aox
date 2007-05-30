@@ -574,7 +574,6 @@ void Command::finish()
         return;
 
     setState( Finished );
-    emitResponses();
     imap()->unblockCommands();
 }
 
