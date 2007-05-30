@@ -100,6 +100,7 @@ public:
         ImapSession * session;
         EventHandler * o;
         Mailbox * mailbox;
+        int64 modseq;
     };
 };
 
@@ -1334,7 +1335,7 @@ FetchData::SeenFlagSetter::SeenFlagSetter( ImapSession * s,
                                            EventHandler * owner )
     : EventHandler(),
       t( 0 ), seen( 0 ), f( 0 ), ms( 0 ), session( s ), o( owner ),
-      mailbox( s->mailbox() )
+      mailbox( s->mailbox() ), modseq( 0 )
 {
     if ( mailbox->view() ) {
         messages.add( mailbox->sourceUids( ms ) );
@@ -1385,46 +1386,45 @@ void FetchData::SeenFlagSetter::execute()
         t->rollback();
         if ( o )
             o->execute();
+        o = 0;
         return;
     }
 
     if ( !ms->done() )
         return;
 
-    if ( t->done() ) {
-        if ( o )
-            o->execute();
-        return;
+    r = ms->nextRow();
+    if ( r ) {
+        modseq = r->getBigint( "nextmodseq" );
+        Query * q = new Query( "update modsequences "
+                               "set modseq=$1 "
+                               "where mailbox=$2 and " + messages.where(),
+                               0 );
+        q->bind64( 1, modseq );
+        q->bind( 2, mailbox->id() );
+        t->enqueue( q );
+
+
+        q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
+        t->enqueue( q );
+        q = new Query( "update mailboxes set nextmodseq=$1 "
+                       "where id=$2", 0 );
+        q->bind64( 1, modseq + 1 );
+        q->bind( 2, mailbox->id() );
+        t->enqueue( q );
+        t->commit();
     }
 
-    r = ms->nextRow();
-    if ( !r )
-        return; // guards against running the code below twice
-
-    int64 modseq = r->getBigint( "nextmodseq" );
-    session->ignoreModSeq( modseq );
-    Query * q = new Query( "update modsequences "
-                           "set modseq=$1 "
-                           "where mailbox=$2 and " + messages.where(),
-                           0 );
-    q->bind64( 1, modseq );
-    q->bind( 2, mailbox->id() );
-    t->enqueue( q );
-
-
-    q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
-    t->enqueue( q );
-    q = new Query( "update mailboxes set nextmodseq=$1 "
-                   "where id=$2", 0 );
-    q->bind64( 1, modseq + 1 );
-    q->bind( 2, mailbox->id() );
-    t->enqueue( q );
-    t->commit();
-
-    // properly speaking we should wait until the commit succeeds
+    if ( !t->done() )
+        return;
+    
     if ( mailbox->nextModSeq() <= modseq ) {
         mailbox->setNextModSeq( modseq + 1 );
         OCClient::send( "mailbox " + mailbox->name().quoted() + " "
                         "nextmodseq=" + fn( modseq+1 ) );
     }
+    if ( o )
+        o->execute();
+    modseq = 0;
+    o = 0;
 }
