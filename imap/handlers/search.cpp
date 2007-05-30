@@ -34,7 +34,7 @@ public:
         : uid( false ), done( false ), codec( 0 ), root( 0 ),
           query( 0 ), highestmodseq( 1 ),
           firstmodseq( 1 ), lastmodseq( 1 ),
-          returnAll( false ), returnCount( false ), 
+          returnAll( false ), returnCount( false ),
           returnMax( false ), returnMin( false )
     {}
 
@@ -52,7 +52,7 @@ public:
     int64 highestmodseq;
     int64 firstmodseq;
     int64 lastmodseq;
-    
+
     bool returnAll;
     bool returnCount;
     bool returnMax;
@@ -405,6 +405,9 @@ void Search::parseKey( bool alsoCharset )
 
 void Search::execute()
 {
+    if ( state() != Executing )
+        return;
+
     ImapSession * s = imap()->session();
 
     if ( !d->query ) {
@@ -676,7 +679,7 @@ MessageSet Search::set( bool parseMsns )
     Mailbox * m = imap()->session()->mailbox();
     if ( m->view() )
         return m->sourceUids( s );
-    
+
     s.addGapsFrom( imap()->session()->messages() );
     return s;
 }

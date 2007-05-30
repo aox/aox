@@ -148,6 +148,9 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
 
 void Rename::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( !d->t ) {
         d->t = new Transaction( this );
         if ( d->mrcInboxHack ) {

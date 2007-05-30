@@ -53,6 +53,9 @@ void View::parse()
 
 void View::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( !d->ms ) {
         d->ms = mailbox( d->source );
         if ( !d->ms || d->ms->synthetic() || d->ms->deleted() ) {

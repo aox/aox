@@ -80,6 +80,9 @@ void Select::parse()
 
 void Select::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( !d->mailbox ) {
         if ( d->condstore )
             imap()->setClientSupports( IMAP::Condstore );

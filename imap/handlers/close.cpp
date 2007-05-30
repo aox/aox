@@ -16,6 +16,8 @@
 
 void Close::execute()
 {
+    if ( state() != Executing )
+        return;
     Expunge::execute();
     if ( imap()->session() )
         imap()->endSession();

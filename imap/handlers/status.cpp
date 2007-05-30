@@ -85,6 +85,9 @@ void Status::parse()
 
 void Status::execute()
 {
+    if ( state() != Executing )
+        return;
+
     // first part: set up what we need.
     if ( !d->mailbox ) {
         d->mailbox = mailbox( d->name );
@@ -96,9 +99,9 @@ void Status::execute()
         requireRight( d->mailbox, Permissions::Read );
     }
 
-    if ( !d->session && 
-         ( d->messages || 
-           d->recent || 
+    if ( !d->session &&
+         ( d->messages ||
+           d->recent ||
            ( d->mailbox->view() && d->uidnext ) ) )
     {
         if ( imap()->session() &&

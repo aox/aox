@@ -48,6 +48,9 @@ void Create::parse()
 
 void Create::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( !d->parent ) {
         d->parent = Mailbox::closestParent( d->name );
         if ( !d->parent ) {

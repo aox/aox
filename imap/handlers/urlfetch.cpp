@@ -61,6 +61,9 @@ void UrlFetch::parse()
 
 void UrlFetch::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( !d->urlFetcher ) {
         List<ImapUrl>::Iterator it( d->urls );
         while ( it ) {

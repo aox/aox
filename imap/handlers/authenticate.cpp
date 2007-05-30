@@ -63,6 +63,9 @@ void Authenticate::parse()
 
 void Authenticate::execute()
 {
+    if ( state() != Executing )
+        return;
+
     // First, create a mechanism handler.
 
     if ( !m ) {

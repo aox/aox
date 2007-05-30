@@ -71,6 +71,9 @@ void Copy::parse()
 
 void Copy::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( d->set.isEmpty() ) {
         finish();
         return;

@@ -40,6 +40,9 @@ void Login::parse()
 
 void Login::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( !m ) {
         if ( !SaslMechanism::allowed( SaslMechanism::Plain,
                                       imap()->hasTls() ) )

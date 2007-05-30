@@ -51,6 +51,9 @@ void Delete::parse()
 
 void Delete::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( !d->m ) {
         d->m = Mailbox::obtain( mailboxName( d->n ), false );
         if ( !d->m || d->m->deleted() )

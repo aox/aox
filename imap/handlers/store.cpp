@@ -268,6 +268,9 @@ void Store::parseAnnotationEntry()
 
 void Store::execute()
 {
+    if ( state() != Executing )
+        return;
+
     Mailbox * m = 0;
     if ( imap()->session() )
         m = imap()->session()->mailbox();

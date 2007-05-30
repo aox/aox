@@ -34,6 +34,9 @@ void StartTLS::parse()
 
 void StartTLS::execute()
 {
+    if ( state() != Executing )
+        return;
+
     if ( imap()->hasTls() ) {
         imap()->reserve( 0 );
         error( Bad, "Nested STARTTLS" );
