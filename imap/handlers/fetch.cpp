@@ -99,6 +99,7 @@ public:
         Query * ms;
         ImapSession * session;
         EventHandler * o;
+        Mailbox * mailbox;
     };
 };
 
@@ -554,12 +555,10 @@ void Fetch::parseAnnotation()
 
 void Fetch::execute()
 {
-    ImapSession * s = imap()->session();
-
-    // XXX: A dubious fix for a segfault on logout, caused by a late
-    // notification from some Message*Fetcher.
-    if ( !s )
+    if ( state() != Executing )
         return;
+
+    ImapSession * s = imap()->session();
 
     if ( !d->peek && s->readOnly() )
         d->peek = true;
@@ -1334,9 +1333,16 @@ FetchData::SeenFlagSetter::SeenFlagSetter( ImapSession * s,
                                            const MessageSet & ms,
                                            EventHandler * owner )
     : EventHandler(),
-      t( 0 ), seen( 0 ), f( 0 ), ms( 0 ), session( s ), o( owner )
+      t( 0 ), seen( 0 ), f( 0 ), ms( 0 ), session( s ), o( owner ),
+      mailbox( s->mailbox() )
 {
-    messages.add( ms );
+    if ( mailbox->view() ) {
+        messages.add( mailbox->sourceUids( ms ) );
+        mailbox = mailbox->source();
+    }
+    else {
+        messages.add( ms );
+    }
     execute();
 }
 
@@ -1351,13 +1357,13 @@ void FetchData::SeenFlagSetter::execute()
         t = new Transaction( this );
         ms = new Query( "select nextmodseq from mailboxes "
                         "where id=$1 for update", this );
-        ms->bind( 1, session->mailbox()->id() );
+        ms->bind( 1, mailbox->id() );
         t->enqueue( ms );
 
         f = new Query( "select uid from flags "
                        "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
                        this );
-        f->bind( 1, session->mailbox()->id() );
+        f->bind( 1, mailbox->id() );
         f->bind( 2, seen->id() );
         f->bind( 3, messages.smallest() );
         f->bind( 4, messages.largest() );
@@ -1402,23 +1408,23 @@ void FetchData::SeenFlagSetter::execute()
                            "where mailbox=$2 and " + messages.where(),
                            0 );
     q->bind64( 1, modseq );
-    q->bind( 2, session->mailbox()->id() );
+    q->bind( 2, mailbox->id() );
     t->enqueue( q );
 
 
-    q = Store::addFlagsQuery( seen, session->mailbox(), messages, 0 );
+    q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
     t->enqueue( q );
     q = new Query( "update mailboxes set nextmodseq=$1 "
                    "where id=$2", 0 );
     q->bind64( 1, modseq + 1 );
-    q->bind( 2, session->mailbox()->id() );
+    q->bind( 2, mailbox->id() );
     t->enqueue( q );
     t->commit();
 
     // properly speaking we should wait until the commit succeeds
-    if ( session->mailbox()->nextModSeq() <= modseq ) {
-        session->mailbox()->setNextModSeq( modseq + 1 );
-        OCClient::send( "mailbox " + session->mailbox()->name().quoted() + " "
+    if ( mailbox->nextModSeq() <= modseq ) {
+        mailbox->setNextModSeq( modseq + 1 );
+        OCClient::send( "mailbox " + mailbox->name().quoted() + " "
                         "nextmodseq=" + fn( modseq+1 ) );
     }
 }
