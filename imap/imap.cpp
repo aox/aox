@@ -37,8 +37,7 @@ public:
           runningCommands( false ), runCommandsAgain( false ),
           readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
-          bytesArrived( 0 ),
-          idle( false )
+          bytesArrived( 0 )
     {
         uint i = 0;
         while ( i < IMAP::NumClientCapabilities )
@@ -64,7 +63,6 @@ public:
 
     uint bytesArrived;
 
-    bool idle;
     bool clientCapabilities[IMAP::NumClientCapabilities];
 };
 
@@ -198,8 +196,8 @@ void IMAP::react( Event e )
             break;
         case Authenticated:
         case Selected:
-            if ( d->reader )
-                setTimeoutAfter( 10800 ); // in practice idle mode
+            if ( idle() )
+                setTimeoutAfter( 10800 ); // three-hour timeout while IDLE
             else
                 setTimeoutAfter( 1800 ); // inactive client
             break;
@@ -357,32 +355,24 @@ void IMAP::setState( State s )
 }
 
 
-/*! Notifies this IMAP connection that it is idle if \a i is true, and
-    not idle if \a i is false. An idle connection (see RFC 2177) is one
-    in which e.g. EXPUNGE/EXISTS responses may be sent at any time. If a
+/*! Returns true if this connection is idle, and false if it is
+    not. The initial (and normal) state is false.
+
+    An idle connection (see RFC 2177) is one in which
+    e.g. EXPUNGE/EXISTS responses may be sent at any time. If a
     connection is not idle, such responses must be delayed until the
     client can listen to them.
 */
 
-void IMAP::setIdle( bool i )
-{
-    if ( i == d->idle )
-        return;
-    d->idle = i;
-    if ( i )
-        log( "entered idle mode", Log::Debug );
-    else
-        log( "left idle mode", Log::Debug );
-}
-
-
-/*! Returns true if this connection is idle, and false if it is
-    not. The initial (and normal) state is false.
-*/
-
 bool IMAP::idle() const
 {
-    return d->idle;
+    if ( !d->reader )
+        return false;
+    if ( d->reader->state() != Command::Executing )
+        return false;
+    if ( d->reader->name() != "idle" )
+        return false;
+    return true;
 }
 
 

@@ -31,7 +31,6 @@ public:
     void setClientSupports( ClientCapability );
 
     bool idle() const;
-    void setIdle( bool );
 
     User * user() const;
     void authenticated( User * );
