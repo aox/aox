@@ -706,23 +706,17 @@ void SessionInitialiser::execute()
 
     Row * r = 0;
 
-    while ( (r=d->nms->nextRow()) != 0 ) {
-        int64 ms = r->getBigint( "nextmodseq" );
-        m->setNextModSeq( ms + 1 );
-        if ( m->view() ) {
-            m->source()->setNextModSeq( ms + 1 );
-            Query * q = new Query( "update views set nextmodseq=$1 "
-                                   "where view=$2 and nextmodseq<$1", 0 );
-            q->bind64( 1, m->nextModSeq() );
-            q->bind( 2, m->id() );
-            d->t->enqueue( q );
-        }
-    }
+    while ( (r=d->nms->nextRow()) != 0 )
+        m->setNextModSeq( r->getBigint( "nextmodseq" ) );
 
     if ( m->view() ) {
         MessageSet removeInDb;
         MessageSet addToDb;
+        int64 hms = 0;
         while ( (r=d->messages->nextRow()) != 0 ) {
+            int64 ms = r->getBigint( "modseq" );
+            if ( ms > hms )
+                hms = ms;
             bool seen = true;
             if ( r->isNull( "seen" ) )
                 seen = false;
@@ -789,6 +783,14 @@ void SessionInitialiser::execute()
                 m->setUid( uid );
                 d->newMessages.append( m );
             }
+            d->t->enqueue( q );
+        }
+
+        if ( !removeInDb.isEmpty() || !addToDb.isEmpty() ) {
+            Query * q = new Query( "update views set nextmodseq=$1 "
+                                   "where view=$2 and nextmodseq<$1", 0 );
+            q->bind64( 1, hms + 1 );
+            q->bind( 2, m->id() );
             d->t->enqueue( q );
         }
     }
