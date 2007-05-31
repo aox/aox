@@ -475,15 +475,15 @@ void IMAP::runCommands()
         }
 
         // emit responses for zero or more finished commands and
-        // retire them.
+        // retire them. we also emit all error responses.
         i = d->commands.first();
-        bool emitErrorsOnly = false;
+        bool deferredResponse = false;
         while ( i ) {
             if ( i->state() == Command::Finished &&
-                 ( emitErrorsOnly || i->ok() ) ) {
+                 ( !deferredResponse || !i->ok() ) ) {
                 i->emitResponses();
                 if ( i->state() == Command::Finished )
-                    emitErrorsOnly = true;
+                    deferredResponse = true;
             }
             ++i;
         }
