@@ -10,6 +10,7 @@ Build imap :
     copy.cpp
     create.cpp
     delete.cpp
+    enable.cpp
     expunge.cpp
     fetch.cpp
     genurlauth.cpp

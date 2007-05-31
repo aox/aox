@@ -21,6 +21,7 @@
 #include "handlers/copy.h"
 #include "handlers/create.h"
 #include "handlers/delete.h"
+#include "handlers/enable.h"
 #include "handlers/expunge.h"
 #include "handlers/fetch.h"
 #include "handlers/genurlauth.h"
@@ -256,6 +257,8 @@ Command * Command::create( IMAP * imap,
             c = new Idle;
         else if ( n == "id" )
             c = new Id;
+        else if ( n == "enable" )
+            c = new Enable;
 
         if ( c ) {
             notAuthenticated = true;
