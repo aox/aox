@@ -507,7 +507,7 @@ void IMAP::runCommands()
                 i++;
         }
 
-        // if we have a leading command, we can parse/execute
+        // if we have a leading command, we can parse and execute
         // followers in the same group.
         if ( i ) {
             Command * g = i;
@@ -523,13 +523,11 @@ void IMAP::runCommands()
                       ( g->group() > 0 && g->group() == i->group() ) ) ) {
                 Command * c = i;
                 ++i;
-                if ( !c->validIn( d->state ) &&
-                     ( c->state() == Command::Unparsed ||
-                       c->state() == Command::Blocked ) ) {
+                Scope s( c->log() );
+                if ( !c->validIn( d->state ) ) {
                     c->error( Command::Bad, "Not permitted in this state" );
                 }
                 else if ( c->ok() ) {
-                    Scope s( c->log() );
                     if ( c->state() == Command::Unparsed )
                         c->parse();
                     if ( c->group() != g->group() ) {
