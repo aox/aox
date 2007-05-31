@@ -130,7 +130,8 @@ public:
                 m->setType( Mailbox::View );
 
             m->d->uidvalidity = r->getInt( "uidvalidity" );
-            m->setUidnext( r->getInt( "uidnext" ) );
+            m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
+                                        r->getBigint( "nextmodseq" ) );
             if ( !r->isNull( "owner" ) )
                 m->setOwner( r->getInt( "owner" ) );
 
