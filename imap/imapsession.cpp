@@ -39,8 +39,11 @@ public:
             annof = 0;
         if ( trif && trif->done() )
             trif = 0;
-        if ( !flagf && !annof && !trif )
+        if ( !flagf && !annof && !trif ) {
             i->unblockCommands();
+            if ( i->idle() && i->session() )
+                i->session()->emitResponses();
+        }
     }
 };
 
@@ -236,13 +239,12 @@ bool ImapSession::responsesReady( ResponseType type ) const
 
 bool ImapSession::responsesPermitted( ResponseType t ) const
 {
+    if ( d->i->idle() )
+        return true;
+
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
-    // if we're currently executing something other than idle, we
-    // don't emit anything
-    if ( c && c->state() != Command::Finished && c->name() != "idle" )
-        return false;
 
     if ( t == Deleted ) {
         if ( !c )
@@ -251,6 +253,10 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
             // we don't need to consider retired commands at all
             if ( c->state() == Command::Retired )
                 ;
+            // we cannot send an expunge while a command is being
+            // executed (not without NOTIFY at least...)
+            else if ( c->state() == Command::Executing )
+                return false;
             // group 2 contains commands during which we may not send
             // expunge, group 3 contains all commands that change
             // flags.
@@ -270,11 +276,14 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
             // no commands at all. have we sent anything?
             if ( d->unsolicited > 512 )
                 return false;
+            // not so much. we can send a little more.
             return true;
         }
-        if ( c->state() == Command::Executing && c->name() == "idle" )
-            return true;
-        if ( c->state() == Command::Finished )
+
+        // is there a finished command we may stuff with responses?
+        while ( c && c->state() != Command::Finished )
+            ++c;
+        if ( c )
             return true;
         return false;
     }
