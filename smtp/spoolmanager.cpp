@@ -23,17 +23,19 @@ class SpoolManagerData
 {
 public:
     SpoolManagerData()
-        : state( 0 ), q( 0 ), message( 0 ), deliveryId( 0 ),
-          client( 0 )
+        : state( 0 ), q( 0 ), update( 0 ), message( 0 ),
+          deliveryId( 0 ), client( 0 ), injector( 0 )
     {}
 
     int state;
     Query * q;
+    Query * update;
     Message * message;
     uint deliveryId;
     SmtpClient * client;
     String sender;
     String recipient;
+    Injector * injector;
 };
 
 
@@ -116,52 +118,63 @@ void SpoolManager::execute()
         if ( !d->client->done() )
             return;
 
-        Query * q = 0;
-        if ( d->client->permanentFailure() ) {
-            if ( !d->sender.isEmpty() ) {
-                Recipient * r = new Recipient;
-                AddressParser p( d->recipient );
-                r->setFinalRecipient( p.addresses()->first() );
-                Date * now = new Date;
-                now->setCurrentTime();
-                r->setLastAttempt( now );
-                // XXX: we don't set a diagnostic code. we'll do that when
-                // we have good smtp client code. perhaps SmtpClient
-                // should take a Recipient.
-                DSN * dsn = new DSN;
-                dsn->addRecipient( r );
-                dsn->setMessage( d->message );
+        if ( !d->update ) {
+            Query * q = 0;
 
-                Injector * injector = new Injector( dsn->result(), 0 );
-                SortedList<Mailbox> * l = new SortedList<Mailbox>;
-                l->insert( Mailbox::find( "/archiveopteryx/spool" ) );
-                List<Address> * dl = new List<Address>;
-                dl->append( r->finalRecipient() );
-                injector->setDeliveryAddresses( dl );
-                injector->setMailboxes( l );
-                injector->setSender( new Address( "", "", "" ) );
-                injector->execute();
-                // we forget the injector. the bounce will be lost if
-                // the process crashes before the injectorf finishes
-                // its work.
+            // Are we done with this delivery, or should we bounce, or
+            // retry later?
+
+            if ( d->client->permanentFailure() ) {
+                q = new Query( "delete from deliveries where id=$1", this );
+                if ( !d->sender.isEmpty() ) {
+                    Recipient * r = new Recipient;
+                    AddressParser p( d->recipient );
+                    r->setFinalRecipient( p.addresses()->first() );
+                    Date * now = new Date;
+                    now->setCurrentTime();
+                    r->setLastAttempt( now );
+                    // XXX: we don't set a diagnostic code. we'll do that when
+                    // we have good smtp client code. perhaps SmtpClient
+                    // should take a Recipient.
+                    DSN * dsn = new DSN;
+                    dsn->addRecipient( r );
+                    dsn->setMessage( d->message );
+                    d->injector = new Injector( dsn->result(), 0 );
+                    SortedList<Mailbox> * l = new SortedList<Mailbox>;
+                    l->insert( Mailbox::find( "/archiveopteryx/spool" ) );
+                    List<Address> * dl = new List<Address>;
+                    dl->append( r->finalRecipient() );
+                    d->injector->setDeliveryAddresses( dl );
+                    d->injector->setMailboxes( l );
+                    d->injector->setSender( new Address( "", "", "" ) );
+                    d->injector->execute();
+                }
             }
-            q = new Query( "delete from deliveries where id=$1", 0 );
+            else if ( d->client->failed() ) {
+                q = new Query( "update deliveries set tried_at="
+                               "current_timestamp where id=$1", this );
+            }
+            else {
+                q = new Query( "delete from deliveries where id=$1", this );
+            }
+
+            if ( q ) {
+                q->bind( 1, d->deliveryId );
+                d->update = q;
+                q->execute();
+            }
         }
-        else if ( d->client->failed() ) {
-            q = new Query( "update deliveries set tried_at=current_timestamp "
-                           "where id=$1", 0 );
-        }
-        else {
-            q = new Query( "delete from deliveries where id=$1", 0 );
-        }
-        if ( q ) {
-            q->bind( 1, d->deliveryId );
-            q->execute();
-        }
+
+        if ( d->update && !d->update->done() )
+            return;
+
+        if ( d->injector && !d->injector->done() )
+            return;
 
         d->message = 0;
         d->client = 0;
     }
+
 
     // And when there are no more, we go to sleep until we can expect to
     // have something to do.
