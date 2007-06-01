@@ -642,7 +642,7 @@ void SessionInitialiser::execute()
             if ( !initialising ) {
                 // XXX: I think ms.modseq>=3 in all cases where m.uid>=$2
                 d->messages->bind( 3, d->oldUidnext );
-                d->messages->bind64( 4, d->oldModSeq );
+                d->messages->bind( 4, d->oldModSeq );
             }
 
             d->t->enqueue( d->messages );
@@ -789,7 +789,7 @@ void SessionInitialiser::execute()
         if ( !removeInDb.isEmpty() || !addToDb.isEmpty() ) {
             Query * q = new Query( "update views set nextmodseq=$1 "
                                    "where view=$2 and nextmodseq<$1", 0 );
-            q->bind64( 1, hms + 1 );
+            q->bind( 1, hms + 1 );
             q->bind( 2, m->id() );
             d->t->enqueue( q );
         }

@@ -1032,7 +1032,7 @@ void Injector::insertMessages()
 
         qms->bind( 1, m->id(), Query::Binary );
         qms->bind( 2, uid, Query::Binary );
-        qms->bind64( 3, mi->ms, Query::Binary );
+        qms->bind( 3, mi->ms, Query::Binary );
         qms->submitLine();
 
         ++mi;

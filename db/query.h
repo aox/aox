@@ -45,7 +45,8 @@ public:
     enum Format { Text, Binary };
 
     void bind( uint, int, Format = Text );
-    void bind64( uint, int64, Format = Text );
+    void bind( uint, uint, Format = Text );
+    void bind( uint, int64, Format = Text );
     void bind( uint, const String &, Format = Text );
     void bind( uint, const UString &, Format = Text );
     void bindNull( uint );

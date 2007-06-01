@@ -132,7 +132,7 @@ void POP::setState( State s )
                     Query * q;
                     q = new Query( "update modsequences set modseq=$1 where "
                                    "mailbox=$2 and (" + w + ")", 0 );
-                    q->bind64( 1, ms );
+                    q->bind( 1, ms );
                     q->bind( 2, mailbox->id() );
                     t->enqueue( q );
 

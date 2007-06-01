@@ -235,7 +235,7 @@ void Copy::execute()
                        "where mailbox=$1 and uid>=$3 and uid<$4",
                        this );
         q->bind( 1, tmailbox );
-        q->bind64( 2, d->modseq );
+        q->bind( 2, d->modseq );
         q->bind( 3, d->firstUid );
         q->bind( 4, tuid );
         enqueue( q );
@@ -244,7 +244,7 @@ void Copy::execute()
                        "where id=$3",
                        this );
         q->bind( 1, tuid );
-        q->bind64( 2, d->modseq+1 );
+        q->bind( 2, d->modseq+1 );
         q->bind( 2, tmailbox );
         d->transaction->enqueue( q );
 

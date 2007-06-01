@@ -259,12 +259,26 @@ void Query::bind( uint n, int s, Format f )
 
 
 /*! \overload
+    Binds the unsigned 32-bit integer value \a s to the parameter \a n
+    of this Query in the specified format \a f (Binary or Text; Text by
+    default). \a s may not be larger than INT_MAX.
+*/
+
+void Query::bind( uint n, uint s, Format f )
+{
+    if ( s > INT_MAX )
+        die( Range );
+    bind( n, (int)s, f );
+}
+
+
+/*! \overload
     Binds the 64-bit integer value \a s to the parameter \a n of this
-    Query in the specified format \a f (Binary of Text; Text by
+    Query in the specified format \a f (Binary or Text; Text by
     default).
 */
 
-void Query::bind64( uint n, int64 s, Format f )
+void Query::bind( uint n, int64 s, Format f )
 {
     if ( f == Binary ) {
         String t;
