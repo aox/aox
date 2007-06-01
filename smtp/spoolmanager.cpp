@@ -107,7 +107,6 @@ void SpoolManager::execute()
             return;
 
         if ( !d->client ) {
-            // XXX: This should be an SmtpClient, of course.
             Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
                         Configuration::scalar( Configuration::SmartHostPort ) );
             d->client = new SmtpClient( e, d->message,
