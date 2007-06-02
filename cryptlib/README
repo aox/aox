@@ -1,7 +1,39 @@
-# This directory contains a stripped-down version of cryptlib 3.2.1 from
+# This directory contains a stripped-down version of cryptlib 3.3 from
 # <http://www.cs.auckland.ac.nz/~pgut001/cryptlib/download.html>.
 # Problems should be reported to info@oryx.com, and not the cryptlib
 # author.
+
+Changes in 3.3 release
+======================
+
+This version of cryptlib is a minor-version stepping from the 3.2.x code base
+to the 3.3.x code base.  Minor-version steppings are source-code compatible
+with previous versions but not binary compatible.  This means that you need to
+rebuild the app.calling cryptlib when you rebuild cryptlib.  In particular two
+facilities that have been included for backwards-compatibility with code from
+up to five years ago have now been removed: It's no longer possible to call
+cryptPushData() with NULL pointers as an alternative to calling
+cryptFlushData(), and the obsolete CRYPT_CERTINFO_CURRENT_xxx attributes,
+which were mapped internally to the CRYPT_ATTRIBUTE_CURRENT_xxx attributes,
+have been removed.
+
+This release features more internal changes to handle internal consistency
+checking, as well as fixes for a few minor issues arising from the 3.2.3
+release.
+
+Changes in 3.2.3 release
+========================
+
+This release features a considerable number of internal changes to clean up
+some sections of the code that had grown beyond their original design, as well
+as ongoing minor updates and changes requested by users.  This is mainly a
+cleanup and consolidation release after 3.2.2.
+
+Changes in 3.2.2 release
+========================
+
+The bignum code has been updated to the latest version, which is no less
+ghastly than before but somewhat faster, particularly on x86 systems.
 
 Changes in 3.2.1 release
 ========================
