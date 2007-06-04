@@ -17,6 +17,6 @@ rule ReadmeFile {
 
 ReadmeFile README ;
 ReadmeFile COPYING ;
-ReadmeFile osl-2.1.txt ;
+ReadmeFile osl-3.0.txt ;
 
 
