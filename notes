@@ -1,23 +1,14 @@
-2.0: 2007-06-04
+2.01: 2007-07-16
 
-  In order of importance:
+  What do we want in here?
 
-  1. Web archive use.
-  2. Archive search.
-  3. Setting up (and editing?) views.
-  4. Searching in own mail while logged in.
-  5. Webmail. Preferably including sending mail.
+  Arnt is away from 2007-06-27 to 2007-07-04, so six weeks rather than
+  five seems like a good idea.
 
-  - Change the injector (and other code that performs allowed-to-fail
-    inserts to cope with collisions) to use savepoints, and hence...
-  - Allow aox vacuum to run without the big lock.
-  - Make archiveopteryx fork after listen if configured to do so.
-  - aox reparse -e, generating error reporting files similar to
-    aoximport -e.
-  - Fix the current canonicals and make aox reparse on kalyani eat
-    most of the unparsable mail (before aox reparse -e is released)
-  - Speed up IMAP SELECT much more.
-  - Make sure the schema documentation is up to date.
+
+2.01: 2007-08-20
+
+  Arnt leaves for vacation on 2007-08-18.
 
 
 The value of features
@@ -136,8 +127,6 @@ Various TODO items from earlier releases.
 
   Full-text search
 
-  LDAP AB?
-
 
 Release cycle
 
@@ -163,16 +152,6 @@ Selector uses field_names much too often
   We shouldn't need to do a subselect in order to find the ID of
   Subject. That should be cached very, very well in RAM. So why are we
   doing it? It presumably bothers the query planner.
-
-
-Undefined codepoints
-
-  When a codec encounters an undefined codepoint, it should substitute
-  U+FFFE (or FFFD/FFFF?) and continue parsing after setting a flag that
-  later allows parseBodypart() to upgrade (or is that "downgrade"?) the
-  entire message to UTF-8 for subsequent retrieval.
-
-  This is done as a special case for GB2312/ISO-2022-JP right now.
 
 
 Cleartext passwords
@@ -266,20 +245,10 @@ Better caching.
   scattered across many blocks.
 
 
-RFC 2852
+RFCs 2852 and 4865
 
-  Easy to do once we have port 587; we need to set the end column
-  right, that's about it.
-
-
-FUTUREDELIVERY
-
-  The draft has passed IESG evaluation. The last AD promised to clear
-  his DISCUSS soon, and the Greg Vaudreuil expects no substantive
-  changes from the draft to the RFC.
-
-  Our code pretty much supports this, we just need to set the start
-  column.
+  Easy to do once we have port 587; we need to set the start and end
+  columns right, that's about it.
 
 
 Message tracking

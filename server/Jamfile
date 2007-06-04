@@ -19,6 +19,6 @@ if $(OS) = "LINUX" {
 
 Build mailbox :
     session.cpp occlient.cpp mailbox.cpp messageset.cpp
-    permissions.cpp selector.cpp ;
+    permissions.cpp selector.cpp threader.cpp ;
 
 Build user : user.cpp ;

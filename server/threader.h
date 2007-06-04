@@ -5,21 +5,11 @@
 
 #include "event.h"
 
+#include "list.h"
+
 
 class Mailbox;
-
-
-class Threader
-    : public EventHandler
-{
-public:
-    Threader( Mailbox *, EventHandler * );
-
-    void execute();
-    
-private:
-    class ThreaderData * d;
-};
+class MessageSet;
 
 
 class Thread
@@ -28,8 +18,11 @@ class Thread
 public:
     Thread();
 
-    class ThreadMember * member( uint ) const;
-    uint count() const;
+    MessageSet members() const;
+    void add( uint );
+
+    void setSubject( const String & );
+    String subject() const;
 
     uint id() const;
     void setId( uint );
@@ -39,19 +32,21 @@ private:
 };
 
 
-class ThreadMember
-    : public Garbage
+class Threader
+    : public EventHandler
 {
 public:
-    ThreadMember( Mailbox *, uid *, const UString &, List<Address> * );
+    Threader( Mailbox * );
 
-    uint uid() const;
+    bool updated() const;
     Mailbox * mailbox() const;
-    List<Address> * from() const;
-    UString subject() const;
+
+    void refresh( EventHandler * );
+
+    void execute();
 
 private:
-    class ThreadMemberData * d;
+    class ThreaderData * d;
 };
 
 
