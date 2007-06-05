@@ -44,8 +44,13 @@ void StartTLS::execute()
         return;
     }
 
-    if ( !tlsServer )
+    if ( !tlsServer ) {
+        if ( Configuration::toggle( Configuration::UseTls ) == false ) {
+            error( No, "STARTTLS not supported" );
+            return;
+        }
         tlsServer = new TlsServer( this, imap()->peer(), "IMAP" );
+    }
 
     if ( !tlsServer->done() )
         return;
