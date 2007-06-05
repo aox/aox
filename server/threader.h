@@ -36,14 +36,16 @@ class Threader
     : public EventHandler
 {
 public:
-    Threader( Mailbox * );
+    Threader( const Mailbox * );
 
     bool updated() const;
-    Mailbox * mailbox() const;
+    const Mailbox * mailbox() const;
 
     void refresh( EventHandler * );
 
     void execute();
+
+    List<Thread> * allThreads() const;
 
 private:
     class ThreaderData * d;

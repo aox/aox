@@ -13,6 +13,7 @@
 #include "message.h"
 #include "fetcher.h"
 #include "session.h"
+#include "threader.h"
 #include "allocator.h"
 #include "messageset.h"
 #include "stringlist.h"
@@ -27,7 +28,7 @@ public:
         : type( Mailbox::Synthetic ), id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ),
-          sessions( 0 ),
+          sessions( 0 ), threader( 0 ),
           nextModSeq( 1 ),
           source( 0 ), sourceUids( 0 ),
           views( 0 )
@@ -45,6 +46,7 @@ public:
     Mailbox * parent;
     List< Mailbox > * children;
     List<Session> * sessions;
+    Threader * threader;
 
     int64 nextModSeq;
 
@@ -693,8 +695,10 @@ void Mailbox::removeSession( Session * s )
         return;
 
     d->sessions->remove( s );
-    if ( d->sessions->isEmpty() )
+    if ( d->sessions->isEmpty() ) {
         d->sessions = 0;
+        d->threader = 0;
+    }
 }
 
 
@@ -818,4 +822,20 @@ bool Mailbox::validName( const String & s )
     if ( s.contains( "//" ) )
         return false;
     return true;
+}
+
+
+/*! Returns a pointer to the Threader for this Mailbox. This is never
+    a null pointer; if Mailbox doesn't have one it will create one.
+
+    The Threader usually lives until you stop caring about it, but if
+    removeSession() removes the last Session, it also removes the
+    Threader.
+*/
+
+class Threader * Mailbox::threader() const
+{
+    if ( !d->threader )
+        d->threader = new Threader( this );
+    return d->threader;
 }

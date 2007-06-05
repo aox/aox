@@ -82,6 +82,8 @@ public:
     void notifySessions();
     List<class Session> * sessions() const;
 
+    class Threader * threader() const;
+
 private:
     class MailboxData *d;
     friend class MailboxReader;

@@ -19,10 +19,11 @@ public:
           complete( 0 ), findnew( 0 ) {}
 
     uint state;
-    Mailbox * mailbox;
+    const Mailbox * mailbox;
     uint largestUid;
     List<EventHandler> * users;
     Dict<Thread> threads;
+    List<Thread> threadList;
     
     class ThreadInserter
         : public EventHandler
@@ -33,7 +34,7 @@ public:
         Query * i;
         Query * s;
         uint l;
-        Mailbox * m;
+        const Mailbox * m;
 
         void execute();
     };
@@ -57,7 +58,7 @@ public:
 
 /*! Constructs a threader for \a mailbox, which must not be null. */
 
-Threader::Threader( Mailbox * mailbox )
+Threader::Threader( const Mailbox * mailbox )
     : EventHandler(), d( new ThreaderData )
 {
     d->mailbox = mailbox;
@@ -97,6 +98,7 @@ void Threader::execute()
                 t->setId( tid );
                 t->setSubject( subject );
                 d->threads.insert( subject, t );
+                d->threadList.append( t );
             }
             t->add( uid );
             if ( uid > d->largestUid )
@@ -134,6 +136,7 @@ void Threader::execute()
                 t = new Thread;
                 t->setSubject( subject );
                 d->threads.insert( subject, t );
+                d->threadList.append( t );
                 ThreaderData::ThreadInserter * s 
                     = new ThreaderData::ThreadInserter;
                 s->t = t;
@@ -221,7 +224,7 @@ bool Threader::updated() const
     cannot be a null pointer in a valid object.
 */
 
-Mailbox * Threader::mailbox() const
+const Mailbox * Threader::mailbox() const
 {
     return d->mailbox;
 }
@@ -353,4 +356,14 @@ uint Thread::id() const
 void Thread::setId( uint id )
 {
     d->id = id;
+}
+
+
+/*! Returns a pointer to an unsorted list of all threads. Never
+    returns a null pointer. The returned list should not be modified.
+*/
+
+List<Thread> * Threader::allThreads() const
+{
+    return &d->threadList;
 }
