@@ -14,6 +14,7 @@ public:
     void * find( uint );
     void insert( uint, void * );
     uint count( uint ) const;
+    void clear();
 
     static const uint Slice = 6;
     static const uint Size = 1 << Slice;
@@ -35,6 +36,7 @@ public:
     void remove( uint i ) { t.insert( i, 0 ); }
     bool contains( uint i ) { return find( i ) != 0; }
     uint count() const { return t.count( sizeof(uint)*8/MapTable::Slice ); }
+    void clear() { t.clear(); }
 
 private:
     MapTable t;

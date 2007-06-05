@@ -71,9 +71,7 @@ Returns the number of objects in the Map.
 
 MapTable::MapTable()
 {
-    uint i = 0;
-    while( i < Size )
-        data[i++] = 0;
+    clear();
 }
 
 
@@ -134,3 +132,11 @@ uint MapTable::count( uint l ) const
 }
 
 
+/*! Removes every item from the map table. Bang. */
+
+void MapTable::clear()
+{
+    uint i = 0;
+    while( i < Size )
+        data[i++] = 0;
+}
