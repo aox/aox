@@ -154,7 +154,7 @@ void IMAP::react( Event e )
     case Timeout:
         if ( state() != Logout ) {
             log( "Idle timeout" );
-            enqueue( "* BYE autologout\r\n" );
+            enqueue( "* BYE Tempus fugit\r\n" );
         }
         Connection::setState( Closing );
         if ( d->reader ) {

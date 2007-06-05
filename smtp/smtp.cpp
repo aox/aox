@@ -131,7 +131,7 @@ void SMTP::react( Event e )
 
     case Timeout:
         log( "Idle timeout" );
-        enqueue( "421 Timeout\r\n" );
+        enqueue( "421 Tempus fugit\r\n" );
         Connection::setState( Closing );
         break;
 
