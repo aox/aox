@@ -113,17 +113,21 @@ void PopCommand::execute()
         break;
 
     case Capa:
-        d->pop->ok( "Capabilities:" );
-        d->pop->enqueue( // "TOP\r\n"
-                         "SASL\r\n"
-                         "STLS\r\n"
-                         "USER\r\n"
-                         "RESP-CODES\r\n"
-                         "PIPELINING\r\n"
-                         // "UIDL\r\n"
-                         "IMPLEMENTATION Archiveopteryx POP3 Server, "
-                         "http://www.archiveopteryx.org.\r\n"
-                         ".\r\n" );
+        {
+            String c( "TOP\r\n"
+                      "UIDL\r\n"
+                      "SASL\r\n"
+                      "USER\r\n"
+                      "RESP-CODES\r\n"
+                      "PIPELINING\r\n"
+                      "IMPLEMENTATION Archiveopteryx POP3 Server, "
+                      "http://www.archiveopteryx.org.\r\n" );
+            if ( Configuration::toggle( Configuration::UseTls ) )
+                c.append( "STLS\r\n" );
+            c.append( ".\r\n" );
+            d->pop->ok( "Capabilities:" );
+            d->pop->enqueue( c );
+        }
         break;
 
     case Stls:
@@ -200,6 +204,12 @@ bool PopCommand::startTls()
 {
     if ( !d->tlsServer ) {
         log( "STLS Command" );
+
+        if ( Configuration::toggle( Configuration::UseTls ) == false ) {
+            d->pop->err( "STLS not supported" );
+            return true;
+        }
+
         d->tlsServer = new TlsServer( this, d->pop->peer(), "POP" );
         d->pop->setReserved( true );
     }
