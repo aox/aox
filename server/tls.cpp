@@ -116,6 +116,10 @@ void TlsServerData::Client::react( Event e )
     returns quickly, and later notifies \a handler when setup has
     completed. In the log files, the TlsServer will refer to \a client
     as client using \a protocol.
+
+    If use-tls is set to false in the configuration, this TlsServer
+    object will be done() and not ok() immediately after construction.
+    It will not call its owner back in that case.
 */
 
 TlsServer::TlsServer( EventHandler * handler, const Endpoint & client,
@@ -123,12 +127,17 @@ TlsServer::TlsServer( EventHandler * handler, const Endpoint & client,
     : d( new TlsServerData )
 {
     d->handler = handler;
-
-    d->serverside = new TlsServerData::Client( d );
-    d->userside = new TlsServerData::Client( d );
-
     d->protocol = protocol;
     d->client = client;
+
+    if ( Configuration::toggle( Configuration::UseTls ) ) {
+        d->serverside = new TlsServerData::Client( d );
+        d->userside = new TlsServerData::Client( d );
+    }
+    else {
+        d->done = true;
+        d->ok = false;
+    }
 }
 
 

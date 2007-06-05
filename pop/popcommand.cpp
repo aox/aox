@@ -205,11 +205,6 @@ bool PopCommand::startTls()
     if ( !d->tlsServer ) {
         log( "STLS Command" );
 
-        if ( Configuration::toggle( Configuration::UseTls ) == false ) {
-            d->pop->err( "STLS not supported" );
-            return true;
-        }
-
         d->tlsServer = new TlsServer( this, d->pop->peer(), "POP" );
         d->pop->setReserved( true );
     }
@@ -217,8 +212,14 @@ bool PopCommand::startTls()
     if ( !d->tlsServer->done() )
         return false;
 
-    d->pop->ok( "Done" );
     d->pop->setReserved( false );
+
+    if ( !d->tlsServer->ok() ) {
+        d->pop->err( "Internal error starting TLS engine" );
+        return true;
+    }
+
+    d->pop->ok( "Done" );
     d->pop->write();
     d->pop->startTls( d->tlsServer );
 
