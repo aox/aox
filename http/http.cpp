@@ -1,4 +1,4 @@
-o// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "http.h"
 
