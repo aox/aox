@@ -15,7 +15,7 @@ class Log
 public:
     enum Facility {
         General,
-        Configuration, Database, Authentication, IMAP, SMTP, Server
+        Configuration, Database, Authentication, IMAP, SMTP, POP, HTTP, Server
     };
     enum Severity { Debug, Info, Significant, Error, Disaster };
 

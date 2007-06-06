@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+o// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "http.h"
 
@@ -346,7 +346,7 @@ void HTTP::parseRequest( String l )
 {
     setTimeoutAfter( 1800 );
     d->state = Header;
-    d->log = new Log( Log::Server );
+    d->log = new Log( Log::HTTP );
     Scope s( d->log );
     log( "Request: " + l, Log::Debug );
     int space = l.find( ' ' );

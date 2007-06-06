@@ -208,6 +208,12 @@ void Connection::setType( Type type )
     case SmtpServer:
         d->l->setFacility( Log::SMTP );
         break;
+    case Pop3Server:
+        d->l->setFacility( Log::POP );
+        break;
+    case HttpServer:
+        d->l->setFacility( Log::HTTP );
+        break;
     case DatabaseClient:
         d->l->setFacility( Log::Database );
         break;

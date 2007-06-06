@@ -128,6 +128,12 @@ const char *Log::facility( Facility f )
     case SMTP:
         i = "smtp";
         break;
+    case POP:
+        i = "pop";
+        break;
+    case HTTP:
+        i = "http";
+        break;
     case Server:
         i = "server";
         break;
