@@ -32,7 +32,10 @@ Error404::Error404( Link * link )
         r.append( "Perhaps <a href=\"" );
         r.append( c );
         r.append( "\">" );
-        r.append( quoted( c ) );
+        if ( c == "/" )
+            r.append( "the home page" );
+        else
+            r.append( quoted( c ) );
         r.append( "</a> is the page you want. "
                   "If not, maybe it can help you find the page you want." );
     }
