@@ -154,6 +154,12 @@ void WebPage::execute()
 
 void WebPage::requireRight( Mailbox * m, Permissions::Right r )
 {
+    if ( d->mailbox == m && d->rights == r )
+        return;
+
+    // XXX: this isn't as documented, and I think the documentation is
+    // right. it implies that multiple rights and multiple mailboxes
+    // are possible.
     d->mailbox = m;
     d->rights = r;
 
