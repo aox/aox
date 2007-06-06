@@ -8,7 +8,7 @@
 #include "ustring.h"
 #include "frontmatter.h"
 #include "addressfield.h"
-#include "mailboxview.h"
+#include "messageset.h"
 #include "threader.h"
 #include "webpage.h"
 #include "message.h"
