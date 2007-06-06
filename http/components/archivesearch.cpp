@@ -163,12 +163,13 @@ void ArchiveSearch::execute()
     }
 
     List<Query>::Iterator q( d->queries );
-    while ( q && !q->done() )
+    while ( q && q->done() )
         ++q;
     if ( q )
         return;
 
     MessageSet matchesAll;
+    matchesAll.add( 1, UINT_MAX );
     MessageSet matchesSome;
 
     q = d->queries;
