@@ -16,7 +16,7 @@ class ThreaderData
 public:
     ThreaderData()
         : state( 0 ), mailbox( 0 ), largestUid( 0 ), users( 0 ),
-          complete( 0 ), findnew( 0 ) {}
+          complete( 0 ), findnew( 0 ), findthreads( 0 ) {}
 
     uint state;
     const Mailbox * mailbox;
@@ -29,12 +29,12 @@ public:
         : public EventHandler
     {
     public:
-        ThreadInserter(): t( 0 ), i( 0 ), s( 0 ), l( 0 ), m( 0 ) {}
+        ThreadInserter(): t( 0 ), i( 0 ), s( 0 ), m( 0 ) {}
         Thread * t;
         Query * i;
         Query * s;
-        uint l;
         const Mailbox * m;
+        MessageSet uids;
 
         void execute();
     };
@@ -42,8 +42,7 @@ public:
     List<ThreadInserter> inserters;
     Query * complete;
     Query * findnew;
-
-    void finish();
+    Query * findthreads;
 };
 
 
@@ -106,16 +105,11 @@ void Threader::execute()
         if ( !d->complete->done() )
             return;
         d->complete = 0;
-
-        // did that supply all the data we need?
-        if ( updated() )
-            d->finish();
-        else
-            d->state = 2;
+        d->state = 2;
     }
 
-    // state 2: find the base subjects of new messages, add relevant
-    // base subjects to threads and look up threads.id.
+    // state 2: find the base subjects of new messages and construct
+    // the in-ram threads.
     if ( d->state == 2 ) {
         if ( !d->findnew ) {
             d->findnew
@@ -137,27 +131,89 @@ void Threader::execute()
                 t->setSubject( subject );
                 d->threads.insert( subject, t );
                 d->threadList.append( t );
-                ThreaderData::ThreadInserter * s 
-                    = new ThreaderData::ThreadInserter;
-                s->t = t;
-                s->m = d->mailbox;
-                s->l = d->largestUid;
-                d->inserters.append( s );
             }
             t->add( uid );
             if ( uid > d->largestUid )
                 d->largestUid = uid;
+            List<ThreaderData::ThreadInserter>::Iterator i( d->inserters );
+            while ( i && i->t != t )
+                ++i;
+            if ( !i ) {
+                ThreaderData::ThreadInserter * ti
+                    = new ThreaderData::ThreadInserter;
+                d->inserters.append( ti );
+                i = d->inserters.last();
+                i->t = t;
+                i->m = d->mailbox;
+            }
+            i->uids.add( uid );
         }
         if ( !d->findnew->done() )
             return;
-        List<ThreaderData::ThreadInserter>::Iterator i( d->inserters );
-        while ( i ) {
-            i->execute();
-            ++i;
-        }
-        d->inserters.clear();
         d->findnew = 0;
-        d->finish();
+        d->state = 3;
+    }
+
+    // state 3: notify the users. the database can be updated later.
+
+    if ( d->state == 3 ) {
+        if ( !updated() )
+            return;
+
+        if ( d->inserters.isEmpty() )
+            d->state = 0;
+        else
+            d->state = 4;
+
+        List<EventHandler>::Iterator o( d->users );
+        d->users = 0;
+        while ( o ) {
+            o->execute();
+            ++o;
+        }
+    }
+    
+
+    // state 4: have a preparatory look for the threads where we need
+    // to insert something. in theory this isn't necessary, but
+    // without this step, there will be an awful lot of errors in the
+    // pg log file when 'insert into threads' fails.
+    if ( d->state == 4 ) {
+        bool done = false;
+        if ( d->findthreads && d->findthreads->done() )
+            done = true;
+        if ( !d->findthreads ) {
+            List<ThreaderData::ThreadInserter>::Iterator i( d->inserters );
+            while ( i && i->t->id() )
+                ++i;
+            if ( !i ) {
+                done = true;
+            }
+            else {
+                d->findthreads = new Query( "select id, subject from threads "
+                                            "where mailbox=$1", this );
+                d->findthreads->bind( 1, d->mailbox->id() );
+                d->findthreads->execute();
+            }
+        }
+        if ( d->findthreads ) {
+            Row * r = 0;
+            while ( (r=d->findthreads->nextRow()) ) {
+                Thread * t = d->threads.find( r->getString( "subject" ) );
+                if ( t )
+                    t->setId( r->getInt( "id" ) );
+            }
+        }
+        if ( done ) {
+            d->findthreads = 0;
+            d->state = 0;
+            List<ThreaderData::ThreadInserter>::Iterator i( d->inserters );
+            while ( i ) {
+                i->execute();
+                ++i;
+            }
+            d->inserters.clear();
+        }
     }
 }
 
@@ -165,9 +221,11 @@ void Threader::execute()
 void ThreaderData::ThreadInserter::execute()
 {
     if ( !t->id() && !i ) {
-        i = new Query( "insert into threads (subject) values ($1)",
+        i = new Query( "insert into threads (subject, mailbox) "
+                       "values ($1, $2)",
                        this );
         i->bind( 1, t->subject() );
+        i->bind( 2, m->id() );
         i->allowFailure();
         i->execute();
     }
@@ -176,9 +234,11 @@ void ThreaderData::ThreadInserter::execute()
         return;
 
     if ( !t->id() && !s ) {
-        s = new Query( "select id from threads where subject=$1",
+        s = new Query( "select id from threads "
+                       "where subject=$1 and mailbox=$2",
                        this );
         s->bind( 1, t->subject() );
+        i->bind( 2, m->id() );
         s->execute();
     }
 
@@ -191,19 +251,20 @@ void ThreaderData::ThreadInserter::execute()
     if ( !t->id() )
         return;
 
-    MessageSet m;
-    m.add( l+1, UINT_MAX );
-    m = m.intersection( t->members() );
+    // we could use a copy for this, but we'd have to fall back to
+    // multiple inserts if the copy fails (it can in a cluster
+    // configuration) so for the moment I don't bother implementing
+    // the copy at all.
 
-    while ( !m.isEmpty() ) {
-        l = m.smallest();
-        m.remove( l );
+    while ( !uids.isEmpty() ) {
+        uint uid = uids.smallest();
+        uids.remove( uid );
         Query * q = new Query( "insert into thread_members "
                                "(thread,mailbox,uid) "
                                "values ($1,$2,$3)", 0 );
         q->bind( 1, t->id() );
-        q->bind( 2, this->m->id() ); // I suck
-        q->bind( 3, l );
+        q->bind( 2, m->id() );
+        q->bind( 3, uid );
         q->allowFailure();
         q->execute();
     }
@@ -247,18 +308,6 @@ void Threader::refresh( EventHandler * user )
         d->users->append( user );
     if ( d->state == 0 )
         execute();
-}
-
-
-void ThreaderData::finish()
-{
-    state = 0;
-    List<EventHandler>::Iterator o( users );
-    users = 0;
-    while ( o ) {
-        o->execute();
-        ++o;
-    }
 }
 
 
