@@ -7,6 +7,7 @@
 #include "configuration.h"
 #include "stringlist.h"
 #include "webpage.h"
+#include "utf.h"
 
 #include "components/error301.h"
 #include "components/error404.h"
@@ -39,7 +40,7 @@ public:
     uint uid;
     String part;
     Link::Suffix suffix;
-    Dict<String> arguments; // XXX: should be a Dict<UString>
+    Dict<UString> arguments;
 
     WebPage * webpage;
 
@@ -187,7 +188,7 @@ void Link::setSuffix( Suffix suffix )
     the parameters from the query component of this Link.
 */
 
-Dict<String> * Link::arguments() const
+Dict<UString> * Link::arguments() const
 {
     return &d->arguments;
 }
@@ -198,12 +199,30 @@ Dict<String> * Link::arguments() const
 String Link::query() const
 {
     String s;
+    Utf8Codec c;
     StringList::Iterator it( d->arguments.keys() );
     while ( it ) {
-        // XXX: More %-escaping needed.
         s.append( *it );
         s.append( "=" );
-        s.append( *d->arguments.find( *it ) );
+        String v = c.fromUnicode( *d->arguments.find( *it ) );
+        uint i = 0;
+        while ( i < v.length() ) {
+            char c = v[i];
+            ++i;
+            if ( c == '&' || c == '%' || c == '+' || c > 'z' ) {
+                s.append( '%' );
+                String num = String::fromNumber( c, 16 ).lower();// XXX lower?
+                if ( num.length() < 2 )
+                    s.append( '0' );
+                s.append( num );
+            }
+            else if ( c == ' ' ) {
+                s.append( '+' );
+            }
+            else {
+                s.append( c );
+            }
+        }
         ++it;
         if ( it )
             s.append( "&" );
@@ -625,7 +644,34 @@ void Link::parse( const String & s )
                 chosen = ::Arguments;
                 StringList::Iterator it( args.keys() );
                 while ( it ) {
-                    d->arguments.insert( *it, args.find( *it ) );
+                    if ( it->boring() ) {
+                        bool bad = false;
+                        Utf8Codec c;
+                        String v8e = *args.find( *it );
+                        String v8;
+                        uint i = 0;
+                        while ( !bad && i < v8e.length() ) {
+                            char c = v8e[i];
+                            i++;
+                            if ( c == '+' ) {
+                                v8.append( ' ' );
+                            }
+                            else if ( c == '%' ) {
+                                bool ok = true;
+                                uint n = v8e.mid( i, 2 ).number( &ok, 16 );
+                                if ( ok )
+                                    v8.append( (char)n );
+                                else
+                                    bad = true;
+                            }
+                            else {
+                                v8.append( c );
+                            }
+                        }
+                        UString * u = new UString( c.toUnicode( v8 ) );
+                        if ( c.valid() && !bad )
+                            d->arguments.insert( *it, u );
+                    }
                     ++it;
                 }
             }

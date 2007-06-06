@@ -66,8 +66,8 @@ void ArchiveSearch::execute()
 
     if ( d->queries.isEmpty() ) {
         Link * l = page()->link();
-        String * terms = l->arguments()->find( "query" );
-        if ( !terms || terms->simplified().isEmpty() ) {
+        UString * terms = l->arguments()->find( "query" );
+        if ( !terms || terms->isEmpty() ) {
             d->done = true;
             // so is this what we ought to do? perhaps we could bring
             // up an advanced search box, or a help box? or both?
@@ -75,7 +75,7 @@ void ArchiveSearch::execute()
             return;
         }
 
-        StringList::Iterator term( StringList::split( ' ', *terms ) );
+        StringList::Iterator term( StringList::split( ' ', terms->utf8() ) );
         while ( term ) {
             bool addressSearch = false;
             bool domainSearch = false;

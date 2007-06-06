@@ -4,6 +4,7 @@
 #define LINK_H
 
 #include "abnfparser.h"
+#include "ustring.h"
 #include "string.h"
 #include "dict.h"
 
@@ -62,7 +63,7 @@ public:
     Suffix suffix() const;
     void setSuffix( Suffix );
 
-    Dict<String> * arguments() const;
+    Dict<UString> * arguments() const;
     String query() const;
 
     String canonical() const;
