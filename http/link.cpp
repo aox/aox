@@ -291,6 +291,7 @@ static WebPage * archiveSearch( Link * link )
 static WebPage * archiveThread( Link * link )
 {
     WebPage * p = new WebPage( link );
+    p->addComponent( new SearchBox );
     p->addComponent( new ArchiveThread( link ) );
     p->addComponent( new Footer );
     return p;

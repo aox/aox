@@ -22,9 +22,13 @@ void SearchBox::execute()
 {
     Link * l = page()->link();
     String * query = l->arguments()->find( "query" );
-    String s( "<form>" );
-    s.append( "<input type=text name=query value=\"" );
-    if ( query )
+    Link action;
+    action.setType( l->type() );
+    action.setMailbox( l->mailbox() );
+    String s( "<form action=\"" );
+    s.append( action.canonical() );
+    s.append( "\"><input type=text name=query value=\"" );
+    if ( query && !query->contains( '"' ) )
         s.append( *query );
     s.append( "\"><input type=submit value=Search>" );
     s.append( "</form>" );
