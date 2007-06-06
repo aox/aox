@@ -6,6 +6,7 @@
 #include "field.h"
 #include "frontmatter.h"
 #include "messageset.h"
+#include "error404.h"
 #include "threader.h"
 #include "webpage.h"
 #include "mailbox.h"
@@ -71,6 +72,13 @@ void ArchiveThread::execute()
         if ( it->members().contains( d->link->uid() ) )
             thread = it;
         ++it;
+    }
+
+    if ( !thread ) {
+        page()->addComponent( new Error404( d->link ), this );
+        setContents( "<!-- Hi. There is no message with uid " +
+                     fn( d->link->uid() ) + ". Really. Trust me. -->\n" );
+        return;
     }
 
     // I wonder if it wouldn't be better to add the messages as

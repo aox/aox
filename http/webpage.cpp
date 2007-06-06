@@ -56,11 +56,24 @@ WebPage::WebPage( Link * link )
 }
 
 
-/*! Adds the PageComponent \a pc to this WebPage. */
+/*! Adds the PageComponent \a pc to this WebPage. If \a after is
+    present and non-null, \a pc is added immediately after \a
+    after. If \a after is null (this is the default), \a pc is added
+    at the end. */
 
-void WebPage::addComponent( PageComponent * pc )
+void WebPage::addComponent( PageComponent * pc, PageComponent * after )
 {
-    d->components.append( pc );
+    List<PageComponent>::Iterator i;
+    if ( after ) {
+        i = d->components.find( after );
+        if ( i )
+            ++i;
+    }
+    if ( i )
+        d->components.insert( i, pc );
+    else
+        d->components.append( pc );
+            
     pc->setPage( this );
 }
 

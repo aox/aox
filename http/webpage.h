@@ -23,7 +23,7 @@ public:
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();
 
-    void addComponent( class PageComponent * );
+    void addComponent( class PageComponent *, class PageComponent * = 0 );
 
 private:
     class WebPageData * d;
