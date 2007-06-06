@@ -176,8 +176,9 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
         d->user->setLogin( login );
         d->user->refresh( this );
     }
-    else if ( server->session() )
+    else if ( server->session() ) {
         d->user = server->session()->user();
+    }
 }
 
 

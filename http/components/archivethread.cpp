@@ -60,6 +60,9 @@ void ArchiveThread::execute()
         return;
     }
 
+    if ( !page()->permitted() )
+        return;
+
     d->done = true;
 
     List<Thread>::Iterator it( t->allThreads() );
@@ -69,9 +72,6 @@ void ArchiveThread::execute()
             thread = it;
         ++it;
     }
-
-    if ( !page()->permitted() )
-        return;
 
     // I wonder if it wouldn't be better to add the messages as
     // top-level components of the web page, just after this one. then
