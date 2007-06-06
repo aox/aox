@@ -37,7 +37,8 @@ public:
           unknownMessage( false ), identBreakageSeen( false ),
           setSessionAuthorisation( false ),
           sendingCopy( false ), error( false ), keydata( 0 ),
-          description( 0 ), transaction( 0 )
+          description( 0 ), transaction( 0 ),
+          needNotify( 0 )
     {}
 
     bool active;
@@ -57,6 +58,7 @@ public:
 
     List< Query > queries;
     Transaction *transaction;
+    Query * needNotify;
 
     String user;
 };
@@ -258,6 +260,9 @@ void Postgres::react( Event e )
                        "' message received." );
             }
         }
+        if ( d->needNotify )
+            d->needNotify->notify();
+        d->needNotify = 0;
 
         if ( usable() ) {
             processQueue();
@@ -480,12 +485,11 @@ void Postgres::process( char type )
                 return;
             }
 
-            // We could suppress this notification if we could somehow
-            // infer that we will receive a completion message soon.
-
             PgDataRow msg( readBuffer(), d->description );
             q->addRow( msg.row() );
-            q->notify();
+            if ( d->needNotify && d->needNotify != q )
+                d->needNotify->notify();
+            d->needNotify = q;
         }
         break;
 
@@ -513,6 +517,7 @@ void Postgres::process( char type )
                     q->setState( Query::Completed );
                 d->queries.shift();
                 q->notify();
+                d->needNotify = 0;
             }
         }
         break;
@@ -628,7 +633,8 @@ void Postgres::errorMessage()
             struct passwd * u = getpwnam( d->user.cstr() );
 
             struct passwd * p = 0;
-            const char * pg = Configuration::compiledIn( Configuration::PgUser );
+            const char * pg 
+                = Configuration::compiledIn( Configuration::PgUser );
 
             if ( pg )
                 p = getpwnam( pg );
