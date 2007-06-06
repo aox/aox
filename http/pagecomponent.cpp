@@ -253,3 +253,13 @@ String PageComponent::address( const UString & a )
 
     return s;
 }
+
+
+/*! A wrapper around WebPage::uniqueNumber(), so calling it is less
+    work.
+*/
+
+uint PageComponent::uniqueNumber()
+{
+    return page()->uniqueNumber();
+}

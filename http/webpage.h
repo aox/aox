@@ -25,6 +25,8 @@ public:
 
     void addComponent( class PageComponent *, class PageComponent * = 0 );
 
+    uint uniqueNumber();
+
 private:
     class WebPageData * d;
 };

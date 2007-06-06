@@ -27,7 +27,8 @@ class WebPageData
 public:
     WebPageData()
         : link( 0 ), checker( 0 ), responded( false ),
-          user( 0 ), mailbox( 0 ), rights( Permissions::Read )
+          user( 0 ), mailbox( 0 ), rights( Permissions::Read ),
+          uniq( 0 )
     {}
 
     Link * link;
@@ -37,6 +38,7 @@ public:
     User * user;
     Mailbox * mailbox;
     Permissions::Right rights;
+    uint uniq;
 };
 
 
@@ -428,4 +430,14 @@ void Rfc822Page::execute()
         return;
 
     link()->server()->respond( "message/rfc822", d->message->rfc822() );
+}
+
+
+/*! Returns a different nonzero number each time called. For use by
+    components who need to make unique identifiers of some kind.
+*/
+
+uint WebPage::uniqueNumber()
+{
+    return ++d->uniq;
 }

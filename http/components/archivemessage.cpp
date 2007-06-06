@@ -23,12 +23,11 @@ class ArchiveMessageData
 {
 public:
     ArchiveMessageData()
-        : link( 0 ), message( 0 ), uniq( 0 )
+        : link( 0 ), message( 0 )
     {}
 
     Link * link;
     Message * message;
-    uint uniq;
 };
 
 
@@ -476,9 +475,9 @@ String ArchiveMessage::message( Message *first, Message *m )
     bool topLevel = false;
     if ( first == m )
         topLevel = true;
-    String optionalHeader = "toggle" + fn( ++d->uniq );
-    String fullBody = "toggle" + fn( ++d->uniq );
-    String summaryBody = "toggle" + fn( ++d->uniq );
+    String optionalHeader = "toggle" + fn( uniqueNumber() );
+    String fullBody = "toggle" + fn( uniqueNumber() );
+    String summaryBody = "toggle" + fn( uniqueNumber() );
 
     String s, t;
     HeaderField *hf;
@@ -615,8 +614,8 @@ String ArchiveMessage::jsToggle( const String &t,
 {
     String s;
 
-    String a = "toggle" + fn( ++d->uniq );
-    String b = "toggle" + fn( ++d->uniq );
+    String a = "toggle" + fn( uniqueNumber() );
+    String b = "toggle" + fn( uniqueNumber() );
 
     if ( v )
         s.append( "<div class=njsvisible id=" + a + ">\n" );

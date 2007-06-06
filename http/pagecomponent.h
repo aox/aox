@@ -43,6 +43,8 @@ public:
     static String address( class Address * );
     static String address( const UString & );
 
+    uint uniqueNumber();
+
 private:
     class PageComponentData * d;
 };
