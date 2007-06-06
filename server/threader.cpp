@@ -238,7 +238,7 @@ void ThreaderData::ThreadInserter::execute()
                        "where subject=$1 and mailbox=$2",
                        this );
         s->bind( 1, t->subject() );
-        i->bind( 2, m->id() );
+        s->bind( 2, m->id() );
         s->execute();
     }
 
