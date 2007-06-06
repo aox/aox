@@ -68,8 +68,8 @@ Threader::Threader( const Mailbox * mailbox )
 void Threader::execute()
 {
     if ( d->state == 0 &&
-         d->largestUid + 1 >= d->mailbox->uidnext() )
-        return;
+         d->largestUid + 1 < d->mailbox->uidnext() )
+        d->state = 1;
 
     // we need to do something. what?
     Row * r = 0;
@@ -85,7 +85,6 @@ void Threader::execute()
                              this );
             d->complete->bind( 1, d->mailbox->id() );
             d->complete->bind( 2, d->largestUid );
-            d->complete->bind( 3, HeaderField::fieldType( "Subject" ) );
             d->complete->execute();
         }
         while ( (r=d->complete->nextRow()) ) {
@@ -126,11 +125,12 @@ void Threader::execute()
                              "where hf.mailbox=$1 and hf.field=$2 "
                              " and hf.part='' and tm.thread is null", this );
             d->findnew->bind( 1, d->mailbox->id() );
-            d->findnew->bind( 2, HeaderField::fieldType( "Subject" ) );
+            d->findnew->bind( 2, HeaderField::Subject );
             d->findnew->execute();
         }
         while ( (r=d->findnew->nextRow()) ) {
-            String subject = Message::baseSubject( r->getString( "subject" ) );
+            String subject = Message::baseSubject( r->getString( "value" ) );
+            uint uid = r->getInt( "uid" );
             Thread * t = d->threads.find( subject );
             if ( !t ) {
                 t = new Thread;
@@ -144,7 +144,9 @@ void Threader::execute()
                 s->l = d->largestUid;
                 d->inserters.append( s );
             }
-            t->add( r->getInt( "uid" ) );
+            t->add( uid );
+            if ( uid > d->largestUid )
+                d->largestUid = uid;
         }
         if ( !d->findnew->done() )
             return;
