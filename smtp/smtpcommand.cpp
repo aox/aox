@@ -9,6 +9,7 @@
 
 #include "smtpparser.h"
 #include "stringlist.h"
+#include "scope.h"
 #include "smtp.h"
 #include "tls.h"
 
@@ -17,7 +18,8 @@ class SmtpCommandData
     : public Garbage
 {
 public:
-    SmtpCommandData(): responseCode( 0 ), done( false ), smtp( 0 ) {}
+    SmtpCommandData()
+        : responseCode( 0 ), done( false ), smtp( 0 ) {}
 
     uint responseCode;
     StringList response;
@@ -40,6 +42,7 @@ public:
 SmtpCommand::SmtpCommand( class SMTP * s )
     : EventHandler(), d( new SmtpCommandData )
 {
+    setLog( new Log( Log::SMTP ) );
     d->smtp = s;
 }
 
@@ -75,6 +78,7 @@ String SmtpCommand::response() const
     String r;
     String n = fn( d->responseCode );
     StringList::Iterator it( d->response );
+    uint crlf = 0;
     while ( it ) {
         String l = *it;
         ++it;
@@ -84,9 +88,14 @@ String SmtpCommand::response() const
         else
             r.append( "-" );
         r.append( l );
+        if ( !crlf )
+            crlf = r.length();
         r.append( "\r\n" );
     }
-    log( "Sending response '" + r + "'",
+    String l = r.mid( 0, crlf );
+    if ( d->response.count() > 1 )
+        l.append( " (+" + fn( d->response.count() - 1 ) + " more lines)" );
+    log( "Response: " + l,
          d->responseCode >= 400 ? Log::Info : Log::Debug );
     return r;
 }
@@ -112,6 +121,7 @@ bool SmtpCommand::ok() const
 
 void SmtpCommand::respond( uint r, const String & s )
 {
+    Scope x( log() );
     if ( r )
         d->responseCode = r;
     d->response.append( s );
@@ -180,6 +190,9 @@ SmtpCommand * SmtpCommand::create( SMTP * server, const String & command )
         r = new SmtpCommand( server );
         r->respond( 500, "Unknown command (" + c.upper() + ")" );
     }
+
+    Scope x( r->log() );
+    r->log( "Command: " + command.simplified(), Log::Debug );
 
     if ( !r->done() && r->d->responseCode < 400 && !p->error().isEmpty() )
         r->respond( 501, p->error() );
@@ -257,6 +270,7 @@ SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
 SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
     : SmtpCommand( s ), startedTls( false ), tlsServer( 0 )
 {
+    Scope x( log() );
     tlsServer = new TlsServer( this, server()->peer(), "SMTP" );
 }
 

@@ -4,6 +4,7 @@
 
 #include "smtp.h"
 #include "user.h"
+#include "scope.h"
 #include "buffer.h"
 #include "mechanism.h"
 #include "smtpparser.h"
@@ -39,6 +40,7 @@ public:
 SmtpAuth::SmtpAuth( SMTP * s, SmtpParser * p )
     : SmtpCommand( s ), d( new SmtpAuthData )
 {
+    Scope x( log() );
     p->require( " " );
 
     // Accept a sasl-mech (including *gasp* lowercase letters).
@@ -85,7 +87,7 @@ void SmtpAuth::execute()
 
         d->m = SaslMechanism::create( d->mech, this, server()->hasTls() );
         if ( !d->m ) {
-            respond( 504, "Mechanism not supported" );
+            respond( 504, "Mechanism " + d->mech.quoted() + " not supported" );
             finish();
             return;
         }
@@ -156,6 +158,9 @@ void SmtpAuth::execute()
     }
     else {
         respond( 535, "Authentication failed" );
+        if ( d->m->user() &&
+             !d->m->user()->login().isEmpty() )
+            log( "Authentication failed for " + d->m->user()->login() );
     }
 
     server()->setInputState( SMTP::Command );

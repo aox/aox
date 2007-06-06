@@ -8,6 +8,7 @@
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
+#include "scope.h"
 #include "sieve.h"
 #include "smtp.h"
 
@@ -35,6 +36,7 @@ public:
 SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     : SmtpCommand( s ), d( new SmtpMailFromData )
 {
+    Scope x( log() );
 //      "MAIL FROM:" ("<>" / Reverse-Path)
 //                       [SP Mail-parameters] CRLF
     p->whitespace();
@@ -107,13 +109,14 @@ void SmtpMailFrom::execute()
     }
 
     if ( server()->sieve()->sender() ) {
-        respond( 500, "Sender address already specified: " + 
+        respond( 500, "Sender address already specified: " +
                  server()->sieve()->sender()->toString() );
         finish();
         return;
     }
     // checking rcpt to is not necessary, since it already checks mail from
 
+    log( "Sender: " + d->address->toString() );
     server()->sieve()->setSender( d->address );
     if ( d->address->type() == Address::Bounce )
         respond( 250, "Accepted message from mailer-daemon" );
@@ -145,6 +148,7 @@ public:
 SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
     : SmtpCommand( s ), d( new SmtpRcptToData )
 {
+    Scope x( log() );
     p->whitespace();
     p->require( ":" );
     p->whitespace();
@@ -190,7 +194,7 @@ void SmtpRcptTo::execute()
                 script->parse( r->getString( "script" ) );
             server()->sieve()->addRecipient( d->address, d->mailbox, script );
             if ( !r->isNull( "login" ) )
-                server()->sieve()->setPrefix( d->address, 
+                server()->sieve()->setPrefix( d->address,
                                               r->getString( "name" ) + "/" +
                                               r->getString( "login" ) + "/" );
         }
@@ -277,7 +281,7 @@ void SmtpRcptTo::addParam( const String & name, const String & value )
                     // XXX real orcpt. what to do?
                 }
             }
-            
+
         }
     }
     else {

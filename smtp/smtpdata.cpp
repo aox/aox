@@ -14,6 +14,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "buffer.h"
+#include "scope.h"
 #include "sieve.h"
 #include "list.h"
 #include "date.h"
@@ -46,7 +47,7 @@ public:
 
 
 /*! \class SmtpData smtpdata.h
-  
+
     This is also the superclass for SmtpBdat and SmtpBurl, and does
     the injection.
 */
@@ -65,6 +66,7 @@ SmtpData::SmtpData( SMTP * s, SmtpParser * p )
     if ( !p )
         return;
 
+    Scope x( log() );
     p->end();
     d->state = 0;
     // d->state starts at 2 for bdat/burl, and at 0 for data.
@@ -259,7 +261,7 @@ void SmtpData::execute()
             if ( server()->sieve()->rejected() )
                 respond( 551, "Rejected by all recipients" );
             if ( !server()->sieve()->error().isEmpty() )
-                respond( 451, "Sieve runtime error: " + 
+                respond( 451, "Sieve runtime error: " +
                          server()->sieve()->error() );
             else
                 respond( 250, d->ok );
@@ -441,6 +443,7 @@ public:
 SmtpBdat::SmtpBdat( SMTP * s, SmtpParser * p )
     : SmtpData( s, 0 ), d( new SmtpBdatData )
 {
+    Scope x( log() );
     p->whitespace();
     d->size = p->number();
     if ( !p->atEnd() ) {
@@ -554,7 +557,7 @@ void SmtpBurl::execute()
     }
     if ( !server()->isFirstCommand( this ) )
         return;
-    
+
     String b( server()->body() );
     b.append( d->url->text() );
     server()->setBody( b );

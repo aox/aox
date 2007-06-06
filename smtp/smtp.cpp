@@ -6,8 +6,10 @@
 #include "smtpcommand.h"
 #include "transaction.h"
 #include "eventloop.h"
+#include "address.h"
 #include "mailbox.h"
 #include "buffer.h"
+#include "scope.h"
 #include "sieve.h"
 #include "user.h"
 #include "tls.h"
@@ -85,6 +87,7 @@ public:
 SMTP::SMTP( int s, Dialect dialect )
     : Connection( s, Connection::SmtpServer ), d( new SMTPData )
 {
+    Scope x( log() );
     d->dialect = dialect;
     switch( dialect ) {
     case Smtp:
@@ -187,8 +190,7 @@ void SMTP::parseCommand()
     }
     if ( !line )
         return;
-    
-    log( "Received: '" + line->simplified() + "'", Log::Debug );
+
     d->commands.append( SmtpCommand::create( this, *line ) );
 }
 
@@ -216,14 +218,17 @@ void SMTP::execute()
         while ( i ) {
             SmtpCommand * c = i;
             ++i;
-            if ( !c->done() )
+            if ( !c->done() ) {
+                Scope s( c->log() );
                 c->execute();
+            }
         }
 
         // see if any old commands may be retired
         i = d->commands.first();
         while ( i && i->done() ) {
             d->executeAgain = true;
+            Scope s( i->log() );
             enqueue( i->response() );
             d->commands.take( i );
         }
@@ -270,6 +275,10 @@ String SMTP::heloName() const
 
 void SMTP::reset()
 {
+    if ( d->sieve ||
+         ( d->recipients && !d->recipients->isEmpty() ) ||
+         !d->body.isEmpty() )
+        log( "State reset" );
     d->sieve = 0;
     d->recipients = new List<SmtpRcptTo>;
     d->body.truncate();
@@ -304,6 +313,8 @@ class User * SMTP::user() const
 void SMTP::authenticated( User * user )
 {
     d->user = user;
+    if ( user )
+        log( "Authenticated as " + user->login() );
 }
 
 
@@ -335,6 +346,7 @@ void SMTP::setInputState( InputState s )
 
 void SMTP::addRecipient( SmtpRcptTo * r )
 {
+    log( "Recipient: " + r->address()->toString() );
     d->recipients->append( r );
 }
 

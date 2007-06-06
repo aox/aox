@@ -4,6 +4,7 @@
 
 #include "smtpparser.h"
 #include "mechanism.h"
+#include "scope.h"
 #include "smtp.h"
 
 
@@ -22,6 +23,7 @@
 SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
     : SmtpCommand( s )
 {
+    Scope x( log() );
     if ( t == Lhlo && s->dialect() != SMTP::Lmtp )
         respond( 500, "LHLO is valid only in LMTP" );
     else if ( s->dialect() == SMTP::Lmtp && t != Lhlo )
