@@ -4,13 +4,14 @@
 
 #include "dict.h"
 #include "link.h"
-#include "httpsession.h"
-#include "eventloop.h"
 #include "codec.h"
 #include "buffer.h"
+#include "eventloop.h"
+#include "httpsession.h"
 #include "configuration.h"
 #include "stringlist.h"
 #include "webpage.h"
+#include "scope.h"
 #include "log.h"
 
 
@@ -25,7 +26,7 @@ public:
           acceptsPng( true ), acceptsLatin1( true ), acceptsUtf8( true ),
           acceptsIdentity( false ), connectionClose( true ),
           contentLength( 0 ),
-          link( 0 ), session( 0 )
+          link( 0 ), session( 0 ), log( 0 )
     {}
 
     HTTP::State state;
@@ -56,6 +57,7 @@ public:
 
     Link *link;
     HttpSession *session;
+    Log * log;
 
     struct HeaderListItem
         : public Garbage
@@ -87,6 +89,7 @@ HTTP::HTTP( int s )
 {
     clear();
     EventLoop::global()->addConnection( this );
+    setTimeoutAfter( 1800 );
 }
 
 
@@ -94,7 +97,6 @@ void HTTP::react( Event e )
 {
     switch ( e ) {
     case Read:
-        setTimeoutAfter( 1800 );
         process();
         break;
 
@@ -129,6 +131,10 @@ void HTTP::process()
             parseRequest( line().simplified() );
     }
 
+    Scope s;
+    if ( d->log )
+        s.setLog( d->log );
+
     while ( d->state == Header && canReadHTTPLine() )
         parseHeader( line() );
 
@@ -142,7 +148,7 @@ void HTTP::process()
                 d->body = s;
             if ( d->contentLength != 0 )
                 log( "Received request-body of " + fn( d->contentLength ) +
-                     " bytes for " + d->method );
+                     " bytes for " + d->method, Log::Debug );
             d->state = Parsed;
             parseParameters();
         }
@@ -194,8 +200,15 @@ void HTTP::respond( const String & type, const String & response )
     log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
          "of " + fn( response.length() ) + " bytes." );
 
-    if ( d->connectionClose )
+    if ( d->connectionClose ) {
         setState( Closing );
+        log( "Closing connection" );
+    }
+    else {
+        log( "Keeping connection alive for 1800 more seconds." );
+        setTimeoutAfter( 1800 );
+        d->log = 0;
+    }
 
     clear();
 }
@@ -331,7 +344,11 @@ String HTTP::line()
 
 void HTTP::parseRequest( String l )
 {
+    setTimeoutAfter( 1800 );
     d->state = Header;
+    d->log = new Log( Log::Server );
+    Scope s( d->log );
+    log( "Request: " + l, Log::Debug );
     int space = l.find( ' ' );
     if ( space < 0 ) {
         setStatus( 400, "Complete and utter parse error" );
@@ -390,7 +407,7 @@ void HTTP::parseRequest( String l )
     if ( ok )
         minor = protocol.mid( dot+1 ).number( &ok );
     if ( major != 1 ) {
-       setStatus( 400, "Only HTTP/1.0 and 1.1 are supported" );
+        setStatus( 400, "Only HTTP/1.0 and 1.1 are supported" );
         return;
     }
     if ( minor > 0 ) {
@@ -418,7 +435,8 @@ void HTTP::parseRequest( String l )
     }
 
     d->link = new Link( d->path, this );
-    log( "Received: " + d->method + " " + d->path + " " + protocol );
+    log( "Received: " + d->method + " " + d->path + " " + protocol,
+         Log::Debug );
 }
 
 
@@ -441,7 +459,7 @@ void HTTP::parseHeader( const String & h )
     String n = h.mid( 0, i ).simplified().headerCased();
     String v = h.mid( i+1 ).simplified();
 
-    log( "Received: '" + n + "' = '" + v + "'" );
+    log( "Received: '" + n + "' = '" + v + "'", Log::Debug );
 
     if ( n == "Accept" ) {
         d->acceptsHtml = false;
@@ -504,7 +522,8 @@ void HTTP::parseHeader( const String & h )
 
 void HTTP::setStatus( uint status, const String &message )
 {
-    log( "Status changed to " + fn( status ) + "/" + message );
+    if ( d->status && d->status != status )
+        log( "Status changed to " + fn( status ) + "/" + message );
     if ( d->status == 200 ) {
         d->status = status;
         d->message = message;
