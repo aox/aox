@@ -402,7 +402,7 @@ MessageSet MessageSet::intersection( const MessageSet & other ) const
         if ( me->start < her->start )
             b = her->start;
         uint e = me->start + me->length - 1;
-        if ( me->start + me->length > her->start + her->length )
+        if ( e > her->start + her->length - 1 )
             e = her->start + her->length - 1;
         if ( b <= e )
             r.add( b, e );
