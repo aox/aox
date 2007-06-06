@@ -59,7 +59,7 @@ Returns the number of objects in the Map.
 
 
 /*! \fn void Map::clear()
-Removes everything in the map. The map isEmpty() afterwards.
+Removes everything in the map.
 */
 
 
