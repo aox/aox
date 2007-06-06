@@ -39,7 +39,7 @@ public:
     uint uid;
     String part;
     Link::Suffix suffix;
-    Dict<String> arguments;
+    Dict<String> arguments; // XXX: should be a Dict<UString>
 
     WebPage * webpage;
 

@@ -9,6 +9,7 @@
 #include "frontmatter.h"
 #include "addressfield.h"
 #include "mailboxview.h"
+#include "threader.h"
 #include "webpage.h"
 #include "message.h"
 #include "header.h"
@@ -22,12 +23,11 @@ class ArchiveSearchData
 {
 public:
     ArchiveSearchData()
-        : link( 0 ), mv( 0 ), query( 0 ), done( false )
+        : link( 0 ), done( false )
     {}
 
     Link * link;
-    MailboxView * mv;
-    Query * query;
+    List<Query> queries;
     bool done;
 };
 
@@ -53,143 +53,190 @@ void ArchiveSearch::execute()
     if ( d->done )
         return;
 
-    if ( !d->mv ) {
-        Mailbox * m = d->link->mailbox();
-        page()->requireRight( m, Permissions::Read );
-        d->mv = MailboxView::find( m );
-    }
+    Mailbox * m = d->link->mailbox();
+    Threader * t = m->threader();
+
+    page()->requireRight( m, Permissions::Read );
+    
+    if ( !t->updated() )
+        t->refresh( this );
 
     if ( !page()->permitted() )
         return;
 
-    if ( !d->mv->ready() ) {
-        d->mv->refresh( page() );
-        return;
-    }
-
-    if ( !d->query ) {
+    if ( d->queries.isEmpty() ) {
         Link * l = page()->link();
         String * terms = l->arguments()->find( "query" );
         if ( !terms || terms->simplified().isEmpty() ) {
             d->done = true;
+            // so is this what we ought to do? perhaps we could bring
+            // up an advanced search box, or a help box? or both?
             setContents( "<p>Error: No query specified." );
             return;
         }
 
-        // XXX: check that *terms not only contains @, but that the
-        // domain looks more or less reasonable.
-        if ( terms->find( '@' ) > 0 ) {
-            d->query =
-                new Query(
-                    "select uid from address_fields af "
-                    "left join deleted_messages dm using (mailbox,uid) "
-                    "join addresses a on (af.address=a.id) "
-                    "where af.mailbox=$1 and dm.uid is null and "
-                    "lower(a.localpart)=$2 and lower(a.domain)=$3",
-                    this
-                );
-            String localpart = terms->mid( 0, terms->find( '@' ) ).lower();
-            String domain = terms->mid( 1 + terms->find( '@' ) ).lower();
-            d->query->bind( 1, d->link->mailbox()->id() );
-            d->query->bind( 2, localpart );
-            d->query->bind( 3, domain );
-        }
-        else {
-            String s;
-
-            s = "select s.uid from "
-                "(select mailbox,uid from header_fields where"
-                " mailbox=$1 and field=20 and value ilike '%'||$2||'%'"
-                " union"
-                " select pn.mailbox,pn.uid from part_numbers pn"
-                " join bodyparts b on (pn.bodypart=b.id) where"
-                " pn.mailbox=$1 and b.text ilike '%'||$2||'%') s "
-                "left join deleted_messages dm "
-                "on (s.mailbox=dm.mailbox and s.uid=dm.uid) "
-                "where dm.uid is null";
-
-            d->query = new Query( s, this );
-            d->query->bind( 1, d->link->mailbox()->id() );
-            d->query->bind( 2, *terms );
-        }
-        d->query->execute();
-    }
-
-    if ( !d->query->done() )
-        return;
-
-    Dict<Address> addresses;
-    String s;
-
-    s.append( fn( d->query->rows() ) + " results found.<br>" );
-
-    Row * r = d->query->nextRow();
-    while ( r ) {
-        Dict<Address> contributors;
-        uint uid = r->getInt( "uid" );
-
-        MailboxView::Thread * t = d->mv->thread( uid );
-        Message * m = t->message( 0 );
-
-        HeaderField * hf = m->header()->field( HeaderField::Subject );
-        String subject;
-        if ( hf )
-            subject = hf->data().simplified();
-        if ( subject.isEmpty() )
-            subject = "(No Subject)";
-        s.append( "<div class=thread>\n"
-                  "<div class=headerfield>Subject: " );
-        Link ml;
-        ml.setType( d->link->type() );
-        ml.setMailbox( d->link->mailbox() );
-        ml.setSuffix( Link::Thread );
-        ml.setUid( t->uid( 0 ) );
-        s.append( "<a href=\"" );
-        s.append( ml.canonical() );
-        s.append( "\">" );
-        s.append( quoted( subject ) );
-        s.append( "</a></div>\n" ); // subject
-
-        s.append( "<div class=threadcontributors>\n" );
-        s.append( "<div class=headerfield>From:\n" );
-        uint i = 0;
-        StringList al;
-        while ( i < t->messages() && al.count() < 5 ) {
-            m = t->message( i );
-            AddressField * af
-                = m->header()->addressField( HeaderField::From );
-            if ( af ) {
-                List< Address >::Iterator it( af->addresses() );
-                while ( it ) {
-                    String k = it->uname().utf8().lower();
-                    if ( contributors.contains( k ) ) {
-                        // we don't mention the name again
+        StringList::Iterator term( StringList::split( ' ', *terms ) );
+        while ( term ) {
+            bool addressSearch = false;
+            bool domainSearch = false;
+            String localpart;
+            String domain;
+            if ( term->contains( '@' ) ) {
+                StringList * l = StringList::split( '@', *term );
+                if ( l->count() == 2 ) {
+                    localpart = l->first()->lower();
+                    domain = l->last()->lower();
+                    uint i = 0;
+                    bool alpha = false;
+                    bool ok = true;
+                    while ( ok && i < domain.length() ) {
+                        char c = domain[i];
+                        if ( c == '.' ) {
+                            if ( i == 0 || i == domain.length() - 1 ||
+                                 domain[i+1] == '.' )
+                                ok = false;
+                        }
+                        else if ( c >= 'a' && c <= 'z' ) {
+                            alpha = true;
+                        }
+                        else if ( c >= '0' && c <= '9' ) {
+                        }
+                        else if ( c == '-' ) {
+                        }
+                        else {
+                            ok = false;
+                        }
+                        i++;
                     }
-                    else if ( !k.isEmpty() && addresses.contains( k ) ) {
-                        // we mention the name only
-                        al.append( it->uname().utf8() );
-                        contributors.insert( k, it );
+                    if ( ok ) {
+                        if ( localpart.isEmpty() )
+                            domainSearch = true;
+                        else
+                            addressSearch = true;
                     }
-                    else {
-                        // we mention name and address
-                        al.append( address( it ) );
-                        contributors.insert( k, it );
-                        addresses.insert( k, it );
-                    }
-                    ++it;
                 }
             }
-            i++;
+            Query * q = 0;
+            if ( domainSearch ) {
+                q = new Query( "select uid from address_fields af "
+                               "left join deleted_messages dm "
+                               " using (mailbox,uid) "
+                               "join addresses a on (af.address=a.id) "
+                               "where af.mailbox=$1 and dm.uid is null and "
+                               "lower(a.domain)=$2",
+                           this );
+                q->bind( 2, localpart );
+                q->bind( 3, domain );
+            }
+            else if ( addressSearch ) {
+                q = new Query( "select uid from address_fields af "
+                               "left join deleted_messages dm "
+                               " using (mailbox,uid) "
+                               "join addresses a on (af.address=a.id) "
+                               "where af.mailbox=$1 and dm.uid is null and "
+                               "lower(a.localpart)=$2 and lower(a.domain)=$3",
+                               this );
+                q->bind( 2, localpart );
+                q->bind( 3, domain );
+            }
+            else {
+                String s;
+                s = "select s.uid from "
+                    "(select mailbox,uid from header_fields where"
+                    " mailbox=$1 and field=20 and value ilike '%'||$2||'%'"
+                    " union"
+                    " select pn.mailbox,pn.uid from part_numbers pn"
+                    " join bodyparts b on (pn.bodypart=b.id) where"
+                    " pn.mailbox=$1 and b.text ilike '%'||$2||'%') s "
+                    "left join deleted_messages dm "
+                    "on (s.mailbox=dm.mailbox and s.uid=dm.uid) "
+                    "where dm.uid is null";
+
+                q = new Query( s, this );
+                q->bind( 2, *terms );
+            }
+            q->bind( 1, d->link->mailbox()->id() );
+            q->execute();
+            ++term;
+            d->queries.append( q );
         }
-        if ( i < t->messages() )
-            al.append( "..." );
-        s.append( al.join( ", " ) );
-        s.append( "\n"
-                  "</div>\n" // headerfield
-                  "</div>\n" // threadcontributors
-                  "</div>\n" ); // thread
-        r = d->query->nextRow();
     }
+
+    List<Query>::Iterator q( d->queries );
+    while ( q && !q->done() )
+        ++q;
+    if ( q )
+        return;
+
+    MessageSet matchesAll;
+    MessageSet matchesSome;
+
+    q = d->queries;
+    while ( q ) {
+        MessageSet results;
+        Row * r;
+        while ( (r=q->nextRow()) )
+            results.add( r->getInt( "uid" ) );
+        matchesSome.add( results );
+        matchesAll = matchesAll.intersection( results );
+        ++q;
+    }
+
+    Dict<Address> addresses;
+
+    List<Thread> all;
+    List<Thread> some;
+
+    List<Thread>::Iterator i( t->allThreads() );
+    while ( i ) {
+        if ( !i->members().intersection( matchesAll ).isEmpty() )
+            all.append( i );
+        else if ( !i->members().intersection( matchesSome ).isEmpty() )
+            some.append( i );
+        ++i;
+    }
+
+    String s;
+
+    s.append( fn( matchesSome.count() + matchesAll.count() ) +
+              " results found in " +
+              fn( some.count() + all.count() ) +
+              " threads.\n" );
+
+    i = all.first();
+    bool stillAll = true;
+    while ( i ) {
+        s.append( "<div class=matchingthread>\n" );
+        Link l;
+        l.setType( d->link->type() );
+        l.setMailbox( d->link->mailbox() );
+        l.setUid( i->members().smallest() );
+        l.setSuffix( Link::Thread );
+        s.append( "<a href=" );
+        s.append( l.canonical() );
+        s.append( ">" );
+        s.append( i->subject() ); // XXX ustring and encoding
+        s.append( "</a><br>\n" );
+        MessageSet matching( i->members() );
+        s.append( "Contains " );
+        s.append( fn ( matching.count() ) );
+        s.append( " messages, " );
+        s.append( fn ( matching.intersection( matchesSome ).count() ) );
+        s.append( " matching.\n" );
+        s.append( "</div>\n" ); //matchingthread
+        ++i;
+        if ( !i && stillAll ) {
+            i = some.first();
+            stillAll = false;
+        }
+    }
+
+    // except that if there's just one or a very few threads, we want
+    // to display that/those threads.
+
+    // or we want to display the individual messages in twoLines mode,
+    // and get the ArchiveMessage object to put the twoLines around
+    // the search terms. sound good.
 
     setContents( s );
     d->done = true;

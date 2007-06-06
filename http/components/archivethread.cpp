@@ -5,9 +5,10 @@
 #include "link.h"
 #include "field.h"
 #include "frontmatter.h"
-#include "addressfield.h"
-#include "mailboxview.h"
+#include "messageset.h"
+#include "threader.h"
 #include "webpage.h"
+#include "mailbox.h"
 #include "message.h"
 #include "header.h"
 
@@ -19,17 +20,18 @@ class ArchiveThreadData
 {
 public:
     ArchiveThreadData()
-        : link( 0 ), mv( 0 ), done( false )
+        : link( 0 ), done( false )
     {}
 
     Link * link;
-    MailboxView * mv;
     bool done;
 };
 
 
 /*! \class ArchiveThread archivethread.h
-    A page component representing a view of a single mailbox.
+
+    A page component representing a view of a single mailbox. What? Is
+    that really what this thing does?
 */
 
 
@@ -49,25 +51,36 @@ void ArchiveThread::execute()
     if ( d->done )
         return;
 
-    if ( !d->mv ) {
-        Mailbox * m = d->link->mailbox();
-        page()->requireRight( m, Permissions::Read );
-        d->mv = MailboxView::find( m );
+    Mailbox * m = d->link->mailbox();
+    page()->requireRight( m, Permissions::Read );
+
+    Threader * t = m->threader();
+    if ( !t->updated() ) {
+        t->refresh( this );
+        return;
+    }
+
+    d->done = true;
+
+    List<Thread>::Iterator it( t->allThreads() );
+    Thread * thread = 0;
+    while ( it && !thread ) {
+        if ( it->members().contains( d->link->uid() ) )
+            thread = it;
+        ++it;
     }
 
     if ( !page()->permitted() )
         return;
 
-    if ( !d->mv->ready() ) {
-        d->mv->refresh( page() );
-        return;
-    }
+    // I wonder if it wouldn't be better to add the messages as
+    // top-level components of the web page, just after this one. then
+    // this could have content, which we'll want.
 
-    MailboxView::Thread * thread = d->mv->thread( d->link->uid() );
-
-    uint n = 0;
-    while ( n < thread->messages() ) {
-        uint uid = thread->uid( n );
+    MessageSet messages( thread->members() );
+    while ( !messages.isEmpty() ) {
+        uint uid = messages.smallest();
+        messages.remove( uid );
 
         Link * l = new Link;
         l->setType( d->link->type() );
@@ -75,8 +88,5 @@ void ArchiveThread::execute()
         l->setUid( uid );
 
         addSubComponent( new ArchiveMessage( l ) );
-        n++;
     }
-
-    d->done = true;
 }
