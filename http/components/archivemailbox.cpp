@@ -67,8 +67,6 @@ ArchiveMailbox::ArchiveMailbox( Link * link )
 void ArchiveMailbox::execute()
 {
     Threader * t = d->link->mailbox()->threader();
-    if ( !t->updated() )
-        t->refresh( this );
 
     if ( !d->af ) {
         d->af = new Query( "select af.uid, af.position, af.address, af.field, "
@@ -84,7 +82,12 @@ void ArchiveMailbox::execute()
         d->af->execute();
     }
 
-    if ( !d->af->done() || !t->updated() )
+    if ( !t->updated() ) {
+        t->refresh( this );
+        return;
+    }
+
+    if ( !d->af->done() )
         return;
 
     if ( t->allThreads()->isEmpty() ) {
