@@ -28,6 +28,8 @@ public:
 
     Link * link;
     Message * message;
+    String js;
+    String buttons;
 };
 
 
@@ -475,41 +477,24 @@ String ArchiveMessage::message( Message *first, Message *m )
     bool topLevel = false;
     if ( first == m )
         topLevel = true;
-    String optionalHeader = "toggle" + fn( uniqueNumber() );
-    String fullBody = "toggle" + fn( uniqueNumber() );
-    String summaryBody = "toggle" + fn( uniqueNumber() );
 
-    String s, t;
+    String s;
+    String t;
     HeaderField *hf;
 
-    s.append( "<div class=message>\n"
-              "<div class=header>\n" );
-
-    /*
-    if ( topLevel ) {
-        s.append( "<a onclick=\"expandCollapse(" );
-        s.append( fn( d->msn++ ) );
-        s.append( ",'" );
-        s.append( optionalHeader );
-        s.append( "','" );
-        s.append( fullBody );
-        s.append( "','" );
-        s.append( summaryBody );
-        s.append( "')\">\n" );
-    }
-    */
-    s.append( addressField( m, HeaderField::From ) );
+    String h;
+    h.append( addressField( m, HeaderField::From ) );
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
-        s.append( "<div class=headerfield>Subject: " );
-        s.append( quoted( hf->data() ) );
-        s.append( "</div>\n" );
+        h.append( "<div class=headerfield>Subject: " );
+        h.append( quoted( hf->data() ) );
+        h.append( "</div>\n" );
     }
-    s.append( addressField( m, HeaderField::To ) );
-    if ( topLevel ) {
-        s.append( "<div id=" + optionalHeader + ">\n" );
-    }
-    s.append( addressField( m, HeaderField::Cc ) );
+    h.append( addressField( m, HeaderField::To ) );
+
+    String o;
+    o.append( "<div class=optionalheader>\n" );
+    o.append( addressField( m, HeaderField::Cc ) );
 
     List< HeaderField >::Iterator it( m->header()->fields() );
     while ( it ) {
@@ -522,35 +507,44 @@ String ArchiveMessage::message( Message *first, Message *m )
              hf->type() != HeaderField::Cc )
         {
             if ( hf->type() <= HeaderField::LastAddressField ) {
-                t.append( addressField( m, hf->type() ) );
+                o.append( addressField( m, hf->type() ) );
             }
             else {
-                t.append( "<div class=headerfield>" );
-                t.append( quoted( hf->name() ) );
-                t.append( ": " );
-                t.append( quoted( hf->data().simplified() ) );
-                t.append( "</div>\n" );
+                o.append( "<div class=headerfield>" );
+                o.append( quoted( hf->name() ) );
+                o.append( ": " );
+                o.append( quoted( hf->data().simplified() ) );
+                o.append( "</div>\n" );
             }
         }
 
     }
-    s.append( jsToggle( t, false,
+    h.append( jsToggle( o, false,
                         "Show full header", "Hide full header" ) );
 
-    if ( topLevel )
-        s.append( "</div>\n" ); // optionalHeader
-    s.append( "</div>\n" ); // header
+    h.append( "</div>\n" ); // optionalHeader
 
-    if ( topLevel ) {
-        s.append( "<div class=njshidden id=" );
-        s.append( summaryBody );
-        s.append( ">\n" );
-        s.append( twoLines( first ) );
-        s.append( "</div>\n" ); // jsonly summaryBody
-        s.append( "<div id=" );
-        s.append( fullBody );
-        s.append( ">" );
+    s.append( "<div class=message>\n" );
+    if ( !d->js.isEmpty() ) {
+        s.append( "<script language=javascript type=\"text/javascript\">\n" );
+        s.append( d->js );
+        s.append( "</script>\n" );
+        d->js.truncate();
     }
+    s.append( "<div class=header>\n" );
+    if ( !d->buttons.isEmpty() ) {
+        s.append( "<div class=jsonly>"
+                  "<div class=buttons style=\"float:right\">\n" );
+        s.append( d->buttons );
+        s.append( "</div>" // buttons
+                  "</div>" // jsonly
+                  "\n" );
+        d->buttons.truncate();
+    }
+    s.append( h );
+    s.append( "</div>\n" ); // header
+    
+    s.append( "<div class=messagebody>" );
 
     List< Bodypart >::Iterator jt( m->children() );
     while ( jt ) {
@@ -559,7 +553,7 @@ String ArchiveMessage::message( Message *first, Message *m )
     }
 
     if ( topLevel )
-        s.append( "</div>\n" ); // fullBody
+        s.append( "</div>\n" ); // messagebody
 
     s.append( "</div>\n" ); // message
 
@@ -596,47 +590,66 @@ String ArchiveMessage::addressField( Message *m, HeaderField::Type t )
 }
 
 
-/*! Returns a string where \a t is wrapped in javascript magic to show
-    and hide it on command. \a show and \a hide are the texts to be
-    used. If \a v is true, the text is visible if javascript is not
-    availble, if \a v is false, the text is hidden in that case.
+/*! Returns a string where \a html is wrapped in javascript magic to
+    show and hide it on command. \a show and \a hide are the texts to
+    be used. If \a visible is true, the text is visible if javascript
+    is not availble, if \a visible is false, the text is hidden in
+    that case.
 
     At some point in the future, we probably want to have this
-    function return an empty string if \a v is false and we somehow
-    know the browser does not execute javascript.
+    function return an empty string if \a visible is false and we
+    somehow know the browser does not execute javascript.
 */
 
 
-String ArchiveMessage::jsToggle( const String &t,
-                                 bool v,
+String ArchiveMessage::jsToggle( const String &html,
+                                 bool visible,
                                  const String &show,
                                  const String &hide )
 {
-    String s;
+    uint u = uniqueNumber();
 
-    String a = "toggle" + fn( uniqueNumber() );
-    String b = "toggle" + fn( uniqueNumber() );
+    String v = "text" + fn( u );
+    String f = "button" + fn( u );
 
-    if ( v )
-        s.append( "<div class=njsvisible id=" + a + ">\n" );
+    d->js.append(
+        "var " + v + "=" + ( visible ? "true" : "false" ) + ";\n"
+        "function " + f + "(){\n"
+        "if(" + v + "){\n"
+        "" + v + "=false;\n"
+        "hide('" + v + "');\n"
+        "setButtonText('" + f + "'," + quoted(show).quoted('\'') + ");\n"
+        "}else{"
+        "" + v + "=true;\n"
+        "reveal('" + v + "');\n"
+        "setButtonText('" + f + "'," + quoted(hide).quoted('\'') + ");\n"
+        "}\n"
+        "}\n" );
+
+    d->buttons.append( "<a id=" + f + " onclick='" + f + "()'>" );
+    if ( visible )
+        d->buttons.append( quoted( hide ) );
     else
-        s.append( "<div class=njshidden id=" + a + ">\n" );
-    s.append( t );
-    s.append( "<div class=jsonly>" );
-    s.append( "<a onclick=\"reveal('" + b + "');hide('" + a + "')\">" );
-    s.append( hide );
-    s.append( "</a></div>\n</div>\n" );
+        d->buttons.append( quoted( show ) );
+    d->buttons.append( "</a>\n" );
 
-    s.append( "<div class=jsonly id=" + b + ">" );
-    s.append( "<a onclick=\"reveal('" + a + "');hide('" + b + "')\">" );
-    s.append( show );
-    s.append( "</a></div>\n" );
+    String s;
+    s.append( "<div id=" + v );
+    if ( visible )
+        s.append( " class=njsvisible>\n" );
+    else
+        s.append( " class=njshidden>\n" );
+
+    s.append( html );
+
+    s.append( "</div>\n" );
 
     return s;
 }
 
 
-/*! Returns a HTML-formatted string containing the first two lines or
+#if 0
+/* Returns a HTML-formatted string containing the first two lines or
     so of \a m.
 
     This function heuristically picks the "first" bodypart and even
@@ -656,31 +669,24 @@ String ArchiveMessage::twoLines( Message * m )
             type = ct->type() + "/" + ct->subtype();
     }
 
-    String r;
-    if ( !bp ) {
-        r = "(Cannot display summary of nontext message)";
-    }
-    else if ( type == "text/plain" ) {
-#if 1
-        Utf8Codec u; // XXX UString needs find() and more.
-        String b = u.fromUnicode( bp->text() );
-        int i = 0;
-        while ( i >= 0 && b[i] == '>' && b[i] > ' ' ) {
-            i = b.find( '\n', i + 1 );
-            if ( i >= 0 )
-                i++;
-        }
-        int e = b.find( '\n', i + 1 );
-        if ( e < i )
-            e = b.length();
-        r = textPlain( b.mid( i, e-i ) );
-#else
-        r = "(Cannot display text/plain summary)";
-#endif
-    }
-    else if ( type == "text/html" ) {
-        r = "(Cannot display summary of HTML message)";
-    }
+    if ( !bp )
+        return;
 
-    return r;
+    if ( type == "text/html" )
+        return;
+
+    String r;
+    Utf8Codec u; // XXX UString needs find() and more.
+    String b = u.fromUnicode( bp->text() );
+    int i = 0;
+    while ( i >= 0 && b[i] == '>' && b[i] > ' ' ) {
+        i = b.find( '\n', i + 1 );
+        if ( i >= 0 )
+            i++;
+    }
+    int e = b.find( '\n', i + 1 );
+    if ( e < i )
+        e = b.length();
+    r = textPlain( b.mid( i, e-i ) );
 }
+#endif

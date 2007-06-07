@@ -113,6 +113,12 @@ FrontMatter * FrontMatter::jsToggles()
                 "document.getElementById(e).className='hidden'"
                 "}\n" );
 
+    // A function to set an button's element's text. Actually sets it to
+    // arbitrary HTML, which we NEVER use, we always send text.
+    fm->append( "function setText(i,t){\n"
+                "document.getElementById(e).innerHTML=t"
+                "}\n" );
+
     // A function to expand/collapse a message
     fm->append( "var hiddenIds=new Array;\n"
                 "function expandCollapse(i,a,b,c){\n"

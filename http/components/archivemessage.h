@@ -27,7 +27,7 @@ public:
 
 private:
     static String addressField( Message *, HeaderField::Type );
-    static String twoLines( Message * );
+    //static String twoLines( Message * );
 
     String bodypart( Message *, class Bodypart * );
     String message( Message *, Message * );
