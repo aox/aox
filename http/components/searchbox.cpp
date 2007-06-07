@@ -28,8 +28,8 @@ void SearchBox::execute()
     String s( "<form action=\"" );
     s.append( action.canonical() );
     s.append( "\"><input type=text name=query value=\"" );
-    if ( query && query->isAscii() && !query->ascii().contains( '"' ) )
-        s.append( quoted( query->utf8() ) );
+    if ( query )
+        s.append( quoted( query ) );
     s.append( "\"><input type=submit value=Search>" );
     s.append( "</form>" );
     setContents( s );
