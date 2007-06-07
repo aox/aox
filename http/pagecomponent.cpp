@@ -217,6 +217,38 @@ String PageComponent::quoted( const String & s )
 }
 
 
+/*! Returns an HTML-quoted version of \a u. */
+
+String PageComponent::quoted( const UString & u )
+{
+    String r;
+    r.reserve( u.length() );
+    uint i = 0;
+    while ( i < u.length() ) {
+        if ( u[i] == '<' ) {
+            r.append( "&lt;" );
+        }
+        else if ( u[i] == '>' ) {
+            r.append( "&gt;" );
+        }
+        else if ( u[i] == '&' ) {
+            r.append( "&amp;" );
+        }
+        else if ( u[i] > 126 || u < 9 ) {
+            r.append( "&#" );
+            r.append( fn( u[i] ) );
+            r.append( ';' );
+        }
+        else {
+            r.append( (char)u[i] );
+        }
+        i++;
+    }
+    return r;
+    
+}
+
+
 /*! Returns an HTML representation of \a a. */
 
 String PageComponent::address( Address * a )
@@ -248,7 +280,7 @@ String PageComponent::address( Address * a )
 String PageComponent::address( const UString & a )
 {
     String s( "<span class=address>" );
-    s.append( quoted( a.utf8() ) );
+    s.append( quoted( a ) );
     s.append( "</span>" );
 
     return s;

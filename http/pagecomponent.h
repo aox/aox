@@ -40,6 +40,7 @@ public:
     String divClass() const;
 
     static String quoted( const String & );
+    static String quoted( const UString & );
     static String address( class Address * );
     static String address( const UString & );
 
