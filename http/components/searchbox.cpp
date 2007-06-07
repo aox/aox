@@ -29,7 +29,7 @@ void SearchBox::execute()
     s.append( action.canonical() );
     s.append( "\"><input type=text name=query value=\"" );
     if ( query )
-        s.append( quoted( query ) );
+        s.append( quoted( *query ) );
     s.append( "\"><input type=submit value=Search>" );
     s.append( "</form>" );
     setContents( s );

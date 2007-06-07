@@ -234,7 +234,7 @@ String PageComponent::quoted( const UString & u )
         else if ( u[i] == '&' ) {
             r.append( "&amp;" );
         }
-        else if ( u[i] > 126 || u < 9 ) {
+        else if ( u[i] > 126 || u[i] < 9 ) {
             r.append( "&#" );
             r.append( fn( u[i] ) );
             r.append( ';' );
