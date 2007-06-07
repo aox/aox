@@ -105,18 +105,21 @@ FrontMatter * FrontMatter::jsToggles()
 
     // A function to show an element
     fm->append( "function reveal(e){\n"
-                "document.getElementById(e).className='visible'"
+                "document.getElementById(e).className='visible';\n"
                 "}\n" );
 
     // A function to hide an element
     fm->append( "function hide(e){\n"
-                "document.getElementById(e).className='hidden'"
+                "document.getElementById(e).className='hidden';\n"
                 "}\n" );
 
-    // A function to set an button's element's text. Actually sets it to
-    // arbitrary HTML, which we NEVER use, we always send text.
-    fm->append( "function setText(i,t){\n"
-                "document.getElementById(e).innerHTML=t"
+    // A function to set a button's text. Does not work on any other
+    // HTML elements.
+    fm->append( "function setButtonText(i,t){\n"
+                "var e = document.getElementById(i);\n"
+                "if(e){\n"
+                "e.childNodes[0].data=t;\n"
+                "}\n"
                 "}\n" );
 
     // A function to expand/collapse a message
