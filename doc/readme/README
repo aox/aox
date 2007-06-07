@@ -23,7 +23,8 @@ Installation
 For detailed installation instructions, see:
 http://www.archiveopteryx.org/installation.html
 
-Here's a brief overview:
+Here's a brief overview of the steps to follow while installing
+Archiveopteryx for the first time (see below if you're upgrading):
 
 1. Type "make" to compile the software.
 
@@ -80,23 +81,50 @@ Here's a brief overview:
    (shared_buffers, effective_cache_size) for better performance.
 
 
+Upgrading Archiveopteryx
+------------------------
+
+1. "make" and "make install" as above.
+
+2. Upgrade the schema, if necessary: "aox stop; aox upgrade schema"
+
+   We sometimes change the database schema between releases, so you may
+   need to stop the server and upgrade the schema. You can check if the
+   schema is up to date with "aox show schema". The new server will not
+   start until the schema is at the version it expects.
+
+   It is safe to run "aox upgrade schema" when the server is stopped. If
+   it doesn't need to do anything, it will just exit.
+
+   We try to keep schema upgrades fast, to minimise downtime.
+
+3. Restart the servers: "aox restart"
+
+4. Update the database, if necessary: "aox update database"
+
+   Very rarely, we may need to make extensive changes to the database.
+   In this case, you will need to run "aox update database" after you
+   install and start the new server. The server will operate normally
+   as the update proceeds. The release notes for a particular version
+   will always mention it if you need to update the database.
+
+   It is always safe to run "aox update database", whether the server is
+   stopped or running. If it doesn't need to do anything, it will exit.
+   If the process is terminated, it is safe to restart it; it will pick
+   up where it left off.
+
+
 Mailing Lists
 -------------
 
 There are mailing lists for Archiveopteryx users and announcements. To
-subscribe to the users list, send mail:
+subscribe to the users list (which also gets announcements), send mail:
 
-   To: mailstore-users-request@oryx.com
-   Subject: subscribe
+    echo|mail -s subscribe mailstore-users-request@oryx.com
 
-   subscribe
+To subscribe instead to the low-volume announcements list:
 
-To subscribe to the low-volume announcements list, send mail:
-
-   To: mailstore-announce-request@oryx.com
-   Subject: subscribe
-
-   subscribe
+    echo|mail -s subscribe mailstore-announce-request@oryx.com
 
 
 If you encounter any problems or have any suggestions, please write to
