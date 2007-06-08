@@ -19,6 +19,19 @@
 #include "header.h"
 
 
+static int byFirstYid( const Thread ** t1, const Thread ** t2 ) {
+    if ( !t1 || !t2 || !*t1 || !*t2 )
+        die( Memory );
+    uint u1 = (*t1)->members().smallest();
+    uint u2 = (*t2)->members().smallest();
+    if ( u1 == u2 )
+        return 0;
+    else if ( u1 < u2 )
+        return -1;
+    return 1;
+}
+
+
 class ArchiveMailboxData
     : public Garbage
 {
@@ -116,11 +129,11 @@ void ArchiveMailbox::execute()
         uids.add( uid );
     }
 
-    // subjects, from, to, cc and thread information is ready now.
+    // subjects, from and thread information is ready now.
 
     addresses.clear();
     String s;
-    List<Thread>::Iterator it( t->allThreads() );
+    List<Thread>::Iterator it( t->allThreads()->sorted( (Comparator*)byFirstYid ) );
     while ( it ) {
         Map<Address> contributors;
         Thread * t = it;
