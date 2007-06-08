@@ -4,6 +4,16 @@
 
 #include "string.h"
 
+#include <stdlib.h>
+
+
+void listSortHelper( void * a, size_t n, size_t s,
+                     int(*c)(const void *, const void *))
+{
+    ::qsort( a, n, s, c );
+}
+
+
 
 /*! \class List list.h
     A generic template class for a doubly-linked list of pointers-to-T.
@@ -126,6 +136,14 @@
     allocation. It returns a pointer to the removed element, or 0 if
     it was not found in the List.
 */
+
+/*! \fn List<T> * sorted( Comparator * comparator )
+
+    Returns a list containing the same items as in this list, sorted
+    as \a comparator says to. \a comparator has the same meaning as
+    for qsort().
+*/
+
 
 
 /*-! \class List::Iterator list.h

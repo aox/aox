@@ -5,6 +5,11 @@
 
 #include "global.h"
 #include "string.h"
+#include "allocator.h"
+
+
+typedef int (Comparator)(const void *, const void *);
+void listSortHelper( void *, size_t, size_t, Comparator *);
 
 
 template< class T >
@@ -265,6 +270,25 @@ public:
         }
 
         return 0;
+    }
+
+    List<T> * sorted( Comparator * comparator )
+    {
+        uint c = count();
+        T** a = (T**)Allocator::alloc( c * sizeof(T*) );
+        Iterator i( this );
+        uint n = 0;
+        while ( i ) {
+            a[n] = i;
+            ++n;
+            ++i;
+        }
+        ::listSortHelper( a, c, sizeof(T*), comparator );
+        n = 0;
+        List<T> * r = new List<T>;
+        while ( n < c )
+            r->append( a[n++] );
+        return r;
     }
 
 private:
