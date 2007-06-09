@@ -42,7 +42,6 @@ void Enable::parse()
         }
     }
     end();
-    
 }
 
 

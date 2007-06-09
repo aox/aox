@@ -107,7 +107,7 @@ StringList *StringList::split( char c, const String &s )
 /*! Removes duplicate entries from the list. If \a caseSensitive is
     true (this is the default), strings are compared exactly. If \a
     caseSensitive is false, ASCII A-Z are treated as equal to a-z.
-    
+
     When two more more strings are equal, removeDuplicates() leaves
     the first and removes the second and later copies.
 */

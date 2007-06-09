@@ -27,7 +27,7 @@ public:
     of your choosing, or for regular callbacks at a specified
     intervals. The default is one callback; calling setRepeating()
     changes that.
-    
+
     The class provides second resolution, nothing better. Creating a
     timer with delay/interval of 1 provides the first callback after
     1-2 seconds and (if repeating() is true) at 1-second intervals
@@ -122,7 +122,7 @@ void Timer::execute()
 
 /*! Makes this Timer notify its owner at regular intervals if \a r is
     true, and just once (more) if \a r is false.
-    
+
     The initial value is false. If you call setRepeating( false ) on
     an existing timer, it will be executed once more and then be
     freed.

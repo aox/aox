@@ -2349,7 +2349,7 @@ void vacuum()
 {
     if ( d )
         return;
-            
+
     parseOptions();
     end();
 

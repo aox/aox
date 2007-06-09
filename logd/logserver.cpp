@@ -254,12 +254,12 @@ Log::Facility LogServer::facility( const String &l )
         else
             f = Log::Server;
         break;
-        
+
     case 'h':
     case 'H':
         f = Log::HTTP;
         break;
-        
+
     case 'p':
     case 'P':
         f = Log::POP;

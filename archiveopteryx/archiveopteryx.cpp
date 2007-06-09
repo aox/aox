@@ -135,7 +135,7 @@ int main( int argc, char *argv[] )
         Configuration::SmtpsAddress, Configuration::SmtpsPort,
         false
         );
-    
+
     s.setup( Server::LogStartup );
 
     Database::setup();

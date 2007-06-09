@@ -173,7 +173,6 @@ UString Utf8Codec::toUnicode( const String & s )
 
 
 /*! \class PgUtf8Codec utf.h
-  
     The PgUtf8Codec is a simple modification of Utf8Codec to be able
     to use PostgreSQL 8.1 well.
 

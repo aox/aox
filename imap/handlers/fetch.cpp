@@ -1417,7 +1417,7 @@ void FetchData::SeenFlagSetter::execute()
 
     if ( !t->done() )
         return;
-    
+
     if ( mailbox->nextModSeq() <= modseq ) {
         mailbox->setNextModSeq( modseq + 1 );
         OCClient::send( "mailbox " + mailbox->name().quoted() + " "

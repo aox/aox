@@ -58,7 +58,7 @@ MessageSet& MessageSet::operator=( const MessageSet & other )
 {
     if ( d == other.d )
         return *this;
-        
+
     d = new SetData;
     List< SetData::Range >::Iterator it( other.d->l );
     while ( it ) {

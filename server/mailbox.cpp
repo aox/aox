@@ -571,7 +571,6 @@ void Mailbox::setUidnextAndNextModSeq( uint n, int64 m )
     d->uidnext = n;
     d->nextModSeq = m;
     notifySessions();
-    
 }
 
 

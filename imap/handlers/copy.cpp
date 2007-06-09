@@ -260,7 +260,7 @@ void Copy::execute()
             ++i;
         }
         while ( d->completedQueries < completed ) {
-            imap()->enqueue( "* OK [PROGRESS " + 
+            imap()->enqueue( "* OK [PROGRESS " +
                              tag() + " " +
                              fn( d->completedQueries ) + " " +
                              fn( d->queries.count() ) +

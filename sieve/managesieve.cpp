@@ -260,7 +260,7 @@ void ManageSieve::send( const String &s )
 
     It should be called when a new command has been created (i.e.,
     by ManageSieve::parse()) or when a running command finishes.
-    
+
     Because the managesieve specification forbids executing any
     commands sent after logout, runCommands() must take special care
     to avoid that.

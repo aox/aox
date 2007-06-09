@@ -122,7 +122,7 @@ void Listext::parse()
 
     if ( d->returnSubscribed )
         d->subscribed = new List<Mailbox>;
- 
+
    if ( ok() )
         log( "List " + d->reference->name() + " " + d->patterns.join( " " ) );
 }

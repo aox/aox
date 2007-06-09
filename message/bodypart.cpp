@@ -481,7 +481,7 @@ static Codec * guessHtmlCodec( const String & body )
             }
         }
     }
-    
+
     return guess;
 }
 

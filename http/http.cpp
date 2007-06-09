@@ -120,7 +120,7 @@ void HTTP::react( Event e )
 /*! This function, which is called whenever the HTTP server might want
     to do something, decides what to do based on the server's state().
 
-    Our request parsing is somewhat simpler than described in 
+    Our request parsing is somewhat simpler than described in
     http://www.and.org/texts/server-http and RFC 2616.
 */
 

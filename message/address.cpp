@@ -960,7 +960,7 @@ String AddressParser::domain( int & i )
             return "[" + test.address() + "]";
         i = j;
     }
-         
+
     if ( d->s[i] == ']' ) {
         i--;
         int j = i;

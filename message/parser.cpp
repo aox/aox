@@ -454,7 +454,7 @@ String Parser822::encodedWord( EncodedText type )
 
 /*! Do RFC 2047 decoding of \a s, totally ignoring what the
     encoded-text in \a s might be.
-    
+
     Depending on circumstances, the encoded-text may contain different
     sets of characters. Moreover, not every 2047 encoder obeys the
     rules. This function checks nothing, it just decodes.

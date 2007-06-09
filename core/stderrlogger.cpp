@@ -7,7 +7,7 @@
 
 
 /*! \class StderrLogger stderrlogger.h
-  
+
     The StderrLogger logs errors and disaster output to stderr and
     exits the program immediately in case of a disaster. It is used by
     some command-line programs.
@@ -34,7 +34,7 @@ void StderrLogger::send( const String &,
     if ( s == Log::Error ||
          s == Log::Significant ||
          ( s == Log::Info && v >= 1 ) ||
-         ( s == Log::Debug && v >= 2 ) ) 
+         ( s == Log::Debug && v >= 2 ) )
         fprintf( stderr, "%s: %s\n", name().cstr(), m.cstr() );
 
     // and in case of a disaster, we quit. the hard way.

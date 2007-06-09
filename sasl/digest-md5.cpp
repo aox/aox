@@ -258,7 +258,7 @@ void DigestMD5::verify()
     );
 
     if ( R.hex() == d->response ||
-         ( Configuration::toggle( Configuration::AuthAnonymous ) && 
+         ( Configuration::toggle( Configuration::AuthAnonymous ) &&
            user() && user()->login() == "anonymous" ) ) {
         setState( IssuingChallenge );
 

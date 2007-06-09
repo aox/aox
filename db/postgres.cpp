@@ -633,7 +633,7 @@ void Postgres::errorMessage()
             struct passwd * u = getpwnam( d->user.cstr() );
 
             struct passwd * p = 0;
-            const char * pg 
+            const char * pg
                 = Configuration::compiledIn( Configuration::PgUser );
 
             if ( pg )

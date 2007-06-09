@@ -509,7 +509,7 @@ void IMAP::runCommands()
             while ( g && i &&
                     ( i->state() == Command::Unparsed ||
                       i->state() == Command::Blocked ) &&
-                    ( g == i || 
+                    ( g == i ||
                       ( g->group() > 0 && g->group() == i->group() ) ) ) {
                 Command * c = i;
                 ++i;

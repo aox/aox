@@ -193,7 +193,7 @@ void MimeField::parseParameters( Parser822 *p )
                 uint start = p->index();
                 v = p->mimeValue();
                 bool ok = true;
-                while ( ok && !p->atEnd() && 
+                while ( ok && !p->atEnd() &&
                         p->next() != ';' &&
                         p->next() != '"' ) {
                     if ( p->dotAtom().isEmpty() && p->mimeValue().isEmpty() )
@@ -516,7 +516,7 @@ void ContentDisposition::parse( const String &s )
     p.whitespace();
     if ( s[p.index()] == '=' && t != "inline" && t != "attachment" )
         p.setIndex( i );
-        
+
     if ( t.isEmpty() ) {
         setError( "Invalid disposition" );
         return;

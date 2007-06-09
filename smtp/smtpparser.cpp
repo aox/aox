@@ -226,7 +226,6 @@ String SmtpParser::esmtpKeyword()
     if ( r.isEmpty() )
         setError( "Expected esmtp parameter keyword, saw: " + following() );
     return r.lower();
-    
 }
 
 

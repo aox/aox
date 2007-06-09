@@ -457,7 +457,7 @@ void Database::checkSchemaRevision( EventHandler * owner )
             owner->execute();
         }
     };
-        
+
     SchemaRevisionCheck * s = new SchemaRevisionCheck( owner );
     s->execute();
     owner->waitFor( s->q );

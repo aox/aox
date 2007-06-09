@@ -109,7 +109,7 @@ MigratorMessage * MaildirMailbox::nextMessage()
     if ( !n )
         return 0;
     d->messages.shift();
-    
+
     String f( d->path + "/" + *n );
     File m( f );
     MigratorMessage * mm = new MigratorMessage( m.contents(), f );
@@ -126,7 +126,7 @@ MigratorMessage * MaildirMailbox::nextMessage()
                 // "R" - this message has been replied to
                 mm->addFlag( "\\answered" );
                 break;
-                
+
             case 'S':
                 // "S" - this message has been viewed (seen)
                 mm->addFlag( "\\seen" );
@@ -145,7 +145,7 @@ MigratorMessage * MaildirMailbox::nextMessage()
                 // some purpose.
                 mm->addFlag( "\\flagged" );
                 break;
-            } 
+            }
             i++;
         }
     }
@@ -165,7 +165,7 @@ void MaildirMailbox::readSubDir( const String & sub )
 
     Map<StringList> files;
     MessageSet times;
-    
+
     struct dirent * de = readdir( dir );
     while ( de ) {
         if ( de->d_name[0] >= '0' && de->d_name[0] <= '9' ) {

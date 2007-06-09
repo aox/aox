@@ -333,7 +333,7 @@ bool ManageSieveCommand::haveSpace()
 
 
 /*! Handles the PUTSCRIPT command.
-  
+
     Silently creates any mailboxes referred to by fileinto commands,
     provided they're in the user's own namespace.
 
@@ -342,7 +342,7 @@ bool ManageSieveCommand::haveSpace()
     mailboxes while a script refers to them, and it's possible to
     fileinto "/users/someoneelse/inbox", but those are much smaller
     problem by comparison.
-    
+
     I also like the timing of this: Uploading a script containing
     fileinto "x" creates x at once (instead of later, which sendmail
     does).
@@ -374,7 +374,7 @@ bool ManageSieveCommand::putScript()
         // at this point, nothing can prevent us from completing.
 
         d->t = new Transaction( this );
-        
+
         d->query = new Query( "select * from scripts "
                               "where name=$1 and owner=$2", this );
         d->query->bind( 1, d->name );

@@ -91,7 +91,7 @@ String Capability::capabilities( IMAP * i, bool all )
     if ( drafts && ( all || login ) )
         c.append( "X-DRAFT-W13-LISTEXT" );
     c.append( "LITERAL+" );
-    if ( ( all || !login ) && 
+    if ( ( all || !login ) &&
          !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
         c.append( "LOGINDISABLED" );
     if ( all || login )

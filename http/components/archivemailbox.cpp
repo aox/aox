@@ -57,7 +57,6 @@ public:
     };
 
     Map<Message> messages;
-    
 };
 
 
@@ -125,7 +124,7 @@ void ArchiveMailbox::execute()
             a->setId( aid );
             addresses.insert( aid, a );
         }
-        m->from.append( a ); 
+        m->from.append( a );
         uids.add( uid );
     }
 
@@ -138,7 +137,7 @@ void ArchiveMailbox::execute()
         Map<Address> contributors;
         Thread * t = it;
         ++it;
-        
+
         String subject = t->subject(); // ick! utf-8 evil here
         if ( subject.isEmpty() )
             subject = "(No Subject)";
@@ -172,7 +171,7 @@ void ArchiveMailbox::execute()
                     if ( contributors.contains( k ) ) {
                         // we don't mention the name again
                     }
-                    else if ( addresses.contains( k ) && 
+                    else if ( addresses.contains( k ) &&
                               !it->name().isEmpty() ) {
                         // we mention the name only
                         al.append( it->uname().utf8() );

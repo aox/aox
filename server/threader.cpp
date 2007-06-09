@@ -24,7 +24,7 @@ public:
     List<EventHandler> * users;
     Dict<Thread> threads;
     List<Thread> threadList;
-    
+
     class ThreadInserter
         : public EventHandler
     {
@@ -172,7 +172,6 @@ void Threader::execute()
             ++o;
         }
     }
-    
 
     // state 4: have a preparatory look for the threads where we need
     // to insert something. in theory this isn't necessary, but
@@ -331,7 +330,7 @@ public:
     The Thread class is meant to be small, small and small: Sometimes
     (perhaps often) we need to keep Thread objects for an entire
     Mailbox in RAM. Size is more important than functionality.
-    
+
     If an IMAP THREAD command needs to return a tree, it has to
     compute the tree itself. This class can help make that simpler,
     that's all.

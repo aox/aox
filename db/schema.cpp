@@ -2170,7 +2170,7 @@ bool Schema::stepTo47()
         d->substate = 1;
         d->t->execute();
     }
-    
+
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;

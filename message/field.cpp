@@ -260,7 +260,7 @@ String HeaderField::value() const
 
     if ( d->type == Other )
         return encodeText( d->data );
-    
+
     // We assume that, for most fields, we can use the database
     // representation in an RFC 822 message.
     return d->data;
@@ -452,12 +452,12 @@ void HeaderField::parseContentLocation( const String &s )
 {
     uint e = s.length()-1;
     while ( e > 0 &&
-            ( s[e] == ' ' || s[e] == '\t' || 
+            ( s[e] == ' ' || s[e] == '\t' ||
               s[e] == '\n' || s[e] == 'r' ) )
         e--;
     uint b = 0;
-    while ( b < e && 
-            ( s[b] == ' ' || s[b] == '\t' || 
+    while ( b < e &&
+            ( s[b] == ' ' || s[b] == '\t' ||
               s[b] == '\n' || s[b] == 'r' ) )
         b++;
     if ( e > b && s[b] == '"' && s[e] == '"' ) {
@@ -698,7 +698,7 @@ String HeaderField::encodeWord( const String &w )
     else {
         String prefix = t;
         prefix.append( "b?" );
-        t = ""; 
+        t = "";
         while ( !b64.isEmpty() ) {
             uint allowed = 73 - prefix.length();
             allowed = 4 * (allowed/4);

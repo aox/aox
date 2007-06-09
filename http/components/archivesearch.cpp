@@ -57,7 +57,7 @@ void ArchiveSearch::execute()
     Threader * t = m->threader();
 
     page()->requireRight( m, Permissions::Read );
-    
+
     if ( !t->updated() )
         t->refresh( this );
 

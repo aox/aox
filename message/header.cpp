@@ -1194,7 +1194,7 @@ void Header::repair( Multipart * p, const String & body )
                     victim = victim.mid( dot+1 );
                     tld = tld - dot - 1;
                 }
-                if ( !victim.isEmpty() && 
+                if ( !victim.isEmpty() &&
                      victim != me && !me.endsWith( "." + victim ) &&
                      tld < victim.length() ) {
                     Address * replacement

@@ -387,7 +387,7 @@ void Date::setRfc822( const String & s )
         if ( a.length() < 3 && p.next() == ':' )
             yearAtEnd = true;
     }
-    
+
     if ( d->month < 1 || d->month > 12 )
         return;
 

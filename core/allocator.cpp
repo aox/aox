@@ -218,10 +218,10 @@ Allocator::~Allocator()
         right->insert();
     if ( left && left != ::root )
         left->insert();
-    
+
     right = 0;
     left = 0;
-    
+
     ::free( buffer );
     ::free( used );
     ::free( marked );

@@ -170,7 +170,6 @@ MigratorMessage * MboxMailbox::nextMessage()
             }
             ++f;
         }
-        
     }
 
     return m;

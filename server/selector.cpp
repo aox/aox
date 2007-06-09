@@ -668,7 +668,7 @@ String Selector::whereHeaderField()
 
     if ( d->s16.isEmpty() )
         return r;
-    
+
     uint like = placeHolder();
     root()->d->query->bind( like, q( d->s16 ) );
     return "(" + r + " and hf.value ilike " + matchAny( like ) + ")";

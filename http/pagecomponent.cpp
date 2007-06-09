@@ -245,7 +245,6 @@ String PageComponent::quoted( const UString & u )
         i++;
     }
     return r;
-    
 }
 
 

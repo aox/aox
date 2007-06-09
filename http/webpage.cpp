@@ -75,7 +75,7 @@ void WebPage::addComponent( PageComponent * pc, PageComponent * after )
         d->components.insert( i, pc );
     else
         d->components.append( pc );
-            
+
     pc->setPage( this );
 }
 

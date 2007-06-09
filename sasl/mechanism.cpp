@@ -95,7 +95,7 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
 
     if ( m && !allowed( m->type(), privacy ) )
         return 0;
-    
+
     return m;
 }
 

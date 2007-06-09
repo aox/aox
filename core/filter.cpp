@@ -42,7 +42,7 @@ Filter::~Filter()
 
 
 /*! \fn void Filter::flush( Buffer * buffer )
-   
+
    This virtual function is responsible for flushing any queues the
    filter may have, such that all output is sent to \a buffer. The
    default implementation does nothing.

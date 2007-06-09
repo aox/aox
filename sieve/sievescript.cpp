@@ -51,7 +51,7 @@ void SieveScript::parse( const String & script )
     // command, which will have a nice big error message.
     p.whitespace();
     if ( !p.atEnd() ) {
-        SieveCommand * sc = p.command(); 
+        SieveCommand * sc = p.command();
         sc->setError( "Junk at end of script" );
         d->script->append( sc );
     }
@@ -80,7 +80,7 @@ void SieveScript::parse( const String & script )
     while ( s && s->identifier() == "require" ) {
         if ( s->error().isEmpty() ) {
             StringList unused;
-            StringList * r 
+            StringList * r
                 = s->arguments()->arguments()->first()->stringList();
             StringList::Iterator i( r );
             while ( i ) {
@@ -111,7 +111,6 @@ void SieveScript::parse( const String & script )
         else
             f->setError( "Missing require: require [ " +
                          undeclared.join( ", " ) + " ];" );
-            
     }
 
     // and find all the errors
@@ -138,7 +137,7 @@ String SieveScript::parseErrors() const
         e.append( ": " );
         e.append( p->error() );
         e.append( "\r\n" );
-        while ( p->parent() && 
+        while ( p->parent() &&
                 p->parent() != (SieveProduction*)this ) {
             p = p->parent();
             String l = location( p->start() );

@@ -232,7 +232,7 @@ void Server::nameResolution()
 {
     List<Configuration::Text>::Iterator i( Configuration::addressVariables() );
     while ( i ) {
-        const StringList & r 
+        const StringList & r
             = Resolver::resolve( Configuration::text( *i ) );
         if ( r.isEmpty() ) {
             log( String("Unable to resolve ") +
@@ -330,7 +330,7 @@ void Server::loop()
 
 
 /*! Forks the server as required by -f and the configuration variable
-    server-processes. 
+    server-processes.
 
     If -f is specified, the parent exits in this function and does not
     return from this function.

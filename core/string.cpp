@@ -1009,7 +1009,7 @@ String String::deUue() const
         while ( i < d->len && d->str[i] != 13 && d->str[i] != 10 )
             i++;
         // step 1. skip over whitespace to the next length marker.
-        while ( i < d->len && 
+        while ( i < d->len &&
                 ( d->str[i] == 9 || d->str[i] == 10 ||
                   d->str[i] == 13 || d->str[i] == 32 ) )
             i++;
@@ -1055,7 +1055,7 @@ String String::deUue() const
             }
         }
     }
-    // we ran off the end without seeing an end line. what to do? 
+    // we ran off the end without seeing an end line. what to do?
     // return what we've seen so far?
     return r;
 }
@@ -1494,7 +1494,7 @@ String String::humanNumber( int64 n )
         s = 'M';
     }
     else if ( n < 1024LL * 1024 * 1024 * 1024 ) {
-        f = 1024 * 1024 * 1024;        
+        f = 1024 * 1024 * 1024;
         s = 'G';
     }
     else {
@@ -1681,7 +1681,7 @@ String String::crlf() const
     }
     if ( copy )
         return *this;
-        
+
     String r;
     r.reserve( length() );
     r.append( mid( 0, i ) );
@@ -1741,7 +1741,7 @@ bool String::contains( const char c ) const
     at most \a linelength characters. The first line is prefixed by \a
     firstPrefix, subsequent lines by \a otherPrefix. If \a spaceAtEOL
     is true, each line except the last end with a space.
-    
+
     The prefixes are counted towards line length, but the optional
     trailing space is not.
 

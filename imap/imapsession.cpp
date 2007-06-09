@@ -202,8 +202,8 @@ bool ImapSession::responsesReady( ResponseType type ) const
         ++i;
     }
 
-    if ( ( !fl || fl->isEmpty() ) && 
-         ( !al || al->isEmpty() ) && 
+    if ( ( !fl || fl->isEmpty() ) &&
+         ( !al || al->isEmpty() ) &&
          ( !tl || tl->isEmpty() ) )
         return true;
 

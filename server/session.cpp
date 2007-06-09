@@ -602,18 +602,18 @@ void SessionInitialiser::execute()
         if ( m->ordinary() ) {
             if ( d->oldUidnext < d->newUidnext ) {
                 if ( d->session->readOnly() )
-                    d->recent 
+                    d->recent
                         = new Query( "select first_recent from mailboxes "
                                      "where id=$1", this );
                 else
-                    d->recent 
+                    d->recent
                         = new Query( "select first_recent from mailboxes "
                                      "where id=$1 for update", this );
                 d->recent->bind( 1, d->session->mailbox()->id() );
                 d->t->enqueue( d->recent );
 
                 if ( !d->session->readOnly() ) {
-                    Query * q 
+                    Query * q
                         = new Query( "update mailboxes set first_recent=$2 "
                                      "where id=$1", 0 );
                     q->bind( 1, d->session->mailbox()->id() );

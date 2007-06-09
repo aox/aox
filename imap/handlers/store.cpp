@@ -342,7 +342,7 @@ void Store::execute()
                 d->modSeqQuery->bind( 1, m->source()->id() );
             }
             else {
-                d->modSeqQuery 
+                d->modSeqQuery
                     = new Query( "select uid from modsequences "
                                  "where mailbox=$1 and modseq>$2 "
                                  "and " + d->s.where(),
@@ -384,7 +384,7 @@ void Store::execute()
 
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
-        d->obtainModSeq 
+        d->obtainModSeq
             = new Query( "select nextmodseq from mailboxes "
                          "where id=$1 for update", this );
         if ( m->view() )

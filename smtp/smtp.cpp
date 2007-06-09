@@ -209,7 +209,7 @@ void SMTP::execute()
     }
     d->executing = true;
     d->executeAgain = true;
-    
+
     // run each command, and do the whole loop again if execute() is
     // called recursively meanwhile.
     while ( d->executeAgain ) {

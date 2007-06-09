@@ -78,7 +78,7 @@ SieveData::Recipient * SieveData::recipient( Address * a )
 
 
 /*! \class Sieve sieve.h
-  
+
     The Sieve class interprets the Sieve language, which processes
     incoming messages to determine their fate.
 
@@ -97,7 +97,6 @@ SieveData::Recipient * SieveData::recipient( Address * a )
 Sieve::Sieve()
     : EventHandler(), d( new SieveData )
 {
-    
 }
 
 
@@ -139,7 +138,7 @@ void Sieve::setSender( Address * address )
     default. Sieve will use \a script as script, or if \a script is a
     not supplied (normally the case), Sieve looks up the active script
     for the owner of \a destination.
-    
+
     If \a address is not a registered alias, Sieve will refuse mail to
     it.
 */
@@ -147,7 +146,7 @@ void Sieve::setSender( Address * address )
 void Sieve::addRecipient( Address * address, Mailbox * destination,
                           SieveScript * script )
 {
-    SieveData::Recipient * r 
+    SieveData::Recipient * r
         = new SieveData::Recipient( address, destination, d );
     d->currentRecipient = r;
     if ( script ) {
@@ -159,7 +158,7 @@ void Sieve::addRecipient( Address * address, Mailbox * destination,
         }
         return;
     }
-        
+
     r->sq = new Query( "select scripts.script from scripts s, mailboxes m "
                        "where s.owner=m.owner "
                        "and m.id=$1"
@@ -217,7 +216,7 @@ void Sieve::evaluate()
 {
     if ( !ready() )
         return;
-    
+
     List<SieveData::Recipient>::Iterator i( d->recipients );
     while ( i ) {
         if ( !i->done && !i->pending.isEmpty() ) {
@@ -227,7 +226,7 @@ void Sieve::evaluate()
         }
         if ( i->pending.isEmpty() )
             i->done = true;
-        if ( i->done && 
+        if ( i->done &&
              ( i->implicitKeep || i->explicitKeep ) ) {
             SieveAction * a = new SieveAction( SieveAction::FileInto );
             a->setMailbox( i->mailbox );
@@ -243,7 +242,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     String arg;
     if ( c->arguments() &&
          c->arguments()->arguments() &&
-         c->arguments()->arguments()->first() && 
+         c->arguments()->arguments()->first() &&
          c->arguments()->arguments()->first()->stringList() &&
          !c->arguments()->arguments()->first()->stringList()->isEmpty() )
         arg = *c->arguments()->arguments()->first()->stringList()->first();
@@ -266,7 +265,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             List<SieveCommand>::Iterator f( pending );
             if ( f == c )
                 ++f;
-            while ( f && 
+            while ( f &&
                     ( f->identifier() == "elsif" ||
                       f->identifier() == "else" ) )
                 (void)pending.take( f );
@@ -525,7 +524,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                             if ( ct.startsWith( k->lower() + "/" ) )
                                 include = true;
                         }
-                        
+
                         ++k;
                     }
                 }
