@@ -28,7 +28,7 @@ public:
 
 private:
     void readSubDir( const String & );
-    
+
     class MaildirMailboxData *d;
 };
 

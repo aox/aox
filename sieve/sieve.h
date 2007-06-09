@@ -42,7 +42,7 @@ public:
     bool ready() const;
 
     List<SieveAction> * actions( const Address * ) const;
-    
+
     List<Mailbox> * mailboxes() const;
     List<Address> * forwarded() const;
     bool rejected() const;

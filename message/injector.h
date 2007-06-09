@@ -28,7 +28,7 @@ public:
     enum State {
         Inactive, InsertingBodyparts, SelectingUids, InsertingMessages,
         LinkingFields, LinkingFlags, LinkingAnnotations, LinkingAddresses,
-        
+
         AwaitingCompletion, Done
     };
 

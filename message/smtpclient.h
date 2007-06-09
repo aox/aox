@@ -19,7 +19,7 @@ public:
     SmtpClient( const String &, const String &, const String &,
                 EventHandler * );
     SmtpClient( const Endpoint &, Message *,
-                const String &, const String &, 
+                const String &, const String &,
                 EventHandler * );
 
     void react( Event );

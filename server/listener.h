@@ -81,7 +81,7 @@ public:
                 ++it;
             }
         }
-        
+
         StringList::Iterator it( addresses );
         while ( it ) {
             Endpoint e( *it, p );

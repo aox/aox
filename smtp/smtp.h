@@ -12,8 +12,8 @@ class String;
 class SmtpCommand;
 
 
-class SMTP 
-    : public Connection 
+class SMTP
+    : public Connection
 {
 public:
     enum Dialect{ Smtp, Lmtp, Submit };
@@ -25,7 +25,7 @@ public:
     void parse();
 
     void execute();
-    
+
     enum InputState { Command, Sasl, Chunk, Data };
     InputState inputState() const;
     void setInputState( InputState );
@@ -44,7 +44,7 @@ public:
 
     void addRecipient( class SmtpRcptTo * );
     List<class SmtpRcptTo> * rcptTo() const;
-    
+
     void setBody( const String & );
     String body() const;
 

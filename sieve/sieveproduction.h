@@ -109,7 +109,7 @@ public:
     SieveBlock * block() const;
 
     void setRequirePermitted( bool );
-    
+
 private:
     class SieveCommandData * d;
 };

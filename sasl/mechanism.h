@@ -15,7 +15,7 @@ class SaslMechanism
 {
 public:
     virtual ~SaslMechanism() {}
-    
+
     enum Type {
         Anonymous,
         Plain,
