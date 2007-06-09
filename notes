@@ -6,7 +6,7 @@
   five seems like a good idea.
 
 
-2.01: 2007-08-20
+2.02: 2007-08-20
 
   Arnt leaves for vacation on 2007-08-18.
 
@@ -75,16 +75,10 @@ Items for web site
 
 Various TODO items from earlier releases.
 
-  This sounds like the last 1.x release before 2.0.
-
-  Make aox vacuum work without the great big lock.
-
   Some bugfixes, perhaps tih's 30-item list, jason grossman's GC
   slowness, etc.
 
-  Webmail + web archiving.
-
-  Memory use improvements
+  Webmail.
 
   Message retention policy
 
@@ -103,13 +97,11 @@ Various TODO items from earlier releases.
   Miscellaneous:
 
   - Database replication support (local mirror)
-  - Clean up orphaned bodyparts without locking the table
   - Split the injector transaction into fast and slow parts(?)
 
   SORT (/THREAD?)
 
   Basic administration using the httpd
-  Read-only archive pages
 
   (Next: 1.14 items specified before.)
 
@@ -491,20 +483,6 @@ SASL LOGIN authentication
   There's a draft by Ken Murchison.
 
 
-Make the httpd do archive pages
-
-  Shouldn't we be most of the way there? Need partial result pages and
-  real searching, though.
-
-  Notify denis@startsiden.no when external testers might want to look
-  at it.
-
-
-archives.oryx.com
-
-  Mostly need httpd archiving.
-
-
 Miscellaneous cleanups:
 
   * Get rid of Blah::setup wherever possible
@@ -592,12 +570,6 @@ canonical and deliver need severe cleaning up.
 
 
 Read the GiST papers and look at tsearch2 again.
-
-
-migrator should work without indices
-
-  If the database is otherwise idle, the migrator could disable indices
-  and perhaps transactions, and go much faster.
 
 
 Add Maildir support to the migrator.
@@ -707,9 +679,6 @@ Replace Mailbox::isHome with something correct.
 
 
 TLS client support (smtp, postgresql)
-
-
-We MUST support HTTPS for the webmail interface.
 
 
 "Writing Secure Code"
@@ -907,14 +876,6 @@ Get rid of FORTRAN typing
   Also unfuck HeaderField::encode{Word,Phrase} in a different way -
   they use different tests for whether 2047 encoding is necessary, and
   I don't think either is right.
-
-
-VIEW CREATE seems unpredictable
-
-  Occasionally, the \view flag doesn't appear quickly on the created
-  mailbox. This may be due to OCClient - I recent saw a mailbox update
-  its UIDs very lage (long after append had reported the new UID to
-  the IMAP client).
 
 
 Plugins
