@@ -1545,7 +1545,7 @@ void updateDatabase()
             d->query =
                 new Query( "select id,textsend(text) as text "
                            "from bodyparts where "
-                           "position('\\\\000' in textsend(text)) >= 0", d );
+                           "position('\\\\000' in textsend(text)) > 0", d );
             d->state = 671;
             d->query->execute();
         }
