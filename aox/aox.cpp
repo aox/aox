@@ -1613,6 +1613,11 @@ void updateDatabase()
                 error( s );
             }
 
+            printf( "  Resolving hash collision between bodyparts %d "
+                    "and %d (%s).\n",
+                    r->getInt( "id" ), d->row->getInt( "id" ),
+                    d->hash.cstr() );
+
             d->state = 674;
             d->q = new Query( "update part_numbers set bodypart=$1 "
                               "where bodypart=$2", d );
