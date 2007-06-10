@@ -510,6 +510,7 @@ public:
         if ( ( query && !query->done() ) || ( t && !t->done() ) ||
              ( d->user && d->user->state() == User::Unverified ) ||
              ( d->injector && !d->injector->done() ) ||
+             ( q && !q->done() ) ||
              ( !chores->isEmpty() ) )
             return;
 
@@ -1564,7 +1565,9 @@ void updateDatabase()
                 d->q->bind( 1, s );
                 d->q->bind( 2, d->hash );
                 d->q->bind( 3, d->row->getInt( "id" ) );
+                d->q->allowFailure();
                 d->q->execute();
+                return;
             }
 
             if ( !d->query->done() )
