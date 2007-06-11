@@ -2,9 +2,12 @@
 
 #include "smtpclient.h"
 
+#include "dsn.h"
 #include "log.h"
+#include "scope.h"
 #include "buffer.h"
 #include "configuration.h"
+#include "recipient.h"
 #include "eventloop.h"
 #include "address.h"
 #include "message.h"
@@ -19,7 +22,8 @@ public:
           failed( false ), permanent( false ),
           connected( false ), lmtp( false ),
           state( Invalid ), sender( 0 ), recipients( 0 ),
-          owner( 0 ), user( 0 )
+          owner( 0 ), user( 0 ),
+          enhancedstatuscodes( false )
     {}
 
     bool done;
@@ -42,6 +46,8 @@ public:
     EventHandler * owner;
     EventHandler * user;
     List<Recipient>::Iterator rcptTo;
+
+    bool enhancedstatuscodes;
 };
 
 
@@ -62,13 +68,14 @@ public:
     address and introduce itself.
 */
 
-SmtpClient::SmtpClient( const Endpoint & address )
+SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
     : Connection( Connection::socket( address.protocol() ),
                   Connection::SmtpClient ),
       d( new SmtpClientData )
 {
     Scope s( log() );
-    connect( e );
+    d->owner = owner;
+    connect( address );
     EventLoop::global()->addConnection( this );
     setTimeoutAfter( 300 );
     log( "Connecting to " + address.string() );
@@ -117,26 +124,6 @@ void SmtpClient::react( Event e )
 }
 
 
-/*! Returns true if this client encountered an error while attempting
-    delivery, and false otherwise.
-*/
-
-bool SmtpClient::failed() const
-{
-    return d->failed;
-}
-
-
-/*! Returns the last error seen, or an empty string if no error has been
-    encountered. Will be set if failed() is true.
-*/
-
-String SmtpClient::error() const
-{
-    return d->error;
-}
-
-
 /*! Reads and reacts to SMTP/LMTP responses. Sends new commands. */
 
 void SmtpClient::parse()
@@ -156,7 +143,7 @@ void SmtpClient::parse()
             d->error = "Server sent garbage: " + *s;
         }
         else if ( (*s)[3] == '-' ) {
-            if ( d->state == SmtpClient::Hello ) {
+            if ( d->state == SmtpClientData::Hello ) {
                 recordExtension( *s );
             }
         }
@@ -166,7 +153,7 @@ void SmtpClient::parse()
                 d->error = "Server sent 1xx response: " + *s;
                 break;
             case 2:
-                if ( d->state == SmtpClient::Hello ) {
+                if ( d->state == SmtpClientData::Hello ) {
                     recordExtension( *s );
                 }
                 if ( d->state == SmtpClientData::Connected &&
@@ -184,7 +171,7 @@ void SmtpClient::parse()
                 if ( d->state == SmtpClientData::Data ) {
                     log( "Sending body.", Log::Debug );
                     enqueue( dotted( d->message ) );
-                    d->state == Body;
+                    d->state = SmtpClientData::Body;
                 }
                 else {
                     d->error = "Server sent 1xx response: " + *s;
@@ -192,7 +179,7 @@ void SmtpClient::parse()
                 break;
             case 4:
                 handleFailure( *s, false );
-                if ( response == 421 ) {
+                if ( response == 421 )
                     setState( Closing );
                 break;
             case 5:
@@ -220,39 +207,39 @@ void SmtpClient::sendCommand()
     String send;
 
     switch( d->state ) {
-    case SmtpClientData:Invalid:
+    case SmtpClientData::Invalid:
         break;
     case SmtpClientData::Data:
-        d->state = SmtpClientData::Body:
+        d->state = SmtpClientData::Body;
         break;
 
     case SmtpClientData::Rset:
     case SmtpClientData::Connected:
         d->sender = 0;
         d->recipients = 0;
-        d->message.truncate;
+        d->message.truncate();
         d->user = 0;
         if ( d->lmtp )
             send = "lhlo";
         else
             send = "ehlo";
         send = send + " " + Configuration::hostname();
-        d->state = SmtpClientData::Hello:
+        d->state = SmtpClientData::Hello;
         break;
 
     case SmtpClientData::Hello:
         if ( !d->sender )
             return;
         send = "mail from:<" + d->sender->toString() + ">";
-        d->state = SmtpClientData::MailFrom:
+        d->state = SmtpClientData::MailFrom;
         break;
 
     case SmtpClientData::MailFrom:
-        d->rcptTo = d->recipients.first();
+        d->rcptTo = d->recipients->first();
         send = "rcpt to:<" +
                d->rcptTo->finalRecipient()->localpart() + "@" +
                d->rcptTo->finalRecipient()->domain() + ">";
-        d->state = SmtpClientData::RcptTo:
+        d->state = SmtpClientData::RcptTo;
         break;
 
     case SmtpClientData::RcptTo:
@@ -268,12 +255,12 @@ void SmtpClient::sendCommand()
                 ++i;
             if ( i ) {
                 send = "data";
-                d->state = SmtpClientData::Data:
+                d->state = SmtpClientData::Data;
             }
             else {
                 finish();
                 send = "rset";
-                d->state = SmtpClientData::Rset:
+                d->state = SmtpClientData::Rset;
             }
         }
         break;
@@ -282,7 +269,7 @@ void SmtpClient::sendCommand()
     case SmtpClientData::Body:
         finish();
         send = "rset";
-        d->state = SmtpClientData::Rset:
+        d->state = SmtpClientData::Rset;
         break;
 
     case SmtpClientData::Quit:
@@ -333,7 +320,8 @@ String SmtpClient::dotted( const String & s )
 }
 
 
-static String enhancedStatus( const String & l, bool e )
+static String enhancedStatus( const String & l, bool e, 
+                              SmtpClientData::State s )
 {
     if ( e && ( l[4] >= '2' || l[4] <= '5' ) && l[5] == '.' ) {
         int i = l.mid( 4 ).find( ' ' );
@@ -341,7 +329,7 @@ static String enhancedStatus( const String & l, bool e )
             return l.mid( 4, i-4 );
     }
     bool ok = false;
-    uint response = s->mid( 0, 3 ).number( &ok );
+    uint response = l.mid( 0, 3 ).number( &ok );
     if ( response < 200 | response >= 600 || !ok )
         return "4.0.0";
     String r;
@@ -421,7 +409,7 @@ static String enhancedStatus( const String & l, bool e )
         r = "5.0.0";
         break;
     default:
-        r = fn( r/100 ) + ".0.0";
+        r = fn( response/100 ) + ".0.0";
         break;
     }
     return r;
@@ -436,7 +424,8 @@ static String enhancedStatus( const String & l, bool e )
 
 void SmtpClient::handleFailure( const String & line, bool permanent )
 {
-    String status = enhancedStatus( line, d->enhancedstatuscodes );
+    String status = enhancedStatus( line, d->enhancedstatuscodes,
+                                    d->state );
 
     if ( d->state == SmtpClientData::RcptTo ) {
         if ( permanent )
@@ -501,7 +490,7 @@ void SmtpClient::finish()
         d->user->execute();
     d->sender = 0;
     d->recipients = 0;
-    d->message.truncate;
+    d->message.truncate();
     d->user = 0;
 }
 

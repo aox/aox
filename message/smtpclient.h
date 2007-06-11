@@ -17,7 +17,7 @@ class SmtpClient
     : public Connection
 {
 public:
-    SmtpClient( Address *, EventHandler * );
+    SmtpClient( const Endpoint &, EventHandler * );
 
     void react( Event );
 
