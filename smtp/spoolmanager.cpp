@@ -45,7 +45,9 @@ SpoolManager::SpoolManager()
 void SpoolManager::execute()
 {
     if ( !q ) {
-        q = new Query( "select distinct (mailbox,uid) from deliveries",
+        q = new Query( "select distinct (mailbox,uid) from deliveries d "
+                       "left join deleted_messages dm using (mailbox,uid) "
+                       "where dm.uid is null and d.delivered_at is null",
                        this );
         q->execute();
         delete d->t;
