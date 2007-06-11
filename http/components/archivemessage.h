@@ -18,6 +18,9 @@ public:
 
     void execute();
 
+    void setLinkToThread( bool );
+    bool linkToThread() const;
+
 private:
     class ArchiveMessageData * d;
 
@@ -32,6 +35,7 @@ private:
     String bodypart( Message *, class Bodypart * );
     String message( Message *, Message * );
     String jsToggle( const String &, bool, const String &, const String & );
+    void maybeLinkToThread();
 };
 
 

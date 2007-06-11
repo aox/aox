@@ -23,13 +23,14 @@ class ArchiveMessageData
 {
 public:
     ArchiveMessageData()
-        : link( 0 ), message( 0 )
+        : link( 0 ), message( 0 ), linkToThread( true )
     {}
 
     Link * link;
     Message * message;
     String js;
     String buttons;
+    bool linkToThread;
 };
 
 
@@ -521,6 +522,16 @@ String ArchiveMessage::message( Message *first, Message *m )
     }
     h.append( jsToggle( o, false,
                         "Show full header", "Hide full header" ) );
+    if ( d->linkToThread ) {
+        Link l;
+        l.setType( d->link->type() );
+        l.setMailbox( d->link->mailbox() );
+        l.setUid( d->link->uid() );
+        l.setSuffix( Link::Thread );
+        d->buttons.append( "<a href=\"" );
+        d->buttons.append( l.canonical() );
+        d->buttons.append( "\">This page in a thread</a><br>\n" );
+    }
 
     h.append( "</div>\n" ); // optionalHeader
 
@@ -631,7 +642,7 @@ String ArchiveMessage::jsToggle( const String &html,
         d->buttons.append( quoted( hide ) );
     else
         d->buttons.append( quoted( show ) );
-    d->buttons.append( "</a>\n" );
+    d->buttons.append( "</a><br>\n" );
 
     String s;
     s.append( "<div id=" + v );
@@ -690,3 +701,31 @@ String ArchiveMessage::twoLines( Message * m )
     r = textPlain( b.mid( i, e-i ) );
 }
 #endif
+
+
+/*!
+
+*/
+
+void ArchiveMessage::maybeLinkToThread()
+{
+}
+
+
+/*! Instructs this component to include a link to the surrounding
+    thread if \a l is true, and to omit it if \a l is false. The
+    default is to include the link.
+*/
+
+void ArchiveMessage::setLinkToThread( bool l )
+{
+    d->linkToThread = l;
+}
+
+
+/*! Returns whatever setLinkToThread() set. */
+
+bool ArchiveMessage::linkToThread() const
+{
+    return d->linkToThread;
+}

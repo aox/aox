@@ -95,6 +95,8 @@ void ArchiveThread::execute()
         l->setMailbox( d->link->mailbox() );
         l->setUid( uid );
 
-        addSubComponent( new ArchiveMessage( l ) );
+        ArchiveMessage * am = new ArchiveMessage( l );
+        am->setLinkToThread( false );
+        addSubComponent( am );
     }
 }
