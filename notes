@@ -934,6 +934,11 @@ Cybertec replicator
 
   Is it good? What are people saying about it? What should we do about it?
 
+  Ewald Geschwinde on IRC (the first time I've seen him; 2007-07-11) said:
+  *egeschwinde* When I have time I will test your product on our
+  multimaster cluster
+  *egeschwinde* maybe also on the queuing system
+
 
 DIGEST-MD5 reauth doesn't work for Dave Cridland
 
