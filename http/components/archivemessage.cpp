@@ -530,7 +530,7 @@ String ArchiveMessage::message( Message *first, Message *m )
         l.setSuffix( Link::Thread );
         d->buttons.append( "<a href=\"" );
         d->buttons.append( l.canonical() );
-        d->buttons.append( "\">This page in a thread</a><br>\n" );
+        d->buttons.append( "\">Show message in context</a><br>\n" );
     }
 
     h.append( "</div>\n" ); // optionalHeader
