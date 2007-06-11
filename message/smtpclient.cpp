@@ -17,7 +17,9 @@ public:
     SmtpClientData()
         : done( false ),
           failed( false ), permanent( false ),
-          connected( false ), lmtp( false ), owner( 0 )
+          connected( false ), lmtp( false ),
+          state( Invalid ), sender( 0 ), recipients( 0 ),
+          owner( 0 ), user( 0 )
     {}
 
     bool done;
@@ -26,12 +28,20 @@ public:
     bool connected;
     bool lmtp;
 
+    enum State { Invalid,
+                 Connected, Hello,
+                 MailFrom, RcptTo, Data, Body,
+                 Error, Rset, Quit };
+    State state;
+
     String sent;
     String error;
-    String sender;
+    Address * sender;
     String message;
-    String recipient;
-    EventHandler *owner;
+    List<Recipient> * recipients;
+    EventHandler * owner;
+    EventHandler * user;
+    List<Recipient>::Iterator rcptTo;
 };
 
 
@@ -48,56 +58,20 @@ public:
     LMTP server. (All this may change in the future.)
 */
 
-/*! Constructs an SMTP client to send \a message to \a recipient from
-    \a sender, on behalf of \a owner.
+/*! Constructs an SMTP client which will immediately connect to \a
+    address and introduce itself.
 */
 
-SmtpClient::SmtpClient( const String &sender,
-                        const String &message,
-                        const String &recipient,
-                        EventHandler *owner )
-    : Connection( Connection::socket( Endpoint::IPv4 ),
+SmtpClient::SmtpClient( const Endpoint & address )
+    : Connection( Connection::socket( address.protocol() ),
                   Connection::SmtpClient ),
       d( new SmtpClientData )
 {
-    d->owner = owner;
-    d->sender = sender;
-    d->message = message;
-    d->recipient = recipient;
-
-    Endpoint e( Configuration::LmtpAddress, Configuration::LmtpPort );
-    if ( !e.valid() ) {
-        d->error = "Invalid server";
-        d->failed = true;
-        d->owner->execute();
-        return;
-    }
+    Scope s( log() );
     connect( e );
     EventLoop::global()->addConnection( this );
-    setTimeoutAfter( 10 ); // ### not RFC-compliant
-    log( "Connecting to " + e.string() );
-}
-
-/*!  Constructs an SMTP client which connects to \a smarthost and
-     sends it \a message from \a sender to \a recipient, and then
-     notifies \a owner.
-*/
-
-SmtpClient::SmtpClient( const Endpoint & smarthost,
-                        Message * message,
-                        const String & sender, const String & recipient,
-                        EventHandler * owner )
-    : Connection( Connection::socket( smarthost.protocol() ),
-                  Connection::SmtpClient ),
-      d( new SmtpClientData )
-{
-    d->owner = owner;
-    d->sender = sender;
-    d->recipient = recipient;
-    d->message = message->rfc822();
-    connect( smarthost );
-    EventLoop::global()->addConnection( this );
-    setTimeoutAfter( 30 ); // ### not RFC-compliant
+    setTimeoutAfter( 300 );
+    log( "Connecting to " + address.string() );
 }
 
 
@@ -117,7 +91,7 @@ void SmtpClient::react( Event e )
         break;
 
     case Connect:
-        d->connected = true;
+        d->state = SmtpClientData::Connected;
         break; // we'll get a banner
 
     case Error:
@@ -176,35 +150,27 @@ void SmtpClient::parse()
         extendTimeout( 10 );
         log( "Received: " + *s, Log::Debug );
         bool ok = false;
-        if ( (*s)[3] == '-' ) {
-            // it's a continuation line
-            ok = true;
+        uint response = s->mid( 0, 3 ).number( &ok );
+        if ( !ok ) {
+            // nonnumeric response
+            d->error = "Server sent garbage: " + *s;
         }
-        else if ( (*s)[0] == '5' ) {
-            d->error = *s;
-            d->failed = true;
-            d->permanent = true;
-        }
-        else if ( (*s)[0] == '4' ) {
-            d->error = *s;
-            d->failed = true;
-        }
-        else if ( d->sent == "data" ) {
-            if ( (*s)[0] == '3' ) {
-                ok = true;
-                log( "Sending body.", Log::Debug );
-                enqueue( dotted( d->message ) );
-                d->sent = "body";
+        else if ( (*s)[3] == '-' ) {
+            if ( d->state == SmtpClient::Hello ) {
+                recordExtension( *s );
             }
         }
-        else {
-            if ( (*s)[0] == '2' ) {
-                ok = true;
-                if ( d->sent == "body" && d->owner ) {
-                    d->done = true;
-                    d->owner->execute();
+        else if ( (*s)[3] == ' ' ) {
+            switch ( response/100 ) {
+            case 1:
+                d->error = "Server sent 1xx response: " + *s;
+                break;
+            case 2:
+                if ( d->state == SmtpClient::Hello ) {
+                    recordExtension( *s );
                 }
-                else if ( d->sent.isEmpty() && peer().port() != 25 ) {
+                if ( d->state == SmtpClientData::Connected &&
+                     peer().port() != 25 && peer().port() != 587 ) {
                     // try to autodetect LMTP
                     String banner = " " + s->simplified().lower() + " ";
                     if ( banner.contains( " lmtp " ) )
@@ -213,11 +179,32 @@ void SmtpClient::parse()
                     // SMTP/ESMTP?
                 }
                 sendCommand();
+                break;
+            case 3:
+                if ( d->state == SmtpClientData::Data ) {
+                    log( "Sending body.", Log::Debug );
+                    enqueue( dotted( d->message ) );
+                    d->state == Body;
+                }
+                else {
+                    d->error = "Server sent 1xx response: " + *s;
+                }
+                break;
+            case 4:
+                handleFailure( *s, false );
+                if ( response == 421 ) {
+                    setState( Closing );
+                break;
+            case 5:
+                handleFailure( *s, true );
+                break;
+            default:
+                ok = false;
+                break;
             }
         }
+
         if ( !ok ) {
-            d->error = *s;
-            d->failed = true;
             d->owner->execute();
             log( "L/SMTP error for command " + d->sent + ": " + *s,
                  Log::Error );
@@ -231,36 +218,78 @@ void SmtpClient::parse()
 void SmtpClient::sendCommand()
 {
     String send;
-    switch ( d->sent[0] ) {
-    case '\0':
+
+    switch( d->state ) {
+    case SmtpClientData:Invalid:
+        break;
+    case SmtpClientData::Data:
+        d->state = SmtpClientData::Body:
+        break;
+
+    case SmtpClientData::Rset:
+    case SmtpClientData::Connected:
+        d->sender = 0;
+        d->recipients = 0;
+        d->message.truncate;
+        d->user = 0;
         if ( d->lmtp )
             send = "lhlo";
         else
             send = "ehlo";
         send = send + " " + Configuration::hostname();
+        d->state = SmtpClientData::Hello:
         break;
-    case 'e':
-    case 'h':
-    case 'l':
-        send = "mail from:<" + d->sender + ">";
+
+    case SmtpClientData::Hello:
+        if ( !d->sender )
+            return;
+        send = "mail from:<" + d->sender->toString() + ">";
+        d->state = SmtpClientData::MailFrom:
         break;
-    case 'm':
-        send = "rcpt to:<" + d->recipient + ">";
+
+    case SmtpClientData::MailFrom:
+        d->rcptTo = d->recipients.first();
+        send = "rcpt to:<" +
+               d->rcptTo->finalRecipient()->localpart() + "@" +
+               d->rcptTo->finalRecipient()->domain() + ">";
+        d->state = SmtpClientData::RcptTo:
         break;
-    case 'r':
-        send = "data";
+
+    case SmtpClientData::RcptTo:
+        ++d->rcptTo;
+        if ( d->rcptTo ) {
+            send = "rcpt to:<" +
+                   d->rcptTo->finalRecipient()->localpart() + "@" +
+                   d->rcptTo->finalRecipient()->domain() + ">";
+        }
+        else {
+            List<Recipient>::Iterator i( d->recipients );
+            while ( i && !i->action() != Recipient::Unknown )
+                ++i;
+            if ( i ) {
+                send = "data";
+                d->state = SmtpClientData::Data:
+            }
+            else {
+                finish();
+                send = "rset";
+                d->state = SmtpClientData::Rset:
+            }
+        }
         break;
-    case 'b':
-        send = "quit";
+
+    case SmtpClientData::Error:
+    case SmtpClientData::Body:
+        finish();
+        send = "rset";
+        d->state = SmtpClientData::Rset:
         break;
-    case 'q':
-    default:
-        d->done = true;
-        setState( Closing );
-        d->owner->execute();
-        return;
+
+    case SmtpClientData::Quit:
+        Connection::setState( Connection::Closing );
         break;
     }
+
     log( "Sending: " + send, Log::Debug );
     enqueue( send + "\r\n" );
     d->sent = send;
@@ -304,22 +333,193 @@ String SmtpClient::dotted( const String & s )
 }
 
 
-/*! Returns true if this SmtpClient has seen a permanent failure, and
-    false if it either hasn't seen a failure or only a temporary
-    problem.
-*/
-
-bool SmtpClient::permanentFailure() const
+static String enhancedStatus( const String & l, bool e )
 {
-    return d->failed && d->permanent;
+    if ( e && ( l[4] >= '2' || l[4] <= '5' ) && l[5] == '.' ) {
+        int i = l.mid( 4 ).find( ' ' );
+        if ( i > 5 )
+            return l.mid( 4, i-4 );
+    }
+    bool ok = false;
+    uint response = s->mid( 0, 3 ).number( &ok );
+    if ( response < 200 | response >= 600 || !ok )
+        return "4.0.0";
+    String r;
+    switch ( response ) 
+    {
+    case 211: // System status, or system help reply
+        r = "2.0.0";
+        break;
+    case 214: // Help message
+        r = "2.0.0";
+        break;
+    case 220: // <domain> Service ready
+        r = "2.0.0";
+        break;
+    case 221: // <domain> Service closing transmission channel
+        r = "2.0.0";
+        break;
+    case 250: // Requested mail action okay, completed
+        if ( s == SmtpClientData::MailFrom ||
+             s == SmtpClientData::RcptTo )
+            r = "2.1.0";
+        else
+            r = "2.0.0";
+        break;
+    case 251: // User not local; will forward to <forward-path>
+        r = "2.1.0";
+        break;
+    case 252: // Cannot VRFY user, but will accept message and attempt delivery
+        r = "2.0.0";
+        break;
+    case 354: // Start mail input; end with <CRLF>.<CRLF>
+        r = "2.0.0";
+        break;
+    case 421: // <domain> Service not available, closing transmission channel
+        r = "4.3.0";
+        break;
+    case 450: // Requested mail action not taken: mailbox unavailable
+        r = "4.2.0";
+        break;
+    case 451: // Requested action aborted: local error in processing
+        r = "4.2.0";
+        break;
+    case 452: // Requested action not taken: insufficient system storage
+        r = "4.2.0";
+        break;
+    case 500: // Syntax error, command unrecognized
+        r = "4.3.0";
+        break;
+    case 501: // Syntax error in parameters or arguments
+        r = "4.3.0";
+        break;
+    case 502: // Command not implemented (see section 4.2.4)
+        r = "4.3.0";
+        break;
+    case 503: // Bad sequence of commands
+        r = "4.3.0";
+        break;
+    case 504: // Command parameter not implemented
+        r = "4.3.0";
+        break;
+    case 550: // Requested action not taken: mailbox unavailable (e.g.,
+        // mailbox not found, no access, or command rejected for policy
+        // reasons)
+        r = "5.2.0";
+        break;
+    case 551: // User not local; please try <forward-path>
+        r = "5.2.0";
+        break;
+    case 552: // Requested mail action aborted: exceeded storage allocation
+        r = "5.3.0"; // or 5.2.0?
+        break;
+    case 553: // Requested action not taken: mailbox name not allowed
+        r = "5.2.0";
+        break;
+    case 554: // Transaction failed  (Or, in the case of a
+        // connection-opening response, "No SMTP service here")
+        r = "5.0.0";
+        break;
+    default:
+        r = fn( r/100 ) + ".0.0";
+        break;
+    }
+    return r;
 }
 
 
-/*! Returns true if this SmtpClient has done its work or failed, and
-    false if it's still working.
+/*! Assumes that \a line is a complete SMTP reply line, including
+    three-digit status code and if \a enhancedstatuscodes is true,
+    including the enhanced status code, too.
+
 */
 
-bool SmtpClient::done() const
+void SmtpClient::handleFailure( const String & line, bool permanent )
 {
-    return d->done || d->failed;
+    String status = enhancedStatus( line, d->enhancedstatuscodes );
+
+    if ( d->state == SmtpClientData::RcptTo ) {
+        if ( permanent )
+            d->rcptTo->setAction( Recipient::Failed, status );
+        else
+            d->rcptTo->setAction( Recipient::Delayed, status );
+    }
+    else {
+        List<Recipient>::Iterator i( d->recipients );
+        while ( i ) {
+            if ( permanent )
+                i->setAction( Recipient::Failed, status );
+            else
+                i->setAction( Recipient::Delayed, status );
+            ++i;
+        }
+        d->state = SmtpClientData::Error;
+    }
+    sendCommand();
+}
+
+
+/*! Returns true if this SmtpClient is ready to send() mail.
+    SmtpClient notifies its owner() when it becomes ready. */
+
+bool SmtpClient::ready() const
+{
+    if ( d->sender )
+        return false;
+    if ( d->state == SmtpClientData::Hello )
+        return true;
+    return false;
+}
+
+
+/*! Starts sending \a message from \a sender to \a recipients. When \a
+    message has been sent or cannot be, SmtpClient notifies both \a user
+    and owner().
+*/
+
+void SmtpClient::send( Address * sender, List<Recipient> * recipients,
+                       const String & message, EventHandler * user )
+{
+    if ( !ready() )
+        return;
+
+    d->sender = sender;
+    d->recipients = recipients;
+    d->message = message;
+    d->user = user;
+    sendCommand();
+}
+
+
+/*! Finishes message sending activities, however they turned out, and
+    notifies the user.
+*/
+
+void SmtpClient::finish()
+{
+    if ( d->user )
+        d->user->execute();
+    d->sender = 0;
+    d->recipients = 0;
+    d->message.truncate;
+    d->user = 0;
+}
+
+
+/*! Parses \a line assuming it is an extension announcement, and
+    records the extensions found. Parse errors, unknown extensions and
+    so on are silently ignored.
+*/
+
+void SmtpClient::recordExtension( const String & line )
+{
+    String l = line.mid( 4 ).simplified();
+    String w = l;
+    int s = l.find( ' ' );
+    if ( s > 0 )
+        w = w.mid( 0, s );
+    w = w.lower();
+
+    if ( w == "enhancedstatuscodes" )
+        d->enhancedstatuscodes = true;
 }

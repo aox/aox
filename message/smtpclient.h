@@ -10,30 +10,28 @@
 class String;
 class Message;
 class Address;
+class Recipient;
 
 
 class SmtpClient
     : public Connection
 {
 public:
-    SmtpClient( const String &, const String &, const String &,
-                EventHandler * );
-    SmtpClient( const Endpoint &, Message *,
-                const String &, const String &,
-                EventHandler * );
+    SmtpClient( Address *, EventHandler * );
 
     void react( Event );
 
-    bool done() const;
-    bool failed() const;
-    String error() const;
-    bool permanentFailure() const;
+    bool ready() const;
+    void send( Address *, List<Recipient> *, const String &, EventHandler * );
 
 private:
     class SmtpClientData * d;
 
     void parse();
     void sendCommand();
+    void handleFailure( const String &, bool );
+    void finish();
+    void recordExtension( const String & );
 
     static String dotted( const String & );
 };
