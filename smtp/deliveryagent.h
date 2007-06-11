@@ -17,6 +17,10 @@ public:
 
     void execute();
 
+    bool done() const;
+    bool delivered() const;
+    const String status() const;
+
 private:
     class DeliveryAgentData * d;
 };

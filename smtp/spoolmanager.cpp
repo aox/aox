@@ -2,17 +2,9 @@
 
 #include "spoolmanager.h"
 
-#include "dsn.h"
-#include "date.h"
 #include "query.h"
 #include "timer.h"
-#include "address.h"
 #include "mailbox.h"
-#include "message.h"
-#include "fetcher.h"
-#include "injector.h"
-#include "recipient.h"
-#include "smtpclient.h"
 #include "deliveryagent.h"
 
 
@@ -24,17 +16,25 @@ class SpoolManagerData
 {
 public:
     SpoolManagerData()
-        : q( 0 )
+        : q( 0 ), remove( 0 ), t( 0 ), row( 0 ), agent( 0 )
     {}
 
     Query * q;
+    Query * remove;
     Timer * t;
+    Row * row;
+    DeliveryAgent * agent;
 };
 
 
 /*! \class SpoolManager spoolmanager.h
     This class periodically attempts to deliver mail from the special
-    /archiveopteryx/spool mailbox to a smarthost.
+    /archiveopteryx/spool mailbox to a smarthost using DeliveryAgent.
+    Messages in the spool are marked for deletion when the delivery
+    either succeeds, or is permanently abandoned.
+
+    Each archiveopteryx process has only one instance of this class,
+    which is created the first time SpoolManager::run() is called.
 */
 
 SpoolManager::SpoolManager()
@@ -46,27 +46,56 @@ SpoolManager::SpoolManager()
 void SpoolManager::execute()
 {
     if ( !d->q ) {
+        if ( d->t )
+            delete d->t;
+        d->t = 0;
         d->q =
             new Query( "select distinct (mailbox,uid) from deliveries d "
                        "left join deleted_messages dm using (mailbox,uid) "
                        "where dm.uid is null and d.delivered_at is null",
                        this );
         d->q->execute();
-        delete d->t;
-        d->t = 0;
     }
 
-    Row * r = 0;
-    while ( ( r = d->q->nextRow() ) ) {
-        Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-        if ( m )
-            (void)new DeliveryAgent( m, r->getInt( "uid" ) );
+    while ( d->row || d->q->hasResults() ) {
+        if ( !d->row )
+            d->row = d->q->nextRow();
+
+        if ( !d->agent ) {
+            Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
+            if ( m ) {
+                d->agent = new DeliveryAgent( m, d->row->getInt( "uid" ) );
+                d->agent->execute();
+            }
+        }
+
+        if ( d->agent ) {
+            if ( !d->agent->done() )
+                return;
+
+            if ( d->agent->delivered() ) {
+                d->remove =
+                    new Query( "insert into deleted_messages "
+                               "(mailbox, uid, deleted_by, reason) "
+                               "values ($1, $2, null, $3)", this );
+                d->remove->bind( 1, d->row->getInt( "mailbox" ) );
+                d->remove->bind( 2, d->row->getInt( "uid" ) );
+                d->remove->bind( 3, d->agent->status() );
+                d->remove->execute();
+            }
+
+            if ( !d->remove->done() )
+                return;
+        }
+
+        d->row = 0;
     }
 
-    if ( d->q->done() ) {
-        d->q = 0;
-        d->t = new Timer( this, 300 );
-    }
+    if ( !d->q->done() )
+        return;
+
+    d->t = new Timer( this, 300 );
+    d->q = 0;
 }
 
 
