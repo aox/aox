@@ -3,7 +3,7 @@
 .SH NAME
 deliver - deliver mail into Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/deliver [-f sender] destination [filename]
+.B $BINDIR/deliver [-f sender] [-t mailbox] [-v] destination [filename]
 .SH DESCRIPTION
 .nh
 .PP
@@ -11,29 +11,33 @@ The
 .B deliver
 program injects a single mail message in RFC-822 format into
 Archiveopteryx.
+It connects to Archiveopteryx's backend ddatabase injects the message
+into the correct mailbox.
 .PP
-It connects to Archiveopteryx's LMTP server and delivers the message
-there.
 .B deliver
 is meant as a compatibility shim for use with e.g.
 .BR formail (1)
 and with MTAs that want to deliver to a program.
+Note that you will generally get better performance by using LMTP.
 .PP
-Note that you will generally get better performance by using LMTP
-directly instead of via
-.BR deliver .
+.B deliver
+bypasses Sieve and always stores mail directly into the target mailbox.
 .SH OPTIONS
 .IP "-f sender"
 specifies the fully qualified address of the message sender. This is
 the same as the SMTP envelope sender.
 .IP
-If there is no
+Starting with version 2.01, the
 .I -f
-argument,
+argument is ignored. It is still accepted to keep old scripts working.
+.IP "-t mailbox"
+directs
 .B deliver
-looks for a sender address in the first line of the message, which
-must be a "From " or "Return-Path:" field. If it isn't, the message
-cannot be delivered.
+to store the message into the named mailbox. The "p" right on the
+mailbox must be granted to "anyone". ("p" controls who is permitted to
+send mail to the mailbox, see RFC 4314 for more details.)
+.IP "-v"
+requests more verbosity during delivery. May be specified twice.
 .SH EXAMPLES
 To deliver an entire berkeley mbox into the inbox of user nirmala@example.com:
 .IP
@@ -45,28 +49,28 @@ inbox of user raj@example.net:
 folder +blah
 .br
 seq all | xargs -n1 deliver raj@example.net
+.PP
+To deliver each message in the MH folder +ramble into folder stumble
+of user raj@example.net:
+.IP
+folder +blah
+.br
+seq all | xargs -n1 deliver -t stumble raj@example.net
+.PP
+If raj has not granted "anyone" the "p" right ("p"ost mail to
+mailbox), this example fails.
 .SH DIAGNOSTICS
 The normal exit status of
 .B deliver
-is 0. If the destination address is not accepted,
+is 0. In case of errors,
 .B deliver
-returns 1. If
-.BR archiveopteryx (8)
-does not accept the message body,
-.B deliver
-returns 2.
+returns an error code from sysexits.h, such as EX_TEMPFAIL, EX_NOUSER, etc.
 .SH BUGS
-This program really needs a command-line option to set destination
-mailbox.
-.PP
 Delivering multiple messages would also be good, for those big mailbox
 migrations. In that case,
 .B
 deliver
 should report which messages could be delivered and which could not.
-.PP
-The return codes may be wrong in a few cases. This man page probably
-is right and the code wrong. Low priority.
 .PP
 There is no command-line option to set the configuration file.
 .SH AUTHOR

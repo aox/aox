@@ -6,10 +6,13 @@
 #include "allocator.h"
 #include "stderrlogger.h"
 #include "configuration.h"
-#include "smtpclient.h"
 #include "logclient.h"
-#include "file.h"
 #include "eventloop.h"
+#include "injector.h"
+#include "mailbox.h"
+#include "message.h"
+#include "query.h"
+#include "file.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -17,33 +20,102 @@
 
 // time, ctime
 #include <time.h>
+// all the exit codes
+#include <sysexits.h>
+
+
+static void quit( uint s, const String & m )
+{
+    if ( !m.isEmpty() )
+        fprintf( stderr, "deliver: %s\n", m.cstr() );
+    exit( s );
+}
 
 
 class Deliverator
     : public EventHandler
 {
 public:
-    String sender, contents, recipient;
-    SmtpClient *client;
-    const char *errstr;
-    int status;
+    Query * q;
+    Injector * i;
+    Message * m;
+    String mbn;
+    String un;
 
-    Deliverator( const String &s, const String &c, const String &r )
-        : sender( s ), contents( c ), recipient( r ),
-          client( 0 ), errstr( 0 ), status( 0 )
+    Deliverator( Message * message,
+                 const String & mailbox, const String & user )
+        : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user )
     {
         Allocator::addEternal( this, "deliver object" );
-        client = new SmtpClient( sender, contents, recipient,
-                                 this );
+        q = new Query( "select al.mailbox, p.rights, "
+                       "n.name as namespace, u.login "
+                       "from aliases al "
+                       "join addresses a on (al.address=a.id) "
+                       "left join users u on (al.id=user.alias) "
+                       "left join namespaces n on (u.parentspace=n.id) "
+                       "left join permissions p on "
+                       " (al.mailbox=p.mailbox and p.rights ilike '%p%' "
+                       "  and p.identifier='anyone') "
+                       "where (lower(a.localpart)=$1 and lower(a.domain)=$2) "
+                       "or (lower(u.login)=$3)", this );
+        if ( user.contains( '@' ) ) {
+            int at = user.find( '@' );
+            q->bind( 1, user.mid( 0, at ).lower() );
+            q->bind( 2, user.mid( at + 1 ).lower() );
+        }
+        else {
+            q->bindNull( 1 );
+            q->bindNull( 2 );
+        }
+        q->bind( 2, user.lower() );
+        q->execute();
     }
 
-    virtual ~Deliverator() {}
+    virtual ~Deliverator()
+    {
+        quit( EX_TEMPFAIL, "Delivery object unexpectedly deleted" );
+    }
 
-    void execute() {
-        if ( client->failed() ) {
-            errstr = client->error().cstr();
-            status = -1;
+    void execute()
+    {
+        if ( q && !q->done() )
+            return;
+
+        if ( q->done() && !i ) {
+            Row * r = q->nextRow();
+            q = 0;
+            if ( !r )
+                quit( EX_NOUSER, "No such user: " + un );
+            i = new Injector( m, this );
+            Mailbox * mb = 0;
+            if ( mbn.isEmpty() ) {
+                mb = Mailbox::find( r->getInt( "mailbox" ) );
+            }
+            else {
+                String pre;
+                if ( !r->isNull( "namespace" ) && !mbn.startsWith( "/" ) )
+                    pre = r->getString( "namespace" ) + "/" +
+                          r->getString( "login" ) + "/";
+                mb = Mailbox::find( pre + mbn );
+                if ( r->isNull( "rights" ) )
+                    quit( EX_NOPERM,
+                          "User 'anyone' does not have 'p' right on mailbox '"
+                          + mbn );
+            }
+            if ( !mb )
+                quit( EX_CANTCREAT, "No such mailbox" );
+            i->setMailbox( mb );
+            i->execute();
         }
+
+        if ( !i->done() )
+            return;
+
+        if ( i->failed() )
+            quit( EX_SOFTWARE, "Injection error: " + i->error() );
+
+        i->announce();
+        i = 0;
         EventLoop::shutdown();
     }
 };
@@ -54,6 +126,7 @@ int main( int argc, char *argv[] )
     Scope global;
 
     String sender;
+    String mailbox;
     String recipient;
     String filename;
     bool error = false;
@@ -66,6 +139,11 @@ int main( int argc, char *argv[] )
             case 'f':
                 if ( argc - n > 1 )
                     sender = argv[++n];
+                break;
+
+            case 't':
+                if ( argc - n > 1 )
+                    mailbox = argv[++n];
                 break;
 
             case 'v':
@@ -121,35 +199,18 @@ int main( int argc, char *argv[] )
 
     Configuration::setup( "archiveopteryx.conf" );
 
-    if ( sender.isEmpty() &&
-         ( contents.startsWith( "From " ) ||
-           contents.startsWith( "Return-Path:" ) ) ) {
-        int i = contents.find( '\n' );
-        if ( i < 0 ) {
-            fprintf( stderr, "Message contains no LF\n" );
-            exit( -2 );
-        }
-        sender = contents.mid( 0, i );
-        contents = contents.mid( i+1 );
-        if ( sender[0] == 'R' )
-            i = sender.find( ':' );
-        else
-            i = sender.find( ' ' );
-        sender = sender.mid( i+1 ).simplified();
-            i = sender.find( ' ' );
-        if ( i > 0 )
-            sender.truncate( i );
-        if ( sender.startsWith( "<" ) && sender.endsWith( ">" ) )
-            sender = sender.mid( 1, sender.length()-2 );
-        if ( sender.find( '@' ) < 0 )
-            sender = sender + "@" + Configuration::hostname();
+    Message * message = new Message( contents );
+    if ( !message->error().isEmpty() ) {
+        fprintf( stderr,
+                 "Message parsing failed: %s", message->error().cstr( ) );
+        exit( EX_DATAERR );
     }
 
     if ( verbose > 0 )
-        fprintf( stderr, "Sending to <%s> from <%s>\n",
-                 recipient.cstr(), sender.cstr() );
+        fprintf( stderr, "Sending to <%s>\n", recipient.cstr() );
 
     EventLoop::setup();
+    Database::setup( 1 );
     Log * l = new Log( Log::General );
     Allocator::addEternal( l, "delivery log" );
     global.setLog( l );
@@ -157,22 +218,9 @@ int main( int argc, char *argv[] )
                            "log object" );
 
     Configuration::report();
-    Deliverator *d = new Deliverator( sender, contents, recipient );
-    Allocator::addEternal( d, "delivery object" );
+    Mailbox::setup();
+    (void)new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
 
-    if ( verbose > 0 && d->status < 0 ) {
-        fprintf( stderr, "Error: %s\n", d->errstr );
-
-        if ( verbose > 1 ) {
-            File f( "/tmp/delivery.errors", File::Append );
-            if ( f.valid() ) {
-                time_t t = time(0);
-                f.write( "From " + d->sender + " " + ctime(&t) );
-                f.write( d->contents + "\n" );
-            }
-        }
-    }
-
-    return d->status;
+    return 0;
 }
