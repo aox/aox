@@ -3,14 +3,17 @@
 #ifndef DELIVERYAGENT_H
 #define DELIVERYAGENT_H
 
-#include "global.h"
+#include "event.h"
+
+
+class Mailbox;
 
 
 class DeliveryAgent
     : public EventHandler
 {
 public:
-    DeliveryAgent( Mailbox *, uid );
+    DeliveryAgent( Mailbox *, uint );
 
     void execute();
 

@@ -13,6 +13,7 @@
 #include "injector.h"
 #include "recipient.h"
 #include "smtpclient.h"
+#include "deliveryagent.h"
 
 
 static SpoolManager * sm;
@@ -44,25 +45,26 @@ SpoolManager::SpoolManager()
 
 void SpoolManager::execute()
 {
-    if ( !q ) {
-        q = new Query( "select distinct (mailbox,uid) from deliveries d "
+    if ( !d->q ) {
+        d->q =
+            new Query( "select distinct (mailbox,uid) from deliveries d "
                        "left join deleted_messages dm using (mailbox,uid) "
                        "where dm.uid is null and d.delivered_at is null",
                        this );
-        q->execute();
+        d->q->execute();
         delete d->t;
         d->t = 0;
     }
 
     Row * r = 0;
-    while ( (r=q->nextRow()) ) {
+    while ( ( r = d->q->nextRow() ) ) {
         Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
         if ( m )
             (void)new DeliveryAgent( m, r->getInt( "uid" ) );
     }
 
-    if ( q->done() ) {
-        q = 0;
+    if ( d->q->done() ) {
+        d->q = 0;
         d->t = new Timer( this, 300 );
     }
 }
