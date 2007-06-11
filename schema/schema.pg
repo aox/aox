@@ -373,6 +373,7 @@ create table deliveries (
     injected_at timestamp with time zone,
     expires_at  timestamp with time zone,
     tried_at    timestamp with time zone,
+    delivered_at timestamp with time zone,
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade

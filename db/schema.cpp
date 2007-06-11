@@ -376,6 +376,8 @@ bool Schema::singleStep()
         c = stepTo48(); break;
     case 48:
         c = stepTo49(); break;
+    case 49:
+        c = stepTo50(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2222,6 +2224,30 @@ bool Schema::stepTo49()
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on threads_id_seq "
                           "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add deliveries.delivered_at. */
+
+bool Schema::stepTo50()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding deliveries.delivered_at" );
+        d->q = new Query( "alter table deliveries add delivered_at "
+                          "timestamp with time zone", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
