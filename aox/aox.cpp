@@ -1573,6 +1573,9 @@ void updateDatabase()
             if ( !d->query->done() )
                 return;
 
+            printf( "- Finished processing %d bodyparts.\n",
+                    d->query->rows() );
+
             d->state = 675;
         }
 
