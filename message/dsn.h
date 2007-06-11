@@ -7,6 +7,7 @@
 #include "list.h"
 #include "recipient.h"
 
+class Address;
 class Message;
 
 
@@ -33,6 +34,9 @@ public:
 
     List<Recipient> * recipients() const;
     void addRecipient( Recipient * );
+
+    void setSender( Address * );
+    Address * sender() const;
 
     Message * result() const;
 

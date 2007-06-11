@@ -18,7 +18,8 @@ public:
         : message( 0 ),
           full( true ),
           arrivalDate( 0 ),
-          resultDate( 0 )
+          resultDate( 0 ),
+          sender( 0 )
         {}
     Message * message;
     String envid;
@@ -26,6 +27,7 @@ public:
     String receivedFrom;
     Date * arrivalDate;
     Date * resultDate;
+    Address * sender;
     List<Recipient> recipients;
 };
 
@@ -216,6 +218,8 @@ Message * DSN::result() const
         h->add( "Date", now->rfc822() );
     }
     h->add( "From", from->toString() );
+    if ( sender() )
+        h->add( "To", sender()->toString() );
     if ( allOk() )
         h->add( "Subject", "Message delivered" );
     else if ( allFailed() )
@@ -398,4 +402,32 @@ void DSN::setResultDate( class Date * date )
 Date * DSN::resultDate() const
 {
     return d->resultDate;
+}
+
+
+/*! Records that message() was sent by \a address. */
+
+void DSN::setSender( Address * address )
+{
+    d->sender = address;
+}
+
+
+/*! Returns whatever setSender() set. If setSender() has not been
+    called (or was called with a null pointer as argument), sender()
+    looks for a Return-Path field in message(). If all else fails,
+    sender() returns a null pointer.
+*/
+
+Address * DSN::sender() const
+{
+    if ( d->sender )
+        return d->sender;
+    if ( !d->message || !d->message->header() )
+        return 0;
+    Header * h = d->message->header();
+    List<Address> * a = h->addresses( HeaderField::ReturnPath );
+    if ( !a || a->isEmpty() )
+        return 0;
+    return a->firstElement();
 }
