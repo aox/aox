@@ -336,6 +336,19 @@ controls whether
 .BR archiveopteryx (8)
 should accept mail via SMTP-Submit (RFC 4409). The default is
 .IR enabled .
+.IP submit-copy-to-sender
+controls whether
+.BR archiveopteryx (8)
+should ensure that the sender receives a copy of outgoing mail. The default
+is
+.IR disabled .
+This can be used to ensure that all outgoing mail is archived.
+.IP
+If the sender already receives a copy of the message, 
+.I submit-copy-to-sender
+has no effect. Senders will not receive two copies. The copy is
+always sent to the user who sends the message, even if the From and/or
+Return-Path is different.
 .IP smtp-submit-address
 specifies the address where
 .BR archiveopteryx (8)

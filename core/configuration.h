@@ -122,6 +122,7 @@ public:
         UseImaps,
         UseHttp,
         UsePop,
+        SubmitCopyToSender,
         AuthPlain,
         AuthCramMd5,
         AuthDigestMd5,

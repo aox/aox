@@ -233,6 +233,7 @@ static struct {
     { "use-imaps", Configuration::UseImaps, false },
     { "use-http", Configuration::UseHttp, false },
     { "use-pop", Configuration::UsePop, false },
+    { "submit-copy-to-sender", Configuration::SubmitCopyToSender, false },
     { "auth-plain", Configuration::AuthPlain, true },
     { "auth-cram-md5", Configuration::AuthCramMd5, true },
     { "auth-digest-md5", Configuration::AuthDigestMd5, true },

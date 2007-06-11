@@ -11,14 +11,17 @@
 #include "scope.h"
 #include "sieve.h"
 #include "smtp.h"
+#include "user.h"
 
 
 class SmtpMailFromData
     : public Garbage
 {
 public:
-    SmtpMailFromData(): address( 0 ) {}
+    SmtpMailFromData(): address( 0 ), copyAddress( 0 ), sieveQuery( 0 ) {}
     Address * address;
+    Address * copyAddress;
+    Query * sieveQuery;
 };
 
 
@@ -115,6 +118,50 @@ void SmtpMailFrom::execute()
         return;
     }
     // checking rcpt to is not necessary, since it already checks mail from
+
+    if ( server()->dialect() == SMTP::Submit &&
+         Configuration::toggle( Configuration::SubmitCopyToSender ) &&
+         !d->sieveQuery && !d->copyAddress ) {
+        d->copyAddress = server()->user()->address();
+        if ( d->copyAddress->type() != Address::Normal )
+            d->copyAddress = d->address;
+        if ( d->copyAddress && d->copyAddress->type() != Address::Normal )
+            d->copyAddress = 0;
+        if ( d->copyAddress && !d->sieveQuery ) {
+            d->sieveQuery = new Query(
+                "select al.mailbox, s.script, m.owner, "
+                "n.name, u.login "
+                "from aliases al "
+                "join addresses a on (al.address=a.id) "
+                "join mailboxes m on (al.mailbox=m.id) "
+                "left join scripts s on (s.owner=m.owner and s.active='t') "
+                "left join users u on (s.owner=u.id) "
+                "left join namespaces n on (u.parentspace=n.id) "
+                "where m.deleted='f' and "
+                "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
+            d->sieveQuery->bind( 1, d->copyAddress->localpart().lower() );
+            d->sieveQuery->bind( 2, d->copyAddress->domain().lower() );
+            d->sieveQuery->execute();
+        }
+    }
+
+    if ( d->sieveQuery && !d->sieveQuery->done() )
+        return;
+    if ( d->sieveQuery ) {
+        Row * r = d->sieveQuery->nextRow();
+        if ( r ) {
+            SieveScript * script = new SieveScript;
+            Mailbox * mailbox = Mailbox::find( r->getInt( "mailbox" ) );
+            if ( !r->isNull( "script" ) )
+                script->parse( r->getString( "script" ) );
+            server()->sieve()->addRecipient( d->copyAddress, mailbox, script );
+            if ( !r->isNull( "login" ) )
+                server()->sieve()->setPrefix( d->address,
+                                              r->getString( "name" ) + "/" +
+                                              r->getString( "login" ) + "/" );
+            respond( 0, "Will send a copy to " + d->copyAddress->toString() );
+        }
+    }
 
     log( "Sender: " + d->address->toString() );
     server()->sieve()->setSender( d->address );
