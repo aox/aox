@@ -7,6 +7,7 @@
 #include "event.h"
 
 
+class DSN;
 class String;
 class Message;
 class Address;
@@ -22,14 +23,14 @@ public:
     void react( Event );
 
     bool ready() const;
-    void send( Address *, List<Recipient> *, const String &, EventHandler * );
+    void send( DSN *, EventHandler * );
 
 private:
     class SmtpClientData * d;
 
     void parse();
     void sendCommand();
-    void handleFailure( const String &, bool );
+    void handleFailure( const String & );
     void finish();
     void recordExtension( const String & );
 

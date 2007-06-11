@@ -18,19 +18,10 @@ class SmtpClientData
 {
 public:
     SmtpClientData()
-        : done( false ),
-          failed( false ), permanent( false ),
-          connected( false ), lmtp( false ),
-          state( Invalid ), sender( 0 ), recipients( 0 ),
+        : state( Invalid ), dsn( 0 ),
           owner( 0 ), user( 0 ),
           enhancedstatuscodes( false )
     {}
-
-    bool done;
-    bool failed;
-    bool permanent;
-    bool connected;
-    bool lmtp;
 
     enum State { Invalid,
                  Connected, Hello,
@@ -40,9 +31,7 @@ public:
 
     String sent;
     String error;
-    Address * sender;
-    String message;
-    List<Recipient> * recipients;
+    DSN * dsn;
     EventHandler * owner;
     EventHandler * user;
     List<Recipient>::Iterator rcptTo;
@@ -53,19 +42,16 @@ public:
 
 /*! \class SmtpClient smtpclient.h
 
-    The SmtpClient class provides an SMTP or LMTP client. It's a
-    little in the primitive side, but enough to talk to our own LMTP
-    server, or to the SMTP server of a smarthost.
+    The SmtpClient class provides an SMTP client, as the alert reader
+    will have inferred from its name.
 
-    Right now, this class is used only by bin/deliver. It is unable to
-    handle multiple recipients (or mailboxes), partly because it's not
-    needed, and partly because there's no sane way to indicate failure
-    with multiple recipients. It is also hardwired to talk to our own
-    LMTP server. (All this may change in the future.)
+    Archiveopteryx uses it to send outgoing messages to a smarthost.
+    
 */
 
 /*! Constructs an SMTP client which will immediately connect to \a
-    address and introduce itself.
+    address and introduce itself, and which notifies \a owner whenever
+    it becomes ready() to deliver another message.
 */
 
 SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
@@ -93,7 +79,7 @@ void SmtpClient::react( Event e )
         log( "SMTP/LMTP server timed out", Log::Error );
         Connection::setState( Closing );
         d->error = "Server timeout.";
-        d->failed = true;
+        finish();
         d->owner->execute();
         break;
 
@@ -103,15 +89,15 @@ void SmtpClient::react( Event e )
 
     case Error:
     case Close:
-        if ( !d->connected ) {
+        if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
-            d->failed = true;
+            finish();
             d->owner->execute();
         }
         else if ( d->sent != "quit" ) {
             log( "Unexpected close by server", Log::Error );
             d->error = "Unexpected close by server.";
-            d->failed = true;
+            finish();
             d->owner->execute();
         }
         break;
@@ -153,37 +139,25 @@ void SmtpClient::parse()
                 d->error = "Server sent 1xx response: " + *s;
                 break;
             case 2:
-                if ( d->state == SmtpClientData::Hello ) {
+                if ( d->state == SmtpClientData::Hello )
                     recordExtension( *s );
-                }
-                if ( d->state == SmtpClientData::Connected &&
-                     peer().port() != 25 && peer().port() != 587 ) {
-                    // try to autodetect LMTP
-                    String banner = " " + s->simplified().lower() + " ";
-                    if ( banner.contains( " lmtp " ) )
-                        d->lmtp = true;
-                    // should we also require that it does not contain
-                    // SMTP/ESMTP?
-                }
                 sendCommand();
                 break;
             case 3:
                 if ( d->state == SmtpClientData::Data ) {
                     log( "Sending body.", Log::Debug );
-                    enqueue( dotted( d->message ) );
+                    enqueue( dotted( d->dsn->message()->rfc822() ) );
                     d->state = SmtpClientData::Body;
                 }
                 else {
-                    d->error = "Server sent 1xx response: " + *s;
+                    d->error = "Server sent inappropriate 3xx response: " + *s;
                 }
                 break;
             case 4:
-                handleFailure( *s, false );
+            case 5:
+                handleFailure( *s );
                 if ( response == 421 )
                     setState( Closing );
-                break;
-            case 5:
-                handleFailure( *s, true );
                 break;
             default:
                 ok = false;
@@ -215,42 +189,32 @@ void SmtpClient::sendCommand()
 
     case SmtpClientData::Rset:
     case SmtpClientData::Connected:
-        d->sender = 0;
-        d->recipients = 0;
-        d->message.truncate();
-        d->user = 0;
-        if ( d->lmtp )
-            send = "lhlo";
-        else
-            send = "ehlo";
-        send = send + " " + Configuration::hostname();
+        send = "ehlo " + Configuration::hostname();
         d->state = SmtpClientData::Hello;
         break;
 
     case SmtpClientData::Hello:
-        if ( !d->sender )
+        if ( !d->dsn )
             return;
-        send = "mail from:<" + d->sender->toString() + ">";
+        send = "mail from:<" + d->dsn->sender()->toString() + ">";
         d->state = SmtpClientData::MailFrom;
         break;
 
     case SmtpClientData::MailFrom:
-        d->rcptTo = d->recipients->first();
-        send = "rcpt to:<" +
-               d->rcptTo->finalRecipient()->localpart() + "@" +
-               d->rcptTo->finalRecipient()->domain() + ">";
-        d->state = SmtpClientData::RcptTo;
-        break;
-
     case SmtpClientData::RcptTo:
-        ++d->rcptTo;
+        if ( d->state == SmtpClientData::MailFrom )
+            d->rcptTo = d->dsn->recipients()->first();
+        else
+            ++d->rcptTo;
+        while ( d->rcptTo && d->rcptTo->action() != Recipient::Unknown )
+            ++d->rcptTo;
         if ( d->rcptTo ) {
             send = "rcpt to:<" +
                    d->rcptTo->finalRecipient()->localpart() + "@" +
                    d->rcptTo->finalRecipient()->domain() + ">";
         }
         else {
-            List<Recipient>::Iterator i( d->recipients );
+            List<Recipient>::Iterator i( d->dsn->recipients() );
             while ( i && !i->action() != Recipient::Unknown )
                 ++i;
             if ( i ) {
@@ -416,16 +380,19 @@ static String enhancedStatus( const String & l, bool e,
 }
 
 
-/*! Assumes that \a line is a complete SMTP reply line, including
+/*! Reacts appropriately to any failure.
+    Assumes that \a line is a complete SMTP reply line, including
     three-digit status code and if \a enhancedstatuscodes is true,
     including the enhanced status code, too.
-
 */
 
-void SmtpClient::handleFailure( const String & line, bool permanent )
+void SmtpClient::handleFailure( const String & line )
 {
     String status = enhancedStatus( line, d->enhancedstatuscodes,
                                     d->state );
+    bool permanent = false;
+    if ( line[0] == '5' )
+        permanent = true;
 
     if ( d->state == SmtpClientData::RcptTo ) {
         if ( permanent )
@@ -434,12 +401,14 @@ void SmtpClient::handleFailure( const String & line, bool permanent )
             d->rcptTo->setAction( Recipient::Delayed, status );
     }
     else {
-        List<Recipient>::Iterator i( d->recipients );
+        List<Recipient>::Iterator i( d->dsn->recipients() );
         while ( i ) {
-            if ( permanent )
-                i->setAction( Recipient::Failed, status );
-            else
-                i->setAction( Recipient::Delayed, status );
+            if ( i->action() == Recipient::Unknown ) {
+                if ( permanent )
+                    i->setAction( Recipient::Failed, status );
+                else
+                    i->setAction( Recipient::Delayed, status );
+            }
             ++i;
         }
         d->state = SmtpClientData::Error;
@@ -453,7 +422,7 @@ void SmtpClient::handleFailure( const String & line, bool permanent )
 
 bool SmtpClient::ready() const
 {
-    if ( d->sender )
+    if ( d->dsn )
         return false;
     if ( d->state == SmtpClientData::Hello )
         return true;
@@ -461,20 +430,19 @@ bool SmtpClient::ready() const
 }
 
 
-/*! Starts sending \a message from \a sender to \a recipients. When \a
-    message has been sent or cannot be, SmtpClient notifies both \a user
-    and owner().
+/*! Starts sending the message held by \a dsn with with the right
+    sender and recipients. Updates the \a dsn and its recipients with
+    information about which recipients fail or succeed, and how.
+
+    Does not use DSN::envid() at present.
 */
 
-void SmtpClient::send( Address * sender, List<Recipient> * recipients,
-                       const String & message, EventHandler * user )
+void SmtpClient::send( DSN * dsn, EventHandler * user )
 {
     if ( !ready() )
         return;
 
-    d->sender = sender;
-    d->recipients = recipients;
-    d->message = message;
+    d->dsn = dsn;
     d->user = user;
     sendCommand();
 }
@@ -488,9 +456,7 @@ void SmtpClient::finish()
 {
     if ( d->user )
         d->user->execute();
-    d->sender = 0;
-    d->recipients = 0;
-    d->message.truncate();
+    d->dsn = 0;
     d->user = 0;
 }
 
