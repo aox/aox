@@ -145,6 +145,7 @@ void Permissions::execute()
     if ( !d->q ) {
         // The owner of a mailbox always has all rights.
         if ( d->user->login() != "anonymous" &&
+             d->user->login() != "anyone" &&
              ( d->user->id() == d->mailbox->owner() ||
                d->user->home() == d->mailbox ||
                d->mailbox->name().startsWith( d->user->home()->name() +
