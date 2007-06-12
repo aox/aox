@@ -41,6 +41,8 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         // should we also send AUTH=?
         // respond( 0, "AUTH=" + auth );
         respond( 0, "BURL IMAP IMAP://" + Configuration::hostname() );
+        if ( !Configuration::toggle( Configuration::Security ) )
+            respond( 0, "X-ORYX-TESTING-1" );
         respond( 0, "BINARYMIME" );
         respond( 0, "PIPELINING" );
         respond( 0, "8BITMIME" );
@@ -48,8 +50,6 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         if ( !s->hasTls() )
             respond( 0, "STARTTLS" );
         respond( 0, "DSN" );
-        if ( !Configuration::toggle( Configuration::Security ) )
-            respond( 0, "X-ORYX-TESTING-1" );
     }
     finish();
 }
