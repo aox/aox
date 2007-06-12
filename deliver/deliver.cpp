@@ -50,15 +50,11 @@ public:
         : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user )
     {
         Allocator::addEternal( this, "deliver object" );
-        q = new Query( "select al.mailbox, p.rights, "
-                       "n.name as namespace, u.login "
+        q = new Query( "select al.mailbox, n.name as namespace, u.login "
                        "from aliases al "
                        "join addresses a on (al.address=a.id) "
                        "left join users u on (al.id=u.alias) "
                        "left join namespaces n on (u.parentspace=n.id) "
-                       "left join permissions p on "
-                       " (al.mailbox=p.mailbox and p.rights ilike '%p%' "
-                       "  and p.identifier='anyone') "
                        "where (lower(a.localpart)=$1 and lower(a.domain)=$2) "
                        "or (lower(u.login)=$3)", this );
         if ( user.contains( '@' ) ) {
@@ -89,6 +85,9 @@ public:
             q = 0;
             if ( !r )
                 quit( EX_NOUSER, "No such user: " + un );
+            if ( !r->isNull( "login" ) &&
+                 r->getString( "login" ) == "anonymous" )
+                quit( EX_DATAERR, "Cannot deliver to the anonymous user" );
             i = new Injector( m, this );
             Mailbox * mb = 0;
             if ( mbn.isEmpty() ) {
@@ -100,10 +99,6 @@ public:
                     pre = r->getString( "namespace" ) + "/" +
                           r->getString( "login" ) + "/";
                 mb = Mailbox::find( pre + mbn );
-                if ( r->isNull( "rights" ) )
-                    quit( EX_NOPERM,
-                          "User 'anyone' does not have 'p' right on mailbox '"
-                          + mbn );
             }
             if ( !mb )
                 quit( EX_CANTCREAT, "No such mailbox" );
