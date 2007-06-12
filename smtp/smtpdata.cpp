@@ -22,25 +22,20 @@
 #include "user.h"
 #include "md5.h"
 
-// getpid()
-#include <sys/types.h>
-#include <unistd.h>
 
 class SmtpDataData
     : public Garbage
 {
 public:
     SmtpDataData()
-        : state( 2 ), message( 0 ), injector( 0 ), now( 0 ), ok( "OK" ),
+        : state( 2 ), message( 0 ), injector( 0 ), ok( "OK" ),
           spooled( false )
     {}
 
-    String id;
     String body;
     uint state;
     Message * message;
     Injector * injector;
-    Date * now;
     String ok;
     bool spooled;
 };
@@ -85,8 +80,6 @@ void SmtpData::execute()
 
     // state 0: not yet sent 354
     if ( d->state == 0 ) {
-        d->id = id();
-
         uint local = 0;
         uint remote = 0;
         List<SmtpRcptTo>::Iterator i( server()->rcptTo() );
@@ -168,12 +161,12 @@ void SmtpData::execute()
         }
         else {
             // for SMTP/LMTP, we wrap the unparsable message
-            Message * m = Message::wrapUnparsableMessage( d->body,
-                                                          d->message->error(),
-                                                          "Message arrived "
-                                                          "but could not be "
-                                                          "stored",
-                                                          id() );
+            Message * m 
+                = Message::wrapUnparsableMessage( d->body, d->message->error(),
+                                                  "Message arrived "
+                                                  "but could not be "
+                                                  "stored",
+                                                  server()->transactionId() );
             // the next line changes the SMTP/LMTP response
             d->ok = "Worked around: " + d->message->error();
             // the next line means that what we store is the wrapper
@@ -306,12 +299,12 @@ Message * SmtpData::message( const String & body )
         break;
     }
     received.append( " id " );
-    received.append( id() );
+    received.append( server()->transactionId() );
     // XXX: if the number of receivers is one, add a 'for' clause. if
     // it's greater, add a comment with the count. but don't do this
     // until the new code passes the existing tests.
     received.append( "; " );
-    received.append( now()->rfc822() );
+    received.append( server()->transactionTime()->rfc822() );
     received.append( "\r\n" );
 
     String rp;
@@ -322,7 +315,7 @@ Message * SmtpData::message( const String & body )
 
     d->body = rp + received + body;
     Message * m = new Message( d->body );
-    m->setInternalDate( now()->unixTime() );
+    m->setInternalDate( server()->transactionTime()->unixTime() );
     // if the sender is another dickhead specifying <> in From to
     // evade replies, let's try harder.
     if ( !m->error().isEmpty() &&
@@ -374,47 +367,6 @@ Message * SmtpData::message( const String & body )
     }
     d->message = m;
     return m;
-}
-
-
-static uint sequence = 0;
-
-
-/*! Return an ESMTP id, either based on an internal algorithm or on
-    something the client specified. There is some ESMTP extension we
-    can use to let the client specify the ID, and we want to do that,
-    for easier tracking.
-
-    id() returns the same ID even if called several times (for the
-    same object, that is).
-*/
-
-String SmtpData::id()
-{
-    if ( !d->id.isEmpty() )
-        return d->id;
-
-    d->id = fn( now()->unixTime() );
-    d->id.append( '-' );
-    d->id.append( fn( getpid() ) );
-    d->id.append( '-' );
-    d->id.append( fn( ++sequence ) );
-    return d->id;
-}
-
-
-/*! Returns the current time and date, except that if you call it
-    more than once for the same object, it returns the same value.
-*/
-
-Date * SmtpData::now()
-{
-    if ( d->now )
-        return d->now;
-
-    d->now = new Date;
-    d->now->setCurrentTime();
-    return d->now;
 }
 
 

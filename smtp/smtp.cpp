@@ -11,8 +11,13 @@
 #include "buffer.h"
 #include "scope.h"
 #include "sieve.h"
+#include "date.h"
 #include "user.h"
 #include "tls.h"
+
+// getpid()
+#include <sys/types.h>
+#include <unistd.h>
 
 
 class SMTPData
@@ -24,7 +29,7 @@ public:
         inputState( SMTP::Command ),
         dialect( SMTP::Smtp ),
         sieve( 0 ), user( 0 ),
-        recipients( new List<SmtpRcptTo> ){}
+        recipients( new List<SmtpRcptTo> ), now( 0 ) {}
 
     bool executing;
     bool executeAgain;
@@ -36,6 +41,8 @@ public:
     User * user;
     List<SmtpRcptTo> * recipients;
     String body;
+    Date * now;
+    String id;
 };
 
 
@@ -282,6 +289,8 @@ void SMTP::reset()
     d->sieve = 0;
     d->recipients = new List<SmtpRcptTo>;
     d->body.truncate();
+    d->id.truncate();
+    d->now = 0;
 }
 
 
@@ -449,4 +458,64 @@ void SMTPS::finish()
 
     startTls( d->tlsServer );
     enqueue( d->banner + "\r\n" );
+}
+
+
+/*! Uses \a id as transaction id for this message. Reset by rset. Used
+    for debugging.
+*/
+
+void SMTP::setTransactionId( const String & id )
+{
+    d->id = id;
+}
+
+
+static uint sequence = 0;
+
+
+/*! Return an ESMTP id, either based on an internal algorithm or on
+    something the client specified using an Oryx-specific extension.
+
+    id() returns the same ID even if called several times. Rset resets
+    it.
+*/
+
+String SMTP::transactionId() const
+{
+    if ( !d->id.isEmpty() )
+        return d->id;
+
+    d->id = fn( transactionTime()->unixTime() );
+    d->id.append( '-' );
+    d->id.append( fn( getpid() ) );
+    d->id.append( '-' );
+    d->id.append( fn( ++sequence ) );
+    return d->id;
+}
+
+
+/*! Records the current time, \a now. The rest of the SMTP transaction
+    will be considered to happen at the specified time. Used for
+    debugging, when we want mail to be injected at known times.
+*/
+
+void SMTP::setTransactionTime( class Date * now )
+{
+    d->now = now;
+}
+
+
+/*! Returns the current time and date, except that if you call it
+    more than once for the same object, it returns the same value.
+*/
+
+class Date * SMTP::transactionTime() const
+{
+    if ( d->now )
+        return d->now;
+
+    d->now = new Date;
+    d->now->setCurrentTime();
+    return d->now;
 }

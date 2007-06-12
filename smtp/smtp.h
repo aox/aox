@@ -50,6 +50,12 @@ public:
 
     bool isFirstCommand( SmtpCommand * ) const;
 
+    void setTransactionId( const String & );
+    String transactionId() const;
+
+    void setTransactionTime( class Date * );
+    class Date * transactionTime() const;
+
 private:
     void parseCommand();
 

@@ -10,6 +10,7 @@
 #include "query.h"
 #include "scope.h"
 #include "sieve.h"
+#include "date.h"
 #include "smtp.h"
 #include "user.h"
 
@@ -79,6 +80,23 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
     }
     else if ( name == "envid" ) {
         // XXX do what?
+    }
+    else if ( name == "x-oryx-id" &&
+              !Configuration::toggle( Configuration::Security ) ) {
+        if ( value.boring() && !value.isEmpty() )
+            server()->setTransactionId( value );
+        else
+            respond( 501, "Transaction ID must be boring" );
+    }
+    else if ( name == "x-oryx-time" &&
+              !Configuration::toggle( Configuration::Security ) ) {
+        Date * t = new Date;
+        bool ok = false;
+        t->setUnixTime( value.number( &ok ) );
+        if ( ok )
+            server()->setTransactionTime( t );
+        else
+            respond( 501, "Time must be a unix time" );
     }
     else if ( name == "body" ) {
         if ( value.lower() == "7bit" || value.lower() == "8bitmime" ) {

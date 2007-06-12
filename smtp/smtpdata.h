@@ -16,9 +16,6 @@ public:
 
     class Message * message( const String & );
 
-    String id();
-    class Date * now();
-
 private:
     class SmtpDataData * d;
 };

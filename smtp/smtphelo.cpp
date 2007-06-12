@@ -48,6 +48,8 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         if ( !s->hasTls() )
             respond( 0, "STARTTLS" );
         respond( 0, "DSN" );
+        if ( !Configuration::toggle( Configuration::Security ) )
+            respond( 0, "X-ORYX-TESTING-1" );
     }
     finish();
 }
