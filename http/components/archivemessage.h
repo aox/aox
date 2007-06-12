@@ -35,7 +35,6 @@ private:
     String bodypart( Message *, class Bodypart * );
     String message( Message *, Message * );
     String jsToggle( const String &, bool, const String &, const String & );
-    void maybeLinkToThread();
 };
 
 

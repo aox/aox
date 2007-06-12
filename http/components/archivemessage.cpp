@@ -703,15 +703,6 @@ String ArchiveMessage::twoLines( Message * m )
 #endif
 
 
-/*!
-
-*/
-
-void ArchiveMessage::maybeLinkToThread()
-{
-}
-
-
 /*! Instructs this component to include a link to the surrounding
     thread if \a l is true, and to omit it if \a l is false. The
     default is to include the link.
