@@ -6,9 +6,12 @@
 #include "allocator.h"
 #include "stderrlogger.h"
 #include "configuration.h"
+#include "addresscache.h"
+#include "fieldcache.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "injector.h"
+#include "occlient.h"
 #include "mailbox.h"
 #include "message.h"
 #include "query.h"
@@ -51,7 +54,7 @@ public:
                        "n.name as namespace, u.login "
                        "from aliases al "
                        "join addresses a on (al.address=a.id) "
-                       "left join users u on (al.id=user.alias) "
+                       "left join users u on (al.id=u.alias) "
                        "left join namespaces n on (u.parentspace=n.id) "
                        "left join permissions p on "
                        " (al.mailbox=p.mailbox and p.rights ilike '%p%' "
@@ -81,7 +84,7 @@ public:
         if ( q && !q->done() )
             return;
 
-        if ( q->done() && !i ) {
+        if ( q && q->done() && !i ) {
             Row * r = q->nextRow();
             q = 0;
             if ( !r )
@@ -219,6 +222,9 @@ int main( int argc, char *argv[] )
 
     Configuration::report();
     Mailbox::setup();
+    AddressCache::setup();
+    FieldNameCache::setup();
+    OCClient::setup();
     (void)new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
 
