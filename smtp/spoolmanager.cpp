@@ -64,7 +64,8 @@ void SpoolManager::execute()
         if ( !d->agent ) {
             Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
             if ( m ) {
-                d->agent = new DeliveryAgent( m, d->row->getInt( "uid" ) );
+                d->agent = new DeliveryAgent( m, d->row->getInt( "uid" ),
+                                              this );
                 d->agent->execute();
             }
         }
@@ -80,7 +81,7 @@ void SpoolManager::execute()
                                "values ($1, $2, null, $3)", this );
                 d->remove->bind( 1, d->row->getInt( "mailbox" ) );
                 d->remove->bind( 2, d->row->getInt( "uid" ) );
-                d->remove->bind( 3, d->agent->status() );
+                d->remove->bind( 3, "???" );
                 d->remove->execute();
             }
 

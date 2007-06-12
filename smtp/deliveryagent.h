@@ -13,7 +13,7 @@ class DeliveryAgent
     : public EventHandler
 {
 public:
-    DeliveryAgent( Mailbox *, uint );
+    DeliveryAgent( Mailbox *, uint, EventHandler * );
 
     void execute();
 
