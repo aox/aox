@@ -7,6 +7,7 @@
 #include "stderrlogger.h"
 #include "configuration.h"
 #include "addresscache.h"
+#include "permissions.h"
 #include "fieldcache.h"
 #include "logclient.h"
 #include "eventloop.h"
@@ -16,6 +17,7 @@
 #include "message.h"
 #include "query.h"
 #include "file.h"
+#include "user.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -44,10 +46,13 @@ public:
     Message * m;
     String mbn;
     String un;
+    Permissions * p;
+    Mailbox * mb;
 
     Deliverator( Message * message,
                  const String & mailbox, const String & user )
-        : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user )
+        : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user ),
+          p( 0 ), mb( 0 )
     {
         Allocator::addEternal( this, "deliver object" );
         q = new Query( "select al.mailbox, n.name as namespace, u.login "
@@ -80,7 +85,7 @@ public:
         if ( q && !q->done() )
             return;
 
-        if ( q && q->done() && !i ) {
+        if ( q && q->done() && !p ) {
             Row * r = q->nextRow();
             q = 0;
             if ( !r )
@@ -88,8 +93,6 @@ public:
             if ( !r->isNull( "login" ) &&
                  r->getString( "login" ) == "anonymous" )
                 quit( EX_DATAERR, "Cannot deliver to the anonymous user" );
-            i = new Injector( m, this );
-            Mailbox * mb = 0;
             if ( mbn.isEmpty() ) {
                 mb = Mailbox::find( r->getInt( "mailbox" ) );
             }
@@ -99,9 +102,25 @@ public:
                     pre = r->getString( "namespace" ) + "/" +
                           r->getString( "login" ) + "/";
                 mb = Mailbox::find( pre + mbn );
+                User * u = new User;
+                u->setLogin( "anyone" );
+                if ( mb )
+                    p = new Permissions( mb, u, this );
             }
             if ( !mb )
                 quit( EX_CANTCREAT, "No such mailbox" );
+        }
+
+        if ( p && !p->ready() )
+            return;
+
+        if ( p && !p->allowed( Permissions::Post ) )
+            quit( EX_NOPERM,
+                  "User 'anyone' does not have 'p' right on mailbox " +
+                  mbn.quoted( '\'' ) );
+
+        if ( !i ) {
+            i = new Injector( m, this );
             i->setMailbox( mb );
             i->execute();
         }

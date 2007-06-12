@@ -1093,7 +1093,8 @@ void Command::requireRight( Mailbox * m, Permissions::Right r )
         d->checker = new PermissionsChecker;
 
     Permissions * p = 0;
-    if ( imap()->state() == IMAP::Selected && m == imap()->session()->mailbox() )
+    if ( imap()->state() == IMAP::Selected &&
+         m == imap()->session()->mailbox() )
         p = imap()->session()->permissions();
     else
         p = d->checker->permissions( m, imap()->user() );
