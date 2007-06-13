@@ -1063,17 +1063,26 @@ void Injector::insertDeliveries()
     }
     if ( !spool )
         return; // XXX an error, but how to best handle?
+
+    Query * q;
+
+    q = new Query( "insert into deliveries "
+                   "(sender,mailbox,uid,injected_at,expires_at) "
+                   "values ($1,$2,$3,current_timestamp,"
+                   "current_timestamp+interval '2 days')", 0 );
+    q->bind( 1, d->sender->id() );
+    q->bind( 2, spool->id() );
+    q->bind( 3, uid );
+    d->transaction->enqueue( q );
+
     List<Address>::Iterator i( d->remoteRecipients );
     while ( i ) {
         Query * q =
-            new Query( "insert into deliveries "
-                       "(sender,recipient,mailbox,uid,injected_at,expires_at) "
-                       "values ($1,$2,$3,$4, now(), now()+'2 days'::interval)",
-                       0 );
-        q->bind( 1, d->sender->id() );
-        q->bind( 2, i->id() );
-        q->bind( 3, spool->id() );
-        q->bind( 4, uid );
+            new Query( "insert into delivery_recipients (delivery,recipient) "
+                       "values ("
+                       "currval(pg_get_serial_sequence('deliveries','id')),"
+                       "$1)", 0 );
+        q->bind( 1, i->id() );
         d->transaction->enqueue( q );
         ++i;
     }
