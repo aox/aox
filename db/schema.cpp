@@ -378,6 +378,8 @@ bool Schema::singleStep()
         c = stepTo49(); break;
     case 49:
         c = stepTo50(); break;
+    case 50:
+        c = stepTo51(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2248,6 +2250,48 @@ bool Schema::stepTo50()
         describeStep( "Adding deliveries.delivered_at" );
         d->q = new Query( "alter table deliveries add delivered_at "
                           "timestamp with time zone", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Split delivery_recipients away from deliveries. */
+
+bool Schema::stepTo51()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Creating delivery_recipients" );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "create table delivery_recipients ("
+                          "id serial primary key, delivery integer "
+                          "not null references deliveries(id), "
+                          "recipient integer not null references "
+                          "addresses(id), status text)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant select, insert, update on "
+                          "delivery_recipients to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deliveries drop recipient", this );
+        d->t->enqueue( d->q );
+        describeStep( "Emptying the spool" );
+        d->q = new Query( "delete from deliveries", this );
+        d->t->enqueue( d->q );
+        d->q =
+            new Query( "insert into deleted_messages (mailbox,uid,reason) "
+                       "select mailbox,uid,'spool emptied' from messages "
+                       "join mailboxes on (mailbox=id) where "
+                       "name='/archiveopteryx/spool'", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();

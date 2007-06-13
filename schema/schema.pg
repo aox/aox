@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (49);
+insert into mailstore (revision) values (51);
 
 
 -- One entry for each unique address we've encountered.
@@ -367,7 +367,6 @@ create table modsequences (
 create table deliveries (
     id          serial primary key,
     sender      integer not null references addresses(id),
-    recipient   integer not null references addresses(id),
     mailbox     integer not null,
     uid         integer not null,
     injected_at timestamp with time zone,
@@ -377,6 +376,17 @@ create table deliveries (
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
+);
+
+
+-- One or more rows identifying recipients for each entry in the
+-- deliveries table.
+
+create table delivery_recipients (
+    id          serial primary key,
+    delivery    integer not null references deliveries(id),
+    recipient   integer not null references addresses(id),
+    status      text
 );
 
 
