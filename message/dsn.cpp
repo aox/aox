@@ -283,6 +283,23 @@ bool DSN::allFailed() const
 }
 
 
+/*! Returns true if delivery to some of the recipients() is still
+    pending (i.e. their Recipient::action() is still Unknown), and
+    false if they have all been attempted.
+*/
+
+bool DSN::deliveriesPending() const
+{
+    List<Recipient>::Iterator recipient( recipients() );
+    while ( recipient ) {
+        if ( recipient->action() == Recipient::Unknown )
+            return true;
+        ++recipient;
+    }
+    return false;
+}
+
+
 /*! Returns the body text for this bounce's plain-text body. */
 
 String DSN::plainBody() const

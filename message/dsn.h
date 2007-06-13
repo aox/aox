@@ -45,6 +45,7 @@ public:
 
     bool allOk() const;
     bool allFailed() const;
+    bool deliveriesPending() const;
 
     String plainBody() const;
     String dsnBody() const;
