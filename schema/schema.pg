@@ -384,7 +384,8 @@ create table deliveries (
 
 create table delivery_recipients (
     id          serial primary key,
-    delivery    integer not null references deliveries(id),
+    delivery    integer not null references deliveries(id)
+                on delete cascade,
     recipient   integer not null references addresses(id),
     status      text
 );

@@ -2275,8 +2275,8 @@ bool Schema::stepTo51()
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table delivery_recipients ("
                           "id serial primary key, delivery integer "
-                          "not null references deliveries(id), "
-                          "recipient integer not null references "
+                          "not null references deliveries(id) on delete "
+                          "cascade, recipient integer not null references "
                           "addresses(id), status text)", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select, insert, update on "
