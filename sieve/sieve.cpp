@@ -3,6 +3,7 @@
 #include "sieve.h"
 
 #include "html.h"
+#include "user.h"
 #include "query.h"
 #include "address.h"
 #include "mailbox.h"
@@ -31,11 +32,11 @@ public:
         : public Garbage
     {
     public:
-        Recipient( Address * a, Mailbox * m, SieveData * data )
+        Recipient( Address * a, Mailbox * m, User * u, SieveData * data )
             : d( data ), address( a ), mailbox( m ),
               done( false ), ok( true ),
               implicitKeep( true ), explicitKeep( false ),
-              sq( 0 ), script( new SieveScript )
+              sq( 0 ), script( new SieveScript ), user( u )
         {
             d->recipients.append( this );
         }
@@ -54,6 +55,7 @@ public:
         SieveScript * script;
         String error;
         String prefix;
+        User * user;
 
         bool evaluate( SieveCommand * );
         enum Result { True, False, Undecidable };
@@ -137,17 +139,19 @@ void Sieve::setSender( Address * address )
     and that \a destination is where the mailbox should be stored by
     default. Sieve will use \a script as script, or if \a script is a
     not supplied (normally the case), Sieve looks up the active script
-    for the owner of \a destination.
+    for the owner of \a destination. If \a user is non-null, Sieve
+    will check that fileinto statement only file mail into mailboxes
+    owned by \a user.
 
     If \a address is not a registered alias, Sieve will refuse mail to
     it.
 */
 
 void Sieve::addRecipient( Address * address, Mailbox * destination,
-                          SieveScript * script )
+                          User * user, SieveScript * script )
 {
     SieveData::Recipient * r
-        = new SieveData::Recipient( address, destination, d );
+        = new SieveData::Recipient( address, destination, user, d );
     d->currentRecipient = r;
     if ( script ) {
         r->script = script;
@@ -297,9 +301,14 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         if ( !arg.startsWith( "/" ) )
             n = prefix + arg;
         a->setMailbox( Mailbox::find( n ) );
-        if ( !a->mailbox() ) {
+        if ( !a->mailbox() ||
+             ( user && user->id() != a->mailbox()->owner() ) ) {
             a = new SieveAction( SieveAction::Error );
-            error = "No such mailbox: " + arg;
+            if ( !a->mailbox() )
+                error = "No such mailbox: " + arg;
+            else
+                error = "Mailbox not owned by " +
+                        user->login() + ": " + arg;
             if ( n != arg )
                 error.append( " (" + n + ")" );
             a->setErrorMessage( error );

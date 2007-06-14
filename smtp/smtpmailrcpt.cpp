@@ -172,7 +172,19 @@ void SmtpMailFrom::execute()
             Mailbox * mailbox = Mailbox::find( r->getInt( "mailbox" ) );
             if ( !r->isNull( "script" ) )
                 script->parse( r->getString( "script" ) );
-            server()->sieve()->addRecipient( d->copyAddress, mailbox, script );
+            User * user = 0;
+            if ( !r->isNull( "login" ) ) {
+                if ( server()->user() &&
+                     r->getString( "login" ) == server()->user()->login() ) {
+                    user = server()->user();
+                }
+                else {
+                    user = new User;
+                    user->setLogin( r->getString( "login" ) );
+                }
+            }
+            server()->sieve()->addRecipient( d->copyAddress, mailbox,
+                                             user, script );
             if ( !r->isNull( "login" ) )
                 server()->sieve()->setPrefix( d->address,
                                               r->getString( "name" ) + "/" +
@@ -257,7 +269,19 @@ void SmtpRcptTo::execute()
             d->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
             if ( !r->isNull( "script" ) )
                 script->parse( r->getString( "script" ) );
-            server()->sieve()->addRecipient( d->address, d->mailbox, script );
+            User * user = 0;
+            if ( !r->isNull( "login" ) ) {
+                if ( server()->user() &&
+                     r->getString( "login" ) == server()->user()->login() ) {
+                    user = server()->user();
+                }
+                else {
+                    user = new User;
+                    user->setLogin( r->getString( "login" ) );
+                }
+            }
+            server()->sieve()->addRecipient( d->address, d->mailbox,
+                                             user, script );
             if ( !r->isNull( "login" ) )
                 server()->sieve()->setPrefix( d->address,
                                               r->getString( "name" ) + "/" +

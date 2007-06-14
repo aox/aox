@@ -7,6 +7,7 @@
 #include "list.h"
 
 
+class User;
 class String;
 class Address;
 class Message;
@@ -24,7 +25,7 @@ public:
     void execute();
 
     void setSender( Address * );
-    void addRecipient( Address *, Mailbox *, SieveScript * = 0 );
+    void addRecipient( Address *, Mailbox *, User *, SieveScript * = 0 );
     void setMessage( Message * );
 
     void setPrefix( Address *, const String & );

@@ -382,6 +382,9 @@ bool ManageSieveCommand::putScript()
         d->t->enqueue( d->query );
         d->t->execute();
 
+        // look for fileinto calls. if any refer to nonexistent
+        // mailboxes in the user's namespace, create those. if any
+        // refer to mailboxes not owned by the user, deny the 
         List<SieveCommand> stack;
         List<SieveCommand>::Iterator i( script.topLevelCommands() );
         while ( i ) {
@@ -844,7 +847,7 @@ bool ManageSieveCommand::explain()
 
     Sieve s;
     s.setSender( ::x->from );
-    s.addRecipient( ::x->to, ::x->keep, ::x->script );
+    s.addRecipient( ::x->to, ::x->keep, d->sieve->user(), ::x->script );
     s.evaluate();
     uint a = s.actions( ::x->to )->count();
     bool m = false;
