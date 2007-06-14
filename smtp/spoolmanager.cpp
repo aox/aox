@@ -9,6 +9,7 @@
 
 
 static SpoolManager * sm;
+static bool shutdown;
 
 
 class SpoolManagerData
@@ -108,7 +109,30 @@ void SpoolManager::execute()
 
 void SpoolManager::run()
 {
+    if ( ::shutdown ) {
+        ::log( "Will not send spooled mail due to earlier database problem",
+               Log::Error );
+        return;
+    }
     if ( !::sm )
         ::sm = new SpoolManager;
     ::sm->execute();
+}
+
+
+/*! Causes the spool manager to stop sending mail, at once. Should
+    only be called if we're unable to update a message's "sent" status
+    from "unsent" to "sent" and a loop threatens.
+*/
+
+void SpoolManager::shutdown()
+{
+    if ( ::sm && sm->d->t ) {
+        delete sm->d->t;
+        sm->d->t = 0;
+    }
+    ::sm = 0;
+    ::shutdown = true;
+    ::log( "Shutting down outgoing mail due to software problem. "
+           "Please contact info@oryx.com", Log::Error );
 }

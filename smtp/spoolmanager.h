@@ -15,6 +15,7 @@ public:
     void execute();
 
     static void run();
+    static void shutdown();
 
 private:
     class SpoolManagerData * d;
