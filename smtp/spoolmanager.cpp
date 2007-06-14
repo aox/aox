@@ -50,10 +50,10 @@ void SpoolManager::execute()
             delete d->t;
         d->t = 0;
         d->q =
-            new Query( "select distinct (mailbox,uid) from deliveries d "
-                       "left join deleted_messages dm using (mailbox,uid) "
-                       "where dm.uid is null and d.delivered_at is null",
-                       this );
+            new Query( "select distinct (sender,mailbox,uid) "
+                       "from deliveries d left join deleted_messages dm "
+                       "using (mailbox,uid) where dm.uid is null and "
+                       "d.delivered_at is null", this );
         d->q->execute();
     }
 
@@ -64,8 +64,10 @@ void SpoolManager::execute()
         if ( !d->agent ) {
             Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
             if ( m ) {
-                d->agent = new DeliveryAgent( m, d->row->getInt( "uid" ),
-                                              this );
+                d->agent =
+                    new DeliveryAgent( m, d->row->getInt( "uid" ),
+                                       d->row->getInt( "sender" ),
+                                       this );
                 d->agent->execute();
             }
         }

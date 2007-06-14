@@ -13,13 +13,12 @@ class DeliveryAgent
     : public EventHandler
 {
 public:
-    DeliveryAgent( Mailbox *, uint, EventHandler * );
+    DeliveryAgent( Mailbox *, uint, uint, EventHandler * );
 
     void execute();
 
     bool done() const;
     bool delivered() const;
-    const String status() const;
 
 private:
     class DeliveryAgentData * d;
