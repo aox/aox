@@ -430,6 +430,21 @@ bool SmtpClient::ready() const
 }
 
 
+/*! Returns true if this SmtpClient may be used, either immediately or
+    at some time in the future after it becomes ready(), to send() a
+    message. It returns false otherwise, and the caller should use a
+    new SmtpClient object.
+*/
+
+bool SmtpClient::usable() const
+{
+    // XXX: I'm not certain that this is sufficient.
+    if ( d->error.isEmpty() )
+        return true;
+    return false;
+}
+
+
 /*! Starts sending the message held by \a dsn with with the right
     sender and recipients. Updates the \a dsn and its recipients with
     information about which recipients fail or succeed, and how.

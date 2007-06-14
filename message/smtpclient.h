@@ -23,6 +23,7 @@ public:
     void react( Event );
 
     bool ready() const;
+    bool usable() const;
     void send( DSN *, EventHandler * );
 
 private:
