@@ -229,8 +229,19 @@ void SmtpClient::sendCommand()
         }
         break;
 
-    case SmtpClientData::Error:
     case SmtpClientData::Body:
+        List<Recipient>::Iterator i( d->dsn->recipients() );
+        while ( i ) {
+            if ( i->action() == Recipient::Unknown )
+                i->setAction( Recipient::Relayed, "" );
+            ++i;
+        }        
+        finish();
+        send = "rset";
+        d->state = SmtpClientData::Rset;
+        break;
+
+    case SmtpClientData::Error:
         finish();
         send = "rset";
         d->state = SmtpClientData::Rset;
