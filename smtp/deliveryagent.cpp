@@ -14,6 +14,7 @@
 #include "address.h"
 #include "recipient.h"
 #include "injector.h"
+#include "spoolmanager.h"
 
 
 class DeliveryAgentData
@@ -42,6 +43,9 @@ public:
     Address * sender;
     Message * message;
     DSN * dsn;
+    // XXX we want a single client, not one per DeliveryAgent.
+    // if we have one per DeliveryAgent, whipping is difficult,
+    // at least I can't think of a way to whip well.
     SmtpClient * client;
     Injector * injector;
     bool sent;
@@ -64,11 +68,14 @@ DeliveryAgent::DeliveryAgent( Mailbox * mailbox, uint uid, uint sender,
                               EventHandler * owner )
     : d( new DeliveryAgentData )
 {
+    d->log = new Log( Log::SMTP );
+    Scope x( d->log );
+    log( "Starting delivery attempt for " +
+         mailbox->name() + ":" + fn( uid ) );
     d->mailbox = mailbox;
     d->uid = uid;
     d->sid = sender;
     d->owner = owner;
-    d->log = new Log( Log::SMTP );
 }
 
 
@@ -100,6 +107,7 @@ void DeliveryAgent::execute()
             return;
 
         if ( d->q->rows() == 0 ) {
+            log( "No recipients left to deliver" );
             d->done = true;
             d->delivered = false;
             d->t->commit();
@@ -132,6 +140,8 @@ void DeliveryAgent::execute()
         d->dsn = new DSN;
         d->dsn->setMessage( d->message );
         d->row = d->q->nextRow();
+        // XXX isn't this where we want to select for update to guard
+        // against other processes initiating delivery attempts?
         d->qr =
             new Query( "select recipient, localpart, domain, action, "
                        "status from delivery_recipients "
@@ -167,9 +177,13 @@ void DeliveryAgent::execute()
             if ( expired )
                 recipient->setAction( Recipient::Failed, "expired" );
             d->dsn->addRecipient( recipient );
+            if ( recipient->action() == Recipient::Unknown )
+                log( "Attempting delivery to " +
+                     a->localpart() + "@" + a->domain() + "@" );
         }
 
         if ( d->dsn->recipients()->isEmpty() ) {
+            // how can this happen, and why is the code repeated?
             d->done = true;
             d->delivered = false;
             d->t->commit();
@@ -214,6 +228,7 @@ void DeliveryAgent::execute()
 
         Row * r = d->qm->nextRow();
         Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+        // why does this bypass sieve?
         d->injector = new Injector( d->dsn->result(), this );
         d->injector->setMailbox( m );
         d->injector->execute();
@@ -223,6 +238,9 @@ void DeliveryAgent::execute()
         return;
 
     if ( !d->update ) {
+        // this seems like a sign that delivered_at is in the wrong
+        // table. should be a per-recipient column, not a per-sender
+        // one.
         String s( "update deliveries set " );
         if ( d->delivered )
             s.append( "delivered_at" );
@@ -237,28 +255,41 @@ void DeliveryAgent::execute()
         d->update->bind( 2, d->sid );
         d->t->enqueue( d->update );
 
+        uint handled = 0;
+        uint unhandled = 0;
         List<Recipient>::Iterator it( d->dsn->recipients() );
         while ( it ) {
             Recipient * r = it;
-            Query * q =
-                new Query( "update delivery_recipients "
-                           "set action=$1, status=$2 where "
-                           "delivery=$3 and recipient=$4", this );
-            q->bind( 1, (int)r->action() );
-            q->bind( 2, r->status() );
-            q->bind( 3, d->row->getInt( "id" ) );
-            q->bind( 4, r->finalRecipient()->id() );
-            d->t->enqueue( q );
+            ++it;
+            if ( r->action() == Recipient::Unknown ) {
+                unhandled++;
+            }
+            else {
+                Query * q =
+                    new Query( "update delivery_recipients "
+                               "set action=$1, status=$2 where "
+                               "delivery=$3 and recipient=$4", this );
+                q->bind( 1, (int)r->action() );
+                q->bind( 2, r->status() );
+                q->bind( 3, d->row->getInt( "id" ) );
+                q->bind( 4, r->finalRecipient()->id() );
+                d->t->enqueue( q );
+                handled++;
+            }
         }
 
         d->t->commit();
+        log( "Recipients handled: " + fn( handled ) +
+             ", still queued: " + fn( unhandled ) );
     }
 
     if ( !d->t->done() )
         return;
 
     if ( d->t->failed() ) {
-        // XXX: What can we do now?
+        log( "Delivery attempt failed due to database error: " + d->t->error(),
+             Log::Error );
+        SpoolManager::shutdown();
     }
 
     d->done = true;
