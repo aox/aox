@@ -679,39 +679,32 @@ void Postgres::errorMessage()
             }
         }
         else {
-            if ( msg.severity() == PgMessage::Panic )
-                s.append( "PANIC: " );
-            else
-                s.append( "FATAL: " );
+            s.append( "Postgres error: " );
             s.append( m );
+            if ( msg.severity() == PgMessage::Panic )
+                s.append( " (PANIC)" );
+            else
+                s.append( " (FATAL)" );
             error( s );
         }
         break;
 
     case PgMessage::Error:
-    case PgMessage::Warning:
-        if ( msg.severity() == PgMessage::Warning )
-            s.append( "WARNING: " );
-        else
-            s.append( "ERROR: " );
-
+        s.append( "Postgres: " );
         if ( q )
-            s.append( "Query " + q->description() + ": " );
-
+            s.append( "Query " + q->description() + " failed: " );
         s.append( m );
-        if ( msg.detail() != "" )
+        if ( !msg.detail().isEmpty() )
             s.append( " (" + msg.detail() + ")" );
-
-        if ( !q ||
-             !( q->canFail() ||
-                ( q->transaction() && q->transaction()->failed() ) ) )
-            ::log( s, Log::Error );
+        if ( q && !q->canFail() )
+            s.append( " (ERROR)" );
 
         if ( q && q->canFail() )
             ::log( s, Log::Debug );
+        else
+            ::log( s, Log::Error );
 
-        // Has the current query failed?
-        if ( q && msg.severity() == PgMessage::Error ) {
+        if ( q ) {
             // If we sent a Parse message for a named prepared statement
             // while processing this query, but don't already know that
             // it succeeded, we'll assume that statement name does not
@@ -727,6 +720,15 @@ void Postgres::errorMessage()
             q->setError( m );
             q->notify();
         }
+        break;
+
+    case PgMessage::Warning:
+        s.append( "Postgres: " );
+        if ( q )
+            s.append( "Query " + q->description() + ": " );
+        s.append( m );
+        s.append( " (WARNING)" );
+        ::log( s, Log::Debug );
         break;
 
     default:
