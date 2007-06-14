@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (51);
+insert into mailstore (revision) values (52);
 
 
 -- One entry for each unique address we've encountered.
@@ -387,6 +387,7 @@ create table delivery_recipients (
     delivery    integer not null references deliveries(id)
                 on delete cascade,
     recipient   integer not null references addresses(id),
+    action      integer not null default 0,
     status      text
 );
 

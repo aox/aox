@@ -380,6 +380,8 @@ bool Schema::singleStep()
         c = stepTo50(); break;
     case 50:
         c = stepTo51(); break;
+    case 51:
+        c = stepTo52(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2292,6 +2294,30 @@ bool Schema::stepTo51()
                        "select mailbox,uid,'spool emptied' from messages "
                        "join mailboxes on (mailbox=id) where "
                        "name='/archiveopteryx/spool'", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add delivery_recipients.action. */
+
+bool Schema::stepTo52()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding delivery_recipients.action" );
+        d->q = new Query( "alter table delivery_recipients add "
+                          "action integer not null default 0", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
