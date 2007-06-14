@@ -131,8 +131,8 @@ void DeliveryAgent::execute()
         d->dsn->setMessage( d->message );
         d->row = d->q->nextRow();
         d->qr =
-            new Query( "select localpart, domain, status "
-                       "from delivery_recipients "
+            new Query( "select recipient, localpart, domain, action, "
+                       "status from delivery_recipients "
                        "join addresses a on (recipient=a.id) "
                        "where delivery=$1", this );
         d->qr->bind( 1, d->row->getInt( "id" ) );
@@ -157,13 +157,13 @@ void DeliveryAgent::execute()
             Address * a =
                 new Address( "", r->getString( "localpart" ),
                              r->getString( "domain" ) );
+            a->setId( r->getInt( "recipient" ) );
             Recipient * recipient = new Recipient;
             recipient->setFinalRecipient( a );
+            recipient->setAction( (Recipient::Action)r->getInt( "action" ),
+                                  r->getString( "status" ) );
             if ( expired )
                 recipient->setAction( Recipient::Failed, "expired" );
-            else
-                recipient->setAction( Recipient::Unknown, // XXX
-                                      r->getString( "status" ) );
             d->dsn->addRecipient( recipient );
         }
 
@@ -199,7 +199,7 @@ void DeliveryAgent::execute()
         }
         else {
             d->injector = new Injector( d->dsn->result(), this );
-            d->injector->setMailbox( new Mailbox ); // XXX
+            d->injector->setMailbox( (Mailbox *)0 ); // XXX
             d->injector->execute();
         }
     }
@@ -221,6 +221,21 @@ void DeliveryAgent::execute()
         d->update->bind( 2, d->uid );
         d->update->bind( 2, d->sid );
         d->t->enqueue( d->update );
+
+        List<Recipient>::Iterator it( d->dsn->recipients() );
+        while ( it ) {
+            Recipient * r = it;
+            Query * q =
+                new Query( "update delivery_recipients "
+                           "set action=$1, status=$2 where "
+                           "delivery=$3 and recipient=$4", this );
+            q->bind( 1, (int)r->action() );
+            q->bind( 2, r->status() );
+            q->bind( 3, d->row->getInt( "id" ) );
+            q->bind( 4, r->finalRecipient()->id() );
+            d->t->enqueue( q );
+        }
+
         d->t->commit();
     }
 
