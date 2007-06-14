@@ -386,14 +386,14 @@ instead).
 .IP smtps-address
 is the address where
 .BR archiveopteryx (8)
-listens for new SSL-wrapped connections. As for
+listens for new SSL-wrapped SMTP connections. As for
 .IR smtp-address ,
 the default is an empty string, which means all available IPv4 and
 IPv6 addresses.
 .IP smtps-port
 is the port where
 .BR archiveopteryx (8)
-accepts SSL-wrapped connections,
+accepts SSL-wrapped SMTP connections,
 .I 465
 by default.
 .SS IMAP
