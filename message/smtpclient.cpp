@@ -35,6 +35,7 @@ public:
     EventHandler * owner;
     EventHandler * user;
     List<Recipient>::Iterator rcptTo;
+    List<Recipient> accepted;
 
     bool enhancedstatuscodes;
 };
@@ -141,6 +142,8 @@ void SmtpClient::parse()
             case 2:
                 if ( d->state == SmtpClientData::Hello )
                     recordExtension( *s );
+                if ( d->rcptTo )
+                    d->accepted.append( d->rcptTo );
                 sendCommand();
                 break;
             case 3:
@@ -230,12 +233,14 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Body:
-        List<Recipient>::Iterator i( d->dsn->recipients() );
-        while ( i ) {
-            if ( i->action() == Recipient::Unknown )
-                i->setAction( Recipient::Relayed, "" );
-            ++i;
-        }        
+        if ( !d->accepted.isEmpty() ) {
+            List<Recipient>::Iterator i( d->accepted );
+            while ( i ) {
+                if ( i->action() == Recipient::Unknown )
+                    i->setAction( Recipient::Relayed, "" );
+                ++i;
+            }
+        }
         finish();
         send = "rset";
         d->state = SmtpClientData::Rset;
@@ -427,7 +432,7 @@ void SmtpClient::handleFailure( const String & line )
 
 
 /*! Returns true if this SmtpClient is ready to send() mail.
-    SmtpClient notifies its owner() when it becomes ready. */
+    SmtpClient notifies its owner when it becomes ready. */
 
 bool SmtpClient::ready() const
 {
