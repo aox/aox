@@ -380,10 +380,8 @@ static String enhancedStatus( const String & l, bool e,
 }
 
 
-/*! Reacts appropriately to any failure.
-    Assumes that \a line is a complete SMTP reply line, including
-    three-digit status code and if \a enhancedstatuscodes is true,
-    including the enhanced status code, too.
+/*! Reacts appropriately to any failure.  Assumes that \a line is a
+    complete SMTP reply line, including three-digit status code.
 */
 
 void SmtpClient::handleFailure( const String & line )
