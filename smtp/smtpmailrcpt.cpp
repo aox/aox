@@ -51,6 +51,12 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     else
         d->address = p->address();
     p->whitespace();
+    if ( server()->dialect() == SMTP::Submit &&
+         d->address->type() != Address::Normal &&
+         d->address->type() != Address::Bounce )
+        respond( 501,
+                 "Address must be <> or <localpart@domain>. "
+                 "Address specied was: " + d->address->toString() );
 
     while ( p->ok() && !p->atEnd() ) {
         String name = p->esmtpKeyword();
