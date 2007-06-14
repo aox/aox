@@ -22,9 +22,10 @@ class DeliveryAgentData
 public:
     DeliveryAgentData()
         : log( 0 ), mailbox( 0 ), uid( 0 ), sid( 0 ), owner( 0 ),
-          t( 0 ), q( 0 ), qr( 0 ), update( 0 ), row( 0 ), sender( 0 ),
-          message( 0 ), dsn( 0 ), client( 0 ), injector( 0 ),
-          sent( false ), done( false ), delivered( false )
+          t( 0 ), q( 0 ), qr( 0 ), qm( 0 ), update( 0 ), row( 0 ),
+          sender( 0 ), message( 0 ), dsn( 0 ), client( 0 ),
+          injector( 0 ), sent( false ), done( false ),
+          delivered( false )
     {}
 
     Log * log;
@@ -35,6 +36,7 @@ public:
     Transaction * t;
     Query * q;
     Query * qr;
+    Query * qm;
     Query * update;
     Row * row;
     Address * sender;
@@ -193,15 +195,28 @@ void DeliveryAgent::execute()
     if ( d->dsn->deliveriesPending() )
         return;
 
-    if ( !d->injector ) {
+    if ( !d->qm ) {
         if ( d->dsn->allOk() ) {
             d->delivered = true;
         }
         else {
-            d->injector = new Injector( d->dsn->result(), this );
-            d->injector->setMailbox( (Mailbox *)0 ); // XXX
-            d->injector->execute();
+            d->qm = new Query( "select mailbox from aliases where "
+                               "address=$1", this );
+            d->qm->bind( 1, d->sid );
+            d->t->enqueue( d->qm );
+            d->t->execute();
         }
+    }
+
+    if ( d->qm && !d->injector ) {
+        if ( !d->qm->done() )
+            return;
+
+        Row * r = d->qm->nextRow();
+        Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+        d->injector = new Injector( d->dsn->result(), this );
+        d->injector->setMailbox( m );
+        d->injector->execute();
     }
 
     if ( d->injector && !d->injector->done() )
