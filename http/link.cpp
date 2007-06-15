@@ -791,7 +791,8 @@ String Link::canonical() const
                checkForComponent( i, Magic, d->magic ) &&
                checkForComponent( i, MailboxName, d->mailbox ) &&
                checkForComponent( i, Uid, d->uid != 0 ) &&
-               checkForComponent( i, Part, !d->part.isEmpty() );
+               checkForComponent( i, Part, !d->part.isEmpty() ) &&
+               checkForComponent( i, Arguments, !d->arguments.isEmpty() );
 
         uint c = 0;
         while ( good && c < 5 && handlers[i].components[c] != Void )
@@ -913,4 +914,16 @@ String LinkParser::pathComponent()
         r.append( character() );
 
     return r;
+}
+
+
+/*! Adds another query argument to this Link, \a name = \a value. \a
+    name must always be a nonempty boring ascii string (by design
+    fiat), \a value can contain any unicode.
+*/
+
+void Link::addArgument( const String & name, const UString & value )
+{
+    if ( name.boring() )
+        d->arguments.insert( name, new UString( value ) );
 }
