@@ -111,15 +111,20 @@ void ArchiveSearch::execute()
 
     String s;
 
-    s.append( fn( d->matchesSome.count() + d->matchesAll.count() ) +
-              " results found in " +
-              fn( some.count() + all.count() ) +
-              " threads.\n" );
+    s.append( "<p>" );
+    s.append( fn( d->matchesSome.count() ) );
+    s.append( " results found in " );
+    s.append( fn( some.count() + all.count() ) );
+    s.append( " threads:\n" );
 
-    s.append( searchTerms() );
+    s.append( "<div class=searchresults>\n" );
 
     i = all.first();
     bool stillAll = true;
+    if ( !i ) {
+        i = some.first();
+        stillAll = false;
+    }
     while ( i ) {
         s.append( "<div class=matchingthread>\n" );
         Link l;
@@ -146,12 +151,17 @@ void ArchiveSearch::execute()
         }
     }
 
+    s.append( "</div>\n" ); //searchresults
+
     // except that if there's just one or a very few threads, we want
     // to display that/those threads.
 
     // or we want to display the individual messages in twoLines mode,
     // and get the ArchiveMessage object to put the twoLines around
     // the search terms. sound good.
+
+    s.append( "<p>Search terms:\n" );
+    s.append( searchTerms() );
 
     setContents( s );
     d->done = true;
@@ -321,9 +331,7 @@ void ArchiveSearch::setTitle()
 
 String ArchiveSearch::searchTerms() const
 {
-    String s( "<div class=searchterms\n"
-              "<p>Search terms used:\n"
-              "<ul class=searchtermlist>\n" );
+    String s( "<ul class=searchtermlist>\n" );
     List<ArchiveSearchData::SearchTerm>::Iterator i( d->terms );
     while ( i ) {
         s.append( "<li>" );
@@ -337,8 +345,15 @@ String ArchiveSearch::searchTerms() const
         s.append( " (" );
         uint c = i->result.count();
         if ( c > 1 ) {
+            s.append( "<a href=" );
+            Link l;
+            l.setType( page()->link()->type() );
+            l.setMailbox( page()->link()->mailbox() );
+            l.addArgument( "query", i->term );
+            s.append( l.canonical().quoted() );
+            s.append( ">" );
             s.append( fn( c ) );
-            s.append( " results" );
+            s.append( " results</a>" );
         }
         else if ( c == 1 ) {
             s.append( "one result" );
@@ -349,8 +364,7 @@ String ArchiveSearch::searchTerms() const
         s.append( ")\n" );
         ++i;
     }
-    s.append( "</ul>\n"     // searchtermlist
-              "</div>\n" ); // searchterms
+    s.append( "</ul>\n" ); // searchtermlist
     return s;
 }
 
