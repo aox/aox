@@ -264,3 +264,19 @@ StringList DictBase::keys() const
 }
 
 
+
+
+/*! Returns true if empty, false if not. */
+
+bool DictBase::isEmpty() const
+{
+    uint b = 0;
+    while ( b < d->size ) {
+        DictBaseData::Node * n = d->buckets[b];
+        if ( n )
+            return false;
+        b++;
+    }
+    return true;
+    
+}

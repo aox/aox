@@ -19,6 +19,7 @@ protected:
 public:
     void resize( uint );
     StringList keys() const;
+    bool isEmpty() const;
 
 private:
     static uint hash( const String & );
