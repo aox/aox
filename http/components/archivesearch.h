@@ -16,6 +16,13 @@ public:
 
 private:
     class ArchiveSearchData * d;
+
+    void parseTerms();
+    void sendQueries();
+    void setTitle();
+    String searchTerms() const;
+    void computeResultSets();
+    bool queriesDone() const;
 };
 
 
