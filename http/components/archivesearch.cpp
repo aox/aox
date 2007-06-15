@@ -60,7 +60,6 @@ ArchiveSearch::ArchiveSearch( Link * link )
       d( new ArchiveSearchData )
 {
     d->link = link;
-    addFrontMatter( FrontMatter::jsToggles() );
 }
 
 
@@ -133,7 +132,7 @@ void ArchiveSearch::execute()
         l.setUid( i->members().smallest() );
         l.setSuffix( Link::Thread );
         s.append( "<a href=" );
-        s.append( l.canonical() );
+        s.append( l.canonical().quoted() );
         s.append( ">" );
         s.append( i->subject() ); // XXX ustring and encoding
         s.append( "</a><br>\n" );
