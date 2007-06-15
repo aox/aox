@@ -3,6 +3,7 @@
 #include "archivemailbox.h"
 
 #include "map.h"
+#include "date.h"
 #include "dict.h"
 #include "link.h"
 #include "list.h"
@@ -37,11 +38,12 @@ class ArchiveMailboxData
 {
 public:
     ArchiveMailboxData()
-        : link( 0 ), af( 0 )
+        : link( 0 ), af( 0 ), idate( 0 )
     {}
 
     Link * link;
     Query * af;
+    Query * idate;
 
     class Message
         : public Garbage
@@ -54,6 +56,7 @@ public:
 
         uint uid;
         List<Address> from;
+        uint idate;
     };
 
     Map<Message> messages;
@@ -94,12 +97,23 @@ void ArchiveMailbox::execute()
         d->af->execute();
     }
 
+    if ( !d->idate ) {
+        d->idate = new Query( "select uid, idate "
+                              "from messages where mailbox=$1",
+                              this );
+        d->idate->bind( 1, d->link->mailbox()->id() );
+        d->idate->execute();
+    }
+
     if ( !t->updated() ) {
         t->refresh( this );
         return;
     }
 
     if ( !d->af->done() )
+        return;
+
+    if ( !d->idate->done() )
         return;
 
     if ( t->allThreads()->isEmpty() ) {
@@ -128,6 +142,13 @@ void ArchiveMailbox::execute()
         uids.add( uid );
     }
 
+    while ( (r=d->idate->nextRow()) ) {
+        uint uid = r->getInt( "uid" );
+        ArchiveMailboxData::Message * m = d->messages.find( uid );
+        if ( m )
+            m->idate = r->getInt( "idate" );
+    }
+
     // subjects, from and thread information is ready now.
 
     addresses.clear();
@@ -138,13 +159,14 @@ void ArchiveMailbox::execute()
         Thread * t = it;
         ++it;
 
-        String subject = t->subject(); // ick! utf-8 evil here
-        if ( subject.isEmpty() )
-            subject = "(No Subject)";
-        s.append( "<div class=thread>\n"
-                  "<div class=headerfield>Subject: " );
         MessageSet from( t->members().intersection( uids ) );
         uint count = from.count();
+        // XXX is subject utf8 or pgutf8? change to ustring
+        String subject = t->subject();
+        if ( subject.isEmpty() )
+            subject = "(No Subject)";
+        s.append( "<div class=thread>\n" );
+        s.append( "<div class=headerfield>Subject: " );
         Link ml;
         ml.setType( d->link->type() );
         ml.setMailbox( d->link->mailbox() );
@@ -154,7 +176,10 @@ void ArchiveMailbox::execute()
         s.append( ml.canonical() );
         s.append( "\">" );
         s.append( quoted( subject ) );
-        s.append( "</a></div>\n" ); // subject
+        s.append( "</a>" );
+        s.append( " (" );
+        s.append( timespan( from ) );
+        s.append( ")</div>\n" ); // subject
 
         s.append( "<div class=threadcontributors>\n" );
         s.append( "<div class=headerfield>From:\n" );
@@ -203,4 +228,87 @@ void ArchiveMailbox::execute()
     }
 
     setContents( s );
+}
+
+
+static const char * monthnames[12] = {
+    "January", "February", "March",
+    "April", "May", "June",
+    "July", "August", "September",
+    "October", "November", "December"
+};
+
+
+/*! Returns a HTML string describing the time span of the messages in
+    \a uids.
+*/
+
+String ArchiveMailbox::timespan( const MessageSet & uids ) const
+{
+    uint oidate = UINT_MAX;
+    uint yidate = 0;
+    uint i = 0;
+    uint count = uids.count();
+    while ( i++ < count ) {
+        uint uid = uids.value( i );
+        ArchiveMailboxData::Message * m = d->messages.find( uid );
+        if ( m ) {
+            if ( m->idate > yidate )
+                yidate = m->idate;
+            if ( m->idate < oidate )
+                oidate = m->idate;
+        }
+    }
+
+    Date o;
+    o.setUnixTime( oidate );
+    Date y;
+    y.setUnixTime( yidate );
+    Date n;
+    n.setCurrentTime();
+    
+    String r;
+    if ( o.year() < y.year() ) {
+        // spans years
+        r.append( monthnames[o.month()-1] );
+        r.append( " " );
+        r.append( fn( o.year() ) );
+        r.append( "&#8211;" );
+        r.append( monthnames[y.month()-1] );
+        r.append( " " );
+        r.append( fn( y.year() ) );
+    }
+    else if ( y.year() * 12 + y.month() + 3 >= n.year() * 12 + n.month() ) {
+        // less than tree months old
+        r = fn( o.day() ) + " " + monthnames[o.month()-1];
+        if ( o.year() < n.year() ) {
+            r.append( " " );
+            r.append( fn( o.year() ) );
+        }
+        r.append( "&#8211;" );
+        r.append( fn( y.day() ) );
+        r.append( " " );
+        r.append( monthnames[y.month()-1] );
+        if ( y.year() < n.year() ) {
+            r.append( " " );
+            r.append( fn( y.year() ) );
+        }
+    }
+    else if ( o.month() < y.month() ) {
+        // same year, spans months
+        r.append( monthnames[o.month()-1] );
+        r.append( "&#8211;" );
+        r.append( monthnames[y.month()-1] );
+        if ( y.year() < n.year() ) {
+            r.append( " " );
+            r.append( fn( y.year() ) );
+        }
+    }
+    else {
+        // single month, some time ago
+        r.append( monthnames[o.month()-1] );
+        r.append( " " );
+        r.append( fn( o.year() ) );
+    }
+    return r;
 }

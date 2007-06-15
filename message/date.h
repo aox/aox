@@ -29,6 +29,10 @@ public:
     void setDate( uint, const String &, uint, uint, uint,
                   uint, int );
 
+    uint year() const;
+    uint month() const;
+    uint day() const;
+
     bool valid() const;
     void checkHarder();
 

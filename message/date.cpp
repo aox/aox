@@ -350,7 +350,7 @@ void Date::setRfc822( const String & s )
         d->day = s1.mid( 0, 2 ).number( &ok );
         if ( !ok )
             return;
-        d->month = month( s1.mid( 3, 3 ) );
+        d->month = ::month( s1.mid( 3, 3 ) );
         if ( !d->month )
             return;
         a = s1.mid( 7 );
@@ -367,7 +367,7 @@ void Date::setRfc822( const String & s )
         if ( !ok )
             return;
 
-        d->month = month( s2 );
+        d->month = ::month( s2 );
 
         if ( d->month == 0 ) {
             // also accept numerical months. fucked, but...
@@ -804,6 +804,11 @@ void Date::checkHarder()
     if ( !d->valid )
         return;
 
+    if ( d->month > 12 )
+        d->valid = false;
+    else if ( d->day > 31 )
+        d->valid = false;
+
     // simple code for the simple cases
     if ( d->year < 1600 )
         d->valid = false;
@@ -833,4 +838,38 @@ void Date::checkHarder()
     else {
         d->valid = false;
     }
+}
+
+
+/*! Returns the date's year, or 0 in case the date isn't valid(). */
+
+uint Date::year() const
+{
+    if ( !valid() )
+        return 0;
+    return (uint)d->year;
+}
+
+
+/*! Returns the date's month (1 for January, 12 for December), or 0 if
+    the date isn't valid().
+*/
+
+uint Date::month() const
+{
+    if ( !valid() )
+        return 0;
+    return (uint)d->month;
+}
+
+
+/*! Returns the date's day-of-month (1-31), or 0 if the date isn't
+    valid().
+*/
+
+uint Date::day() const
+{
+    if ( !valid() )
+        return 0;
+    return (uint)d->day;
 }
