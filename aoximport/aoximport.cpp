@@ -10,6 +10,7 @@
 #include "fieldcache.h"
 #include "logclient.h"
 #include "eventloop.h"
+#include "occlient.h"
 #include "database.h"
 #include "occlient.h"
 #include "mailbox.h"
@@ -101,6 +102,7 @@ int main( int ac, char ** av )
     OCClient::setup();
     AddressCache::setup();
     FieldNameCache::setup();
+    OCClient::setup();
 
     ProgressReporter * p = new ProgressReporter( m, 5 );
     // 5? command-line option?
