@@ -17,6 +17,9 @@
 #include "spoolmanager.h"
 
 
+static SmtpClient * client;
+
+
 class DeliveryAgentData
     : public Garbage
 {
@@ -24,9 +27,8 @@ public:
     DeliveryAgentData()
         : log( 0 ), mailbox( 0 ), uid( 0 ), sid( 0 ), owner( 0 ),
           t( 0 ), q( 0 ), qr( 0 ), qm( 0 ), update( 0 ), row( 0 ),
-          sender( 0 ), message( 0 ), dsn( 0 ), client( 0 ),
-          injector( 0 ), sent( false ), done( false ),
-          delivered( false )
+          sender( 0 ), message( 0 ), dsn( 0 ), injector( 0 ),
+          sent( false ), done( false ), delivered( false )
     {}
 
     Log * log;
@@ -43,10 +45,6 @@ public:
     Address * sender;
     Message * message;
     DSN * dsn;
-    // XXX we want a single client, not one per DeliveryAgent.
-    // if we have one per DeliveryAgent, whipping is difficult,
-    // at least I can't think of a way to whip well.
-    SmtpClient * client;
     Injector * injector;
     bool sent;
     bool done;
@@ -192,18 +190,18 @@ void DeliveryAgent::execute()
         }
     }
 
-    if ( !d->client || !d->client->usable() ) {
+    if ( !client || !client->usable() ) {
         Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
                     Configuration::scalar( Configuration::SmartHostPort ) );
-        d->client = new SmtpClient( e, this );
+        client = new SmtpClient( e, this );
     }
 
-    if ( !d->client->ready() )
+    if ( !client->ready() )
         return;
 
     if ( !d->sent ) {
         d->sent = true;
-        d->client->send( d->dsn, this );
+        client->send( d->dsn, this );
     }
 
     if ( d->dsn->deliveriesPending() )
