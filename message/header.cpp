@@ -1222,6 +1222,24 @@ void Header::repair( Multipart * p, const String & body )
             removeField( HeaderField::ReplyTo );
     }
 
+    // If there are *no* valid addresses in the To field, then we can
+    // replace it with "unknown-recipients:;". (Experimental.)
+
+    if ( occurrences[(int)HeaderField::To] == 1 ) {
+        AddressField * to = addressField( HeaderField::To );
+        if ( !to->valid() ) {
+            List<Address>::Iterator it( to->addresses() );
+            while ( it && !it->error().isEmpty() )
+                ++it;
+            if ( !it ) {
+                AddressParser ap( "unknown-recipients:;" );
+                to->addresses()->clear();
+                to->addresses()->append( ap.addresses()->first() );
+                to->setError( "" );
+            }
+        }
+    }
+
     d->verified = false;
 }
 
