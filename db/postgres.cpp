@@ -699,10 +699,13 @@ void Postgres::errorMessage()
         if ( q && !q->canFail() )
             s.append( " (ERROR)" );
 
-        if ( q && q->canFail() )
+        if ( q && q->canFail() ) {
+            Scope x( q->log() );
             ::log( s, Log::Debug );
-        else
+        }
+        else {
             ::log( s, Log::Error );
+        }
 
         if ( q ) {
             // If we sent a Parse message for a named prepared statement
