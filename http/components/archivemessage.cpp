@@ -83,6 +83,43 @@ void ArchiveMessage::execute()
             d->message->hasBodies() ) )
         return;
 
+    if ( d->link == page()->link() ) {
+        FrontMatter * n = new FrontMatter;
+        n->append( "<title>" );
+        String subject = d->message->header()->subject(); // XXX UString
+        if ( subject.length() > 20 ) {
+            int space = subject.find( ' ', 15 );
+            if ( space < 0 || space > 22 )
+                space = 17;
+            n->append( quoted( subject.mid( 0, space ) ) );
+            n->append( "&#8230;" ); // ellipsis
+        }
+        else {
+            n->append( quoted( subject ) );
+        }
+
+        List<Address>::Iterator i;
+        i = d->message->header()->addresses( HeaderField::From );
+        if ( i ) {
+            n->append( " (" );
+            while ( i ) {
+                Address * a = i;
+                ++i;
+                if ( a->uname().isEmpty() ) {
+                    n->append( quoted( a->localpart() ) );
+                    n->append( "@" );
+                    n->append( quoted( a->domain() ) );
+                }
+                else {
+                    n->append( quoted( a->uname() ) );
+                }
+            }
+            n->append( ")" );
+        }
+        n->append( "</title>" );
+        addFrontMatter( n );
+    }
+
     setContents( message( d->message, d->message ) );
 }
 

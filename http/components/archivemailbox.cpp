@@ -76,6 +76,8 @@ ArchiveMailbox::ArchiveMailbox( Link * link )
 {
     d->link = link;
     addFrontMatter( FrontMatter::jsToggles() );
+    if ( link->mailbox() )
+        addFrontMatter( FrontMatter::title( link->mailbox()->name() ) );
 }
 
 
