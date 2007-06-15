@@ -477,8 +477,8 @@ static uint sequence = 0;
 /*! Return an ESMTP id, either based on an internal algorithm or on
     something the client specified using an Oryx-specific extension.
 
-    id() returns the same ID even if called several times. Rset resets
-    it.
+    This function returns the same ID even if called several times.
+    Rset resets it.
 */
 
 String SMTP::transactionId() const
