@@ -15,6 +15,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "header.h"
+#include "date.h"
 #include "utf.h"
 
 
@@ -482,6 +483,7 @@ String ArchiveMessage::message( Message *first, Message *m )
     String s;
     String t;
     HeaderField *hf;
+    bool dateShown = false;
 
     String h;
     h.append( addressField( m, HeaderField::From ) );
@@ -492,6 +494,17 @@ String ArchiveMessage::message( Message *first, Message *m )
         h.append( "</div>\n" );
     }
     h.append( addressField( m, HeaderField::To ) );
+    Date * messageDate = m->header()->date();
+    if ( messageDate ) {
+        Date now;
+        now.setCurrentTime();
+        if ( messageDate->unixTime() > now.unixTime() ||
+             messageDate->unixTime() < now.unixTime() - 3 * 60 * 30 ) {
+            dateShown = true;
+            h.append( date( messageDate, "Date" ) );
+        }
+
+    }
 
     String o;
     o.append( "<div class=optionalheader>\n" );
@@ -505,10 +518,16 @@ String ArchiveMessage::message( Message *first, Message *m )
         if ( hf->type() != HeaderField::Subject &&
              hf->type() != HeaderField::From &&
              hf->type() != HeaderField::To &&
-             hf->type() != HeaderField::Cc )
+             hf->type() != HeaderField::Cc &&
+             ( !dateShown || hf->type() != HeaderField::Date ) )
         {
             if ( hf->type() <= HeaderField::LastAddressField ) {
                 o.append( addressField( m, hf->type() ) );
+            }
+            else if ( hf->type() == HeaderField::Date ||
+                      hf->type() == HeaderField::OrigDate ||
+                      hf->type() == HeaderField::ResentDate ) {
+                o.append( date( m->header()->date(), hf->name() ) );
             }
             else {
                 o.append( "<div class=headerfield>" );
@@ -554,7 +573,7 @@ String ArchiveMessage::message( Message *first, Message *m )
     }
     s.append( h );
     s.append( "</div>\n" ); // header
-    
+
     s.append( "<div class=messagebody>" );
 
     List< Bodypart >::Iterator jt( m->children() );
@@ -719,4 +738,21 @@ void ArchiveMessage::setLinkToThread( bool l )
 bool ArchiveMessage::linkToThread() const
 {
     return d->linkToThread;
+}
+
+
+/*! Returns HTML to describe a \a name field with value \a date. \a
+    name is typically Date, but can also be Resent-Date or
+    Original-Date.
+*/
+
+String ArchiveMessage::date( class Date * date, const String & name ) const
+{
+    String s;
+    s.append( "<div class=headerfield>" );
+    s.append( quoted( name ) );
+    s.append( ": " );
+    s.append( quoted( date->rfc822() ) );
+    s.append( "</div>\n" );
+    return s;
 }

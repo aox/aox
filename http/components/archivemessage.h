@@ -35,6 +35,7 @@ private:
     String bodypart( Message *, class Bodypart * );
     String message( Message *, Message * );
     String jsToggle( const String &, bool, const String &, const String & );
+    String date( class Date *, const String & ) const;
 };
 
 
