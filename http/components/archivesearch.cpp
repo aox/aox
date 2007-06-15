@@ -270,8 +270,7 @@ void ArchiveSearch::sendQueries()
                              "where af.mailbox=$1 and dm.uid is null and "
                              "lower(a.domain)=$2",
                              this );
-            term->query->bind( 2, localpart );
-            term->query->bind( 3, domain );
+            term->query->bind( 2, domain );
         }
         else if ( term->address ) {
             term->query 
