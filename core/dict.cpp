@@ -272,8 +272,7 @@ bool DictBase::isEmpty() const
 {
     uint b = 0;
     while ( b < d->size ) {
-        DictBaseData::Node * n = d->buckets[b];
-        if ( n )
+        if ( d->buckets[b] )
             return false;
         b++;
     }
