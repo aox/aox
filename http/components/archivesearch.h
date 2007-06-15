@@ -23,6 +23,10 @@ private:
     String searchTerms() const;
     void computeResultSets();
     bool queriesDone() const;
+
+    String shortishResultList() const;
+    String middlingResultList() const;
+    String looongResultList() const;
 };
 
 

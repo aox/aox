@@ -45,6 +45,8 @@ public:
     List<SearchTerm> terms;
     MessageSet matchesAll;
     MessageSet matchesSome;
+    List<Thread> all;
+    List<Thread> some;
 };
 
 
@@ -96,15 +98,12 @@ void ArchiveSearch::execute()
 
     Dict<Address> addresses;
 
-    List<Thread> all;
-    List<Thread> some;
-
     List<Thread>::Iterator i( t->allThreads() );
     while ( i ) {
         if ( !i->members().intersection( d->matchesAll ).isEmpty() )
-            all.append( i );
+            d->all.append( i );
         else if ( !i->members().intersection( d->matchesSome ).isEmpty() )
-            some.append( i );
+            d->some.append( i );
         ++i;
     }
 
@@ -113,54 +112,17 @@ void ArchiveSearch::execute()
     s.append( "<p>" );
     s.append( fn( d->matchesSome.count() ) );
     s.append( " results found in " );
-    s.append( fn( some.count() + all.count() ) );
-    s.append( " threads:\n" );
-
-    s.append( "<div class=searchresults>\n" );
-
-    i = all.first();
-    bool stillAll = true;
-    if ( !i ) {
-        i = some.first();
-        stillAll = false;
-    }
-    while ( i ) {
-        s.append( "<div class=matchingthread>\n" );
-        Link l;
-        l.setType( d->link->type() );
-        l.setMailbox( d->link->mailbox() );
-        l.setUid( i->members().smallest() );
-        l.setSuffix( Link::Thread );
-        s.append( "<a href=" );
-        s.append( l.canonical().quoted() );
-        s.append( ">" );
-        s.append( i->subject() ); // XXX ustring and encoding
-        s.append( "</a><br>\n" );
-        MessageSet matching( i->members() );
-        s.append( "Contains " );
-        s.append( fn ( matching.count() ) );
-        s.append( " messages, " );
-        s.append( fn ( matching.intersection( d->matchesSome ).count() ) );
-        s.append( " matching.\n" );
-        s.append( "</div>\n" ); //matchingthread
-        ++i;
-        if ( !i && stillAll ) {
-            i = some.first();
-            stillAll = false;
-        }
-    }
-
-    s.append( "</div>\n" ); //searchresults
-
-    // except that if there's just one or a very few threads, we want
-    // to display that/those threads.
-
-    // or we want to display the individual messages in twoLines mode,
-    // and get the ArchiveMessage object to put the twoLines around
-    // the search terms. sound good.
-
+    s.append( fn( d->some.count() + d->all.count() ) );
+    s.append( " threads\n" );
     s.append( "<p>Search terms:\n" );
     s.append( searchTerms() );
+
+    if ( d->all.count() + d->some.count() > 20 )
+        s.append( looongResultList() );
+    else if ( d->matchesSome.count() > 10 )
+        s.append( middlingResultList() );
+    else
+        s.append( shortishResultList() );
 
     setContents( s );
     d->done = true;
@@ -400,4 +362,93 @@ bool ArchiveSearch::queriesDone() const
         ++i;
     }
     return true;
+}
+
+
+/*! Returns a list of search results, optimised for small result
+    set. */
+
+String ArchiveSearch::shortishResultList() const
+{
+    const PageComponent * p = this;
+    String s( "<div class=searchresults>\n" );
+
+    MessageSet m = d->matchesAll;
+    bool stillAll = true;
+    if ( m.isEmpty() ) {
+        m = d->matchesSome;
+        stillAll = false;
+    }
+    while ( !m.isEmpty() ) {
+        uint uid = m.smallest();
+        m.remove( uid );
+        Link * l = new Link;
+        l->setType( d->link->type() );
+        l->setMailbox( d->link->mailbox() );
+        l->setUid( uid );
+        ArchiveMessage * am = new ArchiveMessage( l );
+        page()->addComponent( am, p );
+        p = am;
+        if ( m.isEmpty() && !stillAll ) {
+            m = d->matchesSome;
+            stillAll = false;
+        }
+    }
+    return "";
+}
+
+
+/*! Returns a list of search results, optimised for large result
+    sets.
+*/
+
+String ArchiveSearch::middlingResultList() const
+{
+    // I'm tired, tired, tired, and don't have good ideas now.
+    return looongResultList();
+}
+
+
+/*! Returns a list of search results, optimised for large result
+    sets.
+*/
+
+String ArchiveSearch::looongResultList() const
+{
+    String s( "<div class=searchresults>\n" );
+
+    List<Thread>::Iterator i( d->all );
+    bool stillAll = true;
+    if ( !i ) {
+        i = d->some.first();
+        stillAll = false;
+    }
+    while ( i ) {
+        s.append( "<div class=matchingthread>\n" );
+        Link l;
+        l.setType( d->link->type() );
+        l.setMailbox( d->link->mailbox() );
+        l.setUid( i->members().smallest() );
+        l.setSuffix( Link::Thread );
+        s.append( "<a href=" );
+        s.append( l.canonical().quoted() );
+        s.append( ">" );
+        s.append( i->subject() ); // XXX ustring and encoding
+        s.append( "</a><br>\n" );
+        MessageSet matching( i->members() );
+        s.append( "Contains " );
+        s.append( fn ( matching.count() ) );
+        s.append( " messages, " );
+        s.append( fn ( matching.intersection( d->matchesSome ).count() ) );
+        s.append( " matching.\n" );
+        s.append( "</div>\n" ); //matchingthread
+        ++i;
+        if ( !i && stillAll ) {
+            i = d->some.first();
+            stillAll = false;
+        }
+    }
+
+    s.append( "</div>\n" ); //searchresults
+    return s;
 }

@@ -63,7 +63,7 @@ WebPage::WebPage( Link * link )
     after. If \a after is null (this is the default), \a pc is added
     at the end. */
 
-void WebPage::addComponent( PageComponent * pc, PageComponent * after )
+void WebPage::addComponent( PageComponent * pc, const PageComponent * after )
 {
     List<PageComponent>::Iterator i;
     if ( after ) {

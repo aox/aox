@@ -8,6 +8,7 @@
 
 
 class Mailbox;
+class PageComponent;
 
 
 class WebPage
@@ -23,7 +24,7 @@ public:
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();
 
-    void addComponent( class PageComponent *, class PageComponent * = 0 );
+    void addComponent( PageComponent *, const PageComponent * = 0 );
 
     uint uniqueNumber();
 
