@@ -459,11 +459,12 @@ bool SmtpClient::usable() const
 }
 
 
-/*! Starts sending the message held by \a dsn with with the right
-    sender and recipients. Updates the \a dsn and its recipients with
-    information about which recipients fail or succeed, and how.
+/*! Starts sending the message held by \a dsn with the right sender and
+    recipients. Updates the \a dsn and its recipients with information
+    about which recipients fail or succeed, and how. Notifies \a user
+    when it's done.
 
-    Does not use DSN::envid() at present.
+    Does not use "DSN::envid()" at present.
 */
 
 void SmtpClient::send( DSN * dsn, EventHandler * user )
