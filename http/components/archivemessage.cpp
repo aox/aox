@@ -584,9 +584,14 @@ String ArchiveMessage::message( Message *first, Message *m )
         l.setMailbox( d->link->mailbox() );
         l.setUid( d->link->uid() );
         l.setSuffix( Link::Thread );
-        d->buttons.append( "<a href=\"" );
-        d->buttons.append( l.canonical() );
-        d->buttons.append( "\">Show message in context</a><br>\n" );
+        d->buttons.append( "<a href=" );
+        d->buttons.append( l.canonical().quoted() );
+        d->buttons.append( ">Show message in context</a><br>\n" );
+    }
+    if ( d->link->canonical() != page()->link()->canonical() ) {
+        d->buttons.append( "<a href=" );
+        d->buttons.append( d->link->canonical().quoted() );
+        d->buttons.append( ">Show message alone</a><br>\n" );
     }
 
     h.append( "</div>\n" ); // optionalHeader
