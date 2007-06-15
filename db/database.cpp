@@ -542,5 +542,5 @@ void Database::checkAccess( EventHandler * owner )
 
 uint Database::currentRevision()
 {
-    return 51;
+    return 52;
 }

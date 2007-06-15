@@ -2310,12 +2310,17 @@ bool Schema::stepTo51()
 }
 
 
-/*! Add delivery_recipients.action. */
+/*! Add delivery_recipients.action and last_attempt. */
 
 bool Schema::stepTo52()
 {
     if ( d->substate == 0 ) {
-        describeStep( "Adding delivery_recipients.action" );
+        describeStep( "Adding delivery_recipients.action/last_attempt" );
+        d->q = new Query( "alter table deliveries drop delivered_at", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table delivery_recipients add "
+                          "last_attempt timestamp with time zone", this );
+        d->t->enqueue( d->q );
         d->q = new Query( "alter table delivery_recipients add "
                           "action integer not null default 0", this );
         d->t->enqueue( d->q );
