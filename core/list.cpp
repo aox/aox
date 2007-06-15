@@ -137,11 +137,11 @@ void listSortHelper( void * a, size_t n, size_t s,
     it was not found in the List.
 */
 
-/*! \fn List<T> * sorted( Comparator * comparator )
+/*! \fn List<T> * List::sorted( Comparator * comparator )
 
     Returns a list containing the same items as in this list, sorted
     as \a comparator says to. \a comparator has the same meaning as
-    for qsort().
+    for qsort(3).
 */
 
 
