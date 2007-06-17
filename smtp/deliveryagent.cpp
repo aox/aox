@@ -15,6 +15,7 @@
 #include "recipient.h"
 #include "injector.h"
 #include "spoolmanager.h"
+#include "date.h"
 
 
 static SmtpClient * client;
@@ -209,8 +210,8 @@ void DeliveryAgent::execute()
                                  r->getString( "domain" ) );
                 a->setId( r->getInt( "recipient" ) );
 
-                Date date;
-                date.setRfc822( r->getString( "last_attempt" ) );
+                Date * date = new Date;
+                date->setRfc822( r->getString( "last_attempt" ) );
 
                 Recipient * recipient = new Recipient;
                 recipient->setLastAttempt( date );
