@@ -163,10 +163,10 @@ void DeliveryAgent::execute()
             d->qr =
                 new Query(
                     "select recipient,localpart,domain,action,status,"
-                    "to_char(last_attempt,'Dy, DD Mon YYYY HH24:MI:SS +')"
-                    "||lpad(extract(timezone_hour from last_attempt),2,'0')"
-                    "||lpad(extract(timezone_minute from last_attempt),2,'0')"
-                    " as last_attempt "
+                    "to_char(last_attempt,'Dy, DD Mon YYYY HH24:MI:SS ')||"
+                    "to_char((extract(timezone from last_attempt)/60) + "
+                    "40*((extract(timezone from last_attempt)/60)"
+                    "::integer/60), 'SG0000') as last_attempt "
                     "from delivery_recipients join addresses "
                     "on (recipient=addresses.id) "
                     "where delivery=$1", this
