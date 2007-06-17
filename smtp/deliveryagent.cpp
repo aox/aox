@@ -158,12 +158,19 @@ void DeliveryAgent::execute()
             d->qs->bind( 1, d->deliveryRow->getInt( "sender" ) );
             d->t->enqueue( d->qs );
 
+            // XXX: We go just a little too far to fetch last_attempt in
+            // RFC822 format here.
             d->qr =
-                new Query( "select recipient,localpart,domain,action,status,"
-                           "last_attempt "
-                           "from delivery_recipients join addresses "
-                           "on (recipient=addresses.id) "
-                           "where delivery=$1", this );
+                new Query(
+                    "select recipient,localpart,domain,action,status,"
+                    "to_char(last_attempt,'Dy, DD Mon YYYY HH24:MI:SS +')"
+                    "||lpad(extract(timezone_hour from last_attempt),2,'0')"
+                    "||lpad(extract(timezone_minute from last_attempt),2,'0')"
+                    " as last_attempt "
+                    "from delivery_recipients join addresses "
+                    "on (recipient=addresses.id) "
+                    "where delivery=$1", this
+                );
             d->qr->bind( 1, d->deliveryRow->getInt( "id" ) );
             d->t->enqueue( d->qr );
             d->t->execute();
@@ -202,11 +209,14 @@ void DeliveryAgent::execute()
                                  r->getString( "domain" ) );
                 a->setId( r->getInt( "recipient" ) );
 
+                Date date;
+                date.setRfc822( r->getString( "last_attempt" ) );
+
                 Recipient * recipient = new Recipient;
+                recipient->setLastAttempt( date );
                 recipient->setFinalRecipient( a );
                 recipient->setAction( (Recipient::Action)r->getInt( "action" ),
                                       r->getString( "status" ) );
-                // XXX: Call recipient->setLastAttempt() here.
                 d->dsn->addRecipient( recipient );
 
                 if ( recipient->action() == Recipient::Unknown )
@@ -217,6 +227,8 @@ void DeliveryAgent::execute()
             // XXX: Check that there's really something to do; if not,
             // we should bypass the rest of the loop below and move on
             // to the next row. (How?)
+            if ( d->dsn->deliveriesPending() ) {
+            }
 
             bool expired = false;
             if ( !d->deliveryRow->isNull( "expired" ) )
