@@ -159,7 +159,11 @@ void DeliveryAgent::execute()
             d->t->enqueue( d->qs );
 
             d->qr =
-                new Query( "...", this );
+                new Query( "select recipient,localpart,domain,action,status,"
+                           "last_attempt "
+                           "from delivery_recipients join addresses "
+                           "on (recipient=addresses.id) "
+                           "where delivery=$1", this );
             d->qr->bind( 1, d->deliveryRow->getInt( "id" ) );
             d->t->enqueue( d->qr );
             d->t->execute();
