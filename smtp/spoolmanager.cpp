@@ -46,29 +46,30 @@ SpoolManager::SpoolManager()
 
 void SpoolManager::execute()
 {
+    // Fetch a list of spooled messages.
     if ( !d->q ) {
         if ( d->t )
             delete d->t;
         d->t = 0;
         d->q =
-            new Query( "select distinct (sender,mailbox,uid) "
+            new Query( "select distinct (mailbox,uid) "
                        "from deliveries d left join deleted_messages dm "
-                       "using (mailbox,uid) where dm.uid is null and "
-                       "d.delivered_at is null", this );
+                       "using (mailbox,uid) where dm.uid is null ", this );
         d->q->execute();
     }
 
+    // For each one, create and run a DeliveryAgent; and if it completes
+    // its delivery attempt, delete the spooled message.
     while ( d->row || d->q->hasResults() ) {
         if ( !d->row )
             d->row = d->q->nextRow();
 
         if ( !d->agent ) {
             Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
+            // XXX: Is this test really necessary?
             if ( m ) {
                 d->agent =
-                    new DeliveryAgent( m, d->row->getInt( "uid" ),
-                                       d->row->getInt( "sender" ),
-                                       this );
+                    new DeliveryAgent( m, d->row->getInt( "uid" ), this );
                 d->agent->execute();
             }
         }
@@ -84,6 +85,9 @@ void SpoolManager::execute()
                                "values ($1, $2, null, $3)", this );
                 d->remove->bind( 1, d->row->getInt( "mailbox" ) );
                 d->remove->bind( 2, d->row->getInt( "uid" ) );
+                // XXX: We want to ask the DeliveryAgent for something
+                // that can identify this particular delivery attempt in
+                // the log files.
                 d->remove->bind( 3, "???" );
                 d->remove->execute();
             }
