@@ -382,6 +382,8 @@ bool Schema::singleStep()
         c = stepTo51(); break;
     case 51:
         c = stepTo52(); break;
+    case 52:
+        c = stepTo53(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2323,6 +2325,31 @@ bool Schema::stepTo52()
         d->t->enqueue( d->q );
         d->q = new Query( "alter table delivery_recipients add "
                           "action integer not null default 0", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! We need permissions on the delivery_recipients sequence too. */
+
+bool Schema::stepTo53()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Granting privileges on delivery_recipients_id_seq" );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "grant select, update on "
+                          "delivery_recipients_id_seq to " + dbuser, this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
