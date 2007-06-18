@@ -346,6 +346,10 @@ void DeliveryAgent::execute()
             return;
 
         d->deliveryRow = 0;
+        d->injector = 0;
+        d->message = 0;
+        d->update = 0;
+        d->dsn = 0;
     }
 
     // XXX: This may call commit multiple times; find a better
