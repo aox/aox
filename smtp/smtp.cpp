@@ -53,11 +53,9 @@ public:
     SubmissionMailboxCreator() {
         Mailbox * m = Mailbox::obtain( "/archiveopteryx/spool", true );
         Transaction * t = new Transaction( this );
-        Query * q = m->create( t, 0 );
-        if ( q )
+        (void)m->create( t, 0 );
+        if ( t->enqueuedQueries() )
             t->commit();
-        else
-            t->rollback();
     }
 
     void execute() {
