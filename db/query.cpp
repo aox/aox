@@ -510,7 +510,7 @@ String Query::error() const
 
 /*! Stores the error message \a s in response to this Query, and sets
     the Query state to Failed. If the Query belongs to a Transaction,
-    the Transaction::state() is set to Failed too.
+    the Transaction's error message set too.
 
     This function is intended for use by the Database.
 */
