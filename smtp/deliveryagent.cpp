@@ -230,27 +230,36 @@ void DeliveryAgent::execute()
                          a->localpart() + "@" + a->domain() + "@" );
             }
 
-            // XXX: Check that there's really something to do; if not,
-            // we should bypass the rest of the loop below and move on
-            // to the next row. (How?)
-            if ( d->dsn->deliveriesPending() ) {
-            }
+            // Do we need to resend this message?
 
-            bool expired = false;
-            if ( !d->deliveryRow->isNull( "expired" ) )
-                expired = d->deliveryRow->getBoolean( "expired" );
-            if ( expired ) {
-                List<Recipient>::Iterator it( d->dsn->recipients() );
-                while ( it ) {
-                    Recipient * r = it;
-                    if ( r->action() == Recipient::Unknown )
-                        r->setAction( Recipient::Failed, "Expired" );
-                    ++it;
+            if ( d->dsn->deliveriesPending() ) {
+                // If the message has expired, then any recipients to
+                // whom the message has not yet been delivered are
+                // abandoned.
+
+                bool expired = false;
+                if ( !d->deliveryRow->isNull( "expired" ) )
+                    expired = d->deliveryRow->getBoolean( "expired" );
+
+                if ( expired ) {
+                    List<Recipient>::Iterator it( d->dsn->recipients() );
+                    while ( it ) {
+                        Recipient * r = it;
+                        if ( r->action() == Recipient::Unknown )
+                            r->setAction( Recipient::Failed, "Expired" );
+                        ++it;
+                    }
+                }
+                else {
+                    client->send( d->dsn, this );
                 }
             }
-
-            if ( d->dsn->deliveriesPending() )
-                client->send( d->dsn, this );
+            else {
+                // We'll just skip to the next delivery. Instead of
+                // using continue, though, we'll...
+                d->deliveryRow = 0;
+                d->sent++;
+            }
         }
 
         if ( d->dsn->deliveriesPending() )
@@ -260,7 +269,7 @@ void DeliveryAgent::execute()
         // status for each recipient. Now we decide whether or not
         // to spool a bounce message.
 
-        if ( !d->injector ) {
+        if ( d->deliveryRow && !d->injector ) {
             Mailbox * m = Mailbox::find( "/archiveopteryx/spool" );
 
             if ( d->dsn->allOk() ) {
@@ -281,7 +290,11 @@ void DeliveryAgent::execute()
         if ( d->injector && !d->injector->done() )
             return;
 
-        if ( !d->update ) {
+        // Once we're done delivering (or bouncing) the message, we'll
+        // update the relevant rows in delivery_recipients, so that we
+        // know what to do next time around.
+
+        if ( d->deliveryRow && !d->update ) {
             uint delivery = d->deliveryRow->getInt( "id" );
 
             d->update =
@@ -325,6 +338,11 @@ void DeliveryAgent::execute()
 
             d->t->execute();
         }
+
+        if ( d->update && !d->update->done() )
+            return;
+
+        d->deliveryRow = 0;
     }
 
     // XXX: This may call commit multiple times; find a better
