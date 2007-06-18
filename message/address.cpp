@@ -582,7 +582,7 @@ void AddressParser::address( int & i )
         i--;
         comment( i );
     }
-    if ( i >= 0 && s[i] == '>' && s[i-1] == '>' ) {
+    while ( i >= 0 && s[i] == '>' && s[i-1] == '>' ) {
         i--;
     }
     if ( i < 0 ) {
@@ -634,6 +634,8 @@ void AddressParser::address( int & i )
         else {
             if ( s[i] == '@' ) {
                 i--;
+                while ( i > 0 && s[i] == '@' )
+                    i--;
                 lp = localpart( i );
                 if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
                     error( "localpart contains 8-bit character", i );
@@ -642,7 +644,7 @@ void AddressParser::address( int & i )
         }
         if ( i >= 0 && s[i] == '<' ) {
             i--;
-            if ( i >= 0 && s[i] == '<' )
+            while ( i >= 0 && s[i] == '<' )
                 i--;
             name = phrase( i );
             while ( i >= 0 && ( s[i] > 127 || s[i] == '@' || s[i] == '<' ) ) {
@@ -673,6 +675,8 @@ void AddressParser::address( int & i )
         String dom = domain( i );
         if ( s[i] == '@' ) {
             i--;
+            while ( i > 0 && s[i] == '@' )
+                i--;
             String lp = localpart( i );
             if ( s[i] == '<' ) {
                 i--;
@@ -789,6 +793,8 @@ void AddressParser::address( int & i )
         String lp;
         if ( s[i] == '@' ) {
             i--;
+            while ( i > 0 && s[i] == '@' )
+                i--;
             comment( i );
             if ( i >= 1 && s[i] == ';' && s[i-1] == ':' ) {
                 // To: unlisted-recipients:; (no To-header on input)@do.ma.in
@@ -986,7 +992,9 @@ String AddressParser::domain( int & i )
         comment( i );
         while( i >= 0 && d->s[i] == '.' ) {
             i--;
-            atoms.prepend( new String( atom( i ) ) );
+            String a = atom( i );
+            if ( !a.isEmpty() )
+                atoms.prepend( new String( a ) );
         }
         dom = atoms.join( "." );
         if ( dom.isEmpty() )
