@@ -14,11 +14,12 @@ class TransactionData
 {
 public:
     TransactionData()
-        : state( Transaction::Inactive ), owner( 0 ), db( 0 ),
-          queries( 0 ), failedQuery( 0 )
+        : state( Transaction::Inactive ), submittedCommit( false ),
+          owner( 0 ), db( 0 ), queries( 0 ), failedQuery( 0 )
     {}
 
     Transaction::State state;
+    bool submittedCommit;
     EventHandler *owner;
     Database *db;
 
@@ -178,17 +179,32 @@ void Transaction::enqueue( Query *q )
 }
 
 
-/*! Issues a ROLLBACK to abandon the Transaction (after sending any
-    queries that were already enqueued). The owner is notified of
-    completion.
+/*! Issues a ROLLBACK to abandon the Transaction, and fails any
+    queries that still haven't been sent to the server. The owner is
+    notified of completion.
 */
 
 void Transaction::rollback()
 {
-    Query *q = new Query( "ROLLBACK", d->owner );
-    q->setTransaction( this );
-    if ( d->queries )
-        d->queries->append( q );
+    if ( d->submittedCommit ) {
+        log( "rollback() called after commit/rollback" );
+        return;
+    }
+    // hm... is dropping these queries really worth it? it does reduce
+    // log clutter.
+    List<Query>::Iterator i( d->queries );
+    while ( i ) {
+        if ( i->state() == Query::Inactive ||
+             i->state() == Query::Submitted ) {
+            i->setError( "Transaction rolled back, query aborted." );
+            d->queries->take( i );
+        }
+        else {
+            ++i;
+        }
+    }
+    enqueue( new Query( "ROLLBACK", d->owner ) );
+    d->submittedCommit = true;
     execute();
 }
 
@@ -202,10 +218,10 @@ void Transaction::rollback()
 
 void Transaction::commit()
 {
-    Query *q = new Query( "COMMIT", d->owner );
-    q->setTransaction( this );
-    if ( d->queries )
-        d->queries->append( q );
+    if ( d->submittedCommit )
+        return;
+    enqueue( new Query( "COMMIT", d->owner ) );
+    d->submittedCommit = true;
     execute();
 }
 
