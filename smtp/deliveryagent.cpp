@@ -352,21 +352,21 @@ void DeliveryAgent::execute()
         d->dsn = 0;
     }
 
-    // XXX: This may call commit multiple times; find a better
-    // condition. (New flag?)
-    if ( d->qm->done() && !d->t->done() )
+    if ( d->qm && d->qm->done() ) {
         d->t->commit();
+        d->qm = 0;
+    }
 
     if ( !d->t->done() )
         return;
 
     if ( d->t->failed() ) {
-        // XXX: We might end up resending copies of some messages that
-        // we couldn't update during this transaction. I can't think of
-        // any way around that. I could split up the code above so that
-        // each (sender,mailbox,uid) gets its own transaction, but there
-        // will always be some risk, and the common case is for a single
-        // matching row (so it didn't seem worth doing).
+        // We might end up resending copies of messages that we couldn't
+        // update during this transaction. I could split up the code so
+        // that each (sender,mailbox,uid) gets its own transaction, but
+        // at least one message will always be at risk of repetition.
+        // Since the common case is a single matching row, it doesn't
+        // seem worthwhile.
         log( "Delivery attempt failed due to database error: " +
              d->t->error(), Log::Error );
         log( "Shutting down spool manager.", Log::Error );
