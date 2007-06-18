@@ -310,7 +310,9 @@ void DeliveryAgent::execute()
             while ( it ) {
                 Recipient * r = it;
                 ++it;
-                if ( r->action() == Recipient::Unknown ) {
+                if ( r->action() == Recipient::Unknown ||
+                     r->action() == Recipient::Delayed )
+                {
                     unhandled++;
                 }
                 else {
@@ -331,7 +333,8 @@ void DeliveryAgent::execute()
                 }
             }
 
-            // XXX: Should increment d->sent here if appropriate.
+            if ( unhandled == 0 )
+                d->sent++;
 
             log( "Recipients handled: " + fn( handled ) +
                  ", still queued: " + fn( unhandled ) );
