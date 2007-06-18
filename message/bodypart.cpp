@@ -656,6 +656,12 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = new Utf8Codec;
             body = c->fromUnicode( bp->d->text );
         }
+        else if ( !specified && c->state() == Codec::Invalid ) {
+            // the codec was not specified, and we couldn't find
+            // anything. we call it unknown-8bit.
+            c = new Unknown8BitCodec;
+            bp->d->text = c->toUnicode( body );
+        }
 
         // if we ended up using a 16-bit codec and were using q-p, we
         // need to reevaluate without any trailing CRLF
