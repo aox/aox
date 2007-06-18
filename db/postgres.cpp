@@ -290,6 +290,9 @@ void Postgres::react( Event e )
         }
         else if ( d->transaction || d->queries.count() > 0 ) {
             Query * q = d->queries.firstElement();
+            Scope x;
+            if ( q )
+                x.setLog( q->log() );
             if ( q && q->canBeSlow() ) {
                 extendTimeout( 10 );
             }
@@ -606,6 +609,7 @@ void Postgres::unknown( char type )
 
 void Postgres::errorMessage()
 {
+    Scope x;
     String s;
     PgMessage msg( readBuffer() );
     Query *q = d->queries.firstElement();
@@ -691,21 +695,20 @@ void Postgres::errorMessage()
 
     case PgMessage::Error:
         s.append( "PostgreSQL server: " );
-        if ( q )
+        if ( q ) {
             s.append( "Query " + q->description() + " failed: " );
+            x.setLog( q->log() );
+        }
         s.append( m );
         if ( !msg.detail().isEmpty() )
             s.append( " (" + msg.detail() + ")" );
         if ( q && !q->canFail() )
             s.append( " (error)" );
 
-        if ( q && q->canFail() ) {
-            Scope x( q->log() );
+        if ( q && q->canFail() )
             ::log( s, Log::Debug );
-        }
-        else {
+        else
             ::log( s, Log::Error );
-        }
 
         if ( q ) {
             // If we sent a Parse message for a named prepared statement
@@ -727,8 +730,10 @@ void Postgres::errorMessage()
 
     case PgMessage::Warning:
         s.append( "PostgreSQL server: " );
-        if ( q )
+        if ( q ) {
             s.append( "Query " + q->description() + ": " );
+            x.setLog( q->log() );
+        }
         s.append( m );
         s.append( " (warning)" );
         ::log( s, Log::Debug );
@@ -748,6 +753,7 @@ void Postgres::errorMessage()
 
 void Postgres::error( const String &s )
 {
+    Scope x( log() );
     ::log( s, Log::Error );
 
     d->error = true;
@@ -763,6 +769,8 @@ void Postgres::error( const String &s )
 
     removeHandle( this );
 
+    // XXX the documentation says this flushes the write buffer, but
+    // the code empties it...
     writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );
 }
