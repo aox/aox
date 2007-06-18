@@ -216,8 +216,13 @@ void DeliveryAgent::execute()
                 Recipient * recipient = new Recipient;
                 recipient->setLastAttempt( date );
                 recipient->setFinalRecipient( a );
-                recipient->setAction( (Recipient::Action)r->getInt( "action" ),
-                                      r->getString( "status" ) );
+
+                Recipient::Action action =
+                    (Recipient::Action)r->getInt( "action" );
+                if ( action == Recipient::Delayed )
+                    action = Recipient::Unknown;
+                recipient->setAction( action, r->getString( "status" ) );
+
                 d->dsn->addRecipient( recipient );
 
                 if ( recipient->action() == Recipient::Unknown )
@@ -235,10 +240,17 @@ void DeliveryAgent::execute()
             if ( !d->deliveryRow->isNull( "expired" ) )
                 expired = d->deliveryRow->getBoolean( "expired" );
             if ( expired ) {
-                // XXX: Set expiry here.
+                List<Recipient>::Iterator it( d->dsn->recipients() );
+                while ( it ) {
+                    Recipient * r = it;
+                    if ( r->action() == Recipient::Unknown )
+                        r->setAction( Recipient::Failed, "Expired" );
+                    ++it;
+                }
             }
 
-            client->send( d->dsn, this );
+            if ( d->dsn->deliveriesPending() )
+                client->send( d->dsn, this );
         }
 
         if ( d->dsn->deliveriesPending() )
@@ -289,6 +301,8 @@ void DeliveryAgent::execute()
                     unhandled++;
                 }
                 else {
+                    // XXX: Using current_timestamp here makes testing
+                    // harder.
                     Query * q =
                         new Query( "update delivery_recipients "
                                    "set action=$1, status=$2, "
