@@ -679,25 +679,25 @@ void Postgres::errorMessage()
             }
         }
         else {
-            s.append( "Postgres error: " );
-            s.append( m );
+            s.append( "PostgreSQL server: " );
             if ( msg.severity() == PgMessage::Panic )
-                s.append( " (PANIC)" );
+                s.append( "Panic: " );
             else
-                s.append( " (FATAL)" );
+                s.append( "Fatal: " );
+            s.append( m );
             error( s );
         }
         break;
 
     case PgMessage::Error:
-        s.append( "Postgres: " );
+        s.append( "PostgreSQL server: " );
         if ( q )
             s.append( "Query " + q->description() + " failed: " );
         s.append( m );
         if ( !msg.detail().isEmpty() )
             s.append( " (" + msg.detail() + ")" );
         if ( q && !q->canFail() )
-            s.append( " (ERROR)" );
+            s.append( " (error)" );
 
         if ( q && q->canFail() ) {
             Scope x( q->log() );
@@ -726,11 +726,11 @@ void Postgres::errorMessage()
         break;
 
     case PgMessage::Warning:
-        s.append( "Postgres: " );
+        s.append( "PostgreSQL server: " );
         if ( q )
             s.append( "Query " + q->description() + ": " );
         s.append( m );
-        s.append( " (WARNING)" );
+        s.append( " (warning)" );
         ::log( s, Log::Debug );
         break;
 
