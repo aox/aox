@@ -517,6 +517,11 @@ String Query::error() const
 
 void Query::setError( const String &s )
 {
+    Scope x( log() );
+    if ( canFail() )
+        ::log( s, Log::Debug );
+    else
+        ::log( s, Log::Error );
     d->error = s;
     setState( Failed );
     if ( d->transaction )
