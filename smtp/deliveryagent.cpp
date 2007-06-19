@@ -134,6 +134,10 @@ void DeliveryAgent::execute()
         // been called for this message and have claimed to complete
         // the delivery.)
 
+        // this assumption is bad - if two deliveryagents are created,
+        // one will do all the work and the other one will wait
+        // patiently until its 'select for update' succeeds above.
+
         if ( !d->message ) {
             List<Message> messages;
             d->message = new Message;
@@ -159,12 +163,16 @@ void DeliveryAgent::execute()
             d->qs->bind( 1, d->deliveryRow->getInt( "sender" ) );
             d->t->enqueue( d->qs );
 
-            // XXX: We go just a little too far to fetch last_attempt in
-            // RFC822 format here.
+            // XXX: We go just a little too far to fetch last_attempt
+            // in RFC822 format here.
+
+            // looks like an attempt at reimplementing Date in SQL ;)
+            // can't it be done simpler? my poor head aches from
+            // interpreting it. what is 40*?
             d->qr =
                 new Query(
                     "select recipient,localpart,domain,action,status,"
-                    "to_char(last_attempt,'Dy, DD Mon YYYY HH24:MI:SS ')||"
+                    "to_char(last_attempt,'DD Mon YYYY HH24:MI:SS ')||"
                     "to_char((extract(timezone from last_attempt)/60) + "
                     "40*((extract(timezone from last_attempt)/60)"
                     "::integer/60), 'SG0000') as last_attempt "
@@ -186,7 +194,7 @@ void DeliveryAgent::execute()
             return;
 
         if ( !client->ready() )
-            return;
+            return; // afaict nothing guarantees that we're called again
 
         // Now we're ready to process the delivery. We create a DSN, set
         // the message, sender, and the recipients, then decide whether
@@ -373,7 +381,7 @@ void DeliveryAgent::execute()
         SpoolManager::shutdown();
     }
 
-    // We're done() now. What we did can be guaged by delivered().
+    // We're done() now. What we did can be gauged by delivered().
 
     d->owner->execute();
 }
