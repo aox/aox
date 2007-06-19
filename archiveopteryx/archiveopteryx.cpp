@@ -17,6 +17,7 @@
 #include "occlient.h"
 #include "fieldcache.h"
 #include "addresscache.h"
+#include "spoolmanager.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -151,6 +152,7 @@ int main( int argc, char *argv[] )
     OCClient::setup();
     AddressCache::setup();
     FieldNameCache::setup();
+    SpoolManager::setup();
     Flag::setup();
     IMAP::setup();
 

@@ -124,6 +124,19 @@ void SpoolManager::run()
 }
 
 
+/*! Creates a SpoolManager object and a timer to ensure that it's
+    started once (after which it will ensure that it wakes up once
+    in a while). This function expects to be called from ::main().
+*/
+
+void SpoolManager::setup()
+{
+    if ( !::sm )
+        ::sm = new SpoolManager;
+    sm->d->t = new Timer( sm, 300 );
+}
+
+
 /*! Causes the spool manager to stop sending mail, at once. Should
     only be called if we're unable to update a message's "sent" status
     from "unsent" to "sent" and a loop threatens.
