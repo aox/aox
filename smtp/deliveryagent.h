@@ -8,13 +8,14 @@
 
 class Mailbox;
 class Message;
+class SmtpClient;
 
 
 class DeliveryAgent
     : public EventHandler
 {
 public:
-    DeliveryAgent( Mailbox *, uint, EventHandler * );
+    DeliveryAgent( SmtpClient *, Mailbox *, uint, EventHandler * );
 
     void execute();
 

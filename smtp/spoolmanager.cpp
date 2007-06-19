@@ -17,13 +17,15 @@ class SpoolManagerData
 {
 public:
     SpoolManagerData()
-        : q( 0 ), remove( 0 ), t( 0 ), row( 0 ), agent( 0 )
+        : q( 0 ), remove( 0 ), t( 0 ), row( 0 ), client( 0 ),
+          agent( 0 )
     {}
 
     Query * q;
     Query * remove;
     Timer * t;
     Row * row;
+    SmtpClient * client;
     DeliveryAgent * agent;
 };
 
@@ -69,7 +71,8 @@ void SpoolManager::execute()
             // XXX: Is this test really necessary?
             if ( m ) {
                 d->agent =
-                    new DeliveryAgent( m, d->row->getInt( "uid" ), this );
+                    new DeliveryAgent( d->client, m, d->row->getInt( "uid" ),
+                                       this );
                 d->agent->execute();
             }
         }

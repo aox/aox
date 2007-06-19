@@ -18,9 +18,6 @@
 #include "date.h"
 
 
-static SmtpClient * client;
-
-
 class DeliveryAgentData
     : public Garbage
 {
@@ -29,7 +26,7 @@ public:
         : log( 0 ), mailbox( 0 ), uid( 0 ), owner( 0 ),
           t( 0 ), qm( 0 ), qs( 0 ), qr( 0 ), deliveryRow( 0 ),
           message( 0 ), dsn( 0 ), injector( 0 ), update( 0 ),
-          senders( 0 ), sent( 0 )
+          senders( 0 ), sent( 0 ), client( 0 )
     {}
 
     Log * log;
@@ -47,6 +44,7 @@ public:
     Query * update;
     uint senders;
     uint sent;
+    SmtpClient * client;
 };
 
 
@@ -56,11 +54,12 @@ public:
 */
 
 /*! Creates a new DeliveryAgent object to deliver the message in
-    \a mailbox with \a uid. The \a owner will be notified upon
-    completion.
+    \a mailbox with \a uid using the specified SMTP \a client. The
+    \a owner will be notified upon completion.
 */
 
-DeliveryAgent::DeliveryAgent( Mailbox * mailbox, uint uid,
+DeliveryAgent::DeliveryAgent( SmtpClient * client,
+                              Mailbox * mailbox, uint uid,
                               EventHandler * owner )
     : d( new DeliveryAgentData )
 {
@@ -68,6 +67,7 @@ DeliveryAgent::DeliveryAgent( Mailbox * mailbox, uint uid,
     Scope x( d->log );
     log( "Starting delivery attempt for " +
          mailbox->name() + ":" + fn( uid ) );
+    d->client = client;
     d->mailbox = mailbox;
     d->uid = uid;
     d->owner = owner;
@@ -118,14 +118,6 @@ void DeliveryAgent::execute()
             // If there isn't one, we're done.
             if ( !d->deliveryRow )
                 break;
-        }
-
-        // We'll need a functioning SmtpClient.
-
-        if ( !client || !client->usable() ) {
-            Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
-                        Configuration::scalar( Configuration::SmartHostPort ) );
-            client = new SmtpClient( e, this );
         }
 
         // Fetch the sender address, the relevant delivery_recipients
@@ -188,8 +180,8 @@ void DeliveryAgent::execute()
                 d->message->hasBodies() ) )
             return;
 
-        if ( !client->ready() )
-            return; // afaict nothing guarantees that we're called again
+        if ( !d->client->ready() )
+            return;
 
         // Now we're ready to process the delivery. We create a DSN, set
         // the message, sender, and the recipients, then decide whether
@@ -254,7 +246,7 @@ void DeliveryAgent::execute()
                     }
                 }
                 else {
-                    client->send( d->dsn, this );
+                    d->client->send( d->dsn, this );
                 }
             }
             else {
