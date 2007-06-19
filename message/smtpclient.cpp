@@ -197,8 +197,10 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Hello:
-        if ( !d->dsn )
+        if ( !d->dsn ) {
+            d->owner->execute();
             return;
+        }
         send = "mail from:<" + d->dsn->sender()->toString() + ">";
         d->state = SmtpClientData::MailFrom;
         break;
@@ -415,7 +417,9 @@ void SmtpClient::handleFailure( const String & line )
             d->rcptTo->setAction( Recipient::Delayed, status );
     }
     else {
-        List<Recipient>::Iterator i( d->dsn->recipients() );
+        List<Recipient>::Iterator i;
+        if ( d->dsn )
+            i = d->dsn->recipients();
         while ( i ) {
             if ( i->action() == Recipient::Unknown ) {
                 if ( permanent )
