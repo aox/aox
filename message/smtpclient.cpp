@@ -207,10 +207,13 @@ void SmtpClient::sendCommand()
 
     case SmtpClientData::MailFrom:
     case SmtpClientData::RcptTo:
-        if ( d->state == SmtpClientData::MailFrom )
+        if ( d->state == SmtpClientData::MailFrom ) {
             d->rcptTo = d->dsn->recipients()->first();
-        else
+            d->state = SmtpClientData::RcptTo;
+        }
+        else {
             ++d->rcptTo;
+        }
         while ( d->rcptTo && d->rcptTo->action() != Recipient::Unknown )
             ++d->rcptTo;
         if ( d->rcptTo ) {
