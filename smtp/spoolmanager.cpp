@@ -78,7 +78,7 @@ void SpoolManager::execute()
             if ( !d->agent->done() )
                 return;
 
-            if ( d->agent->delivered() ) {
+            if ( !d->remove && d->agent->delivered() ) {
                 d->remove =
                     new Query( "insert into deleted_messages "
                                "(mailbox, uid, deleted_by, reason) "
@@ -133,7 +133,7 @@ void SpoolManager::setup()
 {
     if ( !::sm )
         ::sm = new SpoolManager;
-    sm->d->t = new Timer( sm, 300 );
+    sm->d->t = new Timer( sm, 60 );
 }
 
 
