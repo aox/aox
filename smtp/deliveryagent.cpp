@@ -16,6 +16,7 @@
 #include "injector.h"
 #include "spoolmanager.h"
 #include "date.h"
+#include "stringlist.h"
 
 
 class DeliveryAgentData
@@ -82,17 +83,7 @@ void DeliveryAgent::execute()
 
     if ( !d->t ) {
         d->t = new Transaction( this );
-        d->qm =
-            new Query(
-                "select id, sender, "
-                "current_timestamp > expires_at as expired, "
-                "(tried_at is null or tried_at+interval '1 hour'"
-                " < current_timestamp) as can_retry "
-                "from deliveries where mailbox=$1 "
-                "and uid=$2 for update", this
-            );
-        d->qm->bind( 1, d->mailbox->id() );
-        d->qm->bind( 2, d->uid );
+        d->qm = fetchDeliveries( d->mailbox, d->uid );
         d->t->enqueue( d->qm );
         d->t->execute();
     }
@@ -126,49 +117,14 @@ void DeliveryAgent::execute()
         // lot of work before realising that nothing needs to be done.)
 
         if ( !d->message ) {
-            List<Message> messages;
-            d->message = new Message;
-            d->message->setUid( d->uid );
-            messages.append( d->message );
+            d->message = fetchMessage( d->mailbox, d->uid );
 
-            Fetcher * f;
-            f = new MessageHeaderFetcher( d->mailbox, &messages, this );
-            f->execute();
-
-            f = new MessageAddressFetcher( d->mailbox, &messages, this );
-            f->execute();
-
-            f = new MessageBodyFetcher( d->mailbox, &messages, this );
-            f->execute();
-
-            // We fetch the sender address separately because we don't
-            // (and should not) have UPDATE privileges on addresses, so
-            // we can't join to addresses in the first query above.
-            d->qs =
-                new Query( "select localpart,domain from addresses "
-                           "where id=$1", this );
-            d->qs->bind( 1, d->deliveryRow->getInt( "sender" ) );
+            d->qs = fetchSender( d->deliveryRow->getInt( "sender" ) );
             d->t->enqueue( d->qs );
 
-            // XXX: We go just a little too far to fetch last_attempt
-            // in RFC822 format here.
-
-            // looks like an attempt at reimplementing Date in SQL ;)
-            // can't it be done simpler? my poor head aches from
-            // interpreting it. what is 40*?
-            d->qr =
-                new Query(
-                    "select recipient,localpart,domain,action,status,"
-                    "to_char(last_attempt,'DD Mon YYYY HH24:MI:SS ')||"
-                    "to_char((extract(timezone from last_attempt)/60) + "
-                    "40*((extract(timezone from last_attempt)/60)"
-                    "::integer/60), 'SG0000') as last_attempt "
-                    "from delivery_recipients join addresses "
-                    "on (recipient=addresses.id) "
-                    "where delivery=$1", this
-                );
-            d->qr->bind( 1, d->deliveryRow->getInt( "id" ) );
+            d->qr = fetchRecipients( d->deliveryRow->getInt( "id" ) );
             d->t->enqueue( d->qr );
+
             d->t->execute();
         }
 
@@ -188,64 +144,16 @@ void DeliveryAgent::execute()
         // to send the message.
 
         if ( !d->dsn ) {
-            d->dsn = new DSN;
-            d->dsn->setMessage( d->message );
-
-            Row * r = d->qs->nextRow();
-            Address * a =
-                new Address( "", r->getString( "localpart" ),
-                             r->getString( "domain" ) );
-            d->dsn->setSender( a );
-
-            while ( d->qr->hasResults() ) {
-                r = d->qr->nextRow();
-
-                Address * a =
-                    new Address( "", r->getString( "localpart" ),
-                                 r->getString( "domain" ) );
-                a->setId( r->getInt( "recipient" ) );
-
-                Date * date = new Date;
-                date->setRfc822( r->getString( "last_attempt" ) );
-
-                Recipient * recipient = new Recipient;
-                recipient->setLastAttempt( date );
-                recipient->setFinalRecipient( a );
-
-                Recipient::Action action =
-                    (Recipient::Action)r->getInt( "action" );
-                if ( action == Recipient::Delayed )
-                    action = Recipient::Unknown;
-                recipient->setAction( action, r->getString( "status" ) );
-
-                d->dsn->addRecipient( recipient );
-
-                if ( recipient->action() == Recipient::Unknown )
-                    log( "Attempting delivery to " +
-                         a->localpart() + "@" + a->domain() );
-            }
-
-            // Do we need to resend this message?
+            d->dsn = createDSN( d->message, d->qs, d->qr );
 
             if ( d->dsn->deliveriesPending() ) {
-                // If the message has expired, then any recipients to
-                // whom the message has not yet been delivered are
-                // abandoned.
-
-                bool expired = false;
-                if ( !d->deliveryRow->isNull( "expired" ) )
-                    expired = d->deliveryRow->getBoolean( "expired" );
-
-                if ( expired ) {
-                    List<Recipient>::Iterator it( d->dsn->recipients() );
-                    while ( it ) {
-                        Recipient * r = it;
-                        if ( r->action() == Recipient::Unknown )
-                            r->setAction( Recipient::Failed, "Expired" );
-                        ++it;
-                    }
+                if ( !d->deliveryRow->isNull( "expired" ) &&
+                     d->deliveryRow->getBoolean( "expired" ) == true )
+                {
+                    expireRecipients( d->dsn );
                 }
                 else {
+                    logDelivery( d->dsn );
                     d->client->send( d->dsn, this );
                 }
             }
@@ -265,21 +173,13 @@ void DeliveryAgent::execute()
         // to spool a bounce message.
 
         if ( d->deliveryRow && !d->update && !d->injector ) {
-            Mailbox * m = Mailbox::find( "/archiveopteryx/spool" );
-
-            if ( d->dsn->allOk() ) {
+            if ( d->dsn->allOk() )
                 d->sent++;
-            }
-            else if ( m && d->dsn->sender()->type() == Address::Normal ) {
-                List<Address> * addresses = new List<Address>;
+            else
+                d->injector = injectBounce( d->dsn );
 
-                addresses->append( d->dsn->sender() );
-                d->injector = new Injector( d->dsn->result(), this );
-                d->injector->setDeliveryAddresses( addresses );
-                d->injector->setSender( new Address( "", "", "" ) );
-                d->injector->setMailbox( m );
+            if ( d->injector )
                 d->injector->execute();
-            }
         }
 
         if ( d->injector && !d->injector->done() )
@@ -290,49 +190,11 @@ void DeliveryAgent::execute()
         // know what to do next time around.
 
         if ( d->deliveryRow && !d->update ) {
-            uint delivery = d->deliveryRow->getInt( "id" );
-
-            d->update =
-                new Query( "update deliveries "
-                           "set tried_at=current_timestamp "
-                           "where id=$1", this );
-            d->update->bind( 1, delivery );
-            d->t->enqueue( d->update );
-
-            uint handled = 0;
-            uint unhandled = 0;
-            List<Recipient>::Iterator it( d->dsn->recipients() );
-            while ( it ) {
-                Recipient * r = it;
-                ++it;
-                if ( r->action() == Recipient::Unknown ||
-                     r->action() == Recipient::Delayed )
-                {
-                    unhandled++;
-                }
-                else {
-                    // XXX: Using current_timestamp here makes testing
-                    // harder.
-                    Query * q =
-                        new Query( "update delivery_recipients "
-                                   "set action=$1, status=$2, "
-                                   "last_attempt=current_timestamp "
-                                   "where delivery=$3 and recipient=$4",
-                                   this );
-                    q->bind( 1, (int)r->action() );
-                    q->bind( 2, r->status() );
-                    q->bind( 3, delivery );
-                    q->bind( 4, r->finalRecipient()->id() );
-                    d->t->enqueue( q );
-                    handled++;
-                }
-            }
+            uint unhandled =
+                updateDelivery( d->deliveryRow->getInt( "id" ), d->dsn );
 
             if ( unhandled == 0 )
                 d->sent++;
-
-            log( "Recipients handled: " + fn( handled ) +
-                 ", still queued: " + fn( unhandled ) );
 
             d->t->execute();
         }
@@ -391,4 +253,266 @@ bool DeliveryAgent::done() const
 bool DeliveryAgent::delivered() const
 {
     return d->senders == d->sent;
+}
+
+
+/*! Returns a pointer to a Query that selects and locks all rows from
+    deliveries that match the given \a mailbox and \a uid.
+*/
+
+Query * DeliveryAgent::fetchDeliveries( Mailbox * mailbox, uint uid )
+{
+    Query * q =
+        new Query(
+            "select id, sender, "
+            "current_timestamp > expires_at as expired, "
+            "(tried_at is null or tried_at+interval '1 hour'"
+            " < current_timestamp) as can_retry "
+            "from deliveries where mailbox=$1 "
+            "and uid=$2 for update", this
+        );
+    q->bind( 1, mailbox->id() );
+    q->bind( 2, uid );
+    return q;
+}
+
+
+/*! Begins to fetch a message with the given \a uid from \a mailbox, and
+    returns a pointer to the newly-created Message object, which will be
+    filled in by the message fetchers.
+*/
+
+Message * DeliveryAgent::fetchMessage( Mailbox * mailbox, uint uid )
+{
+    Message * m = new Message;
+    m->setUid( uid );
+
+    List<Message> l;
+    l.append( m );
+
+    Fetcher * f;
+    f = new MessageHeaderFetcher( mailbox, &l, this );
+    f->execute();
+
+    f = new MessageAddressFetcher( mailbox, &l, this );
+    f->execute();
+
+    f = new MessageBodyFetcher( mailbox, &l, this );
+    f->execute();
+
+    return m;
+}
+
+
+/*! Returns a pointer to a Query to fetch the address information for a
+    message sender with the given \a sender id.
+*/
+
+Query * DeliveryAgent::fetchSender( uint sender )
+{
+    // We fetch the sender address separately because we don't (and
+    // should not) have UPDATE privileges on addresses, so we can't
+    // join to addresses in fetchDeliveries().
+    Query * q =
+        new Query( "select localpart,domain from addresses "
+                   "where id=$1", this );
+    q->bind( 1, sender );
+    return q;
+}
+
+
+/*! Returns a pointer to a Query that will fetch rows for the given
+    \a delivery id from delivery_recipients.
+*/
+
+Query * DeliveryAgent::fetchRecipients( uint delivery )
+{
+    // XXX: We go just a little too far to fetch last_attempt
+    // in RFC822 format here. The right thing would be to add
+    // timestamptz support to Query/PgMessage.
+    Query * q =
+        new Query(
+            "select recipient,localpart,domain,action,status,"
+            "to_char(last_attempt,'DD Mon YYYY HH24:MI:SS ')||"
+            "to_char((extract(timezone from last_attempt)/60) + "
+            "40*((extract(timezone from last_attempt)/60)"
+            "::integer/60), 'SG0000') as last_attempt "
+            "from delivery_recipients join addresses "
+            "on (recipient=addresses.id) "
+            "where delivery=$1", this
+        );
+    q->bind( 1, delivery );
+    return q;
+}
+
+
+/*! Returns a pointer to a newly-created DSN for the given \a message.
+    The sender is filled in from \a qs (from fetchSender()), while the
+    recipients are filled in from \a qr (from fetchRecipients()). Both
+    queries are assumed to have completed successfully.
+*/
+
+DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
+{
+    DSN * dsn = new DSN;
+    dsn->setMessage( message );
+
+    Row * r = qs->nextRow();
+    Address * a =
+        new Address( "", r->getString( "localpart" ),
+                     r->getString( "domain" ) );
+    dsn->setSender( a );
+
+    while ( qr->hasResults() ) {
+        r = qr->nextRow();
+
+        Recipient * recipient = new Recipient;
+
+        Address * a =
+            new Address( "", r->getString( "localpart" ),
+                         r->getString( "domain" ) );
+        a->setId( r->getInt( "recipient" ) );
+        recipient->setFinalRecipient( a );
+
+        Recipient::Action action =
+            (Recipient::Action)r->getInt( "action" );
+        if ( action == Recipient::Delayed )
+            action = Recipient::Unknown;
+        String status;
+        if ( !r->isNull( "status" ) )
+            status = r->getString( "status" );
+        recipient->setAction( action, status );
+
+        if ( !r->isNull( "last_attempt" ) ) {
+            Date * date = new Date;
+            date->setRfc822( r->getString( "last_attempt" ) );
+            recipient->setLastAttempt( date );
+        }
+
+        d->dsn->addRecipient( recipient );
+    }
+
+    return dsn;
+}
+
+
+/*! Updates all recipients for the given \a dsn to reflect that the
+    message delivery request has expired, and logs a message to that
+    effect.
+*/
+
+void DeliveryAgent::expireRecipients( DSN * dsn )
+{
+    List<Recipient>::Iterator it( d->dsn->recipients() );
+    while ( it ) {
+        Recipient * r = it;
+        if ( r->action() == Recipient::Unknown )
+            r->setAction( Recipient::Failed, "Expired" );
+        ++it;
+    }
+
+    log( "Delivery for message " + fn( dsn->message()->uid() ) +
+         " expired" );
+}
+
+
+/*! Logs a description of the delivery we are about to attempt, based on
+    the specified \a dsn.
+*/
+
+void DeliveryAgent::logDelivery( DSN * dsn )
+{
+    uint total = dsn->recipients()->count();
+    uint active = 0;
+    StringList l;
+
+    List<Recipient>::Iterator it( d->dsn->recipients() );
+    while ( it ) {
+        Recipient * r = it;
+        if ( r->action() == Recipient::Unknown ) {
+            active++;
+            Address * a = r->finalRecipient();
+            l.append( a->localpart() + "@" + a->domain() );
+        }
+        ++it;
+    }
+
+    log( "Attempting delivery to " + l.join( "," ) +
+         " (" + fn( active ) + " of " + fn( total ) +
+         " recipients)" );
+}
+
+
+/*! Returns a pointer to a newly-created Injector to inject a bounce
+    message derived from the specified \a dsn, or 0 if it can't find
+    the spool mailbox, or if the DSN was for a bounce already. The
+    caller must call Injector::execute() when appropriate.
+*/
+
+Injector * DeliveryAgent::injectBounce( DSN * dsn )
+{
+    Mailbox * m = Mailbox::find( "/archiveopteryx/spool" );
+    if ( !m )
+        return 0;
+
+    List<Address> * l = new List<Address>;
+    if ( dsn->sender()->type() != Address::Normal )
+        return 0;
+    l->append( dsn->sender() );
+
+    Injector * i = new Injector( dsn->result(), this );
+    i->setDeliveryAddresses( l );
+    i->setSender( new Address( "", "", "" ) );
+    i->setMailbox( m );
+    return i;
+}
+
+
+/*! Updates the row in deliveries matching \a delivery, as well as any
+    related rows in delivery_recipients, based on the status of \a dsn.
+    Returns the number of recipients for whom delivery is pending. The
+    queries needed to perform the update are enqueued directly into
+    d->t, for the caller to execute at will.
+*/
+
+uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
+{
+    d->update =
+        new Query( "update deliveries set tried_at=current_timestamp "
+                   "where id=$1", this );
+    d->update->bind( 1, delivery );
+    d->t->enqueue( d->update );
+
+    uint handled = 0;
+    uint unhandled = 0;
+    List<Recipient>::Iterator it( dsn->recipients() );
+    while ( it ) {
+        Recipient * r = it;
+        ++it;
+        if ( r->action() == Recipient::Unknown ||
+             r->action() == Recipient::Delayed )
+        {
+            unhandled++;
+        }
+        else {
+            // XXX: Using current_timestamp here makes testing harder.
+            Query * q =
+                new Query( "update delivery_recipients "
+                           "set action=$1, status=$2, "
+                           "last_attempt=current_timestamp "
+                           "where delivery=$3 and recipient=$4",
+                           this );
+            q->bind( 1, (int)r->action() );
+            q->bind( 2, r->status() );
+            q->bind( 3, delivery );
+            q->bind( 4, r->finalRecipient()->id() );
+            d->t->enqueue( q );
+            handled++;
+        }
+    }
+
+    log( "Recipients handled: " + fn( handled ) +
+         ", still queued: " + fn( unhandled ) );
+
+    return unhandled;
 }
