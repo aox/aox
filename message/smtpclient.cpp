@@ -267,8 +267,10 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Rset:
+        finish();
         delete d->closeTimer;
         d->closeTimer = new Timer( d->timerCloser, 298 );
+        d->owner->execute();
         return;
 
     case SmtpClientData::Error:
@@ -466,7 +468,8 @@ bool SmtpClient::ready() const
 {
     if ( d->dsn )
         return false;
-    if ( d->state == SmtpClientData::Hello )
+    if ( d->state == SmtpClientData::Hello || 
+         d->state == SmtpClientData::Rset )
         return true;
     return false;
 }
