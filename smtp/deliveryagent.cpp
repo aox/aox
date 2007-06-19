@@ -227,7 +227,7 @@ void DeliveryAgent::execute()
 
                 if ( recipient->action() == Recipient::Unknown )
                     log( "Attempting delivery to " +
-                         a->localpart() + "@" + a->domain() + "@" );
+                         a->localpart() + "@" + a->domain() );
             }
 
             // Do we need to resend this message?
