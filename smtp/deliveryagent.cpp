@@ -129,14 +129,9 @@ void DeliveryAgent::execute()
         }
 
         // Fetch the sender address, the relevant delivery_recipients
-        // entries, and the message itself. (We assume that we won't
-        // be called if there's nothing to do, i.e. we've previously
-        // been called for this message and have claimed to complete
-        // the delivery.)
-
-        // this assumption is bad - if two deliveryagents are created,
-        // one will do all the work and the other one will wait
-        // patiently until its 'select for update' succeeds above.
+        // entries, and the message itself. (If we're called again for
+        // the same message after we've completed delivery, we'll do a
+        // lot of work before realising that nothing needs to be done.)
 
         if ( !d->message ) {
             List<Message> messages;
