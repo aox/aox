@@ -100,7 +100,7 @@ void DeliveryAgent::execute()
     // Count each delivery, and either try to deliver it right away, or
     // leave it until enough time has passed to try it again.
 
-    while ( d->deliveryRow || d->qm->hasResults() ) {
+    while ( d->deliveryRow || ( d->qm && d->qm->hasResults() ) ) {
 
         // If we're not processing a delivery already, we'll look for
         // the next one that we can attempt immediately.
