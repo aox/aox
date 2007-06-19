@@ -85,10 +85,8 @@ void SpoolManager::execute()
                                "values ($1, $2, null, $3)", this );
                 d->remove->bind( 1, d->row->getInt( "mailbox" ) );
                 d->remove->bind( 2, d->row->getInt( "uid" ) );
-                // XXX: We want to ask the DeliveryAgent for something
-                // that can identify this particular delivery attempt in
-                // the log files.
-                d->remove->bind( 3, "???" );
+                d->remove->bind( 3, "delivery to smarthost with log id" + 
+                                 d->agent->log()->id() );
                 d->remove->execute();
             }
 
