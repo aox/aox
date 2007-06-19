@@ -19,7 +19,7 @@ class SmtpClientData
 public:
     SmtpClientData()
         : state( Invalid ), dsn( 0 ),
-          owner( 0 ), user( 0 ),
+          owner( 0 ), user( 0 ), log( 0 ),
           enhancedstatuscodes( false )
     {}
 
@@ -34,6 +34,7 @@ public:
     DSN * dsn;
     EventHandler * owner;
     EventHandler * user;
+    Log * log;
     List<Recipient>::Iterator rcptTo;
     List<Recipient> accepted;
 
@@ -71,13 +72,16 @@ SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
 
 void SmtpClient::react( Event e )
 {
+    Scope x( log() );
+    if ( d->log )
+        x.setLog( d->log );
     switch ( e ) {
     case Read:
         parse();
         break;
 
     case Timeout:
-        log( "SMTP/LMTP server timed out", Log::Error );
+        log( "SMTP server timed out", Log::Error );
         Connection::setState( Closing );
         d->error = "Server timeout.";
         finish();
@@ -238,8 +242,11 @@ void SmtpClient::sendCommand()
         if ( !d->accepted.isEmpty() ) {
             List<Recipient>::Iterator i( d->accepted );
             while ( i ) {
-                if ( i->action() == Recipient::Unknown )
+                if ( i->action() == Recipient::Unknown ) {
                     i->setAction( Recipient::Relayed, "" );
+                    log( "Sent to " + i->finalRecipient()->localpart() +
+                         "@" + i->finalRecipient()->domain() );
+                }
                 ++i;
             }
         }
@@ -468,13 +475,32 @@ bool SmtpClient::usable() const
     about which recipients fail or succeed, and how. Notifies \a user
     when it's done.
 
-    Does not use "DSN::envid()" at present.
+    Does not use DSN::envelopeId() at present.
 */
 
 void SmtpClient::send( DSN * dsn, EventHandler * user )
 {
     if ( !ready() )
         return;
+
+    Scope x( log() );
+    d->log = new Log( Log::SMTP );
+    x.setLog( d->log );
+    String s( "Sending message " );
+    s.append(  peer().address() );
+    if ( !dsn->message()->header()->messageId().isEmpty() ) {
+        s.append( ", message-id " );
+        s.append( dsn->message()->header()->messageId() );
+    }
+    if ( !dsn->envelopeId().isEmpty() ) {
+        s.append( ", envid " );
+        s.append( dsn->envelopeId() );
+    }
+    s.append( ", from " );
+    s.append( dsn->sender()->localpart() );
+    s.append( "@" );
+    s.append( dsn->sender()->domain() );
+    log( s );
 
     d->dsn = dsn;
     d->user = user;
@@ -492,6 +518,7 @@ void SmtpClient::finish()
         d->user->execute();
     d->dsn = 0;
     d->user = 0;
+    d->log = 0;
 }
 
 
