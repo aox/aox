@@ -222,10 +222,7 @@ void SmtpClient::sendCommand()
                    d->rcptTo->finalRecipient()->domain() + ">";
         }
         else {
-            List<Recipient>::Iterator i( d->dsn->recipients() );
-            while ( i && !i->action() != Recipient::Unknown )
-                ++i;
-            if ( i ) {
+            if ( !d->accepted.isEmpty() ) {
                 send = "data";
                 d->state = SmtpClientData::Data;
             }
