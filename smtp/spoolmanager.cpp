@@ -85,7 +85,7 @@ void SpoolManager::execute()
                                "values ($1, $2, null, $3)", this );
                 d->remove->bind( 1, d->row->getInt( "mailbox" ) );
                 d->remove->bind( 2, d->row->getInt( "uid" ) );
-                d->remove->bind( 3, "delivery to smarthost with log id" + 
+                d->remove->bind( 3, "Smarthost delivery " +
                                  d->agent->log()->id() );
                 d->remove->execute();
             }
