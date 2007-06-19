@@ -92,7 +92,7 @@ void SpoolManager::execute()
                 d->remove->execute();
             }
 
-            if ( !d->remove->done() )
+            if ( d->remove && !d->remove->done() )
                 return;
         }
 
