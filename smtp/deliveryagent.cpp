@@ -277,7 +277,7 @@ void DeliveryAgent::execute()
         // status for each recipient. Now we decide whether or not
         // to spool a bounce message.
 
-        if ( d->deliveryRow && !d->injector ) {
+        if ( d->deliveryRow && !d->update && !d->injector ) {
             Mailbox * m = Mailbox::find( "/archiveopteryx/spool" );
 
             if ( d->dsn->allOk() ) {
