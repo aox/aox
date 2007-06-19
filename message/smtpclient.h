@@ -26,6 +26,8 @@ public:
     bool usable() const;
     void send( DSN *, EventHandler * );
 
+    void logout();
+
 private:
     class SmtpClientData * d;
 

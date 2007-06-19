@@ -5,6 +5,7 @@
 #include "dsn.h"
 #include "log.h"
 #include "scope.h"
+#include "timer.h"
 #include "buffer.h"
 #include "configuration.h"
 #include "recipient.h"
@@ -39,6 +40,16 @@ public:
     List<Recipient> accepted;
 
     bool enhancedstatuscodes;
+    Timer * closeTimer;
+    class TimerCloser
+        : public EventHandler
+    {
+    public:
+        TimerCloser( SmtpClient * c ) : t( c ) {}
+        void execute() { if ( t ) t->logout(); t = 0; }
+        SmtpClient * t;
+    };
+    TimerCloser * timerCloser;
 };
 
 
@@ -67,6 +78,7 @@ SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
     EventLoop::global()->addConnection( this );
     setTimeoutAfter( 300 );
     log( "Connecting to " + address.string() );
+    d->timerCloser = new SmtpClientData::TimerCloser( this );
 }
 
 
@@ -194,7 +206,6 @@ void SmtpClient::sendCommand()
         d->state = SmtpClientData::Body;
         break;
 
-    case SmtpClientData::Rset:
     case SmtpClientData::Connected:
         send = "ehlo " + Configuration::hostname();
         d->state = SmtpClientData::Hello;
@@ -255,6 +266,11 @@ void SmtpClient::sendCommand()
         d->state = SmtpClientData::Rset;
         break;
 
+    case SmtpClientData::Rset:
+        delete d->closeTimer;
+        d->closeTimer = new Timer( d->timerCloser, 298 );
+        return;
+
     case SmtpClientData::Error:
         finish();
         send = "rset";
@@ -269,6 +285,7 @@ void SmtpClient::sendCommand()
     log( "Sending: " + send, Log::Debug );
     enqueue( send + "\r\n" );
     d->sent = send;
+    setTimeoutAfter( 300 );
 }
 
 
@@ -538,4 +555,23 @@ void SmtpClient::recordExtension( const String & line )
 
     if ( w == "enhancedstatuscodes" )
         d->enhancedstatuscodes = true;
+}
+
+
+/*! Used by SmtpClient to close itself just before the SMTP timeout
+    would hit. Do not call from outside SmtpClient.
+*/
+
+void SmtpClient::logout()
+{
+    if ( d->state != SmtpClientData::Rset )
+        return;
+    Scope x( log() );
+    if ( d->log )
+        x.setLog( d->log );
+    d->state = SmtpClientData::Quit;
+    log( "Sending: quit", Log::Debug );
+    enqueue( "quit\r\n" );
+    d->sent = "quit";
+    setTimeoutAfter( 300 );
 }
