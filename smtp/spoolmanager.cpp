@@ -153,6 +153,10 @@ void SpoolManager::run()
     }
     if ( !::sm )
         ::sm = new SpoolManager;
+    if ( ::sm->d->t ) {
+        delete ::sm->d->t;
+        ::sm->d->t = 0;
+    }
     ::sm->execute();
 }
 
