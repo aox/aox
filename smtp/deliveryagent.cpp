@@ -166,6 +166,8 @@ void DeliveryAgent::execute()
     if ( !d->update && d->row ) {
         if ( d->injector && !d->injector->done() )
             return;
+        if ( d->injector )
+            d->injector->announce();
 
         uint unhandled = updateDelivery( d->row->getInt( "id" ), d->dsn );
         if ( unhandled == 0 )
