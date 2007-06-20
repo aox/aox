@@ -389,7 +389,7 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
             recipient->setLastAttempt( date );
         }
 
-        d->dsn->addRecipient( recipient );
+        dsn->addRecipient( recipient );
     }
 
     return dsn;
@@ -403,7 +403,7 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
 
 void DeliveryAgent::expireRecipients( DSN * dsn )
 {
-    List<Recipient>::Iterator it( d->dsn->recipients() );
+    List<Recipient>::Iterator it( dsn->recipients() );
     while ( it ) {
         Recipient * r = it;
         if ( r->action() == Recipient::Unknown )
@@ -426,7 +426,7 @@ void DeliveryAgent::logDelivery( DSN * dsn )
     uint active = 0;
     StringList l;
 
-    List<Recipient>::Iterator it( d->dsn->recipients() );
+    List<Recipient>::Iterator it( dsn->recipients() );
     while ( it ) {
         Recipient * r = it;
         if ( r->action() == Recipient::Unknown ) {
