@@ -28,7 +28,7 @@ public:
 private:
     class DeliveryAgentData * d;
 
-    Query * fetchDeliveries( Mailbox *, uint );
+    Query * fetchDelivery( Mailbox *, uint );
     Message * fetchMessage( Mailbox *, uint );
     Query * fetchSender( uint );
     Query * fetchRecipients( uint );

@@ -24,10 +24,10 @@ class DeliveryAgentData
 {
 public:
     DeliveryAgentData()
-        : log( 0 ), mailbox( 0 ), uid( 0 ), owner( 0 ),
-          t( 0 ), qm( 0 ), qs( 0 ), qr( 0 ), deliveryRow( 0 ),
-          message( 0 ), dsn( 0 ), injector( 0 ), update( 0 ),
-          senders( 0 ), sent( 0 ), client( 0 )
+        : log( 0 ), mailbox( 0 ), uid( 0 ), owner( 0 ), t( 0 ),
+          qm( 0 ), qs( 0 ), qr( 0 ), row( 0 ), message( 0 ),
+          dsn( 0 ), injector( 0 ), update( 0 ), client( 0 ),
+          delivered( false ), committed( false )
     {}
 
     Log * log;
@@ -38,14 +38,14 @@ public:
     Query * qm;
     Query * qs;
     Query * qr;
-    Row * deliveryRow;
+    Row * row;
     Message * message;
     DSN * dsn;
     Injector * injector;
     Query * update;
-    uint senders;
-    uint sent;
     SmtpClient * client;
+    bool delivered;
+    bool committed;
 };
 
 
@@ -79,55 +79,45 @@ void DeliveryAgent::execute()
 {
     Scope x( d->log );
 
-    // Fetch and lock all pending deliveries for (mailbox,uid).
+    // Fetch and lock the row in deliveries matching (mailbox,uid).
 
     if ( !d->t ) {
         d->t = new Transaction( this );
-        d->qm = fetchDeliveries( d->mailbox, d->uid );
+        d->qm = fetchDelivery( d->mailbox, d->uid );
         d->t->enqueue( d->qm );
         d->t->execute();
     }
 
-    // Count each delivery, and either try to deliver it right away, or
-    // leave it until enough time has passed to try it again.
+    if ( !d->qm->done() )
+        return;
 
-    while ( d->deliveryRow || ( d->qm && d->qm->hasResults() ) ) {
+    if ( d->qm->hasResults() ) {
+        d->row = d->qm->nextRow();
+        if ( d->row->getBoolean( "can_retry" ) == false )
+            d->row = 0;
+    }
 
-        // If we're not processing a delivery already, we'll look for
-        // the next one that we can attempt immediately.
+    // Fetch the sender address, the relevant delivery_recipients
+    // entries, and the message itself. (If we're called again for
+    // the same message after we've completed delivery, we'll do a
+    // lot of work before realising that nothing needs to be done.)
 
-        if ( !d->deliveryRow ) {
-            do {
-                d->deliveryRow = d->qm->nextRow();
-                d->senders++;
-                if ( d->deliveryRow->getBoolean( "can_retry" ) == true )
-                    break;
-                d->deliveryRow = 0;
-            }
-            while ( d->qm->hasResults() );
+    if ( !d->message && d->row ) {
+        d->message = fetchMessage( d->mailbox, d->uid );
 
-            // If there isn't one, we're done.
-            if ( !d->deliveryRow )
-                break;
-        }
+        d->qs = fetchSender( d->row->getInt( "sender" ) );
+        d->t->enqueue( d->qs );
 
-        // Fetch the sender address, the relevant delivery_recipients
-        // entries, and the message itself. (If we're called again for
-        // the same message after we've completed delivery, we'll do a
-        // lot of work before realising that nothing needs to be done.)
+        d->qr = fetchRecipients( d->row->getInt( "id" ) );
+        d->t->enqueue( d->qr );
 
-        if ( !d->message ) {
-            d->message = fetchMessage( d->mailbox, d->uid );
+        d->t->execute();
+    }
 
-            d->qs = fetchSender( d->deliveryRow->getInt( "sender" ) );
-            d->t->enqueue( d->qs );
+    // When we have everything we need, we create a DSN for the message,
+    // set the sender and recipients, then decide what to do.
 
-            d->qr = fetchRecipients( d->deliveryRow->getInt( "id" ) );
-            d->t->enqueue( d->qr );
-
-            d->t->execute();
-        }
-
+    if ( !d->dsn && d->row ) {
         if ( !d->qs->done() || !d->qr->done() )
             return;
 
@@ -139,77 +129,62 @@ void DeliveryAgent::execute()
         if ( !d->client->ready() )
             return;
 
-        // Now we're ready to process the delivery. We create a DSN, set
-        // the message, sender, and the recipients, then decide whether
-        // to send the message.
+        d->dsn = createDSN( d->message, d->qs, d->qr );
 
-        if ( !d->dsn ) {
-            d->dsn = createDSN( d->message, d->qs, d->qr );
-
-            if ( d->dsn->deliveriesPending() ) {
-                if ( !d->deliveryRow->isNull( "expired" ) &&
-                     d->deliveryRow->getBoolean( "expired" ) == true )
-                {
-                    expireRecipients( d->dsn );
-                }
-                else {
-                    logDelivery( d->dsn );
-                    d->client->send( d->dsn, this );
-                }
+        if ( d->dsn->deliveriesPending() ) {
+            if ( !d->row->isNull( "expired" ) &&
+                 d->row->getBoolean( "expired" ) == true )
+            {
+                expireRecipients( d->dsn );
             }
             else {
-                // We'll just skip to the next delivery. Instead of
-                // using continue, though, we'll...
-                d->deliveryRow = 0;
-                d->sent++;
+                logDelivery( d->dsn );
+                d->client->send( d->dsn, this );
             }
         }
+        else {
+            d->delivered = true;
+            d->row = 0;
+        }
+    }
 
+    // Once the SmtpClient has updated the action and status for each
+    // recipient, we can decide whether or not to spool a bounce.
+
+    if ( !d->injector && !d->update && d->row ) {
         if ( d->dsn->deliveriesPending() )
             return;
 
-        // At this point, the SmtpClient has updated the action and
-        // status for each recipient. Now we decide whether or not
-        // to spool a bounce message.
+        if ( !d->dsn->allOk() )
+            d->injector = injectBounce( d->dsn );
 
-        if ( d->deliveryRow && !d->update && !d->injector ) {
-            if ( !d->dsn->allOk() )
-                d->injector = injectBounce( d->dsn );
+        if ( d->injector )
+            d->injector->execute();
+    }
 
-            if ( d->injector )
-                d->injector->execute();
-        }
+    // Once we're done delivering (or bouncing) the message, we'll
+    // update the relevant rows in delivery_recipients, so that we
+    // know what to do next time around.
 
+    if ( !d->update && d->row ) {
         if ( d->injector && !d->injector->done() )
             return;
 
-        // Once we're done delivering (or bouncing) the message, we'll
-        // update the relevant rows in delivery_recipients, so that we
-        // know what to do next time around.
+        uint unhandled = updateDelivery( d->row->getInt( "id" ), d->dsn );
+        if ( unhandled == 0 )
+            d->delivered = true;
 
-        if ( d->deliveryRow && !d->update ) {
-            uint unhandled =
-                updateDelivery( d->deliveryRow->getInt( "id" ), d->dsn );
+        d->t->execute();
+    }
 
-            if ( unhandled == 0 )
-                d->sent++;
+    // Once the update finishes, we're done.
 
-            d->t->execute();
-        }
-
+    if ( !d->committed ) {
         if ( d->update && !d->update->done() )
             return;
 
-        d->deliveryRow = 0;
-        d->injector = 0;
-        d->message = 0;
-        d->update = 0;
-        d->dsn = 0;
-    }
-
-    if ( d->qm && d->qm->done() ) {
+        d->committed = true;
         d->t->commit();
-        d->qm = 0;
     }
 
     if ( !d->t->done() )
@@ -217,18 +192,12 @@ void DeliveryAgent::execute()
 
     if ( d->t->failed() ) {
         // We might end up resending copies of messages that we couldn't
-        // update during this transaction. I could split up the code so
-        // that each (sender,mailbox,uid) gets its own transaction, but
-        // at least one message will always be at risk of repetition.
-        // Since the common case is a single matching row, it doesn't
-        // seem worthwhile.
+        // update during this transaction.
         log( "Delivery attempt failed due to database error: " +
              d->t->error(), Log::Error );
         log( "Shutting down spool manager.", Log::Error );
         SpoolManager::shutdown();
     }
-
-    // We're done() now. What we did can be gauged by delivered().
 
     d->owner->execute();
 }
@@ -250,15 +219,15 @@ bool DeliveryAgent::done() const
 
 bool DeliveryAgent::delivered() const
 {
-    return d->senders == d->sent;
+    return d->delivered;
 }
 
 
-/*! Returns a pointer to a Query that selects and locks all rows from
-    deliveries that match the given \a mailbox and \a uid.
+/*! Returns a pointer to a Query that selects and locks the single row
+    from deliveries that matches the given \a mailbox and \a uid.
 */
 
-Query * DeliveryAgent::fetchDeliveries( Mailbox * mailbox, uint uid )
+Query * DeliveryAgent::fetchDelivery( Mailbox * mailbox, uint uid )
 {
     Query * q =
         new Query(
