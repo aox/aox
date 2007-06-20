@@ -216,7 +216,11 @@ void SmtpClient::sendCommand()
             d->owner->execute();
             return;
         }
-        send = "mail from:<" + d->dsn->sender()->toString() + ">";
+        send = "mail from:<";
+        if ( d->dsn->sender()->type() == Address::Normal )
+            send.append( d->dsn->sender()->toString() );
+        send.append( ">" );
+            
         d->state = SmtpClientData::MailFrom;
         break;
 
@@ -507,6 +511,9 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
 
     d->dsn = dsn;
     d->user = user;
+    delete d->closeTimer;
+    d->closeTimer = 0;
+    d->state = SmtpClientData::Hello;
     sendCommand();
 }
 
