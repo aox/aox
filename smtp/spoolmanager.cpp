@@ -6,6 +6,8 @@
 #include "timer.h"
 #include "mailbox.h"
 #include "deliveryagent.h"
+#include "configuration.h"
+#include "smtpclient.h"
 
 
 static SpoolManager * sm;
@@ -66,9 +68,14 @@ void SpoolManager::execute()
         if ( !d->row )
             d->row = d->q->nextRow();
 
+        if ( !d->client || !d->client->usable() ) {
+            Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
+                        Configuration::scalar( Configuration::SmartHostPort ) );
+            d->client = new SmtpClient( e, this );
+        }
+
         if ( !d->agent ) {
             Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
-            // XXX: Is this test really necessary?
             if ( m ) {
                 d->agent =
                     new DeliveryAgent( d->client, m, d->row->getInt( "uid" ),
@@ -103,7 +110,17 @@ void SpoolManager::execute()
     if ( !d->q->done() )
         return;
 
+    // Back to square one, to check if anything has been added to the
+    // spool (so that we process bounces promptly).
+    if ( d->q->rows() != 0 ) {
+        d->q = 0;
+        execute();
+        return;
+    }
+
+    d->client->logout();
     d->t = new Timer( this, 300 );
+    d->client = 0;
     d->q = 0;
 }
 
