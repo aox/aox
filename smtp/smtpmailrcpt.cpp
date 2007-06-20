@@ -255,7 +255,7 @@ void SmtpRcptTo::execute()
     if ( !d->query ) {
         d->query = new Query(
             "select al.mailbox, s.script, m.owner, "
-            "n.name, u.login "
+            "n.name, u.id as userid, u.login "
             "from aliases al "
             "join addresses a on (al.address=a.id) "
             "join mailboxes m on (al.mailbox=m.id) "
@@ -285,6 +285,7 @@ void SmtpRcptTo::execute()
                 else {
                     user = new User;
                     user->setLogin( r->getString( "login" ) );
+                    user->setId( r->getInt( "userid" ) );
                 }
             }
             server()->sieve()->addRecipient( d->address, d->mailbox,
