@@ -491,7 +491,7 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     Scope x( log() );
     d->log = new Log( Log::SMTP );
     x.setLog( d->log );
-    String s( "Sending message " );
+    String s( "Sending message to " );
     s.append(  peer().address() );
     if ( !dsn->message()->header()->messageId().isEmpty() ) {
         s.append( ", message-id " );
@@ -502,9 +502,7 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
         s.append( dsn->envelopeId() );
     }
     s.append( ", from " );
-    s.append( dsn->sender()->localpart() );
-    s.append( "@" );
-    s.append( dsn->sender()->domain() );
+    s.append( dsn->sender()->toString() );
     log( s );
 
     d->dsn = dsn;
