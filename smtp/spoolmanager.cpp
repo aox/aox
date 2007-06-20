@@ -66,7 +66,7 @@ void SpoolManager::execute()
         d->remove = 0;
         d->deliveries = 0;
         d->q =
-            new Query( "select distinct mailbox,uid "
+            new Query( "select mailbox,uid "
                        "from deliveries d left join deleted_messages dm "
                        "using (mailbox,uid) where dm.uid is null", this );
         d->q->execute();
