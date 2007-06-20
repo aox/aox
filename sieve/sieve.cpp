@@ -294,7 +294,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Reject );
         actions.append( a );
-    } else if ( c->identifier() == "fileinto" ) {
+    }
+    else if ( c->identifier() == "fileinto" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
         String n = arg;
@@ -303,7 +304,6 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         a->setMailbox( Mailbox::find( n ) );
         if ( !a->mailbox() ||
              ( user && user->id() != a->mailbox()->owner() ) ) {
-            a = new SieveAction( SieveAction::Error );
             if ( !a->mailbox() )
                 error = "No such mailbox: " + arg;
             else
@@ -311,6 +311,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                         user->login() + ": " + arg;
             if ( n != arg )
                 error.append( " (" + n + ")" );
+            a = new SieveAction( SieveAction::Error );
             a->setErrorMessage( error );
             implicitKeep = true;
             done = true;
@@ -323,15 +324,18 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         AddressParser ap( arg );
         a->setAddress( ap.addresses()->first() );
         actions.append( a );
-    } else if ( c->identifier() == "keep" ) {
+    }
+    else if ( c->identifier() == "keep" ) {
         implicitKeep = false;
         explicitKeep = true;
         // nothing needed
-    } else if ( c->identifier() == "discard" ) {
+    }
+    else if ( c->identifier() == "discard" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Discard );
         actions.append( a );
-    } else {
+    }
+    else {
         // ?
     }
     return true;
