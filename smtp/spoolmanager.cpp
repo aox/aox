@@ -9,6 +9,7 @@
 #include "configuration.h"
 #include "smtpclient.h"
 #include "allocator.h"
+#include "scope.h"
 
 
 static SpoolManager * sm;
@@ -21,7 +22,7 @@ class SpoolManagerData
 public:
     SpoolManagerData()
         : q( 0 ), remove( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 ), deliveries( 0 )
+          agent( 0 ), uidnext( 0 ), again( false ), log( 0 )
     {}
 
     Query * q;
@@ -30,7 +31,9 @@ public:
     Row * row;
     SmtpClient * client;
     DeliveryAgent * agent;
-    uint deliveries;
+    uint uidnext;
+    bool again;
+    Log * log;
 };
 
 
@@ -47,21 +50,20 @@ public:
 SpoolManager::SpoolManager()
     : d( new SpoolManagerData )
 {
+    d->log = new Log( Log::General );
 }
 
 
 void SpoolManager::execute()
 {
+    // Start a queue run only when the Timer wakes us
+    if ( d->t && d->t->active() )
+        return;
+
+    Scope x( d->log );
+
     // Fetch a list of spooled messages.
     if ( !d->q ) {
-        // Start a queue run only when the Timer wakes us, and disable
-        // the timer during the run.
-        if ( d->t ) {
-            if ( d->t->active() )
-                return;
-            delete d->t;
-            d->t = 0;
-        }
         reset();
         d->q =
             new Query( "select mailbox,uid "
@@ -87,9 +89,10 @@ void SpoolManager::execute()
 
             Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
             if ( m ) {
-                d->agent =
-                    new DeliveryAgent( d->client, m, d->row->getInt( "uid" ),
-                                       this );
+                d->uidnext = m->uidnext();
+                d->agent = new DeliveryAgent( d->client,
+                                              m, d->row->getInt( "uid" ),
+                                              this );
                 d->agent->execute();
             }
         }
@@ -98,8 +101,11 @@ void SpoolManager::execute()
             if ( !d->agent->done() )
                 return;
 
+            Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
+            if ( m && d->uidnext < m->uidnext() )
+                d->again = true;
+
             if ( !d->remove && d->agent->delivered() ) {
-                d->deliveries++;
                 d->remove =
                     new Query( "insert into deleted_messages "
                                "(mailbox, uid, deleted_by, reason) "
@@ -123,21 +129,19 @@ void SpoolManager::execute()
     if ( !d->q->done() )
         return;
 
-    // Back to square one, to check if anything has been added to the
-    // spool (so that we can process bounces promptly, with the same
-    // SmtpClient).
-    if ( d->deliveries != 0 ) {
+    if ( d->again ) {
         reset();
-        execute();
-        return;
+        d->t = new Timer( this, 0 );
+        log( "Starting new queue run at once" );
     }
-
-    if ( d->client )
-        d->client->logout();
-
-    reset();
-    d->client = 0;
-    d->t = new Timer( this, 300 );
+    else {
+        if ( d->client )
+            d->client->logout();
+        d->client = 0;
+        reset();
+        d->t = new Timer( this, 300 );
+        log( "Starting new queue run in 300 seconds" );
+    }
 }
 
 
@@ -157,11 +161,13 @@ SmtpClient * SpoolManager::client()
 
 void SpoolManager::reset()
 {
+    delete d->t;
+    d->t = 0;
     d->q = 0;
     d->row = 0;
     d->agent = 0;
     d->remove = 0;
-    d->deliveries = 0;
+    d->again = false;
 }
 
 
@@ -180,11 +186,8 @@ void SpoolManager::run()
         ::sm = new SpoolManager;
         Allocator::addEternal( ::sm, "spool manager" );
     }
-    if ( ::sm->d->t ) {
-        delete ::sm->d->t;
-        ::sm->d->t = 0;
+    if ( ::sm->d->t )
         ::sm->reset();
-    }
     ::sm->execute();
 }
 
