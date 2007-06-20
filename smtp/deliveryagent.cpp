@@ -173,9 +173,7 @@ void DeliveryAgent::execute()
         // to spool a bounce message.
 
         if ( d->deliveryRow && !d->update && !d->injector ) {
-            if ( d->dsn->allOk() )
-                d->sent++;
-            else
+            if ( !d->dsn->allOk() )
                 d->injector = injectBounce( d->dsn );
 
             if ( d->injector )
