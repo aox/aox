@@ -87,6 +87,9 @@ void SpoolManager::execute()
             d->client = new SmtpClient( e, this );
         }
 
+        if ( !d->client->ready() )
+            return;
+
         if ( !d->agent ) {
             Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
             if ( m ) {
@@ -98,10 +101,8 @@ void SpoolManager::execute()
         }
 
         if ( d->agent ) {
-            if ( !d->agent->done() ) {
-                d->agent->execute();
+            if ( !d->agent->done() )
                 return;
-            }
 
             if ( !d->remove && d->agent->delivered() ) {
                 d->deliveries++;

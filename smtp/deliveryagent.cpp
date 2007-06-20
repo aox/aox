@@ -126,9 +126,6 @@ void DeliveryAgent::execute()
                 d->message->hasBodies() ) )
             return;
 
-        if ( !d->client->ready() )
-            return;
-
         d->dsn = createDSN( d->message, d->qs, d->qr );
 
         if ( d->dsn->deliveriesPending() ) {
