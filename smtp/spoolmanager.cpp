@@ -62,10 +62,7 @@ void SpoolManager::execute()
             delete d->t;
             d->t = 0;
         }
-        d->row = 0;
-        d->agent = 0;
-        d->remove = 0;
-        d->deliveries = 0;
+        reset();
         d->q =
             new Query( "select mailbox,uid "
                        "from deliveries d left join deleted_messages dm "
@@ -79,19 +76,15 @@ void SpoolManager::execute()
         if ( !d->row )
             d->row = d->q->nextRow();
 
-        if ( !d->client ||
-             !( d->client->state() == Connection::Connecting ||
-                d->client->state() == Connection::Connected ) )
-        {
-            Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
-                        Configuration::scalar( Configuration::SmartHostPort ) );
-            d->client = new SmtpClient( e, this );
-        }
-
-        if ( !d->client->ready() )
-            return;
-
         if ( !d->agent ) {
+            if ( !d->client ||
+                 !( d->client->state() == Connection::Connecting ||
+                    d->client->state() == Connection::Connected ) )
+                d->client = client();
+
+            if ( !d->client->ready() )
+                return;
+
             Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
             if ( m ) {
                 d->agent =
@@ -123,6 +116,8 @@ void SpoolManager::execute()
         }
 
         d->row = 0;
+        d->agent = 0;
+        d->remove = 0;
     }
 
     if ( !d->q->done() )
@@ -132,16 +127,41 @@ void SpoolManager::execute()
     // spool (so that we can process bounces promptly, with the same
     // SmtpClient).
     if ( d->deliveries != 0 ) {
-        d->q = 0;
+        reset();
         execute();
         return;
     }
 
     if ( d->client )
         d->client->logout();
-    d->t = new Timer( this, 300 );
+
+    reset();
     d->client = 0;
+    d->t = new Timer( this, 300 );
+}
+
+
+/*! Returns a pointer to a new SmtpClient to talk to the smarthost. */
+
+SmtpClient * SpoolManager::client()
+{
+    Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
+                Configuration::scalar( Configuration::SmartHostPort ) );
+    return new SmtpClient( e, this );
+}
+
+
+/*! Resets the perishable state of this SpoolManager, i.e. all but the
+    Timer and the SmtpClient. Provided for convenience.
+*/
+
+void SpoolManager::reset()
+{
     d->q = 0;
+    d->row = 0;
+    d->agent = 0;
+    d->remove = 0;
+    d->deliveries = 0;
 }
 
 
@@ -163,6 +183,7 @@ void SpoolManager::run()
     if ( ::sm->d->t ) {
         delete ::sm->d->t;
         ::sm->d->t = 0;
+        ::sm->reset();
     }
     ::sm->execute();
 }
