@@ -56,6 +56,7 @@ void SpoolManager::execute()
         if ( d->t )
             delete d->t;
         d->t = 0;
+        d->deliveries = 0;
         d->q =
             new Query( "select distinct mailbox,uid "
                        "from deliveries d left join deleted_messages dm "
@@ -115,7 +116,8 @@ void SpoolManager::execute()
         return;
 
     // Back to square one, to check if anything has been added to the
-    // spool (so that we process bounces promptly).
+    // spool (so that we can process bounces promptly, with the same
+    // SmtpClient).
     if ( d->deliveries != 0 ) {
         d->q = 0;
         execute();
