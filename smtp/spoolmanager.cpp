@@ -78,7 +78,10 @@ void SpoolManager::execute()
         if ( !d->row )
             d->row = d->q->nextRow();
 
-        if ( !d->client || !d->client->usable() ) {
+        if ( !d->client ||
+             !( d->client->state() == Connection::Connecting ||
+                d->client->state() == Connection::Connected ) )
+        {
             Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
                         Configuration::scalar( Configuration::SmartHostPort ) );
             d->client = new SmtpClient( e, this );
