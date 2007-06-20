@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (53);
+insert into mailstore (revision) values (54);
 
 
 -- One entry for each unique address we've encountered.
@@ -328,7 +328,7 @@ create table scripts (
     name        text,
     active      boolean not null default 'f',
     script      text,
-    unique(owner, name)
+    unique (owner, name)
 );
 
 
@@ -374,7 +374,8 @@ create table deliveries (
     tried_at    timestamp with time zone,
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
-                on delete cascade
+                on delete cascade,
+    unique (mailbox, uid)
 );
 
 
