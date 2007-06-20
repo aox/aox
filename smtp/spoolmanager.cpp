@@ -56,6 +56,9 @@ void SpoolManager::execute()
         if ( d->t )
             delete d->t;
         d->t = 0;
+        d->row = 0;
+        d->agent = 0;
+        d->remove = 0;
         d->deliveries = 0;
         d->q =
             new Query( "select distinct mailbox,uid "
@@ -127,7 +130,6 @@ void SpoolManager::execute()
     if ( d->client )
         d->client->logout();
     d->t = new Timer( this, 300 );
-    d->deliveries = 0;
     d->client = 0;
     d->q = 0;
 }
