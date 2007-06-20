@@ -8,6 +8,7 @@
 #include "deliveryagent.h"
 #include "configuration.h"
 #include "smtpclient.h"
+#include "allocator.h"
 
 
 static SpoolManager * sm;
@@ -155,8 +156,10 @@ void SpoolManager::run()
                Log::Error );
         return;
     }
-    if ( !::sm )
+    if ( !::sm ) {
         ::sm = new SpoolManager;
+        Allocator::addEternal( ::sm, "spool manager" );
+    }
     if ( ::sm->d->t ) {
         delete ::sm->d->t;
         ::sm->d->t = 0;
@@ -172,8 +175,10 @@ void SpoolManager::run()
 
 void SpoolManager::setup()
 {
-    if ( !::sm )
+    if ( !::sm ) {
         ::sm = new SpoolManager;
+        Allocator::addEternal( ::sm, "spool manager" );
+    }
     sm->d->t = new Timer( sm, 60 );
 }
 
