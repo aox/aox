@@ -327,6 +327,13 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
                      r->getString( "domain" ) );
     dsn->setSender( a );
 
+    if ( Configuration::hostname().endsWith( ".test.oryx.com" ) ) {
+        // the sun never sets on the oryx empire. *sigh*
+        Date * testTime = new Date;
+        testTime->setUnixTime( 1181649536 );
+        dsn->setResultDate( testTime );
+    }
+
     while ( qr->hasResults() ) {
         r = qr->nextRow();
 
