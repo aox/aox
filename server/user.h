@@ -22,6 +22,7 @@ public:
     enum State { Refreshed, Nonexistent, Unverified };
     State state() const;
 
+    void setId( uint );
     uint id() const;
 
     void setLogin( const String & );

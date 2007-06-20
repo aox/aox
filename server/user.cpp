@@ -79,6 +79,14 @@ User::State User::state() const
 }
 
 
+/*! Sets this User's id() to \a id. */
+
+void User::setId( uint id )
+{
+    d->id = id;
+}
+
+
 /*! Returns the user's ID, ie. the primary key from the database, used
     to link various other tables to this user.
 */
