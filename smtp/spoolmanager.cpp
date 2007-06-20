@@ -53,9 +53,14 @@ void SpoolManager::execute()
 {
     // Fetch a list of spooled messages.
     if ( !d->q ) {
-        if ( d->t )
+        // Start a queue run only when the Timer wakes us, and disable
+        // the timer during the run.
+        if ( d->t ) {
+            if ( d->t->active() )
+                return;
             delete d->t;
-        d->t = 0;
+            d->t = 0;
+        }
         d->row = 0;
         d->agent = 0;
         d->remove = 0;
