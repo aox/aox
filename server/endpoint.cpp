@@ -223,7 +223,18 @@ String Endpoint::address() const
         break;
 
     case IPv6:
-        {
+        if ( d->ip6a[0] == 0 &&
+             d->ip6a[1] == 0 &&
+             d->ip6a[2] == 0 &&
+             d->ip6a[3] == 0 &&
+             d->ip6a[4] == 0 &&
+             d->ip6a[5] == 0xffff ) {
+            result = fn( (d->ip6a[6] >> 8) & 0xff ) + "." +
+                     fn( (d->ip6a[6]     ) & 0xff ) + "." +
+                     fn( (d->ip6a[7] >> 8) & 0xff ) + "." +
+                     fn( (d->ip6a[7]     ) & 0xff );
+        }
+        else {
             // First, find the longest series of zeroes.
             uint i = 0;
             uint z = 0;
