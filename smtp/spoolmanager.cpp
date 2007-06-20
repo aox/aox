@@ -86,8 +86,10 @@ void SpoolManager::execute()
         }
 
         if ( d->agent ) {
-            if ( !d->agent->done() )
+            if ( !d->agent->done() ) {
+                d->agent->execute();
                 return;
+            }
 
             if ( !d->remove && d->agent->delivered() ) {
                 d->deliveries++;
