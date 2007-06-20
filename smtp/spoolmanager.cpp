@@ -20,7 +20,7 @@ class SpoolManagerData
 public:
     SpoolManagerData()
         : q( 0 ), remove( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 )
+          agent( 0 ), deliveries( 0 )
     {}
 
     Query * q;
@@ -29,6 +29,7 @@ public:
     Row * row;
     SmtpClient * client;
     DeliveryAgent * agent;
+    uint deliveries;
 };
 
 
@@ -89,6 +90,7 @@ void SpoolManager::execute()
                 return;
 
             if ( !d->remove && d->agent->delivered() ) {
+                d->deliveries++;
                 d->remove =
                     new Query( "insert into deleted_messages "
                                "(mailbox, uid, deleted_by, reason) "
@@ -112,7 +114,7 @@ void SpoolManager::execute()
 
     // Back to square one, to check if anything has been added to the
     // spool (so that we process bounces promptly).
-    if ( d->q->rows() != 0 ) {
+    if ( d->deliveries != 0 ) {
         d->q = 0;
         execute();
         return;
@@ -120,6 +122,7 @@ void SpoolManager::execute()
 
     d->client->logout();
     d->t = new Timer( this, 300 );
+    d->deliveries = 0;
     d->client = 0;
     d->q = 0;
 }
