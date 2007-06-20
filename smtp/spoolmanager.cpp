@@ -120,7 +120,8 @@ void SpoolManager::execute()
         return;
     }
 
-    d->client->logout();
+    if ( d->client )
+        d->client->logout();
     d->t = new Timer( this, 300 );
     d->deliveries = 0;
     d->client = 0;
