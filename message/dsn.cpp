@@ -184,7 +184,6 @@ Message * DSN::result() const
     Bodypart * dsn = new Bodypart( 2, r );
     Bodypart * original = new Bodypart( 3, r );
 
-
     plainText->setParent( r );
     dsn->setParent( r );
     original->setParent( r );
@@ -194,8 +193,8 @@ Message * DSN::result() const
 
     // set up the original message, either full or header-only
     if ( fullReport() ) {
-        original->header()->add( "Content-Type", "message/rfc822" );
-        original->setMessage( message() );
+        original->header()->add( "Content-Type", "text/rfc822-headers" );
+        original->setData( message()->header()->asText() );
     }
     else {
         // nasty mime name there
