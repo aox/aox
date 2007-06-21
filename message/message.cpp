@@ -13,6 +13,7 @@
 #include "codec.h"
 #include "date.h"
 #include "flag.h"
+#include "md5.h"
 
 
 static const char * crlf = "\015\012";
@@ -1062,4 +1063,23 @@ bool Message::hasAddresses() const
 void Message::setAddressesFetched()
 {
     d->hasAddresses = true;
+}
+
+
+/*! Adds a message-id header unless this message already has one. The
+    message-id is based on the contents of the message, so if
+    possible, addMessageId() should be called late (or better yet,
+    never).
+*/
+
+void Message::addMessageId()
+{
+    if ( header()->field( HeaderField::MessageId ) )
+        return;
+
+    MD5 x;
+    x.add( rfc822() );
+    header()->add( "Message-Id",
+                   "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" +
+                   Configuration::hostname() + ">" );
 }

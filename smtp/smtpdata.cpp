@@ -20,7 +20,6 @@
 #include "date.h"
 #include "smtp.h"
 #include "user.h"
-#include "md5.h"
 
 
 class SmtpDataData
@@ -349,13 +348,7 @@ Message * SmtpData::message( const String & body )
         // remove bcc if present
         h->removeField( HeaderField::Bcc );
         // add a message-id if there isn't any
-        if ( !h->field( HeaderField::MessageId ) ) {
-            MD5 x;
-            x.add( body );
-            h->add( "Message-Id",
-                    "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" +
-                    Configuration::hostname() + ">" );
-        }
+        m->addMessageId();
         // specify a sender if a) we know who the sender is, b) from
         // doesn't name the sender and c) the sender did not specify
         // anything.

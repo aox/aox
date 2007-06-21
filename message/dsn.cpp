@@ -193,8 +193,8 @@ Message * DSN::result() const
 
     // set up the original message, either full or header-only
     if ( fullReport() ) {
-        original->header()->add( "Content-Type", "text/rfc822-headers" );
-        original->setData( message()->header()->asText() );
+        original->header()->add( "Content-Type", "message/rfc822" );
+        original->setMessage( message() );
     }
     else {
         // nasty mime name there
@@ -236,6 +236,7 @@ Message * DSN::result() const
 
     plainText->setData( plainBody() );
     dsn->setData( dsnBody() );
+    r->addMessageId();
 
     return r;
 }

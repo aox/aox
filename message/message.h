@@ -74,6 +74,7 @@ public:
                                             const String &,
                                             const String &,
                                             const String & = "" );
+    void addMessageId();
 
 private:
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );
