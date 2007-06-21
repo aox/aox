@@ -66,8 +66,7 @@ DeliveryAgent::DeliveryAgent( SmtpClient * client,
 {
     d->log = new Log( Log::SMTP );
     Scope x( d->log );
-    log( "Starting delivery attempt for " +
-         mailbox->name() + ":" + fn( uid ) );
+    log( "Attempting delivery for " + mailbox->name() + ":" + fn( uid ) );
     d->client = client;
     d->mailbox = mailbox;
     d->uid = uid;
@@ -93,8 +92,10 @@ void DeliveryAgent::execute()
 
     if ( d->qm->hasResults() ) {
         d->row = d->qm->nextRow();
-        if ( d->row->getBoolean( "can_retry" ) == false )
+        if ( d->row->getBoolean( "can_retry" ) == false ) {
+            log( "Won't retry so soon after last attempt", Log::Debug );
             d->row = 0;
+        }
     }
 
     // Fetch the sender address, the relevant delivery_recipients
@@ -132,6 +133,7 @@ void DeliveryAgent::execute()
             if ( !d->row->isNull( "expired" ) &&
                  d->row->getBoolean( "expired" ) == true )
             {
+                log( "Delivery expired; will bounce", Log::Debug );
                 expireRecipients( d->dsn );
             }
             else {
@@ -140,6 +142,7 @@ void DeliveryAgent::execute()
             }
         }
         else {
+            log( "Delivery already completed; will do nothing", Log::Debug );
             d->delivered = true;
             d->row = 0;
         }
@@ -152,8 +155,10 @@ void DeliveryAgent::execute()
         if ( d->dsn->deliveriesPending() )
             return;
 
-        if ( !d->dsn->allOk() )
+        if ( !d->dsn->allOk() ) {
+            log( "Sending bounce message", Log::Debug );
             d->injector = injectBounce( d->dsn );
+        }
 
         if ( d->injector )
             d->injector->execute();
@@ -370,8 +375,7 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
 
 
 /*! Updates all recipients for the given \a dsn to reflect that the
-    message delivery request has expired, and logs a message to that
-    effect.
+    message delivery request has expired.
 */
 
 void DeliveryAgent::expireRecipients( DSN * dsn )
@@ -383,9 +387,6 @@ void DeliveryAgent::expireRecipients( DSN * dsn )
             r->setAction( Recipient::Failed, "Expired" );
         ++it;
     }
-
-    log( "Delivery for message " + fn( dsn->message()->uid() ) +
-         " expired" );
 }
 
 
@@ -410,7 +411,7 @@ void DeliveryAgent::logDelivery( DSN * dsn )
         ++it;
     }
 
-    log( "Attempting delivery to " + l.join( "," ) +
+    log( "Sending to " + l.join( "," ) +
          " (" + fn( active ) + " of " + fn( total ) +
          " recipients)" );
 }
@@ -484,8 +485,12 @@ uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
         }
     }
 
-    log( "Recipients handled: " + fn( handled ) +
-         ", still queued: " + fn( unhandled ) );
+    if ( dsn->allOk() )
+        log( "Delivered successfully to " +
+             fn( handled ) + " recipients" );
+    else
+        log( "Recipients handled: " + fn( handled ) +
+             ", still queued: " + fn( unhandled ) );
 
     return unhandled;
 }

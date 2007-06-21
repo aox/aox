@@ -64,6 +64,7 @@ void SpoolManager::execute()
 
     // Fetch a list of spooled messages.
     if ( !d->q ) {
+        log( "Starting queue run" );
         reset();
         d->q =
             new Query( "select mailbox,uid "
@@ -82,7 +83,11 @@ void SpoolManager::execute()
             if ( !d->client ||
                  !( d->client->state() == Connection::Connecting ||
                     d->client->state() == Connection::Connected ) )
+            {
+                if ( d->client )
+                    log( "Discarding existing SMTP client", Log::Debug );
                 d->client = client();
+            }
 
             if ( !d->client->ready() )
                 return;
@@ -106,6 +111,7 @@ void SpoolManager::execute()
                 d->again = true;
 
             if ( !d->remove && d->agent->delivered() ) {
+                log( "Deleting delivered message from spool", Log::Debug );
                 d->remove =
                     new Query( "insert into deleted_messages "
                                "(mailbox, uid, deleted_by, reason) "
@@ -132,7 +138,7 @@ void SpoolManager::execute()
     if ( d->again ) {
         reset();
         d->t = new Timer( this, 0 );
-        log( "Starting new queue run at once" );
+        log( "Restarting to handle newly-spooled messages" );
     }
     else {
         if ( d->client )
@@ -140,7 +146,7 @@ void SpoolManager::execute()
         d->client = 0;
         reset();
         d->t = new Timer( this, 300 );
-        log( "Starting new queue run in 300 seconds" );
+        log( "Ending queue run" );
     }
 }
 
@@ -186,8 +192,11 @@ void SpoolManager::run()
         ::sm = new SpoolManager;
         Allocator::addEternal( ::sm, "spool manager" );
     }
-    if ( ::sm->d->t )
+    if ( ::sm->d->t ) {
+        Scope x( ::sm->d->log );
+        ::sm->log( "Forcing immediate queue run", Log::Debug );
         ::sm->reset();
+    }
     ::sm->execute();
 }
 
