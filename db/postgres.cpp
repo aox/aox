@@ -747,7 +747,7 @@ void Postgres::errorMessage()
 
 
 /*! Handles all protocol/socket errors by logging the error message \a s
-    and closing the connection after flushing the write buffer and
+    and closing the connection after emptying the write buffer and
     notifying any pending queries of the failure.
 */
 
@@ -769,8 +769,6 @@ void Postgres::error( const String &s )
 
     removeHandle( this );
 
-    // XXX the documentation says this flushes the write buffer, but
-    // the code empties it...
     writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );
 }
