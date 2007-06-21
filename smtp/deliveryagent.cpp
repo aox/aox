@@ -152,10 +152,19 @@ void DeliveryAgent::execute()
     // recipient, we can decide whether or not to spool a bounce.
 
     if ( !d->injector && !d->update && d->row ) {
-        if ( d->dsn->deliveriesPending() )
+        // Wait until there are no Unknown recipients.
+        List<Recipient>::Iterator it( d->dsn->recipients() );
+        while ( it && it->action() != Recipient::Unknown )
+            ++it;
+
+        if ( it )
             return;
 
-        if ( d->dsn->allFailed() ) {
+        // Send a bounce message if all recipients have been handled,
+        // and any of them failed.
+        if ( !( d->dsn->deliveriesPending() ||
+                d->dsn->allOk() ) )
+        {
             log( "Sending bounce message", Log::Debug );
             d->injector = injectBounce( d->dsn );
         }
@@ -383,7 +392,8 @@ void DeliveryAgent::expireRecipients( DSN * dsn )
     List<Recipient>::Iterator it( dsn->recipients() );
     while ( it ) {
         Recipient * r = it;
-        if ( r->action() == Recipient::Unknown )
+        if ( r->action() == Recipient::Unknown ||
+             r->action() == Recipient::Delayed )
             r->setAction( Recipient::Failed, "Expired" );
         ++it;
     }
