@@ -245,7 +245,7 @@ void SmtpData::execute()
                 if ( s->rejected( i->address() ) )
                     respond( 551, prefix + ": Rejected", "5.7.1" );
                 else if ( s->error( i->address() ).isEmpty() )
-                    respond( 250, prefix + ": " + d->ok, "2.0.0" );
+                    respond( 250, prefix + ": " + d->ok, "2.1.5" );
                 else
                     respond( 450, prefix + ": " + s->error( i->address() ),
                              "4.0.0" );
