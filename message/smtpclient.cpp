@@ -108,13 +108,13 @@ void SmtpClient::react( Event e )
     case Close:
         if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
-            finish();
+            finish( "4.4.1" );
             d->owner->execute();
         }
         else if ( d->sent != "quit" ) {
             log( "Unexpected close by server", Log::Error );
             d->error = "Unexpected close by server.";
-            finish();
+            finish( "4.4.2" );
             d->owner->execute();
         }
         break;
@@ -287,6 +287,9 @@ void SmtpClient::sendCommand()
         Connection::setState( Connection::Closing );
         break;
     }
+
+    if ( send.isEmpty() )
+        return;
 
     log( "Sending: " + send, Log::Debug );
     enqueue( send + "\r\n" );
@@ -519,11 +522,22 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
 
 
 /*! Finishes message sending activities, however they turned out, and
-    notifies the user.
+    notifies the user. If \a status is supplied and nonempty, \a
+    status is used as Recipient::status() for all unhandled
+    recipients.
 */
 
-void SmtpClient::finish()
+void SmtpClient::finish( const char * status )
 {
+    if ( status && *status && d->dsn ) {
+        List<Recipient>::Iterator i( d->dsn->recipients() );
+        while ( i ) {
+            if ( i->action() == Recipient::Unknown )
+                i->setAction( Recipient::Delayed, status );
+            ++i;
+        }
+    }
+
     if ( d->user )
         d->user->execute();
     d->dsn = 0;

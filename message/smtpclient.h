@@ -33,7 +33,7 @@ private:
     void parse();
     void sendCommand();
     void handleFailure( const String & );
-    void finish();
+    void finish( const char * status = 0 );
     void recordExtension( const String & );
 
     static String dotted( const String & );
