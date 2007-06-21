@@ -155,7 +155,7 @@ void DeliveryAgent::execute()
         if ( d->dsn->deliveriesPending() )
             return;
 
-        if ( !d->dsn->allOk() ) {
+        if ( d->dsn->allFailed() ) {
             log( "Sending bounce message", Log::Debug );
             d->injector = injectBounce( d->dsn );
         }
