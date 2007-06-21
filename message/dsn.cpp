@@ -283,15 +283,16 @@ bool DSN::allFailed() const
 
 
 /*! Returns true if delivery to some of the recipients() is still
-    pending (i.e. their Recipient::action() is still Unknown), and
-    false if they have all been attempted.
+    pending (i.e. their Recipient::action() is either Unknown or
+    Delayed), and false if they have all been completed.
 */
 
 bool DSN::deliveriesPending() const
 {
     List<Recipient>::Iterator recipient( recipients() );
     while ( recipient ) {
-        if ( recipient->action() == Recipient::Unknown )
+        if ( recipient->action() == Recipient::Unknown ||
+             recipient->action() == Recipient::Delayed )
             return true;
         ++recipient;
     }
