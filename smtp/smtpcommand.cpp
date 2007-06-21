@@ -19,9 +19,10 @@ class SmtpCommandData
 {
 public:
     SmtpCommandData()
-        : responseCode( 0 ), done( false ), smtp( 0 ) {}
+        : responseCode( 0 ), enhancedCode( 0 ), done( false ), smtp( 0 ) {}
 
     uint responseCode;
+    const char * enhancedCode;
     StringList response;
     bool done;
     SMTP * smtp;
@@ -87,6 +88,10 @@ String SmtpCommand::response() const
             r.append( " " );
         else
             r.append( "-" );
+        if ( d->enhancedCode ) {
+            r.append( d->enhancedCode );
+            r.append( " " );
+        }
         r.append( l );
         if ( !crlf )
             crlf = r.length();
@@ -113,17 +118,22 @@ bool SmtpCommand::ok() const
 
 
 /*! Records that the (three-digit) response code for this command is
-    \a r, and that \a s is to be one of the text lines sent. \a s
-    should not have a trailing CRLF.
+    \a r, that \a enh is either null (the default) or an enhanced
+    status code as defined in RFC 2034, and that \a s is to be one of
+    the text lines sent. \a s should not have a trailing CRLF.
 
     If \a r is 0, the existing response code is not changed.
+    Similarly, if \a enh is null, the existing enhanced respons code
+    is not changed.
 */
 
-void SmtpCommand::respond( uint r, const String & s )
+void SmtpCommand::respond( uint r, const String & s, const char * enh )
 {
     Scope x( log() );
     if ( r )
         d->responseCode = r;
+    if ( enh )
+        d->enhancedCode = enh;
     d->response.append( s );
 }
 
@@ -188,14 +198,14 @@ SmtpCommand * SmtpCommand::create( SMTP * server, const String & command )
     }
     else {
         r = new SmtpCommand( server );
-        r->respond( 500, "Unknown command (" + c.upper() + ")" );
+        r->respond( 500, "Unknown command (" + c.upper() + ")", "5.5.1" );
     }
 
     Scope x( r->log() );
     r->log( "Command: " + command.simplified(), Log::Debug );
 
     if ( !r->done() && r->d->responseCode < 400 && !p->error().isEmpty() )
-        r->respond( 501, p->error() );
+        r->respond( 501, p->error(), "5.5.2" );
 
     if ( !r->d->done && r->d->responseCode >= 400 )
         r->d->done = true;
@@ -229,7 +239,7 @@ void SmtpRset::execute()
     if ( !server()->isFirstCommand( this ) )
         return;
     server()->reset();
-    respond( 250, "State reset" );
+    respond( 250, "State reset", "2.0.0" );
     finish();
 }
 
@@ -242,7 +252,7 @@ void SmtpRset::execute()
 SmtpNoop::SmtpNoop( SMTP * s, SmtpParser * )
     : SmtpCommand( s )
 {
-    respond( 250, "OK" );
+    respond( 250, "OK", "2.0.0" );
     finish();
 }
 
@@ -256,7 +266,7 @@ SmtpNoop::SmtpNoop( SMTP * s, SmtpParser * )
 SmtpHelp::SmtpHelp( SMTP * s, SmtpParser * )
     : SmtpCommand( s )
 {
-    respond( 250, "See http://aox.org" );
+    respond( 250, "See http://aox.org", "2.0.0" );
     finish();
 }
 
@@ -278,7 +288,7 @@ SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
 void SmtpStarttls::execute()
 {
     if ( startedTls ) {
-        respond( 502, "Already using TLS" );
+        respond( 502, "Already using TLS", "5.5.1" );
         finish();
         return;
     }
@@ -291,14 +301,14 @@ void SmtpStarttls::execute()
 
     if ( !server()->hasTls() ) {
         if ( !tlsServer->ok() ) {
-            respond( 454, "Internal error starting TLS engine" );
+            respond( 454, "Internal error starting TLS engine", "4.5.0" );
             finish();
             return;
         }
 
         startedTls = true;
         log( "Negotiating TLS", Log::Debug );
-        server()->enqueue( "220 Start negotiating TLS now.\r\n" );
+        server()->enqueue( "220 2.0.0 Start negotiating TLS now.\r\n" );
         server()->write();
         server()->startTls( tlsServer );
         finish();
@@ -323,7 +333,7 @@ void SmtpQuit::execute()
 {
     if ( !server()->isFirstCommand( this ) )
         return;
-    respond( 221, "Have a nice day." );
+    respond( 221, "Have a nice day.", "2.0.0" );
     finish();
     server()->setState( Connection::Closing );
 }

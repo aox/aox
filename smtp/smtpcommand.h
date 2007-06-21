@@ -21,7 +21,7 @@ public:
 
     void finish();
 
-    void respond( uint, const String & );
+    void respond( uint, const String &, const char * = 0 );
 
     void execute();
 

@@ -92,7 +92,7 @@ void SmtpData::execute()
         }
 
         if ( !local && !remote ) {
-            respond( 503, "No valid recipients" );
+            respond( 503, "No valid recipients", "5.5.1" );
             finish();
             return;
         }
@@ -121,7 +121,8 @@ void SmtpData::execute()
         Buffer * r = server()->readBuffer();
         String * line = r->removeLine( 262144 );
         if ( !line && r->size() > 262144 ) {
-            respond( 500, "Line too long (legal maximum is 998 bytes)" );
+            respond( 500, "Line too long (legal maximum is 998 bytes)",
+                     "5.5.2" );
             finish();
             server()->setState( Connection::Closing );
         }
@@ -155,7 +156,7 @@ void SmtpData::execute()
         else if ( server()->dialect() == SMTP::Submit ) {
             // for Submit, we reject the message at once, since we
             // have the sender there.
-            respond( 554, "Syntax error: " + d->message->error() );
+            respond( 554, "Syntax error: " + d->message->error(), "5.6.0" );
             finish();
             return;
         }
@@ -229,7 +230,8 @@ void SmtpData::execute()
             d->injector->announce();
         }
         else {
-            respond( 451, "Injection error: " + d->injector->error() );
+            respond( 451, "Injection error: " + d->injector->error(),
+                     "4.6.0" );
             finish();
         }
     }
@@ -242,22 +244,23 @@ void SmtpData::execute()
             while ( i ) {
                 String prefix = i->address()->toString();
                 if ( s->rejected( i->address() ) )
-                    respond( 551, prefix + ": Rejected" );
+                    respond( 551, prefix + ": Rejected", "5.7.1" );
                 else if ( s->error( i->address() ).isEmpty() )
-                    respond( 250, prefix + ": " + d->ok );
+                    respond( 250, prefix + ": " + d->ok, "2.0.0" );
                 else
-                    respond( 450, prefix + ": " + s->error( i->address() ) );
+                    respond( 450, prefix + ": " + s->error( i->address() ),
+                             "4.0.0" );
                 ++i;
             }
         }
         else {
             if ( server()->sieve()->rejected() )
-                respond( 551, "Rejected by all recipients" );
+                respond( 551, "Rejected by all recipients", "5.7.1" );
             if ( !server()->sieve()->error().isEmpty() )
                 respond( 451, "Sieve runtime error: " +
-                         server()->sieve()->error() );
+                         server()->sieve()->error(), "4.0.0" );
             else
-                respond( 250, d->ok );
+                respond( 250, d->ok, "2.0.0" );
         }
 
         if ( d->spooled )
@@ -430,7 +433,7 @@ void SmtpBdat::execute()
         SmtpData::execute();
     }
     else {
-        respond( 250, "OK" );
+        respond( 250, "OK", "2.0.0" );
         finish();
     }
 }
@@ -466,7 +469,7 @@ SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
     }
     d->url = new ImapUrl( u );
     if ( !d->url->valid() ) {
-        respond( 501, "Can't parse that URL" );
+        respond( 501, "Can't parse that URL", "5.5.4" );
         finish();
         return;
     }
@@ -478,7 +481,7 @@ SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
             ( server()->user() && ( a == "authuser" ||
                                     a == "user+" + u ||
                                     a == "submit+" + u ) ) ) ) {
-        respond( 554, "Do not have permission to read that URL" );
+        respond( 554, "Do not have permission to read that URL", "5.7.0" );
         finish();
         return;
     }
@@ -503,7 +506,8 @@ void SmtpBurl::execute()
     if ( !d->fetcher->done() )
         return;
     if ( d->fetcher->failed() ) {
-        respond( 554, "URL resolution problem: " + d->fetcher->error() );
+        respond( 554, "URL resolution problem: " + d->fetcher->error(),
+                 "5.5.0" );
         finish();
         return;
     }
@@ -517,7 +521,7 @@ void SmtpBurl::execute()
         SmtpData::execute();
     }
     else {
-        respond( 250, "OK" );
+        respond( 250, "OK", "2.0.0" );
         finish();
     }
 }

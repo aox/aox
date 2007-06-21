@@ -25,9 +25,9 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
 {
     Scope x( log() );
     if ( t == Lhlo && s->dialect() != SMTP::Lmtp )
-        respond( 500, "LHLO is valid only in LMTP" );
+        respond( 500, "LHLO is valid only in LMTP", "5.5.1" );
     else if ( s->dialect() == SMTP::Lmtp && t != Lhlo )
-        respond( 500, "Need LHLO in LMTP" );
+        respond( 500, "Need LHLO in LMTP", "5.5.0" );
     p->whitespace();
     s->setHeloName( p->domain() );
     p->whitespace();
@@ -41,6 +41,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         // should we also send AUTH=?
         // respond( 0, "AUTH=" + auth );
         respond( 0, "BURL IMAP IMAP://" + Configuration::hostname() );
+        respond( 0, "ENHANCEDSTATUSCODES" );
         if ( !Configuration::toggle( Configuration::Security ) )
             respond( 0, "X-ORYX-TESTING-1" );
         respond( 0, "BINARYMIME" );

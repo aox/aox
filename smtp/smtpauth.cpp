@@ -80,14 +80,15 @@ void SmtpAuth::execute()
 {
     if ( !d->m ) {
         if ( server()->user() ) {
-            respond( 503, "Already authenticated" );
+            respond( 503, "Already authenticated", "5.0.0" );
             finish();
             return;
         }
 
         d->m = SaslMechanism::create( d->mech, this, server()->hasTls() );
         if ( !d->m ) {
-            respond( 504, "Mechanism " + d->mech.quoted() + " not supported" );
+            respond( 504, "Mechanism " + d->mech.quoted() + " not supported",
+                     "5.5.4" );
             finish();
             return;
         }
@@ -146,18 +147,18 @@ void SmtpAuth::execute()
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
         if ( d->m->user()->login() == "anonymous" ) {
-            respond( 235, "You may not submit mail" );
+            respond( 235, "You may not submit mail", "2.0.0"  );
         }
         else {
             server()->authenticated( d->m->user() );
-            respond( 235, "OK" );
+            respond( 235, "OK", "2.0.0" );
         }
     }
     else if ( d->m->state() == SaslMechanism::Terminated ) {
-        respond( 501, "Authentication terminated" );
+        respond( 501, "Authentication terminated", "5.0.0" );
     }
     else {
-        respond( 535, "Authentication failed" );
+        respond( 535, "Authentication failed", "5.0.0" );
         if ( d->m->user() &&
              !d->m->user()->login().isEmpty() )
             log( "Authentication failed for " + d->m->user()->login() );

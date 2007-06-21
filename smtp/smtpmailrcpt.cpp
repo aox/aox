@@ -56,7 +56,8 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
          d->address->type() != Address::Bounce )
         respond( 501,
                  "Address must be <> or <localpart@domain>. "
-                 "Address specied was: " + d->address->toString() );
+                 "Address specied was: " + d->address->toString(),
+                 "5.1.0" );
 
     while ( p->ok() && !p->atEnd() ) {
         String name = p->esmtpKeyword();
@@ -81,7 +82,7 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
             // XXX do what?
         }
         else {
-            respond( 501, "RET must be FULL or HDRS" );
+            respond( 501, "RET must be FULL or HDRS", "5.5.4" );
         }
     }
     else if ( name == "envid" ) {
@@ -92,7 +93,7 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
         if ( value.boring() && !value.isEmpty() )
             server()->setTransactionId( value );
         else
-            respond( 501, "Transaction ID must be boring" );
+            respond( 501, "Transaction ID must be boring", "5.5.4" );
     }
     else if ( name == "x-oryx-time" &&
               !Configuration::toggle( Configuration::Security ) ) {
@@ -102,20 +103,20 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
         if ( ok )
             server()->setTransactionTime( t );
         else
-            respond( 501, "Time must be a unix time" );
+            respond( 501, "Time must be a unix time", "5.5.4" );
     }
     else if ( name == "body" ) {
         if ( value.lower() == "7bit" || value.lower() == "8bitmime" ) {
             // nothing needed
         }
         else {
-            respond( 501, "BODY must be 7BIT or 8BITMIME" );
+            respond( 501, "BODY must be 7BIT or 8BITMIME", "5.5.4" );
         }
     }
     else {
         respond( 501,
                  "Unknown ESMTP parameter: " + name +
-                 " (value: " + value + ")" );
+                 " (value: " + value + ")", "5.5.4" );
     }
 }
 
@@ -130,14 +131,14 @@ void SmtpMailFrom::execute()
         return;
 
     if ( server()->dialect() == SMTP::Submit && !server()->user() ) {
-        respond( 530, "User not authenticated" );
+        respond( 530, "User not authenticated", "5.5.0" ); // or 5.5.1?
         finish();
         return;
     }
 
     if ( server()->sieve()->sender() ) {
         respond( 500, "Sender address already specified: " +
-                 server()->sieve()->sender()->toString() );
+                 server()->sieve()->sender()->toString(), "5.5.1" );
         finish();
         return;
     }
@@ -203,9 +204,11 @@ void SmtpMailFrom::execute()
     log( "Sender: " + d->address->toString() );
     server()->sieve()->setSender( d->address );
     if ( d->address->type() == Address::Bounce )
-        respond( 250, "Accepted message from mailer-daemon" );
+        respond( 250, "Accepted message from mailer-daemon",
+                 "2.1.0" );
     else
-        respond( 250, "Accepted message from " + d->address->toString() );
+        respond( 250, "Accepted message from " + d->address->toString(),
+                 "2.1.0" );
     finish();
 }
 
@@ -304,7 +307,7 @@ void SmtpRcptTo::execute()
         return;
 
     if ( !server()->sieve()->sender() ) {
-        respond( 550, "Must send MAIL FROM before RCPT TO" );
+        respond( 550, "Must send MAIL FROM before RCPT TO", "5.5.1" );
         finish();
         return;
     }
@@ -313,18 +316,20 @@ void SmtpRcptTo::execute()
         // the recipient is local
         server()->sieve()->evaluate();
         if ( server()->sieve()->rejected( d->address ) )
-            respond( 550, d->address->toString().lower() + " rejects mail" );
+            respond( 550, d->address->toString().lower() + " rejects mail",
+                     "5.7.1" );
         else
-            respond( 250, "Will send to " + d->address->toString().lower() );
+            respond( 250, "Will send to " + d->address->toString().lower(),
+                     "2.1.5" );
     }
     else {
         // the recipient is remote
         if ( server()->user() )
             respond( 250, "Submission accepted for " +
-                     d->address->toString() );
+                     d->address->toString(), "2.1.5" );
         else
             respond( 450, d->address->toString() +
-                     " is not a legal destination address" );
+                     " is not a legal destination address", "4.1.1" );
     }
     if ( ok() )
         server()->addRecipient( this );
@@ -353,7 +358,8 @@ void SmtpRcptTo::addParam( const String & name, const String & value )
                 else if ( v->lower() == "failure" ) {
                 }
                 else {
-                    respond( 501, "Bad NOTIFY value: " + v->quoted() );
+                    respond( 501, "Bad NOTIFY value: " + v->quoted(),
+                             "5.5.4" );
                 }
                 ++v;
             }
@@ -364,10 +370,10 @@ void SmtpRcptTo::addParam( const String & name, const String & value )
             // the original address may legitimately be non-822
             AddressParser p( value.mid( 7 ) );
             if ( !p.error().isEmpty() ) {
-                respond( 501, "Bad ORCPT: " + p.error() );
+                respond( 501, "Bad ORCPT: " + p.error(), "5.5.4" ); // 5.1.0?
             } else if ( p.addresses()->count() != 1 ) {
                 respond( 501, "Bad ORCPT: " + fn( p.addresses()->count() ) +
-                         " addresses instead of one" );
+                         " addresses instead of one", "5.5.4" );
             }
             else {
                 if ( d->address->toString() ==
@@ -384,7 +390,7 @@ void SmtpRcptTo::addParam( const String & name, const String & value )
     else {
         respond( 501,
                  "Unknown ESMTP parameter: " + name +
-                 " (value: " + value + ")" );
+                 " (value: " + value + ")", "5.5.4" );
     }
 }
 
