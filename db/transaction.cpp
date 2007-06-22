@@ -118,13 +118,16 @@ void Transaction::clearError()
 
 void Transaction::setError( Query * query, const String &s )
 {
+    if ( d->state == Failed )
+        return;
+
     Scope x( d->owner->log() );
-    // We want to keep only the first recorded error.
-    if ( d->state != Failed ) {
+    if ( !query->canFail() )
+        log( s, Log::Debug );
+    else
         log( s, Log::Error );
-        d->failedQuery = query;
-        d->error = s;
-    }
+    d->failedQuery = query;
+    d->error = s;
     d->state = Failed;
 }
 
