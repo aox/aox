@@ -960,6 +960,3 @@ We should cope with Postgres being restarted
   But we don't, so we need to test and fix whatever the problems are.
 
 
-Make Schema::check independent of upgrade
-
-  Then we can revoke update on mailstore from aox.
