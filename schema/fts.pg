@@ -14,10 +14,10 @@
 
 -- Allow Archiveopteryx to use tsearch2.
 
-grant select on pg_ts_dict to oryx;
-grant select on pg_ts_parser to oryx;
-grant select on pg_ts_cfg to oryx;
-grant select on pg_ts_cfgmap to oryx;
+grant select on pg_ts_dict to $AOXUSER;
+grant select on pg_ts_parser to $AOXUSER;
+grant select on pg_ts_cfg to $AOXUSER;
+grant select on pg_ts_cfgmap to $AOXUSER;
 
 
 -- Create a new GiST index on bodyparts.text, and a trigger to update
