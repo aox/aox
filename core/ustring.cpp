@@ -417,3 +417,31 @@ String UString::utf8() const
 }
 
 
+
+
+/*! Scanes this string for surrogate codepoints and replaces each
+    surrogate pair with the proper codepoint.
+*/
+
+void UString::decodeSurrogates()
+{
+    uint i = 0;
+    uint g = 0;
+    while ( i < length() ) {
+        if ( d->str[i]   >= 0xD800 && d->str[i]   <= 0xD8FF &&
+             d->str[i+1] >= 0xDC00 && d->str[i+1] <= 0xDFFF ) {
+            detach();
+            d->str[g] = ( d->str[i]   - 0xD800 ) * 0x400 +
+                        ( d->str[i+1] - 0xDC00 ) +
+                        0x10000;
+            i++;
+        }
+        else {
+            d->str[g] = d->str[i];
+        }
+        i++;
+        g++;
+    }
+    if ( d )
+        d->len = g;
+}

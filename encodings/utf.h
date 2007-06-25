@@ -59,4 +59,17 @@ public:
 };
 
 
+class Utf7Codec: public Codec
+{
+public:
+    Utf7Codec();
+
+    String fromUnicode( const UString & );
+    UString toUnicode( const String & );
+
+protected:
+    String e( const UString & );
+};
+
+
 #endif

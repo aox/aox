@@ -531,6 +531,7 @@ UString TableCodec::toUnicode( const String & s )
         }
         i++;
     }
+    u.decodeSurrogates();
     return u;
 }
 

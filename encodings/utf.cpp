@@ -168,6 +168,7 @@ UString Utf8Codec::toUnicode( const String & s )
         }
         u.append( c );
     }
+    u.decodeSurrogates();
     return u;
 }
 
@@ -328,6 +329,7 @@ UString Utf16LeCodec::toUnicode( const String & s )
             u.append( c );
         i += 2;
     }
+    u.decodeSurrogates();
     return u;
 }
 
@@ -381,6 +383,140 @@ UString Utf16BeCodec::toUnicode( const String & s )
             u.append( c );
         i += 2;
     }
+    u.decodeSurrogates();
+    return u;
+}
+
+
+/*! \class Utf7Codec utf.h
+  
+    The Utf7Codec class provides conversion to and from the UTF-7
+    encoding specified in RFC 2152. It's almost entirely unused,
+    except that some IMAP clients use its mUTF7 variation. It is
+    implemented here so that we can more easily implement mUTF7.
+*/
+
+
+/*! Constructs a plain UTF-7 decoder/encoder.
+
+*/
+
+Utf7Codec::Utf7Codec()
+    : Codec( "UTF-7" )
+{
+}
+
+
+/*! This private helper returns the "correct" base64 encoding of \a u,
+    including the special case for "+".
+*/
+
+String Utf7Codec::e( const UString & u )
+{
+    if ( u == "+" )
+        return "";
+
+    String t;
+    uint i = 0;
+    while ( i < u.length() ) {
+        uint c = u[i];
+        t.append( c / 256 );
+        t.append( c % 256 );
+        i++;
+    }
+    return t.e64();
+}
+
+
+String Utf7Codec::fromUnicode( const UString & u )
+{
+    String r;
+    uint i = 0;
+    uint b = UINT_MAX;
+    while ( i < u.length() ) {
+        uint c = u[i];
+        if ( c < 128 &&
+             ( ( c >= 'A' && c <= 'Z' ) ||
+               ( c >= 'a' && c <= 'z' ) ||
+               ( c >= '0' && c <= '9' ) ||
+// Set D (directly encoded characters) consists of the following
+// characters (derived from RFC 1521, Appendix B, which no longer
+// appears in RFC 2045): the upper and lower case letters A through Z
+// and a through z, the 10 digits 0-9, and the following nine special
+// characters (note that "+" and "=" are omitted):
+               c == '\'' || c == '(' || c == ')' || c == ',' ||
+               c == '-' || c == '.' || c == '/' || c == ':' ||
+               c == '?' ||
+// Set O (optional direct characters) consists of the following
+// characters (note that "\" and "~" are omitted):
+               c == '!' || c == '"' || c == '#' || c == '$' ||
+               c == '%' || c == '&' || c == '*' || c == ';' ||
+               c == '<' || c == '=' || c == '>' || c == '@' ||
+               c == '[' || c == ']' || c == '^' || c == '_' ||
+               c == '`' || c == '{' || c == '|' || c == '}' ) ) {
+            if ( !u.isEmpty() ) {
+                r.append( e( u.mid( b, i + 1 - b ) ) );
+                b = UINT_MAX;
+                if ( ( c >= 'A' && c <= 'Z' ) ||
+                     ( c >= 'a' && c <= 'z' ) ||
+                     ( c >= '0' && c <= '9' ) ||
+                     c == '/' || c == '+' || c == '-' )
+                    r.append( "-" );
+            }
+            r.append( c );
+        }
+        else {
+            if ( b > i ) {
+                r.append( '+' );
+                b = i;
+            }
+        }
+        ++i;
+    }
+    if ( b < i ) {
+        r.append( e( u.mid( b ) ) );
+        r.append( "-" );
+    }
+    return r;
+}
+
+
+UString Utf7Codec::toUnicode( const String & s )
+{
+    UString u;
+    uint i = 0;
+    while ( i < s.length() ) {
+        char c = s[i++];
+        if ( c == '+' && s[i] == '-' ) {
+            u.append( '+' );
+            i++;
+        }
+        else if ( c == '+' ) {
+            c = s[i];
+            uint b = i;
+            while ( ( c >= 'A' && c <= 'Z' ) ||
+                    ( c >= 'a' && c <= 'z' ) ||
+                    ( c >= '0' && c <= '9' ) ||
+                    c == '/' || c == '+' || c == '=' )
+                c = s[i++];
+            String e = s.mid( b, i-b ).de64();
+            b = 0;
+            while ( b < e.length() - 1 ) {
+                u.append( 256*e[b] + e[b+1] );
+                b += 2;
+            }
+            if ( b < e.length() ) {
+                recordError( b, s );
+                u.append( 0xFFFD );
+            }
+            if ( s[i] == '-' )
+                i++;
+        }
+        else {
+            u.append( c );
+        }
+    }
+    u.decodeSurrogates();
     return u;
 }
 
