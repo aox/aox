@@ -287,15 +287,17 @@ public:
                 if ( !b->insert->done() )
                     return;
                 if ( b->insert->failed() ) {
-                    // XXX: Here we assume that the only reason for this
-                    // insert to fail is that the row already exists.
+                    String e( b->insert->error() );
+                    if ( !e.contains( "bodyparts_hash_key" ) ) {
+                        error = e;
+                        done = failed = true;
+                        owner->execute();
+                        return;
+                    }
                     String s( "rollback to a" );
                     s.append( fn( savepoint ) );
                     q = new Query( s, this );
                     transaction->enqueue( q );
-                }
-                else {
-                    // XXX shouldn't we release the savepoint here?
                 }
                 transaction->enqueue( b->select );
                 state = 2;
