@@ -182,6 +182,15 @@ public:
 
         Row * r = q->nextRow();
         (*li)->uid = r->getInt( "uidnext" );
+        if ( (*li)->uid > 0x7fff0000 ) {
+            Log::Severity level = Log::Error;
+            if ( (*li)->uid > 0x7ffffff0 )
+                level = Log::Disaster;
+            log( "Note: Mailbox " + (*li)->mailbox->name() + 
+                 " only has " + fn ( 0x7fffffff - (*li)->uid ) +
+                 " more usable UIDs. Please contact info@oryx.com"
+                 " to resolve this problem.", level );
+        }
         (*li)->ms = r->getBigint( "nextmodseq" );
         Query * u = 0;
         if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {

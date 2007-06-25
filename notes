@@ -802,9 +802,6 @@ aox restart and aox start don't check all they could
      mailstore.conf contains a bad address.
 
 
-Make sure UIDs never exceed 2**31 (and break getInt).
-
-
 Rendering webmail HTML is presumably good, but...
 
   Knowledge is better than presumption.
