@@ -491,14 +491,6 @@ SASL LOGIN authentication
   There's a draft by Ken Murchison.
 
 
-Miscellaneous cleanups:
-
-  * Get rid of Blah::setup wherever possible
-  * Avoid unnecessary header file inclusion
-  * Enable the #ifdef'ed out tests
-  * Do the "uint characters[256]" thing to simplify parsing.
-
-
 Resolving the remaining parse problems
 
   Kalyani now has 652 messages with parse problems. The ones still not
@@ -570,16 +562,6 @@ We should be able to use a read-only local database mirror.
   db-address.
 
 
-canonical and deliver need severe cleaning up.
-
-  In fact, maybe deliver needs to die. aoximport takes over most of
-  the job, and the rest is often best not done. We don't want to have
-  fetchmail-like bugs.
-
-
-Read the GiST papers and look at tsearch2 again.
-
-
 Add Maildir support to the migrator.
 
   Currently works, with two exceptions: Submaildirs don't work, and
@@ -609,17 +591,6 @@ We should store bodyparts.text for PDF/DOC.
 
   We need non-GPLed code to convert PDF and DOC to plaintext. We already
   use the code from Mailchen to convert HTML.
-
-
-CAcert instead of self-signed certificate?
-
-  www.cacert.org offers free certificates and seems to be an
-  up-and-coming thing.  In a few months, we may want to add 'obtain
-  valid cert from cacert'.
-
-  Btw, cacert.org is a very nice place to get praise and a link from. High
-  nerd factor. If we have the first really-easy-to-use interface to
-  get cacert interfaces into a program, they'll do that, no doubt.
 
 
 Switch to using named constraints everywhere.
