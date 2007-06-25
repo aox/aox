@@ -802,9 +802,6 @@ aox restart and aox start don't check all they could
      mailstore.conf contains a bad address.
 
 
-Make User::create/remove work like Mailbox::create/remove. (AMS)
-
-
 Make sure UIDs never exceed 2**31 (and break getInt).
 
 
