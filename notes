@@ -375,21 +375,9 @@ ocd needs work (mike@waspfactory.org)
 AddressCache and FieldNameCache are utter crocks, and must die.
 
 
-Consider RFC2231:
-
-  2231 says: IMAP4 [RFC-2060] servers SHOULD decode parameter value
-  continuations when generating the BODY and BODYSTRUCTURE fetch
-  attributes. I presume we now do this, but I haven't tested it.
-
-
 METADATA
 
   Needed for lemonade, as easy as annotate.
-
-
-Session update optimisation
-
-  Injector can tell the SessionInitialiser to skip all DB work.
 
 
 Autoresponder
