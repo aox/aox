@@ -906,8 +906,6 @@ tlsproxy needs better diagnostics
 
   Reports from Daniel Ceregatti (Primer on #postgresql).
 
-  - Primer tried to use it with an OpenSSL key, and it exited silently.
-    Now it's not silent, but it's not helpful either.
   - We should document /somewhere/ how to use pemtrans to produce keys
     for aox ("Archiveopteryx private key" and "secret" are completely
     mysterious right now; and perhaps they should be configurable? I

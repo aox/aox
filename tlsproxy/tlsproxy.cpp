@@ -63,6 +63,20 @@ int main( int argc, char *argv[] )
 }
 
 
+static bool isOpenSslCert( const String & file ) {
+    File f( file );
+    if ( f.contents().contains( "---BEGIN " ) ) {
+        log( "File " + file + " exists, "
+             "but is not in Cryptlib format. "
+             "It seems to be in OpenSSL format. Please see "
+             "http://aox.org/faq/mailstore.html#opensslcert",
+             Log::Disaster );
+        return true;
+    }
+    return false;
+}
+
+
 static CRYPT_SESSION cs;
 static CRYPT_CONTEXT privateKey;
 
@@ -83,12 +97,19 @@ static void setupKey()
 
         status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                                   file.cstr(), CRYPT_KEYOPT_NONE );
-        if ( status == CRYPT_OK )
+        if ( status == CRYPT_OK ) {
             status = cryptGetPrivateKey( keyset, &privateKey,
                                          CRYPT_KEYID_NAME,
                                          label.cstr(), secret.cstr() );
-        if ( status != CRYPT_OK )
+        }
+        if ( status != CRYPT_OK ) {
+            if ( isOpenSslCert( file ) )
+                return;
             generateKey( file, label, secret );
+        }
+        return;
+    }
+    else if ( isOpenSslCert( keyFile ) ) {
         return;
     }
 
@@ -108,6 +129,9 @@ static void generateKey( String file, String label, String secret )
 {
     int status = 0;
 
+    String hostname = Configuration::hostname();
+    log( "Generating self-signed certificate for " + hostname );
+    
     // Generate an RSA private key.
     status = cryptCreateContext( &privateKey, CRYPT_UNUSED,
                                  CRYPT_ALGO_RSA );
@@ -128,7 +152,6 @@ static void generateKey( String file, String label, String secret )
 
     // Create a self-signed CA certificate.
     CRYPT_CERTIFICATE cert;
-    String hostname = Configuration::hostname();
 
     status = cryptCreateCert( &cert, CRYPT_UNUSED,
                               CRYPT_CERTTYPE_CERTIFICATE  );
