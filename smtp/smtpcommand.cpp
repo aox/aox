@@ -19,7 +19,8 @@ class SmtpCommandData
 {
 public:
     SmtpCommandData()
-        : responseCode( 0 ), enhancedCode( 0 ), done( false ), smtp( 0 ) {}
+        : responseCode( 200 ), enhancedCode( 0 ),
+          done( false ), smtp( 0 ) {}
 
     uint responseCode;
     const char * enhancedCode;
@@ -70,12 +71,18 @@ bool SmtpCommand::done() const
 }
 
 
-/*! Returns the response for this command, including the number and
+
+
+/*! Outputs the response for this command, including the number and
     trailing CRLF.
 */
 
-String SmtpCommand::response() const
+void SmtpCommand::emitResponses()
 {
+    if ( !d->responseCode )
+        return;
+
+    Scope x( log() );
     String r;
     String n = fn( d->responseCode );
     StringList::Iterator it( d->response );
@@ -102,13 +109,16 @@ String SmtpCommand::response() const
         l.append( " (+" + fn( d->response.count() - 1 ) + " more lines)" );
     log( "Response: " + l,
          d->responseCode >= 400 ? Log::Info : Log::Debug );
-    return r;
+    server()->enqueue( r );
+    d->responseCode = 0;
+    d->response.clear();
 }
 
 
 /*! Returns true if this command has completed with a non-error
     response code, true if it hasn't completed, and false if it has
-    completed with an error code.
+    completed with an error code. Toggles to true again after
+    emitResponses().
 */
 
 bool SmtpCommand::ok() const

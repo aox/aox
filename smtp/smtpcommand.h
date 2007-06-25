@@ -16,12 +16,12 @@ public:
     SmtpCommand( class SMTP * );
 
     bool done() const;
-    String response() const;
     bool ok() const;
 
     void finish();
 
     void respond( uint, const String &, const char * = 0 );
+    void emitResponses();
 
     void execute();
 

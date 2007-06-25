@@ -233,8 +233,7 @@ void SMTP::execute()
         i = d->commands.first();
         while ( i && i->done() ) {
             d->executeAgain = true;
-            Scope s( i->log() );
-            enqueue( i->response() );
+            i->emitResponses();
             d->commands.take( i );
         }
     }

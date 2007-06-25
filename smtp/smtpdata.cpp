@@ -249,6 +249,7 @@ void SmtpData::execute()
                 else
                     respond( 450, prefix + ": " + s->error( i->address() ),
                              "4.0.0" );
+                emitResponses();
                 ++i;
             }
         }
