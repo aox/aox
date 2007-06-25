@@ -1,11 +1,23 @@
 2.02: 2007-07-30
 
-  What do we want in here?
+  Reading mail with webmail.
+
+  Reading archives.
+
+  Archive/webmail search results.
+
+  Positive response from 'aox start', 'aox check' etc.
+
+  aox redesign/rewrite to get better, more maintainable code.
 
   Arnt is away from 2007-06-27 to 2007-07-05.
 
 
 2.03: 2007-09-10
+
+  Web-based sieve editing.
+
+  Advanced web-based searching, setting up views.
 
   Arnt is away from 2007-08-11 to 2007-08-25.
 
@@ -73,9 +85,6 @@ Items for web site
 
 
 Various TODO items from earlier releases.
-
-  Some bugfixes, perhaps tih's 30-item list, jason grossman's GC
-  slowness, etc.
 
   Webmail.
 
