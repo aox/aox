@@ -69,6 +69,7 @@ public:
     bool modifiable() const { return d && d->max > 0; }
 
     void decodeSurrogates();
+    bool valid() const;
 
 private:
     void reserve2( uint );
