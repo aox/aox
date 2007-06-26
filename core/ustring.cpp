@@ -448,8 +448,7 @@ void UString::decodeSurrogates()
 }
 
 
-/*! Returns true only if this UString contains no invalid codepoints (at
-    the moment, only surrogate codepoints qualify), and false otherwise.
+/*! Returns true only if this UString contains no invalid codepoints, and false otherwise.
 */
 
 bool UString::valid() const
@@ -458,7 +457,8 @@ bool UString::valid() const
 
     while ( i < length() ) {
         if ( ( d->str[i] >= 0xD800 && d->str[i] <= 0xDBFF ) ||
-             ( d->str[i] >= 0xDC00 && d->str[i] <= 0xDFFF ) )
+             ( d->str[i] >= 0xDC00 && d->str[i] <= 0xDFFF ) ||
+             ( d->str[i] >= 0x110000 ) )
             return false;
         i++;
     }
