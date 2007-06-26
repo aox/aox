@@ -32,10 +32,10 @@ Archiveopteryx for the first time (see below if you're upgrading):
    Jamsettings, but if you do, you'll have to use "jam" to build the
    software instead. See http://www.archiveopteryx.org/jam.html)
 
-   We test the build on platforms we have access to (primarily Linux and
-   FreeBSD), so you may encounter some errors if you compile elsewhere.
-   We make few demands of the platform, so any errors are likely to be
-   minor, and we'd be happy to help you resolve them.
+   We test the build on Linux and FreeBSD. You may encounter some errors
+   if you compile elsewhere. We make few demands of the platform, so any
+   errors are likely to be minor, and if you tell us about them, we'd be
+   happy to help you resolve them.
 
 2. Type "make install" (or "jam install") as root to install the
    software into $PREFIX (then switch to that
