@@ -166,9 +166,9 @@ UString Utf8Codec::toUnicode( const String & s )
             c = 0xFFFD;
             i++;
         }
-        u.append( c );
+        append( u, c );
     }
-    u.decodeSurrogates();
+    mangleTrailingSurrogate( u );
     return u;
 }
 
@@ -326,10 +326,10 @@ UString Utf16LeCodec::toUnicode( const String & s )
     while ( i < s.length() ) {
         uint c = s[i] + 0x100 * s[i+1];
         if ( !u.isEmpty() || c != 0xFEFF )
-            u.append( c );
+            append( u, c );
         i += 2;
     }
-    u.decodeSurrogates();
+    mangleTrailingSurrogate( u );
     return u;
 }
 
@@ -380,10 +380,10 @@ UString Utf16BeCodec::toUnicode( const String & s )
     while ( i < s.length() ) {
         uint c = s[i] * 0x100 + s[i+1];
         if ( !u.isEmpty() || c != 0xFEFF )
-            u.append( c );
+            append( u, c );
         i += 2;
     }
-    u.decodeSurrogates();
+    mangleTrailingSurrogate( u );
     return u;
 }
 
@@ -488,7 +488,7 @@ UString Utf7Codec::toUnicode( const String & s )
     while ( i < s.length() ) {
         char c = s[i++];
         if ( c == '+' && s[i] == '-' ) {
-            u.append( '+' );
+            append( u, '+' );
             i++;
         }
         else if ( c == '+' ) {
@@ -502,21 +502,21 @@ UString Utf7Codec::toUnicode( const String & s )
             String e = s.mid( b, i-b ).de64();
             b = 0;
             while ( b < e.length() - 1 ) {
-                u.append( 256*e[b] + e[b+1] );
+                append( u, 256*e[b] + e[b+1] );
                 b += 2;
             }
             if ( b < e.length() ) {
                 recordError( b, s );
-                u.append( 0xFFFD );
+                append( u, 0xFFFD );
             }
             if ( s[i] == '-' )
                 i++;
         }
         else {
-            u.append( c );
+            append( u, c );
         }
     }
-    u.decodeSurrogates();
+    mangleTrailingSurrogate( u );
     return u;
 }
 

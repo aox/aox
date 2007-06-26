@@ -527,11 +527,11 @@ UString TableCodec::toUnicode( const String & s )
                 setState( BadlyFormed );
         }
         else {
-            u.append( t[c] );
+            append( u, t[c] );
         }
         i++;
     }
-    u.decodeSurrogates();
+    mangleTrailingSurrogate( u );
     return u;
 }
 
@@ -559,6 +559,57 @@ and false if it has.
 void Codec::reset()
 {
     setState( Valid );
+}
+
+
+/*! Appends \a c to \a u. If \a c isn't a legal codepoint or there are
+    other errors, this codec's state is modifed appropriately.
+*/
+
+void Codec::append( UString & u, uint c )
+{
+    if ( c >= 0x110000 ) {
+        u.append( 0xFFFD );
+        recordError( "Codepoint U+" + fn( c, 16 ) +
+                     " is not valid in Unicode" );
+    }
+    else if ( c >= 0xDC00 && c <= 0xDFFF ) {
+        uint h = u[u.length()-1];
+        if ( u.length() > 0 && h >= 0xD800 && h <= 0xDBFF ) {
+            u.truncate( u.length()-1 );
+            u.append( ( h - 0xD800 ) * 0x400 +
+                      ( c - 0xDC00 ) +
+                      0x10000 );
+        }
+        else {
+            u.append( 0xFFFD );
+            recordError( "Lone surrogate U+" + fn( c, 16 ) +
+                         " is not valid in Unicode" );
+        }
+    }
+    else {
+        mangleTrailingSurrogate( u );
+        u.append( c );
+    }
+}
+
+
+/*! Checks whether the last codepoint in \a u is a leading surrogate,
+    and flags an error if so.
+*/
+
+void Codec::mangleTrailingSurrogate( UString & u )
+{
+    if ( u.isEmpty() )
+        return;
+    uint c = u[u.length()-1];
+    if ( c < 0xD800 || c > 0xDBFF )
+        return;
+
+    u.truncate( u.length()-1 );
+    u.append( 0xFFFD );
+    recordError( "Lone surrogate U+" + fn( c, 16 ) +
+                 " is not valid in Unicode" );
 }
 
 
@@ -607,10 +658,10 @@ UString AsciiCodec::toUnicode( const String & s )
     while ( i < s.length() ) {
         if ( s[i] == 0 || s[i] > 127 ) {
             recordError( i, s[i] );
-            u.append( 0xFFFD );
+            append( u, 0xFFFD );
         }
         else {
-            u.append( s[i] );
+            append( u, s[i] );
             if ( s[i] < 32 &&
                  s[i] != 10 && s[i] != 13 && s[i] != 9 &&
                  state() == Valid )

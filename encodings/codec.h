@@ -39,6 +39,9 @@ public:
 
     String name() const { return n; }
 
+    void append( UString &, uint );
+    void mangleTrailingSurrogate( UString & );
+
 private:
     State s;
     String n;
