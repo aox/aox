@@ -86,14 +86,10 @@ Items for web site
 
 Various TODO items from earlier releases.
 
-  Webmail.
-
   Message retention policy
 
   - Soft-quota/archival stuff too?
   - Message arrival tag (for archiving)
-
-  more httpd
 
   aoximport could be much faster (disable indices, commit several
   thousand messages at a time in one big transaction), but it's a fair
@@ -110,10 +106,6 @@ Various TODO items from earlier releases.
   SORT (/THREAD?)
 
   Basic administration using the httpd
-
-  (Next: 1.14 items specified before.)
-
-  Message retention policy
 
   httpd:
   - TLS support
