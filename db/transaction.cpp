@@ -113,7 +113,8 @@ void Transaction::clearError()
 
 /*! Sets this Transaction's state() to Failed, and records the error
     message \a s. The first \a query that failed is recorded, and is
-    returned by failedQuery().
+    returned by failedQuery() (but \a query may be 0 if the failure
+    was not specific to a query within the transaction).
 */
 
 void Transaction::setError( Query * query, const String &s )
@@ -122,7 +123,7 @@ void Transaction::setError( Query * query, const String &s )
         return;
 
     Scope x( d->owner->log() );
-    if ( query->canFail() )
+    if ( query && query->canFail() )
         log( s, Log::Debug );
     else
         log( s, Log::Error );
