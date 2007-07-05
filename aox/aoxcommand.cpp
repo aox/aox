@@ -10,14 +10,15 @@
 #include "database.h"
 #include "scope.h"
 
-#include "servers.h"
 #include "users.h"
-#include "mailboxes.h"
-#include "aliases.h"
 #include "stats.h"
+#include "aliases.h"
+#include "servers.h"
 #include "updatedb.h"
 #include "anonymise.h"
+#include "mailboxes.h"
 #include "reparse.h"
+#include "help.h"
 #include "db.h"
 
 #include <stdio.h>
@@ -407,7 +408,7 @@ AoxCommand * AoxCommand::create( StringList * args )
     else {
         if ( verb != "help" )
             args->prepend( new String( verb ) );
-        // cmd = new Help( args );
+        cmd = new Help( args );
     }
 
     return cmd;
