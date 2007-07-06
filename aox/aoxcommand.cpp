@@ -396,6 +396,9 @@ AoxCommand * AoxCommand::create( StringList * args )
         else
             bad( verb, noun, "password, username, address" );
     }
+    else if ( verb == "setacl" ) {
+        cmd = new SetAcl( args );
+    }
     else if ( verb == "vacuum" ) {
         cmd = new Vacuum( args );
     }

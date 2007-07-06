@@ -19,4 +19,16 @@ private:
 };
 
 
+class SetAcl
+    : public AoxCommand
+{
+public:
+    SetAcl( StringList * );
+    void execute();
+
+private:
+    class SetAclData * d;
+};
+
+
 #endif
