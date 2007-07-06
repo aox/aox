@@ -47,6 +47,7 @@ public:
     User * user() const;
 
     static char rightChar( Permissions::Right );
+    static String describe( char );
 
     static bool validRight( char );
     static bool validRights( const String & );

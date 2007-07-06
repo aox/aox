@@ -11,6 +11,21 @@
 
 const char * Permissions::rights = "lrswipkxtean";
 
+static const char * rightNames[Permissions::NumRights] = {
+    "Lookup", // l
+    "Read", // r
+    "Keep Seen", // s
+    "Write", // w
+    "Insert", // i
+    "Post", // p
+    "Create Mailboxes", // k
+    "Delete Mailbox", // x
+    "Delete Messages", // t
+    "Expunge", // e
+    "Admin", // a
+    "Write Shared Annotation", // n
+};
+
 
 class PermissionData
     : public Garbage
@@ -243,6 +258,23 @@ char Permissions::rightChar( Permissions::Right right )
 }
 
 
+/*! Returns a human-readable name for the rights character \a c, or an
+    empty string if the character does not correspond to a validRight()
+    or the virtual 'c' and 'd' rights.
+*/
+
+String Permissions::describe( char c )
+{
+    String r( rights );
+
+    int i = r.find( c );
+    if ( i < 0 )
+        return "";
+
+    return rightNames[i];
+}
+
+
 /*! Returns true only if \a c represents a valid right. */
 
 bool Permissions::validRight( char c )
@@ -451,22 +483,6 @@ bool PermissionsChecker::ready() const
     }
     return true;
 }
-
-
-static const char * rightNames[Permissions::NumRights] = {
-    "Lookup", // l
-    "Read", // r
-    "Keep Seen", // s
-    "Write", // w
-    "Insert", // i
-    "Post", // p
-    "Create Mailboxes", // k
-    "Delete Mailbox", // x
-    "Delete Messages", // t
-    "Expunge", // e
-    "Admin", // a
-    "Write Shared Annotation", // n
-};
 
 
 /*! Returns an error string describing the missing permissions. If
