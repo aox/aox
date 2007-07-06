@@ -22,7 +22,7 @@ BuildInfo buildinfo.inc : buildinfo [ Glob $(TOP) : buildinfo.* ] ;
 Build aox :
     aox.cpp aoxcommand.cpp aliases.cpp servers.cpp db.cpp reparse.cpp
     anonymise.cpp mailboxes.cpp users.cpp stats.cpp updatedb.cpp
-    help.cpp ;
+    rights.cpp help.cpp ;
 
 Program aox :
     aox database schema server mailbox message user core

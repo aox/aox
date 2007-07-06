@@ -183,6 +183,20 @@ void Help::execute()
             "      aox ls aliases /users/\\*\n"
         );
     }
+    else if ( a == "list" && b == "rights" ) {
+        fprintf(
+            stderr,
+            "  list rights -- Display permissions on a mailbox.\n\n"
+            "    Synopsis: aox list rights <mailbox> [username]\n\n"
+            "    Displays a list of users and the rights they have been\n"
+            "    granted to the specified mailbox. If a username is given,\n"
+            "    only that user's rights are displayed.\n\n"
+            "    ls is an acceptable abbreviation for list.\n\n"
+            "    Examples:\n\n"
+            "      aox list rights /archives/mailstore-users anonymous\n"
+            "      aox light right /users/xyzzy/shared\n"
+        );
+    }
     else if ( a == "create" && b == "user" ) {
         fprintf(
             stderr,

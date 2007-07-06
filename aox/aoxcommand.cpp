@@ -18,6 +18,7 @@
 #include "anonymise.h"
 #include "mailboxes.h"
 #include "reparse.h"
+#include "rights.h"
 #include "help.h"
 #include "db.h"
 
@@ -362,8 +363,10 @@ AoxCommand * AoxCommand::create( StringList * args )
             cmd = new ListMailboxes( args );
         else if ( noun == "aliases" )
             cmd = new ListAliases( args );
+        else if ( noun == "rights" )
+            cmd = new ListRights( args );
         else
-            bad( verb, noun, "users, mailboxes, aliases" );
+            bad( verb, noun, "users, mailboxes, aliases, rights" );
     }
     else if ( verb == "create" || verb == "delete" ) {
         String noun = ::next( args ).lower();
