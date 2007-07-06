@@ -22,24 +22,23 @@ int main( int ac, char *av[] )
 {
     Scope global;
 
-    StringList * args = new StringList;
     av++;
     ac--;
 
     uint verbosity = 0;
+
     int i = 0;
     while ( i < ac ) {
         if ( String( av[i] ) == "-v" )
             verbosity++;
-        else if ( String( av[i] ) == "-q" )
-            verbosity = 0;
         else
-            args->append( new String( av[i] ) );
+            break;
         i++;
     }
 
-    /*if ( verbosity )
-        options[(int)'v'] = true;*/
+    StringList * args = new StringList;
+    while ( i < ac )
+        args->append( new String( av[i++] ) );
 
     EventLoop::setup();
 
