@@ -431,9 +431,6 @@ AddressParser::AddressParser( String s )
     // Plan B: Look for '@' signs and scan for addresses around
     // them. Use what's there.
     d->a.clear();
-    d->firstError.truncate();
-    d->recentError.truncate();
-    d->lastComment.truncate();
     int leftBorder = 0;
     int atsign = s.find( '@');
     while ( atsign >= 0 ) {
@@ -457,7 +454,10 @@ AddressParser::AddressParser( String s )
             end++;
         else if ( end > leftBorder && s[end-1] == '.' )
             end--;
-        AddressParser sub( s.mid( leftBorder, end - leftBorder ) );
+        AddressParser sub( "" );
+        sub.d->s = s.mid( leftBorder, end - leftBorder );
+        int i = sub.d->s.length() - 1;
+        sub.address( i );
         if ( sub.error().isEmpty() ) {
             List<Address>::Iterator a( sub.d->a );
             while ( a ) {
@@ -468,6 +468,11 @@ AddressParser::AddressParser( String s )
         atsign = nextAtsign;
         leftBorder = rightBorder;
     }
+    if ( d->a.isEmpty() )
+        return;
+
+    d->firstError.truncate();
+    d->recentError.truncate();
     Address::uniquify( &d->a );
 }
 
@@ -784,8 +789,25 @@ void AddressParser::address( int & i )
                 while ( i > 0 && s[i] == '@' )
                     i--;
                 lp = localpart( i );
-                if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
+                if ( lp.isEmpty() && i >= 0 && s[i] > 127 ) {
                     error( "localpart contains 8-bit character", i );
+                }
+                else if ( s[i] != '<' ) {
+                    int j = i;
+                    while ( j >= 0 &&
+                            ( ( s[j] >= 'a' && s[j] <= 'z' ) ||
+                              ( s[j] >= 'A' && s[j] <= 'Z' ) ||
+                              s[j] == ' ' ) )
+                        j--;
+                    if ( j >= 0 && s[j] == '<' ) {
+                        String tmp = s.mid( j + 1, i - j );
+                        if ( s[i+1] == ' ' )
+                            tmp.append( ' ' );
+                        tmp.append( lp );
+                        lp = tmp;
+                        i = j;
+                    }
+                }
             }
             route( i );
         }
