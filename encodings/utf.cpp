@@ -424,17 +424,29 @@ String Utf7Codec::e( const UString & u )
         t.append( c % 256 );
         i++;
     }
-    return t.e64();
+    return t.e64().mid( 0, ( i * 16 + 5 ) / 6 );
 }
 
 
 String Utf7Codec::fromUnicode( const UString & u )
 {
-    String r;
+    UString u16;
     uint i = 0;
-    uint b = UINT_MAX;
     while ( i < u.length() ) {
-        uint c = u[i];
+        if ( u[i] < 0x10000 ) {
+            u16.append( u[i] );
+        }
+        else {
+            u16.append( 0xD800 + ( ( u[i] - 0x10000 ) >> 10 ) );
+            u16.append( 0xDC00 + ( ( u[i] - 0x10000 ) & 0x3ff ) );
+        }
+        i++;
+    }
+    i = 0;
+    String r;
+    uint b = UINT_MAX;
+    while ( i < u16.length() ) {
+        uint c = u16[i];
         if ( c < 128 &&
              ( ( c >= 'A' && c <= 'Z' ) ||
                ( c >= 'a' && c <= 'z' ) ||
@@ -447,6 +459,10 @@ String Utf7Codec::fromUnicode( const UString & u )
                c == '\'' || c == '(' || c == ')' || c == ',' ||
                c == '-' || c == '.' || c == '/' || c == ':' ||
                c == '?' ||
+// Rule 3: The space (decimal 32), tab (decimal 9), carriage return
+// (decimal 13), and line feed (decimal 10) characters may be
+// directly represented by their ASCII equivalents.
+               c == ' ' || c == 9 || c == 13 ||
 // Set O (optional direct characters) consists of the following
 // characters (note that "\" and "~" are omitted):
                c == '!' || c == '"' || c == '#' || c == '$' ||
@@ -454,8 +470,8 @@ String Utf7Codec::fromUnicode( const UString & u )
                c == '<' || c == '=' || c == '>' || c == '@' ||
                c == '[' || c == ']' || c == '^' || c == '_' ||
                c == '`' || c == '{' || c == '|' || c == '}' ) ) {
-            if ( !u.isEmpty() ) {
-                r.append( e( u.mid( b, i + 1 - b ) ) );
+            if ( b < i ) {
+                r.append( e( u16.mid( b, i - b ) ) );
                 b = UINT_MAX;
                 if ( ( c >= 'A' && c <= 'Z' ) ||
                      ( c >= 'a' && c <= 'z' ) ||
@@ -474,7 +490,7 @@ String Utf7Codec::fromUnicode( const UString & u )
         ++i;
     }
     if ( b < i ) {
-        r.append( e( u.mid( b ) ) );
+        r.append( e( u16.mid( b ) ) );
         r.append( "-" );
     }
     return r;
@@ -498,13 +514,15 @@ UString Utf7Codec::toUnicode( const String & s )
                     ( c >= 'a' && c <= 'z' ) ||
                     ( c >= '0' && c <= '9' ) ||
                     c == '/' || c == '+' || c == '=' )
-                c = s[i++];
+                c = s[++i];
             String e = s.mid( b, i-b ).de64();
             b = 0;
-            while ( b < e.length() - 1 ) {
+            while ( b + 1 < e.length() ) {
                 append( u, 256*e[b] + e[b+1] );
                 b += 2;
             }
+            while ( b < e.length() && e[b] == '\0' )
+                b++;
             if ( b < e.length() ) {
                 recordError( b, s );
                 append( u, 0xFFFD );
@@ -521,6 +539,7 @@ UString Utf7Codec::toUnicode( const String & s )
 }
 
 
+//codec UTF-7 Utf7Codec
 //codec UTF-8 Utf8Codec
 //codec UTF-16 Utf16Codec
 //codec UTF-16BE Utf16BeCodec
