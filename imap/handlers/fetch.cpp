@@ -766,14 +766,37 @@ String Fetch::sectionData( Section * s, Message * m )
         data.append( "\r\n" );
     }
 
-    else if ( s->id.isEmpty() ) {
+    else if ( s->id == "text" ) {
+        if ( s->part.isEmpty() ) {
+            item = "TEXT";
+            data = m->body();
+        }
+        else {
+            item = s->part + ".TEXT";
+            Bodypart *bp = m->bodypart( s->part, false );
+            if ( bp && bp->message() )
+                data = bp->message()->body();
+        }
+        item = "BODY[" + item + "]";
+    }
+
+    else if ( ( s->id.isEmpty() || s->id == "size" ) &&
+              s->part.isEmpty() )
+    {
+        if ( s->id == "size" ) {
+            item = "BINARY.SIZE[]";
+            data = fn( m->rfc822Size() );
+        }
+        else {
+            item = "BODY[]";
+            data = m->rfc822();
+        }
+    }
+
+    else if ( s->id.isEmpty() || s->id == "size" ) {
         item = "BODY";
         Bodypart * bp = m->bodypart( s->part, false );
-        if ( s->part.isEmpty() ) {
-            data = m->rfc822();
-            // if the client asks for BINARY[], we may be wrong. or right.
-        }
-        else if ( !bp ) {
+        if ( !bp ) {
             // nonexistent part number
             if ( s->binary )
                 item = "BINARY";
@@ -818,44 +841,13 @@ String Fetch::sectionData( Section * s, Message * m )
             // content-transfer-encoding.
             data = bp->asText();
         }
-        item = item + "[" + s->part + "]";
-    }
 
-    else if ( s->id == "text" ) {
-        if ( s->part.isEmpty() ) {
-            item = "TEXT";
-            data = m->body();
-        }
-        else {
-            item = s->part + ".TEXT";
-            Bodypart *bp = m->bodypart( s->part, false );
-            if ( bp && bp->message() )
-                data = bp->message()->body();
-        }
-        item = "BODY[" + item + "]";
-    }
-
-    else if ( s->id == "size" ) {
-        if ( s->part.isEmpty() ) {
-            data = fn( m->rfc822Size() );
-        }
-        else {
-            Bodypart * bp = m->bodypart( s->part, false );
-            ContentType * ct = 0;
-            if ( bp )
-                ct = bp->contentType();
-            data = bp->data();
-            if ( data.isEmpty() ) {
-                Codec * c = 0;
-                if ( ct )
-                    c = Codec::byName( ct->parameter( "charset" ) );
-                if ( !c )
-                    c = new Utf8Codec;
-                data = c->fromUnicode( bp->text() );
-            }
+        if ( s->id == "size" ) {
+            item = "BINARY.SIZE";
             data = fn( data.length() );
         }
-        item = "BINARY.SIZE[" + s->part + "]";
+
+        item = item + "[" + s->part + "]";
     }
 
     if ( s->partial ) {
