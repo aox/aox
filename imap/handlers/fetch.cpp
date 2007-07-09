@@ -787,11 +787,10 @@ String Fetch::sectionData( Section * s, Message * m )
         }
         else if ( bp->children()->isEmpty() ) {
             // leaf part
-            ContentType * ct = 0;
-            if ( bp )
-                ct = bp->contentType();
             data = bp->data();
-            if ( ct->type() == "text" ) {
+
+            ContentType * ct = bp->contentType();
+            if ( !ct || ct->type() == "text" ) {
                 UString text;
 
                 if ( data.isEmpty() ) {
@@ -800,7 +799,6 @@ String Fetch::sectionData( Section * s, Message * m )
                 else {
                     Codec * c = new Utf8Codec;
                     text = c->toUnicode( data );
-
                 }
 
                 Codec * c = 0;
