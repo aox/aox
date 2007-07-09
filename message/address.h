@@ -78,6 +78,7 @@ private:
     String atom( int & );
     static String unqp( const String & );
     void route( int & );
+    int findBorder( int, int );
 
     void error( const char *, int );
 

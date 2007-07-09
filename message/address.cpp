@@ -325,6 +325,15 @@ void Address::setName( const UString & n )
 }
 
 
+static struct {
+    int length;
+    const char * name;
+} tld[] = {
+#include "tld.inc"
+    { 0, "" }
+};
+
+
 class AddressParserData
     : public Garbage
 {
@@ -416,10 +425,52 @@ AddressParser::AddressParser( String s )
         }
     }
     Address::uniquify( &d->a );
-    if ( i >= 0 )
-        // there's stuff left over that we can't parse
-        error( "Unable to parse complete address list", i );
+    if ( i < 0 && d->firstError.isEmpty() )
+        return;
+
+    // Plan B: Look for '@' signs and scan for addresses around
+    // them. Use what's there.
+    d->a.clear();
+    d->firstError.truncate();
+    d->recentError.truncate();
+    d->lastComment.truncate();
+    int leftBorder = 0;
+    int atsign = s.find( '@');
+    while ( atsign >= 0 ) {
+        int nextAtsign = s.find( '@', atsign + 1 );
+        int rightBorder;
+        if ( nextAtsign < 0 )
+            rightBorder = s.length();
+        else
+            rightBorder = findBorder( atsign + 1, nextAtsign - 1 );
+        if ( leftBorder > 0 && 
+             ( d->s[leftBorder] == '.' || d->s[leftBorder] == '>' ) )
+            leftBorder++;
+        int end = atsign + 1;
+        while ( end <= rightBorder &&
+                ( ( s[end] >= 'a' && s[end] <= 'z' ) ||
+                  ( s[end] >= 'A' && s[end] <= 'Z' ) ||
+                  ( s[end] >= '0' && s[end] <= '9' ) ||
+                  s[end] == '.' || s[end] == '-' ) )
+            end++;
+        if ( end <= rightBorder && s[end] == '>' )
+            end++;
+        else if ( end > leftBorder && s[end-1] == '.' )
+            end--;
+        AddressParser sub( s.mid( leftBorder, end - leftBorder ) );
+        if ( sub.error().isEmpty() ) {
+            List<Address>::Iterator a( sub.d->a );
+            while ( a ) {
+                d->a.append( a );
+                ++a;
+            }
+        }
+        atsign = nextAtsign;
+        leftBorder = rightBorder;
+    }
+    Address::uniquify( &d->a );
 }
+
 
 
 /*! Destroys the object. */
@@ -427,6 +478,102 @@ AddressParser::AddressParser( String s )
 AddressParser::~AddressParser()
 {
     delete d;
+}
+
+
+/*! Finds the point between \a left and \a right which is most likely
+    to be the border between two addresses. Mucho heuristics. Never
+    used for correct addresses, only when we're grasping at straws.
+
+    Both \a left and \a right are considered to be possible borders,
+    but a border between the extremes is preferred if possible.
+*/
+
+int AddressParser::findBorder( int left, int right )
+{
+    // if there's only one chance, that _is_ the border.
+    if ( right <= left )
+        return left;
+
+    // comma?
+    int b = d->s.find( ',', left );
+    if ( b >= left && b <= right )
+        return b;
+
+    // semicolon? perhaps we should also guard against a dot?
+    b = d->s.find( ';', left );
+    if ( b >= left && b <= right )
+        return b;
+
+    // less-than or greater-than? To: <asdf@asdf.asdf><asdf@asdf.asdf>
+    b = d->s.find( '<', left );
+    if ( b >= left && b <= right )
+        return b;
+    b = d->s.find( '>', left );
+    if ( b >= left && b <= right )
+        return b;
+
+    // whitespace?
+    b = left;
+    while ( b <= right &&
+            d->s[b] != ' ' && d->s[b] != '\t' &&
+            d->s[b] != '\r' && d->s[b] != '\n' )
+        b++;
+    if ( b >= left && b <= right )
+        return b;
+
+    // try to scan for end of the presumed right-hand-side domain
+    b = left;
+    int dot = b;
+    while ( b <= right ) {
+        bool any = false;
+        while ( b <= right &&
+                ( ( d->s[b] >= 'a' && d->s[b] <= 'z' ) ||
+                  ( d->s[b] >= 'A' && d->s[b] <= 'Z' ) ||
+                  ( d->s[b] >= '0' && d->s[b] <= '9' ) ||
+                  d->s[b] == '-' ) ) {
+            any = true;
+            b++;
+        }
+        // did we see a domain component at all?
+        if ( !any ) {
+            if ( b > left && d->s[b-1] == '.' )
+                return b-1; // no, but we just saw a dot, make that the border
+            return b; // no, and no dot, so put the border here
+        }
+        if ( b <= right ) {
+            // if we don't see a dot here, the domain cannot go on
+            if ( d->s[b] != '.' )
+                return b;
+            dot = b;
+            b++;
+            // see if the next domain component is a top-level domain
+            uint i = 0;
+            while ( tld[i].length ) {
+                if ( b + tld[i].length <= right ) {
+                    char c = d->s[b + tld[i].length];
+                    if ( !( c >= 'a' && c <= 'z' ) &&
+                         !( c >= 'A' && c <= 'Z' ) &&
+                         !( c >= '0' && c <= '9' ) ) {
+                        if ( d->s.mid( b, tld[i].length ).lower() ==
+                             tld[i].name )
+                            return b + tld[i].length;
+                    }
+                }
+                i++;
+            }
+        }
+    }
+    // the entire area is legal in a domain, but we have to draw the
+    // line somewhere, so if we've seen one or more dots in the
+    // middle, we use the rightmost dot.
+    if ( dot > left && dot < right )
+        return dot;
+
+    // the entire area is a single word. what can we do?
+    if ( right + 1 >= (int)d->s.length() )
+        return right;
+    return left;
 }
 
 
