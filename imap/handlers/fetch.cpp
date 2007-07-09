@@ -791,13 +791,24 @@ String Fetch::sectionData( Section * s, Message * m )
             if ( bp )
                 ct = bp->contentType();
             data = bp->data();
-            if ( data.isEmpty() ) {
+            if ( ct->type() == "text" ) {
+                UString text;
+
+                if ( data.isEmpty() ) {
+                    text = bp->text();
+                }
+                else {
+                    Codec * c = new Utf8Codec;
+                    text = c->toUnicode( data );
+
+                }
+
                 Codec * c = 0;
                 if ( ct )
                     c = Codec::byName( ct->parameter( "charset" ) );
                 if ( !c )
                     c = new Utf8Codec;
-                data = c->fromUnicode( bp->text() );
+                data = c->fromUnicode( text );
             }
             if ( s->binary )
                 item = "BINARY";
