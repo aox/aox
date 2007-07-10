@@ -831,9 +831,7 @@ String Fetch::sectionData( Section * s, Message * m )
                     c = new Utf8Codec;
                 data = c->fromUnicode( text );
             }
-            if ( s->binary )
-                item = "BINARY";
-            else
+            if ( !s->binary )
                 data = data.encode( bp->contentTransferEncoding(), 70 );
         }
         else {
@@ -841,6 +839,9 @@ String Fetch::sectionData( Section * s, Message * m )
             // content-transfer-encoding.
             data = bp->asText();
         }
+
+        if ( s->binary )
+            item = "BINARY";
 
         if ( s->id == "size" ) {
             item = "BINARY.SIZE";
