@@ -10,8 +10,10 @@
 #include "stringlist.h"
 #include "allocator.h"
 #include "address.h"
+#include "ustring.h"
 #include "dict.h"
 #include "md5.h"
+#include "utf.h"
 
 
 class SchemaData
@@ -386,6 +388,8 @@ bool Schema::singleStep()
         c = stepTo53(); break;
     case 53:
         c = stepTo54(); break;
+    case 54:
+        c = stepTo55(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2383,6 +2387,59 @@ bool Schema::stepTo54()
 
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Convert mUTF-7 mailbox names to UTF-8. */
+
+bool Schema::stepTo55()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Converting mUTF-7 mailbox names to UTF-8" );
+        d->q = new Query( "select id, name from mailboxes where "
+                          "name like '%&%'", this );
+        d->t->enqueue( d->q );
+        d->update = 0;
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        while ( d->q->hasResults() ) {
+            Row * r = d->q->nextRow();
+
+            MUtf7Codec mu;
+            Utf8Codec u;
+
+            String oldName( r->getString( "name" ) );
+            String newName( u.fromUnicode( mu.toUnicode( oldName ) ) );
+
+            if ( mu.wellformed() && oldName != newName ) {
+                Query * q =
+                    new Query( "update mailboxes set name=$1 "
+                               "where id=$2", this );
+                d->update = q;
+                q->bind( 1, newName );
+                q->bind( 2, r->getInt( "id" ) );
+                d->t->enqueue( q );
+                d->t->execute();
+            }
+        }
+
+        if ( !d->q->done() )
+            return false;
+
+        d->substate = 2;
+    }
+
+    if ( d->substate == 2 ) {
+        if ( d->update && !d->update->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
         d->substate = 0;
