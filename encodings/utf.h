@@ -69,6 +69,17 @@ public:
 
 protected:
     String e( const UString & );
+    Utf7Codec( bool );
+    
+private:
+    bool broken;
+};
+
+
+class MUtf7Codec: public Utf7Codec
+{
+public:
+    MUtf7Codec();
 };
 
 

@@ -402,7 +402,7 @@ UString Utf16BeCodec::toUnicode( const String & s )
 */
 
 Utf7Codec::Utf7Codec()
-    : Codec( "UTF-7" )
+    : Codec( "UTF-7" ), broken( false )
 {
 }
 
@@ -413,7 +413,8 @@ Utf7Codec::Utf7Codec()
 
 String Utf7Codec::e( const UString & u )
 {
-    if ( u == "+" )
+    if ( u.length() == 1 &&
+         u[0] == ( broken ? '&' : '+' ) )
         return "";
 
     String t;
@@ -424,7 +425,19 @@ String Utf7Codec::e( const UString & u )
         t.append( c % 256 );
         i++;
     }
-    return t.e64().mid( 0, ( i * 16 + 5 ) / 6 );
+    String e = t.e64().mid( 0, ( i * 16 + 5 ) / 6 );
+    if ( !broken )
+        return e;
+    String b;
+    i = 0;
+    while ( i < e.length() ) {
+        if ( e[i] == '/' )
+            b.append( ',' );
+        else
+            b.append( e[i] );
+        ++i;
+    }
+    return b;
 }
 
 
@@ -466,24 +479,30 @@ String Utf7Codec::fromUnicode( const UString & u )
 // Set O (optional direct characters) consists of the following
 // characters (note that "\" and "~" are omitted):
                c == '!' || c == '"' || c == '#' || c == '$' ||
-               c == '%' || c == '&' || c == '*' || c == ';' ||
+               c == '%' ||             c == '*' || c == ';' ||
                c == '<' || c == '=' || c == '>' || c == '@' ||
                c == '[' || c == ']' || c == '^' || c == '_' ||
-               c == '`' || c == '{' || c == '|' || c == '}' ) ) {
+               c == '`' || c == '{' || c == '|' || c == '}' ||
+// MUTF-7 removes & from set O, and adds +
+               c == ( broken ? '+' : '&' ) ) ) {
             if ( b < i ) {
                 r.append( e( u16.mid( b, i - b ) ) );
                 b = UINT_MAX;
                 if ( ( c >= 'A' && c <= 'Z' ) ||
                      ( c >= 'a' && c <= 'z' ) ||
                      ( c >= '0' && c <= '9' ) ||
-                     c == '/' || c == '+' || c == '-' )
+                     c == '/' || c == '+' || c == '-' ||
+                     broken )
                     r.append( "-" );
             }
             r.append( c );
         }
         else {
             if ( b > i ) {
-                r.append( '+' );
+                if ( broken )
+                    r.append( '&' );
+                else
+                    r.append( '+' );
                 b = i;
             }
         }
@@ -499,23 +518,43 @@ String Utf7Codec::fromUnicode( const UString & u )
 
 UString Utf7Codec::toUnicode( const String & s )
 {
+    char shift = '+';
+    if ( broken )
+        shift = '&';
     UString u;
     uint i = 0;
     while ( i < s.length() ) {
         char c = s[i++];
-        if ( c == '+' && s[i] == '-' ) {
-            append( u, '+' );
+        if ( c == shift && s[i] == '-' ) {
+            append( u, shift );
             i++;
         }
-        else if ( c == '+' ) {
+        else if ( c == shift ) {
             c = s[i];
             uint b = i;
-            while ( ( c >= 'A' && c <= 'Z' ) ||
-                    ( c >= 'a' && c <= 'z' ) ||
-                    ( c >= '0' && c <= '9' ) ||
-                    c == '/' || c == '+' || c == '=' )
-                c = s[++i];
-            String e = s.mid( b, i-b ).de64();
+            String e;
+            if ( broken ) {
+                String ohno;
+                while ( ( c >= 'A' && c <= 'Z' ) ||
+                        ( c >= 'a' && c <= 'z' ) ||
+                        ( c >= '0' && c <= '9' ) ||
+                        c == ',' || c == '+' || c == '=' ) {
+                    if ( c == ',' )
+                        ohno.append( '/' );
+                    else
+                        ohno.append( c );
+                    c = s[++i];
+                }
+                e = ohno.de64();
+            }
+            else {
+                while ( ( c >= 'A' && c <= 'Z' ) ||
+                        ( c >= 'a' && c <= 'z' ) ||
+                        ( c >= '0' && c <= '9' ) ||
+                        c == '/' || c == '+' || c == '=' )
+                    c = s[++i];
+                e = s.mid( b, i-b ).de64();
+            }
             b = 0;
             while ( b + 1 < e.length() ) {
                 append( u, 256*e[b] + e[b+1] );
@@ -536,6 +575,30 @@ UString Utf7Codec::toUnicode( const String & s )
     }
     mangleTrailingSurrogate( u );
     return u;
+}
+
+
+/*! This protected helper is used to help MUtf7Codec. It's an ugly
+    hack, and I consider it entirely apposite.
+*/
+
+Utf7Codec::Utf7Codec( bool )
+    : Codec( "MUTF-7" ), broken( true )
+{
+}
+
+
+/*! \class MUtf7Codec utf.h
+
+    The MUtf7Codec class provides the modified UTF-7 encoding
+    described in RFC 3501. It is not used as a Codec in general, only
+    to encode/decode mailbox names by IMAP (and by the database during
+    one schema upgrade).
+*/
+
+MUtf7Codec::MUtf7Codec()
+    : Utf7Codec( true )
+{
 }
 
 
