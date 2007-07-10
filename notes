@@ -10,8 +10,6 @@
 
   aox redesign/rewrite to get better, more maintainable code.
 
-  Arnt is away from 2007-06-27 to 2007-07-05.
-
 
 2.03: 2007-09-10
 
@@ -522,9 +520,6 @@ Split the folder view into pages.
 
   Need to decide on what a page is. "Most recent 25 threads" is a
   slippery concept when a new thread is created while reading mail.
-
-
-We need mUTF-7 support.
 
 
 Write better field wrapping code
