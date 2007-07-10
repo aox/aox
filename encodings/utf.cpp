@@ -555,6 +555,8 @@ UString Utf7Codec::toUnicode( const String & s )
                     c = s[++i];
                 e = s.mid( b, i-b ).de64();
             }
+            if ( i >= s.length() && wellformed() )
+                setState( BadlyFormed );
             b = 0;
             while ( b + 1 < e.length() ) {
                 append( u, 256*e[b] + e[b+1] );
@@ -578,13 +580,15 @@ UString Utf7Codec::toUnicode( const String & s )
 }
 
 
-/*! This protected helper is used to help MUtf7Codec. It's an ugly
-    hack, and I consider it entirely apposite.
+/*! This protected helper is used to help MUtf7Codec. The \a unused
+    argument is just that, unused. It's an ugly hack, and I consider
+    it entirely apposite.
 */
 
-Utf7Codec::Utf7Codec( bool )
+Utf7Codec::Utf7Codec( bool unused )
     : Codec( "MUTF-7" ), broken( true )
 {
+    unused = unused;
 }
 
 

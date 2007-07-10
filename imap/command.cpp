@@ -3,6 +3,7 @@
 #include "command.h"
 
 #include "log.h"
+#include "utf.h"
 #include "imap.h"
 #include "user.h"
 #include "buffer.h"
@@ -1059,19 +1060,25 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
 }
 
 
-/*! Returns the Mailbox corresponding to \a name. This is a
-    convenience function that really wraps User::mailboxName().
+/*! Returns the Mailbox corresponding to \a name, which must be
+    encoded either in UTF-8 or mUTF-7. If there isn't any such
+    mailbox, mailbox() returns 0.
 */
 
 class Mailbox * Command::mailbox( const String & name ) const
 {
-    return Mailbox::find( mailboxName( name ) );
+    MUtf7Codec m;
+    UString u = m.toUnicode( name );
+    if ( !m.wellformed() )
+        return Mailbox::find( mailboxName( name ) );
+    Utf8Codec c;
+    return Mailbox::find( mailboxName( c.fromUnicode( u ) ) );
 }
 
 
-/*! Returns the canonical name of the mailbox to which \a name
-    refers. This is a convenience function that really wraps
-    User::mailboxName().
+/*! Returns the canonical name of the mailbox to which \a name refers,
+    or an empty string if there isn't currently a logged-in user.  \a
+    name must be encoded either in UTF-8 or mUTF-7.
 */
 
 String Command::mailboxName( const String & name ) const
@@ -1079,7 +1086,13 @@ String Command::mailboxName( const String & name ) const
     User * u = imap()->user();
     if ( !u )
         return "";
-    return u->mailboxName( name );
+
+    MUtf7Codec m;
+    UString un( m.toUnicode( name ) );
+    if ( !m.wellformed() )
+        return u->mailboxName( name );
+    Utf8Codec c;
+    return u->mailboxName( c.fromUnicode( un ) );
 }
 
 
