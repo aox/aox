@@ -5,6 +5,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "configuration.h"
+#include "permissions.h"
 #include "stringlist.h"
 #include "webpage.h"
 #include "utf.h"
@@ -721,6 +722,9 @@ void Link::parse( const String & s )
     else {
         d->webpage = errorPage( this );
     }
+
+    if ( webPage() && mailbox() )
+        webPage()->requireRight( mailbox(), Permissions::Read );
 }
 
 
