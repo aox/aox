@@ -6,9 +6,11 @@
 #include "stringlist.h"
 #include "address.h"
 #include "mailbox.h"
+#include "ustring.h"
 #include "query.h"
 #include "user.h"
 #include "map.h"
+#include "utf.h"
 
 
 class ListextData
@@ -375,6 +377,16 @@ void Listext::sendListResponse( Mailbox * mailbox )
         refName.append( "/" );
     if ( name.startsWith( refName ) )
         name = d->referenceName + mailbox->name().mid( refName.length() );
+    uint i = 0;
+    while ( i < name.length() &&
+            name[i] != '&' &&
+            name[i] < 128 )
+        i++;
+    if ( i < name.length() ) {
+        Utf8Codec u8;
+        MUtf7Codec mu;
+        name = mu.fromUnicode( u8.toUnicode( name ) );
+    }
     name = imapQuoted( name, AString );
 
     String ext = "";

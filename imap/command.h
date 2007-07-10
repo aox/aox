@@ -88,9 +88,6 @@ public:
     static String imapQuoted( const String &,
                               const QuoteMode = PlainString );
 
-    String deMUtf7( const String & );
-    String mUtf7( const String & );
-
     void shrink( MessageSet * );
 
     class Mailbox * mailbox( const String & ) const;
