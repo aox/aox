@@ -270,7 +270,17 @@ String ArchiveMailbox::timespan( const MessageSet & uids ) const
     n.setCurrentTime();
     
     String r;
-    if ( o.year() < y.year() ) {
+    if ( y.year() == o.year() &&
+         y.month() == o.month() &&
+         y.day() == o.day() ) {
+        // a single day
+        r = fn( o.day() ) + " " + monthnames[o.month()-1];
+        if ( o.year() < n.year() ) {
+            r.append( " " );
+            r.append( fn( o.year() ) );
+        }
+    }
+    else if ( o.year() < y.year() ) {
         // spans years
         r.append( monthnames[o.month()-1] );
         r.append( " " );
