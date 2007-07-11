@@ -225,6 +225,8 @@ void Stop::execute()
             i++;
         }
     }
+
+    finish();
 }
 
 
