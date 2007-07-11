@@ -27,8 +27,7 @@ class WebPageData
 public:
     WebPageData()
         : link( 0 ), checker( 0 ), responded( false ),
-          user( 0 ), mailbox( 0 ), rights( Permissions::Read ),
-          uniq( 0 )
+          user( 0 ), uniq( 0 )
     {}
 
     Link * link;
@@ -36,8 +35,6 @@ public:
     PermissionsChecker * checker;
     bool responded;
     User * user;
-    Mailbox * mailbox;
-    Permissions::Right rights;
     uint uniq;
 };
 
@@ -91,6 +88,9 @@ Link * WebPage::link() const
 void WebPage::execute()
 {
     if ( d->responded )
+        return;
+
+    if ( !permitted() )
         return;
 
     // XXX: Sub-sub-components don't work right now, because this loop
@@ -169,15 +169,6 @@ void WebPage::execute()
 
 void WebPage::requireRight( Mailbox * m, Permissions::Right r )
 {
-    if ( d->mailbox == m && d->rights == r )
-        return;
-
-    // XXX: this isn't as documented, and I think the documentation is
-    // right. it implies that multiple rights and multiple mailboxes
-    // are possible.
-    d->mailbox = m;
-    d->rights = r;
-
     HTTP * server = d->link->server();
     String login( server->parameter( "login" ) );
 
@@ -194,6 +185,13 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
     else if ( server->session() ) {
         d->user = server->session()->user();
     }
+
+    if ( !d->checker )
+        d->checker = new PermissionsChecker;
+    Permissions * p = d->checker->permissions( m, d->user );
+    if ( !p )
+        p = new Permissions( m, d->user, this );
+    d->checker->require( p, r );
 }
 
 
@@ -222,23 +220,13 @@ bool WebPage::permitted()
     if ( d->user->state() == User::Unverified )
         return false;
 
-    if ( !d->checker ) {
-        d->checker = new PermissionsChecker;
-
-        Permissions * p = d->checker->permissions( d->mailbox, d->user );
-        if ( !p )
-            p = new Permissions( d->mailbox, d->user, this );
-
-        d->checker->require( p, d->rights );
-    }
-
-    if ( !d->checker->ready() )
+    if ( d->checker && !d->checker->ready() )
         return false;
 
     HTTP * server = d->link->server();
 
     if ( d->link->type() == Link::Archive ) {
-        if ( d->checker->allowed() )
+        if ( d->checker && d->checker->allowed() )
             return true;
         d->responded = true;
         server->setStatus( 403, "Forbidden" );
@@ -250,6 +238,7 @@ bool WebPage::permitted()
         String passwd( server->parameter( "passwd" ) );
         if ( d->user->state() == User::Nonexistent ||
              d->user->secret() != passwd ||
+             !d->checker ||
              !d->checker->allowed() )
         {
             // XXX: addComponent( WhatWentWrong );
