@@ -172,7 +172,10 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
     HTTP * server = d->link->server();
     String login( server->parameter( "login" ) );
 
-    if ( d->link->type() == Link::Archive ) {
+    if ( d->user ) {
+        // leave it
+    }
+    else if ( d->link->type() == Link::Archive ) {
         d->user = new User;
         d->user->setLogin( "anonymous" );
         d->user->refresh( this );
@@ -209,9 +212,16 @@ bool WebPage::permitted()
     if ( d->responded )
         return false;
 
+    // If we don't have a checker, we permit the request. Link gives
+    // us a checker as soon as it sees a mailbox name in the URL, so
+    // this should be true only for a few globally accessibly pages.
+    if ( !d->checker )
+        return true;
+
     if ( !d->user ) {
         d->responded = true;
         WebPage * wp = new WebPage( d->link );
+        wp->d->checker = 0; // no checker for the login form
         wp->addComponent( new LoginForm );
         wp->execute();
         return false;
