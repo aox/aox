@@ -22,7 +22,7 @@ class SpoolManagerData
 public:
     SpoolManagerData()
         : q( 0 ), remove( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 ), uidnext( 0 ), again( false ), log( 0 )
+          agent( 0 ), uidnext( 0 ), again( false ), spooled( false ), log( 0 )
     {}
 
     Query * q;
@@ -33,6 +33,7 @@ public:
     DeliveryAgent * agent;
     uint uidnext;
     bool again;
+    bool spooled;
     Log * log;
 };
 
@@ -122,6 +123,9 @@ void SpoolManager::execute()
                                  d->agent->log()->id() );
                 d->remove->execute();
             }
+            else {
+                d->spooled = true;
+            }
 
             if ( d->remove && !d->remove->done() )
                 return;
@@ -145,8 +149,9 @@ void SpoolManager::execute()
             d->client->logout();
         d->client = 0;
         reset();
-        d->t = new Timer( this, 300 );
         log( "Ending queue run" );
+        if ( d->spooled )
+            d->t = new Timer( this, 300 );
     }
 }
 
@@ -174,6 +179,7 @@ void SpoolManager::reset()
     d->agent = 0;
     d->remove = 0;
     d->again = false;
+    d->spooled = false;
 }
 
 
