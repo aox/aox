@@ -2,6 +2,7 @@
 
 #include "webpage.h"
 
+#include "map.h"
 #include "link.h"
 #include "http.h"
 #include "query.h"
@@ -19,6 +20,10 @@
 #include "utf.h"
 
 #include "components/loginform.h"
+
+
+static User * archiveUser;
+static Map<Permissions> * archiveMailboxPermissions;
 
 
 class WebPageData
@@ -176,9 +181,13 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
         // leave it
     }
     else if ( d->link->type() == Link::Archive ) {
-        d->user = new User;
-        d->user->setLogin( "anonymous" );
-        d->user->refresh( this );
+        if ( !::archiveUser ) {
+            ::archiveUser = new User;
+            ::archiveUser->setLogin( "anonymous" );
+            ::archiveUser->refresh( this );
+            Allocator::addEternal( ::archiveUser, "anonymous archive user" );
+        }
+        d->user = ::archiveUser;
     }
     else if ( !login.isEmpty() ) {
         d->user = new User;
@@ -192,8 +201,27 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
     if ( !d->checker )
         d->checker = new PermissionsChecker;
     Permissions * p = d->checker->permissions( m, d->user );
-    if ( !p )
+    bool anon = false;
+    if ( d->user->login() == "anonymous" )
+        anon = true;
+    if ( p ) {
+        // just use that
+    }
+    else if ( !anon ) {
         p = new Permissions( m, d->user, this );
+    }
+    else {
+        if ( !::archiveMailboxPermissions ) {
+            ::archiveMailboxPermissions = new Map<Permissions>;
+            Allocator::addEternal( ::archiveMailboxPermissions,
+                                   "permissions checkers for archives" );
+        }
+        p = ::archiveMailboxPermissions->find( m->id() );
+        if ( !p ) {
+            p = new Permissions( m, d->user, this );
+            ::archiveMailboxPermissions->insert( m->id(), p );
+        }
+    }
     d->checker->require( p, r );
 }
 
