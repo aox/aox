@@ -292,7 +292,12 @@ String ArchiveMailbox::timespan( const MessageSet & uids ) const
     }
     else if ( y.year() * 12 + y.month() + 3 >= n.year() * 12 + n.month() ) {
         // less than tree months old
-        r = fn( o.day() ) + " " + monthnames[o.month()-1];
+        r = fn( o.day() );
+        if ( o.year() != y.year() ||
+             o.month() != y.month() ) {
+            r.append( " " );
+            r.append( monthnames[o.month()-1] );
+        }
         if ( o.year() < n.year() ) {
             r.append( " " );
             r.append( fn( o.year() ) );
@@ -301,7 +306,7 @@ String ArchiveMailbox::timespan( const MessageSet & uids ) const
         r.append( fn( y.day() ) );
         r.append( " " );
         r.append( monthnames[y.month()-1] );
-        if ( y.year() < n.year() ) {
+        if ( o.year() < y.year() || y.year() < n.year() ) {
             r.append( " " );
             r.append( fn( y.year() ) );
         }
