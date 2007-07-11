@@ -4,6 +4,7 @@
 
 #include "string.h"
 #include "ustring.h"
+#include "stringlist.h"
 
 #include "cp.h"
 #include "koi.h"
@@ -189,6 +190,25 @@ static struct {
 #include "codec-aliases.inc"
     { 0, 0 }
 };
+
+
+/*! Returns a list of all canonical codec names. Aliases are not
+    included in the list.
+*/
+
+StringList Codec::allCodecNames()
+{
+    StringList r;
+    int i = 0;
+    while ( codecaliases[i].alias ) {
+        String s = codecaliases[i].name;
+        s = s.lower();
+        if ( s == codecaliases[i].alias )
+            r.append( s );
+        i++;
+    }
+    return r;
+}
 
 
 /*! Looks up \a s in our list of MIME character set names and returns

@@ -651,9 +651,20 @@ void Search::setCharset( const String &s )
 {
     d->charset = s;
     d->codec = Codec::byName( d->charset );
-    if ( d->codec == 0 )
-        error( No, "[BADCHARSET] Unknown character encoding: " +
-               d->charset );
+    if ( d->codec )
+        return;
+
+    String r = "[BADCHARSET";
+    StringList::Iterator i( Codec::allCodecNames() );
+    while ( i ) {
+        r.append( " " );
+        r.append( imapQuoted( *i, AString ) );
+        ++i;
+    }
+    r.append( "] Unknown character encoding: " );
+    r.append( d->charset.simplified() );
+
+    error( No, r );
 }
 
 

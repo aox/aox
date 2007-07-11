@@ -42,6 +42,8 @@ public:
     void append( UString &, uint );
     void mangleTrailingSurrogate( UString & );
 
+    static class StringList allCodecNames();
+
 private:
     State s;
     String n;
