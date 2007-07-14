@@ -281,6 +281,20 @@ void Help::execute()
             "    with a mailbox.\n"
         );
     }
+    else if ( a == "setacl" ) {
+        fprintf(
+            stderr,
+            "  setacl -- Manipulate permissions on a mailbox.\n\n"
+            "    Synopsis: setacl [-d] <mailbox> <identifier> <rights>\n\n"
+            "    Assigns the specified rights to the given identifier on the\n"
+            "    mailbox. If the rights begin with + or -, the specified rights\n"
+            "    are added to or subtracted from the existing rights; otherwise,\n"
+            "    the rights are set to exactly those given.\n\n"
+            "    With -d, the identifier's rights are deleted altogether.\n\n"
+            "    A summary of the changes made is displayed when the operation\n"
+            "    completes.\n"
+        );
+    }
     else if ( a == "vacuum" ) {
         fprintf(
             stderr,
