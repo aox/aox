@@ -252,12 +252,16 @@ void Help::execute()
             "    names are assumed to be under the user's home directory.\n"
         );
     }
-    else if ( a == "delete" && b == "mailbox" ) {
+    else if ( a == "delete" &&
+              ( b == "mailbox" || b == "view" ) )
+    {
         fprintf(
             stderr,
             "  delete mailbox -- Delete a mailbox.\n\n"
             "    Synopsis: aox delete mailbox <name>\n\n"
-            "    Deletes the specified mailbox.\n"
+            "    Deletes the specified mailbox.\n\n"
+            "    This command is synonymous with \"aox delete view\", and may\n"
+            "    be used to delete mailboxes created with \"aox create view\".\n"
         );
     }
     else if ( a == "create" && b == "alias" ) {

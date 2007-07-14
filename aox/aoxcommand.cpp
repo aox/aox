@@ -19,6 +19,7 @@
 #include "mailboxes.h"
 #include "reparse.h"
 #include "rights.h"
+#include "views.h"
 #include "help.h"
 #include "db.h"
 
@@ -376,14 +377,17 @@ AoxCommand * AoxCommand::create( StringList * args )
             cmd = new DeleteUser( args );
         else if ( verb == "create" && noun == "mailbox" )
             cmd = new CreateMailbox( args );
-        else if ( verb == "delete" && noun == "mailbox" )
+        else if ( verb == "delete" &&
+                  ( noun == "mailbox" || noun == "view" ) )
             cmd = new DeleteMailbox( args );
         else if ( verb == "create" && noun == "alias" )
             cmd = new CreateAlias( args );
         else if ( verb == "delete" && noun == "alias" )
             cmd = new DeleteAlias( args );
+        else if ( verb == "create" && noun == "view" )
+            cmd = new CreateView( args );
         else
-            bad( verb, noun, "user, mailbox, alias" );
+            bad( verb, noun, "user, mailbox, alias, view" );
     }
     else if ( verb == "change" ) {
         String noun = ::next( args ).lower();
