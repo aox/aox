@@ -1166,7 +1166,7 @@ static int getEntropySourceData( struct RI *dataSource, BYTE *bufPtr,
    real-world testing, which would have to be repeated for any new version */
 
 #define SHARED_BUFSIZE		49152	/* Usually about 25K are filled */
-#define SLOWPOLL_TIMEOUT	30		/* Time out after 30 seconds */
+#define SLOWPOLL_TIMEOUT	5		/* Time out after 5 seconds */
 
 void slowPoll( void )
 	{
