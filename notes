@@ -442,6 +442,9 @@ Using rrdtool
   - concurrent connections (per protocol)
   - logins (per protocol)
   - login failures (per protocol)
+  - queries executed per second
+  - average query execution time
+  - average query queue size
 
   More?
 

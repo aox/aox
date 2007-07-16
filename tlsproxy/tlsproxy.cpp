@@ -42,6 +42,7 @@ int main( int argc, char *argv[] )
     Scope global;
 
     Server s( "tlsproxy", argc, argv );
+    s.setChrootMode( Server::TlsProxyDir );
     s.setup( Server::Report );
 
     // let cryptlib set up while still root, so it can read files etc.

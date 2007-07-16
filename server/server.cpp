@@ -506,6 +506,12 @@ void Server::secure()
     case JailDir:
         root = Configuration::text( Configuration::JailDir );
         break;
+    case TlsProxyDir:
+        root = Configuration::compiledIn( Configuration::LibDir );
+        if ( !root.endsWith( "/" ) )
+            root.append( "/" );
+        root.append( "tlsproxy" );
+        break;
     case LogDir:
         root = Configuration::text( Configuration::LogFile );
         uint i = root.length();
