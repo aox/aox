@@ -18,7 +18,7 @@
 
 // cryptlib
 #include "cryptlib.h"
-// fork()
+// fork(), unlink()
 #include <sys/types.h>
 #include <unistd.h>
 // errno
@@ -30,6 +30,7 @@
 
 
 static void setupKey();
+static void setupSelfSigned( String, String, String );
 static void generateKey( String, String, String );
 static void handleError( int, const String & );
 static String cryptlibError( int );
@@ -87,32 +88,20 @@ static void setupKey()
     int status;
     CRYPT_KEYSET keyset;
 
-    // XXX: Should we be using hardcoded values here?
     String label( "Archiveopteryx private key" );
     String secret( "secret" );
 
     String keyFile( Configuration::text( Configuration::TlsCertFile ) );
+
     if ( keyFile.isEmpty() ) {
         String file( Configuration::compiledIn( Configuration::LibDir ) );
         file.append( "/automatic-key.p15" );
+        setupSelfSigned( file, label, secret );
+        return;
+    }
 
-        status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
-                                  file.cstr(), CRYPT_KEYOPT_NONE );
-        if ( status == CRYPT_OK ) {
-            status = cryptGetPrivateKey( keyset, &privateKey,
-                                         CRYPT_KEYID_NAME,
-                                         label.cstr(), secret.cstr() );
-        }
-        if ( status != CRYPT_OK ) {
-            if ( isOpenSslCert( file ) )
-                return;
-            generateKey( file, label, secret );
-        }
+    if ( isOpenSslCert( keyFile ) )
         return;
-    }
-    else if ( isOpenSslCert( keyFile ) ) {
-        return;
-    }
 
     status = cryptCreateContext( &privateKey, CRYPT_UNUSED,
                                  CRYPT_ALGO_RSA );
@@ -126,16 +115,56 @@ static void setupKey()
 }
 
 
+static void setupSelfSigned( String file, String label, String secret )
+{
+    int status = 0;
+
+    // Check if we can use the existing key.
+
+    status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
+    handleError( status, "cryptCreateContext" );
+
+    CRYPT_KEYSET keyset;
+    status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
+                              file.cstr(), CRYPT_KEYOPT_NONE );
+    if ( status == CRYPT_OK )
+        status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+                                     label.cstr(), secret.cstr() );
+
+    CRYPT_CONTEXT publicKey;
+    if ( status == CRYPT_OK )
+        status = cryptGetPublicKey( keyset, &publicKey, CRYPT_KEYID_NAME,
+                                    label.cstr() );
+
+    int length = 0;
+    char name[ CRYPT_MAX_TEXTSIZE+1 ];
+    if ( status == CRYPT_OK ) {
+        status = cryptGetAttributeString( publicKey, CRYPT_CERTINFO_COMMONNAME,
+                                          name, &length );
+        name[length] = '\0';
+    }
+
+    String hostname = Configuration::hostname();
+    if ( status == CRYPT_OK && hostname == name ) {
+        status = cryptCheckCert( publicKey, CRYPT_UNUSED );
+        if ( status == CRYPT_OK )
+            return;
+    }
+
+    ::unlink( file.cstr() );
+    generateKey( file, label, secret );
+}
+
+
 static void generateKey( String file, String label, String secret )
 {
     int status = 0;
 
     String hostname = Configuration::hostname();
     log( "Generating self-signed certificate for " + hostname );
-    
+
     // Generate an RSA private key.
-    status = cryptCreateContext( &privateKey, CRYPT_UNUSED,
-                                 CRYPT_ALGO_RSA );
+    status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
     handleError( status, "cryptCreateContext" );
     status = cryptSetAttributeString( privateKey, CRYPT_CTXINFO_LABEL,
                                       label.cstr(), label.length() );
