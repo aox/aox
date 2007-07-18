@@ -30,6 +30,9 @@ public:
 
 private:
     class WebPageData * d;
+
+    String html() const;
+    void sendLoginForm();
 };
 
 

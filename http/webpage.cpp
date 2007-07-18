@@ -35,8 +35,17 @@ public:
           user( 0 ), uniq( 0 )
     {}
 
+    struct PermissionRequired
+        : public Garbage
+    {
+        PermissionRequired(): m( 0 ), r( Permissions::Read ) {}
+        Mailbox * m;
+        Permissions::Right r;
+    };
+
     Link * link;
     List<PageComponent> components;
+    List<PermissionRequired> needed;
     PermissionsChecker * checker;
     bool responded;
     User * user;
@@ -98,44 +107,47 @@ void WebPage::execute()
     if ( !permitted() )
         return;
 
-    // XXX: Sub-sub-components don't work right now, because this loop
-    // never gets around to execute()-ing them. Must fix when we have
-    // some sub-sub-components.
-
     bool done = true;
     List<PageComponent>::Iterator it( d->components );
+    uint status = 200;
     while ( it ) {
         PageComponent * p = it;
+        ++it;
         if ( !p->done() ) {
             p->execute();
-            List<PageComponent>::Iterator sc( it->subComponents() );
-            while ( sc ) {
-                if ( !sc->done() )
-                    sc->execute();
-                ++sc;
-            }
+            if ( p->status() > status )
+                status = p->status();
             done = false;
         }
-        ++it;
     }
 
     if ( !done )
         return;
 
+    d->link->server()->setStatus( status, "OK" );
+    d->link->server()->respond( "text/html; charset=utf-8", html() );
+    d->responded = true;
+}
+
+
+/*! Returns the HTML output of this page, as it currently looks. The
+    return value isn't sensible until all pages are ready, as
+    execute() checks.
+*/
+
+String WebPage::html() const
+{
     List<FrontMatter> frontMatter;
 
     frontMatter.append( FrontMatter::styleSheet() );
 
-    uint status = 200;
-    it = d->components;
+    List<PageComponent>::Iterator it( d->components );
     while ( it ) {
         List<FrontMatter>::Iterator f( it->frontMatter() );
         while ( f ) {
             frontMatter.append( f );
             ++f;
         }
-        if ( it->status() > status )
-            status = it->status();
         ++it;
     }
 
@@ -160,10 +172,7 @@ void WebPage::execute()
     }
 
     html.append( "</body>\n" );
-
-    d->link->server()->setStatus( status, "OK" );
-    d->link->server()->respond( "text/html; charset=utf-8", html );
-    d->responded = true;
+    return html;
 }
 
 
@@ -174,6 +183,30 @@ void WebPage::execute()
 
 void WebPage::requireRight( Mailbox * m, Permissions::Right r )
 {
+    WebPageData::PermissionRequired * pr = new WebPageData::PermissionRequired;
+    pr->m = m;
+    pr->r = r;
+    d->needed.append( pr );
+}
+
+
+/*! Returns true if this WebPage has the rights demanded by
+    requireRight(), and is permitted to proceed, and false if
+    it either must abort due to lack of rights or wait until
+    Permissions has fetched more information.
+
+    If permitted() denies permission, it also sets a suitable error
+    message.
+*/
+
+bool WebPage::permitted()
+{
+    if ( d->responded )
+        return false;
+
+    if ( d->needed.isEmpty() )
+        return true;
+
     HTTP * server = d->link->server();
     String login( server->parameter( "login" ) );
 
@@ -198,73 +231,59 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
         d->user = server->session()->user();
     }
 
-    if ( !d->checker )
-        d->checker = new PermissionsChecker;
-    Permissions * p = d->checker->permissions( m, d->user );
-    bool anon = false;
-    if ( d->user->login() == "anonymous" )
-        anon = true;
-    if ( p ) {
-        // just use that
-    }
-    else if ( !anon ) {
-        p = new Permissions( m, d->user, this );
-    }
-    else {
-        if ( !::archiveMailboxPermissions ) {
-            ::archiveMailboxPermissions = new Map<Permissions>;
-            Allocator::addEternal( ::archiveMailboxPermissions,
-                                   "permissions checkers for archives" );
-        }
-        p = ::archiveMailboxPermissions->find( m->id() );
-        if ( !p ) {
-            p = new Permissions( m, d->user, this );
-            ::archiveMailboxPermissions->insert( m->id(), p );
-        }
-    }
-    d->checker->require( p, r );
-}
-
-
-/*! Returns true if this WebPage has the rights demanded by
-    requireRight(), and is permitted to proceed, and false if
-    it either must abort due to lack of rights or wait until
-    Permissions has fetched more information.
-
-    If permitted() denies permission, it also sets a suitable error
-    message.
-*/
-
-bool WebPage::permitted()
-{
-    if ( d->responded )
+    if ( !d->user ) {
+        sendLoginForm();
         return false;
+    }
 
-    // If we don't have a checker, we permit the request. Link gives
-    // us a checker as soon as it sees a mailbox name in the URL, so
+    if ( d->user->state() == User::Unverified ) {
+        d->user->refresh( this );
+        return false;
+    }
+
+    if ( !d->checker ) {
+        bool anon = false;
+        if ( d->user && d->user->login() == "anonymous" )
+            anon = true;
+        d->checker = new PermissionsChecker;
+        List<WebPageData::PermissionRequired>::Iterator i( d->needed );
+        while ( i ) {
+            Permissions * p = d->checker->permissions( i->m, d->user );
+            if ( p ) {
+                // just use that
+            }
+            else if ( !anon ) {
+                p = new Permissions( i->m, d->user, this );
+            }
+            else {
+                if ( !::archiveMailboxPermissions ) {
+                    ::archiveMailboxPermissions = new Map<Permissions>;
+                    Allocator::addEternal( ::archiveMailboxPermissions,
+                                           "archives permissions checkers" );
+                }
+                p = ::archiveMailboxPermissions->find( i->m->id() );
+                if ( !p ) {
+                    p = new Permissions( i->m, d->user, this );
+                    ::archiveMailboxPermissions->insert( i->m->id(), p );
+                }
+            }
+            d->checker->require( p, i->r );
+            ++i;
+        }
+    }
+    
+    // If we don't have a checker, we permit the request. Link calls
+    // requireRight as soon as it sees a mailbox name in the URL, so
     // this should be true only for a few globally accessibly pages.
     if ( !d->checker )
         return true;
 
-    if ( !d->user ) {
-        d->responded = true;
-        WebPage * wp = new WebPage( d->link );
-        wp->d->checker = 0; // no checker for the login form
-        wp->addComponent( new LoginForm );
-        wp->execute();
-        return false;
-    }
-
-    if ( d->user->state() == User::Unverified )
-        return false;
-
     if ( d->checker && !d->checker->ready() )
         return false;
 
-    HTTP * server = d->link->server();
-
     if ( d->link->type() == Link::Archive ) {
-        if ( d->checker && d->checker->allowed() )
+        if ( d->user->state() == User::Refreshed &&
+             d->checker && d->checker->allowed() )
             return true;
         d->responded = true;
         server->setStatus( 403, "Forbidden" );
@@ -280,14 +299,11 @@ bool WebPage::permitted()
              !d->checker->allowed() )
         {
             // XXX: addComponent( WhatWentWrong );
-            d->responded = true;
-            WebPage * wp = new WebPage( d->link );
-            wp->addComponent( new LoginForm );
-            wp->execute();
+            sendLoginForm();
             return false;
         }
         else {
-            HttpSession *s = server->session();
+            HttpSession * s = server->session();
             if ( !s || s->user()->login() != d->user->login() ) {
                 s = new HttpSession;
                 server->setSession( s );
@@ -299,6 +315,24 @@ bool WebPage::permitted()
     }
 
     return false;
+}
+
+
+/*! Rewrites this page to be a plain login form which will reload the
+    same page when the correct password is entered.
+*/
+
+void WebPage::sendLoginForm()
+{
+    d->responded = true;
+    d->needed.clear();
+    d->checker = 0;
+    d->components.clear();
+    PageComponent * lf = new LoginForm;
+    addComponent( lf );
+    lf->execute();
+    d->link->server()->setStatus( 200, "OK" );
+    d->link->server()->respond( "text/html; charset=utf-8", html() );
 }
 
 
