@@ -189,8 +189,17 @@ void Database::runQueue()
 
         if ( st == Idle && it->usable() ) {
             it->processQueue();
-            if ( queries->isEmpty() )
+            if ( queries->isEmpty() &&
+                 it->self().protocol() != Endpoint::Unix ) {
+                // We dispatched the entire queue. Shorten the timeout
+                // on one idle handler, so we'll reduce the number of
+                // handlers if that seems sensible.
+                while ( it && !it->usable() )
+                    ++it;
+                if ( it )
+                    it->setTimeoutAfter( 5 );
                 return;
+            }
         }
         else if ( st == Connecting ) {
             connecting++;
@@ -199,29 +208,35 @@ void Database::runQueue()
         ++it;
     }
 
-    // If we didn't manage to process even one query, or there aren't
-    // any handles now, we can either assume that one of the busy ones
-    // will become free and pick up any queued queries, or we can
-    // create a new one.
+    // if we didn't manage to do anything, maybe we should add another
+    // handle.
+    if ( first == queries->firstElement() )
+        return;
 
-    uint max = Configuration::scalar( Configuration::DbMaxHandles );
+    // Even if we want to, we cannot create unix-domain handles when
+    // we're running within chroot.
+    if ( server().protocol() == Endpoint::Unix &&
+         !server().address().startsWith( File::root() ) )
+        return;
+
+    // And even if we're asked to, we don't create handles while
+    // shutting down.
+    if ( EventLoop::global()->inShutdown() )
+        return;
+
+    // We create at most one new handle per interval.
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
+    if ( handles->isEmpty() && time( 0 ) - lastCreated < interval )
+        return;
 
-    if ( ( handles->count() == 0 ||
-           time( 0 ) - lastCreated >= interval ||
-           ( queries->firstElement() == first && connecting == 0 ) ) &&
-         ( server().protocol() != Endpoint::Unix ||
-           server().address().startsWith( File::root() ) ) &&
-         !EventLoop::global()->inShutdown() )
-    {
-        if ( handles->count() >= max ) {
-            if ( lastExecuted >= time( 0 ) - interval )
-                return;
-            handles->first()->react( Close );
-        }
+    // If one or more handles are still connecting, we let them finish first.
+    if ( connecting )
+        return;
 
+    // If we don't have too many, we can create another handle!
+    uint max = Configuration::scalar( Configuration::DbMaxHandles );
+    if ( handles->count() < max )
         newHandle();
-    }
 }
 
 
