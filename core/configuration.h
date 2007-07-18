@@ -130,6 +130,8 @@ public:
         AcceptAnyHttpHost,
         AnnounceDraftSupport,
         UseSieve,
+        UseWebmail,
+        UseWebArchive,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };

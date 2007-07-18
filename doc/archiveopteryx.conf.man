@@ -481,10 +481,20 @@ accepts any hostname supplied by the server, and is
 .I enabled
 by default. Properly speaking, it would be better to disable this, but
 that would add complexity without giving anything in return.
+.IP use-web-archive
+decides whether archiveopteryx provides web-visible archives of
+world-readable mailboxes. The default is
+.I false
+and for the moment we recommend leaving it at false. This code is not
+ready for production use.
 .IP archive-prefix
 is the common prefix for all URLs offering archive access to mailboxes
 via the web. These mailboxes must be readable by the anonymous user.
 The default value is empty.
+.IP use-webmail
+ldecides whether archiveopteryx provides webmail access. The default is
+.I false
+and we strongly recommend leaving it at false. Don't enable this.
 .IP webmail-prefix
 is the common prefix for all URLs offering authenticated webmail access
 to mailboxes via the web. The default value is

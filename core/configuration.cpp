@@ -240,7 +240,9 @@ static struct {
     { "auth-anonymous", Configuration::AuthAnonymous, false },
     { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true },
     { "announce-draft-support", Configuration::AnnounceDraftSupport, false },
-    { "use-sieve", Configuration::UseSieve, true }
+    { "use-sieve", Configuration::UseSieve, true },
+    { "use-webmail", Configuration::UseWebmail, false },
+    { "use-web-archive", Configuration::UseWebArchive, false }
 };
 
 

@@ -444,19 +444,24 @@ static Component checkPrefixes( LinkParser * p,
     while ( c <= WebmailPrefix ) {
         String s;
         Configuration::Text var;
+        Configuration::Toggle use;
         switch ( c ) {
         case ArchivePrefix:
             var = Configuration::ArchivePrefix;
+            use = Configuration::UseWebArchive;
             break;
         case WebmailPrefix:
             var = Configuration::WebmailPrefix;
+            use = Configuration::UseWebmail;
             break;
         default:
             return Void;
             break;
         }
         s = Configuration::text( var );
-        if ( s.isEmpty() && legalComponents[c] )
+        if ( !Configuration::toggle( use ) )
+            ;
+        else if ( s.isEmpty() && legalComponents[c] )
             e = c;
         else if ( checkPrefix( p, s, legalComponents[c] ) )
             return c;
