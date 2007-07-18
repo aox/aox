@@ -108,16 +108,20 @@ void WebPage::execute()
         return;
 
     bool done = true;
-    List<PageComponent>::Iterator it( d->components );
     uint status = 200;
-    while ( it ) {
-        PageComponent * p = it;
-        ++it;
-        if ( !p->done() ) {
-            p->execute();
+    uint c = 0;
+    while ( c != d->components.count() ) {
+        c = d->components.count();
+        List<PageComponent>::Iterator it( d->components );
+        while ( it ) {
+            PageComponent * p = it;
+            ++it;
+            if ( !p->done() ) {
+                p->execute();
+                done = false;
+            }
             if ( p->status() > status )
                 status = p->status();
-            done = false;
         }
     }
 
