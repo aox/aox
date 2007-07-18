@@ -34,7 +34,7 @@ else {
 actions MakeTlsproxyChroot
 {
     mkdir -p $(LIBDIR)/tlsproxy/dev
-    ( cd /dev ; tar cf - *random ) | ( cd $(LIBDIR)/tlsproxy/dev ; tar xpf - )
+    [ -e $(LIBDIR)/tlsproxy/dev/urandom ] || ( cd /dev ; tar cf - *random ) | ( cd $(LIBDIR)/tlsproxy/dev ; tar xpf - )
 }
 MakeTlsproxyChroot installdevrandom ;
 Depends install : installdevrandom ;
