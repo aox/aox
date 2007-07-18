@@ -101,6 +101,10 @@ Without a pattern, all users are listed.
 Displays a list of aliases where either the address or the target
 mailbox matches the specified shell glob pattern. Without a pattern,
 all aliases are listed.
+.IP "aox list rights <mailbox> [username]"
+Displays a list of users and the rights they have been granted to the
+specified mailbox. If a username is given, only that user's rights are
+displayed.
 .IP "aox create user <username> <password> <email-address>"
 Creates a new Archiveopteryx user with the specified username, password, and
 email address.
@@ -146,6 +150,15 @@ and deliver it to the specified
 .IP "aox delete alias <address>"
 Deletes an alias, if one exists, for the given
 .IR address .
+.IP "aox setacl [-d] <mailbox> <identifier> <rights>"
+Assigns the specified rights to the given identifier on the mailbox. If
+the rights begin with + or -, the specified rights are added to or
+subtracted from the existing rights; otherwise, the rights are set to
+exactly those given.
+.IP
+With -d, the identifier's rights are deleted altogether.
+.IP
+A summary of the changes made is displayed when the operation completes.
 .IP "aox vacuum"
 Permanently deletes messages that were marked for deletion more than
 .I undelete-time
