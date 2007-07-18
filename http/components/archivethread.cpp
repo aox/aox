@@ -81,10 +81,7 @@ void ArchiveThread::execute()
         return;
     }
 
-    // I wonder if it wouldn't be better to add the messages as
-    // top-level components of the web page, just after this one. then
-    // this could have content, which we'll want.
-
+    PageComponent * after = this;
     MessageSet messages( thread->members() );
     while ( !messages.isEmpty() ) {
         uint uid = messages.smallest();
@@ -97,6 +94,9 @@ void ArchiveThread::execute()
 
         ArchiveMessage * am = new ArchiveMessage( l );
         am->setLinkToThread( false );
-        addSubComponent( am );
+        page()->addComponent( am, after );
+        after = am;
+        am->execute();
     }
+    setContents( " " );
 }

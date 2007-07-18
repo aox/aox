@@ -34,9 +34,6 @@ public:
     List<FrontMatter> * frontMatter() const;
     void addFrontMatter( FrontMatter * );
 
-    List<PageComponent> * subComponents() const;
-    void addSubComponent( PageComponent * );
-
     String divClass() const;
 
     static String quoted( const String & );
