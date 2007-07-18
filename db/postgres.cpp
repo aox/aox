@@ -167,7 +167,7 @@ void Postgres::processQueue()
     }
 
     if ( n > 0 ) {
-        extendTimeout( 5 );
+        extendTimeout( Configuration::scalar( Configuration::DbHandleInterval ) );
         write();
     }
 }
