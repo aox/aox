@@ -212,7 +212,7 @@ bool WebPage::permitted()
         return true;
 
     HTTP * server = d->link->server();
-    String login( server->parameter( "login" ) );
+    UString login( server->parameter( "login" ) );
 
     if ( d->user ) {
         // leave it
@@ -228,7 +228,7 @@ bool WebPage::permitted()
     }
     else if ( !login.isEmpty() ) {
         d->user = new User;
-        d->user->setLogin( login );
+        d->user->setLogin( login.utf8() );
         d->user->refresh( this );
     }
     else if ( server->session() ) {
@@ -300,9 +300,9 @@ bool WebPage::permitted()
         return false;
     }
     else {
-        String passwd( server->parameter( "passwd" ) );
+        UString passwd( server->parameter( "passwd" ) );
         if ( d->user->state() != User::Refreshed ||
-             d->user->secret() != passwd ||
+             d->user->secret() != passwd.utf8() ||
              !d->checker ||
              !d->checker->allowed() )
         {

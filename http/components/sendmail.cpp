@@ -37,11 +37,11 @@ void Sendmail::execute()
 {
     HTTP * server = page()->link()->server();
 
-    String from = server->parameter( "from" );
-    String to = server->parameter( "to" );
-    String cc = server->parameter( "cc" );
-    String subject = server->parameter( "subject" );
-    String body = server->parameter( "body" );
+    UString from = server->parameter( "from" );
+    UString to = server->parameter( "to" );
+    UString cc = server->parameter( "cc" );
+    UString subject = server->parameter( "subject" );
+    UString body = server->parameter( "body" );
 
     setContents( "sent" );
 }
