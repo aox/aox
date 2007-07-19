@@ -256,6 +256,9 @@ bool WebPage::permitted()
             if ( p ) {
                 // just use that
             }
+            else if ( d->user->state() != User::Refreshed ) {
+                // don't add anything
+            }
             else if ( !anon ) {
                 p = new Permissions( i->m, d->user, this );
             }
@@ -271,7 +274,8 @@ bool WebPage::permitted()
                     ::archiveMailboxPermissions->insert( i->m->id(), p );
                 }
             }
-            d->checker->require( p, i->r );
+            if ( p )
+                d->checker->require( p, i->r );
             ++i;
         }
     }
@@ -297,12 +301,11 @@ bool WebPage::permitted()
     }
     else {
         String passwd( server->parameter( "passwd" ) );
-        if ( d->user->state() == User::Nonexistent ||
+        if ( d->user->state() != User::Refreshed ||
              d->user->secret() != passwd ||
              !d->checker ||
              !d->checker->allowed() )
         {
-            // XXX: addComponent( WhatWentWrong );
             sendLoginForm();
             return false;
         }
