@@ -29,6 +29,7 @@ public:
     LinkData()
         : type( Link::Error ), magic( false ),
           mailbox( 0 ), uid( 0 ), suffix( Link::None ),
+          arguments( new Dict<UString> ),
           webpage( 0 ), server( 0 )
     {}
 
@@ -40,7 +41,7 @@ public:
     uint uid;
     String part;
     Link::Suffix suffix;
-    Dict<UString> arguments;
+    Dict<UString> * arguments;
 
     WebPage * webpage;
 
@@ -190,7 +191,7 @@ void Link::setSuffix( Suffix suffix )
 
 Dict<UString> * Link::arguments() const
 {
-    return &d->arguments;
+    return d->arguments;
 }
 
 
@@ -200,11 +201,11 @@ String Link::query() const
 {
     String s;
     Utf8Codec c;
-    StringList::Iterator it( d->arguments.keys() );
+    StringList::Iterator it( d->arguments->keys() );
     while ( it ) {
         s.append( *it );
         s.append( "=" );
-        String v = c.fromUnicode( *d->arguments.find( *it ) );
+        String v = c.fromUnicode( *d->arguments->find( *it ) );
         uint i = 0;
         while ( i < v.length() ) {
             char c = v[i];
@@ -625,50 +626,21 @@ void Link::parse( const String & s )
                         p->nextChar() != '&' &&
                         !p->atEnd() )
                     n.append( p->character() );
+                n = n.deURI();
                 if ( p->present( "=" ) ) {
                     while ( p->nextChar() != '&' && !p->atEnd() )
                         v.append( p->character() );
                 }
-                args.insert( n, new String( v ) );
+                UString u = decoded( v );
+                if ( n.boring() && !u.isEmpty() )
+                    d->arguments->insert( n, new UString( u ) );
                 if ( p->nextChar() == '&' )
                     p->step();
             }
             if ( p->ok() ) {
                 chosen = ::Arguments;
-                StringList::Iterator it( args.keys() );
-                while ( it ) {
-                    if ( it->boring() ) {
-                        bool bad = false;
-                        Utf8Codec c;
-                        String v8e = *args.find( *it );
-                        String v8;
-                        uint i = 0;
-                        while ( !bad && i < v8e.length() ) {
-                            char c = v8e[i];
-                            i++;
-                            if ( c == '+' ) {
-                                v8.append( ' ' );
-                            }
-                            else if ( c == '%' ) {
-                                bool ok = true;
-                                uint n = v8e.mid( i, 2 ).number( &ok, 16 );
-                                if ( ok )
-                                    v8.append( (char)n );
-                                else
-                                    bad = true;
-                            }
-                            else {
-                                v8.append( c );
-                            }
-                        }
-                        UString * u = new UString( c.toUnicode( v8 ) );
-                        if ( c.valid() && !bad )
-                            d->arguments.insert( *it, u );
-                    }
-                    ++it;
-                }
-            }
-            else {
+            } else {
+                d->arguments = new Dict<UString>;
                 p->restore();
             }
         }
@@ -788,7 +760,7 @@ String Link::canonical() const
                checkForComponent( i, MailboxName, d->mailbox ) &&
                checkForComponent( i, Uid, d->uid != 0 ) &&
                checkForComponent( i, Part, !d->part.isEmpty() ) &&
-               checkForComponent( i, Arguments, !d->arguments.isEmpty() );
+               checkForComponent( i, Arguments, !d->arguments->isEmpty() );
 
         uint c = 0;
         while ( good && c < 5 && handlers[i].components[c] != Void )
@@ -921,5 +893,40 @@ String LinkParser::pathComponent()
 void Link::addArgument( const String & name, const UString & value )
 {
     if ( name.boring() )
-        d->arguments.insert( name, new UString( value ) );
+        d->arguments->insert( name, new UString( value ) );
+}
+
+
+/*! Returns a decoded version of \a e, or an empty string if \a e is
+    somehow bad.
+*/
+
+UString Link::decoded( const String & s )
+{
+    UString r;
+    Utf8Codec c;
+    String v8;
+    uint i = 0;
+    while ( i < s.length() ) {
+        char c = s[i];
+        i++;
+        if ( c == '+' ) {
+            v8.append( ' ' );
+        }
+        else if ( c == '%' ) {
+            bool ok = true;
+            uint n = s.mid( i, 2 ).number( &ok, 16 );
+            if ( ok )
+                v8.append( (char)n );
+            else
+                return r;
+        }
+        else {
+            v8.append( c );
+        }
+    }
+    r = c.toUnicode( v8 );
+    if ( !c.valid() )
+        r.truncate();
+    return r;
 }

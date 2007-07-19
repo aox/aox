@@ -74,6 +74,8 @@ public:
 
     HTTP * server() const;
 
+    static UString decoded( const String & );
+
 private:
     class LinkData * d;
     void parse( const String & );

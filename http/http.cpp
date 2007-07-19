@@ -50,7 +50,7 @@ public:
     StringList headers;
     StringList ignored;
     uint contentLength;
-    Dict< String > parameters;
+    Dict< UString > parameters;
 
     Codec * preferredCodec;
     uint codecQuality;
@@ -282,12 +282,13 @@ uint HTTP::status() const
     request.
 */
 
-String HTTP::parameter( const String &s ) const
+UString HTTP::parameter( const String &s ) const
 {
-    String * v = d->parameters.find( s );
+    UString * v = d->parameters.find( s );
     if ( v )
     	return *v;
-    return "";
+    UString empty;
+    return empty;
 }
 
 
@@ -916,19 +917,15 @@ void HTTP::parseParameters()
     StringList::Iterator it( p );
 
     while ( it ) {
-        String n, v;
         String s = *it;
+        ++it;
 
         int i = s.find( '=' );
         if ( i > 0 ) {
-            n = s.mid( 0, i ).deURI();
-            v = s.mid( i+1 ).deURI();
+            String n = s.mid( 0, i ).deURI();
+            UString v = Link::decoded( s.mid( i+1 ) );
+            if ( n.boring() && !v.isEmpty() )
+                d->parameters.insert( n, new UString( v ) );
         }
-        else {
-            n = s.deURI();
-        }
-
-        d->parameters.insert( n, new String( v ) );
-        ++it;
     }
 }
