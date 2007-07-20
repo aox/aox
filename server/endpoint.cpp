@@ -289,6 +289,18 @@ uint Endpoint::port() const
 }
 
 
+/*! This strange function exists only so that we can construct a valid
+    sockaddr that has the port set to zero, so that we can pass it to
+    bind(2) and ask it to fill in a random port for us. The calling
+    convention is inconvenient, but makes it easy to locate callers.
+*/
+
+void Endpoint::zeroPort()
+{
+    d->port = 0;
+}
+
+
 static union {
     struct sockaddr_in in;
     struct sockaddr_in6 in6;

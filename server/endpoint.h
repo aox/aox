@@ -25,6 +25,7 @@ public:
     Protocol protocol() const;
     String address() const;
     uint port() const;
+    void zeroPort();
 
     struct sockaddr *sockaddr() const;
     uint sockaddrSize() const;
