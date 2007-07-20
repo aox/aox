@@ -396,40 +396,6 @@ static void checkListener( bool use,
 }
 
 
-static void checkClient( Configuration::Text address,
-                         Configuration::Scalar port,
-                         const String & description )
-{
-    String a( Configuration::text( address ) );
-    uint p( Configuration::scalar( port ) );
-
-    if ( a.isEmpty() )
-        error( "No address specified for " + description );
-
-    StringList::Iterator it( Resolver::resolve( a ) );
-    while ( it ) {
-        Endpoint e( *it, p );
-
-        if ( !e.valid() )
-            error( "Invalid address specified for " +
-                   description + " = '" + e.string() + "'" );
-
-        // We connect to the specified address:port, just to make sure
-        // the server will be able to do so.
-
-        int s = 0;
-        if ( ( s = Connection::socket( e.protocol() ) ) < 0 ||
-             connect( s, e.sockaddr(), e.sockaddrSize() ) < 0 )
-            error( "Couldn't connect to " + description +
-                   " = '" + e.string() + "'" );
-        if ( s > 0 )
-            close( s );
-
-        ++it;
-    }
-}
-
-
 static void checkInetAddresses()
 {
     checkListener(
@@ -510,17 +476,6 @@ static void checkInetAddresses()
         Configuration::TlsProxyAddress, Configuration::TlsProxyPort,
         "tlsproxy-address:port"
     );
-
-
-    // It certainly seems desirable to complain loudly if we cannot
-    // connect to the database.  Unfortunately, the probe will result
-    // in unfriendly log lines on the server.
-
-    checkClient( Configuration::DbAddress, Configuration::DbPort,
-                 "db-address:port" );
-
-    // We could also check that we get the right error when we connect
-    // to some unused port on db-address - port 0, 9 or 17, perhaps?
 }
 
 
