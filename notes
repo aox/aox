@@ -455,6 +455,9 @@ Using rrdtool
 
   'aox show statistics'?
 
+  http://jwatt.org/svg/authoring/ is interesting for generating graphs
+  via the web interface.
+
 
 SASL NTLM authentication
 

@@ -500,16 +500,20 @@ static void checkInetAddresses()
     );
 
 
-    // It certainly seems desirable to complain loudly if we cannot to
-    // the database or the smarthost (we might use the latter through
-    // Sieve, even if SMTP Submit is not enabled). Unfortunately, the
-    // probe will result in unfriendly log lines on the server.
+    // It certainly seems desirable to complain loudly if we cannot
+    // connect to the database or the smarthost (we might use the
+    // latter through Sieve, even if SMTP Submit is not enabled).
+    // Unfortunately, the probe will result in unfriendly log lines on
+    // the server.
 
     checkClient( Configuration::DbAddress, Configuration::DbPort,
                  "db-address:port" );
     checkClient( Configuration::SmartHostAddress,
                  Configuration::SmartHostPort,
                  "smarthost-address:port" );
+
+    // We could also check that we get the right error when we connect
+    // to some unused port on db-address - port 0, 9 or 17, perhaps?
 }
 
 
@@ -748,16 +752,14 @@ bool Starter::startServer( const char * s )
     String t( s );
     if ( t == "tlsproxy" )
         use = Configuration::toggle( Configuration::UseTls );
-    else if ( t == "imapd" )
+    else if ( t == "archiveopteryx" )
         use = Configuration::toggle( Configuration::UseImap ) ||
-              Configuration::toggle( Configuration::UseImaps );
-    else if ( t == "smtpd" )
-        use = Configuration::toggle( Configuration::UseSmtp ) ||
-              Configuration::toggle( Configuration::UseLmtp );
-    else if ( t == "httpd" )
-        use = Configuration::toggle( Configuration::UseHttp );
-    else if ( t == "pop3d" )
-        use = Configuration::toggle( Configuration::UsePop );
+              Configuration::toggle( Configuration::UseImaps ) ||
+              Configuration::toggle( Configuration::UseSmtp ) ||
+              Configuration::toggle( Configuration::UseLmtp ) ||
+              Configuration::toggle( Configuration::UseHttp ) ||
+              Configuration::toggle( Configuration::UsePop );
+    // that big use looks like a configuration sanity check to me...
 
     if ( !use ) {
         if ( d->verbose > 0 )
@@ -825,7 +827,7 @@ class StopperData
 public:
     StopperData()
         : state( 0 ), verbose( 0 ), owner( 0 ), timer( 0 ),
-          connections( 0 ), done( false )
+          done( false ), lurkers( 0 )
     {
         int i = 0;
         while ( i < nservers )
@@ -837,8 +839,8 @@ public:
     EventHandler * owner;
     Timer * timer;
     int pids[nservers];
-    int connections;
     bool done;
+    List<class Lurker> * lurkers;
 };
 
 
@@ -856,22 +858,6 @@ Stopper::Stopper( int verbose, EventHandler * owner )
 {
     d->verbose = verbose;
     d->owner = owner;
-}
-
-
-/*! Increments the counter of active connections. */
-
-void Stopper::connect()
-{
-    d->connections++;
-}
-
-
-/*! Decrements the counter of active connections. */
-
-void Stopper::disconnect()
-{
-    d->connections--;
 }
 
 
@@ -899,7 +885,6 @@ public:
     {
         switch ( e ) {
         case Connect:
-            owner->connect();
             owner->execute();
             break;
 
@@ -912,7 +897,6 @@ public:
         case Shutdown:
             if ( !disconnected ) {
                 disconnected = true;
-                owner->disconnect();
                 owner->execute();
             }
             break;
@@ -959,11 +943,11 @@ void Stopper::execute()
             d->timer = new Timer( this, 5 );
             Endpoint el( Configuration::text( Configuration::LogAddress ),
                          Configuration::scalar( Configuration::LogPort ) );
-            (void)new Lurker( el, this );
+            d->lurkers->append( new Lurker( el, this ) );
 
             Endpoint eo( Configuration::text( Configuration::OcdAddress ),
                          Configuration::scalar( Configuration::OcdPort ) );
-            (void)new Lurker( eo, this );
+            d->lurkers->append( new Lurker( eo, this ) );
 
             // We treat imap-address specially, because it's empty by
             // default.
@@ -985,16 +969,31 @@ void Stopper::execute()
             }
 
             Endpoint ei( s, p );
-            (void)new Lurker( ei, this );
+            d->lurkers->append( new Lurker( ei, this ) );
         }
         else {
             d->state = 3;
         }
     }
 
+    List<Lurker>::Iterator i( d->lurkers );
+    while ( i ) {
+        switch ( i->state() ) {
+        case Connection::Invalid:
+        case Connection::Inactive:
+        case Connection::Listening:
+        case Connection::Closing:
+            d->lurkers->take( i );
+            break;
+        case Connection::Connecting:
+        case Connection::Connected:
+            ++i;
+            break;
+        }
+    }
+
     if ( d->state == 1 ) {
-        if ( d->timer->active() && d->connections < 3 )
-            return;
+        if ( d->timer->active() && !d->lurkers->isEmpty() )
 
         delete d->timer;
         d->timer = 0;
@@ -1019,14 +1018,14 @@ void Stopper::execute()
         // expire); otherwise we'll sleep for a moment.
 
         int n = 1;
-        if ( d->connections > 0 )
+        if ( !d->lurkers->isEmpty() )
             n = 5;
         d->state = 2;
         d->timer = new Timer( this, n );
     }
 
     if ( d->state == 2 ) {
-        if ( d->timer->active() && d->connections > 0 )
+        if ( d->timer->active() && !d->lurkers->isEmpty() )
             return;
 
         delete d->timer;
@@ -1035,6 +1034,10 @@ void Stopper::execute()
         // seem to guarantee that the server is also dead, so we end
         // up sending SIGKILL sometimes during orderly shutdown. That
         // seems rather harsh.
+
+        // We could avoid this by making the Lurker try to connect
+        // again as soon as it's closed, and only signal the Stopper
+        // when Lurker cannot reconnect.
 
         int i = 0;
         while ( i < nservers ) {
@@ -1275,6 +1278,8 @@ void ShowStatus::execute()
     while ( i < nservers ) {
         int pid = serverPid( servers[i] );
         printf( "%s", servers[i] );
+
+        // XXX this is newly written code, right? seems hopelessly broken.
 
         bool started = false;
         String t( servers[i] );
