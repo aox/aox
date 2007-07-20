@@ -947,6 +947,7 @@ void Stopper::execute()
 
         if ( n > 0 ) {
             d->state = 1;
+            d->lurkers = new List<Lurker>;
             d->timer = new Timer( this, 5 );
             Endpoint el( Configuration::text( Configuration::LogAddress ),
                          Configuration::scalar( Configuration::LogPort ) );
