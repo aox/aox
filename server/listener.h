@@ -71,7 +71,8 @@ public:
 
         if ( a.isEmpty() ) {
             addresses.append( "::" );
-            addresses.append( "0.0.0.0" );
+            if ( !any6ListensTo4() )
+                addresses.append( "0.0.0.0" );
         }
         else {
             // XXX: Hack to make it compile
@@ -110,6 +111,7 @@ public:
                             // silently.
                             ::log( "Assuming that listening on all IPv6 "
                                    "addresses also listens on IPv4." );
+                            setAny6ListensTo4( true );
                         }
                         else {
                             ::log( "Cannot listen for " + svc + " on " + *it,

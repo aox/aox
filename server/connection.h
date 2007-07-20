@@ -81,6 +81,8 @@ public:
     int listen( const Endpoint & );
     int connect( const Endpoint & );
     int accept();
+    static void setAny6ListensTo4( bool );
+    static bool any6ListensTo4();
 
     static int socket( Endpoint::Protocol );
 

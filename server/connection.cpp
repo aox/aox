@@ -755,3 +755,26 @@ void Connection::log( const String &m, Log::Severity s )
 {
     d->l->log( m, s );
 }
+
+
+static bool sixDoesFour;
+
+
+/*! Records whether listening to :: ("any ipv6 address") also listens
+    to 0.0.0.0 ("any ipv4 address"). Listener calls it with \a e true
+    if that is the case, and stops trying.
+
+*/
+
+void Connection::setAny6ListensTo4( bool e )
+{
+    ::sixDoesFour = e;
+}
+
+
+/*! Returns what setAny6ListensTo4() set, or false initially. */
+
+bool Connection::any6ListensTo4()
+{
+    return ::sixDoesFour;
+}
