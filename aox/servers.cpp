@@ -79,12 +79,13 @@ class Path
 {
 public:
     enum Type {
-        Readable,
         ReadableFile,
         ReadableDir,
         WritableFile,
         WritableDir,
         CreatableFile,
+        CreatableSocket,
+        ExistingSocket,
         JailDir
     };
 
@@ -157,7 +158,9 @@ Path::Path( const String & s, Type t )
     if ( pn.length() < name.length() ) {
         Path * p = paths.find( pn );
         if ( !p ) {
-            if ( t == CreatableFile || t == WritableFile )
+            if ( t == CreatableFile ||
+                 t == WritableFile ||
+                 t == CreatableSocket )
                 p = new Path( pn, WritableDir );
             else
                 p = new Path( pn, ReadableDir );
@@ -200,14 +203,6 @@ void Path::check()
     }
 
     switch( type ) {
-    case Readable:
-        if ( !exist )
-            message = "does not exist";
-        else if ( isdir )
-            message = "is not a normal file";
-        else if ( (rights & 4) != 4 )
-            message = "is not readable";
-        break;
     case ReadableFile:
         if ( !exist )
             message = "does not exist";
@@ -241,6 +236,19 @@ void Path::check()
     case CreatableFile:
         if ( exist && !isfile )
             message = "is not a normal file";
+        break;
+    case CreatableSocket:
+        if ( exist &&
+             !S_ISSOCK( st.st_mode ) &&
+             !S_ISFIFO( st.st_mode ) )
+            message = "is not a socket or FIFO";
+        break;
+    case ExistingSocket:
+        if ( !exist ||
+             !(S_ISSOCK( st.st_mode ) ||
+               S_ISFIFO( st.st_mode ) ||
+               st.st_mode & S_IFCHR ) )
+            message = "is not a socket/FIFO";
         break;
     case JailDir:
         if ( !isdir )
@@ -285,15 +293,19 @@ static void checkFilePermissions()
         addPath( Path::WritableDir, Configuration::MessageCopyDir );
     addPath( Path::JailDir, Configuration::JailDir );
     addPath( Path::ReadableFile, Configuration::TlsCertFile );
-    addPath( Path::Readable, Configuration::EntropySource );
+    addPath( Path::ExistingSocket, Configuration::EntropySource );
     addPath( Path::CreatableFile, Configuration::LogFile );
 
     List<Configuration::Text>::Iterator
         it( Configuration::addressVariables() );
     while ( it ) {
         String s( Configuration::text( *it ) );
-        if ( s[0] == '/' )
-            addPath( Path::ReadableFile, *it );
+        if ( s[0] == '/' &&
+             ( *it == Configuration::DbAddress ||
+               *it == Configuration::SmartHostAddress ) )
+            addPath( Path::ExistingSocket, *it );
+        else if ( s[0] == '/' )
+            addPath( Path::CreatableSocket, *it );
         ++it;
     }
 
@@ -501,16 +513,11 @@ static void checkInetAddresses()
 
 
     // It certainly seems desirable to complain loudly if we cannot
-    // connect to the database or the smarthost (we might use the
-    // latter through Sieve, even if SMTP Submit is not enabled).
-    // Unfortunately, the probe will result in unfriendly log lines on
-    // the server.
+    // connect to the database.  Unfortunately, the probe will result
+    // in unfriendly log lines on the server.
 
     checkClient( Configuration::DbAddress, Configuration::DbPort,
                  "db-address:port" );
-    checkClient( Configuration::SmartHostAddress,
-                 Configuration::SmartHostPort,
-                 "smarthost-address:port" );
 
     // We could also check that we get the right error when we connect
     // to some unused port on db-address - port 0, 9 or 17, perhaps?
@@ -1192,7 +1199,7 @@ class RestartData
 {
 public:
     RestartData()
-        : checker( 0 )
+        : checker( 0 ), stopper( 0 ), starter( 0 )
     {}
 
     Checker * checker;
