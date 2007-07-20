@@ -400,6 +400,13 @@ AoxCommand * AoxCommand::create( StringList * args )
         else
             bad( verb, noun, "password, username, address" );
     }
+    else if ( verb == "check" ) {
+        String noun = ::next( args ).lower();
+        if ( noun == "config" )
+            cmd = new CheckConfig( args );
+        else
+            bad( verb, noun, "config" );
+    }
     else if ( verb == "setacl" ) {
         cmd = new SetAcl( args );
     }
@@ -408,9 +415,6 @@ AoxCommand * AoxCommand::create( StringList * args )
     }
     else if ( verb == "anonymise" ) {
         cmd = new Anonymise( args );
-    }
-    else if ( verb == "check" ) {
-        // cmd = new CheckConfig( args );
     }
     else if ( verb == "reparse" ) {
         cmd = new Reparse( args );

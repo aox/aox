@@ -7,6 +7,67 @@
 #include "list.h"
 
 
+class Checker
+    : public EventHandler
+{
+public:
+    Checker( int, EventHandler * );
+
+    void execute();
+    bool done() const;
+    bool failed() const;
+
+private:
+    class CheckerData * d;
+};
+
+
+class Starter
+    : public EventHandler
+{
+public:
+    Starter( int, EventHandler * );
+
+    void execute();
+    bool done() const;
+    bool failed() const;
+
+private:
+    class StarterData * d;
+    bool startServer( const char * );
+};
+
+
+class Stopper
+    : public EventHandler
+{
+public:
+    Stopper( int, EventHandler * );
+
+    void execute();
+    bool done() const;
+    bool failed() const;
+
+    void connect();
+    void disconnect();
+
+private:
+    class StopperData * d;
+};
+
+
+class CheckConfig
+    : public AoxCommand
+{
+public:
+    CheckConfig( StringList * );
+    void execute();
+
+private:
+    class Checker * checker;
+};
+
+
 class Start
     : public AoxCommand
 {
@@ -15,8 +76,7 @@ public:
     void execute();
 
 private:
-    class Query * q;
-    bool startServer( const char * );
+    class StartData * d;
 };
 
 
@@ -26,6 +86,9 @@ class Stop
 public:
     Stop( StringList * );
     void execute();
+
+private:
+    class Stopper * stopper;
 };
 
 
@@ -35,6 +98,9 @@ class Restart
 public:
     Restart( StringList * );
     void execute();
+
+private:
+    class RestartData * d;
 };
 
 
