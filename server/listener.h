@@ -152,7 +152,7 @@ public:
         else if ( !c )
             ::log( "Cannot listen for " + svc + " on port " + fn( p ),
                    Log::Disaster );
-        else
+        else if ( c > 1 )
             ::log( "Listening for " + svc + " on port " + fn( p ) +
                    " of '" + a + "' (" + fn( c ) + " addresses)" );
     }
