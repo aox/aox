@@ -282,7 +282,7 @@ uint HTTP::status() const
     request.
 */
 
-UString HTTP::parameter( const String &s ) const
+UString HTTP::parameter( const String & s ) const
 {
     UString * v = d->parameters.find( s );
     if ( v )

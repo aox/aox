@@ -64,6 +64,7 @@ public:
     void setSuffix( Suffix );
 
     Dict<UString> * arguments() const;
+    UString argument( const String & ) const;
     void addArgument( const String &, const UString & );
     String query() const;
 

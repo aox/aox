@@ -897,7 +897,7 @@ void Link::addArgument( const String & name, const UString & value )
 }
 
 
-/*! Returns a decoded version of \a e, or an empty string if \a e is
+/*! Returns a decoded version of \a s, or an empty string if \a s is
     somehow bad.
 */
 
@@ -929,4 +929,19 @@ UString Link::decoded( const String & s )
     if ( !c.valid() )
         r.truncate();
     return r;
+}
+
+
+/*! Returns the value of argument \a s, if \a s is present. Returns
+    an empty string if \a s is not present or had any kind of syntax
+    error.
+*/
+
+UString Link::argument( const String & s ) const
+{
+    UString * u = d->arguments->find( s );
+    if ( u )
+        return *u;
+    UString empty;
+    return empty;
 }

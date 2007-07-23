@@ -139,23 +139,23 @@ void ArchiveSearch::execute()
 
 void ArchiveSearch::parseTerms()
 {
-    UString * terms = page()->link()->arguments()->find( "query" );
-    if ( !terms || terms->isEmpty() )
+    UString terms = page()->link()->argument( "query" );
+    if ( terms.isEmpty() )
         return;
 
     uint i = 0;
-    while ( i < terms->length() ) {
+    while ( i < terms.length() ) {
         UString term;
-        if ( (*terms)[i] == '"' ) {
+        if ( terms[i] == '"' ) {
             i++;
-            while ( i < terms->length() && (*terms)[i] != '"' ) {
-                term.append( (*terms)[i] );
+            while ( i < terms.length() && terms[i] != '"' ) {
+                term.append( terms[i] );
                 i++;
             }
         }
         else {
-            while ( i < terms->length() && (*terms)[i] != ' ' ) {
-                term.append( (*terms)[i] );
+            while ( i < terms.length() && terms[i] != ' ' ) {
+                term.append( terms[i] );
                 i++;
             }
         }
@@ -170,7 +170,7 @@ void ArchiveSearch::parseTerms()
            st->term = term;
            d->terms.append( st );
         }
-        while ( (*terms)[i] == ' ' )
+        while ( terms[i] == ' ' )
             ++i;
     }
 }
