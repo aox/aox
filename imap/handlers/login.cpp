@@ -44,11 +44,14 @@ void Login::execute()
         return;
 
     if ( !m ) {
+        if ( !imap()->accessPermitted() ) {
+            error( No, "Must enable TLS before login" );
+            return;
+        }
+
         if ( !SaslMechanism::allowed( SaslMechanism::Plain,
-                                      imap()->hasTls() ) )
-        {
-            error( Bad, "LOGIN is disabled" );
-            finish();
+                                      imap()->hasTls() ) ) {
+            error( No, "LOGIN is disabled" );
             return;
         }
         m = new Plain( this );

@@ -111,6 +111,11 @@ void IMAP::setup()
     else
         ::log( "Unknown value for allow-plaintext-passwords: " + s,
                Log::Disaster );
+
+    s = Configuration::text( Configuration::AllowPlaintextAccess ).lower();
+    if ( s != "always" && s != "never" && s != "localhost" )
+        ::log( "Unknown value for allow-plaintext-access: " + s,
+               Log::Disaster );
 }
 
 

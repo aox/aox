@@ -89,6 +89,8 @@ public:
     Log * log() const;
     void log( const String &, Log::Severity = Log::Info );
 
+    bool accessPermitted() const;
+
 private:
     class ConnectionData *d;
     void init( int );

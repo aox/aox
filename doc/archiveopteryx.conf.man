@@ -172,6 +172,16 @@ notably, they cannot open files or delete messages.
 .IP
 Turning security off has exactly one advantage: it simplifies
 debugging.
+.IP allow-plaintext-access
+controls whether it is possible to read mail via an unencrypted
+connection. The default value is
+.IR always .
+If this is changed to
+.IR localhost ,
+plaintext connections are permitted only from the host itself.
+If it is changed to
+.IR never ,
+TLS is necessary to read mail.
 .IP jail-directory
 is
 .I $JAILDIR

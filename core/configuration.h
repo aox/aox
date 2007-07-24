@@ -76,6 +76,7 @@ public:
         JailGroup,
         JailDir,
         AllowPlaintextPasswords,
+        AllowPlaintextAccess,
         LogFile,
         TlsProxyAddress,
         LogAddress,

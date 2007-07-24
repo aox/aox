@@ -69,6 +69,10 @@ void Authenticate::execute()
     // First, create a mechanism handler.
 
     if ( !m ) {
+        if ( !imap()->accessPermitted() ) {
+            error( No, "Must enable TLS before login" );
+            return;
+        }
         m = SaslMechanism::create( t, this, imap()->hasTls() );
         if ( !m ) {
             error( No, "Mechanism " + t + " not supported" );

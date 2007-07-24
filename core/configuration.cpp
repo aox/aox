@@ -185,6 +185,8 @@ static struct {
     { "jail-directory", Configuration::JailDir, JAILDIR },
     { "allow-plaintext-passwords", Configuration::AllowPlaintextPasswords,
         "always" },
+    { "allow-plaintext-access", Configuration::AllowPlaintextAccess,
+        "always" },
     { "logfile", Configuration::LogFile, LOGFILE },
     { "tlsproxy-address", Configuration::TlsProxyAddress, "127.0.0.1" },
     { "log-address", Configuration::LogAddress, "127.0.0.1" },

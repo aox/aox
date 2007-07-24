@@ -778,3 +778,28 @@ bool Connection::any6ListensTo4()
 {
     return ::sixDoesFour;
 }
+
+
+/*! Returns true if this Connection can access mail, and false if not.
+    Bases its decision on the allow-plaintext-access configuration
+    variable.
+*/
+
+bool Connection::accessPermitted() const
+{
+    String x;
+    x = Configuration::text( Configuration::AllowPlaintextAccess );
+    x = x.lower();
+
+    if ( x == "always" ) {
+        return true;
+    }
+    if ( x == "localhost" ) {
+        if ( self().address() == peer().address() )
+            return true;
+        return false;
+    }
+
+    // the only remaining value is "never"
+    return false;
+}

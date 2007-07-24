@@ -315,6 +315,10 @@ bool PopCommand::user()
 {
     if ( !d->user ) {
         log( "USER Command" );
+        if ( !d->pop->accessPermitted() ) {
+            d->pop->err( "Must enable TLS before login" );
+            return true;
+        }
         d->user = new ::User;
         d->pop->setUser( d->user );
         d->user->setLogin( nextArg() );
