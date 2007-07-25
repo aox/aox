@@ -213,28 +213,57 @@ String ArchiveMessage::textPlain( const String & s )
 }
 
 
-static String unwindStack( StringList & stack, const String & tag )
+static void removeTrailingWhiteSpace( String & r )
 {
-    String r;
+    while ( r.endsWith( " " ) || r.endsWith( "\n" ) )
+        r.truncate( r.length() - 1 );
+}
+
+
+static void unwindStack( String & r, StringList & stack, const String & tag )
+{
     StringList::Iterator it( stack.last() );
     while ( it && tag != *it )
         --it;
-    if ( !it )
-        return r;
+    if ( !it && !tag.isEmpty() )
+        return;
+
+    removeTrailingWhiteSpace( r );
     String s;
     do {
         it = stack.last();
         if ( it ) {
             s = *it;
             stack.take( it );
-            if ( s != "p" && s != "body" && s != "script" && s != "style" ) {
+        }
+        if ( s != "p" && s != "body" && s != "script" && s != "style" &&
+             s != "a" ) {
+            if ( s != "i" && s != "b" && s != "u" ) {
+                // tidy complains too much about empty paragraphs.
+                while ( r.endsWith( "<p>" ) || r.endsWith( "<br>" ) ) {
+                    if ( r[r.length() - 2] == 'p' )
+                        r.truncate( r.length() - 3 );
+                    else
+                        r.truncate( r.length() - 4 );
+                    removeTrailingWhiteSpace( r );
+                }
+            }
+            removeTrailingWhiteSpace( r );
+            if ( r.endsWith( "<" + s + ">" ) ) {
+                // we get rid of empty tags, so tidy won't complain so
+                // much during testing
+                r.truncate( r.length() - s.length() - 2 );
+            }
+            else {
+                // it's a tag we have to close
                 r.append( "</" );
                 r.append( s );
                 r.append( ">" );
             }
+            if ( s != "i" && s != "b" && s != "u" )
+                r.append( "\n" );
         }
-    } while ( it && tag != s );
-    return r;
+    } while ( tag != s && !stack.isEmpty() );
 }
 
 
@@ -267,14 +296,27 @@ String ArchiveMessage::textHtml( const String & s )
     r.reserve( s.length() );
     r.append( "<div class=texthtml>" );
     StringList stack;
+    stack.append( "div" );
     uint i = 0;
     bool visible = false;
+    bool bodySeen = false;
+    bool lspace = false;
     while ( i < s.length() ) {
         uint j = i;
         while ( j < s.length() && s[j] != '<' )
             j++;
-        if ( visible )
+        bool tspace = false;
+        if ( visible ) {
+            if ( lspace &&
+                 ( s[i] == ' ' || s[i] == '\t' ||
+                   s[i] == '\n' || s[i] == '\r' ) )
+                r.append( " " );
+            lspace = false;
             r.append( s.mid( i, j-i ).simplified() );
+            if ( s[j-1] == ' ' || s[j-1] == '\t' ||
+                 s[j-1] == '\n' || s[j-1] == '\r' )
+                tspace = true;
+        }
         i = j;
         if ( s[i] == '<' ) {
             i++;
@@ -333,20 +375,27 @@ String ArchiveMessage::textHtml( const String & s )
                 }
             }
             i++;
+            lspace = false;
             if ( tag[0] == '/' ) {
                 if ( tag == "/p" ) {
                     // noop
                 }
                 else if ( tag == "/blockquote" ) {
                     if ( !stack.isEmpty() && *stack.last() == "p" )
-                        r.append( unwindStack( stack, "p" ) );
+                        unwindStack( r, stack, "p" );
                     else
-                        r.append( unwindStack( stack, "blockquote" ) );
+                        unwindStack( r, stack, "blockquote" );
                 }
-                else if ( tag == "/div" ||
+                else if ( tag == "/a" ||
                           tag == "/i" ||
                           tag == "/b" ||
-                          tag == "/u" ||
+                          tag == "/u" ) {
+                    if ( tspace )
+                        r.append( " " );
+                    unwindStack( r, stack, tag.mid( 1 ) );
+                    lspace = true;
+                }
+                else if ( tag == "/div" ||
                           tag == "/ul" ||
                           tag == "/ol" ||
                           tag == "/pre" ||
@@ -356,44 +405,65 @@ String ArchiveMessage::textHtml( const String & s )
                           tag == "/script" ||
                           tag == "/style" ||
                           tag == "/body" ) {
-                    r.append( unwindStack( stack, tag.mid( 1 ) ) );
+                    unwindStack( r, stack, tag.mid( 1 ) );
                 }
             }
             else if ( tag == "blockquote" ) {
                 if ( htmlclass == "cite" ) {
-                    r.append( unwindStack( stack, "p" ) );
-                    stack.append( new String( "p" ) );
+                    unwindStack( r, stack, "p" );
+                    stack.append( "p" );
+                    removeTrailingWhiteSpace( r );
                     r.append( "\n<p class=quoted>" );
                 }
                 else {
-                    stack.append( new String( "blockquote" ) );
+                    stack.append( "blockquote" );
+                    removeTrailingWhiteSpace( r );
                     r.append( "\n<blockquote>" );
                 }
             }
             else if ( tag == "p" ) {
-                r.append( unwindStack( stack, "p" ) );
-                stack.append( new String( "p" ) );
-                r.append( "\n<p>" );
+                unwindStack( r, stack, "p" );
+                stack.append( "p" );
+                removeTrailingWhiteSpace( r );
+                if ( !r.endsWith( "<p>" ) )
+                    r.append( "\n<p>" );
             }
-            else if ( tag == "p" ||
-                      tag == "tr" ||
-                      tag == "td" ) {
-                r.append( unwindStack( stack, tag ) );
-                stack.append( tag );
-                r.append( "\n<" );
-                r.append( tag );
-                r.append( ">" );
+            else if ( tag == "li" ) {
+                unwindStack( r, stack, "li" );
+                stack.append( "li" );
+                removeTrailingWhiteSpace( r );
+                r.append( "\n<li>" );
             }
             else if ( tag == "br" ) {
-                r.append( "<br>\n" );
+                removeTrailingWhiteSpace( r );
+                if ( !r.endsWith( ">" ) &&
+                     !r.endsWith( "<br>" ) &&
+                     !r.endsWith( "<p>" ) &&
+                     !r.endsWith( "<div>" ) &&
+                     !r.endsWith( "<td>" ) )
+                    r.append( "<br>\n" );
+            }
+            else if ( tag == "a" ) {
+                stack.append( tag );
+                if ( tspace )
+                    r.append( " " );
+                // should we output the link? how?
+                lspace = true;
+            }
+            else if ( tag == "i" ||
+                      tag == "b" ||
+                      tag == "u" ) {
+                stack.append( tag );
+                if ( tspace )
+                    r.append( " " );
+                r.append( "<" );
+                r.append( tag );
+                r.append( ">" );
+                lspace = true;
             }
             else if ( tag == "div" ||
-                      tag == "i" ||
-                      tag == "b" ||
-                      tag == "u" ||
                       tag == "ul" ||
                       tag == "ol" ||
-                      tag == "li" ||
                       tag == "dl" ||
                       tag == "dt" ||
                       tag == "dd" ||
@@ -402,7 +472,8 @@ String ArchiveMessage::textHtml( const String & s )
                       tag == "tr" ||
                       tag == "td" ||
                       tag == "th" ) {
-                stack.append( new String( tag ) );
+                stack.append( tag );
+                removeTrailingWhiteSpace( r );
                 r.append( "\n<" );
                 r.append( tag );
                 r.append( ">" );
@@ -410,7 +481,9 @@ String ArchiveMessage::textHtml( const String & s )
             else if ( tag == "script" ||
                       tag == "style" ||
                       tag == "body" ) {
-                stack.append( new String( tag ) );
+                stack.append( tag );
+                if ( tag == "body" )
+                    bodySeen = true;
             }
             else {
                 // in all other cases, we skip the tag. maybe we
@@ -419,9 +492,21 @@ String ArchiveMessage::textHtml( const String & s )
             }
             visible = visibility( stack );
         }
+        if ( i >= s.length() && !bodySeen ) {
+            bodySeen = true;
+            r.truncate();
+            r.append( "<div class=texthtml>" );
+            stack.clear();
+            i = 0;
+            stack.append( "body" );
+            stack.append( "div" );
+            visible = false;
+            bodySeen = true;
+        }
     }
-    r.append( unwindStack( stack, "" ) );
-    r.append( "</div>\n" );
+    unwindStack( r, stack, "" );
+    removeTrailingWhiteSpace( r );
+    r.append( "\n" );
     return r;
 }
 
