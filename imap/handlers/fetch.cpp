@@ -766,6 +766,11 @@ String Fetch::sectionData( Section * s, Message * m )
         data.append( "\r\n" );
     }
 
+    else if ( s->id == "rfc822.text" ) {
+        item = s->id.upper();
+        data = m->body();
+    }
+
     else if ( s->id == "text" ) {
         if ( s->part.isEmpty() ) {
             item = "TEXT";
