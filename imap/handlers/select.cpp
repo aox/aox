@@ -193,6 +193,14 @@ void Select::execute()
     respond( "FLAGS (" + flags + ")" );
     respond( "OK [PERMANENTFLAGS (" + flags +" \\*)] permanent flags" );
 
+    if ( imap()->clientSupports( IMAP::Annotate ) ) {
+        Permissions * p  = d->session->permissions();
+        if ( p && p->allowed( Permissions::WriteSharedAnnotation ) )
+            respond( "OK [ANNOTATIONS 262144] Arbitrary limit" );
+        else
+            respond( "OK [ANNOTATIONS READ-ONLY] Missing 'n' right" );
+    }
+
     if ( d->session->readOnly() )
         setRespTextCode( "READ-ONLY" );
     else
