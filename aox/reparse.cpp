@@ -18,12 +18,13 @@ class ReparseData
 {
 public:
     ReparseData()
-        : q( 0 ), row( 0 ), injector( 0 )
+        : q( 0 ), row( 0 ), injector( 0 ), t( 0 )
     {}
 
     Query * q;
     Row * row;
     Injector * injector;
+    Transaction * t;
 };
 
 
@@ -66,15 +67,20 @@ void Reparse::execute()
     if ( d->injector ) {
         if ( !d->injector->done() )
             return;
-        if ( !d->injector->failed() ) {
+
+        if ( d->injector->failed() ) {
+            error( "Couldn't inject reparsed message: " +
+                   d->injector->error() );
+        }
+        else {
             d->injector->announce();
             Mailbox * m = d->injector->mailboxes()->first();
-            Transaction * t = new Transaction( this );
+            d->t = new Transaction( this );
             Query * q =
                 new Query( "delete from unparsed_messages where "
                            "bodypart=$1", this );
             q->bind( 1, d->row->getInt( "bodypart" ) );
-            t->enqueue( q );
+            d->t->enqueue( q );
             q = new Query( "insert into deleted_messages "
                            "(mailbox,uid,deleted_by,reason) "
                            "values ($1,$2,$3,$4)", this );
@@ -86,21 +92,24 @@ void Reparse::execute()
                      fn( d->injector->uid( m ) )+
                      " by aox " +
                      Configuration::compiledIn( Configuration::Version ) );
-            t->enqueue( q );
-            // XXX: d->waitFor( q );
-            t->commit();
+            d->t->enqueue( q );
+            d->t->commit();
             printf( "- reparsed %s:%d (new UID %d)\n",
                     m->name().cstr(),
                     d->row->getInt( "uid" ),
                     d->injector->uid( m ) );
         }
+
         d->injector = 0;
     }
-    else {
-        if ( d->q->done() )
-            printf( "Reparsing %d messages:\n", d->q->rows() );
-        else
+    else if ( d->t ) {
+        if ( !d->t->done() )
             return;
+
+        if ( d->t->failed() )
+            error( "Couldn't delete reparsed message: " + d->t->error() );
+
+        d->t = 0;
     }
 
     while ( d->q->hasResults() && !d->injector ) {
