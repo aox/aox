@@ -125,6 +125,7 @@ public:
         UsePop,
         SubmitCopyToSender,
         AuthPlain,
+        AuthLogin,
         AuthCramMd5,
         AuthDigestMd5,
         AuthAnonymous,

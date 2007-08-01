@@ -19,6 +19,7 @@ public:
     enum Type {
         Anonymous,
         Plain,
+        Login,
         CramMD5,
         DigestMD5
     };

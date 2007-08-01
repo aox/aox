@@ -237,6 +237,7 @@ static struct {
     { "use-pop", Configuration::UsePop, false },
     { "submit-copy-to-sender", Configuration::SubmitCopyToSender, false },
     { "auth-plain", Configuration::AuthPlain, true },
+    { "auth-login", Configuration::AuthLogin, false },
     { "auth-cram-md5", Configuration::AuthCramMd5, true },
     { "auth-digest-md5", Configuration::AuthDigestMd5, true },
     { "auth-anonymous", Configuration::AuthAnonymous, false },

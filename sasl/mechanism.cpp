@@ -13,6 +13,7 @@
 #include "cram-md5.h"
 #include "digest-md5.h"
 #include "plain.h"
+#include "sasllogin.h"
 
 
 class SaslData
@@ -88,6 +89,8 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
         m = new ::Anonymous( command );
     else if ( s == "plain" )
         m = new ::Plain( command );
+    else if ( s == "login" )
+        m = new ::SaslLogin( command );
     else if ( s == "cram-md5" )
         m = new ::CramMD5( command );
     else if ( s == "digest-md5" )
@@ -369,6 +372,10 @@ bool SaslMechanism::allowed( Type mechanism, bool privacy )
         a = Configuration::toggle( Configuration::AuthPlain );
         pt = true;
         break;
+    case Login:
+        a = Configuration::toggle( Configuration::AuthLogin );
+        pt = true;
+        break;
     case CramMD5:
         a = Configuration::toggle( Configuration::AuthCramMd5 );
         break;
@@ -407,6 +414,8 @@ String SaslMechanism::allowedMechanisms( const String & prefix, bool privacy )
         l.append( "DIGEST-MD5" );
     if ( allowed( Plain, privacy ) )
         l.append( "PLAIN" );
+    if ( allowed( Login, privacy ) )
+        l.append( "LOGIN" );
     if ( l.isEmpty() )
         return "";
     return prefix + l.join( " " + prefix );
