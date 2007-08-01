@@ -1,21 +1,22 @@
-2.02: 2007-07-30
-
-  Reading mail with webmail.
-
-  Reading archives.
-
-  Archive/webmail search results.
-
-  Positive response from 'aox start', 'aox check' etc.
-
-  aox redesign/rewrite to get better, more maintainable code.
-
-
 2.03: 2007-09-10
 
-  Web-based sieve editing.
+  httpd: webmail, archives, search results.
 
-  Advanced web-based searching, setting up views.
+  Something for Martin Rode and his broken Umlauts.
+
+  SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
+
+  installer should be able to install to a remote database.
+
+  allow-plaintext-access (written, but needs bugfixes).
+
+  Make "aox check config" test for more things.
+
+  aox update database problem.
+
+  aox undelete
+
+  HTTPS support.
 
   Arnt is away from 2007-08-11 to 2007-08-25.
 
