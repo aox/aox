@@ -16,7 +16,7 @@
     SaslMechanism subclass to handle the details of the client-selected
     authentication mechanism.
 
-    (The details of SASL-IR probably are handled here still, aren't they?)
+    Supports SASL as used by RFC 3501 and extended by RCC 4959.
 */
 
 Authenticate::Authenticate()
