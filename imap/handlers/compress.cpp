@@ -128,11 +128,14 @@ int InflateFilter::write( char *, uint, Buffer * )
 
 
 /*! \class Compress compress.h
-  This Compress class implements the (gone?) COMPRESS=DEFLATE extension.
+  This Compress class implements the COMPRESS=DEFLATE extension.
 
-  This is/was an IMAP extension draft. It seems to have been
-  superseded/replaced by a TLS extension. The code here may be usable
-  to implement the TLS extension, who knows.
+  Wow. After only four years as a draft, and dying twice, the draft
+  came out as RFC 4978 and is implemented by five programs at the time
+  of publication.
+
+  Our implementation is a little primitive. Interoperates with the
+  latest, but doesn't contain the good ideas that were added late.
 */
 
 /*!  Constructs a handler for the deflate compression. */

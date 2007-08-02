@@ -34,6 +34,8 @@
     RFC 4551: CONDSTORE
     RFC 4467: URLAUTH
     RFC 4731: ESEARCH (also from RFC 4466)
+    RFC 4959: SASL-IR
+    RFC 4978: COMPRESS=DEFLATE
 
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
@@ -98,7 +100,7 @@ String Capability::capabilities( IMAP * i, bool all )
         c.append( "NAMESPACE" );
     if ( all || login )
         c.append( "RIGHTS=ekntx" );
-    if ( drafts && ( all || !login ) )
+    if ( all || !login )
         c.append( "SASL-IR" );
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
