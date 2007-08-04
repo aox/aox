@@ -956,7 +956,8 @@ String String::eURI() const
 
 /*! Returns a version of this String with every %xx escape replaced with
     the corresponding character (as used to encode URIs). Invalid escape
-    sequences are left unchanged.
+    sequences are left unchanged, so this function cannot be used for
+    input from potentially malevolent sources.
 */
 
 String String::deURI() const
@@ -972,7 +973,7 @@ String String::deURI() const
         if ( c == '%' ) {
             bool ok;
             uint n = mid( p+1, 2 ).number( &ok, 16 );
-            if ( ok ) {
+            if ( ok && l > p + 2 ) {
                 p += 2;
                 c = (char)n;
             }
