@@ -127,9 +127,11 @@ void MessageRendering::renderText()
     MessageRenderingData::Node * p = 0;
     MessageRenderingData::Node * n = 0;
     uint i = 0;
+    uint c = 0;
     bool quoted = false;
     bool newPara = true;
     while ( i < d->text.length() ) {
+        c = d->text[i];
         if ( newPara ) {
             p = new MessageRenderingData::Node;
             p->tag = "p";
@@ -139,24 +141,25 @@ void MessageRendering::renderText()
             p->children.append( n );
             n->parent = p;
             quoted = false;
-            if ( d->text[i] == '>' ) {
+            if ( c == '>' ) {
                 p->htmlclass = "quoted";
                 quoted = true;
             }
             newPara = false;
         }
 
-        if ( d->text[i] == 13 || d->text[i] == 10 ) {
+        if ( c == 13 || c == 10 ) {
             // CR, LF or a combination
             uint cr = 0;
             uint lf = 0;
             bool done = false;
             do {
-                if ( d->text[i] == 13 ) {
+                c = d->text[i];
+                if ( c == 13 ) {
                     cr++;
                     i++;
                 }
-                else if ( d->text[i] == 10 ) {
+                else if ( c == 10 ) {
                     lf++;
                     i++;
                 }
@@ -166,9 +169,9 @@ void MessageRendering::renderText()
             } while ( !done );
             if ( cr > 1 || lf > 1 )
                 newPara = true;
-            if ( quoted && d->text[i] != '>' )
+            if ( quoted && c != '>' )
                 newPara = true;
-            else if ( !quoted && d->text[i] == '>' )
+            else if ( !quoted && c == '>' )
                 newPara = true;
             if ( !newPara ) {
                 n = new MessageRenderingData::Node;
@@ -180,7 +183,7 @@ void MessageRendering::renderText()
                 n->parent = p;
             }
         }
-        else if ( d->text[i] == 8 ) {
+        else if ( c == 8 ) {
             // backspace
             if ( n && !n->text.isEmpty() )
                 n->text.truncate( n->text.length() - 1 );
@@ -188,7 +191,7 @@ void MessageRendering::renderText()
         }
         else {
             // other text
-            d->text.append( d->text[i] );
+            n->text.append( c );
             i++;
         }
     }
@@ -392,11 +395,13 @@ void MessageRenderingData::Node::clean()
         tag = "p";
         htmlclass = "quoted";
     }
-    else if ( variables->contains( "cite" ) ) {
+    else if ( variables && 
+              variables->contains( "cite" ) ) {
         tag = "p";
         htmlclass = "quoted";
     }
-    else if ( variables->contains( "type" ) &&
+    else if ( variables && 
+              variables->contains( "type" ) &&
               variables->find( "type" )->lower() == "cite" ) {
         tag = "p";
         htmlclass = "quoted";
@@ -522,7 +527,7 @@ static void truncateTrailingWhitespace( String & r )
     }
     if ( i < 0 )
         i = 0;
-    r.truncate( i );
+    r.truncate( i + 1 );
 }
 
 
@@ -582,7 +587,7 @@ String MessageRenderingData::Node::rendered() const
                 r.append( "\n" );
             r.append( "<" );
             r.append( tag );
-            r.append( "<" );
+            r.append( ">" );
             if ( !pre )
                 r.append( "\n" );
         }
@@ -592,18 +597,9 @@ String MessageRenderingData::Node::rendered() const
         r.reserve( text.length() );
         uint i = 0;
         uint spaces = 0;
-        UString t;
-        t.reserve( text.length() );
         while ( i < text.length() ) {
-            if ( text[i] != 8 )
-                t.append( text[i] );
-            else if ( !t.isEmpty() && t[t.length()-1] >= 32 )
-                t.truncate( t.length() - 1 );
+            uint c = text[i];
             i++;
-        }
-        i = 0;
-        while ( i < t.length() ) {
-            uint c = t[i];
             if ( !pre &&
                  ( c == 9 || c == 10 || c == 13 || c == 32 ) ) {
                 spaces++;
@@ -628,10 +624,9 @@ String MessageRenderingData::Node::rendered() const
                     r.append( "&amp;" );
                 }
                 else {
-                    r.append( c );
+                    r.append( (char)c );
                 }
             }
-            i++;
         }
         if ( ll && spaces )
             r.append( ' ' );
