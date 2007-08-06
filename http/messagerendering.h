@@ -20,9 +20,13 @@ public:
 
     String asHtml();
 
+    UString excerpt();
+
 private:
     void renderHtml();
     void renderText();
+
+    void render();
 
     Dict<String> * parseVariables( uint & );
 

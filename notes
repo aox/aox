@@ -767,6 +767,9 @@ Rendering webmail HTML is presumably good, but...
   Two I saw today: http://www.sec-consult.com/232.html and
   http://www.sec-consult.com/233.html
 
+  We have a potential security hole: A malevolent HTML bodypart is
+  forwarded as is on the "download bodypart" page.
+
 
 When TlsServer dies, imaps (993) must go away
 

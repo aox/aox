@@ -7,11 +7,14 @@
 #include "dict.h"
 #include "link.h"
 #include "list.h"
+#include "codec.h"
 #include "field.h"
 #include "query.h"
 #include "messageset.h"
 #include "addressfield.h"
+#include "messagerendering.h"
 #include "frontmatter.h"
+#include "mimefields.h"
 #include "threader.h"
 #include "ustring.h"
 #include "webpage.h"
@@ -38,12 +41,13 @@ class ArchiveMailboxData
 {
 public:
     ArchiveMailboxData()
-        : link( 0 ), af( 0 ), idate( 0 )
+        : link( 0 ), af( 0 ), idate( 0 ), text( 0 )
     {}
 
     Link * link;
     Query * af;
     Query * idate;
+    Query * text;
 
     class Message
         : public Garbage
@@ -57,6 +61,7 @@ public:
         uint uid;
         List<Address> from;
         uint idate;
+        UString text;
     };
 
     Map<Message> messages;
@@ -112,10 +117,33 @@ void ArchiveMailbox::execute()
         return;
     }
 
+    if ( !d->text ) {
+        List<Thread>::Iterator i( t->allThreads() );
+        MessageSet f;
+        while ( i ) {
+            f.add( i->members().smallest() );
+            ++i;
+        }
+        d->text = new Query( 
+            "select bp.*, hf.* from bodyparts bp "
+            "join part_numbers pn on (bp.id=pn.part) "
+            "join header_fields hf using (mailbox,uid,part) "
+            "where pn.mailbox=$1 and hf.field=$2 and (" + f.where() + ") and "
+            "(hf.value like 'text/html%' or hf.value like 'text/plain%') "
+            "order by part",
+            this );
+        d->text->bind( 1, d->link->mailbox()->id() );
+        d->text->bind( 2, HeaderField::ContentType );
+        d->text->execute();
+    }
+
     if ( !d->af->done() )
         return;
 
     if ( !d->idate->done() )
+        return;
+
+    if ( !d->text->done() )
         return;
 
     if ( t->allThreads()->isEmpty() ) {
@@ -149,6 +177,30 @@ void ArchiveMailbox::execute()
         ArchiveMailboxData::Message * m = d->messages.find( uid );
         if ( m )
             m->idate = r->getInt( "idate" );
+    }
+
+    while ( (r=d->text->nextRow()) ) {
+        uint uid = r->getInt( "uid" );
+        ContentType * ct = new ContentType;
+        ct->parse( r->getString( "value" ) ); // parse? is that correct?
+        ArchiveMailboxData::Message * m = d->messages.find( uid );
+        if ( m && m->text.isEmpty() ) {
+            if ( ct->subtype() == "plain" ) {
+                MessageRendering mr;
+                mr.setTextPlain( r->getUString( "text" ) );
+                m->text = mr.excerpt();
+            }
+            else if ( ct->subtype() == "html" ) {
+                Codec * c = 0;
+                if ( ct )
+                    c = Codec::byName( ct->parameter( "charset" ) );
+                if ( !c )
+                    c = new AsciiCodec;
+                MessageRendering mr;
+                mr.setTextHtml( r->getString( "data" ), c );
+                m->text = mr.excerpt();
+            }
+        }
     }
 
     // subjects, from and thread information is ready now.

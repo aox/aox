@@ -112,13 +112,7 @@ void MessageRendering::setWebPage( class WebPage * wp )
 
 String MessageRendering::asHtml()
 {
-    if ( d->root )
-        return d->root->rendered();
-
-    if ( !d->html.isEmpty() )
-        renderHtml();
-    else
-        renderText();
+    render();
     return d->root->rendered();
 }
 
@@ -219,7 +213,7 @@ void MessageRendering::renderHtml()
     MessageRenderingData::Node * t = 0;
     MessageRenderingData::Node * p = d->root;
     bool seenBody = true;
-    
+
     uint i = 0;
     while ( i < d->html.length() ) {
         uint j = i;
@@ -244,7 +238,7 @@ void MessageRendering::renderHtml()
                 new MessageRenderingData::Node;
             n->tag = d->html.mid( i, j-i ).lower();
             n->variables = parseVariables( i );
-            
+
             String unwind;
             if ( n->tag[0] == '/' )
                 unwind = n->tag.mid( 1 );
@@ -393,7 +387,63 @@ Dict<String> * MessageRendering::parseVariables( uint & i )
 
 void MessageRenderingData::Node::clean()
 {
-    
+    // tighten up quoted matter
+    if ( tag == "blockquote" ) {
+        tag = "p";
+        htmlclass = "quoted";
+    }
+    else if ( variables->contains( "cite" ) ) {
+        tag = "p";
+        htmlclass = "quoted";
+    }
+    else if ( variables->contains( "type" ) &&
+              variables->find( "type" )->lower() == "cite" ) {
+        tag = "p";
+        htmlclass = "quoted";
+    }
+
+    // some kinds of tags enclose matter we simply don't want
+    if ( tag == "script" || tag == "style" ||
+         tag == "meta" || tag == "head" ) {
+        children.clear();
+        text.truncate();
+    }
+
+    // identify <div><div><div> ... </div></div></div> and remove the
+    // inner divs.
+    while ( children.count() == 1 &&
+            ( tag == "div" || tag == "p" ) &&
+            children.first()->tag == tag ) {
+        Node * c = children.first();
+        children.clear();
+        List<Node>::Iterator i( c->children );
+        while ( i ) {
+            children.append( i );
+            i->parent = this;
+        }
+    }
+
+    // todo: identify signatures
+
+    // todo: mark the last line before a signature block if it seems
+    // to be "x y schrieb"
+
+    // todo: mark "---original message---" and subsequent as quoted
+    // matter.
+
+    // todo: identify disclaimers
+
+    // todo: identify ascii art and mark it as <pre> or something.
+
+    // todo: identify leading greeting and mark it
+
+    // process children
+    List<Node>::Iterator i( children );
+    while ( i ) {
+        Node * n = i;
+        ++i;
+        n->clean();
+    }
 }
 
 
@@ -434,8 +484,7 @@ bool MessageRenderingData::Node::known() const
 bool MessageRenderingData::Node::container() const
 {
     if ( tag == "br" ||
-         tag == "hr" ||
-         tag == "meta" )
+         tag == "hr" )
         return false;
     if ( known() )
         return true;
@@ -480,9 +529,6 @@ static void truncateTrailingWhitespace( String & r )
 
 String MessageRenderingData::Node::rendered() const
 {
-    if ( tag == "style" || tag == "script" )
-        return "";
-
     String r;
     bool pre = false;
     const Node * p = this;
@@ -494,7 +540,7 @@ String MessageRenderingData::Node::rendered() const
             n = "span"; // we don't let links through...
         else if ( known() )
             n = tag;
-        if ( pre )
+        if ( !pre )
             r.append( "\n" );
         r.append( "<" );
         r.append( n );
@@ -518,13 +564,17 @@ String MessageRenderingData::Node::rendered() const
                 truncateTrailingWhitespace( r );
             r.append( e );
         }
-        if ( !pre && !lineLevel() )
-            r.append( "\n" );
-        r.append( "</" );
-        r.append( n );
-        r.append( ">" );
-        if ( !pre )
-            r.append( "\n" );
+        if ( n != "p" && n != "li" ) {
+            if ( !pre && !lineLevel() )
+                r.append( "\n" );
+            r.append( "</" );
+            r.append( n );
+            r.append( ">" );
+            if ( !pre )
+                r.append( "\n" );
+        }
+        if ( children.isEmpty() )
+            r.truncate();
     }
     else if ( !tag.isEmpty() ) {
         if ( known() && tag != "meta" ) {
@@ -563,7 +613,7 @@ String MessageRenderingData::Node::rendered() const
                     r.append( ' ' );
                 spaces = 0;
                 if ( c > 126 ||
-                          ( c < 32 && c != 9 && c != 10 && c != 13 ) ) {
+                     ( c < 32 && c != 9 && c != 10 && c != 13 ) ) {
                     r.append( "&#" );
                     r.append( fn( c ) );
                     r.append( ';' );
@@ -589,4 +639,73 @@ String MessageRenderingData::Node::rendered() const
             r = r.wrapped( 72, "", "", false );
     }
     return r;
+}
+
+
+/*! Finds and returns an excerpt from the message. Avoids quoted bits,
+    scripts, style sheets etc., removes formatting wholesale and
+    blah. Rather heuristic.
+
+    Two or linefeeds in a row probably ought to be turned into <p> and
+    one into <br>.
+*/
+
+UString MessageRendering::excerpt()
+{
+    render();
+    UString r;
+    MessageRenderingData::Node * n = d->root;
+    while ( n && r.length() < 300 ) {
+        if ( n != d->root && !n->htmlclass.isEmpty() ) {
+            // it's quoted or something
+        }
+        else {
+            if ( !n->text.isEmpty() ) {
+                r.append( '\n' );
+                r.append( '\n' );
+                r.append( n->text );
+            }
+            else if ( n->tag == "hr" || n->tag == "br" ) {
+                r.append( '\n' );
+            }
+            if ( !n->children.isEmpty() ) {
+                n = n->children.first();
+            }
+            else if ( n->parent ) {
+                MessageRenderingData::Node * c = 0;
+                MessageRenderingData::Node * p = n->parent;
+                while ( p && !c ) {
+                    List<MessageRenderingData::Node>::Iterator i(p->children);
+                    while ( i && i != n )
+                        ++i;
+                    if ( i )
+                        c = ++i;
+                    else
+                        p = p->parent;
+                }
+            }
+            else {
+                n = 0;
+            }
+        }
+
+    }
+    return r;
+}
+
+
+/*! This private helper does nothing, calls renderHtml() or
+    renderText(), whichever is appropriate.
+*/
+
+void MessageRendering::render()
+{
+    if ( d->root )
+        return;
+
+    if ( !d->html.isEmpty() )
+        renderHtml();
+    else
+        renderText();
+    d->root->clean();
 }
