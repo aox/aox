@@ -17,6 +17,7 @@
 #include "updatedb.h"
 #include "anonymise.h"
 #include "mailboxes.h"
+#include "undelete.h"
 #include "reparse.h"
 #include "rights.h"
 #include "views.h"
@@ -409,6 +410,9 @@ AoxCommand * AoxCommand::create( StringList * args )
     }
     else if ( verb == "setacl" ) {
         cmd = new SetAcl( args );
+    }
+    else if ( verb == "undelete" ) {
+        cmd = new Undelete( args );
     }
     else if ( verb == "vacuum" ) {
         cmd = new Vacuum( args );
