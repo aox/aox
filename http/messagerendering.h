@@ -15,6 +15,7 @@ public:
     MessageRendering();
 
     void setTextPlain( const UString & );
+    void setTextFlowed( const UString & );
     void setTextHtml( const String &, class Codec * );
     void setWebPage( class WebPage * );
 

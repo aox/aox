@@ -12,12 +12,13 @@ class MessageRenderingData
 {
 public:
     MessageRenderingData()
-        : Garbage(), wp( 0 ), codec( 0 ), root( 0 ) {}
+        : Garbage(), wp( 0 ), codec( 0 ), flowed( false ), root( 0 ) {}
 
     WebPage * wp;
     UString text;
     String html;
     Codec * codec;
+    bool flowed;
 
     class Node
         : public Garbage
@@ -76,6 +77,19 @@ void MessageRendering::setTextPlain( const UString & s )
     d->html.truncate();
     d->codec = 0;
     d->text = s;
+    d->flowed = false;
+}
+
+
+/*! Records that \a s is what should be rendered. */
+
+void MessageRendering::setTextFlowed( const UString & s )
+{
+    d->root = 0;
+    d->html.truncate();
+    d->codec = 0;
+    d->text = s;
+    d->flowed = true;
 }
 
 
@@ -89,6 +103,7 @@ void MessageRendering::setTextHtml( const String & s, Codec * c )
     d->text.truncate();
     d->html = s;
     d->codec = c;
+    d->flowed = false;
 }
 
 
@@ -508,26 +523,16 @@ bool MessageRenderingData::Node::lineLevel() const
 }
 
 
-static void truncateTrailingWhitespace( String & r )
+static void ensureTrailingLf( String & r )
 {
     int i = r.length() - 1;
-    bool done = false;
-    while ( i >= 0 && !done ) {
-        switch ( r[i] ) {
-        case ' ':
-        case '\t':
-        case '\r':
-        case 'n':
-            i--;
-            break;
-        default:
-            done = true;
-            break;
-        }
-    }
-    if ( i < 0 )
-        i = 0;
+    while ( i >= 0 && 
+            ( r[i] == ' ' || r[i] == '\t' ||
+              r[i] == '\r' || r[i] == '\n' ) )
+        i--;
     r.truncate( i + 1 );
+    if ( !r.isEmpty() )
+        r.append( "\n" );
 }
 
 
@@ -545,8 +550,6 @@ String MessageRenderingData::Node::rendered() const
             n = "span"; // we don't let links through...
         else if ( known() )
             n = tag;
-        if ( !pre )
-            r.append( "\n" );
         r.append( "<" );
         r.append( n );
         if ( !htmlclass.isEmpty() ) {
@@ -560,18 +563,25 @@ String MessageRenderingData::Node::rendered() const
         if ( !pre && !lineLevel() )
             r.append( "\n" );
         List<Node>::Iterator i( children );
+        bool first = true;
         while ( i ) {
             String e = i->rendered();
+            uint b = 0;
+            if ( !pre ) {
+                while ( e[b] == ' ' || e[b] == '\t' ||
+                        e[b] == '\r' || e[b] == '\n' )
+                    b++;
+                ensureTrailingLf( r );
+                if ( first && lineLevel() )
+                    r.truncate( r.length()-1 );
+            }
+            r.append( e.mid( b ) );
+            first = false;
             ++i;
-            if ( !pre &&
-                 ( e[0] == ' ' || e[0] == '\t' ||
-                   e[0] == '\r' || e[0] == '\n' ) )
-                truncateTrailingWhitespace( r );
-            r.append( e );
         }
         if ( n != "p" && n != "li" ) {
             if ( !pre && !lineLevel() )
-                r.append( "\n" );
+                ensureTrailingLf( r );
             r.append( "</" );
             r.append( n );
             r.append( ">" );
@@ -582,9 +592,7 @@ String MessageRenderingData::Node::rendered() const
             r.truncate();
     }
     else if ( !tag.isEmpty() ) {
-        if ( known() && tag != "meta" ) {
-            if ( !pre )
-                r.append( "\n" );
+        if ( known() ) {
             r.append( "<" );
             r.append( tag );
             r.append( ">" );
