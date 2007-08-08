@@ -476,13 +476,29 @@ by default.
 .IP http-address
 is the address where
 .BR archiveopteryx (8)
-listens for new connections. The default, an empty string, means to
-listen on all available IPv4 and IPv6 addresses.
+listens for new connections. The default is
+.IR 127.0.0.1 .
 .IP http-port
 is the port where
 .BR archiveopteryx (8)
 accepts connections,
 .I 8808
+by default.
+.IP use-https
+decides whether Archiveopteryx offers HTTPS (SSL-wrapped HTTP) service,
+and is
+.I no
+by default.
+.IP https-address
+is the address where
+.BR archiveopteryx (8)
+listens for new HTTPS connections. The default is
+.IR 127.0.0.1 .
+.IP https-port
+is the port where
+.BR archiveopteryx (8)
+accepts connections,
+.I 8443
 by default.
 .IP accept-any-http-host
 decides whether
