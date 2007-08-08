@@ -266,8 +266,6 @@ void MessageRendering::renderHtml()
                 unwind = n->tag;
             else if ( n->tag == "li" )
                 unwind = n->tag;
-            else if ( n->tag == "td" )
-                unwind = n->tag;
             if ( !unwind.isEmpty() ) {
                 MessageRenderingData::Node * n = t;
                 if ( !n )
@@ -429,6 +427,7 @@ void MessageRenderingData::Node::clean()
          tag == "meta" || tag == "head" ) {
         children.clear();
         text.truncate();
+        tag = "";
     }
 
     // identify <div><div><div> ... </div></div></div> and remove the
@@ -557,7 +556,7 @@ bool MessageRenderingData::Node::lineLevel() const
 {
     if ( tag == "a" ||
          tag == "span" ||
-         tag == "i" || tag == "o" || tag == "u" ||
+         tag == "i" || tag == "o" || tag == "u" || tag == "b" ||
          tag == "em" || tag == "strong" )
         return true;
     return false;
@@ -635,6 +634,8 @@ String MessageRenderingData::Node::rendered() const
                     lfbefore = false;
                 else if ( r.endsWith( " " ) || r.endsWith( "\n" ) )
                     lfbefore = true;
+                else if ( e.startsWith( " " ) || e.startsWith( "\n" ) )
+                    lfbefore = true;
                 else if ( i->lineLevel() )
                     lfbefore = false;
                 else if ( i->container() )
@@ -649,7 +650,7 @@ String MessageRenderingData::Node::rendered() const
                     ensureTrailingLf( r );
                 uint b = 0;
                 if ( !pre )
-                    while ( !e[b] == ' ' || e[b] == '\t' ||
+                    while ( e[b] == ' ' || e[b] == '\t' ||
                             e[b] == '\r' || e[b] == '\n' )
                         b++;
                 r.append( e.mid( b ) );
@@ -678,38 +679,36 @@ String MessageRenderingData::Node::rendered() const
         }
     }
     else if ( !text.isEmpty() ) {
-        bool ll = lineLevel();
         r.reserve( text.length() );
-        uint i = 0;
-        uint spaces = 0;
-        while ( i < text.length() ) {
-            uint c = text[i];
-            i++;
-            if ( !pre &&
-                 ( c == 9 || c == 10 || c == 13 || c == 32 ) ) {
-                spaces++;
-            }
-            else {
-                if ( spaces && ( ll || !r.isEmpty() ) )
-                    r.append( ' ' );
-                spaces = 0;
-                if ( c > 126 ||
-                     ( c < 32 && c != 9 && c != 10 && c != 13 ) ||
-                     c == '<' ||
-                     c == '>' ||
-                     c == '&' )
-                    r.append( entityName( c ) );
-                else
-                    r.append( (char)c );
-            }
+        UString t;
+        if ( pre ) {
+            t = text;
         }
-        if ( ll && spaces )
-            r.append( ' ' );
-        if ( !pre && !ll ) {
+        else {
+            t.append( 't' );
+            t.append( text );
+            t.append( 't' );
+            t = t.simplified();
+            t = t.mid( 1, t.length() - 2 );
+        }
+        uint i = 0;
+        while ( i < t.length() ) {
+            uint c = t[i];
+            i++;
+            if ( c > 126 ||
+                 ( c < 32 && c != 9 && c != 10 && c != 13 ) ||
+                 c == '<' ||
+                 c == '>' ||
+                 c == '&' )
+                r.append( entityName( c ) );
+            else
+                r.append( (char)c );
+        }
+        if ( !pre ) {
             String w = r.wrapped( 72, "", "", false );
             // wrapped uses CRLF, which we turn to LF for easier testing
             r.truncate();
-            uint i = 0;
+            i = 0;
             while ( i < w.length() ) {
                 if ( w[i] != '\r' )
                     r.append( w[i] );
