@@ -74,4 +74,17 @@ private:
 };
 
 
+class HTTPS
+    : public HTTP
+{
+public:
+    HTTPS( int );
+
+    void finish();
+
+private:
+    class HTTPSData * d;
+};
+
+
 #endif

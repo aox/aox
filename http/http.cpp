@@ -13,6 +13,7 @@
 #include "webpage.h"
 #include "scope.h"
 #include "log.h"
+#include "tls.h"
 
 
 class HTTPData
@@ -928,4 +929,68 @@ void HTTP::parseParameters()
                 d->parameters.insert( n, new UString( v ) );
         }
     }
+}
+
+
+class HTTPSData
+    : public Garbage
+{
+public:
+    HTTPSData()
+        : tlsServer( 0 ), helper( 0 )
+    {}
+
+    TlsServer * tlsServer;
+    class HttpsHelper * helper;
+};
+
+
+class HttpsHelper
+    : public EventHandler
+{
+public:
+    HttpsHelper( HTTPS * connection )
+        : c( connection )
+    {}
+
+    void execute()
+    {
+        c->finish();
+    }
+
+private:
+    HTTPS * c;
+};
+
+
+/*! \class HTTPS http.h
+    This class inherits from HTTP and adds a TlsServer.
+*/
+
+/*! Constructs an HTTPS server on fd \a s, and begins TLS negotiation
+    immediately.
+*/
+
+HTTPS::HTTPS( int s )
+    : HTTP( s ), d( new HTTPSData )
+{
+    d->helper = new HttpsHelper( this );
+    d->tlsServer = new TlsServer( d->helper, peer(), "HTTPS" );
+    EventLoop::global()->removeConnection( this );
+}
+
+
+/*! Completes TLS negotiation. */
+
+void HTTPS::finish()
+{
+    if ( !d->tlsServer->done() )
+        return;
+    if ( !d->tlsServer->ok() ) {
+        log( "Couldn't negotiate TLS with " + peer().string(), Log::Error );
+        close();
+        return;
+    }
+
+    startTls( d->tlsServer );
 }
