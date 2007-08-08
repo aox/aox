@@ -159,6 +159,14 @@ exactly those given.
 With -d, the identifier's rights are deleted altogether.
 .IP
 A summary of the changes made is displayed when the operation completes.
+.IP "aox undelete <mailbox> <uid>"
+Recovers a deleted message with the specified uid from the given
+mailbox.
+.IP
+Messages can be recovered only if
+.I aox vacuum
+has not permanently deleted them after the configured
+.IR undelete-time .
 .IP "aox vacuum"
 Permanently deletes messages that were marked for deletion more than
 .I undelete-time

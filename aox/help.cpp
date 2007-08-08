@@ -299,6 +299,17 @@ void Help::execute()
             "    completes.\n"
         );
     }
+    else if ( a == "undelete" ) {
+        fprintf(
+            stderr,
+            "  undelete -- Restore a message that has been deleted.\n\n"
+            "    Synopsis: undelete <mailbox> <uid>\n\n"
+            "    Restores the message with the specified mailbox and uid.\n\n"
+            "    Messages can be restored after an IMAP EXPUNGE or POP3 DELE\n"
+            "    only if aox vacuum has not permanently removed them after\n"
+            "    the configured undelete-time (7 days by default).\n"
+        );
+    }
     else if ( a == "vacuum" ) {
         fprintf(
             stderr,
