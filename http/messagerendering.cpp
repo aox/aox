@@ -430,20 +430,6 @@ void MessageRenderingData::Node::clean()
         tag = "";
     }
 
-    // identify <div><div><div> ... </div></div></div> and remove the
-    // inner divs.
-    while ( children.count() == 1 &&
-            ( tag == "div" || tag == "p" ) &&
-            children.first()->tag == tag ) {
-        Node * c = children.first();
-        children.clear();
-        List<Node>::Iterator i( c->children );
-        while ( i ) {
-            children.append( i );
-            i->parent = this;
-        }
-    }
-
     // identify and remove sequences of ""/<br> in paragraphs
     if ( container() && !lineLevel() && tag != "pre" ) {
         bool br = true;
@@ -471,6 +457,22 @@ void MessageRenderingData::Node::clean()
                   ( children.last()->tag.isEmpty() &&
                     children.last()->text.simplified().isEmpty() ) ) )
             children.take( children.last() );
+    }
+
+    // identify <div><div><div> ... </div></div></div> and remove the
+    // inner divs.
+    if ( tag == "div" ) {
+        while ( children.count() == 1 &&
+                children.first()->tag == tag ) {
+            Node * c = children.first();
+            children.clear();
+            List<Node>::Iterator i( c->children );
+            while ( i ) {
+                children.append( i );
+                i->parent = this;
+                ++i;
+            }
+        }
     }
 
     // todo: identify signatures
@@ -619,6 +621,7 @@ String MessageRenderingData::Node::rendered() const
             if ( !pre && !lineLevel() )
                 r.append( "\n" );
         }
+        bool contents = false;
         List<Node>::Iterator i( children );
         while ( i ) {
             String e = i->rendered();
@@ -653,7 +656,10 @@ String MessageRenderingData::Node::rendered() const
                     while ( e[b] == ' ' || e[b] == '\t' ||
                             e[b] == '\r' || e[b] == '\n' )
                         b++;
-                r.append( e.mid( b ) );
+                if ( b < e.length() ) {
+                    r.append( e.mid( b ) );
+                    contents = true;
+                }
             }
             ++i;
         }
@@ -666,7 +672,7 @@ String MessageRenderingData::Node::rendered() const
             if ( !pre && !lineLevel() )
                 r.append( "\n" );
         }
-        if ( children.isEmpty() )
+        if ( !contents )
             r.truncate();
     }
     else if ( !tag.isEmpty() ) {
