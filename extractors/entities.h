@@ -6,7 +6,7 @@
 
 /* A complete list of entity names from HTML 4.0, sorted lexically. */
 
-struct entity {
+const struct entity {
     char *name;
     int chr;
 } entities[] = {
@@ -263,7 +263,7 @@ struct entity {
     { "zwj"	, 8205 },
     { "zwnj"	, 8204 },
 };
-int ents = sizeof( entities ) / sizeof( entities[0] );
+const int ents = sizeof( entities ) / sizeof( entities[0] );
 
 
 #endif
