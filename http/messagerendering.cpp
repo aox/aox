@@ -5,6 +5,7 @@
 #include "codec.h"
 #include "list.h"
 #include "utf.h"
+#include "entities.h"
 
 
 class MessageRenderingData
@@ -230,7 +231,7 @@ void MessageRendering::renderHtml()
 
     MessageRenderingData::Node * t = 0;
     MessageRenderingData::Node * p = d->root;
-    bool seenBody = true;
+    bool seenBody = false;
 
     uint i = 0;
     while ( i < d->html.length() ) {
@@ -243,7 +244,7 @@ void MessageRendering::renderHtml()
                 p->children.append( t );
                 t->parent = p;
             }
-            t->text.append( d->codec->toUnicode( d->html.mid( i, j-i ) ) );
+            t->text.append( toUnicode( d->codec, d->html.mid( i, j-i ) ) );
             i = j;
         }
         if ( d->html[i] == '<' ) {
@@ -256,6 +257,7 @@ void MessageRendering::renderHtml()
                 new MessageRenderingData::Node;
             n->tag = d->html.mid( i, j-i ).lower();
             n->variables = parseVariables( i );
+            i++;
 
             String unwind;
             if ( n->tag[0] == '/' )
@@ -267,7 +269,7 @@ void MessageRendering::renderHtml()
             else if ( n->tag == "td" )
                 unwind = n->tag;
             if ( !unwind.isEmpty() ) {
-                n = t;
+                MessageRenderingData::Node * n = t;
                 if ( !n )
                     n = p;
                 while ( n && n->tag != unwind )
@@ -320,7 +322,7 @@ Dict<String> * MessageRendering::parseVariables( uint & i )
         uint j = i;
         while ( i < d->html.length() &&
                 d->html[i] != '>' && d->html[i] != '=' )
-            j++;
+            i++;
         name = d->html.mid( j, i-j ).simplified().lower();
         if ( !name.isEmpty() && d->html[i] == '=' ) {
             i++;
@@ -443,6 +445,35 @@ void MessageRenderingData::Node::clean()
         }
     }
 
+    // identify and remove sequences of ""/<br> in paragraphs
+    if ( container() && !lineLevel() && tag != "pre" ) {
+        bool br = true;
+        List<Node>::Iterator i( children );
+        // remove all <br>/whitespace after <br> or at the start
+        while ( i ) {
+            if ( br &&
+                 ( i->tag == "br" ||
+                   ( i->tag.isEmpty() &&
+                     i->text.simplified().isEmpty() ) ) ) {
+                children.take( i );
+            }
+            else {
+                if ( i->tag == "br" )
+                    br = true;
+                else
+                    br = false;
+                ++i;
+            }
+        }
+
+        // ... ditto before the end
+        while ( !children.isEmpty() && 
+                ( children.last()->tag == "br" ||
+                  ( children.last()->tag.isEmpty() &&
+                    children.last()->text.simplified().isEmpty() ) ) )
+            children.take( children.last() );
+    }
+
     // todo: identify signatures
 
     // todo: mark the last line before a signature block if it seems
@@ -463,6 +494,16 @@ void MessageRenderingData::Node::clean()
         Node * n = i;
         ++i;
         n->clean();
+    }
+
+    // finally, if that left this node effectively empty, remove it entirely
+    if ( ( tag.isEmpty() && text.simplified().isEmpty() ) ||
+         ( container() && children.isEmpty() ) ) {
+        List<Node>::Iterator i( parent->children );
+        while ( i && i != this )
+            ++i;
+        if ( i )
+            parent->children.take( i );
     }
 }
 
@@ -536,56 +577,92 @@ static void ensureTrailingLf( String & r )
 }
 
 
+static String entityName( uint c )
+{
+    String r;
+    switch ( c ) {
+#include "entitynames.inc"
+    default:
+        r.append( "&#" );
+        r.append( fn( c ) );
+        r.append( ";" );
+        break;
+    }
+    return r;
+}
+
+
 
 String MessageRenderingData::Node::rendered() const
 {
     String r;
     bool pre = false;
     const Node * p = this;
-    while ( !pre && p && p->tag != "pre" )
+    while ( p && p->tag != "pre" )
         p = p->parent;
+    if ( p && p->tag == "pre" )
+        pre = true;
     if ( container() ) {
-        String n = "div";
-        if ( tag == "a" )
-            n = "span"; // we don't let links through...
-        else if ( known() )
+        String n;
+        if ( tag != "a" && known() )
             n = tag;
-        r.append( "<" );
-        r.append( n );
-        if ( !htmlclass.isEmpty() ) {
-            r.append( " class=" );
-            if ( htmlclass.boring() )
-                r.append( htmlclass );
-            else
-                r.append( htmlclass.quoted() );
+        if ( !n.isEmpty() ) {
+            r.append( "<" );
+            r.append( n );
+            if ( !htmlclass.isEmpty() ) {
+                r.append( " class=" );
+                if ( htmlclass.boring() )
+                    r.append( htmlclass );
+                else
+                    r.append( htmlclass.quoted() );
+            }
+            r.append( ">" );
+            if ( !pre && !lineLevel() )
+                r.append( "\n" );
         }
-        r.append( ">" );
-        if ( !pre && !lineLevel() )
-            r.append( "\n" );
         List<Node>::Iterator i( children );
-        bool first = true;
         while ( i ) {
             String e = i->rendered();
-            uint b = 0;
-            if ( !pre ) {
-                while ( e[b] == ' ' || e[b] == '\t' ||
-                        e[b] == '\r' || e[b] == '\n' )
-                    b++;
-                ensureTrailingLf( r );
-                if ( first && lineLevel() )
-                    r.truncate( r.length()-1 );
+            if ( e.isEmpty() ) {
+                // forget it
             }
-            r.append( e.mid( b ) );
-            first = false;
+            else if ( !pre && e.simplified().isEmpty() ) {
+                // forget it harder
+            }
+            else {
+                bool lfbefore;
+                if ( pre )
+                    lfbefore = false;
+                else if ( r.endsWith( " " ) || r.endsWith( "\n" ) )
+                    lfbefore = true;
+                else if ( i->lineLevel() )
+                    lfbefore = false;
+                else if ( i->container() )
+                    lfbefore = true;
+                else if ( lineLevel() )
+                    lfbefore = false;
+                else if ( !i->tag.isEmpty() )
+                    lfbefore = true;
+                else
+                    lfbefore = false;
+                if ( lfbefore )
+                    ensureTrailingLf( r );
+                uint b = 0;
+                if ( !pre )
+                    while ( !e[b] == ' ' || e[b] == '\t' ||
+                            e[b] == '\r' || e[b] == '\n' )
+                        b++;
+                r.append( e.mid( b ) );
+            }
             ++i;
         }
-        if ( n != "p" && n != "li" ) {
+        if ( !n.isEmpty() && n != "p" && n != "li" ) {
             if ( !pre && !lineLevel() )
                 ensureTrailingLf( r );
             r.append( "</" );
             r.append( n );
             r.append( ">" );
-            if ( !pre )
+            if ( !pre && !lineLevel() )
                 r.append( "\n" );
         }
         if ( children.isEmpty() )
@@ -617,29 +694,28 @@ String MessageRenderingData::Node::rendered() const
                     r.append( ' ' );
                 spaces = 0;
                 if ( c > 126 ||
-                     ( c < 32 && c != 9 && c != 10 && c != 13 ) ) {
-                    r.append( "&#" );
-                    r.append( fn( c ) );
-                    r.append( ';' );
-                }
-                else if ( c == '<' ) {
-                    r.append( "&lt;" );
-                }
-                else if ( c == '>' ) {
-                    r.append( "&gt;" );
-                }
-                else if ( c == '&' ) {
-                    r.append( "&amp;" );
-                }
-                else {
+                     ( c < 32 && c != 9 && c != 10 && c != 13 ) ||
+                     c == '<' ||
+                     c == '>' ||
+                     c == '&' )
+                    r.append( entityName( c ) );
+                else
                     r.append( (char)c );
-                }
             }
         }
         if ( ll && spaces )
             r.append( ' ' );
-        if ( !pre && !ll )
-            r = r.wrapped( 72, "", "", false );
+        if ( !pre && !ll ) {
+            String w = r.wrapped( 72, "", "", false );
+            // wrapped uses CRLF, which we turn to LF for easier testing
+            r.truncate();
+            uint i = 0;
+            while ( i < w.length() ) {
+                if ( w[i] != '\r' )
+                    r.append( w[i] );
+                i++;
+            }
+        }
     }
     return r;
 }
@@ -711,4 +787,68 @@ void MessageRendering::render()
     else
         renderText();
     d->root->clean();
+}
+
+
+static uint entity( const String & s )
+{
+    if ( s.startsWith( "&#x" ) ) {
+        bool ok = true;
+        uint n = s.mid( 3 ).number( &ok, 16 );
+        if ( ok )
+            return n;
+    }
+    else if ( s.startsWith( "&#" ) ) {
+        bool ok = true;
+        uint n = s.mid( 2 ).number( &ok );
+        if ( ok )
+            return n;
+    }
+    else {
+        String e = s.mid( 1 );
+        uint bottom = 0;
+        uint top = ents;
+        // an array and a binary search is _almost_ the same as a
+        // binary tree, and one _could_ argue it's more powerful, not?
+        while ( bottom < top ) {
+            uint n = (bottom+top)/2;
+            if ( e == entities[n].name )
+                return entities[n].chr;
+            else if ( e < entities[n].name )
+                top = n;
+            else
+                bottom = n + 1;
+        }
+    }
+    return 0xFFFD; // "not convertible to unicode"
+}
+
+
+/*! Parses \a s as "html text" (ie. including &amp; and suchlike" and
+    returns unicode. \a c is used for all 8-bit blah.
+*/
+
+UString MessageRendering::toUnicode( class Codec * c, const String & s )
+{
+    uint i = 0;
+    UString r;
+    while ( i < s.length() ) {
+        uint b = i;
+        while ( i < s.length() && s[i] != '&' )
+            ++i;
+        if ( i > b )
+            r.append( c->toUnicode( s.mid( b, i-b ) ) );
+        b = i++;
+        while ( ( s[i] >= '0' && s[i] <= '9' ) ||
+                ( s[i] >= 'a' && s[i] <= 'z' ) ||
+                ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                ( s[i] == '#' ) )
+            i++;
+        if ( b < s.length() ) {
+            r.append( entity( s.mid( b, i-b ) ) );
+            if ( s[i] == ';' )
+                i++;
+        }
+    }
+    return r;
 }

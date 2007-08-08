@@ -28,6 +28,7 @@ private:
     void renderText();
 
     void render();
+    UString toUnicode( class Codec * c, const String & );
 
     Dict<String> * parseVariables( uint & );
 
