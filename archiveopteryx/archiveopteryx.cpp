@@ -111,6 +111,11 @@ int main( int argc, char *argv[] )
         Configuration::HttpAddress, Configuration::HttpPort,
         false
         );
+    Listener< HTTPS >::create(
+        "HTTPS", Configuration::toggle( Configuration::UseHttps ),
+        Configuration::HttpsAddress, Configuration::HttpsPort,
+        false
+        );
     Listener< ManageSieve >::create(
         "Sieve", Configuration::toggle( Configuration::UseSieve ),
         Configuration::ManageSieveAddress, Configuration::ManageSievePort,
