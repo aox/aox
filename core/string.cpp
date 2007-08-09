@@ -1754,7 +1754,13 @@ String String::wrapped( uint linelength,
                         const String & firstPrefix, const String & otherPrefix,
                         bool spaceAtEOL )
 {
+    // result must be modifiable() at all times, otherwise we allocate
+    // all the RAM.
     String result = firstPrefix;
+    result.reserve( length() );
+    // move is where we keep the text that has to be moved to the next
+    // line. it too should be modifiable() all the time.
+    String move;
     uint i = 0;
     uint linestart = 0;
     uint space = 0;
@@ -1768,11 +1774,19 @@ String String::wrapped( uint linelength,
 	i++;
 	// add a soft linebreak?
 	if ( result.length() > linestart + linelength && space > linestart ) {
-	    linestart = space + 1;
-	    result = result.mid( 0, space + ( spaceAtEOL ? 1 : 0 ) ) +
-		     "\r\n" + otherPrefix +
-		     result.mid( space+1 );
-	}
+	    linestart = space + 1; // should be 2, strlen( crlf )
+            move.truncate();
+            if ( result.length() > space + 1 )
+                move.append( result.cstr() + space + 1,
+                             result.length() - space - 1 );
+            if ( spaceAtEOL )
+                result.truncate( space + 1 );
+            else
+                result.truncate( space );
+            result.append( "\r\n" );
+            result.append( otherPrefix );
+            result.append( move );
+        }
     }
     return result;
 }
