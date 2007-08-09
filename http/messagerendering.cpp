@@ -266,6 +266,7 @@ void MessageRendering::renderHtml()
                 unwind = n->tag;
             else if ( n->tag == "li" )
                 unwind = n->tag;
+            
             if ( !unwind.isEmpty() ) {
                 MessageRenderingData::Node * n = t;
                 if ( !n )
@@ -277,6 +278,18 @@ void MessageRendering::renderHtml()
                     t = 0;
                 }
             }
+            else if ( n->container() && !n->lineLevel() ) {
+                // if we see a non-line-level container tag, we close
+                // the currently open line-level tags.
+                MessageRenderingData::Node * n = p;
+                while ( n && n->lineLevel() )
+                    n = n->parent;
+                if ( n && !n->lineLevel() ) {
+                    p = n;
+                    t = 0;
+                }
+            }
+
 
             if ( n->tag[0] != '/' ) {
                 p->children.append( n );
@@ -521,7 +534,6 @@ void MessageRenderingData::Node::clean()
     }
 
     // identify signatures
-    
 
     // todo: mark the last line before a signature block if it seems
     // to be "x y schrieb"
@@ -544,8 +556,9 @@ void MessageRenderingData::Node::clean()
     }
 
     // finally, if that left this node effectively empty, remove it entirely
-    if ( ( tag.isEmpty() && text.simplified().isEmpty() ) ||
-         ( container() && children.isEmpty() ) ) {
+    if ( parent && 
+         ( ( tag.isEmpty() && text.simplified().isEmpty() ) ||
+           ( container() && children.isEmpty() ) ) ) {
         List<Node>::Iterator i( parent->children );
         while ( i && i != this )
             ++i;
