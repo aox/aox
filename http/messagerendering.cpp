@@ -797,15 +797,16 @@ void MessageRendering::render()
 
 static uint entity( const String & s )
 {
-    if ( s.startsWith( "&#x" ) ) {
+    if ( s.startsWith( "&#" ) ) {
         bool ok = true;
-        uint n = s.mid( 3 ).number( &ok, 16 );
-        if ( ok )
-            return n;
-    }
-    else if ( s.startsWith( "&#" ) ) {
-        bool ok = true;
-        uint n = s.mid( 2 ).number( &ok );
+        uint n;
+        if ( s[2] == 'x' )
+            n = s.mid( 3 ).number( &ok, 16 );
+        else
+            n = s.mid( 2 ).number( &ok );
+        if ( n >= 0x110000 ||                 // > end of unicode
+             ( n >= 0xD800 && n <= 0xDFFF ) ) // lone surrogate
+            ok = false;
         if ( ok )
             return n;
     }
