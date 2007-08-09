@@ -422,6 +422,51 @@ void MessageRenderingData::Node::clean()
         htmlclass = "quoted";
     }
 
+    // get rid of quoting prefixes
+    if ( container() ) {
+        bool first = true;
+        bool ok = false;
+        UString prefix;
+        List<Node>::Iterator c( children );
+        while ( c ) {
+            if ( c->htmlclass == "quoted" ) {
+                List<Node>::Iterator qc( c->children );
+                while ( qc ) {
+                    if ( qc->text.isEmpty() ) {
+                    }
+                    else if ( first ) {
+                        first = false;
+                        prefix = qc->text;
+                    }
+                    else {
+                        uint i = 0;
+                        while ( i < prefix.length() && i < qc->text.length() &&
+                                prefix[i] == qc->text[i] )
+                            i++;
+                        prefix.truncate( i );
+                    }
+                    if ( prefix.length() < qc->text.length() )
+                        ok = true;
+                    ++qc;
+                }
+            }
+            ++c;
+        }
+        if ( ok && !prefix.isEmpty() ) {
+            c = children.first();
+            while ( c ) {
+                if ( c->htmlclass == "quoted" ) {
+                    List<Node>::Iterator qc( c->children );
+                    while ( qc ) {
+                        qc->text = qc->text.mid( prefix.length() );
+                        ++qc;
+                    }
+                }
+                ++c;
+            }
+        }
+    }
+
     // some kinds of tags enclose matter we simply don't want
     if ( tag == "script" || tag == "style" ||
          tag == "meta" || tag == "head" ) {
@@ -475,7 +520,8 @@ void MessageRenderingData::Node::clean()
         }
     }
 
-    // todo: identify signatures
+    // identify signatures
+    
 
     // todo: mark the last line before a signature block if it seems
     // to be "x y schrieb"
