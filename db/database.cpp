@@ -208,9 +208,9 @@ void Database::runQueue()
         ++it;
     }
 
-    // if we didn't manage to do anything, maybe we should add another
-    // handle.
-    if ( first == queries->firstElement() )
+    // We'll check if we need to add new handles only if we couldn't
+    // dispatch any outstanding queries.
+    if ( first != queries->firstElement() )
         return;
 
     // Even if we want to, we cannot create unix-domain handles when
