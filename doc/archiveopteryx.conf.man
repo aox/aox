@@ -244,7 +244,7 @@ May be set to
 (Future versions of Archiveopteryx will offer more settings.)
 .IP auth-digest-md5
 controls whether the servers offer the digest-md5 SASL mechanism.
-.I Enabled
+.I Disabled
 by default.
 .IP auth-cram-md5
 controls whether the servers offer the cram-md5 SASL mechanism.
