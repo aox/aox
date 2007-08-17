@@ -4,7 +4,7 @@
 
   HTTPS support. (Done)
 
-  allow-plaintext-access. (written, but needs bugfixes)
+  allow-plaintext-access. (Done)
 
   SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
   (Partly done)
