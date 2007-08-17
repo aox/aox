@@ -91,6 +91,20 @@ int main( int argc, char *argv[] )
              "smtp-submit-address/port", Log::Disaster );
     }
 
+
+    String app =
+        Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
+    if ( !( app == "always" || app == "never" ) )
+        ::log( "Unknown value for allow-plaintext-passwords: " + app,
+               Log::Disaster );
+
+    String apa =
+        Configuration::text( Configuration::AllowPlaintextAccess ).lower();
+    if ( !( apa == "always" || apa == "localhost" || apa == "never" ) )
+        ::log( "Unknown value for allow-plaintext-access: " + apa,
+               Log::Disaster );
+
+
     Listener< IMAP >::create(
         "IMAP", Configuration::toggle( Configuration::UseImap ),
         Configuration::ImapAddress, Configuration::ImapPort,
