@@ -1,22 +1,23 @@
 2.03: 2007-09-10
 
+  aox undelete. (Done)
+
+  HTTPS support. (Done)
+
+  allow-plaintext-access. (written, but needs bugfixes)
+
+  SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
+  (Partly done)
+
   httpd: webmail, archives, search results.
 
   Something for Martin Rode and his broken Umlauts.
 
-  SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
-
   installer should be able to install to a remote database.
-
-  allow-plaintext-access (written, but needs bugfixes).
 
   Make "aox check config" test for more things.
 
   aox update database problem.
-
-  aox undelete
-
-  HTTPS support.
 
   Arnt is away from 2007-08-11 to 2007-08-25.
 
