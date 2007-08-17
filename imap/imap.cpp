@@ -21,13 +21,6 @@
 static bool endsWithLiteral( const String *, uint *, bool * );
 
 
-static bool allowPlaintext = true;
-static bool supportsPlain = true;
-static bool supportsCramMd5 = true;
-static bool supportsDigestMd5 = true;
-static bool supportsAnonymous = true;
-
-
 class IMAPData
     : public Garbage
 {
@@ -94,28 +87,6 @@ public:
 
 void IMAP::setup()
 {
-    ::supportsPlain = Configuration::toggle( Configuration::AuthPlain );
-    ::supportsCramMd5 =
-          Configuration::toggle( Configuration::AuthCramMd5 );
-    ::supportsDigestMd5 =
-          Configuration::toggle( Configuration::AuthDigestMd5 );
-    ::supportsAnonymous =
-          Configuration::toggle( Configuration::AuthAnonymous );
-
-    String s =
-        Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
-    if ( s == "always" )
-        ::allowPlaintext = true;
-    else if ( s == "never" )
-        ::allowPlaintext = false;
-    else
-        ::log( "Unknown value for allow-plaintext-passwords: " + s,
-               Log::Disaster );
-
-    s = Configuration::text( Configuration::AllowPlaintextAccess ).lower();
-    if ( s != "always" && s != "never" && s != "localhost" )
-        ::log( "Unknown value for allow-plaintext-access: " + s,
-               Log::Disaster );
 }
 
 
