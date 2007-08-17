@@ -97,11 +97,22 @@ int main( int argc, char *argv[] )
     if ( !( app == "always" || app == "never" ) )
         ::log( "Unknown value for allow-plaintext-passwords: " + app,
                Log::Disaster );
+    if ( app == "never" &&
+         Configuration::toggle( Configuration::UseTls ) == false &&
+         Configuration::toggle( Configuration::AuthCramMd5 ) == false &&
+         Configuration::toggle( Configuration::AuthDigestMd5 ) == false )
+        ::log( "allow-plaintext-passwords is 'never' and use-tls is 'false', "
+               "but only plaintext authentication mechanisms are allowed",
+               Log::Disaster );
 
     String apa =
         Configuration::text( Configuration::AllowPlaintextAccess ).lower();
     if ( !( apa == "always" || apa == "localhost" || apa == "never" ) )
         ::log( "Unknown value for allow-plaintext-access: " + apa,
+               Log::Disaster );
+    if ( apa == "never" &&
+         Configuration::toggle( Configuration::UseTls ) == false )
+        ::log( "allow-plaintext-access is 'never', but use-tls is 'false'",
                Log::Disaster );
 
 
