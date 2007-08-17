@@ -8,6 +8,7 @@
 #include "permissions.h"
 #include "stringlist.h"
 #include "webpage.h"
+#include "http.h"
 #include "utf.h"
 
 #include "components/error301.h"
@@ -30,7 +31,7 @@ public:
         : type( Link::Error ), magic( false ),
           mailbox( 0 ), uid( 0 ), suffix( Link::None ),
           arguments( new Dict<UString> ),
-          webpage( 0 ), server( 0 )
+          webpage( 0 ), server( 0 ), secure( false )
     {}
 
     String original;
@@ -46,6 +47,7 @@ public:
     WebPage * webpage;
 
     HTTP * server;
+    bool secure;
 };
 
 
@@ -73,6 +75,8 @@ Link::Link( const String &s, HTTP * server )
     : d( new LinkData )
 {
     d->server = server;
+    if ( server->hasTls() )
+        setSecure();
     parse( s );
 }
 
@@ -261,6 +265,14 @@ HTTP * Link::server() const
 }
 
 
+/*! Tells this Link that it refers to an HTTPS server. */
+
+void Link::setSecure()
+{
+    d->secure = true;
+}
+
+
 static WebPage * errorPage( Link * link )
 {
     WebPage * p = new WebPage( link );
@@ -272,6 +284,15 @@ static WebPage * errorPage( Link * link )
 static WebPage * trailingSlash( Link * link )
 {
     WebPage * p = new WebPage( link );
+    p->addComponent( new Error301( link ) );
+    return p;
+}
+
+
+static WebPage * secureRedirect( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    link->setSecure();
     p->addComponent( new Error301( link ) );
     return p;
 }
@@ -694,7 +715,10 @@ void Link::parse( const String & s )
                 j++;
             }
         }
-        d->webpage = handler( this );
+        if ( d->server->accessPermitted() )
+            d->webpage = handler( this );
+        else
+            d->webpage = secureRedirect( this );
     }
     else {
         d->webpage = errorPage( this );
@@ -826,6 +850,38 @@ String Link::canonical() const
 
     return r;
 }
+
+
+/*! Returns an absolute version of this Link, including scheme and
+    hostname and stuff.
+
+    This is used to redirect to the HTTPS version of a URL when
+    allow-plaintext-access requires it.
+*/
+
+String Link::absolute() const
+{
+    String s;
+
+    if ( d->secure )
+        s.append( "https" );
+    else
+        s.append( "http" );
+    s.append( "://" );
+    s.append( Configuration::hostname() );
+
+    uint port = Configuration::scalar( Configuration::HttpPort );
+    if ( d->secure )
+        port = Configuration::scalar( Configuration::HttpsPort );
+    if ( ( d->secure && port != 443 ) || port != 80 ) {
+        s.append( ":" );
+        s.append( fn( port ) );
+    }
+
+    s.append( canonical() );
+    return s;
+}
+
 
 
 /*! \class LinkParser link.h

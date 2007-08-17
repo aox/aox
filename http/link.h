@@ -69,11 +69,13 @@ public:
     String query() const;
 
     String canonical() const;
+    String absolute() const;
     String original() const;
 
     WebPage * webPage() const;
 
     HTTP * server() const;
+    void setSecure();
 
     static UString decoded( const String & );
 
