@@ -9,6 +9,8 @@
   SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
   (Partly done)
 
+  MessageRendering::excerpt() goes into an infinite loop.
+
   httpd: webmail, archives, search results.
 
   Something for Martin Rode and his broken Umlauts.
