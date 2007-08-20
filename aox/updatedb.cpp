@@ -146,8 +146,9 @@ public:
 */
 
 UpdateDatabase::UpdateDatabase( StringList * args )
-    : AoxCommand( args ), d( new UpdateDatabaseData )
+    : AoxCommand( args )
 {
+    d = 0;
 }
 
 
@@ -215,6 +216,7 @@ bool UpdateDatabase::convertField( uint mailbox, uint uid,
 void UpdateDatabase::execute()
 {
     if ( !d ) {
+        d = new UpdateDatabaseData;
         end();
 
         fetchValues =
