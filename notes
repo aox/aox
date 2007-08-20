@@ -867,20 +867,6 @@ BURL
   part needs encoding. Or else switch to a different body.
 
 
-tlsproxy needs better diagnostics
-
-  Reports from Daniel Ceregatti (Primer on #postgresql).
-
-  - We should document /somewhere/ how to use pemtrans to produce keys
-    for aox ("Archiveopteryx private key" and "secret" are completely
-    mysterious right now; and perhaps they should be configurable? I
-    can't imagine anyone wanting to configure them, though).
-  - pemtrans's usage message should be more helpful (though the manpage
-    does explain).
-  - We should regenerate the automatic-key.p15 if we find that the
-    existing key's CN doesn't match our current hostname.
-
-
 NOTIFY implementation
 
   Implement NOTIFY after revision -04 of the draft.
