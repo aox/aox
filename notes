@@ -9,6 +9,8 @@
   tls-certificate-{label,secret} plus pemtrans documentation changes.
   (Done)
 
+  Cope with Postgres being restarted while we're running. (Done)
+
   SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
   (Partly done)
 
@@ -908,11 +910,6 @@ Delaying seen-flag setting
 
   This ought to cut down the number of transactions issued per imap
   command nicely.
-
-
-We should cope with Postgres being restarted
-
-  But we don't, so we need to test and fix whatever the problems are.
 
 
 Write howto/tls-certificate
