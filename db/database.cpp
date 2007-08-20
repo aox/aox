@@ -288,7 +288,7 @@ void Database::removeHandle( Database * d )
     while ( q ) {
         q->setError( "No available database handles." );
         q->notify();
-        ++q;
+        queries->take( q );
     }
 
     if ( server().protocol() == Endpoint::Unix &&
