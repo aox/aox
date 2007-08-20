@@ -27,7 +27,7 @@
 #include <grp.h>
 
 
-static char * buildinfo[] = {
+static const char * buildinfo[] = {
 #include "buildinfo.inc"
     ""
 };

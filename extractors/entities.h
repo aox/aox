@@ -7,7 +7,7 @@
 /* A complete list of entity names from HTML 4.0, sorted lexically. */
 
 const struct entity {
-    char *name;
+    const char *name;
     int chr;
 } entities[] = {
     { "AElig"	,  198 },

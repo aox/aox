@@ -200,7 +200,7 @@ void Resolver::query( uint type, StringList * results )
     int len = res_query( d->host.cstr(), C_IN, type,
                          (u_char*)d->reply.data(), d->reply.capacity() );
     if ( len <= 0 ) {
-        char * name = "IPv4";
+        const char * name = "IPv4";
         if ( type == T_AAAA )
             name = "IPv6";
         if ( errno == HOST_NOT_FOUND )
