@@ -11,6 +11,8 @@
 
   Cope with Postgres being restarted while we're running. (Done)
 
+  Fix "aox update database" segfault. (Done)
+
   SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
   (Partly done)
 
@@ -23,8 +25,6 @@
   installer should be able to install to a remote database.
 
   Make "aox check config" test for more things.
-
-  aox update database problem.
 
   Arnt is away from 2007-08-11 to 2007-08-25.
 
