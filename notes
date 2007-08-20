@@ -6,6 +6,9 @@
 
   allow-plaintext-access. (Done)
 
+  tls-certificate-{label,secret} plus pemtrans documentation changes.
+  (Done)
+
   SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
   (Partly done)
 
@@ -910,5 +913,9 @@ Delaying seen-flag setting
 We should cope with Postgres being restarted
 
   But we don't, so we need to test and fix whatever the problems are.
+
+
+Write howto/tls-certificate
+
 
 
