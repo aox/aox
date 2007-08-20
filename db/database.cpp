@@ -224,9 +224,10 @@ void Database::runQueue()
     if ( EventLoop::global()->inShutdown() )
         return;
 
-    // We create at most one new handle per interval.
+    // We create at most one new handle per interval, unless we have no
+    // handles at all.
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
-    if ( handles->isEmpty() && time( 0 ) - lastCreated < interval )
+    if ( !handles->isEmpty() && time( 0 ) - lastCreated < interval )
         return;
 
     // If one or more handles are still connecting, we let them finish first.
