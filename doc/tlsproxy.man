@@ -40,17 +40,31 @@ is configured using
 The configuration variables specific to this server are
 .IR use-tls ,
 .IR tls-certificate ,
+.IR tls-certificate-label ,
+.IR tls-certificate-secret ,
 .IR tlsproxy-address ,
 and
 .IR tlsproxy-port .
 Other variables may be consulted to determine how to connect to the log
 server, how to secure the server, and so on.
 .PP
+.B tlsproxy
+uses a private key and certificate from a PKCS #15 key file. The
+location of the key file is specified by
+.IR tls-certificate .
+The key is uniquely identified by the
+.IR tls-certificate-label ,
+and encrypted with the
+.IR tls-certificate-secret .
+.PP
 The default configuration enables the use of TLS with an
 automatically-generated, self-signed certificate. This certificate is
 generated once at startup, stored in
 .I $LIBDIR/automatic-key.p15
-by default, and is reused on subsequent occasions.
+by default (using the hostname as a certificate label), and reused on
+subsequent occasions. If the certificate expires, or becomes unusable
+for any reason (e.g. the hostname changes), it will be regenerated the
+next time tlsproxy starts up.
 .SH DEPENDENCIES
 On startup,
 .B tlsproxy
@@ -66,13 +80,21 @@ detailed) information in the log file.
 can use a proper certificate signed by a CA, as usual. If you
 do not have one,
 .B tlsproxy
-will generate a self-signed certificate at runtime. No clients trust
+will generate a self-signed certificate at startup. No clients trust
 this certificate, but we think it's better to have a self-signed
 certificate than to not use TLS.
 .PP
 Oryx strongly recommends getting a proper signed certificate. Using
 the dynamically generated certificate preserves some of the advantages
 of TLS, but far from all.
+.PP
+If you have a private key in OpenSSL format, you can convert it to a
+PKCS #15 key file that
+.B tlsproxy
+can use with the
+.I pemtrans
+program, available from
+.IR http://www.oryx.com/ams/pemtrans.html .
 .SH FILES
 .IP $LIBDIR/automatic-key.p15
 is used to store the automatically generated key and certificate.

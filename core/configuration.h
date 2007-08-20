@@ -93,6 +93,8 @@ public:
         HttpAddress,
         HttpsAddress,
         TlsCertFile,
+        TlsCertLabel,
+        TlsCertSecret,
         LogLevel,
         LogfileMode,
         ArchivePrefix,

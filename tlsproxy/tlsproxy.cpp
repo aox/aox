@@ -88,9 +88,10 @@ static void setupKey()
     int status;
     CRYPT_KEYSET keyset;
 
-    String label( "Archiveopteryx private key" );
-    String secret( "secret" );
-
+    String label( Configuration::hostname() );
+    if ( Configuration::present( Configuration::TlsCertLabel ) )
+        label = Configuration::text( Configuration::TlsCertLabel );
+    String secret( Configuration::text( Configuration::TlsCertSecret ) );
     String keyFile( Configuration::text( Configuration::TlsCertFile ) );
 
     if ( keyFile.isEmpty() ) {

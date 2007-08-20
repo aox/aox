@@ -203,6 +203,8 @@ static struct {
     { "http-address", Configuration::HttpAddress, "127.0.0.1" },
     { "https-address", Configuration::HttpsAddress, "127.0.0.1" },
     { "tls-certificate", Configuration::TlsCertFile, "" },
+    { "tls-certificate-label", Configuration::TlsCertLabel, "" },
+    { "tls-certificate-secret", Configuration::TlsCertSecret, "secret" },
     { "log-level", Configuration::LogLevel, "info" },
     { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
     { "archive-prefix", Configuration::ArchivePrefix, "" },
