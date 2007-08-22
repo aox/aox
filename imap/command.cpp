@@ -1067,12 +1067,21 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
 
 class Mailbox * Command::mailbox( const String & name ) const
 {
-    MUtf7Codec m;
-    UString u = m.toUnicode( name );
-    if ( !m.wellformed() )
-        return Mailbox::find( mailboxName( name ) );
+    User * u = imap()->user();
+    if ( !u )
+        return 0;
+
+    String n;
     Utf8Codec c;
-    return Mailbox::find( mailboxName( c.fromUnicode( u ) ) );
+    MUtf7Codec m;
+
+    UString un( m.toUnicode( name ) );
+    if ( !m.wellformed() )
+        n = u->mailboxName( name );
+    else
+        n = u->mailboxName( c.fromUnicode( un ) );
+
+    return Mailbox::find( n );
 }
 
 
