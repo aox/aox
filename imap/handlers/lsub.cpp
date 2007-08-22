@@ -5,6 +5,8 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
+#include "ustring.h"
+#include "utf.h"
 
 class LsubData
     : public Garbage
@@ -94,11 +96,16 @@ void Lsub::execute()
                 uint l = 0;
                 if ( p == home )
                     l = home->name().length() + 1;
+
+                Utf8Codec u;
+                MUtf7Codec mu;
+                String n( mu.fromUnicode( u.toUnicode( m->name().mid( l ) ) ) );
+
                 // we quote a little too much here. we don't quote if
                 // the string is 1*astring-char. we could also include
                 // list-wildcards in the quote-free set.
                 respond( "LSUB (" + flags + ") \"/\" " +
-                         imapQuoted( m->name().mid( l ), AString ) );
+                         imapQuoted( n, AString ) );
             }
         }
     }
