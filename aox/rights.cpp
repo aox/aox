@@ -197,14 +197,13 @@ void SetAcl::execute()
                 return;
             if ( opt( 'd' ) == 0 && d->user->state() == User::Nonexistent )
                 error( "No user named '" + d->identifier + "'" );
+            if ( d->user->id() == d->m->owner() )
+                error( "Can't change mailbox owner's rights." );
         }
 
         d->m = Mailbox::obtain( d->mailbox, false );
         if ( !d->m )
             error( "No mailbox named " + d->mailbox );
-
-        if ( d->user->id() == d->m->owner() )
-            error( "Can't change mailbox owner's rights." );
 
         if ( opt( 'd' ) == 0 && 
              ( ( d->mode == 0 && !d->rights.contains( 'l' ) ) ||
