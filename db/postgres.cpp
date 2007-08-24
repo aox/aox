@@ -314,7 +314,8 @@ void Postgres::react( Event e )
                 extendTimeout( 10 );
             }
             else {
-                log( "Closing idle database handle" );
+                log( "Closing idle database handle (" +
+                     fn( numHandles() ) + " remaining)" );
                 shutdown();
             }
         }
