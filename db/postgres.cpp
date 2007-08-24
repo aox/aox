@@ -315,7 +315,7 @@ void Postgres::react( Event e )
             }
             else {
                 log( "Closing idle database handle (" +
-                     fn( numHandles() ) + " remaining)" );
+                     fn( numHandles()-1 ) + " remaining)" );
                 shutdown();
             }
         }
