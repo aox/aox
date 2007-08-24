@@ -15,6 +15,7 @@ protected:
     void * find( const String & ) const;
     void insert( const String & s, void* r );
     void * take( const String & );
+    void clear();
 
 public:
     void resize( uint );
@@ -40,6 +41,7 @@ public:
     bool contains( const String & s ) const {
         return DictBase::contains( s );
     }
+    void clear() { DictBase::clear(); }
 
 private:
     // operators explicitly undefined because there is no single

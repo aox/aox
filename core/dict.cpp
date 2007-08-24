@@ -264,8 +264,6 @@ StringList DictBase::keys() const
 }
 
 
-
-
 /*! Returns true if empty, false if not. */
 
 bool DictBase::isEmpty() const
@@ -278,4 +276,16 @@ bool DictBase::isEmpty() const
     }
     return true;
     
+}
+
+
+/*! Empties this Dict object. The referenced objects are not deleted,
+    merely forgotten.
+*/
+
+void DictBase::clear()
+{
+    uint b = 0;
+    while ( b < d->size )
+        d->buckets[b++] = 0;
 }
