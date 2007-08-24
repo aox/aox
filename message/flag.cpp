@@ -185,8 +185,10 @@ Flag * Flag::find( uint id )
 
 void Flag::setup()
 {
-    ::flagsByName->clear();
-    ::flagsById->clear();
+    if ( ::flagsByName )
+        ::flagsByName->clear();
+    if ( ::flagsById )
+        ::flagsById->clear();
     ::largestFlagId = 0;
     (void)new FlagFetcher( 0 );
 }
