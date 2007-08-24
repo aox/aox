@@ -54,10 +54,10 @@ AnnotationNameFetcher::AnnotationNameFetcher( EventHandler * owner )
         return;
     ::annotationNamesByName = new Dict<AnnotationName>;
     Allocator::addEternal( ::annotationNamesByName,
-                           "list of existing annotations" );
+                           "list of annotations by name" );
     ::annotationNamesById = new Map<AnnotationName>;
     Allocator::addEternal( ::annotationNamesById,
-                           "list of existing annotations" );
+                           "list of annotations by id" );
 }
 
 
