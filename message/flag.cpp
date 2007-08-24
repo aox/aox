@@ -53,9 +53,9 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
     if ( ::flagsByName )
         return;
     ::flagsByName = new Dict<Flag>( 400 );
-    Allocator::addEternal( ::flagsByName, "list of existing flags" );
+    Allocator::addEternal( ::flagsByName, "list of flags by name" );
     ::flagsById = new Map<Flag>;
-    Allocator::addEternal( ::flagsById, "list of existing flags" );
+    Allocator::addEternal( ::flagsById, "list of flags by id" );
 }
 
 
