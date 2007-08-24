@@ -310,8 +310,13 @@ void Postgres::react( Event e )
             }
         }
         else if ( server().protocol() != Endpoint::Unix ) {
-            log( "Closing idle database handle" );
-            shutdown();
+            if ( numHandles() == 1 ) {
+                extendTimeout( 10 );
+            }
+            else {
+                log( "Closing idle database handle" );
+                shutdown();
+            }
         }
         break;
 
