@@ -115,7 +115,10 @@ void OCClient::parse()
             updateMailbox( arg );
         }
         else if ( msg == "caches" ) {
-            Flag::setup();
+            if ( arg == "refresh" ) {
+                Flag::setup();
+                OCClient::send( "caches refreshed" );
+            }
         }
         s = readBuffer()->removeLine();
     }
