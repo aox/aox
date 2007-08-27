@@ -12,7 +12,7 @@ class Plain
 public:
     Plain( EventHandler * );
 
-    void readResponse( const String & );
+    void parseResponse( const String & );
 
     static bool parse( String & authenticateId,
                        String & authorizeId,

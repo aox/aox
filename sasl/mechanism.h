@@ -34,9 +34,10 @@ public:
     void setState( State );
 
     void execute();
+    void readInitialResponse( const String * );
+    void readResponse( const String * );
     virtual String challenge();
-    void parse( const String * );
-    virtual void readResponse( const String & ) = 0;
+    virtual void parseResponse( const String & ) = 0;
     virtual void verify();
 
     bool done() const;

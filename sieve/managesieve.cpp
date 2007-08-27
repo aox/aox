@@ -3,7 +3,6 @@
 #include "managesieve.h"
 
 #include "log.h"
-#include "user.h"
 #include "query.h"
 #include "string.h"
 #include "buffer.h"
@@ -20,15 +19,13 @@ class ManageSieveData
 {
 public:
     ManageSieveData()
-        : state( ManageSieve::Unauthorised ), user( 0 ),
+        : state( ManageSieve::Unauthorised ),
           commands( new List< ManageSieveCommand > ), reader( 0 ),
           reserved( false ), readingLiteral( false ),
           literalSize( 0 )
         {}
 
     ManageSieve::State state;
-
-    User * user;
 
     List< ManageSieveCommand > * commands;
     ManageSieveCommand * reader;
@@ -278,26 +275,6 @@ void ManageSieve::runCommands()
 }
 
 
-/*! Sets the current user of this ManageSieve server to \a u. Called upon
-    successful completion of an Authenticate command.
-*/
-
-void ManageSieve::setUser( User * u )
-{
-    d->user = u;
-}
-
-
-/*! Returns the current user of this ManageSieve server, or an empty string if
-    setUser() has never been called after a successful authentication.
-*/
-
-User * ManageSieve::user() const
-{
-    return d->user;
-}
-
-
 /*! Reserves the input stream to inhibit parsing if \a r is true. If
     \a r is false, then the server processes input as usual. Used by
     STLS to inhibit parsing.
@@ -340,5 +317,5 @@ void ManageSieve::capabilities()
 
 void ManageSieve::sendChallenge( const String & s )
 {
-    enqueue( "+ "+s+"\r\n" );
+    enqueue( s+"\r\n" );
 }

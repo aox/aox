@@ -12,7 +12,7 @@ class Anonymous
 public:
     Anonymous( EventHandler * );
 
-    void readResponse( const String & );
+    void parseResponse( const String & );
     void verify();
 };
 

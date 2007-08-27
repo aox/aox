@@ -14,7 +14,7 @@ public:
 
     String challenge();
     void setChallenge( const String & );
-    void readResponse( const String & );
+    void parseResponse( const String & );
     void verify();
 
 private:

@@ -19,9 +19,6 @@ public:
     void setState( State );
     State state() const;
 
-    void setUser( User * );
-    User * user() const;
-
     void parse();
     void react( Event );
 

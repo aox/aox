@@ -87,7 +87,7 @@ String DigestMD5::challenge()
 }
 
 
-void DigestMD5::readResponse( const String &r )
+void DigestMD5::parseResponse( const String &r )
 {
     // Is this a response to our second challenge?
     if ( !d->rspauth.isEmpty() ) {

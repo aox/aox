@@ -12,7 +12,7 @@ class SaslLogin
 public:
     SaslLogin( EventHandler * );
     String challenge();
-    void readResponse( const String & );
+    void parseResponse( const String & );
 };
 
 

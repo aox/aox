@@ -94,12 +94,11 @@ void SmtpAuth::execute()
         }
 
         server()->setInputState( SMTP::Sasl );
-        d->m->parse( d->r );
-        d->m->execute();
+        d->m->readInitialResponse( d->r );
     }
 
     if ( d->m )
-        d->m->parse( server()->readBuffer()->removeLine() );
+        d->m->readResponse( server()->readBuffer()->removeLine() );
 
     if ( !d->m->done() )
         return;

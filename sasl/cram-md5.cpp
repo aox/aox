@@ -43,7 +43,7 @@ String CramMD5::challenge()
 }
 
 
-void CramMD5::readResponse( const String &s )
+void CramMD5::parseResponse( const String &s )
 {
     int i;
 

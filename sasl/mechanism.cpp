@@ -170,7 +170,7 @@ String SaslMechanism::challenge()
 }
 
 
-/*! \fn void SaslMechanism::readResponse( const String & response )
+/*! \fn void SaslMechanism::parseResponse( const String & response )
 
     This pure virtual function handles a client response. \a response
     is the decoded representation of the client's response. \a
@@ -178,24 +178,33 @@ String SaslMechanism::challenge()
 */
 
 
-/*! Reads a response from \a r. ... */
+/*! Reads an initial response from \a r, which may be 0 to indicate that
+    no initial-response was supplied.
+*/
 
-void SaslMechanism::parse( const String * r )
+void SaslMechanism::readInitialResponse( const String * r )
 {
     if ( state() == AwaitingInitialResponse ) {
         if ( r ) {
             if ( *r == "=" )
-                readResponse( "" );
+                parseResponse( "" );
             else
-                readResponse( r->de64() );
+                parseResponse( r->de64() );
         }
-        else {
-            setState( IssuingChallenge );
-            execute();
-        }
-        return;
     }
-    else if ( state() == AwaitingResponse ) {
+    else {
+        setState( Failed );
+    }
+}
+
+
+/*! Reads a response from \a r, which may be 0 to indicate that no
+    response is available.
+*/
+
+void SaslMechanism::readResponse( const String * r )
+{
+    if ( state() == AwaitingResponse ) {
         if ( !r )
             return;
         if ( *r == "*" ) {
@@ -203,7 +212,7 @@ void SaslMechanism::parse( const String * r )
             execute();
         }
         else {
-            readResponse( r->de64() );
+            parseResponse( r->de64() );
         }
     }
     else if ( r ) {

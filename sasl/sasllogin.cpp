@@ -34,7 +34,7 @@ String SaslLogin::challenge()
 }
 
 
-void SaslLogin::readResponse( const String &s )
+void SaslLogin::parseResponse( const String &s )
 {
     if ( login().isEmpty() ) {
         if ( s.isEmpty() ) {

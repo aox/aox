@@ -229,10 +229,10 @@ bool ManageSieveCommand::authenticate()
 {
     if ( !d->m ) {
         String t = string().lower();
-        String r;
+        String * r = 0;
         if ( d->arg[d->pos] == ' ' ) {
             whitespace();
-            r = string();
+            r = new String( string() );
         }
         end();
 
@@ -241,63 +241,12 @@ bool ManageSieveCommand::authenticate()
 
         d->m = SaslMechanism::create( t, this, d->sieve );
         if ( !d->m ) {
-            no( "SASL mechanism " + t + " not supported" );
+            no( "SASL mechanism " + t + " not available" );
             return true;
         }
+
         d->sieve->setReader( this );
-
-        if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
-            if ( !r.isEmpty() ) {
-                d->m->readResponse( r.de64() );
-                if ( !d->m->done() )
-                    d->m->execute();
-            }
-            else {
-                d->m->setState( SaslMechanism::IssuingChallenge );
-            }
-        }
-    }
-
-    // This code is essentially a mangled copy of imapd/handlers/authenticate.
-    // I'll think about how to avoid the duplication later.
-    while ( !d->m->done() &&
-            ( d->m->state() == SaslMechanism::IssuingChallenge ||
-              d->m->state() == SaslMechanism::AwaitingResponse ) ) {
-        if ( d->m->state() == SaslMechanism::IssuingChallenge ) {
-            String c = d->m->challenge().e64();
-
-            if ( !d->m->done() ) {
-                d->sieve->enqueue( encoded( c ) + "\r\n" );
-                d->m->setState( SaslMechanism::AwaitingResponse );
-                d->r = 0;
-                return false;
-            }
-        }
-        else if ( d->m->state() == SaslMechanism::AwaitingResponse ) {
-            if ( !d->r )
-                return false;
-
-            // We use this terrible hack to parse the SASL response as a
-            // string().
-            d->arg = *d->r;
-            d->pos = 0;
-            String r( string() );
-
-            if ( !d->no.isEmpty() ||
-                 r == "*" )
-            {
-                d->m->setState( SaslMechanism::Terminated );
-            }
-            else {
-                d->m->readResponse( r.de64() );
-                d->r = 0;
-                if ( !d->m->done() ) {
-                    d->m->execute();
-                    if ( d->m->state() == SaslMechanism::Authenticating )
-                        return false;
-                }
-            }
-        }
+        d->m->readInitialResponse( r );
     }
 
     if ( !d->m->done() )

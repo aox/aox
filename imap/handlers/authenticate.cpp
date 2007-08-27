@@ -74,8 +74,7 @@ void Authenticate::execute()
         }
 
         imap()->reserve( this );
-        m->parse( r );
-        m->execute();
+        m->readInitialResponse( r );
     }
 
     if ( !m->done() )
@@ -100,5 +99,5 @@ void Authenticate::execute()
 
 void Authenticate::read()
 {
-    m->parse( imap()->readBuffer()->removeLine() );
+    m->readResponse( imap()->readBuffer()->removeLine() );
 }

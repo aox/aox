@@ -99,7 +99,7 @@ bool PopCommand::done()
 
 void PopCommand::read()
 {
-    d->m->parse( d->pop->readBuffer()->removeLine() );
+    d->m->readResponse( d->pop->readBuffer()->removeLine() );
 }
 
 
@@ -239,13 +239,14 @@ bool PopCommand::auth()
             d->pop->err( "SASL mechanism " + t + " not available" );
             return true;
         }
-        d->pop->setReader( this );
+
         String s( nextArg() );
-        if ( s.isEmpty() )
-            d->m->parse( 0 );
-        else
-            d->m->parse( &s );
-        d->m->execute();
+        String * r = 0;
+        if ( !s.isEmpty() )
+            r = new String( s );
+
+        d->pop->setReader( this );
+        d->m->readInitialResponse( r );
     }
 
     if ( !d->m->done() )

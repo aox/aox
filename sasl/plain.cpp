@@ -27,7 +27,7 @@ Plain::Plain( EventHandler *c )
 }
 
 
-void Plain::readResponse( const String & response )
+void Plain::parseResponse( const String & response )
 {
     String authorizeId;
     String authenticateId;

@@ -20,7 +20,7 @@ Anonymous::Anonymous( EventHandler *c )
 }
 
 
-void Anonymous::readResponse( const String &r )
+void Anonymous::parseResponse( const String &r )
 {
     log( "Anonymous login from '"+r+"'", Log::Debug );
     setState( Authenticating );
