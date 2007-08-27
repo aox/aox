@@ -212,6 +212,7 @@ void DigestMD5::parseResponse( const String &r )
         return;
     }
 
+    setState( Authenticating );
     setLogin( user->value().unquoted() );
     d->cnonce = cnonce->value().unquoted();
     d->response = resp->value();
