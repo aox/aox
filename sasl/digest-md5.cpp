@@ -118,6 +118,7 @@ void DigestMD5::parseResponse( const String &r )
             }
             setState( Succeeded );
         }
+        execute();
         return;
     }
 
@@ -277,6 +278,7 @@ void DigestMD5::verify()
             MD5::hash( ":" + d->uri ).hex()
         );
         d->rspauth = R.hex();
+        execute();
         return;
     }
 
