@@ -55,6 +55,7 @@ void Login::execute()
             return;
         }
         m = new Plain( this );
+        m->setState( SaslMechanism::Authenticating );
         m->setLogin( n );
         m->setSecret( p );
         m->execute();
