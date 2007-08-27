@@ -11,7 +11,7 @@ class Session;
 
 
 class POP
-    : public Connection
+    : public SaslConnection
 {
 public:
     POP( int );
@@ -20,8 +20,7 @@ public:
     void setState( State );
     State state() const;
 
-    void setUser( User * );
-    User * user() const;
+    virtual void setUser( User * );
 
     void setSession( Session * );
     Session * session() const;
@@ -42,6 +41,8 @@ public:
     void markForDeletion( uint );
 
     void badUser();
+
+    virtual void sendChallenge( const String & );
 
 private:
     class PopData *d;

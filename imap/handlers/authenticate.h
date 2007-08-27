@@ -18,8 +18,8 @@ public:
     void read();
 
 private:
-    class SaslMechanism *m;
-    String *r;
+    class SaslMechanism * m;
+    String * r;
     String t;
 };
 

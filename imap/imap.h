@@ -9,11 +9,10 @@
 class String;
 class Command;
 class ImapSession;
-class User;
 
 
 class IMAP
-    : public Connection
+    : public SaslConnection
 {
 public:
     IMAP( int );
@@ -32,9 +31,6 @@ public:
 
     bool idle() const;
 
-    User * user() const;
-    void authenticated( User * );
-
     void beginSession( ImapSession * );
     ImapSession *session() const;
     void endSession();
@@ -43,6 +39,9 @@ public:
 
     List<Command> * commands() const;
     void unblockCommands();
+
+    virtual void sendChallenge( const String & );
+    virtual void setUser( class User * );
 
 private:
     class IMAPData *d;

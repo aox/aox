@@ -47,5 +47,7 @@ void SaslLogin::readResponse( const String &s )
     }
     else {
         setSecret( s );
+        setState( Authenticating );
     }
+    execute();
 }

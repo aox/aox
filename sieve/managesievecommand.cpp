@@ -239,7 +239,7 @@ bool ManageSieveCommand::authenticate()
         if ( !d->no.isEmpty() )
             return true;
 
-        d->m = SaslMechanism::create( t, this, d->sieve->hasTls() );
+        d->m = SaslMechanism::create( t, this, d->sieve );
         if ( !d->m ) {
             no( "SASL mechanism " + t + " not supported" );
             return true;

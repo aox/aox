@@ -1,9 +1,11 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "mechanism.h"
+
+#include "event.h"
+#include "connection.h"
 #include "configuration.h"
 #include "stringlist.h"
-#include "mechanism.h"
-#include "event.h"
 #include "query.h"
 #include "user.h"
 
@@ -23,7 +25,8 @@ public:
     SaslData()
         : state( SaslMechanism::IssuingChallenge ),
           command( 0 ), qd( false ), user( 0 ),
-          l( 0 ), type( SaslMechanism::Plain )
+          l( 0 ), type( SaslMechanism::Plain ),
+          connection( 0 )
     {}
 
     SaslMechanism::State state;
@@ -36,6 +39,7 @@ public:
     String storedSecret;
     Log *l;
     SaslMechanism::Type type;
+    SaslConnection * connection;
 };
 
 
@@ -72,18 +76,20 @@ public:
 
 
 /*! This static method creates and returns a pointer to a handler for
-    the named \a mechanism on behalf of \a command. Returns 0 if the
-    \a mechanism is unsupported or not allowed. Ignores case in
-    comparing the name. Uses \a privacy to decide whether the \a mechanism
-    is allowed().
+    the named \a mechanism on behalf of \a command and \a connection.
+    Returns 0 if the \a mechanism is unsupported or not allowed.
+    Ignores case in comparing the name.
 */
 
 SaslMechanism * SaslMechanism::create( const String & mechanism,
                                        EventHandler * command,
-                                       bool privacy )
+                                       SaslConnection * connection )
 {
     String s( mechanism.lower() );
     SaslMechanism * m = 0;
+
+    if ( !connection->accessPermitted() )
+        return 0;
 
     if ( s == "anonymous" )
         m = new ::Anonymous( command );
@@ -96,9 +102,10 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
     else if ( s == "digest-md5" )
         m = new ::DigestMD5( command );
 
-    if ( m && !allowed( m->type(), privacy ) )
+    if ( m && !allowed( m->type(), connection->hasTls() ) )
         return 0;
 
+    m->d->connection = connection;
     return m;
 }
 
@@ -171,6 +178,38 @@ String SaslMechanism::challenge()
 */
 
 
+/*! Reads a response from \a r. ... */
+
+void SaslMechanism::parse( const String * r )
+{
+    if ( state() == AwaitingInitialResponse ) {
+        if ( r ) {
+            readResponse( r->de64() );
+        }
+        else {
+            setState( IssuingChallenge );
+            execute();
+        }
+        return;
+    }
+    else if ( state() == AwaitingResponse ) {
+        if ( !r )
+            return;
+        if ( *r == "*" ) {
+            setState( Terminated );
+            execute();
+        }
+        else {
+            readResponse( r->de64() );
+        }
+    }
+    else if ( r ) {
+        setState( Failed );
+        execute();
+    }
+}
+
+
 /*! This function expects to be called after setLogin() and
     setSecret(), which are typically called during readResponse(). It
     obtains the user's data from the database, checks the
@@ -186,33 +225,40 @@ String SaslMechanism::challenge()
 
 void SaslMechanism::execute()
 {
-    if ( done() )
+    if ( !d->command )
         return;
 
-    if ( !d->user ) {
-        setState( Authenticating );
-        d->user = new User;
-        d->user->setLogin( d->login );
-        d->user->refresh( this );
+    if ( state() == IssuingChallenge ) {
+        d->connection->sendChallenge( challenge().e64() );
+        setState( AwaitingResponse );
     }
 
-    // Stopgap hack to block the race condition whereby the User may
-    // refer to an inbox which isn't known by Mailbox.
-    if ( !d->user->inbox() && d->user->state() == User::Refreshed )
-        setState( Failed );
-    else if ( d->user->state() == User::Nonexistent )
-        setState( Failed );
-    else
-        d->storedSecret = d->user->secret();
+    if ( state() == AwaitingResponse )
+        return;
 
-    if ( state() == Authenticating &&
-         d->user->state() != User::Unverified )
-    {
-        verify();
-        d->command->execute();
+    if ( state() == Authenticating ) {
+        if ( !d->user  ) {
+            d->user = new User;
+            d->user->setLogin( d->login );
+            d->user->refresh( this );
+        }
+
+        // Stopgap hack to block the race condition whereby the User may
+        // refer to an inbox which isn't known by Mailbox.
+        if ( !d->user->inbox() && d->user->state() == User::Refreshed )
+            setState( Failed );
+        else if ( d->user->state() == User::Nonexistent )
+            setState( Failed );
+        else
+            d->storedSecret = d->user->secret();
+
+        if ( d->user->id() != 0 )
+            verify();
     }
-    else if ( state() == Failed ) {
+
+    if ( done() ) {
         d->command->execute();
+        d->command = 0;
     }
 }
 

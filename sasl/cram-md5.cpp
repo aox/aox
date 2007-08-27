@@ -59,6 +59,8 @@ void CramMD5::readResponse( const String &s )
 
     setLogin( s.mid( 0, i ) );
     setSecret( s.mid( i+1, s.length()-i ).lower() );
+    setState( Authenticating );
+    execute();
 }
 
 
@@ -78,5 +80,3 @@ void CramMD5::setChallenge( const String &s )
 {
     challengeSent = s;
 }
-
-

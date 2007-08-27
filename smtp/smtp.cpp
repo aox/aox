@@ -90,7 +90,7 @@ public:
 /*!  Constructs an (E)SMTP server for socket \a s, speaking \a dialect. */
 
 SMTP::SMTP( int s, Dialect dialect )
-    : Connection( s, Connection::SmtpServer ), d( new SMTPData )
+    : SaslConnection( s, Connection::SmtpServer ), d( new SMTPData )
 {
     Scope x( log() );
     d->dialect = dialect;
@@ -515,4 +515,10 @@ class Date * SMTP::transactionTime() const
     d->now = new Date;
     d->now->setCurrentTime();
     return d->now;
+}
+
+
+void SMTP::sendChallenge( const String &s )
+{
+    enqueue( "+ "+s+"\r\n" );
 }

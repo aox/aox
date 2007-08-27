@@ -35,6 +35,7 @@ public:
 
     void execute();
     virtual String challenge();
+    void parse( const String * );
     virtual void readResponse( const String & ) = 0;
     virtual void verify();
 
@@ -49,7 +50,9 @@ public:
     void setStoredSecret( const String & );
     virtual void setChallenge( const String & );
 
-    static SaslMechanism * create( const String &, EventHandler *, bool );
+    static SaslMechanism * create( const String &, EventHandler *,
+                                   class SaslConnection * );
+
     static bool allowed( Type, bool );
     static String allowedMechanisms( const String &, bool );
 

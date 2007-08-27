@@ -20,7 +20,7 @@
 */
 
 Authenticate::Authenticate()
-        : m( 0 ), r( 0 )
+    : m( 0 ), r( 0 )
 {
 }
 
@@ -66,73 +66,23 @@ void Authenticate::execute()
     if ( state() != Executing )
         return;
 
-    // First, create a mechanism handler.
-
     if ( !m ) {
-        if ( !imap()->accessPermitted() ) {
-            error( No, "Must enable TLS before login" );
-            return;
-        }
-        m = SaslMechanism::create( t, this, imap()->hasTls() );
+        m = SaslMechanism::create( t, this, imap() );
         if ( !m ) {
-            error( No, "Mechanism " + t + " not supported" );
+            error( No, "Mechanism " + t + " not available" );
             return;
         }
+
         imap()->reserve( this );
-
-        // Does it accept a SASL initial response? Do we have one?
-        if ( m->state() == SaslMechanism::AwaitingInitialResponse ) {
-            if ( r ) {
-                m->readResponse( r->de64() );
-                if ( !m->done() )
-                    m->execute();
-            }
-            else {
-                m->setState( SaslMechanism::IssuingChallenge );
-            }
-            r = 0;
-        }
+        m->parse( r );
+        m->execute();
     }
-
-    // Now, feed the handler until it can make up its mind.
-
-    while ( !m->done() &&
-            ( m->state() == SaslMechanism::IssuingChallenge ||
-              m->state() == SaslMechanism::AwaitingResponse ) ) {
-        if ( m->state() == SaslMechanism::IssuingChallenge ) {
-            String c = m->challenge().e64();
-
-            if ( !m->done() ) {
-                imap()->enqueue( "+ "+ c +"\r\n" );
-                m->setState( SaslMechanism::AwaitingResponse );
-                r = 0;
-                return;
-            }
-        }
-        if ( m->state() == SaslMechanism::AwaitingResponse ) {
-            if ( !r ) {
-                return;
-            }
-            else if ( *r == "*" ) {
-                m->setState( SaslMechanism::Terminated );
-            }
-            else {
-                m->readResponse( r->de64() );
-                r = 0;
-                if ( !m->done() )
-                    m->execute();
-            }
-        }
-    }
-
-    if ( m->state() == SaslMechanism::Authenticating )
-        return;
 
     if ( !m->done() )
         return;
 
     if ( m->state() == SaslMechanism::Succeeded )
-        imap()->authenticated( m->user() );
+        imap()->setUser( m->user() );
     else if ( m->state() == SaslMechanism::Terminated )
         error( Bad, "authentication terminated" );
     else
@@ -144,11 +94,11 @@ void Authenticate::execute()
 }
 
 
-/*! Tries to read a single response line from the client. Upon return,
-    r points to the response, or is 0 if no response could be read.
+/*! Tries to read a single response line from the client, and pass it to
+    the SaslMechanism if it succeeds.
 */
 
 void Authenticate::read()
 {
-    r = imap()->readBuffer()->removeLine();
+    m->parse( imap()->readBuffer()->removeLine() );
 }

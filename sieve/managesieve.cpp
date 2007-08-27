@@ -52,7 +52,7 @@ public:
 */
 
 ManageSieve::ManageSieve( int s )
-    : Connection( s, Connection::ManageSieveServer ),
+    : SaslConnection( s, Connection::ManageSieveServer ),
       d( new ManageSieveData )
 {
     capabilities();
@@ -335,4 +335,10 @@ void ManageSieve::capabilities()
     if ( !hasTls() )
         enqueue( "\"STARTTLS\"\r\n" );
     enqueue( "\"X-AOX-EXPLAIN\"\r\n" );
+}
+
+
+void ManageSieve::sendChallenge( const String & s )
+{
+    enqueue( "+ "+s+"\r\n" );
 }

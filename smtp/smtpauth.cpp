@@ -85,7 +85,7 @@ void SmtpAuth::execute()
             return;
         }
 
-        d->m = SaslMechanism::create( d->mech, this, server()->hasTls() );
+        d->m = SaslMechanism::create( d->mech, this, server() );
         if ( !d->m ) {
             respond( 504, "Mechanism " + d->mech.quoted() + " not supported",
                      "5.5.4" );

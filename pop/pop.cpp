@@ -25,7 +25,7 @@ class PopData
 {
 public:
     PopData()
-        : state( POP::Authorization ), sawUser( false ), user( 0 ),
+        : state( POP::Authorization ), sawUser( false ),
           commands( new List< PopCommand > ), reader( 0 ),
           reserved( false ), session( 0 )
     {}
@@ -33,7 +33,6 @@ public:
     POP::State state;
 
     bool sawUser;
-    User * user;
 
     List< PopCommand > * commands;
     PopCommand * reader;
@@ -61,7 +60,7 @@ static void newCommand( List< PopCommand > *, POP *,
 */
 
 POP::POP( int s )
-    : Connection( s, Connection::Pop3Server ),
+    : SaslConnection( s, Connection::Pop3Server ),
       d( new PopData )
 {
     ok( "Archiveopteryx POP3 server ready." );
@@ -162,7 +161,7 @@ void POP::setState( State s )
             }
         };
 
-        PopDeleter * pd = new PopDeleter( d->user, d->session->mailbox(),
+        PopDeleter * pd = new PopDeleter( user(), d->session->mailbox(),
                                           d->toBeDeleted );
         pd->execute();
     }
@@ -361,24 +360,10 @@ static void newCommand( List< PopCommand > * l, POP * pop,
 }
 
 
-/*! Sets the current user of this POP server to \a u. Called upon
-    receipt of a valid USER command.
-*/
-
 void POP::setUser( User * u )
 {
-    log( "User " + u->login() );
-    d->user = u;
-}
-
-
-/*! Returns the current user of this POP server, or an empty string if
-    setUser() has never been called upon receipt of a USER command.
-*/
-
-User * POP::user() const
-{
-    return d->user;
+    log( "Authenticated as user " + u->login() );
+    SaslConnection::setUser( u );
 }
 
 
@@ -461,4 +446,10 @@ class Message * POP::message( uint uid )
     m->setUid( uid );
     d->messages.insert( uid, m );
     return m;
+}
+
+
+void POP::sendChallenge( const String &s )
+{
+    enqueue( "+ "+ s +"\r\n" );
 }

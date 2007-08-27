@@ -6,6 +6,7 @@
 #include "log.h"
 #include "endpoint.h"
 
+class User;
 class Buffer;
 class TlsServer;
 
@@ -94,6 +95,22 @@ public:
 private:
     class ConnectionData *d;
     void init( int );
+};
+
+
+class SaslConnection
+    : public Connection
+{
+public:
+    SaslConnection( int, Type );
+    virtual ~SaslConnection();
+    virtual void sendChallenge( const String & ) = 0;
+
+    User * user() const;
+    virtual void setUser( User * );
+
+private:
+    User * u;
 };
 
 

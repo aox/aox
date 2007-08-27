@@ -45,8 +45,10 @@ void Plain::readResponse( const String & response )
         return;
     }
 
+    setState( Authenticating );
     setLogin( authenticateId );
     setSecret( secret );
+    execute();
 }
 
 

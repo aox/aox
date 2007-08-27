@@ -10,7 +10,7 @@ class String;
 
 
 class ManageSieve
-    : public Connection
+    : public SaslConnection
 {
 public:
     ManageSieve( int );
@@ -35,6 +35,8 @@ public:
     void setReader( class ManageSieveCommand * );
 
     void capabilities();
+
+    virtual void sendChallenge( const String & );
 
 private:
     class ManageSieveData *d;

@@ -803,3 +803,50 @@ bool Connection::accessPermitted() const
     // the only remaining value is "never"
     return false;
 }
+
+
+/*! \class SaslConnection connection.h
+    A connection that can engage in a SASL negotiation.
+*/
+
+/*! Creates an Inactive \a type connection using \a fd. */
+
+SaslConnection::SaslConnection( int fd, Type type )
+    : Connection( fd, type )
+{
+}
+
+
+/*! Obligatory virtual destructor. */
+
+SaslConnection::~SaslConnection()
+{
+}
+
+
+/*! \fn virtual void SaslConnection::sendChallenge( const String & s ) = 0
+
+    This virtual function must be defined by SaslConnection subclasses.
+    It is called by a SaslMechanism to send the challenge \a s, and is
+    responsible for enqueue()ing a correctly-encoded version of it.
+*/
+
+
+/*! Returns a pointer to the authenticated User for this Connection, or
+    0 if a user has not yet been authenticated.
+*/
+
+User * SaslConnection::user() const
+{
+    return u;
+}
+
+
+/*! Informs this Connection that \a user has been authenticated. After a
+    call to this function, user() will return the specified \a user.
+*/
+
+void SaslConnection::setUser( User * user )
+{
+    u = user;
+}

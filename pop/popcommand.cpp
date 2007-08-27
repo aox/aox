@@ -234,7 +234,7 @@ bool PopCommand::auth()
     if ( !d->m ) {
         log( "AUTH Command" );
         String t = nextArg().lower();
-        d->m = SaslMechanism::create( t, this, d->pop->hasTls() );
+        d->m = SaslMechanism::create( t, this, d->pop );
         if ( !d->m ) {
             d->pop->err( "SASL mechanism " + t + " not supported" );
             return true;

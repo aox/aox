@@ -13,7 +13,7 @@ class SmtpCommand;
 
 
 class SMTP
-    : public Connection
+    : public SaslConnection
 {
 public:
     enum Dialect{ Smtp, Lmtp, Submit };
@@ -55,6 +55,8 @@ public:
 
     void setTransactionTime( class Date * );
     class Date * transactionTime() const;
+
+    virtual void sendChallenge( const String & );
 
 private:
     void parseCommand();

@@ -29,7 +29,7 @@ public:
         : state( IMAP::NotAuthenticated ), reader( 0 ),
           runningCommands( false ), runCommandsAgain( false ),
           readingLiteral( false ),
-          literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
+          literalSize( 0 ), session( 0 ), mailbox( 0 ),
           bytesArrived( 0 )
     {
         uint i = 0;
@@ -52,7 +52,6 @@ public:
 
     ImapSession *session;
     Mailbox *mailbox;
-    User * login;
 
     uint bytesArrived;
 
@@ -95,7 +94,7 @@ void IMAP::setup()
 */
 
 IMAP::IMAP( int s )
-    : Connection( s, Connection::ImapServer ), d( new IMAPData )
+    : SaslConnection( s, Connection::ImapServer ), d( new IMAPData )
 {
     if ( s < 0 )
         return;
@@ -357,21 +356,11 @@ bool IMAP::idle() const
     Authenticated.
 */
 
-void IMAP::authenticated( User * user )
+void IMAP::setUser( User * user )
 {
-    d->login = user;
-    log( "Logged in as " + user->login() );
+    log( "Authenticated as user " + user->login() );
+    SaslConnection::setUser( user );
     setState( Authenticated );
-}
-
-
-/*! Returns the currently logged in user, or a null pointer if no user
-    is logged in.
-*/
-
-User * IMAP::user() const
-{
-    return d->login;
 }
 
 
@@ -715,4 +704,10 @@ void IMAP::setClientSupports( ClientCapability capability )
 List<Command> * IMAP::commands() const
 {
     return &d->commands;
+}
+
+
+void IMAP::sendChallenge( const String &s )
+{
+    enqueue( "+ "+ s +"\r\n" );
 }
