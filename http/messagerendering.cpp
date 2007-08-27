@@ -799,8 +799,10 @@ UString MessageRendering::excerpt()
     UString r;
     MessageRenderingData::Node * n = d->root;
     while ( n && r.length() < 300 ) {
+        bool canUseChild = true;
         if ( n != d->root && !n->htmlclass.isEmpty() ) {
             // it's quoted or something
+            canUseChild = false;
         }
         else {
             if ( !n->text.isEmpty() ) {
@@ -811,25 +813,25 @@ UString MessageRendering::excerpt()
             else if ( n->tag == "hr" || n->tag == "br" ) {
                 r.append( '\n' );
             }
-            if ( !n->children.isEmpty() ) {
-                n = n->children.first();
+        }
+        if ( canUseChild && !n->children.isEmpty() ) {
+            n = n->children.first();
+        }
+        else if ( n->parent ) {
+            MessageRenderingData::Node * c = 0;
+            MessageRenderingData::Node * p = n->parent;
+            while ( p && !c ) {
+                List<MessageRenderingData::Node>::Iterator i(p->children);
+                while ( i && i != n )
+                    ++i;
+                if ( i )
+                    c = ++i;
+                else
+                    p = p->parent;
             }
-            else if ( n->parent ) {
-                MessageRenderingData::Node * c = 0;
-                MessageRenderingData::Node * p = n->parent;
-                while ( p && !c ) {
-                    List<MessageRenderingData::Node>::Iterator i(p->children);
-                    while ( i && i != n )
-                        ++i;
-                    if ( i )
-                        c = ++i;
-                    else
-                        p = p->parent;
-                }
-            }
-            else {
-                n = 0;
-            }
+        }
+        else {
+            n = 0;
         }
 
     }
