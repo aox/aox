@@ -13,10 +13,10 @@
 
   Fix "aox update database" segfault. (Done)
 
-  installer should be able to install to a remote database.
-
   SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
-  (Partly done)
+  (Done)
+
+  installer should be able to install to a remote database.
 
   httpd: webmail, archives, search results.
 
