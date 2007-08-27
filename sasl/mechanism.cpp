@@ -184,20 +184,20 @@ String SaslMechanism::challenge()
 
 void SaslMechanism::readInitialResponse( const String * r )
 {
-    if ( state() == AwaitingInitialResponse ) {
-        if ( r ) {
+    if ( r ) {
+        if ( state() == AwaitingInitialResponse ) {
             if ( *r == "=" )
                 parseResponse( "" );
             else
                 parseResponse( r->de64() );
         }
         else {
-            setState( IssuingChallenge );
-            execute();
+            setState( Failed );
         }
     }
     else {
-        setState( Failed );
+        setState( IssuingChallenge );
+        execute();
     }
 }
 
