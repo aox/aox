@@ -191,6 +191,10 @@ void SaslMechanism::readInitialResponse( const String * r )
             else
                 parseResponse( r->de64() );
         }
+        else {
+            setState( IssuingChallenge );
+            execute();
+        }
     }
     else {
         setState( Failed );
