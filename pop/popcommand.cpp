@@ -93,13 +93,13 @@ bool PopCommand::done()
 }
 
 
-/*! Tries to read a single response line from the client. Upon return,
-    d->r points to the response, or is 0 if no response could be read.
+/*! Tries to read a single response line from the client and pass it to
+    the SaslMechanism.
 */
 
 void PopCommand::read()
 {
-    d->r = d->pop->readBuffer()->removeLine();
+    d->m->parse( d->pop->readBuffer()->removeLine() );
 }
 
 
@@ -236,58 +236,17 @@ bool PopCommand::auth()
         String t = nextArg().lower();
         d->m = SaslMechanism::create( t, this, d->pop );
         if ( !d->m ) {
-            d->pop->err( "SASL mechanism " + t + " not supported" );
+            d->pop->err( "SASL mechanism " + t + " not available" );
             return true;
         }
         d->pop->setReader( this );
-
-        String r = nextArg();
-        if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
-            if ( !r.isEmpty() ) {
-                d->m->readResponse( r.de64() );
-                if ( !d->m->done() )
-                    d->m->execute();
-            }
-            else {
-                d->m->setState( SaslMechanism::IssuingChallenge );
-            }
-        }
+        String s( nextArg() );
+        if ( s.isEmpty() )
+            d->m->parse( 0 );
+        else
+            d->m->parse( &s );
+        d->m->execute();
     }
-
-    // This code is essentially a copy of imapd/handlers/authenticate.
-    // I'll think about how to avoid the duplication later.
-    while ( !d->m->done() &&
-            ( d->m->state() == SaslMechanism::IssuingChallenge ||
-              d->m->state() == SaslMechanism::AwaitingResponse ) ) {
-        if ( d->m->state() == SaslMechanism::IssuingChallenge ) {
-            String c = d->m->challenge().e64();
-
-            if ( !d->m->done() ) {
-                d->pop->enqueue( "+ "+ c +"\r\n" );
-                d->m->setState( SaslMechanism::AwaitingResponse );
-                d->r = 0;
-                return false;
-            }
-        }
-        else if ( d->m->state() == SaslMechanism::AwaitingResponse ) {
-            if ( !d->r ) {
-                return false;
-            }
-            else if ( *d->r == "*" ) {
-                d->m->setState( SaslMechanism::Terminated );
-            }
-            else {
-                d->m->readResponse( d->r->de64() );
-                d->r = 0;
-                if ( !d->m->done() ) {
-                    d->m->execute();
-                }
-            }
-        }
-    }
-
-    if ( d->m->state() == SaslMechanism::Authenticating )
-        return false;
 
     if ( !d->m->done() )
         return false;
@@ -347,6 +306,7 @@ bool PopCommand::pass()
     if ( !d->m ) {
         log( "PASS Command" );
         d->m = new Plain( this );
+        d->m->setState( SaslMechanism::Authenticating );
         d->m->setLogin( d->pop->user()->login() );
         d->m->setSecret( nextArg() );
         d->m->execute();
