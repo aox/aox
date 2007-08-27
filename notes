@@ -18,15 +18,9 @@
   SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
   (Partly done)
 
-  MessageRendering::excerpt() goes into an infinite loop.
-
-  We completely mangle patch attachments. :-(
-
   httpd: webmail, archives, search results.
 
   Something for Martin Rode and his broken Umlauts.
-
-  Make "aox check config" test for more things.
 
 
 The value of features
@@ -875,5 +869,17 @@ Delaying seen-flag setting
 
 Write howto/tls-certificate
 
+
+
+The webmail thingy completely mangles patch attachments. :-(
+
+  This would seem to apply to non-MIME attachments. How should we
+  handle those? So far our Message class is completely predicated on
+  MIME.
+
+
+Make "aox check config" test for more things.
+
+  Such as?
 
 
