@@ -87,60 +87,19 @@ void SmtpAuth::execute()
 
         d->m = SaslMechanism::create( d->mech, this, server() );
         if ( !d->m ) {
-            respond( 504, "Mechanism " + d->mech.quoted() + " not supported",
+            respond( 504, "Mechanism " + d->mech.quoted() + " not available",
                      "5.5.4" );
             finish();
             return;
         }
 
         server()->setInputState( SMTP::Sasl );
-
-        if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
-            if ( d->r ) {
-                d->m->readResponse( d->r->de64() );
-                if ( !d->m->done() )
-                    d->m->execute();
-            }
-            else {
-                d->m->setState( SaslMechanism::IssuingChallenge );
-            }
-        }
+        d->m->parse( d->r );
+        d->m->execute();
     }
 
-    // Now, feed the handler until it can make up its mind.
-
-    while ( !d->m->done() &&
-            ( d->m->state() == SaslMechanism::IssuingChallenge ||
-              d->m->state() == SaslMechanism::AwaitingResponse ) )
-    {
-        if ( d->m->state() == SaslMechanism::IssuingChallenge ) {
-            String c = d->m->challenge().e64();
-
-            if ( !d->m->done() ) {
-                server()->enqueue( "334 "+ c +"\r\n" );
-                d->m->setState( SaslMechanism::AwaitingResponse );
-                return;
-            }
-        }
-        if ( d->m->state() == SaslMechanism::AwaitingResponse ) {
-            Buffer * r = server()->readBuffer();
-            String * s = r->removeLine();
-            if ( !s ) {
-                return;
-            }
-            else if ( *s == "*" ) {
-                d->m->setState( SaslMechanism::Terminated );
-            }
-            else {
-                d->m->readResponse( s->de64() );
-                if ( !d->m->done() )
-                    d->m->execute();
-            }
-        }
-    }
-
-    if ( d->m->state() == SaslMechanism::Authenticating )
-        return;
+    if ( d->m )
+        d->m->parse( server()->readBuffer()->removeLine() );
 
     if ( !d->m->done() )
         return;

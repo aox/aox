@@ -520,5 +520,5 @@ class Date * SMTP::transactionTime() const
 
 void SMTP::sendChallenge( const String &s )
 {
-    enqueue( "+ "+s+"\r\n" );
+    enqueue( "334 "+ s +"\r\n" );
 }
