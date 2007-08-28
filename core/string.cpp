@@ -772,7 +772,8 @@ const String operator+( const String & a, const String & b )
 
 bool String::startsWith( const String & prefix ) const
 {
-    return prefix == mid( 0, prefix.length() );
+    return length() >= prefix.length() &&
+        prefix == mid( 0, prefix.length() );
 }
 
 
@@ -799,7 +800,8 @@ bool String::startsWith( const char * prefix ) const
 
 bool String::endsWith( const String & suffix ) const
 {
-    return suffix == mid( length()-suffix.length() );
+    return length() >= suffix.length() &&
+        suffix == mid( length()-suffix.length() );
 }
 
 
