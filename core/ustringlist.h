@@ -1,27 +1,27 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef STRINGLIST_H
-#define STRINGLIST_H
+#ifndef USTRINGLIST_H
+#define USTRINGLIST_H
 
 #include "list.h"
-#include "string.h"
+#include "ustring.h"
 
 
-class StringList
-    : public List< String >
+class UStringList
+    : public List< UString >
 {
 public:
-    StringList();
+    UStringList();
 
-    void append( String * s ) { List<String>::append( s ); }
-    void append( const String & );
+    void append( UString * s ) { List<UString>::append( s ); }
+    void append( const UString & );
     void append( const char * );
 
     void removeDuplicates( bool = true );
-    bool contains( const String & ) const;
+    bool contains( const UString & ) const;
 
-    String join( const String & );
-    static StringList *split( char, const String & );
+    UString join( const UString & );
+    static UStringList *split( char, const UString & );
 };
 
 

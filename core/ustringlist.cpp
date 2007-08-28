@@ -1,27 +1,27 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "stringlist.h"
+#include "ustringlist.h"
 
 #include "dict.h"
 
 
-/*! \class StringList stringlist.h
+/*! \class UStringList ustringlist.h
 
-    The StringList class is a List of String object, offering a few
+    The UStringList class is a List of UString object, offering a few
     convenience functions such as join() and removeDuplicates().
 */
 
 
-/*! Constructs an empty List of (pointers to) String objects. */
+/*! Constructs an empty List of (pointers to) UString objects. */
 
-StringList::StringList()
+UStringList::UStringList()
 {
 }
 
 
-/*! \fn void StringList::append( String * s )
+/*! \fn void UStringList::append( UString * s )
 
-    Appends the String \a s to this StringList. (Inline reimplementation
+    Appends the UString \a s to this UStringList. (Inline reimplementation
     to work around the shadowing rules of C++.)
 */
 
@@ -31,31 +31,31 @@ StringList::StringList()
     copy to the list.
 */
 
-void StringList::append( const String & s )
+void UStringList::append( const UString & s )
 {
-    List<String>::append( new String( s ) );
+    List<UString>::append( new UString( s ) );
 }
 
 
-/*! This version of append() makes a String copy of \a s and appends
+/*! This version of append() makes a UString copy of \a s and appends
     that copy to the list.
 */
 
-void StringList::append( const char * s )
+void UStringList::append( const char * s )
 {
-    List<String>::append( new String( s ) );
+    List<UString>::append( new UString( s ) );
 }
 
 
-/*! Returns a string containing every String in this list, with \a
+/*! Returns a string containing every UString in this list, with \a
     separator between the items.
 
-    If this List isEmpty(), this function returns an empty String.
+    If this List isEmpty(), this function returns an empty UString.
 */
 
-String StringList::join( const String & separator )
+UString UStringList::join( const UString & separator )
 {
-    String r;
+    UString r;
     Iterator it( this );
     uint l = 0;
     while ( it ) {
@@ -79,14 +79,14 @@ String StringList::join( const String & separator )
     of \a c cause the list to contain empty elements.
 */
 
-StringList *StringList::split( char c, const String &s )
+UStringList *UStringList::split( char c, const UString &s )
 {
-    StringList *l = new StringList;
+    UStringList *l = new UStringList;
 
     int n = 0;
     int last = 0;
     do {
-        String w;
+        UString w;
         n = s.find( c, last );
         if ( n >= 0 ) {
             w = s.mid( last, n-last );
@@ -112,13 +112,13 @@ StringList *StringList::split( char c, const String &s )
     the first and removes the second and later copies.
 */
 
-void StringList::removeDuplicates( bool caseSensitive )
+void UStringList::removeDuplicates( bool caseSensitive )
 {
     Dict<uint> e;
     uint tmp = 1;
     Iterator i( this );
     while ( i ) {
-        String s = *i;
+        UString s = *i;
         if ( !caseSensitive )
             s = s.lower();
         if ( e.contains( s ) ) {
@@ -134,7 +134,7 @@ void StringList::removeDuplicates( bool caseSensitive )
 
 /*! Returns true if \a s occurs in this string list, and false if not. */
 
-bool StringList::contains( const String & s ) const
+bool UStringList::contains( const UString & s ) const
 {
     Iterator i( this );
     while ( i && s != *i )
