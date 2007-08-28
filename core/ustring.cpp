@@ -119,6 +119,25 @@ UString & UString::operator=( const UString & other )
 }
 
 
+const UString operator+( const UString & a, const char * b )
+{
+    UString result;
+    uint l = a.length();
+    if ( b )
+        l += strlen( b );
+    result.reserve( l );
+    result.append( a );
+    result.append( b );
+    return result;
+}
+
+
+const UString operator+( const char * a, const UString & b )
+{
+    return b + a;
+}
+
+
 /*! Appends \a other to this string and returns a reference to this
     strng. */
 
@@ -157,6 +176,20 @@ void UString::append( const uint cp )
     reserve( length() + 1 );
     d->str[d->len] = cp;
     d->len++;
+}
+
+
+/*! Appends the ASCII character sequences \a s to the end of this
+    string.
+*/
+
+void UString::append( const char * s )
+{
+    if ( !s || !*s )
+        return;
+    reserve( length() + strlen( s ) );
+    while ( s && *s )
+        d->str[d->len++] = (uint)*s++; // I feel naughty today
 }
 
 
@@ -414,4 +447,219 @@ String UString::utf8() const
 {
     Utf8Codec u;
     return u.fromUnicode( *this );
+}
+
+
+/*! Returns -1 if this string is lexicographically before \a other, 0
+    if they are the same, and 1 if this string is lexicographically
+    after \a other.
+
+    The comparison is case sensitive - just a codepoint comparison. It
+    does not sort the way humans expect.
+*/
+
+int UString::compare( const UString & other ) const
+{
+    if ( d == other.d )
+        return 0;
+    uint i = 0;
+    while ( i < length() && i < other.length() &&
+            d->str[i] == other.d->str[i] )
+        i++;
+    if ( i >= length() && i >= other.length() )
+        return 0;
+    if ( i >= length() )
+        return -1;
+    if ( i >= other.length() )
+        return 1;
+    if ( d->str[i] < other.d->str[i] )
+        return -1;
+    return 1;
+}
+
+
+bool UString::operator<( const UString & other ) const
+{
+    return compare( other ) < 0;
+}
+
+
+bool UString::operator>( const UString & other ) const
+{
+    return compare( other ) > 0;
+}
+
+
+bool UString::operator<=( const UString & other ) const
+{
+    return compare( other ) <= 0;
+}
+
+
+bool UString::operator>=( const UString & other ) const
+{
+    return compare( other ) >= 0;
+}
+
+
+/*! Returns true if this string starts with \a prefix, and false if it
+    does not.
+*/
+
+bool UString::startsWith( const UString & prefix ) const
+{
+    return length() >= prefix.length() &&
+        prefix == mid( 0, prefix.length() );
+}
+
+
+/*! Returns true if this string starts with \a prefix, and false if it
+    does not. \a prefix must be an ASCII or 8859-1 string.
+*/
+
+bool UString::startsWith( const char * prefix ) const
+{
+    if ( !prefix )
+        return true;
+    uint i = 0;
+    while ( i < d->len && prefix[i] && prefix[i] == d->str[i] )
+        i++;
+    if ( i >= d->len )
+        return false;
+    if ( prefix[i] )
+        return false;
+    return true;
+}
+
+
+/*! Returns true if this string ends with \a suffix, and false if it
+    does not.
+*/
+
+bool UString::endsWith( const UString & suffix ) const
+{
+    return length() >= suffix.length() &&
+        suffix == mid( length()-suffix.length() );
+}
+
+
+/*! Returns true if this string ends with \a suffix, and false if it
+    does not. \a prefix must be an ASCII or 8859-1 string.
+*/
+
+bool UString::endsWith( const char * suffix ) const
+{
+    if ( !suffix )
+        return true;
+    uint l = strlen( suffix );
+    if ( l > length() )
+        return false;
+    uint i = 0;
+    while ( i < l && suffix[i] == d->str[d->len - l + i] )
+        i++;
+    if ( i < l )
+        return false;
+    return true;
+}
+
+
+/*! Returns the position of the first occurence of \a c on or after \a i
+    in this string, or -1 if there is none.
+*/
+
+int UString::find( char c, int i ) const
+{
+    while ( i < (int)length() && d->str[i] != c )
+        i++;
+    if ( i < (int)length() )
+        return i;
+    return -1;
+}
+
+
+/*! Returns the position of the first occurence of \a s on or after \a i
+    in this string, or -1 if there is none.
+*/
+
+int UString::find( const UString & s, int i ) const
+{
+    uint j = 0;
+    while ( j < s.length() && i+j < length() ) {
+        if ( d->str[i+j] == s.d->str[j] ) {
+            j++;
+        }
+        else {
+            j = 0;
+            i++;
+        }
+    }
+    if ( j == s.length() )
+        return i;
+    return -1;
+}
+
+
+/*! Returns true if this string contains at least one instance of \a s. */
+
+bool UString::contains( const UString & s ) const
+{
+    if ( find( s ) >= 0 )
+        return true;
+    return false;
+}
+
+
+/*! Returns true if this string contains at least one instance of \a c. */
+
+bool UString::contains( const char c ) const
+{
+    if ( find( c ) >= 0 )
+        return true;
+    return false;
+}
+
+
+/*! Returns true if this string contains at least one instance of \a s. */
+
+bool UString::contains( const char * s ) const
+{
+    if ( !s || !*s )
+        return true;
+    int i = find( *s );
+    while ( i >= 0 ) {
+        uint l = strlen( s );
+        uint j = 0;
+        while ( j < l && i + j < length() &&
+                d->str[i+j] == s[j] )
+            j++;
+        if ( j == l )
+            return true;
+        i = find( *s, i+1 );
+    }
+    return false;
+}
+
+
+#include "unicode-titlecase.inc"
+
+
+/*! Returns a titlecased version of this string. Usable for
+    case-insensitive comparison, not much else.
+*/
+
+UString UString::titlecased() const
+{
+    UString r = *this;
+    uint i = 0;
+    while ( i < length() ) {
+        uint cp = d->str[i++];
+        if ( cp < numTitlecaseCodepoints &&
+             titlecaseCodepoints[cp] &&
+             cp != titlecaseCodepoints[cp] ) {
+            r.detach();
+            r.d->str[i] = titlecaseCodepoints[cp];
+        }
+        i++;
+    }
+    return r;
 }

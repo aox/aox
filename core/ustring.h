@@ -52,6 +52,7 @@ public:
 
     void append( const UString & );
     void append( const uint );
+    void append( const char * );
 
     void reserve( uint );
     void truncate( uint = 0 );
@@ -60,13 +61,35 @@ public:
     String ascii() const;
     String utf8() const;
 
+    int find( char, int=0 ) const;
+    int find( const UString &, int=0 ) const;
+    bool contains( const UString & ) const;
+    bool contains( const char ) const;
+    bool contains( const char * ) const;
+
     UString mid( uint, uint = UINT_MAX ) const;
     uint number( bool *, uint = 10 ) const;
     UString simplified() const;
 
+    UString titlecased() const;
+
     inline void detach() { if ( !modifiable() ) reserve( length() ); }
 
     bool modifiable() const { return d && d->max > 0; }
+
+    bool operator<( const UString & ) const;
+    bool operator>( const UString & ) const;
+    bool operator<=( const UString & ) const;
+    bool operator>=( const UString & ) const;
+
+    int compare( const UString & ) const;
+
+    bool startsWith( const String & ) const;
+    bool startsWith( const UString & ) const;
+    bool startsWith( const char * ) const;
+    bool endsWith( const String & ) const;
+    bool endsWith( const UString & ) const;
+    bool endsWith( const char * ) const;
 
 private:
     void reserve2( uint );
@@ -120,6 +143,8 @@ inline bool operator!=( const UString & s1, const char * s2 )
 
 
 extern const UString operator+( const UString & a, const UString & b );
+extern const UString operator+( const UString & a, const char * b );
+extern const UString operator+( const char * a, const UString & b );
 extern const UString operator+=( const UString & a, const UString & b );
 
 
