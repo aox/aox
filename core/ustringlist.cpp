@@ -37,16 +37,6 @@ void UStringList::append( const UString & s )
 }
 
 
-/*! This version of append() makes a UString copy of \a s and appends
-    that copy to the list.
-*/
-
-void UStringList::append( const char * s )
-{
-    List<UString>::append( new UString( s ) );
-}
-
-
 /*! Returns a string containing every UString in this list, with \a
     separator between the items.
 
@@ -72,6 +62,21 @@ UString UStringList::join( const UString & separator )
     }
     return r;
 }
+
+
+/*! Returns a string containing every UString in this list, with \a
+    separator between the items.
+
+    If this List isEmpty(), this function returns an empty UString.
+*/
+
+UString UStringList::join( const char * separator )
+{
+    UString s;
+    s.append( separator );
+    return join( separator );
+}
+
 
 
 /*! This function splits \a s on the separator \a c, and returns a non-0
@@ -101,34 +106,6 @@ UStringList *UStringList::split( char c, const UString &s )
     while ( last > 0 );
 
     return l;
-}
-
-
-/*! Removes duplicate entries from the list. If \a caseSensitive is
-    true (this is the default), strings are compared exactly. If \a
-    caseSensitive is false, ASCII A-Z are treated as equal to a-z.
-
-    When two more more strings are equal, removeDuplicates() leaves
-    the first and removes the second and later copies.
-*/
-
-void UStringList::removeDuplicates( bool caseSensitive )
-{
-    Dict<uint> e;
-    uint tmp = 1;
-    Iterator i( this );
-    while ( i ) {
-        UString s = *i;
-        if ( !caseSensitive )
-            s = s.lower();
-        if ( e.contains( s ) ) {
-            take( i );
-        }
-        else {
-            ++i;
-            e.insert( s, &tmp );
-        }
-    }
 }
 
 

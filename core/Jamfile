@@ -5,7 +5,7 @@ Build core : global.cpp scope.cpp string.cpp
     md5.cpp file.cpp logger.cpp log.cpp configuration.cpp
     stringlist.cpp entropy.cpp filter.cpp stderrlogger.cpp ;
 
-Build encodings : ustring.cpp ;
+Build encodings : ustring.cpp ustringlist.cpp ;
 
 PGUSER ?= "" ;
 

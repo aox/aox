@@ -15,12 +15,11 @@ public:
 
     void append( UString * s ) { List<UString>::append( s ); }
     void append( const UString & );
-    void append( const char * );
 
-    void removeDuplicates( bool = true );
     bool contains( const UString & ) const;
 
     UString join( const UString & );
+    UString join( const char * );
     static UStringList *split( char, const UString & );
 };
 
