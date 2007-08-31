@@ -92,7 +92,8 @@ void Lsub::execute()
                 // we quote a little too much here. we don't quote if
                 // the string is 1*astring-char. we could also include
                 // list-wildcards in the quote-free set.
-                respond( "LSUB (" + flags + ") \"/\" " + imapQuoted( m ) );
+                respond( "LSUB (" + flags + ") \"/\" " +
+                         imapQuoted( m, d->ref ) );
             }
         }
     }
