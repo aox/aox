@@ -1129,10 +1129,6 @@ UString Command::mailboxName()
             return r;
         }
     }
-    if ( !Mailbox::validName( un ) ) {
-        error( Bad, "Syntax error in mailbox name: " + un.ascii() );
-        return r;
-    }
     if ( un.startsWith( "/" ) ) {
         d->usesAbsoluteMailbox = true;
         r.append( u->home()->name() );
@@ -1140,6 +1136,10 @@ UString Command::mailboxName()
     }
     else {
         d->usesRelativeMailbox = true;
+    }
+    if ( !Mailbox::validName( r ) ) {
+        error( Bad, "Syntax error in mailbox name: " + n );
+        return r;
     }
     r.append( un );
     return r;
