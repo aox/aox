@@ -115,6 +115,9 @@ void Lsub::reference()
     if ( parser()->ok() && refname.isEmpty() ) {
         d->ref = imap()->user()->home();
     }
+    else if ( parser()->ok() && refname == "/" ) {
+        d->ref = Mailbox::root();
+    }
     else {
         parser()->restore( x );
         d->ref = mailbox();

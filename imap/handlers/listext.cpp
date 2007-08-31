@@ -395,6 +395,9 @@ void Listext::reference()
     if ( parser()->ok() && refname.isEmpty() ) {
         d->reference = imap()->user()->home();
     }
+    else if ( parser()->ok() && refname == "/" ) {
+        d->reference = Mailbox::root();
+    }
     else {
         parser()->restore( x );
         d->reference = mailbox();
