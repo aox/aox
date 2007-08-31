@@ -1109,6 +1109,8 @@ class Mailbox * Command::mailbox()
 UString Command::mailboxName()
 {
     String n = astring();
+    if ( n.endsWith( "/" ) )
+        n = n.mid( 0, n.length() - 1 );
 
     User * u = imap()->user();
     if ( u && n.lower() == "inbox" ) {
@@ -1166,19 +1168,18 @@ String Command::imapQuoted( Mailbox * m, Mailbox * r )
 {
     Mailbox * base = 0;
     bool rel = false;
-    if ( r ) {
+    if ( r )
         base = r;
-        rel = true;
-    }
-    else if ( imap()->user() ) {
+    else if ( imap()->user() )
         base = imap()->user()->home();
-    }
     // find out whether this name can be expressed as a relative name
     if ( base ) {
         Mailbox * p = m->parent();
         while ( p && p != base )
             p = p->parent();
-        if ( !p )
+        if ( p )
+            rel = true;
+        else
             rel = false;
     }
     // if it can, should it? does the client use relative names?

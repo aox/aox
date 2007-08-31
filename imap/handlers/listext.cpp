@@ -372,7 +372,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
         }
     }
 
-    String name = imapQuoted( mailbox, d->reference );
+    String name = imapQuoted( mailbox );
 
     String ext = "";
     if ( childSubscribed ) {
