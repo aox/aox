@@ -391,15 +391,19 @@ void Listext::sendListResponse( Mailbox * mailbox )
 void Listext::reference()
 {
     uint x = parser()->mark();
-    String refname = parser()->astring();
-    if ( parser()->ok() && refname.isEmpty() ) {
-        d->reference = imap()->user()->home();
+    d->reference = 0;
+    String s = parser()->astring();
+    if ( s.isEmpty() ) {
+        if ( imap()->user() )
+            d->reference = imap()->user()->home();
     }
-    else if ( parser()->ok() && refname == "/" ) {
+    else if ( s == "/" ) {
         d->reference = Mailbox::root();
     }
     else {
         parser()->restore( x );
-        d->reference = mailbox();
+        d->reference = Mailbox::obtain( mailboxName(), false );
     }
+    if ( !d->reference )
+        error( Bad, "Can't obtain reference name" );
 }
