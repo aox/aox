@@ -1112,7 +1112,6 @@ UString Command::mailboxName()
 
     User * u = imap()->user();
     if ( u && n.lower() == "inbox" ) {
-        d->usesRelativeMailbox = true;
         return u->inbox()->name();
     }
 
@@ -1130,12 +1129,19 @@ UString Command::mailboxName()
         }
     }
     if ( un.startsWith( "/" ) ) {
-        d->usesAbsoluteMailbox = true;
-        r.append( u->home()->name() );
-        r.append( "/" );
+        if ( u &&
+             un[u->home()->name().length()] == '/' &&
+             un.startsWith( u->home()->name() ) )
+            d->usesAbsoluteMailbox = true;
+    }
+    else if ( !u ) {
+        error( Bad, "Relative mailbox name is invalid before login" );
+        return r;
     }
     else {
         d->usesRelativeMailbox = true;
+        r.append( u->home()->name() );
+        r.append( "/" );
     }
     r.append( un );
     if ( !Mailbox::validName( r ) ) {
@@ -1165,11 +1171,14 @@ String Command::imapQuoted( Mailbox * m, Mailbox * r )
         rel = true;
     }
     // find out whether this name can be expressed as a relative name
-    if ( imap()->user() ) {
+    if ( imap()->user() )
         base = imap()->user()->home();
+    if ( base ) {
         Mailbox * p = m->parent();
         while ( p && p != base )
             p = p->parent();
+        if ( !p )
+            rel = false;
     }
     // if it can, should it? does the client use relative names?
     if ( rel ) {
@@ -1184,7 +1193,7 @@ String Command::imapQuoted( Mailbox * m, Mailbox * r )
     }
     // find the actual name to return
     UString n = m->name();
-    if ( rel )
+    if ( rel && base != Mailbox::root() )
         n = n.mid( base->name().length() + 1 );
     MUtf7Codec c;
     return imapQuoted( c.fromUnicode( n ), AString );
