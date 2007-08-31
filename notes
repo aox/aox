@@ -335,6 +335,11 @@ Deleting mailbox has unclear semantics now
   mailbox?
 
 
+3.0 changes
+
+  - Don't announce digest-md5 by default.
+
+
 MULTIAPPEND
 
   Stupid thing. Clients and servers using pipelining can do the same
