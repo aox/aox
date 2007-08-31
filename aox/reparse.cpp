@@ -95,7 +95,7 @@ void Reparse::execute()
             d->t->enqueue( q );
             d->t->commit();
             printf( "- reparsed %s:%d (new UID %d)\n",
-                    m->name().cstr(),
+                    m->name().utf8().cstr(),
                     d->row->getInt( "uid" ),
                     d->injector->uid( m ) );
         }
@@ -132,7 +132,7 @@ void Reparse::execute()
         }
         else {
             printf( "- parsing %s:%d still fails: %s\n",
-                    m->name().cstr(), r->getInt( "uid" ),
+                    m->name().utf8().cstr(), r->getInt( "uid" ),
                     msg->error().simplified().cstr() );
         }
     }

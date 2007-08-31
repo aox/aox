@@ -5,6 +5,7 @@
 
 #include "event.h"
 
+#include "ustring.h"
 #include "string.h"
 #include "list.h"
 
@@ -25,11 +26,11 @@ public:
     void setId( uint );
     uint id() const;
 
-    void setLogin( const String & );
-    String login() const;
+    void setLogin( const UString & );
+    UString login() const;
 
-    void setSecret( const String & );
-    String secret() const;
+    void setSecret( const UString & );
+    UString secret() const;
 
     void setInbox( Mailbox * & );
     Mailbox * inbox() const;
@@ -38,8 +39,8 @@ public:
     Address * address();
 
     Mailbox * home() const;
-    Mailbox * mailbox( const String & ) const;
-    String mailboxName( const String & ) const;
+    Mailbox * mailbox( const UString & ) const;
+    UString mailboxName( const UString & ) const;
 
     bool exists();
 

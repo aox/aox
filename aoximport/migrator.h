@@ -3,8 +3,9 @@
 #ifndef MIGRATOR_H
 #define MIGRATOR_H
 
-#include "message.h"
 #include "event.h"
+#include "message.h"
+#include "ustring.h"
 #include "stringlist.h"
 
 
@@ -15,7 +16,7 @@ public:
     enum Mode { Mbox, Cyrus, Mh, Maildir };
     Migrator( Mode );
 
-    void setDestination( const String & );
+    void setDestination( const UString & );
     void addSource( const String & );
 
     Mailbox * target() const;

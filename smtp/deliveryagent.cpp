@@ -66,7 +66,8 @@ DeliveryAgent::DeliveryAgent( SmtpClient * client,
 {
     d->log = new Log( Log::SMTP );
     Scope x( d->log );
-    log( "Attempting delivery for " + mailbox->name() + ":" + fn( uid ) );
+    log( "Attempting delivery for " + mailbox->name().ascii() + ":" +
+         fn( uid ) );
     d->client = client;
     d->mailbox = mailbox;
     d->uid = uid;
@@ -435,7 +436,9 @@ void DeliveryAgent::logDelivery( DSN * dsn )
 
 Injector * DeliveryAgent::injectBounce( DSN * dsn )
 {
-    Mailbox * m = Mailbox::find( "/archiveopteryx/spool" );
+    UString s;
+    s.append( "/archiveopteryx/spool" );
+    Mailbox * m = Mailbox::find( s );
     if ( !m )
         return 0;
 

@@ -48,7 +48,6 @@ public:
     {}
 
     Date date;
-    String mbx;
     Mailbox * mailbox;
     Message * message;
     Injector * injector;
@@ -81,7 +80,7 @@ void Append::parse()
     // the grammar used is:
     // append = "APPEND" SP mailbox SP [flag-list SP] [date-time SP] literal
     space();
-    d->mbx = astring();
+    d->mailbox = mailbox();
     space();
 
     if ( present( "(" ) ) {
@@ -234,6 +233,8 @@ void Append::parse()
     }
 
     end();
+    requireRight( d->mailbox, Permissions::Insert );
+    requireRight( d->mailbox, Permissions::Write );
 }
 
 
@@ -250,16 +251,6 @@ uint Append::number( uint n )
 
 void Append::execute()
 {
-    if ( !d->mailbox ) {
-        d->mailbox = mailbox( d->mbx );
-        if ( !d->mailbox ) {
-            error( No, "No such mailbox: '" + d->mbx + "'" );
-            return;
-        }
-        requireRight( d->mailbox, Permissions::Insert );
-        requireRight( d->mailbox, Permissions::Write );
-    }
-
     if ( !permitted() )
         return;
 
@@ -323,7 +314,7 @@ void Append::execute()
     }
 
     if ( d->injector->failed() )
-        error( No, "Could not append to " + d->mbx );
+        error( No, "Could not append to " + d->mailbox->name().ascii() );
 
     if ( !d->injector->done() || d->injector->failed() )
         return;

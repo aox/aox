@@ -241,9 +241,9 @@ int AoxCommand::status() const
     in a LIKE clause.
 */
 
-String AoxCommand::sqlPattern( const String & s )
+UString AoxCommand::sqlPattern( const UString & s )
 {
-    String p;
+    UString p;
 
     uint i = 0;
     while ( s[i] ) {
@@ -265,7 +265,7 @@ String AoxCommand::sqlPattern( const String & s )
     reserved username.
 */
 
-bool AoxCommand::validUsername( const String & s )
+bool AoxCommand::validUsername( const UString & s )
 {
     uint i = 0;
     while ( i < s.length() &&

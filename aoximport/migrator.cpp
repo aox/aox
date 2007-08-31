@@ -33,7 +33,7 @@ public:
           status( 0 ), mode( Migrator::Mbox )
     {}
 
-    String destination;
+    UString destination;
     List< MigratorSource > sources;
     List< MailboxMigrator > * working;
     Mailbox * target;
@@ -68,7 +68,7 @@ Migrator::Migrator( Mode m )
 
 /*! Sets this Migrator's destination to a Mailbox named \a s. */
 
-void Migrator::setDestination( const String &s )
+void Migrator::setDestination( const UString &s )
 {
     d->destination = s;
 }
@@ -118,7 +118,7 @@ void Migrator::execute()
         if ( !d->target ) {
             d->status = -1;
             fprintf( stderr, "aoximport: Target mailbox does not exist: %s\n",
-                     d->destination.cstr() );
+                     d->destination.ascii().cstr() );
             EventLoop::global()->shutdown();
             return;
         }
@@ -478,7 +478,7 @@ void MailboxMigrator::execute()
             d->message = 0;
             d->validated = true;
             d->error = "Error creating " +
-                       d->destination->name() +
+                       d->destination->name().ascii() +
                        ": " +
                        d->mailboxCreator->error();
             log( d->error, Log::Error );

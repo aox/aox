@@ -12,6 +12,7 @@
 #include "query.h"
 #include "flag.h"
 #include "log.h"
+#include "utf.h"
 
 
 class OCCData
@@ -159,8 +160,10 @@ void OCClient::updateMailbox( const String & arg )
         ::log( "Mailbox name not quoted: " + mailboxName, Log::Error );
         return;
     }
-    Mailbox * m = Mailbox::obtain( mailboxName.unquoted(), true );
-    if ( !m ) {
+    Utf8Codec c;
+    Mailbox * m = Mailbox::obtain( c.toUnicode( mailboxName.unquoted() ),
+                                   true );
+    if ( !m || !c.valid() ) {
         ::log( "Mailbox name syntactically invalid: " + mailboxName.unquoted(),
                Log::Error );
         return;
@@ -172,13 +175,15 @@ void OCClient::updateMailbox( const String & arg )
     StringList::Iterator a( StringList::split( ' ', arg.mid( i+1 ) ) );
     while ( a ) {
         if ( *a == "new" ) {
-            ::log( "OCClient announced mailbox " + m->name(), Log::Debug );
+            ::log( "OCClient announced mailbox " + m->name().ascii(),
+                   Log::Debug );
             m->setDeleted( false );
             m->refresh()->execute();
         }
         else if ( *a == "deleted" ) {
             if ( !m->deleted() )
-                ::log( "OCClient deleted mailbox " + m->name(), Log::Debug );
+                ::log( "OCClient deleted mailbox " + m->name().ascii(),
+                       Log::Debug );
             m->setDeleted( true );
             m->refresh()->execute();
         }
@@ -214,18 +219,18 @@ void OCClient::updateMailbox( const String & arg )
         ++a;
     }
     if ( uidnext && nextmodseq ) {
-        ::log( "OCClient set mailbox " + m->name() +
+        ::log( "OCClient set mailbox " + m->name().ascii() +
                " to uidnext " + fn( uidnext ) +
                " and nextmodseq " + fn( nextmodseq ), Log::Debug );
         m->setUidnextAndNextModSeq( uidnext, nextmodseq );
     }
     else if ( uidnext ) {
-        ::log( "OCClient set mailbox " + m->name() +
+        ::log( "OCClient set mailbox " + m->name().ascii() +
                " to uidnext " + fn( uidnext ), Log::Debug );
         m->setUidnext( uidnext );
     }
     else if ( nextmodseq ) {
-        ::log( "OCClient set mailbox " + m->name() +
+        ::log( "OCClient set mailbox " + m->name().ascii() +
                " to nextmodseq " + fn( nextmodseq ), Log::Debug );
         m->setNextModSeq( nextmodseq );
     }

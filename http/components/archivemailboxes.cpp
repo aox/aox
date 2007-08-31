@@ -54,7 +54,7 @@ void ArchiveMailboxes::execute()
 
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
-        String name( r->getString( "name" ) );
+        UString name( r->getUString( "name" ) );
 
         Mailbox * m = Mailbox::find( name );
         if ( m ) {

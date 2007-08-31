@@ -883,3 +883,16 @@ Make "aox check config" test for more things.
   Such as?
 
 
+The Sieve "header" test may fail
+
+  Write a test or three that feeds the thing a 2047-encoded header
+  field and checks that it's correctly matched/not matched. Then make
+  it pass.
+
+
+Listext::match() should use UString, not String
+
+  It should also move elsewhere, so we don't have this evil
+  inclusion. Where?
+
+

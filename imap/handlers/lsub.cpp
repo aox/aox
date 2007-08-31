@@ -3,9 +3,10 @@
 #include "lsub.h"
 
 #include "user.h"
-#include "query.h"
 #include "mailbox.h"
+#include "imapparser.h"
 #include "ustring.h"
+#include "query.h"
 #include "utf.h"
 
 class LsubData
@@ -17,7 +18,6 @@ public:
     Query * q;
     Mailbox * top;
     Mailbox * ref;
-    String refname;
     uint prefix;
     String pat;
 
@@ -50,7 +50,7 @@ void Lsub::parse()
     d->pat = listMailbox();
     end();
     if ( ok() )
-        log( "Lsub " + d->ref->name() + " " + d->pat );
+        log( "Lsub " + d->ref->name().ascii() + " " + d->pat );
 }
 
 
@@ -85,27 +85,14 @@ void Lsub::execute()
         if ( p ) {
             p = m;
             if ( !p->deleted() &&
-                 match( d->pat, 0, p->name().lower(), d->prefix ) == 2 ) {
+                 match( d->pat, 0, p->name().utf8().lower(), d->prefix ) == 2 ) {
                 String flags = "";
                 if ( p != m || p->synthetic() || p->deleted() )
                     flags = "\\noselect";
-                m = p;
-                Mailbox * home = imap()->user()->home();
-                while ( p && p != home )
-                    p = p->parent();
-                uint l = 0;
-                if ( p == home )
-                    l = home->name().length() + 1;
-
-                Utf8Codec u;
-                MUtf7Codec mu;
-                String n( mu.fromUnicode( u.toUnicode( m->name().mid( l ) ) ) );
-
                 // we quote a little too much here. we don't quote if
                 // the string is 1*astring-char. we could also include
                 // list-wildcards in the quote-free set.
-                respond( "LSUB (" + flags + ") \"/\" " +
-                         imapQuoted( n, AString ) );
+                respond( "LSUB (" + flags + ") \"/\" " + imapQuoted( m ) );
             }
         }
     }
@@ -122,17 +109,13 @@ void Lsub::execute()
 
 void Lsub::reference()
 {
-    d->refname = astring();
-
-    if ( d->refname[0] == '/' )
-        d->ref = Mailbox::obtain( d->refname, false );
-    else if ( d->refname.isEmpty() )
+    uint x = parser()->mark();
+    String refname = parser()->astring();
+    if ( parser()->ok() && refname.isEmpty() ) {
         d->ref = imap()->user()->home();
-    else
-        d->ref = Mailbox::obtain( imap()->user()->home()->name() +
-                                  "/" + d->refname,
-                                  false );
-
-    if ( !d->ref )
-        error( No, "Cannot find reference name " + d->refname );
+    }
+    else {
+        parser()->restore( x );
+        d->ref = mailbox();
+    }
 }

@@ -5,6 +5,7 @@
 
 #include "abnfparser.h"
 
+#include "ustring.h"
 #include "list.h"
 
 
@@ -30,11 +31,11 @@ public:
 
     String identifier();
 
-    String multiLine();
+    UString multiLine();
 
     uint number();
 
-    String quotedString();
+    UString quotedString();
 
     String tag();
 
@@ -59,9 +60,9 @@ public:
 
     String matchType();
 
-    String string();
+    UString string();
 
-    class StringList * stringList();
+    class UStringList * stringList();
 
     class SieveTest * test();
 

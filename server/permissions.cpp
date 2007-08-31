@@ -103,7 +103,7 @@ public:
     the specified \a rights.
 */
 
-Permissions::Permissions( Mailbox * mailbox, const String &authid,
+Permissions::Permissions( Mailbox * mailbox, const UString &authid,
                           const String &rights )
     : d( new PermissionData )
 {
@@ -499,7 +499,8 @@ String PermissionsChecker::error() const
     List<PermissionsCheckerData::Pair>::Iterator i( d->l );
     while ( i ) {
         if ( !i->p->allowed( i->r ) )
-            l.append( "Not permitted. Mailbox: " + i->p->mailbox()->name() +
+            l.append( "Not permitted. Mailbox: " +
+                      i->p->mailbox()->name().ascii() +
                       " Missing right: " + rightNames[i->r] );
         ++i;
     }

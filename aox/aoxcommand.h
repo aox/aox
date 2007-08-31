@@ -4,6 +4,7 @@
 #define AOXCOMMAND_H
 
 #include "event.h"
+#include "ustring.h"
 
 
 class StringList;
@@ -31,8 +32,8 @@ protected:
     void database( bool = false );
     void error( const String & );
     void finish( int = 0 );
-    String sqlPattern( const String & );
-    bool validUsername( const String & );
+    UString sqlPattern( const UString & );
+    bool validUsername( const UString & );
     bool choresDone();
 
 private:

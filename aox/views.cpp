@@ -2,6 +2,7 @@
 
 #include "views.h"
 
+#include "utf.h"
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
@@ -19,8 +20,8 @@ public:
         : user( 0 ), mv( 0 ), ms( 0 ), selector( 0 ), t( 0 )
     {}
 
-    String name;
-    String source;
+    UString name;
+    UString source;
     User * user;
     Mailbox * mv;
     Mailbox * ms;
@@ -43,12 +44,15 @@ void CreateView::execute()
 {
     if ( d->name.isEmpty() ) {
         parseOptions();
-        d->name = next();
-        d->source = next();
+        Utf8Codec c;
+        d->name = c.toUnicode( next() );
+        d->source = c.toUnicode( next() );
         d->selector = Selector::fromString( next() );
-        String owner( next() );
+        UString owner( c.toUnicode( next() ) );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( d->name.isEmpty() )
             error( "No name supplied for the view." );
         if ( d->source.isEmpty() )
@@ -77,7 +81,7 @@ void CreateView::execute()
                 return;
 
             if ( d->user->state() == User::Nonexistent )
-                error( "No user named " + d->user->login() );
+                error( "No user named " + d->user->login().utf8() );
 
             if ( !d->name.startsWith( "/" ) )
                 d->name = d->user->home()->name() + "/" + d->name;
@@ -88,17 +92,17 @@ void CreateView::execute()
 
         d->ms = Mailbox::obtain( d->source );
         if ( !d->ms || d->ms->synthetic() || d->ms->deleted() )
-            error( "Can't create view on " + d->source );
+            error( "Can't create view on " + d->source.utf8() );
 
         d->mv = Mailbox::obtain( d->name );
         if ( !d->mv || !( d->mv->synthetic() || d->mv->deleted() ) )
-            error( "Can't create view named " + d->name );
+            error( "Can't create view named " + d->name.utf8() );
 
         d->t = new Transaction( this );
 
         Query * q = d->mv->create( d->t, d->user );
         if ( !q )
-            error( "Couldn't create view named " + d->name );
+            error( "Couldn't create view named " + d->name.utf8() );
 
         q = new Query( "insert into views "
                        "(view, selector, source, nextmodseq) values "
@@ -117,7 +121,7 @@ void CreateView::execute()
     if ( d->t->failed() )
         error( "Couldn't create view: " + d->t->error() );
 
-    OCClient::send( "mailbox " + d->mv->name().quoted() + " new" );
+    OCClient::send( "mailbox " + d->mv->name().utf8().quoted() + " new" );
 
     finish();
 }

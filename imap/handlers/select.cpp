@@ -23,7 +23,6 @@ public:
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
-    String name;
     bool readOnly;
     bool annotate;
     bool condstore;
@@ -56,7 +55,7 @@ Select::Select( bool ro )
 void Select::parse()
 {
     space();
-    d->name = astring();
+    d->mailbox = mailbox();
     if ( present( " (" ) ) {
         bool more = true;
         while ( ok() && more ) {
@@ -83,34 +82,31 @@ void Select::execute()
     if ( state() != Executing )
         return;
 
-    if ( !d->mailbox ) {
+    if ( !d->permissions ) {
         if ( d->condstore )
             imap()->setClientSupports( IMAP::Condstore );
         if ( d->annotate )
             imap()->setClientSupports( IMAP::Annotate );
-        d->mailbox = mailbox( d->name );
-        if ( !d->mailbox )
-            error( No, d->name + " does not exist" );
-        else if ( d->mailbox->synthetic() )
-            error( No, d->name + " is not in the database" );
+        if ( d->mailbox->synthetic() )
+            error( No,
+                   d->mailbox->name().ascii() + " is not in the database" );
         else if ( d->mailbox->deleted() )
-            error( No, d->name + " is deleted" );
+            error( No, d->mailbox->name().ascii() + " is deleted" );
 
         if ( !ok() ) {
             finish();
             return;
         }
-    }
 
-    if ( !d->permissions ) {
         d->permissions = new Permissions( d->mailbox, imap()->user(),
                                           this );
     }
+
     if ( d->permissions && !d->session ) {
         if ( !d->permissions->ready() )
             return;
         if ( !d->permissions->allowed( Permissions::Read ) ) {
-            error( No, d->name + " is not accessible" );
+            error( No, d->mailbox->name().ascii() + " is not accessible" );
             finish();
             return;
         }

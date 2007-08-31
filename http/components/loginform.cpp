@@ -25,7 +25,7 @@ void LoginForm::execute()
 {
     HttpSession * s = page()->link()->server()->session();
 
-    String login;
+    UString login;
     if ( s )
         login = s->user()->login();
 

@@ -19,6 +19,7 @@
 #include "file.h"
 #include "user.h"
 #include "log.h"
+#include "utf.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,13 +45,13 @@ public:
     Query * q;
     Injector * i;
     Message * m;
-    String mbn;
+    UString mbn;
     String un;
     Permissions * p;
     Mailbox * mb;
 
     Deliverator( Message * message,
-                 const String & mailbox, const String & user )
+                 const UString & mailbox, const String & user )
         : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user ),
           p( 0 ), mb( 0 )
     {
@@ -97,13 +98,15 @@ public:
                 mb = Mailbox::find( r->getInt( "mailbox" ) );
             }
             else {
-                String pre;
+                UString pre;
                 if ( !r->isNull( "namespace" ) && !mbn.startsWith( "/" ) )
-                    pre = r->getString( "namespace" ) + "/" +
-                          r->getString( "login" ) + "/";
+                    pre = r->getUString( "namespace" ) + "/" +
+                          r->getUString( "login" ) + "/";
                 mb = Mailbox::find( pre + mbn );
                 User * u = new User;
-                u->setLogin( "anyone" );
+                UString anyone;
+                anyone.append( "anyone" );
+                u->setLogin( anyone );
                 if ( mb )
                     p = new Permissions( mb, u, this );
             }
@@ -117,7 +120,7 @@ public:
         if ( p && !p->allowed( Permissions::Post ) )
             quit( EX_NOPERM,
                   "User 'anyone' does not have 'p' right on mailbox " +
-                  mbn.quoted( '\'' ) );
+                  mbn.ascii().quoted( '\'' ) );
 
         if ( !i ) {
             i = new Injector( m, this );
@@ -143,7 +146,7 @@ int main( int argc, char *argv[] )
     Scope global;
 
     String sender;
-    String mailbox;
+    UString mailbox;
     String recipient;
     String filename;
     bool error = false;
@@ -159,8 +162,12 @@ int main( int argc, char *argv[] )
                 break;
 
             case 't':
-                if ( argc - n > 1 )
-                    mailbox = argv[++n];
+                if ( argc - n > 1 ) {
+                    Utf8Codec c;
+                    mailbox = c.toUnicode( argv[++n] );
+                    if ( !c.valid() )
+                        error = true;
+                }
                 break;
 
             case 'v':

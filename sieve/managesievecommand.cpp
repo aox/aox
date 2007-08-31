@@ -3,6 +3,7 @@
 #include "managesievecommand.h"
 
 #include "tls.h"
+#include "utf.h"
 #include "dict.h"
 #include "user.h"
 #include "query.h"
@@ -18,6 +19,7 @@
 #include "sieveaction.h"
 #include "sievescript.h"
 #include "transaction.h"
+#include "ustringlist.h"
 
 
 class ManageSieveCommandData
@@ -333,7 +335,7 @@ bool ManageSieveCommand::putScript()
 
         // look for fileinto calls. if any refer to nonexistent
         // mailboxes in the user's namespace, create those. if any
-        // refer to mailboxes not owned by the user, deny the 
+        // refer to mailboxes not owned by the user, deny the
         List<SieveCommand> stack;
         List<SieveCommand>::Iterator i( script.topLevelCommands() );
         while ( i ) {
@@ -353,16 +355,17 @@ bool ManageSieveCommand::putScript()
                 SieveArgumentList * l = c->arguments();
                 List<SieveArgument>::Iterator a( l->arguments() );
                 while ( a ) {
-                    String n = *a->stringList()->first();
-                    String p = d->sieve->user()->home()->name() + "/";
+                    UString n = *a->stringList()->first();
+                    UString p = d->sieve->user()->home()->name();
+                    p.append( '/' );
                     if ( !n.startsWith( "/" ) )
                         n = p + n;
-                    if ( n.lower().startsWith( p.lower() ) ) {
+                    if ( n.titlecased().startsWith( p.titlecased() ) ) {
                         Mailbox * m = Mailbox::find( n );
-                        if ( !d->create.contains( n ) &&
+                        if ( !d->create.contains( n.utf8() ) &&
                              ( !m || m->synthetic() || m->deleted() ) ) {
                             m = Mailbox::obtain( n, true );
-                            d->create.insert( n, m );
+                            d->create.insert( n.utf8(), m );
                             (void)m->create( d->t, d->sieve->user() );
                         }
                     }
@@ -741,7 +744,8 @@ bool ManageSieveCommand::explain()
                 ::x->keep = 0;
             }
             else {
-                ::x->keep = Mailbox::find( value );
+                Utf8Codec u;
+                ::x->keep = Mailbox::find( u.toUnicode( value ) );
                 if ( !::x->keep )
                     no( "No such mailbox: " + value );
             }
@@ -820,7 +824,7 @@ bool ManageSieveCommand::explain()
             break;
         case SieveAction::FileInto:
             r.append( "fileinto " );
-            r.append( sa->mailbox()->name() );
+            r.append( sa->mailbox()->name().utf8() );
             break;
         case SieveAction::Redirect:
             r.append( "redirect " );

@@ -2,6 +2,7 @@
 
 #include "aliases.h"
 
+#include "utf.h"
 #include "query.h"
 #include "address.h"
 #include "mailbox.h"
@@ -24,8 +25,12 @@ ListAliases::ListAliases( StringList * args )
 void ListAliases::execute()
 {
     if ( !q ) {
-        String pattern = next();
+        Utf8Codec c;
+        UString pattern = c.toUnicode( next() );
         end();
+
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
 
         database();
         String s( "select localpart||'@'||domain as address, m.name "
@@ -64,7 +69,7 @@ public:
     {}
 
     Address * address;
-    String s;
+    UString s;
     Transaction * t;
     Query * q;
 
@@ -85,10 +90,13 @@ void CreateAlias::execute()
 {
     if ( !d->t ) {
         parseOptions();
+        Utf8Codec c;
         String address = next();
-        String mailbox = next();
+        UString mailbox = c.toUnicode( next() );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( address.isEmpty() )
             error( "No address specified." );
 
@@ -122,7 +130,7 @@ void CreateAlias::execute()
     if ( !d->q ) {
         Mailbox * m = Mailbox::obtain( d->s, false );
         if ( !m )
-            error( "Invalid mailbox specified: '" + d->s + "'" );
+            error( "Invalid mailbox specified: " + d->s.utf8().quoted() );
 
         d->q = new Query( "insert into aliases (address, mailbox) "
                           "values ($1, $2)", this );

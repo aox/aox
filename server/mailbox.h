@@ -4,6 +4,7 @@
 #define MAILBOX_H
 
 #include "list.h"
+#include "ustring.h"
 
 class EventHandler;
 class Transaction;
@@ -16,12 +17,12 @@ class Query;
 class Mailbox
     : public Garbage
 {
-    Mailbox( const String & );
+    Mailbox( const UString & );
 
 public:
     enum Type { Synthetic, Ordinary, Deleted, View };
 
-    String name() const;
+    UString name() const;
     uint id() const;
     void setId( uint ) const;
     uint uidnext() const;
@@ -58,14 +59,14 @@ public:
     MessageSet sourceUids( const MessageSet & ) const;
 
     static void setup( class EventHandler * = 0 );
-    static Mailbox * find( const String &, bool = false );
-    static Mailbox * obtain( const String &, bool create = true );
-    static Mailbox * closestParent( const String & );
+    static Mailbox * find( const UString &, bool = false );
+    static Mailbox * obtain( const UString &, bool create = true );
+    static Mailbox * closestParent( const UString & );
 
     static Mailbox * root();
     static Mailbox * find( uint );
 
-    static bool validName( const String & );
+    static bool validName( const UString & );
 
     bool operator <=( const Mailbox &b ) {
         if ( id() && b.id() )

@@ -16,8 +16,7 @@ public:
           t( 0 ), q( 0 )
     {}
 
-    String source;
-    String view;
+    UString view;
 
     Mailbox * parent;
     Mailbox * ms;
@@ -45,9 +44,9 @@ void View::parse()
     space();
     require( "create" );
     space();
-    d->view = astring();
+    d->view = mailboxName();
     space();
-    d->source = astring();
+    d->ms = mailbox();
     Search::parse();
 }
 
@@ -56,16 +55,10 @@ void View::execute()
     if ( state() != Executing )
         return;
 
-    if ( !d->ms ) {
-        d->ms = mailbox( d->source );
-        if ( !d->ms || d->ms->synthetic() || d->ms->deleted() ) {
-            error( No, "Can't create view on " + d->source );
-            return;
-        }
-
-        d->parent = Mailbox::closestParent( mailboxName( d->view ) );
+    if ( !d->parent ) {
+        d->parent = Mailbox::closestParent( d->view );
         if ( !d->parent ) {
-            error( No, "Syntax error in view name: " + d->view );
+            error( No, "Syntax error in view name: " + d->view.ascii() );
             return;
         }
 
@@ -76,9 +69,9 @@ void View::execute()
         return;
 
     if ( !d->t ) {
-        d->mv = Mailbox::obtain( mailboxName( d->view ), true );
+        d->mv = Mailbox::obtain( d->view, true );
         if ( !d->mv ) {
-            error( No, d->view + " is not a valid mailbox name" );
+            error( No, d->view.ascii() + " is not a valid mailbox name" );
             return;
         }
 
@@ -88,7 +81,7 @@ void View::execute()
                           "(view, selector, source, nextmodseq) values "
                           "((select id from mailboxes where name=$1),"
                           "$2, $3, 1::bigint)", this );
-        d->q->bind( 1, mailboxName( d->view ) );
+        d->q->bind( 1, d->view );
         d->q->bind( 2, selector()->string() );
         d->q->bind( 3, d->ms->id() );
         d->t->enqueue( d->q );
@@ -102,7 +95,7 @@ void View::execute()
     if ( d->t->failed() )
         error( No, "Database error: " + d->t->error() );
 
-    OCClient::send( "mailbox " + d->mv->name().quoted() + " new" );
+    OCClient::send( "mailbox " + d->mv->name().utf8().quoted() + " new" );
 
     finish();
 }

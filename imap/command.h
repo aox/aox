@@ -78,6 +78,8 @@ public:
     MessageSet set( bool );
     uint msn();
     String flag();
+    class Mailbox * mailbox();
+    UString mailboxName();
 
     void end();
     const String following() const;
@@ -87,11 +89,10 @@ public:
     };
     static String imapQuoted( const String &,
                               const QuoteMode = PlainString );
+    String imapQuoted( Mailbox *, Mailbox * = 0 );
 
     void shrink( MessageSet * );
 
-    class Mailbox * mailbox( const String & ) const;
-    String mailboxName( const String & ) const;
 
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();

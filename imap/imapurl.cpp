@@ -7,6 +7,7 @@
 #include "imap.h"
 #include "date.h"
 #include "user.h"
+#include "utf.h"
 
 
 class ImapUrlData
@@ -29,7 +30,7 @@ public:
     String auth;
     String host;
     uint port;
-    String mailbox;
+    UString mailbox;
     uint uidvalidity;
     uint uid;
     String section;
@@ -102,7 +103,10 @@ void ImapUrl::parse( const String & s )
 
         if ( p->hasIuserauth() ) {
             d->user = new User;
-            d->user->setLogin( p->xchars() );
+            Utf8Codec c;
+            d->user->setLogin( c.toUnicode( p->xchars() ) );
+            if ( !c.valid() )
+                return;
             if ( p->present( ";AUTH=" ) )
                 d->auth = p->xchars();
             else if ( d->user->login().isEmpty() )
@@ -121,8 +125,11 @@ void ImapUrl::parse( const String & s )
     // icommand = enc_mailbox [uidvalidity] iuid [isection]
 
     if ( !( d->imap && d->imap->session() ) || !p->hasUid() ) {
-        d->mailbox = p->xchars( true );
+        Utf8Codec c;
+        d->mailbox = c.toUnicode( p->xchars( true ) );
         if ( d->mailbox.isEmpty() )
+            return;
+        if( !c.valid() )
             return;
 
         if ( p->present( ";uidvalidity=" ) ) {
@@ -267,7 +274,7 @@ uint ImapUrl::port() const
     no mailbox has been specified, from the currently selected mailbox.
 */
 
-String ImapUrl::mailboxName() const
+UString ImapUrl::mailboxName() const
 {
     if ( d->mailbox.isEmpty() &&
          d->imap && d->imap->session() )

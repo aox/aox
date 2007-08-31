@@ -27,6 +27,7 @@ class IMAPData
 public:
     IMAPData()
         : state( IMAP::NotAuthenticated ), reader( 0 ),
+          prefersAbsoluteMailboxes( false ),
           runningCommands( false ), runCommandsAgain( false ),
           readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ),
@@ -43,6 +44,7 @@ public:
 
     String str;
 
+    bool prefersAbsoluteMailboxes;
     bool runningCommands;
     bool runCommandsAgain;
     bool readingLiteral;
@@ -358,7 +360,7 @@ bool IMAP::idle() const
 
 void IMAP::setUser( User * user )
 {
-    log( "Authenticated as user " + user->login() );
+    log( "Authenticated as user " + user->login().ascii() );
     SaslConnection::setUser( user );
     setState( Authenticated );
 }
@@ -583,7 +585,7 @@ void IMAP::beginSession( ImapSession * s )
         d->session->end();
     d->session = s;
     setState( Selected );
-    log( "Starting session on mailbox " + s->mailbox()->name() );
+    log( "Starting session on mailbox " + s->mailbox()->name().ascii() );
 }
 
 
@@ -710,4 +712,23 @@ List<Command> * IMAP::commands() const
 void IMAP::sendChallenge( const String &s )
 {
     enqueue( "+ "+ s +"\r\n" );
+}
+
+
+/*! Records that the IMAP client likes to see its mailbox names in
+    absolute form (ie. /users/kiki/lists/mja instead of lists/mja).
+    The initial value is false.
+*/
+
+void IMAP::setPrefersAbsoluteMailboxes( bool b )
+{
+    d->prefersAbsoluteMailboxes = b;
+}
+
+
+/*! Returns whatever setPrefersAbsoluteMailboxes() set. */
+
+bool IMAP::prefersAbsoluteMailboxes() const
+{
+    return d->prefersAbsoluteMailboxes;
 }

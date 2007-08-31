@@ -119,7 +119,9 @@ void SmtpAuth::execute()
         respond( 535, "Authentication failed", "5.0.0" );
         if ( d->m->user() &&
              !d->m->user()->login().isEmpty() )
-            log( "Authentication failed for " + d->m->user()->login() );
+            log( "Authentication failed for " +
+                 d->m->user()->login().ascii() );
+        // huh. maybe we do want to use utf-8 in the logfile.
     }
 
     server()->setInputState( SMTP::Command );

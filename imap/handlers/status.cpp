@@ -21,7 +21,6 @@ public:
         mailbox( 0 ), session( 0 ), unseenCount( 0 ),
         highestModseq( 0 )
         {}
-    String name;
     bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
     Session * session;
@@ -44,11 +43,15 @@ Status::Status()
 void Status::parse()
 {
     space();
-    d->name = astring();
+    d->mailbox = mailbox();
     space();
     require( "(" );
 
-    String l( "Status " + d->name + ":" );
+    String l( "Status " );
+    if ( d->mailbox ) {
+        l.append(  d->mailbox->name().ascii() );
+        l.append( ":" );
+    }
     bool atEnd = false;
     while ( !atEnd ) {
         String item = letters( 1, 13 ).lower();
@@ -78,8 +81,11 @@ void Status::parse()
 
     require( ")" );
     end();
-    if ( ok() )
-        log( l );
+    if ( !ok() )
+        return;
+
+    log( l );
+    requireRight( d->mailbox, Permissions::Read );
 }
 
 
@@ -87,17 +93,6 @@ void Status::execute()
 {
     if ( state() != Executing )
         return;
-
-    // first part: set up what we need.
-    if ( !d->mailbox ) {
-        d->mailbox = mailbox( d->name );
-        if ( !d->mailbox ) {
-            error( No, "Can't open " + d->name );
-            finish();
-            return;
-        }
-        requireRight( d->mailbox, Permissions::Read );
-    }
 
     if ( !d->session &&
          ( d->messages ||
@@ -186,7 +181,8 @@ void Status::execute()
             status.append( "HIGHESTMODSEQ " + fn( r->getBigint( "hm" ) ) );
     }
 
-    respond( "STATUS " + d->name + " (" + status.join( " " ) + ")" );
+    respond( "STATUS " + imapQuoted( d->mailbox ) +
+             " (" + status.join( " " ) + ")" );
 
     finish();
 }

@@ -41,10 +41,10 @@ Unsubscribe::Unsubscribe()
 void Subscribe::parse()
 {
     space();
-    name = astring();
+    m = mailbox();
     end();
     if ( ok() )
-        log( "Subscribe " + name );
+        log( "Subscribe " + m->name().ascii() );
 }
 
 
@@ -55,10 +55,9 @@ void Subscribe::execute()
     // table, remove it, or do nothing.
 
     if ( !q ) {
-        m = Mailbox::find( mailboxName( name ), true );
-        if ( !m || ( m->deleted() && mode == Add ) ) {
-            if ( mode == Add )
-                error( No, "Can't subscribe to non-existent mailbox " + name );
+        if ( m->deleted() && mode == Add ) {
+            error( No, "Can't subscribe to non-existent mailbox " +
+                   m->name().ascii() );
             finish();
             return;
         }

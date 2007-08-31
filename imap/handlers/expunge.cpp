@@ -179,7 +179,8 @@ void Expunge::execute()
     d->s->expunge( d->uids );
     if ( d->s->mailbox()->nextModSeq() <= d->modseq ) {
         d->s->mailbox()->setNextModSeq( d->modseq + 1 );
-        OCClient::send( "mailbox " + d->s->mailbox()->name().quoted() + " "
+        OCClient::send( "mailbox " +
+                        d->s->mailbox()->name().utf8().quoted() + " "
                         "nextmodseq=" + fn( d->modseq+1 ) );
     }
     finish();

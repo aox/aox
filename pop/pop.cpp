@@ -362,7 +362,7 @@ static void newCommand( List< PopCommand > * l, POP * pop,
 
 void POP::setUser( User * u )
 {
-    log( "Authenticated as user " + u->login() );
+    log( "Authenticated as user " + u->login().ascii() );
     SaslConnection::setUser( u );
 }
 
@@ -394,7 +394,7 @@ void POP::setReader( PopCommand * cmd )
 
 void POP::setSession( Session * s )
 {
-    log( "Using mailbox " + s->mailbox()->name() );
+    log( "Using mailbox " + s->mailbox()->name().ascii() );
     d->session = s;
 }
 

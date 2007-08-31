@@ -3,6 +3,7 @@
 #include "popcommand.h"
 
 #include "tls.h"
+#include "utf.h"
 #include "list.h"
 #include "user.h"
 #include "plain.h"
@@ -281,8 +282,16 @@ bool PopCommand::user()
         }
         d->user = new ::User;
         d->pop->setUser( d->user );
-        d->user->setLogin( nextArg() );
-        d->user->refresh( this );
+        Utf8Codec c;
+        d->user->setLogin( c.toUnicode( nextArg() ) );
+        if ( c.valid() ) {
+            d->user->refresh( this );
+        }
+        else {
+            d->pop->err( "Argument encoding error: " + c.error() );
+            d->pop->badUser();
+            return true;
+        }
     }
 
     if ( d->user->state() == User::Unverified )
@@ -332,7 +341,8 @@ bool PopCommand::session()
 {
     if ( !d->mailbox ) {
         d->mailbox = d->pop->user()->inbox();
-        log( "Attempting to start a session on " + d->mailbox->name() );
+        log( "Attempting to start a session on " +
+             d->mailbox->name().ascii() );
         d->permissions =
             new Permissions( d->mailbox, d->pop->user(), this );
     }

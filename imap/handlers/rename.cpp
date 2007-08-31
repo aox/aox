@@ -17,12 +17,11 @@ class RenameData
 {
 public:
     RenameData()
-        : mrcInboxHack( false ), c( 0 ), t( 0 ), ready( false ) {}
+        : c( 0 ), t( 0 ), ready( false ) {}
 public:
-    String fromName;
-    String toName;
+    Mailbox * from;
+    UString toName;
 
-    bool mrcInboxHack;
     Rename * c;
     Transaction * t;
     bool ready;
@@ -36,7 +35,7 @@ public:
               toUidvalidity( 0 ) {}
     public:
         Mailbox * from;
-        String toName;
+        UString toName;
         Mailbox * toParent;
         uint toUidvalidity;
     };
@@ -50,7 +49,7 @@ public:
 /*! \class Rename rename.h
     Renames a mailbox (RFC 3501 section 6.3.5) and its children.
 
-    If the mailbox is named "inbox", we create create a new inbox
+    If the mailbox is the user's inbox, we create create a new inbox
     after moving the old one, and ensure that mail is delivered to the
     new inbox henceforth, not to the renamed old one. This is more or
     less what RFC 3501 section 6.3.5 says.
@@ -76,14 +75,13 @@ Rename::Rename()
 void Rename::parse()
 {
     space();
-    d->fromName = astring();
-    if ( d->fromName.lower() == "inbox" )
-        d->mrcInboxHack = true;
+    d->from = mailbox();
     space();
-    d->toName = astring();
+    d->toName = mailboxName();
     end();
     if ( ok() )
-        log( "Rename from " + d->fromName + " to " + d->toName );
+        log( "Rename from " + d->from->name().ascii() +
+             " to " + d->toName.ascii() );
 }
 
 
@@ -96,7 +94,8 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
 
     Mailbox * to = Mailbox::obtain( p->toName, false );
     if ( to && !( to->synthetic() || to->deleted() ) ) {
-        c->error( Rename::No, "Destination mailbox exists: " + p->toName );
+        c->error( Rename::No,
+                  "Destination mailbox exists: " + p->toName.ascii() );
         t->rollback();
         return;
     }
@@ -152,8 +151,9 @@ void Rename::execute()
         return;
 
     if ( !d->t ) {
+        UString inboxName;
         d->t = new Transaction( this );
-        if ( d->mrcInboxHack ) {
+        if ( d->from == imap()->user()->inbox() ) {
             // ensure that nothing's delivered to the renamed inbox,
             // only to the newly created mailbox of the same name.
             Query * q = new Query( "select mailbox from aliases "
@@ -161,24 +161,20 @@ void Rename::execute()
                                    "for update", 0 );
             q->bind( 1, imap()->user()->inbox()->id() );
             d->t->enqueue( q );
+            inboxName = d->from->name();
         }
-    }
 
-    if ( d->renames.isEmpty() ) {
         // 1. the first mailbox
         RenameData::MailboxPair * p = new RenameData::MailboxPair;
-        p->from = Mailbox::find( mailboxName( d->fromName ) );
-        if ( p->from == 0 ) {
-            error( No, "No such mailbox: " + d->fromName );
-            return;
-        }
-
-        p->toName = mailboxName( d->toName );
+        p->from = d->from;
+        p->toName = imap()->user()->mailboxName( d->toName );
         p->toParent = Mailbox::closestParent( p->toName );
         d->process( p, 0 );
 
-        if ( !ok() )
+        if ( !ok() ) {
+            d->t->rollback();
             return;
+        }
 
         // 2. for each mailbox, any children it may have.
         List<RenameData::MailboxPair>::Iterator it( d->renames );
@@ -186,32 +182,34 @@ void Rename::execute()
             Mailbox * m = it->from;
             List<Mailbox>::Iterator c( m->children() );
             while ( c ) {
-                RenameData::MailboxPair * p = new RenameData::MailboxPair;
+                p = new RenameData::MailboxPair;
                 p->from = c;
                 p->toName =
                     it->toName + c->name().mid( it->from->name().length() );
-                p->toParent =
-                    Mailbox::closestParent( mailboxName( p->toName ) );
+                p->toParent = Mailbox::closestParent( p->toName );
                 if ( !( c->synthetic() || c->deleted() ) )
                     d->process( p, it );
-                if ( !ok() )
-                    break;
+                if ( !ok() ) {
+                    d->t->rollback();
+                    return;
+                }
                 ++c;
             }
             ++it;
         }
 
-        if ( ok() && d->mrcInboxHack ) {
+        if ( ok() && d->from == imap()->user()->inbox() ) {
             Query * q =
                 new Query( "update aliases set "
                            "mailbox=(select id from mailboxes where name=$1) "
                            "where mailbox=$2", 0 );
-            q->bind( 1, mailboxName( d->fromName ) );
-            q->bind( 2, p->from->id() );
+
+            q->bind( 1, inboxName );
+            q->bind( 2, d->from->id() );
             d->t->enqueue( q );
             q = new Query( "update mailboxes set deleted='f',owner=$2 "
                            "where name=$1", 0 );
-            q->bind( 1, mailboxName( d->fromName ) );
+            q->bind( 1, inboxName );
             q->bind( 2, imap()->user()->id() );
             d->t->enqueue( q );
         }
@@ -233,7 +231,7 @@ void Rename::execute()
         List< RenameData::MailboxPair >::Iterator it( d->renames );
         while ( it ) {
             if ( it->from->sessions() ) {
-                error( No, "Mailbox is in use: " + it->from->name() );
+                error( No, "Mailbox is in use: " + it->from->name().ascii() );
                 break;
             }
             ++it;
@@ -264,16 +262,24 @@ void Rename::execute()
         to->setUidvalidity( it->toUidvalidity );
         from->setId( 0 );
         from->refresh()->execute();
-        OCClient::send( "mailbox " + to->name().quoted() + " new" );
-        if ( d->mrcInboxHack && from == imap()->user()->inbox() ) {
-            OCClient::send( "mailbox " + from->name().quoted() + " new" );
+        OCClient::send( "mailbox " + to->name().utf8().quoted() + " new" );
+        if ( from == imap()->user()->inbox() ) {
+            OCClient::send( "mailbox " +
+                            from->name().utf8().quoted() + " new" );
         }
         else {
             from->setDeleted( true );
-            OCClient::send( "mailbox " + from->name().quoted() + " deleted" );
+            OCClient::send( "mailbox " +
+                            from->name().utf8().quoted() + " deleted" );
         }
         ++it;
+        if ( !it ) {
+            d->renames.clear();
+            imap()->user()->refresh( this );
+        }
     }
+    if ( !imap()->user()->exists() )
+        return;
 
     finish();
 }

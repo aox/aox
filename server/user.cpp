@@ -23,8 +23,8 @@ public:
           mode( LoungingAround )
     {}
 
-    String login;
-    String secret;
+    UString login;
+    UString secret;
     uint id;
     Mailbox * inbox;
     Mailbox * home;
@@ -102,7 +102,7 @@ uint User::id() const
     during e.g. refresh().
 */
 
-void User::setLogin( const String & string )
+void User::setLogin( const UString & string )
 {
     d->login = string;
 }
@@ -112,7 +112,7 @@ void User::setLogin( const String & string )
     initially and is set up by refresh().
 */
 
-String User::login() const
+UString User::login() const
 {
     return d->login;
 }
@@ -122,7 +122,7 @@ String User::login() const
     updated unless e.g. create() is called.
 */
 
-void User::setSecret( const String & secret )
+void User::setSecret( const UString & secret )
 {
     d->secret = secret;
 }
@@ -132,7 +132,7 @@ void User::setSecret( const String & secret )
     until refresh() has fetched the database contents.
 */
 
-String User::secret() const
+UString User::secret() const
 {
     return d->secret;
 }
@@ -170,7 +170,7 @@ Address * User::address()
         uint i = dom.find( '.' );
         if ( i > 0 )
             dom = dom.mid( i+1 );
-        d->address = new Address( "", d->login, dom );
+        d->address = new Address( "", d->login.utf8(), dom );
     }
     return d->address;
 }
@@ -195,7 +195,7 @@ Mailbox * User::home() const
     there is no such mailbox.
 */
 
-Mailbox * User::mailbox( const String & name ) const
+Mailbox * User::mailbox( const UString & name ) const
 {
     return Mailbox::find( mailboxName( name ) );
 }
@@ -206,14 +206,17 @@ Mailbox * User::mailbox( const String & name ) const
     well-formed.
 */
 
-String User::mailboxName( const String & name ) const
+UString User::mailboxName( const UString & name ) const
 {
-    if ( name[0] == '/' )
+    if ( name.titlecased() == "INBOX" )
+        return home()->name();
+    if ( name.startsWith( "/" ) )
         return name;
-
-    if ( name.lower() == "inbox" )
-        return inbox()->name();
-    return d->home->name() + "/" + name;
+    UString n;
+    n = home()->name();
+    n.append( '/' );
+    n.append( name );
+    return n;
 }
 
 
@@ -265,7 +268,7 @@ void User::refresh( EventHandler * user )
             "from users u join aliases al on (u.alias=al.id) "
             "join addresses a on (al.address=a.id) "
             "join namespaces n on (u.parentspace=n.id) "
-            "where lower(u.login)=$1"
+            "where lower(u.login)=lower($1)"
         );
 
         psa = new PreparedStatement(
@@ -281,7 +284,7 @@ void User::refresh( EventHandler * user )
     }
     if ( !d->login.isEmpty() ) {
         d->q = new Query( *psl, this );
-        d->q->bind( 1, d->login.lower() );
+        d->q->bind( 1, d->login );
     }
     else if ( d->address ) {
         d->q = new Query( *psa, this );
@@ -306,15 +309,17 @@ void User::refreshHelper()
         return;
 
     d->state = Nonexistent;
-    Row *r = d->q->nextRow();
+    Row * r = d->q->nextRow();
     if ( r ) {
         d->id = r->getInt( "id" );
-        d->login = r->getString( "login" );
-        d->secret = r->getString( "secret" );
+        d->login = r->getUString( "login" );
+        d->secret = r->getUString( "secret" );
         d->inbox = Mailbox::find( r->getInt( "inbox" ) );
-        d->home = Mailbox::obtain( r->getString( "parentspace" ) + "/" +
-                                   d->login, true );
-        String n = r->getString( "name" );
+        UString tmp = r->getUString( "parentspace" );
+        tmp.append( '/' );
+        tmp.append( d->login );
+        d->home = Mailbox::obtain( tmp, true );
+        UString n = r->getUString( "name" );
         String l = r->getString( "localpart" );
         String h = r->getString( "domain" );
         d->address = new Address( n, l, h );
@@ -389,7 +394,10 @@ void User::createHelper()
             return;
         }
 
-        String m = r->getString( "name" ) + "/" + d->login + "/INBOX";
+        UString m = r->getUString( "name" );
+        m.append( '/' );
+        m.append( d->login );
+        m.append( "/INBOX" );
         d->inbox = Mailbox::obtain( m, true );
 
         if ( d->inbox->deleted() ) {
@@ -444,7 +452,8 @@ void User::createHelper()
         d->state = Refreshed;
         d->result->setState( Query::Completed );
 
-        OCClient::send( "mailbox " + d->inbox->name().quoted() + " new" );
+        OCClient::send( "mailbox " +
+                        d->inbox->name().utf8().quoted() + " new" );
     }
 
     d->result->notify();

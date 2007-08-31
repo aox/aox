@@ -9,6 +9,7 @@
 
 class User;
 class String;
+class UString;
 class Address;
 class Message;
 class Mailbox;
@@ -28,7 +29,7 @@ public:
     void addRecipient( Address *, Mailbox *, User *, SieveScript * = 0 );
     void setMessage( Message * );
 
-    void setPrefix( Address *, const String & );
+    void setPrefix( Address *, const UString & );
 
     Address * sender() const;
     Address * recipient() const;

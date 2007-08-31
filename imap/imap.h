@@ -40,8 +40,11 @@ public:
     List<Command> * commands() const;
     void unblockCommands();
 
-    virtual void sendChallenge( const String & );
-    virtual void setUser( class User * );
+    void sendChallenge( const String & );
+    void setUser( class User * );
+
+    void setPrefersAbsoluteMailboxes( bool );
+    bool prefersAbsoluteMailboxes() const;
 
 private:
     class IMAPData *d;

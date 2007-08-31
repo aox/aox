@@ -3,6 +3,7 @@
 #include "create.h"
 
 #include "imap.h"
+#include "user.h"
 #include "mailbox.h"
 #include "occlient.h"
 #include "transaction.h"
@@ -13,7 +14,7 @@ class CreateData
 {
 public:
     CreateData(): t( 0 ), m( 0 ), parent( 0 ) {}
-    String name;
+    UString name;
     Transaction * t;
     Mailbox * m;
     Mailbox * parent;
@@ -37,12 +38,11 @@ Create::Create()
 void Create::parse()
 {
     space();
-    String name( astring() );
+    d->name = mailboxName();
     end();
-    if ( name.lower() == "inbox" )
+    if ( d->name.titlecased() == imap()->user()->inbox()->name().titlecased() )
         error( No, "INBOX always exists" );
-    d->name = mailboxName( name );
-    log( "Create " + name + " (" + d->name + ")" );
+    log( "Create " + d->name.ascii() );
 }
 
 
@@ -54,7 +54,7 @@ void Create::execute()
     if ( !d->parent ) {
         d->parent = Mailbox::closestParent( d->name );
         if ( !d->parent ) {
-            error( No, "Syntax error in mailbox name: " + d->name );
+            error( No, "Syntax error in mailbox name: " + d->name.ascii() );
             return;
         }
 
@@ -68,11 +68,11 @@ void Create::execute()
         d->m = Mailbox::obtain( d->name, true );
         d->t = new Transaction( this );
         if ( !d->m ) {
-            error( No, d->name + " is not a valid mailbox name" );
+            error( No, d->name.ascii() + " is not a valid mailbox name" );
             return;
         }
         else if ( d->m->create( d->t, imap()->user() ) == 0 ) {
-            error( No, d->name + " already exists" );
+            error( No, d->name.ascii() + " already exists" );
             return;
         }
         d->t->commit();
@@ -86,7 +86,7 @@ void Create::execute()
         return;
     }
 
-    OCClient::send( "mailbox " + d->m->name().quoted() + " new" );
+    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " new" );
 
     finish();
 }

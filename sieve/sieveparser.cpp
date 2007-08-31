@@ -4,7 +4,9 @@
 
 #include "sievescript.h"
 #include "sieveproduction.h"
+#include "ustringlist.h"
 #include "stringlist.h"
+#include "utf.h"
 
 
 class SieveParserData
@@ -196,7 +198,7 @@ String SieveParser::identifier()
     multi-line string.
 */
 
-String SieveParser::multiLine()
+UString SieveParser::multiLine()
 {
     String r;
     require( "text:" );
@@ -213,7 +215,11 @@ String SieveParser::multiLine()
         }
         require( "\r\n" );
     }
-    return r;
+    Utf8Codec c;
+    UString u = c.toUnicode( r );
+    if ( !c.valid() )
+        setError( "Encoding error: " + c.error() );
+    return u;
 }
 
 
@@ -258,7 +264,7 @@ uint SieveParser::number()
     quoted-special     = "\" ( DQUOTE / "\" )
 */
 
-String SieveParser::quotedString()
+UString SieveParser::quotedString()
 {
     String r;
     require( "\"" );
@@ -274,7 +280,11 @@ String SieveParser::quotedString()
         }
     }
     require( "\"" );
-    return r;
+    Utf8Codec c;
+    UString u = c.toUnicode( r );
+    if ( !c.valid() )
+        setError( "Encoding error: " + c.error() );
+    return u;
 }
 
 
@@ -509,7 +519,10 @@ String SieveParser::comparator()
 {
     whitespace();
     require( ":comparator" );
-    return string();
+    UString c = string();
+    if ( !c.isAscii() )
+        setError( "Comparator name must be all-ASCII" );
+    return c.ascii();
 }
 
 
@@ -536,7 +549,7 @@ String SieveParser::matchType()
 
 */
 
-String SieveParser::string()
+UString SieveParser::string()
 {
     whitespace();
     if ( nextChar() == '"' )
@@ -552,10 +565,10 @@ String SieveParser::string()
     Never returns a null pointer.
 */
 
-StringList * SieveParser::stringList()
+UStringList * SieveParser::stringList()
 {
     whitespace();
-    StringList * l = new StringList;
+    UStringList * l = new UStringList;
     if ( present( "[" ) ) {
         l->append( string() );
         whitespace();

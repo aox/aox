@@ -455,12 +455,12 @@ void Store::execute()
     Mailbox * mb = imap()->session()->mailbox();
     if ( mb->view() && mb->source()->nextModSeq() <= d->modseq ) {
         mb->source()->setNextModSeq( d->modseq + 1 );
-        OCClient::send( "mailbox " + mb->source()->name().quoted() + " "
+        OCClient::send( "mailbox " + mb->source()->name().utf8().quoted() + " "
                         "nextmodseq=" + fn( d->modseq+1 ) );
     }
     else if ( mb->nextModSeq() <= d->modseq ) {
         mb->setNextModSeq( d->modseq + 1 );
-        OCClient::send( "mailbox " + mb->name().quoted() + " "
+        OCClient::send( "mailbox " + mb->name().utf8().quoted() + " "
                         "nextmodseq=" + fn( d->modseq+1 ) );
     }
 

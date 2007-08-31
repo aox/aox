@@ -186,7 +186,7 @@ public:
             Log::Severity level = Log::Error;
             if ( (*li)->uid > 0x7ffffff0 )
                 level = Log::Disaster;
-            log( "Note: Mailbox " + (*li)->mailbox->name() + 
+            log( "Note: Mailbox " + (*li)->mailbox->name().ascii() + 
                  " only has " + fn ( 0x7fffffff - (*li)->uid ) +
                  " more usable UIDs. Please contact info@oryx.com"
                  " to resolve this problem.", level );
@@ -1309,7 +1309,7 @@ void Injector::logMessageDetails()
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
         log( "Injecting message " + id + "into mailbox " +
-             mi->mailbox->name() );
+             mi->mailbox->name().ascii() );
         ++mi;
     }
 }
@@ -1338,18 +1338,18 @@ void Injector::announce()
 
         if ( m->uidnext() <= uid && m->nextModSeq() <= mi->ms ) {
             m->setUidnextAndNextModSeq( 1+uid, 1+mi->ms );
-            OCClient::send( "mailbox " + m->name().quoted() + " "
+            OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
                             "uidnext=" + fn( m->uidnext() ) + " "
                             "nextmodseq=" + fn( m->nextModSeq() ) );
         }
         else if ( m->uidnext() <= uid ) {
             m->setUidnext( 1 + uid );
-            OCClient::send( "mailbox " + m->name().quoted() + " "
+            OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
                             "uidnext=" + fn( m->uidnext() ) );
         }
         else if ( m->nextModSeq() <= mi->ms ) {
             m->setNextModSeq( 1 + mi->ms );
-            OCClient::send( "mailbox " + m->name().quoted() + " "
+            OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
                             "nextmodseq=" + fn( m->nextModSeq() ) );
         }
 

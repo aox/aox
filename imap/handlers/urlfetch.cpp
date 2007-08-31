@@ -77,7 +77,7 @@ void UrlFetch::execute()
             // interop event. We'll need to do something better later.
             String access( u->access() );
             if ( ( access.startsWith( "user+" ) &&
-                   access != "user+" + imap()->user()->login() ) ||
+                   access != "user+" + imap()->user()->login().utf8() ) ||
                  ( access.startsWith( "submit+" ) &&
                    imap()->user()->login() != "smtpserver" ) )
             {

@@ -16,6 +16,7 @@
 #include "mailbox.h"
 #include "entropy.h"
 #include "log.h"
+#include "utf.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,7 +83,8 @@ int main( int ac, char ** av )
         bad = true;
     if ( m ) {
         Allocator::addEternal( m, "migrator" );
-        m->setDestination( destination );
+        Utf8Codec c;
+        m->setDestination( c.toUnicode( destination ) );
         while ( i < ac )
             m->addSource( av[i++] );
     }

@@ -82,7 +82,7 @@ ArchiveMailbox::ArchiveMailbox( Link * link )
     d->link = link;
     addFrontMatter( FrontMatter::jsToggles() );
     if ( link->mailbox() )
-        addFrontMatter( FrontMatter::title( link->mailbox()->name() ) );
+        addFrontMatter( FrontMatter::title( link->mailbox()->name().utf8() ) );
 }
 
 
@@ -124,7 +124,7 @@ void ArchiveMailbox::execute()
             f.add( i->members().smallest() );
             ++i;
         }
-        d->text = new Query( 
+        d->text = new Query(
             "select bp.*, hf.* from bodyparts bp "
             "join part_numbers pn on (bp.id=pn.part) "
             "join header_fields hf using (mailbox,uid,part) "
@@ -320,7 +320,7 @@ String ArchiveMailbox::timespan( const MessageSet & uids ) const
     y.setUnixTime( yidate );
     Date n;
     n.setCurrentTime();
-    
+
     String r;
     if ( y.year() == o.year() &&
          y.month() == o.month() &&

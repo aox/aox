@@ -8,6 +8,7 @@
 #include "stringlist.h"
 #include "query.h"
 #include "user.h"
+#include "utf.h"
 
 // Supported authentication mechanisms, for create().
 // (Keep these alphabetical.)
@@ -34,9 +35,9 @@ public:
     bool qd;
 
     User * user;
-    String login;
-    String secret;
-    String storedSecret;
+    UString login;
+    UString secret;
+    UString storedSecret;
     Log *l;
     SaslMechanism::Type type;
     SaslConnection * connection;
@@ -322,7 +323,7 @@ bool SaslMechanism::done() const
     if no login has been set with setLogin().
 */
 
-String SaslMechanism::login() const
+UString SaslMechanism::login() const
 {
     return d->login;
 }
@@ -333,9 +334,25 @@ String SaslMechanism::login() const
     readResponse(), and the value is used by execute().
 */
 
-void SaslMechanism::setLogin( const String &name )
+void SaslMechanism::setLogin( const UString &name )
 {
     d->login = name;
+}
+
+
+/*! Like the other setLogin(), except that it converts \a name from
+    UTF-8 to unicode first. If \a name is not valid UTF-8, setLogin()
+    sets the name to an empty string and logs the problem.
+*/
+
+void SaslMechanism::setLogin( const String &name )
+{
+    Utf8Codec u;
+    d->login = u.toUnicode( name );
+    if ( u.valid() )
+        return;
+    d->login.truncate();
+    log( "Client login was not valid UTF-8: " + u.error(), Log::Error );
 }
 
 
@@ -343,7 +360,7 @@ void SaslMechanism::setLogin( const String &name )
     secret has been set with setSecret().
 */
 
-String SaslMechanism::secret() const
+UString SaslMechanism::secret() const
 {
     return d->secret;
 }
@@ -354,9 +371,26 @@ String SaslMechanism::secret() const
     and the value is used by execute().
 */
 
-void SaslMechanism::setSecret( const String &secret )
+void SaslMechanism::setSecret( const UString &secret )
 {
     d->secret = secret;
+}
+
+
+/*! Like the other setSecret(), except that it converts \a secret from
+    UTF-8 to unicode first. If \a secret is not valid UTF-8,
+    setSecret() sets the secret to an empty string and logs the
+    problem.
+*/
+
+void SaslMechanism::setSecret( const String &secret )
+{
+    Utf8Codec u;
+    d->secret = u.toUnicode( secret );
+    if ( u.valid() )
+        return;
+    d->secret.truncate();
+    log( "Client secret was not valid UTF-8: " + u.error(), Log::Error );
 }
 
 
@@ -365,7 +399,7 @@ void SaslMechanism::setSecret( const String &secret )
     after execute() has obtained the stored secret from the database.
 */
 
-String SaslMechanism::storedSecret() const
+UString SaslMechanism::storedSecret() const
 {
     return d->storedSecret;
 }
@@ -376,7 +410,7 @@ String SaslMechanism::storedSecret() const
     for it to be retrieved from the database by execute().
 */
 
-void SaslMechanism::setStoredSecret( const String &s )
+void SaslMechanism::setStoredSecret( const UString &s )
 {
     d->qd = true;
     d->storedSecret = s;
@@ -490,3 +524,4 @@ SaslMechanism::Type SaslMechanism::type() const
 {
     return d->type;
 }
+

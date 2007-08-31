@@ -2,6 +2,7 @@
 
 #include "mailboxes.h"
 
+#include "utf.h"
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
@@ -49,7 +50,10 @@ void ListMailboxes::execute()
             p = next();
         }
 
-        String pattern( p );
+        Utf8Codec c;
+        UString pattern = c.toUnicode( p );
+        if ( !c.valid() )
+            error( "Pattern encoding: " + c.error() );
         end();
 
         database();
@@ -121,7 +125,7 @@ public:
         : user( 0 ), m( 0 ), t( 0 ), q( 0 )
     {}
 
-    String name;
+    UString name;
     User * user;
     Mailbox * m;
     Transaction * t;
@@ -142,11 +146,14 @@ CreateMailbox::CreateMailbox( StringList * args )
 void CreateMailbox::execute()
 {
     if ( d->name.isEmpty() ) {
-        parseOptions();
-        d->name = next();
-        String owner = next();
+        parseOptions(); 
+        Utf8Codec c;
+        d->name = c.toUnicode( next() );
+        UString owner = c.toUnicode( next() );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( d->name.isEmpty() )
             error( "No mailbox name supplied." );
 
@@ -170,18 +177,18 @@ void CreateMailbox::execute()
 
     if ( !d->t ) {
         if ( d->user && d->user->state() == User::Nonexistent )
-            error( "No user named " + d->user->login() );
+            error( "No user named " + d->user->login().utf8() );
 
         if ( d->user && !d->name.startsWith( "/" ) )
             d->name = d->user->home()->name() + "/" + d->name;
 
         d->m = Mailbox::obtain( d->name );
         if ( !d->m )
-            error( "Can't create mailbox named " + d->name );
+            error( "Can't create mailbox named " + d->name.utf8() );
 
         d->t = new Transaction( this );
         if ( d->m->create( d->t, d->user ) == 0 )
-            error( "Couldn't create mailbox " + d->name );
+            error( "Couldn't create mailbox " + d->name.utf8() );
         d->t->commit();
     }
 
@@ -191,7 +198,7 @@ void CreateMailbox::execute()
     if ( d->t->failed() )
         error( "Couldn't create mailbox: " + d->t->error() );
 
-    OCClient::send( "mailbox " + d->m->name().quoted() + " new" );
+    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " new" );
     finish();
 }
 
@@ -205,7 +212,7 @@ public:
         : m( 0 ), t( 0 )
     {}
 
-    String name;
+    UString name;
     Mailbox * m;
     Transaction * t;
 };
@@ -225,9 +232,12 @@ void DeleteMailbox::execute()
 {
     if ( d->name.isEmpty() ) {
         parseOptions();
-        d->name = next();
+        Utf8Codec c;
+        d->name = c.toUnicode( next() );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( d->name.isEmpty() )
             error( "No mailbox name supplied." );
 
@@ -243,10 +253,10 @@ void DeleteMailbox::execute()
     if ( !d->t ) {
         d->m = Mailbox::obtain( d->name, false );
         if ( !d->m )
-            error( "No mailbox named " + d->name );
+            error( "No mailbox named " + d->name.utf8() );
         d->t = new Transaction( this );
         if ( d->m->remove( d->t ) == 0 )
-            error( "Couldn't delete mailbox " + d->name );
+            error( "Couldn't delete mailbox " + d->name.utf8() );
         d->t->commit();
     }
 
@@ -256,6 +266,6 @@ void DeleteMailbox::execute()
     if ( d->t->failed() )
         error( "Couldn't delete mailbox: " + d->t->error() );
 
-    OCClient::send( "mailbox " + d->m->name().quoted() + " deleted" );
+    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " deleted" );
     finish();
 }

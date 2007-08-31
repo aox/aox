@@ -34,7 +34,7 @@ public:
           views( 0 )
     {}
 
-    String name;
+    UString name;
 
     Mailbox::Type type;
 
@@ -102,7 +102,7 @@ public:
     }
 
 
-    MailboxReader( const String & n )
+    MailboxReader( const UString & n )
         : owner( 0 ), query( 0 )
     {
         query =
@@ -118,7 +118,7 @@ public:
         while ( query->hasResults() ) {
             Row * r = query->nextRow();
 
-            String n = r->getString( "name" );
+            UString n = r->getUString( "name" );
             Mailbox * m = Mailbox::obtain( n );
             if ( n != m->d->name )
                 m->d->name = n;
@@ -169,7 +169,9 @@ public:
 
 void Mailbox::setup( EventHandler * owner )
 {
-    ::root = new Mailbox( "/" );
+    UString r;
+    r.append( '/' );
+    ::root = new Mailbox( r );
     Allocator::addEternal( ::root, "root mailbox" );
 
     ::mailboxes = new Map<Mailbox>;
@@ -198,7 +200,7 @@ Query * Mailbox::refresh( EventHandler * owner )
 /*! Creates a Mailbox named \a name. This constructor is only meant to
     be used via Mailbox::obtain(). */
 
-Mailbox::Mailbox( const String &name )
+Mailbox::Mailbox( const UString &name )
     : d( new MailboxData )
 {
     d->name = name;
@@ -207,7 +209,7 @@ Mailbox::Mailbox( const String &name )
 
 /*! Returns the fully qualified name of this Mailbox. */
 
-String Mailbox::name() const
+UString Mailbox::name() const
 {
     return d->name;
 }
@@ -427,7 +429,7 @@ Mailbox * Mailbox::find( uint id )
     are included in the search. The \a name must be fully-qualified.
 */
 
-Mailbox *Mailbox::find( const String &name, bool deleted )
+Mailbox * Mailbox::find( const UString &name, bool deleted )
 {
     Mailbox * m = obtain( name, false );
     if ( !m )
@@ -447,7 +449,7 @@ Mailbox *Mailbox::find( const String &name, bool deleted )
     Never returns a null pointer or a pointer to a nonexistent mailbox.
 */
 
-Mailbox * Mailbox::closestParent( const String & name )
+Mailbox * Mailbox::closestParent( const UString & name )
 {
     if ( name[0] != '/' )
         return 0;
@@ -467,7 +469,7 @@ Mailbox * Mailbox::closestParent( const String & name )
             candidate = 0;
         }
         else {
-            String next = name.mid( 0, i );
+            UString next = name.mid( 0, i );
             List<Mailbox>::Iterator it( candidate->children() );
             while ( it && it->name() != next )
                 ++it;
@@ -490,7 +492,7 @@ Mailbox * Mailbox::closestParent( const String & name )
     returns null without creating anything.
 */
 
-Mailbox * Mailbox::obtain( const String & name, bool create )
+Mailbox * Mailbox::obtain( const UString & name, bool create )
 {
     if ( name[0] != '/' )
         return 0;
@@ -511,16 +513,16 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
     if ( !parent->d->children )
         parent->d->children = new List<Mailbox>;
     List<Mailbox>::Iterator it( parent->d->children );
-    String lower = name.lower();
-    String candidate;
+    UString title = name.titlecased();
+    UString candidate;
     if ( it )
-        candidate = it->name().lower();
-    while ( it && candidate < lower ) {
+        candidate = it->name().titlecased();
+    while ( it && candidate < title ) {
         ++it;
         if ( it )
-            candidate = it->name().lower();
+            candidate = it->name().titlecased();
     }
-    if ( candidate == lower )
+    if ( candidate == title )
         return it;
     if ( !create )
         return 0;
@@ -808,11 +810,11 @@ int64 Mailbox::nextModSeq() const
     '/' are too, etc, etc.
 
     Notably, the root ("/") is not valid. This is a borderline case -
-    for exampel "/" is valid as parent for creating new mailboxes, but
+    for example "/" is valid as parent for creating new mailboxes, but
     not as name of a new mailbox.
 */
 
-bool Mailbox::validName( const String & s )
+bool Mailbox::validName( const UString & s )
 {
     if ( !s.startsWith( "/" ) )
         return false;

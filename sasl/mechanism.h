@@ -6,6 +6,7 @@
 #include "log.h"
 #include "event.h"
 #include "string.h"
+#include "ustring.h"
 
 class User;
 
@@ -43,12 +44,14 @@ public:
     bool done() const;
 
     User * user() const;
-    String login() const;
+    UString login() const;
+    void setLogin( const UString & );
     void setLogin( const String & );
-    String secret() const;
+    UString secret() const;
+    void setSecret( const UString & );
     void setSecret( const String & );
-    String storedSecret() const;
-    void setStoredSecret( const String & );
+    UString storedSecret() const;
+    void setStoredSecret( const UString & );
     virtual void setChallenge( const String & );
 
     static SaslMechanism * create( const String &, EventHandler *,

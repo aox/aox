@@ -3,14 +3,14 @@
 #include "listext.h"
 
 #include "string.h"
+#include "ustring.h"
 #include "stringlist.h"
+#include "imapparser.h"
 #include "address.h"
 #include "mailbox.h"
-#include "ustring.h"
 #include "query.h"
 #include "user.h"
 #include "map.h"
-#include "utf.h"
 
 
 class ListextData
@@ -126,7 +126,8 @@ void Listext::parse()
         d->subscribed = new List<Mailbox>;
 
    if ( ok() )
-        log( "List " + d->reference->name() + " " + d->patterns.join( " " ) );
+       log( "List " + d->reference->name().ascii() +
+            " " + d->patterns.join( " " ) );
 }
 
 
@@ -272,7 +273,7 @@ void Listext::list( Mailbox * m, const String & p )
             s++;
     }
 
-    switch( match( p, 0, m->name().lower(), s ) ) {
+    switch( match( p, 0, m->name().utf8(), s ) ) { // <- XXX a bug. utf8.
     case 0:
         break;
     case 1:
@@ -371,23 +372,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
         }
     }
 
-    String name = mailbox->name();
-    String refName = d->reference->name();
-    if ( !refName.endsWith( "/" ) )
-        refName.append( "/" );
-    if ( name.startsWith( refName ) )
-        name = d->referenceName + mailbox->name().mid( refName.length() );
-    uint i = 0;
-    while ( i < name.length() &&
-            name[i] != '&' &&
-            name[i] < 128 )
-        i++;
-    if ( i < name.length() ) {
-        Utf8Codec u8;
-        MUtf7Codec mu;
-        name = mu.fromUnicode( u8.toUnicode( name ) );
-    }
-    name = imapQuoted( name, AString );
+    String name = imapQuoted( mailbox, d->reference );
 
     String ext = "";
     if ( childSubscribed ) {
@@ -405,23 +390,13 @@ void Listext::sendListResponse( Mailbox * mailbox )
 
 void Listext::reference()
 {
-    String name = astring();
-    d->referenceName = name;
-    if ( !d->referenceName.isEmpty() && !d->referenceName.endsWith( "/" ) )
-        d->referenceName.append( "/" );
-
-    if ( name.length() > 1 && name.endsWith( "/" ) )
-        name.truncate( name.length()-1 );
-
-    if ( name[0] == '/' )
-        d->reference = Mailbox::obtain( name, false );
-    else if ( name.isEmpty() )
+    uint x = parser()->mark();
+    String refname = parser()->astring();
+    if ( parser()->ok() && refname.isEmpty() ) {
         d->reference = imap()->user()->home();
-    else
-        d->reference
-            = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
-                               false );
-
-    if ( !d->reference )
-        error( No, "Cannot find reference name " + name );
+    }
+    else {
+        parser()->restore( x );
+        d->reference = mailbox();
+    }
 }

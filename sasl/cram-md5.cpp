@@ -69,7 +69,8 @@ void CramMD5::verify()
     if ( Configuration::toggle( Configuration::AuthAnonymous ) &&
          user() && user()->login() == "anonymous" )
         setState( Succeeded );
-    else if ( secret() == MD5::HMAC( storedSecret(), challengeSent ).hex() )
+    else if ( secret().utf8() ==
+              MD5::HMAC( storedSecret().utf8(), challengeSent ).hex() )
         setState( Succeeded );
     else
         setState( Failed );

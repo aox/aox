@@ -2,6 +2,7 @@
 
 #include "users.h"
 
+#include "utf.h"
 #include "user.h"
 #include "query.h"
 #include "address.h"
@@ -27,8 +28,12 @@ ListUsers::ListUsers( StringList * args )
 void ListUsers::execute()
 {
     if ( !q ) {
-        String pattern = next();
+        Utf8Codec c;
+        UString pattern = c.toUnicode( next() );
         end();
+
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
 
         database();
         String s( "select login, localpart||'@'||domain as address "
@@ -45,7 +50,7 @@ void ListUsers::execute()
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
         printf( "%-16s %s\n",
-                r->getString( "login" ).cstr(),
+                r->getUString( "login" ).utf8().cstr(),
                 r->getString( "address" ).cstr() );
     }
 
@@ -84,15 +89,18 @@ void CreateUser::execute()
 {
     if ( !d->user ) {
         parseOptions();
-        String login = next();
-        String passwd = next();
+        Utf8Codec c;
+        UString login = c.toUnicode( next() );
+        UString passwd = c.toUnicode( next() );
         String address = next();
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( login.isEmpty() || passwd.isEmpty() || address.isEmpty() )
             error( "Username, password, and address must be non-empty." );
         if ( !validUsername( login ) )
-            error( "Invalid username: " + login );
+            error( "Invalid username: " + login.utf8() );
 
         AddressParser p( address );
         if ( !p.error().isEmpty() )
@@ -120,7 +128,7 @@ void CreateUser::execute()
             return;
 
         if ( d->user->state() != User::Nonexistent )
-            error( "User " + d->user->login() + " already exists." );
+            error( "User " + d->user->login().utf8() + " already exists." );
 
         d->query = d->user->create( this );
         d->user->execute();
@@ -165,13 +173,16 @@ void DeleteUser::execute()
 {
     if ( !d->user ) {
         parseOptions();
-        String login = next();
+        Utf8Codec c;
+        UString login = c.toUnicode( next() );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( login.isEmpty() )
             error( "No username supplied." );
         if ( !validUsername( login ) )
-            error( "Invalid username: " + login );
+            error( "Invalid username: " + login.utf8() );
 
         database( true );
         OCClient::setup();
@@ -200,18 +211,18 @@ void DeleteUser::execute()
 
     if ( !d->t ) {
         if ( d->user->state() == User::Nonexistent )
-            error( "No user named " + d->user->login() );
+            error( "No user named " + d->user->login().utf8() );
 
         if ( !opt( 'f' ) && d->query->hasResults() ) {
             fprintf( stderr, "User %s still owns the following mailboxes:\n",
-                     d->user->login().cstr() );
+                     d->user->login().utf8().cstr() );
             while ( d->query->hasResults() ) {
                 Row * r = d->query->nextRow();
                 String s = r->getString( "name" );
                 fprintf( stderr, "%s\n", s.cstr() );
             }
             fprintf( stderr, "(Use 'aox delete user -f %s' to delete the "
-                     "mailboxes too.)\n", d->user->login().cstr() );
+                     "mailboxes too.)\n", d->user->login().utf8().cstr() );
             exit( -1 );
         }
 
@@ -219,10 +230,10 @@ void DeleteUser::execute()
         d->t = new Transaction( this );
         while ( d->query->hasResults() ) {
             Row * r = d->query->nextRow();
-            String s = r->getString( "name" );
+            UString s = r->getUString( "name" );
             Mailbox * m = Mailbox::obtain( s, false );
             if ( !m || m->remove( d->t ) == 0 )
-                error( "Couldn't delete mailbox " + s );
+                error( "Couldn't delete mailbox " + s.utf8() );
             Query * q = new Query( "delete from aliases where mailbox=$1", 0 );
             q->bind( 1, r->getInt( "id" ) );
             aliases.append( q );
@@ -261,14 +272,17 @@ void ChangePassword::execute()
 {
     if ( !q ) {
         parseOptions();
-        String login = next();
-        String passwd = next();
+        Utf8Codec c;
+        UString login = c.toUnicode( next() );
+        UString passwd = c.toUnicode( next() );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( login.isEmpty() || passwd.isEmpty() )
             error( "No username and password supplied." );
         if ( !validUsername( login ) )
-            error( "Invalid username: " + login );
+            error( "Invalid username: " + login.utf8() );
 
         database( true );
 
@@ -301,7 +315,7 @@ public:
     {}
 
     User * user;
-    String newname;
+    UString newname;
     Transaction * t;
     Query * query;
 };
@@ -321,16 +335,19 @@ void ChangeUsername::execute()
 {
     if ( !d->user ) {
         parseOptions();
-        String name = next();
-        d->newname = next();
+        Utf8Codec c;
+        UString name = c.toUnicode( next() );
+        d->newname = c.toUnicode( next() );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( name.isEmpty() || d->newname.isEmpty() )
             error( "Old and new usernames not supplied." );
         if ( !validUsername( name ) )
-            error( "Invalid username: " + name );
+            error( "Invalid username: " + name.utf8() );
         if ( !validUsername( d->newname ) )
-            error( "Invalid username: " + d->newname );
+            error( "Invalid username: " + d->newname.utf8() );
 
         database( true );
         AddressCache::setup();
@@ -349,7 +366,7 @@ void ChangeUsername::execute()
             return;
 
         if ( d->user->state() == User::Nonexistent )
-            error( "No user named " + d->user->login() );
+            error( "No user named " + d->user->login().utf8() );
 
         d->t = new Transaction( this );
 
@@ -372,9 +389,14 @@ void ChangeUsername::execute()
         while ( d->query->hasResults() ) {
             Row * r = d->query->nextRow();
 
-            String name = r->getString( "name" );
-            String newname( "/users/" + d->newname );
-            newname.append( name.mid( 7+d->user->login().length() ) );
+            UString name = r->getUString( "name" );
+            UString newname = name;
+            int i = name.find( '/' );
+            newname.truncate( i );
+            newname.append( d->newname );
+            i = name.find( '/', i+1 );
+            if ( i >= 0 )
+                newname.append( name.mid( i ) );
 
             Query * q;
 
@@ -444,14 +466,17 @@ void ChangeAddress::execute()
 {
     if ( !d->user ) {
         parseOptions();
-        String name = next();
+        Utf8Codec c;
+        UString name = c.toUnicode( next() );
         String address = next();
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( name.isEmpty() || address.isEmpty() )
             error( "Username and address must be non-empty." );
         if ( !validUsername( name ) )
-            error( "Invalid username: " + name );
+            error( "Invalid username: " + name.utf8() );
 
         AddressParser p( address );
         if ( !p.error().isEmpty() )
@@ -477,7 +502,7 @@ void ChangeAddress::execute()
             return;
 
         if ( d->user->state() == User::Nonexistent )
-            error( "No user named " + d->user->login() );
+            error( "No user named " + d->user->login().utf8() );
 
         d->t = new Transaction( this );
         List< Address > l;

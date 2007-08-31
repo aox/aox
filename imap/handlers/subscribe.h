@@ -19,10 +19,10 @@ public:
 
 private:
     Mode mode;
-    String name;
+    UString name;
     bool selected;
-    class Query *q;
-    class Mailbox *m;
+    class Query * q;
+    class Mailbox * m;
 };
 
 

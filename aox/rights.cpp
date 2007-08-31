@@ -2,6 +2,7 @@
 
 #include "rights.h"
 
+#include "utf.h"
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
@@ -20,8 +21,8 @@ public:
         : q( 0 )
     {}
 
-    String mailbox;
-    String identifier;
+    UString mailbox;
+    UString identifier;
     Query * q;
 };
 
@@ -40,10 +41,13 @@ void ListRights::execute()
 {
     if ( d->mailbox.isEmpty() ) {
         parseOptions();
-        d->mailbox = next();
-        d->identifier = next();
+        Utf8Codec c;
+        d->mailbox = c.toUnicode( next() );
+        d->identifier = c.toUnicode( next() );
         end();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( d->mailbox.isEmpty() )
             error( "No mailbox name supplied." );
 
@@ -57,7 +61,7 @@ void ListRights::execute()
     if ( !d->q ) {
         Mailbox * m = Mailbox::obtain( d->mailbox, false );
         if ( !m )
-            error( "No mailbox named '" + d->mailbox + "'" );
+            error( "No mailbox named '" + d->mailbox.utf8() + "'" );
 
         String s( "select identifier,rights from permissions p "
                   "join mailboxes m on (p.mailbox=m.id) where "
@@ -86,7 +90,7 @@ void ListRights::execute()
             printf( "No rights found.\n" );
         else
             printf( "No rights found for identifier '%s'.\n",
-                    d->identifier.cstr() );
+                    d->identifier.utf8().cstr() );
     }
 
     finish();
@@ -125,8 +129,8 @@ public:
     {}
 
     int mode;
-    String mailbox;
-    String identifier;
+    UString mailbox;
+    UString identifier;
     String rights;
     String oldRights;
     User * user;
@@ -151,10 +155,13 @@ void SetAcl::execute()
 {
     if ( d->mailbox.isEmpty() ) {
         parseOptions();
-        d->mailbox = next();
-        d->identifier = next();
+        Utf8Codec c;
+        d->mailbox = c.toUnicode( next() );
+        d->identifier = c.toUnicode( next() );
         d->rights = next();
 
+        if ( !c.valid() )
+            error( "Argument encoding: " + c.error() );
         if ( d->mailbox.isEmpty() || d->identifier.isEmpty() )
             error( "Mailbox and username must be non-empty." );
 
@@ -196,12 +203,12 @@ void SetAcl::execute()
             if ( d->user->state() == User::Unverified )
                 return;
             if ( opt( 'd' ) == 0 && d->user->state() == User::Nonexistent )
-                error( "No user named '" + d->identifier + "'" );
+                error( "No user named '" + d->identifier.utf8() + "'" );
         }
 
         d->m = Mailbox::obtain( d->mailbox, false );
         if ( !d->m )
-            error( "No mailbox named " + d->mailbox );
+            error( "No mailbox named " + d->mailbox.utf8() );
 
         if ( d->user && d->user->id() == d->m->owner() )
             error( "Can't change mailbox owner's rights." );
@@ -274,23 +281,23 @@ void SetAcl::execute()
 
     if ( opt( 'd' ) > 0 ) {
         printf( "Deleted rights on mailbox '%s' for user '%s'\n",
-                d->mailbox.cstr(), d->identifier.cstr() );
+                d->mailbox.utf8().cstr(), d->identifier.utf8().cstr() );
     }
     else {
         if ( d->mode == 0 ) {
             printf( "Granted rights '%s' on mailbox '%s' to user '%s'\n",
-                    d->rights.cstr(), d->mailbox.cstr(),
-                    d->identifier.cstr() );
+                    d->rights.cstr(), d->mailbox.utf8().cstr(),
+                    d->identifier.utf8().cstr() );
         }
         else if ( d->mode == 1 ) {
             printf( "Granted rights '%s'+%s on mailbox '%s' to user '%s'\n",
-                    d->rights.cstr(), d->oldRights.cstr(), d->mailbox.cstr(),
-                    d->identifier.cstr() );
+                    d->rights.cstr(), d->oldRights.cstr(),
+                    d->mailbox.utf8().cstr(), d->identifier.utf8().cstr() );
         }
         else if ( d->mode == 2 ) {
             printf( "Removed rights '%s' on mailbox '%s' from user '%s'\n",
-                    d->rights.cstr(), d->mailbox.cstr(),
-                    d->identifier.cstr() );
+                    d->rights.cstr(), d->mailbox.utf8().cstr(),
+                    d->identifier.utf8().cstr() );
         }
     }
 

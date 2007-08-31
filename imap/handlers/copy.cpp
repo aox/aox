@@ -23,7 +23,6 @@ public:
     {}
     bool uid;
     MessageSet set;
-    String target;
     uint firstUid;
     int64 modseq;
     Mailbox * mailbox;
@@ -61,11 +60,13 @@ void Copy::parse()
     d->set = set( !d->uid );
     shrink( &d->set );
     space();
-    d->target = astring();
+    d->mailbox = mailbox();
     end();
+    requireRight( d->mailbox, Permissions::Insert );
+    requireRight( d->mailbox, Permissions::Write );
     if ( ok() )
         log( "Will copy " + fn( d->set.count() ) +
-             " messages to " + d->target );
+             " messages to " + d->mailbox->name().ascii() );
 }
 
 
@@ -77,16 +78,6 @@ void Copy::execute()
     if ( d->set.isEmpty() ) {
         finish();
         return;
-    }
-
-    if ( !d->mailbox ) {
-        d->mailbox = mailbox( d->target );
-        if ( !d->mailbox ) {
-            error( No, "Cannot find any mailbox named " + d->target );
-            return;
-        }
-        requireRight( d->mailbox, Permissions::Insert );
-        requireRight( d->mailbox, Permissions::Write );
     }
 
     if ( !permitted() )
@@ -286,7 +277,7 @@ void Copy::execute()
     uint next = d->firstUid + d->set.count();
     if ( d->mailbox->uidnext() <= next ) {
         d->mailbox->setUidnext( next );
-        OCClient::send( "mailbox " + d->mailbox->name().quoted() + " "
+        OCClient::send( "mailbox " + d->mailbox->name().utf8().quoted() + " "
                         "uidnext=" + fn( next ) + " "
                         "nextmodseq=" + fn( d->modseq+1 ) );
     }

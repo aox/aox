@@ -56,6 +56,8 @@ public:
     CommandData()
         : args( 0 ), responses( new StringList ),
           tagged( false ),
+          usesRelativeMailbox( false ),
+          usesAbsoluteMailbox( false ),
           usesMsn( false ),
           error( false ),
           state( Command::Unparsed ), group( 0 ),
@@ -73,6 +75,8 @@ public:
     String respTextCode;
     bool tagged;
 
+    bool usesRelativeMailbox;
+    bool usesAbsoluteMailbox;
     bool usesMsn;
     bool error;
     Command::State state;
@@ -579,6 +583,11 @@ void Command::finish()
 
     setState( Finished );
     imap()->unblockCommands();
+
+    if ( d->usesRelativeMailbox )
+        imap()->setPrefersAbsoluteMailboxes( false );
+    else if ( d->usesAbsoluteMailbox )
+        imap()->setPrefersAbsoluteMailboxes( true );
 }
 
 
@@ -1060,48 +1069,125 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
 }
 
 
-/*! Returns the Mailbox corresponding to \a name, which must be
-    encoded either in UTF-8 or mUTF-7. If there isn't any such
-    mailbox, mailbox() returns 0.
+/*! Parses a mailbox name and returns a pointer to the relevant
+    mailbox, which is guaranteed to be either a real mailbox or a
+    view.
+
+    In case of error, mailbox() returns a null pointer and calls
+    error() appropriately.
 */
 
-class Mailbox * Command::mailbox( const String & name ) const
+class Mailbox * Command::mailbox()
 {
-    User * u = imap()->user();
-    if ( !u )
+    UString n = mailboxName();
+    if ( n.isEmpty() )
         return 0;
 
-    String n;
-    Utf8Codec c;
-    MUtf7Codec m;
+    Mailbox * m = Mailbox::find( n );
+    if ( !m ) {
+        error( Bad, "No such mailbox: " + n.ascii() );
+        return 0;
+    }
+    if ( m->synthetic() ) {
+        error( Bad, "Mailbox is not selectable: " + n.ascii() );
+        return 0;
+    }
+    if ( m->deleted() ) {
+        error( Bad, "Mailbox deleted: " + n.ascii() );
+        return 0;
+    }
 
-    UString un( m.toUnicode( name ) );
-    if ( !m.wellformed() )
-        n = u->mailboxName( name );
-    else
-        n = u->mailboxName( c.fromUnicode( un ) );
-
-    return Mailbox::find( n );
+    return m;
 }
 
 
-/*! Returns the canonical name of the mailbox to which \a name refers,
-    or an empty string if there isn't currently a logged-in user.  \a
-    name must be encoded either in UTF-8 or mUTF-7.
+/*! Parse a mailbox name and returns either it or the fully qualified
+    name of the same name. Returns an empty string and calls error()
+    in case there is a parse problem.
 */
 
-String Command::mailboxName( const String & name ) const
+UString Command::mailboxName()
 {
+    String n = astring();
+
     User * u = imap()->user();
-    if ( !u )
-        return "";
+    if ( u && n.lower() == "inbox" ) {
+        d->usesRelativeMailbox = true;
+        return u->inbox()->name();
+    }
 
     MUtf7Codec m;
-    UString un( m.toUnicode( name ) );
-    if ( !m.wellformed() )
-        return u->mailboxName( name );
-    Utf8Codec c;
-    return u->mailboxName( c.fromUnicode( un ) );
+    UString un( m.toUnicode( n ) );
+    UString r;
+    if ( !m.wellformed() ) {
+        AsciiCodec a;
+        un = a.toUnicode( n );
+        if ( !a.valid() ) {
+            error( Bad,
+                   "Mailbox name misparsed both as ASCII and mUTF-7: " +
+                   m.error() + " (mUTF7) + " + a.error() + " (ASCII)" );
+            return r;
+        }
+    }
+    if ( !Mailbox::validName( un ) ) {
+        error( Bad, "Syntax error in mailbox name: " + un.ascii() );
+        return r;
+    }
+    if ( un.startsWith( "/" ) ) {
+        d->usesAbsoluteMailbox = true;
+        r.append( u->home()->name() );
+        r.append( "/" );
+    }
+    else {
+        d->usesRelativeMailbox = true;
+    }
+    r.append( un );
+    return r;
+}
+
+
+/*! Returns the name of \a m in the right format for sending to the
+    client. The result is relative to \a r if \a is supplied, encoded
+    using mUTF-7 if necessary, quoted appropriately, etc.
+    
+    If \a r is null (this is the default), a user is logged in, and
+    the mailbox is within the user's own namespace, then the result
+    may be relative or absolute, depending on whether the client seems
+    to prefer relative or absolute mailbox names.
+*/
+
+String Command::imapQuoted( Mailbox * m, Mailbox * r )
+{
+    Mailbox * base = 0;
+    bool rel = false;
+    if ( r ) {
+        base = r;
+        rel = true;
+    }
+    // find out whether this name can be expressed as a relative name
+    if ( imap()->user() ) {
+        base = imap()->user()->home();
+        Mailbox * p = m->parent();
+        while ( p && p != base )
+            p = p->parent();
+    }
+    // if it can, should it? does the client use relative names?
+    if ( rel ) {
+        if ( r )
+            ; // yes, we've explicitly been told to
+        if ( d->usesRelativeMailbox )
+            ; // use, the client likes relative mailboxes
+        else if ( d->usesAbsoluteMailbox )
+            rel = false;
+        else if ( imap()->prefersAbsoluteMailboxes() )
+            rel = false;
+    }
+    // find the actual name to return
+    UString n = m->name();
+    if ( rel )
+        n = n.mid( base->name().length() + 1 );
+    MUtf7Codec c;
+    return imapQuoted( c.fromUnicode( n ), AString );
 }
 
 

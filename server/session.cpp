@@ -569,7 +569,7 @@ SessionInitialiser::SessionInitialiser( Session * session,
         }
     }
 
-    log( "Updating session on " + d->session->mailbox()->name() +
+    log( "Updating session on " + d->session->mailbox()->name().ascii() +
          " for modseq [" + fn( d->oldModSeq ) + "," +
          fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );

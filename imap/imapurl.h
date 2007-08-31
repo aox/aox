@@ -5,6 +5,7 @@
 
 #include "global.h"
 #include "string.h"
+#include "ustring.h"
 #include "imapparser.h"
 
 
@@ -28,7 +29,7 @@ public:
     String auth() const;
     String host() const;
     uint port() const;
-    String mailboxName() const;
+    UString mailboxName() const;
     uint uidvalidity() const;
     uint uid() const;
     String section() const;

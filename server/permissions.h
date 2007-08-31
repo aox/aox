@@ -5,13 +5,14 @@
 
 #include "event.h"
 #include "string.h"
+#include "ustring.h"
 
 
 class Permissions
     : public EventHandler
 {
 public:
-    Permissions( class Mailbox *, const String &, const String & );
+    Permissions( class Mailbox *, const UString &, const String & );
 
     Permissions( class Mailbox *, class User *,
                  class EventHandler * );

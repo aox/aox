@@ -555,7 +555,7 @@ void Link::parse( const String & s )
                 List<Mailbox>::Iterator it( m->children() );
                 while ( it ) {
                     String name( seen + "/" + have );
-                    if ( name == it->name().lower() ) {
+                    if ( name == it->name().utf8().lower() ) {
                         m = it;
                         seen = name;
                         p->mark();
@@ -814,7 +814,7 @@ String Link::canonical() const
             break;
         case MailboxName:
             // XXX: We need to %-escape the mailbox name.
-            r.append( d->mailbox->name() );
+            r.append( d->mailbox->name().utf8().eURI() );
             break;
         case Uid:
             r.append( "/" );

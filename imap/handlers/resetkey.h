@@ -16,7 +16,7 @@ public:
     void execute();
 
 private:
-    String name;
+    Mailbox * m;
     class Query *q;
 };
 

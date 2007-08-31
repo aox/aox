@@ -49,8 +49,8 @@ public:
     void setNumber( uint );
     uint number() const;
 
-    void setStringList( class StringList * );
-    class StringList * stringList() const;
+    void setStringList( class UStringList * );
+    class UStringList * stringList() const;
 
     void setParsed( bool );
     bool parsed() const;
@@ -141,16 +141,16 @@ public:
     enum BodyMatchType { Rfc822, Text, SpecifiedTypes };
     BodyMatchType bodyMatchType() const;
 
-    StringList * headers() const;
-    StringList * keys() const;
-    StringList * envelopeParts() const;
-    StringList * contentTypes() const;
+    UStringList * headers() const;
+    UStringList * keys() const;
+    UStringList * envelopeParts() const;
+    UStringList * contentTypes() const;
     bool sizeOverLimit() const;
     uint sizeLimit() const;
 
 private:
-    StringList * takeStringList();
-    StringList * takeHeaderFieldList();
+    UStringList * takeStringList();
+    UStringList * takeHeaderFieldList();
     String takeTag();
 
 private:

@@ -2,11 +2,13 @@
 
 #include "sieveproduction.h"
 
+#include "ustringlist.h"
 #include "sieveparser.h"
 #include "stringlist.h"
 #include "mailbox.h"
 #include "address.h"
 #include "field.h"
+#include "utf.h"
 
 
 class SieveProductionData
@@ -189,7 +191,7 @@ public:
     SieveArgumentData(): number( 0 ), list( 0 ), calls( 0 ), parsed( false ) {}
     String tag;
     uint number;
-    StringList * list;
+    UStringList * list;
     uint calls;
     bool parsed;
 };
@@ -260,7 +262,7 @@ uint SieveArgument::number() const
     nothing.
 */
 
-void SieveArgument::setStringList( class StringList * s )
+void SieveArgument::setStringList( class UStringList * s )
 {
     if ( !s )
         return;
@@ -275,7 +277,7 @@ void SieveArgument::setStringList( class StringList * s )
 
 */
 
-class StringList * SieveArgument::stringList() const
+class UStringList * SieveArgument::stringList() const
 {
     return d->list;
 }
@@ -544,10 +546,10 @@ public:
     SieveTest::Comparator comparator;
     SieveTest::BodyMatchType bodyMatchType;
 
-    StringList * headers;
-    StringList * envelopeParts;
-    StringList * keys;
-    StringList * contentTypes;
+    UStringList * headers;
+    UStringList * envelopeParts;
+    UStringList * keys;
+    UStringList * contentTypes;
     bool sizeOver;
     uint sizeLimit;
 };
@@ -713,7 +715,7 @@ void SieveCommand::parse( const String & previous )
                 if ( a->stringList() && a->stringList()->count() > 1 )
                     a->setError( "Only one address may be specified" );
                 else
-                    s = *a->stringList()->firstElement();
+                    s = a->stringList()->firstElement()->utf8();
                 AddressParser ap( s );
                 if ( !ap.error().isEmpty() )
                     a->setError( "The argument must be an email address. "
@@ -735,38 +737,40 @@ void SieveCommand::parse( const String & previous )
             else if ( mailboxes ) {
                 if ( !a->stringList() || a->stringList()->count() != 1 )
                     a->setError( "Must have exactly one mailbox name" );
-                StringList::Iterator i( a->stringList() );
+                UStringList::Iterator i( a->stringList() );
                 while ( i ) {
                     if ( !Mailbox::validName( *i ) &&
                          !Mailbox::validName( "/" + *i ) ) {
                         a->setError( "Each string must be a mailbox name. "
-                                     "This one is not: " + *i );
+                                     "This one is not: " + i->utf8() );
                     }
                     else if ( i->startsWith( "INBOX." ) ) {
                         // a sieve script which wants to reference a
                         // mailbox called INBOX.X must use lower case
                         // (inbox.x).
-                        String aox = i->mid( 6 );
-                        aox = StringList::split( '.', aox )->join( "/" );
-                        a->setError( i->quoted() + " is Cyrus syntax. "
-                                     "Archiveopteryx uses " + aox.quoted() );
+                        UString aox = i->mid( 6 );
+                        aox = UStringList::split( '.', aox )->join( "/" );
+                        a->setError( i->utf8().quoted() +
+                                     " is Cyrus syntax. "
+                                     "Archiveopteryx uses " +
+                                     aox.utf8().quoted() );
                     }
                     ++i;
                 }
             }
             else if ( extensions ) {
-                StringList::Iterator i( a->stringList() );
-                StringList e;
+                UStringList::Iterator i( a->stringList() );
+                UStringList e;
                 while ( i ) {
-                    if ( !supportedExtensions()->contains( *i ) )
-                        e.append( i->quoted() );
+                    if ( !supportedExtensions()->contains( i->ascii() ) )
+                        e.append( i );
                     ++i;
 
                 }
                 if ( !e.isEmpty() )
                     a->setError( "Each string must be a supported "
                                  "sieve extension. "
-                                 "These are not: " + e.join( ", " ) );
+                                 "These are not: " + e.join( ", " ).utf8() );
             }
         }
     }
@@ -864,7 +868,7 @@ void SieveTest::parse()
                                  fn( i->stringList()->count() ) );
                 }
                 else {
-                    String c = i->stringList()->first()->simplified();
+                    UString c = i->stringList()->first()->simplified();
                     if ( c.isEmpty() )
                         i->setError( "Comparator name is empty" );
                     if ( c == "i;octet" )
@@ -872,7 +876,7 @@ void SieveTest::parse()
                     else if ( c == "i;ascii-casemap" )
                         d->comparator = IAsciiCasemap;
                     else
-                        setError( "Unknown comparator: " + c );
+                        setError( "Unknown comparator: " + c.utf8() );
                 }
             }
             else if ( t == ":is" ||
@@ -941,15 +945,18 @@ void SieveTest::parse()
         apok = true;
         d->envelopeParts = takeStringList();
         d->keys = takeStringList();
-        StringList::Iterator i( d->envelopeParts );
+        UStringList::Iterator i( d->envelopeParts );
         while ( i ) {
-            String s = i->lower();
+            String s = i->utf8().lower();
             if ( s == "from" || s == "to" ) {
-            } // else if and blah for extensions - extensions are only
-              // valid after the right require
+                Utf8Codec c;
+                *i = c.toUnicode( s );
+            }
+            // else if and blah for extensions - extensions are only
+            // valid after the right require
             else {
                 // better if we could setError on the right item, but it's gone
-                setError( "Unsupported envelope part: " + s );
+                setError( "Unsupported envelope part: " + i->utf8() );
             }
             ++i;
         }
@@ -1124,7 +1131,7 @@ SieveTest::Comparator SieveTest::comparator() const
     string lists are available.
 */
 
-StringList * SieveTest::takeStringList()
+UStringList * SieveTest::takeStringList()
 {
     List<SieveArgument>::Iterator i( arguments()->arguments() );
     while ( i && ( i->parsed() || !i->stringList() ) )
@@ -1144,7 +1151,7 @@ StringList * SieveTest::takeStringList()
     field. The result is filtered through String::headerCased().
 */
 
-StringList * SieveTest::takeHeaderFieldList()
+UStringList * SieveTest::takeHeaderFieldList()
 {
     List<SieveArgument>::Iterator a( arguments()->arguments() );
     while ( a && ( a->parsed() || !a->stringList() ) )
@@ -1155,24 +1162,25 @@ StringList * SieveTest::takeHeaderFieldList()
     }
     a->setParsed( true );
 
-    StringList::Iterator h( a->stringList() );
+    UStringList::Iterator h( a->stringList() );
     while ( h ) {
-        String s = *h;
+        UString s = *h;
         if ( s.isEmpty() )
             a->setError( "Empty header field names are not allowed" );
         uint i = 0;
         while ( i < s.length() ) {
             if ( s[i] < 33 || s[i] == 58 || s[i] > 126 )
                 a->setError( "Illegal character (ASCII " + fn( s[i] ) + ") "
-                             "seen in header field name: " + s );
+                             "seen in header field name: " + s.utf8() );
             ++i;
         }
         if ( identifier() == "address" ) {
-            uint t = HeaderField::fieldType( s );
+            uint t = HeaderField::fieldType( s.ascii() );
             if ( t == 0 || t > HeaderField::LastAddressField )
-                a->setError( "Not an address field: " + s );
+                a->setError( "Not an address field: " + s.ascii() );
         }
-        s = s.headerCased();
+        s.truncate();
+        s.append( h->ascii().headerCased().cstr() ); // eeek
         if ( s != *h )
             *h = s;
         ++h;
@@ -1211,7 +1219,7 @@ String SieveTest::takeTag()
     Each string in the list is header-cased (see String::headerCased()).
 */
 
-StringList * SieveTest::headers() const
+UStringList * SieveTest::headers() const
 {
     return d->headers;
 }
@@ -1222,7 +1230,7 @@ StringList * SieveTest::headers() const
     "exists" or "true").
 */
 
-StringList * SieveTest::keys() const
+UStringList * SieveTest::keys() const
 {
     return d->keys;
 }
@@ -1232,7 +1240,7 @@ StringList * SieveTest::keys() const
     look at, or a null pointer if identifier() is not "envelope".
 */
 
-StringList * SieveTest::envelopeParts() const
+UStringList * SieveTest::envelopeParts() const
 {
     return d->envelopeParts;
 }
@@ -1254,7 +1262,7 @@ SieveTest::BodyMatchType SieveTest::bodyMatchType() const
     SpecifiedTypes. May return a null pointer.
 */
 
-StringList * SieveTest::contentTypes() const
+UStringList * SieveTest::contentTypes() const
 {
     return d->contentTypes;
 }

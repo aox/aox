@@ -220,7 +220,9 @@ bool WebPage::permitted()
     else if ( d->link->type() == Link::Archive ) {
         if ( !::archiveUser ) {
             ::archiveUser = new User;
-            ::archiveUser->setLogin( "anonymous" );
+            UString u;
+            u.append( "anonymous" );
+            ::archiveUser->setLogin( u );
             ::archiveUser->refresh( this );
             Allocator::addEternal( ::archiveUser, "anonymous archive user" );
         }
@@ -228,7 +230,7 @@ bool WebPage::permitted()
     }
     else if ( !login.isEmpty() ) {
         d->user = new User;
-        d->user->setLogin( login.utf8() );
+        d->user->setLogin( login );
         d->user->refresh( this );
     }
     else if ( server->session() ) {
@@ -302,7 +304,7 @@ bool WebPage::permitted()
     else {
         UString passwd( server->parameter( "passwd" ) );
         if ( d->user->state() != User::Refreshed ||
-             d->user->secret() != passwd.utf8() ||
+             d->user->secret() != passwd ||
              !d->checker ||
              !d->checker->allowed() )
         {

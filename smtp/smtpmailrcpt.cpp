@@ -182,12 +182,12 @@ void SmtpMailFrom::execute()
             User * user = 0;
             if ( !r->isNull( "login" ) ) {
                 if ( server()->user() &&
-                     r->getString( "login" ) == server()->user()->login() ) {
+                     r->getUString( "login" ) == server()->user()->login() ) {
                     user = server()->user();
                 }
                 else {
                     user = new User;
-                    user->setLogin( r->getString( "login" ) );
+                    user->setLogin( r->getUString( "login" ) );
                     user->setId( r->getInt( "userid" ) );
                 }
             }
@@ -195,8 +195,8 @@ void SmtpMailFrom::execute()
                                              user, script );
             if ( !r->isNull( "login" ) )
                 server()->sieve()->setPrefix( d->address,
-                                              r->getString( "name" ) + "/" +
-                                              r->getString( "login" ) + "/" );
+                                              r->getUString( "name" ) + "/" +
+                                              r->getUString( "login" ) + "/" );
             respond( 0, "Will send a copy to " + d->copyAddress->toString() );
         }
     }
@@ -282,12 +282,12 @@ void SmtpRcptTo::execute()
             User * user = 0;
             if ( !r->isNull( "login" ) ) {
                 if ( server()->user() &&
-                     r->getString( "login" ) == server()->user()->login() ) {
+                     r->getUString( "login" ) == server()->user()->login() ) {
                     user = server()->user();
                 }
                 else {
                     user = new User;
-                    user->setLogin( r->getString( "login" ) );
+                    user->setLogin( r->getUString( "login" ) );
                     user->setId( r->getInt( "userid" ) );
                 }
             }
@@ -295,8 +295,8 @@ void SmtpRcptTo::execute()
                                              user, script );
             if ( !r->isNull( "login" ) )
                 server()->sieve()->setPrefix( d->address,
-                                              r->getString( "name" ) + "/" +
-                                              r->getString( "login" ) + "/" );
+                                              r->getUString( "name" ) + "/" +
+                                              r->getUString( "login" ) + "/" );
         }
     }
 

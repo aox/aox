@@ -51,7 +51,9 @@ class SubmissionMailboxCreator
 {
 public:
     SubmissionMailboxCreator() {
-        Mailbox * m = Mailbox::obtain( "/archiveopteryx/spool", true );
+        UString spool;
+        spool.append( "/archiveopteryx/spool" );
+        Mailbox * m = Mailbox::obtain( spool, true );
         Transaction * t = new Transaction( this );
         (void)m->create( t, 0 );
         if ( t->enqueuedQueries() )
@@ -320,7 +322,7 @@ void SMTP::authenticated( User * user )
 {
     d->user = user;
     if ( user )
-        log( "Authenticated as " + user->login() );
+        log( "Authenticated as " + user->login().ascii() );
 }
 
 

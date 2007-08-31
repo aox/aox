@@ -119,6 +119,16 @@ UString & UString::operator=( const UString & other )
 }
 
 
+const UString operator+( const UString & a, const UString & b )
+{
+    UString result;
+    result.reserve( a.length() + b.length() );
+    result.append( a );
+    result.append( b );
+    return result;
+}
+
+
 const UString operator+( const UString & a, const char * b )
 {
     UString result;

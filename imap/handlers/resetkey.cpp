@@ -18,7 +18,7 @@
 */
 
 ResetKey::ResetKey()
-    : q( 0 )
+    : m( 0 ), q( 0 )
 {
 }
 
@@ -27,7 +27,7 @@ void ResetKey::parse()
 {
     if ( nextChar() == ' ' ) {
         space();
-        name = astring();
+        m = mailbox();
         if ( nextChar() == ' ' ) {
             space();
 
@@ -55,12 +55,11 @@ void ResetKey::parse()
 void ResetKey::execute()
 {
     if ( !q ) {
-        Mailbox * m = 0;
         String query( "delete from access_keys where userid=$1" );
-        if ( !name.isEmpty() ) {
-            m = mailbox( name );
-            if ( !m || m->synthetic() || m->deleted() ) {
-                error( No, "Can't reset keys on mailbox " + name );
+        if ( m ) {
+            if ( m->synthetic() || m->deleted() ) {
+                error( No, "Can't reset keys on mailbox " +
+                       m->name().ascii() );
                 return;
             }
             query.append( " and mailbox=$2" );

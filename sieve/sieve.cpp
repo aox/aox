@@ -2,6 +2,7 @@
 
 #include "sieve.h"
 
+#include "utf.h"
 #include "html.h"
 #include "user.h"
 #include "query.h"
@@ -11,6 +12,7 @@
 #include "bodypart.h"
 #include "mimefields.h"
 #include "stringlist.h"
+#include "ustringlist.h"
 #include "sievescript.h"
 #include "sieveaction.h"
 #include "addressfield.h"
@@ -54,7 +56,7 @@ public:
         Query * sq;
         SieveScript * script;
         String error;
-        String prefix;
+        UString prefix;
         User * user;
 
         bool evaluate( SieveCommand * );
@@ -243,7 +245,7 @@ void Sieve::evaluate()
 
 bool SieveData::Recipient::evaluate( SieveCommand * c )
 {
-    String arg;
+    UString arg;
     if ( c->arguments() &&
          c->arguments()->arguments() &&
          c->arguments()->arguments()->first() &&
@@ -298,19 +300,19 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     else if ( c->identifier() == "fileinto" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
-        String n = arg;
+        UString n = arg;
         if ( !arg.startsWith( "/" ) )
             n = prefix + arg;
         a->setMailbox( Mailbox::find( n ) );
         if ( !a->mailbox() ||
              ( user && user->id() != a->mailbox()->owner() ) ) {
             if ( !a->mailbox() )
-                error = "No such mailbox: " + arg;
+                error = "No such mailbox: " + arg.utf8();
             else
                 error = "Mailbox not owned by " +
-                        user->login() + ": " + arg;
+                        user->login().utf8() + ": " + arg.utf8();
             if ( n != arg )
-                error.append( " (" + n + ")" );
+                error.append( " (" + n.utf8() + ")" );
             a = new SieveAction( SieveAction::Error );
             a->setErrorMessage( error );
             implicitKeep = true;
@@ -321,7 +323,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     else if ( c->identifier() == "redirect" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Redirect );
-        AddressParser ap( arg );
+        AddressParser ap( arg.utf8() );
         a->setAddress( ap.addresses()->first() );
         actions.append( a );
     }
@@ -342,31 +344,33 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
 }
 
 
-static void addAddress( StringList * l, Address * a,
+static void addAddress( UStringList * l, Address * a,
                         SieveTest::AddressPart p )
 {
-    String * s = new String;
+    UString * s = new UString;
+    Utf8Codec c;
     if ( p != SieveTest::Domain )
-        s->append( a->localpart() );
+        s->append( c.toUnicode( a->localpart() ) );
     if ( p == SieveTest::All || p == SieveTest::NoAddressPart )
         s->append( "@" );
     if ( p != SieveTest::Localpart )
-        s->append( a->domain() );
+        s->append( c.toUnicode( a->domain() ) );
     l->append( s );
 }
 
 
 SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
 {
-    StringList * haystack = 0;
+    UStringList * haystack = 0;
     if ( t->identifier() == "address" ) {
         if ( !d->message )
             return Undecidable;
-        haystack = new StringList;
+        haystack = new UStringList;
         List<HeaderField>::Iterator hf( d->message->header()->fields() );
+        Utf8Codec c;
         while ( hf ) {
             if ( hf->type() <= HeaderField::LastAddressField &&
-                 t->headers()->contains( hf->name() ) ) {
+                 t->headers()->contains( c.toUnicode( hf->name() ) ) ) {
                 AddressField * af = (AddressField*)((HeaderField*)hf);
                 List<Address>::Iterator a( af->addresses() );
                 while ( a ) {
@@ -404,8 +408,8 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         return r;
     }
     else if ( t->identifier() == "envelope" ) {
-        haystack = new StringList;
-        StringList::Iterator i( t->envelopeParts() );
+        haystack = new UStringList;
+        UStringList::Iterator i( t->envelopeParts() );
         while ( i ) {
             if ( *i == "from" )
                 addAddress( haystack, d->sender, t->addressPart() );
@@ -418,25 +422,30 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
               t->identifier() == "header" ) {
         if ( !d->message )
             return Undecidable;
-        haystack = new StringList;
-        StringList::Iterator i( t->headers() );
+        haystack = new UStringList;
+        UStringList::Iterator i( t->headers() );
         Result r = True;
         while ( i ) {
-            uint hft = HeaderField::fieldType( *i );
+            uint hft = HeaderField::fieldType( i->ascii() );
             if ( (hft > 0 && hft <= HeaderField::LastAddressField)
                  ? (!d->message->hasAddresses())
                  : (!d->message->hasHeaders()) )
                 r = Undecidable;
             List<HeaderField>::Iterator hf( d->message->header()->fields() );
-            while ( hf && hf->name() != *i )
+            while ( hf && hf->name() != i->ascii() )
                 ++hf;
             if ( t->identifier() == "exists" ) {
                 if ( !hf )
                     return False;
             }
             else {
-                if ( hf )
-                    haystack->append( hf->value() );
+                if ( hf ) {
+                    // XXX this is wrong and probably breaks when the
+                    // header field contains =?iso-8859-1?q?=C0?= and
+                    // the blah searches for U+00C0.
+                    Utf8Codec c;
+                    haystack->append( c.toUnicode( hf->value() ) );
+                }
             }
             ++i;
         }
@@ -484,11 +493,12 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             return Undecidable;
         }
         else if ( t->bodyMatchType() == SieveTest::Rfc822 ) {
-            haystack = new StringList;
-            haystack->append( d->message->body() );
+            haystack = new UStringList;
+            AsciiCodec a;
+            haystack->append( a.toUnicode( d->message->body() ) );
         }
         else {
-            haystack = new StringList;
+            haystack = new UStringList;
             List<Bodypart>::Iterator i( d->message->allBodyparts() );
             while ( i ) {
                 Header * h = i->header();
@@ -514,44 +524,47 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                         include = true;
                 }
                 else {
-                    StringList::Iterator k( t->contentTypes() );
+                    UStringList::Iterator k( t->contentTypes() );
                     while ( k ) {
+                        String mk = k->ascii();
+                        ++k;
                         // this logic is based exactly on the draft.
-                        if ( k->startsWith( "/" ) ||
-                             k->endsWith( "/" ) ||
-                             ( k->find( '/' ) >= 0 &&
-                               k->find( k->find( '/' ) + 1 ) >= 0 ) ) {
+                        if ( mk.startsWith( "/" ) ||
+                             mk.endsWith( "/" ) ||
+                             ( mk.find( '/' ) >= 0 &&
+                               mk.find( mk.find( '/' ) + 1 ) >= 0 ) ) {
                             // matches no types
                         }
-                        else if ( k->contains( '/' ) ) {
+                        else if ( mk.contains( '/' ) ) {
                             // matches ->type()/->subtype()
-                            if ( ct == k->lower() )
+                            if ( ct == mk.lower() )
                                 include = true;
                         }
-                        else if ( k->isEmpty() ) {
+                        else if ( mk.isEmpty() ) {
                             // matches all types
                             include = true;
                         }
                         else {
                             // matches ->type();
-                            if ( ct.startsWith( k->lower() + "/" ) )
+                            if ( ct.startsWith( mk.lower() + "/" ) )
                                 include = true;
                         }
-
-                        ++k;
                     }
                 }
                 if ( include ) {
+                    AsciiCodec a;
                     if ( ct == "text/html" )
-                        haystack->append( HTML::asText( i->text() ).utf8() );
+                        haystack->append( HTML::asText( i->text() ) );
                     else if ( ct.startsWith( "multipart/" ) )
-                        haystack->append( "" ); // draft says prologue+epilogue
+                        // draft says to search prologue+epilogue
+                        haystack->append( new UString );
                     else if ( ct == "message/rfc822" )
-                        haystack->append( i->message()->header()->asText() );
+                        haystack->append(a.toUnicode(i->message()
+                                                     ->header()->asText()));
                     else if ( ct.startsWith( "text/" ) )
-                        haystack->append( i->text().utf8() );
+                        haystack->append( i->text() );
                     else
-                        haystack->append( i->data() );
+                        haystack->append( a.toUnicode( i->data() ) );
                 }
                 ++i;
             }
@@ -562,23 +575,23 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         return False;
     }
 
-    StringList::Iterator h( haystack );
+    UStringList::Iterator h( haystack );
     while ( h ) {
-        StringList::Iterator k( t->keys() );
-        String s;
+        UStringList::Iterator k( t->keys() );
+        UString s;
         switch ( t->comparator() ) {
         case SieveTest::IAsciiCasemap:
-            s = h->lower();
+            s = h->titlecased();
             break;
         case SieveTest::IOctet:
             s = *h;
             break;
         }
         while ( k ) {
-            String g;
+            UString g;
             switch ( t->comparator() ) {
             case SieveTest::IAsciiCasemap:
-                g = k->lower();
+                g = k->titlecased();
                 break;
             case SieveTest::IOctet:
                 g = *k;
@@ -594,7 +607,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                     return True;
                 break;
             case SieveTest::Matches:
-                if ( Listext::match( g, 0, s, 0 ) == 2 ) // XXX: fixme! please!
+                if ( Listext::match( g.utf8(), 0, s.utf8(), 0 ) == 2 ) // XXX: fixme! please! PLEASE!
                     return True;
                 break;
             }
@@ -837,7 +850,7 @@ bool Sieve::ready() const
     known recipient for this sieve.
 */
 
-void Sieve::setPrefix( Address * address, const String & prefix )
+void Sieve::setPrefix( Address * address, const UString & prefix )
 {
     SieveData::Recipient * i = d->recipient( address );
     if ( i )

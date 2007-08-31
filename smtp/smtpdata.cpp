@@ -198,7 +198,9 @@ void SmtpData::execute()
         }
 
         if ( !f->isEmpty() ) {
-            l->insert( Mailbox::find( "/archiveopteryx/spool" ) );
+            UString spool;
+            spool.append( "/archiveopteryx/spool" );
+            l->insert( Mailbox::find( spool ) );
             d->injector->setDeliveryAddresses( f );
             d->injector->setSender( server()->sieve()->recipient() );
             d->spooled = true;
@@ -470,7 +472,7 @@ SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
     String a = d->url->access().lower();
     u.truncate();
     if ( server()->user() )
-        u = server()->user()->login().lower();
+        u = server()->user()->login().utf8().lower();
     if ( !( a == "anonymous" ||
             ( server()->user() && ( a == "authuser" ||
                                     a == "user+" + u ||

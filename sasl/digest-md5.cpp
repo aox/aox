@@ -250,7 +250,7 @@ void DigestMD5::verify()
 {
     String R, A1, A2;
 
-    A1 = MD5::hash( login() +":"+ d->realm +":"+ storedSecret() )
+    A1 = MD5::hash( login().utf8() +":"+ d->realm +":"+ storedSecret().utf8() )
          +":"+ d->nonce +":"+ d->cnonce;
     A2 = "AUTHENTICATE:" + d->uri;
 

@@ -17,7 +17,6 @@ class DeleteData
 public:
     DeleteData(): m( 0 ), q( 0 ), t( 0 ) {}
 
-    String n;
     Mailbox * m;
     Query * q;
     Transaction * t;
@@ -43,9 +42,12 @@ Delete::Delete()
 void Delete::parse()
 {
     space();
-    d->n = astring();
+    d->m = mailbox();
     end();
-    log( "Delete mailbox: " + d->n );
+    if ( d->m == imap()->user()->inbox() )
+            error( No, "Cannot delete INBOX" );
+    if ( ok() )
+        log( "Delete mailbox: " + d->m->name().ascii() );
 }
 
 
@@ -54,16 +56,12 @@ void Delete::execute()
     if ( state() != Executing )
         return;
 
-    if ( !d->m ) {
-        d->m = Mailbox::obtain( mailboxName( d->n ), false );
-        if ( !d->m || d->m->deleted() )
-            error( No, "No such mailbox: " + d->n );
-        else if ( d->m->sessions() )
+    if ( !d->q ) {
+        if ( d->m->sessions() )
             error( No, "Mailbox is in use" );
         else if ( d->m->synthetic() )
-            error( No, d->m->name() + " does not really exist anyway" );
-        else if ( d->m == imap()->user()->inbox() )
-            error( No, "Cannot delete INBOX" );
+            error( No,
+                   d->m->name().ascii() + " does not really exist anyway" );
         if ( !ok() )
             return;
         requireRight( d->m, Permissions::DeleteMailbox );
@@ -100,7 +98,7 @@ void Delete::execute()
 
         d->t = new Transaction( this );
         if ( d->m->remove( d->t ) == 0 ) {
-            error( No, "Cannot delete mailbox " + d->m->name() );
+            error( No, "Cannot delete mailbox " + d->m->name().ascii() );
             return;
         }
         d->t->commit();
@@ -114,7 +112,7 @@ void Delete::execute()
         return;
     }
 
-    OCClient::send( "mailbox " + d->m->name().quoted() + " deleted" );
+    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " deleted" );
 
     finish();
 }

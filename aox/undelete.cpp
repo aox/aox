@@ -6,6 +6,7 @@
 #include "occlient.h"
 #include "mailbox.h"
 #include "query.h"
+#include "utf.h"
 
 class UndeleteData
     : public Garbage
@@ -15,7 +16,7 @@ public:
         : uid( 0 ), q( 0 ), m( 0 ), t( 0 )
     {}
 
-    String mailbox;
+    UString mailbox;
     uint uid;
     Query * q;
     Mailbox * m;
@@ -38,9 +39,13 @@ void Undelete::execute()
     if ( d->mailbox.isEmpty() ) {
         bool ok = false;
         parseOptions();
-        d->mailbox = next();
+        Utf8Codec c;
+        d->mailbox.append( c.toUnicode( next() ) );
         d->uid = next().number( &ok );
         end();
+
+        if ( !c.valid() )
+            error( "Mailbox name was not encoded using UTF-8: " + c.error() );
 
         if ( d->mailbox.isEmpty() )
             error( "No mailbox name supplied." );
@@ -58,7 +63,7 @@ void Undelete::execute()
     if ( !d->q ) {
         d->m = Mailbox::obtain( d->mailbox, false );
         if ( !d->m )
-            error( "No mailbox named '" + d->mailbox + "'" );
+            error( "No mailbox named '" + d->mailbox.utf8() + "'" );
 
         d->q = new Query( "select * from deleted_messages where mailbox=$1 "
                           "and uid=$2", this );
@@ -74,7 +79,7 @@ void Undelete::execute()
         Row * r = d->q->nextRow();
         if ( d->q->failed() || !r )
             error( "Couldn't find deleted message with uid " + fn( d->uid ) +
-                   " in mailbox '" + d->mailbox + "'." );
+                   " in mailbox '" + d->mailbox.utf8() + "'." );
 
         d->t = new Transaction( this );
         d->q = new Query( "delete from deleted_messages where mailbox=$1 "
@@ -106,7 +111,7 @@ void Undelete::execute()
         // XXX: What should I send? There's no occlient message right
         // now to say that the UIDVALIDITY of a mailbox has changed,
         // and sending "new" to force a refresh seems very evil.
-        OCClient::send( "mailbox " + d->m->name().quoted() + " new" );
+        OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " new" );
     }
 
     finish();

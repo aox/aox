@@ -2,6 +2,7 @@
 
 #include "acl.h"
 
+#include "utf.h"
 #include "user.h"
 #include "query.h"
 #include "string.h"
@@ -24,8 +25,7 @@ public:
     int state;
     Acl::Type type;
 
-    String mbox;
-    String authid;
+    UString authid;
     String rights;
     String username;
 
@@ -59,13 +59,16 @@ Acl::Acl( Type t )
 void Acl::parse()
 {
     space();
-    d->mbox = astring();
+    d->mailbox = mailbox();
 
     if ( d->type == SetAcl || d->type == DeleteAcl ||
          d->type == ListRights )
     {
         space();
-        d->authid = astring();
+        Utf8Codec c;
+        d->authid = c.toUnicode( astring() );
+        if ( !c.valid() )
+            error( Bad, "Parse error in authid: " + c.error() );
     }
 
     if ( d->type == SetAcl ) {
@@ -87,14 +90,6 @@ void Acl::parse()
 void Acl::execute()
 {
     if ( d->state == 0 ) {
-        d->mailbox = mailbox( d->mbox );
-        if ( !d->mailbox || d->mailbox->synthetic() ||
-             d->mailbox->deleted() )
-        {
-            error( No, d->mbox + " does not exist" );
-            return;
-        }
-
         if ( d->type == SetAcl &&
              !Permissions::validRights( d->rights ) )
         {
@@ -120,7 +115,8 @@ void Acl::execute()
             return;
 
         if ( d->type == MyRights ) {
-            respond( "MYRIGHTS " + d->mbox + " " + d->permissions->string() );
+            respond( "MYRIGHTS " + imapQuoted( d->mailbox ) +
+                     " " + d->permissions->string() );
             finish();
             return;
         }
@@ -130,12 +126,12 @@ void Acl::execute()
 
     if ( d->state == 2 ) {
         if ( !d->permissions->allowed( Permissions::Admin ) ) {
-            error( No, d->mbox + " is not accessible" );
+            error( No, d->mailbox->name().ascii() + " is not accessible" );
             return;
         }
 
         if ( d->type == ListRights ) {
-            String s( "LISTRIGHTS " + d->mbox + " " );
+            String s( "LISTRIGHTS " + imapQuoted( d->mailbox ) + " " );
             if ( d->user->id() == d->mailbox->owner() ) {
                 s.append( Permissions::all() );
             }
@@ -234,7 +230,7 @@ void Acl::execute()
                 s->append( r->getString( "rights" ) );
                 l.append( s );
             }
-            respond( "ACL " + d->mbox + " " + l.join( " " ) );
+            respond( "ACL " + imapQuoted( d->mailbox ) + " " + l.join( " " ) );
         }
         else if ( d->type == SetAcl ) {
             if ( d->q->hasResults() ) {

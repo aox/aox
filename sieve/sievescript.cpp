@@ -4,6 +4,7 @@
 
 #include "sieveproduction.h"
 #include "sieveparser.h"
+#include "ustringlist.h"
 #include "stringlist.h"
 
 
@@ -79,19 +80,20 @@ void SieveScript::parse( const String & script )
     s = d->script->first();
     while ( s && s->identifier() == "require" ) {
         if ( s->error().isEmpty() ) {
-            StringList unused;
-            StringList * r
+            UStringList unused;
+            UStringList * r
                 = s->arguments()->arguments()->first()->stringList();
-            StringList::Iterator i( r );
+            UStringList::Iterator i( r );
             while ( i ) {
-                if ( extensions->find( *i ) )
-                    declared.append( *i );
+                if ( i->isAscii() && extensions->find( i->ascii() ) )
+                    declared.append( i->ascii() );
                 else
                     unused.append( i );
                 ++i;
             }
             if ( !unused.isEmpty() )
-                s->setError( "Extension(s) not used: " + unused.join( " " ) );
+                s->setError( "Extension(s) not used: " +
+                             unused.join( " " ).utf8() );
         }
         ++s;
     }
