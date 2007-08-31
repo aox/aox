@@ -1083,7 +1083,7 @@ class Mailbox * Command::mailbox()
     if ( n.isEmpty() )
         return 0;
 
-    Mailbox * m = Mailbox::find( n );
+    Mailbox * m = Mailbox::obtain( n, false );
     if ( !m ) {
         error( Bad, "No such mailbox: " + n.ascii() );
         return 0;
