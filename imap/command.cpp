@@ -1170,9 +1170,10 @@ String Command::imapQuoted( Mailbox * m, Mailbox * r )
         base = r;
         rel = true;
     }
-    // find out whether this name can be expressed as a relative name
-    if ( imap()->user() )
+    else if ( imap()->user() ) {
         base = imap()->user()->home();
+    }
+    // find out whether this name can be expressed as a relative name
     if ( base ) {
         Mailbox * p = m->parent();
         while ( p && p != base )
