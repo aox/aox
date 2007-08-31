@@ -1137,11 +1137,11 @@ UString Command::mailboxName()
     else {
         d->usesRelativeMailbox = true;
     }
+    r.append( un );
     if ( !Mailbox::validName( r ) ) {
         error( Bad, "Syntax error in mailbox name: " + n );
         return r;
     }
-    r.append( un );
     return r;
 }
 
