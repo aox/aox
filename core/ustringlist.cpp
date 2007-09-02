@@ -8,7 +8,7 @@
 /*! \class UStringList ustringlist.h
 
     The UStringList class is a List of UString object, offering a few
-    convenience functions such as join() and removeDuplicates().
+    convenience functions such as join() and split().
 */
 
 
