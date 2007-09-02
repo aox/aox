@@ -556,7 +556,7 @@ bool UString::endsWith( const UString & suffix ) const
 
 
 /*! Returns true if this string ends with \a suffix, and false if it
-    does not. \a prefix must be an ASCII or 8859-1 string.
+    does not. \a suffix must be an ASCII or 8859-1 string.
 */
 
 bool UString::endsWith( const char * suffix ) const
