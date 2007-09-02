@@ -1155,9 +1155,9 @@ UString Command::mailboxName()
 
 
 /*! Returns the name of \a m in the right format for sending to the
-    client. The result is relative to \a r if \a is supplied, encoded
+    client. The result is relative to \a r (if it is supplied), encoded
     using mUTF-7 if necessary, quoted appropriately, etc.
-    
+
     If \a r is null (this is the default), a user is logged in, and
     the mailbox is within the user's own namespace, then the result
     may be relative or absolute, depending on whether the client seems
