@@ -716,7 +716,8 @@ void IMAP::sendChallenge( const String &s )
 
 
 /*! Records that the IMAP client likes to see its mailbox names in
-    absolute form (ie. /users/kiki/lists/mja instead of lists/mja).
+    absolute form (ie. /users/kiki/lists/mja instead of lists/mja)
+    if \a b is true, and that it prefers relative names otherwise.
     The initial value is false.
 */
 
