@@ -23,6 +23,18 @@
   Something for Martin Rode and his broken Umlauts.
 
 
+2.04: 2007-10-22
+
+  Proper case insensitivity for mailbox and user names.
+
+  Sieve subaddress, vacation and time extensions.
+
+
+2.05: 2007-12-03
+
+  Last release before the new year.
+
+
 The value of features
 
   Archiveopteryx provides online archiving. We want the features we
@@ -880,7 +892,7 @@ The webmail thingy completely mangles patch attachments. :-(
 
   This would seem to apply to non-MIME attachments. How should we
   handle those? So far our Message class is completely predicated on
-  MIME.
+  MIME. Need an example of this.
 
 
 Make "aox check config" test for more things.
