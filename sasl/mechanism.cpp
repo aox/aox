@@ -106,7 +106,9 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
     if ( m && !allowed( m->type(), connection->hasTls() ) )
         return 0;
 
-    m->d->connection = connection;
+    if ( m )
+        m->d->connection = connection;
+
     return m;
 }
 
