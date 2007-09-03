@@ -624,10 +624,18 @@ void Command::emitResponses()
                 respond( "OK [" + d->respTextCode + "] done", Tagged );
         }
         else {
+            String r;
             if ( d->errorCode == Bad )
-                respond( "BAD " + d->errorText, Tagged );
+                r = "BAD ";
             else
-                respond( "NO " + d->errorText, Tagged );
+                r = "NO ";
+            if ( !d->respTextCode.isEmpty() ) {
+                r.append( "[" );
+                r.append( d->respTextCode );
+                r.append( "] " );
+            }
+            r.append( d->errorText );
+            respond( r, Tagged );
         }
     }
 

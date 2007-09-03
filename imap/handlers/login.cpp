@@ -45,13 +45,16 @@ void Login::execute()
 
     if ( !m ) {
         if ( !imap()->accessPermitted() ) {
-            error( No, "Must enable TLS before login" );
+            error( No, "TLS required for mail access" );
+            setRespTextCode( "ALERT" );
             return;
         }
 
         if ( !SaslMechanism::allowed( SaslMechanism::Plain,
                                       imap()->hasTls() ) ) {
-            error( No, "LOGIN is disabled" );
+            error( No,
+                   "Plain-text login is disabled in the configuration file" );
+            setRespTextCode( "ALERT" );
             return;
         }
         m = new Plain( this );
