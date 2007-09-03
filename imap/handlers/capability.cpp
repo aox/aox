@@ -69,7 +69,7 @@ String Capability::capabilities( IMAP * i, bool all )
 
     // ugly X-DRAFT prefixes are disregarded when sorting by name
 
-    if ( all || !login )
+    if ( all || ( !login && i->accessPermitted() ) )
         c.append( SaslMechanism::allowedMechanisms( "AUTH=", i->hasTls() ) );
 
     if ( all || login ) {
