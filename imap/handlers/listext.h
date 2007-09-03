@@ -17,15 +17,12 @@ public:
     void parse();
     void execute();
 
-    static uint match( const String & pattern, uint p,
-                       const String & name, uint n );
-
 private:
     void addReturnOption( const String & );
     void addSelectOption( const String & );
 
-    void list( Mailbox *, const String & );
-    void listChildren( Mailbox *, const String & );
+    void list( Mailbox *, const UString & );
+    void listChildren( Mailbox *, const UString & );
     void sendListResponse( Mailbox * );
 
     void reference();

@@ -199,7 +199,7 @@ void Store::parse()
 
 void Store::parseAnnotationEntry()
 {
-    String entry = listMailbox();
+    String entry = entryName();;
     if ( entry.startsWith( "/flags/" ) )
         error( Bad, "Cannot set top-level flags using STORE ANNOTATION" );
     if ( entry.contains( "//" ) )
@@ -778,4 +778,17 @@ void Store::replaceAnnotations()
         }
         ++it;
     }
+}
+
+
+/*! As listMailbox(), but ASCII only. Checks that and emits an error
+    if necessary.
+*/
+
+String Store::entryName()
+{
+    UString r = listMailbox();
+    if ( !r.isAscii() )
+        error( Bad, "Annotation entries are all-ASCII" );
+    return r.ascii();
 }

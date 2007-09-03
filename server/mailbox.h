@@ -66,6 +66,9 @@ public:
     static Mailbox * root();
     static Mailbox * find( uint );
 
+    static uint match( const UString & pattern, uint p,
+                       const UString & name, uint n );
+
     static bool validName( const UString & );
 
     bool operator <=( const Mailbox &b ) {

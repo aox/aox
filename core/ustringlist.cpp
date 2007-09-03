@@ -74,7 +74,7 @@ UString UStringList::join( const char * separator )
 {
     UString s;
     s.append( separator );
-    return join( separator );
+    return join( s );
 }
 
 

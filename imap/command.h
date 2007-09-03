@@ -74,7 +74,7 @@ public:
     String string();
     String nstring();
     String astring();
-    String listMailbox();
+    UString listMailbox();
     MessageSet set( bool );
     uint msn();
     String flag();

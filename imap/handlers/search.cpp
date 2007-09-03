@@ -3,6 +3,7 @@
 #include "search.h"
 
 #include "imapsession.h"
+#include "imapparser.h"
 #include "annotation.h"
 #include "messageset.h"
 #include "listext.h"
@@ -360,7 +361,9 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "annotation" ) {
             space();
-            String a = listMailbox();
+            String a = parser()->listMailbox();
+            if ( !parser()->ok() )
+                error( Bad, parser()->error() );
             space();
             String b = atom();
             space();

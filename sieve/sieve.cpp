@@ -18,7 +18,6 @@
 #include "addressfield.h"
 #include "sieveproduction.h"
 
-#include "listext.h" // XXX: fix this ugly matching thing
 
 class SieveData
     : public Garbage
@@ -607,7 +606,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                     return True;
                 break;
             case SieveTest::Matches:
-                if ( Listext::match( g.utf8(), 0, s.utf8(), 0 ) == 2 ) // XXX: fixme! please! PLEASE!
+                if ( Mailbox::match( g, 0, s, 0 ) == 2 )
                     return True;
                 break;
             }

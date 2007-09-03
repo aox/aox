@@ -316,8 +316,6 @@ String ImapParser::astring()
     atom(), except that the three additional characters %, *, and ] are
     allowed), advancing the cursor past its end. It is an error if no
     list-mailbox is found at the cursor.
-
-    The return value is lowercased. (XXX: Should this be in the parser?)
 */
 
 String ImapParser::listMailbox()

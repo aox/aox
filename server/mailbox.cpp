@@ -840,3 +840,66 @@ class Threader * Mailbox::threader() const
         d->threader = new Threader( this );
     return d->threader;
 }
+
+
+/*! This extremely slow pattern matching helper checks that \a pattern
+    (starting at character \a p) matches \a name (starting at
+    character \a n), and returns 2 in case of match, 1 if a child of
+    \a name might match, and 0 if neither is the case.
+
+    There are only two wildcards: * matches zero or more characters. %
+    matches zero or more characters, but does not match /.
+
+    Note that this match is case sensitive. Our mailbox names are case
+    insensitive, so the caller typically has to call
+    UString::titlecased() on both arguments.
+*/
+
+uint Mailbox::match( const UString & pattern, uint p,
+                     const UString & name, uint n )
+{
+    uint r = 0;
+    while ( p <= pattern.length() ) {
+        if ( pattern[p] == '*' || pattern[p] == '%' ) {
+            bool star = false;
+            while ( pattern[p] == '*' || pattern[p] == '%' ) {
+                if ( pattern[p] == '*' )
+                    star = true;
+                p++;
+            }
+            uint i = n;
+            if ( star )
+                i = name.length();
+            else
+                while ( i < name.length() && name[i] != '/' )
+                    i++;
+            while ( i >= n && i <= name.length() ) {
+                uint s = match( pattern, p, name, i );
+                if ( s == 2 )
+                    return 2;
+                if ( s == 1 )
+                    r = 1;
+                i--;
+            }
+        }
+        else if ( p == pattern.length() && n == name.length() ) {
+            // ran out of pattern and name at the same time. success.
+            return 2;
+        }
+        else if ( pattern[p] == name[n] ) {
+            // nothing. proceed.
+            p++;
+        }
+        else if ( pattern[p] == '/' && n >= name.length() ) {
+            // we ran out of name and the pattern wants a child.
+            return 1;
+        }
+        else {
+            // plain old mismatch.
+            return r;
+        }
+        n++;
+    }
+    return r;
+}
+

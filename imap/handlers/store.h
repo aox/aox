@@ -34,6 +34,7 @@ private:
     void sendModseqResponses();
     void replaceAnnotations();
     void parseAnnotationEntry();
+    String entryName();
 };
 
 

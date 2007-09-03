@@ -5,6 +5,7 @@
 #include "string.h"
 #include "ustring.h"
 #include "stringlist.h"
+#include "ustringlist.h"
 #include "imapparser.h"
 #include "address.h"
 #include "mailbox.h"
@@ -31,7 +32,7 @@ public:
     List<Mailbox> * subscribed;
     Mailbox * reference;
     String referenceName;
-    StringList patterns;
+    UStringList patterns;
 
     bool extended;
     bool returnSubscribed;
@@ -127,7 +128,7 @@ void Listext::parse()
 
    if ( ok() )
        log( "List " + d->reference->name().ascii() +
-            " " + d->patterns.join( " " ) );
+            " " + d->patterns.join( " " ).ascii() );
 }
 
 
@@ -153,14 +154,14 @@ void Listext::execute()
                      d->selectQuery->error() );
     }
 
-    StringList::Iterator it( d->patterns );
+    UStringList::Iterator it( d->patterns );
     while ( it ) {
         if ( it->isEmpty() )
             respond( "LIST () \"/\" \"\"" );
         else if ( it->startsWith( "/" ) )
-            listChildren( Mailbox::root(), *it );
+            listChildren( Mailbox::root(), it->titlecased() );
         else
-            listChildren( d->reference, *it );
+            listChildren( d->reference, it->titlecased() );
         ++it;
     }
 
@@ -198,67 +199,12 @@ void Listext::addSelectOption( const String & option )
 }
 
 
-/*! This extremely slow pattern matching helper checks that \a pattern
-    (starting at character \a p) matches \a name (starting at
-    character \a n), and returns 2 in case of match, 1 if a child of
-    \a name might match, and 0 if neither is the case.
-*/
-
-uint Listext::match( const String & pattern, uint p,
-                     const String & name, uint n )
-{
-    uint r = 0;
-    while ( p <= pattern.length() ) {
-        if ( pattern[p] == '*' || pattern[p] == '%' ) {
-            bool star = false;
-            while ( pattern[p] == '*' || pattern[p] == '%' ) {
-                if ( pattern[p] == '*' )
-                    star = true;
-                p++;
-            }
-            uint i = n;
-            if ( star )
-                i = name.length();
-            else
-                while ( i < name.length() && name[i] != '/' )
-                    i++;
-            while ( i >= n && i <= name.length() ) {
-                uint s = match( pattern, p, name, i );
-                if ( s == 2 )
-                    return 2;
-                if ( s == 1 )
-                    r = 1;
-                i--;
-            }
-        }
-        else if ( p == pattern.length() && n == name.length() ) {
-            // ran out of pattern and name at the same time. success.
-            return 2;
-        }
-        else if ( pattern[p] == name[n] ) {
-            // nothing. proceed.
-            p++;
-        }
-        else if ( pattern[p] == '/' && n >= name.length() ) {
-            // we ran out of name and the pattern wants a child.
-            return 1;
-        }
-        else {
-            // plain old mismatch.
-            return r;
-        }
-        n++;
-    }
-    return r;
-}
-
-
 /*! Considers whether the mailbox \a m or any of its children may match
     the pattern \a p, and if so, emits list responses. (Calls itself
     recursively to handle children.)
 */
 
-void Listext::list( Mailbox * m, const String & p )
+void Listext::list( Mailbox * m, const UString & p )
 {
     if ( !m )
         return;
@@ -273,7 +219,7 @@ void Listext::list( Mailbox * m, const String & p )
             s++;
     }
 
-    switch( match( p, 0, m->name().utf8(), s ) ) { // <- XXX a bug. utf8.
+    switch( Mailbox::match( p, 0, m->name().titlecased(), s ) ) {
     case 0:
         break;
     case 1:
@@ -310,7 +256,7 @@ void Listext::list( Mailbox * m, const String & p )
 
 /*! Calls list() for each child of \a mailbox using \a pattern. */
 
-void Listext::listChildren( Mailbox * mailbox, const String & pattern )
+void Listext::listChildren( Mailbox * mailbox, const UString & pattern )
 {
     List<Mailbox> * c = mailbox->children();
     if ( c ) {

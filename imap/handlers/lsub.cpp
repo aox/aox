@@ -19,7 +19,7 @@ public:
     Mailbox * top;
     Mailbox * ref;
     uint prefix;
-    String pat;
+    UString pat;
 
 };
 
@@ -50,7 +50,7 @@ void Lsub::parse()
     d->pat = listMailbox();
     end();
     if ( ok() )
-        log( "Lsub " + d->ref->name().ascii() + " " + d->pat );
+        log( "Lsub " + d->ref->name().ascii() + " " + d->pat.ascii() );
 }
 
 
@@ -74,6 +74,7 @@ void Lsub::execute()
         }
     }
 
+    UString pattern = d->pat.titlecased();
 
     Row * r = 0;
     while ( (r=d->q->nextRow()) != 0 ) {
@@ -85,7 +86,8 @@ void Lsub::execute()
         if ( p ) {
             p = m;
             if ( !p->deleted() &&
-                 match( d->pat, 0, p->name().utf8().lower(), d->prefix ) == 2 ) {
+                 Mailbox::match( pattern, 0,
+                                 p->name().titlecased(), d->prefix ) == 2 ) {
                 String flags = "";
                 if ( p != m || p->synthetic() || p->deleted() )
                     flags = "\\noselect";

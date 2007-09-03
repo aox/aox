@@ -876,18 +876,26 @@ String Command::astring()
 
 /*! Parses and returns a list-mailbox. This is the same as an atom(),
     except that the three additional characters %, * and ] are
-    accepted.
-
-    The return value is lowercased, because our mailbox names are case
-    insensitive.
+    accepted. The return value has been mutf-7 decoded.
 */
 
-String Command::listMailbox()
+UString Command::listMailbox()
 {
     String r( d->args->listMailbox() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
-    return r.lower();
+
+    MUtf7Codec m;
+    UString u( m.toUnicode( r ) );
+    if ( !m.wellformed() ) {
+        AsciiCodec a;
+        u = a.toUnicode( r );
+        if ( !a.valid() )
+            error( Bad,
+                   "List-mailbox misparsed both as ASCII and mUTF-7: " +
+                   m.error() + " (mUTF7) + " + a.error() + " (ASCII)" );
+    }
+    return u;
 }
 
 

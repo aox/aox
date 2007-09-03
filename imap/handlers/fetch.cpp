@@ -488,7 +488,9 @@ void Fetch::parseAnnotation()
 
     atEnd = false;
     while ( !atEnd ) {
-        d->entries.append( new String( listMailbox() ) );
+        d->entries.append( new String( parser()->listMailbox() ) );
+        if ( !parser()->ok() )
+            error( Bad, parser()->error() );
 
         if ( paren ) {
             if ( nextChar() == ')' ) {
@@ -1245,7 +1247,9 @@ String Fetch::annotation( Multipart * m, User * u,
         bool entryWanted = false;
         StringList::Iterator e( entrySpecs );
         while ( e ) {
-            if ( Listext::match( *e, 0, entry, 0 ) == 2 ) {
+            AsciiCodec c;
+            if ( Mailbox::match( c.toUnicode( *e ), 0,
+                                 c.toUnicode( entry ), 0 ) == 2 ) {
                 if ( !entries.find( entry ) )
                     entryNames.append( new String( entry ) );
                 entryWanted = true;
