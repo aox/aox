@@ -67,6 +67,12 @@ void Authenticate::execute()
         return;
 
     if ( !m ) {
+        if ( !imap()->accessPermitted() ) {
+            error( No, "TLS required for mail access" );
+            setRespTextCode( "ALERT" );
+            return;
+        }
+
         m = SaslMechanism::create( t, this, imap() );
         if ( !m ) {
             error( No, "Mechanism " + t + " not available" );
