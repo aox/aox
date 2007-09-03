@@ -308,6 +308,8 @@ String UString::ascii() const
             r.append( '?' );
         i++;
     }
+    r.append( (char)0 );
+    r.truncate( r.length() - 1 );
     return r;
 }
 
@@ -450,13 +452,19 @@ UString UString::simplified() const
 }
 
 
-/*! Returns an UTF8-encoded version of this UString.
+/*! Returns an UTF8-encoded version of this UString. The string is
+    null-terminated for easy debugging, but remember that it may also
+    contain embedded nulls.
 */
 
 String UString::utf8() const
 {
+    String s;
     Utf8Codec u;
-    return u.fromUnicode( *this );
+    s = u.fromUnicode( *this );
+    s.append( (char)0 );
+    s.truncate( s.length() - 1 );
+    return s;
 }
 
 
