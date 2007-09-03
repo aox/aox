@@ -664,7 +664,7 @@ UString UString::titlecased() const
     UString r = *this;
     uint i = 0;
     while ( i < length() ) {
-        uint cp = d->str[i++];
+        uint cp = d->str[i];
         if ( cp < numTitlecaseCodepoints &&
              titlecaseCodepoints[cp] &&
              cp != titlecaseCodepoints[cp] ) {
