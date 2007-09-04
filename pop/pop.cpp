@@ -50,10 +50,10 @@ static void newCommand( List< PopCommand > *, POP *,
 /*! \class POP pop.h
     This class implements a POP3 server.
 
-    The Post Office Protocol is defined by RFC 1939, and updated by RFCs
-    1957 (which doesn't say much) and 2449, which defines CAPA and other
-    extensions. RFC 1734 defines an AUTH command for SASL authentication
-    support, and RFC 2595 defines STARTTLS for POP3.
+    The Post Office Protocol is defined by RFC 1939, and updated by
+    RFC 1957 (which doesn't say much) and RFC 2449, which defines CAPA
+    and other extensions. RFC 1734 defines an AUTH command for SASL
+    authentication support, and RFC 2595 defines STARTTLS for POP3.
 */
 
 /*! Creates a POP3 server for the fd \a s, and sends the initial banner.
