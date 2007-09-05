@@ -895,11 +895,13 @@ void Header::repair( Multipart * p, const String & body )
     // of the rest of the message.
 
     if ( occurrences[(int)HeaderField::ContentLocation] ||
+         occurrences[(int)HeaderField::ContentDisposition] ||
          occurrences[(int)HeaderField::ContentId] ||
          occurrences[(int)HeaderField::MessageId] ) {
         List< HeaderField >::Iterator it( d->fields );
         while ( it ) {
             if ( ( it->type() == HeaderField::ContentLocation ||
+                   it->type() == HeaderField::ContentDisposition ||
                    it->type() == HeaderField::ContentId ||
                    it->type() == HeaderField::MessageId ) &&
                  !it->valid() ) {
