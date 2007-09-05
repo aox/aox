@@ -15,6 +15,7 @@
 #include "hproman8.h"
 #include "unknown.h"
 #include "gb2312.h"
+#include "viscii.h"
 #include "cp932.h"
 #include "cp949.h"
 #include "cp950.h"
@@ -24,7 +25,7 @@
 
 
 /*! \class Codec codec.h
-    The Codec class describes a mapping between UString and anything else
+    The Codec class describes a mapping between UString and anything else.
 
     Unicode is used as the native character set and encoding in
     Warehouse. All other encodings are mapped to or from that: To
@@ -232,6 +233,8 @@ Codec * Codec::byName( const String & s )
         i++;
     if ( codecaliases[i].alias )
         name = codecaliases[i].name;
+    else if ( name == "macroman" )
+        name = "macintosh";
 
     Codec * codec = 0;
 #include "codec-map.inc"
