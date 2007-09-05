@@ -468,12 +468,39 @@ AddressParser::AddressParser( String s )
         atsign = nextAtsign;
         leftBorder = rightBorder;
     }
-    if ( d->a.isEmpty() )
+    if ( !d->a.isEmpty() ) {
+        d->firstError.truncate();
+        d->recentError.truncate();
+        Address::uniquify( &d->a );
         return;
+    }
 
-    d->firstError.truncate();
-    d->recentError.truncate();
-    Address::uniquify( &d->a );
+    // Plan C: Is it an attempt at group syntax by someone who should
+    // rather be filling shelves at a supermarktet?
+    if ( s.contains( ":;" ) && !s.contains( "@" ) ) {
+        String n = s.mid( 0, s.find( ":;" ) ).simplified();
+        UString name;
+        uint j = 0;
+        bool bad = false;
+        while ( j < n.length() ) {
+            if ( ( n[j] >= 'a' && n[j] <= 'z' ) ||
+                 ( n[j] >= 'A' && n[j] <= 'Z' ) ||
+                 ( n[j] >= '0' && n[j] <= '9' ) )
+                name.append( n[j] );
+            else if ( n[j] == ' ' || n[j] == '_' || n[j] == '-' )
+                name.append( '-' );
+            else
+                bad = true;
+            j++;
+        }
+        if ( !bad ) {
+            d->firstError.truncate();
+            d->recentError.truncate();
+            Address * a = new Address( n, "", "" );
+            d->a.clear();
+            d->a.append( a );
+        }
+    }
 }
 
 
