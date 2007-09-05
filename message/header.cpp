@@ -1222,6 +1222,38 @@ void Header::repair( Multipart * p, const String & body )
             removeField( HeaderField::ReplyTo );
     }
 
+    // If there are two header fields, one is text/plain, and the
+    // other is something other than text/plain and text/html, then
+    // drop the text/plain one. It's frequently added as a default,
+    // sometimes by software which doesn't check thoroughly.
+    if ( occurrences[(int)HeaderField::ContentType] == 2 ) {
+        bool plain = false;
+        bool html = false;
+        uint n = 0;
+        ContentType * keep = 0;
+        while ( n < 2 ) {
+            ContentType * f =
+                (ContentType*)field( HeaderField::ContentType, n );
+            if ( f->type() == "text" && f->subtype() == "plain" )
+                    plain = true;
+            else if ( f->type() == "text" && f->subtype() == "html" )
+                html = true;
+            else
+                keep = f;
+            n++;
+        }
+        if ( plain && !html && keep ) {
+            List<HeaderField>::Iterator it( d->fields );
+            while ( it ) {
+                if ( it->type() == HeaderField::ContentType &&
+                     it != keep )
+                    d->fields.take( it );
+                else
+                    ++it;
+            }
+        }
+    }
+
     d->verified = false;
 }
 
