@@ -440,7 +440,7 @@ AddressParser::AddressParser( String s )
             rightBorder = s.length();
         else
             rightBorder = findBorder( atsign + 1, nextAtsign - 1 );
-        if ( leftBorder > 0 && 
+        if ( leftBorder > 0 &&
              ( d->s[leftBorder] == '.' || d->s[leftBorder] == '>' ) )
             leftBorder++;
         int end = atsign + 1;
@@ -964,6 +964,7 @@ void AddressParser::address( int & i )
             i--;
             while ( i > 0 && s[i] == '@' )
                 i--;
+            int aftercomment = i;
             comment( i );
             if ( i >= 1 && s[i] == ';' && s[i-1] == ':' ) {
                 // To: unlisted-recipients:; (no To-header on input)@do.ma.in
@@ -977,6 +978,25 @@ void AddressParser::address( int & i )
                     lp = "";
                     dom = "";
                     name = n;
+                }
+            }
+            else if ( aftercomment > i && i < 0 ) {
+                // To: (Recipient list suppressed)@localhost
+                String n = d->lastComment.simplified();
+                lp = "";
+                dom = "";
+                name.truncate();
+                uint j = 0;
+                while ( j < n.length() ) {
+                    if ( ( n[j] >= 'a' && n[j] <= 'z' ) ||
+                         ( n[j] >= 'A' && n[j] <= 'Z' ) ||
+                         ( n[j] >= '0' && n[j] <= '9' ) )
+                        name.append( n[j] );
+                    else if ( n[j] == ' ' || n[j] == '_' || n[j] == '-' )
+                        name.append( '-' );
+                    else
+                        error( "localpart contains parentheses", i );
+                    j++;
                 }
             }
             else {
