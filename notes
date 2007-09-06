@@ -916,6 +916,13 @@ Make "aox check config" test for more things.
   Such as?
 
 
+Per-group and systemwide sieves
+
+  People always seem to want such things. It'll be easy to implement.
+  Most of the tricky issues are described in
+  http://tools.ietf.org/html/draft-degener-sieve-multiscript-00
+
+
 The Sieve "header" test may fail
 
   Write a test or three that feeds the thing a 2047-encoded header
