@@ -41,6 +41,8 @@ public:
         bool known() const;
         bool container() const;
         bool lineLevel() const;
+
+        UString excerpt() const;
     };
 
     Node * root;
@@ -796,45 +798,41 @@ String MessageRenderingData::Node::rendered() const
 UString MessageRendering::excerpt()
 {
     render();
-    UString r;
-    MessageRenderingData::Node * n = d->root;
-    while ( n && r.length() < 300 ) {
-        bool canUseChild = true;
-        if ( n != d->root && !n->htmlclass.isEmpty() ) {
-            // it's quoted or something
-            canUseChild = false;
-        }
-        else {
-            if ( !n->text.isEmpty() ) {
-                r.append( '\n' );
-                r.append( '\n' );
-                r.append( n->text );
-            }
-            else if ( n->tag == "hr" || n->tag == "br" ) {
-                r.append( '\n' );
-            }
-        }
-        if ( canUseChild && !n->children.isEmpty() ) {
-            n = n->children.first();
-        }
-        else if ( n->parent ) {
-            MessageRenderingData::Node * c = 0;
-            MessageRenderingData::Node * p = n->parent;
-            while ( p && !c ) {
-                List<MessageRenderingData::Node>::Iterator i(p->children);
-                while ( i && i != n )
-                    ++i;
-                if ( i )
-                    c = ++i;
-                else
-                    p = p->parent;
-            }
-        }
-        else {
-            n = 0;
-        }
+    UString r = d->root->excerpt();
+    uint i = 300;
+    uint j = 0;
+    while ( i+j < r.length() && j<20 && r[i+j] != ' ' && r[i+j] != '\n' )
+        j++;
+    if ( i+j+30 >= r.length() )
+        return r;
+    uint more = r.length() - i - j;
+    r.truncate( i+j );
+    r.append( " " );
+    r.append( 8230 ); // ellipsis
+    r.append( " (" );
+    r.append( String::humanNumber( more ).cstr() );
+    if ( r[r.length()-1] <= '9' )
+        r.append( " bytes" );
+    r.append( " more)" );
+    return r;
+}
 
+
+UString MessageRenderingData::Node::excerpt() const
+{
+    UString r = text.simplified();
+    if ( r.isEmpty() &&
+         ( tag == "hr" || tag == "br" ) )
+        r.append( "\n" );
+    if ( parent && !htmlclass.isEmpty() )
+        return r;
+    List<Node>::Iterator i( children );
+    while ( r.length() < 300 && i ) {
+        r.append( i->excerpt() );
+        ++i;
     }
+    if ( container() && !lineLevel() && !r.isEmpty() )
+        r.append( "\n\n" );
     return r;
 }
 

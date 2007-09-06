@@ -291,9 +291,29 @@ void ArchiveMailbox::execute()
 
         s.append( "<div class=messageexcerpt>\n"
                   "<p>\n" );
-        if ( m->text.isEmpty() )
-            m->text.append( "(For some reason the text except isn't working. A bug. Better fix it quickly." );
-        s.append( quoted( m->text ) );
+        if ( m->text.isEmpty() ) {
+            m->text.append( "(For some reason the text except isn't working. "
+                            "A bug. Better fix it quickly.)" );
+        }
+        else {
+            uint i = 0;
+            while ( i < m->text.length() ) {
+                uint j = i;
+                while ( j < m->text.length() && m->text[j] != '\n' )
+                    j++;
+                s.append( quoted( m->text.mid( i, j-i ) ) );
+                uint k = j;
+                while ( m->text[k] == '\n' )
+                    k++;
+                if ( k == m->text.length() )
+                    ;
+                else if ( k-j > 1 )
+                    s.append( "\n<p>\n" );
+                else if ( k-j == 1 )
+                    s.append( "\n<br>\n" );
+                i = k;
+            }
+        }
         s.append( "</div>\n" );
 
         if ( count > 1 ) {
