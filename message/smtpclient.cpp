@@ -109,12 +109,14 @@ void SmtpClient::react( Event e )
         if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
             finish( "4.4.1" );
+            setState( Closing );
             d->owner->execute();
         }
         else if ( d->sent != "quit" ) {
             log( "Unexpected close by server", Log::Error );
             d->error = "Unexpected close by server.";
             finish( "4.4.2" );
+            setState( Closing );
             d->owner->execute();
         }
         break;
