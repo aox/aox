@@ -23,10 +23,13 @@
   ByteForwarder is used as a helper for TlsServer.
 */
 
-/*! Constructs an empty ByteForwarder on the file descriptor \a s. */
+/*! Constructs an empty ByteForwarder on the file descriptor \a s,
+    tied to \a c. When this ByteForwarder is closed, it closes \a c,
+    too.
+*/
 
-ByteForwarder::ByteForwarder( int s )
-    : Connection( s, Pipe ), s( 0 )
+ByteForwarder::ByteForwarder( int s, Connection * c )
+    : Connection( s, Pipe ), s( 0 ), p( c )
 {
 }
 
@@ -51,6 +54,10 @@ void ByteForwarder::react( Event e )
              ( e == Close ? "peer close." : "error." ) );
         setState( Closing );
         s->close();
+        if ( p ) {
+            p->react( Close );
+            p->close();
+        }
         break;
 
     case Shutdown:

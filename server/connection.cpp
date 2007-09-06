@@ -570,8 +570,8 @@ void Connection::startTls( TlsServer * s )
     EventLoop::global()->removeConnection( s->serverSide() );
     EventLoop::global()->removeConnection( s->userSide() );
 
-    ByteForwarder * b1 = new ByteForwarder( d->fd );
-    ByteForwarder * b2 = new ByteForwarder( s->userSide()->fd() );
+    ByteForwarder * b1 = new ByteForwarder( d->fd, this );
+    ByteForwarder * b2 = new ByteForwarder( s->userSide()->fd(), this );
     d->fd = s->serverSide()->fd();
 
     b1->setState( state() );
