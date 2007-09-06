@@ -713,12 +713,10 @@ String Selector::whereAddressFields( const StringList & fields,
         }
         if ( t ) {
             known.append( "af.field=$" + fn( fnum ) );
-            //known = "(af.field=$";
             query->bind( fnum, t );
         }
         else {
             unknown.append( "fn.name=$" + fn( fnum ) );
-            //= "af.field in (select id from field_names fn where (fn.name=$";
             query->bind( fnum, *it );
         }
         ++it;

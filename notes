@@ -168,13 +168,6 @@ Release cycle
   t-0: A crontab does what it needs to do.
 
 
-Selector uses field_names much too often
-
-  We shouldn't need to do a subselect in order to find the ID of
-  Subject. That should be cached very, very well in RAM. So why are we
-  doing it? It presumably bothers the query planner.
-
-
 Cleartext passwords
 
   We help migrating away from cleartext/plaintext passwords:
