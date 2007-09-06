@@ -27,6 +27,8 @@
 #include <fcntl.h>
 // signal
 #include <signal.h>
+// ioctl, FIONREAD
+#include <sys/ioctl.h>
 
 
 static void setupKey();
@@ -343,8 +345,14 @@ void TlsProxy::react( Event e )
 
 void TlsProxy::read()
 {
-    if ( d->state != TlsProxyData::EncryptedSide )
+    if ( d->state != TlsProxyData::EncryptedSide ) {
         Connection::read();
+    }
+    else {
+        int len = 0;
+        if ( ioctl( fd(), FIONREAD, &len ) == 0 && len == 0 )
+            setState( Closing );
+    }
 }
 
 
