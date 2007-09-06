@@ -827,7 +827,7 @@ UString MessageRenderingData::Node::excerpt() const
     if ( parent && !htmlclass.isEmpty() )
         return r;
     List<Node>::Iterator i( children );
-    while ( r.length() < 300 && i ) {
+    while ( i ) {
         r.append( i->excerpt() );
         ++i;
     }
