@@ -94,10 +94,10 @@ void SmtpClient::react( Event e )
 
     case Timeout:
         log( "SMTP server timed out", Log::Error );
-        Connection::setState( Closing );
         d->error = "Server timeout.";
         finish();
         d->owner->execute();
+        Connection::setState( Closing );
         break;
 
     case Connect:
@@ -109,14 +109,12 @@ void SmtpClient::react( Event e )
         if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
             finish( "4.4.1" );
-            setState( Closing );
             d->owner->execute();
         }
         else if ( d->sent != "quit" ) {
             log( "Unexpected close by server", Log::Error );
             d->error = "Unexpected close by server.";
             finish( "4.4.2" );
-            setState( Closing );
             d->owner->execute();
         }
         break;
@@ -583,4 +581,14 @@ void SmtpClient::logout()
     enqueue( "quit\r\n" );
     d->sent = "quit";
     setTimeoutAfter( 300 );
+}
+
+
+/*! Returns the client's error string, which is empty if no error has
+    occurred.
+*/
+
+String SmtpClient::error() const
+{
+    return d->error;
 }

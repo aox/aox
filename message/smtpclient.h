@@ -27,6 +27,8 @@ public:
 
     void logout();
 
+    String error() const;
+
 private:
     class SmtpClientData * d;
 
