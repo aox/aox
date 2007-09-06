@@ -90,6 +90,16 @@ void SpoolManager::execute()
                 d->client = client();
             }
 
+            if ( d->client->state() == Connection::Invalid ||
+                 d->client->state() == Connection::Closing )
+            {
+                log( "Couldn't connect to smarthost. Ending queue run" );
+                d->client = 0;
+                reset();
+                d->t = new Timer( this, 300 );
+                return;
+            }
+
             if ( !d->client->ready() )
                 return;
 
