@@ -503,7 +503,7 @@ by default.
 .IP accept-any-http-host
 decides whether
 .BR archiveopteryx (8)
-accepts any hostname supplied by the server, and is
+accepts any hostname supplied by the client, and is
 .I enabled
 by default. Properly speaking, it would be better to disable this, but
 that would add complexity without giving anything in return.
