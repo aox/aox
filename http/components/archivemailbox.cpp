@@ -125,12 +125,16 @@ void ArchiveMailbox::execute()
             ++i;
         }
         d->text = new Query(
-            "select bp.*, hf.* from bodyparts bp "
-            "join part_numbers pn on (bp.id=pn.part) "
-            "join header_fields hf using (mailbox,uid,part) "
-            "where pn.mailbox=$1 and hf.field=$2 and (" + f.where() + ") and "
-            "(hf.value like 'text/html%' or hf.value like 'text/plain%') "
-            "order by part",
+            "select bp.*, pn.uid, hf.value from bodyparts bp "
+            "join part_numbers pn on (bp.id=pn.bodypart) "
+            "left join header_fields hf using (mailbox,uid,part) "
+            "where pn.mailbox=$1 "
+            "and (hf.field=$2 or hf.field is null) "
+            "and (" + f.where() + ") and "
+            "(hf.value like 'text/html%' or "
+            " hf.value like 'text/plain%' or "
+            " hf.value is null) "
+            "order by uid, part",
             this );
         d->text->bind( 1, d->link->mailbox()->id() );
         d->text->bind( 2, HeaderField::ContentType );
@@ -182,7 +186,10 @@ void ArchiveMailbox::execute()
     while ( (r=d->text->nextRow()) ) {
         uint uid = r->getInt( "uid" );
         ContentType * ct = new ContentType;
-        ct->parse( r->getString( "value" ) ); // parse? is that correct?
+        if ( r->isNull( "value" ) )
+            ct->parse( "text/plain" );
+        else
+            ct->parse( r->getString( "value" ) ); // parse? is that correct?
         ArchiveMailboxData::Message * m = d->messages.find( uid );
         if ( m && m->text.isEmpty() ) {
             if ( ct->subtype() == "plain" ) {
