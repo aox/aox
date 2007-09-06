@@ -11,7 +11,7 @@
     The Error301 component contains tet instructing the browser to go
     elsehere. For now it only uses a 301 response, but maybe it should
     also include <meta http> and/or javascript blah. Lots of people
-    seem to use belt and bracess, so it can't be entirely pointless.
+    seem to use belt and braces, so it can't be entirely pointless.
 */
 
 

@@ -868,12 +868,19 @@ String Link::absolute() const
     else
         s.append( "http" );
     s.append( "://" );
-    s.append( Configuration::hostname() );
+    String hn;
+    if ( Configuration::toggle( Configuration::AcceptAnyHttpHost ) )
+        hn = d->server->hostHeader();
+    else
+        hn = Configuration::hostname();
+    if ( hn.isEmpty() )
+        hn = d->server->self().address();
+    s.append( hn );
 
     uint port = Configuration::scalar( Configuration::HttpPort );
     if ( d->secure )
         port = Configuration::scalar( Configuration::HttpsPort );
-    if ( ( d->secure && port != 443 ) || port != 80 ) {
+    if ( ( d->secure && port != 443 ) || ( !d->secure && port != 80 ) ) {
         s.append( ":" );
         s.append( fn( port ) );
     }

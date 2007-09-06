@@ -35,6 +35,7 @@ public:
     uint status;
     String method;
     String message;
+    String hostSupplied;
 
     bool use11;
     bool sendContents;
@@ -633,15 +634,61 @@ void HTTP::parseConnection( const String & v )
 
 void HTTP::parseHost( const String & v )
 {
+    d->hostSupplied = v.lower();
+    if ( d->hostSupplied.endsWith( "." ) )
+        d->hostSupplied.truncate( d->hostSupplied.length() - 1 );
+    uint i = 0;
+    uint c = d->hostSupplied.length();
+    while ( i < d->hostSupplied.length() ) {
+        bool bad = false;
+        if ( d->hostSupplied[i] == '.' ) {
+            if ( i == 0 || i == d->hostSupplied.length() - 1 )
+                bad = true;
+            if ( d->hostSupplied[i+1] == '.' )
+                bad = true;
+        }
+        else if ( d->hostSupplied[i] == ':' ) {
+            if ( i == 0 || i == d->hostSupplied.length() - 1 )
+                bad = true;
+            c = i;
+        }
+        else if ( d->hostSupplied[i] == '[' ) {
+            if ( i > 0 )
+                bad = true;
+        }
+        else if ( d->hostSupplied[i] == ']' ) {
+            if ( i < d->hostSupplied.length() - 1 )
+                bad = true;
+        }
+        else if ( ( d->hostSupplied[i] >= 'a' && d->hostSupplied[i] <= 'z' ) ||
+                  ( d->hostSupplied[i] >= '0' && d->hostSupplied[i] <= '9' ) ||
+                  d->hostSupplied[i] == '/' ||
+                  d->hostSupplied[i] == '-' ) {
+            // ok
+        }
+        else {
+            bad = true;
+        }
+        if ( bad ) {
+            setStatus( 400, "Bad Host header: " + d->hostSupplied );
+            return;
+        }
+        i++;
+    }
+    if ( c < d->hostSupplied.length() ) {
+        bool ok = false;
+        uint port = d->hostSupplied.mid( c + 1 ).number( &ok );
+        if ( ok && port == self().port() )
+            d->hostSupplied.truncate( c );
+    }
+    
     if ( Configuration::toggle( Configuration::AcceptAnyHttpHost ) )
         return;
-    String supplied = v.lower();
-    if ( supplied.contains( ':' ) )
-        supplied = supplied.mid( 0, supplied.find( ':' ) ).simplified();
+
     String correct = Configuration::text( Configuration::Hostname ).lower();
-    if ( supplied == correct )
+    if ( d->hostSupplied == correct )
         return;
-   setStatus( 400, "No such host: " + supplied +
+   setStatus( 400, "No such host: " + d->hostSupplied +
                  ". Only " + correct + " allowed" );
 }
 
@@ -993,4 +1040,14 @@ void HTTPS::finish()
     }
 
     startTls( d->tlsServer );
+}
+
+
+/*! Returns the value of the Host header, lowercased but otherwise
+    unchanged.
+*/
+
+String HTTP::hostHeader() const
+{
+    return d->hostSupplied;
 }

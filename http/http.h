@@ -30,8 +30,12 @@ public:
     class UString parameter( const String & ) const;
 
     class User * user() const;
-    class HttpSession *session() const;
+
+    class HttpSession * session() const;
     void setSession( HttpSession * );
+
+    String hostHeader() const;
+
     String body() const;
 
     void process();
