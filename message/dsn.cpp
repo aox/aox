@@ -193,8 +193,18 @@ Message * DSN::result() const
 
     // set up the original message, either full or header-only
     if ( fullReport() ) {
-        original->header()->add( "Content-Type", "message/rfc822" );
-        original->setMessage( message() );
+        original->header()->add( "Content-Type", "text/rfc822-headers" );
+        original->setData( message()->header()->asText() );
+
+        // this is what we _should_ do, except that we don't. the body
+        // of the message is lost, probably because original-> has a
+        // null parent.
+        
+        //original->header()->add( "Content-Type", "message/rfc822" );
+        //original->setMessage( message() );
+        
+        // and maybe we shouldn't anyway. sending a potentially big
+        // body in a bounce is not necessarily a good idea.
     }
     else {
         // nasty mime name there
