@@ -2,10 +2,10 @@
 
 #include "messagerendering.h"
 
-#include "codec.h"
-#include "list.h"
-#include "utf.h"
+#include "ustringlist.h"
 #include "entities.h"
+#include "codec.h"
+#include "utf.h"
 
 
 class MessageRenderingData
@@ -42,7 +42,7 @@ public:
         bool container() const;
         bool lineLevel() const;
 
-        UString excerpt() const;
+        void findExcerpt( UStringList * ) const;
     };
 
     Node * root;
@@ -532,6 +532,8 @@ void MessageRenderingData::Node::clean()
                 i->parent = this;
                 ++i;
             }
+            if ( htmlclass.isEmpty() )
+                htmlclass = c->htmlclass;
         }
     }
 
@@ -798,42 +800,44 @@ String MessageRenderingData::Node::rendered() const
 UString MessageRendering::excerpt()
 {
     render();
-    UString r = d->root->excerpt();
+    UStringList excerpts;
+    excerpts.append( new UString );
+    d->root->findExcerpt( &excerpts );
+    UString r;
+    if ( !excerpts.isEmpty() )
+        r = *excerpts.first();
     uint i = 300;
     uint j = 0;
-    while ( i+j < r.length() && j<20 && r[i+j] != ' ' && r[i+j] != '\n' )
+    while ( j < 20 && r[i+j] != ' ' && r[i-j] != ' ' )
         j++;
-    if ( i+j+30 >= r.length() )
-        return r;
-    uint more = r.length() - i - j;
-    r.truncate( i+j );
-    r.append( " " );
+    if ( r[i-j] == ' ' )
+        r.truncate( i - j + 1 );
+    else
+        r.truncate( i + j + 1 );
     r.append( 8230 ); // ellipsis
-    r.append( " (" );
-    r.append( String::humanNumber( more ).cstr() );
-    if ( r[r.length()-1] <= '9' )
-        r.append( " bytes" );
-    r.append( " more)" );
     return r;
 }
 
 
-UString MessageRenderingData::Node::excerpt() const
+void MessageRenderingData::Node::findExcerpt( UStringList * excerpts ) const
 {
+    if ( parent && !htmlclass.isEmpty() ) {
+        if ( excerpts->isEmpty() || !excerpts->last()->isEmpty() )
+            excerpts->append( new UString );
+        return;
+    }
     UString r = text.simplified();
     if ( r.isEmpty() &&
          ( tag == "hr" || tag == "br" ) )
         r.append( "\n" );
-    if ( parent && !htmlclass.isEmpty() )
-        return r;
     List<Node>::Iterator i( children );
     while ( i ) {
-        r.append( i->excerpt() );
+        i->findExcerpt( excerpts );
         ++i;
     }
-    if ( container() && !lineLevel() && !r.isEmpty() )
-        r.append( "\n\n" );
-    return r;
+    excerpts->last()->append( r );
+    if ( container() && !lineLevel() && !excerpts->last()->isEmpty() )
+        excerpts->last()->append( "\n\n" );
 }
 
 
