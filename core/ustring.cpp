@@ -544,7 +544,7 @@ bool UString::startsWith( const char * prefix ) const
     uint i = 0;
     while ( i < d->len && prefix[i] && prefix[i] == d->str[i] )
         i++;
-    if ( i >= d->len )
+    if ( i > d->len )
         return false;
     if ( prefix[i] )
         return false;
