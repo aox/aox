@@ -150,22 +150,6 @@ void MessageRendering::renderText()
     bool newPara = true;
     while ( i < d->text.length() ) {
         c = d->text[i];
-        if ( newPara ) {
-            p = new MessageRenderingData::Node;
-            p->tag = "p";
-            d->root->children.append( p );
-            p->parent = d->root;
-            n = new MessageRenderingData::Node;
-            p->children.append( n );
-            n->parent = p;
-            quoted = false;
-            if ( c == '>' ) {
-                p->htmlclass = "quoted";
-                quoted = true;
-            }
-            newPara = false;
-        }
-
         if ( c == 13 || c == 10 ) {
             // CR, LF or a combination
             uint cr = 0;
@@ -191,7 +175,7 @@ void MessageRendering::renderText()
                 newPara = true;
             else if ( !quoted && c == '>' )
                 newPara = true;
-            if ( !newPara ) {
+            if ( p && !newPara ) {
                 n = new MessageRenderingData::Node;
                 p->children.append( n );
                 n->parent = p;
@@ -209,6 +193,21 @@ void MessageRendering::renderText()
         }
         else {
             // other text
+            if ( newPara ) {
+                p = new MessageRenderingData::Node;
+                p->tag = "p";
+                d->root->children.append( p );
+                p->parent = d->root;
+                n = new MessageRenderingData::Node;
+                p->children.append( n );
+                n->parent = p;
+                quoted = false;
+                if ( c == '>' ) {
+                    p->htmlclass = "quoted";
+                    quoted = true;
+                }
+                newPara = false;
+            }
             n->text.append( c );
             i++;
         }
@@ -538,12 +537,60 @@ void MessageRenderingData::Node::clean()
     }
 
     // identify signatures
+    if ( parent && htmlclass.isEmpty() && tag == "p" && 
+         !children.isEmpty() ) {
+        UString t = children.first()->text;
+        if ( t.startsWith( "-- " ) &&
+             ( t.simplified() == "--" ||
+               t.startsWith( "-- \n" ) ) ) {
+            // if the remaining children of my parent are unmarked,
+            // make a surrounding div and mark it as a signature
+            List<Node>::Iterator i( parent->children );
+            while ( i && i != this )
+                ++i;
+            if ( i == this ) {
+                uint c = 0;
+                List<Node>::Iterator n = i;
+                while ( n && n->htmlclass.isEmpty() ) {
+                    c++;
+                    ++n;
+                }
+                if ( c < 4 &&
+                     ( !n || n->htmlclass == "quoted" ) ) {
+                    Node * div = new Node;
+                    parent->children.insert( i, div );
+                    div->parent = parent;
+                    div->tag = "div";
+                    div->htmlclass = "signature";
+                    while ( i && i != n ) {
+                        div->children.append( i );
+                        i->parent = div;
+                        parent->children.take( i ); // moves i
+                    }
+                }
+            }
+        }
+    }
 
-    // todo: mark the last line before a signature block if it seems
+    // todo: mark the last line before a quoted block if it seems
     // to be "x y schrieb"
 
-    // todo: mark "---original message---" and subsequent as quoted
-    // matter.
+    // mark "---original message---" and subsequent as quoted matter.
+    if ( parent && htmlclass.isEmpty() && tag == "p" && 
+         !children.isEmpty() ) {
+        UString t = children.first()->text;
+        if ( t == "-----Original Message-----" ) {
+            List<Node>::Iterator i( parent->children );
+            while ( i && i != this )
+                ++i;
+            if ( i == this ) {
+                while ( i && i->container() && i->htmlclass.isEmpty() ) {
+                    i->htmlclass = "quoted";
+                    ++i;
+                }
+            }
+        }
+    }
 
     // todo: identify disclaimers
 
@@ -827,15 +874,14 @@ void MessageRenderingData::Node::findExcerpt( UStringList * excerpts ) const
         return;
     }
     UString r = text.simplified();
-    if ( r.isEmpty() &&
-         ( tag == "hr" || tag == "br" ) )
+    if ( r.isEmpty() && ( tag == "hr" || tag == "br" ) )
         r.append( "\n" );
+    excerpts->last()->append( r );
     List<Node>::Iterator i( children );
     while ( i ) {
         i->findExcerpt( excerpts );
         ++i;
     }
-    excerpts->last()->append( r );
     if ( container() && !lineLevel() && !excerpts->last()->isEmpty() )
         excerpts->last()->append( "\n\n" );
 }
