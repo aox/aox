@@ -539,12 +539,30 @@ void MessageRenderingData::Node::clean()
     // identify signatures
     if ( parent && htmlclass.isEmpty() && tag == "p" && 
          !children.isEmpty() ) {
-        UString t = children.first()->text;
-        if ( t.startsWith( "-- " ) &&
-             ( t.simplified() == "--" ||
-               t.startsWith( "-- \n" ) ) ) {
+        List<Node>::Iterator i( children );
+        bool sigmarker = false;
+        while ( i && !sigmarker ) {
+            UString t = i->text;
+            if ( t.startsWith( "-- " ) &&
+                 ( t.simplified() == "--" ||
+                   t.startsWith( "-- \n" ) ) )
+                sigmarker = true;
+            else
+                ++i;
+            // this is a shade dubious, it marks the paragraph
+            // including -- as a sig, even if -- doesn't start the
+            // paragraph. in practice it works well, at least it seems
+            // to:
+            //
+            // cheers
+            // gert
+            // --
+            // gert@example.nl
+            // more blah here
+        }
+        if ( sigmarker ) {
             // if the remaining children of my parent are unmarked,
-            // make a surrounding div and mark it as a signature
+            // make a surrounding div and mark it as a signature.
             List<Node>::Iterator i( parent->children );
             while ( i && i != this )
                 ++i;
