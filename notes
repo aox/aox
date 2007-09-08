@@ -19,6 +19,8 @@
   installer should be able to install to a remote database.
   (Done)
 
+  improve smtp submit client error recovery. (Done)
+
   httpd: webmail, archives, search results.
 
   Something for Martin Rode and his broken Umlauts.
