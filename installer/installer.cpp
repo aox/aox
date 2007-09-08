@@ -335,44 +335,77 @@ void readPassword()
 void readPgPass()
 {
     const char * pgpass = getenv( "PGPASSFILE" );
-    if ( pgpass && !exists( pgpass ) ) {
-        fprintf( stderr, "PGPASSFILE '%s' does not exist.\n", pgpass );
-        pgpass = 0;
-    }
-
-    if ( !pgpass ) {
-        String s;
-        struct passwd * p = getpwuid( 0 );
-        if ( p && p->pw_dir )
-            s.append( p->pw_dir );
-        else
-            s.append( "/root" );
-        s.append( "/.pgpass" );
-        pgpass = s.cstr();
-    }
-
-    FILE * f = fopen( pgpass, "r" );
-    if ( !f )
+    if ( !pgpass )
         return;
 
-    String want( *db );
-    want.append( ":" );
-    if ( dbport != 0 )
-        want.append( fn( dbport ) );
-    else
-        want.append( "5432" );
-    want.append( ":" );
-    want.append( "template1" );
-    want.append( ":" );
-    want.append( PGUSER );
-    want.append( ":" );
+    struct stat st;
+    if ( stat( pgpass, &st ) < 0 || !S_ISREG( st.st_mode ) ||
+         st.st_mode & (S_IRWXG|S_IRWXO) != 0 )
+        return;
 
-    char line[256];
-    while ( fgets( line, 256, f ) != 0 ) {
-        // hostname:port:database:username:password
-        String s( line );
-        if ( s.startsWith( want ) ) {
-            dbpgpass = new String( s.mid( want.length() ).stripCRLF() );
+    File f( pgpass, File::Read );
+    if ( !f.valid() )
+        return;
+
+    StringList::Iterator line( f.lines() );
+    while ( line ) {
+        String s( *line );
+        ++line;
+
+        String host, port, database, username, password;
+
+        int n = 0;
+        uint i = 0;
+        String word;
+        while ( i < s.length() ) {
+            char c = s[i];
+
+            if ( c == ':' ) {
+                switch ( n ) {
+                case 0:
+                    host = word;
+                    break;
+                case 1:
+                    port = word;
+                    break;
+                case 2:
+                    database = word;
+                    break;
+                case 3:
+                    username = word;
+                    break;
+                default:
+                    return;
+                }
+                word.truncate( 0 );
+                n++;
+            }
+            else if ( c == '\n' ) {
+                password = word;
+            }
+            else {
+                if ( c == '\\' )
+                    c = s[++i];
+                word.append( c );
+            }
+
+            i++;
+        }
+
+        if ( n != 4 )
+            return;
+
+        if ( ( host == "*" ||
+               host == *db ||
+               ( host == "localhost" &&
+                 ( *db == "127.0.0.1" || db->startsWith( "/" ) ) ) ) &&
+             ( port == "*" ||
+               ( port == "5432" && dbport == 0 ) ||
+               port == fn( dbport ) ) &&
+             ( database == "*" || database == "template1" ) &&
+             ( username == "*" || username == PGUSER ) )
+        {
+            dbpgpass = new String( password );
             break;
         }
     }
