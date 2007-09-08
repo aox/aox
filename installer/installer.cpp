@@ -227,9 +227,11 @@ void help()
         "  The \"-p postgres\" flag allows you to specify the name of\n"
         "  the PostgreSQL superuser. The default is to try $PGSQL (if\n"
         "  set), postgres and pgsql in turn.\n\n"
+        "  The \"-P\" flag instructs the installer to prompt for and\n"
+        "  read the Postgres superuser's password, and be prepared to\n"
+        "  use that for authentication (if necessary).\n\n"
         "  The \"-s socket\" flag allows you to specify an alternate\n"
-        "  location for the Postgres server's named listening socket.\n"
-        "  The default is '%s'.\n\n"
+        "  location for the Postgres server's named listening socket.\n\n"
         "  The \"-a address\" flag allows you to specify a different\n"
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The \"-t port\" flag allows you to specify a different port\n"
@@ -237,7 +239,7 @@ void help()
         "  The defaults are set at build time in the Jamsettings file.\n\n",
         AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
         dbowner->cstr(), dbuser->cstr(),
-        AOXGROUP, AOXUSER, dbsocket->cstr(), DBADDRESS
+        AOXGROUP, AOXUSER, DBADDRESS
     );
     exit( 0 );
 }
