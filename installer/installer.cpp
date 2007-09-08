@@ -90,10 +90,9 @@ int main( int ac, char *av[] )
     db = 0;
     dbsocket = 0;
     dbpgpass = 0;
+    dbaddress = 0;
     dbname = new String( DBNAME );
     Allocator::addEternal( dbname, "DBNAME" );
-    dbaddress = new String( DBADDRESS );
-    Allocator::addEternal( dbaddress, "DBADDRESS" );
     dbuser = new String( AOXUSER );
     Allocator::addEternal( dbuser, "AOXUSER" );
     dbpass = new String( DBPASS );
@@ -130,7 +129,7 @@ int main( int ac, char *av[] )
             else if ( s == "-p" )
                 PGUSER = *av++;
             else if ( s == "-a" )
-                *dbaddress = *av++;
+                dbaddress = new String( *av++ );
             else if ( s == "-s" )
                 dbsocket = new String( *av++ );
             ac--;
@@ -158,6 +157,8 @@ int main( int ac, char *av[] )
 
     if ( dbsocket )
         Allocator::addEternal( dbsocket, "DBSOCKET" );
+    if ( dbaddress )
+        Allocator::addEternal( dbaddress, "DBADDRESS" );
 
     Allocator::addEternal( new StderrLogger( "installer", verbosity ),
                            "log object" );
@@ -356,8 +357,14 @@ void configure()
     if ( Configuration::present( Configuration::DbName ) )
         *dbname = Configuration::text( Configuration::DbName );
 
-    if ( Configuration::present( Configuration::DbAddress ) )
-        *dbaddress = Configuration::text( Configuration::DbAddress );
+    if ( !dbaddress ) {
+        if ( Configuration::present( Configuration::DbAddress ) )
+            dbaddress =
+                new String( Configuration::text( Configuration::DbAddress ) );
+        else
+            dbaddress = new String( DBADDRESS );
+        Allocator::addEternal( dbaddress, "DBADDRESS" );
+    }
 
     if ( Configuration::present( Configuration::DbPort ) )
         dbport = Configuration::scalar( Configuration::DbPort );
