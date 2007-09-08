@@ -36,6 +36,38 @@ This program does the following:
 should be run after
 .I "jam install" 
 when installing from source.
+.PP
+By default, the address of the PostgreSQL server is derived from the
+compile-time
+.I DBADDRESS
+setting in the
+.I Jamsettings
+file (which is
+.I $DBADDRESS
+by default). If the
+.I db-address
+variable is set in an existing configuration file, that value takes
+precedence. If the
+.I -a
+command-line flag is used, then the address specified has precedence
+over either of the former values.
+.PP
+If the server address (as determined above) is
+.IR 127.0.0.1 ,
+the installer will try to use a Unix domain socket to connect to the
+server. The location of this socket is determined by the
+.I -s socket
+command-line argument. If no socket is specified, the default named
+socket location (
+.IR /tmp/.s.PGSQL.5432 )
+is used instead.
+For any other server address, the installer will try to use a Unix
+domain socket only if one is explicitly specified with
+.IR -s .
+In any case, if password authentication is to be used when talking to
+the server, the
+.I -P
+option will cause the installer to prompt for the password.
 .SH OPTIONS
 .IP -q
 Suppresses all normal output.
@@ -52,9 +84,16 @@ $AOXUSER.
 .IP "-p postgres"
 Allows you to specify the name of the PostgreSQL superuser. The default
 is to try $PGUSER (if set), postgres and pgsql in turn.
+.IP "-P"
+Instructs the installer to prompt for and read the PostgreSQL
+superuser's password, and be prepared to use that for authentication (if
+necessary).
 .IP "-a address"
 Allows you to specify a different address for the Postgres server. The
 default is $DBADDRESS.
+.IP "-s /path/to/socket"
+Allows you to specify a location for the PostgreSQL server's Unix-domain
+listening socket. The specified value is used as described above.
 .IP "-t port"
 Allows you to specify a different port for the Postgres server. The
 default is 5432. (This value is used only if the server address does
