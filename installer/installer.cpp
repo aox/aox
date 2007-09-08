@@ -91,6 +91,7 @@ int main( int ac, char *av[] )
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
     db = 0;
+    postgres = 0;
     dbsocket = 0;
     dbpgpass = 0;
     dbaddress = 0;
@@ -281,6 +282,9 @@ void findPostgres()
     else {
         if ( !*PGUSER )
             PGUSER = "postgres";
+        struct passwd * p = getpwnam( PGUSER );
+        if ( p )
+            postgres = p->pw_uid;
         db = dbaddress;
     }
     Allocator::addEternal( db, "DB" );
@@ -1559,7 +1563,7 @@ int psql( const String &cmd )
     if ( n == 0 )
         pid = fork();
     if ( n == 0 && pid == 0 ) {
-        if ( ( dbsocket && setreuid( postgres, postgres ) < 0 ) ||
+        if ( ( postgres != 0 && setreuid( postgres, postgres ) < 0 ) ||
              dup2( fd[0], 0 ) < 0 ||
              close( fd[1] ) < 0 ||
              close( fd[0] ) < 0 )
