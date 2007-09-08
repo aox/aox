@@ -63,6 +63,9 @@ bool exists( const String & );
 void configure();
 void findPostgres();
 void findPgUser();
+void checkSocket( String * );
+void readPassword();
+void readPgPass();
 void oryxGroup();
 void oryxUser();
 void database();
@@ -270,19 +273,7 @@ void findPostgres()
 
     if ( dbsocket ) {
         findPgUser();
-        if ( !( dbsocket->startsWith( "/" ) && exists( *dbsocket ) ) ) {
-            fprintf( stderr, "Error: Couldn't find the Postgres listening "
-                     "socket at '%s'.\n", dbsocket->cstr() );
-            if ( exists( "/etc/debian_version" ) &&
-                 exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
-            {
-                fprintf( stderr, "(On Debian, perhaps it should be "
-                         "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
-            }
-            fprintf( stderr, "Please rerun the installer with "
-                     "\"-s /path/to/socket\".\n" );
-            exit( -1 );
-        }
+        checkSocket( dbsocket );
         db = dbsocket;
     }
     else {
@@ -292,26 +283,103 @@ void findPostgres()
     }
     Allocator::addEternal( db, "DB" );
 
-    if ( askPass ) {
-        char passwd[128];
-        struct termios term;
-        struct termios newt;
+    if ( askPass )
+        readPassword();
+    else
+        readPgPass();
+}
 
-        if ( tcgetattr( 0, &term ) < 0 )
-            error( "Couldn't get terminal attributes (-" +
-                   fn( errno ) + ")." );
-        newt = term;
-        newt.c_lflag |= ECHONL;
-        newt.c_lflag &= ~(ECHO|ISIG);
-        if ( tcsetattr( 0, TCSANOW, &newt ) < 0 )
-            error( "Couldn't set terminal attributes (-" +
-                   fn( errno ) + ")." );
-        printf( "Password: " );
-        fgets( passwd, 128, stdin );
-        tcsetattr( 0, TCSANOW, &term );
-        dbpgpass = new String( passwd );
-        dbpgpass->truncate( dbpgpass->length()-1 );
+
+void checkSocket( String * sock )
+{
+    if ( !( sock->startsWith( "/" ) && exists( *sock ) ) ) {
+        fprintf( stderr, "Error: Couldn't find the Postgres listening "
+                 "socket at '%s'.\n", sock->cstr() );
+        if ( exists( "/etc/debian_version" ) &&
+             exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
+        {
+            fprintf( stderr, "(On Debian, perhaps it should be "
+                     "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
+        }
+        fprintf( stderr, "Please rerun the installer with "
+                 "\"-s /path/to/socket\".\n" );
+        exit( -1 );
+    }
+}
+
+
+void readPassword()
+{
+    char passwd[128];
+    struct termios term;
+    struct termios newt;
+
+    if ( tcgetattr( 0, &term ) < 0 )
+        error( "Couldn't get terminal attributes (-" +
+               fn( errno ) + ")." );
+    newt = term;
+    newt.c_lflag |= ECHONL;
+    newt.c_lflag &= ~(ECHO|ISIG);
+    if ( tcsetattr( 0, TCSANOW, &newt ) < 0 )
+        error( "Couldn't set terminal attributes (-" +
+               fn( errno ) + ")." );
+    printf( "Password: " );
+    fgets( passwd, 128, stdin );
+    tcsetattr( 0, TCSANOW, &term );
+    dbpgpass = new String( passwd );
+    dbpgpass->truncate( dbpgpass->length()-1 );
+    Allocator::addEternal( dbpgpass, "DBPGPASS" );
+}
+
+
+void readPgPass()
+{
+    const char * pgpass = getenv( "PGPASSFILE" );
+    if ( pgpass && !exists( pgpass ) ) {
+        fprintf( stderr, "PGPASSFILE '%s' does not exist.\n", pgpass );
+        pgpass = 0;
+    }
+
+    if ( !pgpass ) {
+        String s;
+        struct passwd * p = getpwuid( 0 );
+        if ( p && p->pw_dir )
+            s.append( p->pw_dir );
+        else
+            s.append( "/root" );
+        s.append( "/.pgpass" );
+        pgpass = s.cstr();
+    }
+
+    FILE * f = fopen( pgpass, "r" );
+    if ( !f )
+        return;
+
+    String want( *db );
+    want.append( ":" );
+    if ( dbport != 0 )
+        want.append( fn( dbport ) );
+    else
+        want.append( "5432" );
+    want.append( ":" );
+    want.append( "template1" );
+    want.append( ":" );
+    want.append( PGUSER );
+    want.append( ":" );
+
+    char line[256];
+    while ( fgets( line, 256, f ) != 0 ) {
+        // hostname:port:database:username:password
+        String s( line );
+        if ( s.startsWith( want ) ) {
+            dbpgpass = new String( s.mid( want.length() ).stripCRLF() );
+            break;
+        }
+    }
+
+    if ( dbpgpass ) {
         Allocator::addEternal( dbpgpass, "DBPGPASS" );
+        fprintf( stderr, "Using password from PGPASSFILE='%s'\n", pgpass );
     }
 }
 
@@ -1455,6 +1523,13 @@ int psql( const String &cmd )
     int fd[2];
     pid_t pid = -1;
 
+    String host( *dbaddress );
+    if ( dbsocket ) {
+        uint l = dbsocket->length();
+        l -= String( ".s.PGSQL.5432" ).length();
+        host = dbsocket->mid( 0, l );
+    }
+
     n = pipe( fd );
     if ( n == 0 )
         pid = fork();
@@ -1467,13 +1542,6 @@ int psql( const String &cmd )
         if ( silent )
             if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                 exit( -1 );
-
-        String host( *dbaddress );
-        if ( dbsocket ) {
-            uint l = dbsocket->length();
-            l -= String( ".s.PGSQL.5432" ).length();
-            host = dbsocket->mid( 0, l );
-        }
         execlp( PSQL, PSQL, "-h", host.cstr(), "-U", PGUSER,
                 dbname->cstr(), "-f", "-", (const char *) 0 );
         exit( -1 );
@@ -1493,8 +1561,9 @@ int psql( const String &cmd )
                 fprintf( stderr, "(No psql in PATH=%s)\n", getenv( "PATH" ) );
             fprintf( stderr, "Please re-run the installer after "
                      "doing the following as user %s:\n\n"
-                     "%s %s -f - <<PSQL;\n%sPSQL\n\n",
-                     PGUSER, PSQL, dbname->cstr(), cmd.cstr() );
+                     "%s -h %s %s -f - <<PSQL;\n%sPSQL\n\n",
+                     PGUSER, PSQL, host.cstr(), dbname->cstr(),
+                     cmd.cstr() );
             EventLoop::shutdown();
             return -1;
         }
