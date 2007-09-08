@@ -364,7 +364,7 @@ void readPgPass()
 
     struct stat st;
     if ( stat( pgpass, &st ) < 0 || !S_ISREG( st.st_mode ) ||
-         st.st_mode & (S_IRWXG|S_IRWXO) != 0 )
+         ( st.st_mode & (S_IRWXG|S_IRWXO) ) != 0 )
         return;
 
     File f( pgpass, File::Read );
