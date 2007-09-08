@@ -332,6 +332,30 @@ void readPassword()
 }
 
 
+StringList * splitFields( const String & s )
+{
+    StringList * l = new StringList;
+
+    uint i = 0;
+    String word;
+    while ( i < s.length() ) {
+        char c = s[i++];
+
+        if ( c == ':' || c == '\n' ) {
+            l->append( new String( word ) );
+            word.truncate( 0 );
+        }
+        else {
+            if ( c == '\\' )
+                c = s[i++];
+            word.append( c );
+        }
+    }
+
+    return l;
+}
+
+
 void readPgPass()
 {
     const char * pgpass = getenv( "PGPASSFILE" );
@@ -349,51 +373,15 @@ void readPgPass()
 
     StringList::Iterator line( f.lines() );
     while ( line ) {
-        String s( *line );
-        ++line;
-
-        String host, port, database, username, password;
-
-        int n = 0;
-        uint i = 0;
-        String word;
-        while ( i < s.length() ) {
-            char c = s[i];
-
-            if ( c == ':' ) {
-                switch ( n ) {
-                case 0:
-                    host = word;
-                    break;
-                case 1:
-                    port = word;
-                    break;
-                case 2:
-                    database = word;
-                    break;
-                case 3:
-                    username = word;
-                    break;
-                default:
-                    return;
-                }
-                word.truncate( 0 );
-                n++;
-            }
-            else if ( c == '\n' ) {
-                password = word;
-            }
-            else {
-                if ( c == '\\' )
-                    c = s[++i];
-                word.append( c );
-            }
-
-            i++;
-        }
-
-        if ( n != 4 )
+        StringList * fields = splitFields( *line );
+        if ( fields->count() != 5 )
             return;
+
+        String host( *fields->shift() );
+        String port( *fields->shift() );
+        String database( *fields->shift() );
+        String username( *fields->shift() );
+        String password( *fields->shift() );
 
         if ( ( host == "*" ||
                host == *db ||
@@ -408,6 +396,8 @@ void readPgPass()
             dbpgpass = new String( password );
             break;
         }
+
+        ++line;
     }
 
     if ( dbpgpass ) {
