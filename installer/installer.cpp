@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
+#include <termios.h>
 
 
 uid_t postgres;
@@ -32,6 +33,7 @@ class Dispatcher * d;
 bool report = false;
 bool silent = false;
 
+String * db;
 String * dbname;
 String * dbsocket;
 String * dbaddress;
@@ -39,8 +41,10 @@ String * dbuser;
 String * dbpass;
 String * dbowner;
 String * dbownerpass;
+String * dbpgpass;
 
 uint dbport = 0;
+bool askPass = false;
 
 int todo = 0;
 bool generatedPass = false;
@@ -57,6 +61,7 @@ void error( String );
 const char *pgErr( const String & );
 bool exists( const String & );
 void configure();
+void findPostgres();
 void findPgUser();
 void oryxGroup();
 void oryxUser();
@@ -82,6 +87,9 @@ int main( int ac, char *av[] )
     AOXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
+    db = 0;
+    dbsocket = 0;
+    dbpgpass = 0;
     dbname = new String( DBNAME );
     Allocator::addEternal( dbname, "DBNAME" );
     dbaddress = new String( DBADDRESS );
@@ -94,8 +102,6 @@ int main( int ac, char *av[] )
     Allocator::addEternal( dbowner, "DBOWNER" );
     dbownerpass = new String( DBOWNERPASS );
     Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
-    dbsocket = new String( "/tmp/.s.PGSQL.5432" );
-    Allocator::addEternal( dbsocket, "DBSOCKET" );
 
     uint verbosity = 0;
     av++;
@@ -126,7 +132,7 @@ int main( int ac, char *av[] )
             else if ( s == "-a" )
                 *dbaddress = *av++;
             else if ( s == "-s" )
-                *dbsocket = *av++;
+                dbsocket = new String( *av++ );
             ac--;
         }
         else if ( s == "-t" ) {
@@ -139,6 +145,9 @@ int main( int ac, char *av[] )
                 error( "Invalid port number " + p );
             ac--;
         }
+        else if ( s == "-P" ) {
+            askPass = true;
+        }
         else if ( s == "-v" ) {
             verbosity++;
         }
@@ -146,6 +155,9 @@ int main( int ac, char *av[] )
             error( "Unrecognised argument: '" + s + "'" );
         }
     }
+
+    if ( dbsocket )
+        Allocator::addEternal( dbsocket, "DBSOCKET" );
 
     Allocator::addEternal( new StderrLogger( "installer", verbosity ),
                            "log object" );
@@ -157,8 +169,6 @@ int main( int ac, char *av[] )
     if ( getuid() != 0 )
         error( "Please run the installer as root." );
 
-    findPgUser();
-
     if ( report )
         printf( "Reporting what the installer needs to do.\n" );
 
@@ -169,24 +179,13 @@ int main( int ac, char *av[] )
 
     configure();
 
-    if ( !( dbsocket->startsWith( "/" ) && exists( *dbsocket ) ) ) {
-        fprintf( stderr, "Error: Couldn't find the Postgres listening "
-                 "socket at '%s'.\n", dbsocket->cstr() );
-        if ( exists( "/etc/debian_version" ) &&
-             exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
-        {
-            fprintf( stderr, "(On Debian, perhaps it should be "
-                     "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
-        }
-        fprintf( stderr, "Please rerun the installer with "
-                 "\"-s /path/to/socket\".\n" );
-        exit( -1 );
-    }
+    findPostgres();
 
     oryxGroup();
     oryxUser();
 
-    seteuid( postgres );
+    if ( postgres != 0 )
+        seteuid( postgres );
     EventLoop::setup();
     database();
 
@@ -260,6 +259,59 @@ bool exists( const String & f )
 {
     struct stat st;
     return stat( f.cstr(), &st ) == 0;
+}
+
+
+void findPostgres()
+{
+    if ( !dbsocket && *dbaddress == "127.0.0.1" )
+        dbsocket = new String( "/tmp/.s.PGSQL.5432" );
+
+    if ( dbsocket ) {
+        findPgUser();
+        if ( !( dbsocket->startsWith( "/" ) && exists( *dbsocket ) ) ) {
+            fprintf( stderr, "Error: Couldn't find the Postgres listening "
+                     "socket at '%s'.\n", dbsocket->cstr() );
+            if ( exists( "/etc/debian_version" ) &&
+                 exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
+            {
+                fprintf( stderr, "(On Debian, perhaps it should be "
+                         "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
+            }
+            fprintf( stderr, "Please rerun the installer with "
+                     "\"-s /path/to/socket\".\n" );
+            exit( -1 );
+        }
+        db = dbsocket;
+    }
+    else {
+        if ( !*PGUSER )
+            PGUSER = "postgres";
+        db = dbaddress;
+    }
+    Allocator::addEternal( db, "DB" );
+
+    if ( askPass ) {
+        char passwd[128];
+        struct termios term;
+        struct termios newt;
+
+        if ( tcgetattr( 0, &term ) < 0 )
+            error( "Couldn't get terminal attributes (-" +
+                   fn( errno ) + ")." );
+        newt = term;
+        newt.c_lflag |= ECHONL;
+        newt.c_lflag &= ~(ECHO|ISIG);
+        if ( tcsetattr( 0, TCSANOW, &newt ) < 0 )
+            error( "Couldn't set terminal attributes (-" +
+                   fn( errno ) + ")." );
+        printf( "Password: " );
+        fgets( passwd, 128, stdin );
+        tcsetattr( 0, TCSANOW, &term );
+        dbpgpass = new String( passwd );
+        dbpgpass->truncate( dbpgpass->length()-1 );
+        Allocator::addEternal( dbpgpass, "DBPGPASS" );
+    }
 }
 
 
@@ -485,9 +537,11 @@ void database()
     if ( !d ) {
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = '" + *dbsocket + "'" );
+        Configuration::add( "db-address = '" + *db + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
+        if ( dbpgpass )
+            Configuration::add( "db-password = '" + *dbpgpass + "'" );
         if ( dbport != 0 )
             Configuration::add( "db-port = " + fn( dbport ) );
 
@@ -722,9 +776,11 @@ void database()
 
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = '" + *dbsocket + "'" );
+        Configuration::add( "db-address = '" + *db + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
+        if ( dbpgpass )
+            Configuration::add( "db-password = '" + *dbpgpass + "'" );
         if ( dbport != 0 )
             Configuration::add( "db-port = " + fn( dbport ) );
 
@@ -1396,7 +1452,7 @@ int psql( const String &cmd )
     if ( n == 0 )
         pid = fork();
     if ( n == 0 && pid == 0 ) {
-        if ( setreuid( postgres, postgres ) < 0 ||
+        if ( ( dbsocket && setreuid( postgres, postgres ) < 0 ) ||
              dup2( fd[0], 0 ) < 0 ||
              close( fd[1] ) < 0 ||
              close( fd[0] ) < 0 )
@@ -1404,8 +1460,15 @@ int psql( const String &cmd )
         if ( silent )
             if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                 exit( -1 );
-        execlp( PSQL, PSQL, dbname->cstr(), "-f", "-",
-                (const char *) 0 );
+
+        String host( *dbaddress );
+        if ( dbsocket ) {
+            uint l = dbsocket->length();
+            l -= String( ".s.PGSQL.5432" ).length();
+            host = dbsocket->mid( 0, l );
+        }
+        execlp( PSQL, PSQL, "-h", host.cstr(), dbname->cstr(),
+                "-f", "-", (const char *) 0 );
         exit( -1 );
     }
     else {
