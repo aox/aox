@@ -1474,8 +1474,8 @@ int psql( const String &cmd )
             l -= String( ".s.PGSQL.5432" ).length();
             host = dbsocket->mid( 0, l );
         }
-        execlp( PSQL, PSQL, "-h", host.cstr(), dbname->cstr(),
-                "-f", "-", (const char *) 0 );
+        execlp( PSQL, PSQL, "-h", host.cstr(), "-U", PGUSER,
+                dbname->cstr(), "-f", "-", (const char *) 0 );
         exit( -1 );
     }
     else {
