@@ -1,36 +1,18 @@
-2.03: 2007-09-10
+2.04: 2007-10-22
 
-  aox undelete. (Done)
-
-  HTTPS support. (Done)
-
-  allow-plaintext-access. (Done)
-
-  tls-certificate-{label,secret} plus pemtrans documentation changes.
-  (Done)
-
-  Cope with Postgres being restarted while we're running. (Done)
-
-  Fix "aox update database" segfault. (Done)
-
-  SASL LOGIN, duplicates of IMAP AUTHENTICATE removed/merged.
-  (Done)
-
-  installer should be able to install to a remote database.
-  (Done)
-
-  improve smtp submit client error recovery. (Done)
+  Sieve subaddress, vacation and time extensions.
 
   httpd: webmail, archives, search results.
 
-  Something for Martin Rode and his broken Umlauts.
-
-
-2.04: 2007-10-22
-
   Proper case insensitivity for mailbox and user names.
 
-  Sieve subaddress, vacation and time extensions.
+  Something for Martin Rode and his broken Umlauts.
+
+  Fix compiles on OS X (-DDATA_BIGENDIAN on ppc).
+
+  smtp message-copy
+
+  installer error messages could be improved.
 
   Arnt is responsive.
 
