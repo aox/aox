@@ -32,6 +32,7 @@ uid_t postgres;
 class Dispatcher * d;
 bool report = false;
 bool silent = false;
+uint verbosity = 0;
 
 String * db;
 String * dbname;
@@ -106,7 +107,6 @@ int main( int ac, char *av[] )
     dbownerpass = new String( DBOWNERPASS );
     Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
 
-    uint verbosity = 0;
     av++;
     while ( ac-- > 1 ) {
         String s( *av++ );
@@ -293,6 +293,11 @@ void findPostgres()
         readPassword();
     else
         readPgPass();
+
+    if ( verbosity )
+        printf( "Connecting to Postgres server %s as%suser %s.\n",
+                db->cstr(), ( postgres != 0 ? " Unix " : " " ),
+                PGUSER );
 }
 
 
@@ -408,7 +413,9 @@ void readPgPass()
 
     if ( dbpgpass ) {
         Allocator::addEternal( dbpgpass, "DBPGPASS" );
-        fprintf( stderr, "Using password from PGPASSFILE='%s'\n", pgpass );
+        if ( verbosity )
+            fprintf( stderr, "Using password from PGPASSFILE='%s'\n",
+                     pgpass );
     }
 }
 
