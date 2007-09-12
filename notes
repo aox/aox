@@ -145,7 +145,6 @@ Various TODO items from earlier releases.
   Basic administration using the httpd
 
   httpd:
-  - TLS support
   - More administration stuff
 
   Indexing for DOC bodyparts
@@ -155,6 +154,14 @@ Various TODO items from earlier releases.
   LDAP authentication support (but how does this help us?)
 
   Full-text search
+
+
+Not enough name resolution: db-address=localhost doesn't work.
+
+  The name is resolved at startup, but nothing ever calls the resolver
+  to retrieve the value. One way to fix this would be to make Endpoint
+  itself accept names and resolve them. The downside is: what if there
+  are multiple addresses?
 
 
 Cleartext passwords
