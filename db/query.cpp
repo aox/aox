@@ -582,8 +582,6 @@ Row *Query::nextRow()
     and use the getInt()/getString()/etc. accessor functions, each of
     which takes a column name, to retrieve the values of each column
     in the Row.
-
-    XXX: This class is still somewhat "under construction".
 */
 
 
