@@ -10,15 +10,16 @@
 
   Proper case insensitivity for mailbox and user names.
 
-  Something for Martin Rode and his broken Umlauts.
+  Bugs:
 
-  Fix compiles on OS X (-DDATA_BIGENDIAN on ppc).
+  - OS X compiles on PPC break because cryptlib/Jamfile statically
+    defines -DDATA_LITTLEENDIAN.
 
-  smtp message-copy
+  - db-address=localhost doesn't work (see note).
 
-  installer error messages could be improved.
+  - SMTP message-copy doesn't work any more.
 
-  Arnt is responsive.
+  - Martin Rode's umlauts are broken.
 
   Schedule:
 
@@ -28,6 +29,8 @@
     2007-10-18: roll, release chores
     2007-10-19: features for next release
     2007-10-22: release
+
+  Arnt is responsive.
 
 
 2.05: 2007-12-03
@@ -152,9 +155,6 @@ Various TODO items from earlier releases.
   SORT (/THREAD?)
 
   Basic administration using the httpd
-
-  httpd:
-  - More administration stuff
 
   Indexing for DOC bodyparts
 
