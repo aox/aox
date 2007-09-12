@@ -1,6 +1,10 @@
 2.04: 2007-10-22
 
-  Sieve subaddress, vacation and time extensions.
+  SIEVE subaddress (RFC 3598, draft-ietf-sieve-rfc3598bis).
+
+  SIEVE vacation (draft-ietf-sieve-vacation).
+
+  SIEVE time (?).
 
   httpd: webmail, archives, search results.
 
