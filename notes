@@ -40,6 +40,25 @@
   Five weeks after 2.06.
 
 
+Release cycle
+
+  Five weeks, t-35 to t (a Monday).
+
+  t-38: we decide on a feature list for the release.
+
+  t-14: Whatever hasn't been started is dropped, whatever cannot be
+  completed before t-7 is laid aside for the next release. Write the
+  announcement text.
+
+  t-7: Fork the release and remove any code that needs to be removed.
+
+  t-4: Roll the tarball and do the release chores.
+
+  t-3: See t-38 above.
+
+  t-0: A crontab does what it needs to do.
+
+
 The value of features
 
   Archiveopteryx provides online archiving. We want the features we
@@ -136,25 +155,6 @@ Various TODO items from earlier releases.
   LDAP authentication support (but how does this help us?)
 
   Full-text search
-
-
-Release cycle
-
-  Five weeks, t-35 to t (a Monday).
-
-  t-38: we decide on a feature list for the release.
-
-  t-14: Whatever hasn't been started is dropped, whatever cannot be
-  completed before t-7 is laid aside for the next release. Write the
-  announcement text.
-
-  t-7: Fork the release and remove any code that needs to be removed.
-
-  t-4: Roll the tarball and do the release chores.
-
-  t-3: See t-38 above.
-
-  t-0: A crontab does what it needs to do.
 
 
 Cleartext passwords
