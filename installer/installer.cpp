@@ -1356,9 +1356,8 @@ void superConfig()
     cf.append( "/aoxsuper.conf" );
 
     String v( Configuration::compiledIn( Configuration::Version ) );
-    // XXX: Change the manpage reference below if appropriate.
     String intro(
-        "# Archiveopteryx configuration. See archiveopteryx.conf(5) "
+        "# Archiveopteryx configuration. See aoxsuper.conf(5) "
         "for details.\n"
         "# Automatically generated while installing Archiveopteryx "
         + v + ".\n\n"
