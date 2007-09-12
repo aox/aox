@@ -791,10 +791,15 @@ bool Connection::accessPermitted() const
     x = Configuration::text( Configuration::AllowPlaintextAccess );
     x = x.lower();
 
-    if ( x == "always" ||
-         ( x == "localhost" && self().address() == peer().address() ) ||
-         hasTls() )
+    if ( x == "always" )
         return true;
+
+    if ( x == "localhost" && self().address() == peer().address() )
+        return true;
+
+    if ( hasTls() )
+        return true;
+
     return false;
 }
 
