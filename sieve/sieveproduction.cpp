@@ -739,8 +739,13 @@ void SieveCommand::parse( const String & previous )
                     a->setError( "Must have exactly one mailbox name" );
                 UStringList::Iterator i( a->stringList() );
                 while ( i ) {
+                    UString p;
+                    p.append( "/" );
+                    p.append( *i );
+
                     if ( !Mailbox::validName( *i ) &&
-                         !Mailbox::validName( "/" + *i ) ) {
+                         !Mailbox::validName( p ) )
+                    {
                         a->setError( "Each string must be a mailbox name. "
                                      "This one is not: " + i->utf8() );
                     }
