@@ -675,11 +675,6 @@ Udoc web pages chores
 Play with PITR and write /ams/pitr.html
 
 
-Update doc/recorder.man
-
-  Must decide whether to use .SS or .IP, etc.
-
-
 Document IPC structure
 
   Some man page, or some web page, or both, should say who's
