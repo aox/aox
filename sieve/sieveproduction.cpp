@@ -765,17 +765,17 @@ void SieveCommand::parse( const String & previous )
             }
             else if ( extensions ) {
                 UStringList::Iterator i( a->stringList() );
-                UStringList e;
+                StringList e;
                 while ( i ) {
                     if ( !supportedExtensions()->contains( i->ascii() ) )
-                        e.append( i );
+                        e.append( i->ascii().quoted() );
                     ++i;
 
                 }
                 if ( !e.isEmpty() )
                     a->setError( "Each string must be a supported "
                                  "sieve extension. "
-                                 "These are not: " + e.join( ", " ).utf8() );
+                                 "These are not: " + e.join( ", " ) );
             }
         }
     }
