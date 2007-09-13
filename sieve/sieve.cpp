@@ -363,6 +363,9 @@ static void addAddress( UStringList * l, Address * a,
             detail = localpart.mid( n+sep.length() );
         }
     }
+    else {
+        user = localpart;
+    }
 
     if ( p == SieveTest::User ) {
         s->append( c.toUnicode( user ) );
