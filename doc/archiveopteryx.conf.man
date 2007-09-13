@@ -301,6 +301,24 @@ specifies which port
 .BR archiveopteryx (8)
 should listen to. The default is
 .IR 25 .
+.IP use-subaddressing
+controls whether messages addressed to
+.I user+tag@example.org
+are accepted for delivery to
+.I user@example.org
+(if the latter is a valid recipient address). The default is
+.IR true .
+.IP address-separator
+is the character that separates the username from the subaddress in a
+localpart, e.g. the
+.I +
+in
+.IR user+tag@example.org .
+The default, which you should not need to change, is
+.IR + .
+This setting is relevant only if
+.I use-subaddressing
+is true.
 .IP message-copy
 specifies whether or not to keep filesystem copies of incoming
 messages, e.g. to burn a mail log to CD/DVD regularly.

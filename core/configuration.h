@@ -107,6 +107,7 @@ public:
         EntropySource,
         ManageSieveAddress,
         SmartHostAddress,
+        AddressSeparator,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };
@@ -139,6 +140,7 @@ public:
         UseSieve,
         UseWebmail,
         UseWebArchive,
+        UseSubaddressing,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };

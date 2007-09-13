@@ -218,7 +218,8 @@ static struct {
     { "message-copy-directory", Configuration::MessageCopyDir, MESSAGEDIR },
     { "entropy-source", Configuration::EntropySource, "/dev/urandom" },
     { "managesieve-address", Configuration::ManageSieveAddress, "" },
-    { "smarthost-address", Configuration::SmartHostAddress, "127.0.0.1" }
+    { "smarthost-address", Configuration::SmartHostAddress, "127.0.0.1" },
+    { "address-separator", Configuration::AddressSeparator, "+" }
 };
 
 
@@ -250,7 +251,8 @@ static struct {
     { "announce-draft-support", Configuration::AnnounceDraftSupport, false },
     { "use-sieve", Configuration::UseSieve, true },
     { "use-webmail", Configuration::UseWebmail, false },
-    { "use-web-archive", Configuration::UseWebArchive, false }
+    { "use-web-archive", Configuration::UseWebArchive, false },
+    { "use-subaddressing", Configuration::UseSubaddressing, true }
 };
 
 
