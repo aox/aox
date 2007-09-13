@@ -2,13 +2,12 @@
 
   SIEVE subaddress (RFC 3598, draft-ietf-sieve-rfc3598bis).
 
-    - configuration: address-separator= ("" disables, "+" default)
-    - smtp: user resolution should take address-separator into account.
-    - sieve: add :user and :detail tags.
+    (Mechanics seem done, but more testing required. Mail delivery
+    doesn't seem to work properly yet.)
+
+  SIEVE date/index (draft-freed-sieve-date-index).
 
   SIEVE vacation (draft-ietf-sieve-vacation).
-
-  SIEVE time-based tests, see draft-freed-sieve-date-index-06 or later
 
   httpd: webmail, archives, search results.
 
