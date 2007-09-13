@@ -16,6 +16,7 @@
 #include "sievescript.h"
 #include "sieveaction.h"
 #include "addressfield.h"
+#include "configuration.h"
 #include "sieveproduction.h"
 
 
@@ -348,12 +349,36 @@ static void addAddress( UStringList * l, Address * a,
 {
     UString * s = new UString;
     Utf8Codec c;
-    if ( p != SieveTest::Domain )
-        s->append( c.toUnicode( a->localpart() ) );
-    if ( p == SieveTest::All || p == SieveTest::NoAddressPart )
-        s->append( "@" );
-    if ( p != SieveTest::Localpart )
-        s->append( c.toUnicode( a->domain() ) );
+
+    String user;
+    String detail;
+    String localpart( a->localpart() );
+
+    if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
+        Configuration::Text p = Configuration::AddressSeparator;
+        String sep( Configuration::text( p ) );
+        int n = localpart.find( sep );
+        if ( n > 0 ) {
+            user = localpart.mid( 0, n );
+            detail = localpart.mid( n+sep.length() );
+        }
+    }
+
+    if ( p == SieveTest::User ) {
+        s->append( c.toUnicode( user ) );
+    }
+    else if ( p == SieveTest::Domain ) {
+        s->append( c.toUnicode( detail ) );
+    }
+    else {
+        if ( p != SieveTest::Domain )
+            s->append( c.toUnicode( localpart ) );
+        if ( p == SieveTest::All || p == SieveTest::NoAddressPart )
+            s->append( "@" );
+        if ( p != SieveTest::Localpart )
+            s->append( c.toUnicode( a->domain() ) );
+    }
+
     l->append( s );
 }
 

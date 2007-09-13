@@ -902,7 +902,10 @@ void SieveTest::parse()
             }
             else if ( t == ":localpart" ||
                       t == ":domain" ||
-                      t == ":all" ) {
+                      t == ":user" ||
+                      t == ":detail" ||
+                      t == ":all" )
+            {
                 if ( apa ) {
                     apa->setError( "Address part specified twice" );
                     i->setError( "Address part specified twice" );
@@ -913,6 +916,10 @@ void SieveTest::parse()
                     d->addressPart = Localpart;
                 else if ( t == ":domain" )
                     d->addressPart = Domain;
+                else if ( t == ":user" )
+                    d->addressPart = User;
+                else if ( t == ":detail" )
+                    d->addressPart = Detail;
                 else if ( t == ":all" )
                     d->addressPart = All;
             }

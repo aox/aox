@@ -132,7 +132,9 @@ public:
     enum MatchType { Is, Contains, Matches };
     MatchType matchType() const;
 
-    enum AddressPart { Localpart, Domain, All, NoAddressPart };
+    enum AddressPart {
+        Localpart, Domain, User, Detail, All, NoAddressPart
+    };
     AddressPart addressPart() const;
 
     enum Comparator { IOctet, IAsciiCasemap };

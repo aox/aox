@@ -321,7 +321,9 @@ void SieveParser::whitespace()
 }
 
 
-/*! ADDRESS-PART = ":localpart" / ":domain" / ":all" */
+/*! ADDRESS-PART = ":localpart" / ":domain" / ":all"
+    RFC3598 adds / ":user" / ":detail"
+*/
 
 String SieveParser::addressPart()
 {
@@ -332,8 +334,12 @@ String SieveParser::addressPart()
         return ":domain";
     else if ( present( ":all" ) )
         return ":all";
+    else if ( present( ":user" ) )
+        return ":user";
+    else if ( present( ":detail" ) )
+        return ":detail";
     setError( "Address-part not found "
-              "(should be :localpart, :domain or :all)" );
+              "(should be :localpart, :domain, :user, :detail, or :all)" );
     return "";
 }
 
