@@ -933,3 +933,11 @@ Listext::match() should use UString, not String
   inclusion. Where?
 
 
+The subaddress specification says foo@ != foo+@ wrt. :detail
+
+  The former causes any :detail tests to evaluate to false, while the
+  latter treats :detail as an empty string. We treat both as an empty
+  string.
+
+
+

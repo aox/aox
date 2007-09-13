@@ -368,6 +368,8 @@ static void addAddress( UStringList * l, Address * a,
         s->append( c.toUnicode( user ) );
     }
     else if ( p == SieveTest::Domain ) {
+        // XXX: foo@ and foo+@ are supposed to be treated differently
+        // here, but we pretend they're the same.
         s->append( c.toUnicode( detail ) );
     }
     else {
