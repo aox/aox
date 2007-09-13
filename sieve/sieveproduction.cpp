@@ -180,6 +180,7 @@ StringList * SieveProduction::supportedExtensions()
     r->append( "fileinto" );
     r->append( "reject" );
     r->append( "body" );
+    r->append( "subaddress" );
     return r;
 }
 
@@ -912,16 +913,22 @@ void SieveTest::parse()
                 }
                 apa = i;
                 i->setParsed( true );
-                if ( t == ":localpart" )
+                if ( t == ":localpart" ) {
                     d->addressPart = Localpart;
-                else if ( t == ":domain" )
+                }
+                else if ( t == ":domain" ) {
                     d->addressPart = Domain;
-                else if ( t == ":user" )
-                    d->addressPart = User;
-                else if ( t == ":detail" )
-                    d->addressPart = Detail;
-                else if ( t == ":all" )
+                }
+                else if ( t == ":all" ) {
                     d->addressPart = All;
+                }
+                else if ( t == ":user" || t == ":detail" ) {
+                    require( "subaddress" );
+                    if ( t == ":user" )
+                        d->addressPart = User;
+                    else
+                        d->addressPart = Detail;
+                }
             }
             ++i;
         }
