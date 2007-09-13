@@ -2,6 +2,7 @@
 
 #include "smtpmailrcpt.h"
 
+#include "configuration.h"
 #include "sievescript.h"
 #include "smtpparser.h"
 #include "stringlist.h"
@@ -266,8 +267,19 @@ void SmtpRcptTo::execute()
             "left join users u on (s.owner=u.id) "
             "left join namespaces n on (u.parentspace=n.id) "
             "where m.deleted='f' and "
-            "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
-        d->query->bind( 1, d->address->localpart().lower() );
+            "lower(a.localpart)=$1 and lower(a.domain)=$2", this
+        );
+
+        String localpart( d->address->localpart() );
+        if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
+            Configuration::Text t = Configuration::AddressSeparator;
+            String sep( Configuration::text( t ) );
+            int n = localpart.find( sep );
+            if ( n > 0 )
+                localpart = localpart.mid( 0, n );
+        }
+
+        d->query->bind( 1, localpart.lower() );
         d->query->bind( 2, d->address->domain().lower() );
         d->query->execute();
     }
