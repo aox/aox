@@ -252,7 +252,7 @@ static struct {
     { "use-sieve", Configuration::UseSieve, true },
     { "use-webmail", Configuration::UseWebmail, false },
     { "use-web-archive", Configuration::UseWebArchive, false },
-    { "use-subaddressing", Configuration::UseSubaddressing, true }
+    { "use-subaddressing", Configuration::UseSubaddressing, false }
 };
 
 

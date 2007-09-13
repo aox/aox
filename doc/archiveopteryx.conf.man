@@ -307,7 +307,7 @@ controls whether messages addressed to
 are accepted for delivery to
 .I user@example.org
 (if the latter is a valid recipient address). The default is
-.IR true .
+.IR false .
 .IP address-separator
 is the character that separates the username from the subaddress in a
 localpart, e.g. the
