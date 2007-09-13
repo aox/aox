@@ -8,7 +8,7 @@
 
   SIEVE vacation (draft-ietf-sieve-vacation).
 
-  SIEVE time (?).
+  SIEVE time-based tests, see draft-freed-sieve-date-index-06 or later
 
   httpd: webmail, archives, search results.
 
