@@ -189,14 +189,14 @@ Header * Message::parseHeader( uint & i, uint end,
                                Header::Mode m )
 {
     if ( rfc2822[0] == 'F' || rfc2822[0] == ' ' ) {
-        String beginning = rfc2822.mid( i, 5 );
+        String beginning = rfc2822.mid( i, 5 ).lower();
         if ( beginning == "From " ||
-             beginning == " Jan " || beginning == " Feb " ||
-             beginning == " Mar " || beginning == " Apr " ||
-             beginning == " May " || beginning == " Jun " ||
-             beginning == " Jul " || beginning == " Aug " ||
-             beginning == " Sep " || beginning == " Oct " ||
-             beginning == " Nov " || beginning == " Dec " ) {
+             beginning == " jan " || beginning == " feb " ||
+             beginning == " mar " || beginning == " apr " ||
+             beginning == " may " || beginning == " jun " ||
+             beginning == " jul " || beginning == " aug " ||
+             beginning == " sep " || beginning == " oct " ||
+             beginning == " nov " || beginning == " dec " ) {
             uint j = i + 5;
             while ( j < end && rfc2822[j] != '\r' && rfc2822[j] != '\n' )
                 j++;
