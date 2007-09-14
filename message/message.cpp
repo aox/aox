@@ -190,7 +190,7 @@ Header * Message::parseHeader( uint & i, uint end,
 {
     if ( rfc2822[0] == 'F' || rfc2822[0] == ' ' ) {
         String beginning = rfc2822.mid( i, 5 ).lower();
-        if ( beginning == "From " ||
+        if ( beginning == "from " ||
              beginning == " jan " || beginning == " feb " ||
              beginning == " mar " || beginning == " apr " ||
              beginning == " may " || beginning == " jun " ||
