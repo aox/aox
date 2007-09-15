@@ -1605,9 +1605,9 @@ int psql( const String &cmd )
                 fprintf( stderr, "(No psql in PATH=%s)\n", getenv( "PATH" ) );
             fprintf( stderr, "Please re-run the installer after "
                      "doing the following as user %s:\n\n"
-                     "%s -h %s %s -f - <<PSQL;\n%sPSQL\n\n",
-                     PGUSER, PSQL, host.cstr(), dbname->cstr(),
-                     cmd.cstr() );
+                     "%s -h %s -p %s %s -f - <<PSQL;\n%sPSQL\n\n",
+                     PGUSER, PSQL, host.cstr(), port.cstr(),
+                     dbname->cstr(), cmd.cstr() );
             EventLoop::shutdown();
             return -1;
         }
