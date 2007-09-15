@@ -44,7 +44,7 @@ String * dbowner;
 String * dbownerpass;
 String * dbpgpass;
 
-uint dbport = 0;
+uint dbport = 5432;
 bool askPass = false;
 
 int todo = 0;
@@ -271,9 +271,7 @@ bool exists( const String & f )
 
 void findPostgres()
 {
-    String port( "5432" );
-    if ( dbport != 0 )
-        port = fn( dbport );
+    String port( fn( dbport ) );
 
     if ( !dbsocket && *dbaddress == "127.0.0.1" )
         dbsocket = new String( "/tmp/.s.PGSQL." + port );
@@ -402,9 +400,7 @@ void readPgPass()
                host == *db ||
                ( host == "localhost" &&
                  ( *db == "127.0.0.1" || db->startsWith( "/" ) ) ) ) &&
-             ( port == "*" ||
-               ( port == "5432" && dbport == 0 ) ||
-               port == fn( dbport ) ) &&
+             ( port == "*" || port == fn( dbport ) ) &&
              ( database == "*" || database == "template1" ) &&
              ( username == "*" || username == PGUSER ) )
         {
@@ -653,12 +649,11 @@ void database()
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
         Configuration::add( "db-address = '" + *db + "'" );
+        Configuration::add( "db-port = " + fn( dbport ) );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
         if ( dbpgpass )
             Configuration::add( "db-password = '" + *dbpgpass + "'" );
-        if ( dbport != 0 )
-            Configuration::add( "db-port = " + fn( dbport ) );
 
         Database::setup( 1 );
 
@@ -892,12 +887,11 @@ void database()
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
         Configuration::add( "db-address = '" + *db + "'" );
+        Configuration::add( "db-port = " + fn( dbport ) );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
         if ( dbpgpass )
             Configuration::add( "db-password = '" + *dbpgpass + "'" );
-        if ( dbport != 0 )
-            Configuration::add( "db-port = " + fn( dbport ) );
 
         Database::setup( 1 );
 
@@ -1278,8 +1272,7 @@ void configFile()
     );
 
     String dbhost( "db-address = " + *dbaddress + "\n" );
-    if ( dbport != 0 )
-        dbhost.append( "db-port = " + fn( dbport ) + "\n" );
+    dbhost.append( "db-port = " + fn( dbport ) + "\n" );
 
     String cfg(
         dbhost +
@@ -1563,9 +1556,7 @@ int psql( const String &cmd )
     pid_t pid = -1;
 
     String host( *dbaddress );
-    String port( "5432" );
-    if ( dbport != 0 )
-        port = fn( dbport );
+    String port( fn( dbport ) );
 
     if ( dbsocket ) {
         String s( ".s.PGSQL." + port );
