@@ -136,6 +136,17 @@ Items for web site
   - Client-specific pages
 
 
+Installer doesn't take steps to ensure that the installation is usable
+
+  It could do at least two things:
+
+  Run all the same checks on the new installation as 'aox check' and
+  archiveopteryx at startup.
+
+  Try to connect to all the server addresses and if anything's
+  listening anywhere, mention it on stdout.
+
+
 Various TODO items from earlier releases.
 
   Message retention policy
