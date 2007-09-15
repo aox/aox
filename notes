@@ -2,10 +2,10 @@
 
   SIEVE subaddress (RFC 3598, draft-ietf-sieve-rfc3598bis).
 
-    (Mechanics seem done, but more testing required. Mail delivery
-    doesn't seem to work properly yet.)
+    Done, but more testing needed.
 
   SIEVE date/index (draft-freed-sieve-date-index).
+  Needs relational tests (RFC 3431/draft-ietf-sieve-3431bis).
 
   SIEVE vacation (draft-ietf-sieve-vacation).
 
