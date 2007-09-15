@@ -708,11 +708,12 @@ void database()
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
         Configuration::add( "db-address = '" + *db + "'" );
-        Configuration::add( "db-port = " + fn( dbport ) );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
         if ( dbpgpass )
             Configuration::add( "db-password = '" + *dbpgpass + "'" );
+        if ( !db->startsWith( "/" ) )
+            Configuration::add( "db-port = " + fn( dbport ) );
 
         Database::setup( 1 );
 
@@ -946,11 +947,12 @@ void database()
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
         Configuration::add( "db-address = '" + *db + "'" );
-        Configuration::add( "db-port = " + fn( dbport ) );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
         if ( dbpgpass )
             Configuration::add( "db-password = '" + *dbpgpass + "'" );
+        if ( !db->startsWith( "/" ) )
+            Configuration::add( "db-port = " + fn( dbport ) );
 
         Database::setup( 1 );
 
@@ -1331,6 +1333,8 @@ void configFile()
     );
 
     String dbhost( "db-address = " + *dbaddress + "\n" );
+    if ( dbaddress->startsWith( "/" ) )
+        dbhost.append( "# " );
     dbhost.append( "db-port = " + fn( dbport ) + "\n" );
 
     String cfg(
