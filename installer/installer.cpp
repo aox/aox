@@ -64,7 +64,8 @@ bool exists( const String & );
 void configure();
 void findPostgres();
 void findPgUser();
-void checkSocket( String * );
+void badSocket( String * );
+bool checkSocket( String * );
 void readPassword();
 void readPgPass();
 void oryxGroup();
@@ -278,7 +279,8 @@ void findPostgres()
 
     if ( dbsocket ) {
         findPgUser();
-        checkSocket( dbsocket );
+        if ( checkSocket( dbsocket ) == false )
+            badSocket( dbsocket );
         db = dbsocket;
     }
     else {
@@ -296,28 +298,86 @@ void findPostgres()
     else
         readPgPass();
 
-    if ( verbosity )
-        printf( "Connecting to Postgres server %s as%suser %s.\n",
-                db->cstr(), ( postgres != 0 ? " Unix " : " " ),
-                PGUSER );
+    printf( "Connecting to Postgres server %s as%suser %s.\n",
+            db->cstr(), ( postgres != 0 ? " Unix " : " " ),
+            PGUSER );
 }
 
 
-void checkSocket( String * sock )
+void badSocket( String * sock )
 {
-    if ( !( sock->startsWith( "/" ) && exists( *sock ) ) ) {
-        fprintf( stderr, "Error: Couldn't find the Postgres listening "
-                 "socket at '%s'.\n", sock->cstr() );
-        if ( exists( "/etc/debian_version" ) &&
-             exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
-        {
-            fprintf( stderr, "(On Debian, perhaps it should be "
-                     "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
-        }
-        fprintf( stderr, "Please rerun the installer with "
-                 "\"-s /path/to/socket\".\n" );
-        exit( -1 );
+    fprintf( stderr, "Error: Couldn't find the Postgres listening "
+             "socket at '%s'.\n", sock->cstr() );
+
+    if ( exists( "/etc/debian_version" ) &&
+         exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
+    {
+        fprintf( stderr, "(On Debian, perhaps it should be "
+                 "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
     }
+
+    fprintf( stderr, "Please rerun the installer with "
+             "\"-s /path/to/socket.file\".\n" );
+    exit( -1 );
+}
+
+
+bool checkSocket( String * sock )
+{
+    if ( !sock->startsWith( "/" ) )
+        return false;
+
+    struct stat st;
+    int n = stat( sock->cstr(), &st );
+
+    if ( n < 0 ) {
+        return false;
+    }
+    else if ( S_ISSOCK( st.st_mode ) ) {
+        // This is the normal case.
+    }
+    else if ( S_ISDIR( st.st_mode ) ) {
+        // Postgres users are used to specifying a directory and port
+        // number, and letting psql turn that into a socket path. We
+        // try to cooperate.
+
+        String s( "/.s.PGSQL." + fn( dbport ) );
+        sock->append( s );
+
+        if ( !( stat( sock->cstr(), &st ) == 0 &&
+                S_ISSOCK( st.st_mode ) ) )
+            return false;
+
+        fprintf( stderr, "Using '%s' as the server socket.\n",
+                 sock->cstr() );
+    }
+    else {
+        return false;
+    }
+
+    // If we were run with "-s /foo/bar/.s.PGSQL.6666", make sure we can
+    // translate that into "psql -h /foo/bar -p 6666".
+
+    if ( !sock->endsWith( "/.s.PGSQL." + fn( dbport ) ) ) {
+        bool ok = false;
+        String s = *sock;
+
+        uint i = sock->length()-1;
+        while ( i > 0 && (*sock)[i] != '/' )
+            i--;
+        if ( i > 0 && (*sock)[i] == '/' ) {
+            s = sock->mid( i+1 );
+            if ( s.startsWith( ".s.PGSQL." ) ) {
+                String port( s.mid( 9 ) );
+                dbport = port.number( &ok );
+            }
+        }
+
+        if ( !ok )
+            error( "Malformed socket name: '" + s + "'" );
+    }
+
+    return true;
 }
 
 
@@ -413,9 +473,8 @@ void readPgPass()
 
     if ( dbpgpass ) {
         Allocator::addEternal( dbpgpass, "DBPGPASS" );
-        if ( verbosity )
-            fprintf( stderr, "Using password from PGPASSFILE='%s'\n",
-                     pgpass );
+        fprintf( stderr, "Using password from PGPASSFILE='%s'\n",
+                 pgpass );
     }
 }
 
