@@ -271,8 +271,12 @@ bool exists( const String & f )
 
 void findPostgres()
 {
+    String port( "5432" );
+    if ( dbport != 0 )
+        port = fn( dbport );
+
     if ( !dbsocket && *dbaddress == "127.0.0.1" )
-        dbsocket = new String( "/tmp/.s.PGSQL.5432" );
+        dbsocket = new String( "/tmp/.s.PGSQL." + port );
 
     if ( dbsocket ) {
         findPgUser();
@@ -1564,7 +1568,10 @@ int psql( const String &cmd )
         l -= String( ".s.PGSQL.5432" ).length();
         host = dbsocket->mid( 0, l-1 );
     }
-    String port( fn( dbport ) );
+
+    String port( "5432" );
+    if ( dbport != 0 )
+        port = fn( dbport );
 
     n = pipe( fd );
     if ( n == 0 )
