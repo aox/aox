@@ -1562,8 +1562,9 @@ int psql( const String &cmd )
     if ( dbsocket ) {
         uint l = dbsocket->length();
         l -= String( ".s.PGSQL.5432" ).length();
-        host = dbsocket->mid( 0, l );
+        host = dbsocket->mid( 0, l-1 );
     }
+    String port( fn( dbport ) );
 
     n = pipe( fd );
     if ( n == 0 )
@@ -1577,8 +1578,9 @@ int psql( const String &cmd )
         if ( silent )
             if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                 exit( -1 );
-        execlp( PSQL, PSQL, "-h", host.cstr(), "-U", PGUSER,
-                dbname->cstr(), "-f", "-", (const char *) 0 );
+        execlp( PSQL, PSQL, "-h", host.cstr(), "-p", port.cstr(),
+                "-U", PGUSER, dbname->cstr(), "-f", "-",
+                (const char *) 0 );
         exit( -1 );
     }
     else {
