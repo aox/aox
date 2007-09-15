@@ -175,9 +175,6 @@ int main( int ac, char *av[] )
     if ( getuid() != 0 )
         error( "Please run the installer as root." );
 
-    if ( report )
-        printf( "Reporting what the installer needs to do.\n" );
-
     Configuration::setup( "archiveopteryx.conf" );
     String super( Configuration::compiledIn( Configuration::ConfigDir ) );
     super.append( "/aoxsuper.conf" );
@@ -186,6 +183,9 @@ int main( int ac, char *av[] )
     configure();
 
     findPostgres();
+
+    if ( report )
+        printf( "Reporting what the installer needs to do.\n" );
 
     oryxGroup();
     oryxUser();
