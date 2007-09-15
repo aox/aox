@@ -1563,15 +1563,15 @@ int psql( const String &cmd )
     pid_t pid = -1;
 
     String host( *dbaddress );
-    if ( dbsocket ) {
-        uint l = dbsocket->length();
-        l -= String( ".s.PGSQL.5432" ).length();
-        host = dbsocket->mid( 0, l-1 );
-    }
-
     String port( "5432" );
     if ( dbport != 0 )
         port = fn( dbport );
+
+    if ( dbsocket ) {
+        String s( ".s.PGSQL." + port );
+        uint l = dbsocket->length() - s.length();
+        host = dbsocket->mid( 0, l-1 );
+    }
 
     n = pipe( fd );
     if ( n == 0 )
