@@ -771,6 +771,7 @@ void Message::fix8BitHeaderFields()
 {
     String charset;
     String fallback = "us-ascii";
+    bool conflict = false;
     List<Bodypart>::Iterator i( allBodyparts() );
     while ( i ) {
         ContentType * ct = 0;
@@ -785,7 +786,7 @@ void Message::fix8BitHeaderFields()
             else if ( charset.isEmpty() )
                 charset = cs; // use this charset...?
             else if ( cs != charset )
-                return; // multiple charsets specified
+                conflict = true;
             if ( ct && ct->subtype() == "html" )
                 fallback = "iso-8859-1";
         }
@@ -798,8 +799,8 @@ void Message::fix8BitHeaderFields()
         c = Codec::byString( badFields( header() ) );
     if ( !c )
         c = Codec::byName( fallback );
-    if ( !c )
-        return;
+    if ( conflict || !c )
+        c = new AsciiCodec;
 
     header()->fix8BitFields( c );
     i = allBodyparts()->first();
