@@ -146,6 +146,11 @@ Installer doesn't take steps to ensure that the installation is usable
   Try to connect to all the server addresses and if anything's
   listening anywhere, mention it on stdout.
 
+  In addition to this, the installer does the wrong thing right now if
+  it creates the database users and then fails to run psql to load the
+  schema. It exits with an error, which means the randomly-generated
+  passwords are lost, because the configuration file is not written.
+
 
 Various TODO items from earlier releases.
 
