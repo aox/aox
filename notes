@@ -950,4 +950,12 @@ The subaddress specification says foo@ != foo+@ wrt. :detail
   string.
 
 
+Distribution packages
+
+  - RPM: silug has offered to help.
+  - FreeBSD port: devin (Tod McQuillin) has offered to help.
+  - Debian: ? (license problems, but we could provide a .deb).
+  - Ubuntu: ?
+
+
 
