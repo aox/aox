@@ -47,7 +47,7 @@
 
   Six weeks after 2.05, I think.
 
-  Arnt is away from 2007-12-20 to 2008-01-02.
+  Arnt is away from 2007-12-20 to 2008-01-03.
 
 
 2.07: 2008-02-18
@@ -920,7 +920,7 @@ The webmail thingy completely mangles patch attachments. :-(
 
   This would seem to apply to non-MIME attachments. How should we
   handle those? So far our Message class is completely predicated on
-  MIME. Need an example of this.
+  MIME. Need an example of this, with an archives.oryx.com URL.
 
 
 Make "aox check config" test for more things.
@@ -962,5 +962,13 @@ Distribution packages
   - Debian: ? (license problems, but we could provide a .deb).
   - Ubuntu: ?
 
+
+SMTP extensions
+
+  Right now our list isn't well-considered, and we seem not to offer
+  SIZE. Probably best to have a talk about which extensions are worth
+  implementing.
+
+  http://www.iana.org/assignments/mail-parameters
 
 
