@@ -58,8 +58,6 @@ public:
 
     String comparator();
 
-    String matchType();
-
     UString string();
 
     class UStringList * stringList();

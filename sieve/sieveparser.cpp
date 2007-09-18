@@ -322,7 +322,7 @@ void SieveParser::whitespace()
 
 
 /*! ADDRESS-PART = ":localpart" / ":domain" / ":all"
-    RFC3598 adds / ":user" / ":detail"
+    RFC 3598 adds: ":user" / ":detail"
 */
 
 String SieveParser::addressPart()
@@ -529,25 +529,6 @@ String SieveParser::comparator()
     if ( !c.isAscii() )
         setError( "Comparator name must be all-ASCII" );
     return c.ascii();
-}
-
-
-/*! MATCH-TYPE = ":is" / ":contains" / ":matches"
-
-    Returns the match-type in lower case, with the ":" prefix.
-*/
-
-String SieveParser::matchType()
-{
-    whitespace();
-    if ( present( ":is" ) )
-        return ":is";
-    else if ( present( ":contains" ) )
-        return ":contains";
-    else if ( present( ":matches" ) )
-        return ":matches";
-    setError( "Expected match-type (:is/:contains/:matches)" );
-    return "";
 }
 
 
