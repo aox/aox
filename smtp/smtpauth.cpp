@@ -85,6 +85,12 @@ void SmtpAuth::execute()
             return;
         }
 
+        if ( !server()->accessPermitted() ) {
+            respond( 504, "TLS required for message submission", "5.7.0" );
+            finish();
+            return;
+        }
+
         d->m = SaslMechanism::create( d->mech, this, server() );
         if ( !d->m ) {
             respond( 504, "Mechanism " + d->mech.quoted() + " not available",
