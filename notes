@@ -418,6 +418,30 @@ ocd needs work (mike@waspfactory.org)
 AddressCache and FieldNameCache are utter crocks, and must die.
 
 
+aox/conf/*
+
+  Possible category pages, each listing all variables that influence
+  blah
+
+  conf/encryption
+  conf/authentication
+  conf/webmail
+  conf/submission
+  conf/imap
+  conf/database
+
+  More?
+
+
+aox/conf/tls-certificate
+
+  Those variables are not well described. We need a bit more.
+
+  Also, -secret is probably misnamed, we use -password for other
+  cases. I expect that's why aox show cf tls-certificate-secret yields
+  while e.g. aox show cf db-password does not.
+
+
 METADATA
 
   Needed for lemonade, as easy as annotate.
