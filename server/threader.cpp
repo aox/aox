@@ -80,7 +80,7 @@ void Threader::execute()
                              " t.subject "
                              "from thread_members tm "
                              "join threads t on (t.id=tm.thread) "
-                             "where tm.mailbox=$1 and tm.uid>$2 ",
+                             "where tm.mailbox=$1 and tm.uid>$2",
                              this );
             d->complete->bind( 1, d->mailbox->id() );
             d->complete->bind( 2, d->largestUid );
