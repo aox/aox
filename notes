@@ -189,7 +189,19 @@ Not enough name resolution: db-address=localhost doesn't work.
   The name is resolved at startup, but nothing ever calls the resolver
   to retrieve the value. One way to fix this would be to make Endpoint
   itself accept names and resolve them. The downside is: what if there
-  are multiple addresses?
+  are multiple addresses, e.g. 127.0.0.1 and ::1?
+
+  There are three cases, perhaps four:
+
+  - Our own servers, where it's clear what should happen, and
+    Listener::create() does the right thing.
+  - Outgoing connections where we need a connection to any address.
+  - Outgoing connections where we need a connection to each address.
+  - Outgoing connections where >1 addresses is not meaningful, not
+    tested or otherwise undesirable.
+
+  Each user of Endpoint needs to handle this. That's Listener,
+  Database, LogClient and OcClient, right?
 
 
 Cleartext passwords
@@ -206,7 +218,7 @@ Cleartext passwords
      to today.
   5. We provide some helping code to delete passwords for users with a
      high count and a long-ago time.
-  6. We add documentation saying that if you diable auth-this and
+  6. We add documentation saying that if you disable auth-this and
      auth-that, you can disable store-plaintext-passwords.
   7. We add configuration/db sanity checks for ditto.
 
