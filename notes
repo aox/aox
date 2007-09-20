@@ -179,8 +179,6 @@ Various TODO items from earlier releases.
 
   aox backup/restore (or similarly helpful procedure)
 
-  LDAP authentication support (but how does this help us?)
-
   Full-text search
 
 
@@ -878,12 +876,6 @@ PGP automatic processing
 
   Apparently there are five different PGP wrapping formats. We could
   detect four and transform them to the proper MIME format.
-
-
-Groups and ACL
-
-  We don't need groups as of now, but they do have their handy-dandy
-  aspects. If we add groups, see the LDAP AB item.
 
 
 Get rid of FORTRAN typing
