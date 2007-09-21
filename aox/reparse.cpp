@@ -129,7 +129,6 @@ void Reparse::execute()
             l->append( m );
             d->injector->setMailboxes( l );
             d->injector->execute();
-            return;
         }
         else {
             printf( "- parsing %s:%d still fails: %s\n",
@@ -137,6 +136,11 @@ void Reparse::execute()
                     msg->error().simplified().cstr() );
         }
     }
+
+    if ( !d->q->done() )
+        return;
+    if ( d->injector && !d->injector->done() )
+        return;
 
     finish();
 }
