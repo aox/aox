@@ -808,6 +808,8 @@ void Date::checkHarder()
         d->valid = false;
     else if ( d->day > 31 )
         d->valid = false;
+    else if ( !d->month || !d->day )
+        d->valid = false;
 
     // simple code for the simple cases
     if ( d->year < 1600 )
