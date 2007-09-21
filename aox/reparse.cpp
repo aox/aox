@@ -59,7 +59,6 @@ void Reparse::execute()
                           "(p.mailbox=dm.mailbox and p.uid=dm.uid) "
                           "where dm.mailbox is null", this );
         d->q->execute();
-        waitFor( d->q );
     }
 
     if ( !choresDone() )
@@ -130,6 +129,7 @@ void Reparse::execute()
             l->append( m );
             d->injector->setMailboxes( l );
             d->injector->execute();
+            return;
         }
         else {
             printf( "- parsing %s:%d still fails: %s\n",
