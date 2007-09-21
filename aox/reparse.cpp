@@ -59,6 +59,7 @@ void Reparse::execute()
                           "(p.mailbox=dm.mailbox and p.uid=dm.uid) "
                           "where dm.mailbox is null", this );
         d->q->execute();
+        waitFor( d->q );
     }
 
     if ( !choresDone() )

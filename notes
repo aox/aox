@@ -812,6 +812,11 @@ Logging to syslog
   it can't reopen the logfile.
 
 
+RFC 5032
+
+  Desirable, but takes a little bit of doing in the selector.
+
+
 Rendering webmail HTML is presumably good, but...
 
   Knowledge is better than presumption.
@@ -819,9 +824,6 @@ Rendering webmail HTML is presumably good, but...
   Webmail services have a lot of known holes. Cross site scripting and
   suchlike. We can add known sploits/demos to our rendering tests, and
   check that we're not vulnerable.
-
-  Two I saw today: http://www.sec-consult.com/232.html and
-  http://www.sec-consult.com/233.html
 
   We have a potential security hole: A malevolent HTML bodypart is
   forwarded as is on the "download bodypart" page.
