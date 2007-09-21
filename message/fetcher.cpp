@@ -287,24 +287,15 @@ void Fetcher::execute()
     if ( d->messages.isEmpty() )
         return;
 
-    MessageSet still;
     List<Message>::Iterator i( d->messages );
-    while ( i ) {
-        still.add( i->uid() );
+    d->smallest = 0;
+    d->largest = 0;
+    if ( i )
+        d->smallest = i->uid();
+    uint n = 0;
+    while ( i && n < 512 ) {
+        d->largest = i->uid();
         ++i;
-    }
-    // now, what to do. if we've been asked to fetch a simple range,
-    // do it.
-    d->smallest = still.smallest();
-    if ( still.isRange() ) {
-        d->largest = still.largest();
-    }
-    else {
-        // if not, make a range that encompasses up to four additional
-        // messages (or at least UIDs)
-        uint i = 1;
-        while ( i <= still.count() && still.value( i ) - d->smallest < i + 4 )
-            d->largest = still.value( i++ );
     }
     d->query = new Query( *query( d->mailbox->view() ), this );
     d->query->bind( 1, d->smallest );
