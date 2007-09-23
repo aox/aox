@@ -199,7 +199,9 @@ Not enough name resolution: db-address=localhost doesn't work.
     tested or otherwise undesirable.
 
   Each user of Endpoint needs to handle this. That's Listener,
-  Database, LogClient and OcClient, right?
+  Database, LogClient and OcClient, right? (SpoolManager/SmtpClient need
+  to resolve an Endpoint too. bin/aox needs to be able to connect to the
+  same things the Listener decides to listen to.)
 
 
 Cleartext passwords
