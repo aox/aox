@@ -293,7 +293,7 @@ void Fetcher::execute()
     if ( i )
         d->smallest = i->uid();
     uint n = 0;
-    while ( i && n < 512 ) {
+    while ( i && n < 1024 ) {
         d->largest = i->uid();
         ++i;
     }
