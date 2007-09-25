@@ -16,7 +16,9 @@
   Bugs:
 
   - OS X compiles on PPC break because cryptlib/Jamfile statically
-    defines -DDATA_LITTLEENDIAN.
+    defines -DDATA_LITTLEENDIAN. Is this something we even want to
+    fix? We did make a policy decision to support a very limited set
+    of platforms.
 
   - db-address=localhost doesn't work (see note).
 
