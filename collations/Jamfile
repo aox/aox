@@ -1,0 +1,7 @@
+SubDir TOP collations ;
+SubInclude TOP core ;
+
+HDRS += [ FDirName $(TOP) collations ] ;
+
+Build collations :
+    collation.cpp ascii-numeric.cpp ascii-casemap.cpp ; 

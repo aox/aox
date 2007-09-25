@@ -5,6 +5,7 @@ SubInclude TOP abnf ;
 SubInclude TOP deliver ;
 SubInclude TOP doc ;
 SubInclude TOP encodings ;
+SubInclude TOP collations ;
 SubInclude TOP ocd ;
 SubInclude TOP logd ;
 SubInclude TOP aox ;
@@ -25,7 +26,7 @@ if ( $(BUILDDOC) ) {
 }
 
 Doc oryxdoc : core database schema encodings imap logd mailbox message ocd sasl
-    server smtp tls user http pop sieve extractors abnf ;
+    server smtp tls user http pop sieve extractors abnf collations ;
 
 if ( $(BUILDDOC) ) {
     Depends install : doc ;
