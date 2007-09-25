@@ -16,6 +16,7 @@
 #include "buffer.h"
 #include "scope.h"
 #include "sieve.h"
+#include "file.h"
 #include "list.h"
 #include "date.h"
 #include "smtp.h"
@@ -226,6 +227,13 @@ void SmtpData::execute()
     if ( d->state == 3 ) {
         if ( !d->injector->done() )
             return;
+        String mc = Configuration::text( Configuration::MessageCopy ).lower();
+        if ( mc == "all" )
+            makeCopy();
+        else if ( mc == "delivered" && d->injector->error().isEmpty() )
+            makeCopy();
+        else if ( mc == "errors" && !d->injector->error().isEmpty() )
+            makeCopy();
         if ( d->injector->error().isEmpty() ) {
             d->state = 4;
             d->injector->announce();
@@ -520,4 +528,52 @@ void SmtpBurl::execute()
         respond( 250, "OK", "2.0.0" );
         finish();
     }
+}
+
+
+/*! Writes a copy of the incoming message to the file system. */
+
+void SmtpData::makeCopy() const
+{
+    String copy = Configuration::text( Configuration::MessageCopyDir );
+    copy.append( '/' );
+    copy.append( server()->transactionId() );
+
+    File f( copy, File::ExclusiveWrite );
+    if ( !f.valid() ) {
+        log( "Could not open " + copy + " for writing", Log::Disaster );
+        return;
+    }
+
+    f.write( "From: " );
+    f.write( server()->sieve()->sender()->toString() );
+    f.write( "\n" );
+
+    List<SmtpRcptTo>::Iterator it( server()->rcptTo() );
+    while ( it ) {
+        f.write( "To: " );
+        f.write( it->address()->toString() );
+        f.write( "\n" );
+        ++it;
+    }
+
+    if ( d->injector &&
+         ( d->injector->failed() ||
+           d->ok.startsWith( "Worked around: " ) ) ) {
+        copy.append( "-err" );
+        String e;
+        if ( d->injector->failed() ) {
+            f.write( "Error: Injector: " );
+            f.write( d->injector->error().simplified() );
+        }
+        else {
+            f.write( "Parser: " );
+            f.write( d->ok.simplified() );
+        }
+        f.write( "\n" );
+    }
+
+    f.write( "\n" );
+
+    f.write( d->body );
 }

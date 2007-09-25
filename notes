@@ -20,9 +20,9 @@
 
   - db-address=localhost doesn't work (see note).
 
-  - SMTP message-copy doesn't work any more.
+  - SMTP message-copy doesn't work any more (fixed)
 
-  - Martin Rode's umlauts are broken.
+  - Martin Rode's umlauts are broken (example/test needed)
 
   Schedule:
 

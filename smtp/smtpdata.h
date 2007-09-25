@@ -16,6 +16,8 @@ public:
 
     class Message * message( const String & );
 
+    void makeCopy() const;
+
 private:
     class SmtpDataData * d;
 };
