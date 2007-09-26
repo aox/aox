@@ -307,6 +307,56 @@ bool SieveArgument::parsed() const
 }
 
 
+/*! Records an error if this argument isn't a number. */
+
+void SieveArgument::assertNumber()
+{
+    if ( !d->tag.isEmpty() )
+        setError( "Expected a number here, not a tag" );
+    else if ( d->list )
+        setError( "Expected a number here, not a string or string list" );
+}
+
+
+/*! Records an error if this argument isn't a single string. */
+
+void SieveArgument::assertString()
+{
+    if ( !d->tag.isEmpty() )
+        setError( "Expected a string here, not a tag" );
+    else if ( d->number )
+        setError( "Expected a string here, not a number" );
+    else if ( !d->list || d->list->isEmpty() )
+        setError( "Expected a single string here" );
+    else if ( d->list->count() != 1 )
+        setError( "Expected a single string here, not a string list" );
+}
+
+
+/*! Records an error if this argument isn't a string list. */
+
+void SieveArgument::assertStringList()
+{
+    if ( !d->tag.isEmpty() )
+        setError( "Expected a string list here, not a tag" );
+    else if ( d->number )
+        setError( "Expected a string list here, not a number" );
+    else if ( !d->list || d->list->isEmpty() )
+        setError( "Expected a single string here" );
+}
+
+
+/*! Records an error if this argument isn't a tag. */
+
+void SieveArgument::assertTag()
+{
+    if ( d->number )
+        setError( "Expected a tag here, not a number" );
+    else if ( d->list )
+        setError( "Expected a tag here, not a string or string list" );
+}
+
+
 class SieveArgumentListData
     : public Garbage
 {
@@ -373,6 +423,119 @@ void SieveArgumentList::append( SieveTest * t )
 List<SieveTest> * SieveArgumentList::tests() const
 {
     return &d->t;
+}
+
+
+/*! Makes sure that \a tag occurs either zero or one times in the
+    argument list, and returns the following argument. Records an
+    error if \a tag occurs more than once or occurs as the last
+    argument.
+
+    Returns a null pointer if \a tag doesn't occur or occurs as the
+    last argument.
+e*/
+
+SieveArgument * SieveArgumentList::argumentFollowingTag( const String & tag )
+{
+    SieveArgument * firstTag = 0;
+    SieveArgument * result = 0;
+    List<SieveArgument>::Iterator i( arguments() );
+    while ( i ) {
+        String t = i->tag();
+        if ( t == tag ) {
+            if ( firstTag ) {
+                firstTag->setError( "Tag used twice: " + tag );
+                i->setError( "Tag used twice: " + tag );
+            }
+            else {
+                firstTag = i;
+                firstTag->setParsed( true );
+            }
+        }
+        ++i;
+        if ( firstTag && !result ) {
+            if ( i ) {
+                result = i;
+                result->setParsed( true );
+            }
+            else {
+                firstTag->setError( "Tag not followed by argument: " + tag );
+            }
+        }
+    }
+    return result;
+}
+
+
+/*! Looks for the \a tag and returns the value of the following
+    string. Records an error if anything looks wrong.
+
+    If \a tag doesn't occur, takeTaggedString() returns an empty
+    string.
+
+    Marks both arguments as parsed.
+*/
+
+UString SieveArgumentList::takeTaggedString( const String & tag )
+{
+    SieveArgument * a = argumentFollowingTag( tag );
+    UString r;
+    if ( !a )
+        return r;
+    
+    a->assertString();
+    if ( a->stringList() )
+        r = *a->stringList()->firstElement();
+    return r;
+}
+
+
+/*! Looks for the \a tag and returns the value of the following
+    number. Records an error if anything looks wrong.
+
+    If \a tag doesn't occur, takeTaggedNumber() returns 0.
+
+    Marks both arguments as parsed.
+*/
+
+uint SieveArgumentList::takeTaggedNumber( const String & tag )
+{
+    SieveArgument * a = argumentFollowingTag( tag );
+    if ( !a )
+        return 0;
+    a->assertNumber();
+    return a->number();
+}
+
+
+/*! Finds the argument tagged \a tag and returns a pointer to it. If
+    \a tag ocurs mor than once, all occurences are flagged as bad and
+    the first occurence returned.
+
+    Returns a null pointer if \a tag does not occur anywhere.
+
+    Marks the returned argument as parsed.
+*/
+
+SieveArgument * SieveArgumentList::findTag( const String & tag ) const
+{
+    List<SieveArgument>::Iterator a( arguments() );
+    while ( a && a->tag() != tag )
+        ++a;
+    SieveArgument * r = a;
+    if ( a ) {
+        ++a;
+        while ( a ) {
+            if ( a->tag() == tag ) {
+                r->setError( "Tag occurs twice: " + tag );
+                a->setError( "Tag occurs twice: " + tag );
+            }
+            ++a;
+        }
+    }
+    if ( r )
+        r->setParsed( true );
+    return r;
 }
 
 

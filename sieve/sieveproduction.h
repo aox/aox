@@ -55,6 +55,11 @@ public:
     void setParsed( bool );
     bool parsed() const;
 
+    void assertNumber();
+    void assertString();
+    void assertStringList();
+    void assertTag();
+
 private:
     class SieveArgumentData * d;
 };
@@ -71,6 +76,11 @@ public:
 
     void append( class SieveTest * );
     List<class SieveTest> * tests() const;
+
+    SieveArgument * argumentFollowingTag( const String & tag );
+    class UString takeTaggedString( const String & tag );
+    uint takeTaggedNumber( const String & tag );
+    SieveArgument * findTag( const String & tag ) const;
 
 private:
     class SieveArgumentListData * d;
