@@ -76,11 +76,29 @@ void AddressField::parse( const String &s )
                 a->clear();
             }
         }
-        if ( s.contains( "<>" ) && !s.contains( "," ) && !s.contains( "@" ) ) {
-            // some spammers attempt to send 'To: asdfsaf <>'. we
-            // forget it.
-            setError( "" );
-            a->clear();
+        if ( s.contains( "<>" ) ) {
+            // some spammers attempt to send 'To: asdfsaf <>'.
+            List<Address>::Iterator i( a );
+            uint bounces = 0;
+            uint otherProblems = 0;
+            while ( i ) {
+                if ( i->type() == Address::Bounce )
+                    bounces++;
+                else if ( !i->error().isEmpty() )
+                    otherProblems++;
+                ++i;
+            }
+            if ( bounces && !otherProblems ) {
+                // there's one or more <>, but nothing else bad.
+                i = a->first();
+                while ( i ) {
+                    if ( i->type() == Address::Bounce )
+                        a->take( i );
+                    else
+                        ++i;
+                }
+                setError( "" );
+            }
         }
         break;
 

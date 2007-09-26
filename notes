@@ -11,7 +11,7 @@
 
   httpd: webmail, archives, search results.
 
-  Proper case insensitivity for mailbox and user names.
+  Proper case insensitivity for mailbox and user names (done)
 
   Bugs:
 
