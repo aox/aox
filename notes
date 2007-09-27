@@ -988,6 +988,11 @@ The subaddress specification says foo@ != foo+@ wrt. :detail
   latter treats :detail as an empty string. We treat both as an empty
   string.
 
+  (We could set detail to a single null byte, to \0\r\0\n\0, to a
+  sequence of private-use unicode characters, or even to
+  Entropy::string( 8 ) if there is no separator. The chance of that
+  appearing in an address is negligible.)
+
 
 Distribution packages
 
@@ -999,10 +1004,34 @@ Distribution packages
 
 SMTP extensions
 
-  Right now our list isn't well-considered, and we seem not to offer
-  SIZE. Probably best to have a talk about which extensions are worth
-  implementing.
+  Here are the ones we still don't implement, but ought to implement
+  at some point:
+
+  SIZE: At some time.
+  SUBMITTER? perhaps
+  DELIVERBY (RFC 2852): At some time.
+  FUTURERELEASE (RFC 4865): At some time.
+  MTRK: As soon as someone else does it.
 
   http://www.iana.org/assignments/mail-parameters
+
+
+SUBMITTER
+
+  The work needed to support that:
+
+  1. Pass a submitter to SmtpClient.
+  2. Pass the sieve owner or logged-in user's address as submitter.
+  3. Send that as SUBMITTER= if the smarthost advertises SUBMITTER and
+     the submitter is different from mail-from.
+
+  4. Advertise SUBMITTER.
+  5. If the SMTP/LMTP/Submit client sends SUBMITTER and it's different
+     from the mail-from, record the address in Received.
+  6. If there's a sieve extension specifying how, push the submitter
+     into the envelope so the sieve can see it.
+
+  Easy peasy. But there's no value to offset this (small) cost, is
+  there? Maybe as a hack when one of us is fed up.
 
 
