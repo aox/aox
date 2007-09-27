@@ -613,6 +613,50 @@ void SieveArgumentList::flagUnparsedAsBad()
 }
 
 
+/*! Takes the first unparsed argument, asserts that it is a string
+    list, and returns a pointer to the string list. Calls setError()
+    and returns a null pointer if no unparsed string lists are
+    available.
+*/
+
+UStringList * SieveArgumentList::takeStringList()
+{
+    List<SieveArgument>::Iterator i( arguments() );
+    while ( i && i->parsed() )
+        ++i;
+    if ( !i ) {
+        setError( "Missing string/list argument" );
+        return 0;
+    }
+    i->assertStringList();
+    i->setParsed( true );
+    return i->stringList();
+}
+
+
+/*! Takes the first unparsed argument, asserts that it is a string,
+    and returns the string.
+
+*/
+
+UString SieveArgumentList::takeString()
+{
+    List<SieveArgument>::Iterator i( arguments() );
+    while ( i && i->parsed() )
+        ++i;
+    UString r;
+    if ( !i ) {
+        setError( "Missing string argument" );
+        return r;
+    }
+    i->assertString();
+    i->setParsed( true );
+    if ( i->stringList() )
+        r = *i->stringList()->firstElement();
+    return r;
+}
+
+
 class SieveBlockData
     : public Garbage
 {
@@ -859,11 +903,6 @@ void SieveCommand::parse( const String & previous )
     if ( identifier().isEmpty() )
         setError( "Command name is empty" );
 
-    uint maxargs = 0;
-    uint minargs = 0;
-    bool addrs = false;
-    bool mailboxes = false;
-    bool extensions = false;
     bool test = false;
     bool blk = false;
 
@@ -880,8 +919,17 @@ void SieveCommand::parse( const String & previous )
             setError( "else is only permitted after if/elsif" );
     }
     else if ( i == "require" ) {
-        extensions = true;
-        minargs = 1;
+        UStringList::Iterator i( arguments()->takeStringList() );
+        StringList e;
+        while ( i ) {
+            if ( !supportedExtensions()->contains( i->ascii() ) )
+                e.append( i->ascii().quoted() );
+            ++i;
+        }
+        if ( !e.isEmpty() )
+            setError( "Each string must be a supported "
+                      "sieve extension. "
+                      "These are not: " + e.join( ", " ) );
         if ( !d->require )
             setError( "require is only permitted as the first command." );
     }
@@ -892,15 +940,34 @@ void SieveCommand::parse( const String & previous )
         // nothing needed
     }
     else if ( i == "fileinto" ) {
-        mailboxes = true;
-        minargs = 1;
-        maxargs = 1;
         require( "fileinto" );
+        UString mailbox = arguments()->takeString();
+        UString p;
+        p.append( "/" );
+        p.append( mailbox );
+
+        if ( !Mailbox::validName( mailbox ) && !Mailbox::validName( p ) ) {
+            setError( "Expected mailbox name, but got: " + mailbox.utf8() );
+        }
+        else if ( mailbox.startsWith( "INBOX." ) ) {
+            // a sieve script which wants to reference a
+            // mailbox called INBOX.X must use lower case
+            // (inbox.x).
+            UString aox = 
+                UStringList::split( '.', mailbox.mid( 6 ) )->join( "/" );
+            setError( mailbox.utf8().quoted() +
+                      " is Cyrus syntax. Archiveopteryx uses " +
+                      aox.utf8().quoted() );
+        }
     }
     else if ( i == "redirect" ) {
-        addrs = true;
-        minargs = 1;
-        maxargs = 1;
+        String s = arguments()->takeString().utf8();
+        AddressParser ap( s );
+        if ( !ap.error().isEmpty() ||
+             ap.addresses()->count() != 1 ||
+             ap.addresses()->first()->type() != Address::Normal )
+            setError( "Expected one normal address (local@domain), but got: "
+                      + s );
     }
     else if ( i == "keep" ) {
         // nothing needed
@@ -912,111 +979,7 @@ void SieveCommand::parse( const String & previous )
         setError( "Command unknown: " + identifier() );
     }
 
-    if ( maxargs < minargs )
-        maxargs = UINT_MAX;
-
-    // test each condition in the same order as the variables declared
-    // above
-
-    if ( minargs &&
-         ( !arguments() ||
-           arguments()->arguments()->count() < minargs ) )
-        setError( i + ": Too few arguments (" +
-                  fn ( arguments()->arguments()->count() ) +
-                  ", minimum required is " +
-                  fn ( minargs ) + ")" );
-
-    if ( maxargs < UINT_MAX &&
-         arguments() &&
-         arguments()->arguments()->count() > maxargs )
-        setError( i + ": Too many arguments (" +
-                  fn ( arguments()->arguments()->count() ) +
-                  ", maximum allowed is " +
-                  fn ( maxargs ) + ")" );
-
-    if ( arguments() &&
-         ( addrs || mailboxes || extensions ) ) {
-        List<SieveArgument>::Iterator i( arguments()->arguments() );
-        while ( i ) {
-            SieveArgument * a = i;
-            ++i;
-            if ( a->number() ) {
-                a->setError( "Number not permitted as argument to command " +
-                             identifier() );
-            }
-            else if ( !a->tag().isEmpty() ) {
-                a->setError( "Tag not permitted as argument to command " +
-                             identifier() );
-            }
-            else if ( addrs ) {
-                String s;
-                if ( a->stringList() && a->stringList()->count() > 1 )
-                    a->setError( "Only one address may be specified" );
-                else
-                    s = a->stringList()->firstElement()->utf8();
-                AddressParser ap( s );
-                if ( !ap.error().isEmpty() )
-                    a->setError( "The argument must be an email address. "
-                                 "This one is not: " + s );
-                else if ( ap.addresses()->count() != 1 )
-                    a->setError( "The string must be 1 email address. "
-                                 "This one represents " +
-                                 fn ( ap.addresses()->count() ) + ": " +
-                                 s );
-                else if ( ap.addresses()->first()->type() !=
-                          Address::Normal )
-                    a->setError( "The string must be an ordinary "
-                                 "email address (localpart@domain). "
-                                 "This one is not: " + s +
-                                 " (it represents " +
-                                 ap.addresses()->first()->toString() +
-                                 ")" );
-            }
-            else if ( mailboxes ) {
-                if ( !a->stringList() || a->stringList()->count() != 1 )
-                    a->setError( "Must have exactly one mailbox name" );
-                UStringList::Iterator i( a->stringList() );
-                while ( i ) {
-                    UString p;
-                    p.append( "/" );
-                    p.append( *i );
-
-                    if ( !Mailbox::validName( *i ) &&
-                         !Mailbox::validName( p ) )
-                    {
-                        a->setError( "Each string must be a mailbox name. "
-                                     "This one is not: " + i->utf8() );
-                    }
-                    else if ( i->startsWith( "INBOX." ) ) {
-                        // a sieve script which wants to reference a
-                        // mailbox called INBOX.X must use lower case
-                        // (inbox.x).
-                        UString aox = i->mid( 6 );
-                        aox = UStringList::split( '.', aox )->join( "/" );
-                        a->setError( i->utf8().quoted() +
-                                     " is Cyrus syntax. "
-                                     "Archiveopteryx uses " +
-                                     aox.utf8().quoted() );
-                    }
-                    ++i;
-                }
-            }
-            else if ( extensions ) {
-                UStringList::Iterator i( a->stringList() );
-                StringList e;
-                while ( i ) {
-                    if ( !supportedExtensions()->contains( i->ascii() ) )
-                        e.append( i->ascii().quoted() );
-                    ++i;
-
-                }
-                if ( !e.isEmpty() )
-                    a->setError( "Each string must be a supported "
-                                 "sieve extension. "
-                                 "These are not: " + e.join( ", " ) );
-            }
-        }
-    }
+    arguments()->flagUnparsedAsBad();
 
     if ( test ) {
         // we must have a test
@@ -1081,7 +1044,7 @@ void SieveTest::parse()
         findMatchType();
         findAddressPart();
         d->headers = takeHeaderFieldList();
-        d->keys = takeStringList();
+        d->keys = arguments()->takeStringList();
     }
     else if ( identifier() == "allof" ||
               identifier() == "anyof" ) {
@@ -1104,8 +1067,8 @@ void SieveTest::parse()
         findComparator();
         findMatchType();
         findAddressPart();
-        d->envelopeParts = takeStringList();
-        d->keys = takeStringList();
+        d->envelopeParts = arguments()->takeStringList();
+        d->keys = arguments()->takeStringList();
         UStringList::Iterator i( d->envelopeParts );
         while ( i ) {
             String s = i->utf8().lower();
@@ -1132,7 +1095,7 @@ void SieveTest::parse()
         findComparator();
         findMatchType();
         d->headers = takeHeaderFieldList();
-        d->keys = takeStringList();
+        d->keys = arguments()->takeStringList();
     }
     else if ( identifier() == "not" ) {
         if ( !arguments()->arguments()->isEmpty() )
@@ -1172,7 +1135,7 @@ void SieveTest::parse()
             d->bodyMatchType = SpecifiedTypes;
             d->contentTypes = arguments()->takeTaggedStringList( ":content" );
         }
-        d->keys = takeStringList();
+        d->keys = arguments()->takeStringList();
     }
     else {
         setError( "Unknown test: " + identifier() );
@@ -1267,30 +1230,11 @@ SieveTest::Comparator SieveTest::comparator() const
 }
 
 
-/*! Takes the first unparsed string list from the list of arguments,
-    calls SieveArgument::setParsed() on it and returns a pointer to
-    it. Calls setError() and returns a null pointer if no unparsed
-    string lists are available.
-*/
-
-UStringList * SieveTest::takeStringList()
-{
-    List<SieveArgument>::Iterator i( arguments()->arguments() );
-    while ( i && ( i->parsed() || !i->stringList() ) )
-        ++i;
-    if ( !i ) {
-        setError( "Missing string/list argument" );
-        return 0;
-    }
-    i->setParsed( true );
-    return i->stringList();
-}
-
-
-/*! As takeStringList(), and additionally checks that each string is a
-    valid header field name according to RFC 2822 section 3.6.8, and
-    if identifier() is "address", that each refers to an address
-    field. The result is filtered through String::headerCased().
+/*! As SieveArgumentList::takeStringList(), and additionally checks
+    that each string is a valid header field name according to RFC
+    2822 section 3.6.8, and if identifier() is "address", that each
+    refers to an address field. The result is filtered through
+    String::headerCased().
 */
 
 UStringList * SieveTest::takeHeaderFieldList()
@@ -1330,28 +1274,6 @@ UStringList * SieveTest::takeHeaderFieldList()
 
     return a->stringList();
 }
-
-
-/*! Takes the first tag and returns it. Returns an empty string if
-    there aren't any tags. Marks an error if there's an unparsed
-    argument before the first unparsed tag.
-*/
-
-String SieveTest::takeTag()
-{
-    List<SieveArgument>::Iterator a( arguments()->arguments() );
-    while ( a && a->parsed() )
-        ++a;
-    while ( a && a->parsed() && a->tag().isEmpty() ) {
-        a->setError( "Could not parse this argument (was looking for a tag)" );
-        ++a;
-    }
-    if ( !a )
-        return "";
-    a->setParsed( true );
-    return a->tag();
-}
-
 
 
 /*! Returns a list of the headers to which the identifier() pertains,

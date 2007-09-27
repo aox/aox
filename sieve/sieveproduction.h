@@ -86,6 +86,9 @@ public:
                       const char * = 0, const char * = 0 );
     void flagUnparsedAsBad();
 
+    UStringList * takeStringList();
+    UString takeString();
+
 private:
     class SieveArgumentListData * d;
 };
@@ -165,9 +168,7 @@ public:
     uint sizeLimit() const;
 
 private:
-    UStringList * takeStringList();
     UStringList * takeHeaderFieldList();
-    String takeTag();
     void findComparator();
     void findMatchType();
     void findAddressPart();
