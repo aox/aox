@@ -1189,7 +1189,13 @@ void SieveTest::parse()
 void SieveTest::findComparator()
 {
     UString a = arguments()->takeTaggedString( ":comparator" );
-    
+    if ( a == "i;octet" )
+        d->comparator = IOctet;
+    else if ( a == "i;ascii-casemap" )
+        d->comparator = IAsciiCasemap;
+    else if ( !a.isEmpty() )
+        arguments()->argumentFollowingTag( ":comparator" )->
+            setError( "Unknown comparator: " + a.utf8() );
 }
 
 
