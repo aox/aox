@@ -79,8 +79,12 @@ public:
 
     SieveArgument * argumentFollowingTag( const String & tag );
     class UString takeTaggedString( const String & tag );
+    class UStringList * takeTaggedStringList( const String & tag );
     uint takeTaggedNumber( const String & tag );
     SieveArgument * findTag( const String & tag ) const;
+    void allowOneTag( const char *, const char *, const char * = 0,
+                      const char * = 0, const char * = 0 );
+    void flagUnparsedAsBad();
 
 private:
     class SieveArgumentListData * d;
@@ -164,6 +168,9 @@ private:
     UStringList * takeStringList();
     UStringList * takeHeaderFieldList();
     String takeTag();
+    void findComparator();
+    void findMatchType();
+    void findAddressPart();
 
 private:
     class SieveTestData * d;

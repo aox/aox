@@ -491,6 +491,27 @@ UString SieveArgumentList::takeTaggedString( const String & tag )
 
 
 /*! Looks for the \a tag and returns the value of the following
+    string list. Records an error if anything looks wrong.
+
+    If \a tag doesn't occur, takeTaggedStringList() returns a null
+    pointer.
+
+    Marks both arguments as parsed.
+
+*/
+
+UStringList * SieveArgumentList::takeTaggedStringList( const String & tag )
+{
+    SieveArgument * a = argumentFollowingTag( tag );
+    if ( !a )
+        return 0;
+    
+    a->assertStringList();
+    return a->stringList();
+}
+
+
+/*! Looks for the \a tag and returns the value of the following
     number. Records an error if anything looks wrong.
 
     If \a tag doesn't occur, takeTaggedNumber() returns 0.
@@ -536,6 +557,59 @@ SieveArgument * SieveArgumentList::findTag( const String & tag ) const
     if ( r )
         r->setParsed( true );
     return r;
+}
+
+
+/*! Asserts that at most one of \a t1, \a t2, \a t3, \a t4 and \a t5
+    occur. \a t1 and \a t2 must be supplied, the rest are optional.
+*/
+
+void SieveArgumentList::allowOneTag( const char * t1, const char * t2,
+                                     const char * t3, const char * t4,
+                                     const char * t5 )
+{
+    List<SieveArgument> r;
+    List<SieveArgument>::Iterator a( arguments() );
+    while ( a ) {
+        String t = a->tag();
+        if ( !t.isEmpty() &&
+             ( t == t1 || t == t2 || t == t3 || t == t4 || t == t5 ) )
+            r.append( a );
+        ++a;
+    }
+    if ( r.count() < 2 )
+        return;
+    a = r.first();
+    a->setError( "Mutually exclusive tags used" );
+    String first = a->tag();
+    ++a;
+    while ( a ) {
+        a->setError( "Tag " + first + " conflicts with " + a->tag() );
+        ++a;
+    }
+}
+
+
+/*! Mark all unparsed arguments as errors. We haven't looked at them,
+    so something must be wrong.
+*/
+
+void SieveArgumentList::flagUnparsedAsBad()
+{
+    List<SieveArgument>::Iterator i( arguments() );
+    while ( i ) {
+        if ( i->parsed() )
+            ; // it's okay
+        else if ( i->number() )
+            i->setError( "Why is this number here?" );
+        else if ( i->stringList() )
+            i->setError( "Why is this string/list here?" );
+        else if ( !i->tag().isEmpty() )
+            i->setError( "Unknown tag: " + i->tag() );
+        else
+            i->setError( "What happened? I'm dazed and confused" );
+        ++i;
+    }
 }
 
 
@@ -1002,105 +1076,10 @@ void SieveCommand::parse( const String & previous )
 
 void SieveTest::parse()
 {
-    SieveArgument * ca = 0;
-    SieveArgument * mta = 0;
-    SieveArgument * apa = 0;
-    bool cok = false;
-    bool mtok = false;
-    bool apok = false;
-    if ( arguments()->arguments() ) {
-        // first, if we can, look for :comparator, :is and others, and
-        // parse those. (if those aren't applicable we'll later
-        // discover it and flag them as errors.)
-        List<SieveArgument>::Iterator i( arguments()->arguments() );
-        while ( i ) {
-            String t = i->tag();
-            if ( t == ":comparator" ) {
-                if ( ca ) {
-                    ca->setError( ":comparator specified twice" );
-                    i->setError( ":comparator specified twice" );
-                }
-                ca = i;
-                i->setParsed( true );
-                ++i;
-                if ( i )
-                    i->setParsed( true );
-
-                if ( !i ) {
-                    setError( ":comparator cannot be the least argument" );
-                }
-                else if ( !i->stringList() ) {
-                    i->setError( "Need a comparator name after :comparator" );
-                }
-                else if ( i->stringList()->count() != 1 ) {
-                    i->setError( "Need exactly one comparator name, not " +
-                                 fn( i->stringList()->count() ) );
-                }
-                else {
-                    UString c = i->stringList()->first()->simplified();
-                    if ( c.isEmpty() )
-                        i->setError( "Comparator name is empty" );
-                    if ( c == "i;octet" )
-                        d->comparator = IOctet;
-                    else if ( c == "i;ascii-casemap" )
-                        d->comparator = IAsciiCasemap;
-                    else
-                        setError( "Unknown comparator: " + c.utf8() );
-                }
-            }
-            else if ( t == ":is" ||
-                      t == ":contains" ||
-                      t == ":matches" ) {
-                if ( mta ) {
-                    mta->setError( "Match type specified twice" );
-                    i->setError( "Match type specified twice" );
-                }
-                mta = i;
-                i->setParsed( true );
-                if ( t == ":is" )
-                    d->matchType = Is;
-                if ( t == ":contains" )
-                    d->matchType = Contains;
-                if ( t == ":matches" )
-                    d->matchType = Matches;
-            }
-            else if ( t == ":localpart" ||
-                      t == ":domain" ||
-                      t == ":user" ||
-                      t == ":detail" ||
-                      t == ":all" )
-            {
-                if ( apa ) {
-                    apa->setError( "Address part specified twice" );
-                    i->setError( "Address part specified twice" );
-                }
-                apa = i;
-                i->setParsed( true );
-                if ( t == ":localpart" ) {
-                    d->addressPart = Localpart;
-                }
-                else if ( t == ":domain" ) {
-                    d->addressPart = Domain;
-                }
-                else if ( t == ":all" ) {
-                    d->addressPart = All;
-                }
-                else if ( t == ":user" || t == ":detail" ) {
-                    require( "subaddress" );
-                    if ( t == ":user" )
-                        d->addressPart = User;
-                    else
-                        d->addressPart = Detail;
-                }
-            }
-            ++i;
-        }
-    }
-
     if ( identifier() == "address" ) {
-        cok = true;
-        mtok = true;
-        apok = true;
+        findComparator();
+        findMatchType();
+        findAddressPart();
         d->headers = takeHeaderFieldList();
         d->keys = takeStringList();
     }
@@ -1122,9 +1101,9 @@ void SieveTest::parse()
     }
     else if ( identifier() == "envelope" ) {
         require( "envelope" );
-        cok = true;
-        mtok = true;
-        apok = true;
+        findComparator();
+        findMatchType();
+        findAddressPart();
         d->envelopeParts = takeStringList();
         d->keys = takeStringList();
         UStringList::Iterator i( d->envelopeParts );
@@ -1150,8 +1129,8 @@ void SieveTest::parse()
         // I wish all the tests were this easy
     }
     else if ( identifier() == "header" ) {
-        cok = true;
-        mtok = true;
+        findComparator();
+        findMatchType();
         d->headers = takeHeaderFieldList();
         d->keys = takeStringList();
     }
@@ -1165,29 +1144,14 @@ void SieveTest::parse()
             arguments()->tests()->first()->parse();
     }
     else if ( identifier() == "size" ) {
-        List<SieveArgument>::Iterator i( arguments()->arguments() );
-        while ( i && i->parsed() )
-            ++i;
-        if ( !i ) {
-            setError( ":over/:under and number not supplied" );
+        arguments()->allowOneTag( ":over", ":under" );
+        if ( arguments()->findTag( ":over" ) ) {
+            d->sizeOver = true;
+            d->sizeLimit = arguments()->takeTaggedNumber( ":over" );
         }
-        else {
-            String t = i->tag();
-            if ( t == ":over" )
-                d->sizeOver = true;
-            else if ( t != ":under" )
-                i->setError( "Expected tag :over/:under" );
-            i->setParsed( true );
-            ++i;
-            if ( !i ) {
-                setError( "Number not supplied" );
-            }
-            else {
-                if ( !i->tag().isEmpty() || i->stringList() )
-                    i->setError( "Need a number" );
-                d->sizeLimit = i->number();
-                i->setParsed( true );
-            }
+        else if ( arguments()->findTag( ":under" ) ) {
+            d->sizeOver = false;
+            d->sizeLimit = arguments()->takeTaggedNumber( ":under" );
         }
     }
     else if ( identifier() == "true" ) {
@@ -1195,84 +1159,74 @@ void SieveTest::parse()
     }
     else if ( identifier() == "body" ) {
         require( "body" );
-        cok = true;
-        mtok = true;
-        List<SieveArgument>::Iterator i( arguments()->arguments() );
-        while ( i && i->parsed() )
-            ++i;
-        if ( !i )
-            setError( "Need a string to look for" );
-        String t;
-        if ( i )
-            t = i->tag();
-        if ( t == ":raw" ) {
+        findComparator();
+        findMatchType();
+        arguments()->allowOneTag( ":raw", ":text", ":content" );
+        if ( arguments()->findTag( ":raw" ) ) {
             d->bodyMatchType = Rfc822;
-            i->setParsed( true );
-            ++i;
         }
-        else if ( t == ":text" ) {
+        else if ( arguments()->findTag( ":text" ) ) {
             d->bodyMatchType = Text;
-            i->setParsed( true );
-            ++i;
         }
-        else if ( t == ":content" ) {
+        else if ( arguments()->findTag( ":content" ) ) {
             d->bodyMatchType = SpecifiedTypes;
-            i->setParsed( true );
-            SieveArgument * c = i;
-            ++i;
-            if ( i->stringList() ) {
-                d->contentTypes = i->stringList();
-                i->setParsed( true );
-                ++i;
-            }
-            else {
-                c->setError( ":content must be followed "
-                             "by a string list" );
-            }
+            d->contentTypes = arguments()->takeTaggedStringList( ":content" );
         }
-        while ( i && i->parsed() )
-            ++i;
-        if ( i ) {
-            d->keys = i->stringList();
-            i->setParsed( true );
-            ++i;
-        }
+        d->keys = takeStringList();
     }
     else {
         setError( "Unknown test: " + identifier() );
     }
 
-    // any tagged things out of place?
-    if ( ca && !cok )
-        ca->setError( "Comparator cannot be specified in test '" +
-                      identifier() + "'" );
-    if ( mta && !mtok )
-        mta->setError( "Match type cannot be specified in test '" +
-                       identifier() + "'" );
-    if ( apa && !apok )
-        apa->setError( "Address-part cannot be specified in test '" +
-                       identifier() + "'" );
+    arguments()->flagUnparsedAsBad();
+}
 
-    // any arguments we didn't parse?
-    List<SieveArgument>::Iterator i( arguments()->arguments() );
-    while ( i ) {
-        if ( i->parsed() ) {
-            // it's okay
-        }
-        else if ( i->number() ) {
-            i->setError( "Why is this number here?" );
-        }
-        else if ( i->stringList() ) {
-            i->setError( "Why is this string/list here?" );
-        }
-        else if ( !i->tag().isEmpty() ) {
-            i->setError( "Unknown tag: " + i->tag() );
-        }
-        else {
-            i->setError( "What happened? I'm dazed and confused" );
-        }
-        ++i;
-    }
+
+/*! Finds any specified comparator name and sets the comparator
+    accordingly.
+*/
+
+void SieveTest::findComparator()
+{
+    UString a = arguments()->takeTaggedString( ":comparator" );
+    
+}
+
+
+/*! Finds the match-type tags and reacts sensibly. */
+
+void SieveTest::findMatchType()
+{
+    arguments()->allowOneTag( ":is", ":matches", ":contains" );
+    if ( arguments()->findTag( ":is" ) )
+        d->matchType = Is;
+    else if ( arguments()->findTag( ":matches" ) )
+        d->matchType = Matches;
+    else if ( arguments()->findTag( ":contains" ) )
+        d->matchType = Contains;
+}
+
+
+/*! Finds the address-part tags and reacts sensibly. */
+
+void SieveTest::findAddressPart()
+{
+    arguments()->allowOneTag( ":localpart", ":domain", ":user",
+                              ":detail", ":all" );
+
+    if ( arguments()->findTag( ":localpart" ) )
+        d->addressPart = Localpart;
+    else if ( arguments()->findTag( ":domain" ) )
+        d->addressPart = Domain;
+    else if ( arguments()->findTag( ":user" ) )
+        d->addressPart = User;
+    else if ( arguments()->findTag( ":detail" ) )
+        d->addressPart = Detail;
+    else if ( arguments()->findTag( ":all" ) )
+        d->addressPart = All;
+
+    if ( d->addressPart == Detail || d->addressPart == User )
+        require( "subaddress" );
 }
 
 
