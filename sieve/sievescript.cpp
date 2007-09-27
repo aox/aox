@@ -81,8 +81,11 @@ void SieveScript::parse( const String & script )
     while ( s && s->identifier() == "require" ) {
         if ( s->error().isEmpty() ) {
             UStringList unused;
-            UStringList * r
-                = s->arguments()->arguments()->first()->stringList();
+            UStringList * r = 0;
+            if ( s->arguments() && 
+                 s->arguments()->arguments() &&
+                 s->arguments()->arguments()->first() )
+                r = s->arguments()->arguments()->first()->stringList();
             UStringList::Iterator i( r );
             while ( i ) {
                 if ( i->isAscii() && extensions->find( i->ascii() ) )
