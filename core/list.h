@@ -220,7 +220,7 @@ public:
     {
         Iterator o( other );
         while ( o ) {
-            append( *o );
+            append( o );
             ++o;
         }
     }
