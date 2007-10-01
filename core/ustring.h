@@ -147,5 +147,12 @@ extern const UString operator+( const UString & a, const char * b );
 extern const UString operator+( const char * a, const UString & b );
 extern const UString operator+=( const UString & a, const UString & b );
 
+inline UString us( const char * s )
+{
+    UString u;
+    u.append( s );
+    return u;
+}
+
 
 #endif
