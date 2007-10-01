@@ -414,3 +414,15 @@ create table unparsed_messages (
                 on delete cascade,
     primary key(bodypart)
 );
+
+
+-- One entry for every autoresponse we send.
+
+create table vacation_responses (
+    id          serial primary key,
+    sent_from   integer not null references addresses(id),
+    sent_to     integer not null references addresses(id),
+    expires_at  timestamp with time zone not null
+                default current_timestamp+interval '7 days',
+    handle      text
+);
