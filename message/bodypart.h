@@ -48,6 +48,9 @@ public:
 
     String error() const;
 
+    static Bodypart *parseBodypart( uint, uint, const String &,
+                                    Header *, Multipart * );
+
 private:
     class BodypartData * d;
     friend class Message;
@@ -56,8 +59,6 @@ private:
     static void parseMultipart( uint, uint, const String &,
                                 const String &, bool,
                                 List< Bodypart > *, Multipart * );
-    static Bodypart *parseBodypart( uint, uint, const String &,
-                                    Header *, Multipart * );
 };
 
 
