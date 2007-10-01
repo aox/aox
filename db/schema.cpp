@@ -390,6 +390,8 @@ bool Schema::singleStep()
         c = stepTo54(); break;
     case 54:
         c = stepTo55(); break;
+    case 55:
+        c = stepTo56(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2440,6 +2442,41 @@ bool Schema::stepTo55()
 
     if ( d->substate == 2 ) {
         if ( d->update && !d->update->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create the vacation_response table. */
+
+bool Schema::stepTo56()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Creating vacation_responses table." );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "create table vacation_responses (id serial "
+                          "primary key,sent_from integer not null references "
+                          "addresses(id),sent_to integer not null references "
+                          "addresses(id),expires_at timestamp with time zone "
+                          "default current_timestamp+interval '7 days',"
+                          "handle text)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant select,insert on vacation_responses "
+                          "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant select,update on vacation_responses_id_seq "
+                          "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
         d->substate = 0;
