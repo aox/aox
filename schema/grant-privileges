@@ -4,14 +4,14 @@ part_numbers, field_names, header_fields, address_fields, date_fields,
 threads, thread_members, flag_names, flags, subscriptions,
 annotation_names, annotations, views, view_messages, scripts,
 deleted_messages, modsequences, deliveries, delivery_recipients,
-access_keys to $AOXUSER;
+access_keys, vacation_responses to $AOXUSER;
 
 grant insert on addresses, mailboxes, permissions, messages, bodyparts,
 part_numbers, field_names, header_fields, address_fields, date_fields,
 threads, thread_members, flag_names, flags, subscriptions,
 annotation_names, annotations, views, view_messages, scripts,
 deleted_messages, modsequences, deliveries, delivery_recipients,
-access_keys, unparsed_messages to $AOXUSER;
+access_keys, unparsed_messages, vacation_responses to $AOXUSER;
 
 grant delete on permissions, flags, subscriptions, annotations, views,
 view_messages, scripts, deliveries, access_keys to $AOXUSER;
@@ -25,4 +25,4 @@ flag_names_id_seq, groups_id_seq, header_fields_id_seq,
 mailboxes_id_seq, namespaces_id_seq, scripts_id_seq,
 subscriptions_id_seq, threads_id_seq, users_id_seq,
 views_id_seq, deliveries_id_seq, delivery_recipients_id_seq,
-annotations_id_seq to $AOXUSER;
+annotations_id_seq, vacation_responses_id_seq to $AOXUSER;
