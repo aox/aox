@@ -2,7 +2,9 @@
 
 #include "sieve.h"
 
+#include "md5.h"
 #include "utf.h"
+#include "date.h"
 #include "html.h"
 #include "user.h"
 #include "query.h"
@@ -336,6 +338,167 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Discard );
         actions.append( a );
+    }
+    else if ( c->identifier() == "vacation" ) {
+        // mostly copied from sieveproduction.cpp. when we have two
+        // commands using lots of tags, we'll want to design a
+        // framework for transporting tag values.
+
+        SieveArgumentList * al = c->arguments();
+        
+        // :days
+        uint days = 7;
+        if ( al->findTag( ":days" ) )
+            days = al->takeTaggedNumber( ":days" );
+
+        // :subject
+        UString subject = al->takeTaggedString( ":subject" );
+
+        // :from
+        Address * from = 0;
+        if ( al->findTag( ":from" ) ) {
+            AddressParser ap( al->takeTaggedString( ":from" ).utf8() );
+            from = ap.addresses()->first();
+        }
+        if ( !from && d->currentRecipient )
+            from = d->currentRecipient->address;
+
+        // :addresses
+        List<Address> addresses;
+        if ( al->findTag( ":addresses" ) ) {
+            UStringList * addressArguments
+                = al->takeTaggedStringList( ":addresses" );
+            UStringList::Iterator i( addressArguments );
+            while ( i ) {
+                AddressParser ap( i->utf8() );
+                addresses.append( ap.addresses()->first() );
+                ++i;
+            }
+        }
+        if ( d->currentRecipient )
+            addresses.append( d->currentRecipient->address );
+        if ( from &&
+             ( !d->currentRecipient ||
+               from != d->currentRecipient->address ) )
+            addresses.append( from );
+
+        // :mime
+        bool mime = false;
+        if ( al->findTag( ":mime" ) )
+            mime = true;
+
+        // find out whether we need to reply
+        bool wantToReply = true;
+        if ( !from )
+            wantToReply = false;
+
+        // look for suspect senders
+        if ( d->sender->type() != Address::Normal )
+            wantToReply = false;
+        else if ( d->sender->localpart().lower().startsWith( "owner-" ) )
+            wantToReply = false;
+        else if ( d->sender->localpart().lower().endsWith( "-request" ) )
+            wantToReply = false;
+        
+        // look for header fields we don't like
+        if ( wantToReply ) {
+            List<HeaderField>::Iterator i( d->message->header()->fields() );
+            while ( i && wantToReply ) {
+                String n = i->name();
+                if ( n == "Auto-Submitted" ||
+                     n.startsWith( "List-" ) ||
+                     n == "Precedence" ||
+                     n == "X-Beenthere" ||
+                     n == "X-Loop" )
+                    wantToReply = false;
+            }
+        }
+
+        // match my address(es) against those in To/Cc
+        if ( wantToReply ) {
+            wantToReply = false;
+            List<Address> l;
+            l.append( d->message->header()->addresses( HeaderField::To ) );
+            l.append( d->message->header()->addresses( HeaderField::Cc ) );
+            List<Address>::Iterator i( l );
+            while ( i && !wantToReply ) {
+                String lp = i->localpart().lower();
+                String dom = i->domain().lower();
+                List<Address>::Iterator me( addresses );
+                while ( me && !wantToReply ) {
+                    if ( lp == me->localpart().lower() &&
+                         dom == me->domain().lower() )
+                        wantToReply = true;
+                    ++me;
+                }
+                ++i;
+            }
+        }
+
+        // :handle
+        UString handle = al->takeTaggedString( ":handle" );
+
+        // reason
+        UString reason = al->takeString();
+        Message * reply = 0;
+
+        String reptext;
+        reptext.append( "From: " );
+        reptext.append( from->toString() );
+        reptext.append( "\r\n"
+                        "To: " );
+        reptext.append( d->sender->toString() );
+        reptext.append( "\r\n"
+                        "Subject: " );
+        if ( subject.isEmpty() ) {
+            String s = d->message->header()->subject().simplified();
+            while ( s.lower().startsWith( "auto:" ) )
+                s = s.mid( 5 ).simplified();
+            reptext.append( "Auto: " );
+            if ( s.isEmpty() )
+                reptext.append( "Vacation" );
+            else
+                reptext.append( s );
+        }            
+        else {
+            reptext.append( subject.utf8() );
+        }
+        reptext.append( "\r\n"
+                        "Date: " );
+        Date now;
+        now.setCurrentTime();
+        reptext.append( now.rfc822() );
+        reptext.append( "\r\n"
+                        "Auto-Submitted: auto-replied\r\n"
+                        "Precedence: junk\r\n" );
+
+        if ( !wantToReply ) {
+            // no need to do either
+        }
+        else if ( mime ) {
+            reptext.append( reason.utf8() );
+            reply = new Message( reptext, 0 );
+        }
+        else {
+            if ( !reason.isAscii() )
+                reptext.append( "Content-Type: text/plain; charset=utf-8\r\n"
+                                "Mime-Version: 1.0\r\n" );
+            reptext.append( "\r\n" );
+            reptext.append( reason.utf8() );
+            reply = new Message( reptext, 0 );
+        }
+
+        if ( wantToReply && handle.isEmpty() ) {
+            handle = subject;
+            handle.append( "easter eggs are forever" );
+            handle.append( reason );
+            MD5 md5;
+            AsciiCodec ac;
+            handle = ac.toUnicode( md5.hash( handle.utf8() ).e64() );
+        }
+
+        if ( wantToReply ) {
+        }
     }
     else {
         // ?

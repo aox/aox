@@ -89,6 +89,8 @@ public:
     UStringList * takeStringList();
     UString takeString();
 
+    void tagError( const char *, const String & );
+
 private:
     class SieveArgumentListData * d;
 };
@@ -126,6 +128,8 @@ public:
     SieveBlock * block() const;
 
     void setRequirePermitted( bool );
+
+    void parseAsAddress( const UString &, const char * );
 
 private:
     class SieveCommandData * d;

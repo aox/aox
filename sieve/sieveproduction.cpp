@@ -5,8 +5,11 @@
 #include "ustringlist.h"
 #include "sieveparser.h"
 #include "stringlist.h"
+#include "bodypart.h"
 #include "mailbox.h"
 #include "address.h"
+#include "message.h"
+#include "header.h"
 #include "field.h"
 #include "utf.h"
 
@@ -176,11 +179,12 @@ String SieveProduction::error() const
 StringList * SieveProduction::supportedExtensions()
 {
     StringList * r = new StringList;
+    r->append( "body" );
     r->append( "envelope" );
     r->append( "fileinto" );
     r->append( "reject" );
-    r->append( "body" );
     r->append( "subaddress" );
+    r->append( "vacation" );
     return r;
 }
 
@@ -657,6 +661,20 @@ UString SieveArgumentList::takeString()
 }
 
 
+/*! Records \a error, either on this node or on the node with \a
+    tag.
+*/
+
+void SieveArgumentList::tagError( const char * tag, const String & error )
+{
+    SieveArgument * t = findTag( tag );
+    if ( t )
+        t->setError( error );
+    else
+        setError( error );
+}
+
+
 class SieveBlockData
     : public Garbage
 {
@@ -975,6 +993,80 @@ void SieveCommand::parse( const String & previous )
     else if ( i == "discard" ) {
         // nothing needed
     }
+    else if ( i == "vacation" ) {
+        // vacation [":days" number] [":subject" string]
+        //          [":from" string] [":addresses" string-list]
+        //          [":mime"] [":handle" string] <reason: string>
+
+        // :days
+        uint days = 7;
+        if ( arguments()->findTag( ":days" ) )
+            days = arguments()->takeTaggedNumber( ":days" );
+        if ( days < 1 || days > 365 )
+            arguments()->tagError( ":days", "Number must be 1..365" );
+
+        // :subject
+        (void)arguments()->takeTaggedString( ":subject" );
+        // anything is acceptable, right?
+
+        // :from
+        if ( arguments()->findTag( ":from" ) ) {
+            parseAsAddress( arguments()->takeTaggedString( ":from" ),
+                            ":from" );
+            // we don't enforce its being a local address.
+        }
+
+        // :addresses
+        if ( arguments()->findTag( ":addresses" ) ) {
+            UStringList * addresses 
+                = arguments()->takeTaggedStringList( ":addresses" );
+            UStringList::Iterator i( addresses );
+            while ( i ) {
+                parseAsAddress( *i, ":addresses" );
+                ++i;
+            }
+        }
+
+        // :mime
+        bool mime = false;
+        if ( arguments()->findTag( ":mime" ) )
+            mime = true;
+
+        // :handle
+        (void)arguments()->takeTaggedString( ":handle" );
+
+        // reason
+        UString reason = arguments()->takeString();
+        if ( mime ) {
+            if ( !reason.isAscii() )
+                setError( ":mime bodies must be all-ASCII, "
+                          "8-bit text is not permitted" ); // so says the RFC
+            String x = reason.utf8();
+            uint i = 0;
+            Header * h = Message::parseHeader( i, x.length(),
+                                               x, Header::Mime );
+            Bodypart * bp = Bodypart::parseBodypart( i, x.length(),
+                                                     x, h, 0 );
+            if ( !h->error().isEmpty() )
+                setError( "While parsing MIME header: " + h->error() );
+            else if ( !bp->error().isEmpty() )
+                setError( "While parsing MIME bodypart: " + bp->error() );
+
+            List<HeaderField>::Iterator f( h->fields() );
+            while ( f ) {
+                if ( !f->name().startsWith( "Content-" ) )
+                    setError( "Header field not permitted: " + f->name() );
+                ++f;
+            }
+
+            if ( bp->children()->isEmpty() && bp->text().isEmpty() )
+                setError( "Vacation reply does not contain any text" );
+        }
+        else {
+            if ( reason.isEmpty() )
+                setError( "Empty vacation text does not make sense" );
+        }
+    }
     else {
         setError( "Command unknown: " + identifier() );
     }
@@ -1029,6 +1121,26 @@ void SieveCommand::parse( const String & previous )
         // in this case we don't even bother syntax-checking the test
         // or block
     }
+}
+
+
+/*! Parses \a s as a single address, and records an error related to
+    tag \a t if there's any problem.
+*/
+
+void SieveCommand::parseAsAddress( const UString & s, const char * t )
+{
+    AddressParser ap( s.utf8() );
+    if ( !ap.error().isEmpty() )
+        arguments()->tagError( t, ap.error() );
+    else if ( ap.addresses()->count() != 1 )
+        arguments()->tagError( t, "Expected 1 addresses, got " + 
+                               fn( ap.addresses()->count() ) );
+    else if ( ap.addresses()->first()->type() != Address::Normal )
+        arguments()->tagError( t, 
+                               "Expected normal email address "
+                               "(whatever@wherev.er), got " +
+                               ap.addresses()->first()->toString() );
 }
 
 

@@ -2,6 +2,7 @@
 
 #include "sieveaction.h"
 
+#include "ustring.h"
 #include "string.h"
 
 
@@ -11,12 +12,14 @@ class SieveActionData
 public:
     SieveActionData()
         : type( SieveAction::FileInto ),
-          mailbox( 0 ), address( 0 )
+          mailbox( 0 ), address( 0 ), message( 0 )
         {}
 
     SieveAction::Type type;
     Mailbox * mailbox;
     Address * address;
+    Message * message;
+    UString handle;
     String errorMessage;
 };
 
@@ -136,4 +139,44 @@ void SieveAction::setErrorMessage( const String & m )
 String SieveAction::errorMessage() const
 {
     return d->errorMessage;
+}
+
+
+/*! Records that the handle associated with this action is \a h. Only
+    useful for the Vacation type().
+*/
+
+void SieveAction::setHandle( const UString & h )
+{
+    d->handle = h;
+}
+
+
+/*! Returns whatever setHandle() set, or an empty string if
+    setHandle() hasn't been called.
+*/
+
+UString SieveAction::handle() const
+{
+    return d->handle;
+}
+
+
+/*! Records that \a m is associated with this action. Only useful when
+    type() is Vacation.
+*/
+
+void SieveAction::setMessage( Message * m )
+{
+    d->message = m;
+}
+
+
+/*! Returns whatever setMessage() recorded, or a null pointer if
+    setMessage() hasn't been called.
+*/
+
+Message * SieveAction::message() const
+{
+    return d->message;
 }

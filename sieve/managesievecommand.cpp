@@ -835,6 +835,12 @@ bool ManageSieveCommand::explain()
         case SieveAction::Discard:
             r.append( "discard" );
             break;
+        case SieveAction::Vacation:
+            r.append( "vacation, to " );
+            r.append( sa->message()->header()->field( HeaderField::To )->value() );
+            r.append( ", subject " );
+            r.append( sa->message()->header()->subject() );
+            break;
         case SieveAction::Error:
             r = "Error: ";
             r.append( sa->errorMessage().simplified() );
