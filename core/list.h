@@ -216,6 +216,15 @@ public:
         }
     }
 
+    void append( List<T> * other )
+    {
+        Iterator o( other );
+        while ( o ) {
+            append( *o );
+            ++o;
+        }
+    }
+
     void prepend( T *d )
     {
         Node *n = new Node( d );

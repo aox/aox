@@ -111,6 +111,11 @@ void listSortHelper( void * a, size_t n, size_t s,
 */
 
 
+/* \fn void List::append( List<T> * other )
+   Appends all elements in \a other to this List.
+*/
+
+
 /*! \fn void List::prepend( T *d )
     Adds \a d to the beginning of the List.
 
