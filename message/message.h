@@ -76,13 +76,13 @@ public:
                                             const String & = "" );
     void addMessageId();
 
-private:
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );
+
+private:
     void fix8BitHeaderFields();
 
 private:
     class MessageData * d;
-    friend class Bodypart;
     friend class MessageBodyFetcher;
     friend class MessageFlagFetcher;
 };

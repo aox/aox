@@ -188,7 +188,8 @@ Header * Message::parseHeader( uint & i, uint end,
                                const String & rfc2822,
                                Header::Mode m )
 {
-    if ( rfc2822[0] == 'F' || rfc2822[0] == ' ' ) {
+    if ( m == Header::Rfc2822 &&
+         ( rfc2822[0] == 'F' || rfc2822[0] == ' ' ) ) {
         String beginning = rfc2822.mid( i, 5 ).lower();
         if ( beginning == "from " ||
              beginning == " jan " || beginning == " feb " ||
