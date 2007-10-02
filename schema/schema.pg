@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (56);
+insert into mailstore (revision) values (57);
 
 
 -- One entry for each unique address we've encountered.
@@ -418,7 +418,7 @@ create table unparsed_messages (
 
 -- One entry for every autoresponse we send.
 
-create table vacation_responses (
+create table autoresponses (
     id          serial primary key,
     sent_from   integer not null references addresses(id),
     sent_to     integer not null references addresses(id),

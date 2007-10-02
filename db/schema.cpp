@@ -392,6 +392,8 @@ bool Schema::singleStep()
         c = stepTo55(); break;
     case 55:
         c = stepTo56(); break;
+    case 56:
+        c = stepTo57(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2451,7 +2453,7 @@ bool Schema::stepTo55()
 }
 
 
-/*! Create the vacation_response table. */
+/*! Create the vacation_responses table. */
 
 bool Schema::stepTo56()
 {
@@ -2469,6 +2471,46 @@ bool Schema::stepTo56()
                           "to " + dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on vacation_responses_id_seq "
+                          "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Rename vacation_responses to autoresponses. (We do this by dropping
+    the old table and creating a new one, so that the sequence is also
+    renamed.)
+*/
+
+bool Schema::stepTo57()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Renaming vacation_responses to autoresponses." );
+        d->q = new Query( "drop table vacation_responses", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create table autoresponses (id serial "
+                          "primary key,sent_from integer not null references "
+                          "addresses(id),sent_to integer not null references "
+                          "addresses(id),expires_at timestamp with time zone "
+                          "default current_timestamp+interval '7 days',"
+                          "handle text)", this );
+        d->t->enqueue( d->q );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "grant select,insert on autoresponses "
+                          "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant select,update on autoresponses_id_seq "
                           "to " + dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
