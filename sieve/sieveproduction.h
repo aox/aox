@@ -150,8 +150,11 @@ public:
 
     void parse();
 
-    enum MatchType { Is, Contains, Matches };
+    enum MatchType { Is, Contains, Matches, Value, Count };
     MatchType matchType() const;
+
+    enum MatchOperator { None, GT, GE, LT, LE, EQ, NE };
+    MatchOperator matchOperator() const;
 
     enum AddressPart {
         Localpart, Domain, User, Detail, All, NoAddressPart

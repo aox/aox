@@ -772,6 +772,13 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
     if ( !c )
         c = Collation::create( us( "i;ascii-casemap" ) );
 
+    if ( t->matchType() == SieveTest::Count ) {
+        UString * hn = new UString;
+        hn->append( fn( haystack->count() ).cstr() );
+        haystack->clear();
+        haystack->append( hn );
+    }
+
     UStringList::Iterator h( haystack );
     while ( h ) {
         UString s( *h );
@@ -792,6 +799,38 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             case SieveTest::Matches:
                 if ( Mailbox::match( g, 0, s, 0 ) == 2 )
                     return True;
+                break;
+            case SieveTest::Count:
+            case SieveTest::Value:
+                int n = c->compare( s, g );
+                switch ( t->matchOperator() ) {
+                case SieveTest::GT:
+                    if ( n > 0 )
+                        return True;
+                    break;
+                case SieveTest::GE:
+                    if ( n >= 0 )
+                        return True;
+                    break;
+                case SieveTest::LT:
+                    if ( n < 0 )
+                        return True;
+                    break;
+                case SieveTest::LE:
+                    if ( n <= 0 )
+                        return True;
+                    break;
+                case SieveTest::EQ:
+                    if ( n == 0 )
+                        return True;
+                    break;
+                case SieveTest::NE:
+                    if ( n != 0 )
+                        return True;
+                    break;
+                case SieveTest::None:
+                    break;
+                }
                 break;
             }
             ++k;

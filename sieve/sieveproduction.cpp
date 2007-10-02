@@ -830,6 +830,7 @@ public:
     SieveTestData()
         : arguments( 0 ), block( 0 ),
           matchType( SieveTest::Is ),
+          matchOperator( SieveTest::None ),
           addressPart( SieveTest::NoAddressPart ),
           comparator( 0 ),
           bodyMatchType( SieveTest::Text ),
@@ -843,6 +844,7 @@ public:
     SieveBlock * block;
 
     SieveTest::MatchType matchType;
+    SieveTest::MatchOperator matchOperator;
     SieveTest::AddressPart addressPart;
     Collation * comparator;
     SieveTest::BodyMatchType bodyMatchType;
@@ -1278,13 +1280,38 @@ void SieveTest::findComparator()
 
 void SieveTest::findMatchType()
 {
-    arguments()->allowOneTag( ":is", ":matches", ":contains" );
+    arguments()->allowOneTag( ":is", ":matches", ":contains",
+                              ":value", ":count" );
     if ( arguments()->findTag( ":is" ) )
         d->matchType = Is;
     else if ( arguments()->findTag( ":matches" ) )
         d->matchType = Matches;
     else if ( arguments()->findTag( ":contains" ) )
         d->matchType = Contains;
+    else if ( arguments()->findTag( ":value" ) )
+        d->matchType = Value;
+    else if ( arguments()->findTag( ":count" ) )
+        d->matchType = Count;
+
+    if ( d->matchType == Value || d->matchType == Count ) {
+        require( "relational" );
+        String s( "..." );
+        if ( s == "gt" )
+            d->matchOperator = GT;
+        else if ( s == "ge" )
+            d->matchOperator = GE;
+        else if ( s == "lt" )
+            d->matchOperator = LT;
+        else if ( s == "le" )
+            d->matchOperator = LE;
+        else if ( s == "eq" )
+            d->matchOperator = EQ;
+        else if ( s == "ne" )
+            d->matchOperator = NE;
+        else
+            // XXX: parse error
+            ;
+    }
 }
 
 
@@ -1318,6 +1345,16 @@ void SieveTest::findAddressPart()
 SieveTest::MatchType SieveTest::matchType() const
 {
     return d->matchType;
+}
+
+
+/*! Returns the match operator specified, or is None if the match type
+    is not Value or Count.
+*/
+
+SieveTest::MatchOperator SieveTest::matchOperator() const
+{
+    return d->matchOperator;
 }
 
 
