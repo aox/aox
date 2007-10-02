@@ -12,6 +12,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "bodypart.h"
+#include "collation.h"
 #include "mimefields.h"
 #include "stringlist.h"
 #include "ustringlist.h"
@@ -767,35 +768,25 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         return False;
     }
 
+    Collation * c = t->comparator();
+    if ( !c )
+        c = Collation::create( us( "i;ascii-casemap" ) );
+
     UStringList::Iterator h( haystack );
     while ( h ) {
+        UString s( *h );
+
         UStringList::Iterator k( t->keys() );
-        UString s;
-        switch ( t->comparator() ) {
-        case SieveTest::IAsciiCasemap:
-            s = h->titlecased();
-            break;
-        case SieveTest::IOctet:
-            s = *h;
-            break;
-        }
         while ( k ) {
-            UString g;
-            switch ( t->comparator() ) {
-            case SieveTest::IAsciiCasemap:
-                g = k->titlecased();
-                break;
-            case SieveTest::IOctet:
-                g = *k;
-                break;
-            }
+            UString g( *k );
+
             switch ( t->matchType() ) {
             case SieveTest::Is:
-                if ( s == g )
+                if ( c->equals( s, g ) )
                     return True;
                 break;
             case SieveTest::Contains:
-                if ( s.contains( g ) )
+                if ( c->contains( s, g ) )
                     return True;
                 break;
             case SieveTest::Matches:

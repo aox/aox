@@ -5,6 +5,7 @@
 #include "ustringlist.h"
 #include "sieveparser.h"
 #include "stringlist.h"
+#include "collation.h"
 #include "bodypart.h"
 #include "mailbox.h"
 #include "address.h"
@@ -830,7 +831,7 @@ public:
         : arguments( 0 ), block( 0 ),
           matchType( SieveTest::Is ),
           addressPart( SieveTest::NoAddressPart ),
-          comparator( SieveTest::IAsciiCasemap ),
+          comparator( 0 ),
           bodyMatchType( SieveTest::Text ),
           headers( 0 ), envelopeParts( 0 ), keys( 0 ),
           contentTypes( 0 ),
@@ -843,7 +844,7 @@ public:
 
     SieveTest::MatchType matchType;
     SieveTest::AddressPart addressPart;
-    SieveTest::Comparator comparator;
+    Collation * comparator;
     SieveTest::BodyMatchType bodyMatchType;
 
     UStringList * headers;
@@ -1264,13 +1265,12 @@ void SieveTest::parse()
 void SieveTest::findComparator()
 {
     UString a = arguments()->takeTaggedString( ":comparator" );
-    if ( a == "i;octet" )
-        d->comparator = IOctet;
-    else if ( a == "i;ascii-casemap" )
-        d->comparator = IAsciiCasemap;
-    else if ( !a.isEmpty() )
-        arguments()->argumentFollowingTag( ":comparator" )->
-            setError( "Unknown comparator: " + a.utf8() );
+    if ( !a.isEmpty() ) {
+        d->comparator = Collation::create( a );
+        if ( !d->comparator )
+            arguments()->argumentFollowingTag( ":comparator" )->
+                setError( "Unknown comparator: " + a.utf8() );
+    }
 }
 
 
@@ -1336,7 +1336,7 @@ SieveTest::AddressPart SieveTest::addressPart() const
     none has been.
 */
 
-SieveTest::Comparator SieveTest::comparator() const
+Collation * SieveTest::comparator() const
 {
     return d->comparator;
 }

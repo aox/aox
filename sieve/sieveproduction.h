@@ -158,8 +158,7 @@ public:
     };
     AddressPart addressPart() const;
 
-    enum Comparator { IOctet, IAsciiCasemap };
-    Comparator comparator() const;
+    class Collation * comparator() const;
 
     enum BodyMatchType { Rfc822, Text, SpecifiedTypes };
     BodyMatchType bodyMatchType() const;
