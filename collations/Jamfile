@@ -4,4 +4,4 @@ SubInclude TOP core ;
 HDRS += [ FDirName $(TOP) collations ] ;
 
 Build collations :
-    collation.cpp ascii-numeric.cpp ascii-casemap.cpp ; 
+    collation.cpp octet.cpp ascii-numeric.cpp ascii-casemap.cpp ; 

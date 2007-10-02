@@ -2,6 +2,7 @@
 
 #include "collation.h"
 
+#include "octet.h"
 #include "ascii-casemap.h"
 #include "ascii-numeric.h"
 
@@ -56,7 +57,9 @@ Collation::~Collation()
 
 Collation * Collation::create( const UString & s )
 {
-    if ( s == "i;ascii-casemap" )
+    if ( s == "i;octet" )
+        return new Octet;
+    else if ( s == "i;ascii-casemap" )
         return new AsciiCasemap;
     else if ( s == "i;ascii-numeric" )
         return new AsciiNumeric;
