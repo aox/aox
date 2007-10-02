@@ -1295,7 +1295,13 @@ void SieveTest::findMatchType()
 
     if ( d->matchType == Value || d->matchType == Count ) {
         require( "relational" );
-        String s( "..." );
+
+        String t( ":value" );
+        if ( d->matchType == Count )
+            t = ":count";
+
+        String s( arguments()->takeTaggedString( t ).lower() );
+
         if ( s == "gt" )
             d->matchOperator = GT;
         else if ( s == "ge" )
@@ -1309,8 +1315,8 @@ void SieveTest::findMatchType()
         else if ( s == "ne" )
             d->matchOperator = NE;
         else
-            // XXX: parse error
-            ;
+            arguments()->argumentFollowingTag( t )->
+                setError( "Unknown relational operator: " + s.utf8() );
     }
 }
 
