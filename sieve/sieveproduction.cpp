@@ -1300,7 +1300,7 @@ void SieveTest::findMatchType()
         if ( d->matchType == Count )
             t = ":count";
 
-        String s( arguments()->takeTaggedString( t ).lower() );
+        UString s( arguments()->takeTaggedString( t ) );
 
         if ( s == "gt" )
             d->matchOperator = GT;
