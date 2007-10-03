@@ -1300,19 +1300,19 @@ void SieveTest::findMatchType()
         if ( d->matchType == Count )
             t = ":count";
 
-        UString s( arguments()->takeTaggedString( t ) );
+        UString s( arguments()->takeTaggedString( t ).titlecased() );
 
-        if ( s == "gt" )
+        if ( s == "GT" )
             d->matchOperator = GT;
-        else if ( s == "ge" )
+        else if ( s == "GE" )
             d->matchOperator = GE;
-        else if ( s == "lt" )
+        else if ( s == "LT" )
             d->matchOperator = LT;
-        else if ( s == "le" )
+        else if ( s == "LE" )
             d->matchOperator = LE;
-        else if ( s == "eq" )
+        else if ( s == "EQ" )
             d->matchOperator = EQ;
-        else if ( s == "ne" )
+        else if ( s == "NE" )
             d->matchOperator = NE;
         else
             arguments()->argumentFollowingTag( t )->
