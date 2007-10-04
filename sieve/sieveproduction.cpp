@@ -181,8 +181,10 @@ StringList * SieveProduction::supportedExtensions()
 {
     StringList * r = new StringList;
     r->append( "body" );
+    r->append( "date" );
     r->append( "envelope" );
     r->append( "fileinto" );
+    r->append( "index" );
     r->append( "reject" );
     r->append( "relational" );
     r->append( "subaddress" );
