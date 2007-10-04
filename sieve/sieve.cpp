@@ -248,13 +248,7 @@ void Sieve::evaluate()
 
 bool SieveData::Recipient::evaluate( SieveCommand * c )
 {
-    UString arg;
-    if ( c->arguments() &&
-         c->arguments()->arguments() &&
-         c->arguments()->arguments()->first() &&
-         c->arguments()->arguments()->first()->stringList() &&
-         !c->arguments()->arguments()->first()->stringList()->isEmpty() )
-        arg = *c->arguments()->arguments()->first()->stringList()->first();
+    UString arg = c->arguments()->takeString( 1 );
 
     if ( c->identifier() == "if" ||
          c->identifier() == "elsif" ||
@@ -440,7 +434,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         UString handle = al->takeTaggedString( ":handle" );
 
         // reason
-        UString reason = al->takeString();
+        UString reason = al->takeString( 1 );
         Message * reply = 0;
 
         String reptext;

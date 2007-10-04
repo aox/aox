@@ -84,10 +84,14 @@ public:
     SieveArgument * findTag( const String & tag ) const;
     void allowOneTag( const char *, const char *, const char * = 0,
                       const char * = 0, const char * = 0 );
-    void flagUnparsedAsBad();
 
-    UStringList * takeStringList();
-    UString takeString();
+    void numberRemainingArguments();
+    UStringList * takeStringList( uint );
+    UString takeString( uint );
+    uint takeNumber( uint );
+    SieveArgument * takeArgument( uint );
+
+    void flagUnparsedAsBad();
 
     void tagError( const char *, const String & );
 
@@ -174,7 +178,7 @@ public:
     uint sizeLimit() const;
 
 private:
-    UStringList * takeHeaderFieldList();
+    UStringList * takeHeaderFieldList( uint );
     void findComparator();
     void findMatchType();
     void findAddressPart();

@@ -373,6 +373,7 @@ public:
 
     List<SieveArgument> a;
     List<SieveTest> t;
+    List<SieveArgument> n;
 };
 
 
@@ -598,6 +599,26 @@ void SieveArgumentList::allowOneTag( const char * t1, const char * t2,
 }
 
 
+/*! Assign numbers to each of the remaining arguments. The first
+    argument has number 1. Each argument can be accessed using
+    takeStringList(), takeString() and takeNumber().
+
+    This function does not mark the arguments as parsed.
+*/
+
+void SieveArgumentList::numberRemainingArguments()
+{
+    d->n.clear();
+    List<SieveArgument>::Iterator i( arguments() );
+    while ( i ) {
+        if ( !i->parsed() )
+            d->n.append( i );
+        ++i;
+    }
+    
+}
+
+
 /*! Mark all unparsed arguments as errors. We haven't looked at them,
     so something must be wrong.
 */
@@ -621,16 +642,15 @@ void SieveArgumentList::flagUnparsedAsBad()
 }
 
 
-/*! Takes the first unparsed argument, asserts that it is a string
-    list, and returns a pointer to the string list. Calls setError()
-    and returns a null pointer if no unparsed string lists are
-    available.
+/*! Looks for argument \a n, asserts that it is a string list, and
+    returns a pointer to the string list (or a null pointer). \a n is
+    1 for the first argument.
 */
 
-UStringList * SieveArgumentList::takeStringList()
+UStringList * SieveArgumentList::takeStringList( uint n )
 {
-    List<SieveArgument>::Iterator i( arguments() );
-    while ( i && i->parsed() )
+    List<SieveArgument>::Iterator i( d->n );
+    while ( i && n > 1 )
         ++i;
     if ( !i ) {
         setError( "Missing string/list argument" );
@@ -642,15 +662,15 @@ UStringList * SieveArgumentList::takeStringList()
 }
 
 
-/*! Takes the first unparsed argument, asserts that it is a string,
-    and returns the string.
+/*! Looks for argument \a n, asserts that it is a string, and returns
+    the string (or en empty string). \a n is 1 for the first argument.
 
 */
 
-UString SieveArgumentList::takeString()
+UString SieveArgumentList::takeString( uint n )
 {
-    List<SieveArgument>::Iterator i( arguments() );
-    while ( i && i->parsed() )
+    List<SieveArgument>::Iterator i( d->n );
+    while ( i && n > 1 )
         ++i;
     UString r;
     if ( !i ) {
@@ -662,6 +682,43 @@ UString SieveArgumentList::takeString()
     if ( i->stringList() )
         r = *i->stringList()->firstElement();
     return r;
+}
+
+
+/*! Looks for argument \a n, asserts that it is a number, and returns
+    the number (or 0 in the case of error). \a n is 1 for the first
+    argument.
+*/
+
+uint SieveArgumentList::takeNumber( uint n )
+{
+    List<SieveArgument>::Iterator i( d->n );
+    while ( i && n > 1 )
+        ++i;
+    if ( !i ) {
+        setError( "Missing numeric argument" );
+        return 0;
+    }
+    i->assertNumber();
+    i->setParsed( true );
+    return i->number();
+}
+
+
+/*! Returns a pointer to numbered argument number \a n. The first
+    argument is numbered 1. Returns a null pointer if there isn't any
+    such argument.
+
+    This function doesn't call SieveArgument::setParsed() or check any
+    error at all.
+*/
+
+SieveArgument * SieveArgumentList::takeArgument( uint n )
+{
+    List<SieveArgument>::Iterator i( d->n );
+    while ( i && n > 1 )
+        ++i;
+    return i;
 }
 
 
@@ -943,7 +1000,8 @@ void SieveCommand::parse( const String & previous )
             setError( "else is only permitted after if/elsif" );
     }
     else if ( i == "require" ) {
-        UStringList::Iterator i( arguments()->takeStringList() );
+        arguments()->numberRemainingArguments();
+        UStringList::Iterator i( arguments()->takeStringList( 1 ) );
         StringList e;
         while ( i ) {
             if ( !supportedExtensions()->contains( i->ascii() ) )
@@ -965,7 +1023,8 @@ void SieveCommand::parse( const String & previous )
     }
     else if ( i == "fileinto" ) {
         require( "fileinto" );
-        UString mailbox = arguments()->takeString();
+        arguments()->numberRemainingArguments();
+        UString mailbox = arguments()->takeString( 1 );
         UString p;
         p.append( "/" );
         p.append( mailbox );
@@ -985,7 +1044,8 @@ void SieveCommand::parse( const String & previous )
         }
     }
     else if ( i == "redirect" ) {
-        String s = arguments()->takeString().utf8();
+        arguments()->numberRemainingArguments();
+        String s = arguments()->takeString( 1 ).utf8();
         AddressParser ap( s );
         if ( !ap.error().isEmpty() ||
              ap.addresses()->count() != 1 ||
@@ -1042,7 +1102,8 @@ void SieveCommand::parse( const String & previous )
         (void)arguments()->takeTaggedString( ":handle" );
 
         // reason
-        UString reason = arguments()->takeString();
+        arguments()->numberRemainingArguments();
+        UString reason = arguments()->takeString( 1 );
         if ( mime ) {
             if ( !reason.isAscii() )
                 setError( ":mime bodies must be all-ASCII, "
@@ -1161,8 +1222,9 @@ void SieveTest::parse()
         findComparator();
         findMatchType();
         findAddressPart();
-        d->headers = takeHeaderFieldList();
-        d->keys = arguments()->takeStringList();
+        arguments()->numberRemainingArguments();
+        d->headers = takeHeaderFieldList( 1 );
+        d->keys = arguments()->takeStringList( 2 );
     }
     else if ( identifier() == "allof" ||
               identifier() == "anyof" ) {
@@ -1185,8 +1247,9 @@ void SieveTest::parse()
         findComparator();
         findMatchType();
         findAddressPart();
-        d->envelopeParts = arguments()->takeStringList();
-        d->keys = arguments()->takeStringList();
+        arguments()->numberRemainingArguments();
+        d->envelopeParts = arguments()->takeStringList( 1 );
+        d->keys = arguments()->takeStringList( 2 );
         UStringList::Iterator i( d->envelopeParts );
         while ( i ) {
             String s = i->utf8().lower();
@@ -1204,7 +1267,8 @@ void SieveTest::parse()
         }
     }
     else if ( identifier() == "exists" ) {
-        d->headers = takeHeaderFieldList();
+        arguments()->numberRemainingArguments();
+        d->headers = takeHeaderFieldList( 1 );
     }
     else if ( identifier() == "false" ) {
         // I wish all the tests were this easy
@@ -1212,8 +1276,9 @@ void SieveTest::parse()
     else if ( identifier() == "header" ) {
         findComparator();
         findMatchType();
-        d->headers = takeHeaderFieldList();
-        d->keys = arguments()->takeStringList();
+        arguments()->numberRemainingArguments();
+        d->headers = takeHeaderFieldList( 1 );
+        d->keys = arguments()->takeStringList( 2 );
     }
     else if ( identifier() == "not" ) {
         if ( !arguments()->arguments()->isEmpty() )
@@ -1253,7 +1318,8 @@ void SieveTest::parse()
             d->bodyMatchType = SpecifiedTypes;
             d->contentTypes = arguments()->takeTaggedStringList( ":content" );
         }
-        d->keys = arguments()->takeStringList();
+        arguments()->numberRemainingArguments();
+        d->keys = arguments()->takeStringList( 1 );
     }
     else {
         setError( "Unknown test: " + identifier() );
@@ -1388,24 +1454,20 @@ Collation * SieveTest::comparator() const
 }
 
 
-/*! As SieveArgumentList::takeStringList(), and additionally checks
+/*! As SieveArgumentList::takeStringList( \a n ), and additionally checks
     that each string is a valid header field name according to RFC
     2822 section 3.6.8, and if identifier() is "address", that each
     refers to an address field. The result is filtered through
     String::headerCased().
 */
 
-UStringList * SieveTest::takeHeaderFieldList()
+UStringList * SieveTest::takeHeaderFieldList( uint n )
 {
-    List<SieveArgument>::Iterator a( arguments()->arguments() );
-    while ( a && ( a->parsed() || !a->stringList() ) )
-        ++a;
-    if ( !a ) {
-        setError( "Missing string/list argument" );
-        return 0;
+    SieveArgument * a = arguments()->takeArgument( n );
+    if ( a ) {
+        a->setParsed( true );
+        a->assertStringList();
     }
-    a->setParsed( true );
-
     UStringList::Iterator h( a->stringList() );
     while ( h ) {
         UString s = *h;
