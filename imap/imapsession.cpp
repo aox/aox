@@ -15,13 +15,14 @@ class ImapSessionData
     : public EventHandler
 {
 public:
-    ImapSessionData(): i( 0 ), unsolicited( 0 ),
-                       recent( UINT_MAX ),
+    ImapSessionData(): i( 0 ), unsolicited( false ),
+                       exists( UINT_MAX/4 ), recent( UINT_MAX ),
                        uidnext( 0 ),
                        hms( 0 ), flagf( 0 ), annof( 0 ), trif( 0 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
-    uint unsolicited;
+    bool unsolicited;
+    uint exists;
     uint recent;
     uint uidnext;
     List<int64> ignorable;
@@ -81,13 +82,24 @@ IMAP * ImapSession::imap() const
 void ImapSession::emitExpunge( uint msn )
 {
     enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+    if ( d->exists )
+        d->exists--;
     d->expungedFetched.clear();
 }
 
 
 void ImapSession::emitExists( uint number )
 {
-    enqueue( "* " + fn( number ) + " EXISTS\r\n" );
+    if ( d->exists != number )
+        enqueue( "* " + fn( number ) + " EXISTS\r\n" );
+
+    // if we just sent an unsolicited response, we don't do anything
+    // more, we don't even remember that we sent this. when the next
+    // imap command comes we'll repeat the exists.
+    if ( d->unsolicited )
+        return;
+
+    d->exists = number;
 
     uint r = recent().count();
     if ( d->recent != r ) {
@@ -272,9 +284,9 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
         return true;
     }
     else {
-        if ( !c ) {
+        if ( t == New && !c ) {
             // no commands at all. have we sent anything?
-            if ( d->unsolicited > 512 )
+            if ( d->unsolicited )
                 return false;
             // not so much. we can send a little more.
             return true;
@@ -299,11 +311,7 @@ void ImapSession::enqueue( const String & r )
         return;
     }
 
-    if ( d->i->commands()->isEmpty() )
-        d->unsolicited += r.length();
-    else
-        d->unsolicited = 0;
-
+    d->unsolicited = d->i->commands()->isEmpty();
     d->i->enqueue( r );
 }
 

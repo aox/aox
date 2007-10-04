@@ -24,8 +24,7 @@ public:
           mailbox( 0 ),
           uidnext( 0 ), nextModSeq( 0 ),
           firstUnseen( 0 ),
-          permissions( 0 ),
-          reportedExists( UINT_MAX/7 ) // random large number
+          permissions( 0 )
     {}
 
     bool readOnly;
@@ -39,7 +38,6 @@ public:
     int64 nextModSeq;
     uint firstUnseen;
     Permissions * permissions;
-    uint reportedExists;
     List<Message> newMessages;
     List<Message> modifiedMessages;
 };
@@ -382,8 +380,6 @@ void Session::emitResponses( ResponseType type )
             if ( msn ) {
                 emitExpunge( msn );
                 d->msns.remove( uid );
-                if ( d->reportedExists > 0 )
-                    d->reportedExists--;
             }
             i++;
         }
@@ -422,10 +418,7 @@ void Session::emitResponses( ResponseType type )
         d->msns.add( n );
         d->newMessages.clear();
         uint c = d->msns.count();
-        if ( c != d->reportedExists ) {
-            d->reportedExists = c;
-            emitExists( c );
-        }
+        emitExists( c );
     }
 }
 
