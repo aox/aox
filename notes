@@ -40,7 +40,14 @@
 
 2.05: 2007-12-03
 
-  Last release before the new year.
+  Web archive improvements.
+
+    2007-10-26: decide on feature list
+    2007-11-19: drop things that can't be finished
+    2007-11-26: fork and remove unusable code
+    2007-11-29: roll, release chores
+    2007-11-30: features for next release
+    2007-12-03: release
 
   Abhijit is responsive.
 
