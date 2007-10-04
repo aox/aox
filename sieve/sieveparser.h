@@ -43,8 +43,6 @@ public:
 
     // productions in RFC3028bis section 8.2
 
-    String addressPart();
-
     class SieveArgument * argument();
 
     class SieveArgumentList * arguments();
