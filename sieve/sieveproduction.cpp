@@ -184,7 +184,6 @@ StringList * SieveProduction::supportedExtensions()
     r->append( "date" );
     r->append( "envelope" );
     r->append( "fileinto" );
-    r->append( "index" );
     r->append( "reject" );
     r->append( "relational" );
     r->append( "subaddress" );
