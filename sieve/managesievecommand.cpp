@@ -322,6 +322,50 @@ bool ManageSieveCommand::putScript()
             return true;
         }
 
+        // look for fileinto calls. if any refer to nonexistent
+        // mailboxes in the user's namespace, create those. if any
+        // refer to mailboxes not owned by the user, deny the command.
+        List<SieveCommand> stack;
+        stack.append( script.topLevelCommands() );
+        while ( !stack.isEmpty() ) {
+            SieveCommand * c = stack.shift();
+            if ( c->block() )
+                stack.append( c->block()->commands() );
+            if ( c->error().isEmpty() && c->identifier() == "fileinto" ) {
+                SieveArgumentList * l = c->arguments();
+                List<SieveArgument>::Iterator a( l->arguments() );
+                while ( a ) {
+                    UString n = *a->stringList()->first();
+                    Mailbox * home = d->sieve->user()->home();
+                    Mailbox * m = 0;
+                    if ( n.startsWith( "/" ) )
+                        m = Mailbox::obtain( n, true );
+                    else
+                        m = Mailbox::obtain( home->name() + "/" + n, true );
+                    Mailbox * p = m;
+                    while ( p && p != home )
+                        p = p->parent();
+                    if ( !m->synthetic() && !m->deleted() ) {
+                        // no action needed
+                    }
+                    else if ( p == home ) {
+                        log( "Creating mailbox " + m->name().ascii() +
+                             " (used in fileinto and did not exist" );
+                        d->create.insert( m->name().utf8(), m );
+                    }
+                    else {
+                        no( "Script refers to mailbox " +
+                            m->name().ascii().quoted() +
+                            ", which does not exist and is outside your"
+                            " home directory (" +
+                            home->name().ascii().quoted() + ")" );
+                        return true;
+                    }
+                    ++a;
+                }
+            }
+        }
+        
         // at this point, nothing can prevent us from completing.
 
         d->t = new Transaction( this );
@@ -333,45 +377,12 @@ bool ManageSieveCommand::putScript()
         d->t->enqueue( d->query );
         d->t->execute();
 
-        // look for fileinto calls. if any refer to nonexistent
-        // mailboxes in the user's namespace, create those. if any
-        // refer to mailboxes not owned by the user, deny the
-        List<SieveCommand> stack;
-        List<SieveCommand>::Iterator i( script.topLevelCommands() );
+        StringList::Iterator i( d->create.keys() );
         while ( i ) {
-            stack.append( i );
+            Mailbox * m = d->create.find( *i );
+            if ( m )
+                (void)m->create( d->t, d->sieve->user() );
             ++i;
-        }
-        while ( !stack.isEmpty() ) {
-            SieveCommand * c = stack.shift();
-            if ( c->block() ) {
-                List<SieveCommand>::Iterator i( c->block()->commands() );
-                while ( i ) {
-                    stack.append( i );
-                    ++i;
-                }
-            }
-            if ( c->error().isEmpty() && c->identifier() == "fileinto" ) {
-                SieveArgumentList * l = c->arguments();
-                List<SieveArgument>::Iterator a( l->arguments() );
-                while ( a ) {
-                    UString n = *a->stringList()->first();
-                    UString p = d->sieve->user()->home()->name();
-                    p.append( '/' );
-                    if ( !n.startsWith( "/" ) )
-                        n = p + n;
-                    if ( n.titlecased().startsWith( p.titlecased() ) ) {
-                        Mailbox * m = Mailbox::find( n );
-                        if ( !d->create.contains( n.utf8() ) &&
-                             ( !m || m->synthetic() || m->deleted() ) ) {
-                            m = Mailbox::obtain( n, true );
-                            d->create.insert( n.utf8(), m );
-                            (void)m->create( d->t, d->sieve->user() );
-                        }
-                    }
-                    ++a;
-                }
-            }
         }
     }
 
