@@ -469,9 +469,9 @@ Mailbox * Mailbox::closestParent( const UString & name )
             candidate = 0;
         }
         else {
-            UString next = name.mid( 0, i );
+            UString next = name.mid( 0, i ).titlecased();
             List<Mailbox>::Iterator it( candidate->children() );
-            while ( it && it->name() != next )
+            while ( it && it->name().titlecased() != next )
                 ++it;
             candidate = it;
             i++;
