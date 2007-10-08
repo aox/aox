@@ -730,6 +730,15 @@ void Header::repair()
         }
         ++i;
     }
+
+    // Content-Transfer-Encoding: should not occur on multiparts, and
+    // when it does it usually has a syntax error. We don't care about
+    // that error.
+    if ( occurrences[(int)HeaderField::ContentTransferEncoding] ) {
+        ContentType * ct = contentType();
+        if ( ct && ( ct->type() == "multipart" || ct->type() == "message" ) )
+            removeField( HeaderField::ContentTransferEncoding );
+    }
 }
 
 
