@@ -106,8 +106,11 @@ void AddressField::parse( const String &s )
         }
         break;
 
-    case HeaderField::MessageId:
     case HeaderField::ContentId:
+        parseContentId( s );
+        break;
+
+    case HeaderField::MessageId:
     case HeaderField::ResentMessageId:
         parseMessageId( s );
         break;
@@ -280,6 +283,38 @@ void AddressField::parseMessageId( const String &s )
     }
     else {
         setError( "Need exactly one" );
+    }
+}
+
+
+/*! Like parseMessageId( \a s ), except that it also accepts <blah>. */
+
+void AddressField::parseContentId( const String & s )
+{
+    AddressParser ap( s );
+    setError( ap.error() );
+    if ( ap.addresses()->count() != 1 ) {
+        setError( "Need exactly one" );
+    }
+    else {
+        Address * a = ap.addresses()->first();
+        switch ( a->type() ) {
+        case Address::Normal:
+            setData( "<" + a->localpart() + "@" + a->domain() + ">" );
+            break;
+        case Address::Bounce:
+            setError( "<> is not legal, it has to be <some@thing>" );
+            break;
+        case Address::EmptyGroup:
+            setError( "Error parsing Content-ID" );
+            break;
+        case Address::Local:
+            setData( "<" + a->localpart() + ">" );
+            break;
+        case Address::Invalid:
+            setError( "Error parsing Content-Id" );
+            break;
+        }
     }
 }
 

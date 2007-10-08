@@ -26,6 +26,7 @@ protected:
     void parseMailbox( const String & );
     void parseReferences( const String & );
     void parseMessageId( const String & );
+    void parseContentId( const String & );
 
 private:
     void outlawBounce();
