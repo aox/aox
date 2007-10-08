@@ -76,6 +76,10 @@ void AddressField::parse( const String &s )
                 a->clear();
             }
         }
+        if ( !valid() && s.simplified() == "@" ) {
+            setError( "" );
+            a->clear();
+        }
         if ( s.contains( "<>" ) ) {
             // some spammers attempt to send 'To: asdfsaf <>'.
             List<Address>::Iterator i( a );
