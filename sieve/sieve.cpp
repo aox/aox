@@ -406,6 +406,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                      n == "X-Beenthere" ||
                      n == "X-Loop" )
                     wantToReply = false;
+                ++i;
             }
         }
 
@@ -493,6 +494,11 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
 
         if ( wantToReply ) {
+            SieveAction * a = new SieveAction( SieveAction::Vacation );
+            actions.append( a );
+            a->setMessage( reply );
+            a->setAddress( d->sender );
+            a->setHandle( handle );
         }
     }
     else {
