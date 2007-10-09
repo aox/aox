@@ -1474,10 +1474,13 @@ Collation * SieveTest::comparator() const
 UStringList * SieveTest::takeHeaderFieldList( uint n )
 {
     SieveArgument * a = arguments()->takeArgument( n );
-    if ( a ) {
-        a->setParsed( true );
-        a->assertStringList();
+    if ( !a ) {
+        setError( "Missing header field list" );
+        return 0;
     }
+
+    a->setParsed( true );
+    a->assertStringList();
     UStringList::Iterator h( a->stringList() );
     while ( h ) {
         UString s = *h;
