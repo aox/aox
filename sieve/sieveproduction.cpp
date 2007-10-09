@@ -1350,8 +1350,8 @@ void SieveTest::findComparator()
 
     d->comparator = Collation::create( a );
     if ( !d->comparator )
-        arguments()->argumentFollowingTag( ":comparator" )->
-            setError( "Unknown comparator: " + a.utf8() );
+        arguments()->tagError( ":comparator",
+                               "Unknown comparator: " + a.utf8() );
 }
 
 
@@ -1394,8 +1394,9 @@ void SieveTest::findMatchType()
         else if ( s == "NE" )
             d->matchOperator = NE;
         else
-            arguments()->argumentFollowingTag( t )->
-                setError( "Unknown relational operator: " + s.utf8() );
+            arguments()->tagError( t.cstr(),
+                                   "Unknown relational operator: " +
+                                   s.utf8() );
     }
 }
 
