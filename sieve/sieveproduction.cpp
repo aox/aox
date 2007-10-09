@@ -490,7 +490,7 @@ UString SieveArgumentList::takeTaggedString( const String & tag )
     UString r;
     if ( !a )
         return r;
-    
+
     a->assertString();
     if ( a->stringList() )
         r = *a->stringList()->firstElement();
@@ -513,7 +513,7 @@ UStringList * SieveArgumentList::takeTaggedStringList( const String & tag )
     SieveArgument * a = argumentFollowingTag( tag );
     if ( !a )
         return 0;
-    
+
     a->assertStringList();
     return a->stringList();
 }
@@ -538,7 +538,7 @@ uint SieveArgumentList::takeTaggedNumber( const String & tag )
 
 
 /*! Finds the argument tagged \a tag and returns a pointer to it. If
-    \a tag ocurs mor than once, all occurences are flagged as bad and
+    \a tag ocurs more than once, all occurences are flagged as bad and
     the first occurence returned.
 
     Returns a null pointer if \a tag does not occur anywhere.
@@ -614,7 +614,7 @@ void SieveArgumentList::numberRemainingArguments()
             d->n.append( i );
         ++i;
     }
-    
+
 }
 
 
@@ -649,8 +649,10 @@ void SieveArgumentList::flagUnparsedAsBad()
 UStringList * SieveArgumentList::takeStringList( uint n )
 {
     List<SieveArgument>::Iterator i( d->n );
-    while ( i && n > 1 )
+    while ( i && n > 1 ) {
         ++i;
+        n--;
+    }
     if ( !i ) {
         setError( "Missing string/list argument" );
         return 0;
@@ -669,8 +671,10 @@ UStringList * SieveArgumentList::takeStringList( uint n )
 UString SieveArgumentList::takeString( uint n )
 {
     List<SieveArgument>::Iterator i( d->n );
-    while ( i && n > 1 )
+    while ( i && n > 1 ) {
         ++i;
+        n--;
+    }
     UString r;
     if ( !i ) {
         setError( "Missing string argument" );
@@ -692,8 +696,10 @@ UString SieveArgumentList::takeString( uint n )
 uint SieveArgumentList::takeNumber( uint n )
 {
     List<SieveArgument>::Iterator i( d->n );
-    while ( i && n > 1 )
+    while ( i && n > 1 ) {
         ++i;
+        n--;
+    }
     if ( !i ) {
         setError( "Missing numeric argument" );
         return 0;
@@ -721,13 +727,15 @@ SieveArgument * SieveArgumentList::takeArgument( uint n )
 }
 
 
-/*! Records \a error, either on this node or on the node with \a
+/*! Records \a error, either on this node or on the argument tagged \a
     tag.
 */
 
 void SieveArgumentList::tagError( const char * tag, const String & error )
 {
-    SieveArgument * t = findTag( tag );
+    SieveArgument * t = argumentFollowingTag( tag );
+    if ( !t )
+        t = findTag( tag );
     if ( t )
         t->setError( error );
     else
@@ -1035,7 +1043,7 @@ void SieveCommand::parse( const String & previous )
             // a sieve script which wants to reference a
             // mailbox called INBOX.X must use lower case
             // (inbox.x).
-            UString aox = 
+            UString aox =
                 UStringList::split( '.', mailbox.mid( 6 ) )->join( "/" );
             setError( mailbox.utf8().quoted() +
                       " is Cyrus syntax. Archiveopteryx uses " +
@@ -1063,6 +1071,8 @@ void SieveCommand::parse( const String & previous )
         //          [":from" string] [":addresses" string-list]
         //          [":mime"] [":handle" string] <reason: string>
 
+        require( "vacation" );
+
         // :days
         uint days = 7;
         if ( arguments()->findTag( ":days" ) )
@@ -1083,7 +1093,7 @@ void SieveCommand::parse( const String & previous )
 
         // :addresses
         if ( arguments()->findTag( ":addresses" ) ) {
-            UStringList * addresses 
+            UStringList * addresses
                 = arguments()->takeTaggedStringList( ":addresses" );
             UStringList::Iterator i( addresses );
             while ( i ) {
@@ -1200,10 +1210,10 @@ void SieveCommand::parseAsAddress( const UString & s, const char * t )
     if ( !ap.error().isEmpty() )
         arguments()->tagError( t, ap.error() );
     else if ( ap.addresses()->count() != 1 )
-        arguments()->tagError( t, "Expected 1 addresses, got " + 
+        arguments()->tagError( t, "Expected 1 addresses, got " +
                                fn( ap.addresses()->count() ) );
     else if ( ap.addresses()->first()->type() != Address::Normal )
-        arguments()->tagError( t, 
+        arguments()->tagError( t,
                                "Expected normal email address "
                                "(whatever@wherev.er), got " +
                                ap.addresses()->first()->toString() );
@@ -1335,12 +1345,13 @@ void SieveTest::parse()
 void SieveTest::findComparator()
 {
     UString a = arguments()->takeTaggedString( ":comparator" );
-    if ( !a.isEmpty() ) {
-        d->comparator = Collation::create( a );
-        if ( !d->comparator )
-            arguments()->argumentFollowingTag( ":comparator" )->
-                setError( "Unknown comparator: " + a.utf8() );
-    }
+    if ( a.isEmpty() )
+        return;
+
+    d->comparator = Collation::create( a );
+    if ( !d->comparator )
+        arguments()->argumentFollowingTag( ":comparator" )->
+            setError( "Unknown comparator: " + a.utf8() );
 }
 
 
