@@ -37,11 +37,11 @@ public:
         : public Garbage
     {
     public:
-        Recipient( Address * a, Mailbox * m, User * u, SieveData * data )
+        Recipient( Address * a, Mailbox * m, SieveData * data )
             : d( data ), address( a ), mailbox( m ),
               done( false ), ok( true ),
               implicitKeep( true ), explicitKeep( false ),
-              sq( 0 ), script( new SieveScript ), user( u )
+              sq( 0 ), script( new SieveScript ), user( 0 ), handler( 0 )
         {
             d->recipients.append( this );
         }
@@ -61,6 +61,7 @@ public:
         String error;
         UString prefix;
         User * user;
+        EventHandler * handler;
 
         bool evaluate( SieveCommand * );
         enum Result { True, False, Undecidable };
@@ -78,8 +79,23 @@ public:
 SieveData::Recipient * SieveData::recipient( Address * a )
 {
     List<SieveData::Recipient>::Iterator it( recipients );
-    while ( it && it->address != a )
-        ++it;
+    bool same = false;
+    String dom = a->domain().lower();
+    String lp = a->localpart().lower();
+    do {
+        if ( it->address->domain().lower() == dom ) {
+            if ( it->mailbox ) {
+                if ( it->address->localpart().lower() == lp )
+                    same = true;
+            }
+            else {
+                if ( it->address->localpart() == a->localpart() )
+                    same = true;
+            }
+        }
+        if ( !same )
+            ++it;
+    } while ( it && !same );
     return it;
 }
 
@@ -113,21 +129,41 @@ Sieve::Sieve()
 
 void Sieve::execute()
 {
+    List<EventHandler> l;
     List<SieveData::Recipient>::Iterator i( d->recipients );
     while ( i ) {
         if ( i->sq ) {
             Row * r = i->sq->nextRow();
-            if ( r ) {
+            if ( r || i->sq->done() ) {
                 i->sq = 0;
-                i->script->parse( r->getString( "script" ) );
-                List<SieveCommand>::Iterator c(i->script->topLevelCommands());
-                while ( c ) {
-                    i->pending.append( c );
-                    ++c;
+                if ( i->handler && !l.find( i->handler ) )
+                    l.append( i->handler );
+            }
+            if ( r ) {
+                if ( !r->isNull( "mailbox" ) )
+                    i->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
+                if ( !r->isNull( "script" ) ) {
+                    i->prefix = r->getUString( "name" ) + "/" +
+                                r->getUString( "login" ) + "/";
+                    i->user = new User;
+                    i->user->setLogin( r->getUString( "login" ) );
+                    i->user->setId( r->getInt( "userid" ) );
+                    i->script->parse( r->getString( "script" ) );
+                    List<SieveCommand>::Iterator 
+                        c(i->script->topLevelCommands());
+                    while ( c ) {
+                        i->pending.append( c );
+                        ++c;
+                    }
                 }
             }
         }
         ++i;
+    }
+    List<EventHandler>::Iterator e( l );
+    while ( e ) {
+        e->execute();
+        ++e;
     }
 }
 
@@ -142,39 +178,66 @@ void Sieve::setSender( Address * address )
 
 /*! Records that \a address is one of the recipients for this message,
     and that \a destination is where the mailbox should be stored by
-    default. Sieve will use \a script as script, or if \a script is a
-    not supplied (normally the case), Sieve looks up the active script
-    for the owner of \a destination. If \a user is non-null, Sieve
-    will check that fileinto statement only file mail into mailboxes
-    owned by \a user.
-
-    If \a address is not a registered alias, Sieve will refuse mail to
-    it.
+    default. Sieve will use \a script as script. If \a user is
+    non-null, Sieve will check that fileinto statement only files mail
+    into mailboxes owned by \a user.
 */
 
 void Sieve::addRecipient( Address * address, Mailbox * destination,
                           User * user, SieveScript * script )
 {
     SieveData::Recipient * r
-        = new SieveData::Recipient( address, destination, user, d );
+        = new SieveData::Recipient( address, destination, d );
     d->currentRecipient = r;
-    if ( script ) {
-        r->script = script;
-        List<SieveCommand>::Iterator c( script->topLevelCommands() );
-        while ( c ) {
-            r->pending.append( c );
-            ++c;
-        }
-        return;
+    r->script = script;
+    r->user = user;
+    List<SieveCommand>::Iterator c( script->topLevelCommands() );
+    while ( c ) {
+        r->pending.append( c );
+        ++c;
     }
+}
 
-    r->sq = new Query( "select scripts.script from scripts s, mailboxes m "
-                       "where s.owner=m.owner "
-                       "and m.id=$1"
-                       "and s.active='t'",
-                       this );
-    r->sq->bind( 1, destination->id() );
+
+/*! Looks up \a address in the aliases table, finds the related sieve
+    script and other needed information so that delivery to \a address
+    can be evaluated. Calls \a user when the information is available.
+
+    If \a address is not a registered alias, Sieve will refuse mail to
+    it.
+*/
+
+void Sieve::addRecipient( Address * address, EventHandler * user )
+{
+    SieveData::Recipient * r
+        = new SieveData::Recipient( address, 0, d );
+    d->currentRecipient = r;
+
+    r->handler = user;
+
+    r->sq = new Query( "select al.mailbox, s.script, m.owner, "
+                       "n.name, u.id as userid, u.login "
+                       "from aliases al "
+                       "join addresses a on (al.address=a.id) "
+                       "join mailboxes m on (al.mailbox=m.id) "
+                       "left join scripts s on "
+                       " (s.owner=m.owner and s.active='t') "
+                       "left join users u on (s.owner=u.id) "
+                       "left join namespaces n on (u.parentspace=n.id) "
+                       "where m.deleted='f' and "
+                       "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
+    String localpart( address->localpart() );
+    if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
+        Configuration::Text t = Configuration::AddressSeparator;
+        String sep( Configuration::text( t ) );
+        int n = localpart.find( sep );
+        if ( n > 0 )
+            localpart = localpart.mid( 0, n );
+    }
+    r->sq->bind( 1, localpart.lower() );
+    r->sq->bind( 2, address->domain().lower() );
     r->sq->execute();
+    
 }
 
 
@@ -869,6 +932,38 @@ bool Sieve::succeeded( Address * address ) const
     SieveData::Recipient * i = d->recipient( address );
     if ( i )
         return i->done && i->ok;
+    return false;
+}
+
+
+/*! Returns true if the \a address has been added to this Sieve using
+    addRecipient().
+*/
+
+bool Sieve::known( Address * address ) const
+{
+    SieveData::Recipient * i = d->recipient( address );
+    if ( i )
+        return true;
+    return false;
+}
+
+
+/*! Returns true if \a address is known to be a local address, and
+    false if \a address is not known(), if the Sieve isn't ready() or if
+    \a address is remote.
+  
+    If the Sieve is ready() and \a address is not local(), then it
+    must be a remote address.
+*/
+
+bool Sieve::local( Address * address ) const
+{
+    if ( !ready() )
+        return false;
+    SieveData::Recipient * i = d->recipient( address );
+    if ( i && i->mailbox )
+        return true;
     return false;
 }
 

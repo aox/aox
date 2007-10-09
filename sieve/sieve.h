@@ -26,13 +26,17 @@ public:
     void execute();
 
     void setSender( Address * );
-    void addRecipient( Address *, Mailbox *, User *, SieveScript * = 0 );
+    void addRecipient( Address *, Mailbox *, User *, SieveScript * );
+    void addRecipient( Address *, EventHandler * );
     void setMessage( Message * );
 
     void setPrefix( Address *, const UString & );
 
     Address * sender() const;
     Address * recipient() const;
+
+    bool known( Address * ) const;
+    bool local( Address * ) const;
 
     void evaluate();
     bool rejected( Address * ) const;

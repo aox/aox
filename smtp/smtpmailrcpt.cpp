@@ -20,10 +20,8 @@ class SmtpMailFromData
     : public Garbage
 {
 public:
-    SmtpMailFromData(): address( 0 ), copyAddress( 0 ), sieveQuery( 0 ) {}
+    SmtpMailFromData(): address( 0 ) {}
     Address * address;
-    Address * copyAddress;
-    Query * sieveQuery;
 };
 
 
@@ -146,59 +144,15 @@ void SmtpMailFrom::execute()
     // checking rcpt to is not necessary, since it already checks mail from
 
     if ( server()->dialect() == SMTP::Submit &&
-         Configuration::toggle( Configuration::SubmitCopyToSender ) &&
-         !d->sieveQuery && !d->copyAddress ) {
-        d->copyAddress = server()->user()->address();
-        if ( d->copyAddress->type() != Address::Normal )
-            d->copyAddress = d->address;
-        if ( d->copyAddress && d->copyAddress->type() != Address::Normal )
-            d->copyAddress = 0;
-        if ( d->copyAddress && !d->sieveQuery ) {
-            d->sieveQuery = new Query(
-                "select al.mailbox, s.script, m.owner, "
-                "n.name, u.id as userid, u.login "
-                "from aliases al "
-                "join addresses a on (al.address=a.id) "
-                "join mailboxes m on (al.mailbox=m.id) "
-                "left join scripts s on (s.owner=m.owner and s.active='t') "
-                "left join users u on (s.owner=u.id) "
-                "left join namespaces n on (u.parentspace=n.id) "
-                "where m.deleted='f' and "
-                "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
-            d->sieveQuery->bind( 1, d->copyAddress->localpart().lower() );
-            d->sieveQuery->bind( 2, d->copyAddress->domain().lower() );
-            d->sieveQuery->execute();
-        }
-    }
-
-    if ( d->sieveQuery && !d->sieveQuery->done() )
-        return;
-    if ( d->sieveQuery ) {
-        Row * r = d->sieveQuery->nextRow();
-        if ( r ) {
-            SieveScript * script = new SieveScript;
-            Mailbox * mailbox = Mailbox::find( r->getInt( "mailbox" ) );
-            if ( !r->isNull( "script" ) )
-                script->parse( r->getString( "script" ) );
-            User * user = 0;
-            if ( !r->isNull( "login" ) ) {
-                if ( server()->user() &&
-                     r->getUString( "login" ) == server()->user()->login() ) {
-                    user = server()->user();
-                }
-                else {
-                    user = new User;
-                    user->setLogin( r->getUString( "login" ) );
-                    user->setId( r->getInt( "userid" ) );
-                }
-            }
-            server()->sieve()->addRecipient( d->copyAddress, mailbox,
-                                             user, script );
-            if ( !r->isNull( "login" ) )
-                server()->sieve()->setPrefix( d->address,
-                                              r->getUString( "name" ) + "/" +
-                                              r->getUString( "login" ) + "/" );
-            respond( 0, "Will send a copy to " + d->copyAddress->toString() );
+         Configuration::toggle( Configuration::SubmitCopyToSender ) ) {
+        Address * copy = 0;
+        if ( server()->user()->address()->type() == Address::Normal )
+            copy = server()->user()->address();
+        else if ( d->address->type() == Address::Normal )
+            copy = d->address;
+        if ( copy ) {
+            server()->sieve()->addRecipient( copy, 0 );
+            respond( 0, "Will send a copy to " + copy->toString() );
         }
     }
 
@@ -256,64 +210,8 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
 
 void SmtpRcptTo::execute()
 {
-    if ( !d->query ) {
-        d->query = new Query(
-            "select al.mailbox, s.script, m.owner, "
-            "n.name, u.id as userid, u.login "
-            "from aliases al "
-            "join addresses a on (al.address=a.id) "
-            "join mailboxes m on (al.mailbox=m.id) "
-            "left join scripts s on (s.owner=m.owner and s.active='t') "
-            "left join users u on (s.owner=u.id) "
-            "left join namespaces n on (u.parentspace=n.id) "
-            "where m.deleted='f' and "
-            "lower(a.localpart)=$1 and lower(a.domain)=$2", this
-        );
-
-        String localpart( d->address->localpart() );
-        if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
-            Configuration::Text t = Configuration::AddressSeparator;
-            String sep( Configuration::text( t ) );
-            int n = localpart.find( sep );
-            if ( n > 0 )
-                localpart = localpart.mid( 0, n );
-        }
-
-        d->query->bind( 1, localpart.lower() );
-        d->query->bind( 2, d->address->domain().lower() );
-        d->query->execute();
-    }
-
-    if ( !d->mailbox ) {
-        Row * r = d->query->nextRow();
-        if ( r ) {
-            SieveScript * script = new SieveScript;
-            d->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
-            if ( !r->isNull( "script" ) )
-                script->parse( r->getString( "script" ) );
-            User * user = 0;
-            if ( !r->isNull( "login" ) ) {
-                if ( server()->user() &&
-                     r->getUString( "login" ) == server()->user()->login() ) {
-                    user = server()->user();
-                }
-                else {
-                    user = new User;
-                    user->setLogin( r->getUString( "login" ) );
-                    user->setId( r->getInt( "userid" ) );
-                }
-            }
-            server()->sieve()->addRecipient( d->address, d->mailbox,
-                                             user, script );
-            if ( !r->isNull( "login" ) )
-                server()->sieve()->setPrefix( d->address,
-                                              r->getUString( "name" ) + "/" +
-                                              r->getUString( "login" ) + "/" );
-        }
-    }
-
-    if ( !d->query->done() )
-        return;
+    if ( !server()->sieve()->known( d->address ) )
+        server()->sieve()->addRecipient( d->address, this );
 
     if ( !server()->isFirstCommand( this ) )
         return;
@@ -324,8 +222,10 @@ void SmtpRcptTo::execute()
         return;
     }
 
-    if ( d->mailbox ) {
-        // the recipient is local
+    if ( !server()->sieve()->ready() )
+        return;
+
+    if ( server()->sieve()->local( d->address ) ) {
         server()->sieve()->evaluate();
         if ( server()->sieve()->rejected( d->address ) )
             respond( 550, d->address->toString().lower() + " rejects mail",
@@ -335,7 +235,6 @@ void SmtpRcptTo::execute()
                      "2.1.5" );
     }
     else {
-        // the recipient is remote
         if ( server()->user() )
             respond( 250, "Submission accepted for " +
                      d->address->toString(), "2.1.5" );
