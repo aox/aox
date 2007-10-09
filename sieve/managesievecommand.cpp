@@ -847,9 +847,9 @@ bool ManageSieveCommand::explain()
             r.append( "discard" );
             break;
         case SieveAction::Vacation:
-            r.append( "vacation, to " );
+            r.append( "send vacation message to " );
             r.append( sa->message()->header()->field( HeaderField::To )->value() );
-            r.append( ", subject " );
+            r.append( " with subject " );
             r.append( sa->message()->header()->subject() );
             break;
         case SieveAction::Error:
