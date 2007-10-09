@@ -461,9 +461,25 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
         reptext.append( "\r\n"
                         "Date: " );
-        Date now;
-        now.setCurrentTime();
-        reptext.append( now.rfc822() );
+        Date replyDate;
+        if ( d->message->header()->field( HeaderField::Received ) ) {
+            String v = d->message->header()->
+                       field( HeaderField::Received )->value();
+            int i = 0;
+            while ( v.find( ';', i+1 ) > 0 )
+                i = v.find( ';', i+1 );
+            if ( i >= 0 ) {
+                Date tmp;
+                tmp.setRfc822( v.mid( i+1 ) );
+                if ( tmp.valid() )
+                    replyDate = tmp;
+            }
+        }
+        else {
+            replyDate.setCurrentTime();
+        }
+        
+        reptext.append( replyDate.rfc822() );
         reptext.append( "\r\n"
                         "Auto-Submitted: auto-replied\r\n"
                         "Precedence: junk\r\n" );
