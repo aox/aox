@@ -248,8 +248,6 @@ void Sieve::evaluate()
 
 bool SieveData::Recipient::evaluate( SieveCommand * c )
 {
-    UString arg = c->arguments()->takeString( 1 );
-
     if ( c->identifier() == "if" ||
          c->identifier() == "elsif" ||
          c->identifier() == "else" ) {
@@ -297,6 +295,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     else if ( c->identifier() == "fileinto" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
+        UString arg = c->arguments()->takeString( 1 );
         UString n = arg;
         if ( !arg.startsWith( "/" ) )
             n = prefix + arg;
@@ -320,6 +319,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     else if ( c->identifier() == "redirect" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Redirect );
+        UString arg = c->arguments()->takeString( 1 );
         AddressParser ap( arg.utf8() );
         a->setAddress( ap.addresses()->first() );
         actions.append( a );
