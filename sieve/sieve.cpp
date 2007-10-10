@@ -129,16 +129,13 @@ Sieve::Sieve()
 
 void Sieve::execute()
 {
-    List<EventHandler> l;
+    bool wasReady = ready();
     List<SieveData::Recipient>::Iterator i( d->recipients );
     while ( i ) {
         if ( i->sq ) {
             Row * r = i->sq->nextRow();
-            if ( r || i->sq->done() ) {
+            if ( r || i->sq->done() )
                 i->sq = 0;
-                if ( i->handler && !l.find( i->handler ) )
-                    l.append( i->handler );
-            }
             if ( r ) {
                 if ( !r->isNull( "mailbox" ) )
                     i->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
@@ -160,10 +157,15 @@ void Sieve::execute()
         }
         ++i;
     }
-    List<EventHandler>::Iterator e( l );
-    while ( e ) {
-        e->execute();
-        ++e;
+    if ( ready() && !wasReady ) {
+        i = d->recipients.first();
+        while ( i ) {
+            EventHandler * h = i->handler;
+            i->handler = 0;
+            ++i;
+            if ( h )
+                h->execute();
+        }
     }
 }
 
@@ -932,19 +934,6 @@ bool Sieve::succeeded( Address * address ) const
     SieveData::Recipient * i = d->recipient( address );
     if ( i )
         return i->done && i->ok;
-    return false;
-}
-
-
-/*! Returns true if the \a address has been added to this Sieve using
-    addRecipient().
-*/
-
-bool Sieve::known( Address * address ) const
-{
-    SieveData::Recipient * i = d->recipient( address );
-    if ( i )
-        return true;
     return false;
 }
 

@@ -35,7 +35,6 @@ public:
     Address * sender() const;
     Address * recipient() const;
 
-    bool known( Address * ) const;
     bool local( Address * ) const;
 
     void evaluate();

@@ -172,10 +172,10 @@ class SmtpRcptToData
     : public Garbage
 {
 public:
-    SmtpRcptToData(): address( 0 ), mailbox( 0 ), query( 0 ) {}
+    SmtpRcptToData(): address( 0 ), mailbox( 0 ), added( false ) {}
     Address * address;
     Mailbox * mailbox;
-    Query * query;
+    bool added;
 };
 
 
@@ -210,8 +210,10 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
 
 void SmtpRcptTo::execute()
 {
-    if ( !server()->sieve()->known( d->address ) )
+    if ( !d->added ) {
         server()->sieve()->addRecipient( d->address, this );
+        d->added = true;
+    }
 
     if ( !server()->isFirstCommand( this ) )
         return;
