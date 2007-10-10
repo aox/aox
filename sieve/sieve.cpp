@@ -699,26 +699,26 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         Result r = True;
         while ( i ) {
             uint hft = HeaderField::fieldType( i->ascii() );
-            if ( (hft > 0 && hft <= HeaderField::LastAddressField)
-                 ? (!d->message->hasAddresses())
-                 : (!d->message->hasHeaders()) )
+
+            if ( ( hft > 0 && hft <= HeaderField::LastAddressField &&
+                   !d->message->hasAddresses() ) ||
+                 !d->message->hasHeaders() )
                 r = Undecidable;
+
+            Utf8Codec c;
             List<HeaderField>::Iterator hf( d->message->header()->fields() );
-            while ( hf && hf->name() != i->ascii() )
-                ++hf;
-            if ( t->identifier() == "exists" ) {
-                if ( !hf )
-                    return False;
-            }
-            else {
-                if ( hf ) {
-                    // XXX this is wrong and probably breaks when the
-                    // header field contains =?iso-8859-1?q?=C0?= and
-                    // the blah searches for U+00C0.
-                    Utf8Codec c;
+            while ( hf ) {
+                // XXX this is wrong and probably breaks when the
+                // header field contains =?iso-8859-1?q?=C0?= and
+                // the blah searches for U+00C0.
+                if ( hf->name() == i->ascii() )
                     haystack->append( c.toUnicode( hf->value() ) );
-                }
+                ++hf;
             }
+
+            if ( t->identifier() == "exists" && haystack->isEmpty() )
+                return False;
+
             ++i;
         }
         if ( t->identifier() == "exists" )
