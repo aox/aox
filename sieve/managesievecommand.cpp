@@ -364,6 +364,7 @@ bool ManageSieveCommand::putScript()
             return true;
         }
         if ( d->name.isEmpty() ) {
+            log( "Syntax checking only" );
             // Our very own syntax-checking hack.
             return true;
         }
@@ -437,13 +438,17 @@ bool ManageSieveCommand::putScript()
         return false;
 
     if ( d->step == 0 ) {
-        if ( d->query->nextRow() )
+        if ( d->query->nextRow() ) {
             d->query = new Query( "update scripts set script=$3 where "
                                   "owner=$1 and name=$2", 0 );
-        else
+            log( "Updating script: " + d->name );
+        }
+        else {
             d->query = new Query( "insert into scripts "
                                   "(owner,name,script,active) "
                                   "values($1,$2,$3,false)", 0 );
+            log( "Storing new script: " + d->name );
+        }
         d->query->bind( 1, d->sieve->user()->id() );
         d->query->bind( 2, d->name );
         d->query->bind( 3, d->script );
@@ -517,7 +522,7 @@ bool ManageSieveCommand::setActive()
             q->bind( 1, d->sieve->user()->id() );
             d->t->enqueue( q );
             d->query = new Query( "select '' as name", this );
-            
+            log( "Deactivating all scripts" );
         }
         else {
             d->query = new Query( "select * from scripts "
@@ -550,6 +555,7 @@ bool ManageSieveCommand::setActive()
             q->bind( 1, d->sieve->user()->id() );
             q->bind( 2, r->getString( "name" ) );
             d->t->enqueue( q );
+            log( "Activating script " + r->getString( "name" ) );
         }
         d->t->commit();
     }
@@ -599,7 +605,7 @@ bool ManageSieveCommand::getScript()
 bool ManageSieveCommand::deleteScript()
 {
     if ( !d->t ) {
-        String name = string();
+        d->name = string();
         end();
         d->t = new Transaction( this );
         // select first, so the no() calls below work
@@ -608,13 +614,13 @@ bool ManageSieveCommand::deleteScript()
                        "where owner=$1 and name=$2",
                        this );
         d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, name );
+        d->query->bind( 2, d->name );
         d->t->enqueue( d->query );
         // then delete
         Query * q = new Query( "delete from scripts where owner=$1 and "
                                "name=$2 and active='f'", this );
         q->bind( 1, d->sieve->user()->id() );
-        q->bind( 2, name );
+        q->bind( 2, d->name );
         d->t->enqueue( q );
         if ( d->no.isEmpty() )
             d->t->commit();
@@ -632,6 +638,8 @@ bool ManageSieveCommand::deleteScript()
             no( "No such script" );
         else if ( r->getBoolean( "active" ) )
             no( "Can't delete active script" );
+        else
+            log( "Deleted script " + d->name );
     }
 
     return true;
@@ -730,8 +738,10 @@ void ManageSieveCommand::end()
 
 void ManageSieveCommand::no( const String & message )
 {
-    if ( d->no.isEmpty() )
+    if ( d->no.isEmpty() ) {
         d->no = message;
+        log( "Returning NO: " + d->no );
+    }
 }
 
 
