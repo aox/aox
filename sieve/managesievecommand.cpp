@@ -476,7 +476,8 @@ bool ManageSieveCommand::listScripts()
     if ( !d->query ) {
         end();
         d->query =
-            new Query( "select * from scripts where owner=$1", this );
+            new Query( "select * from scripts where owner=$1 order by name",
+                       this );
         d->query->bind( 1, d->sieve->user()->id() );
         if ( d->no.isEmpty() )
             d->query->execute();
