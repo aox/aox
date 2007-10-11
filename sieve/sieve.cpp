@@ -366,7 +366,6 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
     r->sq->bind( 1, localpart.lower() );
     r->sq->bind( 2, address->domain().lower() );
     r->sq->execute();
-
 }
 
 
@@ -874,7 +873,10 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             dt.setCurrentTime();
         }
 
-        // XXX: dt.setTimezone( t->timeZone() );
+        if ( !t->dateZone().isEmpty() )
+            dt.setTimezone( t->dateZone().ascii() );
+        else
+            dt.setLocalTimezone();
 
         if ( dt.valid() ) {
             String s;
