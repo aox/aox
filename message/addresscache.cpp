@@ -60,7 +60,8 @@ void AddressCache::setup()
 
     addressLookup =
         new PreparedStatement( "select id from addresses where "
-                               "name=$1 and localpart=$2 and domain=$3" );
+                               "name=$1 and localpart=$2 and "
+                               " lower(domain)=$3" );
     addressInsert =
         new PreparedStatement( "insert into addresses(name,localpart,domain) "
                                "values ($1,$2,$3)" );
@@ -91,7 +92,7 @@ public:
         q = new Query( *addressLookup, this );
         q->bind( 1, a->uname() );
         q->bind( 2, a->localpart() );
-        q->bind( 3, a->domain() );
+        q->bind( 3, a->domain().lower() );
         transaction->enqueue( q );
         l->append( q );
     }
@@ -122,7 +123,7 @@ public:
         q = new Query( *addressLookup, this );
         q->bind( 1, a->uname() );
         q->bind( 2, a->localpart() );
-        q->bind( 3, a->domain() );
+        q->bind( 3, a->domain().lower() );
         transaction->enqueue( q );
         l->append( q );
 
