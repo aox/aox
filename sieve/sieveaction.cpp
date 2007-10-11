@@ -12,12 +12,13 @@ class SieveActionData
 public:
     SieveActionData()
         : type( SieveAction::FileInto ),
-          mailbox( 0 ), address( 0 ), message( 0 )
+          mailbox( 0 ), sender( 0 ), recipient( 0 ), message( 0 )
         {}
 
     SieveAction::Type type;
     Mailbox * mailbox;
-    Address * address;
+    Address * sender;
+    Address * recipient;
     Message * message;
     UString handle;
     String errorMessage;
@@ -78,25 +79,45 @@ Mailbox * SieveAction::mailbox() const
 }
 
 
-/*! Records that this action's target is \a address, provided that its
-    type() is Redirect. If type() has any other value, calling
-    setAddress() sets an unused variable.
+/*! Records that this action's sender target is \a address, provided
+    that its type() is Redirect or Vacation. If type() has any other
+    value, calling setSenderAddress() sets an unused variable.
 */
 
-void SieveAction::setAddress( Address * address )
+void SieveAction::setSenderAddress( Address * address )
 {
-    d->address = address;
+    d->sender = address;
 }
 
 
-/*! Returns the address set by setAddress(), or 0 if setAddress() has
-    not been called. This value is only meaningful if type() is
-    Redirect.
+/*! Returns the address set by setSenderAddress(), or 0 if
+    setSenderAddress() has not been called.
 */
 
-Address * SieveAction::address() const
+Address * SieveAction::senderAddress() const
 {
-    return d->address;
+    return d->sender;
+}
+
+
+/*! Records that this action's recipient is \a address, provided that
+    its type() is Redirect or Vacation. If type() has any other value,
+    calling setRecipientAddress() sets an unused variable.
+*/
+
+void SieveAction::setRecipientAddress( Address * address )
+{
+    d->recipient = address;
+}
+
+
+/*! Returns the address set by setRecipientAddress(), or 0 if
+    setRecipientAddress() has not been called.
+*/
+
+Address * SieveAction::recipientAddress() const
+{
+    return d->recipient;
 }
 
 

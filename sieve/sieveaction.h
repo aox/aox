@@ -26,8 +26,11 @@ public:
     void setMailbox( Mailbox * );
     Mailbox * mailbox() const;
 
-    void setAddress( Address * );
-    Address * address() const;
+    void setSenderAddress( Address * );
+    Address * senderAddress() const;
+
+    void setRecipientAddress( Address * );
+    Address * recipientAddress() const;
 
     void setHandle( const UString & );
     UString handle() const;

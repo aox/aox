@@ -29,8 +29,7 @@ public:
     void addRecipient( Address *, Mailbox *, User *, SieveScript * );
     void addRecipient( Address *, EventHandler * );
     void setMessage( Message * );
-
-    void setPrefix( Address *, const UString & );
+    void setWrapped();
 
     Address * sender() const;
     Address * recipient() const;
@@ -45,11 +44,14 @@ public:
     String error() const;
     bool done() const;
     bool ready() const;
+    bool injected() const;
 
+    void act( EventHandler * );
     List<SieveAction> * actions( const Address * ) const;
 
     List<Mailbox> * mailboxes() const;
     List<Address> * forwarded() const;
+    List<SieveAction> * vacations() const;
     bool rejected() const;
 
     void addAction( SieveAction * );

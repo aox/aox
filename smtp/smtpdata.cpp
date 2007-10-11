@@ -7,8 +7,8 @@
 #include "addressfield.h"
 #include "smtpmailrcpt.h"
 #include "spoolmanager.h"
+#include "sieveaction.h"
 #include "smtpparser.h"
-#include "injector.h"
 #include "address.h"
 #include "imapurl.h"
 #include "mailbox.h"
@@ -28,14 +28,13 @@ class SmtpDataData
 {
 public:
     SmtpDataData()
-        : state( 2 ), message( 0 ), injector( 0 ), ok( "OK" ),
+        : state( 2 ), message( 0 ), ok( "OK" ),
           spooled( false )
     {}
 
     String body;
     uint state;
     Message * message;
-    Injector * injector;
     String ok;
     bool spooled;
 };
@@ -148,7 +147,6 @@ void SmtpData::execute()
 
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
-        bool wrapped = false;
         server()->sieve()->setMessage( message( server()->body() ) );
         if ( d->message->error().isEmpty() ) {
             // the common case: all ok
@@ -172,74 +170,46 @@ void SmtpData::execute()
             d->ok = "Worked around: " + d->message->error();
             // the next line means that what we store is the wrapper
             d->message = m;
-            wrapped = true;
             // the next line means that what we sieve is the wrapper
             server()->sieve()->setMessage( m );
+            server()->sieve()->setWrapped();
         }
         server()->sieve()->evaluate();
-        d->injector = new Injector( d->message, this );
 
-        if ( wrapped )
-            d->injector->setWrapped();
-
-        SortedList<Mailbox> * l = new SortedList<Mailbox>;
-        List<Mailbox>::Iterator i( server()->sieve()->mailboxes() );
-        while ( i ) {
-            if ( !l->find( i ) )
-                l->insert( i );
-            ++i;
-        }
-
-        List<Address> * f = server()->sieve()->forwarded();
+        // we tell the sieve that our remote recipients are "immediate
+        // redirects". strange concept, but...
         List<SmtpRcptTo>::Iterator it( server()->rcptTo() );
         while ( it ) {
-            if ( it->remote() )
-                f->append( it->address() );
+            if ( it->remote() ) {
+                SieveAction * a = new SieveAction( SieveAction::Redirect );
+                a->setSenderAddress( server()->sieve()->sender() );
+                a->setRecipientAddress( it->address() );
+                a->setMessage( d->message );
+                server()->sieve()->addAction( a );
+            }
             ++it;
         }
-
-        if ( !f->isEmpty() ) {
-            UString spool;
-            spool.append( "/archiveopteryx/spool" );
-            l->insert( Mailbox::find( spool ) );
-            d->injector->setDeliveryAddresses( f );
-            d->injector->setSender( server()->sieve()->recipient() );
-            d->spooled = true;
-        }
-
-        d->injector->setMailboxes( l );
-
-        if ( server()->user() )
-            d->injector->setSender( server()->user()->address() );
-
-        if ( l->isEmpty() ) {
-            // we don't want to inject at all. what do we want to do?
-            // the sieve should know.
-            d->state = 4;
-        }
-        else {
-            d->state = 3;
-            d->injector->execute();
-        }
+        
+        server()->sieve()->act( this );
+        d->state = 3;
     }
 
     // state 3: the injector is working, we're waiting for it to finish.
     if ( d->state == 3 ) {
-        if ( !d->injector->done() )
+        if ( !server()->sieve()->injected() )
             return;
         String mc = Configuration::text( Configuration::MessageCopy ).lower();
         if ( mc == "all" )
             makeCopy();
-        else if ( mc == "delivered" && d->injector->error().isEmpty() )
+        else if ( mc == "delivered" && server()->sieve()->error().isEmpty() )
             makeCopy();
-        else if ( mc == "errors" && !d->injector->error().isEmpty() )
+        else if ( mc == "errors" && !server()->sieve()->error().isEmpty() )
             makeCopy();
-        if ( d->injector->error().isEmpty() ) {
+        if ( server()->sieve()->error().isEmpty() ) {
             d->state = 4;
-            d->injector->announce();
         }
         else {
-            respond( 451, "Injection error: " + d->injector->error(),
+            respond( 451, "Injection error: " + server()->sieve()->error(),
                      "4.6.0" );
             finish();
         }
@@ -557,14 +527,13 @@ void SmtpData::makeCopy() const
         ++it;
     }
 
-    if ( d->injector &&
-         ( d->injector->failed() ||
-           d->ok.startsWith( "Worked around: " ) ) ) {
+    if ( !server()->sieve()->error().isEmpty() ||
+         d->ok.startsWith( "Worked around: " ) ) {
         copy.append( "-err" );
         String e;
-        if ( d->injector->failed() ) {
-            f.write( "Error: Injector: " );
-            f.write( d->injector->error().simplified() );
+        if ( !server()->sieve()->error().isEmpty() ) {
+            f.write( "Error: Sieve/Injector: " );
+            f.write( server()->sieve()->error().simplified() );
         }
         else {
             f.write( "Parser: " );

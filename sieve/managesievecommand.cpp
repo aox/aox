@@ -839,16 +839,18 @@ bool ManageSieveCommand::explain()
             break;
         case SieveAction::Redirect:
             r.append( "redirect " );
-            r.append( sa->address()->localpart() );
+            r.append( sa->recipientAddress()->localpart() );
             r.append( "@" );
-            r.append( sa->address()->domain() );
+            r.append( sa->recipientAddress()->domain() );
             break;
         case SieveAction::Discard:
             r.append( "discard" );
             break;
         case SieveAction::Vacation:
             r.append( "send vacation message to " );
-            r.append( sa->message()->header()->field( HeaderField::To )->value() );
+            r.append( sa->recipientAddress()->localpart() );
+            r.append( "@" );
+            r.append( sa->recipientAddress()->domain() );
             r.append( " with subject " );
             r.append( sa->message()->header()->subject() );
             break;

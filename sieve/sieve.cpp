@@ -12,6 +12,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "bodypart.h"
+#include "injector.h"
 #include "collation.h"
 #include "mimefields.h"
 #include "stringlist.h"
@@ -30,7 +31,12 @@ public:
     SieveData()
         : sender( 0 ),
           currentRecipient( 0 ),
-          message( 0 )
+          message( 0 ),
+          state( 0 ),
+          handler( 0 ),
+          autoresponses( 0 ),
+          mainInjector( 0 ),
+          wrapped( false )
         {}
 
     class Recipient
@@ -71,6 +77,11 @@ public:
     List<Recipient> recipients;
     Recipient * currentRecipient;
     Message * message;
+    uint state;
+    EventHandler * handler;
+    Query * autoresponses;
+    Injector * mainInjector;
+    bool wrapped;
 
     Recipient * recipient( Address * a );
 };
@@ -129,43 +140,159 @@ Sieve::Sieve()
 
 void Sieve::execute()
 {
-    bool wasReady = ready();
-    List<SieveData::Recipient>::Iterator i( d->recipients );
-    while ( i ) {
-        if ( i->sq ) {
-            Row * r = i->sq->nextRow();
-            if ( r || i->sq->done() )
-                i->sq = 0;
-            if ( r ) {
-                if ( !r->isNull( "mailbox" ) )
-                    i->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
-                if ( !r->isNull( "script" ) ) {
-                    i->prefix = r->getUString( "name" ) + "/" +
-                                r->getUString( "login" ) + "/";
-                    i->user = new User;
-                    i->user->setLogin( r->getUString( "login" ) );
-                    i->user->setId( r->getInt( "userid" ) );
-                    i->script->parse( r->getString( "script" ) );
-                    List<SieveCommand>::Iterator 
-                        c(i->script->topLevelCommands());
-                    while ( c ) {
-                        i->pending.append( c );
-                        ++c;
+    // 0: find the data needed for evaluate().
+    if ( d->state == 0 ) {
+        bool wasReady = ready();
+        List<SieveData::Recipient>::Iterator i( d->recipients );
+        while ( i ) {
+            if ( i->sq ) {
+                Row * r = i->sq->nextRow();
+                if ( r || i->sq->done() )
+                    i->sq = 0;
+                if ( r ) {
+                    if ( !r->isNull( "mailbox" ) )
+                        i->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
+                    if ( !r->isNull( "script" ) ) {
+                        i->prefix = r->getUString( "name" ) + "/" +
+                                    r->getUString( "login" ) + "/";
+                        i->user = new User;
+                        i->user->setLogin( r->getUString( "login" ) );
+                        i->user->setId( r->getInt( "userid" ) );
+                        i->script->parse( r->getString( "script" ) );
+                        List<SieveCommand>::Iterator
+                            c(i->script->topLevelCommands());
+                        while ( c ) {
+                            i->pending.append( c );
+                            ++c;
+                        }
                     }
                 }
             }
-        }
-        ++i;
-    }
-    if ( ready() && !wasReady ) {
-        i = d->recipients.first();
-        while ( i ) {
-            EventHandler * h = i->handler;
-            i->handler = 0;
             ++i;
-            if ( h )
-                h->execute();
         }
+        if ( ready() && !wasReady ) {
+            i = d->recipients.first();
+            while ( i ) {
+                EventHandler * h = i->handler;
+                i->handler = 0;
+                ++i;
+                if ( h )
+                    h->execute();
+            }
+        }
+        // we do NOT set the state to 1. act() does that.
+    }
+
+    // 1: main injection of the incoming message and search for
+    // existing autoresponses.
+    if ( d->state == 1 ) {
+        // main injection...
+        d->mainInjector = new Injector( d->message, this );
+
+        if ( d->wrapped )
+            d->mainInjector->setWrapped();
+
+        SortedList<Mailbox> * l = new SortedList<Mailbox>;
+        List<Mailbox>::Iterator i( mailboxes() );
+        while ( i ) {
+            if ( !l->find( i ) )
+                l->insert( i );
+            ++i;
+        }
+
+        List<Address> * f = forwarded();
+        if ( !f->isEmpty() ) {
+            l->insert( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
+            d->mainInjector->setDeliveryAddresses( f );
+            d->mainInjector->setSender( sender() );
+        }
+        d->mainInjector->setMailboxes( l );
+
+        d->state = 2;
+        if ( l->isEmpty() )
+            d->mainInjector = 0;
+        else
+            d->mainInjector->execute();
+
+        // ... and suppress autoresponses
+        List<SieveAction> * v = vacations();
+        if ( !v->isEmpty() ) {
+            d->autoresponses = new Query( "", this );
+            String s = "select handle from autoresponses "
+                       "where expires_at > current_timestamp and ";
+            bool first = true;
+            bool n = 1;
+            List<SieveAction>::Iterator i( v );
+            bool paren = false;
+            while ( i ) {
+                d->autoresponses->bind( n, i->handle() );
+                ++i;
+                if ( !first ) {
+                    s.append( " or " );
+                }
+                else if ( i ) {
+                    s.append( "(" );
+                    paren = true;
+                }
+                s.append( "handle=$" );
+                s.append( fn( n ) );
+                ++n;
+                first = false;
+            }
+            if ( paren )
+                s.append( ")" );
+            d->autoresponses->setString( s );
+            d->autoresponses->execute();
+        }
+    }
+
+    // 2: wait for the main injector to finish.
+    if ( d->state == 2 ) {
+        if ( d->mainInjector && !d->mainInjector->done() )
+            return;
+        if ( d->mainInjector )
+            d->mainInjector->announce();
+        d->state = 3;
+        if ( d->handler )
+            d->handler->execute();
+    }
+
+    // 3: find out which autoresponses should be suppressed and send
+    // the others.
+    if ( d->state == 3 ) {
+        if ( d->autoresponses && !d->autoresponses->done() )
+            return;
+
+        List<SieveAction> * v = vacations();
+        if ( d->autoresponses ) {
+            Row * r = 0;
+            while ( (r=d->autoresponses->nextRow()) ) {
+                UString h = r->getUString( "handle" );
+                List<SieveAction>::Iterator i( v );
+                while ( i && i->handle() != h )
+                    i++;
+                if ( i ) {
+                    log( "Suppressing vacation response to " +
+                         i->recipientAddress()->toString(), Log::Debug );
+                    v->take( i );
+                }
+            }
+        }
+
+        List<SieveAction>::Iterator i( v );
+        while ( i ) {
+            Injector * v = new Injector( i->message(), 0 );
+            v->setMailbox( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
+            List<Address> * remote = new List<Address>;
+            remote->append( i->recipientAddress() );
+            v->setDeliveryAddresses( remote );
+            v->setSender( new Address( "", "", "" ) );
+            // this is where I want to set the timeout
+            // v->setAutoresponseTimeout( i->something() );
+            v->execute();
+            ++i;
+        }
+        d->state = 4;
     }
 }
 
@@ -239,7 +366,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
     r->sq->bind( 1, localpart.lower() );
     r->sq->bind( 2, address->domain().lower() );
     r->sq->execute();
-    
+
 }
 
 
@@ -386,7 +513,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         SieveAction * a = new SieveAction( SieveAction::Redirect );
         UString arg = c->arguments()->takeString( 1 );
         AddressParser ap( arg.utf8() );
-        a->setAddress( ap.addresses()->first() );
+        a->setRecipientAddress( ap.addresses()->first() );
         actions.append( a );
     }
     else if ( c->identifier() == "keep" ) {
@@ -405,7 +532,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         // framework for transporting tag values.
 
         SieveArgumentList * al = c->arguments();
-        
+
         // :days
         uint days = 7;
         if ( al->findTag( ":days" ) )
@@ -459,7 +586,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
         else if ( d->sender->localpart().lower().endsWith( "-request" ) )
             wantToReply = false;
-        
+
         // look for header fields we don't like
         if ( wantToReply ) {
             List<HeaderField>::Iterator i( d->message->header()->fields() );
@@ -520,7 +647,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 reptext.append( "Vacation" );
             else
                 reptext.append( s );
-        }            
+        }
         else {
             reptext.append( subject.utf8() );
         }
@@ -543,7 +670,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         else {
             replyDate.setCurrentTime();
         }
-        
+
         reptext.append( replyDate.rfc822() );
         reptext.append( "\r\n"
                         "Auto-Submitted: auto-replied\r\n"
@@ -578,7 +705,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             SieveAction * a = new SieveAction( SieveAction::Vacation );
             actions.append( a );
             a->setMessage( reply );
-            a->setAddress( d->sender );
+            a->setRecipientAddress( d->sender );
             a->setHandle( handle );
         }
     }
@@ -1034,7 +1161,7 @@ bool Sieve::succeeded( Address * address ) const
 /*! Returns true if \a address is known to be a local address, and
     false if \a address is not known(), if the Sieve isn't ready() or if
     \a address is remote.
-  
+
     If the Sieve is ready() and \a address is not local(), then it
     must be a remote address.
 */
@@ -1109,6 +1236,8 @@ String Sieve::error() const
         ++it;
     if ( it )
         return it->error;
+    if ( d->mainInjector && !d->mainInjector->error().isEmpty() )
+        return d->mainInjector->error();
     return "";
 }
 
@@ -1142,6 +1271,20 @@ void Sieve::addAction( SieveAction * action )
 {
     if ( d->currentRecipient )
         d->currentRecipient->actions.append( action );
+}
+
+
+/*! Starts executing all the actions(), notifying \a handler when
+    done.
+*/
+
+void Sieve::act( EventHandler * handler )
+{
+    if ( d->state )
+        return;
+    d->handler = handler;
+    d->state = 1;
+    execute();
 }
 
 
@@ -1204,11 +1347,11 @@ List<Address> * Sieve::forwarded() const
         List<SieveAction>::Iterator a( i->actions );
         while ( a ) {
             if ( a->type() == SieveAction::Redirect ) {
-                String s = a->address()->localpart() + "@" +
-                           a->address()->domain();
+                String s = a->recipientAddress()->localpart() + "@" +
+                           a->recipientAddress()->domain();
                 if ( !uniq.contains( s ) ) {
                     uniq.append( s );
-                    r->append( a->address() );
+                    r->append( a->recipientAddress() );
                 }
             }
             ++a;
@@ -1257,17 +1400,43 @@ bool Sieve::ready() const
 }
 
 
-/*! Records that when evaluating mailbox names in the context of \a
-    address, a mailbox name which does not start with '/' is relative
-    to \a prefix.
-
-    \a prefix must end with '/'. Does nothing unless \a address is a
-    known recipient for this sieve.
+/*! Returns true if every injector created by this Sieve has finished
+    its work. When ready() and done() and injected(), the Sieve is
+    completely done.
 */
 
-void Sieve::setPrefix( Address * address, const UString & prefix )
+bool Sieve::injected() const
 {
-    SieveData::Recipient * i = d->recipient( address );
-    if ( i )
-        i->prefix = prefix;
+    return d->state > 2;
+}
+
+
+/*! Returns a list of all vacation actions. The list may be empty, but
+    it never is a null pointer.
+*/
+
+List<SieveAction> * Sieve::vacations() const
+{
+    List<SieveAction> * v = new List<SieveAction>;
+    List<SieveData::Recipient>::Iterator r( d->recipients );
+    while ( r ) {
+        List<SieveAction>::Iterator a( r->actions );
+        while ( a ) {
+            if ( a->type() == SieveAction::Vacation )
+                v->append( a );
+            ++a;
+        }
+        ++r;
+    }
+    return v;
+}
+
+
+/*! Records that the message has been wrapped due to parse errors, and
+    should be marked as such upon injection.
+*/
+
+void Sieve::setWrapped()
+{
+    d->wrapped = true;
 }
