@@ -175,6 +175,7 @@ public:
     UStringList * envelopeParts() const;
     UStringList * contentTypes() const;
     UString datePart() const;
+    UString dateZone() const;
     bool sizeOverLimit() const;
     uint sizeLimit() const;
 

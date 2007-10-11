@@ -921,6 +921,7 @@ public:
     UStringList * keys;
     UStringList * contentTypes;
     UString datePart;
+    UString zone;
     bool sizeOver;
     uint sizeLimit;
 };
@@ -1295,6 +1296,12 @@ void SieveTest::parse()
     {
         findComparator();
         findMatchType();
+
+        d->zone = arguments()->takeTaggedString( ":zone" );
+        if ( d->zone.isEmpty() &&
+             arguments()->findTag( ":originalzone" ) )
+            d->zone.append( "-0000" );
+
         arguments()->numberRemainingArguments();
 
         uint n = 1;
@@ -1570,6 +1577,17 @@ UStringList * SieveTest::envelopeParts() const
 UString SieveTest::datePart() const
 {
     return d->datePart;
+}
+
+
+/*! Returns the specified zone in "[+-]NNNN" format if identifier() is
+    "date" or "currentdate", and "-0000" if :originalzone was specified
+    instead. Returns an empty string for other identifier()s.
+*/
+
+UString SieveTest::dateZone() const
+{
+    return d->zone;
 }
 
 
