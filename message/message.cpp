@@ -114,7 +114,7 @@ Message::Message( const String & rfc2822, Multipart * p )
     if ( d->error.isEmpty() )
         d->error = e;
 
-    if ( d->error.isEmpty() )
+    if ( !d->error.isEmpty() )
         return;
     setAddressesFetched();
     setHeadersFetched();
