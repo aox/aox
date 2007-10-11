@@ -505,23 +505,55 @@ bool ManageSieveCommand::setActive()
     if ( !d->t ) {
         String name = string();
         end();
+        if ( !d->no.isEmpty() )
+            return true;
+
         d->t = new Transaction( this );
-        d->query =
-            new Query( "update scripts set active='f' where owner=$1 and "
-                       "active='t' and not name=$2", this );
-        d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, name );
+
+        if ( name.isEmpty() ) {
+            Query * q = new Query( "update scripts set active='f' "      
+                                   "where owner=$1 and active='t'",
+                                   0 );
+            q->bind( 1, d->sieve->user()->id() );
+            d->t->enqueue( q );
+            d->query = new Query( "select '' as name", this );
+            
+        }
+        else {
+            d->query = new Query( "select * from scripts "
+                                  "where owner=$1 and name=$2 "
+                                  "for update",
+                                  this );
+            d->query->bind( 1, d->sieve->user()->id() );
+            d->query->bind( 2, name );
+        }
         d->t->enqueue( d->query );
-        d->query =
-            new Query( "update scripts set active='t' where owner=$1 and "
-                       "name=$2 and active='f'", this );
-        d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, name );
-        d->t->enqueue( d->query );
-        if ( d->no.isEmpty() )
-            d->t->commit();
+        d->t->execute();
     }
 
+    if ( d->query && !d->query->done() )
+        return false;
+
+    if ( d->query ) {
+        Row * r = d->query->nextRow();
+        if ( !r ) {
+            d->t->rollback();
+            no( "No such script" );
+            return true;
+        }
+        d->query = 0;
+        if ( !r->getString( "name" ).isEmpty() ) {
+            Query * q = new Query( "update scripts set active=(name=$2) "      
+                                   "where owner=$1 and "
+                                   "(name=$2 or active='t')",
+                                   this );
+            q->bind( 1, d->sieve->user()->id() );
+            q->bind( 2, r->getString( "name" ) );
+            d->t->enqueue( q );
+        }
+        d->t->commit();
+    }
+    
     if ( !d->t->done() )
         return false;
 
