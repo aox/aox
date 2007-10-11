@@ -76,10 +76,50 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
     d->cmd = cmd;
     d->arg = args;
     setLog( new Log( Log::Server ) );
+    Scope x( log() );
+    switch( cmd ) {
+    case Authenticate:
+        log( "Executing authenticate command" );
+        break;
+    case StartTls:
+        log( "Executing starttls command" );
+        break;
+    case Logout:
+        log( "Executing logout command" );
+        break;
+    case Capability:
+        log( "Executing capability command" );
+        break;
+    case HaveSpace:
+        log( "Executing havespace command" );
+        break;
+    case PutScript:
+        log( "Executing putscript command" );
+        break;
+    case ListScripts:
+        log( "Executing listscripts command" );
+        break;
+    case SetActive:
+        log( "Executing setactive command" );
+        break;
+    case GetScript:
+        log( "Executing getscript command" );
+        break;
+    case DeleteScript:
+        log( "Executing deletescript command" );
+        break;
+    case XAoxExplain:
+        log( "Executing xaoxexplain command" );
+        break;
+    case Unknown:
+        log( "Executing unknown command" );
+        break;
+    }
 }
 
 
-/*! Returns true if this ManageSieveCommand has finished executing, and false if
+/*! Returns true if this ManageSieveCommand has finished executing:
+  and false if
     execute() hasn't been called, or if it has work left to do.
 */
 
@@ -101,6 +141,9 @@ void ManageSieveCommand::read()
 
 void ManageSieveCommand::execute()
 {
+    if ( d->done )
+        return;
+
     Scope x( log() );
     bool ok = true;
     switch ( d->cmd ) {
