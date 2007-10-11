@@ -49,6 +49,23 @@
     2007-11-30: features for next release
     2007-12-03: release
 
+  It sounds reasonable to unify the addresses table:
+
+    select a.id, b.id from addresses a, addresses b 
+      where a.id<b.id and a.name=b.name and a.localpart=b.localpart
+      and lower(a.domain)=lower(b.domain)
+    take the pairs, build a giant case-when to map from b.id to a.id
+    update address_fields with the case-when
+    update aliases with the case-when
+    delete the addresses rows with b.id
+
+  I haven't done that yet, because we also have a similar issue with
+  local localparts. Local locaparts are case-insensitive, remote
+  localparts are case-sensitive. soooo.... oh fsck, a domain can
+  become local while the server is running, just a simple 'aox add
+  alias' is enough. Let's ignore this localpartery. Or just limit its
+  damage with a hack.
+
   Abhijit is responsive.
 
 
