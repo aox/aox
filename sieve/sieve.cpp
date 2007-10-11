@@ -1159,7 +1159,7 @@ bool Sieve::succeeded( Address * address ) const
 
 
 /*! Returns true if \a address is known to be a local address, and
-    false if \a address is not known(), if the Sieve isn't ready() or if
+    false if \a address is not known, if the Sieve isn't ready() or if
     \a address is remote.
 
     If the Sieve is ready() and \a address is not local(), then it
