@@ -214,6 +214,7 @@ UString SieveParser::multiLine()
             step();
         }
         require( "\r\n" );
+        r.append( "\r\n" );
     }
     Utf8Codec c;
     UString u = c.toUnicode( r );
