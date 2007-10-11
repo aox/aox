@@ -427,7 +427,7 @@ void Sieve::evaluate()
         }
         if ( i->pending.isEmpty() )
             i->done = true;
-        if ( i->done &&
+        if ( i->done && i->mailbox &&
              ( i->implicitKeep || i->explicitKeep ) ) {
             SieveAction * a = new SieveAction( SieveAction::FileInto );
             a->setMailbox( i->mailbox );
