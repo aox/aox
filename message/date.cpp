@@ -331,7 +331,7 @@ void Date::setRfc822( const String & s )
     }
     else {
         // sometimes there's no comma.
-        if ( weekday( a ) )
+        if ( ::weekday( a ) )
             a = p.string();
     }
 
@@ -551,8 +551,9 @@ void Date::setRfc822( const String & s )
 
 
 
-/* day-of-week from year/month/day, using the CACM algorithm also used
-   in Qt. Communications of the ACM, Vol 6, No 8. */
+/* Returns the day-of-week (0..6) from year/month/day, using the CACM
+   algorithm also used in Qt. Communications of the ACM, Vol 6, No 8.
+*/
 
 static int dow( int y, int m, int d )
 {
@@ -874,4 +875,46 @@ uint Date::day() const
     if ( !valid() )
         return 0;
     return (uint)d->day;
+}
+
+
+/*! Returns this Date's hour (0-23), or 0 if the Date isn't valid. */
+
+uint Date::hour() const
+{
+    if ( !valid() )
+        return 0;
+    return (uint)d->hour;
+}
+
+
+/*! Returns this Date's minute (0-59), or 0 if the Date isn't valid. */
+
+uint Date::minute() const
+{
+    if ( !valid() )
+        return 0;
+    return (uint)d->minute;
+}
+
+
+/*! Returns this Date's second (0-60), or 0 if the Date isn't valid. */
+
+uint Date::second() const
+{
+    if ( !valid() )
+        return 0;
+    return (uint)d->second;
+}
+
+
+/*! Returns this Date's day-of-week (0..6, with 0 being Sunday), or 0 if
+    the Date isn't valid.
+*/
+
+uint Date::weekday() const
+{
+    if ( !valid() )
+        return 0;
+    return ( dow( year(), month(), day() ) + 1 ) % 7;
 }

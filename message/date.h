@@ -32,6 +32,10 @@ public:
     uint year() const;
     uint month() const;
     uint day() const;
+    uint hour() const;
+    uint minute() const;
+    uint second() const;
+    uint weekday() const;
 
     bool valid() const;
     void checkHarder();
