@@ -699,14 +699,13 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             return Undecidable;
         haystack = new UStringList;
         UStringList::Iterator i( t->headers() );
-        Result r = True;
         while ( i ) {
             uint hft = HeaderField::fieldType( i->ascii() );
 
             if ( ( hft > 0 && hft <= HeaderField::LastAddressField &&
                    !d->message->hasAddresses() ) ||
                  !d->message->hasHeaders() )
-                r = Undecidable;
+                return Undecidable;
 
             Utf8Codec c;
             List<HeaderField>::Iterator hf( d->message->header()->fields() );
@@ -724,8 +723,9 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
 
             ++i;
         }
+
         if ( t->identifier() == "exists" )
-            return r;
+            return True;
     }
     else if ( t->identifier() == "date" ||
               t->identifier() == "currentdate" )
