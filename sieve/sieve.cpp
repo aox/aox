@@ -20,6 +20,7 @@
 #include "ustringlist.h"
 #include "sievescript.h"
 #include "sieveaction.h"
+#include "spoolmanager.h"
 #include "addressfield.h"
 #include "configuration.h"
 #include "sieveproduction.h"
@@ -74,6 +75,15 @@ public:
         enum Result { True, False, Undecidable };
         Result evaluate( SieveTest * );
     };
+
+    class Trampoline
+        : public EventHandler
+    {
+    public:
+        Trampoline(): EventHandler() {}
+        void execute() { SpoolManager::run(); }
+    };
+
     Address * sender;
     List<Recipient> recipients;
     Recipient * currentRecipient;
@@ -286,7 +296,8 @@ void Sieve::execute()
 
         List<SieveAction>::Iterator i( v );
         while ( i ) {
-            Injector * v = new Injector( i->message(), 0 );
+            Injector * v = new Injector( i->message(),
+                                         new SieveData::Trampoline );
             v->setLog( new Log( Log::Database ) );
             v->setMailbox( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
             List<Address> * remote = new List<Address>;

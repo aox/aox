@@ -3,6 +3,7 @@ SubDir TOP sieve ;
 SubInclude TOP db ;
 SubInclude TOP abnf ;
 SubInclude TOP sasl ;
+SubInclude TOP smtp ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
