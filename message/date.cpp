@@ -768,8 +768,8 @@ int Date::offset() const
 }
 
 
-/*! Returns the ISO-format date (date, time, offset all mangled
-    together).
+/*! Returns the RFC 3339 (ISO 8601) format date (with date, time, offset
+    all mangled together: YYYY-MM-DDTHH:MM:SS+NN:NN).
 */
 
 String Date::isoDateTime() const
@@ -779,19 +779,28 @@ String Date::isoDateTime() const
         return r;
 
     r = isoDate();
-    r.append( " " );
+    r.append( "T" );
     r.append( isoTime() );
+
     int tz = d->tz;
-    if ( d->tz < 0 ) {
-        r.append( " -" );
-        tz = -tz;
+
+    if ( tz == 0 ) {
+        r.append( "Z" );
     }
     else {
-        r.append( " +" );
+        if ( tz < 0 ) {
+            r.append( "-" );
+            tz = -tz;
+        }
+        else {
+            r.append( "+" );
+        }
+
+        r.append( zeroPrefixed( tz/60, 2 ) );
+        r.append( ":" );
+        r.append( zeroPrefixed( tz%60, 2 ) );
     }
-    r.append( fn( tz / 60 ) );
-    r.append( ":" );
-    r.append( zeroPrefixed( tz%60, 2 ) );
+
     return r;
 }
 
