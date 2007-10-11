@@ -693,7 +693,8 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         }
     }
     else if ( t->identifier() == "exists" ||
-              t->identifier() == "header" ) {
+              t->identifier() == "header" )
+    {
         if ( !d->message )
             return Undecidable;
         haystack = new UStringList;
@@ -725,6 +726,98 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         }
         if ( t->identifier() == "exists" )
             return r;
+    }
+    else if ( t->identifier() == "date" ||
+              t->identifier() == "currentdate" )
+    {
+        if ( t->identifier() == "date" &&
+             !( d->message && d->message->hasHeaders() ) )
+            return Undecidable;
+
+        Date dt;
+        if ( t->headers() ) {
+            UString * hk = t->headers()->first();
+            List<HeaderField>::Iterator hf( d->message->header()->fields() );
+            while ( hf && hf->name() != hk->ascii() )
+                ++hf;
+            if ( hf )
+                dt.setRfc822( hf->value() );
+        }
+        else {
+            dt.setCurrentTime();
+        }
+
+        // XXX: dt.setTimezone( t->timeZone() );
+
+        if ( dt.valid() ) {
+            String s;
+            String z( "0000" );
+
+            String dp( t->datePart().ascii() );
+            if ( dp == "year" ) {
+                z.append( fn( dt.year() ) );
+                s.append( z.mid( z.length()-4 ) );
+            }
+            else if ( dp == "month" ) {
+                z.append( fn( dt.month() ) );
+                s.append( z.mid( z.length()-2 ) );
+            }
+            else if ( dp == "day" ) {
+                z.append( fn( dt.day() ) );
+                s.append( z.mid( z.length()-2 ) );
+            }
+            else if ( dp == "date" ) {
+                s.append( dt.isoDate() );
+            }
+            else if ( dp == "julian" ) {
+                s.append( fn( 40587 + dt.unixTime()/86400 ) );
+            }
+            else if ( dp == "hour" ) {
+                z.append( fn( dt.hour() ) );
+                s.append( z.mid( z.length()-2 ) );
+            }
+            else if ( dp == "minute" ) {
+                z.append( fn( dt.minute() ) );
+                s.append( z.mid( z.length()-2 ) );
+            }
+            else if ( dp == "second" ) {
+                z.append( fn( dt.second() ) );
+                s.append( z.mid( z.length()-2 ) );
+            }
+            else if ( dp == "time" ) {
+                s.append( dt.isoTime() );
+            }
+            else if ( dp == "iso8601" ) {
+                s.append( dt.isoDateTime() );
+            }
+            else if ( dp == "std11" ) {
+                s.append( dt.rfc822() );
+            }
+            else if ( dp == "zone" ) {
+                int n = dt.offset();
+                if ( n < 0 ) {
+                    n = -n;
+                    s.append( "-" );
+                }
+                else {
+                    s.append( "+" );
+                }
+                z.append( fn( n / 60 ) );
+                s.append( z.mid( z.length() - 2 ) );
+                z = "00";
+                z.append( fn( n % 60 ) );
+                s.append( z.mid( z.length() - 2 ) );
+            }
+            else if ( dp == "weekday" ) {
+                s.append( fn( dt.weekday() ) );
+            }
+
+            UString ds;
+            Utf8Codec c;
+            ds.append( c.toUnicode( s ) );
+            haystack = new UStringList;
+            haystack->append( ds );
+        }
     }
     else if ( t->identifier() == "false" ) {
         return False;
