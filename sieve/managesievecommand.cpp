@@ -417,7 +417,8 @@ bool ManageSieveCommand::putScript()
         d->t = new Transaction( this );
 
         d->query = new Query( "select * from scripts "
-                              "where name=$1 and owner=$2", this );
+                              "where name=$1 and owner=$2 "
+                              "for update", this );
         d->query->bind( 1, d->name );
         d->query->bind( 2, d->sieve->user()->id() );
         d->t->enqueue( d->query );
@@ -447,7 +448,6 @@ bool ManageSieveCommand::putScript()
         d->query->bind( 2, d->name );
         d->query->bind( 3, d->script );
         d->t->enqueue( d->query );
-
 
         d->step = 1;
         d->t->commit();
