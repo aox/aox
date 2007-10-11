@@ -30,8 +30,7 @@ public:
     ManageSieveCommandData()
         : sieve( 0 ), pos( 0 ), done( false ),
           tlsServer( 0 ), m( 0 ), r( 0 ),
-          user( 0 ), t( 0 ), query( 0 ), step( 0 ),
-          log( new Log( Log::Server ) )
+          user( 0 ), t( 0 ), query( 0 ), step( 0 )
     {}
 
     ManageSieve * sieve;
@@ -56,8 +55,6 @@ public:
     Dict<Mailbox> create;
     String name;
     String script;
-
-    Log * log;
 };
 
 
@@ -78,6 +75,7 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
     d->sieve = sieve;
     d->cmd = cmd;
     d->arg = args;
+    setLog( new Log( Log::Server ) );
 }
 
 
@@ -103,7 +101,7 @@ void ManageSieveCommand::read()
 
 void ManageSieveCommand::execute()
 {
-    Scope x( d->log );
+    Scope x( log() );
     bool ok = true;
     switch ( d->cmd ) {
     case Logout:

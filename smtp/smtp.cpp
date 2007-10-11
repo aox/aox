@@ -300,8 +300,10 @@ void SMTP::reset()
 
 class Sieve * SMTP::sieve() const
 {
-    if ( !d->sieve )
+    if ( !d->sieve ) {
+        Scope x( log() );
         d->sieve = new Sieve;
+    }
     return d->sieve;
 }
 

@@ -8,6 +8,7 @@
 #include "html.h"
 #include "user.h"
 #include "query.h"
+#include "scope.h"
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
@@ -140,6 +141,8 @@ Sieve::Sieve()
 
 void Sieve::execute()
 {
+    Scope x( log() );
+
     // 0: find the data needed for evaluate().
     if ( d->state == 0 ) {
         bool wasReady = ready();
@@ -188,6 +191,7 @@ void Sieve::execute()
     if ( d->state == 1 ) {
         // main injection...
         d->mainInjector = new Injector( d->message, this );
+        d->mainInjector->setLog( new Log( Log::Database ) );
 
         if ( d->wrapped )
             d->mainInjector->setWrapped();
@@ -282,6 +286,7 @@ void Sieve::execute()
         List<SieveAction>::Iterator i( v );
         while ( i ) {
             Injector * v = new Injector( i->message(), 0 );
+            v->setLog( new Log( Log::Database ) );
             v->setMailbox( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );
@@ -529,6 +534,10 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         // mostly copied from sieveproduction.cpp. when we have two
         // commands using lots of tags, we'll want to design a
         // framework for transporting tag values.
+
+        // can't execute vacation without looking at the message
+        if ( !d->message )
+            return false; 
 
         SieveArgumentList * al = c->arguments();
 
