@@ -113,6 +113,12 @@ Message::Message( const String & rfc2822, Multipart * p )
     recomputeError();
     if ( d->error.isEmpty() )
         d->error = e;
+
+    if ( d->error.isEmpty() )
+        return;
+    setAddressesFetched();
+    setHeadersFetched();
+    setBodiesFetched();
 }
 
 
