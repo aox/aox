@@ -132,6 +132,7 @@ SieveData::Recipient * SieveData::recipient( Address * a )
 Sieve::Sieve()
     : EventHandler(), d( new SieveData )
 {
+    setLog( new Log( Log::Server ) );
 }
 
 
@@ -343,6 +344,8 @@ void Sieve::addRecipient( Address * address, Mailbox * destination,
 
 void Sieve::addRecipient( Address * address, EventHandler * user )
 {
+    Scope x( log() );
+
     SieveData::Recipient * r
         = new SieveData::Recipient( address, 0, d );
     d->currentRecipient = r;
@@ -421,6 +424,8 @@ void Sieve::evaluate()
 {
     if ( !ready() )
         return;
+
+    Scope x( log() );
 
     List<SieveData::Recipient>::Iterator i( d->recipients );
     while ( i ) {
