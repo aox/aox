@@ -920,6 +920,7 @@ public:
     UStringList * envelopeParts;
     UStringList * keys;
     UStringList * contentTypes;
+    UString datePart;
     bool sizeOver;
     uint sizeLimit;
 };
@@ -1289,6 +1290,24 @@ void SieveTest::parse()
         d->headers = takeHeaderFieldList( 1 );
         d->keys = arguments()->takeStringList( 2 );
     }
+    else if ( identifier() == "date" ||
+              identifier() == "currentdate" )
+    {
+        findComparator();
+        findMatchType();
+        arguments()->numberRemainingArguments();
+
+        uint n = 1;
+
+        if ( identifier() == "date" ) {
+            d->headers = takeHeaderFieldList( n++ );
+            if ( d->headers->count() != 1 )
+                setError( "Only one date field may be specified" );
+        }
+
+        d->datePart = arguments()->takeString( n++ );
+        d->keys = arguments()->takeStringList( n );
+    }
     else if ( identifier() == "not" ) {
         if ( !arguments()->arguments()->isEmpty() )
             setError( "Test 'not' does not accept arguments, only a test" );
@@ -1541,6 +1560,16 @@ UStringList * SieveTest::keys() const
 UStringList * SieveTest::envelopeParts() const
 {
     return d->envelopeParts;
+}
+
+
+/*! Returns the specified date part if identifier() is "date" or
+    "currentdate", and an empty string otherwise.
+*/
+
+UString SieveTest::datePart() const
+{
+    return d->datePart;
 }
 
 
