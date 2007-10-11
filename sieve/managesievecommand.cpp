@@ -7,6 +7,7 @@
 #include "dict.h"
 #include "user.h"
 #include "query.h"
+#include "scope.h"
 #include "sieve.h"
 #include "buffer.h"
 #include "address.h"
@@ -29,7 +30,8 @@ public:
     ManageSieveCommandData()
         : sieve( 0 ), pos( 0 ), done( false ),
           tlsServer( 0 ), m( 0 ), r( 0 ),
-          user( 0 ), t( 0 ), query( 0 ), step( 0 )
+          user( 0 ), t( 0 ), query( 0 ), step( 0 ),
+          log( new Log( Log::Server ) )
     {}
 
     ManageSieve * sieve;
@@ -54,6 +56,8 @@ public:
     Dict<Mailbox> create;
     String name;
     String script;
+
+    Log * log;
 };
 
 
@@ -99,6 +103,7 @@ void ManageSieveCommand::read()
 
 void ManageSieveCommand::execute()
 {
+    Scope x( d->log );
     bool ok = true;
     switch ( d->cmd ) {
     case Logout:
@@ -350,7 +355,7 @@ bool ManageSieveCommand::putScript()
                     }
                     else if ( p == home ) {
                         log( "Creating mailbox " + m->name().ascii() +
-                             " (used in fileinto and did not exist" );
+                             " (used in fileinto and did not exist)" );
                         d->create.insert( m->name().utf8(), m );
                     }
                     else {
