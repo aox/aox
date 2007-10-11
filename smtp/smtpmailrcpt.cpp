@@ -172,9 +172,8 @@ class SmtpRcptToData
     : public Garbage
 {
 public:
-    SmtpRcptToData(): address( 0 ), mailbox( 0 ), added( false ) {}
+    SmtpRcptToData(): address( 0 ), added( false ) {}
     Address * address;
-    Mailbox * mailbox;
     bool added;
 };
 
@@ -324,7 +323,7 @@ Address * SmtpRcptTo::address() const
 
 bool SmtpRcptTo::remote() const
 {
-    if ( d->mailbox )
+    if ( server()->sieve()->local( d->address ) )
         return false;
     return true;
 }
