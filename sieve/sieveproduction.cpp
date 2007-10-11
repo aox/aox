@@ -349,7 +349,7 @@ void SieveArgument::assertStringList()
     else if ( d->number )
         setError( "Expected a string list here, not a number" );
     else if ( !d->list || d->list->isEmpty() )
-        setError( "Expected a single string here" );
+        setError( "Expected a string list here" );
 }
 
 
