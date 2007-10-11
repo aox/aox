@@ -918,3 +918,86 @@ uint Date::weekday() const
         return 0;
     return ( dow( year(), month(), day() ) + 1 ) % 7;
 }
+
+
+/*! Transforms this Date to be in the time zone \a z, which must be in
+    "[+-]HHMM" format. If \a z is in any way invalid, the Date will not
+    be valid() afterwards. If \a z is "-0000", this function does
+    nothing (as a concession to Sieve's :originalzone).
+*/
+
+void Date::setTimezone( const String & z )
+{
+    if ( z == "-0000" )
+        return;
+
+    if ( !( z.length() == 5 &&
+            ( z[0] == '+' || z[0] == '-' ) &&
+            z[1] >= '0' && z[1] <= '2' &&
+            z[2] >= '0' && z[2] <= '9' &&
+            z[3] >= '0' && z[3] <= '5' &&
+            z[4] >= '0' && z[4] <= '9' ) )
+        d->valid = false;
+
+    if ( d->valid ) {
+        bool dummy;
+
+        int newz =
+            z.mid( 3 ).number( &dummy ) + 60 *
+            z.mid( 1, 2 ).number( &dummy );
+
+        if ( z[0] == '-' )
+            newz = 0 - newz;
+
+        struct tm t;
+        t.tm_mday = d->day;
+        t.tm_mon = d->month - 1;
+        t.tm_year = d->year - 1900;
+        t.tm_hour = d->hour;
+        t.tm_min = d->minute;
+        t.tm_sec = d->second;
+        t.tm_isdst = 0;
+
+        setUnixTime( timegm( &t ) - ( d->tz * 60 ) + ( newz * 60 ) );
+        d->tz = newz;
+    }
+}
+
+
+/*! Transforms this Date from whatever time zone it is currently in to
+    the local time zone, whatever that is.
+*/
+
+void Date::setLocalTimezone()
+{
+    // First, find the GMT offset of the local time zone.
+
+    time_t now = ::time(0);
+    struct tm gmt = *(::gmtime(&now));
+    struct tm local = *(::localtime(&now));
+    struct tm conv = *(::localtime(&now));
+    signed int diff;
+
+    conv.tm_year = gmt.tm_year;
+    conv.tm_mon  = gmt.tm_mon;
+    conv.tm_mday = gmt.tm_mday;
+    conv.tm_hour = gmt.tm_hour;
+    conv.tm_min  = gmt.tm_min;
+    conv.tm_sec  = gmt.tm_sec;
+    conv.tm_wday = gmt.tm_wday;
+    conv.tm_yday = gmt.tm_yday;
+
+    diff = (int)((mktime(&local) - mktime(&conv)) / 60.0);
+
+    struct tm t;
+    t.tm_mday = d->day;
+    t.tm_mon = d->month - 1;
+    t.tm_year = d->year - 1900;
+    t.tm_hour = d->hour;
+    t.tm_min = d->minute;
+    t.tm_sec = d->second;
+    t.tm_isdst = 0;
+
+    setUnixTime( timegm( &t ) - ( d->tz * 60 ) + ( diff * 60 ) );
+    d->tz = diff;
+}

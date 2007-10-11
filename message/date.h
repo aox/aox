@@ -40,6 +40,9 @@ public:
     bool valid() const;
     void checkHarder();
 
+    void setTimezone( const String & );
+    void setLocalTimezone();
+
 private:
     class DateData * d;
 };
