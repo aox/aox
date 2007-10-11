@@ -1294,6 +1294,7 @@ void SieveTest::parse()
     else if ( identifier() == "date" ||
               identifier() == "currentdate" )
     {
+        require( "date" );
         findComparator();
         findMatchType();
 
