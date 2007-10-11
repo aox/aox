@@ -1309,7 +1309,7 @@ void SieveTest::parse()
 
         if ( identifier() == "date" ) {
             d->headers = takeHeaderFieldList( n++ );
-            if ( d->headers->count() != 1 )
+            if ( d->headers && d->headers->count() != 1 )
                 setError( "Only one date field may be specified" );
         }
 
