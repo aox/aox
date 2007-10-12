@@ -4,10 +4,10 @@
 
     Done, but more testing needed.
 
-  SIEVE date/index (draft-freed-sieve-date-index).
-  Needs relational tests (RFC 3431/draft-ietf-sieve-3431bis).
+  SIEVE date/index (draft-freed-sieve-date-index) (done)
+  Needs relational tests (RFC 3431/draft-ietf-sieve-3431bis) (done)
 
-  SIEVE vacation (draft-ietf-sieve-vacation).
+  SIEVE vacation (draft-ietf-sieve-vacation) (done)
 
   httpd: webmail, archives, search results.
 
