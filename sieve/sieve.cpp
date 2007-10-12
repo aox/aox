@@ -311,15 +311,6 @@ void Sieve::execute()
 
         List<SieveAction>::Iterator i( v );
         while ( i ) {
-            Injector * v = new Injector( i->message(),
-                                         new SieveData::Trampoline );
-            v->setLog( new Log( Log::Database ) );
-            v->setMailbox( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
-            List<Address> * remote = new List<Address>;
-            remote->append( i->recipientAddress() );
-            v->setDeliveryAddresses( remote );
-            v->setSender( new Address( "", "", "" ) ); // not senderAddress, hm
-            v->execute();
             Query * q 
                 = new Query( 
                     "insert into autoresponses "
@@ -342,6 +333,15 @@ void Sieve::execute()
             q->bind( 5, e.isoDateTime() );
             q->bind( 6, i->handle() );
             q->execute();
+            Injector * v = new Injector( i->message(),
+                                         new SieveData::Trampoline );
+            v->setLog( new Log( Log::Database ) );
+            v->setMailbox( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
+            List<Address> * remote = new List<Address>;
+            remote->append( i->recipientAddress() );
+            v->setDeliveryAddresses( remote );
+            v->setSender( new Address( "", "", "" ) ); // not senderAddress, hm
+            v->execute();
             ++i;
         }
         d->state = 4;
