@@ -253,7 +253,7 @@ void Sieve::execute()
                 s.append( fn( n+2 ) );
                 Address * f = i->senderAddress();
                 d->autoresponses->bind( n+1, f->localpart().lower() );
-                d->autoresponses->bind( n+2, f->localpart().lower() );
+                d->autoresponses->bind( n+2, f->domain() );
                 s.append( ") and sent_to in "
                           "(select id from addresses "
                           " where lower(localpart)=$" );
@@ -262,7 +262,7 @@ void Sieve::execute()
                 s.append( fn( n+4 ) );
                 Address * r = i->recipientAddress();
                 d->autoresponses->bind( n+3, r->localpart().lower() );
-                d->autoresponses->bind( n+4, r->localpart().lower() );
+                d->autoresponses->bind( n+4, r->domain().lower() );
                 s.append( "))" );
                 ++i;
                 n += 5;
