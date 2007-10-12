@@ -164,18 +164,9 @@ void SpoolManager::execute()
     }
     else {
         log( "Ending queue run" );
-        bool keepClient = false;
-        if ( d->q && d->client )
-            keepClient = true;
+        if ( d->client )
+            d->client->logout( 4 );
         reset();
-        if ( keepClient ) {
-            d->t = new Timer( this, 4 );
-        }
-        else {
-            log( "Dropping connection to smarthost" );
-            d->client->logout();
-            d->client = 0;
-        }
         if ( d->spooled )
             d->t = new Timer( this, 330 - (Entropy::asNumber( 1 )%64) );
     }
