@@ -280,7 +280,7 @@ void Sieve::execute()
             return;
         if ( d->mainInjector )
             d->mainInjector->announce();
-        if ( !forwarded()->isEmpty() )
+        if ( !forwarded()->isEmpty() && vacations()->isEmpty() )
             SpoolManager::run();
         d->state = 3;
         if ( d->handler )
