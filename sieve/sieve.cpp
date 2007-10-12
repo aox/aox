@@ -761,6 +761,19 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
 
         if ( wantToReply ) {
+            HeaderField * mid 
+                = d->message->header()->field( HeaderField::MessageId );
+            if ( mid ) {
+                reply->header()->add( "In-Reply-To", mid->value() );
+                HeaderField * ref
+                    = d->message->header()->field( HeaderField::References );
+                if ( ref )
+                    reply->header()->add( "References",
+                                          ref->value() + " " + mid->value() );
+                else
+                    reply->header()->add( "References", mid->value() );
+            }
+            reply->addMessageId();
             SieveAction * a = new SieveAction( SieveAction::Vacation );
             actions.append( a );
             a->setMessage( reply );
