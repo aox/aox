@@ -25,7 +25,7 @@ public:
     bool ready() const;
     void send( DSN *, EventHandler * );
 
-    void logout();
+    void logout( uint );
 
     String error() const;
 

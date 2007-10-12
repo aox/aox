@@ -46,7 +46,7 @@ public:
     {
     public:
         TimerCloser( SmtpClient * c ) : t( c ) {}
-        void execute() { if ( t ) t->logout(); t = 0; }
+        void execute() { if ( t ) t->logout( 0 ); t = 0; }
         SmtpClient * t;
     };
     TimerCloser * timerCloser;
@@ -565,14 +565,20 @@ void SmtpClient::recordExtension( const String & line )
 }
 
 
-/*! Used by SmtpClient to close itself just before the SMTP timeout
-    would hit. Do not call from outside SmtpClient.
+/*! Sends quit after \a t seconds. \a t must not be 0.
+
+    Any subsequent use of the SmtpClient cancels the logout.
 */
 
-void SmtpClient::logout()
+void SmtpClient::logout( uint t )
 {
     if ( d->state != SmtpClientData::Rset )
         return;
+    if ( t ) {
+        delete d->closeTimer;
+        d->closeTimer = new Timer( d->timerCloser, t );
+        return;
+    }
     Scope x( log() );
     if ( d->log )
         x.setLog( d->log );
