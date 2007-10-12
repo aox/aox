@@ -35,6 +35,9 @@ public:
     void setHandle( const UString & );
     UString handle() const;
 
+    void setExpiry( uint );
+    uint expiry() const;
+
     void setMessage( Message * );
     Message * message() const;
 

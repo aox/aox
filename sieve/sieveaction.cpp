@@ -12,7 +12,8 @@ class SieveActionData
 public:
     SieveActionData()
         : type( SieveAction::FileInto ),
-          mailbox( 0 ), sender( 0 ), recipient( 0 ), message( 0 )
+          mailbox( 0 ), sender( 0 ), recipient( 0 ), message( 0 ),
+          expiry( 0 )
         {}
 
     SieveAction::Type type;
@@ -22,6 +23,7 @@ public:
     Message * message;
     UString handle;
     String errorMessage;
+    uint expiry;
 };
 
 
@@ -200,4 +202,25 @@ void SieveAction::setMessage( Message * m )
 Message * SieveAction::message() const
 {
     return d->message;
+}
+
+
+/*! Records that this autoresponse should suppress similar
+    autoresponses for \a n days. Similarity is defined by handle(),
+    recipientAddress() and senderAddress().
+*/
+
+void SieveAction::setExpiry( uint n )
+{
+    d->expiry = n;
+}
+
+
+/*! Returns whatever setExpiry() recorded, or 0 if setExpiry() hasn't
+    been called.
+*/
+
+uint SieveAction::expiry() const
+{
+    return d->expiry;
 }

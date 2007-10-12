@@ -234,28 +234,41 @@ void Sieve::execute()
         if ( !v->isEmpty() ) {
             d->autoresponses = new Query( "", this );
             String s = "select handle from autoresponses "
-                       "where expires_at > current_timestamp and ";
+                       "where expires_at > current_timestamp "
+                       "and (";
             bool first = true;
             bool n = 1;
             List<SieveAction>::Iterator i( v );
-            bool paren = false;
             while ( i ) {
-                d->autoresponses->bind( n, i->handle() );
-                ++i;
-                if ( !first ) {
+                if ( !first )
                     s.append( " or " );
-                }
-                else if ( i ) {
-                    s.append( "(" );
-                    paren = true;
-                }
-                s.append( "handle=$" );
+                s.append( "(handle=$" );
                 s.append( fn( n ) );
-                ++n;
+                d->autoresponses->bind( n, i->handle() );
+                s.append( " and sent_from in "
+                          "(select id from addresses "
+                          " where lower(localpart)=$" );
+                s.append( fn( n+1 ) );
+                s.append( " and lower(domain)=$" );
+                s.append( fn( n+2 ) );
+                Address * f = i->senderAddress();
+                d->autoresponses->bind( n+1, f->localpart().lower() );
+                d->autoresponses->bind( n+2, f->localpart().lower() );
+                s.append( ") and sent_to in "
+                          "(select id from addresses "
+                          " where lower(localpart)=$" );
+                s.append( fn( n+3 ) );
+                s.append( " and lower(domain)=$" );
+                s.append( fn( n+4 ) );
+                Address * r = i->recipientAddress();
+                d->autoresponses->bind( n+3, r->localpart().lower() );
+                d->autoresponses->bind( n+4, r->localpart().lower() );
+                s.append( "))" );
+                ++i;
+                n += 5;
                 first = false;
             }
-            if ( paren )
-                s.append( ")" );
+            s.append( ")" );
             d->autoresponses->setString( s );
             d->autoresponses->execute();
         }
@@ -305,10 +318,30 @@ void Sieve::execute()
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );
             v->setDeliveryAddresses( remote );
-            v->setSender( new Address( "", "", "" ) );
-            // this is where I want to set the timeout
-            // v->setAutoresponseTimeout( i->something() );
+            v->setSender( new Address( "", "", "" ) ); // not senderAddress, hm
             v->execute();
+            Query * q 
+                = new Query( 
+                    "insert into autoresponses "
+                    "(sent_from, sent_to, expires_at, handle) "
+                    "values ("
+                    "(select id from addresses "
+                    " where lower(localpart)=$1 and lower(domain)=$2 "
+                    " limit 1), "
+                    "(select id from addresses "
+                    " where lower(localpart)=$3 and lower(domain)=$4 "
+                    " limit 1), "
+                    "$5, $6)", 0 );
+            q->bind( 1, i->senderAddress()->localpart().lower() );
+            q->bind( 2, i->senderAddress()->domain().lower() );
+            q->bind( 3, i->recipientAddress()->localpart().lower() );
+            q->bind( 4, i->recipientAddress()->domain().lower() );
+            Date e;
+            e.setCurrentTime();
+            e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
+            q->bind( 5, e.isoDateTime() );
+            q->bind( 6, i->handle() );
+            q->execute();
             ++i;
         }
         d->state = 4;
@@ -731,8 +764,10 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             SieveAction * a = new SieveAction( SieveAction::Vacation );
             actions.append( a );
             a->setMessage( reply );
+            a->setSenderAddress( from );
             a->setRecipientAddress( d->sender );
             a->setHandle( handle );
+            a->setExpiry( days );
         }
     }
     else {

@@ -1,6 +1,7 @@
 SubDir TOP smtp ;
 SubInclude TOP abnf ;
 SubInclude TOP sasl ;
+SubInclude TOP sieve ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 

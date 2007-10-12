@@ -1,12 +1,14 @@
 SubDir TOP sieve ;
 
+HDRS += [ FDirName $(TOP) sieve ] ;
+
 SubInclude TOP db ;
 SubInclude TOP abnf ;
 SubInclude TOP sasl ;
+SubInclude TOP smtp ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
-HDRS += [ FDirName $(TOP) sieve ] ;
 
 Build sieve : managesieve.cpp managesievecommand.cpp
     sieveaction.cpp sievescript.cpp sieve.cpp
