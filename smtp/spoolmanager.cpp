@@ -5,6 +5,7 @@
 #include "query.h"
 #include "timer.h"
 #include "mailbox.h"
+#include "entropy.h"
 #include "deliveryagent.h"
 #include "configuration.h"
 #include "smtpclient.h"
@@ -81,13 +82,22 @@ void SpoolManager::execute()
             d->row = d->q->nextRow();
 
         if ( !d->agent ) {
-            if ( !d->client ||
-                 !( d->client->state() == Connection::Connecting ||
-                    d->client->state() == Connection::Connected ) )
-            {
-                if ( d->client )
-                    log( "Discarding existing SMTP client", Log::Debug );
+            if ( !d->client ) {
                 d->client = client();
+            }
+            else {
+                switch ( d->client->state() ) {
+                case Connection::Connecting:
+                case Connection::Connected:
+                    break;
+                case Connection::Inactive:
+                case Connection::Listening:
+                case Connection::Invalid:
+                case Connection::Closing:
+                    log( "Discarding existing SMTP client", Log::Debug );
+                    d->client = client();
+                    break;
+                }
             }
 
             if ( !d->client->error().isEmpty() ) {
@@ -153,13 +163,21 @@ void SpoolManager::execute()
         log( "Restarting to handle newly-spooled messages" );
     }
     else {
-        if ( d->client )
-            d->client->logout();
-        d->client = 0;
-        reset();
         log( "Ending queue run" );
+        bool keepClient = false;
+        if ( d->q && d->client )
+            keepClient = true;
+        reset();
+        if ( keepClient ) {
+            d->t = new Timer( this, 4 );
+        }
+        else {
+            log( "Dropping connection to smarthost" );
+            d->client->logout();
+            d->client = 0;
+        }
         if ( d->spooled )
-            d->t = new Timer( this, 300 );
+            d->t = new Timer( this, 330 - (Entropy::asNumber( 1 )%64) );
     }
 }
 
@@ -211,7 +229,10 @@ void SpoolManager::run()
         ::sm->log( "Forcing immediate queue run", Log::Debug );
         ::sm->reset();
     }
-    ::sm->execute();
+    if ( ::sm->d->q )
+        ::sm->d->again = true;
+    else
+        ::sm->execute();
 }
 
 
