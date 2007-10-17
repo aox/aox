@@ -639,11 +639,16 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
 
         // look for suspect senders
+        String slp = d->sender->localpart().lower();
         if ( d->sender->type() != Address::Normal )
             wantToReply = false;
-        else if ( d->sender->localpart().lower().startsWith( "owner-" ) )
+        else if ( slp.startsWith( "owner-" ) )
             wantToReply = false;
-        else if ( d->sender->localpart().lower().endsWith( "-request" ) )
+        else if ( slp.endsWith( "-request" ) )
+            wantToReply = false;
+        else if ( slp == "subs-reminder" ||
+                  slp == "root" || slp == "ftp" ||
+                  slp == "www" || slp == "www-data" )
             wantToReply = false;
 
         // look for header fields we don't like
