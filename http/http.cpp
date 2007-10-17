@@ -27,7 +27,7 @@ public:
           acceptsPng( true ), acceptsLatin1( true ), acceptsUtf8( true ),
           acceptsIdentity( false ), connectionClose( true ),
           contentLength( 0 ),
-          link( 0 ), session( 0 ), log( 0 )
+          link( 0 ), session( 0 ), requestLog( 0 )
     {}
 
     HTTP::State state;
@@ -59,7 +59,7 @@ public:
 
     Link *link;
     HttpSession *session;
-    Log * log;
+    Log * requestLog;
 
     struct HeaderListItem
         : public Garbage
@@ -134,8 +134,8 @@ void HTTP::process()
     }
 
     Scope s;
-    if ( d->log )
-        s.setLog( d->log );
+    if ( d->requestLog )
+        s.setLog( d->requestLog );
 
     while ( d->state == Header && canReadHTTPLine() )
         parseHeader( line() );
@@ -149,8 +149,8 @@ void HTTP::process()
             if ( d->method == "POST" )
                 d->body = s;
             if ( d->contentLength != 0 )
-                log( "Received request-body of " + fn( d->contentLength ) +
-                     " bytes for " + d->method, Log::Debug );
+                ::log( "Received request-body of " + fn( d->contentLength ) +
+                       " bytes for " + d->method, Log::Debug );
             d->state = Parsed;
             parseParameters();
         }
@@ -199,8 +199,10 @@ void HTTP::respond( const String & type, const String & response )
         write();
     }
 
-    log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
-         "of " + fn( response.length() ) + " bytes." );
+    ::log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
+           "of " + fn( response.length() ) + " bytes." );
+
+    d->requestLog = 0;
 
     if ( d->connectionClose ) {
         setState( Closing );
@@ -209,7 +211,6 @@ void HTTP::respond( const String & type, const String & response )
     else {
         log( "Keeping connection alive for 1800 more seconds." );
         setTimeoutAfter( 1800 );
-        d->log = 0;
     }
 
     clear();
@@ -349,9 +350,10 @@ void HTTP::parseRequest( String l )
 {
     setTimeoutAfter( 1800 );
     d->state = Header;
-    d->log = new Log( Log::HTTP );
-    Scope s( d->log );
-    log( "Request: " + l, Log::Debug );
+    Scope s( Connection::log() );
+    d->requestLog = new Log( Log::HTTP );
+    s.setLog( d->requestLog );
+    ::log( "Request: " + l, Log::Debug );
     int space = l.find( ' ' );
     if ( space < 0 ) {
         setStatus( 400, "Complete and utter parse error" );
@@ -438,8 +440,7 @@ void HTTP::parseRequest( String l )
     }
 
     d->link = new Link( d->path, this );
-    log( "Received: " + d->method + " " + d->path + " " + protocol,
-         Log::Debug );
+    ::log( "Received: " + d->method + " " + d->path + " " + protocol );
 }
 
 
@@ -462,7 +463,7 @@ void HTTP::parseHeader( const String & h )
     String n = h.mid( 0, i ).simplified().headerCased();
     String v = h.mid( i+1 ).simplified();
 
-    log( "Received: '" + n + "' = '" + v + "'", Log::Debug );
+    ::log( "Received: '" + n + "' = '" + v + "'", Log::Debug );
 
     if ( n == "Accept" ) {
         d->acceptsHtml = false;
@@ -526,7 +527,7 @@ void HTTP::parseHeader( const String & h )
 void HTTP::setStatus( uint status, const String &message )
 {
     if ( d->status && d->status != status )
-        log( "Status changed to " + fn( status ) + "/" + message );
+        ::log( "Status changed to " + fn( status ) + "/" + message );
     if ( d->status == 200 ) {
         d->status = status;
         d->message = message;
