@@ -682,6 +682,21 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             }
         }
 
+        // if we want to reply, we look for a display-name so the
+        // reply's To field looks better.
+        Address * to = d->sender;
+        if ( wantToReply ) {
+            List<Address>::Iterator i
+                ( d->message->header()->addresses( HeaderField::From ) );
+            while ( i && to == d->sender ) {
+                if ( i->localpart() == to->localpart() &&
+                     i->domain().lower() == to->domain().lower() &&
+                     !i->name().isEmpty() )
+                    to = i;
+                ++i;
+            }
+        }
+
         // :handle
         UString handle = al->takeTaggedString( ":handle" );
 
@@ -694,7 +709,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         reptext.append( from->toString() );
         reptext.append( "\r\n"
                         "To: " );
-        reptext.append( d->sender->toString() );
+        reptext.append( to->toString() );
         reptext.append( "\r\n"
                         "Subject: " );
         if ( subject.isEmpty() ) {
