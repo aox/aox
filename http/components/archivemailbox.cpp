@@ -141,21 +141,11 @@ void ArchiveMailbox::execute()
         d->text->execute();
     }
 
-    if ( !d->af->done() )
-        return;
-
-    if ( !d->idate->done() )
-        return;
-
-    if ( !d->text->done() )
-        return;
-
     if ( t->allThreads()->isEmpty() ) {
         setContents( "<p>Mailbox is empty" );
         return;
     }
 
-    MessageSet uids;
     Row * r;
     Map<Address> addresses;
     while ( (r=d->af->nextRow()) ) {
@@ -173,14 +163,14 @@ void ArchiveMailbox::execute()
             addresses.insert( aid, a );
         }
         m->from.append( a );
-        uids.add( uid );
     }
 
     while ( (r=d->idate->nextRow()) ) {
         uint uid = r->getInt( "uid" );
         ArchiveMailboxData::Message * m = d->messages.find( uid );
-        if ( m )
-            m->idate = r->getInt( "idate" );
+        if ( !m )
+            m = new ArchiveMailboxData::Message( uid, d );
+        m->idate = r->getInt( "idate" );
     }
 
     while ( (r=d->text->nextRow()) ) {
@@ -191,7 +181,9 @@ void ArchiveMailbox::execute()
         else
             ct->parse( r->getString( "value" ) ); // parse? is that correct?
         ArchiveMailboxData::Message * m = d->messages.find( uid );
-        if ( m && m->text.isEmpty() ) {
+        if ( !m )
+            m = new ArchiveMailboxData::Message( uid, d );
+        if ( m->text.isEmpty() ) {
             if ( ct->subtype() == "plain" ) {
                 MessageRendering mr;
                 mr.setTextPlain( r->getUString( "text" ) );
@@ -209,6 +201,15 @@ void ArchiveMailbox::execute()
             }
         }
     }
+
+    if ( !d->af->done() )
+        return;
+
+    if ( !d->idate->done() )
+        return;
+
+    if ( !d->text->done() )
+        return;
 
     // subjects, from and thread information is ready now.
 
