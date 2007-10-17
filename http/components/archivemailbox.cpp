@@ -221,7 +221,7 @@ void ArchiveMailbox::execute()
         Thread * t = it;
         ++it;
 
-        MessageSet from( t->members().intersection( uids ) );
+        MessageSet from( t->members() );
         uint count = from.count();
 
         List<Address> responders;
