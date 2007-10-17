@@ -296,6 +296,7 @@ void Fetcher::execute()
     while ( i && n < 1024 ) {
         d->largest = i->uid();
         ++i;
+        n++;
     }
     d->query = new Query( *query( d->mailbox->view() ), this );
     d->query->bind( 1, d->smallest );
