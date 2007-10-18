@@ -537,22 +537,26 @@ SessionInitialiser::SessionInitialiser( Session * session,
     if ( d->oldModSeq >= d->newModSeq && d->oldUidnext >= d->newUidnext )
         return;
 
-    if ( d->watchers.isEmpty() &&
-         d->newModSeq - d->oldModSeq <= 1 &&
-         d->newUidnext > d->oldUidnext ) {
-        // one or more messages have been injected, nothing else
-        // changed, and noone is waiting for a callback. see if we can
-        // skip all the hard work.
+    if ( d->watchers.isEmpty() && d->newModSeq - d->oldModSeq <= 1 ) {
+        // there has been exactly one change. if we know what it is we
+        // can skip the database work.
+        bool n = true;
         List<Message> * l = d->session->newMessages();
         uint uid = d->oldUidnext;
         bool allKnown = true;
-        while ( allKnown && uid < d->newUidnext ) {
-            List<Message>::Iterator m( l );
-            while ( m && m->uid() != uid )
-                ++m;
-            if ( !m )
-                allKnown = false;
-            uid++;
+        while ( allKnown && n ) {
+            while ( allKnown && uid < d->newUidnext ) {
+                List<Message>::Iterator m( l );
+                while ( m && m->uid() != uid )
+                    ++m;
+                if ( !m )
+                    allKnown = false;
+                uid++;
+            }
+            if ( allKnown && n ) {
+                l = d->session->modifiedMessages();
+                n = false;
+            }
         }
         if ( allKnown ) {
             d->session->setUidnext( d->newUidnext );
