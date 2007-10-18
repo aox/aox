@@ -359,7 +359,7 @@ String ArchiveMailbox::threadRendering( Thread * t )
                 ++it;
                 ++r;
                 if ( r == 1 )
-                    s.append( " from " );
+                    s.append( ", from " );
                 else if ( r == responders.count() )
                     s.append( " and " );
                 else
@@ -379,7 +379,7 @@ String ArchiveMailbox::threadRendering( Thread * t )
             if ( limit < responders.count() ) {
                 s.append( " and " );
                 s.append( fn( responders.count() - limit ) );
-                s.append( " more responders" );
+                s.append( " others" );
             }
         }
         s.append( ")." );
