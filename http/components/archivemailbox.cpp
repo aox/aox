@@ -220,155 +220,173 @@ void ArchiveMailbox::execute()
     while ( it ) {
         Thread * t = it;
         ++it;
-
-        MessageSet from( t->members() );
-        uint count = from.count();
-
-        List<Address> responders;
-        Dict<Address> addresses;
-        uint i = 1;
-        while ( i <= count ) {
-            uint uid = from.value( i );
-            ArchiveMailboxData::Message * m = d->messages.find( uid );
-            if ( m ) {
-                List< Address >::Iterator it( m->from );
-                while ( it ) {
-                    Address * a = it;
-                    ++it;
-                    String key = a->localpart().lower();
-                    key.append( "@" );
-                    key.append( a->domain().lower() );
-                    if ( !addresses.contains( key ) ) {
-                        addresses.insert( key, a );
-                        if ( i > 1 )
-                            responders.append( a );
-                    }
-                }
-            }
-            i++;
-        }
-
-        ArchiveMailboxData::Message * m = d->messages.find( from.smallest() );
-        Map<Address> mentioned;
-
-        s.append( "<div class=thread>\n" );
-
-        String subject = t->subject(); // <- should be a ustring
-        if ( subject.isEmpty() )
-            subject = "(No Subject)";
-        s.append( "<div class=headerfield>Subject: " );
-        Link ml;
-        ml.setType( d->link->type() );
-        ml.setMailbox( d->link->mailbox() );
-        ml.setSuffix( Link::Thread );
-        ml.setUid( from.smallest() );
-        s.append( "<a href=\"" );
-        s.append( ml.canonical() );
-        s.append( "\">" );
-        s.append( quoted( subject ) );
-        s.append( "</a>" );
-        s.append( " (" );
-        if ( count > 1 ) {
-            s.append( fn( count ) );
-            s.append( " messages, " );
-        }
-        else {
-            s.append( "one message, " );
-        }
-        s.append( timespan( from ) );
-        s.append( ")</div>\n" // subject
-                  "<div class=headerfield>From: " );
-        List<Address>::Iterator it( m->from );
-        while ( it ) {
-            Address * a = it;
-            ++it;
-            s.append( address( a ) );
-            if ( it )
-                s.append( ", " );
-            if ( !mentioned.contains( a->id() ) )
-                mentioned.insert( a->id(), a );
-        }
-        s.append( "</div>\n" ); // from
-
-        s.append( "<div class=messageexcerpt>\n"
-                  "<p>\n" );
-        if ( m->text.isEmpty() ) {
-            m->text.append( "(For some reason the text except isn't working. "
-                            "A bug. Better fix it quickly.)" );
-        }
-        else {
-            uint i = 0;
-            while ( i < m->text.length() ) {
-                uint j = i;
-                while ( j < m->text.length() && m->text[j] != '\n' )
-                    j++;
-                s.append( quoted( m->text.mid( i, j-i ) ) );
-                uint k = j;
-                while ( m->text[k] == '\n' )
-                    k++;
-                if ( k == m->text.length() )
-                    ;
-                else if ( k-j > 1 )
-                    s.append( "\n<p>\n" );
-                else if ( k-j == 1 )
-                    s.append( "\n<br>\n" );
-                i = k;
-            }
-        }
-        s.append( "</div>\n" );
-
-        if ( count > 1 ) {
-            s.append( "<p><a href=\"" );
-            s.append( ml.canonical() );
-            s.append( "\">Read entire thread</a> (" );
-            if ( from.count() > 2 ) {
-                s.append( fn( from.count() - 1 ) );
-                s.append( " responses" );
-            }
-            else {
-                s.append( "one response" );
-            }
-            if ( !responders.isEmpty() ) {
-                uint r = 0;
-                List<Address>::Iterator it( responders );
-                uint limit = 4;
-                if ( responders.count() < 7 )
-                    limit = 7;
-                while ( it && r < limit ) {
-                    Address * a = it;
-                    ++it;
-                    ++r;
-                    if ( r == 1 )
-                        s.append( " from " );
-                    else if ( r == responders.count() )
-                        s.append( " and " );
-                    else
-                        s.append( ", " );
-                    if ( mentioned.contains( a->id() ) ) {
-                        if ( a->type() == Address::Normal &&
-                             !a->name().isEmpty() )
-                            s.append( quoted( a->name() ) );
-                        else
-                            s.append( address( a ) );
-                    }
-                    else {
-                        s.append( address( a ) );
-                        mentioned.insert( a->id(), a );
-                    }
-                }
-                if ( limit < responders.count() ) {
-                    s.append( " and " );
-                    s.append( fn( responders.count() - limit ) );
-                    s.append( " more responders" );
-                }
-            }
-            s.append( ")." );
-        }
-
-        s.append( "</div>\n" ); // thread
+        s.append( threadRendering( t ) );
     }
 
     setContents( s );
+}
+
+
+
+/*! This private helper returns a HTML rendering of \a t.
+*/
+
+String ArchiveMailbox::threadRendering( Thread * t )
+{
+    String s;
+    List<Address> responders;
+    Dict<Address> addresses;
+    MessageSet from( t->members() );
+    uint i = from.count();
+    while ( i ) {
+        uint uid = from.value( i-- );
+        if ( !d->messages.contains( uid ) )
+            from.remove( uid );
+    }
+    if ( from.isEmpty() )
+        return s;
+
+    uint count = from.count();
+    while ( i <= count ) {
+        uint uid = from.value( i );
+        ArchiveMailboxData::Message * m = d->messages.find( uid );
+        if ( m ) {
+            List< Address >::Iterator it( m->from );
+            while ( it ) {
+                Address * a = it;
+                ++it;
+                String key = a->localpart().lower();
+                key.append( "@" );
+                key.append( a->domain().lower() );
+                if ( !addresses.contains( key ) ) {
+                    addresses.insert( key, a );
+                    if ( i > 1 )
+                        responders.append( a );
+                }
+            }
+        }
+        i++;
+    }
+
+    ArchiveMailboxData::Message * m = d->messages.find( from.smallest() );
+    Map<Address> mentioned;
+
+    s.append( "<div class=thread>\n" );
+
+    String subject = t->subject(); // <- should be a ustring
+    if ( subject.isEmpty() )
+        subject = "(No Subject)";
+    s.append( "<div class=headerfield>Subject: " );
+    Link ml;
+    ml.setType( d->link->type() );
+    ml.setMailbox( d->link->mailbox() );
+    ml.setSuffix( Link::Thread );
+    ml.setUid( from.smallest() );
+    s.append( "<a href=\"" );
+    s.append( ml.canonical() );
+    s.append( "\">" );
+    s.append( quoted( subject ) );
+    s.append( "</a>" );
+    s.append( " (" );
+    if ( count > 1 ) {
+        s.append( fn( count ) );
+        s.append( " messages, " );
+    }
+    else {
+        s.append( "one message, " );
+    }
+    s.append( timespan( from ) );
+    s.append( ")</div>\n" // subject
+              "<div class=headerfield>From: " );
+    List<Address>::Iterator it( m->from );
+    while ( it ) {
+        Address * a = it;
+        ++it;
+        s.append( address( a ) );
+        if ( it )
+            s.append( ", " );
+        if ( !mentioned.contains( a->id() ) )
+            mentioned.insert( a->id(), a );
+    }
+    s.append( "</div>\n" ); // from
+
+    s.append( "<div class=messageexcerpt>\n"
+              "<p>\n" );
+    if ( m->text.isEmpty() ) {
+        m->text.append( "(For some reason the text except isn't working. "
+                        "A bug. Better fix it quickly.)" );
+    }
+    else {
+        uint i = 0;
+        while ( i < m->text.length() ) {
+            uint j = i;
+            while ( j < m->text.length() && m->text[j] != '\n' )
+                j++;
+            s.append( quoted( m->text.mid( i, j-i ) ) );
+            uint k = j;
+            while ( m->text[k] == '\n' )
+                k++;
+            if ( k == m->text.length() )
+                ;
+            else if ( k-j > 1 )
+                s.append( "\n<p>\n" );
+            else if ( k-j == 1 )
+                s.append( "\n<br>\n" );
+            i = k;
+        }
+    }
+    s.append( "</div>\n" );
+
+    if ( count > 1 ) {
+        s.append( "<p><a href=\"" );
+        s.append( ml.canonical() );
+        s.append( "\">Read entire thread</a> (" );
+        if ( from.count() > 2 ) {
+            s.append( fn( from.count() - 1 ) );
+            s.append( " responses" );
+        }
+        else {
+            s.append( "one response" );
+        }
+        if ( !responders.isEmpty() ) {
+            uint r = 0;
+            List<Address>::Iterator it( responders );
+            uint limit = 4;
+            if ( responders.count() < 7 )
+                limit = 7;
+            while ( it && r < limit ) {
+                Address * a = it;
+                ++it;
+                ++r;
+                if ( r == 1 )
+                    s.append( " from " );
+                else if ( r == responders.count() )
+                    s.append( " and " );
+                else
+                    s.append( ", " );
+                if ( mentioned.contains( a->id() ) ) {
+                    if ( a->type() == Address::Normal &&
+                         !a->name().isEmpty() )
+                        s.append( quoted( a->name() ) );
+                    else
+                        s.append( address( a ) );
+                }
+                else {
+                    s.append( address( a ) );
+                    mentioned.insert( a->id(), a );
+                }
+            }
+            if ( limit < responders.count() ) {
+                s.append( " and " );
+                s.append( fn( responders.count() - limit ) );
+                s.append( " more responders" );
+            }
+        }
+        s.append( ")." );
+    }
+
+    s.append( "</div>\n" ); // thread
+    return s;
 }
 
 
