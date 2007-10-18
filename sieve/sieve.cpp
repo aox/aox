@@ -646,6 +646,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
         else if ( slp.endsWith( "-request" ) )
             wantToReply = false;
+        else if ( slp.contains( "-bounce" ) )
+            wantToReply = false;
         else if ( slp == "subs-reminder" ||
                   slp == "root" || slp == "ftp" ||
                   slp == "www" || slp == "www-data" )
