@@ -854,6 +854,17 @@ String MessageRenderingData::Node::rendered() const
 }
 
 
+static void trimTrailingSpaces( UString & r )
+{
+    uint i = r.length() - 1;
+    while ( i > 0 && ( r[i] == ' ' || r[i] == '\t' || r[i] == '\r' ||
+                       r[i] == '\n' || r[i] == '.' || r[i] == ',' ||
+                       r[i] == ':' ) )
+        i--;
+    r.truncate( i+1 );
+}
+
+
 /*! Finds and returns an excerpt from the message. Avoids quoted bits,
     scripts, style sheets etc., removes formatting wholesale and
     blah. Rather heuristic.
@@ -871,6 +882,14 @@ UString MessageRendering::excerpt()
     UString r;
     if ( !excerpts.isEmpty() )
         r = *excerpts.first();
+    trimTrailingSpaces( r );
+    if ( r.length() < 100 && !r.contains( '\n' ) &&
+         excerpts.count() > 1 ) {
+        UStringList::Iterator i( excerpts );
+        ++i;
+        if ( i && i->length() > 100 )
+            r = *i;
+    }
     uint i = 300;
     uint j = 0;
     while ( j < 20 && r[i+j] != ' ' && r[i-j] != ' ' )
@@ -879,6 +898,7 @@ UString MessageRendering::excerpt()
         r.truncate( i - j + 1 );
     else
         r.truncate( i + j + 1 );
+    trimTrailingSpaces( r );
     r.append( 8230 ); // ellipsis
     return r;
 }
