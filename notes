@@ -31,9 +31,9 @@
   some db maintenance code to be called from 'aox create alias', 'aox
   change address' and 'aox add user'.
 
-  The aox verbs create and add should be equivalent.
-
-  'aox help create' should list all the possible nouns, etc.
+  Done:
+    The aox verbs create and add should be equivalent.
+    'aox help create' should list all the possible nouns, etc.
 
   Abhijit is responsive.
 
