@@ -1,53 +1,16 @@
-2.04: 2007-10-22
-
-  SIEVE subaddress (RFC 3598, draft-ietf-sieve-rfc3598bis).
-
-    Done, but more testing needed.
-
-  SIEVE date/index (draft-freed-sieve-date-index) (done)
-  Needs relational tests (RFC 3431/draft-ietf-sieve-3431bis) (done)
-
-  SIEVE vacation (draft-ietf-sieve-vacation) (done)
-
-  httpd: webmail, archives, search results.
-
-  Proper case insensitivity for mailbox and user names (done)
-
-  Bugs:
-
-  - OS X compiles on PPC break because cryptlib/Jamfile statically
-    defines -DDATA_LITTLEENDIAN. Is this something we even want to
-    fix? We did make a policy decision to support a very limited set
-    of platforms.
-
-  - db-address=localhost doesn't work (see note).
-
-  - SMTP message-copy doesn't work any more (fixed)
-
-  - Martin Rode's umlauts are broken (example/test needed)
-
-  Schedule:
-
-    2007-09-14: decide on feature list
-    2007-10-08: drop things that can't be finished
-    2007-10-15: fork and remove unusable code
-    2007-10-18: roll, release chores
-    2007-10-19: features for next release
-    2007-10-22: release
-
-  Arnt is responsive.
-
-
 2.05: 2007-12-03
 
-  Web archive improvements.
+  New style sheet for the web archice blah.
 
-    2007-10-26: decide on feature list
-    2007-11-19: drop things that can't be finished
-    2007-11-26: fork and remove unusable code
-    2007-11-29: roll, release chores
-    2007-11-30: features for next release
-    2007-12-03: release
+  Show excerpts in web archive search results.
+
+  Faster search execution.
+
+  Display processing time on all web pages somewhere.
+
+  Investigate and solve Axel Rau's memory use problem.
+
+  The quadratic behaviour in session updates has to go.
 
   It sounds reasonable to unify the addresses table:
 
@@ -57,16 +20,29 @@
     take the pairs, build a giant case-when to map from b.id to a.id
     update address_fields with the case-when
     update aliases with the case-when
+    update deliveries with the case-when
+    update autoresponses with the case-when
     delete the addresses rows with b.id
 
-  I haven't done that yet, because we also have a similar issue with
-  local localparts. Local locaparts are case-insensitive, remote
-  localparts are case-sensitive. soooo.... oh fsck, a domain can
-  become local while the server is running, just a simple 'aox add
-  alias' is enough. Let's ignore this localpartery. Or just limit its
-  damage with a hack.
+  I suggest doing this as schema 58. It should be acceptably fast.
+
+  There is a similar issue for local localparts. I think the best way
+  to solve that is to think hard about it for two months, then write
+  some db maintenance code to be called from 'aox create alias', 'aox
+  change address' and 'aox add user'.
+
+  The aox verbs create and add should be equivalent.
+
+  'aox help create' should list all the possible nouns, etc.
 
   Abhijit is responsive.
+
+    2007-10-26: decide on feature list
+    2007-11-19: drop things that can't be finished
+    2007-11-26: fork and remove unusable code
+    2007-11-29: roll, release chores
+    2007-11-30: features for next release
+    2007-12-03: release
 
 
 2.06: 2008-01-14
