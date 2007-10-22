@@ -105,15 +105,15 @@ all aliases are listed.
 Displays a list of users and the rights they have been granted to the
 specified mailbox. If a username is given, only that user's rights are
 displayed.
-.IP "aox create user <username> <password> <email-address>"
+.IP "aox add user <username> <password> <email-address>"
 Creates a new Archiveopteryx user with the specified username, password, and
 email address.
 .IP
-.I add
+.I create
 and
 .I new
 are acceptable abbreviations for
-.IR create .
+.IR add .
 .IP "aox delete user [-f] <username>"
 Deletes the specified Archiveopteryx user. If
 .I -f
@@ -130,7 +130,7 @@ Changes the specified user's password.
 Renames the specified user.
 .IP "aox change address <username> <new-address>"
 Changes the specified user's email address.
-.IP "aox create mailbox <name> [username]"
+.IP "aox add mailbox <name> [username]"
 Creates a new mailbox with the specified name and, if a username is
 specified, owned by that user.
 .IP
@@ -142,7 +142,7 @@ is specified, in which case unqualified names are assumed to be under
 the user's home directory.
 .IP "aox delete mailbox <name>"
 Deletes the specified mailbox.
-.IP "aox create alias <address> <mailbox>"
+.IP "aox add alias <address> <mailbox>"
 Creates an alias that instructs the server to accept mail to the given
 .I address
 and deliver it to the specified
@@ -191,7 +191,7 @@ it is supported (see the descriptions of each command above).
 To add a user called "nirmala", whose password is "angstskrik" and
 whose main email address is "nirmala@example.com":
 .IP
-aox create user nirmala angstskrik nirmala@example.com
+aox add user nirmala angstskrik nirmala@example.com
 .PP
 To change Nirmala's password to "temmelig hemmelig":
 .IP
