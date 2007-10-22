@@ -134,7 +134,7 @@ public:
 
 
 /*! \class CreateMailbox mailboxes.h
-    This class handles the "aox create mailbox" command.
+    This class handles the "aox add mailbox" command.
 */
 
 CreateMailbox::CreateMailbox( StringList * args )

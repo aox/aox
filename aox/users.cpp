@@ -76,7 +76,7 @@ public:
 
 
 /*! \class CreateUser users.h
-    This class handles the "aox create user" command.
+    This class handles the "aox add user" command.
 */
 
 CreateUser::CreateUser( StringList * args )

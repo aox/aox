@@ -20,8 +20,8 @@ void Help::execute()
     String a = next().lower();
     String b = next().lower();
 
-    if ( a == "add" || a == "new" )
-        a = "create";
+    if ( a == "create" || a == "new" )
+        a = "add";
     else if ( a == "del" || a == "remove" )
         a = "delete";
 
@@ -197,11 +197,11 @@ void Help::execute()
             "      aox light right /users/xyzzy/shared\n"
         );
     }
-    else if ( a == "create" && b == "user" ) {
+    else if ( a == "add" && b == "user" ) {
         fprintf(
             stderr,
-            "  create user -- Create a new user.\n\n"
-            "    Synopsis: aox create user <username> <password> <e@ma.il>\n\n"
+            "  add user -- Create a new user.\n\n"
+            "    Synopsis: aox add user <username> <password> <e@ma.il>\n\n"
             "    Creates a new Archiveopteryx user with the given username,\n"
             "    password, and email address.\n"
         );
@@ -210,7 +210,7 @@ void Help::execute()
         fprintf(
             stderr,
             "  delete user -- Delete a user.\n\n"
-            "    Synopsis: aox create user [-f] <username>\n\n"
+            "    Synopsis: aox delete user [-f] <username>\n\n"
             "    Deletes the Archiveopteryx user with the specified name.\n\n"
             "    The -f flag causes any mailboxes owned by the user to be "
             "deleted too.\n"
@@ -240,11 +240,11 @@ void Help::execute()
             "    Changes the specified user's email address.\n"
         );
     }
-    else if ( a == "create" && b == "mailbox" ) {
+    else if ( a == "add" && b == "mailbox" ) {
         fprintf(
             stderr,
-            "  create mailbox -- Create a new mailbox.\n\n"
-            "    Synopsis: aox create mailbox <name> [username]\n\n"
+            "  add mailbox -- Create a new mailbox.\n\n"
+            "    Synopsis: aox add mailbox <name> [username]\n\n"
             "    Creates a new mailbox with the specified name and,\n"
             "    if a username is specified, owned by that user.\n\n"
             "    The mailbox name must be fully-qualified (begin with /),\n"
@@ -261,14 +261,14 @@ void Help::execute()
             "    Synopsis: aox delete mailbox <name>\n\n"
             "    Deletes the specified mailbox.\n\n"
             "    This command is synonymous with \"aox delete view\", and may\n"
-            "    be used to delete mailboxes created with \"aox create view\".\n"
+            "    be used to delete mailboxes created with \"aox add view\".\n"
         );
     }
-    else if ( a == "create" && b == "alias" ) {
+    else if ( a == "add" && b == "alias" ) {
         fprintf(
             stderr,
-            "  create alias -- Create a delivery alias.\n\n"
-            "    Synopsis: aox create alias <address> <mailbox>\n\n"
+            "  add alias -- Create a delivery alias.\n\n"
+            "    Synopsis: aox add alias <address> <mailbox>\n\n"
             "    Creates an alias that instructs the L/SMTP server to accept\n"
             "    mail to a given address, and deliver it to a given mailbox.\n"
             "    (Ordinarily, mail is accepted only to a user's main address,\n"
@@ -373,7 +373,7 @@ void Help::execute()
             "\n"
             "                       -- User and mailbox management.\n"
             "    list <users|mailboxes|aliases|rights>\n"
-            "    create <user|mailbox|alias>\n"
+            "    add <user|mailbox|alias>\n"
             "    delete <user|mailbox|alias>\n"
             "    change <username|password|address>\n"
             "    setacl\n"

@@ -31,7 +31,7 @@ public:
 
 
 /*! \class CreateView views.h
-    This class handles the "aox create view" command.
+    This class handles the "aox add view" command.
 */
 
 CreateView::CreateView( StringList * args )

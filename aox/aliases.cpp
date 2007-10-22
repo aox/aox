@@ -77,7 +77,7 @@ public:
 
 
 /*! \class CreateAlias aliases.h
-    This class handles the "aox create alias" command.
+    This class handles the "aox add alias" command.
 */
 
 CreateAlias::CreateAlias( StringList * args )
