@@ -352,6 +352,43 @@ void Help::execute()
             "    recently. If it succeeds, the new messages are injected.\n"
         );
     }
+    else if ( a == "add" ) {
+        fprintf(
+            stderr,
+            "\"aox add\" may be followed by: user, mailbox, alias.\n"
+            "See e.g. \"aox help add user\" for more.\n"
+        );
+    }
+    else if ( a == "list" ) {
+        fprintf(
+            stderr,
+            "\"aox list\" may be followed by: users, mailboxes, aliases, "
+            "rights.\n"
+            "See e.g. \"aox help list users\" for more.\n"
+        );
+    }
+    else if ( a == "delete" ) {
+        fprintf(
+            stderr,
+            "\"aox delete\" may be followed by: user, mailbox, alias.\n"
+            "See e.g. \"aox help delete user\" for more.\n"
+        );
+    }
+    else if ( a == "change" ) {
+        fprintf(
+            stderr,
+            "\"aox change\" may be followed by: username, password, address.\n"
+            "See e.g. \"aox help change password\" for more.\n"
+        );
+    }
+    else if ( a == "show" ) {
+        fprintf(
+            stderr,
+            "\"aox show\" may be followed by: status, build, config, schema, "
+            "counts.\n"
+            "See e.g. \"aox help show status\" for more.\n"
+        );
+    }
     else if ( a == "commands" ) {
         fprintf(
             stderr,
