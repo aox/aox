@@ -694,41 +694,36 @@ void Postgres::errorMessage()
         s.append( " (warning)" );
         ::log( s, Log::Debug );
     }
-    else if ( q ) {
+    else if ( q && !code.startsWith( "00" ) ) {
         s.append( "PostgreSQL server: " );
-        if ( q ) {
-            s.append( "Query " + q->description() + " failed: " );
-            x.setLog( q->log() );
-        }
+        s.append( "Query " + q->description() + " failed: " );
+        x.setLog( q->log() );
         s.append( m );
         if ( !msg.detail().isEmpty() )
             s.append( " (" + msg.detail() + ")" );
-        if ( q && !q->canFail() )
-            s.append( " (error)" );
+        s.append( " (" + msg.code() + ")" );
 
-        if ( q && q->canFail() )
+        if ( q->canFail() )
             ::log( s, Log::Debug );
         else
             ::log( s, Log::Error );
 
-        if ( q ) {
-            // If we sent a Parse message for a named prepared statement
-            // while processing this query, but don't already know that
-            // it succeeded, we'll assume that statement name does not
-            // exist for future use.
-            String * pp = d->preparesPending.first();
-            if ( q->name() != "" && pp && *pp == q->name() ) {
-                d->prepared.take( q->name() );
-                d->preparesPending.shift();
-            }
-            if ( q->inputLines() )
-                d->sendingCopy = false;
-            d->queries.shift();
-            q->setError( m );
-            q->notify();
+        // If we sent a Parse message for a named prepared statement
+        // while processing this query, but don't already know that
+        // it succeeded, we'll assume that statement name does not
+        // exist for future use.
+        String * pp = d->preparesPending.first();
+        if ( q->name() != "" && pp && *pp == q->name() ) {
+            d->prepared.take( q->name() );
+            d->preparesPending.shift();
         }
+        if ( q->inputLines() )
+            d->sendingCopy = false;
+        d->queries.shift();
+        q->setError( m );
+        q->notify();
     }
-    else if ( !code.startsWith( "00" ) ) {
+    else {
         ::log( "PostgreSQL server message could not be interpreted."
                " Message: " + msg.message() +
                " SQL state code: " + msg.code() +
