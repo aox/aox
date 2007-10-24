@@ -8,7 +8,11 @@
 
   Display processing time on all web pages somewhere.
 
-  Investigate and solve Axel Rau's memory use problem.
+  Investigate and solve Axel Rau's memory use problem. Update: The
+  guilty party probably is the list of messages in
+  sessioninitialiser. When imapsync delivers into a mailbox which is
+  also open in a non-IDLE client, all the messages injected will be
+  held in RAM until the new EXISTS response can be sent. Nasty.
 
   The quadratic behaviour in session updates has to go.
 
