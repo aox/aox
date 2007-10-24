@@ -9,6 +9,9 @@
 // fprintf
 #include <stdio.h>
 
+// timeval, gettimeofday
+#include <sys/time.h>
+#include <time.h>
 
 
 struct AllocationBlock
@@ -449,9 +452,19 @@ void Allocator::mark()
 
 void Allocator::free()
 {
+    struct timeval start, afterMark, afterSweep;
+    start.tv_sec = 0;
+    start.tv_usec = 0;
+    afterMark.tv_sec = 0;
+    afterMark.tv_usec = 0;
+    afterSweep.tv_sec = 0;
+    afterSweep.tv_usec = 0;
+    gettimeofday( &start, 0 );
+
     total = 0;
     uint freed = 0;
     uint objects = 0;
+
     // mark
     uint i = 0;
     while ( i < ::numRoots ) {
@@ -459,6 +472,8 @@ void Allocator::free()
         i++;
     }
     mark();
+    gettimeofday( &afterMark, 0 );
+
     // and sweep
     i = 0;
     uint blocks = 0;
@@ -485,13 +500,23 @@ void Allocator::free()
         }
         i++;
     }
+    gettimeofday( &afterSweep, 0 );
 
+    uint timeToMark = 0;
+    uint timeToSweep = 0;
+    if ( start.tv_sec ) {
+        timeToMark = ( afterMark.tv_sec - start.tv_sec ) * 1000000 +
+                     ( afterMark.tv_usec - start.tv_usec );
+        timeToSweep = ( afterSweep.tv_sec - afterMark.tv_sec ) * 1000000 +
+                      ( afterSweep.tv_usec - afterMark.tv_usec );
+    }
     // dumpRandomObject();
 
     if ( !freed )
         return;
 
-    if ( verbose && ::allocated >= 524288 )
+    if ( verbose && ( ::allocated >= 524288 ||
+                      timeToMark + timeToSweep >= 10000 ) )
         log( "Allocator: allocated " +
              String::humanNumber( ::allocated ) +
              " then freed " +
@@ -503,7 +528,9 @@ void Allocator::free()
              " bytes, across " +
              fn( blocks ) +
              " 1MB blocks. Recursion depth: " +
-             fn( peak ) + ".",
+             fn( peak ) + ". Time needed to mark: " +
+             fn( (timeToMark+500)/1000 ) + "ms. To sweep: " +
+             fn( (timeToSweep+500)/1000 ) + "ms.",
              Log::Info );
     if ( verbose && total > 8 * 1024 * 1024 ) {
         String objects;
