@@ -117,6 +117,11 @@ void ArchiveMailbox::execute()
         return;
     }
 
+    if ( t->allThreads()->isEmpty() ) {
+        setContents( "<p>Mailbox is empty" );
+        return;
+    }
+
     if ( !d->text ) {
         List<Thread>::Iterator i( t->allThreads() );
         MessageSet f;
@@ -139,11 +144,6 @@ void ArchiveMailbox::execute()
         d->text->bind( 1, d->link->mailbox()->id() );
         d->text->bind( 2, HeaderField::ContentType );
         d->text->execute();
-    }
-
-    if ( t->allThreads()->isEmpty() ) {
-        setContents( "<p>Mailbox is empty" );
-        return;
     }
 
     Row * r;
