@@ -35,6 +35,8 @@
     The aox verbs create and add should be equivalent.
     'aox help create' should list all the possible nouns, etc.
 
+  Build on openbsd and darwin with jamfile.
+
   Abhijit is responsive.
 
     2007-10-26: decide on feature list
