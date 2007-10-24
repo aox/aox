@@ -625,7 +625,7 @@ void HTTP::parseAcceptEncoding( const String & encoding, uint q )
 void HTTP::parseConnection( const String & v )
 {
     String l = " " + v.lower() + " ";
-    if ( v.contains( " close " ) )
+    if ( v.containsWord( "close" ) )
         d->connectionClose = true;
 }
 

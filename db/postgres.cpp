@@ -630,8 +630,7 @@ void Postgres::errorMessage()
         sleep( 1 );
         connect( server() );
     }
-    else if ( code == "28000" && ( m.lower().startsWith( "ident " ) ||
-                                   m.lower().contains( " ident " ) ) ) {
+    else if ( code == "28000" && m.lower().containsWord( "ident" ) ) {
         int b = m.find( '"' );
         int e = m.find( '"', b+1 );
         String user( m.mid( b+1, e-b-1 ) );

@@ -86,6 +86,7 @@ public:
     int find( const String &, int=0 ) const;
     bool contains( const String & ) const;
     bool contains( const char ) const;
+    bool containsWord( const String & ) const;
     String section( const String &, uint );
 
     void append( char );

@@ -1740,6 +1740,41 @@ bool String::contains( const char c ) const
 }
 
 
+/*! Returns true if this string contains at least one instance of \a
+    s, and the characters before and after the occurence aren't
+    letters.
+*/
+
+bool String::containsWord( const String & s ) const
+{
+    int i = find( s );
+    while ( i >= 0 ) {
+        bool before = false;
+        bool after = false;
+        if ( i == 0 ) {
+            before = true;
+        }
+        else {
+            char c = d->str[i-1];
+            if ( c < 'A' || ( c > 'Z' && c < 'a' ) || c > 'z' )
+                before = true;
+        }
+        if ( i + s.length() == length() ) {
+            after = true;
+        }
+        else {
+            char c = d->str[i+s.length()];
+            if ( c < 'A' || ( c > 'Z' && c < 'a' ) || c > 'z' )
+                after = true;
+        }
+        if ( before && after )
+            return true;
+        i = find( s, i+1 );
+    }
+    return false;
+}
+
+
 /*! Returns a copy of this string wrapped so that each line contains
     at most \a linelength characters. The first line is prefixed by \a
     firstPrefix, subsequent lines by \a otherPrefix. If \a spaceAtEOL
