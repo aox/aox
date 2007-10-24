@@ -78,11 +78,7 @@ class PgMessage
 public:
     PgMessage( Buffer * );
 
-    enum Severity {
-        Unknown, Panic, Fatal, Error, Warning, Notice, Debug, Info, Log
-    };
-    Severity severity() const { return S; }
-
+    String severity() const { return S; }
     String code()     const { return C; }
     String message()  const { return M; }
     String detail()   const { return D; }
@@ -94,8 +90,7 @@ public:
     String routine()  const { return R; }
 
 private:
-    Severity S;
-    String C, M, D, H, P, W, F, L, R;
+    String S, C, M, D, H, P, W, F, L, R;
 };
 
 

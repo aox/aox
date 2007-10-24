@@ -621,86 +621,80 @@ void Postgres::errorMessage()
     PgMessage msg( readBuffer() );
     Query *q = d->queries.firstElement();
     String m( msg.message() );
+    String code = msg.code();
 
-    switch ( msg.severity() ) {
-    case PgMessage::Panic:
-    case PgMessage::Fatal:
-        if ( m.lower().startsWith( "the database system is "
-                                   "starting up" ) )
+    if ( code == "57P03" ) {
+        log( "Retrying connection after delay because PostgreSQL "
+             "is still starting up.", Log::Info );
+        close();
+        sleep( 1 );
+        connect( server() );
+    }
+    else if ( code == "28000" && ( m.lower().startsWith( "ident " ) ||
+                                   m.lower().contains( " ident " ) ) ) {
+        int b = m.find( '"' );
+        int e = m.find( '"', b+1 );
+        String user( m.mid( b+1, e-b-1 ) );
+
+        struct passwd * u = getpwnam( d->user.cstr() );
+
+        struct passwd * p = 0;
+        const char * pg
+            = Configuration::compiledIn( Configuration::PgUser );
+
+        if ( pg )
+            p = getpwnam( pg );
+        if ( !p )
+            p = getpwnam( "postgres" );
+        if ( !p )
+            p = getpwnam( "pgsql" );
+
+        if ( !d->identBreakageSeen &&
+             Database::loginAs() == Configuration::DbOwner && u == 0 &&
+             p != 0 )
         {
-            log( "Retrying connection after delay because PostgreSQL "
-                 "is still starting up.", Log::Info );
+            d->identBreakageSeen = true;
+            d->setSessionAuthorisation = true;
+            log( "Attempting to authenticate as superuser to use "
+                 "SET SESSION AUTHORIZATION", Log::Info );
+            d->user = String( p->pw_name );
+            uid_t e = geteuid();
+            setreuid( 0, p->pw_uid );
             close();
-            sleep( 1 );
-            connect( server() );
+            connect( Database::server() );
+            setreuid( 0, e );
         }
-        else if ( m.lower().startsWith( "ident authentication failed "
-                                        "for user \"" ) )
+        else if ( s == Configuration::text(Configuration::JailUser) &&
+                  Configuration::toggle( Configuration::Security ) &&
+                  self().protocol() != Endpoint::Unix )
         {
-            int b = m.find( '"' );
-            int e = m.find( '"', b+1 );
-            String user( m.mid( b+1, e-b-1 ) );
-
-            struct passwd * u = getpwnam( d->user.cstr() );
-
-            struct passwd * p = 0;
-            const char * pg
-                = Configuration::compiledIn( Configuration::PgUser );
-
-            if ( pg )
-                p = getpwnam( pg );
-            if ( !p )
-                p = getpwnam( "postgres" );
-            if ( !p )
-                p = getpwnam( "pgsql" );
-
-            if ( !d->identBreakageSeen &&
-                 Database::loginAs() == Configuration::DbOwner && u == 0 &&
-                 p != 0 )
-            {
-                d->identBreakageSeen = true;
-                d->setSessionAuthorisation = true;
-                log( "Attempting to authenticate as superuser to use "
-                     "SET SESSION AUTHORIZATION", Log::Info );
-                d->user = String( p->pw_name );
-                uid_t e = geteuid();
-                setreuid( 0, p->pw_uid );
-                close();
-                connect( Database::server() );
-                setreuid( 0, e );
-            }
-            else if ( s == Configuration::text(Configuration::JailUser) &&
-                      Configuration::toggle( Configuration::Security ) &&
-                      self().protocol() != Endpoint::Unix )
-            {
-                // If we connected via IPv4 or IPv6, early enough that
-                // postgres had a chance to reject us, we'll try again.
-                d->identBreakageSeen = true;
-                log( "PostgreSQL demanded IDENT, which did not match "
-                     "during startup. Retrying.", Log::Info );
-                Endpoint pg( peer() );
-                close();
-                connect( pg );
-            }
-            else {
-                log( "PostgreSQL refuses authentication because this "
-                     "process is not running as user " + user + ". See "
-                     "http://aox.org/faq/mailstore.html#ident",
-                     Log::Disaster );
-            }
+            // If we connected via IPv4 or IPv6, early enough that
+            // postgres had a chance to reject us, we'll try again.
+            d->identBreakageSeen = true;
+            log( "PostgreSQL demanded IDENT, which did not match "
+                 "during startup. Retrying.", Log::Info );
+            Endpoint pg( peer() );
+            close();
+            connect( pg );
         }
         else {
-            s.append( "PostgreSQL server: " );
-            if ( msg.severity() == PgMessage::Panic )
-                s.append( "Panic: " );
-            else
-                s.append( "Fatal: " );
-            s.append( m );
-            error( s );
+            log( "PostgreSQL refuses authentication because this "
+                 "process is not running as user '" + user + "'. See "
+                 "http://aox.org/faq/mailstore.html#ident",
+                 Log::Disaster );
         }
-        break;
-
-    case PgMessage::Error:
+    }
+    else if ( code.startsWith( "01" ) ) {
+        s.append( "PostgreSQL server: " );
+        if ( q ) {
+            s.append( "Query " + q->description() + ": " );
+            x.setLog( q->log() );
+        }
+        s.append( m );
+        s.append( " (warning)" );
+        ::log( s, Log::Debug );
+    }
+    else if ( q ) {
         s.append( "PostgreSQL server: " );
         if ( q ) {
             s.append( "Query " + q->description() + " failed: " );
@@ -733,23 +727,19 @@ void Postgres::errorMessage()
             q->setError( m );
             q->notify();
         }
-        break;
-
-    case PgMessage::Warning:
-        s.append( "PostgreSQL server: " );
-        if ( q ) {
-            s.append( "Query " + q->description() + ": " );
-            x.setLog( q->log() );
-        }
-        s.append( m );
-        s.append( " (warning)" );
-        ::log( s, Log::Debug );
-        break;
-
-    default:
-        ::log( m, Log::Debug );
-        break;
     }
+    else if ( !code.startsWith( "00" ) ) {
+        ::log( "PostgreSQL server message could not be interpreted."
+               " Message: " + msg.message() +
+               " SQL state code: " + msg.code() +
+               " Severity: " + msg.severity().lower(),
+               Log::Error );
+    }
+
+    if ( code.startsWith( "08" ) || // connection exception
+         code == "57P01" || // admin shutdown
+         code == "57P02" ) // crash shutdown
+        error( s );
 }
 
 

@@ -332,19 +332,9 @@ PgMessage::PgMessage( Buffer *b )
 
     while ( ( type = decodeByte() ) != '\0' ) {
         String s = decodeString();
-
+        
         switch ( type ) {
-        case 'S':
-            if      ( s == "PANIC" )   S = Panic;
-            else if ( s == "FATAL" )   S = Fatal;
-            else if ( s == "ERROR" )   S = Error;
-            else if ( s == "WARNING" ) S = Warning;
-            else if ( s == "NOTICE" )  S = Notice;
-            else if ( s == "DEBUG" )   S = Debug;
-            else if ( s == "INFO" )    S = Info;
-            else if ( s == "LOG" )     S = Log;
-            else                       S = Unknown;
-            break;
+        case 'S': S = s; break;
         case 'C': C = s; break;
         case 'M': M = s; break;
         case 'D': D = s; break;
@@ -362,14 +352,17 @@ PgMessage::PgMessage( Buffer *b )
 }
 
 
-/*! \fn PgMessage::Severity PgMessage::severity() const
-    Returns the severity of a message, which may be any of the following
-    values: Unknown, Panic, Fatal, Error, Warning, Notice, Debug, Info,
-    Log.
+/*! \fn String PgMessage::severity() const
+    Returns the severity of a message, in the language Postgres is
+    configured to use. If Postgres uses English, this has one of the
+    following values: Unknown, Panic, Fatal, Error, Warning, Notice,
+    Debug, Info, Log.
 */
 
 /*! \fn String PgMessage::code() const
-    Returns (as a string) the SQLstate code associated with the message.
+    Returns (as a string) the SQLstate code associated with the
+    message.  There are listed by
+    http://www.postgresql.org/docs/current/static/errcodes-appendix.html.
 */
 
 
