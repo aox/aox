@@ -1257,10 +1257,10 @@ void Header::repair( Multipart * p, const String & body )
             removeField( HeaderField::ReplyTo );
     }
 
-    // If there are two header fields, one is text/plain, and the
-    // other is something other than text/plain and text/html, then
-    // drop the text/plain one. It's frequently added as a default,
-    // sometimes by software which doesn't check thoroughly.
+    // If there are two content-type fields, one is text/plain, and
+    // the other is something other than text/plain and text/html,
+    // then drop the text/plain one. It's frequently added as a
+    // default, sometimes by software which doesn't check thoroughly.
     if ( occurrences[(int)HeaderField::ContentType] == 2 ) {
         bool plain = false;
         bool html = false;
@@ -1286,6 +1286,59 @@ void Header::repair( Multipart * p, const String & body )
                 else
                     ++it;
             }
+        }
+    }
+
+    // If there are several Content-Type fields, we can classify them
+    // as good, bad and neutral.
+    // - Good multiparts have a boundary and it occurs
+    // - Good HTML starts with doctype or html
+    // - Syntactically invalid fields are bad
+    // - All others are neutral
+    // If we have exactly one good field at the end, we dump the
+    // neutral and bad ones. If we have no good fields, one neutral
+    // field and the rest bad, we dump the bad ones.
+    if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
+        List<ContentType> good;
+        List<ContentType> bad;
+        List<ContentType> neutral;
+        uint i = 0;
+        HeaderField * hf = field( HeaderField::ContentType );
+        while ( hf ) {
+            ContentType * ct = (ContentType*)hf;
+            if ( !hf->valid() ) {
+                bad.append( ct );
+            }
+            else if ( ct->type() == "text" && ct->subtype() == "html" ) {
+                String b = body.mid( 0, 2048 ).simplified().lower();
+                if ( b.startsWith( "<!doctype" ) ||
+                     b.startsWith( "<html" ) )
+                    good.append( ct );
+                else
+                    bad.append( ct );
+            }
+            else if ( ct->type() == "multipart" ) {
+                String b = ct->parameter( "boundary" );
+                if ( b.isEmpty() || b != b.simplified() )
+                    bad.append( ct );
+                else if ( body.startsWith( "n--" + b ) ||
+                          body.contains( "\n--" + b ) )
+                    good.append( ct );
+                else
+                    bad.append( ct );
+            }
+            else {
+                neutral.append( ct );
+            }
+            hf = field( HeaderField::ContentType, ++i );
+        }
+        if ( good.count() == 1 ) {
+            removeField( HeaderField::ContentType );
+            add( good.first() );
+        }
+        else if ( good.isEmpty() && neutral.count() == 1 ) {
+            removeField( HeaderField::ContentType );
+            add( neutral.first() );
         }
     }
 
