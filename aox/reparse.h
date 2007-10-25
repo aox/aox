@@ -13,6 +13,8 @@ public:
     Reparse( StringList * );
     void execute();
 
+    String writeErrorCopy( const String & );
+
 private:
     class ReparseData * d;
 };

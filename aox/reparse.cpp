@@ -2,6 +2,7 @@
 
 #include "reparse.h"
 
+#include "file.h"
 #include "query.h"
 #include "message.h"
 #include "mailbox.h"
@@ -11,6 +12,9 @@
 #include "addresscache.h"
 
 #include <stdio.h>
+#include <sys/stat.h> // mkdir
+#include <sys/types.h> // mkdir
+#include <unistd.h> // getpid
 
 
 class ReparseData
@@ -134,6 +138,9 @@ void Reparse::execute()
             printf( "- parsing %s:%d still fails: %s\n",
                     m->name().utf8().cstr(), r->getInt( "uid" ),
                     msg->error().simplified().cstr() );
+            if ( opt( 'e' ) )
+                printf( "- wrote a copy to %s\n",
+                        writeErrorCopy( text ).cstr() );
         }
     }
 
@@ -143,4 +150,47 @@ void Reparse::execute()
         return;
 
     finish();
+}
+
+
+static String * errdir = 0;
+static uint uniq = 0;
+
+
+/*! Writes a copy of \a o to a file and returns its name. Tries to
+    write \a o in anonymised form.
+*/
+
+String Reparse::writeErrorCopy( const String & o )
+{
+    Message * m = new Message( o );
+    String a = o.anonymised();
+    Message * am = new Message( a );
+    String dir;
+    String name;
+    String c;
+    if ( !errdir ) {
+        errdir = new String;
+        Allocator::addEternal( errdir, "error directory" );
+        errdir->append( "errors/" );
+        errdir->append( fn( getpid() ) );
+        ::mkdir( "errors", 0777 );
+        ::mkdir( errdir->cstr(), 0777 );
+    }
+    if ( opt( 'v' ) < 2 &&
+         am->error().anonymised() == m->error().anonymised() ) {
+        dir = *errdir + "/anonymised";
+        name = fn( ++uniq );
+        c = a;
+    }
+    else {
+        dir = *errdir + "/plaintext";
+        name = fn( ++uniq );
+        c = o;
+    }
+    ::mkdir( dir.cstr(), 0777 );
+    String r = dir + "/" + name;
+    File f( r, File::Write );
+    f.write( c );
+    return r;
 }
