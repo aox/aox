@@ -402,8 +402,15 @@ void HeaderField::parseText( const String &s )
         setData( t );
     }
     else {
-        setData( s );
-        setError( "Error parsing text" );
+        Parser822 p( s.simplified() );
+        String t( p.text() );
+        if ( p.atEnd() ) {
+            setData( t );
+        }
+        else {
+            setData( s );
+            setError( "Error parsing text" );
+        }
     }
 }
 
