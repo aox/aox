@@ -45,6 +45,7 @@ Reparse::Reparse( StringList * args )
 void Reparse::execute()
 {
     if ( !d->q ) {
+        parseOptions();
         end();
 
         printf( "Looking for messages with parse failures\n" );
