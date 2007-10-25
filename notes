@@ -565,37 +565,6 @@ SASL NTLM authentication
   description. Cyrus also implements it.
 
 
-Resolving the remaining parse problems
-
-  Kalyani now has 652 messages with parse problems. The ones still not
-  fixed:
-
-  3 with conflicting c-t. All are text/html vs. text/plain, which we
-  can resolve.
-
-  80 have bad content-type fields, so the boundary cannot be read. I
-  don't want to generalise from the ones I looked at, other than to
-  note that they all are single-level, and we could infer the boundary
-  by looking for boundary lines.
-
-  6 have bad charset encoding. All six seem guessable. The workarounds
-  for the encodings are also possible, but invoking the guesser seems
-  like a better option.
-
-  104 have syntax errors in From. No analysis yet.
-
-  6 have bad mime-versions. We could drop the check (...hmm...)
-
-  34 have bad reply-to fields. No analysis yet.
-
-  33 have unhandled 8-bit in the subject.
-
-  40 have various forms of syntax error in To. About half seem easily
-  fixable.
-
-  The last few were scattered.
-
-
 DELETE of mailboxes in inappropriately qualified (security problem)
 
   At present, the user always needs to have all three rights, and
