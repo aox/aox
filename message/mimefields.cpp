@@ -407,9 +407,6 @@ void ContentType::parse( const String &s )
         }
         if ( c )
             addParameter( "charset", c->name().lower() );
-        else
-            setError( "Parse error at position " + fn( p.index() ) +
-                      ", before charset" );
     }
 }
 
