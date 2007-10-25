@@ -76,7 +76,7 @@ void AddressField::parse( const String &s )
                 a->clear();
             }
         }
-        if ( !valid() && s.simplified() == "@" ) {
+        if ( !valid() && s.simplified().length() == 1 ) {
             setError( "" );
             a->clear();
         }
