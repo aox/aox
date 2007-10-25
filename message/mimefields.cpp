@@ -5,6 +5,7 @@
 #include "field.h"
 #include "string.h"
 #include "parser.h"
+#include "codec.h"
 #include "list.h"
 #include "map.h"
 
@@ -388,9 +389,28 @@ void ContentType::parse( const String &s )
 
     if ( valid() && !p.atEnd() &&
          t == "text" && parameter( "charset" ).isEmpty() &&
-         s.mid( p.index() ).lower().contains( "charset" ) )
-        setError( "Parse error at position " + fn( p.index() ) +
-                  ", before charset" );
+         s.mid( p.index() ).lower().containsWord( "charset" ) ) {
+        String u = s.mid( p.index() ).simplified().lower();
+        int b = u.find( '=' );
+        Codec * c = 0;
+        if ( b > 0 && u.find( '=', b+1 ) < 0 ) {
+            b++;
+            if ( u[b] == ' ' )
+                b++;
+            int e = b;
+            while ( ( u[e] >= 'a' && u[e] <= 'z' ) ||
+                    ( u[e] >= '0' && u[e] <= '9' ) ||
+                    u[e] == '/' || u[e] == '-' || u[e] == '_' )
+                e++;
+            if ( b < e )
+                c = Codec::byName( u.mid( b, e-b ) );
+        }
+        if ( c )
+            addParameter( "charset", c->name().lower() );
+        else
+            setError( "Parse error at position " + fn( p.index() ) +
+                      ", before charset" );
+    }
 }
 
 
