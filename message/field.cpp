@@ -440,7 +440,7 @@ void HeaderField::parseMimeVersion( const String &s )
     p.comment();
     String v = p.dotAtom();
     String c = p.lastComment().simplified();
-    if ( c.contains( '(' ) || c.contains( ')' ) )  // we hate nested comments
+    if ( c.contains( '(' ) || c.contains( ')' ) || c.contains( '\\' ) )
          c.truncate();
     if ( v != "1.0" || !p.atEnd() )
         c = "Note: Original mime-version had syntax problems";
