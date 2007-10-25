@@ -425,12 +425,13 @@ void HeaderField::parseOther( const String &s )
 }
 
 
-/*! Parses the Mime-Version field from \a s and records the first
-    problem found.
+/*! Parses the Mime-Version field from \a s and resolutely ignores all
+    problems seen.
 
-    Only version 1.0 is accepted. Since some message generators
-    incorrectly send comments or trailing garbage, this parser accepts
-    them.
+    Only version 1.0 is legal. Since vast numbers of spammers send
+    other version numbers, we replace other version numbers with 1.0
+    and a comment. Bayesian analysis tools will probably find the
+    comment to be a sure spam sign.
 */
 
 void HeaderField::parseMimeVersion( const String &s )
@@ -438,9 +439,11 @@ void HeaderField::parseMimeVersion( const String &s )
     Parser822 p( s );
     p.comment();
     String v = p.dotAtom();
-    setData( v );
-    if ( v != "1.0" )
-        setError( "Could not parse '" + s.simplified() + "'" );
+    p.comment();
+    if ( v == "1.0" && p.atEnd() )
+        setData( v );
+    else
+        setData( "1.0 (Note: Original mime-version had syntax problems)" );
 }
 
 
