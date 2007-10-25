@@ -142,6 +142,7 @@ String Parser822::comment()
             i++;
         } while( commentLevel && i < s.length() );
         whitespace();
+        lc = r;
     }
     return r;
 }
@@ -724,4 +725,14 @@ uint Parser822::number()
         error( e.cstr() );
     }
     return n;
+}
+
+
+/*! Returns the last comment seen so far by this parser, or a null
+    string if none has been seen yet.
+*/
+
+String Parser822::lastComment() const
+{
+    return lc;
 }

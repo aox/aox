@@ -439,11 +439,15 @@ void HeaderField::parseMimeVersion( const String &s )
     Parser822 p( s );
     p.comment();
     String v = p.dotAtom();
-    p.comment();
-    if ( v == "1.0" && p.atEnd() )
-        setData( v );
+    String c = p.lastComment().simplified();
+    if ( c.contains( '(' ) || c.contains( ')' ) )  // we hate nested comments
+         c.truncate();
+    if ( v != "1.0" || !p.atEnd() )
+        c = "Note: Original mime-version had syntax problems";
+    if ( c.isEmpty() )
+        setData( "1.0" );
     else
-        setData( "1.0 (Note: Original mime-version had syntax problems)" );
+        setData( "1.0 (" + c + ")" );
 }
 
 

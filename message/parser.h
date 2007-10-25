@@ -53,11 +53,14 @@ public:
 
     static UString de2047( const String & );
 
+    String lastComment() const;
+
 private:
     void error( const char * ) {}
     String s;
     uint i;
     bool mime;
+    String lc;
 
     int cfws();
 };
