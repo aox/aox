@@ -880,6 +880,30 @@ void Header::repair( Multipart * p, const String & body )
             add( "From", a->first()->toString() );
     }
 
+    // Some spammers like to get return receipts while hiding their
+    // Fromness, so if From is bad and either Return-Receipt-To or
+    // Disposition-Notification-To is good, use those.
+    if ( mode() == Rfc2822 &&
+         ( !field( HeaderField::From ) ||
+           ( !field( HeaderField::From )->valid() &&
+             !addresses( HeaderField::From ) ) ) ) {
+        List<Address> * a = 0;
+        List<HeaderField>::Iterator f( fields() );
+        while ( f && !a ) {
+            if ( f->name() == "Return-Receipt-To" ||
+                 f->name() == "Disposition-Notification-To" ) {
+                AddressParser ap( f->value().section( " ", 1 ) );
+                if ( ap.error().isEmpty() && ap.addresses()->count() == 1 )
+                    a = ap.addresses();
+            }
+            ++f;
+        }
+        if ( a ) {
+            removeField( HeaderField::From );
+            add( "From", a->first()->toString() );
+        }
+    }
+
     // If there is an unacceptable Received field somewhere, remove it
     // and all the older Received fields.
 
