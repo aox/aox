@@ -36,10 +36,11 @@
   change address' and 'aox add user'.
 
   Done:
-    The aox verbs create and add should be equivalent.
-    'aox help create' should list all the possible nouns, etc.
 
-  Build on openbsd and darwin with jamfile.
+    - The aox verbs create and add should be equivalent.
+    - 'aox help create' should list all the possible nouns, etc.
+    - Build on openbsd and darwin with jamfile. (Done, but the generated
+      Makefile needs to be checked carefully.)
 
   Abhijit is responsive.
 
