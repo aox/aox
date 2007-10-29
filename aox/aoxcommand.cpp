@@ -310,7 +310,9 @@ String AoxCommand::readPassword( const String & s )
     fgets( passwd, 128, stdin );
     tcsetattr( 0, TCSANOW, &term );
 
-    return passwd;
+    String p( passwd );
+    p.truncate( p.length()-1 );
+    return p;
 }
 
 
