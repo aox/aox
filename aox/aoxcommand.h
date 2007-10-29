@@ -35,6 +35,8 @@ protected:
     UString sqlPattern( const UString & );
     bool validUsername( const UString & );
     bool choresDone();
+    String readPassword( const String & );
+    String readNewPassword();
 
 private:
     class AoxCommandData * d;

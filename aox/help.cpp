@@ -201,9 +201,15 @@ void Help::execute()
         fprintf(
             stderr,
             "  add user -- Create a new user.\n\n"
-            "    Synopsis: aox add user <username> <password> <e@ma.il>\n\n"
+            "    Synopsis:\n"
+            "      aox add user <username> <password> <email-address>\n"
+            "      aox add user -p <username> <email-address>\n\n"
             "    Creates a new Archiveopteryx user with the given username,\n"
-            "    password, and email address.\n"
+            "    password, and email address.\n\n"
+            "    The -p flag causes the password to be read interactively, and\n"
+            "    not from the command line.\n\n"
+            "    Examples:\n\n"
+            "      aox add user nirmala secret nirmala@example.org\n"
         );
     }
     else if ( a == "delete" && b == "user" ) {
@@ -220,8 +226,12 @@ void Help::execute()
         fprintf(
             stderr,
             "  change password -- Change a user's password.\n\n"
-            "    Synopsis: aox change password <username> <new-password>\n\n"
-            "    Changes the specified user's password.\n"
+            "    Synopsis:\n"
+            "      aox change password <username> <new-password>\n"
+            "      aox change password -p <username>\n\n"
+            "    Changes the specified user's password.\n\n"
+            "    The -p flag causes the password to be read interactively, and\n"
+            "    not from the command line.\n\n"
         );
     }
     else if ( a == "change" && b == "username" ) {

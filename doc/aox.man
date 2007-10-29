@@ -106,8 +106,12 @@ Displays a list of users and the rights they have been granted to the
 specified mailbox. If a username is given, only that user's rights are
 displayed.
 .IP "aox add user <username> <password> <email-address>"
+.IP "aox add user -p <username> <email-address>"
 Creates a new Archiveopteryx user with the specified username, password, and
-email address.
+email address. If the
+.I -p
+flag is specified, the password is read interactively, instead of from
+the command-line.
 .IP
 .I create
 and
@@ -125,7 +129,11 @@ and
 are acceptable abbreviations for
 .IR delete .
 .IP "aox change password <username> <new-password>"
-Changes the specified user's password.
+.IP "aox change password -p <username>"
+Changes the specified user's password. If the
+.I -p
+flag is specified, the password is read interactively, instead of from
+the command-line.
 .IP "aox change username <username> <new-username>"
 Renames the specified user.
 .IP "aox change address <username> <new-address>"

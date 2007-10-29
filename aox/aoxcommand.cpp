@@ -24,8 +24,10 @@
 #include "help.h"
 #include "db.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <termios.h>
 
 
 class AoxCommandData
@@ -283,6 +285,48 @@ bool AoxCommand::validUsername( const UString & s )
         return false;
     }
     return true;
+}
+
+
+/*! Issues a prompt containing \a s and returns a password (of up to 128
+    characters) read from the console.
+*/
+
+String AoxCommand::readPassword( const String & s )
+{
+    char passwd[128];
+    struct termios term;
+    struct termios newt;
+
+    if ( tcgetattr( 0, &term ) < 0 )
+        error( "Couldn't get terminal attributes (-" + fn( errno ) + ")." );
+    newt = term;
+    newt.c_lflag |= ECHONL;
+    newt.c_lflag &= ~(ECHO|ISIG);
+    if ( tcsetattr( 0, TCSANOW, &newt ) < 0 )
+        error( "Couldn't set terminal attributes (-" + fn( errno ) + ")." );
+
+    printf( "%s ", s.cstr() );
+    fgets( passwd, 128, stdin );
+    tcsetattr( 0, TCSANOW, &term );
+
+    return passwd;
+}
+
+
+/*! Prompts for and reads a password, then prompts for the password to
+    be re-entered. If the two do not match, it is treated as an error.
+    If they match, the value is returned.
+*/
+
+String AoxCommand::readNewPassword()
+{
+    String s = readPassword( "Password:" );
+    String t = readPassword( "Retype password:" );
+
+    if ( s != t )
+        error( "Passwords do not match." );
+    return s;
 }
 
 

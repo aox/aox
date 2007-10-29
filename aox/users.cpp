@@ -91,7 +91,13 @@ void CreateUser::execute()
         parseOptions();
         Utf8Codec c;
         UString login = c.toUnicode( next() );
-        UString passwd = c.toUnicode( next() );
+
+        UString passwd;
+        if ( opt( 'p' ) == 0 )
+            passwd = c.toUnicode( next() );
+        else
+            passwd = c.toUnicode( readNewPassword() );
+
         String address = next();
         end();
 
@@ -274,7 +280,12 @@ void ChangePassword::execute()
         parseOptions();
         Utf8Codec c;
         UString login = c.toUnicode( next() );
-        UString passwd = c.toUnicode( next() );
+
+        UString passwd;
+        if ( opt( 'p' ) == 0 )
+            passwd = c.toUnicode( next() );
+        else
+            passwd = c.toUnicode( readNewPassword() );
         end();
 
         if ( !c.valid() )
