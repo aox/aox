@@ -9,7 +9,8 @@ SubInclude TOP message ;
 
 Build server :
     connection.cpp endpoint.cpp event.cpp logclient.cpp tls.cpp
-    eventloop.cpp byteforwarder.cpp server.cpp timer.cpp resolver.cpp ;
+    eventloop.cpp byteforwarder.cpp server.cpp timer.cpp resolver.cpp 
+    graph.cpp ;
 
 # We must link with -lresolv on linux, but not on the BSDs.
 if $(OS) = "LINUX" {
