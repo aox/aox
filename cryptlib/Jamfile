@@ -47,6 +47,10 @@ SubInclude TOP cryptlib zlib ;
 Build cryptlib : cryptapi.c cryptcfg.c cryptcrt.c cryptctx.c cryptdev.c
     cryptenv.c cryptkey.c cryptlib.c cryptses.c cryptusr.c ;
 
+Depends libcl.a : $(set-cryptlib) ;
+Archive libcl.a : $(set-cryptlib) ;
+MakeLocate libcl.a : [ FDirName $(TOP) cryptlib ] ;
+
 # work around brokenness by including test last, with an extra define
 # DEFINES += strnicmp=strncasecmp ;
 # SubInclude TOP cryptlib test ;
