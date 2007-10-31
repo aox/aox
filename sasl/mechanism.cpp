@@ -6,6 +6,7 @@
 #include "connection.h"
 #include "configuration.h"
 #include "stringlist.h"
+#include "graph.h"
 #include "query.h"
 #include "user.h"
 #include "utf.h"
@@ -273,6 +274,7 @@ void SaslMechanism::execute()
 
         if ( d->user->id() != 0 )
             verify();
+        tick();
     }
 
     if ( done() ) {
@@ -282,9 +284,41 @@ void SaslMechanism::execute()
 }
 
 
+static GraphableCounter * logins = 0;
+static GraphableCounter * loginFailures = 0;
+static GraphableCounter * anonLogins = 0;
+
+
+
+/*! Calls GraphableCounter::tick() on the right object to account for
+    a login failure or success. Does nothing if none of the tickers
+    are appropriate.
+*/
+
+void SaslMechanism::tick()
+{
+    if ( d->state != Succeeded && d->state != Failed )
+        return;
+
+    if ( !logins ) {
+        logins = new GraphableCounter( "successful-logins" );
+        loginFailures = new GraphableCounter( "login-failures" );
+        anonLogins = new GraphableCounter( "anonymous-logins" );
+    }
+
+    if ( d->state == Failed )
+        loginFailures->tick();
+    else if ( d->user->login() == "anonymous" && 
+              Configuration::toggle( Configuration::AuthAnonymous ) )
+        anonLogins->tick();
+    else
+        logins->tick();
+}
+
+
 /*! This virtual function returns true if the secret() supplied by the
     client corresponds to the storedSecret() on the server. It expects
-    to be called by verify() after all relevant information has been
+    to be called by execute() after all relevant information has been
     obtained.
 
     The default implementation is suitable for Anonymous or Plain text
@@ -526,4 +560,3 @@ SaslMechanism::Type SaslMechanism::type() const
 {
     return d->type;
 }
-

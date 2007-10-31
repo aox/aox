@@ -62,6 +62,8 @@ public:
 
     void log( const String &, Log::Severity = Log::Info );
 
+    void tick();
+
 protected:
     SaslMechanism( EventHandler *, Type );
 private:
