@@ -3,6 +3,7 @@
 #include "graph.h"
 
 #include "allocator.h"
+#include "eventloop.h"
 #include "list.h"
 #include "log.h"
 
@@ -151,6 +152,32 @@ uint GraphableNumber::lastValue() const
 }
 
 
+/*! Returns the oldest time for which a value is recorded. */
+
+uint GraphableNumber::oldestTime() const
+{
+    return d->min;
+}
+
+
+/*! Returns the youngest time for which a value is recorded. */
+
+uint GraphableNumber::youngestTime() const
+{
+    return d->max;
+}
+
+
+/*! Returns the value at time \a t, or 0 if \a t is out of bounds. */
+
+uint GraphableNumber::value( uint t )
+{
+    if ( t < d->min || t > d->max )
+        return 0;
+    return d->values[t%graphableHistorySize];
+}
+
+
 /*! Returns the name supplied to this object's constructor. */
 
 String GraphableNumber::name() const
@@ -225,4 +252,51 @@ void GraphableDataSet::addNumber( uint n )
     d->s += n;
     if ( d->n )
         setValue( ( d->s + (d->n/2) ) / d->n );
+}
+
+
+/*! Dumps a frightful amount of data on the socket and closes it at
+    once. The EventLoop will flush the data and make this object go
+    away when it can.
+*/
+
+GraphDumper::GraphDumper( int fd )
+    : Connection( fd, Connection::OryxServer )
+{
+    EventLoop::global()->addConnection( this );
+    List<GraphableNumber>::Iterator i( numbers );
+    String l;
+    l.reserve( graphableHistorySize * 20 );
+    while ( i ) {
+        l.truncate();
+        l.append( i->name() );
+        if ( i->oldestTime() ) {
+            uint t = i->oldestTime();
+            while ( t <= i->youngestTime() ) {
+                l.append( " " );
+                l.append( fn( t ) );
+                l.append( ":" );
+                uint v = i->value( t );
+                l.append( fn( v ) );
+                t++;
+                uint n = 0;
+                while ( t < i->youngestTime() &&
+                        v == i->value( t ) &&
+                        n < 27 ) {
+                    t++;
+                    n++;
+                }
+            }
+            l.append( "\r\n" );
+            enqueue( l );
+        }
+        ++i;
+    }
+    setTimeoutAfter( 0 );
+}
+
+
+void GraphDumper::react( Event )
+{
+    setState( Closing );
 }

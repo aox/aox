@@ -4,6 +4,7 @@
 #define GRAPH_H
 
 #include "string.h"
+#include "connection.h"
 
 
 class GraphableNumber
@@ -19,6 +20,9 @@ public:
     uint lastValue() const;
 
     String name() const;
+    uint oldestTime() const;
+    uint youngestTime() const;
+    uint value( uint );
 
 private:
     class GraphableNumberData * d;
@@ -48,6 +52,15 @@ private:
     class GraphableDataSetData * d;
 };
 
+
+class GraphDumper
+    : public Connection
+{
+public:
+    GraphDumper( int );
+
+    void react( Event );
+};
 
 
 #endif

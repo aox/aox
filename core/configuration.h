@@ -57,6 +57,7 @@ public:
         ManageSievePort,
         UndeleteTime,
         SmartHostPort,
+        StatisticsPort,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };
@@ -108,6 +109,7 @@ public:
         ManageSieveAddress,
         SmartHostAddress,
         AddressSeparator,
+        StatisticsAddress,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };
@@ -141,6 +143,7 @@ public:
         UseWebmail,
         UseWebArchive,
         UseSubaddressing,
+        UseStatistics,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };

@@ -7,6 +7,7 @@
 #include "imap.h"
 #include "http.h"
 #include "smtp.h"
+#include "graph.h"
 #include "managesieve.h"
 
 #include "tls.h"
@@ -164,6 +165,11 @@ int main( int argc, char *argv[] )
     Listener< SMTPS >::create(
         "SMTPS", Configuration::toggle( Configuration::UseSmtps ),
         Configuration::SmtpsAddress, Configuration::SmtpsPort,
+        false
+        );
+    Listener< GraphDumper >::create(
+        "Statistics", Configuration::toggle( Configuration::UseStatistics ),
+        Configuration::StatisticsAddress, Configuration::StatisticsPort,
         false
         );
 

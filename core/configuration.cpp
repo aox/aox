@@ -164,7 +164,8 @@ static struct {
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
     { "managesieve-port", Configuration::ManageSievePort, 2000 },
     { "undelete-time", Configuration::UndeleteTime, 7 },
-    { "smarthost-port", Configuration::SmartHostPort, 25 }
+    { "smarthost-port", Configuration::SmartHostPort, 25 },
+    { "statistics-port", Configuration::SmartHostPort, 17220 }
 };
 
 
@@ -219,7 +220,8 @@ static struct {
     { "entropy-source", Configuration::EntropySource, "/dev/urandom" },
     { "managesieve-address", Configuration::ManageSieveAddress, "" },
     { "smarthost-address", Configuration::SmartHostAddress, "127.0.0.1" },
-    { "address-separator", Configuration::AddressSeparator, "+" }
+    { "address-separator", Configuration::AddressSeparator, "+" },
+    { "statistics-address", Configuration::StatisticsAddress, "127.0.0.1" }
 };
 
 
@@ -252,7 +254,8 @@ static struct {
     { "use-sieve", Configuration::UseSieve, true },
     { "use-webmail", Configuration::UseWebmail, false },
     { "use-web-archive", Configuration::UseWebArchive, false },
-    { "use-subaddressing", Configuration::UseSubaddressing, false }
+    { "use-subaddressing", Configuration::UseSubaddressing, false },
+    { "use-statistics", Configuration::UseStatistics, false }
 };
 
 
