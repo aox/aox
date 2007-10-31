@@ -9,6 +9,7 @@
 #include "server.h"
 #include "scope.h"
 #include "timer.h"
+#include "graph.h"
 #include "list.h"
 #include "log.h"
 #include "sys.h"
@@ -105,12 +106,12 @@ void EventLoop::addConnection( Connection * c )
     Scope x( d->log );
 
     if ( d->connections.find( c ) )
-        // if we're going to be silent, let's be honest about it
         return;
 
     d->connections.prepend( c );
     if ( c->type() != Connection::LogClient )
         log( "Added " + c->description(), Log::Debug );
+    setConnectionCounts();
 }
 
 
@@ -127,6 +128,7 @@ void EventLoop::removeConnection( Connection *c )
 
     if ( c->type() != Connection::LogClient )
         log( "Removed " + c->description(), Log::Debug );
+    setConnectionCounts();
 }
 
 
@@ -545,4 +547,96 @@ void EventLoop::removeTimer( Timer * t )
     List<Timer>::Iterator i( d->timers.find( t ) );
     if ( i )
         d->timers.take( i );
+}
+
+static GraphableNumber * imapgraph = 0;
+static GraphableNumber * pop3graph = 0;
+static GraphableNumber * smtpgraph = 0;
+static GraphableNumber * othergraph = 0;
+static GraphableNumber * internalgraph = 0;
+static GraphableNumber * httpgraph = 0;
+static GraphableNumber * dbgraph = 0;
+
+
+/*! Scans the event loop and stores the current number of different
+    connections using GraphableNumber.
+*/
+
+void EventLoop::setConnectionCounts()
+{
+    uint imap = 0;
+    uint pop3 = 0;
+    uint smtp = 0;
+    uint other = 0;
+    uint internal = 0;
+    uint http = 0;
+    uint db = 0;
+    bool listeners = false;
+    List<Connection>::Iterator c( d->connections );
+    while ( c ) {
+        switch( c->type() ) {
+        case Connection::Client:
+        case Connection::LogServer:
+        case Connection::OryxServer:
+        case Connection::OryxClient:
+        case Connection::OryxConsole:
+        case Connection::LogClient:
+            internal++;
+            break;
+        case Connection::DatabaseClient:
+            db++;
+            break;
+        case Connection::ImapServer:
+            imap++;
+            break;
+        case Connection::SmtpServer:
+            smtp++;
+            break;
+        case Connection::SmtpClient:
+        case Connection::TlsProxy:
+        case Connection::TlsClient:
+        case Connection::RecorderClient:
+        case Connection::RecorderServer:
+        case Connection::Pipe:
+        case Connection::ManageSieveServer:
+            other++;
+            break;
+        case Connection::Pop3Server:
+            pop3++;
+            break;
+        case Connection::HttpServer:
+            http++;
+            break;
+        case Connection::Listener:
+            listeners = true;
+            // we don't count these, we only count connections
+            break;
+        }
+        ++c;
+    }
+    if ( !listeners )
+        return;
+    if ( !imapgraph ) {
+        imapgraph = new GraphableNumber( "imap-connections" );
+        Allocator::addEternal( imapgraph, "imap graphing" );
+        pop3graph = new GraphableNumber( "pop3-connections" );
+        Allocator::addEternal( pop3graph, "pop3 graphing" );
+        smtpgraph = new GraphableNumber( "smtp-connections" );
+        Allocator::addEternal( smtpgraph, "smtp graphing" );
+        othergraph = new GraphableNumber( "other-connections" );
+        Allocator::addEternal( othergraph, "other connection graphing" );
+        internalgraph = new GraphableNumber( "internal-connections" );
+        Allocator::addEternal( internalgraph, "internal connection graphing" );
+        httpgraph = new GraphableNumber( "http-connections" );
+        Allocator::addEternal( imapgraph, "http graphing" );
+        dbgraph = new GraphableNumber( "db-connections" );
+        Allocator::addEternal( dbgraph, "db handle graph" );
+    }
+    imapgraph->setValue( imap );
+    pop3graph->setValue( pop3 );
+    smtpgraph->setValue( smtp );
+    othergraph->setValue( other );
+    internalgraph->setValue( internal );
+    httpgraph->setValue( http );
+    dbgraph->setValue( db );
 }

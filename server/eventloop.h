@@ -40,6 +40,8 @@ public:
     virtual void addTimer( class Timer * );
     virtual void removeTimer( class Timer * );
 
+    void setConnectionCounts();
+
 private:
     class LoopData *d;
 };
