@@ -54,7 +54,8 @@ public:
           body( false ), bodystructure( false ),
           internaldate( false ), rfc822size( false ),
           annotation( false ), modseq( false ),
-          needHeader( false ), needBody( false )
+          needsHeader( false ), needsAddresses( false ),
+          needsBody( false )
     {}
 
     int state;
@@ -78,8 +79,9 @@ public:
     List<Section> sections;
 
     // and the sections imply that we...
-    bool needHeader;
-    bool needBody;
+    bool needsHeader;
+    bool needsAddresses;
+    bool needsBody;
 
     StringList entries;
     StringList attribs;
@@ -174,19 +176,27 @@ void Fetch::parse()
         require( ")" );
     }
     end();
-    if ( d->envelope || d->body || d->bodystructure )
-        d->needHeader = true;
-    if ( d->body || d->bodystructure )
-        d->needBody = true;
-    if ( d->needBody )
-        d->needHeader = true;
+    if ( d->envelope ) {
+        d->needsHeader = true;
+        d->needsAddresses = true;
+    }
+    if ( d->body || d->bodystructure ) {
+        // message/rfc822 body[structure] includes envelope in some
+        // cases, so we need both here too.
+        d->needsHeader = true;
+        d->needsAddresses = true;
+        // and we even need the bodies, for numEncodedLines() and friends
+        d->needsBody = true;
+    }
     if ( !ok() )
         return;
     StringList l;
     l.append( new String( "Fetch " + fn( d->set.count() ) + " messages: " ) );
-    if ( d->needHeader )
-        l.append( "header/address" );
-    if ( d->needBody )
+    if ( d->needsAddresses )
+        l.append( "address" );
+    if ( d->needsHeader )
+        l.append( "header" );
+    if ( d->needsBody )
         l.append( "body" );
     if ( d->flags )
         l.append( "flags" );
@@ -238,14 +248,16 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "rfc822" ) {
         d->peek = false;
-        d->needHeader = true;
-        d->needBody = true;
+        d->needsAddresses = true;
+        d->needsHeader = true;
+        d->needsBody = true;
         Section * s = new Section;
         s->id = keyword;
         d->sections.append( s );
     }
     else if ( keyword == "rfc822.header" ) {
-        d->needHeader = true;
+        d->needsAddresses = true;
+        d->needsHeader = true;
         Section * s = new Section;
         s->id = keyword;
         d->sections.append( s );
@@ -260,7 +272,8 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "rfc822.text" ) {
         d->peek = false;
-        d->needBody = true;
+        d->needsHeader = true;
+        d->needsBody = true;
         Section * s = new Section;
         s->id = keyword;
         d->sections.append( s );
@@ -370,8 +383,6 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
             }
         }
         s->part = part;
-        if ( !dot )
-            return s;
     }
 
     // Parse any section-text.
@@ -379,19 +390,19 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
     if ( binary && !item.isEmpty() ) {
         s->error = "BINARY with section-text is not legal, saw " + item;
     }
-    else if ( item == "text" ) {
-        if ( s->part.isEmpty() )
-            s->needsHeader = false;
+    else if ( item.isEmpty() || item == "text" ) {
+        s->needsBody = true;
+        // and because we might need headers and addresses of subparts:
+        s->needsHeader = true;
+        s->needsAddresses = true;
     }
     else if ( item == "header" ) {
-        if ( s->part.isEmpty() )
-            s->needsBody = false;
+        s->needsHeader = true;
+        s->needsAddresses = true;
     }
     else if ( item == "header.fields" ||
               item == "header.fields.not" )
     {
-        if ( s->part.isEmpty() )
-            s->needsBody = false;
         ip->require( " (" );
         s->fields.append( new String( ip->astring().headerCased() ) );
         while ( ip->nextChar() == ' ' ) {
@@ -399,12 +410,27 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
             s->fields.append( new String( ip->astring().headerCased() ) );
         }
         ip->require( ")" );
+        if ( item == "header.fields.not" ) {
+            // if we need to hand out "all other" fields...
+            s->needsAddresses = true;
+            s->needsHeader = true;
+        }
+        StringList::Iterator i( s->fields );
+        while ( i && ( !s->needsAddresses || !s->needsHeader ) ) {
+            uint t = HeaderField::fieldType( *i );
+            if ( t > 0 && t <= HeaderField::LastAddressField )
+                s->needsAddresses = true;
+            else
+                s->needsHeader = true;
+            ++i;
+        }
     }
     else if ( item == "mime" ) {
         if ( s->part.isEmpty() )
             s->error = "MIME requires a section-part.";
+        s->needsHeader = true;
     }
-    else if ( !item.isEmpty() || dot ) {
+    else if ( dot ) {
         s->error =
             "Expected text, header, header.fields etc, not " + item +
             ip->following();
@@ -445,10 +471,12 @@ void Fetch::parseBody( bool binary )
     }
 
     d->sections.append( s );
+    if ( s->needsAddresses )
+        d->needsAddresses = true;
     if ( s->needsHeader )
-        d->needHeader = true;
+        d->needsHeader = true;
     if ( s->needsBody )
-        d->needBody = true;
+        d->needsBody = true;
 }
 
 
@@ -612,9 +640,9 @@ void Fetch::execute()
             Message * m = d->requested.first();
             uint msn = s->msn( m->uid() );
             if ( ( !d->annotation || m->hasAnnotations() ) &&
-                 ( !d->needHeader || ( m->hasHeaders() &&
-                                       m->hasAddresses() ) ) &&
-                 ( !d->needBody || m->hasBodies() ) &&
+                 ( !d->needsAddresses || m->hasAddresses() ) &&
+                 ( !d->needsHeader || m->hasHeaders() ) &&
+                 ( !d->needsBody || m->hasBodies() ) &&
                  ( !d->flags || m->hasFlags() ) &&
                  ( ( !d->rfc822size && !d->internaldate && !d->modseq )
                    || m->hasTrivia() ) &&
@@ -674,31 +702,28 @@ void Fetch::sendFetchQueries()
         n++;
     }
 
-    if ( d->needHeader ) {
-        Fetcher * f =
-            new MessageAddressFetcher( mb, l, this );
-        f->execute();
-        f = new MessageHeaderFetcher( mb, l, this );
+    if ( d->needsAddresses ) {
+        Fetcher * f = new MessageAddressFetcher( mb, l, this );
         f->execute();
     }
-    if ( d->needBody ) {
-        MessageBodyFetcher * mbf =
-            new MessageBodyFetcher( mb, l, this );
+    if ( d->needsHeader ) {
+        Fetcher * f = new MessageHeaderFetcher( mb, l, this );
+        f->execute();
+    }
+    if ( d->needsBody ) {
+        Fetcher * mbf = new MessageBodyFetcher( mb, l, this );
         mbf->execute();
     }
     if ( d->flags ) {
-        MessageFlagFetcher * mff =
-            new MessageFlagFetcher( mb, l, this );
+        Fetcher * mff = new MessageFlagFetcher( mb, l, this );
         mff->execute();
     }
     if ( d->rfc822size || d->internaldate || d->modseq ) {
-        MessageTriviaFetcher * mtf =
-            new MessageTriviaFetcher( mb, l, this );
+        Fetcher * mtf = new MessageTriviaFetcher( mb, l, this );
         mtf->execute();
     }
     if ( d->annotation ) {
-        MessageAnnotationFetcher * maf =
-            new MessageAnnotationFetcher( mb, l, this );
+        Fetcher * maf = new MessageAnnotationFetcher( mb, l, this );
         maf->execute();
     }
 }

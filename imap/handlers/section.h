@@ -15,7 +15,7 @@ public:
     Section()
         : binary( false ),
           partial( false ), offset( 0 ), length( UINT_MAX ),
-          needsHeader( true ), needsBody( true )
+          needsAddresses( false ), needsHeader( false ), needsBody( false )
     {}
 
     String id;
@@ -27,6 +27,7 @@ public:
     uint offset;
     uint length;
 
+    bool needsAddresses;
     bool needsHeader;
     bool needsBody;
     String error;
