@@ -618,19 +618,12 @@ void EventLoop::setConnectionCounts()
         return;
     if ( !imapgraph ) {
         imapgraph = new GraphableNumber( "imap-connections" );
-        Allocator::addEternal( imapgraph, "imap graphing" );
         pop3graph = new GraphableNumber( "pop3-connections" );
-        Allocator::addEternal( pop3graph, "pop3 graphing" );
         smtpgraph = new GraphableNumber( "smtp-connections" );
-        Allocator::addEternal( smtpgraph, "smtp graphing" );
         othergraph = new GraphableNumber( "other-connections" );
-        Allocator::addEternal( othergraph, "other connection graphing" );
         internalgraph = new GraphableNumber( "internal-connections" );
-        Allocator::addEternal( internalgraph, "internal connection graphing" );
         httpgraph = new GraphableNumber( "http-connections" );
-        Allocator::addEternal( imapgraph, "http graphing" );
         dbgraph = new GraphableNumber( "db-connections" );
-        Allocator::addEternal( dbgraph, "db handle graph" );
     }
     imapgraph->setValue( imap );
     pop3graph->setValue( pop3 );
