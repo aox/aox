@@ -40,8 +40,9 @@ void Plain::parseResponse( const String & response )
         if ( !ok )
             log( "PLAIN: Parse error for (?)", Log::Error );
         else
-            log( "PLAIN: Client supplied two identities: '"+
-                 authenticateId+"', '"+authorizeId+"'", Log::Error );
+            log( "PLAIN: Client supplied two identities: " +
+                 authenticateId.quoted() + ", " + 
+                 authorizeId.quoted(), Log::Error );
         return;
     }
 
