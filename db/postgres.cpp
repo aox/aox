@@ -12,6 +12,7 @@
 #include "stringlist.h"
 #include "pgmessage.h"
 #include "eventloop.h"
+#include "graph.h"
 #include "query.h"
 #include "event.h"
 #include "scope.h"
@@ -523,8 +524,10 @@ void Postgres::process( char type )
                     s.append( " rows)" );
                 }
                 ::log( s, Log::Info );
-                if ( !q->done() )
+                if ( !q->done() ) {
                     q->setState( Query::Completed );
+                    countQueries( q );
+                }
                 d->queries.shift();
                 q->notify();
                 d->needNotify = 0;
@@ -812,4 +815,29 @@ bool Postgres::usable() const
     return ( d->active && !d->startup &&
              !( state() == Connecting || state() == Broken ) &&
              d->queries.isEmpty() );
+}
+
+
+static GraphableCounter * goodQueries = 0;
+static GraphableCounter * badQueries = 0;
+
+
+/*! Updates the statistics when \a q is done. */
+
+void Postgres::countQueries( class Query * q )
+{
+    if ( !goodQueries ) {
+        goodQueries = new GraphableCounter( "queries-executed" ); // bad name?
+        badQueries = new GraphableCounter( "queries-failed" ); // bad name?
+    }
+    
+    if ( !q->failed() )
+        goodQueries->tick();
+    else if ( !q->canFail() )
+        badQueries->tick();
+    else
+        ; // a query which fails but canFail is not counted anywhere.
+
+    // later also use GraphableDataSet to keep track of query
+    // execution times, but not right now.
 }

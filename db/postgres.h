@@ -29,6 +29,7 @@ private:
     void errorMessage();
     void error( const String & );
     void shutdown();
+    void countQueries( class Query * );
 };
 
 
