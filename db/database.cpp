@@ -7,6 +7,7 @@
 #include "allocator.h"
 #include "configuration.h"
 #include "eventloop.h"
+#include "graph.h"
 #include "event.h"
 #include "query.h"
 #include "file.h"
@@ -20,6 +21,7 @@
 
 static uint backendNumber;
 List< Query > *Database::queries;
+static GraphableNumber * queryQueueLength = 0;
 static List< Database > *handles;
 static time_t lastExecuted;
 static time_t lastCreated;
@@ -171,6 +173,7 @@ void Database::disconnect()
 }
 
 
+
 /*! This private function is used to make idle handles process the queue
     of queries, and is called by the two variants of submit().
 */
@@ -178,6 +181,9 @@ void Database::disconnect()
 void Database::runQueue()
 {
     int connecting = 0;
+
+    if ( !queryQueueLength )
+        queryQueueLength = new GraphableNumber( "query-queue-length" );
 
     // First, we give each idle handle a Query to process
 
@@ -198,6 +204,7 @@ void Database::runQueue()
                     ++it;
                 if ( it )
                     it->setTimeoutAfter( 5 );
+                queryQueueLength->setValue( 0 );
                 return;
             }
         }
@@ -207,6 +214,8 @@ void Database::runQueue()
 
         ++it;
     }
+
+    queryQueueLength->setValue( queries->count() );
 
     // We'll check if we need to add new handles only if we couldn't
     // dispatch any outstanding queries.
