@@ -7,13 +7,9 @@
     credentials are checked) and the authorization ID (which is logged
     in). This class firmly insists that the two be the same.
 
-    (Note that there is also a different, incompatible plain-text
-    mechanism offered by some servers and supported by some clients,
-    "AUTH=LOGIN". We don't support that, because there's no usable
-    specification for it and the implementations vary significantly,
-    probably incompatibly. See
-    http://web.archive.org/web/20030117014240/http://www.washington.edu/imap/listarch/1999/msg00078.html
-    for details.)
+    Note that there is also a different, incompatible plain-text
+    mechanism offered by some servers and supported by some clients
+    "AUTH=LOGIN", implemented by SaslLogin.
 */
 
 #include "plain.h"
