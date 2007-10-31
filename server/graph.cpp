@@ -4,6 +4,7 @@
 
 #include "allocator.h"
 #include "list.h"
+#include "log.h"
 
 #include <time.h> // time()
 
@@ -84,6 +85,8 @@ void GraphableNumber::setValue( uint v )
 {
     uint t = (uint)time( 0 );
     clearOldHistory( t );
+    if ( v != d->values[t%graphableHistorySize] )
+        log( "New value for " + d->name + ": " + fn( v ), Log::Debug );
     d->values[t%graphableHistorySize] = v;
 }
 
