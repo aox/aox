@@ -333,9 +333,13 @@ void Configuration::parseScalar( uint n, const String & line )
         i++;
 
     String name( scalarDefaults[n].name );
+    String v( line.mid( 0, i ) );
+
     bool ok = true;
-    d->scalar[n] = line.mid( 0, i ).number( &ok );
-    if ( !ok )
+    d->scalar[n] = v.number( &ok );
+    if ( v.isEmpty() )
+        log( "No value specified for " + name, Log::Disaster );
+    else if ( !ok )
         log( "Invalid numeric value for " + name + ": " + line,
              Log::Disaster );
     else if ( d->scalar[n] > 0x7fffffff )
@@ -385,6 +389,8 @@ void Configuration::parseText( uint n, const String & line )
                   line[i] == '-' ) )
             i++;
         d->text[n] = line.mid( 0, i );
+        if ( d->text[n].isEmpty() )
+            log( "No value specified for " + name, Log::Disaster );
     }
 
     // followed by whitespace and possibly a comment?
@@ -415,14 +421,10 @@ void Configuration::parseToggle( uint n, const String & line )
         i++;
     String v = line.mid( 0, i ).lower();
 
-    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
-        i++;
-    if ( i < line.length() && line[i] != '#' )
-        log( "trailing garbage after " + name + " = " + v,
-             Log::Disaster );
-
-    if ( v == "0" || v == "off" || v == "no" || v == "false" ||
-         v == "disabled" )
+    if ( v.isEmpty() )
+        log( "No value specified for " + name, Log::Disaster );
+    else if ( v == "0" || v == "off" || v == "no" || v == "false" ||
+              v == "disabled" )
         d->toggle[n] = false;
     else if ( v == "1" || v == "on" || v == "yes" || v == "true" ||
               v == "enabled" )
@@ -430,6 +432,16 @@ void Configuration::parseToggle( uint n, const String & line )
     else
         log( "Invalid value for toggle " + name + ": " + v,
              Log::Disaster );
+
+    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
+        i++;
+    if ( i < line.length() && line[i] != '#' ) {
+        String s;
+        s.append( line[i] );
+
+        log( "Unrecognised character '" + s + "' after " + name + " = " + v,
+             Log::Disaster );
+    }
 }
 
 
