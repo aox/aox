@@ -336,7 +336,7 @@ void Configuration::parseScalar( uint n, const String & line )
     bool ok = true;
     d->scalar[n] = line.mid( 0, i ).number( &ok );
     if ( !ok )
-        log( "Bad number (too big?) for " + name + ": " + line.mid( 0, i ),
+        log( "Invalid numeric value for " + name + ": " + line,
              Log::Disaster );
     else if ( d->scalar[n] > 0x7fffffff )
         log( name + " is too large, maximum is" + fn( 0x7fffffff ),
@@ -344,9 +344,13 @@ void Configuration::parseScalar( uint n, const String & line )
 
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
-    if ( i < line.length() && line[i] != '#' )
-        log( "trailing garbage after " + name + " = " + fn( d->scalar[n] ),
-             Log::Error );
+    if ( i < line.length() && line[i] != '#' ) {
+        String s;
+        s.append( line[i] );
+
+        log( "Non-numeric character '" + s + "' after " + name + " = " +
+             fn( d->scalar[n] ), Log::Error );
+    }
 }
 
 
