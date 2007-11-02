@@ -35,12 +35,21 @@
   some db maintenance code to be called from 'aox create alias', 'aox
   change address' and 'aox add user'.
 
+  Partially done:
+
+    - "aox delete user -f ams" fails if
+        1. User ams owns any sieve scripts. (fixed)
+        2. User ams is referenced in deleted_messages.deleted_by, since
+           marking mailboxes deleted doesn't actually delete messages in
+           those mailboxes.
+
   Done:
 
     - The aox verbs create and add should be equivalent.
     - 'aox help create' should list all the possible nouns, etc.
     - Build on openbsd and darwin with jamfile. (Done, but the generated
       Makefile needs to be checked carefully.)
+    - Better error messages for 'db-user=_aox'.
 
   Abhijit is responsive.
 
