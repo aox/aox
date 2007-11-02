@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (57);
+insert into mailstore (revision) values (58);
 
 
 -- One entry for each unique address we've encountered.
@@ -324,7 +324,8 @@ create index vm_mu on view_messages (source,suid);
 
 create table scripts (
     id          serial primary key,
-    owner       integer not null references users(id),
+    owner       integer not null references users(id)
+                on delete cascade,
     name        text,
     active      boolean not null default 'f',
     script      text,

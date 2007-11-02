@@ -394,6 +394,8 @@ bool Schema::singleStep()
         c = stepTo56(); break;
     case 56:
         c = stepTo57(); break;
+    case 57:
+        c = stepTo58(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2512,6 +2514,35 @@ bool Schema::stepTo57()
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on autoresponses_id_seq "
                           "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add a missing "on delete cascade" clause to scripts. */
+
+bool Schema::stepTo58()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding missing 'on delete cascade' to scripts." );
+        d->q = new Query( "alter table scripts drop constraint "
+                          "\"scripts_owner_fkey\"", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table scripts add constraint "
+                          "scripts_owner_fkey foreign key (owner) "
+                          "references users(id) on delete cascade",
+                          this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
