@@ -377,6 +377,7 @@ void Configuration::parseText( uint n, const String & line )
                   ( line[i] >= 'A' && line[i] <= 'Z' ) ||
                   line[i] == '/' ||
                   line[i] == '.' ||
+                  line[i] == '_' ||
                   line[i] == '-' ) )
             i++;
         d->text[n] = line.mid( 0, i );
@@ -385,9 +386,13 @@ void Configuration::parseText( uint n, const String & line )
     // followed by whitespace and possibly a comment?
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
-    if ( i < line.length() && line[i] != '#' )
-        log( "trailing garbage after " + name + " = " + d->text[n],
-             Log::Disaster );
+    if ( i < line.length() && line[i] != '#' ) {
+        String s;
+        s.append( line[i] );
+
+        log( "Unquoted special character '" + s + "' after " +
+             name + " = " + d->text[n], Log::Disaster );
+    }
 }
 
 
