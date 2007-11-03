@@ -402,8 +402,8 @@ void ChangeUsername::execute()
 
             UString name = r->getUString( "name" );
             UString newname = name;
-            int i = name.find( '/' );
-            newname.truncate( i );
+            int i = name.find( '/', 1 );
+            newname.truncate( i+1 );
             newname.append( d->newname );
             i = name.find( '/', i+1 );
             if ( i >= 0 )
