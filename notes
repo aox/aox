@@ -50,6 +50,7 @@
     - Build on openbsd and darwin with jamfile. (Done, but the generated
       Makefile needs to be checked carefully.)
     - Better error messages for 'db-user=_aox'.
+    - aox change username fixed.
 
   Abhijit is responsive.
 
