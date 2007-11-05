@@ -2557,3 +2557,75 @@ bool Schema::stepTo58()
 
     return true;
 }
+
+
+/*! Delete duplicate addresses: By mistake the unique index used a
+    case-sensitive domain. We keep the oldest version seen.
+*/
+
+bool Schema::stepTo59()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Deleting duplicate addresses." );
+	d->q = new Query( 
+	    "select a.id as original, b.id as duplicate "
+	    "from addresses a, addresses b "
+	    "where a.id<b.id and a.name=b.name "
+	    "and a.localpart=b.localpart "
+	    "and lower(a.domain)=lower(b.domain)", this );
+        d->t->enqueue( d->q );
+	d->t->execute();
+        d->substate = 1;
+    }
+
+    Row * r = d->q->nextRow();
+    while ( r ) {
+	uint original = r->getInt( "original" );
+	uint duplicate = r->getInt( "duplicate" );
+	Query * q;
+	q = new Query( "update address_fields "
+		       "set address=$1 where address=$2", 0 );
+	q->bind( 1, original );
+	q->bind( 1, duplicate );
+	d->t->enqueue( q );
+	q = new Query( "update aliases "
+		       "set address=$1 where address=$2", 0 );
+	q->bind( 1, original );
+	q->bind( 1, duplicate );
+	d->t->enqueue( q );
+	q = new Query( "update deliveries "
+		       "set sender=$1 where sender=$2", 0 );
+	q->bind( 1, original );
+	q->bind( 1, duplicate );
+	d->t->enqueue( q );
+	q = new Query( "update delivery_recipients "
+		       "set recipient=$1 where recipient=$2", 0 );
+	q->bind( 1, original );
+	q->bind( 1, duplicate );
+	d->t->enqueue( q );
+	q = new Query( "update autoresponses "
+		       "set sent_from=$1 where sent_from=$2", 0 );
+	q->bind( 1, original );
+	q->bind( 1, duplicate );
+	d->t->enqueue( q );
+	q = new Query( "update autoresponses "
+                       "set sent_to=$1 where sent_to=$2", 0 );
+	q->bind( 1, original );
+	q->bind( 1, duplicate );
+	d->t->enqueue( q );
+	q = new Query( "delete from addresses where id=$1", 0 );
+	q->bind( 1, duplicate );
+	d->t->enqueue( q );
+	r = d->q->nextRow();
+    }
+
+    if ( !d->q->done() )
+        return false;
+
+    // XXX: make the index depend on lower(domain) here instead of
+    // domain. I don't feel up to typing the right syntax. since it's
+    // the last query it should probably say
+    //   Query( "asfsdafsdafsad", // this );
+
+    return true;
+}
