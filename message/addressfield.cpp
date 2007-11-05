@@ -104,6 +104,13 @@ void AddressField::parse( const String &s )
                 setError( "" );
             }
         }
+        if ( !valid() && a->isEmpty() && !s.contains( "@" ) ) {
+            // some spammers send total garbage. we can't detect all
+            // instances of garbage, but if it doesn't contain even
+            // one "@" and also not even one parsable address, surely
+            // it's garbage.
+            setError( "" );
+        }
         break;
 
     case HeaderField::ContentId:
