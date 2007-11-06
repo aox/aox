@@ -255,8 +255,13 @@ void GraphableDataSet::addNumber( uint n )
 }
 
 
-/*! Dumps a frightful amount of data on the socket and closes it at
-    once. The EventLoop will flush the data and make this object go
+/*! \class GraphDumper graph.h
+    This Connection subclass is responsible for transferring statistics
+    en masse to any client that asks.
+*/
+
+/*! Dumps a frightful amount of data on the socket \a fd and closes it
+    at once. The EventLoop will flush the data and make this object go
     away when it can.
 */
 
