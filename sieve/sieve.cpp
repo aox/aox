@@ -167,11 +167,15 @@ void Sieve::execute()
                     if ( !r->isNull( "mailbox" ) )
                         i->mailbox = Mailbox::find( r->getInt( "mailbox" ) );
                     if ( !r->isNull( "script" ) ) {
-                        i->prefix = r->getUString( "name" ) + "/" +
+                        i->prefix = r->getUString( "namespace" ) + "/" +
                                     r->getUString( "login" ) + "/";
                         i->user = new User;
                         i->user->setLogin( r->getUString( "login" ) );
                         i->user->setId( r->getInt( "userid" ) );
+                        i->user->setAddress( new Address(
+                                                 r->getUString( "name" ),
+                                                 r->getString( "localpart" ),
+                                                 r->getString( "domain" ) ) );
                         i->script->parse( r->getString( "script" ) );
                         List<SieveCommand>::Iterator
                             c(i->script->topLevelCommands());
@@ -399,7 +403,8 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
     r->handler = user;
 
     r->sq = new Query( "select al.mailbox, s.script, m.owner, "
-                       "n.name, u.id as userid, u.login "
+                       "n.name as namespace, u.id as userid, u.login, "
+                       "a.name, a.localpart, a.domain "
                        "from aliases al "
                        "join addresses a on (al.address=a.id) "
                        "join mailboxes m on (al.mailbox=m.id) "
@@ -606,8 +611,15 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             AddressParser ap( al->takeTaggedString( ":from" ).utf8() );
             from = ap.addresses()->first();
         }
-        if ( !from && d->currentRecipient )
+        if ( !from && d->currentRecipient ) {
             from = d->currentRecipient->address;
+        }
+        if ( from && d->currentRecipient->user ) {
+            Address * a = d->currentRecipient->user->address();
+            if ( a->localpart().lower() == from->localpart().lower() &&
+                 a->domain().lower() == from->domain().lower() )
+                from = a;
+        }
 
         // :addresses
         List<Address> addresses;
