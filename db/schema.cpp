@@ -2578,42 +2578,53 @@ bool Schema::stepTo59()
         d->substate = 1;
     }
 
+    if ( !d->q->done() )
+        return false;
+
+    PreparedStatement af ( "update address_fields "
+                           "set address=$1 where address=$2" );
+    PreparedStatement aliases( "update aliases "
+                               "set address=$1 where address=$2" );
+    PreparedStatement deliveries( "update deliveries "
+                                  "set sender=$1 where sender=$2" );
+    PreparedStatement dr( "update delivery_recipients "
+                          "set recipient=$1 where recipient=$2" );
+    PreparedStatement arf( "update autoresponses "
+                           "set sent_from=$1 where sent_from=$2" );
+    PreparedStatement art( "update autoresponses "
+                           "set sent_to=$1 where sent_to=$2" );
+    PreparedStatement dfa( "delete from addresses where id=$1" );
+
     Row * r = d->q->nextRow();
     while ( r ) {
 	uint original = r->getInt( "original" );
 	uint duplicate = r->getInt( "duplicate" );
 	Query * q;
-	q = new Query( "update address_fields "
-		       "set address=$1 where address=$2", 0 );
+	q = new Query( af, 0 );
 	q->bind( 1, original );
 	q->bind( 1, duplicate );
 	d->t->enqueue( q );
-	q = new Query( "update aliases "
-		       "set address=$1 where address=$2", 0 );
+	q = new Query( aliases, 0 );
 	q->bind( 1, original );
 	q->bind( 1, duplicate );
 	d->t->enqueue( q );
-	q = new Query( "update deliveries "
-		       "set sender=$1 where sender=$2", 0 );
+	q = new Query( deliveries, 0 );
 	q->bind( 1, original );
 	q->bind( 1, duplicate );
 	d->t->enqueue( q );
-	q = new Query( "update delivery_recipients "
-		       "set recipient=$1 where recipient=$2", 0 );
+	q = new Query( dr, 0 );
 	q->bind( 1, original );
 	q->bind( 1, duplicate );
 	d->t->enqueue( q );
-	q = new Query( "update autoresponses "
-		       "set sent_from=$1 where sent_from=$2", 0 );
+	q = new Query( arf, 0 );
 	q->bind( 1, original );
 	q->bind( 1, duplicate );
 	d->t->enqueue( q );
-	q = new Query( "update autoresponses "
-                       "set sent_to=$1 where sent_to=$2", 0 );
+	q = new Query( art, 0 );
 	q->bind( 1, original );
 	q->bind( 1, duplicate );
 	d->t->enqueue( q );
-	q = new Query( "delete from addresses where id=$1", 0 );
+	q = new Query( dfa, 0 );
 	q->bind( 1, duplicate );
 	d->t->enqueue( q );
 	r = d->q->nextRow();
