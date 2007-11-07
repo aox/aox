@@ -72,9 +72,11 @@ void GraphableNumber::clearOldHistory( uint t )
         d->values[d->min++%graphableHistorySize] = 0;
     if ( d->max < d->min )
         d->max = d->min;
-    while ( d->max < t )
-        d->values[(++d->max)%graphableHistorySize] =
-            d->values[d->min%graphableHistorySize];
+    while ( d->max < t ) {
+        d->values[(d->max+1)%graphableHistorySize] =
+            d->values[d->max%graphableHistorySize];
+        d->max++;
+    }
 }
 
 
