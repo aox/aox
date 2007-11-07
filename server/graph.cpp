@@ -293,6 +293,8 @@ GraphDumper::GraphDumper( int fd )
                     t++;
                     n++;
                 }
+                if ( n )
+                    t--;
             }
             l.append( "\r\n" );
             enqueue( l );
