@@ -886,16 +886,10 @@ Delaying seen-flag setting
   command nicely.
 
 
-The webmail thingy completely mangles patch attachments. :-(
+The web interface should offer a download link for attachments.
 
-  This would seem to apply to non-MIME attachments. How should we
-  handle those? So far our Message class is completely predicated on
-  MIME. Need an example of this, with an archives.oryx.com URL.
-
-
-Make "aox check config" test for more things.
-
-  Such as?
+  For patches attached as text/plain with the right Content-Disposition,
+  for example.
 
 
 Per-group and systemwide sieves
