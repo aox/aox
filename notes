@@ -330,12 +330,6 @@ Message tracking
   in mailchen), and also provide a query interface via the web.
 
 
-aox reparse
-
-  Maximilian Mehnert wants to save the failing messages and their
-  current error reports in a format suitable for bug reports. Done.
-
-
 Thread-Index from Exchange
 
   We could look at Thread-Index and reconstruct In-Reply-To in order to
@@ -508,7 +502,7 @@ C/R
   - mail from freemail providers
   - vacation responses from unknowns
   - messages likely, but not certain to be out-of-office-autoreply
-  - dkim/mass-signed messages (if veridified)
+  - dkim/mass-signed messages (if verified)
 
   The questions are: How can we ensure that we almost never challenge
   real mail, while simultaneously challenging most/all messages that
@@ -609,23 +603,9 @@ We should test multipart/signed and multipart/encrypted support.
   sure they survive the round trip. No doubt there will be bugs.
 
 
-Something confuses Address::uname() and Address::name()
-
-  As a result, we send unlabelled 8-bit content in display-names if
-  the name cannot be expressed in either 8859-1, 8859-2 or koi8-r.
-
-  I think the underlying reason is that we're not using UString, so
-  the compiler's type checking does nothing for us.
-
-  This is easy to demonstrate with 22 right now, but it won't be
-  shortly - I'll make a separate change which accidentally obliterates
-  the difference.
-
-
 We should store bodyparts.text for PDF/DOC.
 
-  We need non-GPLed code to convert PDF and DOC to plaintext. We already
-  use the code from Mailchen to convert HTML.
+  We need non-GPLed code to convert PDF and DOC to plaintext.
 
 
 Switch to using named constraints everywhere.
@@ -853,15 +833,6 @@ PGP automatic processing
   detect four and transform them to the proper MIME format.
 
 
-Get rid of FORTRAN typing
-
-  Instead of using UString, we sometimes use String and "assume it to
-  be UTF-8", except that sometimes we forget to assume that. Fix that.
-  Also unfuck HeaderField::encode{Word,Phrase} in a different way -
-  they use different tests for whether 2047 encoding is necessary, and
-  I don't think either is right.
-
-
 Plugins
 
   It's not given that we want to accept all mail. If we don't, who
@@ -915,10 +886,6 @@ Delaying seen-flag setting
   command nicely.
 
 
-Write howto/tls-certificate
-
-
-
 The webmail thingy completely mangles patch attachments. :-(
 
   This would seem to apply to non-MIME attachments. How should we
@@ -943,12 +910,6 @@ The Sieve "header" test may fail
   Write a test or three that feeds the thing a 2047-encoded header
   field and checks that it's correctly matched/not matched. Then make
   it pass.
-
-
-Listext::match() should use UString, not String
-
-  It should also move elsewhere, so we don't have this evil
-  inclusion. Where?
 
 
 The subaddress specification says foo@ != foo+@ wrt. :detail
