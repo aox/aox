@@ -396,6 +396,8 @@ bool Schema::singleStep()
         c = stepTo57(); break;
     case 57:
         c = stepTo58(); break;
+    case 58:
+        c = stepTo59(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2578,65 +2580,76 @@ bool Schema::stepTo59()
         d->substate = 1;
     }
 
-    if ( !d->q->done() )
-        return false;
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
 
-    PreparedStatement af ( "update address_fields "
-                           "set address=$1 where address=$2" );
-    PreparedStatement aliases( "update aliases "
+        PreparedStatement af ( "update address_fields "
                                "set address=$1 where address=$2" );
-    PreparedStatement deliveries( "update deliveries "
-                                  "set sender=$1 where sender=$2" );
-    PreparedStatement dr( "update delivery_recipients "
-                          "set recipient=$1 where recipient=$2" );
-    PreparedStatement arf( "update autoresponses "
-                           "set sent_from=$1 where sent_from=$2" );
-    PreparedStatement art( "update autoresponses "
-                           "set sent_to=$1 where sent_to=$2" );
-    PreparedStatement dfa( "delete from addresses where id=$1" );
+        PreparedStatement aliases( "update aliases "
+                                   "set address=$1 where address=$2" );
+        PreparedStatement deliveries( "update deliveries "
+                                      "set sender=$1 where sender=$2" );
+        PreparedStatement dr( "update delivery_recipients "
+                              "set recipient=$1 where recipient=$2" );
+        PreparedStatement arf( "update autoresponses "
+                               "set sent_from=$1 where sent_from=$2" );
+        PreparedStatement art( "update autoresponses "
+                               "set sent_to=$1 where sent_to=$2" );
+        PreparedStatement dfa( "delete from addresses where id=$1" );
 
-    Row * r = d->q->nextRow();
-    while ( r ) {
-	uint original = r->getInt( "original" );
-	uint duplicate = r->getInt( "duplicate" );
-	Query * q;
-	q = new Query( af, 0 );
-	q->bind( 1, original );
-	q->bind( 1, duplicate );
-	d->t->enqueue( q );
-	q = new Query( aliases, 0 );
-	q->bind( 1, original );
-	q->bind( 1, duplicate );
-	d->t->enqueue( q );
-	q = new Query( deliveries, 0 );
-	q->bind( 1, original );
-	q->bind( 1, duplicate );
-	d->t->enqueue( q );
-	q = new Query( dr, 0 );
-	q->bind( 1, original );
-	q->bind( 1, duplicate );
-	d->t->enqueue( q );
-	q = new Query( arf, 0 );
-	q->bind( 1, original );
-	q->bind( 1, duplicate );
-	d->t->enqueue( q );
-	q = new Query( art, 0 );
-	q->bind( 1, original );
-	q->bind( 1, duplicate );
-	d->t->enqueue( q );
-	q = new Query( dfa, 0 );
-	q->bind( 1, duplicate );
-	d->t->enqueue( q );
-	r = d->q->nextRow();
+        Row * r = d->q->nextRow();
+        while ( r ) {
+            uint original = r->getInt( "original" );
+            uint duplicate = r->getInt( "duplicate" );
+            Query * q;
+            q = new Query( af, 0 );
+            q->bind( 1, original );
+            q->bind( 1, duplicate );
+            d->t->enqueue( q );
+            q = new Query( aliases, 0 );
+            q->bind( 1, original );
+            q->bind( 1, duplicate );
+            d->t->enqueue( q );
+            q = new Query( deliveries, 0 );
+            q->bind( 1, original );
+            q->bind( 1, duplicate );
+            d->t->enqueue( q );
+            q = new Query( dr, 0 );
+            q->bind( 1, original );
+            q->bind( 1, duplicate );
+            d->t->enqueue( q );
+            q = new Query( arf, 0 );
+            q->bind( 1, original );
+            q->bind( 1, duplicate );
+            d->t->enqueue( q );
+            q = new Query( art, 0 );
+            q->bind( 1, original );
+            q->bind( 1, duplicate );
+            d->t->enqueue( q );
+            q = new Query( dfa, 0 );
+            q->bind( 1, duplicate );
+            d->t->enqueue( q );
+            r = d->q->nextRow();
+        }
+
+        d->q = new Query( "alter table addresses drop constraint "
+                          "addresses_name_key", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create unique index addresses_nld_key "
+                          "on addresses(name,localpart,lower(domain))",
+                          this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 2;
     }
 
-    if ( !d->q->done() )
-        return false;
-
-    // XXX: make the index depend on lower(domain) here instead of
-    // domain. I don't feel up to typing the right syntax. since it's
-    // the last query it should probably say
-    //   Query( "asfsdafsdafsad", // this );
+    if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
 
     return true;
 }
