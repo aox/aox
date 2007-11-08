@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (58);
+insert into mailstore (revision) values (59);
 
 
 -- One entry for each unique address we've encountered.
@@ -13,9 +13,9 @@ create table addresses (
     id          serial primary key,
     name        text,
     localpart   text,
-    domain      text,
-    unique (name, localpart, domain)
+    domain      text
 );
+create unique index addresses_nld_key on addresses(name,localpart,lower(domain));
 create index ald on addresses(lower(localpart), lower(domain));
 
 
