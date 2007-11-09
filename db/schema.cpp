@@ -2570,7 +2570,8 @@ bool Schema::stepTo59()
     if ( d->substate == 0 ) {
         describeStep( "Deleting duplicate addresses." );
 	d->q = new Query( 
-	    "select a.id as original, b.id as duplicate "
+	    "select a.localpart, a.domain, b.domain as domain2, "
+            "a.id as original, b.id as duplicate "
 	    "from addresses a, addresses b "
 	    "where a.id<b.id and a.name=b.name "
 	    "and a.localpart=b.localpart "
@@ -2602,6 +2603,11 @@ bool Schema::stepTo59()
         while ( r ) {
             uint original = r->getInt( "original" );
             uint duplicate = r->getInt( "duplicate" );
+            d->l->log( "Changing " + 
+                       r->getString( "localpart" ) + "@" + 
+                       r->getString( "domain2" ) + " to " + 
+                       r->getString( "localpart" ) + "@" + 
+                       r->getString( "domain" ) + "@" );
             Query * q;
             q = new Query( af, 0 );
             q->bind( 1, original );
