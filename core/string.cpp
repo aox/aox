@@ -1804,14 +1804,14 @@ String String::wrapped( uint linelength,
     while ( i < length() ) {
         char c = at( i );
         if ( c == ' ' )
-	    space = result.length();
+            space = result.length();
         else if ( c == '\n' )
             linestart = i + 1;
-	result.append( c );
-	i++;
-	// add a soft linebreak?
-	if ( result.length() > linestart + linelength && space > linestart ) {
-	    linestart = space + 1; // should be 2, strlen( crlf )
+        result.append( c );
+        i++;
+        // add a soft linebreak?
+        if ( result.length() > linestart + linelength && space > linestart ) {
+            linestart = space + 1; // should be 2, strlen( crlf )
             move.truncate();
             if ( result.length() > space + 1 )
                 move.append( result.cstr() + space + 1,

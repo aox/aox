@@ -13,7 +13,7 @@ class SendmailData
     : public Garbage
 {
 public:
-	SendmailData()
+        SendmailData()
         : message( 0 )
     {}
 

@@ -2569,15 +2569,15 @@ bool Schema::stepTo59()
 {
     if ( d->substate == 0 ) {
         describeStep( "Deleting duplicate addresses." );
-	d->q = new Query( 
-	    "select a.localpart, a.domain, b.domain as domain2, "
+        d->q = new Query( 
+            "select a.localpart, a.domain, b.domain as domain2, "
             "a.id as original, b.id as duplicate "
-	    "from addresses a, addresses b "
-	    "where a.id<b.id and a.name=b.name "
-	    "and a.localpart=b.localpart "
-	    "and lower(a.domain)=lower(b.domain)", this );
+            "from addresses a, addresses b "
+            "where a.id<b.id and a.name=b.name "
+            "and a.localpart=b.localpart "
+            "and lower(a.domain)=lower(b.domain)", this );
         d->t->enqueue( d->q );
-	d->t->execute();
+        d->t->execute();
         d->substate = 1;
     }
 

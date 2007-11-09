@@ -435,14 +435,14 @@ String MessageSet::set() const
     String r;
     List< SetData::Range >::Iterator it( d->l );
     while ( it ) {
-	if ( !r.isEmpty() )
-	    r.append( "," );
-	r.append( fn( it->start ) );
-	if ( it->length > 1 ) {
-	    r.append( ":" );
-	    r.append( fn( it->start + it->length - 1 ) );
-	}
-	++it;
+        if ( !r.isEmpty() )
+            r.append( "," );
+        r.append( fn( it->start ) );
+        if ( it->length > 1 ) {
+            r.append( ":" );
+            r.append( fn( it->start + it->length - 1 ) );
+        }
+        ++it;
     }
     return r;
 }
