@@ -21,7 +21,7 @@ public:
     IMAP * imap() const;
 
     void emitExpunge( uint );
-    void emitModification( Message * );
+    void emitModification( uint );
     void emitExists( uint );
     bool responsesPermitted( ResponseType ) const;
     bool responsesReady( ResponseType ) const;

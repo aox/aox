@@ -124,7 +124,7 @@ void Select::execute()
         d->session->refresh( this );
     }
 
-    if ( !d->usedFlags ) {
+    if ( !d->usedFlags && d->mailbox->uidnext() > 1 ) {
         d->usedFlags = new Query( "select distinct flag from flags where "
                                   "mailbox=$1 "
                                   "order by flag",
@@ -142,7 +142,7 @@ void Select::execute()
         d->highestModseq->execute();
     }
 
-    if ( !d->usedFlags->done() )
+    if ( d->usedFlags && !d->usedFlags->done() )
         return;
 
     if ( d->highestModseq && !d->highestModseq->done() )
@@ -170,7 +170,7 @@ void Select::execute()
     }
 
     String flags = "\\Deleted \\Answered \\Flagged \\Draft \\Seen";
-    if ( d->usedFlags->hasResults() ) {
+    if ( d->usedFlags && d->usedFlags->hasResults() ) {
         Row * r = 0;
         while ( (r=d->usedFlags->nextRow()) != 0 ) {
             Flag * f = Flag::find( r->getInt( "flag" ) );

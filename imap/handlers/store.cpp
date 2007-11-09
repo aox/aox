@@ -474,26 +474,10 @@ void Store::execute()
             if ( imap()->clientSupports( IMAP::Condstore ) )
                 sendModseqResponses();
         }
-        List<Message> * l = new List<Message>;
-        uint i = d->s.count();
-        while ( i ) {
-            uint uid = d->s.value( i );
-            i--;
-            Message * m = new Message;
-            m->setUid( uid );
-            m->setModSeq( d->modseq );
-            if ( d->op == StoreData::ReplaceFlags ) {
-                List<Flag> * f = m->flags();
-                List<Flag>::Iterator it( d->flags );
-                while ( it ) {
-                    f->append( it );
-                    ++it;
-                }
-                m->setFlagsFetched( true );
-            }
-            l->prepend( m );
+        else if ( d->op == StoreData::ReplaceFlags ) {
+            imap()->session()->ignoreModSeq( d->modseq );
+            sendFlagResponses(); // just an optimization
         }
-        imap()->session()->recordChange( l, Session::Modified );
         d->notifiedSession = true;
     }
 
@@ -572,6 +556,54 @@ void Store::sendModseqResponses()
         uint msn = s->msn( uid );
         i++;
         respond( fn( msn ) + " FETCH (UID " + fn( uid ) + rest );
+    }
+}
+
+
+/*! Tells the client about the flags written. Extremely boring output. */
+
+void Store::sendFlagResponses()
+{
+    String modseq;
+    String flags;
+
+    if ( imap()->clientSupports( IMAP::Condstore ) ) {
+        modseq = " MODSEQ (";
+        modseq.append( fn( d->modseq ) );
+        modseq.append( ")" );
+    }
+
+    List<Flag>::Iterator it( d->flags );
+    while ( it ) {
+        flags.append( it->name() );
+        ++it;
+        if ( it )
+            flags.append( " " );
+    }
+
+    ImapSession * s = imap()->session();
+
+    uint i = 1;
+    uint max = d->s.count();
+    String r;
+    while ( i <= max ) {
+        uint uid = d->s.value( i );
+        ++i;
+        r.truncate();
+        r.append( "* " );
+        r.append( fn( s->msn( uid ) ) );
+        r.append( " FETCH (UID " );
+        r.append( fn( uid ) );
+        r.append( modseq );
+        r.append( " FLAGS (" );
+        if ( s->isRecent( uid ) ) {
+            r.append( "\\recent" );
+            if ( flags.isEmpty() )
+                r.append( " " );
+        }
+        r.append( flags );
+        r.append( ")" );
+        respond( r );
     }
 }
 

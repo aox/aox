@@ -73,16 +73,17 @@ public:
     virtual void emitExpunge( uint );
     virtual void emitExists( uint );
 
-    List<Message> * modifiedMessages() const;
-    List<Message> * newMessages() const;
-    void recordChange( List<Message> *, ResponseType );
+    MessageSet unannounced() const;
+    void addUnannounced( uint );
+    void addUnannounced( const MessageSet & );
 
-    virtual void emitModification( Message * );
+    virtual void emitModification( uint );
 
-    void addSessionInitialiser( class SessionInitialiser * );
-    bool isSessionInitialiser( class SessionInitialiser * );
-    void removeSessionInitialiser();
+    void setSessionInitialiser( class SessionInitialiser * );
+    class SessionInitialiser * sessionInitialiser() const;
 
+private:
+    friend class SessionInitialiser;
     class SessionData *d;
 };
 
@@ -91,15 +92,29 @@ class SessionInitialiser
     : public EventHandler
 {
 public:
-    SessionInitialiser( Session *, EventHandler * );
+    SessionInitialiser( Mailbox * );
 
-    bool done() const;
     void execute();
 
     void addWatcher( EventHandler * );
 
 private:
     class SessionInitialiserData * d;
+
+    void findSessions();
+    void eliminateGoodSessions();
+    void restart();
+    void grabLock();
+    void releaseLock();
+    void findRecent();
+    void findUidnext();
+    void findViewChanges();
+    void writeViewChanges();
+    void findMailboxChanges();
+    void recordMailboxChanges();
+    void emitResponses();
+    void addToSessions( uint );
+    void submit( class Query * );
 };
 
 

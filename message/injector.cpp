@@ -186,7 +186,7 @@ public:
             Log::Severity level = Log::Error;
             if ( (*li)->uid > 0x7ffffff0 )
                 level = Log::Disaster;
-            log( "Note: Mailbox " + (*li)->mailbox->name().ascii() + 
+            log( "Note: Mailbox " + (*li)->mailbox->name().ascii() +
                  " only has " + fn ( 0x7fffffff - (*li)->uid ) +
                  " more usable UIDs. Please contact info@oryx.com"
                  " to resolve this problem.", level );
@@ -1325,16 +1325,20 @@ void Injector::logMessageDetails()
 
 void Injector::announce()
 {
-    List<Message> dummy;
-    if ( d->mailboxes->count() == 1 ) {
-        dummy.append( d->message );
-        d->message->setUid( d->mailboxes->first()->uid );
-    }
-
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->uid;
         Mailbox * m = mi->mailbox;
+
+        List<Session>::Iterator si( m->sessions() );
+        while ( si ) {
+            if ( si == mi->recentIn )
+                si->addRecent( uid );
+            MessageSet dummy;
+            dummy.add( uid );
+            si->addUnannounced( dummy );
+            ++si;
+        }
 
         if ( m->uidnext() <= uid && m->nextModSeq() <= mi->ms ) {
             m->setUidnextAndNextModSeq( 1+uid, 1+mi->ms );
@@ -1351,14 +1355,6 @@ void Injector::announce()
             m->setNextModSeq( 1 + mi->ms );
             OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
                             "nextmodseq=" + fn( m->nextModSeq() ) );
-        }
-
-        List<Session>::Iterator si( m->sessions() );
-        while ( si ) {
-            if ( si == mi->recentIn )
-                si->addRecent( uid );
-            si->recordChange( &dummy, Session::New );
-            ++si;
         }
 
         ++mi;

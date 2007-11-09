@@ -31,6 +31,7 @@ public:
     Fetcher * flagf;
     Fetcher * annof;
     Fetcher * trif;
+    List<Message> fetching;
 
     // XXX: A hack. maybe Session should inherit EventHandler instead.
     void execute() {
@@ -133,8 +134,16 @@ void ImapSession::recordExpungedFetch( const MessageSet & set )
 }
 
 
-void ImapSession::emitModification( Message * m )
+void ImapSession::emitModification( uint uid )
 {
+    Message * m = 0;
+    if ( !d->fetching.isEmpty() ) {
+        List<Message>::Iterator i( d->fetching );
+        while ( i && i->uid() != uid )
+            ++i;
+        if ( i )
+            m = i;
+    }
     if ( !m )
         return;
     if ( !m->hasFlags() )
@@ -192,9 +201,30 @@ bool ImapSession::responsesReady( ResponseType type ) const
     if ( !Session::responsesReady( type ) )
         return false;
 
-    List<Message>::Iterator i;
-    if ( type == Modified )
-        i = modifiedMessages();
+    if ( type != Modified )
+        return true;
+
+    MessageSet modified = unannounced().intersection( messages() );
+    if ( !d->fetching.isEmpty() ) {
+        List<Message>::Iterator i( d->fetching );
+        while ( i ) {
+            modified.remove( i->uid() );
+            ++i;
+        }
+    }
+
+    while ( !modified.isEmpty() ) {
+        uint uid = modified.value( 1 );
+        modified.remove( uid );
+        List<Message>::Iterator i( d->fetching );
+        while ( i && i->uid() != uid )
+            ++i;
+        if ( !i ) { // XXX also test that it isn't in MessageCache
+            Message * m = new Message; 
+            m->setUid( uid );
+            d->fetching.append( m );
+        }
+    }
 
     List<Message> * fl = new List<Message>;
     List<Message> * al = 0;
@@ -204,6 +234,7 @@ bool ImapSession::responsesReady( ResponseType type ) const
     if ( d->i->clientSupports( IMAP::Condstore ) ||
          !d->ignorable.isEmpty() )
         tl = new List<Message>;
+    List<Message>::Iterator i( d->fetching );
     while ( i ) {
         if ( fl && !i->hasFlags() )
             fl->append( i );
@@ -311,7 +342,7 @@ void ImapSession::enqueue( const String & r )
         return;
     }
 
-    d->unsolicited = d->i->commands()->isEmpty();
+    d->unsolicited = d->i->commands()->isEmpty(); // XXX doesn't work, fix it
     d->i->enqueue( r );
 }
 

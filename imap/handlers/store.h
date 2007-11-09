@@ -32,6 +32,7 @@ private:
     void addFlags();
     void replaceFlags();
     void sendModseqResponses();
+    void sendFlagResponses();
     void replaceAnnotations();
     void parseAnnotationEntry();
     String entryName();
