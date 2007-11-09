@@ -2597,8 +2597,9 @@ bool Schema::stepTo59()
                                "set sent_from=$1 where sent_from=$2" );
         PreparedStatement art( "update autoresponses "
                                "set sent_to=$1 where sent_to=$2" );
-        PreparedStatement dfa( "delete from addresses where id=$1" );
+        String dfa;
 
+        Query * q;
         Row * r = d->q->nextRow();
         while ( r ) {
             uint original = r->getInt( "original" );
@@ -2608,7 +2609,6 @@ bool Schema::stepTo59()
                        r->getString( "domain2" ) + " to " + 
                        r->getString( "localpart" ) + "@" + 
                        r->getString( "domain" ) + "@" );
-            Query * q;
             q = new Query( af, 0 );
             q->bind( 1, original );
             q->bind( 1, duplicate );
@@ -2633,19 +2633,24 @@ bool Schema::stepTo59()
             q->bind( 1, original );
             q->bind( 1, duplicate );
             d->t->enqueue( q );
-            q = new Query( dfa, 0 );
-            q->bind( 1, duplicate );
-            d->t->enqueue( q );
+            if ( dfa.isEmpty() )
+                dfa = "delete from addresses where id=";
+            else
+                dfa.append( " or id=" );
+            dfa.append( fn( duplicate ) );
             r = d->q->nextRow();
         }
 
-        d->q = new Query( "alter table addresses drop constraint "
-                          "addresses_name_key", this );
-        d->t->enqueue( d->q );
-        d->q = new Query( "create unique index addresses_nld_key "
-                          "on addresses(name,localpart,lower(domain))",
-                          this );
-        d->t->enqueue( d->q );
+        q = new Query( dfa, 0 );
+        d->t->enqueue( q );
+
+        q = new Query( "alter table addresses drop constraint "
+                       "addresses_name_key", 0 );
+        d->t->enqueue( q );
+        q = new Query( "create unique index addresses_nld_key "
+                       "on addresses(name,localpart,lower(domain))",
+                       this );
+        d->t->enqueue( q );
         d->t->execute();
         d->substate = 2;
     }
