@@ -1101,15 +1101,15 @@ class Mailbox * Command::mailbox()
 
     Mailbox * m = Mailbox::obtain( n, false );
     if ( !m ) {
-        error( Bad, "No such mailbox: " + n.ascii() );
+        error( No, "No such mailbox: " + n.ascii() );
         return 0;
     }
     if ( m->synthetic() ) {
-        error( Bad, "Mailbox is not selectable: " + n.ascii() );
+        error( No, "Mailbox is not selectable: " + n.ascii() );
         return 0;
     }
     if ( m->deleted() ) {
-        error( Bad, "Mailbox deleted: " + n.ascii() );
+        error( No, "Mailbox deleted: " + n.ascii() );
         return 0;
     }
 
