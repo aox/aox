@@ -588,7 +588,7 @@ void Postgres::unknown( char type )
     case 'N':
     case 'E':
         d->unknownMessage = false;
-        errorMessage();
+        serverMessage();
         break;
 
     default:
@@ -617,7 +617,7 @@ void Postgres::unknown( char type )
 
 /*! This function handles errors and other messages from the server. */
 
-void Postgres::errorMessage()
+void Postgres::serverMessage()
 {
     Scope x;
     String s;
@@ -686,14 +686,15 @@ void Postgres::errorMessage()
                  Log::Disaster );
         }
     }
-    else if ( code.startsWith( "01" ) ) {
+    else if ( msg.type() == PgMessage::Notification ) {
         s.append( "PostgreSQL server: " );
         if ( q ) {
             s.append( "Query " + q->description() + ": " );
             x.setLog( q->log() );
         }
         s.append( m );
-        s.append( " (warning)" );
+        if ( !code.startsWith( "00" ) )
+            s.append( " (warning)" );
         ::log( s, Log::Debug );
     }
     else if ( q && !code.startsWith( "00" ) ) {

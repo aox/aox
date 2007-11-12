@@ -328,6 +328,11 @@ void PgStartup::setOption( const String &key, const String &val )
 PgMessage::PgMessage( Buffer *b )
     : PgServerMessage( b )
 {
+    if ( type() == 'N' )
+        t = Notification;
+    else
+        t = Error;
+
     char type;
 
     while ( ( type = decodeByte() ) != '\0' ) {
@@ -351,6 +356,11 @@ PgMessage::PgMessage( Buffer *b )
     end();
 }
 
+
+/*! \fn PgMessage::Type PgMessage::type() const
+    Returns either "Notification" or "Error", depending on the type of
+    the server message this object represents.
+*/
 
 /*! \fn String PgMessage::severity() const
     Returns the severity of a message, in the language Postgres is

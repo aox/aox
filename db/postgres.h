@@ -26,7 +26,7 @@ private:
     void backendStartup( char );
     void process( char );
     void unknown( char );
-    void errorMessage();
+    void serverMessage();
     void error( const String & );
     void shutdown();
     void countQueries( class Query * );

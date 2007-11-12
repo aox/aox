@@ -78,6 +78,9 @@ class PgMessage
 public:
     PgMessage( Buffer * );
 
+    enum Type { Notification, Error };
+
+    Type type()       const { return t; }
     String severity() const { return S; }
     String code()     const { return C; }
     String message()  const { return M; }
@@ -90,6 +93,7 @@ public:
     String routine()  const { return R; }
 
 private:
+    Type t;
     String S, C, M, D, H, P, W, F, L, R;
 };
 
