@@ -1130,7 +1130,6 @@ UString Command::mailboxName()
 
     User * u = imap()->user();
     if ( u && n.lower() == "inbox" ) {
-        d->usesRelativeMailbox = true;
         return u->inbox()->name();
     }
 
@@ -1207,6 +1206,8 @@ String Command::imapQuoted( Mailbox * m, Mailbox * r )
             ; // use, the client likes relative mailboxes
         else if ( d->usesAbsoluteMailbox )
             rel = false;
+        else if ( imap()->user() && imap()->user()->inbox() == m )
+            rel = true;
         else if ( imap()->prefersAbsoluteMailboxes() )
             rel = false;
     }
