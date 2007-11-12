@@ -1130,6 +1130,7 @@ UString Command::mailboxName()
 
     User * u = imap()->user();
     if ( u && n.lower() == "inbox" ) {
+        d->usesRelativeMailbox = true;
         return u->inbox()->name();
     }
 
