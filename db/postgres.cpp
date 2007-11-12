@@ -686,9 +686,7 @@ void Postgres::serverMessage()
                  Log::Disaster );
         }
     }
-    else if ( msg.type() == PgMessage::Notification ||
-              code == "22P06" )
-    {
+    else if ( msg.type() == PgMessage::Notification ) {
         s.append( "PostgreSQL server: " );
         if ( q ) {
             s.append( "Query " + q->description() + ": " );

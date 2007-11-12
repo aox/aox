@@ -328,7 +328,7 @@ void PgStartup::setOption( const String &key, const String &val )
 PgMessage::PgMessage( Buffer *b )
     : PgServerMessage( b )
 {
-    if ( type() == 'N' )
+    if ( PgServerMessage::type() == 'N' )
         t = Notification;
     else
         t = Error;
