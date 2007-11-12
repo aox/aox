@@ -1202,14 +1202,14 @@ String Command::imapQuoted( Mailbox * m, Mailbox * r )
     if ( rel ) {
         if ( r )
             ; // yes, we've explicitly been told to
-        if ( d->usesRelativeMailbox )
-            ; // use, the client likes relative mailboxes
+        else if ( d->usesRelativeMailbox )
+            ; // yes, the client likes relative mailboxes
         else if ( d->usesAbsoluteMailbox )
-            rel = false;
+            rel = false; // no, the client sent an absolute name
         else if ( imap()->user() && imap()->user()->inbox() == m )
-            rel = true;
+            rel = true; // the client sent 'inbox'
         else if ( imap()->prefersAbsoluteMailboxes() )
-            rel = false;
+            rel = false; // past commands used absolute names
     }
     // find the actual name to return
     UString n = m->name();
