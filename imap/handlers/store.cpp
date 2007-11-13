@@ -464,10 +464,6 @@ void Store::execute()
                         "nextmodseq=" + fn( d->modseq+1 ) );
     }
 
-    // maybe this should check d->silent && d->modseq =
-    // session->mailbox->highestmodseq, so we'll be !silent if there's
-    // any sort of race and someone updates the mailbox at the same
-    // time.
     if ( !d->notifiedSession ) {
         if ( d->silent ) {
             if ( imap()->session()->nextModSeq() == d->modseq )
@@ -477,7 +473,7 @@ void Store::execute()
         }
         else if ( d->op == StoreData::ReplaceFlags ) {
             if ( imap()->session()->nextModSeq() == d->modseq ) {
-                // just an optimization
+                // avoid meltdown for store 1:* on a big mailbox
                 imap()->session()->setNextModSeq( d->modseq + 1 );
                 sendFlagResponses();
             }
