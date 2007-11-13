@@ -36,6 +36,7 @@
     RFC 4731: ESEARCH (also from RFC 4466)
     RFC 4959: SASL-IR
     RFC 4978: COMPRESS=DEFLATE
+    RFC 5032: WITHIN
 
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
@@ -111,6 +112,8 @@ String Capability::capabilities( IMAP * i, bool all )
     }
     if ( drafts && ( all || login ) )
         c.append( "VIEW" );
+    if ( all || login )
+        c.append( "WITHIN" );
 
     return c.join( " " );
 }

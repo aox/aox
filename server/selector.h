@@ -25,7 +25,7 @@ public:
 
     enum Field {
         InternalDate, Sent, Header, Body, Rfc822Size, Flags, Uid,
-        Annotation, Modseq, NoField
+        Annotation, Modseq, Age, NoField
     };
 
     Selector();
@@ -75,6 +75,7 @@ public:
     bool modseqReturned() const;
 
     bool dynamic() const;
+    bool timeSensitive() const;
 
     String mboxId();
 
@@ -94,6 +95,7 @@ private:
     String whereUid();
     String whereAnnotation();
     String whereModseq();
+    String whereAge();
     String whereNoField();
 };
 

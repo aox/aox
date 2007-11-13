@@ -13,6 +13,8 @@
 #include "field.h"
 #include "user.h"
 
+#include <time.h> // whereAge() calls time()
+
 
 static uint lmatch( const String &, uint, const String &, uint );
 
@@ -316,6 +318,8 @@ void Selector::simplify()
             // contains modseq shouldn't happen, and certainly cannot
             // be simplified
             break;
+        case Age:
+            // cannot be simplified, should not happen
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
@@ -529,6 +533,8 @@ String Selector::where()
         break;
     case Modseq:
         return whereModseq();
+    case Age:
+        return whereAge();
     case NoField:
         return whereNoField();
         break;
@@ -1022,6 +1028,18 @@ String Selector::whereModseq()
 }
 
 
+/*! This implements the older/younger search-keys. */
+
+String Selector::whereAge()
+{
+    uint i = placeHolder();
+    root()->d->query->bind( i, (uint)::time( 0 ) - d->n );
+    if ( d->a == Larger )
+        return "m.idate<=$" + fn( i );
+    return "m.idate>=$" + fn( i );
+}
+
+
 static bool isAddressField( const String & s )
 {
     uint t = HeaderField::fieldType( s );
@@ -1191,6 +1209,8 @@ String Selector::debugString() const
     case Modseq:
         w = "modseq";
         break;
+    case Age:
+        w = "age";
     };
 
     r = w + " " + o + " ";
@@ -1778,7 +1798,8 @@ bool Selector::modseqReturned() const
 
 bool Selector::dynamic() const
 {
-    if ( d->f == Flags || d->f == Annotation || d->f == Modseq )
+    if ( d->f == Flags || d->f == Annotation || d->f == Modseq ||
+         d->f == Age )
         return true;
     List< Selector >::Iterator i( d->children );
     while ( i ) {
@@ -1788,4 +1809,25 @@ bool Selector::dynamic() const
             return true;
     }
     return false;
+}
+
+
+/*! Returns true if this Selector includes at least one time-sensitive
+    message attribute (something which can change as time passes). If
+    the Selector is timeSensitive(), it is also dynamic().
+*/
+
+bool Selector::timeSensitive() const
+{
+    if ( d->f == Age )
+        return true;
+    List< Selector >::Iterator i( d->children );
+    while ( i ) {
+        Selector * c = i;
+        ++i;
+        if ( c->timeSensitive() )
+            return true;
+    }
+    return false;
+    
 }

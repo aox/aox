@@ -393,6 +393,16 @@ void Search::parseKey( bool alsoCharset )
                                number() ) );
             d->root->setModseqReturned();
         }
+        else if ( keyword == "older" ) {
+            space();
+            add( new Selector( Selector::Age, Selector::Larger,
+                               nzNumber() ) );
+        }
+        else if ( keyword == "younger" ) {
+            space();
+            add( new Selector( Selector::Age, Selector::Smaller,
+                               nzNumber() ) );
+        }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
             setCharset( astring() );
