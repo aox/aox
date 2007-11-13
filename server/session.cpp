@@ -22,6 +22,7 @@ public:
         : readOnly( true ),
           initialiser( 0 ),
           mailbox( 0 ),
+          expungeModSeq( 0 ),
           uidnext( 1 ), nextModSeq( 1 ),
           firstUnseen( 0 ),
           permissions( 0 )
@@ -34,6 +35,7 @@ public:
     MessageSet msns;
     MessageSet recent;
     MessageSet expunges;
+    int64 expungeModSeq;
     uint uidnext;
     int64 nextModSeq;
     uint firstUnseen;
@@ -311,11 +313,12 @@ bool Session::responsesReady( ResponseType type ) const
 }
 
 
-/*! Records that \a uids has been expunged, and that the clients should
-    be told about it at the earliest possible moment.
+/*! Records that \a uids has been expunged in the change with sequence
+    \a ms, and that the clients should be told about it at the
+    earliest possible moment.
 */
 
-void Session::expunge( const MessageSet & uids )
+void Session::expunge( const MessageSet & uids, int64 ms )
 {
     if ( uids.isEmpty() )
         return;
@@ -325,6 +328,8 @@ void Session::expunge( const MessageSet & uids )
         i->emitResponses();
         ++i;
     }
+    if ( d->expungeModSeq < ms )
+        d->expungeModSeq = ms;
 }
 
 
@@ -384,6 +389,9 @@ void Session::emitResponses( ResponseType type )
             i++;
         }
         d->expunges.clear();
+        if ( d->nextModSeq <= d->expungeModSeq )
+            d->nextModSeq = d->expungeModSeq + 1;
+        d->expungeModSeq = 0;
     }
     else if ( type == Modified ) {
         if ( responsesReady( Modified ) ) {
@@ -938,7 +946,7 @@ void SessionInitialiser::writeViewChanges()
         while ( i ) {
             Session * s = i;
             ++i;
-            s->expunge( removeInDb );
+            s->expunge( removeInDb, 0 ); // expunge does not consume a modseq
         }
     }
 
@@ -988,10 +996,10 @@ void SessionInitialiser::findMailboxChanges()
     bool initialising = false;
     if ( d->oldUidnext <= 1 )
         initialising = true;
-    String msgs = "select m.uid ";
+    String msgs = "select m.uid";
     if ( d->findFirstUnseen )
-        msgs.append( ", f.flag as seen " );
-    msgs.append( "from messages m " );
+        msgs.append( ", f.flag as seen" );
+    msgs.append( " from messages m " );
     if ( !initialising )
         msgs.append( "join modsequences ms "
                      " on (m.mailbox=ms.mailbox and m.uid=ms.uid) " );

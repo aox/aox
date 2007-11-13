@@ -59,7 +59,7 @@ public:
     const MessageSet & expunged() const;
     const MessageSet & messages() const;
 
-    void expunge( const MessageSet & );
+    void expunge( const MessageSet &, int64 );
     void clearExpunged();
 
     enum ResponseType { New, Modified, Deleted };
