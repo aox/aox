@@ -349,6 +349,8 @@ void ImapSession::enqueue( const String & r )
 void ImapSession::emitResponses()
 {
     Session::emitResponses();
+    if ( !responsesNeeded( Modified ) )
+        d->fetching.clear();
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
