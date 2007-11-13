@@ -18,15 +18,13 @@ public:
     ImapSessionData(): i( 0 ), unsolicited( false ),
                        exists( UINT_MAX/4 ), recent( UINT_MAX ),
                        uidnext( 0 ),
-                       hms( 0 ), flagf( 0 ), annof( 0 ), trif( 0 ) {}
+                       flagf( 0 ), annof( 0 ), trif( 0 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     bool unsolicited;
     uint exists;
     uint recent;
     uint uidnext;
-    List<int64> ignorable;
-    int64 hms;
 
     Fetcher * flagf;
     Fetcher * annof;
@@ -149,17 +147,6 @@ void ImapSession::emitModification( uint uid )
     if ( !m->hasFlags() )
         return;
 
-    if ( m->modSeq() ) {
-        if ( m->modSeq() > d->hms )
-            d->hms = m->modSeq();
-        List<int64>::Iterator i( d->ignorable );
-        while ( i ) {
-            if ( m->modSeq() == *i )
-                return;
-            ++i;
-        }
-    }
-
     String r = "* ";
     r.append( fn( msn( m->uid() ) ) );
     r.append( " FETCH (UID " );
@@ -231,8 +218,7 @@ bool ImapSession::responsesReady( ResponseType type ) const
     if ( d->i->clientSupports( IMAP::Annotate ) )
         al = new List<Message>;
     List<Message> * tl = 0;
-    if ( d->i->clientSupports( IMAP::Condstore ) ||
-         !d->ignorable.isEmpty() )
+    if ( d->i->clientSupports( IMAP::Condstore ) )
         tl = new List<Message>;
     List<Message>::Iterator i( d->fetching );
     while ( i ) {
@@ -369,26 +355,4 @@ void ImapSession::emitResponses()
     if ( c && c->state() == Command::Finished &&
          !d->flagf && !d->annof && !d->trif )
         d->i->unblockCommands();
-
-    List<int64>::Iterator i( d->ignorable );
-    while ( i ) {
-        if ( *i < d->hms )
-            d->ignorable.take( i );
-        else
-            ++i;
-    }
-}
-
-
-/*! Instructs this ImapSession to emit no responses for messages whose
-    Message::modSeq() is \a ms.
-
-    This is used by Store to implement its "silent" feature.
-*/
-
-void ImapSession::ignoreModSeq( int64 ms )
-{
-    int64 * i = new int64;
-    *i = ms;
-    d->ignorable.append( i );
 }

@@ -113,7 +113,7 @@ private:
     void findMailboxChanges();
     void recordMailboxChanges();
     void emitResponses();
-    void addToSessions( uint );
+    void addToSessions( uint, int64 );
     void submit( class Query * );
 };
 

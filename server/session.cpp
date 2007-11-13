@@ -90,6 +90,8 @@ bool Session::initialised() const
         return false;
     if ( d->initialiser )
         return false;
+    if ( !d->unannounced.isEmpty() )
+        return true;
     if ( d->nextModSeq < d->mailbox->nextModSeq() )
         return false;
     if ( d->uidnext < d->mailbox->uidnext() )
@@ -400,6 +402,10 @@ void Session::emitResponses( ResponseType type )
             big.add( d->uidnext, UINT_MAX );
             emit.remove( big );
             d->unannounced.remove( emit );
+            if ( d->nextModSeq < d->mailbox->nextModSeq() )
+                d->nextModSeq = d->mailbox->nextModSeq();
+            if ( d->uidnext < d->mailbox->uidnext() )
+                d->uidnext = d->mailbox->uidnext();
             while ( !emit.isEmpty() ) {
                 uint uid = emit.value( 1 );
                 emit.remove( uid );
@@ -419,7 +425,10 @@ void Session::emitResponses( ResponseType type )
         if ( d->uidnext <= 1 || !n.isEmpty() ) {
             d->msns.add( n );
             d->unannounced.remove( n );
-            d->uidnext = n.largest() + 1;
+            if ( d->nextModSeq < d->mailbox->nextModSeq() )
+                d->nextModSeq = d->mailbox->nextModSeq();
+            if ( d->uidnext < d->mailbox->uidnext() )
+                d->uidnext = d->mailbox->uidnext();
             emitExists( d->msns.count() );
         }
     }
@@ -477,7 +486,8 @@ public:
           t( 0 ), recent( 0 ), messages( 0 ), nms( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           state( Again ),
-          changeRecent( false ), findFirstUnseen( false )
+          changeRecent( false ), findFirstUnseen( false ),
+          retrievingModSeq( false )
         {}
 
     Mailbox * mailbox;
@@ -500,6 +510,7 @@ public:
 
     bool changeRecent;
     bool findFirstUnseen;
+    bool retrievingModSeq;
 };
 
 
@@ -548,6 +559,9 @@ void SessionInitialiser::execute()
                 d->state = SessionInitialiserData::HaveUidnext;
             break;
         case SessionInitialiserData::HaveUidnext:
+            d->retrievingModSeq = false;
+            if ( d->sessions.count() > 1 )
+                d->retrievingModSeq = true;
             if ( d->mailbox->view() )
                 findViewChanges();
             else
@@ -651,10 +665,6 @@ void SessionInitialiser::eliminateGoodSessions()
                 // least one message with that modseq. fine. no need
                 // to work on its behalf.
                 s->emitResponses();
-                if ( s->uidnext() < d->mailbox->uidnext() )
-                    s->setUidnext( d->mailbox->uidnext() );
-                if ( s->nextModSeq() < d->mailbox->nextModSeq() )
-                    s->setNextModSeq( d->mailbox->nextModSeq() );
                 d->sessions.take( s );
             }
         }
@@ -674,8 +684,17 @@ void SessionInitialiser::restart()
     d->oldModSeq = d->newModSeq;
     d->oldUidnext = d->newUidnext;
 
+    uint uidnext = d->oldUidnext;
+    int64 nextModSeq = d->oldModSeq;
+
     List<Session>::Iterator i( d->mailbox->sessions() );
     while ( i ) {
+        if ( i->unannounced().isEmpty() ) {
+            if ( i->uidnext() < uidnext )
+                uidnext = i->uidnext();
+            if ( i->nextModSeq() < nextModSeq )
+                nextModSeq = i->nextModSeq();
+        }
         if ( i->uidnext() < d->oldUidnext )
             d->oldUidnext = i->uidnext();
         if ( i->nextModSeq() < d->oldModSeq )
@@ -683,7 +702,12 @@ void SessionInitialiser::restart()
         ++i;
     }
 
-    if ( d->oldModSeq >= d->newModSeq && d->oldUidnext >= d->newUidnext )
+    // at this point, d->oldUidnext is the oldest uidnext value of all
+    // sessions, and uidnext is the oldest value of all _updated_
+    // sessions. we only want to work if a session that could emit its
+    // changes so far has old data.
+
+    if ( nextModSeq >= d->newModSeq && uidnext >= d->newUidnext )
         return;
 
     if ( d->sessions.isEmpty() )
@@ -862,17 +886,20 @@ void SessionInitialiser::findViewChanges()
     d->messages = sel->query( 0, d->mailbox->source(), 0, this );
     uint oms = sel->placeHolder();
 
-    // this query isn't even nearly optimal for nondynamic views.
+    if ( sel->dynamic() )
+        d->retrievingModSeq = true;
+
+    // this query isn't even nearly optimal for static views.
 
     String s( "select m.mailbox, m.uid, "
               " vm.uid as vuid, "
-              " s.uid as suid " );
-    if ( sel->dynamic() )
-        s.append( ", ms.modseq " );
+              " s.uid as suid" );
+    if ( d->retrievingModSeq )
+        s.append( ", ms.modseq" );
     if ( d->findFirstUnseen )
-        s.append( ", f.flag as seen " );
-    s.append( "from messages m " );
-    if ( sel->dynamic() )
+        s.append( ", f.flag as seen" );
+    s.append( " from messages m " );
+    if ( d->retrievingModSeq )
         s.append( "join modsequences ms on "
                   " (m.mailbox=ms.mailbox and m.uid=ms.uid) " );
     s.append( "left join view_messages vm on "
@@ -930,8 +957,12 @@ void SessionInitialiser::writeViewChanges()
             addToDb.add( uid );
         // if it is in the search results and also in the db, then
         // it's new or changed (depending on the session)
-        if ( !left && vuid )
-            addToSessions( vuid );
+        if ( !left && vuid ) {
+            if ( d->retrievingModSeq )
+                addToSessions( vuid, r->getBigint( "modseq" ) );
+            else
+                addToSessions( vuid, 0 );
+        }
     }
 
     if ( !removeInDb.isEmpty() ) {
@@ -963,7 +994,7 @@ void SessionInitialiser::writeViewChanges()
             q->bind( 3, d->mailbox->id(), Query::Binary );
             q->bind( 4, uid, Query::Binary );
             q->submitLine();
-            addToSessions( uid );
+            addToSessions( uid, 0 ); // XXX the modseq's no longer known
         }
         submit( q );
 
@@ -994,13 +1025,17 @@ void SessionInitialiser::writeViewChanges()
 void SessionInitialiser::findMailboxChanges()
 {
     bool initialising = false;
-    if ( d->oldUidnext <= 1 )
+    if ( d->oldUidnext <= 1 ) {
         initialising = true;
+        d->retrievingModSeq = true;
+    }
     String msgs = "select m.uid";
     if ( d->findFirstUnseen )
         msgs.append( ", f.flag as seen" );
+    if ( d->retrievingModSeq )
+        msgs.append( ", ms.modseq" );
     msgs.append( " from messages m " );
-    if ( !initialising )
+    if ( d->retrievingModSeq )
         msgs.append( "join modsequences ms "
                      " on (m.mailbox=ms.mailbox and m.uid=ms.uid) " );
     if ( d->findFirstUnseen )
@@ -1037,7 +1072,10 @@ void SessionInitialiser::recordMailboxChanges()
     Row * r = 0;
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
-        addToSessions( uid );
+        if ( d->retrievingModSeq )
+            addToSessions( uid, r->getBigint( "modseq" ) );
+        else
+            addToSessions( uid, 0 );
         if ( d->findFirstUnseen && r->isNull( "seen" ) && uid < smallest )
             smallest = uid;
     }
@@ -1061,10 +1099,6 @@ void SessionInitialiser::emitResponses()
     List<Session>::Iterator s( d->sessions );
     while ( s ) {
         s->emitResponses();
-        if ( s->uidnext() < d->newUidnext )
-            s->setUidnext( d->newUidnext );
-        if ( s->nextModSeq() < d->newModSeq )
-            s->setNextModSeq( d->newModSeq );
         ++s;
     }
 
@@ -1077,15 +1111,18 @@ void SessionInitialiser::emitResponses()
 }
 
 
-/*! Adds \a uid to each session to be announced as changed or new. */
+/*! Adds \a uid with modseq \a ms to each session to be announced as
+    changed or new.
+*/
 
-void SessionInitialiser::addToSessions( uint uid )
+void SessionInitialiser::addToSessions( uint uid, int64 ms )
 {
     List<Session>::Iterator i( d->sessions );
     while ( i ) {
         Session * s = i;
         ++i;
-        s->addUnannounced( uid );
+        if ( uid >= s->uidnext() || !ms || ms >= s->nextModSeq() )
+            s->addUnannounced( uid );
     }
 }
 

@@ -470,24 +470,23 @@ void Store::execute()
     // time.
     if ( !d->notifiedSession ) {
         if ( d->silent ) {
-            imap()->session()->ignoreModSeq( d->modseq );
+            if ( imap()->session()->nextModSeq() == d->modseq )
+                imap()->session()->setNextModSeq( d->modseq + 1 );
             if ( imap()->clientSupports( IMAP::Condstore ) )
                 sendModseqResponses();
         }
         else if ( d->op == StoreData::ReplaceFlags ) {
-            imap()->session()->ignoreModSeq( d->modseq );
-            sendFlagResponses(); // just an optimization
+            if ( imap()->session()->nextModSeq() == d->modseq ) {
+                // just an optimization
+                imap()->session()->setNextModSeq( d->modseq + 1 );
+                sendFlagResponses();
+            }
         }
         d->notifiedSession = true;
     }
 
     if ( !d->silent && !d->expunged.isEmpty() )
         error( No, "Cannot store on expunged messages" );
-
-    if ( !imap()->session()->initialised() ) {
-        imap()->session()->refresh( this );
-        return;
-    }
 
     finish();
 }
