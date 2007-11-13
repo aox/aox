@@ -342,7 +342,16 @@ void ImapSession::enqueue( const String & r )
         return;
     }
 
-    d->unsolicited = d->i->commands()->isEmpty(); // XXX doesn't work, fix it
+    bool u = true;
+    List<Command>::Iterator c( d->i->commands() );
+    while ( c && u ) {
+        if ( c->state() == Command::Executing ||
+             c->state() == Command::Finished )
+            u = false;
+        ++c;
+    }
+    if ( u )
+        d->unsolicited = true;
     d->i->enqueue( r );
 }
 
