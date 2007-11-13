@@ -30,6 +30,9 @@ public:
 
     The SmtpMailFrom class parses and acts on the "mail from" command,
     with whatever extensions we like. Bothersome.
+    
+    The extensions currently implemented are SIZE (see RFC 1870) and
+    DSN (RFC 3461).
 */
 
 /*! Creates a new SmtpMailFrom handler from the command issued to \a s,
@@ -111,6 +114,15 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
         else {
             respond( 501, "BODY must be 7BIT or 8BITMIME", "5.5.4" );
         }
+    }
+    else if ( name == "size" ) {
+        bool ok = false;
+        uint n = value.number( &ok );
+        if ( !ok )
+            respond( 501, "SIZE must be a decimal number" );
+        if ( n > 100 * 1024 * 1024 )
+            respond( 501, "Cannot deliver mail larger than 100MB" );
+        // a configurable limit would be nice, not? perhaps even two?
     }
     else {
         respond( 501,
