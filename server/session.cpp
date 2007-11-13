@@ -1046,6 +1046,13 @@ void SessionInitialiser::findMailboxChanges()
                  " on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
                  "where m.mailbox=$1 and dm.uid is null "
                  "and m.uid<$2" );
+    if ( initialising ) // largest-first to please messageset
+        msgs.append( " order by m.uid desc" );
+    else if ( d->retrievingModSeq ) {
+        msgs.append( " and (m.uid>=$3 or ms.modseq>=$4)" );
+    else 
+        msgs.append( " and m.uid>=$3" );
+        
     if ( !initialising )
         msgs.append( " and (m.uid>=$3 or ms.modseq>=$4)" );
     else // largest-first to please messageset
@@ -1053,10 +1060,10 @@ void SessionInitialiser::findMailboxChanges()
     d->messages = new Query( msgs, this );
     d->messages->bind( 1, d->mailbox->id() );
     d->messages->bind( 2, d->newUidnext );
-    if ( !initialising ) {
+    if ( !initialising )
         d->messages->bind( 3, d->oldUidnext );
+    if ( d->retrievingModSeq )
         d->messages->bind( 4, d->oldModSeq );
-    }
 
     submit( d->messages );
 }
