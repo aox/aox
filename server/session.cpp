@@ -1058,7 +1058,7 @@ void SessionInitialiser::findMailboxChanges()
     d->messages->bind( 2, d->newUidnext );
     if ( !initialising )
         d->messages->bind( 3, d->oldUidnext );
-    if ( d->retrievingModSeq )
+    if ( d->retrievingModSeq && !initialising )
         d->messages->bind( 4, d->oldModSeq );
 
     submit( d->messages );
