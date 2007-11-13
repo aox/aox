@@ -263,12 +263,6 @@ void Copy::execute()
     if ( !d->transaction->done() )
         return;
 
-    if ( imap()->session() && d->mailbox == imap()->session()->mailbox() ) {
-        imap()->session()->refresh( this );
-        if ( !imap()->session()->initialised() )
-            return;
-    }
-
     if ( d->transaction->failed() ) {
         error( No, "Database failure: " + d->transaction->error() );
         return;
@@ -276,7 +270,7 @@ void Copy::execute()
 
     uint next = d->firstUid + d->set.count();
     if ( d->mailbox->uidnext() <= next ) {
-        d->mailbox->setUidnext( next );
+        d->mailbox->setUidnextAndNextModSeq( next, d->modseq+1 );
         OCClient::send( "mailbox " + d->mailbox->name().utf8().quoted() + " "
                         "uidnext=" + fn( next ) + " "
                         "nextmodseq=" + fn( d->modseq+1 ) );
