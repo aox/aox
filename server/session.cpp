@@ -1052,11 +1052,7 @@ void SessionInitialiser::findMailboxChanges()
         msgs.append( " and (m.uid>=$3 or ms.modseq>=$4)" );
     else 
         msgs.append( " and m.uid>=$3" );
-        
-    if ( !initialising )
-        msgs.append( " and (m.uid>=$3 or ms.modseq>=$4)" );
-    else // largest-first to please messageset
-        msgs.append( " order by m.uid desc" );
+
     d->messages = new Query( msgs, this );
     d->messages->bind( 1, d->mailbox->id() );
     d->messages->bind( 2, d->newUidnext );
