@@ -20,9 +20,6 @@
            marking mailboxes deleted doesn't actually delete messages in
            those mailboxes.
 
-    - Addresses table unified, but the constraint needs changing and
-      the new schema step must be activated.
-
   Done:
 
     - The aox verbs create and add should be equivalent.
@@ -33,6 +30,7 @@
     - aox change username fixed.
     - added RFC 1870 and RFC 5032 support.
     - Opening large mailboxes is now much faster.
+    - Domains are now 100% case insensitive (up from 90%).
 
   Abhijit is responsive.
 
