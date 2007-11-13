@@ -12,8 +12,6 @@
   also open in a non-IDLE client, all the messages injected will be
   held in RAM until the new EXISTS response can be sent. Nasty.
 
-  The quadratic behaviour in session updates has to go.
-
   Partially done:
 
     - "aox delete user -f ams" fails if
@@ -33,6 +31,8 @@
       Makefile needs to be checked carefully.)
     - Better error messages for 'db-user=_aox'.
     - aox change username fixed.
+    - added RFC 1870 and RFC 5032 support.
+    - Opening large mailboxes is now much faster.
 
   Abhijit is responsive.
 
