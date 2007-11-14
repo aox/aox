@@ -92,8 +92,15 @@ void ImapSession::emitExists( uint number )
     if ( d->exists != number )
         enqueue( "* " + fn( number ) + " EXISTS\r\n" );
 
-    if ( d->unsolicited )
-        return;
+    if ( d->unsolicited ) {
+        List<Command>::Iterator c( d->i->commands() );
+        while ( c && c->state() == Command::Retired )
+            ++c;
+        if ( c && c->state() == Command::Finished )
+            d->unsolicited = false;
+        else
+            return;
+    }
     d->exists = number;
 
     uint r = recent().count();
@@ -275,6 +282,8 @@ bool ImapSession::responsesReady( ResponseType type ) const
 
     Apparently some clients don't listen when we tell them, but do
     listen to the reminder.
+
+    The reimplementation does nothing if \a t is not 'New'.
 */
 
 bool ImapSession::responsesNeeded( ResponseType t ) const
@@ -283,10 +292,8 @@ bool ImapSession::responsesNeeded( ResponseType t ) const
         List<Command>::Iterator c( d->i->commands() );
         while ( c && c->state() == Command::Retired )
             ++c;
-        if ( c && c->state() == Command::Finished ) {
-            d->unsolicited = false;
+        if ( c && c->state() == Command::Finished )
             return true;
-        }
     }
     return Session::responsesNeeded( t );
 }
@@ -338,13 +345,22 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
                 return true;
             return false;
         }
-
-        // is there a finished command we may stuff with responses?
-        while ( c && c->state() != Command::Finished )
+        
+        bool finished = false;
+        bool executing = false;
+        while ( c ) {
+            if ( c->state() == Command::Finished )
+                finished = true;
+            else if ( c->state() == Command::Executing )
+                executing = true;
             ++c;
-        if ( c )
-            return true;
-        return false;
+        }
+        if ( executing )
+            return false; // no responses while commands are running
+        if ( finished )
+            return true; // we can stuff responses onto that command
+
+        return false; // no commandin progress
     }
 }
 
