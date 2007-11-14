@@ -25,7 +25,7 @@ class MessageData
 public:
     MessageData()
         : strict( false ), uid( 0 ), mailbox( 0 ), annotations( 0 ),
-          rfc822Size( 0 ), internalDate( 0 ), modseq( 1 ),
+          rfc822Size( 0 ), internalDate( 0 ), modseq( 0 ),
           hasFlags( false ), hasHeaders( false ), hasAddresses( false ),
           hasBodies( false ), hasAnnotations( false )
 
@@ -1038,7 +1038,7 @@ Message * Message::wrapUnparsableMessage( const String & message,
 
 
 /*! Records that this message's modseq (see RFC 4551) is \a n. The
-    initial value is 1. */
+    initial value is 0, which is not a legal modseq. */
 
 void Message::setModSeq( uint n )
 {
