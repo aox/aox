@@ -591,7 +591,6 @@ void SessionInitialiser::execute()
     } while ( state != d->state );
     if ( d->t && d->t->failed() ) {
         releaseLock();
-        d->t->rollback();
         d->t = 0;
     }
     // when we come down here, we either have a callback from a query
@@ -705,8 +704,14 @@ void SessionInitialiser::restart()
     // sessions. we only want to work if a session that could emit its
     // changes so far has old data.
 
-    if ( nextModSeq >= d->newModSeq && uidnext >= d->newUidnext )
-        return;
+    if ( nextModSeq >= d->newModSeq && uidnext >= d->newUidnext ) {
+        if ( !d->mailbox->view() )
+            return;
+        // if the mailbox is a view, there's one other possibility:
+        // the view_messages table needs updates.
+        if ( d->mailbox->nextModSeq() == d->mailbox->source()->nextModSeq() )
+            return;
+    }
 
     if ( d->sessions.isEmpty() )
         return;
@@ -720,6 +725,12 @@ void SessionInitialiser::restart()
         ++i;
     }
     d->state = SessionInitialiserData::NoTransaction;
+    d->t = 0;
+    d->recent = 0;
+    d->messages = 0;
+    d->nms = 0;
+    d->changeRecent = false;
+    d->retrievingModSeq = false;
 }
 
 
@@ -744,6 +755,8 @@ void SessionInitialiser::grabLock()
 
     if ( highestRecent + 1 == d->newUidnext )
         d->changeRecent = false;
+    if ( d->mailbox->view() )
+        d->changeRecent = false;
 
     if ( d->changeRecent || d->mailbox->view() )
         d->t = new Transaction( this );
@@ -751,7 +764,7 @@ void SessionInitialiser::grabLock()
     if ( d->changeRecent )
         d->recent = new Query( "select first_recent from mailboxes "
                                "where id=$1 for update", this );
-    else if ( highestRecent < d->newUidnext - 1 )
+    else if ( highestRecent < d->newUidnext - 1 && !d->mailbox->view() )
         d->recent = new Query( "select first_recent from mailboxes "
                                "where id=$1", this );
     if ( d->recent ) {
@@ -779,7 +792,7 @@ void SessionInitialiser::releaseLock()
 {
     if ( d->t ) {
         d->t->commit();
-        if ( !d->t->done() ) // hm. do we need to wait?
+        if ( !d->t->failed() && !d->t->done() )
             return;
 
         if ( !d->t->failed() )
