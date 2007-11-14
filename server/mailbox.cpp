@@ -30,7 +30,7 @@ public:
           parent( 0 ), children( 0 ),
           sessions( 0 ), threader( 0 ),
           nextModSeq( 1 ),
-          source( 0 ), sourceUids( 0 ),
+          source( 0 ),
           views( 0 )
     {}
 
@@ -52,8 +52,6 @@ public:
 
     uint source;
     String selector;
-
-    Map< uint > * sourceUids;
 
     List<Mailbox> * views;
 };
@@ -138,8 +136,6 @@ public:
                 m->setOwner( r->getInt( "owner" ) );
 
             if ( m->type() == Mailbox::View ) {
-                if ( !m->d->sourceUids )
-                    m->d->sourceUids = new Map< uint >;
                 m->d->source = r->getInt( "source" );
                 m->d->nextModSeq = r->getBigint( "viewnms" );
                 m->d->selector = r->getString( "selector" );
@@ -734,47 +730,6 @@ void Mailbox::notifySessions()
 List<Session> * Mailbox::sessions() const
 {
     return d->sessions;
-}
-
-
-/*! Sets the source uid for \a uid to \a suid.
-    (For use by the SessionInitialiser.)
-*/
-
-void Mailbox::setSourceUid( uint uid, uint suid )
-{
-    d->sourceUids->insert( uid, new uint( suid ) );
-}
-
-
-/*! Returns the source UID for the specified \a uid, or 0 if the \a uid
-    is not known.
-*/
-
-uint Mailbox::sourceUid( uint uid ) const
-{
-    uint * suid = d->sourceUids->find( uid );
-    if ( suid )
-        return *suid;
-    return 0;
-}
-
-
-/*! This function returns the source UIDs for the messages with UIDs
-    specified in \a u. Any unknown UIDs will be mapped to 0.
-*/
-
-MessageSet Mailbox::sourceUids( const MessageSet &u ) const
-{
-    MessageSet s;
-
-    uint i = u.count();
-    while ( i > 0 ) {
-        s.add( sourceUid( u.value( i ) ) );
-        i--;
-    }
-
-    return s;
 }
 
 

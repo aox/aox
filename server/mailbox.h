@@ -54,10 +54,6 @@ public:
     Mailbox * source() const;
     String selector() const;
 
-    void setSourceUid( uint, uint );
-    uint sourceUid( uint ) const;
-    MessageSet sourceUids( const MessageSet & ) const;
-
     static void setup( class EventHandler * = 0 );
     static Mailbox * find( const UString &, bool = false );
     static Mailbox * obtain( const UString &, bool create = true );

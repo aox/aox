@@ -616,13 +616,7 @@ void Store::removeFlags( bool opposite )
     Mailbox * m = imap()->session()->mailbox();
     MessageSet s( d->s );
 
-    if ( m->view() ) {
-        s = m->sourceUids( s );
-        m = m->source();
-    }
-    else {
-        s.addGapsFrom( imap()->session()->messages() );
-    }
+    s.addGapsFrom( imap()->session()->messages() );
 
     List<Flag>::Iterator it( d->flags );
     String flags;
@@ -702,13 +696,7 @@ void Store::addFlags()
     Mailbox * m = imap()->session()->mailbox();
     MessageSet s( d->s );
 
-    if ( m->view() ) {
-        s = m->sourceUids( s );
-        m = m->source();
-    }
-    else {
-        s.addGapsFrom( imap()->session()->messages() );
-    }
+    s.addGapsFrom( imap()->session()->messages() );
 
     List<Flag>::Iterator it( d->flags );
     while ( it ) {
@@ -746,14 +734,7 @@ void Store::replaceAnnotations()
     Mailbox * m = imap()->session()->mailbox();
     MessageSet s( d->s );
 
-    if ( m->view() ) {
-        s = m->sourceUids( s );
-        m = m->source();
-    }
-    else {
-        s.addGapsFrom( imap()->session()->messages() );
-    }
-
+    s.addGapsFrom( imap()->session()->messages() );
 
     List<Annotation>::Iterator it( d->annotations );
     String w = s.where();

@@ -111,11 +111,12 @@ void Copy::execute()
         }
 
         Mailbox * current = imap()->session()->mailbox();
+        String where = "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5";
         MessageSet set = d->set;
-        if ( current->view() ) {
-            set = current->sourceUids( set );
-            current = current->source();
-        }
+        if ( current->view() )
+            where = "join view_messages vm on "
+                    " (m.mailbox=vm.source and m.uid=vm.suid) "
+                    "where vm.view=$3 and vm.uid>=$4 and vm.uid<$5";
 
         Query * q;
 
@@ -138,8 +139,9 @@ void Copy::execute()
 
             q = new Query( "insert into messages "
                            "(mailbox, uid, idate, rfc822size) "
-                           "select $1, " + diff + ", idate, rfc822size from messages "
-                           "where mailbox=$3 and uid>=$4 and uid<$5",
+                           "select $1, " + diff +
+                           ", m.idate, m.rfc822size from messages m " +
+                           where,
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
@@ -150,9 +152,9 @@ void Copy::execute()
 
             q = new Query( "insert into part_numbers "
                            "(mailbox, uid, part, bodypart, bytes, lines) "
-                           "select $1, " + diff + ", part, bodypart, bytes, lines "
-                           "from part_numbers "
-                           "where mailbox=$3 and uid>=$4 and uid<$5",
+                           "select $1, " + diff +
+                           ", m.part, m.bodypart, m.bytes, m.lines "
+                           "from part_numbers m " + where,
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
@@ -163,9 +165,9 @@ void Copy::execute()
 
             q = new Query( "insert into header_fields "
                            "(mailbox, uid, part, position, field, value) "
-                           "select $1, " + diff + ", part, position, field, value "
-                           "from header_fields "
-                           "where mailbox=$3 and uid>=$4 and uid<$5",
+                           "select $1, " + diff +
+                           ", m.part, m.position, m.field, m.value "
+                           "from header_fields m " + where,
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
@@ -177,9 +179,9 @@ void Copy::execute()
             q = new Query( "insert into address_fields "
                            "(mailbox, uid, part, position, field,"
                            " address, number) "
-                           "select $1, " + diff + ", part, position, "
-                           "field, address, number from address_fields "
-                           "where mailbox=$3 and uid>=$4 and uid<$5",
+                           "select $1, " + diff + ", m.part, m.position, "
+                           "m.field, m.address, m.number "
+                           "from address_fields m " + where,
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
@@ -190,9 +192,8 @@ void Copy::execute()
 
             q = new Query( "insert into flags "
                            "(mailbox, uid, flag) "
-                           "select $1, " + diff + ", flag "
-                           "from flags "
-                           "where mailbox=$3 and uid>=$4 and uid<$5",
+                           "select $1, " + diff + ", m.flag "
+                           "from flags m" + where,
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
@@ -203,9 +204,8 @@ void Copy::execute()
 
             q = new Query( "insert into annotations "
                            "(mailbox, uid, owner, name, value) "
-                           "select $1, " + diff + ", $6, name, value "
-                           "from annotations "
-                           "where mailbox=$3 and uid>=$4 and uid<$5 and "
+                           "select $1, " + diff + ", $6, m.name, m.value "
+                           "from annotations m " + where + " and "
                            "(owner is null or owner=$6)",
                            this );
             q->bind( 1, tmailbox );

@@ -891,18 +891,19 @@ void SessionInitialiser::findUidnext()
 void SessionInitialiser::findViewChanges()
 {
     Selector * sel = new Selector;
-    sel->add( new Selector( Selector::Modseq, Selector::Larger,
-                            d->oldModSeq ) );
     sel->add( Selector::fromString( d->mailbox->selector() ) );
+    if ( sel->dynamic() )
+        d->retrievingModSeq = true;
+    if ( d->retrievingModSeq )
+        sel->add( new Selector( Selector::Modseq, Selector::Larger,
+                                d->oldModSeq ) );
+    else
+        sel->add( new Selector( Selector::Uid, Selector::Larger,
+                                d->oldUidnext ) );
     sel->simplify();
 
     d->messages = sel->query( 0, d->mailbox->source(), 0, this );
     uint oms = sel->placeHolder();
-
-    if ( sel->dynamic() )
-        d->retrievingModSeq = true;
-
-    // this query isn't even nearly optimal for static views.
 
     String s( "select m.mailbox, m.uid, "
               " vm.uid as vuid, "
@@ -925,8 +926,8 @@ void SessionInitialiser::findViewChanges()
               " m.uid=s.uid "
               "where m.mailbox=$" + sel->mboxId() );
     if ( sel->dynamic() )
-        s.append( " and ms.modseq>=$" + fn( oms ) + " " );
-    s.append( "order by m.uid" );
+        s.append( " and ms.modseq>=$" + fn( oms ) );
+    s.append( " order by m.uid" );
     if ( sel->dynamic() )
         d->messages->bind( oms, d->oldModSeq );
     d->messages->setString( s );

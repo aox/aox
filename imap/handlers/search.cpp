@@ -692,18 +692,13 @@ Selector * Search::selector() const
 
 
 /*! This reimplementation of Command::set() simplifies the set by
-    including messages that don't exist, and returns UIDs in the
-    underlying mailbox rather than a view. \a parseMsns is as for
+    including messages that don't exist. \a parseMsns is as for
     Command::set().
 */
 
 MessageSet Search::set( bool parseMsns )
 {
     MessageSet s( Command::set( parseMsns ) );
-    Mailbox * m = imap()->session()->mailbox();
-    if ( m->view() )
-        return m->sourceUids( s );
-
     s.addGapsFrom( imap()->session()->messages() );
     return s;
 }

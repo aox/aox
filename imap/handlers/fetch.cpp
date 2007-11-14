@@ -1373,13 +1373,7 @@ FetchData::SeenFlagSetter::SeenFlagSetter( ImapSession * s,
       t( 0 ), seen( 0 ), f( 0 ), ms( 0 ), session( s ), o( owner ),
       mailbox( s->mailbox() ), modseq( 0 )
 {
-    if ( mailbox->view() ) {
-        messages.add( mailbox->sourceUids( ms ) );
-        mailbox = mailbox->source();
-    }
-    else {
-        messages.add( ms );
-    }
+    messages.add( ms );
     execute();
 }
 
