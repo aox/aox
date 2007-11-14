@@ -268,14 +268,25 @@ bool ImapSession::responsesReady( ResponseType type ) const
 }
 
 
+/*! This reimplementation exists because we sometimes want to send
+    reminders in IMAP: If a message arrives while the client isn't
+    doing anything, we want to tell it right away, and remind it when
+    it next sends a command.
+
+    Apparently some clients don't listen when we tell them, but do
+    listen to the reminder.
+*/
+
 bool ImapSession::responsesNeeded( ResponseType t ) const
 {
     if ( t == New && d->unsolicited ) {
         List<Command>::Iterator c( d->i->commands() );
         while ( c && c->state() == Command::Retired )
             ++c;
-        if ( c && c->state() == Command::Finished )
+        if ( c && c->state() == Command::Finished ) {
+            d->unsolicited = false;
             return true;
+        }
     }
     return Session::responsesNeeded( t );
 }
