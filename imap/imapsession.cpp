@@ -146,6 +146,10 @@ void ImapSession::emitModification( uint uid )
         return;
     if ( !m->hasFlags() )
         return;
+    if ( d->trif && !m->modSeq() )
+        return;
+    if ( d->annof && !m->hasAnnotations() )
+        return;
 
     String r = "* ";
     r.append( fn( msn( m->uid() ) ) );
@@ -176,6 +180,12 @@ void ImapSession::emitModification( uint uid )
 
     r.append( ")\r\n" );
     enqueue( r );
+
+    List<Message>::Iterator i( d->fetching );
+    while ( i && i->uid() != uid )
+        ++i;
+    if ( i )
+        d->fetching.take( i );
 }
 
 
@@ -349,8 +359,6 @@ void ImapSession::enqueue( const String & r )
 void ImapSession::emitResponses()
 {
     Session::emitResponses();
-    if ( !responsesNeeded( Modified ) )
-        d->fetching.clear();
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
