@@ -422,15 +422,13 @@ void Session::emitResponses( ResponseType type )
             small.add( 1, d->msns.largest() );
             n.remove( small );
         }
-        if ( d->uidnext <= 1 || !n.isEmpty() ) {
-            d->msns.add( n );
-            d->unannounced.remove( n );
-            if ( d->nextModSeq < d->mailbox->nextModSeq() )
-                d->nextModSeq = d->mailbox->nextModSeq();
-            if ( d->uidnext < d->mailbox->uidnext() )
-                d->uidnext = d->mailbox->uidnext();
-            emitExists( d->msns.count() );
-        }
+        d->msns.add( n );
+        d->unannounced.remove( n );
+        if ( d->nextModSeq < d->mailbox->nextModSeq() )
+            d->nextModSeq = d->mailbox->nextModSeq();
+        if ( d->uidnext < d->mailbox->uidnext() )
+            d->uidnext = d->mailbox->uidnext();
+        emitExists( d->msns.count() );
     }
 }
 

@@ -23,6 +23,7 @@ public:
     void emitExpunge( uint );
     void emitModification( uint );
     void emitExists( uint );
+    bool responsesNeeded( ResponseType ) const;
     bool responsesPermitted( ResponseType ) const;
     bool responsesReady( ResponseType ) const;
 

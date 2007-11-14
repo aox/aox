@@ -92,12 +92,8 @@ void ImapSession::emitExists( uint number )
     if ( d->exists != number )
         enqueue( "* " + fn( number ) + " EXISTS\r\n" );
 
-    // if we just sent an unsolicited response, we don't do anything
-    // more, we don't even remember that we sent this. when the next
-    // imap command comes we'll repeat the exists.
     if ( d->unsolicited )
         return;
-
     d->exists = number;
 
     uint r = recent().count();
@@ -272,6 +268,20 @@ bool ImapSession::responsesReady( ResponseType type ) const
 }
 
 
+bool ImapSession::responsesNeeded( ResponseType t ) const
+{
+    if ( t == New && d->unsolicited ) {
+        List<Command>::Iterator c( d->i->commands() );
+        while ( c && c->state() == Command::Retired )
+            ++c;
+        if ( c && c->state() == Command::Finished )
+            return true;
+    }
+    return Session::responsesNeeded( t );
+}
+
+
+
 /*! Returns true if the server is permitted (and able) to send an
     unsolicited status responses of type \a t, and false otherwise.
 */
@@ -313,10 +323,9 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
     else {
         if ( t == New && !c ) {
             // no commands at all. have we sent anything?
-            if ( d->unsolicited )
-                return false;
-            // not so much. we can send a little more.
-            return true;
+            if ( !d->unsolicited )
+                return true;
+            return false;
         }
 
         // is there a finished command we may stuff with responses?
