@@ -753,11 +753,13 @@ void SessionInitialiser::grabLock()
     if ( d->changeRecent )
         d->recent = new Query( "select first_recent from mailboxes "
                                "where id=$1 for update", this );
-    else
+    else if ( highestRecent < d->newUidnext - 1 )
         d->recent = new Query( "select first_recent from mailboxes "
                                "where id=$1", this );
-    d->recent->bind( 1, d->mailbox->id() );
-    submit( d->recent );
+    if ( d->recent ) {
+        d->recent->bind( 1, d->mailbox->id() );
+        submit( d->recent );
+    }
 
     if ( d->mailbox->view() )
         d->nms = new Query( "select uidnext, nextmodseq "
@@ -1029,6 +1031,10 @@ void SessionInitialiser::findMailboxChanges()
         initialising = true;
         d->retrievingModSeq = true;
     }
+    if ( d->newModSeq > d->oldModSeq && // one or more changes
+         !( d->newModSeq == d->oldModSeq + 1 && // and it's not one insertion
+            d->newUidnext > d->oldUidnext + 1 ) )
+        d->retrievingModSeq = true;
     String msgs = "select m.uid";
     if ( d->findFirstUnseen )
         msgs.append( ", f.flag as seen" );
