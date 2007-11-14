@@ -585,7 +585,6 @@ void Store::sendFlagResponses()
         uint uid = d->s.value( i );
         ++i;
         r.truncate();
-        r.append( "* " );
         r.append( fn( s->msn( uid ) ) );
         r.append( " FETCH (UID " );
         r.append( fn( uid ) );
@@ -593,11 +592,11 @@ void Store::sendFlagResponses()
         r.append( " FLAGS (" );
         if ( s->isRecent( uid ) ) {
             r.append( "\\recent" );
-            if ( flags.isEmpty() )
+            if ( !flags.isEmpty() )
                 r.append( " " );
         }
         r.append( flags );
-        r.append( ")" );
+        r.append( "))" );
         respond( r );
     }
 }
