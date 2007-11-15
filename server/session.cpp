@@ -897,6 +897,8 @@ void SessionInitialiser::findViewChanges()
     sel->simplify();
     if ( sel->dynamic() )
         d->retrievingModSeq = true;
+    if ( d->sessions.count() > 1 )
+        d->retrievingModSeq = true;
 
     d->messages = sel->query( 0, d->mailbox->source(), 0, this );
     uint oms = sel->placeHolder();
@@ -940,40 +942,63 @@ void SessionInitialiser::findViewChanges()
 
 void SessionInitialiser::writeViewChanges()
 {
+    if ( !d->messages->done() )
+        return;
     MessageSet removeInDb;
-    MessageSet addToDb;
+    uint unseen = UINT_MAX;
+    Query * add = new Query( "copy view_messages (source,suid,view,uid) "
+                             "from stdin with binary", 0 );
+    bool changes = false;
     Row * r = 0;
     while ( (r=d->messages->nextRow()) != 0 ) {
-        bool seen = true;
-        if ( r->isNull( "seen" ) )
-            seen = false;
-
         uint uid = r->getInt( "uid" );
+
+        if ( d->findFirstUnseen && uid < unseen && r->isNull( "seen" ) )
+            unseen = uid;
+
         uint vuid = 0;
         if ( !r->isNull( "vuid" ) )
             vuid = r->getInt( "vuid" );
 
-        bool left = false;
+        bool matched = true;
         if ( r->isNull( "suid" ) )
-            left = true;
+            matched = false;
 
         // if it left the search result but still is in the db, we
         // want to remove it from the db
-        if ( left && vuid )
+        if ( vuid && !matched )
             removeInDb.add( vuid );
         // if it entered the search result and isn't in the db, we
         // want to add it to the db
-        if ( !left && !vuid )
-            addToDb.add( uid );
+        if ( matched && !vuid ) {
+            vuid = d->newUidnext;
+            d->newUidnext++;
+            add->bind( 1, d->mailbox->source()->id(), Query::Binary );
+            add->bind( 2, uid, Query::Binary );
+            add->bind( 3, d->mailbox->id(), Query::Binary );
+            add->bind( 4, vuid, Query::Binary );
+            add->submitLine();
+            changes = true;
+            // the next clause also matches, so the message is added
+            // to each session as well.
+        }
         // if it is in the search results and also in the db, then
-        // it's new or changed (depending on the session)
-        if ( !left && vuid ) {
+        // it's new to the session or changed in the session.
+        if ( matched && vuid ) {
             if ( d->retrievingModSeq )
                 addToSessions( vuid, r->getBigint( "modseq" ) );
             else
                 addToSessions( vuid, 0 );
         }
     }
+    if ( changes ) {
+        submit( add );
+        Query * q
+            = new Query( "update mailboxes set uidnext=$1 where id=$2", 0 );
+        q->bind( 1, d->newUidnext );
+        q->bind( 2, d->mailbox->id() );
+        submit( q );
+    }        
 
     if ( !removeInDb.isEmpty() ) {
         Query * q
@@ -989,39 +1014,28 @@ void SessionInitialiser::writeViewChanges()
             ++i;
             s->expunge( removeInDb, 0 ); // expunge does not consume a modseq
         }
+        changes = true;
     }
 
-    if ( !addToDb.isEmpty() ) {
-        Query * q = new Query( "copy view_messages (source,suid,view,uid) "
-                               "from stdin with binary", 0 );
-        while ( !addToDb.isEmpty() ) {
-            uint suid = addToDb.value( 1 );
-            addToDb.remove( suid );
-            uint uid = d->newUidnext;
-            d->newUidnext++;
-            q->bind( 1, d->mailbox->source()->id(), Query::Binary );
-            q->bind( 2, suid, Query::Binary );
-            q->bind( 3, d->mailbox->id(), Query::Binary );
-            q->bind( 4, uid, Query::Binary );
-            q->submitLine();
-            addToSessions( uid, 0 ); // XXX the modseq's no longer known
-        }
-        submit( q );
-
-        d->mailbox->setUidnext( d->newUidnext );
-        q = new Query( "update mailboxes set uidnext=$1 where id=$2", 0 );
-        q->bind( 1, d->newUidnext );
-        q->bind( 2, d->mailbox->id() );
-        submit( q );
-    }
-
-    if ( !removeInDb.isEmpty() || !addToDb.isEmpty() ) {
+    if ( changes ) {
         Query * q = new Query(
-            " update views set nextmodseq="
-            "(select nextmodseq from mailboxes where id=views.id) "
-            "where view=$1", this );
-        q->bind( 2, d->mailbox->id() );
+            " update mailboxes set nextmodseq="
+            "(select nextmodseq from mailboxes where id=$2) "
+            "where id=$1", this );
+        q->bind( 1, d->mailbox->id() );
+        q->bind( 2, d->mailbox->source()->id() );
         submit( q );
+        d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
+                                             d->mailbox->source()->nextModSeq() );
+    }
+
+    if ( unseen < UINT_MAX ) {
+        List<Session>::Iterator s( d->sessions );
+        while ( s ) {
+            if ( !s->firstUnseen() || s->firstUnseen() > unseen )
+                s->setFirstUnseen( unseen );
+            ++s;
+        }
     }
 }
 
