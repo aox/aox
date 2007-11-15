@@ -367,6 +367,14 @@ void Session::emitResponses()
         else
             ok = false;
     }
+    if ( !responsesNeeded( Deleted ) &&
+         !responsesNeeded( Modified ) &&
+         !responsesNeeded( New ) ) {
+        if ( d->nextModSeq < d->mailbox->nextModSeq() )
+            d->nextModSeq = d->mailbox->nextModSeq();
+        if ( d->uidnext < d->mailbox->uidnext() )
+            d->uidnext = d->mailbox->uidnext();
+    }
 }
 
 
@@ -892,42 +900,45 @@ void SessionInitialiser::findViewChanges()
 {
     Selector * sel = new Selector;
     sel->add( Selector::fromString( d->mailbox->selector() ) );
-    sel->add( new Selector( Selector::Modseq, Selector::Larger,
-                            d->oldModSeq ) );
+
+    // XXX we really want the next line, but it make the logic below
+    // go bad.
+    // sel->add( new Selector( Selector::Modseq, Selector::Larger, d->oldModSeq ) );
     sel->simplify();
-    if ( sel->dynamic() )
-        d->retrievingModSeq = true;
-    if ( d->sessions.count() > 1 )
-        d->retrievingModSeq = true;
+    d->retrievingModSeq = true;
+
+    Flag * seen = 0;
+    if ( d->findFirstUnseen ) {
+        seen = Flag::find( "\\seen" );
+        if ( !seen )
+            d->findFirstUnseen = false;
+    }
 
     d->messages = sel->query( 0, d->mailbox->source(), 0, this );
     uint oms = sel->placeHolder();
+    d->messages->bind( oms, d->oldModSeq );
 
     String s( "select m.mailbox, m.uid, "
-              " vm.uid as vuid, "
-              " s.uid as suid" );
-    if ( d->retrievingModSeq )
-        s.append( ", ms.modseq" );
-    if ( d->findFirstUnseen )
-        s.append( ", f.flag as seen" );
-    s.append( " from messages m " );
-    if ( d->retrievingModSeq )
-        s.append( "join modsequences ms on "
-                  " (m.mailbox=ms.mailbox and m.uid=ms.uid) " );
-    s.append( "left join view_messages vm on "
+              " vm.uid as vuid, s.uid as suid, " );
+    if ( seen )
+        s.append( "f.flag as seen, " );
+    s.append( "ms.modseq "
+              "from messages m "
+              "join modsequences ms on "
+              " (m.mailbox=ms.mailbox and m.uid=ms.uid) "
+              "left join view_messages vm on "
               " (m.mailbox=vm.source and m.uid=vm.suid) " );
-    if ( d->findFirstUnseen )
+    if ( seen )
         s.append( "left join flags f on "
                   " (m.mailbox=f.mailbox and m.uid=f.uid and "
-                  "  f.flag=" + fn( Flag::find( "\\seen" )->id() ) + ") " );
+                  "  f.flag=" + fn( seen->id() ) + ") " );
     s.append( "left join (" + d->messages->string() + ") s on "
               " m.uid=s.uid "
-              "where m.mailbox=$" + sel->mboxId() );
-    if ( sel->dynamic() )
-        s.append( " and ms.modseq>=$" + fn( oms ) );
-    s.append( " order by m.uid" );
-    if ( sel->dynamic() )
-        d->messages->bind( oms, d->oldModSeq );
+              "where m.mailbox=$" + sel->mboxId() + " "
+              "and ((s.uid is not null and vm.uid is null)"
+              "  or (s.uid is null and vm.uid is not null)"
+              "  or ms.modseq>=$" + fn( oms ) +") "
+              "order by m.uid" );
     d->messages->setString( s );
     submit( d->messages );
 }
@@ -952,9 +963,6 @@ void SessionInitialiser::writeViewChanges()
     Row * r = 0;
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
-
-        if ( d->findFirstUnseen && uid < unseen && r->isNull( "seen" ) )
-            unseen = uid;
 
         uint vuid = 0;
         if ( !r->isNull( "vuid" ) )
@@ -990,6 +998,10 @@ void SessionInitialiser::writeViewChanges()
             else
                 addToSessions( vuid, 0 );
         }
+
+        if ( d->findFirstUnseen && vuid &&
+             vuid < unseen && r->isNull( "seen" ) )
+            unseen = vuid;
     }
     if ( changes ) {
         submit( add );
@@ -1016,6 +1028,9 @@ void SessionInitialiser::writeViewChanges()
         }
         changes = true;
     }
+
+    if ( d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() )
+        changes = true; // not sure why this would be the case, but...
 
     if ( changes ) {
         Query * q = new Query(
