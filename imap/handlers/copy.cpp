@@ -130,10 +130,10 @@ void Copy::execute()
             while ( j-i == set.value( j ) - cuid && j < i+1024 )
                 j++;
 
-            String diff = "uid+$2";
+            String diff = "m.uid+$2";
             uint delta = tuid-cuid;
             if ( tuid < cuid ) {
-                diff = "uid-$2";
+                diff = "m.uid-$2";
                 delta = cuid-tuid;
             }
 
@@ -193,7 +193,7 @@ void Copy::execute()
             q = new Query( "insert into flags "
                            "(mailbox, uid, flag) "
                            "select $1, " + diff + ", m.flag "
-                           "from flags m" + where,
+                           "from flags m " + where,
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
