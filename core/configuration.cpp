@@ -165,7 +165,7 @@ static struct {
     { "managesieve-port", Configuration::ManageSievePort, 2000 },
     { "undelete-time", Configuration::UndeleteTime, 7 },
     { "smarthost-port", Configuration::SmartHostPort, 25 },
-    { "statistics-port", Configuration::SmartHostPort, 17220 }
+    { "statistics-port", Configuration::StatisticsPort, 17220 }
 };
 
 
