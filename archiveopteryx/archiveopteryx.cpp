@@ -167,13 +167,14 @@ int main( int argc, char *argv[] )
         Configuration::SmtpsAddress, Configuration::SmtpsPort,
         false
         );
+
+    s.setup( Server::LogStartup );
+
     Listener< GraphDumper >::create(
         "Statistics", Configuration::toggle( Configuration::UseStatistics ),
         Configuration::StatisticsAddress, Configuration::StatisticsPort,
         false
         );
-
-    s.setup( Server::LogStartup );
 
     Database::setup();
 

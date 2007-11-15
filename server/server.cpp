@@ -375,6 +375,13 @@ void Server::fork()
             d->children = 0;
             EventLoop::global()->closeAllExceptListeners();
             log( "Process " + fn( getpid() ) + " started" );
+            if ( Configuration::toggle( Configuration::UseStatistics ) ) {
+                uint port 
+                    = Configuration::scalar( Configuration::StatisticsPort );
+                log( "Using port " + fn( port + i ) +
+                     " for statistics queries" );
+                Configuration::add( "statistics-port = " + fn( port + i ) );
+            }
         }
         i++;
     }
