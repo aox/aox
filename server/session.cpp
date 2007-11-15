@@ -892,15 +892,11 @@ void SessionInitialiser::findViewChanges()
 {
     Selector * sel = new Selector;
     sel->add( Selector::fromString( d->mailbox->selector() ) );
+    sel->add( new Selector( Selector::Modseq, Selector::Larger,
+                            d->oldModSeq ) );
+    sel->simplify();
     if ( sel->dynamic() )
         d->retrievingModSeq = true;
-    if ( d->retrievingModSeq )
-        sel->add( new Selector( Selector::Modseq, Selector::Larger,
-                                d->oldModSeq ) );
-    else
-        sel->add( new Selector( Selector::Uid, Selector::Larger,
-                                d->oldUidnext ) );
-    sel->simplify();
 
     d->messages = sel->query( 0, d->mailbox->source(), 0, this );
     uint oms = sel->placeHolder();
