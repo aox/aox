@@ -729,7 +729,7 @@ void Configuration::log( const String & m, Log::Severity s )
 }
 
 
-/*! Returns a list of the variable that refer to addresses. This
+/*! Returns a list of the variables that refer to addresses. This
     function is a little slow. It never returns 0.
 */
 
