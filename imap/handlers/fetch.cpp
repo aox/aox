@@ -1380,6 +1380,9 @@ FetchData::SeenFlagSetter::SeenFlagSetter( ImapSession * s,
 
 void FetchData::SeenFlagSetter::execute()
 {
+    if ( !t && messages.isEmpty() )
+        return;
+
     if ( !t ) {
         seen = Flag::find( "\\seen" );
         if ( !seen )
@@ -1388,12 +1391,23 @@ void FetchData::SeenFlagSetter::execute()
         t = new Transaction( this );
         ms = new Query( "select nextmodseq from mailboxes "
                         "where id=$1 for update", this );
-        ms->bind( 1, mailbox->id() );
+        if ( mailbox->view() )
+            ms->bind( 1, mailbox->source()->id() );
+        else
+            ms->bind( 1, mailbox->id() );
         t->enqueue( ms );
 
-        f = new Query( "select uid from flags "
-                       "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
-                       this );
+        if ( mailbox->view() )
+            f = new Query(
+                "select vm.uid from view_messages vm "
+                "join flags f on (vm.source=f.mailbox and vm.suid=f.uid) "
+                "where vm.view=$1 and f.flag=$2 and vm.uid>=$3 and vm.uid<=$4",
+                this );
+        else
+            f = new Query(
+                "select uid from flags "
+                "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
+                this );
         f->bind( 1, mailbox->id() );
         f->bind( 2, seen->id() );
         f->bind( 3, messages.smallest() );
@@ -1403,20 +1417,21 @@ void FetchData::SeenFlagSetter::execute()
         t->execute();
     }
 
+    if ( !f->done() )
+        return;
+
     Row * r = f->nextRow();
     while ( r ) {
         messages.remove( r->getInt( "uid" ) );
         r = f->nextRow();
     }
 
-    if ( !f->done() )
-        return;
-
     if ( messages.isEmpty() ) {
         t->rollback();
         if ( o )
             o->execute();
         o = 0;
+        t = 0;
         return;
     }
 
@@ -1426,12 +1441,23 @@ void FetchData::SeenFlagSetter::execute()
     r = ms->nextRow();
     if ( r ) {
         modseq = r->getBigint( "nextmodseq" );
-        Query * q = new Query( "update modsequences "
-                               "set modseq=$1 "
-                               "where mailbox=$2 and " + messages.where(),
-                               0 );
+        Query * q = 0;
+        if ( mailbox->view() )
+            q = new Query( "update modsequences "
+                           "set modseq=$1 "
+                           "where (mailbox,uid) in "
+                           "(select source,suid from view_messages where " +
+                           messages.where() + "and view=$2)", 0 );
+        else
+            q = new Query( "update modsequences "
+                           "set modseq=$1 "
+                           "where mailbox=$2 and " + messages.where(),
+                           0 );
         q->bind( 1, modseq );
-        q->bind( 2, mailbox->id() );
+        if ( mailbox->view() )
+            q->bind( 2, mailbox->source()->id() );
+        else
+            q->bind( 2, mailbox->id() );
         t->enqueue( q );
 
 
@@ -1440,7 +1466,10 @@ void FetchData::SeenFlagSetter::execute()
         q = new Query( "update mailboxes set nextmodseq=$1 "
                        "where id=$2", 0 );
         q->bind( 1, modseq + 1 );
-        q->bind( 2, mailbox->id() );
+        if ( mailbox->view() )
+            q->bind( 2, mailbox->source()->id() );
+        else
+            q->bind( 2, mailbox->id() );
         t->enqueue( q );
         t->commit();
     }
@@ -1448,13 +1477,25 @@ void FetchData::SeenFlagSetter::execute()
     if ( !t->done() )
         return;
 
-    if ( mailbox->nextModSeq() <= modseq ) {
-        mailbox->setNextModSeq( modseq + 1 );
-        OCClient::send( "mailbox " + mailbox->name().utf8().quoted() + " "
-                        "nextmodseq=" + fn( modseq+1 ) );
+    if ( mailbox->view() ) {
+        if ( mailbox->source()->nextModSeq() <= modseq ) {
+            mailbox->source()->setNextModSeq( modseq + 1 );
+            OCClient::send( "mailbox " +
+                            mailbox->source()->name().utf8().quoted() + " "
+                            "nextmodseq=" + fn( modseq+1 ) );
+        }
+    }
+    else {
+        if ( mailbox->nextModSeq() <= modseq ) {
+            mailbox->setNextModSeq( modseq + 1 );
+            OCClient::send( "mailbox " + mailbox->name().utf8().quoted() + " "
+                            "nextmodseq=" + fn( modseq+1 ) );
+        }
     }
     if ( o )
         o->execute();
     modseq = 0;
     o = 0;
+    t = 0;
+    messages.clear();
 }
