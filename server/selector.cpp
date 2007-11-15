@@ -661,6 +661,8 @@ String Selector::whereHeaderField()
     root()->d->needHeaderFields = true;
 
     uint t = FieldNameCache::translate( d->s8 );
+    if ( !t )
+        t = HeaderField::fieldType( d->s8 );
     String r;
     if ( t ) {
         r = "hf.field=" + fn( t );
