@@ -180,7 +180,15 @@ String SieveProduction::error() const
 StringList * SieveProduction::supportedExtensions()
 {
     StringList * r = new StringList;
+    // sorted by name, please
     r->append( "body" );
+    StringList::Iterator c( Collation::supported() );
+    while ( c ) {
+        String name = "comparator-";
+        name.append( *c );
+        r->append( name );
+        ++c;
+    }
     r->append( "date" );
     r->append( "envelope" );
     r->append( "fileinto" );

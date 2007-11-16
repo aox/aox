@@ -20,6 +20,8 @@ public:
     virtual int compare( const UString &, const UString & ) const = 0;
 
     static Collation * create( const UString & );
+
+    static class StringList * supported();
 };
 
 

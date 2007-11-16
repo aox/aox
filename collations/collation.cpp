@@ -6,6 +6,8 @@
 #include "ascii-casemap.h"
 #include "ascii-numeric.h"
 
+#include "stringlist.h"
+
 
 /*! \class Collation collation.h
     This abstract base class represents an RFC 4790 Collation.
@@ -51,7 +53,7 @@ Collation::~Collation()
     1 if \a a is greater, than \a b.
 */
 
-/*! Returns a pointer to a newly-created collation object corresponding
+/*! Returns a pointer to a newly-created Collation object corresponding
     to \a s, or 0 if no such collation is recognised.
 */
 
@@ -64,4 +66,20 @@ Collation * Collation::create( const UString & s )
     else if ( s == "i;ascii-numeric" )
         return new AsciiNumeric;
     return 0;
+}
+
+
+/*! Returns a list of all collations implementated. The list is
+    allocated for the purpose and may be changed by the caller.  The
+    names are sorted alphabetically.
+*/
+
+StringList * Collation::supported()
+{
+    StringList * l = new StringList;
+    // alphabetically:
+    l->append( "i;ascii-casemap" );
+    l->append( "i;ascii-numeric" );
+    l->append( "i;octet" );
+    return l;
 }
