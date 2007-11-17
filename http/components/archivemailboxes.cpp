@@ -41,7 +41,8 @@ void ArchiveMailboxes::execute()
     if ( !d->q ) {
         d->q = new Query( "select name from mailboxes m join "
                           "permissions p on (p.mailbox=m.id) "
-                          "where p.identifier='anonymous' and "
+                          "where (p.identifier='anonymous' or "
+                          "p.identifier='anyone') and "
                           "p.rights like '%r%'", this );
         d->q->execute();
     }
