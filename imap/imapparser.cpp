@@ -221,6 +221,10 @@ String ImapParser::quoted()
 String ImapParser::literal()
 {
     char c = nextChar();
+    if ( c == '~' ) {
+        step();
+        c = nextChar();
+    }
     if ( c != '{' ) {
         setError( "Expected literal, but saw: " + following() );
         return "";
@@ -259,7 +263,7 @@ String ImapParser::string()
 
     if ( c == '"' )
         return quoted();
-    else if ( c == '{' )
+    else if ( c == '{' || c == '~' )
         return literal();
 
     setError( "Expected string, but saw: " + following() );

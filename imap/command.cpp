@@ -1080,8 +1080,14 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
     if ( i >= s.length() ) // yes
         return s.quoted( '"' );
 
-    // well well well. literal it is.
-    return "{" + fn( s.length() ) + "}\r\n" + s;
+    // can we send an ordinary literal?
+    while ( i < s.length() && s[i] > 0 )
+        i++;
+    if ( i >= s.length() )
+        return "{" + fn( s.length() ) + "}\r\n" + s;
+
+    // have to send literal8
+    return "~{" + fn( s.length() ) + "}\r\n" + s;
 }
 
 
