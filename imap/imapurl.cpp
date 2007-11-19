@@ -125,6 +125,9 @@ void ImapUrl::parse( const String & s )
     // icommand = enc_mailbox [uidvalidity] iuid [isection]
 
     if ( !( d->imap && d->imap->session() ) || !p->hasUid() ) {
+        if ( p->nextChar() == '/' )
+            p->step();
+
         Utf8Codec c;
         d->mailbox = c.toUnicode( p->xchars( true ) );
         if ( d->mailbox.isEmpty() )

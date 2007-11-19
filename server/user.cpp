@@ -209,7 +209,7 @@ Mailbox * User::mailbox( const UString & name ) const
 UString User::mailboxName( const UString & name ) const
 {
     if ( name.titlecased() == "INBOX" )
-        return home()->name();
+        return inbox()->name();
     if ( name.startsWith( "/" ) )
         return name;
     UString n;
