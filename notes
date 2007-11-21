@@ -6,11 +6,8 @@
 
   Faster search execution.
 
-  Investigate and solve Axel Rau's memory use problem. Update: The
-  guilty party probably is the list of messages in
-  sessioninitialiser. When imapsync delivers into a mailbox which is
-  also open in a non-IDLE client, all the messages injected will be
-  held in RAM until the new EXISTS response can be sent. Nasty.
+  Investigate and solve Axel Rau's memory use problem. (Solved, but
+  the code is a little ineffective in some cases as a result.)
 
   Partially done:
 
@@ -550,6 +547,8 @@ SASL NTLM authentication
   http://www.innovation.ch/java/ntlm.html seems to be a reasonable
   description. Cyrus also implements it.
 
+  http://davenport.sourceforge.net/ntlm.html ?
+
 
 DELETE of mailboxes in inappropriately qualified (security problem)
 
@@ -955,5 +954,10 @@ SUBMITTER
 
   Easy peasy. But there's no value to offset this (small) cost, is
   there? Maybe as a hack when one of us is fed up.
+
+
+Arnt has to submit imap/literal+ and maybe more on the laptop.
+
+  (A missing cable prevents that today.)
 
 
