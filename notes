@@ -965,3 +965,16 @@ Arnt has to submit imap/literal+ and maybe more on the laptop.
   (A missing cable prevents that today.)
 
 
+SSL/TLS hello
+
+  When a client sends us SSL or TLS hello instead of the appropriate
+  protocol, wgat do we want to do? Two options:
+  - Silently start TLS.
+  - Send some sort of server hello saying "no, my friend"
+
+  Connection could have a utility function to look at whether the next
+  few bytes on the incoming connection match a TLS/SSL hello, and each
+  subclass could make the choice for itself. I think the real
+  protocols would want to say no, and HTTP might want to do something
+  else.
+
