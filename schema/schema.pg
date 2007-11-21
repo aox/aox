@@ -110,16 +110,20 @@ create table permissions (
 );
 
 
+create table messages (
+    id          serial primary key,
+    rfc822size  integer,
+    original_mailbox integer not null references mailboxes(id)
+)
+
+
 -- One (mailbox, uid) entry per delivered message.
 
-create table messages (
+create table mailbox_messages (
     mailbox     integer not null references mailboxes(id),
-    -- Assigned from the mailbox uidnext value.
     uid         integer not null,
-    -- Delivery time in seconds since the epoch.
-    idate       integer,
-    -- Message size in bytes (to speed up FETCH).
-    rfc822size  integer,
+    idate       integer not null,
+    message     integer references messages(id),
     primary key (mailbox, uid)
 );
 
@@ -129,6 +133,7 @@ create table messages (
 
 create sequence bodypart_ids;
 create table bodyparts (
+    -- why is id not just a serial?
     id          integer default nextval('bodypart_ids') primary key,
     bytes       integer not null,
     hash        text not null unique,
@@ -140,16 +145,12 @@ create table bodyparts (
 -- A list of bodyparts belonging to each message, with IMAP part numbers.
 
 create table part_numbers (
-    mailbox     integer not null,
-    uid         integer not null,
+    message     integer references messages(id) on delete cascade,
     part        text not null,
     bodypart    integer references bodyparts(id),
     bytes       integer,
     lines       integer,
-    foreign key (mailbox, uid)
-                references messages(mailbox, uid)
-                on delete cascade,
-    primary key (mailbox, uid, part)
+    primary key (message, part)
 );
 create index pn_b on part_numbers(bodypart);
 
@@ -167,46 +168,36 @@ create table field_names (
 
 create table header_fields (
     id          serial primary key,
-    mailbox     integer not null,
-    uid         integer not null,
+    message     integer not null references messages(id)
+                on delete cascade,
     part        text not null,
     position    integer not null,
     field       integer not null references field_names(id),
     value       text,
-    unique (mailbox, uid, part, position, field),
-    foreign key (mailbox, uid, part)
-                references part_numbers(mailbox, uid, part)
-                on delete cascade
+    unique (message, part, position, field)
 );
-create index hf_mup on header_fields (mailbox, uid, part);
 
 
 -- A list of addresses associated with each message.
 
 create table address_fields (
-    mailbox     integer not null,
-    uid         integer not null,
+    message     integer not null references messages(id)
+                on delete cascade,
     part        text not null,
     position    integer not null,
     field       integer not null,
     number      integer,
-    address     integer not null references addresses(id),
-    foreign key (mailbox,uid,part)
-                references part_numbers (mailbox,uid,part)
-                on delete cascade
+    address     integer not null references addresses(id)
 );
-create index af_mu on address_fields (mailbox, uid);
 
 
 -- The Date field from each message.
 
 create table date_fields (
-    mailbox     integer not null,
-    uid         integer not null,
-    value       timestamp with time zone,
-    foreign key (mailbox, uid)
-                references messages(mailbox, uid)
-                on delete cascade
+    message     integer not null references messages(id)
+                on delete cascade,
+    value       timestamp with time zone
+    -- is this it? how about original-date and resent-date?
 );
 create index df_mu on date_fields(mailbox,uid);
 
@@ -228,7 +219,7 @@ create table thread_members (
     uid         integer not null,
     primary key (thread, mailbox, uid),
     foreign key (mailbox, uid)
-                references messages(mailbox, uid)
+                references mailbox_messages(mailbox, uid)
                 on delete cascade
 );
 
@@ -249,7 +240,7 @@ create table flags (
     uid         integer not null,
     flag        integer not null references flag_names(id),
     foreign key (mailbox, uid)
-                references messages(mailbox, uid)
+                references mailbox_messages(mailbox, uid)
                 on delete cascade
 );
 create index fl_mu on flags (mailbox, uid);
@@ -284,7 +275,7 @@ create table annotations (
     value       text,
     unique (mailbox, uid, owner, name),
     foreign key (mailbox, uid)
-                references messages(mailbox, uid)
+                references mailbox_messages(mailbox, uid)
                 on delete cascade
 );
 
@@ -302,22 +293,6 @@ create table views (
     nextmodseq  bigint not null,
     selector    text
 );
-
-
--- One entry per message that belongs to a view: the (view,uid) maps to
--- the real message (source,suid).
-
-create table view_messages (
-    view        integer not null references views(view)
-                on delete cascade,
-    uid         integer not null,
-    source      integer not null,
-    suid        integer not null,
-    foreign key (source, suid)
-                references messages(mailbox, uid)
-                on delete cascade
-);
-create index vm_mu on view_messages (source,suid);
 
 
 -- One entry per SIEVE script owned by a user.
@@ -344,23 +319,10 @@ create table deleted_messages (
     reason      text,
     primary key (mailbox, uid),
     foreign key (mailbox, uid)
-                references messages(mailbox, uid)
+                references mailbox_messages(mailbox, uid)
                 on delete cascade
 );
 create index dm_mud on deleted_messages(mailbox,uid,deleted_at);
-
-
--- One entry per message, changeable by aox
-
-create table modsequences (
-    mailbox     integer not null,
-    uid         integer not null,
-    modseq      bigint not null,
-    primary key (mailbox, uid),
-    foreign key (mailbox, uid)
-                references messages(mailbox, uid)
-                on delete cascade
-);
 
 
 -- One entry for each pending SMTP-submitted delivery.
@@ -368,15 +330,11 @@ create table modsequences (
 create table deliveries (
     id          serial primary key,
     sender      integer not null references addresses(id),
-    mailbox     integer not null,
-    uid         integer not null,
+    message     integer not null references messages(id)
+                on delete cascade,
     injected_at timestamp with time zone,
     expires_at  timestamp with time zone,
     tried_at    timestamp with time zone,
-    foreign key (mailbox, uid)
-                references messages(mailbox, uid)
-                on delete cascade,
-    unique (mailbox, uid)
 );
 
 
