@@ -142,6 +142,9 @@ List< Connection > *EventLoop::connections() const
 }
 
 
+static GraphableNumber * sizeinram = 0;
+
+
 /*! Starts the EventLoop and runs it until stop() is called. */
 
 void EventLoop::start()
@@ -209,6 +212,12 @@ void EventLoop::start()
         int n = select( maxfd+1, &r, &w, 0, &tv );
         time_t now = time( 0 );
 
+        // Graph our size before processing events
+        if ( !sizeinram )
+            sizeinram = new GraphableNumber( "memory-used" );
+        sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
+
+
         if ( n < 0 ) {
             if ( errno == EINTR ) {
                 // We should see this only for signals we've handled,
@@ -263,6 +272,10 @@ void EventLoop::start()
             Allocator::free();
             gc = time( 0 );
         }
+
+        // Graph our size after processing all the events too
+
+        sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
 
         // Any interesting timers?
 
@@ -556,6 +569,7 @@ static GraphableNumber * othergraph = 0;
 static GraphableNumber * internalgraph = 0;
 static GraphableNumber * httpgraph = 0;
 static GraphableNumber * dbgraph = 0;
+
 
 
 /*! Scans the event loop and stores the current number of different
