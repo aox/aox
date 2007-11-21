@@ -900,10 +900,14 @@ void SessionInitialiser::findViewChanges()
 {
     Selector * sel = new Selector;
     sel->add( Selector::fromString( d->mailbox->selector() ) );
+    
+    // if not dynamic, uidnext changed by >0 and modsec by <= 1,, we
+    // can add UID logic to _both_ the inner and outer selects, and
+    // it'll do the right thing.
 
-    // XXX we really want the next line, but it make the logic below
-    // go bad.
+    // we could also add something like this
     // sel->add( new Selector( Selector::Modseq, Selector::Larger, d->oldModSeq ) );
+    // to both the inner and outer selects, that should do no harm
     sel->simplify();
     d->retrievingModSeq = true;
 
