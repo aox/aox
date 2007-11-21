@@ -1382,8 +1382,8 @@ void ShowConfiguration::execute()
         String v( Configuration::text( j ) );
         if ( j != Configuration::DbPassword &&
              j != Configuration::DbOwnerPassword ) {
-            if ( v.isEmpty() )
-                v = "\"\"";
+            if ( !v.boring() )
+                v = v.quoted();
             addVariable( &output, n, v, pat, Configuration::present( j ) );
         }
     }
