@@ -64,7 +64,7 @@ void WebPage::startHeadline( Intro * i )
 void WebPage::startHeadline( Class * c )
 {
     endPage();
-    startPage( c->name().lower(), c->name() + " Documentation" );
+    startPage( c->name().lower(), c->name() + " documentation" );
     output( "<h1 class=\"classh\">" );
     para = "</h1>\n";
 }
