@@ -978,3 +978,16 @@ SSL/TLS hello
   protocols would want to say no, and HTTP might want to do something
   else.
 
+
+date_fields doesn't mirror address_fields
+
+  date_fields seems to lack position and field, so how do we remember
+  the position? And how do we handle Original-Date/Resent-Date? Can we
+  actually do date searches on those?
+
+
+The groups and group_members tables seem a little underused
+
+  Why did we add them and how do we use them? Do we?
+
+
