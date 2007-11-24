@@ -117,16 +117,13 @@ void ImapUrl::parse( const String & s )
 
         if ( !p->hostport( d->host, &d->port ) )
             return;
-
-        if ( !p->present( "/" ) )
-            return;
     }
 
     // icommand = enc_mailbox [uidvalidity] iuid [isection]
 
     if ( !( d->imap && d->imap->session() ) || !p->hasUid() ) {
-        if ( p->nextChar() == '/' )
-            p->step();
+        if ( !p->present( "/" ) )
+            return;
 
         Utf8Codec c;
         d->mailbox = c.toUnicode( p->xchars( true ) );
