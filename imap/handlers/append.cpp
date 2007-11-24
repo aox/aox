@@ -233,6 +233,10 @@ void Append::parse()
     }
 
     end();
+
+    if ( !ok() )
+        return;
+
     requireRight( d->mailbox, Permissions::Insert );
     requireRight( d->mailbox, Permissions::Write );
 }

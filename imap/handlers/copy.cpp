@@ -62,11 +62,15 @@ void Copy::parse()
     space();
     d->mailbox = mailbox();
     end();
+
+    if ( !ok() )
+        return;
+
     requireRight( d->mailbox, Permissions::Insert );
     requireRight( d->mailbox, Permissions::Write );
-    if ( ok() )
-        log( "Will copy " + fn( d->set.count() ) +
-             " messages to " + d->mailbox->name().ascii() );
+
+    log( "Will copy " + fn( d->set.count() ) +
+         " messages to " + d->mailbox->name().ascii() );
 }
 
 
