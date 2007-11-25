@@ -960,11 +960,6 @@ SUBMITTER
   there? Maybe as a hack when one of us is fed up.
 
 
-Arnt has to submit imap/literal+ and maybe more on the laptop.
-
-  (A missing cable prevents that today.)
-
-
 SSL/TLS hello
 
   When a client sends us SSL or TLS hello instead of the appropriate
