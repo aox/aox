@@ -1072,6 +1072,11 @@ void SessionInitialiser::findMailboxChanges()
         initialising = true;
         d->retrievingModSeq = true;
     }
+    Flag * seen = 0;
+    if ( d->findFirstUnseen )
+        seen = Flag::find( "\\seen" );
+    if ( !seen )
+        d->findFirstUnseen = false;
     if ( d->newModSeq > d->oldModSeq && // one or more changes
          !( d->newModSeq == d->oldModSeq + 1 && // and it's not one insertion
             d->newUidnext > d->oldUidnext + 1 ) )
@@ -1088,7 +1093,7 @@ void SessionInitialiser::findMailboxChanges()
     if ( d->findFirstUnseen )
         msgs.append( "left join flags f on "
                      " (m.mailbox=f.mailbox and m.uid=f.uid and "
-                     "  f.flag=" + fn( Flag::find( "\\seen" )->id() ) + ") " );
+                     "  f.flag=" + fn( seen->id() ) + ") " );
     msgs.append( "left join deleted_messages dm "
                  " on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
                  "where m.mailbox=$1 and dm.uid is null "
