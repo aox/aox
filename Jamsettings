@@ -117,7 +117,9 @@ DBADDRESS ?= 127.0.0.1 ;
 #   have to set one here unless you want to use an existing user.
 #
 # These settings correspond to the db-name, db-owner, db-owner-password,
-# db-user, and db-password variables in archiveopteryx.conf.
+# and db-password variables in archiveopteryx.conf. The value of db-user
+# is derived from AOXUSER (but you can specify a different username when
+# you run the installer).
 #
 DBNAME ?= archiveopteryx ;
 DBOWNER ?= aoxsuper ;
