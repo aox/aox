@@ -31,8 +31,8 @@ static int byFirstYid( const Thread ** t1, const Thread ** t2 ) {
     if ( u1 == u2 )
         return 0;
     else if ( u1 < u2 )
-        return -1;
-    return 1;
+        return 1;
+    return -1;
 }
 
 
