@@ -114,6 +114,13 @@ static void setupKey()
     handleError( status, "cryptKeysetOpen" );
     status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
                                  label.cstr(), secret.cstr() );
+    if ( status == CRYPT_ERROR_NOTFOUND &&
+         !Configuration::present( Configuration::TlsCertLabel ) )
+    {
+        label = "Archiveopteryx private key";
+        status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+                                     label.cstr(), secret.cstr() );
+    }
     handleError( status, "cryptGetPrivateKey" );
 }
 
@@ -130,9 +137,17 @@ static void setupSelfSigned( String file, String label, String secret )
     CRYPT_KEYSET keyset;
     status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                               file.cstr(), CRYPT_KEYOPT_NONE );
-    if ( status == CRYPT_OK )
+    if ( status == CRYPT_OK ) {
         status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
                                      label.cstr(), secret.cstr() );
+        if ( status == CRYPT_ERROR_NOTFOUND &&
+             !Configuration::present( Configuration::TlsCertLabel ) )
+        {
+            label = "Archiveopteryx private key";
+            status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+                                         label.cstr(), secret.cstr() );
+        }
+    }
 
     CRYPT_CONTEXT publicKey;
     if ( status == CRYPT_OK )
