@@ -146,6 +146,8 @@ static void setupSelfSigned( String file, String label, String secret )
             label = "Archiveopteryx private key";
             status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
                                          label.cstr(), secret.cstr() );
+            if ( status == CRYPT_ERROR_NOTFOUND )
+                label = Configuration::hostname();
         }
     }
 
