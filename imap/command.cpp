@@ -38,6 +38,7 @@
 #include "handlers/resetkey.h"
 #include "handlers/search.h"
 #include "handlers/select.h"
+#include "handlers/sort.h"
 #include "handlers/starttls.h"
 #include "handlers/status.h"
 #include "handlers/store.h"
@@ -246,6 +247,8 @@ Command * Command::create( IMAP * imap,
             c = new Copy( uid );
         else if ( n == "unselect" )
             c = new Unselect;
+        else if ( n == "sort" )
+            c = new Sort( uid );
 
         if ( c )
             selected = true;

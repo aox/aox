@@ -26,6 +26,7 @@ Build imap :
     resetkey.cpp
     search.cpp
     select.cpp
+    sort.cpp
     starttls.cpp
     status.cpp
     store.cpp

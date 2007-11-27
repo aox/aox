@@ -103,6 +103,8 @@ String Capability::capabilities( IMAP * i, bool all )
         c.append( "RIGHTS=ekntx" );
     if ( all || !login )
         c.append( "SASL-IR" );
+    if ( drafts && ( all || login ) )
+        c.append( "SORT" );
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
     if ( all || login ) {
