@@ -70,7 +70,7 @@ void Login::execute()
     if ( m->state() == SaslMechanism::Succeeded )
         imap()->setUser( m->user() );
     else
-        error( No, "LOGIN failed for '" + n + "'" );
+        error( No, "LOGIN failed for " + n.quoted() );
 
     setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
 

@@ -456,7 +456,7 @@ void Database::checkSchemaRevision( EventHandler * owner )
                            v.section( ".", 3 ).number( &ok );
             if ( !ok || version < 80100 ) {
                 ::log( "Archiveopteryx requires PostgreSQL 8.1 "
-                       "or higher (found only '" + v + "'", Log::Disaster );
+                       "or higher (found only " + v.quoted(), Log::Disaster );
             }
             if ( revision != Database::currentRevision() ) {
                 // copied code from schema.cpp. urk.

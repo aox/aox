@@ -63,7 +63,7 @@ void Undelete::execute()
     if ( !d->q ) {
         d->m = Mailbox::obtain( d->mailbox, false );
         if ( !d->m )
-            error( "No mailbox named '" + d->mailbox.utf8() + "'" );
+            error( "No mailbox named " + d->mailbox.utf8().quoted() );
 
         d->q = new Query( "select * from deleted_messages where mailbox=$1 "
                           "and uid=$2", this );
@@ -79,7 +79,7 @@ void Undelete::execute()
         Row * r = d->q->nextRow();
         if ( d->q->failed() || !r )
             error( "Couldn't find deleted message with uid " + fn( d->uid ) +
-                   " in mailbox '" + d->mailbox.utf8() + "'." );
+                   " in mailbox " + d->mailbox.utf8().quoted() );
 
         d->t = new Transaction( this );
         d->q = new Query( "delete from deleted_messages where mailbox=$1 "

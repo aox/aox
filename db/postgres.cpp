@@ -257,8 +257,8 @@ void Postgres::react( Event e )
                     unknown( msg );
             }
             catch ( PgServerMessage::Error e ) {
-                error( "Malformed '" + String( &msg, 1 ) +
-                       "' message received." );
+                error( "Malformed " + String( &msg, 1 ).quoted() +
+                       "message received." );
             }
         }
         if ( d->needNotify )
@@ -681,7 +681,7 @@ void Postgres::serverMessage()
         }
         else {
             log( "PostgreSQL refuses authentication because this "
-                 "process is not running as user '" + user + "'. See "
+                 "process is not running as user " + user.quoted() + ". See "
                  "http://aox.org/faq/mailstore.html#ident",
                  Log::Disaster );
         }
@@ -831,7 +831,7 @@ void Postgres::countQueries( class Query * q )
         goodQueries = new GraphableCounter( "queries-executed" ); // bad name?
         badQueries = new GraphableCounter( "queries-failed" ); // bad name?
     }
-    
+
     if ( !q->failed() )
         goodQueries->tick();
     else if ( !q->canFail() )

@@ -238,7 +238,7 @@ void AddressField::parseMailboxList( const String &s )
     List< Address >::Iterator it( a );
     while ( it && valid() ) {
         if ( it->type() == Address::EmptyGroup )
-            setError( "Invalid mailbox: '" + it->toString() + "'" );
+            setError( "Invalid mailbox: " + it->toString().quoted() );
         ++it;
     }
 }

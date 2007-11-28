@@ -156,7 +156,7 @@ int main( int ac, char *av[] )
             verbosity++;
         }
         else {
-            error( "Unrecognised argument: '" + s + "'" );
+            error( "Unrecognised argument: " + s.quoted() );
         }
     }
 
@@ -374,7 +374,7 @@ bool checkSocket( String * sock )
         }
 
         if ( !ok )
-            error( "Malformed socket name: '" + s + "'" );
+            error( "Malformed socket name: " + s.quoted() );
     }
 
     return true;
@@ -486,8 +486,8 @@ void findPgUser()
     if ( *PGUSER ) {
         p = getpwnam( PGUSER );
         if ( !p )
-            error( "PostgreSQL superuser '" + String( PGUSER ) +
-                   "' does not exist (rerun with -p username)." );
+            error( "PostgreSQL superuser " + String( PGUSER ).quoted() +
+                   " does not exist (rerun with -p username)." );
     }
 
     if ( !p ) {
@@ -607,7 +607,7 @@ void oryxGroup()
         s.append( "'. " );
         s.append( "Please create it by hand and re-run the installer.\n" );
         if ( !cmd.isEmpty() )
-            s.append( "The command which failed was '" + cmd + "'" );
+            s.append( "The command which failed was " + cmd.quoted() );
         error( s );
     }
 }
@@ -663,7 +663,7 @@ void oryxUser()
         s.append( "The new user does not need a valid login shell or "
                   "password.\n" );
         if ( !cmd.isEmpty() )
-            s.append( "The command which failed was '" + cmd + "'" );
+            s.append( "The command which failed was " + cmd.quoted() );
         error( s );
     }
 }
@@ -707,11 +707,11 @@ void database()
     if ( !d ) {
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = '" + *db + "'" );
-        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
+        Configuration::add( "db-address = " + db->quoted() );
+        Configuration::add( "db-user = " + String( PGUSER ).quoted() );
         Configuration::add( "db-name = 'template1'" );
         if ( dbpgpass )
-            Configuration::add( "db-password = '" + *dbpgpass + "'" );
+            Configuration::add( "db-password = " + dbpgpass->quoted() );
         if ( !db->startsWith( "/" ) )
             Configuration::add( "db-port = " + fn( dbport ) );
 
@@ -805,7 +805,8 @@ void database()
         Row * r = d->q->nextRow();
         if ( !r ) {
             String create( "create user " + *dbuser + " with encrypted "
-                           "password '" + *dbpass + "'" );
+                           "password " + dbpass->quoted( '\'' ) );
+            // XXX: should it be dbuser->quoted( '\'' )?
 
             if ( report ) {
                 todo++;
@@ -859,7 +860,8 @@ void database()
         Row * r = d->q->nextRow();
         if ( !r ) {
             String create( "create user " + *dbowner + " with encrypted "
-                           "password '" + *dbownerpass + "'" );
+                           "password " + dbownerpass->quoted( '\'' ) );
+            // XXX should that be dbowner->quoted( '\'' ) ?
 
             if ( report ) {
                 d->state = CreateDatabase;
@@ -946,11 +948,11 @@ void database()
 
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = '" + *db + "'" );
-        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
-        Configuration::add( "db-name = '" + *dbname + "'" );
+        Configuration::add( "db-address = " + db->quoted() );
+        Configuration::add( "db-user = " + String( PGUSER ).quoted() );
+        Configuration::add( "db-name = " + dbname->quoted() );
         if ( dbpgpass )
-            Configuration::add( "db-password = '" + *dbpgpass + "'" );
+            Configuration::add( "db-password = " + dbpgpass->quoted() );
         if ( !db->startsWith( "/" ) )
             Configuration::add( "db-port = " + fn( dbport ) );
 

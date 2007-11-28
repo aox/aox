@@ -61,7 +61,7 @@ void ListRights::execute()
     if ( !d->q ) {
         Mailbox * m = Mailbox::obtain( d->mailbox, false );
         if ( !m )
-            error( "No mailbox named '" + d->mailbox.utf8() + "'" );
+            error( "No mailbox named " + d->mailbox.utf8().quoted() );
 
         String s( "select identifier,rights from permissions p "
                   "join mailboxes m on (p.mailbox=m.id) where "
@@ -178,7 +178,7 @@ void SetAcl::execute()
             }
 
             if ( !Permissions::validRights( d->rights ) )
-                error( "Invalid rights: '" + d->rights + "'" );
+                error( "Invalid rights: " + d->rights.quoted() );
         }
         else {
             if ( !d->rights.isEmpty() )
@@ -203,7 +203,7 @@ void SetAcl::execute()
             if ( d->user->state() == User::Unverified )
                 return;
             if ( opt( 'd' ) == 0 && d->user->state() == User::Nonexistent )
-                error( "No user named '" + d->identifier.utf8() + "'" );
+                error( "No user named " + d->identifier.utf8().quoted() );
         }
 
         d->m = Mailbox::obtain( d->mailbox, false );

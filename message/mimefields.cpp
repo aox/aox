@@ -180,7 +180,7 @@ void MimeField::parseParameters( Parser822 *p )
                 }
             }
             if ( p->next() != '=' ) {
-                setError( "Bad parameter: '" + n.simplified() + "'" );
+                setError( "Bad parameter: " + n.quoted() );
                 return;
             }
 
@@ -361,7 +361,7 @@ void ContentType::parse( const String &s )
             }
             else {
                 // scribe and undefined types
-                setError( "Invalid Content-Type: '" + s + "'" );
+                setError( "Invalid Content-Type: " + s.quoted() );
             }
         }
         else {
@@ -382,7 +382,7 @@ void ContentType::parse( const String &s )
     setData( v );
 
     if ( t.isEmpty() || st.isEmpty() )
-        setError( "Both type and subtype must be nonempty: '" + s + "'" );
+        setError( "Both type and subtype must be nonempty: " + s.quoted() );
 
     if ( valid() && t == "multipart" && parameter( "boundary" ).isEmpty() )
         setError( "Multipart entities must have a boundary parameter." );
@@ -465,7 +465,7 @@ void ContentTransferEncoding::parse( const String &s )
     else if ( t == "x-uuencode" || t == "uuencode" )
         setEncoding( String::Uuencode );
     else
-        setError( "Invalid c-t-e value: '" + t + "'" );
+        setError( "Invalid c-t-e value: " + t.quoted() );
 }
 
 
@@ -607,7 +607,7 @@ void ContentLanguage::parse( const String &s )
     } while ( p.character() == ',' );
 
     if ( !p.atEnd() || l.count() == 0 )
-        setError( "Unparseable value: '" + s.simplified() + "'" );
+        setError( "Unparseable value: " + s.quoted() );
 }
 
 

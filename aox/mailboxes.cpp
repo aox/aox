@@ -44,7 +44,7 @@ void ListMailboxes::execute()
                     error( "No username specified with -o." );
             }
             else {
-                error( "Bad option name: '" + p + "'" );
+                error( "Bad option name: " + p.quoted() );
             }
 
             p = next();

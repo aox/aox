@@ -168,7 +168,7 @@ bool AbnfParser::present( const String & s )
 void AbnfParser::require( const String & s )
 {
     if ( !present( s ) )
-        setError( "Expected: '" + s + "', got: " + following() );
+        setError( "Expected: " + s.quoted() + ", got: " + following() );
 }
 
 

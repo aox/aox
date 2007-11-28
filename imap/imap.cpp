@@ -277,13 +277,14 @@ void IMAP::addCommand()
 
     if ( !cmd ) {
         if ( Command::create( this, tag, tag, p ) )
-            enqueue( "* Hint: An IMAP command is prefixed by a tag. "
-                     "The command is the second word\r\n"
-                     "* on the line, after the tag. In your command, '" +
-                     name + "' is the command and\r\n"
-                     "* '" + tag + "' is the tag.\r\n" );
+            enqueue( "* OK  Hint: An IMAP command is prefixed by a tag. "
+                     "The command is the\r\n"
+                     "* OK  second word on the line, after the tag. In "
+                     "your command, " + name.quoted() + "\r\n"
+                     "* OK  is the command and " + tag.quoted() +
+                     " is the tag.\r\n" );
         enqueue( tag + " BAD No such command: " + name + "\r\n" );
-        log( "Unknown command. Line: '" + p->firstLine() + "'",
+        log( "Unknown command. Line: " + p->firstLine().quoted(),
              Log::Error );
         return;
     }

@@ -199,8 +199,8 @@ void HTTP::respond( const String & type, const String & response )
         write();
     }
 
-    ::log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
-           "of " + fn( response.length() ) + " bytes." );
+    ::log( "Sent " + (fn( d->status ) + "/" + d->message).quoted() +
+           " response of " + fn( response.length() ) + " bytes." );
 
     d->requestLog = 0;
 
@@ -463,7 +463,7 @@ void HTTP::parseHeader( const String & h )
     String n = h.mid( 0, i ).simplified().headerCased();
     String v = h.mid( i+1 ).simplified();
 
-    ::log( "Received: '" + n + "' = '" + v + "'", Log::Debug );
+    ::log( "Received: " + n.quoted() + " = " + v.quoted(), Log::Debug );
 
     if ( n == "Accept" ) {
         d->acceptsHtml = false;
@@ -682,7 +682,7 @@ void HTTP::parseHost( const String & v )
         if ( ok && port == self().port() )
             d->hostSupplied.truncate( c );
     }
-    
+
     if ( Configuration::toggle( Configuration::AcceptAnyHttpHost ) )
         return;
 

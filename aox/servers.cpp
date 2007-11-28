@@ -351,7 +351,7 @@ static void checkListener( bool use,
 
         if ( !e.valid() )
             error( "Invalid address specified for " +
-                   description + " = '" + e.string() + "'" );
+                   description + " = " + e.string().quoted() );
 
         if ( e.protocol() == Endpoint::Unix ) {
             fprintf( stderr,
@@ -376,7 +376,7 @@ static void checkListener( bool use,
                bind( s, e2.sockaddr(), e2.sockaddrSize() ) < 0 ) )
         {
             error( "Couldn't bind socket for " + description +
-                   " = '" + e2.string() + "'" );
+                   " = " + e2.string().quoted() );
         }
         if ( s > 0 )
             close( s );

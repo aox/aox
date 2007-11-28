@@ -144,7 +144,7 @@ void AoxCommand::parseOptions()
                ( s[1] >= 'a' && s[1] <= 'z' ) ) )
             d->options[(int)s[1]]++;
         else
-            error( "Bad option name: '" + s + "'" );
+            error( "Bad option name: " + s.quoted() );
         d->args->take( it );
     }
 }

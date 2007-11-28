@@ -352,7 +352,7 @@ void Configuration::parseScalar( uint n, const String & line )
         String s;
         s.append( line[i] );
 
-        log( "Non-numeric character '" + s + "' after " + name + " = " +
+        log( "Non-numeric character " + s.quoted() + " after " + name + " = " +
              fn( d->scalar[n] ), Log::Error );
     }
 }
@@ -400,7 +400,7 @@ void Configuration::parseText( uint n, const String & line )
         String s;
         s.append( line[i] );
 
-        log( "Unquoted special character '" + s + "' after " +
+        log( "Unquoted special character " + s.quoted() + " after " +
              name + " = " + d->text[n], Log::Disaster );
     }
 }
@@ -439,7 +439,8 @@ void Configuration::parseToggle( uint n, const String & line )
         String s;
         s.append( line[i] );
 
-        log( "Unrecognised character '" + s + "' after " + name + " = " + v,
+        log( "Unrecognised character " + s.quoted() +
+             " after " + name + " = " + v,
              Log::Disaster );
     }
 }

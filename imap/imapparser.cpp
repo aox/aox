@@ -55,7 +55,7 @@ String ImapParser::tag()
     }
 
     if ( r.isEmpty() )
-        setError( "Expected IMAP tag, but saw: '" + following() + "'" );
+        setError( "Expected IMAP tag, but saw: " + following().quoted() );
 
     return r;
 }
