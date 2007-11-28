@@ -1387,6 +1387,8 @@ void SieveTest::findComparator()
     if ( !d->comparator )
         arguments()->tagError( ":comparator",
                                "Unknown comparator: " + a.utf8() );
+    else
+        require( "comparator-" + a.utf8() );
 }
 
 
