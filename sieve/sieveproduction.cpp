@@ -1380,8 +1380,10 @@ void SieveTest::parse()
 void SieveTest::findComparator()
 {
     UString a = arguments()->takeTaggedString( ":comparator" );
-    if ( a.isEmpty() )
+    if ( a.isEmpty() ) {
+        require( "comparator-i;ascii-casemap" );
         return;
+    }
 
     d->comparator = Collation::create( a );
     if ( !d->comparator )
