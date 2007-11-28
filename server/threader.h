@@ -38,7 +38,7 @@ class Threader
 public:
     Threader( const Mailbox * );
 
-    bool updated() const;
+    bool updated( bool = false ) const;
     const Mailbox * mailbox() const;
 
     void refresh( EventHandler * );

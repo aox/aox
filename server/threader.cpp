@@ -273,18 +273,29 @@ void Threader::execute()
             return;
         d->state = 0;
         d->create = 0;
+        List<EventHandler>::Iterator o( d->users );
+        d->users = 0;
+        while ( o ) {
+            o->execute();
+            ++o;
+        }
     }
 }
 
 
 /*! Returns true if this Threader has complete data for mailbox(), and
-    false if refresh() needs to be called or is working.
+    false if refresh() needs to be called or is working. If \a
+    alsoOnDisk is true, updated() additionally checks whether the
+    database tables are completely updated.
 */
 
-bool Threader::updated() const
+bool Threader::updated( bool alsoOnDisk ) const
 {
     // is the state being updated?
     if ( d->state > 1 && d->state < 4 )
+        return false;
+    // are we currently writing to disk?
+    if ( d->state > 1 && alsoOnDisk )
         return false;
     // do we have all the information?
     if ( d->largestUid + 1 >= d->mailbox->uidnext() )
@@ -310,7 +321,7 @@ const Mailbox * Threader::mailbox() const
 
 void Threader::refresh( EventHandler * user )
 {
-    if ( updated() )
+    if ( updated( true ) )
         return;
     if ( !d->users )
         d->users = new List<EventHandler>;

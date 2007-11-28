@@ -84,7 +84,7 @@ void Sort::parse()
         String s = parser()->dotLetters( 2, 7 ).lower();
         if ( s == "reverse" ) {
             space();
-            s = atom(); 
+            s = atom();
             c->reverse = true;
         }
         if ( s == "arrival" )
@@ -137,12 +137,12 @@ void Sort::execute()
 
     if ( d->usingCriterionType( SortData::Subject ) ) {
         Threader * t = imap()->session()->mailbox()->threader();
-        if ( !t->updated() ) {
+        if ( !t->updated( true ) ) {
             t->refresh( this );
             return;
         }
     }
-         
+
     if ( !d->q ) {
         Selector * s = selector();
         s->simplify();
@@ -186,18 +186,18 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
         break;
     case Cc:
         addJoin( t,
-                 "join address_fields sccaf on "
+                 "left join address_fields sccaf on "
                  "(m.mailbox=sccaf.mailbox and m.uid=sccaf.uid and"
                  " sccaf.part='' and sccaf.number=0 and"
                  " sccaf.field=" + fn( HeaderField::Cc ) + ") "
-                 "join addresses scca on (sccaf.address=scca.id) ",
+                 "left join addresses scca on (sccaf.address=scca.id) ",
                  "scca.localpart",
                  c->reverse );
         break;
     case Date:
         addJoin( t,
                  "join date_fields sddf on "
-                 "(m.mailbox=sdhf.mailbox and m.uid=sfhf.uid) ",
+                 "(m.mailbox=sddf.mailbox and m.uid=sddf.uid) ",
                  "sddf.value",
                  c->reverse );
         break;
@@ -219,17 +219,17 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
                  "left join thread_members sstm on "
                  "(m.mailbox=sstm.mailbox and m.uid=sstm.uid) "
                  "left join threads sst on "
-                 "(sstm.thread=sst.id)",
+                 "(sstm.thread=sst.id) ",
                  "sst.subject",
                  c->reverse );
         break;
     case To:
         addJoin( t,
-                 "join address_fields staf on "
+                 "left join address_fields staf on "
                  "(m.mailbox=staf.mailbox and m.uid=staf.uid and"
                  " staf.part='' and staf.number=0 and"
                  " staf.field=" + fn( HeaderField::To ) + ") "
-                 "join addresses sta on (staf.address=sta.id) ",
+                 "left join addresses sta on (staf.address=sta.id) ",
                  "sta.localpart",
                  c->reverse );
         break;
@@ -255,11 +255,11 @@ void SortData::addJoin( String & t,
     while ( c > o && t[c] != ',' )
         c--;
     if ( c > o )
-        t = t.mid( 0, c ) + ", " + orderby + 
+        t = t.mid( 0, c ) + ", " + orderby +
             ( desc ? " desc" : "" ) +
             t.mid( c );
     else
-        t = t.mid( 0, o ) + orderby + 
+        t = t.mid( 0, o ) + orderby +
             ( desc ? " desc, " : ", " ) +
             t.mid( o );
 
