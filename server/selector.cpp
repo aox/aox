@@ -483,7 +483,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     q.append( " where m.mailbox=$" );
     q.append( fn( d->mboxId ) );
     q.append( " and dm.uid is null" );
-    if ( !w.isEmpty() )
+    if ( !w.isEmpty() && w != "true" )
         q.append( " and " + w );
     q.append( " order by m.uid" );
 
@@ -1078,16 +1078,26 @@ String Selector::whereNoField()
             if ( i )
                 address = i->d->s16; // this is the address we optimize for
         }
+        bool t = false;
+        bool f = false;
         List<Selector>::Iterator i( d->children );
         while ( i ) {
             if ( d->a == Or &&
                  i->d->f == Header &&
                  !address.isEmpty() &&
                  isAddressField( i->d->s8 ) &&
-                 address == i->d->s16 )
+                 address == i->d->s16 ) {
                 addressFields.append( i->d->s8.headerCased() );
-            else
-                conditions.append( i->where() );
+            }
+            else {
+                String w = i->where();
+                if ( w == "true" )
+                    t = true;
+                else if ( w == "false" )
+                    f = true;
+                else
+                    conditions.append( w );
+            }
             i++;
         }
         if ( !addressFields.isEmpty() ) {
@@ -1097,15 +1107,26 @@ String Selector::whereNoField()
             conditions.append( whereAddressFields( addressFields, address ) );
         }
         String r = "(";
-        if ( d->a == And )
+        if ( d->a == And ) {
+            if ( f )
+                return "false";
             r.append( conditions.join( " and " ) );
-        else
+        }
+        else {
+            if ( t )
+                return "false";
             r.append( conditions.join( " or " ) );
+        }
         r.append( ")" );
         return r;
     }
     else if ( d->a == Not ) {
-        return "not " + d->children->first()->where() + "";
+        String c = d->children->first()->where();
+        if ( c == "true" )
+            return "false";
+        else if ( c == "false" )
+            return "true";
+        return "not " + c;
     }
     else if ( d->a == All ) {
         return "true";
