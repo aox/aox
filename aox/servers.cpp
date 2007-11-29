@@ -136,6 +136,20 @@ static void addPath( Path::Type type,
 }
 
 
+static void addPath( Path::Type type,
+                     Configuration::CompileTimeSetting variable )
+{
+    String name = Configuration::compiledIn( variable );
+    Path * p = paths.find( name );
+    if ( name.startsWith( "/" ) ) {
+        if ( !p ) {
+            p = new Path( name, type );
+            paths.insert( name, p );
+        }
+    }
+}
+
+
 static String parentOf( const String & name )
 {
     uint i = name.length();
@@ -295,6 +309,12 @@ static void checkFilePermissions()
     addPath( Path::ReadableFile, Configuration::TlsCertFile );
     addPath( Path::ExistingSocket, Configuration::EntropySource );
     addPath( Path::CreatableFile, Configuration::LogFile );
+    addPath( Path::ReadableDir, Configuration::BinDir );
+    addPath( Path::ReadableDir, Configuration::PidFileDir );
+    addPath( Path::ReadableDir, Configuration::SbinDir );
+    addPath( Path::ReadableDir, Configuration::ManDir );
+    addPath( Path::ReadableDir, Configuration::LibDir );
+    addPath( Path::ReadableDir, Configuration::InitDir );
 
     List<Configuration::Text>::Iterator
         it( Configuration::addressVariables() );
@@ -1097,6 +1117,22 @@ void Start::execute()
         parseOptions();
         end();
 
+        String pfd( Configuration::compiledIn( Configuration::PidFileDir ) );
+        if ( pfd.startsWith( "/var/run/" ) ) {
+            // /var/run is wiped out at boot on many systems, which can
+            // bother us. so if our pidfiledir is in a subdirectory of
+            // that, we'll create it as needed.
+            uint l = 9;
+            while ( l <= pfd.length() ) {
+                if ( l == pfd.length() || pfd[l] == '/' ) {
+                    struct stat st;
+                    if ( stat( pfd.mid( 0, l ).cstr(), &st ) < 0 )
+                        (void)mkdir( pfd.mid( 0, l ).cstr(), 0777 );
+                }
+                ++l;
+            }
+        }
+
         d->checker = new Checker( opt( 'v' ), this );
         d->checker->execute();
     }
@@ -1320,6 +1356,8 @@ void ShowBuild::execute()
             Configuration::compiledIn( Configuration::PidFileDir ) );
     printf( "BINDIR = %s\n",
             Configuration::compiledIn( Configuration::BinDir ) );
+    printf( "SBINDIR = %s\n",
+            Configuration::compiledIn( Configuration::SbinDir ) );
     printf( "MANDIR = %s\n",
             Configuration::compiledIn( Configuration::ManDir ) );
     printf( "LIBDIR = %s\n",
