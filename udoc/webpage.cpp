@@ -180,7 +180,7 @@ void WebPage::addFunction( const String & text, Function * f )
         output( "<span class=nobr>" );
     addText( text.mid( 0, ls ) );
     output( "<a href=\"" );
-    String target = f->parent()->name().lower() + ".html";
+    String target = f->parent()->name().lower();
     if ( fn != target )
         output( target );
     output( "#" + anchor( f ) + "\">" );
@@ -217,7 +217,7 @@ void WebPage::addClass( const String & text, Class * c )
         output( "<span class=nobr>" );
     addText( text.mid( 0, ls ) );
     bool link = true;
-    String target = c->name().lower() + ".html";
+    String target = c->name().lower();
     if ( target == fn )
         link = false;
     if ( link )
@@ -288,8 +288,7 @@ void WebPage::endPage()
 
 void WebPage::startPage( const String & name, const String & title )
 {
-    fn = name + ".html";
-    String filename = directory + "/" + fn;
+    String filename = directory + "/" + name;
     fd = ::open( filename.cstr(), O_CREAT|O_WRONLY|O_TRUNC, 0644 );
     output( "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\">\n"
             "<html lang=en><head>" );

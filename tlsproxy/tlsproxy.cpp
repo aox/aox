@@ -73,7 +73,7 @@ static bool isOpenSslCert( const String & file ) {
         log( "File " + file + " exists, "
              "but is not in Cryptlib format. "
              "It seems to be in OpenSSL format. Please see "
-             "http://aox.org/faq/mailstore.html#opensslcert",
+             "http://aox.org/faq/mailstore#opensslcert",
              Log::Disaster );
         return true;
     }

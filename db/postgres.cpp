@@ -681,8 +681,8 @@ void Postgres::serverMessage()
         }
         else {
             log( "PostgreSQL refuses authentication because this "
-                 "process is not running as user " + user.quoted() + ". See "
-                 "http://aox.org/faq/mailstore.html#ident",
+                 "process is not running as user " + user.quoted() +
+                 ". See http://aox.org/faq/mailstore#ident",
                  Log::Disaster );
         }
     }
