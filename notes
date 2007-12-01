@@ -174,7 +174,7 @@ Various TODO items from earlier releases.
   - Database replication support (local mirror)
   - Split the injector transaction into fast and slow parts(?)
 
-  SORT (/THREAD?)
+  THREAD?
 
   Basic administration using the httpd
 
@@ -393,6 +393,7 @@ Deleting mailbox has unclear semantics now
 3.0 changes
 
   - Don't announce digest-md5 by default.
+  - PIDFILEDIR should be $(PREFIX)/lib/pidfiles.
 
 
 MULTIAPPEND
@@ -987,5 +988,8 @@ date_fields doesn't mirror address_fields
 The groups and group_members tables seem a little underused
 
   Why did we add them and how do we use them? Do we?
+
+  (We do not use them at all. We meant to use them for "advanced" ACL
+  support, but nobody ever asked, and it didn't seem worthwhile. -- AMS)
 
 
