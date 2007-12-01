@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH deliver 8 2008-01-14 www.oryx.com "Archiveopteryx Documentation"
+.TH deliver 8 2008-01-14 aox.org "Archiveopteryx Documentation"
 .SH NAME
 deliver - deliver mail into Archiveopteryx.
 .SH SYNOPSIS

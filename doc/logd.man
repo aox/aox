@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH logd 8 2008-01-14 www.oryx.com "Archiveopteryx Documentation"
+.TH logd 8 2008-01-14 aox.org "Archiveopteryx Documentation"
 .SH NAME
 logd - logging server for Archiveopteryx.
 .SH SYNOPSIS

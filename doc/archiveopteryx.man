@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH archiveopteryx 7 2008-01-14 www.oryx.com "Archiveopteryx Documentation"
+.TH archiveopteryx 7 2008-01-14 aox.org "Archiveopteryx Documentation"
 .SH NAME
 Overview of Archiveopteryx.
 .SH SYNOPSIS
@@ -60,8 +60,8 @@ any IMAP or POP3 client.
 The normal way to deliver mail from your MTA into Archiveopteryx is via LMTP.
 By default, Archiveopteryx listens on 127.0.0.1 port 2026.
 .PP
-On www.oryx.com we describe configuring some common MTAs to work with
-Archiveopteryx. See e.g.  http://www.archiveopteryx.org/postfix.html for
+On aox.org we describe how to configure some common MTAs to work with
+Archiveopteryx. See e.g. http://www.archiveopteryx.org/postfix.html for
 .BR postfix (1).
 .SH ARCHITECTURE
 .PP

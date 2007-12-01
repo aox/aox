@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH archiveopteryx.conf 5 2008-01-14 www.oryx.com "Archiveopteryx Documentation"
+.TH archiveopteryx.conf 5 2008-01-14 aox.org "Archiveopteryx Documentation"
 .SH NAME
 archiveopteryx.conf - configuration file for Archiveopteryx.
 .SH SYNOPSIS

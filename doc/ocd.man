@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH ocd 8 2008-01-14 www.oryx.com "Archiveopteryx Documentation"
+.TH ocd 8 2008-01-14 aox.org "Archiveopteryx Documentation"
 .SH NAME
 ocd - cluster coordination server for Archiveopteryx.
 .SH SYNOPSIS

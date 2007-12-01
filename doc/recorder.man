@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH recorder 8 2008-01-14 www.oryx.com "Archiveopteryx Documentation"
+.TH recorder 8 2008-01-14 aox.org "Archiveopteryx Documentation"
 .SH NAME
 recorder - IMAP connection recorder
 .SH SYNOPSIS
