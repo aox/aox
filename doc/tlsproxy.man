@@ -102,7 +102,7 @@ is used to store the automatically generated key and certificate.
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 2.06, released 2008-01-14,
-http://www.archiveopteryx.org/2.06.html.
+http://www.archiveopteryx.org/2.06
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
