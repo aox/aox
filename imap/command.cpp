@@ -1235,6 +1235,9 @@ String Command::imapQuoted( Mailbox * m, Mailbox * r )
 
 void Command::requireRight( Mailbox * m, Permissions::Right r )
 {
+    if ( !m )
+        return;
+
     if ( !d->checker )
         d->checker = new PermissionsChecker;
 
