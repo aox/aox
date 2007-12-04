@@ -648,6 +648,8 @@ void Fetch::execute()
                    || m->hasTrivia() ) &&
                  m->uid() > 0 && msn > 0 )
             {
+                if ( d->flags )
+                    imap()->session()->addFlags( m->flags(), this );
                 imap()->enqueue( fetchResponse( m, m->uid(), msn ) );
                 d->requested.shift();
             }

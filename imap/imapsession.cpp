@@ -30,6 +30,7 @@ public:
     Fetcher * annof;
     Fetcher * trif;
     List<Message> fetching;
+    List<Flag> flags;
 
     // XXX: A hack. maybe Session should inherit EventHandler instead.
     void execute() {
@@ -401,4 +402,49 @@ void ImapSession::emitResponses()
     if ( c && c->state() == Command::Finished &&
          !d->flagf && !d->annof && !d->trif )
         d->i->unblockCommands();
+}
+
+
+/*! Records that \a f will be used by \a c. f \a c is the first
+    Command to use \a f in this ImapSession, addFlags() uses
+    Command::respond() to enqueue a FLAGS response announcing the new
+    list of flags.
+*/
+
+void ImapSession::addFlags( List<Flag> * f, class Command * c )
+{
+    List<Flag>::Iterator i( f );
+    bool announce = false;
+    while ( i ) {
+        List<Flag>::Iterator j( d->flags );
+        while ( j && j->id() < i->id() )
+            ++j;
+        if ( !j || i->id() > i->id() ) {
+            d->flags.insert( j, i );
+            announce = true;
+        }
+        ++i;
+    }
+
+    if ( !announce )
+        return;
+
+    String r;
+    i = d->flags;
+    while ( i ) {
+        if ( !r.isEmpty() )
+            r.append( " " );
+        r.append( i->name() );
+        ++i;
+    }
+
+    String s = "FLAGS (";
+    s.append( r );
+    s.append( ")" );
+    c->respond( s );
+
+    s = "OK [PERMANENTFLAGS (";
+    s.append( r );
+    s.append( " \\*)] permanent flags" );
+    c->respond( s );
 }

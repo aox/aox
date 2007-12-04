@@ -562,6 +562,8 @@ void Store::sendModseqResponses()
 
 void Store::sendFlagResponses()
 {
+    imap()->session()->addFlags( &d->flags, this );
+
     String modseq;
     String flags;
 

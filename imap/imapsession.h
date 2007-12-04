@@ -33,6 +33,8 @@ public:
 
     void emitResponses();
 
+    void addFlags( List<class Flag> *, class Command * );
+
 private:
     class ImapSessionData * d;
 };

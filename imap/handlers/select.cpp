@@ -169,20 +169,23 @@ void Select::execute()
         respond( "OK [HIGHESTMODSEQ " + fn( hms ) + "] highest modseq" );
     }
 
-    String flags = "\\Deleted \\Answered \\Flagged \\Draft \\Seen";
+    List<Flag> flags;
+    flags.append( Flag::find( "\\Deleted" ) );
+    flags.append( Flag::find( "\\Answered" ) );
+    flags.append( Flag::find( "\\Flagged" ) );
+    flags.append( Flag::find( "\\Draft" ) );
+    flags.append( Flag::find( "\\Seen" ) );
+    
     if ( d->usedFlags && d->usedFlags->hasResults() ) {
         Row * r = 0;
         while ( (r=d->usedFlags->nextRow()) != 0 ) {
             Flag * f = Flag::find( r->getInt( "flag" ) );
-            if ( f && !f->system() ) {
-                flags.append( " " );
-                flags.append( f->name() );
-            }
+            if ( f )
+                flags.append( f );
         }
     }
 
-    respond( "FLAGS (" + flags + ")" );
-    respond( "OK [PERMANENTFLAGS (" + flags +" \\*)] permanent flags" );
+    d->session->addFlags( &flags, this );
 
     if ( imap()->clientSupports( IMAP::Annotate ) ) {
         Permissions * p  = d->session->permissions();
