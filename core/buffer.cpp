@@ -224,7 +224,7 @@ void Buffer::remove( uint n )
     if ( bytes == 0 ) {
         firstused = firstfree = 0;
         vecs.clear();
-        if ( v->len > 100 && v->len < 10000 )
+        if ( v->len > 100 && v->len < 20000 )
             vecs.append( v );
         return;
     }
