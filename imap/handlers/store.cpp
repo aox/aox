@@ -143,7 +143,10 @@ void Store::parse()
         d->silent = present( ".silent" );
         space();
 
-        if ( present( "(" ) ) {
+        if ( present( "()" ) ) {
+            // Nothing to do.
+        }
+        else if ( present( "(" ) ) {
             d->flagNames.append( flag() );
             while ( present( " " ) )
                 d->flagNames.append( flag() );
@@ -319,7 +322,7 @@ void Store::execute()
                 requireRight( m, Permissions::KeepSeen );
             if ( deleted )
                 requireRight( m, Permissions::DeleteMessages );
-            if ( other )
+            if ( other || d->flagNames.isEmpty() )
                 requireRight( m, Permissions::Write );
         }
         d->checkedPermission = true;
@@ -618,19 +621,29 @@ void Store::removeFlags( bool opposite )
 
     s.addGapsFrom( imap()->session()->messages() );
 
-    List<Flag>::Iterator it( d->flags );
     String flags;
-    if ( opposite )
-        flags = "not";
-    String sep( "(flag=" );
-    while( it ) {
-        flags.append( sep );
-        flags.append( fn( it->id() ) );
-        if ( sep[0] != ' ' )
-            sep = " or flag=";
-        ++it;
+    List<Flag>::Iterator it( d->flags );
+    if ( it ) {
+        if ( opposite )
+            flags = "not";
+        String sep( "(flag=" );
+        while( it ) {
+            flags.append( sep );
+            flags.append( fn( it->id() ) );
+            if ( sep[0] != ' ' )
+                sep = " or flag=";
+            ++it;
+        }
+        flags.append( ")" );
     }
-    flags.append( ")" );
+    else {
+        flags.append( "flag" );
+        if ( opposite )
+            flags.append( "<>" );
+        else
+            flags.append( "=" );
+        flags.append( "0" );
+    }
 
     Query * q = 0;
     if ( m->view() ) {
