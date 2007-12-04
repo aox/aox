@@ -663,6 +663,22 @@ void Command::emitResponses()
 }
 
 
+/*! Emits some/all untagged responses right away. Stops at the first
+    tagged response.
+*/
+
+void Command::emitUntaggedResponses()
+{
+    List< String >::Iterator it( d->responses );
+    while ( it && it->startsWith( "* " ) ) {
+        imap()->enqueue( *it );
+        d->responses->take( it );
+    }
+    
+    imap()->write();
+}
+
+
 /*! Returns the next, unparsed character, without consuming
     it. Returns 0 in case of error, but does not emit any error
     messages.

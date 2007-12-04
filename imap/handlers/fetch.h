@@ -41,7 +41,7 @@ private:
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
     String singlePartStructure( Multipart *, bool );
-    String fetchResponse( Message *, uint, uint );
+    void sendFetchResponse( Message *, uint, uint );
 
 private:
     class FetchData * d;

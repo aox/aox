@@ -53,6 +53,7 @@ public:
     enum Error { No, Bad };
     void error( Error, const String & );
 
+    void emitUntaggedResponses();
     void finish();
     void emitResponses();
 

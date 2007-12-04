@@ -650,7 +650,7 @@ void Fetch::execute()
             {
                 if ( d->flags )
                     imap()->session()->addFlags( m->flags(), this );
-                imap()->enqueue( fetchResponse( m, m->uid(), msn ) );
+                sendFetchResponse( m, m->uid(), msn );
                 d->requested.shift();
             }
             else {
@@ -664,7 +664,7 @@ void Fetch::execute()
         // in the case of fetch, we sometimes have thousands of responses,
         // so it's important to push the first responses to the client as
         // quickly as possible.
-        imap()->write();
+        emitUntaggedResponses();
 
         if ( !d->requested.isEmpty() )
             return;
@@ -915,7 +915,7 @@ static String sectionResponse( Section * s, Message * m )
     The message must have all necessary content.
 */
 
-String Fetch::fetchResponse( Message * m, uint uid, uint msn )
+void Fetch::sendFetchResponse( Message * m, uint uid, uint msn )
 {
     StringList l;
     if ( d->uid )
@@ -944,8 +944,18 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
         ++it;
     }
 
-    String r = "* " + fn( msn ) + " FETCH (" + l.join( " " ) + ")\r\n";
-    return r;
+    String r;
+    r.append( fn( msn ) );
+    r.append( " FETCH (" );
+    StringList::Iterator i( l );
+    while ( i ) {
+        r.append( *i );
+        ++i;
+        if ( i )
+            r.append( " " );
+    }
+    r.append( ")" );
+    respond( r );
 }
 
 
