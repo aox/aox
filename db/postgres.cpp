@@ -52,7 +52,6 @@ public:
     bool error;
 
     PgKeyData *keydata;
-    Dict< String > params;
     PgRowDescription *description;
     Dict< int > prepared;
     StringList preparesPending;
@@ -581,7 +580,6 @@ void Postgres::unknown( char type )
         {
             d->unknownMessage = false;
             PgParameterStatus msg( readBuffer() );
-            d->params.insert( msg.name(), new String( msg.value() ) );
         }
         break;
 
