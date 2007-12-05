@@ -42,6 +42,7 @@ public:
     void operator delete( void * );
     void operator delete[]( void * );
 
+    void setFirstNonPointer( const void * ) const;
 };
 
 #endif

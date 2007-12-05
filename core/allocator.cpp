@@ -309,6 +309,36 @@ void Allocator::deallocate( void * p )
 }
 
 
+/*! Records that \a p contains at most \a n pointers, all located at
+    the start of the object. The rest of the object is not scanned for
+    pointers during garbage collection, which can be helpful if the
+    object contains either very large string/text data or apparently
+    random binary data.
+
+    Scanning long strings is slow. Binary data can give false alarms
+    during pointer scanning, which will lead ot memory not being
+    freed.
+*/
+
+void Allocator::setNumPointers( const void * p, uint n )
+{
+    if ( n * sizeof( void * ) >= step || n > 32767 )
+        n = 32767;
+
+    ulong i = ((ulong)p - (ulong)buffer) / step;
+    if ( i >= capacity )
+        return;
+    if ( ! (used[i/bits] & 1UL << (i%bits)) )
+        return;
+
+    AllocationBlock * m = (AllocationBlock *)block( i );
+    if ( m->x.magic != ::magic )
+        die( Memory );
+
+    m->x.number = n;
+}
+
+
 /*! This private helper inserts the allocator in the tree used by
     owner().
 */
@@ -340,7 +370,7 @@ void Allocator::insert()
     pointer if \a p doesn't seem to be a valid pointer.
 */
 
-inline Allocator * Allocator::owner( void * p )
+inline Allocator * Allocator::owner( const void * p )
 {
     if ( !p )
         return 0;
@@ -955,4 +985,6 @@ void Allocator::dumpRandomObject()
         if ( !crlf )
             fprintf( stdout, "%s\n", i < a->step-bytes ? "..." : "" );
     }
+
+
 }

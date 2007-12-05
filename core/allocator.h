@@ -36,8 +36,10 @@ public:
 
     uint chunkSize() const;
 
-    static Allocator * owner( void * );
+    static Allocator * owner( const void * );
     void deallocate( void * );
+
+    void setNumPointers( const void *, uint );
 
     static uint sizeOf( void * );
     static void scan( void * );

@@ -12,7 +12,9 @@ class UStringData
     : public Garbage
 {
 private:
-    UStringData(): str( 0 ), len( 0 ), max( 0 ) {}
+    UStringData(): str( 0 ), len( 0 ), max( 0 ) {
+        setFirstNonPointer( &len );
+    }
     UStringData( int );
 
     friend class UString;

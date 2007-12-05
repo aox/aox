@@ -51,8 +51,11 @@ private:
     struct Vector
         : public Garbage
     {
-        Vector() : base( 0 ), len( 0 ) {}
+        Vector() : base( 0 ), len( 0 ) {
+            setFirstNonPointer( &len );
+        }
         char *base;
+        // no pointers after this line
         uint len;
     };
 

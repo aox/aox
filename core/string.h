@@ -10,7 +10,9 @@ class StringData
     : public Garbage
 {
 private:
-    StringData(): str( 0 ), len( 0 ), max( 0 ) {}
+    StringData(): str( 0 ), len( 0 ), max( 0 ) {
+        setFirstNonPointer( &len );
+    }
     StringData( int );
 
     friend class String;

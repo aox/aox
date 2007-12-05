@@ -15,7 +15,9 @@ public:
     struct Range
         : public Garbage
     {
-        Range( uint s, uint l ): start( s ), length( l ) {}
+        Range( uint s, uint l ): start( s ), length( l ) {
+            setFirstNonPointer( &start );
+        }
         uint start;
         uint length;
     };

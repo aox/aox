@@ -18,11 +18,14 @@ public:
     {
     public:
         Node( Node * n, uint h, void * v, const String & s )
-            : next( n ), hash( h ), data( v ), key( s ) {}
+            : next( n ), data( v ), key( s ), hash( h ) {
+            setFirstNonPointer( &hash );
+        }
         Node * next;
-        uint hash;
         void * data;
         String key;
+        // no pointers after this line
+        uint hash;
     };
 
     uint size;
@@ -275,7 +278,7 @@ bool DictBase::isEmpty() const
         b++;
     }
     return true;
-    
+
 }
 
 

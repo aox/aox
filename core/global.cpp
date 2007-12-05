@@ -53,3 +53,17 @@ void Garbage::operator delete[]( void * )
 {
     // nothing necessary. and this function isn't called much, either.
 }
+
+
+/*! Informs the Allocator to consider that this object contains no
+    pointers at or after \a p. This makes Allocator::free() faster and
+    more accurate.
+*/
+
+void Garbage::setFirstNonPointer( const void * p ) const
+{
+    unsigned long long int t = (unsigned long long int)this;
+    unsigned long long int o = (unsigned long long int)p;
+    Allocator * a = Allocator::owner( this );
+    a->setNumPointers( this, ( o + sizeof(void*)-1 - t ) / sizeof(void*) );
+}

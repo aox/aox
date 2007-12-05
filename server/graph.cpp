@@ -23,11 +23,13 @@ public:
         uint i = 0;
         while ( i < graphableHistorySize )
             values[i++] = 0;
+        setFirstNonPointer( &min );
     }
     String name;
-    uint values[::graphableHistorySize];
+    // no pointers after this line
     uint min;
     uint max;
+    uint values[::graphableHistorySize];
 };
 
 
