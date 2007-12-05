@@ -702,9 +702,12 @@ void Postgres::serverMessage()
         s.append( m );
         if ( !msg.detail().isEmpty() )
             s.append( " (" + msg.detail() + ")" );
-        s.append( " (" + msg.code() + ")" );
+        s.append( " (" + code + ")" );
 
-        if ( q->canFail() )
+        // Don't clutter the logs with queries that are known to run the
+        // risk of failure, or which failed only because the transaction
+        // they are in had failed already.
+        if ( q->canFail() || code == "25P02" )
             ::log( s, Log::Debug );
         else
             ::log( s, Log::Error );
@@ -727,7 +730,7 @@ void Postgres::serverMessage()
     else {
         ::log( "PostgreSQL server message could not be interpreted."
                " Message: " + msg.message() +
-               " SQL state code: " + msg.code() +
+               " SQL state code: " + code +
                " Severity: " + msg.severity().lower(),
                Log::Error );
     }
