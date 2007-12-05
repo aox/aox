@@ -580,6 +580,12 @@ void Postgres::unknown( char type )
         {
             d->unknownMessage = false;
             PgParameterStatus msg( readBuffer() );
+
+            String s( "PostgreSQL server: " );
+            s.append( msg.name() );
+            s.append( "=" );
+            s.append( msg.value().quoted() );
+            ::log( s, Log::Debug );
         }
         break;
 
