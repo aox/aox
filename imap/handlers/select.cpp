@@ -170,12 +170,23 @@ void Select::execute()
     }
 
     List<Flag> flags;
-    flags.append( Flag::find( "\\Deleted" ) );
-    flags.append( Flag::find( "\\Answered" ) );
-    flags.append( Flag::find( "\\Flagged" ) );
-    flags.append( Flag::find( "\\Draft" ) );
-    flags.append( Flag::find( "\\Seen" ) );
-    
+    Flag * f = 0;
+    f = Flag::find( "\\Deleted" );
+    if ( f )
+        flags.append( f );
+    f = Flag::find( "\\Answered" );
+    if ( f )
+        flags.append( f );
+    f = Flag::find( "\\Flagged" );
+    if ( f )
+        flags.append( f );
+    f = Flag::find( "\\Draft" );
+    if ( f )
+        flags.append( f );
+    f = Flag::find( "\\Seen" );
+    if ( f )
+        flags.append( f );
+
     if ( d->usedFlags && d->usedFlags->hasResults() ) {
         Row * r = 0;
         while ( (r=d->usedFlags->nextRow()) != 0 ) {
