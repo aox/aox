@@ -62,8 +62,8 @@ void Garbage::operator delete[]( void * )
 
 void Garbage::setFirstNonPointer( const void * p ) const
 {
-    unsigned long long int t = (unsigned long long int)this;
-    unsigned long long int o = (unsigned long long int)p;
+    ulong t = (ulong)this;
+    ulong o = (ulong)p;
     Allocator * a = Allocator::owner( this );
     a->setNumPointers( this, ( o + sizeof(void*)-1 - t ) / sizeof(void*) );
 }
