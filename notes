@@ -1,56 +1,22 @@
-2.05: 2007-12-03
-
-  New style sheet for the web archive blah.
-
-  Show excerpts in web archive search results.
-
-  Faster search execution.
-
-  Investigate and solve Axel Rau's memory use problem. (Solved, but
-  the code is a little ineffective in some cases as a result.)
-
-  Partially done:
-
-    - "aox delete user -f ams" fails if
-        1. User ams owns any sieve scripts. (fixed)
-        2. User ams is referenced in deleted_messages.deleted_by, since
-           marking mailboxes deleted doesn't actually delete messages in
-           those mailboxes.
-
-  Done:
-
-    - The aox verbs create and add should be equivalent.
-    - 'aox help create' should list all the possible nouns, etc.
-    - Build on openbsd and darwin with jamfile. (Done, but the generated
-      Makefile needs to be checked carefully.)
-    - Better error messages for 'db-user=_aox'.
-    - aox change username fixed.
-    - added RFC 1870 and RFC 5032 support.
-    - Opening large mailboxes is now much faster.
-    - Domains are now 100% case insensitive (up from 90%).
-
-  Abhijit is responsive.
-
-    2007-10-26: decide on feature list
-    2007-11-19: drop things that can't be finished
-    2007-11-26: fork and remove unusable code
-    2007-11-29: roll, release chores
-    2007-11-30: features for next release
-    2007-12-03: release
-
-
 2.06: 2008-01-14
-
-  Six weeks after 2.05, I think.
 
   Arnt is away from 2007-12-20 to 2008-01-03.
 
   Add some monitoring variables, whatever seems like a good idea.
 
+  rrdtool integration script
+
   The great schema change.
 
   Done:
     - SORT
+
+  2007-12-07: decide on feature list
+  2007-12-31: drop things that can't be finished
+  2008-01-07: fork and remove unusable code
+  2008-01-10: roll, release chores
+  2008-01-11: features for next release
+  2008-01-14: release
 
 
 2.07: 2008-02-18
