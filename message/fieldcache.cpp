@@ -11,8 +11,8 @@
 #include "map.h"
 
 
-static Map< String > *idCache;
-static Dict< uint > *nameCache;
+static Map< String > *fieldsById;
+static Dict< uint > *fieldsByName;
 static PreparedStatement *fieldLookup;
 static PreparedStatement *fieldInsert;
 
@@ -36,8 +36,8 @@ static PreparedStatement *fieldInsert;
 
 void FieldNameCache::setup()
 {
-    idCache = new Map< String >;
-    nameCache = new Dict< uint >( 400 );
+    fieldsById = new Map< String >;
+    fieldsByName = new Dict< uint >( 400 );
 
     fieldLookup =
         new PreparedStatement( "select id from field_names where name=$1" );
@@ -47,8 +47,8 @@ void FieldNameCache::setup()
                                "select $1 where not exists "
                                "(select id from field_names where name=$1)" );
 
-    Allocator::addEternal( idCache, "field name cache by id" );
-    Allocator::addEternal( nameCache, "field name cache by name" );
+    Allocator::addEternal( fieldsById, "field name cache by id" );
+    Allocator::addEternal( fieldsByName, "field name cache by name" );
     Allocator::addEternal( fieldLookup, "field name lookup statement" );
     Allocator::addEternal( fieldInsert, "field inserter" );
 }
@@ -98,10 +98,10 @@ void FieldLookup::execute() {
         uint id = r->getInt( "id" );
         String *name = new String( field );
         name->detach();
-        idCache->insert( id, name );
+        fieldsById->insert( id, name );
         uint * tmp = (uint*)Allocator::alloc( sizeof(uint), 0 );
         *tmp = id;
-        nameCache->insert( *name, tmp );
+        fieldsByName->insert( *name, tmp );
     }
 
     if ( queries->isEmpty() ) {
@@ -128,7 +128,7 @@ CacheLookup *FieldNameCache::lookup( Transaction *t, List< String > *l,
     while ( it ) {
         String field = *it;
 
-        if ( nameCache->find( field ) == 0 )
+        if ( fieldsByName->find( field ) == 0 )
             (void)new FieldLookup( t, field, lookups, status, ev );
 
         ++it;
@@ -150,7 +150,7 @@ CacheLookup *FieldNameCache::lookup( Transaction *t, List< String > *l,
 
 uint FieldNameCache::translate( const String &field )
 {
-    HeaderField::Type * t = (HeaderField::Type *)nameCache->find( field );
+    HeaderField::Type * t = (HeaderField::Type *)fieldsByName->find( field );
     if ( !t )
         return 0;
     return *t;
