@@ -370,7 +370,7 @@ void Allocator::insert()
     pointer if \a p doesn't seem to be a valid pointer.
 */
 
-inline Allocator * Allocator::owner( const void * p )
+Allocator * Allocator::owner( const void * p )
 {
     if ( !p )
         return 0;
