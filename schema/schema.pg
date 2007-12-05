@@ -114,11 +114,11 @@ create table permissions (
 
 create table messages (
     id          serial primary key,
-    rfc822size  integer,
+    rfc822size  integer
 );
 
 
--- One (mailbox, uid) entry per message and mailbox
+-- One (mailbox, uid) entry per message and mailbox.
 
 create table mailbox_messages (
     mailbox     integer not null references mailboxes(id),
