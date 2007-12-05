@@ -37,14 +37,13 @@ if ( $(BUILDDOC) ) {
 MkDir $(BINDIR) ;
 MkDir $(MANDIR) ;
 MkDir $(LIBDIR) ;
-MkDir $(PIDFILEDIR) ;
 MkDir $(JAILDIR) ;
 MkDir $(MESSAGEDIR) ;
 MkDir $(CONFIGDIR) ;
 MkDir $(LOGFILE:D) ;
 
 Depends install :
-    $(PIDFILEDIR) $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) ;
+    $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) ;
 
 # if we make JAILDIR, we should chmod it so noone can read it:
 MODE on $(JAILDIR) = 700 ;
