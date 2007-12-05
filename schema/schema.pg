@@ -200,7 +200,6 @@ create table date_fields (
     value       timestamp with time zone
     -- is this it? how about original-date and resent-date?
 );
-create index df_mu on date_fields(mailbox,uid);
 
 
 -- One entry per unique thread.
@@ -335,7 +334,7 @@ create table deliveries (
                 on delete cascade,
     injected_at timestamp with time zone,
     expires_at  timestamp with time zone,
-    tried_at    timestamp with time zone,
+    tried_at    timestamp with time zone
 );
 
 
