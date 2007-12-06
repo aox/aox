@@ -182,14 +182,17 @@ create table header_fields (
 -- A list of addresses associated with each message.
 
 create table address_fields (
-    message     integer not null references messages(id)
-                on delete cascade,
+    message     integer not null,
     part        text not null,
     position    integer not null,
     field       integer not null,
     number      integer,
-    address     integer not null references addresses(id)
+    address     integer not null references addresses(id),
+    foreign key (message, part)
+                references part_numbers(message, part)
+                on delete cascade
 );
+create index af_mp on address_fields (message, part);
 
 
 -- The Date field from each message.
