@@ -167,13 +167,15 @@ create table field_names (
 
 create table header_fields (
     id          serial primary key,
-    message     integer not null references messages(id)
-                on delete cascade,
+    message     integer not null,
     part        text not null,
     position    integer not null,
     field       integer not null references field_names(id),
     value       text,
-    unique (message, part, position, field)
+    unique (message, part, position, field),
+    foreign key (message, part)
+                references part_numbers(message, part)
+                on delete cascade
 );
 
 
