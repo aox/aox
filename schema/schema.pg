@@ -311,19 +311,20 @@ create table scripts (
 );
 
 
--- One entry per deleted (EXPUNGEd) message.
+-- One entry per deleted (EXPUNGEd) message, which says "message #n used
+-- to be (mailbox,uid) until it was deleted_by ... at ...". A given pair
+-- of (mailbox,uid) may exist either in mailbox_messages or here, never
+-- in both.
 
 create table deleted_messages (
-    mailbox     integer not null,
+    mailbox     integer not null references mailboxes(id),
     uid         integer not null,
+    message     integer not null references messages(id),
     deleted_by  integer references users(id),
     deleted_at  timestamp with time zone not null
                 default current_timestamp,
     reason      text,
-    primary key (mailbox, uid),
-    foreign key (mailbox, uid)
-                references mailbox_messages(mailbox, uid)
-                on delete cascade
+    primary key (mailbox, uid)
 );
 create index dm_mud on deleted_messages(mailbox,uid,deleted_at);
 
