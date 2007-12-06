@@ -125,6 +125,7 @@ create table mailbox_messages (
     uid         integer not null,
     idate       integer not null,
     message     integer references messages(id),
+    modseq      bigint not null,
     primary key (mailbox, uid)
 );
 
