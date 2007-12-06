@@ -33,11 +33,11 @@ insert into namespaces (name) values ('/users');
 
 create table users (
     id          serial primary key,
-    login       text unique,
+    login       text,
     secret      text,
     parentspace integer not null references namespaces(id)
 );
-create index u_l on users (lower(login));
+create unique index u_l on users (lower(login));
 
 
 -- One entry per named group.
