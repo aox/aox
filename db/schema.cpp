@@ -231,10 +231,14 @@ void Schema::execute()
             fail( s, d->t->failedQuery() );
         }
         else if ( d->state == 6 ) {
+            String s( "Schema upgraded to revision " );
+            s.append( fn( Database::currentRevision() ) );
+            if ( !d->commit )
+                s.append( ", but not committed" );
+            s.append( "." );
+
+            d->l->log( s, Log::Significant );
             d->result->setState( Query::Completed );
-            d->l->log( "Schema upgraded to revision " +
-                       fn( Database::currentRevision() ) + ".",
-                       Log::Significant );
         }
         d->state = 7;
     }
