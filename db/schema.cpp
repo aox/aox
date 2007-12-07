@@ -402,6 +402,8 @@ bool Schema::singleStep()
         c = stepTo58(); break;
     case 58:
         c = stepTo59(); break;
+    case 59:
+        c = stepTo60(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -2660,6 +2662,132 @@ bool Schema::stepTo59()
     }
 
     if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Split messages into two, and clean up the resulting mess. */
+
+bool Schema::stepTo60()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Splitting the messages table (may be very slow)." );
+
+        // First, we'll add messages.id and make it a candidate key so
+        // that we can refer to it from other tables. Then we'll create
+        // the new mailbox_messages table.
+
+        describeStep( "1. Separating messages and mailbox_messages" );
+
+        d->q = new Query( "alter table messages add id serial", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table messages alter id set not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table messages add unique(id)", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "create table mailbox_messages (mailbox integer not "
+                          "null references mailboxes(id),uid integer not null,"
+                          "message integer not null references messages(id),"
+                          "idate integer not null,modseq bigint not null)",
+                          this );
+        d->t->enqueue( d->q );
+
+        // XXX: GRANT PRIVILEGES
+
+        d->q = new Query( "insert into mailbox_messages (mailbox,uid,message,"
+                          "idate,modseq) select mailbox,uid,messages.id,idate,"
+                          "modseq from messages join modsequences "
+                          "using (mailbox,uid)", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table messages drop idate", this );
+        d->t->enqueue( d->q );
+
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+
+        describeStep( "2. Cleaning up date_fields references" );
+
+        d->q = new Query( "alter table date_fields add message integer", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "update date_fields d set message=m.id from messages "
+                          "m where d.mailbox=m.mailbox and d.uid=m.uid", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table date_fields alter message set not null",
+                          this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "select conname::text from pg_constraint where "
+                          "conrelid=(select oid from pg_class where "
+                          "relname='date_fields')", this );
+        d->t->enqueue( d->q );
+
+        d->substate = 2;
+        d->t->execute();
+    }
+
+    if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+
+        Row * r = d->q->nextRow();
+        if ( d->q->failed() || !r ) {
+            fail( "Couldn't fetch constraint name", d->q );
+            d->substate = 4;
+        }
+        else {
+            String n( r->getString( "conname" ) );
+            d->q = new Query( "alter table date_fields drop constraint " + n,
+                              this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "drop index df_mu", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table date_fields drop mailbox", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table date_fields drop uid", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table date_fields add constraint "
+                              "date_fields_message_fkey foreign key (message) "
+                              "references messages(id)", this );
+            d->t->enqueue( d->q );
+
+            d->substate = 3;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 3 ) {
+        if ( !d->q->done() )
+            return false;
+
+        describeStep( "3. ..." );
+
+        d->q = new Query( "select 42", this );
+        d->t->enqueue( d->q );
+
+        d->substate = 4;
+        d->t->execute();
+    }
+
+    if ( d->substate == 4 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
