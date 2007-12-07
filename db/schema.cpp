@@ -2766,7 +2766,8 @@ bool Schema::stepTo60()
 
             d->q = new Query( "alter table date_fields add constraint "
                               "date_fields_message_fkey foreign key (message) "
-                              "references messages(id)", this );
+                              "references messages(id) on delete cascade",
+                              this );
             d->t->enqueue( d->q );
 
             d->substate = 3;
