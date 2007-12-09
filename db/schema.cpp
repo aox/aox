@@ -2710,6 +2710,16 @@ bool Schema::stepTo60()
         d->q = new Query( "alter table messages drop idate", this );
         d->t->enqueue( d->q );
 
+        // Fetch the names of all foreign key references to messages.
+
+        d->q = new Query( "select d.relname,c.conname,"
+                          "pg_get_constraintdef(c.oid) as condef "
+                          "from pg_constraint c join pg_class d "
+                          "on (c.conrelid=d.oid) join pg_class e "
+                          "on (c.confrelid=e.oid) where c.contype='f' "
+                          "and e.relname='messages'", this );
+        d->t->enqueue( d->q );
+
         d->substate = 1;
         d->t->execute();
     }
@@ -2718,7 +2728,136 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "2. Cleaning up date_fields references" );
+        describeStep( "2. Cleaning up foreign key references" );
+
+        if ( d->q->failed() || d->q->rows() == 0 ) {
+            fail( "Couldn't fetch foreign key names", d->q );
+            d->substate = 42;
+        }
+        else {
+            Dict<String> constraints;
+
+            while ( d->q->hasResults() ) {
+                Row * r = d->q->nextRow();
+                constraints.insert(
+                    r->getString( "relname" ),
+                    new String( r->getString( "conname" ) )
+                );
+            }
+
+            d->q = new Query( "alter table part_numbers drop constraint " +
+                              *constraints.find( "part_numbers" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table date_fields drop constraint " +
+                              *constraints.find( "date_fields" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table thread_members drop constraint " +
+                              *constraints.find( "thread_members" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table flags drop constraint " +
+                              *constraints.find( "flags" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table flags add constraint "
+                              "flags_mailbox_fkey foreign key "
+                              "(mailbox,uid) references "
+                              "mailbox_messages (mailbox,uid) "
+                              "on delete cascade", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table annotations drop constraint " +
+                              *constraints.find( "annotations" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table annotations add constraint "
+                              "annotations_mailbox_fkey foreign key "
+                              "(mailbox,uid) references "
+                              "mailbox_messages (mailbox,uid) "
+                              "on delete cascade", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table view_messages drop constraint " +
+                              *constraints.find( "view_messages" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table deleted_messages drop constraint " +
+                              *constraints.find( "deleted_messages" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table modsequences drop constraint " +
+                              *constraints.find( "modsequences" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table deliveries drop constraint " +
+                              *constraints.find( "deliveries" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "select d.relname,c.conname,"
+                              "pg_get_constraintdef(c.oid) as condef "
+                              "from pg_constraint c join pg_class d "
+                              "on (c.conrelid=d.oid) join pg_class e "
+                              "on (c.confrelid=e.oid) where c.contype='f' "
+                              "and e.relname='part_numbers'", this );
+            d->t->enqueue( d->q );
+
+            d->substate = 2;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+
+        if ( d->q->failed() || d->q->rows() == 0 ) {
+            fail( "Couldn't fetch foreign key names", d->q );
+            d->substate = 42;
+        }
+        else {
+            Dict<String> constraints;
+
+            while ( d->q->hasResults() ) {
+                Row * r = d->q->nextRow();
+                constraints.insert(
+                    r->getString( "relname" ),
+                    new String( r->getString( "conname" ) )
+                );
+            }
+
+            d->q = new Query( "alter table header_fields drop constraint " +
+                              *constraints.find( "header_fields" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table address_fields drop constraint " +
+                              *constraints.find( "address_fields" ), this );
+            d->t->enqueue( d->q );
+
+            d->substate = 3;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 3 ) {
+        if ( !d->q->done() )
+            return false;
+
+        describeStep( "3. Dropping unnecessary tables" );
+
+        d->q = new Query( "drop table modsequences", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop table view_messages", this );
+        d->t->enqueue( d->q );
+
+        d->substate = 4;
+        d->t->execute();
+    }
+
+    if ( d->substate == 4 ) {
+
+        describeStep( "4. Cleaning up date_fields references" );
 
         d->q = new Query( "alter table date_fields add message integer", this );
         d->t->enqueue( d->q );
@@ -2731,64 +2870,33 @@ bool Schema::stepTo60()
                           this );
         d->t->enqueue( d->q );
 
-        d->q = new Query( "select conname::text from pg_constraint where "
-                          "conrelid=(select oid from pg_class where "
-                          "relname='date_fields')", this );
+        d->q = new Query( "drop index df_mu", this );
         d->t->enqueue( d->q );
 
-        d->substate = 2;
+        d->q = new Query( "alter table date_fields drop mailbox", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table date_fields drop uid", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table date_fields add constraint "
+                          "date_fields_message_fkey foreign key (message) "
+                          "references messages(id) on delete cascade",
+                          this );
+        d->t->enqueue( d->q );
+
+        d->substate = 5;
         d->t->execute();
     }
 
-    if ( d->substate == 2 ) {
+    if ( d->substate == 5 ) {
         if ( !d->q->done() )
             return false;
 
-        Row * r = d->q->nextRow();
-        if ( d->q->failed() || !r ) {
-            fail( "Couldn't fetch constraint name", d->q );
-            d->substate = 4;
-        }
-        else {
-            String n( r->getString( "conname" ) );
-            d->q = new Query( "alter table date_fields drop constraint " + n,
-                              this );
-            d->t->enqueue( d->q );
-
-            d->q = new Query( "drop index df_mu", this );
-            d->t->enqueue( d->q );
-
-            d->q = new Query( "alter table date_fields drop mailbox", this );
-            d->t->enqueue( d->q );
-
-            d->q = new Query( "alter table date_fields drop uid", this );
-            d->t->enqueue( d->q );
-
-            d->q = new Query( "alter table date_fields add constraint "
-                              "date_fields_message_fkey foreign key (message) "
-                              "references messages(id) on delete cascade",
-                              this );
-            d->t->enqueue( d->q );
-
-            d->substate = 3;
-            d->t->execute();
-        }
+        d->substate = 42;
     }
 
-    if ( d->substate == 3 ) {
-        if ( !d->q->done() )
-            return false;
-
-        describeStep( "3. ..." );
-
-        d->q = new Query( "select 42", this );
-        d->t->enqueue( d->q );
-
-        d->substate = 4;
-        d->t->execute();
-    }
-
-    if ( d->substate == 4 ) {
+    if ( d->substate == 42 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
