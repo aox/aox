@@ -2701,12 +2701,10 @@ bool Schema::stepTo60()
 
         // XXX: GRANT PRIVILEGES
 
-        d->q = new Query( "insert into mailbox_messages "
-                          "(mailbox,uid,message,idate,modseq) "
-                          "select mailbox,uid,messages.id,idate,modseq from "
-                          "messages join modsequences using (mailbox,uid) "
-                          "left join deleted_messages using (mailbox,uid) "
-                          "where deleted_messages is null", this );
+        d->q = new Query( "insert into mailbox_messages (mailbox,uid,message,"
+                          "idate,modseq) select mailbox,uid,messages.id,idate,"
+                          "modseq from messages join modsequences "
+                          "using (mailbox,uid)", this );
         d->t->enqueue( d->q );
 
         d->q = new Query( "alter table messages drop idate", this );
