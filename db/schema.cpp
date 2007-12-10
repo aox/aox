@@ -3018,11 +3018,31 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "4. Dropping unnecessary tables" );
+        describeStep( "4. Cleaning up deliveries" );
 
-        d->q = new Query( "drop table modsequences", this );
+        d->q = new Query( "alter table deliveries add message "
+                          "integer", this );
         d->t->enqueue( d->q );
-        d->q = new Query( "drop table view_messages", this );
+
+        d->q = new Query( "update deliveries d set message=m.id "
+                          "from messages m where d.mailbox=m.mailbox "
+                          "and d.uid=m.uid", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table deliveries alter message "
+                          "set not null", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table deliveries drop mailbox", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table deliveries drop uid", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table deliveries add constraint "
+                          "deliveries_message_fkey foreign key "
+                          "(message) references messages(id) "
+                          "on delete cascade", this );
         d->t->enqueue( d->q );
 
         d->substate = 6;
@@ -3030,6 +3050,26 @@ bool Schema::stepTo60()
     }
 
     if ( d->substate == 6 ) {
+        if ( !d->q->done() )
+            return false;
+
+        describeStep( "5. Dropping unnecessary tables and columns" );
+
+        d->q = new Query( "alter table messages drop mailbox", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table messages drop uid", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "drop table modsequences", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop table view_messages", this );
+        d->t->enqueue( d->q );
+
+        d->substate = 7;
+        d->t->execute();
+    }
+
+    if ( d->substate == 7 ) {
         if ( !d->q->done() )
             return false;
 
