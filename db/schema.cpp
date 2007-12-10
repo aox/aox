@@ -3049,7 +3049,6 @@ bool Schema::stepTo60()
                           this );
         d->t->enqueue( d->q );
 
-
         d->substate = 6;
         d->t->execute();
     }
@@ -3058,7 +3057,39 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "5. Dropping unnecessary tables and columns" );
+        describeStep( "5. Cleaning up deleted_messages" );
+
+        d->q = new Query( "alter table deleted_messages add message "
+                          "integer", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "update deleted_messages d set message=m.id "
+                          "from messages m where d.mailbox=m.mailbox "
+                          "and d.uid=m.uid", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table deleted_messages alter message "
+                          "set not null", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "alter table deleted_messages add constraint "
+                          "deleted_messages_mailbox_fkey foreign key "
+                          "(mailbox) references mailboxes(id)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages add constraint "
+                          "deleted_messages_message_fkey foreign key "
+                          "(message) references messages(id)", this );
+        d->t->enqueue( d->q );
+
+        d->substate = 7;
+        d->t->execute();
+    }
+
+    if ( d->substate == 7 ) {
+        if ( !d->q->done() )
+            return false;
+
+        describeStep( "6. Dropping unnecessary tables and columns" );
 
         d->q = new Query( "alter table messages drop mailbox", this );
         d->t->enqueue( d->q );
@@ -3070,11 +3101,11 @@ bool Schema::stepTo60()
         d->q = new Query( "drop table view_messages", this );
         d->t->enqueue( d->q );
 
-        d->substate = 7;
+        d->substate = 8;
         d->t->execute();
     }
 
-    if ( d->substate == 7 ) {
+    if ( d->substate == 8 ) {
         if ( !d->q->done() )
             return false;
 
