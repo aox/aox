@@ -336,7 +336,8 @@ create table deliveries (
     id          serial primary key,
     sender      integer not null references addresses(id),
     message     integer not null references messages(id)
-                on delete cascade,
+                on delete cascade
+                unique,
     injected_at timestamp with time zone,
     expires_at  timestamp with time zone,
     tried_at    timestamp with time zone
