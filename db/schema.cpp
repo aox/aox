@@ -3044,6 +3044,11 @@ bool Schema::stepTo60()
                           "(message) references messages(id) "
                           "on delete cascade", this );
         d->t->enqueue( d->q );
+        d->q = new Query( "alter table deliveries add constraint "
+                          "deliveries_message_key unique(message)",
+                          this );
+        d->t->enqueue( d->q );
+
 
         d->substate = 6;
         d->t->execute();
