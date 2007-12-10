@@ -2704,7 +2704,7 @@ bool Schema::stepTo60()
         d->q = new Query( "insert into mailbox_messages (mailbox,uid,message,"
                           "idate,modseq) select mailbox,uid,messages.id,idate,"
                           "modseq from messages join modsequences "
-                          "using (mailbox,uid)", this );
+                          "using (mailbox,uid) order by mailbox,uid", this );
         d->t->enqueue( d->q );
 
         d->q = new Query( "alter table messages drop idate", this );
