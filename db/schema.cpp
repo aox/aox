@@ -2695,8 +2695,8 @@ bool Schema::stepTo60()
         d->q = new Query( "create table mailbox_messages (mailbox integer not "
                           "null references mailboxes(id),uid integer not null,"
                           "message integer not null references messages(id),"
-                          "idate integer not null,modseq bigint not null)",
-                          this );
+                          "idate integer not null,modseq bigint not null,"
+                          "primary key(mailbox,uid))", this );
         d->t->enqueue( d->q );
 
         // XXX: GRANT PRIVILEGES
@@ -2712,7 +2712,7 @@ bool Schema::stepTo60()
 
         // Fetch the names of all foreign key references to messages.
 
-        d->q = new Query( "select d.relname,c.conname,"
+        d->q = new Query( "select d.relname::text,c.conname::text,"
                           "pg_get_constraintdef(c.oid) as condef "
                           "from pg_constraint c join pg_class d "
                           "on (c.conrelid=d.oid) join pg_class e "
@@ -2731,7 +2731,7 @@ bool Schema::stepTo60()
         describeStep( "2. Cleaning up foreign key references" );
 
         if ( d->q->failed() || d->q->rows() == 0 ) {
-            fail( "Couldn't fetch foreign key names", d->q );
+            fail( "Couldn't fetch references to messages", d->q );
             d->substate = 42;
         }
         else {
@@ -2795,7 +2795,7 @@ bool Schema::stepTo60()
                               *constraints.find( "deliveries" ), this );
             d->t->enqueue( d->q );
 
-            d->q = new Query( "select d.relname,c.conname,"
+            d->q = new Query( "select d.relname::text,c.conname::text,"
                               "pg_get_constraintdef(c.oid) as condef "
                               "from pg_constraint c join pg_class d "
                               "on (c.conrelid=d.oid) join pg_class e "
@@ -2812,8 +2812,11 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
+        describeStep( "3. Cleaning up part_numbers and "
+                      "header/address/date_fields" );
+
         if ( d->q->failed() || d->q->rows() == 0 ) {
-            fail( "Couldn't fetch foreign key names", d->q );
+            fail( "Couldn't fetch references to part_numbers", d->q );
             d->substate = 42;
         }
         else {
@@ -2835,6 +2838,32 @@ bool Schema::stepTo60()
                               *constraints.find( "address_fields" ), this );
             d->t->enqueue( d->q );
 
+            d->q = new Query( "alter table part_numbers add message "
+                              "integer", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "update part_numbers p set message=m.id "
+                              "from messages m where p.mailbox=m.mailbox "
+                              "and p.uid=m.uid", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table part_numbers alter message "
+                              "set not null", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table part_numbers add constraint "
+                              "part_numbers_message_fkey foreign key "
+                              "(message) references messages(id) "
+                              "on delete cascade", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "select d.relname::text,c.conname::text,"
+                              "pg_get_constraintdef(c.oid) as condef "
+                              "from pg_constraint c join pg_class d "
+                              "on (c.conrelid=d.oid) where c.contype='p' "
+                              "and d.relname='part_numbers'", this );
+            d->t->enqueue( d->q );
+
             d->substate = 3;
             d->t->execute();
         }
@@ -2844,52 +2873,163 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "3. Dropping unnecessary tables" );
+        if ( d->q->failed() || d->q->rows() != 1 ) {
+            fail( "Couldn't fetch primary key for part_numbers", d->q );
+            d->substate = 42;
+        }
+        else {
+            Row * r = d->q->nextRow();
+
+            d->q = new Query( "alter table part_numbers drop constraint " +
+                              r->getString( "conname" ), this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table part_numbers add constraint "
+                              "part_numbers_pkey primary key (message,part)",
+                              this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "select d.relname::text,c.conname::text,"
+                              "pg_get_constraintdef(c.oid) as condef "
+                              "from pg_constraint c join pg_class d "
+                              "on (c.conrelid=d.oid) where c.contype='u' "
+                              "and d.relname='header_fields'", this );
+            d->t->enqueue( d->q );
+
+            d->substate = 4;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 4 ) {
+        if ( !d->q->done() )
+            return false;
+
+        if ( d->q->failed() || d->q->rows() == 0 ) {
+            fail( "Couldn't fetch unique constraint on header_fields", d->q );
+            d->substate = 42;
+        }
+        else {
+            Dict<String> constraints;
+
+            while ( d->q->hasResults() ) {
+                Row * r = d->q->nextRow();
+                constraints.insert(
+                    r->getString( "relname" ),
+                    new String( r->getString( "conname" ) )
+                );
+            }
+
+            d->q = new Query( "alter table header_fields drop constraint " +
+                              *constraints.find( "header_fields" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table header_fields add message "
+                              "integer", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table address_fields add message "
+                              "integer", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table date_fields add message "
+                              "integer", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "update header_fields h set message=m.id "
+                              "from messages m where h.mailbox=m.mailbox "
+                              "and h.uid=m.uid", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "update address_fields h set message=m.id "
+                              "from messages m where h.mailbox=m.mailbox "
+                              "and h.uid=m.uid", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "update date_fields d set message=m.id from "
+                              "messages m where d.mailbox=m.mailbox and "
+                              "d.uid=m.uid", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table header_fields alter message "
+                              "set not null", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table address_fields alter message "
+                              "set not null", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table date_fields alter message "
+                              "set not null", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "drop index hf_mup", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "drop index af_mu", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "drop index df_mu", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table header_fields drop mailbox", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table address_fields drop mailbox", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table date_fields drop mailbox", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table header_fields drop uid", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table address_fields drop uid", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table date_fields drop uid", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table header_fields add constraint "
+                              "header_fields_message_fkey foreign key "
+                              "(message,part) references "
+                              "part_numbers(message, part) "
+                              "on delete cascade", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table address_fields add constraint "
+                              "address_fields_message_fkey foreign key "
+                              "(message,part) references "
+                              "part_numbers(message, part) "
+                              "on delete cascade", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table date_fields add constraint "
+                              "date_fields_message_fkey foreign key (message) "
+                              "references messages(id) on delete cascade",
+                              this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table header_fields add constraint "
+                              "header_fields_message_key "
+                              "unique(message,part,position,field)", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "create index af_mp on address_fields "
+                              "(message,part)", this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "alter table part_numbers drop mailbox", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table part_numbers drop uid", this );
+            d->t->enqueue( d->q );
+
+            d->substate = 5;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 5 ) {
+        if ( !d->q->done() )
+            return false;
+
+        describeStep( "4. Dropping unnecessary tables" );
 
         d->q = new Query( "drop table modsequences", this );
         d->t->enqueue( d->q );
         d->q = new Query( "drop table view_messages", this );
         d->t->enqueue( d->q );
 
-        d->substate = 4;
+        d->substate = 6;
         d->t->execute();
     }
 
-    if ( d->substate == 4 ) {
-
-        describeStep( "4. Cleaning up date_fields references" );
-
-        d->q = new Query( "alter table date_fields add message integer", this );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "update date_fields d set message=m.id from messages "
-                          "m where d.mailbox=m.mailbox and d.uid=m.uid", this );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "alter table date_fields alter message set not null",
-                          this );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "drop index df_mu", this );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "alter table date_fields drop mailbox", this );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "alter table date_fields drop uid", this );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "alter table date_fields add constraint "
-                          "date_fields_message_fkey foreign key (message) "
-                          "references messages(id) on delete cascade",
-                          this );
-        d->t->enqueue( d->q );
-
-        d->substate = 5;
-        d->t->execute();
-    }
-
-    if ( d->substate == 5 ) {
+    if ( d->substate == 6 ) {
         if ( !d->q->done() )
             return false;
 
