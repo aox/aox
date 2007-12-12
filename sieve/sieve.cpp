@@ -485,13 +485,47 @@ void Sieve::evaluate()
             while ( c && !i->done && i->evaluate( c ) )
                 (void)i->pending.take( c );
         }
-        if ( i->pending.isEmpty() )
+        if ( i->pending.isEmpty() ) {
             i->done = true;
+            log( "Evaluated Sieve script for " + i->address->toString() );
+            List<SieveAction>::Iterator a( i->actions );
+            while ( a ) {
+                String r;
+                switch ( a->type() ) {
+                case SieveAction::Reject:
+                    r = "reject";
+                    break;
+                case SieveAction::FileInto:
+                    r = "fileinto, mailbox ";
+                    r.append( a->mailbox()->name().utf8() );
+                    break;
+                case SieveAction::Redirect:
+                    r = "redirect, to ";
+                    r.append( a->recipientAddress()->toString() );
+                    break;
+                case SieveAction::Discard:
+                    r = "discard";
+                    break;
+                case SieveAction::Vacation:
+                    r = "vacation, from ";
+                    r.append( a->senderAddress()->toString() );
+                    r.append( ", to " );
+                    r.append( a->recipientAddress()->toString() );
+                    break;
+                case SieveAction::Error:
+                    r = "error";
+                    break;
+                }
+                log( "Action: " + r );
+                ++a;
+            }
+        }
         if ( i->done && i->mailbox &&
              ( i->implicitKeep || i->explicitKeep ) ) {
             SieveAction * a = new SieveAction( SieveAction::FileInto );
             a->setMailbox( i->mailbox );
             i->actions.append( a );
+            log( "Keeping message in " + i->mailbox->name().utf8() );
         }
         ++i;
     }
