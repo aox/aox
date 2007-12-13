@@ -581,7 +581,7 @@ void Postgres::unknown( char type )
             d->unknownMessage = false;
             PgParameterStatus msg( readBuffer() );
 
-            String s( "PostgreSQL server: " );
+            String s( "PostgreSQL server: SET " );
             s.append( msg.name() );
             s.append( "=" );
             s.append( msg.value().quoted() );
