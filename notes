@@ -960,3 +960,12 @@ The groups and group_members tables seem a little underused
   support, but nobody ever asked, and it didn't seem worthwhile. -- AMS)
 
 
+Better error messages
+
+  Map from "blah blah addresses_nld_key" to "The operation would create
+  a duplicate email address" and similarly for other constraints. This
+  will allow aox to print more useful error messages than to just dump
+  the server message onto the user.
+
+
+
