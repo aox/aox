@@ -122,6 +122,28 @@ Installer doesn't take steps to ensure that the installation is usable
   passwords are lost, because the configuration file is not written.
 
 
+Monitoring on aox.org
+
+  aox.org/monitoring/ is a quick overview, or maybe rather a lengthy
+  overview. Among the questions it needs to answer are: What does our
+  monitoring blah do? (Supply raw material for other software to
+  process, at high accuracy, not use the DB.)
+
+  aox.org/monitoring/protocol (or format?) for describing the exact
+  format used by the statistics dump.
+
+  aox.org/monitoring/<name> for each monitoring variable.
+
+  aox.org/monitoring/rrdtool says words about using rrdtool to
+  fetch, store and look at the monitoring variables.
+
+  Actually there are two kinds of programs who may deserve pages here:
+  rrdtool-like ones that simply record and display what happened, and
+  ones that watch for general health and notify admins. I can't
+  remember any of the latter, so I asked Mike and Bret. The kind one
+  uses to say "alert me if /var on k has less than 10GB free".
+
+
 Various TODO items from earlier releases.
 
   Message retention policy
@@ -211,6 +233,8 @@ aox check schema
      with the right types, and no unexpected constraints
   c) that all the right indexes are there
   d) that dbowner owns everything
+  i) that inserts that would duplicate a constraint are properly
+     recognised
 
   As a bonus, perhaps it could list some unexpected/unknown deviations:
   e) locally added tables
