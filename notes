@@ -156,8 +156,6 @@ Various TODO items from earlier releases.
   bit of work (unless aoximport has a private Injector or Injector can
   take a list of Message objets)
 
-  Autoresponder
-
   Miscellaneous:
 
   - Database replication support (local mirror)

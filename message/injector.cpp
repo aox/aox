@@ -21,6 +21,7 @@
 #include "occlient.h"
 #include "session.h"
 #include "scope.h"
+#include "graph.h"
 #include "html.h"
 #include "md5.h"
 #include "utf.h"
@@ -40,6 +41,9 @@ static PreparedStatement *intoBodyparts;
 static PreparedStatement *insertFlag;
 static PreparedStatement *insertAnnotation;
 static PreparedStatement *insertAddressField;
+
+static GraphableCounter * successes;
+static GraphableCounter * failures;
 
 
 // This somewhat misnamed struct contains the "uidnext" value for a Mailbox.
@@ -720,8 +724,17 @@ void Injector::execute()
     if ( d->state == AwaitingCompletion ) {
         if ( !d->transaction->done() )
             return;
-        if ( !d->failed )
+        if ( !::failures ) {
+            ::failures = new GraphableCounter( "injection-errors" );
+            ::successes = new GraphableCounter( "messages-injected" );
+        }
+        if ( !d->failed ) {
             d->failed = d->transaction->failed();
+            ::failures->tick();
+        }
+        else {
+            ::successes->tick();
+        }
         d->state = Done;
         finish();
     }
