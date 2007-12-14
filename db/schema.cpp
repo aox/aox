@@ -2701,10 +2701,12 @@ bool Schema::stepTo60()
 
         // XXX: GRANT PRIVILEGES
 
-        d->q = new Query( "insert into mailbox_messages (mailbox,uid,message,"
-                          "idate,modseq) select mailbox,uid,messages.id,idate,"
-                          "modseq from messages join modsequences "
-                          "using (mailbox,uid) order by mailbox,uid", this );
+        d->q = new Query( "insert into mailbox_messages "
+                          "(mailbox,uid,message,idate,modseq) "
+                          "select mailbox,uid,messages.id,idate,modseq from "
+                          "messages join modsequences using (mailbox,uid) "
+                          "left join deleted_messages using (mailbox,uid) "
+                          "where deleted_messages is null", this );
         d->t->enqueue( d->q );
 
         d->q = new Query( "alter table messages drop idate", this );
@@ -2761,6 +2763,11 @@ bool Schema::stepTo60()
                               *constraints.find( "flags" ), this );
             d->t->enqueue( d->q );
 
+            d->q = new Query( "delete from flags f using deleted_messages d "
+                              "where f.mailbox=d.mailbox and f.uid=d.uid",
+                              this );
+            d->t->enqueue( d->q );
+
             d->q = new Query( "alter table flags add constraint "
                               "flags_mailbox_fkey foreign key "
                               "(mailbox,uid) references "
@@ -2770,6 +2777,12 @@ bool Schema::stepTo60()
 
             d->q = new Query( "alter table annotations drop constraint " +
                               *constraints.find( "annotations" ), this );
+            d->t->enqueue( d->q );
+
+            d->q = new Query( "delete from annotations a using "
+                              "deleted_messages d where "
+                              "a.mailbox=d.mailbox and a.uid=d.uid",
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table annotations add constraint "
