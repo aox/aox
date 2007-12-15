@@ -2699,7 +2699,10 @@ bool Schema::stepTo60()
                           "primary key(mailbox,uid))", this );
         d->t->enqueue( d->q );
 
-        // XXX: GRANT PRIVILEGES
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "grant select,insert,update on mailbox_messages "
+                          "to " + dbuser, this );
+        d->t->enqueue( d->q );
 
         d->q = new Query( "insert into mailbox_messages "
                           "(mailbox,uid,message,idate,modseq) "
