@@ -3117,11 +3117,45 @@ bool Schema::stepTo60()
         d->q = new Query( "drop table view_messages", this );
         d->t->enqueue( d->q );
 
+        d->q = new Query( "select d.relname::text,c.conname::text,"
+                          "pg_get_constraintdef(c.oid) as condef "
+                          "from pg_constraint c join pg_class d "
+                          "on (c.conrelid=d.oid) where c.contype='u' "
+                          "and d.relname='users'", this );
+        d->t->enqueue( d->q );
+
         d->substate = 8;
         d->t->execute();
     }
 
     if ( d->substate == 8 ) {
+        if ( !d->q->done() )
+            return false;
+
+        describeStep( "7. Miscellaneous cleanups" );
+
+        if ( d->q->failed() || d->q->rows() == 0 ) {
+            fail( "Couldn't fetch unique constraint on users", d->q );
+            d->substate = 42;
+        }
+        else {
+            Row * r = d->q->nextRow();
+
+            d->q = new Query( "alter table users drop constraint " +
+                              r->getString( "conname" ), this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "drop index u_l", this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "create unique index u_l on users "
+                              "(lower(login))", this );
+            d->t->enqueue( d->q );
+
+            d->substate = 9;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 9 ) {
         if ( !d->q->done() )
             return false;
 
