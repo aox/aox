@@ -1,23 +1,24 @@
 grant select on mailstore, addresses, namespaces, users, groups,
 group_members, mailboxes, aliases, permissions, messages, bodyparts,
 part_numbers, field_names, header_fields, address_fields, date_fields,
-threads, thread_members, flag_names, flags, subscriptions,
-annotation_names, annotations, views, view_messages, scripts,
-deleted_messages, modsequences, deliveries, delivery_recipients,
-access_keys, autoresponses to $AOXUSER;
+threads, thread_members, flag_names, flags, subscriptions, scripts,
+annotation_names, annotations, views, deleted_messages, deliveries,
+delivery_recipients, access_keys, autoresponses, mailbox_messages
+to $AOXUSER;
 
 grant insert on addresses, mailboxes, permissions, messages, bodyparts,
 part_numbers, field_names, header_fields, address_fields, date_fields,
-threads, thread_members, flag_names, flags, subscriptions,
-annotation_names, annotations, views, view_messages, scripts,
-deleted_messages, modsequences, deliveries, delivery_recipients,
-access_keys, unparsed_messages, autoresponses to $AOXUSER;
+threads, thread_members, flag_names, flags, subscriptions, scripts,
+annotation_names, annotations, views, deleted_messages, deliveries,
+delivery_recipients, access_keys, unparsed_messages, autoresponses,
+mailbox_messages to $AOXUSER;
 
 grant delete on permissions, flags, subscriptions, annotations, views,
-view_messages, scripts, deliveries, access_keys to $AOXUSER;
+scripts, deliveries, access_keys to $AOXUSER;
 
 grant update on mailstore, permissions, mailboxes, aliases, annotations,
-views, scripts, deliveries, delivery_recipients, modsequences to $AOXUSER;
+views, scripts, deliveries, delivery_recipients, mailbox_messages
+to $AOXUSER;
 
 grant select, update on addresses_id_seq, aliases_id_seq,
 annotation_names_id_seq, bodypart_ids, field_names_id_seq,
