@@ -461,18 +461,38 @@ METADATA
 
 Autoresponder
 
-  We'll need one, nicely programmable, connected to our sieve.
+  We have vacation now, but it isn't quite right for autoresponses.
+  Sieve autorespond should be like this:
 
-  I was reminded of this by Google's wording:
+  1. :quote should quote the first text/plain part if all of the
+     following are true:
 
-  Thank you for writing to Google. This automated response is just to
-  let you know that we've received your email, and you'll hear from us
-  soon.
+     1. The message is signed, and the signature verified (using any
+        supported signature mechanism, DKIM SHOULD be supported).
+     2. The first text/plain part does not have a Content-Disposition
+        other than inline.
 
-  Thank you for using Google.
+     If any of the conditions aren't true, :quote shouldn't quote.
 
-  Regards,
-  The Google Team
+     If there's a signature block, :quote shouldn't quote that.
+
+     If the quoted text would be more than ten lines, :quote may crop
+     it down as much as it wants, ideally by skipping lines starting
+     with '>', otherwise by removing the last lines.
+
+  2. :subject, :from and :addresses as for vacation.
+
+  3. :cc can be used to send a copy to the specified From address.
+
+  4. The default :handle should not be based on the quoted text.
+
+  5. Two text arguments, one for text before the quoted text, one for
+     text after the quoted text.
+
+  6. The autoresponse goes to the envelope sender, as some RFC
+     requires. So we want an option to skip the response unless the
+     return-path matches reply-to (if present) or From (unless
+     reply-to is present).
 
 
 Message arrival tag
@@ -518,7 +538,6 @@ Using rrdtool
 
   What could we want to graph with rrdtool? Lots.
 
-  - RAM used
   - CPU seconds used
   - database size
   - messages in the db
@@ -528,10 +547,6 @@ Using rrdtool
   - messages per user
   - message size per user
   - logged-in users
-  - concurrent connections (per protocol)
-  - logins (per protocol)
-  - login failures (per protocol)
-  - queries executed per second
   - average query execution time
   - average query queue size
 
@@ -578,7 +593,7 @@ DELETE of mailboxes in inappropriately qualified (security problem)
 Split the folder view into pages.
 
   Need to decide on what a page is. "Most recent 25 threads" is a
-  slippery concept when a new thread is created while reading mail.
+  slippery concept when a new thread is created between page views.
 
 
 Write better field wrapping code
@@ -613,6 +628,8 @@ We should store bodyparts.text for PDF/DOC.
 
   We need non-GPLed code to convert PDF and DOC to plaintext.
 
+  Or maybe we need a generic interface to talk to plugins.
+
 
 Switch to using named constraints everywhere.
 
@@ -630,18 +647,6 @@ Default c-t-e of PGP signatures
   The problem with doing that is that it treats sequences of CR LF, CR
   and LF as equivalent. An application/foobar object that happens to
   contain only CR, LF and printable ASCII can be broken.
-
-
-The IMAP SORT extension seems really easy
-
-  Squirrelmail wants it. Strongly. And it's not terribly difficult to
-  implement, to put it mildly.
-
-  Interacts with ANNOTATE.
-
-  As soon as this is done, it's possible to test the 'now' part of
-  internaldate, by assuming that 'now' is chronologically later than
-  any other date tested.
 
 
 Something like soft-bounce might just be useful
@@ -771,11 +776,6 @@ Logging to syslog
   it can't reopen the logfile.
 
 
-RFC 5032
-
-  Desirable, but takes a little bit of doing in the selector.
-
-
 Rendering webmail HTML is presumably good, but...
 
   Knowledge is better than presumption.
@@ -863,7 +863,7 @@ BURL
 
 NOTIFY implementation
 
-  Implement NOTIFY after revision -04 of the draft.
+  Going there...
 
 
 Cybertec replicator
@@ -937,7 +937,6 @@ SMTP extensions
   Here are the ones we still don't implement, but ought to implement
   at some point:
 
-  SIZE: At some time.
   SUBMITTER? perhaps
   DELIVERBY (RFC 2852): At some time.
   FUTURERELEASE (RFC 4865): At some time.
@@ -977,13 +976,6 @@ SSL/TLS hello
   subclass could make the choice for itself. I think the real
   protocols would want to say no, and HTTP might want to do something
   else.
-
-
-date_fields doesn't mirror address_fields
-
-  date_fields seems to lack position and field, so how do we remember
-  the position? And how do we handle Original-Date/Resent-Date? Can we
-  actually do date searches on those?
 
 
 The groups and group_members tables seem a little underused
