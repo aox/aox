@@ -52,7 +52,10 @@ void MD5::add( const char *str, uint len )
 {
     register uint32 t;
 
-    /* XXX: Is this the best thing to do? */
+    /* It's not possible to add() data, call hash(), then add more data
+       and call hash() again, because hash() destroys the accumulated
+       input buffer. */
+
     if ( finalised )
         init();
 

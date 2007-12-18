@@ -813,7 +813,6 @@ String Link::canonical() const
             r.append( "/archiveopteryx" );
             break;
         case MailboxName:
-            // XXX: We need to %-escape the mailbox name.
             r.append( d->mailbox->name().utf8().eURI() );
             break;
         case Uid:

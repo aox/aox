@@ -482,9 +482,6 @@ Query * User::remove( Transaction * t )
     progress of the operation. If (and only if) this Query hasn't
     already failed upon return from this function, the caller must
     call execute() to initiate the operation.
-
-    XXX: This function doesn't tell ocd about the user going away, and
-    ocd wouldn't know what to do about it anyway.
 */
 
 Query * User::changeSecret( EventHandler * owner )

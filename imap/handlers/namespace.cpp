@@ -23,7 +23,7 @@ void Namespace::execute()
     String personal, other, shared;
 
     personal = "((\"\" \"/\"))";
-    other    = "((\"/users/\" \"/\"))"; // XXX: hardcoded still
+    other    = "((\"/users/\" \"/\"))"; // XXX: should consult namespaces.
     shared   = "((\"/\" \"/\"))";
 
     respond( "NAMESPACE " + personal + " " + other + " " + shared );

@@ -804,9 +804,9 @@ void database()
 
         Row * r = d->q->nextRow();
         if ( !r ) {
+            // CREATE USER does not permit the username to be quoted.
             String create( "create user " + *dbuser + " with encrypted "
                            "password " + dbpass->quoted( '\'' ) );
-            // XXX: should it be dbuser->quoted( '\'' )?
 
             if ( report ) {
                 todo++;
@@ -861,7 +861,6 @@ void database()
         if ( !r ) {
             String create( "create user " + *dbowner + " with encrypted "
                            "password " + dbownerpass->quoted( '\'' ) );
-            // XXX should that be dbowner->quoted( '\'' ) ?
 
             if ( report ) {
                 d->state = CreateDatabase;

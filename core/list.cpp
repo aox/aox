@@ -163,7 +163,7 @@ void listSortHelper( void * a, size_t n, size_t s,
     incremented to point to the next element, or decremented to point
     to the previous one. It can also be compared to another Iterator.
 
-    XXX: What happens if a List contains null pointers?
+    The list must not contain null pointers.
 */
 
 

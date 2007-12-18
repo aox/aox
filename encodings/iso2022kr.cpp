@@ -48,8 +48,11 @@ String Iso2022KrCodec::fromUnicode( const UString &u )
 
     enum { ASCII, KSC } mode = ASCII;
 
-    // XXX: We don't emit the ESC$)C code properly.
-    // XXX: Why don't we do that?
+    // RFC 1557 says that ESC$)C must appear once at the beginning of a
+    // line before any SO occurs, so we always emit one at the start.
+
+    s.append( 0x1B );
+    s.append( "$)C" );
 
     uint i = 0;
     while ( i < u.length() ) {
