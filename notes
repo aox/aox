@@ -994,4 +994,11 @@ Better error messages
   the server message onto the user.
 
 
+We need to be able to disable users
+
+  - Reject mail with 5xx/4xx.
+  - Prevent login.
+  - 1+2.
+
+
 
