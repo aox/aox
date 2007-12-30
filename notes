@@ -980,10 +980,26 @@ SSL/TLS hello
 
 The groups and group_members tables seem a little underused
 
-  Why did we add them and how do we use them? Do we?
+  We do not use them at all. We meant to use them for "advanced" ACL
+  support, but nobody ever asked, and it didn't seem worthwhile.
 
-  (We do not use them at all. We meant to use them for "advanced" ACL
-  support, but nobody ever asked, and it didn't seem worthwhile. -- AMS)
+  I now think it's worthwhile.
+
+  Here's what I want to add:
+
+  Make a superusers group, which members can authenticate as anyone,
+  and the notion of group admins, who can authenticate as other
+  members of the group.
+
+  Or maybe an adminintrator table, linking a user to either a group or
+  to null. If a group, then the admin can authenticate as other
+  members of that group and (importantly) has 'a' right on their
+  mailboxes, if null, then ditto for all groups.
+
+  Extend Permissions to link against group_memebers when selecting
+  applicable permissions.
+
+  Make groups be permissible ACL identifiers.
 
 
 Better error messages
@@ -999,6 +1015,29 @@ We need to be able to disable users
   - Reject mail with 5xx/4xx.
   - Prevent login.
   - 1+2.
+  - a group admin can enable/disable group members
+  - a superadmin can enable/disable anyone
+  - a group admin cannot unblock an overall blockage
 
+
+Using whirlpool instead of MD5.
+
+  I get the impression that conventional opinion is slowly moving
+  towards whirlpool as the hash function of choice. At some point we
+  want to use it instead of MD5 for the bodyparts table.
+
+  I don't want to use SHA* functions, they're too similar to
+  MD5. Those aren't worth the move.
+
+  Two ways to move to Whirlpool:
+
+  1. Recompute all the hashes and update the table.
+
+  2. Just start inserting whirlpool hashes in the hash column, and
+     accept that if the same bodypart was inserted by an older
+     version, we'll store it twice.
+
+  I don't want to bother with the expensive rehashing. But maybe
+  people will be unhappy and ask us to do it as an aox command.
 
 
