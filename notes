@@ -1040,4 +1040,6 @@ Using whirlpool instead of MD5.
   I don't want to bother with the expensive rehashing. But maybe
   people will be unhappy and ask us to do it as an aox command.
 
+  It seems that netbsd includes a whirlpool implementation.
+
 
