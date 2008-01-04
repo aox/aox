@@ -1278,22 +1278,10 @@ void ShowStatus::execute()
         int pid = serverPid( servers[i] );
         printf( "%s", servers[i] );
 
-        // XXX this is newly written code, right? seems hopelessly broken.
-
-        bool started = false;
+        bool started = true;
         String t( servers[i] );
         if ( t == "tlsproxy" )
             started = Configuration::toggle( Configuration::UseTls );
-        else if ( t == "imapd" )
-            started = Configuration::toggle( Configuration::UseImap ) ||
-                      Configuration::toggle( Configuration::UseImaps );
-        else if ( t == "smtpd" )
-            started = Configuration::toggle( Configuration::UseSmtp ) ||
-                      Configuration::toggle( Configuration::UseLmtp );
-        else if ( t == "httpd" )
-            started = Configuration::toggle( Configuration::UseHttp );
-        else if ( t == "pop3d" )
-            started = Configuration::toggle( Configuration::UsePop );
 
         const char * noState = started ? "not running" : "not started";
 
