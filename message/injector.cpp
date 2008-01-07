@@ -29,6 +29,7 @@
 #include "dsn.h"
 
 
+class MidFetcher;
 class UidFetcher;
 class BidFetcher;
 
@@ -80,7 +81,7 @@ struct Bid
 
 
 // These structs represent one part of each entry in the header_fields
-// and address_fields tables. (The other part being mailbox and UID.)
+// and address_fields tables. (The other part being the message ID.)
 
 struct FieldLink
     : public Garbage
@@ -114,8 +115,8 @@ public:
     InjectorData()
         : state( Injector::Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
-          mailboxes( 0 ), bodyparts( 0 ),
-          uidFetcher( 0 ), bidFetcher( 0 ),
+          mailboxes( 0 ), bodyparts( 0 ), midFetcher( 0 ),
+          uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 ),
           remoteRecipients( 0 ), sender( 0 ), wrapped( false )
@@ -132,8 +133,11 @@ public:
     List< Uid > *mailboxes;
     List< Bid > *bodyparts;
 
+    MidFetcher *midFetcher;
     UidFetcher *uidFetcher;
     BidFetcher *bidFetcher;
+
+    uint messageId;
 
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
@@ -159,6 +163,52 @@ public:
     List<Annotation> annotations;
 
     bool wrapped;
+};
+
+
+class MidFetcher
+    : public EventHandler
+{
+public:
+    Query * insert;
+    Query * select;
+    EventHandler *owner;
+    bool failed;
+    bool finished;
+    String error;
+    uint id;
+
+    MidFetcher( Query * i, Query * s, EventHandler *ev )
+        : insert( i ), select( s ), owner( ev ),
+          failed( false ), finished( false ), id( 0 )
+    {}
+
+    void execute() {
+        if ( finished )
+            return;
+
+        if ( !select->done() )
+            return;
+
+        if ( !select->hasResults() ) {
+            failed = true;
+            if ( insert->failed() )
+                error = insert->error();
+            else if ( select->failed() )
+                error = select->error();
+        }
+        else {
+            Row * r = select->nextRow();
+            id = r->getInt( "id" );
+        }
+
+        finished = true;
+        owner->execute();
+    }
+
+    bool done() const {
+        return finished;
+    }
 };
 
 
@@ -393,7 +443,7 @@ void Injector::setup()
 
     insertFlag =
         new PreparedStatement(
-            "insert into flags (flag,uid,mailbox) "
+            "insert into flags (mailbox,uid,flag) "
             "values ($1,$2,$3)"
         );
     Allocator::addEternal( insertFlag, "insertFlag" );
@@ -408,7 +458,7 @@ void Injector::setup()
     insertAddressField =
         new PreparedStatement(
             "copy address_fields "
-            "(mailbox,uid,part,position,field,address,number) "
+            "(message,part,position,field,number,address) "
             "from stdin with binary"
         );
     Allocator::addEternal( insertAddressField, "insertAddressField" );
@@ -631,6 +681,7 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
+            selectMessageId();
             selectUids();
             buildFieldLinks();
             resolveAddressLinks();
@@ -644,13 +695,20 @@ void Injector::execute()
         // Once we have UIDs for each Mailbox, we can insert rows into
         // messages.
 
-        if ( !d->uidFetcher->done() )
+        if ( !d->midFetcher->done() || !d->uidFetcher->done() )
             return;
 
-        insertMessages();
-
-        d->transaction->execute();
-        d->state = InsertingMessages;
+        if ( d->midFetcher->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
+            d->messageId = d->midFetcher->id;
+            insertMessages();
+            d->transaction->execute();
+            d->state = InsertingMessages;
+        }
     }
 
     if ( d->state == InsertingMessages && !d->transaction->failed() ) {
@@ -759,6 +817,30 @@ void Injector::finish()
         log( "Injection succeeded" );
     d->owner->execute();
     d->owner = 0;
+}
+
+
+/*! This private function inserts a new entry into the messages table
+    and creates an MidFetcher to fetch the id of the new row.
+*/
+
+void Injector::selectMessageId()
+{
+    Query * insert
+        = new Query( "insert into messages (id,rfc822size) "
+                     "values (default,$1)", 0 );
+    Query * select
+        = new Query( "select currval('messages_id_seq')::int as id", 0 );
+
+    insert->bind( 1, d->message->rfc822().length() );
+
+    d->midFetcher = new MidFetcher( insert, select, this );
+
+    insert->setOwner( d->midFetcher );
+    select->setOwner( d->midFetcher );
+
+    d->transaction->enqueue( insert );
+    d->transaction->enqueue( select );
 }
 
 
@@ -1030,17 +1112,15 @@ void Injector::setupBodyparts()
 }
 
 
-/*! This private function inserts one row per mailbox into the messages
-    table.
+/*! This private function inserts one row per mailbox into the
+    mailbox_messages table.
 */
 
 void Injector::insertMessages()
 {
     Query *qm =
-        new Query( "copy messages (mailbox,uid,idate,rfc822size) "
-                   "from stdin with binary", 0 );
-    Query *qms =
-        new Query( "copy modsequences (mailbox,uid,modseq) "
+        new Query( "copy mailbox_messages "
+                   "(mailbox,uid,message,idate,modseq) "
                    "from stdin with binary", 0 );
 
     List< Uid >::Iterator mi( d->mailboxes );
@@ -1050,20 +1130,15 @@ void Injector::insertMessages()
 
         qm->bind( 1, m->id(), Query::Binary );
         qm->bind( 2, uid, Query::Binary );
-        qm->bind( 3, internalDate( d->message ), Query::Binary );
-        qm->bind( 4, d->message->rfc822().length(), Query::Binary );
+        qm->bind( 3, d->messageId, Query::Binary );
+        qm->bind( 4, internalDate( d->message ), Query::Binary );
+        qm->bind( 5, mi->ms, Query::Binary );
         qm->submitLine();
-
-        qms->bind( 1, m->id(), Query::Binary );
-        qms->bind( 2, uid, Query::Binary );
-        qms->bind( 3, mi->ms, Query::Binary );
-        qms->submitLine();
 
         ++mi;
     }
 
     d->transaction->enqueue( qm );
-    d->transaction->enqueue( qms );
 }
 
 
@@ -1091,12 +1166,11 @@ void Injector::insertDeliveries()
     Query * q;
 
     q = new Query( "insert into deliveries "
-                   "(sender,mailbox,uid,injected_at,expires_at) "
-                   "values ($1,$2,$3,current_timestamp,"
+                   "(sender,message,injected_at,expires_at) "
+                   "values ($1,$2,current_timestamp,"
                    "current_timestamp+interval '2 days')", 0 );
     q->bind( 1, d->sender->id() );
-    q->bind( 2, spool->id() );
-    q->bind( 3, uid );
+    q->bind( 2, d->messageId );
     d->transaction->enqueue( q );
 
     List<Address>::Iterator i( d->remoteRecipients );
@@ -1120,16 +1194,12 @@ void Injector::insertDeliveries()
 void Injector::linkBodyparts()
 {
     Query *q =
-        new Query( "copy part_numbers "
-                   "(mailbox,uid,part,bodypart,bytes,lines) "
+        new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
                    "from stdin with binary", 0 );
 
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
-        uint uid = mi->uid;
-        Mailbox *m = mi->mailbox;
-
-        insertPartNumber( q, m->id(), uid, "" );
+        insertPartNumber( q, d->messageId, "" );
 
         List< Bid >::Iterator bi( d->bodyparts );
         while ( bi ) {
@@ -1137,12 +1207,12 @@ void Injector::linkBodyparts()
             Bodypart *b = bi->bodypart;
 
             String pn = d->message->partNumber( b );
-            insertPartNumber( q, m->id(), uid, pn, bid,
+            insertPartNumber( q, d->messageId, pn, bid,
                               b->numEncodedBytes(),
                               b->numEncodedLines() );
 
             if ( b->message() )
-                insertPartNumber( q, m->id(), uid, pn + ".rfc822",
+                insertPartNumber( q, d->messageId, pn + ".rfc822",
                                   bid, b->numEncodedBytes(),
                                   b->numEncodedLines() );
             ++bi;
@@ -1156,34 +1226,33 @@ void Injector::linkBodyparts()
 
 
 /*! This private helper is used by linkBodyparts() to add a single row
-    of data to \a q for \a mailbox, \a uid, \a part, and \a bodypart.
+    of data to \a q for \a message, \a part, and \a bodypart.
     If bodypart is smaller than 0, a NULL value is inserted instead.
     If \a bytes and \a lines are greater than or equal to 0, their
     values are inserted along with the \a bodypart.
 */
 
-void Injector::insertPartNumber( Query *q, int mailbox, int uid,
+void Injector::insertPartNumber( Query *q, uint message,
                                  const String &part, int bodypart,
                                  int bytes, int lines )
 {
-    q->bind( 1, mailbox, Query::Binary );
-    q->bind( 2, uid, Query::Binary );
-    q->bind( 3, part, Query::Binary );
+    q->bind( 1, message, Query::Binary );
+    q->bind( 2, part, Query::Binary );
 
     if ( bodypart > 0 )
-        q->bind( 4, bodypart, Query::Binary );
+        q->bind( 3, bodypart, Query::Binary );
+    else
+        q->bindNull( 3 );
+
+    if ( bytes >= 0 )
+        q->bind( 4, bytes, Query::Binary );
     else
         q->bindNull( 4 );
 
-    if ( bytes >= 0 )
-        q->bind( 5, bytes, Query::Binary );
+    if ( lines >= 0 )
+        q->bind( 5, lines, Query::Binary );
     else
         q->bindNull( 5 );
-
-    if ( lines >= 0 )
-        q->bind( 6, lines, Query::Binary );
-    else
-        q->bindNull( 6 );
 
     q->submitLine();
 }
@@ -1197,14 +1266,11 @@ void Injector::linkHeaderFields()
 {
     Query *q =
         new Query( "copy header_fields "
-                   "(mailbox,uid,part,position,field,value) "
+                   "(message,part,position,field,value) "
                    "from stdin with binary", 0 );
 
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
-        uint uid = mi->uid;
-        Mailbox *m = mi->mailbox;
-
         List< FieldLink >::Iterator it( d->fieldLinks );
         while ( it ) {
             FieldLink *link = it;
@@ -1213,12 +1279,11 @@ void Injector::linkHeaderFields()
             if ( !t )
                 t = link->hf->type(); // XXX and what if this too fails?
 
-            q->bind( 1, m->id(), Query::Binary );
-            q->bind( 2, uid, Query::Binary );
-            q->bind( 3, link->part, Query::Binary );
-            q->bind( 4, link->position, Query::Binary );
-            q->bind( 5, t, Query::Binary );
-            q->bind( 6, link->hf->data(), Query::Binary );
+            q->bind( 1, d->messageId, Query::Binary );
+            q->bind( 2, link->part, Query::Binary );
+            q->bind( 3, link->position, Query::Binary );
+            q->bind( 4, t, Query::Binary );
+            q->bind( 5, link->hf->data(), Query::Binary );
             q->submitLine();
 
             ++it;
@@ -1241,20 +1306,16 @@ void Injector::linkAddresses()
 
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
-        uint uid = mi->uid;
-        Mailbox *m = mi->mailbox;
-
         List< AddressLink >::Iterator it( d->addressLinks );
         while ( it ) {
             AddressLink *link = it;
 
-            q->bind( 1, m->id(), Query::Binary );
-            q->bind( 2, uid, Query::Binary );
-            q->bind( 3, link->part, Query::Binary );
-            q->bind( 4, link->position, Query::Binary );
-            q->bind( 5, link->type, Query::Binary );
+            q->bind( 1, d->messageId, Query::Binary );
+            q->bind( 2, link->part, Query::Binary );
+            q->bind( 3, link->position, Query::Binary );
+            q->bind( 4, link->type, Query::Binary );
+            q->bind( 5, link->number, Query::Binary );
             q->bind( 6, link->address->id(), Query::Binary );
-            q->bind( 7, link->number, Query::Binary );
             q->submitLine();
 
             ++it;
@@ -1275,20 +1336,16 @@ void Injector::linkDates()
 {
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
-        uint uid = mi->uid;
-        Mailbox *m = mi->mailbox;
-
         List< FieldLink >::Iterator it( d->dateLinks );
         while ( it ) {
             FieldLink * link = it;
             DateField * df = (DateField *)link->hf;
 
             Query *q =
-                new Query( "insert into date_fields (mailbox,uid,value) "
-                           "values ($1,$2,$3)", 0 );
+                new Query( "insert into date_fields (message,value) "
+                           "values ($1,$2)", 0 );
 
-            q->bind( 1, m->id() );
-            q->bind( 2, uid );
+            q->bind( 1, d->messageId );
             q->bind( 3, df->date()->isoDateTime() );
 
             d->transaction->enqueue( q );
@@ -1457,9 +1514,9 @@ void Injector::linkFlags()
         List<Uid>::Iterator m( d->mailboxes );
         while ( m ) {
             Query * q = new Query( *insertFlag, this );
-            q->bind( 1, i->flag->id() );
+            q->bind( 1, m->mailbox->id() );
             q->bind( 2, m->uid );
-            q->bind( 3, m->mailbox->id() );
+            q->bind( 3, i->flag->id() );
             d->transaction->enqueue( q );
             ++m;
         }
