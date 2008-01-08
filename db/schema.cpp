@@ -2768,9 +2768,9 @@ bool Schema::stepTo60()
                               *constraints.find( "flags" ), this );
             d->t->enqueue( d->q );
 
-            d->q = new Query( "delete from flags f using deleted_messages d "
-                              "where f.mailbox=d.mailbox and f.uid=d.uid",
-                              this );
+            d->q = new Query( "delete from flags using deleted_messages d "
+                              "where flags.mailbox=d.mailbox and "
+                              "flags.uid=d.uid", this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table flags add constraint "
@@ -2784,9 +2784,10 @@ bool Schema::stepTo60()
                               *constraints.find( "annotations" ), this );
             d->t->enqueue( d->q );
 
-            d->q = new Query( "delete from annotations a using "
+            d->q = new Query( "delete from annotations using "
                               "deleted_messages d where "
-                              "a.mailbox=d.mailbox and a.uid=d.uid",
+                              "annotations.mailbox=d.mailbox and "
+                              "annotations.uid=d.uid",
                               this );
             d->t->enqueue( d->q );
 
