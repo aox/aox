@@ -115,13 +115,6 @@ void Copy::execute()
         }
 
         Mailbox * current = imap()->session()->mailbox();
-        String where = "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5";
-        MessageSet set = d->set;
-        if ( current->view() )
-            where = "join view_messages vm on "
-                    " (m.mailbox=vm.source and m.uid=vm.suid) "
-                    "where vm.view=$3 and vm.uid>=$4 and vm.uid<$5";
-
         Query * q;
 
         uint cmailbox = current->id();
@@ -129,9 +122,11 @@ void Copy::execute()
         uint tuid = d->firstUid;
         uint i = 1;
         while ( i <= d->set.count() ) {
-            uint cuid = set.value( i );
+            uint cuid = d->set.value( i );
             uint j = i + 1;
-            while ( j-i == set.value( j ) - cuid && j < i+1024 )
+            // really big copies would be faster if the next loop were
+            // a binary search
+            while ( j-i == d->set.value( j ) - cuid )
                 j++;
 
             String diff = "m.uid+$2";
@@ -141,63 +136,25 @@ void Copy::execute()
                 delta = cuid-tuid;
             }
 
-            q = new Query( "insert into messages "
-                           "(mailbox, uid, idate, rfc822size) "
-                           "select $1, " + diff +
-                           ", m.idate, m.rfc822size from messages m " +
-                           where,
+            q = new Query( "insert into mailbox_messages "
+                           "(mailbox, uid, message, idate, modseq) "
+                           "select $1, " + diff + ", m.message, "
+                           "m.idate, $6 from mailbox_messages m "
+                           "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5",
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
-            enqueue( q );
-
-            q = new Query( "insert into part_numbers "
-                           "(mailbox, uid, part, bodypart, bytes, lines) "
-                           "select $1, " + diff +
-                           ", m.part, m.bodypart, m.bytes, m.lines "
-                           "from part_numbers m " + where,
-                           this );
-            q->bind( 1, tmailbox );
-            q->bind( 2, delta );
-            q->bind( 3, cmailbox );
-            q->bind( 4, cuid );
-            q->bind( 5, cuid + j - i );
-            enqueue( q );
-
-            q = new Query( "insert into header_fields "
-                           "(mailbox, uid, part, position, field, value) "
-                           "select $1, " + diff +
-                           ", m.part, m.position, m.field, m.value "
-                           "from header_fields m " + where,
-                           this );
-            q->bind( 1, tmailbox );
-            q->bind( 2, delta );
-            q->bind( 3, cmailbox );
-            q->bind( 4, cuid );
-            q->bind( 5, cuid + j - i );
-            enqueue( q );
-
-            q = new Query( "insert into address_fields "
-                           "(mailbox, uid, part, position, field,"
-                           " address, number) "
-                           "select $1, " + diff + ", m.part, m.position, "
-                           "m.field, m.address, m.number "
-                           "from address_fields m " + where,
-                           this );
-            q->bind( 1, tmailbox );
-            q->bind( 2, delta );
-            q->bind( 3, cmailbox );
-            q->bind( 4, cuid );
-            q->bind( 5, cuid + j - i );
+            q->bind( 6, d->modseq );
             enqueue( q );
 
             q = new Query( "insert into flags "
                            "(mailbox, uid, flag) "
                            "select $1, " + diff + ", m.flag "
-                           "from flags m " + where,
+                           "from flags m "
+                           "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5",
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
@@ -209,8 +166,9 @@ void Copy::execute()
             q = new Query( "insert into annotations "
                            "(mailbox, uid, owner, name, value) "
                            "select $1, " + diff + ", $6, m.name, m.value "
-                           "from annotations m " + where + " and "
-                           "(owner is null or owner=$6)",
+                           "from annotations m "
+                           "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5"
+                           " and (m.owner is null or m.owner=$6)",
                            this );
             q->bind( 1, tmailbox );
             q->bind( 2, delta );
@@ -223,17 +181,6 @@ void Copy::execute()
             tuid = tuid + j - i;
             i = j;
         }
-
-        // could this be done faster?
-        q = new Query( "insert into modsequences (mailbox, uid, modseq) "
-                       "select $1, uid, $2 from messages "
-                       "where mailbox=$1 and uid>=$3 and uid<$4",
-                       this );
-        q->bind( 1, tmailbox );
-        q->bind( 2, d->modseq );
-        q->bind( 3, d->firstUid );
-        q->bind( 4, tuid );
-        enqueue( q );
 
         q = new Query( "update mailboxes set uidnext=$1, nextmodseq=$2 "
                        "where id=$3",
