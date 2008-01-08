@@ -1342,6 +1342,29 @@ void Header::repair( Multipart * p, const String & body )
         }
     }
 
+    // If Sender contains more than one address, that may be due do
+    // inappropriate fixups. For example, javamail+postfix will create
+    // Sender: System@postfix, Administrator@postfix, root@origin
+    //
+    // We can fix that: if all addresses but the last have the same
+    // domain, and the last has a different domain, drop the first
+    // ones. There are also other possible algorithms.
+
+    if ( addresses( HeaderField::Sender ) &&
+         addresses( HeaderField::Sender )->count() > 1 ) {
+        AddressField * sender = addressField( HeaderField::Sender );
+        List<Address>::Iterator i( sender->addresses() );
+        Address * last = sender->addresses()->last();
+        String domain = i->domain().lower();
+        while ( i && i->domain().lower() == domain )
+            ++i;
+        if ( i == last ) {
+            sender->addresses()->clear();
+            sender->addresses()->append( last );
+            sender->setError( "" );
+        }
+    }
+
     d->verified = false;
 }
 
