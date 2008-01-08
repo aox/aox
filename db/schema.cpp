@@ -2735,7 +2735,7 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "2. Cleaning up foreign key references" );
+        describeStep( "2. Updating foreign key references" );
 
         if ( d->q->failed() || d->q->rows() == 0 ) {
             fail( "Couldn't fetch references to messages", d->q );
@@ -2831,7 +2831,7 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "3. Cleaning up part_numbers and "
+        describeStep( "3. Updating part_numbers and "
                       "header/address/date_fields" );
 
         if ( d->q->failed() || d->q->rows() == 0 ) {
@@ -3041,7 +3041,7 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "4. Cleaning up deliveries" );
+        describeStep( "4. Updating deliveries" );
 
         d->q = new Query( "alter table deliveries add message "
                           "integer", this );
@@ -3081,7 +3081,7 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "5. Cleaning up deleted_messages" );
+        describeStep( "5. Updating deleted_messages" );
 
         d->q = new Query( "alter table deleted_messages add message "
                           "integer", this );
@@ -3141,7 +3141,7 @@ bool Schema::stepTo60()
         if ( !d->q->done() )
             return false;
 
-        describeStep( "7. Miscellaneous cleanups" );
+        describeStep( "7. Miscellaneous changes" );
 
         if ( d->q->failed() || d->q->rows() == 0 ) {
             fail( "Couldn't fetch unique constraint on users", d->q );
