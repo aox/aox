@@ -2861,9 +2861,10 @@ bool Schema::stepTo60()
                               "integer", this );
             d->t->enqueue( d->q );
 
-            d->q = new Query( "update part_numbers p set message=m.id "
-                              "from messages m where p.mailbox=m.mailbox "
-                              "and p.uid=m.uid", this );
+            d->q = new Query( "update part_numbers set message=m.id "
+                              "from messages m where "
+                              "part_numbers.mailbox=m.mailbox "
+                              "and part_numbers.uid=m.uid", this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table part_numbers alter message "
