@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "mailbox.h"
 #include "entropy.h"
+#include "recipient.h"
 #include "deliveryagent.h"
 #include "configuration.h"
 #include "smtpclient.h"
@@ -22,12 +23,11 @@ class SpoolManagerData
 {
 public:
     SpoolManagerData()
-        : q( 0 ), remove( 0 ), t( 0 ), row( 0 ), client( 0 ),
+        : q( 0 ), t( 0 ), row( 0 ), client( 0 ),
           agent( 0 ), uidnext( 0 ), again( false ), spooled( false ), log( 0 )
     {}
 
     Query * q;
-    Query * remove;
     Timer * t;
     Row * row;
     SmtpClient * client;
@@ -68,15 +68,16 @@ void SpoolManager::execute()
     if ( !d->q ) {
         log( "Starting queue run" );
         reset();
-        d->q =
-            new Query( "select mailbox,uid "
-                       "from deliveries d left join deleted_messages dm "
-                       "using (mailbox,uid) where dm.uid is null", this );
+        d->q = new Query( "select distinct d.id, d.message from deliveries d "
+                          "join delivery_recipients dr on (d.id=dr.delivery) "
+                          "where dr.action!=$1 and dr.action!=$2",
+                          this );
+        d->q->bind( 1, Recipient::Delivered );
+        d->q->bind( 2, Recipient::Relayed );
         d->q->execute();
     }
 
-    // For each one, create and run a DeliveryAgent; and if it completes
-    // its delivery attempt, delete the spooled message.
+    // For each one, create and run a DeliveryAgent.
     while ( d->row || d->q->hasResults() ) {
         if ( !d->row )
             d->row = d->q->nextRow();
@@ -129,29 +130,12 @@ void SpoolManager::execute()
             if ( m && d->uidnext < m->uidnext() )
                 d->again = true;
 
-            if ( !d->remove && d->agent->delivered() ) {
-                log( "Deleting delivered message from spool", Log::Debug );
-                d->remove =
-                    new Query( "insert into deleted_messages "
-                               "(mailbox, uid, deleted_by, reason) "
-                               "values ($1, $2, null, $3)", this );
-                d->remove->bind( 1, d->row->getInt( "mailbox" ) );
-                d->remove->bind( 2, d->row->getInt( "uid" ) );
-                d->remove->bind( 3, "Smarthost delivery " +
-                                 d->agent->log()->id() );
-                d->remove->execute();
-            }
-            else {
+            if ( !d->agent->delivered() )
                 d->spooled = true;
-            }
-
-            if ( d->remove && !d->remove->done() )
-                return;
         }
 
         d->row = 0;
         d->agent = 0;
-        d->remove = 0;
     }
 
     if ( !d->q->done() )
@@ -194,7 +178,6 @@ void SpoolManager::reset()
     d->q = 0;
     d->row = 0;
     d->agent = 0;
-    d->remove = 0;
     d->again = false;
     d->spooled = false;
 }
