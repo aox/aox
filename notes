@@ -16,6 +16,16 @@
 
   - Check store and view create.
 
+  - aox vacuum
+
+  - Store must change, now that flags don't fall through
+
+  - Permissions may change since flags don't fall though. Best to
+    check.
+
+  - The session initialiser may need changes, it could be that some of
+    its modseq logic doesn't hold any more.
+
   Done:
     - SORT
 
