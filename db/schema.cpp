@@ -2863,8 +2863,8 @@ bool Schema::stepTo60()
 
             d->q = new Query( "update part_numbers set message=m.id "
                               "from messages m where "
-                              "part_numbers.mailbox=m.mailbox "
-                              "and part_numbers.uid=m.uid", this );
+                              "part_numbers.mailbox=m.mailbox and "
+                              "part_numbers.uid=m.uid", this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table part_numbers alter message "
@@ -2953,17 +2953,20 @@ bool Schema::stepTo60()
                               "integer", this );
             d->t->enqueue( d->q );
 
-            d->q = new Query( "update header_fields h set message=m.id "
-                              "from messages m where h.mailbox=m.mailbox "
-                              "and h.uid=m.uid", this );
+            d->q = new Query( "update header_fields set message=m.id "
+                              "from messages m where "
+                              "header_fields.mailbox=m.mailbox and "
+                              "header_fields.uid=m.uid", this );
             d->t->enqueue( d->q );
-            d->q = new Query( "update address_fields h set message=m.id "
-                              "from messages m where h.mailbox=m.mailbox "
-                              "and h.uid=m.uid", this );
+            d->q = new Query( "update address_fields set message=m.id "
+                              "from messages m where "
+                              "address_fields.mailbox=m.mailbox and "
+                              "address_fields.uid=m.uid", this );
             d->t->enqueue( d->q );
-            d->q = new Query( "update date_fields d set message=m.id from "
-                              "messages m where d.mailbox=m.mailbox and "
-                              "d.uid=m.uid", this );
+            d->q = new Query( "update date_fields set message=m.id from "
+                              "messages m where "
+                              "date_fields.mailbox=m.mailbox and "
+                              "date_fields.uid=m.uid", this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table header_fields alter message "
@@ -3044,9 +3047,10 @@ bool Schema::stepTo60()
                           "integer", this );
         d->t->enqueue( d->q );
 
-        d->q = new Query( "update deliveries d set message=m.id "
-                          "from messages m where d.mailbox=m.mailbox "
-                          "and d.uid=m.uid", this );
+        d->q = new Query( "update deliveries set message=m.id "
+                          "from messages m where "
+                          "deliveries.mailbox=m.mailbox and "
+                          "deliveries.uid=m.uid", this );
         d->t->enqueue( d->q );
 
         d->q = new Query( "alter table deliveries alter message "
@@ -3083,9 +3087,10 @@ bool Schema::stepTo60()
                           "integer", this );
         d->t->enqueue( d->q );
 
-        d->q = new Query( "update deleted_messages d set message=m.id "
-                          "from messages m where d.mailbox=m.mailbox "
-                          "and d.uid=m.uid", this );
+        d->q = new Query( "update deleted_messages set message=m.id "
+                          "from messages m where "
+                          "deleted_messages.mailbox=m.mailbox and "
+                          "deleted_messages.uid=m.uid", this );
         d->t->enqueue( d->q );
 
         d->q = new Query( "alter table deleted_messages alter message "
