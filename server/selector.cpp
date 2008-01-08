@@ -35,7 +35,7 @@ public:
           needAnnotations( false ),
           needPartNumbers( false ),
           needBodyparts( false ),
-          needModsequences( false )
+          needMessages( false )
     {}
 
     void copy( SelectorData * o ) {
@@ -46,8 +46,6 @@ public:
         s16 = o->s16;
         s = o->s;
         n = o->n;
-        if ( o->needModsequences )
-            needModsequences = true;
         children = o->children;
     }
 
@@ -82,8 +80,7 @@ public:
     bool needAnnotations;
     bool needPartNumbers;
     bool needBodyparts;
-    bool needModsequences;
-
+    bool needMessages;
 };
 
 
@@ -405,16 +402,6 @@ void Selector::simplify()
 }
 
 
-static String join( const char * table )
-{
-    String r( table );
-    r.append( ".uid=m.uid and m.mailbox=" );
-    r.append( table );
-    r.append( ".mailbox" );
-    return r;
-}
-
-
 /*! Returns a query representing this Selector or 0 if anything goes
     wrong, in which case error() contains a description of the problem.
     The Selector is expressed as SQL in the context of the specified
@@ -432,12 +419,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
-    String q = "select distinct m.uid";
-    if ( d->needModsequences )
-        q.append( ", ms.modseq" );
-    q.append( " from messages m"
-              " left join deleted_messages dm on"
-              " (m.uid=dm.uid and m.mailbox=dm.mailbox)" );
+    String q = "select distinct mm.uid, mm.modseq, mm.message, mm.idate "
+               "from mailbox_messages mm";
     String w = where();
 
     // make sure that any indirect joins below don't produce bad
@@ -458,34 +441,33 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             String n = "f" + fn( f );
             i++;
             q.append( " left join flags " + n +
-                      " on (m.mailbox=" + n + ".mailbox and m.uid=" + n +
+                      " on (mm.mailbox=" + n + ".mailbox and mm.uid=" + n +
                       ".uid and " + n + ".flag=" + fn( f ) + ")" );
         }
     }
 
-    if ( d->needModsequences )
-        q.append( " join modsequences ms on (" + join( "ms" ) + ")" );
     if ( d->needDateFields )
-        q.append( " join date_fields df on (" + join( "df" ) + ")" );
+        q.append( " join date_fields df on (df.message=mm.message)" );
     if ( d->needHeaderFields )
-        q.append( " join header_fields hf on (" + join( "hf" ) + ")" );
+        q.append( " join header_fields hf on (hf.message=mm.message)" );
     if ( d->needAddressFields )
-        q.append( " join address_fields af on (" + join( "af" ) + ")" );
+        q.append( " join address_fields af on (af.message=mm.message)" );
     if ( d->needAddresses )
         q.append( " join addresses a on (af.address=a.id)" );
     if ( d->needAnnotations )
-        q.append( " join annotations a on (" + join( "a" ) + ")" );
+        q.append( " join annotations a on (a.message=mm.message)" );
     if ( d->needPartNumbers )
-        q.append( " join part_numbers pn on (" + join( "pn" ) + ")" );
+        q.append( " join part_numbers pn on (pn.message=mm.message)" );
     if ( d->needBodyparts )
         q.append( " join bodyparts bp on (bp.id=pn.bodypart)" );
+    if ( d->needMessages )
+        q.append( " join messages m on (mm.message=m.id)" );
 
-    q.append( " where m.mailbox=$" );
+    q.append( " where mm.mailbox=$" );
     q.append( fn( d->mboxId ) );
-    q.append( " and dm.uid is null" );
     if ( !w.isEmpty() && w != "true" )
         q.append( " and " + w );
-    q.append( " order by m.uid" );
+    q.append( " order by mm.uid" );
 
     if ( d->needBodyparts )
         d->query->allowSlowness();
@@ -865,12 +847,13 @@ String Selector::whereBody()
 
 String Selector::whereRfc822Size()
 {
+    d->needMessages = true;
     uint s = placeHolder();
     root()->d->query->bind( s, d->n );
     if ( d->a == Smaller )
-        return "messages.rfc822size<$" + fn( s );
+        return "m.rfc822size<$" + fn( s );
     else if ( d->a == Larger )
-        return "messages.rfc822size>$" + fn( s );
+        return "m.rfc822size>$" + fn( s );
     setError( "Internal error: " + debugString() );
     return "";
 }
@@ -1023,10 +1006,9 @@ String Selector::whereAnnotation()
 
 String Selector::whereModseq()
 {
-    root()->d->needModsequences = true;
     uint i = placeHolder();
     root()->d->query->bind( i, d->n );
-    return "ms.modseq>=$" + fn( i );
+    return "mm.modseq>=$" + fn( i );
 }
 
 
@@ -1257,10 +1239,7 @@ String Selector::debugString() const
 
 Selector::MatchResult Selector::match( Session * s, uint uid )
 {
-    if ( d->needModsequences ) {
-        return No;
-    }
-    else if ( d->a == And || d->a == Or ) {
+    if ( d->a == And || d->a == Or ) {
         List< Selector >::Iterator i( d->children );
         while ( i ) {
             MatchResult sub = i->match( s, uid );
@@ -1784,31 +1763,6 @@ Selector::Action Selector::action() const
 const MessageSet & Selector::messageSet() const
 {
     return d->s;
-}
-
-
-/*! Tells the Selector to return modseqs no matter whether they seem
-    to be needed or not.
-
-    Until this function is called, Selector chooses whether to return
-    modseqs based its content.
-*/
-
-void Selector::setModseqReturned()
-{
-    d->needModsequences = true;
-}
-
-
-/*! Returns true if this Selector's query() will return the modseq
-    column, and false if the Selector hasn't decided to do so yet. If
-    you call this function immediately after query(), the value is
-    definitely right for the Query.
-*/
-
-bool Selector::modseqReturned() const
-{
-    return d->needModsequences;
 }
 
 

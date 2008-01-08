@@ -492,8 +492,7 @@ public:
           t( 0 ), recent( 0 ), messages( 0 ), nms( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           state( Again ),
-          changeRecent( false ), findFirstUnseen( false ),
-          retrievingModSeq( false )
+          changeRecent( false ), findFirstUnseen( false )
         {}
 
     Mailbox * mailbox;
@@ -516,7 +515,6 @@ public:
 
     bool changeRecent;
     bool findFirstUnseen;
-    bool retrievingModSeq;
 };
 
 
@@ -565,9 +563,6 @@ void SessionInitialiser::execute()
                 d->state = SessionInitialiserData::HaveUidnext;
             break;
         case SessionInitialiserData::HaveUidnext:
-            d->retrievingModSeq = false;
-            if ( d->sessions.count() > 1 )
-                d->retrievingModSeq = true;
             if ( d->mailbox->view() )
                 findViewChanges();
             else
@@ -738,7 +733,6 @@ void SessionInitialiser::restart()
     d->messages = 0;
     d->nms = 0;
     d->changeRecent = false;
-    d->retrievingModSeq = false;
 }
 
 
@@ -902,14 +896,14 @@ void SessionInitialiser::findViewChanges()
     sel->add( Selector::fromString( d->mailbox->selector() ) );
     
     // if not dynamic, uidnext changed by >0 and modsec by <= 1,, we
-    // can add UID logic to _both_ the inner and outer selects, and
-    // it'll do the right thing.
+    // can add UID logic to _both_ the mm and s selects, and it'll do
+    // the right thing.
 
     // we could also add something like this
-    // sel->add( new Selector( Selector::Modseq, Selector::Larger, d->oldModSeq ) );
-    // to both the inner and outer selects, that should do no harm
+    // sel->add( new Selector( Selector::Modseq, Selector::Larger,
+    //                         d->oldModSeq ) );
+    // to both s and mm, that should do no harm
     sel->simplify();
-    d->retrievingModSeq = true;
 
     Flag * seen = 0;
     if ( d->findFirstUnseen ) {
@@ -922,27 +916,25 @@ void SessionInitialiser::findViewChanges()
     uint oms = sel->placeHolder();
     d->messages->bind( oms, d->oldModSeq );
 
-    String s( "select m.mailbox, m.uid, "
-              " vm.uid as vuid, s.uid as suid, " );
+    String s( "select m.id, "
+              "mm.uid as vuid, mm.modseq as vmodseq, " );
     if ( seen )
         s.append( "f.flag as seen, " );
-    s.append( "ms.modseq "
-              "from messages m "
-              "join modsequences ms on "
-              " (m.mailbox=ms.mailbox and m.uid=ms.uid) "
-              "left join view_messages vm on "
-              " (m.mailbox=vm.source and m.uid=vm.suid) " );
+    s.append( "s.uid as suid, s.modseq as smodseq, "
+              "s.message as smessage, s.idate as sidate "
+              "from messages m " );
     if ( seen )
         s.append( "left join flags f on "
-                  " (m.mailbox=f.mailbox and m.uid=f.uid and "
+                  " (mm.mailbox=f.mailbox and mm.uid=f.uid and "
                   "  f.flag=" + fn( seen->id() ) + ") " );
-    s.append( "left join (" + d->messages->string() + ") s on "
-              " m.uid=s.uid "
-              "where m.mailbox=$" + sel->mboxId() + " "
-              "and ((s.uid is not null and vm.uid is null)"
-              "  or (s.uid is null and vm.uid is not null)"
-              "  or ms.modseq>=$" + fn( oms ) +") "
-              "order by m.uid" );
+    s.append( "left join (" + d->messages->string() + ") s "
+              " on m.id=s.message "
+              "left join mailbox_messages mm "
+              " on (m.id=mm.message and mm.mailbox=$" + sel->mboxId() + ") "
+              "where ((s.uid is not null and mm.uid is null)"
+              "    or (s.uid is null and mm.uid is not null)"
+              "    or mm.modseq>=$" + fn( oms ) +") "
+              "order by mm.uid, s.uid, m.id" );
     d->messages->setString( s );
     submit( d->messages );
 }
@@ -961,13 +953,12 @@ void SessionInitialiser::writeViewChanges()
         return;
     MessageSet removeInDb;
     uint unseen = UINT_MAX;
-    Query * add = new Query( "copy view_messages (source,suid,view,uid) "
+    Query * add = new Query( "copy mailbox_messages "
+                             "(mailbox,uid,message,idate,modseq) "
                              "from stdin with binary", 0 );
     bool changes = false;
     Row * r = 0;
     while ( (r=d->messages->nextRow()) != 0 ) {
-        uint uid = r->getInt( "uid" );
-
         uint vuid = 0;
         if ( !r->isNull( "vuid" ) )
             vuid = r->getInt( "vuid" );
@@ -985,10 +976,11 @@ void SessionInitialiser::writeViewChanges()
         if ( matched && !vuid ) {
             vuid = d->newUidnext;
             d->newUidnext++;
-            add->bind( 1, d->mailbox->source()->id(), Query::Binary );
-            add->bind( 2, uid, Query::Binary );
-            add->bind( 3, d->mailbox->id(), Query::Binary );
-            add->bind( 4, vuid, Query::Binary );
+            add->bind( 1, d->mailbox->id(), Query::Binary );
+            add->bind( 2, vuid, Query::Binary );
+            add->bind( 3, r->getInt( "smessage" ), Query::Binary );
+            add->bind( 4, r->getInt( "sidate" ), Query::Binary );
+            add->bind( 5, r->getBigint( "smodseq" ), Query::Binary );
             add->submitLine();
             changes = true;
             // the next clause also matches, so the message is added
@@ -996,12 +988,8 @@ void SessionInitialiser::writeViewChanges()
         }
         // if it is in the search results and also in the db, then
         // it's new to the session or changed in the session.
-        if ( matched && vuid ) {
-            if ( d->retrievingModSeq )
-                addToSessions( vuid, r->getBigint( "modseq" ) );
-            else
-                addToSessions( vuid, 0 );
-        }
+        if ( matched && vuid )
+            addToSessions( vuid, r->getBigint( "vmodseq" ) );
 
         if ( d->findFirstUnseen && vuid &&
              vuid < unseen && r->isNull( "seen" ) )
@@ -1018,11 +1006,10 @@ void SessionInitialiser::writeViewChanges()
 
     if ( !removeInDb.isEmpty() ) {
         Query * q
-            = new Query( "delete from view_messages "
-                         "where view=$1 and source=$2 and (" +
-                         removeInDb.where( "" ) + ")", 0 );
+            = new Query( "delete from mailbox_messages "
+                         "where mailbox=$1 and " + removeInDb.where( "" ),
+                         0 );
         q->bind( 1, d->mailbox->id() );
-        q->bind( 2, d->mailbox->source()->id() );
         submit( q );
         List<Session>::Iterator i( d->sessions );
         while ( i ) {
@@ -1033,20 +1020,19 @@ void SessionInitialiser::writeViewChanges()
         changes = true;
     }
 
-    if ( d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() )
-        changes = true; // not sure why this would be the case, but...
-
-    if ( changes ) {
+    if ( d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() ) {
         Query * q = new Query(
-            " update mailboxes set nextmodseq="
+            "update mailboxes set nextmodseq="
             "(select nextmodseq from mailboxes where id=$2) "
             "where id=$1", this );
         q->bind( 1, d->mailbox->id() );
         q->bind( 2, d->mailbox->source()->id() );
         submit( q );
-        d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
-                                             d->mailbox->source()->nextModSeq() );
+        changes = true;
     }
+
+    d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
+                                         d->mailbox->source()->nextModSeq() );
 
     if ( unseen < UINT_MAX ) {
         List<Session>::Iterator s( d->sessions );
@@ -1068,51 +1054,37 @@ void SessionInitialiser::writeViewChanges()
 void SessionInitialiser::findMailboxChanges()
 {
     bool initialising = false;
-    if ( d->oldUidnext <= 1 ) {
+    if ( d->oldUidnext <= 1 )
         initialising = true;
-        d->retrievingModSeq = true;
-    }
     Flag * seen = 0;
     if ( d->findFirstUnseen )
         seen = Flag::find( "\\seen" );
     if ( !seen )
         d->findFirstUnseen = false;
-    if ( d->newModSeq > d->oldModSeq && // one or more changes
-         !( d->newModSeq == d->oldModSeq + 1 && // and it's not one insertion
-            d->newUidnext > d->oldUidnext + 1 ) )
-        d->retrievingModSeq = true;
-    String msgs = "select m.uid";
+    String msgs = "select m.uid, ms.modseq ";
     if ( d->findFirstUnseen )
-        msgs.append( ", f.flag as seen" );
-    if ( d->retrievingModSeq )
-        msgs.append( ", ms.modseq" );
-    msgs.append( " from messages m " );
-    if ( d->retrievingModSeq )
-        msgs.append( "join modsequences ms "
-                     " on (m.mailbox=ms.mailbox and m.uid=ms.uid) " );
+        msgs.append( ", f.flag as seen " );
+    msgs.append( "from messages m " );
     if ( d->findFirstUnseen )
         msgs.append( "left join flags f on "
                      " (m.mailbox=f.mailbox and m.uid=f.uid and "
                      "  f.flag=" + fn( seen->id() ) + ") " );
-    msgs.append( "left join deleted_messages dm "
-                 " on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
-                 "where m.mailbox=$1 and dm.uid is null "
-                 "and m.uid<$2" );
+    msgs.append( "where m.mailbox=$1 and m.uid<$2" );
     if ( initialising ) // largest-first to please messageset
         msgs.append( " order by m.uid desc" );
-    else if ( d->retrievingModSeq )
-        msgs.append( " and (m.uid>=$3 or ms.modseq>=$4)" );
-    else 
-        msgs.append( " and m.uid>=$3" );
+
+    // if we know we'll see one new modseq and at least one new
+    // message, we could skip the test on mm.modseq.
+    if ( !initialising )
+        msgs.append( " and (mm.uid>=$3 or mm.modseq>=$4)" );
 
     d->messages = new Query( msgs, this );
     d->messages->bind( 1, d->mailbox->id() );
     d->messages->bind( 2, d->newUidnext );
-    if ( !initialising )
+    if ( !initialising ) {
         d->messages->bind( 3, d->oldUidnext );
-    if ( d->retrievingModSeq && !initialising )
         d->messages->bind( 4, d->oldModSeq );
-
+    }
     submit( d->messages );
 }
 
@@ -1127,10 +1099,7 @@ void SessionInitialiser::recordMailboxChanges()
     Row * r = 0;
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
-        if ( d->retrievingModSeq )
-            addToSessions( uid, r->getBigint( "modseq" ) );
-        else
-            addToSessions( uid, 0 );
+        addToSessions( uid, r->getBigint( "modseq" ) );
         if ( d->findFirstUnseen && r->isNull( "seen" ) && uid < smallest )
             smallest = uid;
     }

@@ -71,9 +71,6 @@ public:
 
     static Selector * fromString( const String & );
 
-    void setModseqReturned();
-    bool modseqReturned() const;
-
     bool dynamic() const;
     bool timeSensitive() const;
 

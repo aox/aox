@@ -4,7 +4,17 @@
 
   rrdtool integration script
 
-  The great schema change.
+  The great schema change. Remaining work:
+
+  - COPY
+
+  - archivemailbox
+
+  - Triggers to keep deleted_messages well stocked. Note that it's
+    okay to remove messages from mailbox_messages if the mailbox is a
+    view.
+
+  - Check store and view create.
 
   Done:
     - SORT

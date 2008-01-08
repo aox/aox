@@ -35,6 +35,7 @@ public:
         : uid( false ), done( false ), codec( 0 ), root( 0 ),
           query( 0 ), highestmodseq( 1 ),
           firstmodseq( 1 ), lastmodseq( 1 ),
+          returnModseq( false ),
           returnAll( false ), returnCount( false ),
           returnMax( false ), returnMin( false )
     {}
@@ -53,6 +54,7 @@ public:
     int64 highestmodseq;
     int64 firstmodseq;
     int64 lastmodseq;
+    bool returnModseq;
 
     bool returnAll;
     bool returnCount;
@@ -391,7 +393,7 @@ void Search::parseKey( bool alsoCharset )
             }
             add( new Selector( Selector::Modseq, Selector::Larger,
                                number() ) );
-            d->root->setModseqReturned();
+            d->returnModseq = true;
         }
         else if ( keyword == "older" ) {
             space();
@@ -435,31 +437,7 @@ void Search::execute()
             return;
         }
 
-        Mailbox * m = s->mailbox();
-        if ( m->view() ) {
-            m = m->source();
-        }
-
-        d->query =
-            d->root->query( imap()->user(), m, s, this );
-
-        m = s->mailbox();
-        if ( m->view() ) {
-            uint source = d->root->placeHolder();
-            uint view = d->root->placeHolder();
-            String s( "select vm.uid" );
-            if ( d->root->modseqReturned() )
-                s.append( ", s.modseq" );
-            s.append( " from view_messages vm "
-                      "join (" + d->query->string() + ") s "
-                      "on vm.suid=s.uid where source=$" + fn( source ) +
-                      " and view=$" + fn( view ) +
-                      " order by uid" );
-            d->query->bind( source, m->source()->id() );
-            d->query->bind( view, m->id() );
-            d->query->setString( s );
-        }
-
+        d->query = d->root->query( imap()->user(), s->mailbox(), s, this );
         d->query->execute();
     }
 
@@ -475,7 +453,7 @@ void Search::execute()
     Row * r;
     while ( (r=d->query->nextRow()) != 0 ) {
         d->matches.add( r->getInt( "uid" ) );
-        if ( d->root->modseqReturned() ) {
+        if ( d->returnModseq ) {
             int64 ms = r->getBigint( "modseq" );
             if ( firstRow )
                 d->firstmodseq = ms;
@@ -497,7 +475,7 @@ void Search::execute()
 
 void Search::considerCache()
 {
-    if ( d->root->modseqReturned() )
+    if ( d->returnModseq )
         return;
     ImapSession * s = imap()->session();
     bool needDb = false;
@@ -723,7 +701,7 @@ void Search::sendSearchResponse()
             result.append( fn( uid ) );
         }
     }
-    if ( d->root->modseqReturned() ) {
+    if ( d->returnModseq ) {
         result.append( " (modseq " );
         result.append( fn( d->highestmodseq ) );
         result.append( ")" );
@@ -783,7 +761,7 @@ void Search::sendEsearchResponse()
             result.append( msns.set() );
         }
     }
-    if ( d->root->modseqReturned() && !d->matches.isEmpty() ) {
+    if ( d->returnModseq && !d->matches.isEmpty() ) {
         result.append( " modseq " );
         if ( d->returnAll || d->returnCount )
             result.append( fn( d->highestmodseq ) );
