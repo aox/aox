@@ -1313,23 +1313,20 @@ void Injector::linkAddresses()
 
 void Injector::linkDates()
 {
-    Query * q =
-        new Query( "copy date_fields (message,value) "
-                   "from stdin with binary", 0 );
-
     List< FieldLink >::Iterator it( d->dateLinks );
     while ( it ) {
         FieldLink * link = it;
         DateField * df = (DateField *)link->hf;
 
-        q->bind( 1, d->messageId, Query::Binary );
-        q->bind( 2, df->date()->isoDateTime(), Query::Binary );
-        q->submitLine();
+        Query * q =
+            new Query( "insert into date_fields (message,value) "
+                       "values ($1,$2)", 0 );
+        q->bind( 1, d->messageId );
+        q->bind( 2, df->date()->isoDateTime() );
+        d->transaction->enqueue( q );
 
         ++it;
     }
-
-    d->transaction->enqueue( q );
 }
 
 
