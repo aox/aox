@@ -597,10 +597,10 @@ void Fetch::execute()
     if ( d->state == 0 ) {
         if ( d->changedSince ) {
             if ( !d->notThose ) {
-                d->notThose = new Query( "select uid from modsequences "
-                                         "where mailbox=$1 and modseq<=$2 "
-                                         "and " + d->set.where(),
-                                         this );
+                d->notThose =
+                    new Query( "select uid from mailbox_messages "
+                               "where mailbox=$1 and modseq<=$2 "
+                               "and " + d->set.where(), this );
                 d->notThose->bind( 1, s->mailbox()->id() );
                 d->notThose->bind( 2, d->changedSince );
                 d->notThose->execute();
@@ -1409,17 +1409,10 @@ void FetchData::SeenFlagSetter::execute()
             ms->bind( 1, mailbox->id() );
         t->enqueue( ms );
 
-        if ( mailbox->view() )
-            f = new Query(
-                "select vm.uid from view_messages vm "
-                "join flags f on (vm.source=f.mailbox and vm.suid=f.uid) "
-                "where vm.view=$1 and f.flag=$2 and vm.uid>=$3 and vm.uid<=$4",
-                this );
-        else
-            f = new Query(
-                "select uid from flags "
-                "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
-                this );
+        f = new Query(
+            "select uid from flags "
+            "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
+            this );
         f->bind( 1, mailbox->id() );
         f->bind( 2, seen->id() );
         f->bind( 3, messages.smallest() );
@@ -1454,34 +1447,18 @@ void FetchData::SeenFlagSetter::execute()
     if ( r ) {
         modseq = r->getBigint( "nextmodseq" );
         Query * q = 0;
-        if ( mailbox->view() )
-            q = new Query( "update modsequences "
-                           "set modseq=$1 "
-                           "where (mailbox,uid) in "
-                           "(select source,suid from view_messages where " +
-                           messages.where() + "and view=$2)", 0 );
-        else
-            q = new Query( "update modsequences "
-                           "set modseq=$1 "
-                           "where mailbox=$2 and " + messages.where(),
-                           0 );
+        q = new Query( "update mailbox_messages set modseq=$1 "
+                       "where mailbox=$2 and " + messages.where(), 0 );
         q->bind( 1, modseq );
-        if ( mailbox->view() )
-            q->bind( 2, mailbox->source()->id() );
-        else
-            q->bind( 2, mailbox->id() );
+        q->bind( 2, mailbox->id() );
         t->enqueue( q );
-
 
         q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
         t->enqueue( q );
         q = new Query( "update mailboxes set nextmodseq=$1 "
                        "where id=$2", 0 );
         q->bind( 1, modseq + 1 );
-        if ( mailbox->view() )
-            q->bind( 2, mailbox->source()->id() );
-        else
-            q->bind( 2, mailbox->id() );
+        q->bind( 2, mailbox->id() );
         t->enqueue( q );
         t->commit();
     }
@@ -1489,23 +1466,15 @@ void FetchData::SeenFlagSetter::execute()
     if ( !t->done() )
         return;
 
-    if ( mailbox->view() ) {
-        if ( mailbox->source()->nextModSeq() <= modseq ) {
-            mailbox->source()->setNextModSeq( modseq + 1 );
-            OCClient::send( "mailbox " +
-                            mailbox->source()->name().utf8().quoted() + " "
-                            "nextmodseq=" + fn( modseq+1 ) );
-        }
+    if ( mailbox->nextModSeq() <= modseq ) {
+        mailbox->setNextModSeq( modseq + 1 );
+        OCClient::send( "mailbox " + mailbox->name().utf8().quoted() + " "
+                        "nextmodseq=" + fn( modseq+1 ) );
     }
-    else {
-        if ( mailbox->nextModSeq() <= modseq ) {
-            mailbox->setNextModSeq( modseq + 1 );
-            OCClient::send( "mailbox " + mailbox->name().utf8().quoted() + " "
-                            "nextmodseq=" + fn( modseq+1 ) );
-        }
-    }
+
     if ( o )
         o->execute();
+
     modseq = 0;
     o = 0;
     t = 0;
