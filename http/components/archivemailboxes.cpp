@@ -39,11 +39,11 @@ ArchiveMailboxes::ArchiveMailboxes()
 void ArchiveMailboxes::execute()
 {
     if ( !d->q ) {
-        d->q = new Query( "select name from mailboxes m join "
+        d->q = new Query( "select distinct name from mailboxes m join "
                           "permissions p on (p.mailbox=m.id) "
                           "where (p.identifier='anonymous' or "
                           "p.identifier='anyone') and "
-                          "p.rights like '%r%'", this );
+                          "p.rights like '%r%' order by name", this );
         d->q->execute();
     }
 
