@@ -112,12 +112,10 @@ void Status::execute()
         // select and make the database reveal the number.
         d->unseenCount
             = new Query( "select count(*)::int as unseen "
-                         "from messages m "
-                         "left join deleted_messages dm using (mailbox,uid) "
+                         "from mailbox_messages m "
                          "left join flags f on "
                          "(m.uid=f.uid and m.mailbox=f.mailbox and f.flag=$2) "
-                         "where m.mailbox=$1 and "
-                         "dm.uid is null and f.flag is null", this );
+                         "where m.mailbox=$1 and f.flag is null", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
         Flag * f = Flag::find( "\\seen" );
         if ( f ) {
@@ -135,7 +133,7 @@ void Status::execute()
         // HIGHESTMODSEQ too needs a DB query
         d->highestModseq
             = new Query( "select coalesce(max(modseq),1) as hm "
-                         "from modsequences "
+                         "from mailbox_messages "
                          "where mailbox=$1", this );
         d->highestModseq->bind( 1, d->mailbox->id() );
         d->highestModseq->execute();
