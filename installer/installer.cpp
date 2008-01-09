@@ -984,9 +984,10 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
+            fprintf( stderr,
+                     "Couldn't add PL/PGSQL to the '%s' database (%s).\n"
                      "Please create it by hand and re-run the installer.\n",
-                     dbuser->cstr(), pgErr( d->q->error() ) );
+                     dbname->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
         }
