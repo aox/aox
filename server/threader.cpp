@@ -115,10 +115,11 @@ void Threader::execute()
     if ( d->state == 2 ) {
         if ( !d->findnew ) {
             d->findnew
-                = new Query( "select hf.uid, hf.value "
+                = new Query( "select mm.uid, hf.value "
                              "from header_fields hf "
+                             "join mailbox_messages mm using (message) "
                              "left join thread_members tm using (mailbox,uid) "
-                             "where hf.mailbox=$1 and hf.field=$2 "
+                             "where mm.mailbox=$1 and hf.field=$2 "
                              " and hf.part='' and tm.thread is null", this );
             d->findnew->bind( 1, d->mailbox->id() );
             d->findnew->bind( 2, HeaderField::Subject );

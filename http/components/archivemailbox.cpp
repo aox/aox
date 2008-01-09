@@ -91,22 +91,22 @@ void ArchiveMailbox::execute()
     Threader * t = d->link->mailbox()->threader();
 
     if ( !d->af ) {
-        d->af = new Query( "select af.uid, af.position, af.address, af.field, "
+        d->af = new Query( "select mm.uid, af.position, af.address, af.field, "
                            "a.name, a.localpart, a.domain "
                            "from address_fields af "
                            "join addresses a on (af.address=a.id) "
-                           "left join deleted_messages dm "
-                           " on (af.mailbox=dm.mailbox and af.uid=dm.uid) "
-                           "where af.mailbox=$1 and af.part='' "
-                           "and af.field=$2 and dm.uid is null", this );
+                           "join mailbox_messages mm using (message) "
+                           "where af.part='' and af.field=$2 "
+                           "and mm.mailbox=$1", this );
         d->af->bind( 1, d->link->mailbox()->id() );
         d->af->bind( 2, HeaderField::From );
         d->af->execute();
     }
 
     if ( !d->idate ) {
+        // XXX this can go into d->af now that d->af joins anyway
         d->idate = new Query( "select uid, idate "
-                              "from messages where mailbox=$1",
+                              "from mailbox_messages where mailbox=$1",
                               this );
         d->idate->bind( 1, d->link->mailbox()->id() );
         d->idate->execute();
@@ -132,8 +132,10 @@ void ArchiveMailbox::execute()
         d->text = new Query(
             "select bp.*, pn.uid, hf.value from bodyparts bp "
             "join part_numbers pn on (bp.id=pn.bodypart) "
-            "left join header_fields hf using (mailbox,uid,part) "
-            "where pn.mailbox=$1 "
+            "join mailbox_messages mm on (mm.message=pn.message) "
+            "left join header_fields hf "
+            " on (hf.message=pn.message,hf.part=pn.part) "
+            "where mm.mailbox=$1 "
             "and (hf.field=$2 or hf.field is null) "
             "and (" + f.where() + ") and "
             "(hf.value like 'text/html%' or "

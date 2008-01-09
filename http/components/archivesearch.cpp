@@ -224,22 +224,19 @@ void ArchiveSearch::sendQueries()
         }
         if ( term->domain ) {
             term->query 
-                = new Query( "select uid from address_fields af "
-                             "left join deleted_messages dm "
-                             " using (mailbox,uid) "
+                = new Query( "select mm.uid from mailbox_messages mm "
+                             "join address_fields af using message "
                              "join addresses a on (af.address=a.id) "
-                             "where af.mailbox=$1 and dm.uid is null and "
-                             "lower(a.domain)=$2",
+                             "where mm.mailbox=$1 and lower(a.domain)=$2",
                              this );
             term->query->bind( 2, domain );
         }
         else if ( term->address ) {
             term->query 
-                = new Query( "select uid from address_fields af "
-                             "left join deleted_messages dm "
-                             " using (mailbox,uid) "
+                = new Query( "select mm.uid from mailbox_messages mm "
+                             "join address_fields af using message "
                              "join addresses a on (af.address=a.id) "
-                             "where af.mailbox=$1 and dm.uid is null and "
+                             "where mm.mailbox=$1 and "
                              "lower(a.localpart)=$2 and lower(a.domain)=$3",
                              this );
             term->query->bind( 2, localpart );
@@ -247,17 +244,15 @@ void ArchiveSearch::sendQueries()
         }
         else {
             String s;
-            s = "select s.uid from "
-                "(select mailbox,uid from header_fields where"
-                " mailbox=$1 and field=20 and value ilike '%'||$2||'%'"
-                " union"
-                " select pn.mailbox,pn.uid from part_numbers pn"
-                " join bodyparts b on (pn.bodypart=b.id) where"
-                " pn.mailbox=$1 and b.text ilike '%'||$2||'%') s "
-                "left join deleted_messages dm "
-                "on (s.mailbox=dm.mailbox and s.uid=dm.uid) "
-                "where dm.uid is null";
-
+            s = "select mm.uid from mailbox_messages mm "
+                "left join header_fields hf on "
+                " (mm.message=hf.message and hf.field=20 and "
+                "  hf.value ilike '%'||$2||'%') "
+                "left join part_numbers pn on mm.message=pn.message "
+                "left join bodyparts b on "
+                " (pn.bodypart=b.id and b.text ilike '%'||$2||'%') "
+                "where mm.mailbox=$1 and "
+                "(hf.message is not null or b.id is not null)";
             term->query = new Query( s, this );
             term->query->bind( 2, term->term );
         }
