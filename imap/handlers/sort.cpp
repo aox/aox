@@ -182,12 +182,12 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
 {
     switch ( c->t ) {
     case Arrival:
-        addJoin( t, "", "m.idate", c->reverse );
+        addJoin( t, "", "mm.idate", c->reverse );
         break;
     case Cc:
         addJoin( t,
                  "left join address_fields sccaf on "
-                 "(m.mailbox=sccaf.mailbox and m.uid=sccaf.uid and"
+                 "(mm.message=sccaf.message and "
                  " sccaf.part='' and sccaf.number=0 and"
                  " sccaf.field=" + fn( HeaderField::Cc ) + ") "
                  "left join addresses scca on (sccaf.address=scca.id) ",
@@ -196,15 +196,14 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
         break;
     case Date:
         addJoin( t,
-                 "join date_fields sddf on "
-                 "(m.mailbox=sddf.mailbox and m.uid=sddf.uid) ",
+                 "join date_fields sddf on (mm.message=sddf.message) ",
                  "sddf.value",
                  c->reverse );
         break;
     case From:
         addJoin( t,
                  "join address_fields sfaf on "
-                 "(m.mailbox=sfaf.mailbox and m.uid=sfaf.uid and"
+                 "(mm.message=sfaf.message and "
                  " sfaf.part='' and sfaf.number=0 and"
                  " sfaf.field=" + fn( HeaderField::From ) + ") "
                  "join addresses sfa on (sfaf.address=sfa.id) ",
@@ -212,12 +211,15 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
                  c->reverse );
         break;
     case Size:
-        addJoin( t, "", "m.rfc822size", c->reverse );
+        addJoin( t, 
+                 "join messages m on (m.id=mm.message)",
+                 "m.rfc822size",
+                 c->reverse );
         break;
     case Subject:
         addJoin( t,
                  "left join thread_members sstm on "
-                 "(m.mailbox=sstm.mailbox and m.uid=sstm.uid) "
+                 "(mm.mailbox=sstm.mailbox and mm.uid=sstm.uid) "
                  "left join threads sst on "
                  "(sstm.thread=sst.id) ",
                  "sst.subject",
@@ -226,7 +228,7 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
     case To:
         addJoin( t,
                  "left join address_fields staf on "
-                 "(m.mailbox=staf.mailbox and m.uid=staf.uid and"
+                 "(mm.message=staf.message and "
                  " staf.part='' and staf.number=0 and"
                  " staf.field=" + fn( HeaderField::To ) + ") "
                  "left join addresses sta on (staf.address=sta.id) ",
@@ -265,10 +267,10 @@ void SortData::addJoin( String & t,
 
     // and include orderby in the return list so select distinct
     // doesn't complain. why does select distinct do that anyway?
-    int s = t.find( "m.uid" );
+    int s = t.find( "mm.uid" );
     if ( s < 0 )
         return;
-    s += 5;
+    s += 6;
     t = t.mid( 0, s ) + ", " + orderby + t.mid( s );
 }
 
