@@ -581,11 +581,71 @@ void Postgres::unknown( char type )
             d->unknownMessage = false;
             PgParameterStatus msg( readBuffer() );
 
-            String s( "PostgreSQL server: SET " );
-            s.append( msg.name() );
-            s.append( "=" );
-            s.append( msg.value().quoted() );
-            ::log( s, Log::Debug );
+            String n = msg.name();
+            String v = msg.value();
+            String e;
+            bool known = true;
+            if ( n == "client_encoding" ) {
+                if ( v != "UTF8" )
+                    e = "Unexpected client encoding: ";
+            }
+            else if ( n == "DateStyle" ) {
+                // we want ISO on the list somewhere
+                if ( !v.containsWord( "ISO" ) )
+                    e = "DateStyle apparently does not support ISO: ";
+            }
+            else if ( n == "integer_datetimes" ) {
+                // we want integers... I think
+                if ( v.simplified().lower() != "on" )
+                    e = "Integer date times disabled: ";
+            }
+            else if ( n == "is_superuser" ) {
+                if ( v.simplified().lower() != "off" )
+                    e = "Connected as superuser: ";
+            }
+            else if ( n == "server_encoding" ) {
+                if ( v != "UTF8" )
+                    e = "Unexpected server encoding: ";
+            }
+            else if ( n == "server_version" ) {
+                bool ok = true;
+                uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
+                               100 * v.section( ".", 2 ).number( &ok ) +
+                               v.section( ".", 3 ).number( &ok );
+                if ( !ok || version < 80100 )
+                    e = "Archiveopteryx requires PostgreSQL 8.1 or higher: ";
+            }
+            else if ( n == "session_authorization" ) {
+                // we could test that v is d->user, but I don't think
+                // we care. besides it might sound an alarm about our
+                // ident workarounds.
+            }
+            else if ( n == "standard_conforming_strings" ) {
+                // hm... ?
+            }
+            else if ( n == "TimeZone" ) {
+                // we don't care.
+            }
+            else {
+                known = false;
+            }
+            if ( known && e.isEmpty() ) {
+                // we're entirely silent about this. all is well.
+            }
+            else {
+                String s( "PostgreSQL server: " );
+                if ( e.isEmpty() )
+                    s.append( "SET " );
+                else
+                    s.append( e );
+                s.append( n );
+                s.append( "=" );
+                s.append( v.quoted() );
+                if ( e.isEmpty() )
+                    ::log( s, Log::Debug );
+                else
+                    ::log( s );
+            }
         }
         break;
 

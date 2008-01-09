@@ -22,6 +22,9 @@
   - The session initialiser may need changes, it could be that some of
     its modseq logic doesn't hold any more.
 
+  - Update the permissions test at startup. Not sure what it should
+    test in the GNS.
+
   Done:
     - SORT
     - an EGD implementation to help Cryptlib with entropy. Should make
