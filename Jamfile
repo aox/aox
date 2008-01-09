@@ -39,11 +39,12 @@ MkDir $(MANDIR) ;
 MkDir $(LIBDIR) ;
 MkDir $(JAILDIR) ;
 MkDir $(MESSAGEDIR) ;
+MkDir $(PIDFILEDIR) ;
 MkDir $(CONFIGDIR) ;
 MkDir $(LOGFILE:D) ;
 
 Depends install :
-    $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) ;
+    $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) $(PIDFILEDIR) ;
 
 # if we make JAILDIR, we should chmod it so noone can read it:
 MODE on $(JAILDIR) = 700 ;
