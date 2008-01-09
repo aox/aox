@@ -6,8 +6,6 @@
 
   The great schema change. Remaining work:
 
-  - COPY
-
   - archivemailbox
 
   - Triggers to keep deleted_messages well stocked. Note that it's
@@ -18,8 +16,6 @@
 
   - aox vacuum
 
-  - Store must change, now that flags don't fall through
-
   - Permissions may change since flags don't fall though. Best to
     check.
 
@@ -28,6 +24,8 @@
 
   Done:
     - SORT
+    - an EGD implementation to help Cryptlib with entropy. Should make
+      STARTTLS faster, particularly on freebsd 5 and macosx.
 
   2007-12-07: decide on feature list
   2007-12-31: drop things that can't be finished
