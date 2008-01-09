@@ -1061,17 +1061,17 @@ void SessionInitialiser::findMailboxChanges()
         seen = Flag::find( "\\seen" );
     if ( !seen )
         d->findFirstUnseen = false;
-    String msgs = "select m.uid, ms.modseq ";
+    String msgs = "select mm.uid, mm.modseq";
     if ( d->findFirstUnseen )
-        msgs.append( ", f.flag as seen " );
-    msgs.append( "from messages m " );
+        msgs.append( ", f.flag as seen" );
+    msgs.append( " from mailbox_messages mm " );
     if ( d->findFirstUnseen )
         msgs.append( "left join flags f on "
-                     " (m.mailbox=f.mailbox and m.uid=f.uid and "
+                     " (mm.mailbox=f.mailbox and mm.uid=f.uid and "
                      "  f.flag=" + fn( seen->id() ) + ") " );
-    msgs.append( "where m.mailbox=$1 and m.uid<$2" );
+    msgs.append( "where mm.mailbox=$1 and mm.uid<$2" );
     if ( initialising ) // largest-first to please messageset
-        msgs.append( " order by m.uid desc" );
+        msgs.append( " order by mm.uid desc" );
 
     // if we know we'll see one new modseq and at least one new
     // message, we could skip the test on mm.modseq.
