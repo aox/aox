@@ -52,38 +52,40 @@ static void setupPreparedStatements()
         return;
 
     const char * q =
-        "select h.uid, h.part, h.position, f.name, h.value from "
-        "header_fields h, field_names f where "
-        "h.field = f.id and h.field > 12 and "
-        "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
-        "order by h.uid, h.part";
+        "select m.uid, h.part, h.position, f.name, h.value from "
+        "mailbox_messages m join header_fields h using (message) "
+        "join field_names f on (h.field=f.id) where "
+        "h.field > 12 and m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
+        "order by m.uid, h.part";
     ::header = new PreparedStatement( q );
 
-    q = "select a.name, a.localpart, a.domain, "
-        "af.uid, af.part, af.position, af.field, af.number "
-        "from address_fields af join addresses a on af.address=a.id "
-        "where af.uid>=$1 and af.uid<=$2 and af.mailbox=$3 "
-        "order by af.uid, af.part, af.field, af.number";
+    q = "select m.uid, af.part, af.position, af.field, af.number, "
+        "a.name, a.localpart, a.domain from "
+        "mailbox_messages m join address_fields af using (message) "
+        "join addresses a on (af.address=a.id) where "
+        "m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
+        "order by m.uid, af.part, af.field, af.number ";
     ::address = new PreparedStatement( q );
 
-    q = "select h.uid, h.part, h.position, f.name, h.value from "
-        "header_fields h, field_names f where "
-        "h.field = f.id and h.field<=12 and "
-        "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
-        "order by h.uid, h.part";
+    q = "select m.uid, h.part, h.position, f.name, h.value from "
+        "mailbox_messages m join header_fields h using (message) "
+        "join field_names f on (h.field=f.id) where "
+        "h.field<=12 and m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
+        "order by m.uid, h.part";
     ::oldAddress = new PreparedStatement( q );
 
-    q = "select m.uid, m.idate, m.rfc822size, ms.modseq from messages m "
-        "left join modsequences ms using (mailbox,uid) "
-        "where m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
-        "order by m.uid";
+    q = "select m.id, mm.uid, mm.idate, m.rfc822size, mm.modseq "
+        "from messages m join mailbox_messages mm on (mm.message=m.id) "
+        "where mm.uid>=$1 and mm.uid<=$2 and mm.mailbox=$3 "
+        "order by mm.uid";
     ::trivia = new PreparedStatement( q );
 
-    q = "select p.uid, p.part, b.text, b.data, "
+    q = "select m.uid, p.part, b.text, b.data, "
         "b.bytes as rawbytes, p.bytes, p.lines "
-        "from part_numbers p left join bodyparts b on p.bodypart=b.id "
-        "where p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 and p.part != '' "
-        "order by p.uid, p.part";
+        "from mailbox_messages m join part_numbers p using (message) "
+        "left join bodyparts b on (p.bodypart=b.id) where "
+        "m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 and p.part != '' "
+        "order by m.uid, p.part";
     ::body = new PreparedStatement( q );
 
     q = "select uid, flag from flags "
