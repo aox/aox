@@ -1,20 +1,22 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "tlsproxy.h"
+
+#include "log.h"
 #include "scope.h"
 #include "allocator.h"
 #include "configuration.h"
 #include "eventloop.h"
 #include "logclient.h"
 #include "listener.h"
-#include "log.h"
-#include "tlsproxy.h"
-#include "server.h"
 #include "occlient.h"
 #include "entropy.h"
 #include "buffer.h"
+#include "server.h"
 #include "list.h"
 #include "file.h"
 #include "sys.h"
+#include "egd.h"
 
 // cryptlib
 #include "cryptlib.h"
@@ -48,11 +50,29 @@ int main( int argc, char *argv[] )
     s.setChrootMode( Server::TlsProxyDir );
     s.setup( Server::Report );
 
+    // set up an EGD server for cryptlib to use
+    String egd = Configuration::compiledIn( Configuration::LibDir );
+    if ( !egd.endsWith( "/" ) )
+        egd.append( "/" );
+    egd.append( "tlsproxy/var/run/egd-pool" );
+    Entropy::setup();
+    (void)new Listener< EntropyProvider >( Endpoint( egd, 0 ), "EGD", true );
+    if ( !Configuration::toggle( Configuration::Security ) ) {
+        struct stat st;
+        if ( stat( "/var/run/edg-pool", &st ) < 0 ) {
+            log( "Security is disabled and /var/run/edg-pool does not exist. "
+                 "Creating it just in case Cryptlib wants to access it." );
+            (void)new Listener< EntropyProvider >(
+                Endpoint( "/var/run/edg-pool", 0 ), "EGD(/)", true );
+        }
+    }
+
     // let cryptlib set up while still root, so it can read files etc.
     cryptInit();
     cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
     setupKey();
 
+    // finally listen for tlsproxy requests
     Listener< TlsProxy >::create(
         "tlsproxy", Configuration::toggle( Configuration::UseTls ),
         Configuration::TlsProxyAddress, Configuration::TlsProxyPort,
@@ -273,7 +293,7 @@ public:
 
 
 /*! \class TlsProxy tlsproxy.h
-    The TlsProxy class provides half a tls proxy.
+    The TlsProxy class provides half a TLS proxy.
 
     It answers a request from another Archiveopteryx server, hands out
     an identification number, and can build a complete proxy.

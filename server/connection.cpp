@@ -290,6 +290,9 @@ String Connection::description() const
     case RecorderServer:
         r = "TCP stream recorder";
         break;
+    case EGDServer:
+        r = "EGD server";
+        break;
     case Listener:
         r = "Listener";
         break;

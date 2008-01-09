@@ -613,6 +613,7 @@ void EventLoop::setConnectionCounts()
         case Connection::RecorderServer:
         case Connection::Pipe:
         case Connection::ManageSieveServer:
+        case Connection::EGDServer:
             other++;
             break;
         case Connection::Pop3Server:

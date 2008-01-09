@@ -42,9 +42,11 @@ MkDir $(MESSAGEDIR) ;
 MkDir $(PIDFILEDIR) ;
 MkDir $(CONFIGDIR) ;
 MkDir $(LOGFILE:D) ;
+MkDir $(LIBDIR)/tlsproxy/var/run ;
 
 Depends install :
-    $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) $(PIDFILEDIR) ;
+    $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) $(PIDFILEDIR)
+    $(LIBDIR)/tlsproxy/var/run ;
 
 # if we make JAILDIR, we should chmod it so noone can read it:
 MODE on $(JAILDIR) = 700 ;

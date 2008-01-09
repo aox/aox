@@ -14,7 +14,7 @@ else {
     HDRS += [ FDirName $(TOP) cryptlib ] ;
 }
 
-Build tls : tlsproxy.cpp ;
+Build tls : tlsproxy.cpp egd.cpp ;
 
 
 Server tlsproxy : tls server database core encodings ;
@@ -29,16 +29,6 @@ if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
 else {
     LinkLibraries tlsproxy : libcl ;
 }
-
-
-# put a copy of /dev/urandom where tlsproxy can read it
-actions MakeTlsproxyChroot
-{
-    mkdir -p $(LIBDIR)/tlsproxy/dev
-    [ -e $(LIBDIR)/tlsproxy/dev/urandom ] || ( cd /dev ; tar cf - *random ) | ( cd $(LIBDIR)/tlsproxy/dev ; tar xpf - )
-}
-MakeTlsproxyChroot installdevrandom ;
-Depends install : installdevrandom ;
 
 
 HDRS = $(OrigHDRS) ;

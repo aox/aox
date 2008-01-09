@@ -32,6 +32,7 @@ public:
         TlsClient,
         RecorderClient,
         RecorderServer,
+        EGDServer,
         Listener,
         Pipe,
         ManageSieveServer
