@@ -112,9 +112,10 @@ void Status::execute()
         // select and make the database reveal the number.
         d->unseenCount
             = new Query( "select count(*)::int as unseen "
-                         "from mailbox_messages m "
+                         "from mailbox_messages mm "
                          "left join flags f on "
-                         "(m.uid=f.uid and m.mailbox=f.mailbox and f.flag=$2) "
+                         "(mm.uid=f.uid and mm.mailbox=f.mailbox and "
+                         " f.flag=$2) "
                          "where m.mailbox=$1 and f.flag is null", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
         Flag * f = Flag::find( "\\seen" );
