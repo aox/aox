@@ -331,7 +331,7 @@ void Store::execute()
     if ( d->seenUnchangedSince ) {
         if ( !d->modSeqQuery ) {
             d->modSeqQuery
-                = new Query( "select uid from modsequences "
+                = new Query( "select uid from mailbox_messages "
                              "where mailbox=$1 and modseq>$2 "
                              "and " + d->s.where(),
                              this );
@@ -404,7 +404,7 @@ void Store::execute()
         }
         d->modseq = r->getBigint( "nextmodseq" );
         Query * q = 0;
-        q = new Query( "update modsequences set modseq=$1 "
+        q = new Query( "update mailbox_messages set modseq=$1 "
                        "where mailbox=$2 and (" + d->s.where() + ")", 0 );
         q->bind( 1, d->modseq );
         q->bind( 2, m->id() );
@@ -635,7 +635,7 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
 {
     Query * q = 
         new Query( "insert into flags (flag,uid,mailbox) "
-                   "select $1,m.uid,$2 from mailbox_messages mm "
+                   "select $1,mm.uid,$2 from mailbox_messages mm "
                    "left join flags f on "
                    " (mm.mailbox=f.mailbox and mm.uid=f.uid and f.flag=$1) "
                    "where "
