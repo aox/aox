@@ -310,7 +310,7 @@ static void checkFilePermissions()
     addPath( Path::ExistingSocket, Configuration::EntropySource );
     addPath( Path::CreatableFile, Configuration::LogFile );
     addPath( Path::ReadableDir, Configuration::BinDir );
-    addPath( Path::WritableDir, Configuration::PidFileDir );
+    addPath( Path::ReadableDir, Configuration::PidFileDir );
     addPath( Path::ReadableDir, Configuration::SbinDir );
     addPath( Path::ReadableDir, Configuration::ManDir );
     addPath( Path::ReadableDir, Configuration::LibDir );
