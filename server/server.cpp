@@ -401,6 +401,15 @@ void Server::pidFile()
 
     String dir( Configuration::compiledIn( Configuration::PidFileDir ) );
 
+    struct stat st;
+    if ( stat( dir.cstr(), &st ) < 0 ) {
+        if ( mkdir( dir.cstr(), 0755 ) < 0 ) {
+            log( "PID file directory " + dir.quoted() +
+                 " does not exist, and can't be created." );
+            return;
+        }
+    }
+
     String n = dir + "/" + d->name + ".pid";
     File f( n, File::Write );
     if ( f.valid() )
