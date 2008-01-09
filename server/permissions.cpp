@@ -167,14 +167,10 @@ void Permissions::execute()
                                               "/" ) ) )
         {
             uint i = 0;
-            while ( i < Permissions::NumRights )
-                d->allowed[i++] = true;
-            // not even the owner can meaningfully change the result
-            // set of a view
-            if ( d->mailbox->view() ) {
-                d->allowed[Insert] = false;
-                d->allowed[DeleteMessages] = false;
-                d->allowed[Expunge] = false;
+            while ( i < Permissions::NumRights ) {
+                if ( !d->mailbox->view() ||
+                     !( i == Insert || i == DeleteMessages || i == Expunge ) )
+                    d->allowed[i++] = true;
             }
             d->ready = true;
             return;
