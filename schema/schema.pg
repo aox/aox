@@ -133,8 +133,9 @@ create table mailbox_messages (
 -- One entry for the text of each unique MIME body part.
 -- Entries here may be shared by more than one message.
 
+create sequence bodypart_ids;
 create table bodyparts (
-    id          serial primary key,
+    id          integer default nextval('bodypart_ids') primary key,
     bytes       integer not null,
     hash        text not null unique,
     text        text,
