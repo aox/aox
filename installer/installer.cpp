@@ -986,7 +986,7 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr,
                      "Couldn't add PL/PGSQL to the '%s' database (%s).\n"
-                     "Please create it by hand and re-run the installer.\n",
+                     "Please do it by hand and re-run the installer.\n",
                      dbname->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
