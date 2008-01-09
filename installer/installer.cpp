@@ -673,8 +673,9 @@ enum DbState {
     Unused,
     CheckingVersion, CheckDatabase, CheckingDatabase, CheckUser,
     CheckingUser, CreatingUser, CheckSuperuser, CheckingSuperuser,
-    CreatingSuperuser, CreateDatabase, CreatingDatabase, CheckSchema,
-    CheckingSchema, CreateSchema, CheckingRevision, UpgradingSchema,
+    CreatingSuperuser, CreateDatabase, CreatingDatabase, CheckLang,
+    CheckingLang, CreatingLang, CheckSchema, CheckingSchema,
+    CreateSchema, CheckingRevision, UpgradingSchema,
     CheckOwnership, AlterOwnership, AlteringOwnership, SelectObjects,
     AlterPrivileges, AlteringPrivileges,
     Done
@@ -925,7 +926,7 @@ void database()
 
         }
         else {
-            d->state = CheckSchema;
+            d->state = CheckLang;
         }
     }
 
@@ -936,6 +937,56 @@ void database()
             fprintf( stderr, "Couldn't create database '%s' (%s).\n"
                      "Please create it by hand and re-run the installer.\n",
                      dbname->cstr(), pgErr( d->q->error() ) );
+            EventLoop::shutdown();
+            return;
+        }
+        d->state = CheckLang;
+    }
+
+    if ( d->state == CheckLang ) {
+        d->state = CheckingLang;
+        d->q = new Query( "select lanname from pg_catalog.pg_language "
+                          "where lanname='plpgsql'", d );
+        d->q->execute();
+    }
+
+    if ( d->state == CheckingLang ) {
+        if ( !d->q->done() )
+            return;
+
+        Row * r = d->q->nextRow();
+        if ( !r ) {
+            String create( "create language plpgsql" );
+
+            if ( report ) {
+                todo++;
+                d->state = CheckSchema;
+                printf( " - Add PL/PgSQL to the '%s' database.\n"
+                        "   As user %s, run:\n\n"
+                        "createlang plpgsql %s\n\n",
+                        dbname->cstr(), PGUSER, dbname->cstr() );
+            }
+            else {
+                d->state = CreatingLang;
+                if ( !silent )
+                    printf( "Adding PL/PgSQL to the '%s' database.\n",
+                            dbname->cstr() );
+                d->q = new Query( create, d );
+                d->q->execute();
+            }
+        }
+        else {
+            d->state = CheckSchema;
+        }
+    }
+
+    if ( d->state == CreatingLang ) {
+        if ( !d->q->done() )
+            return;
+        if ( d->q->failed() ) {
+            fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
+                     "Please create it by hand and re-run the installer.\n",
+                     dbuser->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
         }
