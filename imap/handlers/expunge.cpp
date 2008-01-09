@@ -110,9 +110,7 @@ void Expunge::execute()
         d->findModseq->bind( 1, d->s->mailbox()->id() );
         d->t->enqueue( d->findModseq );
 
-        String query( "select uid from flags left join deleted_messages dm "
-                      "using (mailbox,uid) where mailbox=$1 and flag=$2 and "
-                      "dm.uid is null" );
+        String query( "select uid from flags where mailbox=$1 and flag=$2" );
         if ( d->uid )
             query.append( " and (" + d->uids.where() + ")" );
 
@@ -145,18 +143,20 @@ void Expunge::execute()
         String w( d->uids.where() );
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
         Query * q
-            = new Query( "update modsequences "
+            = new Query( "update mailbox_messages "
                          "set modseq=$2 "
                          "where mailbox=$1 and (" + w + ")", 0 );
         q->bind( 1, d->s->mailbox()->id() );
         q->bind( 1, d->modseq );
         d->t->enqueue( q );
 
-        d->expunge = new Query( "insert into deleted_messages "
-                          "(mailbox, uid, deleted_by, reason) "
-                          "select mailbox, uid, $2, $3 "
-                          "from messages where mailbox=$1 and (" + w + ")",
-                          this );
+        d->expunge =
+            new Query( "insert into deleted_messages "
+                       "(mailbox, uid, message, deleted_by, reason) "
+                       "select mailbox, uid, message, $2, $3 "
+                       "from mailbox_messages where mailbox=$1 "
+                       "and (" + w + ")",
+                       this );
         d->expunge->bind( 1, d->s->mailbox()->id() );
         d->expunge->bind( 2, imap()->user()->id() );
         d->expunge->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
@@ -166,6 +166,12 @@ void Expunge::execute()
                        "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, d->s->mailbox()->id() );
+        d->t->enqueue( q );
+
+        q = new Query( "delete from mailbox_messages where mailbox=$1 "
+                       "and (" + w + ")", 0 );
+        q->bind( 1, d->s->mailbox()->id() );
+
         d->t->enqueue( q );
         d->t->commit();
     }
