@@ -41,7 +41,6 @@ static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
 static PreparedStatement *insertFlag;
 static PreparedStatement *insertAnnotation;
-static PreparedStatement *insertAddressField;
 
 static GraphableCounter * successes;
 static GraphableCounter * failures;
@@ -454,14 +453,6 @@ void Injector::setup()
             "values ($1,$2,$3,$4,$5)"
         );
     Allocator::addEternal( insertAnnotation, "insertAnnotation" );
-
-    insertAddressField =
-        new PreparedStatement(
-            "copy address_fields "
-            "(message,part,position,field,number,address) "
-            "from stdin with binary"
-        );
-    Allocator::addEternal( insertAddressField, "insertAddressField" );
 }
 
 
@@ -1197,28 +1188,23 @@ void Injector::linkBodyparts()
         new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
                    "from stdin with binary", 0 );
 
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi ) {
-        insertPartNumber( q, d->messageId, "" );
+    insertPartNumber( q, d->messageId, "" );
 
-        List< Bid >::Iterator bi( d->bodyparts );
-        while ( bi ) {
-            uint bid = bi->bid;
-            Bodypart *b = bi->bodypart;
+    List< Bid >::Iterator bi( d->bodyparts );
+    while ( bi ) {
+        uint bid = bi->bid;
+        Bodypart *b = bi->bodypart;
 
-            String pn = d->message->partNumber( b );
-            insertPartNumber( q, d->messageId, pn, bid,
-                              b->numEncodedBytes(),
+        String pn = d->message->partNumber( b );
+        insertPartNumber( q, d->messageId, pn, bid,
+                          b->numEncodedBytes(),
+                          b->numEncodedLines() );
+
+        if ( b->message() )
+            insertPartNumber( q, d->messageId, pn + ".rfc822",
+                              bid, b->numEncodedBytes(),
                               b->numEncodedLines() );
-
-            if ( b->message() )
-                insertPartNumber( q, d->messageId, pn + ".rfc822",
-                                  bid, b->numEncodedBytes(),
-                                  b->numEncodedLines() );
-            ++bi;
-        }
-
-        ++mi;
+        ++bi;
     }
 
     d->transaction->enqueue( q );
@@ -1269,27 +1255,22 @@ void Injector::linkHeaderFields()
                    "(message,part,position,field,value) "
                    "from stdin with binary", 0 );
 
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi ) {
-        List< FieldLink >::Iterator it( d->fieldLinks );
-        while ( it ) {
-            FieldLink *link = it;
+    List< FieldLink >::Iterator it( d->fieldLinks );
+    while ( it ) {
+        FieldLink *link = it;
 
-            uint t = FieldNameCache::translate( link->hf->name() );
-            if ( !t )
-                t = link->hf->type(); // XXX and what if this too fails?
+        uint t = FieldNameCache::translate( link->hf->name() );
+        if ( !t )
+            t = link->hf->type(); // XXX and what if this too fails?
 
-            q->bind( 1, d->messageId, Query::Binary );
-            q->bind( 2, link->part, Query::Binary );
-            q->bind( 3, link->position, Query::Binary );
-            q->bind( 4, t, Query::Binary );
-            q->bind( 5, link->hf->data(), Query::Binary );
-            q->submitLine();
+        q->bind( 1, d->messageId, Query::Binary );
+        q->bind( 2, link->part, Query::Binary );
+        q->bind( 3, link->position, Query::Binary );
+        q->bind( 4, t, Query::Binary );
+        q->bind( 5, link->hf->data(), Query::Binary );
+        q->submitLine();
 
-            ++it;
-        }
-
-        ++mi;
+        ++it;
     }
 
     d->transaction->enqueue( q );
@@ -1302,26 +1283,24 @@ void Injector::linkHeaderFields()
 
 void Injector::linkAddresses()
 {
-    Query * q = new Query( *::insertAddressField, 0 );
+    Query * q =
+        new Query( "copy address_fields "
+                   "(message,part,position,field,number,address) "
+                   "from stdin with binary", 0 );
 
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi ) {
-        List< AddressLink >::Iterator it( d->addressLinks );
-        while ( it ) {
-            AddressLink *link = it;
+    List< AddressLink >::Iterator it( d->addressLinks );
+    while ( it ) {
+        AddressLink *link = it;
 
-            q->bind( 1, d->messageId, Query::Binary );
-            q->bind( 2, link->part, Query::Binary );
-            q->bind( 3, link->position, Query::Binary );
-            q->bind( 4, link->type, Query::Binary );
-            q->bind( 5, link->number, Query::Binary );
-            q->bind( 6, link->address->id(), Query::Binary );
-            q->submitLine();
+        q->bind( 1, d->messageId, Query::Binary );
+        q->bind( 2, link->part, Query::Binary );
+        q->bind( 3, link->position, Query::Binary );
+        q->bind( 4, link->type, Query::Binary );
+        q->bind( 5, link->number, Query::Binary );
+        q->bind( 6, link->address->id(), Query::Binary );
+        q->submitLine();
 
-            ++it;
-        }
-
-        ++mi;
+        ++it;
     }
 
     d->transaction->enqueue( q );
@@ -1334,27 +1313,23 @@ void Injector::linkAddresses()
 
 void Injector::linkDates()
 {
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi ) {
-        List< FieldLink >::Iterator it( d->dateLinks );
-        while ( it ) {
-            FieldLink * link = it;
-            DateField * df = (DateField *)link->hf;
+    Query * q =
+        new Query( "copy date_fields (message,value) "
+                   "from stdin with binary", 0 );
 
-            Query *q =
-                new Query( "insert into date_fields (message,value) "
-                           "values ($1,$2)", 0 );
+    List< FieldLink >::Iterator it( d->dateLinks );
+    while ( it ) {
+        FieldLink * link = it;
+        DateField * df = (DateField *)link->hf;
 
-            q->bind( 1, d->messageId );
-            q->bind( 3, df->date()->isoDateTime() );
+        q->bind( 1, d->messageId, Query::Binary );
+        q->bind( 2, df->date()->isoDateTime(), Query::Binary );
+        q->submitLine();
 
-            d->transaction->enqueue( q );
-
-            ++it;
-        }
-
-        ++mi;
+        ++it;
     }
+
+    d->transaction->enqueue( q );
 }
 
 
