@@ -140,40 +140,6 @@ Installer doesn't take steps to ensure that the installation is usable
   passwords are lost, because the configuration file is not written.
 
 
-Monitoring on aox.org
-
-  aox.org/monitoring/ is a quick overview, or maybe rather a lengthy
-  overview. Among the questions it needs to answer are:
-
-  - What does our monitoring blah do? 1. Supply raw material for other
-    software to process. 2. At high accuracy. 3. Not use the DB, for
-    load reasons and because it's out of focus for archiveopteryx.
-
-  - What are the data types?
-
-  - What are the variables? (Long list, generated.)
-
-  - What is this data good for? Logging and health monitoring.
-
-  - How to use it? Link to rrdtool, nagios, perhaps others, and to
-    the protocol description
-
-  - How to configure it? Short text, link to /conf/use-statistics etc.
-
-  aox.org/monitoring/protocol (or format?) for describing the exact
-  format used by the statistics dump.
-
-  aox.org/monitoring/<name> for each monitoring variable.
-
-  aox.org/monitoring/rrdtool says words about using rrdtool to
-  fetch, store and look at the monitoring variables.
-
-  aox.org/monitoring/nagios says words about using nagios to notify
-  the admin when the number of incoming messages is susiciously high
-  or low. What else needs an alarm? Suspiciously high number of failed
-  logins?
-
-
 Various TODO items from earlier releases.
 
   Message retention policy
