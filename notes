@@ -1060,3 +1060,17 @@ Using whirlpool instead of MD5.
   It seems that netbsd includes a whirlpool implementation.
 
 
+EGD
+
+  message format:
+  0x00 (get entropy level, ie. number of bytes available)
+   0xMM (msb) 0xmm 0xll 0xLL (lsb)
+  0x01 (read entropy nonblocking) 0xNN (bytes requested)
+   0xMM (bytes granted) MM bytes
+  0x02 (read entropy blocking) 0xNN (bytes desired)
+   [block] NN bytes
+  0x03 (write entropy) 0xMM 0xLL (bits of entropy) 0xNN (bytes of data) NN bytes
+  0x04 (report PID)
+   0xMM (length of PID string, not null-terminated) MM chars
+
+

@@ -1123,14 +1123,27 @@ void Start::execute()
             // bother us. so if our pidfiledir is in a subdirectory of
             // that, we'll create it as needed.
             uint l = 9;
+            bool ok = true;
+            bool any = false;
             while ( l <= pfd.length() ) {
                 if ( l == pfd.length() || pfd[l] == '/' ) {
                     struct stat st;
-                    if ( stat( pfd.mid( 0, l ).cstr(), &st ) < 0 )
-                        (void)mkdir( pfd.mid( 0, l ).cstr(), 0777 );
+                    if ( stat( pfd.mid( 0, l ).cstr(), &st ) < 0 ) {
+                        int m = mkdir( pfd.mid( 0, l ).cstr(), 01777 );
+                        int c = chmod( pfd.mid( 0, l ).cstr(), 01777 );
+                        if ( m >= 0 && c >= 0 )
+                            any = true;
+                        if ( m < 0 || c < 0 )
+                            ok = false;
+                    }
                 }
                 ++l;
             }
+            // this message probably disappears, but that's a general
+            // problem - what should aox do about log messages before
+            // logd is there?
+            if ( any && ok )
+                log( "Created pid file directory: " + pfd );
         }
 
         d->checker = new Checker( opt( 'v' ), this );
