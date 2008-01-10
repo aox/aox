@@ -545,17 +545,17 @@ String Selector::whereInternalDate()
         root()->d->query->bind( n1, d1.unixTime() );
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return "(m.idate>=$" + fn( n1 ) + " and m.idate<=$" + fn( n2 ) + ")";
+        return "(mm.idate>=$" + fn( n1 ) + " and mm.idate<=$" + fn( n2 ) + ")";
     }
     else if ( d->a == SinceDate ) {
         uint n1 = placeHolder();
         root()->d->query->bind( n1, d1.unixTime() );
-        return "m.idate>=$" + fn( n1 );
+        return "mm.idate>=$" + fn( n1 );
     }
     else if ( d->a == BeforeDate ) {
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return "m.idate<=$" + fn( n2 );
+        return "mm.idate<=$" + fn( n2 );
     }
 
     setError( "Cannot search for: " + debugString() );
@@ -906,7 +906,7 @@ String Selector::whereUid()
     if ( d->s.count() == 1 ) {
         uint value = placeHolder();
         root()->d->query->bind( value, d->s.value( 1 ) );
-        return "m.uid=$" + fn( value );
+        return "mm.uid=$" + fn( value );
     }
 
     uint min = d->s.value( 1 );
@@ -914,10 +914,10 @@ String Selector::whereUid()
     uint minp = placeHolder();
     root()->d->query->bind( minp, min );
     if ( max == UINT_MAX )
-        return "m.uid>=$" + fn( minp );
+        return "mm.uid>=$" + fn( minp );
     uint maxp = placeHolder();
     root()->d->query->bind( maxp, max );
-    return "(m.uid>=$" + fn( minp ) + " and m.uid<=$" + fn( maxp ) + ")";
+    return "(mm.uid>=$" + fn( minp ) + " and mm.uid<=$" + fn( maxp ) + ")";
 }
 
 
