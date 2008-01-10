@@ -221,7 +221,6 @@ void Sieve::execute()
 
         List<Address> * f = forwarded();
         if ( !f->isEmpty() ) {
-            l->insert( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
             d->mainInjector->setDeliveryAddresses( f );
             d->mainInjector->setSender( sender() );
         }
@@ -340,7 +339,6 @@ void Sieve::execute()
             Injector * v = new Injector( i->message(),
                                          new SieveData::Trampoline );
             v->setLog( new Log( Log::Database ) );
-            v->setMailbox( Mailbox::find( us( "/archiveopteryx/spool" ) ) );
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );
             v->setDeliveryAddresses( remote );
