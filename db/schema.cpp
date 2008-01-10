@@ -3264,14 +3264,16 @@ bool Schema::stepTo62()
 
 /*! Add deleted_messages.modseq. */
 
-bool Schema::stepTo61()
+bool Schema::stepTo63()
 {
     if ( d->substate == 0 ) {
         describeStep( "Adding deleted_messages.modseq" );
         d->q = new Query( "alter table deleted_messages add "
                           "modseq bigint", this );
         d->t->enqueue( d->q );
-        d->q = new Query( "update deleted_messages set modseq=1", this );
+        d->q = new Query( "update deleted_messages set modseq=nextmodseq-1 "
+                          "from mailboxes m where "
+                          "deleted_messages.mailbox=m.id", this );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table deleted_messages alter modseq "
                           "set not null", this );
