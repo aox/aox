@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (62);
+insert into mailstore (revision) values (63);
 
 
 -- One entry for each unique address we've encountered.
@@ -322,6 +322,7 @@ create table deleted_messages (
     mailbox     integer not null references mailboxes(id),
     uid         integer not null,
     message     integer not null references messages(id),
+    modseq      bigint not null,
     deleted_by  integer references users(id),
     deleted_at  timestamp with time zone not null
                 default current_timestamp,
