@@ -46,28 +46,6 @@ public:
 };
 
 
-class SubmissionMailboxCreator
-    : public EventHandler
-{
-public:
-    SubmissionMailboxCreator() {
-        UString spool;
-        spool.append( "/archiveopteryx/spool" );
-        Mailbox * m = Mailbox::obtain( spool, true );
-        Transaction * t = new Transaction( this );
-        (void)m->create( t, 0 );
-        if ( t->enqueuedQueries() )
-            t->commit();
-    }
-
-    void execute() {
-        log( "Created spool mailbox for outgoing mail: "
-             "/archiveopteryx/spool" );
-    }
-};
-
-
-
 /*! \class SMTP smtp.h
     The SMTP class implements a basic SMTP server.
 
@@ -111,7 +89,6 @@ SMTP::SMTP( int s, Dialect dialect )
     enqueue( "\r\n" );
     setTimeoutAfter( 1800 );
     EventLoop::global()->addConnection( this );
-    (void)new SubmissionMailboxCreator;
 }
 
 
