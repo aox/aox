@@ -709,14 +709,10 @@ void SessionInitialiser::restart()
     // sessions. we only want to work if a session that could emit its
     // changes so far has old data.
 
-    if ( nextModSeq >= d->newModSeq && uidnext >= d->newUidnext ) {
-        if ( !d->mailbox->view() )
-            return;
-        // if the mailbox is a view, there's one other possibility:
-        // the view_messages table needs updates.
-        if ( d->mailbox->nextModSeq() == d->mailbox->source()->nextModSeq() )
-            return;
-    }
+    if ( nextModSeq >= d->newModSeq &&
+         uidnext >= d->newUidnext &&
+         !d->mailbox->view() )
+        return;
 
     if ( d->sessions.isEmpty() )
         return;
@@ -958,10 +954,8 @@ void SessionInitialiser::writeViewChanges()
         return;
     MessageSet removeInDb;
     uint unseen = UINT_MAX;
-    Query * add = new Query( "copy mailbox_messages "
-                             "(mailbox,uid,message,idate,modseq) "
-                             "from stdin with binary", 0 );
-    bool changes = false;
+    Query * add = 0;
+    Query * remove = 0;
     Row * r = 0;
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint vuid = 0;
@@ -975,11 +969,27 @@ void SessionInitialiser::writeViewChanges()
         if ( vuid && !matched ) {
             // if it left the search result but still is in the db, we
             // want to remove it from the db
+            if ( !remove )
+                remove = new Query( "copy deleted_messages "
+                                    "(mailbox,uid,message,modseq,"
+                                    " deleted_by,reason) "
+                                    "from stdin with binary", 0 );
+            remove->bind( 1, d->mailbox->id(), Query::Binary );
+            remove->bind( 2, vuid, Query::Binary );
+            remove->bind( 3, r->getInt( "id" ), Query::Binary );
+            remove->bind( 4, r->getInt( "vmodseq" ), Query::Binary );
+            remove->bindNull( 5 );
+            remove->bind( 6, String( "left view" ), Query::Binary );
+            remove->submitLine();
             removeInDb.add( vuid );
         }
         else if ( matched && !vuid ) {
             // if it entered the search result and isn't in the db, we
             // want to add it to the db
+            if ( !add )
+                add = new Query ( "copy mailbox_messages "
+                                  "(mailbox,uid,message,idate,modseq) "
+                                  "from stdin with binary", 0 );
             vuid = d->newUidnext;
             d->newUidnext++;
             add->bind( 1, d->mailbox->id(), Query::Binary );
@@ -988,7 +998,6 @@ void SessionInitialiser::writeViewChanges()
             add->bind( 4, r->getInt( "sidate" ), Query::Binary );
             add->bind( 5, d->newModSeq, Query::Binary );
             add->submitLine();
-            changes = true;
             addToSessions( vuid, d->newModSeq );
         }
         else if ( matched && vuid ) {
@@ -1001,7 +1010,8 @@ void SessionInitialiser::writeViewChanges()
              vuid < unseen && r->isNull( "seen" ) )
             unseen = vuid;
     }
-    if ( changes ) {
+
+    if ( add ) {
         submit( add );
         Query * q = new Query( "update mailboxes "
                                "set uidnext=$1,nextmodseq=$2 "
@@ -1012,22 +1022,16 @@ void SessionInitialiser::writeViewChanges()
         submit( q );
         d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
                                              d->newModSeq + 1 );
-    }        
+    }
 
-    if ( !removeInDb.isEmpty() ) {
-        Query * q
-            = new Query( "delete from mailbox_messages "
-                         "where mailbox=$1 and " + removeInDb.where( "" ),
-                         0 );
-        q->bind( 1, d->mailbox->id() );
-        submit( q );
+    if ( remove ) {
+        submit( remove );
         List<Session>::Iterator i( d->sessions );
         while ( i ) {
             Session * s = i;
             ++i;
             s->expunge( removeInDb, 0 ); // expunge does not consume a modseq
         }
-        changes = true;
     }
 
     if ( unseen < UINT_MAX ) {

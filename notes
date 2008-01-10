@@ -6,22 +6,6 @@
 
   The great schema change. Remaining work:
 
-  - archivemailbox
-
-  - Triggers to keep deleted_messages well stocked. Note that it's
-    okay to remove messages from mailbox_messages if the mailbox is a
-    view.
-
-  - Check store and view create.
-
-  - aox vacuum
-
-  - Permissions may change since flags don't fall though. Best to
-    check.
-
-  - The session initialiser may need changes, it could be that some of
-    its modseq logic doesn't hold any more.
-
   - Update the permissions test at startup. Not sure what it should
     test in the GNS.
 
