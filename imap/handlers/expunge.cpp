@@ -168,10 +168,6 @@ void Expunge::execute()
         q->bind( 2, d->s->mailbox()->id() );
         d->t->enqueue( q );
 
-        q = new Query( "delete from mailbox_messages where mailbox=$1 "
-                       "and (" + w + ")", 0 );
-        q->bind( 1, d->s->mailbox()->id() );
-
         d->t->enqueue( q );
         d->t->commit();
     }
