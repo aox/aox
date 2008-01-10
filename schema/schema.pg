@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (61);
+insert into mailstore (revision) values (62);
 
 
 -- One entry for each unique address we've encountered.
@@ -330,6 +330,19 @@ create table deleted_messages (
 );
 create index dm_mud on deleted_messages(mailbox,uid,deleted_at);
 
+-- When an entry is inserted into deleted_messages, we delete the
+-- corresponding row from mailbox_messages.
+
+create function delete_message() returns trigger as $$
+begin
+    delete from mailbox_messages where mailbox=NEW.mailbox and uid=NEW.uid;
+    return NULL;
+end;
+$$ language plpgsql security definer;
+
+create trigger deleted_messages_trigger
+after insert on deleted_messages
+for each row execute procedure delete_message();
 
 -- One entry for each pending SMTP-submitted delivery.
 
