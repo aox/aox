@@ -455,7 +455,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( d->needAddresses )
         q.append( " join addresses a on (af.address=a.id)" );
     if ( d->needAnnotations )
-        q.append( " join annotations a on (a.message=mm.message)" );
+        q.append( " join annotations a on (mm.mailbox=a.mailbox"
+                  " and mm.uid=a.uid)" );
     if ( d->needPartNumbers )
         q.append( " join part_numbers pn on (pn.message=mm.message)" );
     if ( d->needBodyparts )
