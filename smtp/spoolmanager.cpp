@@ -24,7 +24,8 @@ class SpoolManagerData
 public:
     SpoolManagerData()
         : q( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 ), uidnext( 0 ), again( false ), spooled( false ), log( 0 )
+          agent( 0 ), uidnext( 0 ), again( false ),
+          spooled( false ), log( 0 )
     {}
 
     Query * q;
@@ -112,23 +113,15 @@ void SpoolManager::execute()
             if ( !d->client->ready() )
                 return;
 
-            Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
-            if ( m ) {
-                d->uidnext = m->uidnext();
-                d->agent = new DeliveryAgent( d->client,
-                                              m, d->row->getInt( "uid" ),
-                                              this );
-                d->agent->execute();
-            }
+            d->agent =
+                new DeliveryAgent( d->client, d->row->getInt( "message" ),
+                                   this );
+            d->agent->execute();
         }
 
         if ( d->agent ) {
             if ( !d->agent->done() )
                 return;
-
-            Mailbox * m = Mailbox::find( d->row->getInt( "mailbox" ) );
-            if ( m && d->uidnext < m->uidnext() )
-                d->again = true;
 
             if ( !d->agent->delivered() )
                 d->spooled = true;
