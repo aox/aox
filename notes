@@ -1025,3 +1025,13 @@ Using whirlpool instead of MD5.
   people will be unhappy and ask us to do it as an aox command.
 
   It seems that netbsd includes a whirlpool implementation.
+
+
+Assigning the "l" right automatically hurts shared hosting.
+
+  Casey Shobe <casey@shobe.info> wants to host multiple customers in a
+  single Archiveopteryx installation, and doesn't want them to be able
+  to see each other's mailboxes. We could support that now (2008-01).
+
+
+
