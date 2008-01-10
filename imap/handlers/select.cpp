@@ -5,6 +5,7 @@
 #include "imap.h"
 #include "flag.h"
 #include "user.h"
+#include "timer.h"
 #include "query.h"
 #include "message.h"
 #include "mailbox.h"
@@ -81,6 +82,14 @@ void Select::execute()
 {
     if ( state() != Executing )
         return;
+    
+    if ( !Flag::find( "\\Deleted" ) ) {
+        // should only happen when we flush the entire database during
+        // testing, so we don't bother being accurate or fast, but
+        // simply try again in a second.
+        (void)new Timer( this, 1 );
+        return;
+    }
 
     if ( !d->permissions ) {
         if ( d->condstore )
