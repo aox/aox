@@ -152,8 +152,8 @@ void Expunge::execute()
 
         d->expunge =
             new Query( "insert into deleted_messages "
-                       "(mailbox, uid, message, deleted_by, reason) "
-                       "select mailbox, uid, message, $2, $3 "
+                       "(mailbox,uid,message,modseq,deleted_by,reason) "
+                       "select mailbox,uid,message,modseq,$2,$3 "
                        "from mailbox_messages where mailbox=$1 "
                        "and (" + w + ")",
                        this );

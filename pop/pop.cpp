@@ -135,11 +135,13 @@ void POP::setState( State s )
                     q->bind( 2, mailbox->id() );
                     t->enqueue( q );
 
-                    q = new Query( "insert into deleted_messages "
-                                   "(mailbox,uid,message,deleted_by,reason) "
-                                   "select mailbox,uid,message,$2,$3 "
-                                   "from mailbox_messages where mailbox=$1 "
-                                   "and (" + w + ")", 0 );
+                    q = new Query(
+                        "insert into deleted_messages "
+                        "(mailbox,uid,message,modseq,deleted_by,reason) "
+                        "select mailbox,uid,message,modseq,$2,$3 "
+                        "from mailbox_messages where mailbox=$1 "
+                        "and (" + w + ")", 0
+                    );
                     q->bind( 1, mailbox->id() );
                     q->bind( 2, user->id() );
                     q->bind( 3, "POP delete " + Scope::current()->log()->id() );
