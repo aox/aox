@@ -600,7 +600,12 @@ void Fetch::execute()
                 d->notThose =
                     new Query( "select uid from mailbox_messages "
                                "where mailbox=$1 and modseq<=$2 "
-                               "and " + d->set.where(), this );
+                               "and " + d->set.where() +
+                               " union "
+                               "select uid from deleted_messages "
+                               "where mailbox=$1 and modseq<=$2 "
+                               "and " + d->set.where(),
+                               this );
                 d->notThose->bind( 1, s->mailbox()->id() );
                 d->notThose->bind( 2, d->changedSince );
                 d->notThose->execute();
@@ -1010,8 +1015,13 @@ static String hf( Header * f, HeaderField::Type t )
             r.append( " NIL)(NIL NIL NIL NIL" );
         } else if ( it->type() == Address::Local ||
                     it->type() == Address::Normal ) {
-            r.append( Command::imapQuoted( HeaderField::encodePhrase( it->uname().utf8() ),
-                                           Command::NString ) );
+            UString u = it->uname();
+            String eu;
+            if ( u.isAscii() )
+                eu = u.simplified().utf8();
+            else
+                eu = HeaderField::encodePhrase( u.utf8() );
+            r.append( Command::imapQuoted( eu, Command::NString ) );
             r.append( " NIL " );
             r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
             r.append( " " );
