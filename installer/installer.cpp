@@ -944,8 +944,22 @@ void database()
     }
 
     if ( d->state == CheckLang ) {
+        Database::disconnect();
+
+        Configuration::setup( "" );
+        Configuration::add( "db-max-handles = 1" );
+        Configuration::add( "db-address = " + db->quoted() );
+        Configuration::add( "db-user = " + String( PGUSER ).quoted() );
+        Configuration::add( "db-name = " + dbname->quoted() );
+        if ( dbpgpass )
+            Configuration::add( "db-password = " + dbpgpass->quoted() );
+        if ( !db->startsWith( "/" ) )
+            Configuration::add( "db-port = " + fn( dbport ) );
+
+        Database::setup( 1 );
+
         d->state = CheckingLang;
-        d->q = new Query( "select lanname from pg_catalog.pg_language "
+        d->q = new Query( "select lanname::text from pg_catalog.pg_language "
                           "where lanname='plpgsql'", d );
         d->q->execute();
     }
