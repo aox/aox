@@ -1129,7 +1129,8 @@ void Injector::insertMessages()
         ++mi;
     }
 
-    d->transaction->enqueue( qm );
+    if ( !d->mailboxes->isEmpty() )
+        d->transaction->enqueue( qm );
 }
 
 
