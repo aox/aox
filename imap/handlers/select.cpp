@@ -135,7 +135,7 @@ void Select::execute()
 
     if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) ) {
         d->highestModseq = new Query( "select coalesce(max(modseq),1) "
-                                      "as hms from modsequences "
+                                      "as hms from mailbox_messages "
                                       "where mailbox=$1",
                                       this );
         d->highestModseq->bind( 1, d->mailbox->id() );
