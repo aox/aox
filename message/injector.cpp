@@ -1141,22 +1141,9 @@ void Injector::insertDeliveries()
 {
     if ( !d->remoteRecipients )
         return;
-    Mailbox * spool = 0;
-    uint uid = 0;
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi && !spool ) {
-        uid = mi->uid;
-        Mailbox * m = mi->mailbox;
-        if ( m->name() == "/archiveopteryx/spool" )
-            spool = m;
-        ++mi;
-    }
-    if ( !spool )
-        return; // XXX an error, but how to best handle?
 
-    Query * q;
-
-    q = new Query( "insert into deliveries "
+    Query * q =
+        new Query( "insert into deliveries "
                    "(sender,message,injected_at,expires_at) "
                    "values ($1,$2,current_timestamp,"
                    "current_timestamp+interval '2 days')", 0 );
