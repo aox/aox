@@ -155,6 +155,8 @@ void ImapSession::emitModification( uint uid )
     if ( d->annof && !m->hasAnnotations() )
         return;
 
+    addFlags( m->flags(), 0 );
+
     String r = "* ";
     r.append( fn( msn( m->uid() ) ) );
     r.append( " FETCH (UID " );
@@ -441,10 +443,24 @@ void ImapSession::addFlags( List<Flag> * f, class Command * c )
     String s = "FLAGS (";
     s.append( r );
     s.append( ")" );
-    c->respond( s );
+    if ( c ) {
+        c->respond( s );
+    }
+    else {
+        enqueue( "* " );
+        enqueue( s );
+        enqueue( "\r\n" );
+    }
 
     s = "OK [PERMANENTFLAGS (";
     s.append( r );
     s.append( " \\*)] permanent flags" );
-    c->respond( s );
+    if ( c ) {
+        c->respond( s );
+    }
+    else {
+        enqueue( "* " );
+        enqueue( s );
+        enqueue( "\r\n" );
+    }
 }
