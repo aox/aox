@@ -170,7 +170,8 @@ void Permissions::execute()
             while ( i < Permissions::NumRights ) {
                 if ( !d->mailbox->view() ||
                      !( i == Insert || i == DeleteMessages || i == Expunge ) )
-                    d->allowed[i++] = true;
+                    d->allowed[i] = true;
+                i++;
             }
             d->ready = true;
             return;
