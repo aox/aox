@@ -3227,8 +3227,8 @@ bool Schema::stepTo62()
             return false;
 
         if ( d->q->failed() || !d->q->hasResults() ) {
-            fail( "PL/PgSQL is not available. "
-                  "(Please re-run the installer.)" );
+            fail( "PL/PgSQL is not available. Please re-run the "
+                  "Archiveopteryx installer to enable PL/PgSQL." );
             d->substate = 42;
         }
         else {
