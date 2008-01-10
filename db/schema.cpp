@@ -406,6 +406,8 @@ bool Schema::singleStep()
         c = stepTo60(); break;
     case 60:
         c = stepTo61(); break;
+    case 61:
+        c = stepTo62(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3197,6 +3199,57 @@ bool Schema::stepTo61()
     }
 
     if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create a trigger on deleted_messages to remove the message. */
+
+bool Schema::stepTo62()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding deleted_messages_trigger." );
+        d->q = new Query( "select lanname from pg_catalog.pg_language "
+                          "where lanname='plpgsql'", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+
+        if ( d->q->failed() || !d->q->hasResults() ) {
+            fail( "PL/PgSQL is not available. "
+                  "(Please re-run the installer.)" );
+            d->substate = 42;
+        }
+        else {
+            d->q =
+                new Query( "create function delete_message() "
+                           "returns trigger as $$"
+                           "begin delete from mailbox_messages where "
+                           "mailbox=NEW.mailbox and uid=NEW.uid; return NULL; "
+                           "end;$$ language plpgsql security definer", this );
+            d->t->enqueue( d->q );
+            d->q =
+                new Query( "create trigger deleted_messages_trigger "
+                           "after insert on deleted_messages for each "
+                           "row execute procedure delete_message()", this );
+            d->t->enqueue( d->q );
+            d->substate = 2;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
