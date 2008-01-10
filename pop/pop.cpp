@@ -136,8 +136,8 @@ void POP::setState( State s )
                     t->enqueue( q );
 
                     q = new Query( "insert into deleted_messages "
-                                   "(mailbox, uid, deleted_by, reason) "
-                                   "select mailbox, uid, $2, $3 "
+                                   "(mailbox,uid,message,deleted_by,reason) "
+                                   "select mailbox,uid,message,$2,$3 "
                                    "from mailbox_messages where mailbox=$1 "
                                    "and (" + w + ")", 0 );
                     q->bind( 1, mailbox->id() );
