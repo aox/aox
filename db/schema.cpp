@@ -408,6 +408,8 @@ bool Schema::singleStep()
         c = stepTo61(); break;
     case 61:
         c = stepTo62(); break;
+    case 62:
+        c = stepTo63(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3250,6 +3252,35 @@ bool Schema::stepTo62()
     }
 
     if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add deleted_messages.modseq. */
+
+bool Schema::stepTo61()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding deleted_messages.modseq" );
+        d->q = new Query( "alter table deleted_messages add "
+                          "modseq bigint", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "update deleted_messages set modseq=1", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages alter modseq "
+                          "set not null", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
