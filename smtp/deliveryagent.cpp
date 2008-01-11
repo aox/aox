@@ -261,6 +261,7 @@ Message * DeliveryAgent::fetchMessage( uint messageId )
     MessageFetcher * f =
         new MessageFetcher( messageId, this );
 
+    f->execute();
     return f->message();
 }
 
