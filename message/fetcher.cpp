@@ -672,7 +672,7 @@ void MessageFetcher::execute()
             "where h.field > 12 and h.message=$1 order by h.part ",
             this
         );
-        d->af->bind( 1, d->messageId );
+        d->hf->bind( 1, d->messageId );
         d->hf->execute();
     }
 
