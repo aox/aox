@@ -36,12 +36,13 @@ if ( $(BUILDDOC) ) {
 
 MkDir $(BINDIR) ;
 MkDir $(MANDIR) ;
-MkDir $(LIBDIR) ;
 MkDir $(JAILDIR) ;
 MkDir $(MESSAGEDIR) ;
 MkDir $(PIDFILEDIR) ;
 MkDir $(CONFIGDIR) ;
 MkDir $(LOGFILE:D) ;
+MkDir $(LIBDIR) ;
+MkDir $(LIBDIR)/contrib ;
 MkDir $(LIBDIR)/tlsproxy/var/run ;
 
 Depends install :

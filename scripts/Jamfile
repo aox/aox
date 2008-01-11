@@ -23,7 +23,7 @@ rule ContribScript {
 
     t = $(INSTALLROOT)$(LIBDIR)/contrib/$(<) ;
     s = $(<:G=script) ;
-    Depends $(t) : $(s) ;
+    Depends $(t) : $(s) $(LIBDIR)/contrib ;
     Depends install : $(t) ;
     SEARCH on $(s) = $(SEARCH_SOURCE) ;
     EngraveConfig $(t) : $(s) ;
