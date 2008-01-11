@@ -810,6 +810,9 @@ void MessageFetcher::execute()
     }
 
     if ( !d->message->hasHeaders() ) {
+        if ( !d->bf->done() )
+            return;
+
         d->message->setHeadersFetched();
         d->message->setAddressesFetched();
         d->message->setBodiesFetched();
