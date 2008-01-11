@@ -33,8 +33,8 @@ cd $RRDDIR
 export GAUGES COUNTERS
 for t in COUNTER GAUGE; do
     for a in $(eval $(echo echo '$'$t'S')) ; do
-        [ -f $a ] || \
-            rrdtool create $a -s 1 \
+        [ -f ${a}.rrd ] || \
+            rrdtool create ${a}.rrd -s 1 \
                 DS:`echo $a | tr - _ | cut -c-19`:$t:30:0:2147483647 \
                 RRA:AVERAGE:0.5:120:2880 \
                 RRA:AVERAGE:0.5:3600:672 \
@@ -55,8 +55,22 @@ done
 
 # 3. Update each file.
 
-sed 's/^/update /' < $TMP | rrdtool -
+# rrdtool won't ignore old values, and since this runs as a crontab
+# every 15 minutes and gets 16 minutes from archiveopteryx, we have to
+# drop any data rrdtool already has. Life would be much simpler if we
+# could tell rrdtoo 'disregard anything you already have'.
 
-# 4. Clean up. That was really simple.
+for a in `cut '-d ' -f1 < $TMP`; do
+    LIMIT=`rrdtool info ${a}.rrd | awk '/^last_update = /{print $3}'`
+    # with new versions of rrdtool this would work, too:
+    # LIMIT=`rrdtool lastupdate ${a}.rrd`
+    echo -n update ${a}.rrd
+    for b in `grep '^'$a' ' < $TMP | cut '-d ' -f2-`; do
+        [ `echo $b | cut -d: -f1` -gt $LIMIT ] && echo -n '' $b
+    done
+    echo
+done | grep : | rrdtool - >/dev/null
+
+# 4. Clean up.
 
 rm $TMP
