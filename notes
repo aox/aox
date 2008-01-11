@@ -1018,4 +1018,25 @@ Assigning the "l" right automatically hurts shared hosting.
   to see each other's mailboxes. We could support that now (2008-01).
 
 
+Showing email addresses in public archives is... well...
+
+  There are three common solutions:
+
+  1. Show the address. What we do now. Gives addresses to spammers,
+     which is undesirable.
+
+  2. Replace @ with at or some other easily reversible change. I
+     assume gigamega.com, litefinder.net and other address scrapers
+     already detect the common obfuscations, so this is pointless.
+
+  3. Show part of the address, e.g. arnt@ory... or
+     ar...@oryx.co... for arnt@oryx.com. Isn't reversible, so the
+     spammers can't undo it, but also makes the archive less usable
+     for people.
+
+  We might change to 3, but with a captcha-protected option to show
+  1. That would give us all the advantages and no serious disadvantage.
+  But we would have to implement captchas somehow, which would be a
+  moderate pain.
+
 
