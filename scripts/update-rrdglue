@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# This script isn't even installed, it's here only so that we can run
+# it when we need to.
+
+GAUGES=`find .. -name \*.cpp -print \
+       | xargs cat \
+       | grep 'new GraphableNumber( "' \
+       | sed -e 's/^.*( "//' -e 's/".*$//' \
+       | sort -u \
+       | fmt -1024`
+
+COUNTERS=`find .. -name \*.cpp -print \
+       | xargs cat \
+       | grep 'new GraphableCounter( "' \
+       | sed -e 's/^.*( "//' -e 's/".*$//' \
+       | sort -u \
+       | fmt -1024`
+
+sed -e 's/^COUNTERS=.*/COUNTERS="'"$COUNTERS"'"/' \
+    -e 's/^GAUGES=.*/GAUGES="'"$GAUGES"'"/' \
+    < rrdglue > rrdglue.new
+if cmp -s rrdglue rrdglue.new ; then
+    echo no change
+else
+    p4 edit rrdglue
+    cat rrdglue.new > rrdglue
+fi
+
+rm rrdglue.new

@@ -16,3 +16,19 @@ rule ShellScript {
 
 
 ShellScript archiveopteryx ;
+
+
+rule ContribScript {
+    local s t ;
+
+    t = $(INSTALLROOT)$(LIBDIR)/contrib/$(<) ;
+    s = $(<:G=script) ;
+    Depends $(t) : $(s) ;
+    Depends install : $(t) ;
+    SEARCH on $(s) = $(SEARCH_SOURCE) ;
+    EngraveConfig $(t) : $(s) ;
+    MODE on $(t) = 755 ;
+    Chmod $(t) ;
+}
+
+ContribScript rrdglue ;

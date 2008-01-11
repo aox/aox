@@ -1,0 +1,62 @@
+#!/bin/sh
+
+# No copyright is claimed on this script. Change it, use it,
+# distribute it as you see fit.
+
+
+# configurable variables
+
+RRDDIR=/tmp
+
+
+# automatically generated variables
+
+GAUGES="db-connections http-connections imap-connections internal-connections memory-used other-connections pop3-connections query-queue-length smtp-connections"
+COUNTERS="anonymous-logins injection-errors login-failures messages-injected queries-executed queries-failed successful-logins"
+
+
+# other variables
+
+TMP=`mktemp /tmp/rrdglue-$$-XXXXXXXX`
+
+
+# code.
+
+# 1. Fetch the data.
+
+telnet localhost 17220 | egrep '^[a-z0-9]+(-[a-z0-9]+)*( [1-9][0-9]*:[0-9]+)*$' > $TMP
+
+# 2. Make any missing RRD files
+
+cd $RRDDIR
+
+export GAUGES COUNTERS
+for t in COUNTER GAUGE; do
+    for a in $(eval $(echo echo '$'$t'S')) ; do
+        [ -f $a ] || \
+            rrdtool create $a -s 1 \
+                DS:`echo $a | tr - _ | cut -c-19`:$t:30:0:2147483647 \
+                RRA:AVERAGE:0.5:120:2880 \
+                RRA:AVERAGE:0.5:3600:672 \
+                RRA:AVERAGE:0.5:86400:720
+            # Per two minutes for the last four days (2880 bi-minutes)
+            # Per hour for the last four weeks (672 hours)
+            # Per day for the last two years (inaccurately 720 days)
+
+            # The heartbeat is set to 30. Archiveopteryx will skip up
+            # to 28 seconds of equal values, so a heartbeat of 30 is
+            # the smallest safe value.
+
+            # The data period is set to one second. If it's changed to
+            # something bigger (sich as 30 or 60), the rrd files will
+            # be smaller, but the data less exact.
+    done
+done
+
+# 3. Update each file.
+
+sed 's/^/update /' < $TMP | rrdtool -
+
+# 4. Clean up. That was really simple.
+
+rm $TMP
