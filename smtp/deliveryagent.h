@@ -18,7 +18,7 @@ class DeliveryAgent
     : public EventHandler
 {
 public:
-    DeliveryAgent( SmtpClient *, Mailbox *, uint, EventHandler * );
+    DeliveryAgent( SmtpClient *, uint, EventHandler * );
 
     void execute();
 
@@ -28,8 +28,8 @@ public:
 private:
     class DeliveryAgentData * d;
 
-    Query * fetchDelivery( Mailbox *, uint );
-    Message * fetchMessage( Mailbox *, uint );
+    Query * fetchDelivery( uint );
+    Message * fetchMessage( uint );
     Query * fetchSender( uint );
     Query * fetchRecipients( uint );
     DSN * createDSN( Message *, Query *, Query * );

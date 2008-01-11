@@ -609,3 +609,210 @@ void MessageOldAddressFetcher::setDone( Message * m )
 {
     m->setAddressesFetched();
 }
+
+
+class MessageFetcherData
+    : public Garbage
+{
+public:
+    MessageFetcherData()
+        : messageId( 0 ), message( 0 ), owner( 0 ),
+          hf( 0 ), af( 0 ), bf( 0 )
+    {}
+
+    uint messageId;
+    Message * message;
+    EventHandler * owner;
+
+    Query * hf;
+    Query * af;
+    Query * bf;
+};
+
+
+/*! \class MessageFetcher fetcher.h
+    This class fetches a message by its message id.
+
+    It exists solely for the use of the DeliveryAgent, which doesn't
+    know the mailbox or uid of its victims; and in fact, the victims
+    may not be in a mailbox at all (e.g. bounces). It duplicates the
+    actions of the other *Fetchers to a great extent, but that can't
+    be avoided, because they require a mailbox and uid to function.
+*/
+
+/*! Constructs a new MessageFetcher object to fetch the message with the
+    given \a id. The \a owner is notified upon completion.
+*/
+
+MessageFetcher::MessageFetcher( uint id, EventHandler * owner )
+    : d( new MessageFetcherData )
+{
+    d->messageId = id;
+    d->message = new Message;
+    d->owner = owner;
+}
+
+
+/*! Returns a pointer to the Message that this object is fetching
+    details for. Will not be zero.
+*/
+
+Message * MessageFetcher::message() const
+{
+    return d->message;
+}
+
+
+void MessageFetcher::execute()
+{
+    if ( !d->hf ) {
+        d->hf = new Query(
+            "select h.part, h.position, f.name, h.value from "
+            "header_fields h join field_names f on (h.field=f.id) "
+            "where h.field > 12 and h.message=$1 order by h.part ",
+            this
+        );
+        d->af->bind( 1, d->messageId );
+        d->hf->execute();
+    }
+
+    while ( d->hf->hasResults() ) {
+        Row * r = d->hf->nextRow();
+
+        String part = r->getString( "part" );
+        String name = r->getString( "name" );
+        String value = r->getString( "value" );
+
+        Header * h = d->message->header();
+        if ( part.endsWith( ".rfc822" ) ) {
+            Bodypart * bp =
+                d->message->bodypart( part.mid( 0, part.length()-7 ), true );
+            if ( !bp->message() ) {
+                bp->setMessage( new Message );
+                bp->message()->setParent( bp );
+            }
+            h = bp->message()->header();
+        }
+        else if ( !part.isEmpty() ) {
+            h = d->message->bodypart( part, true )->header();
+        }
+        HeaderField * f = HeaderField::assemble( name, value );
+        f->setPosition( r->getInt( "position" ) );
+        h->add( f );
+    }
+
+    if ( !d->af ) {
+        if ( !d->hf->done() )
+            return;
+
+        d->af = new Query(
+            "select af.part, af.position, af.field, af.number, "
+            "a.name, a.localpart, a.domain from "
+            "address_fields af join addresses a on (af.address=a.id) "
+            "where af.message=$1 order by af.part, af.field, af.number ",
+            this
+        );
+        d->af->bind( 1, d->messageId );
+        d->af->execute();
+    }
+
+    while ( d->af->hasResults() ) {
+        Row * r = d->af->nextRow();
+
+        if ( r->isNull( "number" ) ) {
+            // XXX: We should fallback to old-school address fetching here.
+        }
+
+        String part = r->getString( "part" );
+        uint position = r->getInt( "position" );
+        HeaderField::Type field = (HeaderField::Type)r->getInt( "field" );
+
+        Header * h = d->message->header();
+        if ( part.endsWith( ".rfc822" ) ) {
+            Bodypart * bp =
+                d->message->bodypart( part.mid( 0, part.length()-7 ), true );
+            if ( !bp->message() ) {
+                bp->setMessage( new Message );
+                bp->message()->setParent( bp );
+            }
+            h = bp->message()->header();
+        }
+        else if ( !part.isEmpty() ) {
+            h = d->message->bodypart( part, true )->header();
+        }
+        AddressField * f = 0;
+        uint n = 0;
+        f = (AddressField*)h->field( field, 0 );
+        while ( f && f->position() < position ) {
+            n++;
+            f = (AddressField*)h->field( field, n );
+        }
+        if ( !f || f->position() > position ) {
+            f = new AddressField( field );
+            f->setPosition( position );
+            h->add( f );
+        }
+        Utf8Codec u;
+        Address * a = new Address( u.toUnicode( r->getString( "name" ) ),
+                                   r->getString( "localpart" ),
+                                   r->getString( "domain" ) );
+        f->addresses()->append( a );
+    }
+
+    if ( !d->bf ) {
+        if ( !d->af->done() )
+            return;
+
+        d->bf = new Query(
+            "select p.part,b.text,b.data,b.bytes as rawbytes,p.bytes,p.lines "
+            "from part_numbers p left join bodyparts b on (p.bodypart=b.id) "
+            "where p.message=$1 and p.part != '' order by p.part",
+            this
+        );
+        d->bf->bind( 1, d->messageId );
+        d->bf->execute();
+    }
+
+    while ( d->bf->hasResults() ) {
+        Row * r = d->bf->nextRow();
+
+        String part = r->getString( "part" );
+
+        if ( part.endsWith( ".rfc822" ) ) {
+            Bodypart *bp =
+                d->message->bodypart( part.mid( 0, part.length()-7 ), true );
+            if ( !bp->message() ) {
+                bp->setMessage( new Message );
+                bp->message()->setParent( bp );
+            }
+
+            List< Bodypart >::Iterator it( bp->children() );
+            while ( it ) {
+                bp->message()->children()->append( it );
+                ++it;
+            }
+        }
+        else {
+            Bodypart * bp = d->message->bodypart( part, true );
+
+            if ( !r->isNull( "data" ) )
+                bp->setData( r->getString( "data" ) );
+            else if ( !r->isNull( "text" ) )
+                bp->setText( r->getUString( "text" ) );
+
+            if ( !r->isNull( "rawbytes" ) )
+                bp->setNumBytes( r->getInt( "rawbytes" ) );
+            if ( !r->isNull( "bytes" ) )
+                bp->setNumEncodedBytes( r->getInt( "bytes" ) );
+            if ( !r->isNull( "lines" ) )
+                bp->setNumEncodedLines( r->getInt( "lines" ) );
+        }
+    }
+
+    if ( !d->message->hasHeaders() ) {
+        d->message->setHeadersFetched();
+        d->message->setAddressesFetched();
+        d->message->setBodiesFetched();
+        d->owner->execute();
+    }
+}

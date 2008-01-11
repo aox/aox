@@ -138,4 +138,19 @@ private:
 };
 
 
+class MessageFetcher
+    : public EventHandler
+{
+public:
+    MessageFetcher( uint, EventHandler * );
+
+    Message * message() const;
+
+    void execute();
+
+private:
+    class MessageFetcherData * d;
+};
+
+
 #endif

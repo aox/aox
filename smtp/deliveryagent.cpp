@@ -6,7 +6,6 @@
 #include "scope.h"
 #include "query.h"
 #include "transaction.h"
-#include "mailbox.h"
 #include "message.h"
 #include "fetcher.h"
 #include "smtpclient.h"
@@ -24,15 +23,14 @@ class DeliveryAgentData
 {
 public:
     DeliveryAgentData()
-        : log( 0 ), mailbox( 0 ), uid( 0 ), owner( 0 ), t( 0 ),
+        : log( 0 ), messageId( 0 ), owner( 0 ), t( 0 ),
           qm( 0 ), qs( 0 ), qr( 0 ), row( 0 ), message( 0 ),
           dsn( 0 ), injector( 0 ), update( 0 ), client( 0 ),
           delivered( false ), committed( false )
     {}
 
     Log * log;
-    Mailbox * mailbox;
-    uint uid;
+    uint messageId;
     EventHandler * owner;
     Transaction * t;
     Query * qm;
@@ -54,23 +52,20 @@ public:
     the corresponding row in the deliveries table.
 */
 
-/*! Creates a new DeliveryAgent object to deliver the message in
-    \a mailbox with \a uid using the specified SMTP \a client. The
-    \a owner will be notified upon completion.
+/*! Creates a new DeliveryAgent object to deliver the message with the
+    given \a id using the specified SMTP \a client. The \a owner will
+    be notified upon completion.
 */
 
-DeliveryAgent::DeliveryAgent( SmtpClient * client,
-                              Mailbox * mailbox, uint uid,
+DeliveryAgent::DeliveryAgent( SmtpClient * client, uint id,
                               EventHandler * owner )
     : d( new DeliveryAgentData )
 {
     d->log = new Log( Log::SMTP );
     Scope x( d->log );
-    log( "Attempting delivery for " + mailbox->name().ascii() + ":" +
-         fn( uid ) );
+    log( "Attempting delivery for message #" + fn( id ) );
     d->client = client;
-    d->mailbox = mailbox;
-    d->uid = uid;
+    d->messageId = id;
     d->owner = owner;
 }
 
@@ -83,7 +78,7 @@ void DeliveryAgent::execute()
 
     if ( !d->t ) {
         d->t = new Transaction( this );
-        d->qm = fetchDelivery( d->mailbox, d->uid );
+        d->qm = fetchDelivery( d->messageId );
         d->t->enqueue( d->qm );
         d->t->execute();
     }
@@ -105,7 +100,7 @@ void DeliveryAgent::execute()
     // lot of work before realising that nothing needs to be done.)
 
     if ( !d->message && d->row ) {
-        d->message = fetchMessage( d->mailbox, d->uid );
+        d->message = fetchMessage( d->messageId );
 
         d->qs = fetchSender( d->row->getInt( "sender" ) );
         d->t->enqueue( d->qs );
@@ -238,50 +233,35 @@ bool DeliveryAgent::delivered() const
 
 
 /*! Returns a pointer to a Query that selects and locks the single row
-    from deliveries that matches the given \a mailbox and \a uid.
+    from deliveries that matches the given \a messageId.
 */
 
-Query * DeliveryAgent::fetchDelivery( Mailbox * mailbox, uint uid )
+Query * DeliveryAgent::fetchDelivery( uint messageId )
 {
     Query * q =
         new Query(
             "select id, sender, "
             "current_timestamp > expires_at as expired, "
             "(tried_at is null or tried_at+interval '1 hour'"
-            " < current_timestamp) as can_retry "
-            "from deliveries where mailbox=$1 "
-            "and uid=$2 for update", this
+            " < current_timestamp) as can_retry from deliveries "
+            "where message=$1 for update", this
         );
-    q->bind( 1, mailbox->id() );
-    q->bind( 2, uid );
+    q->bind( 1, messageId );
     return q;
 }
 
 
-/*! Begins to fetch a message with the given \a uid from \a mailbox, and
-    returns a pointer to the newly-created Message object, which will be
-    filled in by the message fetchers.
+/*! Begins to fetch a message with the given \a messageId, and returns a
+    pointer to the newly-created Message object, which will be filled in
+    by the message fetcher.
 */
 
-Message * DeliveryAgent::fetchMessage( Mailbox * mailbox, uint uid )
+Message * DeliveryAgent::fetchMessage( uint messageId )
 {
-    Message * m = new Message;
-    m->setUid( uid );
+    MessageFetcher * f =
+        new MessageFetcher( messageId, this );
 
-    List<Message> l;
-    l.append( m );
-
-    Fetcher * f;
-    f = new MessageHeaderFetcher( mailbox, &l, this );
-    f->execute();
-
-    f = new MessageAddressFetcher( mailbox, &l, this );
-    f->execute();
-
-    f = new MessageBodyFetcher( mailbox, &l, this );
-    f->execute();
-
-    return m;
+    return f->message();
 }
 
 
@@ -429,19 +409,13 @@ void DeliveryAgent::logDelivery( DSN * dsn )
 
 
 /*! Returns a pointer to a newly-created Injector to inject a bounce
-    message derived from the specified \a dsn, or 0 if it can't find
-    the spool mailbox, or if the DSN was for a bounce already. The
-    caller must call Injector::execute() when appropriate.
+    message derived from the specified \a dsn, or 0 if the DSN was for
+    a bounce already. The caller must call Injector::execute() when
+    appropriate.
 */
 
 Injector * DeliveryAgent::injectBounce( DSN * dsn )
 {
-    UString s;
-    s.append( "/archiveopteryx/spool" );
-    Mailbox * m = Mailbox::find( s );
-    if ( !m )
-        return 0;
-
     List<Address> * l = new List<Address>;
     if ( dsn->sender()->type() != Address::Normal )
         return 0;
@@ -450,7 +424,6 @@ Injector * DeliveryAgent::injectBounce( DSN * dsn )
     Injector * i = new Injector( dsn->result(), this );
     i->setDeliveryAddresses( l );
     i->setSender( new Address( "", "", "" ) );
-    i->setMailbox( m );
     return i;
 }
 
