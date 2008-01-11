@@ -922,8 +922,13 @@ void Injector::resolveAddressLinks()
         }
     }
 
-    if ( d->sender )
-        addresses->append( d->sender );
+    if ( d->sender ) {
+        String k( d->sender->localpart() + "@" + d->sender->domain() );
+        if ( naked.contains( k ) )
+            d->sender = naked.find( k );
+        else
+            addresses->append( d->sender );
+    }
 
     d->addressLookup =
         AddressCache::lookup( d->transaction, addresses, this );
