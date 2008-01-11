@@ -227,7 +227,7 @@ void Sieve::execute()
         d->mainInjector->setMailboxes( l );
 
         d->state = 2;
-        if ( l->isEmpty() )
+        if ( l->isEmpty() && f->isEmpty() )
             d->mainInjector = 0;
         else
             d->mainInjector->execute();
