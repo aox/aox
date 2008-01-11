@@ -2,7 +2,7 @@
 
   Add some monitoring variables, whatever seems like a good idea.
 
-  rrdtool integration script
+  nagios integration script
 
   The great schema change. Remaining work:
 
@@ -13,6 +13,7 @@
     - SORT
     - an EGD implementation to help Cryptlib with entropy. Should make
       STARTTLS faster, particularly on freebsd 5 and macosx.
+    - rrdtool integration script
 
   2007-12-07: decide on feature list
   2007-12-31: drop things that can't be finished
@@ -1038,5 +1039,40 @@ Showing email addresses in public archives is... well...
   1. That would give us all the advantages and no serious disadvantage.
   But we would have to implement captchas somehow, which would be a
   moderate pain.
+
+
+aox.org/badmail/
+
+  Explain that aox can't store everything, why not (in short), that it
+  has many workarounds and point to examples/, how to detect/report
+  bad messages and how to fix things with reparse. Point to
+  /aox/reparse for more detail.
+
+  Subpages:
+
+  badmail/examples/n for 1<=n<=8, with good and bad blah, generated
+  from chosen canonicals, to show how we fix things up. Each page
+  showing old and new, with differences indicated, and they should be
+  ordered from reasonable/common to outrageous.
+
+  badmail/examples/ summing up 1-8 and giving one or two truly
+  hopeless cases. The hopeless case(s) should also be shown in
+  anonymised form.
+
+  badmail/examples/comparison if I feel nasty and bored one day,
+  showing how a few IMAP servers handle messages 1-8 and the
+  impossible one(s). Does "fetch envelope" return the right thing? 
+  "fetch bodystructure"? Some choice searches? We don't want to link
+  to this page very much. It gets a fine <table> containing many/few
+  &#x2713; cells.
+
+  Possibly we want to include screenshots showing how Thunderbird or
+  another GUI client that uses envelope/bodystructure renders a
+  mailbox containg 1-8. Screenshots using aox and using another
+  server, one that gets few &#x2713; cells in the table. I'm not sure
+  where to link to these screenshots. Apple Mail?
+
+  We also need aox.org/aox/reparse and I suppose other /aox/<command>
+  pages.
 
 
