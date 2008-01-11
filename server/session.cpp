@@ -864,7 +864,9 @@ void SessionInitialiser::findUidnext()
 
     uint uidnext = r->getInt( "uidnext" );
     int64 nms = r->getBigint( "nextmodseq" );
-    d->viewnms = r->getBigint( "viewnms" );
+
+    if ( d->mailbox->view() )
+        d->viewnms = r->getBigint( "viewnms" );
 
     // XXX I don't like this code, it's icky.
 
