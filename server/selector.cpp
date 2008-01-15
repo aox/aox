@@ -1020,8 +1020,8 @@ String Selector::whereAge()
     uint i = placeHolder();
     root()->d->query->bind( i, (uint)::time( 0 ) - d->n );
     if ( d->a == Larger )
-        return "m.idate<=$" + fn( i );
-    return "m.idate>=$" + fn( i );
+        return "mm.idate<=$" + fn( i );
+    return "mm.idate>=$" + fn( i );
 }
 
 
