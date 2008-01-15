@@ -217,6 +217,12 @@ void EventLoop::start()
             sizeinram = new GraphableNumber( "memory-used" );
         sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
 
+        // Find out when we stop working, ie. when we no longer
+        // allocate RAM during even processing and have freed what we
+        // could. We want to run GC as soon as that happens.
+        uint alloc = Allocator::allocated();
+        if ( alloc > 16384 && tv.tv_sec > 1 )
+            tv.tv_sec = 3;
 
         if ( n < 0 ) {
             if ( errno == EINTR ) {
@@ -261,13 +267,17 @@ void EventLoop::start()
             }
         }
 
-        // Collect garbage if we haven't done so in a while
+        // Collect garbage if a) we've allocated something, but the
+        // last event loop iteration didn't allocate any more, b)
+        // we've increased our memory use by both 20% and 8MB since
+        // the last GC or c) we've allocated at least 128KB and
+        // haven't collected garbage in the past minute.
 
         if ( !d->stop &&
-             ( now - gc > 7200 ||
+             ( ( alloc && Allocator::allocated() == alloc ) ||
                ( Allocator::allocated() > 8*1024*1024 &&
                  Allocator::allocated() * 5 > Allocator::inUse() ) ||
-               ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
+               ( now - gc > 60 && Allocator::allocated() >= 131072 ) ) )
         {
             Allocator::free();
             gc = time( 0 );
@@ -595,6 +605,13 @@ void EventLoop::setConnectionCounts()
         case Connection::OryxClient:
         case Connection::OryxConsole:
         case Connection::LogClient:
+        case Connection::TlsProxy:
+        case Connection::TlsClient:
+        case Connection::RecorderClient:
+        case Connection::RecorderServer:
+        case Connection::Pipe:
+        case Connection::ManageSieveServer:
+        case Connection::EGDServer:
             internal++;
             break;
         case Connection::DatabaseClient:
@@ -607,13 +624,6 @@ void EventLoop::setConnectionCounts()
             smtp++;
             break;
         case Connection::SmtpClient:
-        case Connection::TlsProxy:
-        case Connection::TlsClient:
-        case Connection::RecorderClient:
-        case Connection::RecorderServer:
-        case Connection::Pipe:
-        case Connection::ManageSieveServer:
-        case Connection::EGDServer:
             other++;
             break;
         case Connection::Pop3Server:
