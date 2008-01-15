@@ -750,6 +750,12 @@ void Postgres::serverMessage()
                  Log::Disaster );
         }
     }
+    else if ( code == "28000" ) {
+        log( "Cannot authenticate to PostgreSQL. "
+             "Attempted to authenticate as: " + d->user + " "
+             "Server message: " + msg.message(),
+             Log::Disaster );
+    }
     else if ( msg.type() == PgMessage::Notification ) {
         s.append( "PostgreSQL server: " );
         if ( q ) {
