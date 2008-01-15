@@ -24,7 +24,7 @@ TMP=`mktemp /tmp/rrdglue-$$-XXXXXXXX`
 
 # 1. Fetch the data.
 
-telnet localhost 17220 | egrep '^[a-z0-9]+(-[a-z0-9]+)*( [1-9][0-9]*:[0-9]+)*$' > $TMP
+telnet localhost 17220 2>/dev/null | egrep '^[a-z0-9]+(-[a-z0-9]+)*( [1-9][0-9]*:[0-9]+)*$' > $TMP
 
 # 2. Make any missing RRD files
 
@@ -55,21 +55,7 @@ done
 
 # 3. Update each file.
 
-# rrdtool won't ignore old values, and since this runs as a crontab
-# every 15 minutes and gets 16 minutes from archiveopteryx, we have to
-# drop any data rrdtool already has. Life would be much simpler if we
-# could tell rrdtoo 'disregard anything you already have'.
-
-for a in `cut '-d ' -f1 < $TMP`; do
-    LIMIT=`rrdtool info ${a}.rrd | awk '/^last_update = /{print $3}'`
-    # with new versions of rrdtool this would work, too:
-    # LIMIT=`rrdtool lastupdate ${a}.rrd`
-    echo -n update ${a}.rrd
-    for b in `grep '^'$a' ' < $TMP | cut '-d ' -f2-`; do
-        [ `echo $b | cut -d: -f1` -gt $LIMIT ] && echo -n '' $b
-    done
-    echo
-done | grep : | rrdtool - >/dev/null
+sed 's/^/update /' < $TMP | rrdtool - >/dev/null 2>/dev/null
 
 # 4. Clean up.
 
