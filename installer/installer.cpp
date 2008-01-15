@@ -770,19 +770,26 @@ void database()
         Row * r = d->q->nextRow();
         if ( r ) {
             String s;
+            bool warning = false;
             d->owner = r->getString( "usename" );
             String encoding( r->getString( "encoding" ) );
 
-            if ( d->owner != *dbowner && d->owner != *dbuser )
+            if ( d->owner != *dbowner && d->owner != *dbuser ) {
                 s = "is not owned by " + *dbowner + " or " + *dbuser;
-            else if ( encoding != "UNICODE" && encoding != "UTF8" )
+            }
+            else if ( encoding != "UNICODE" && encoding != "UTF8" ) {
                 s = "does not have encoding UNICODE/UTF8";
+                // If someone is using SQL_ASCII, it's probably... us.
+                if ( encoding == "SQL_ASCII" )
+                    warning = true;
+            }
 
             if ( !s.isEmpty() ) {
                 fprintf( stderr, " - Database '%s' exists, but it %s.\n"
                          "   (That will need to be fixed by hand.)\n",
                          dbname->cstr(), s.cstr() );
-                exit( -1 );
+                if ( !warning )
+                    exit( -1 );
             }
         }
         else {

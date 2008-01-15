@@ -604,7 +604,7 @@ void Postgres::unknown( char type )
                     e = "Connected as superuser: ";
             }
             else if ( n == "server_encoding" ) {
-                if ( v != "UTF8" )
+                if ( v != "UTF8" && v != "SQL_ASCII" )
                     e = "Unexpected server encoding: ";
             }
             else if ( n == "server_version" ) {
