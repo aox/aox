@@ -39,9 +39,11 @@ for t in COUNTER GAUGE; do
                 RRA:AVERAGE:0.5:120:2880 \
                 RRA:AVERAGE:0.5:3600:672 \
                 RRA:AVERAGE:0.5:86400:720
+            # Store averages:
             # Per two minutes for the last four days (2880 bi-minutes)
             # Per hour for the last four weeks (672 hours)
             # Per day for the last two years (inaccurately 720 days)
+            # If you also want maxima, you need MAX lines as well   
 
             # The heartbeat is set to 30. Archiveopteryx will skip up
             # to 28 seconds of equal values, so a heartbeat of 30 is
@@ -55,7 +57,7 @@ done
 
 # 3. Update each file.
 
-sed 's/^/update /' < $TMP | rrdtool - >/dev/null 2>/dev/null
+sed -e 's/ /.rrd /' -e 's/^/update /' < $TMP | rrdtool - >/dev/null 2>/dev/null
 
 # 4. Clean up.
 
