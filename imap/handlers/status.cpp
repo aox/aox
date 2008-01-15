@@ -116,7 +116,7 @@ void Status::execute()
                          "left join flags f on "
                          "(mm.uid=f.uid and mm.mailbox=f.mailbox and "
                          " f.flag=$2) "
-                         "where m.mailbox=$1 and f.flag is null", this );
+                         "where mm.mailbox=$1 and f.flag is null", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
         Flag * f = Flag::find( "\\seen" );
         if ( f ) {
