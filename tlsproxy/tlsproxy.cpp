@@ -22,6 +22,8 @@
 #include "cryptlib.h"
 // fork(), unlink()
 #include <sys/types.h>
+// stat()
+#include <sys/stat.h>
 #include <unistd.h>
 // errno
 #include <errno.h>
