@@ -410,6 +410,8 @@ bool Schema::singleStep()
         c = stepTo62(); break;
     case 62:
         c = stepTo63(); break;
+    case 63:
+        c = stepTo64(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3277,6 +3279,35 @@ bool Schema::stepTo63()
         d->t->enqueue( d->q );
         d->q = new Query( "alter table deleted_messages alter modseq "
                           "set not null", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Make deleted_messages.message cascade on delete. */
+
+bool Schema::stepTo64()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Altering deleted_messages_message_fkey." );
+        d->q = new Query( "alter table deleted_messages drop constraint "
+                          "deleted_messages_message_fkey", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages add constraint "
+                          "deleted_messages_message_fkey foreign key "
+                          "(message) references messages(id) "
+                          "on delete cascade", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
