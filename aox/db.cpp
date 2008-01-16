@@ -159,7 +159,7 @@ void Vacuum::execute()
                        "where id in "
                        "(select message from deleted_messages dm"
                        " where dm.deleted_at<current_timestamp-'" +
-                       fn( days ) + " days'::interval "
+                       fn( days ) + " days'::interval) "
                        "and id not in (select message from deliveries) "
                        "and id not in (select message from mailbox_messages)",
                        0 );
