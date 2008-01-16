@@ -57,7 +57,11 @@ done
 
 # 3. Update each file.
 
-sed -e 's/ /.rrd /' -e 's/^/update /' < $TMP | rrdtool - >/dev/null 2>/dev/null
+while read a ; do
+    FILE=`echo $a | cut '-d ' -f1`.rrd
+    LIMIT=`rrdtool info $FILE | awk '/last_update = /{print $3}'`
+    echo $a | tr : ' ' | awk '{printf "update %s.rrd", $1; for (i=2; i<NF; i+=2) if ($i>'$LIMIT') printf " %s:%s", $i, $(i+1); print ""}'
+done < $TMP | grep : | rrdtool - >/dev/null 2>/dev/null
 
 # 4. Clean up.
 
