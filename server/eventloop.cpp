@@ -610,8 +610,6 @@ void EventLoop::setConnectionCounts()
         case Connection::RecorderClient:
         case Connection::RecorderServer:
         case Connection::Pipe:
-        case Connection::ManageSieveServer:
-        case Connection::EGDServer:
             internal++;
             break;
         case Connection::DatabaseClient:
@@ -624,6 +622,8 @@ void EventLoop::setConnectionCounts()
             smtp++;
             break;
         case Connection::SmtpClient:
+        case Connection::ManageSieveServer:
+        case Connection::EGDServer:
             other++;
             break;
         case Connection::Pop3Server:
