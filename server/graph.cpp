@@ -199,6 +199,7 @@ String GraphableNumber::name() const
 GraphableCounter::GraphableCounter( const String & name )
     : GraphableNumber( name )
 {
+    setValue( 0 );
 }
 
 
