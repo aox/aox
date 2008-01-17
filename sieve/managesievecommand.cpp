@@ -412,7 +412,7 @@ bool ManageSieveCommand::putScript()
                 }
             }
         }
-        
+
         // at this point, nothing can prevent us from completing.
 
         d->t = new Transaction( this );
@@ -516,19 +516,18 @@ bool ManageSieveCommand::setActive()
         d->t = new Transaction( this );
 
         if ( name.isEmpty() ) {
-            Query * q = new Query( "update scripts set active='f' "      
+            Query * q = new Query( "update scripts set active='f' "
                                    "where owner=$1 and active='t'",
                                    0 );
             q->bind( 1, d->sieve->user()->id() );
             d->t->enqueue( q );
-            d->query = new Query( "select '' as name", this );
+            d->query = new Query( "select ''::text as name", this );
             log( "Deactivating all scripts" );
         }
         else {
-            d->query = new Query( "select * from scripts "
+            d->query = new Query( "select name from scripts "
                                   "where owner=$1 and name=$2 "
-                                  "for update",
-                                  this );
+                                  "for update", this );
             d->query->bind( 1, d->sieve->user()->id() );
             d->query->bind( 2, name );
         }
@@ -548,7 +547,7 @@ bool ManageSieveCommand::setActive()
         }
         d->query = 0;
         if ( !r->getString( "name" ).isEmpty() ) {
-            Query * q = new Query( "update scripts set active=(name=$2) "      
+            Query * q = new Query( "update scripts set active=(name=$2) "
                                    "where owner=$1 and "
                                    "(name=$2 or active='t')",
                                    this );
@@ -559,7 +558,7 @@ bool ManageSieveCommand::setActive()
         }
         d->t->commit();
     }
-    
+
     if ( !d->t->done() )
         return false;
 
