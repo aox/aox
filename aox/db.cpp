@@ -131,7 +131,9 @@ void Vacuum::execute()
         database( true );
         t = new Transaction( this );
         uint days = Configuration::scalar( Configuration::UndeleteTime );
-        Query * q = 0;
+
+        Query * q;
+
         q = new Query( "delete from deliveries "
                        "where injected_at<current_timestamp-'" +
                        fn( days ) + " days'::interval "
@@ -144,27 +146,18 @@ void Vacuum::execute()
         q->bind( 1, Recipient::Delivered );
         q->bind( 2, Recipient::Relayed );
         t->enqueue( q );
-        // what's best, complex but plannable ...
-        q = new Query( "delete from messages "
-                       "where id in "
-                       "(select message from deleted_messages "
-                       " left join mailbox_message mm on "
-                       " (dm.message=mm.message) "
-                       " left join deliveries d on "
-                       " (dm.message=d.message) "
-                       " where mm.message is null and d.message is null "
-                       " and dm.deleted_at<current_timestamp-'" + fn( days ) +
-                       "  days'::interval", 0 );
-        // ... or simple but not terribly plannable?
-        q = new Query( "delete from messages "
-                       "where id in "
-                       "(select message from deleted_messages dm"
-                       " where dm.deleted_at<current_timestamp-'" +
-                       fn( days ) + " days'::interval) "
-                       "and id not in (select message from deliveries) "
-                       "and id not in (select message from mailbox_messages)",
-                       0 );
+
+        q = new Query(
+            "delete from messages where id in "
+            "(select dm.message from deleted_messages dm"
+            " left join mailbox_messages mm on (dm.message=mm.message)"
+            " left join deliveries d on (dm.message=d.message)"
+            " where mm.message is null and d.message is null"
+            " and dm.deleted_at<current_timestamp-'" + fn( days ) +
+            " days'::interval)", 0
+        );
         t->enqueue( q );
+
         q = new Query( "delete from bodyparts where id in (select id "
                        "from bodyparts b left join part_numbers p on "
                        "(b.id=p.bodypart) where bodypart is null)", 0 );
