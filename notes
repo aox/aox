@@ -1,3 +1,32 @@
+2.07: 2008-03-05
+
+  Web UI for setting up views. Also (less importantly) aox arguments
+  for setting up views.
+
+  Persuading ImapSession to do its flag updates using Store and its
+  fetches using Fetch. Add new constructors to F/S for the purpose.
+  Move the SeenFlagSetter into ImapSession and delay setting \seen
+  until we have to.
+
+  Investigate and fix whatever is behind Timo's report of freezing
+  IMAP commands. The mechanism for keeping commands running is a
+  little too complex at the moment.
+
+  Kill the caches. Teach Injector to add Addresses and FieldNames rows
+  on its own. Investigate Martin Rode's 3gb aox process (possibly
+  after we have him upgrade to 2.06, he is running 2.04+buffer-patch
+  now).
+
+  Axel Rau's SMTP authentication problem.
+
+  2008-01-27: decide on feature list
+  2008-02-20: drop things that can't be finished
+  2008-02-27: fork and remove unusable code
+  2008-03-01: roll, release chores
+  2008-03-02: features for next release
+  2008-03-05: release
+
+
 2.06: 2008-01-14
 
   Add some monitoring variables, whatever seems like a good idea.
@@ -14,13 +43,6 @@
     - an EGD implementation to help Cryptlib with entropy. Should make
       STARTTLS faster, particularly on freebsd 5 and macosx.
     - rrdtool integration script
-
-  2007-12-07: decide on feature list
-  2007-12-31: drop things that can't be finished
-  2008-01-07: fork and remove unusable code
-  2008-01-10: roll, release chores
-  2008-01-11: features for next release
-  2008-01-14: release
 
 
 2.07: 2008-02-18
@@ -512,24 +534,30 @@ Using rrdtool
   - messages in the db
   - average response time
   - 95th percentile response time
-  - messages injected
   - messages per user
   - message size per user
-  - logged-in users
   - average query execution time
   - average query queue size
 
   More?
 
-  The natural way to do it would be to have archiveopteryx collect
-  some/most variables in RAM, and provide a query via aox+ocd. some
-  things (messages/message size per user at least) are better done as
-  a db query from aox directly.
-
-  'aox show statistics'?
-
   http://jwatt.org/svg/authoring/ is interesting for generating graphs
   via the web interface.
+
+
+Box features
+
+  1. web ui to set up view mailboxes (and to search the archive
+     generally)
+
+  2. web ui to configure sieve
+
+  3. web administration, to add users, etc.
+
+  4. i18n for all web-accessible anythings, and after that, for aox.
+
+  5. rrd stuff available next to aox in the boxes, perhaps nagios
+     stuff too
 
 
 SASL NTLM authentication
@@ -780,6 +808,10 @@ Faster mapping from unicode to 8-bit encodings
 
   The tables could be built automatically, compiled in, and would be
   tested by our existing apparatus.
+
+  Or we could do it simpler and perhaps even faster: Make a local
+  array from unicode to target at the start, fill it in as we go, and
+  do the slow scan only when we see a codepoint for the first time.
 
 
 Multipart/signed automatic processing
