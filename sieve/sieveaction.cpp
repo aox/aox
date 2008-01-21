@@ -30,7 +30,7 @@ public:
 /*! \class SieveAction sieveaction.h
 
     The SieveAction class models a single sieve action as specified in
-    RFC 3028 section 4, ie. something a SieveScript decides to do, and
+    RFC 5228 section 4, ie. something a SieveScript decides to do, and
     that the Sieve interpreter does after sieving a message.
 
     SieveAction objects are created by SieveCommand objects while

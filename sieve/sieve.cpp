@@ -1475,8 +1475,7 @@ List<Mailbox> * Sieve::mailboxes() const
 
 
 /*! Returns a list of the Address objects to which this message should
-    be forwarded. According to RFC 3028 the envelope sender should not
-    be changed.
+    be forwarded.
 
     The return value is never 0.
 */

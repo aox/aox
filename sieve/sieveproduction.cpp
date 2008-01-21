@@ -90,7 +90,7 @@ void SieveProduction::setParser( class SieveParser * p )
 }
 
 
-/*! Returns the name of this production as defined in RFC 3028 section
+/*! Returns the name of this production as defined in RFC 5228 section
     8.
 */
 
@@ -215,7 +215,7 @@ public:
 
 /*! \class SieveArgument sieveproduction.h
 
-    The SieveArgument class models the RFC 3028 "argument" production.
+    The SieveArgument class models the RFC 5228 "argument" production.
 
     Nothing prevents the user from setting both tag(), number() and
     stringList(), even though in theory exactly one should be set.
@@ -763,7 +763,7 @@ public:
 
 /*! \class SieveBlock sieveproduction.h
 
-    The SieveBlock class models the RFC 3028 block.
+    The SieveBlock class models the RFC 5228 block.
 */
 
 
@@ -810,7 +810,7 @@ public:
 
 /*! \class SieveCommand sieveproduction.h
 
-    The SieveCommand class models the RFC 3028 "command" production.
+    The SieveCommand class models the RFC 5228 "command" production.
 */
 
 SieveCommand::SieveCommand()
@@ -937,7 +937,7 @@ public:
 
 /*! \class SieveTest sieveproduction.h
 
-    The SieveTest class models the RFC 3028 "test" production.
+    The SieveTest class models the RFC 5228 "test" production.
 */
 
 SieveTest::SieveTest()
