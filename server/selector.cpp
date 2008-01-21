@@ -425,6 +425,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     String q = "select distinct mm.uid, mm.modseq, mm.message, mm.idate "
                "from mailbox_messages mm";
     String w = where();
+    if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
+        w = w.mid( 1, w.length() - 2 );
 
     // make sure that any indirect joins below don't produce bad
     // syntax.  for example, if we look at bodyparts we have to join
@@ -674,6 +676,7 @@ String Selector::whereHeaderField()
                       fn( fnum ) + ")" );
             root()->d->query->bind( fnum, d->s8 );
         }
+        j.append( ")" );
         root()->d->fieldsNeeded.insert( d->s8, new String( j ) );
     }
 
