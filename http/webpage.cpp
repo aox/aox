@@ -378,16 +378,25 @@ void BodypartPage::execute()
     if ( !d->b ) {
         requireRight( link()->mailbox(), Permissions::Read );
 
-        d->b = new Query( "select text, data from bodyparts b join "
-                          "part_numbers p on (p.bodypart=b.id) where "
-                          "mailbox=$1 and uid=$2 and part=$3", this );
+        d->b = new Query(
+            "select text, data from bodyparts b join "
+            "part_numbers p on (p.bodypart=b.id) join "
+            "mailbox_messages mm on (mm.message=p.message) "
+            "where mm.mailbox=$1 and mm.uid=$2 and p.part=$3",
+            this
+        );
         d->b->bind( 1, link()->mailbox()->id() );
         d->b->bind( 2, link()->uid() );
         d->b->bind( 3, link()->part() );
         d->b->execute();
-        d->c = new Query( "select value from header_fields where "
-                          "mailbox=$1 and uid=$2 and (part=$3 or part=$4) "
-                          "and field=$5 order by part<>$3", this );
+
+        d->c = new Query(
+            "select value from header_fields h join mailbox_messages mm "
+            "on (mm.message=hf.message) where mm.mailbox=$1 and mm.uid=$2 "
+            "and (hf.part=$3 or hf.part=$4) and hf.field=$5 "
+            "order by part<>$3",
+            this
+        );
         d->c->bind( 1, link()->mailbox()->id() );
         d->c->bind( 2, link()->uid() );
 
