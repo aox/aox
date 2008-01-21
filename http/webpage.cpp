@@ -421,15 +421,18 @@ void BodypartPage::execute()
 
     Row * r;
 
-    String t( "TEXT/PLAIn" );
+    String t( "text/plain" );
     r = d->c->nextRow();
     if ( r )
         t = r->getString( "value" );
 
     String b;
     r = d->b->nextRow();
-    // XXX: Invalid part
-    if ( r->isNull( "data" ) ) {
+
+    if ( !r ) {
+        // XXX: Invalid part
+    }
+    else if ( r->isNull( "data" ) ) {
         b = r->getString( "text" );
 
         ContentType * ct = new ContentType;
