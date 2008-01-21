@@ -77,7 +77,6 @@ public:
     MessageSet needFlags;
 
     bool needDateFields;
-    bool needHeaderFields;
     bool needAddresses;
     bool needAddressFields;
     bool needAnnotations;
@@ -461,8 +460,6 @@ Query * Selector::query( User * user, Mailbox * mailbox,
 
     if ( d->needDateFields )
         q.append( " join date_fields df on (df.message=mm.message)" );
-    if ( d->needHeaderFields )
-        q.append( " join header_fields hf on (hf.message=mm.message)" );
     if ( d->needAddressFields )
         q.append( " join address_fields af on (af.message=mm.message)" );
     if ( d->needAddresses )
@@ -831,13 +828,19 @@ String Selector::whereAddressFields( const StringList & fields,
 
 String Selector::whereHeader()
 {
-    root()->d->needHeaderFields = true;
+    if ( d->s16.isEmpty() )
+        return "true"; // there _is_ at least one header field ;)
 
-    uint str = placeHolder();
-    root()->d->query->bind( str, q( d->s16 ) );
-    return
-        "(hf.value ilike " + matchAny( str ) +
-        " or " + whereAddressField() + ")";
+    uint like = placeHolder();
+    root()->d->query->bind( like, q( d->s16 ) );
+    String jn = "hf" + fn( ++root()->d->join );
+    String j = " left join header_fields " + jn +
+               " on (mm.message=" + jn + ".message and " +
+               jn + ".value ilike " + matchAny( like ) + ")";
+    root()->d->fieldsNeeded.insert( String( "\000" ) + d->s16.utf8(),
+                                    new String( j ) );
+    return "(" + jn + ".field is not null or " +
+        whereAddressField() + ")";
 }
 
 
