@@ -741,7 +741,7 @@ String Selector::whereAddressFields( const StringList & fields,
             uint dom = placeHolder();
             if ( raw.endsWith( ">" ) ) {
                 query->bind( dom, raw.mid( at+1, raw.length()-at-2 ).lower() );
-                dc = "lower(a" + jn + ".domain)= $" + fn( dom );
+                dc = "lower(a" + jn + ".domain)=$" + fn( dom );
             }
             else {
                 query->bind( dom, raw.mid( at+1 ) );
@@ -1105,6 +1105,8 @@ String Selector::whereNoField()
             return "false";
         else if ( c == "false" )
             return "true";
+        else if ( c.endsWith( " is not null" ) )
+            return c.mid( 0, c.length() - 8 ) + "null";
         return "not " + c;
     }
     else if ( d->a == All ) {
