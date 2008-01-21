@@ -3,6 +3,7 @@
 #include "selector.h"
 
 #include "utf.h"
+#include "dict.h"
 #include "flag.h"
 #include "date.h"
 #include "session.h"
@@ -25,11 +26,10 @@ class SelectorData
 public:
     SelectorData()
         : f( Selector::NoField ), a( Selector::None ), mboxId( 0 ),
-          placeholder( 0 ), query( 0 ), parent( 0 ),
+          placeholder( 0 ), join( 0 ), query( 0 ), parent( 0 ),
           children( new List< Selector > ),
           session( 0 ),
           needDateFields( false ),
-          needHeaderFields( false ),
           needAddresses( false ),
           needAddressFields( false ),
           needAnnotations( false ),
@@ -62,12 +62,15 @@ public:
 
     uint mboxId;
     int placeholder;
+    int join;
     Query * query;
 
     Selector * parent;
     List< Selector > * children;
     Session * session;
     User * user;
+
+    Dict<String> fieldsNeeded;
 
     // XXX: eek! this is just a set of integers supporting idempotent
     // insertion.
@@ -446,6 +449,14 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         }
     }
 
+    if ( !d->fieldsNeeded.isEmpty() ) {
+        StringList::Iterator i( d->fieldsNeeded.keys() );
+        while( i ) {
+            q.append( *d->fieldsNeeded.find( *i ) );
+            ++i;
+        }
+    }
+
     if ( d->needDateFields )
         q.append( " join date_fields df on (df.message=mm.message)" );
     if ( d->needHeaderFields )
@@ -641,28 +652,33 @@ String Selector::whereHeaderField()
     if ( f <= HeaderField::LastAddressField )
         return whereAddressField( d->s8 );
 
-    root()->d->needHeaderFields = true;
-
     uint t = FieldNameCache::translate( d->s8 );
     if ( !t )
         t = HeaderField::fieldType( d->s8 );
-    String r;
-    if ( t ) {
-        r = "hf.field=" + fn( t );
+
+    // if we don't know this field, the search is false
+    if ( !t )
+        return "false";
+
+    String jn;
+    if ( d->fieldsNeeded.contains( d->s8 ) ) {
+        jn = d->fieldsNeeded.find( d->s8 )->section( " ", 4 );
     }
     else {
-        uint fnum = placeHolder();
-        r = "hf.field=(select id from field_names where name=$" +
-            fn( fnum ) + ")";
-        root()->d->query->bind( fnum, d->s8 );
+        jn = "hf" + fn( ++root()->d->join );
+        String j = " left join header_fields " + jn +
+                   " on (mm.message=" + jn + ".message and " +
+                   jn + ".field=" + fn( t ) + ")";
+        d->fieldsNeeded.insert( d->s8, new String( j ) );
     }
 
     if ( d->s16.isEmpty() )
-        return r;
+        return jn + ".field is not null";
 
     uint like = placeHolder();
     root()->d->query->bind( like, q( d->s16 ) );
-    return "(" + r + " and hf.value ilike " + matchAny( like ) + ")";
+    return "(" + jn + " is not null "
+        "and hf.value ilike " + matchAny( like ) + ")";
 }
 
 
