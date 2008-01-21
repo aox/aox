@@ -17,7 +17,7 @@
   after we have him upgrade to 2.06, he is running 2.04+buffer-patch
   now).
 
-  Axel Rau's SMTP authentication problem.
+  Axel Rau's SMTP authentication and "invalid UTF-8" problems.
 
   2008-01-27: decide on feature list
   2008-02-20: drop things that can't be finished
