@@ -457,7 +457,7 @@ String ArchiveMailbox::timespan( const MessageSet & uids ) const
             r.append( " " );
             r.append( monthnames[o.month()-1] );
         }
-        if ( o.year() < n.year() ) {
+        if ( o.year() < y.year() ) {
             r.append( " " );
             r.append( fn( o.year() ) );
         }
