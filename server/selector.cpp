@@ -30,10 +30,7 @@ public:
           children( new List< Selector > ),
           session( 0 ),
           needDateFields( false ),
-          needAddresses( false ),
-          needAddressFields( false ),
           needAnnotations( false ),
-          needPartNumbers( false ),
           needBodyparts( false ),
           needMessages( false )
     {}
@@ -70,17 +67,10 @@ public:
     Session * session;
     User * user;
 
-    Dict<String> fieldsNeeded;
-
-    // XXX: eek! this is just a set of integers supporting idempotent
-    // insertion.
-    MessageSet needFlags;
+    StringList extraJoins;
 
     bool needDateFields;
-    bool needAddresses;
-    bool needAddressFields;
     bool needAnnotations;
-    bool needPartNumbers;
     bool needBodyparts;
     bool needMessages;
 };
@@ -427,50 +417,16 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );
 
-    // make sure that any indirect joins below don't produce bad
-    // syntax.  for example, if we look at bodyparts we have to join
-    // it to messages via part_numbers.
-    if ( d->needAddresses )
-        d->needAddressFields = true;
-    if ( d->needBodyparts )
-        d->needPartNumbers = true;
-
-    // flags are hard. we need to join in one relation per flag, so
-    // that we don't accidentally think 'uid 123 has "\seen"' is
-    // equivalent with 'uid 123 does not have "\deleted"'.
-    if ( !d->needFlags.isEmpty() ) {
-        uint i = 1;
-        while ( i <= d->needFlags.count() ) {
-            uint f = d->needFlags.value( i );
-            String n = "f" + fn( f );
-            i++;
-            q.append( " left join flags " + n +
-                      " on (mm.mailbox=" + n + ".mailbox and mm.uid=" + n +
-                      ".uid and " + n + ".flag=" + fn( f ) + ")" );
-        }
-    }
-
-    if ( !d->fieldsNeeded.isEmpty() ) {
-        StringList::Iterator i( d->fieldsNeeded.keys() );
-        while( i ) {
-            q.append( *d->fieldsNeeded.find( *i ) );
-            ++i;
-        }
-    }
+    q.append( d->extraJoins.join( "" ) );
 
     if ( d->needDateFields )
         q.append( " join date_fields df on (df.message=mm.message)" );
-    if ( d->needAddressFields )
-        q.append( " join address_fields af on (af.message=mm.message)" );
-    if ( d->needAddresses )
-        q.append( " join addresses a on (af.address=a.id)" );
     if ( d->needAnnotations )
         q.append( " join annotations a on (mm.mailbox=a.mailbox"
                   " and mm.uid=a.uid)" );
-    if ( d->needPartNumbers )
-        q.append( " join part_numbers pn on (pn.message=mm.message)" );
     if ( d->needBodyparts )
-        q.append( " join bodyparts bp on (bp.id=pn.bodypart)" );
+        q.append( " join part_numbers pn on (pn.message=mm.message)"
+                  " join bodyparts bp on (bp.id=pn.bodypart)" );
     if ( d->needMessages )
         q.append( " join messages m on (mm.message=m.id)" );
 
@@ -655,34 +611,34 @@ String Selector::whereHeaderField()
     if ( !t )
         t = HeaderField::fieldType( d->s8 );
 
-    String jn;
-    if ( root()->d->fieldsNeeded.contains( d->s8 ) ) {
-        jn = root()->d->fieldsNeeded.find( d->s8 )->section( " ", 5 );
+    bool extra = false;
+    String jn = fn( ++root()->d->join );
+    String j = " left join header_fields hf" + jn +
+               " on (mm.message=hf" + jn + ".message ";
+    if ( !d->s16.isEmpty() ) {
+        uint like = placeHolder();
+        root()->d->query->bind( like, q( d->s16 ) );
+        j.append( " and hf" + jn + ".value ilike " + matchAny( like ) );
+    }
+    if ( t ) {
+        j.append( " and hf" + jn + ".field=" );
+        j.append( fn( t ) );
     }
     else {
-        jn = "hf" + fn( ++root()->d->join );
-        String j = " left join header_fields " + jn +
-                   " on (mm.message=" + jn + ".message and " +
-                   jn + ".field=";
-        if ( t ) {
-            j.append( fn( t ) );
-        }
-        else {
-            uint fnum = placeHolder();
-            j.append( "(select id from field_names where name=$" +
-                      fn( fnum ) + ")" );
-            root()->d->query->bind( fnum, d->s8 );
-        }
-        j.append( ")" );
-        root()->d->fieldsNeeded.insert( d->s8, new String( j ) );
+        uint fnum = placeHolder();
+        root()->d->query->bind( fnum, d->s8 );
+        j.append( ") left join field_names fn" + jn +
+                  " on (hf" + jn + ".field=fn" + jn + ".id "
+                  "and fn" + jn + ".name=$" + fn( fnum ) );
+        extra = true;
     }
+    j.append( ")" );
+    root()->d->extraJoins.append( j );
 
-    if ( d->s16.isEmpty() )
-        return jn + ".field is not null";
+    if ( extra )
+        return "fn" + jn + ".name is not null";
 
-    uint like = placeHolder();
-    root()->d->query->bind( like, q( d->s16 ) );
-    return jn + ".value ilike " + matchAny( like );
+    return "hf" + jn + ".field is not null";
 }
 
 
@@ -706,11 +662,14 @@ String Selector::whereAddressField( const String & field )
 String Selector::whereAddressFields( const StringList & fields,
                                      const UString & name )
 {
-    root()->d->needAddresses = true;
-    root()->d->needAddressFields = true;
     Query * query = root()->d->query;
-    String r( "(" );
-    String s( " and " );
+    uint join = ++root()->d->join;
+    String jn = fn( join );
+    String r( " left join address_fields af" + jn +
+              " on (af" + jn + ".message=mm.message)"
+              " left join addresses a" + jn +
+              " on (a" + jn + ".id=af" + jn + ".address"
+              " and " );
 
     StringList known, unknown;
     StringList::Iterator it( fields );
@@ -723,7 +682,7 @@ String Selector::whereAddressFields( const StringList & fields,
                 t = 0;
         }
         if ( t ) {
-            known.append( "af.field=$" + fn( fnum ) );
+            known.append( "af" + jn + ".field=$" + fn( fnum ) );
             query->bind( fnum, t );
         }
         else {
@@ -733,7 +692,8 @@ String Selector::whereAddressFields( const StringList & fields,
         ++it;
     }
     if ( !unknown.isEmpty() ) {
-        String tmp = "af.field in (select id from field_names fn where ";
+        String tmp = "af" + jn + ".field in "
+                     "(select id from field_names fn where ";
         if ( unknown.count() == 1 ) {
             tmp.append( unknown.join( "" ) );
         }
@@ -744,16 +704,14 @@ String Selector::whereAddressFields( const StringList & fields,
         }
         known.append( tmp );
     }
-    if ( known.isEmpty() ) {
-        s = ""; // no condition, so no trailing separator
-    }
-    else if ( known.count() == 1 ) {
+    if ( known.count() == 1 ) {
         r.append( known.join( "" ) );
+        r.append( " and " );
     }
-    else {
+    else if ( !known.isEmpty() ) {
         r.append( "(" );
         r.append( known.join( " or " ) );
-        r.append( ")" );
+        r.append( ") and " );
     }
 
     String raw( q( name ) );
@@ -762,10 +720,9 @@ String Selector::whereAddressFields( const StringList & fields,
     if ( at < 0 ) {
         uint name = placeHolder();
         query->bind( name, raw );
-        r.append( s );
-        r.append( "(a.name ilike " + matchAny( name ) + " or"
-                  " a.localpart ilike " + matchAny( name ) + " or"
-                  " a.domain ilike " + matchAny( name ) + ")" );
+        r.append( "(a" + jn + ".name ilike " + matchAny( name ) + " or"
+                  " a" + jn + ".localpart ilike " + matchAny( name ) + " or"
+                  " a" + jn + ".domain ilike " + matchAny( name ) + ")" );
     }
     else {
         String lc, dc;
@@ -773,26 +730,25 @@ String Selector::whereAddressFields( const StringList & fields,
             uint lp = placeHolder();
             if ( raw.startsWith( "<" ) ) {
                 query->bind( lp, raw.mid( 1, at-1 ).lower() );
-                lc = "lower(a.localpart)=$" + fn( lp );
+                lc = "lower(a" + jn + ".localpart)=$" + fn( lp );
             }
             else {
                 query->bind( lp, raw.mid( 0, at ) );
-                lc = "a.localpart ilike '%'||$" + fn( lp ) + " ";
+                lc = "a" + jn + ".localpart ilike '%'||$" + fn( lp ) + " ";
             }
         }
         if ( at < (int)raw.length() - 1 ) {
             uint dom = placeHolder();
             if ( raw.endsWith( ">" ) ) {
                 query->bind( dom, raw.mid( at+1, raw.length()-at-2 ).lower() );
-                dc = "lower(a.domain)= $" + fn( dom );
+                dc = "lower(a" + jn + ".domain)= $" + fn( dom );
             }
             else {
                 query->bind( dom, raw.mid( at+1 ) );
-                dc = "a.domain ilike $" + fn( dom ) + "||'%'";
+                dc = "a" + jn + ".domain ilike $" + fn( dom ) + "||'%'";
             }
         }
         if ( !lc.isEmpty() && !dc.isEmpty() ) {
-            r.append( s );
             bool paren = true;
             if ( r.isEmpty() )
                 paren = false;
@@ -805,21 +761,21 @@ String Selector::whereAddressFields( const StringList & fields,
                 r.append( ")" );
         }
         else if ( !lc.isEmpty() ) {
-            r.append( s );
             r.append( lc );
         }
         else if ( !dc.isEmpty() ) {
-            r.append( s );
             r.append( dc );
         }
         else {
             // imap SEARCH FROM "@" matches messages with a nonempty
             // from field. the sort of thing only a test suite would
             // do.
+            r.truncate( r.length() - 5 ); // " and "
         }
     }
     r.append( ")" );
-    return r;
+    root()->d->extraJoins.append( r );
+    return "a" + jn + ".id is not null";
 }
 
 
@@ -837,8 +793,7 @@ String Selector::whereHeader()
     String j = " left join header_fields " + jn +
                " on (mm.message=" + jn + ".message and " +
                jn + ".value ilike " + matchAny( like ) + ")";
-    root()->d->fieldsNeeded.insert( String( "\000" ) + d->s16.utf8(),
-                                    new String( j ) );
+    root()->d->extraJoins.append( j );
     return "(" + jn + ".field is not null or " +
         whereAddressField() + ")";
 }
@@ -904,15 +859,30 @@ String Selector::whereFlags()
         return r;
     }
 
+    uint join = ++root()->d->join;
+    String n = fn( join );
     Flag * f = Flag::find( d->s8 );
-    if ( !f ) {
-        // if we don't know about this flag, it doesn't exist in this
-        // session and is never set, as far as this client is concerned.
-        return "false";
+    String j;
+    if ( f ) {
+        // we know this flag, so look for it reasonably efficiently
+        j = " left join flags f" + n +
+            " on (mm.mailbox=f" + n + ".mailbox and mm.uid=f" + n +
+            ".uid and f" + n + ".flag=" + fn( f->id() ) + ")";
     }
+    else {
+        // just in case the cache is out of date we look in the db
+        uint b = placeHolder();
+        root()->d->query->bind( b, d->s8.lower() );
+        j = " left join flags f" + n +
+            " on (mm.mailbox=f" + n + ".mailbox and mm.uid=" + n +
+            ".uid and f" + n + ".flag="
+            "(select id from flag_names where lower(name)=$" + fn(b) + "))";
+    }
+    root()->d->extraJoins.append( j );
 
-    root()->d->needFlags.add( f->id() );
-    return "f" + fn( f->id() ) + ".flag is not null";
+    // finally use the join in a manner which doesn't accidentally
+    // confuse different flags.
+    return "f" + n + ".flag is not null";
 }
 
 
