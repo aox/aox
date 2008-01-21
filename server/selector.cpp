@@ -624,7 +624,7 @@ static String q( const UString & orig )
 {
     Utf8Codec c;
     String r( c.fromUnicode( orig ) );
-
+        
     String s;
     uint i = 0;
     while ( i < r.length() ) {
@@ -661,15 +661,15 @@ String Selector::whereHeaderField()
         return "false";
 
     String jn;
-    if ( d->fieldsNeeded.contains( d->s8 ) ) {
-        jn = d->fieldsNeeded.find( d->s8 )->section( " ", 4 );
+    if ( root()->d->fieldsNeeded.contains( d->s8 ) ) {
+        jn = root()->d->fieldsNeeded.find( d->s8 )->section( " ", 4 );
     }
     else {
         jn = "hf" + fn( ++root()->d->join );
         String j = " left join header_fields " + jn +
                    " on (mm.message=" + jn + ".message and " +
                    jn + ".field=" + fn( t ) + ")";
-        d->fieldsNeeded.insert( d->s8, new String( j ) );
+        root()->d->fieldsNeeded.insert( d->s8, new String( j ) );
     }
 
     if ( d->s16.isEmpty() )
@@ -678,7 +678,7 @@ String Selector::whereHeaderField()
     uint like = placeHolder();
     root()->d->query->bind( like, q( d->s16 ) );
     return "(" + jn + " is not null "
-        "and hf.value ilike " + matchAny( like ) + ")";
+        "and " + jn + ".value ilike " + matchAny( like ) + ")";
 }
 
 
@@ -829,8 +829,8 @@ String Selector::whereHeader()
     uint str = placeHolder();
     root()->d->query->bind( str, q( d->s16 ) );
     return
-        "(" + whereAddressField() + " or "
-        "hf.value ilike " + matchAny( str ) + ")";
+        "(hf.value ilike " + matchAny( str ) +
+        " or " + whereAddressField() + ")";
 }
 
 
