@@ -662,7 +662,7 @@ String Selector::whereHeaderField()
 
     String jn;
     if ( root()->d->fieldsNeeded.contains( d->s8 ) ) {
-        jn = root()->d->fieldsNeeded.find( d->s8 )->section( " ", 4 );
+        jn = root()->d->fieldsNeeded.find( d->s8 )->section( " ", 5 );
     }
     else {
         jn = "hf" + fn( ++root()->d->join );
