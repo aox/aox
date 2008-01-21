@@ -677,8 +677,7 @@ String Selector::whereHeaderField()
 
     uint like = placeHolder();
     root()->d->query->bind( like, q( d->s16 ) );
-    return "(" + jn + " is not null "
-        "and " + jn + ".value ilike " + matchAny( like ) + ")";
+    return jn + ".value ilike " + matchAny( like );
 }
 
 
