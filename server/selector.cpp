@@ -656,10 +656,6 @@ String Selector::whereHeaderField()
     if ( !t )
         t = HeaderField::fieldType( d->s8 );
 
-    // if we don't know this field, the search is false
-    if ( !t )
-        return "false";
-
     String jn;
     if ( root()->d->fieldsNeeded.contains( d->s8 ) ) {
         jn = root()->d->fieldsNeeded.find( d->s8 )->section( " ", 5 );
@@ -668,7 +664,16 @@ String Selector::whereHeaderField()
         jn = "hf" + fn( ++root()->d->join );
         String j = " left join header_fields " + jn +
                    " on (mm.message=" + jn + ".message and " +
-                   jn + ".field=" + fn( t ) + ")";
+                   jn + ".field=";
+        if ( t ) {
+            j.append( fn( t ) );
+        }
+        else {
+            uint fnum = placeHolder();
+            j.append( "(select id from field_names where name=$" +
+                      fn( fnum ) + ")" );
+            root()->d->query->bind( fnum, d->s8 );
+        }
         root()->d->fieldsNeeded.insert( d->s8, new String( j ) );
     }
 
