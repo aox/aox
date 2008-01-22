@@ -19,6 +19,7 @@ class Command
 {
 public:
     Command();
+    Command( IMAP * );
     virtual ~Command();
 
     static Command * create( IMAP *, const String &, const String &,
@@ -53,6 +54,7 @@ public:
     enum Error { No, Bad };
     void error( Error, const String & );
 
+    void moveTaggedResponseTo( Command * );
     void emitUntaggedResponses();
     void finish();
     void emitResponses();

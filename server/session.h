@@ -70,14 +70,13 @@ public:
 
     virtual void emitResponses();
     void emitResponses( ResponseType );
-    virtual void emitExpunge( uint );
+    virtual void emitExpunges();
     virtual void emitExists( uint );
+    virtual void emitModifications();
 
     MessageSet unannounced() const;
     void addUnannounced( uint );
     void addUnannounced( const MessageSet & );
-
-    virtual void emitModification( uint );
 
     void setSessionInitialiser( class SessionInitialiser * );
     class SessionInitialiser * sessionInitialiser() const;

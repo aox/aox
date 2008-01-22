@@ -20,12 +20,11 @@ public:
 
     IMAP * imap() const;
 
-    void emitExpunge( uint );
-    void emitModification( uint );
+    void emitExpunges();
+    void emitModifications();
     void emitExists( uint );
     bool responsesNeeded( ResponseType ) const;
     bool responsesPermitted( ResponseType ) const;
-    bool responsesReady( ResponseType ) const;
 
     void recordExpungedFetch( const MessageSet & );
 

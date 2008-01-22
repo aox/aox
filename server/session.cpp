@@ -378,7 +378,7 @@ void Session::emitResponses()
 }
 
 
-/*! Calls emitExpunge(), emitExists(), emitModification() etc. as
+/*! Calls emitExpunges(), emitExists(), emitModifications() etc. as
     needed and as indicated by \a type. Only sends the desired \a type
     of response. Does not check that responses may legally be sent at
     this point. Updates uidnext() if it announces new messages beyond
@@ -388,16 +388,7 @@ void Session::emitResponses()
 void Session::emitResponses( ResponseType type )
 {
     if ( type == Deleted ) {
-        uint i = 1;
-        while ( i <= d->expunges.count() ) {
-            uint uid = d->expunges.value( i );
-            uint msn = d->msns.index( uid );
-            if ( msn ) {
-                emitExpunge( msn );
-                d->msns.remove( uid );
-            }
-            i++;
-        }
+        emitExpunges();
         d->expunges.clear();
         if ( d->nextModSeq <= d->expungeModSeq )
             d->nextModSeq = d->expungeModSeq + 1;
@@ -405,22 +396,11 @@ void Session::emitResponses( ResponseType type )
     }
     else if ( type == Modified ) {
         if ( responsesReady( Modified ) ) {
-            MessageSet emit( d->unannounced );
-            MessageSet big;
-            big.add( d->uidnext, UINT_MAX );
-            emit.remove( big );
-            d->unannounced.remove( emit );
-            if ( d->nextModSeq < d->mailbox->nextModSeq() )
-                d->nextModSeq = d->mailbox->nextModSeq();
-            if ( d->uidnext < d->mailbox->uidnext() )
-                d->uidnext = d->mailbox->uidnext();
-            while ( !emit.isEmpty() ) {
-                uint uid = emit.value( 1 );
-                emit.remove( uid );
-                if ( msn( uid ) && // haven't expunged the message yet and
-                     !d->expunges.contains( uid ) ) // won't expunge it shortly
-                    emitModification( uid );
-            }
+            MessageSet known;
+            if ( d->uidnext > 1 )
+                known.add( 1, d->uidnext - 1 );
+            emitModifications();
+            d->unannounced.remove( known );
         }
     }
     else { // New
@@ -441,13 +421,12 @@ void Session::emitResponses( ResponseType type )
 }
 
 
-/*! \fn Session::emitExpunge( uint msn )
-    Does whatever the protocol requires when a message numbered \a msn
-    is expunged. When this function is called, uid() and msn() are still
-    valid.
+/*! This virtual function is called to notify the client that the
+    expunged() messages are expunged. The base implementation does
+    nothing.
 */
 
-void Session::emitExpunge( uint )
+void Session::emitExpunges()
 {
 }
 
@@ -1191,7 +1170,7 @@ const MessageSet & Session::messages() const
 
 
 /*! Clears the list of expunged messages without calling
-    emitExpunge().
+    emitExpunges().
 */
 
 void Session::clearExpunged()
@@ -1264,13 +1243,12 @@ bool Session::responsesPermitted( ResponseType type ) const
 
 
 /*! This virtual function emits whatever data is necessary and
-    appropriate to inform the client that the message with UID \a uid
-    has changed. The default implementation does nothing.
+    appropriate to inform the client of unannounced() modifications.
+    The default implementation does nothing.
 */
 
-void Session::emitModification( uint uid )
+void Session::emitModifications()
 {
-    uid = uid;
 }
 
 

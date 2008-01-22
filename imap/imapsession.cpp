@@ -12,40 +12,19 @@
 
 
 class ImapSessionData
-    : public EventHandler
+    : public Garbage
 {
 public:
     ImapSessionData(): i( 0 ), unsolicited( false ),
                        exists( UINT_MAX/4 ), recent( UINT_MAX ),
-                       uidnext( 0 ),
-                       flagf( 0 ), annof( 0 ), trif( 0 ) {}
+                       uidnext( 0 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     bool unsolicited;
     uint exists;
     uint recent;
     uint uidnext;
-
-    Fetcher * flagf;
-    Fetcher * annof;
-    Fetcher * trif;
-    List<Message> fetching;
     List<Flag> flags;
-
-    // XXX: A hack. maybe Session should inherit EventHandler instead.
-    void execute() {
-        if ( flagf && flagf->done() )
-            flagf = 0;
-        if ( annof && annof->done() )
-            annof = 0;
-        if ( trif && trif->done() )
-            trif = 0;
-        if ( !flagf && !annof && !trif ) {
-            i->unblockCommands();
-            if ( i->idle() && i->session() )
-                i->session()->emitResponses();
-        }
-    }
 };
 
 
@@ -79,12 +58,24 @@ IMAP * ImapSession::imap() const
 }
 
 
-void ImapSession::emitExpunge( uint msn )
+void ImapSession::emitExpunges()
 {
-    enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
-    if ( d->exists )
-        d->exists--;
-    d->expungedFetched.clear();
+    MessageSet m;
+    m.add( messages() );
+
+    MessageSet e;
+    e.add( expunged() );
+    d->expungedFetched.remove( e );
+
+    while ( !e.isEmpty() ) {
+        uint uid = e.value( 1 );
+        uint msn = m.index( uid );
+        e.remove( uid );
+        m.remove( uid );
+        enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+        if ( d->exists )
+            d->exists--;
+    }
 }
 
 
@@ -136,145 +127,33 @@ void ImapSession::recordExpungedFetch( const MessageSet & set )
 }
 
 
-void ImapSession::emitModification( uint uid )
+void ImapSession::emitModifications()
 {
-    Message * m = 0;
-    if ( !d->fetching.isEmpty() ) {
-        List<Message>::Iterator i( d->fetching );
-        while ( i && i->uid() != uid )
-            ++i;
-        if ( i )
-            m = i;
-    }
-    if ( !m )
-        return;
-    if ( !m->hasFlags() )
-        return;
-    if ( d->trif && !m->modSeq() )
-        return;
-    if ( d->annof && !m->hasAnnotations() )
+    MessageSet changed( unannounced().intersection( messages() ) );
+    // don't bother sending updates about something that's already gone,
+    // for which we just haven't sent the expunge
+    changed.remove( expunged() );
+
+    if ( changed.isEmpty() )
         return;
 
-    addFlags( m->flags(), 0 );
+    Fetch * update 
+        = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
+                     changed, 0, d->i );
 
-    String r = "* ";
-    r.append( fn( msn( m->uid() ) ) );
-    r.append( " FETCH (UID " );
-    r.append( fn( m->uid() ) );
-
-    if ( d->i->clientSupports( IMAP::Condstore ) && m->modSeq() ) {
-        r.append( " MODSEQ (" );
-        r.append( fn( m->modSeq() ) );
-        r.append( ")" );
+    List<Command>::Iterator c( d->i->commands() );
+    while ( c && c->state() == Command::Retired )
+        ++c;
+    if ( c && c->state() == Command::Finished ) {
+        List<Command>::Iterator n( c );
+        ++n;
+        d->i->commands()->insert( n, update );
+        c->moveTaggedResponseTo( update );
     }
-
-    r.append( " FLAGS (" );
-    r.append( Fetch::flagList( m, m->uid(), this ) );
-    r.append( ")" );
-
-    if ( d->i->clientSupports( IMAP::Annotate ) ) {
-        r.append( " ANNOTATION " );
-        // XXX: if we're doing this a lot, maybe we want to store e
-        // and a in ImapSessionData
-        StringList e;
-        e.append( "*" );
-        StringList a;
-        a.append( "value.priv" );
-        a.append( "value.shared" );
-        r.append( Fetch::annotation( m, d->i->user(), e, a ) );
+    else {
+        d->i->commands()->append( update );
     }
-
-    r.append( ")\r\n" );
-    enqueue( r );
-
-    List<Message>::Iterator i( d->fetching );
-    while ( i && i->uid() != uid )
-        ++i;
-    if ( i )
-        d->fetching.take( i );
-}
-
-
-/*! Returns true we can send all the \a type responses we need to, and
-    false if we're missing any necessary data.
-*/
-
-bool ImapSession::responsesReady( ResponseType type ) const
-{
-    if ( !Session::responsesReady( type ) )
-        return false;
-
-    if ( type != Modified )
-        return true;
-
-    MessageSet modified = unannounced().intersection( messages() );
-    if ( !d->fetching.isEmpty() ) {
-        List<Message>::Iterator i( d->fetching );
-        while ( i ) {
-            modified.remove( i->uid() );
-            ++i;
-        }
-    }
-
-    while ( !modified.isEmpty() ) {
-        uint uid = modified.value( 1 );
-        modified.remove( uid );
-        List<Message>::Iterator i( d->fetching );
-        while ( i && i->uid() != uid )
-            ++i;
-        if ( !i ) { // XXX also test that it isn't in MessageCache
-            Message * m = new Message; 
-            m->setUid( uid );
-            d->fetching.append( m );
-        }
-    }
-
-    List<Message> * fl = new List<Message>;
-    List<Message> * al = 0;
-    if ( d->i->clientSupports( IMAP::Annotate ) )
-        al = new List<Message>;
-    List<Message> * tl = 0;
-    if ( d->i->clientSupports( IMAP::Condstore ) )
-        tl = new List<Message>;
-    List<Message>::Iterator i( d->fetching );
-    while ( i ) {
-        if ( fl && !i->hasFlags() )
-            fl->append( i );
-        if ( al && !i->hasAnnotations() )
-            al->append( i );
-        if ( tl && !i->modSeq() )
-            tl->append( i );
-        ++i;
-    }
-
-    if ( ( !fl || fl->isEmpty() ) &&
-         ( !al || al->isEmpty() ) &&
-         ( !tl || tl->isEmpty() ) )
-        return true;
-
-    if ( fl && !fl->isEmpty() ) {
-        if ( !d->flagf )
-            d->flagf = new MessageFlagFetcher( mailbox(), fl, d );
-        else if ( d->flagf->done() )
-            d->flagf->addMessages( fl );
-        d->flagf->execute();
-    }
-    if ( al && !al->isEmpty() ) {
-        if ( !d->annof )
-            d->annof = new MessageAnnotationFetcher( mailbox(), al, d );
-        else if ( d->annof->done() )
-            d->annof->addMessages( al );
-        d->annof->execute();
-    }
-    if ( tl && !tl->isEmpty() ) {
-        if ( !d->trif )
-            d->trif = new MessageTriviaFetcher( mailbox(), tl, d );
-        else if ( d->trif->done() )
-            d->trif->addMessages( tl );
-        d->trif->execute();
-    }
-
-    return false;
+    update->execute();
 }
 
 
@@ -363,7 +242,7 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
         if ( finished )
             return true; // we can stuff responses onto that command
 
-        return false; // no commandin progress
+        return false; // no command in progress
     }
 }
 
@@ -401,8 +280,7 @@ void ImapSession::emitResponses()
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
-    if ( c && c->state() == Command::Finished &&
-         !d->flagf && !d->annof && !d->trif )
+    if ( c && c->state() == Command::Finished )
         d->i->unblockCommands();
 }
 

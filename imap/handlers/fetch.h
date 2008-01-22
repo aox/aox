@@ -19,6 +19,7 @@ class Fetch
 {
 public:
     Fetch( bool = false );
+    Fetch( bool, bool, const MessageSet &, int64, IMAP * );
 
     void parse();
     void execute();

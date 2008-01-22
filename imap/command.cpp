@@ -56,7 +56,7 @@ class CommandData
 public:
     CommandData()
         : args( 0 ), responses( new StringList ),
-          tagged( false ),
+          tagged( false ), taggedMovedTo( 0 ),
           usesRelativeMailbox( false ),
           usesAbsoluteMailbox( false ),
           usesMsn( false ),
@@ -75,6 +75,7 @@ public:
     StringList * responses;
     String respTextCode;
     bool tagged;
+    Command * taggedMovedTo;
 
     bool usesRelativeMailbox;
     bool usesAbsoluteMailbox;
@@ -130,6 +131,16 @@ Command::Command()
 {
 }
 
+
+/*!  Constructs a simple Command and ties it to \a i. create() doesn't
+     need this, but maybe, just maybe, there is a world beyond create().
+*/
+
+Command::Command( IMAP * i )
+    : d( new CommandData )
+{
+    d->imap = i;
+}
 
 /*! Destroys the object and frees any allocated resources. */
 
@@ -548,8 +559,19 @@ void Command::respond( const String & r, Response t )
     tmp->append( " " );
     tmp->append( r );
     tmp->append( "\r\n" );
-    if ( d->responses )
+    if ( !d->responses )
+        return;
+
+    if ( t == Tagged ) {
+        log( "Result: " + r );
         d->responses->append( tmp );
+    }
+    else {
+        StringList::Iterator i( d->responses );
+        while ( i && i->startsWith( "* " ) )
+            ++i;
+        d->responses->insert( i, tmp );
+    }
 }
 
 
@@ -606,21 +628,15 @@ void Command::emitResponses()
         return;
 
     Session * s = imap()->session();
-    if ( s ) {
-        // if there's a session, we must look carefully at whether it
-        // can do its part.
-        if ( !s->initialised() )
-            return;
-        if ( s->responsesNeeded( Session::Modified ) &&
-             !s->responsesReady( Session::Modified ) )
-            return;
-        if ( s->responsesNeeded( Session::New ) &&
-             !s->responsesReady( Session::New ) )
-            return;
-    }
+    if ( s && !s->initialised() )
+        return;
 
     if ( !d->tagged ) {
-        if ( !d->error ) {
+        if ( d->tag.isEmpty() ) {
+            // if we don't have a tag, we must be an implicit Fetch or
+            // Store used by ImapSession.
+        }
+        else if ( !d->error ) {
             if ( d->respTextCode.isEmpty() )
                 respond( "OK done", Tagged );
             else
@@ -642,24 +658,40 @@ void Command::emitResponses()
         }
     }
 
-    List< String >::Iterator it( d->responses );
-    d->responses = 0;
-    while ( it ) {
-        String * r = it;
-        ++it;
-        if ( s && !it )
-            s->emitResponses();
-        imap()->enqueue( *r );
-        if ( !it ) {
-            int i = r->find( ' ' );
-            if ( i >= 0 )
-                log( "Result: " + r->mid( i+1 ) );
-        }
+    if ( s )
+        s->emitResponses();
+
+    if ( d->taggedMovedTo ) {
+        Command * other = this;
+        while ( other->d->taggedMovedTo )
+            other = other->d->taggedMovedTo;
+        List< String >::Iterator it( d->responses );
+        while ( it && it->startsWith( "* " ) )
+            ++it;
+        if ( !it )
+            return;
+        other->d->responses->append( it );
+        d->responses->take( it );
     }
 
+    imap()->enqueue( d->responses->join( "" ) );
+
+    d->responses = 0;
     setState( Retired );
 
     imap()->write();
+}
+
+
+/*! Removes this command's tagged response and moves it to \a
+    other. This rather dangerous function is used by the ImapSession
+    in order to sneak \a other in between this command's untagged
+    responses and ita tagged final response.
+*/
+
+void Command::moveTaggedResponseTo( Command * other )
+{
+    d->taggedMovedTo = other;
 }
 
 
@@ -674,7 +706,7 @@ void Command::emitUntaggedResponses()
         imap()->enqueue( *it );
         d->responses->take( it );
     }
-    
+
     imap()->write();
 }
 

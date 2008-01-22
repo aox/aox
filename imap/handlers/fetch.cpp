@@ -63,7 +63,7 @@ public:
     MessageSet set;
     MessageSet expunged;
     List<Message> requested;
-    uint changedSince;
+    int64 changedSince;
     Query * notThose;
 
     // we want to ask for...
@@ -110,10 +110,9 @@ public:
 /*! \class Fetch fetch.h
     Returns message data (RFC 3501, section 6.4.5).
 
-    Our parser used to be slightly more permissive than the RFC. This is
-    a bug, and many of the problems have been corrected (but not tested).
-
-    There's quite a bit of support for RFC 4551, CONDSTORE.
+    Our parser used to be slightly more permissive than the RFC. This
+    is a bug (is it? why?), and many of the problems have been
+    corrected (but not tested).
 */
 
 
@@ -129,6 +128,28 @@ Fetch::Fetch( bool u )
         setGroup( 1 );
     else
         setGroup( 2 );
+}
+
+
+/*! Constructs a handler for the implicit fetch which is executed by
+    ImapSession for flag updates, etc. If \a f is true the updates
+    will include FLAGS sections and if \a a is true, ANNOTATION. The
+    handler starts fetching those messagges in \a set that have a
+    modseq greater than \a limit. The responses are sent via \a i.
+*/
+
+Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
+    : Command( i ), d( new FetchData )
+{
+    d->uid = true;
+    d->flags = f;
+    d->annotation = a;
+    d->set = set;
+    d->changedSince = limit;
+
+    d->peek = true;
+
+    setState( Executing );
 }
 
 
