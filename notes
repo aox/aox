@@ -26,6 +26,9 @@
   2008-03-02: features for next release
   2008-03-05: release
 
+  Abhijit and his new tent will be in the mountains with Rai sometime in
+  the last week of February. Precise dates yet to be ascertained.
+
 
 2.06: 2008-01-14
 
@@ -43,11 +46,6 @@
     - an EGD implementation to help Cryptlib with entropy. Should make
       STARTTLS faster, particularly on freebsd 5 and macosx.
     - rrdtool integration script
-
-
-2.07: 2008-02-18
-
-  Five weeks after 2.06.
 
 
 Release cycle
