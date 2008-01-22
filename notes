@@ -3,10 +3,9 @@
   Web UI for setting up views. Also (less importantly) aox arguments
   for setting up views.
 
-  Persuading ImapSession to do its flag updates using Store and its
-  fetches using Fetch. Add new constructors to F/S for the purpose.
-  Move the SeenFlagSetter into ImapSession and delay setting \seen
-  until we have to.
+  Persuading ImapSession to do its flag updates using Store.  Move the
+  SeenFlagSetter into ImapSession and delay setting \seen until we
+  have to.
 
   Investigate and fix whatever is behind Timo's report of freezing
   IMAP commands. The mechanism for keeping commands running is a
@@ -18,6 +17,9 @@
   now).
 
   Axel Rau's SMTP authentication and "invalid UTF-8" problems.
+
+  Done:
+  - ImapSession now uses Fetch.
 
   2008-01-27: decide on feature list
   2008-02-20: drop things that can't be finished
