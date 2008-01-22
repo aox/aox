@@ -139,7 +139,7 @@ void ImapSession::emitModifications()
 
     Fetch * update 
         = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                     changed, 0, d->i );
+                     changed, nextModSeq() - 1, d->i );
 
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
