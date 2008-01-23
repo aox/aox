@@ -14,6 +14,9 @@
 
 #include "plain.h"
 
+#include "stringlist.h"
+
+
 /*! Creates a plain-text SASL authentication object on behalf of \a c */
 
 Plain::Plain( EventHandler *c )
@@ -56,41 +59,22 @@ void Plain::parseResponse( const String & response )
 bool Plain::parse( String & authorizeId, String & authenticateId,
                    String & pw, const String & response )
 {
-    authorizeId.truncate( 0 );
-    authenticateId.truncate( 0 );
-    pw.truncate( 0 );
+    StringList * l = StringList::split( 0, response );
+    if ( !l || l->count() != 3 )
+        return false;
 
-    int m = 0;
-    uint i = 0;
-    uint last = 0;
+    StringList::Iterator i( l );
+    authorizeId = *i;
+    ++i;
+    authenticateId = *i;
+    ++i;
+    pw = *i;
 
-    while ( i <= response.length() ) {
-        if ( response[i] == '\0' ) {
-            String s = response.mid( last, i-last );
-            last = i+1;
-            if ( m == 0 )
-                authorizeId = s;
-            else if ( m == 1 )
-                authenticateId = s;
-            else if ( m == 2 )
-                pw = s;
-            else
-                return false;
-            m++;
-        }
-        i++;
-    }
-
-    if ( m < 2 )
+    if ( authenticateId.isEmpty() || pw.isEmpty() )
         return false;
 
     if ( authorizeId.isEmpty() )
         authorizeId = authenticateId;
-
-    if ( authorizeId.length() < 1 ||
-         authenticateId.length() < 1 ||
-         pw.length() < 1 )
-        return false;
 
     return true;
 }
