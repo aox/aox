@@ -273,11 +273,11 @@ void EventLoop::start()
         // the last GC or c) we've allocated at least 128KB and
         // haven't collected garbage in the past minute.
 
-        if ( !d->stop &&
-             ( ( alloc && Allocator::allocated() == alloc ) ||
+        if ( !d->stop && Allocator::allocated() >= 131072 &&
+             ( ( Allocator::allocated() == alloc ) ||
                ( Allocator::allocated() > 8*1024*1024 &&
                  Allocator::allocated() * 5 > Allocator::inUse() ) ||
-               ( now - gc > 60 && Allocator::allocated() >= 131072 ) ) )
+               ( now - gc > 60 ) ) )
         {
             Allocator::free();
             gc = time( 0 );
