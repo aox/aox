@@ -39,6 +39,7 @@ Utf8Codec::Utf8Codec()
 String Utf8Codec::fromUnicode( const UString & u )
 {
     String r;
+    r.reserve( u.length() + 40 );
     uint i = 0;
     while ( i < u.length() ) {
         int c = u[i];
@@ -116,6 +117,7 @@ static int pick( const String & s, int i, uint l )
 UString Utf8Codec::toUnicode( const String & s )
 {
     UString u;
+    u.reserve( s.length() );
     uint i = 0;
     while ( i < s.length() ) {
         int c = 0;
