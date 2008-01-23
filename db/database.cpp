@@ -25,7 +25,9 @@ static GraphableNumber * queryQueueLength = 0;
 static List< Database > *handles;
 static time_t lastExecuted;
 static time_t lastCreated;
-static Configuration::Text loginAs;
+static Database::User loginAs;
+static String * username;
+static String * password;
 
 
 static void newHandle()
@@ -61,12 +63,13 @@ Database::Database()
     must be left to subclasses). It logs a disaster if it fails.
 
     It creates \a desired database handles (3 by default) at startup
-    and will log in as \a login (Configuration::DbUser by default).
+    and will log in as \a user with the password \a pass.
 
     This function expects to be called from ::main().
 */
 
-void Database::setup( int desired, Configuration::Text login )
+void Database::setup( int desired, const String & user,
+                      const String & pass )
 {
     if ( !queries ) {
         queries = new List< Query >;
@@ -78,9 +81,8 @@ void Database::setup( int desired, Configuration::Text login )
         Allocator::addEternal( handles, "list of database handles" );
     }
 
-    ::loginAs = Configuration::DbUser;
-    if ( login == Configuration::DbOwner )
-        ::loginAs = login;
+    ::username = new String( user );
+    ::password = new String( pass );
 
     String db = Configuration::text( Configuration::Db ).lower();
 
@@ -121,6 +123,36 @@ void Database::setup( int desired, Configuration::Text login )
         newHandle();
         desired--;
     }
+}
+
+
+/*! \overload
+    This function is provided as a convenience for the (majority of)
+    callers that use the default values for \a desired (0) and \a login
+    (Database::DbUser). It infers the correct username and password and
+    forwards the call to setup() with the appropriate parameters.
+*/
+
+void Database::setup( int desired, Database::User login )
+{
+    String user;
+    String pass;
+
+    ::loginAs = login;
+    if ( login == Database::DbUser ) {
+        user = Configuration::text( Configuration::DbUser );
+        pass = Configuration::text( Configuration::DbPassword );
+    }
+    else if ( login == Database::DbOwner ) {
+        user = Configuration::text( Configuration::DbOwner );
+        pass = Configuration::text( Configuration::DbOwnerPassword );
+    }
+    else if ( login == Database::Superuser ) {
+        user = Configuration::compiledIn( Configuration::PgUser );
+        pass = "";
+    }
+
+    setup( desired, user, pass );
 }
 
 
@@ -334,11 +366,13 @@ String Database::name()
 }
 
 
-/*! Returns the configured database username (db-user or db-owner). */
+/*! Returns the database username used for this connection, as specified
+    to (or inferred by) setup().
+*/
 
 String Database::user()
 {
-    return Configuration::text( ::loginAs );
+    return *::username;
 }
 
 
@@ -347,9 +381,7 @@ String Database::user()
 
 String Database::password()
 {
-    if ( ::loginAs == Configuration::DbOwner )
-        return Configuration::text( Configuration::DbOwnerPassword );
-    return Configuration::text( Configuration::DbPassword );
+    return *::password;
 }
 
 
@@ -410,7 +442,7 @@ uint Database::connectionNumber() const
     Database::setup().
 */
 
-Configuration::Text Database::loginAs()
+Database::User Database::loginAs()
 {
     return ::loginAs;
 }

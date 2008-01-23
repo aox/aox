@@ -199,9 +199,9 @@ void AoxCommand::error( const String & s )
 
 void AoxCommand::database( bool owner )
 {
-    Configuration::Text l( Configuration::DbUser );
+    Database::User l( Database::DbUser );
     if ( owner )
-        l = Configuration::DbOwner;
+        l = Database::DbOwner;
     Database::setup( 1, l );
 }
 

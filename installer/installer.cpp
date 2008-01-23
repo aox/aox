@@ -703,20 +703,28 @@ public:
 };
 
 
+void connectToDb( const String & dbname )
+{
+    Configuration::setup( "" );
+    Configuration::add( "db-max-handles = 1" );
+    Configuration::add( "db-name = " + dbname.quoted() );
+    Configuration::add( "db-address = " + db->quoted() );
+    if ( !db->startsWith( "/" ) )
+        Configuration::add( "db-port = " + fn( dbport ) );
+
+    String pass;
+    if ( dbpgpass )
+        pass = *dbpgpass;
+
+    Database::setup( 1, PGUSER, pass );
+}
+
+
+
 void database()
 {
     if ( !d ) {
-        Configuration::setup( "" );
-        Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = " + db->quoted() );
-        Configuration::add( "db-user = " + String( PGUSER ).quoted() );
-        Configuration::add( "db-name = 'template1'" );
-        if ( dbpgpass )
-            Configuration::add( "db-password = " + dbpgpass->quoted() );
-        if ( !db->startsWith( "/" ) )
-            Configuration::add( "db-port = " + fn( dbport ) );
-
-        Database::setup( 1 );
+        connectToDb( "template1" );
 
         d = new Dispatcher;
         d->state = CheckingVersion;
@@ -953,17 +961,7 @@ void database()
     if ( d->state == CheckLang ) {
         Database::disconnect();
 
-        Configuration::setup( "" );
-        Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = " + db->quoted() );
-        Configuration::add( "db-user = " + String( PGUSER ).quoted() );
-        Configuration::add( "db-name = " + dbname->quoted() );
-        if ( dbpgpass )
-            Configuration::add( "db-password = " + dbpgpass->quoted() );
-        if ( !db->startsWith( "/" ) )
-            Configuration::add( "db-port = " + fn( dbport ) );
-
-        Database::setup( 1 );
+        connectToDb( *dbname );
 
         d->state = CheckingLang;
         d->q = new Query( "select lanname::text from pg_catalog.pg_language "
@@ -1016,20 +1014,6 @@ void database()
     }
 
     if ( d->state == CheckSchema ) {
-        Database::disconnect();
-
-        Configuration::setup( "" );
-        Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = " + db->quoted() );
-        Configuration::add( "db-user = " + String( PGUSER ).quoted() );
-        Configuration::add( "db-name = " + dbname->quoted() );
-        if ( dbpgpass )
-            Configuration::add( "db-password = " + dbpgpass->quoted() );
-        if ( !db->startsWith( "/" ) )
-            Configuration::add( "db-port = " + fn( dbport ) );
-
-        Database::setup( 1 );
-
         d->ssa = new Query( "set session authorization " + d->owner, d );
         d->ssa->execute();
 

@@ -715,9 +715,8 @@ void Postgres::serverMessage()
         if ( !p )
             p = getpwnam( "pgsql" );
 
-        if ( !d->identBreakageSeen &&
-             Database::loginAs() == Configuration::DbOwner && u == 0 &&
-             p != 0 )
+        if ( !d->identBreakageSeen && loginAs() == DbOwner &&
+             u == 0 && p != 0 )
         {
             d->identBreakageSeen = true;
             d->setSessionAuthorisation = true;

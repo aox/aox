@@ -17,11 +17,16 @@ class Database
 public:
     Database();
 
+    enum User {
+        Superuser, DbOwner, DbUser
+    };
+
     enum State {
         Connecting, Idle, InTransaction, FailedTransaction, Broken
     };
 
-    static void setup( int = 0, Configuration::Text = Configuration::DbUser );
+    static void setup( int = 0, Database::User = DbUser );
+    static void setup( int, const String &, const String & );
     static void submit( Query * );
     static void submit( List< Query > * );
     static void disconnect();
@@ -55,7 +60,7 @@ protected:
     static String name();
     static String user();
     static String password();
-    static Configuration::Text loginAs();
+    static User loginAs();
 
     static void recordExecution();
 
