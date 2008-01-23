@@ -36,9 +36,11 @@ public:
         if ( !::scopes ) {
             bad = true;
         }
+        else if ( scopes->firstElement() == this ) {
+            scopes->shift();
+        }
         else {
-            if ( scopes->firstElement() != this )
-                bad = true;
+            bad = true;
             List<ScopeData>::Iterator i = ::scopes->find( this );
             ::scopes->take( i );
         }
