@@ -81,8 +81,15 @@ void Database::setup( int desired, const String & user,
         Allocator::addEternal( handles, "list of database handles" );
     }
 
+    if ( ::username )
+        Allocator::removeEternal( ::username );
     ::username = new String( user );
+    Allocator::addEternal( ::username, "database username" );
+
+    if ( ::password )
+        Allocator::removeEternal( ::password );
     ::password = new String( pass );
+    Allocator::addEternal( ::password, "database password" );
 
     String db = Configuration::text( Configuration::Db ).lower();
 
