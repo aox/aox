@@ -298,9 +298,10 @@ void findPostgres()
     else
         readPgPass();
 
-    printf( "Connecting to Postgres server %s as%suser %s.\n",
-            db->cstr(), ( postgres != 0 ? " Unix " : " " ),
-            PGUSER );
+    if ( !silent )
+        printf( "Connecting to Postgres server %s as%suser %s.\n",
+                db->cstr(), ( postgres != 0 ? " Unix " : " " ),
+                PGUSER );
 }
 
 
