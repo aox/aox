@@ -77,10 +77,11 @@ MboxMailbox::MboxMailbox( const String & path, uint n )
 
 static bool isFrom( const char * s )
 {
-    String f( s );
-
-    if ( !f.startsWith( "From " ) )
+    if ( s[0] != 'F' || s[1] != 'r' || s[2] != 'o' || s[3] != 'm' ||
+         s[4] != ' ' )
         return false;
+
+    String f( s );
 
     uint n = 5;
     while ( n < f.length() &&
@@ -120,7 +121,7 @@ static bool isFrom( const char * s )
 
 MigratorMessage * MboxMailbox::nextMessage()
 {
-    char s[128];
+    char s[65537];
 
     if ( !d->file ) {
         d->file = fopen( d->path.cstr(), "r" );
@@ -135,7 +136,8 @@ MigratorMessage * MboxMailbox::nextMessage()
     String contents;
     bool done = false;
     while ( !done ) {
-        if ( fgets( s, 128, d->file ) != 0 && !isFrom( s ) )
+        s[65536] = '\0';
+        if ( fgets( s, 65536, d->file ) != 0 && !isFrom( s ) )
             contents.append( s );
         else
             done = true;
