@@ -25,7 +25,7 @@ class FileData
 {
 public:
     FileData()
-        : fd( -1 ), t( 0 ), ok( false ), lines( 0 )
+        : fd( -1 ), t( 0 ), ok( false )
     {}
 
     int fd;
@@ -33,7 +33,6 @@ public:
     String c;
     uint t;
     bool ok;
-    StringList * lines;
 };
 
 
@@ -196,19 +195,18 @@ String File::contents() const
 
 StringList * File::lines()
 {
-    if ( !d->lines ) {
-        d->lines = new StringList;
+    StringList * lines = new StringList;
 
-        int i = 0;
-        int last = 0;
-        while ( ( i = d->c.find( '\n', last ) ) != -1 ) {
-            d->lines->append( new String( d->c.mid( last, i-last+1 ) ) );
-            last = i+1;
-        }
-        d->lines->append( new String( d->c.mid( last ) ) );
+    int i = 0;
+    int last = 0;
+    while ( ( i = d->c.find( '\n', last ) ) != -1 ) {
+        lines->append( d->c.mid( last, i-last+1 ) );
+        last = i+1;
     }
+    if ( last >= 0 && last < (int)d->c.length() )
+        lines->append( d->c.mid( last ) );
 
-    return d->lines;
+    return lines;
 }
 
 
