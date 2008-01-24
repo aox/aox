@@ -160,8 +160,6 @@ void Threader::execute()
         }
         if ( !d->findnew->done() )
             return;
-        if ( d->newMessages.isEmpty() )
-            d->largestUid = d->uidnextAtStart - 1;
         d->findnew = 0;
         d->state = 3;
     }
@@ -169,6 +167,8 @@ void Threader::execute()
     // state 3: notify the users. the database can be updated later.
 
     if ( d->state == 3 ) {
+        if ( d->uidnextAtStart > d->largestUid )
+            d->largestUid = d->uidnextAtStart - 1;
         d->state = 4;
 
         List<EventHandler>::Iterator o( d->users );
