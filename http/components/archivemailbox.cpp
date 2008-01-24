@@ -130,7 +130,7 @@ void ArchiveMailbox::execute()
             ++i;
         }
         d->text = new Query(
-            "select bp.*, pn.uid, hf.value from bodyparts bp "
+            "select bp.*, mm.uid, hf.value from bodyparts bp "
             "join part_numbers pn on (bp.id=pn.bodypart) "
             "join mailbox_messages mm on (mm.message=pn.message) "
             "left join header_fields hf "
@@ -141,7 +141,7 @@ void ArchiveMailbox::execute()
             "(hf.value like 'text/html%' or "
             " hf.value like 'text/plain%' or "
             " hf.value is null) "
-            "order by uid, part",
+            "order by mm.uid, pn.part",
             this );
         d->text->bind( 1, d->link->mailbox()->id() );
         d->text->bind( 2, HeaderField::ContentType );
