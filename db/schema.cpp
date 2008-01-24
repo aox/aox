@@ -414,6 +414,8 @@ bool Schema::singleStep()
         c = stepTo64(); break;
     case 64:
         c = stepTo65(); break;
+    case 65:
+        c = stepTo66(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3337,11 +3339,60 @@ bool Schema::stepTo65()
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant update on threads to " + dbuser, this );
         d->t->enqueue( d->q );
-        d->t->execute();
         d->substate = 1;
+        d->t->execute();
     }
 
     if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Change the unique constraint on threads to include "mailbox". */
+
+bool Schema::stepTo66()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Changing unique constraint on threads." );
+        d->q = new Query( "select d.relname::text,c.conname::text,"
+                          "pg_get_constraintdef(c.oid) as condef "
+                          "from pg_constraint c join pg_class d "
+                          "on (c.conrelid=d.oid) where c.contype='u' "
+                          "and d.relname='threads'", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+
+        if ( d->q->failed() || d->q->rows() == 0 ) {
+            fail( "Couldn't fetch unique constraint on threads", d->q );
+            d->substate = 42;
+        }
+        else {
+            Row * r = d->q->nextRow();
+            d->q = new Query( "alter table threads drop constraint " +
+                              r->getString( "conname" ), this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "alter table threads add constraint "
+                              "threads_subject_key unique "
+                              "(mailbox,subject)", this );
+            d->t->enqueue( d->q );
+            d->substate = 2;
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
