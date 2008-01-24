@@ -811,6 +811,63 @@ void Postgres::serverMessage()
 }
 
 
+static const struct {
+    const char * constraint;
+    const char * human;
+} errormap[] = {
+    // some index names
+    {"addresses_nld_key",
+     "Operation would create two identical addresses" },
+    {"u_l",
+     "Operation wold create two users with identical login names"},
+    // some constraints from our postgresql schema
+    {"aliases_address_fkey", // contype f
+     "Operation would create two aliases with the same address"},
+    {"aliases_address_key", // contype u
+     "Operation would create two aliases with the same address"},
+    {"annotation_names_name_key", // contype u
+     "Operation would create two annotation_names rows with the same_name"},
+    {"annotations_mailbox_key", // contype u
+     "Operation would create a duplicate annotations row"},
+    {"annotations_mailbox_key1", // contype u
+     "Operation would create a duplicate annotations row"},
+    // XXX where does the annotations unique condition end up?
+    {"bodyparts_hash_key", // contype u
+     "Operation would store two identical bodyparts separately"},
+    {"deliveries_message_key", // contype u
+     "Operation would store the same message for delivery twice"},
+    {"field_names_name_key", // contype u
+     "Operation would create two header field names with the same name"},
+    {"group_members_groupname_fkey", // contype f
+     "Operation would create group_members row with invalid groupname"},
+    {"group_members_member_fkey", // contype f
+     "Operation would create group_members row with invalid member"},
+    {"group_members_pkey", // contype p
+     "Operation would create duplicate group_members row"},
+    // XXX shouldb't groups.name be unique? and different from all users.name?
+    {"mailboxes_name_key", // contype u
+     "Operation would create two mailboxes with the same name"},
+    {"mailboxes_owner_fkey", // contype f
+     "Operation would create a mailbox without an owner"},
+    {"messages_id_key", // contype u
+     "Opeation would create two messages objects with the same ID"},
+    {"namespaces_name_key", // contype u
+     "Operation would create two user namespaces with the same name"},
+    {"permissions_mailbox_fkey", // contype f
+     "Operation would create a permissions row without a mailbox"},
+    {"permissions_pkey", // contype p
+     "Operation would create a duplicate permissions row"},
+    {"scripts_owner_key", // contype u
+     "Operation would store two scripts with the same owner and name"},
+    // XXX shouldn't users.alias be unique?
+    {"users_alias_fkey", // contype f
+     "users_alias"},
+    {"users_parentspace_fkey", // contype f
+     "Operation would create a users row without a namespace"},
+    {0,0}
+};
+
+
 /*! Handles all protocol/socket errors by logging the error message \a s
     and closing the connection after emptying the write buffer and
     notifying any pending queries of the failure.
@@ -820,14 +877,47 @@ void Postgres::error( const String &s )
 {
     Scope x( log() );
     ::log( s, Log::Error );
-
+    String h;
+    if ( s.contains( "_" ) ) {
+        uint maps = 0;
+        String w;
+        uint i = 0;
+        while ( maps < 2 && i <= s.length() ) {
+            char c = s[i];
+            if ( ( c >= 'a' && c <= 'z' ) ||
+                 ( c >= 'A' && c <= 'Z' ) ||
+                 ( c >= '0' && c <= '9' ) ||
+                 ( c == '_' ) ) {
+                w.append( c );
+            }
+            else if ( !w.isEmpty() ) {
+                uint j = 0;
+                while ( errormap[j].constraint && w != errormap[j].constraint )
+                    j++;
+                if ( errormap[j].constraint ) {
+                    maps++;
+                    h = errormap[j].human;
+                }
+                w.truncate();
+            }
+            i++;
+        }
+        if ( maps > 1 )
+            h.truncate();
+        if ( !h.isEmpty() )
+            ::log( "Error maps to: " + h );
+    }
+    
     d->error = true;
     d->active = false;
     setState( Broken );
 
     List< Query >::Iterator q( d->queries );
     while ( q ) {
-        q->setError( s );
+        if ( h.isEmpty() )
+            q->setError( s );
+        else
+            q->setError( h );
         q->notify();
         ++q;
     }
