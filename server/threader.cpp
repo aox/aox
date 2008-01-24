@@ -330,15 +330,23 @@ void Threader::execute()
 bool Threader::updated( bool alsoOnDisk ) const
 {
     // is the state being updated?
-    if ( d->state > 1 && d->state < 4 )
+    if ( d->state >= 1 && d->state < 4 ) {
+        log( "Threader not up to date (working)", Log::Debug );
         return false;
+    }
     // are we currently writing to disk?
-    if ( alsoOnDisk && d->state > 1 && d->state < 11 )
+    if ( alsoOnDisk && d->state >= 1 && d->state < 11 ) {
+        log( "Threader not up to date (writing to disk)", Log::Debug );
         return false;
+    }
     // do we have all the information?
-    if ( d->largestUid + 1 >= d->mailbox->uidnext() )
-        return true;
-    return false;
+    if ( d->largestUid + 1 < d->mailbox->uidnext() ) {
+        log( "Threader misses for UIDs [" + fn( d->largestUid + 1 ) +
+             "," + fn( d->mailbox->uidnext() ) + ">", Log::Debug );
+        return false;
+    }
+    log( "Threader has complete information available", Log::Debug );
+    return true;
 }
 
 
