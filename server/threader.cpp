@@ -212,7 +212,7 @@ void Threader::execute()
         }
         s.append( ")" );
         if ( n == 2 ) {
-            d->state += 2;
+            d->state = 9;
             d->newishThreads = 0;
         }
         else {
