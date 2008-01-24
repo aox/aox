@@ -391,7 +391,7 @@ void BodypartPage::execute()
         d->b->execute();
 
         d->c = new Query(
-            "select value from header_fields h join mailbox_messages mm "
+            "select value from header_fields hf join mailbox_messages mm "
             "on (mm.message=hf.message) where mm.mailbox=$1 and mm.uid=$2 "
             "and (hf.part=$3 or hf.part=$4) and hf.field=$5 "
             "order by part<>$3",
