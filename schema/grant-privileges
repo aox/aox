@@ -17,8 +17,8 @@ grant delete on permissions, flags, subscriptions, annotations, views,
 scripts, deliveries, access_keys to $AOXUSER;
 
 grant update on mailstore, permissions, mailboxes, aliases, annotations,
-views, scripts, deliveries, delivery_recipients, mailbox_messages
-to $AOXUSER;
+views, scripts, deliveries, delivery_recipients, mailbox_messages,
+threads to $AOXUSER;
 
 grant select, update on messages_id_seq, addresses_id_seq, aliases_id_seq,
 annotation_names_id_seq, bodypart_ids, field_names_id_seq,
