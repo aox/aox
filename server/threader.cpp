@@ -177,12 +177,17 @@ void Threader::execute()
 
     // state 5/7: look for new threads
     if ( d->state == 5 || d->state == 7 ) {
-        if ( d->createThreads && d->createThreads->failed() ) {
-            // XXX: We should be able to fail here, so as to break the
-            // infinite loop.
-            Query * q =
-                new Query( "rollback to b" + fn( d->savepoint ), this );
-            d->create->enqueue( q );
+        if ( d->createThreads ) {
+            if ( !d->createThreads->done() )
+                return;
+
+            if ( d->createThreads->failed() ) {
+                // XXX: We should fail here, so as to break the loop.
+                Query * q =
+                    new Query( "rollback to b" + fn( d->savepoint ), this );
+                d->create->enqueue( q );
+            }
+
             d->createThreads = 0;
             d->savepoint++;
         }
