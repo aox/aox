@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (65);
+insert into mailstore (revision) values (66);
 
 
 -- One entry for each unique address we've encountered.
@@ -212,7 +212,8 @@ create table date_fields (
 create table threads (
     id          serial primary key,
     mailbox     integer not null references mailboxes(id),
-    subject     text unique
+    subject     text,
+    unique (mailbox, subject)
 );
 
 
