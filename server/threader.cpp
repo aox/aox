@@ -292,7 +292,6 @@ void Threader::execute()
     if ( d->state == 10 ) {
         if ( !d->create->done() )
             return;
-        d->state = 0;
         d->create = 0;
         List<EventHandler>::Iterator o( d->users );
         d->users = 0;
@@ -300,6 +299,7 @@ void Threader::execute()
             o->execute();
             ++o;
         }
+        d->state = 0;
     }
 }
 
