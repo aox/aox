@@ -412,6 +412,8 @@ bool Schema::singleStep()
         c = stepTo63(); break;
     case 63:
         c = stepTo64(); break;
+    case 64:
+        c = stepTo65(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3311,6 +3313,32 @@ bool Schema::stepTo64()
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Grant "update" on threads to aox, so that the threader can lock the
+    table in exclusive mode.
+*/
+
+bool Schema::stepTo65()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Granting update on threads." );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "grant update on threads to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
     }
 
     if ( d->substate == 1 ) {
