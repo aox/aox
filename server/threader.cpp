@@ -292,6 +292,10 @@ void Threader::execute()
     if ( d->state == 10 ) {
         if ( !d->create->done() )
             return;
+        d->state = 11;
+    }
+
+    if ( d->state == 11 ) {
         d->create = 0;
         List<EventHandler>::Iterator o( d->users );
         d->users = 0;
@@ -316,7 +320,7 @@ bool Threader::updated( bool alsoOnDisk ) const
     if ( d->state > 1 && d->state < 4 )
         return false;
     // are we currently writing to disk?
-    if ( d->state > 1 && alsoOnDisk )
+    if ( alsoOnDisk && d->state > 1 && d->state < 11 )
         return false;
     // do we have all the information?
     if ( d->largestUid + 1 >= d->mailbox->uidnext() )
