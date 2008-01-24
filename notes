@@ -1003,14 +1003,6 @@ The groups and group_members tables seem a little underused
   Make groups be permissible ACL identifiers.
 
 
-Better error messages
-
-  Map from "blah blah addresses_nld_key" to "The operation would create
-  a duplicate email address" and similarly for other constraints. This
-  will allow aox to print more useful error messages than to just dump
-  the server message onto the user.
-
-
 We need to be able to disable users
 
   - Reject mail with 5xx/4xx.

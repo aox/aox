@@ -793,7 +793,7 @@ void Postgres::serverMessage()
         if ( q->inputLines() )
             d->sendingCopy = false;
         d->queries.shift();
-        q->setError( m );
+        q->setError( mapped( m ) );
         q->notify();
     }
     else {
@@ -868,45 +868,61 @@ static const struct {
 };
 
 
+
+/*! Looks for constraint names in \a s and returns an error message
+    corresponding to the relevant constraint. Returns \a s if it finds
+    none.
+*/
+
+String Postgres::mapped( const String & s ) const
+{
+    if ( !s.contains( "_" ) )
+        return s;
+    
+    String h;
+    uint maps = 0;
+    String w;
+    uint i = 0;
+    while ( maps < 2 && i <= s.length() ) {
+        char c = s[i];
+        if ( ( c >= 'a' && c <= 'z' ) ||
+             ( c >= 'A' && c <= 'Z' ) ||
+             ( c >= '0' && c <= '9' ) ||
+             ( c == '_' ) ) {
+            w.append( c );
+        }
+        else if ( !w.isEmpty() ) {
+            uint j = 0;
+            while ( errormap[j].constraint && w != errormap[j].constraint )
+                j++;
+            if ( errormap[j].constraint ) {
+                maps++;
+                h = errormap[j].human;
+            }
+            w.truncate();
+        }
+        i++;
+    }
+    if ( maps != 1 )
+        return s;
+
+    if ( !h.isEmpty() )
+        ::log( "Error maps to: " + h );
+    return h;
+}
+
+
+
 /*! Handles all protocol/socket errors by logging the error message \a s
     and closing the connection after emptying the write buffer and
     notifying any pending queries of the failure.
+    
 */
 
 void Postgres::error( const String &s )
 {
     Scope x( log() );
     ::log( s, Log::Error );
-    String h;
-    if ( s.contains( "_" ) ) {
-        uint maps = 0;
-        String w;
-        uint i = 0;
-        while ( maps < 2 && i <= s.length() ) {
-            char c = s[i];
-            if ( ( c >= 'a' && c <= 'z' ) ||
-                 ( c >= 'A' && c <= 'Z' ) ||
-                 ( c >= '0' && c <= '9' ) ||
-                 ( c == '_' ) ) {
-                w.append( c );
-            }
-            else if ( !w.isEmpty() ) {
-                uint j = 0;
-                while ( errormap[j].constraint && w != errormap[j].constraint )
-                    j++;
-                if ( errormap[j].constraint ) {
-                    maps++;
-                    h = errormap[j].human;
-                }
-                w.truncate();
-            }
-            i++;
-        }
-        if ( maps > 1 )
-            h.truncate();
-        if ( !h.isEmpty() )
-            ::log( "Error maps to: " + h );
-    }
     
     d->error = true;
     d->active = false;
@@ -914,10 +930,7 @@ void Postgres::error( const String &s )
 
     List< Query >::Iterator q( d->queries );
     while ( q ) {
-        if ( h.isEmpty() )
-            q->setError( s );
-        else
-            q->setError( h );
+        q->setError( s );
         q->notify();
         ++q;
     }

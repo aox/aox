@@ -30,6 +30,7 @@ private:
     void error( const String & );
     void shutdown();
     void countQueries( class Query * );
+    String mapped( const String & ) const;
 };
 
 
