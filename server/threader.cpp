@@ -16,7 +16,9 @@ class ThreaderData
 {
 public:
     ThreaderData()
-        : state( 0 ), mailbox( 0 ), largestUid( 0 ), largestAtStart( 0 ),
+        : state( 0 ), mailbox( 0 ),
+          largestUid( 0 ), largestAtStart( 0 ),
+          uidnextAtStart( 0 ),
           users( 0 ),
           complete( 0 ), findnew( 0 ), findthreads( 0 ), newishThreads( 0 ),
           createThreads( 0 ), savepoint( 0 ), create( 0 )
@@ -26,6 +28,7 @@ public:
     const Mailbox * mailbox;
     uint largestUid;
     uint largestAtStart;
+    uint uidnextAtStart;
     List<EventHandler> * users;
     Dict<Thread> threads;
     List<Thread> threadList;
@@ -73,6 +76,10 @@ void Threader::execute()
     if ( d->state == 0 && !updated() ) {
         d->state = 1;
         d->largestAtStart = d->largestUid;
+        d->uidnextAtStart = d->mailbox->uidnext();
+        log( "Threading for UIDs " + fn( d->largestAtStart ) +
+             " to " + fn( d->uidnextAtStart ) + " for " +
+             fn( d->users ? d->users->count() : 0 ) + " clients" );
     }
 
     // we need to do something. what?
@@ -150,7 +157,7 @@ void Threader::execute()
         if ( !d->findnew->done() )
             return;
         if ( d->newMessages.isEmpty() )
-            d->largestUid = d->mailbox->uidnext() - 1;
+            d->largestUid = d->uidnextAtStart - 1;
         d->findnew = 0;
         d->state = 3;
     }
