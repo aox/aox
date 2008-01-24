@@ -82,6 +82,10 @@ void Threader::execute()
              fn( d->users ? d->users->count() : 0 ) + " clients" );
     }
 
+    log( "Threader being executed, in state " + fn( d->state ) +
+         ", " + fn( d->users ? d->users->count() : 0 ) + " clients",
+         Log::Debug );
+
     // we need to do something. what?
     Row * r = 0;
     // state 1: find any new thread_members rows for this mailbox
