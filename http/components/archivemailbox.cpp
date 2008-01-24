@@ -88,6 +88,8 @@ ArchiveMailbox::ArchiveMailbox( Link * link )
 
 void ArchiveMailbox::execute()
 {
+    log( "Attempting to provide archive mailbox for " +
+         d->link->mailbox()->name().ascii(), Log::Debug );
     Threader * t = d->link->mailbox()->threader();
 
     if ( !d->af ) {
@@ -114,8 +116,12 @@ void ArchiveMailbox::execute()
 
     if ( !t->updated() ) {
         t->refresh( this );
+        log( "Need to do threading.", Log::Debug );
         return;
     }
+
+    log( "Mailbox contains " + fn( t->allThreads()->count() ) + " threads",
+         Log::Debug );
 
     if ( t->allThreads()->isEmpty() ) {
         setContents( "<p>Mailbox is empty" );
@@ -203,6 +209,12 @@ void ArchiveMailbox::execute()
             }
         }
     }
+
+    log( String("Query doneness: ") +
+         ( d->af->done() ? "af " : "" ) +
+         ( d->idate->done() ? "idate " : "" ) +
+         ( d->text->done() ? "text " : "" ),
+         Log::Debug );
 
     if ( !d->af->done() )
         return;
