@@ -149,6 +149,8 @@ void Threader::execute()
         }
         if ( !d->findnew->done() )
             return;
+        if ( d->newMessages.isEmpty() )
+            d->largestUid = d->mailbox->uidnext() - 1;
         d->findnew = 0;
         d->state = 3;
     }
@@ -269,7 +271,7 @@ void Threader::execute()
     // state 9: insert the new thread_members rows
     if ( d->state == 9 ) {
         if ( !d->newMessages.isEmpty() ) {
-            Query * q 
+            Query * q
                 = new Query( "copy thread_members (thread,mailbox,uid) "
                              "from stdin with binary", this );
             List<ThreaderData::NewMessage>::Iterator i( d->newMessages );
@@ -322,7 +324,10 @@ bool Threader::updated( bool alsoOnDisk ) const
     // are we currently writing to disk?
     if ( alsoOnDisk && d->state > 1 && d->state < 11 )
         return false;
-    return true;
+    // do we have all the information?
+    if ( d->largestUid + 1 >= d->mailbox->uidnext() )
+        return true;
+    return false;
 }
 
 
