@@ -134,7 +134,7 @@ void ArchiveMailbox::execute()
             "join part_numbers pn on (bp.id=pn.bodypart) "
             "join mailbox_messages mm on (mm.message=pn.message) "
             "left join header_fields hf "
-            " on (hf.message=pn.message,hf.part=pn.part) "
+            "on (hf.message=pn.message and hf.part=pn.part) "
             "where mm.mailbox=$1 "
             "and (hf.field=$2 or hf.field is null) "
             "and (" + f.where() + ") and "
