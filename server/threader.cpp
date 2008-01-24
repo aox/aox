@@ -19,7 +19,8 @@ public:
         : state( 0 ), mailbox( 0 ), largestUid( 0 ), largestAtStart( 0 ),
           users( 0 ),
           complete( 0 ), findnew( 0 ), findthreads( 0 ), newishThreads( 0 ),
-          create( 0 ) {}
+          createThreads( 0 ), savepoint( 0 ), create( 0 )
+    {}
 
     uint state;
     const Mailbox * mailbox;
@@ -43,6 +44,8 @@ public:
     Query * findnew;
     Query * findthreads;
     Query * newishThreads;
+    Query * createThreads;
+    uint savepoint;
     Transaction * create;
 };
 
@@ -166,15 +169,24 @@ void Threader::execute()
     // state 4: grab the lock on the threads table
     if ( d->state == 4 ) {
         d->create = new Transaction( this );
-        // this fails for lack of some rights. delete?
-        //Query * q = new Query( "lock threads in exclusive mode", 0 );
-        //d->create->enqueue( q );
-        //d->create->execute();
+        Query * q = new Query( "lock threads in exclusive mode", 0 );
+        d->create->enqueue( q );
+        d->create->execute();
         d->state = 5;
     }
 
     // state 5/7: look for new threads
     if ( d->state == 5 || d->state == 7 ) {
+        if ( d->createThreads && d->createThreads->failed() ) {
+            // XXX: We should be able to fail here, so as to break the
+            // infinite loop.
+            Query * q =
+                new Query( "rollback to b" + fn( d->savepoint ), this );
+            d->create->enqueue( q );
+            d->createThreads = 0;
+            d->savepoint++;
+        }
+
         d->newishThreads = new Query( "", this );
         List<Thread>::Iterator i( d->threadList );
         String s( "select id, subject from threads "
@@ -240,7 +252,10 @@ void Threader::execute()
                 }
             }
             if ( q ) {
+                d->createThreads = q;
+                q = new Query( "savepoint b" + fn( d->savepoint ), this );
                 d->create->enqueue( q );
+                d->create->enqueue( d->createThreads );
                 d->create->execute();
             }
         }
