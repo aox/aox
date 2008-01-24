@@ -322,10 +322,7 @@ bool Threader::updated( bool alsoOnDisk ) const
     // are we currently writing to disk?
     if ( alsoOnDisk && d->state > 1 && d->state < 11 )
         return false;
-    // do we have all the information?
-    if ( d->largestUid + 1 >= d->mailbox->uidnext() )
-        return true;
-    return false;
+    return true;
 }
 
 
