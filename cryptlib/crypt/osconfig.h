@@ -89,12 +89,28 @@
 /* The BSDs */
 #if defined( __FreeBSD__ ) || defined( __bsdi__ ) || \
 	defined( __OpenBSD__ ) || defined( __NetBSD__ )
-  #define L_ENDIAN
-  #define BN_LLONG
-  #define DES_PTR
-  #define DES_RISC1
-  #define DES_UNROLL
-  #define RC4_INDEX
+  #if defined( __x86_64__ ) || defined( __amd64__ )
+	/* 64-bit x86 has both 'long' and 'long long' as 64 bits.  In addition
+	   we use DES_INT since int's are 64-bit.  We have to check for the
+	   64-bit x86 variants before the generic ones because they're a
+	   variation on the generics (e.g. AMD64 defines both __athlon__ and
+	   __x86_64__, so it we checked for __athlon__ first we'd identify it
+	   as a generic rather than 64-bit build) */
+	#define L_ENDIAN
+	#undef SIXTY_FOUR_BIT
+	#define SIXTY_FOUR_BIT_LONG
+	#define DES_INT
+	#define DES_RISC1
+	#define DES_UNROLL
+	#define RC4_INDEX
+  #else
+	#define L_ENDIAN
+	#define BN_LLONG
+	#define DES_PTR
+	#define DES_RISC1
+	#define DES_UNROLL
+	#define RC4_INDEX
+  #endif
 #endif /* The BSDs */
 
 /* Cray Unicos */
