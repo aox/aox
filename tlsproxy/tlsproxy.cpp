@@ -70,8 +70,11 @@ int main( int argc, char *argv[] )
     }
 
     // let cryptlib set up while still root, so it can read files etc.
-    cryptInit();
-    cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
+    int status;
+    status = cryptInit();
+    handleError( status, "cryptInit" );
+    status = cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
+    handleError( status, "cryptAddRandom" );
     setupKey();
 
     // finally listen for tlsproxy requests
