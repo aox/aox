@@ -674,7 +674,8 @@ void Command::emitResponses()
         d->responses->take( it );
     }
 
-    imap()->enqueue( d->responses->join( "" ) );
+    if ( d->responses )
+        imap()->enqueue( d->responses->join( "" ) );
 
     d->responses = 0;
     setState( Retired );
