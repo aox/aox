@@ -80,7 +80,7 @@ void EntropyProvider::process()
         switch( opcode ) {
         case 0:
             r->remove( 1 );
-            enqueue( String( "\000\008\000", 3 ) );
+            enqueue( String( "\000\010\000", 3 ) );
             break;
         case 1:
         case 2:
