@@ -9,7 +9,8 @@
 
 
 /*! \class EntropyProvider egd.h
-  
+    An EGD (entropy gathering device) for cryptlib.
+
     Cryptlib doesn't feel happy running in a constrained environment
     such as the chroot Archiveopteryx uses. It wants to run ntptrace
     and other commands to get entropy, and those commands aren't
@@ -40,14 +41,14 @@ EntropyProvider::EntropyProvider( int fd )
 void EntropyProvider::react( Event e )
 {
     if ( e == Read )
-        read();
+        process();
     else
         close();
 }
 
 
-/*! Servers the EGD protocol (as gleaned from egd.pl sources):
-    
+/*! Serves the EGD protocol (as gleaned from egd.pl sources):
+
     Client sends a null byte to request the amount of entropy
     available. Archiveopteryx answers with 0x00 0x08 0x00, to say 2048
     bytes. This is a straight lie, motivated by a desire to have
@@ -69,40 +70,40 @@ void EntropyProvider::react( Event e )
     "0", since we don't care to talk about PIDs).
 */
 
-void EntropyProvider::read()
+void EntropyProvider::process()
 {
     Buffer * r = readBuffer();
-    if ( !r || r->size() < 1 )
-        return;
-    char opcode = (*r)[0];
-    char size = (*r)[1];
-    switch( opcode ) {
-    case 0:
-        r->remove( 1 );
-        enqueue( String( "\000\008\000", 3 ) );
-        break;
-    case 1:
-    case 2:
-        if ( r->size() < 2 )
-            return;
-        r->remove( 2 );
-        writeBuffer()->append( &size, 1 );
-        enqueue( Entropy::asString( size ) );
-        log( "Served " + fn( size ) + " bytes of entropy to Cryptlib" );
-        break;
-    case 3:
-        if ( r->size() < 2 + (uint)size )
-            return;
-        r->remove( 2 + size );
-        break;
-    case 4:
-        r->remove( 1 );
-        enqueue( String( "\0010", 2 ) );
-        break;
-    default:
-        log( "Client sent non-EGD opcode: " + fn( opcode ), Log::Error );
-        close();
-        break;
+
+    while ( r->size() >= 1 ) {
+        char opcode = (*r)[0];
+        char size = (*r)[1];
+        switch( opcode ) {
+        case 0:
+            r->remove( 1 );
+            enqueue( String( "\000\008\000", 3 ) );
+            break;
+        case 1:
+        case 2:
+            if ( r->size() < 2 )
+                return;
+            r->remove( 2 );
+            writeBuffer()->append( &size, 1 );
+            enqueue( Entropy::asString( size ) );
+            log( "Served " + fn( size ) + " bytes of entropy to Cryptlib" );
+            break;
+        case 3:
+            if ( r->size() < 2 + (uint)size )
+                return;
+            r->remove( 2 + size );
+            break;
+        case 4:
+            r->remove( 1 );
+            enqueue( String( "\0010", 2 ) );
+            break;
+        default:
+            log( "Client sent non-EGD opcode: " + fn( opcode ), Log::Error );
+            close();
+            break;
+        }
     }
-    
 }

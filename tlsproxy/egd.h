@@ -15,7 +15,7 @@ public:
     void react( Event );
 
 private:
-    void read();
+    void process();
 };
 
 
