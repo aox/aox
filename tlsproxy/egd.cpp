@@ -2,6 +2,7 @@
 
 #include "egd.h"
 
+#include "eventloop.h"
 #include "entropy.h"
 #include "buffer.h"
 #include "log.h"
@@ -28,6 +29,11 @@
 EntropyProvider::EntropyProvider( int fd )
     : Connection( fd, EGDServer )
 {
+    if ( fd < 0 )
+        return;
+
+    setTimeoutAfter( 10 );
+    EventLoop::global()->addConnection( this );
 }
 
 
