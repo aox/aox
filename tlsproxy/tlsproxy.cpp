@@ -22,7 +22,7 @@
 #include "cryptlib.h"
 // fork(), unlink()
 #include <sys/types.h>
-// stat()
+// stat(), chmod()
 #include <sys/stat.h>
 #include <unistd.h>
 // errno
@@ -68,6 +68,8 @@ int main( int argc, char *argv[] )
                 Endpoint( "/var/run/edg-pool", 0 ), "EGD(/)", true );
         }
     }
+    if ( ::chmod( egd.cstr(), 0666 ) < 0 )
+        log( "Could not grant r/w access to EGD socket", Log::Disaster );
 
     // let cryptlib set up while still root, so it can read files etc.
     int status;
