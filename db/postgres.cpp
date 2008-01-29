@@ -898,6 +898,9 @@ String Postgres::mapped( const String & s ) const
             if ( errormap[j].constraint ) {
                 maps++;
                 h = errormap[j].human;
+                h.append( " (" );
+                h.append( w );
+                h.append( ")" );
             }
             w.truncate();
         }
