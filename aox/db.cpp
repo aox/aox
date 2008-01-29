@@ -139,12 +139,12 @@ void Vacuum::execute()
                        fn( days ) + " days'::interval "
                        "and id in "
                        "(select delivery from delivery_recipients "
-                       " where action=$1 or action=$2) "
+                       " where action!=$1 and action!=$2) "
                        "and id not in "
                        "(select delivery from delivery_recipients "
-                       " where action!=$1 and action!=$2)", 0 );
-        q->bind( 1, Recipient::Delivered );
-        q->bind( 2, Recipient::Relayed );
+                       " where action=$1 or action=$2)", 0 );
+        q->bind( 1, Recipient::Unknown );
+        q->bind( 2, Recipient::Delayed );
         t->enqueue( q );
 
         q = new Query(
