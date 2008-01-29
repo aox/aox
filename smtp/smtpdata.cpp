@@ -180,7 +180,8 @@ void SmtpData::execute()
         // redirects". strange concept, but...
         List<SmtpRcptTo>::Iterator it( server()->rcptTo() );
         while ( it ) {
-            if ( it->remote() ) {
+            if ( server()->dialect() == SMTP::Submit ||
+                 it->remote() ) {
                 SieveAction * a = new SieveAction( SieveAction::Redirect );
                 a->setSenderAddress( server()->sieve()->sender() );
                 a->setRecipientAddress( it->address() );
