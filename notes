@@ -1,4 +1,4 @@
-2.07: 2008-03-05
+2.07: 2008-03-03
 
   Web UI for setting up views. Also (less importantly) aox arguments
   for setting up views.
@@ -32,22 +32,15 @@
   16th (AM) to the 20th (PM) of February.
 
 
-2.06: 2008-01-14
-
-  Add some monitoring variables, whatever seems like a good idea.
+2.08: perhaps 2008-04-07 or -14
 
   nagios integration script
 
-  The great schema change. Remaining work:
+  DKIM checking (see RFC 4870 and 4871). Sieve interaction desired,
+  but there isn't even a draft.
 
-  - Update the permissions test at startup. Not sure what it should
-    test in the GNS.
-
-  Done:
-    - SORT
-    - an EGD implementation to help Cryptlib with entropy. Should make
-      STARTTLS faster, particularly on freebsd 5 and macosx.
-    - rrdtool integration script
+  DKIM generation (ditto). Generating DKIM is much easier than
+  checking it.
 
 
 Release cycle
