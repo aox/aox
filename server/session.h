@@ -45,9 +45,6 @@ public:
     uint msn( uint ) const;
     uint count() const;
 
-    uint firstUnseen() const;
-    void setFirstUnseen( uint );
-
     void insert( uint );
     void insert( uint, uint );
     void remove( uint );

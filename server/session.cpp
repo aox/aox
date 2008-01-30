@@ -24,7 +24,6 @@ public:
           mailbox( 0 ),
           expungeModSeq( 0 ),
           uidnext( 1 ), nextModSeq( 1 ),
-          firstUnseen( 0 ),
           permissions( 0 )
     {}
 
@@ -38,7 +37,6 @@ public:
     int64 expungeModSeq;
     uint uidnext;
     int64 nextModSeq;
-    uint firstUnseen;
     Permissions * permissions;
     MessageSet unannounced;
 };
@@ -199,24 +197,6 @@ uint Session::msn( uint uid ) const
 uint Session::count() const
 {
     return d->msns.count();
-}
-
-
-/*! Returns the UID of the first unseen message in this session, or 0
-    if the number isn't known.
-*/
-
-uint Session::firstUnseen() const
-{
-    return d->firstUnseen;
-}
-
-
-/*! Notifies this session that its first unseen message has \a uid. */
-
-void Session::setFirstUnseen( uint uid )
-{
-    d->firstUnseen = uid;
 }
 
 
@@ -472,7 +452,7 @@ public:
           viewnms( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           state( Again ),
-          changeRecent( false ), findFirstUnseen( false )
+          changeRecent( false )
         {}
 
     Mailbox * mailbox;
@@ -495,7 +475,6 @@ public:
     State state;
 
     bool changeRecent;
-    bool findFirstUnseen;
 };
 
 
@@ -696,14 +675,6 @@ void SessionInitialiser::restart()
     if ( d->sessions.isEmpty() )
         return;
 
-    d->findFirstUnseen = false;
-    i = d->sessions;
-    while ( i ) {
-        i->setSessionInitialiser( this );
-        if ( !i->firstUnseen() )
-            d->findFirstUnseen = true;
-        ++i;
-    }
     d->state = SessionInitialiserData::NoTransaction;
     d->t = 0;
     d->recent = 0;
@@ -887,31 +858,19 @@ void SessionInitialiser::findViewChanges()
                                 d->viewnms ) );
     sel->simplify();
 
-    Flag * seen = 0;
-    if ( d->findFirstUnseen ) {
-        seen = Flag::find( "\\seen" );
-        if ( !seen )
-            d->findFirstUnseen = false;
-    }
 
     d->messages = sel->query( 0, d->mailbox->source(), 0, this );
     uint vid = sel->placeHolder();
     d->messages->bind( vid, d->mailbox->id() );
 
     String s( "select m.id, "
-              "v.uid as vuid, v.modseq as vmodseq, " );
-    if ( seen )
-        s.append( "f.flag as seen, " );
-    s.append( "s.uid as suid, s.modseq as smodseq, "
+              "v.uid as vuid, v.modseq as vmodseq, "
+              "s.uid as suid, s.modseq as smodseq, "
               "s.message as smessage, s.idate as sidate "
               "from messages m "
               "left join mailbox_messages v "
-              " on (m.id=v.message and v.mailbox=$" + fn( vid ) + ") " );
-    if ( seen )
-        s.append( "left join flags f on "
-                  " (v.mailbox=f.mailbox and v.uid=f.uid and "
-                  "  f.flag=" + fn( seen->id() ) + ") " );
-    s.append( "left join (" + d->messages->string() + ") s "
+              " on (m.id=v.message and v.mailbox=$" + fn( vid ) + ") "
+              "left join (" + d->messages->string() + ") s "
               " on m.id=s.message "
               "where ((s.uid is not null and v.uid is null)"
               "    or (s.uid is null and v.uid is not null)"
@@ -934,7 +893,6 @@ void SessionInitialiser::writeViewChanges()
     if ( !d->messages->done() )
         return;
     MessageSet removeInDb;
-    uint unseen = UINT_MAX;
     Query * add = 0;
     Query * remove = 0;
     Row * r = 0;
@@ -986,10 +944,6 @@ void SessionInitialiser::writeViewChanges()
             // it's new to the session or changed in the session.
             addToSessions( vuid, r->getBigint( "vmodseq" ) );
         }
-
-        if ( d->findFirstUnseen && vuid &&
-             vuid < unseen && r->isNull( "seen" ) )
-            unseen = vuid;
     }
 
     if ( add ) {
@@ -1014,15 +968,6 @@ void SessionInitialiser::writeViewChanges()
             s->expunge( removeInDb, 0 ); // expunge does not consume a modseq
         }
     }
-
-    if ( unseen < UINT_MAX ) {
-        List<Session>::Iterator s( d->sessions );
-        while ( s ) {
-            if ( !s->firstUnseen() || s->firstUnseen() > unseen )
-                s->setFirstUnseen( unseen );
-            ++s;
-        }
-    }
 }
 
 
@@ -1037,20 +982,8 @@ void SessionInitialiser::findMailboxChanges()
     bool initialising = false;
     if ( d->oldUidnext <= 1 )
         initialising = true;
-    Flag * seen = 0;
-    if ( d->findFirstUnseen )
-        seen = Flag::find( "\\seen" );
-    if ( !seen )
-        d->findFirstUnseen = false;
-    String msgs = "select mm.uid, mm.modseq";
-    if ( d->findFirstUnseen )
-        msgs.append( ", f.flag as seen" );
-    msgs.append( " from mailbox_messages mm " );
-    if ( d->findFirstUnseen )
-        msgs.append( "left join flags f on "
-                     " (mm.mailbox=f.mailbox and mm.uid=f.uid and "
-                     "  f.flag=" + fn( seen->id() ) + ") " );
-    msgs.append( "where mm.mailbox=$1 and mm.uid<$2" );
+    String msgs = "select mm.uid, mm.modseq from mailbox_messages mm "
+                  "where mm.mailbox=$1 and mm.uid<$2";
     if ( initialising ) // largest-first to please messageset
         msgs.append( " order by mm.uid desc" );
 
@@ -1076,21 +1009,10 @@ void SessionInitialiser::findMailboxChanges()
 
 void SessionInitialiser::recordMailboxChanges()
 {
-    uint smallest = UINT_MAX;
     Row * r = 0;
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
         addToSessions( uid, r->getBigint( "modseq" ) );
-        if ( d->findFirstUnseen && r->isNull( "seen" ) && uid < smallest )
-            smallest = uid;
-    }
-    if ( smallest == UINT_MAX )
-        return;
-    List<Session>::Iterator s( d->sessions );
-    while ( s ) {
-        if ( !s->firstUnseen() || s->firstUnseen() > smallest )
-            s->setFirstUnseen( smallest );
-        ++s;
     }
 }
 

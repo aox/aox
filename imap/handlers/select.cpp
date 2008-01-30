@@ -20,7 +20,7 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
-          usedFlags( 0 ), highestModseq( 0 ),
+          usedFlags( 0 ), highestModseq( 0 ), firstUnseen( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
@@ -29,6 +29,7 @@ public:
     bool condstore;
     Query * usedFlags;
     Query * highestModseq;
+    Query * firstUnseen;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
@@ -151,10 +152,30 @@ void Select::execute()
         d->highestModseq->execute();
     }
 
+    if ( !d->firstUnseen ) {
+        Flag * seen = Flag::find( "\\seen" );
+        String sq;
+        if ( seen )
+            sq = " and flag=" + fn( seen->id() );
+        else
+            sq = " and flag in "
+                 "(select id from flags where lower(name)='\\seen')";
+        d->firstUnseen 
+            = new Query( "select uid from mailbox_messages "
+                         "where mailbox=$1 and uid not in "
+                         "(select uid from flags where mailbox=$1 " + sq + ")"
+                         "order by mm.uid limit 1", this );
+        d->firstUnseen->bind( 1, d->mailbox->id() );
+        d->firstUnseen->execute();
+    }
+
     if ( d->usedFlags && !d->usedFlags->done() )
         return;
 
     if ( d->highestModseq && !d->highestModseq->done() )
+        return;
+
+    if ( d->firstUnseen && !d->firstUnseen->done() )
         return;
 
     if ( !d->session->initialised() )
@@ -166,9 +187,14 @@ void Select::execute()
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
 
-    uint unseen = d->session->msn( d->session->firstUnseen() );
-    if ( unseen != 0 )
-        respond( "OK [UNSEEN " + fn( unseen ) + "] first unseen" );
+    if ( d->firstUnseen ) {
+        Row * r = d->firstUnseen->nextRow();
+        uint unseen = 0;
+        if ( r )
+            unseen = r->getInt( "uid" );
+        if ( unseen )
+            respond( "OK [UNSEEN " + fn( unseen ) + "] first unseen" );
+    }
 
     if ( d->highestModseq ) {
         Row * r = d->highestModseq->nextRow();
