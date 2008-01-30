@@ -14,6 +14,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "buffer.h"
+#include "graph.h"
 #include "scope.h"
 #include "sieve.h"
 #include "file.h"
@@ -67,12 +68,21 @@ SmtpData::SmtpData( SMTP * s, SmtpParser * p )
 }
 
 
-/*! Does input for DATA and injection for DATA, BDAT and BURL.
+static GraphableCounter * messagesWrapped = 0;
+static GraphableCounter * messagesSubmitted = 0;
 
-*/
+
+/*! Does input for DATA and injection for DATA, BDAT and BURL. */
 
 void SmtpData::execute()
 {
+    if ( !::messagesWrapped )
+        ::messagesWrapped
+              = new GraphableCounter( "unparsable-messages" );
+    if ( !::messagesSubmitted )
+        ::messagesSubmitted 
+              = new GraphableCounter( "messages-submitted" );
+
     // we can't do anything until all older commands have completed.
     if ( !server()->isFirstCommand( this ) )
         return;
@@ -160,7 +170,7 @@ void SmtpData::execute()
         }
         else {
             // for SMTP/LMTP, we wrap the unparsable message
-            Message * m 
+            Message * m
                 = Message::wrapUnparsableMessage( d->body, d->message->error(),
                                                   "Message arrived "
                                                   "but could not be "
@@ -173,11 +183,13 @@ void SmtpData::execute()
             // the next line means that what we sieve is the wrapper
             server()->sieve()->setMessage( m );
             server()->sieve()->setWrapped();
+            ::messagesWrapped->tick();
         }
         server()->sieve()->evaluate();
 
         // we tell the sieve that our remote recipients are "immediate
         // redirects". strange concept, but...
+        bool remotes = false;
         List<SmtpRcptTo>::Iterator it( server()->rcptTo() );
         while ( it ) {
             if ( server()->dialect() == SMTP::Submit ||
@@ -187,10 +199,13 @@ void SmtpData::execute()
                 a->setRecipientAddress( it->address() );
                 a->setMessage( d->message );
                 server()->sieve()->addAction( a );
+                remotes = true;
             }
             ++it;
         }
-        
+        if ( remotes )
+            ::messagesSubmitted->tick();
+
         server()->sieve()->act( this );
         d->state = 3;
     }

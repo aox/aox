@@ -2,20 +2,21 @@
 
 #include "deliveryagent.h"
 
-#include "log.h"
-#include "scope.h"
-#include "query.h"
+#include "spoolmanager.h"
 #include "transaction.h"
-#include "message.h"
-#include "fetcher.h"
+#include "stringlist.h"
 #include "smtpclient.h"
-#include "dsn.h"
-#include "address.h"
 #include "recipient.h"
 #include "injector.h"
-#include "spoolmanager.h"
+#include "address.h"
+#include "fetcher.h"
+#include "message.h"
+#include "graph.h"
+#include "query.h"
+#include "scope.h"
 #include "date.h"
-#include "stringlist.h"
+#include "dsn.h"
+#include "log.h"
 
 
 class DeliveryAgentData
@@ -429,6 +430,9 @@ Injector * DeliveryAgent::injectBounce( DSN * dsn )
 }
 
 
+static GraphableCounter * messagesSent = 0;
+
+
 /*! Updates the row in deliveries matching \a delivery, as well as any
     related rows in delivery_recipients, based on the status of \a dsn.
     Returns the number of recipients for whom delivery is pending. The
@@ -472,12 +476,21 @@ uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
         }
     }
 
-    if ( dsn->allOk() )
+    if ( dsn->allOk() ) {
         log( "Delivered successfully to " +
              fn( handled ) + " recipients" );
-    else
+        if ( ::messagesSent )
+            ::messagesSent = new GraphableCounter( "messages-sent" );
+        ::messagesSent->tick();
+    }
+    // XXX at this point we probably want to do
+    //   else if ( !unhandled ) {
+    //       ...send a DSN...
+    //   }
+    else {
         log( "Recipients handled: " + fn( handled ) +
              ", still queued: " + fn( unhandled ) );
+    }
 
     return unhandled;
 }
