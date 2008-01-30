@@ -163,7 +163,7 @@ void Select::execute()
         d->firstUnseen 
             = new Query( "select uid from mailbox_messages "
                          "where mailbox=$1 and uid not in "
-                         "(select uid from flags where mailbox=$1 " + sq + ")"
+                         "(select uid from flags where mailbox=$1 " + sq + ") "
                          "order by mm.uid limit 1", this );
         d->firstUnseen->bind( 1, d->mailbox->id() );
         d->firstUnseen->execute();

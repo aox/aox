@@ -28,9 +28,9 @@ SaslLogin::SaslLogin( EventHandler * c )
 String SaslLogin::challenge()
 {
     if ( login().isEmpty() )
-        return "User Name";
+        return "Username:";
     else
-        return "Password";
+        return "Password:";
 }
 
 
