@@ -91,11 +91,13 @@ void ListMailboxes::execute()
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
 
-        String s( r->getString( "name" ) );
+        UString n( r->getUString( "name" ) );
+        printf( "%s", n.utf8().cstr() );
+
         if ( opt( 's' ) > 0 ) {
+            String s;
             int messages = r->getInt( "messages" );
             int size = r->getInt( "size" );
-            s.append( " (" );
             s.append( fn( messages ) );
             if ( messages == 1 )
                 s.append( " message, " );
@@ -103,10 +105,9 @@ void ListMailboxes::execute()
                 s.append( " messages, " );
             s.append( String::humanNumber( size ) );
             s.append( " bytes" );
-            s.append( ")" );
+            printf( " (%s)", s.cstr() );
         }
-
-        printf( "%s\n", s.cstr() );
+        printf( "\n" );
     }
 
     if ( !q->done() )

@@ -369,7 +369,7 @@ void MessageAddressFetcher::decode( Message * m, Row * r )
         l.append( f );
     }
     Utf8Codec u;
-    Address * a = new Address( u.toUnicode( r->getString( "name" ) ),
+    Address * a = new Address( r->getUString( "name" ),
                                r->getString( "localpart" ),
                                r->getString( "domain" ) );
     f->addresses()->append( a );
@@ -753,7 +753,7 @@ void MessageFetcher::execute()
             h->add( f );
         }
         Utf8Codec u;
-        Address * a = new Address( u.toUnicode( r->getString( "name" ) ),
+        Address * a = new Address( r->getUString( "name" ),
                                    r->getString( "localpart" ),
                                    r->getString( "domain" ) );
         f->addresses()->append( a );

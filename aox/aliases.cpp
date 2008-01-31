@@ -49,7 +49,7 @@ void ListAliases::execute()
         Row * r = q->nextRow();
         printf( "%s: %s\n",
                 r->getString( "address" ).cstr(),
-                r->getString( "name" ).cstr() );
+                r->getUString( "name" ).utf8().cstr() );
     }
 
     if ( !q->done() )

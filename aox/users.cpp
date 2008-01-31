@@ -224,8 +224,8 @@ void DeleteUser::execute()
                      d->user->login().utf8().cstr() );
             while ( d->query->hasResults() ) {
                 Row * r = d->query->nextRow();
-                String s = r->getString( "name" );
-                fprintf( stderr, "%s\n", s.cstr() );
+                fprintf( stderr, "%s\n",
+                         r->getUString( "name" ).utf8().cstr() );
             }
             fprintf( stderr, "(Use 'aox delete user -f %s' to delete the "
                      "mailboxes too.)\n", d->user->login().utf8().cstr() );
