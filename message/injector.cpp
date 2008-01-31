@@ -837,9 +837,17 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            resolveAddressLinks();
-            d->state = InsertingAddresses;
+            buildFieldLinks();
+            d->state = InsertingFields;
         }
+    }
+
+    if ( d->state == InsertingFields ) {
+        if ( !d->fieldLookup->done() )
+            return;
+
+        resolveAddressLinks();
+        d->state = InsertingAddresses;
     }
 
     if ( d->state == InsertingAddresses ) {
@@ -854,7 +862,6 @@ void Injector::execute()
         else {
             selectMessageId();
             selectUids();
-            buildFieldLinks();
             d->transaction->execute();
             d->state = SelectingUids;
         }
@@ -873,40 +880,24 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            d->messageId = d->midFetcher->id;
-            insertMessages();
-            d->transaction->execute();
             d->state = InsertingMessages;
         }
     }
 
     if ( d->state == InsertingMessages && !d->transaction->failed() ) {
-        // We expect buildFieldLinks() to have completed immediately.
-        // Once we have the bodypart IDs, we can start adding to the
-        // part_numbers, header_fields, and date_fields tables.
-
-        if ( !d->fieldLookup->done() )
-            return;
-
+        d->messageId = d->midFetcher->id;
+        insertMessages();
         linkBodyparts();
         linkHeaderFields();
         linkDates();
-
-        d->transaction->execute();
-        d->state = LinkingFields;
-    }
-
-    if ( d->state == LinkingFields && !d->transaction->failed() ) {
-        // Fill in address_fields and deliveries once the address
-        // lookup is complete.  (We could have done this without
-        // waiting for the bodyparts to be inserted, but it didn't
-        // seem worthwhile.)
         insertDeliveries();
         linkAddresses();
-        d->state = LinkingFlags;
+
+        d->state = LinkingAddresses;
+        d->transaction->execute();
     }
 
-    if ( d->state == LinkingFlags ) {
+    if ( d->state == LinkingAddresses ) {
         List<InjectorData::Flag>::Iterator i( d->flags );
         while ( i ) {
             if ( !i->flag )
@@ -916,10 +907,10 @@ void Injector::execute()
             ++i;
         }
         linkFlags();
-        d->state = LinkingAnnotations;
+        d->state = LinkingFlags;
     }
 
-    if ( d->state == LinkingAnnotations ) {
+    if ( d->state == LinkingFlags ) {
         List<Annotation>::Iterator i( d->annotations );
         while ( i ) {
             if ( i->entryName()->id() == 0 ) {
@@ -934,10 +925,10 @@ void Injector::execute()
         }
         linkAnnotations();
         handleWrapping();
-        d->state = LinkingAddresses;
+        d->state = LinkingAnnotations;
     }
 
-    if ( d->state == LinkingAddresses || d->transaction->failed() ) {
+    if ( d->state == LinkingAnnotations || d->transaction->failed() ) {
         // Now we just wait for everything to finish.
         if ( d->state < AwaitingCompletion )
             d->transaction->commit();
