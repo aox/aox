@@ -14,7 +14,6 @@
 #include "mimefields.h"
 #include "fieldcache.h"
 #include "addressfield.h"
-#include "addresscache.h"
 #include "transaction.h"
 #include "annotation.h"
 #include "allocator.h"
@@ -32,6 +31,7 @@
 class MidFetcher;
 class UidFetcher;
 class BidFetcher;
+class AddressCreator;
 
 
 static PreparedStatement *lockUidnext;
@@ -117,7 +117,7 @@ public:
           mailboxes( 0 ), bodyparts( 0 ), midFetcher( 0 ),
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
-          otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 ),
+          otherFields( 0 ), fieldLookup( 0 ), addressCreator( 0 ),
           remoteRecipients( 0 ), sender( 0 ), wrapped( false )
     {}
 
@@ -144,7 +144,7 @@ public:
     List< String > * otherFields;
 
     CacheLookup * fieldLookup;
-    CacheLookup * addressLookup;
+    AddressCreator * addressCreator;
 
     List<Address> * remoteRecipients;
     Address * sender;
@@ -384,6 +384,173 @@ public:
         owner->execute();
     }
 };
+
+
+class AddressCreator
+    : public EventHandler
+{
+public:
+    int state;
+    Query * q;
+    Transaction * t;
+    List<Address> * addresses;
+    EventHandler * owner;
+    Dict<Address> seen;
+    bool failed;
+    int savepoint;
+
+    AddressCreator( Transaction * tr, List<Address> * a, EventHandler * ev )
+        : state( 0 ), q( 0 ), t( tr ), addresses( a ), owner( ev ),
+          failed( false ), savepoint( 0 )
+    {}
+
+    void execute();
+    void selectAddresses();
+    void processAddresses();
+    void insertAddresses();
+    void processInsert();
+
+    bool done() const
+    {
+        return state == 42;
+    }
+};
+
+void AddressCreator::execute()
+{
+    if ( state == 0 )
+        selectAddresses();
+
+    if ( state == 1 )
+        processAddresses();
+
+    if ( state == 2 )
+        insertAddresses();
+
+    if ( state == 3 )
+        processInsert();
+
+    if ( state == 4 ) {
+        state = 42;
+        owner->execute();
+    }
+}
+
+void AddressCreator::selectAddresses()
+{
+    q = new Query( "", this );
+
+    String s( "select id, name, localpart, domain "
+              "from addresses where " );
+
+    seen.clear();
+
+    uint i = 0;
+    StringList sl;
+    List<Address>::Iterator it( addresses );
+    while ( it && i < 1024 ) {
+        Address * a = it;
+        if ( !a->id() && !seen.contains( a->toString() ) ) {
+            int n = 3*i+1;
+            String p;
+            seen.insert( a->toString(), a );
+            q->bind( n, a->name() );
+            p.append( "(name=$" );
+            p.append( fn( n++ ) );
+            q->bind( n, a->localpart() );
+            p.append( " and localpart=$" );
+            p.append( fn( n++ ) );
+            q->bind( n, a->domain() );
+            p.append( " and domain=$" );
+            p.append( fn( n++ ) );
+            p.append( ")" );
+            sl.append( p );
+            ++i;
+        }
+        ++it;
+    }
+    s.append( sl.join( " or " ) );
+    q->setString( s );
+    q->allowSlowness();
+
+    if ( i == 0 ) {
+        state = 4;
+    }
+    else {
+        state = 1;
+        t->enqueue( q );
+        t->execute();
+    }
+}
+
+void AddressCreator::processAddresses()
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        Address * a =
+            new Address( r->getString( "name" ),
+                         r->getString( "localpart" ),
+                         r->getString( "domain" ) );
+        Address * orig =
+            seen.take( a->toString() );
+        if ( orig )
+            orig->setId( r->getInt( "id" ) );
+    }
+
+    if ( !q->done() )
+        return;
+
+    if ( seen.isEmpty() ) {
+        state = 0;
+        selectAddresses();
+    }
+    else {
+        state = 2;
+    }
+}
+
+void AddressCreator::insertAddresses()
+{
+    q = new Query( "savepoint a" + fn( savepoint ), this );
+    t->enqueue( q );
+
+    q = new Query( "copy addresses (name,localpart,domain) "
+                   "from stdin with binary", this );
+    StringList::Iterator it( seen.keys() );
+    while ( it ) {
+        Address * a = seen.take( *it );
+        q->bind( 1, a->name() );
+        q->bind( 2, a->localpart() );
+        q->bind( 3, a->domain() );
+        q->submitLine();
+        ++it;
+    }
+
+    state = 3;
+    t->enqueue( q );
+    t->execute();
+}
+
+void AddressCreator::processInsert()
+{
+    if ( !q->done() )
+        return;
+
+    state = 0;
+    if ( q->failed() ) {
+        if ( q->error().contains( "addresses_nld_key" ) ) {
+            q = new Query( "rollback to a" + fn( savepoint ), this );
+            t->enqueue( q );
+        }
+        else {
+            failed = true;
+            state = 4;
+        }
+    }
+
+    if ( state == 0 )
+        selectAddresses();
+}
 
 
 /*! \class Injector injector.h
@@ -724,12 +891,19 @@ void Injector::execute()
         // waiting for the bodyparts to be inserted, but it didn't
         // seem worthwhile.)
 
-        if ( !d->addressLookup->done() )
+        if ( !d->addressCreator->done() )
             return;
 
-        insertDeliveries();
-        linkAddresses();
-        d->state = LinkingFlags;
+        if ( d->addressCreator->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
+            insertDeliveries();
+            linkAddresses();
+            d->state = LinkingFlags;
+        }
     }
 
     if ( d->state == LinkingFlags ) {
@@ -930,8 +1104,9 @@ void Injector::resolveAddressLinks()
             addresses->append( d->sender );
     }
 
-    d->addressLookup =
-        AddressCache::lookup( d->transaction, addresses, this );
+    d->addressCreator =
+        new AddressCreator( d->transaction, addresses, this );
+    d->addressCreator->execute();
 }
 
 
