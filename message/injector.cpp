@@ -395,7 +395,7 @@ public:
     Transaction * t;
     List<Address> * addresses;
     EventHandler * owner;
-    Dict<Address> seen;
+    Dict<Address> unided;
     int savepoint;
     bool failed;
     bool done;
@@ -440,17 +440,17 @@ void AddressCreator::selectAddresses()
     String s( "select id, name, localpart, domain "
               "from addresses where " );
 
-    seen.clear();
+    unided.clear();
 
     uint i = 0;
     StringList sl;
     List<Address>::Iterator it( addresses );
     while ( it && i < 1024 ) {
         Address * a = it;
-        if ( !a->id() && !seen.contains( a->toString() ) ) {
+        if ( !a->id() && !unided.contains( a->toString() ) ) {
             int n = 3*i+1;
             String p;
-            seen.insert( a->toString(), a );
+            unided.insert( a->toString(), a );
             q->bind( n, a->name() );
             p.append( "(name=$" );
             p.append( fn( n++ ) );
@@ -489,7 +489,7 @@ void AddressCreator::processAddresses()
                          r->getString( "localpart" ),
                          r->getString( "domain" ) );
         Address * orig =
-            seen.take( a->toString() );
+            unided.take( a->toString() );
         if ( orig )
             orig->setId( r->getInt( "id" ) );
     }
@@ -497,7 +497,7 @@ void AddressCreator::processAddresses()
     if ( !q->done() )
         return;
 
-    if ( seen.isEmpty() ) {
+    if ( unided.isEmpty() ) {
         state = 0;
         selectAddresses();
     }
@@ -513,9 +513,9 @@ void AddressCreator::insertAddresses()
 
     q = new Query( "copy addresses (name,localpart,domain) "
                    "from stdin with binary", this );
-    StringList::Iterator it( seen.keys() );
+    StringList::Iterator it( unided.keys() );
     while ( it ) {
-        Address * a = seen.take( *it );
+        Address * a = unided.take( *it );
         q->bind( 1, a->name() );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
