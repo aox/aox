@@ -86,7 +86,7 @@ public:
             uint * id = (uint *)Allocator::alloc( sizeof(uint), 0 );
             *id = r->getInt( "id" );
             Address * a =
-                new Address( r->getString( "name" ),
+                new Address( r->getUString( "name" ),
                              r->getString( "localpart" ),
                              r->getString( "domain" ) );
 
@@ -469,7 +469,7 @@ void UpdateDatabase::execute()
                 Row * r = d->query->nextRow();
 
                 AddressMap * m = new AddressMap;
-                m->bad = new Address( r->getString( "name" ),
+                m->bad = new Address( r->getUString( "name" ),
                                       r->getString( "localpart" ),
                                       r->getString( "domain" ) );
                 m->bad->setId( r->getInt( "id" ) );
