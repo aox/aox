@@ -21,6 +21,8 @@
 void Id::parse()
 {
     space();
+    String name;
+    String version;
     if ( nextChar() == '(' ) {
         step();
         while ( nextChar() != ')' ) {
@@ -29,9 +31,16 @@ void Id::parse()
             String value = nstring();
             if ( nextChar() == ' ' )
                 space();
-            if ( ok() && !name.isEmpty() && !value.isEmpty() )
-                log( "Client ID: " + name.simplified() + ": " +
-                     value.simplified() );
+            if ( ok() && !name.isEmpty() && !value.isEmpty() ) {
+                name = name.lower().simplified();
+                if ( name == "name" )
+                    name = value.simplified();
+                else if ( name == "version" )
+                    version = value.simplified();
+                log( "Client ID: " + name.simplified() +
+                     ": " + value.simplified(),
+                     Log::Debug );
+            }
         }
         require( ")" );
     }
@@ -39,6 +48,11 @@ void Id::parse()
         nil();
     }
     end();
+
+    if ( !name.isEmpty() && !version.isEmpty() )
+        log( "Client: " + name + ", version " + version );
+    else if ( !name.isEmpty() )
+        log( "Client: " + name );
 }
 
 
