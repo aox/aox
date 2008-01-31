@@ -538,6 +538,7 @@ void AddressCreator::processInsert()
         if ( q->error().contains( "addresses_nld_key" ) ) {
             q = new Query( "rollback to b" + fn( savepoint ), this );
             t->enqueue( q );
+            savepoint++;
         }
         else {
             failed = true;
