@@ -511,7 +511,7 @@ void AddressCreator::processAddresses()
 
 void AddressCreator::insertAddresses()
 {
-    q = new Query( "savepoint a" + fn( savepoint ), this );
+    q = new Query( "savepoint b" + fn( savepoint ), this );
     t->enqueue( q );
 
     q = new Query( "copy addresses (name,localpart,domain) "
@@ -539,7 +539,7 @@ void AddressCreator::processInsert()
     state = 0;
     if ( q->failed() ) {
         if ( q->error().contains( "addresses_nld_key" ) ) {
-            q = new Query( "rollback to a" + fn( savepoint ), this );
+            q = new Query( "rollback to b" + fn( savepoint ), this );
             t->enqueue( q );
         }
         else {
