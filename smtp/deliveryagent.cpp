@@ -288,16 +288,10 @@ Query * DeliveryAgent::fetchSender( uint sender )
 
 Query * DeliveryAgent::fetchRecipients( uint delivery )
 {
-    // XXX: We go just a little too far to fetch last_attempt
-    // in RFC822 format here. The right thing would be to add
-    // timestamptz support to Query/PgMessage.
     Query * q =
         new Query(
             "select recipient,localpart,domain,action,status,"
-            "to_char(last_attempt,'DD Mon YYYY HH24:MI:SS ')||"
-            "to_char((extract(timezone from last_attempt)/60) + "
-            "40*((extract(timezone from last_attempt)/60)"
-            "::integer/60), 'SG0000') as last_attempt "
+            "extract(epoch from last_attempt)::integer as last_attempt "
             "from delivery_recipients join addresses "
             "on (recipient=addresses.id) "
             "where delivery=$1", this
@@ -353,7 +347,7 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
 
         if ( !r->isNull( "last_attempt" ) ) {
             Date * date = new Date;
-            date->setRfc822( r->getString( "last_attempt" ) );
+            date->setUnixTime( r->getInt( "last_attempt" ) );
             recipient->setLastAttempt( date );
         }
 
