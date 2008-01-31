@@ -485,7 +485,7 @@ void AddressCreator::processAddresses()
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
         Address * a =
-            new Address( r->getString( "name" ),
+            new Address( r->getUString( "name" ),
                          r->getString( "localpart" ),
                          r->getString( "domain" ) );
         Address * orig =
