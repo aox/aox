@@ -93,6 +93,7 @@ void DeliveryAgent::execute()
             log( "Won't retry so soon after last attempt", Log::Debug );
             d->row = 0;
         }
+        log( "Delivery ID is " + d->row->getInt( "id" ) );
     }
 
     // Fetch the sender address, the relevant delivery_recipients
@@ -273,9 +274,6 @@ Message * DeliveryAgent::fetchMessage( uint messageId )
 
 Query * DeliveryAgent::fetchSender( uint sender )
 {
-    // We fetch the sender address separately because we don't (and
-    // should not) have UPDATE privileges on addresses, so we can't
-    // join to addresses in fetchDeliveries().
     Query * q =
         new Query( "select localpart,domain from addresses "
                    "where id=$1", this );
