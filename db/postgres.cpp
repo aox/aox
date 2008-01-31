@@ -586,7 +586,7 @@ void Postgres::unknown( char type )
             String e;
             bool known = true;
             if ( n == "client_encoding" ) {
-                if ( v != "UTF8" )
+                if ( v != "UTF8" && v != "SQL_ASCII" )
                     e = "Unexpected client encoding: ";
             }
             else if ( n == "DateStyle" ) {
@@ -595,9 +595,16 @@ void Postgres::unknown( char type )
                     e = "DateStyle apparently does not support ISO: ";
             }
             else if ( n == "integer_datetimes" ) {
-                // we want integers... I think
-                if ( v.simplified().lower() != "on" )
-                    e = "Integer date times disabled: ";
+                // PG documentation says:
+                //     "Use 64-bit integer storage for datetimes and
+                //     intervals, rather than the default floating-point
+                //     storage. This reduces the range of representable
+                //     values but guarantees microsecond precision across
+                //     the full range (see Section 8.5 for more
+                //     information)."
+                // We don't care about that. Email uses only seconds,
+                // and only a fairly limited time range. Both on and
+                // off are okay.
             }
             else if ( n == "is_superuser" ) {
                 if ( v.simplified().lower() != "off" )
