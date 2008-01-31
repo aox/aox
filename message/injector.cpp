@@ -447,7 +447,7 @@ void AddressCreator::selectAddresses()
     List<Address>::Iterator it( addresses );
     while ( it && i < 1024 ) {
         Address * a = it;
-        if ( !a->id() && !unided.contains( a->toString() ) ) {
+        if ( !a->id() ) {
             int n = 3*i+1;
             String p;
             unided.insert( a->toString(), a );
