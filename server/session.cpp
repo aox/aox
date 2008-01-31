@@ -369,6 +369,7 @@ void Session::emitResponses( ResponseType type )
 {
     if ( type == Deleted ) {
         emitExpunges();
+        d->msns.remove( d->expunges );
         d->expunges.clear();
         if ( d->nextModSeq <= d->expungeModSeq )
             d->nextModSeq = d->expungeModSeq + 1;
