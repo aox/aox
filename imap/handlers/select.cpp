@@ -161,7 +161,7 @@ void Select::execute()
             sq = " and flag in "
                  "(select id from flags where lower(name)='\\seen')";
         d->firstUnseen 
-            = new Query( "select uid from mailbox_messages "
+            = new Query( "select uid from mailbox_messages mm "
                          "where mailbox=$1 and uid not in "
                          "(select uid from flags where mailbox=$1 " + sq + ") "
                          "order by mm.uid limit 1", this );
