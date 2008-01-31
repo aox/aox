@@ -396,12 +396,13 @@ public:
     List<Address> * addresses;
     EventHandler * owner;
     Dict<Address> seen;
-    bool failed;
     int savepoint;
+    bool failed;
+    bool done;
 
     AddressCreator( Transaction * tr, List<Address> * a, EventHandler * ev )
         : state( 0 ), q( 0 ), t( tr ), addresses( a ), owner( ev ),
-          failed( false ), savepoint( 0 )
+          savepoint( 0 ), failed( false ), done( false )
     {}
 
     void execute();
@@ -409,11 +410,6 @@ public:
     void processAddresses();
     void insertAddresses();
     void processInsert();
-
-    bool done() const
-    {
-        return state == 42;
-    }
 };
 
 void AddressCreator::execute()
@@ -432,6 +428,7 @@ void AddressCreator::execute()
 
     if ( state == 4 ) {
         state = 42;
+        done = true;
         owner->execute();
     }
 }
@@ -839,12 +836,25 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
+            resolveAddressLinks();
+            d->state = InsertingAddresses;
+        }
+    }
+
+    if ( d->state == InsertingAddresses ) {
+        if ( !d->addressCreator->done )
+            return;
+
+        if ( d->addressCreator->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
             selectMessageId();
             selectUids();
             buildFieldLinks();
-            resolveAddressLinks();
             d->transaction->execute();
-
             d->state = SelectingUids;
         }
     }
@@ -890,20 +900,9 @@ void Injector::execute()
         // lookup is complete.  (We could have done this without
         // waiting for the bodyparts to be inserted, but it didn't
         // seem worthwhile.)
-
-        if ( !d->addressCreator->done() )
-            return;
-
-        if ( d->addressCreator->failed ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
-            insertDeliveries();
-            linkAddresses();
-            d->state = LinkingFlags;
-        }
+        insertDeliveries();
+        linkAddresses();
+        d->state = LinkingFlags;
     }
 
     if ( d->state == LinkingFlags ) {
