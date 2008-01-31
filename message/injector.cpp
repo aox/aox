@@ -433,6 +433,17 @@ void AddressCreator::execute()
     }
 }
 
+static String addressKey( Address * a )
+{
+    String r;
+    r.append( a->uname().utf8() );
+    r.append( '\0' );
+    r.append( a->localpart() );
+    r.append( '\0' );
+    r.append( a->domain().lower() );
+    return r;
+}
+
 void AddressCreator::selectAddresses()
 {
     q = new Query( "", this );
@@ -445,13 +456,13 @@ void AddressCreator::selectAddresses()
     uint i = 0;
     StringList sl;
     List<Address>::Iterator it( addresses );
-    while ( it && i < 1024 ) {
+    while ( it && i < 128 ) {
         Address * a = it;
         if ( !a->id() ) {
             int n = 3*i+1;
             String p;
-            unided.insert( a->toString(), a );
-            q->bind( n, a->name() );
+            unided.insert( addressKey( a ), a );
+            q->bind( n, a->uname() );
             p.append( "(name=$" );
             p.append( fn( n++ ) );
             q->bind( n, a->localpart() );
@@ -488,8 +499,9 @@ void AddressCreator::processAddresses()
             new Address( r->getUString( "name" ),
                          r->getString( "localpart" ),
                          r->getString( "domain" ) );
+
         Address * orig =
-            unided.take( a->toString() );
+            unided.take( addressKey( a ) );
         if ( orig )
             orig->setId( r->getInt( "id" ) );
     }
@@ -516,7 +528,7 @@ void AddressCreator::insertAddresses()
     StringList::Iterator it( unided.keys() );
     while ( it ) {
         Address * a = unided.take( *it );
-        q->bind( 1, a->name() );
+        q->bind( 1, a->uname() );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
         q->submitLine();
@@ -1048,7 +1060,7 @@ void Injector::resolveAddressLinks()
 
     List<AddressLink>::Iterator i( d->addressLinks );
     while ( i ) {
-        String k = i->address->toString();
+        String k = addressKey( i->address );
 
         if ( unique.contains( k ) ) {
             i->address = unique.find( k );
