@@ -437,7 +437,7 @@ void Session::setUidnext( uint u )
 void Session::refresh( EventHandler * handler )
 {
     if ( !d->initialiser )
-        (void)new SessionInitialiser( d->mailbox );
+        d->initialiser = new SessionInitialiser( d->mailbox );
     if ( handler && d->initialiser )
         d->initialiser->addWatcher( handler );
 }
