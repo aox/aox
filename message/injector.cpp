@@ -468,8 +468,8 @@ void AddressCreator::selectAddresses()
             q->bind( n, a->localpart() );
             p.append( " and localpart=$" );
             p.append( fn( n++ ) );
-            q->bind( n, a->domain() );
-            p.append( " and domain=$" );
+            q->bind( n, a->domain().lower() );
+            p.append( " and lower(domain)=$" );
             p.append( fn( n++ ) );
             p.append( ")" );
             sl.append( p );
