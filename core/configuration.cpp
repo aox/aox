@@ -678,11 +678,11 @@ void Configuration::setup( const String & global, bool allowFailure )
             in6.sin6_port = ntohs( 15352 ); // random would perhaps be better
             in6.sin6_flowinfo = 0;
             int i = 0;
-            while ( i < 7 ) {
-                in6.sin6_addr.s6_addr16[i] = 0;
+            while ( i < 15 ) {
+                in6.sin6_addr.s6_addr[i] = 0;
                 ++i;
             }
-            in6.sin6_addr.s6_addr16[7] = ntohs( 1 );
+            in6.sin6_addr.s6_addr[15] = ntohs( 1 );
             in6.sin6_scope_id = 0;
             if ( ::bind( s, (struct sockaddr *)&in6, sizeof( in6 ) ) < 0 ) {
                 if ( errno == EADDRINUSE )
