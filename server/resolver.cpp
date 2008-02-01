@@ -72,6 +72,9 @@ Resolver::Resolver()
 
 StringList Resolver::resolve( const String & name )
 {
+    bool use4 = Configuration::toggle( Configuration::UseIPv4 );
+    bool use6 = Configuration::toggle( Configuration::UseIPv6 );
+
     Resolver * r = resolver();
     r->d->host = name.lower();
     if ( r->d->names.contains( r->d->host ) )
@@ -79,8 +82,10 @@ StringList Resolver::resolve( const String & name )
 
     StringList * results = new StringList;
     if ( r->d->host == "localhost" ) {
-        results->append( "::1" );
-        results->append( "127.0.0.1" );
+        if ( use6 )
+            results->append( "::1" );
+        if ( use4 )
+            results->append( "127.0.0.1" );
     }
     else if ( r->d->host.contains( ':' ) ) {
         // it's an ipv6 address
@@ -102,9 +107,9 @@ StringList Resolver::resolve( const String & name )
     else {
         // it's a domain name. we use res_search() since getnameinfo()
         // had such bad karma when we tried it.
-        if ( Configuration::toggle( Configuration::UseIPv6 ) )
+        if ( use6 )
             r->query( T_AAAA, results );
-        if ( Configuration::toggle( Configuration::UseIPv4 ) )
+        if ( use4 )
             r->query( T_A, results );
         r->d->names.insert( r->d->host, results );
     }
