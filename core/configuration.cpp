@@ -667,9 +667,22 @@ void Configuration::setup( const String & global, bool allowFailure )
 
     if ( !present( UseIPv6 ) && toggle( UseIPv6 ) ) {
         int s = ::socket( PF_INET6, SOCK_STREAM, IPPROTO_TCP );
-        if ( s < 0 && errno == EAFNOSUPPORT ) {
+        if ( s < 0 ) {
             log( "Setting default use-ipv6=off", Log::Info );
             add( "use-ipv6 = false" );
+        }
+        else {
+            struct sockaddr_in6 in6;
+            d->valid = true;
+            d->proto = IPv6;
+            d->port  = ntohs( in6->sin6_port );
+            memmove( d->ip6a, in6->sin6_addr.s6_addr, 16 );
+            int i = 0;
+            while ( i < 8 ) {
+                d->ip6a[i] = ntohs( d->ip6a[i] );
+                i++;
+            }
+            
         }
         if ( s >= 0 )
             ::close( s );
