@@ -437,7 +437,7 @@ void Session::setUidnext( uint u )
 void Session::refresh( EventHandler * handler )
 {
     if ( !d->initialiser )
-        d->initialiser = new SessionInitialiser( d->mailbox );
+        (void)new SessionInitialiser( d->mailbox );
     if ( handler && d->initialiser )
         d->initialiser->addWatcher( handler );
 }
@@ -571,8 +571,10 @@ void SessionInitialiser::findSessions()
 {
     List<Session>::Iterator i( d->mailbox->sessions() );
     while ( i ) {
-        if ( !i->sessionInitialiser() )
+        if ( !i->initialised() && !i->sessionInitialiser() ) {
             d->sessions.append( i );
+            i->setSessionInitialiser( this );
+        }
         ++i;
     }
 }
