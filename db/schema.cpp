@@ -2763,19 +2763,22 @@ bool Schema::stepTo60()
             }
 
             d->q = new Query( "alter table part_numbers drop constraint " +
-                              *constraints.find( "part_numbers" ), this );
+                              constraints.find( "part_numbers" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table date_fields drop constraint " +
-                              *constraints.find( "date_fields" ), this );
+                              constraints.find( "date_fields" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table thread_members drop constraint " +
-                              *constraints.find( "thread_members" ), this );
+                              constraints.find( "thread_members" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table flags drop constraint " +
-                              *constraints.find( "flags" ), this );
+                              constraints.find( "flags" )->quoted(), this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "delete from flags using deleted_messages d "
@@ -2791,7 +2794,8 @@ bool Schema::stepTo60()
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table annotations drop constraint " +
-                              *constraints.find( "annotations" ), this );
+                              constraints.find( "annotations" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "delete from annotations using "
@@ -2809,19 +2813,23 @@ bool Schema::stepTo60()
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table view_messages drop constraint " +
-                              *constraints.find( "view_messages" ), this );
+                              constraints.find( "view_messages" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table deleted_messages drop constraint " +
-                              *constraints.find( "deleted_messages" ), this );
+                              constraints.find( "deleted_messages" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table modsequences drop constraint " +
-                              *constraints.find( "modsequences" ), this );
+                              constraints.find( "modsequences" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table deliveries drop constraint " +
-                              *constraints.find( "deliveries" ), this );
+                              constraints.find( "deliveries" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "select d.relname::text,c.conname::text,"
@@ -2860,11 +2868,13 @@ bool Schema::stepTo60()
             }
 
             d->q = new Query( "alter table header_fields drop constraint " +
-                              *constraints.find( "header_fields" ), this );
+                              constraints.find( "header_fields" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table address_fields drop constraint " +
-                              *constraints.find( "address_fields" ), this );
+                              constraints.find( "address_fields" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table part_numbers add message "
@@ -2911,7 +2921,7 @@ bool Schema::stepTo60()
             Row * r = d->q->nextRow();
 
             d->q = new Query( "alter table part_numbers drop constraint " +
-                              r->getString( "conname" ), this );
+                              r->getString( "conname" ).quoted(), this );
             d->t->enqueue( d->q );
             d->q = new Query( "alter table part_numbers add constraint "
                               "part_numbers_pkey primary key (message,part)",
@@ -2950,7 +2960,8 @@ bool Schema::stepTo60()
             }
 
             d->q = new Query( "alter table header_fields drop constraint " +
-                              *constraints.find( "header_fields" ), this );
+                              constraints.find( "header_fields" )->quoted(),
+                              this );
             d->t->enqueue( d->q );
 
             d->q = new Query( "alter table header_fields add message "
@@ -3161,7 +3172,7 @@ bool Schema::stepTo60()
             Row * r = d->q->nextRow();
 
             d->q = new Query( "alter table users drop constraint " +
-                              r->getString( "conname" ), this );
+                              r->getString( "conname" ).quoted(), this );
             d->t->enqueue( d->q );
             d->q = new Query( "drop index u_l", this );
             d->t->enqueue( d->q );
@@ -3381,7 +3392,7 @@ bool Schema::stepTo66()
         else {
             Row * r = d->q->nextRow();
             d->q = new Query( "alter table threads drop constraint " +
-                              r->getString( "conname" ), this );
+                              r->getString( "conname" ).quoted(), this );
             d->t->enqueue( d->q );
             d->q = new Query( "alter table threads add constraint "
                               "threads_subject_key unique "
