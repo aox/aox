@@ -88,8 +88,6 @@ bool Session::initialised() const
         return false;
     if ( d->initialiser )
         return false;
-    if ( !d->unannounced.isEmpty() )
-        return true;
     if ( d->nextModSeq < d->mailbox->nextModSeq() )
         return false;
     if ( d->uidnext < d->mailbox->uidnext() )
@@ -347,14 +345,6 @@ void Session::emitResponses()
         else
             ok = false;
     }
-    if ( !responsesNeeded( Deleted ) &&
-         !responsesNeeded( Modified ) &&
-         !responsesNeeded( New ) ) {
-        if ( d->nextModSeq < d->mailbox->nextModSeq() )
-            d->nextModSeq = d->mailbox->nextModSeq();
-        if ( d->uidnext < d->mailbox->uidnext() )
-            d->uidnext = d->mailbox->uidnext();
-    }
 }
 
 
@@ -393,10 +383,6 @@ void Session::emitResponses( ResponseType type )
         }
         d->msns.add( n );
         d->unannounced.remove( n );
-        if ( d->nextModSeq < d->mailbox->nextModSeq() )
-            d->nextModSeq = d->mailbox->nextModSeq();
-        if ( d->uidnext < d->mailbox->uidnext() )
-            d->uidnext = d->mailbox->uidnext();
         emitExists( d->msns.count() );
     }
 }
@@ -497,12 +483,6 @@ SessionInitialiser::SessionInitialiser( Mailbox * mailbox )
 {
     d->mailbox = mailbox;
     execute();
-    if ( d->state != SessionInitialiserData::Again )
-        log( "Updating " + fn( d->sessions.count() ) + " session(s) on " +
-             d->mailbox->name().ascii() +
-             " for modseq [" + fn( d->oldModSeq ) + "," +
-             fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
-             fn( d->newUidnext ) + ">" );
 }
 
 
@@ -597,7 +577,8 @@ void SessionInitialiser::eliminateGoodSessions()
         if ( d->mailbox->nextModSeq() <= s->nextModSeq() + 1 ) {
             MessageSet u( s->unannounced() );
             MessageSet unknownNew;
-            unknownNew.add( s->uidnext(), d->mailbox->uidnext() - 1 );
+            if ( s->uidnext() < d->mailbox->uidnext() )
+                unknownNew.add( s->uidnext(), d->mailbox->uidnext() - 1 );
             bool any = false;;
             if ( unknownNew.isEmpty() &&
                  d->mailbox->nextModSeq() == s->nextModSeq() )
@@ -627,8 +608,8 @@ void SessionInitialiser::eliminateGoodSessions()
                 // least one message with that modseq. fine. no need
                 // to work on its behalf.
                 s->emitResponses();
-                d->sessions.take( s );
                 s->setSessionInitialiser( 0 );
+                d->sessions.take( s );
             }
         }
     }
@@ -711,6 +692,12 @@ void SessionInitialiser::grabLock()
     if ( d->mailbox->view() )
         d->changeRecent = false;
 
+    log( "Updating " + fn( d->sessions.count() ) + " session(s) on " +
+         d->mailbox->name().ascii() +
+         " for modseq [" + fn( d->oldModSeq ) + "," +
+         fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
+         fn( d->newUidnext ) + ">" );
+
     if ( d->changeRecent || d->mailbox->view() )
         d->t = new Transaction( this );
 
@@ -741,7 +728,7 @@ void SessionInitialiser::grabLock()
 
 /*! Commits the transaction, releasing the locks we've held, and
     updates the state so we'll tell the waiting sessions and
-    eventhandlers to do on.
+    eventhandlers to go on.
 */
 
 void SessionInitialiser::releaseLock()
@@ -1028,6 +1015,11 @@ void SessionInitialiser::emitResponses()
 {
     List<Session>::Iterator s( d->sessions );
     while ( s ) {
+        if ( s->nextModSeq() < d->mailbox->nextModSeq() )
+            s->setNextModSeq( d->mailbox->nextModSeq() );
+        if ( s->uidnext() < d->mailbox->uidnext() )
+            s->setUidnext( d->mailbox->uidnext() );
+
         s->emitResponses();
         s->setSessionInitialiser( 0 );
         ++s;
