@@ -131,7 +131,8 @@ void Select::execute()
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
         imap()->beginSession( d->session );
-        d->session->refresh( this );
+        if ( !d->session->initialised() )
+            d->session->refresh( this );
     }
 
     if ( !d->usedFlags && d->mailbox->uidnext() > 1 ) {
