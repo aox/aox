@@ -13,12 +13,13 @@
 
   Investigate Martin Rode's 3gb aox process.
 
-  Axel Rau's SMTP authentication and "invalid UTF-8" problems.
+  Axel Rau's "invalid UTF-8" problems.
 
   Done:
   - ImapSession now uses Fetch.
   - Injector creates field/flag/annotation names and addresses by
     itself, in the same transaction. It's ugly, but seems to work.
+  - aox undelete works again.
 
   2008-01-27: decide on feature list
   2008-02-20: drop things that can't be finished
