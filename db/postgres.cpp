@@ -163,6 +163,7 @@ void Postgres::processQueue()
         }
         else {
             q->setError( "Database handle no longer usable." );
+            q->notify();
         }
     }
 
