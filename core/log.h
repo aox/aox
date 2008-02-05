@@ -24,6 +24,8 @@ public:
     void log( const String &, Severity = Info );
     String id();
 
+    Log * parent() const;
+
     static const char * severity( Severity );
     static const char * facility( Facility );
     static bool disastersYet();
@@ -32,6 +34,7 @@ private:
     String ide;
     Facility fc;
     uint children;
+    Log * p;
 };
 
 

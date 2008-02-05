@@ -34,14 +34,13 @@ void log( const String &m, Log::Severity s )
 /*! Constructs an empty Log object with facility \a f. */
 
 Log::Log( Facility f )
-    : fc( f )
+    : fc( f ), children( 0 ), p( 0 )
 {
     Scope * cs = Scope::current();
-    Log *l = 0;
     if ( cs )
-        l = cs->log();
-    if ( l )
-        ide = l->id() + "/" + fn( l->children++ );
+        p = cs->log();
+    if ( p )
+        ide = p->id() + "/" + fn( p->children++ );
     else
         ide = "1";
     children = 1;
@@ -62,7 +61,7 @@ void Log::setFacility( Facility f )
 
 void Log::log( const String &m, Severity s )
 {
-    Logger *l = Logger::global();
+    Logger * l = Logger::global();
     if ( s == Disaster ) {
         disasters = true;
         String n = "Archiveopteryx";
@@ -166,4 +165,16 @@ bool Log::disastersYet()
 String Log::id()
 {
     return ide;
+}
+
+
+/*! Returns a pointer to the Log that was in effect when this object
+    was created. This object's id() is based on the parent's id().
+    
+    The return value if parent() may be 0.
+*/
+
+Log * Log::parent() const
+{
+    return p;
 }
