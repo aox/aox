@@ -11,8 +11,8 @@
 #include "mailbox.h"
 #include "bodypart.h"
 #include "datefield.h"
-#include "mimefields.h"
 #include "fieldcache.h"
+#include "mimefields.h"
 #include "addressfield.h"
 #include "transaction.h"
 #include "annotation.h"
@@ -34,6 +34,7 @@ class BidFetcher;
 class AddressCreator;
 class NewFlagCreator;
 class NewAnnotationCreator;
+class FieldCreator;
 
 
 static PreparedStatement *lockUidnext;
@@ -119,7 +120,7 @@ public:
           mailboxes( 0 ), bodyparts( 0 ), midFetcher( 0 ),
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
-          otherFields( 0 ), fieldLookup( 0 ), addressCreator( 0 ),
+          otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
           flagCreator( 0 ), annotationCreator( 0 ),
           remoteRecipients( 0 ), sender( 0 ), wrapped( false )
     {}
@@ -144,9 +145,9 @@ public:
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
     List< FieldLink > * dateLinks;
-    List< String > * otherFields;
+    StringList * otherFields;
 
-    CacheLookup * fieldLookup;
+    FieldCreator * fieldCreator;
     AddressCreator * addressCreator;
     NewFlagCreator * flagCreator;
     NewAnnotationCreator * annotationCreator;
@@ -869,6 +870,153 @@ void NewAnnotationCreator::processInsert()
 }
 
 
+class FieldCreator
+    : public EventHandler
+{
+public:
+    int state;
+    Query * q;
+    Transaction * t;
+    StringList flags;
+    EventHandler * owner;
+    Dict<Flag> unided;
+    int savepoint;
+    bool failed;
+    bool done;
+
+    FieldCreator( Transaction * tr, const StringList & f, EventHandler * ev )
+        : state( 0 ), q( 0 ), t( tr ), flags( f ), owner( ev ),
+          savepoint( 0 ), failed( false ), done( false )
+    {}
+
+    void execute();
+    void selectFields();
+    void processFields();
+    void insertFields();
+    void processInsert();
+};
+
+void FieldCreator::execute()
+{
+    if ( state == 0 )
+        selectFields();
+
+    if ( state == 1 )
+        processFields();
+
+    if ( state == 2 )
+        insertFields();
+
+    if ( state == 3 )
+        processInsert();
+
+    if ( state == 4 ) {
+        state = 42;
+        done = true;
+        owner->execute();
+    }
+}
+
+void FieldCreator::selectFields()
+{
+    q = new Query( "", this );
+
+    String s( "select id, name from field_names where " );
+
+    unided.clear();
+
+    uint i = 0;
+    StringList sl;
+    StringList::Iterator it( flags );
+    while ( it ) {
+        String name( *it );
+        if ( Flag::find( name ) == 0 ) {
+            ++i;
+            String p;
+            q->bind( i, name );
+            p.append( "name=$" );
+            p.append( fn( i ) );
+            unided.insert( name, 0 );
+        }
+        ++it;
+    }
+    s.append( sl.join( " or " ) );
+    q->setString( s );
+    q->allowSlowness();
+
+    if ( i == 0 ) {
+        state = 4;
+    }
+    else {
+        state = 1;
+        t->enqueue( q );
+        t->execute();
+    }
+}
+
+void FieldCreator::processFields()
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        uint id( r->getInt( "id" ) );
+        String name( r->getString( "name" ) );
+        FieldNameCache::insert( name, id );
+        unided.take( name );
+    }
+
+    if ( !q->done() )
+        return;
+
+    if ( unided.isEmpty() ) {
+        state = 0;
+        selectFields();
+    }
+    else {
+        state = 2;
+    }
+}
+
+void FieldCreator::insertFields()
+{
+    q = new Query( "savepoint e" + fn( savepoint ), this );
+    t->enqueue( q );
+
+    q = new Query( "copy field_names (name) from stdin with binary", this );
+    StringList::Iterator it( unided.keys() );
+    while ( it ) {
+        q->bind( 1, *it, Query::Binary );
+        q->submitLine();
+        ++it;
+    }
+
+    state = 3;
+    t->enqueue( q );
+    t->execute();
+}
+
+void FieldCreator::processInsert()
+{
+    if ( !q->done() )
+        return;
+
+    state = 0;
+    if ( q->failed() ) {
+        if ( q->error().contains( "field_names_name_key" ) ) {
+            q = new Query( "rollback to e" + fn( savepoint ), this );
+            t->enqueue( q );
+            savepoint++;
+        }
+        else {
+            failed = true;
+            state = 4;
+        }
+    }
+
+    if ( state == 0 )
+        selectFields();
+}
+
+
 /*! \class Injector injector.h
     This class delivers a Message to a List of Mailboxes.
 
@@ -1161,6 +1309,22 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
+            d->state = CreatingFields;
+            buildFieldLinks();
+            createFields();
+        }
+    }
+
+    if ( d->state == CreatingFields ) {
+        if ( d->fieldCreator && !d->fieldCreator->done )
+            return;
+
+        if ( d->fieldCreator->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
             d->state = InsertingBodyparts;
             d->bidFetcher  =
                 new BidFetcher( d->transaction, d->bodyparts, this );
@@ -1179,17 +1343,9 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            buildFieldLinks();
-            d->state = InsertingFields;
+            d->state = InsertingAddresses;
+            resolveAddressLinks();
         }
-    }
-
-    if ( d->state == InsertingFields ) {
-        if ( !d->fieldLookup->done() )
-            return;
-
-        resolveAddressLinks();
-        d->state = InsertingAddresses;
     }
 
     if ( d->state == InsertingAddresses ) {
@@ -1443,6 +1599,32 @@ void Injector::resolveAddressLinks()
 }
 
 
+/*! This function creates a FieldCreator to create anything in
+    d->otherFields that we do not already recognise.
+*/
+
+void Injector::createFields()
+{
+    StringList newFields;
+
+    Dict<int> seen;
+    StringList::Iterator it( d->otherFields );
+    while ( it ) {
+        String n( *it );
+        if ( FieldNameCache::translate( n ) == 0 &&
+             !seen.contains( n ) )
+            newFields.append( n );
+        ++it;
+    }
+
+    if ( !newFields.isEmpty() ) {
+        d->fieldCreator =
+            new FieldCreator( d->transaction, newFields, this );
+        d->fieldCreator->execute();
+    }
+}
+
+
 /*! This private function builds a list of FieldLinks containing every
     header field used in the message, and uses
     FieldNameCache::lookup() to associate each unknown HeaderField
@@ -1455,7 +1637,7 @@ void Injector::buildFieldLinks()
     d->fieldLinks = new List< FieldLink >;
     d->addressLinks = new List< AddressLink >;
     d->dateLinks = new List< FieldLink >;
-    d->otherFields = new List< String >;
+    d->otherFields = new StringList;
 
     buildLinksForHeader( d->message->header(), "" );
 
@@ -1483,9 +1665,6 @@ void Injector::buildFieldLinks()
 
         ++bi;
     }
-
-    d->fieldLookup =
-        FieldNameCache::lookup( d->transaction, d->otherFields, this );
 }
 
 

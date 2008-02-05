@@ -21,6 +21,7 @@ public:
     static CacheLookup *lookup( Transaction *, List< String > *,
                                 EventHandler * );
     static uint translate( const String & );
+    static void insert( const String &, uint );
 };
 
 

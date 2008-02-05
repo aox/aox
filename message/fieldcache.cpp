@@ -155,3 +155,18 @@ uint FieldNameCache::translate( const String &field )
         return 0;
     return *t;
 }
+
+
+/*! Inserts a field with \a name and \a id into the cache. This function
+    exists for the Injector to use.
+*/
+
+void FieldNameCache::insert( const String & name, uint id )
+{
+    uint * tmp = (uint*)Allocator::alloc( sizeof(uint), 0 );
+    String * n = new String( name );
+    n->detach();
+    *tmp = id;
+    fieldsById->insert( id, n );
+    fieldsByName->insert( *n, tmp );
+}
