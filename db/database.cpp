@@ -22,6 +22,7 @@
 static uint backendNumber;
 List< Query > *Database::queries;
 static GraphableNumber * queryQueueLength = 0;
+static GraphableNumber * busyDbConnections = 0;
 static List< Database > *handles;
 static time_t lastExecuted;
 static time_t lastCreated;
@@ -220,9 +221,12 @@ void Database::disconnect()
 void Database::runQueue()
 {
     int connecting = 0;
+    int busy = 0;
 
     if ( !queryQueueLength )
         queryQueueLength = new GraphableNumber( "query-queue-length" );
+    if ( !busyDbConnections )
+        busyDbConnections = new GraphableNumber( "active-db-connections" );
 
     // First, we give each idle handle a Query to process
 
@@ -231,6 +235,13 @@ void Database::runQueue()
     List< Database >::Iterator it( handles );
     while ( it ) {
         State st = it->state();
+
+        if ( st != Connecting && // connecting isn't working
+             st != Broken && // broken isn't working
+             ( !it->usable() || // processing a query is working
+               st == InTransaction || // occupied by a transaction is, too
+               st == FailedTransaction ) )
+            busy++;
 
         if ( st == Idle && it->usable() ) {
             it->processQueue();
@@ -244,6 +255,7 @@ void Database::runQueue()
                 if ( it )
                     it->setTimeoutAfter( 5 );
                 queryQueueLength->setValue( 0 );
+                busyDbConnections->setValue( busy );
                 return;
             }
         }
@@ -255,6 +267,7 @@ void Database::runQueue()
     }
 
     queryQueueLength->setValue( queries->count() );
+    busyDbConnections->setValue( busy );
 
     // We'll check if we need to add new handles only if we couldn't
     // dispatch any outstanding queries.
