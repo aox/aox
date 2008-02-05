@@ -768,12 +768,6 @@ Logging to syslog
 
 Rendering webmail HTML is presumably good, but...
 
-  Knowledge is better than presumption.
-
-  Webmail services have a lot of known holes. Cross site scripting and
-  suchlike. We can add known sploits/demos to our rendering tests, and
-  check that we're not vulnerable.
-
   We have a potential security hole: A malevolent HTML bodypart is
   forwarded as is on the "download bodypart" page.
 
