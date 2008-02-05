@@ -9,6 +9,7 @@
 #include "string.h"
 #include "ustring.h"
 #include "database.h"
+#include "eventloop.h"
 #include "stringlist.h"
 #include "transaction.h"
 
@@ -453,11 +454,28 @@ void Query::notify()
     }
     catch ( Exception e ) {
         d->owner = 0; // so we can't get close to a segfault again
-        if ( e == Range )
+        if ( e == Range ) {
             setError( "Out-of-range memory access "
                       "while processing Query::notify()" );
-        else
+            List<Connection>::Iterator i( EventLoop::global()->connections() );
+            while ( i ) {
+                Connection * c = i;
+                ++i;
+                Log * l = Scope::current()->log();
+                while ( l && l != c->log() )
+                    l = l->parent();
+                if ( l ) {
+                    Scope x( l );
+                    ::log( "Out-of-range error. "
+                           "Closing connection abruptly.",
+                           Log::Error );
+                    EventLoop::global()->removeConnection( c );
+                }
+            }
+        }
+        else {
             throw e;
+        }
     }
 }
 
