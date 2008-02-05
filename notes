@@ -11,15 +11,14 @@
   IMAP commands. The mechanism for keeping commands running is a
   little too complex at the moment.
 
-  Kill the caches. Teach Injector to add Addresses and FieldNames rows
-  on its own. Investigate Martin Rode's 3gb aox process (possibly
-  after we have him upgrade to 2.06, he is running 2.04+buffer-patch
-  now).
+  Investigate Martin Rode's 3gb aox process.
 
   Axel Rau's SMTP authentication and "invalid UTF-8" problems.
 
   Done:
   - ImapSession now uses Fetch.
+  - Injector creates field/flag/annotation names and addresses by
+    itself, in the same transaction. It's ugly, but seems to work.
 
   2008-01-27: decide on feature list
   2008-02-20: drop things that can't be finished
