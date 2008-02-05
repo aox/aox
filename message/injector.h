@@ -26,9 +26,12 @@ public:
     virtual ~Injector();
 
     enum State {
-        Inactive, InsertingBodyparts, InsertingFields, InsertingAddresses,
-        SelectingUids, InsertingMessages, LinkingAddresses, LinkingFlags,
-        LinkingAnnotations, AwaitingCompletion, Done
+        Inactive,
+        CreatingFlags, CreatingAnnotationNames,
+        InsertingBodyparts, InsertingFields, InsertingAddresses,
+        SelectingUids, InsertingMessages,
+        LinkingAddresses, LinkingFlags, LinkingAnnotations,
+        AwaitingCompletion, Done
     };
 
     void setMailbox( Mailbox * );

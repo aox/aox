@@ -26,6 +26,8 @@ public:
 
     static uint largestId();
 
+    void setId( uint );
+
 private:
     class AnnotationNameData * d;
     friend class AnnotationNameFetcher;

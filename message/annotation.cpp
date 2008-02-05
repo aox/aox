@@ -266,6 +266,19 @@ uint AnnotationName::largestId()
 }
 
 
+/*! Sets this AnnotationName's id to \a id. */
+
+void AnnotationName::setId( uint id )
+{
+    if ( ::annotationNamesById ) {
+        if ( d->id )
+            ::annotationNamesById->remove( d->id );
+        ::annotationNamesById->insert( id, this );
+    }
+    d->id = id;
+}
+
+
 class AnnotationData
     : public Garbage
 {

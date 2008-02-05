@@ -32,6 +32,8 @@ class MidFetcher;
 class UidFetcher;
 class BidFetcher;
 class AddressCreator;
+class NewFlagCreator;
+class NewAnnotationCreator;
 
 
 static PreparedStatement *lockUidnext;
@@ -118,6 +120,7 @@ public:
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldLookup( 0 ), addressCreator( 0 ),
+          flagCreator( 0 ), annotationCreator( 0 ),
           remoteRecipients( 0 ), sender( 0 ), wrapped( false )
     {}
 
@@ -145,6 +148,8 @@ public:
 
     CacheLookup * fieldLookup;
     AddressCreator * addressCreator;
+    NewFlagCreator * flagCreator;
+    NewAnnotationCreator * annotationCreator;
 
     List<Address> * remoteRecipients;
     Address * sender;
@@ -563,6 +568,307 @@ void AddressCreator::processInsert()
 }
 
 
+class NewFlagCreator
+    : public EventHandler
+{
+public:
+    int state;
+    Query * q;
+    Transaction * t;
+    StringList flags;
+    EventHandler * owner;
+    Dict<Flag> unided;
+    int savepoint;
+    bool failed;
+    bool done;
+
+    NewFlagCreator( Transaction * tr, const StringList & f, EventHandler * ev )
+        : state( 0 ), q( 0 ), t( tr ), flags( f ), owner( ev ),
+          savepoint( 0 ), failed( false ), done( false )
+    {}
+
+    void execute();
+    void selectFlags();
+    void processFlags();
+    void insertFlags();
+    void processInsert();
+};
+
+void NewFlagCreator::execute()
+{
+    if ( state == 0 )
+        selectFlags();
+
+    if ( state == 1 )
+        processFlags();
+
+    if ( state == 2 )
+        insertFlags();
+
+    if ( state == 3 )
+        processInsert();
+
+    if ( state == 4 ) {
+        state = 42;
+        done = true;
+        owner->execute();
+    }
+}
+
+void NewFlagCreator::selectFlags()
+{
+    q = new Query( "", this );
+
+    String s( "select id, name from flag_names where " );
+
+    unided.clear();
+
+    uint i = 0;
+    StringList sl;
+    StringList::Iterator it( flags );
+    while ( it ) {
+        String name( *it );
+        if ( Flag::find( name ) == 0 ) {
+            ++i;
+            String p;
+            q->bind( i, name.lower() );
+            p.append( "lower(name)=$" );
+            p.append( fn( i ) );
+            unided.insert( name.lower(), 0 );
+        }
+        ++it;
+    }
+    s.append( sl.join( " or " ) );
+    q->setString( s );
+    q->allowSlowness();
+
+    if ( i == 0 ) {
+        state = 4;
+    }
+    else {
+        state = 1;
+        t->enqueue( q );
+        t->execute();
+    }
+}
+
+void NewFlagCreator::processFlags()
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        String name( r->getString( "name" ) );
+        (void)new Flag( name, r->getInt( "id" ) );
+        unided.take( name.lower() );
+    }
+
+    if ( !q->done() )
+        return;
+
+    if ( unided.isEmpty() ) {
+        state = 0;
+        selectFlags();
+    }
+    else {
+        state = 2;
+    }
+}
+
+void NewFlagCreator::insertFlags()
+{
+    q = new Query( "savepoint c" + fn( savepoint ), this );
+    t->enqueue( q );
+
+    q = new Query( "copy flag_names (name) from stdin with binary", this );
+    StringList::Iterator it( unided.keys() );
+    while ( it ) {
+        q->bind( 1, *it, Query::Binary );
+        q->submitLine();
+        ++it;
+    }
+
+    state = 3;
+    t->enqueue( q );
+    t->execute();
+}
+
+void NewFlagCreator::processInsert()
+{
+    if ( !q->done() )
+        return;
+
+    state = 0;
+    if ( q->failed() ) {
+        if ( q->error().contains( "fn_uname" ) ) {
+            q = new Query( "rollback to c" + fn( savepoint ), this );
+            t->enqueue( q );
+            savepoint++;
+        }
+        else {
+            failed = true;
+            state = 4;
+        }
+    }
+
+    if ( state == 0 )
+        selectFlags();
+}
+
+
+class NewAnnotationCreator
+    : public EventHandler
+{
+public:
+    int state;
+    Query * q;
+    Transaction * t;
+    StringList names;
+    EventHandler * owner;
+    Dict<Flag> unided;
+    int savepoint;
+    bool failed;
+    bool done;
+
+    NewAnnotationCreator( Transaction * tr, const StringList & f, EventHandler * ev )
+        : state( 0 ), q( 0 ), t( tr ), names( f ), owner( ev ),
+          savepoint( 0 ), failed( false ), done( false )
+    {}
+
+    void execute();
+    void selectAnnotations();
+    void processAnnotations();
+    void insertAnnotations();
+    void processInsert();
+};
+
+void NewAnnotationCreator::execute()
+{
+    if ( state == 0 )
+        selectAnnotations();
+
+    if ( state == 1 )
+        processAnnotations();
+
+    if ( state == 2 )
+        insertAnnotations();
+
+    if ( state == 3 )
+        processInsert();
+
+    if ( state == 4 ) {
+        state = 42;
+        done = true;
+        owner->execute();
+    }
+}
+
+void NewAnnotationCreator::selectAnnotations()
+{
+    q = new Query( "", this );
+
+    String s( "select id, name from annotation_names where " );
+
+    unided.clear();
+
+    uint i = 0;
+    StringList sl;
+    StringList::Iterator it( names );
+    while ( it ) {
+        String name( *it );
+        AnnotationName * an =
+            AnnotationName::find( name );
+        if ( !an || !an->id() ) {
+            ++i;
+            String p;
+            q->bind( i, name );
+            p.append( "name=$" );
+            p.append( fn( i ) );
+            unided.insert( name, 0 );
+        }
+        ++it;
+    }
+    s.append( sl.join( " or " ) );
+    q->setString( s );
+    q->allowSlowness();
+
+    if ( i == 0 ) {
+        state = 4;
+    }
+    else {
+        state = 1;
+        t->enqueue( q );
+        t->execute();
+    }
+}
+
+void NewAnnotationCreator::processAnnotations()
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        uint id = r->getInt( "id" );
+        String name( r->getString( "name" ) );
+        AnnotationName * an =
+            AnnotationName::find( name );
+        if ( !an )
+            an = new AnnotationName( name, id );
+        else
+            an->setId( id );
+        unided.take( name );
+    }
+
+    if ( !q->done() )
+        return;
+
+    if ( unided.isEmpty() ) {
+        state = 0;
+        selectAnnotations();
+    }
+    else {
+        state = 2;
+    }
+}
+
+void NewAnnotationCreator::insertAnnotations()
+{
+    q = new Query( "savepoint d" + fn( savepoint ), this );
+    t->enqueue( q );
+
+    q = new Query( "copy annotation_names (name) "
+                   "from stdin with binary", this );
+    StringList::Iterator it( unided.keys() );
+    while ( it ) {
+        q->bind( 1, *it, Query::Binary );
+        q->submitLine();
+        ++it;
+    }
+
+    state = 3;
+    t->enqueue( q );
+    t->execute();
+}
+
+void NewAnnotationCreator::processInsert()
+{
+    if ( !q->done() )
+        return;
+
+    state = 0;
+    if ( q->failed() ) {
+        if ( q->error().contains( "annotation_names_name_key" ) ) {
+            q = new Query( "rollback to d" + fn( savepoint ), this );
+            t->enqueue( q );
+            savepoint++;
+        }
+        else {
+            failed = true;
+            state = 4;
+        }
+    }
+
+    if ( state == 0 )
+        selectAnnotations();
+}
+
+
 /*! \class Injector injector.h
     This class delivers a Message to a List of Mailboxes.
 
@@ -826,17 +1132,41 @@ void Injector::execute()
         logMessageDetails();
 
         d->transaction = new Transaction( this );
-
-        // XXX: The following functions insert entries into flag_names
-        // and annotation_names outside the transaction, so we have no
-        // sensible way of dealing with errors.
+        d->state = CreatingFlags;
         createFlags();
-        createAnnotationNames();
+    }
 
-        d->state = InsertingBodyparts;
-        d->bidFetcher  = new BidFetcher( d->transaction, d->bodyparts, this );
-        setupBodyparts();
-        d->bidFetcher->execute();
+    if ( d->state == CreatingFlags ) {
+        if ( d->flagCreator && !d->flagCreator->done )
+            return;
+
+        if ( d->flagCreator && d->flagCreator->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
+            d->state = CreatingAnnotationNames;
+            createAnnotationNames();
+        }
+    }
+
+    if ( d->state == CreatingAnnotationNames ) {
+        if ( d->annotationCreator && !d->annotationCreator->done )
+            return;
+
+        if ( d->annotationCreator && d->annotationCreator->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
+            d->state = InsertingBodyparts;
+            d->bidFetcher  =
+                new BidFetcher( d->transaction, d->bodyparts, this );
+            setupBodyparts();
+            d->bidFetcher->execute();
+        }
     }
 
     if ( d->state == InsertingBodyparts ) {
@@ -1622,8 +1952,11 @@ void Injector::createFlags()
         ++it;
     }
 
-    if ( !unknown.isEmpty() )
-        (void)new FlagCreator( this, unknown );
+    if ( !unknown.isEmpty() ) {
+        d->flagCreator =
+            new NewFlagCreator( d->transaction, unknown, this );
+        d->flagCreator->execute();
+    }
 }
 
 
@@ -1641,8 +1974,11 @@ void Injector::createAnnotationNames()
         ++it;
     }
 
-    if ( !unknown.isEmpty() )
-        (void)new AnnotationNameCreator( this, unknown );
+    if ( !unknown.isEmpty() ) {
+        d->annotationCreator =
+            new NewAnnotationCreator( d->transaction, unknown, this );
+        d->annotationCreator->execute();
+    }
 }
 
 
