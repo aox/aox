@@ -444,11 +444,21 @@ EventHandler *Query::owner() const
 
 void Query::notify()
 {
-    // Transactions may create COMMIT/ROLLBACK queries without handlers.
     if ( !d->owner )
         return;
+
     Scope s( d->owner->log() );
-    d->owner->execute();
+    try {
+        d->owner->execute();
+    }
+    catch ( Exception e ) {
+        d->owner = 0; // so we can't get close to a segfault again
+        if ( e == Range )
+            setError( "Out-of-range memory access "
+                      "while processing Query::notify()" );
+        else
+            throw e;
+    }
 }
 
 
