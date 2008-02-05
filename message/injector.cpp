@@ -1322,7 +1322,7 @@ void Injector::execute()
         if ( d->fieldCreator && !d->fieldCreator->done )
             return;
 
-        if ( d->fieldCreator->failed ) {
+        if ( d->fieldCreator && d->fieldCreator->failed ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
