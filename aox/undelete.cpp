@@ -3,8 +3,10 @@
 #include "undelete.h"
 
 #include "transaction.h"
+#include "messageset.h"
 #include "occlient.h"
 #include "mailbox.h"
+#include "session.h"
 #include "query.h"
 #include "utf.h"
 
@@ -13,7 +15,7 @@ class UndeleteData
 {
 public:
     UndeleteData()
-        : uid( 0 ), q( 0 ), m( 0 ), t( 0 )
+        : uid( 0 ), q( 0 ), m( 0 ), t( 0 ), fetch( 0 )
     {}
 
     UString mailbox;
@@ -21,6 +23,7 @@ public:
     Query * q;
     Mailbox * m;
     Transaction * t;
+    Query * fetch;
 };
 
 
@@ -65,8 +68,8 @@ void Undelete::execute()
         if ( !d->m )
             error( "No mailbox named " + d->mailbox.utf8().quoted() );
 
-        d->q = new Query( "select * from deleted_messages where mailbox=$1 "
-                          "and uid=$2", this );
+        d->q = new Query( "select message from deleted_messages "
+                          "where mailbox=$1 and uid=$2", this );
         d->q->bind( 1, d->m->id() );
         d->q->bind( 2, d->uid );
         d->q->execute();
@@ -78,8 +81,11 @@ void Undelete::execute()
 
         Row * r = d->q->nextRow();
         if ( d->q->failed() || !r )
-            error( "Couldn't find deleted message with uid " + fn( d->uid ) +
-                   " in mailbox " + d->mailbox.utf8().quoted() );
+            error( "Couldn't find a deleted message with uid " +
+                   fn( d->uid ) + " in mailbox " +
+                   d->mailbox.utf8().quoted() );
+
+        uint message = r->getInt( "message" );
 
         d->t = new Transaction( this );
         d->q = new Query( "delete from deleted_messages where mailbox=$1 "
@@ -88,14 +94,23 @@ void Undelete::execute()
         d->q->bind( 2, d->uid );
         d->t->enqueue( d->q );
 
-        d->q = new Query( "delete from flags where mailbox=$1 and uid=$2 and "
-                          "flag=1", this );
+        d->q = new Query( "insert into mailbox_messages "
+                          "(mailbox,uid,message,idate,modseq) "
+                          "select $1,uidnext,$2,"
+                          "extract(epoch from current_timestamp),"
+                          "nextmodseq from mailboxes where id=$1 "
+                          "for update", this );
         d->q->bind( 1, d->m->id() );
-        d->q->bind( 2, d->uid );
+        d->q->bind( 2, message );
         d->t->enqueue( d->q );
 
-        d->q = new Query( "update mailboxes set uidvalidity=uidvalidity+1 "
-                          "where id=$1", this );
+        d->fetch = new Query( "select uidnext,nextmodseq from mailboxes "
+                              "where id=$1", this );
+        d->fetch->bind( 1, d->m->id() );
+        d->t->enqueue( d->fetch );
+
+        d->q = new Query( "update mailboxes set uidnext=uidnext+1, "
+                          "nextmodseq=nextmodseq+1 where id=$1", this );
         d->q->bind( 1, d->m->id() );
         d->t->enqueue( d->q );
         d->t->commit();
@@ -108,10 +123,38 @@ void Undelete::execute()
         error( "Couldn't undelete message: " + d->t->error() );
     }
     else {
-        // XXX: What should I send? There's no occlient message right
-        // now to say that the UIDVALIDITY of a mailbox has changed,
-        // and sending "new" to force a refresh seems very evil.
-        OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " new" );
+        Row * r = d->fetch->nextRow();
+
+        if ( r ) {
+            uint uidnext = r->getInt( "uidnext" );
+            int64 nextmodseq = r->getBigint( "nextmodseq" );
+
+            List<Session>::Iterator si( d->m->sessions() );
+            while ( si ) {
+                MessageSet dummy;
+                dummy.add( uidnext );
+                si->addUnannounced( dummy );
+                ++si;
+            }
+
+            Mailbox * m = d->m;
+            if ( m->uidnext() <= uidnext && m->nextModSeq() <= nextmodseq ) {
+                m->setUidnextAndNextModSeq( 1+uidnext, 1+nextmodseq );
+                OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
+                                "uidnext=" + fn( m->uidnext() ) + " "
+                                "nextmodseq=" + fn( m->nextModSeq() ) );
+            }
+            else if ( m->uidnext() <= uidnext ) {
+                m->setUidnext( 1 + uidnext );
+                OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
+                                "uidnext=" + fn( m->uidnext() ) );
+            }
+            else if ( m->nextModSeq() <= nextmodseq ) {
+                m->setNextModSeq( 1 + nextmodseq );
+                OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
+                                "nextmodseq=" + fn( m->nextModSeq() ) );
+            }
+        }
     }
 
     finish();
