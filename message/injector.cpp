@@ -636,6 +636,7 @@ void NewFlagCreator::selectFlags()
             p.append( "lower(name)=$" );
             p.append( fn( i ) );
             unided.insert( name.lower(), 0 );
+            sl.append( p );
         }
         ++it;
     }
@@ -784,6 +785,7 @@ void NewAnnotationCreator::selectAnnotations()
             p.append( "name=$" );
             p.append( fn( i ) );
             unided.insert( name, 0 );
+            sl.append( p );
         }
         ++it;
     }
@@ -937,6 +939,7 @@ void FieldCreator::selectFields()
             p.append( "name=$" );
             p.append( fn( i ) );
             unided.insert( name, 0 );
+            sl.append( p );
         }
         ++it;
     }
