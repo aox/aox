@@ -877,7 +877,7 @@ public:
     int state;
     Query * q;
     Transaction * t;
-    StringList flags;
+    StringList fields;
     EventHandler * owner;
     Dict<Flag> unided;
     int savepoint;
@@ -885,7 +885,7 @@ public:
     bool done;
 
     FieldCreator( Transaction * tr, const StringList & f, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), flags( f ), owner( ev ),
+        : state( 0 ), q( 0 ), t( tr ), fields( f ), owner( ev ),
           savepoint( 0 ), failed( false ), done( false )
     {}
 
@@ -927,10 +927,10 @@ void FieldCreator::selectFields()
 
     uint i = 0;
     StringList sl;
-    StringList::Iterator it( flags );
+    StringList::Iterator it( fields );
     while ( it ) {
         String name( *it );
-        if ( Flag::find( name ) == 0 ) {
+        if ( FieldNameCache::translate( name ) == 0 ) {
             ++i;
             String p;
             q->bind( i, name );
