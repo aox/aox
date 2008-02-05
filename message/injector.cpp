@@ -528,9 +528,9 @@ void AddressCreator::insertAddresses()
     StringList::Iterator it( unided.keys() );
     while ( it ) {
         Address * a = unided.take( *it );
-        q->bind( 1, a->uname() );
-        q->bind( 2, a->localpart() );
-        q->bind( 3, a->domain() );
+        q->bind( 1, a->uname(), Query::Binary );
+        q->bind( 2, a->localpart(), Query::Binary );
+        q->bind( 3, a->domain(), Query::Binary );
         q->submitLine();
         ++it;
     }
