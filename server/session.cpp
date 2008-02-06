@@ -570,7 +570,7 @@ void SessionInitialiser::findSessions()
 
 void SessionInitialiser::eliminateGoodSessions()
 {
-    List<Session>::Iterator i( d->mailbox->sessions() );
+    List<Session>::Iterator i( d->sessions );
     while ( i ) {
         List<Session>::Iterator s = i;
         ++i;
@@ -579,7 +579,7 @@ void SessionInitialiser::eliminateGoodSessions()
             MessageSet unknownNew;
             if ( s->uidnext() < d->mailbox->uidnext() )
                 unknownNew.add( s->uidnext(), d->mailbox->uidnext() - 1 );
-            bool any = false;;
+            bool any = false;
             if ( unknownNew.isEmpty() &&
                  d->mailbox->nextModSeq() == s->nextModSeq() )
                 any = true;
@@ -603,12 +603,11 @@ void SessionInitialiser::eliminateGoodSessions()
             if ( !unknownNew.isEmpty() )
                 allKnown = false;
             if ( any && allKnown ) {
-                // this session knows about all of its new messages,
-                // and if there is a new modseq, it knows about at
-                // least one message with that modseq. fine. no need
-                // to work on its behalf.
-                s->emitResponses();
                 s->setSessionInitialiser( 0 );
+                if ( s->nextModSeq() < d->mailbox->nextModSeq() )
+                    s->setNextModSeq( d->mailbox->nextModSeq() );
+                if ( s->uidnext() < d->mailbox->uidnext() )
+                    s->setUidnext( d->mailbox->uidnext() );
                 d->sessions.take( s );
             }
         }
@@ -739,11 +738,11 @@ void SessionInitialiser::releaseLock()
             return;
 
         if ( !d->t->failed() )
-            d->state = SessionInitialiserData::QueriesDone;    
+            d->state = SessionInitialiserData::QueriesDone;
         d->t = 0;
     }
     else {
-        d->state = SessionInitialiserData::QueriesDone;    
+        d->state = SessionInitialiserData::QueriesDone;
     }
 
     List<Session>::Iterator i( d->sessions );
@@ -838,7 +837,7 @@ void SessionInitialiser::findViewChanges()
 {
     Selector * sel = new Selector;
     sel->add( Selector::fromString( d->mailbox->selector() ) );
-    
+
     // if not dynamic, uidnext changed by >0 and modsec by <= 1,, we
     // can add UID logic to _both_ the mm and s selects, and it'll do
     // the right thing.

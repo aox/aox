@@ -628,6 +628,8 @@ void Command::emitResponses()
         return;
 
     Session * s = imap()->session();
+    if ( s && !s->initialised() && !s->sessionInitialiser() )
+        s->refresh( 0 );
     if ( s && !s->initialised() )
         return;
 
