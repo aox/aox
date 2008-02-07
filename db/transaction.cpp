@@ -2,6 +2,7 @@
 
 #include "transaction.h"
 
+#include "eventloop.h"
 #include "database.h"
 #include "query.h"
 #include "event.h"
@@ -119,7 +120,7 @@ void Transaction::clearError()
 
 void Transaction::setError( Query * query, const String &s )
 {
-    if ( d->state == Failed )
+    if ( d->state == Failed || !d->owner )
         return;
 
     Scope x( d->owner->log() );
@@ -268,7 +269,8 @@ List< Query > *Transaction::enqueuedQueries() const
 
 /*! Returns a pointer to the owner of this query, as specified to the
     constructor. Transactions MUST have owners, so this function may
-    not return 0.
+    not return 0. There is an exception: If the owner is severely
+    buggy, notify() may set the owner to 0 to avoid segfaults.
 */
 
 EventHandler * Transaction::owner() const
@@ -281,6 +283,36 @@ EventHandler * Transaction::owner() const
 
 void Transaction::notify()
 {
+    if ( !d->owner )
+        return;
     Scope s( d->owner->log() );
-    d->owner->execute();
+    try {
+        d->owner->execute();
+    }
+    catch ( Exception e ) {
+        d->owner = 0; // so we can't get close to a segfault again
+        if ( e == Range ) {
+            setError( 0,
+                      "Out-of-range memory access "
+                      "while processing Transaction::notify()" );
+            List<Connection>::Iterator i( EventLoop::global()->connections() );
+            while ( i ) {
+                Connection * c = i;
+                ++i;
+                Log * l = Scope::current()->log();
+                while ( l && l != c->log() )
+                    l = l->parent();
+                if ( l ) {
+                    Scope x( l );
+                    ::log( "Out-of-range error. "
+                           "Closing connection abruptly.",
+                           Log::Error );
+                    EventLoop::global()->removeConnection( c );
+                }
+            }
+        }
+        else {
+            throw e;
+        }
+    }
 }
