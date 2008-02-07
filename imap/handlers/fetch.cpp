@@ -653,6 +653,8 @@ void Fetch::execute()
             d->expunged = s->expunged().intersection( d->set );
         shrink( &d->set );
         d->state = 3;
+        if ( d->set.isEmpty() )
+            d->state = 5;
     }
 
     while ( d->state == 3 || d->state == 4 ) {
