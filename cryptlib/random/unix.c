@@ -928,7 +928,7 @@ static int getEGDdata( void )
 		"/var/run/egd-pool", "/dev/egd-pool", "/etc/egd-pool", NULL, NULL };
 	MESSAGE_DATA msgData;
 	BYTE buffer[ DEVRANDOM_BYTES + 8 ];
-	static const int quality = 75;
+	static const int quality = 100;/* we have only EGD, so we have to trust it */
 	int egdIndex, sockFD, noBytes = CRYPT_ERROR, status;
 
 	/* Look for the egd/prngd output.  We re-search each time because,
