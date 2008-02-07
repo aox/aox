@@ -1018,9 +1018,10 @@ void SessionInitialiser::emitResponses()
             s->setNextModSeq( d->mailbox->nextModSeq() );
         if ( s->uidnext() < d->mailbox->uidnext() )
             s->setUidnext( d->mailbox->uidnext() );
+        s->setSessionInitialiser( 0 );
 
         s->emitResponses();
-        s->setSessionInitialiser( 0 );
+
         ++s;
     }
     d->sessions.clear();

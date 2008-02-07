@@ -1097,16 +1097,15 @@ Redoing Store
   2. Make a Selector using 
      a) the UID set supplied by the client.
      b) UNCHANGEDSINCE, if supplied
-     c) Each conditions the store should make true. For example, STORE
-        +FLAGS \seen should set \seen, so we can exclude messages that
-        already have \seen.
+     c) Each postcondition. For example, STORE +FLAGS \seen should set
+        \seen, so we can exclude messages that already have \seen.
 
      select mailbox_messages where (all that) for update
 
      If the result set is empty, stop at this point.
 
-  3. This step depends on what we're doing. If it's +flags, this is an
-     INSERT, if it's -flags, this is DELETE. And so on.
+  3. This step depends on what we're doing. If it's +flags, this is a
+     COPY, if it's -flags, this is DELETE. And so on.
 
   4. Update mm.modseq on the rows returned by step 2. Carefully use
      addGapsFrom to trim the size of the condition.
