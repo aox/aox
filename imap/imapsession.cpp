@@ -17,13 +17,14 @@ class ImapSessionData
 public:
     ImapSessionData(): i( 0 ), unsolicited( false ),
                        exists( UINT_MAX/4 ), recent( UINT_MAX ),
-                       uidnext( 0 ) {}
+                       uidnext( 0 ), nms( 1 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     bool unsolicited;
     uint exists;
     uint recent;
     uint uidnext;
+    int64 nms;
     List<Flag> flags;
 };
 
@@ -139,12 +140,17 @@ void ImapSession::emitModifications()
 
     Fetch * update 
         = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                     changed, nextModSeq() - 1, d->i );
+                     changed, d->nms - 1, d->i );
+    if ( d->nms < nextModSeq() )
+        d->nms = nextModSeq();
 
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
-    if ( c && c->state() == Command::Finished ) {
+    if ( c && c->name() == "idle" ) {
+        d->i->commands()->insert( c, update );
+    }
+    else if ( c && c->state() == Command::Finished ) {
         List<Command>::Iterator n( c );
         ++n;
         d->i->commands()->insert( n, update );
