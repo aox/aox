@@ -237,6 +237,22 @@ aox check schema
   h) missing constraints
 
 
+  Change 43939 and following move towards this: the idea is to
+  introduce new functions e.g. Schema::checkIntegrity (in addition to
+  checkRevision) and Schema::grantPrivileges, that can be used both by
+  aox check schema/aox grant privileges/whatever, and also by the
+  installer (instead of lib/grant-privileges, and instead of the
+  half-hearted checking it does now). the server is essentially
+  unaffected, it just uses Database::checkSchema/checkAccess for a
+  quick check.
+
+  this sounds ok, but it's ugly because Schema::execute is completely
+  given to upgrading the schema, and neither can nor should be
+  repurposed to do other things besides. so that means more static
+  functions in Schema and separate EventHandlers to do the
+  checking/granting/whatevering. but that's okay.
+
+
 Database schema range
 
   Poeple occasionally need to access the db with an old version of
@@ -1111,6 +1127,5 @@ Redoing Store
      addGapsFrom to trim the size of the condition.
 
   6. Update nextmodseq and go on our way.
-
 
 
