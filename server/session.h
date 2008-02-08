@@ -46,10 +46,6 @@ public:
     uint msn( uint ) const;
     uint count() const;
 
-    void insert( uint );
-    void insert( uint, uint );
-    void remove( uint );
-
     MessageSet recent() const;
     bool isRecent( uint ) const;
     void addRecent( uint );

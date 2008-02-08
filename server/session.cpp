@@ -217,36 +217,6 @@ uint Session::count() const
 }
 
 
-/*! Notifies this session that it contains a message with \a uid. */
-
-void Session::insert( uint uid )
-{
-    d->msns.add( uid );
-}
-
-
-/*! Notifies this session that it contains messages with UIDs from \a
-    lowest to \a highest (in addition to whatever other messages it
-    may contain). Both \a lowest and \a highest are inserted.
-*/
-
-void Session::insert( uint lowest, uint highest )
-{
-    d->msns.add( lowest, highest );
-}
-
-
-/*! Removes the message with \a uid from this session, adjusting MSNs
-    as needed. This function does not emit any responses, nor does it
-    cause responses to be emitted.
-*/
-
-void Session::remove( uint uid )
-{
-    d->msns.remove( uid );
-}
-
-
 /*! Returns a MessageSet containing all messages marked "\Recent" in
     this session.
 */
