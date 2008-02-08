@@ -42,6 +42,7 @@ public:
 
     static uint currentRevision();
 
+    static void checkSchema( class EventHandler * );
     static void checkAccess( class EventHandler * );
 
 protected:

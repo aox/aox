@@ -12,7 +12,6 @@
 
 #include "tls.h"
 #include "flag.h"
-#include "schema.h"
 #include "mailbox.h"
 #include "listener.h"
 #include "database.h"
@@ -181,7 +180,7 @@ int main( int argc, char *argv[] )
 
     s.setup( Server::Finish );
 
-    Schema::checkRevision( &s );
+    Database::checkSchema( &s );
     if ( Configuration::toggle( Configuration::Security ) )
         Database::checkAccess( &s );
     Mailbox::setup( &s );

@@ -7,6 +7,7 @@
 #include "allocator.h"
 #include "configuration.h"
 #include "eventloop.h"
+#include "schema.h"
 #include "graph.h"
 #include "event.h"
 #include "query.h"
@@ -468,13 +469,28 @@ Database::User Database::loginAs()
 }
 
 
+/*! This function is called by a database client to ensure that the
+    schema is as they expect; for the moment all it does is to check
+    that the revision matches the latest known. \a owner is notified
+    when the check is completed.
+
+    The function expects to be called from ::main() after
+    Database::setup(). It needs a runnning EventLoop.
+*/
+
+void Database::checkSchema( EventHandler * owner )
+{
+    Schema::checkRevision( owner );
+}
+
+
 /*! This function checks that the server doesn't have privileged access
     to the database. It notifies \a owner when the check is complete. A
     disaster is logged if the server is connected to the database as an
     unduly privileged user.
 
     The function expects to be called from ::main() after
-    Schema::checkRevision().
+    Database::checkSchema().
 */
 
 void Database::checkAccess( EventHandler * owner )
