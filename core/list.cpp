@@ -62,6 +62,13 @@ void listSortHelper( void * a, size_t n, size_t s,
 */
 
 
+/*! \fn T *List::lastElement() const
+    This function returns the contents of the last element in the List,
+    without the need to create and dereference an Iterator with last().
+    Returns 0 if the list isEmpty().
+*/
+
+
 /*! \fn Iterator &List::first() const
     Returns an Iterator that points to the first element in the List.
     The Iterator evaluates to 0 if the list isEmpty().

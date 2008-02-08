@@ -95,41 +95,57 @@ void MessageSet::add( uint n1, uint n2 )
         return;
     }
 
-    List< SetData::Range >::Iterator i( d->l );
-
-    while ( i && i->start < n1 )
-        ++i;
-    d->l.insert( i, new SetData::Range( n1, n2-n1+1 ) );
-    if ( i )
-        --i;
-    else
+    List< SetData::Range >::Iterator i;
+    if ( d->l.lastElement() && d->l.lastElement()->start <= n1 )
         i = d->l.last();
-
-    // step back once and merge twice, in order to merge the newly
-    // inserted range with both of its neighbours.
-    uint left = 2;
-    if ( i == d->l.first() )
-        left--;
     else
-        --i;
-    while ( left && i ) {
-        List< SetData::Range >::Iterator j = i;
-        ++j;
+        i = d->l.first();
+    
+    // skip all ranges that are separated from [n1,n2] by at least one
+    // number, ie. whose last member is at most n1-2.
 
-        if ( i && j && i->start + i->length >= j->start ) {
-            uint last = j->start + j->length - 1;
-            d->l.take( j );
-            if ( last < i->start + i->length - 1 ) {
-                left++;
-                last = i->start + i->length - 1;
-            }
-            i->length = last + 1 - i->start;
+    while ( i && i->start + i->length < n1 )
+        ++i;
+
+    // if we're looking at a range now, it either overlaps with, is
+    // adjacent to, or is after [n1,n2].
+    
+    if ( !i ) {
+        // we're looking at the end
+        d->l.append( new SetData::Range( n1, n2-n1+1 ) );
+        i = d->l.last();
+    }
+    else if ( i->start - 1 > n2 ) {
+        // it's after, not even touching
+        d->l.insert( i, new SetData::Range( n1, n2-n1+1 ) );
+        --i;
+    }
+    else {
+        // it touches or overlaps
+        uint s1 = n1;
+        uint s2 = n2;
+        if ( i->start < s1 )
+            s1 = i->start;
+        if ( i->start + i->length - 1 > s2 )
+            s2 = i->start + i->length - 1;
+        i->start = s1;
+        i->length = s2 + 1 - s1;
+    }
+
+    // the following ranges may touch or overlap this one.
+    bool touching = true;
+    while ( touching ) {
+        List<SetData::Range>::Iterator n( i );
+        ++n;
+        if ( !n || n->start > i->start + i->length ) {
+            touching = false;
         }
         else {
-            ++i;
-            left--;
+            if ( n->start + n->length > i->start + i->length )
+                i->length = n->start + n->length - i->start;
+            d->l.take( n );
         }
-    }
+    };
 }
 
 

@@ -133,6 +133,11 @@ public:
         return 0;
     }
 
+    T *lastElement() const {
+        if ( tail )
+            return tail->data;
+        return 0;
+    }
 
     Iterator &first() const { return Iterator::newRef( head ); }
     Iterator &last()  const { return Iterator::newRef( tail ); }
