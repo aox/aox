@@ -192,6 +192,9 @@ closely enough to be used in a bug report.
 Looks for messages that "arrived but could not be stored" and tries to
 parse them using workarounds that have been added more recently. If it
 succeeds, the new message is injected and the old one deleted.
+.IP "aox grant privileges <username>"
+makes sure that the named user has all the permissions needed for the
+db-user (i.e., and unprivileged user), and no more.
 .SH OPTIONS
 The -v flag enables (slightly) more verbose diagnostic output wherever
 it is supported (see the descriptions of each command above).

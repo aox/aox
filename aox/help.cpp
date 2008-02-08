@@ -352,6 +352,15 @@ void Help::execute()
             "    Reads the configuration and reports any problems it finds.\n"
         );
     }
+    else if ( a == "grant" && b == "privileges" ) {
+        fprintf(
+            stderr,
+            "  grant privileges - Grant required privileges to db-user.\n\n"
+            "    Synopsis: aox grant privileges username\n\n"
+            "    Makes sure that the named user has all the right permissions\n"
+            "    needed by db-user (i.e. an unprivileged user), and no more.\n"
+        );
+    }
     else if ( a == "reparse" ) {
         fprintf(
             stderr,
