@@ -25,5 +25,5 @@ Build aox :
     rights.cpp views.cpp help.cpp undelete.cpp ;
 
 Program aox :
-    aox database schema server mailbox message user core
+    aox database server mailbox message user core
     encodings extractors ;
