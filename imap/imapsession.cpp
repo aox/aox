@@ -68,12 +68,16 @@ void ImapSession::emitExpunges()
     e.add( expunged() );
     d->expungedFetched.remove( e );
 
+    log( "ImapSession::emitExpunges for " + fn( e.count() ) + " messages: " +
+         e.set(), Log::Debug );
+
     while ( !e.isEmpty() ) {
         uint uid = e.value( 1 );
         uint msn = m.index( uid );
         e.remove( uid );
         m.remove( uid );
-        enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+        enqueue( "* " + fn( msn ) + " FETCH (UID " + fn( uid ) + ")\r\n"
+                 "* " + fn( msn ) + " EXPUNGE\r\n" );
         if ( d->exists )
             d->exists--;
     }
