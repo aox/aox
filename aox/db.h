@@ -42,4 +42,16 @@ private:
 };
 
 
+class GrantPrivileges
+    : public AoxCommand
+{
+public:
+    GrantPrivileges( StringList * );
+    void execute();
+
+private:
+    class Query * q;
+};
+
+
 #endif

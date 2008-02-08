@@ -454,6 +454,13 @@ AoxCommand * AoxCommand::create( StringList * args )
         else
             bad( verb, noun, "config" );
     }
+    else if ( verb == "grant" ) {
+        String noun = ::next( args ).lower();
+        if ( noun == "privileges" )
+            cmd = new GrantPrivileges( args );
+        else
+            bad( verb, noun, "privileges" );
+    }
     else if ( verb == "setacl" ) {
         cmd = new SetAcl( args );
     }
