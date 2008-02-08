@@ -195,6 +195,8 @@ succeeds, the new message is injected and the old one deleted.
 .IP "aox grant privileges <username>"
 makes sure that the named user has all the permissions needed for the
 db-user (i.e., and unprivileged user), and no more.
+.IP "aox check config"
+reads the configuration files and reports any problems that it finds.
 .SH OPTIONS
 The -v flag enables (slightly) more verbose diagnostic output wherever
 it is supported (see the descriptions of each command above).
