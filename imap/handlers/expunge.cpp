@@ -141,29 +141,24 @@ void Expunge::execute()
         d->modseq = r->getBigint( "nextmodseq" ); // XXX 0
 
         String w( d->uids.where() );
-        log( "Expunge " + fn( d->uids.count() ) + " messages" );
-        Query * q
-            = new Query( "update mailbox_messages "
-                         "set modseq=$2 "
-                         "where mailbox=$1 and (" + w + ")", 0 );
-        q->bind( 1, d->s->mailbox()->id() );
-        q->bind( 1, d->modseq );
-        d->t->enqueue( q );
+        log( "Expunge " + fn( d->uids.count() ) + " messages: " +
+             d->uids.set() );
 
         d->expunge =
             new Query( "insert into deleted_messages "
                        "(mailbox,uid,message,modseq,deleted_by,reason) "
-                       "select mailbox,uid,message,modseq,$2,$3 "
+                       "select mailbox,uid,message,$4,$2,$3 "
                        "from mailbox_messages where mailbox=$1 "
                        "and (" + w + ")",
                        this );
         d->expunge->bind( 1, d->s->mailbox()->id() );
         d->expunge->bind( 2, imap()->user()->id() );
         d->expunge->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
+        d->expunge->bind( 4, d->modseq );
         d->t->enqueue( d->expunge );
 
-        q = new Query( "update mailboxes set nextmodseq=$1 "
-                       "where id=$2", 0 );
+        Query * q = new Query( "update mailboxes set nextmodseq=$1 "
+                               "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, d->s->mailbox()->id() );
         d->t->enqueue( q );
