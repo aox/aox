@@ -96,6 +96,25 @@ bool Session::initialised() const
 }
 
 
+/*! Returns true if this session is known to contain no messages
+    (ie. both messages() and unannounced() return empty sets), and
+    true if the mailbox is nonempty or its count is not known.
+*/
+
+bool Session::isEmpty() const
+{
+    if ( d->mailbox->uidnext() == 1 )
+        return true;
+    if ( !d->msns.isEmpty() )
+        return false;
+    if ( !d->unannounced.isEmpty() )
+        return false;
+    if ( !initialised() )
+        return false;
+    return true;
+}
+
+
 /*! Returns a pointer to the currently selected Mailbox, or 0 if there
     isn't one.
 */

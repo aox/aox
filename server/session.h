@@ -26,6 +26,7 @@ public:
 
     bool initialised() const;
     void refresh( class EventHandler * );
+    bool isEmpty() const;
 
     Mailbox * mailbox() const;
     bool readOnly() const;

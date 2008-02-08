@@ -135,7 +135,7 @@ void Select::execute()
             d->session->refresh( this );
     }
 
-    if ( !d->usedFlags && d->mailbox->uidnext() > 1 ) {
+    if ( !d->usedFlags && !d->session->isEmpty() ) {
         d->usedFlags = new Query( "select distinct flag from flags where "
                                   "mailbox=$1 "
                                   "order by flag",
@@ -144,7 +144,8 @@ void Select::execute()
         d->usedFlags->execute();
     }
 
-    if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) ) {
+    if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) &&
+         !d->session->nextModSeq() ) {
         d->highestModseq = new Query( "select coalesce(max(modseq),1) "
                                       "as hms from mailbox_messages "
                                       "where mailbox=$1",
@@ -153,7 +154,7 @@ void Select::execute()
         d->highestModseq->execute();
     }
 
-    if ( !d->firstUnseen ) {
+    if ( !d->firstUnseen && !d->session->isEmpty() ) {
         Flag * seen = Flag::find( "\\seen" );
         String sq;
         if ( seen )
