@@ -104,7 +104,7 @@ void MessageSet::add( uint n1, uint n2 )
     // skip all ranges that are separated from [n1,n2] by at least one
     // number, ie. whose last member is at most n1-2.
 
-    while ( i && i->start + i->length < n1 )
+    while ( i && i->start + i->length - 1 < n1 - 1 )
         ++i;
 
     // if we're looking at a range now, it either overlaps with, is
@@ -335,32 +335,9 @@ bool MessageSet::contains( uint value ) const
 
 void MessageSet::remove( uint value )
 {
-    List<SetData::Range>::Iterator i( d->l );
-    while ( i && i->start + i->length - 1 < value )
-        ++i;
-    if ( !i || i->start > value || i->start + i->length - 1 < value )
-        return;
-
-    // four possible cases: entire, first, middle and end.
-    if ( value == i->start && i->length == 1 ) {
-        // value is the entire range
-        d->l.take( i );
-    }
-    else if ( value == i->start ) {
-        // value is first in the range
-        i->length = i->length - 1;
-        i->start = i->start + 1;
-    }
-    else if ( value == i->start + i->length - 1 ) {
-        // value is last in the range
-        i->length = i->length - 1;
-    }
-    else {
-        // value is in the middle somewhere
-        uint last = i->start + i->length - 1;
-        i->length = value - i->start;
-        add( value+1, last );
-    }
+    MessageSet r;
+    r.add( value, value );
+    remove( r );
 }
 
 
@@ -371,33 +348,31 @@ void MessageSet::remove( const MessageSet & other )
     List<SetData::Range>::Iterator mine( d->l );
     List<SetData::Range>::Iterator hers( other.d->l );
     while ( mine && hers ) {
-        while ( hers && hers->start + hers->length <= mine->start )
+        while ( hers && hers->start + hers->length - 1 < mine->start )
             ++hers;
         if ( hers ) {
             // my start and end, her start and end
             uint ms = mine->start;
-            uint me = mine->start + mine->length;
+            uint me = mine->start + mine->length - 1;
             uint hs = hers->start;
-            uint he = hers->start + hers->length;
-            if ( hs <= ms && he > ms && he < me ) {
+            uint he = hers->start + hers->length - 1;
+            if ( hs <= ms && he >= ms && he < me ) {
                 // she includes my first byte, but not all of me
-                mine->start = he;
-                mine->length = me - he;
+                mine->start = he + 1;
+                mine->length = me + 1 - mine->start;
             }
-            else if ( he >= me && hs > ms ) {
+            else if ( he >= me && hs > ms && hs <= me ) {
                 // she overlaps my last byte, but not all of me
                 mine->length = hs - ms;
             }
             else if ( hs > ms && he < me ) {
                 // she's within me: break myself in two
                 mine->length = hs - ms;
-                add( he, me-1 );
+                add( he+1, me );
             }
             else if ( hs <= ms && he >= me ) {
                 // she covers all of me
-                List<SetData::Range>::Iterator r( mine );
-                ++mine;
-                d->l.take( r );
+                d->l.take( mine ); // steps mine to next
             }
         }
         if ( hers && mine && mine->start + mine->length <= hers->start )
