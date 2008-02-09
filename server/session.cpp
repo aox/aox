@@ -28,7 +28,6 @@ public:
     {}
 
     bool readOnly;
-    bool active;
     SessionInitialiser * initialiser;
     Mailbox * mailbox;
     MessageSet msns;
