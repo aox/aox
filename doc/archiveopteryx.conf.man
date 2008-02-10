@@ -209,6 +209,21 @@ Archiveopteryx never uses anything less than perfectly random
 numbers. In this case, make sure that there's enough entropy, or else
 a series of rapid login attempts can block the entire server.
 .SS "Cluster Configuration"
+.IP start-ocd
+controls whether the
+.I ocd
+server should be started by this instance of Archiveopteryx. It is
+.I true
+by default, but if you are running multiple instances of Archiveopteryx,
+all but one instance should have it set to
+.IR false ;
+and the
+.I ocd-address
+and
+.I ocd-port
+should be set to the same values everywhere, so that all instances share
+one
+.IR ocd .
 .IP ocd-address
 The address where
 .BR ocd (8)

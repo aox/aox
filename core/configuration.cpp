@@ -233,6 +233,7 @@ static struct {
     { "security", Configuration::Security, true },
     { "use-ipv4", Configuration::UseIPv4, true },
     { "use-ipv6", Configuration::UseIPv6, true },
+    { "start-ocd", Configuration::StartOcd, true },
     { "use-tls", Configuration::UseTls, true },
     { "use-smtp", Configuration::UseSmtp, false },
     { "use-lmtp", Configuration::UseLmtp, true },

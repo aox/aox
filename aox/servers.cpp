@@ -425,7 +425,7 @@ static void checkInetAddresses()
     );
 
     checkListener(
-        true,
+        Configuration::toggle( Configuration::StartOcd ),
         Configuration::OcdAddress, Configuration::OcdPort,
         "ocd-address:port"
     );
@@ -732,7 +732,9 @@ bool Starter::startServer( const char * s )
     bool use = true;
 
     String t( s );
-    if ( t == "tlsproxy" )
+    if ( t == "ocd" )
+        use = Configuration::toggle( Configuration::StartOcd );
+    else if ( t == "tlsproxy" )
         use = Configuration::toggle( Configuration::UseTls );
     else if ( t == "archiveopteryx" )
         use = Configuration::toggle( Configuration::UseImap ) ||

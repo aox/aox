@@ -18,15 +18,17 @@ int main( int argc, char * argv[] )
 
     Server s( "ocd", argc, argv );
     s.setup( Server::Report );
-    Listener< OCServer >::create( "ocd", true,
-                                  Configuration::OcdAddress,
-                                  Configuration::OcdPort,
-                                  true
+    Listener< OCServer >::create(
+        "ocd",
+        Configuration::toggle( Configuration::StartOcd ),
+        Configuration::OcdAddress, Configuration::OcdPort,
+        true
     );
-    Listener< OCAdmin >::create( "ocadmin", true,
-                                 Configuration::OcAdminAddress,
-                                 Configuration::OcAdminPort,
-                                 false
+    Listener< OCAdmin >::create(
+        "ocadmin", true,
+        Configuration::OcAdminAddress,
+        Configuration::OcAdminPort,
+        false
     );
     s.run();
 }
