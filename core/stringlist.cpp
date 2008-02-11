@@ -53,7 +53,7 @@ void StringList::append( const char * s )
     If this List isEmpty(), this function returns an empty String.
 */
 
-String StringList::join( const String & separator )
+String StringList::join( const String & separator ) const
 {
     String r;
     Iterator it( this );

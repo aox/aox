@@ -20,7 +20,7 @@ public:
     void removeDuplicates( bool = true );
     bool contains( const String & ) const;
 
-    String join( const String & );
+    String join( const String & ) const;
     static StringList *split( char, const String & );
 };
 
