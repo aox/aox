@@ -239,7 +239,7 @@ void MimeField::parseParameters( Parser822 *p )
     this MIME field.
 */
 
-String MimeField::value() const
+String MimeField::rfc822() const
 {
     String s = HeaderField::data();
     uint lineLength = name().length() + 2 + s.length();

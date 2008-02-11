@@ -781,7 +781,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         Date replyDate;
         if ( d->message->header()->field( HeaderField::Received ) ) {
             String v = d->message->header()->
-                       field( HeaderField::Received )->value();
+                       field( HeaderField::Received )->rfc822();
             int i = 0;
             while ( v.find( ';', i+1 ) > 0 )
                 i = v.find( ';', i+1 );
@@ -830,14 +830,19 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             HeaderField * mid 
                 = d->message->header()->field( HeaderField::MessageId );
             if ( mid ) {
-                reply->header()->add( "In-Reply-To", mid->value() );
+                reply->header()->add( "In-Reply-To", mid->rfc822() );
                 HeaderField * ref
                     = d->message->header()->field( HeaderField::References );
                 if ( ref )
                     reply->header()->add( "References",
-                                          ref->value() + " " + mid->value() );
+                                          ref->rfc822() + " " +
+                                          mid->rfc822() );
                 else
-                    reply->header()->add( "References", mid->value() );
+                    reply->header()->add( "References", mid->rfc822() );
+            }
+            else {
+                // some senders don't add message-id, so we have to
+                // leave out in-reply-to and references.
             }
             reply->addMessageId();
             SieveAction * a = new SieveAction( SieveAction::Vacation );
@@ -974,14 +979,10 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                  !d->message->hasHeaders() )
                 return Undecidable;
 
-            Utf8Codec c;
             List<HeaderField>::Iterator hf( d->message->header()->fields() );
             while ( hf ) {
-                // XXX this is wrong and probably breaks when the
-                // header field contains =?iso-8859-1?q?=C0?= and
-                // the blah searches for U+00C0.
                 if ( hf->name() == i->ascii() )
-                    haystack->append( c.toUnicode( hf->value() ) );
+                    haystack->append( hf->value() );
                 ++hf;
             }
 
@@ -1008,7 +1009,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             while ( hf && hf->name() != hk->ascii() )
                 ++hf;
             if ( hf )
-                dt.setRfc822( hf->value() );
+                dt.setRfc822( hf->rfc822() );
         }
         else {
             dt.setCurrentTime();

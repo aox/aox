@@ -912,7 +912,7 @@ static void addField( String & wrapper,
     if ( hf && hf->valid() ) {
         wrapper.append( field );
         wrapper.append( ": " );
-        wrapper.append( hf->value() );
+        wrapper.append( hf->rfc822() );
         wrapper.append( "\r\n" );
     }
     else if ( !dflt.isEmpty() ) {
@@ -953,7 +953,7 @@ Message * Message::wrapUnparsableMessage( const String & message,
     while ( n < subject.length() && subject[n] < 127 && subject[n] >= 32 )
         n++;
     if ( hf && hf->valid() && n >= subject.length() )
-        subject = "Unparsable message: " + hf->value();
+        subject = "Unparsable message: " + hf->rfc822();
     else
         subject = defaultSubject;
     if ( !subject.isEmpty() )

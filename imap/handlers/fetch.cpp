@@ -806,7 +806,10 @@ String Fetch::sectionData( Section * s, Message * m )
             }
             if ( include ) {
                 String n = it->name().headerCased();
-                data.append( n + ": " + it->value() + "\r\n" );
+                data.append( n );
+                data.append( ": " );
+                data.append( it->rfc822() );
+                data.append( "\r\n" );
             }
             ++it;
         }
@@ -1273,7 +1276,7 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
         String md5;
         HeaderField *f = mp->header()->field( HeaderField::ContentMd5 );
         if ( f )
-            md5 = f->value();
+            md5 = f->rfc822();
 
         l.append( imapQuoted( md5, NString ) );
         l.append( dispositionString( mp->header()->contentDisposition() ) );

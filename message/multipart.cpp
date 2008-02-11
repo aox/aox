@@ -262,7 +262,7 @@ static void headerSummary( Header * h, int n )
 
     HeaderField * cd = h->field( HeaderField::ContentDescription );
     if ( cd )
-        l.append( cd->value() );
+        l.append( cd->rfc822() );
 
     if ( !l.isEmpty() ) {
         spaces( n );

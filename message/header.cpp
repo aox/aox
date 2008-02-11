@@ -263,7 +263,7 @@ String Header::subject() const
 {
     HeaderField * s = field( HeaderField::Subject );
     if ( s )
-        return s->value().simplified();
+        return s->rfc822().simplified();
     return "";
 }
 
@@ -276,7 +276,7 @@ String Header::inReplyTo() const
 {
     HeaderField * s = field( HeaderField::InReplyTo );
     if ( s )
-        return s->value().simplified();
+        return s->rfc822().simplified();
     return "";
 }
 
@@ -293,7 +293,7 @@ String Header::messageId( HeaderField::Type t ) const
     AddressField *af = addressField( t );
     if ( !af )
         return "";
-    return af->value();
+    return af->rfc822();
 }
 
 
@@ -357,7 +357,7 @@ String Header::contentDescription() const
     HeaderField *hf = field( HeaderField::ContentDescription );
     if ( !hf )
         return "";
-    return hf->value().simplified();
+    return hf->rfc822().simplified();
 }
 
 
@@ -370,7 +370,7 @@ String Header::contentLocation() const
     HeaderField *hf = field( HeaderField::ContentLocation );
     if ( !hf )
         return "";
-    return hf->value();
+    return hf->rfc822();
 }
 
 
@@ -517,7 +517,7 @@ void Header::simplify()
         return;
 
     HeaderField *cde = field( HeaderField::ContentDescription );
-    if ( cde && cde->value().isEmpty() ) {
+    if ( cde && cde->rfc822().isEmpty() ) {
         removeField( HeaderField::ContentDescription );
         cde = 0;
     }
@@ -567,7 +567,7 @@ void Header::simplify()
     }
 
     HeaderField *m = field( HeaderField::MessageId );
-    if ( m && m->value().isEmpty() )
+    if ( m && m->rfc822().isEmpty() )
         removeField( HeaderField::MessageId );
 
     if ( sameAddresses( addressField( HeaderField::From ),
@@ -630,7 +630,7 @@ void Header::repair()
             while ( it ) {
                 if ( it->type() == conditions[i].t ) {
                     n++;
-                    if ( n > 1 && h->value() == it->value() )
+                    if ( n > 1 && h->rfc822() == it->rfc822() )
                         d->fields.take( it );
                     else
                         ++it;
@@ -780,7 +780,7 @@ void Header::repair( Multipart * p, const String & body )
             // First, we take the date from the oldest plausible
             // Received field.
             if ( it->type() == HeaderField::Received ) {
-                String v = it->value();
+                String v = it->rfc822();
                 int i = 0;
                 while ( v.find( ';', i+1 ) > 0 )
                     i = v.find( ';', i+1 );
@@ -871,7 +871,7 @@ void Header::repair( Multipart * p, const String & body )
             while ( f && f->name() != "X-From-Line" )
                 ++f;
             if ( f ) {
-                AddressParser ap( f->value().section( " ", 1 ) );
+                AddressParser ap( f->rfc822().section( " ", 1 ) );
                 if ( ap.error().isEmpty() && ap.addresses()->count() == 1 )
                     a = ap.addresses();
             }
@@ -892,7 +892,7 @@ void Header::repair( Multipart * p, const String & body )
         while ( f && !a ) {
             if ( f->name() == "Return-Receipt-To" ||
                  f->name() == "Disposition-Notification-To" ) {
-                AddressParser ap( f->value().section( " ", 1 ) );
+                AddressParser ap( f->rfc822().section( " ", 1 ) );
                 if ( ap.error().isEmpty() && ap.addresses()->count() == 1 )
                     a = ap.addresses();
             }
@@ -1400,7 +1400,7 @@ void Header::appendField( String &r, HeaderField *hf ) const
 
     r.append( hf->name() );
     r.append( ": " );
-    r.append( hf->value() );
+    r.append( hf->rfc822() );
     r.append( crlf );
 }
 

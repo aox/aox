@@ -251,7 +251,7 @@ void HeaderField::setName( const String &n )
     is a string we can hand out to clients.
 */
 
-String HeaderField::value() const
+String HeaderField::rfc822() const
 {
     if ( d->type == Subject ||
          d->type == Comments ||

@@ -2274,7 +2274,7 @@ uint Injector::internalDate( Message * m ) const
     List< HeaderField >::Iterator it( m->header()->fields() );
     while ( it && !id.valid() ) {
         if ( it->type() == HeaderField::Received ) {
-            String v = it->value();
+            String v = it->rfc822();
             int i = 0;
             while ( v.find( ';', i+1 ) > 0 )
                 i = v.find( ';', i+1 );

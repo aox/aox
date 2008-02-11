@@ -154,7 +154,7 @@ MigratorMessage * MboxMailbox::nextMessage()
     while( it && it->name() != "Status" )
         ++it;
     if ( it ) {
-        String v = it->value().simplified();
+        String v = it->rfc822().simplified();
         uint f = 0;
         while ( f < v.length() ) {
             switch( v[f] ) {

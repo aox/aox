@@ -136,9 +136,11 @@ void AddressField::parse( const String &s )
 }
 
 
-/*! Generates the value of the field, based on the addresses(). */
+/*! Generates the RFC 822 representation of the field, based on the
+    addresses().
+*/
 
-String AddressField::value() const
+String AddressField::rfc822() const
 {
     String s;
     s.reserve( 30 * addresses()->count() );
@@ -268,7 +270,7 @@ void AddressField::parseReferences( const String &s )
 {
     AddressParser *ap = AddressParser::references( s );
     a = ap->addresses();
-    setData( value() );
+    setData( rfc822() );
     setError( ap->error() );
 }
 
@@ -286,7 +288,7 @@ void AddressField::parseMessageId( const String &s )
     }
     else if ( ap->addresses()->count() == 1 ) {
         a = ap->addresses();
-        setData( value() );
+        setData( rfc822() );
     }
     else {
         setError( "Need exactly one" );

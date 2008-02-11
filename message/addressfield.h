@@ -16,7 +16,7 @@ public:
 
     void parse( const String & );
 
-    String value() const;
+    String rfc822() const;
 
     List< Address > *addresses() const;
 

@@ -52,7 +52,7 @@ public:
     String name() const;
     void setName( const String & );
 
-    virtual String value() const;
+    virtual String rfc822() const;
 
     virtual String data() const;
     void setData( const String & );

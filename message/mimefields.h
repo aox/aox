@@ -25,7 +25,7 @@ public:
     void removeParameter( const String & );
     void parseParameters( Parser822 * );
 
-    String value() const;
+    String rfc822() const;
     String data() const;
 
 private:
