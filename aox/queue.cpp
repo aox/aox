@@ -26,7 +26,7 @@ void ShowQueue::execute()
         database();
 
         String s(
-            "select distinct d.id, d.message, "
+            "select distinct d.id, d.message, d.injected_at "
             "a.localpart||'@'||a.domain as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
             "(d.expires_at-current_timestamp)::text as expires_in, "
@@ -36,8 +36,12 @@ void ShowQueue::execute()
 
         if ( !opt( 'a' ) )
             s.append( "join delivery_recipients dr on (d.id=dr.delivery) "
-                      "where dr.action=0 or dr.action=2" );
-
+                      "where dr.action=0 or dr.action=2 " );
+        // XXX please let's not have magic in our source. I really
+        // don't want to grep for 2 when I mean Relayed (or whatever 2
+        // is).
+        s.append( "order by d.injected_at" );
+        
         q = new Query( s, this );
         q->execute();
     }
@@ -58,9 +62,11 @@ void ShowQueue::execute()
 
             String s(
                 "select last_attempt, action, status, "
+                "lower(a.domain) as domain, a.localpart, "
                 "a.localpart||'@'||a.domain as recipient "
                 "from delivery_recipients dr join addresses a "
-                "on (dr.recipient=a.id) where dr.delivery=$1"
+                "on (dr.recipient=a.id) where dr.delivery=$1 "
+                "order by dr.action, lower(a.domain), a.localpart"
             );
             qr = new Query( s, this );
             qr->bind( 1, delivery );
