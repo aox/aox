@@ -131,6 +131,20 @@ void Transaction::setError( Query * query, const String &s )
     d->failedQuery = query;
     d->error = s;
     d->state = Failed;
+    if ( !query )
+        return;
+    String qs = query->string();
+    if ( qs.startsWith( "select " ) && qs.contains( " from " ) )
+        qs = qs.section( " from ", 1 ) + "...";
+    else if ( qs.startsWith( "insert into " ) && qs.contains( " values " ) )
+        qs = qs.section( " values ", 1 ) + "...";
+    else if ( qs.startsWith( "update " ) && qs.contains( " set " ) )
+        qs = qs.section( " set ", 1 ) + "...";
+    else if ( qs.length() > 32 )
+        qs = qs.mid( 0, 32 ) + "...";
+    d->error.append( " (query: " );
+    d->error.append( qs );
+    d->error.append( ")" );
 }
 
 
