@@ -9,6 +9,7 @@
 #include "mimefields.h"
 #include "listidfield.h"
 #include "addressfield.h"
+#include "ustringlist.h"
 #include "stringlist.h"
 #include "parser.h"
 #include "utf.h"
@@ -63,7 +64,8 @@ public:
 
     HeaderField::Type type;
     String name;
-    String data;
+    UString value;
+    String unparsed;
     String error;
     uint position;
 };
@@ -185,19 +187,19 @@ HeaderField *HeaderField::create( const String &name,
 */
 
 HeaderField *HeaderField::assemble( const String &name,
-                                    const String &data )
+                                    const UString &data )
 {
     HeaderField *hf = fieldNamed( name );
     // XXX HACK HACK HACK XXX
     // in the case of the mime fields, we store the RFC822 form, and
-    // need to reparse when we fetch the blah from the databse.
+    // need to reparse when we fetch the blah from the database.
     if ( hf->type() == ContentType ||
          hf->type() == ContentTransferEncoding ||
          hf->type() == ContentLanguage ||
          hf->type() == ContentDisposition )
-        hf->parse( data );
+        hf->parse( data.utf8() );
     else
-        hf->setData( data );
+        hf->setValue( data );
     return hf;
 }
 
@@ -256,14 +258,14 @@ String HeaderField::rfc822() const
     if ( d->type == Subject ||
          d->type == Comments ||
          d->type == ContentDescription )
-        return wrap( encodeText( d->data ) );
+        return wrap( encodeText( d->value ) );
 
     if ( d->type == Other )
-        return encodeText( d->data );
+        return encodeText( d->value );
 
     // We assume that, for most fields, we can use the database
     // representation in an RFC 822 message.
-    return d->data;
+    return d->value.utf8();
 }
 
 
@@ -272,15 +274,15 @@ String HeaderField::rfc822() const
     in the database (unfolded and UTF-8 encoded, with RFC 2047
     encoded-words expanded).
 
-    If the field is not valid(), this function returns the string
-    which couldn't be parsed.
+    If the field is not valid(), this function returns an empty
+    string.
 
-    Use value() if you want a valid RFC 2822 representation.
+    Use rfc822() if you want a valid RFC 2822 representation.
 */
 
-String HeaderField::data() const
+UString HeaderField::value() const
 {
-    return d->data;
+    return d->value;
 }
 
 
@@ -288,9 +290,9 @@ String HeaderField::data() const
     clears the error().
 */
 
-void HeaderField::setData( const String &s )
+void HeaderField::setValue( const UString &s )
 {
-    d->data = s;
+    d->value = s;
     d->error.truncate();
 }
 
@@ -326,7 +328,7 @@ void HeaderField::setError( const String &s )
 
 
 /*! Every HeaderField subclass must define a parse() function that takes
-    a string \a s from a message and sets the field data(). This default
+    a string \a s from a message and sets the field value(). This default
     function handles fields that are not specially handled by subclasses
     using functions like parseText().
 */
@@ -386,6 +388,9 @@ void HeaderField::parse( const String &s )
         parseOther( s );
         break;
     }
+
+    if ( !valid() )
+        d->unparsed = s;
 }
 
 
@@ -396,21 +401,18 @@ void HeaderField::parse( const String &s )
 
 void HeaderField::parseText( const String &s )
 {
-    Parser822 p( unwrap( s ) );
-    String t( p.text() );
+    Parser822 p( s );
+    UString t( p.text() );
     if ( p.atEnd() ) {
-        setData( t );
+        setValue( t );
     }
     else {
         Parser822 p( s.simplified() );
-        String t( p.text() );
-        if ( p.atEnd() ) {
-            setData( t );
-        }
-        else {
-            setData( s );
+	UString t( p.text() );
+        if ( p.atEnd() )
+            setValue( t );
+        else
             setError( "Error parsing text" );
-        }
     }
 }
 
@@ -422,13 +424,12 @@ void HeaderField::parseText( const String &s )
 
 void HeaderField::parseOther( const String &s )
 {
-    setData( s );
+    AsciiCodec a;
+    setValue( a.toUnicode( s ) );
+    if ( a.valid() )
+        return;
 
-    uint i = 0;
-    while ( i < s.length() && s[i] > 1 && s[i] < 128 )
-        i++;
-    if ( i < s.length() )
-        setError( "Unencoded 8-bit data at index " + fn( i ) );
+    setError( "Unencoded 8-bit data seen: " + a.error() );
 }
 
 
@@ -446,15 +447,21 @@ void HeaderField::parseMimeVersion( const String &s )
     Parser822 p( s );
     p.comment();
     String v = p.dotAtom();
-    String c = p.lastComment().simplified();
-    if ( c.contains( '(' ) || c.contains( ')' ) || c.contains( '\\' ) )
-         c.truncate();
+    AsciiCodec a;
+    UString c = a.toUnicode( p.lastComment().simplified() );
+    if ( !a.valid() ||
+         c.contains( '(' ) || c.contains( ')' ) || c.contains( '\\' ) )
+        c.truncate();
     if ( v != "1.0" || !p.atEnd() )
-        c = "Note: Original mime-version had syntax problems";
-    if ( c.isEmpty() )
-        setData( "1.0" );
-    else
-        setData( "1.0 (" + c + ")" );
+        c = a.toUnicode( "Note: Original mime-version had syntax problems" );
+    UString u;
+    u.append( "1.0" );
+    if ( !c.isEmpty() ) {
+        u.append( " (" );
+        u.append( c );
+        u.append( ")" );
+    }
+    setValue( u );
 }
 
 
@@ -542,9 +549,12 @@ void HeaderField::parseContentLocation( const String &s )
     }
     p.whitespace();
 
-    setData( r );
+    AsciiCodec a;
+    setValue( a.toUnicode( r ) );
     if ( !p.atEnd() )
         setError( "Junk at position " + fn( e ) + ": " + s.mid( e ) );
+    else if ( !a.valid() )
+        setError( "Bad character seen: " + a.error() );
 }
 
 
@@ -557,8 +567,9 @@ void HeaderField::parseContentLocation( const String &s )
 void HeaderField::parseContentBase( const String & s )
 {
     parseContentLocation( s );
-    uint i = data().find( ':' );
-    if ( i <= 0 )
+    if ( !valid() )
+        return;
+    if ( value().contains( ":" ) )
         setError( "URL has no scheme" );
 }
 
@@ -591,42 +602,6 @@ uint HeaderField::fieldType( const String & n )
     if ( fieldNames[i].name )
         return fieldNames[i].type;
     return 0;
-}
-
-
-/*! Returns an unwrapped version of the string \a s, where any CRLF-SP
-    is replaced by a single space.
-
-    XXX: We use this function to unwrap only Subject and Comments fields
-    at the moment, since they're the only ones we transform. Unwrapping
-    should eventually be handled in the higher-level parser instead. We
-    must assume here that every [CR]LF is actually followed by an SP.
-*/
-
-String HeaderField::unwrap( const String &s )
-{
-    String t;
-
-    uint last = 0;
-    uint n = 0;
-    while ( n < s.length() ) {
-        if ( s[n] == '\012' ||
-             ( s[n] == '\015' && s[n+1] == '\012' ) )
-        {
-            t.append( s.mid( last, n-last ) );
-            if ( s[n] == '\015' )
-                n++;
-            if ( s[n+1] == ' ' || s[n+1] == '\t' ) {
-                t.append( " " );
-                n++;
-            }
-            last = n+1;
-        }
-        n++;
-    }
-    t.append( s.mid( last ) );
-
-    return t;
 }
 
 
@@ -685,18 +660,16 @@ String HeaderField::wrap( const String &s ) const
 
 
 /*! This static function returns an RFC 2047 encoded-word representing
-    \a w, which is assumed to be a UTF-8 encoded string.
+    \a w.
 */
 
-String HeaderField::encodeWord( const String &w )
+String HeaderField::encodeWord( const UString &w )
 {
     if ( w.isEmpty() )
         return "";
 
-    Utf8Codec u;
-    UString us( u.toUnicode( w ) );
-    Codec * c = Codec::byString( us );
-    String cw( c->fromUnicode( us ) );
+    Codec * c = Codec::byString( w );
+    String cw( c->fromUnicode( w ) );
 
     String t( "=?" );
     t.append( c->name() );
@@ -730,13 +703,13 @@ String HeaderField::encodeWord( const String &w )
 }
 
 
-/*! This static function returns the RFC 2047-encoded version of \a s,
-    which is assumed to be a UTF-8 encoded string.
+/*! This static function returns the RFC 2047-encoded version of \a s.
 */
 
-String HeaderField::encodeText( const String &s )
+String HeaderField::encodeText( const UString &s )
 {
     String t;
+    AsciiCodec a;
 
     uint n = 0;
     uint last = 0;
@@ -746,7 +719,7 @@ String HeaderField::encodeText( const String &s )
         if ( !t.isEmpty() )
             t.append( " " );
 
-        String w;
+        UString w;
         n = s.find( ' ', last );
         if ( n > 0 ) {
             w = s.mid( last, n-last );
@@ -757,11 +730,10 @@ String HeaderField::encodeText( const String &s )
         }
         last = n;
 
-        uint i = 0;
-        while ( i < w.length() && w[i] > 0 && w[i] < 128 )
-            i++;
-        if ( i >= w.length() ) {
-            t.append( w );
+        // XXX what about nonprintable ASCII? should
+        // UString::isAscii() return true for nonprintables?
+        if ( w.isAscii() ) {
+            t.append( a.fromUnicode( w ) );
             encoded = false;
         }
         else {
@@ -777,27 +749,26 @@ String HeaderField::encodeText( const String &s )
 }
 
 
-/*! This static function returns the RFC 2047-encoded version of \a s,
-    which is assumed to be a UTF-8 encoded phrase.
+/*! This static function returns the RFC 2047-encoded version of \a s.
 */
 
-String HeaderField::encodePhrase( const String &s )
+String HeaderField::encodePhrase( const UString &s )
 {
     String t;
-    StringList::Iterator it( StringList::split( ' ', s ) );
+    UStringList::Iterator it( UStringList::split( ' ', s.simplified() ) );
 
     while ( it ) {
-        String w( *it );
+        UString w( *it );
         ++it;
 
         if ( !t.isEmpty() )
             t.append( " " );
 
-        if ( w.boring() ) {
-            t.append( w );
+        if ( w.isAscii() && w.ascii().boring() ) {
+            t.append( w.ascii() );
         }
         else {
-            while ( it && !(*it).boring() ) {
+            while ( it && !( (*it).isAscii() && (*it).ascii().boring() ) ) {
                 w.append( " " );
                 w.append( *it );
                 ++it;
@@ -831,4 +802,19 @@ void HeaderField::setPosition( uint p )
 uint HeaderField::position() const
 {
     return d->position;
+}
+
+
+/*! Returns the header field's value() completely unparsed, if
+    !valid(). If the field is valid(), this function returns an empty
+    string.
+
+*/
+
+String HeaderField::unparsedValue() const
+{
+    if ( valid() )
+        d->unparsed.truncate();
+    
+    return d->unparsed;
 }

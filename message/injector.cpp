@@ -1950,7 +1950,7 @@ void Injector::linkHeaderFields()
         q->bind( 2, link->part, Query::Binary );
         q->bind( 3, link->position, Query::Binary );
         q->bind( 4, t, Query::Binary );
-        q->bind( 5, link->hf->data(), Query::Binary );
+        q->bind( 5, link->hf->value(), Query::Binary );
         q->submitLine();
 
         ++it;

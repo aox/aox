@@ -26,7 +26,9 @@ public:
     void parseParameters( Parser822 * );
 
     String rfc822() const;
-    String data() const;
+    UString value() const;
+
+    virtual String baseValue() const = 0;
 
 private:
     class MimeFieldData *d;
@@ -45,6 +47,8 @@ public:
     String type() const;
     String subtype() const;
 
+    String baseValue() const;
+
 private:
     String t, st;
 };
@@ -60,6 +64,8 @@ public:
 
     void setEncoding( String::Encoding );
     String::Encoding encoding() const;
+
+    String baseValue() const;
 
 private:
     String::Encoding e;
@@ -77,8 +83,10 @@ public:
     enum Disposition { Inline, Attachment };
     Disposition disposition() const;
 
+    String baseValue() const;
+
 private:
-    Disposition d;
+    String d;
 };
 
 
@@ -92,6 +100,8 @@ public:
     void parse( const String & );
 
     const StringList *languages() const;
+
+    String baseValue() const;
 
 private:
     StringList l;

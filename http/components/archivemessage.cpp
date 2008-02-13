@@ -236,7 +236,7 @@ String ArchiveMessage::message( Message *first, Message *m )
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
         h.append( "<div class=headerfield>Subject: " );
-        h.append( quoted( hf->data() ) );
+        h.append( quoted( hf->value() ) );
         h.append( "</div>\n" );
     }
     h.append( addressField( m, HeaderField::To ) );
@@ -279,7 +279,7 @@ String ArchiveMessage::message( Message *first, Message *m )
                 o.append( "<div class=headerfield>" );
                 o.append( quoted( hf->name() ) );
                 o.append( ": " );
-                o.append( quoted( hf->data().simplified() ) );
+                o.append( quoted( hf->value().simplified() ) );
                 o.append( "</div>\n" );
             }
         }

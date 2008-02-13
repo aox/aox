@@ -13,7 +13,7 @@ class Parser822
 {
 public:
     Parser822( const String & os ): s(os), i(0), mime( false ) {}
-
+    
     void setIndex( uint ni ) { i = ni; }
     uint index() const { return i; }
 
@@ -38,10 +38,10 @@ public:
     uint number();
 
     enum EncodedText { Text, Comment, Phrase };
-    String encodedWord( EncodedText = Text );
-    String encodedWords();
-    String phrase();
-    String text();
+    UString encodedWord( EncodedText = Text );
+    UString encodedWords();
+    UString phrase();
+    UString text();
 
     char next() const { return s[i]; }
 

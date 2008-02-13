@@ -8,6 +8,7 @@
 
 class Date;
 class String;
+class UString;
 class Address;
 
 
@@ -16,7 +17,7 @@ class HeaderField
 {
 public:
     static HeaderField *create( const String &, const String & );
-    static HeaderField *assemble( const String &, const String & );
+    static HeaderField *assemble( const String &, const UString & );
 
     // The contents of this enum must be kept in sync with the data in
     // src/schema/field-names. Furthermore, new entries MUST be added
@@ -54,8 +55,10 @@ public:
 
     virtual String rfc822() const;
 
-    virtual String data() const;
-    void setData( const String & );
+    virtual UString value() const;
+    void setValue( const UString & );
+
+    String unparsedValue() const;
 
     void setPosition( uint );
     uint position() const;
@@ -69,12 +72,11 @@ public:
     static const char *fieldName( HeaderField::Type );
     static uint fieldType( const String & );
 
-    static String unwrap( const String & );
     String wrap( const String & ) const;
 
-    static String encodeWord( const String & );
-    static String encodeText( const String & );
-    static String encodePhrase( const String & );
+    static String encodeWord( const UString & );
+    static String encodeText( const UString & );
+    static String encodePhrase( const UString & );
 
 private:
     static HeaderField *fieldNamed( const String & );

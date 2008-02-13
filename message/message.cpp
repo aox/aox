@@ -754,7 +754,7 @@ static String badFields( Header * h )
     List<HeaderField>::Iterator hf( h->fields() );
     while ( hf ) {
         if ( !hf->valid() )
-            bad.append( hf->data() );
+            bad.append( hf->unparsedValue() );
         ++hf;
     }
     return bad.join( "\n" );

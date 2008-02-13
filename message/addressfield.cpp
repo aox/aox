@@ -2,6 +2,9 @@
 
 #include "addressfield.h"
 
+#include "ustring.h"
+#include "codec.h"
+
 
 /*! \class AddressField addressfield.h
     Represents a field containing a list of addresses.
@@ -155,9 +158,20 @@ String AddressField::rfc822() const
         else if ( it->type() == Address::Normal )
             s = "<" + it->localpart() + "@" + it->domain() + ">";
     }
-    else if ( t == HeaderField::References && !it )
+    else if ( t == HeaderField::MessageId ||
+              t == HeaderField::ResentMessageId ||
+              t == HeaderField::ContentId ||
+              ( t == HeaderField::References && !it ) )
     {
-        s = data();
+        if ( it ) {
+            s = "<" + it->toString() + ">";
+        }
+        else {
+            s = name() + ": ";
+            s.append( value().ascii() );
+            s = s.simplified().wrapped( 78, "", " ", false );
+            s = s.mid( name().length() + 2 );
+        }
     }
     else if ( t <= HeaderField::LastAddressField ||
               t == HeaderField::References )
@@ -202,17 +216,18 @@ String AddressField::rfc822() const
             c += a.length();
         }
     }
-    else if ( t == HeaderField::MessageId ||
-              t == HeaderField::ResentMessageId ||
-              t == HeaderField::ContentId )
-    {
-        if ( it )
-            s = "<" + it->toString() + ">";
-        else
-            s = data();
-    }
 
     return s;
+}
+
+
+UString AddressField::value() const
+{
+    if ( addresses()->isEmpty() )
+        return HeaderField::value();
+    // and for message-id, content-id and references:
+    AsciiCodec a;
+    return a.toUnicode( rfc822().simplified() );
 }
 
 
@@ -270,7 +285,6 @@ void AddressField::parseReferences( const String &s )
 {
     AddressParser *ap = AddressParser::references( s );
     a = ap->addresses();
-    setData( rfc822() );
     setError( ap->error() );
 }
 
@@ -283,16 +297,12 @@ void AddressField::parseMessageId( const String &s )
 {
     AddressParser *ap = AddressParser::references( s );
 
-    if ( !ap->error().isEmpty() ) {
+    if ( !ap->error().isEmpty() )
         setError( ap->error() );
-    }
-    else if ( ap->addresses()->count() == 1 ) {
+    else if ( ap->addresses()->count() == 1 )
         a = ap->addresses();
-        setData( rfc822() );
-    }
-    else {
+    else
         setError( "Need exactly one" );
-    }
 }
 
 
@@ -304,26 +314,27 @@ void AddressField::parseContentId( const String & s )
     setError( ap.error() );
     if ( ap.addresses()->count() != 1 ) {
         setError( "Need exactly one" );
+        return;
     }
-    else {
-        Address * a = ap.addresses()->first();
-        switch ( a->type() ) {
-        case Address::Normal:
-            setData( "<" + a->localpart() + "@" + a->domain() + ">" );
-            break;
-        case Address::Bounce:
-            setError( "<> is not legal, it has to be <some@thing>" );
-            break;
-        case Address::EmptyGroup:
-            setError( "Error parsing Content-ID" );
-            break;
-        case Address::Local:
-            setData( "<" + a->localpart() + ">" );
-            break;
-        case Address::Invalid:
-            setError( "Error parsing Content-Id" );
-            break;
-        }
+
+    switch ( ap.addresses()->first()->type() ) {
+    case Address::Normal:
+        a = ap.addresses();
+        //setData( "<" + a->localpart() + "@" + a->domain() + ">" );
+        break;
+    case Address::Bounce:
+        setError( "<> is not legal, it has to be <some@thing>" );
+        break;
+    case Address::EmptyGroup:
+        setError( "Error parsing Content-ID" );
+        break;
+    case Address::Local:
+        a = ap.addresses();
+        //setData( "<" + a->localpart() + ">" );
+        break;
+    case Address::Invalid:
+        setError( "Error parsing Content-Id" );
+        break;
     }
 }
 

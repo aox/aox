@@ -331,7 +331,7 @@ String Parser822::mimeValue()
 
 
 /*! Steps past a MIME encoded-word (as defined in RFC 2047) and returns
-    its decoded UTF-8 representation, or an empty string if the cursor
+    its decoded unicode representation, or an empty string if the cursor
     does not point to a valid encoded-word. The caller is responsible
     for checking that the encoded-word is separated from neighbouring
     tokens by whitespace.
@@ -340,9 +340,9 @@ String Parser822::mimeValue()
     \a type, which may be Text (by default), Comment, or Phrase.
 */
 
-String Parser822::encodedWord( EncodedText type )
+UString Parser822::encodedWord( EncodedText type )
 {
-    String out;
+    UString out;
 
     // encoded-word = "=?" charset '?' encoding '?' encoded-text "?="
 
@@ -440,12 +440,11 @@ String Parser822::encodedWord( EncodedText type )
         valid = false;
 
     if ( valid ) {
-        Utf8Codec u;
         if ( encoding == 'q' )
             text = text.deQP( true );
         else
             text = text.de64();
-        out = u.fromUnicode( cs->toUnicode( text ) );
+        out = cs->toUnicode( text );
         i = ++n;
     }
 
@@ -454,7 +453,7 @@ String Parser822::encodedWord( EncodedText type )
 
 
 /*! Do RFC 2047 decoding of \a s, totally ignoring what the
-    encoded-text in \a s might be.
+    encoded-text in \a s contains.
 
     Depending on circumstances, the encoded-text may contain different
     sets of characters. Moreover, not every 2047 encoder obeys the
@@ -513,33 +512,33 @@ UString Parser822::de2047( const String & s )
 
 
 /*! Steps past a sequence of adjacent encoded-words with whitespace in
-    between and returns the decoded UTF-8 representation.
+    between and returns the decoded representation.
 */
 
-String Parser822::encodedWords()
+UString Parser822::encodedWords()
 {
-    String out;
+    UString out;
 
-    String us = encodedWord();
+    UString us = encodedWord();
     if ( us.isEmpty() )
         return out;
 
     uint n;
     out.append( us );
-    do {
+    while ( true ) {
         n = i;
-        while ( i < s.length() &&
-                ( s[i] == ' ' || s[i] == '\t' ) )
+        while ( s[i] == ' ' || s[i] == '\t' ||
+                s[i] == '\r' || s[i] == '\n' )
             i++;
 
         if ( i == n )
             break;
 
-        if ( i < s.length() && s[i] == '=' && s[i+1] == '?' ) {
-            String us = encodedWord();
+        if ( s[i] == '=' && s[i+1] == '?' ) {
+            UString us = encodedWord();
             if ( us.isEmpty() ) {
                 i = n;
-                break;
+                break; // look at me! I goto!
             }
             else {
                 out.append( us );
@@ -550,37 +549,34 @@ String Parser822::encodedWords()
             break;
         }
     }
-    while ( 1 );
 
     return out;
 }
 
 
 /*! Steps past the longest "*text" (a series of text/encoded-words) at
-    the cursor and returns its UTF-8 decoded representation, which may
+    the cursor and returns its unicode representation, which may
     be an empty string.
 */
 
-String Parser822::text()
+UString Parser822::text()
 {
-    String out;
+    UString out;
 
     uint first = i;
 
     char c = s[i];
-    while ( i < s.length() &&
-            c != 0 && c != '\012' && c != '\015' && c <= 127 )
-    {
+    while ( c != 0 && c != '\012' && c != '\015' && c <= 127 ) {
         if ( ( c == ' ' && s[i+1] == '=' && s[i+2] == '?' ) ||
              ( i == first && s[i] == '=' && s[i+1] == '?' ) )
         {
             if ( c == ' ' )
                 c = s[++i];
             if ( i != first )
-                out.append( ' ' );
+                out.append( " " );
 
             uint n = i;
-            String us = encodedWords();
+            UString us = encodedWords();
             if ( !us.isEmpty() &&
                  ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
                    i == s.length() ) )
@@ -609,14 +605,15 @@ String Parser822::text()
     empty string.
 */
 
-String Parser822::phrase()
+UString Parser822::phrase()
 {
-    String out;
+    UString out;
     int last = 0;
 
     i += cfws();
-    while ( i < s.length() ) {
-        String t;
+    while ( i < s.length() ) { // XXX while condition is not complete
+        AsciiCodec a;
+        UString t;
         int type = 0;
 
         if ( s[i] == '=' && s[i+1] == '?' ) {
@@ -629,15 +626,15 @@ String Parser822::phrase()
                 i = n;
         }
         else if ( s[i] == '"' ) {
-            t = string();
+            t = a.toUnicode( string() );
             type = 2;
         }
 
         if ( type == 0 )
-            t = atom();
+            t = a.toUnicode( atom() );
 
         if ( t.isEmpty() )
-            break;
+            break; // XXX here's a break, too
 
         if ( !( out.isEmpty() || ( last == 1 && type == 1 ) ) )
             out.append( ' ' );

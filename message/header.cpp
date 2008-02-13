@@ -7,6 +7,7 @@
 #include "mimefields.h"
 #include "configuration.h"
 #include "addressfield.h"
+#include "ustringlist.h"
 #include "multipart.h"
 #include "address.h"
 #include "unknown.h"
@@ -992,17 +993,18 @@ void Header::repair( Multipart * p, const String & body )
             HeaderField * s = it;
             ++it;
             if ( s->type() == HeaderField::Subject ) {
-                String v = s->data();
+                UString v = s->value();
                 bool b = false;
                 if ( v.length() > 300 ) {
                     b = true;
                 }
                 else if ( v.length() > 80 ) {
                     v = v.simplified();
-                    StringList::Iterator w( StringList::split( ' ', v ) );
+                    UStringList::Iterator w( UStringList::split( ' ', v ) );
                     while ( w && !b ) {
                         if ( w->endsWith( ":" ) &&
-                             HeaderField::fieldType( *w ) > 0 )
+                             w->isAscii() &&
+                             HeaderField::fieldType( w->ascii() ) > 0 )
                             b = true;
                         ++w;
                     }
@@ -1459,7 +1461,7 @@ void Header::fix8BitFields( class Codec * c )
                // XXX: This should be more fine-grained:
                f->type() == HeaderField::Other ) )
         {
-            String v = f->data();
+            String v = f->unparsedValue();
             uint i = 0;
             while ( v[i] < 128 && v[i] > 0 )
                 i++;
@@ -1476,12 +1478,8 @@ void Header::fix8BitFields( class Codec * c )
                 else if ( f->error().isEmpty() )
                     f->setError( "Cannot parse either as US-ASCII or " +
                                  c->name() );
-                if ( ok ) {
-                    String s = utf8.fromUnicode( u );
-                    s = HeaderField::encodeText( s );
-                    Parser822 p( s );
-                    f->setData( p.text() );
-                }
+                if ( ok )
+                    f->setValue( u.simplified() );
             }
         }
         else if ( f->type() == HeaderField::ContentType ||
@@ -1503,25 +1501,21 @@ void Header::fix8BitFields( class Codec * c )
                     // 8-bit material. what to do?
                     c->setState( Codec::Valid );
                     UString u = c->toUnicode( v );
-                    if ( c->wellformed() ) {
+                    if ( c->wellformed() )
                         // we could parse it, so let's encode it using
                         // RFC 2047 encoding. later we probably want
                         // to use RFC 2231 encoding, but that's
                         // premature at the moment. don't know whether
                         // readers support it.
-                        String hack( utf8.fromUnicode( u ) );
-                        mf->addParameter( *a,
-                                          HeaderField::encodeWord( hack ) );
-                    }
-                    else {
+                        mf->addParameter( *a, HeaderField::encodeWord( u ) );
+                    else
                         // unparsable. just remove it?
                         mf->removeParameter( *a );
-                    }
                 }
             }
         }
         else if ( f->type() == HeaderField::InReplyTo ) {
-            String v = f->data();
+            String v = f->unparsedValue();
             uint i = 0;
             while ( v[i] < 128 && v[i] > 0 )
                 i++;
@@ -1534,8 +1528,8 @@ void Header::fix8BitFields( class Codec * c )
                     c.append( *i );
                     int e = c.find( '>' );
                     if ( e > 0 ) {
-                        c.truncate( e+1 );
-                        AddressParser * ap = AddressParser::references( c );
+                        AddressParser * ap 
+                            = AddressParser::references( c.mid( e+1 ) );
                         if ( ap->error().isEmpty() &&
                              ap->addresses()->count() == 1 ) {
                             Address * candidate = ap->addresses()->first();
@@ -1546,11 +1540,14 @@ void Header::fix8BitFields( class Codec * c )
                     }
                     ++i;
                 }
-                if ( best )
-                    f->setData( "<" + best->localpart() +
-                                "@" + best->domain() + ">" );
-                else
+                if ( best ) {
+                    AsciiCodec a;
+                    f->setValue( a.toUnicode( "<" + best->localpart() +
+                                              "@" + best->domain() + ">" ) );
+                }
+                else {
                     d->fields.remove( f );
+                }
             }
         }
     }

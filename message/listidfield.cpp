@@ -2,6 +2,9 @@
 
 #include "listidfield.h"
 
+#include "ustring.h"
+#include "codec.h"
+
 
 /*! \class ListIdField listidfield.h
 
@@ -23,25 +26,23 @@ ListIdField::ListIdField()
 }
 
 
-/*! Unremarkable except that it drops 8-bit data inside \a value. */
+/*! Unremarkable except that it drops 8-bit data inside \a s. */
 
-void ListIdField::parse( const String & value )
+void ListIdField::parse( const String & s )
 {
-    uint i = value.length();
-    while ( i > 0 && value[i] < 128 )
-        i--;
-    if ( value[i] < 128 ) {
-        setData( value );
+    AsciiCodec a;
+    setValue( a.toUnicode( s ) );
+    if ( a.valid() )
         return;
+    int lt = s.find( '<' );
+    int gt = s.find( '>' );
+    if ( lt >= 0 && gt > lt && 
+         !s.mid( gt+1 ).contains( '<' ) ) {
+        a.setState( Codec::Valid );
+        setValue( a.toUnicode( s.mid( lt, gt+1-lt ) ) );
+        if ( a.valid() )
+            return;
     }
-
-    uint bad = i;
-    while ( value[i] != '<' && i < value.length() )
-        i++;
-    if ( value[i] == '<' ) {
-        setData( value.mid( i ) );
-        return;
-    }
-
-    setError( "8-bit data at index " + fn( bad ) );
+    
+    setError( "8-bit data: " + a.error() );
 }

@@ -286,7 +286,7 @@ void MessageHeaderFetcher::decode( Message * m, Row * r )
 {
     String part = r->getString( "part" );
     String name = r->getString( "name" );
-    String value = r->getString( "value" );
+    UString value = r->getUString( "value" );
 
     Header * h = m->header();
     if ( part.endsWith( ".rfc822" ) ) {
@@ -681,7 +681,7 @@ void MessageFetcher::execute()
 
         String part = r->getString( "part" );
         String name = r->getString( "name" );
-        String value = r->getString( "value" );
+        UString value = r->getUString( "value" );
 
         Header * h = d->message->header();
         if ( part.endsWith( ".rfc822" ) ) {

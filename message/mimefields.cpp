@@ -4,10 +4,12 @@
 
 #include "field.h"
 #include "string.h"
+#include "ustring.h"
 #include "parser.h"
 #include "codec.h"
 #include "list.h"
 #include "map.h"
+#include "utf.h"
 
 
 class MimeFieldData
@@ -235,13 +237,9 @@ void MimeField::parseParameters( Parser822 *p )
 }
 
 
-/*! Like HeaderField::value(), returns the RFC 2822 representation of
-    this MIME field.
-*/
-
 String MimeField::rfc822() const
 {
-    String s = HeaderField::data();
+    String s = baseValue();
     uint lineLength = name().length() + 2 + s.length();
 
     StringList words;
@@ -275,16 +273,25 @@ String MimeField::rfc822() const
 }
 
 
-/*! Like HeaderField::data(), returns the contents of this MIME field in
+/*! Like HeaderField::value(), returns the contents of this MIME field in
     a representation suitable for storage.
 */
 
-String MimeField::data() const
+UString MimeField::value() const
 {
-    String s = HeaderField::data();
-    s.append( parameterString() );
-    return s;
+    Utf8Codec c;
+    return c.toUnicode( rfc822() );
+    // the best that can be said about this is that it corresponds to
+    // HeaderField::assemble.
 }
+
+
+/*! \fn virtual String MimeField::baseValue() const
+  
+    This pure virtual function is used by rfc822() and value() to
+    fetch the value of this header field without any parameters().
+    rfc822() and value() then append the parameters().
+*/
 
 
 
@@ -378,9 +385,6 @@ void ContentType::parse( const String &s )
         }
     }
 
-    String v = t + "/" + st;
-    setData( v );
-
     if ( t.isEmpty() || st.isEmpty() )
         setError( "Both type and subtype must be nonempty: " + s.quoted() );
 
@@ -424,6 +428,12 @@ String ContentType::type() const
 String ContentType::subtype() const
 {
     return st;
+}
+
+
+String ContentType::baseValue() const
+{
+    return t + "/" + st;
 }
 
 
@@ -477,7 +487,19 @@ void ContentTransferEncoding::parse( const String &s )
 void ContentTransferEncoding::setEncoding( String::Encoding en )
 {
     e = en;
+}
 
+
+/*! Returns the encoding, or Binary in case of error. */
+
+String::Encoding ContentTransferEncoding::encoding() const
+{
+    return e;
+}
+
+
+String ContentTransferEncoding::baseValue() const
+{
     String s;
     switch ( e ) {
     case String::Binary:
@@ -493,15 +515,7 @@ void ContentTransferEncoding::setEncoding( String::Encoding en )
         s = "x-uuencode";
         break;
     }
-    setData( s );
-}
-
-
-/*! Returns the encoding, or Binary in case of error. */
-
-String::Encoding ContentTransferEncoding::encoding() const
-{
-    return e;
+    return s;
 }
 
 
@@ -542,20 +556,25 @@ void ContentDisposition::parse( const String &s )
 
     // We are required to treat unknown types as "attachment". If they
     // are syntactically invalid, we replace them with "attachment".
-    if ( t == "inline" )
-        d = Inline;
-    else {
-        d = Attachment;
-        if ( !p.atEnd() )
-            t = "attachment";
-    }
-    setData( t );
+    if ( t.isEmpty() )
+        d = "attachment";
+    else
+        d = t;
 }
 
 
 /*! Returns the disposition. */
 
 ContentDisposition::Disposition ContentDisposition::disposition() const
+{
+    if ( d == "inline" )
+        return Inline;
+    else
+        return Attachment;
+}
+
+
+String ContentDisposition::baseValue() const
 {
     return d;
 }
@@ -593,8 +612,6 @@ ContentLanguage::~ContentLanguage()
 
 void ContentLanguage::parse( const String &s )
 {
-    setData( s );
-
     Parser822 p( s );
 
     do {
@@ -616,4 +633,10 @@ void ContentLanguage::parse( const String &s )
 const StringList *ContentLanguage::languages() const
 {
     return &l;
+}
+
+
+String ContentLanguage::baseValue() const
+{
+    return l.join( ", " );
 }

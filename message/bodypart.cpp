@@ -602,9 +602,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                      hf->type() == HeaderField::Subject ) {
                     // is it right to bang only Subject?
                     c->reset();
-                    UString u = c->toUnicode( hf->data() );
-                    Utf8Codec utf8;
-                    hf->setData( utf8.fromUnicode( u ) );
+                    hf->setValue( c->toUnicode( hf->unparsedValue() ) );
                 }
                 ++hf;
             }

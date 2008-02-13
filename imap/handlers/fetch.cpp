@@ -1046,7 +1046,7 @@ static String hf( Header * f, HeaderField::Type t )
             if ( u.isAscii() )
                 eu = u.simplified().utf8();
             else
-                eu = HeaderField::encodePhrase( u.utf8() );
+                eu = HeaderField::encodePhrase( u );
             r.append( Command::imapQuoted( eu, Command::NString ) );
             r.append( " NIL " );
             r.append( Command::imapQuoted( it->localpart(), Command::NString ) );

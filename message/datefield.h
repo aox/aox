@@ -16,9 +16,6 @@ public:
     void parse( const String & );
 
     ::Date *date() const;
-
-private:
-    ::Date *d;
 };
 
 

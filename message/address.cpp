@@ -228,7 +228,7 @@ String Address::name() const
     if ( ascii )
         return d->name.ascii().quoted( '"', '\\' );
 
-    return HeaderField::encodePhrase( d->name.utf8() );
+    return HeaderField::encodePhrase( d->name );
 }
 
 
@@ -1334,14 +1334,12 @@ UString AddressParser::phrase( int & i )
                 done = true;
             if ( a.startsWith( "=?" ) ) {
                 Parser822 p( a );
-                String tmp = p.phrase().simplified();
+                UString tmp = p.phrase().simplified();
                 if ( tmp.startsWith( "=?" ) ||
                      tmp.contains( " =?" ) )
                     drop = true;
                 if ( !tmp.isEmpty() ) {
-                    // XXX fixme: Parser822::phrase() blah.
-                    Utf8Codec u;
-                    word = u.toUnicode( tmp ); // phrase() did fromUnicode()
+                    word = tmp;
                     encw = true;
                 }
                 else {
