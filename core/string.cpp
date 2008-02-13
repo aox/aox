@@ -480,7 +480,12 @@ void String::reserve2( uint num )
 
 void String::truncate( uint l )
 {
-    if ( l < length() ) {
+    if ( !l ) {
+        if ( d && d->max )
+            Allocator::dealloc( d );
+        d = 0;
+    }
+    else if ( l < length() ) {
         detach();
         d->len = l;
     }
@@ -1290,8 +1295,10 @@ String String::eQP( bool underscore ) const
         return *this;
     uint i = 0;
     String r;
-    // worst case: three bytes, plus soft line feeds every 48 chars
-    r.reserve( length()*3 + length()/16 );
+    // no input character can use more than six output characters (=
+    // CR LF = 3 D), so we allocate as much space as we could possibly
+    // need.
+    r.reserve( length()*6 );
     uint c = 0;
     while ( i < d->len ) {
         if ( d->str[i] == 10 ||
@@ -1307,6 +1314,7 @@ String String::eQP( bool underscore ) const
             if ( d->str[i] == 13 )
                 r.d->str[r.d->len++] = d->str[i++];
             r.d->str[r.d->len++] = 10;
+            // worst case: five bytes
         }
         else {
             if ( c > 72 ) {
@@ -1343,8 +1351,8 @@ String String::eQP( bool underscore ) const
                 c += 3;
             }
             else if ( ( d->str[i] >= ' ' && d->str[i] < 127 &&
-                   d->str[i] != '=' ) ||
-                 ( d->str[i] == '\t' ) ) {
+                        d->str[i] != '=' ) ||
+                      ( d->str[i] == '\t' ) ) {
                 r.d->str[r.d->len++] = d->str[i];
                 c++;
             }
