@@ -313,6 +313,9 @@ void AbnfParser::restore()
 
 void AbnfParser::restore( uint m )
 {
-    while ( m && d->next && d->mark > m )
-        d = d->next;
+    AbnfParserData * c = d;
+    while ( c && c->mark != m && c->next )
+        c = c->next;
+    if ( c && c->mark == m )
+        d = c;
 }
