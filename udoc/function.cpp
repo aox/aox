@@ -165,13 +165,13 @@ bool Function::operator<=( const Function & other ) const
 
 Function * Function::super() const
 {
-    if ( !c || !c->parent() )
+    if ( !c )
         return 0;
 
     Class * subclass = c;
     Function * result = 0;
 
-    do {
+    while ( !result && subclass->parent() ) {
         // normally the parent function's name is the same as this, but
         // for constructors or destructors it gets difficult. so let's
         // find out what the member name and immediate class name are.
@@ -209,9 +209,9 @@ Function * Function::super() const
 
         // after all that, we finally know what function we may be
         // reimplementing. so look for it and return it.
-        result = find( sn, a );
+        result = find( sn, a, isConst() );
         subclass = subclass->parent();
-    } while ( !result && subclass->parent() );
+    }
 
     return result;
 }

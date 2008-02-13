@@ -33,7 +33,7 @@ public:
     String type() const { return t; }
     String name() const { return n; }
     String arguments() const { return args; }
-    bool isConst() { return cn; }
+    bool isConst() const { return cn; }
 
     void setArgumentList( const String & );
     bool hasArgument( const String & ) const;
