@@ -134,7 +134,6 @@ public:
         if ( i->failed() )
             quit( EX_SOFTWARE, "Injection error: " + i->error() );
 
-        i->announce();
         i = 0;
         EventLoop::shutdown();
     }

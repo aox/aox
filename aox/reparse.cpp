@@ -78,7 +78,6 @@ void Reparse::execute()
                    d->injector->error() );
         }
         else {
-            d->injector->announce();
             Mailbox * m = d->injector->mailboxes()->first();
             d->t = new Transaction( this );
             Query * q =

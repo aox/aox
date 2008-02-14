@@ -326,7 +326,6 @@ void Append::execute()
     if ( state() != Executing )
         return;
 
-    d->injector->announce();
     setRespTextCode( "APPENDUID " +
                      fn( d->mailbox->uidvalidity() ) +
                      " " +

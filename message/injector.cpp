@@ -1443,11 +1443,15 @@ void Injector::execute()
             ::failures = new GraphableCounter( "injection-errors" );
             ::successes = new GraphableCounter( "messages-injected" );
         }
-        if ( !d->failed ) {
+
+        if ( !d->failed )
             d->failed = d->transaction->failed();
+
+        if ( d->failed ) {
             ::failures->tick();
         }
         else {
+            announce();
             ::successes->tick();
         }
         d->state = Done;

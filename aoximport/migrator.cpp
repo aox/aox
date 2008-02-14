@@ -499,7 +499,6 @@ void MailboxMigrator::execute()
     }
 
     if ( d->injector ) {
-        d->injector->announce();
         // we've already injected one message. must get another.
         d->message = d->source->nextMessage();
     }

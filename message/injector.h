@@ -47,7 +47,6 @@ public:
     String error() const;
     void execute();
 
-    void announce();
     uint uid( Mailbox * ) const;
 
     Message * message() const;
@@ -81,6 +80,7 @@ private:
     void linkAnnotations();
     void handleWrapping();
     void logMessageDetails();
+    void announce();
 
     uint internalDate( Message * ) const;
 };
