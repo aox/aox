@@ -23,18 +23,17 @@ class SpoolManagerData
 {
 public:
     SpoolManagerData()
-        : q( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 ), uidnext( 0 ), again( false ),
-          spooled( false ), log( 0 )
+        : nextRun( 0 ), q( 0 ), t( 0 ), row( 0 ), client( 0 ),
+          agent( 0 ), uidnext( 0 ), spooled( false ), log( 0 )
     {}
 
+    Query * nextRun;
     Query * q;
     Timer * t;
     Row * row;
     SmtpClient * client;
     DeliveryAgent * agent;
     uint uidnext;
-    bool again;
     bool spooled;
     Log * log;
 };
@@ -65,7 +64,48 @@ void SpoolManager::execute()
 
     Scope x( d->log );
 
+    // Find the number of seconds until we need to retry any existing
+    // recipient (which will be 0 if we have anything to do right now).
+
+    if ( !d->nextRun ) {
+        d->nextRun =
+            new Query(
+                "select coalesce("
+                "(extract(epoch from current_timestamp)-"
+                "extract(epoch from min(case "
+                "when action=$2 then last_attempt+interval '600s' "
+                "when action=$1 then current_timestamp end)))::int, "
+                "600) as next_attempt from "
+                "delivery_recipients where action=$1 or action=$2",
+                this
+            );
+        d->nextRun->bind( 1, Recipient::Unknown );
+        d->nextRun->bind( 2, Recipient::Delayed );
+        d->nextRun->execute();
+    }
+
+    if ( !d->nextRun->done() )
+        return;
+
+    // Do we need to wake up yet?
+
+    if ( !d->q ) {
+        Row * r = d->nextRun->nextRow();
+        uint next( r->getInt( "next_attempt" ) );
+
+        if ( next > 0 ) {
+            log( "Ending queue run (sleeping for " + fn( next ) +
+                 " seconds)" );
+            if ( d->client )
+                d->client->logout( 4 );
+            reset();
+            d->t = new Timer( this, next );
+            return;
+        }
+    }
+
     // Fetch a list of spooled messages.
+
     if ( !d->q ) {
         log( "Starting queue run" );
         reset();
@@ -134,19 +174,8 @@ void SpoolManager::execute()
     if ( !d->q->done() )
         return;
 
-    if ( d->again ) {
-        reset();
-        d->t = new Timer( this, 0 );
-        log( "Restarting to handle newly-spooled messages" );
-    }
-    else {
-        log( "Ending queue run" );
-        if ( d->client )
-            d->client->logout( 4 );
-        reset();
-        if ( d->spooled )
-            d->t = new Timer( this, 330 - (Entropy::asNumber( 1 )%64) );
-    }
+    reset();
+    d->t = new Timer( this, 0 );
 }
 
 
@@ -171,7 +200,7 @@ void SpoolManager::reset()
     d->q = 0;
     d->row = 0;
     d->agent = 0;
-    d->again = false;
+    d->nextRun = 0;
     d->spooled = false;
 }
 
@@ -196,10 +225,7 @@ void SpoolManager::run()
         ::sm->log( "Forcing immediate queue run", Log::Debug );
         ::sm->reset();
     }
-    if ( ::sm->d->q )
-        ::sm->d->again = true;
-    else
-        ::sm->execute();
+    ::sm->execute();
 }
 
 
