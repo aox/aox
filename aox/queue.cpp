@@ -27,7 +27,7 @@ void ShowQueue::execute()
         database();
 
         String s(
-            "select distinct d.id, d.message, "
+            "select distinct d.id, d.message, d.injected_at, "
             "a.localpart||'@'||a.domain as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
             "(d.expires_at-current_timestamp)::text as expires_in, "
@@ -41,8 +41,10 @@ void ShowQueue::execute()
         s.append( "order by d.injected_at" );
         
         q = new Query( s, this );
-        q->bind( 1, Recipient::Unknown );
-        q->bind( 2, Recipient::Delayed );
+        if ( !opt( 'a' ) ) {
+            q->bind( 1, Recipient::Unknown );
+            q->bind( 2, Recipient::Delayed );
+        }
         q->execute();
     }
 
