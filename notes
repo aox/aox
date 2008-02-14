@@ -316,9 +316,8 @@ Message tracking
 
   We can track mail provided that at least one of these is true:
 
-  - we deliver directly to the end server (looking at received fields
-    for mail from the same address can help ascertain that the best mx
-    really is that)
+  - we deliver directly to the end server (we don't know whether
+    that's the case, though)
 
   - we deliver via an MTRK-capable server
 
@@ -331,6 +330,22 @@ Message tracking
 
   We could implement the tracking protocol (and I'd write a query blah
   in mailchen), and also provide a query interface via the web.
+
+
+Message tracking 2
+
+  We can recognize the ESMTP id for the most common MTAs. Postfix says:
+
+    250 Ok: queued as D1A324AC85
+
+  Sendmaik and exim surely say something similar. We could keep that ID
+  in delivery_recipients and use it in DSNs.
+
+
+Generating bounces
+
+  Our bounces would look better if they included the entire SMTP
+  conversation (starting with RSET or EHLO).
 
 
 Thread-Index from Exchange
@@ -373,9 +388,9 @@ Memory use for common operations
 
   The most elegant way to solve that would be to supervise memory
   usage for a known sequence. Inject these ten thousand messages,
-  check memory use (via a hack), connect to the imap port run this and
+  check memory use (via the grapher), connect to the imap port run
+  this and that, check again, connect to the imap port run this and
   that, check again, connect to the imap port run this and that, check
-  again, connect to the imap port run this and that, check
   again... just a bunch of checks. Ignore output.
 
 
