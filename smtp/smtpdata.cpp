@@ -29,15 +29,13 @@ class SmtpDataData
 {
 public:
     SmtpDataData()
-        : state( 2 ), message( 0 ), ok( "OK" ),
-          spooled( false )
+        : state( 2 ), message( 0 ), ok( "OK" )
     {}
 
     String body;
     uint state;
     Message * message;
     String ok;
-    bool spooled;
 };
 
 
@@ -259,8 +257,7 @@ void SmtpData::execute()
                 respond( 250, d->ok, "2.0.0" );
         }
 
-        if ( d->spooled )
-            SpoolManager::run();
+        SpoolManager::run();
 
         finish();
         server()->reset();
