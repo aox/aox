@@ -70,7 +70,7 @@ Function::Function( const String & type,
     Returns the arguments of this Function as a string.
 */
 
-/*! \fn bool Function::isConst()
+/*! \fn bool Function::isConst() const
     Returns true if this function is const, and false otherwise.
 */
 
