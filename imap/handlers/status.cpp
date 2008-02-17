@@ -110,13 +110,11 @@ void Status::execute()
     if ( d->unseen && !d->unseenCount ) {
         // UNSEEN is a bit of a special case. we have to issue our own
         // select and make the database reveal the number.
-        d->unseenCount
-            = new Query( "select count(*)::int as unseen "
-                         "from mailbox_messages mm "
-                         "left join flags f on "
-                         "(mm.uid=f.uid and mm.mailbox=f.mailbox and "
-                         " f.flag=$2) "
-                         "where mm.mailbox=$1 and f.flag is null", this );
+        d->unseenCount = new Query( 
+            "select count(*)::int as unseen "
+            "from mailbox_messages mm "
+            "where mm.mailbox=$1 and mm.uid not in "
+            "(select uid from flags where flag=$2 and mailbox=$1)", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
         Flag * f = Flag::find( "\\seen" );
         if ( f ) {
