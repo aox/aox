@@ -68,46 +68,21 @@ bool Parser822::isAtext( char c ) const
 }
 
 
-/*! Asserts that the index points at \a expect and steps past it. If the
-    index doesn't, \a errorMessage is logged.
-
-    If \a expect has length 0, this function is a noop.
-*/
-
-void Parser822::stepPast( const char * expect, const char * errorMessage )
-{
-    if ( !expect || !*expect )
-        return;
-    int j = 0;
-    while ( expect[j] != 0 && s[i+j] == expect[j] )
-        j++;
-    if ( expect[j] )
-        error( errorMessage );
-    else
-        i = i + j;
-}
-
-
-/*! Moves index() to the first nonwhitespace character after the current
-    point. If index() points to nonwhitespace already, it is not moved.
+/*! Moves pos() to the first nonwhitespace character after the current
+    point. If pos() points to nonwhitespace
+    already, it is not moved.
 */
 
 void Parser822::whitespace()
 {
-    while ( i < s.length() &&
-            ( s[i] == ' ' || s[i] == 9 || s[i] == 10 || s[i] == 13 ||
-              s[i] == 160 ) )
-        i++;
+    while ( nextChar() == ' ' || nextChar() == 9 ||
+            nextChar() == 10 || nextChar() == 13 ||
+            nextChar() == 160 )
+        step();
 }
 
 
-/*! \fn uint Parser822::index() const
-    Returns the current position of the parser cursor. This is 0 at the
-    start, and advances as characters are parsed.
-*/
-
-
-/*! Moves index() past all comments and surrounding white space, and
+/*! Moves pos() past all comments and surrounding white space, and
     returns the contents of the last comment.
 
     Returns a null string if there was no comment.
@@ -117,11 +92,11 @@ String Parser822::comment()
 {
     String r;
     whitespace();
-    while ( s[i] == '(' ) {
+    while ( present( "(" ) ) {
         r = "";
-        uint commentLevel = 0;
-        do {
-            switch( s[i] ) {
+        uint commentLevel = 1;
+        while( commentLevel && !atEnd() ) {
+            switch( nextChar() ) {
             case '(':
                 if ( commentLevel > 0 )
                     r.append( '(' );
@@ -133,14 +108,15 @@ String Parser822::comment()
                     r.append( ')' );
                 break;
             case '\\':
-                r.append( s[++i] );
+                step();
+                r.append( nextChar() );
                 break;
             default:
-                r.append( s[i] );
+                r.append( nextChar() );
                 break;
             }
-            i++;
-        } while( commentLevel && i < s.length() );
+            step();
+        }
         whitespace();
         lc = r;
     }
@@ -155,43 +131,36 @@ String Parser822::string()
     comment();
 
     // now, treat it either as a quoted string or an unquoted atom
-    if ( s[i] != '"' )
+    if ( nextChar() != '"' )
         return atom();
 
     String output;
-    i++;
+    step();
     bool done = false;
-    while( !done && i < s.length() ) {
-        if ( s[i] == '"' ) {
-            i++;
+    while( !done && !atEnd() ) {
+        char c = nextChar();
+        step();
+        if ( c == '"' ) {
             done = true;
         }
-        else if ( s[i] == '\\' ) {
-            output.append( s[++i] );
-            i++;
+        else if ( c == '\\' ) {
+            output.append( nextChar() );
+            step();
         }
-        else if ( s[i] == 9 || s[i] == 10 || s[i] == 13 || s[i] == ' ' ) {
-            uint wsp = i;
+        else if ( c == 9 || c == '\r' || c == '\n' || c == ' ' ) {
+            uint wsp = pos()-1;
             whitespace();
-            String t( s.mid( wsp, i-wsp ) );
+            String t = input().mid( wsp, pos()-wsp );
             if ( t.contains( "\r" ) || t.contains( "\n" ) )
                 output.append( ' ' );
             else
                 output.append( t );
         }
         else {
-            output.append( s[i++] );
+            output.append( c );
         }
     }
     return output;
-}
-
-
-/*! Returns a single character and steps to the next. */
-
-char Parser822::character()
-{
-    return s[i++];
 }
 
 
@@ -210,22 +179,19 @@ String Parser822::domain()
 {
     String l;
     comment();
-    if ( next() == '[' ) {
-        int j = i;
+    if ( present( "[" ) ) {
+        int j = pos() - 1;
         step();
-        char c = s[i];
+        char c = nextChar();
         while ( ( c >= 'a' && c <= 'z' ) ||
                 ( c >= 'A' && c <= 'Z' ) ||
                 ( c >= '0' && c <= '9' ) ||
                 c == '.' || c == ':' || c == '-' ) {
             step();
-            c = next();
+            c = nextChar();
         }
-        if ( next() == ']' )
-            step();
-        else
-            error( "missing trailing ']' ([1.2.3.4])" );
-        l = s.mid( j, i-j );
+        require( "]" );
+        l = input().mid( j, pos()-j );
     }
     else {
         l = dotAtom();
@@ -255,19 +221,22 @@ String Parser822::dotAtom()
     if ( r.isEmpty() )
         return r;
 
-    bool m = true;
-    comment();
-    while ( m && s[i] == '.' ) {
-        int j = i;
-        i++;
+    bool done = false;
+    while ( !done ) {
+        uint m = mark();
+        comment();
+        require( "." );
+        comment();
         String a = atom();
-        if ( a.isEmpty() ) {
-            i = j; // backtrack to the dot
-            m = false;
+        if ( a.isEmpty() )
+            setError( "Trailing dot in dot-atom" );
+        if ( valid() ) {
+            r.append( "." );
+            r.append( a );
         }
         else {
-            r = r + "." + a;
-            comment();
+            restore( m );
+            done = true;
         }
     }
 
@@ -283,8 +252,10 @@ String Parser822::atom()
 {
     comment();
     String output;
-    while ( i < s.length() && isAtext( s[i] ) )
-        output.append( s[i++] );
+    while ( !atEnd() && isAtext( nextChar() ) ) {
+        output.append( nextChar() );
+        step();
+    }
     return output;
 }
 
@@ -298,18 +269,17 @@ String Parser822::mimeToken()
     comment();
 
     String output;
-    char c = s[i];
+    char c = nextChar();
 
-    while ( i < s.length() &&
-            c > 32 && c < 128 &&
+    while ( c > 32 && c < 128 &&
             c != '(' && c != ')' && c != '<' && c != '>' &&
             c != '@' && c != ',' && c != ';' && c != ':' &&
             c != '[' && c != ']' && c != '?' && c != '=' &&
             c != '\\' && c != '"' && c != '/' )
     {
         output.append( c );
-        i++;
-        c = s[i];
+        step();
+        c = nextChar();
     }
 
     return output;
@@ -324,7 +294,7 @@ String Parser822::mimeToken()
 String Parser822::mimeValue()
 {
     comment();
-    if ( s[i] == '"' )
+    if ( nextChar() == '"' )
         return string();
     return mimeToken();
 }
@@ -342,113 +312,93 @@ String Parser822::mimeValue()
 
 UString Parser822::encodedWord( EncodedText type )
 {
-    UString out;
-
     // encoded-word = "=?" charset '?' encoding '?' encoded-text "?="
 
-    int n = i;
-    Codec *cs = 0;
-    bool valid = true;
-    String charset, text;
-    char encoding = 0;
+    //uint start = pos();
 
-    if ( s[n] != '=' || s[++n] != '?' )
-        valid = false;
+    String charset;
+    uint m = mark();
+    require( "=?" );
+    char c = nextChar();
+    while ( c > 32 && c < 128 &&
+            c != '(' && c != ')' && c != '<' && c != '>' &&
+            c != '@' && c != ',' && c != ';' && c != ':' &&
+            c != '[' && c != ']' && c != '?' && c != '=' &&
+            c != '\\' && c != '"' && c != '/' && c != '.' )
+    {
+        charset.append( c );
+        step();
+        c = nextChar();
+    }
 
-    if ( valid ) {
-        int m = ++n;
-        char c = s[m];
-        while ( m - i <= 75 &&
-                c > 32 && c < 128 &&
-                c != '(' && c != ')' && c != '<' && c != '>' &&
-                c != '@' && c != ',' && c != ';' && c != ':' &&
-                c != '[' && c != ']' && c != '?' && c != '=' &&
-                c != '\\' && c != '"' && c != '/' && c != '.' )
-        {
-            charset.append( c );
-            c = s[++m];
-        }
+    if ( charset.contains( '*' ) ) {
+        // XXX: What should we do with the language information?
+        charset = charset.section( "*", 1 );
+    }
 
+    Codec * cs = Codec::byName( charset );
+    if ( !cs )
         // XXX: Should we treat unknown charsets as us-ascii?
-        int j = charset.find( '*' );
-        if ( j > 0 ) {
-            // XXX: What should we do with the language information?
-            charset = charset.mid( 0, j );
+        setError( "Unknown character set: " + charset );
+
+    require( "?" );
+
+    String::Encoding encoding = String::QP;
+    if ( present( "q" ) )
+        encoding = String::QP;
+    else if ( present( "b" ) )
+        encoding = String::Base64;
+    else
+        setError( "Unknown encoding: " + nextChar() );
+
+    require( "?" );
+
+    String text;
+    c = nextChar();
+    if ( encoding == String::Base64 ) {
+        while ( ( c >= '0' && c <= '9' ) ||
+                ( c >= 'a' && c <= 'z' ) ||
+                ( c >= 'A' && c <= 'Z' ) ||
+                c == '+' || c == '/' || c == '=' )
+        {
+            text.append( c );
+            step();
+            c = nextChar();
         }
-
-        if ( m - i > 75 || ( cs = Codec::byName( charset ) ) == 0 )
-            valid = false;
-        else
-            n = m;
     }
-
-    if ( valid && s[n] != '?' )
-        valid = false;
-
-    if ( valid ) {
-        int m = ++n;
-        encoding = s[m] | 0x20;
-        if ( encoding != 'q' && encoding != 'b' )
-            valid = false;
-        else
-            n = ++m;
-    }
-
-    if ( valid && s[n] != '?' )
-        valid = false;
-
-    if ( valid ) {
-        int m = ++n;
-        char c = s[m];
-
-        if ( encoding == 'b' ) {
-            while ( m - i <= 75 &&
-                    ( ( c >= '0' && c <= '9' ) ||
-                      ( c >= 'a' && c <= 'z' ) ||
-                      ( c >= 'A' && c <= 'Z' ) ||
-                      c == '+' || c == '/' || c == '=' ) )
-            {
-                text.append( c );
-                c = s[++m];
-            }
+    else {
+        while ( c > 32 && c < 128 && c != '?' &&
+                ( type != Comment ||
+                  ( c != '(' && c != ')' && c != '\\' ) ) &&
+                ( type != Phrase ||
+                  ( c >= '0' && c <= '9' ) ||
+                  ( c >= 'a' && c <= 'z' ) ||
+                  ( c >= 'A' && c <= 'Z' ) ||
+                  ( c == '!' || c == '*' || c == '-' ||
+                    c == '/' || c == '=' || c == '_' ||
+                    c == '\'' ) ) )
+        {
+            text.append( c );
+            step();
+            c = nextChar();
         }
-        else {
-            while ( m - i <= 75 &&
-                    c > 32 && c < 128 && c != '?' &&
-                    ( type != Comment ||
-                      ( c != '(' && c != ')' && c != '\\' ) ) &&
-                    ( type != Phrase ||
-                      ( c >= '0' && c <= '9' ) ||
-                      ( c >= 'a' && c <= 'z' ) ||
-                      ( c >= 'A' && c <= 'Z' ) ||
-                      ( c == '!' || c == '*' || c == '-' ||
-                        c == '/' || c == '=' || c == '_' ||
-                        c == '\'' ) ) )
-            {
-                text.append( c );
-                c = s[++m];
-            }
-        }
-
-        if ( m - i > 75 )
-            valid = false;
-        else
-            n = m;
     }
 
-    if ( valid && ( s[n] != '?' || s[++n] != '=' ) )
-        valid = false;
+    require( "?=" );
 
-    if ( valid ) {
-        if ( encoding == 'q' )
-            text = text.deQP( true );
+    // if ( pos() - start > 75 )
+    //setError( "Encoded word too long (maximum permitted is 75)" );
+
+    if ( valid() ) {
+        if ( encoding == String::QP )
+            return cs->toUnicode( text.deQP( true ) );
         else
-            text = text.de64();
-        out = cs->toUnicode( text );
-        i = ++n;
+            return cs->toUnicode( text.de64() );
     }
 
-    return out;
+    restore( m );
+    UString empty;
+    return empty;
 }
 
 
@@ -497,12 +447,10 @@ UString Parser822::de2047( const String & s )
     if ( !codec ) {
         // if we didn't recognise the codec, we'll assume that it's
         // ASCII if that would work and otherwise refuse to decode.
-        uint i = 0;
-        while ( i < decoded.length() &&
-                decoded[i] >= ' ' && decoded[i] < 127 )
-            i++;
-        if ( i >= decoded.length() )
-            codec = new AsciiCodec;
+        AsciiCodec * a = new AsciiCodec;
+        a->toUnicode( decoded );
+        if ( a->wellformed() )
+            codec = a;
     }
 
     if ( codec )
@@ -512,42 +460,22 @@ UString Parser822::de2047( const String & s )
 
 
 /*! Steps past a sequence of adjacent encoded-words with whitespace in
-    between and returns the decoded representation.
+    between and returns the decoded representation. \a t passed
+    through to encodedWord().
 */
 
-UString Parser822::encodedWords()
+UString Parser822::encodedWords( EncodedText t )
 {
     UString out;
-
-    UString us = encodedWord();
-    if ( us.isEmpty() )
-        return out;
-
-    uint n;
-    out.append( us );
-    while ( true ) {
-        n = i;
-        while ( s[i] == ' ' || s[i] == '\t' ||
-                s[i] == '\r' || s[i] == '\n' )
-            i++;
-
-        if ( i == n )
-            break;
-
-        if ( s[i] == '=' && s[i+1] == '?' ) {
-            UString us = encodedWord();
-            if ( us.isEmpty() ) {
-                i = n;
-                break; // look at me! I goto!
-            }
-            else {
-                out.append( us );
-            }
-        }
-        else {
-            i = n;
-            break;
-        }
+    bool end = false;
+    while ( !end ) {
+        whitespace();
+        uint n = pos();
+        UString us = encodedWord( t );
+        if ( n == pos() )
+            end = true;
+        else
+            out.append( us );
     }
 
     return out;
@@ -563,36 +491,37 @@ UString Parser822::text()
 {
     UString out;
 
-    uint first = i;
-
-    char c = s[i];
-    while ( c != 0 && c != '\012' && c != '\015' && c <= 127 ) {
-        if ( ( c == ' ' && s[i+1] == '=' && s[i+2] == '?' ) ||
-             ( i == first && s[i] == '=' && s[i+1] == '?' ) )
-        {
-            if ( c == ' ' )
-                c = s[++i];
-            if ( i != first )
-                out.append( " " );
-
-            uint n = i;
-            UString us = encodedWords();
-            if ( !us.isEmpty() &&
-                 ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
-                   i == s.length() ) )
-            {
-                out.append( us );
-                c = s[i];
-            }
-            else {
-                i = n;
-                out.append( c );
-                c = s[++i];
-            }
+    UString space;
+    UString word;
+    bool progress = true;
+    while ( progress ) {
+        uint m = mark();
+        if ( present( "=?" ) ) {
+            restore( m );
+            word = encodedWords();
         }
         else {
-            out.append( c );
-            c = s[++i];
+            word.truncate();
+            char c = nextChar();
+            while ( !atEnd() && c < 128 &&
+                    c != ' ' && c != 9 && c != 10 && c != 13 ) {
+                word.append( c );
+                step();
+                c = nextChar();
+            }
+        }
+        if ( word.isEmpty() ) {
+            progress = false;
+        }
+        else {
+            out.append( space );
+            out.append( word );
+            int s = pos();
+            whitespace();
+            AsciiCodec a;
+            space = a.toUnicode( input().mid( s, pos()-s ) );
+            if ( space.contains( '\r' ) || space.contains( '\n' ) )
+                space = space.simplified();
         }
     }
 
@@ -601,50 +530,75 @@ UString Parser822::text()
 
 
 /*! Steps past an RFC 822 phrase (a series of word/encoded-words) at the
-    cursor and returns its decoded UTF-8 representation, which may be an
+    cursor and returns its unicode representation, which may be an
     empty string.
 */
 
 UString Parser822::phrase()
 {
     UString out;
-    int last = 0;
 
-    i += cfws();
-    while ( i < s.length() ) { // XXX while condition is not complete
+    comment();
+
+    bool wasEncoded = false;
+    String spaces;
+    bool progress = true;
+
+    while ( !atEnd() && progress ) {
         AsciiCodec a;
         UString t;
-        int type = 0;
 
-        if ( s[i] == '=' && s[i+1] == '?' ) {
-            uint n = i;
-            t = encodedWord( Phrase );
-            if ( !t.isEmpty() &&
-                 ( cfws() > 0 || s[i+1] == '\0' ) )
-                type = 1;
-            else
-                i = n;
+        bool encoded = false;
+        bool h = false;
+        uint p = pos();
+        uint m = mark();
+        if ( present( "=?" ) ) {
+            restore( m );
+            t = encodedWords( Phrase );
+            if ( p < pos() ) {
+                h = true;
+                encoded = true;
+            }
         }
-        else if ( s[i] == '"' ) {
+        if ( !h && present( "\"" ) ) {
+            restore( m );
             t = a.toUnicode( string() );
-            type = 2;
+            if ( p < pos() )
+                h = true;
+        }
+        if ( !h ) {
+            t = a.toUnicode( atom() );
+            if ( p < pos() )
+                h = true;
         }
 
-        if ( type == 0 )
-            t = a.toUnicode( atom() );
+        if ( h || !t.isEmpty() ) {
+            // we did read something, so we need to add it to the
+            // previous word(s).
 
-        if ( t.isEmpty() )
-            break; // XXX here's a break, too
-
-        if ( !( out.isEmpty() || ( last == 1 && type == 1 ) ) )
-            out.append( ' ' );
-        out.append( t );
-        last = type;
-
-        uint n = i;
-        i += cfws();
-        if ( i == n )
-            break;
+            // first, append the spaces before the word we added. RFC
+            // 2047 says that spaces between encoded-words should be
+            // disregarded, so we do.
+            if ( !encoded || !wasEncoded )
+                out.append( a.toUnicode( spaces ) );
+            // next append the word we read
+            out.append( t );
+            // then read new spaces which we'll use if there is
+            // another word.
+            p = pos();
+            whitespace();
+            spaces = input().mid( p, pos()-p );
+            // RFC violation: if the spaces included a CR/LF, we
+            // properly should just get rid of the CRLF and one
+            // trailing SP, but changing it all to a single space
+            // matches the expectations of most senders better.
+            if ( spaces.contains( '\r' ) || spaces.contains( '\n' ) )
+                spaces = " ";
+            wasEncoded = encoded;
+        }
+        else {
+            progress = false;
+        }
     }
 
     return out;
@@ -657,49 +611,12 @@ UString Parser822::phrase()
 
 int Parser822::cfws()
 {
-    uint n = 0;
-    uint j = i;
-
-    do {
-        if ( s[j] == '\040' || s[j] == '\011' ||
-             s[j] == '\012' || s[j] == '\015' )
-        {
-            n++;
-            j++;
-        }
-        else if ( s[j] == '(' ) {
-            uint l = 0;
-            while ( s[j] == '(' ) {
-                uint level = 0;
-                do {
-                    l++;
-                    switch ( s[j] ) {
-                    case '(':
-                        level++;
-                        break;
-                    case ')':
-                        level--;
-                        break;
-                    case '\\':
-                        j++;
-                        l++;
-                        break;
-                    }
-                    j++;
-                }
-                while ( level != 0 && j < s.length() );
-            }
-            if ( l == 0 )
-                break;
-            n += l;
-        }
-        else {
-            break;
-        }
-    }
-    while ( 1 );
-
-    return n;
+    uint m = mark();
+    uint p = pos();
+    comment();
+    p = pos() - p;
+    restore( m );
+    return p;
 }
 
 
@@ -710,17 +627,11 @@ int Parser822::cfws()
 uint Parser822::number()
 {
     comment();
-    uint b = i;
-    while ( i < s.length() && s[i] >= '0' && s[i] <= '9' )
-        i++;
-    if ( i == b )
-        error( "expected decimal number" );
     bool ok = false;
-    uint n = s.mid( b, i-b ).number( &ok );
-    if ( !ok ) {
-        String e = "number " + s.mid( b, i-b ) + " is bad somehow";
-        error( e.cstr() );
-    }
+    String s = digits( 1, 15 );
+    uint n = s.number( &ok );
+    if ( !ok )
+        setError( "number " + s + " is bad somehow" );
     return n;
 }
 

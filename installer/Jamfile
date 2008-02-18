@@ -20,6 +20,6 @@ Depends [ FGristFiles installer.o ] : <>Jamsettings ;
 
 Executable installer :
     installer database server mailbox message user core encodings 
-    extractors ;
+    extractors abnf ;
 InstallBin $(INSTALLROOT)$(LIBDIR) : installer ;
 

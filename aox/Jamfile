@@ -26,4 +26,4 @@ Build aox :
 
 Program aox :
     aox database server mailbox message user core
-    encodings extractors ;
+    encodings extractors abnf ;

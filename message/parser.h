@@ -4,27 +4,20 @@
 #define PARSER_H
 
 #include "string.h"
+#include "abnfparser.h"
 
 class UString;
 
 
 class Parser822
-    : public Garbage
+    : public AbnfParser
 {
 public:
-    Parser822( const String & os ): s(os), i(0), mime( false ) {}
+    Parser822( const String & os ) : AbnfParser( os ), mime( false ) {}
     
-    void setIndex( uint ni ) { i = ni; }
-    uint index() const { return i; }
-
-    void setString( const String & ns ) { s = ns; setIndex( 0 ); }
-    operator String() { return s; }
-
-    void step() { setIndex( i + 1 ); }
     void setMime( bool );
     bool isMime() const { return mime; }
 
-    void stepPast( const char *, const char * );
     void whitespace();
 
     String comment();
@@ -39,30 +32,23 @@ public:
 
     enum EncodedText { Text, Comment, Phrase };
     UString encodedWord( EncodedText = Text );
-    UString encodedWords();
+    UString encodedWords( EncodedText = Text );
     UString phrase();
     UString text();
 
-    char next() const { return s[i]; }
-
     bool isAtext( char ) const;
-
-    bool atEnd() const { return i >= s.length(); }
-
-    bool hasError() { return false; }
 
     static UString de2047( const String & );
 
     String lastComment() const;
 
+    int cfws();
+
+    bool valid() { return error().isEmpty(); }
+
 private:
-    void error( const char * ) {}
-    String s;
-    uint i;
     bool mime;
     String lc;
-
-    int cfws();
 };
 
 

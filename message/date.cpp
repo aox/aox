@@ -322,26 +322,19 @@ void Date::setRfc822( const String & s )
     // skip over introductory day of week
     a = p.string();
     p.comment();
-    if ( p.next() == '.' ) // sometimes people add an incorrect dot.
-        (void)p.character();
+    (void)p.present( "." ); // sometimes people add an incorrect dot.
 
-    if ( p.next() == ',' ) {
-        (void)p.character();
+    if ( p.present( "," ) )
         a = p.string();
-    }
-    else {
-        // sometimes there's no comma.
-        if ( ::weekday( a ) )
-            a = p.string();
-    }
+    else if ( ::weekday( a ) )
+        a = p.string(); // sometimes there's no comma.
 
     // next comes the date. it _should_ be 13 dec 2003, but we'll also
     // accept 13 dec 03, dec 13 03 and dec 13 2003.
 
     String s1 = a;
-    p.comment(); // and we'll accept 13, dec 2003
-    if ( p.next() == ',' )
-        (void)p.character();
+    p.comment();
+    (void)p.present( "," ); // and we accept "13, dec 2003"
     bool ok = false;
     String s2;
     bool yearAtEnd = false;
@@ -379,12 +372,11 @@ void Date::setRfc822( const String & s )
         else {
             // Some programs (which urgently need potty training) put a dot
             // after the month's name.
-            if ( p.next() == '.' )
-                p.step();
+            (void)p.present( "." );
         }
 
         a = p.string();
-        if ( a.length() < 3 && p.next() == ':' )
+        if ( a.length() < 3 && p.nextChar() == ':' )
             yearAtEnd = true;
     }
 
@@ -412,22 +404,22 @@ void Date::setRfc822( const String & s )
         return;
 
     p.comment();
-    if ( p.next() != ':' && p.next() != '.' ) // one legal, the other not.
+    if ( p.nextChar() != ':' && p.nextChar() != '.' ) // : legal, . not.
         return;
-    p.character();
+    p.step();
 
     d->minute = p.number();
-    if ( p.hasError() || d->minute > 59 )
+    if ( !p.valid() || d->minute > 59 )
         return;
 
     p.comment();
-    if ( p.next() == ':' || p.next() == '.' ) {
-        p.character();
+    if ( p.nextChar() == ':' || p.nextChar() == '.' ) {
+        p.step();
 
         d->second = p.number();
-        if ( p.hasError() || d->second > 60 )
+        if ( !p.valid() || d->second > 60 )
             return;
-        if ( p.next() == '-' )
+        if ( p.nextChar() == '-' )
             p.step();
     }
 
@@ -439,11 +431,11 @@ void Date::setRfc822( const String & s )
     d->tz = 0;
     bool tzok = false;
     a = p.string();
-    if ( a.lower().startsWith( "gmt+" ) && p.next() == ':' ) {
+    if ( a.lower().startsWith( "gmt+" ) && p.nextChar() == ':' ) {
         // lycos webmail has its own ideas about date fields. their
         // implementation is apparently not based on either RFC 822 or
         // 2822, but on an RFC written at the University of Mars.
-        p.character();
+        p.step();
         a = a.mid( 3 ) + p.string();
     }
     if ( a.length() == 5 &&

@@ -7,5 +7,6 @@ Build aoximport : aoximport.cpp migrator.cpp dirtree.cpp mbox.cpp
     progressreporter.cpp cyrus.cpp mh.cpp maildir.cpp ;
 
 Program aoximport :
-    aoximport database server mailbox message user core encodings extractors ;
+    aoximport database server mailbox message user core encodings extractors
+    abnf ;
 

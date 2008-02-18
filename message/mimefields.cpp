@@ -150,12 +150,12 @@ void MimeField::parseParameters( Parser822 *p )
     bool first = true;
     while ( valid() && !done ) {
         done = true;
-        uint i = p->index();
-        while ( p->next() == ';' ||
-                p->next() == ' ' || p->next() == '\t' ||
-                p->next() == '\r' || p->next() == '\n' )
+        uint i = p->pos();
+        while ( p->nextChar() == ';' ||
+                p->nextChar() == ' ' || p->nextChar() == '\t' ||
+                p->nextChar() == '\r' || p->nextChar() == '\n' )
             p->step();
-        if ( i < p->index() )
+        if ( i < p->pos() )
             done = false;
         if ( first )
             done = false;
@@ -181,7 +181,7 @@ void MimeField::parseParameters( Parser822 *p )
                     n = n.mid( 0, star );
                 }
             }
-            if ( p->next() != '=' ) {
+            if ( p->nextChar() != '=' ) {
                 setError( "Bad parameter: " + n.quoted() );
                 return;
             }
@@ -189,21 +189,21 @@ void MimeField::parseParameters( Parser822 *p )
             p->step();
             p->whitespace();
             String v;
-            if ( p->next() == '"' ) {
+            if ( p->nextChar() == '"' ) {
                 v = p->mimeValue();
             }
             else {
-                uint start = p->index();
+                uint start = p->pos();
                 v = p->mimeValue();
                 bool ok = true;
                 while ( ok && !p->atEnd() &&
-                        p->next() != ';' &&
-                        p->next() != '"' ) {
+                        p->nextChar() != ';' &&
+                        p->nextChar() != '"' ) {
                     if ( p->dotAtom().isEmpty() && p->mimeValue().isEmpty() )
                         ok = false;
                 }
                 if ( ok )
-                    v = ((String)(*p)).mid( start, p->index()-start );
+                    v = p->input().mid( start, p->pos()-start );
             }
             p->comment();
 
@@ -287,7 +287,7 @@ UString MimeField::value() const
 
 
 /*! \fn virtual String MimeField::baseValue() const
-  
+
     This pure virtual function is used by rfc822() and value() to
     fetch the value of this header field without any parameters().
     rfc822() and value() then append the parameters().
@@ -372,7 +372,7 @@ void ContentType::parse( const String &s )
             }
         }
         else {
-            if ( p.next() == '/' ) {
+            if ( p.nextChar() == '/' ) {
                 // eek. this makes mime look like the special case.
                 p.step();
                 st = p.mimeToken().lower();
@@ -393,8 +393,8 @@ void ContentType::parse( const String &s )
 
     if ( valid() && !p.atEnd() &&
          t == "text" && parameter( "charset" ).isEmpty() &&
-         s.mid( p.index() ).lower().containsWord( "charset" ) ) {
-        String u = s.mid( p.index() ).simplified().lower();
+         s.mid( p.pos() ).lower().containsWord( "charset" ) ) {
+        String u = s.mid( p.pos() ).simplified().lower();
         int b = u.find( '=' );
         Codec * c = 0;
         if ( b > 0 && u.find( '=', b+1 ) < 0 ) {
@@ -542,11 +542,11 @@ void ContentDisposition::parse( const String &s )
 {
     Parser822 p( s );
 
-    uint i = p.index();
+    uint m = p.mark();
     String t = p.mimeToken().lower();
     p.whitespace();
-    if ( s[p.index()] == '=' && t != "inline" && t != "attachment" )
-        p.setIndex( i );
+    if ( p.nextChar() == '=' && t != "inline" && t != "attachment" )
+        p.restore( m ); // handle c-d: filename=foo
 
     if ( t.isEmpty() ) {
         setError( "Invalid disposition" );
@@ -621,7 +621,7 @@ void ContentLanguage::parse( const String &s )
         if ( t != "" )
             l.append( t );
         p.comment();
-    } while ( p.character() == ',' );
+    } while ( p.present( "," ) );
 
     if ( !p.atEnd() || l.count() == 0 )
         setError( "Unparseable value: " + s.quoted() );

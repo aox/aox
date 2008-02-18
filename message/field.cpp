@@ -408,7 +408,7 @@ void HeaderField::parseText( const String &s )
     }
     else {
         Parser822 p( s.simplified() );
-	UString t( p.text() );
+        UString t( p.text() );
         if ( p.atEnd() )
             setValue( t );
         else
@@ -490,18 +490,21 @@ void HeaderField::parseContentLocation( const String &s )
     String t;
 
     p.whitespace();
-    b = p.index();
+    b = p.pos();
     e = b;
     bool ok = true;
     String r;
     while ( ok ) {
         ok = true;
-        char c = p.character();
+        char c = p.nextChar();
+        p.step();
         bool q = false;
         if ( c == '%' ) {
             String hex;
-            hex.append( p.character() );
-            hex.append( p.character() );
+            hex.append( p.nextChar() );
+            p.step();
+            hex.append( p.nextChar() );
+            p.step();
             c = hex.number( &ok, 16 );
             q = true;
         }
@@ -545,7 +548,7 @@ void HeaderField::parseContentLocation( const String &s )
             ok = false;
         }
         if ( ok )
-            e = p.index();
+            e = p.pos();
     }
     p.whitespace();
 
@@ -815,6 +818,6 @@ String HeaderField::unparsedValue() const
 {
     if ( valid() )
         d->unparsed.truncate();
-    
+
     return d->unparsed;
 }
