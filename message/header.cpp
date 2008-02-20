@@ -1467,7 +1467,22 @@ void Header::fix8BitFields( class Codec * c )
                 i++;
             if ( i < v.length() ) {
                 c->setState( Codec::Valid );
-                UString u = c->toUnicode( v );
+                UString u;
+                StringList::Iterator w( StringList::split( ' ', v.simplified() ) );
+                bool wasE = false;
+                while ( w ) {
+                    UString o = Parser822::de2047( *w );
+                    bool isE = true;
+                    if ( o.isEmpty() ) {
+                        o = c->toUnicode( *w ).simplified();
+                        isE = false;
+                    }
+                    if ( ( !isE || !wasE ) && !u.isEmpty() )
+                        u.append( ' ' );
+                    u.append( o );
+                    wasE = isE;
+                    ++w;
+                }
                 bool ok = false;
                 if ( c->wellformed() )
                     ok = true;
@@ -1523,13 +1538,9 @@ void Header::fix8BitFields( class Codec * c )
                 StringList::Iterator i( StringList::split( '<', v ) );
                 Address * best = 0;
                 while ( i ) {
-                    String c;
-                    c.append( "<" );
-                    c.append( *i );
-                    int e = c.find( '>' );
-                    if ( e > 0 ) {
-                        AddressParser * ap 
-                            = AddressParser::references( c.mid( e+1 ) );
+                    if ( i->contains( '>' ) ) {
+                        String c = "<" + i->section( ">", 1 ) + ">";
+                        AddressParser * ap = AddressParser::references( c );
                         if ( ap->error().isEmpty() &&
                              ap->addresses()->count() == 1 ) {
                             Address * candidate = ap->addresses()->first();
