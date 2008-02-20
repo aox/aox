@@ -316,9 +316,14 @@ UString Parser822::encodedWord( EncodedText type )
 
     //uint start = pos();
 
+    UString r;
     String charset;
     uint m = mark();
     require( "=?" );
+    if ( !valid() ) {
+        restore( m );
+        return r;
+    }
     char c = nextChar();
     while ( c > 32 && c < 128 &&
             c != '(' && c != ')' && c != '<' && c != '>' &&
@@ -389,16 +394,34 @@ UString Parser822::encodedWord( EncodedText type )
     // if ( pos() - start > 75 )
     //setError( "Encoded word too long (maximum permitted is 75)" );
 
-    if ( valid() ) {
-        if ( encoding == String::QP )
-            return cs->toUnicode( text.deQP( true ) );
-        else
-            return cs->toUnicode( text.de64() );
+    if ( !valid() ) {
+        restore( m );
+        return r;
+    }
+    
+    if ( encoding == String::QP )
+        r = cs->toUnicode( text.deQP( true ) );
+    else
+        r = cs->toUnicode( text.de64() );
+
+    if ( r.contains( '\r' ) || r.contains( '\n' ) )
+        r = r.simplified(); // defend against =?ascii?q?x=0aEvil:_nasty?=
+
+    if ( r.contains( 8 ) ) { // we interpret literal DEL. fsck.
+        int i = 0;
+        while ( i >= 0 ) {
+            i = r.find( 8, i );
+            if ( i >= 0 ) {
+                UString s;
+                if ( i > 1 )
+                    s = r.mid( 0, i - 1 );
+                s.append( r.mid( i + 1 ) );
+                r = s;
+            }
+        }
     }
 
-    restore( m );
-    UString empty;
-    return empty;
+    return r;
 }
 
 
@@ -462,13 +485,18 @@ UString Parser822::de2047( const String & s )
 /*! Steps past a sequence of adjacent encoded-words with whitespace in
     between and returns the decoded representation. \a t passed
     through to encodedWord().
+
+    Leading and trailing whitespace is trimmed, internal whitespace is
+    kept as is.
 */
 
 UString Parser822::encodedWords( EncodedText t )
 {
     UString out;
     bool end = false;
+    uint m;
     while ( !end ) {
+        m = mark();
         whitespace();
         uint n = pos();
         UString us = encodedWord( t );
@@ -478,7 +506,8 @@ UString Parser822::encodedWords( EncodedText t )
             out.append( us );
     }
 
-    return out;
+    restore( m );
+    return out.trimmed();
 }
 
 
@@ -489,6 +518,8 @@ UString Parser822::encodedWords( EncodedText t )
 
 UString Parser822::text()
 {
+    whitespace();
+
     UString out;
 
     UString space;
@@ -496,6 +527,7 @@ UString Parser822::text()
     bool progress = true;
     while ( progress ) {
         uint m = mark();
+        uint p = pos();
         if ( present( "=?" ) ) {
             restore( m );
             word = encodedWords();
@@ -510,7 +542,7 @@ UString Parser822::text()
                 c = nextChar();
             }
         }
-        if ( word.isEmpty() ) {
+        if ( p == pos() ) {
             progress = false;
         }
         else {
@@ -520,8 +552,10 @@ UString Parser822::text()
             whitespace();
             AsciiCodec a;
             space = a.toUnicode( input().mid( s, pos()-s ) );
-            if ( space.contains( '\r' ) || space.contains( '\n' ) )
-                space = space.simplified();
+            if ( space.contains( '\r' ) || space.contains( '\n' ) ) {
+                space.truncate();
+                space.append( ' ' );
+            }
         }
     }
 

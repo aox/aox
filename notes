@@ -13,13 +13,12 @@
 
   Investigate Martin Rode's 3gb aox process.
 
-  Axel Rau's "invalid UTF-8" problems.
-
   Done:
   - ImapSession now uses Fetch.
   - Injector creates field/flag/annotation names and addresses by
     itself, in the same transaction. It's ugly, but seems to work.
   - aox undelete works again.
+  - Headers now use real unicode everywhere, not UTF-8
 
   2008-01-27: decide on feature list
   2008-02-20: drop things that can't be finished
@@ -1142,5 +1141,13 @@ Redoing Store
      addGapsFrom to trim the size of the condition.
 
   6. Update nextmodseq and go on our way.
+
+
+String::stripWSP
+
+  The function seems to be just wrong every time I want to use
+  it. There is also the matter of the name, which implies that the
+  function changes. Look at it.
+
 
 
