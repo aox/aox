@@ -1338,7 +1338,7 @@ UString AddressParser::phrase( int & i )
                 if ( tmp.startsWith( "=?" ) ||
                      tmp.contains( " =?" ) )
                     drop = true;
-                if ( !tmp.isEmpty() ) {
+                if ( p.atEnd() ) {
                     word = tmp;
                     encw = true;
                 }
