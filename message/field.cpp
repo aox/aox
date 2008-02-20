@@ -447,6 +447,7 @@ void HeaderField::parseMimeVersion( const String &s )
     Parser822 p( s );
     p.comment();
     String v = p.dotAtom();
+    p.comment();
     AsciiCodec a;
     UString c = a.toUnicode( p.lastComment().simplified() );
     if ( !a.valid() ||
@@ -471,34 +472,16 @@ void HeaderField::parseMimeVersion( const String &s )
 
 void HeaderField::parseContentLocation( const String &s )
 {
-    uint e = s.length()-1;
-    while ( e > 0 &&
-            ( s[e] == ' ' || s[e] == '\t' ||
-              s[e] == '\n' || s[e] == 'r' ) )
-        e--;
-    uint b = 0;
-    while ( b < e &&
-            ( s[b] == ' ' || s[b] == '\t' ||
-              s[b] == '\n' || s[b] == 'r' ) )
-        b++;
-    if ( e > b && s[b] == '"' && s[e] == '"' ) {
-        b++;
-        e--;
-    }
-
-    Parser822 p( s.mid( b, e+1-b ) );
-    String t;
+    Parser822 p( s.trimmed().unquoted() );
 
     p.whitespace();
-    b = p.pos();
-    e = b;
+    uint e = p.pos();
     bool ok = true;
     String r;
     while ( ok ) {
         ok = true;
         char c = p.nextChar();
         p.step();
-        bool q = false;
         if ( c == '%' ) {
             String hex;
             hex.append( p.nextChar() );
@@ -506,7 +489,6 @@ void HeaderField::parseContentLocation( const String &s )
             hex.append( p.nextChar() );
             p.step();
             c = hex.number( &ok, 16 );
-            q = true;
         }
 
         // RFC 1738 unreserved
@@ -561,10 +543,9 @@ void HeaderField::parseContentLocation( const String &s )
 }
 
 
-/*! Parses the Content-Location header field in \a s and records the
-    first problem found. Somewhat overflexibly assumes that if there
-    is a colon, the URL is absolute, so it accepts -:/asr as a valid
-    URL.
+/*! Parses the Content-Base header field in \a s and records the first
+    problem found. Somewhat overflexibly assumes that if there is a
+    colon, the URL is absolute, so it accepts -:/asr as a valid URL.
 */
 
 void HeaderField::parseContentBase( const String & s )
@@ -572,7 +553,7 @@ void HeaderField::parseContentBase( const String & s )
     parseContentLocation( s );
     if ( !valid() )
         return;
-    if ( value().contains( ":" ) )
+    if ( !value().contains( ":" ) )
         setError( "URL has no scheme" );
 }
 
@@ -617,48 +598,7 @@ uint HeaderField::fieldType( const String & n )
 
 String HeaderField::wrap( const String &s ) const
 {
-    String t;
-
-    uint n = 0;
-    uint last = 0;
-    bool first = true;
-    uint l = d->name.length() + 2;
-
-    // We'll consider every space a potential wrapping point, and just
-    // try to fit as many tokens onto each line as possible. This is a
-    // cheap hack.
-
-    do {
-        String w;
-        n = s.find( ' ', last );
-        if ( n > 0 ) {
-            w = s.mid( last, n-last );
-            n++;
-        }
-        else {
-            w = s.mid( last );
-        }
-        last = n;
-
-        if ( first ) {
-            first = false;
-        }
-        else if ( l + 1 + w.length() > 78 ) {
-            t.append( "\015\012 " );
-            l = 1;
-        }
-        else {
-            t.append( " " );
-            l += 1;
-        }
-
-        l += w.length();
-
-        t.append( w );
-    }
-    while ( last > 0 );
-
-    return t;
+    return s.wrapped( 78, d->name + ": ", " ", false ).mid( d->name.length() + 2 );
 }
 
 
@@ -711,44 +651,23 @@ String HeaderField::encodeWord( const UString &w )
 
 String HeaderField::encodeText( const UString &s )
 {
-    String t;
+    StringList r;
     AsciiCodec a;
-
-    uint n = 0;
-    uint last = 0;
-    bool encoded = false;
-
-    do {
-        if ( !t.isEmpty() )
-            t.append( " " );
-
-        UString w;
-        n = s.find( ' ', last );
-        if ( n > 0 ) {
-            w = s.mid( last, n-last );
-            n++;
+    UStringList::Iterator w( UStringList::split( ' ', s ) );
+    while ( w ) {
+        UStringList l;
+        while ( w && !w->isAscii() ) {
+            l.append( w );
+            ++w;
         }
-        else {
-            w = s.mid( last );
-        }
-        last = n;
-
-        // XXX what about nonprintable ASCII? should
-        // UString::isAscii() return true for nonprintables?
-        if ( w.isAscii() ) {
-            t.append( a.fromUnicode( w ) );
-            encoded = false;
-        }
-        else {
-            if ( encoded )
-                w = " " + w;
-            encoded = true;
-            t.append( encodeWord( w ) );
+        if ( !l.isEmpty() )
+            r.append( encodeWord( l.join( " " ) ) );
+        while ( w && w->isAscii() ) {
+            r.append( a.fromUnicode( *w ) );
+            ++w;
         }
     }
-    while ( last > 0 );
-
-    return t;
+    return r.join( " " );
 }
 
 
