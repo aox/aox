@@ -67,12 +67,12 @@ void AddressField::parse( const String &s )
     case HeaderField::ResentCc:
     case HeaderField::ResentBcc:
         parseAddressList( s );
-        if ( type() == HeaderField::Cc && !valid() && a->count() == 1 ) {
+        if ( type() == HeaderField::Cc && !valid() && a->count() <= 1 ) {
             // /bin/mail tempts people to type escape, ctrl-d or
             // similar into the cc field, so we try to recover from
             // that.
             uint i = 0;
-            while ( i < s.length() && s[i] >= ' ' )
+            while ( i < s.length() && s[i] >= ' ' && s[i] != 127 )
                 i++;
             if ( i < s.length() ) {
                 setError( "" );
