@@ -66,6 +66,7 @@ public:
     String headerCased() const;
     String mid( uint, uint = UINT_MAX ) const;
     String simplified() const;
+    String trimmed() const;
     String stripWSP() const;
     String stripCRLF() const;
     String hex() const;
@@ -140,7 +141,7 @@ public:
 
     String wrapped( uint linelength,
                     const String & firstPrefix, const String & otherPrefix,
-                    bool spaceAtEOL );
+                    bool spaceAtEOL ) const;
 
 private:
     StringData * d;

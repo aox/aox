@@ -695,6 +695,34 @@ String String::simplified() const
     return result;
 }
 
+
+/*! Returns a copy of this string where leading and trailing
+    whitespace have been removed.
+*/
+
+String String::trimmed() const
+{
+    uint i = 0;
+    uint first = length();
+    uint last = 0;
+    while ( i < length() ) {
+        char c = d->str[i];
+        if ( c != 9 && c != 10 && c != 13 && c != 32 ) {
+            if ( i < first )
+                first = i;
+            if ( i > last )
+                last = i;
+        }
+        i++;
+    }
+
+    if ( last >= first )
+        return mid( first, last + 1 - first );
+
+    String empty;
+    return empty;
+}
+
 /*! Returns a copy of this string where leading and trailing spaces
     and tabs have been removed.
 
@@ -1790,19 +1818,27 @@ bool String::containsWord( const String & s ) const
 
     The prefixes are counted towards line length, but the optional
     trailing space is not.
-
-    Only space (ASCII 32) is considered as line-break
-    opportunity. Linefeeds added use CRLF.
+    
+    Only space (ASCII 32) is a line-break opportunity. If there are
+    multiple spaces where a line is broken, all the spaces are
+    replaced by a single CRLF. Linefeeds added use CRLF.
 */
 
 String String::wrapped( uint linelength,
                         const String & firstPrefix, const String & otherPrefix,
-                        bool spaceAtEOL )
+                        bool spaceAtEOL ) const
 {
     // result must be modifiable() at all times, otherwise we allocate
     // all the RAM.
-    String result = firstPrefix;
+
+    // working:
+    String result;
     result.reserve( length() );
+    result.append( firstPrefix );
+    // broken but should work. needs investigation.
+    // String result = firstPrefix;
+    // result.reserve( length() );
+    
     // move is where we keep the text that has to be moved to the next
     // line. it too should be modifiable() all the time.
     String move;
@@ -1814,16 +1850,19 @@ String String::wrapped( uint linelength,
         if ( c == ' ' )
             space = result.length();
         else if ( c == '\n' )
-            linestart = i + 1;
+            linestart = result.length() + 1;
         result.append( c );
         i++;
         // add a soft linebreak?
         if ( result.length() > linestart + linelength && space > linestart ) {
-            linestart = space + 1; // should be 2, strlen( crlf )
+            while ( space > 0 && result[space-1] == ' ' )
+                space--;
+            linestart = space + 1;
+            while ( result[linestart] == ' ' )
+                linestart++;
             move.truncate();
-            if ( result.length() > space + 1 )
-                move.append( result.cstr() + space + 1,
-                             result.length() - space - 1 );
+            if ( result.length() > linestart )
+                move.append( result.cstr() + linestart );
             if ( spaceAtEOL )
                 result.truncate( space + 1 );
             else

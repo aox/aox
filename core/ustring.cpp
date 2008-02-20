@@ -356,6 +356,20 @@ uint UString::number( bool * ok, uint base ) const
 }
 
 
+static bool isSpace( uint c )
+{
+    if ( c == 9 || c == 10 || c == 13 || c == 32 ||
+         c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
+         c == 0x2003 || c == 0x2004 || c == 0x2005 ||
+         c == 0x2006 || c == 0x2007 || c == 0x2008 ||
+         c == 0x2009 || c == 0x200A || c == 0x200B ||
+         c == 0x202F || c == 0x205F || c == 0x2060 ||
+         c == 0x3000 || c == 0xFEFF )
+        return true;
+    return false;
+}
+
+
 /*! Returns a copy of this string where each run of whitespace is
     compressed to a single space character, and where leading and
     trailing whitespace is removed altogether. Most spaces are mapped
@@ -371,14 +385,7 @@ UString UString::simplified() const
     uint i = 0;
     uint first = 0;
     while ( i < length() && first == i ) {
-        int c = d->str[i];
-        if ( c == 9 || c == 10 || c == 13 || c == 32 ||
-             c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
-             c == 0x2003 || c == 0x2004 || c == 0x2005 ||
-             c == 0x2006 || c == 0x2007 || c == 0x2008 ||
-             c == 0x2009 || c == 0x200A || c == 0x200B ||
-             c == 0x202F || c == 0x205F || c == 0x2060 ||
-             c == 0x3000 || c == 0xFEFF )
+        if ( isSpace( d->str[i] ) )
             first++;
         i++;
     }
@@ -390,14 +397,7 @@ UString UString::simplified() const
     uint spaces = 0;
     bool identity = true;
     while ( identity && i < length() ) {
-        int c = d->str[i];
-        if ( c == 9 || c == 10 || c == 13 || c == 32 ||
-             c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
-             c == 0x2003 || c == 0x2004 || c == 0x2005 ||
-             c == 0x2006 || c == 0x2007 || c == 0x2008 ||
-             c == 0x2009 || c == 0x200A || c == 0x200B ||
-             c == 0x202F || c == 0x205F || c == 0x2060 ||
-             c == 0x3000 || c == 0xFEFF ) {
+        if ( isSpace( d->str[i] ) ) {
             spaces++;
         }
         else {
@@ -419,13 +419,7 @@ UString UString::simplified() const
     bool zwnbsp = true;
     while ( i < length() ) {
         int c = d->str[i];
-        if ( c == 9 || c == 10 || c == 13 || c == 32 ||
-             c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
-             c == 0x2003 || c == 0x2004 || c == 0x2005 ||
-             c == 0x2006 || c == 0x2007 || c == 0x2008 ||
-             c == 0x2009 || c == 0x200A || c == 0x200B ||
-             c == 0x202F || c == 0x205F || c == 0x2060 ||
-             c == 0x3000 || c == 0xFEFF ) {
+        if ( isSpace( c ) ) {
             if ( c == 0x1680 )
                 ogham = true;
             else if ( c != 0xFEFF )
@@ -449,6 +443,33 @@ UString UString::simplified() const
         i++;
     }
     return result;
+}
+
+
+/*! Returns a copy of this string without leading or trailing
+    whitespace.
+*/
+
+UString UString::trimmed() const
+{
+    uint i = 0;
+    uint first = length();
+    uint last = 0;
+    while ( i < length() ) {
+        if ( !isSpace( d->str[i] ) ) {
+            if ( i < first )
+                first = i;
+            if ( i > last )
+                last = i;
+        }
+        i++;
+    }
+
+    if ( last >= first )
+        return mid( first, last + 1 - first );
+
+    UString empty;
+    return empty;
 }
 
 
