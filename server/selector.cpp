@@ -852,7 +852,7 @@ String Selector::whereFlags()
         // this query into a test for the relevant UIDs.
         String r;
         if ( root()->d->session )
-            r = root()->d->session->recent().where( "m" );
+            r = root()->d->session->recent().where( "mm" );
         // where() returns an empty string if recent() is an empty set
         if ( r.isEmpty() )
             return "false";
@@ -895,7 +895,7 @@ String Selector::whereUid()
         return "false";
 
     if ( !d->s.isRange() )
-        return "(" + d->s.where( "m" ) + ")";
+        return "(" + d->s.where( "mm" ) + ")";
 
     // if we can, use a placeholder, so we can prepare a statement (we
     // don't at the moment, but it'll help).
