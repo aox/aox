@@ -678,3 +678,14 @@ String Parser822::lastComment() const
 {
     return lc;
 }
+
+
+/*! \fn bool Parser822::isMime() const
+    Returns true if this parser has been instructed to parse MIME
+    strings by calling setMime(), and false otherwise.
+*/
+
+/*! \fn bool Parser822::valid()
+    Returns true if this parser has not yet encountered any errors
+    during parsing, and false otherwise.
+*/

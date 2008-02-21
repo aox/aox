@@ -23,7 +23,6 @@ public:
     String comment();
     String string();
     String dotAtom();
-    char character();
     String domain();
     String atom();
     String mimeToken();
