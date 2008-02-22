@@ -17,6 +17,7 @@ public:
 
 private:
     uint number( uint );
+    void process( class Appendage * );
 
     class AppendData * d;
 };
