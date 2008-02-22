@@ -76,8 +76,7 @@ void ImapSession::emitExpunges()
         uint msn = m.index( uid );
         e.remove( uid );
         m.remove( uid );
-        enqueue( "* " + fn( msn ) + " FETCH (UID " + fn( uid ) + ")\r\n"
-                 "* " + fn( msn ) + " EXPUNGE\r\n" );
+        enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
         if ( d->exists )
             d->exists--;
     }
