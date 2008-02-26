@@ -401,39 +401,41 @@ void HeaderField::parse( const String &s )
 
 void HeaderField::parseText( const String &s )
 {
-    Parser822 p( s );
-    UString t( p.text() );
-    if ( p.atEnd() ) {
-        setValue( t );
-    }
-    else {
-        String ss( s.simplified() );
-        Parser822 p( ss );
+    bool h = false;
+    if ( !h ) {
+        Parser822 p( s );
         UString t( p.text() );
         if ( p.atEnd() ) {
             setValue( t );
-        }
-        else if ( !s.mid( 2 ).contains( "=?" ) ) {
-            // Cope with the following common error:
-            // Subject: =?ISO-8859-1?q?foo bar baz?=
-            String b;
-
-            uint i = 0;
-            while ( i < ss.length() ) {
-                char c = ss[i++];
-                if ( c == ' ' )
-                    c = '_';
-                b.append( c );
-            }
-
-            Parser822 p( b );
-            UString t( p.text() );
-            if ( p.atEnd() )
-                setValue( t );
-            else
-                setError( "Error parsing text" );
+            h = true;
         }
     }
+
+    if ( !h ) {
+        Parser822 p( s.simplified() );
+        UString t( p.text() );
+        if ( p.atEnd() ) {
+            setValue( t );
+            h = true;
+        }
+    }
+
+    if ( !h &&
+         s.startsWith( "=?" ) &&
+         s.endsWith( "?=" ) &&
+         !s.mid( 2 ).contains( "=?" ) ) {
+        // Cope with the following common error:
+        // Subject: =?ISO-8859-1?q?foo bar baz?=
+        Parser822 p( StringList::split( ' ', s.simplified() )->join( "_" ) );
+        UString t( p.text() );
+        if ( p.atEnd() ) {
+            setValue( t );
+            h = true;
+        }
+    }
+
+    if ( !h )
+        setError( "Error parsing text" );
 }
 
 
