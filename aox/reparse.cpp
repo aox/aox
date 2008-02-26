@@ -55,14 +55,13 @@ void Reparse::execute()
         FieldNameCache::setup();
         Mailbox::setup( this );
 
-        d->q = new Query( "select p.mailbox,p.uid,b.id as bodypart,"
+        d->q = new Query( "select mm.mailbox,mm.uid,b.id as bodypart,"
                           "b.text,b.data "
                           "from unparsed_messages u "
                           "join bodyparts b on (u.bodypart=b.id) "
                           "join part_numbers p on (p.bodypart=b.id) "
-                          "left join deleted_messages dm on "
-                          "(p.mailbox=dm.mailbox and p.uid=dm.uid) "
-                          "where dm.mailbox is null", this );
+                          "join mailbox_messages mm on (p.message=mm.message)",
+                          this );
         d->q->execute();
     }
 
