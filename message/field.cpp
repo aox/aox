@@ -407,12 +407,32 @@ void HeaderField::parseText( const String &s )
         setValue( t );
     }
     else {
-        Parser822 p( s.simplified() );
+        String ss( s.simplified() );
+        Parser822 p( ss );
         UString t( p.text() );
-        if ( p.atEnd() )
+        if ( p.atEnd() ) {
             setValue( t );
-        else
-            setError( "Error parsing text" );
+        }
+        else if ( !s.mid( 2 ).contains( "=?" ) ) {
+            // Cope with the following common error:
+            // Subject: =?ISO-8859-1?q?foo bar baz?=
+            String b;
+
+            uint i = 0;
+            while ( i < ss.length() ) {
+                char c = ss[i++];
+                if ( c == ' ' )
+                    c = '_';
+                b.append( c );
+            }
+
+            Parser822 p( b );
+            UString t( p.text() );
+            if ( p.atEnd() )
+                setValue( t );
+            else
+                setError( "Error parsing text" );
+        }
     }
 }
 
