@@ -85,10 +85,11 @@ void Reparse::execute()
             q->bind( 1, d->row->getInt( "bodypart" ) );
             d->t->enqueue( q );
             q = new Query( "insert into deleted_messages "
-                           "(mailbox,uid,deleted_by,reason) "
-                           "values ($1,$2,$3,$4)", this );
+                           "(mailbox,uid,message,modseq,deleted_by,reason) "
+                           "values ($1,$2,$5,$3,$4)", this );
             q->bind( 1, d->row->getInt( "mailbox" ) );
             q->bind( 2, d->row->getInt( "uid" ) );
+            q->bind( 5, d->row->getInt( "bodypart" ) );
             q->bindNull( 3 );
             q->bind( 4,
                      String( "reparsed as uid " ) +
