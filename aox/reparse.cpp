@@ -55,8 +55,8 @@ void Reparse::execute()
         FieldNameCache::setup();
         Mailbox::setup( this );
 
-        d->q = new Query( "select mm.mailbox,mm.uid,b.id as bodypart,"
-                          "b.text,b.data "
+        d->q = new Query( "select mm.mailbox,mm.uid,mm.message as wrapper,"
+                          "b.id as bodypart,b.text,b.data "
                           "from unparsed_messages u "
                           "join bodyparts b on (u.bodypart=b.id) "
                           "join part_numbers p on (p.bodypart=b.id) "
@@ -89,7 +89,7 @@ void Reparse::execute()
                            "values ($1,$2,$5,$6,$3,$4)", this );
             q->bind( 1, d->row->getInt( "mailbox" ) );
             q->bind( 2, d->row->getInt( "uid" ) );
-            q->bind( 5, d->row->getInt( "bodypart" ) );
+            q->bind( 5, d->row->getInt( "wrapper" ) );
             q->bind( 6, d->injector->modSeq( m ) );
             q->bindNull( 3 );
             q->bind( 4,
