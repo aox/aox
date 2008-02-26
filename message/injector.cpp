@@ -2112,6 +2112,23 @@ uint Injector::uid( Mailbox * mailbox ) const
 }
 
 
+/*! Returns the modseq of the message in \a mailbox, or 0 if the
+    injector hasn't obtained one yet.
+  
+    The same caveats apply as for uid().
+*/
+
+int64 Injector::modSeq( Mailbox * mailbox ) const
+{
+    List< Uid >::Iterator mi( d->mailboxes );
+    while ( mi && mi->mailbox != mailbox )
+        ++mi;
+    if ( !mi )
+        return 0;
+    return mi->ms;
+}
+
+
 /*! Returns a pointer to the Message to be/being/which was inserted,
     or a null pointer if this Injector isn't inserting exactly one
     Message.
