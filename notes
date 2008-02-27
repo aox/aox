@@ -1187,7 +1187,7 @@ Fetcher oomph
     declare hfm no scroll cursor for
     select m.uid, h.part, h.position, f.name, h.value from h
     join field_names f on (h.field=f.id)
-    join (fetch absolute all from m) using (message)
+    join (fetch absolute all from m) m using (message)
     where h.field > 12 order by m.uid, h.part
 
   I think we might see a speedup of 2-100x depending on task. Unless
