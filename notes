@@ -1176,7 +1176,19 @@ Fetcher oomph
   faster than the others). There has to be a transaction, n selects
   and n+1 cursors, one of which is SCROLL.
 
+  First, to get the messages
+
+    declare m scroll cursor for
+    select messages,uid from mailbox_messages
+    where uid>=$1 and uid<=$2 and mailbox=$3
+
+  Then, to get e.g. header fields:
+
+    declare hfm no scroll cursor for
+    select m.uid, h.part, h.position, f.name, h.value from h
+    join field_names f on (h.field=f.id)
+    join (fetch absolute all from m) using (message)
+    where h.field > 12 order by m.uid, h.part
+
   I think we might see a speedup of 2-100x depending on task. Unless
   we use all this apparatus for single-message fetches.
-
-
