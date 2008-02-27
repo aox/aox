@@ -86,13 +86,13 @@ void Reparse::execute()
             d->t->enqueue( q );
             q = new Query( "insert into deleted_messages "
                            "(mailbox,uid,message,modseq,deleted_by,reason) "
-                           "values ($1,$2,$5,$6,$3,$4)", this );
+                           "values ($1,$2,$3,$4,$5,$6)", this );
             q->bind( 1, d->row->getInt( "mailbox" ) );
             q->bind( 2, d->row->getInt( "uid" ) );
-            q->bind( 5, d->row->getInt( "wrapper" ) );
-            q->bind( 6, d->injector->modSeq( m ) );
-            q->bindNull( 3 );
-            q->bind( 4,
+            q->bind( 3, d->row->getInt( "wrapper" ) );
+            q->bind( 4, d->injector->modSeq( m ) );
+            q->bindNull( 5 );
+            q->bind( 6,
                      String( "reparsed as uid " ) +
                      fn( d->injector->uid( m ) )+
                      " by aox " +
