@@ -1150,4 +1150,33 @@ String::stripWSP
   function changes. Look at it.
 
 
+Fetcher oomph
+
+  The fetcher is hard to use and doesn't perform as well as one might
+  wish. I see several problems.
+
+  1. There's an undeclared cursor. Each of the five fetchers does the
+     longwinded equivalent of 'select 64 from cursor'.
+
+  2. There's evil repetition among the fetchers. Fetching rfc822 runs
+     the very same "select message from mailbox_messages where
+     mailbox=$1 and uid..."  three times and then feeds the output of
+     that into a fetcher-specific query.
+
+  3. Each caller has to create up to five objects with basically the
+     same arguments, and call execute on each.
+
+  So I'd prefer to do it differently. Create one fetcher, tell it
+  which kinds of blah you want, and it will run _one_ "select message
+  from", feed that into a something, then run up to five selects that
+  act on the output of the first select.
+
+  Each of the five need to use a cursor (to avoid memory explosion in
+  case the client fetches 400,000 messages and one select is much
+  faster than the others). There has to be a transaction, n selects
+  and n+1 cursors, one of which is SCROLL.
+
+  I think we might see a speedup of 2-100x depending on task. Unless
+  we use all this apparatus for single-message fetches.
+
 
