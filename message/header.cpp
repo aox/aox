@@ -732,6 +732,17 @@ void Header::repair()
         ++i;
     }
 
+    // Mime-Version is occasionally seen more than once, usually on
+    // spam or mainsleaze.
+    if ( field( HeaderField::MimeVersion, 1 ) ) {
+        HeaderField * fmv = field( HeaderField::MimeVersion );
+        removeField( HeaderField::MimeVersion );
+        add( fmv );
+        fmv->parse( "1.0 (Note: original message contained " +
+                    fn( occurrences[(int)HeaderField::MimeVersion] ) +
+                    " mime-version fields)" );
+    }
+
     // Content-Transfer-Encoding: should not occur on multiparts, and
     // when it does it usually has a syntax error. We don't care about
     // that error.
