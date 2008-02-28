@@ -410,6 +410,7 @@ void Command::setState( State s )
     d->state = s;
     switch( s ) {
     case Retired:
+        log( "Retired", Log::Debug );
         break;
     case Unparsed:
         // this is the initial state, it should never be called.
@@ -437,6 +438,7 @@ void Command::setState( State s )
             m.append( "ms" );
             log( m, level );
         }
+        log( "Finished", Log::Debug );
         break;
     }
     imap()->unblockCommands();

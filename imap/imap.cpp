@@ -403,6 +403,8 @@ void IMAP::runCommands()
 
     while ( d->runCommandsAgain ) {
         d->runCommandsAgain = false;
+        log( "IMAP::runCommands, " + fn( d->commands.count() ) + " commands",
+             Log::Debug );
 
         // run all currently executing commands once
         List< Command >::Iterator i( d->commands );
