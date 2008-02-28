@@ -422,19 +422,21 @@ void Command::setState( State s )
         log( "Executing", Log::Debug );
         break;
     case Finished:
-        struct timeval end;
-        (void)::gettimeofday( &end, 0 );
-        long elapsed =
-            ( end.tv_sec - d->started.tv_sec ) * 1000000 +
-            ( end.tv_usec - d->started.tv_usec );
-        Log::Severity level = Log::Debug;
-        if ( elapsed > 3000 )
-            level = Log::Info;
-        String m;
-        m.append( "Execution time " );
-        m.append( fn( ( elapsed + 499 ) / 1000 ) );
-        m.append( "ms" );
-        log( m, level );
+        if ( d->name != "idle" ) {
+            struct timeval end;
+            (void)::gettimeofday( &end, 0 );
+            long elapsed =
+                ( end.tv_sec - d->started.tv_sec ) * 1000000 +
+                ( end.tv_usec - d->started.tv_usec );
+            Log::Severity level = Log::Debug;
+            if ( elapsed > 3000 )
+                level = Log::Info;
+            String m;
+            m.append( "Execution time " );
+            m.append( fn( ( elapsed + 499 ) / 1000 ) );
+            m.append( "ms" );
+            log( m, level );
+        }
         break;
     }
     imap()->unblockCommands();
