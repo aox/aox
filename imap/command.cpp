@@ -437,6 +437,7 @@ void Command::setState( State s )
         log( m, level );
         break;
     }
+    imap()->unblockCommands();
 }
 
 
@@ -606,13 +607,12 @@ void Command::finish()
     if ( state() == Retired )
         return;
 
-    setState( Finished );
-    imap()->unblockCommands();
-
     if ( d->usesRelativeMailbox )
         imap()->setPrefersAbsoluteMailboxes( false );
     else if ( d->usesAbsoluteMailbox )
         imap()->setPrefersAbsoluteMailboxes( true );
+
+    setState( Finished );
 }
 
 

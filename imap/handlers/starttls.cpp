@@ -29,7 +29,7 @@ StartTLS::StartTLS()
 void StartTLS::parse()
 {
     end();
-    imap()->reserve( this );
+    imap()->reserve( this ); // is this necessary any more?
 }
 
 void StartTLS::execute()
@@ -49,8 +49,6 @@ void StartTLS::execute()
 
     if ( !tlsServer->done() )
         return;
-
-    imap()->reserve( 0 );
 
     if ( !tlsServer->ok() ) {
         error( No, "Internal error starting TLS engine" );

@@ -93,7 +93,6 @@ void Authenticate::execute()
     else
         error( No, "sorry" );
 
-    imap()->reserve( 0 );
     setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
     finish();
 }

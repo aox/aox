@@ -369,22 +369,8 @@ void IMAP::setUser( User * user )
 
 /*! Reserves input from the connection for \a command.
 
-    When more input is available, Command::read() is called, and as
-    soon as the command has read enough, it must call reserve( 0 ) to
-    hand the connection back to the general IMAP parser.
-
-    Most commands should never need to call this; it is provided for
-    commands that need to read more input after parsing has completed,
-    such as IDLE and AUTHENTICATE.
-
-    There is a nasty gotcha: If a command reserves the input stream and
-    calls Command::error() while in Blocked state, the command is
-    deleted, but there is no way to hand the input stream back to the
-    IMAP object. Only the relevant Command knows when it can hand the
-    input stream back.
-
-    Therefore, Commands that call reserve() simply must hand it back properly
-    before calling Command::error() or Command::setState().
+    When more input is available, Command::read() is
+    called. Command::finish() releases control.
 */
 
 void IMAP::reserve( Command * command )
@@ -437,6 +423,8 @@ void IMAP::runCommands()
         i = d->commands.first();
         bool deferredResponse = false;
         while ( i ) {
+            if ( i->state() == Command::Finished && d->reader == i )
+                d->reader = 0;
             if ( i->state() == Command::Finished &&
                  ( !deferredResponse || !i->ok() ) ) {
                 i->emitResponses();
