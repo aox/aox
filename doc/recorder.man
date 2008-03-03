@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH recorder 8 2008-03-05 aox.org "Archiveopteryx Documentation"
+.TH recorder 8 2008-04-07 aox.org "Archiveopteryx Documentation"
 .SH NAME
 recorder - IMAP connection recorder
 .SH SYNOPSIS
@@ -88,7 +88,7 @@ That's it. Now you can send an excellent bug report to info@oryx.com.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 2.07, released 2008-03-05,
+This man page covers Archiveopteryx version 2.08, released 2008-04-07,
 http://www.archiveopteryx.org/2.06
 .SH SEE ALSO
 .BR archiveopteryx (8),

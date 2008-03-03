@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH aoximport 8 2008-03-05 aox.org "Archiveopteryx Documentation"
+.TH aoximport 8 2008-04-07 aox.org "Archiveopteryx Documentation"
 .SH NAME
 aoximport - import messages into Archiveopteryx.
 .SH SYNOPSIS
@@ -61,7 +61,7 @@ After a large import, it's a good idea to run
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 2.07, released 2008-03-05,
+This man page covers Archiveopteryx version 2.08, released 2008-04-07,
 http://www.archiveopteryx.org/2.06
 .SH SEE ALSO
 .BR aox (8),
