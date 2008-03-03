@@ -84,8 +84,7 @@ String Capability::capabilities( IMAP * i, bool all )
     c.append( "COMPRESS=DEFLATE" );
     if ( all || login )
         c.append( "CONDSTORE" );
-    if ( drafts )
-        c.append( "ENABLE" );
+    c.append( "ENABLE" );
     if ( all || login )
         c.append( "ESEARCH" );
     c.append( "ID" );
@@ -103,7 +102,7 @@ String Capability::capabilities( IMAP * i, bool all )
         c.append( "RIGHTS=ekntx" );
     if ( all || !login )
         c.append( "SASL-IR" );
-    if ( drafts && ( all || login ) )
+    if ( all || login )
         c.append( "SORT" );
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
