@@ -677,8 +677,13 @@ void Mailbox::addSession( Session * s )
     }
     if ( !d->sessions )
         d->sessions = new List<Session>;
-    if ( s && !d->sessions->find( s ) )
+    if ( s && !d->sessions->find( s ) ) {
         d->sessions->prepend( s );
+        log( "Added session to mailbox " + name().utf8() +
+             ", new count " + fn( d->sessions->count() ),
+             Log::Debug );
+    }
+    
 }
 
 
@@ -692,6 +697,8 @@ void Mailbox::removeSession( Session * s )
         return;
 
     d->sessions->remove( s );
+    log( "Removed session from mailbox " + name().utf8() +
+         ", new count " + fn( d->sessions->count() ), Log::Debug );
     if ( d->sessions->isEmpty() ) {
         d->sessions = 0;
         d->threader = 0;
