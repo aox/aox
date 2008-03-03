@@ -180,6 +180,9 @@ void Status::execute()
             status.append( "HIGHESTMODSEQ " + fn( r->getBigint( "hm" ) ) );
     }
 
+    if ( d->session )
+        d->session->mailbox->removeSession( d->session );
+
     respond( "STATUS " + imapQuoted( d->mailbox ) +
              " (" + status.join( " " ) + ")" );
 
