@@ -528,16 +528,18 @@ void configure()
 
     if ( Configuration::present( Configuration::DbName ) ) {
         *dbname = Configuration::text( Configuration::DbName );
-        printf( "Using db-name from archiveopteryx.conf: %s\n",
-                dbname->cstr() );
+        if ( verbosity )
+            printf( "Using db-name from the configuration: %s\n",
+                    dbname->cstr() );
     }
 
     if ( !dbaddress ) {
         if ( Configuration::present( Configuration::DbAddress ) ) {
             dbaddress =
                 new String( Configuration::text( Configuration::DbAddress ) );
-            printf( "Using db-address from archiveopteryx.conf: %s\n",
-                    dbaddress->cstr() );
+            if ( verbosity )
+                printf( "Using db-address from the configuration: %s\n",
+                        dbaddress->cstr() );
         }
         else {
             dbaddress = new String( DBADDRESS );
@@ -547,18 +549,21 @@ void configure()
 
     if ( Configuration::present( Configuration::DbPort ) ) {
         dbport = Configuration::scalar( Configuration::DbPort );
-        printf( "Using db-port from archiveopteryx.conf: %d\n", dbport );
+        if ( verbosity )
+            printf( "Using db-port from the configuration: %d\n", dbport );
     }
 
     if ( Configuration::present( Configuration::DbUser ) ) {
         *dbuser = Configuration::text( Configuration::DbUser );
-        printf( "Using db-user from archiveopteryx.conf: %s\n",
-                dbuser->cstr() );
+        if ( verbosity )
+            printf( "Using db-user from the configuration: %s\n",
+                    dbuser->cstr() );
     }
 
     if ( Configuration::present( Configuration::DbPassword ) ) {
         *dbpass = Configuration::text( Configuration::DbPassword );
-        printf( "Using db-password from archiveopteryx.conf\n" );
+        if ( verbosity )
+            printf( "Using db-password from the configuration\n" );
     }
     else if ( dbpass->isEmpty() ) {
         String p( "(database user password here)" );
@@ -571,13 +576,15 @@ void configure()
 
     if ( Configuration::present( Configuration::DbOwner ) ) {
         *dbowner = Configuration::text( Configuration::DbOwner );
-        printf( "Using db-owner from archiveopteryx.conf: %s\n",
-                dbowner->cstr() );
+        if ( verbosity )
+            printf( "Using db-owner from the configuration: %s\n",
+                    dbowner->cstr() );
     }
 
     if ( Configuration::present( Configuration::DbOwnerPassword ) ) {
         *dbownerpass = Configuration::text( Configuration::DbOwnerPassword );
-        printf( "Using db-owner-password from archiveopteryx.conf\n" );
+        if ( verbosity )
+            printf( "Using db-owner-password from the configuration\n" );
     }
     else if ( dbownerpass->isEmpty() ) {
         String p( "(database owner password here)" );
