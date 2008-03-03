@@ -181,7 +181,7 @@ void Status::execute()
     }
 
     if ( d->session )
-        d->session->mailbox->removeSession( d->session );
+        d->session->mailbox()->removeSession( d->session );
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
              " (" + status.join( " " ) + ")" );
