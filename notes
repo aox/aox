@@ -1,4 +1,4 @@
-2.07: 2008-03-03
+2.08: 2008-04-07
 
   Web UI for setting up views. Also (less importantly) aox arguments
   for setting up views.
@@ -8,38 +8,33 @@
   have to.
 
   Investigate and fix whatever is behind Timo's report of freezing
-  IMAP commands. The mechanism for keeping commands running is a
-  little too complex at the moment.
+  IMAP commands. whip idlereaction seems to be it.
 
   Investigate Martin Rode's 3gb aox process.
 
-  Done:
-  - ImapSession now uses Fetch.
-  - Injector creates field/flag/annotation names and addresses by
-    itself, in the same transaction. It's ugly, but seems to work.
-  - aox undelete works again.
-  - Headers now use real unicode everywhere, not UTF-8
+  If the above sounds exactly like the plan for 2.07, perhaps it is.
 
-  2008-01-27: decide on feature list
-  2008-02-20: drop things that can't be finished
-  2008-02-27: fork and remove unusable code
-  2008-03-01: roll, release chores
-  2008-03-02: features for next release
-  2008-03-05: release
-
-  Abhijit and his new tent will be in the mountains with Rai from the
-  16th (AM) to the 20th (PM) of February.
-
-
-2.08: perhaps 2008-04-07 or -14
+  Restricting the use of SMTP submit, adding configuration. Perhaps:
+  - a new toggle to decide whether problems with smtp submit cause 5xx
+    after DATA or a bounce
+  - a new toggle to decide whether the From field must point to some
+    address the logged-in user is explicitly permitted to use (for
+    example: it points to a mailbox for which the logged-in user has
+    the 'p' right).
+  - If we constrain From, then we check all of from, mail-from, sender
+    and all resent-from addresses, and all must pass.
+  - When we add DKIM signing (which isn't now), we sign only messages
+    where the logged-in user is explicitly permitted to use the
+    from/sender/etc addresses.
 
   nagios integration script
 
-  DKIM checking (see RFC 4870 and 4871). Sieve interaction desired,
-  but there isn't even a draft.
-
-  DKIM generation (ditto). Generating DKIM is much easier than
-  checking it.
+  2008-02-29: decide on feature list
+  2008-03-24: drop things that can't be finished
+  2008-03-31: fork and remove unusable code
+  2008-04-03: roll, release chores
+  2008-04-04: features for next release
+  2008-04-07: release
 
 
 Release cycle
