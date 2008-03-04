@@ -336,7 +336,7 @@ void Session::emitResponses()
 }
 
 
-/*! Calls emitExpunges(), emitExists(), emitModifications() etc. as
+/*! Calls emitExpunges(), emitUidnext(), emitModifications() etc. as
     needed and as indicated by \a type. Only sends the desired \a type
     of response. Does not check that responses may legally be sent at
     this point. Updates uidnext() if it announces new messages beyond
@@ -371,7 +371,7 @@ void Session::emitResponses( ResponseType type )
         }
         d->msns.add( n );
         d->unannounced.remove( n );
-        emitExists( d->msns.count() );
+        emitUidnext();
     }
 }
 
@@ -386,12 +386,11 @@ void Session::emitExpunges()
 }
 
 
-/*! \fn Session::emitExists( uint number )
-    Does whatever the protocol requires when the number of messages in
-    the Mailbox changes to \a number.
+/*! Does whatever the protocol requires when a new message is added to
+    the mailbox.
 */
 
-void Session::emitExists( uint )
+void Session::emitUidnext()
 {
 }
 

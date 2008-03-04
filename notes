@@ -7,10 +7,8 @@
   SeenFlagSetter into ImapSession and delay setting \seen until we
   have to.
 
-  Investigate and fix whatever is behind Timo's report of freezing
-  IMAP commands. whip idlereaction seems to be it.
-
-  Investigate Martin Rode's 3gb aox process.
+  Investigate Martin Rode's 3gb aox process. Update: Lots and lots of
+  STATUS EXISTS would cause that.
 
   If the above sounds exactly like the plan for 2.07, perhaps it is.
 
@@ -36,6 +34,8 @@
   2008-04-04: features for next release
   2008-04-07: release
 
+  Done:
+  - IMAP commands don't freeze
 
 Release cycle
 
@@ -1187,3 +1187,5 @@ Fetcher oomph
 
   I think we might see a speedup of 2-100x depending on task. Unless
   we use all this apparatus for single-message fetches.
+
+

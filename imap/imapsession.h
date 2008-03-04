@@ -22,7 +22,7 @@ public:
 
     void emitExpunges();
     void emitModifications();
-    void emitExists( uint );
+    void emitUidnext();
     bool responsesNeeded( ResponseType ) const;
     bool responsesPermitted( ResponseType ) const;
 

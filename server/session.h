@@ -65,7 +65,7 @@ public:
     virtual void emitResponses();
     void emitResponses( ResponseType );
     virtual void emitExpunges();
-    virtual void emitExists( uint );
+    virtual void emitUidnext();
     virtual void emitModifications();
 
     MessageSet unannounced() const;

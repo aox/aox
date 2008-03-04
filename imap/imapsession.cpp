@@ -16,7 +16,7 @@ class ImapSessionData
 {
 public:
     ImapSessionData(): i( 0 ), unsolicited( false ),
-                       exists( UINT_MAX/4 ), recent( UINT_MAX ),
+                       exists( 0 ), recent( 0 ),
                        uidnext( 0 ), nms( 1 ) {}
     class IMAP * i;
     MessageSet expungedFetched;
@@ -83,10 +83,11 @@ void ImapSession::emitExpunges()
 }
 
 
-void ImapSession::emitExists( uint number )
+void ImapSession::emitUidnext()
 {
-    if ( d->exists != number )
-        enqueue( "* " + fn( number ) + " EXISTS\r\n" );
+    uint x = messages().count();
+    if ( x != d->exists )
+        enqueue( "* " + fn( x ) + " EXISTS\r\n" );
 
     if ( d->unsolicited ) {
         List<Command>::Iterator c( d->i->commands() );
@@ -97,7 +98,7 @@ void ImapSession::emitExists( uint number )
         else
             return;
     }
-    d->exists = number;
+    d->exists = x;
 
     uint r = recent().count();
     if ( d->recent != r ) {
