@@ -7,8 +7,8 @@
 
 /*! \class Enable enable.h
 
-    The Enable class implements the IMAP ENABLE command, defined by
-    draft-gulbrandsen-imap-enable. Really simple command.
+    The Enable class implements the IMAP ENABLE command as defined by
+    RFC 5161. Really simple command.
 */
 
 
@@ -47,9 +47,15 @@ void Enable::parse()
 
 void Enable::execute()
 {
-    if ( condstore )
+    String r = "ENABLED";
+    if ( condstore ) {
         imap()->setClientSupports( IMAP::Condstore );
-    if ( annotate )
+        r.append( " CONDSTORE" );
+    }
+    if ( annotate ) {
         imap()->setClientSupports( IMAP::Annotate );
+        r.append( " ANNOTATE" );
+    }
+    respond( r );
     finish();
 }
