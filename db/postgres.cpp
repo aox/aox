@@ -1020,8 +1020,7 @@ void Postgres::countQueries( class Query * q )
         goodQueries->tick();
     else if ( !q->canFail() )
         badQueries->tick();
-    else
-        ; // a query which fails but canFail is not counted anywhere.
+    ; // a query which fails but canFail is not counted anywhere.
 
     // later also use GraphableDataSet to keep track of query
     // execution times, but not right now.
