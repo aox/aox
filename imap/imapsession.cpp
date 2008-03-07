@@ -86,7 +86,7 @@ void ImapSession::emitExpunges()
 void ImapSession::emitUidnext()
 {
     uint x = messages().count();
-    if ( x != d->exists )
+    if ( x != d->exists || !d->uidnext )
         enqueue( "* " + fn( x ) + " EXISTS\r\n" );
 
     if ( d->unsolicited ) {
@@ -101,7 +101,7 @@ void ImapSession::emitUidnext()
     d->exists = x;
 
     uint r = recent().count();
-    if ( d->recent != r ) {
+    if ( d->recent != r || !d->uidnext ) {
         d->recent = r;
         enqueue( "* " + fn( r ) + " RECENT\r\n" );
     }
@@ -151,10 +151,7 @@ void ImapSession::emitModifications()
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
-    if ( c && c->name() == "idle" ) {
-        d->i->commands()->insert( c, update );
-    }
-    else if ( c && c->state() == Command::Finished ) {
+    if ( c && c->state() == Command::Finished ) {
         List<Command>::Iterator n( c );
         ++n;
         d->i->commands()->insert( n, update );
@@ -198,9 +195,6 @@ bool ImapSession::responsesNeeded( ResponseType t ) const
 
 bool ImapSession::responsesPermitted( ResponseType t ) const
 {
-    if ( d->i->idle() )
-        return true;
-
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
@@ -212,6 +206,9 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
             // we don't need to consider retired commands at all
             if ( c->state() == Command::Retired )
                 ;
+            // expunges are permitted in idle mode
+            else if ( c->state() == Command::Executing && c->name() == "idle" )
+                return true;
             // we cannot send an expunge while a command is being
             // executed (not without NOTIFY at least...)
             else if ( c->state() == Command::Executing )
@@ -231,8 +228,8 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
         return true;
     }
     else {
-        if ( t == New && !c ) {
-            // no commands at all. have we sent anything?
+        if ( t == New && d->i->idle() ) {
+            // no commands or in idle mode. let's try a single exists.
             if ( !d->unsolicited )
                 return true;
             return false;

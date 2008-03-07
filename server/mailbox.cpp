@@ -711,18 +711,14 @@ void Mailbox::removeSession( Session * s )
 void Mailbox::notifySessions()
 {
     // our own sessions
-    List<Session>::Iterator it( d->sessions );
-    while ( it ) {
-        Session * s = it;
-        ++it;
-        s->refresh( 0 );
-    }
+    if ( d->sessions )
+        (void)new SessionInitialiser( this );
     // and all sessions on a view onto this mailbox
     List<Mailbox>::Iterator v( d->views );
     while ( v ) {
         // d->views is only added to, never pared down, so check
-        if ( v->source() == this )
-            v->notifySessions();
+        if ( v->source() == this && v->d->sessions )
+            (void)new SessionInitialiser( v );
         ++v;
     }
 }

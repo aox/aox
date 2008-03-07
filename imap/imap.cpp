@@ -333,23 +333,38 @@ void IMAP::setState( State s )
 }
 
 
-/*! Returns true if this connection is idle, and false if it is
-    not. The initial (and normal) state is false.
+/*! Returns true if the server has no particular work to do to server
+    the peer(), and false if it's currently working on behalf of peer().
 
-    An idle connection (see RFC 2177) is one in which
-    e.g. EXPUNGE/EXISTS responses may be sent at any time. If a
-    connection is not idle, such responses must be delayed until the
-    client can listen to them.
+    If there are no commands, a connection is idle(). If the command
+    currently being executed is Idle, the connection is also idle.
 */
 
 bool IMAP::idle() const
 {
-    if ( !d->reader )
-        return false;
-    if ( d->reader->state() != Command::Executing )
-        return false;
-    if ( d->reader->name() != "idle" )
-        return false;
+    List<Command>::Iterator i( d->commands );
+    while ( i ) {
+        Command * c = i;
+        ++i;
+        switch ( c->state() ) {
+        case Command::Unparsed:
+            return false;
+            break;
+        case Command::Blocked:
+            return false;
+            break;
+        case Command::Executing:
+            if ( c->name() != "idle" )
+                return false;
+            break;
+        case Command::Finished:
+            return false;
+            break;
+        case Command::Retired:
+            break;
+        }
+    }
+    
     return true;
 }
 

@@ -514,7 +514,7 @@ void SessionInitialiser::execute()
             break;
         case SessionInitialiserData::Again:
             findSessions();
-            eliminateGoodSessions();
+            //eliminateGoodSessions();
             restart(); // may change d->state
             break;
         }
@@ -557,6 +557,7 @@ void SessionInitialiser::findSessions()
 
 void SessionInitialiser::eliminateGoodSessions()
 {
+    bool workNeeded = false;
     List<Session>::Iterator i( d->sessions );
     while ( i ) {
         List<Session>::Iterator s = i;
@@ -589,15 +590,23 @@ void SessionInitialiser::eliminateGoodSessions()
             }
             if ( !unknownNew.isEmpty() )
                 allKnown = false;
-            if ( any && allKnown ) {
-                s->setSessionInitialiser( 0 );
-                if ( s->nextModSeq() < d->mailbox->nextModSeq() )
-                    s->setNextModSeq( d->mailbox->nextModSeq() );
-                if ( s->uidnext() < d->mailbox->uidnext() )
-                    s->setUidnext( d->mailbox->uidnext() );
-                d->sessions.take( s );
-            }
+            if ( !( any && allKnown ) )
+                workNeeded = true;
         }
+    }
+    if ( workNeeded )
+        return;
+
+    i = d->sessions.first();
+    while ( i ) {
+        List<Session>::Iterator s = i;
+        ++i;
+        if ( s->nextModSeq() < d->mailbox->nextModSeq() )
+            s->setNextModSeq( d->mailbox->nextModSeq() );
+        if ( s->uidnext() < d->mailbox->uidnext() )
+            s->setUidnext( d->mailbox->uidnext() );
+        s->emitResponses();
+        d->sessions.take( s );
     }
 }
 
@@ -614,17 +623,8 @@ void SessionInitialiser::restart()
     d->oldModSeq = d->newModSeq;
     d->oldUidnext = d->newUidnext;
 
-    uint uidnext = d->oldUidnext;
-    int64 nextModSeq = d->oldModSeq;
-
     List<Session>::Iterator i( d->mailbox->sessions() );
     while ( i ) {
-        if ( i->unannounced().isEmpty() ) {
-            if ( i->uidnext() < uidnext )
-                uidnext = i->uidnext();
-            if ( i->nextModSeq() < nextModSeq )
-                nextModSeq = i->nextModSeq();
-        }
         if ( i->uidnext() < d->oldUidnext )
             d->oldUidnext = i->uidnext();
         if ( i->nextModSeq() < d->oldModSeq )
@@ -632,13 +632,8 @@ void SessionInitialiser::restart()
         ++i;
     }
 
-    // at this point, d->oldUidnext is the oldest uidnext value of all
-    // sessions, and uidnext is the oldest value of all _updated_
-    // sessions. we only want to work if a session that could emit its
-    // changes so far has old data.
-
-    if ( nextModSeq >= d->newModSeq &&
-         uidnext >= d->newUidnext &&
+    if ( d->oldModSeq >= d->newModSeq &&
+         d->oldUidnext >= d->newUidnext &&
          !d->mailbox->view() )
         return;
 
@@ -678,7 +673,9 @@ void SessionInitialiser::grabLock()
     if ( d->mailbox->view() )
         d->changeRecent = false;
 
-    log( "Updating " + fn( d->sessions.count() ) + " session(s) on " +
+    log( "Updating " + fn( d->sessions.count() ) + " (of " +
+         fn( d->mailbox->sessions() ? d->mailbox->sessions()->count() : 0 ) +
+         ") session(s) on " +
          d->mailbox->name().ascii() +
          " for modseq [" + fn( d->oldModSeq ) + "," +
          fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
@@ -698,15 +695,13 @@ void SessionInitialiser::grabLock()
         submit( d->recent );
     }
 
-    if ( d->mailbox->view() )
-        d->nms = new Query( "select mb.uidnext, mb.nextmodseq, "
-                            " v.nextmodseq as viewnms, v.source "
-                            "from mailboxes mb "
-                            "join views v on (v.view=mb.id) "
-                            "where mb.id=$1 for update", this );
-    else
-        d->nms = new Query( "select uidnext, nextmodseq "
-                            "from mailboxes where id=$1", this );
+    if ( !d->mailbox->view() )
+        return;
+    d->nms = new Query( "select mb.uidnext, mb.nextmodseq, "
+                        " v.nextmodseq as viewnms, v.source "
+                        "from mailboxes mb "
+                        "join views v on (v.view=mb.id) "
+                        "where mb.id=$1 for update", this );
     d->nms->bind( 1, d->mailbox->id() );
     submit( d->nms );
 }
