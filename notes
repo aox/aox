@@ -610,11 +610,10 @@ Split the folder view into pages.
   Need to decide on what a page is. "Most recent 25 threads" is a
   slippery concept when a new thread is created between page views.
 
-
-Write better field wrapping code
-
-  HeaderField::wrap is terribly hackish right now. Besides, ::unwrap()
-  should become the higher-level parser's job.
+  One probably good way: Use "after" and "before", so "next" would
+  point to "most recent 25 threads after the last one on this
+  page". Doable, not bad, and with the aid if a new Session subclass
+  we can even include a note when there's new activity.
 
 
 We should be able to use a read-only local database mirror.
