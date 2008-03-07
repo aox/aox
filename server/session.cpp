@@ -632,13 +632,20 @@ void SessionInitialiser::restart()
         ++i;
     }
 
-    if ( d->oldModSeq >= d->newModSeq &&
-         d->oldUidnext >= d->newUidnext &&
-         !d->mailbox->view() )
-        return;
-
     if ( d->sessions.isEmpty() )
         return;
+
+    if ( d->oldModSeq >= d->newModSeq &&
+         d->oldUidnext >= d->newUidnext &&
+         !d->mailbox->view() ) {
+        i = d->sessions.first();
+        while ( i ) {
+            if ( i->sessionInitialiser() == this )
+                i->setSessionInitialiser( 0 );
+            ++i;
+        }
+        return;
+    }
 
     d->state = SessionInitialiserData::NoTransaction;
     d->t = 0;
