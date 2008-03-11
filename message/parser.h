@@ -18,7 +18,7 @@ public:
     void setMime( bool );
     bool isMime() const { return mime; }
 
-    void whitespace();
+    UString whitespace();
 
     String comment();
     String string();

@@ -73,12 +73,18 @@ bool Parser822::isAtext( char c ) const
     already, it is not moved.
 */
 
-void Parser822::whitespace()
+UString Parser822::whitespace()
 {
-    while ( nextChar() == ' ' || nextChar() == 9 ||
-            nextChar() == 10 || nextChar() == 13 ||
-            nextChar() == 160 )
+    UString out;
+
+    char c = nextChar();
+    while ( c == ' ' || c == 9 || c == 10 || c == 13 || c == 160 ) {
+        out.append( c );
         step();
+        c = nextChar();
+    }
+
+    return out;
 }
 
 
@@ -518,21 +524,26 @@ UString Parser822::encodedWords( EncodedText t )
 
 UString Parser822::text()
 {
-    whitespace();
-
     UString out;
 
-    UString space;
+    UString space( whitespace() );
     UString word;
     bool progress = true;
     while ( progress ) {
         uint m = mark();
         uint p = pos();
+
+        bool encodedWord = false;
+
         if ( present( "=?" ) ) {
             restore( m );
+            encodedWord = true;
             word = encodedWords();
+            if ( p == pos() )
+                encodedWord = false;
         }
-        else {
+
+        if ( !encodedWord ) {
             word.truncate();
             char c = nextChar();
             while ( !atEnd() && c < 128 &&
@@ -548,16 +559,17 @@ UString Parser822::text()
         else {
             out.append( space );
             out.append( word );
-            int s = pos();
-            whitespace();
-            AsciiCodec a;
-            space = a.toUnicode( input().mid( s, pos()-s ) );
+
+            space = whitespace();
             if ( space.contains( '\r' ) || space.contains( '\n' ) ) {
                 space.truncate();
                 space.append( ' ' );
             }
         }
     }
+
+    if ( space.length() != 0 )
+        out.append( space );
 
     return out;
 }
@@ -575,7 +587,7 @@ UString Parser822::phrase()
     comment();
 
     bool wasEncoded = false;
-    String spaces;
+    UString spaces;
     bool progress = true;
 
     while ( !atEnd() && progress ) {
@@ -614,20 +626,20 @@ UString Parser822::phrase()
             // 2047 says that spaces between encoded-words should be
             // disregarded, so we do.
             if ( !encoded || !wasEncoded )
-                out.append( a.toUnicode( spaces ) );
+                out.append( spaces );
             // next append the word we read
             out.append( t );
             // then read new spaces which we'll use if there is
             // another word.
-            p = pos();
-            whitespace();
-            spaces = input().mid( p, pos()-p );
+            spaces = whitespace();
             // RFC violation: if the spaces included a CR/LF, we
             // properly should just get rid of the CRLF and one
             // trailing SP, but changing it all to a single space
             // matches the expectations of most senders better.
-            if ( spaces.contains( '\r' ) || spaces.contains( '\n' ) )
-                spaces = " ";
+            if ( spaces.contains( '\r' ) || spaces.contains( '\n' ) ) {
+                spaces.truncate();
+                spaces.append( ' ' );
+            }
             wasEncoded = encoded;
         }
         else {
