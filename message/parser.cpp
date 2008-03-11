@@ -7,19 +7,19 @@
 #include "utf.h"
 
 
-/*! \class Parser822 parser.h
+/*! \class EmailParser parser.h
 
-    The Parser822 class provides parser help for RFC 822-like grammars.
+    The EmailParser class provides parser help for RFC 822-like grammars.
     It properly is more like a lexer than a parser, but also not quite
     like a lexer.
 
-    Parser822 provides a cursor, and member functions to read many
+    EmailParser provides a cursor, and member functions to read many
     RFC 2822 productions at the cursor. Generally, each member returns
     the production read or an empty string.
 */
 
 
-/*! \fn Parser822::Parser822( const String & s )
+/*! \fn EmailParser::EmailParser( const String & s )
     Creates a new RFC 822 parser object to parse \a s.
 */
 
@@ -28,7 +28,7 @@
     false in all other circumstances.
 */
 
-bool Parser822::isAtext( char c ) const
+bool EmailParser::isAtext( char c ) const
 {
     if ( c < 32 || c > 127 )
         return false;
@@ -73,7 +73,7 @@ bool Parser822::isAtext( char c ) const
     already, it is not moved.
 */
 
-UString Parser822::whitespace()
+UString EmailParser::whitespace()
 {
     UString out;
 
@@ -94,7 +94,7 @@ UString Parser822::whitespace()
     Returns a null string if there was no comment.
 */
 
-String Parser822::comment()
+String EmailParser::comment()
 {
     String r;
     whitespace();
@@ -132,7 +132,7 @@ String Parser822::comment()
 
 /*! Steps past an atom or a quoted-text, and returns that text. */
 
-String Parser822::string()
+String EmailParser::string()
 {
     comment();
 
@@ -181,7 +181,7 @@ String Parser822::string()
     '[213.203.59.59]' and '[IPv6:::ffff:213.203.59.59]'.
 */
 
-String Parser822::domain()
+String EmailParser::domain()
 {
     String l;
     comment();
@@ -206,12 +206,12 @@ String Parser822::domain()
 }
 
 
-/*! Sets this Parser822 object to parse MIME strings if \a m is true,
+/*! Sets this EmailParser object to parse MIME strings if \a m is true,
     and RFC 2822 strings if \a m is false. The only difference is the
     definition of specials.
 */
 
-void Parser822::setMime( bool m )
+void EmailParser::setMime( bool m )
 {
     mime = m;
 }
@@ -221,7 +221,7 @@ void Parser822::setMime( bool m )
     comments.
 */
 
-String Parser822::dotAtom()
+String EmailParser::dotAtom()
 {
     String r = atom();
     if ( r.isEmpty() )
@@ -254,7 +254,7 @@ String Parser822::dotAtom()
     before and after it.
 */
 
-String Parser822::atom()
+String EmailParser::atom()
 {
     comment();
     String output;
@@ -270,7 +270,7 @@ String Parser822::atom()
     is an atom minus [/?=] plus [.].
 */
 
-String Parser822::mimeToken()
+String EmailParser::mimeToken()
 {
     comment();
 
@@ -297,7 +297,7 @@ String Parser822::mimeToken()
     string.
 */
 
-String Parser822::mimeValue()
+String EmailParser::mimeValue()
 {
     comment();
     if ( nextChar() == '"' )
@@ -316,7 +316,7 @@ String Parser822::mimeValue()
     \a type, which may be Text (by default), Comment, or Phrase.
 */
 
-UString Parser822::encodedWord( EncodedText type )
+UString EmailParser::encodedWord( EncodedText type )
 {
     // encoded-word = "=?" charset '?' encoding '?' encoded-text "?="
 
@@ -439,7 +439,7 @@ UString Parser822::encodedWord( EncodedText type )
     rules. This function checks nothing, it just decodes.
 */
 
-UString Parser822::de2047( const String & s )
+UString EmailParser::de2047( const String & s )
 {
     UString out;
 
@@ -496,7 +496,7 @@ UString Parser822::de2047( const String & s )
     kept as is.
 */
 
-UString Parser822::encodedWords( EncodedText t )
+UString EmailParser::encodedWords( EncodedText t )
 {
     UString out;
     bool end = false;
@@ -522,7 +522,7 @@ UString Parser822::encodedWords( EncodedText t )
     be an empty string.
 */
 
-UString Parser822::text()
+UString EmailParser::text()
 {
     UString out;
 
@@ -580,7 +580,7 @@ UString Parser822::text()
     empty string.
 */
 
-UString Parser822::phrase()
+UString EmailParser::phrase()
 {
     UString out;
 
@@ -655,7 +655,7 @@ UString Parser822::phrase()
     nothing else.
 */
 
-int Parser822::cfws()
+int EmailParser::cfws()
 {
     uint m = mark();
     uint p = pos();
@@ -670,7 +670,7 @@ int Parser822::cfws()
     number.
 */
 
-uint Parser822::number()
+uint EmailParser::number()
 {
     comment();
     bool ok = false;
@@ -686,18 +686,18 @@ uint Parser822::number()
     string if none has been seen yet.
 */
 
-String Parser822::lastComment() const
+String EmailParser::lastComment() const
 {
     return lc;
 }
 
 
-/*! \fn bool Parser822::isMime() const
+/*! \fn bool EmailParser::isMime() const
     Returns true if this parser has been instructed to parse MIME
     strings by calling setMime(), and false otherwise.
 */
 
-/*! \fn bool Parser822::valid()
+/*! \fn bool EmailParser::valid()
     Returns true if this parser has not yet encountered any errors
     during parsing, and false otherwise.
 */

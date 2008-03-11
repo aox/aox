@@ -303,7 +303,7 @@ static bool weekday( const String & name )
 
 void Date::setRfc822( const String & s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
     String a;
 
     d->reset();

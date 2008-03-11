@@ -144,7 +144,7 @@ void MimeField::removeParameter( const String &n )
     characters form the RFC 2045 production '*(";"parameter)'.
 */
 
-void MimeField::parseParameters( Parser822 *p )
+void MimeField::parseParameters( EmailParser *p )
 {
     bool done = false;
     bool first = true;
@@ -323,7 +323,7 @@ ContentType::~ContentType()
 
 void ContentType::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
     p.whitespace();
 
     if ( p.atEnd() ) {
@@ -459,7 +459,7 @@ ContentTransferEncoding::ContentTransferEncoding()
 
 void ContentTransferEncoding::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
 
     String t = p.mimeToken().lower();
     p.comment();
@@ -540,7 +540,7 @@ ContentDisposition::ContentDisposition()
 
 void ContentDisposition::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
 
     uint m = p.mark();
     String t = p.mimeToken().lower();
@@ -612,7 +612,7 @@ ContentLanguage::~ContentLanguage()
 
 void ContentLanguage::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
 
     do {
         // We're not going to bother trying to validate language tags.

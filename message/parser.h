@@ -9,11 +9,11 @@
 class UString;
 
 
-class Parser822
+class EmailParser
     : public AbnfParser
 {
 public:
-    Parser822( const String & os ) : AbnfParser( os ), mime( false ) {}
+    EmailParser( const String & os ) : AbnfParser( os ), mime( false ) {}
     
     void setMime( bool );
     bool isMime() const { return mime; }

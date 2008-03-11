@@ -6,7 +6,7 @@
 #include "field.h"
 
 
-class Parser822;
+class EmailParser;
 
 
 class ListIdField

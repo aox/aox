@@ -1482,7 +1482,7 @@ void Header::fix8BitFields( class Codec * c )
                 StringList::Iterator w( StringList::split( ' ', v.simplified() ) );
                 bool wasE = false;
                 while ( w ) {
-                    UString o = Parser822::de2047( *w );
+                    UString o = EmailParser::de2047( *w );
                     bool isE = true;
                     if ( o.isEmpty() ) {
                         o = c->toUnicode( *w ).simplified();

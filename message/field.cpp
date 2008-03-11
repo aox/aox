@@ -403,7 +403,7 @@ void HeaderField::parseText( const String &s )
 {
     bool h = false;
     if ( !h ) {
-        Parser822 p( s );
+        EmailParser p( s );
         UString t( p.text() );
         if ( p.atEnd() ) {
             setValue( t );
@@ -412,7 +412,7 @@ void HeaderField::parseText( const String &s )
     }
 
     if ( !h ) {
-        Parser822 p( s.simplified() );
+        EmailParser p( s.simplified() );
         UString t( p.text() );
         if ( p.atEnd() ) {
             setValue( t );
@@ -426,7 +426,7 @@ void HeaderField::parseText( const String &s )
          !s.mid( 2 ).contains( "=?" ) ) {
         // Cope with the following common error:
         // Subject: =?ISO-8859-1?q?foo bar baz?=
-        Parser822 p( StringList::split( ' ', s.simplified() )->join( "_" ) );
+        EmailParser p( StringList::split( ' ', s.simplified() )->join( "_" ) );
         UString t( p.text() );
         if ( p.atEnd() ) {
             setValue( t );
@@ -466,7 +466,7 @@ void HeaderField::parseOther( const String &s )
 
 void HeaderField::parseMimeVersion( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
     p.comment();
     String v = p.dotAtom();
     p.comment();
@@ -494,7 +494,7 @@ void HeaderField::parseMimeVersion( const String &s )
 
 void HeaderField::parseContentLocation( const String &s )
 {
-    Parser822 p( s.trimmed().unquoted() );
+    EmailParser p( s.trimmed().unquoted() );
 
     p.whitespace();
     uint e = p.pos();
