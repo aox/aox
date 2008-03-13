@@ -233,7 +233,7 @@ void Schema::execute()
         
         if ( d->unparsed && d->unparsed->hasResults() ) {
             Row * r = d->unparsed->nextRow();
-            uint u = r->getInt( "unparsed" );
+            int64 u = r->getBigint( "unparsed" );
             if ( u )
                 d->l->log( "Please run 'aox reparse' (or 'aox reparse -e'). "
                            "There are " + fn( u ) + " unparsed messages now.",
