@@ -235,8 +235,9 @@ void Schema::execute()
             Row * r = d->unparsed->nextRow();
             int64 u = r->getBigint( "unparsed" );
             if ( u )
-                d->l->log( "Please run 'aox reparse' (or 'aox reparse -e'). "
-                           "There are " + fn( u ) + " unparsed messages now.",
+                d->l->log( "Please run 'aox reparse' (or 'aox reparse -e') "
+                           "when Archiveopteryx has been started. "
+                           "There are " + fn( u ) + " unparsed messages now. ",
                            Log::Significant );
         }
 
