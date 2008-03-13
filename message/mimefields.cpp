@@ -181,6 +181,22 @@ void MimeField::parseParameters( EmailParser *p )
                     n = n.mid( 0, star );
                 }
             }
+            if ( type() == ContentType && p->atEnd() && Codec::byName( n ) ) {
+                // sometimes we see just iso-8859-1 instead of
+                // charset=iso-8859-1.
+                List< MimeFieldData::Parameter >::Iterator it( d->parameters );
+                while ( it && it->name != "charset" )
+                    ++it;
+                if ( !it ) {
+                    MimeFieldData::Parameter * pm 
+                        = new MimeFieldData::Parameter;
+                    pm->name = "charset";
+                    pm->value = n;
+                    d->parameters.append( pm );
+                    it = d->parameters.find( pm );
+                    return;
+                }
+            }
             if ( p->nextChar() != '=' ) {
                 setError( "Bad parameter: " + n.quoted() );
                 return;
