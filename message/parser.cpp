@@ -632,6 +632,12 @@ UString EmailParser::phrase()
             // then read new spaces which we'll use if there is
             // another word.
             spaces = whitespace();
+            uint p = pos();
+            comment();
+            // if there weren't any spaces, but there is a comment,
+            // then we need to treat the comment as a single space.
+            if ( spaces.isEmpty() && p < pos() )
+                spaces.append( ' ' );
             // RFC violation: if the spaces included a CR/LF, we
             // properly should just get rid of the CRLF and one
             // trailing SP, but changing it all to a single space
