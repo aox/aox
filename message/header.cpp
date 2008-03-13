@@ -566,6 +566,13 @@ void Header::simplify()
         if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
     }
+    if ( ct && 
+         ( ct->type() == "multipart" || ct->type() == "message" ||
+           ct->type() == "image" || ct->type() == "audio" ||
+           ct->type() == "video" ) )
+        ct->removeParameter( "charset" );
+    if ( ct && ct->parameter( "charset" ).lower() == "us-ascii" )
+        ct->removeParameter( "charset" );
 
     HeaderField *m = field( HeaderField::MessageId );
     if ( m && m->rfc822().isEmpty() )
@@ -655,9 +662,6 @@ void Header::repair()
         uint n = 0;
         bool bad = false;
         while ( other && !bad ) {
-            if ( other->parameter( "charset" ).lower() == "us-ascii" )
-                // XXX: wrong place for this code
-                other->removeParameter( "charset" );
             if ( other->type() != ct->type() ||
                  other->subtype() != ct->subtype() ) {
                 bad = true;
