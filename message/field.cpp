@@ -420,12 +420,36 @@ void HeaderField::parseText( const String &s )
         }
     }
 
-    if ( !h && s.contains( "=?" ) && s.contains( "?=" ) ) {
+    if ( ( !h && s.contains( "=?" ) && s.contains( "?=" ) ) ||
+         ( value().utf8().contains("=?") && value().utf8().contains("?=") ) ) {
         // common: Subject: =?ISO-8859-1?q?foo bar baz?=
         // unusual, but seen: Subject: =?ISO-8859-1?q?foo bar?= baz
-        EmailParser p( StringList::split( ' ', s.simplified() )->join( "_" ) );
-        UString t( p.text() );
-        if ( p.atEnd() ) {
+        EmailParser p1( s.simplified() );
+        String tmp;
+        bool inWord = false;
+        while ( !p1.atEnd() ) {
+            if ( p1.present( "=?" ) ) {
+                inWord = true;
+                tmp.append( " =?" );
+            }
+            else if ( p1.present( "?=" ) ) {
+                inWord = false;
+                tmp.append( "?= " );
+            }
+            else if ( p1.whitespace().isEmpty() ) {
+                tmp.append( p1.nextChar() );
+                p1.step();
+            }
+            else {
+                if ( inWord )
+                    tmp.append( '_' );
+                else
+                    tmp.append( ' ' );
+            }
+        }
+        EmailParser p2( tmp );
+        UString t( p2.text().simplified() );
+        if ( p2.atEnd() && !t.utf8().contains( "?=" ) ) {
             setValue( t );
             h = true;
         }
