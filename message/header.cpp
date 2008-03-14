@@ -9,6 +9,7 @@
 #include "addressfield.h"
 #include "ustringlist.h"
 #include "multipart.h"
+#include "bodypart.h"
 #include "address.h"
 #include "unknown.h"
 #include "ustring.h"
@@ -1380,6 +1381,89 @@ void Header::repair( Multipart * p, const String & body )
             sender->addresses()->clear();
             sender->addresses()->append( last );
             sender->setError( "" );
+        }
+    }
+
+    // Some crapware tries to send DSNs without a From field. We try
+    // to patch it up. We don't care very hard, so this parses the
+    // body and discards the result, does a very quick job of parsing
+    // message/delivery-status, doesn't handle xtext, and doesn't care
+    // whether it uses Original-Recipient or Final-Recipient.
+    if ( mode() == Rfc2822 &&
+         ( !field( HeaderField::From ) ||
+           field( HeaderField::From )->error().contains( "No-bounce" ) ) &&
+         contentType() &&
+         contentType()->type() == "multipart" &&
+         contentType()->subtype() == "report" &&
+         contentType()->parameter( "report-type" ) == "delivery-status" ) {
+        ContentType * ct = contentType();
+        Multipart * tmp = new Multipart;
+        Bodypart::parseMultipart( 0, body.length(), body,
+                                  ct->parameter( "boundary" ),
+                                  false,
+                                  tmp->children(), tmp );
+        List<Bodypart>::Iterator i( tmp->children() );
+        Address * postmaster = 0;
+        while ( i && !postmaster ) {
+            Header * h = i->header();
+            ContentType * ct = 0;
+            if ( h )
+                ct = h->contentType();
+            if ( ct &&
+                 ct->type() == "message" &&
+                 ct->subtype() == "delivery-status" ) {
+                // woo.
+                StringList * lines = StringList::split( 10, i->data() );
+                StringList::Iterator l( lines );
+                String reportingMta;
+                Address * address = 0;
+                while ( l ) {
+                    String line = l->lower();
+                    ++l;
+                    String field = line.section( ":", 1 ).simplified();;
+                    String domain = line.section( ":", 2 ).section( ";", 1 )
+                                    .simplified();
+                    String value = line.section( ":", 2 ).section( ";", 2 )
+                                   .simplified();;
+                    // value may be xtext, but I don't care. it's an
+                    // odd error case in illegal mail, so who can say
+                    // that the sender knows the xtext rules anyway?
+                    if ( field == "reporting-mta" && domain == "dns" ) {
+                        reportingMta = value;
+                    }
+                    else if ( ( field == "final-recipient" ||
+                                field == "original-recipient" ) &&
+                              domain == "rfc822" &&
+                              !address ) {
+                        AddressParser ap( value );
+                        List<Address>::Iterator i( ap.addresses() );
+                        while ( i && !address ) {
+                            if ( i->error().isEmpty() &&
+                                 !i->domain().isEmpty() )
+                                address = i;
+                            ++i;
+                        }
+                    }
+                }
+                if ( !reportingMta.isEmpty() && address ) {
+                    AsciiCodec ac;
+                    UString name = ac.toUnicode( reportingMta );
+                    name.append( " postmaster" );
+                    postmaster = new Address( name, "postmaster",
+                                              address->domain().lower() );
+                    AddressField * from = addressField( HeaderField::From );
+                    if ( from ) {
+                        from->setError( "" );
+                        from->addresses()->clear();
+                    }
+                    else {
+                        from = new AddressField( HeaderField::From );
+                        add( from );
+                    }
+                    from->addresses()->append( postmaster );
+                }
+            }
+            ++i;
         }
     }
 
