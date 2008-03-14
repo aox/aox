@@ -1385,10 +1385,11 @@ void Header::repair( Multipart * p, const String & body )
     }
 
     // Some crapware tries to send DSNs without a From field. We try
-    // to patch it up. We don't care very hard, so this parses the
-    // body and discards the result, does a very quick job of parsing
-    // message/delivery-status, doesn't handle xtext, and doesn't care
-    // whether it uses Original-Recipient or Final-Recipient.
+    // to patch it up. We don't care very much, so this parses the
+    // body and discards the result, does a _very_ quick job of
+    // parsing message/delivery-status, doesn't handle xtext, and
+    // doesn't care whether it uses Original-Recipient or
+    // Final-Recipient.
     if ( mode() == Rfc2822 &&
          ( !field( HeaderField::From ) ||
            field( HeaderField::From )->error().contains( "No-bounce" ) ) &&
@@ -1428,13 +1429,14 @@ void Header::repair( Multipart * p, const String & body )
                     // value may be xtext, but I don't care. it's an
                     // odd error case in illegal mail, so who can say
                     // that the sender knows the xtext rules anyway?
-                    if ( field == "reporting-mta" && domain == "dns" ) {
+                    if ( field == "reporting-mta" && domain == "dns" &&
+                         !value.isEmpty() ) {
                         reportingMta = value;
                     }
                     else if ( ( field == "final-recipient" ||
                                 field == "original-recipient" ) &&
                               domain == "rfc822" &&
-                              !address ) {
+                              !address && !value.isEmpty() ) {
                         AddressParser ap( value );
                         List<Address>::Iterator i( ap.addresses() );
                         while ( i && !address ) {
