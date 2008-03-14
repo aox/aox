@@ -755,6 +755,7 @@ void Header::repair()
         if ( ct && ( ct->type() == "multipart" || ct->type() == "message" ) )
             removeField( HeaderField::ContentTransferEncoding );
     }
+
 }
 
 
@@ -1379,6 +1380,79 @@ void Header::repair( Multipart * p, const String & body )
             sender->addresses()->clear();
             sender->addresses()->append( last );
             sender->setError( "" );
+        }
+    }
+
+    // If we have NO From field, or one which contains only <>, use
+    // invalid@invalid.invalid. We try to include a display-name if we
+    // can find one. hackish hacks abound.
+    if ( mode() == Rfc2822 &&
+         ( !field( HeaderField::From ) ||
+           ( !field( HeaderField::From )->valid() &&
+             !addresses( HeaderField::From ) ) ||
+           field( HeaderField::From )->error().contains( "No-bounce" ) ) ) {
+        AddressField * from = addressField( HeaderField::From );
+        String raw;
+        if ( from )
+            raw = from->unparsedValue().simplified();
+        if ( raw.endsWith( "<>" ) )
+            raw = raw.mid( 0, raw.length() - 2 ).simplified();
+        if ( raw.startsWith( "\"\"" ) )
+            raw = raw.mid( 2 ).simplified();
+        if ( raw.startsWith( "\" \"" ) )
+            raw = raw.mid( 3 ).simplified();
+        if ( raw.contains( '<' ) && raw.find( '<' ) > 3 )
+            raw = raw.section( "<", 1 );
+        if ( raw.startsWith( "\"" ) && raw.find( '"', 1 ) > 2 )
+            raw = raw.section( "\"", 2 ); // "foo"bar > foo
+        raw = raw.unquoted( '"', '\\' ).unquoted( '\'', '\\' ).simplified();
+        if ( raw.contains( '<' ) &&
+             raw.find( ">", 1+raw.find( '<' ) ) > 2 + raw.find( '<' ) )
+            raw = raw.section( "<", 2 ).section( ">", 1 ).simplified();
+        if ( raw.startsWith( "<" ) && raw.endsWith( ">" ) )
+            raw = raw.mid( 1, raw.length() - 2 ).simplified();
+        if ( raw.length() < 3 )
+            raw.truncate();
+
+        Codec * c = Codec::byString( raw );
+        if ( !c )
+            c = new AsciiCodec;
+        UString n = c->toUnicode( raw ).simplified();
+        if ( !n.isEmpty() ) {
+            // look again and get rid of <>@
+            uint i = 0;
+            UString r;
+            bool fffd = false;
+            uint known = 0;
+            while ( i < n.length() ) {
+                if ( n[i] == '@' || n[i] == '<' || n[i] == '>' ||
+                     n[i] < ' ' || ( n[i] >= 128 && n[i] < 160 ) ||
+                     n[i] == 0xFFFD ) {
+                    fffd = true;
+                }
+                else {
+                    if ( fffd && !r.isEmpty() )
+                        r.append( 0xFFFD );
+                    r.append( n[i] );
+                    fffd = false;
+                    known++;
+                }
+                i++;
+            }
+            n = r;
+            if ( known < 3 )
+                n.truncate();
+        }
+        Address * a = new Address( n, "invalid", "invalid.invalid" );
+        if ( from ) {
+            from->setError( "" );
+            from->addresses()->clear();
+            from->addresses()->append( a );
+        }
+        else {
+            from = new AddressField( HeaderField::From );
+            from->addresses()->append( a );
+            add( from );
         }
     }
 
