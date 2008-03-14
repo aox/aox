@@ -390,7 +390,7 @@ void HeaderField::parse( const String &s )
     }
 
     if ( !valid() )
-        d->unparsed = s;
+        setUnparsedValue( s );
 }
 
 
@@ -782,4 +782,14 @@ String HeaderField::unparsedValue() const
         d->unparsed.truncate();
 
     return d->unparsed;
+}
+
+
+/*! Records that the field's unparsed value is \a s. unparsedValue()
+    will return \a s, unless the string is/becomes valid().
+*/
+
+void HeaderField::setUnparsedValue( const String & s )
+{
+    d->unparsed = s;
 }
