@@ -26,11 +26,7 @@ public:
 private:
     void renderHtml();
     void renderText();
-
     void render();
-    UString toUnicode( class Codec * c, const String & );
-
-    Dict<String> * parseVariables( uint & );
 
 private:
     class MessageRenderingData * d;
