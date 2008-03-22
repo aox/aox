@@ -294,7 +294,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const String & rfc2822,
                                const String & divider,
                                bool digest,
-                               List<Bodypart> * children,
+                               List< Bodypart > * children,
                                Multipart * parent )
 {
     uint start = 0;
