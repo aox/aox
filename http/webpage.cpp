@@ -31,8 +31,8 @@ class WebPageData
 {
 public:
     WebPageData()
-        : link( 0 ), checker( 0 ), responded( false ),
-          user( 0 ), uniq( 0 )
+        : link( 0 ), checker( 0 ), requiresUser( false ),
+          responded( false ), user( 0 ), uniq( 0 )
     {}
 
     struct PermissionRequired
@@ -47,6 +47,7 @@ public:
     List<PageComponent> components;
     List<PermissionRequired> needed;
     PermissionsChecker * checker;
+    bool requiresUser;
     bool responded;
     User * user;
     uint uniq;
@@ -180,6 +181,15 @@ String WebPage::html() const
 }
 
 
+/*! Demands that the webpage be accessed only by authenticated users.
+    This is used instead of requireRight() when there is no mailbox to
+    be accessed, e.g. by /webmail/views. */
+
+void WebPage::requireUser()
+{
+    d->requiresUser = true;
+}
+
 
 /*! Notes that this WebPage requires \a r on \a m. execute() should
     proceed only if and when permitted() is true.
@@ -208,7 +218,7 @@ bool WebPage::permitted()
     if ( d->responded )
         return false;
 
-    if ( d->needed.isEmpty() )
+    if ( !d->requiresUser && d->needed.isEmpty() )
         return true;
 
     HTTP * server = d->link->server();
@@ -247,7 +257,7 @@ bool WebPage::permitted()
         return false;
     }
 
-    if ( !d->checker ) {
+    if ( !d->checker && !d->needed.isEmpty() ) {
         bool anon = false;
         if ( d->user && d->user->login() == "anonymous" )
             anon = true;
@@ -281,7 +291,7 @@ bool WebPage::permitted()
             ++i;
         }
     }
-    
+
     // If we don't have a checker, we permit the request. Link calls
     // requireRight as soon as it sees a mailbox name in the URL, so
     // this should be true only for a few globally accessibly pages.
@@ -323,19 +333,6 @@ bool WebPage::permitted()
         }
     }
 
-    return false;
-}
-
-
-/*! Returns true only if this webpage is being viewed by an
-    authenticated user, and false otherwise. Provided for
-    the convenience of components. */
-
-bool WebPage::authenticated() const
-{
-    if ( d->link->server()->session() &&
-         d->link->server()->session()->user() )
-        return true;
     return false;
 }
 

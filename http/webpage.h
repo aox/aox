@@ -21,6 +21,7 @@ public:
 
     class Link * link() const;
 
+    void requireUser();
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();
 
@@ -28,13 +29,12 @@ public:
 
     uint uniqueNumber();
 
-    bool authenticated() const;
-    void sendLoginForm();
-
 private:
     class WebPageData * d;
 
     String html() const;
+
+    void sendLoginForm();
 };
 
 
