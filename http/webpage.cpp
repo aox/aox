@@ -327,6 +327,19 @@ bool WebPage::permitted()
 }
 
 
+/*! Returns true only if this webpage is being viewed by an
+    authenticated user, and false otherwise. Provided for
+    the convenience of components. */
+
+bool WebPage::authenticated() const
+{
+    if ( d->link->server()->session() &&
+         d->link->server()->session()->user() )
+        return true;
+    return false;
+}
+
+
 /*! Rewrites this page to be a plain login form which will reload the
     same page when the correct password is entered.
 */

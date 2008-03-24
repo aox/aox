@@ -28,11 +28,13 @@ public:
 
     uint uniqueNumber();
 
+    bool authenticated() const;
+    void sendLoginForm();
+
 private:
     class WebPageData * d;
 
     String html() const;
-    void sendLoginForm();
 };
 
 
