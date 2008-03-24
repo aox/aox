@@ -44,6 +44,9 @@ public:
     bool magic() const;
     void setMagic( bool );
 
+    bool views() const;
+    void setViews( bool );
+
     Mailbox * mailbox() const;
     void setMailbox( Mailbox * );
 

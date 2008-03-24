@@ -21,6 +21,8 @@
 #include "components/formmail.h"
 #include "components/sendmail.h"
 #include "components/searchbox.h"
+#include "components/viewlist.h"
+#include "components/addview.h"
 
 
 class LinkData
@@ -28,7 +30,7 @@ class LinkData
 {
 public:
     LinkData()
-        : type( Link::Error ), magic( false ),
+        : type( Link::Error ), magic( false ), views( false ),
           mailbox( 0 ), uid( 0 ), suffix( Link::None ),
           arguments( new Dict<UString> ),
           webpage( 0 ), server( 0 ), secure( false )
@@ -38,6 +40,7 @@ public:
 
     Link::Type type;
     bool magic;
+    bool views;
     Mailbox * mailbox;
     uint uid;
     String part;
@@ -100,7 +103,8 @@ void Link::setType( Type p )
 }
 
 
-/*! Returns true if this Link is magic, and false otherwise. */
+/*! Returns true if this Link is magic (i.e. belongs to the magic
+    /archiveopteryx hierarchy), and false otherwise. */
 
 bool Link::magic() const
 {
@@ -113,6 +117,24 @@ bool Link::magic() const
 void Link::setMagic( bool m )
 {
     d->magic = m;
+}
+
+
+/*! Returns true if this Link is under the webmail/views hierarchy, and
+    false otherwise. */
+
+bool Link::views() const
+{
+    return d->views;
+}
+
+
+/*! Sets this Link's "views-icity" to \a m. views() will return the same
+    value as specified to this function. */
+
+void Link::setViews( bool m )
+{
+    d->views = m;
 }
 
 
@@ -373,6 +395,14 @@ static WebPage * webmailMessage( Link * link )
 }
 
 
+static WebPage * webmailViews( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ViewList );
+    return p;
+}
+
+
 static WebPage * rfc822Page( Link * link )
 {
     return new Rfc822Page( link );
@@ -395,7 +425,7 @@ static WebPage * sendmail( Link * link )
 
 enum Component {
     ArchivePrefix, WebmailPrefix,
-    Magic, MailboxName, Uid, Part, Suffix, Arguments,
+    Magic, Views, MailboxName, Uid, Part, Suffix, Arguments,
     Void,
     NumComponents
 };
@@ -414,6 +444,7 @@ static const struct Handler {
     { { WebmailPrefix, MailboxName, Void, Void,     Void }, &webmailMailbox },
     { { WebmailPrefix, MailboxName, Uid,  Suffix,   Void }, &webmailMessage },
     { { WebmailPrefix, MailboxName, Uid,  Part,     Void }, &partPage },
+    { { WebmailPrefix, Views,       Void, Void,     Void }, &webmailViews },
     { { WebmailPrefix, Magic,       Suffix, Void,   Void }, &errorPage }
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
@@ -539,6 +570,18 @@ void Link::parse( const String & s )
             if ( p->ok() ) {
                 chosen = Magic;
                 setMagic( true );
+            }
+            else {
+                p->restore();
+            }
+        }
+
+        if ( chosen == Void && legalComponents[Views] ) {
+            p->mark();
+            p->require( "/views" );
+            if ( p->ok() ) {
+                chosen = Views;
+                setViews( true );
             }
             else {
                 p->restore();
@@ -780,6 +823,7 @@ String Link::canonical() const
             good = false;
 
         good = good &&
+               checkForComponent( i, Views, d->views ) &&
                checkForComponent( i, Magic, d->magic ) &&
                checkForComponent( i, MailboxName, d->mailbox ) &&
                checkForComponent( i, Uid, d->uid != 0 ) &&
@@ -814,6 +858,9 @@ String Link::canonical() const
             break;
         case MailboxName:
             r.append( d->mailbox->name().utf8().eURI() );
+            break;
+        case Views:
+            r.append( "/views" );
             break;
         case Uid:
             r.append( "/" );
