@@ -259,7 +259,7 @@ bool WebPage::permitted()
 
     if ( !d->checker && !d->needed.isEmpty() ) {
         bool anon = false;
-        if ( d->user && d->user->login() == "anonymous" )
+        if ( d->user->login() == "anonymous" )
             anon = true;
         d->checker = new PermissionsChecker;
         List<WebPageData::PermissionRequired>::Iterator i( d->needed );
@@ -292,12 +292,6 @@ bool WebPage::permitted()
         }
     }
 
-    // If we don't have a checker, we permit the request. Link calls
-    // requireRight as soon as it sees a mailbox name in the URL, so
-    // this should be true only for a few globally accessibly pages.
-    if ( !d->checker )
-        return true;
-
     if ( d->checker && !d->checker->ready() )
         return false;
 
@@ -315,8 +309,7 @@ bool WebPage::permitted()
         UString passwd( server->parameter( "passwd" ) );
         if ( d->user->state() != User::Refreshed ||
              d->user->secret() != passwd ||
-             !d->checker ||
-             !d->checker->allowed() )
+             ( d->checker && !d->checker->allowed() ) )
         {
             sendLoginForm();
             return false;
