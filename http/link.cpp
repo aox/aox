@@ -399,6 +399,7 @@ static WebPage * webmailViews( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ViewList );
+    p->addComponent( new AddView );
     return p;
 }
 

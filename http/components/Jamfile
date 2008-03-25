@@ -13,4 +13,5 @@ Build http :
     sendmail.cpp
     searchbox.cpp
     viewlist.cpp
+    addview.cpp
     ;
