@@ -548,6 +548,7 @@ void HTTP::clear()
     d->session = 0;
     d->message = "OK";
     d->headers.clear();
+    d->parameters.clear();
 }
 
 
