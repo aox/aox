@@ -308,7 +308,8 @@ bool WebPage::permitted()
     else {
         UString passwd( server->parameter( "passwd" ) );
         if ( d->user->state() != User::Refreshed ||
-             d->user->secret() != passwd ||
+             ( ( !server->session() || server->session()->expired() ) &&
+               passwd != d->user->secret() ) ||
              ( d->checker && !d->checker->allowed() ) )
         {
             sendLoginForm();
