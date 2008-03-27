@@ -212,6 +212,35 @@ Login failures
   was the problem, etc?
 
 
+Old logins
+
+  If we log those to a log table, that table can be used to 
+  - analyse login methods (ie. who needs passwords)
+  - spot connection patterns and unusual connections
+  - provide pop before smtp
+  - do clever & smart vacation blah
+
+  The table needs to store the client ip address, user name,
+  connection start and end time, whether the authentication needed a
+  cleartext password in the db and... what more?
+
+
+Graceful shutdown
+
+  When we decide to shut down, we should:
+
+  1. Close all listeners. Log the shutdown. Abort those SMTP
+     transactions which aren't currently in the responsibility
+     transfer phase described by RFC 1047.
+
+  2. Wait a second or two. Refuse new commands on existing connections
+     (fuzzy logic needed to define "command" in that context). Don't
+     start new database transactions.
+
+  3. Close the remaining connections, implicitly rolling back database
+     transactions. Quit.
+
+
 aox check schema
 
   This command would check several things.
