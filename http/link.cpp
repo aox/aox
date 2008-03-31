@@ -1026,10 +1026,13 @@ UString Link::decoded( const String & s )
         else if ( c == '%' ) {
             bool ok = true;
             uint n = s.mid( i, 2 ).number( &ok, 16 );
-            if ( ok )
+            if ( ok ) {
+                i += 2;
                 v8.append( (char)n );
-            else
+            }
+            else {
                 return r;
+            }
         }
         else {
             v8.append( c );
