@@ -100,6 +100,15 @@ Link * WebPage::link() const
 }
 
 
+/*! Returns a pointer to the currently authenticated user, which may be
+    0 if no user is authenticated. Provided for convenience. */
+
+User * WebPage::user() const
+{
+    return d->link->server()->user();
+}
+
+
 void WebPage::execute()
 {
     if ( d->responded )

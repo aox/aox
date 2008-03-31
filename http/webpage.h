@@ -20,6 +20,7 @@ public:
     void execute();
 
     class Link * link() const;
+    class User * user() const;
 
     void requireUser();
     void requireRight( Mailbox *, Permissions::Right );
