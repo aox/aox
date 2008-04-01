@@ -1230,3 +1230,19 @@ Fetcher oomph
   we use all this apparatus for single-message fetches.
 
 
+aox.org/clients/
+
+  Move the list of clients from /imap/ and /pop here. Make a per-client page,
+  e.g. /clients/outlook, with notes.
+
+  1. Which protocols can use you use? Usually IMAP+Submit.
+
+  2. Any bugs worth speaking of?
+
+  3. Any particular configuration advice? for /clients/outlook we say
+     "enable use-smtps". For /clients/applemail we point to that IDLE
+     plugin.
+
+  That's it, right?
+
+
