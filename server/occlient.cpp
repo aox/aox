@@ -117,6 +117,7 @@ void OCClient::parse()
         }
         else if ( msg == "caches" ) {
             if ( arg == "refresh" ) {
+                ::log( "Refreshing caches" );
                 Flag::setup();
                 OCClient::send( "caches refreshed" );
             }
