@@ -222,7 +222,7 @@ void Schema::execute()
         if ( !d->t->done() )
             return;
 
-        if ( !d->unparsed && !d->t->failed() ) {
+        if ( !d->unparsed && !d->t->failed() && d->upgrade ) {
             d->unparsed = new Query( "select count(*) as unparsed "
                                      "from unparsed_messages", this );
             d->unparsed->execute();
