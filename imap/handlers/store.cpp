@@ -588,8 +588,6 @@ void Store::removeFlags( bool opposite )
     Mailbox * m = imap()->session()->mailbox();
     MessageSet s( d->s );
 
-    s.addGapsFrom( imap()->session()->messages() );
-
     String flags;
     List<Flag>::Iterator it( d->flags );
     if ( it ) {
@@ -658,8 +656,6 @@ void Store::addFlags()
     Mailbox * m = imap()->session()->mailbox();
     MessageSet s( d->s );
 
-    s.addGapsFrom( imap()->session()->messages() );
-
     List<Flag>::Iterator it( d->flags );
     while ( it ) {
         Query * q = addFlagsQuery( it, m, s, this );
@@ -695,8 +691,6 @@ void Store::replaceAnnotations()
 {
     Mailbox * m = imap()->session()->mailbox();
     MessageSet s( d->s );
-
-    s.addGapsFrom( imap()->session()->messages() );
 
     List<Annotation>::Iterator it( d->annotations );
     String w = s.where();
