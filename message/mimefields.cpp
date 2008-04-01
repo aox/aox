@@ -410,21 +410,12 @@ void ContentType::parse( const String &s )
     if ( valid() && !p.atEnd() &&
          t == "text" && parameter( "charset" ).isEmpty() &&
          s.mid( p.pos() ).lower().containsWord( "charset" ) ) {
-        String u = s.mid( p.pos() ).simplified().lower();
-        int b = u.find( '=' );
-        Codec * c = 0;
-        if ( b > 0 && u.find( '=', b+1 ) < 0 ) {
-            b++;
-            if ( u[b] == ' ' )
-                b++;
-            int e = b;
-            while ( ( u[e] >= 'a' && u[e] <= 'z' ) ||
-                    ( u[e] >= '0' && u[e] <= '9' ) ||
-                    u[e] == '/' || u[e] == '-' || u[e] == '_' )
-                e++;
-            if ( b < e )
-                c = Codec::byName( u.mid( b, e-b ) );
-        }
+        EmailParser csp( s.mid( s.lower().find( "charset" ), p.pos() ) );
+        csp.require( "charset" );
+        csp.whitespace();
+        if ( csp.present( "=" ) )
+            csp.whitespace();
+        Codec * c = Codec::byName( csp.dotAtom() );
         if ( c )
             addParameter( "charset", c->name().lower() );
     }
