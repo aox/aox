@@ -20,7 +20,6 @@ class SessionData
 public:
     SessionData()
         : readOnly( true ),
-          initialiser( 0 ),
           mailbox( 0 ),
           expungeModSeq( 0 ),
           uidnext( 1 ), nextModSeq( 1 ),
@@ -28,7 +27,6 @@ public:
     {}
 
     bool readOnly;
-    SessionInitialiser * initialiser;
     Mailbox * mailbox;
     MessageSet msns;
     MessageSet recent;
@@ -38,6 +36,7 @@ public:
     int64 nextModSeq;
     Permissions * permissions;
     MessageSet unannounced;
+    List<EventHandler> watchers;
 };
 
 
@@ -83,10 +82,6 @@ void Session::end()
 
 bool Session::initialised() const
 {
-    if ( !d->uidnext )
-        return false;
-    if ( d->initialiser )
-        return false;
     if ( d->nextModSeq < d->mailbox->nextModSeq() )
         return false;
     if ( d->uidnext < d->mailbox->uidnext() )
@@ -275,9 +270,7 @@ bool Session::responsesNeeded( ResponseType type ) const
 bool Session::responsesReady( ResponseType type ) const
 {
     type = type; // to stop the warnings
-    if ( d->initialiser )
-        return false;
-    return true;
+    return initialised();
 }
 
 
@@ -409,10 +402,8 @@ void Session::setUidnext( uint u )
 
 void Session::refresh( EventHandler * handler )
 {
-    if ( !d->initialiser )
-        (void)new SessionInitialiser( d->mailbox );
-    if ( handler && d->initialiser )
-        d->initialiser->addWatcher( handler );
+    d->watchers.append( handler );
+    d->mailbox->notifySessions();
 }
 
 
@@ -425,13 +416,12 @@ public:
           t( 0 ), recent( 0 ), messages( 0 ), nms( 0 ),
           viewnms( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
-          state( Again ),
+          state( NoTransaction ),
           changeRecent( false )
         {}
 
     Mailbox * mailbox;
     List<Session> sessions;
-    List<EventHandler> watchers;
 
     Transaction * t;
     Query * recent;
@@ -445,7 +435,7 @@ public:
     int64 newModSeq;
 
     enum State { NoTransaction, WaitingForLock, HaveUidnext,
-                 ReceivingChanges, Updated, QueriesDone, Again };
+                 ReceivingChanges, Updated, QueriesDone };
     State state;
 
     bool changeRecent;
@@ -480,8 +470,14 @@ void SessionInitialiser::execute()
         state = d->state;
         switch ( d->state ) {
         case SessionInitialiserData::NoTransaction:
-            grabLock();
-            d->state = SessionInitialiserData::WaitingForLock;
+            findSessions();
+            if ( d->sessions.isEmpty() ) {
+                d->state = SessionInitialiserData::QueriesDone;
+            }
+            else {
+                grabLock();
+                d->state = SessionInitialiserData::WaitingForLock;
+            }
             break;
         case SessionInitialiserData::SessionInitialiserData::WaitingForLock:
             findRecent();
@@ -510,12 +506,6 @@ void SessionInitialiser::execute()
             break;
         case SessionInitialiserData::QueriesDone:
             emitResponses();
-            d->state = SessionInitialiserData::Again;
-            break;
-        case SessionInitialiserData::Again:
-            findSessions();
-            //eliminateGoodSessions();
-            restart(); // may change d->state
             break;
         }
     } while ( state != d->state );
@@ -529,130 +519,28 @@ void SessionInitialiser::execute()
 }
 
 
-/*! Finds all sessions that may be updated by this
-    initialiser. Doesn't lock anything or call
-    Session::setSessionInitialiser().
+/*! Finds all sessions that may be updated by this initialiser.
+    Doesn't lock anything.
 */
 
 void SessionInitialiser::findSessions()
-{
-    List<Session>::Iterator i( d->mailbox->sessions() );
-    while ( i ) {
-        if ( !i->initialised() && !i->sessionInitialiser() ) {
-            d->sessions.append( i );
-            i->setSessionInitialiser( this );
-        }
-        ++i;
-    }
-}
-
-
-/*! Some sessions have all the information they need to issue their
-    responses. This function tries to identify those, make them emit
-    their responses and not do any database work on their behalf.
-
-    If this elimiates all sessions, restart() should eliminate the
-    SessionInitialiser itself.
-*/
-
-void SessionInitialiser::eliminateGoodSessions()
-{
-    bool workNeeded = false;
-    List<Session>::Iterator i( d->sessions );
-    while ( i ) {
-        List<Session>::Iterator s = i;
-        ++i;
-        if ( d->mailbox->nextModSeq() <= s->nextModSeq() + 1 ) {
-            MessageSet u( s->unannounced() );
-            MessageSet unknownNew;
-            if ( s->uidnext() < d->mailbox->uidnext() )
-                unknownNew.add( s->uidnext(), d->mailbox->uidnext() - 1 );
-            bool any = false;
-            if ( unknownNew.isEmpty() &&
-                 d->mailbox->nextModSeq() == s->nextModSeq() )
-                any = true;
-            bool allKnown = true;
-            while ( !u.isEmpty() && allKnown ) {
-                uint uid = u.value( 1 );
-                u.remove( uid );
-                //Message * m = MessageCache::find( d->mailbox, uid );
-                Message * m = 0; // until messagecache exists and works
-                if ( uid >= s->uidnext() ) {
-                    unknownNew.remove( uid );
-                    any = true;
-                }
-                else if ( !m || !m->modSeq() ) {
-                    allKnown = false;
-                }
-                else if ( m && m->modSeq() == s->nextModSeq() ) {
-                    any = true;
-                }
-            }
-            if ( !unknownNew.isEmpty() )
-                allKnown = false;
-            if ( !( any && allKnown ) )
-                workNeeded = true;
-        }
-    }
-    if ( workNeeded )
-        return;
-
-    i = d->sessions.first();
-    while ( i ) {
-        List<Session>::Iterator s = i;
-        ++i;
-        if ( s->nextModSeq() < d->mailbox->nextModSeq() )
-            s->setNextModSeq( d->mailbox->nextModSeq() );
-        if ( s->uidnext() < d->mailbox->uidnext() )
-            s->setUidnext( d->mailbox->uidnext() );
-        s->emitResponses();
-        d->sessions.take( s );
-    }
-}
-
-
-/*! Initialises various variables, checks that the state is such that
-    database work is necessary, and either updates the state so the
-    database work will be done, or doesn't.
-*/
-
-void SessionInitialiser::restart()
-{
-    d->newModSeq = d->mailbox->nextModSeq();
+{ 
     d->newUidnext = d->mailbox->uidnext();
-    d->oldModSeq = d->newModSeq;
+    d->newModSeq = d->mailbox->nextModSeq(); 
     d->oldUidnext = d->newUidnext;
-
+    d->oldModSeq = d->newModSeq;
     List<Session>::Iterator i( d->mailbox->sessions() );
     while ( i ) {
+        d->sessions.append( i );
         if ( i->uidnext() < d->oldUidnext )
             d->oldUidnext = i->uidnext();
         if ( i->nextModSeq() < d->oldModSeq )
             d->oldModSeq = i->nextModSeq();
         ++i;
     }
-
-    if ( d->sessions.isEmpty() )
-        return;
-
-    if ( d->oldModSeq >= d->newModSeq &&
-         d->oldUidnext >= d->newUidnext &&
-         !d->mailbox->view() ) {
-        i = d->sessions.first();
-        while ( i ) {
-            if ( i->sessionInitialiser() == this )
-                i->setSessionInitialiser( 0 );
-            ++i;
-        }
-        return;
-    }
-
-    d->state = SessionInitialiserData::NoTransaction;
-    d->t = 0;
-    d->recent = 0;
-    d->messages = 0;
-    d->nms = 0;
-    d->changeRecent = false;
+    if ( d->newUidnext <= d->oldUidnext &&
+         d->newModSeq <= d->oldUidnext )
+        d->sessions.clear();
 }
 
 
@@ -733,13 +621,6 @@ void SessionInitialiser::releaseLock()
     else {
         d->state = SessionInitialiserData::QueriesDone;
     }
-
-    List<Session>::Iterator i( d->sessions );
-    while ( i ) {
-        if ( i->sessionInitialiser() == this )
-            i->setSessionInitialiser( 0 );
-        ++i;
-    }
 }
 
 
@@ -776,10 +657,9 @@ void SessionInitialiser::findRecent()
 }
 
 
-/*! It may be that Mailbox::uidnext() is a little behind the
-    times. Since we can retrieve the values from the database at no
-    extra cost, this function does so, and updates the Mailbox if
-    necessary.
+/*! It may be that Mailbox::uidnext() is a little behind the times. If
+    we retrieve the values from the database anyway, this function
+    updates the Mailbox.
 */
 
 void SessionInitialiser::findUidnext()
@@ -996,18 +876,24 @@ void SessionInitialiser::recordMailboxChanges()
 
 
 /*! Persuades each Session to emit its responses and tells each
-    handler added with addWatcher() to go on working.
+    handler added with Session::refresh() to go on working.
 */
 
 void SessionInitialiser::emitResponses()
 {
+    List<EventHandler> watchers;
     List<Session>::Iterator s( d->sessions );
     while ( s ) {
         if ( s->nextModSeq() < d->mailbox->nextModSeq() )
             s->setNextModSeq( d->mailbox->nextModSeq() );
         if ( s->uidnext() < d->mailbox->uidnext() )
             s->setUidnext( d->mailbox->uidnext() );
-        s->setSessionInitialiser( 0 );
+        List<EventHandler>::Iterator it( s->d->watchers );
+        while ( it ) {
+            watchers.append( it );
+            ++it;
+        }
+        s->d->watchers.clear();
 
         s->emitResponses();
 
@@ -1015,11 +901,10 @@ void SessionInitialiser::emitResponses()
     }
     d->sessions.clear();
 
-    List<EventHandler>::Iterator it( d->watchers );
+    List<EventHandler>::Iterator it( watchers );
     while ( it ) {
-        EventHandler * e = it;
+        it->execute();
         ++it;
-        e->execute();
     }
 }
 
@@ -1085,39 +970,6 @@ void Session::clearExpunged()
 {
     d->msns.remove( d->expunges );
     d->expunges.clear();
-}
-
-
-/*! Records that \a e should be notified when the initialiser has
-    finished its work.
-*/
-
-void SessionInitialiser::addWatcher( EventHandler * e )
-{
-    if ( e && d->watchers.find( e ) == d->watchers.end() )
-        d->watchers.append( e );
-}
-
-
-/*! The SessionInitialiser calls this when it's creating itself (thus,
-    \a s refers to itself), so that initialised() can return false
-    until the SessionInitialiser is removed again with
-    setSessionInitialiser( 0 ). Noone else should ever call it.
-*/
-
-void Session::setSessionInitialiser( class SessionInitialiser * s )
-{
-    d->initialiser = s;
-}
-
-
-/*! Returns a pointer to the SessionInitialiser that works on this
-    Session at the moment, 0 usually.
-*/
-
-SessionInitialiser * Session::sessionInitialiser() const
-{
-    return d->initialiser;
 }
 
 
