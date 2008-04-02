@@ -2,6 +2,7 @@
 
 #include "link.h"
 
+#include "list.h"
 #include "mailbox.h"
 #include "message.h"
 #include "configuration.h"
@@ -403,6 +404,21 @@ static WebPage * webmailViews( Link * link )
     return p;
 }
 
+static WebPage * listViews( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ViewList );
+    return p;
+}
+
+
+static WebPage * addView( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new AddView );
+    return p;
+}
+
 
 static WebPage * rfc822Page( Link * link )
 {
@@ -445,7 +461,7 @@ static const struct Handler {
     { { WebmailPrefix, MailboxName, Void, Void,     Void }, &webmailMailbox },
     { { WebmailPrefix, MailboxName, Uid,  Suffix,   Void }, &webmailMessage },
     { { WebmailPrefix, MailboxName, Uid,  Part,     Void }, &partPage },
-    { { WebmailPrefix, Views,       Void, Void,     Void }, &webmailViews },
+    { { WebmailPrefix, Views,       Suffix, Void,   Void }, &webmailViews },
     { { WebmailPrefix, Magic,       Suffix, Void,   Void }, &errorPage }
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
@@ -461,7 +477,9 @@ static const struct {
     { "rfc822", Link::Rfc822, &archiveMessage, &rfc822Page },
     { "thread", Link::Thread, &webmailMessage, &webmailThread },
     { "rfc822", Link::Rfc822, &webmailMessage, &rfc822Page },
-    { "send",   Link::Send,   &errorPage,      &sendmail }
+    { "send",   Link::Send,   &errorPage,      &sendmail },
+    { "list", Link::ListObjects, &webmailViews, &listViews },
+    { "add", Link::AddObject, &webmailViews,   &addView }
 };
 static uint numSuffixes = sizeof( suffixes ) / sizeof( suffixes[0] );
 

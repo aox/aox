@@ -5,6 +5,8 @@
 
 #include "pagecomponent.h"
 
+class String;
+
 
 class AddView
     : public PageComponent
@@ -16,6 +18,9 @@ public:
 
 private:
     class AddViewData * d;
+
+    class HtmlForm * form() const;
+    void setContents( const String & );
 };
 
 

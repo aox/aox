@@ -60,6 +60,8 @@ public:
         Thread,
         Rfc822,
         Send,
+        ListObjects,
+        AddObject,
         None
     };
 

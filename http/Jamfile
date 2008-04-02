@@ -10,4 +10,4 @@ SubInclude TOP http components ;
 
 Build http : http.cpp link.cpp webpage.cpp pagecomponent.cpp
     frontmatter.cpp httpsession.cpp messagerendering.cpp 
-    htmlparser.cpp ;
+    htmlparser.cpp htmlform.cpp ;
