@@ -69,7 +69,7 @@ void ViewList::execute()
             s.append( r->getString( "selector" ) );
             s.append( "</code>\n" );
         }
-        s.append( "</ul>\n" );
+        s.append( "</ul>" );
     }
     else {
         s = "<p>No views defined.";

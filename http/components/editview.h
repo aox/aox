@@ -1,23 +1,23 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef ADDVIEW_H
-#define ADDVIEW_H
+#ifndef EDITVIEW_H
+#define EDITVIEW_H
 
 #include "pagecomponent.h"
 
-class String;
 
-
-class AddView
+class EditView
     : public PageComponent
 {
 public:
-    AddView();
+    EditView();
 
     void execute();
 
 private:
-    class AddViewData * d;
+    class EditViewData * d;
+
+    class HtmlForm * form() const;
 };
 
 

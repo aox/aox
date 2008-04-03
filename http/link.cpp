@@ -23,6 +23,7 @@
 #include "components/sendmail.h"
 #include "components/searchbox.h"
 #include "components/viewlist.h"
+#include "components/editview.h"
 #include "components/addview.h"
 
 
@@ -400,7 +401,7 @@ static WebPage * webmailViews( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ViewList );
-    p->addComponent( new AddView );
+    p->addComponent( new EditView );
     return p;
 }
 
