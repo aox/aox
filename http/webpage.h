@@ -21,6 +21,8 @@ public:
 
     class Link * link() const;
     class User * user() const;
+    class HTTP * server() const;
+    class UString parameter( const String & ) const;
 
     void requireUser();
     void requireRight( Mailbox *, Permissions::Right );

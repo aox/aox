@@ -109,6 +109,25 @@ User * WebPage::user() const
 }
 
 
+/*! Returns a pointer to the HTTP server that is serving this page.
+    Provided for convenience. */
+
+HTTP * WebPage::server() const
+{
+    return d->link->server();
+}
+
+
+/*! Returns the value of the parameter named \a s, or an empty string if
+    that parameter was not specified in the request. Provided for
+    convenience. */
+
+UString WebPage::parameter( const String & s ) const
+{
+    return d->link->server()->parameter( s );
+}
+
+
 void WebPage::execute()
 {
     if ( d->responded )
