@@ -72,9 +72,6 @@ public:
     void addUnannounced( uint );
     void addUnannounced( const MessageSet & );
 
-    void setSessionInitialiser( class SessionInitialiser * );
-    class SessionInitialiser * sessionInitialiser() const;
-
 private:
     friend class SessionInitialiser;
     class SessionData *d;
@@ -89,14 +86,11 @@ public:
 
     void execute();
 
-    void addWatcher( EventHandler * );
-
 private:
     class SessionInitialiserData * d;
 
     void findSessions();
     void eliminateGoodSessions();
-    void restart();
     void grabLock();
     void releaseLock();
     void findRecent();

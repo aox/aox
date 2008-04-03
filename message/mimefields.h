@@ -8,7 +8,7 @@
 #include "stringlist.h"
 
 
-class Parser822;
+class EmailParser;
 
 
 class MimeField
@@ -23,7 +23,7 @@ public:
     String parameter( const String & ) const;
     void addParameter( const String &, const String & );
     void removeParameter( const String & );
-    void parseParameters( Parser822 * );
+    void parseParameters( EmailParser * );
 
     String rfc822() const;
     UString value() const;

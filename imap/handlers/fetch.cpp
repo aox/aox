@@ -148,6 +148,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
     d->changedSince = limit;
 
     d->peek = true;
+    setGroup( 2 );
 
     setState( Executing );
 }

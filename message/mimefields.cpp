@@ -144,7 +144,7 @@ void MimeField::removeParameter( const String &n )
     characters form the RFC 2045 production '*(";"parameter)'.
 */
 
-void MimeField::parseParameters( Parser822 *p )
+void MimeField::parseParameters( EmailParser *p )
 {
     bool done = false;
     bool first = true;
@@ -179,6 +179,22 @@ void MimeField::parseParameters( Parser822 *p )
                 if ( numberOk ) {
                     havePart = true;
                     n = n.mid( 0, star );
+                }
+            }
+            if ( type() == ContentType && p->atEnd() && Codec::byName( n ) ) {
+                // sometimes we see just iso-8859-1 instead of
+                // charset=iso-8859-1.
+                List< MimeFieldData::Parameter >::Iterator it( d->parameters );
+                while ( it && it->name != "charset" )
+                    ++it;
+                if ( !it ) {
+                    MimeFieldData::Parameter * pm 
+                        = new MimeFieldData::Parameter;
+                    pm->name = "charset";
+                    pm->value = n;
+                    d->parameters.append( pm );
+                    it = d->parameters.find( pm );
+                    return;
                 }
             }
             if ( p->nextChar() != '=' ) {
@@ -323,7 +339,7 @@ ContentType::~ContentType()
 
 void ContentType::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
     p.whitespace();
 
     if ( p.atEnd() ) {
@@ -394,21 +410,12 @@ void ContentType::parse( const String &s )
     if ( valid() && !p.atEnd() &&
          t == "text" && parameter( "charset" ).isEmpty() &&
          s.mid( p.pos() ).lower().containsWord( "charset" ) ) {
-        String u = s.mid( p.pos() ).simplified().lower();
-        int b = u.find( '=' );
-        Codec * c = 0;
-        if ( b > 0 && u.find( '=', b+1 ) < 0 ) {
-            b++;
-            if ( u[b] == ' ' )
-                b++;
-            int e = b;
-            while ( ( u[e] >= 'a' && u[e] <= 'z' ) ||
-                    ( u[e] >= '0' && u[e] <= '9' ) ||
-                    u[e] == '/' || u[e] == '-' || u[e] == '_' )
-                e++;
-            if ( b < e )
-                c = Codec::byName( u.mid( b, e-b ) );
-        }
+        EmailParser csp( s.mid( s.lower().find( "charset" ), p.pos() ) );
+        csp.require( "charset" );
+        csp.whitespace();
+        if ( csp.present( "=" ) )
+            csp.whitespace();
+        Codec * c = Codec::byName( csp.dotAtom() );
         if ( c )
             addParameter( "charset", c->name().lower() );
     }
@@ -459,7 +466,7 @@ ContentTransferEncoding::ContentTransferEncoding()
 
 void ContentTransferEncoding::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
 
     String t = p.mimeToken().lower();
     p.comment();
@@ -540,7 +547,7 @@ ContentDisposition::ContentDisposition()
 
 void ContentDisposition::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
 
     uint m = p.mark();
     String t = p.mimeToken().lower();
@@ -612,7 +619,7 @@ ContentLanguage::~ContentLanguage()
 
 void ContentLanguage::parse( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
 
     do {
         // We're not going to bother trying to validate language tags.

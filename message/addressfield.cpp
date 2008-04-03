@@ -136,6 +136,8 @@ void AddressField::parse( const String &s )
 
     if ( type() != HeaderField::ReturnPath )
         outlawBounce();
+    if ( !valid() )
+        setUnparsedValue( s );
 }
 
 

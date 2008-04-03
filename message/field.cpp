@@ -390,7 +390,7 @@ void HeaderField::parse( const String &s )
     }
 
     if ( !valid() )
-        d->unparsed = s;
+        setUnparsedValue( s );
 }
 
 
@@ -403,7 +403,7 @@ void HeaderField::parseText( const String &s )
 {
     bool h = false;
     if ( !h ) {
-        Parser822 p( s );
+        EmailParser p( s );
         UString t( p.text() );
         if ( p.atEnd() ) {
             setValue( t );
@@ -412,7 +412,7 @@ void HeaderField::parseText( const String &s )
     }
 
     if ( !h ) {
-        Parser822 p( s.simplified() );
+        EmailParser p( s.simplified() );
         UString t( p.text() );
         if ( p.atEnd() ) {
             setValue( t );
@@ -420,15 +420,36 @@ void HeaderField::parseText( const String &s )
         }
     }
 
-    if ( !h &&
-         s.startsWith( "=?" ) &&
-         s.endsWith( "?=" ) &&
-         !s.mid( 2 ).contains( "=?" ) ) {
-        // Cope with the following common error:
-        // Subject: =?ISO-8859-1?q?foo bar baz?=
-        Parser822 p( StringList::split( ' ', s.simplified() )->join( "_" ) );
-        UString t( p.text() );
-        if ( p.atEnd() ) {
+    if ( ( !h && s.contains( "=?" ) && s.contains( "?=" ) ) ||
+         ( value().utf8().contains("=?") && value().utf8().contains("?=") ) ) {
+        // common: Subject: =?ISO-8859-1?q?foo bar baz?=
+        // unusual, but seen: Subject: =?ISO-8859-1?q?foo bar?= baz
+        EmailParser p1( s.simplified() );
+        String tmp;
+        bool inWord = false;
+        while ( !p1.atEnd() ) {
+            if ( p1.present( "=?" ) ) {
+                inWord = true;
+                tmp.append( " =?" );
+            }
+            else if ( p1.present( "?=" ) ) {
+                inWord = false;
+                tmp.append( "?= " );
+            }
+            else if ( p1.whitespace().isEmpty() ) {
+                tmp.append( p1.nextChar() );
+                p1.step();
+            }
+            else {
+                if ( inWord )
+                    tmp.append( '_' );
+                else
+                    tmp.append( ' ' );
+            }
+        }
+        EmailParser p2( tmp );
+        UString t( p2.text().simplified() );
+        if ( p2.atEnd() && !t.utf8().contains( "?=" ) ) {
             setValue( t );
             h = true;
         }
@@ -466,7 +487,7 @@ void HeaderField::parseOther( const String &s )
 
 void HeaderField::parseMimeVersion( const String &s )
 {
-    Parser822 p( s );
+    EmailParser p( s );
     p.comment();
     String v = p.dotAtom();
     p.comment();
@@ -494,7 +515,7 @@ void HeaderField::parseMimeVersion( const String &s )
 
 void HeaderField::parseContentLocation( const String &s )
 {
-    Parser822 p( s.trimmed().unquoted() );
+    EmailParser p( s.trimmed().unquoted() );
 
     p.whitespace();
     uint e = p.pos();
@@ -761,4 +782,14 @@ String HeaderField::unparsedValue() const
         d->unparsed.truncate();
 
     return d->unparsed;
+}
+
+
+/*! Records that the field's unparsed value is \a s. unparsedValue()
+    will return \a s, unless the string is/becomes valid().
+*/
+
+void HeaderField::setUnparsedValue( const String & s )
+{
+    d->unparsed = s;
 }

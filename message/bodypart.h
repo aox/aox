@@ -51,14 +51,14 @@ public:
     static Bodypart *parseBodypart( uint, uint, const String &,
                                     Header *, Multipart * );
 
+    static void parseMultipart( uint, uint, const String &,
+                                const String &, bool,
+                                List< Bodypart > *, Multipart * );
 private:
     class BodypartData * d;
     friend class Message;
 
     Bodypart();
-    static void parseMultipart( uint, uint, const String &,
-                                const String &, bool,
-                                List< Bodypart > *, Multipart * );
 };
 
 

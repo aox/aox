@@ -59,6 +59,7 @@ public:
     void setValue( const UString & );
 
     String unparsedValue() const;
+    void setUnparsedValue( const String & );
 
     void setPosition( uint );
     uint position() const;

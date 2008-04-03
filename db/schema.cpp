@@ -24,7 +24,7 @@ public:
         : l( new Log( Log::Database ) ),
           state( 0 ), substate( 0 ), revision( 0 ),
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
-          result( 0 ), upgrade( false ), commit( true )
+          result( 0 ), unparsed( 0 ), upgrade( false ), commit( true )
     {}
 
     Log *l;
@@ -33,7 +33,8 @@ public:
     uint revision;
     Query *lock, *seq, *update, *q;
     Transaction *t;
-    Query *result;
+    Query * result;
+    Query * unparsed;
     bool upgrade;
     bool commit;
     String version;
@@ -220,6 +221,25 @@ void Schema::execute()
     if ( d->state == 5 || d->state == 6 ) {
         if ( !d->t->done() )
             return;
+
+        if ( !d->unparsed && !d->t->failed() && d->upgrade ) {
+            d->unparsed = new Query( "select count(*) as unparsed "
+                                     "from unparsed_messages", this );
+            d->unparsed->execute();
+        }
+
+        if ( d->unparsed && !d->unparsed->done() )
+            return;
+        
+        if ( d->unparsed && d->unparsed->hasResults() ) {
+            Row * r = d->unparsed->nextRow();
+            int64 u = r->getBigint( "unparsed" );
+            if ( u )
+                d->l->log( "Please run 'aox reparse' (or 'aox reparse -e') "
+                           "when Archiveopteryx has been started. "
+                           "There are " + fn( u ) + " unparsed messages now. ",
+                           Log::Significant );
+        }
 
         if ( d->t->failed() && !d->result->failed() ) {
             String s;

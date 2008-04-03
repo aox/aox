@@ -677,7 +677,6 @@ Selector * Search::selector() const
 MessageSet Search::set( bool parseMsns )
 {
     MessageSet s( Command::set( parseMsns ) );
-    s.addGapsFrom( imap()->session()->messages() );
     return s;
 }
 

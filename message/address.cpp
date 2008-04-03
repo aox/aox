@@ -1082,7 +1082,7 @@ void AddressParser::comment( int & i )
             error( "Unbalanced comment: ", i );
         }
         else {
-            Parser822 p( d->s.mid( i, j+1-i ) );
+            EmailParser p( d->s.mid( i, j+1-i ) );
             d->lastComment = p.comment();
         }
         --i;
@@ -1291,7 +1291,7 @@ UString AddressParser::phrase( int & i )
                     if ( e > b )
                         e = w.find( "?=", e+1 ); // at the end
                     if ( e > b ) {
-                        UString tmp = Parser822::de2047( w.mid( b, e+2-b ) );
+                        UString tmp = EmailParser::de2047( w.mid( b, e+2-b ) );
                         word.append( ac.toUnicode( w.mid( l, b-l ) ) );
                         word.append( tmp );
                         if ( tmp.isEmpty() )
@@ -1333,7 +1333,7 @@ UString AddressParser::phrase( int & i )
             if ( a.isEmpty() )
                 done = true;
             if ( a.startsWith( "=?" ) ) {
-                Parser822 p( a );
+                EmailParser p( a );
                 UString tmp = p.phrase().simplified();
                 if ( tmp.startsWith( "=?" ) ||
                      tmp.contains( " =?" ) )

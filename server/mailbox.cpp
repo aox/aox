@@ -706,7 +706,9 @@ void Mailbox::removeSession( Session * s )
 }
 
 
-/*! Calls the Session::refresh() function on each session. */
+/*! Creates a session initialiser for this mailbox and each view onto
+    it.
+*/
 
 void Mailbox::notifySessions()
 {

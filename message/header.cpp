@@ -9,6 +9,7 @@
 #include "addressfield.h"
 #include "ustringlist.h"
 #include "multipart.h"
+#include "bodypart.h"
 #include "address.h"
 #include "unknown.h"
 #include "ustring.h"
@@ -566,6 +567,13 @@ void Header::simplify()
         if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
     }
+    if ( ct && 
+         ( ct->type() == "multipart" || ct->type() == "message" ||
+           ct->type() == "image" || ct->type() == "audio" ||
+           ct->type() == "video" ) )
+        ct->removeParameter( "charset" );
+    if ( ct && ct->parameter( "charset" ).lower() == "us-ascii" )
+        ct->removeParameter( "charset" );
 
     HeaderField *m = field( HeaderField::MessageId );
     if ( m && m->rfc822().isEmpty() )
@@ -655,9 +663,6 @@ void Header::repair()
         uint n = 0;
         bool bad = false;
         while ( other && !bad ) {
-            if ( other->parameter( "charset" ).lower() == "us-ascii" )
-                // XXX: wrong place for this code
-                other->removeParameter( "charset" );
             if ( other->type() != ct->type() ||
                  other->subtype() != ct->subtype() ) {
                 bad = true;
@@ -751,6 +756,7 @@ void Header::repair()
         if ( ct && ( ct->type() == "multipart" || ct->type() == "message" ) )
             removeField( HeaderField::ContentTransferEncoding );
     }
+
 }
 
 
@@ -1378,6 +1384,164 @@ void Header::repair( Multipart * p, const String & body )
         }
     }
 
+    // Some crapware tries to send DSNs without a From field. We try
+    // to patch it up. We don't care very much, so this parses the
+    // body and discards the result, does a _very_ quick job of
+    // parsing message/delivery-status, doesn't handle xtext, and
+    // doesn't care whether it uses Original-Recipient or
+    // Final-Recipient.
+    if ( mode() == Rfc2822 &&
+         ( !field( HeaderField::From ) ||
+           field( HeaderField::From )->error().contains( "No-bounce" ) ) &&
+         contentType() &&
+         contentType()->type() == "multipart" &&
+         contentType()->subtype() == "report" &&
+         contentType()->parameter( "report-type" ) == "delivery-status" ) {
+        ContentType * ct = contentType();
+        Multipart * tmp = new Multipart;
+        Bodypart::parseMultipart( 0, body.length(), body,
+                                  ct->parameter( "boundary" ),
+                                  false,
+                                  tmp->children(), tmp );
+        List<Bodypart>::Iterator i( tmp->children() );
+        Address * postmaster = 0;
+        while ( i && !postmaster ) {
+            Header * h = i->header();
+            ContentType * ct = 0;
+            if ( h )
+                ct = h->contentType();
+            if ( ct &&
+                 ct->type() == "message" &&
+                 ct->subtype() == "delivery-status" ) {
+                // woo.
+                StringList * lines = StringList::split( 10, i->data() );
+                StringList::Iterator l( lines );
+                String reportingMta;
+                Address * address = 0;
+                while ( l ) {
+                    String line = l->lower();
+                    ++l;
+                    String field = line.section( ":", 1 ).simplified();;
+                    String domain = line.section( ":", 2 ).section( ";", 1 )
+                                    .simplified();
+                    String value = line.section( ":", 2 ).section( ";", 2 )
+                                   .simplified();;
+                    // value may be xtext, but I don't care. it's an
+                    // odd error case in illegal mail, so who can say
+                    // that the sender knows the xtext rules anyway?
+                    if ( field == "reporting-mta" && domain == "dns" &&
+                         !value.isEmpty() ) {
+                        reportingMta = value;
+                    }
+                    else if ( ( field == "final-recipient" ||
+                                field == "original-recipient" ) &&
+                              domain == "rfc822" &&
+                              !address && !value.isEmpty() ) {
+                        AddressParser ap( value );
+                        List<Address>::Iterator i( ap.addresses() );
+                        while ( i && !address ) {
+                            if ( i->error().isEmpty() &&
+                                 !i->domain().isEmpty() )
+                                address = i;
+                            ++i;
+                        }
+                    }
+                }
+                if ( !reportingMta.isEmpty() && address ) {
+                    AsciiCodec ac;
+                    UString name = ac.toUnicode( reportingMta );
+                    name.append( " postmaster" );
+                    postmaster = new Address( name, "postmaster",
+                                              address->domain().lower() );
+                    AddressField * from = addressField( HeaderField::From );
+                    if ( from ) {
+                        from->setError( "" );
+                        from->addresses()->clear();
+                    }
+                    else {
+                        from = new AddressField( HeaderField::From );
+                        add( from );
+                    }
+                    from->addresses()->append( postmaster );
+                }
+            }
+            ++i;
+        }
+    }
+
+    // If we have NO From field, or one which contains only <>, use
+    // invalid@invalid.invalid. We try to include a display-name if we
+    // can find one. hackish hacks abound.
+    if ( mode() == Rfc2822 &&
+         ( !field( HeaderField::From ) ||
+           ( !field( HeaderField::From )->valid() &&
+             !addresses( HeaderField::From ) ) ||
+           field( HeaderField::From )->error().contains( "No-bounce" ) ) ) {
+        AddressField * from = addressField( HeaderField::From );
+        String raw;
+        if ( from )
+            raw = from->unparsedValue().simplified();
+        if ( raw.endsWith( "<>" ) )
+            raw = raw.mid( 0, raw.length() - 2 ).simplified();
+        if ( raw.startsWith( "\"\"" ) )
+            raw = raw.mid( 2 ).simplified();
+        if ( raw.startsWith( "\" \"" ) )
+            raw = raw.mid( 3 ).simplified();
+        if ( raw.contains( '<' ) && raw.find( '<' ) > 3 )
+            raw = raw.section( "<", 1 );
+        if ( raw.startsWith( "\"" ) && raw.find( '"', 1 ) > 2 )
+            raw = raw.section( "\"", 2 ); // "foo"bar > foo
+        raw = raw.unquoted( '"', '\\' ).unquoted( '\'', '\\' ).simplified();
+        if ( raw.contains( '<' ) &&
+             raw.find( ">", 1+raw.find( '<' ) ) > 2 + raw.find( '<' ) )
+            raw = raw.section( "<", 2 ).section( ">", 1 ).simplified();
+        if ( raw.startsWith( "<" ) && raw.endsWith( ">" ) )
+            raw = raw.mid( 1, raw.length() - 2 ).simplified();
+        if ( raw.length() < 3 )
+            raw.truncate();
+
+        Codec * c = Codec::byString( raw );
+        if ( !c )
+            c = new AsciiCodec;
+        UString n = c->toUnicode( raw ).simplified();
+        if ( !n.isEmpty() ) {
+            // look again and get rid of <>@
+            uint i = 0;
+            UString r;
+            bool fffd = false;
+            uint known = 0;
+            while ( i < n.length() ) {
+                if ( n[i] == '@' || n[i] == '<' || n[i] == '>' ||
+                     n[i] < ' ' || ( n[i] >= 128 && n[i] < 160 ) ||
+                     n[i] == 0xFFFD ) {
+                    fffd = true;
+                }
+                else {
+                    if ( fffd && !r.isEmpty() )
+                        r.append( 0xFFFD );
+                    r.append( n[i] );
+                    fffd = false;
+                    known++;
+                }
+                i++;
+            }
+            n = r;
+            if ( known < 3 )
+                n.truncate();
+        }
+        Address * a = new Address( n, "invalid", "invalid.invalid" );
+        if ( from ) {
+            from->setError( "" );
+            from->addresses()->clear();
+            from->addresses()->append( a );
+        }
+        else {
+            from = new AddressField( HeaderField::From );
+            from->addresses()->append( a );
+            add( from );
+        }
+    }
+
     d->verified = false;
 }
 
@@ -1482,7 +1646,7 @@ void Header::fix8BitFields( class Codec * c )
                 StringList::Iterator w( StringList::split( ' ', v.simplified() ) );
                 bool wasE = false;
                 while ( w ) {
-                    UString o = Parser822::de2047( *w );
+                    UString o = EmailParser::de2047( *w );
                     bool isE = true;
                     if ( o.isEmpty() ) {
                         o = c->toUnicode( *w ).simplified();
