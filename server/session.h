@@ -90,7 +90,6 @@ private:
     class SessionInitialiserData * d;
 
     void findSessions();
-    void eliminateGoodSessions();
     void grabLock();
     void releaseLock();
     void findRecent();
