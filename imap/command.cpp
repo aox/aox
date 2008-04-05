@@ -61,6 +61,7 @@ public:
           usesAbsoluteMailbox( false ),
           usesMsn( false ),
           error( false ),
+          emittingResponses( false ),
           state( Command::Unparsed ), group( 0 ),
           permittedStates( 0 ),
           imap( 0 ), checker( 0 )
@@ -81,6 +82,7 @@ public:
     bool usesAbsoluteMailbox;
     bool usesMsn;
     bool error;
+    bool emittingResponses;
     Command::State state;
     uint group;
     Command::Error errorCode;
@@ -631,6 +633,10 @@ void Command::emitResponses()
     if ( state() == Retired )
         return;
 
+    if ( d->emittingResponses )
+        return;
+    d->emittingResponses = true;
+
     Session * s = imap()->session();
     if ( s && !s->initialised() )
         return;
@@ -683,6 +689,7 @@ void Command::emitResponses()
 
     d->responses = 0;
     setState( Retired );
+    d->emittingResponses = false;
 
     imap()->write();
 }

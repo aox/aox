@@ -288,7 +288,7 @@ void ImapSession::emitResponses()
     while ( c && c->state() == Command::Retired )
         ++c;
     if ( c && c->state() == Command::Finished )
-        d->i->unblockCommands();
+        c->emitResponses();
 }
 
 
