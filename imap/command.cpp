@@ -635,11 +635,11 @@ void Command::emitResponses()
 
     if ( d->emittingResponses )
         return;
-    d->emittingResponses = true;
-
     Session * s = imap()->session();
     if ( s && !s->initialised() )
         return;
+
+    d->emittingResponses = true;
 
     if ( !d->tagged ) {
         if ( d->tag.isEmpty() ) {
@@ -678,8 +678,10 @@ void Command::emitResponses()
         List< String >::Iterator it( d->responses );
         while ( it && it->startsWith( "* " ) )
             ++it;
-        if ( !it )
+        if ( !it ) { // should not happen, but...
+            d->emittingResponses = false;
             return;
+        }
         other->d->responses->append( it );
         d->responses->take( it );
     }
