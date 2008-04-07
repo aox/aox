@@ -61,6 +61,7 @@ public:
           usesAbsoluteMailbox( false ),
           usesMsn( false ),
           error( false ),
+          emittingResponses( false ),
           state( Command::Unparsed ), group( 0 ),
           permittedStates( 0 ),
           imap( 0 ), checker( 0 )
@@ -81,6 +82,7 @@ public:
     bool usesAbsoluteMailbox;
     bool usesMsn;
     bool error;
+    bool emittingResponses;
     Command::State state;
     uint group;
     Command::Error errorCode;
@@ -631,9 +633,13 @@ void Command::emitResponses()
     if ( state() == Retired )
         return;
 
+    if ( d->emittingResponses )
+        return;
     Session * s = imap()->session();
     if ( s && !s->initialised() )
         return;
+
+    d->emittingResponses = true;
 
     if ( !d->tagged ) {
         if ( d->tag.isEmpty() ) {
@@ -672,8 +678,10 @@ void Command::emitResponses()
         List< String >::Iterator it( d->responses );
         while ( it && it->startsWith( "* " ) )
             ++it;
-        if ( !it )
+        if ( !it ) { // should not happen, but...
+            d->emittingResponses = false;
             return;
+        }
         other->d->responses->append( it );
         d->responses->take( it );
     }
@@ -683,6 +691,7 @@ void Command::emitResponses()
 
     d->responses = 0;
     setState( Retired );
+    d->emittingResponses = false;
 
     imap()->write();
 }
