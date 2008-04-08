@@ -135,6 +135,9 @@ tells
 .BR logd (8)
 where to write log events. It may be set to an absolute file name
 (starting with '/'), or
+to "syslog:category" (e.g. "syslog:local2"), which logs via
+.BR syslog (2),
+or
 .IR "-" ,
 which causes everything to be logged to
 .IR stdout .

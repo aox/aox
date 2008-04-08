@@ -14,11 +14,14 @@
 #include <stdio.h>
 // dup
 #include <unistd.h>
+// openlog, syslog
+#include <syslog.h>
 
 
 static uint id;
 static File *logFile;
 static Log::Severity logLevel;
+static bool useSyslog;
 
 
 /*! \class LogServer logserver.h
@@ -140,6 +143,29 @@ void LogServer::processLine( const String &line )
 void LogServer::output( String tag, Log::Facility f, Log::Severity s,
                         const String &line )
 {
+    if ( useSyslog ) {
+        uint sp = LOG_DEBUG;
+        switch ( s ) {
+        case Log::Debug:
+            sp = LOG_DEBUG;
+            break;
+        case Log::Info:
+            sp = LOG_INFO;
+            break;
+        case Log::Significant:
+            sp = LOG_NOTICE;
+            break;
+        case Log::Error:
+            sp = LOG_ERR;
+            break;
+        case Log::Disaster:
+            sp = LOG_ALERT; // or _EMERG?
+            break;
+        }
+        ::syslog( sp, "%s %s", tag.cstr(), line.cstr() );
+        return;
+    }
+
     String msg;
     msg.reserve( line.length() );
 
@@ -193,10 +219,66 @@ void LogServer::setLogFile( const String &name, const String &mode )
     }
 
     File * l;
-    if ( name == "-" )
+    if ( name == "-" ) {
         l = new File( dup( 1 ) );
-    else
+        useSyslog = false;
+    }
+    else if ( name.startsWith( "syslog:" ) ) {
+        useSyslog = true;
+        l = 0;
+        String f = name.section( ":", 2 ).lower();
+        uint sfc = LOG_LOCAL7;
+        if ( f == "auth" )
+            sfc = LOG_AUTH;
+        else if ( f == "authpriv" )
+            sfc = LOG_AUTHPRIV;
+        else if ( f == "cron" )
+            sfc = LOG_CRON;
+        else if ( f == "daemon" )
+            sfc = LOG_DAEMON;
+        else if ( f == "ftp" )
+            sfc = LOG_FTP;
+        else if ( f == "kern" )
+            sfc = LOG_KERN;
+        else if ( f == "lpr" )
+            sfc = LOG_LPR;
+        else if ( f == "mail" )
+            sfc = LOG_MAIL;
+        else if ( f == "news" )
+            sfc = LOG_NEWS;
+        else if ( f == "syslog" )
+            sfc = LOG_SYSLOG;
+        else if ( f == "user" )
+            sfc = LOG_USER;
+        else if ( f == "uucp" )
+            sfc = LOG_UUCP;
+        else if ( f == "local0" )
+            sfc = LOG_LOCAL0;
+        else if ( f == "local1" )
+            sfc = LOG_LOCAL1;
+        else if ( f == "local2" )
+            sfc = LOG_LOCAL2;
+        else if ( f == "local3" )
+            sfc = LOG_LOCAL3;
+        else if ( f == "local4" )
+            sfc = LOG_LOCAL4;
+        else if ( f == "local5" )
+            sfc = LOG_LOCAL5;
+        else if ( f == "local6" )
+            sfc = LOG_LOCAL6;
+        else if ( f == "local7" )
+            sfc = LOG_LOCAL7;
+        else
+            ::log( "Unknown syslog facility: " + f, Log::Disaster );
+        openlog( "Archiveopteryx", LOG_CONS, sfc );
+    }
+    else {
         l = new File( name, File::Append, m );
+        useSyslog = false;
+    }
+
+    if ( useSyslog )
+        return;
 
     if ( !l->valid() ) {
         ::log( "Could not open log file " + name, Log::Disaster );
@@ -320,6 +402,9 @@ Log::Severity LogServer::severity( const String &l )
 void LogServer::reopen( int unused )
 {
     if ( !logFile || logFile->name().isEmpty() )
+        return;
+
+    if ( useSyslog )
         return;
 
     File::unlink( logFile->name() );
