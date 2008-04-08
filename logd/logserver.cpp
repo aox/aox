@@ -162,7 +162,7 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
             sp = LOG_ALERT; // or _EMERG?
             break;
         }
-        ::syslog( sp, "%s %s", tag.cstr(), line.cstr() );
+        ::syslog( sp, "%s/%s %s", fn( d->id, 36 ).cstr(), tag.cstr(), line.cstr() );
         return;
     }
 
