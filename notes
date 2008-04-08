@@ -825,11 +825,8 @@ Fix shutdown
 
 Logging to syslog
 
-  logfile=syslog:local2 could mean "log to syslog with the local2
-  facility". that's ugly syntax. parsing and blah.
-
-  if we implement this, the logd HUP handler can switch to syslog if
-  it can't reopen the logfile.
+  The logd HUP handler can switch to syslog if it can't reopen the
+  logfile instead of exiting.
 
 
 Rendering webmail HTML is presumably good, but...
