@@ -327,7 +327,7 @@ int String::find( const String & s, int i ) const
     after the end of the string), section returns an empty string.
 */
 
-String String::section( const String & s, uint n )
+String String::section( const String & s, uint n ) const
 {
     if ( s.isEmpty() || n == 0 )
         return *this;
@@ -1818,7 +1818,7 @@ bool String::containsWord( const String & s ) const
 
     The prefixes are counted towards line length, but the optional
     trailing space is not.
-    
+
     Only space (ASCII 32) is a line-break opportunity. If there are
     multiple spaces where a line is broken, all the spaces are
     replaced by a single CRLF. Linefeeds added use CRLF.
@@ -1838,7 +1838,7 @@ String String::wrapped( uint linelength,
     // broken but should work. needs investigation.
     // String result = firstPrefix;
     // result.reserve( length() );
-    
+
     // move is where we keep the text that has to be moved to the next
     // line. it too should be modifiable() all the time.
     String move;
