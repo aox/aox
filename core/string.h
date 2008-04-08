@@ -90,7 +90,7 @@ public:
     bool contains( const String & ) const;
     bool contains( const char ) const;
     bool containsWord( const String & ) const;
-    String section( const String &, uint );
+    String section( const String &, uint ) const;
 
     void append( char );
     void appendNumber( int, int = 10 );
