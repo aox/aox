@@ -308,7 +308,9 @@ static void checkFilePermissions()
     addPath( Path::JailDir, Configuration::JailDir );
     addPath( Path::ReadableFile, Configuration::TlsCertFile );
     addPath( Path::ExistingSocket, Configuration::EntropySource );
-    addPath( Path::CreatableFile, Configuration::LogFile );
+    String lf = Configuration::text( Configuration::LogFile );
+    if ( lf != "-" && !lf.startsWith( "syslog/" ) )
+        addPath( Path::CreatableFile, Configuration::LogFile );
     addPath( Path::ReadableDir, Configuration::BinDir );
     addPath( Path::ReadableDir, Configuration::PidFileDir );
     addPath( Path::ReadableDir, Configuration::SbinDir );

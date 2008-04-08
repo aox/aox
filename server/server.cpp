@@ -521,17 +521,25 @@ void Server::secure()
         break;
     case LogDir:
         root = Configuration::text( Configuration::LogFile );
-        uint i = root.length();
-        while ( i > 0 && root[i] != '/' )
-            i--;
-        if ( i == 0 ) {
-            log( "Cannot secure server " + d->name +
-                 " since logfile does not contain '/'",
-                 Log::Disaster );
-            log( "Value of logfile: " + root, Log::Info );
-            exit( 1 );
+        if ( root == "-" ) {
+            root = Configuration::text( Configuration::JailDir );
         }
-        root.truncate( i );
+        else if ( root.startsWith( "syslog/" ) ) {
+            root = "/";
+        }
+        else {
+            uint i = root.length();
+            while ( i > 0 && root[i] != '/' )
+                i--;
+            if ( i == 0 ) {
+                log( "Cannot secure server " + d->name +
+                     " since logfile does not contain '/'",
+                     Log::Disaster );
+                log( "Value of logfile: " + root, Log::Info );
+                exit( 1 );
+            }
+            root.truncate( i );
+        }
         break;
     }
     if ( chroot( root.cstr() ) ) {

@@ -130,8 +130,7 @@ void LogServer::processLine( const String &line )
     Log::Facility f = facility( priority.mid( 0, n ) );
     Log::Severity s = severity( priority.mid( n+1 ) );
 
-    if ( s >= logLevel )
-        output( transaction, f, s, parameters );
+    output( transaction, f, s, parameters );
 }
 
 
@@ -143,6 +142,9 @@ void LogServer::processLine( const String &line )
 void LogServer::output( String tag, Log::Facility f, Log::Severity s,
                         const String &line )
 {
+    if ( s < logLevel )
+        return;
+
     if ( useSyslog ) {
         uint sp = LOG_DEBUG;
         switch ( s ) {
@@ -162,7 +164,18 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
             sp = LOG_ALERT; // or _EMERG?
             break;
         }
-        ::syslog( sp, "%s/%s %s", fn( d->id, 36 ).cstr(), tag.cstr(), line.cstr() );
+        uint i = 0;
+        while ( i < line.length() && line[i] != ' ' )
+            i++;
+        if ( line[i] == ' ' )
+            i++;
+        while ( i < line.length() && line[i] != ' ' )
+            i++;
+        if ( line[i] == ' ' )
+            i++;
+        else
+            i = 0;
+        ::syslog( sp, "%s/%s %s", fn( d->id, 36 ).cstr(), tag.cstr(), line.cstr()+i );
         return;
     }
 
@@ -223,10 +236,10 @@ void LogServer::setLogFile( const String &name, const String &mode )
         l = new File( dup( 1 ) );
         useSyslog = false;
     }
-    else if ( name.startsWith( "syslog:" ) ) {
+    else if ( name.startsWith( "syslog/" ) ) {
         useSyslog = true;
         l = 0;
-        String f = name.section( ":", 2 ).lower();
+        String f = name.section( "/", 2 ).lower();
         uint sfc = LOG_LOCAL7;
         if ( f == "auth" )
             sfc = LOG_AUTH;
