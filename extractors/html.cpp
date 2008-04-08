@@ -3,6 +3,7 @@
 #include "html.h"
 
 #include "utf.h"
+#include "codec.h"
 #include "ustring.h"
 #include "entities.h"
 
@@ -26,6 +27,7 @@ UString HTML::asText( const UString &h )
     char quote = 0;
     char c;
     uint mark = 0;
+    AsciiCodec dc; // just a dummy so we can use Codec::append()
 
     int tag = 0;        /* 1 inside <...> */
     int tagname = 0;    /* 1 inside tag, before whitespace */
@@ -118,7 +120,7 @@ UString HTML::asText( const UString &h )
                     while ( isdigit( h[i] ) )
                         i++;
                     r.append( s );
-                    r.append( h.mid( mark, i-mark ).number( 0 ) );
+                    dc.append( r, h.mid( mark, i-mark ).number( 0 ) );
                     s.truncate();
 
                     /* The terminating semicolon is required only
@@ -135,7 +137,7 @@ UString HTML::asText( const UString &h )
                         i++;
                     if ( i != mark ) {
                         r.append( s );
-                        r.append( h.mid( mark, i-mark ).number( 0, 16 ) );
+                        dc.append( r, h.mid( mark, i-mark ).number( 0, 16 ) );
                         s.truncate();
                     }
                     if ( h[i] != ';' )
@@ -193,7 +195,7 @@ UString HTML::asText( const UString &h )
         default:
             if ( !tag ) {
                 r.append( s );
-                r.append( h[i] );
+                dc.append( r, h[i] );
                 s.truncate();
             } else if ( tagname ) {
                 t.append( h[i] );
@@ -210,5 +212,7 @@ UString HTML::asText( const UString &h )
         i++;
     }
 
+    dc.mangleTrailingSurrogate( r );
+    // we ignore dc.state()
     return r;
 }
