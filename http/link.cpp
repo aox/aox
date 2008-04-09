@@ -22,6 +22,7 @@
 #include "components/formmail.h"
 #include "components/sendmail.h"
 #include "components/searchbox.h"
+#include "components/mailboxlist.h"
 #include "components/viewlist.h"
 #include "components/editview.h"
 #include "components/addview.h"
@@ -368,7 +369,7 @@ static WebPage * archiveMessage( Link * link )
 static WebPage * webmailMailboxes( Link * link )
 {
     WebPage * p = new WebPage( link );
-    p->addComponent( new ArchiveMailboxes );
+    p->addComponent( new MailboxList );
     return p;
 }
 
