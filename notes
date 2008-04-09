@@ -834,6 +834,8 @@ Rendering webmail HTML is presumably good, but...
   We have a potential security hole: A malevolent HTML bodypart is
   forwarded as is on the "download bodypart" page.
 
+  See http://ha.ckers.org/xss.html
+
 
 When TlsServer dies, imaps (993) must go away
 
@@ -1241,5 +1243,6 @@ aox.org/clients/
      plugin.
 
   That's it, right?
+
 
 
