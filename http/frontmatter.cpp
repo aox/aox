@@ -144,14 +144,14 @@ FrontMatter * FrontMatter::jsToggles()
 }
 
 
-/*! Returns a link to the stylesheet. */
+/*! Returns a link to the (compressed) jquery source. */
 
 FrontMatter * FrontMatter::jQuery()
 {
     FrontMatter * fm = new FrontMatter;
 
-    fm->append( "<script type=\"text/javascript\" " );
-    fm->append( "src=\"/jquery.js\"></script>" );
+    fm->append( "<script type=\"text/javascript\" "
+                "src=\"/jquery.js\"></script>" );
 
     return fm;
 }
