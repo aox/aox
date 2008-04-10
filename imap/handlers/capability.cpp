@@ -111,8 +111,6 @@ String Capability::capabilities( IMAP * i, bool all )
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
     }
-    if ( drafts && ( all || login ) )
-        c.append( "VIEW" );
     if ( all || login )
         c.append( "WITHIN" );
 

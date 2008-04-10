@@ -33,7 +33,6 @@ Build imap :
     subscribe.cpp
     unselect.cpp
     urlfetch.cpp
-    view.cpp
     ;
 
 UseLibrary compress.cpp : z ;

@@ -45,7 +45,6 @@
 #include "handlers/subscribe.h"
 #include "handlers/unselect.h"
 #include "handlers/urlfetch.h"
-#include "handlers/view.h"
 
 #include <sys/time.h> // gettimeofday, struct timeval
 
@@ -228,8 +227,6 @@ Command * Command::create( IMAP * imap,
             c = new Acl( Acl::ListRights );
         else if ( n == "myrights" )
             c = new Acl( Acl::MyRights );
-        else if ( n == "view" )
-            c = new View;
         else if ( n == "resetkey" )
             c = new ResetKey;
         else if ( n == "genurlauth" )
