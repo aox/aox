@@ -151,7 +151,8 @@ FrontMatter * FrontMatter::jQuery()
     FrontMatter * fm = new FrontMatter;
 
     fm->append( "<script type=\"text/javascript\" "
-                "src=\"/jquery.js\"></script>" );
+                "src=\"http://www.archiveopteryx.org/webmail/jquery.js\">"
+                "</script>" );
 
     return fm;
 }
