@@ -773,7 +773,7 @@ bool Starter::startServer( const char * s )
         error( "Couldn't fork to exec(" + srv + ")" );
     }
     else if ( pid == 0 ) {
-        execl( srv.cstr(), srv.cstr(), "-f", NULL );
+        execl( srv.cstr(), srv.cstr(), "-f", (char *)NULL );
         exit( -1 );
     }
     else {
