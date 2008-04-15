@@ -370,6 +370,8 @@ static WebPage * webmailMailboxes( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new MailboxList );
+    p->addComponent( new ViewList );
+    p->addComponent( new EditView );
     return p;
 }
 
