@@ -1245,4 +1245,28 @@ aox.org/clients/
   That's it, right?
 
 
+/archiveopteryx/jquery.js
+
+  Serving our own copy of jquery.js (which both Arnt and I agree is
+  desirable) would involve the following:
+
+  - Subclassing WebPage to allow us to serve the contents of jquery.js
+    as application/x-javascript (or whatever). We'll have to store the
+    javascript source in some C-escaped form in the source.
+
+  - Adding a { Magic, Suffix } handler, and mapping "jquery.js" to a new
+    Suffix type (JQuery).
+
+  - Returning a page of the newly-created type from the link handler.
+
+  A related question: is /archiveopteryx meant to be under /webmail, or
+  is it (as some comments suggest, while others disagree) meant to be a
+  top-level directory? If it's the latter, the code will have to change
+  a little.
+
+  All of this also applies to favicon.ico (for which we have a Link
+  type, which we do not currently handle) and default.css (which we
+  make no attempt to serve a local copy of).
+
+
 
