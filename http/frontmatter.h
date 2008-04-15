@@ -14,6 +14,7 @@ public:
     static FrontMatter * title( const String & );
     static FrontMatter * jsToggles();
     static FrontMatter * jQuery();
+    static FrontMatter * script( const String & );
 };
 
 

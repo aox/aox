@@ -156,3 +156,18 @@ FrontMatter * FrontMatter::jQuery()
 
     return fm;
 }
+
+
+/*! Returns a <script> element wrapping the given code \a s. */
+
+FrontMatter * FrontMatter::script( const String &s )
+{
+    FrontMatter * fm = new FrontMatter;
+    fm->append( "<script language=javascript type=\"text/javascript\">\n" );
+    // fm->append( "// <!--\n" );
+    fm->append( s );
+    fm->append( "\n" );
+    // fm->append( "// -->\n" );
+    fm->append( "</script>" );
+    return fm;
+}
