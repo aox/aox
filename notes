@@ -1213,20 +1213,48 @@ Fetcher oomph
 
   First, to get the messages
 
+    begin;
     declare m scroll cursor for
     select messages,uid from mailbox_messages
-    where uid>=$1 and uid<=$2 and mailbox=$3
+    where uid>=$1 and uid<=$2 and mailbox=$3;
 
-  Then, to get e.g. header fields:
+  Then we look at each type of data we need and make more cursors:
 
     declare hfm no scroll cursor for
     select m.uid, h.part, h.position, f.name, h.value from h
     join field_names f on (h.field=f.id)
-    join (fetch absolute all from m) m using (message)
-    where h.field > 12 order by m.uid, h.part
+    join (fetch all from m) m using (message)
+    where h.field > 12 order by m.uid, h.part;
+
+  We need to issue 
+
+    fetch absolute 0 from m;
+
+  Between each declare and discard the result.
+
+  Finally, we loop as Fetcher::execute now does, but issue
+
+    fetch 1024 from hfm;
+
+  instead of a select. The 1024 must be variable (more for flags, less
+  for bodyparts), and all fetchers must be advanced more or less in
+  step.
+
+  And to clean up:
+
+    rollback;
 
   I think we might see a speedup of 2-100x depending on task. Unless
-  we use all this apparatus for single-message fetches.
+  we use all this apparatus for single-message, single-type fetches.
+
+  Will doing this for big fetches harm postgres?
+
+  The first cursor probably doesn't help much in the case of reading a
+  single range of messages from a single mailbox. It should help more
+  if we're reading a complex set, often the case. It also allows us to
+  read a search without extra cost, just feed a Selector into the
+  select and that's all. Fine for aoxexport. And it almost gets rid of
+  MessageFetcher.
 
 
 aox.org/clients/
