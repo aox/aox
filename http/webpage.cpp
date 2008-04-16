@@ -391,7 +391,7 @@ public:
 
 
 /*! \class BodypartPage webpage.h
-    A subclass of WebPage, meant to serve message unadorned bodyparts.
+    A subclass of WebPage, meant to serve unadorned bodyparts.
 */
 
 /*! Creates a BodypartPage object to serve \a link, which must refer to
@@ -487,11 +487,11 @@ void BodypartPage::execute()
 }
 
 
-class Rfc822PageData
+class MessagePageData
     : public Garbage
 {
 public:
-    Rfc822PageData()
+    MessagePageData()
         : message( 0 )
     {}
 
@@ -499,19 +499,19 @@ public:
 };
 
 
-/*! \class Rfc822Page webpage.h
+/*! \class MessagePage webpage.h
     Renders a single RFC822 message.
 */
 
 
-Rfc822Page::Rfc822Page( Link * link )
+MessagePage::MessagePage( Link * link )
     : WebPage( link ),
-      d( new Rfc822PageData )
+      d( new MessagePageData )
 {
 }
 
 
-void Rfc822Page::execute()
+void MessagePage::execute()
 {
     if ( !d->message ) {
         Mailbox * m = link()->mailbox();

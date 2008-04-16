@@ -54,16 +54,16 @@ private:
 };
 
 
-class Rfc822Page
+class MessagePage
     : public WebPage
 {
 public:
-    Rfc822Page( class Link * );
+    MessagePage( class Link * );
 
     void execute();
 
 private:
-    class Rfc822PageData * d;
+    class MessagePageData * d;
 };
 
 

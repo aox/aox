@@ -424,9 +424,9 @@ static WebPage * addView( Link * link )
 }
 
 
-static WebPage * rfc822Page( Link * link )
+static WebPage * messagePage( Link * link )
 {
-    return new Rfc822Page( link );
+    return new MessagePage( link );
 }
 
 
@@ -478,9 +478,9 @@ static const struct {
     WebPage *(*suffixHandler)( Link * );
 } suffixes[] = {
     { "thread", Link::Thread, &archiveMessage, &archiveThread },
-    { "rfc822", Link::Rfc822, &archiveMessage, &rfc822Page },
+    { "rfc822", Link::Rfc822, &archiveMessage, &messagePage },
     { "thread", Link::Thread, &webmailMessage, &webmailThread },
-    { "rfc822", Link::Rfc822, &webmailMessage, &rfc822Page },
+    { "rfc822", Link::Rfc822, &webmailMessage, &messagePage },
     { "send",   Link::Send,   &errorPage,      &sendmail },
     { "list", Link::ListObjects, &webmailViews, &listViews },
     { "add", Link::AddObject, &webmailViews,   &addView }
