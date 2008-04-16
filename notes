@@ -1256,6 +1256,13 @@ Fetcher oomph
   select and that's all. Fine for aoxexport. And it almost gets rid of
   MessageFetcher.
 
+  If we only want to fetch one kind of data we can avoid the cursor m
+  and the surrounding transaction. In that case we take the prepared
+  statement we need ("declare hfm" above), delete the bit before
+  select, replace "fetch all from m" with a select to get the right
+  messages and UIDs, and send the query off without a transaction. No
+  loop, nothing. fetch 1:* flags will be *fast*.
+
 
 aox.org/clients/
 
