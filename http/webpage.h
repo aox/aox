@@ -7,6 +7,8 @@
 #include "permissions.h"
 
 
+class Link;
+class String;
 class Mailbox;
 class PageComponent;
 
@@ -15,14 +17,14 @@ class WebPage
     : public EventHandler
 {
 public:
-    WebPage( class Link * );
+    WebPage( Link * );
 
-    void execute();
-
-    class Link * link() const;
+    Link * link() const;
     class User * user() const;
     class HTTP * server() const;
     class UString parameter( const String & ) const;
+
+    virtual void execute();
 
     void requireUser();
     void requireRight( Mailbox *, Permissions::Right );
@@ -30,14 +32,31 @@ public:
 
     void addComponent( PageComponent *, const PageComponent * = 0 );
 
+    void setContents( const String &, const String & );
+
+    void finish();
+    bool finished() const;
+
     uint uniqueNumber();
+
+protected:
+    String componentText() const;
+    virtual String contents() const;
+    virtual void handleAuthentication();
 
 private:
     class WebPageData * d;
+};
 
-    String html() const;
 
-    void sendLoginForm();
+class PageFragment
+    : public WebPage
+{
+public:
+    PageFragment( Link * );
+
+    String contents() const;
+    void handleAuthentication();
 };
 
 
@@ -45,8 +64,7 @@ class BodypartPage
     : public WebPage
 {
 public:
-    BodypartPage( class Link * );
-
+    BodypartPage( Link * );
     void execute();
 
 private:
@@ -58,12 +76,21 @@ class MessagePage
     : public WebPage
 {
 public:
-    MessagePage( class Link * );
-
+    MessagePage( Link * );
     void execute();
 
 private:
     class MessagePageData * d;
+};
+
+
+class StaticBlob
+    : public WebPage
+{
+public:
+    StaticBlob( Link * );
+
+    void execute();
 };
 
 

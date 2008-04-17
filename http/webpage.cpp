@@ -31,8 +31,9 @@ class WebPageData
 {
 public:
     WebPageData()
-        : link( 0 ), checker( 0 ), requiresUser( false ),
-          responded( false ), user( 0 ), uniq( 0 )
+        : link( 0 ),
+          checker( 0 ), requiresUser( false ), user( 0 ),
+          uniq( 0 ), finished( false )
     {}
 
     struct PermissionRequired
@@ -44,13 +45,19 @@ public:
     };
 
     Link * link;
+
     List<PageComponent> components;
+
     List<PermissionRequired> needed;
     PermissionsChecker * checker;
     bool requiresUser;
-    bool responded;
     User * user;
+
+    String contentType;
+    String contents;
+
     uint uniq;
+    bool finished;
 };
 
 
@@ -67,28 +74,6 @@ WebPage::WebPage( Link * link )
     : d( new WebPageData )
 {
     d->link = link;
-}
-
-
-/*! Adds the PageComponent \a pc to this WebPage. If \a after is
-    present and non-null, \a pc is added immediately after \a
-    after. If \a after is null (this is the default), \a pc is added
-    at the end. */
-
-void WebPage::addComponent( PageComponent * pc, const PageComponent * after )
-{
-    List<PageComponent>::Iterator i;
-    if ( after ) {
-        i = d->components.find( after );
-        if ( i )
-            ++i;
-    }
-    if ( i )
-        d->components.insert( i, pc );
-    else
-        d->components.append( pc );
-
-    pc->setPage( this );
 }
 
 
@@ -128,9 +113,67 @@ UString WebPage::parameter( const String & s ) const
 }
 
 
+/*! Sets the contents of this response to \a text, with the
+    Content-type \a type. (Headers are added to the server
+    instead.)
+*/
+
+void WebPage::setContents( const String &type, const String &text )
+{
+    d->contentType = type;
+    d->contents = text;
+}
+
+
+/*! This function is meant to be called by subclasses' "execute()"
+    method, and is responsible for sending the text specified with
+    setContents(). If setContents() has not been called, finish()
+    doesn't send anything, just marks this response as finished().
+*/
+
+void WebPage::finish()
+{
+    if ( !d->contentType.isEmpty() )
+        d->link->server()->respond( d->contentType, d->contents );
+    d->finished = true;
+}
+
+
+/*! Returns true only if finish() has been called. */
+
+bool WebPage::finished() const
+{
+    return d->finished;
+}
+
+
+
+
+/*! Adds the PageComponent \a pc to this WebPage. If \a after is
+    present and non-null, \a pc is added immediately after \a
+    after. If \a after is null (this is the default), \a pc is added
+    at the end. */
+
+void WebPage::addComponent( PageComponent * pc, const PageComponent * after )
+{
+    List<PageComponent>::Iterator i;
+    if ( after ) {
+        i = d->components.find( after );
+        if ( i )
+            ++i;
+    }
+    if ( i )
+        d->components.insert( i, pc );
+    else
+        d->components.append( pc );
+
+    pc->setPage( this );
+}
+
+
 void WebPage::execute()
 {
-    if ( d->responded )
+    if ( finished() )
         return;
 
     if ( !permitted() )
@@ -157,18 +200,37 @@ void WebPage::execute()
     if ( !done )
         return;
 
-    d->link->server()->setStatus( status, "OK" );
-    d->link->server()->respond( "text/html; charset=utf-8", html() );
-    d->responded = true;
+    link()->server()->setStatus( status, "OK" );
+    setContents( "text/html; charset=utf-8", contents() );
+    finish();
+}
+
+
+/*! Returns the text formed by concatenating the contents of all of this
+    page's constituent components. The return value is not meaningful if
+    PageComponent::done() is not true for all of the components.
+*/
+
+String WebPage::componentText() const
+{
+    String s;
+
+    List<PageComponent>::Iterator it( d->components );
+    while ( it ) {
+        s.append( it->contents() );
+        ++it;
+    }
+
+    return s;
 }
 
 
 /*! Returns the HTML output of this page, as it currently looks. The
-    return value isn't sensible until all pages are ready, as
+    return value isn't sensible until all components are ready, as
     execute() checks.
 */
 
-String WebPage::html() const
+String WebPage::contents() const
 {
     List<FrontMatter> frontMatter;
 
@@ -197,13 +259,7 @@ String WebPage::html() const
     }
 
     html.append( "</head><body>\n" );
-
-    it = d->components;
-    while ( it ) {
-        html.append( it->contents() );
-        ++it;
-    }
-
+    html.append( componentText() );
     html.append( "</body>\n" );
     return html;
 }
@@ -243,19 +299,19 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
 
 bool WebPage::permitted()
 {
-    if ( d->responded )
+    if ( finished() )
         return false;
 
     if ( !d->requiresUser && d->needed.isEmpty() )
         return true;
 
-    HTTP * server = d->link->server();
+    HTTP * server = link()->server();
     UString login( server->parameter( "login" ) );
 
     if ( d->user ) {
         // leave it
     }
-    else if ( d->link->type() == Link::Archive ) {
+    else if ( link()->type() == Link::Archive ) {
         if ( !::archiveUser ) {
             ::archiveUser = new User;
             UString u;
@@ -276,7 +332,7 @@ bool WebPage::permitted()
     }
 
     if ( !d->user ) {
-        sendLoginForm();
+        handleAuthentication();
         return false;
     }
 
@@ -323,14 +379,14 @@ bool WebPage::permitted()
     if ( d->checker && !d->checker->ready() )
         return false;
 
-    if ( d->link->type() == Link::Archive ) {
+    if ( link()->type() == Link::Archive ) {
         if ( d->user->state() == User::Refreshed &&
              d->checker && d->checker->allowed() )
             return true;
-        d->responded = true;
         server->setStatus( 403, "Forbidden" );
-        server->respond( "text/plain",
-                         d->checker->error().simplified() + "\n" );
+        setContents( "text/plain",
+                     d->checker->error().simplified() + "\n" );
+        finish();
         return false;
     }
     else {
@@ -340,7 +396,7 @@ bool WebPage::permitted()
                passwd != d->user->secret() ) ||
              ( d->checker && !d->checker->allowed() ) )
         {
-            sendLoginForm();
+            handleAuthentication();
             return false;
         }
         else {
@@ -363,18 +419,60 @@ bool WebPage::permitted()
     same page when the correct password is entered.
 */
 
-void WebPage::sendLoginForm()
+void WebPage::handleAuthentication()
 {
-    d->responded = true;
+    d->finished = true;
+
     d->needed.clear();
     d->checker = 0;
     d->components.clear();
     PageComponent * lf = new LoginForm;
     addComponent( lf );
+
+    // XXX: The following call will actually cause our own execute() to
+    // be called again. If that call is not ignored (as we do by setting
+    // d->finished early), the resulting loop is staggering in its
+    // infinitude. What a hack.
     lf->execute();
-    d->link->server()->setStatus( 200, "OK" );
-    d->link->server()->respond( "text/html; charset=utf-8", html() );
+
+    link()->server()->setStatus( 200, "OK" );
+    setContents( "text/html; charset=utf-8", contents() );
+    finish();
 }
+
+
+
+/*! \class PageFragment webpage.h
+    Collects output from PageComponents and serves it unadorned.
+
+    This is meant to serve text from components for AJAX requests.
+*/
+
+/*! Creates a new PageFragment for \a link. */
+
+PageFragment::PageFragment( Link * link )
+    : WebPage( link )
+{
+}
+
+
+/*! Returns the text assembled from the constituent component(s). */
+
+String PageFragment::contents() const
+{
+    return componentText();
+}
+
+
+/*! AJAX calls without authentication are simply rejected. */
+
+void PageFragment::handleAuthentication()
+{
+    link()->server()->setStatus( 403, "Forbidden" );
+    setContents( "text/html", "Forbidden." );
+    finish();
+}
+
 
 
 class BodypartPageData
@@ -483,7 +581,8 @@ void BodypartPage::execute()
         b = r->getString( "data" );
     }
 
-    link()->server()->respond( t, b );
+    setContents( t, b );
+    finish();
 }
 
 
@@ -543,7 +642,8 @@ void MessagePage::execute()
             d->message->hasBodies() ) )
         return;
 
-    link()->server()->respond( "message/rfc822", d->message->rfc822() );
+    setContents( "message/rfc822", d->message->rfc822() );
+    finish();
 }
 
 
