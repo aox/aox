@@ -408,9 +408,10 @@ static WebPage * webmailViews( Link * link )
     return p;
 }
 
+
 static WebPage * listViews( Link * link )
 {
-    WebPage * p = new WebPage( link );
+    WebPage * p = new PageFragment( link );
     p->addComponent( new ViewList );
     return p;
 }
