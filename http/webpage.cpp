@@ -74,6 +74,8 @@ WebPage::WebPage( Link * link )
     : d( new WebPageData )
 {
     d->link = link;
+    if ( d->link->type() == Link::Webmail )
+        requireUser();
 }
 
 
