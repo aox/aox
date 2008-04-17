@@ -32,8 +32,8 @@ HtmlForm * EditView::form() const
 {
     Link * l = new Link;
     l->setType( Link::Webmail );
-    l->setViews( true );
-    l->setSuffix( Link::AddObject );
+    l->setMagic( true );
+    l->setSuffix( Link::AddView );
     HtmlForm * f = new HtmlForm( l->canonical() );
     f->requireField( "view" );
     f->requireField( "source" );

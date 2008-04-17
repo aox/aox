@@ -123,24 +123,6 @@ void Link::setMagic( bool m )
 }
 
 
-/*! Returns true if this Link is under the webmail/views hierarchy, and
-    false otherwise. */
-
-bool Link::views() const
-{
-    return d->views;
-}
-
-
-/*! Sets this Link's "views-icity" to \a m. views() will return the same
-    value as specified to this function. */
-
-void Link::setViews( bool m )
-{
-    d->views = m;
-}
-
-
 /*! Returns a pointer to the mailbox identified by this link, and 0 if
     this Link does not identify a mailbox, or if the specified mailbox
     does not exist.
@@ -400,16 +382,7 @@ static WebPage * webmailMessage( Link * link )
 }
 
 
-static WebPage * webmailViews( Link * link )
-{
-    WebPage * p = new WebPage( link );
-    p->addComponent( new ViewList );
-    p->addComponent( new EditView );
-    return p;
-}
-
-
-static WebPage * listViews( Link * link )
+static WebPage * webmailListViews( Link * link )
 {
     WebPage * p = new PageFragment( link );
     p->addComponent( new ViewList );
@@ -417,9 +390,9 @@ static WebPage * listViews( Link * link )
 }
 
 
-static WebPage * addView( Link * link )
+static WebPage * webmailAddView( Link * link )
 {
-    WebPage * p = new WebPage( link );
+    WebPage * p = new PageFragment( link );
     p->addComponent( new AddView );
     return p;
 }
@@ -447,7 +420,7 @@ static WebPage * sendmail( Link * link )
 
 enum Component {
     ArchivePrefix, WebmailPrefix,
-    Magic, Views, MailboxName, Uid, Part, Suffix, Arguments,
+    Magic, MailboxName, Uid, Part, Suffix, Arguments,
     Void,
     NumComponents
 };
@@ -466,7 +439,6 @@ static const struct Handler {
     { { WebmailPrefix, MailboxName, Void, Void,     Void }, &webmailMailbox },
     { { WebmailPrefix, MailboxName, Uid,  Suffix,   Void }, &webmailMessage },
     { { WebmailPrefix, MailboxName, Uid,  Part,     Void }, &partPage },
-    { { WebmailPrefix, Views,       Suffix, Void,   Void }, &webmailViews },
     { { WebmailPrefix, Magic,       Suffix, Void,   Void }, &errorPage }
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
@@ -483,8 +455,8 @@ static const struct {
     { "thread", Link::Thread, &webmailMessage, &webmailThread },
     { "rfc822", Link::Rfc822, &webmailMessage, &messagePage },
     { "send",   Link::Send,   &errorPage,      &sendmail },
-    { "list", Link::ListObjects, &webmailViews, &listViews },
-    { "add", Link::AddObject, &webmailViews,   &addView }
+    { "views/list", Link::ListViews, &errorPage, &webmailListViews },
+    { "views/add", Link::AddView, &errorPage, &webmailAddView }
 };
 static uint numSuffixes = sizeof( suffixes ) / sizeof( suffixes[0] );
 
@@ -594,18 +566,6 @@ void Link::parse( const String & s )
             if ( p->ok() ) {
                 chosen = Magic;
                 setMagic( true );
-            }
-            else {
-                p->restore();
-            }
-        }
-
-        if ( chosen == Void && legalComponents[Views] ) {
-            p->mark();
-            p->require( "/views" );
-            if ( p->ok() ) {
-                chosen = Views;
-                setViews( true );
             }
             else {
                 p->restore();
@@ -847,7 +807,6 @@ String Link::canonical() const
             good = false;
 
         good = good &&
-               checkForComponent( i, Views, d->views ) &&
                checkForComponent( i, Magic, d->magic ) &&
                checkForComponent( i, MailboxName, d->mailbox ) &&
                checkForComponent( i, Uid, d->uid != 0 ) &&
@@ -882,9 +841,6 @@ String Link::canonical() const
             break;
         case MailboxName:
             r.append( d->mailbox->name().utf8().eURI() );
-            break;
-        case Views:
-            r.append( "/views" );
             break;
         case Uid:
             r.append( "/" );
