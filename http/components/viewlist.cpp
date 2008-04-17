@@ -25,12 +25,19 @@ public:
 
 /*! \class ViewList viewlist.h
     Returns a list of views owned by the logged-in user.
+
+    This component may either be embedded in a page (such as the webmail
+    index page), or accessed through its own URL by JavaScript code in a
+    previously-rendered page.
+
+    In either case, it returns only a <ul> of views, and assumes that it
+    will be used in a context that has already set up the JavaScript one
+    needs to make sense of the results.
 */
 
 ViewList::ViewList()
     : PageComponent( "viewlist" )
 {
-    addFrontMatter( FrontMatter::title( "Views" ) );
 }
 
 
