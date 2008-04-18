@@ -722,41 +722,29 @@ void Fetch::sendFetchQueries()
 
     List<Message> * l = new List<Message>;
 
-    uint n = 0;
-    while ( n < 1024 && !d->set.isEmpty() ) {
+    while ( !d->set.isEmpty() ) {
         uint uid = d->set.value( 1 );
         d->set.remove( uid );
         Message * m = new Message;
         m->setUid( uid );
         d->requested.append( m );
         l->append( m );
-        n++;
     }
 
-    if ( d->needsAddresses ) {
-        Fetcher * f = new MessageAddressFetcher( mb, l, this );
-        f->execute();
-    }
-    if ( d->needsHeader ) {
-        Fetcher * f = new MessageHeaderFetcher( mb, l, this );
-        f->execute();
-    }
-    if ( d->needsBody ) {
-        Fetcher * mbf = new MessageBodyFetcher( mb, l, this );
-        mbf->execute();
-    }
-    if ( d->flags ) {
-        Fetcher * mff = new MessageFlagFetcher( mb, l, this );
-        mff->execute();
-    }
-    if ( d->rfc822size || d->internaldate || d->modseq ) {
-        Fetcher * mtf = new MessageTriviaFetcher( mb, l, this );
-        mtf->execute();
-    }
-    if ( d->annotation ) {
-        Fetcher * maf = new MessageAnnotationFetcher( mb, l, this );
-        maf->execute();
-    }
+    Fetcher * f = new Fetcher( mb, l, this );
+    if ( d->needsAddresses )
+        f->fetch( Fetcher::Addresses );
+    if ( d->needsHeader )
+        f->fetch( Fetcher::OtherHeader );
+    if ( d->needsBody )
+        f->fetch( Fetcher::Body );
+    if ( d->flags )
+        f->fetch( Fetcher::Flags );
+    if ( d->rfc822size || d->internaldate || d->modseq )
+        f->fetch( Fetcher::Trivia );
+    if ( d->annotation )
+        f->fetch( Fetcher::Annotations );
+    f->execute();
 }
 
 

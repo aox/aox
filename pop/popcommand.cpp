@@ -399,8 +399,8 @@ bool PopCommand::fetch822Size()
 
     if ( !d->sentFetch ) {
         d->sentFetch = true;
-        MessageTriviaFetcher * mtf =
-            new MessageTriviaFetcher( s->mailbox(), l, this );
+        Fetcher * mtf = new Fetcher( s->mailbox(), l, this );
+        mtf->fetch( Fetcher::Trivia );
         mtf->execute();
     }
 
@@ -533,21 +533,14 @@ bool PopCommand::retr( bool lines )
         ::List<Message> * l = new ::List<Message>;
         l->append( d->message );
         d->started = true;
-        if ( !d->message->hasBodies() ) {
-            MessageBodyFetcher * mbf =
-                new MessageBodyFetcher( s->mailbox(), l, this );
-            mbf->execute();
-        }
-        if ( !d->message->hasHeaders() ) {
-            MessageHeaderFetcher * mhf =
-                new MessageHeaderFetcher( s->mailbox(), l, this );
-            mhf->execute();
-        }
-        if ( !d->message->hasAddresses() ) {
-            MessageAddressFetcher * mhf =
-                new MessageAddressFetcher( s->mailbox(), l, this );
-            mhf->execute();
-        }
+        Fetcher * f = new Fetcher( s->mailbox(), l, this );
+        if ( !d->message->hasBodies() )
+            f->fetch( Fetcher::Body );
+        if ( !d->message->hasHeaders() )
+            f->fetch( Fetcher::OtherHeader );
+        if ( !d->message->hasAddresses() )
+            f->fetch( Fetcher::Addresses );
+        f->execute();
     }
 
     if ( !( d->message->hasBodies() &&

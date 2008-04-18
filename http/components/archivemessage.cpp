@@ -64,15 +64,10 @@ void ArchiveMessage::execute()
         List<Message> messages;
         messages.append( d->message );
 
-        Fetcher * f;
-
-        f = new MessageHeaderFetcher( m, &messages, page() );
-        f->execute();
-
-        f = new MessageBodyFetcher( m, &messages, page() );
-        f->execute();
-
-        f = new MessageAddressFetcher( m, &messages, page() );
+        Fetcher * f = new Fetcher( m, &messages, page() );
+        f->fetch( Fetcher::OtherHeader );
+        f->fetch( Fetcher::Body );
+        f->fetch( Fetcher::Addresses );
         f->execute();
     }
 

@@ -311,22 +311,23 @@ void ImapUrlFetcher::execute()
                 }
                 i--;
             }
+
+            Fetcher * f = 0;
             if ( !hm->isEmpty() ) {
-                Fetcher * f =
-                    new MessageHeaderFetcher( ms->mailbox, hm, this );
+                f = new Fetcher( ms->mailbox, hm, this );
+                f->fetch( Fetcher::OtherHeader );
+                f->fetch( Fetcher::Addresses );
                 d->fetchers->append( f );
-                f->execute();
-                f = new MessageAddressFetcher( ms->mailbox, hm, this );
-                d->fetchers->append( f );
-                f->execute();
             }
 
             if ( !bm->isEmpty() ) {
-                Fetcher * f =
-                    new MessageBodyFetcher( ms->mailbox, bm, this );
-                d->fetchers->append( f );
-                f->execute();
+                if ( !f ) {
+                    f = new Fetcher( ms->mailbox, bm, this );
+                    d->fetchers->append( f );
+                }
+                f->fetch( Fetcher::Body );
             }
+            f->execute();
 
             ++ms;
         }

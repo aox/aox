@@ -1,6 +1,7 @@
 #include "fetcher.h"
 
 #include "addressfield.h"
+#include "transaction.h"
 #include "messageset.h"
 #include "annotation.h"
 #include "allocator.h"
@@ -9,6 +10,7 @@
 #include "message.h"
 #include "ustring.h"
 #include "query.h"
+#include "scope.h"
 #include "flag.h"
 #include "utf.h"
 
@@ -19,95 +21,194 @@ class FetcherData
 public:
     FetcherData()
         : owner( 0 ),
-          mailbox( 0 ), query( 0 ),
-          smallest( 0 ), largest( 0 ),
-          uid( 0 ), notified( 0 ), message( 0 )
+          mailbox( 0 ),
+          q( 0 ), t( 0 ),
+          flags( false ), annotations( false ),
+          addresses( false ), otherheader( false ),
+          body( false ), trivia( false ),
+          f( 0 )
     {}
 
     List<Message> messages;
     EventHandler * owner;
     Mailbox * mailbox;
-    Query * query;
-    uint smallest;
-    uint largest;
-    uint uid;
-    uint notified;
-    Message * message;
-    MessageSet results;
+    List<Query> * q;
+    Transaction * t;
+
+    bool flags;
+    bool annotations;
+    bool addresses;
+    bool otherheader;
+    bool body;
+    bool trivia;
+
+    Fetcher * f;
+
+    class Decoder
+        : public EventHandler
+    {
+    public:
+        Decoder(): q( 0 ), d( 0 ) {}
+        void execute();
+        virtual void decode( Message *, Row * ) = 0;
+        virtual void setDone( Message * ) = 0;
+        Query * q;
+        FetcherData * d;
+        List<Message> messages;
+    };
+
+    Query * decoder( const String & s, Decoder * d ) {
+        Query * q = new Query( s, d );
+        d->d = this;
+        d->q = q; // d->q is Decoder::q, not FetcherData::q. evil.
+        List<Message>::Iterator m( messages );
+        while ( m ) {
+            d->messages.append( m );
+            ++m;
+        }
+        return q;
+    }
+
+    class FlagsDecoder
+        : public Decoder
+    {
+    public:
+        FlagsDecoder() {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+    };
+
+    class TriviaDecoder
+        : public Decoder
+    {
+    public:
+        TriviaDecoder() {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+    };
+
+    class AnnotationDecoder
+        : public Decoder
+    {
+    public:
+        AnnotationDecoder() {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+    };
+
+    class AddressDecoder
+        : public Decoder
+    {
+    public:
+        AddressDecoder() {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+    };
+
+    class HeaderDecoder
+        : public Decoder
+    {
+    public:
+        HeaderDecoder() {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+    };
+
+    class BodyDecoder
+        : public Decoder
+    {
+    public:
+        BodyDecoder() {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+    };
 };
 
 
-static PreparedStatement * header;
-static PreparedStatement * address;
-static PreparedStatement * oldAddress;
-static PreparedStatement * trivia;
-static PreparedStatement * flags;
-static PreparedStatement * body;
-static PreparedStatement * anno;
-
-
-static void setupPreparedStatements()
+static String queryText( Fetcher::Type t,
+                         const String & source,
+                         const String & cursorName )
 {
-    if ( ::header )
-        return;
+    String r;
+    if ( cursorName.isEmpty() ) {
+        // no cursor
+    }
+    else {
+        r.append( "declare " );
+        r.append( cursorName );
+        r.append( " no scroll cursor for " );
+    }
 
-    const char * q =
-        "select m.uid, h.part, h.position, f.name, h.value from "
-        "mailbox_messages m join header_fields h using (message) "
-        "join field_names f on (h.field=f.id) where "
-        "h.field > 12 and m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
-        "order by m.uid, h.part";
-    ::header = new PreparedStatement( q );
-
-    q = "select m.uid, af.part, af.position, af.field, af.number, "
-        "a.name, a.localpart, a.domain from "
-        "mailbox_messages m join address_fields af using (message) "
-        "join addresses a on (af.address=a.id) where "
-        "m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
-        "order by m.uid, af.part, af.field, af.number ";
-    ::address = new PreparedStatement( q );
-
-    q = "select m.uid, h.part, h.position, f.name, h.value from "
-        "mailbox_messages m join header_fields h using (message) "
-        "join field_names f on (h.field=f.id) where "
-        "h.field<=12 and m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
-        "order by m.uid, h.part";
-    ::oldAddress = new PreparedStatement( q );
-
-    q = "select m.id, mm.uid, mm.idate, m.rfc822size, mm.modseq "
-        "from messages m join mailbox_messages mm on (mm.message=m.id) "
-        "where mm.uid>=$1 and mm.uid<=$2 and mm.mailbox=$3 "
-        "order by mm.uid";
-    ::trivia = new PreparedStatement( q );
-
-    q = "select m.uid, p.part, b.text, b.data, "
-        "b.bytes as rawbytes, p.bytes, p.lines "
-        "from mailbox_messages m join part_numbers p using (message) "
-        "left join bodyparts b on (p.bodypart=b.id) where "
-        "m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 and p.part != '' "
-        "order by m.uid, p.part";
-    ::body = new PreparedStatement( q );
-
-    q = "select uid, flag from flags "
-        "where uid>=$1 and uid<=$2 and mailbox=$3 "
-        "order by uid, flag";
-    ::flags = new PreparedStatement( q );
-
-    q = "select a.uid, a.owner, a.value, an.name, an.id "
-        "from annotations a, annotation_names an "
-        "where a.uid>=$1 and a.uid<=$2 and a.mailbox=$3 "
-        "and a.name=an.id "
-        "order by a.uid, an.id, a.owner";
-    ::anno = new PreparedStatement( q );
-
-    Allocator::addEternal( header, "statement to fetch headers" );
-    Allocator::addEternal( address, "statement to fetch address fields" );
-    Allocator::addEternal( oldAddress,
-                           "statement to fetch pre-1.13 address fields" );
-    Allocator::addEternal( trivia, "statement to fetch approximately nothing" );
-    Allocator::addEternal( body, "statement to fetch bodies" );
-    Allocator::addEternal( flags, "statement to fetch flags" );
-    Allocator::addEternal( anno, "statement to fetch annotations" );
+    switch ( t ) {
+    case Fetcher::Flags:
+        // this is suboptimal in the common case. it doesn't need to
+        // join. we could look for the most common variant of source
+        // and select a simpler query.
+        r.append( "select f.uid, f.flag from flags f "
+                  "join " );
+        r.append( source );
+        r.append( " m using (mailbox,uid)" );
+        break;
+    case Fetcher::Annotations:
+        r.append( "select a.uid, a.owner, a.value, an.name, an.id "
+                  "from annotations a "
+                  "join annotation_names an on (a.name=an.id) "
+                  "join " );
+        r.append( source );
+        r.append( " m using (mailbox,uid)" );
+        break;
+    case Fetcher::Addresses:
+        r.append( "select m.uid, af.part, af.position, af.field, af.number, "
+                  "a.name, a.localpart, a.domain from " );
+        r.append( source );
+        r.append( " m join address_fields af using (message) "
+                  "join addresses a on (af.address=a.id) "
+                  "order by m.uid, af.part, af.field, af.number " );
+        break;
+    case Fetcher::OtherHeader:
+        r.append( "select m.uid, h.part, h.position, f.name, h.value from " );
+        r.append( source );
+        r.append( " m join header_fields h using (message) "
+                  "join field_names f on (h.field=f.id) "
+                  "order by m.uid, h.part" );
+        break;
+    case Fetcher::Body:
+        r.append( "select m.uid, p.part, b.text, b.data, "
+                  "b.bytes as rawbytes, p.bytes, p.lines "
+                  "from " );
+        r.append( source );
+        r.append( " m join part_numbers p using (message) "
+                  "left join bodyparts b on (p.bodypart=b.id) "
+                  "where b.id is not null "
+                  "order by m.uid, p.part" );
+        break;
+    case Fetcher::Trivia:
+        if ( source.startsWith( "(select mailbox, message, uid "
+                                "from mailbox_messages "
+                                "where mailbox=$1 and " ) ) {
+            // what an amazingly evil hack this is. I want to do it cleaner
+            // when the new fetcher is a little more cooked.
+            r.append( "select m.id, mm.uid, mm.idate, m.rfc822size, mm.modseq "
+                      "from messages m "
+                      "join mailbox_messages mm on (mm.message=m.id) "
+                      "where " );
+            r.append( source
+                      .mid( 0, source.length()-1 )
+                      .section( " where ", 2 ) );
+            r.append( " order by mm.uid" );
+        }
+        else {
+            // and this isn't too pretty either.
+            r.append( "select m.id, m2.uid, mm.idate, m.rfc822size, mm.modseq "
+                      "from " );
+            r.append( source );
+            r.append( " m2 join mailbox_messages mm using (mailbox,uid) "
+                      "join messages m on (m2.mailbox=m.id) "
+                      "order by mm.uid" );
+        }
+        break;
+    }
+    return r;
 }
 
 
@@ -133,9 +234,10 @@ static void setupPreparedStatements()
 Fetcher::Fetcher( Mailbox * m, List<Message> * messages, EventHandler * e )
     : EventHandler(), d( new FetcherData )
 {
-    setupPreparedStatements();
+    setLog( new Log( Log::Database ) );
     d->mailbox = m;
     d->owner = e;
+    d->f = this;
     addMessages( messages );
 }
 
@@ -160,129 +262,224 @@ void Fetcher::addMessages( List<Message> * messages )
 
 bool Fetcher::done() const
 {
-    return !d->query;
+    if ( d->t && !d->t->done() )
+        return false;
+    if ( d->q ) {
+        List<Query>::Iterator i( d->q );
+        while ( i ) {
+            if ( !i->done() )
+                return false;
+            ++i;
+        }
+    }
+    return true;
 }
 
 
-/*! This reimplementation of execute() calls decode() to decode data
-    about each message, then notifies its owners that something was
-    fetched.
+/*! A fairly complex function. Since fetching messages is one of the
+    primary activities of Archiveopteryx and this function does it,
+    some complexity is warranted, I think.
+    
+    The function creates up to six queries that return data, and may
+    create a transaction and other queries in support of the six.
 */
 
 void Fetcher::execute()
 {
-    if ( d->query ) {
-        Row * r;
-        while ( (r=d->query->nextRow()) != 0 ) {
-            d->uid = r->getInt( "uid" );
-            if ( !d->message || d->message->uid() != d->uid ) {
-                List<Message>::Iterator i( d->messages );
-                while ( i && i->uid() < d->uid )
-                    i++;
-                if ( i && i->uid() == d->uid )
-                    d->message = i;
-                else
-                    d->message = 0;
-            }
-            if ( d->message )
-                decode( d->message, r );
-            setDone( d->uid );
-        }
-        if ( d->query->done() ) {
-            d->query = 0;
-            setDone( d->largest + 1 );
-            d->notified = 0;
-        }
+    Scope x( log() );
+    if ( d->t ) {
+        // this will need updating as soon as we issue smaller
+        // fetches. it will become regrettably complex.
+        if ( d->t->done() )
+            d->owner->execute();
+        return;
+    }
+    else if ( d->q ) {
+        if ( done() )
+            d->owner->execute();
+        return;
     }
 
-    if ( d->query && d->results.count() < 64 )
-        return;
+    bool simple = false;
 
-    bool notify = false;
-    if ( !d->results.isEmpty() || d->smallest > 0 )
-        notify = true;
-    d->results.clear();
-    if ( notify )
-        d->owner->execute();
-
-    if ( d->query )
-        return;
-
-    if ( d->messages.isEmpty() )
-        return;
-
-    List<Message>::Iterator i( d->messages );
-    d->smallest = 0;
-    d->largest = 0;
-    if ( i )
-        d->smallest = i->uid();
     uint n = 0;
-    while ( i && n < 1024 ) {
-        d->largest = i->uid();
-        ++i;
+    if ( d->flags )
         n++;
+    if ( d->annotations )
+        n++;
+    if ( d->addresses )
+        n++;
+    if ( d->otherheader )
+        n++;
+    if ( d->body )
+        n++;
+    if ( d->trivia )
+        n++;
+    if ( n < 1 ) {
+        // nothing to do.
+        return;
     }
-    d->query = new Query( *query(), this );
-    d->query->bind( 1, d->smallest );
-    d->query->bind( 2, d->largest );
-    d->query->bind( 3, d->mailbox->id() );
-    d->query->execute();
-}
 
-
-/*! \fn PreparedStatement * Fetcher::query() const
-
-    Returns a prepared statement to fetch the appropriate sort of
-    message data. The result must demand exactly three Query::bind()
-    values, in order: The smallest UID for which data should be
-    fetched, the largest, and the mailbox ID.
-*/
-
-
-/*! \fn void Fetcher::decode( Message * m, Row * r )
-
-    This pure virtual function is responsible for decoding \a r and
-    updating \a m with the results.
-*/
-
-
-/*! \fn void Fetcher::setDone( Message * m )
-
-    This pure virtual function notifies \a m that this Fetcher has
-    fetched all of the relevant data.
-*/
-
-
-/*! Notifies all messages up to but not including \a uid that they've
-    been completely fetched.
-*/
-
-void Fetcher::setDone( uint uid )
-{
+    MessageSet s;
     List<Message>::Iterator i( d->messages );
-    while ( i && i->uid() < uid ) {
-        setDone( (Message*)i );
-        d->messages.take( i );
+    while ( i ) {
+        s.add( i->uid() );
+        ++i;
+    }
+    if ( n == 1 )
+        // it really is simple
+        simple = true;
+    else if ( s.isRange() && s.count() < 512 && n < 3 )
+        // it isn't simple, but it's simple enough that the complexity
+        // of using cursors and a transaction doesn't pay for itself.
+        // the numbers above need tweaking.
+        simple = true;
+    
+    // for now we'll just set simple and use the one that
+    // works. really complex fetches will need the transaction, and
+    // really big fetches will need to retrieve data using smallish
+    // FETCHes, but I want to submit.
+    simple = true;
+
+    if ( simple ) {
+        // need just use a query or two. or three.
+        String t = "(select mailbox, message, uid "
+                   "from mailbox_messages "
+                   "where mailbox=$1 and " + s.where() + ")";
+        d->q = new List<Query>;
+        if ( d->flags )
+            d->q->append( d->decoder( queryText( Flags, t, "" ),
+                                      new FetcherData::FlagsDecoder ) );
+        if ( d->trivia )
+            d->q->append( d->decoder( queryText( Trivia, t, "" ),
+                                      new FetcherData::TriviaDecoder ) );
+        if ( d->annotations )
+            d->q->append( d->decoder( queryText( Annotations, t, "" ),
+                                      new FetcherData::AnnotationDecoder ) );
+        if ( d->addresses )
+            d->q->append( d->decoder( queryText( Addresses, t, "" ),
+                                      new FetcherData::AddressDecoder ) );
+        if ( d->otherheader )
+            d->q->append( d->decoder( queryText( OtherHeader, t, "" ),
+                                      new FetcherData::HeaderDecoder ) );
+        if ( d->body )
+            d->q->append( d->decoder( queryText( Body, t, "" ),
+                                      new FetcherData::BodyDecoder ) );
+        List<Query>::Iterator i( d->q );
+        while ( i ) {
+            i->bind( 1, d->mailbox->id() );
+            i->execute();
+            ++i;
+        }
+    }
+    else {
+        d->t = new Transaction( this );
+        Query * q
+            = new Query( "create temporary table matching_messages ("
+                         "mailbox integer, "
+                         "uid integer, "
+                         "message integer"
+                         ") on commit drop",
+                         0 );
+        d->t->enqueue( q );
+        q = new Query( "insert into matching_messages (mailbox, message, uid) "
+                       "select mailbox, message, uid "
+                       "from mailbox_messages "
+                       "where mailbox=$1 and (" + s.where() + ")",
+                       0 );
+        q->bind( 1, d->mailbox->id() );
+        d->t->enqueue( q );
+        const char * f = "matching_messages";
+        if ( d->flags )
+            d->t->enqueue( new Query( queryText( Flags, f, "fc" ),
+                                      0 ) );
+        if ( d->trivia )
+            d->t->enqueue( new Query( queryText( Trivia, f, "tc" ),
+                                      0 ) );
+        if ( d->annotations )
+            d->t->enqueue( new Query( queryText( Annotations, f, "ac" ),
+                                      0 ) );
+        if ( d->addresses )
+            d->t->enqueue( new Query( queryText( Addresses, f, "afc" ),
+                                      0 ) );
+        if ( d->otherheader )
+            d->t->enqueue( new Query( queryText( OtherHeader, f, "hfc" ),
+                                      0 ) );
+        if ( d->body )
+            d->t->enqueue( new Query( queryText( Body, f, "bc" ),
+                                      0 ) );
+
+        // strictly speaking we need to fetch about 1000-10000 rows at
+        // a time from each cursor, always taking the one that has
+        // progressed shortest. that way we can start issuing
+        // responses before we have all the messages in RAM.
+
+        // but I don't want to implement that yet. I want to get
+        // something up and running, and then optimise for lower
+        // memory usage.
+
+        // so I just append a few fetches here. (as is appropriate
+        // anyway if we're fetching fewish messages.)
+
+        if ( d->flags )
+            d->t->enqueue( d->decoder( "fetch all from fc",
+                                       new FetcherData::FlagsDecoder ) );
+        if ( d->trivia )
+            d->t->enqueue( d->decoder( "fetch all from tc",
+                                       new FetcherData::TriviaDecoder ) );
+        if ( d->annotations )
+            d->t->enqueue( d->decoder( "fetch all from ac",
+                                       new FetcherData::AnnotationDecoder ) );
+        if ( d->addresses )
+            d->t->enqueue( d->decoder( "fetch all from afc",
+                                       new FetcherData::AddressDecoder ) );
+        if ( d->otherheader )
+            d->t->enqueue( d->decoder( "fetch all from hfc",
+                                       new FetcherData::HeaderDecoder ) );
+        if ( d->body )
+            d->t->enqueue( d->decoder( "fetch all from bc",
+                                       new FetcherData::BodyDecoder ) );
+        d->t->commit();
     }
 }
 
 
-
-/*! \class MessageHeaderFetcher fetcher.h
-
-    The MessageHeaderFetcher class is an implementation class
-    responsible for fetching the headers of messages. It has no API of
-    its own; Fetcher is the entire API.
-*/
-
-
-PreparedStatement * MessageHeaderFetcher::query() const
+void FetcherData::Decoder::execute()
 {
-    return ::header;
+    Message * m = 0;
+    uint uid = 0;
+    Row * r = q->nextRow();
+    while ( r ) {
+        uint u = r->getInt( "uid" );
+        if ( u != uid || !m ) {
+            uid = u;
+            m = 0;
+            while ( !messages.isEmpty() &&
+                    messages.firstElement()->uid() < uid ) {
+                setDone( messages.firstElement() );
+                messages.shift();
+            }
+            if ( !messages.isEmpty() )
+                m = messages.firstElement();
+        }
+        if ( m )
+            decode( m, r );
+        r = q->nextRow();
+    }
+    if ( !q->done() )
+        return;
+
+    // this has to move into Fetcher::execute() when we learn to fetch
+    // in smaller chunks.
+    while ( !messages.isEmpty() ) {
+        setDone( messages.firstElement() );
+        messages.shift();
+    }
+    d->f->execute();
 }
 
 
-void MessageHeaderFetcher::decode( Message * m, Row * r )
+void FetcherData::HeaderDecoder::decode( Message * m, Row * r )
 {
     String part = r->getString( "part" );
     String name = r->getString( "name" );
@@ -307,35 +504,15 @@ void MessageHeaderFetcher::decode( Message * m, Row * r )
 }
 
 
-void MessageHeaderFetcher::setDone( Message * m )
+void FetcherData::HeaderDecoder::setDone( Message * m )
 {
     m->setHeadersFetched();
 }
 
 
 
-/*! \class MessageAddressFetcher fetcher.h
-
-    The MessageAddressFetcher class is an implementation class
-    responsible for fetching the address fields of messages. It has no
-    API of its own; Fetcher is the entire API.
-*/
-
-
-PreparedStatement * MessageAddressFetcher::query() const
+void FetcherData::AddressDecoder::decode( Message * m, Row * r )
 {
-    return ::address;
-}
-
-
-void MessageAddressFetcher::decode( Message * m, Row * r )
-{
-    if ( r->isNull( "number" ) ) {
-        if ( fallbackNeeded.last() != m )
-            fallbackNeeded.append( m );
-        l.clear();
-        return;
-    }
     String part = r->getString( "part" );
     uint position = r->getInt( "position" );
 
@@ -366,8 +543,11 @@ void MessageAddressFetcher::decode( Message * m, Row * r )
         f = new AddressField( field );
         f->setPosition( position );
         h->add( f );
-        l.append( f );
     }
+    // we could save a bit of memory here if we keep a data structure
+    // in the decoder, so every address with ID 4321432 becomes a
+    // pointer to the same address, at least within the same
+    // fetch. hm.
     Utf8Codec u;
     Address * a = new Address( r->getUString( "name" ),
                                r->getString( "localpart" ),
@@ -376,52 +556,13 @@ void MessageAddressFetcher::decode( Message * m, Row * r )
 }
 
 
-void MessageAddressFetcher::setDone( Message * m )
+void FetcherData::AddressDecoder::setDone( Message * m )
 {
-    if ( fallbackNeeded.last() == m )
-        return;
-
-    l.clear();
-
     m->setAddressesFetched();
 }
 
 
-/*! This reimplementation uses Fetcher::execute() and uses done() to
-    check whether it needs to fall back to a MessageOldAddressFetcher
-    when it's done its own work.
-*/
-
-void MessageAddressFetcher::execute()
-{
-    Fetcher::execute();
-    if ( fallbackNeeded.isEmpty() )
-        return;
-    if ( !done() && d->smallest <= fallbackNeeded.last()->uid() )
-         return;
-    Fetcher * f = new MessageOldAddressFetcher( d->mailbox,
-                                                &fallbackNeeded, d->owner );
-    f->execute();
-    fallbackNeeded.clear();
-}
-
-
-
-/*! \class MessageFlagFetcher fetcher.h
-
-    The MessageFlagFetcher class is an implementation class
-    responsible for fetching the headers of messages. It has no API of
-    its own; Fetcher is the entire API.
-*/
-
-
-PreparedStatement * MessageFlagFetcher::query() const
-{
-    return ::flags;
-}
-
-
-void MessageFlagFetcher::decode( Message * m, Row * r )
+void FetcherData::FlagsDecoder::decode( Message * m, Row * r )
 {
     Flag * f = Flag::find( r->getInt( "flag" ) );
     if ( f ) {
@@ -435,35 +576,19 @@ void MessageFlagFetcher::decode( Message * m, Row * r )
     else {
         // XXX: consider this. best course of action may be to
         // silently ignore this flag for now. it's new, so we didn't
-        // announce it in the select response, either. maybe we should
-        // read the new flags, then invoke another MessageFlagFetcher.
+        // announce it in the select response, either.
     }
 }
 
 
-void MessageFlagFetcher::setDone( Message * m )
+void FetcherData::FlagsDecoder::setDone( Message * m )
 {
     m->setFlagsFetched( true );
 
 }
 
 
-
-/*! \class MessageBodyFetcher fetcher.h
-
-    The MessageBodyFetcher class is an implementation class
-    responsible for fetching the headers of messages. It has no API of
-    its own; Fetcher is the entire API.
-*/
-
-
-PreparedStatement * MessageBodyFetcher::query() const
-{
-    return ::body;
-}
-
-
-void MessageBodyFetcher::decode( Message * m, Row * r )
+void FetcherData::BodyDecoder::decode( Message * m, Row * r )
 {
     String part = r->getString( "part" );
 
@@ -499,35 +624,13 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
 }
 
 
-void MessageBodyFetcher::setDone( Message * m )
+void FetcherData::BodyDecoder::setDone( Message * m )
 {
     m->setBodiesFetched();
 }
 
-/*! \class MessageTriviaFetcher fetcher.h
 
-    The MessageTriviaFetcher class is an implementation class
-    responsible for fetching, ah, well, for fetching the IMAP
-    internaldate, modseq and rfc822.size.
-
-    It has no API of its own and precious little code; Fetcher is the
-    entire API.
-*/
-
-/*! \fn MessageTriviaFetcher::MessageTriviaFetcher( Mailbox * m )
-
-    Constructs a Fetcher to fetch two trivial, stupid little columns
-    for the messages in \a m.
-*/
-
-
-PreparedStatement * MessageTriviaFetcher::query() const
-{
-    return ::trivia;
-}
-
-
-void MessageTriviaFetcher::decode( Message * m , Row * r )
+void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
 {
     m->setInternalDate( r->getInt( "idate" ) );
     m->setRfc822Size( r->getInt( "rfc822size" ) );
@@ -536,25 +639,13 @@ void MessageTriviaFetcher::decode( Message * m , Row * r )
 }
 
 
-void MessageTriviaFetcher::setDone( Message * )
+void FetcherData::TriviaDecoder::setDone( Message * )
 {
     // hard work ;-)
 }
 
 
-/*! \class MessageAnnotationFetcher message.h
-
-    This class fetches the annotations for a message. Both the shared
-    annotations and all private annotations are fetched at once.
-*/
-
-PreparedStatement * MessageAnnotationFetcher::query() const
-{
-    return ::anno;
-}
-
-
-void MessageAnnotationFetcher::decode( Message * m, Row * r )
+void FetcherData::AnnotationDecoder::decode( Message * m, Row * r )
 {
     AnnotationName * an = AnnotationName::find( r->getInt( "id" ) );
     if ( !an ) {
@@ -575,39 +666,9 @@ void MessageAnnotationFetcher::decode( Message * m, Row * r )
 }
 
 
-void MessageAnnotationFetcher::setDone( Message * m )
+void FetcherData::AnnotationDecoder::setDone( Message * m )
 {
     m->setAnnotationsFetched();
-}
-
-
-/*! \class MessageOldAddressFetcher fetcher.h
-
-    Until shortly before 1.13, the Injector did not inject as many
-    address_fields rows as it should have. Because rectifying that in
-    the database turned out to be an impossibly large task, we do it
-    at read time. ("Impossibly large" means "a query took >24h to
-    deliver its first row and it was no fun at all").
-
-    If a message's address fields turn out to be incomplete when we
-    read them (we know this because two addresses both claim to be
-    first in the same list), MessageAddressFetcher switches to an
-    alternate header reader: This class.
-*/
-
-/*! The same as the query() in MessageHeaderFetcher, except that it
-    fetches the other header fields.
-*/
-
-PreparedStatement * MessageOldAddressFetcher::query() const
-{
-    return ::oldAddress;
-}
-
-
-void MessageOldAddressFetcher::setDone( Message * m )
-{
-    m->setAddressesFetched();
 }
 
 
@@ -638,6 +699,8 @@ public:
     may not be in a mailbox at all (e.g. bounces). It duplicates the
     actions of the other *Fetchers to a great extent, but that can't
     be avoided, because they require a mailbox and uid to function.
+
+    This class can be rewritten to use the new Fetcher fairly easily.
 */
 
 /*! Constructs a new MessageFetcher object to fetch the message with the
@@ -818,4 +881,61 @@ void MessageFetcher::execute()
         d->message->setBodiesFetched();
         d->owner->execute();
     }
+}
+
+
+/*! Instructs this Fetcher to fetch data of type \a t. */
+
+void Fetcher::fetch( Type t )
+{
+    switch ( t ) {
+    case Flags:
+        d->flags = true;
+        break;
+    case Annotations:
+        d->annotations = true;
+        break;
+    case Addresses:
+        d->addresses = true;
+        break;
+    case OtherHeader:
+        d->otherheader = true;
+        break;
+    case Body:
+        d->body = true;
+        break;
+    case Trivia:
+        d->trivia = true;
+        break;
+    }
+}
+
+
+/*! Returns true if this Fetcher will fetch (or is fetching) data of
+    type \a t. Returns false until fetch() has been called for \a t.
+*/
+
+bool Fetcher::fetching( Type t ) const
+{
+    switch ( t ) {
+    case Flags:
+        return d->flags;
+        break;
+    case Annotations:
+        return d->annotations;
+        break;
+    case Addresses:
+        return d->addresses;
+        break;
+    case OtherHeader:
+        return d->otherheader;
+        break;
+    case Body:
+        return d->body;
+        break;
+    case Trivia:
+        return d->trivia;
+        break;
+    }
+    return false; // not reached
 }

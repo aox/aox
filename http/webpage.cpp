@@ -624,15 +624,10 @@ void MessagePage::execute()
         List<Message> messages;
         messages.append( d->message );
 
-        Fetcher * f;
-
-        f = new MessageHeaderFetcher( m, &messages, this );
-        f->execute();
-
-        f = new MessageBodyFetcher( m, &messages, this );
-        f->execute();
-
-        f = new MessageAddressFetcher( m, &messages, this );
+        Fetcher * f = new Fetcher( m, &messages, this );
+        f->fetch( Fetcher::OtherHeader );
+        f->fetch( Fetcher::Body );
+        f->fetch( Fetcher::Addresses );
         f->execute();
     }
 
