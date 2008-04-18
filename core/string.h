@@ -99,6 +99,8 @@ public:
     void append( const char *, uint );
     void append( const char * );
 
+    void prepend( const String & );
+
     void reserve( uint );
     void reserve2( uint );
     void truncate( uint = 0 );

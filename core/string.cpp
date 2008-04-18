@@ -397,7 +397,8 @@ void String::append( const char * s )
 
 
 /*! \overload
-    This version of append() appends the single character \a c. */
+    This version of append() appends the single character \a c.
+*/
 
 void String::append( char c )
 {
@@ -405,6 +406,19 @@ void String::append( char c )
     d->str[d->len] = c;
     d->len++;
 }
+
+
+/*! Prepends \a other to this string. */
+
+void String::prepend( const String & other )
+{
+    if ( other.isEmpty() )
+        return;
+    reserve( length() + other.length() );
+    memmove( d->str + other.length(), d->str, length() );
+    memmove( d->str, other.d->str, other.length() );
+}
+
 
 void String::appendNumber( int n, int base )
 {
