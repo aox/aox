@@ -657,3 +657,8 @@ uint WebPage::uniqueNumber()
 {
     return ++d->uniq;
 }
+
+
+/*! \class StaticBlob webpage.h
+    A class to serve a static blob of content (e.g. jquery.js).
+*/
