@@ -2,8 +2,7 @@
 
 #include "messageset.h"
 
-#include "string.h"
-#include "list.h"
+#include "stringlist.h"
 
 
 class SetData
@@ -270,8 +269,9 @@ uint MessageSet::index( uint value ) const
 
 
 /*! Returns an SQL WHERE clause describing the set. No optimization is
-    done (yet). The "WHERE" prefix is not included, only e.g "uid>3 and
-    uid<77".
+    done (yet). The "WHERE" prefix is not included, only e.g "uid>3"
+    or "(uid>3 and uid<77)". The result contains enough parentheses to
+    be suitable for use with boolean logic directly.
 
     If \a table is non-empty, all column references are qualified with
     its value (i.e., table.column). \a table should not contain a
@@ -280,11 +280,13 @@ uint MessageSet::index( uint value ) const
 
 String MessageSet::where( const String & table ) const
 {
+    if ( isEmpty() )
+        return "";
+
     String n( "uid" );
     if ( !table.isEmpty() )
         n = table + ".uid";
-    String s;
-    s.reserve( 22*d->l.count() );
+    StringList cl;
 
     List< SetData::Range >::Iterator it( d->l );
     while ( it ) {
@@ -304,20 +306,26 @@ String MessageSet::where( const String & table ) const
             p = n + "<" + fn( 1+r->length );
         }
         else {
-            p = "(" + n + ">=" + fn( r->start ) + " and " +
-                n + "<" + fn( r->start + r->length ) + ")";
+            bool simple = true;
+            if ( !cl.isEmpty() || !isRange() )
+                simple = false;
+            if ( !simple )
+                p = "(";
+            p.append( n + ">=" + fn( r->start ) + " and " +
+                      n + "<" + fn( r->start + r->length ) );
+            if ( !simple )
+                p.append( ")" );
         }
-        if ( !s.isEmpty() )
-            s.append( " or " );
-        s.append( p );
+        cl.append( p );
 
         ++it;
     }
-    // look at me! look at me! I optimize!
-    if ( s.startsWith( "(" ) && s.endsWith( ")" ) &&
-         !s.mid( 1 ).contains( "(" ) )
-        // oooh! I remove the unnecessary parens!
-        s = s.mid( 1, s.length()-2 );
+    if ( cl.count() == 1 )
+        return *cl.firstElement();
+    String s;
+    s.append( "(" );
+    s.append( cl.join( " or " ) );
+    s.append( ")" );
     return s;
 }
 
