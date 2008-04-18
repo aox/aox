@@ -571,7 +571,7 @@ void Command::respond( const String & r, Response t )
         d->responses->append( tmp );
     }
     else {
-        StringList::Iterator i( d->responses );
+        StringList::Iterator i = d->responses->last();
         while ( i && i->startsWith( "* " ) )
             ++i;
         d->responses->insert( i, tmp );
