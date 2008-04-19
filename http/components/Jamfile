@@ -16,4 +16,5 @@ Build http :
     viewlist.cpp
     editview.cpp
     addview.cpp
+    webmailindex.cpp
     ;

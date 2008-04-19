@@ -26,6 +26,7 @@
 #include "components/viewlist.h"
 #include "components/editview.h"
 #include "components/addview.h"
+#include "components/webmailindex.h"
 
 
 class LinkData
@@ -351,6 +352,7 @@ static WebPage * archiveMessage( Link * link )
 static WebPage * webmailMailboxes( Link * link )
 {
     WebPage * p = new WebPage( link );
+    p->addComponent( new WebmailIndex );
     p->addComponent( new MailboxList );
     p->addComponent( new ViewList );
     p->addComponent( new EditView );
