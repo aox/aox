@@ -269,15 +269,14 @@ void ArchiveSearch::sendQueries()
 
 void ArchiveSearch::setTitle()
 {
-    FrontMatter * title = new FrontMatter;
-    title->append( "<title>" );
+    FrontMatter * title = new FrontMatter( "title" );
     List<ArchiveSearchData::SearchTerm>::Iterator i( d->terms );
     while ( i ) {
         title->append( quoted( i->term ) );
         title->append( ' ' );
         ++i;
     }
-    title->append( "- search results</title>" );
+    title->append( "- search results" );
     addFrontMatter( title );
 }
 

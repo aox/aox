@@ -10,11 +10,19 @@ class FrontMatter
     : public String
 {
 public:
-    static FrontMatter * styleSheet();
+    FrontMatter( const String & );
+
+    String element() const;
+
     static FrontMatter * title( const String & );
-    static FrontMatter * jsToggles();
+    static FrontMatter * styleSheet();
+    static FrontMatter * style( const String & );
     static FrontMatter * jQuery();
     static FrontMatter * script( const String & );
+    static FrontMatter * jsToggles();
+
+private:
+    class FrontMatterData * d;
 };
 
 

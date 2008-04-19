@@ -80,8 +80,7 @@ void ArchiveMessage::execute()
         return;
 
     if ( d->link == page()->link() ) {
-        FrontMatter * n = new FrontMatter;
-        n->append( "<title>" );
+        FrontMatter * n = new FrontMatter( "title" );
         String subject = d->message->header()->subject(); // XXX UString
         if ( subject.length() > 20 ) {
             int space = subject.find( ' ', 15 );
@@ -112,7 +111,6 @@ void ArchiveMessage::execute()
             }
             n->append( ")" );
         }
-        n->append( "</title>" );
         addFrontMatter( n );
     }
 

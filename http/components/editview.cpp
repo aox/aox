@@ -14,7 +14,6 @@
 EditView::EditView()
     : PageComponent( "editview" )
 {
-    addFrontMatter( FrontMatter::jQuery() );
 }
 
 

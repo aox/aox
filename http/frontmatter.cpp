@@ -6,6 +6,14 @@
 #include "pagecomponent.h"
 
 
+class FrontMatterData
+    : public Garbage
+{
+public:
+    String element;
+};
+
+
 /*! \class FrontMatter frontmatter.h
     Provides front matter needed to render the rest of a WebPage.
 
@@ -15,20 +23,44 @@
 
     PageComponent constructors call PageComponent::addFrontMatter() on
     the FrontMatter objects they need, and the WebPage includes their
-    contents in the <HEAD> section while rendering itself.
-
-    For example, the title() function returns a FrontMatter object whose
-    String value is "<title>sometitle</title>". Other functions include
-    a styleSheet(), declare necessary Javascript functions, and so on.
+    contents (wrapped appropriately, according to the element() name)
+    in the <head> section while rendering itself.
 */
+
+/*! Creates a new FrontMatter object for the specified \a element. */
+
+FrontMatter::FrontMatter( const String & element )
+    : d( new FrontMatterData )
+{
+    d->element = element;
+}
+
+
+/*! Returns this object's element name, as specified to the
+    constructor. */
+
+String FrontMatter::element() const
+{
+    return d->element;
+}
+
+
+/*! Returns a title element for \a s, which will be HTML quoted. */
+
+FrontMatter * FrontMatter::title( const String & s )
+{
+    FrontMatter * fm = new FrontMatter( "title" );
+    fm->append( PageComponent::quoted( s ) );
+    return fm;
+}
+
 
 /*! Returns a link to the stylesheet. */
 
 FrontMatter * FrontMatter::styleSheet()
 {
-    FrontMatter * fm = new FrontMatter;
+    FrontMatter * fm = new FrontMatter( "style" );
 
-    fm->append( "<style type=\"text/css\">\n" );
     fm->append( "@import url(\"" );
     fm->append( Configuration::text( Configuration::WebmailCSS ) );
     fm->append( "\");\n" );
@@ -49,22 +81,41 @@ FrontMatter * FrontMatter::styleSheet()
                 ".hidden{display:none;}\n"
                 ".njshidden{display:none;}\n" );
 
-    fm->append( "</style>" );
-
     return fm;
 }
 
 
-/*! Returns a title element for \a s, which will be HTML quoted. */
+/*! Returns an object that contains \a s and belongs inside a <style>
+    element. */
 
-FrontMatter * FrontMatter::title( const String & s )
+FrontMatter * FrontMatter::style( const String &s )
 {
-    FrontMatter * fm = new FrontMatter;
+    FrontMatter * fm = new FrontMatter( "style" );
+    fm->append( s );
+    fm->append( "\n" );
+    return fm;
+}
 
-    fm->append( "<title>" );
-    fm->append( PageComponent::quoted( s ) );
-    fm->append( "</title>" );
 
+/*! Returns a link to the (compressed) jquery source. */
+
+FrontMatter * FrontMatter::jQuery()
+{
+    FrontMatter * fm = new FrontMatter( "script" );
+    fm->append( "<script type=\"text/javascript\" "
+                "src=\"http://www.archiveopteryx.org/webmail/jquery.js\">"
+                "</script>\n" );
+    return fm;
+}
+
+
+/*! Returns a <script> element wrapping the given code \a s. */
+
+FrontMatter * FrontMatter::script( const String &s )
+{
+    FrontMatter * fm = new FrontMatter( "script" );
+    fm->append( s );
+    fm->append( "\n" );
     return fm;
 }
 
@@ -73,11 +124,7 @@ FrontMatter * FrontMatter::title( const String & s )
 
 FrontMatter * FrontMatter::jsToggles()
 {
-    // XXX: This thing should require the stylesheet frontmatter.
-
-    FrontMatter * fm = new FrontMatter;
-
-    fm->append( "<script language=javascript type=\"text/javascript\">\n" );
+    FrontMatter * fm = new FrontMatter( "script" );
 
     // Define a useJS function to change the stylesheet to make the js
     // and njs classes work if JavaScript is enabled.
@@ -138,36 +185,5 @@ FrontMatter * FrontMatter::jsToggles()
                 "}\n"
                 "}\n" );
 
-    fm->append( "</script>" );
-
-    return fm;
-}
-
-
-/*! Returns a link to the (compressed) jquery source. */
-
-FrontMatter * FrontMatter::jQuery()
-{
-    FrontMatter * fm = new FrontMatter;
-
-    fm->append( "<script type=\"text/javascript\" "
-                "src=\"http://www.archiveopteryx.org/webmail/jquery.js\">"
-                "</script>" );
-
-    return fm;
-}
-
-
-/*! Returns a <script> element wrapping the given code \a s. */
-
-FrontMatter * FrontMatter::script( const String &s )
-{
-    FrontMatter * fm = new FrontMatter;
-    fm->append( "<script language=javascript type=\"text/javascript\">\n" );
-    // fm->append( "// <!--\n" );
-    fm->append( s );
-    fm->append( "\n" );
-    // fm->append( "// -->\n" );
-    fm->append( "</script>" );
     return fm;
 }

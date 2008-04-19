@@ -209,20 +209,29 @@ void WebPage::execute()
 /*! Returns the text formed by assembling the contents of all of the
     FrontMatter objects required by the components of this page. The
     return value is meaningful only when all the components are done
-    executing.
+    executing; and it is meant for inclusion in the HEAD section of
+    an HTML page.
 */
 
 String WebPage::frontMatter() const
 {
+    String title;
+    String style;
+    String script;
     List<FrontMatter> frontMatter;
-
-    frontMatter.append( FrontMatter::styleSheet() );
 
     List<PageComponent>::Iterator it( d->components );
     while ( it ) {
         List<FrontMatter>::Iterator f( it->frontMatter() );
         while ( f ) {
-            frontMatter.append( f );
+            if ( f->element() == "title" && title.isEmpty() )
+                title = *f;
+            else if ( f->element() == "style" )
+                style.append( *f );
+            else if ( f->element() == "script" )
+                script.append( *f );
+            else
+                frontMatter.append( f );
             ++f;
         }
         ++it;
@@ -230,10 +239,25 @@ String WebPage::frontMatter() const
 
     String s;
 
+    s.append( "<title>" );
+    s.append( title );
+    s.append( "</title>\n" );
+
+    s.append( "<style type=\"text/css\">\n" );
+    s.append( *FrontMatter::styleSheet() );
+    s.append( style );
+    s.append( "</style>\n" );
+
+    if ( !script.isEmpty() ) {
+        s.append( *FrontMatter::jQuery() );
+        s.append( "<script type=\"text/javascript\">\n" );
+        s.append( script );
+        s.append( "</script>\n" );
+    }
+
     List<FrontMatter>::Iterator f( frontMatter );
     while ( f ) {
         s.append( *f );
-        s.append( "\n" );
         ++f;
     }
 
