@@ -33,6 +33,17 @@ void WebmailIndex::execute()
             "  $(\"div.editview\").hide();\n"
             "  $(\"input#toggleMailboxes\").click(switchtab);\n"
             "  $(\"input#toggleViews\").click(switchtab);\n"
+            "  $(\"input#addview\").click(function () {\n"
+            "    $.post( \"/webmail/archiveopteryx/views/add\",\n"
+            "            { view: $(\"input[name=view]\").val(),\n"
+            "              source: $(\"input[name=source]\").val(),\n"
+            "              selector: $(\"input[name=selector]\").val() },\n"
+            "            function (data, status) {\n"
+            "              $(\"addview\").text(data);\n"
+            "              $(\"div.viewlist\").load(\"/webmail/archiveopteryx/views/list\");\n"
+            "            } );\n"
+            "    return false;\n"
+            "  });\n"
             "});"
         )
     );
