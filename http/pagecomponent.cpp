@@ -12,7 +12,7 @@ class PageComponentData
 {
 public:
     PageComponentData()
-        : status( 200 ), page( 0 )
+        : status( 200 ), page( 0 ), done( false )
     {}
 
     uint status;
@@ -20,6 +20,7 @@ public:
     String contents;
     List<FrontMatter> frontMatter;
     WebPage * page;
+    bool done;
 };
 
 
@@ -44,7 +45,7 @@ PageComponent::PageComponent( const String & divClass )
 
 bool PageComponent::done() const
 {
-    return !d->contents.isEmpty();
+    return d->done;
 }
 
 
@@ -108,6 +109,7 @@ String PageComponent::contents() const
 
 void PageComponent::setContents( const String & s )
 {
+    d->done = true;
     d->contents = s;
     if ( d->page )
         d->page->execute();
