@@ -149,8 +149,6 @@ bool WebPage::finished() const
 }
 
 
-
-
 /*! Adds the PageComponent \a pc to this WebPage. If \a after is
     present and non-null, \a pc is added immediately after \a
     after. If \a after is null (this is the default), \a pc is added
@@ -208,6 +206,41 @@ void WebPage::execute()
 }
 
 
+/*! Returns the text formed by assembling the contents of all of the
+    FrontMatter objects required by the components of this page. The
+    return value is meaningful only when all the components are done
+    executing.
+*/
+
+String WebPage::frontMatter() const
+{
+    List<FrontMatter> frontMatter;
+
+    frontMatter.append( FrontMatter::styleSheet() );
+
+    List<PageComponent>::Iterator it( d->components );
+    while ( it ) {
+        List<FrontMatter>::Iterator f( it->frontMatter() );
+        while ( f ) {
+            frontMatter.append( f );
+            ++f;
+        }
+        ++it;
+    }
+
+    String s;
+
+    List<FrontMatter>::Iterator f( frontMatter );
+    while ( f ) {
+        s.append( *f );
+        s.append( "\n" );
+        ++f;
+    }
+
+    return s;
+}
+
+
 /*! Returns the text formed by concatenating the contents of all of this
     page's constituent components. The return value is not meaningful if
     PageComponent::done() is not true for all of the components.
@@ -234,35 +267,16 @@ String WebPage::componentText() const
 
 String WebPage::contents() const
 {
-    List<FrontMatter> frontMatter;
-
-    frontMatter.append( FrontMatter::styleSheet() );
-
-    List<PageComponent>::Iterator it( d->components );
-    while ( it ) {
-        List<FrontMatter>::Iterator f( it->frontMatter() );
-        while ( f ) {
-            frontMatter.append( f );
-            ++f;
-        }
-        ++it;
-    }
-
     String html(
         "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">\n"
-        "<html><head>\n"
     );
 
-    List<FrontMatter>::Iterator f( frontMatter );
-    while ( f ) {
-        html.append( *f );
-        html.append( "\n" );
-        ++f;
-    }
-
+    html.append( "<html><head>\n" );
+    html.append( frontMatter() );
     html.append( "</head><body>\n" );
     html.append( componentText() );
-    html.append( "</body>\n" );
+    html.append( "</body></html>\n" );
+
     return html;
 }
 

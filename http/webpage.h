@@ -40,6 +40,7 @@ public:
     uint uniqueNumber();
 
 protected:
+    String frontMatter() const;
     String componentText() const;
     virtual String contents() const;
     virtual void handleAuthentication();
