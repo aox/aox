@@ -211,7 +211,9 @@ String HtmlForm::html() const
             s.append( "><br>\n" );
         }
         else if ( it->type == "submit" ) {
-            s.append( "<input type=submit" );
+            s.append( "<input id=" );
+            s.append( it->name.quoted() );
+            s.append( " type=submit" );
             if ( !v.isEmpty() ) {
                 s.append( " value=" );
                 s.append( v.ascii().quoted() );
