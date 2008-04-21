@@ -522,8 +522,12 @@ void Postgres::process( char type )
                 String command;
                 if ( cc )
                     command = cc->tag().section( " ", 1 );
-                if ( cc && !q->rows() )
-                    q->setRows( cc->tag().section( " ", 2 ).number( 0 ) );
+                if ( cc && !q->rows() ) {
+                    uint an = 2;
+                    if ( command == "INSERT" )
+                        an = 3;
+                    q->setRows( cc->tag().section( " ", an ).number( 0 ) );
+                }
                 if ( q->rows() ||
                      command == "SELECT" || command == "FETCH" ||
                      command == "INSERT" || command == "UPDATE" ) {
