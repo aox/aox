@@ -667,20 +667,18 @@ void Command::emitResponses()
 
     if ( s )
         s->emitResponses();
+    emitUntaggedResponses();
 
     if ( d->taggedMovedTo ) {
         Command * other = this;
         while ( other->d->taggedMovedTo )
             other = other->d->taggedMovedTo;
         List< String >::Iterator it( d->responses );
-        while ( it && it->startsWith( "* " ) )
+        while ( it ) {
+            other->d->responses->append( it );
             ++it;
-        if ( !it ) { // should not happen, but...
-            d->emittingResponses = false;
-            return;
         }
-        other->d->responses->append( it );
-        d->responses->take( it );
+        d->responses = 0;
     }
 
     if ( d->responses )
@@ -697,7 +695,7 @@ void Command::emitResponses()
 /*! Removes this command's tagged response and moves it to \a
     other. This rather dangerous function is used by the ImapSession
     in order to sneak \a other in between this command's untagged
-    responses and ita tagged final response.
+    responses and its tagged final response.
 */
 
 void Command::moveTaggedResponseTo( Command * other )
@@ -712,13 +710,18 @@ void Command::moveTaggedResponseTo( Command * other )
 
 void Command::emitUntaggedResponses()
 {
+    uint n = 0;
     List< String >::Iterator it( d->responses );
     while ( it && it->startsWith( "* " ) ) {
         imap()->enqueue( *it );
         d->responses->take( it );
+        n++;
     }
 
     imap()->write();
+
+    if ( n > 20 )
+        log( "Untagged responses: " + fn( n ), Log::Debug );
 }
 
 
