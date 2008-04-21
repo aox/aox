@@ -49,7 +49,7 @@ public:
         : public EventHandler
     {
     public:
-        Decoder(): q( 0 ), d( 0 ) {}
+        Decoder(): q( 0 ), d( 0 ), a( 0 ) {}
         void execute();
         void shift();
         virtual void decode( Message *, Row * ) = 0;
@@ -305,23 +305,40 @@ void Fetcher::execute()
 
     bool simple = false;
 
+    StringList what;
+    what.append( new String( "Data type(s): " ) );
     uint n = 0;
-    if ( d->flags )
+    if ( d->flags ) {
         n++;
-    if ( d->annotations )
+        what.append( "flags" );
+    }
+    if ( d->annotations ) {
         n++;
-    if ( d->addresses )
+        what.append( "annotations" );
+    }
+    if ( d->addresses ) {
         n++;
-    if ( d->otherheader )
+        what.append( "addresses" );
+    }
+    if ( d->otherheader ) {
         n++;
-    if ( d->body )
+        what.append( "otherheader" );
+    }
+    if ( d->body ) {
         n++;
-    if ( d->trivia )
+        what.append( "body" );
+    }
+    if ( d->trivia ) {
         n++;
+        what.append( "trivia" );
+    }
     if ( n < 1 ) {
         // nothing to do.
         return;
     }
+    
+    log( "Fetching data for " + fn( d->messages.count() ) + " messages" );
+    log( what.join( " " ) );
 
     MessageSet s;
     List<Message>::Iterator i( d->messages );
