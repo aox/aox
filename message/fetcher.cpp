@@ -51,11 +51,13 @@ public:
     public:
         Decoder(): q( 0 ), d( 0 ) {}
         void execute();
+        void shift();
         virtual void decode( Message *, Row * ) = 0;
         virtual void setDone( Message * ) = 0;
         Query * q;
         FetcherData * d;
         List<Message> messages;
+        uint a;
     };
 
     Query * decoder( const String & s, Decoder * d ) {
@@ -474,7 +476,7 @@ void FetcherData::Decoder::execute()
             while ( !messages.isEmpty() &&
                     messages.firstElement()->uid() < uid ) {
                 setDone( messages.firstElement() );
-                messages.shift();
+                shift();
             }
             if ( !messages.isEmpty() )
                 m = messages.firstElement();
@@ -490,9 +492,24 @@ void FetcherData::Decoder::execute()
     // in smaller chunks.
     while ( !messages.isEmpty() ) {
         setDone( messages.firstElement() );
-        messages.shift();
+        shift();
     }
     d->f->execute();
+}
+
+
+
+void FetcherData::Decoder::shift()
+{
+    messages.shift();    
+    a++;
+    if ( a < 128 && !messages.isEmpty() )
+        return;
+    a = 0;
+    // if !messages.isEmpty() and a special flags is set: return.  and
+    // set that flag for all but the presumably slowest/last fetcher.
+    if ( d->owner )
+        d->owner->execute();
 }
 
 
