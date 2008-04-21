@@ -27,6 +27,7 @@ public:
           flags( false ), annotations( false ),
           addresses( false ), otherheader( false ),
           body( false ), trivia( false ),
+          partnumbers( false ),
           f( 0 )
     {}
 
@@ -42,6 +43,7 @@ public:
     bool otherheader;
     bool body;
     bool trivia;
+    bool partnumbers;
 
     Fetcher * f;
 
@@ -117,8 +119,17 @@ public:
         void setDone( Message * );
     };
 
-    class BodyDecoder
+    class PartNumberDecoder
         : public Decoder
+    {
+    public:
+        PartNumberDecoder() {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+    };
+
+    class BodyDecoder
+        : public PartNumberDecoder
     {
     public:
         BodyDecoder() {}
@@ -176,6 +187,7 @@ static String queryText( Fetcher::Type t,
                   "order by m.uid, h.part" );
         break;
     case Fetcher::Body:
+        // this implicitly also fetches PartNumbers, below...
         r.append( "select m.uid, p.part, b.text, b.data, "
                   "b.bytes as rawbytes, p.bytes, p.lines "
                   "from " );
@@ -183,6 +195,14 @@ static String queryText( Fetcher::Type t,
         r.append( " m join part_numbers p using (message) "
                   "left join bodyparts b on (p.bodypart=b.id) "
                   "where b.id is not null "
+                  "order by m.uid, p.part" );
+        break;
+    case Fetcher::PartNumbers:
+        //... but PartNumbers is available on its own for more speed
+        r.append( "select m.uid, p.part, p.bytes, p.lines "
+                  "from " );
+        r.append( source );
+        r.append( " m join part_numbers p using (message) "
                   "order by m.uid, p.part" );
         break;
     case Fetcher::Trivia:
@@ -332,6 +352,10 @@ void Fetcher::execute()
         n++;
         what.append( "trivia" );
     }
+    if ( d->partnumbers && !d->body ) {
+        n++;
+        what.append( "bytes/lines" );
+    }
     if ( n < 1 ) {
         // nothing to do.
         return;
@@ -371,14 +395,8 @@ void Fetcher::execute()
         // the numbers above need tweaking.
         simple = true;
     
-    // for now we'll just set simple and use the one that
-    // works. really complex fetches will need the transaction, and
-    // really big fetches will need to retrieve data using smallish
-    // FETCHes, but I want to submit.
-    simple = true;
-
     if ( simple ) {
-        // need just use a query or two. or three.
+        // a query or two. or three.
         String t = "(select mailbox, message, uid "
                    "from mailbox_messages "
                    "where mailbox=$1 and " + s.where() + ")";
@@ -401,6 +419,9 @@ void Fetcher::execute()
         if ( d->body )
             d->q->append( d->decoder( queryText( Body, t, "" ),
                                       new FetcherData::BodyDecoder ) );
+        if ( d->partnumbers && !d->body )
+            d->q->append( d->decoder( queryText( PartNumbers, t, "" ),
+                                      new FetcherData::PartNumberDecoder ) );
         List<Query>::Iterator i( d->q );
         while ( i ) {
             i->bind( 1, d->mailbox->id() );
@@ -421,7 +442,7 @@ void Fetcher::execute()
         q = new Query( "insert into matching_messages (mailbox, message, uid) "
                        "select mailbox, message, uid "
                        "from mailbox_messages "
-                       "where mailbox=$1 and (" + s.where() + ")",
+                       "where mailbox=$1 and " + s.where(),
                        0 );
         q->bind( 1, d->mailbox->id() );
         d->t->enqueue( q );
@@ -443,6 +464,9 @@ void Fetcher::execute()
                                       0 ) );
         if ( d->body )
             d->t->enqueue( new Query( queryText( Body, f, "bc" ),
+                                      0 ) );
+        if ( d->partnumbers && !d->body )
+            d->t->enqueue( new Query( queryText( PartNumbers, f, "bc" ),
                                       0 ) );
 
         // strictly speaking we need to fetch about 1000-10000 rows at
@@ -475,6 +499,9 @@ void Fetcher::execute()
         if ( d->body )
             d->t->enqueue( d->decoder( "fetch all from bc",
                                        new FetcherData::BodyDecoder ) );
+        if ( d->partnumbers && !d->body )
+            d->t->enqueue( d->decoder( "fetch all from bc",
+                                       new FetcherData::PartNumberDecoder ) );
         d->t->commit();
     }
 }
@@ -644,6 +671,39 @@ void FetcherData::FlagsDecoder::setDone( Message * m )
 
 void FetcherData::BodyDecoder::decode( Message * m, Row * r )
 {
+    PartNumberDecoder::decode( m, r );
+
+    String part = r->getString( "part" );
+
+    if ( !part.endsWith( ".rfc822" ) ) {
+        Bodypart * bp = m->bodypart( part, true );
+
+        if ( !r->isNull( "data" ) )
+            bp->setData( r->getString( "data" ) );
+        else if ( !r->isNull( "text" ) )
+            bp->setText( r->getUString( "text" ) );
+
+        if ( !r->isNull( "rawbytes" ) )
+            bp->setNumBytes( r->getInt( "rawbytes" ) );
+        if ( !r->isNull( "bytes" ) )
+            bp->setNumEncodedBytes( r->getInt( "bytes" ) );
+        if ( !r->isNull( "lines" ) )
+            bp->setNumEncodedLines( r->getInt( "lines" ) );
+    }
+
+        
+}
+
+
+void FetcherData::BodyDecoder::setDone( Message * m )
+{
+    m->setBodiesFetched();
+    m->setBytesAndLinesFetched();
+}
+
+
+void FetcherData::PartNumberDecoder::decode( Message * m, Row * r )
+{
     String part = r->getString( "part" );
 
     if ( part.endsWith( ".rfc822" ) ) {
@@ -663,24 +723,19 @@ void FetcherData::BodyDecoder::decode( Message * m, Row * r )
     else {
         Bodypart * bp = m->bodypart( part, true );
 
-        if ( !r->isNull( "data" ) )
-            bp->setData( r->getString( "data" ) );
-        else if ( !r->isNull( "text" ) )
-            bp->setText( r->getUString( "text" ) );
-
-        if ( !r->isNull( "rawbytes" ) )
-            bp->setNumBytes( r->getInt( "rawbytes" ) );
         if ( !r->isNull( "bytes" ) )
             bp->setNumEncodedBytes( r->getInt( "bytes" ) );
         if ( !r->isNull( "lines" ) )
             bp->setNumEncodedLines( r->getInt( "lines" ) );
     }
+
+        
 }
 
 
-void FetcherData::BodyDecoder::setDone( Message * m )
+void FetcherData::PartNumberDecoder::setDone( Message * m )
 {
-    m->setBodiesFetched();
+    m->setBytesAndLinesFetched();
 }
 
 
@@ -957,9 +1012,13 @@ void Fetcher::fetch( Type t )
         break;
     case Body:
         d->body = true;
+        d->partnumbers = true; // implicitly
         break;
     case Trivia:
         d->trivia = true;
+        break;
+    case PartNumbers:
+        d->partnumbers = true;
         break;
     }
 }
@@ -989,6 +1048,9 @@ bool Fetcher::fetching( Type t ) const
         break;
     case Trivia:
         return d->trivia;
+        break;
+    case PartNumbers:
+        return d->partnumbers;
         break;
     }
     return false; // not reached

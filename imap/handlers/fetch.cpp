@@ -55,7 +55,7 @@ public:
           internaldate( false ), rfc822size( false ),
           annotation( false ), modseq( false ),
           needsHeader( false ), needsAddresses( false ),
-          needsBody( false )
+          needsBody( false ), needsPartNumbers( false )
     {}
 
     int state;
@@ -82,6 +82,7 @@ public:
     bool needsHeader;
     bool needsAddresses;
     bool needsBody;
+    bool needsPartNumbers;
 
     StringList entries;
     StringList attribs;
@@ -207,8 +208,8 @@ void Fetch::parse()
         // cases, so we need both here too.
         d->needsHeader = true;
         d->needsAddresses = true;
-        // and we even need the bodies, for numEncodedLines() and friends
-        d->needsBody = true;
+        // and we even need some data about the bodies
+        d->needsPartNumbers = true;
     }
     if ( !ok() )
         return;
@@ -224,6 +225,8 @@ void Fetch::parse()
         l.append( "flags" );
     if ( d->rfc822size || d->internaldate || d->modseq )
         l.append( "trivia" );
+    if ( d->needsPartNumbers )
+        l.append( "bytes/lines" );
     if ( d->annotation )
         l.append( "annotations" );
     log( l.join( " " ) );
@@ -672,6 +675,7 @@ void Fetch::execute()
                  ( !d->needsAddresses || m->hasAddresses() ) &&
                  ( !d->needsHeader || m->hasHeaders() ) &&
                  ( !d->needsBody || m->hasBodies() ) &&
+                 ( !d->needsPartNumbers || m->hasBytesAndLines() ) &&
                  ( !d->flags || m->hasFlags() ) &&
                  ( ( !d->rfc822size && !d->internaldate && !d->modseq )
                    || m->hasTrivia() ) &&
@@ -738,6 +742,8 @@ void Fetch::sendFetchQueries()
         f->fetch( Fetcher::OtherHeader );
     if ( d->needsBody )
         f->fetch( Fetcher::Body );
+    if ( d->needsPartNumbers )
+        f->fetch( Fetcher::PartNumbers );
     if ( d->flags )
         f->fetch( Fetcher::Flags );
     if ( d->rfc822size || d->internaldate || d->modseq )
@@ -768,6 +774,8 @@ String Fetch::sectionData( Section * s, Message * m )
         bool rfc822 = s->id == "rfc822.header";
         bool fields = s->id.startsWith( "header.fields" );
         bool exclude = s->id.endsWith( ".not" );
+
+        data.reserve( 80 * s->fields.count() ); // suboptimal for .not, but...
 
         Header * hdr = m->header();
         if ( !s->part.isEmpty() ) {
@@ -925,11 +933,16 @@ static String sectionResponse( Section * s, Message * m )
     String data( Fetch::sectionData( s, m ) );
     if ( !s->item.startsWith( "BINARY.SIZE" ) )
         data = Command::imapQuoted( data, Command::NString );
-    return s->item + " " + data;
+    String r;
+    r.reserve( data.length() + s->item.length() + 1 );
+    r.append( s->item );
+    r.append( " " );
+    r.append( data );
+    return r;
 }
 
 
-/*! Emits a single FETCH response for the messae \a m, which is
+/*! Emits a single FETCH response for the message \a m, which is
     trusted to have UID \a uid and MSN \a msn.
 
     The message must have all necessary content.
@@ -965,15 +978,11 @@ void Fetch::sendFetchResponse( Message * m, uint uid, uint msn )
     }
 
     String r;
+    String payload = l.join( " " );
+    r.reserve( payload.length() + 30 );
     r.append( fn( msn ) );
     r.append( " FETCH (" );
-    StringList::Iterator i( l );
-    while ( i ) {
-        r.append( *i );
-        ++i;
-        if ( i )
-            r.append( " " );
-    }
+    r.append( payload );
     r.append( ")" );
     respond( r );
 }
@@ -985,23 +994,21 @@ void Fetch::sendFetchResponse( Message * m, uint uid, uint msn )
 
 String Fetch::flagList( Message * m, uint uid, Session * session )
 {
-    String r;
+    StringList r;
 
     if ( session && session->isRecent( uid ) )
-        r = "\\recent";
+        r.append( "\\recent" );
 
     List<Flag> * f = m->flags();
     if ( f && !f->isEmpty() ) {
         List<Flag>::Iterator it( f );
         while ( it ) {
-            if ( !r.isEmpty() )
-                r.append( " " );
             r.append( it->name() );
             ++it;
         }
     }
 
-    return r;
+    return r.join( " " );
 }
 
 
@@ -1020,7 +1027,9 @@ static String hf( Header * f, HeaderField::Type t )
     List<Address> * a = f->addresses( t );
     if ( !a || a->isEmpty() )
         return "NIL ";
-    String r( "(" );
+    String r;
+    r.reserve( 50 );
+    r.append( "(" );
     List<Address>::Iterator it( a );
     while ( it ) {
         r.append( "(" );
@@ -1063,7 +1072,9 @@ String Fetch::envelope( Message * m )
     //                env-sender SP env-reply-to SP env-to SP env-cc SP
     //                env-bcc SP env-in-reply-to SP env-message-id ")"
 
-    String r( "(" );
+    String r;
+    r.reserve( 300 );
+    r.append( "(" );
 
     Date * date = h->date();
     if ( date )
@@ -1104,7 +1115,10 @@ static String parameterString( MimeField *mf )
         ++it;
     }
 
-    return "(" + l.join( " " ) + ")";
+    String r = l.join( " " );
+    r.prepend( "(" );
+    r.append( ")" );
+    return r;
 }
 
 
@@ -1142,7 +1156,10 @@ static String languageString( ContentLanguage *cl )
 
     if ( l->count() == 1 )
         return *m.first();
-    return "(" + m.join( " " ) + ")";
+    String r = m.join( " " );
+    r.prepend( "(" );
+    r.append( ")" );
+    return r;
 }
 
 
@@ -1166,8 +1183,10 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
             ++it;
         }
 
-        r = "(" + children.join( "" ) +
-            " " + imapQuoted( ct->subtype() );
+        r = children.join( "" );
+        r.prepend( "(" );
+        r.append( " " );
+        r.append( imapQuoted( ct->subtype() ));
 
         if ( extended ) {
             r.append( " " );
@@ -1273,7 +1292,10 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
         l.append( imapQuoted( mp->header()->contentLocation(), NString ) );
     }
 
-    return "(" + l.join( " " ) + ")";
+    String r = l.join( " " );
+    r.prepend( "(" );
+    r.append( ")" );
+    return r;
 }
 
 

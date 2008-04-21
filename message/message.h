@@ -58,11 +58,13 @@ public:
     bool hasTrivia() const;
     bool hasBodies() const;
     bool hasAnnotations() const;
+    bool hasBytesAndLines() const;
     void setFlagsFetched( bool );
     void setHeadersFetched();
     void setBodiesFetched();
     void setAnnotationsFetched();
     void setAddressesFetched();
+    void setBytesAndLinesFetched();
 
     void replaceAnnotation( class Annotation * );
 

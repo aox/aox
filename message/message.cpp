@@ -27,8 +27,8 @@ public:
         : strict( false ), uid( 0 ), mailbox( 0 ), annotations( 0 ),
           rfc822Size( 0 ), internalDate( 0 ), modseq( 0 ),
           hasFlags( false ), hasHeaders( false ), hasAddresses( false ),
-          hasBodies( false ), hasAnnotations( false )
-
+          hasBodies( false ), hasAnnotations( false ),
+          hasBytesAndLines( false )
     {}
 
     bool strict;
@@ -49,6 +49,7 @@ public:
     bool hasAddresses: 1;
     bool hasBodies: 1;
     bool hasAnnotations: 1;
+    bool hasBytesAndLines : 1;
 };
 
 
@@ -1071,6 +1072,26 @@ bool Message::hasAddresses() const
 void Message::setAddressesFetched()
 {
     d->hasAddresses = true;
+}
+
+
+/*! Returns true if setBytesAndLinesFetched() has been called, false
+    otherwise.
+*/
+
+bool Message::hasBytesAndLines() const
+{
+    return d->hasBytesAndLines;
+}
+
+
+/*! Notifies this message that its Bodypart objects know their
+    Bodypart::numEncodedBytes() and Bodypart::numEncodedLines().
+*/
+
+void Message::setBytesAndLinesFetched()
+{
+    d->hasBytesAndLines = true;
 }
 
 

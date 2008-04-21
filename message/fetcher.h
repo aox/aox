@@ -27,6 +27,7 @@ public:
         Addresses,
         OtherHeader,
         Body,
+        PartNumbers,
         Trivia
     };
 
