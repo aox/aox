@@ -104,6 +104,7 @@ public:
     void setError( const String & );
 
     uint rows() const;
+    void setRows( uint );
     bool hasResults() const;
     void addRow( Row * );
     Row *nextRow();
