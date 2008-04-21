@@ -557,13 +557,27 @@ void Query::setError( const String &s )
 }
 
 
-/*! Returns the number of rows received from the server in response to
-    this Query.
+/*! Returns the number of rows processed by this Query. This is
+    normally the number of rows received from the server in response
+    to this Query, but can also be e.g. the number of rows injected.
 */
 
 uint Query::rows() const
 {
     return d->totalRows;
+}
+
+
+/*! Informs this Query that the proper value of rows() is \a r. Should
+    not be called unless the Query is completely processed.
+
+    Used by Postgres to help queries like "insert into ... select ..."
+    return a helpful value of rows().
+*/
+
+void Query::setRows( uint r )
+{
+    d->totalRows = r;
 }
 
 

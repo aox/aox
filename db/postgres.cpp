@@ -522,21 +522,14 @@ void Postgres::process( char type )
                 String command;
                 if ( cc )
                     command = cc->tag().section( " ", 1 );
-                if ( q->rows() || command == "SELECT" || command == "FETCH" ) {
+                if ( cc && !q->rows() )
+                    q->setRows( cc->tag().section( " ", 2 ).number( 0 ) );
+                if ( q->rows() ||
+                     command == "SELECT" || command == "FETCH" ||
+                     command == "INSERT" || command == "UPDATE" ) {
                     s.append( " (with " );
                     s.append( fn( q->rows() ) );
                     s.append( " rows)" );
-                }
-                else if ( cc ) {
-                    bool ok = false;
-                    uint rows = cc->tag().section( " ", 2 ).number( &ok );
-                    if ( ok && ( rows ||
-                                 command == "INSERT" ||
-                                 command == "UPDATE" ) ) {
-                        s.append( " (affected " );
-                        s.append( fn( rows ) );
-                        s.append( " rows)" );
-                    }
                 }
                 ::log( s, Log::Info );
                 if ( !q->done() ) {
