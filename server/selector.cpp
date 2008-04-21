@@ -272,7 +272,7 @@ void Selector::simplify()
     else if ( d->a == Contains && d->f == Uid ) {
         if ( d->s.isEmpty() )
             d->a = None; // contains d->a set of nonexistent messages
-        else if ( d->s.where() == "uid>=1" )
+        else if ( d->s.where() == "(uid>=1)" )
             d->a = All; // contains any messages at all
     }
     else if ( d->a == Contains ) {
@@ -894,26 +894,7 @@ String Selector::whereUid()
     if ( d->s.isEmpty() )
         return "false";
 
-    if ( !d->s.isRange() )
-        return "(" + d->s.where( "mm" ) + ")";
-
-    // if we can, use a placeholder, so we can prepare a statement (we
-    // don't at the moment, but it'll help).
-    if ( d->s.count() == 1 ) {
-        uint value = placeHolder();
-        root()->d->query->bind( value, d->s.value( 1 ) );
-        return "mm.uid=$" + fn( value );
-    }
-
-    uint min = d->s.value( 1 );
-    uint max = d->s.largest();
-    uint minp = placeHolder();
-    root()->d->query->bind( minp, min );
-    if ( max == UINT_MAX )
-        return "mm.uid>=$" + fn( minp );
-    uint maxp = placeHolder();
-    root()->d->query->bind( maxp, max );
-    return "(mm.uid>=$" + fn( minp ) + " and mm.uid<=$" + fn( maxp ) + ")";
+    return d->s.where( "mm" );
 }
 
 
