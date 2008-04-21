@@ -306,15 +306,8 @@ String MessageSet::where( const String & table ) const
             p = n + "<" + fn( 1+r->length );
         }
         else {
-            bool simple = true;
-            if ( !cl.isEmpty() || !isRange() )
-                simple = false;
-            if ( !simple )
-                p = "(";
-            p.append( n + ">=" + fn( r->start ) + " and " +
-                      n + "<" + fn( r->start + r->length ) );
-            if ( !simple )
-                p.append( ")" );
+            p = "(" + n + ">=" + fn( r->start ) + " and " +
+                n + "<" + fn( r->start + r->length ) + ")";
         }
         cl.append( p );
 
@@ -456,22 +449,37 @@ String MessageSet::set() const
     other, and the numbers just above and below the gap are in this
     set.
 
-    At first glance, this function's performance is O(n*n) where n is
-    the number of gaps. However, in practice almost every case is
-    O(n), because the way index() is used in this function, index()
-    tends to be O(1) instead of O(n).
+    This function is slow if \a other contains many gaps.
+
+    Note that it is not safe to use this function for writing to the
+    database. The database may contain rows with UIDs that aren't in
+    \a other. This is harmless if we use the result to fetch data
+    (we'll get some data we don't need, and which we'll discard once
+    we discover we have no MSN for it), but could be dangerous if we
+    write.
 */
 
 void MessageSet::addGapsFrom( const MessageSet & other )
 {
-    List< SetData::Range >::Iterator it( other.d->l );
-    while ( it ) {
-        uint last = it->start + it->length - 1;
-        ++it;
-        if ( it ) {
-            uint i = index( last );
-            if ( i && i+1 == index( it->start ) )
-                add( last+1, it->start-1 );
+    if ( other.isEmpty() )
+        return;
+    if ( isEmpty() || isRange() )
+        return;
+
+    if ( other.smallest() > 1 && contains( other.smallest() ) )
+        add( 1, other.smallest() - 1 );
+    
+    List<SetData::Range>::Iterator i( other.d->l );
+    while ( i ) {
+        uint before = i->start + i->length - 1;
+        ++i;
+        if ( i ) {
+            uint after = i->start;
+            if ( contains( before ) && contains( after ) )
+                add( before+1, after-1 );
         }
     }
+
+    if ( other.largest() < UINT_MAX && contains( other.largest() ) )
+        add( other.largest() + 1, UINT_MAX );
 }
