@@ -226,7 +226,7 @@ static String queryText( Fetcher::Type t,
                       "from " );
             r.append( source );
             r.append( " m2 join mailbox_messages mm using (mailbox,uid) "
-                      "join messages m on (m2.mailbox=m.id) "
+                      "join messages m on (m2.message=m.id) "
                       "order by mm.uid" );
         }
         break;
@@ -466,7 +466,7 @@ void Fetcher::execute()
             d->t->enqueue( new Query( queryText( Body, f, "bc" ),
                                       0 ) );
         if ( d->partnumbers && !d->body )
-            d->t->enqueue( new Query( queryText( PartNumbers, f, "bc" ),
+            d->t->enqueue( new Query( queryText( PartNumbers, f, "pnc" ),
                                       0 ) );
 
         // strictly speaking we need to fetch about 1000-10000 rows at
@@ -500,7 +500,7 @@ void Fetcher::execute()
             d->t->enqueue( d->decoder( "fetch all from bc",
                                        new FetcherData::BodyDecoder ) );
         if ( d->partnumbers && !d->body )
-            d->t->enqueue( d->decoder( "fetch all from bc",
+            d->t->enqueue( d->decoder( "fetch all from pnc",
                                        new FetcherData::PartNumberDecoder ) );
         d->t->commit();
     }
