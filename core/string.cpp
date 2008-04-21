@@ -877,7 +877,7 @@ bool String::endsWith( const char * suffix ) const
     default the number is encoded in base 10, if \a base is specified
     that base is used. \a base must be at least 2 and at most 36.
 
-    If the number is invalid (e.g. negative), the return value is undefined.
+    If the number is invalid (e.g. negative), number() returns 0.
 
     If \a ok is a null pointer, it is not modified.
 */
@@ -916,6 +916,9 @@ uint String::number( bool * ok, uint base ) const
 
         i++;
     }
+
+    if ( !good )
+        n = 0;
 
     if ( ok )
         *ok = good;
