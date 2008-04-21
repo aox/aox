@@ -8,6 +8,7 @@
 #include "bodypart.h"
 #include "mailbox.h"
 #include "message.h"
+#include "session.h"
 #include "ustring.h"
 #include "query.h"
 #include "scope.h"
@@ -326,6 +327,22 @@ void Fetcher::execute()
         s.add( i->uid() );
         ++i;
     }
+    if ( !s.isRange() && s.count() > 64 ) {
+        // if s.where() contains complex boolean logic and more than a
+        // few numbers, we'll benefit from simplifying it. so we look
+        // for the most recently updated session, and use its UID gaps
+        // to simplify s.
+        Session * best = 0;
+        List<Session>::Iterator it( d->mailbox->sessions() );
+        while ( it ) {
+            if ( !best || best->nextModSeq() < it->nextModSeq() )
+                best = it;
+            ++it;
+        }
+        if ( best )
+            s.addGapsFrom( best->messages() );
+    }
+
     if ( n == 1 )
         // it really is simple
         simple = true;
