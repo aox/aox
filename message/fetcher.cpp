@@ -337,8 +337,8 @@ void Fetcher::execute()
         return;
     }
     
-    log( "Fetching data for " + fn( d->messages.count() ) + " messages" );
-    log( what.join( " " ) );
+    log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
+         what.join( " " ) );
 
     MessageSet s;
     List<Message>::Iterator i( d->messages );
@@ -523,6 +523,9 @@ void FetcherData::Decoder::shift()
     if ( a < 128 && !messages.isEmpty() )
         return;
     a = 0;
+    log( "Have fetched until " + ( messages.isEmpty() 
+                                   ? "the end"
+                                   : fn( messages.firstElement()->uid() ) ) );
     // if !messages.isEmpty() and a special flags is set: return.  and
     // set that flag for all but the presumably slowest/last fetcher.
     if ( d->owner )
