@@ -867,12 +867,13 @@ void Header::repair( Multipart * p, const String & body )
         Header * h = this;
         List<Address> * a = 0;
         while ( ( h || parent ) && !a ) {
-            a = h->addresses( HeaderField::From );
-            if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
+            if ( h )
+                a = h->addresses( HeaderField::From );
+            if ( h && ( !a || a->first()->type() != Address::Normal ) )
                 a = h->addresses( HeaderField::ReturnPath );
-            if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
+            if ( h && ( !a || a->first()->type() != Address::Normal ) )
                 a = h->addresses( HeaderField::Sender );
-            if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
+            if ( h && ( !a || a->first()->type() != Address::Normal ) )
                 a = 0;
             if ( parent )
                 parent = parent->parent();
