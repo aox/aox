@@ -417,6 +417,7 @@ void String::prepend( const String & other )
     reserve( length() + other.length() );
     memmove( d->str + other.length(), d->str, length() );
     memmove( d->str, other.d->str, other.length() );
+    setLength( length() + other.length() );
 }
 
 
