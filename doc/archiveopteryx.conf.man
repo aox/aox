@@ -156,10 +156,11 @@ The format (three octal digits) is the same as that used by
 may be set to
 .IR debug ,
 .IR info ,
+.IR significant ,
 or
 .IR error ,
 in increasing order of severity (it is
-.I info
+.I significant
 by default). If a message is logged with this severity or above, the log
 server writes it to the logfile immediately. Messages with lower severity
 are discarded.

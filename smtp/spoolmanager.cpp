@@ -143,7 +143,8 @@ void SpoolManager::execute()
             }
 
             if ( !d->client->error().isEmpty() ) {
-                log( "Couldn't connect to smarthost. Ending queue run" );
+                log( "Couldn't connect to smarthost. Ending queue run.",
+                     Log::Significant );
                 d->client = 0;
                 reset();
                 d->t = new Timer( this, 300 );

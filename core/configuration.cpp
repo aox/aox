@@ -206,7 +206,7 @@ static struct {
     { "tls-certificate", Configuration::TlsCertFile, "" },
     { "tls-certificate-label", Configuration::TlsCertLabel, "" },
     { "tls-certificate-secret", Configuration::TlsCertSecret, "secret" },
-    { "log-level", Configuration::LogLevel, "info" },
+    { "log-level", Configuration::LogLevel, "significant" },
     { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
     { "archive-prefix", Configuration::ArchivePrefix, "" },
     { "webmail-prefix", Configuration::WebmailPrefix, "/webmail" },

@@ -364,7 +364,7 @@ static void newCommand( List< PopCommand > * l, POP * pop,
 
 void POP::setUser( User * u )
 {
-    log( "Authenticated as user " + u->login().ascii() );
+    log( "Authenticated as user " + u->login().ascii(), Log::Significant );
     SaslConnection::setUser( u );
 }
 

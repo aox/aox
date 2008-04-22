@@ -1842,6 +1842,10 @@ void Injector::insertDeliveries()
     if ( !d->remoteRecipients )
         return;
 
+    log( "Spooling message " + fn( d->messageId ) + " for delivery to " +
+         fn( d->remoteRecipients->count() ) + " remote recipients",
+         Log::Significant );
+
     Query * q =
         new Query( "insert into deliveries "
                    "(sender,message,injected_at,expires_at) "
@@ -2038,7 +2042,7 @@ void Injector::logMessageDetails()
     List< Uid >::Iterator mi( d->mailboxes );
     while ( mi ) {
         log( "Injecting message " + id + "into mailbox " +
-             mi->mailbox->name().ascii() );
+             mi->mailbox->name().ascii(), Log::Significant );
         ++mi;
     }
 }

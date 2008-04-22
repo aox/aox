@@ -52,7 +52,7 @@ public:
             Connection *c = new T(s);
             c->setState( Connected );
             log( "Accepted new " + svc + " connection from " +
-                 c->peer().string(), i ? Log::Debug : Log::Info );
+                 c->peer().string(), i ? Log::Debug : Log::Significant );
         }
     }
 

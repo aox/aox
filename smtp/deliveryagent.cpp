@@ -467,8 +467,10 @@ uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
     }
 
     if ( dsn->allOk() ) {
-        log( "Delivered successfully to " +
-             fn( handled ) + " recipients" );
+        if ( handled )
+            log( "Delivered message " + fn( d->messageId ) +
+                 " successfully to " + fn( handled ) + " recipients",
+                 Log::Significant );
         if ( !::messagesSent )
             ::messagesSent = new GraphableCounter( "messages-sent" );
         ::messagesSent->tick();
