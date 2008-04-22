@@ -158,7 +158,8 @@ void EventLoop::start()
     while ( !d->stop ) {
         if ( !haveLoggedStartup && !inStartup() &&
              !Scope::current()->log()->disastersYet() ) {
-            log( Server::name() + ": Server startup complete", Log::Significant );
+            if ( !Server::name().isEmpty() )
+                log( Server::name() + ": Server startup complete", Log::Significant );
             haveLoggedStartup = true;
         }
 
@@ -267,9 +268,7 @@ void EventLoop::start()
                 }
             }
             else {
-                log( Server::name() + ": select() returned errno " +
-                     fn( errno ),
-                     Log::Disaster );
+                log( "select() returned errno " + fn( errno ), Log::Disaster );
                 return;
             }
         }
