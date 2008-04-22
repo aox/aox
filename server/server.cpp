@@ -656,7 +656,9 @@ void Server::run()
 
 String Server::name()
 {
-    return d->name;
+    if ( d )
+        return d->name;
+    return "";
 }
 
 
