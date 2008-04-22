@@ -1,18 +1,22 @@
-2.08: 2008-04-07
+2.09: 2008-05-12
 
-  Web UI for setting up views. Also (less importantly) aox arguments
-  for setting up views.
+  Just bugfixes.
 
-  Persuading ImapSession to do its flag updates using Store.  Move the
-  SeenFlagSetter into ImapSession and delay setting \seen until we
-  have to.
 
-  Investigate Martin Rode's 3gb aox process. Update: Lots and lots of
-  STATUS EXISTS would cause that.
+3.0.0: ?
 
-  If the above sounds exactly like the plan for 2.07, perhaps it is.
+  log-level default changed to significant, some 
 
-  Restricting the use of SMTP submit, adding configuration. Perhaps:
+  Digest-MD5 disabled by default due to interoperability problems, can
+  be enabled if desirable.
+
+  IMAP VIEW command removed, views remain supported.
+
+  PIDFILEDIR is now $(PREFIX)/lib/pidfiles. (Is this really a good
+  idea?)
+
+  Not done: Restricting the use of SMTP submit, adding
+  configuration. Perhaps:
   - a new toggle to decide whether problems with smtp submit cause 5xx
     after DATA or a bounce
   - a new toggle to decide whether the From field must point to some
@@ -25,17 +29,9 @@
     where the logged-in user is explicitly permitted to use the
     from/sender/etc addresses.
 
-  nagios integration script
+  Not done: sharing transactions in the injector.
 
-  2008-02-29: decide on feature list
-  2008-03-24: drop things that can't be finished
-  2008-03-31: fork and remove unusable code
-  2008-04-03: roll, release chores
-  2008-04-04: features for next release
-  2008-04-07: release
-
-  Done:
-  - IMAP commands don't freeze
+  Not done: Views on the web.
 
 Release cycle
 
@@ -160,6 +156,16 @@ Various TODO items from earlier releases.
   aox backup/restore (or similarly helpful procedure)
 
   Full-text search
+
+
+The \Answered flag
+
+  We could add a little code to help that flag.
+
+  1. Disallow clearing it once set.
+  2. Set it on messages when we see an outgoing reply.
+
+  This would make it easier to force archiving.
 
 
 Not enough name resolution: db-address=localhost doesn't work.
@@ -444,8 +450,6 @@ Deleting mailbox has unclear semantics now
 
 3.0 changes
 
-  - Don't announce digest-md5 by default.
-  - PIDFILEDIR should be $(PREFIX)/lib/pidfiles.
 
 
 MULTIAPPEND
@@ -914,11 +918,6 @@ BURL
   part needs encoding. Or else switch to a different body.
 
 
-NOTIFY implementation
-
-  Going there...
-
-
 Cybertec replicator
 
   Is it good? What are people saying about it? What should we do about it?
@@ -927,12 +926,6 @@ Cybertec replicator
   *egeschwinde* When I have time I will test your product on our
   multimaster cluster
   *egeschwinde* maybe also on the queuing system
-
-
-DIGEST-MD5 reauth doesn't work for Dave Cridland
-
-  (I haven't tried to reproduce it yet, because Polymer needs more
-  Python stuff installed than I had the patience for.)
 
 
 Delaying seen-flag setting

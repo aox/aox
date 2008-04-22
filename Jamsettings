@@ -37,7 +37,7 @@ INITDIR = $(LIBDIR) ;
 
 # Where to write pid files for the servers
 #
-PIDFILEDIR ?= /var/run/oryx ;
+PIDFILEDIR ?= $(PREFIX)/lib/pidfiles ;
 
 # The servers chroot to an empty, unreadable jail directory at
 # startup.
