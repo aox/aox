@@ -1438,8 +1438,8 @@ void configFile()
     );
 
     String other(
-        "# Uncomment the next line to log more debugging information.\n"
-        "# log-level = debug\n"
+        "# Uncomment the next line to log more (or set it to debug for even more).\n"
+        "# log-level = info\n"
         "\n"
         "# Specify the hostname if Archiveopteryx gets it wrong at runtime.\n"
         "# (We suggest not using the name \"localhost\".)\n"
