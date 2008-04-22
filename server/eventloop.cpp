@@ -151,10 +151,17 @@ void EventLoop::start()
 {
     Scope x( d->log );
     time_t gc = time(0);
+    bool haveLoggedStartup = false;
 
     log( "Starting event loop", Log::Debug );
 
     while ( !d->stop ) {
+        if ( !haveLoggedStartup && !inStartup() &&
+             !Scope::current()->log()->disastersYet() ) {
+            log( Server::name() + ": Server startup complete", Log::Significant );
+            haveLoggedStartup = true;
+        }
+
         Connection * c;
 
         uint timeout = INT_MAX;
