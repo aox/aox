@@ -1898,12 +1898,19 @@ String String::wrapped( uint linelength,
     slow and allocates much memory. Could be optimised if it ever
     shows up on the performance graphs.
 
+    \a a must not be empty.
+
     Replaced sections are not considered when looking for the next
     match.
 */
 
 void String::replace( const String & a, const String & b )
 {
+    if ( a == b)
+        return; // noop
+    if ( a.isEmpty() )
+        return; // infinite loop
+    
     int i = find( a );
     while ( i >= 0 ) {
         String r = mid( i+a.length() );
