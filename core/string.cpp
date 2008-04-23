@@ -1892,3 +1892,24 @@ String String::wrapped( uint linelength,
     }
     return result;
 }
+
+
+/*! Replaces all occurences of \a a in this strng with \a b. Rather
+    slow and allocates much memory. Could be optimised if it ever
+    shows up on the performance graphs.
+
+    Replaced sections are not considered when looking for the next
+    match.
+*/
+
+void String::replace( const String & a, const String & b )
+{
+    int i = find( a );
+    while ( i >= 0 ) {
+        String r = mid( i+a.length() );
+        truncate( i );
+        append( b );
+        append( r );
+        i = find( a, i + b.length() );
+    }
+}
