@@ -92,6 +92,8 @@ public:
     bool containsWord( const String & ) const;
     String section( const String &, uint ) const;
 
+    void replace( const String &, const String & );
+
     void append( char );
     void appendNumber( int, int = 10 );
     void appendNumber( uint, int = 10 );
