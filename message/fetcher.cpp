@@ -395,6 +395,9 @@ void Fetcher::execute()
         // the numbers above need tweaking.
         simple = true;
     
+    // to make things work now
+    simple = true;
+    
     if ( simple ) {
         // a query or two. or three.
         String t = "(select mailbox, message, uid "
