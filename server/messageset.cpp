@@ -283,6 +283,18 @@ String MessageSet::where( const String & table ) const
     if ( isEmpty() )
         return "";
 
+    MessageSet singles;
+    if ( !isRange() ) {
+        List< SetData::Range >::Iterator it( d->l );
+        while ( it ) {
+            if ( it->length == 1 )
+                singles.add( it->start );
+            ++it;
+        }
+        if ( singles.count() < 4 )
+            singles.clear();
+    }
+
     String n( "uid" );
     if ( !table.isEmpty() )
         n = table + ".uid";
@@ -292,11 +304,11 @@ String MessageSet::where( const String & table ) const
     while ( it ) {
         SetData::Range *r = it;
         String p;
+        ++it;
 
-        // we're missing the case where the set goes up to *, and the
-        // case where two ranges can be merged due to holes.
         if ( r->length == 1 ) {
-            p = n + "=" + fn( r->start );
+            if ( singles.isEmpty() )
+                p = n + "=" + fn( r->start );
         }
         else if ( r->start + r->length < r->start ) {
             // integer wraparound.
@@ -309,10 +321,11 @@ String MessageSet::where( const String & table ) const
             p = "(" + n + ">=" + fn( r->start ) + " and " +
                 n + "<" + fn( r->start + r->length ) + ")";
         }
-        cl.append( p );
-
-        ++it;
+        if ( !p.isEmpty() )
+            cl.append( p );
     }
+    if ( !singles.isEmpty() )
+        cl.append( n + " in (" + singles.set() + ")" ); // ouch. but it works.
     if ( cl.count() == 1 )
         return *cl.firstElement();
     String s;
