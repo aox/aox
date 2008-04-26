@@ -606,7 +606,10 @@ static void handleError( int cryptError, const String & function )
         s.append( ", locus: " + cryptlibLocus( locus ) );
     if ( type )
         s.append( ", type: " + cryptlibType( type ) );
-    ::log( s, Log::Disaster );
+    if ( cryptError == CRYPT_ERROR_TIMEOUT )
+        ::log( s );
+    else
+        ::log( s, Log::Disaster );
 
     int errorStringLength;
     status = cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
