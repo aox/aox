@@ -563,6 +563,7 @@ void Command::respond( const String & r, Response t )
     else {
         *tmp = "*";
     }
+    tmp->reserve( r.length() + 10 );
     tmp->append( " " );
     tmp->append( r );
     tmp->append( "\r\n" );
