@@ -31,6 +31,8 @@ public:
                               const StringList &,
                               const StringList & );
 
+    void trickle();
+
 private:
     void parseAttribute( bool );
     void parseFetchModifier();
@@ -42,7 +44,7 @@ private:
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
     String singlePartStructure( Multipart *, bool );
-    void sendFetchResponse( Message *, uint, uint );
+    void makeFetchResponse( Message *, uint, uint );
 
 private:
     class FetchData * d;

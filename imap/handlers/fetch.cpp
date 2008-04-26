@@ -22,6 +22,7 @@
 #include "query.h"
 #include "scope.h"
 #include "store.h"
+#include "timer.h"
 #include "imap.h"
 #include "flag.h"
 #include "date.h"
@@ -49,6 +50,7 @@ public:
     FetchData()
         : state( 0 ), peek( true ),
           changedSince( 0 ), notThose( 0 ),
+          timer( 0 ), responseRate( 1 ),
           uid( false ),
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
@@ -63,8 +65,22 @@ public:
     MessageSet set;
     MessageSet expunged;
     List<Message> requested;
+    StringList available;
     int64 changedSince;
     Query * notThose;
+
+    class ResponseTrickler
+        : public EventHandler
+    {
+    public:
+        ResponseTrickler( Fetch * fetch )
+            : EventHandler(), f( fetch ) { setLog( Scope::current()->log() ); }
+        void execute() { f->trickle(); }
+
+        Fetch * f;
+    };
+    Timer * timer;
+    uint responseRate;
 
     // we want to ask for...
     bool uid;
@@ -668,6 +684,7 @@ void Fetch::execute()
         }
 
         bool ok = true;
+        bool made = false;
         while ( ok && !d->requested.isEmpty() ) {
             Message * m = d->requested.first();
             uint msn = s->msn( m->uid() );
@@ -683,21 +700,24 @@ void Fetch::execute()
             {
                 if ( d->flags )
                     imap()->session()->addFlags( m->flags(), this );
-                sendFetchResponse( m, m->uid(), msn );
+                makeFetchResponse( m, m->uid(), msn );
+                made = true;
                 d->requested.shift();
             }
             else {
-                log( "Stopped processing at UID " + fn( m->uid() ) +
-                     " (" + fn( d->requested.count() ) + " messages to go)",
+                log( "Stopped processing at UID " + fn( m->uid() ),
                      Log::Debug );
                 ok = false;
             }
         }
 
-        // in the case of fetch, we sometimes have thousands of responses,
-        // so it's important to push the first responses to the client as
-        // quickly as possible.
-        emitUntaggedResponses();
+        if ( made ) {
+            uint r = d->available.count() / 20;
+            if ( r > d->responseRate ) {
+                log( "Increasing response rate to " + fn( r ), Log::Debug );
+                d->responseRate = r;
+            }
+        }
 
         if ( !d->requested.isEmpty() )
             return;
@@ -707,6 +727,15 @@ void Fetch::execute()
             d->state = 5;
         else
             d->state = 3;
+    }
+
+    if ( d->requested.isEmpty() ) {
+        StringList::Iterator i( d->available );
+        while ( i ) {
+            respond( *i );
+            ++i;
+        }
+        d->available.clear();
     }
 
     if ( !d->expunged.isEmpty() ) {
@@ -751,6 +780,10 @@ void Fetch::sendFetchQueries()
     if ( d->annotation )
         f->fetch( Fetcher::Annotations );
     f->execute();
+
+    FetchData::ResponseTrickler * t = new FetchData::ResponseTrickler( this );
+    d->timer = new Timer( t, 1 );
+    d->timer->setRepeating( true );
 }
 
 
@@ -948,7 +981,7 @@ static String sectionResponse( Section * s, Message * m )
     The message must have all necessary content.
 */
 
-void Fetch::sendFetchResponse( Message * m, uint uid, uint msn )
+void Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
 {
     StringList l;
     if ( d->uid )
@@ -977,14 +1010,14 @@ void Fetch::sendFetchResponse( Message * m, uint uid, uint msn )
         ++it;
     }
 
-    String r;
+    String * r = new String;
     String payload = l.join( " " );
-    r.reserve( payload.length() + 30 );
-    r.append( fn( msn ) );
-    r.append( " FETCH (" );
-    r.append( payload );
-    r.append( ")" );
-    respond( r );
+    r->reserve( payload.length() + 30 );
+    r->append( fn( msn ) );
+    r->append( " FETCH (" );
+    r->append( payload );
+    r->append( ")" );
+    d->available.append( r );
 }
 
 
@@ -1526,4 +1559,36 @@ void FetchData::SeenFlagSetter::execute()
     o = 0;
     t = 0;
     messages.clear();
+}
+
+
+/*! Sends one or a few responses to the client per second, then calls
+    execute(). Execute will adjust the response rate so that we
+    generally keep impatient IMAP clients happy and never seem to
+    actually slow down (we may speed up).
+*/
+
+void Fetch::trickle()
+{
+    if ( state() == Finished || state() == Retired ) {
+        delete d->timer;
+        d->timer = 0;
+        return;
+    }
+
+    if ( d->available.isEmpty() ) {
+        if ( d->responseRate > 1 )
+            log( "Resetting response rate to 1", Log::Debug );
+        d->responseRate = 1;
+        return;
+    }
+
+    uint r = 0;
+    while ( r < d->responseRate && !d->available.isEmpty() ) {
+        respond( *d->available.firstElement() );
+        d->available.shift();
+        r++;
+    }
+    emitUntaggedResponses();
+    execute();
 }
