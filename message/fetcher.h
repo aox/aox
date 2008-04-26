@@ -20,6 +20,7 @@ class Fetcher
 {
 public:
     Fetcher( Mailbox *, List<Message> *, EventHandler * );
+    Fetcher( uint, Message *, EventHandler * );
 
     enum Type {
         Flags,
@@ -42,21 +43,13 @@ public:
 
 private:
     class FetcherData * d;
-};
-
-
-class MessageFetcher
-    : public EventHandler
-{
-public:
-    MessageFetcher( uint, EventHandler * );
-
-    Message * message() const;
-
-    void execute();
 
 private:
-    class MessageFetcherData * d;
+    void start();
+    void findMessages();
+    void prepareBatch();
+    void makeQueries();
+    void waitForEnd();
 };
 
 

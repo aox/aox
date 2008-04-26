@@ -52,7 +52,8 @@ public:
     void setError( const String & );
 
     Query * query( class User *, class Mailbox *,
-                   class Session *, class EventHandler * );
+                   class Session *, class EventHandler *,
+                   bool = true, class StringList * = 0 );
 
     void simplify();
 

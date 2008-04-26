@@ -398,12 +398,21 @@ void Selector::simplify()
     wrong, in which case error() contains a description of the problem.
     The Selector is expressed as SQL in the context of the specified
     \a user and \a session. The \a owner will be notified of query
-    results. The \a mailbox to search is passed in separately, because
+    results.
+    
+    The \a mailbox to search is passed in separately, because
     we can't use the Session's mailbox while building views.
+
+    The search results will be ordered if \a order is true (this is
+    the default). Each Query Row will have the result columns named in
+    \a wanted, or "uid", "modseq", "message" and "idate" if \a wanted
+    is left at the default value.
+
 */
 
 Query * Selector::query( User * user, Mailbox * mailbox,
-                         Session * session, EventHandler * owner )
+                         Session * session, EventHandler * owner,
+                         bool order, StringList * wanted )
 {
     d->query = new Query( owner );
     d->user = user;
@@ -411,8 +420,12 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
-    String q = "select distinct mm.uid, mm.modseq, mm.message, mm.idate "
-               "from mailbox_messages mm";
+    String q = "select distinct mm.";
+    if ( wanted )
+        q.append( wanted->join( ", mm." ) );
+    else
+        q.append( "uid, mm.modseq, mm.message, mm.idate" );
+    q.append( " from mailbox_messages mm" );
     String w = where();
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );
@@ -434,7 +447,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     q.append( fn( d->mboxId ) );
     if ( !w.isEmpty() && w != "true" )
         q.append( " and " + w );
-    q.append( " order by mm.uid" );
+    if ( order )
+        q.append( " order by mm.uid" );
 
     if ( d->needBodyparts )
         d->query->allowSlowness();

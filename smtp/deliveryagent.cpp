@@ -258,11 +258,13 @@ Query * DeliveryAgent::fetchDelivery( uint messageId )
 
 Message * DeliveryAgent::fetchMessage( uint messageId )
 {
-    MessageFetcher * f =
-        new MessageFetcher( messageId, this );
-
+    Message * m = new Message;
+    Fetcher * f = new Fetcher( messageId, m, this );
+    f->fetch( Fetcher::Addresses );
+    f->fetch( Fetcher::OtherHeader );
+    f->fetch( Fetcher::Body );
     f->execute();
-    return f->message();
+    return m;
 }
 
 
