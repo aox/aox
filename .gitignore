@@ -1,0 +1,5 @@
+bin
+build
+*.inc
+doc/man
+doc/html
