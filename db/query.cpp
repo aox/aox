@@ -975,3 +975,15 @@ class Log * Query::log() const
         l = d->transaction->owner()->log();
     return l;
 }
+
+
+/*! Returns true if this Row contains a column named \a n, and false
+    otherwise.
+*/
+
+bool Row::hasColumn( const char * n ) const
+{
+    if ( findColumn( n ) >= 0 )
+        return true;
+    return false;
+}

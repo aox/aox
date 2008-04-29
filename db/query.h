@@ -155,6 +155,8 @@ public:
     UString getUString( uint ) const;
     UString getUString( const char * ) const;
 
+    bool hasColumn( const char * ) const;
+
 private:
     uint n;
     Column *columns;
