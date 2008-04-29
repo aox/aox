@@ -977,13 +977,17 @@ class Log * Query::log() const
 }
 
 
-/*! Returns true if this Row contains a column named \a n, and false
+/*! Returns true if this Row contains a column named \a f, and false
     otherwise.
 */
 
-bool Row::hasColumn( const char * n ) const
+bool Row::hasColumn( const char * f ) const
 {
-    if ( findColumn( n ) >= 0 )
-        return true;
+    uint i = 0;
+    while ( i < n ) {
+        if ( columns[i].name == f )
+            return true;
+        i++;
+    }
     return false;
 }
