@@ -35,6 +35,9 @@ public:
     void setMailbox( const Mailbox * );
     const Mailbox * mailbox() const;
 
+    void setDatabaseId( uint );
+    uint databaseId() const;
+
     bool isMessage() const;
 
     Bodypart * bodypart( const String &, bool create = false );

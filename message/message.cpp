@@ -24,7 +24,8 @@ class MessageData
 {
 public:
     MessageData()
-        : strict( false ), uid( 0 ), mailbox( 0 ), annotations( 0 ),
+        : strict( false ), uid( 0 ), mailbox( 0 ), databaseId( 0 ),
+          annotations( 0 ),
           rfc822Size( 0 ), internalDate( 0 ), modseq( 0 ),
           hasFlags( false ), hasHeaders( false ), hasAddresses( false ),
           hasBodies( false ), hasAnnotations( false ),
@@ -36,6 +37,7 @@ public:
 
     uint uid;
     const Mailbox * mailbox;
+    uint databaseId;
 
     List<Annotation> * annotations;
 
@@ -1111,4 +1113,25 @@ void Message::addMessageId()
     header()->add( "Message-Id",
                    "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" +
                    Configuration::hostname() + ">" );
+}
+
+
+/*! Records that this message's database ID is \a id. This corresponds
+    to the id column in the messages row.
+
+*/
+
+void Message::setDatabaseId( uint id )
+{
+    d->databaseId = id;
+}
+
+
+/*! Records what setDatabaseId() recorded, or 0 if setDatabaseId() has
+    not been called for this object.
+*/
+
+uint Message::databaseId() const
+{
+    return d->databaseId;
 }

@@ -259,7 +259,8 @@ Query * DeliveryAgent::fetchDelivery( uint messageId )
 Message * DeliveryAgent::fetchMessage( uint messageId )
 {
     Message * m = new Message;
-    Fetcher * f = new Fetcher( messageId, m, this );
+    m->setDatabaseId( messageId );
+    Fetcher * f = new Fetcher( m, this );
     f->fetch( Fetcher::Addresses );
     f->fetch( Fetcher::OtherHeader );
     f->fetch( Fetcher::Body );

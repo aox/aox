@@ -20,7 +20,7 @@ class Fetcher
 {
 public:
     Fetcher( Mailbox *, List<Message> *, EventHandler * );
-    Fetcher( uint, Message *, EventHandler * );
+    Fetcher( Message *, EventHandler * );
 
     enum Type {
         Flags,
@@ -50,6 +50,7 @@ private:
     void prepareBatch();
     void makeQueries();
     void waitForEnd();
+    MessageSet * findUids();
 };
 
 
