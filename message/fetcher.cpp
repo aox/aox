@@ -1,7 +1,6 @@
 #include "fetcher.h"
 
 #include "addressfield.h"
-#include "transaction.h"
 #include "messageset.h"
 #include "annotation.h"
 #include "allocator.h"
@@ -533,6 +532,7 @@ void Fetcher::prepareBatch()
     // carefully counts expected rows rather than affected Message
     // objects. Shouldn't matter much, except that it makes the batch
     // time calculator above happier.
+    d->uniqueDatabaseIds = true;
     uint n = 0;
     while ( n < batchHashSize )
         d->batch[n++] = 0;
@@ -544,26 +544,32 @@ void Fetcher::prepareBatch()
     n = 0;
     List<Message>::Iterator i( d->messages );
     while ( i && n < d->batchSize ) {
-        uint id = i->databaseId();
+        Message * m = i;
+        ++i;
+        uint id = m->databaseId();
         uint b = id % batchHashSize;
         if ( d->batch[b] ) {
             List<Message>::Iterator o( d->batch[b] );
             while ( o && o->databaseId() != id )
                 ++o;
-            if ( !o ) {
+            if ( o ) {
+                d->uniqueDatabaseIds = false;
+            }
+            else {
                 n++;
+                if ( !d->batchIds.isEmpty() )
+                    d->batchIds.append( "," );
                 d->batchIds.append( fn( id ) );
             }
         }
         else {
             d->batch[b] = new List<Message>;
-            d->batchIds.append( fn( i->databaseId() ) );
+            if ( !d->batchIds.isEmpty() )
+                d->batchIds.append( "," );
+            d->batchIds.append( fn( m->databaseId() ) );
             n++;
         }
-        d->batch[b]->append( i );
-        ++i;
-        if ( i )
-            d->batchIds.append( "," );
+        d->batch[b]->append( m );
         d->messages.shift();
         d->messagesRemaining--;
     }
@@ -746,7 +752,7 @@ void Fetcher::makeQueries()
                 "join addresses a on (af.address=a.id) "
                 "where af.message in (";
             r.append( d->batchIds );
-            r.append( ")order by af.message, af.part, af.field, af.number" );
+            r.append( ") order by af.message, af.part, af.field, af.number" );
             q = new Query( r, d->addresses );
         }
         q->execute();
@@ -768,12 +774,12 @@ void Fetcher::makeQueries()
             q->setString( r );
         }
         else {
-            r = "select h.message, h.part, h.position, "
-                "f.name, h.value from header_fields h "
-                "join field_names f on (h.field=f.id) "
-                "where h.message in (";
+            r = "select hf.message, hf.part, hf.position, "
+                "fn.name, hf.value from header_fields hf "
+                "join field_names fn on (hf.field=fn.id) "
+                "where hf.message in (";
             r.append( d->batchIds );
-            r.append( ") order by m.uid, h.part" );
+            r.append( ") order by hf.message, hf.part" );
             q = new Query( r, d->otherheader );
         }
         q->execute();
@@ -829,8 +835,8 @@ void Fetcher::makeQueries()
             q->setString( r );
         }
         else {
-            r.append( "select m.id as message, m.rfc822size "
-                      "from messages where id in (" );
+            r = "select id as message, rfc822size "
+                "from messages where id in (";
             r.append( d->batchIds );
             r.append( ")" );
             q = new Query( r, d->trivia );
@@ -883,8 +889,8 @@ void FetcherData::Decoder::execute()
                     ++m;
                 }
             }
+            r = q->nextRow();
         }
-        r = q->nextRow();
     }
     if ( q->done() )
         d->f->execute();
