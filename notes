@@ -15,6 +15,9 @@
   PIDFILEDIR is now $(PREFIX)/lib/pidfiles. (Is this really a good
   idea?)
 
+  Fetching is faster in many cases, particularly when many messages
+  are involved.
+
   Not done: Restricting the use of SMTP submit, adding
   configuration. Perhaps:
   - a new toggle to decide whether problems with smtp submit cause 5xx
@@ -32,6 +35,8 @@
   Not done: sharing transactions in the injector.
 
   Not done: Views on the web.
+
+  Not done: Turning thread-index into references.
 
 
 Release cycle
@@ -1181,81 +1186,51 @@ String::stripWSP
 
 Fetcher oomph
 
-  The fetcher is hard to use and doesn't perform as well as one might
-  wish. I see several problems.
+  The fetcher now does considerably better than before on pg 8.2 and
+  later. It's slow on pg 8.1.
 
-  1. There's an undeclared cursor. Each of the five fetchers does the
-     longwinded equivalent of 'select 64 from cursor'.
+  We can improve it further in some cases:
 
-  2. There's evil repetition among the fetchers. Fetching rfc822 runs
-     the very same "select message from mailbox_messages where
-     mailbox=$1 and uid..."  three times and then feeds the output of
-     that into a fetcher-specific query.
+  1. With array support we can generate evil hacky code that avoids
+     using 'message in (123,234,345,456,567,678,789)', so the fetcher
+     is fast on pg 8.1 and so the log files don't look awful on any pg
+     version.
 
-  3. Each caller has to create up to five objects with basically the
-     same arguments, and call execute on each.
+  2. If we generate 'message=$1' for single-message fetches instead of
+     'message in (123124)', we can use prepared statements again. Only
+     this time we will detect often-used statements inside Query and
+     prepare them there.
 
-  So I'd prefer to do it differently. Create one fetcher, tell it
-  which kinds of blah you want, and it will run _one_ "select message
-  from", feed that into a something, then run up to five selects that
-  act on the output of the first select.
+  3. We can keep (small/all) messages in RAM when we inject them,
+     discard them at GC time, and retrieve them from cache instead of
+     DB in the fetcher.
 
-  Each of the five need to use a cursor (to avoid memory explosion in
-  case the client fetches 400,000 messages and one select is much
-  faster than the others). There has to be a transaction, n selects
-  and n+1 cursors, one of which is SCROLL.
+     If a message is injected into a mailbox onto which there is at
+     least one session, the chance that it will be read before the
+     next GC is >99%.
 
-  First, to get the messages
+  4. When we're fetching many bodies, we can use batches in the
+     FindingMessages stage, and then use messages.rfc822size to keep
+     the batch size down in terms of RAM.
 
-    begin;
-    declare m scroll cursor for
-    select messages,uid from mailbox_messages
-    where uid>=$1 and uid<=$2 and mailbox=$3;
+  5. Most importantly: Generating the FETCH responses is slow.
 
-  Then we look at each type of data we need and make more cursors:
+  fetcher.cpp drastically needs a documentation overhaul. I suck.
 
-    declare hfm no scroll cursor for
-    select m.uid, h.part, h.position, f.name, h.value from h
-    join field_names f on (h.field=f.id)
-    join (fetch all from m) m using (message)
-    where h.field > 12 order by m.uid, h.part;
 
-  We need to issue 
+Dynamically preparing often-user queries
 
-    fetch absolute 0 from m;
+  We can prepare queries cleverly.
 
-  Between each declare and discard the result.
+  Inside Query, at submit time, we first check whether a Query's text
+  matches a PreparedStatement, and uses it if so.
 
-  Finally, we loop as Fetcher::execute now does, but issue
+  If not, we check whether the query looks preparable. The condition
+  seems to be simple: Contains no numbers. If it's preparable we add
+  it to a cache, which is discarded at GC time.
 
-    fetch 1024 from hfm;
-
-  instead of a select. The 1024 must be variable (more for flags, less
-  for bodyparts), and all fetchers must be advanced more or less in
-  step.
-
-  And to clean up:
-
-    rollback;
-
-  I think we might see a speedup of 2-100x depending on task. Unless
-  we use all this apparatus for single-message, single-type fetches.
-
-  Will doing this for big fetches harm postgres?
-
-  The first cursor probably doesn't help much in the case of reading a
-  single range of messages from a single mailbox. It should help more
-  if we're reading a complex set, often the case. It also allows us to
-  read a search without extra cost, just feed a Selector into the
-  select and that's all. Fine for aoxexport. And it almost gets rid of
-  MessageFetcher.
-
-  If we only want to fetch one kind of data we can avoid the cursor m
-  and the surrounding transaction. In that case we take the prepared
-  statement we need ("declare hfm" above), delete the bit before
-  select, replace "fetch all from m" with a select to get the right
-  messages and UIDs, and send the query off without a transaction. No
-  loop, nothing. fetch 1:* flags will be *fast*.
+  If a preparable query is used more than n times before the cache is
+  cleared, we prepare it and keep the PreparedStatement around.
 
 
 aox.org/clients/
