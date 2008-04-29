@@ -5,7 +5,10 @@
 
 3.0.0: ?
 
-  log-level default changed to significant, some 
+  log-level default changed to significant, some logging adjustments
+  to make significant DWIM.
+
+  Added syslog support.
 
   Digest-MD5 disabled by default due to interoperability problems, can
   be enabled if desirable.
@@ -18,8 +21,8 @@
   Fetching is faster in many cases, particularly when many messages
   are involved.
 
-  Not done: Restricting the use of SMTP submit, adding
-  configuration. Perhaps:
+  Not done: Restricting the use of SMTP submit, adding configuration.
+  Perhaps:
   - a new toggle to decide whether problems with smtp submit cause 5xx
     after DATA or a bounce
   - a new toggle to decide whether the From field must point to some
@@ -142,11 +145,6 @@ Various TODO items from earlier releases.
 
   - Soft-quota/archival stuff too?
   - Message arrival tag (for archiving)
-
-  aoximport could be much faster (disable indices, commit several
-  thousand messages at a time in one big transaction), but it's a fair
-  bit of work (unless aoximport has a private Injector or Injector can
-  take a list of Message objets)
 
   Miscellaneous:
 
@@ -452,10 +450,6 @@ Deleting mailbox has unclear semantics now
   to rename a new mailbox to the name that used to be taken by this
   mailbox? Or creates ditto? What should happen to views onto this
   mailbox?
-
-
-3.0 changes
-
 
 
 MULTIAPPEND
@@ -1222,7 +1216,7 @@ Fetcher oomph
   fetcher.cpp drastically needs a documentation overhaul. I suck.
 
 
-Dynamically preparing often-user queries
+Dynamically preparing often-used queries
 
   We can prepare queries cleverly.
 
@@ -1230,11 +1224,13 @@ Dynamically preparing often-user queries
   matches a PreparedStatement, and uses it if so.
 
   If not, we check whether the query looks preparable. The condition
-  seems to be simple: Contains no numbers. If it's preparable we add
-  it to a cache, which is discarded at GC time.
+  seems to be simple: Starts with 'select ' and contains no numbers.
+  If it's preparable we add it to a cache, which is discarded at GC
+  time.
 
   If a preparable query is used more than n times before the cache is
-  cleared, we prepare it and keep the PreparedStatement around.
+  discarded, we prepare the query and keep the PreparedStatement
+  around.
 
 
 aox.org/clients/
