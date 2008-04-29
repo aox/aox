@@ -311,7 +311,6 @@ void Fetcher::start()
         prepareBatch();
         makeQueries();
         d->state = Fetching;
-        d->messages.clear();
         return;
     }
 
@@ -357,7 +356,6 @@ void Fetcher::start()
         // a query or two. or three.
         makeQueries();
         d->state = Fetching;
-        d->messages.clear();
         return;
     }
 
@@ -445,6 +443,17 @@ void Fetcher::waitForEnd()
             return;
         ++i;
     }
+    if ( d->batchIds.isEmpty() ) {
+        while ( !d->messages.isEmpty() ) {
+            i = decoders.first();
+            while ( i ) {
+                i->setDone( d->messages.firstElement() );
+                ++i;
+            }
+            d->messages.shift();
+        }
+    }
+    else {
     i = decoders.first();
     while ( i ) {
         uint n = 0;
@@ -459,6 +468,7 @@ void Fetcher::waitForEnd()
             n++;
         }
         ++i;
+    }
     }
 
     if ( d->messages.isEmpty() ) {
@@ -623,7 +633,8 @@ void Fetcher::makeQueries()
             // we're selecting complexly and not using
             // batches. perhaps due to IMAP 'fetch 1:* (uid flags)
             // (changedsince 1232)' in a smallish mailbox.
-            q = d->selector->query( 0, d->mailbox, 0, this, false, &wanted );
+            q = d->selector->query( 0, d->mailbox, 0, d->flags,
+                                    false, &wanted );
             r = q->string();
             r.replace( " where ",
                        " left join flags f on"
@@ -661,7 +672,8 @@ void Fetcher::makeQueries()
         else {
             // we're selecting complexly and not using batches. perhaps
             // due to IMAP 'fetch 1:* (uid annotations) (changedsince 1232)'
-            q = d->selector->query( 0, d->mailbox, 0, this, false, &wanted );
+            q = d->selector->query( 0, d->mailbox, 0, d->annotations,
+                                    false, &wanted );
             r = q->string();
             if ( !r.contains( " join annotations " ) )
                 r.replace( " where ",
@@ -687,7 +699,8 @@ void Fetcher::makeQueries()
     if ( d->partnumbers && !d->body ) {
         // body (below) will handle this as a side effect
         if ( d->batchIds.isEmpty() ) {
-            q = d->selector->query( 0, d->mailbox, 0, this, false, &wanted );
+            q = d->selector->query( 0, d->mailbox, 0, d->partnumbers,
+                                    false, &wanted );
             r = q->string();
             if ( !r.contains( " join part_numbers pn " ) )
                 r.replace( " where ",
@@ -696,6 +709,7 @@ void Fetcher::makeQueries()
                            " where " );
             r.replace( "select distinct mm.",
                        "select distinct pn.part, pn.bytes, pn.lines, mm." );
+            r.append( " order by mm.uid, pn.part" );
             q->setString( r );
         }
         else {
@@ -711,7 +725,8 @@ void Fetcher::makeQueries()
 
     if ( d->addresses ) {
         if ( d->batchIds.isEmpty() ) {
-            q = d->selector->query( 0, d->mailbox, 0, this, false, &wanted );
+            q = d->selector->query( 0, d->mailbox, 0, d->addresses,
+                                    false, &wanted );
             r = q->string();
             r.replace( "select distinct mm.",
                        "select distinct "
@@ -740,7 +755,8 @@ void Fetcher::makeQueries()
 
     if ( d->otherheader ) {
         if ( d->batchIds.isEmpty() ) {
-            q = d->selector->query( 0, d->mailbox, 0, this, false, &wanted );
+            q = d->selector->query( 0, d->mailbox, 0, d->otherheader,
+                                    false, &wanted );
             r = q->string();
             r.replace( "select distinct mm.",
                        "select distinct "
@@ -766,7 +782,8 @@ void Fetcher::makeQueries()
 
     if ( d->body ) {
         if ( d->batchIds.isEmpty() ) {
-            q = d->selector->query( 0, d->mailbox, 0, this, false, &wanted );
+            q = d->selector->query( 0, d->mailbox, 0, d->body,
+                                    false, &wanted );
             r = q->string();
             if ( !r.contains( " join bodyparts bp " ) )
                 r.replace( " where ",
@@ -800,18 +817,19 @@ void Fetcher::makeQueries()
         if ( d->batchIds.isEmpty() ) {
             wanted.append( "idate" );
             wanted.append( "modseq" );
-            q = d->selector->query( 0, d->mailbox, 0, this, false, &wanted );
+            q = d->selector->query( 0, d->mailbox, 0, d->trivia,
+                                    true, &wanted );
             r = q->string();
             if ( !r.contains( " join messages " ) )
                 r.replace( " where ",
                            " join messages m on (mm.message=m.id)"
                            " where " );
             r.replace( "select distinct mm.",
-                       "select distinct m.rfc822size, m.id, mm." );
+                       "select distinct m.rfc822size, mm." );
             q->setString( r );
         }
         else {
-            r.append( "select m.id as messages, m.rfc822size "
+            r.append( "select m.id as message, m.rfc822size "
                       "from messages where id in (" );
             r.append( d->batchIds );
             r.append( ")" );
@@ -826,7 +844,7 @@ void Fetcher::makeQueries()
 void FetcherData::Decoder::execute()
 {
     Row * r = q->nextRow();
-    if ( !findByUid && !findById ) {
+    if ( r && !findByUid && !findById ) {
         if ( r->hasColumn( "message" ) ) {
             findById = true;
         }
@@ -836,7 +854,10 @@ void FetcherData::Decoder::execute()
         }
     }
 
-    if ( findByUid ) {
+    if ( !r ) {
+        // no rows, no work
+    }
+    else if ( findByUid ) {
         while ( r ) {
             uint uid = r->getInt( "uid" );
             while ( mit && mit->uid() < uid )
@@ -1051,10 +1072,11 @@ void FetcherData::PartNumberDecoder::setDone( Message * m )
 
 void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
 {
-    m->setInternalDate( r->getInt( "idate" ) );
     m->setRfc822Size( r->getInt( "rfc822size" ) );
-    if ( !r->isNull( "modseq" ) )
-        m->setModSeq( r->getBigint( "modseq" ) );
+    if ( findById )
+        return;
+    m->setInternalDate( r->getInt( "idate" ) );
+    m->setModSeq( r->getBigint( "modseq" ) );
 }
 
 
