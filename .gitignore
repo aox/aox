@@ -1,5 +1,7 @@
 bin
 build
+closed
 *.inc
+*~
 doc/man
 doc/html
