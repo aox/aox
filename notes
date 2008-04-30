@@ -15,8 +15,14 @@
 
   IMAP VIEW command removed, views remain supported.
 
-  PIDFILEDIR is now $(PREFIX)/lib/pidfiles. (Is this really a good
-  idea?)
+  PIDFILEDIR is now $(PREFIX)/lib/pidfiles.
+  (Is this really a good idea? -- Arnt
+
+  It makes things simpler when you need to run multiple instances on the
+  same machine, and people on the mailing list reacted favourably to the
+  proposal. It breaks compatibility, in the sense that the just-compiled
+  bin/aox won't be able to stop the older running server. Do you see any
+  other problems? -- AMS)
 
   Fetching is faster in many cases, particularly when many messages
   are involved.
