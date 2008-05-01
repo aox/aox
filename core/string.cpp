@@ -1910,7 +1910,7 @@ void String::replace( const String & a, const String & b )
         return; // noop
     if ( a.isEmpty() )
         return; // infinite loop
-    
+
     int i = find( a );
     while ( i >= 0 ) {
         String r = mid( i+a.length() );

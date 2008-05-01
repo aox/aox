@@ -170,7 +170,7 @@ String Log::id()
 
 /*! Returns a pointer to the Log that was in effect when this object
     was created. This object's id() is based on the parent's id().
-    
+
     The return value if parent() may be 0.
 */
 
