@@ -30,7 +30,7 @@ public:
 
     The SmtpMailFrom class parses and acts on the "mail from" command,
     with whatever extensions we like. Bothersome.
-    
+
     The extensions currently implemented are SIZE (see RFC 1870) and
     DSN (RFC 3461).
 */
@@ -246,7 +246,7 @@ void SmtpRcptTo::execute()
 
     if ( !server()->sieve()->ready() )
         return;
-    
+
     if ( server()->sieve()->local( d->address ) ) {
         server()->sieve()->evaluate();
         if ( server()->sieve()->rejected( d->address ) )
