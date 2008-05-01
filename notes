@@ -178,6 +178,12 @@ The \Answered flag
   This would make it easier to force archiving.
 
 
+5173
+
+  5173 is new. I wrote an implementation, need to check that the RFC
+  didn't shift and mention 5173 somewhere.
+
+
 Not enough name resolution: db-address=localhost doesn't work.
 
   The name is resolved at startup, but nothing ever calls the resolver
