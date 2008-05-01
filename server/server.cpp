@@ -376,7 +376,7 @@ void Server::fork()
             EventLoop::global()->closeAllExceptListeners();
             log( "Process " + fn( getpid() ) + " started" );
             if ( Configuration::toggle( Configuration::UseStatistics ) ) {
-                uint port 
+                uint port
                     = Configuration::scalar( Configuration::StatisticsPort );
                 log( "Using port " + fn( port + i ) +
                      " for statistics queries" );

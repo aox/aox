@@ -1,7 +1,8 @@
-bin
-build
-closed
+bin/*
+build/*
+closed/*
+doc/man/*
+doc/html/*
+Jamhacks
 *.inc
 *~
-doc/man
-doc/html

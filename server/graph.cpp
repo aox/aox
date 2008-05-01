@@ -188,7 +188,7 @@ String GraphableNumber::name() const
 
 
 /*! \class GraphableCounter graph.h
-  
+
     The GraphableCounter class provides a tick counter; you can tell
     it to increase its value and look at its values in the past.
 */
@@ -223,7 +223,7 @@ public:
 
 
 /*! \class GraphableDataSet graph.h
-  
+
     The GraphableDataSet keeps track of numbers and keeps a record of
     their past averages.
 

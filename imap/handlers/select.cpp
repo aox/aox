@@ -83,7 +83,7 @@ void Select::execute()
 {
     if ( state() != Executing )
         return;
-    
+
     if ( !Flag::find( "\\Deleted" ) ) {
         // should only happen when we flush the entire database during
         // testing, so we don't bother being accurate or fast, but
@@ -162,7 +162,7 @@ void Select::execute()
         else
             sq = " and flag in "
                  "(select id from flags where lower(name)='\\seen')";
-        d->firstUnseen 
+        d->firstUnseen
             = new Query( "select uid from mailbox_messages mm "
                          "where mailbox=$1 and uid not in "
                          "(select uid from flags where mailbox=$1 " + sq + ") "

@@ -265,13 +265,13 @@ static const uint visciitable[256] = {
 
     The VisciiCodec class implements the encoding defined in RFC
     1456. It's not often used, but also not quite dead.
-    
+
     Since RFC 1456 contains very bad tables, VisciiCodec uses data
     from Table 3 in http://www.vnet.org/vietstd/report/rep92.htm
     instead. Wikipedia and GNU Recode agree with that table, so it
     should be okay.
 */
-    
+
 
 /*!  Constructs a codec for the VISCII character set/encoding. */
 

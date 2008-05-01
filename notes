@@ -313,7 +313,7 @@ aox check schema
 
 Database schema range
 
-  Poeple occasionally need to access the db with an old version of
+  People occasionally need to access the db with an old version of
   mailstore. I suggest that we:
 
   a) add a 'writable_from' column specifying the oldest version that
@@ -330,7 +330,7 @@ Database schema range
   When the server starts up, it would check:
 
   - am I >writable_from? If so, mailboxes can be read-write
-  - else, am I >readadble_from? If so, startup can proceed, but all
+  - else, am I >readable_from? If so, startup can proceed, but all
     mailboxes are read-only. lmtp, smtp and smtp-submit do not start.
   - else, quit.
 
@@ -396,7 +396,7 @@ Message tracking 2
 
     250 Ok: queued as D1A324AC85
 
-  Sendmaik and exim surely say something similar. We could keep that ID
+  Sendmail and exim surely say something similar. We could keep that ID
   in delivery_recipients and use it in DSNs.
 
 
@@ -891,7 +891,7 @@ Multipart/signed automatic processing
   reader and the reading MUA doesn't do anything different.
 
   The disadvantage is that we (probably?) can't verify all signatures,
-  which gives a false sense of security for the undetactable forgeries.
+  which gives a false sense of security for the undetectable forgeries.
 
   In case of PKCS7, it's possible to self-sign. Those we cannot
   check. In that case we remove the signature entirely from the MIME
@@ -1029,7 +1029,7 @@ SUBMITTER
 SSL/TLS hello
 
   When a client sends us SSL or TLS hello instead of the appropriate
-  protocol, wgat do we want to do? Two options:
+  protocol, what do we want to do? Two options:
   - Silently start TLS.
   - Send some sort of server hello saying "no, my friend"
 
@@ -1053,12 +1053,12 @@ The groups and group_members tables seem a little underused
   and the notion of group admins, who can authenticate as other
   members of the group.
 
-  Or maybe an adminintrator table, linking a user to either a group or
+  Or maybe an administrator table, linking a user to either a group or
   to null. If a group, then the admin can authenticate as other
   members of that group and (importantly) has 'a' right on their
   mailboxes, if null, then ditto for all groups.
 
-  Extend Permissions to link against group_memebers when selecting
+  Extend Permissions to link against group_members when selecting
   applicable permissions.
 
   Make groups be permissible ACL identifiers.
@@ -1153,7 +1153,7 @@ aox.org/badmail/
 
   Possibly we want to include screenshots showing how Thunderbird or
   another GUI client that uses envelope/bodystructure renders a
-  mailbox containg 1-8. Screenshots using aox and using another
+  mailbox containing 1-8. Screenshots using aox and using another
   server, one that gets few &#x2713; cells in the table. I'm not sure
   where to link to these screenshots. Apple Mail?
 

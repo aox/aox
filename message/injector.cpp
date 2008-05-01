@@ -1150,7 +1150,8 @@ void Injector::setMailbox( Mailbox * m )
 
 
 /*! Instructs the Injector to spool the message for later delivery
-    via SMTP to \a addresses.
+    via SMTP to \a addresses. (This is used, for example, by Sieve
+    to implement the "redirect" action.)
 */
 
 void Injector::setDeliveryAddresses( List<Address> * addresses )
@@ -2118,7 +2119,7 @@ uint Injector::uid( Mailbox * mailbox ) const
 
 /*! Returns the modseq of the message in \a mailbox, or 0 if the
     injector hasn't obtained one yet.
-  
+
     The same caveats apply as for uid().
 */
 

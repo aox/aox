@@ -78,7 +78,7 @@ void SmtpData::execute()
         ::messagesWrapped
               = new GraphableCounter( "unparsed-messages" );
     if ( !::messagesSubmitted )
-        ::messagesSubmitted 
+        ::messagesSubmitted
               = new GraphableCounter( "messages-submitted" );
 
     // we can't do anything until all older commands have completed.

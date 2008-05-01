@@ -308,7 +308,7 @@ void SaslMechanism::tick()
 
     if ( d->state == Failed )
         loginFailures->tick();
-    else if ( d->user->login() == "anonymous" && 
+    else if ( d->user->login() == "anonymous" &&
               Configuration::toggle( Configuration::AuthAnonymous ) )
         anonLogins->tick();
     else

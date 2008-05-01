@@ -631,7 +631,7 @@ void Store::removeFlags( bool opposite )
 Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
                               EventHandler * h )
 {
-    Query * q = 
+    Query * q =
         new Query( "insert into flags (flag,uid,mailbox) "
                    "select $1,mm.uid,$2 from mailbox_messages mm "
                    "left join flags f on "

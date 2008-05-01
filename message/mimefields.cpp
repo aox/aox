@@ -188,7 +188,7 @@ void MimeField::parseParameters( EmailParser *p )
                 while ( it && it->name != "charset" )
                     ++it;
                 if ( !it ) {
-                    MimeFieldData::Parameter * pm 
+                    MimeFieldData::Parameter * pm
                         = new MimeFieldData::Parameter;
                     pm->name = "charset";
                     pm->value = n;

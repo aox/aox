@@ -14,7 +14,7 @@ class EmailParser
 {
 public:
     EmailParser( const String & os ) : AbnfParser( os ), mime( false ) {}
-    
+
     void setMime( bool );
     bool isMime() const { return mime; }
 

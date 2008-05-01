@@ -399,7 +399,7 @@ void Selector::simplify()
     The Selector is expressed as SQL in the context of the specified
     \a user and \a session. The \a owner will be notified of query
     results.
-    
+
     The \a mailbox to search is passed in separately, because
     we can't use the Session's mailbox while building views.
 
@@ -593,7 +593,7 @@ static String q( const UString & orig )
 {
     Utf8Codec c;
     String r( c.fromUnicode( orig ) );
-        
+
     String s;
     uint i = 0;
     while ( i < r.length() ) {
@@ -1800,5 +1800,4 @@ bool Selector::timeSensitive() const
             return true;
     }
     return false;
-    
 }

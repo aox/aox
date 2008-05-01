@@ -147,7 +147,7 @@ CreateMailbox::CreateMailbox( StringList * args )
 void CreateMailbox::execute()
 {
     if ( d->name.isEmpty() ) {
-        parseOptions(); 
+        parseOptions();
         Utf8Codec c;
         d->name = c.toUnicode( next() );
         UString owner = c.toUnicode( next() );

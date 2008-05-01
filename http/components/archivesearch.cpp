@@ -41,7 +41,7 @@ public:
         Query * query;
         MessageSet result;
     };
-    
+
     List<SearchTerm> terms;
     MessageSet matchesAll;
     MessageSet matchesSome;
@@ -165,7 +165,7 @@ void ArchiveSearch::parseTerms()
                 term[j] != 0xFFFD && term[j] != 0xFFFE && term[j] != 0xFEFF )
             j++;
         if ( j == term.length() && j > 0 ) {
-           ArchiveSearchData::SearchTerm * st 
+           ArchiveSearchData::SearchTerm * st
                = new ArchiveSearchData::SearchTerm;
            st->term = term;
            d->terms.append( st );
@@ -223,7 +223,7 @@ void ArchiveSearch::sendQueries()
             }
         }
         if ( term->domain ) {
-            term->query 
+            term->query
                 = new Query( "select mm.uid from mailbox_messages mm "
                              "join address_fields af using message "
                              "join addresses a on (af.address=a.id) "
@@ -232,7 +232,7 @@ void ArchiveSearch::sendQueries()
             term->query->bind( 2, domain );
         }
         else if ( term->address ) {
-            term->query 
+            term->query
                 = new Query( "select mm.uid from mailbox_messages mm "
                              "join address_fields af using message "
                              "join addresses a on (af.address=a.id) "

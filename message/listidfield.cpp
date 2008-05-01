@@ -36,13 +36,13 @@ void ListIdField::parse( const String & s )
         return;
     int lt = s.find( '<' );
     int gt = s.find( '>' );
-    if ( lt >= 0 && gt > lt && 
+    if ( lt >= 0 && gt > lt &&
          !s.mid( gt+1 ).contains( '<' ) ) {
         a.setState( Codec::Valid );
         setValue( a.toUnicode( s.mid( lt, gt+1-lt ) ) );
         if ( a.valid() )
             return;
     }
-    
+
     setError( "8-bit data: " + a.error() );
 }

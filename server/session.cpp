@@ -524,9 +524,9 @@ void SessionInitialiser::execute()
 */
 
 void SessionInitialiser::findSessions()
-{ 
+{
     d->newUidnext = d->mailbox->uidnext();
-    d->newModSeq = d->mailbox->nextModSeq(); 
+    d->newModSeq = d->mailbox->nextModSeq();
     d->oldUidnext = d->newUidnext;
     d->oldModSeq = d->newModSeq;
     List<Session>::Iterator i( d->mailbox->sessions() );

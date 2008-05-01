@@ -391,7 +391,7 @@ UString Utf16BeCodec::toUnicode( const String & s )
 
 
 /*! \class Utf7Codec utf.h
-  
+
     The Utf7Codec class provides conversion to and from the UTF-7
     encoding specified in RFC 2152. It's almost entirely unused,
     except that some IMAP clients use its mUTF7 variation. It is

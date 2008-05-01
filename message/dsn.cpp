@@ -199,10 +199,10 @@ Message * DSN::result() const
         // this is what we _should_ do, except that we don't. the body
         // of the message is lost, probably because original-> has a
         // null parent.
-        
+
         //original->header()->add( "Content-Type", "message/rfc822" );
         //original->setMessage( message() );
-        
+
         // and maybe we shouldn't anyway. sending a potentially big
         // body in a bounce is not necessarily a good idea.
     }
