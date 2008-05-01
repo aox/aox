@@ -307,7 +307,7 @@ aox check schema
 
 Database schema range
 
-  Poeple occasionally need to access the db with an old version of
+  People occasionally need to access the db with an old version of
   mailstore. I suggest that we:
 
   a) add a 'writable_from' column specifying the oldest version that
@@ -324,7 +324,7 @@ Database schema range
   When the server starts up, it would check:
 
   - am I >writable_from? If so, mailboxes can be read-write
-  - else, am I >readadble_from? If so, startup can proceed, but all
+  - else, am I >readable_from? If so, startup can proceed, but all
     mailboxes are read-only. lmtp, smtp and smtp-submit do not start.
   - else, quit.
 
@@ -390,7 +390,7 @@ Message tracking 2
 
     250 Ok: queued as D1A324AC85
 
-  Sendmaik and exim surely say something similar. We could keep that ID
+  Sendmail and exim surely say something similar. We could keep that ID
   in delivery_recipients and use it in DSNs.
 
 
