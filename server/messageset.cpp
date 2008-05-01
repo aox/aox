@@ -99,7 +99,7 @@ void MessageSet::add( uint n1, uint n2 )
         i = d->l.last();
     else
         i = d->l.first();
-    
+
     // skip all ranges that are separated from [n1,n2] by at least one
     // number, ie. whose last member is at most n1-2.
 
@@ -108,7 +108,7 @@ void MessageSet::add( uint n1, uint n2 )
 
     // if we're looking at a range now, it either overlaps with, is
     // adjacent to, or is after [n1,n2].
-    
+
     if ( !i ) {
         // we're looking at the end
         d->l.append( new SetData::Range( n1, n2-n1+1 ) );
@@ -481,7 +481,7 @@ void MessageSet::addGapsFrom( const MessageSet & other )
 
     if ( other.smallest() > 1 && contains( other.smallest() ) )
         add( 1, other.smallest() - 1 );
-    
+
     List<SetData::Range>::Iterator i( other.d->l );
     while ( i ) {
         uint before = i->start + i->length - 1;

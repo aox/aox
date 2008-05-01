@@ -683,7 +683,6 @@ void Mailbox::addSession( Session * s )
              ", new count " + fn( d->sessions->count() ),
              Log::Debug );
     }
-    
 }
 
 
