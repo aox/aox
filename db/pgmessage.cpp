@@ -337,7 +337,7 @@ PgMessage::PgMessage( Buffer *b )
 
     while ( ( type = decodeByte() ) != '\0' ) {
         String s = decodeString();
-        
+
         switch ( type ) {
         case 'S': S = s; break;
         case 'C': C = s; break;

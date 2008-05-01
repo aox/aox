@@ -898,7 +898,7 @@ String Postgres::mapped( const String & s ) const
 {
     if ( !s.contains( "_" ) )
         return s;
-    
+
     String h;
     uint maps = 0;
     String w;
@@ -939,14 +939,14 @@ String Postgres::mapped( const String & s ) const
 /*! Handles all protocol/socket errors by logging the error message \a s
     and closing the connection after emptying the write buffer and
     notifying any pending queries of the failure.
-    
+
 */
 
 void Postgres::error( const String &s )
 {
     Scope x( log() );
     ::log( s, Log::Error );
-    
+
     d->error = true;
     d->active = false;
     setState( Broken );
