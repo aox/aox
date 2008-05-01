@@ -404,7 +404,7 @@ UString EmailParser::encodedWord( EncodedText type )
         restore( m );
         return r;
     }
-    
+
     if ( encoding == String::QP )
         r = cs->toUnicode( text.deQP( true ) );
     else

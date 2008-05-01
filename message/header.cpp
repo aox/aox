@@ -567,7 +567,7 @@ void Header::simplify()
         if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
     }
-    if ( ct && 
+    if ( ct &&
          ( ct->type() == "multipart" || ct->type() == "message" ||
            ct->type() == "image" || ct->type() == "audio" ||
            ct->type() == "video" ) )

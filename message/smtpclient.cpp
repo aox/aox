@@ -59,7 +59,7 @@ public:
     will have inferred from its name.
 
     Archiveopteryx uses it to send outgoing messages to a smarthost.
-    
+
 */
 
 /*! Constructs an SMTP client which will immediately connect to \a
@@ -220,7 +220,7 @@ void SmtpClient::sendCommand()
         if ( d->dsn->sender()->type() == Address::Normal )
             send.append( d->dsn->sender()->toString() );
         send.append( ">" );
-            
+
         d->state = SmtpClientData::MailFrom;
         break;
 
@@ -335,7 +335,7 @@ String SmtpClient::dotted( const String & s )
 }
 
 
-static String enhancedStatus( const String & l, bool e, 
+static String enhancedStatus( const String & l, bool e,
                               SmtpClientData::State s )
 {
     if ( e && ( l[4] >= '2' || l[4] <= '5' ) && l[5] == '.' ) {
@@ -348,7 +348,7 @@ static String enhancedStatus( const String & l, bool e,
     if ( response < 200 | response >= 600 || !ok )
         return "4.0.0";
     String r;
-    switch ( response ) 
+    switch ( response )
     {
     case 211: // System status, or system help reply
         r = "2.0.0";
@@ -475,7 +475,7 @@ bool SmtpClient::ready() const
 {
     if ( d->dsn )
         return false;
-    if ( d->state == SmtpClientData::Hello || 
+    if ( d->state == SmtpClientData::Hello ||
          d->state == SmtpClientData::Rset )
         return true;
     return false;
