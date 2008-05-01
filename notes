@@ -885,7 +885,7 @@ Multipart/signed automatic processing
   reader and the reading MUA doesn't do anything different.
 
   The disadvantage is that we (probably?) can't verify all signatures,
-  which gives a false sense of security for the undetactable forgeries.
+  which gives a false sense of security for the undetectable forgeries.
 
   In case of PKCS7, it's possible to self-sign. Those we cannot
   check. In that case we remove the signature entirely from the MIME
@@ -1023,7 +1023,7 @@ SUBMITTER
 SSL/TLS hello
 
   When a client sends us SSL or TLS hello instead of the appropriate
-  protocol, wgat do we want to do? Two options:
+  protocol, what do we want to do? Two options:
   - Silently start TLS.
   - Send some sort of server hello saying "no, my friend"
 
