@@ -211,7 +211,7 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
                  c->reverse );
         break;
     case Size:
-        addJoin( t, 
+        addJoin( t,
                  "join messages m on (m.id=mm.message)",
                  "m.rfc822size",
                  c->reverse );

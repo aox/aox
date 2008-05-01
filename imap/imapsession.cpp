@@ -142,7 +142,7 @@ void ImapSession::emitModifications()
     if ( changed.isEmpty() )
         return;
 
-    Fetch * update 
+    Fetch * update
         = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
                      changed, d->nms - 1, d->i );
     if ( d->nms < nextModSeq() )
@@ -234,7 +234,7 @@ bool ImapSession::responsesPermitted( ResponseType t ) const
                 return true;
             return false;
         }
-        
+
         bool finished = false;
         bool executing = false;
         while ( c ) {

@@ -16,7 +16,7 @@ public:
     ArchiveMailbox( class Link * );
 
     void execute();
-    
+
 private:
     String threadRendering( class Thread * );
     String timespan( const MessageSet & ) const;

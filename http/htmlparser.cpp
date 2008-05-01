@@ -316,7 +316,7 @@ void HtmlNode::clean()
         }
 
         // ... ditto before the end
-        while ( !d->children.isEmpty() && 
+        while ( !d->children.isEmpty() &&
                 ( d->children.last()->tag() == "br" ||
                   ( d->children.last()->tag().isEmpty() &&
                     d->children.last()->text().simplified().isEmpty() ) ) )
@@ -343,7 +343,7 @@ void HtmlNode::clean()
     }
 
     // identify signatures
-    if ( parent() && htmlclass().isEmpty() && tag() == "p" && 
+    if ( parent() && htmlclass().isEmpty() && tag() == "p" &&
          !d->children.isEmpty() )
     {
         List<HtmlNode>::Iterator i( children() );
@@ -399,7 +399,7 @@ void HtmlNode::clean()
     // to be "x y schrieb"
 
     // mark "---original message---" and subsequent as quoted matter.
-    if ( parent() && htmlclass().isEmpty() && tag() == "p" && 
+    if ( parent() && htmlclass().isEmpty() && tag() == "p" &&
          !d->children.isEmpty() )
     {
         UString t( d->children.first()->text() );
@@ -431,7 +431,7 @@ void HtmlNode::clean()
     }
 
     // finally, if that left this node effectively empty, remove it entirely
-    if ( parent() && 
+    if ( parent() &&
          ( ( tag().isEmpty() && text().simplified().isEmpty() ) ||
            ( isBlock() && d->children.isEmpty() ) ) )
     {
@@ -471,7 +471,7 @@ void HtmlNode::findExcerpt( UStringList * excerpts ) const
 static void ensureTrailingLf( String & r )
 {
     int i = r.length() - 1;
-    while ( i >= 0 && 
+    while ( i >= 0 &&
             ( r[i] == ' ' || r[i] == '\t' ||
               r[i] == '\r' || r[i] == '\n' ) )
         i--;

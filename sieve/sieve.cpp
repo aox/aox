@@ -312,8 +312,8 @@ void Sieve::execute()
 
         List<SieveAction>::Iterator i( v );
         while ( i ) {
-            Query * q 
-                = new Query( 
+            Query * q
+                = new Query(
                     "insert into autoresponses "
                     "(sent_from, sent_to, expires_at, handle) "
                     "values ("
@@ -623,7 +623,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
 
         // can't execute vacation without looking at the message
         if ( !d->message )
-            return false; 
+            return false;
 
         SieveArgumentList * al = c->arguments();
 
@@ -825,7 +825,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
 
         if ( wantToReply ) {
-            HeaderField * mid 
+            HeaderField * mid
                 = d->message->header()->field( HeaderField::MessageId );
             if ( mid ) {
                 reply->header()->add( "In-Reply-To", mid->rfc822() );

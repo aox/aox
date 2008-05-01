@@ -82,7 +82,7 @@ void SieveScript::parse( const String & script )
         if ( s->error().isEmpty() ) {
             UStringList unused;
             UStringList * r = 0;
-            if ( s->arguments() && 
+            if ( s->arguments() &&
                  s->arguments()->arguments() &&
                  s->arguments()->arguments()->first() )
                 r = s->arguments()->arguments()->first()->stringList();

@@ -364,7 +364,7 @@ bool IMAP::idle() const
             break;
         }
     }
-    
+
     return true;
 }
 

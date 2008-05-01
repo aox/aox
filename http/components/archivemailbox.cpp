@@ -229,7 +229,7 @@ void ArchiveMailbox::execute()
 
     addresses.clear();
     String s;
-    List<Thread>::Iterator 
+    List<Thread>::Iterator
         it( t->allThreads()->sorted( (Comparator*)byFirstYid ) );
     while ( it ) {
         Thread * t = it;

@@ -70,7 +70,7 @@ public:
 protected:
     String e( const UString & );
     Utf7Codec( bool );
-    
+
 private:
     bool broken;
 };
