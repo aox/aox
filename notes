@@ -1047,12 +1047,12 @@ The groups and group_members tables seem a little underused
   and the notion of group admins, who can authenticate as other
   members of the group.
 
-  Or maybe an adminintrator table, linking a user to either a group or
+  Or maybe an administrator table, linking a user to either a group or
   to null. If a group, then the admin can authenticate as other
   members of that group and (importantly) has 'a' right on their
   mailboxes, if null, then ditto for all groups.
 
-  Extend Permissions to link against group_memebers when selecting
+  Extend Permissions to link against group_members when selecting
   applicable permissions.
 
   Make groups be permissible ACL identifiers.
@@ -1147,7 +1147,7 @@ aox.org/badmail/
 
   Possibly we want to include screenshots showing how Thunderbird or
   another GUI client that uses envelope/bodystructure renders a
-  mailbox containg 1-8. Screenshots using aox and using another
+  mailbox containing 1-8. Screenshots using aox and using another
   server, one that gets few &#x2713; cells in the table. I'm not sure
   where to link to these screenshots. Apple Mail?
 
