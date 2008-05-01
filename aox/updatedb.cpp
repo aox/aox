@@ -127,14 +127,14 @@ public:
     Transaction * t;
     Address * address;
     String s;
-    int state; 
+    int state;
     List< Id > * ids;
     LwAddressCache * addressCache;
     Dict<AddressParser> * parsers;
     List<Address> * unknownAddresses;
     List<HeaderFieldRow> * headerFieldRows;
     CacheLookup * cacheLookup;
-    Dict<void> * uniq; 
+    Dict<void> * uniq;
     List<AddressMap> * addressMap;
     Row * row;
     String hash;
