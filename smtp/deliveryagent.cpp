@@ -89,14 +89,7 @@ void DeliveryAgent::execute()
 
     if ( d->qm->hasResults() ) {
         d->row = d->qm->nextRow();
-        if ( !d->row->getBoolean( "can_retry" ) ) {
-            log( "Won't retry so soon after last attempt", Log::Debug );
-            d->row = 0;
-            d->messageId = 0;
-            return;
-        }
-        if ( d->row )
-            log( "Delivery ID is " + d->row->getInt( "id" ) );
+        log( "Delivery ID is " + d->row->getInt( "id" ) );
     }
 
     if ( !d->messageId )
@@ -247,12 +240,12 @@ Query * DeliveryAgent::fetchDelivery( uint messageId )
     Query * q =
         new Query(
             "select id, sender, "
-            "current_timestamp > expires_at as expired, "
-            "(tried_at is null or"
-            " tried_at+interval '1 hour' < current_timestamp) as can_retry "
+            "current_timestamp > expires_at as expired "
             "from deliveries "
-            "where message=$1 for update", this
-        );
+            "where message=$1 and "
+            "((tried_at is null or"
+            "  tried_at+interval '1 hour' < current_timestamp)) "
+            "for update", this );
     q->bind( 1, messageId );
     return q;
 }
