@@ -223,8 +223,12 @@ void SmtpData::execute()
             d->state = 4;
         }
         else {
-            respond( 451, "Injection error: " + server()->sieve()->error(),
-                     "4.6.0" );
+            if ( Configuration::toggle( Configuration::SoftBounce ) )
+                respond( 451, "Injection error: " + server()->sieve()->error(),
+                         "4.6.0" );
+            else
+                respond( 551, "Injection error: " + server()->sieve()->error(),
+                         "5.6.0" );
             finish();
         }
     }
@@ -240,9 +244,12 @@ void SmtpData::execute()
                     respond( 551, prefix + ": Rejected", "5.7.1" );
                 else if ( s->error( i->address() ).isEmpty() )
                     respond( 250, prefix + ": " + d->ok, "2.1.5" );
-                else
+                else if ( Configuration::toggle( Configuration::SoftBounce ) )
                     respond( 450, prefix + ": " + s->error( i->address() ),
                              "4.0.0" );
+                else
+                    respond( 550, prefix + ": " + s->error( i->address() ),
+                             "5.0.0" );
                 emitResponses();
                 ++i;
             }

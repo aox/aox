@@ -256,7 +256,8 @@ static struct {
     { "use-webmail", Configuration::UseWebmail, false },
     { "use-web-archive", Configuration::UseWebArchive, false },
     { "use-subaddressing", Configuration::UseSubaddressing, false },
-    { "use-statistics", Configuration::UseStatistics, false }
+    { "use-statistics", Configuration::UseStatistics, false },
+    { "soft-bounce", Configuration::SoftBounce, true }
 };
 
 

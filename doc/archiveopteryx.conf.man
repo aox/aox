@@ -338,6 +338,13 @@ The default, which you should not need to change, is
 This setting is relevant only if
 .I use-subaddressing
 is true.
+.IP soft-bounce
+specifies whether a delivery problem causes a message to be rejected
+permanently (soft-bounce disabled) or queued at the MTA (soft-bounce
+enabled). This is
+.I enabled
+by default. We recommend disabling it when you are confident that mail
+delivery works.
 .IP message-copy
 specifies whether or not to keep filesystem copies of incoming
 messages, e.g. to burn a mail log to CD/DVD regularly.

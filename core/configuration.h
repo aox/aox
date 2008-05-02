@@ -145,6 +145,7 @@ public:
         UseWebArchive,
         UseSubaddressing,
         UseStatistics,
+        SoftBounce,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };
