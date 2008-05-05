@@ -46,6 +46,8 @@ private:
     String singlePartStructure( Multipart *, bool );
     void makeFetchResponse( Message *, uint, uint );
 
+    void pickup();
+
 private:
     class FetchData * d;
 };

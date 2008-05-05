@@ -50,7 +50,7 @@ public:
     FetchData()
         : state( 0 ), peek( true ),
           changedSince( 0 ), notThose( 0 ),
-          timer( 0 ), responseRate( 1 ),
+          timer( 0 ), responseRate( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
@@ -683,41 +683,7 @@ void Fetch::execute()
             sendFetchQueries();
         }
 
-        bool ok = true;
-        bool made = false;
-        while ( ok && !d->requested.isEmpty() ) {
-            Message * m = d->requested.first();
-            uint msn = s->msn( m->uid() );
-            if ( ( !d->annotation || m->hasAnnotations() ) &&
-                 ( !d->needsAddresses || m->hasAddresses() ) &&
-                 ( !d->needsHeader || m->hasHeaders() ) &&
-                 ( !d->needsBody || m->hasBodies() ) &&
-                 ( !d->needsPartNumbers || m->hasBytesAndLines() ) &&
-                 ( !d->flags || m->hasFlags() ) &&
-                 ( ( !d->rfc822size && !d->internaldate && !d->modseq )
-                   || m->hasTrivia() ) &&
-                 m->uid() > 0 && msn > 0 )
-            {
-                if ( d->flags )
-                    imap()->session()->addFlags( m->flags(), this );
-                makeFetchResponse( m, m->uid(), msn );
-                made = true;
-                d->requested.shift();
-            }
-            else {
-                log( "Stopped processing at UID " + fn( m->uid() ),
-                     Log::Debug );
-                ok = false;
-            }
-        }
-
-        if ( made ) {
-            uint r = d->available.count() / 20;
-            if ( r > d->responseRate ) {
-                log( "Increasing response rate to " + fn( r ), Log::Debug );
-                d->responseRate = r;
-            }
-        }
+        pickup();
 
         if ( !d->requested.isEmpty() )
             return;
@@ -1576,19 +1542,76 @@ void Fetch::trickle()
         return;
     }
 
-    if ( d->available.isEmpty() ) {
-        if ( d->responseRate > 1 )
-            log( "Resetting response rate to 1", Log::Debug );
+    pickup();
+    uint r = d->available.count() / 30;
+    if ( r > d->responseRate ) {
+        log( "Increasing response rate to " + fn( r ), Log::Debug );
+        d->responseRate = r;
+    }
+    else if ( r < 2 && d->responseRate > 1 ) {
+        log( "Resetting response rate to 1", Log::Debug );
         d->responseRate = 1;
-        return;
     }
 
-    uint r = 0;
+    r = 0;
     while ( r < d->responseRate && !d->available.isEmpty() ) {
         respond( *d->available.firstElement() );
         d->available.shift();
         r++;
     }
     emitUntaggedResponses();
-    execute();
+}
+
+
+/*! Retrieves completed messages and builds fetch responses for use by
+    execute() and/or trickle().
+*/
+
+void Fetch::pickup()
+{
+    uint done = 0;
+    bool ok = true;
+    Message * m = 0;
+    ImapSession * s = imap()->session();
+    while ( ok && !d->requested.isEmpty() ) {
+        m = d->requested.first();
+        uint msn = s->msn( m->uid() );
+        if ( d->needsAddresses && !m->hasAddresses() )
+            ok = false;
+        if ( d->needsHeader && !m->hasHeaders() )
+            ok = false;
+        if ( d->needsPartNumbers && !m->hasBytesAndLines() )
+            ok = false;
+        if ( d->needsBody && !m->hasBodies() )
+            ok = false;
+        if ( d->flags && !m->hasFlags() )
+            ok = false;
+        if ( ( d->rfc822size || d->internaldate || d->modseq ) &&
+             !m->hasTrivia() )
+            ok = false;
+        if ( d->annotation && !m->hasAnnotations() )
+            ok = false;
+        if ( !m->uid() )
+            ok = false;
+        if ( !msn )
+            ok = false;
+        if ( ok ) {
+            if ( d->flags )
+                imap()->session()->addFlags( m->flags(), this );
+            makeFetchResponse( m, m->uid(), msn );
+            done++;
+            d->requested.shift();
+        }
+    }
+    if ( !done )
+        return;
+
+    if ( m )
+        log( "Processed " + fn( done ) + " messages, "
+             "next message has UID " + fn( m->uid() ),
+             Log::Debug );
+    else
+        log( "Processed " + fn( done ) + " messages, none remain",
+             Log::Debug );
+
 }
