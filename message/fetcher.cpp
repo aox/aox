@@ -517,6 +517,8 @@ void Fetcher::prepareBatch()
         }
         if ( d->batchSize > prevBatchSize * 3 )
             d->batchSize = prevBatchSize * 3;
+        if ( d->batchSize > prevBatchSize + 2000 )
+            d->batchSize = prevBatchSize + 2000;
         if ( d->batchSize < 128 )
             d->batchSize = 128;
         if ( d->batchSize > d->maxBatchSize )
