@@ -31,7 +31,8 @@ public:
     Query * findModseq;
     Query * expunge;
     Transaction * t;
-    MessageSet uids;
+    MessageSet requested;
+    MessageSet marked;
 };
 
 
@@ -67,8 +68,8 @@ void Expunge::parse()
 {
     if ( d->uid ) {
         space();
-        d->uids = set( false );
-        shrink( &d->uids );
+        d->requested = set( false );
+        shrink( &d->requested );
     }
     end();
 }
@@ -97,6 +98,11 @@ void Expunge::execute()
     if ( !permitted() || !ok() )
         return;
 
+    if ( d->uid && d->requested.isEmpty() ) {
+        finish();
+        return;
+    }
+
     if ( !d->t ) {
         Flag * f = Flag::find( "\\deleted" );
         if ( !f ) {
@@ -112,25 +118,23 @@ void Expunge::execute()
 
         String query( "select uid from flags where mailbox=$1 and flag=$2" );
         if ( d->uid )
-            query.append( " and (" + d->uids.where() + ")" );
+            query.append( " and " + d->requested.where() );
 
         d->findUids = new Query( query, this );
         d->findUids->bind( 1, d->s->mailbox()->id() );
         d->findUids->bind( 2, f->id() );
         d->t->enqueue( d->findUids );
         d->t->execute();
-        d->uids.clear();
     }
 
     Row * r;
     while ( ( r = d->findUids->nextRow() ) != 0 ) {
-        uint n = r->getInt( "uid" );
-        d->uids.add( n );
+        d->marked.add( r->getInt( "uid" ) );
     }
     if ( !d->findUids->done() )
         return;
 
-    if ( d->uids.isEmpty() ) {
+    if ( d->marked.isEmpty() ) {
         d->t->rollback();
         finish();
         return;
@@ -140,16 +144,15 @@ void Expunge::execute()
         r = d->findModseq->nextRow();
         d->modseq = r->getBigint( "nextmodseq" ); // XXX 0
 
-        String w( d->uids.where() );
-        log( "Expunge " + fn( d->uids.count() ) + " messages: " +
-             d->uids.set() );
+        log( "Expunge " + fn( d->marked.count() ) + " messages: " +
+             d->marked.set() );
 
         d->expunge =
             new Query( "insert into deleted_messages "
                        "(mailbox,uid,message,modseq,deleted_by,reason) "
                        "select mailbox,uid,message,$4,$2,$3 "
                        "from mailbox_messages where mailbox=$1 "
-                       "and (" + w + ")",
+                       "and " + d->marked.where(),
                        this );
         d->expunge->bind( 1, d->s->mailbox()->id() );
         d->expunge->bind( 2, imap()->user()->id() );
@@ -171,7 +174,7 @@ void Expunge::execute()
     if ( d->t->failed() )
         error( No, "Database error. Messages not expunged." );
 
-    d->s->expunge( d->uids, d->modseq );
+    d->s->expunge( d->marked, d->modseq );
     if ( d->s->mailbox()->nextModSeq() <= d->modseq ) {
         d->s->mailbox()->setNextModSeq( d->modseq + 1 );
         OCClient::send( "mailbox " +
