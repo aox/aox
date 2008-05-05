@@ -22,7 +22,7 @@
   same machine, and people on the mailing list reacted favourably to the
   proposal. It breaks compatibility, in the sense that the just-compiled
   bin/aox won't be able to stop the older running server. Do you see any
-  other problems? -- AMS)
+  other problems? -- AMS. That it's not wiped at boot time. -arnt)
 
   Fetching is faster in many cases, particularly when many messages
   are involved.
@@ -46,6 +46,10 @@
   Not done: Views on the web.
 
   Not done: Turning thread-index into references.
+
+  Note done: Axel wanted namespaces or something like that. I didn't
+  quite understand, but I understaood enough to think that it's a good
+  idea and 3.0 is the right time to introduce it.
 
 
 Release cycle
