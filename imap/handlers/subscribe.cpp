@@ -41,10 +41,10 @@ Unsubscribe::Unsubscribe()
 void Subscribe::parse()
 {
     space();
-    m = mailbox();
+    name = mailboxName();
     end();
     if ( ok() )
-        log( "Subscribe " + m->name().ascii() );
+        log( "Subscribe " + name.ascii() );
 }
 
 
@@ -55,10 +55,15 @@ void Subscribe::execute()
     // table, remove it, or do nothing.
 
     if ( !q ) {
+        m = Mailbox::find( name, true );
+        if ( !m ) {
+            error( No, "No mailbox named: " + name.ascii() );
+            return;
+        }
+
         if ( m->deleted() && mode == Add ) {
             error( No, "Can't subscribe to non-existent mailbox " +
                    m->name().ascii() );
-            finish();
             return;
         }
 
@@ -74,7 +79,6 @@ void Subscribe::execute()
 
     if ( q->failed() ) {
         error( No, "Database error: " + q->error() );
-        finish();
         return;
     }
 
