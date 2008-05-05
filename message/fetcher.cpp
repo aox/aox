@@ -307,6 +307,8 @@ void Fetcher::start()
     if ( d->messages.count() == 1 &&
          d->messages.firstElement()->databaseId() ) {
         // we're fetching a message by ID, not UID. just do it.
+        d->batchSize = 1;
+        d->messagesRemaining = 1;
         prepareBatch();
         makeQueries();
         d->state = Fetching;
@@ -621,11 +623,11 @@ void Fetcher::makeQueries()
     String r;
 
     if ( d->flags && d->mailbox ) {
-        if ( !d->batchIds.isEmpty() ||
+        if ( d->batchSize ||
              d->selector->field() == Selector::Uid ) {
             // we're using batches OR
             // we're selecting from a single mailbox based only on UIDs
-            if ( !d->batchIds.isEmpty() )
+            if ( d->batchSize )
                 uids = findUids();
             r =  "select mailbox, uid, flag from flags "
                  "where mailbox=$1 and ";
@@ -658,11 +660,11 @@ void Fetcher::makeQueries()
     }
 
     if ( d->annotations && d->mailbox ) {
-        if ( !d->batchIds.isEmpty() ||
+        if ( d->batchSize ||
              d->selector->field() == Selector::Uid ) {
             // we're using batches OR
             // we're selecting from a single mailbox based only on UIDs
-            if ( !uids && !d->batchIds.isEmpty() )
+            if ( !uids && d->batchSize )
                 uids = findUids();
             r = "select a.mailbox, a.uid, "
                 "a.owner, a.value, an.name, an.id "
@@ -701,12 +703,12 @@ void Fetcher::makeQueries()
         d->annotations->q = q;
     }
 
-    if ( !d->batchIds.isEmpty() )
+    if ( d->batchSize )
         wanted.append( "message" );
 
     if ( d->partnumbers && !d->body ) {
         // body (below) will handle this as a side effect
-        if ( d->batchIds.isEmpty() ) {
+        if ( !d->batchSize ) {
             q = d->selector->query( 0, d->mailbox, 0, d->partnumbers,
                                     false, &wanted );
             r = q->string();
@@ -732,7 +734,7 @@ void Fetcher::makeQueries()
     }
 
     if ( d->addresses ) {
-        if ( d->batchIds.isEmpty() ) {
+        if ( !d->batchSize ) {
             q = d->selector->query( 0, d->mailbox, 0, d->addresses,
                                     false, &wanted );
             r = q->string();
@@ -762,7 +764,7 @@ void Fetcher::makeQueries()
     }
 
     if ( d->otherheader ) {
-        if ( d->batchIds.isEmpty() ) {
+        if ( !d->batchSize ) {
             q = d->selector->query( 0, d->mailbox, 0, d->otherheader,
                                     false, &wanted );
             r = q->string();
@@ -789,7 +791,7 @@ void Fetcher::makeQueries()
     }
 
     if ( d->body ) {
-        if ( d->batchIds.isEmpty() ) {
+        if ( !d->batchSize ) {
             q = d->selector->query( 0, d->mailbox, 0, d->body,
                                     false, &wanted );
             r = q->string();
@@ -822,7 +824,7 @@ void Fetcher::makeQueries()
     }
 
     if ( d->trivia ) {
-        if ( d->batchIds.isEmpty() ) {
+        if ( !d->batchSize ) {
             wanted.append( "idate" );
             wanted.append( "modseq" );
             q = d->selector->query( 0, d->mailbox, 0, d->trivia,
