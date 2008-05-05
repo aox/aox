@@ -36,7 +36,7 @@ public:
           state( NotStarted ),
           selector( 0 ),
           maxBatchSize( 32768 ),
-          batchSize( 128 ),
+          batchSize( 0 ),
           uniqueDatabaseIds( true ),
           lastBatchStarted( 0 ),
           flags( 0 ), annotations( 0 ),
@@ -321,8 +321,9 @@ void Fetcher::start()
     }
     uint expected = messages.count();
 
-    // Decide whether to use a transaction or not. We want to use a
-    // transaction only if the savings pay for the overhead.
+    // Decide whether to use a separate query for finding the
+    // messages. We want to use the extra query only if the savings
+    // pay for the overhead.
     bool simple = false;
     if ( n == 1 )
         simple = true;
@@ -352,12 +353,14 @@ void Fetcher::start()
         d->selector = new Selector( messages );
 
     if ( simple ) {
-        // a query or two. or three.
+        // a query or two. or at most three.
         makeQueries();
         d->state = Fetching;
         return;
     }
 
+    // we'll use two steps. first, we find a good size for the first
+    // batch.
     d->batchSize = 1024;
     if ( d->body )
         d->batchSize = d->batchSize / 2;
@@ -442,7 +445,25 @@ void Fetcher::waitForEnd()
             return;
         ++i;
     }
-    if ( d->batchIds.isEmpty() ) {
+
+    if ( d->batchSize ) {
+        i = decoders.first();
+        while ( i ) {
+            uint n = 0;
+            while ( n < batchHashSize ) {
+                if ( d->batch[n] ) {
+                    List<Message>::Iterator m( d->batch[n] );
+                    while ( m ) {
+                        i->setDone( m );
+                        ++m;
+                    }
+                }
+                n++;
+            }
+            ++i;
+        }
+    }
+    else {
         while ( !d->messages.isEmpty() ) {
             i = decoders.first();
             while ( i ) {
@@ -451,23 +472,6 @@ void Fetcher::waitForEnd()
             }
             d->messages.shift();
         }
-    }
-    else {
-    i = decoders.first();
-    while ( i ) {
-        uint n = 0;
-        while ( n < batchHashSize ) {
-            if ( d->batch[n] ) {
-                List<Message>::Iterator m( d->batch[n] );
-                while ( m ) {
-                    i->setDone( m );
-                    ++m;
-                }
-            }
-            n++;
-        }
-        ++i;
-    }
     }
 
     if ( d->messages.isEmpty() ) {
@@ -507,17 +511,17 @@ void Fetcher::prepareBatch()
             // we adjust the batch size so the next batch could take
             // something in the approximate region of 30 seconds.
             uint diff = now - d->lastBatchStarted;
-            if ( diff < 5 )
-                diff++; // so we don't overshoot 30 by very much
             d->batchSize = d->batchSize * 30 / diff;
         }
-        log( "Batch time was " + fn ( now - d->lastBatchStarted ) +
-             " for " + fn( prevBatchSize ) + " messages, adjusting to " +
-             fn( d->batchSize ), Log::Debug );
+        if ( d->batchSize > prevBatchSize * 3 )
+            d->batchSize = prevBatchSize * 3;
         if ( d->batchSize < 128 )
             d->batchSize = 128;
         if ( d->batchSize > d->maxBatchSize )
             d->batchSize = d->maxBatchSize;
+        log( "Batch time was " + fn ( now - d->lastBatchStarted ) +
+             " for " + fn( prevBatchSize ) + " messages, adjusting to " +
+             fn( d->batchSize ), Log::Debug );
     }
     d->lastBatchStarted = now;
 
@@ -542,10 +546,9 @@ void Fetcher::prepareBatch()
         n = 1000000;
     d->batchIds.reserve( n );
     n = 0;
-    List<Message>::Iterator i( d->messages );
-    while ( i && n < d->batchSize ) {
-        Message * m = i;
-        ++i;
+    while ( !d->messages.isEmpty() && n < d->batchSize ) {
+        Message * m = d->messages.firstElement();
+        d->messages.shift();
         uint id = m->databaseId();
         uint b = id % batchHashSize;
         if ( d->batch[b] ) {
@@ -570,7 +573,6 @@ void Fetcher::prepareBatch()
             n++;
         }
         d->batch[b]->append( m );
-        d->messages.shift();
         d->messagesRemaining--;
     }
 }
