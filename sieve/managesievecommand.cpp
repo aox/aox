@@ -939,9 +939,7 @@ bool ManageSieveCommand::explain()
             break;
         case SieveAction::Vacation:
             r.append( "send vacation message to " );
-            r.append( sa->recipientAddress()->localpart() );
-            r.append( "@" );
-            r.append( sa->recipientAddress()->domain() );
+            r.append( sa->recipientAddress()->lpdomain() );
             r.append( " with subject " );
             r.append( sa->message()->header()->subject() );
             break;

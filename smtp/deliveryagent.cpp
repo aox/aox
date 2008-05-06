@@ -389,7 +389,7 @@ void DeliveryAgent::logDelivery( DSN * dsn )
         if ( r->action() == Recipient::Unknown ) {
             active++;
             Address * a = r->finalRecipient();
-            l.append( a->localpart() + "@" + a->domain() );
+            l.append( a->lpdomain() );
         }
         ++it;
     }

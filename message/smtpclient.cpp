@@ -236,9 +236,7 @@ void SmtpClient::sendCommand()
         while ( d->rcptTo && d->rcptTo->action() != Recipient::Unknown )
             ++d->rcptTo;
         if ( d->rcptTo ) {
-            send = "rcpt to:<" +
-                   d->rcptTo->finalRecipient()->localpart() + "@" +
-                   d->rcptTo->finalRecipient()->domain() + ">";
+            send = "rcpt to:<" + d->rcptTo->finalRecipient()->lpdomain() + ">";
         }
         else {
             if ( !d->accepted.isEmpty() ) {
