@@ -25,21 +25,11 @@
   other problems? -- AMS. That it's not wiped at boot time. -arnt)
 
   Fetching is faster in many cases, particularly when many messages
-  are involved.
+  are involved. And slower in many cases.
 
-  Not done: Restricting the use of SMTP submit, adding configuration.
-  Perhaps:
-  - a new toggle to decide whether problems with smtp submit cause 5xx
-    after DATA or a bounce
-  - a new toggle to decide whether the From field must point to some
-    address the logged-in user is explicitly permitted to use (for
-    example: it points to a mailbox for which the logged-in user has
-    the 'p' right).
-  - If we constrain From, then we check all of from, mail-from, sender
-    and all resent-from addresses, and all must pass.
-  - When we add DKIM signing (which isn't now), we sign only messages
-    where the logged-in user is explicitly permitted to use the
-    from/sender/etc addresses.
+  Added check-sender-addresses, but still not tested. Probably doesn't
+  work. I still haven't added code to look up other permitted
+  addresses (in Smtp::authenticated() and a helper).
 
   Not done: sharing transactions in the injector.
 
