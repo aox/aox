@@ -5,6 +5,8 @@
 
 #include "smtpcommand.h"
 
+#include "field.h"
+
 
 class SmtpData
     : public SmtpCommand
@@ -17,6 +19,9 @@ public:
     class Message * message( const String & );
 
     void makeCopy() const;
+
+    void checkField( HeaderField::Type );
+    bool addressPermitted( Address * ) const;
 
 private:
     class SmtpDataData * d;

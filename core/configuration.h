@@ -146,6 +146,7 @@ public:
         UseSubaddressing,
         UseStatistics,
         SoftBounce,
+        CheckSenderAddresses,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };

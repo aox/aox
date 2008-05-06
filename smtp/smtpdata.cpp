@@ -156,13 +156,34 @@ void SmtpData::execute()
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
         server()->sieve()->setMessage( message( server()->body() ) );
+        if ( server()->dialect() == SMTP::Submit &&
+             d->message->error().isEmpty() ) {
+            // a syntactically acceptable message has been submitted.
+            // does it use the right addresses?
+            checkField( HeaderField::From );
+            checkField( HeaderField::ResentFrom );
+            checkField( HeaderField::Sender );
+            checkField( HeaderField::ReturnPath );
+            checkField( HeaderField::ReplyTo ); // <-- even reply-to? hm?
+            String e = d->message->error();
+            if ( e.isEmpty() && 
+                 !addressPermitted( server()->sieve()->sender() ) )
+                e = "Not authorised to use this SMTP sender address: " +
+                    server()->sieve()->sender()->lpdomain();
+            if ( !e.isEmpty() ) {
+                respond( 554, e, "5.7.0" );
+                finish();
+                return;
+            }
+        }
         if ( d->message->error().isEmpty() ) {
             // the common case: all ok
         }
         else if ( server()->dialect() == SMTP::Submit ) {
             // for Submit, we reject the message at once, since we
             // have the sender there.
-            respond( 554, "Syntax error: " + d->message->error(), "5.6.0" );
+            respond( 554,
+                     "Syntax error: " + d->message->error(), "5.6.0" );
             finish();
             return;
         }
@@ -269,6 +290,58 @@ void SmtpData::execute()
         finish();
         server()->reset();
     }
+}
+
+
+/*! Returns true if the authenticated User is permitted to send mail
+    from \a a (for almost any definition of send mail from).
+*/
+
+bool SmtpData::addressPermitted( Address * a ) const
+{
+    if ( !a )
+        return false;
+
+    if ( a->type() == Address::Local || a->type() == Address::Invalid )
+        return false;
+    
+    if ( a->type() ==  Address::Normal ) {
+        String ad = a->domain().lower();
+        String al = a->localpart().lower();
+        List<Address>::Iterator p( server()->permittedAddresses() );
+        while ( p &&
+                al != p->localpart().lower() &&
+                ad != p->domain().lower() )
+                ++p;
+        if ( !p )
+            return false;
+    }
+    return true;
+}
+
+
+/*! Checks that the HeaderField with type \a t contains only addresses
+    which the authenticated user is explicitly permitted to use. This
+    has to return at once, so we need the complete list of addresses
+    in RAM. We can obtain that list as soon as authentication
+    succeeds, so that should be okay.
+
+    This function demands that EVERY address in (e.g.) From is
+    authorised, not that at least one address is OK. Is that what we
+    want? I think so.
+*/
+
+void SmtpData::checkField( HeaderField::Type t )
+{
+    List<Address>::Iterator a( d->message->header()->addresses( t ) );
+    while ( a && addressPermitted( a ) )
+        ++a;
+    if ( !a )
+        return;
+    HeaderField * hf = d->message->header()->field( t );
+    if ( hf )
+        hf->setError( "Not authorised to use this address: " + a->lpdomain() );
+    d->message->recomputeError();
 }
 
 

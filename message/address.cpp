@@ -261,6 +261,30 @@ String Address::domain() const
 }
 
 
+/*! Returns the localpart and domain as a String. Returns toString()
+    if the type() isn't Normal or Local.
+*/
+
+String Address::lpdomain() const
+{
+    String r;
+    if ( type() == Normal ||
+         type() == Local ) {
+        if ( localpartIsSensible() )
+            r = d->localpart;
+        else
+            r = d->localpart.quoted();
+    }
+    if ( type() == Normal ) {
+        r.append( "@" );
+        r.append( d->domain );
+    }
+    if ( r.isEmpty() )
+        r = toString();
+    return r;
+}
+
+
 /*! Returns an RFC 2822 representation of this address.
 */
 

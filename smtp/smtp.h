@@ -9,6 +9,7 @@
 
 class User;
 class String;
+class Address;
 class SmtpCommand;
 
 
@@ -41,6 +42,8 @@ public:
 
     User * user() const;
     void authenticated( User * );
+
+    List<Address> * permittedAddresses();
 
     void addRecipient( class SmtpRcptTo * );
     List<class SmtpRcptTo> * rcptTo() const;

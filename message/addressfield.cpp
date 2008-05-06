@@ -158,7 +158,7 @@ String AddressField::rfc822() const
         else if ( it->type() == Address::Bounce )
             s = "<>";
         else if ( it->type() == Address::Normal )
-            s = "<" + it->localpart() + "@" + it->domain() + ">";
+            s = "<" + it->lpdomain() + ">";
     }
     else if ( t == HeaderField::MessageId ||
               t == HeaderField::ResentMessageId ||
@@ -322,7 +322,7 @@ void AddressField::parseContentId( const String & s )
     switch ( ap.addresses()->first()->type() ) {
     case Address::Normal:
         a = ap.addresses();
-        //setData( "<" + a->localpart() + "@" + a->domain() + ">" );
+        //setData( "<" + a->lpdomain() + ">" );
         break;
     case Address::Bounce:
         setError( "<> is not legal, it has to be <some@thing>" );

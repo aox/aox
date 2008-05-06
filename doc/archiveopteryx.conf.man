@@ -390,6 +390,13 @@ controls whether
 .BR archiveopteryx (8)
 should accept mail via SMTP-Submit (RFC 4409). The default is
 .IR enabled .
+.IP check-sender-addresses
+controls whether
+.BR archiveopteryx (8)
+should check whether the sender is authorised to use the addresses in
+the message. From, Sender, Return-Path (SMTP Mail From) and Reply-To
+are all checked. The default is
+.IR disabled .
 .IP submit-copy-to-sender
 controls whether
 .BR archiveopteryx (8)

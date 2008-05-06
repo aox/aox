@@ -257,7 +257,8 @@ static struct {
     { "use-web-archive", Configuration::UseWebArchive, false },
     { "use-subaddressing", Configuration::UseSubaddressing, false },
     { "use-statistics", Configuration::UseStatistics, false },
-    { "soft-bounce", Configuration::SoftBounce, true }
+    { "soft-bounce", Configuration::SoftBounce, true },
+    { "check-sender-addresses", Configuration::CheckSenderAddresses, false }
 };
 
 

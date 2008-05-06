@@ -28,7 +28,7 @@ public:
         executing( false ), executeAgain( false ),
         inputState( SMTP::Command ),
         dialect( SMTP::Smtp ),
-        sieve( 0 ), user( 0 ),
+        sieve( 0 ), user( 0 ), permittedAddresses( 0 ),
         recipients( new List<SmtpRcptTo> ), now( 0 ) {}
 
     bool executing;
@@ -39,6 +39,7 @@ public:
     List<SmtpCommand> commands;
     String heloName;
     User * user;
+    List<Address> * permittedAddresses;
     List<SmtpRcptTo> * recipients;
     String body;
     Date * now;
@@ -301,8 +302,24 @@ class User * SMTP::user() const
 void SMTP::authenticated( User * user )
 {
     d->user = user;
-    if ( user )
-        log( "Authenticated as " + user->login().ascii() );
+    if ( !user )
+        return;
+    
+    log( "Authenticated as " + user->login().ascii() );
+
+    d->permittedAddresses = new List<Address>;
+    d->permittedAddresses->append( d->user->address() );
+}
+
+
+/*! Returns a pointer to the list of addresses the currently
+    authenticated User is permitted to use, or a null pointer if the
+    list is not yet known.
+*/
+
+List<Address> * SMTP::permittedAddresses()
+{
+    return d->permittedAddresses;
 }
 
 
