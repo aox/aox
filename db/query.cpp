@@ -326,6 +326,34 @@ void Query::bind( uint n, const UString &s, Format f )
 
 
 /*! \overload
+    Binds the array of integers \a l to the parameter \a n of this Query
+    in the specified format \a f (Binary or Text; Text by default).
+
+    XXX: Only List<uint> is supported now, because that's all we need to
+    issue a query like "where id = ANY($1)".
+*/
+
+void Query::bind( uint n, const List<uint> * l, Format f )
+{
+    if ( f == Text ) {
+        String s( "{" );
+        List<uint>::Iterator it( l );
+        while ( l ) {
+            s.append( fn( *it ) );
+            ++it;
+            if ( it )
+                s.append( "," );
+        }
+        s.append( "}" );
+        bind( n, s, Text );
+    }
+    else {
+        // XXX: Not implemented yet.
+    }
+}
+
+
+/*! \overload
     Binds NULL to the parameter \a n of this Query.
 */
 
