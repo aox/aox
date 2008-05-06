@@ -31,6 +31,8 @@
   work. I still haven't added code to look up other permitted
   addresses (in Smtp::authenticated() and a helper).
 
+  Partly done: The connections table.
+
   Not done: sharing transactions in the injector.
 
   Not done: Views on the web.
@@ -40,6 +42,9 @@
   Note done: Axel wanted namespaces or something like that. I didn't
   quite understand, but I understaood enough to think that it's a good
   idea and 3.0 is the right time to introduce it.
+
+  Suggested schema change: A partial index on header_fields, so we
+  can locate messages based on message-id.
 
 
 Release cycle

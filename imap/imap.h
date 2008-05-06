@@ -41,7 +41,7 @@ public:
     void unblockCommands();
 
     void sendChallenge( const String & );
-    void setUser( class User * );
+    void setUser( class User *, const String & );
 
     void setPrefersAbsoluteMailboxes( bool );
     bool prefersAbsoluteMailboxes() const;

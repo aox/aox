@@ -370,14 +370,14 @@ bool IMAP::idle() const
 
 
 /*! Notifies the IMAP object that \a user was successfully
-    authenticated. This changes the state() of the IMAP object to
-    Authenticated.
+    authenticated by way of \a mechanism. This changes the state() of
+    the IMAP object to Authenticated.
 */
 
-void IMAP::setUser( User * user )
+void IMAP::setUser( User * user, const String & mechanism )
 {
     log( "Authenticated as user " + user->login().ascii(), Log::Significant );
-    SaslConnection::setUser( user );
+    SaslConnection::setUser( user, mechanism );
     setState( Authenticated );
 }
 
@@ -422,6 +422,7 @@ void IMAP::runCommands()
              Log::Debug );
 
         // run all currently executing commands once
+        uint n = 0;
         List< Command >::Iterator i( d->commands );
         while ( i ) {
             Command * c = i;
@@ -432,11 +433,15 @@ void IMAP::runCommands()
                     c->execute();
                 else
                     c->finish();
+                n++;
             }
         }
+        log( "IMAP::runCommands executed " + fn( n ) + " commands",
+             Log::Debug );
 
         // emit responses for zero or more finished commands and
         // retire them. we also emit all error responses.
+        n = 0;
         i = d->commands.first();
         bool deferredResponse = false;
         while ( i ) {
@@ -445,11 +450,14 @@ void IMAP::runCommands()
             if ( i->state() == Command::Finished &&
                  ( !deferredResponse || !i->ok() ) ) {
                 i->emitResponses();
+                n++;
                 if ( i->state() == Command::Finished )
                     deferredResponse = true;
             }
             ++i;
         }
+        log( "IMAP::runCommands retired " + fn( n ) + " commands",
+             Log::Debug );
 
         // we may be able to start new commands. if any commands are
         // running, then following commands in the same group can be
@@ -473,6 +481,9 @@ void IMAP::runCommands()
         // if we have a leading command, we can parse and execute
         // followers in the same group.
         if ( i ) {
+            log( "IMAP::runCommands found leading command with tag " +
+                 i->tag() + " and state " + fn( i->state() ),
+                 Log::Debug );
             Command * g = i;
             while ( i &&
                     ( i->state() == Command::Executing ||
@@ -508,6 +519,36 @@ void IMAP::runCommands()
                     }
                 }
             }
+        }
+        else {
+            uint unparsed = 0;
+            uint blocked = 0;
+            uint executing = 0;
+            i = d->commands.first();
+            while ( i ) {
+                switch ( i->state() ) {
+                case Command::Unparsed:
+                    unparsed++;
+                    break;
+                case Command::Blocked:
+                    blocked++;
+                    break;
+                case Command::Executing:
+                    executing++;
+                    break;
+                case Command::Finished:
+                    break;
+                case Command::Retired:
+                    break;
+                }
+                ++i;
+            }
+            if ( unparsed || blocked || executing )
+                log( "IMAP::runCommands found no leading commmand, but " +
+                     fn( unparsed ) + " unparsed, " +
+                     fn( blocked ) + " blocked and " +
+                     fn( executing ) + " executing commands.",
+                     Log::Debug );
         }
     }
 

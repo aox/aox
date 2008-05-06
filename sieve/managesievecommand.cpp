@@ -301,7 +301,7 @@ bool ManageSieveCommand::authenticate()
         return false;
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
-        d->sieve->setUser( d->m->user() );
+        d->sieve->setUser( d->m->user(), d->m->name() );
         d->sieve->setState( ManageSieve::Authorised );
     }
     else if ( d->m->state() == SaslMechanism::Terminated ) {

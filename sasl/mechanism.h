@@ -25,6 +25,7 @@ public:
         DigestMD5
     };
     Type type() const;
+    String name() const;
 
     enum State {
         AwaitingInitialResponse,

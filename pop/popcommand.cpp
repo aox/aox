@@ -255,7 +255,7 @@ bool PopCommand::auth()
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
         d->pop->setReader( 0 );
-        d->pop->setUser( d->m->user() );
+        d->pop->setUser( d->m->user(), d->m->name() );
         d->cmd = Session;
         return session();
     }
@@ -281,7 +281,7 @@ bool PopCommand::user()
             return true;
         }
         d->user = new ::User;
-        d->pop->setUser( d->user );
+        d->pop->setUser( d->user, "POP3 login" );
         Utf8Codec c;
         d->user->setLogin( c.toUnicode( nextArg() ) );
         if ( c.valid() ) {

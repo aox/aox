@@ -560,3 +560,31 @@ SaslMechanism::Type SaslMechanism::type() const
 {
     return d->type;
 }
+
+
+/*! Returns the canonical name of this object's SASL type, in lower
+    case. For example, "cram-md5" in the case of CramMD5.
+*/
+
+String SaslMechanism::name() const
+{
+    String r;
+    switch( d->type ) {
+    case Anonymous:
+        r = "anonymous";
+        break;
+    case Plain:
+        r = "plain";
+        break;
+    case Login:
+        r = "login";
+        break;
+    case CramMD5:
+        r = "cram-md5";
+        break;
+    case DigestMD5:
+        r = "digest-md5";
+        break;
+    }
+    return r;
+}

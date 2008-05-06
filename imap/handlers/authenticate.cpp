@@ -87,7 +87,7 @@ void Authenticate::execute()
         return;
 
     if ( m->state() == SaslMechanism::Succeeded )
-        imap()->setUser( m->user() );
+        imap()->setUser( m->user(), m->name() );
     else if ( m->state() == SaslMechanism::Terminated )
         error( Bad, "authentication terminated" );
     else

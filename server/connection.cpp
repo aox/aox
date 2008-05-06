@@ -2,15 +2,17 @@
 
 #include "connection.h"
 
-#include "buffer.h"
-#include "endpoint.h"
-#include "string.h"
-#include "scope.h"
-#include "eventloop.h"
-#include "log.h"
-#include "byteforwarder.h"
 #include "tls.h"
+#include "log.h"
 #include "file.h"
+#include "user.h"
+#include "scope.h"
+#include "query.h"
+#include "buffer.h"
+#include "string.h"
+#include "endpoint.h"
+#include "eventloop.h"
+#include "byteforwarder.h"
 
 // errno
 #include <errno.h>
@@ -848,7 +850,72 @@ User * SaslConnection::user() const
     call to this function, user() will return the specified \a user.
 */
 
-void SaslConnection::setUser( User * user )
+void SaslConnection::setUser( User * user, const String & mechanism )
 {
     u = user;
+    m = mechanism;
+    s = (uint)time(0);
+}
+
+
+/*! This reimplementation only adds a record to the connections table.
+
+    If the connection is closed as part of server shutdown, then it's
+    probably too late to execute a new Query. We're tolerant of that.
+*/
+
+void SaslConnection::close()
+{
+    if ( state() == Invalid )
+        return;
+    String client = peer().string();
+    Connection::close();
+
+    if ( !u )
+        return;
+
+    if ( EventLoop::global()->inShutdown() ) {
+        log( "Cannot log connection in the connections table",
+             Log::Info );
+        return;
+    }
+
+    return; // crab: remove this line when you've added the table
+
+    Query * q = new Query( "insert into connections "
+                           "(user, mechanism, authfailures, "
+                           "start, end, client, syntaxerrors) "
+                           "values ($1,$2,$3,"
+                           "$4::interval + 'epoch'::timestamptz,"
+                           "$5::interval + 'epoch'::timestamptz,"
+                           "$6,$7)",
+                           0 );
+    q->bind( 1, u->id() );
+    q->bind( 2, m );
+    q->bind( 3, af );
+    q->bind( 4, s );
+    q->bind( 5, (uint)time( 0 ) );
+    q->bind( 6, client );
+    q->bind( 7, sf );
+    q->execute();
+}
+
+
+/*! Used to count authentication failures for logging and
+    statistics.
+*/
+
+void SaslConnection::recordAuthenticationFailure()
+{
+    af++;
+}
+
+
+/*! Used to count protocol syntax errors for logging and
+    statistics.
+*/
+
+void SaslConnection::recordSyntaxError()
+{
+    sf++;
 }

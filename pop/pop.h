@@ -20,7 +20,7 @@ public:
     void setState( State );
     State state() const;
 
-    virtual void setUser( User * );
+    virtual void setUser( User *, const String & );
 
     void setSession( Session * );
     Session * session() const;

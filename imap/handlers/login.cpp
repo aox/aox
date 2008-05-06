@@ -68,7 +68,7 @@ void Login::execute()
         return;
 
     if ( m->state() == SaslMechanism::Succeeded )
-        imap()->setUser( m->user() );
+        imap()->setUser( m->user(), "IMAP login" );
     else
         error( No, "LOGIN failed for " + n.quoted() );
 
