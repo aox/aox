@@ -49,6 +49,7 @@ public:
     void bind( uint, int64, Format = Text );
     void bind( uint, const String &, Format = Text );
     void bind( uint, const UString &, Format = Text );
+    void bind( uint, const List<uint> *, Format = Text );
     void bindNull( uint );
     void submitLine();
 
