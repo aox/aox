@@ -1562,7 +1562,7 @@ void Injector::resolveAddressLinks()
         else {
             unique.insert( k, i->address );
             addresses->append( i->address );
-            k = i->address->localpart() + "@" + i->address->domain();
+            k = i->address->lpdomain();
             naked.insert( k, i->address );
         }
 
@@ -1577,7 +1577,7 @@ void Injector::resolveAddressLinks()
         while ( ai ) {
             Address * a = ai;
             ++ai;
-            String k( a->localpart() + "@" + a->domain() );
+            String k( a->lpdomain() );
 
             if ( naked.contains( k ) ) {
                 Address * same = naked.find( k );
@@ -1594,7 +1594,7 @@ void Injector::resolveAddressLinks()
     }
 
     if ( d->sender ) {
-        String k( d->sender->localpart() + "@" + d->sender->domain() );
+        String k( d->sender->lpdomain() );
         if ( naked.contains( k ) )
             d->sender = naked.find( k );
         else

@@ -250,24 +250,16 @@ String Recipient::plainTextParagraph() const
 
     if ( finalRecipient() && originalRecipient() &&
          finalRecipient()->toString() != originalRecipient()->toString() ) {
-        a.append( finalRecipient()->localpart() );
-        a.append( "@" );
-        a.append( finalRecipient()->domain() );
+        a.append( finalRecipient()->lpdomain() );
         a.append( " (forwarded from " );
-        a.append( originalRecipient()->localpart() );
-        a.append( "@" );
-        a.append( originalRecipient()->domain() );
+        a.append( originalRecipient()->lpdomain() );
         a.append( ")" );
     }
     else if ( finalRecipient() ) {
-        a.append( finalRecipient()->localpart() );
-        a.append( "@" );
-        a.append( finalRecipient()->domain() );
+        a.append( finalRecipient()->lpdomain() );
     }
     else if ( originalRecipient() ) {
-        a.append( originalRecipient()->localpart() );
-        a.append( "@" );
-        a.append( originalRecipient()->domain() );
+        a.append( originalRecipient()->lpdomain() );
     }
     else {
         return "";
@@ -356,14 +348,12 @@ String Recipient::dsnParagraph() const
     // [ original-recipient-field CRLF ]
     if ( originalRecipient() && originalRecipient() != finalRecipient() )
         l.append( "Original-Recipient: rfc822;" +
-                  originalRecipient()->localpart() + "@" +
-                  originalRecipient()->domain() );
+                  originalRecipient()->lpdomain() );
 
     // final-recipient-field CRLF
     if ( finalRecipient() )
         l.append( "Final-Recipient: rfc822;" +
-                  finalRecipient()->localpart() + "@" +
-                  finalRecipient()->domain() );
+                  finalRecipient()->lpdomain() );
 
     // action-field CRLF
     switch ( action() ) {

@@ -1488,8 +1488,7 @@ List<Address> * Sieve::forwarded() const
         List<SieveAction>::Iterator a( i->actions );
         while ( a ) {
             if ( a->type() == SieveAction::Redirect ) {
-                String s = a->recipientAddress()->localpart() + "@" +
-                           a->recipientAddress()->domain();
+                String s = a->recipientAddress()->lpdomain();
                 if ( !uniq.contains( s ) ) {
                     uniq.append( s );
                     r->append( a->recipientAddress() );

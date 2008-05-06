@@ -33,6 +33,7 @@ public:
     String localpart() const;
     String domain() const;
 
+    String lpdomain() const;
     String toString() const;
 
     bool valid() const { return type() != Invalid; }
