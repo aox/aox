@@ -473,6 +473,10 @@ void IMAP::runCommands()
         // if we have a leading command, we can parse and execute
         // followers in the same group.
         if ( i ) {
+            log( "IMAP::runCommands found leading command with tag " +
+                 i->tag() + ", group " + fn( i->group() ) + " and state " +
+                 fn( i->state() ),
+                 Log::Debug );
             Command * g = i;
             while ( i &&
                     ( i->state() == Command::Executing ||
