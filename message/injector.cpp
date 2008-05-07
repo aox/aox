@@ -77,6 +77,7 @@ struct Bid
 
     Bodypart *bodypart;
     uint bid;
+    String hash;
     Query * insert;
     Query * select;
 };
@@ -303,6 +304,7 @@ class BidFetcher
 {
 public:
     Transaction * transaction;
+    Query * look;
     List<Bid> * list;
     EventHandler * owner;
     List<Bid>::Iterator * li;
@@ -313,7 +315,7 @@ public:
     String error;
 
     BidFetcher( Transaction * t, List<Bid> * l, EventHandler * ev )
-        : transaction( t ), list( l ), owner( ev ),
+        : transaction( t ), look( 0 ), list( l ), owner( ev ),
           li( new List<Bid>::Iterator( list ) ),
           state( 0 ), savepoint( 0 ), done( false ), failed( false )
     {}
@@ -322,8 +324,32 @@ public:
     {
         Query * q = 0;
 
+        if ( look ) {
+            if ( look->state() == Query::Inactive ) {
+                transaction->enqueue( look );
+                transaction->execute();
+                return;
+            }
+            if ( !look->done() )
+                return;
+            // get all the bodyparts rows
+            Dict<Row> rows;
+            Row * r = 0;
+            while ( (r=look->nextRow()) != 0 )
+                rows.insert( r->getString( "hash" ), r );
+            // then tie each bodyparts row to all the Bodypart objects
+            // that have the right hash.
+            List<Bid>::Iterator bi( list );
+            while ( bi ) {
+                r = rows.find( bi->hash );
+                if ( r )
+                    bi->bid = r->getInt( "id" );
+                ++bi;
+            }
+        }
+
         while ( !done && *li ) {
-            while ( *li && !(*li)->insert )
+            while ( *li && ( !(*li)->insert || (*li)->bid ) )
                 ++(*li);
             if ( !*li )
                 break;
@@ -1732,6 +1758,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
 void Injector::setupBodyparts()
 {
+    StringList hashes;
     List< Bid >::Iterator bi( d->bodyparts );
     while ( bi ) {
         Bodypart *b = bi->bodypart;
@@ -1768,11 +1795,12 @@ void Injector::setupBodyparts()
                 data = u.fromUnicode( b->text() );
             else if ( storeData )
                 data = b->data();
-            String hash = MD5::hash( data ).hex();
+            bi->hash = MD5::hash( data ).hex();
 
             Query * i = new Query( *intoBodyparts, d->bidFetcher );
-            i->bind( 1, hash );
+            i->bind( 1, bi->hash );
             i->bind( 2, b->numBytes() );
+            hashes.append( bi->hash );
 
             if ( storeText ) {
                 String text( data );
@@ -1795,11 +1823,29 @@ void Injector::setupBodyparts()
 
             bi->insert = i;
             bi->select = new Query( *idBodypart, d->bidFetcher );
-            bi->select->bind( 1, hash );
+            bi->select->bind( 1, bi->hash );
         }
 
         ++bi;
     }
+
+    if ( hashes.isEmpty() )
+        return;
+
+    hashes.removeDuplicates();
+    String r = "select id, hash from bodyparts where hash=$";
+    uint n = 1;
+    d->bidFetcher->look = new Query( "", d->bidFetcher );
+    StringList::Iterator h( hashes );
+    while ( h ) {
+        if ( n > 1 )
+            r.append( " or hash=$" );
+        r.append( fn( n ) );
+        d->bidFetcher->look->bind( n, *h );
+        ++n;
+        ++h;
+    }
+    d->bidFetcher->look->setString( r );
 }
 
 
