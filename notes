@@ -4,9 +4,12 @@
 
   We still want to do:
 
-  Apple Mail loses its cache, can't rebuild.
+  Apple Mail loses its cache, can't rebuild. Probably because it sends
+  multiple commands but doens't accept concurrent execution and
+  reordered replies.
 
-  Thunderbird makes archiveopteryx hang while storing flags.
+  Thunderbird makes archiveopteryx hang while storing flags. I wonder
+  whether this too is due to command reordering.
 
   Something to do with bodyparts_hash_key. That really should not
   provoke message rejection, but apparently it happens.
