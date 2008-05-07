@@ -1,12 +1,12 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "cache.h"
+#include "cachelookup.h"
 
 
-/*! \class CacheLookup cache.h
+/*! \class CacheLookup cachelookup.h
     This class indicates the progress of a cache lookup operation.
 
-    Each cache manager (e.g., AddressCache) has a "lookup()" method that
+    Each cache manager (e.g., AddressCache) has a lookup() method that
     returns a CacheLookup object, whose state() is set to Completed when
     the operation is complete.
 */

@@ -4,7 +4,7 @@
 #define ADDRESSCACHE_H
 
 #include "list.h"
-#include "cache.h"
+#include "cachelookup.h"
 
 
 class Address;

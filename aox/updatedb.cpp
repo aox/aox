@@ -6,9 +6,9 @@
 #include "utf.h"
 #include "dict.h"
 #include "query.h"
-#include "cache.h"
 #include "ustring.h"
 #include "address.h"
+#include "cachelookup.h"
 #include "transaction.h"
 #include "addresscache.h"
 

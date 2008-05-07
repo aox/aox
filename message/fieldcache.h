@@ -4,7 +4,7 @@
 #define FIELDCACHE_H
 
 #include "list.h"
-#include "cache.h"
+#include "cachelookup.h"
 #include "header.h"
 
 

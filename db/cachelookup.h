@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef CACHE_H
-#define CACHE_H
+#ifndef CACHELOOKUP_H
+#define CACHELOOKUP_H
 
 #include "global.h"
 
