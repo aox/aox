@@ -3,6 +3,7 @@
 #include "allocator.h"
 
 #include "sys.h"
+#include "cache.h"
 #include "string.h"
 #include "log.h"
 
@@ -490,6 +491,8 @@ void Allocator::free()
     afterSweep.tv_sec = 0;
     afterSweep.tv_usec = 0;
     gettimeofday( &start, 0 );
+
+    Cache::clearAllCaches();
 
     total = 0;
     uint freed = 0;
