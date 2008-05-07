@@ -3,6 +3,7 @@
 #include "occlient.h"
 
 #include "scope.h"
+#include "cache.h"
 #include "string.h"
 #include "configuration.h"
 #include "eventloop.h"
@@ -119,6 +120,7 @@ void OCClient::parse()
             if ( arg == "refresh" ) {
                 ::log( "Refreshing caches" );
                 Flag::setup();
+                Cache::clearAllCaches();
                 OCClient::send( "caches refreshed" );
             }
         }
