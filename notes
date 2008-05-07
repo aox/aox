@@ -2,6 +2,15 @@
 
   Just bugfixes.
 
+  We still want to do:
+
+  Apple Mail loses its cache, can't rebuild.
+
+  Thunderbird makes archiveopteryx hang while storing flags.
+
+  Something to do with bodyparts_hash_key. That really should not
+  provoke message rejection, but apparently it happens.
+
 
 3.0.0: ?
 
@@ -23,6 +32,9 @@
   proposal. It breaks compatibility, in the sense that the just-compiled
   bin/aox won't be able to stop the older running server. Do you see any
   other problems? -- AMS. That it's not wiped at boot time. -arnt)
+
+  Note needed for upgraders: logrotate/newsyslog/whatever has to be
+  told about the new location.
 
   Fetching is faster in many cases, particularly when many messages
   are involved. And slower in many cases.

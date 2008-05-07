@@ -436,8 +436,6 @@ void IMAP::runCommands()
                 n++;
             }
         }
-        log( "IMAP::runCommands executed " + fn( n ) + " commands",
-             Log::Debug );
 
         // emit responses for zero or more finished commands and
         // retire them. we also emit all error responses.
@@ -456,8 +454,6 @@ void IMAP::runCommands()
             }
             ++i;
         }
-        log( "IMAP::runCommands retired " + fn( n ) + " commands",
-             Log::Debug );
 
         // we may be able to start new commands. if any commands are
         // running, then following commands in the same group can be
@@ -482,7 +478,8 @@ void IMAP::runCommands()
         // followers in the same group.
         if ( i ) {
             log( "IMAP::runCommands found leading command with tag " +
-                 i->tag() + " and state " + fn( i->state() ),
+                 i->tag() + ", group " + fn( i->group() ) + " and state " +
+                 fn( i->state() ),
                  Log::Debug );
             Command * g = i;
             while ( i &&
