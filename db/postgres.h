@@ -18,6 +18,8 @@ public:
 
     bool usable() const;
 
+    static uint version();
+
 private:
     class PgData *d;
 

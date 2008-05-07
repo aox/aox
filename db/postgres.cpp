@@ -27,6 +27,7 @@
 
 
 static bool hasMessage( Buffer * );
+static uint serverVersion;
 
 
 class PgData
@@ -629,10 +630,10 @@ void Postgres::unknown( char type )
             }
             else if ( n == "server_version" ) {
                 bool ok = true;
-                uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
-                               100 * v.section( ".", 2 ).number( &ok ) +
-                               v.section( ".", 3 ).number( &ok );
-                if ( !ok || version < 80100 )
+                serverVersion = 10000 * v.section( ".", 1 ).number( &ok ) +
+                                100 * v.section( ".", 2 ).number( &ok ) +
+                                v.section( ".", 3 ).number( &ok );
+                if ( !ok || version() < 80100 )
                     e = "Archiveopteryx requires PostgreSQL 8.1 or higher: ";
             }
             else if ( n == "session_authorization" ) {
@@ -1036,4 +1037,18 @@ void Postgres::countQueries( class Query * q )
 
     // later also use GraphableDataSet to keep track of query
     // execution times, but not right now.
+}
+
+
+/*! Returns the Postgres server's declared version number as an
+    integer. 8.1.0 is returned as 80100, 8.3.2 as 80302.
+
+    The version number is learned immediately after connecting.
+    version() returns 0 until the first Postgres learns the server
+    version.
+*/
+
+uint Postgres::version()
+{
+    return ::serverVersion;
 }
