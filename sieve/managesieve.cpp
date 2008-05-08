@@ -317,5 +317,5 @@ void ManageSieve::capabilities()
 
 void ManageSieve::sendChallenge( const String & s )
 {
-    enqueue( s+"\r\n" );
+    enqueue( "\"" + s + "\"\r\n" );
 }
