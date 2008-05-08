@@ -65,7 +65,7 @@ public:
     void setFlagsFetched( bool );
     void setHeadersFetched();
     void setBodiesFetched();
-    void setAnnotationsFetched();
+    void setAnnotationsFetched( bool );
     void setAddressesFetched();
     void setBytesAndLinesFetched();
 

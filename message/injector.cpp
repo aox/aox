@@ -13,6 +13,7 @@
 #include "datefield.h"
 #include "fieldcache.h"
 #include "mimefields.h"
+#include "messagecache.h"
 #include "addressfield.h"
 #include "transaction.h"
 #include "annotation.h"
@@ -2057,7 +2058,7 @@ void Injector::linkDates()
         DateField * df = (DateField *)link->hf;
 
         Query * q =
-            new Query( "insert into date_fields (message,value) "
+           new Query( "insert into date_fields (message,value) "
                        "values ($1,$2)", 0 );
         q->bind( 1, d->messageId );
         q->bind( 2, df->date()->isoDateTime() );
@@ -2111,6 +2112,10 @@ void Injector::announce()
         Mailbox * m = mi->mailbox;
 
         List<Session>::Iterator si( m->sessions() );
+
+        if ( si )
+            MessageCache::insert( m, uid, d->message, 10 );
+
         while ( si ) {
             if ( si == mi->recentIn )
                 si->addRecent( uid );
@@ -2119,6 +2124,7 @@ void Injector::announce()
             si->addUnannounced( dummy );
             ++si;
         }
+
 
         if ( m->uidnext() <= uid && m->nextModSeq() <= mi->ms ) {
             m->setUidnextAndNextModSeq( 1+uid, 1+mi->ms );

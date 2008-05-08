@@ -70,6 +70,7 @@ public:
         void execute();
         virtual void decode( Message *, Row * ) = 0;
         virtual void setDone( Message * ) = 0;
+        virtual bool isDone( Message * ) const = 0;
         Query * q;
         FetcherData * d;
 
@@ -93,6 +94,7 @@ public:
         FlagsDecoder( FetcherData * fd ) { d = fd; }
         void decode( Message *, Row * );
         void setDone( Message * );
+        bool isDone( Message * ) const;
     };
 
     class TriviaDecoder
@@ -102,6 +104,7 @@ public:
         TriviaDecoder( FetcherData * fd ) { d = fd; }
         void decode( Message *, Row * );
         void setDone( Message * );
+        bool isDone( Message * ) const;
     };
 
     class AnnotationDecoder
@@ -111,6 +114,7 @@ public:
         AnnotationDecoder( FetcherData * fd ) { d = fd; }
         void decode( Message *, Row * );
         void setDone( Message * );
+        bool isDone( Message * ) const;
     };
 
     class AddressDecoder
@@ -120,6 +124,7 @@ public:
         AddressDecoder( FetcherData * fd ) { d = fd; }
         void decode( Message *, Row * );
         void setDone( Message * );
+        bool isDone( Message * ) const;
     };
 
     class HeaderDecoder
@@ -129,6 +134,7 @@ public:
         HeaderDecoder( FetcherData * fd ) { d = fd; }
         void decode( Message *, Row * );
         void setDone( Message * );
+        bool isDone( Message * ) const;
     };
 
     class PartNumberDecoder
@@ -138,6 +144,7 @@ public:
         PartNumberDecoder( FetcherData * fd ) { d = fd; }
         void decode( Message *, Row * );
         void setDone( Message * );
+        bool isDone( Message * ) const;
     };
 
     class BodyDecoder
@@ -147,6 +154,7 @@ public:
         BodyDecoder( FetcherData * fd ): PartNumberDecoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
+        bool isDone( Message * ) const;
     };
 };
 
@@ -934,6 +942,12 @@ void FetcherData::HeaderDecoder::setDone( Message * m )
 }
 
 
+bool FetcherData::HeaderDecoder::isDone( Message * m ) const
+{
+    return m->hasHeaders();
+}
+
+
 
 void FetcherData::AddressDecoder::decode( Message * m, Row * r )
 {
@@ -986,6 +1000,12 @@ void FetcherData::AddressDecoder::setDone( Message * m )
 }
 
 
+bool FetcherData::AddressDecoder::isDone( Message * m ) const
+{
+    return m->hasAddresses();
+}
+
+
 void FetcherData::FlagsDecoder::decode( Message * m, Row * r )
 {
     Flag * f = Flag::find( r->getInt( "flag" ) );
@@ -1009,6 +1029,12 @@ void FetcherData::FlagsDecoder::setDone( Message * m )
 {
     m->setFlagsFetched( true );
 
+}
+
+
+bool FetcherData::FlagsDecoder::isDone( Message * m ) const
+{
+    return m->hasFlags();
 }
 
 
@@ -1042,6 +1068,12 @@ void FetcherData::BodyDecoder::setDone( Message * m )
 {
     m->setBodiesFetched();
     m->setBytesAndLinesFetched();
+}
+
+
+bool FetcherData::BodyDecoder::isDone( Message * m ) const
+{
+    return m->hasBodies() && m->hasBytesAndLines();
 }
 
 
@@ -1082,6 +1114,12 @@ void FetcherData::PartNumberDecoder::setDone( Message * m )
 }
 
 
+bool FetcherData::PartNumberDecoder::isDone( Message * m ) const
+{
+    return m->hasBytesAndLines();
+}
+
+
 void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
 {
     m->setRfc822Size( r->getInt( "rfc822size" ) );
@@ -1095,6 +1133,12 @@ void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
 void FetcherData::TriviaDecoder::setDone( Message * )
 {
     // hard work ;-)
+}
+
+
+bool FetcherData::TriviaDecoder::isDone( Message * m ) const
+{
+    return m->rfc822Size() > 0;
 }
 
 
@@ -1121,7 +1165,13 @@ void FetcherData::AnnotationDecoder::decode( Message * m, Row * r )
 
 void FetcherData::AnnotationDecoder::setDone( Message * m )
 {
-    m->setAnnotationsFetched();
+    m->setAnnotationsFetched( true );
+}
+
+
+bool FetcherData::AnnotationDecoder::isDone( Message * m ) const
+{
+    return m->hasAnnotations();
 }
 
 

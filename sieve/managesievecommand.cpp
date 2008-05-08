@@ -881,7 +881,7 @@ bool ManageSieveCommand::explain()
                 ::x->message->setFlagsFetched( true );
                 ::x->message->setHeadersFetched();
                 ::x->message->setBodiesFetched();
-                ::x->message->setAnnotationsFetched();
+                ::x->message->setAnnotationsFetched( true );
                 ::x->message->setAddressesFetched();
                 ::x->message->setRfc822Size( ::x->message->rfc822().length() );
                 if ( !::x->message->error().isEmpty() )

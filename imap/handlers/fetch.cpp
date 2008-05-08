@@ -2,6 +2,7 @@
 
 #include "fetch.h"
 
+#include "messagecache.h"
 #include "imapsession.h"
 #include "transaction.h"
 #include "annotation.h"
@@ -721,29 +722,63 @@ void Fetch::sendFetchQueries()
 
     List<Message> * l = new List<Message>;
 
+    bool haveAddresses = true;
+    bool haveHeader = true;
+    bool haveBody = true;
+    bool havePartNumbers = true;
+    bool haveTrivia = true;
+    bool haveFlags = true;
+    bool haveAnnotations = true;
+
     while ( !d->set.isEmpty() ) {
         uint uid = d->set.value( 1 );
         d->set.remove( uid );
-        Message * m = new Message;
+        Message * m = MessageCache::find( mb, uid );
+        if ( m ) {
+            log( "uh " + fn( m->modSeq() ) + " ah " + fn( mb->nextModSeq() ) );
+            if ( m->modSeq() + 1 < mb->nextModSeq() ) {
+                m->setFlagsFetched( false );
+                m->setAnnotationsFetched( false );
+                m->setModSeq( 0 );
+            }
+            if ( !m->hasAddresses() )
+                haveAddresses = false;
+            if ( !m->hasHeaders() )
+                haveHeader = false;
+            if ( !m->hasBytesAndLines() )
+                havePartNumbers = false;
+            if ( !m->hasBodies() )
+                haveBody = false;
+            if ( !m->hasTrivia() )
+                haveTrivia = false;
+            if ( !m->hasFlags() )
+                haveFlags = false;
+            if ( !m->hasAnnotations() )
+                haveAnnotations = false;
+        }
+        else {
+            m = new Message;
+        }
         m->setUid( uid );
         d->requested.append( m );
         l->append( m );
     }
 
     Fetcher * f = new Fetcher( mb, l, this );
-    if ( d->needsAddresses )
+    if ( d->needsAddresses && !haveAddresses )
         f->fetch( Fetcher::Addresses );
-    if ( d->needsHeader )
+    if ( d->needsHeader && !haveHeader )
         f->fetch( Fetcher::OtherHeader );
-    if ( d->needsBody )
+    if ( d->needsBody && !haveBody )
         f->fetch( Fetcher::Body );
-    if ( d->needsPartNumbers )
+    if ( d->needsPartNumbers && !havePartNumbers )
         f->fetch( Fetcher::PartNumbers );
-    if ( d->flags )
+    if ( d->flags && !haveFlags )
         f->fetch( Fetcher::Flags );
-    if ( d->rfc822size || d->internaldate || d->modseq )
+    if ( ( d->rfc822size || d->internaldate || d->modseq ) &&
+         !haveTrivia )
         f->fetch( Fetcher::Trivia );
-    if ( d->annotation )
+    if ( d->annotation && !haveAnnotations )
         f->fetch( Fetcher::Annotations );
     f->execute();
 

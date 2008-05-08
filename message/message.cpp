@@ -603,12 +603,15 @@ void Message::setBodiesFetched()
 }
 
 
-/*! Records that all the annotations on this Message have been
-    fetched. */
+/*! Records that all the annotations on this Message have been fetched
+    if \a ok is true and that they haven't if \a ok is false.
+*/
 
-void Message::setAnnotationsFetched()
+void Message::setAnnotationsFetched( bool ok )
 {
-    d->hasAnnotations = true;
+    d->hasAnnotations = ok;
+    if ( !ok )
+        d->annotations = 0;
 }
 
 
@@ -618,7 +621,7 @@ void Message::setAnnotationsFetched()
 
 bool Message::hasTrivia() const
 {
-    return d->rfc822Size > 0;
+    return d->rfc822Size > 0 && d->modseq > 0;
 }
 
 
