@@ -513,6 +513,36 @@ void IMAP::runCommands()
                 }
             }
         }
+        else {
+            uint unparsed = 0;
+            uint blocked = 0;
+            uint executing = 0;
+            i = d->commands.first();
+            while ( i ) {
+                switch ( i->state() ) {
+                case Command::Unparsed:
+                    unparsed++;
+                    break;
+                case Command::Blocked:
+                    blocked++;
+                    break;
+                case Command::Executing:
+                    executing++;
+                    break;
+                case Command::Finished:
+                    break;
+                case Command::Retired:
+                    break;
+                }
+                ++i;
+            }
+            if ( unparsed || blocked || executing )
+                log( "IMAP::runCommands found no leading commmand, but " +
+                     fn( unparsed ) + " unparsed, " +
+                     fn( blocked ) + " blocked and " +
+                     fn( executing ) + " executing commands.",
+                     Log::Debug );
+        }
     }
 
     d->runningCommands = false;
