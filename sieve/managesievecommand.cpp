@@ -297,6 +297,9 @@ bool ManageSieveCommand::authenticate()
         d->m->readInitialResponse( r );
     }
 
+    if ( d->m->state() == SaslMechanism::AwaitingResponse && d->r )
+        d->m->readResponse( new String( d->r->unquoted() ) );
+
     if ( !d->m->done() )
         return false;
 
