@@ -45,20 +45,18 @@ String CramMD5::challenge()
 
 void CramMD5::parseResponse( const String &s )
 {
-    int i;
+    uint i = s.length();
+    while ( i > 0 && s[i] != ' ' )
+        i--;
 
-    i = s.find( ' ' );
-    while ( s.find( ' ', i+1 ) > i )
-        i = s.find( ' ', i+1 );
-
-    if ( i <= 0 ) {
-        log( "Syntax error in client response", Log::Error );
+    if ( i == 0 ) {
+        log( "Syntax error in client response (no space)" );
         setState( Failed );
         return;
     }
 
     setLogin( s.mid( 0, i ) );
-    setSecret( s.mid( i+1, s.length()-i ).lower() );
+    setSecret( s.mid( i+1 ).lower() );
     setState( Authenticating );
     execute();
 }
