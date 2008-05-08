@@ -6,6 +6,7 @@
 #include "connection.h"
 #include "configuration.h"
 #include "stringlist.h"
+#include "scope.h"
 #include "graph.h"
 #include "query.h"
 #include "user.h"
@@ -104,12 +105,17 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
     else if ( s == "digest-md5" )
         m = new ::DigestMD5( command );
 
-    if ( m && !allowed( m->type(), connection->hasTls() ) )
+    if ( !m )
         return 0;
 
-    if ( m )
-        m->d->connection = connection;
+    if ( !allowed( m->type(), connection->hasTls() ) ) {
+        m->log( "SASL mechanism not allowed by policy: " + s );
+        return 0;
+    }
 
+    Scope x( m->d->l );
+    m->d->connection = connection;
+    m->log( "SASL mechanism: " + s );
     return m;
 }
 
@@ -154,7 +160,33 @@ SaslMechanism::State SaslMechanism::state() const
 
 void SaslMechanism::setState( State newState )
 {
+    if ( d->state == newState )
+        return;
     d->state = newState;
+    switch ( newState ) {
+    case AwaitingInitialResponse:
+        // no logging necessary
+        break;
+    case IssuingChallenge:
+        log( "Issuing challenge", Log::Debug );
+        break;
+    case AwaitingResponse:
+        log( "Waiting for client response", Log::Debug );
+        break;
+    case Authenticating:
+        log( "Verifying client response", Log::Debug );
+        break;
+    case Succeeded:
+        log( "Authenticated: " + d->login.utf8().quoted() );
+        break;
+    case Failed:
+        log( "Authentication failed. Attempted login: " +
+             d->login.utf8().quoted() );
+        break;
+    case Terminated:
+        log( "Authentication terminated", Log::Debug );
+        break;
+    }
 }
 
 
@@ -188,6 +220,7 @@ String SaslMechanism::challenge()
 
 void SaslMechanism::readInitialResponse( const String * r )
 {
+    Scope x( d->l );
     if ( r ) {
         if ( state() == AwaitingInitialResponse ) {
             if ( *r == "=" )
@@ -212,6 +245,7 @@ void SaslMechanism::readInitialResponse( const String * r )
 
 void SaslMechanism::readResponse( const String * r )
 {
+    Scope x( d->l );
     if ( state() == AwaitingResponse ) {
         if ( !r )
             return;
@@ -224,6 +258,8 @@ void SaslMechanism::readResponse( const String * r )
         }
     }
     else if ( r ) {
+        if ( state() != Failed )
+            log( "SASL negotiation failed due to unexpected SASL response." );
         setState( Failed );
         execute();
     }
@@ -247,6 +283,8 @@ void SaslMechanism::execute()
 {
     if ( !d->command )
         return;
+
+    Scope x( d->l );
 
     if ( state() == IssuingChallenge ) {
         d->connection->sendChallenge( challenge().e64() );
@@ -426,7 +464,7 @@ void SaslMechanism::setSecret( const String &secret )
     if ( u.valid() )
         return;
     d->secret.truncate();
-    log( "Client secret was not valid UTF-8: " + u.error(), Log::Error );
+    log( "Client secret was not valid UTF-8: " + u.error() );
 }
 
 
