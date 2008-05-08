@@ -95,19 +95,9 @@ void Database::setup( int desired, const String & user,
 
     String db = Configuration::text( Configuration::Db ).lower();
 
-    String dbt, ext;
-    int n = db.find( '+' );
-    if ( n > 0 ) {
-        ext = db.mid( n+1 );
-        dbt = db.mid( 0, n );
-    }
-    else {
-        dbt = db;
-    }
+    String dbt = db.section( "+", 1 );
 
-    if ( !( dbt == "pg" || dbt == "pgsql" || dbt == "postgres" ) ||
-         !( ext.isEmpty() || ext == "tsearch2" ) )
-    {
+    if ( dbt != "pg" && dbt != "pgsql" && dbt != "postgres" ) {
         ::log( "Unsupported database type: " + db, Log::Disaster );
         return;
     }
@@ -360,8 +350,8 @@ void Database::removeHandle( Database * d )
 }
 
 
-/*! Returns the configured Database type, which may currently be
-    postgres or postgres+tsearch2.
+/*! Returns the configured Database type, which may currently be only
+    postgres.
 */
 
 String Database::type()

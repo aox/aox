@@ -1044,8 +1044,8 @@ void Postgres::countQueries( class Query * q )
     integer. 8.1.0 is returned as 80100, 8.3.2 as 80302.
 
     The version number is learned immediately after connecting.
-    version() returns 0 until the first Postgres learns the server
-    version.
+    version() returns 0 until the first Postgres instance learns the
+    server version.
 */
 
 uint Postgres::version()
