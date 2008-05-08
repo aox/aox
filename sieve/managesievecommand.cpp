@@ -680,6 +680,9 @@ String ManageSieveCommand::string()
             d->arg.mid( d->pos, 10 ) );
     }
 
+    if ( d->no.isEmpty() )
+        log( "String argument: " + r, Log::Debug );
+
     return r;
 }
 
@@ -702,6 +705,8 @@ uint ManageSieveCommand::number()
         no( "Could not parse the number at position " + fn( d->pos ) + ": " +
             d->arg.mid( d->pos, i-d->pos ) );
     d->pos = i;
+    if ( d->no.isEmpty() )
+        log( "Numeric argument: " + fn( n ), Log::Debug );
     return n;
 }
 
