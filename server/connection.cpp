@@ -846,8 +846,9 @@ User * SaslConnection::user() const
 }
 
 
-/*! Informs this Connection that \a user has been authenticated. After a
-    call to this function, user() will return the specified \a user.
+/*! Informs this Connection that \a user has been authenticated using
+    the named \a mechanism. After a call to this function, user() will
+    return the specified \a user.
 */
 
 void SaslConnection::setUser( User * user, const String & mechanism )

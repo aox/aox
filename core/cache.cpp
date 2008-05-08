@@ -67,3 +67,8 @@ void Cache::clearAllCaches()
         c->clear(); // careful: no iterator pointing to c meanwhile
     }
 }
+
+
+/*! \fn virtual void Cache::clear() = 0;
+    Implemented by subclasses to discards the contents of the cache.
+*/
