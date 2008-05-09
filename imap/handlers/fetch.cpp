@@ -727,37 +727,28 @@ void Fetch::sendFetchQueries()
         uint uid = d->set.value( 1 );
         d->set.remove( uid );
         Message * m = MessageCache::find( mb, uid );
-        if ( m ) {
-            if ( m->modSeq() + 1 < mb->nextModSeq() ) {
-                m->setFlagsFetched( false );
-                m->setAnnotationsFetched( false );
-                m->setModSeq( 0 );
-            }
-            if ( !m->hasAddresses() )
-                haveAddresses = false;
-            if ( !m->hasHeaders() )
-                haveHeader = false;
-            if ( !m->hasBytesAndLines() )
-                havePartNumbers = false;
-            if ( !m->hasBodies() )
-                haveBody = false;
-            if ( !m->hasTrivia() )
-                haveTrivia = false;
-            if ( !m->hasFlags() )
-                haveFlags = false;
-            if ( !m->hasAnnotations() )
-                haveAnnotations = false;
-        }
-        else {
+        if ( !m ) {
             m = new Message;
-            haveAddresses = false;
-            haveHeader = false;
-            haveBody = false;
-            havePartNumbers = false;
-            haveTrivia = false;
-            haveFlags = false;
-            haveAnnotations = false;
         }
+        else if ( m->modSeq() + 1 < mb->nextModSeq() ) {
+            m->setFlagsFetched( false );
+            m->setAnnotationsFetched( false );
+            m->setModSeq( 0 );
+        }
+        if ( !m->hasAddresses() )
+            haveAddresses = false;
+        if ( !m->hasHeaders() )
+            haveHeader = false;
+        if ( !m->hasBytesAndLines() )
+            havePartNumbers = false;
+        if ( !m->hasBodies() )
+            haveBody = false;
+        if ( !m->hasTrivia() )
+            haveTrivia = false;
+        if ( !m->hasFlags() )
+            haveFlags = false;
+        if ( !m->hasAnnotations() )
+            haveAnnotations = false;
         m->setUid( uid );
         d->requested.append( m );
         l->append( m );
