@@ -3,6 +3,7 @@ build/*
 closed/*
 doc/man/*
 doc/html/*
+buildinfo.*
 Jamhacks
 *.inc
 *~
