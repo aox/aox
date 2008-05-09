@@ -678,32 +678,25 @@ void Fetch::execute()
             d->state = 5;
     }
 
-    while ( d->state == 3 || d->state == 4 ) {
-        if ( d->state == 3 ) {
-            d->state = 4;
-            sendFetchQueries();
-        }
-
-        pickup();
-
-        if ( !d->requested.isEmpty() )
-            return;
-        else if ( imap()->Connection::state() != Connection::Connected )
-            d->state = 5; // hack to cope with client close
-        else if ( d->set.isEmpty() )
-            d->state = 5;
-        else
-            d->state = 3;
+    if ( d->state == 3 ) {
+        d->state = 4;
+        sendFetchQueries();
     }
 
-    if ( d->requested.isEmpty() ) {
-        StringList::Iterator i( d->available );
-        while ( i ) {
-            respond( *i );
-            ++i;
-        }
-        d->available.clear();
+    if ( d->state < 4 )
+        return;
+
+    pickup();
+
+    if ( !d->requested.isEmpty() )
+        return;
+
+    StringList::Iterator i( d->available );
+    while ( i ) {
+        respond( *i );
+        ++i;
     }
+    d->available.clear();
 
     if ( !d->expunged.isEmpty() ) {
         s->recordExpungedFetch( d->expunged );
@@ -734,31 +727,28 @@ void Fetch::sendFetchQueries()
         uint uid = d->set.value( 1 );
         d->set.remove( uid );
         Message * m = MessageCache::find( mb, uid );
-        if ( m ) {
-            log( "uh " + fn( m->modSeq() ) + " ah " + fn( mb->nextModSeq() ) );
-            if ( m->modSeq() + 1 < mb->nextModSeq() ) {
-                m->setFlagsFetched( false );
-                m->setAnnotationsFetched( false );
-                m->setModSeq( 0 );
-            }
-            if ( !m->hasAddresses() )
-                haveAddresses = false;
-            if ( !m->hasHeaders() )
-                haveHeader = false;
-            if ( !m->hasBytesAndLines() )
-                havePartNumbers = false;
-            if ( !m->hasBodies() )
-                haveBody = false;
-            if ( !m->hasTrivia() )
-                haveTrivia = false;
-            if ( !m->hasFlags() )
-                haveFlags = false;
-            if ( !m->hasAnnotations() )
-                haveAnnotations = false;
-        }
-        else {
+        if ( !m ) {
             m = new Message;
         }
+        else if ( m->modSeq() + 1 < mb->nextModSeq() ) {
+            m->setFlagsFetched( false );
+            m->setAnnotationsFetched( false );
+            m->setModSeq( 0 );
+        }
+        if ( !m->hasAddresses() )
+            haveAddresses = false;
+        if ( !m->hasHeaders() )
+            haveHeader = false;
+        if ( !m->hasBytesAndLines() )
+            havePartNumbers = false;
+        if ( !m->hasBodies() )
+            haveBody = false;
+        if ( !m->hasTrivia() )
+            haveTrivia = false;
+        if ( !m->hasFlags() )
+            haveFlags = false;
+        if ( !m->hasAnnotations() )
+            haveAnnotations = false;
         m->setUid( uid );
         d->requested.append( m );
         l->append( m );
