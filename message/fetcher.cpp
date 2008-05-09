@@ -882,7 +882,7 @@ void FetcherData::Decoder::execute()
             uint uid = r->getInt( "uid" );
             while ( mit && mit->uid() < uid )
                 ++mit;
-            if ( mit )
+            if ( mit && !isDone( mit ) )
                 decode( mit, r );
             r = q->nextRow();
         }
@@ -896,7 +896,8 @@ void FetcherData::Decoder::execute()
                 List<Message>::Iterator m( d->batch[b] );
                 while ( m && more ) {
                     if ( m->databaseId() == id ) {
-                        decode( m, r );
+                        if ( !isDone( m ) )
+                            decode( m, r );
                         if ( d->uniqueDatabaseIds )
                             more = false;
                     }
