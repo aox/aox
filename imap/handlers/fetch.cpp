@@ -678,32 +678,25 @@ void Fetch::execute()
             d->state = 5;
     }
 
-    while ( d->state == 3 || d->state == 4 ) {
-        if ( d->state == 3 ) {
-            d->state = 4;
-            sendFetchQueries();
-        }
-
-        pickup();
-
-        if ( !d->requested.isEmpty() )
-            return;
-        else if ( imap()->Connection::state() != Connection::Connected )
-            d->state = 5; // hack to cope with client close
-        else if ( d->set.isEmpty() )
-            d->state = 5;
-        else
-            d->state = 3;
+    if ( d->state == 3 ) {
+        d->state = 4;
+        sendFetchQueries();
     }
 
-    if ( d->requested.isEmpty() ) {
-        StringList::Iterator i( d->available );
-        while ( i ) {
-            respond( *i );
-            ++i;
-        }
-        d->available.clear();
+    if ( d->state < 4 )
+        return;
+
+    pickup();
+
+    if ( !d->requested.isEmpty() )
+        return;
+
+    StringList::Iterator i( d->available );
+    while ( i ) {
+        respond( *i );
+        ++i;
     }
+    d->available.clear();
 
     if ( !d->expunged.isEmpty() ) {
         s->recordExpungedFetch( d->expunged );
@@ -735,7 +728,6 @@ void Fetch::sendFetchQueries()
         d->set.remove( uid );
         Message * m = MessageCache::find( mb, uid );
         if ( m ) {
-            log( "uh " + fn( m->modSeq() ) + " ah " + fn( mb->nextModSeq() ) );
             if ( m->modSeq() + 1 < mb->nextModSeq() ) {
                 m->setFlagsFetched( false );
                 m->setAnnotationsFetched( false );
@@ -758,6 +750,13 @@ void Fetch::sendFetchQueries()
         }
         else {
             m = new Message;
+            haveAddresses = false;
+            haveHeader = false;
+            haveBody = false;
+            havePartNumbers = false;
+            haveTrivia = false;
+            haveFlags = false;
+            haveAnnotations = false;
         }
         m->setUid( uid );
         d->requested.append( m );
