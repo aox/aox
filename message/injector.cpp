@@ -2114,7 +2114,7 @@ void Injector::announce()
         List<Session>::Iterator si( m->sessions() );
 
         if ( si )
-            MessageCache::insert( m, uid, d->message, 10 );
+            MessageCache::insert( m, uid, d->message );
 
         while ( si ) {
             if ( si == mi->recentIn )
