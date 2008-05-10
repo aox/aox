@@ -436,6 +436,8 @@ bool Schema::singleStep()
         c = stepTo65(); break;
     case 65:
         c = stepTo66(); break;
+    case 66:
+        c = stepTo67(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3424,6 +3426,33 @@ bool Schema::stepTo66()
     }
 
     if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create a couple of new indexes to make "aox vacuum" faster. */
+
+bool Schema::stepTo67()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Creating indexes to help foreign key lookups." );
+        d->q = new Query( "create index mm_m on mailbox_messages(message)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create index dm_m on deleted_messages(message)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create index df_m on date_fields(message)", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
