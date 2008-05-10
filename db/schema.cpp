@@ -3436,17 +3436,22 @@ bool Schema::stepTo66()
 }
 
 
-/*! Create a couple of new indexes to make "aox vacuum" faster. */
+/*! Create a couple of new indexes to make "aox vacuum" faster, and help
+    to look for specific message-ids.
+*/
 
 bool Schema::stepTo67()
 {
     if ( d->substate == 0 ) {
-        describeStep( "Creating indexes to help foreign key lookups." );
+        describeStep( "Creating indexes to help foreign key/msgid lookups." );
         d->q = new Query( "create index mm_m on mailbox_messages(message)", this );
         d->t->enqueue( d->q );
         d->q = new Query( "create index dm_m on deleted_messages(message)", this );
         d->t->enqueue( d->q );
         d->q = new Query( "create index df_m on date_fields(message)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create index hf_msgid on header_fields(value) "
+                          "where field=13", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();

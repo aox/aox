@@ -182,6 +182,8 @@ create table header_fields (
                 on delete cascade
 );
 
+create index hf_msgid on header_fields(value) where field=13;
+
 
 -- A list of addresses associated with each message.
 
