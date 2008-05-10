@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (66);
+insert into mailstore (revision) values (67);
 
 
 -- One entry for each unique address we've encountered.
@@ -129,6 +129,8 @@ create table mailbox_messages (
     primary key (mailbox, uid)
 );
 
+create index mm_m on mailbox_messages(message);
+
 
 -- One entry for the text of each unique MIME body part.
 -- Entries here may be shared by more than one message.
@@ -205,6 +207,8 @@ create table date_fields (
     value       timestamp with time zone
     -- is this it? how about original-date and resent-date?
 );
+
+create index df_m on date_fields(message);
 
 
 -- One entry per unique thread.
@@ -331,7 +335,10 @@ create table deleted_messages (
     reason      text,
     primary key (mailbox, uid)
 );
+
 create index dm_mud on deleted_messages(mailbox,uid,deleted_at);
+create index dm_m on deleted_messages(message);
+
 
 -- When an entry is inserted into deleted_messages, we delete the
 -- corresponding row from mailbox_messages.
