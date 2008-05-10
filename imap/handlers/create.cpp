@@ -55,6 +55,7 @@ void Create::execute()
         d->parent = Mailbox::closestParent( d->name );
         if ( !d->parent ) {
             error( No, "Syntax error in mailbox name: " + d->name.ascii() );
+            setRespTextCode( "CANNOT" );
             return;
         }
 
@@ -73,6 +74,7 @@ void Create::execute()
         }
         else if ( d->m->create( d->t, imap()->user() ) == 0 ) {
             error( No, d->name.ascii() + " already exists" );
+            setRespTextCode( "ALREADYEXISTS" );
             return;
         }
         d->t->commit();

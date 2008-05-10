@@ -1334,6 +1334,7 @@ bool Command::permitted()
     if ( d->checker->allowed() )
         return true;
     error( No, d->checker->error().simplified() );
+    setRespTextCode( "ACL" );
     return false;
 }
 
