@@ -96,6 +96,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     if ( to && !( to->synthetic() || to->deleted() ) ) {
         c->error( Rename::No,
                   "Destination mailbox exists: " + p->toName.ascii() );
+        c->setRespTextCode( "ALREADYEXISTS" );
         t->rollback();
         return;
     }
@@ -232,6 +233,7 @@ void Rename::execute()
         while ( it ) {
             if ( it->from->sessions() ) {
                 error( No, "Mailbox is in use: " + it->from->name().ascii() );
+                setRespTextCode( "INUSE" );
                 break;
             }
             ++it;

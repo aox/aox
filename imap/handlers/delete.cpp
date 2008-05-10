@@ -57,11 +57,15 @@ void Delete::execute()
         return;
 
     if ( !d->q ) {
-        if ( d->m->sessions() )
+        if ( d->m->sessions() ) {
             error( No, "Mailbox is in use" );
-        else if ( d->m->synthetic() )
+            setRespTextCode( "INUSE" );
+        }
+        else if ( d->m->synthetic() ) {
             error( No,
                    d->m->name().ascii() + " does not really exist anyway" );
+            setRespTextCode( "NONEXISTENT" );
+        }
         if ( !ok() )
             return;
         requireRight( d->m, Permissions::DeleteMailbox );

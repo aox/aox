@@ -86,14 +86,18 @@ void Authenticate::execute()
     if ( !m->done() )
         return;
 
-    if ( m->state() == SaslMechanism::Succeeded )
+    if ( m->state() == SaslMechanism::Succeeded ) {
         imap()->setUser( m->user(), m->name() );
-    else if ( m->state() == SaslMechanism::Terminated )
+        setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
+    }
+    else if ( m->state() == SaslMechanism::Terminated ) {
         error( Bad, "authentication terminated" );
-    else
+    }
+    else {
         error( No, "sorry" );
-
-    setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
+        setRespTextCode( "AUTHENTICATIONFAILED" );
+    }
+    
     finish();
 }
 
