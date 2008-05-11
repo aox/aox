@@ -13,6 +13,7 @@
 #include "endpoint.h"
 #include "eventloop.h"
 #include "byteforwarder.h"
+#include "user.h"
 
 // errno
 #include <errno.h>
@@ -881,23 +882,21 @@ void SaslConnection::close()
         return;
     }
 
-    return; // crab: remove this line when you've added the table
+    Query * q = new Query(
+        "insert into connections "
+        "(userid,client,mechanism,authfailures,syntaxerrors,started_at,ended_at) "
+        "values ($1,$2,$3,$4,$5,"
+        "$6::interval + 'epoch'::timestamptz,"
+        "$7::interval + 'epoch'::timestamptz)", 0
+    );
 
-    Query * q = new Query( "insert into connections "
-                           "(user, mechanism, authfailures, "
-                           "start, end, client, syntaxerrors) "
-                           "values ($1,$2,$3,"
-                           "$4::interval + 'epoch'::timestamptz,"
-                           "$5::interval + 'epoch'::timestamptz,"
-                           "$6,$7)",
-                           0 );
     q->bind( 1, u->id() );
-    q->bind( 2, m );
-    q->bind( 3, af );
-    q->bind( 4, s );
-    q->bind( 5, (uint)time( 0 ) );
-    q->bind( 6, client );
-    q->bind( 7, sf );
+    q->bind( 2, client );
+    q->bind( 3, m );
+    q->bind( 4, af );
+    q->bind( 5, sf );
+    q->bind( 6, s );
+    q->bind( 7, (uint)time( 0 ) );
     q->execute();
 }
 
