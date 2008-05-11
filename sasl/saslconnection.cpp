@@ -12,7 +12,7 @@
 #include <time.h>
 
 
-/*! \class SaslConnection connection.h
+/*! \class SaslConnection saslconnection.h
     A connection that can engage in a SASL negotiation.
 */
 
