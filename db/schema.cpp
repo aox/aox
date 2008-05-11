@@ -438,6 +438,8 @@ bool Schema::singleStep()
         c = stepTo66(); break;
     case 66:
         c = stepTo67(); break;
+    case 67:
+        c = stepTo68(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3452,6 +3454,35 @@ bool Schema::stepTo67()
         d->t->enqueue( d->q );
         d->q = new Query( "create index hf_msgid on header_fields(value) "
                           "where field=13", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add a table to log connections. */
+
+bool Schema::stepTo68()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Add a table to log connections." );
+        d->q = new Query(
+            "create table connections (id serial primary key,userid integer "
+            "references users(id),client varchar not null,mechanism varchar "
+            "not null,authfailures integer not null,syntaxerrors integer not "
+            "null,started_at timestamp with time zone not null,ended_at "
+            "timestamp with time zone not null)", this
+        );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
