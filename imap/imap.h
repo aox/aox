@@ -3,7 +3,7 @@
 #ifndef IMAP_H
 #define IMAP_H
 
-#include "connection.h"
+#include "saslconnection.h"
 #include "list.h"
 
 class String;

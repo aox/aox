@@ -5,6 +5,7 @@
 #include "event.h"
 #include "connection.h"
 #include "configuration.h"
+#include "saslconnection.h"
 #include "stringlist.h"
 #include "scope.h"
 #include "graph.h"
