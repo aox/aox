@@ -46,7 +46,7 @@
   work. I still haven't added code to look up other permitted
   addresses (in Smtp::authenticated() and a helper).
 
-  Partly done: The connections table.
+  The connections table.
 
   Not done: sharing transactions in the injector.
 
