@@ -882,6 +882,8 @@ void SaslConnection::close()
         return;
     }
 
+    return;
+
     Query * q = new Query(
         "insert into connections "
         "(userid,client,mechanism,authfailures,syntaxerrors,started_at,ended_at) "
