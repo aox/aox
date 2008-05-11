@@ -3,7 +3,7 @@
 #ifndef MANAGESIEVE_H
 #define MANAGESIEVE_H
 
-#include "connection.h"
+#include "saslconnection.h"
 
 class User;
 class String;

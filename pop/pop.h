@@ -3,7 +3,7 @@
 #ifndef POP_H
 #define POP_H
 
-#include "connection.h"
+#include "saslconnection.h"
 
 class User;
 class String;

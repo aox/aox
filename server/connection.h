@@ -99,29 +99,4 @@ private:
 };
 
 
-class SaslConnection
-    : public Connection
-{
-public:
-    SaslConnection( int, Type );
-    virtual ~SaslConnection();
-    virtual void sendChallenge( const String & ) = 0;
-
-    User * user() const;
-    virtual void setUser( User *, const String & );
-
-    void close();
-
-    void recordAuthenticationFailure();
-    void recordSyntaxError();
-
-private:
-    User * u;
-    String m;
-    uint af;
-    uint sf;
-    uint s;
-};
-
-
 #endif

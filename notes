@@ -51,7 +51,7 @@
   "aox vacuum" (by speeding up foreign key lookups to messages from
   date_fields and mailbox_messages).
 
-  Partly done: The connections table.
+  The connections table.
 
   Not done: sharing transactions in the injector.
 

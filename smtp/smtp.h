@@ -3,7 +3,7 @@
 #ifndef SMTP_H
 #define SMTP_H
 
-#include "connection.h"
+#include "saslconnection.h"
 #include "list.h"
 
 
