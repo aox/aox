@@ -181,7 +181,8 @@ void SaslMechanism::setState( State newState )
         log( "Authenticated: " + d->login.utf8().quoted() );
         break;
     case Failed:
-        d->connection->recordAuthenticationFailure();
+        if ( d->connection )
+            d->connection->recordAuthenticationFailure();
         log( "Authentication failed. Attempted login: " +
              d->login.utf8().quoted() );
         break;
