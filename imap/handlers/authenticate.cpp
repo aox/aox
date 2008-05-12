@@ -94,7 +94,6 @@ void Authenticate::execute()
         error( Bad, "authentication terminated" );
     }
     else {
-        imap()->recordAuthenticationFailure();
         error( No, "sorry" );
         setRespTextCode( "AUTHENTICATIONFAILED" );
     }

@@ -72,7 +72,6 @@ void Login::execute()
         setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
     }
     else {
-        imap()->recordAuthenticationFailure();
         error( No, "LOGIN failed for " + n.quoted() );
     }
 
