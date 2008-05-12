@@ -1042,6 +1042,13 @@ SSL/TLS hello
   protocols would want to say no, and HTTP might want to do something
   else.
 
+  (I don't think we should make any concessions to such behaviour. We do
+  support the obvious SSL-straightaway ports (IMAPS, SMTPS, and HTTPS),
+  so there's no real reason to cooperate if they try it on one of the
+  standard ports. If HTTP wants to do something special (why? to help
+  people with broken proxies?), it can easily do so without involving
+  anyone else. -- AMS)
+
 
 The groups and group_members tables seem a little underused
 
