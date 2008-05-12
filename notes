@@ -1190,13 +1190,6 @@ Redoing Store
   6. Update nextmodseq and go on our way.
 
 
-String::stripWSP
-
-  The function seems to be just wrong every time I want to use
-  it. There is also the matter of the name, which implies that the
-  function changes. Look at it.
-
-
 Fetcher oomph
 
   The fetcher now does considerably better than before on pg 8.2 and
@@ -1253,7 +1246,7 @@ aox.org/clients/
   Move the list of clients from /imap/ and /pop here. Make a per-client page,
   e.g. /clients/outlook, with notes.
 
-  1. Which protocols can use you use? Usually IMAP+Submit.
+  1. Which protocols can you use? Usually IMAP+Submit.
 
   2. Any bugs worth speaking of?
 

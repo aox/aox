@@ -311,6 +311,29 @@ void DigestMD5::setChallenge( const String &s )
 }
 
 
+static String stripWSP( const String & s )
+{
+    if ( s.length() == 0 ) {
+        String r;
+        return r;
+    }
+
+    uint i = 0;
+    while ( i < s.length() && ( s[i] == '\t' || s[i] == ' ' ) )
+        i++;
+
+    uint j = s.length() - 1;
+    while ( j > i && ( s[j] == '\t' || s[j] == ' ' ) )
+        j--;
+
+    if ( i > j ) {
+        String r;
+        return r;
+    }
+    return s.mid( i, j - i + 1 );
+}
+
+
 /*! RFC 2831 defines "n#m( expr )" as a list containing at least n, and
     at most m repetitions of expr, separated by commas, and optional
     linear white space:
@@ -327,7 +350,7 @@ void DigestMD5::setChallenge( const String &s )
 
 bool DigestMD5::parse( const String &s, List< Variable > &l )
 {
-    if ( s.stripWSP().isEmpty() )
+    if ( stripWSP( s ).isEmpty() )
         return true;
 
     uint start = 0;
@@ -346,7 +369,7 @@ bool DigestMD5::parse( const String &s, List< Variable > &l )
         }
 
         // There's one list element between s[ start..i ].
-        String elem = s.mid( start, i-start ).stripWSP();
+        String elem = stripWSP( s.mid( start, i-start ) );
         start = i+1;
 
         if ( !elem.isEmpty() ) {
@@ -355,8 +378,8 @@ bool DigestMD5::parse( const String &s, List< Variable > &l )
                 return false;
 
             // We should validate name and value.
-            String name = elem.mid( 0, eq ).stripWSP().lower();
-            String value = elem.mid( eq+1, elem.length()-eq ).stripWSP();
+            String name = stripWSP( elem.mid( 0, eq ) ).lower();
+            String value = stripWSP( elem.mid( eq+1, elem.length()-eq ) );
             Variable *v = l.find( name );
 
             if ( !v ) {

@@ -738,36 +738,6 @@ String String::trimmed() const
     return empty;
 }
 
-/*! Returns a copy of this string where leading and trailing spaces
-    and tabs have been removed.
-
-    Despite its name, this function does NOT strip white space in
-    general. Any internal white space is copied verbatim. CR and LF
-    are not treated as white space.
-*/
-
-String String::stripWSP() const
-{
-    if ( length() == 0 ) {
-        String r;
-        return r;
-    }
-
-    uint i = 0;
-    while ( i < d->len && ( d->str[i] == '\t' || d->str[i] == ' ' ) )
-        i++;
-
-    uint j = d->len - 1;
-    while ( j > i && ( d->str[j] == '\t' || d->str[j] == ' ' ) )
-        j--;
-
-    if ( i > j ) {
-        String r;
-        return r;
-    }
-    return mid( i, j - i + 1 );
-}
-
 
 /*! Returns a copy of this String with at most one trailing LF or CRLF
     removed. If there's more than one LF or CRLF, the remainder are
