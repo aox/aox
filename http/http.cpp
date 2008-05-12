@@ -354,6 +354,9 @@ void HTTP::parseRequest( String l )
     d->requestLog = new Log( Log::HTTP );
     s.setLog( d->requestLog );
     ::log( "Request: " + l, Log::Debug );
+
+    // Request-Line = Method SP Request-URI SP HTTP-Version CRLF
+
     int space = l.find( ' ' );
     if ( space < 0 ) {
         setStatus( 400, "Complete and utter parse error" );
@@ -378,7 +381,7 @@ void HTTP::parseRequest( String l )
         d->sendContents = true;
     }
     else {
-       setStatus( 405, "Bad Request: " + request );
+        setStatus( 405, "Bad Request: " + request );
         addHeader( "Allow: GET, HEAD, POST" );
         return;
     }
@@ -386,19 +389,18 @@ void HTTP::parseRequest( String l )
     String path = l.mid( 0, space );
     l = l.mid( space+1 );
 
-    // this is where String::stripWSP() would come in handy ;)
-    space = l.find( ' ' );
-    while ( space >= 0 ) {
-        l = l.mid( 0, space ) + l.mid( space+1 );
-        space = l.find( ' ' );
-    }
-    String protocol = l;
+    // Thanks to our friend LWS, HTTP-Version might say " 1   .     1"
+    // when it means "1.1".
+
+    String protocol = l.simplified();
+    l.replace( " ", "" );
 
     if ( !protocol.startsWith( "HTTP/" ) ) {
-       setStatus( 400,
-                  "Bad protocol: " + protocol + ". Only HTTP supported." );
+        setStatus( 400, "Bad protocol: " + protocol + ". "
+                        "Only HTTP supported." );
         return;
     }
+
     bool ok = false;
     uint dot = 5;
     while ( dot < protocol.length() && protocol[dot] != '.' )
@@ -764,8 +766,8 @@ void HTTP::parseCookie( const String &s )
 {
     int eq = s.find( '=' );
     if ( eq > 0 ) {
-        String name = s.mid( 0, eq ).stripWSP().lower();
-        String value = s.mid( eq+1 ).stripWSP();
+        String name = s.mid( 0, eq ).simplified().lower();
+        String value = s.mid( eq+1 ).simplified();
 
         if ( name == "session" &&
              ( !d->session || d->session->expired() ) )
