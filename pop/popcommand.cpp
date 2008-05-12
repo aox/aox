@@ -263,6 +263,7 @@ bool PopCommand::auth()
         d->pop->err( "Authentication terminated" );
     }
     else {
+        d->pop->recordAuthenticationFailure();
         d->pop->err( "Authentication failed" );
     }
 

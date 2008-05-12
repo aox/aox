@@ -652,10 +652,13 @@ void Command::emitResponses()
         }
         else {
             String r;
-            if ( d->errorCode == Bad )
+            if ( d->errorCode == Bad ) {
+                imap()->recordSyntaxError();
                 r = "BAD ";
-            else
+            }
+            else {
                 r = "NO ";
+            }
             if ( !d->respTextCode.isEmpty() ) {
                 r.append( "[" );
                 r.append( d->respTextCode );

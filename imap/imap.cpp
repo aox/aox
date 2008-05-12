@@ -260,6 +260,7 @@ void IMAP::addCommand()
     String tag = p->tag();
     if ( !p->ok() ) {
         enqueue( "* BAD " + p->error() + "\r\n" );
+        recordSyntaxError();
         log( p->error(), Log::Info );
         return;
     }
@@ -269,6 +270,7 @@ void IMAP::addCommand()
     String name = p->command();
     if ( !p->ok() ) {
         enqueue( "* BAD " + p->error() + "\r\n" );
+        recordSyntaxError();
         log( p->error(), Log::Error );
         return;
     }
@@ -283,6 +285,7 @@ void IMAP::addCommand()
                      "your command, " + name.quoted() + "\r\n"
                      "* OK  is the command and " + tag.quoted() +
                      " is the tag.\r\n" );
+        recordSyntaxError();
         enqueue( tag + " BAD No such command: " + name + "\r\n" );
         log( "Unknown command. Line: " + p->firstLine().quoted(),
              Log::Error );

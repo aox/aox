@@ -67,12 +67,14 @@ void Login::execute()
     if ( !m->done() )
         return;
 
-    if ( m->state() == SaslMechanism::Succeeded )
+    if ( m->state() == SaslMechanism::Succeeded ) {
         imap()->setUser( m->user(), "IMAP login" );
-    else
+        setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
+    }
+    else {
+        imap()->recordAuthenticationFailure();
         error( No, "LOGIN failed for " + n.quoted() );
-
-    setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
+    }
 
     finish();
 }

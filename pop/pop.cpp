@@ -303,8 +303,10 @@ void POP::parse()
                 unknown = true;
             }
 
-            if ( unknown )
+            if ( unknown ) {
                 err( "Bad command" );
+                recordSyntaxError();
+            }
         }
         else {
             d->reader->read();

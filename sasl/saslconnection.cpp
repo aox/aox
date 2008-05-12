@@ -86,7 +86,8 @@ void SaslConnection::close()
 
     Query * q = new Query(
         "insert into connections "
-        "(userid,client,mechanism,authfailures,syntaxerrors,started_at,ended_at) "
+        "(userid,client,mechanism,authfailures,"
+        "syntaxerrors,started_at,ended_at) "
         "values ($1,$2,$3,$4,$5,"
         "$6::interval + 'epoch'::timestamptz,"
         "$7::interval + 'epoch'::timestamptz)", 0
