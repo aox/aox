@@ -9,6 +9,7 @@
 #include "address.h"
 #include "mailbox.h"
 #include "buffer.h"
+#include "query.h"
 #include "scope.h"
 #include "sieve.h"
 #include "date.h"
@@ -44,6 +45,17 @@ public:
     String body;
     Date * now;
     String id;
+
+    class AddressFinder
+        : public EventHandler
+    {
+    public:
+        AddressFinder( List<Address> * addresses ) : q( 0 ), a( addresses ) {}
+        void execute();
+        Query * q;
+    private:
+        List<Address> * a;
+    };
 };
 
 
@@ -304,11 +316,38 @@ void SMTP::authenticated( User * user )
     d->user = user;
     if ( !user )
         return;
-    
+
     log( "Authenticated as " + user->login().ascii() );
 
     d->permittedAddresses = new List<Address>;
     d->permittedAddresses->append( d->user->address() );
+
+    SMTPData::AddressFinder * af
+        = new SMTPData::AddressFinder( d->permittedAddresses );
+    af->q = new Query( "select distinct a.localpart, a.domain "
+                       "from addresses a "
+                       "join aliases al on (a.id=al.address) "
+                       "join mailboxes mb on (al.mailbox=mb.id) "
+                       "where mb.owner=$1 or mb.id in"
+                       "(select mailbox from permissions "
+                       "where right ilike '%p%' "
+                       "and (identifier='anyone' or identifier=$2))",
+                       af );
+    af->q->bind( 1, d->user->id() );
+    af->q->bind( 2, d->user->login() );
+    af->q->execute();
+}
+
+
+void SMTPData::AddressFinder::execute()
+{
+    Row * r = q->nextRow();
+    while ( r ) {
+        a->append( new Address( "",
+                                r->getString( "localpart" ),
+                                r->getString( "domain" ) ) );
+        r = q->nextRow();
+    }
 }
 
 

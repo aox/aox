@@ -31,8 +31,7 @@
   are involved. And slower in many cases.
 
   Added check-sender-addresses, but still not tested. Probably doesn't
-  work. I still haven't added code to look up other permitted
-  addresses (in Smtp::authenticated() and a helper).
+  work.
 
   Schema changes: A partial index on header_fields, so we can locate
   messages based on message-id. Some indexes on (message) to speed up
