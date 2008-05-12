@@ -73,6 +73,7 @@ void Login::execute()
     }
     else {
         error( No, "LOGIN failed for " + n.quoted() );
+        setRespTextCode( "AUTHENTICATIONFAILED" );
     }
 
     finish();
