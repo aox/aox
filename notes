@@ -856,11 +856,6 @@ Rendering webmail HTML is presumably good, but...
   See http://ha.ckers.org/xss.html
 
 
-When TlsServer dies, imaps (993) must go away
-
-  It doesn't at the moment. Anything else?
-
-
 Faster mapping from unicode to 8-bit encodings
 
   At the moment, we use a while loop to find the right codepoint in an
