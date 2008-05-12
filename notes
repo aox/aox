@@ -228,41 +228,6 @@ Cleartext passwords
   7. We add configuration/db sanity checks for ditto.
 
 
-Login failures
-
-  We want to log those a little more, and show them on the
-  webmail/admin pages.
-
-  Specifically, if user x cannot log in, what mechanism was used, what
-  was the problem, etc?
-
-
-Old logins
-
-  If we log those to a log table, that table can be used to 
-  - analyse login methods (ie. who needs passwords)
-  - spot connection patterns and unusual connections
-  - provide pop before smtp
-  - do clever & smart vacation blah
-
-  The table needs to store the client ip address, user name,
-  connection start and end time, whether the authentication needed a
-  cleartext password in the db and... what more?
-
-  create table connections (
-    user integer references users(id),
-    mechanism varchar not null,
-    authfailures integer not null,
-    start timestamp with time zone not null,
-    end timestamp with time zone,
-    client varchar not null,
-    syntaxerrors integer,
-  );
-
-  Syntax errors from the client and authentication failures both seem
-  worth storing for later possible analysis.
-
-
 Graceful shutdown
 
   When we decide to shut down, we should:
