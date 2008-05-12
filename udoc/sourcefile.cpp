@@ -87,6 +87,10 @@ void SourceFile::parse()
                                  "Missing header file name" );
             }
             else {
+                if ( !contents().contains( "\n#include \"" + hn + "\"" ) &&
+                     !contents().contains( "\n#include <" + hn + ">" ) )
+                    (void)new Error( this, l,
+                                     "File does not include " + hn );
                 HeaderFile * h = HeaderFile::find( hn );
                 if ( !h ) {
                     if ( name().contains( "/" ) ) {
