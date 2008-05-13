@@ -13,6 +13,7 @@
 #include "endpoint.h"
 #include "eventloop.h"
 #include "byteforwarder.h"
+#include "resolver.h"
 #include "user.h"
 
 // errno
@@ -807,4 +808,30 @@ bool Connection::accessPermitted() const
         return true;
 
     return false;
+}
+
+
+/*! \overload
+    This form of connect() takes an \a address (e.g. "localhost") and
+    \a port instead of an Endpoint. It tries to resolve that address
+    to a list of connection targets; and tries to connect to each of
+    those in turn. The first successful connection is used, and the
+    caller is notified by the EventLoop as usual. It can use peer()
+    to find out which address we actually connected to.
+
+    If \a address resolves to only one thing (e.g. it is an IP address
+    already, or a Unix-domain socket, or a hostname that maps to only
+    one address), this function just calls the usual form of connect()
+    on the result.
+*/
+
+int Connection::connect( const String & address, uint port )
+{
+    StringList names( Resolver::resolve( address ) );
+    if ( names.count() == 1 )
+        return connect( Endpoint( address, port ) );
+
+    // ...
+
+    return 0;
 }

@@ -82,6 +82,7 @@ public:
 
     int listen( const Endpoint & );
     int connect( const Endpoint & );
+    int connect( const String &, uint );
     int accept();
     static void setAny6ListensTo4( bool );
     static bool any6ListensTo4();
