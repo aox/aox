@@ -866,6 +866,7 @@ public:
                 ++it;
             }
             substitute( host, Connect );
+            host->setState( Connecting );
         }
 
         // If there's an Error, we know we won't be able to connect, so
@@ -924,6 +925,7 @@ public:
             Endpoint e( "0.0.0.0", 0 );
             init( socket( e.protocol() ) );
             substitute( host, Error );
+            host->setState( Connecting );
         }
     }
 };
