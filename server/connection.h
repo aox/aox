@@ -94,9 +94,12 @@ public:
 
     bool accessPermitted() const;
 
+protected:
+    void substitute( Connection *, Event );
+    void init( int );
+
 private:
     class ConnectionData *d;
-    void init( int );
 };
 
 
