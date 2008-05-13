@@ -17,7 +17,7 @@ else {
 Build tls : tlsproxy.cpp egd.cpp ;
 
 
-Server tlsproxy : tls server database core encodings ;
+Server tlsproxy : tls server core encodings ;
 
 if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
     # additional flags that may be needed to link against cryptlib,

@@ -8,6 +8,7 @@
 #include "configuration.h"
 #include "eventloop.h"
 #include "schema.h"
+#include "scope.h"
 #include "graph.h"
 #include "event.h"
 #include "query.h"
@@ -30,6 +31,7 @@ static time_t lastCreated;
 static Database::User loginAs;
 static String * username;
 static String * password;
+static List<EventHandler> * whenIdle;
 
 
 static void newHandle()
@@ -459,6 +461,56 @@ Database::User Database::loginAs()
 }
 
 
+/*! Instructs the database system to call \a h once as soon as the
+    database system becomes completely idle (no queries queued or
+    executing).
+*/
+
+void Database::notifyWhenIdle( class EventHandler * h )
+{
+    if ( !::whenIdle ) {
+        ::whenIdle = new List<EventHandler>;
+        Allocator::addEternal( ::whenIdle,
+                               "eventhandlers to call when the db idles" );
+    }
+    ::whenIdle->append( h );
+}
+
+
+/*! Checks whether all handles are idle and usable, and there's no
+    queued work. If the database system really is idle, calls and
+    forgets the EventHandler objects recorded by notifyWhenIdle().
+*/
+
+void Database::reactToIdleness()
+{
+    if ( !queries->isEmpty() )
+        return;
+
+    if ( !::whenIdle )
+        return;
+
+    bool allIdle = true;
+    List< Database >::Iterator it( handles );
+    while ( allIdle && it ) {
+        if ( !it->usable() )
+            allIdle = false;
+        ++it;
+    }
+    if ( !allIdle )
+        return;
+
+    List<EventHandler>::Iterator i( ::whenIdle );
+    Allocator::removeEternal( ::whenIdle );
+    ::whenIdle = 0;
+    while ( i ) {
+        Scope x( i->log() );
+        i->execute();
+        ++i;
+    }
+}
+
+
 /*! This function is called by a database client to ensure that the
     schema is as they expect; for the moment all it does is to check
     that the revision matches the latest known. \a owner is notified
@@ -542,12 +594,11 @@ void Database::checkAccess( EventHandler * owner )
 
     AccessChecker * a = new AccessChecker( owner );
     a->execute();
-    owner->waitFor( a->result );
 }
 
 
 /*! This static function returns the schema revision current at the time
-     this server was compiled.
+    this server was compiled.
 */
 
 uint Database::currentRevision()

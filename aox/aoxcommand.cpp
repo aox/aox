@@ -3,7 +3,6 @@
 #include "aoxcommand.h"
 
 #include "list.h"
-#include "query.h"
 #include "stringlist.h"
 #include "configuration.h"
 #include "eventloop.h"
@@ -36,7 +35,7 @@ class AoxCommandData
 {
 public:
     AoxCommandData()
-        : args( 0 ), done( false ), status( 0 )
+        : args( 0 ), done( false ), status( 0 ), choresDone( false )
     {
         uint i = 0;
         while ( i < 256 )
@@ -47,7 +46,23 @@ public:
     int options[256];
     bool done;
     int status;
-    List<Query> chores;
+    bool choresDone;
+
+    class ChoresDoneHelper
+        : public EventHandler
+    {
+    public:
+        ChoresDoneHelper( bool * cd, EventHandler * h )
+            : EventHandler(), v( cd ), e( h )
+        {
+            Database::notifyWhenIdle( this );
+        }
+        void execute() { *v = true; e->execute(); }
+
+        bool * v;
+        EventHandler * e;
+    };
+        
 };
 
 
@@ -61,52 +76,18 @@ AoxCommand::AoxCommand( StringList * args )
     : d( new AoxCommandData )
 {
     d->args = args;
+    (void)new AoxCommandData::ChoresDoneHelper( &d->choresDone, this );
 }
 
 
-/*! Adds \a q to the list of queries that need to be completed before
-    execute() can do its work. The choresDone() function can be used
-    to determine if all awaited queries have completed.
-*/
-
-void AoxCommand::waitFor( Query * q )
-{
-    d->chores.append( q );
-}
-
-
-/*! Returns true only if all queries for which waitFor() was called have
-    completed, and false otherwise. Used by subclasses to determine when
-    their execute() can proceed with their work after, e.g. waiting for
-    "Mailbox::setup()" to complete.
+/*! Returns true only if all startup queries have been finished. Used
+    by subclasses to determine when their execute() can proceed with
+    their work after, e.g. waiting for "Mailbox::setup()" to complete.
 */
 
 bool AoxCommand::choresDone()
 {
-    bool failures = false;
-    List<Query>::Iterator it( d->chores );
-    while ( it ) {
-        Query * q = it;
-
-        if ( q->done() ) {
-            if ( q->failed() )
-                failures = true;
-            d->chores.take( it );
-        }
-        else {
-            ++it;
-        }
-    }
-
-    if ( failures || Scope::current()->log()->disastersYet() ) {
-        EventLoop::shutdown();
-        exit( -1 );
-    }
-
-    if ( !d->chores.isEmpty() )
-        return false;
-
-    return true;
+    return d->choresDone;
 }
 
 

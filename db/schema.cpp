@@ -96,7 +96,6 @@ Query * Schema::result() const
 void Schema::checkRevision( EventHandler * owner )
 {
     Schema * s = new Schema( owner );
-    owner->waitFor( s->result() );
     s->execute();
 }
 

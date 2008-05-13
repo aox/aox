@@ -16,8 +16,6 @@ class AoxCommand
 public:
     AoxCommand( StringList * );
 
-    void waitFor( class Query * );
-
     bool done() const;
     int status() const;
 

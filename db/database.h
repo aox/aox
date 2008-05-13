@@ -45,6 +45,8 @@ public:
     static void checkSchema( class EventHandler * );
     static void checkAccess( class EventHandler * );
 
+    static void notifyWhenIdle( class EventHandler * );
+
 protected:
     static List< Query > *queries;
 
@@ -63,6 +65,7 @@ protected:
     static User loginAs();
 
     static void recordExecution();
+    static void reactToIdleness();
 
 private:
     State st;

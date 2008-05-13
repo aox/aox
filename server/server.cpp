@@ -285,8 +285,7 @@ void Server::logSetup()
     EventLoop::setup();
     if ( !Logger::global() )
         LogClient::setup( d->name );
-    setLog( new Log( Log::General ) );
-    Scope::current()->setLog( log() );
+    Scope::current()->setLog( new Log( Log::General ) );
     log( name() + ", Archiveopteryx version " +
          Configuration::compiledIn( Configuration::Version ) );
     Allocator::setReporting( true );
@@ -638,10 +637,7 @@ void Server::run()
     }
 
     dup2( 0, 1 );
-    if ( !d->queries->isEmpty() )
-        EventLoop::global()->setStartup( true );
-    else
-        dup2( 0, 2 );
+    dup2( 0, 2 );
     EventLoop::global()->start();
 
     if ( Scope::current()->log()->disastersYet() )
@@ -659,50 +655,4 @@ String Server::name()
     if ( d )
         return d->name;
     return "";
-}
-
-
-/*! Adds \a q to the list of queries that this Server should wait for
-    before declaring the startup complete, and allowing the EventLoop
-    to start processing Listeners.
-*/
-
-void Server::waitFor( Query *q )
-{
-    d->queries->append( q );
-}
-
-
-/*! This function actually waits for the queries added with waitFor()
-    to complete before ending the EventLoop startup phase. If any of
-    these queries fail, the function exits.
-
-    If all succeed, the function closes stderr. We assume that when
-    this function has completed, startup is complete, and stderr will
-    no longer be needed.
-*/
-
-void Server::execute()
-{
-    static bool failures = false;
-    List< Query >::Iterator it( d->queries );
-
-    while ( it ) {
-        List<Query>::Iterator q = it;
-        ++it;
-
-        if ( q->done() ) {
-            if ( q->failed() )
-                failures = true;
-            d->queries->take( q );
-        }
-    }
-
-    if ( failures || Scope::current()->log()->disastersYet() )
-        EventLoop::shutdown();
-
-    if ( d->queries->isEmpty() ) {
-        EventLoop::global()->setStartup( false );
-        dup2( 0, 2 );
-    }
 }

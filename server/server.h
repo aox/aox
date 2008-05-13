@@ -4,14 +4,13 @@
 #define SERVER_H
 
 #include "global.h"
-#include "event.h"
 
 
 class String;
 
 
 class Server
-    : public EventHandler
+    : public Garbage
 {
 public:
     Server( const char *, int, char *[] );
@@ -38,9 +37,6 @@ public:
 
     void setup( Stage );
     void run();
-
-    void waitFor( class Query * );
-    void execute();
 
     static String name();
 

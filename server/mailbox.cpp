@@ -174,8 +174,6 @@ void Mailbox::setup( EventHandler * owner )
     Allocator::addEternal( ::mailboxes, "mailbox tree" );
 
     MailboxReader * mr = new MailboxReader( owner );
-    if ( owner )
-        owner->waitFor( mr->query );
     mr->query->execute();
 }
 

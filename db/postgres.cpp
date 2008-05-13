@@ -172,6 +172,9 @@ void Postgres::processQueue()
         extendTimeout( Configuration::scalar( Configuration::DbHandleInterval ) );
         write();
     }
+    else {
+        reactToIdleness();
+    }
 }
 
 

@@ -28,6 +28,16 @@
 /*! \nodoc */
 
 
+class StartupWatcher
+    : public EventHandler
+{
+public:
+    StartupWatcher(): EventHandler() {}
+    void execute() { EventLoop::global()->setStartup( false ); }
+};
+    
+
+
 int main( int argc, char *argv[] )
 {
     Scope global;
@@ -180,10 +190,13 @@ int main( int argc, char *argv[] )
 
     s.setup( Server::Finish );
 
-    Database::checkSchema( &s );
+    StartupWatcher * w = new StartupWatcher;
+
+    Database::checkSchema( w );
     if ( Configuration::toggle( Configuration::Security ) )
-        Database::checkAccess( &s );
-    Mailbox::setup( &s );
+        Database::checkAccess( w );
+    EventLoop::global()->setStartup( true );
+    Mailbox::setup( w );
 
     TlsServer::setup();
     OCClient::setup();
