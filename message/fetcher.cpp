@@ -30,6 +30,7 @@ class FetcherData
 public:
     FetcherData()
         : messagesRemaining( 0 ),
+          batchIds( 0 ),
           owner( 0 ),
           mailbox( 0 ),
           q( 0 ),
@@ -50,7 +51,7 @@ public:
     List<Message> messages;
     uint messagesRemaining;
     List<Message> * batch[batchHashSize];
-    String batchIds;
+    List<uint> * batchIds;
     EventHandler * owner;
     Mailbox * mailbox;
     List<Query> * q;
@@ -554,11 +555,7 @@ void Fetcher::prepareBatch()
     uint n = 0;
     while ( n < batchHashSize )
         d->batch[n++] = 0;
-    d->batchIds.truncate();
-    n = 12 * d->batchSize;
-    if ( n > 1000000 )
-        n = 1000000;
-    d->batchIds.reserve( n );
+    d->batchIds = new List<uint>;
     n = 0;
     while ( !d->messages.isEmpty() && n < d->batchSize ) {
         Message * m = d->messages.firstElement();
@@ -574,16 +571,12 @@ void Fetcher::prepareBatch()
             }
             else {
                 n++;
-                if ( !d->batchIds.isEmpty() )
-                    d->batchIds.append( "," );
-                d->batchIds.append( fn( id ) );
+                d->batchIds->append( new uint( id ) );
             }
         }
         else {
             d->batch[b] = new List<Message>;
-            if ( !d->batchIds.isEmpty() )
-                d->batchIds.append( "," );
-            d->batchIds.append( fn( m->databaseId() ) );
+            d->batchIds->append( new uint( m->databaseId() ) );
             n++;
         }
         d->batch[b]->append( m );
@@ -642,14 +635,14 @@ void Fetcher::makeQueries()
             if ( d->batchSize )
                 uids = findUids();
             r =  "select mailbox, uid, flag from flags "
-                 "where mailbox=$1 and ";
-            if ( uids )
-                r.append( uids->where() );
-            else
-                r.append( d->selector->messageSet().where() );
-            r.append( " order by mailbox, uid, flag" );
+                 "where mailbox=$1 and uid=any($2) "
+                 "order by mailbox, uid, flag";
             q = new Query( r, d->flags );
             q->bind( 1, d->mailbox->id() );
+            if ( uids )
+                q->bind( 2, *uids );
+            else
+                q->bind( 2, d->selector->messageSet() );
         }
         else {
             // we're selecting complexly and not using
@@ -678,18 +671,18 @@ void Fetcher::makeQueries()
             // we're selecting from a single mailbox based only on UIDs
             if ( !uids && d->batchSize )
                 uids = findUids();
-            r = "select a.mailbox, a.uid, "
-                "a.owner, a.value, an.name, an.id "
-                "from annotations a "
-                "join annotation_names an on (a.name=an.id) "
-                "where a.mailbox=$1 and ";
-            if ( uids )
-                r.append( uids->where() );
-            else
-                r.append( d->selector->messageSet().where() );
-            r.append( " order by a.mailbox, a.uid" );
-            q = new Query( r, d->annotations );
+            q = new Query( "select a.mailbox, a.uid, "
+                           "a.owner, a.value, an.name, an.id "
+                           "from annotations a "
+                           "join annotation_names an on (a.name=an.id) "
+                           "where a.mailbox=$1 and a.uid=any($2) "
+                           "order by a.mailbox, a.uid",
+                           d->annotations );
             q->bind( 1, d->mailbox->id() );
+            if ( uids )
+                q->bind( 2, *uids );
+            else
+                q->bind( 2, d->selector->messageSet() );
         }
         else {
             // we're selecting complexly and not using batches. perhaps
@@ -735,11 +728,10 @@ void Fetcher::makeQueries()
             q->setString( r );
         }
         else {
-            r = "select message, part, bytes, lines "
-                "from part_numbers where message in (";
-            r.append( d->batchIds );
-            r.append( ")" );
-            q = new Query( r, d->partnumbers );
+            q = new Query( "select message, part, bytes, lines "
+                           "from part_numbers where message=any($1)",
+                           d->partnumbers );
+            q->bind( 1, d->batchIds );
         }
         q->execute();
         d->partnumbers->q = q;
@@ -761,15 +753,15 @@ void Fetcher::makeQueries()
             q->setString( r );
         }
         else {
-            r = "select af.message, "
-                "af.part, af.position, af.field, af.number, "
-                "a.name, a.localpart, a.domain "
-                "from address_fields af "
-                "join addresses a on (af.address=a.id) "
-                "where af.message in (";
-            r.append( d->batchIds );
-            r.append( ") order by af.message, af.part, af.field, af.number" );
-            q = new Query( r, d->addresses );
+            q = new Query( "select af.message, "
+                           "af.part, af.position, af.field, af.number, "
+                           "a.name, a.localpart, a.domain "
+                           "from address_fields af "
+                           "join addresses a on (af.address=a.id) "
+                           "where af.message=any($1) "
+                           "order by af.message, af.part, af.field, af.number",
+                           d->addresses );
+            q->bind( 1, d->batchIds );
         }
         q->execute();
         d->addresses->q = q;
@@ -790,13 +782,13 @@ void Fetcher::makeQueries()
             q->setString( r );
         }
         else {
-            r = "select hf.message, hf.part, hf.position, "
-                "fn.name, hf.value from header_fields hf "
-                "join field_names fn on (hf.field=fn.id) "
-                "where hf.message in (";
-            r.append( d->batchIds );
-            r.append( ") order by hf.message, hf.part" );
-            q = new Query( r, d->otherheader );
+            q = new Query( "select hf.message, hf.part, hf.position, "
+                           "fn.name, hf.value from header_fields hf "
+                           "join field_names fn on (hf.field=fn.id) "
+                           "where hf.message=any($1) "
+                           "order by hf.message, hf.part",
+                           d->otherheader );
+            q->bind( 1, d->batchIds );
         }
         q->execute();
         d->otherheader->q = q;
@@ -822,14 +814,13 @@ void Fetcher::makeQueries()
             q->setString( r );
         }
         else {
-            r = "select pn.message, pn.part, bp.text, bp.data, "
-                "bp.bytes as rawbytes, pn.bytes, pn.lines "
-                "from part_numbers pn "
-                "left join bodyparts bp on (pn.bodypart=bp.id) "
-                "where bp.id is not null and pn.message in (";
-            r.append( d->batchIds );
-            r.append( ")" );
-            q = new Query( r, d->body );
+            q = new Query( "select pn.message, pn.part, bp.text, bp.data, "
+                           "bp.bytes as rawbytes, pn.bytes, pn.lines "
+                           "from part_numbers pn "
+                           "left join bodyparts bp on (pn.bodypart=bp.id) "
+                           "where bp.id is not null and pn.message=any($1)",
+                           d->body );
+            q->bind( 1, d->batchIds );
         }
         q->execute();
         d->body->q = q;
@@ -851,11 +842,9 @@ void Fetcher::makeQueries()
             q->setString( r );
         }
         else {
-            r = "select id as message, rfc822size "
-                "from messages where id in (";
-            r.append( d->batchIds );
-            r.append( ")" );
-            q = new Query( r, d->trivia );
+            q = new Query( "select id as message, rfc822size "
+                           "from messages where id=any($1)", d->trivia );
+            q->bind( 1, d->batchIds );
         }
         q->execute();
         d->trivia->q = q;
