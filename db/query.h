@@ -50,6 +50,7 @@ public:
     void bind( uint, const String &, Format = Text );
     void bind( uint, const UString &, Format = Text );
     void bind( uint, const List<uint> *, Format = Text );
+    void bind( uint, const class MessageSet &, Format = Text );
     void bindNull( uint );
     void submitLine();
 

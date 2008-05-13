@@ -10,6 +10,7 @@
 #include "ustring.h"
 #include "database.h"
 #include "eventloop.h"
+#include "messageset.h"
 #include "stringlist.h"
 #include "transaction.h"
 
@@ -338,7 +339,7 @@ void Query::bind( uint n, const List<uint> * l, Format f )
     if ( f == Text ) {
         String s( "{" );
         List<uint>::Iterator it( l );
-        while ( l ) {
+        while ( it ) {
             s.append( fn( *it ) );
             ++it;
             if ( it )
@@ -350,6 +351,35 @@ void Query::bind( uint n, const List<uint> * l, Format f )
     else {
         // XXX: Not implemented yet.
     }
+}
+
+
+/*! \overload
+  
+    This version binds each number in \a set as parameter \a
+    n. The format, \a f, must be Text.
+*/
+
+void Query::bind( uint n, const class MessageSet & set, Format f )
+{
+    if ( f == Text ) {
+        String s( "{" );
+        uint i = 1;
+        uint c = set.count();
+        s.reserve( c * 10 );
+        while ( i < c ) {
+            s.append( fn( set.value( i ) ) );
+            i++;
+            if ( i < c )
+                s.append( "," );
+        }
+        s.append( "}" );
+        bind( n, s, Text );
+    }
+    else {
+        // XXX: Not implemented yet.
+    }
+    
 }
 
 
@@ -525,17 +555,25 @@ String Query::description()
         String r( fn( i ) );
         r.append( "=" );
         int n = v->length();
-        if ( n == -1 )
+        if ( n == -1 ) {
             r = "NULL";
-        else if ( n <= 32 && v->format() != Query::Binary ) {
+        }
+        else if ( v->format() == Query::Binary ) {
+            r.append( "binary: " );
+            r.append( String::humanNumber( n ) );
+            r.append( "b " );
+        }
+        else if ( n <= 32 ) {
             r.append( "'" );
             r.append( v->data() );
             r.append( "'" );
         }
         else {
-            r.append( "...{" );
-            r.append( fn( n ) );
-            r.append( "}" );
+            r.append( "'" );
+            r.append( v->data().mid( 0, 12 ) );
+            r.append( "'... (" );
+            r.append( String::humanNumber( n ) );
+            r.append( "b)" );
         }
         p.append( r );
         ++v;
