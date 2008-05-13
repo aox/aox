@@ -189,7 +189,24 @@ void Postgres::processQuery( Query * q )
     if ( q->name() == "" ||
          !d->prepared.contains( q->name() ) )
     {
-        PgParse a( q->string(), q->name() );
+        String qs = q->string();
+        if ( ::serverVersion < 80200 && qs.contains( "=any($" ) ) {
+            bool ok = true;
+            while ( ok && qs.contains( "=any($" ) ) {
+                uint v = qs.section( "=any($", 2 ).
+                         section( ")", 1 ).number( &ok );
+                if ( ok )
+                    qs.replace( "=any($" + fn( v ) + ")",
+                                " in (select ($"+fn( v )+"::int[])[i] from "
+                                "generate_series(1,array_upper($1::int[],1)) "
+                                "as s(i))" );
+            }
+            if ( qs != q->string() )
+                log( Log::Debug, "Changing query string to: " + qs );
+            // we could call Query::setString(), but the query's state
+            // is no longer Inactive, so that's a noop. hm.
+        }
+        PgParse a( qs, q->name() );
         a.enqueue( writeBuffer() );
 
         if ( q->name() != "" ) {
