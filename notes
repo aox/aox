@@ -980,7 +980,8 @@ SUBMITTER
 SSL/TLS hello
 
   When a client sends us SSL or TLS hello instead of the appropriate
-  protocol, what do we want to do? Two options:
+  protocol, e.g. because a user has clicked 'use ssl' and left the
+  port at 143, what do we want to do? Two options:
   - Silently start TLS.
   - Send some sort of server hello saying "no, my friend"
 
@@ -996,6 +997,7 @@ SSL/TLS hello
   standard ports. If HTTP wants to do something special (why? to help
   people with broken proxies?), it can easily do so without involving
   anyone else. -- AMS)
+ 
 
 
 The groups and group_members tables seem a little underused
