@@ -105,11 +105,6 @@ void Database::setup( int desired, const String & user,
     }
 
     Endpoint srv( Configuration::DbAddress, Configuration::DbPort );
-    if ( !srv.valid() ) {
-        ::log( "Invalid database server address: " + srv.string(),
-               Log::Disaster );
-        return;
-    }
 
     if ( desired == 0 ) {
         desired = 3;
