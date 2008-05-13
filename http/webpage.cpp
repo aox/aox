@@ -694,4 +694,18 @@ uint WebPage::uniqueNumber()
 
 /*! \class StaticBlob webpage.h
     A class to serve a static blob of content (e.g. jquery.js).
+
+    The caller is expected to call setContents() before execute().
 */
+
+StaticBlob::StaticBlob( Link * link )
+    : WebPage( link )
+{
+}
+
+
+void StaticBlob::execute()
+{
+    link()->server()->setStatus( 200, "OK" );
+    finish();
+}
