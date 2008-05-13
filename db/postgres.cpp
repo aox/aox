@@ -112,8 +112,10 @@ Postgres::Postgres()
          "(backend " + fn( connectionNumber() ) + ", fd " + fn( fd() ) +
          ", user " + d->user + ")", Log::Debug );
 
-    setTimeoutAfter( 10 );
-    EventLoop::global()->addConnection( this );
+    if ( Connection::state() != Invalid ) {
+        setTimeoutAfter( 10 );
+        EventLoop::global()->addConnection( this );
+    }
     addHandle( this );
 }
 
