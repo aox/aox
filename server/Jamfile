@@ -10,7 +10,7 @@ SubInclude TOP message ;
 Build server :
     connection.cpp endpoint.cpp event.cpp logclient.cpp tls.cpp
     eventloop.cpp byteforwarder.cpp server.cpp timer.cpp resolver.cpp
-    graph.cpp ;
+    graph.cpp messageset.cpp ;
 
 # We must link with -lresolv on linux, but not on the BSDs.
 if $(OS) = "LINUX" {
@@ -19,7 +19,7 @@ if $(OS) = "LINUX" {
 
 
 Build mailbox :
-    session.cpp occlient.cpp mailbox.cpp messageset.cpp
+    session.cpp occlient.cpp mailbox.cpp
     permissions.cpp selector.cpp threader.cpp ;
 
 Build user : user.cpp ;

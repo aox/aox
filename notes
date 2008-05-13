@@ -28,7 +28,7 @@
   told about the new location.
 
   Fetching is faster in many cases, particularly when many messages
-  are involved. And slower in many cases.
+  are involved. Can it still be improved?
 
   Added check-sender-addresses, but still not tested. Probably doesn't
   work.
@@ -47,7 +47,7 @@
   Not done: Turning thread-index into references.
 
   Note done: Axel wanted namespaces or something like that. I didn't
-  quite understand, but I understaood enough to think that it's a good
+  quite understand, but I understood enough to think that it's a good
   idea and 3.0 is the right time to introduce it.
 
 
@@ -1153,24 +1153,6 @@ Fetcher oomph
   later. It's slow on pg 8.1.
 
   We can improve it further in some cases:
-
-  1. With array support we can generate evil hacky code that avoids
-     using 'message in (123,234,345,456,567,678,789)', so the fetcher
-     is fast on pg 8.1 and so the log files don't look awful on any pg
-     version.
-
-  2. If we generate 'message=$1' for single-message fetches instead of
-     'message in (123124)', we can use prepared statements again. Only
-     this time we will detect often-used statements inside Query and
-     prepare them there.
-
-  3. We can keep (small/all) messages in RAM when we inject them,
-     discard them at GC time, and retrieve them from cache instead of
-     DB in the fetcher.
-
-     If a message is injected into a mailbox onto which there is at
-     least one session, the chance that it will be read before the
-     next GC is >99%.
 
   4. When we're fetching many bodies, we can use batches in the
      FindingMessages stage, and then use messages.rfc822size to keep
