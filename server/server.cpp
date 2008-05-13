@@ -77,9 +77,6 @@ ServerData * Server::d;
     common to most/all Archiveopteryx servers. The functions are
     performed in a fixed order - you call setup( x ) to continue up to
     stage x, then return.
-
-    The function execute() finishes startup, runs an event loop, and
-    eventually exits the program.
 */
 
 
