@@ -1198,8 +1198,8 @@ Dynamically preparing often-used queries
 
 aox.org/clients/
 
-  Move the list of clients from /imap/ and /pop here. Make a per-client page,
-  e.g. /clients/outlook, with notes.
+  Move the list of clients from /imap/ and /pop here. Make a per-client
+  page, e.g. /clients/outlook, with notes.
 
   1. Which protocols can you use? Usually IMAP+Submit.
 
