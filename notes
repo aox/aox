@@ -453,18 +453,16 @@ imapd/handlers/acl.cpp
   logging statement to the end of parse().
 
 
+Convert more parsers to use AbnfParser
+
+  There are still a few places where we roll our own messy parsers and
+  suffer for it (e.g. HTTP, DigestMD5). We know they work, but making
+  them use AbnfParser in a spare moment would be an act of kindness.
+
+
 Opera often can't expunge
 
   Trace it once or twice, guess what's wrong.
-
-
-ocd needs work (mike@waspfactory.org)
-
-  1. The code (along with user/mailbox) needs cleaning up.
-  2. Should synchronise field names etc.
-
-
-AddressCache and FieldNameCache are utter crocks, and must die.
 
 
 aox/conf/*
