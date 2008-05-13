@@ -198,8 +198,8 @@ void Postgres::processQuery( Query * q )
                 if ( ok )
                     qs.replace( "=any($" + fn( v ) + ")",
                                 " in (select ($"+fn( v )+"::int[])[i] from "
-                                "generate_series(1,array_upper($1::int[],1)) "
-                                "as s(i))" );
+                                "generate_series(1,array_upper($" + fn( v ) +
+                                "::int[],1)) as s(i))" );
             }
             if ( qs != q->string() )
                 log( "Changing query string to: " + qs, Log::Debug );
