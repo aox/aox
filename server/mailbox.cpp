@@ -159,8 +159,7 @@ public:
     Mailboxes from the contents of the mailboxes table. It expects to
     be called by ::main().
 
-    If \a owner is non-null (the default is null), this function calls
-    EventHandler::waitFor() on \a owner to wait for setup to complete.
+    The \a owner (if one is specified) is notified of completion.
 */
 
 void Mailbox::setup( EventHandler * owner )
