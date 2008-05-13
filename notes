@@ -117,21 +117,6 @@ The next eight months
       Graphing
 
 
-Items for web site
-
-  In addition to stuff in the operations guide:
-
-  - List/description of IMAP/POP/SMTP extensions
-  - RFC pages
-  - man pages (old ones too)
-  - Source documentation
-  - Best practices
-  - FAQ
-  - Version-specific pages
-  - Download-specific pages
-  - Client-specific pages
-
-
 Installer doesn't take steps to ensure that the installation is usable
 
   It could do at least two things:
@@ -146,45 +131,6 @@ Installer doesn't take steps to ensure that the installation is usable
   it creates the database users and then fails to run psql to load the
   schema. It exits with an error, which means the randomly-generated
   passwords are lost, because the configuration file is not written.
-
-
-Various TODO items from earlier releases.
-
-  Message retention policy
-
-  - Soft-quota/archival stuff too?
-  - Message arrival tag (for archiving)
-
-  Miscellaneous:
-
-  - Database replication support (local mirror)
-  - Split the injector transaction into fast and slow parts(?)
-
-  THREAD?
-
-  Basic administration using the httpd
-
-  Indexing for DOC bodyparts
-
-  aox backup/restore (or similarly helpful procedure)
-
-  Full-text search
-
-
-The \Answered flag
-
-  We could add a little code to help that flag.
-
-  1. Disallow clearing it once set.
-  2. Set it on messages when we see an outgoing reply.
-
-  This would make it easier to force archiving.
-
-
-5173
-
-  5173 is new. I wrote an implementation, need to check that the RFC
-  didn't shift and mention 5173 somewhere.
 
 
 Not enough name resolution: db-address=localhost doesn't work.
@@ -207,25 +153,6 @@ Not enough name resolution: db-address=localhost doesn't work.
   Database, LogClient and OcClient, right? (SpoolManager/SmtpClient need
   to resolve an Endpoint too. bin/aox needs to be able to connect to the
   same things the Listener decides to listen to.)
-
-
-Cleartext passwords
-
-  We help migrating away from cleartext/plaintext passwords:
-
-  1. We also store SCRAM and similar secrets in the DB (secrets which
-     aren't password equivalents)
-  2. We extend the users table with two new columns, 'last time
-     cleartext was needed' and 'number of successful authentications
-     without cleartext password usage since cleartext'.
-  3. If a client uses SCRAM, we increment the counter.
-  4. If a client uses CRAM or PLAIN, we reset counter and set the time
-     to today.
-  5. We provide some helping code to delete passwords for users with a
-     high count and a long-ago time.
-  6. We add documentation saying that if you disable auth-this and
-     auth-that, you can disable store-plaintext-passwords.
-  7. We add configuration/db sanity checks for ditto.
 
 
 Graceful shutdown
@@ -279,6 +206,79 @@ aox check schema
   repurposed to do other things besides. so that means more static
   functions in Schema and separate EventHandlers to do the
   checking/granting/whatevering. but that's okay.
+
+
+Items for web site
+
+  In addition to stuff in the operations guide:
+
+  - List/description of IMAP/POP/SMTP extensions
+  - RFC pages
+  - man pages (old ones too)
+  - Source documentation
+  - Best practices
+  - FAQ
+  - Version-specific pages
+  - Download-specific pages
+  - Client-specific pages
+
+
+Various TODO items from earlier releases.
+
+  Message retention policy
+
+  - Soft-quota/archival stuff too?
+  - Message arrival tag (for archiving)
+
+  Miscellaneous:
+
+  - Database replication support (local mirror)
+  - Split the injector transaction into fast and slow parts(?)
+
+  THREAD?
+
+  Basic administration using the httpd
+
+  Indexing for DOC bodyparts
+
+  aox backup/restore (or similarly helpful procedure)
+
+  Full-text search
+
+
+The \Answered flag
+
+  We could add a little code to help that flag.
+
+  1. Disallow clearing it once set.
+  2. Set it on messages when we see an outgoing reply.
+
+  This would make it easier to force archiving.
+
+
+5173
+
+  5173 is new. I wrote an implementation, need to check that the RFC
+  didn't shift and mention 5173 somewhere.
+
+
+Cleartext passwords
+
+  We help migrating away from cleartext/plaintext passwords:
+
+  1. We also store SCRAM and similar secrets in the DB (secrets which
+     aren't password equivalents)
+  2. We extend the users table with two new columns, 'last time
+     cleartext was needed' and 'number of successful authentications
+     without cleartext password usage since cleartext'.
+  3. If a client uses SCRAM, we increment the counter.
+  4. If a client uses CRAM or PLAIN, we reset counter and set the time
+     to today.
+  5. We provide some helping code to delete passwords for users with a
+     high count and a long-ago time.
+  6. We add documentation saying that if you disable auth-this and
+     auth-that, you can disable store-plaintext-passwords.
+  7. We add configuration/db sanity checks for ditto.
 
 
 Database schema range
