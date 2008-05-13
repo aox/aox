@@ -243,6 +243,8 @@ Graceful shutdown
   3. Close the remaining connections, implicitly rolling back database
      transactions. Quit.
 
+  There's no practical way to shutdown using ocd/ocadmin.
+
 
 aox check schema
 
@@ -689,12 +691,6 @@ Default c-t-e of PGP signatures
   contain only CR, LF and printable ASCII can be broken.
 
 
-Something like soft-bounce might just be useful
-
-  enabled: smtp/lmtp always give 4xx errors. disabled: either 4xx or
-  5xx depending on the type of error.
-
-
 recognising spam
 
   The good spam filters now all seem to require local training with
@@ -799,12 +795,6 @@ Search ourselves, not via google
   Or maybe farm that out, get google to search with an approximation
   of our design. http://www.google.com/faq_freewebsearch.html may be
   interesting.
-
-
-Fix shutdown
-
-  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
-  is another aspect of the problem above.
 
 
 Logging to syslog
