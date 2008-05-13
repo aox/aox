@@ -57,6 +57,7 @@ public:
         Thread,
         Rfc822,
         Send,
+        JQuery,
         ListViews,
         AddView,
         None

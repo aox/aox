@@ -420,6 +420,19 @@ static WebPage * sendmail( Link * link )
 }
 
 
+static WebPage * jQueryPage( Link * link )
+{
+    const char * jquery =
+#include "jquery.inc"
+    ""
+    ;
+
+    WebPage * p = new StaticBlob( link );
+    p->setContents( "application/x-javascript", jquery );
+    return p;
+}
+
+
 enum Component {
     ArchivePrefix, WebmailPrefix,
     Magic, MailboxName, Uid, Part, Suffix, Arguments,
@@ -457,6 +470,7 @@ static const struct {
     { "thread", Link::Thread, &webmailMessage, &webmailThread },
     { "rfc822", Link::Rfc822, &webmailMessage, &messagePage },
     { "send",   Link::Send,   &errorPage,      &sendmail },
+    { "jquery.js", Link::JQuery, &errorPage,   &jQueryPage },
     { "views/list", Link::ListViews, &errorPage, &webmailListViews },
     { "views/add", Link::AddView, &errorPage, &webmailAddView }
 };

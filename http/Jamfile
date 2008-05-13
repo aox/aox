@@ -8,6 +8,21 @@ HDRS += [ FDirName $(TOP) http ] ;
 
 SubInclude TOP http components ;
 
+rule BuildBlob {
+    Depends $(<) : $(>) ;
+    Clean clean : $(<) ;
+    SEARCH on $(>) = $(SEARCH_SOURCE) ;
+    MakeLocate $(<) : $(LOCATE_SOURCE) ;
+}
+
+actions BuildBlob {
+    cat $(>) | \
+    sed -e 's/[\\"]/\\&/g' | grep . | \
+    sed -e 's/\(.*\)/"\1"/' > $(<)
+}
+
+BuildBlob jquery.inc : jquery.js ;
+
 Build http : http.cpp link.cpp webpage.cpp pagecomponent.cpp
     frontmatter.cpp httpsession.cpp messagerendering.cpp 
     htmlparser.cpp htmlform.cpp ;
