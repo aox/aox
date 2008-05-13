@@ -202,7 +202,7 @@ void Postgres::processQuery( Query * q )
                                 "as s(i))" );
             }
             if ( qs != q->string() )
-                log( Log::Debug, "Changing query string to: " + qs );
+                log( "Changing query string to: " + qs, Log::Debug );
             // we could call Query::setString(), but the query's state
             // is no longer Inactive, so that's a noop. hm.
         }
