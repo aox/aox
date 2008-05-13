@@ -355,7 +355,7 @@ void Query::bind( uint n, const List<uint> * l, Format f )
 
 
 /*! \overload
-  
+
     This version binds each number in \a set as parameter \a
     n. The format, \a f, must be Text.
 */
@@ -367,11 +367,11 @@ void Query::bind( uint n, const class MessageSet & set, Format f )
         uint i = 1;
         uint c = set.count();
         s.reserve( c * 10 );
-        while ( i < c ) {
+        while ( i <= c ) {
             s.append( fn( set.value( i ) ) );
-            i++;
             if ( i < c )
                 s.append( "," );
+            i++;
         }
         s.append( "}" );
         bind( n, s, Text );
@@ -379,7 +379,7 @@ void Query::bind( uint n, const class MessageSet & set, Format f )
     else {
         // XXX: Not implemented yet.
     }
-    
+
 }
 
 
@@ -552,11 +552,12 @@ String Query::description()
     while ( v ) {
         i++;
 
-        String r( fn( i ) );
+        String r( "$" );
+        r.append( fn( i ) );
         r.append( "=" );
         int n = v->length();
         if ( n == -1 ) {
-            r = "NULL";
+            r.append( "null" );
         }
         else if ( v->format() == Query::Binary ) {
             r.append( "binary: " );

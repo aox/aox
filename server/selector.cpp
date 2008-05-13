@@ -862,15 +862,13 @@ String Selector::whereRfc822Size()
 String Selector::whereFlags()
 {
     if ( d->s8 == "\\recent" ) {
+        if ( !root()->d->session )
+            return "false";
         // the database cannot look at the recent flag, so we turn
         // this query into a test for the relevant UIDs.
-        String r;
-        if ( root()->d->session )
-            r = root()->d->session->recent().where( "mm" );
-        // where() returns an empty string if recent() is an empty set
-        if ( r.isEmpty() )
-            return "false";
-        return r;
+        uint r = placeHolder();
+        root()->d->query->bind( r, root()->d->session->recent() );
+        return "mm.uid=any($" + fn( r ) + ")";
     }
 
     uint join = ++root()->d->join;
@@ -908,7 +906,9 @@ String Selector::whereUid()
     if ( d->s.isEmpty() )
         return "false";
 
-    return d->s.where( "mm" );
+    uint u = placeHolder();
+    root()->d->query->bind( u, d->s );
+    return "mm.uid=any($" + fn( u ) + ")";
 }
 
 
