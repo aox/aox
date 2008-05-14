@@ -345,20 +345,6 @@ void Fetcher::start()
     else if ( expected * n < 1000 )
         simple = true;
 
-    // Maybe we can turn s into a bigger, but simpler set which
-    // returns the same messages.
-    if ( !messages.isRange() ) {
-        Session * best = 0;
-        List<Session>::Iterator it( d->mailbox->sessions() );
-        while ( it ) {
-            if ( !best || best->nextModSeq() < it->nextModSeq() )
-                best = it;
-            ++it;
-        }
-        if ( best )
-            messages.addGapsFrom( best->messages() );
-    }
-
     // This selector selects by UID from a single mailbox. We could
     // also use any other Selector, so we can select messages based on
     // anything and retrieve them.
