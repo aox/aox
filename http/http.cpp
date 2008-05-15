@@ -1025,6 +1025,7 @@ private:
 HTTPS::HTTPS( int s )
     : HTTP( s ), d( new HTTPSData )
 {
+    setProperty( StartsSSL );
     d->helper = new HttpsHelper( this );
     d->tlsServer = new TlsServer( d->helper, peer(), "HTTPS" );
     EventLoop::global()->removeConnection( this );
