@@ -21,14 +21,11 @@ int main( int argc, char * argv[] )
     Listener< OCServer >::create(
         "ocd",
         Configuration::toggle( Configuration::StartOcd ),
-        Configuration::OcdAddress, Configuration::OcdPort,
-        true
+        Configuration::OcdAddress, Configuration::OcdPort
     );
     Listener< OCAdmin >::create(
         "ocadmin", true,
-        Configuration::OcAdminAddress,
-        Configuration::OcAdminPort,
-        false
+        Configuration::OcAdminAddress, Configuration::OcAdminPort
     );
     s.run();
 }
