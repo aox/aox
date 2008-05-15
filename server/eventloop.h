@@ -42,6 +42,8 @@ public:
 
     void setConnectionCounts();
 
+    void shutdownSSL();
+
 private:
     class LoopData *d;
 };
