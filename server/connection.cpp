@@ -37,7 +37,7 @@ public:
           state( Connection::Invalid ),
           type( Connection::Client ),
           tls( false ), pending( false ),
-          l( 0 )
+          l( 0 ), properties( 0 )
     {}
 
     int fd;
@@ -51,6 +51,8 @@ public:
     Endpoint self, peer;
     Connection::Event event;
     Log *l;
+
+    uint properties;
 };
 
 
@@ -157,6 +159,33 @@ void Connection::setState( Connection::State st )
 Connection::State Connection::state() const
 {
     return d->state;
+}
+
+
+/*! Declares that this connection has the property \a p, which may be
+    one of Internal, Listens, or StartsSSL. By default, a connection
+    has the property None.
+
+    XXX: It's called "Listens" instead of "Listener" only because of
+    the conflict with the Connection::Type value of the latter name.
+    But having the "Listens" property is equivalent to being of type()
+    Listener, so one of them is redundant. But which?
+*/
+
+void Connection::setProperty( Property p )
+{
+    d->properties |= (uint)p;
+}
+
+
+/*! Returns true only if setProperty() was called earlier with the given
+    property \a p (i.e. the connection has the property \a p), and false
+    otherwise.
+*/
+
+bool Connection::hasProperty( Property p ) const
+{
+    return (d->properties & (uint)p) != 0;
 }
 
 

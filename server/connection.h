@@ -93,6 +93,18 @@ public:
 
     bool accessPermitted() const;
 
+    enum Property {
+        None = 0,
+        Listens = 1,
+        Internal = 2,
+        StartsSSL = 4
+    };
+
+    bool hasProperty( Property ) const;
+
+protected:
+    void setProperty( Property );
+
 private:
     class ConnectionData *d;
     void init( int );
