@@ -251,7 +251,6 @@ static struct {
     { "auth-digest-md5", Configuration::AuthDigestMd5, false },
     { "auth-anonymous", Configuration::AuthAnonymous, false },
     { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true },
-    { "announce-draft-support", Configuration::AnnounceDraftSupport, false },
     { "use-sieve", Configuration::UseSieve, true },
     { "use-webmail", Configuration::UseWebmail, false },
     { "use-web-archive", Configuration::UseWebArchive, false },

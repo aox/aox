@@ -495,13 +495,6 @@ is the port where
 accepts SSL-wrapped connections,
 .I 993
 by default.
-.IP announce-draft-support
-is enabled if the IMAP server should advertise support for
-drafts. Oryx tracks the draft versions of several IMAP extensions.
-The default is
-.IR disabled 
-since version 1.0, since these drafts can change without notice, and 1.0
-cannot.
 .SS POP
 .IP use-pop
 must be enabled for

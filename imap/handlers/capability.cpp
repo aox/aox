@@ -57,7 +57,6 @@ void Capability::execute()
 
 String Capability::capabilities( IMAP * i, bool all )
 {
-    bool drafts = Configuration::toggle( Configuration::AnnounceDraftSupport );
     StringList c;
 
     c.append( "IMAP4rev1" );
@@ -90,8 +89,7 @@ String Capability::capabilities( IMAP * i, bool all )
     c.append( "ID" );
     if ( all || login )
         c.append( "IDLE" );
-    if ( drafts && ( all || login ) )
-        c.append( "X-DRAFT-W13-LISTEXT" );
+    //c.append( "X-DRAFT-W13-LISTEXT" ); when we've gone over the RFC, ok?
     c.append( "LITERAL+" );
     if ( ( all || !login ) &&
          !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )

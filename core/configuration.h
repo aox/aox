@@ -139,7 +139,6 @@ public:
         AuthDigestMd5,
         AuthAnonymous,
         AcceptAnyHttpHost,
-        AnnounceDraftSupport,
         UseSieve,
         UseWebmail,
         UseWebArchive,
