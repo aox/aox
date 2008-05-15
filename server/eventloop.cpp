@@ -664,3 +664,20 @@ void EventLoop::setConnectionCounts()
     httpgraph->setValue( http );
     dbgraph->setValue( db );
 }
+
+
+/*! Stops all the SSL-enabled Listeners. */
+
+void EventLoop::shutdownSSL()
+{
+    log( "Shutting down SSL-enabled Listeners", Log::Error );
+    List< Connection >::Iterator it( d->connections );
+    while ( it ) {
+        Connection * c = it;
+        if ( 0 /* c is a Listener for a StartsSSL connection. */ ) {
+            removeConnection( c );
+            c->close();
+        }
+        ++it;
+    }
+}
