@@ -20,6 +20,7 @@ public:
         : Connection(), svc( s )
     {
         setType( Connection::Listener );
+        setProperty( Connection::Listens );
         if ( listen( e ) >= 0 ) {
             EventLoop::global()->addConnection( this );
         }
