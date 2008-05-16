@@ -100,19 +100,22 @@ Postgres::Postgres()
         // Try to cooperate with ident authentication.
         uid_t e = geteuid();
         setreuid( 0, p->pw_uid );
-        connect( server() );
+        connect( address(), port() );
         setreuid( 0, e );
     }
     else {
-        connect( server() );
+        connect( address(), port() );
     }
 
-    log( "Connecting to PostgreSQL server at " + server().string() + " "
+    log( "Connecting to PostgreSQL server at " +
+         address() + ":" + fn( port() ) + " "
          "(backend " + fn( connectionNumber() ) + ", fd " + fn( fd() ) +
          ", user " + d->user + ")", Log::Debug );
 
-    setTimeoutAfter( 10 );
-    EventLoop::global()->addConnection( this );
+    if ( Connection::state() != Invalid ) {
+        setTimeoutAfter( 10 );
+        EventLoop::global()->addConnection( this );
+    }
     addHandle( this );
 }
 
@@ -730,13 +733,14 @@ void Postgres::serverMessage()
     Query *q = d->queries.firstElement();
     String m( msg.message() );
     String code = msg.code();
+    Endpoint server( peer() );
 
     if ( code == "57P03" ) {
         log( "Retrying connection after delay because PostgreSQL "
              "is still starting up.", Log::Info );
         close();
         sleep( 1 );
-        connect( server() );
+        connect( server );
     }
     else if ( code == "28000" && m.lower().containsWord( "ident" ) ) {
         int b = m.find( '"' );
@@ -767,7 +771,7 @@ void Postgres::serverMessage()
             uid_t e = geteuid();
             setreuid( 0, p->pw_uid );
             close();
-            connect( Database::server() );
+            connect( server );
             setreuid( 0, e );
         }
         else if ( s == Configuration::text(Configuration::JailUser) &&
@@ -779,9 +783,8 @@ void Postgres::serverMessage()
             d->identBreakageSeen = true;
             log( "PostgreSQL demanded IDENT, which did not match "
                  "during startup. Retrying.", Log::Info );
-            Endpoint pg( peer() );
             close();
-            connect( pg );
+            connect( server );
         }
         else {
             log( "PostgreSQL refuses authentication because this "

@@ -13,6 +13,7 @@
 #include "endpoint.h"
 #include "eventloop.h"
 #include "byteforwarder.h"
+#include "resolver.h"
 #include "user.h"
 
 // errno
@@ -836,4 +837,185 @@ bool Connection::accessPermitted() const
         return true;
 
     return false;
+}
+
+
+class SerialConnector
+    : public Connection
+{
+private:
+    Connection * host;
+    List<SerialConnector> * connectors;
+    Endpoint target;
+    uint timeouts;
+
+public:
+    // Every SerialConnector gets a pointer to the host connection, the
+    // List it belongs to, and the Endpoint to which it should connect.
+    // This constructor doesn't do anything. The real work begins in
+    // connect() below.
+
+    SerialConnector( Connection * c, List<SerialConnector> * l, Endpoint e )
+        : host( c ), connectors( l ), target( e ), timeouts( 0 )
+    {
+    }
+
+    // The caller sets up the List of connectors, and calls connect() on
+    // the first one, which tries to connect to its target Endpoint. If
+    // that fails right away, it yields to the next connector. Otherwise
+    // it waits for the EventLoop to call react() to decide what to do.
+
+    void connect()
+    {
+        log( "Trying " + target.string(), Log::Debug );
+
+        if ( Connection::connect( target ) < 0 ) {
+            next( true );
+            return;
+        }
+
+        setTimeoutAfter( 1 );
+        EventLoop::global()->addConnection( this );
+    }
+
+    void react( Event e )
+    {
+        // If we've succeeded in making a connection, we can kill all of
+        // the other connectors and substitute ourselves for the parent
+        // connection.
+
+        if ( e == Connect ) {
+            List<SerialConnector>::Iterator it( connectors );
+            while ( it ) {
+                SerialConnector * sc = it;
+                if ( sc != this ) {
+                    EventLoop::global()->removeConnection( sc );
+                    sc->close();
+                }
+                ++it;
+            }
+            substitute( host, Connect );
+            host->setState( Connecting );
+        }
+
+        // If there's an Error, we know we won't be able to connect, so
+        // we remove ourselves from the List of connectors and connect()
+        // the next one in line. If the initial 1-second timeout expires
+        // we extend the timeout and yield without removing ourselves,
+        // since the connection attempt may yet succeed.
+
+        else if ( e == Error || e == Timeout ) {
+            if ( e == Timeout ) {
+                setTimeoutAfter( 10 );
+                timeouts++;
+            }
+
+            next( e == Error || timeouts > 1 );
+        }
+
+        else {
+            // XXX: If the EventLoop starts forwarding Read etc. to us,
+            // we're deeply screwed.
+        }
+    }
+
+    // This function is responsible for removing the current connector
+    // from the list, if necessary, and then calling connect() on the
+    // next one in line, which is the first one that is neither broken
+    // nor Connecting. It needs to deal with the awful possibility that
+    // no connectors are left to try (i.e. they all failed).
+
+    void next( bool remove )
+    {
+        List<SerialConnector>::Iterator it( connectors );
+
+        if ( remove ) {
+            while ( it ) {
+                if ( it == this )
+                    connectors->take( it );
+                else
+                    ++it;
+            }
+            it = connectors;
+        }
+
+        uint alive = 0;
+        while ( it ) {
+            SerialConnector * sc = it;
+            if ( sc->state() != Connecting ) {
+                alive++;
+                sc->connect();
+                break;
+            }
+            ++it;
+        }
+
+        if ( alive == 0 && connectors->isEmpty() ) {
+            Endpoint e( "0.0.0.0", 0 );
+            init( socket( e.protocol() ) );
+            substitute( host, Error );
+            host->setState( Connecting );
+        }
+    }
+};
+
+
+/*! \overload
+    This form of connect() takes an \a address (e.g. "localhost") and
+    \a port instead of an Endpoint. It tries to resolve that address
+    to a list of connection targets; and tries to connect to each of
+    those in turn. The first successful connection is used, and the
+    caller is notified by the EventLoop as usual. It can use peer()
+    to find out which address we actually connected to.
+
+    If \a address resolves to only one thing (e.g. it is an IP address
+    already, or a Unix-domain socket, or a hostname that maps to only
+    one address), this function just calls the usual form of connect()
+    on the result.
+
+    Returns -1 on failure (i.e. the name could not be resolved to any
+    valid connection targets), and 0 on (temporary) success.
+*/
+
+int Connection::connect( const String & address, uint port )
+{
+    StringList names( Resolver::resolve( address ) );
+    if ( names.count() == 1 )
+        return connect( Endpoint( address, port ) );
+
+    List<SerialConnector> * l = new List<SerialConnector>;
+
+    StringList::Iterator it( names );
+    while ( it ) {
+        String name( *it );
+        Endpoint e( name, port );
+        if ( e.valid() )
+            l->append( new SerialConnector( this, l, e ) );
+        ++it;
+    }
+
+    if ( l->count() == 0 )
+        return -1;
+
+    l->first()->connect();
+    return 0;
+}
+
+
+/*! This very evil function exists to help a SerialConnector (above) to
+    substitute itself for another connection \a other, which called the
+    two-argument form of connect(). This function should not be called
+    by anyone else, and nobody should wonder what \a event is.
+*/
+
+void Connection::substitute( Connection * other, Event event )
+{
+    EventLoop::global()->removeConnection( this );
+    setTimeoutAfter( 10 );
+    d->type = other->d->type;
+    d->l = other->d->l;
+    other->d = d;
+    other->d->pending = true;
+    other->d->event = event;
+    EventLoop::global()->addConnection( other );
 }

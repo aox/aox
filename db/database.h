@@ -59,6 +59,9 @@ protected:
     static void removeHandle( Database * );
 
     static Endpoint server();
+    static String address();
+    static uint port();
+
     static String name();
     static String user();
     static String password();
