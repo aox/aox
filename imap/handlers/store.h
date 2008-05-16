@@ -15,6 +15,7 @@ class Store
 {
 public:
     Store( bool u );
+    Store( IMAP *, const MessageSet &, bool );
 
     void parse();
     void execute();

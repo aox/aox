@@ -85,6 +85,27 @@ Store::Store( bool u )
 }
 
 
+/*! Constructs a Store handler which will set the "\seen" flag on the
+    mailbox currently used by \a imap, and emit a flag update only if \a
+    silent is false.
+
+    This is basically a helper for Fetch, which occasionally needs to
+    set "\seen" implicitly. It doesn't have a tag(), so it won't send
+    any tagged final response.
+*/
+
+Store::Store( IMAP * imap, const MessageSet & set, bool silent )
+    : Command( imap ), d( new StoreData )
+{
+    d->uid = true;
+    d->op = StoreData::AddFlags;
+    setGroup( 0 );
+    d->s = set;
+    d->silent = silent;
+    d->flagNames.append( "\\seen" );
+}
+
+
 void Store::parse()
 {
     space();
