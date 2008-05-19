@@ -659,6 +659,7 @@ void Fetch::execute()
             if ( !d->store ) {
                 List<Command>::Iterator c = imap()->commands()->find( this );
                 if ( c ) {
+                    Scope x( new Log( Log::IMAP ) );
                     d->store = new Store( imap(), d->set, d->flags );
                     d->store->setState( Executing );
                     imap()->commands()->insert( c, d->store );
@@ -666,6 +667,8 @@ void Fetch::execute()
                 }
             }
             if ( d->store && d->store->state() == Executing )
+                return;
+            if ( !imap()->session()->initialised() )
                 return;
             d->state = 3;
         }
