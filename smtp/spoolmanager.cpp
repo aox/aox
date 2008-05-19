@@ -90,10 +90,14 @@ void SpoolManager::execute()
     // Do we need to wake up yet?
 
     if ( !d->q ) {
+        uint next;
         Row * r = d->nextRun->nextRow();
-        uint next( r->getInt( "next_attempt" ) );
+        if ( r )
+            next = r->getInt( "next_attempt" );
+        else
+            next = 666;
 
-        if ( next > 0 ) {
+        if ( d->nextRun->failed() || !r || next > 0 ) {
             log( "Ending queue run (sleeping for " + fn( next ) +
                  " seconds)" );
             if ( d->client )

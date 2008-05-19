@@ -1025,6 +1025,7 @@ private:
 HTTPS::HTTPS( int s )
     : HTTP( s ), d( new HTTPSData )
 {
+    setProperty( StartsSSL );
     d->helper = new HttpsHelper( this );
     d->tlsServer = new TlsServer( d->helper, peer(), "HTTPS" );
     EventLoop::global()->removeConnection( this );
@@ -1038,6 +1039,7 @@ void HTTPS::finish()
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
+        EventLoop::global()->shutdownSSL();
         log( "Couldn't negotiate TLS with " + peer().string(), Log::Error );
         close();
         return;

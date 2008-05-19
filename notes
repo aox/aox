@@ -135,26 +135,29 @@ Installer doesn't take steps to ensure that the installation is usable
   passwords are lost, because the configuration file is not written.
 
 
-Not enough name resolution: db-address=localhost doesn't work.
+db-address=localhost works, but needs improvement.
 
-  The name is resolved at startup, but nothing ever calls the resolver
-  to retrieve the value. One way to fix this would be to make Endpoint
-  itself accept names and resolve them. The downside is: what if there
-  are multiple addresses, e.g. 127.0.0.1 and ::1?
+  - A new connect(addr, port) function resolves the given address and
+    creates one SerialConnector object for each result. It starts the
+    first one, which (after an error, or a delay of 1s) initiates the
+    next connection in line and so on. The first one to connect swaps
+    out the d of the original connection with its own, and makes the
+    EventLoop act as though it had just connected.
 
-  There are three cases, perhaps four:
+  It works, but the code is a little ugly. The error handling logic
+  needs a careful look after some time. Once that's solid, the other
+  callers (SpoolManager/SmtpClient, OCClient, etc.) can be converted.
 
-  - Our own servers, where it's clear what should happen, and
-    Listener::create() does the right thing.
-  - Outgoing connections where we need a connection to any address.
-  - Outgoing connections where we need a connection to each address.
-  - Outgoing connections where >1 addresses is not meaningful, not
-    tested or otherwise undesirable.
 
-  Each user of Endpoint needs to handle this. That's Listener,
-  Database, LogClient and OcClient, right? (SpoolManager/SmtpClient need
-  to resolve an Endpoint too. bin/aox needs to be able to connect to the
-  same things the Listener decides to listen to.)
+EventLoop::shutdownSSL() doesn't work.
+
+  IMAPS/SMTPS/HTTPS call EventLoop::shutdownSSL() when the tlsproxy
+  isn't working, and that function needs to look for Listeners that
+  are listening for an SSL-enabled service. But the former property
+  is set by the listener, while the latter belongs to an object of
+  type T (i.e. the template parameter); and no object of that type
+  exists when the Listener is constructed.
+
 
 
 Graceful shutdown

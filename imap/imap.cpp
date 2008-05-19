@@ -697,6 +697,7 @@ private:
 IMAPS::IMAPS( int s )
     : IMAP( s ), d( new IMAPSData )
 {
+    setProperty( StartsSSL );
     String * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
@@ -713,6 +714,7 @@ void IMAPS::finish()
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
+        EventLoop::global()->shutdownSSL();
         log( "Cannot negotiate TLS", Log::Error );
         close();
         return;

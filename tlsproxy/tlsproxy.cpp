@@ -58,14 +58,14 @@ int main( int argc, char *argv[] )
         egd.append( "/" );
     egd.append( "tlsproxy/var/run/egd-pool" );
     Entropy::setup();
-    (void)new Listener< EntropyProvider >( Endpoint( egd, 0 ), "EGD", true );
+    (void)new Listener< EntropyProvider >( Endpoint( egd, 0 ), "EGD" );
     if ( !Configuration::toggle( Configuration::Security ) ) {
         struct stat st;
         if ( stat( "/var/run/edg-pool", &st ) < 0 ) {
             log( "Security is disabled and /var/run/edg-pool does not exist. "
                  "Creating it just in case Cryptlib wants to access it." );
             (void)new Listener< EntropyProvider >(
-                Endpoint( "/var/run/edg-pool", 0 ), "EGD(/)", true );
+                Endpoint( "/var/run/edg-pool", 0 ), "EGD(/)" );
         }
     }
     if ( ::chmod( egd.cstr(), 0666 ) < 0 )
@@ -82,8 +82,7 @@ int main( int argc, char *argv[] )
     // finally listen for tlsproxy requests
     Listener< TlsProxy >::create(
         "tlsproxy", Configuration::toggle( Configuration::UseTls ),
-        Configuration::TlsProxyAddress, Configuration::TlsProxyPort,
-        true
+        Configuration::TlsProxyAddress, Configuration::TlsProxyPort
     );
 
     // Is the following enough to avoid zombies, or should the handler
@@ -316,6 +315,7 @@ public:
 TlsProxy::TlsProxy( int socket )
     : Connection( socket, Connection::TlsProxy ), d( new TlsProxyData )
 {
+    setProperty( Internal );
     EventLoop::global()->addConnection( this );
     if ( !proxies ) {
         proxies = new List<TlsProxy>;

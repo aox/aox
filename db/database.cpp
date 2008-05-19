@@ -105,11 +105,6 @@ void Database::setup( int desired, const String & user,
     }
 
     Endpoint srv( Configuration::DbAddress, Configuration::DbPort );
-    if ( !srv.valid() ) {
-        ::log( "Invalid database server address: " + srv.string(),
-               Log::Disaster );
-        return;
-    }
 
     if ( desired == 0 ) {
         desired = 3;
@@ -362,12 +357,30 @@ String Database::type()
 }
 
 
-/*! Returns the configured address of the database server (db-address).
+/*! Returns an Endpoint representing the address of the database server
+    (as specified by db-address and db-port). The Endpoint may not be
+    valid.
 */
 
 Endpoint Database::server()
 {
     return Endpoint( Configuration::DbAddress, Configuration::DbPort );
+}
+
+
+/*! Returns the address of the database server (db-address). */
+
+String Database::address()
+{
+    return Configuration::text( Configuration::DbAddress );
+}
+
+
+/*! Returns the database server port (db-port). */
+
+uint Database::port()
+{
+    return Configuration::scalar( Configuration::DbPort );
 }
 
 

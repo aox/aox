@@ -16,10 +16,11 @@ class Listener
     : public Connection
 {
 public:
-    Listener( const Endpoint &e, const String & s, bool internal )
-        : Connection(), svc( s ), i( internal )
+    Listener( const Endpoint &e, const String & s )
+        : Connection(), svc( s )
     {
         setType( Connection::Listener );
+        setProperty( Connection::Listens );
         if ( listen( e ) >= 0 ) {
             EventLoop::global()->addConnection( this );
         }
@@ -51,14 +52,17 @@ public:
         if ( s >= 0 ) {
             Connection *c = new T(s);
             c->setState( Connected );
+            Log::Severity level( Log::Significant );
+            if ( c->hasProperty( Internal ) )
+                level = Log::Debug;
             log( "Accepted new " + svc + " connection from " +
-                 c->peer().string(), i ? Log::Debug : Log::Significant );
+                 c->peer().string(), level );
         }
     }
 
     static void create( const String &svc, bool use,
                         Configuration::Text address,
-                        Configuration::Scalar port, bool i )
+                        Configuration::Scalar port )
     {
         if ( !use )
             return;
@@ -99,7 +103,7 @@ public:
                     break;
                 }
                 if ( u ) {
-                    Listener<T> * l = new Listener<T>( e, svc, i );
+                    Listener<T> * l = new Listener<T>( e, svc );
                     if ( l->state() != Listening ) {
                         delete l;
                         l = 0;
@@ -159,7 +163,6 @@ public:
 
 private:
     String svc;
-    bool i;
 };
 
 #endif

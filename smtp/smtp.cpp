@@ -470,6 +470,7 @@ private:
 SMTPS::SMTPS( int s )
     : SMTPSubmit( s ), d( new SMTPSData )
 {
+    setProperty( StartsSSL );
     String * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
@@ -486,6 +487,7 @@ void SMTPS::finish()
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
+        EventLoop::global()->shutdownSSL();
         log( "Cannot negotiate TLS", Log::Error );
         close();
         return;

@@ -82,6 +82,7 @@ public:
 
     int listen( const Endpoint & );
     int connect( const Endpoint & );
+    int connect( const String &, uint );
     int accept();
     static void setAny6ListensTo4( bool );
     static bool any6ListensTo4();
@@ -93,9 +94,22 @@ public:
 
     bool accessPermitted() const;
 
+    enum Property {
+        None = 0,
+        Listens = 1,
+        Internal = 2,
+        StartsSSL = 4
+    };
+
+    bool hasProperty( Property ) const;
+
+protected:
+    void setProperty( Property );
+    void substitute( Connection *, Event );
+    void init( int );
+
 private:
     class ConnectionData *d;
-    void init( int );
 };
 
 

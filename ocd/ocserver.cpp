@@ -32,6 +32,7 @@ static List< OCServer > * servers;
 OCServer::OCServer( int s )
     : Connection( s, Connection::OryxServer ), d( new OCSData )
 {
+    setProperty( Internal );
     if ( !servers ) {
         servers = new List<OCServer>;
         Allocator::addEternal( servers, "list of OCServer objects" );

@@ -129,62 +129,51 @@ int main( int argc, char *argv[] )
 
     Listener< IMAP >::create(
         "IMAP", Configuration::toggle( Configuration::UseImap ),
-        Configuration::ImapAddress, Configuration::ImapPort,
-        false
-        );
+        Configuration::ImapAddress, Configuration::ImapPort
+    );
     Listener< IMAPS >::create(
         "IMAPS", Configuration::toggle( Configuration::UseImaps ),
-        Configuration::ImapsAddress, Configuration::ImapsPort,
-        false
-        );
+        Configuration::ImapsAddress, Configuration::ImapsPort
+    );
     Listener< POP >::create(
         "POP3", Configuration::toggle( Configuration::UsePop ),
-        Configuration::PopAddress, Configuration::PopPort,
-        false
-        );
+        Configuration::PopAddress, Configuration::PopPort
+    );
     Listener< HTTP >::create(
         "HTTP", Configuration::toggle( Configuration::UseHttp ),
-        Configuration::HttpAddress, Configuration::HttpPort,
-        false
-        );
+        Configuration::HttpAddress, Configuration::HttpPort
+    );
     Listener< HTTPS >::create(
         "HTTPS", Configuration::toggle( Configuration::UseHttps ),
-        Configuration::HttpsAddress, Configuration::HttpsPort,
-        false
-        );
+        Configuration::HttpsAddress, Configuration::HttpsPort
+    );
     Listener< ManageSieve >::create(
         "Sieve", Configuration::toggle( Configuration::UseSieve ),
-        Configuration::ManageSieveAddress, Configuration::ManageSievePort,
-        false
-        );
+        Configuration::ManageSieveAddress, Configuration::ManageSievePort
+    );
     Listener< SMTP >::create(
         "SMTP", Configuration::toggle( Configuration::UseSmtp ),
-        Configuration::SmtpAddress, Configuration::SmtpPort,
-        false
-        );
+        Configuration::SmtpAddress, Configuration::SmtpPort
+    );
     Listener< LMTP >::create(
         "LMTP", Configuration::toggle( Configuration::UseLmtp ),
-        Configuration::LmtpAddress, Configuration::LmtpPort,
-        false
-        );
+        Configuration::LmtpAddress, Configuration::LmtpPort
+    );
     Listener< SMTPSubmit >::create(
         "SMTP-Submit", Configuration::toggle( Configuration::UseSmtpSubmit ),
-        Configuration::SmtpSubmitAddress, Configuration::SmtpSubmitPort,
-        false
-        );
+        Configuration::SmtpSubmitAddress, Configuration::SmtpSubmitPort
+    );
     Listener< SMTPS >::create(
         "SMTPS", Configuration::toggle( Configuration::UseSmtps ),
-        Configuration::SmtpsAddress, Configuration::SmtpsPort,
-        false
-        );
+        Configuration::SmtpsAddress, Configuration::SmtpsPort
+    );
 
     s.setup( Server::LogStartup );
 
     Listener< GraphDumper >::create(
         "Statistics", Configuration::toggle( Configuration::UseStatistics ),
-        Configuration::StatisticsAddress, Configuration::StatisticsPort,
-        false
-        );
+        Configuration::StatisticsAddress, Configuration::StatisticsPort
+    );
 
     Database::setup();
 

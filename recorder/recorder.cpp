@@ -116,6 +116,7 @@ RecorderServer::RecorderServer( int fd )
     : Connection( fd, Connection::RecorderServer ),
       d( new RecorderData )
 {
+    setProperty( Internal );
     d->server = this;
     d->client = new ::RecorderClient( d );
     d->log = new File( *::base + "." + peer().string(),
@@ -223,11 +224,11 @@ int main( int argc, char ** argv )
     if ( ok ) {
         Listener<RecorderServer> * l4
             = new Listener<RecorderServer>( Endpoint( "0.0.0.0", port ),
-                                            "recording relay/4", true );
+                                            "recording relay/4" );
         Allocator::addEternal( l4, "recording listener" );
         Listener<RecorderServer> * l6
             = new Listener<RecorderServer>( Endpoint( "::", port ),
-                                            "recording relay/6", true );
+                                            "recording relay/6" );
         Allocator::addEternal( l6, "recording listener" );
 
         if ( l4->state() != Connection::Listening &&
