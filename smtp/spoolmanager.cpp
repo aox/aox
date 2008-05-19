@@ -245,7 +245,7 @@ void SpoolManager::setup()
         ::sm = new SpoolManager;
         Allocator::addEternal( ::sm, "spool manager" );
     }
-    sm->d->t = new Timer( sm, 60 );
+    sm->d->t = new Timer( sm, 1 );
 }
 
 
