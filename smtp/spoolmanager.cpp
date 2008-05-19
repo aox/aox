@@ -75,7 +75,7 @@ void SpoolManager::execute()
                 "extract(epoch from min(case "
                 "when action=$2 then last_attempt+interval '600s' "
                 "when action=$1 then current_timestamp end)))::int, "
-                "600) as next_attempt from "
+                "7200) as next_attempt from "
                 "delivery_recipients where action=$1 or action=$2",
                 this
             );
