@@ -174,9 +174,10 @@ void OCClient::updateMailbox( const String & arg )
 
     uint uidnext = 0;
     int64 nextmodseq = 0;
-
+    
     StringList::Iterator a( StringList::split( ' ', arg.mid( i+1 ) ) );
     while ( a ) {
+        String s2 = a->section( "=", 2 );
         if ( *a == "new" ) {
             ::log( "OCClient announced mailbox " + m->name().ascii(),
                    Log::Debug );
@@ -191,11 +192,10 @@ void OCClient::updateMailbox( const String & arg )
             m->refresh()->execute();
         }
         else if ( a->startsWith( "uidnext=" ) ) {
-            bool ok;
-            uint n = a->mid( 8 ).number( &ok );
+           bool ok;
+            uint n = s2.number( &ok );
             if ( !ok ) {
-                ::log( "Unable to parse UIDNEXT value: " + a->mid( 8 ),
-                       Log::Error );
+                ::log( "Unable to parse UIDNEXT value: " + s2, Log::Error );
             }
             else if ( n > m->uidnext() ||
                       ( n == 1 &&
@@ -205,10 +205,9 @@ void OCClient::updateMailbox( const String & arg )
         }
         else if ( a->startsWith( "nextmodseq=" ) ) {
             bool ok;
-            uint n = a->mid( 11 ).number( &ok ); // XXX: eek! bigint!
+            uint n = s2.number( &ok ); // XXX: eek! bigint!
             if ( !ok ) {
-                ::log( "Unable to parse NEXTMODSEQ value: " + a->mid( 11 ),
-                       Log::Error );
+                ::log( "Unable to parse NEXTMODSEQ value: " + s2, Log::Error );
             }
             else if ( n > m->nextModSeq() ||
                       ( n == 1 &&
