@@ -13,6 +13,7 @@
 #include "fetcher.h"
 #include "string.h"
 #include "query.h"
+#include "scope.h"
 #include "flag.h"
 #include "list.h"
 #include "imap.h"
@@ -25,7 +26,7 @@ class StoreData
 public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
-          checkedPermission( false ), notifiedSession( false ),
+          checkedPermission( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ),
@@ -41,7 +42,6 @@ public:
     bool silent;
     bool uid;
     bool checkedPermission;
-    bool notifiedSession;
 
     uint unchangedSince;
     bool seenUnchangedSince;
@@ -86,7 +86,7 @@ Store::Store( bool u )
 
 
 /*! Constructs a Store handler which will set the "\seen" flag on the
-    mailbox currently used by \a imap, and emit a flag update only if \a
+    mailbox currently used by \a imap, and emit flag updates iff \a
     silent is false.
 
     This is basically a helper for Fetch, which occasionally needs to
@@ -97,6 +97,9 @@ Store::Store( bool u )
 Store::Store( IMAP * imap, const MessageSet & set, bool silent )
     : Command( imap ), d( new StoreData )
 {
+    setLog( new Log( Log::IMAP ) );
+    Scope x( log() );
+    log( "Store \\seen on " + set.set() );
     d->uid = true;
     d->op = StoreData::AddFlags;
     setGroup( 0 );
@@ -450,27 +453,15 @@ void Store::execute()
     // record the change so that views onto this mailbox update themselves
     Mailbox * mb = imap()->session()->mailbox();
     if ( mb->nextModSeq() <= d->modseq ) {
+        if ( d->silent )
+            imap()->session()->ignoreModSeq( d->modseq );
         mb->setNextModSeq( d->modseq + 1 );
         OCClient::send( "mailbox " + mb->name().utf8().quoted() + " "
                         "nextmodseq=" + fn( d->modseq+1 ) );
     }
 
-    if ( !d->notifiedSession ) {
-        if ( d->silent ) {
-            if ( imap()->session()->nextModSeq() == d->modseq )
-                imap()->session()->setNextModSeq( d->modseq + 1 );
-            if ( imap()->clientSupports( IMAP::Condstore ) )
-                sendModseqResponses();
-        }
-        else if ( d->op == StoreData::ReplaceFlags ) {
-            if ( imap()->session()->nextModSeq() == d->modseq ) {
-                // avoid meltdown for store 1:* on a big mailbox
-                imap()->session()->setNextModSeq( d->modseq + 1 );
-                sendFlagResponses();
-            }
-        }
-        d->notifiedSession = true;
-    }
+    if ( !imap()->session()->initialised() )
+        return;
 
     if ( !d->silent && !d->expunged.isEmpty() )
         error( No, "Cannot store on expunged messages" );
@@ -523,75 +514,6 @@ bool Store::processAnnotationNames()
         d->annotationNameCreator = new AnnotationNameCreator( this, unknown );
     return false;
 
-}
-
-
-/*! Tells the client about the modseq assigned. Since we assign only
-    one modseq for the entire transaction this is a little
-    repetitive. Shall we say: Amenable to compression.
-*/
-
-void Store::sendModseqResponses()
-{
-    uint max = d->s.count();
-    uint i = 1;
-    ImapSession * s = imap()->session();
-    String rest( " MODSEQ (" + fn( d->modseq ) + "))" );
-    while ( i <= max ) {
-        uint uid = d->s.value( i );
-        uint msn = s->msn( uid );
-        i++;
-        respond( fn( msn ) + " FETCH (UID " + fn( uid ) + rest );
-    }
-}
-
-
-/*! Tells the client about the flags written. Extremely boring output. */
-
-void Store::sendFlagResponses()
-{
-    imap()->session()->addFlags( &d->flags, this );
-
-    String modseq;
-    String flags;
-
-    if ( imap()->clientSupports( IMAP::Condstore ) ) {
-        modseq = " MODSEQ (";
-        modseq.append( fn( d->modseq ) );
-        modseq.append( ")" );
-    }
-
-    List<Flag>::Iterator it( d->flags );
-    while ( it ) {
-        flags.append( it->name() );
-        ++it;
-        if ( it )
-            flags.append( " " );
-    }
-
-    ImapSession * s = imap()->session();
-
-    uint i = 1;
-    uint max = d->s.count();
-    String r;
-    while ( i <= max ) {
-        uint uid = d->s.value( i );
-        ++i;
-        r.truncate();
-        r.append( fn( s->msn( uid ) ) );
-        r.append( " FETCH (UID " );
-        r.append( fn( uid ) );
-        r.append( modseq );
-        r.append( " FLAGS (" );
-        if ( s->isRecent( uid ) ) {
-            r.append( "\\recent" );
-            if ( !flags.isEmpty() )
-                r.append( " " );
-        }
-        r.append( flags );
-        r.append( "))" );
-        respond( r );
-    }
 }
 
 

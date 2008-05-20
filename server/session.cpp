@@ -21,7 +21,6 @@ public:
     SessionData()
         : readOnly( true ),
           mailbox( 0 ),
-          expungeModSeq( 0 ),
           uidnext( 1 ), nextModSeq( 1 ),
           permissions( 0 )
     {}
@@ -31,7 +30,6 @@ public:
     MessageSet msns;
     MessageSet recent;
     MessageSet expunges;
-    int64 expungeModSeq;
     uint uidnext;
     int64 nextModSeq;
     Permissions * permissions;
@@ -239,151 +237,21 @@ void Session::addRecent( uint uid )
 }
 
 
-/*! Returns true if this Session needs to refresh the client's
-    world view in response to \a type changes.
+/*! Records that \a uids has been expunged and that the clients should
+    be told about it at the earliest possible moment.
 */
 
-bool Session::responsesNeeded( ResponseType type ) const
+void Session::expunge( const MessageSet & uids )
 {
-    switch ( type ) {
-    case New:
-        if ( d->unannounced.largest() > d->msns.largest() )
-            return true;
-        break;
-    case Modified:
-        if ( !d->unannounced.intersection( d->msns ).isEmpty() )
-            return true;
-        break;
-    case Deleted:
-        if ( !d->expunges.isEmpty() )
-            return true;
-        break;
-    }
-    return false;
+    d->expunges.add( uids );
 }
 
 
-/*! Returns false if something's missing before \a type responses can
-    be emitted, and true if nothing is known to be missing.
+/*! This virtual function is responsible for telling the client about
+    any updates it need to hear.
 */
 
-bool Session::responsesReady( ResponseType type ) const
-{
-    type = type; // to stop the warnings
-    return initialised();
-}
-
-
-/*! Records that \a uids has been expunged in the change with sequence
-    \a ms, and that the clients should be told about it at the
-    earliest possible moment.
-*/
-
-void Session::expunge( const MessageSet & uids, int64 ms )
-{
-    if ( uids.isEmpty() )
-        return;
-    List<Session>::Iterator i( mailbox()->sessions() );
-    while ( i ) {
-        i->d->expunges.add( uids );
-        i->emitResponses();
-        ++i;
-    }
-    if ( d->expungeModSeq < ms )
-        d->expungeModSeq = ms;
-}
-
-
-/*! Emit all the responses that are necessary and possible at this
-    time. Carefully ensures that we emit responses in the same order
-    every time - New cannot be sent before Modified.
-*/
-
-void Session::emitResponses()
-{
-    bool ok = true;
-    if ( ok &&
-         responsesNeeded( Deleted ) &&
-         responsesPermitted( Deleted ) ) {
-        if ( responsesReady( Deleted ) )
-            emitResponses( Deleted );
-        else
-            ok = false;
-    }
-    if ( ok &&
-         responsesNeeded( Modified ) &&
-         responsesPermitted( Modified ) ) {
-        if ( responsesReady( Modified ) )
-            emitResponses( Modified );
-        else
-            ok = false;
-    }
-    if ( ok &&
-         responsesNeeded( New ) &&
-         responsesPermitted( New ) ) {
-        if ( responsesReady( New ) )
-            emitResponses( New );
-        else
-            ok = false;
-    }
-}
-
-
-/*! Calls emitExpunges(), emitUidnext(), emitModifications() etc. as
-    needed and as indicated by \a type. Only sends the desired \a type
-    of response. Does not check that responses may legally be sent at
-    this point. Updates uidnext() if it announces new messages beyond
-    the current uidnext value.
-*/
-
-void Session::emitResponses( ResponseType type )
-{
-    if ( type == Deleted ) {
-        emitExpunges();
-        d->msns.remove( d->expunges );
-        d->expunges.clear();
-        if ( d->nextModSeq <= d->expungeModSeq )
-            d->nextModSeq = d->expungeModSeq + 1;
-        d->expungeModSeq = 0;
-    }
-    else if ( type == Modified ) {
-        if ( responsesReady( Modified ) ) {
-            MessageSet known;
-            if ( d->uidnext > 1 )
-                known.add( 1, d->uidnext - 1 );
-            emitModifications();
-            d->unannounced.remove( known );
-        }
-    }
-    else { // New
-        MessageSet n( d->unannounced );
-        if ( !d->msns.isEmpty() ) {
-            MessageSet small;
-            small.add( 1, d->msns.largest() );
-            n.remove( small );
-        }
-        d->msns.add( n );
-        d->unannounced.remove( n );
-        emitUidnext();
-    }
-}
-
-
-/*! This virtual function is called to notify the client that the
-    expunged() messages are expunged. The base implementation does
-    nothing.
-*/
-
-void Session::emitExpunges()
-{
-}
-
-
-/*! Does whatever the protocol requires when a new message is added to
-    the mailbox.
-*/
-
-void Session::emitUidnext()
+void Session::emitUpdates()
 {
 }
 
@@ -505,7 +373,7 @@ void SessionInitialiser::execute()
             releaseLock(); // may change d->state
             break;
         case SessionInitialiserData::QueriesDone:
-            emitResponses();
+            emitUpdates();
             break;
         }
     } while ( state != d->state );
@@ -823,7 +691,7 @@ void SessionInitialiser::writeViewChanges()
         while ( i ) {
             Session * s = i;
             ++i;
-            s->expunge( removeInDb, 0 ); // expunge does not consume a modseq
+            s->expunge( removeInDb );
         }
     }
 }
@@ -879,7 +747,7 @@ void SessionInitialiser::recordMailboxChanges()
     handler added with Session::refresh() to go on working.
 */
 
-void SessionInitialiser::emitResponses()
+void SessionInitialiser::emitUpdates()
 {
     List<EventHandler> watchers;
     List<Session>::Iterator s( d->sessions );
@@ -895,7 +763,7 @@ void SessionInitialiser::emitResponses()
         }
         s->d->watchers.clear();
 
-        s->emitResponses();
+        s->emitUpdates();
 
         ++s;
     }
@@ -991,29 +859,8 @@ void Session::setNextModSeq( int64 ms ) const
 }
 
 
-/*! Returns true if this session can notify its client of a \a type
-    events.
-*/
-
-bool Session::responsesPermitted( ResponseType type ) const
-{
-    type = type; // for the warnings
-    return true;
-}
-
-
-/*! This virtual function emits whatever data is necessary and
-    appropriate to inform the client of unannounced() modifications.
-    The default implementation does nothing.
-*/
-
-void Session::emitModifications()
-{
-}
-
-
-/*! Returns whatever has been set using addUnannounced() and not
-    announced by emitResponses().
+/*! Returns whatever has been set using addUnannounced() and not yet
+    cleared by clearUnannounced().
 */
 
 MessageSet Session::unannounced() const
@@ -1041,4 +888,13 @@ void Session::addUnannounced( const MessageSet & s )
 void Session::addUnannounced( uint uid )
 {
     d->unannounced.add( uid );
+}
+
+
+/*! Records that everything in unannounced() has been announced. */
+
+void Session::clearUnannounced()
+{
+    d->msns.add( d->unannounced );
+    d->unannounced.clear();
 }

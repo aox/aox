@@ -53,24 +53,15 @@ public:
     const MessageSet & expunged() const;
     const MessageSet & messages() const;
 
-    void expunge( const MessageSet &, int64 );
+    void expunge( const MessageSet & );
     void clearExpunged();
 
-    enum ResponseType { New, Modified, Deleted };
-
-    virtual bool responsesNeeded( ResponseType ) const;
-    virtual bool responsesReady( ResponseType ) const;
-    virtual bool responsesPermitted( ResponseType ) const;
-
-    virtual void emitResponses();
-    void emitResponses( ResponseType );
-    virtual void emitExpunges();
-    virtual void emitUidnext();
-    virtual void emitModifications();
+    virtual void emitUpdates();
 
     MessageSet unannounced() const;
     void addUnannounced( uint );
     void addUnannounced( const MessageSet & );
+    void clearUnannounced();
 
 private:
     friend class SessionInitialiser;
@@ -98,7 +89,7 @@ private:
     void writeViewChanges();
     void findMailboxChanges();
     void recordMailboxChanges();
-    void emitResponses();
+    void emitUpdates();
     void addToSessions( uint, int64 );
     void submit( class Query * );
 };

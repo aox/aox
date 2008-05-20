@@ -402,6 +402,9 @@ void IMAP::reserve( Command * command )
 
 void IMAP::unblockCommands()
 {
+    while ( d->commands.firstElement() &&
+            d->commands.firstElement()->state() == Command::Retired )
+        d->commands.shift();
     if ( d->runningCommands )
         d->runCommandsAgain = true;
     else
@@ -441,114 +444,55 @@ void IMAP::runCommands()
         }
 
         // emit responses for zero or more finished commands and
-        // retire them. we also emit all error responses.
+        // retire them.
         n = 0;
         i = d->commands.first();
-        bool deferredResponse = false;
-        while ( i ) {
-            if ( i->state() == Command::Finished && d->reader == i )
-                d->reader = 0;
-            if ( i->state() == Command::Finished &&
-                 ( !deferredResponse || !i->ok() ) ) {
-                i->emitResponses();
-                n++;
-                if ( i->state() == Command::Finished )
-                    deferredResponse = true;
-            }
+        while ( i && i->state() == Command::Finished ) {
+            Command * c = i;
             ++i;
+            if ( d->reader == c )
+                d->reader = 0;
+            c->emitResponses();
+            n++;
         }
 
-        // we may be able to start new commands. if any commands are
-        // running, then following commands in the same group can be
-        // started.
+        // we may be able to start new commands.
         i = d->commands.first();
-        while ( i &&
-                i->state() != Command::Executing &&
-                i->state() != Command::Finished )
-            i++;
-
-        // if not, then the oldest unparsed or blocked message
-        // determines which group can be executed.
-        if ( !i ) {
-            i = d->commands.first();
-            while ( i &&
-                    i->state() != Command::Unparsed &&
-                    i->state() != Command::Blocked )
-                i++;
+        Command * first = i;
+        if ( first ) {
+            Scope x( first->log() );
+            ++i;
+            if ( first->state() == Command::Unparsed )
+                first->parse();
+            if ( !first->ok() )
+                first->setState( Command::Finished );
+            else if ( first->state() == Command::Unparsed ||
+                      first->state() == Command::Blocked )
+                first->setState( Command::Executing );
+            if ( first->state() != Command::Executing )
+                first = 0;
         }
 
         // if we have a leading command, we can parse and execute
         // followers in the same group.
-        if ( i ) {
-            log( "IMAP::runCommands found leading command with tag " +
-                 i->tag() + ", group " + fn( i->group() ) + " and state " +
-                 fn( i->state() ),
-                 Log::Debug );
-            Command * g = i;
-            while ( i &&
-                    ( i->state() == Command::Executing ||
-                      i->state() == Command::Finished ||
-                      i->state() == Command::Retired ) )
-                i++;
-            while ( g && i &&
-                    ( i->state() == Command::Unparsed ||
-                      i->state() == Command::Blocked ) &&
-                    ( g == i ||
-                      ( g->group() > 0 && g->group() == i->group() ) ) ) {
+        if ( first && first->group() ) {
+            while ( first && i && first->state() == i->state() ) {
                 Command * c = i;
+                Scope x( c->log() );
                 ++i;
-                Scope s( c->log() );
-                if ( !c->validIn( d->state ) ) {
-                    c->error( Command::Bad, "Not permitted in this state" );
-                }
-                else if ( c->ok() ) {
-                    if ( c->state() == Command::Unparsed )
-                        c->parse();
-                    if ( c->group() != g->group() ) {
-                        // c's group changed, we have to stop
-                        if ( c->group() == Command::Unparsed )
-                            c->setState( Command::Blocked );
-                        g = 0;
-                    }
-                    else if ( c->ok() ) {
-                        c->setState( Command::Executing );
-                        c->execute();
-                    }
-                    else {
-                        // it failed, but we go on.
-                    }
+                if ( c->state() == Command::Unparsed )
+                    c->parse();
+                if ( !c->ok() )
+                    c->setState( Command::Finished );
+                else if ( c->state() == Command::Unparsed ||
+                          c->state() == Command::Blocked )
+                    c->setState( Command::Executing );
+                if ( c->group() != first->group() &&
+                     c->state() == Command::Executing ) {
+                    first = 0;
+                    c->setState( Command::Blocked );
                 }
             }
-        }
-        else {
-            uint unparsed = 0;
-            uint blocked = 0;
-            uint executing = 0;
-            i = d->commands.first();
-            while ( i ) {
-                switch ( i->state() ) {
-                case Command::Unparsed:
-                    unparsed++;
-                    break;
-                case Command::Blocked:
-                    blocked++;
-                    break;
-                case Command::Executing:
-                    executing++;
-                    break;
-                case Command::Finished:
-                    break;
-                case Command::Retired:
-                    break;
-                }
-                ++i;
-            }
-            if ( unparsed || blocked || executing )
-                log( "IMAP::runCommands found no leading commmand, but " +
-                     fn( unparsed ) + " unparsed, " +
-                     fn( blocked ) + " blocked and " +
-                     fn( executing ) + " executing commands.",
-                     Log::Debug );
         }
     }
 

@@ -143,6 +143,8 @@ Fetch::Fetch( bool u )
 Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
     : Command( i ), d( new FetchData )
 {
+    setLog( new Log( Log::IMAP ) );
+    Scope x( log() );
     d->uid = true;
     d->flags = f;
     d->annotation = a;
@@ -150,7 +152,26 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
     d->changedSince = limit;
 
     d->peek = true;
-    setGroup( 2 );
+
+    List<Command>::Iterator c( i->commands() );
+    while ( c && c->state() == Command::Retired )
+        ++c;
+    while ( c && c->tag().isEmpty() )
+        ++c;
+    if ( c && ( c->state() == Command::Finished ||
+                c->state() == Command::Executing ) ) {
+        log( "Inserting flag update for modseq>" + fn( limit ) +
+             " and UIDs " + set.set() + " before " +
+             c->tag() + " " + c->name() );
+        i->commands()->insert( c, this );
+        if ( c->group() == 1 || c->group() == 2 )
+            setGroup( c->group() );
+    }
+    else {
+        log( "Appending flag update for modseq>" + fn( limit ) +
+             " and UIDs " + set.set() );
+        i->commands()->append( this );
+    }
 
     setState( Executing );
 }
@@ -659,7 +680,6 @@ void Fetch::execute()
             if ( !d->store ) {
                 List<Command>::Iterator c = imap()->commands()->find( this );
                 if ( c ) {
-                    Scope x( new Log( Log::IMAP ) );
                     d->store = new Store( imap(), d->set, d->flags );
                     d->store->setState( Executing );
                     imap()->commands()->insert( c, d->store );
@@ -667,8 +687,6 @@ void Fetch::execute()
                 }
             }
             if ( d->store && d->store->state() == Executing )
-                return;
-            if ( !imap()->session()->initialised() )
                 return;
             d->state = 3;
         }

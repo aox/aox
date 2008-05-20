@@ -20,11 +20,7 @@ public:
 
     IMAP * imap() const;
 
-    void emitExpunges();
-    void emitModifications();
-    void emitUidnext();
-    bool responsesNeeded( ResponseType ) const;
-    bool responsesPermitted( ResponseType ) const;
+    void emitUpdates();
 
     void recordExpungedFetch( const MessageSet & );
 
@@ -34,8 +30,14 @@ public:
 
     void addFlags( List<class Flag> *, class Command * );
 
+    void ignoreModSeq( int64 );
+
 private:
     class ImapSessionData * d;
+
+    void emitExpunges();
+    void emitUidnext();
+    void emitFlagUpdates();
 };
 
 

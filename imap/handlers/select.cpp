@@ -184,7 +184,7 @@ void Select::execute()
         return;
 
     d->session->clearExpunged();
-    ((Session*)d->session)->emitResponses( Session::New );
+    d->session->emitUpdates();
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );

@@ -55,7 +55,7 @@ class CommandData
 public:
     CommandData()
         : args( 0 ), responses( new StringList ),
-          tagged( false ), taggedMovedTo( 0 ),
+          tagged( false ),
           usesRelativeMailbox( false ),
           usesAbsoluteMailbox( false ),
           usesMsn( false ),
@@ -75,7 +75,6 @@ public:
     StringList * responses;
     String respTextCode;
     bool tagged;
-    Command * taggedMovedTo;
 
     bool usesRelativeMailbox;
     bool usesAbsoluteMailbox;
@@ -670,20 +669,8 @@ void Command::emitResponses()
     }
 
     if ( s )
-        s->emitResponses();
+        s->emitUpdates();
     emitUntaggedResponses();
-
-    if ( d->taggedMovedTo ) {
-        Command * other = this;
-        while ( other->d->taggedMovedTo )
-            other = other->d->taggedMovedTo;
-        List< String >::Iterator it( d->responses );
-        while ( it ) {
-            other->d->responses->append( it );
-            ++it;
-        }
-        d->responses = 0;
-    }
 
     if ( d->responses )
         imap()->enqueue( d->responses->join( "" ) );
@@ -693,18 +680,6 @@ void Command::emitResponses()
     d->emittingResponses = false;
 
     imap()->write();
-}
-
-
-/*! Removes this command's tagged response and moves it to \a
-    other. This rather dangerous function is used by the ImapSession
-    in order to sneak \a other in between this command's untagged
-    responses and its tagged final response.
-*/
-
-void Command::moveTaggedResponseTo( Command * other )
-{
-    d->taggedMovedTo = other;
 }
 
 

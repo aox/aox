@@ -174,7 +174,7 @@ void Expunge::execute()
     if ( d->t->failed() )
         error( No, "Database error. Messages not expunged." );
 
-    d->s->expunge( d->marked, d->modseq );
+    d->s->expunge( d->marked );
     if ( d->s->mailbox()->nextModSeq() <= d->modseq ) {
         d->s->mailbox()->setNextModSeq( d->modseq + 1 );
         OCClient::send( "mailbox " +

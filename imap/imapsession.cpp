@@ -17,7 +17,8 @@ class ImapSessionData
 public:
     ImapSessionData(): i( 0 ), unsolicited( false ),
                        exists( 0 ), recent( 0 ),
-                       uidnext( 0 ), nms( 1 ) {}
+                       uidnext( 0 ), nms( 0 ),
+                       emitting( false ) {}
     class IMAP * i;
     MessageSet expungedFetched;
     bool unsolicited;
@@ -26,6 +27,8 @@ public:
     uint uidnext;
     int64 nms;
     List<Flag> flags;
+    List<int64> ignorable;
+    bool emitting;
 };
 
 
@@ -59,17 +62,79 @@ IMAP * ImapSession::imap() const
 }
 
 
+/*! Emits whatever responses we can to the IMAP client. */
+
+void ImapSession::emitUpdates()
+{
+    if ( d->emitting )
+        return;
+    d->emitting = true;
+
+    emitExpunges();
+    emitFlagUpdates();
+    clearUnannounced();
+    emitUidnext();
+    if ( d->nms < nextModSeq() )
+        d->nms = nextModSeq();
+
+    List<Command>::Iterator c( d->i->commands() );
+    while ( c && c->state() == Command::Retired )
+        ++c;
+    if ( c && c->state() == Command::Finished )
+        c->emitResponses();
+
+    d->emitting = false;
+}
+
+
+/*! This private helper sends whatever EXPUNGE responses may be
+    sent.
+*/
+
 void ImapSession::emitExpunges()
 {
+    MessageSet e;
+    e.add( expunged() );
+    if ( e.isEmpty() )
+        return;
+    
+    List<Command>::Iterator c( d->i->commands() );
+    while ( c && c->state() == Command::Retired )
+        ++c;
+
+    bool can = false;
+    bool cannot = false;
+
+    while ( c && !can && !cannot ) {
+        // we don't need to consider retired commands at all
+        if ( c->state() == Command::Retired )
+            ;
+        // expunges are permitted in idle mode
+        else if ( c->state() == Command::Executing && c->name() == "idle" )
+            can = true;
+        // we cannot send an expunge while a command is being
+        // executed (not without NOTIFY at least...)
+        else if ( c->state() == Command::Executing )
+            cannot = true;
+        // group 2 contains commands during which we may not send
+        // expunge, group 3 contains all commands that change
+        // flags.
+        else if ( c->group() == 2 || c->group() == 3 )
+            cannot = true;
+        // if there are MSNs in the pipeline we cannot send
+        // expunge. the copy rule is due to RFC 2180 section
+        // 4.4.1/2
+        else if ( c->usesMsn() && c->name() != "copy" )
+            cannot = true;
+        ++c;
+    }
+    if ( cannot || !can )
+        return;
+    
     MessageSet m;
     m.add( messages() );
 
-    MessageSet e;
-    e.add( expunged() );
     d->expungedFetched.remove( e );
-
-    log( "ImapSession::emitExpunges for " + fn( e.count() ) + " messages: " +
-         e.set(), Log::Debug );
 
     while ( !e.isEmpty() ) {
         uint uid = e.value( 1 );
@@ -80,8 +145,11 @@ void ImapSession::emitExpunges()
         if ( d->exists )
             d->exists--;
     }
+    clearExpunged();
 }
 
+
+/*! This private helper sends EXISTS, UIDNEXT and RECENT. */
 
 void ImapSession::emitUidnext()
 {
@@ -114,6 +182,50 @@ void ImapSession::emitUidnext()
 }
 
 
+/*! This private helper starts/sends whatever flag updates are needed.
+*/
+
+void ImapSession::emitFlagUpdates()
+{
+    if ( !d->nms )
+        return;
+    if ( d->nms >= nextModSeq() )
+        return;
+
+    MessageSet changed( unannounced().intersection( messages() ) );
+    // don't bother sending updates about something that's already gone,
+    // for which we just haven't sent the expunge
+    changed.remove( expunged() );
+
+    if ( changed.isEmpty() )
+        return;
+
+    while ( !d->ignorable.isEmpty() ) {
+        List<int64>::Iterator i( d->ignorable );
+        bool f = false;
+        while ( i ) {
+            if ( d->nms > *i ) {
+                d->ignorable.take( i );
+            }
+            else if ( d->nms == *i ) {
+                d->ignorable.take( i );
+                f = true;
+            }
+            else {
+                ++i;
+            }
+        }
+        if ( f )
+            d->nms++;
+        else
+            d->ignorable.clear();
+    }
+
+    (void)new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
+                     changed, d->nms - 1, d->i );
+}
+
+
 /*! Records that \a set was fetched while also expunged. If any
     messages in \a set have already been recorded,
     recordExpungedFetch() summarily closes the IMAP connection.
@@ -126,131 +238,9 @@ void ImapSession::recordExpungedFetch( const MessageSet & set )
     if ( already.isEmpty() )
         return;
 
-    enqueue( "* BYE These messages have been expunged: " +
+    enqueue( "* BYE [CLIENTBUG] These messages have been expunged: " +
              set.set() + "\r\n" );
     d->i->setState( IMAP::Logout );
-}
-
-
-void ImapSession::emitModifications()
-{
-    MessageSet changed( unannounced().intersection( messages() ) );
-    // don't bother sending updates about something that's already gone,
-    // for which we just haven't sent the expunge
-    changed.remove( expunged() );
-
-    if ( changed.isEmpty() )
-        return;
-
-    Fetch * update
-        = new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                     changed, d->nms - 1, d->i );
-    if ( d->nms < nextModSeq() )
-        d->nms = nextModSeq();
-
-    List<Command>::Iterator c( d->i->commands() );
-    while ( c && c->state() == Command::Retired )
-        ++c;
-    if ( c && c->state() == Command::Finished ) {
-        List<Command>::Iterator n( c );
-        ++n;
-        d->i->commands()->insert( n, update );
-        c->moveTaggedResponseTo( update );
-    }
-    else {
-        d->i->commands()->append( update );
-    }
-    update->execute();
-}
-
-
-/*! This reimplementation exists because we sometimes want to send
-    reminders in IMAP: If a message arrives while the client isn't
-    doing anything, we want to tell it right away, and remind it when
-    it next sends a command.
-
-    Apparently some clients don't listen when we tell them, but do
-    listen to the reminder.
-
-    The reimplementation does nothing if \a t is not 'New'.
-*/
-
-bool ImapSession::responsesNeeded( ResponseType t ) const
-{
-    if ( t == New && d->unsolicited ) {
-        List<Command>::Iterator c( d->i->commands() );
-        while ( c && c->state() == Command::Retired )
-            ++c;
-        if ( c && c->state() == Command::Finished )
-            return true;
-    }
-    return Session::responsesNeeded( t );
-}
-
-
-
-/*! Returns true if the server is permitted (and able) to send an
-    unsolicited status responses of type \a t, and false otherwise.
-*/
-
-bool ImapSession::responsesPermitted( ResponseType t ) const
-{
-    List<Command>::Iterator c( d->i->commands() );
-    while ( c && c->state() == Command::Retired )
-        ++c;
-
-    if ( t == Deleted ) {
-        if ( !c )
-            return false;
-        while ( c ) {
-            // we don't need to consider retired commands at all
-            if ( c->state() == Command::Retired )
-                ;
-            // expunges are permitted in idle mode
-            else if ( c->state() == Command::Executing && c->name() == "idle" )
-                return true;
-            // we cannot send an expunge while a command is being
-            // executed (not without NOTIFY at least...)
-            else if ( c->state() == Command::Executing )
-                return false;
-            // group 2 contains commands during which we may not send
-            // expunge, group 3 contains all commands that change
-            // flags.
-            else if ( c->group() == 2 || c->group() == 3 )
-                return false;
-            // if there are MSNs in the pipeline we cannot send
-            // expunge. the copy rule is due to RFC 2180 section
-            // 4.4.1/2
-            else if ( c->usesMsn() && c->name() != "copy" )
-                return false;
-            ++c;
-        }
-        return true;
-    }
-    else {
-        if ( t == New && d->i->idle() ) {
-            // no commands or in idle mode. let's try a single exists.
-            if ( !d->unsolicited )
-                return true;
-            return false;
-        }
-
-        bool finished = false;
-        bool executing = false;
-        while ( c ) {
-            if ( c->state() == Command::Finished )
-                finished = true;
-            else if ( c->state() == Command::Executing )
-                executing = true;
-            ++c;
-        }
-        if ( executing )
-            return false; // no responses while commands are running
-        if ( finished )
-            return true; // we can stuff responses onto that command
-
-        return false; // no command in progress
-    }
 }
 
 
@@ -274,21 +264,6 @@ void ImapSession::enqueue( const String & r )
     if ( u )
         d->unsolicited = true;
     d->i->enqueue( r );
-}
-
-
-/*! This reimplementation tells the IMAP server that it can go on
-    after emitting the responses, if indeed the IMAP server can go on.
-*/
-
-void ImapSession::emitResponses()
-{
-    Session::emitResponses();
-    List<Command>::Iterator c( d->i->commands() );
-    while ( c && c->state() == Command::Retired )
-        ++c;
-    if ( c && c->state() == Command::Finished )
-        c->emitResponses();
 }
 
 
@@ -348,4 +323,14 @@ void ImapSession::addFlags( List<Flag> * f, class Command * c )
         enqueue( s );
         enqueue( "\r\n" );
     }
+}
+
+
+/*! Records that no flag/annotation/modseq update is to be sent for \a
+    ms. ImapSession may send one anyway, but tries to avoid it.
+*/
+
+void ImapSession::ignoreModSeq( int64 ms )
+{
+    d->ignorable.append( new int64( ms ) );
 }
