@@ -830,9 +830,7 @@ const MessageSet & Session::messages() const
 }
 
 
-/*! Clears the list of expunged messages without calling
-    emitExpunges().
-*/
+/*! Clears the list of expunged messages. */
 
 void Session::clearExpunged()
 {
