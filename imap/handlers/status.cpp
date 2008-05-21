@@ -153,7 +153,7 @@ void Status::execute()
     // third part: return the payload.
     StringList status;
 
-    if ( d->session )
+    if ( d->session && d->session() != imap()->session() )
         d->session->clearUnannounced();
 
     if ( d->messages )
