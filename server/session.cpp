@@ -281,7 +281,7 @@ class SessionInitialiserData
 public:
     SessionInitialiserData()
         : mailbox( 0 ),
-          t( 0 ), recent( 0 ), messages( 0 ), nms( 0 ),
+          t( 0 ), recent( 0 ), messages( 0 ), expunges( 0 ), nms( 0 ),
           viewnms( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           state( NoTransaction ),
@@ -294,6 +294,7 @@ public:
     Transaction * t;
     Query * recent;
     Query * messages;
+    Query * expunges;
     Query * nms;
     int64 viewnms;
 
@@ -366,7 +367,9 @@ void SessionInitialiser::execute()
                 writeViewChanges();
             else
                 recordMailboxChanges();
-            if ( d->messages->done() )
+            recordExpunges();
+            if ( d->messages->done() &&
+                 ( !d->expunges || d->expunges->done() ) )
                 d->state = SessionInitialiserData::Updated;
             break;
         case SessionInitialiserData::Updated:
@@ -642,7 +645,7 @@ void SessionInitialiser::writeViewChanges()
             remove->bind( 1, d->mailbox->id(), Query::Binary );
             remove->bind( 2, vuid, Query::Binary );
             remove->bind( 3, r->getInt( "id" ), Query::Binary );
-            remove->bind( 4, r->getInt( "vmodseq" ), Query::Binary );
+            remove->bind( 4, d->newModSeq, Query::Binary );
             remove->bindNull( 5 );
             remove->bind( 6, String( "left view" ), Query::Binary );
             remove->submitLine();
@@ -672,8 +675,7 @@ void SessionInitialiser::writeViewChanges()
         }
     }
 
-    if ( add ) {
-        submit( add );
+    if ( add || remove ) {
         Query * q = new Query( "update mailboxes "
                                "set uidnext=$1,nextmodseq=$2 "
                                "where id=$3", 0 );
@@ -683,6 +685,10 @@ void SessionInitialiser::writeViewChanges()
         submit( q );
         d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
                                              d->newModSeq + 1 );
+    }
+
+    if ( add ) {
+        submit( add );
     }
 
     if ( remove ) {
@@ -698,9 +704,7 @@ void SessionInitialiser::writeViewChanges()
 
 
 /*! Issues a query to find new and changed messages in the
-    mailbox. Does not look for expunged messages: We trust the ocd to
-    do that. Perhaps this should join on deleted_messages and find the
-    expunged messages?
+    mailbox, and one to find newly expunged messages.
 */
 
 void SessionInitialiser::findMailboxChanges()
@@ -726,6 +730,16 @@ void SessionInitialiser::findMailboxChanges()
         d->messages->bind( 4, d->oldModSeq );
     }
     submit( d->messages );
+    
+    if ( initialising )
+        return;
+
+    d->expunges = new Query( "select uid from deleted_messages "
+                             "where mailbox=$1 and modseq>=$2",
+                             this );
+    d->expunges->bind( 1, d->mailbox->id() );
+    d->expunges->bind( 2, d->oldModSeq );
+    submit( d->expunges );
 }
 
 
@@ -739,6 +753,30 @@ void SessionInitialiser::recordMailboxChanges()
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
         addToSessions( uid, r->getBigint( "modseq" ) );
+    }
+}
+
+
+/*! Finds any expunges stored in the db, but new to us, and records
+    those in all the sessions.
+*/
+
+void SessionInitialiser::recordExpunges()
+{
+    if ( !d->expunges )
+        return;
+    Row * r = 0;
+    MessageSet uids;
+    while ( (r=d->expunges->nextRow()) != 0 )
+        uids.add( r->getInt( "uid" ) );
+    if ( uids.isEmpty() )
+        return;
+
+    List<Session>::Iterator i( d->sessions );
+    while ( i ) {
+        Session * s = i;
+        ++i;
+        s->expunge( uids );
     }
 }
 

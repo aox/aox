@@ -97,7 +97,7 @@ void ImapSession::emitExpunges()
     e.add( expunged() );
     if ( e.isEmpty() )
         return;
-    
+
     List<Command>::Iterator c( d->i->commands() );
     while ( c && c->state() == Command::Retired )
         ++c;
@@ -126,11 +126,14 @@ void ImapSession::emitExpunges()
         // 4.4.1/2
         else if ( c->usesMsn() && c->name() != "copy" )
             cannot = true;
+        // if another command is finished, we can.
+        else if ( c->state() == Command::Finished )
+            can = true;
         ++c;
     }
     if ( cannot || !can )
         return;
-    
+
     MessageSet m;
     m.add( messages() );
 

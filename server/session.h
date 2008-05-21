@@ -89,6 +89,7 @@ private:
     void writeViewChanges();
     void findMailboxChanges();
     void recordMailboxChanges();
+    void recordExpunges();
     void emitUpdates();
     void addToSessions( uint, int64 );
     void submit( class Query * );
