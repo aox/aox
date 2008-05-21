@@ -153,7 +153,8 @@ void Status::execute()
     // third part: return the payload.
     StringList status;
 
-    d->session->clearUnannounced();
+    if ( d->session )
+        d->session->clearUnannounced();
 
     if ( d->messages )
         status.append( "MESSAGES " + fn( d->session->count() ) );
