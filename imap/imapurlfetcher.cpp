@@ -298,7 +298,7 @@ void ImapUrlFetcher::execute()
             while ( i ) {
                 Message * m = new Message;
                 uint uid = either.value( i );
-                m->setUid( uid );
+                m->setUid( ms->mailbox, uid );
                 if ( ms->h.contains( uid ) )
                     hm->prepend( m );
                 if ( ms->b.contains( uid ) )

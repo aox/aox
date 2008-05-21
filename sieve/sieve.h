@@ -7,6 +7,7 @@
 #include "list.h"
 
 
+class Date;
 class User;
 class String;
 class UString;
@@ -28,7 +29,7 @@ public:
     void setSender( Address * );
     void addRecipient( Address *, Mailbox *, User *, SieveScript * );
     void addRecipient( Address *, EventHandler * );
-    void setMessage( Message * );
+    void setMessage( Message *, Date * );
     void setWrapped();
 
     Address * sender() const;

@@ -744,10 +744,10 @@ void Fetch::sendFetchQueries()
         if ( !m ) {
             m = new Message;
         }
-        else if ( m->modSeq() + 1 < mb->nextModSeq() ) {
-            m->setFlagsFetched( false );
-            m->setAnnotationsFetched( false );
-            m->setModSeq( 0 );
+        else if ( m->modSeq( mb ) + 1 < mb->nextModSeq() ) {
+            m->setFlagsFetched( mb, false );
+            m->setAnnotationsFetched( mb, false );
+            m->setModSeq( mb, 0 );
         }
         if ( !m->hasAddresses() )
             haveAddresses = false;
@@ -759,11 +759,11 @@ void Fetch::sendFetchQueries()
             haveBody = false;
         if ( !m->hasTrivia() )
             haveTrivia = false;
-        if ( !m->hasFlags() )
+        if ( !m->hasFlags( mb ) )
             haveFlags = false;
-        if ( !m->hasAnnotations() )
+        if ( !m->hasAnnotations( mb ) )
             haveAnnotations = false;
-        m->setUid( uid );
+        m->setUid( mb, uid );
         d->requested.append( m );
         l->append( m );
     }
@@ -1005,9 +1005,11 @@ void Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
         l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
     if ( d->annotation )
         l.append( "ANNOTATION " + annotation( m, imap()->user(),
+                                              imap()->session()->mailbox(),
                                               d->entries, d->attribs ) );
     if ( d->modseq )
-        l.append( "MODSEQ (" + fn( m->modSeq() ) + ")" );
+        l.append( "MODSEQ (" +
+                  fn( m->modSeq( imap()->session()->mailbox() ) ) + ")" );
 
     List< Section >::Iterator it( d->sections );
     while ( it ) {
@@ -1037,7 +1039,7 @@ String Fetch::flagList( Message * m, uint uid, Session * session )
     if ( session && session->isRecent( uid ) )
         r.append( "\\recent" );
 
-    List<Flag> * f = m->flags();
+    List<Flag> * f = m->flags( session->mailbox() );
     if ( f && !f->isEmpty() ) {
         List<Flag>::Iterator it( f );
         while ( it ) {
@@ -1055,7 +1057,7 @@ String Fetch::flagList( Message * m, uint uid, Session * session )
 String Fetch::internalDate( Message * m )
 {
     Date date;
-    date.setUnixTime( m->internalDate() );
+    date.setUnixTime( m->internalDate( imap()->session()->mailbox() ) );
     return "\"" + date.imap() + "\"";
 }
 
@@ -1338,14 +1340,14 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
 
 
 /*! Returns the IMAP ANNOTATION production for \a m, from the point of
-    view of \a u (0 for no user, only public annotations). \a
+    view of \a u (0 for no user, only public annotations) and \a mb. \a
     entrySpecs is a list of the entries to be matched, each of which
     can contain the * and % wildcards. \a attributes is a list of
     attributes to be returned (each including the .priv or .shared
     suffix).
 */
 
-String Fetch::annotation( Multipart * m, User * u,
+String Fetch::annotation( Multipart * m, User * u, Mailbox * mb,
                           const StringList & entrySpecs,
                           const StringList & attributes )
 {
@@ -1360,7 +1362,7 @@ String Fetch::annotation( Multipart * m, User * u,
     uint user = 0;
     if ( u )
         user = u->id();
-    List<Annotation>::Iterator i( ((Message*)m)->annotations() );
+    List<Annotation>::Iterator i( ((Message*)m)->annotations( mb ) );
     while ( i ) {
         Annotation * a = i;
         ++i;
@@ -1504,13 +1506,19 @@ void Fetch::trickle()
 
 void Fetch::pickup()
 {
+    ImapSession * s = imap()->session();
+    if ( !s )
+        return;
+    Mailbox * mb = s->mailbox();
+    if ( !mb )
+        return;
+    
     uint done = 0;
     bool ok = true;
     Message * m = 0;
-    ImapSession * s = imap()->session();
     while ( ok && !d->requested.isEmpty() ) {
         m = d->requested.first();
-        uint msn = s->msn( m->uid() );
+        uint msn = s->msn( m->uid( mb ) );
         if ( d->needsAddresses && !m->hasAddresses() )
             ok = false;
         if ( d->needsHeader && !m->hasHeaders() )
@@ -1519,21 +1527,21 @@ void Fetch::pickup()
             ok = false;
         if ( d->needsBody && !m->hasBodies() )
             ok = false;
-        if ( d->flags && !m->hasFlags() )
+        if ( d->flags && !m->hasFlags( mb ) )
             ok = false;
         if ( ( d->rfc822size || d->internaldate || d->modseq ) &&
              !m->hasTrivia() )
             ok = false;
-        if ( d->annotation && !m->hasAnnotations() )
+        if ( d->annotation && !m->hasAnnotations( mb ) )
             ok = false;
-        if ( !m->uid() )
+        if ( !m->uid( mb ) )
             ok = false;
         if ( !msn )
             ok = false;
         if ( ok ) {
             if ( d->flags )
-                imap()->session()->addFlags( m->flags(), this );
-            makeFetchResponse( m, m->uid(), msn );
+                imap()->session()->addFlags( m->flags( mb ), this );
+            makeFetchResponse( m, m->uid( mb ), msn );
             done++;
             d->requested.shift();
         }
@@ -1543,7 +1551,7 @@ void Fetch::pickup()
 
     if ( m )
         log( "Processed " + fn( done ) + " messages, "
-             "next message has UID " + fn( m->uid() ),
+             "next message has UID " + fn( m->uid( mb ) ),
              Log::Debug );
     else
         log( "Processed " + fn( done ) + " messages, none remain",

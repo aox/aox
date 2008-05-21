@@ -27,7 +27,7 @@ public:
     static Section * parseSection( ImapParser *, bool = false );
     static String sectionData( Section *, Message * );
     static String flagList( Message *, uint, class Session * );
-    static String annotation( Multipart *, class User *,
+    static String annotation( Multipart *, class User *, Mailbox * m,
                               const StringList &,
                               const StringList & );
 

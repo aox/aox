@@ -447,7 +447,7 @@ class Message * POP::message( uint uid )
     if ( m )
         return m;
     m = new Message;
-    m->setUid( uid );
+    m->setUid( d->session->mailbox(), uid );
     d->messages.insert( uid, m );
     return m;
 }

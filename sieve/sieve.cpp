@@ -88,6 +88,7 @@ public:
     List<Recipient> recipients;
     Recipient * currentRecipient;
     Message * message;
+    Date * arrivalTime;
     uint state;
     EventHandler * handler;
     Query * autoresponses;
@@ -424,15 +425,17 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
 }
 
 
-/*! Records that \a message is to be used while sieving. All sieve
-    tests that look at e.g. header fields look at \a message, and \a
-    message is stored using fileinto/keep and forwarded using
-    redirect.
+/*! Records that \a message is to be used while sieving, and \a when
+    we received it. All sieve tests that look at e.g. header fields
+    look at \a message, and \a message is stored using fileinto/keep
+    and forwarded using redirect. \a when is only used to record the
+    message's arrival time by fileinto/keep.
 */
 
-void Sieve::setMessage( Message * message )
+void Sieve::setMessage( Message * message, Date * when )
 {
     d->message = message;
+    d->arrivalTime = when;
 }
 
 

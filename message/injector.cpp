@@ -1869,7 +1869,7 @@ void Injector::insertMessages()
         qm->bind( 1, m->id(), Query::Binary );
         qm->bind( 2, uid, Query::Binary );
         qm->bind( 3, d->messageId, Query::Binary );
-        qm->bind( 4, internalDate( d->message ), Query::Binary );
+        qm->bind( 4, internalDate( m, d->message ), Query::Binary );
         qm->bind( 5, mi->ms, Query::Binary );
         qm->submitLine();
 
@@ -2334,17 +2334,17 @@ SortedList<Mailbox> * Injector::mailboxes() const
 }
 
 
-/*! Returns a sensible internaldate for \a m. If
+/*! Returns a sensible internaldate for \a m in \a mb. If
     Message::internalDate() is not null, it is used, otherwise this
     function tries to obtain a date heuristically.
 */
 
-uint Injector::internalDate( Message * m ) const
+uint Injector::internalDate( Mailbox * mb, Message * m ) const
 {
-    if ( !m )
+    if ( !m || !mb )
         return 0;
-    if ( m->internalDate() )
-        return m->internalDate();
+    if ( m->internalDate( mb ) )
+        return m->internalDate( mb );
 
     // first: try the most recent received field. this should be
     // very close to the correct internaldate.
@@ -2373,6 +2373,6 @@ uint Injector::internalDate( Message * m ) const
     if ( !id.valid() )
         id.setCurrentTime();
 
-    m->setInternalDate( id.unixTime() );
+    m->setInternalDate( mb, id.unixTime() );
     return id.unixTime();
 }

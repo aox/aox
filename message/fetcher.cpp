@@ -329,7 +329,7 @@ void Fetcher::start()
     MessageSet messages;
     List<Message>::Iterator i( d->messages );
     while ( i ) {
-        messages.add( i->uid() );
+        messages.add( i->uid( d->mailbox ) );
         ++i;
     }
     uint expected = messages.count();
@@ -396,13 +396,13 @@ void Fetcher::findMessages()
     while ( (r=d->findMessages->nextRow()) != 0 ) {
         d->messagesRemaining++;
         uint uid = r->getInt( "uid" );
-        while ( m && m->uid() < uid )
+        while ( m && m->uid( d->mailbox ) < uid )
             ++m;
         if ( m ) {
             m->setDatabaseId( r->getInt( "message" ) );
             if ( d->trivia ) {
-                m->setModSeq( r->getBigint( "modseq" ) );
-                m->setInternalDate( r->getInt( "idate" ) );
+                m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );
+                m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
             }
         }
     }
@@ -586,7 +586,7 @@ MessageSet * Fetcher::findUids()
         if ( d->batch[n] ) {
             List<Message>::Iterator m( d->batch[n] );
             while ( m ) {
-                s->add( m->uid() );
+                s->add( m->uid( d->mailbox ) );
                 ++m;
             }
         }
@@ -857,7 +857,7 @@ void FetcherData::Decoder::execute()
     else if ( findByUid ) {
         while ( r ) {
             uint uid = r->getInt( "uid" );
-            while ( mit && mit->uid() < uid )
+            while ( mit && mit->uid( d->mailbox ) < uid )
                 ++mit;
             if ( mit && !isDone( mit ) )
                 decode( mit, r );
@@ -988,7 +988,7 @@ void FetcherData::FlagsDecoder::decode( Message * m, Row * r )
 {
     Flag * f = Flag::find( r->getInt( "flag" ) );
     if ( f ) {
-        List<Flag> * flags = m->flags();
+        List<Flag> * flags = m->flags( d->mailbox );
         List<Flag>::Iterator i( flags );
         while ( i && i != f )
             ++i;
@@ -1005,14 +1005,14 @@ void FetcherData::FlagsDecoder::decode( Message * m, Row * r )
 
 void FetcherData::FlagsDecoder::setDone( Message * m )
 {
-    m->setFlagsFetched( true );
+    m->setFlagsFetched( d->mailbox, true );
 
 }
 
 
 bool FetcherData::FlagsDecoder::isDone( Message * m ) const
 {
-    return m->hasFlags();
+    return m->hasFlags( d->mailbox );
 }
 
 
@@ -1103,8 +1103,8 @@ void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
     m->setRfc822Size( r->getInt( "rfc822size" ) );
     if ( findById )
         return;
-    m->setInternalDate( r->getInt( "idate" ) );
-    m->setModSeq( r->getBigint( "modseq" ) );
+    m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
+    m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );
 }
 
 
@@ -1137,19 +1137,19 @@ void FetcherData::AnnotationDecoder::decode( Message * m, Row * r )
     a->setOwnerId( owner );
     a->setValue( r->getString( "value" ) );
 
-    m->replaceAnnotation( a );
+    m->replaceAnnotation( d->mailbox, a );
 }
 
 
 void FetcherData::AnnotationDecoder::setDone( Message * m )
 {
-    m->setAnnotationsFetched( true );
+    m->setAnnotationsFetched( d->mailbox, true );
 }
 
 
 bool FetcherData::AnnotationDecoder::isDone( Message * m ) const
 {
-    return m->hasAnnotations();
+    return m->hasAnnotations( d->mailbox );
 }
 
 

@@ -83,7 +83,7 @@ private:
     void logMessageDetails();
     void announce();
 
-    uint internalDate( Message * ) const;
+    uint internalDate( Mailbox *, Message * ) const;
 };
 
 

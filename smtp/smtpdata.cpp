@@ -155,7 +155,8 @@ void SmtpData::execute()
 
     // state 2: have received CR LF "." CR LF, have not started injection
     if ( d->state == 2 ) {
-        server()->sieve()->setMessage( message( server()->body() ) );
+        server()->sieve()->setMessage( message( server()->body() ),
+                                       server()->transactionTime() );
         if ( server()->dialect() == SMTP::Submit &&
              d->message->error().isEmpty() ) {
             // a syntactically acceptable message has been submitted.
@@ -166,7 +167,7 @@ void SmtpData::execute()
             checkField( HeaderField::ReturnPath );
             checkField( HeaderField::ReplyTo ); // <-- even reply-to? hm?
             String e = d->message->error();
-            if ( e.isEmpty() && 
+            if ( e.isEmpty() &&
                  !addressPermitted( server()->sieve()->sender() ) )
                 e = "Not authorised to use this SMTP sender address: " +
                     server()->sieve()->sender()->lpdomain();
@@ -200,7 +201,7 @@ void SmtpData::execute()
             // the next line means that what we store is the wrapper
             d->message = m;
             // the next line means that what we sieve is the wrapper
-            server()->sieve()->setMessage( m );
+            server()->sieve()->setMessage( m, server()->transactionTime() );
             server()->sieve()->setWrapped();
             ::messagesWrapped->tick();
         }
@@ -304,7 +305,7 @@ bool SmtpData::addressPermitted( Address * a ) const
 
     if ( a->type() == Address::Local || a->type() == Address::Invalid )
         return false;
-    
+
     if ( a->type() ==  Address::Normal ) {
         String ad = a->domain().lower();
         String al = a->localpart().lower();
@@ -391,7 +392,6 @@ Message * SmtpData::message( const String & body )
 
     d->body = rp + received + body;
     Message * m = new Message( d->body );
-    m->setInternalDate( server()->transactionTime()->unixTime() );
     // if the sender is another dickhead specifying <> in From to
     // evade replies, let's try harder.
     if ( !m->error().isEmpty() &&

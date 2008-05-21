@@ -658,7 +658,7 @@ void MessagePage::execute()
         requireRight( m, Permissions::Read );
 
         d->message = new Message;
-        d->message->setUid( link()->uid() );
+        d->message->setUid( m, link()->uid() );
         List<Message> messages;
         messages.append( d->message );
 

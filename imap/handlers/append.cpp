@@ -356,7 +356,7 @@ void Append::process( class Appendage * h )
         }
 
         h->message = new Message( h->text );
-        h->message->setInternalDate( d->date.unixTime() );
+        h->message->setInternalDate( d->mailbox, d->date.unixTime() );
         if ( !h->message->valid() ) {
             error( Bad, h->message->error() );
             return;

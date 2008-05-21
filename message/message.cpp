@@ -24,11 +24,9 @@ class MessageData
 {
 public:
     MessageData()
-        : strict( false ), uid( 0 ), mailbox( 0 ), databaseId( 0 ),
-          annotations( 0 ),
-          rfc822Size( 0 ), internalDate( 0 ), modseq( 0 ),
-          hasFlags( false ), hasHeaders( false ), hasAddresses( false ),
-          hasBodies( false ), hasAnnotations( false ),
+        : strict( false ), mailboxes( 0 ), databaseId( 0 ),
+          wrapped( false ), rfc822Size( 0 ),
+          hasHeaders( false ), hasAddresses( false ), hasBodies( false ), 
           hasBytesAndLines( false )
     {}
 
@@ -36,21 +34,50 @@ public:
     String error;
 
     uint uid;
-    const Mailbox * mailbox;
-    uint databaseId;
+    class Mailbox
+        : public Garbage
+    {
+    public:
+        Mailbox()
+            : Garbage(),
+              mailbox( 0 ), uid( 0 ), modseq( 0 ), internalDate( 0 ),
+              annotations( 0 ),
+              hasFlags( false ), hasAnnotations( false ) {}
+        ::Mailbox * mailbox;
+        uint uid;
+        int64 modseq;
+        uint internalDate;
+        List<Flag> flags;
+        List<Annotation> * annotations;
+        bool hasFlags;
+        bool hasAnnotations;
+    };
 
-    List<Annotation> * annotations;
+    List<Mailbox> * mailboxes;
+    Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
+        List<Mailbox>::Iterator m( mailboxes );
+        while ( m && m->mailbox != mb )
+            ++m;
+        if ( m )
+            return m;
+        if ( !create )
+            return 0;
+        if ( !mailboxes )
+            mailboxes = new List<Mailbox>;
+        Mailbox * n = new Mailbox;
+        n->mailbox = mb;
+        mailboxes->append( n );
+        return n;
+    }
+
+    uint databaseId;
+    bool wrapped;
 
     uint rfc822Size;
-    uint internalDate;
-    uint modseq;
 
-    List<Flag> flags;
-    bool hasFlags: 1;
     bool hasHeaders: 1;
     bool hasAddresses: 1;
     bool hasBodies: 1;
-    bool hasAnnotations: 1;
     bool hasBytesAndLines : 1;
 };
 
@@ -437,45 +464,74 @@ String Message::partNumber( Bodypart * bp ) const
 }
 
 
-/*! Notifies this Message that its UID is \a u, which should be
-    returned by uid().
-
-    The initial value is 0, which is not a legal UID.
+/*! Notifies this Message that its UID in \a mb is \a u, which should
+    be returned by uid( \a mb ).
 */
 
-void Message::setUid( uint u )
+void Message::setUid( Mailbox * mb, uint u )
 {
-    d->uid = u;
+    MessageData::Mailbox * m = d->mailbox( mb, true );
+    m->uid = u;
 }
 
 
-/*! Returns the UID of this Message, as set by setUid(). */
+/*! Returns the UID of this Message in a\ mb, as set by
+    setUid(). Returns 0 if setUid() has not been called for \a mb.
+ */
 
-uint Message::uid() const
+uint Message::uid( Mailbox * mb ) const
 {
-    return d->uid;
-}
-
-
-/*! Notifies this Message that it lives in \a m, which should be
-    returned by mailbox(). The initial value is null, meaning that the
-    Message does not belong to any particular Mailbox.
-*/
-
-void Message::setMailbox( const Mailbox * m )
-{
-    d->mailbox = m;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return m->uid;
+    return 0;
 }
 
 
 /*! Returns the Mailbox in which this Message lives, or null in case
-    this Message is independent of mailboxes (e.g. a Message being
-    delivered by smtpd.)
+    this Message is independent of mailboxes, does not know its
+    Maiblxo, or lives in several.
 */
 
 const Mailbox * Message::mailbox() const
 {
-    return d->mailbox;
+    if ( !d->mailboxes )
+        return 0;
+    if ( d->mailboxes->firstElement() != d->mailboxes->lastElement() )
+        return 0;
+    return d->mailboxes->firstElement()->mailbox;
+}
+
+
+/*! Allocates and return a list of all Mailbox objects to which this
+    Message belongs. addMailboxes(), setUid() and friends cause the
+    Message to belong to one or more Mailbox objects.
+
+    This may return an empty list, but it never returns a null pointer.
+*/
+
+List<Mailbox> * Message::mailboxes() const
+{
+    List<Mailbox> * m = new List<Mailbox>;
+    List<MessageData::Mailbox>::Iterator i( d->mailboxes );
+    while ( i ) {
+        m->append( i->mailbox );
+        ++i;
+    }
+    return m;
+}
+
+
+/*! Records that this object belongs to each of \a mailboxes. 
+*/
+
+void Message::addMailboxes( List<Mailbox> * mailboxes )
+{
+    List<Mailbox>::Iterator i( mailboxes );
+    while ( i ) {
+        (void)d->mailbox( i, true );
+        ++i;
+    }
 }
 
 
@@ -483,23 +539,27 @@ const Mailbox * Message::mailbox() const
     will remember \a id and internalDate() will return it.
 */
 
-void Message::setInternalDate( uint id )
+void Message::setInternalDate( Mailbox * mb, uint id )
 {
-    d->internalDate = id;
+    MessageData::Mailbox * m = d->mailbox( mb, true );
+    m->internalDate = id;
 }
 
 
-/*! Returns the message's internaldate, which is meant to be the time
-    when Archiveopteryx first saw it, although it actually is whatever
-    was set using setInternalDate().
+/*! Returns the message's internaldate in \a mb, which is meant to be
+    the time when Archiveopteryx first saw it, although it actually is
+    whatever was set using setInternalDate().
 
     If the messages comes from the database, this function's return
     value is valid only if hasTrivia();
 */
 
-uint Message::internalDate() const
+uint Message::internalDate( Mailbox * mb ) const
 {
-    return d->internalDate;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return m->internalDate;
+    return 0;
 }
 
 
@@ -523,23 +583,32 @@ uint Message::rfc822Size() const
 }
 
 
-/*! Returns a pointer to list of flags for this message, representing
-    all flags that are currently set.
+/*! Returns a pointer to list of flags for this message in \a mb,
+    representing all flags that are currently set.
+
+    This may return an empty list, but never a null pointer.
 */
 
-List<Flag> * Message::flags() const
+List<Flag> * Message::flags( Mailbox * mb ) const
 {
-    return &d->flags;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return &m->flags;
+    List<Flag> * f = new List<Flag>;
+    return f;
 }
 
 
-/*! Returns true if the extension flags have been loaded for this
-    message, and false if not.
+/*! Returns true if the flags have been loaded for \a mb, and false if
+    not.
 */
 
-bool Message::hasFlags() const
+bool Message::hasFlags( Mailbox * mb ) const
 {
-    return d->hasFlags;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return m->hasFlags;
+    return false;
 }
 
 
@@ -565,11 +634,17 @@ bool Message::hasBodies() const
 
 /*! Returns true if this message has read its annotations from the
     database, and false if it has not.
+
+    Messages may have different annotations in different mailboxes;
+    this function's return value applies to \a mb.
 */
 
-bool Message::hasAnnotations() const
+bool Message::hasAnnotations( Mailbox * mb ) const
 {
-    return d->hasAnnotations;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return m->hasAnnotations;
+    return false;
 }
 
 
@@ -578,11 +653,13 @@ bool Message::hasAnnotations() const
     \a ok is false.
 */
 
-void Message::setFlagsFetched( bool ok )
+void Message::setFlagsFetched( Mailbox * mb, bool ok )
 {
-    d->hasFlags = ok;
-    if ( !ok )
-        d->flags.clear();
+    MessageData::Mailbox * m = d->mailbox( mb, ok );
+    if ( m && !ok )
+        m->flags.clear();
+    if ( m )
+        m->hasFlags = ok;
 }
 
 
@@ -603,15 +680,18 @@ void Message::setBodiesFetched()
 }
 
 
-/*! Records that all the annotations on this Message have been fetched
-    if \a ok is true and that they haven't if \a ok is false.
+/*! Records that all the annotations on this Message in \a mb have
+    been fetched if \a ok is true and that they haven't if \a ok is
+    false.
 */
 
-void Message::setAnnotationsFetched( bool ok )
+void Message::setAnnotationsFetched( Mailbox * mb, bool ok )
 {
-    d->hasAnnotations = ok;
-    if ( !ok )
-        d->annotations = 0;
+    MessageData::Mailbox * m = d->mailbox( mb, ok );
+    if ( m && !ok )
+        m->annotations = 0;
+    if ( m )
+        m->hasAnnotations = ok;
 }
 
 
@@ -621,7 +701,7 @@ void Message::setAnnotationsFetched( bool ok )
 
 bool Message::hasTrivia() const
 {
-    return d->rfc822Size > 0 && d->modseq > 0;
+    return d->rfc822Size > 0;
 }
 
 
@@ -730,27 +810,31 @@ bool Message::isMessage() const
     Annotation::ownerId() and Annotation::entryName().
 */
 
-void Message::replaceAnnotation( class Annotation * a )
+void Message::replaceAnnotation( Mailbox * mb, class Annotation * a )
 {
-    if ( !d->annotations )
-        d->annotations = new List<Annotation>;
-    List<Annotation>::Iterator it( *d->annotations );
+    MessageData::Mailbox * m = d->mailbox( mb, true );
+    if ( !m->annotations )
+        m->annotations = new List<Annotation>;
+    List<Annotation>::Iterator it( m->annotations );
     while ( it && ( it->ownerId() != a->ownerId() ||
                     it->entryName() != a->entryName() ) )
         ++it;
     if ( it )
-        d->annotations->take( it );
-    d->annotations->append( a );
+        m->annotations->take( it );
+    m->annotations->append( a );
 }
 
 
-/*! Returns a pointer to the list of annotations belonging to this
-    message, or 0 if there are none.
+/*! Returns a pointer to the list of annotations in \a mb belonging to
+    this message, or 0 if there are none.
 */
 
-List< Annotation > * Message::annotations() const
+List<Annotation> * Message::annotations( Mailbox * mb ) const
 {
-    return d->annotations;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return m->annotations;
+    return 0;
 }
 
 
@@ -1043,20 +1127,24 @@ Message * Message::wrapUnparsableMessage( const String & message,
 }
 
 
-/*! Records that this message's modseq (see RFC 4551) is \a n. The
+/*! Records that this message's modseq (see RFC 4551) in \a mb is \a n. The
     initial value is 0, which is not a legal modseq. */
 
-void Message::setModSeq( uint n )
+void Message::setModSeq( Mailbox * mb, uint n )
 {
-    d->modseq = n;
+    MessageData::Mailbox * m = d->mailbox( mb, true );
+    m->modseq = n;
 }
 
 
-/*! Returns the RFC 4551 modseq set by setModSeq(). */
+/*! Returns the RFC 4551 modseq set by setModSeq( \a mb ). */
 
-uint Message::modSeq() const
+uint Message::modSeq( Mailbox * mb ) const
 {
-    return d->modseq;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return m->modseq;
+    return 0;
 }
 
 
@@ -1137,4 +1225,25 @@ void Message::setDatabaseId( uint id )
 uint Message::databaseId() const
 {
     return d->databaseId;
+}
+
+
+/*! Records that this message is a wrapper message if \a w is true,
+    and that it it's an ordinary message if not. Wrapper message (in
+    this context) are those which wrap an unparsable message.
+    
+    The initial value is false, of course.
+*/
+
+void Message::setWrapped( bool w ) const
+{
+    d->wrapped = w;
+}
+
+
+/*! Returns what setWrapped() set. */
+
+bool Message::isWrapped() const
+{
+    return d->wrapped;
 }

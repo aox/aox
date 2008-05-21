@@ -29,11 +29,15 @@ public:
     String rfc822() const;
     String body() const;
 
-    void setUid( uint );
-    uint uid() const;
+    void setUid( Mailbox *, uint );
+    uint uid( Mailbox * ) const;
 
-    void setMailbox( const Mailbox * );
     const Mailbox * mailbox() const;
+    List<Mailbox> * mailboxes() const;
+    void addMailboxes( List<Mailbox> * );
+
+    void setWrapped( bool ) const;
+    bool isWrapped() const;
 
     void setDatabaseId( uint );
     uint databaseId() const;
@@ -47,29 +51,29 @@ public:
 
     void setRfc822Size( uint );
     uint rfc822Size() const;
-    void setInternalDate( uint );
-    uint internalDate() const;
-    void setModSeq( uint );
-    uint modSeq() const;
+    void setInternalDate( Mailbox *, uint );
+    uint internalDate( Mailbox * ) const;
+    void setModSeq( Mailbox *, uint );
+    uint modSeq( Mailbox * ) const;
 
-    List<Flag> * flags() const;
-    List<Annotation> * annotations() const;
+    List<Flag> * flags( Mailbox * ) const;
+    List<Annotation> * annotations( Mailbox * ) const;
 
-    bool hasFlags() const;
+    bool hasFlags( Mailbox * ) const;
     bool hasHeaders() const;
     bool hasAddresses() const;
     bool hasTrivia() const;
     bool hasBodies() const;
-    bool hasAnnotations() const;
+    bool hasAnnotations( Mailbox * ) const;
     bool hasBytesAndLines() const;
-    void setFlagsFetched( bool );
+    void setFlagsFetched( Mailbox *, bool );
     void setHeadersFetched();
     void setBodiesFetched();
-    void setAnnotationsFetched( bool );
+    void setAnnotationsFetched( Mailbox *, bool );
     void setAddressesFetched();
     void setBytesAndLinesFetched();
 
-    void replaceAnnotation( class Annotation * );
+    void replaceAnnotation( Mailbox *, class Annotation * );
 
     static String baseSubject( const String & );
 

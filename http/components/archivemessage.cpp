@@ -60,7 +60,7 @@ void ArchiveMessage::execute()
         page()->requireRight( m, Permissions::Read );
 
         d->message = new Message;
-        d->message->setUid( d->link->uid() );
+        d->message->setUid( m, d->link->uid() );
         List<Message> messages;
         messages.append( d->message );
 
@@ -130,7 +130,7 @@ String ArchiveMessage::bodypart( Message *first, Bodypart *bp )
     Link l;
     l.setType( d->link->type() );
     l.setMailbox( d->link->mailbox() );
-    l.setUid( first->uid() );
+    l.setUid( first->uid( d->link->mailbox() ) );
     l.setPart( first->partNumber( bp ) );
 
     String type = "text/plain";

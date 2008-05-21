@@ -4,6 +4,7 @@
 
 #include "tls.h"
 #include "utf.h"
+#include "date.h"
 #include "dict.h"
 #include "user.h"
 #include "query.h"
@@ -878,10 +879,8 @@ bool ManageSieveCommand::explain()
             }
             else {
                 ::x->message = new Message( value );
-                ::x->message->setFlagsFetched( true );
                 ::x->message->setHeadersFetched();
                 ::x->message->setBodiesFetched();
-                ::x->message->setAnnotationsFetched( true );
                 ::x->message->setAddressesFetched();
                 ::x->message->setRfc822Size( ::x->message->rfc822().length() );
                 if ( !::x->message->error().isEmpty() )
@@ -912,7 +911,7 @@ bool ManageSieveCommand::explain()
     uint a = s.actions( ::x->to )->count();
     bool m = false;
     if ( ::x->message && !s.done() ) {
-        s.setMessage( ::x->message );
+        s.setMessage( ::x->message, new Date );
         s.evaluate();
         m = true;
     }
