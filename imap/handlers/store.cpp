@@ -85,9 +85,9 @@ Store::Store( bool u )
 }
 
 
-/*! Constructs a Store handler which will set the "\seen" flag on the
-    mailbox currently used by \a imap, and emit flag updates iff \a
-    silent is false.
+/*! Constructs a Store handler which will set the "\seen" flag for the
+    messages in \a set within the mailbox currently selected by \a imap,
+    and emit flag updates iff \a silent is false.
 
     This is basically a helper for Fetch, which occasionally needs to
     set "\seen" implicitly. It doesn't have a tag(), so it won't send
