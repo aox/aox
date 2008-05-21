@@ -535,8 +535,8 @@ void Message::addMailboxes( List<Mailbox> * mailboxes )
 }
 
 
-/*! Notifies this Message that its internaldate is \a id. The Message
-    will remember \a id and internalDate() will return it.
+/*! Notifies this Message that its internaldate in \a mb is \a id. The
+    Message will remember \a id and internalDate() will return it.
 */
 
 void Message::setInternalDate( Mailbox * mb, uint id )
@@ -648,7 +648,7 @@ bool Message::hasAnnotations( Mailbox * mb ) const
 }
 
 
-/*! Records that all the message flags in this Message have been
+/*! Records that all the message flags in \a mb have been
     fetched if \a ok is true and if that they no longer are valid if
     \a ok is false.
 */
@@ -805,8 +805,8 @@ bool Message::isMessage() const
 }
 
 
-/*! Adds \a a to the list of known annotations for this message,
-    forgetting any previous annotation with the same
+/*! Adds \a a to the list of known annotations for this Message in \a
+    mb, forgetting any previous annotation with the same
     Annotation::ownerId() and Annotation::entryName().
 */
 
