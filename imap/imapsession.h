@@ -26,8 +26,6 @@ public:
 
     void enqueue( const String & );
 
-    void emitResponses();
-
     void addFlags( List<class Flag> *, class Command * );
 
     void ignoreModSeq( int64 );
