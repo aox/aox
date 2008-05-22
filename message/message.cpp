@@ -488,21 +488,6 @@ uint Message::uid( Mailbox * mb ) const
 }
 
 
-/*! Returns the Mailbox in which this Message lives, or null in case
-    this Message is independent of mailboxes, does not know its
-    Maiblxo, or lives in several.
-*/
-
-const Mailbox * Message::mailbox() const
-{
-    if ( !d->mailboxes )
-        return 0;
-    if ( d->mailboxes->firstElement() != d->mailboxes->lastElement() )
-        return 0;
-    return d->mailboxes->firstElement()->mailbox;
-}
-
-
 /*! Allocates and return a list of all Mailbox objects to which this
     Message belongs. addMailboxes(), setUid() and friends cause the
     Message to belong to one or more Mailbox objects.
