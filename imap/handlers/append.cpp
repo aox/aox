@@ -356,6 +356,7 @@ void Append::process( class Appendage * h )
         }
 
         h->message = new Message( h->text );
+        h->message->addMailbox( d->mailbox );
         h->message->setInternalDate( d->mailbox, d->date.unixTime() );
         if ( !h->message->valid() ) {
             error( Bad, h->message->error() );
@@ -365,7 +366,6 @@ void Append::process( class Appendage * h )
 
     if ( !h->injector ) {
         h->injector = new Injector( h->message, this );
-        h->injector->setMailbox( d->mailbox );
         h->injector->setFlags( d->flags );
         h->injector->setAnnotations( d->annotations );
         h->injector->execute();

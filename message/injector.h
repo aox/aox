@@ -34,8 +34,6 @@ public:
         AwaitingCompletion, Done
     };
 
-    void setMailbox( Mailbox * );
-    void setMailboxes( SortedList<Mailbox> * );
     void setFlags( const StringList & );
     void setAnnotations( const List<Annotation> * );
     void setDeliveryAddresses( List<Address> * );

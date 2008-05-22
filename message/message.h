@@ -34,6 +34,7 @@ public:
 
     List<Mailbox> * mailboxes() const;
     void addMailboxes( List<Mailbox> * );
+    void addMailbox( Mailbox * );
 
     void setWrapped( bool ) const;
     bool isWrapped() const;

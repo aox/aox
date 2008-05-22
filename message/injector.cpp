@@ -1116,9 +1116,6 @@ void Injector::setup()
 /*! Creates a new Injector to deliver the \a message on behalf of
     the \a owner, which is notified when the injection is completed.
     Message delivery commences when the execute() function is called.
-
-    The caller must call setMailbox() or setMailboxes() to tell the
-    Injector where to deliver the message.
 */
 
 Injector::Injector( Message * message, EventHandler * owner )
@@ -1128,6 +1125,13 @@ Injector::Injector( Message * message, EventHandler * owner )
         setup();
     d->owner = owner;
     d->message = message;
+
+    d->mailboxes = new List< Uid >;
+    SortedList<Mailbox>::Iterator mi( d->message->mailboxes() );
+    while ( mi ) {
+        d->mailboxes->append( new Uid( mi ) );
+        ++mi;
+    }
 
     d->bodyparts = new List< Bid >;
     List< Bodypart >::Iterator bi( d->message->allBodyparts() );
@@ -1142,33 +1146,6 @@ Injector::Injector( Message * message, EventHandler * owner )
 
 Injector::~Injector()
 {
-}
-
-
-/*! Instructs this Injector to deliver the message to the list of
-    Mailboxes specified in \a m.
-*/
-
-void Injector::setMailboxes( SortedList<Mailbox> * m )
-{
-    d->mailboxes = new List< Uid >;
-    SortedList<Mailbox>::Iterator mi( m );
-    while ( mi ) {
-        d->mailboxes->append( new Uid( mi ) );
-        ++mi;
-    }
-}
-
-
-/*! This function is provided for the convenience of the callers who
-    only ever need to specify a single target Mailbox \a m.
-*/
-
-void Injector::setMailbox( Mailbox * m )
-{
-    SortedList<Mailbox> * l = new SortedList<Mailbox>;
-    l->insert( m );
-    setMailboxes( l );
 }
 
 

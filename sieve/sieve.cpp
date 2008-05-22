@@ -195,10 +195,6 @@ void Sieve::execute()
     // 1: main injection of the incoming message and search for
     // existing autoresponses.
     if ( d->state == 1 ) {
-        // main injection...
-        d->mainInjector = new Injector( d->message, this );
-        d->mainInjector->setLog( new Log( Log::Database ) );
-
         SortedList<Mailbox> * l = new SortedList<Mailbox>;
         List<Mailbox>::Iterator i( mailboxes() );
         while ( i ) {
@@ -207,12 +203,15 @@ void Sieve::execute()
             ++i;
         }
 
+        d->message->addMailboxes( l );
+        d->mainInjector = new Injector( d->message, this );
+        d->mainInjector->setLog( new Log( Log::Database ) );
+
         List<Address> * f = forwarded();
         if ( !f->isEmpty() ) {
             d->mainInjector->setDeliveryAddresses( f );
             d->mainInjector->setSender( sender() );
         }
-        d->mainInjector->setMailboxes( l );
 
         d->state = 2;
         if ( l->isEmpty() && f->isEmpty() )

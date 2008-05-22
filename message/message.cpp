@@ -520,6 +520,14 @@ void Message::addMailboxes( List<Mailbox> * mailboxes )
 }
 
 
+/*! Records that this Message belongs to \a mb. */
+
+void Message::addMailbox( Mailbox * mb )
+{
+    d->mailbox( mb, true );
+}
+
+
 /*! Notifies this Message that its internaldate in \a mb is \a id. The
     Message will remember \a id and internalDate() will return it.
 */

@@ -129,10 +129,8 @@ void Reparse::execute()
         Message * msg = new Message( text );
         if ( m && msg->valid() ) {
             d->row = r;
+            msg->addMailbox( m );
             d->injector = new Injector( msg, this );
-            SortedList<Mailbox> * l = new SortedList<Mailbox>;
-            l->append( m );
-            d->injector->setMailboxes( l );
             d->injector->execute();
         }
         else {
