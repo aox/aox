@@ -122,7 +122,7 @@ public:
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
           flagCreator( 0 ), annotationCreator( 0 ),
-          remoteRecipients( 0 ), sender( 0 ), wrapped( false )
+          remoteRecipients( 0 ), sender( 0 )
     {}
 
     Injector::State state;
@@ -166,8 +166,6 @@ public:
 
     List<Flag> flags;
     List<Annotation> annotations;
-
-    bool wrapped;
 };
 
 
@@ -1193,17 +1191,6 @@ void Injector::setDeliveryAddresses( List<Address> * addresses )
 void Injector::setSender( Address * sender )
 {
     d->sender = sender;
-}
-
-
-/*! Informs the Injector that this message is wrapped around one that
-    could not be parsed; and that it should therefore insert the right
-    entry into unparsed_messages for the original.
-*/
-
-void Injector::setWrapped()
-{
-    d->wrapped = true;
 }
 
 
@@ -2275,13 +2262,13 @@ void Injector::linkAnnotations()
 }
 
 
-/*! If setWrapped() has been called, this function inserts a single row
-    into the unparsed_messages table, referencing the second bodypart.
+/*! If the message is wrapped, this function inserts a single row into
+    the unparsed_messages table, referencing the second bodypart.
 */
 
 void Injector::handleWrapping()
 {
-    if ( !d->wrapped )
+    if ( !d->message->isWrapped() )
         return;
 
     List< Bid >::Iterator bi( d->bodyparts );

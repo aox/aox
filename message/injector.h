@@ -40,7 +40,6 @@ public:
     void setAnnotations( const List<Annotation> * );
     void setDeliveryAddresses( List<Address> * );
     void setSender( Address * );
-    void setWrapped();
 
     bool done() const;
     bool failed() const;

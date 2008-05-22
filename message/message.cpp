@@ -1108,7 +1108,10 @@ Message * Message::wrapUnparsableMessage( const String & message,
     wrapper.append( "\r\n\r\n" );
     wrapper.append( message );
     wrapper.append( "\r\n--" + boundary + "--\r\n" );
-    return new Message( wrapper );
+
+    Message * m = new Message( wrapper );
+    m->setWrapped( true );
+    return m;
 }
 
 

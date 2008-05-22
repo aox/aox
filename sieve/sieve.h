@@ -30,7 +30,6 @@ public:
     void addRecipient( Address *, Mailbox *, User *, SieveScript * );
     void addRecipient( Address *, EventHandler * );
     void setMessage( Message *, Date * );
-    void setWrapped();
 
     Address * sender() const;
     Address * recipient() const;

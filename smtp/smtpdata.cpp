@@ -191,20 +191,20 @@ void SmtpData::execute()
         }
         else {
             // for SMTP/LMTP, we wrap the unparsable message
-            Message * m
-                = Message::wrapUnparsableMessage( d->body, d->message->error(),
-                                                  "Message arrived "
-                                                  "but could not be "
-                                                  "stored",
-                                                  server()->transactionId() );
+            Message * m =
+                Message::wrapUnparsableMessage(
+                    d->body, d->message->error(),
+                    "Message arrived but could not be stored",
+                    server()->transactionId()
+                );
+            ::messagesWrapped->tick();
+
             // the next line changes the SMTP/LMTP response
             d->ok = "Worked around: " + d->message->error();
             // the next line means that what we store is the wrapper
             d->message = m;
             // the next line means that what we sieve is the wrapper
             server()->sieve()->setMessage( m, server()->transactionTime() );
-            server()->sieve()->setWrapped();
-            ::messagesWrapped->tick();
         }
         if ( !server()->sieve()->done() )
             server()->sieve()->evaluate();
