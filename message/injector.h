@@ -35,9 +35,6 @@ public:
     String error() const;
     void execute();
 
-    uint uid( Mailbox * ) const;
-    int64 modSeq( Mailbox * ) const;
-
     Message * message() const;
 
 private:

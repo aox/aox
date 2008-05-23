@@ -2107,44 +2107,6 @@ void Injector::announce()
 }
 
 
-/*! When the Injector injects a message into \a mailbox, it
-    selects/learns the UID of the message. This function returns that
-    UID. It returns 0 in case the message hasn't been inserted into
-    \a mailbox, or if the uid isn't known yet.
-
-    A nonzero return value does not imply that the injection is
-    complete, or even that it will complete, only that injection has
-    progressed far enough to select a UID.
-*/
-
-uint Injector::uid( Mailbox * mailbox ) const
-{
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi && mi->mailbox != mailbox )
-        ++mi;
-    if ( !mi )
-        return 0;
-    return mi->uid;
-}
-
-
-/*! Returns the modseq of the message in \a mailbox, or 0 if the
-    injector hasn't obtained one yet.
-
-    The same caveats apply as for uid().
-*/
-
-int64 Injector::modSeq( Mailbox * mailbox ) const
-{
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi && mi->mailbox != mailbox )
-        ++mi;
-    if ( !mi )
-        return 0;
-    return mi->ms;
-}
-
-
 /*! Returns a pointer to the Message to be/being/which was inserted,
     or a null pointer if this Injector isn't inserting exactly one
     Message.
