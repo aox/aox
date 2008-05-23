@@ -22,13 +22,16 @@ class ReparseData
 {
 public:
     ReparseData()
-        : q( 0 ), row( 0 ), injector( 0 ), t( 0 )
+        : q( 0 ), row( 0 ), injector( 0 ), t( 0 ),
+          msg( 0 ), m( 0 )
     {}
 
     Query * q;
     Row * row;
     Injector * injector;
     Transaction * t;
+    Message * msg;
+    Mailbox * m;
 };
 
 
@@ -77,7 +80,6 @@ void Reparse::execute()
                    d->injector->error() );
         }
         else {
-            Mailbox * m = d->injector->mailboxes()->first();
             d->t = new Transaction( this );
             Query * q =
                 new Query( "delete from unparsed_messages where "
@@ -90,19 +92,19 @@ void Reparse::execute()
             q->bind( 1, d->row->getInt( "mailbox" ) );
             q->bind( 2, d->row->getInt( "uid" ) );
             q->bind( 3, d->row->getInt( "wrapper" ) );
-            q->bind( 4, d->injector->modSeq( m ) );
+            q->bind( 4, d->msg->modSeq( d->m ) );
             q->bindNull( 5 );
             q->bind( 6,
                      String( "reparsed as uid " ) +
-                     fn( d->injector->uid( m ) )+
+                     fn( d->msg->uid( d->m ) ) +
                      " by aox " +
                      Configuration::compiledIn( Configuration::Version ) );
             d->t->enqueue( q );
             d->t->commit();
             printf( "- reparsed %s:%d (new UID %d)\n",
-                    m->name().utf8().cstr(),
+                    d->m->name().utf8().cstr(),
                     d->row->getInt( "uid" ),
-                    d->injector->uid( m ) );
+                    d->msg->uid( d->m ) );
         }
 
         d->injector = 0;
@@ -125,18 +127,18 @@ void Reparse::execute()
             text = r->getString( "text" );
         else
             text = r->getString( "data" );
-        Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-        Message * msg = new Message( text );
-        if ( m && msg->valid() ) {
+        d->m = Mailbox::find( r->getInt( "mailbox" ) );
+        d->msg = new Message( text );
+        if ( d->m && d->msg->valid() ) {
             d->row = r;
-            msg->addMailbox( m );
-            d->injector = new Injector( msg, this );
+            d->msg->addMailbox( d->m );
+            d->injector = new Injector( d->msg, this );
             d->injector->execute();
         }
         else {
             printf( "- parsing %s:%d still fails: %s\n",
-                    m->name().utf8().cstr(), r->getInt( "uid" ),
-                    msg->error().simplified().cstr() );
+                    d->m->name().utf8().cstr(), r->getInt( "uid" ),
+                    d->msg->error().simplified().cstr() );
             if ( opt( 'e' ) )
                 printf( "- wrote a copy to %s\n",
                         writeErrorCopy( text ).cstr() );

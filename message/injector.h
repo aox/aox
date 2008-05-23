@@ -40,8 +40,6 @@ public:
 
     Message * message() const;
 
-    SortedList<Mailbox> * mailboxes() const;
-
 private:
     class InjectorData *d;
 

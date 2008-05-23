@@ -2276,23 +2276,6 @@ void Injector::handleWrapping()
 }
 
 
-/*! Returns a pointer to a SortedList of the mailboxes that this
-    Injector was instructed to deliver to.
-*/
-
-SortedList<Mailbox> * Injector::mailboxes() const
-{
-    SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
-    List<Uid>::Iterator it( d->mailboxes );
-    while ( it ) {
-        mailboxes->append( it->mailbox );
-        ++it;
-    }
-
-    return mailboxes;
-}
-
-
 /*! Returns a sensible internaldate for \a m in \a mb. If
     Message::internalDate() is not null, it is used, otherwise this
     function tries to obtain a date heuristically.
