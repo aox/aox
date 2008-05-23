@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdlib.h> // exit()
 
 
 /*! \nodoc */
@@ -33,9 +34,13 @@ class StartupWatcher
 {
 public:
     StartupWatcher(): EventHandler() {}
-    void execute() { EventLoop::global()->setStartup( false ); }
+    void execute() {
+        if ( Log::disastersYet() )
+            ::exit( 1 );
+        EventLoop::global()->setStartup( false );
+    }
 };
-    
+
 
 
 int main( int argc, char *argv[] )
