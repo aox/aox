@@ -11,7 +11,6 @@
 #include "event.h"
 #include "query.h"
 #include "scope.h"
-#include "flag.h"
 #include "log.h"
 
 
