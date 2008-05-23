@@ -205,7 +205,8 @@ void SmtpData::execute()
             server()->sieve()->setWrapped();
             ::messagesWrapped->tick();
         }
-        server()->sieve()->evaluate();
+        if ( !server()->sieve()->done() )
+            server()->sieve()->evaluate();
 
         // we tell the sieve that our remote recipients are "immediate
         // redirects". strange concept, but...
