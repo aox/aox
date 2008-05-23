@@ -518,13 +518,13 @@ void Sieve::evaluate()
                 log( "Action: " + r );
                 ++a;
             }
-        }
-        if ( i->done && i->mailbox &&
-             ( i->implicitKeep || i->explicitKeep ) ) {
-            SieveAction * a = new SieveAction( SieveAction::FileInto );
-            a->setMailbox( i->mailbox );
-            i->actions.append( a );
-            log( "Keeping message in " + i->mailbox->name().utf8() );
+            if ( i->mailbox && ( i->implicitKeep || i->explicitKeep ) ) {
+                i->implicitKeep = false;
+                SieveAction * a = new SieveAction( SieveAction::FileInto );
+                a->setMailbox( i->mailbox );
+                i->actions.append( a );
+                log( "Keeping message in " + i->mailbox->name().utf8() );
+            }
         }
         ++i;
     }
@@ -578,7 +578,6 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         actions.append( a );
     }
     else if ( c->identifier() == "fileinto" ) {
-        implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::FileInto );
         UString arg = c->arguments()->takeString( 1 );
         UString n = arg;
@@ -596,8 +595,14 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 error.append( " (" + n.utf8() + ")" );
             a = new SieveAction( SieveAction::Error );
             a->setErrorMessage( error );
-            implicitKeep = true;
+            // next line is dubious. if there's an error here, but
+            // another command cancels implicit keep, then this forces
+            // the keep back on. is this the right thing to do?
+            explicitKeep = true;
             done = true;
+        }
+        else {
+            implicitKeep = false;
         }
         actions.append( a );
     }
