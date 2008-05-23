@@ -248,8 +248,7 @@ void SmtpRcptTo::execute()
         return;
 
     if ( server()->sieve()->local( d->address ) ) {
-        if ( !server()->sieve()->done() )
-            server()->sieve()->evaluate();
+        server()->sieve()->evaluate();
         if ( server()->sieve()->rejected( d->address ) )
             respond( 550, d->address->toString().lower() + " rejects mail",
                      "5.7.1" );

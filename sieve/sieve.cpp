@@ -484,7 +484,7 @@ void Sieve::evaluate()
             while ( c && !i->done && i->evaluate( c ) )
                 (void)i->pending.take( c );
         }
-        if ( i->pending.isEmpty() ) {
+        if ( i->pending.isEmpty() && !i->done ) {
             i->done = true;
             log( "Evaluated Sieve script for " + i->address->toString() );
             List<SieveAction>::Iterator a( i->actions );
