@@ -1348,6 +1348,13 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
+            List<Uid>::Iterator it( d->mailboxes );
+            while ( it ) {
+                Uid * u = it;
+                d->message->setUid( u->mailbox, u->uid );
+                d->message->setModSeq( u->mailbox, u->ms );
+                ++it;
+            }
             d->state = InsertingMessages;
         }
     }
