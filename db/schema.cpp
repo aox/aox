@@ -440,6 +440,8 @@ bool Schema::singleStep()
         c = stepTo67(); break;
     case 67:
         c = stepTo68(); break;
+    case 68:
+        c = stepTo69(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3483,6 +3485,43 @@ bool Schema::stepTo68()
             "null,started_at timestamp with time zone not null,ended_at "
             "timestamp with time zone not null)", this
         );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Make subscriptions:(owner,mailbox) unique. */
+
+bool Schema::stepTo69()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Make subscriptions:(owner,mailbox) unique." );
+        d->q = new Query( "create aggregate array_accum "
+                          "(basetype=anyelement, sfunc=array_append,"
+                          " stype=anyarray, initcond='{}')", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "delete from subscriptions where ctid in "
+                          "(select d.ctid from subscriptions d join "
+                          "(select owner,mailbox,array_accum(ctid) as tids "
+                          "from subscriptions group by owner,mailbox "
+                          "having count(*)>1) ds using (owner,mailbox) where "
+                          "not (d.ctid=tids[1]))", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop aggregate array_accum (anyelement)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table subscriptions add "
+                          "unique(owner,mailbox)", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
