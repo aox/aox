@@ -25,15 +25,6 @@ public:
     Injector( Message *, EventHandler * );
     virtual ~Injector();
 
-    enum State {
-        Inactive,
-        CreatingFlags, CreatingAnnotationNames, CreatingFields,
-        InsertingBodyparts, InsertingAddresses, SelectingUids,
-        InsertingMessages,
-        LinkingAddresses, LinkingFlags, LinkingAnnotations,
-        AwaitingCompletion, Done
-    };
-
     void setFlags( const StringList & );
     void setAnnotations( const List<Annotation> * );
     void setDeliveryAddresses( List<Address> * );

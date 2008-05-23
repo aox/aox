@@ -110,12 +110,21 @@ struct AddressLink
 
 // The following is everything the Injector needs to do its work.
 
+enum State {
+    Inactive,
+    CreatingFlags, CreatingAnnotationNames, CreatingFields,
+    InsertingBodyparts, InsertingAddresses, SelectingUids,
+    InsertingMessages,
+    LinkingAddresses, LinkingFlags, LinkingAnnotations,
+    AwaitingCompletion, Done
+};
+
 class InjectorData
     : public Garbage
 {
 public:
     InjectorData()
-        : state( Injector::Inactive ), failed( false ),
+        : state( Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
           mailboxes( 0 ), bodyparts( 0 ), midFetcher( 0 ),
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
@@ -125,7 +134,7 @@ public:
           remoteRecipients( 0 ), sender( 0 )
     {}
 
-    Injector::State state;
+    State state;
 
     bool failed;
 
