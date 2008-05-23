@@ -290,7 +290,7 @@ void Append::execute()
     while ( ok() && h && h->injector ) {
         if ( !h->injector->done() || h->injector->failed() )
             return;
-        uids.append( fn( h->injector->message()->uid( d->mailbox ) ) );
+        uids.append( fn( h->message->uid( d->mailbox ) ) );
         ++h;
     }
 

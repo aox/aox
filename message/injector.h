@@ -25,16 +25,15 @@ public:
     Injector( Message *, EventHandler * );
     virtual ~Injector();
 
-    void setFlags( const StringList & );
-    void setDeliveryAddresses( List<Address> * );
-    void setSender( Address * );
+    void execute();
 
     bool done() const;
     bool failed() const;
     String error() const;
-    void execute();
 
-    Message * message() const;
+    void setFlags( const StringList & );
+    void setDeliveryAddresses( List<Address> * );
+    void setSender( Address * );
 
 private:
     class InjectorData *d;
