@@ -1342,7 +1342,7 @@ void Injector::execute()
         if ( !d->midFetcher->done() || !d->uidFetcher->done() )
             return;
 
-        if ( d->midFetcher->failed ) {
+        if ( d->midFetcher->failed || d->uidFetcher->failed ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
