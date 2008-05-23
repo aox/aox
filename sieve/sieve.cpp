@@ -208,10 +208,8 @@ void Sieve::execute()
         d->mainInjector->setLog( new Log( Log::Database ) );
 
         List<Address> * f = forwarded();
-        if ( !f->isEmpty() ) {
-            d->mainInjector->setDeliveryAddresses( f );
-            d->mainInjector->setSender( sender() );
-        }
+        if ( !f->isEmpty() )
+            d->mainInjector->addDelivery( sender(), f );
 
         d->state = 2;
         if ( l->isEmpty() && f->isEmpty() )
@@ -323,8 +321,7 @@ void Sieve::execute()
             v->setLog( new Log( Log::Database ) );
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );
-            v->setDeliveryAddresses( remote );
-            v->setSender( new Address( "", "", "" ) ); // not senderAddress, hm
+            v->addDelivery( new Address( "", "", "" ), remote );
             v->execute();
             ++i;
         }

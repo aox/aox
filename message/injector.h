@@ -32,8 +32,7 @@ public:
     String error() const;
 
     void setFlags( const StringList & );
-    void setDeliveryAddresses( List<Address> * );
-    void setSender( Address * );
+    void addDelivery( Address *, List<Address> * );
 
 private:
     class InjectorData *d;

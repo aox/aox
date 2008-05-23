@@ -130,8 +130,7 @@ public:
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
-          flagCreator( 0 ), annotationCreator( 0 ),
-          remoteRecipients( 0 ), sender( 0 )
+          flagCreator( 0 ), annotationCreator( 0 )
     {}
 
     State state;
@@ -161,19 +160,28 @@ public:
     NewFlagCreator * flagCreator;
     NewAnnotationCreator * annotationCreator;
 
-    List<Address> * remoteRecipients;
-    Address * sender;
-
-    class Flag
+    struct Flag
         : public Garbage
     {
-    public:
         Flag( const String & n ): name( n ), flag( 0 ) {}
         String name;
         ::Flag * flag;
     };
 
     List<Flag> flags;
+
+    struct Delivery
+        : public Garbage
+    {
+        Delivery( Address * a, List<Address> * l )
+            : sender( a ), recipients( l )
+        {}
+
+        Address * sender;
+        List<Address> * recipients;
+    };
+
+    List<Delivery> deliveries;
 };
 
 
@@ -1157,28 +1165,6 @@ Injector::~Injector()
 }
 
 
-/*! Instructs the Injector to spool the message for later delivery
-    via SMTP to \a addresses. (This is used, for example, by Sieve
-    to implement the "redirect" action.)
-*/
-
-void Injector::setDeliveryAddresses( List<Address> * addresses )
-{
-    if ( addresses && !addresses->isEmpty() )
-        d->remoteRecipients = addresses;
-}
-
-
-/*! Informs the Injector that rows in deliveries should have the
-    specified \a sender address.
-*/
-
-void Injector::setSender( Address * sender )
-{
-    d->sender = sender;
-}
-
-
 /*! Instructs the Injector to set the specified IMAP \a flags on the
     newly injected message. If this function is not called, no flags
     will be set.
@@ -1195,6 +1181,16 @@ void Injector::setFlags( const StringList & flags )
         }
         ++fi;
     }
+}
+
+
+/*! Notes that the current message must be delivered to the specified
+    \a recipients from the given \a sender.
+*/
+
+void Injector::addDelivery( Address * sender, List<Address> * recipients )
+{
+    d->deliveries.append( new InjectorData::Delivery( sender, recipients ) );
 }
 
 
@@ -1550,33 +1546,35 @@ void Injector::resolveAddressLinks()
     // if we're also going to insert deliveries rows, and one or more
     // of the addresses aren't in the to/cc fields, make sure we
     // create addresses rows and learn their ids.
-    if ( d->remoteRecipients ) {
-        List< Address >::Iterator ai( d->remoteRecipients );
+
+    List<InjectorData::Delivery>::Iterator di( d->deliveries );
+    while ( di ) {
+        List<Address>::Iterator ai( di->recipients );
         while ( ai ) {
             Address * a = ai;
-            ++ai;
             String k( a->lpdomain() );
 
             if ( naked.contains( k ) ) {
                 Address * same = naked.find( k );
                 if ( a != same ) {
-                    d->remoteRecipients->remove( a );
-                    d->remoteRecipients->prepend( same );
+                    di->recipients->remove( a );
+                    di->recipients->prepend( same );
                 }
             }
             else {
                 naked.insert( k, a );
                 addresses->append( a );
             }
+            ++ai;
         }
-    }
 
-    if ( d->sender ) {
-        String k( d->sender->lpdomain() );
+        String k( di->sender->lpdomain() );
         if ( naked.contains( k ) )
-            d->sender = naked.find( k );
+            di->sender = naked.find( k );
         else
-            addresses->append( d->sender );
+            addresses->append( di->sender );
+
+        ++di;
     }
 
     d->addressCreator =
@@ -1838,32 +1836,41 @@ void Injector::insertMessages()
 
 void Injector::insertDeliveries()
 {
-    if ( !d->remoteRecipients )
+    if ( d->deliveries.isEmpty() )
         return;
 
-    log( "Spooling message " + fn( d->messageId ) + " for delivery to " +
-         fn( d->remoteRecipients->count() ) + " remote recipients",
-         Log::Significant );
-
-    Query * q =
-        new Query( "insert into deliveries "
-                   "(sender,message,injected_at,expires_at) "
-                   "values ($1,$2,current_timestamp,"
-                   "current_timestamp+interval '2 days')", 0 );
-    q->bind( 1, d->sender->id() );
-    q->bind( 2, d->messageId );
-    d->transaction->enqueue( q );
-
-    List<Address>::Iterator i( d->remoteRecipients );
-    while ( i ) {
+    List<InjectorData::Delivery>::Iterator di( d->deliveries );
+    while ( di ) {
         Query * q =
-            new Query( "insert into delivery_recipients (delivery,recipient) "
-                       "values ("
-                       "currval(pg_get_serial_sequence('deliveries','id')),"
-                       "$1)", 0 );
-        q->bind( 1, i->id() );
+            new Query( "insert into deliveries "
+                       "(sender,message,injected_at,expires_at) "
+                       "values ($1,$2,current_timestamp,"
+                       "current_timestamp+interval '2 days')", 0 );
+        q->bind( 1, di->sender->id() );
+        q->bind( 2, d->messageId );
         d->transaction->enqueue( q );
-        ++i;
+
+        uint n = 0;
+        List<Address>::Iterator it( di->recipients );
+        while ( it ) {
+            Query * q =
+                new Query(
+                    "insert into delivery_recipients (delivery,recipient) "
+                    "values ("
+                    "currval(pg_get_serial_sequence('deliveries','id')),"
+                    "$1)", 0
+                );
+            q->bind( 1, it->id() );
+            d->transaction->enqueue( q );
+            n++;
+            ++it;
+        }
+
+        log( "Spooling message " + fn( d->messageId ) +
+             " for delivery to " + fn( n ) +
+             " remote recipients", Log::Significant );
+
+        ++di;
     }
 
     d->transaction->enqueue( new Query( "notify deliveries_updated", 0 ) );
