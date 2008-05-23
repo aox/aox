@@ -8,7 +8,8 @@
   log-level default changed to significant, some logging adjustments
   to make significant DWIM.
 
-  Added syslog support.
+  Added syslog support. Not done: Bypass logd, so we don't have to run
+  logd at all if we're using syslog.
 
   Digest-MD5 disabled by default due to interoperability problems, can
   be enabled if desirable.
