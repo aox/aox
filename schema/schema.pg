@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (68);
+insert into mailstore (revision) values (69);
 
 
 -- One entry for each unique address we've encountered.
@@ -264,7 +264,8 @@ create table subscriptions (
     id          serial primary key,
     owner       integer not null references users(id)
                 on delete cascade,
-    mailbox     integer not null references mailboxes(id)
+    mailbox     integer not null references mailboxes(id),
+    unique(owner, mailbox)
 );
 
 
