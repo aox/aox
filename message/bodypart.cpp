@@ -19,11 +19,12 @@ class BodypartData
 {
 public:
     BodypartData()
-        : number( 1 ), message( 0 ),
+        : id( 0 ), number( 1 ), message( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
 
+    uint id;
     uint number;
 
     Message * message;
@@ -81,6 +82,24 @@ Bodypart::Bodypart( uint n, Multipart * p )
 uint Bodypart::number() const
 {
     return d->number;
+}
+
+
+/*! Returns the id of this bodypart in the bodyparts table, or 0 if it
+    has not been stored there yet. */
+
+uint Bodypart::id() const
+{
+    return d->id;
+}
+
+
+/*! Sets the id of this bodypart to \a id. Meant for use only by the
+    Injector. */
+
+void Bodypart::setId( uint id )
+{
+    d->id = id;
 }
 
 
