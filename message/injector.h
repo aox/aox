@@ -26,7 +26,6 @@ public:
     virtual ~Injector();
 
     void setFlags( const StringList & );
-    void setAnnotations( const List<Annotation> * );
     void setDeliveryAddresses( List<Address> * );
     void setSender( Address * );
 

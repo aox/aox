@@ -58,6 +58,7 @@ public:
 
     List<Flag> * flags( Mailbox * ) const;
     List<Annotation> * annotations( Mailbox * ) const;
+    void setAnnotations( Mailbox *, List<Annotation> * );
 
     bool hasFlags( Mailbox * ) const;
     bool hasHeaders() const;

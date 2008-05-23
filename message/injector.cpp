@@ -174,7 +174,6 @@ public:
     };
 
     List<Flag> flags;
-    List<Annotation> annotations;
 };
 
 
@@ -1199,33 +1198,6 @@ void Injector::setFlags( const StringList & flags )
 }
 
 
-/*! Instructs the Injector to create the specified IMAP \a annotations
-    on the newly injected message. If this function is not called, no
-    annotations will be created.
-*/
-
-void Injector::setAnnotations( const List<Annotation> * annotations )
-{
-    List<Annotation>::Iterator it( annotations );
-    while ( it ) {
-        Annotation * a = it;
-
-        List<Annotation>::Iterator at( d->annotations );
-        while ( at &&
-                ( at->ownerId() != a->ownerId() ||
-                  at->entryName()->name() != a->entryName()->name() ) )
-            ++at;
-
-        if ( at )
-            at->setValue( a->value() );
-        else
-            d->annotations.append( a );
-
-        ++it;
-    }
-}
-
-
 /*! Returns true if this injector has finished its work, and false if it
     hasn't started or is currently working.
 */
@@ -1411,17 +1383,22 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingFlags ) {
-        List<Annotation>::Iterator i( d->annotations );
-        while ( i ) {
-            if ( i->entryName()->id() == 0 ) {
-                AnnotationName * n;
-                n = AnnotationName::find( i->entryName()->name() );
-                if ( n->id() != 0 )
-                    i->setEntryName( n );
+        List<Uid>::Iterator mi( d->mailboxes );
+        while ( mi ) {
+            Mailbox * m = mi->mailbox;
+            List<Annotation>::Iterator i( d->message->annotations( m ) );
+            while ( i ) {
+                if ( i->entryName()->id() == 0 ) {
+                    AnnotationName * n;
+                    n = AnnotationName::find( i->entryName()->name() );
+                    if ( n->id() != 0 )
+                        i->setEntryName( n );
+                }
+                if ( i->entryName()->id() == 0 )
+                    return;
+                ++i;
             }
-            if ( i->entryName()->id() == 0 )
-                return;
-            ++i;
+            ++mi;
         }
         linkAnnotations();
         handleWrapping();
@@ -2142,17 +2119,23 @@ void Injector::createFlags()
 
 
 /*! Creates the AnnotationName objects needed to create the annotation
-    entries specified with setAnnotations().
+    entries specified with the message.
 */
 
 void Injector::createAnnotationNames()
 {
     StringList unknown;
-    List<Annotation>::Iterator it( d->annotations );
-    while ( it ) {
-        if ( !it->entryName()->id() )
-            unknown.append( it->entryName()->name() );
-        ++it;
+
+    List<Uid>::Iterator mi( d->mailboxes );
+    while ( mi ) {
+        Mailbox * m = mi->mailbox;
+        List<Annotation>::Iterator it( d->message->annotations( m ) );
+        while ( it ) {
+            if ( !it->entryName()->id() )
+                unknown.append( it->entryName()->name() );
+            ++it;
+        }
+        ++mi;
     }
 
     if ( !unknown.isEmpty() ) {
@@ -2189,13 +2172,14 @@ void Injector::linkFlags()
 
 void Injector::linkAnnotations()
 {
-    List<Annotation>::Iterator it( d->annotations );
-    while ( it ) {
-        List<Uid>::Iterator m( d->mailboxes );
-        while ( m ) {
+    List<Uid>::Iterator mi( d->mailboxes );
+    while ( mi ) {
+        Mailbox * m = mi->mailbox;
+        List<Annotation>::Iterator it( d->message->annotations( m ) );
+        while ( it ) {
             Query * q = new Query( *insertAnnotation, this );
-            q->bind( 1, m->mailbox->id() );
-            q->bind( 2, m->uid );
+            q->bind( 1, m->id() );
+            q->bind( 2, mi->uid );
             q->bind( 3, it->entryName()->id() );
             q->bind( 4, it->value() );
             if ( it->ownerId() == 0 )
@@ -2203,9 +2187,9 @@ void Injector::linkAnnotations()
             else
                 q->bind( 5, it->ownerId() );
             d->transaction->enqueue( q );
-            ++m;
+            ++it;
         }
-        ++it;
+        ++mi;
     }
 }
 

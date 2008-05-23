@@ -831,6 +831,17 @@ List<Annotation> * Message::annotations( Mailbox * mb ) const
 }
 
 
+/*! Sets this message's annotations to \a l in the mailbox \a mb. */
+
+void Message::setAnnotations( Mailbox * mb, List<Annotation> * l )
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( !m )
+        return;
+    m->annotations = l;
+}
+
+
 static String badFields( Header * h )
 {
     StringList bad;
