@@ -2277,7 +2277,7 @@ void Injector::handleWrapping()
 
 
 /*! Returns a pointer to a SortedList of the mailboxes that this
-    Injector was instructed to deliver to with setMailboxes().
+    Injector was instructed to deliver to.
 */
 
 SortedList<Mailbox> * Injector::mailboxes() const
