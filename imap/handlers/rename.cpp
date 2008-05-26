@@ -239,10 +239,14 @@ void Rename::execute()
             ++it;
         }
 
-        if ( !ok() )
+        if ( !ok() ) {
             d->t->rollback();
-        else
+        }
+        else {
+            // this notify sounds like a candidate for a trigger, doesn't it?
+            d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
             d->t->commit();
+        }
         d->ready = true;
     }
 
@@ -263,17 +267,7 @@ void Rename::execute()
         to->setUidnext( from->uidnext() );
         to->setUidvalidity( it->toUidvalidity );
         from->setId( 0 );
-        from->refresh()->execute();
-        OCClient::send( "mailbox " + to->name().utf8().quoted() + " new" );
-        if ( from == imap()->user()->inbox() ) {
-            OCClient::send( "mailbox " +
-                            from->name().utf8().quoted() + " new" );
-        }
-        else {
-            from->setDeleted( true );
-            OCClient::send( "mailbox " +
-                            from->name().utf8().quoted() + " deleted" );
-        }
+        from->setDeleted( true );
         ++it;
         if ( !it ) {
             d->renames.clear();

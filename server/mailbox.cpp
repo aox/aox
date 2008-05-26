@@ -13,11 +13,16 @@
 #include "message.h"
 #include "fetcher.h"
 #include "session.h"
+#include "dbsignal.h"
 #include "threader.h"
 #include "allocator.h"
 #include "messageset.h"
 #include "stringlist.h"
 #include "transaction.h"
+
+
+static Mailbox * root = 0;
+static Map<Mailbox> * mailboxes = 0;
 
 
 class MailboxData
@@ -57,10 +62,6 @@ public:
 };
 
 
-static Mailbox * root = 0;
-static Map<Mailbox> * mailboxes = 0;
-
-
 /*! \class Mailbox mailbox.h
     This class represents a node in the global mailbox hierarchy.
 
@@ -89,68 +90,95 @@ public:
     EventHandler * owner;
     Query * query;
 
-    MailboxReader( EventHandler * ev )
-        : owner( ev ), query( 0 )
-    {
-        query =
-            new Query( "select m.*,source,view,v.nextmodseq as viewnms,"
-                       "selector from "
-                       "mailboxes m left join views v on (m.id=v.view)",
+    MailboxReader( EventHandler * ev, int64 );
+    void execute();
+};
+
+
+MailboxReader::MailboxReader( EventHandler * ev, int64 c )
+    : owner( ev ), query( 0 )
+{
+    query = new Query( "select m.id, m.deleted, m.owner, "
+                       "m.uidnext, m.nextmodseq, m.uidvalidity, "
+                       "v.nextmodseq as viewnms, v.selector, "
+                       "0 as change " // better: m.change
+                       "from mailboxes m "
+                       "left join views v on (m.id=v.view) "
+                       "where change>=$1", // better: m.change
                        this );
+    query->bind( 1, c );
+    query->execute();
+}
+
+
+void MailboxReader::execute() {
+    while ( query->hasResults() ) {
+        Row * r = query->nextRow();
+
+        UString n = r->getUString( "name" );
+        Mailbox * m = Mailbox::obtain( n );
+        if ( n != m->d->name )
+            m->d->name = n;
+        m->setId( r->getInt( "id" ) );
+
+        if ( r->getBoolean( "deleted" ) )
+            m->setType( Mailbox::Deleted );
+        else if ( r->isNull( "view" ) )
+            m->setType( Mailbox::Ordinary );
+        else
+            m->setType( Mailbox::View );
+
+        m->d->uidvalidity = r->getInt( "uidvalidity" );
+        m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
+                                    r->getBigint( "nextmodseq" ) );
+        if ( !r->isNull( "owner" ) )
+            m->setOwner( r->getInt( "owner" ) );
+
+        if ( m->type() == Mailbox::View ) {
+            m->d->source = r->getInt( "source" );
+            m->d->nextModSeq = r->getBigint( "viewnms" );
+            m->d->selector = r->getString( "selector" );
+        }
+
+        if ( m->d->id )
+            ::mailboxes->insert( m->d->id, m );
     }
 
-
-    MailboxReader( const UString & n )
-        : owner( 0 ), query( 0 )
-    {
-        query =
-            new Query( "select m.*,source,view,v.nextmodseq as viewnms,"
-                       "selector from "
-                       "mailboxes m left join views v on (m.id=v.view) "
-                       "where name=$1", this );
-        query->bind( 1, n );
+    if ( query->done() && owner ) {
+        if ( query->failed() )
+            log( "Couldn't create mailbox tree: " + query->error(),
+                 Log::Disaster );
+        owner->execute();
     }
+};
 
 
+class MailboxesWatcher
+    : public EventHandler
+{
+public:
+    MailboxesWatcher(): EventHandler() {
+        setLog( new Log( Log::Server ) );
+        (void)new DatabaseSignal( "mailboxes_updated", this );
+    }
+    void execute() { new MailboxReader( 0, 0 ); }
+};
+
+
+// this helper class is used to recover when Oryx testing tools
+// violate various database invariants.
+class MailboxObliterator
+    : public EventHandler
+{
+public:
+    MailboxObliterator(): EventHandler() {
+        setLog( new Log( Log::Server ) );
+        (void)new DatabaseSignal( "obliterated", this );
+    }
     void execute() {
-        while ( query->hasResults() ) {
-            Row * r = query->nextRow();
-
-            UString n = r->getUString( "name" );
-            Mailbox * m = Mailbox::obtain( n );
-            if ( n != m->d->name )
-                m->d->name = n;
-            m->setId( r->getInt( "id" ) );
-
-            if ( r->getBoolean( "deleted" ) )
-                m->setType( Mailbox::Deleted );
-            else if ( r->isNull( "view" ) )
-                m->setType( Mailbox::Ordinary );
-            else
-                m->setType( Mailbox::View );
-
-            m->d->uidvalidity = r->getInt( "uidvalidity" );
-            m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                        r->getBigint( "nextmodseq" ) );
-            if ( !r->isNull( "owner" ) )
-                m->setOwner( r->getInt( "owner" ) );
-
-            if ( m->type() == Mailbox::View ) {
-                m->d->source = r->getInt( "source" );
-                m->d->nextModSeq = r->getBigint( "viewnms" );
-                m->d->selector = r->getString( "selector" );
-            }
-
-            if ( m->d->id )
-                ::mailboxes->insert( m->d->id, m );
-        }
-
-        if ( query->done() && owner ) {
-            if ( query->failed() )
-                log( "Couldn't create mailbox tree: " + query->error(),
-                     Log::Disaster );
-            owner->execute();
-        }
+        if ( ::root->children() )
+            ::root->children()->clear();
+        new MailboxReader( 0, 0 );
     }
 };
 
@@ -172,21 +200,12 @@ void Mailbox::setup( EventHandler * owner )
     ::mailboxes = new Map<Mailbox>;
     Allocator::addEternal( ::mailboxes, "mailbox tree" );
 
-    MailboxReader * mr = new MailboxReader( owner );
+    MailboxReader * mr = new MailboxReader( owner, 0 );
     mr->query->execute();
-}
 
-
-/*! This function reloads this mailbox from the database. If \a owner is
-    specified, it is used to set the new MailboxReader's owner.
-    (This is still a hack.)
-*/
-
-Query * Mailbox::refresh( EventHandler * owner )
-{
-    MailboxReader * mr = new MailboxReader( name() );
-    mr->owner = owner;
-    return mr->query;
+    (void)new MailboxesWatcher;
+    if ( !Configuration::toggle( Configuration::Security ) )
+        (void)new MailboxObliterator;
 }
 
 
@@ -618,8 +637,8 @@ Query * Mailbox::create( Transaction * t, User * owner )
 
     t->enqueue( q );
 
-    MailboxReader * mr = new MailboxReader( name() );
-    t->enqueue( mr->query );
+    q = new Query( "notify mailboxes_updated", 0 );
+    t->enqueue( q );
 
     return q;
 }
@@ -649,8 +668,8 @@ Query * Mailbox::remove( Transaction * t )
     q->bind( 1, id() );
     t->enqueue( q );
 
-    MailboxReader * mr = new MailboxReader( name() );
-    t->enqueue( mr->query );
+    q = new Query( "notify mailboxes_updated", 0 );
+    t->enqueue( q );
 
     return q;
 }

@@ -75,7 +75,6 @@ public:
 
     Query * create( class Transaction *, class User * );
     Query * remove( class Transaction * );
-    Query * refresh( EventHandler * = 0 );
 
     void addSession( class Session * );
     void removeSession( class Session * );
@@ -85,7 +84,7 @@ public:
     class Threader * threader() const;
 
 private:
-    class MailboxData *d;
+    class MailboxData * d;
     friend class MailboxReader;
 };
 

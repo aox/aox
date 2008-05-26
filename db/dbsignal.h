@@ -17,7 +17,7 @@ public:
     static void notifyAll( const String & );
 
 private: // noone can destroy this
-    ~DatabaseSignal() {}
+    ~DatabaseSignal();
 
 private:
     class DatabaseSignalData * d;

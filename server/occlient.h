@@ -21,9 +21,6 @@ public:
     static void send( const String & );
 
 private:
-    void updateMailbox( const String & );
-
-private:
     class OCCData *d;
 };
 

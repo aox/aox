@@ -66,3 +66,12 @@ void DatabaseSignal::notifyAll( const String & name )
         }
     }
 }
+
+
+/*! This destructor is private, so noone can ever call it. Objects of
+    this class are indestructible by nature.
+*/
+
+DatabaseSignal::~DatabaseSignal()
+{
+}

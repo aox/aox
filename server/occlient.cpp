@@ -113,9 +113,6 @@ void OCClient::parse()
             ::log( "Shutting down due to ocd request" );
             EventLoop::shutdown();
         }
-        else if ( msg == "mailbox" ) {
-            updateMailbox( arg );
-        }
         else if ( msg == "caches" ) {
             if ( arg == "refresh" ) {
                 ::log( "Refreshing caches" );
@@ -139,102 +136,4 @@ void OCClient::send( const String &s )
         return;
     client->enqueue( "* " + s + "\n" );
     client->write();
-}
-
-
-/*! Parses and acts on a single mailbox update line in \a arg. A Mailbox
-    update changes a single aspect of a mailbox, which may be whether it
-    is deleted or what its UIDNEXT value is.
-
-    The format is: Mailbox name quoted using String::quoted(),
-    followed by a space, followed by the attribute name (deleted or
-    uidnext) followed by '=', followed by the value (t or f for
-    deleted, a decimal integer for uidnext).
-*/
-
-void OCClient::updateMailbox( const String & arg )
-{
-    uint i = arg.length();
-    while ( i > 0 && arg[i] != '"' )
-        i--;
-    i++;
-    String mailboxName = arg.mid( 0, i );
-    if ( !mailboxName.isQuoted() ) {
-        ::log( "Mailbox name not quoted: " + mailboxName, Log::Error );
-        return;
-    }
-    Utf8Codec c;
-    Mailbox * m = Mailbox::obtain( c.toUnicode( mailboxName.unquoted() ),
-                                   true );
-    if ( !m || !c.valid() ) {
-        ::log( "Mailbox name syntactically invalid: " + mailboxName.unquoted(),
-               Log::Error );
-        return;
-    }
-
-    uint uidnext = 0;
-    int64 nextmodseq = 0;
-
-    StringList::Iterator a( StringList::split( ' ', arg.mid( i+1 ) ) );
-    while ( a ) {
-        if ( *a == "new" ) {
-            ::log( "OCClient announced mailbox " + m->name().ascii(),
-                   Log::Debug );
-            m->setDeleted( false );
-            m->refresh()->execute();
-        }
-        else if ( *a == "deleted" ) {
-            if ( !m->deleted() )
-                ::log( "OCClient deleted mailbox " + m->name().ascii(),
-                       Log::Debug );
-            m->setDeleted( true );
-            m->refresh()->execute();
-        }
-        else if ( a->startsWith( "uidnext=" ) ) {
-            bool ok;
-            uint n = a->mid( 8 ).number( &ok );
-            if ( !ok ) {
-                ::log( "Unable to parse UIDNEXT value: " + a->mid( 8 ),
-                       Log::Error );
-            }
-            else if ( n > m->uidnext() ||
-                      ( n == 1 &&
-                        !Configuration::toggle( Configuration::Security ) ) ) {
-                uidnext = n;
-            }
-        }
-        else if ( a->startsWith( "nextmodseq=" ) ) {
-            bool ok;
-            uint n = a->mid( 11 ).number( &ok ); // XXX: eek! bigint!
-            if ( !ok ) {
-                ::log( "Unable to parse NEXTMODSEQ value: " + a->mid( 11 ),
-                       Log::Error );
-            }
-            else if ( n > m->nextModSeq() ||
-                      ( n == 1 &&
-                        !Configuration::toggle( Configuration::Security ) ) ) {
-                nextmodseq = n;
-            }
-        }
-        else {
-            ::log( "Unable to parse mailbox changes: " + arg, Log::Error );
-        }
-        ++a;
-    }
-    if ( uidnext && nextmodseq ) {
-        ::log( "OCClient set mailbox " + m->name().ascii() +
-               " to uidnext " + fn( uidnext ) +
-               " and nextmodseq " + fn( nextmodseq ), Log::Debug );
-        m->setUidnextAndNextModSeq( uidnext, nextmodseq );
-    }
-    else if ( uidnext ) {
-        ::log( "OCClient set mailbox " + m->name().ascii() +
-               " to uidnext " + fn( uidnext ), Log::Debug );
-        m->setUidnext( uidnext );
-    }
-    else if ( nextmodseq ) {
-        ::log( "OCClient set mailbox " + m->name().ascii() +
-               " to nextmodseq " + fn( nextmodseq ), Log::Debug );
-        m->setNextModSeq( nextmodseq );
-    }
 }
