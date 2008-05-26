@@ -233,15 +233,7 @@ void Database::runQueue()
 
         if ( st == Idle && it->usable() ) {
             it->processQueue();
-            if ( queries->isEmpty() &&
-                 it->self().protocol() != Endpoint::Unix ) {
-                // We dispatched the entire queue. Shorten the timeout
-                // on one idle handler, so we'll reduce the number of
-                // handlers if that seems sensible.
-                while ( it && !it->usable() )
-                    ++it;
-                if ( it )
-                    it->setTimeoutAfter( 5 );
+            if ( queries->isEmpty() ) {
                 queryQueueLength->setValue( 0 );
                 busyDbConnections->setValue( busy );
                 return;
@@ -512,6 +504,19 @@ void Database::reactToIdleness()
     }
     if ( !allIdle )
         return;
+
+    uint connectionsNeeded = 1;
+    if ( server().protocol() == Endpoint::Unix ) {
+        connectionsNeeded = handles->count();
+    }
+    else if ( ::busyDbConnections ) {
+        uint t = (uint)time( 0 )
+                 - Configuration::scalar( Configuration::DbHandleInterval );
+        connectionsNeeded = ::busyDbConnections->minimumSince( t );
+    }
+
+    if ( handles->count() > connectionsNeeded )
+        handles->lastElement()->setTimeoutAfter( 5 );
 
     List<EventHandler>::Iterator i( ::whenIdle );
     Allocator::removeEternal( ::whenIdle );
