@@ -442,6 +442,8 @@ bool Schema::singleStep()
         c = stepTo68(); break;
     case 68:
         c = stepTo69(); break;
+    case 69:
+        c = stepTo70(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3516,6 +3518,34 @@ bool Schema::stepTo69()
         d->t->enqueue( d->q );
         d->q = new Query( "alter table subscriptions add "
                           "unique(owner,mailbox)", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add a table to refer to mailboxes that sieve scripts depend on. */
+
+bool Schema::stepTo70()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Add a table to record sieve target mailboxes." );
+        d->q = new Query(
+            "create table fileinto_targets (id serial primary key,"
+            "script integer not null references scripts(id) on delete "
+            "cascade, mailbox integer not null references mailboxes(id),"
+            "unique(script, mailbox))", this
+        );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
