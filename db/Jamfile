@@ -4,7 +4,7 @@ SubDir TOP db ;
 SubInclude TOP server ;
 
 Build database : database.cpp postgres.cpp pgmessage.cpp cachelookup.cpp
-    query.cpp transaction.cpp schema.cpp ;
+    query.cpp transaction.cpp schema.cpp dbsignal.cpp ;
 
 if $(OS) != "OPENBSD" {
     UseLibrary postgres.cpp : crypt ;
