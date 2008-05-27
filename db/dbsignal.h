@@ -3,7 +3,7 @@
 #ifndef DBSIGNAL_H
 #define DBSIGNAL_H
 
-#include "string.h"
+#include "stringlist.h"
 
 class EventHandler;
 
@@ -15,6 +15,8 @@ public:
     DatabaseSignal( const String &, EventHandler * );
 
     static void notifyAll( const String & );
+
+    static StringList * names();
 
 private: // noone can destroy this
     ~DatabaseSignal();

@@ -407,4 +407,20 @@ private:
 };
 
 
+class PgNotificationResponse
+    : public PgServerMessage
+{
+public:
+    PgNotificationResponse( Buffer * );
+
+    String name() const;
+    String source() const;
+    uint pid() const;
+
+private:
+    String n, s;
+    uint p;
+};
+
+
 #endif

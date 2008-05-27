@@ -20,6 +20,8 @@ public:
 
     static uint version();
 
+    static void sendListen();
+
 private:
     class PgData *d;
 

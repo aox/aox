@@ -842,8 +842,8 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
             cv->type = Column::Bytes;
             break;
         default:
-            //log( Log::Error,
-            //     "PostgreSQL: Unknown field type " + fn( it->type ) );
+            log( "PostgreSQL: Unknown field type " + fn( it->type ),
+                 Log::Error );
             cv->type = Column::Unknown;
             break;
         }
@@ -1103,4 +1103,46 @@ void PgCopyDone::encodeData()
 void PgCopyFail::encodeData()
 {
     appendString( "Nothing to COPY" );
+}
+
+
+/*! \class PgNotificationResponse pgmessage.h
+
+    The frontend sends us this when someone has run notify, see
+    http://www.postgresql.org/docs/8.1/static/sql-notify.html and
+    http://www.postgresql.org/docs/8.1/static/protocol-message-formats.html
+
+    We invoke DatabaseSignal.
+*/
+
+PgNotificationResponse::PgNotificationResponse( Buffer * b )
+    : PgServerMessage( b )
+{
+    p = decodeInt32();
+    n = decodeString();
+    s = decodeString();
+}
+
+
+/*! Returns the NOTIFY argument without any quoting. */
+
+String PgNotificationResponse::name() const
+{
+    return n;
+}
+
+
+/*! Returns the notification source, usually an empty string. */
+
+String PgNotificationResponse::source() const
+{
+    return s;
+}
+
+
+/*! Returns the notification pid as specified by the server. */
+
+uint PgNotificationResponse::pid() const
+{
+    return p;
 }

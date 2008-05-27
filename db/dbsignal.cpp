@@ -2,9 +2,9 @@
 
 #include "dbsignal.h"
 
+#include "postgres.h"
 #include "event.h"
 #include "scope.h"
-#include "list.h"
 
 
 static List<DatabaseSignal> * signals = 0;
@@ -24,7 +24,7 @@ public:
 
     The DatabaseSignal class provides an interface to the PostgreSQL
     LISTEN command. By creating an instance of this class, you request
-    to be notified whenever anyone uses the corresponsing gp NOTIFY
+    to be notified whenever anyone uses the corresponsing pg NOTIFY
     command.
 
     This is an eternal object. Once you've done this, there is no
@@ -32,7 +32,7 @@ public:
 */
 
 
-/*! Constructs a DatabaseSignal for \a name which will notified \a
+/*! Constructs a DatabaseSignal for \a name which will notify \a
     owner. Forever.
 */
 
@@ -46,6 +46,7 @@ DatabaseSignal::DatabaseSignal( const String & name, EventHandler * owner )
         Allocator::addEternal( signals, "database notify/listen listeners" );
     }
     signals->append( this );
+    Postgres::sendListen();
 }
 
 
@@ -74,4 +75,21 @@ void DatabaseSignal::notifyAll( const String & name )
 
 DatabaseSignal::~DatabaseSignal()
 {
+}
+
+
+/*! Returns a non-null pointer to a list of all names used with the
+    constructor. This function allocates memory. The list may contain
+    duplicates.
+*/
+
+StringList * DatabaseSignal::names()
+{
+    StringList * r = new StringList;
+    List<DatabaseSignal>::Iterator i( signals );
+    while ( i ) {
+        r->append( i->d->n );
+        ++i;
+    }
+    return r;
 }

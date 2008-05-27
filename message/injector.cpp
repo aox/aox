@@ -18,7 +18,6 @@
 #include "transaction.h"
 #include "annotation.h"
 #include "allocator.h"
-#include "occlient.h"
 #include "session.h"
 #include "scope.h"
 #include "graph.h"
@@ -56,13 +55,12 @@ struct Uid
     : public Garbage
 {
     Uid( Mailbox * m )
-        : mailbox( m ), uid( 0 ), ms( 0 ), recentIn( 0 )
+        : mailbox( m ), uid( 0 ), ms( 0 )
     {}
 
     Mailbox * mailbox;
     uint uid;
     int64 ms;
-    Session * recentIn;
 };
 
 
@@ -243,9 +241,9 @@ public:
 
         Row * r = q->nextRow();
         (*li)->uid = r->getInt( "uidnext" );
-        if ( (*li)->uid > 0x7fff0000 ) {
+        if ( (*li)->uid > 0x7ff00000 ) {
             Log::Severity level = Log::Error;
-            if ( (*li)->uid > 0x7ffffff0 )
+            if ( (*li)->uid > 0x7fffff00 )
                 level = Log::Disaster;
             log( "Note: Mailbox " + (*li)->mailbox->name().ascii() +
                  " only has " + fn ( 0x7fffffff - (*li)->uid ) +
@@ -257,7 +255,7 @@ public:
         if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
             List<Session>::Iterator i( (*li)->mailbox->sessions() );
             if ( i ) {
-                (*li)->recentIn = i;
+                i->addRecent( (*li)->uid );
                 u = new Query( *incrUidnextWithRecent, 0 );
             }
         }
@@ -1459,8 +1457,11 @@ void Injector::execute()
 
     if ( d->state == LinkingAnnotations || d->transaction->failed() ) {
         // Now we just wait for everything to finish.
-        if ( d->state < AwaitingCompletion )
+        if ( d->state < AwaitingCompletion ) {
+            d->transaction->enqueue(
+                new Query( "notify mailboxes_updated", 0 ) );
             d->transaction->commit();
+        }
         d->state = AwaitingCompletion;
     }
 
@@ -2117,31 +2118,14 @@ void Injector::announce()
             MessageCache::insert( m, uid, d->message );
 
         while ( si ) {
-            if ( si == mi->recentIn )
-                si->addRecent( uid );
             MessageSet dummy;
             dummy.add( uid );
             si->addUnannounced( dummy );
             ++si;
         }
 
-
-        if ( m->uidnext() <= uid && m->nextModSeq() <= mi->ms ) {
+        if ( m->uidnext() <= uid || m->nextModSeq() <= mi->ms )
             m->setUidnextAndNextModSeq( 1+uid, 1+mi->ms );
-            OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
-                            "uidnext=" + fn( m->uidnext() ) + " "
-                            "nextmodseq=" + fn( m->nextModSeq() ) );
-        }
-        else if ( m->uidnext() <= uid ) {
-            m->setUidnext( 1 + uid );
-            OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
-                            "uidnext=" + fn( m->uidnext() ) );
-        }
-        else if ( m->nextModSeq() <= mi->ms ) {
-            m->setNextModSeq( 1 + mi->ms );
-            OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
-                            "nextmodseq=" + fn( m->nextModSeq() ) );
-        }
 
         ++mi;
     }

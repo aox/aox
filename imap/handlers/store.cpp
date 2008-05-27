@@ -439,7 +439,10 @@ void Store::execute()
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, m->id() );
         d->transaction->enqueue( q );
+        d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
         d->transaction->commit();
+        if ( d->silent )
+            imap()->session()->ignoreModSeq( d->modseq );
     }
 
     if ( !d->transaction->done() )
@@ -452,13 +455,8 @@ void Store::execute()
 
     // record the change so that views onto this mailbox update themselves
     Mailbox * mb = imap()->session()->mailbox();
-    if ( mb->nextModSeq() <= d->modseq ) {
-        if ( d->silent )
-            imap()->session()->ignoreModSeq( d->modseq );
+    if ( mb->nextModSeq() <= d->modseq )
         mb->setNextModSeq( d->modseq + 1 );
-        OCClient::send( "mailbox " + mb->name().utf8().quoted() + " "
-                        "nextmodseq=" + fn( d->modseq+1 ) );
-    }
 
     if ( !imap()->session()->initialised() )
         return;

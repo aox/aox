@@ -6,6 +6,7 @@
 #include "list.h"
 #include "string.h"
 #include "buffer.h"
+#include "dbsignal.h"
 #include "allocator.h"
 #include "configuration.h"
 #include "transaction.h"
@@ -28,6 +29,7 @@
 
 static bool hasMessage( Buffer * );
 static uint serverVersion;
+static Postgres * listener = 0;
 
 
 class PgData
@@ -38,7 +40,8 @@ public:
         : active( false ), startup( false ), authenticated( false ),
           unknownMessage( false ), identBreakageSeen( false ),
           setSessionAuthorisation( false ),
-          sendingCopy( false ), error( false ), keydata( 0 ),
+          sendingCopy( false ), error( false ), 
+          mustSendListen( false ), keydata( 0 ),
           description( 0 ), transaction( 0 ),
           needNotify( 0 )
     {}
@@ -51,6 +54,8 @@ public:
     bool setSessionAuthorisation;
     bool sendingCopy;
     bool error;
+    bool mustSendListen;
+    StringList listening;
 
     PgKeyData *keydata;
     PgRowDescription *description;
@@ -289,11 +294,18 @@ void Postgres::react( Event e )
             d->needNotify->notify();
         d->needNotify = 0;
 
+        if ( d->authenticated && !::listener ) {
+            ::listener = this;
+            sendListen();
+        }
+
         if ( usable() ) {
             processQueue();
             if ( d->queries.isEmpty() ) {
                 uint interval =
                     Configuration::scalar( Configuration::DbHandleInterval );
+                if ( ::listener == this )
+                    interval = interval * 2;
                 setTimeoutAfter( interval );
             }
         }
@@ -307,6 +319,8 @@ void Postgres::react( Event e )
     case Close:
         if ( d->active )
             error( "Connection terminated by the server." );
+        if ( ::listener == this )
+            ::listener = 0;
         break;
 
     case Timeout:
@@ -334,15 +348,15 @@ void Postgres::react( Event e )
                 }
             }
         }
-        else if ( server().protocol() != Endpoint::Unix ) {
-            if ( numHandles() == 1 ) {
-                extendTimeout( 10 );
-            }
-            else {
-                log( "Closing idle database handle (" +
-                     fn( numHandles()-1 ) + " remaining)" );
-                shutdown();
-            }
+        else if ( server().protocol() != Endpoint::Unix &&
+                  ::listener != this &&
+                  handlesNeeded() > numHandles() ) {
+            log( "Closing idle database handle (" +
+                 fn( numHandles()-1 ) + " remaining)" );
+            shutdown();
+        }
+        else {
+            extendTimeout( 10 );
         }
         break;
 
@@ -467,7 +481,7 @@ void Postgres::process( char type )
     case '1':
         {
             PgParseComplete msg( readBuffer() );
-            if ( q->name() != "" )
+            if ( q && q->name() != "" )
                 d->preparesPending.shift();
         }
         break;
@@ -595,6 +609,22 @@ void Postgres::process( char type )
 
             setState( msg.state() );
 
+        }
+        break;
+
+    case 'A':
+        {
+            PgNotificationResponse msg( readBuffer() );
+            String s;
+            if ( !msg.source().isEmpty() )
+                s = " (" + msg.source() + ")";
+            log( "Received notify " + msg.name().quoted() +
+                 " from server pid " + fn( msg.pid() ) + s, Log::Debug );
+            if ( d->transaction )
+                log( "A transaction is active, but that doesn't bother us" );
+            else if ( !d->queries.isEmpty() )
+                log( "One or more is/are active, but that doesn't bother us" );
+            DatabaseSignal::notifyAll( msg.name() );
         }
         break;
 
@@ -1074,4 +1104,34 @@ void Postgres::countQueries( class Query * q )
 uint Postgres::version()
 {
     return ::serverVersion;
+}
+
+
+/*! Makes sure Postgres sends as many LISTEN commands as necessary,
+    see DatabaseSignal and
+    http://www.postgresql.org/docs/8.1/static/sql-listen.html
+
+*/
+
+void Postgres::sendListen()
+{
+    if ( !::listener )
+        return;
+    ::listener->d->mustSendListen = true;
+    if ( ::listener->state() != Idle || ::listener->d->transaction )
+        return;
+    ::listener->d->mustSendListen = false;
+    StringList::Iterator s( DatabaseSignal::names() );
+    while ( s ) {
+        String name = *s;
+        ++s;
+        if ( !::listener->d->listening.contains( name ) ) {
+            ::listener->d->listening.append( name );
+            if ( !name.boring() )
+                name = name.quoted();
+            Query * q = new Query( "listen " + name, 0 );
+            ::listener->d->queries.append( q );
+            ::listener->processQuery( q );
+        }
+    }
 }

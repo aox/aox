@@ -152,6 +152,7 @@ void POP::setState( State s )
                                    this );
                     q->bind( 1, mailbox->id() );
                     t->enqueue( q );
+                    t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
                     t->commit();
                 }
 

@@ -98,15 +98,16 @@ public:
 MailboxReader::MailboxReader( EventHandler * ev, int64 c )
     : owner( ev ), query( 0 )
 {
-    query = new Query( "select m.id, m.deleted, m.owner, "
+    query = new Query( "select m.id, m.name, m.deleted, m.owner, "
                        "m.uidnext, m.nextmodseq, m.uidvalidity, "
                        "v.nextmodseq as viewnms, v.selector, "
-                       "0 as change " // better: m.change
+                       "v.view, v.source "
+                       //"m.change " // better: m.change
                        "from mailboxes m "
-                       "left join views v on (m.id=v.view) "
-                       "where change>=$1", // better: m.change
+                       "left join views v on (m.id=v.view) ",
+                       //"where change>=$1"
                        this );
-    query->bind( 1, c );
+    c = c; //query->bind( 1, c );
     query->execute();
 }
 
@@ -178,6 +179,7 @@ public:
     void execute() {
         if ( ::root->children() )
             ::root->children()->clear();
+        ::mailboxes->clear();
         new MailboxReader( 0, 0 );
     }
 };
@@ -200,8 +202,7 @@ void Mailbox::setup( EventHandler * owner )
     ::mailboxes = new Map<Mailbox>;
     Allocator::addEternal( ::mailboxes, "mailbox tree" );
 
-    MailboxReader * mr = new MailboxReader( owner, 0 );
-    mr->query->execute();
+    (void)new MailboxReader( owner, 0 );
 
     (void)new MailboxesWatcher;
     if ( !Configuration::toggle( Configuration::Security ) )
