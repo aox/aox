@@ -27,7 +27,7 @@ void ShowQueue::execute()
         database();
 
         String s(
-            "select distinct d.id, d.message, d.injected_at, "
+            "select distinct d.id, d.message, "
             "a.localpart||'@'||a.domain as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
             "(d.expires_at-current_timestamp)::text as expires_in, "
@@ -63,7 +63,7 @@ void ShowQueue::execute()
                     delivery, message, sender.cstr(), submitted.cstr() );
 
             String s(
-                "select last_attempt, action, status, "
+                "select action, status, "
                 "lower(a.domain) as domain, a.localpart, "
                 "a.localpart||'@'||a.domain as recipient "
                 "from delivery_recipients dr join addresses a "
