@@ -34,7 +34,7 @@ static const char * buildinfo[] = {
 
 
 static const char * servers[] = {
-    "logd", "ocd", "tlsproxy", "archiveopteryx"
+    "logd", "tlsproxy", "archiveopteryx"
 };
 static const int nservers = sizeof( servers ) / sizeof( servers[0] );
 

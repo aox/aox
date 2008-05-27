@@ -7,7 +7,6 @@
 #include "imapsession.h"
 #include "annotation.h"
 #include "messageset.h"
-#include "occlient.h"
 #include "mailbox.h"
 #include "message.h"
 #include "fetcher.h"

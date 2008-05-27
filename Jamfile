@@ -6,7 +6,6 @@ SubInclude TOP deliver ;
 SubInclude TOP doc ;
 SubInclude TOP encodings ;
 SubInclude TOP collations ;
-SubInclude TOP ocd ;
 SubInclude TOP logd ;
 SubInclude TOP aox ;
 SubInclude TOP server ;
@@ -25,7 +24,7 @@ if ( $(BUILDDOC) ) {
     SubInclude TOP udoc ;
 }
 
-Doc oryxdoc : core database schema encodings imap logd mailbox message ocd sasl
+Doc oryxdoc : core database schema encodings imap logd mailbox message sasl
     server smtp tls user http pop sieve extractors abnf collations ;
 
 if ( $(BUILDDOC) ) {
@@ -87,7 +86,7 @@ Message install ;
 if $(BUILDDOC) {
     local s u ;
     local exceptions = canonical msgdump munger renderer logdmain tests
-    addressparser whip cram subscribe deliver ocdmain aox recorder
+    addressparser whip cram subscribe deliver aox recorder
     cryptlib installer archiveopteryx aoximport dbtest ;
     for s in $(sets) {
         if ! $(s) in $(documented-sets) && ! $(s) in $(u) &&

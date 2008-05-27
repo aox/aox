@@ -15,7 +15,6 @@
 #include "mailbox.h"
 #include "listener.h"
 #include "database.h"
-#include "occlient.h"
 #include "fieldcache.h"
 #include "addresscache.h"
 #include "spoolmanager.h"
@@ -193,7 +192,6 @@ int main( int argc, char *argv[] )
     Mailbox::setup( w );
 
     TlsServer::setup();
-    OCClient::setup();
     AddressCache::setup();
     FieldNameCache::setup();
     SpoolManager::setup();

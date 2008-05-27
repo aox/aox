@@ -12,7 +12,6 @@
 #include "logclient.h"
 #include "eventloop.h"
 #include "injector.h"
-#include "occlient.h"
 #include "mailbox.h"
 #include "message.h"
 #include "query.h"
@@ -244,7 +243,6 @@ int main( int argc, char *argv[] )
     Mailbox::setup();
     AddressCache::setup();
     FieldNameCache::setup();
-    OCClient::setup();
     (void)new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
 

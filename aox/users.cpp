@@ -7,7 +7,6 @@
 #include "query.h"
 #include "address.h"
 #include "mailbox.h"
-#include "occlient.h"
 #include "transaction.h"
 #include "addresscache.h"
 
@@ -115,7 +114,6 @@ void CreateUser::execute()
             error( "At most one address may be present" );
 
         database( true );
-        OCClient::setup();
         AddressCache::setup();
         Mailbox::setup( this );
 
@@ -191,7 +189,6 @@ void DeleteUser::execute()
             error( "Invalid username: " + login.utf8() );
 
         database( true );
-        OCClient::setup();
         AddressCache::setup();
         Mailbox::setup( this );
 

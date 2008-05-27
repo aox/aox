@@ -11,7 +11,6 @@
 #include "mimefields.h"
 #include "imapparser.h"
 #include "bodypart.h"
-#include "occlient.h"
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
