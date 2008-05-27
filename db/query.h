@@ -122,7 +122,7 @@ class Column
     : public Garbage
 {
 public:
-    enum Type { Unknown, Boolean, Integer, Bigint, Bytes };
+    enum Type { Unknown, Boolean, Integer, Bigint, Bytes, Timestamp };
 
     String name;
     Type type;
