@@ -25,6 +25,7 @@ static uint backendNumber;
 List< Query > *Database::queries;
 static GraphableNumber * queryQueueLength = 0;
 static GraphableNumber * busyDbConnections = 0;
+static GraphableNumber * totalDbConnections = 0;
 static List< Database > *handles;
 static time_t lastExecuted;
 static time_t lastCreated;
@@ -311,6 +312,9 @@ Database::State Database::state() const
 void Database::addHandle( Database * d )
 {
     handles->append( d );
+    if ( !totalDbConnections )
+        totalDbConnections = new GraphableNumber( "total-db-connections" );
+    totalDbConnections->setValue( handles->count() );
 }
 
 
@@ -322,8 +326,12 @@ void Database::removeHandle( Database * d )
         return;
 
     handles->remove( d );
+    totalDbConnections->setValue( handles->count() );
     if ( !handles->isEmpty() )
         return;
+
+    if ( handlesNeeded() < handles->count() )
+        handles->lastElement()->setTimeoutAfter( 5 );
 
     List< Query >::Iterator q( queries );
     while ( q ) {
@@ -505,17 +513,7 @@ void Database::reactToIdleness()
     if ( !allIdle )
         return;
 
-    uint connectionsNeeded = 1;
-    if ( server().protocol() == Endpoint::Unix ) {
-        connectionsNeeded = handles->count();
-    }
-    else if ( ::busyDbConnections ) {
-        uint t = (uint)time( 0 )
-                 - Configuration::scalar( Configuration::DbHandleInterval );
-        connectionsNeeded = ::busyDbConnections->minimumSince( t );
-    }
-
-    if ( handles->count() > connectionsNeeded )
+    if ( handlesNeeded() < handles->count() )
         handles->lastElement()->setTimeoutAfter( 5 );
 
     List<EventHandler>::Iterator i( ::whenIdle );
@@ -622,4 +620,31 @@ void Database::checkAccess( EventHandler * owner )
 uint Database::currentRevision()
 {
     return 69;
+}
+
+
+/*! Returns the number of handles we think we need at this
+    time. Mostly computed based on recent work.
+*/
+
+uint Database::handlesNeeded()
+{
+    if ( server().protocol() == Endpoint::Unix || !::busyDbConnections )
+        return handles->count();
+
+    uint i = Configuration::scalar( Configuration::DbHandleInterval );
+    uint t = (uint)time( 0 );
+    // the maximum number we've needed in the past four minutes
+    uint needed = ::busyDbConnections->maximumSince( t - 2*i );
+    // the minimum number we had in the past two minutes
+    uint had = ::totalDbConnections->minimumSince( t - i );
+
+    // need all that we had?
+    if ( needed >= had )
+        return needed;
+
+    // we pretend to "need" a number somewhere between what we've
+    // needed and what we had, so that the number of handles will
+    // drop slowly.
+    return needed + (had-needed)*2/3;
 }

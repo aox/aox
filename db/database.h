@@ -36,6 +36,7 @@ public:
     virtual bool usable() const;
 
     static uint numHandles();
+    static uint handlesNeeded();
     static String type();
 
     uint connectionNumber() const;
