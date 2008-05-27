@@ -38,7 +38,7 @@ void ShowQueue::execute()
         if ( !opt( 'a' ) )
             s.append( "join delivery_recipients dr on (d.id=dr.delivery) "
                       "where dr.action=$1 or dr.action=$2 " );
-        s.append( "order by d.injected_at" );
+        s.append( "order by submitted" );
 
         q = new Query( s, this );
         if ( !opt( 'a' ) ) {
