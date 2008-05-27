@@ -411,6 +411,7 @@ void User::createHelper()
             d->q->bind( 1, m );
         }
         d->t->enqueue( d->q );
+        d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 
         Query * q1
             = new Query( "insert into aliases (address, mailbox) values "
@@ -451,9 +452,6 @@ void User::createHelper()
     else {
         d->state = Refreshed;
         d->result->setState( Query::Completed );
-
-        OCClient::send( "mailbox " +
-                        d->inbox->name().utf8().quoted() + " new" );
     }
 
     d->result->notify();

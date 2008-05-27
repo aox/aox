@@ -857,6 +857,11 @@ Multipart/signed automatic processing
   that as root CAs, using the keyservers to dig up intermediate keys.
 
 
+3.1.0: ?
+
+  Make Query::bind() completely binary.
+
+
 PGP automatic processing
 
   Apparently there are five different PGP wrapping formats. We could
