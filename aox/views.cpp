@@ -6,7 +6,6 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
-#include "occlient.h"
 #include "selector.h"
 #include "transaction.h"
 #include "addresscache.h"
@@ -61,7 +60,6 @@ void CreateView::execute()
             error( "Invalid search expression supplied." );
 
         database( true );
-        OCClient::setup();
         AddressCache::setup();
         Mailbox::setup( this );
 
@@ -120,8 +118,6 @@ void CreateView::execute()
 
     if ( d->t->failed() )
         error( "Couldn't create view: " + d->t->error() );
-
-    OCClient::send( "mailbox " + d->mv->name().utf8().quoted() + " new" );
 
     finish();
 }

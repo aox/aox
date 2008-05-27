@@ -4,7 +4,6 @@
 
 #include "transaction.h"
 #include "messageset.h"
-#include "occlient.h"
 #include "mailbox.h"
 #include "session.h"
 #include "query.h"
@@ -113,6 +112,7 @@ void Undelete::execute()
                           "nextmodseq=nextmodseq+1 where id=$1", this );
         d->q->bind( 1, d->m->id() );
         d->t->enqueue( d->q );
+        d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
         d->t->commit();
     }
 
@@ -138,22 +138,8 @@ void Undelete::execute()
             }
 
             Mailbox * m = d->m;
-            if ( m->uidnext() <= uidnext && m->nextModSeq() <= nextmodseq ) {
+            if ( m->uidnext() <= uidnext || m->nextModSeq() <= nextmodseq )
                 m->setUidnextAndNextModSeq( 1+uidnext, 1+nextmodseq );
-                OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
-                                "uidnext=" + fn( m->uidnext() ) + " "
-                                "nextmodseq=" + fn( m->nextModSeq() ) );
-            }
-            else if ( m->uidnext() <= uidnext ) {
-                m->setUidnext( 1 + uidnext );
-                OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
-                                "uidnext=" + fn( m->uidnext() ) );
-            }
-            else if ( m->nextModSeq() <= nextmodseq ) {
-                m->setNextModSeq( 1 + nextmodseq );
-                OCClient::send( "mailbox " + m->name().utf8().quoted() + " "
-                                "nextmodseq=" + fn( m->nextModSeq() ) );
-            }
         }
     }
 

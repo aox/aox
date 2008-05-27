@@ -5,7 +5,6 @@
 #include "imap.h"
 #include "user.h"
 #include "mailbox.h"
-#include "occlient.h"
 #include "transaction.h"
 
 
@@ -87,8 +86,6 @@ void Create::execute()
         error( No, "Database error: " + d->t->error() );
         return;
     }
-
-    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " new" );
 
     finish();
 }

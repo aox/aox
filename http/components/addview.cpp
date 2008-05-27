@@ -10,7 +10,6 @@
 #include "httpsession.h"
 #include "transaction.h"
 #include "permissions.h"
-#include "occlient.h"
 #include "mailbox.h"
 #include "webpage.h"
 #include "user.h"
@@ -115,7 +114,6 @@ void AddView::execute()
         setContents( d->t->error() );
     }
     else {
-        OCClient::send( "mailbox " + d->mv->name().utf8().quoted() + " new" );
         setContents( "OK" );
     }
 }

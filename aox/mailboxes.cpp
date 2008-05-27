@@ -6,7 +6,6 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
-#include "occlient.h"
 #include "stringlist.h"
 #include "transaction.h"
 #include "addresscache.h"
@@ -159,7 +158,6 @@ void CreateMailbox::execute()
             error( "No mailbox name supplied." );
 
         database( true );
-        OCClient::setup();
         AddressCache::setup();
         Mailbox::setup( this );
 
@@ -199,7 +197,6 @@ void CreateMailbox::execute()
     if ( d->t->failed() )
         error( "Couldn't create mailbox: " + d->t->error() );
 
-    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " new" );
     finish();
 }
 
@@ -243,7 +240,6 @@ void DeleteMailbox::execute()
             error( "No mailbox name supplied." );
 
         database( true );
-        OCClient::setup();
         AddressCache::setup();
         Mailbox::setup( this );
     }
@@ -267,6 +263,5 @@ void DeleteMailbox::execute()
     if ( d->t->failed() )
         error( "Couldn't delete mailbox: " + d->t->error() );
 
-    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " deleted" );
     finish();
 }

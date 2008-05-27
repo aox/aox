@@ -5,7 +5,6 @@
 #include "imapsession.h"
 #include "transaction.h"
 #include "messageset.h"
-#include "occlient.h"
 #include "mailbox.h"
 #include "query.h"
 #include "user.h"
@@ -190,6 +189,9 @@ void Copy::execute()
         q->bind( 2, tmailbox );
         d->transaction->enqueue( q );
 
+        q = new Query( "notify mailboxes_updated", 0 );
+        d->transaction->enqueue( q );
+
         d->transaction->commit();
     }
 
@@ -220,13 +222,8 @@ void Copy::execute()
     }
 
     uint next = d->firstUid + d->set.count();
-    if ( d->mailbox->uidnext() <= next ) {
+    if ( d->mailbox->uidnext() <= next )
         d->mailbox->setUidnextAndNextModSeq( next, d->modseq+1 );
-        OCClient::send( "mailbox " + d->mailbox->name().utf8().quoted() + " "
-                        "uidnext=" + fn( next ) + " "
-                        "nextmodseq=" + fn( d->modseq+1 ) );
-    }
-
 
     MessageSet target;
     target.add( d->firstUid, next - 1 );

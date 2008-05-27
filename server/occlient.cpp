@@ -113,14 +113,6 @@ void OCClient::parse()
             ::log( "Shutting down due to ocd request" );
             EventLoop::shutdown();
         }
-        else if ( msg == "caches" ) {
-            if ( arg == "refresh" ) {
-                ::log( "Refreshing caches" );
-                Flag::setup();
-                Cache::clearAllCaches();
-                OCClient::send( "caches refreshed" );
-            }
-        }
         s = readBuffer()->removeLine();
     }
 }

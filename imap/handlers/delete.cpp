@@ -7,7 +7,6 @@
 #include "query.h"
 #include "mailbox.h"
 #include "session.h"
-#include "occlient.h"
 #include "transaction.h"
 
 
@@ -115,8 +114,6 @@ void Delete::execute()
         error( No, "Database error: " + d->t->error() );
         return;
     }
-
-    OCClient::send( "mailbox " + d->m->name().utf8().quoted() + " deleted" );
 
     finish();
 }

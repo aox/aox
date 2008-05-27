@@ -8,7 +8,6 @@
 #include "query.h"
 #include "scope.h"
 #include "mailbox.h"
-#include "occlient.h"
 #include "messageset.h"
 #include "imapsession.h"
 #include "permissions.h"
@@ -176,11 +175,7 @@ void Expunge::execute()
         error( No, "Database error. Messages not expunged." );
 
     d->s->expunge( d->marked );
-    if ( d->s->mailbox()->nextModSeq() <= d->modseq ) {
+    if ( d->s->mailbox()->nextModSeq() <= d->modseq )
         d->s->mailbox()->setNextModSeq( d->modseq + 1 );
-        OCClient::send( "mailbox " +
-                        d->s->mailbox()->name().utf8().quoted() + " "
-                        "nextmodseq=" + fn( d->modseq+1 ) );
-    }
     finish();
 }
