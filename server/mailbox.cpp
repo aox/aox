@@ -561,8 +561,8 @@ void Mailbox::setOwner( uint n )
     performed - although uidnext should monotonically increase, this
     function gives you total liberty.
 
-    Only OCClient is meant to call this function. Calling it elsewhere
-    will likely disturb either OCClient, ocd, ImapSession or Arnt.
+    Only MailboxReader is meant to call this function. Calling it
+    elsewhere will likely disturb either Session or Arnt.
 */
 
 void Mailbox::setUidnext( uint n )
@@ -589,11 +589,7 @@ void Mailbox::setUidnextAndNextModSeq( uint n, int64 m )
 }
 
 
-/*! Changes this Mailbox's deletedness to \a del.
-
-    Only OCClient is *meant* to call this function -- see setUidnext().
-    But don't check to see if that's really true.
-*/
+/*! Changes this Mailbox's deletedness to \a del. */
 
 void Mailbox::setDeleted( bool del )
 {

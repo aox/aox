@@ -9,7 +9,6 @@
 #include "eventloop.h"
 #include "logclient.h"
 #include "listener.h"
-#include "occlient.h"
 #include "entropy.h"
 #include "buffer.h"
 #include "server.h"

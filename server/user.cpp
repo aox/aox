@@ -9,7 +9,6 @@
 #include "configuration.h"
 #include "transaction.h"
 #include "addresscache.h"
-#include "occlient.h"
 
 
 class UserData

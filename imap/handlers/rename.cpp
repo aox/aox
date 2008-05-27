@@ -7,7 +7,6 @@
 #include "entropy.h"
 #include "mailbox.h"
 #include "session.h"
-#include "occlient.h"
 #include "permissions.h"
 #include "transaction.h"
 
