@@ -76,14 +76,6 @@ public:
         Result evaluate( SieveTest * );
     };
 
-    class Trampoline
-        : public EventHandler
-    {
-    public:
-        Trampoline(): EventHandler() {}
-        void execute() { SpoolManager::run(); }
-    };
-
     Address * sender;
     List<Recipient> recipients;
     Recipient * currentRecipient;
@@ -282,8 +274,6 @@ void Sieve::execute()
     if ( d->state == 2 ) {
         if ( d->mainInjector && !d->mainInjector->done() )
             return;
-        if ( !forwarded()->isEmpty() && vacations()->isEmpty() )
-            SpoolManager::run();
         d->state = 3;
         if ( d->handler )
             d->handler->execute();
@@ -335,8 +325,7 @@ void Sieve::execute()
             q->bind( 5, e.isoDateTime() );
             q->bind( 6, i->handle() );
             q->execute();
-            Injector * v = new Injector( i->message(),
-                                         new SieveData::Trampoline );
+            Injector * v = new Injector( i->message(), 0 );
             v->setLog( new Log( Log::Database ) );
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );

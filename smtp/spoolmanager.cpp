@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "mailbox.h"
 #include "entropy.h"
+#include "dbsignal.h"
 #include "recipient.h"
 #include "deliveryagent.h"
 #include "configuration.h"
@@ -46,7 +47,7 @@ public:
     either succeeds, or is permanently abandoned.
 
     Each archiveopteryx process has only one instance of this class,
-    which is created the first time SpoolManager::run() is called.
+    which is created by SpoolManager::setup().
 */
 
 SpoolManager::SpoolManager()
@@ -210,30 +211,6 @@ void SpoolManager::reset()
 }
 
 
-/*! Causes the spool manager to re-examine the queue and attempt to make
-    one or more deliveries, if possible.
-*/
-
-void SpoolManager::run()
-{
-    if ( ::shutdown ) {
-        ::log( "Will not send spooled mail due to earlier database problem",
-               Log::Error );
-        return;
-    }
-    if ( !::sm ) {
-        ::sm = new SpoolManager;
-        Allocator::addEternal( ::sm, "spool manager" );
-    }
-    if ( ::sm->d->t ) {
-        Scope x( ::sm->d->log );
-        ::sm->log( "Forcing immediate queue run", Log::Debug );
-        ::sm->reset();
-    }
-    ::sm->execute();
-}
-
-
 /*! Creates a SpoolManager object and a timer to ensure that it's
     started once (after which it will ensure that it wakes up once
     in a while). This function expects to be called from ::main().
@@ -241,11 +218,13 @@ void SpoolManager::run()
 
 void SpoolManager::setup()
 {
-    if ( !::sm ) {
-        ::sm = new SpoolManager;
-        Allocator::addEternal( ::sm, "spool manager" );
-    }
+    if ( ::sm )
+        return;
+    
+    ::sm = new SpoolManager;
+    Allocator::addEternal( ::sm, "spool manager" );
     Database::notifyWhenIdle( sm );
+    (void)new DatabaseSignal( "deliveries_updated", sm );
 }
 
 

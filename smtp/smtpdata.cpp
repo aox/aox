@@ -287,8 +287,6 @@ void SmtpData::execute()
                 respond( 250, d->ok, "2.0.0" );
         }
 
-        SpoolManager::run();
-
         finish();
         server()->reset();
     }

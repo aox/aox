@@ -1915,6 +1915,8 @@ void Injector::insertDeliveries()
         d->transaction->enqueue( q );
         ++i;
     }
+
+    d->transaction->enqueue( new Query( "notify deliveries_updated", 0 ) );
 }
 
 
