@@ -59,10 +59,6 @@ SpoolManager::SpoolManager()
 
 void SpoolManager::execute()
 {
-    // Start a queue run only when the Timer wakes us
-    if ( d->t && d->t->active() )
-        return;
-
     Scope x( d->log );
 
     // Find the number of seconds until we need to retry any existing
