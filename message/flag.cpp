@@ -3,6 +3,7 @@
 #include "flag.h"
 
 #include "allocator.h"
+#include "dbsignal.h"
 #include "string.h"
 #include "query.h"
 #include "dict.h"
@@ -24,6 +25,26 @@ public:
     EventHandler * o;
     Query * q;
 };
+
+
+class FlagObliterator
+    : public EventHandler
+{
+public:
+    FlagObliterator(): EventHandler() {
+        setLog( new Log( Log::Server ) );
+        (void)new DatabaseSignal( "obliterated", this );
+    }
+    void execute() {
+        if ( ::flagsByName )
+            ::flagsByName->clear();
+        if ( ::flagsById )
+            ::flagsById->clear();
+        ::largestFlagId = 0;
+        (void)new FlagFetcher( 0 );
+    }
+};
+  
 
 
 /*! \class FlagFetcher flag.h
@@ -52,6 +73,8 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
     d->q->execute();
     if ( ::flagsByName )
         return;
+    if ( !Configuration::toggle( Configuration::Security ) ) 
+        (void)new FlagObliterator;
     ::flagsByName = new Dict<Flag>( 400 );
     Allocator::addEternal( ::flagsByName, "list of flags by name" );
     ::flagsById = new Map<Flag>;
@@ -185,11 +208,6 @@ Flag * Flag::find( uint id )
 
 void Flag::setup()
 {
-    if ( ::flagsByName )
-        ::flagsByName->clear();
-    if ( ::flagsById )
-        ::flagsById->clear();
-    ::largestFlagId = 0;
     (void)new FlagFetcher( 0 );
 }
 
