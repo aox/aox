@@ -1200,4 +1200,14 @@ aox.org/clients/
   That's it, right?
 
 
+aox undelete is almost useless
+
+  Sure, it does the job, but finding the message to undelete demands a
+  more intimate knowledge of our schema than justified. Every time I've
+  needed to use it, I've wanted to undelete a message I've trashed a few
+  seconds earlier by mistake. aox undelete could easily take a mailbox
+  and tell me the from/subject and uid of the most recently deleted n
+  messages. That would make it a whole lot more useful.
+
+
 
