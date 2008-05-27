@@ -287,8 +287,6 @@ void SmtpData::execute()
                 respond( 250, d->ok, "2.0.0" );
         }
 
-        SpoolManager::run();
-
         finish();
         server()->reset();
     }
@@ -307,9 +305,13 @@ bool SmtpData::addressPermitted( Address * a ) const
     if ( a->type() == Address::Local || a->type() == Address::Invalid )
         return false;
 
+    bool sub = Configuration::toggle( Configuration::UseSubaddressing );
+
     if ( a->type() ==  Address::Normal ) {
         String ad = a->domain().lower();
         String al = a->localpart().lower();
+        if ( sub )
+            al = al.section( Configuration::text( Configuration::AddressSeparator ), 1 );
         List<Address>::Iterator p( server()->permittedAddresses() );
         while ( p &&
                 al != p->localpart().lower() &&

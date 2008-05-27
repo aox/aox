@@ -1023,6 +1023,9 @@ String Column::typeName( Type type )
     case Bytes:
         n = "string";
         break;
+    case Timestamp:
+        n = "timestamptz";
+        break;
     }
     return n;
 }

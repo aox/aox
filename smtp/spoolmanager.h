@@ -14,7 +14,6 @@ public:
 
     void execute();
 
-    static void run();
     static void setup();
     static void shutdown();
 

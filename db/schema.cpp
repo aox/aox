@@ -3506,18 +3506,12 @@ bool Schema::stepTo69()
 {
     if ( d->substate == 0 ) {
         describeStep( "Make subscriptions:(owner,mailbox) unique." );
-        d->q = new Query( "create aggregate array_accum "
-                          "(basetype=anyelement, sfunc=array_append,"
-                          " stype=anyarray, initcond='{}')", this );
-        d->t->enqueue( d->q );
-        d->q = new Query( "delete from subscriptions where ctid in "
-                          "(select d.ctid from subscriptions d join "
-                          "(select owner,mailbox,array_accum(ctid) as tids "
-                          "from subscriptions group by owner,mailbox "
-                          "having count(*)>1) ds using (owner,mailbox) where "
-                          "not (d.ctid=tids[1]))", this );
-        d->t->enqueue( d->q );
-        d->q = new Query( "drop aggregate array_accum (anyelement)", this );
+        d->q = new Query(
+            "delete from subscriptions where id in (select distinct "
+            "s1.id from subscriptions s1 join subscriptions s2 "
+            "using (owner,mailbox) where s1.id>s2.id)",
+            this
+        );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table subscriptions add "
                           "unique(owner,mailbox)", this );

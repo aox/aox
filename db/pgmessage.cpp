@@ -841,6 +841,9 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
         case 1043:  // VARCHAR
             cv->type = Column::Bytes;
             break;
+        case 1184:
+            cv->type = Column::Timestamp;
+            break;
         default:
             log( "PostgreSQL: Unknown field type " + fn( it->type ),
                  Log::Error );

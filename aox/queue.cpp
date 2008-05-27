@@ -27,7 +27,7 @@ void ShowQueue::execute()
         database();
 
         String s(
-            "select distinct d.id, d.message, d.injected_at, "
+            "select distinct d.id, d.message, "
             "a.localpart||'@'||a.domain as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
             "(d.expires_at-current_timestamp)::text as expires_in, "
@@ -38,7 +38,7 @@ void ShowQueue::execute()
         if ( !opt( 'a' ) )
             s.append( "join delivery_recipients dr on (d.id=dr.delivery) "
                       "where dr.action=$1 or dr.action=$2 " );
-        s.append( "order by d.injected_at" );
+        s.append( "order by submitted" );
 
         q = new Query( s, this );
         if ( !opt( 'a' ) ) {
@@ -63,7 +63,7 @@ void ShowQueue::execute()
                     delivery, message, sender.cstr(), submitted.cstr() );
 
             String s(
-                "select last_attempt, action, status, "
+                "select action, status, "
                 "lower(a.domain) as domain, a.localpart, "
                 "a.localpart||'@'||a.domain as recipient "
                 "from delivery_recipients dr join addresses a "
