@@ -7,6 +7,7 @@
 #include "imapsession.h"
 #include "annotation.h"
 #include "messageset.h"
+#include "selector.h"
 #include "mailbox.h"
 #include "message.h"
 #include "fetcher.h"
@@ -28,7 +29,7 @@ public:
           checkedPermission( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
-          modSeqQuery( 0 ), obtainModSeq( 0 ),
+          modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
           transaction( 0 ), flagCreator( 0 ), annotationNameCreator( 0 )
     {}
     MessageSet s;
@@ -47,6 +48,7 @@ public:
     int64 modseq;
     Query * modSeqQuery;
     Query * obtainModSeq;
+    Query * findSet;
 
     Transaction * transaction;
     List<Flag> flags;
@@ -300,10 +302,8 @@ void Store::execute()
     else
         error( No, "Left selected mode during execution" );
 
-    if ( d->s.isEmpty() ) {
-        if ( !d->expunged.isEmpty() )
-            error( No, "Cannot store on expunged messages" );
-        finish();
+    if ( !d->expunged.isEmpty() ) {
+        error( No, "Cannot store on expunged messages" );
         return;
     }
 
@@ -351,37 +351,53 @@ void Store::execute()
     if ( !ok() || !permitted() )
         return;
 
-    if ( d->seenUnchangedSince ) {
-        if ( !d->modSeqQuery ) {
-            d->modSeqQuery
-                = new Query( "select uid from mailbox_messages "
-                             "where mailbox=$1 and modseq>$2 "
-                             "and " + d->s.where(),
-                             this );
-            d->modSeqQuery->bind( 1, m->id() );
-            d->modSeqQuery->bind( 2, d->unchangedSince );
-            d->modSeqQuery->execute();
-        }
-        Row * r;
-        while ( (r=d->modSeqQuery->nextRow()) != 0 )
-            d->modified.add( r->getInt( "uid" ) );
-        if ( !d->modSeqQuery->done() )
-            return;
-        d->s.remove( d->modified );
+    if ( !d->transaction ) {
+        d->transaction = new Transaction( this );
 
-        MessageSet s;
-        if ( d->uid ) {
-            s.add( d->modified );
-        }
-        else {
-            uint i = 1;
-            while ( i <= d->modified.count() ) {
-                s.add( imap()->session()->msn( d->modified.value( i ) ) );
-                i++;
+        Selector * work = new Selector;
+        work->add( new Selector( d->s ) );
+        Selector * n = new Selector( Selector::Not );
+        work->add( n );
+        Selector * s = new Selector( Selector::Or );
+        n->add( s );
+        if ( d->seenUnchangedSince )
+            s->add( new Selector( Selector::Modseq, Selector::Larger,
+                                  d->unchangedSince ) );
+        if ( d->op == StoreData::AddFlags ) {
+            StringList::Iterator i( d->flagNames );
+            while ( i ) {
+                s->add( new Selector( Selector::Flags, Selector::Contains,
+                                      *i ) );
+                ++i;
             }
         }
-        setRespTextCode( "MODIFIED " + s.set() );
+        else if ( d->op == StoreData::RemoveFlags ) {
+            StringList::Iterator i( d->flagNames );
+            while ( i ) {
+                n = new Selector( Selector::Not );
+                s->add( n );
+                n->add( new Selector( Selector::Flags, Selector::Contains,
+                                      *i ) );
+                ++i;
+            }
+        }
+        // ReplaceFlags can't be optimised because Selector is too
+        // weak. ReplaceAnnotations is not worth optimising - noone
+        // uses it.
+        work->simplify();
+        StringList r;
+        r.append( "uid" );
+        d->findSet = work->query( imap()->user(), m, 0, this, false, &r );
+        d->findSet->setString( "select uid from mailbox_messages "
+                               "where uid in (" + d->findSet->string() + ")"
+                               " for update" );
+        d->transaction->enqueue( d->findSet );
+        d->transaction->execute();
+        d->s.clear();
     }
+
+    while ( d->findSet->hasResults() )
+        d->s.add( d->findSet->nextRow()->getInt( "uid" ) );
 
     if ( d->op == StoreData::ReplaceAnnotations ) {
         if ( !processAnnotationNames() )
@@ -392,13 +408,24 @@ void Store::execute()
             return;
     }
 
-    if ( !d->transaction ) {
-        d->transaction = new Transaction( this );
+    if ( !d->findSet->done() )
+        return;
+
+    if ( !d->obtainModSeq ) {
+        if ( d->s.isEmpty() ) {
+            // no messages need to be changed. we'll just say OK
+            log( "No messages need changing", Log::Debug );
+            d->transaction->commit();
+            finish();
+            return;
+        }
+          
         d->obtainModSeq
             = new Query( "select nextmodseq from mailboxes "
                          "where id=$1 for update", this );
         d->obtainModSeq->bind( 1, m->id() );
         d->transaction->enqueue( d->obtainModSeq );
+
         switch( d->op ) {
         case StoreData::ReplaceFlags:
             replaceFlags();
@@ -418,7 +445,7 @@ void Store::execute()
 
     if ( !d->obtainModSeq->done() )
         return;
-
+    
     if ( !d->modseq ) {
         Row * r = d->obtainModSeq->nextRow();
         if ( !r ) {
@@ -428,18 +455,21 @@ void Store::execute()
         d->modseq = r->getBigint( "nextmodseq" );
         Query * q = 0;
         q = new Query( "update mailbox_messages set modseq=$1 "
-                       "where mailbox=$2 and (" + d->s.where() + ")", 0 );
+                       "where mailbox=$2 and uid=any($3)", 0 );
         q->bind( 1, d->modseq );
         q->bind( 2, m->id() );
+        q->bind( 3, d->s );
         d->transaction->enqueue( q );
-        // XXX for no inherent reason this prevents multimailbox views.
+
         q = new Query( "update mailboxes set nextmodseq=$1 "
                        "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, m->id() );
         d->transaction->enqueue( q );
+
         d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
         d->transaction->commit();
+
         if ( d->silent )
             imap()->session()->ignoreModSeq( d->modseq );
     }
@@ -452,10 +482,8 @@ void Store::execute()
         return;
     }
 
-    // record the change so that views onto this mailbox update themselves
-    Mailbox * mb = imap()->session()->mailbox();
-    if ( mb->nextModSeq() <= d->modseq )
-        mb->setNextModSeq( d->modseq + 1 );
+    if ( m->nextModSeq() <= d->modseq )
+        m->setNextModSeq( d->modseq + 1 );
 
     if ( !imap()->session()->initialised() )
         return;
@@ -525,37 +553,22 @@ bool Store::processAnnotationNames()
 
 void Store::removeFlags( bool opposite )
 {
-    Mailbox * m = imap()->session()->mailbox();
-    MessageSet s( d->s );
-
-    String flags;
+    List<uint> flags;
     List<Flag>::Iterator it( d->flags );
-    if ( it ) {
-        if ( opposite )
-            flags = "not";
-        String sep( "(flag=" );
-        while( it ) {
-            flags.append( sep );
-            flags.append( fn( it->id() ) );
-            if ( sep[0] != ' ' )
-                sep = " or flag=";
-            ++it;
-        }
-        flags.append( ")" );
-    }
-    else {
-        flags.append( "flag" );
-        if ( opposite )
-            flags.append( "<>" );
-        else
-            flags.append( "=" );
-        flags.append( "0" );
+    while ( it ) {
+        flags.append( new uint( it->id() ) );
+        ++it;
     }
 
-    Query * q = new Query( "delete from flags where mailbox=$1 and " +
-                           flags + " and (" + s.where() + ")",
-                           this );
-    q->bind( 1, m->id() );
+    String s = "delete from flags where mailbox=$1 and uid=any($2) and ";
+    if ( opposite )
+        s.append( "not " );
+    s.append( "flag=any($3)" );
+    
+    Query * q = new Query( s, 0 );
+    q->bind( 1, imap()->session()->mailbox()->id() );
+    q->bind( 2, d->s );
+    q->bind( 3, &flags );
     d->transaction->enqueue( q );
 }
 
@@ -563,9 +576,6 @@ void Store::removeFlags( bool opposite )
 /*! Returns a Query which will ensure that all messages in \a s in \a
     m have the \a f flag set. The query will notify event handler \a h
     when it's done.
-
-    Like removeFlags(), this could be optimized by the use of
-    PreparedStatement for the most common case.
 */
 
 Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
@@ -576,14 +586,11 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
                    "select $1,mm.uid,$2 from mailbox_messages mm "
                    "left join flags f on "
                    " (mm.mailbox=f.mailbox and mm.uid=f.uid and f.flag=$1) "
-                   "where "
-                   "f.flag is null and mm.mailbox=$2 and "
-                   "mm.uid>=$3 and mm.uid<=$4 and (" + s.where( "mm" ) + ")",
+                   "where f.flag is null and mm.mailbox=$2 and mm.uid=any($3)",
                    h );
     q->bind( 1, f->id() );
     q->bind( 2, m->id() );
-    q->bind( 3, s.smallest() );
-    q->bind( 4, s.largest() );
+    q->bind( 3, s );
     return q;
 }
 
@@ -598,8 +605,7 @@ void Store::addFlags()
 
     List<Flag>::Iterator it( d->flags );
     while ( it ) {
-        Query * q = addFlagsQuery( it, m, s, this );
-        d->transaction->enqueue( q );
+        d->transaction->enqueue( addFlagsQuery( it, m, s, 0 ) );
         ++it;
     }
 }
@@ -633,51 +639,53 @@ void Store::replaceAnnotations()
     MessageSet s( d->s );
 
     List<Annotation>::Iterator it( d->annotations );
-    String w = s.where();
     User * u = imap()->user();
     while ( it ) {
         Query * q;
         if ( it->value().isEmpty() ) {
-            String o = "owner=$3";
+            String o = "owner=$4";
             if ( !it->ownerId() )
                 o = "owner is null";
             q = new Query( "delete from annotations where "
-                           "mailbox=$1 and (" + w + ") and "
-                           "name=$2 and " + o, 0 );
+                           "mailbox=$1 and uid=any($2) and "
+                           "name=$3 and " + o, 0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->entryName()->id() );
+            q->bind( 2, d->s );
+            q->bind( 3, it->entryName()->id() );
             if ( it->ownerId() )
-                q->bind( 3, u->id() );
+                q->bind( 4, u->id() );
             d->transaction->enqueue( q );
         }
         else {
-            String o( "owner=$4" );
+            String o( "owner=$5" );
             if ( !it->ownerId() )
                 o = "owner is null";
-            String existing( "where mailbox=$1 and (" + w + ") and "
-                             "name=$2 and " + o );
-            q = new Query( "update annotations set value=$3 " + existing, 0 );
-            q->bind( 1, m->id() );
-            q->bind( 2, it->entryName()->id() );
-            bind( q, 3, it->value() );
+            String existing( "where mailbox=$2 and uid=any($3) and "
+                             "name=$4 and " + o );
+            q = new Query( "update annotations set value=$1 " + existing, 0 );
+            bind( q, 1, it->value() );
+            q->bind( 2, m->id() );
+            q->bind( 3, d->s );
+            q->bind( 4, it->entryName()->id() );
             if ( it->ownerId() )
-                q->bind( 4, u->id() );
+                q->bind( 5, u->id() );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into annotations "
                            "(mailbox, uid, name, value, owner) "
-                           "select $1,uid,$2,$3,$4 "
+                           "select $2,uid,$4,$1,$5 "
                            "from mailbox_messages where "
-                           "mailbox=$1 and (" + w + ") and uid not in "
+                           "mailbox=$2 and uid=any($3) and uid not in "
                            "(select uid from annotations " + existing + ")",
                            0 );
-            q->bind( 1, m->id() );
-            q->bind( 2, it->entryName()->id() );
-            bind( q, 3, it->value() );
+            bind( q, 1, it->value() );
+            q->bind( 2, m->id() );
+            q->bind( 3, d->s );
+            q->bind( 4, it->entryName()->id() );
             if ( it->ownerId() )
-                q->bind( 4, it->ownerId() );
+                q->bind( 5, it->ownerId() );
             else
-                q->bindNull( 4 );
+                q->bindNull( 5 );
             d->transaction->enqueue( q );
         }
         ++it;
