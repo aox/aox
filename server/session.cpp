@@ -539,7 +539,7 @@ void SessionInitialiser::findSessions()
         ++i;
     }
     if ( d->newUidnext <= d->oldUidnext &&
-         d->newModSeq <= d->oldUidnext )
+         d->newModSeq <= d->oldModSeq )
         d->sessions.clear();
 }
 
