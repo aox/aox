@@ -596,6 +596,46 @@ MessageSet * Fetcher::findUids()
 }
 
 
+static void bindUids( Query * q, uint n, MessageSet * s1, Selector * s2 )
+{
+    bool one = false;
+    if ( s1 && s1->count() == 1 )
+        one = true;
+    else if ( !s1 && s2->messageSet().count() == 1 )
+        one = true;
+    if ( one ) {
+        String s = q->string();
+        s.replace( "=any($" + fn( n ) + ")", "=$" + fn( n ) );
+        q->setString( s );
+        if ( s1 )
+            q->bind( n, s1->smallest() );
+        else
+            q->bind( n, s2->messageSet().smallest() );
+    }
+    else {
+        if ( s1 )
+            q->bind( n, *s1 );
+        else
+            q->bind( n, s2->messageSet() );
+    }
+}
+
+
+static void bindBatchIds( Query * q, uint n, List<uint> * l )
+{
+    if ( l->firstElement() &&
+         l->firstElement() == l->lastElement() ) {
+        String s = q->string();
+        s.replace( "=any($" + fn( n ) + ")", "=$" + fn( n ) );
+        q->setString( s );
+        q->bind( n, *l->firstElement() );
+    }
+    else {
+        q->bind( n, l );
+    }
+}
+
+
 /*! Issues the necessary selects to retrieve data and feed the
     decoders. This function is clever about the source (one of the
     temporary tables or the original Selector) and does some
@@ -625,10 +665,7 @@ void Fetcher::makeQueries()
                  "order by mailbox, uid, flag";
             q = new Query( r, d->flags );
             q->bind( 1, d->mailbox->id() );
-            if ( uids )
-                q->bind( 2, *uids );
-            else
-                q->bind( 2, d->selector->messageSet() );
+            bindUids( q, 2, uids, d->selector );
         }
         else {
             // we're selecting complexly and not using
@@ -665,10 +702,7 @@ void Fetcher::makeQueries()
                            "order by a.mailbox, a.uid",
                            d->annotations );
             q->bind( 1, d->mailbox->id() );
-            if ( uids )
-                q->bind( 2, *uids );
-            else
-                q->bind( 2, d->selector->messageSet() );
+            bindUids( q, 2, uids, d->selector );
         }
         else {
             // we're selecting complexly and not using batches. perhaps
@@ -747,7 +781,7 @@ void Fetcher::makeQueries()
                            "where af.message=any($1) "
                            "order by af.message, af.part, af.field, af.number",
                            d->addresses );
-            q->bind( 1, d->batchIds );
+            bindBatchIds( q, 1, d->batchIds );
         }
         q->execute();
         d->addresses->q = q;
@@ -774,7 +808,7 @@ void Fetcher::makeQueries()
                            "where hf.message=any($1) "
                            "order by hf.message, hf.part",
                            d->otherheader );
-            q->bind( 1, d->batchIds );
+            bindBatchIds( q, 1, d->batchIds );
         }
         q->execute();
         d->otherheader->q = q;
@@ -806,7 +840,7 @@ void Fetcher::makeQueries()
                            "left join bodyparts bp on (pn.bodypart=bp.id) "
                            "where bp.id is not null and pn.message=any($1)",
                            d->body );
-            q->bind( 1, d->batchIds );
+            bindBatchIds( q, 1, d->batchIds );
         }
         q->execute();
         d->body->q = q;
@@ -830,7 +864,7 @@ void Fetcher::makeQueries()
         else {
             q = new Query( "select id as message, rfc822size "
                            "from messages where id=any($1)", d->trivia );
-            q->bind( 1, d->batchIds );
+            bindBatchIds( q, 1, d->batchIds );
         }
         q->execute();
         d->trivia->q = q;
