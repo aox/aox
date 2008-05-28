@@ -158,7 +158,8 @@ void SmtpData::execute()
         server()->sieve()->setMessage( message( server()->body() ),
                                        server()->transactionTime() );
         if ( server()->dialect() == SMTP::Submit &&
-             d->message->error().isEmpty() ) {
+             d->message->error().isEmpty() &&
+             Configuration::toggle( Configuration::CheckSenderAddresses ) ) {
             // a syntactically acceptable message has been submitted.
             // does it use the right addresses?
             checkField( HeaderField::From );
