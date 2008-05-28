@@ -171,17 +171,18 @@ void ImapSession::emitUidnext()
     }
     d->exists = x;
 
+    uint n = uidnext();
+    if ( n <= d->uidnext )
+        return;
+
     uint r = recent().count();
     if ( d->recent != r || !d->uidnext ) {
         d->recent = r;
         enqueue( "* " + fn( r ) + " RECENT\r\n" );
     }
 
-    uint n = uidnext();
-    if ( n > d->uidnext ) {
-        d->uidnext = n;
-        enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
-    }
+    d->uidnext = n;
+    enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
 }
 
 
