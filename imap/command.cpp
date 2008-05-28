@@ -1020,8 +1020,14 @@ void Command::shrink( MessageSet * set )
     if ( !s || !set || set->isEmpty() )
         return;
 
-    set->remove( s->expunged() );
-    *set = set->intersection( s->messages() );
+    MessageSet r = *set;
+    r.remove( s->expunged() );
+    r = r.intersection( s->messages() );
+    if ( r.count() < set->count() )
+        log( "shrink() removed " + fn( set->count() - r.count() ) +
+             " messages: " + set->set() + " - " + s->expunged().set() +
+             " - " + s->messages().set() + " - " + r.set(), Log::Debug );
+    *set = r;
 }
 
 
