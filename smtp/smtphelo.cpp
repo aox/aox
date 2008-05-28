@@ -48,7 +48,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         respond( 0, "PIPELINING" );
         respond( 0, "8BITMIME" );
         respond( 0, "CHUNKING" );
-        if ( !s->hasTls() )
+        if ( !s->hasTls() && Configuration::toggle( Configuration::UseTls ) )
             respond( 0, "STARTTLS" );
         respond( 0, "SIZE" );
         respond( 0, "DSN" );
