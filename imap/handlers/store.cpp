@@ -32,6 +32,7 @@ public:
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
           transaction( 0 ), flagCreator( 0 ), annotationNameCreator( 0 )
     {}
+    MessageSet specified;
     MessageSet s;
     MessageSet expunged;
     MessageSet modified;
@@ -113,9 +114,9 @@ Store::Store( IMAP * imap, const MessageSet & set, bool silent )
 void Store::parse()
 {
     space();
-    d->s = set( !d->uid );
-    d->expunged = imap()->session()->expunged().intersection( d->s );
-    shrink( &d->s );
+    d->specified = set( !d->uid );
+    d->expunged = imap()->session()->expunged().intersection( d->specified );
+    shrink( &d->specified );
     space();
 
     if ( present( "(" ) ) {
@@ -187,7 +188,7 @@ void Store::parse()
     if ( !ok() )
         return;
     String l( "Store " );
-    l.append( fn( d->s.count() ) );
+    l.append( fn( d->specified.count() ) );
     switch( d->op ) {
     case StoreData::AddFlags:
         l.append( ": add flags " );
@@ -302,7 +303,7 @@ void Store::execute()
     else
         error( No, "Left selected mode during execution" );
 
-    if ( !d->expunged.isEmpty() ) {
+    if ( !d->silent && !d->expunged.isEmpty() ) {
         error( No, "Cannot store on expunged messages" );
         return;
     }
@@ -355,7 +356,7 @@ void Store::execute()
         d->transaction = new Transaction( this );
 
         Selector * work = new Selector;
-        work->add( new Selector( d->s ) );
+        work->add( new Selector( d->specified ) );
         Selector * n = new Selector( Selector::Not );
         work->add( n );
         Selector * s = new Selector( Selector::Or );
@@ -393,7 +394,6 @@ void Store::execute()
                                " for update" );
         d->transaction->enqueue( d->findSet );
         d->transaction->execute();
-        d->s.clear();
     }
 
     while ( d->findSet->hasResults() )
@@ -411,7 +411,15 @@ void Store::execute()
     if ( !d->findSet->done() )
         return;
 
-    if ( !d->obtainModSeq ) {
+    if ( !d->obtainModSeq ) { 
+        if ( d->seenUnchangedSince ) {
+            MessageSet modified;
+            modified.add( d->specified );
+            modified.remove( d->s );
+            if ( !modified.isEmpty() )
+                setRespTextCode( "MODIFIED " + modified.set() );
+        }
+
         if ( d->s.isEmpty() ) {
             // no messages need to be changed. we'll just say OK
             log( "No messages need changing", Log::Debug );
@@ -450,6 +458,7 @@ void Store::execute()
         Row * r = d->obtainModSeq->nextRow();
         if ( !r ) {
             error( No, "Could not obtain modseq" );
+            d->transaction->rollback();
             return;
         }
         d->modseq = r->getBigint( "nextmodseq" );
@@ -487,9 +496,6 @@ void Store::execute()
 
     if ( !imap()->session()->initialised() )
         return;
-
-    if ( !d->silent && !d->expunged.isEmpty() )
-        error( No, "Cannot store on expunged messages" );
 
     finish();
 }
