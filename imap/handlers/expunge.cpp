@@ -117,11 +117,13 @@ void Expunge::execute()
 
         String query( "select uid from flags where mailbox=$1 and flag=$2" );
         if ( d->uid )
-            query.append( " and " + d->requested.where() );
+            query.append( " and uid=any($3)" );
 
         d->findUids = new Query( query, this );
         d->findUids->bind( 1, d->s->mailbox()->id() );
         d->findUids->bind( 2, f->id() );
+        if ( d->uid )
+            d->findUids->bind( 3, d->requested );
         d->t->enqueue( d->findUids );
         d->t->execute();
     }
