@@ -133,6 +133,8 @@ class Address * SmtpParser::address()
         lp = quotedString();
     else
         lp = dotString();
+    if ( present( ">" ) || atEnd() )
+        setError( "Address must have both localpart and domain" );
     require( "@" );
     Address * a = new Address( "", lp, domain() );
     if ( lt )
