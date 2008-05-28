@@ -619,7 +619,7 @@ void Database::checkAccess( EventHandler * owner )
 
 uint Database::currentRevision()
 {
-    return 69;
+    return 70;
 }
 
 
