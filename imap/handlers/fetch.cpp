@@ -149,6 +149,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
     d->annotation = a;
     d->set = set;
     d->changedSince = limit;
+    d->modseq = i->clientSupports( IMAP::Condstore );
 
     d->peek = true;
 

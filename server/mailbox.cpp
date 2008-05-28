@@ -88,7 +88,7 @@ class MailboxReader
 {
 public:
     EventHandler * owner;
-    Query * query;
+    Query * q;
 
     MailboxReader( EventHandler * ev, int64 );
     void execute();
@@ -96,25 +96,24 @@ public:
 
 
 MailboxReader::MailboxReader( EventHandler * ev, int64 c )
-    : owner( ev ), query( 0 )
+    : owner( ev ), q( 0 )
 {
-    query = new Query( "select m.id, m.name, m.deleted, m.owner, "
-                       "m.uidnext, m.nextmodseq, m.uidvalidity, "
-                       "v.nextmodseq as viewnms, v.selector, "
-                       "v.view, v.source "
-                       //"m.change " // better: m.change
-                       "from mailboxes m "
-                       "left join views v on (m.id=v.view) ",
-                       //"where change>=$1"
-                       this );
+    q = new Query( "select m.id, m.name, m.deleted, m.owner, "
+                   "m.uidnext, m.nextmodseq, m.uidvalidity, "
+                   "v.nextmodseq as viewnms, v.selector, "
+                   "v.view, v.source "
+                   //"m.change " // better: m.change
+                   "from mailboxes m "
+                   "left join views v on (m.id=v.view) ",
+                   //"where change>=$1"
+                   this );
     c = c; //query->bind( 1, c );
-    query->execute();
 }
 
 
 void MailboxReader::execute() {
-    while ( query->hasResults() ) {
-        Row * r = query->nextRow();
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
 
         UString n = r->getUString( "name" );
         Mailbox * m = Mailbox::obtain( n );
@@ -145,9 +144,9 @@ void MailboxReader::execute() {
             ::mailboxes->insert( m->d->id, m );
     }
 
-    if ( query->done() && owner ) {
-        if ( query->failed() )
-            log( "Couldn't create mailbox tree: " + query->error(),
+    if ( q->done() && owner ) {
+        if ( q->failed() )
+            log( "Couldn't create mailbox tree: " + q->error(),
                  Log::Disaster );
         owner->execute();
     }
@@ -162,7 +161,7 @@ public:
         setLog( new Log( Log::Server ) );
         (void)new DatabaseSignal( "mailboxes_updated", this );
     }
-    void execute() { new MailboxReader( 0, 0 ); }
+    void execute() { (new MailboxReader( 0, 0 ))->q->execute(); }
 };
 
 
@@ -180,7 +179,7 @@ public:
         if ( ::root->children() )
             ::root->children()->clear();
         ::mailboxes->clear();
-        new MailboxReader( 0, 0 );
+        (new MailboxReader( 0, 0 ))->q->execute();
     }
 };
 
@@ -634,6 +633,8 @@ Query * Mailbox::create( Transaction * t, User * owner )
 
     t->enqueue( q );
 
+    t->enqueue( (new MailboxReader( 0, 0 ))->q );
+
     q = new Query( "notify mailboxes_updated", 0 );
     t->enqueue( q );
 
@@ -664,6 +665,8 @@ Query * Mailbox::remove( Transaction * t )
     q = new Query( "delete from views where source=$1 or view=$1", 0 );
     q->bind( 1, id() );
     t->enqueue( q );
+
+    t->enqueue( (new MailboxReader( 0, 0 ))->q );
 
     q = new Query( "notify mailboxes_updated", 0 );
     t->enqueue( q );
