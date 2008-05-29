@@ -201,7 +201,7 @@ void Mailbox::setup( EventHandler * owner )
     ::mailboxes = new Map<Mailbox>;
     Allocator::addEternal( ::mailboxes, "mailbox tree" );
 
-    (void)new MailboxReader( owner, 0 );
+    (new MailboxReader( owner, 0 ))->q->execute();
 
     (void)new MailboxesWatcher;
     if ( !Configuration::toggle( Configuration::Security ) )
