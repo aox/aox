@@ -195,7 +195,8 @@ void Select::execute()
         if ( r )
             unseen = r->getInt( "uid" );
         if ( unseen )
-            respond( "OK [UNSEEN " + fn( unseen ) + "] first unseen" );
+            respond( "OK [UNSEEN " + fn( d->session->msn( unseen ) ) +
+                     "] first unseen" );
     }
 
     if ( d->highestModseq ) {
