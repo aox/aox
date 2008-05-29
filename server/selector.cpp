@@ -874,7 +874,7 @@ String Selector::whereFlags()
         uint b = placeHolder();
         root()->d->query->bind( b, d->s8.lower() );
         j = " left join flags f" + n +
-            " on (mm.mailbox=f" + n + ".mailbox and mm.uid=" + n +
+            " on (mm.mailbox=f" + n + ".mailbox and mm.uid=f" + n +
             ".uid and f" + n + ".flag="
             "(select id from flag_names where lower(name)=$" + fn(b) + "))";
     }
