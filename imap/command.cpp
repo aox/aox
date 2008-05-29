@@ -419,6 +419,8 @@ void Command::setState( State s )
     case Executing:
         (void)::gettimeofday( &d->started, 0 );
         log( "Executing", Log::Debug );
+        if ( imap()->session() )
+            imap()->session()->emitUpdates();
         break;
     case Finished:
         if ( d->name != "idle" ) {
@@ -668,9 +670,9 @@ void Command::emitResponses()
         }
     }
 
+    emitUntaggedResponses();
     if ( s )
         s->emitUpdates();
-    emitUntaggedResponses();
 
     if ( d->responses )
         imap()->enqueue( d->responses->join( "" ) );
