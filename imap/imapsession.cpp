@@ -7,6 +7,7 @@
 #include "fetcher.h"
 #include "mailbox.h"
 #include "message.h"
+#include "scope.h"
 #include "imap.h"
 #include "flag.h"
 
@@ -15,17 +16,20 @@ class ImapSessionData
     : public Garbage
 {
 public:
-    ImapSessionData(): i( 0 ), unsolicited( false ),
+    ImapSessionData(): i( 0 ), l( 0 ), unsolicited( false ),
                        exists( 0 ), recent( 0 ),
-                       uidnext( 0 ), nms( 0 ),
+                       uidnext( 0 ), nms( 0 ), cms( 0 ),
                        emitting( false ) {}
     class IMAP * i;
+    Log * l;
     MessageSet expungedFetched;
+    MessageSet changed;
     bool unsolicited;
     uint exists;
     uint recent;
     uint uidnext;
     int64 nms;
+    int64 cms;
     List<Flag> flags;
     List<int64> ignorable;
     bool emitting;
@@ -46,6 +50,8 @@ ImapSession::ImapSession( IMAP * imap, Mailbox *m, bool readOnly )
       d( new ImapSessionData )
 {
     d->i = imap;
+    Scope x( imap->log() );
+    d->l = new Log( Log::IMAP );
 }
 
 
@@ -70,16 +76,18 @@ void ImapSession::emitUpdates()
         return;
     d->emitting = true;
 
+    Scope x( d->l );
+
     emitExpunges();
     emitFlagUpdates();
     clearUnannounced();
     emitUidnext();
     if ( d->nms < nextModSeq() )
         d->nms = nextModSeq();
+    if ( d->changed.isEmpty() )
+        d->cms = d->nms;
 
     List<Command>::Iterator c( d->i->commands() );
-    while ( c && c->state() == Command::Retired )
-        ++c;
     if ( c && c->state() == Command::Finished )
         c->emitResponses();
 
@@ -99,18 +107,13 @@ void ImapSession::emitExpunges()
         return;
 
     List<Command>::Iterator c( d->i->commands() );
-    while ( c && c->state() == Command::Retired )
-        ++c;
 
     bool can = false;
     bool cannot = false;
 
     while ( c && !can && !cannot ) {
-        // we don't need to consider retired commands at all
-        if ( c->state() == Command::Retired )
-            ;
         // expunges are permitted in idle mode
-        else if ( c->state() == Command::Executing && c->name() == "idle" )
+        if ( c->state() == Command::Executing && c->name() == "idle" )
             can = true;
         // we cannot send an expunge while a command is being
         // executed (not without NOTIFY at least...)
@@ -156,24 +159,22 @@ void ImapSession::emitExpunges()
 
 void ImapSession::emitUidnext()
 {
+    uint n = uidnext();
+    if ( n <= d->uidnext )
+        return;
+
     uint x = messages().count();
     if ( x != d->exists || !d->uidnext )
         enqueue( "* " + fn( x ) + " EXISTS\r\n" );
 
     if ( d->unsolicited ) {
         List<Command>::Iterator c( d->i->commands() );
-        while ( c && c->state() == Command::Retired )
-            ++c;
         if ( c && c->state() == Command::Finished )
             d->unsolicited = false;
         else
             return;
     }
     d->exists = x;
-
-    uint n = uidnext();
-    if ( n <= d->uidnext )
-        return;
 
     uint r = recent().count();
     if ( d->recent != r || !d->uidnext ) {
@@ -193,25 +194,28 @@ void ImapSession::emitFlagUpdates()
 {
     if ( !d->nms )
         return;
-    if ( d->nms >= nextModSeq() )
+    if ( d->cms >= nextModSeq() )
         return;
 
-    MessageSet changed( unannounced().intersection( messages() ) );
-    // don't bother sending updates about something that's already gone,
-    // for which we just haven't sent the expunge
-    changed.remove( expunged() );
+    d->changed.add( unannounced().intersection( messages() ) );
 
-    if ( changed.isEmpty() )
+    if ( d->changed.isEmpty() )
+        return;
+
+    List<Command>::Iterator c( d->i->commands() );
+    if ( !c || c->state() != Command::Executing )
         return;
 
     while ( !d->ignorable.isEmpty() ) {
         List<int64>::Iterator i( d->ignorable );
         bool f = false;
         while ( i ) {
-            if ( d->nms > *i ) {
+            if ( d->cms > *i ) {
                 d->ignorable.take( i );
             }
-            else if ( d->nms == *i ) {
+            else if ( d->cms == *i ) {
+                log( "Not sending flag updates about modseq " + fn( d->cms ),
+                     Log::Debug );
                 d->ignorable.take( i );
                 f = true;
             }
@@ -220,13 +224,14 @@ void ImapSession::emitFlagUpdates()
             }
         }
         if ( f )
-            d->nms++;
+            d->cms++;
         else
             d->ignorable.clear();
     }
 
     (void)new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                     changed, d->nms - 1, d->i );
+                     d->changed, d->cms - 1, d->i );
+    d->changed.clear();
 }
 
 
@@ -279,6 +284,7 @@ void ImapSession::enqueue( const String & r )
 
 void ImapSession::addFlags( List<Flag> * f, class Command * c )
 {
+    Scope x( d->l );
     List<Flag>::Iterator i( f );
     bool announce = false;
     while ( i ) {
