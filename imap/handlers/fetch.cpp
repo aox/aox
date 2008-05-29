@@ -173,6 +173,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
         i->commands()->append( this );
     }
 
+    setAllowedState( IMAP::Selected );
     setState( Executing );
 }
 

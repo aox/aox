@@ -418,9 +418,14 @@ void Command::setState( State s )
         break;
     case Executing:
         (void)::gettimeofday( &d->started, 0 );
-        log( "Executing", Log::Debug );
-        if ( imap()->session() )
-            imap()->session()->emitUpdates();
+        if ( d->permittedStates & ( 1 << imap()->state() ) ) {
+            log( "Executing", Log::Debug );
+            if ( imap()->session() )
+                imap()->session()->emitUpdates();
+        }
+        else {
+            error( Bad, "Not permitted in this state" );
+        }
         break;
     case Finished:
         if ( d->name != "idle" ) {
@@ -442,17 +447,6 @@ void Command::setState( State s )
         break;
     }
     imap()->unblockCommands();
-}
-
-
-/*! Returns true only if this command is valid when the IMAP server is
-    in state \a s. Commands are assumed to be parseable in any state,
-    but executable only when this function says so.
-*/
-
-bool Command::validIn( IMAP::State s ) const
-{
-    return d->permittedStates & ( 1 << s );
 }
 
 
@@ -1345,4 +1339,14 @@ bool Command::permissionChecked() const
 void Command::setRespTextCode( const String & s )
 {
     d->respTextCode = s;
+}
+
+
+/*! Records that this Command may be executed in state \a s. The
+    default is none, or what create() set.
+*/
+
+void Command::setAllowedState( IMAP::State s  ) const
+{
+    d->permittedStates |= ( 1 << s );
 }

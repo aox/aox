@@ -35,7 +35,7 @@ public:
     State state() const;
     void setState( State );
 
-    bool validIn( IMAP::State ) const;
+    void setAllowedState( IMAP::State ) const;
 
     String tag() const;
     String name() const;

@@ -108,6 +108,7 @@ Store::Store( IMAP * imap, const MessageSet & set, bool silent )
     d->specified = set;
     d->silent = silent;
     d->flagNames.append( "\\seen" );
+    setAllowedState( IMAP::Selected );
 }
 
 
