@@ -364,10 +364,12 @@ void Store::execute()
         if ( d->seenUnchangedSince )
             s->add( new Selector( Selector::Modseq, Selector::Larger,
                                   d->unchangedSince ) );
+        Selector * a = new Selector( Selector::And );
+        s->add( a );
         if ( d->op == StoreData::AddFlags ) {
             StringList::Iterator i( d->flagNames );
             while ( i ) {
-                s->add( new Selector( Selector::Flags, Selector::Contains,
+                a->add( new Selector( Selector::Flags, Selector::Contains,
                                       *i ) );
                 ++i;
             }
@@ -376,7 +378,7 @@ void Store::execute()
             StringList::Iterator i( d->flagNames );
             while ( i ) {
                 n = new Selector( Selector::Not );
-                s->add( n );
+                a->add( n );
                 n->add( new Selector( Selector::Flags, Selector::Contains,
                                       *i ) );
                 ++i;
@@ -411,7 +413,7 @@ void Store::execute()
     if ( !d->findSet->done() )
         return;
 
-    if ( !d->obtainModSeq ) { 
+    if ( !d->obtainModSeq ) {
         if ( d->seenUnchangedSince ) {
             MessageSet modified;
             modified.add( d->specified );
@@ -427,7 +429,7 @@ void Store::execute()
             finish();
             return;
         }
-          
+
         d->obtainModSeq
             = new Query( "select nextmodseq from mailboxes "
                          "where id=$1 for update", this );
@@ -453,7 +455,7 @@ void Store::execute()
 
     if ( !d->obtainModSeq->done() )
         return;
-    
+
     if ( !d->modseq ) {
         Row * r = d->obtainModSeq->nextRow();
         if ( !r ) {
@@ -570,7 +572,7 @@ void Store::removeFlags( bool opposite )
     if ( opposite )
         s.append( "not " );
     s.append( "flag=any($3)" );
-    
+
     Query * q = new Query( s, 0 );
     q->bind( 1, imap()->session()->mailbox()->id() );
     q->bind( 2, d->s );
