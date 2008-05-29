@@ -1000,7 +1000,14 @@ String Selector::whereModseq()
 {
     uint i = placeHolder();
     root()->d->query->bind( i, d->n );
-    return "mm.modseq>=$" + fn( i );
+
+    if (action() == Larger )
+        return "mm.modseq>=$" + fn( i );
+    else if ( action() == Smaller )
+        return "mm.modseq<$" + fn( i );
+
+    log( "Bad selector", Log::Error );
+    return "false";
 }
 
 

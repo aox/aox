@@ -357,30 +357,27 @@ void Store::execute()
 
         Selector * work = new Selector;
         work->add( new Selector( d->specified ) );
-        Selector * n = new Selector( Selector::Not );
-        work->add( n );
-        Selector * s = new Selector( Selector::Or );
-        n->add( s );
         if ( d->seenUnchangedSince )
-            s->add( new Selector( Selector::Modseq, Selector::Larger,
-                                  d->unchangedSince ) );
-        Selector * a = new Selector( Selector::And );
-        s->add( a );
+            work->add( new Selector( Selector::Modseq, Selector::Smaller,
+                                     d->unchangedSince-1 ) );
+        Selector * o = new Selector;
         if ( d->op == StoreData::AddFlags ) {
+            work->add( o );
             StringList::Iterator i( d->flagNames );
             while ( i ) {
-                a->add( new Selector( Selector::Flags, Selector::Contains,
+                Selector * n = new Selector( Selector::Not );
+                o->add( n );
+                n->add( new Selector( Selector::Flags, Selector::Contains,
                                       *i ) );
                 ++i;
             }
         }
         else if ( d->op == StoreData::RemoveFlags ) {
+            work->add( o );
             StringList::Iterator i( d->flagNames );
             while ( i ) {
-                n = new Selector( Selector::Not );
-                a->add( n );
-                n->add( new Selector( Selector::Flags, Selector::Contains,
-                                      *i ) );
+                o->add( new Selector( Selector::Flags, Selector::Contains,
+                                         *i ) );
                 ++i;
             }
         }
