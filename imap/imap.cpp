@@ -739,12 +739,15 @@ void IMAP::setClientSupports( ClientCapability capability )
 
 /*! Returns a list of all Command objects currently known by this IMAP
     server. First received command first. Commands in all states may
-    be in the list, although Retired should be unusual.
+    be in the list, except Retired.
 
 */
 
 List<Command> * IMAP::commands() const
 {
+    while ( d->commands.firstElement() &&
+            d->commands.firstElement()->state() == Command::Retired )
+        d->commands.shift();
     return &d->commands;
 }
 
