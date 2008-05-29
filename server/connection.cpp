@@ -167,6 +167,15 @@ Connection::State Connection::state() const
 
 bool Connection::hasProperty( Property p ) const
 {
+    bool ssl = false;
+    if ( p == StartsSSL ) {
+        uint port = self().port();
+        if ( port == Configuration::scalar( Configuration::ImapsPort ) ||
+             port == Configuration::scalar( Configuration::SmtpsPort ) ||
+             port == Configuration::scalar( Configuration::HttpsPort ) )
+            ssl = true;
+    }
+
     switch ( type() ) {
     case Client:
         break;
@@ -185,10 +194,7 @@ bool Connection::hasProperty( Property p ) const
     case Pipe:
         if ( p == Internal )
             return true;
-        if ( p == StartsSSL &&
-             ( self().port() == Configuration::ImapsPort ||
-               self().port() == Configuration::SmtpsPort ||
-               self().port() == Configuration::HttpsPort ) )
+        if ( p == StartsSSL && ssl )
             return true;
         break;
 
@@ -202,10 +208,7 @@ bool Connection::hasProperty( Property p ) const
     case ImapServer:
     case SmtpServer:
     case HttpServer:
-        if ( p == StartsSSL &&
-             ( self().port() == Configuration::ImapsPort ||
-               self().port() == Configuration::SmtpsPort ||
-               self().port() == Configuration::HttpsPort ) )
+        if ( p == StartsSSL && ssl )
             return true;
         break;
 
@@ -215,10 +218,7 @@ bool Connection::hasProperty( Property p ) const
     case Listener:
         if ( p == Listens )
             return true;
-        if ( p == StartsSSL &&
-             ( self().port() == Configuration::ImapsPort ||
-               self().port() == Configuration::SmtpsPort ||
-               self().port() == Configuration::HttpsPort ) )
+        if ( p == StartsSSL && ssl )
             return true;
         break;
 
