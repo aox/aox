@@ -49,7 +49,6 @@ public:
 LogServer::LogServer( int s )
     : Connection( s, Connection::LogServer ), d( new LogServerData )
 {
-    setProperty( Internal );
     EventLoop::global()->addConnection( this );
 }
 

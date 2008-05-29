@@ -116,7 +116,6 @@ RecorderServer::RecorderServer( int fd )
     : Connection( fd, Connection::RecorderServer ),
       d( new RecorderData )
 {
-    setProperty( Internal );
     d->server = this;
     d->client = new ::RecorderClient( d );
     d->log = new File( *::base + "." + peer().string(),

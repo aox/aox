@@ -641,7 +641,6 @@ private:
 IMAPS::IMAPS( int s )
     : IMAP( s ), d( new IMAPSData )
 {
-    setProperty( StartsSSL );
     String * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;

@@ -470,7 +470,6 @@ private:
 SMTPS::SMTPS( int s )
     : SMTPSubmit( s ), d( new SMTPSData )
 {
-    setProperty( StartsSSL );
     String * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;

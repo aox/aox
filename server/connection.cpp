@@ -38,7 +38,7 @@ public:
           state( Connection::Invalid ),
           type( Connection::Client ),
           tls( false ), pending( false ),
-          l( 0 ), properties( 0 )
+          l( 0 )
     {}
 
     int fd;
@@ -52,8 +52,6 @@ public:
     Endpoint self, peer;
     Connection::Event event;
     Log *l;
-
-    uint properties;
 };
 
 
@@ -163,30 +161,73 @@ Connection::State Connection::state() const
 }
 
 
-/*! Declares that this connection has the property \a p, which may be
-    one of Internal, Listens, or StartsSSL. By default, a connection
-    has the property None.
-
-    XXX: It's called "Listens" instead of "Listener" only because of
-    the conflict with the Connection::Type value of the latter name.
-    But having the "Listens" property is equivalent to being of type()
-    Listener, so one of them is redundant. But which?
-*/
-
-void Connection::setProperty( Property p )
-{
-    d->properties |= (uint)p;
-}
-
-
-/*! Returns true only if setProperty() was called earlier with the given
-    property \a p (i.e. the connection has the property \a p), and false
-    otherwise.
+/*! Returns true if this Connection has \a p. The return value based
+    on type() and self().
 */
 
 bool Connection::hasProperty( Property p ) const
 {
-    return (d->properties & (uint)p) != 0;
+    switch ( type() ) {
+    case Client:
+        break;
+    case DatabaseClient:
+    case LogServer:
+    case LogClient:
+    case TlsClient:
+    case RecorderClient:
+    case RecorderServer:
+    case OryxServer:
+    case EGDServer:
+        if ( p == Internal )
+            return true;
+        break;
+
+    case Pipe:
+        if ( p == Internal )
+            return true;
+        if ( p == StartsSSL &&
+             ( self().port() == Configuration::ImapsPort ||
+               self().port() == Configuration::SmtpsPort ||
+               self().port() == Configuration::HttpsPort ) )
+            return true;
+        break;
+
+    case TlsProxy:
+        if ( p == Internal )
+            return true;
+        if ( p == StartsSSL )
+            return true;
+        break;
+
+    case ImapServer:
+    case SmtpServer:
+    case HttpServer:
+        if ( p == StartsSSL &&
+             ( self().port() == Configuration::ImapsPort ||
+               self().port() == Configuration::SmtpsPort ||
+               self().port() == Configuration::HttpsPort ) )
+            return true;
+        break;
+
+    case SmtpClient:
+        break;
+
+    case Listener:
+        if ( p == Listens )
+            return true;
+        if ( p == StartsSSL &&
+             ( self().port() == Configuration::ImapsPort ||
+               self().port() == Configuration::SmtpsPort ||
+               self().port() == Configuration::HttpsPort ) )
+            return true;
+        break;
+
+    case Pop3Server:
+    case ManageSieveServer:
+        break;
+    }
+
+    return false;
 }
 
 
@@ -292,12 +333,6 @@ String Connection::description() const
         break;
     case OryxServer:
         r = "Oryx administrative server";
-        break;
-    case OryxClient:
-        r = "Oryx administrative connection";
-        break;
-    case OryxConsole:
-        r = "Administrative console";
         break;
     case SmtpServer:
         r = "SMTP server";

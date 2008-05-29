@@ -2,8 +2,8 @@
 
 #include "eventloop.h"
 
-#include "allocator.h"
 #include "connection.h"
+#include "allocator.h"
 #include "buffer.h"
 #include "string.h"
 #include "server.h"
@@ -608,8 +608,6 @@ void EventLoop::setConnectionCounts()
         case Connection::Client:
         case Connection::LogServer:
         case Connection::OryxServer:
-        case Connection::OryxClient:
-        case Connection::OryxConsole:
         case Connection::LogClient:
         case Connection::TlsProxy:
         case Connection::TlsClient:
@@ -674,10 +672,11 @@ void EventLoop::shutdownSSL()
     List< Connection >::Iterator it( d->connections );
     while ( it ) {
         Connection * c = it;
-        if ( 0 /* c is a Listener for a StartsSSL connection. */ ) {
+        ++it;
+        if ( c->hasProperty( Connection::Listens ) &&
+             c->hasProperty( Connection::StartsSSL ) ) {
             removeConnection( c );
             c->close();
         }
-        ++it;
     }
 }

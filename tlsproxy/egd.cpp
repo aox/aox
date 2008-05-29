@@ -30,8 +30,6 @@
 EntropyProvider::EntropyProvider( int fd )
     : Connection( fd, EGDServer )
 {
-    setProperty( Internal );
-
     if ( fd < 0 )
         return;
 

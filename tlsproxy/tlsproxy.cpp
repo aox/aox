@@ -314,7 +314,6 @@ public:
 TlsProxy::TlsProxy( int socket )
     : Connection( socket, Connection::TlsProxy ), d( new TlsProxyData )
 {
-    setProperty( Internal );
     EventLoop::global()->addConnection( this );
     if ( !proxies ) {
         proxies = new List<TlsProxy>;

@@ -22,8 +22,6 @@ public:
         LogServer,
         LogClient,
         OryxServer,
-        OryxClient,
-        OryxConsole,
         SmtpServer,
         SmtpClient,
         Pop3Server,
@@ -95,7 +93,6 @@ public:
     bool accessPermitted() const;
 
     enum Property {
-        None = 0,
         Listens = 1,
         Internal = 2,
         StartsSSL = 4
@@ -104,7 +101,6 @@ public:
     bool hasProperty( Property ) const;
 
 protected:
-    void setProperty( Property );
     void substitute( Connection *, Event );
     void init( int );
 
