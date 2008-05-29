@@ -105,7 +105,7 @@ Store::Store( IMAP * imap, const MessageSet & set, bool silent )
     d->uid = true;
     d->op = StoreData::AddFlags;
     setGroup( 0 );
-    d->s = set;
+    d->specified = set;
     d->silent = silent;
     d->flagNames.append( "\\seen" );
 }
