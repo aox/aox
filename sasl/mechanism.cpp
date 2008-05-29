@@ -7,6 +7,7 @@
 #include "configuration.h"
 #include "saslconnection.h"
 #include "stringlist.h"
+#include "mailbox.h"
 #include "scope.h"
 #include "graph.h"
 #include "query.h"
@@ -304,11 +305,12 @@ void SaslMechanism::execute()
             d->user->refresh( this );
         }
 
-        // Stopgap hack to block the race condition whereby the User may
-        // refer to an inbox which isn't known by Mailbox.
-        if ( !d->user->inbox() && d->user->state() == User::Refreshed )
-            setState( Failed );
-        else if ( d->user->state() == User::Nonexistent )
+        if ( Mailbox::refreshing() ) {
+            Database::notifyWhenIdle( this );
+            return;
+        }
+
+        if ( d->user->state() == User::Nonexistent )
             setState( Failed );
         else
             d->storedSecret = d->user->secret();

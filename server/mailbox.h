@@ -83,6 +83,8 @@ public:
 
     class Threader * threader() const;
 
+    static bool refreshing();
+
 private:
     class MailboxData * d;
     friend class MailboxReader;

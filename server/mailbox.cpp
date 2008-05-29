@@ -878,3 +878,20 @@ uint Mailbox::match( const UString & pattern, uint p,
     return r;
 }
 
+
+/*! Returns true if the Mailbox subsystem is currently in the process
+    of relearning all the Mailbox objects from the database. Never
+    returns true during normal operations, but may if if the database
+    is wiped out by a test rig.
+*/
+
+bool Mailbox::refreshing()
+{
+    if ( !::root )
+        return true;
+    if ( !::root->children() )
+        return true;
+    if ( ::root->children()->isEmpty() )
+        return true;
+    return false;
+}
