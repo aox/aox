@@ -8,14 +8,16 @@
 #include "http.h"
 #include "smtp.h"
 #include "graph.h"
-#include "managesieve.h"
 
 #include "tls.h"
 #include "flag.h"
+#include "event.h"
 #include "mailbox.h"
 #include "listener.h"
 #include "database.h"
+#include "dbsignal.h"
 #include "fieldcache.h"
+#include "managesieve.h"
 #include "addresscache.h"
 #include "spoolmanager.h"
 
@@ -40,6 +42,30 @@ public:
     }
 };
 
+
+class ConnectionObliterator
+    : public EventHandler
+{
+public:
+    ConnectionObliterator()
+        : EventHandler() {
+        (void)new DatabaseSignal( "obliterated", this );
+    }
+    void execute() {
+        List<Connection>::Iterator i( EventLoop::global()->connections() );
+        while ( i ) {
+            Connection * c = i;
+            ++i;
+            if ( !i->hasProperty( Connection::Listens ) &&
+                 !i->hasProperty( Connection::Internal ) ) {
+                Scope x( c->log() );
+                log( "The database was obliterated" );
+                EventLoop::global()->removeConnection( c );
+                c->close();
+            }
+        }
+    }
+};
 
 
 int main( int argc, char *argv[] )
@@ -197,6 +223,9 @@ int main( int argc, char *argv[] )
     SpoolManager::setup();
     Flag::setup();
     IMAP::setup();
+
+    if ( !Configuration::toggle( Configuration::Security ) )
+        (void)new ConnectionObliterator;
 
     s.run();
 }
