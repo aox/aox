@@ -10,6 +10,7 @@
 #include "message.h"
 #include "event.h"
 #include "query.h"
+#include "scope.h"
 #include "flag.h"
 #include "log.h"
 
@@ -327,6 +328,7 @@ public:
 SessionInitialiser::SessionInitialiser( Mailbox * mailbox )
     : EventHandler(), d( new SessionInitialiserData )
 {
+    setLog( new Log( Log::General ) );
     d->mailbox = mailbox;
     execute();
 }
@@ -334,6 +336,7 @@ SessionInitialiser::SessionInitialiser( Mailbox * mailbox )
 
 void SessionInitialiser::execute()
 {
+    Scope x( log() );
     SessionInitialiserData::State state = d->state;
     do {
         state = d->state;
@@ -730,7 +733,7 @@ void SessionInitialiser::findMailboxChanges()
         d->messages->bind( 4, d->oldModSeq );
     }
     submit( d->messages );
-    
+
     if ( initialising )
         return;
 
