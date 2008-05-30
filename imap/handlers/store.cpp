@@ -387,10 +387,11 @@ void Store::execute()
         // uses it.
         work->simplify();
         StringList r;
+        r.append( "mailbox" );
         r.append( "uid" );
         d->findSet = work->query( imap()->user(), m, 0, this, false, &r );
         d->findSet->setString( "select uid from mailbox_messages "
-                               "where uid in (" + d->findSet->string() + ")"
+                               "where (mailbox,uid) in ("+d->findSet->string()+")"
                                " for update" );
         d->transaction->enqueue( d->findSet );
         d->transaction->execute();
