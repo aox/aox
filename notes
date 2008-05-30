@@ -148,17 +148,6 @@ db-address=localhost works, but needs improvement.
   callers (SpoolManager/SmtpClient, OCClient, etc.) can be converted.
 
 
-EventLoop::shutdownSSL() doesn't work.
-
-  IMAPS/SMTPS/HTTPS call EventLoop::shutdownSSL() when the tlsproxy
-  isn't working, and that function needs to look for Listeners that
-  are listening for an SSL-enabled service. But the former property
-  is set by the listener, while the latter belongs to an object of
-  type T (i.e. the template parameter); and no object of that type
-  exists when the Listener is constructed.
-
-
-
 Graceful shutdown
 
   When we decide to shut down, we should:
