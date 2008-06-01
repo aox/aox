@@ -1481,7 +1481,7 @@ void Fetch::trickle()
     }
 
     pickup();
-    uint r = d->available.count() / 30;
+    uint r = d->available.count() / 90;
     if ( r > d->responseRate ) {
         log( "Increasing response rate to " + fn( r ), Log::Debug );
         d->responseRate = r;
@@ -1513,7 +1513,7 @@ void Fetch::pickup()
     Mailbox * mb = s->mailbox();
     if ( !mb )
         return;
-    
+
     uint done = 0;
     bool ok = true;
     Message * m = 0;
