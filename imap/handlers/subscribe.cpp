@@ -10,30 +10,23 @@
 
 /*! \class Subscribe subscribe.h
     Adds a mailbox to the subscription list (RFC 3501 section 6.3.6)
-
-    This class implements both Subscribe and Unsubscribe. The required
-    mode is set by the constructor, and is used by execute() to decide
-    what to do.
 */
 
 /*! Creates a subscribe handler in mode \a n, which may be Add or Remove
     according to the desired function. The default is Add.
 */
 
-Subscribe::Subscribe( Mode n )
-    : mode( n ), selected( false ), q( 0 ), m( 0 )
+Subscribe::Subscribe()
+    : q( 0 ), m( 0 )
 {}
 
 
 /*! \class Unsubscribe subscribe.h
     Removes a mailbox from the subscription list (RFC 3501 section 6.3.7)
-
-    This class inherits from Subscribe, and calls its constructor with
-    a subscription mode of Subscribe::Remove. It has no other code.
 */
 
 Unsubscribe::Unsubscribe()
-    : Subscribe( Subscribe::Remove )
+    : Command(), q( 0 )
 {
 }
 
@@ -41,72 +34,84 @@ Unsubscribe::Unsubscribe()
 void Subscribe::parse()
 {
     space();
-    name = mailboxName();
+    m = mailbox();
     end();
     if ( ok() )
-        log( "Subscribe " + name.ascii() );
+        log( "Subscribe " + m->name().ascii() );
 }
 
 
 void Subscribe::execute()
 {
-    // We check if the user has already subscribed to the mailbox, and
-    // depending on what we want, add the mailbox to the subscriptions
-    // table, remove it, or do nothing.
+    if ( state() != Executing )
+        return;
+
+    if ( m->deleted() )
+        error( No, "Cannot subscribe to deleted mailbox" );
+    else if ( m->synthetic() )
+        error( No, "Cannot subscribe to synthetic mailbox" );
+
+    requireRight( m, Permissions::Lookup );
+
+    if ( !ok() || !permitted() )
+        return;
 
     if ( !q ) {
-        m = Mailbox::find( name, true );
-        if ( !m ) {
-            error( No, "No mailbox named: " + name.ascii() );
-            return;
-        }
-
-        if ( m->deleted() && mode == Add ) {
-            error( No, "Can't subscribe to non-existent mailbox " +
-                   m->name().ascii() );
-            return;
-        }
-
-        q = new Query( "select id from subscriptions where owner=$1 "
-                       "and mailbox=$2", this );
+        // this query has a race: the select can return an empty set
+        // while someone else is running the same query, then the
+        // insert fails because of the 'unique' constraint. the db is
+        // still valid, so the race only leads to an unnecessary error
+        // in the pg log file.
+        q = new Query( "insert into subscriptions (owner, mailbox) "
+                       "select $1, $2 where not exists "
+                       "(select owner, mailbox from subscriptions"
+                       " where owner=$1 and mailbox=$2)", this );
         q->bind( 1, imap()->user()->id() );
         q->bind( 2, m->id() );
+        q->canFail();
         q->execute();
     }
 
     if ( !q->done() )
         return;
 
-    if ( q->failed() ) {
-        error( No, "Database error: " + q->error() );
-        return;
-    }
+    if ( q->failed() )
+        log( "Ignoring duplicate subscription" );
+    finish();
+}
 
-    if ( !selected ) {
-        selected = true;
 
-        if ( mode == Add && q->rows() == 0 ) {
-            q = new Query( "insert into subscriptions (owner, mailbox) "
-                           "values ($1, $2)", this );
-            q->bind( 1, imap()->user()->id() );
-            q->bind( 2, m->id() );
-        }
-        else if ( mode == Remove && q->rows() == 1 ) {
-            int id = q->nextRow()->getInt( "id" );
-            q = new Query( "delete from subscriptions where id=$1", this );
-            q->bind( 1, id );
-        }
-        else {
-            // Do nothing if we're subscribing twice, or unsubscribing
-            // without subscribing. (We don't report either an error.)
-            q = 0;
-        }
+void Unsubscribe::parse()
+{
+    space();
+    n = mailboxName();
+    end();
+    if ( ok() )
+        log( "Unsubscribe " + n.ascii() );
+}
 
-        if ( q ) {
-            q->execute();
+
+void Unsubscribe::execute()
+{
+    if ( !q ) {
+        UString c = imap()->user()->mailboxName( n );
+        Mailbox * m = Mailbox::find( c, true );
+        if ( !m ) {
+            finish();
             return;
         }
+        else if ( !m->id() ) {
+            finish();
+            return;
+        }
+        q = new Query( "delete from subscriptions "
+                       "where owner=$1 and mailbox=$2", this );
+        q->bind( 1, imap()->user()->id() );
+        q->bind( 2, m->id() );
     }
+
+    if ( q && !q->done() )
+        return;
 
     finish();
 }
