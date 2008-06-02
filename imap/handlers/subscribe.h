@@ -10,27 +10,29 @@ class Subscribe
     : public Command
 {
 public:
-    enum Mode { Add, Remove };
-
-    Subscribe( Mode = Add );
+    Subscribe();
 
     void parse();
     void execute();
 
 private:
-    Mode mode;
-    UString name;
-    bool selected;
     class Query * q;
     class Mailbox * m;
 };
 
 
 class Unsubscribe
-    : public Subscribe
+    : public Command
 {
 public:
     Unsubscribe();
+
+    void parse();
+    void execute();
+
+private:
+    UString n;
+    class Query * q;
 };
 
 
