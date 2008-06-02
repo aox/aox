@@ -65,7 +65,7 @@ void Create::execute()
         return;
 
     if ( !d->t ) {
-        d->m = Mailbox::obtain( d->name, true );
+        d->m = Mailbox::obtain( d->name, true );       
         d->t = new Transaction( this );
         if ( !d->m ) {
             error( No, d->name.ascii() + " is not a valid mailbox name" );
