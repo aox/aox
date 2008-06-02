@@ -4,6 +4,7 @@
 
 #include "user.h"
 #include "query.h"
+#include "timer.h"
 #include "entropy.h"
 #include "mailbox.h"
 #include "session.h"
@@ -102,7 +103,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
 
     p->toUidvalidity = p->from->uidvalidity();
 
-    // if an old mailbox is in the way, move it aside
+    // if an old mailbox is there already, use it and bump uidvalidity
     Query * q = 0;
     if ( to && !to->synthetic() ) {
         q = new Query( "update mailboxes set name=$1 where id=$2", 0 );
@@ -142,6 +143,17 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     q->bind( 2, p->from->uidnext() );
     q->bind( 3, p->from->uidvalidity() );
     t->enqueue( q );
+
+    // process the from mailbox' children recursively
+    List<Mailbox>::Iterator c( p->from->children() );
+    while ( c ) {
+        MailboxPair * cp = new MailboxPair;
+        cp->from = c;
+        cp->toName = p->toName + c->name().mid( p->from->name().length() );
+        cp->toParent = Mailbox::closestParent( cp->toName );
+        process( cp, p );
+        ++c;
+    }
 }
 
 
@@ -151,52 +163,13 @@ void Rename::execute()
         return;
 
     if ( !d->t ) {
-        UString inboxName;
         d->t = new Transaction( this );
-        if ( d->from == imap()->user()->inbox() ) {
-            // ensure that nothing's delivered to the renamed inbox,
-            // only to the newly created mailbox of the same name.
-            Query * q = new Query( "select mailbox from aliases "
-                                   "where mailbox=$1 "
-                                   "for update", 0 );
-            q->bind( 1, imap()->user()->inbox()->id() );
-            d->t->enqueue( q );
-            inboxName = d->from->name();
-        }
 
-        // 1. the first mailbox
         RenameData::MailboxPair * p = new RenameData::MailboxPair;
         p->from = d->from;
         p->toName = imap()->user()->mailboxName( d->toName );
         p->toParent = Mailbox::closestParent( p->toName );
         d->process( p, 0 );
-
-        if ( !ok() ) {
-            d->t->rollback();
-            return;
-        }
-
-        // 2. for each mailbox, any children it may have.
-        List<RenameData::MailboxPair>::Iterator it( d->renames );
-        while ( it ) {
-            Mailbox * m = it->from;
-            List<Mailbox>::Iterator c( m->children() );
-            while ( c ) {
-                p = new RenameData::MailboxPair;
-                p->from = c;
-                p->toName =
-                    it->toName + c->name().mid( it->from->name().length() );
-                p->toParent = Mailbox::closestParent( p->toName );
-                if ( !( c->synthetic() || c->deleted() ) )
-                    d->process( p, it );
-                if ( !ok() ) {
-                    d->t->rollback();
-                    return;
-                }
-                ++c;
-            }
-            ++it;
-        }
 
         if ( ok() && d->from == imap()->user()->inbox() ) {
             Query * q =
@@ -204,25 +177,19 @@ void Rename::execute()
                            "mailbox=(select id from mailboxes where name=$1) "
                            "where mailbox=$2", 0 );
 
-            q->bind( 1, inboxName );
+            q->bind( 1, d->from->name() );
             q->bind( 2, d->from->id() );
             d->t->enqueue( q );
             q = new Query( "update mailboxes set deleted='f',owner=$2 "
                            "where name=$1", 0 );
-            q->bind( 1, inboxName );
+            q->bind( 1, d->from->name() );
             q->bind( 2, imap()->user()->id() );
             d->t->enqueue( q );
         }
     }
 
-    if ( !ok() )
+    if ( !ok() || !permitted() )
         return;
-
-    if ( !permitted() ) {
-        if ( !ok() )
-            d->t->rollback();
-        return;
-    }
 
     if ( !permissionChecked() )
         return;
@@ -233,23 +200,17 @@ void Rename::execute()
             if ( it->from->sessions() ) {
                 error( No, "Mailbox is in use: " + it->from->name().ascii() );
                 setRespTextCode( "INUSE" );
-                break;
+                return;
             }
             ++it;
         }
 
-        if ( !ok() ) {
-            d->t->rollback();
-        }
-        else {
-            // this notify sounds like a candidate for a trigger, doesn't it?
-            d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
-            d->t->commit();
-        }
+        d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
+        d->t->commit();
         d->ready = true;
     }
 
-    if ( !ok() || !d->t->done() )
+    if ( !d->t->done() )
         return;
 
     if ( d->t->failed() ) {
@@ -257,24 +218,10 @@ void Rename::execute()
         return;
     }
 
-    List< RenameData::MailboxPair >::Iterator it( d->renames );
-    while ( it ) {
-        Mailbox * to = Mailbox::obtain( it->toName, true );
-        Mailbox * from = it->from;
-        to->setId( from->id() );
-        to->setDeleted( false );
-        to->setUidnext( from->uidnext() );
-        to->setUidvalidity( it->toUidvalidity );
-        from->setId( 0 );
-        from->setDeleted( true );
-        ++it;
-        if ( !it ) {
-            d->renames.clear();
-            imap()->user()->refresh( this );
-        }
-    }
-    if ( !imap()->user()->exists() )
+    if ( Mailbox::refreshing() ) {
+        (void)new Timer( this, 1 );
         return;
+    }
 
     finish();
 }
