@@ -12,10 +12,6 @@
     Adds a mailbox to the subscription list (RFC 3501 section 6.3.6)
 */
 
-/*! Creates a subscribe handler in mode \a n, which may be Add or Remove
-    according to the desired function. The default is Add.
-*/
-
 Subscribe::Subscribe()
     : q( 0 ), m( 0 )
 {}
