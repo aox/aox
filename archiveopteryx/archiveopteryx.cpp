@@ -56,8 +56,8 @@ public:
         while ( i ) {
             Connection * c = i;
             ++i;
-            if ( !i->hasProperty( Connection::Listens ) &&
-                 !i->hasProperty( Connection::Internal ) ) {
+            if ( !c->hasProperty( Connection::Listens ) &&
+                 !c->hasProperty( Connection::Internal ) ) {
                 Scope x( c->log() );
                 log( "The database was obliterated" );
                 EventLoop::global()->removeConnection( c );
