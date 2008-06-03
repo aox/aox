@@ -424,7 +424,7 @@ void Command::setState( State s )
                 imap()->session()->emitUpdates();
         }
         else {
-            error( Bad, "Not permitted in this state" );
+            error( Bad, "" );
         }
         break;
     case Finished:
@@ -590,8 +590,14 @@ void Command::error( Error e, const String & t )
 {
     if ( d->error )
         return;
-    d->errorCode = e;
-    d->errorText = t;
+    if ( d->permittedStates & ( 1 << imap()->state() ) ) {
+        d->errorCode = e;
+        d->errorText = t;
+    }
+    else {
+        d->errorCode = Bad;
+        d->errorText = "Not permitted in this state";
+    }
     d->error = true;
     finish();
 }
