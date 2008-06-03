@@ -360,7 +360,7 @@ void Store::execute()
         work->add( new Selector( d->specified ) );
         if ( d->seenUnchangedSince )
             work->add( new Selector( Selector::Modseq, Selector::Smaller,
-                                     d->unchangedSince-1 ) );
+                                     d->unchangedSince+1 ) );
         Selector * o = new Selector;
         if ( d->op == StoreData::AddFlags ) {
             work->add( o );
@@ -497,6 +497,17 @@ void Store::execute()
 
     if ( !imap()->session()->initialised() )
         return;
+
+    if ( d->silent && d->seenUnchangedSince ) {
+        uint n = 0;
+        while ( n < d->s.count() ) {
+            n++;
+            uint uid = d->s.value( n );
+            uint msn = imap()->session()->msn( uid );
+            respond( fn( msn ) + " FETCH (UID " + fn( uid ) +
+                     " MODSEQ (" + fn( d->modseq ) + "))" );
+        }
+    }
 
     finish();
 }
