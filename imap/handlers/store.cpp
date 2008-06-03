@@ -304,11 +304,6 @@ void Store::execute()
     else
         error( No, "Left selected mode during execution" );
 
-    if ( !d->silent && !d->expunged.isEmpty() ) {
-        error( No, "Cannot store on expunged messages" );
-        return;
-    }
-
     if ( !d->checkedPermission ) {
         if ( d->op == StoreData::ReplaceAnnotations ) {
             bool hasPriv = false;
@@ -422,6 +417,10 @@ void Store::execute()
         }
 
         if ( d->s.isEmpty() ) {
+            if ( !d->silent && !d->expunged.isEmpty() ) {
+                error( No, "Cannot store on expunged messages" );
+                return;
+            }
             // no messages need to be changed. we'll just say OK
             log( "No messages need changing", Log::Debug );
             d->transaction->commit();
@@ -507,6 +506,11 @@ void Store::execute()
             respond( fn( msn ) + " FETCH (UID " + fn( uid ) +
                      " MODSEQ (" + fn( d->modseq ) + "))" );
         }
+    }
+
+    if ( !d->silent && !d->expunged.isEmpty() ) {
+        error( No, "Cannot store on expunged messages" );
+        return;
     }
 
     finish();
