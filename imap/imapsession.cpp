@@ -111,7 +111,7 @@ void ImapSession::emitExpunges()
     bool can = false;
     bool cannot = false;
 
-    while ( c && !can && !cannot ) {
+    while ( c && !cannot ) {
         // expunges are permitted in idle mode
         if ( c->state() == Command::Executing && c->name() == "idle" )
             can = true;
