@@ -590,7 +590,8 @@ void Command::error( Error e, const String & t )
 {
     if ( d->error )
         return;
-    if ( d->permittedStates & ( 1 << imap()->state() ) ) {
+    if ( imap()->state() != IMAP::NotAuthenticated ||
+         d->permittedStates & ( 1 << imap()->state() ) ) {
         d->errorCode = e;
         d->errorText = t;
     }
