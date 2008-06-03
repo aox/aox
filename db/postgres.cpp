@@ -40,7 +40,7 @@ public:
         : active( false ), startup( false ), authenticated( false ),
           unknownMessage( false ), identBreakageSeen( false ),
           setSessionAuthorisation( false ),
-          sendingCopy( false ), error( false ), 
+          sendingCopy( false ), error( false ),
           mustSendListen( false ), keydata( 0 ),
           description( 0 ), transaction( 0 ),
           needNotify( 0 )
@@ -620,10 +620,6 @@ void Postgres::process( char type )
                 s = " (" + msg.source() + ")";
             log( "Received notify " + msg.name().quoted() +
                  " from server pid " + fn( msg.pid() ) + s, Log::Debug );
-            if ( d->transaction )
-                log( "A transaction is active, but that doesn't bother us" );
-            else if ( !d->queries.isEmpty() )
-                log( "There are active queries, but that doesn't bother us" );
             DatabaseSignal::notifyAll( msg.name() );
         }
         break;
