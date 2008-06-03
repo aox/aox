@@ -145,7 +145,7 @@ db-address=localhost works, but needs improvement.
 
   It works, but the code is a little ugly. The error handling logic
   needs a careful look after some time. Once that's solid, the other
-  callers (SpoolManager/SmtpClient, OCClient, etc.) can be converted.
+  callers (SpoolManager/SmtpClient etc.) can be converted.
 
 
 Graceful shutdown
@@ -162,8 +162,6 @@ Graceful shutdown
 
   3. Close the remaining connections, implicitly rolling back database
      transactions. Quit.
-
-  There's no practical way to shutdown using ocd/ocadmin.
 
 
 aox check schema
