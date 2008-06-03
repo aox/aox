@@ -623,7 +623,7 @@ void Postgres::process( char type )
             if ( d->transaction )
                 log( "A transaction is active, but that doesn't bother us" );
             else if ( !d->queries.isEmpty() )
-                log( "One or more is/are active, but that doesn't bother us" );
+                log( "There are active queries, but that doesn't bother us" );
             DatabaseSignal::notifyAll( msg.name() );
         }
         break;
