@@ -38,7 +38,10 @@ public:
     them to the server when execute() is called. It ends when commit()
     or rollback() is called. Its state() indicates its progress.
 
-    During its lifetime, a Transaction commandeers a database handle.
+    A Transaction commandeers a database handle when you ask it to
+    execute its queries, and keeps it until commit() or rollback(). If
+    you give it a database handle using setDatabase(), it'll use that
+    instead of asking for one.
 */
 
 
@@ -58,6 +61,13 @@ Transaction::Transaction( EventHandler *ev )
 void Transaction::setDatabase( Database *db )
 {
     d->db = db;
+
+    if ( d->queries )
+        return;
+    d->queries = new List<Query>;
+    Query * begin = new Query( "BEGIN", 0 );
+    begin->setTransaction( this );
+    d->queries->append( begin );
 }
 
 
@@ -182,19 +192,8 @@ Query * Transaction::failedQuery() const
 
 void Transaction::enqueue( Query *q )
 {
-    if ( !d->queries ) {
+    if ( !d->queries )
         d->queries = new List< Query >;
-        Query *begin = new Query( "BEGIN", 0 );
-        begin->setTransaction( this );
-
-        // If setDatabase() has already been called, we were probably
-        // started by updateSchema().
-        if ( !d->db )
-            Database::submit( begin );
-        else
-            d->queries->append( begin );
-    }
-
     q->setTransaction( this );
     d->queries->append( q );
 }
@@ -231,17 +230,17 @@ void Transaction::rollback()
 
 
 /*! Issues a COMMIT to complete the Transaction (after sending any
-    queries that were already enqueued). The owner is notified of
-    completion.
+    queries that were already enqueued). The owner is notified when
+    the Transaction completes.
 
     For a failed() Transaction, commit() is equivalent to rollback().
 */
 
 void Transaction::commit()
 {
-    if ( d->submittedCommit )
+    if ( d->submittedCommit || !d->queries )
         return;
-    enqueue( new Query( "COMMIT", d->owner ) );
+    enqueue( new Query( "COMMIT", 0 ) );
     d->submittedCommit = true;
     execute();
 }
@@ -251,16 +250,25 @@ void Transaction::commit()
 
 void Transaction::execute()
 {
+    if ( !d->queries || d->queries->isEmpty() )
+        return;
+
     List< Query >::Iterator it( d->queries );
     while ( it ) {
         it->setState( Query::Submitted );
         ++it;
     }
 
-    // If our BEGIN has not yet been processed (and setDatabase() called
-    // as a result), the queue will eventually be processed anyway.
-    if ( d->db )
+    if ( d->db ) {
+        // if we've a handle already, it can work
         d->db->processQueue();
+    }
+    else {
+        // if not, we ask Database to give us one
+        Query * begin = new Query( "BEGIN", 0 );
+        begin->setTransaction( this );
+        Database::submit( begin );
+    }
 }
 
 
