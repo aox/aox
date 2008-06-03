@@ -20,7 +20,7 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
-          usedFlags( 0 ), highestModseq( 0 ), firstUnseen( 0 ),
+          usedFlags( 0 ), firstUnseen( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
@@ -28,7 +28,6 @@ public:
     bool annotate;
     bool condstore;
     Query * usedFlags;
-    Query * highestModseq;
     Query * firstUnseen;
     Mailbox * mailbox;
     ImapSession * session;
@@ -144,16 +143,6 @@ void Select::execute()
         d->usedFlags->execute();
     }
 
-    if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) &&
-         !d->session->nextModSeq() ) {
-        d->highestModseq = new Query( "select coalesce(max(modseq),1) "
-                                      "as hms from mailbox_messages "
-                                      "where mailbox=$1",
-                                      this );
-        d->highestModseq->bind( 1, d->mailbox->id() );
-        d->highestModseq->execute();
-    }
-
     if ( !d->firstUnseen && !d->session->isEmpty() ) {
         Flag * seen = Flag::find( "\\seen" );
         String sq;
@@ -172,9 +161,6 @@ void Select::execute()
     }
 
     if ( d->usedFlags && !d->usedFlags->done() )
-        return;
-
-    if ( d->highestModseq && !d->highestModseq->done() )
         return;
 
     if ( d->firstUnseen && !d->firstUnseen->done() )
@@ -199,12 +185,12 @@ void Select::execute()
                      "] first unseen" );
     }
 
-    if ( d->highestModseq ) {
-        Row * r = d->highestModseq->nextRow();
-        int64 hms = 1;
-        if ( r )
-            hms = r->getBigint( "hms" );
-        respond( "OK [HIGHESTMODSEQ " + fn( hms ) + "] highest modseq" );
+    if ( imap()->clientSupports( IMAP::Condstore ) && 
+         !d->session->isEmpty() ) {
+        uint nms = d->session->nextModSeq();
+        if ( nms < 2 )
+            nms = 2;
+        respond( "OK [HIGHESTMODSEQ " + fn( nms-1 ) + "] highest modseq" );
     }
 
     List<Flag> flags;
