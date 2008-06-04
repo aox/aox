@@ -191,9 +191,6 @@ void Rename::execute()
     if ( !ok() || !permitted() )
         return;
 
-    if ( !permissionChecked() )
-        return;
-
     if ( !d->ready ) {
         List< RenameData::MailboxPair >::Iterator it( d->renames );
         while ( it ) {

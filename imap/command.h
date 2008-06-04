@@ -98,7 +98,6 @@ public:
 
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();
-    bool permissionChecked() const;
 
 private:
     class CommandData *d;

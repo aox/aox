@@ -1326,18 +1326,6 @@ bool Command::permitted()
 }
 
 
-/*! Returns true if all permission checking could be carried out, and
-    false if at least one Permissions object is still working.
-*/
-
-bool Command::permissionChecked() const
-{
-    if ( d->checker && !d->checker->ready() )
-        return false;
-    return true;
-}
-
-
 /*! Remembers that when the time comes to send a tagged OK, \a s
     should be sent as resp-text-code. \a s should not contain [],
     emitResponses() adds those itself.
