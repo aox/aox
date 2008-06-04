@@ -215,6 +215,7 @@ Fetcher::Fetcher( Message * m, EventHandler * owner )
 
 void Fetcher::addMessages( List<Message> * messages )
 {
+    Scope x( log() );
     List<Message>::Iterator i( messages );
     while ( i ) {
         d->messages.append( i );
@@ -1191,6 +1192,7 @@ bool FetcherData::AnnotationDecoder::isDone( Message * m ) const
 
 void Fetcher::fetch( Type t )
 {
+    Scope x( log() );
     switch ( t ) {
     case Flags:
         if ( !d->flags )
