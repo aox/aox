@@ -238,7 +238,7 @@ void Transaction::rollback()
 
 void Transaction::commit()
 {
-    if ( d->submittedCommit || !d->queries )
+    if ( d->submittedCommit )
         return;
     enqueue( new Query( "COMMIT", 0 ) );
     d->submittedCommit = true;
