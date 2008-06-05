@@ -592,6 +592,22 @@ List<Flag> * Message::flags( Mailbox * mb ) const
 }
 
 
+/*! Sets this message's flags for the mailbox \a mb to those specified
+    in \a l. */
+
+void Message::setFlags( Mailbox * mb, List<Flag> * l )
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( !m )
+        return;
+    List<Flag>::Iterator it( l );
+    while ( it ) {
+        m->flags.append( it );
+        ++it;
+    }
+}
+
+
 /*! Returns true if the flags have been loaded for \a mb, and false if
     not.
 */

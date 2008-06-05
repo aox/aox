@@ -57,6 +57,7 @@ public:
     uint modSeq( Mailbox * ) const;
 
     List<Flag> * flags( Mailbox * ) const;
+    void setFlags( Mailbox *, List<Flag> * );
     List<Annotation> * annotations( Mailbox * ) const;
     void setAnnotations( Mailbox *, List<Annotation> * );
 
