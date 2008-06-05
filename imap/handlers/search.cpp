@@ -13,7 +13,6 @@
 #include "query.h"
 #include "date.h"
 #include "imap.h"
-#include "flag.h"
 #include "list.h"
 #include "log.h"
 #include "utf.h"
