@@ -20,6 +20,7 @@
 #include "fetch.h"
 #include "imap.h"
 #include "list.h"
+#include "flag.h"
 
 
 struct Textpart
@@ -64,7 +65,7 @@ public:
     Date date;
     Mailbox * mailbox;
     List<Appendage> messages;
-    StringList flags;
+    List<Flag> * flags;
     List<Annotation> * annotations;
 };
 
@@ -96,12 +97,13 @@ void Append::parse()
     d->mailbox = mailbox();
     space();
 
+    d->flags = new List<Flag>;
     if ( present( "(" ) ) {
         if ( nextChar() != ')' ) {
-            d->flags.append( flag() );
+            d->flags->append( Flag::find( flag(), true ) );
             while( nextChar() == ' ' ) {
                 space();
-                d->flags.append( flag() );
+                d->flags->append( Flag::find( flag(), true ) );
             }
         }
         require( ")" );
@@ -357,6 +359,7 @@ void Append::process( class Appendage * h )
 
         h->message = new Message( h->text );
         h->message->addMailbox( d->mailbox );
+        h->message->setFlags( d->mailbox, d->flags );
         h->message->setAnnotations( d->mailbox, d->annotations );
         h->message->setInternalDate( d->mailbox, d->date.unixTime() );
         if ( !h->message->valid() ) {
@@ -367,7 +370,6 @@ void Append::process( class Appendage * h )
 
     if ( !h->injector ) {
         h->injector = new Injector( h->message, this );
-        h->injector->setFlags( d->flags );
         h->injector->execute();
     }
 

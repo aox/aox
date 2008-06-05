@@ -595,7 +595,7 @@ List<Flag> * Message::flags( Mailbox * mb ) const
 /*! Sets this message's flags for the mailbox \a mb to those specified
     in \a l. */
 
-void Message::setFlags( Mailbox * mb, List<Flag> * l )
+void Message::setFlags( Mailbox * mb, const List<Flag> * l )
 {
     MessageData::Mailbox * m = d->mailbox( mb );
     if ( !m )
