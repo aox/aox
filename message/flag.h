@@ -20,7 +20,7 @@ public:
 
     bool system() const;
 
-    static Flag * find( const String & );
+    static Flag * find( const String &, bool = false );
     static Flag * find( uint );
 
     static void setup();

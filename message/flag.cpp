@@ -137,6 +137,8 @@ Flag::Flag( const String & name, uint id )
     d->name = name;
     d->name.detach();
     d->id = id;
+    if ( id == 0 )
+        return;
     if ( !::flagsByName )
         Flag::setup();
     ::flagsByName->insert( d->name.lower(), this );
@@ -180,13 +182,22 @@ bool Flag::system() const
 
 /*! Returns a pointer to the flag named \a name, or a null pointer of
     there isn't one. The comparison is case insensitive.
+
+    If \a create is true, this function will return a flag with an id
+    of 0 and the specified \a name rather than 0.
 */
 
-Flag * Flag::find( const String & name )
+Flag * Flag::find( const String & name, bool create )
 {
-    if ( !::flagsByName )
-        return 0;
-    return ::flagsByName->find( name.lower() );
+    Flag * f = 0;
+
+    if ( ::flagsByName )
+        f = ::flagsByName->find( name.lower() );
+
+    if ( !f && create )
+        f = new Flag( name, 0 );
+
+    return f;
 }
 
 
