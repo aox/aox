@@ -356,7 +356,7 @@ void Store::execute()
         if ( d->seenUnchangedSince )
             work->add( new Selector( Selector::Modseq, Selector::Smaller,
                                      d->unchangedSince+1 ) );
-        Selector * o = new Selector;
+        Selector * o = new Selector( Selector::Or );
         if ( d->op == StoreData::AddFlags ) {
             work->add( o );
             StringList::Iterator i( d->flagNames );
