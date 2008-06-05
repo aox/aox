@@ -37,20 +37,20 @@ struct Textpart
 };
 
 
-    struct Appendage
-        : public Garbage
-    {
-        Appendage()
-            : Garbage(),
-              message( 0 ), injector( 0 ),
-              textparts( 0 ), urlFetcher( 0 )
-        {}
-        Message * message;
-        Injector * injector;
-        List<Textpart> * textparts;
-        ImapUrlFetcher * urlFetcher;
-        String text;
-    };
+struct Appendage
+    : public Garbage
+{
+    Appendage()
+        : Garbage(),
+          message( 0 ), injector( 0 ),
+          textparts( 0 ), urlFetcher( 0 )
+    {}
+    Message * message;
+    Injector * injector;
+    List<Textpart> * textparts;
+    ImapUrlFetcher * urlFetcher;
+    String text;
+};
 
 
 class AppendData
