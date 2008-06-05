@@ -51,6 +51,9 @@
   quite understand, but I understood enough to think that it's a good
   idea and 3.0 is the right time to introduce it.
 
+  Not done: Refer to Google's copy of jquery instead of our own.
+  http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js
+
 
 Release cycle
 
