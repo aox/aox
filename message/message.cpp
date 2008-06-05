@@ -488,21 +488,6 @@ uint Message::uid( Mailbox * mb ) const
 }
 
 
-/*! Returns the Mailbox in which this Message lives, or null in case
-    this Message is independent of mailboxes, does not know its
-    Maiblxo, or lives in several.
-*/
-
-const Mailbox * Message::mailbox() const
-{
-    if ( !d->mailboxes )
-        return 0;
-    if ( d->mailboxes->firstElement() != d->mailboxes->lastElement() )
-        return 0;
-    return d->mailboxes->firstElement()->mailbox;
-}
-
-
 /*! Allocates and return a list of all Mailbox objects to which this
     Message belongs. addMailboxes(), setUid() and friends cause the
     Message to belong to one or more Mailbox objects.
@@ -532,6 +517,14 @@ void Message::addMailboxes( List<Mailbox> * mailboxes )
         (void)d->mailbox( i, true );
         ++i;
     }
+}
+
+
+/*! Records that this Message belongs to \a mb. */
+
+void Message::addMailbox( Mailbox * mb )
+{
+    d->mailbox( mb, true );
 }
 
 
@@ -838,6 +831,17 @@ List<Annotation> * Message::annotations( Mailbox * mb ) const
 }
 
 
+/*! Sets this message's annotations to \a l in the mailbox \a mb. */
+
+void Message::setAnnotations( Mailbox * mb, List<Annotation> * l )
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( !m )
+        return;
+    m->annotations = l;
+}
+
+
 static String badFields( Header * h )
 {
     StringList bad;
@@ -1123,7 +1127,10 @@ Message * Message::wrapUnparsableMessage( const String & message,
     wrapper.append( "\r\n\r\n" );
     wrapper.append( message );
     wrapper.append( "\r\n--" + boundary + "--\r\n" );
-    return new Message( wrapper );
+
+    Message * m = new Message( wrapper );
+    m->setWrapped( true );
+    return m;
 }
 
 

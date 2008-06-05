@@ -122,8 +122,8 @@ public:
                   mbn.ascii().quoted( '\'' ) );
 
         if ( !i ) {
+            m->addMailbox( mb );
             i = new Injector( m, this );
-            i->setMailbox( mb );
             i->execute();
         }
 

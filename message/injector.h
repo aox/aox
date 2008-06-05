@@ -25,34 +25,14 @@ public:
     Injector( Message *, EventHandler * );
     virtual ~Injector();
 
-    enum State {
-        Inactive,
-        CreatingFlags, CreatingAnnotationNames, CreatingFields,
-        InsertingBodyparts, InsertingAddresses, SelectingUids,
-        InsertingMessages,
-        LinkingAddresses, LinkingFlags, LinkingAnnotations,
-        AwaitingCompletion, Done
-    };
-
-    void setMailbox( Mailbox * );
-    void setMailboxes( SortedList<Mailbox> * );
-    void setFlags( const StringList & );
-    void setAnnotations( const List<Annotation> * );
-    void setDeliveryAddresses( List<Address> * );
-    void setSender( Address * );
-    void setWrapped();
+    void execute();
 
     bool done() const;
     bool failed() const;
     String error() const;
-    void execute();
 
-    uint uid( Mailbox * ) const;
-    int64 modSeq( Mailbox * ) const;
-
-    Message * message() const;
-
-    SortedList<Mailbox> * mailboxes() const;
+    void setFlags( const StringList & );
+    void addDelivery( Address *, List<Address> * );
 
 private:
     class InjectorData *d;

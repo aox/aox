@@ -69,7 +69,10 @@ public:
         : public EventHandler
     {
     public:
-        Decoder(): q( 0 ), d( 0 ), findById( false ), findByUid( false ) {}
+        Decoder( FetcherData * fd )
+            : q( 0 ), d( fd ), findById( false ), findByUid( false ) {
+            setLog( d->f->log() );
+        }
         void execute();
         virtual void decode( Message *, Row * ) = 0;
         virtual void setDone( Message * ) = 0;
@@ -94,7 +97,7 @@ public:
         : public Decoder
     {
     public:
-        FlagsDecoder( FetcherData * fd ) { d = fd; }
+        FlagsDecoder( FetcherData * fd ): Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
@@ -104,7 +107,7 @@ public:
         : public Decoder
     {
     public:
-        TriviaDecoder( FetcherData * fd ) { d = fd; }
+        TriviaDecoder( FetcherData * fd ): Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
@@ -114,7 +117,7 @@ public:
         : public Decoder
     {
     public:
-        AnnotationDecoder( FetcherData * fd ) { d = fd; }
+        AnnotationDecoder( FetcherData * fd ): Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
@@ -124,7 +127,7 @@ public:
         : public Decoder
     {
     public:
-        AddressDecoder( FetcherData * fd ) { d = fd; }
+        AddressDecoder( FetcherData * fd ): Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
@@ -134,7 +137,7 @@ public:
         : public Decoder
     {
     public:
-        HeaderDecoder( FetcherData * fd ) { d = fd; }
+        HeaderDecoder( FetcherData * fd ): Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
@@ -144,7 +147,7 @@ public:
         : public Decoder
     {
     public:
-        PartNumberDecoder( FetcherData * fd ) { d = fd; }
+        PartNumberDecoder( FetcherData * fd ): Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;

@@ -37,9 +37,8 @@ public:
           state( 0 ),
           handler( 0 ),
           autoresponses( 0 ),
-          mainInjector( 0 ),
-          wrapped( false )
-        {}
+          mainInjector( 0 )
+    {}
 
     class Recipient
         : public Garbage
@@ -85,7 +84,6 @@ public:
     EventHandler * handler;
     Query * autoresponses;
     Injector * mainInjector;
-    bool wrapped;
 
     Recipient * recipient( Address * a );
 };
@@ -197,13 +195,6 @@ void Sieve::execute()
     // 1: main injection of the incoming message and search for
     // existing autoresponses.
     if ( d->state == 1 ) {
-        // main injection...
-        d->mainInjector = new Injector( d->message, this );
-        d->mainInjector->setLog( new Log( Log::Database ) );
-
-        if ( d->wrapped )
-            d->mainInjector->setWrapped();
-
         SortedList<Mailbox> * l = new SortedList<Mailbox>;
         List<Mailbox>::Iterator i( mailboxes() );
         while ( i ) {
@@ -212,12 +203,13 @@ void Sieve::execute()
             ++i;
         }
 
+        d->message->addMailboxes( l );
+        d->mainInjector = new Injector( d->message, this );
+        d->mainInjector->setLog( new Log( Log::Database ) );
+
         List<Address> * f = forwarded();
-        if ( !f->isEmpty() ) {
-            d->mainInjector->setDeliveryAddresses( f );
-            d->mainInjector->setSender( sender() );
-        }
-        d->mainInjector->setMailboxes( l );
+        if ( !f->isEmpty() )
+            d->mainInjector->addDelivery( sender(), f );
 
         d->state = 2;
         if ( l->isEmpty() && f->isEmpty() )
@@ -329,8 +321,7 @@ void Sieve::execute()
             v->setLog( new Log( Log::Database ) );
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );
-            v->setDeliveryAddresses( remote );
-            v->setSender( new Address( "", "", "" ) ); // not senderAddress, hm
+            v->addDelivery( new Address( "", "", "" ), remote );
             v->execute();
             ++i;
         }
@@ -1566,14 +1557,4 @@ List<SieveAction> * Sieve::vacations() const
         ++r;
     }
     return v;
-}
-
-
-/*! Records that the message has been wrapped due to parse errors, and
-    should be marked as such upon injection.
-*/
-
-void Sieve::setWrapped()
-{
-    d->wrapped = true;
 }

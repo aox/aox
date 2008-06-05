@@ -417,8 +417,7 @@ Injector * DeliveryAgent::injectBounce( DSN * dsn )
     l->append( dsn->sender() );
 
     Injector * i = new Injector( dsn->result(), this );
-    i->setDeliveryAddresses( l );
-    i->setSender( new Address( "", "", "" ) );
+    i->addDelivery( new Address( "", "", "" ), l );
     return i;
 }
 

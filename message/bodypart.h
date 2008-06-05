@@ -21,6 +21,9 @@ public:
 
     uint number() const;
 
+    uint id() const;
+    void setId( uint );
+
     ContentType * contentType() const;
     String::Encoding contentTransferEncoding() const;
 

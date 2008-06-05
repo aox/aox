@@ -110,22 +110,30 @@ struct AddressLink
 
 // The following is everything the Injector needs to do its work.
 
+enum State {
+    Inactive,
+    CreatingFlags, CreatingAnnotationNames, CreatingFields,
+    InsertingBodyparts, InsertingAddresses, SelectingUids,
+    InsertingMessages,
+    LinkingAddresses, LinkingFlags, LinkingAnnotations,
+    AwaitingCompletion, Done
+};
+
 class InjectorData
     : public Garbage
 {
 public:
     InjectorData()
-        : state( Injector::Inactive ), failed( false ),
+        : state( Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
           mailboxes( 0 ), bodyparts( 0 ), midFetcher( 0 ),
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
-          flagCreator( 0 ), annotationCreator( 0 ),
-          remoteRecipients( 0 ), sender( 0 ), wrapped( false )
+          flagCreator( 0 ), annotationCreator( 0 )
     {}
 
-    Injector::State state;
+    State state;
 
     bool failed;
 
@@ -152,22 +160,28 @@ public:
     NewFlagCreator * flagCreator;
     NewAnnotationCreator * annotationCreator;
 
-    List<Address> * remoteRecipients;
-    Address * sender;
-
-    class Flag
+    struct Flag
         : public Garbage
     {
-    public:
         Flag( const String & n ): name( n ), flag( 0 ) {}
         String name;
         ::Flag * flag;
     };
 
     List<Flag> flags;
-    List<Annotation> annotations;
 
-    bool wrapped;
+    struct Delivery
+        : public Garbage
+    {
+        Delivery( Address * a, List<Address> * l )
+            : sender( a ), recipients( l )
+        {}
+
+        Address * sender;
+        List<Address> * recipients;
+    };
+
+    List<Delivery> deliveries;
 };
 
 
@@ -1118,9 +1132,6 @@ void Injector::setup()
 /*! Creates a new Injector to deliver the \a message on behalf of
     the \a owner, which is notified when the injection is completed.
     Message delivery commences when the execute() function is called.
-
-    The caller must call setMailbox() or setMailboxes() to tell the
-    Injector where to deliver the message.
 */
 
 Injector::Injector( Message * message, EventHandler * owner )
@@ -1130,6 +1141,13 @@ Injector::Injector( Message * message, EventHandler * owner )
         setup();
     d->owner = owner;
     d->message = message;
+
+    d->mailboxes = new List< Uid >;
+    SortedList<Mailbox>::Iterator mi( d->message->mailboxes() );
+    while ( mi ) {
+        d->mailboxes->append( new Uid( mi ) );
+        ++mi;
+    }
 
     d->bodyparts = new List< Bid >;
     List< Bodypart >::Iterator bi( d->message->allBodyparts() );
@@ -1144,66 +1162,6 @@ Injector::Injector( Message * message, EventHandler * owner )
 
 Injector::~Injector()
 {
-}
-
-
-/*! Instructs this Injector to deliver the message to the list of
-    Mailboxes specified in \a m.
-*/
-
-void Injector::setMailboxes( SortedList<Mailbox> * m )
-{
-    d->mailboxes = new List< Uid >;
-    SortedList<Mailbox>::Iterator mi( m );
-    while ( mi ) {
-        d->mailboxes->append( new Uid( mi ) );
-        ++mi;
-    }
-}
-
-
-/*! This function is provided for the convenience of the callers who
-    only ever need to specify a single target Mailbox \a m.
-*/
-
-void Injector::setMailbox( Mailbox * m )
-{
-    SortedList<Mailbox> * l = new SortedList<Mailbox>;
-    l->insert( m );
-    setMailboxes( l );
-}
-
-
-/*! Instructs the Injector to spool the message for later delivery
-    via SMTP to \a addresses. (This is used, for example, by Sieve
-    to implement the "redirect" action.)
-*/
-
-void Injector::setDeliveryAddresses( List<Address> * addresses )
-{
-    if ( addresses && !addresses->isEmpty() )
-        d->remoteRecipients = addresses;
-}
-
-
-/*! Informs the Injector that rows in deliveries should have the
-    specified \a sender address.
-*/
-
-void Injector::setSender( Address * sender )
-{
-    d->sender = sender;
-}
-
-
-/*! Informs the Injector that this message is wrapped around one that
-    could not be parsed; and that it should therefore insert the right
-    entry into unparsed_messages for the original.
-*/
-
-void Injector::setWrapped()
-{
-    d->wrapped = true;
 }
 
 
@@ -1226,30 +1184,13 @@ void Injector::setFlags( const StringList & flags )
 }
 
 
-/*! Instructs the Injector to create the specified IMAP \a annotations
-    on the newly injected message. If this function is not called, no
-    annotations will be created.
+/*! Notes that the current message must be delivered to the specified
+    \a recipients from the given \a sender.
 */
 
-void Injector::setAnnotations( const List<Annotation> * annotations )
+void Injector::addDelivery( Address * sender, List<Address> * recipients )
 {
-    List<Annotation>::Iterator it( annotations );
-    while ( it ) {
-        Annotation * a = it;
-
-        List<Annotation>::Iterator at( d->annotations );
-        while ( at &&
-                ( at->ownerId() != a->ownerId() ||
-                  at->entryName()->name() != a->entryName()->name() ) )
-            ++at;
-
-        if ( at )
-            at->setValue( a->value() );
-        else
-            d->annotations.append( a );
-
-        ++it;
-    }
+    d->deliveries.append( new InjectorData::Delivery( sender, recipients ) );
 }
 
 
@@ -1401,12 +1342,19 @@ void Injector::execute()
         if ( !d->midFetcher->done() || !d->uidFetcher->done() )
             return;
 
-        if ( d->midFetcher->failed ) {
+        if ( d->midFetcher->failed || d->uidFetcher->failed ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
         }
         else {
+            List<Uid>::Iterator it( d->mailboxes );
+            while ( it ) {
+                Uid * u = it;
+                d->message->setUid( u->mailbox, u->uid );
+                d->message->setModSeq( u->mailbox, u->ms );
+                ++it;
+            }
             d->state = InsertingMessages;
         }
     }
@@ -1438,17 +1386,22 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingFlags ) {
-        List<Annotation>::Iterator i( d->annotations );
-        while ( i ) {
-            if ( i->entryName()->id() == 0 ) {
-                AnnotationName * n;
-                n = AnnotationName::find( i->entryName()->name() );
-                if ( n->id() != 0 )
-                    i->setEntryName( n );
+        List<Uid>::Iterator mi( d->mailboxes );
+        while ( mi ) {
+            Mailbox * m = mi->mailbox;
+            List<Annotation>::Iterator i( d->message->annotations( m ) );
+            while ( i ) {
+                if ( i->entryName()->id() == 0 ) {
+                    AnnotationName * n;
+                    n = AnnotationName::find( i->entryName()->name() );
+                    if ( n->id() != 0 )
+                        i->setEntryName( n );
+                }
+                if ( i->entryName()->id() == 0 )
+                    return;
+                ++i;
             }
-            if ( i->entryName()->id() == 0 )
-                return;
-            ++i;
+            ++mi;
         }
         linkAnnotations();
         handleWrapping();
@@ -1600,33 +1553,35 @@ void Injector::resolveAddressLinks()
     // if we're also going to insert deliveries rows, and one or more
     // of the addresses aren't in the to/cc fields, make sure we
     // create addresses rows and learn their ids.
-    if ( d->remoteRecipients ) {
-        List< Address >::Iterator ai( d->remoteRecipients );
+
+    List<InjectorData::Delivery>::Iterator di( d->deliveries );
+    while ( di ) {
+        List<Address>::Iterator ai( di->recipients );
         while ( ai ) {
             Address * a = ai;
-            ++ai;
             String k( a->lpdomain() );
 
             if ( naked.contains( k ) ) {
                 Address * same = naked.find( k );
                 if ( a != same ) {
-                    d->remoteRecipients->remove( a );
-                    d->remoteRecipients->prepend( same );
+                    di->recipients->remove( a );
+                    di->recipients->prepend( same );
                 }
             }
             else {
                 naked.insert( k, a );
                 addresses->append( a );
             }
+            ++ai;
         }
-    }
 
-    if ( d->sender ) {
-        String k( d->sender->lpdomain() );
+        String k( di->sender->lpdomain() );
         if ( naked.contains( k ) )
-            d->sender = naked.find( k );
+            di->sender = naked.find( k );
         else
-            addresses->append( d->sender );
+            addresses->append( di->sender );
+
+        ++di;
     }
 
     d->addressCreator =
@@ -1888,32 +1843,41 @@ void Injector::insertMessages()
 
 void Injector::insertDeliveries()
 {
-    if ( !d->remoteRecipients )
+    if ( d->deliveries.isEmpty() )
         return;
 
-    log( "Spooling message " + fn( d->messageId ) + " for delivery to " +
-         fn( d->remoteRecipients->count() ) + " remote recipients",
-         Log::Significant );
-
-    Query * q =
-        new Query( "insert into deliveries "
-                   "(sender,message,injected_at,expires_at) "
-                   "values ($1,$2,current_timestamp,"
-                   "current_timestamp+interval '2 days')", 0 );
-    q->bind( 1, d->sender->id() );
-    q->bind( 2, d->messageId );
-    d->transaction->enqueue( q );
-
-    List<Address>::Iterator i( d->remoteRecipients );
-    while ( i ) {
+    List<InjectorData::Delivery>::Iterator di( d->deliveries );
+    while ( di ) {
         Query * q =
-            new Query( "insert into delivery_recipients (delivery,recipient) "
-                       "values ("
-                       "currval(pg_get_serial_sequence('deliveries','id')),"
-                       "$1)", 0 );
-        q->bind( 1, i->id() );
+            new Query( "insert into deliveries "
+                       "(sender,message,injected_at,expires_at) "
+                       "values ($1,$2,current_timestamp,"
+                       "current_timestamp+interval '2 days')", 0 );
+        q->bind( 1, di->sender->id() );
+        q->bind( 2, d->messageId );
         d->transaction->enqueue( q );
-        ++i;
+
+        uint n = 0;
+        List<Address>::Iterator it( di->recipients );
+        while ( it ) {
+            Query * q =
+                new Query(
+                    "insert into delivery_recipients (delivery,recipient) "
+                    "values ("
+                    "currval(pg_get_serial_sequence('deliveries','id')),"
+                    "$1)", 0
+                );
+            q->bind( 1, it->id() );
+            d->transaction->enqueue( q );
+            n++;
+            ++it;
+        }
+
+        log( "Spooling message " + fn( d->messageId ) +
+             " for delivery to " + fn( n ) +
+             " remote recipients", Log::Significant );
+
+        ++di;
     }
 
     d->transaction->enqueue( new Query( "notify deliveries_updated", 0 ) );
@@ -2134,55 +2098,6 @@ void Injector::announce()
 }
 
 
-/*! When the Injector injects a message into \a mailbox, it
-    selects/learns the UID of the message. This function returns that
-    UID. It returns 0 in case the message hasn't been inserted into
-    \a mailbox, or if the uid isn't known yet.
-
-    A nonzero return value does not imply that the injection is
-    complete, or even that it will complete, only that injection has
-    progressed far enough to select a UID.
-*/
-
-uint Injector::uid( Mailbox * mailbox ) const
-{
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi && mi->mailbox != mailbox )
-        ++mi;
-    if ( !mi )
-        return 0;
-    return mi->uid;
-}
-
-
-/*! Returns the modseq of the message in \a mailbox, or 0 if the
-    injector hasn't obtained one yet.
-
-    The same caveats apply as for uid().
-*/
-
-int64 Injector::modSeq( Mailbox * mailbox ) const
-{
-    List< Uid >::Iterator mi( d->mailboxes );
-    while ( mi && mi->mailbox != mailbox )
-        ++mi;
-    if ( !mi )
-        return 0;
-    return mi->ms;
-}
-
-
-/*! Returns a pointer to the Message to be/being/which was inserted,
-    or a null pointer if this Injector isn't inserting exactly one
-    Message.
-*/
-
-Message * Injector::message() const
-{
-    return d->message;
-}
-
-
 /*! Starts creating Flag objects for the flags we need to store for
     this message.
 */
@@ -2207,17 +2122,23 @@ void Injector::createFlags()
 
 
 /*! Creates the AnnotationName objects needed to create the annotation
-    entries specified with setAnnotations().
+    entries specified with the message.
 */
 
 void Injector::createAnnotationNames()
 {
     StringList unknown;
-    List<Annotation>::Iterator it( d->annotations );
-    while ( it ) {
-        if ( !it->entryName()->id() )
-            unknown.append( it->entryName()->name() );
-        ++it;
+
+    List<Uid>::Iterator mi( d->mailboxes );
+    while ( mi ) {
+        Mailbox * m = mi->mailbox;
+        List<Annotation>::Iterator it( d->message->annotations( m ) );
+        while ( it ) {
+            if ( !it->entryName()->id() )
+                unknown.append( it->entryName()->name() );
+            ++it;
+        }
+        ++mi;
     }
 
     if ( !unknown.isEmpty() ) {
@@ -2254,13 +2175,14 @@ void Injector::linkFlags()
 
 void Injector::linkAnnotations()
 {
-    List<Annotation>::Iterator it( d->annotations );
-    while ( it ) {
-        List<Uid>::Iterator m( d->mailboxes );
-        while ( m ) {
+    List<Uid>::Iterator mi( d->mailboxes );
+    while ( mi ) {
+        Mailbox * m = mi->mailbox;
+        List<Annotation>::Iterator it( d->message->annotations( m ) );
+        while ( it ) {
             Query * q = new Query( *insertAnnotation, this );
-            q->bind( 1, m->mailbox->id() );
-            q->bind( 2, m->uid );
+            q->bind( 1, m->id() );
+            q->bind( 2, mi->uid );
             q->bind( 3, it->entryName()->id() );
             q->bind( 4, it->value() );
             if ( it->ownerId() == 0 )
@@ -2268,20 +2190,20 @@ void Injector::linkAnnotations()
             else
                 q->bind( 5, it->ownerId() );
             d->transaction->enqueue( q );
-            ++m;
+            ++it;
         }
-        ++it;
+        ++mi;
     }
 }
 
 
-/*! If setWrapped() has been called, this function inserts a single row
-    into the unparsed_messages table, referencing the second bodypart.
+/*! If the message is wrapped, this function inserts a single row into
+    the unparsed_messages table, referencing the second bodypart.
 */
 
 void Injector::handleWrapping()
 {
-    if ( !d->wrapped )
+    if ( !d->message->isWrapped() )
         return;
 
     List< Bid >::Iterator bi( d->bodyparts );
@@ -2300,23 +2222,6 @@ void Injector::handleWrapping()
 
         ++bi;
     }
-}
-
-
-/*! Returns a pointer to a SortedList of the mailboxes that this
-    Injector was instructed to deliver to with setMailboxes().
-*/
-
-SortedList<Mailbox> * Injector::mailboxes() const
-{
-    SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
-    List<Uid>::Iterator it( d->mailboxes );
-    while ( it ) {
-        mailboxes->append( it->mailbox );
-        ++it;
-    }
-
-    return mailboxes;
 }
 
 

@@ -32,9 +32,9 @@ public:
     void setUid( Mailbox *, uint );
     uint uid( Mailbox * ) const;
 
-    const Mailbox * mailbox() const;
     List<Mailbox> * mailboxes() const;
     void addMailboxes( List<Mailbox> * );
+    void addMailbox( Mailbox * );
 
     void setWrapped( bool ) const;
     bool isWrapped() const;
@@ -58,6 +58,7 @@ public:
 
     List<Flag> * flags( Mailbox * ) const;
     List<Annotation> * annotations( Mailbox * ) const;
+    void setAnnotations( Mailbox *, List<Annotation> * );
 
     bool hasFlags( Mailbox * ) const;
     bool hasHeaders() const;
