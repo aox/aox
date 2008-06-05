@@ -595,28 +595,6 @@ void Store::removeFlags( bool opposite )
 }
 
 
-/*! Returns a Query which will ensure that all messages in \a s in \a
-    m have the \a f flag set. The query will notify event handler \a h
-    when it's done.
-*/
-
-Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
-                              EventHandler * h )
-{
-    Query * q =
-        new Query( "insert into flags (flag,uid,mailbox) "
-                   "select $1,mm.uid,$2 from mailbox_messages mm "
-                   "left join flags f on "
-                   " (mm.mailbox=f.mailbox and mm.uid=f.uid and f.flag=$1) "
-                   "where f.flag is null and mm.mailbox=$2 and mm.uid=any($3)",
-                   h );
-    q->bind( 1, f->id() );
-    q->bind( 2, m->id() );
-    q->bind( 3, s );
-    return q;
-}
-
-
 /*! Adds all the necessary flags to the database.
 */
 
@@ -627,7 +605,17 @@ void Store::addFlags()
 
     List<Flag>::Iterator it( d->flags );
     while ( it ) {
-        d->transaction->enqueue( addFlagsQuery( it, m, s, 0 ) );
+        Query * q = new Query( 
+            "insert into flags (flag,uid,mailbox) "
+            "select $1,mm.uid,$2 from mailbox_messages mm "
+            "left join flags f on "
+            " (mm.mailbox=f.mailbox and mm.uid=f.uid and f.flag=$1) "
+            "where f.flag is null and mm.mailbox=$2 and mm.uid=any($3)",
+            0 );
+        q->bind( 1, it->id() );
+        q->bind( 2, m->id() );
+        q->bind( 3, s );
+        d->transaction->enqueue( q );
         ++it;
     }
 }
