@@ -20,9 +20,6 @@ public:
     void parse();
     void execute();
 
-    static Query * addFlagsQuery( Flag * f, Mailbox * m,
-                                  const MessageSet & s, EventHandler * h );
-
 private:
     class StoreData * d;
 
