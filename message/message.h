@@ -32,7 +32,7 @@ public:
     void setUid( Mailbox *, uint );
     uint uid( Mailbox * ) const;
 
-    List<Mailbox> * mailboxes() const;
+    SortedList<Mailbox> * mailboxes() const;
     void addMailboxes( List<Mailbox> * );
     void addMailbox( Mailbox * );
 

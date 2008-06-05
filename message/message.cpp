@@ -488,19 +488,19 @@ uint Message::uid( Mailbox * mb ) const
 }
 
 
-/*! Allocates and return a list of all Mailbox objects to which this
-    Message belongs. addMailboxes(), setUid() and friends cause the
+/*! Allocates and return a sorted list of all Mailbox objects to which
+    this Message belongs. addMailboxes(), setUid() and friends cause the
     Message to belong to one or more Mailbox objects.
 
     This may return an empty list, but it never returns a null pointer.
 */
 
-List<Mailbox> * Message::mailboxes() const
+SortedList<Mailbox> * Message::mailboxes() const
 {
-    List<Mailbox> * m = new List<Mailbox>;
+    SortedList<Mailbox> * m = new SortedList<Mailbox>;
     List<MessageData::Mailbox>::Iterator i( d->mailboxes );
     while ( i ) {
-        m->append( i->mailbox );
+        m->insert( i->mailbox );
         ++i;
     }
     return m;
