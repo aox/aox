@@ -12,6 +12,7 @@
 #include "entropy.h"
 #include "codec.h"
 #include "date.h"
+#include "dict.h"
 #include "flag.h"
 #include "md5.h"
 
@@ -593,16 +594,22 @@ List<Flag> * Message::flags( Mailbox * mb ) const
 
 
 /*! Sets this message's flags for the mailbox \a mb to those specified
-    in \a l. */
+    in \a l. Duplicates are ignored. */
 
 void Message::setFlags( Mailbox * mb, const List<Flag> * l )
 {
     MessageData::Mailbox * m = d->mailbox( mb );
     if ( !m )
         return;
+
+    Dict<void> uniq;
     List<Flag>::Iterator it( l );
     while ( it ) {
-        m->flags.append( it );
+        Flag * f = it;
+        if ( !uniq.contains( f->name().lower() ) ) {
+            m->flags.append( f );
+            uniq.insert( f->name().lower(), (void *)1 );
+        }
         ++it;
     }
 }
