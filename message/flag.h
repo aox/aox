@@ -18,8 +18,6 @@ public:
     String name() const;
     uint id() const;
 
-    bool system() const;
-
     static Flag * find( const String &, bool = false );
     static Flag * find( uint );
 
