@@ -160,8 +160,6 @@ public:
     NewFlagCreator * flagCreator;
     NewAnnotationCreator * annotationCreator;
 
-    StringList flags;
-
     struct Delivery
         : public Garbage
     {
@@ -1157,25 +1155,6 @@ Injector::~Injector()
 }
 
 
-/*! Instructs the Injector to set the specified IMAP \a flags on the
-    newly injected message. If this function is not called, no flags
-    will be set.
-*/
-
-void Injector::setFlags( const StringList & flags )
-{
-    Dict<void> uniq;
-    StringList::Iterator fi( flags );
-    while ( fi ) {
-        if ( !uniq.contains( fi->lower() ) ) {
-            d->flags.append( *fi );
-            uniq.insert( fi->lower(), (void*) 1 );
-        }
-        ++fi;
-    }
-}
-
-
 /*! Notes that the current message must be delivered to the specified
     \a recipients from the given \a sender.
 */
@@ -1365,11 +1344,16 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingAddresses ) {
-        StringList::Iterator i( d->flags );
-        while ( i ) {
-            if ( Flag::id( *i ) == 0 )
-                return;
-            ++i;
+        List<Uid>::Iterator mi( d->mailboxes );
+        while ( mi ) {
+            Mailbox * m = mi->mailbox;
+            StringList::Iterator i( d->message->flags( m ) );
+            while ( i ) {
+                if ( Flag::id( *i ) == 0 )
+                    return;
+                ++i;
+            }
+            ++mi;
         }
         linkFlags();
         d->state = LinkingFlags;
@@ -2095,11 +2079,17 @@ void Injector::announce()
 void Injector::createFlags()
 {
     StringList unknown;
-    StringList::Iterator it( d->flags );
-    while ( it ) {
-        if ( Flag::id( *it ) == 0 )
-            unknown.append( *it );
-        ++it;
+
+    List<Uid>::Iterator mi( d->mailboxes );
+    while ( mi ) {
+        Mailbox * m = mi->mailbox;
+        StringList::Iterator i( d->message->flags( m ) );
+        while ( i ) {
+            if ( Flag::id( *i ) == 0 )
+                unknown.append( *i );
+            ++i;
+        }
+        ++mi;
     }
 
     if ( !unknown.isEmpty() ) {
@@ -2144,18 +2134,19 @@ void Injector::createAnnotationNames()
 
 void Injector::linkFlags()
 {
-    StringList::Iterator i( d->flags );
-    while ( i ) {
-        List<Uid>::Iterator m( d->mailboxes );
-        while ( m ) {
+    List<Uid>::Iterator mi( d->mailboxes );
+    while ( mi ) {
+        Mailbox * m = mi->mailbox;
+        StringList::Iterator i( d->message->flags( m ) );
+        while ( i ) {
             Query * q = new Query( *insertFlag, this );
-            q->bind( 1, m->mailbox->id() );
-            q->bind( 2, m->uid );
+            q->bind( 1, m->id() );
+            q->bind( 2, mi->uid );
             q->bind( 3, Flag::id( *i ) );
             d->transaction->enqueue( q );
-            ++m;
+            ++i;
         }
-        ++i;
+        ++mi;
     }
 }
 

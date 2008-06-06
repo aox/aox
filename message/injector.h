@@ -31,7 +31,6 @@ public:
     bool failed() const;
     String error() const;
 
-    void setFlags( const StringList & );
     void addDelivery( Address *, List<Address> * );
 
 private:
