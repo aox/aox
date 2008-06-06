@@ -42,7 +42,6 @@ static PreparedStatement *incrUidnext;
 static PreparedStatement *incrUidnextWithRecent;
 static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
-static PreparedStatement *insertFlag;
 static PreparedStatement *insertAnnotation;
 
 static GraphableCounter * successes;
@@ -1103,13 +1102,6 @@ void Injector::setup()
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
 
-    insertFlag =
-        new PreparedStatement(
-            "insert into flags (mailbox,uid,flag) "
-            "values ($1,$2,$3)"
-        );
-    Allocator::addEternal( insertFlag, "insertFlag" );
-
     insertAnnotation =
         new PreparedStatement(
             "insert into annotations (mailbox,uid,name,value,owner) "
@@ -2134,20 +2126,28 @@ void Injector::createAnnotationNames()
 
 void Injector::linkFlags()
 {
+    Query * q =
+        new Query( "copy flags (mailbox,uid,flag) "
+                   "from stdin with binary", this );
+
+    uint flags = 0;
     List<Uid>::Iterator mi( d->mailboxes );
     while ( mi ) {
         Mailbox * m = mi->mailbox;
         StringList::Iterator i( d->message->flags( m ) );
         while ( i ) {
-            Query * q = new Query( *insertFlag, this );
-            q->bind( 1, m->id() );
-            q->bind( 2, mi->uid );
-            q->bind( 3, Flag::id( *i ) );
-            d->transaction->enqueue( q );
+            flags++;
+            q->bind( 1, m->id(), Query::Binary );
+            q->bind( 2, mi->uid, Query::Binary );
+            q->bind( 3, Flag::id( *i ), Query::Binary );
+            q->submitLine();
             ++i;
         }
         ++mi;
     }
+
+    if ( flags )
+        d->transaction->enqueue( q );
 }
 
 
