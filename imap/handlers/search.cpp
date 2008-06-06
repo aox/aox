@@ -172,242 +172,238 @@ void Search::parseKey()
         if ( !d->uid )
             setGroup( 0 ); // XXX consider this
     }
+    else if ( present( "all" ) ) {
+        add( new Selector( Selector::NoField, Selector::All ) );
+    }
+    else if ( present( "answered" ) ) {
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\answered" ) );
+    }
+    else if ( present( "deleted" ) ) {
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\deleted" ) );
+    }
+    else if ( present( "flagged" ) ) {
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\flagged" ) );
+    }
+    else if ( present( "new" ) ) {
+        push( Selector::And );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\recent" ) );
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\seen" ) );
+        pop();
+        pop();
+    }
+    else if ( present( "old" ) ) {
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\recent" ) );
+        pop();
+    }
+    else if ( present( "recent" ) ) {
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\recent" ) );
+    }
+    else if ( present( "seen" ) ) {
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\seen" ) );
+    }
+    else if ( present( "unanswered" ) ) {
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\answered" ) );
+        pop();
+    }
+    else if ( present( "undeleted" ) ) {
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\deleted" ) );
+        pop();
+    }
+    else if ( present( "unflagged" ) ) {
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\flagged" ) );
+        pop();
+    }
+    else if ( present( "unseen" ) ) {
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\seen" ) );
+        pop();
+    }
+    else if ( present( "draft" ) ) {
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\draft" ) );
+    }
+    else if ( present( "undraft" ) ) {
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           "\\draft" ) );
+        pop();
+    }
+    else if ( present( "on" ) ) {
+        space();
+        add( new Selector( Selector::InternalDate, Selector::OnDate,
+                           date() ) );
+    }
+    else if ( present( "before" ) ) {
+        space();
+        add( new Selector( Selector::InternalDate, Selector::BeforeDate,
+                           date() ) );
+    }
+    else if ( present( "since" ) ) {
+        space();
+        add( new Selector( Selector::InternalDate, Selector::SinceDate,
+                           date() ) );
+    }
+    else if ( present( "sentbefore" ) ) {
+        space();
+        add( new Selector( Selector::Sent, Selector::BeforeDate,
+                           date() ) );
+    }
+    else if ( present( "senton" ) ) {
+        space();
+        add( new Selector( Selector::Sent, Selector::OnDate, date() ) );
+    }
+    else if ( present( "sentsince" ) ) {
+        space();
+        add( new Selector( Selector::Sent, Selector::SinceDate, date() ) );
+    }
+    else if ( present( "from" ) ) {
+        space();
+        add( new Selector( Selector::Header, Selector::Contains,
+                           "from", ustring( AString ) ) );
+    }
+    else if ( present( "to" ) ) {
+        space();
+        add( new Selector( Selector::Header, Selector::Contains,
+                           "to", ustring( AString ) ) );
+    }
+    else if ( present( "cc" ) ) {
+        space();
+        add( new Selector( Selector::Header, Selector::Contains,
+                           "cc", ustring( AString ) ) );
+    }
+    else if ( present( "bcc" ) ) {
+        space();
+        add( new Selector( Selector::Header, Selector::Contains,
+                           "bcc", ustring( AString ) ) );
+    }
+    else if ( present( "subject" ) ) {
+        space();
+        add( new Selector( Selector::Header, Selector::Contains,
+                           "subject", ustring( AString ) ) );
+    }
+    else if ( present( "body" ) ) {
+        space();
+        add( new Selector( Selector::Body, Selector::Contains,
+                           ustring( AString ) ) );
+    }
+    else if ( present( "text" ) ) {
+        space();
+        UString a = ustring( AString );
+        push( Selector::Or );
+        add( new Selector( Selector::Body, Selector::Contains, a ) );
+        // field name is null for any-field searches
+        add( new Selector( Selector::Header, Selector::Contains, 0, a ) );
+        pop();
+    }
+    else if ( present( "keyword" ) ) {
+        space();
+        add( new Selector( Selector::Flags, Selector::Contains,
+                           atom().lower() ) );
+    }
+    else if ( present( "unkeyword" ) ) {
+        space();
+        push( Selector::Not );
+        add( new Selector( Selector::Flags, Selector::Contains, atom() ) );
+        pop();
+    }
+    else if ( present( "header" ) ) {
+        space();
+        String s1 = astring();
+        space();
+        UString s2 = ustring( AString );
+        add( new Selector( Selector::Header, Selector::Contains, s1, s2 ) );
+    }
+    else if ( present( "uid" ) ) {
+        space();
+        add( new Selector( set( false ) ) );
+    }
+    else if ( present( "or" ) ) {
+        space();
+        push( Selector::Or );
+        parseKey();
+        space();
+        parseKey();
+        pop();
+    }
+    else if ( present( "not" ) ) {
+        space();
+        push( Selector::Not );
+        parseKey();
+        pop();
+    }
+    else if ( present( "larger" ) ) {
+        space();
+        add( new Selector( Selector::Rfc822Size, Selector::Larger,
+                           number() ) );
+    }
+    else if ( present( "smaller" ) ) {
+        space();
+        add( new Selector( Selector::Rfc822Size, Selector::Smaller,
+                           number() ) );
+    }
+    else if ( present( "annotation" ) ) {
+        space();
+        String a = parser()->listMailbox();
+        if ( !parser()->ok() )
+            error( Bad, parser()->error() );
+        space();
+        String b = atom();
+        space();
+        UString c = ustring( NString );
+
+        uint i = 0;
+        while ( ::legalAnnotationAttributes[i] &&
+                b != ::legalAnnotationAttributes[i] )
+            i++;
+        if ( !::legalAnnotationAttributes[i] )
+            error( Bad, "Unknown annotation attribute: " + b );
+
+        add( new Selector( Selector::Annotation, Selector::Contains,
+                           a, b, c ) );
+    }
+    else if ( present( "modseq" ) ) {
+        space();
+        if ( nextChar() == '"' ) {
+            // we don't store per-flag or per-annotation modseqs,
+            // so RFC 4551 3.4 says we MUST ignore these
+            (void)quoted(); // flag or annotation name
+            space();
+            (void)letters( 3, 6 ); // priv/shared/all
+            space();
+        }
+        add( new Selector( Selector::Modseq, Selector::Larger,
+                           number() ) );
+        d->returnModseq = true;
+    }
+    else if ( present( "older" ) ) {
+        space();
+        add( new Selector( Selector::Age, Selector::Larger,
+                           nzNumber() ) );
+    }
+    else if ( present( "younger" ) ) {
+        space();
+        add( new Selector( Selector::Age, Selector::Smaller,
+                           nzNumber() ) );
+    }
     else {
-        // first comes a keyword. they all are letters only, so:
-        String keyword = letters( 2, 15 ).lower();
-        if ( keyword == "all" ) {
-            add( new Selector( Selector::NoField, Selector::All ) );
-        }
-        else if ( keyword == "answered" ) {
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\answered" ) );
-        }
-        else if ( keyword == "deleted" ) {
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\deleted" ) );
-        }
-        else if ( keyword == "flagged" ) {
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\flagged" ) );
-        }
-        else if ( keyword == "new" ) {
-            push( Selector::And );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\recent" ) );
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\seen" ) );
-            pop();
-            pop();
-        }
-        else if ( keyword == "old" ) {
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\recent" ) );
-            pop();
-        }
-        else if ( keyword == "recent" ) {
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\recent" ) );
-        }
-        else if ( keyword == "seen" ) {
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\seen" ) );
-        }
-        else if ( keyword == "unanswered" ) {
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\answered" ) );
-            pop();
-        }
-        else if ( keyword == "undeleted" ) {
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\deleted" ) );
-            pop();
-        }
-        else if ( keyword == "unflagged" ) {
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\flagged" ) );
-            pop();
-        }
-        else if ( keyword == "unseen" ) {
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\seen" ) );
-            pop();
-        }
-        else if ( keyword == "draft" ) {
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\draft" ) );
-        }
-        else if ( keyword == "undraft" ) {
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               "\\draft" ) );
-            pop();
-        }
-        else if ( keyword == "on" ) {
-            space();
-            add( new Selector( Selector::InternalDate, Selector::OnDate,
-                               date() ) );
-        }
-        else if ( keyword == "before" ) {
-            space();
-            add( new Selector( Selector::InternalDate, Selector::BeforeDate,
-                               date() ) );
-        }
-        else if ( keyword == "since" ) {
-            space();
-            add( new Selector( Selector::InternalDate, Selector::SinceDate,
-                               date() ) );
-        }
-        else if ( keyword == "sentbefore" ) {
-            space();
-            add( new Selector( Selector::Sent, Selector::BeforeDate,
-                               date() ) );
-        }
-        else if ( keyword == "senton" ) {
-            space();
-            add( new Selector( Selector::Sent, Selector::OnDate, date() ) );
-        }
-        else if ( keyword == "sentsince" ) {
-            space();
-            add( new Selector( Selector::Sent, Selector::SinceDate, date() ) );
-        }
-        else if ( keyword == "from" ) {
-            space();
-            add( new Selector( Selector::Header, Selector::Contains,
-                               "from", ustring( AString ) ) );
-        }
-        else if ( keyword == "to" ) {
-            space();
-            add( new Selector( Selector::Header, Selector::Contains,
-                               "to", ustring( AString ) ) );
-        }
-        else if ( keyword == "cc" ) {
-            space();
-            add( new Selector( Selector::Header, Selector::Contains,
-                               "cc", ustring( AString ) ) );
-        }
-        else if ( keyword == "bcc" ) {
-            space();
-            add( new Selector( Selector::Header, Selector::Contains,
-                               "bcc", ustring( AString ) ) );
-        }
-        else if ( keyword == "subject" ) {
-            space();
-            add( new Selector( Selector::Header, Selector::Contains,
-                               "subject", ustring( AString ) ) );
-        }
-        else if ( keyword == "body" ) {
-            space();
-            add( new Selector( Selector::Body, Selector::Contains,
-                               ustring( AString ) ) );
-        }
-        else if ( keyword == "text" ) {
-            space();
-            UString a = ustring( AString );
-            push( Selector::Or );
-            add( new Selector( Selector::Body, Selector::Contains, a ) );
-            // field name is null for any-field searches
-            add( new Selector( Selector::Header, Selector::Contains, 0, a ) );
-            pop();
-        }
-        else if ( keyword == "keyword" ) {
-            space();
-            add( new Selector( Selector::Flags, Selector::Contains,
-                               atom().lower() ) );
-        }
-        else if ( keyword == "unkeyword" ) {
-            space();
-            push( Selector::Not );
-            add( new Selector( Selector::Flags, Selector::Contains, atom() ) );
-            pop();
-        }
-        else if ( keyword == "header" ) {
-            space();
-            String s1 = astring();
-            space();
-            UString s2 = ustring( AString );
-            add( new Selector( Selector::Header, Selector::Contains, s1, s2 ) );
-        }
-        else if ( keyword == "uid" ) {
-            space();
-            add( new Selector( set( false ) ) );
-        }
-        else if ( keyword == "or" ) {
-            space();
-            push( Selector::Or );
-            parseKey();
-            space();
-            parseKey();
-            pop();
-        }
-        else if ( keyword == "not" ) {
-            space();
-            push( Selector::Not );
-            parseKey();
-            pop();
-        }
-        else if ( keyword == "larger" ) {
-            space();
-            add( new Selector( Selector::Rfc822Size, Selector::Larger,
-                               number() ) );
-        }
-        else if ( keyword == "smaller" ) {
-            space();
-            add( new Selector( Selector::Rfc822Size, Selector::Smaller,
-                               number() ) );
-        }
-        else if ( keyword == "annotation" ) {
-            space();
-            String a = parser()->listMailbox();
-            if ( !parser()->ok() )
-                error( Bad, parser()->error() );
-            space();
-            String b = atom();
-            space();
-            UString c = ustring( NString );
-
-            uint i = 0;
-            while ( ::legalAnnotationAttributes[i] &&
-                    b != ::legalAnnotationAttributes[i] )
-                i++;
-            if ( !::legalAnnotationAttributes[i] )
-                error( Bad, "Unknown annotation attribute: " + b );
-
-            add( new Selector( Selector::Annotation, Selector::Contains,
-                               a, b, c ) );
-        }
-        else if ( keyword == "modseq" ) {
-            space();
-            if ( nextChar() == '"' ) {
-                // we don't store per-flag or per-annotation modseqs,
-                // so RFC 4551 3.4 says we MUST ignore these
-                (void)quoted(); // flag or annotation name
-                space();
-                (void)letters( 3, 6 ); // priv/shared/all
-                space();
-            }
-            add( new Selector( Selector::Modseq, Selector::Larger,
-                               number() ) );
-            d->returnModseq = true;
-        }
-        else if ( keyword == "older" ) {
-            space();
-            add( new Selector( Selector::Age, Selector::Larger,
-                               nzNumber() ) );
-        }
-        else if ( keyword == "younger" ) {
-            space();
-            add( new Selector( Selector::Age, Selector::Smaller,
-                               nzNumber() ) );
-        }
-        else {
-            error( Bad, "unknown search key: " + keyword );
-        }
+        error( Bad, "expected search key, saw: " + following() );
     }
 }
 
