@@ -47,7 +47,6 @@ public:
     Codec * codec;
 
     Selector * root;
-    List< Selector > selectors;
 
     Query * query;
     MessageSet matches;
@@ -94,7 +93,6 @@ Search::Search( bool u )
         setGroup( 2 );
 
     d->root = new Selector;
-    d->selectors.append( d->root );
 }
 
 
@@ -128,16 +126,16 @@ void Search::parse()
             d->returnAll = true;
         space();
     }
-    space();
     if ( present ( "charset" ) ) {
         space();
         setCharset( astring() );
         space();
     }
-    parseKey();
+    d->root = new Selector;
+    d->root->add( parseKey() );
     while ( ok() && !parser()->atEnd() ) {
         space();
-        parseKey();
+        d->root->add( parseKey() );
     }
     end();
 
@@ -146,217 +144,199 @@ void Search::parse()
 }
 
 
-/*! Parse one search key (IMAP search-key). Leaves the cursor on the
-    first character following the search-key.
+/*! Parse one search key (IMAP search-key) and returns a pointer to
+    the corresponding Selector. Leaves the cursor on the first
+    character following the search-key.
 */
 
-void Search::parseKey()
+Selector * Search::parseKey()
 {
     char c = nextChar();
     if ( c == '(' ) {
-        // it's an "and" list.
-        push( Selector::And );
-        do {
-            step();
-            parseKey();
-            c = nextChar();
-        } while ( c == ' ' );
-        if ( c != ')' )
-            error( Bad, "')' expected, saw: " + following() );
         step();
-        pop();
+        // it's an "and" list.
+        Selector * s = new Selector( Selector::And );
+        while ( ok() && !present( ")" ) ) {
+            space();
+            s->add( parseKey() );
+        }
+        return s;
     }
     else if ( c == '*' || ( c >= '0' && c <= '9' ) ) {
         // it's a pure set
-        add( new Selector( set( true ) ) );
         if ( !d->uid )
             setGroup( 0 ); // XXX consider this
+        return new Selector( set( true ) );
     }
     else if ( present( "all" ) ) {
-        add( new Selector( Selector::NoField, Selector::All ) );
+        return new Selector( Selector::NoField, Selector::All );
     }
     else if ( present( "answered" ) ) {
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\answered" ) );
+        return new Selector( Selector::Flags, Selector::Contains, "\\answered" );
     }
     else if ( present( "deleted" ) ) {
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\deleted" ) );
+        return new Selector( Selector::Flags, Selector::Contains, "\\deleted" );
     }
     else if ( present( "flagged" ) ) {
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\flagged" ) );
+        return new Selector( Selector::Flags, Selector::Contains, "\\flagged" );
     }
     else if ( present( "new" ) ) {
-        push( Selector::And );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\recent" ) );
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\seen" ) );
-        pop();
-        pop();
+        Selector * s = new Selector( Selector::And );
+        s->add( new Selector( Selector::Flags, Selector::Contains, "\\recent" ) );
+        Selector * n = new Selector( Selector::Not );
+        s->add( n );
+        n->add( new Selector( Selector::Flags, Selector::Contains, "\\seen" ) );
+        return s;
     }
     else if ( present( "old" ) ) {
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\recent" ) );
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains, "\\recent" ) );
+        return s;
     }
     else if ( present( "recent" ) ) {
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\recent" ) );
+        Selector * s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains, "\\recent" ) );
+        return s;
     }
     else if ( present( "seen" ) ) {
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\seen" ) );
+        return new Selector( Selector::Flags, Selector::Contains, "\\seen" );
     }
     else if ( present( "unanswered" ) ) {
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\answered" ) );
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add(new Selector( Selector::Flags, Selector::Contains, "\\answered" ) );
+        return s;
     }
     else if ( present( "undeleted" ) ) {
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\deleted" ) );
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains, "\\deleted" ) );
+        return s;
     }
     else if ( present( "unflagged" ) ) {
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\flagged" ) );
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains, "\\flagged" ) );
+        return s;
     }
     else if ( present( "unseen" ) ) {
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\seen" ) );
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains, "\\seen" ) );
+        return s;
     }
     else if ( present( "draft" ) ) {
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\draft" ) );
+        return new Selector( Selector::Flags, Selector::Contains, "\\draft" );
     }
     else if ( present( "undraft" ) ) {
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           "\\draft" ) );
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains, "\\draft" ) );
+        return s;
     }
     else if ( present( "on" ) ) {
         space();
-        add( new Selector( Selector::InternalDate, Selector::OnDate,
-                           date() ) );
+        return new Selector( Selector::InternalDate, Selector::OnDate, date() );
     }
     else if ( present( "before" ) ) {
         space();
-        add( new Selector( Selector::InternalDate, Selector::BeforeDate,
-                           date() ) );
+        return new Selector( Selector::InternalDate, Selector::BeforeDate, date() );
     }
     else if ( present( "since" ) ) {
         space();
-        add( new Selector( Selector::InternalDate, Selector::SinceDate,
-                           date() ) );
+        return new Selector( Selector::InternalDate, Selector::SinceDate, date() );
     }
     else if ( present( "sentbefore" ) ) {
         space();
-        add( new Selector( Selector::Sent, Selector::BeforeDate,
-                           date() ) );
+        return new Selector( Selector::Sent, Selector::BeforeDate, date() );
     }
     else if ( present( "senton" ) ) {
         space();
-        add( new Selector( Selector::Sent, Selector::OnDate, date() ) );
+        return new Selector( Selector::Sent, Selector::OnDate, date() );
     }
     else if ( present( "sentsince" ) ) {
         space();
-        add( new Selector( Selector::Sent, Selector::SinceDate, date() ) );
+        return new Selector( Selector::Sent, Selector::SinceDate, date() );
     }
     else if ( present( "from" ) ) {
         space();
-        add( new Selector( Selector::Header, Selector::Contains,
-                           "from", ustring( AString ) ) );
+        return new Selector( Selector::Header, Selector::Contains, 
+                             "from", ustring( AString ) );
     }
     else if ( present( "to" ) ) {
         space();
-        add( new Selector( Selector::Header, Selector::Contains,
-                           "to", ustring( AString ) ) );
+        return new Selector( Selector::Header, Selector::Contains,
+                             "to", ustring( AString ) );
     }
     else if ( present( "cc" ) ) {
         space();
-        add( new Selector( Selector::Header, Selector::Contains,
-                           "cc", ustring( AString ) ) );
+        return new Selector( Selector::Header, Selector::Contains,
+                             "cc", ustring( AString ) );
     }
     else if ( present( "bcc" ) ) {
         space();
-        add( new Selector( Selector::Header, Selector::Contains,
-                           "bcc", ustring( AString ) ) );
+        return new Selector( Selector::Header, Selector::Contains,
+                             "bcc", ustring( AString ) );
     }
     else if ( present( "subject" ) ) {
         space();
-        add( new Selector( Selector::Header, Selector::Contains,
-                           "subject", ustring( AString ) ) );
+        return new Selector( Selector::Header, Selector::Contains,
+                             "subject", ustring( AString ) );
     }
     else if ( present( "body" ) ) {
         space();
-        add( new Selector( Selector::Body, Selector::Contains,
-                           ustring( AString ) ) );
+        return new Selector( Selector::Body, Selector::Contains,
+                             ustring( AString ) );
     }
     else if ( present( "text" ) ) {
         space();
         UString a = ustring( AString );
-        push( Selector::Or );
-        add( new Selector( Selector::Body, Selector::Contains, a ) );
+        Selector * o = new Selector( Selector::Or );
+        o->add( new Selector( Selector::Body, Selector::Contains, a ) );
         // field name is null for any-field searches
-        add( new Selector( Selector::Header, Selector::Contains, 0, a ) );
-        pop();
+        o->add( new Selector( Selector::Header, Selector::Contains, 0, a ) );
+        return o;
     }
     else if ( present( "keyword" ) ) {
         space();
-        add( new Selector( Selector::Flags, Selector::Contains,
-                           atom().lower() ) );
+        return new Selector( Selector::Flags, Selector::Contains,
+                             atom().lower() );
     }
     else if ( present( "unkeyword" ) ) {
         space();
-        push( Selector::Not );
-        add( new Selector( Selector::Flags, Selector::Contains, atom() ) );
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add( new Selector( Selector::Flags, Selector::Contains, atom() ) );
+        return s;
     }
     else if ( present( "header" ) ) {
         space();
         String s1 = astring();
         space();
         UString s2 = ustring( AString );
-        add( new Selector( Selector::Header, Selector::Contains, s1, s2 ) );
+        return new Selector( Selector::Header, Selector::Contains, s1, s2 );
     }
     else if ( present( "uid" ) ) {
         space();
-        add( new Selector( set( false ) ) );
+        return new Selector( set( false ) );
     }
     else if ( present( "or" ) ) {
         space();
-        push( Selector::Or );
-        parseKey();
+        Selector * s = new Selector( Selector::Or );
+        s->add( parseKey() );
         space();
-        parseKey();
-        pop();
+        s->add( parseKey() );
+        return s;
     }
     else if ( present( "not" ) ) {
         space();
-        push( Selector::Not );
-        parseKey();
-        pop();
+        Selector * s = new Selector( Selector::Not );
+        s->add( parseKey() );
+        return s;
     }
     else if ( present( "larger" ) ) {
         space();
-        add( new Selector( Selector::Rfc822Size, Selector::Larger,
-                           number() ) );
+        return new Selector( Selector::Rfc822Size, Selector::Larger,
+                             number() );
     }
     else if ( present( "smaller" ) ) {
         space();
-        add( new Selector( Selector::Rfc822Size, Selector::Smaller,
-                           number() ) );
+        return new Selector( Selector::Rfc822Size, Selector::Smaller,
+                             number() );
     }
     else if ( present( "annotation" ) ) {
         space();
@@ -367,16 +347,16 @@ void Search::parseKey()
         String b = atom();
         space();
         UString c = ustring( NString );
-
+        
         uint i = 0;
         while ( ::legalAnnotationAttributes[i] &&
                 b != ::legalAnnotationAttributes[i] )
             i++;
         if ( !::legalAnnotationAttributes[i] )
             error( Bad, "Unknown annotation attribute: " + b );
-
-        add( new Selector( Selector::Annotation, Selector::Contains,
-                           a, b, c ) );
+        
+        return new Selector( Selector::Annotation, Selector::Contains,
+                             a, b, c );
     }
     else if ( present( "modseq" ) ) {
         space();
@@ -388,23 +368,21 @@ void Search::parseKey()
             (void)letters( 3, 6 ); // priv/shared/all
             space();
         }
-        add( new Selector( Selector::Modseq, Selector::Larger,
-                           number() ) );
-        d->returnModseq = true;
+        return new Selector( Selector::Modseq, Selector::Larger,
+                             number() );
+        d->returnModseq = true; // XXX this side effect has to go away
     }
     else if ( present( "older" ) ) {
         space();
-        add( new Selector( Selector::Age, Selector::Larger,
-                           nzNumber() ) );
+        return new Selector( Selector::Age, Selector::Larger, nzNumber() );
     }
     else if ( present( "younger" ) ) {
         space();
-        add( new Selector( Selector::Age, Selector::Smaller,
-                           nzNumber() ) );
+        return new Selector( Selector::Age, Selector::Smaller, nzNumber() );
     }
-    else {
-        error( Bad, "expected search key, saw: " + following() );
-    }
+
+    error( Bad, "expected search key, saw: " + following() );
+    return 0;
 }
 
 
@@ -559,36 +537,6 @@ String Search::date()
     if ( !tmp.valid() )
         error( Bad, "Invalid date: " + result );
     return result;
-}
-
-
-/*! Appends a new Selector of type \a a to the list of selectors. */
-
-void Search::push( Selector::Action a )
-{
-    Selector * s = new Selector( a );
-    add( s );
-    d->selectors.append( s );
-}
-
-
-/*! Adds the new Selector \a s to the boolean Selector currently being
-    constructed.
-*/
-
-void Search::add( Selector * s )
-{
-    d->selectors.last()->add( s );
-}
-
-
-/*! Removes the current And/Or/Not Selector from the list, marking the
-    end of its creation.
-*/
-
-void Search::pop()
-{
-    d->selectors.pop();
 }
 
 

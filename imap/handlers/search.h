@@ -23,7 +23,7 @@ public:
 
 protected:
     void setCharset( const String & );
-    void parseKey();
+    Selector * parseKey();
 
     Selector * selector() const;
 
@@ -32,10 +32,6 @@ protected:
     void sendResponse();
 
 private:
-    void push( Selector::Action );
-    void add( Selector * );
-    void pop();
-
     String date();
 
     void considerCache();
