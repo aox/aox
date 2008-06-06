@@ -51,6 +51,9 @@
   quite understand, but I understood enough to think that it's a good
   idea and 3.0 is the right time to introduce it.
 
+  Not done: Refer to Google's copy of jquery instead of our own.
+  http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js
+
 
 Release cycle
 
@@ -1180,5 +1183,36 @@ aox undelete is almost useless
   and tell me the from/subject and uid of the most recently deleted n
   messages. That would make it a whole lot more useful.
 
+
+SMS gateway
+
+  We want Archiveopteryx to work as installed. We want to support
+  Sieve notify, including SMS.
+
+  I think that means Oryx needs to operate an Archiveopteryx->SMS
+  gateway, allow people do send a few SMSes, and provide people with
+  the ability to operate a gateway of their own.
+
+  There are many IP->SMS gateways in the world. Some free, but we
+  don't want to use those, they're unreliable. Many paid for, those
+  are reliable. Most of them work using HTTP requests: You POST a
+  query with your credentials and the gateway reports.
+
+  So my plan is as follows:
+
+  1. Become a customer of someone like that.
+
+  2. Write a program which accepts requests in a format we define,
+     forwards them in the HTTP-based format our provider uses, and
+     relays the response back.
+
+  3. Provide that service to new Archiveopteryx installations, with
+     limitations on use.
+
+  4. Provide the gateway program along with Archiveopteryx, so people
+     can run it themselves.
+
+  I haven't thought of a good way to provide the service to
+  Archiveopteryx users and weed out most other people.
 
 
