@@ -47,21 +47,6 @@ static GraphableCounter * successes;
 static GraphableCounter * failures;
 
 
-// This somewhat misnamed struct contains the "uidnext" value for a Mailbox.
-
-struct Uid
-    : public Garbage
-{
-    Uid( Mailbox * m )
-        : mailbox( m ), uid( 0 ), ms( 0 )
-    {}
-
-    Mailbox * mailbox;
-    uint uid;
-    int64 ms;
-};
-
-
 // This struct contains the id for a Bodypart, as well as the queries
 // used to create and identify it.
 
@@ -124,7 +109,7 @@ public:
     InjectorData()
         : state( Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
-          mailboxes( 0 ), bodyparts( 0 ), midFetcher( 0 ),
+          bodyparts( 0 ), midFetcher( 0 ),
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
@@ -139,7 +124,6 @@ public:
     Message *message;
     Transaction *transaction;
 
-    List< Uid > *mailboxes;
     List< Bid > *bodyparts;
 
     MidFetcher *midFetcher;
@@ -223,49 +207,56 @@ class UidFetcher
     : public EventHandler
 {
 public:
-    List< Uid > *list;
-    List< Uid >::Iterator *li;
+    Message * message;
+    List<Mailbox>::Iterator *mi;
     List< Query > *queries;
     List< Query > *inserts;
     EventHandler *owner;
     bool failed;
     String error;
 
-    UidFetcher( List< Uid > *l, List< Query > *q, EventHandler *ev )
-        : list( l ), li( 0 ), queries( q ), inserts( 0 ), owner( ev ),
-          failed( false )
+    UidFetcher( Message * m, List< Query > *q, EventHandler *ev )
+        : message( m ), mi( 0 ), queries( q ), inserts( 0 ),
+          owner( ev ), failed( false )
     {}
 
     void process( Query * q )
     {
-        if ( !li )
-            li = new List< Uid >::Iterator( list );
+        if ( !mi )
+            mi = new List<Mailbox>::Iterator( message->mailboxes() );
+
+        Mailbox * m = *mi;
 
         Row * r = q->nextRow();
-        (*li)->uid = r->getInt( "uidnext" );
-        if ( (*li)->uid > 0x7ff00000 ) {
+        uint uid = r->getInt( "uidnext" );
+        int64 ms = r->getBigint( "nextmodseq" );
+
+        message->setUid( m, uid );
+        message->setModSeq( m, ms );
+
+        if ( uid > 0x7ff00000 ) {
             Log::Severity level = Log::Error;
-            if ( (*li)->uid > 0x7fffff00 )
+            if ( uid > 0x7fffff00 )
                 level = Log::Disaster;
-            log( "Note: Mailbox " + (*li)->mailbox->name().ascii() +
-                 " only has " + fn ( 0x7fffffff - (*li)->uid ) +
+            log( "Note: Mailbox " + m->name().ascii() +
+                 " only has " + fn ( 0x7fffffff - uid ) +
                  " more usable UIDs. Please contact info@oryx.com"
                  " to resolve this problem.", level );
         }
-        (*li)->ms = r->getBigint( "nextmodseq" );
+
         Query * u = 0;
         if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
-            List<Session>::Iterator i( (*li)->mailbox->sessions() );
+            List<Session>::Iterator i( m->sessions() );
             if ( i ) {
-                i->addRecent( (*li)->uid );
+                i->addRecent( uid );
                 u = new Query( *incrUidnextWithRecent, 0 );
             }
         }
         if ( !u )
             u = new Query( *incrUidnext, 0 );
-        u->bind( 1, (*li)->mailbox->id() );
+        u->bind( 1, m->id() );
         q->transaction()->enqueue( u );
-        ++(*li);
+        ++(*mi);
     }
 
     void execute() {
@@ -1134,14 +1125,6 @@ Injector::Injector( Message * message, EventHandler * owner )
         setup();
     d->owner = owner;
     d->message = message;
-
-    d->mailboxes = new List< Uid >;
-    SortedList<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        d->mailboxes->append( new Uid( mi ) );
-        ++mi;
-    }
-
     d->bodyparts = new List< Bid >;
     List< Bodypart >::Iterator bi( d->message->allBodyparts() );
     while ( bi ) {
@@ -1322,13 +1305,6 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            List<Uid>::Iterator it( d->mailboxes );
-            while ( it ) {
-                Uid * u = it;
-                d->message->setUid( u->mailbox, u->uid );
-                d->message->setModSeq( u->mailbox, u->ms );
-                ++it;
-            }
             d->state = InsertingMessages;
         }
     }
@@ -1347,9 +1323,9 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingAddresses ) {
-        List<Uid>::Iterator mi( d->mailboxes );
+        List<Mailbox>::Iterator mi( d->message->mailboxes() );
         while ( mi ) {
-            Mailbox * m = mi->mailbox;
+            Mailbox * m = mi;
             StringList::Iterator i( d->message->flags( m ) );
             while ( i ) {
                 if ( Flag::id( *i ) == 0 )
@@ -1363,9 +1339,9 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingFlags ) {
-        List<Uid>::Iterator mi( d->mailboxes );
+        List<Mailbox>::Iterator mi( d->message->mailboxes() );
         while ( mi ) {
-            Mailbox * m = mi->mailbox;
+            Mailbox * m = mi;
             List<Annotation>::Iterator i( d->message->annotations( m ) );
             while ( i ) {
                 if ( i->entryName()->id() == 0 ) {
@@ -1473,9 +1449,9 @@ void Injector::selectUids()
 {
     Query *q;
     List< Query > * queries = new List< Query >;
-    d->uidFetcher = new UidFetcher( d->mailboxes, queries, this );
+    d->uidFetcher = new UidFetcher( d->message, queries, this );
 
-    List< Uid >::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
         // We acquire a write lock on our mailbox, and hold it until the
         // entire transaction has committed successfully. We use uidnext
@@ -1485,7 +1461,7 @@ void Injector::selectUids()
         // The mailbox list must be sorted, so that Injectors always try
         // to acquire locks in the same order, thus avoiding deadlocks.
 
-        Mailbox *m = mi->mailbox;
+        Mailbox *m = mi;
 
         q = new Query( *lockUidnext, d->uidFetcher );
         q->bind( 1, m->id() );
@@ -1794,22 +1770,23 @@ void Injector::insertMessages()
                    "(mailbox,uid,message,idate,modseq) "
                    "from stdin with binary", 0 );
 
-    List< Uid >::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
-        uint uid = mi->uid;
-        Mailbox *m = mi->mailbox;
+        Mailbox *m = mi;
+        uint uid = d->message->uid( m );
+        int64 ms = d->message->modSeq( m );
 
         qm->bind( 1, m->id(), Query::Binary );
         qm->bind( 2, uid, Query::Binary );
         qm->bind( 3, d->messageId, Query::Binary );
         qm->bind( 4, internalDate( m, d->message ), Query::Binary );
-        qm->bind( 5, mi->ms, Query::Binary );
+        qm->bind( 5, ms, Query::Binary );
         qm->submitLine();
 
         ++mi;
     }
 
-    if ( d->mailboxes && !d->mailboxes->isEmpty() )
+    if ( !d->message->mailboxes()->isEmpty() )
         d->transaction->enqueue( qm );
 }
 
@@ -2031,10 +2008,11 @@ void Injector::logMessageDetails()
         id = id + " ";
     }
 
-    List< Uid >::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
+        Mailbox * m = mi;
         log( "Injecting message " + id + "into mailbox " +
-             mi->mailbox->name().ascii(), Log::Significant );
+             m->name().ascii(), Log::Significant );
         ++mi;
     }
 }
@@ -2050,10 +2028,11 @@ void Injector::logMessageDetails()
 
 void Injector::announce()
 {
-    List< Uid >::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
-        uint uid = mi->uid;
-        Mailbox * m = mi->mailbox;
+        Mailbox * m = mi;
+        uint uid = d->message->uid( m );
+        int64 ms = d->message->modSeq( m );
 
         List<Session>::Iterator si( m->sessions() );
 
@@ -2067,8 +2046,8 @@ void Injector::announce()
             ++si;
         }
 
-        if ( m->uidnext() <= uid || m->nextModSeq() <= mi->ms )
-            m->setUidnextAndNextModSeq( 1+uid, 1+mi->ms );
+        if ( m->uidnext() <= uid || m->nextModSeq() <= ms )
+            m->setUidnextAndNextModSeq( 1+uid, 1+ms );
 
         ++mi;
     }
@@ -2083,9 +2062,9 @@ void Injector::createFlags()
 {
     StringList unknown;
 
-    List<Uid>::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
-        Mailbox * m = mi->mailbox;
+        Mailbox * m = mi;
         StringList::Iterator i( d->message->flags( m ) );
         while ( i ) {
             if ( Flag::id( *i ) == 0 )
@@ -2111,9 +2090,9 @@ void Injector::createAnnotationNames()
 {
     StringList unknown;
 
-    List<Uid>::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
-        Mailbox * m = mi->mailbox;
+        Mailbox * m = mi;
         List<Annotation>::Iterator it( d->message->annotations( m ) );
         while ( it ) {
             if ( !it->entryName()->id() )
@@ -2142,14 +2121,14 @@ void Injector::linkFlags()
                    "from stdin with binary", this );
 
     uint flags = 0;
-    List<Uid>::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
-        Mailbox * m = mi->mailbox;
+        Mailbox * m = mi;
         StringList::Iterator i( d->message->flags( m ) );
         while ( i ) {
             flags++;
             q->bind( 1, m->id(), Query::Binary );
-            q->bind( 2, mi->uid, Query::Binary );
+            q->bind( 2, d->message->uid( m ), Query::Binary );
             q->bind( 3, Flag::id( *i ), Query::Binary );
             q->submitLine();
             ++i;
@@ -2171,14 +2150,14 @@ void Injector::linkAnnotations()
                    "from stdin with binary", this );
 
     uint annotations = 0;
-    List<Uid>::Iterator mi( d->mailboxes );
+    List<Mailbox>::Iterator mi( d->message->mailboxes() );
     while ( mi ) {
-        Mailbox * m = mi->mailbox;
+        Mailbox * m = mi;
         List<Annotation>::Iterator it( d->message->annotations( m ) );
         while ( it ) {
             annotations++;
             q->bind( 1, m->id(), Query::Binary );
-            q->bind( 2, mi->uid, Query::Binary );
+            q->bind( 2, d->message->uid( m ), Query::Binary );
             q->bind( 3, it->entryName()->id(), Query::Binary );
             q->bind( 4, it->value(), Query::Binary );
             if ( it->ownerId() == 0 )
