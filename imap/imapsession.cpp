@@ -291,7 +291,7 @@ void ImapSession::addFlags( List<Flag> * f, class Command * c )
         List<Flag>::Iterator j( d->flags );
         while ( j && j->id() < i->id() )
             ++j;
-        if ( !j || i->id() > i->id() ) {
+        if ( !j || j->id() > i->id() ) {
             d->flags.insert( j, i );
             announce = true;
         }
