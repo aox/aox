@@ -189,7 +189,7 @@ uint Flag::id( const String & name )
     uint id = 0;
 
     if ( ::flagsByName ) {
-        uint * p = ::flagsByName->find( name );
+        uint * p = ::flagsByName->find( name.lower() );
         if ( p )
             id = *p;
     }
