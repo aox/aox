@@ -500,9 +500,7 @@ uint Command::group() const
     0) Most commands. All commands which change state() or expunge
        messages must be here.
 
-    1) UID SEARCH and UID FETCH. (If UID SEARCH sees that there are
-       MSNs in the search arguments, it has to move itself to group
-       0.)
+    1) UID SEARCH and UID FETCH.
 
     2) FETCH and SEARCH.
 

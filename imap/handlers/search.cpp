@@ -165,8 +165,6 @@ Selector * Search::parseKey()
     }
     else if ( c == '*' || ( c >= '0' && c <= '9' ) ) {
         // it's a pure set
-        if ( !d->uid )
-            setGroup( 0 ); // XXX consider this
         return new Selector( set( true ) );
     }
     else if ( present( "all" ) ) {
