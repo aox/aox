@@ -128,12 +128,14 @@ void Search::parse()
             d->returnAll = true;
         space();
     }
-    parseKey( true );
-    if ( !d->charset.isEmpty() ) {
+    space();
+    if ( present ( "charset" ) ) {
         space();
-        parseKey();
+        setCharset( astring() );
+        space();
     }
-    while ( nextChar() == ' ' ) {
+    parseKey();
+    while ( ok() && !parser()->atEnd() ) {
         space();
         parseKey();
     }
@@ -145,12 +147,10 @@ void Search::parse()
 
 
 /*! Parse one search key (IMAP search-key). Leaves the cursor on the
-    first character following the search-key. If \a alsoCharset is
-    specified and true, the CHARSET modifier is handled. The default
-    is to not handle CHARSET, since it's illegal except at the start.
+    first character following the search-key.
 */
 
-void Search::parseKey( bool alsoCharset )
+void Search::parseKey()
 {
     char c = nextChar();
     if ( c == '(' ) {
@@ -170,7 +170,7 @@ void Search::parseKey( bool alsoCharset )
         // it's a pure set
         add( new Selector( set( true ) ) );
         if ( !d->uid )
-            setGroup( 0 );
+            setGroup( 0 ); // XXX consider this
     }
     else {
         // first comes a keyword. they all are letters only, so:
@@ -405,16 +405,10 @@ void Search::parseKey( bool alsoCharset )
             add( new Selector( Selector::Age, Selector::Smaller,
                                nzNumber() ) );
         }
-        else if ( alsoCharset && keyword == "charset" ) {
-            space();
-            setCharset( astring() );
-        }
         else {
             error( Bad, "unknown search key: " + keyword );
         }
     }
-
-    alsoCharset = false;
 }
 
 

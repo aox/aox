@@ -23,7 +23,7 @@ public:
 
 protected:
     void setCharset( const String & );
-    void parseKey( bool alsoCharset = false );
+    void parseKey();
 
     Selector * selector() const;
 
