@@ -289,8 +289,14 @@ void Append::execute()
     StringList uids;
     h = d->messages.first();
     while ( ok() && h && h->injector ) {
-        if ( !h->injector->done() || h->injector->failed() )
+        if ( !h->injector->done() )
             return;
+
+        if ( h->injector->failed() ) {
+            error( No, "Could not append to " + d->mailbox->name().ascii() );
+            return;
+        }
+
         uids.append( fn( h->message->uid( d->mailbox ) ) );
         ++h;
     }
@@ -371,7 +377,4 @@ void Append::process( class Appendage * h )
         h->injector = new Injector( h->message, this );
         h->injector->execute();
     }
-
-    if ( h->injector->failed() )
-        error( No, "Could not append to " + d->mailbox->name().ascii() );
 }
