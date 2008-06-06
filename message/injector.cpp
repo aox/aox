@@ -385,6 +385,9 @@ public:
                     q = new Query( s, this );
                     transaction->enqueue( q );
                 }
+                s = "release savepoint a";
+                s.append( fn( savepoint ) );
+                transaction->enqueue( new Query( s, 0 ) );
                 transaction->enqueue( b->select );
                 state = 2;
                 transaction->execute();
@@ -590,6 +593,10 @@ void AddressCreator::processInsert()
             state = 4;
         }
     }
+    else {
+        q = new Query( "release savepoint b" + fn( savepoint ), this );
+        t->enqueue( q );
+    }
 
     if ( state == 0 )
         selectAddresses();
@@ -736,6 +743,10 @@ void NewFlagCreator::processInsert()
             failed = true;
             state = 4;
         }
+    }
+    else {
+        q = new Query( "release savepoint c" + fn( savepoint ), this );
+        t->enqueue( q );
     }
 
     if ( state == 0 )
@@ -893,6 +904,10 @@ void NewAnnotationCreator::processInsert()
             state = 4;
         }
     }
+    else {
+        q = new Query( "release savepoint d" + fn( savepoint ), this );
+        t->enqueue( q );
+    }
 
     if ( state == 0 )
         selectAnnotations();
@@ -1040,6 +1055,10 @@ void FieldCreator::processInsert()
             failed = true;
             state = 4;
         }
+    }
+    else {
+        q = new Query( "release savepoint e" + fn( savepoint ), this );
+        t->enqueue( q );
     }
 
     if ( state == 0 )
