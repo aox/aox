@@ -1808,3 +1808,22 @@ bool Selector::timeSensitive() const
     }
     return false;
 }
+
+
+/*! Returns true if this Selector includes modseq logic, and false if
+    not.
+*/
+
+bool Selector::usesModseq() const
+{
+    if ( d->f == Modseq )
+        return true;
+    List< Selector >::Iterator i( d->children );
+    while ( i ) {
+        Selector * c = i;
+        ++i;
+        if ( c->usesModseq() )
+            return true;
+    }
+    return false;
+}

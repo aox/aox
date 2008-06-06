@@ -139,6 +139,7 @@ void Search::parse()
     }
     end();
 
+    d->returnModseq = d->root->usesModseq();
     d->root->simplify();
     log( "Search for " + d->root->debugString() );
 }
@@ -370,7 +371,6 @@ Selector * Search::parseKey()
         }
         return new Selector( Selector::Modseq, Selector::Larger,
                              number() );
-        d->returnModseq = true; // XXX this side effect has to go away
     }
     else if ( present( "older" ) ) {
         space();
