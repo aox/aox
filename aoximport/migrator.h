@@ -75,7 +75,7 @@ public:
 
     String description() const;
     String original() const;
-    const List<Flag> * flags() const;
+    const StringList * flags() const;
     void addFlag( const String & );
 
     Message * message();
@@ -84,7 +84,7 @@ private:
     String s;
     String o;
     Message * m;
-    List<Flag> f;
+    StringList f;
 };
 
 

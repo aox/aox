@@ -13,7 +13,6 @@
 #include "codec.h"
 #include "date.h"
 #include "dict.h"
-#include "flag.h"
 #include "md5.h"
 
 
@@ -48,7 +47,7 @@ public:
         uint uid;
         int64 modseq;
         uint internalDate;
-        List<Flag> flags;
+        StringList flags;
         List<Annotation> * annotations;
         bool hasFlags;
         bool hasAnnotations;
@@ -583,35 +582,51 @@ uint Message::rfc822Size() const
     This may return an empty list, but never a null pointer.
 */
 
-List<Flag> * Message::flags( Mailbox * mb ) const
+StringList * Message::flags( Mailbox * mb ) const
 {
     MessageData::Mailbox * m = d->mailbox( mb );
     if ( m )
         return &m->flags;
-    List<Flag> * f = new List<Flag>;
-    return f;
+    return new StringList;
 }
 
 
 /*! Sets this message's flags for the mailbox \a mb to those specified
     in \a l. Duplicates are ignored. */
 
-void Message::setFlags( Mailbox * mb, const List<Flag> * l )
+void Message::setFlags( Mailbox * mb, const StringList * l )
 {
     MessageData::Mailbox * m = d->mailbox( mb );
     if ( !m )
         return;
 
     Dict<void> uniq;
-    List<Flag>::Iterator it( l );
+    StringList::Iterator it( l );
     while ( it ) {
-        Flag * f = it;
-        if ( !uniq.contains( f->name().lower() ) ) {
+        String f( *it );
+        if ( !uniq.contains( f.lower() ) ) {
             m->flags.append( f );
-            uniq.insert( f->name().lower(), (void *)1 );
+            uniq.insert( f.lower(), (void *)1 );
         }
         ++it;
     }
+}
+
+
+/*! Sets the specified flag \a f on this message for the given mailbox
+    \a mb. Does nothing if the flag is already set. */
+
+void Message::setFlag( Mailbox * mb, const String & f )
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( !m )
+        return;
+
+    StringList::Iterator it( m->flags );
+    while ( it && *it != f )
+        ++it;
+    if ( !it )
+        m->flags.append( f );
 }
 
 

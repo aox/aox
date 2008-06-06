@@ -644,7 +644,7 @@ bool Migrator::errorCopies()
     message. The list may contain duplicates.
 */
 
-const List<Flag> * MigratorMessage::flags() const
+const StringList * MigratorMessage::flags() const
 {
     return &f;
 }
@@ -654,5 +654,5 @@ const List<Flag> * MigratorMessage::flags() const
 
 void MigratorMessage::addFlag( const String & flag )
 {
-    f.append( Flag::find( flag, true ) );
+    f.append( flag );
 }

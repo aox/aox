@@ -5,25 +5,94 @@
 #include "allocator.h"
 #include "dbsignal.h"
 #include "string.h"
+#include "event.h"
 #include "query.h"
 #include "dict.h"
 #include "map.h"
 #include "log.h"
 
 
-static Dict<Flag> * flagsByName;
-static Map<Flag> * flagsById;
+static Dict<uint> * flagsByName;
+static Map<String> * flagsById;
 static uint largestFlagId;
 
 
-class FlagFetcherData
-    : public Garbage
+class FlagFetcher
+    : public EventHandler
 {
 public:
-    FlagFetcherData(): o( 0 ), q( 0 ) {}
+    FlagFetcher( EventHandler * o )
+        : owner( o ), max( 0 )
+    {
+        q = new Query( "select id,name from flag_names "
+                       "where id >= $1", this );
+        q->bind( 1, ::largestFlagId );
+        q->execute();
+    }
 
-    EventHandler * o;
+    void execute()
+    {
+        while ( q->hasResults() ) {
+            Row * r = q->nextRow();
+            uint id = r->getInt( "id" );
+            Flag::add( r->getString( "name" ), id );
+            if ( id > max )
+                max = id;
+        }
+
+        if ( !q->done() )
+            return;
+
+        ::largestFlagId = max;
+
+        if ( owner )
+            owner->execute();
+    }
+
+private:
+    EventHandler * owner;
     Query * q;
+    uint max;
+};
+
+
+class FlagCreator
+    : public EventHandler
+{
+public:
+    FlagCreator( const StringList & flags, EventHandler * o )
+        : owner( o )
+    {
+        StringList::Iterator it( flags );
+        while ( it ) {
+            Query * q =
+                new Query( "insert into flag_names (name) values ($1)",
+                           this );
+            q->bind( 1, *it );
+            q->allowFailure();
+            q->execute();
+            queries.append( q );
+            ++it;
+        }
+    }
+
+    void execute()
+    {
+        List<Query>::Iterator it( queries );
+        while ( it ) {
+            if ( it->done() )
+                queries.take( it );
+            else
+                ++it;
+        }
+
+        if ( queries.isEmpty() )
+            (void)new FlagFetcher( owner );
+    }
+
+private:
+    EventHandler * owner;
+    List<Query> queries;
 };
 
 
@@ -36,227 +105,111 @@ public:
         (void)new DatabaseSignal( "obliterated", this );
     }
     void execute() {
-        if ( ::flagsByName )
-            ::flagsByName->clear();
-        if ( ::flagsById )
-            ::flagsById->clear();
-        ::largestFlagId = 0;
-        (void)new FlagFetcher( 0 );
+        Flag::reload();
     }
 };
-  
-
-
-/*! \class FlagFetcher flag.h
-
-    The FlagFetcher class fetches all (or some) flags from the
-    database.
-*/
-
-
-/*! Constructs a FlagFetcher which will proceed to do whatever is
-    right and good. If \a owner is not null, the FlagFetcher will
-    notify its \a owner when done.
-*/
-
-FlagFetcher::FlagFetcher( EventHandler * owner )
-    : d( new FlagFetcherData )
-{
-    d->o = owner;
-    // XXX: the >= in the next line may be an off-by-one. it's
-    // harmless, though, since the reader checks whether such a flag
-    // exists.
-    d->q = new Query( "select id,name from flag_names "
-                      "where id>=$1",
-                      this );
-    d->q->bind( 1, ::largestFlagId );
-    d->q->execute();
-    if ( ::flagsByName )
-        return;
-    if ( !Configuration::toggle( Configuration::Security ) ) 
-        (void)new FlagObliterator;
-    ::flagsByName = new Dict<Flag>( 400 );
-    Allocator::addEternal( ::flagsByName, "list of flags by name" );
-    ::flagsById = new Map<Flag>;
-    Allocator::addEternal( ::flagsById, "list of flags by id" );
-}
-
-
-class FlagData
-    : public Garbage
-{
-public:
-    FlagData() : id( 0 ) {}
-    String name;
-    uint id;
-};
-
-
-void FlagFetcher::execute()
-{
-    Row * r = d->q->nextRow();
-    while ( r ) {
-        String n = r->getString( "name" );
-        uint i = r->getInt( "id" );
-        // is this the only FlagFetcher working now? best to be careful
-        Flag * f = Flag::find( i );
-        if ( !f )
-            f = new Flag( n, i );
-        f->d->name = n;
-        if ( i > ::largestFlagId )
-            ::largestFlagId = i;
-        r = d->q->nextRow();
-    }
-    if ( !d->q->done() )
-        return;
-
-    if ( d->o )
-        d->o->execute();
-}
-
 
 
 /*! \class Flag flag.h
+    Maps IMAP flag names to ids using the flag_names table.
 
-    The Flag class represents a single message flag, ie. a named
-    binary variable that may be set on any Message.
+    An IMAP flag is just a string, like "\Deleted" or "spam". RFC 3501
+    defines "\Seen", "\Flagged", "\Answered", "\Draft", "\Deleted", and
+    "\Recent", and clients may create other flags.
 
-    A Flag has a name() and an integer id(), both of which are unique.
-    The id is used to store flags. There are functions to find() a
-    specific flag either by name or id.
+    The flag_names table contains an (id,name) map for all known flags,
+    and the flags table refers to it by id. This class provides lookup
+    functions by id and name.
+
+    ("\Recent" is special; it is not stored in the flag_names table.)
 */
 
 
-/*! Constructs a flag named \a name and with id \a id. Both \a name
-    and \a id must be unique.
-*/
-
-Flag::Flag( const String & name, uint id )
-    : d( new FlagData )
-{
-    d->name = name;
-    d->name.detach();
-    d->id = id;
-    if ( id == 0 )
-        return;
-    if ( !::flagsByName )
-        Flag::setup();
-    ::flagsByName->insert( d->name.lower(), this );
-    ::flagsById->insert( id, this );
-}
-
-
-/*! Returns the name of this flag, as specified to the constructor. */
-
-String Flag::name() const
-{
-    return d->name;
-}
-
-
-/*! Returns the id of this flag, as specified to the constructor. */
-
-uint Flag::id() const
-{
-    return d->id;
-}
-
-
-/*! Returns a pointer to the flag named \a name, or a null pointer of
-    there isn't one. The comparison is case insensitive.
-
-    If \a create is true, this function will return a flag with an id
-    of 0 and the specified \a name rather than 0.
-*/
-
-Flag * Flag::find( const String & name, bool create )
-{
-    Flag * f = 0;
-
-    if ( ::flagsByName )
-        f = ::flagsByName->find( name.lower() );
-
-    if ( !f && create )
-        f = new Flag( name, 0 );
-
-    return f;
-}
-
-
-/*! Returns a pointer to the flag with id \a id, or a null pointer of
-    there isn't one.
-*/
-
-Flag * Flag::find( uint id )
-{
-    if ( !::flagsById )
-        return 0;
-    return ::flagsById->find( id );
-}
-
-
-/*! Initializes the Flag subsystem, fetching all known flags from the
-    database.
-*/
+/*! This function must be called once from main() to set up and load
+    the flag_names table. */
 
 void Flag::setup()
 {
-    (void)new FlagFetcher( 0 );
+    ::flagsByName = new Dict<uint>;
+    Allocator::addEternal( ::flagsByName, "list of flags by name" );
+
+    ::flagsById = new Map<String>;
+    Allocator::addEternal( ::flagsById, "list of flags by id" );
+
+    reload();
 }
 
 
-class FlagCreatorData
-    : public Garbage
+/*! This function reloads the flag_names table and notifies the \a owner
+    when that is finished. */
+
+void Flag::reload( EventHandler * owner )
 {
-public:
-    FlagCreatorData(): owner( 0 ) {}
-    EventHandler * owner;
-    List<Query> queries;
-};
+    ::largestFlagId = 0;
+    ::flagsById->clear();
+    ::flagsByName->clear();
 
-/*! \class FlagCreator flag.h
-
-    The FlagCreator class creates flags in the database and then
-    updates the Flag index in RAM.
-
-    When created, a FlagCreator object immediately sends queries to
-    insert the necessary rows, and when that is done, it creates a
-    FlagFetcher. Only when the FlagFetcher is done is the owner
-    notified.
-*/
-
-/*! Constructs a FlagCreator which inserts \a flags in the database
-    and notifies \a owner when the insertion is complete, both in RAM
-    and in the database.
-*/
-
-FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
-    : d( new FlagCreatorData )
-{
-    d->owner = owner;
-
-    StringList::Iterator it( flags );
-    while ( it ) {
-        Query * q = new Query( "insert into flag_names (name) values ($1)",
-                               this );
-        q->bind( 1, *it );
-        q->allowFailure();
-        q->execute();
-        d->queries.append( q );
-        ++it;
-    }
+    (void)new FlagFetcher( owner );
 }
 
 
-void FlagCreator::execute()
+/*! Creates the specified \a flags and notifies the \a owner when that
+    is finished, i.e. when id() and name() recognise the newly-created
+    flags. */
+
+void Flag::create( const StringList & flags, EventHandler * owner )
 {
-    bool done = true;
-    List<Query>::Iterator it( d->queries );
-    while ( it && done ) {
-        if ( !it->done() )
-            done = false;
-        ++it;
+    (void)new FlagCreator( flags, owner );
+}
+
+
+/*! Records that a flag with the given \a name and \a id exists. After
+    this call, id( \a name ) returns \a id, and name( \a id ) returns
+    \a name. */
+
+void Flag::add( const String & name, uint id )
+{
+    String * n = new String( name );
+    n->detach();
+
+    ::flagsById->insert( id, n );
+
+    uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
+    *tmp = id;
+
+    ::flagsByName->insert( name.lower(), tmp );
+}
+
+
+/*! Returns the id of the flag with the given \a name, or 0 if the
+    flag is not known. */
+
+uint Flag::id( const String & name )
+{
+    uint id = 0;
+
+    if ( ::flagsByName ) {
+        uint * p = ::flagsByName->find( name );
+        if ( p )
+            id = *p;
     }
-    if ( done )
-        (void)new FlagFetcher( d->owner );
+
+    return id;
+}
+
+
+/*! Returns the name of the flag with the given \a id, or an empty
+    string if the flag is not known. */
+
+String Flag::name( uint id )
+{
+    String name;
+
+    if ( ::flagsById ) {
+        String * p = ::flagsById->find( id );
+        if ( p )
+            name = *p;
+    }
+
+    return name;
 }

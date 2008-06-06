@@ -160,15 +160,7 @@ public:
     NewFlagCreator * flagCreator;
     NewAnnotationCreator * annotationCreator;
 
-    struct Flag
-        : public Garbage
-    {
-        Flag( const String & n ): name( n ), flag( 0 ) {}
-        String name;
-        ::Flag * flag;
-    };
-
-    List<Flag> flags;
+    StringList flags;
 
     struct Delivery
         : public Garbage
@@ -617,7 +609,7 @@ public:
     Transaction * t;
     StringList flags;
     EventHandler * owner;
-    Dict<Flag> unided;
+    Dict<uint> unided;
     int savepoint;
     bool failed;
     bool done;
@@ -668,7 +660,7 @@ void NewFlagCreator::selectFlags()
     StringList::Iterator it( flags );
     while ( it ) {
         String name( *it );
-        if ( Flag::find( name ) == 0 ) {
+        if ( Flag::id( name ) == 0 ) {
             ++i;
             String p;
             q->bind( i, name.lower() );
@@ -698,7 +690,7 @@ void NewFlagCreator::processFlags()
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
         String name( r->getString( "name" ) );
-        (void)new Flag( name, r->getInt( "id" ) );
+        Flag::add( name, r->getInt( "id" ) );
         unided.take( name.lower() );
     }
 
@@ -764,7 +756,7 @@ public:
     Transaction * t;
     StringList names;
     EventHandler * owner;
-    Dict<Flag> unided;
+    Dict<uint> unided;
     int savepoint;
     bool failed;
     bool done;
@@ -920,7 +912,7 @@ public:
     Transaction * t;
     StringList fields;
     EventHandler * owner;
-    Dict<Flag> unided;
+    Dict<uint> unided;
     int savepoint;
     bool failed;
     bool done;
@@ -1176,7 +1168,7 @@ void Injector::setFlags( const StringList & flags )
     StringList::Iterator fi( flags );
     while ( fi ) {
         if ( !uniq.contains( fi->lower() ) ) {
-            d->flags.append( new InjectorData::Flag( *fi ) );
+            d->flags.append( *fi );
             uniq.insert( fi->lower(), (void*) 1 );
         }
         ++fi;
@@ -1373,11 +1365,9 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingAddresses ) {
-        List<InjectorData::Flag>::Iterator i( d->flags );
+        StringList::Iterator i( d->flags );
         while ( i ) {
-            if ( !i->flag )
-                i->flag = Flag::find( i->name );
-            if ( !i->flag )
+            if ( Flag::id( *i ) == 0 )
                 return;
             ++i;
         }
@@ -2105,11 +2095,10 @@ void Injector::announce()
 void Injector::createFlags()
 {
     StringList unknown;
-    List<InjectorData::Flag>::Iterator it( d->flags );
+    StringList::Iterator it( d->flags );
     while ( it ) {
-        it->flag = Flag::find( it->name );
-        if ( !it->flag )
-            unknown.append( it->name );
+        if ( Flag::id( *it ) == 0 )
+            unknown.append( *it );
         ++it;
     }
 
@@ -2155,14 +2144,14 @@ void Injector::createAnnotationNames()
 
 void Injector::linkFlags()
 {
-    List<InjectorData::Flag>::Iterator i( d->flags );
+    StringList::Iterator i( d->flags );
     while ( i ) {
         List<Uid>::Iterator m( d->mailboxes );
         while ( m ) {
             Query * q = new Query( *insertFlag, this );
             q->bind( 1, m->mailbox->id() );
             q->bind( 2, m->uid );
-            q->bind( 3, i->flag->id() );
+            q->bind( 3, Flag::id( *i ) );
             d->transaction->enqueue( q );
             ++m;
         }
