@@ -163,40 +163,61 @@ class MidFetcher
     : public EventHandler
 {
 public:
+    List<Message> * messages;
+    List<Query> * queries;
+    EventHandler *owner;
+    List<Message>::Iterator * it;
+    List<Query>::Iterator * qi;
     Query * insert;
     Query * select;
-    EventHandler *owner;
     bool failed;
     bool finished;
     String error;
-    uint id;
 
-    MidFetcher( Query * i, Query * s, EventHandler *ev )
-        : insert( i ), select( s ), owner( ev ),
-          failed( false ), finished( false ), id( 0 )
-    {}
+    MidFetcher( List<Message> * ml, List<Query> * ql, EventHandler * ev )
+        : messages( ml ), queries( ql ), owner( ev ),
+          it( 0 ), qi( 0 ), insert( 0 ), select( 0 ),
+          failed( false ), finished( false )
+    {
+        it = new List<Message>::Iterator( messages );
+        qi = new List<Query>::Iterator( queries );
+    }
 
     void execute() {
         if ( finished )
             return;
 
-        if ( !select->done() )
+        if ( !insert ) {
+            insert = *qi;
+            ++qi;
+            select = *qi;
+            ++qi;
+        }
+
+        if ( !insert->done() || !select->done() )
             return;
 
-        if ( !select->hasResults() ) {
+        Row * r = select->nextRow();
+        if ( r ) {
+            Message * m = *it;
+            m->setDatabaseId( r->getInt( "id" ) );
+        }
+        else {
             failed = true;
             if ( insert->failed() )
                 error = insert->error();
             else if ( select->failed() )
                 error = select->error();
         }
-        else {
-            Row * r = select->nextRow();
-            id = r->getInt( "id" );
-        }
 
-        finished = true;
-        owner->execute();
+        insert = 0;
+        select = 0;
+        ++(*it);
+
+        if ( !it ) {
+            finished = true;
+            owner->execute();
+        }
     }
 
     bool done() const {
@@ -1330,7 +1351,6 @@ void Injector::execute()
     }
 
     if ( d->state == InsertingMessages && !d->transaction->failed() ) {
-        d->messageId = d->midFetcher->id;
         insertMessages();
         linkBodyparts();
         linkHeaderFields();
@@ -1452,21 +1472,29 @@ void Injector::finish()
 
 void Injector::selectMessageId()
 {
-    Query * insert
-        = new Query( "insert into messages (id,rfc822size) "
-                     "values (default,$1)", 0 );
-    Query * select
-        = new Query( "select currval('messages_id_seq')::int as id", 0 );
+    List<Query> * queries = new List<Query>;
 
-    insert->bind( 1, d->message->rfc822().length() );
+    d->midFetcher =
+        new MidFetcher( d->messages, queries, this );
 
-    d->midFetcher = new MidFetcher( insert, select, this );
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
 
-    insert->setOwner( d->midFetcher );
-    select->setOwner( d->midFetcher );
+        Query * q =
+            new Query( "insert into messages(id,rfc822size) "
+                       "values (default,$1)", 0 );
+        q->bind( 1, m->rfc822().length() );
+        queries->append( q );
+        d->transaction->enqueue( q );
 
-    d->transaction->enqueue( insert );
-    d->transaction->enqueue( select );
+        q = new Query( "select currval('messages_id_seq')::int "
+                       "as id", d->midFetcher );
+        queries->append( q );
+        d->transaction->enqueue( q );
+
+        ++it;
+    }
 }
 
 
@@ -1800,23 +1828,30 @@ void Injector::insertMessages()
                    "(mailbox,uid,message,idate,modseq) "
                    "from stdin with binary", 0 );
 
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        Mailbox *m = mi;
-        uint uid = d->message->uid( m );
-        int64 ms = d->message->modSeq( m );
+    uint n = 0;
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            n++;
+            Mailbox *mb = mi;
+            uint uid = m->uid( mb );
+            int64 ms = m->modSeq( mb );
 
-        qm->bind( 1, m->id(), Query::Binary );
-        qm->bind( 2, uid, Query::Binary );
-        qm->bind( 3, d->messageId, Query::Binary );
-        qm->bind( 4, internalDate( m, d->message ), Query::Binary );
-        qm->bind( 5, ms, Query::Binary );
-        qm->submitLine();
+            qm->bind( 1, mb->id(), Query::Binary );
+            qm->bind( 2, uid, Query::Binary );
+            qm->bind( 3, m->databaseId(), Query::Binary );
+            qm->bind( 4, internalDate( mb, m ), Query::Binary );
+            qm->bind( 5, ms, Query::Binary );
+            qm->submitLine();
 
-        ++mi;
+            ++mi;
+        }
+        ++it;
     }
 
-    if ( !d->message->mailboxes()->isEmpty() )
+    if ( n )
         d->transaction->enqueue( qm );
 }
 
