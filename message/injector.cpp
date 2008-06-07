@@ -2,6 +2,7 @@
 
 #include "injector.h"
 
+#include "map.h"
 #include "dict.h"
 #include "flag.h"
 #include "query.h"
@@ -230,57 +231,18 @@ class UidFetcher
     : public EventHandler
 {
 public:
-    Message * message;
-    List<Mailbox>::Iterator *mi;
-    List< Query > *queries;
-    List< Query > *inserts;
+    SortedList<Mailbox> * mailboxes;
+    List<Query> * queries;
+    List<Message> * messages;
     EventHandler *owner;
     bool failed;
     String error;
 
-    UidFetcher( Message * m, List< Query > *q, EventHandler *ev )
-        : message( m ), mi( 0 ), queries( q ), inserts( 0 ),
-          owner( ev ), failed( false )
+    UidFetcher( SortedList<Mailbox> * mbl, List<Query> *ql,
+                List<Message> * ml, EventHandler * ev )
+        : mailboxes( mbl ), queries( ql ), messages( ml ), owner( ev ),
+          failed( false )
     {}
-
-    void process( Query * q )
-    {
-        if ( !mi )
-            mi = new List<Mailbox>::Iterator( message->mailboxes() );
-
-        Mailbox * m = *mi;
-
-        Row * r = q->nextRow();
-        uint uid = r->getInt( "uidnext" );
-        int64 ms = r->getBigint( "nextmodseq" );
-
-        message->setUid( m, uid );
-        message->setModSeq( m, ms );
-
-        if ( uid > 0x7ff00000 ) {
-            Log::Severity level = Log::Error;
-            if ( uid > 0x7fffff00 )
-                level = Log::Disaster;
-            log( "Note: Mailbox " + m->name().ascii() +
-                 " only has " + fn ( 0x7fffffff - uid ) +
-                 " more usable UIDs. Please contact info@oryx.com"
-                 " to resolve this problem.", level );
-        }
-
-        Query * u = 0;
-        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
-            List<Session>::Iterator i( m->sessions() );
-            if ( i ) {
-                i->addRecent( uid );
-                u = new Query( *incrUidnextWithRecent, 0 );
-            }
-        }
-        if ( !u )
-            u = new Query( *incrUidnext, 0 );
-        u->bind( 1, m->id() );
-        q->transaction()->enqueue( u );
-        ++(*mi);
-    }
 
     void execute() {
         Query *q;
@@ -290,22 +252,63 @@ public:
         {
             queries->shift();
 
-            Query * insert = 0;
-            if ( inserts )
-                insert = inserts->shift();
-
-            if ( q->hasResults() ) {
+            if ( q->hasResults() )
                 process( q );
-            }
-            else {
+            else
                 failed = true;
-                if ( insert )
-                    error = insert->error();
+        }
+
+        if ( failed || queries->isEmpty() )
+            owner->execute();
+    }
+
+    void process( Query * q )
+    {
+        Mailbox * mb = mailboxes->shift();
+
+        Row * r = q->nextRow();
+        uint uidnext = r->getInt( "uidnext" );
+        int64 nextms = r->getBigint( "nextmodseq" );
+
+        if ( uidnext > 0x7ff00000 ) {
+            Log::Severity level = Log::Error;
+            if ( uidnext > 0x7fffff00 )
+                level = Log::Disaster;
+            log( "Note: Mailbox " + mb->name().ascii() +
+                 " only has " + fn ( 0x7fffffff - uidnext ) +
+                 " more usable UIDs. Please contact info@oryx.com"
+                 " to resolve this problem.", level );
+        }
+
+        uint n = 0;
+        List<Message>::Iterator it( messages );
+        while ( it ) {
+            Message * m = it;
+            if ( m->inMailbox( mb ) ) {
+                m->setUid( mb, uidnext+n );
+                m->setModSeq( mb, nextms );
+                n++;
+            }
+            ++it;
+        }
+
+        uint recentIn = 0;
+        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
+            List<Session>::Iterator si( mb->sessions() );
+            if ( si ) {
+                recentIn++;
+                si->addRecent( uidnext, n );
             }
         }
 
-        if ( queries->isEmpty() )
-            owner->execute();
+        Query * u;
+        if ( recentIn == 0 )
+            u = new Query( *incrUidnext, 0 );
+        else
+            u = new Query( *incrUidnextWithRecent, 0 );
+        u->bind( 1, mb->id() );
+        u->bind( 2, n );
+        q->transaction()->enqueue( u );
     }
 
     bool done() const {
@@ -1109,7 +1112,7 @@ void Injector::setup()
     incrUidnext =
         new PreparedStatement(
             "update mailboxes "
-            "set uidnext=uidnext+1,nextmodseq=nextmodseq+1 "
+            "set uidnext=uidnext+$2,nextmodseq=nextmodseq+1 "
             "where id=$1"
         );
     Allocator::addEternal( incrUidnext, "incrUidnext" );
@@ -1117,9 +1120,9 @@ void Injector::setup()
     incrUidnextWithRecent =
         new PreparedStatement(
             "update mailboxes "
-            "set uidnext=uidnext+1,"
+            "set uidnext=uidnext+$2,"
                  "nextmodseq=nextmodseq+1,"
-                 "first_recent=first_recent+1 "
+                 "first_recent=first_recent+$2 "
             "where id=$1"
         );
     Allocator::addEternal( incrUidnextWithRecent, "incrUidnext w/recent" );
@@ -1498,31 +1501,66 @@ void Injector::selectMessageId()
 }
 
 
-/*! This private function issues queries to retrieve a UID for each of
-    the Mailboxes we are delivering the message into, adds each UID to
-    d->mailboxes, and informs execute() when it's done.
+/*! This private function is responsible for fetching a uid and modseq
+    value for each message in each mailbox and incrementing uidnext and
+    nextmodseq appropriately.
 */
 
 void Injector::selectUids()
 {
-    Query *q;
-    List< Query > * queries = new List< Query >;
-    d->uidFetcher = new UidFetcher( d->message, queries, this );
+    // We are given a number of messages, each of which has its own list
+    // of target mailboxes. There may be many messages, but chances are
+    // that there are few mailboxes (the overwhelmingly common case is
+    // just one mailbox).
+    //
+    // In principle, we could loop over d->messages/m->mailboxes() as we
+    // do elsewhere, enqueue-ing a select/increment for each one. Things
+    // would work so long as the increment for one message was executed
+    // before the select for the next one. But we don't do that, because
+    // then injecting ten thousand messages into one mailbox would need
+    // ten thousand selects and, worse still, ten thousand updates too.
+    //
+    // So we turn the loop inside out, build a list of mailboxes, count
+    // the messages to be injected into each one, and increment uidnext
+    // and modseq by that number, once per mailbox instead of once per
+    // message.
+    //
+    // To protect against concurrent injection into the same mailboxes,
+    // we hold a write lock on the mailboxes during injection; thus, the
+    // mailbox list must be sorted, so that the Injectors try to acquire
+    // locks in the same order to avoid deadlock.
 
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
+    Map<uint> uniq;
+    SortedList<Mailbox> * mailboxes =
+        new SortedList<Mailbox>;
+
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+
+            if ( !uniq.find( mb->id() ) ) {
+                uniq.insert( mb->id(), (uint *)1 );
+                mailboxes->insert( mb );
+            }
+
+            ++mi;
+        }
+        ++it;
+    }
+
+    List<Query> * queries = new List<Query>;
+    d->uidFetcher =
+        new UidFetcher( mailboxes, queries, d->messages, this );
+
+    SortedList<Mailbox>::Iterator mi( mailboxes );
     while ( mi ) {
-        // We acquire a write lock on our mailbox, and hold it until the
-        // entire transaction has committed successfully. We use uidnext
-        // in lieu of a UID sequence to serialise Injectors, so that UID
-        // announcements are correctly ordered.
-        //
-        // The mailbox list must be sorted, so that Injectors always try
-        // to acquire locks in the same order, thus avoiding deadlocks.
+        Mailbox * mb = mi;
 
-        Mailbox *m = mi;
-
-        q = new Query( *lockUidnext, d->uidFetcher );
-        q->bind( 1, m->id() );
+        Query * q = new Query( *lockUidnext, this );
+        q->bind( 1, mb->id() );
         d->transaction->enqueue( q );
         queries->append( q );
 
