@@ -108,7 +108,7 @@ class InjectorData
 public:
     InjectorData()
         : state( Inactive ), failed( false ),
-          owner( 0 ), message( 0 ), transaction( 0 ),
+          owner( 0 ), messages( 0 ), message( 0 ), transaction( 0 ),
           bodyparts( 0 ), midFetcher( 0 ),
           uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
@@ -121,7 +121,9 @@ public:
     bool failed;
 
     EventHandler *owner;
-    Message *message;
+    List<Message> * messages;
+    Message * message;
+
     Transaction *transaction;
 
     List< Bid > *bodyparts;
@@ -1125,6 +1127,9 @@ Injector::Injector( Message * message, EventHandler * owner )
         setup();
     d->owner = owner;
     d->message = message;
+    d->messages = new List<Message>;
+    d->messages->append( message );
+
     d->bodyparts = new List< Bid >;
     List< Bodypart >::Iterator bi( d->message->allBodyparts() );
     while ( bi ) {
