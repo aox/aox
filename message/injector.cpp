@@ -66,12 +66,13 @@ struct Bid
 };
 
 
-// These structs represent one part of each entry in the header_fields
-// and address_fields tables. (The other part being the message ID.)
+// These structs represent each entry in the header_fields and
+// address_fields tables respectively.
 
 struct FieldLink
     : public Garbage
 {
+    uint messageId;
     HeaderField *hf;
     String part;
     int position;
@@ -80,10 +81,7 @@ struct FieldLink
 struct AddressLink
     : public Garbage
 {
-    AddressLink()
-        : address( 0 ), type( HeaderField::From ),
-          position( 0 ), number( 0 ) {}
-
+    uint messageId;
     Address * address;
     HeaderField::Type type;
     String part;
@@ -1681,41 +1679,47 @@ void Injector::buildFieldLinks()
     d->dateLinks = new List< FieldLink >;
     d->otherFields = new StringList;
 
-    buildLinksForHeader( d->message->header(), "" );
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
 
-    // Since the MIME header fields belonging to the first-child of a
-    // single-part Message are physically collocated with the RFC 822
-    // header, we don't need to inject them into the database again.
-    bool skip = false;
-    ContentType *ct = d->message->header()->contentType();
-    if ( !ct || ct->type() != "multipart" )
-        skip = true;
+        buildLinksForHeader( m, m->header(), "" );
 
-    List< Bid >::Iterator bi( d->bodyparts );
-    while ( bi ) {
-        Bodypart *bp = bi->bodypart;
+        // Since the MIME header fields belonging to the first-child of a
+        // single-part Message are physically collocated with the RFC 822
+        // header, we don't need to inject them into the database again.
+        bool skip = false;
+        ContentType *ct = m->header()->contentType();
+        if ( !ct || ct->type() != "multipart" )
+            skip = true;
 
-        String pn = d->message->partNumber( bp );
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            Bodypart *bp = bi;
+            String pn = m->partNumber( bp );
 
-        if ( !skip )
-            buildLinksForHeader( bp->header(), pn );
-        else
-            skip = false;
+            if ( !skip )
+                buildLinksForHeader( m, bp->header(), pn );
+            else
+                skip = false;
+            if ( bp->message() )
+                buildLinksForHeader( m, bp->message()->header(),
+                                     pn + ".rfc822" );
+            ++bi;
+        }
 
-        if ( bp->message() )
-            buildLinksForHeader( bp->message()->header(), pn + ".rfc822" );
-
-        ++bi;
+        ++it;
     }
+
 }
 
 
 /*! This private function makes links in d->fieldLinks for each of the
-    fields in \a hdr (from the bodypart numbered \a part). It is used
-    by buildFieldLinks().
+    fields in \a hdr (from the bodypart numbered \a part) of the given
+    message \a m. It is used by buildFieldLinks().
 */
 
-void Injector::buildLinksForHeader( Header *hdr, const String &part )
+void Injector::buildLinksForHeader( Message * m, Header *hdr, const String &part )
 {
     List< HeaderField >::Iterator it( hdr->fields() );
     while ( it ) {
@@ -1725,6 +1729,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
         link->hf = hf;
         link->part = part;
         link->position = hf->position();
+        link->messageId = m->databaseId();
 
         if ( hf->type() >= HeaderField::Other )
             d->otherFields->append( new String ( hf->name() ) );
@@ -1746,6 +1751,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
                 link->type = hf->type();
                 link->address = ai;
                 link->number = n;
+                link->messageId = m->databaseId();
                 d->addressLinks->append( link );
 
                 ++n;
@@ -2037,7 +2043,7 @@ void Injector::linkHeaderFields()
         if ( !t )
             t = link->hf->type(); // XXX and what if this too fails?
 
-        q->bind( 1, d->messageId, Query::Binary );
+        q->bind( 1, link->messageId, Query::Binary );
         q->bind( 2, link->part, Query::Binary );
         q->bind( 3, link->position, Query::Binary );
         q->bind( 4, t, Query::Binary );
@@ -2066,7 +2072,7 @@ void Injector::linkAddresses()
     while ( it ) {
         AddressLink *link = it;
 
-        q->bind( 1, d->messageId, Query::Binary );
+        q->bind( 1, link->messageId, Query::Binary );
         q->bind( 2, link->part, Query::Binary );
         q->bind( 3, link->position, Query::Binary );
         q->bind( 4, link->type, Query::Binary );
@@ -2095,7 +2101,7 @@ void Injector::linkDates()
         Query * q =
            new Query( "insert into date_fields (message,value) "
                        "values ($1,$2)", 0 );
-        q->bind( 1, d->messageId );
+        q->bind( 1, link->messageId );
         q->bind( 2, df->date()->isoDateTime() );
         d->transaction->enqueue( q );
 

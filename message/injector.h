@@ -42,7 +42,7 @@ private:
     void selectUids();
     void selectMessageId();
     void resolveAddressLinks();
-    void buildLinksForHeader( Header *, const String & );
+    void buildLinksForHeader( Message *, Header *, const String & );
     void buildFieldLinks();
     void insertPartNumber( Query *, uint, const String &,
                            int = -1, int = -1, int = -1 );
