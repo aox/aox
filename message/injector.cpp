@@ -2070,16 +2070,21 @@ void Injector::createFlags()
 {
     StringList unknown;
 
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        Mailbox * m = mi;
-        StringList::Iterator i( d->message->flags( m ) );
-        while ( i ) {
-            if ( Flag::id( *i ) == 0 )
-                unknown.append( *i );
-            ++i;
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+            StringList::Iterator i( m->flags( mb ) );
+            while ( i ) {
+                if ( Flag::id( *i ) == 0 )
+                    unknown.append( *i );
+                ++i;
+            }
+            ++mi;
         }
-        ++mi;
+        ++it;
     }
 
     if ( !unknown.isEmpty() ) {
