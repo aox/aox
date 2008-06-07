@@ -1280,22 +1280,6 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            d->state = CreatingFields;
-            buildFieldLinks();
-            createFields();
-        }
-    }
-
-    if ( d->state == CreatingFields ) {
-        if ( d->fieldCreator && !d->fieldCreator->done )
-            return;
-
-        if ( d->fieldCreator && d->fieldCreator->failed ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
             d->state = InsertingBodyparts;
             d->bidFetcher  =
                 new BidFetcher( d->transaction, d->bodyparts, this );
@@ -1309,21 +1293,6 @@ void Injector::execute()
             return;
 
         if ( d->bidFetcher->failed ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
-            d->state = InsertingAddresses;
-            resolveAddressLinks();
-        }
-    }
-
-    if ( d->state == InsertingAddresses ) {
-        if ( !d->addressCreator->done )
-            return;
-
-        if ( d->addressCreator->failed ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -1344,6 +1313,37 @@ void Injector::execute()
             return;
 
         if ( d->midFetcher->failed || d->uidFetcher->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
+            d->state = CreatingFields;
+            buildFieldLinks();
+            createFields();
+        }
+    }
+
+    if ( d->state == CreatingFields ) {
+        if ( d->fieldCreator && !d->fieldCreator->done )
+            return;
+
+        if ( d->fieldCreator && d->fieldCreator->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
+        else {
+            d->state = InsertingAddresses;
+            resolveAddressLinks();
+        }
+    }
+
+    if ( d->state == InsertingAddresses ) {
+        if ( !d->addressCreator->done )
+            return;
+
+        if ( d->addressCreator->failed ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
