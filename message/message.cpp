@@ -488,6 +488,19 @@ uint Message::uid( Mailbox * mb ) const
 }
 
 
+/*! Returns true if this message is in the given mailbox \a mb, i.e. it
+    was added to the mailbox using addMailbox() or addMailboxes().
+*/
+
+bool Message::inMailbox( Mailbox * mb ) const
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return true;
+    return false;
+}
+
+
 /*! Allocates and return a sorted list of all Mailbox objects to which
     this Message belongs. addMailboxes(), setUid() and friends cause the
     Message to belong to one or more Mailbox objects.
