@@ -2036,28 +2036,31 @@ void Injector::logMessageDetails()
 
 void Injector::announce()
 {
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        Mailbox * m = mi;
-        uint uid = d->message->uid( m );
-        int64 ms = d->message->modSeq( m );
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+            uint uid = m->uid( mb );
+            int64 ms = m->modSeq( mb );
 
-        List<Session>::Iterator si( m->sessions() );
+            List<Session>::Iterator si( mb->sessions() );
+            if ( si )
+                MessageCache::insert( mb, uid, m );
 
-        if ( si )
-            MessageCache::insert( m, uid, d->message );
+            while ( si ) {
+                MessageSet dummy;
+                dummy.add( uid );
+                si->addUnannounced( dummy );
+                ++si;
+            }
 
-        while ( si ) {
-            MessageSet dummy;
-            dummy.add( uid );
-            si->addUnannounced( dummy );
-            ++si;
+            if ( mb->uidnext() <= uid || mb->nextModSeq() <= ms )
+                mb->setUidnextAndNextModSeq( 1+uid, 1+ms );
+
+            ++mi;
         }
-
-        if ( m->uidnext() <= uid || m->nextModSeq() <= ms )
-            m->setUidnextAndNextModSeq( 1+uid, 1+ms );
-
-        ++mi;
     }
 }
 
