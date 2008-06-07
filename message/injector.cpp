@@ -1187,8 +1187,15 @@ String Injector::error() const
 {
     if ( !d->failed )
         return "";
-    if ( !d->message->valid() )
-        return d->message->error();
+
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        if ( !m->valid() )
+            return m->error();
+        ++it;
+    }
+
     if ( d->bidFetcher->failed )
         return d->bidFetcher->error;
     if ( !d->transaction )
@@ -1206,10 +1213,15 @@ void Injector::execute()
     Scope x( log() );
 
     if ( d->state == Inactive ) {
-        if ( !d->message->valid() ) {
-            d->failed = true;
-            finish();
-            return;
+        List<Message>::Iterator it( d->messages );
+        while ( it ) {
+            Message * m = it;
+            if ( !m->valid() ) {
+                d->failed = true;
+                finish();
+                return;
+            }
+            ++it;
         }
 
         logMessageDetails();
@@ -1331,38 +1343,48 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingAddresses ) {
-        List<Mailbox>::Iterator mi( d->message->mailboxes() );
-        while ( mi ) {
-            Mailbox * m = mi;
-            StringList::Iterator i( d->message->flags( m ) );
-            while ( i ) {
-                if ( Flag::id( *i ) == 0 )
-                    return;
-                ++i;
+        List<Message>::Iterator it( d->messages );
+        while ( it ) {
+            Message * m = it;
+            List<Mailbox>::Iterator mi( m->mailboxes() );
+            while ( mi ) {
+                Mailbox * mb = mi;
+                StringList::Iterator i( m->flags( mb ) );
+                while ( i ) {
+                    if ( Flag::id( *i ) == 0 )
+                        return;
+                    ++i;
+                }
+                ++mi;
             }
-            ++mi;
+            ++it;
         }
         linkFlags();
         d->state = LinkingFlags;
     }
 
     if ( d->state == LinkingFlags ) {
-        List<Mailbox>::Iterator mi( d->message->mailboxes() );
-        while ( mi ) {
-            Mailbox * m = mi;
-            List<Annotation>::Iterator i( d->message->annotations( m ) );
-            while ( i ) {
-                if ( i->entryName()->id() == 0 ) {
-                    AnnotationName * n;
-                    n = AnnotationName::find( i->entryName()->name() );
-                    if ( n->id() != 0 )
-                        i->setEntryName( n );
+        List<Message>::Iterator it( d->messages );
+        while ( it ) {
+            Message * m = it;
+            List<Mailbox>::Iterator mi( m->mailboxes() );
+            while ( mi ) {
+                Mailbox * mb = mi;
+                List<Annotation>::Iterator i( m->annotations( mb ) );
+                while ( i ) {
+                    if ( i->entryName()->id() == 0 ) {
+                        AnnotationName * n;
+                        n = AnnotationName::find( i->entryName()->name() );
+                        if ( n->id() != 0 )
+                            i->setEntryName( n );
+                    }
+                    if ( i->entryName()->id() == 0 )
+                        return;
+                    ++i;
                 }
-                if ( i->entryName()->id() == 0 )
-                    return;
-                ++i;
+                ++mi;
             }
-            ++mi;
+            ++it;
         }
         linkAnnotations();
         handleWrapping();
