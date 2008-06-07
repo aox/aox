@@ -2055,30 +2055,45 @@ void Injector::linkDates()
 }
 
 
-/*! Logs information about the message to be injected. Some debug,
-    some info.
+/*! Logs a little information about the messages to be injected, and a
+    little more for the special case of a single message being injected
+    into a single mailbox.
 */
 
 void Injector::logMessageDetails()
 {
-    String id;
-    Header * h = d->message->header();
-    if ( h )
-        id = h->messageId();
-    if ( id.isEmpty() ) {
-        log( "Injecting message without message-id", Log::Debug );
-        // should we log x-mailer? from? neither?
+    if ( d->messages->count() > 1 ) {
+        log( "Injecting " + fn( d->messages->count() ) + " "
+             "messages", Log::Significant );
     }
     else {
-        id = id + " ";
-    }
+        Message * m = d->messages->first();
 
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        Mailbox * m = mi;
-        log( "Injecting message " + id + "into mailbox " +
-             m->name().ascii(), Log::Significant );
-        ++mi;
+        String msg( "Injecting message " );
+
+        String id;
+        Header * h = m->header();
+        if ( h )
+            id = h->messageId();
+        if ( id.isEmpty() )
+            id = "<>";
+        msg.append( id );
+
+        String dest( " into " );
+        List<Mailbox> * mailboxes = m->mailboxes();
+        Mailbox * mb = mailboxes->first();
+        if ( mb ) {
+            dest.append( mb->name().ascii() );
+        }
+        if ( mailboxes->count() > 1 ) {
+            dest.append( " (and " );
+            dest.append( fn( mailboxes->count()-1 ) );
+            dest.append( " other mailboxes)" );
+        }
+        if ( mailboxes->count() > 0 )
+            msg.append( dest );
+
+        log( msg, Log::Significant );
     }
 }
 
