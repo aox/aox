@@ -336,8 +336,10 @@ public:
             List<Bid>::Iterator bi( list );
             while ( bi ) {
                 r = rows.find( bi->hash );
-                if ( r )
+                if ( r ) {
                     bi->bid = r->getInt( "id" );
+                    bi->bodypart->setId( bi->bid );
+                }
                 ++bi;
             }
         }
@@ -401,6 +403,7 @@ public:
                         return;
                     }
                     b->bid = r->getInt( "id" );
+                    b->bodypart->setId( b->bid );
                 }
                 ++(*li);
                 state = 0;
