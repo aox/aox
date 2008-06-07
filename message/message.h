@@ -33,7 +33,7 @@ public:
     uint uid( Mailbox * ) const;
 
     bool inMailbox( Mailbox * ) const;
-    SortedList<Mailbox> * mailboxes() const;
+    List<Mailbox> * mailboxes() const;
     void addMailboxes( List<Mailbox> * );
     void addMailbox( Mailbox * );
 

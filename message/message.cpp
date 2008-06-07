@@ -508,12 +508,12 @@ bool Message::inMailbox( Mailbox * mb ) const
     This may return an empty list, but it never returns a null pointer.
 */
 
-SortedList<Mailbox> * Message::mailboxes() const
+List<Mailbox> * Message::mailboxes() const
 {
-    SortedList<Mailbox> * m = new SortedList<Mailbox>;
+    List<Mailbox> * m = new List<Mailbox>;
     List<MessageData::Mailbox>::Iterator i( d->mailboxes );
     while ( i ) {
-        m->insert( i->mailbox );
+        m->append( i->mailbox );
         ++i;
     }
     return m;
