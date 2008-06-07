@@ -2188,6 +2188,7 @@ void Injector::announce()
 
             ++mi;
         }
+        ++it;
     }
 }
 
