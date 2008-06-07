@@ -179,20 +179,22 @@ public:
         : messages( ml ), queries( ql ), owner( ev ),
           it( 0 ), qi( 0 ), insert( 0 ), select( 0 ),
           failed( false ), finished( false )
-    {
-        it = new List<Message>::Iterator( messages );
-        qi = new List<Query>::Iterator( queries );
-    }
+    {}
 
     void execute() {
         if ( finished )
             return;
 
+        if ( !it ) {
+            it = new List<Message>::Iterator( messages );
+            qi = new List<Query>::Iterator( queries );
+        }
+
         if ( !insert ) {
             insert = *qi;
-            ++qi;
+            ++(*qi);
             select = *qi;
-            ++qi;
+            ++(*qi);
         }
 
         if ( !insert->done() || !select->done() )
@@ -215,7 +217,7 @@ public:
         select = 0;
         ++(*it);
 
-        if ( !it ) {
+        if ( !*it ) {
             finished = true;
             owner->execute();
         }
