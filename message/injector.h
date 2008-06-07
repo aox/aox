@@ -32,6 +32,7 @@ public:
     String error() const;
 
     void addDelivery( Address *, List<Address> * );
+    void addDelivery( Message *, Address *, List<Address> * );
 
 private:
     class InjectorData *d;

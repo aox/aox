@@ -109,7 +109,7 @@ public:
         : state( Inactive ), failed( false ),
           owner( 0 ), messages( 0 ), message( 0 ), transaction( 0 ),
           bodyparts( 0 ), midFetcher( 0 ),
-          uidFetcher( 0 ), bidFetcher( 0 ), messageId( 0 ),
+          uidFetcher( 0 ), bidFetcher( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
           flagCreator( 0 ), annotationCreator( 0 )
@@ -131,8 +131,6 @@ public:
     UidFetcher *uidFetcher;
     BidFetcher *bidFetcher;
 
-    uint messageId;
-
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
     List< FieldLink > * dateLinks;
@@ -146,10 +144,11 @@ public:
     struct Delivery
         : public Garbage
     {
-        Delivery( Address * a, List<Address> * l )
-            : sender( a ), recipients( l )
+        Delivery( Message * m, Address * a, List<Address> * l )
+            : message( m ), sender( a ), recipients( l )
         {}
 
+        Message * message;
         Address * sender;
         List<Address> * recipients;
     };
@@ -1173,13 +1172,32 @@ Injector::~Injector()
 }
 
 
-/*! Notes that the current message must be delivered to the specified
+/*! Notes that the given \a message must be delivered to the specified
     \a recipients from the given \a sender.
+*/
+
+void Injector::addDelivery( Message * message, Address * sender,
+                            List<Address> * recipients )
+{
+    d->deliveries.append( new InjectorData::Delivery( message, sender,
+                                                      recipients ) );
+}
+
+
+/*! \overload
+    Notes that all messages must be delivered to the specified
+    \a recipients from the given \a sender. This version is provided as
+    a convenience to callers who only want to inject a single message
+    and don't want to mix ordinary injections and deliveries.
 */
 
 void Injector::addDelivery( Address * sender, List<Address> * recipients )
 {
-    d->deliveries.append( new InjectorData::Delivery( sender, recipients ) );
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        addDelivery( it, sender, recipients );
+        ++it;
+    }
 }
 
 
@@ -1919,7 +1937,7 @@ void Injector::insertDeliveries()
                        "values ($1,$2,current_timestamp,"
                        "current_timestamp+interval '2 days')", 0 );
         q->bind( 1, di->sender->id() );
-        q->bind( 2, d->messageId );
+        q->bind( 2, di->message->databaseId() );
         d->transaction->enqueue( q );
 
         uint n = 0;
@@ -1938,7 +1956,7 @@ void Injector::insertDeliveries()
             ++it;
         }
 
-        log( "Spooling message " + fn( d->messageId ) +
+        log( "Spooling message " + fn( di->message->databaseId() ) +
              " for delivery to " + fn( n ) +
              " remote recipients", Log::Significant );
 
