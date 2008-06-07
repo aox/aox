@@ -2182,31 +2182,38 @@ void Injector::linkAnnotations()
 }
 
 
-/*! If the message is wrapped, this function inserts a single row into
-    the unparsed_messages table, referencing the second bodypart.
+/*! If any of the messages are wrapped, this function inserts rows into
+    the unparsed_messages table for them.
 */
 
 void Injector::handleWrapping()
 {
-    if ( !d->message->isWrapped() )
-        return;
+    Query * q =
+        new Query( "copy unparsed_messages (bodypart) "
+                   "from stdin with binary", this );
 
-    List< Bid >::Iterator bi( d->bodyparts );
-    while ( bi ) {
-        uint bid = bi->bid;
-        Bodypart *b = bi->bodypart;
-        String pn = d->message->partNumber( b );
+    uint wrapped = 0;
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        if ( m->isWrapped() ) {
+            wrapped++;
 
-        if ( pn == "2" ) {
-            Query * q = new Query( "insert into unparsed_messages (bodypart) "
-                                   "values ($1)", this );
-            q->bind( 1, bid );
-            d->transaction->enqueue( q );
-            break;
+            List<Bodypart>::Iterator bi( m->allBodyparts() );
+            while ( bi ) {
+                Bodypart * b = bi;
+                if ( m->partNumber( b ) == "2" ) {
+                    q->bind( 1, b->id() );
+                    q->submitLine();
+                }
+                ++bi;
+            }
         }
-
-        ++bi;
+        ++it;
     }
+
+    if ( wrapped )
+        d->transaction->enqueue( q );
 }
 
 
