@@ -2098,16 +2098,21 @@ void Injector::createAnnotationNames()
 {
     StringList unknown;
 
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        Mailbox * m = mi;
-        List<Annotation>::Iterator it( d->message->annotations( m ) );
-        while ( it ) {
-            if ( !it->entryName()->id() )
-                unknown.append( it->entryName()->name() );
-            ++it;
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+            List<Annotation>::Iterator ai( m->annotations( mb ) );
+            while ( ai ) {
+                if ( !ai->entryName()->id() )
+                    unknown.append( ai->entryName()->name() );
+                ++ai;
+            }
+            ++mi;
         }
-        ++mi;
+        ++it;
     }
 
     if ( !unknown.isEmpty() ) {
