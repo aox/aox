@@ -2129,19 +2129,24 @@ void Injector::linkFlags()
                    "from stdin with binary", this );
 
     uint flags = 0;
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        Mailbox * m = mi;
-        StringList::Iterator i( d->message->flags( m ) );
-        while ( i ) {
-            flags++;
-            q->bind( 1, m->id(), Query::Binary );
-            q->bind( 2, d->message->uid( m ), Query::Binary );
-            q->bind( 3, Flag::id( *i ), Query::Binary );
-            q->submitLine();
-            ++i;
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+            StringList::Iterator i( m->flags( mb ) );
+            while ( i ) {
+                flags++;
+                q->bind( 1, mb->id(), Query::Binary );
+                q->bind( 2, m->uid( mb ), Query::Binary );
+                q->bind( 3, Flag::id( *i ), Query::Binary );
+                q->submitLine();
+                ++i;
+            }
+            ++mi;
         }
-        ++mi;
+        ++it;
     }
 
     if ( flags )
