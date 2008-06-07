@@ -1559,7 +1559,7 @@ void Injector::selectUids()
     while ( mi ) {
         Mailbox * mb = mi;
 
-        Query * q = new Query( *lockUidnext, this );
+        Query * q = new Query( *lockUidnext, d->uidFetcher );
         q->bind( 1, mb->id() );
         d->transaction->enqueue( q );
         queries->append( q );
