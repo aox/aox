@@ -49,6 +49,7 @@ public:
     MessageSet recent() const;
     bool isRecent( uint ) const;
     void addRecent( uint );
+    void addRecent( uint, uint );
 
     const MessageSet & expunged() const;
     const MessageSet & messages() const;
