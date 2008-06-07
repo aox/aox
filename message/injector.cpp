@@ -1913,23 +1913,32 @@ void Injector::linkBodyparts()
         new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
                    "from stdin with binary", 0 );
 
-    insertPartNumber( q, d->messageId, "" );
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        uint mid = m->databaseId();
 
-    List< Bid >::Iterator bi( d->bodyparts );
-    while ( bi ) {
-        uint bid = bi->bid;
-        Bodypart *b = bi->bodypart;
+        // A fake target part for top-level RFC 822 header fields.
+        insertPartNumber( q, mid, "" );
 
-        String pn = d->message->partNumber( b );
-        insertPartNumber( q, d->messageId, pn, bid,
-                          b->numEncodedBytes(),
-                          b->numEncodedLines() );
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            Bodypart * b = bi;
+            String pn( m->partNumber( b ) );
 
-        if ( b->message() )
-            insertPartNumber( q, d->messageId, pn + ".rfc822",
-                              bid, b->numEncodedBytes(),
+            insertPartNumber( q, mid, pn, b->id(),
+                              b->numEncodedBytes(),
                               b->numEncodedLines() );
-        ++bi;
+
+            if ( b->message() )
+                insertPartNumber( q, mid, pn + ".rfc822", b->id(),
+                                  b->numEncodedBytes(),
+                                  b->numEncodedLines() );
+
+            ++bi;
+        }
+
+        ++it;
     }
 
     d->transaction->enqueue( q );
