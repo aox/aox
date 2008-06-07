@@ -2158,23 +2158,28 @@ void Injector::linkAnnotations()
                    "from stdin with binary", this );
 
     uint annotations = 0;
-    List<Mailbox>::Iterator mi( d->message->mailboxes() );
-    while ( mi ) {
-        Mailbox * m = mi;
-        List<Annotation>::Iterator it( d->message->annotations( m ) );
-        while ( it ) {
-            annotations++;
-            q->bind( 1, m->id(), Query::Binary );
-            q->bind( 2, d->message->uid( m ), Query::Binary );
-            q->bind( 3, it->entryName()->id(), Query::Binary );
-            q->bind( 4, it->value(), Query::Binary );
-            if ( it->ownerId() == 0 )
-                q->bindNull( 5 );
-            else
-                q->bind( 5, it->ownerId(), Query::Binary );
-            ++it;
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+            List<Annotation>::Iterator ai( m->annotations( mb ) );
+            while ( ai ) {
+                annotations++;
+                q->bind( 1, mb->id(), Query::Binary );
+                q->bind( 2, m->uid( mb ), Query::Binary );
+                q->bind( 3, ai->entryName()->id(), Query::Binary );
+                q->bind( 4, ai->value(), Query::Binary );
+                if ( ai->ownerId() == 0 )
+                    q->bindNull( 5 );
+                else
+                    q->bind( 5, ai->ownerId(), Query::Binary );
+                ++ai;
+            }
+            ++mi;
         }
-        ++mi;
+        ++it;
     }
 
     if ( annotations )
