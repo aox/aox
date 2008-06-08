@@ -1250,5 +1250,10 @@ Injector work
      in fieldLinks/addressLinks. For thousands of messages, the memory
      saved would be a net win, I suspect.
 
+  8. The huge loops in ::execute() to check if we've finished creating
+     all of the necessary flag/annotation names, which mirror the loops
+     in createFlags etc., are just awful. We know what work we did, so
+     we should be able to figure out if we've done it in a less horrid
+     way. Related to (6).
 
 
