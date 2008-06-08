@@ -330,7 +330,7 @@ void SMTP::authenticated( User * user )
                        "join mailboxes mb on (al.mailbox=mb.id) "
                        "where mb.owner=$1 or mb.id in"
                        "(select mailbox from permissions "
-                       "where right ilike '%p%' "
+                       "where rights ilike '%p%' "
                        "and (identifier='anyone' or identifier=$2))",
                        af );
     af->q->bind( 1, d->user->id() );
