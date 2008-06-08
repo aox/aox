@@ -1137,16 +1137,33 @@ void Injector::setup()
 }
 
 
-/*! Creates a new Injector to deliver the \a message on behalf of
+/*! Creates a new Injector to deliver the \a messages on behalf of
     the \a owner, which is notified when the injection is completed.
     Message delivery commences when the execute() function is called.
 */
 
-Injector::Injector( Message * message, EventHandler * owner )
+Injector::Injector( List<Message> * messages, EventHandler * owner )
     : d( new InjectorData )
 {
     if ( !lockUidnext )
         setup();
+
+    d->owner = owner;
+    d->messages = messages;
+}
+
+
+/*! \overload
+    Creates a new Injector to deliver the \a message on behalf of the
+    \a owner, which is notified when the injection is completed. This
+    single-message variant is provided for convenience.
+*/
+
+Injector::Injector( Message * message, EventHandler * owner )
+{
+    if ( !lockUidnext )
+        setup();
+
     d->owner = owner;
     d->messages = new List<Message>;
     d->messages->append( message );

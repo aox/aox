@@ -23,6 +23,7 @@ class Injector
 {
 public:
     Injector( Message *, EventHandler * );
+    Injector( List<Message> *, EventHandler * );
     virtual ~Injector();
 
     void execute();
