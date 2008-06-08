@@ -327,14 +327,16 @@ public:
     String error;
 
     BidFetcher( Transaction * t, List<Bid> * l, EventHandler * ev )
-        : transaction( t ), look( 0 ), list( l ), owner( ev ),
-          li( new List<Bid>::Iterator( list ) ),
+        : transaction( t ), look( 0 ), list( l ), owner( ev ), li( 0 ),
           state( 0 ), savepoint( 0 ), done( false ), failed( false )
     {}
 
     void execute()
     {
         Query * q = 0;
+
+        if ( !li )
+            li = new List<Bid>::Iterator( list );
 
         if ( look ) {
             if ( look->state() == Query::Inactive ) {
