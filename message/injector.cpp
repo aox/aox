@@ -1156,6 +1156,7 @@ Injector::Injector( List<Message> * messages, EventHandler * owner )
 */
 
 Injector::Injector( Message * message, EventHandler * owner )
+    : d( new InjectorData )
 {
     if ( !lockUidnext )
         setup();
