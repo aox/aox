@@ -55,11 +55,10 @@ struct Bid
     : public Garbage
 {
     Bid( Bodypart * b )
-        : bodypart( b ), bid( 0 ), insert( 0 ), select( 0 )
+        : bodypart( b ), insert( 0 ), select( 0 )
     {}
 
     Bodypart *bodypart;
-    uint bid;
     String hash;
     Query * insert;
     Query * select;
@@ -355,16 +354,14 @@ public:
             List<Bid>::Iterator bi( list );
             while ( bi ) {
                 r = rows.find( bi->hash );
-                if ( r ) {
-                    bi->bid = r->getInt( "id" );
-                    bi->bodypart->setId( bi->bid );
-                }
+                if ( r )
+                    bi->bodypart->setId( r->getInt( "id" ) );
                 ++bi;
             }
         }
 
         while ( !done && *li ) {
-            while ( *li && ( !(*li)->insert || (*li)->bid ) )
+            while ( *li && ( !(*li)->insert || (*li)->bodypart->id() ) )
                 ++(*li);
             if ( !*li )
                 break;
@@ -421,8 +418,7 @@ public:
                         owner->execute();
                         return;
                     }
-                    b->bid = r->getInt( "id" );
-                    b->bodypart->setId( b->bid );
+                    b->bodypart->setId( r->getInt( "id" ) );
                 }
                 ++(*li);
                 state = 0;
