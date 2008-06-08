@@ -107,9 +107,8 @@ class InjectorData
 public:
     InjectorData()
         : state( Inactive ), failed( false ),
-          owner( 0 ), messages( 0 ), message( 0 ), transaction( 0 ),
-          bodyparts( 0 ), midFetcher( 0 ),
-          uidFetcher( 0 ), bidFetcher( 0 ),
+          owner( 0 ), messages( 0 ), transaction( 0 ),
+          midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
           flagCreator( 0 ), annotationCreator( 0 )
@@ -121,11 +120,8 @@ public:
 
     EventHandler *owner;
     List<Message> * messages;
-    Message * message;
 
     Transaction *transaction;
-
-    List< Bid > *bodyparts;
 
     MidFetcher *midFetcher;
     UidFetcher *uidFetcher;
@@ -1152,16 +1148,8 @@ Injector::Injector( Message * message, EventHandler * owner )
     if ( !lockUidnext )
         setup();
     d->owner = owner;
-    d->message = message;
     d->messages = new List<Message>;
     d->messages->append( message );
-
-    d->bodyparts = new List< Bid >;
-    List< Bodypart >::Iterator bi( d->message->allBodyparts() );
-    while ( bi ) {
-        d->bodyparts->append( new Bid( bi ) );
-        ++bi;
-    }
 }
 
 
@@ -1299,8 +1287,6 @@ void Injector::execute()
         }
         else {
             d->state = InsertingBodyparts;
-            d->bidFetcher  =
-                new BidFetcher( d->transaction, d->bodyparts, this );
             setupBodyparts();
             d->bidFetcher->execute();
         }
@@ -1790,8 +1776,24 @@ void Injector::buildLinksForHeader( Message * m, Header *hdr, const String &part
 
 void Injector::setupBodyparts()
 {
+    List<Bid> * bodyparts = new List<Bid>;
+
+    d->bidFetcher =
+        new BidFetcher( d->transaction, bodyparts, this );
+
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            bodyparts->append( new Bid( bi ) );
+            ++bi;
+        }
+        ++it;
+    }
+
     StringList hashes;
-    List< Bid >::Iterator bi( d->bodyparts );
+    List< Bid >::Iterator bi( bodyparts );
     while ( bi ) {
         Bodypart *b = bi->bodypart;
 
