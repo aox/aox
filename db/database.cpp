@@ -557,10 +557,10 @@ void Database::checkAccess( EventHandler * owner )
 
 
 /*! This static function returns the schema revision current at the time
-     this server was compiled.
+    this server was compiled.
 */
 
 uint Database::currentRevision()
 {
-    return 70;
+    return 71;
 }
