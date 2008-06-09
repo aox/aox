@@ -65,7 +65,7 @@ decides whether the various servers accept IPv6 connections.
 by default.
 .IP undelete-time
 is the number of days a message can be undeleted after being deleted,
-.I 7
+.I 49
 by default.
 .IP server-processes
 is the number of processes started to serve IMAP/POP/HTTP clients. This is
