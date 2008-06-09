@@ -157,7 +157,7 @@ void Status::execute()
     // admit to their existence. since it's a Session, not an
     // ImapSession, emitResponses() won't cause output, so we just
     // force it.
-    if ( d->session )
+    if ( d->session && d->session != imap()->session() )
         d->session->emitResponses( Session::New );
 
     if ( d->messages )
