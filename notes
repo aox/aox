@@ -1252,4 +1252,16 @@ Injector work
      we should be able to figure out if we've done it in a less horrid
      way. Related to (6).
 
+  There's also lots of quadratic code and unnecessary queries. Some of
+  the points above seem to be noticeable only because of quadratic
+  loops. Nothing is fast enough or allocates little enough memory if
+  it's in the middle of a quadratic loop.
 
+  Injecting 1500 messagtes involved 11050 queries and about three
+  minutes. Lovely stuff really. There are more than 1500 separate
+  invocations of
+     select currval('messages_id_seq')::int as id
+  and one query goes up to $6916.
+
+  Some log analysis shows that most of the time goes towards the
+  highly repeated queries.

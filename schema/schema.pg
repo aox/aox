@@ -207,7 +207,6 @@ create table date_fields (
     message     integer not null references messages(id)
                 on delete cascade,
     value       timestamp with time zone
-    -- is this it? how about original-date and resent-date?
 );
 
 create index df_m on date_fields(message);
