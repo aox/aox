@@ -1024,17 +1024,12 @@ bool FetcherData::AddressDecoder::isDone( Message * m ) const
 
 void FetcherData::FlagsDecoder::decode( Message * m, Row * r )
 {
-    Flag * f = Flag::find( r->getInt( "flag" ) );
-    if ( f ) {
-        List<Flag> * flags = m->flags( d->mailbox );
-        List<Flag>::Iterator i( flags );
-        while ( i && i != f )
-            ++i;
-        if ( !i )
-            flags->append( f );
+    String f = Flag::name( r->getInt( "flag" ) );
+    if ( !f.isEmpty() ) {
+        m->setFlag( d->mailbox, f );
     }
     else {
-        // XXX: consider this. best course of action may be to
+        // XXX: consider this. The best course of action may be to
         // silently ignore this flag for now. it's new, so we didn't
         // announce it in the select response, either.
     }

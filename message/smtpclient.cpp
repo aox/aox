@@ -343,7 +343,7 @@ static String enhancedStatus( const String & l, bool e,
     }
     bool ok = false;
     uint response = l.mid( 0, 3 ).number( &ok );
-    if ( response < 200 | response >= 600 || !ok )
+    if ( !ok || response < 200 || response >= 600 )
         return "4.0.0";
     String r;
     switch ( response )

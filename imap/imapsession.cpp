@@ -30,7 +30,7 @@ public:
     uint uidnext;
     int64 nms;
     int64 cms;
-    List<Flag> flags;
+    StringList flags;
     List<int64> ignorable;
     bool emitting;
 };
@@ -282,16 +282,18 @@ void ImapSession::enqueue( const String & r )
     list of flags.
 */
 
-void ImapSession::addFlags( List<Flag> * f, class Command * c )
+void ImapSession::addFlags( StringList * f, class Command * c )
 {
     Scope x( d->l );
-    List<Flag>::Iterator i( f );
+    StringList::Iterator i( f );
     bool announce = false;
     while ( i ) {
-        List<Flag>::Iterator j( d->flags );
-        while ( j && j->id() < i->id() )
+        uint iid = Flag::id( *i );
+
+        StringList::Iterator j( d->flags );
+        while ( j && Flag::id( *j ) < iid )
             ++j;
-        if ( !j || i->id() > i->id() ) {
+        if ( !j || Flag::id( *j ) > iid ) {
             d->flags.insert( j, i );
             announce = true;
         }
@@ -306,7 +308,7 @@ void ImapSession::addFlags( List<Flag> * f, class Command * c )
     while ( i ) {
         if ( !r.isEmpty() )
             r.append( " " );
-        r.append( i->name() );
+        r.append( *i );
         ++i;
     }
 

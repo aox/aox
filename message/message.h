@@ -3,6 +3,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include "stringlist.h"
 #include "multipart.h"
 #include "header.h"
 
@@ -12,7 +13,6 @@ class Annotation;
 class Bodypart;
 class Mailbox;
 class String;
-class Flag;
 
 
 class Message
@@ -32,6 +32,7 @@ public:
     void setUid( Mailbox *, uint );
     uint uid( Mailbox * ) const;
 
+    bool inMailbox( Mailbox * ) const;
     List<Mailbox> * mailboxes() const;
     void addMailboxes( List<Mailbox> * );
     void addMailbox( Mailbox * );
@@ -56,7 +57,9 @@ public:
     void setModSeq( Mailbox *, uint );
     uint modSeq( Mailbox * ) const;
 
-    List<Flag> * flags( Mailbox * ) const;
+    StringList * flags( Mailbox * ) const;
+    void setFlags( Mailbox *, const StringList * );
+    void setFlag( Mailbox *, const String & );
     List<Annotation> * annotations( Mailbox * ) const;
     void setAnnotations( Mailbox *, List<Annotation> * );
 

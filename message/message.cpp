@@ -12,7 +12,7 @@
 #include "entropy.h"
 #include "codec.h"
 #include "date.h"
-#include "flag.h"
+#include "dict.h"
 #include "md5.h"
 
 
@@ -47,7 +47,7 @@ public:
         uint uid;
         int64 modseq;
         uint internalDate;
-        List<Flag> flags;
+        StringList flags;
         List<Annotation> * annotations;
         bool hasFlags;
         bool hasAnnotations;
@@ -488,8 +488,21 @@ uint Message::uid( Mailbox * mb ) const
 }
 
 
-/*! Allocates and return a list of all Mailbox objects to which this
-    Message belongs. addMailboxes(), setUid() and friends cause the
+/*! Returns true if this message is in the given mailbox \a mb, i.e. it
+    was added to the mailbox using addMailbox() or addMailboxes().
+*/
+
+bool Message::inMailbox( Mailbox * mb ) const
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return true;
+    return false;
+}
+
+
+/*! Allocates and return a sorted list of all Mailbox objects to which
+    this Message belongs. addMailboxes(), setUid() and friends cause the
     Message to belong to one or more Mailbox objects.
 
     This may return an empty list, but it never returns a null pointer.
@@ -582,13 +595,51 @@ uint Message::rfc822Size() const
     This may return an empty list, but never a null pointer.
 */
 
-List<Flag> * Message::flags( Mailbox * mb ) const
+StringList * Message::flags( Mailbox * mb ) const
 {
     MessageData::Mailbox * m = d->mailbox( mb );
     if ( m )
         return &m->flags;
-    List<Flag> * f = new List<Flag>;
-    return f;
+    return new StringList;
+}
+
+
+/*! Sets this message's flags for the mailbox \a mb to those specified
+    in \a l. Duplicates are ignored. */
+
+void Message::setFlags( Mailbox * mb, const StringList * l )
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( !m )
+        return;
+
+    Dict<void> uniq;
+    StringList::Iterator it( l );
+    while ( it ) {
+        String f( *it );
+        if ( !uniq.contains( f.lower() ) ) {
+            m->flags.append( f );
+            uniq.insert( f.lower(), (void *)1 );
+        }
+        ++it;
+    }
+}
+
+
+/*! Sets the specified flag \a f on this message for the given mailbox
+    \a mb. Does nothing if the flag is already set. */
+
+void Message::setFlag( Mailbox * mb, const String & f )
+{
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( !m )
+        return;
+
+    StringList::Iterator it( m->flags );
+    while ( it && *it != f )
+        ++it;
+    if ( !it )
+        m->flags.append( f );
 }
 
 

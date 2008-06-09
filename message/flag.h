@@ -3,57 +3,23 @@
 #ifndef FLAG_H
 #define FLAG_H
 
-#include "global.h"
-#include "list.h"
-#include "event.h"
 #include "stringlist.h"
 
+class EventHandler;
 
-class Flag
-    : public Garbage
-{
+
+class Flag {
 public:
-    Flag( const String &, uint );
-
-    String name() const;
-    uint id() const;
-
-    bool system() const;
-
-    static Flag * find( const String & );
-    static Flag * find( uint );
-
     static void setup();
 
-private:
-    class FlagData * d;
-    friend class FlagFetcher;
+    static void reload( EventHandler * = 0 );
+    static void create( const StringList &, EventHandler * );
+
+    static void add( const String &, uint );
+
+    static String name( uint );
+    static uint id( const String & );
 };
 
-
-class FlagFetcher : public EventHandler
-{
-public:
-    FlagFetcher( EventHandler * owner );
-
-    void execute();
-
-private:
-    class FlagFetcherData * d;
-    friend class Flag;
-};
-
-
-class FlagCreator : public EventHandler
-{
-public:
-    FlagCreator( EventHandler *, const StringList & );
-
-    void execute();
-
-private:
-    class FlagCreatorData * d;
-    friend class Flag;
-};
 
 #endif

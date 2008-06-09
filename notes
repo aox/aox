@@ -1209,3 +1209,44 @@ SMS gateway
   Archiveopteryx users and weed out most other people.
 
 
+Injector work
+
+  The injector can handle a List<Message> now, but significant further
+  cleanups are possible.
+  
+  1. Get rid of struct Bid. The bodypart can store its database id, can
+     learn to store its hash, and the queries can go on a single list as
+     they do for the Mid/UidFetcher.
+
+  2. Try to merge the many loops over Message::mailboxes(), because that
+     function allocates a new list each time. If that can't be done,
+     then the function should change.
+
+  3. Move the New*Creators elsewhere. For example, message/flag.cpp can
+     easily use the NewFlagCreator with no downsides.
+
+  4. linkDateFields() and insertDeliveries() could both use COPY.
+
+  5. Could we insert into messages using COPY? It's difficult because we
+     have to select the ids immediately, so we have to hold a lock so as
+     to protect against concurrent injections if we want to claim a
+     range of message ids.
+
+  6. UidFetcher/BidFetcher/MidFetcher should really become part of the
+     functions that use them, and execute should learn to call those
+     functions until they decide the state should be changed. It'll be
+     a bit of work, but those three undocumented objects are a bit much.
+
+  7. If we make two passes over the message(s) headers (one pass to
+     collect field names and addresses to create, the next pass to link
+     the values in the table), we could avoid building the huge arrays
+     in fieldLinks/addressLinks. For thousands of messages, the memory
+     saved would be a net win, I suspect.
+
+  8. The huge loops in ::execute() to check if we've finished creating
+     all of the necessary flag/annotation names, which mirror the loops
+     in createFlags etc., are just awful. We know what work we did, so
+     we should be able to figure out if we've done it in a less horrid
+     way. Related to (6).
+
+

@@ -1040,11 +1040,11 @@ String Fetch::flagList( Message * m, uint uid, Session * session )
     if ( session && session->isRecent( uid ) )
         r.append( "\\recent" );
 
-    List<Flag> * f = m->flags( session->mailbox() );
+    StringList * f = m->flags( session->mailbox() );
     if ( f && !f->isEmpty() ) {
-        List<Flag>::Iterator it( f );
+        StringList::Iterator it( f );
         while ( it ) {
-            r.append( it->name() );
+            r.append( *it );
             ++it;
         }
     }

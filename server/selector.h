@@ -74,6 +74,7 @@ public:
 
     bool dynamic() const;
     bool timeSensitive() const;
+    bool usesModseq() const;
 
     String mboxId();
 

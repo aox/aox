@@ -30,7 +30,7 @@ public:
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
-          transaction( 0 ), flagCreator( 0 ), annotationNameCreator( 0 )
+          transaction( 0 ), annotationNameCreator( 0 )
     {}
     MessageSet specified;
     MessageSet s;
@@ -52,8 +52,6 @@ public:
     Query * findSet;
 
     Transaction * transaction;
-    List<Flag> flags;
-    FlagCreator * flagCreator;
     AnnotationNameCreator * annotationNameCreator;
 
     List<Annotation> annotations;
@@ -525,19 +523,14 @@ bool Store::processFlagNames()
 {
     StringList::Iterator it( d->flagNames );
     StringList unknown;
-    d->flags.clear();
     while ( it ) {
-        Flag * f = Flag::find( *it );
-        if ( f )
-            d->flags.append( f );
-        else
+        if ( Flag::id( *it ) == 0 )
             unknown.append( *it );
         ++it;
     }
     if ( unknown.isEmpty() )
         return true;
-    else if ( !d->flagCreator )
-        d->flagCreator = new FlagCreator( this, unknown );
+    Flag::create( unknown, this );
     return false;
 }
 
@@ -576,9 +569,9 @@ bool Store::processAnnotationNames()
 void Store::removeFlags( bool opposite )
 {
     List<uint> flags;
-    List<Flag>::Iterator it( d->flags );
+    StringList::Iterator it( d->flagNames );
     while ( it ) {
-        flags.append( new uint( it->id() ) );
+        flags.append( new uint( Flag::id( *it ) ) );
         ++it;
     }
 
@@ -603,7 +596,7 @@ void Store::addFlags()
     Mailbox * m = imap()->session()->mailbox();
     MessageSet s( d->s );
 
-    List<Flag>::Iterator it( d->flags );
+    StringList::Iterator it( d->flagNames );
     while ( it ) {
         Query * q = new Query( 
             "insert into flags (flag,uid,mailbox) "
@@ -612,7 +605,7 @@ void Store::addFlags()
             " (mm.mailbox=f.mailbox and mm.uid=f.uid and f.flag=$1) "
             "where f.flag is null and mm.mailbox=$2 and mm.uid=any($3)",
             0 );
-        q->bind( 1, it->id() );
+        q->bind( 1, Flag::id( *it ) );
         q->bind( 2, m->id() );
         q->bind( 3, s );
         d->transaction->enqueue( q );

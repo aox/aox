@@ -118,9 +118,10 @@ void Status::execute()
                          " f.flag=$2) "
                          "where mm.mailbox=$1 and f.flag is null", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
-        Flag * f = Flag::find( "\\seen" );
-        if ( f ) {
-            d->unseenCount->bind( 2, f->id() );
+
+        uint sid = Flag::id( "\\seen" );
+        if ( sid ) {
+            d->unseenCount->bind( 2, sid );
             d->unseenCount->execute();
         }
         else {

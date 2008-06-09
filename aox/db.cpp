@@ -24,7 +24,7 @@ static const char * versions[] = {
     "2.01", "2.01", "2.01", "2.02", "2.04", "2.04", // 52-57
     "2.05", "2.05", "2.06", "2.06", "2.06", "2.06", // 58-63
     "2.06", "2.06", "2.06", "3.0.0", "3.0.0",       // 64-68
-    "3.0.0", "3.0.0"
+    "3.0.0", "3.0.0", "3.0.0"
 };
 static int nv = sizeof( versions ) / sizeof( versions[0] );
 
@@ -213,7 +213,9 @@ void GrantPrivileges::execute()
             "namespaces, namespaces_id_seq, part_numbers, permissions, "
             "scripts, scripts_id_seq, subscriptions, subscriptions_id_seq, "
             "thread_members, threads, threads_id_seq, unparsed_messages, "
-            "users, users_id_seq, views, views_id_seq from " + name,
+            "users, users_id_seq, views, views_id_seq, connections, "
+            "connections_id_seq, fileinto_targets, fileinto_targets_id_seq "
+            "from " + name,
             this
         );
         q->execute();
@@ -226,7 +228,7 @@ void GrantPrivileges::execute()
             "thread_members, flag_names, flags, subscriptions, scripts, "
             "annotation_names, annotations, views, deleted_messages, "
             "deliveries, delivery_recipients, access_keys, autoresponses, "
-            "mailbox_messages to " + name,
+            "mailbox_messages, fileinto_targets to " + name,
             this
         );
         q->execute();
@@ -238,14 +240,16 @@ void GrantPrivileges::execute()
             "flag_names, flags, subscriptions, scripts, annotation_names, "
             "annotations, views, deleted_messages, deliveries, "
             "delivery_recipients, access_keys, unparsed_messages, "
-            "autoresponses, mailbox_messages to " + name,
+            "autoresponses, mailbox_messages, connections, "
+            "fileinto_targets to " + name,
             this
         );
         q->execute();
 
         q = new Query(
             "grant delete on permissions, flags, subscriptions, annotations, "
-            "views, scripts, deliveries, access_keys to " + name,
+            "views, scripts, deliveries, access_keys, fileinto_targets "
+            "to " + name,
             this
         );
         q->execute();
@@ -266,7 +270,8 @@ void GrantPrivileges::execute()
             "scripts_id_seq, subscriptions_id_seq, threads_id_seq, "
             "users_id_seq, views_id_seq, deliveries_id_seq, "
             "delivery_recipients_id_seq, annotations_id_seq, "
-            "autoresponses_id_seq to " + name,
+            "autoresponses_id_seq, connections_id_seq, "
+            "fileinto_targets_id_seq to " + name,
             this
         );
         q->execute();
