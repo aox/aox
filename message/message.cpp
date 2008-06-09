@@ -26,7 +26,7 @@ public:
     MessageData()
         : strict( false ), mailboxes( 0 ), databaseId( 0 ),
           wrapped( false ), rfc822Size( 0 ),
-          hasHeaders( false ), hasAddresses( false ), hasBodies( false ), 
+          hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
           hasBytesAndLines( false )
     {}
 
@@ -55,6 +55,10 @@ public:
 
     List<Mailbox> * mailboxes;
     Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
+        if ( !mailboxes->isEmpty() &&
+             mb == mailboxes->firstElement()->mailbox )
+            return mailboxes->firstElement();
+
         List<Mailbox>::Iterator m( mailboxes );
         while ( m && m->mailbox != mb )
             ++m;
@@ -520,7 +524,7 @@ List<Mailbox> * Message::mailboxes() const
 }
 
 
-/*! Records that this object belongs to each of \a mailboxes. 
+/*! Records that this object belongs to each of \a mailboxes.
 */
 
 void Message::addMailboxes( List<Mailbox> * mailboxes )
@@ -1289,7 +1293,7 @@ uint Message::databaseId() const
 /*! Records that this message is a wrapper message if \a w is true,
     and that it it's an ordinary message if not. Wrapper message (in
     this context) are those which wrap an unparsable message.
-    
+
     The initial value is false, of course.
 */
 
