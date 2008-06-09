@@ -450,6 +450,8 @@ void String::appendNumber( uint n, int base )
 
 void String::reserve( uint num )
 {
+    if ( num < length() )
+        num = length();
     if ( !num )
         num = 1;
     if ( !d || d->max < num )
