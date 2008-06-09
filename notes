@@ -1208,6 +1208,9 @@ SMS gateway
   I haven't thought of a good way to provide the service to
   Archiveopteryx users and weed out most other people.
 
+  Perhaps a better alternative: Automatically register with clickatell
+  if SMS is enabled and not configured when it's first used.
+
 
 Injector work
 

@@ -43,11 +43,10 @@ struct Appendage
 {
     Appendage()
         : Garbage(),
-          message( 0 ), injector( 0 ),
+          message( 0 ),
           textparts( 0 ), urlFetcher( 0 )
     {}
     Message * message;
-    Injector * injector;
     List<Textpart> * textparts;
     ImapUrlFetcher * urlFetcher;
     String text;
@@ -59,7 +58,7 @@ class AppendData
 {
 public:
     AppendData()
-        : mailbox( 0 ), annotations( 0 )
+        : mailbox( 0 ), annotations( 0 ), injector( 0 )
     {}
 
     Date date;
@@ -67,6 +66,7 @@ public:
     List<Appendage> messages;
     StringList flags;
     List<Annotation> * annotations;
+    Injector * injector;
 };
 
 
@@ -280,29 +280,44 @@ void Append::execute()
         return;
 
     List<Appendage>::Iterator h( d->messages );
+    bool allDone = true;
     while ( h && ok() ) {
-        if ( !h->injector )
+        if ( !h->message )
             process( h );
+        if ( !h->message )
+            allDone = false;
         ++h;
+    }
+
+    if ( !allDone )
+        return;
+
+    if ( !d->injector ) {
+        List<Message> * m = new List<Message>;
+        h = d->messages.first();
+        while ( h ) {
+            m->append( h->message );
+            ++h;
+        }
+
+        d->injector = new Injector( m, this );
+        d->injector->execute();
+    }
+
+    if ( !d->injector->done() )
+        return;
+
+    if ( d->injector->failed() ) {
+        error( No, "Could not append to " + d->mailbox->name().ascii() );
+        return;
     }
 
     StringList uids;
     h = d->messages.first();
-    while ( ok() && h && h->injector ) {
-        if ( !h->injector->done() )
-            return;
-
-        if ( h->injector->failed() ) {
-            error( No, "Could not append to " + d->mailbox->name().ascii() );
-            return;
-        }
-
+    while ( h ) {
         uids.append( fn( h->message->uid( d->mailbox ) ) );
         ++h;
     }
-
-    if ( h )
-        return;
 
     setRespTextCode( "APPENDUID " +
                      fn( d->mailbox->uidvalidity() ) +
@@ -319,6 +334,9 @@ void Append::execute()
 
 void Append::process( class Appendage * h )
 {
+    if ( h->message )
+        return;
+
     if ( !h->urlFetcher ) {
         List<ImapUrl> * urls = new List<ImapUrl>;
         List<Textpart>::Iterator it( h->textparts );
@@ -351,30 +369,23 @@ void Append::process( class Appendage * h )
         return;
     }
 
-    if ( !h->message ) {
-        List<Textpart>::Iterator it( h->textparts );
-        while ( it ) {
-            Textpart * tp = it;
-            if ( tp->type == Textpart::Text )
-                h->text.append( tp->s );
-            else
-                h->text.append( tp->url->text() );
-            h->textparts->take( it );
-        }
-
-        h->message = new Message( h->text );
-        h->message->addMailbox( d->mailbox );
-        h->message->setFlags( d->mailbox, &d->flags );
-        h->message->setAnnotations( d->mailbox, d->annotations );
-        h->message->setInternalDate( d->mailbox, d->date.unixTime() );
-        if ( !h->message->valid() ) {
-            error( Bad, h->message->error() );
-            return;
-        }
+    List<Textpart>::Iterator it( h->textparts );
+    while ( it ) {
+        Textpart * tp = it;
+        if ( tp->type == Textpart::Text )
+            h->text.append( tp->s );
+        else
+            h->text.append( tp->url->text() );
+        h->textparts->take( it );
     }
 
-    if ( !h->injector ) {
-        h->injector = new Injector( h->message, this );
-        h->injector->execute();
+    h->message = new Message( h->text );
+    h->message->addMailbox( d->mailbox );
+    h->message->setFlags( d->mailbox, &d->flags );
+    h->message->setAnnotations( d->mailbox, d->annotations );
+    h->message->setInternalDate( d->mailbox, d->date.unixTime() );
+    if ( !h->message->valid() ) {
+        error( Bad, h->message->error() );
+        return;
     }
 }
