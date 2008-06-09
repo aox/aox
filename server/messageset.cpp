@@ -2,8 +2,7 @@
 
 #include "messageset.h"
 
-#include "string.h"
-#include "list.h"
+#include "stringlist.h"
 
 
 class SetData
@@ -100,7 +99,7 @@ void MessageSet::add( uint n1, uint n2 )
         i = d->l.last();
     else
         i = d->l.first();
-    
+
     // skip all ranges that are separated from [n1,n2] by at least one
     // number, ie. whose last member is at most n1-2.
 
@@ -109,7 +108,7 @@ void MessageSet::add( uint n1, uint n2 )
 
     // if we're looking at a range now, it either overlaps with, is
     // adjacent to, or is after [n1,n2].
-    
+
     if ( !i ) {
         // we're looking at the end
         d->l.append( new SetData::Range( n1, n2-n1+1 ) );
@@ -270,8 +269,9 @@ uint MessageSet::index( uint value ) const
 
 
 /*! Returns an SQL WHERE clause describing the set. No optimization is
-    done (yet). The "WHERE" prefix is not included, only e.g "uid>3 and
-    uid<77".
+    done (yet). The "WHERE" prefix is not included, only e.g "uid>3"
+    or "(uid>3 and uid<77)". The result contains enough parentheses to
+    be suitable for use with boolean logic directly.
 
     If \a table is non-empty, all column references are qualified with
     its value (i.e., table.column). \a table should not contain a
@@ -280,21 +280,35 @@ uint MessageSet::index( uint value ) const
 
 String MessageSet::where( const String & table ) const
 {
+    if ( isEmpty() )
+        return "";
+
+    MessageSet singles;
+    if ( !isRange() ) {
+        List< SetData::Range >::Iterator it( d->l );
+        while ( it ) {
+            if ( it->length == 1 )
+                singles.add( it->start );
+            ++it;
+        }
+        if ( singles.count() < 4 )
+            singles.clear();
+    }
+
     String n( "uid" );
     if ( !table.isEmpty() )
         n = table + ".uid";
-    String s;
-    s.reserve( 22*d->l.count() );
+    StringList cl;
 
     List< SetData::Range >::Iterator it( d->l );
     while ( it ) {
         SetData::Range *r = it;
         String p;
+        ++it;
 
-        // we're missing the case where the set goes up to *, and the
-        // case where two ranges can be merged due to holes.
         if ( r->length == 1 ) {
-            p = n + "=" + fn( r->start );
+            if ( singles.isEmpty() )
+                p = n + "=" + fn( r->start );
         }
         else if ( r->start + r->length < r->start ) {
             // integer wraparound.
@@ -307,17 +321,17 @@ String MessageSet::where( const String & table ) const
             p = "(" + n + ">=" + fn( r->start ) + " and " +
                 n + "<" + fn( r->start + r->length ) + ")";
         }
-        if ( !s.isEmpty() )
-            s.append( " or " );
-        s.append( p );
-
-        ++it;
+        if ( !p.isEmpty() )
+            cl.append( p );
     }
-    // look at me! look at me! I optimize!
-    if ( s.startsWith( "(" ) && s.endsWith( ")" ) &&
-         !s.mid( 1 ).contains( "(" ) )
-        // oooh! I remove the unnecessary parens!
-        s = s.mid( 1, s.length()-2 );
+    if ( !singles.isEmpty() )
+        cl.append( n + " in (" + singles.set() + ")" ); // ouch. but it works.
+    if ( cl.count() == 1 )
+        return *cl.firstElement();
+    String s;
+    s.append( "(" );
+    s.append( cl.join( " or " ) );
+    s.append( ")" );
     return s;
 }
 
@@ -438,32 +452,4 @@ String MessageSet::set() const
         ++it;
     }
     return r;
-}
-
-
-/*! Adds some gaps from \a other, such that this set is expanded to
-    contain a small number of contiguous ranges.
-
-    A gap is added to this set if no numbers in the gap are in \a
-    other, and the numbers just above and below the gap are in this
-    set.
-
-    At first glance, this function's performance is O(n*n) where n is
-    the number of gaps. However, in practice almost every case is
-    O(n), because the way index() is used in this function, index()
-    tends to be O(1) instead of O(n).
-*/
-
-void MessageSet::addGapsFrom( const MessageSet & other )
-{
-    List< SetData::Range >::Iterator it( other.d->l );
-    while ( it ) {
-        uint last = it->start + it->length - 1;
-        ++it;
-        if ( it ) {
-            uint i = index( last );
-            if ( i && i+1 == index( it->start ) )
-                add( last+1, it->start-1 );
-        }
-    }
 }
