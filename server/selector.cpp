@@ -291,7 +291,7 @@ void Selector::simplify()
         case Rfc822Size:
             break;
         case Flags:
-            if ( d->s8 != "\\recent" && !Flag::find( d->s8 ) )
+            if ( d->s8 != "\\recent" && !Flag::id( d->s8 ) )
                 d->a = None;
             break;
         case Uid:
@@ -873,13 +873,14 @@ String Selector::whereFlags()
 
     uint join = ++root()->d->join;
     String n = fn( join );
-    Flag * f = Flag::find( d->s8 );
+
     String j;
-    if ( f ) {
+    uint fid = Flag::id( d->s8 );
+    if ( fid ) {
         // we know this flag, so look for it reasonably efficiently
         j = " left join flags f" + n +
             " on (mm.mailbox=f" + n + ".mailbox and mm.uid=f" + n +
-            ".uid and f" + n + ".flag=" + fn( f->id() ) + ")";
+            ".uid and f" + n + ".flag=" + fn( fid ) + ")";
     }
     else {
         // just in case the cache is out of date we look in the db

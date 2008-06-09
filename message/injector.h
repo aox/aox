@@ -23,6 +23,7 @@ class Injector
 {
 public:
     Injector( Message *, EventHandler * );
+    Injector( List<Message> *, EventHandler * );
     virtual ~Injector();
 
     void execute();
@@ -31,8 +32,8 @@ public:
     bool failed() const;
     String error() const;
 
-    void setFlags( const StringList & );
     void addDelivery( Address *, List<Address> * );
+    void addDelivery( Message *, Address *, List<Address> * );
 
 private:
     class InjectorData *d;
@@ -43,7 +44,7 @@ private:
     void selectUids();
     void selectMessageId();
     void resolveAddressLinks();
-    void buildLinksForHeader( Header *, const String & );
+    void buildLinksForHeader( Message *, Header *, const String & );
     void buildFieldLinks();
     void insertPartNumber( Query *, uint, const String &,
                            int = -1, int = -1, int = -1 );

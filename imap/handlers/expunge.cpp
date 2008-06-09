@@ -103,8 +103,8 @@ void Expunge::execute()
     }
 
     if ( !d->t ) {
-        Flag * f = Flag::find( "\\deleted" );
-        if ( !f ) {
+        uint fid = Flag::id( "\\deleted" );
+        if ( fid == 0 ) {
             error( No, "Internal error - no \\Deleted flag" );
             return;
         }
@@ -121,7 +121,7 @@ void Expunge::execute()
 
         d->findUids = new Query( query, this );
         d->findUids->bind( 1, d->s->mailbox()->id() );
-        d->findUids->bind( 2, f->id() );
+        d->findUids->bind( 2, fid );
         if ( d->uid )
             d->findUids->bind( 3, d->requested );
         d->t->enqueue( d->findUids );

@@ -20,6 +20,7 @@
 #include "fetch.h"
 #include "imap.h"
 #include "list.h"
+#include "flag.h"
 
 
 struct Textpart
@@ -37,20 +38,20 @@ struct Textpart
 };
 
 
-    struct Appendage
-        : public Garbage
-    {
-        Appendage()
-            : Garbage(),
-              message( 0 ), injector( 0 ),
-              textparts( 0 ), urlFetcher( 0 )
-        {}
-        Message * message;
-        Injector * injector;
-        List<Textpart> * textparts;
-        ImapUrlFetcher * urlFetcher;
-        String text;
-    };
+struct Appendage
+    : public Garbage
+{
+    Appendage()
+        : Garbage(),
+          message( 0 ), injector( 0 ),
+          textparts( 0 ), urlFetcher( 0 )
+    {}
+    Message * message;
+    Injector * injector;
+    List<Textpart> * textparts;
+    ImapUrlFetcher * urlFetcher;
+    String text;
+};
 
 
 class AppendData
@@ -288,8 +289,14 @@ void Append::execute()
     StringList uids;
     h = d->messages.first();
     while ( ok() && h && h->injector ) {
-        if ( !h->injector->done() || h->injector->failed() )
+        if ( !h->injector->done() )
             return;
+
+        if ( h->injector->failed() ) {
+            error( No, "Could not append to " + d->mailbox->name().ascii() );
+            return;
+        }
+
         uids.append( fn( h->message->uid( d->mailbox ) ) );
         ++h;
     }
@@ -357,6 +364,7 @@ void Append::process( class Appendage * h )
 
         h->message = new Message( h->text );
         h->message->addMailbox( d->mailbox );
+        h->message->setFlags( d->mailbox, &d->flags );
         h->message->setAnnotations( d->mailbox, d->annotations );
         h->message->setInternalDate( d->mailbox, d->date.unixTime() );
         if ( !h->message->valid() ) {
@@ -367,10 +375,6 @@ void Append::process( class Appendage * h )
 
     if ( !h->injector ) {
         h->injector = new Injector( h->message, this );
-        h->injector->setFlags( d->flags );
         h->injector->execute();
     }
-
-    if ( h->injector->failed() )
-        error( No, "Could not append to " + d->mailbox->name().ascii() );
 }

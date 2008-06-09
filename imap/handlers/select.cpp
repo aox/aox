@@ -83,7 +83,7 @@ void Select::execute()
     if ( state() != Executing )
         return;
 
-    if ( !Flag::find( "\\Deleted" ) ) {
+    if ( Flag::id( "\\Deleted" ) == 0 ) {
         // should only happen when we flush the entire database during
         // testing, so we don't bother being accurate or fast, but
         // simply try again in a second.
@@ -144,10 +144,10 @@ void Select::execute()
     }
 
     if ( !d->firstUnseen && !d->session->isEmpty() ) {
-        Flag * seen = Flag::find( "\\seen" );
+        uint seen = Flag::id( "\\seen" );
         String sq;
         if ( seen )
-            sq = " and flag=" + fn( seen->id() );
+            sq = " and flag=" + fn( seen );
         else
             sq = " and flag in "
                  "(select id from flags where lower(name)='\\seen')";
@@ -193,30 +193,34 @@ void Select::execute()
         respond( "OK [HIGHESTMODSEQ " + fn( nms-1 ) + "] highest modseq" );
     }
 
-    List<Flag> flags;
-    Flag * f = 0;
-    f = Flag::find( "\\Deleted" );
-    if ( f )
+    StringList flags;
+
+    String f( "\\Deleted" );
+    if ( Flag::id( f ) )
         flags.append( f );
-    f = Flag::find( "\\Answered" );
-    if ( f )
+
+    f = "\\Answered";
+    if ( Flag::id( f ) )
         flags.append( f );
-    f = Flag::find( "\\Flagged" );
-    if ( f )
+
+    f = "\\Flagged";
+    if ( Flag::id( f ) )
         flags.append( f );
-    f = Flag::find( "\\Draft" );
-    if ( f )
+
+    f = "\\Draft";
+    if ( Flag::id( f ) )
         flags.append( f );
-    f = Flag::find( "\\Seen" );
-    if ( f )
+
+    f = "\\Seen";
+    if ( Flag::id( f ) )
         flags.append( f );
 
     if ( d->usedFlags && d->usedFlags->hasResults() ) {
         Row * r = 0;
         while ( (r=d->usedFlags->nextRow()) != 0 ) {
-            Flag * f = Flag::find( r->getInt( "flag" ) );
-            if ( f )
-                flags.append( f );
+            String n( Flag::name( r->getInt( "flag" ) ) );
+            if ( !n.isEmpty() )
+                flags.append( n );
         }
     }
 

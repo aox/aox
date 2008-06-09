@@ -237,6 +237,16 @@ void Session::addRecent( uint uid )
 }
 
 
+/*! Marks \a num messages with uid starting at \a start as "\Recent" in
+    this session. */
+
+void Session::addRecent( uint start, uint num )
+{
+    while ( num-- )
+        d->recent.add( start++ );
+}
+
+
 /*! Records that \a uids has been expunged and that the clients should
     be told about it at the earliest possible moment.
 */

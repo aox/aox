@@ -4,6 +4,7 @@
 
 #include "file.h"
 #include "list.h"
+#include "flag.h"
 #include "scope.h"
 #include "mailbox.h"
 #include "allocator.h"
@@ -509,9 +510,10 @@ void MailboxMigrator::execute()
     if ( d->message ) {
         Scope x( new Log( Log::General ) );
         log( "Starting migration of message " + d->message->description() );
-        d->message->message()->addMailbox( d->destination );
-        d->injector = new Injector( d->message->message(), this );
-        d->injector->setFlags( d->message->flags() );
+        Message * m = d->message->message();
+        m->addMailbox( d->destination );
+        m->setFlags( d->destination, d->message->flags() );
+        d->injector = new Injector( m, this );
         d->injector->setLog( x.log() );
         d->injector->execute();
     }
@@ -642,9 +644,9 @@ bool Migrator::errorCopies()
     message. The list may contain duplicates.
 */
 
-StringList MigratorMessage::flags() const
+const StringList * MigratorMessage::flags() const
 {
-    return f;
+    return &f;
 }
 
 

@@ -3,6 +3,7 @@
 #ifndef IMAPSESSION_H
 #define IMAPSESSION_H
 
+#include "stringlist.h"
 #include "session.h"
 #include "list.h"
 
@@ -26,7 +27,7 @@ public:
 
     void enqueue( const String & );
 
-    void addFlags( List<class Flag> *, class Command * );
+    void addFlags( StringList *, class Command * );
 
     void ignoreModSeq( int64 );
 

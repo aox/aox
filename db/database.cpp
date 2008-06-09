@@ -613,16 +613,6 @@ void Database::checkAccess( EventHandler * owner )
 }
 
 
-/*! This static function returns the schema revision current at the time
-    this server was compiled.
-*/
-
-uint Database::currentRevision()
-{
-    return 70;
-}
-
-
 /*! Returns the number of handles we think we need at this
     time. Mostly computed based on recent work.
 */
@@ -647,4 +637,14 @@ uint Database::handlesNeeded()
     // needed and what we had, so that the number of handles will
     // drop slowly.
     return needed + (had-needed)*2/3;
+}
+
+
+/*! This static function returns the schema revision current at the time
+    this server was compiled.
+*/
+
+uint Database::currentRevision()
+{
+    return 71;
 }

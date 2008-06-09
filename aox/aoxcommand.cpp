@@ -62,7 +62,14 @@ public:
         bool * v;
         EventHandler * e;
     };
-        
+
+    class FinishHelper
+        : public EventHandler
+    {
+    public:
+        FinishHelper() { Database::notifyWhenIdle( this ); }
+        void execute() { EventLoop::shutdown(); }
+    };
 };
 
 
@@ -197,7 +204,7 @@ void AoxCommand::finish( int status )
 {
     d->done = true;
     d->status = status;
-    EventLoop::shutdown();
+    (void)new AoxCommandData::FinishHelper;
 }
 
 

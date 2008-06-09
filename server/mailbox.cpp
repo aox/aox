@@ -21,6 +21,7 @@
 #include "transaction.h"
 
 
+static bool refreshing = false;
 static Mailbox * root = 0;
 static Map<Mailbox> * mailboxes = 0;
 
@@ -89,6 +90,7 @@ class MailboxReader
 public:
     EventHandler * owner;
     Query * q;
+    bool done;
 
     MailboxReader( EventHandler * ev, int64 );
     void execute();
@@ -96,7 +98,7 @@ public:
 
 
 MailboxReader::MailboxReader( EventHandler * ev, int64 c )
-    : owner( ev ), q( 0 )
+    : owner( ev ), q( 0 ), done( false )
 {
     q = new Query( "select m.id, m.name, m.deleted, m.owner, "
                    "m.uidnext, m.nextmodseq, m.uidvalidity, "
@@ -148,6 +150,7 @@ void MailboxReader::execute() {
         if ( q->failed() )
             log( "Couldn't create mailbox tree: " + q->error(),
                  Log::Disaster );
+        done = true;
         owner->execute();
     }
 };
@@ -171,15 +174,25 @@ class MailboxObliterator
     : public EventHandler
 {
 public:
-    MailboxObliterator(): EventHandler() {
+    MailboxReader * mr;
+    MailboxObliterator(): EventHandler(), mr( 0 ) {
         setLog( new Log( Log::Server ) );
         (void)new DatabaseSignal( "obliterated", this );
     }
     void execute() {
-        if ( ::root->children() )
-            ::root->children()->clear();
-        ::mailboxes->clear();
-        (new MailboxReader( 0, 0 ))->q->execute();
+        if ( !mr ) {
+            if ( ::root->children() )
+                ::root->children()->clear();
+            ::mailboxes->clear();
+            ::refreshing = true;
+            mr = new MailboxReader( this, 0 );
+            mr->q->execute();
+        }
+
+        if ( !mr->done )
+            return;
+
+        ::refreshing = false;
     }
 };
 
@@ -887,11 +900,7 @@ uint Mailbox::match( const UString & pattern, uint p,
 
 bool Mailbox::refreshing()
 {
-    if ( !::root )
-        return true;
-    if ( !::root->children() )
-        return true;
-    if ( ::root->children()->isEmpty() )
+    if ( ::refreshing )
         return true;
     return false;
 }
