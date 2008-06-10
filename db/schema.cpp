@@ -3561,12 +3561,15 @@ bool Schema::stepTo72()
 
     if ( d->substate == 1 ) {
         d->q = new Query(
-            "select distinct a.mailbox,a.uid,a.message,m.name "
+            "select a.mailbox,a.uid,a.message,m.name "
             "from deleted_messages a "
-            "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
-            "where a.mailbox<>b.mailbox "
-            "order by m.name, a.uid", this );
+            "where (reason,deleted_by,deleted_at) in (select "
+            "reason,deleted_by,deleted_at from deleted_messages "
+            "group by reason,deleted_by,deleted_at having "
+            "count(distinct mailbox) > 1) "
+            "order by m.name,a.uid", this
+        );
         d->t->enqueue( d->q );
         d->substate = 2;
         d->t->execute();
