@@ -215,7 +215,7 @@ void GrantPrivileges::execute()
             "thread_members, threads, threads_id_seq, unparsed_messages, "
             "users, users_id_seq, views, views_id_seq, connections, "
             "connections_id_seq, fileinto_targets, fileinto_targets_id_seq "
-            "from " + name,
+            "from " + name.quoted(),
             this
         );
         q->execute();
@@ -228,7 +228,7 @@ void GrantPrivileges::execute()
             "thread_members, flag_names, flags, subscriptions, scripts, "
             "annotation_names, annotations, views, deleted_messages, "
             "deliveries, delivery_recipients, access_keys, autoresponses, "
-            "mailbox_messages, fileinto_targets to " + name,
+            "mailbox_messages, fileinto_targets to " + name.quoted(),
             this
         );
         q->execute();
@@ -241,7 +241,7 @@ void GrantPrivileges::execute()
             "annotations, views, deleted_messages, deliveries, "
             "delivery_recipients, access_keys, unparsed_messages, "
             "autoresponses, mailbox_messages, connections, "
-            "fileinto_targets to " + name,
+            "fileinto_targets to " + name.quoted(),
             this
         );
         q->execute();
@@ -249,7 +249,7 @@ void GrantPrivileges::execute()
         q = new Query(
             "grant delete on permissions, flags, subscriptions, annotations, "
             "views, scripts, deliveries, access_keys, fileinto_targets "
-            "to " + name,
+            "to " + name.quoted(),
             this
         );
         q->execute();
@@ -257,7 +257,7 @@ void GrantPrivileges::execute()
         q = new Query(
             "grant update on mailstore, permissions, mailboxes, aliases, "
             "annotations, views, scripts, deliveries, delivery_recipients, "
-            "mailbox_messages, threads to " + name,
+            "mailbox_messages, threads to " + name.quoted(),
             this
         );
         q->execute();
@@ -271,7 +271,7 @@ void GrantPrivileges::execute()
             "users_id_seq, views_id_seq, deliveries_id_seq, "
             "delivery_recipients_id_seq, annotations_id_seq, "
             "autoresponses_id_seq, connections_id_seq, "
-            "fileinto_targets_id_seq to " + name,
+            "fileinto_targets_id_seq to " + name.quoted(),
             this
         );
         q->execute();
