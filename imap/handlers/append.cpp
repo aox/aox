@@ -312,18 +312,14 @@ void Append::execute()
         return;
     }
 
-    StringList uids;
+    MessageSet uids;
     h = d->messages.first();
     while ( h ) {
-        uids.append( fn( h->message->uid( d->mailbox ) ) );
+        uids.add( h->message->uid( d->mailbox ) );
         ++h;
     }
-
-    setRespTextCode( "APPENDUID " +
-                     fn( d->mailbox->uidvalidity() ) +
-                     " " +
-                     uids.join( "," ) );
-
+    setRespTextCode( "APPENDUID " + uids.set() );
+    
     finish();
 }
 
