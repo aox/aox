@@ -290,7 +290,7 @@ Command * Command::create( IMAP * imap,
 
     c->d->tag = tag;
     c->d->name = name.lower();
-    c->d->args = args;
+    c->setParser( args );
     c->d->imap = imap;
 
     if ( notAuthenticated )
@@ -366,8 +366,19 @@ bool Command::ok() const
 }
 
 
-/*! Returns a pointer to the ImapParser object that was passed to this
-    Command's constructor. May not be 0.
+/*! Instructs this command to parse itself using \a p. Most commands
+    expect that ImapParser::nextChar() will return the space after the
+    command name, before the first argument.
+*/
+
+void Command::setParser( ImapParser * p )
+{
+    d->args = p;
+}
+
+
+/*! Returns a pointer to the ImapParser object that was set by
+    setParser() (usually by create()).
 */
 
 ImapParser * Command::parser() const

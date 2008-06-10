@@ -24,6 +24,7 @@ public:
     void parse();
     void execute();
 
+    void parseAttribute( bool );
     static Section * parseSection( ImapParser *, bool = false );
     static String sectionData( Section *, Message * );
     static String flagList( Message *, uint, class Session * );
@@ -34,7 +35,6 @@ public:
     void trickle();
 
 private:
-    void parseAttribute( bool );
     void parseFetchModifier();
     void parseBody( bool );
     void parseAnnotation();
