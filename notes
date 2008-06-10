@@ -254,6 +254,26 @@ The \Answered flag
   Want to implement? Not sure. I reviewed it some time ago.
 
 
+5256
+
+  Just mention (sort)
+
+
+5258
+
+  Listext needs verification.
+
+
+5255
+
+  Imapext-i18n. What?
+
+
+5257
+
+  No changes should be necessary
+
+
 Cleartext passwords
 
   We help migrating away from cleartext/plaintext passwords:
