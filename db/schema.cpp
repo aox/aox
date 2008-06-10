@@ -15,6 +15,8 @@
 #include "md5.h"
 #include "utf.h"
 
+#include <stdio.h>
+
 
 class SchemaData
     : public Garbage
@@ -24,7 +26,9 @@ public:
         : l( new Log( Log::Database ) ),
           state( 0 ), substate( 0 ), revision( 0 ),
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
-          result( 0 ), unparsed( 0 ), upgrade( false ), commit( true )
+          result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),
+          quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
+          uidnext( 0 ), nextmodseq( 0 )
     {}
 
     Log *l;
@@ -38,6 +42,16 @@ public:
     bool upgrade;
     bool commit;
     String version;
+
+    // The following state variables are needed by stepTo72().
+
+    Query * quid;
+    Query * undel;
+    Row * row;
+    uint lastMailbox;
+    uint count;
+    uint uidnext;
+    int64 nextmodseq;
 };
 
 
@@ -446,6 +460,8 @@ bool Schema::singleStep()
         c = stepTo70(); break;
     case 70:
         c = stepTo71(); break;
+    case 71:
+        c = stepTo72(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3588,6 +3604,143 @@ bool Schema::stepTo71()
     }
 
     if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Fix incorrect 2.09 EXPUNGEs. */
+
+bool Schema::stepTo72()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Reverting incorrect 2.09 EXPUNGEs." );
+        d->q = new Query(
+            "select distinct a.mailbox,a.uid,a.message "
+            "from deleted_messages a "
+            "join deleted_messages b using (reason,deleted_by,deleted_at) "
+            "join mailboxes m on (a.mailbox=m.id) "
+            "where deleted_by<>m.owner "
+            "order by a.mailbox, a.uid", this
+        );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    while ( d->row || d->q->hasResults() ) {
+        if ( !d->row )
+            d->row = d->q->nextRow();
+
+        if ( !d->quid ) {
+            uint mailbox = d->row->getInt( "mailbox" );
+            if ( mailbox != d->lastMailbox ) {
+                if ( d->lastMailbox ) {
+                    Query * q = new Query(
+                        "update mailboxes set uidnext=uidnext+$2, "
+                        "nextmodseq=nextmodseq+1 where id=$1", this
+                    );
+                    q->bind( 1, d->lastMailbox );
+                    q->bind( 2, d->count );
+                    d->t->enqueue( q );
+
+                    fprintf( stderr,
+                             "\t- Undeleted %d messages in mailbox %d\n",
+                             d->count, d->lastMailbox );
+                }
+
+                d->lastMailbox = mailbox;
+                d->count = 0;
+
+                d->quid = new Query(
+                    "select uidnext,nextmodseq from mailboxes "
+                    "where id=$1 for update", this
+                );
+                d->quid->bind( 1, d->lastMailbox );
+                d->t->enqueue( d->quid );
+                d->t->execute();
+            }
+        }
+
+        if ( !d->undel ) {
+            if ( d->quid ) {
+                if ( !d->quid->done() )
+                    return false;
+
+                Row * r = d->quid->nextRow();
+                d->uidnext = r->getInt( "uidnext" );
+                d->nextmodseq = r->getBigint( "nextmodseq" );
+            }
+
+            uint mailbox = d->row->getInt( "mailbox" );
+            uint uid = d->row->getInt( "uid" );
+
+            Query * q = new Query(
+                "delete from deleted_messages where "
+                "mailbox=$1 and uid=$2", this
+            );
+            q->bind( 1, mailbox );
+            q->bind( 2, uid );
+            d->t->enqueue( q );
+
+            d->undel = new Query(
+                "insert into mailbox_messages "
+                "(mailbox,uid,message,modseq,idate) "
+                "values ($1,$2,$3,$4,extract(epoch from current_timestamp))",
+                this
+            );
+            d->undel->bind( 1, mailbox );
+            d->undel->bind( 2, d->uidnext+d->count );
+            d->undel->bind( 3, d->row->getInt( "message" ) );
+            d->undel->bind( 4, d->nextmodseq );
+            d->t->enqueue( d->undel );
+
+            d->t->execute();
+        }
+
+        if ( !d->undel->done() )
+            return false;
+
+        d->count++;
+        d->row = 0;
+        d->quid = 0;
+        d->undel = 0;
+
+        // Update uidnext for the mailbox if we're done.
+        if ( !d->q->hasResults() && d->q->done() ) {
+            d->q = new Query(
+                "update mailboxes set uidnext=uidnext+$2, "
+                "nextmodseq=nextmodseq+1 where id=$1", this
+            );
+            d->q->bind( 1, d->lastMailbox );
+            d->q->bind( 2, d->count );
+            d->t->enqueue( d->q );
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->q = new Query(
+            "select distinct a.mailbox,a.uid,a.message "
+            "from deleted_messages a "
+            "join deleted_messages b using (reason,deleted_by,deleted_at) "
+            "join mailboxes m on (a.mailbox=m.id) "
+            "where a.mailbox<>b.mailbox "
+            "order by a.mailbox, a.uid", this
+        );
+        d->t->enqueue( d->q );
+        d->substate = 2;
+        d->t->execute();
+    }
+
+    if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
