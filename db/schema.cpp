@@ -3624,7 +3624,7 @@ bool Schema::stepTo72()
             "from deleted_messages a "
             "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
-            "where deleted_by<>m.owner or a.uid=b.uid"
+            "where deleted_by<>m.owner "
             "order by a.mailbox, a.uid", this
         );
         d->t->enqueue( d->q );
@@ -3727,6 +3727,20 @@ bool Schema::stepTo72()
     }
 
     if ( d->substate == 2 ) {
+        d->q = new Query(
+            "select distinct a.mailbox,a.uid,a.message "
+            "from deleted_messages a "
+            "join deleted_messages b using (reason,deleted_by,deleted_at) "
+            "join mailboxes m on (a.mailbox=m.id) "
+            "where a.mailbox<>b.mailbox "
+            "order by a.mailbox, a.uid", this
+        );
+        d->t->enqueue( d->q );
+        d->substate = 3;
+        d->t->execute();
+    }
+
+    if ( d->substate == 3 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
