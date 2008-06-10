@@ -367,8 +367,8 @@ bool Command::ok() const
 
 
 /*! Instructs this command to parse itself using \a p. Most commands
-    expect that ImapParser::nextChar() will return the space after the
-    command name, before the first argument.
+    expect that nextChar() will return the space after the command
+    name, before the first argument.
 */
 
 void Command::setParser( ImapParser * p )
