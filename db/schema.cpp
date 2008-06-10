@@ -3723,9 +3723,10 @@ bool Schema::stepTo72()
         }
     }
 
+    if ( !d->q->done() )
+        return false;
+
     if ( d->substate == 1 ) {
-        if ( !d->q->done() )
-            return false;
         d->q = new Query(
             "select distinct a.mailbox,a.uid,a.message "
             "from deleted_messages a "
@@ -3739,9 +3740,7 @@ bool Schema::stepTo72()
         d->t->execute();
     }
 
-    if ( d->substate == 3 ) {
-        if ( !d->q->done() )
-            return false;
+    if ( d->substate == 2 ) {
         d->l->log( "Done.", Log::Debug );
         d->substate = 0;
     }
