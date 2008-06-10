@@ -3624,7 +3624,7 @@ bool Schema::stepTo72()
             "from deleted_messages a "
             "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
-            "where deleted_by<>m.owner "
+            "where deleted_by<>m.owner or a.uid=b.uid"
             "order by a.mailbox, a.uid", this
         );
         d->t->enqueue( d->q );
