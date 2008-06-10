@@ -3620,16 +3620,26 @@ bool Schema::stepTo72()
     if ( d->substate == 0 ) {
         describeStep( "Reverting incorrect 2.09 EXPUNGEs." );
         d->q = new Query(
-            "select distinct a.mailbox,a.uid,a.message "
+            "select distinct a.mailbox,a.uid,a.message,m.name "
             "from deleted_messages a "
             "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
             "where deleted_by<>m.owner "
-            "order by a.mailbox, a.uid", this
+            "order by m.name, a.uid", this
         );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
+        fprintf( stderr,
+                 "\t- Looking for messages deleted by other users.\n" );
+    }
+
+    if ( d->q ) {
+        if ( !d->q->done() )
+            return false;
+        else
+            fprintf( stderr,
+                     "\t- Found %d messages.\n", d->q->rows() );
     }
 
     while ( d->row || d->q->hasResults() ) {
@@ -3648,9 +3658,13 @@ bool Schema::stepTo72()
                     q->bind( 2, d->count );
                     d->t->enqueue( q );
 
+                    if ( d->count )
+                        fprintf( stderr,
+                                 "\t  - Undeleted %d messages.\n",
+                                 d->count );
                     fprintf( stderr,
-                             "\t- Undeleted %d messages in mailbox %d\n",
-                             d->count, d->lastMailbox );
+                             "\t  - Processing mailbox %s.\n",
+                             d->row->getUString( "name" ).ascii().cstr() );
                 }
 
                 d->lastMailbox = mailbox;
@@ -3720,6 +3734,10 @@ bool Schema::stepTo72()
             d->q->bind( 2, d->count );
             d->t->enqueue( d->q );
             d->t->execute();
+            if ( d->count )
+                fprintf( stderr,
+                         "\t  - Undeleted %d messages.\n",
+                         d->count );
         }
     }
 
@@ -3727,16 +3745,18 @@ bool Schema::stepTo72()
         if ( !d->q->done() )
             return false;
         d->q = new Query(
-            "select distinct a.mailbox,a.uid,a.message "
+            "select distinct a.mailbox,a.uid,a.message,m.name "
             "from deleted_messages a "
             "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
             "where a.mailbox<>b.mailbox "
-            "order by a.mailbox, a.uid", this
+            "order by m.name, a.uid", this
         );
         d->t->enqueue( d->q );
         d->substate = 2;
         d->t->execute();
+        fprintf( stderr,
+                 "\t- Looking for deletes affecting more than one mailbox.\n");
     }
 
     if ( d->substate == 2 ) {
