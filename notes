@@ -426,18 +426,6 @@ Deleting mailbox has unclear semantics now
   mailbox?
 
 
-MULTIAPPEND
-
-  Stupid thing. Clients and servers using pipelining can do the same
-  thing.
-
-  But there it is, and change 52791 shows that if the injector learns
-  to inject many addresses at at time, multiappend can be used to
-  inject lots of messages quickly.
-
-  aoximport can do it even better, of course.
-
-
 imapd/handlers/acl.cpp
 
   Different tasks, some shared code, same file. Separate this out into
@@ -450,11 +438,6 @@ Convert more parsers to use AbnfParser
   There are still a few places where we roll our own messy parsers and
   suffer for it (e.g. HTTP, DigestMD5). We know they work, but making
   them use AbnfParser in a spare moment would be an act of kindness.
-
-
-Opera often can't expunge
-
-  Trace it once or twice, guess what's wrong.
 
 
 aox/conf/*
