@@ -3626,123 +3626,114 @@ bool Schema::stepTo72()
             "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
             "where deleted_by<>m.owner "
-            "order by a.mailbox, a.uid", this
-        );
+            "order by m.name, a.uid", this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
+        fprintf( stderr,
+                 "\t- Looking for messages deleted by other users.\n" );
+    }
+
+    if ( d->q ) {
+        if ( !d->q->done() )
+            return false;
+        else if ( !d->row )
+            fprintf( stderr,
+                     "\t- Found %d messages.\n", d->q->rows() );
     }
 
     while ( d->row || d->q->hasResults() ) {
         if ( !d->row )
             d->row = d->q->nextRow();
 
-        if ( !d->quid ) {
-            uint mailbox = d->row->getInt( "mailbox" );
-            if ( mailbox != d->lastMailbox ) {
-                if ( d->lastMailbox ) {
-                    Query * q = new Query(
-                        "update mailboxes set uidnext=uidnext+$2, "
-                        "nextmodseq=nextmodseq+1 where id=$1", this
+        uint mailbox = d->row->getInt( "mailbox" );
+        uint uid = d->row->getInt( "uid" );
+
+        if ( mailbox != d->lastMailbox && !d->quid ) {
+            if ( d->lastMailbox ) {
+                Query * q = new Query(
+                    "update mailboxes set uidnext=uidnext+$2, "
+                    "nextmodseq=nextmodseq+1 where id=$1", this
                     );
-                    q->bind( 1, d->lastMailbox );
-                    q->bind( 2, d->count );
-                    d->t->enqueue( q );
+                q->bind( 1, d->lastMailbox );
+                q->bind( 2, d->count );
+                d->t->enqueue( q );
+            }
 
-                    fprintf( stderr,
-                             "\t- Undeleted %d messages in mailbox %d\n",
-                             d->count, d->lastMailbox );
-                }
+            fprintf( stderr,
+                     "\t  - Processing mailbox %s.\n",
+                     d->row->getUString( "name" ).ascii().cstr() );
+            d->lastMailbox = mailbox;
+            d->count = 0;
 
-                d->lastMailbox = mailbox;
-                d->count = 0;
-
-                d->quid = new Query(
-                    "select uidnext,nextmodseq from mailboxes "
-                    "where id=$1 for update", this
+            d->quid = new Query(
+                "select uidnext,nextmodseq from mailboxes "
+                "where id=$1 for update", this
                 );
-                d->quid->bind( 1, d->lastMailbox );
-                d->t->enqueue( d->quid );
-                d->t->execute();
-            }
-        }
-
-        if ( !d->undel ) {
-            if ( d->quid ) {
-                if ( !d->quid->done() )
-                    return false;
-
-                Row * r = d->quid->nextRow();
-                d->uidnext = r->getInt( "uidnext" );
-                d->nextmodseq = r->getBigint( "nextmodseq" );
-            }
-
-            uint mailbox = d->row->getInt( "mailbox" );
-            uint uid = d->row->getInt( "uid" );
-
-            Query * q = new Query(
-                "delete from deleted_messages where "
-                "mailbox=$1 and uid=$2", this
-            );
-            q->bind( 1, mailbox );
-            q->bind( 2, uid );
-            d->t->enqueue( q );
-
-            d->undel = new Query(
-                "insert into mailbox_messages "
-                "(mailbox,uid,message,modseq,idate) "
-                "values ($1,$2,$3,$4,extract(epoch from current_timestamp))",
-                this
-            );
-            d->undel->bind( 1, mailbox );
-            d->undel->bind( 2, d->uidnext+d->count );
-            d->undel->bind( 3, d->row->getInt( "message" ) );
-            d->undel->bind( 4, d->nextmodseq );
-            d->t->enqueue( d->undel );
-
+            d->quid->bind( 1, d->lastMailbox );
+            d->t->enqueue( d->quid );
             d->t->execute();
         }
 
-        if ( !d->undel->done() )
-            return false;
+        if ( d->quid ) {
+            if ( !d->quid->done() )
+                return false;
+
+            Row * r = d->quid->nextRow();
+            d->uidnext = r->getInt( "uidnext" );
+            d->nextmodseq = r->getBigint( "nextmodseq" );
+            d->quid = 0;
+        }
+
+        Query * q = new Query(
+            "delete from deleted_messages where "
+            "mailbox=$1 and uid=$2", this );
+        q->bind( 1, mailbox );
+        q->bind( 2, uid );
+        d->t->enqueue( q );
+
+        q = new Query(
+            "insert into mailbox_messages "
+            "(mailbox,uid,message,modseq,idate) "
+            "values ($1,$2,$3,$4,extract(epoch from current_timestamp))",
+            this );
+        q->bind( 1, mailbox );
+        q->bind( 2, d->uidnext+d->count );
+        q->bind( 3, d->row->getInt( "message" ) );
+        q->bind( 4, d->nextmodseq );
+        d->t->enqueue( q );
 
         d->count++;
         d->row = 0;
         d->quid = 0;
         d->undel = 0;
-
-        // Update uidnext for the mailbox if we're done.
-        if ( !d->q->hasResults() && d->q->done() ) {
-            d->q = new Query(
-                "update mailboxes set uidnext=uidnext+$2, "
-                "nextmodseq=nextmodseq+1 where id=$1", this
-            );
-            d->q->bind( 1, d->lastMailbox );
-            d->q->bind( 2, d->count );
-            d->t->enqueue( d->q );
-            d->t->execute();
-        }
     }
 
     if ( d->substate == 1 ) {
-        if ( !d->q->done() )
-            return false;
         d->q = new Query(
-            "select distinct a.mailbox,a.uid,a.message "
+            "select distinct a.mailbox,a.uid,a.message,m.name "
             "from deleted_messages a "
             "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
             "where a.mailbox<>b.mailbox "
-            "order by a.mailbox, a.uid", this
-        );
+            "order by m.name, a.uid", this );
         d->t->enqueue( d->q );
         d->substate = 2;
         d->t->execute();
+        fprintf( stderr,
+                 "\t- Looking for deletes affecting more than one mailbox.\n");
+        return false;
     }
 
     if ( d->substate == 2 ) {
-        if ( !d->q->done() )
-            return false;
+        if ( d->lastMailbox ) {
+            Query * q = new Query(
+                "update mailboxes set uidnext=uidnext+$2, "
+                "nextmodseq=nextmodseq+1 where id=$1", this );
+            q->bind( 1, d->lastMailbox );
+            q->bind( 2, d->count );
+            d->t->enqueue( q );
+        }
         d->l->log( "Done.", Log::Debug );
         d->substate = 0;
     }
