@@ -3621,7 +3621,7 @@ bool Schema::stepTo72()
     if ( d->substate == 0 ) {
         describeStep( "Reverting incorrect 2.09 EXPUNGEs." );
         d->q = new Query(
-            "select distinct a.mailbox,a.uid,a.message "
+            "select distinct a.mailbox,a.uid,a.message,m.name "
             "from deleted_messages a "
             "join deleted_messages b using (reason,deleted_by,deleted_at) "
             "join mailboxes m on (a.mailbox=m.id) "
