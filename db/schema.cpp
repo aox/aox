@@ -3731,7 +3731,7 @@ bool Schema::stepTo72()
                 "nextmodseq=nextmodseq+1 where id=$1", this );
             q->bind( 1, d->lastMailbox );
             q->bind( 2, d->count );
-            d->t->enqueue( d->q );
+            d->t->enqueue( q );
         }
         d->l->log( "Done.", Log::Debug );
         d->substate = 0;
