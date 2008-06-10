@@ -29,7 +29,9 @@ public:
           result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),
           quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
           uidnext( 0 ), nextmodseq( 0 )
-    {}
+    {
+        dbuser = Configuration::text( Configuration::DbUser ).quoted();
+    }
 
     Log *l;
     int state;
@@ -42,6 +44,7 @@ public:
     bool upgrade;
     bool commit;
     String version;
+    String dbuser;
 
     // The following state variables are needed by stepTo72().
 
@@ -1426,11 +1429,10 @@ bool Schema::stepTo25()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating modsequences table." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create sequence nextmodsequence", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on nextmodsequence to " +
-                          dbuser, this );
+                          d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "create table modsequences (mailbox integer "
                           "not null, uid integer not null, modseq bigint "
@@ -1438,7 +1440,7 @@ bool Schema::stepTo25()
                           "messages(mailbox, uid))", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,insert,update on modsequences to " +
-                          dbuser, this );
+                          d->dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
@@ -1529,7 +1531,6 @@ bool Schema::stepTo28()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating deliveries table." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table deliveries (id serial primary key,"
                           "recipient integer not null references addresses(id),"
                           "mailbox integer not null, uid integer not null,"
@@ -1539,10 +1540,10 @@ bool Schema::stepTo28()
                           "messages(mailbox, uid) on delete cascade)", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,insert,update,delete "
-                          "on deliveries to " + dbuser, this );
+                          "on deliveries to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on deliveries_id_seq "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
@@ -1592,7 +1593,6 @@ bool Schema::stepTo30()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating access_keys table." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table access_keys (userid integer not null "
                           "references users(id) on delete cascade, mailbox "
                           "integer not null references mailboxes(id) on "
@@ -1600,7 +1600,7 @@ bool Schema::stepTo30()
                           "primary key (userid, mailbox))", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,insert,delete on access_keys "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
@@ -1824,8 +1824,7 @@ bool Schema::stepTo36()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting update on deliveries." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
-        d->q = new Query( "grant update on deliveries to " + dbuser, this );
+        d->q = new Query( "grant update on deliveries to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
@@ -1889,9 +1888,8 @@ bool Schema::stepTo38()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting insert on unparsed_messages" );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant insert on unparsed_messages "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
@@ -2185,9 +2183,8 @@ bool Schema::stepTo48()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting privileges on annotations_id_seq" );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant select,update on annotations_id_seq "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
@@ -2208,15 +2205,14 @@ bool Schema::stepTo49()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting privileges on thread*" );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant select,insert on threads "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,insert on thread_members "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on threads_id_seq "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
@@ -2259,7 +2255,6 @@ bool Schema::stepTo51()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating delivery_recipients" );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table delivery_recipients ("
                           "id serial primary key, delivery integer "
                           "not null references deliveries(id) on delete "
@@ -2267,7 +2262,7 @@ bool Schema::stepTo51()
                           "addresses(id), status text)", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select, insert, update on "
-                          "delivery_recipients to " + dbuser, this );
+                          "delivery_recipients to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table deliveries drop recipient", this );
         d->t->enqueue( d->q );
@@ -2326,9 +2321,8 @@ bool Schema::stepTo53()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting privileges on delivery_recipients_id_seq" );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant select, update on "
-                          "delivery_recipients_id_seq to " + dbuser, this );
+                          "delivery_recipients_id_seq to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
@@ -2422,7 +2416,6 @@ bool Schema::stepTo56()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating vacation_responses table." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table vacation_responses (id serial "
                           "primary key,sent_from integer not null references "
                           "addresses(id),sent_to integer not null references "
@@ -2431,10 +2424,10 @@ bool Schema::stepTo56()
                           "handle text)", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,insert on vacation_responses "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on vacation_responses_id_seq "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
@@ -2467,12 +2460,11 @@ bool Schema::stepTo57()
                           "default current_timestamp+interval '7 days',"
                           "handle text)", this );
         d->t->enqueue( d->q );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant select,insert on autoresponses "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on autoresponses_id_seq "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
@@ -2644,9 +2636,8 @@ bool Schema::stepTo60()
                           "primary key(mailbox,uid))", this );
         d->t->enqueue( d->q );
 
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant select,insert,update on mailbox_messages "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
 
         d->q = new Query( "insert into mailbox_messages "
@@ -3140,9 +3131,8 @@ bool Schema::stepTo61()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting privileges on messages_id_seq" );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "grant select,update on messages_id_seq "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
@@ -3270,8 +3260,7 @@ bool Schema::stepTo65()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting update on threads." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
-        d->q = new Query( "grant update on threads to " + dbuser, this );
+        d->q = new Query( "grant update on threads to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
@@ -3451,18 +3440,17 @@ bool Schema::stepTo71()
 {
     if ( d->substate == 0 ) {
         describeStep( "Granting privileges on connections/fileinto_targets." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
-        d->q = new Query( "grant insert,delete on connections to " + dbuser,
+        d->q = new Query( "grant insert,delete on connections to " + d->dbuser,
                           this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on connections_id_seq to " +
-                          dbuser, this );
+                          d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,insert,delete on fileinto_targets "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on fileinto_targets_id_seq "
-                          "to " + dbuser, this );
+                          "to " + d->dbuser, this );
         d->t->enqueue( d->q );
         d->substate = 1;
         d->t->execute();
