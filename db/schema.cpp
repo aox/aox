@@ -3709,24 +3709,23 @@ bool Schema::stepTo72()
         d->row = 0;
         d->quid = 0;
         d->undel = 0;
+
+        // Update uidnext for the mailbox if we're done.
+        if ( !d->q->hasResults() && d->q->done() ) {
+            d->q = new Query(
+                "update mailboxes set uidnext=uidnext+$2, "
+                "nextmodseq=nextmodseq+1 where id=$1", this
+            );
+            d->q->bind( 1, d->lastMailbox );
+            d->q->bind( 2, d->count );
+            d->t->enqueue( d->q );
+            d->t->execute();
+        }
     }
 
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-
-        d->substate = 2;
-        d->q = new Query(
-            "update mailboxes set uidnext=uidnext+$2, "
-            "nextmodseq=nextmodseq+1 where id=$1", this
-        );
-        d->q->bind( 1, d->lastMailbox );
-        d->q->bind( 2, d->count );
-        d->t->enqueue( d->q );
-        d->t->execute();
-    }
-
-    if ( d->substate == 2 ) {
         d->q = new Query(
             "select distinct a.mailbox,a.uid,a.message "
             "from deleted_messages a "
@@ -3736,7 +3735,7 @@ bool Schema::stepTo72()
             "order by a.mailbox, a.uid", this
         );
         d->t->enqueue( d->q );
-        d->substate = 3;
+        d->substate = 2;
         d->t->execute();
     }
 
