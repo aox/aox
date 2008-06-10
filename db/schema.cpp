@@ -217,6 +217,8 @@ void Schema::execute()
             if ( !d->update->done() )
                 return;
 
+            d->l->log( "Done.", Log::Debug );
+            d->substate = 0;
             d->state = 2;
             d->revision++;
 
@@ -508,8 +510,6 @@ bool Schema::stepTo2()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -636,8 +636,6 @@ bool Schema::stepTo3()
     if ( d->substate == 4 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -716,8 +714,6 @@ bool Schema::stepTo4()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -746,8 +742,6 @@ bool Schema::stepTo5()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -782,8 +776,6 @@ bool Schema::stepTo6()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -856,8 +848,6 @@ bool Schema::stepTo7()
     if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -904,8 +894,6 @@ bool Schema::stepTo8()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -941,8 +929,6 @@ bool Schema::stepTo9()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -975,8 +961,6 @@ bool Schema::stepTo10()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -998,8 +982,6 @@ bool Schema::stepTo11()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1026,8 +1008,6 @@ bool Schema::stepTo12()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1062,8 +1042,6 @@ bool Schema::stepTo13()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1102,8 +1080,6 @@ bool Schema::stepTo14()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1149,8 +1125,6 @@ bool Schema::stepTo15()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1174,8 +1148,6 @@ bool Schema::stepTo16()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1220,8 +1192,6 @@ bool Schema::stepTo17()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1246,8 +1216,6 @@ bool Schema::stepTo18()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1274,8 +1242,6 @@ bool Schema::stepTo19()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1310,8 +1276,6 @@ bool Schema::stepTo21()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1377,8 +1341,6 @@ bool Schema::stepTo22()
     if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1407,8 +1369,6 @@ bool Schema::stepTo23()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1454,8 +1414,6 @@ bool Schema::stepTo24()
     if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1489,8 +1447,6 @@ bool Schema::stepTo25()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1528,8 +1484,6 @@ bool Schema::stepTo26()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1563,8 +1517,6 @@ bool Schema::stepTo27()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1599,8 +1551,6 @@ bool Schema::stepTo28()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1630,8 +1580,6 @@ bool Schema::stepTo29()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1661,8 +1609,6 @@ bool Schema::stepTo30()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1693,8 +1639,6 @@ bool Schema::stepTo31()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1786,8 +1730,6 @@ bool Schema::stepTo32()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1821,8 +1763,6 @@ bool Schema::stepTo33()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1845,8 +1785,6 @@ bool Schema::stepTo34()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1872,8 +1810,6 @@ bool Schema::stepTo35()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1898,8 +1834,6 @@ bool Schema::stepTo36()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1943,8 +1877,6 @@ bool Schema::stepTo37()
     if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1968,8 +1900,6 @@ bool Schema::stepTo38()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -1993,8 +1923,6 @@ bool Schema::stepTo39()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2018,8 +1946,6 @@ bool Schema::stepTo40()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2053,8 +1979,6 @@ bool Schema::stepTo41()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2082,8 +2006,6 @@ bool Schema::stepTo42()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2116,8 +2038,6 @@ bool Schema::stepTo43()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2157,8 +2077,6 @@ bool Schema::stepTo44()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2180,8 +2098,6 @@ bool Schema::stepTo45()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2217,8 +2133,6 @@ bool Schema::stepTo46()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2259,8 +2173,6 @@ bool Schema::stepTo47()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2284,8 +2196,6 @@ bool Schema::stepTo48()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2315,8 +2225,6 @@ bool Schema::stepTo49()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2339,8 +2247,6 @@ bool Schema::stepTo50()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2381,8 +2287,6 @@ bool Schema::stepTo51()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2410,8 +2314,6 @@ bool Schema::stepTo52()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2435,8 +2337,6 @@ bool Schema::stepTo53()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2459,8 +2359,6 @@ bool Schema::stepTo54()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2512,8 +2410,6 @@ bool Schema::stepTo55()
     if ( d->substate == 2 ) {
         if ( d->update && !d->update->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2547,8 +2443,6 @@ bool Schema::stepTo56()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2587,8 +2481,6 @@ bool Schema::stepTo57()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2616,8 +2508,6 @@ bool Schema::stepTo58()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -2721,8 +2611,6 @@ bool Schema::stepTo59()
     if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3240,8 +3128,6 @@ bool Schema::stepTo60()
     if ( d->substate == 42 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3265,8 +3151,6 @@ bool Schema::stepTo61()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3316,8 +3200,6 @@ bool Schema::stepTo62()
     if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3347,8 +3229,6 @@ bool Schema::stepTo63()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3376,8 +3256,6 @@ bool Schema::stepTo64()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3402,8 +3280,6 @@ bool Schema::stepTo65()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3451,8 +3327,6 @@ bool Schema::stepTo66()
     if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3483,8 +3357,6 @@ bool Schema::stepTo67()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3512,8 +3384,6 @@ bool Schema::stepTo68()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3543,8 +3413,6 @@ bool Schema::stepTo69()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3571,8 +3439,6 @@ bool Schema::stepTo70()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3605,8 +3471,6 @@ bool Schema::stepTo71()
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
@@ -3733,8 +3597,6 @@ bool Schema::stepTo72()
             q->bind( 2, d->count );
             d->t->enqueue( q );
         }
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
     }
 
     return true;
