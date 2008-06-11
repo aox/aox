@@ -55,7 +55,7 @@ public:
 
     List<Mailbox> * mailboxes;
     Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
-        if ( !mailboxes->isEmpty() &&
+        if ( mailboxes && !mailboxes->isEmpty() &&
              mb == mailboxes->firstElement()->mailbox )
             return mailboxes->firstElement();
 
