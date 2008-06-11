@@ -153,12 +153,13 @@ void Expunge::execute()
                        "(mailbox,uid,message,modseq,deleted_by,reason) "
                        "select mailbox,uid,message,$4,$2,$3 "
                        "from mailbox_messages where mailbox=$1 "
-                       "and " + d->marked.where(),
+                       "and uid=any($5)",
                        this );
         d->expunge->bind( 1, d->s->mailbox()->id() );
         d->expunge->bind( 2, imap()->user()->id() );
         d->expunge->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
         d->expunge->bind( 4, d->modseq );
+        d->expunge->bind( 5, d->marked );
         d->t->enqueue( d->expunge );
 
         Query * q = new Query( "update mailboxes set nextmodseq=$1 "
