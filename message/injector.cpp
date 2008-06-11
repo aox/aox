@@ -1169,13 +1169,6 @@ Injector::Injector( Message * message, EventHandler * owner )
 }
 
 
-/*! Cleans up after injection. (We're already pretty clean.) */
-
-Injector::~Injector()
-{
-}
-
-
 /*! Notes that the given \a message must be delivered to the specified
     \a recipients from the given \a sender.
 */
