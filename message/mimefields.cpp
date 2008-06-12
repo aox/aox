@@ -431,6 +431,19 @@ void ContentType::parse( const String &s )
     if ( valid() && t == "multipart" && parameter( "boundary" ).isEmpty() )
         setError( "Multipart entities must have a boundary parameter." );
 
+    if ( !parameter( "charset" ).isEmpty() ) {
+        Codec * c = Codec::byName( parameter( "charset" ) );
+        if ( c ) {
+            String cs = c->name().lower();
+            if ( t == "text" && cs == "us-ascii" )
+                removeParameter( "charset" );
+            else if ( t == "text" && st == "html" && cs == "iso-8859-1" )
+                removeParameter( "charset" );
+            else if ( cs != parameter( "charset" ).lower() )
+                addParameter( "charset", cs );
+        }
+    }
+
     if ( valid() && !p.atEnd() &&
          t == "text" && parameter( "charset" ).isEmpty() &&
          s.mid( p.pos() ).lower().containsWord( "charset" ) ) {
