@@ -197,7 +197,14 @@ void MimeField::parseParameters( EmailParser *p )
                     return;
                 }
             }
-            if ( p->nextChar() != '=' ) {
+            if ( p->nextChar() == ':' && HeaderField::fieldType( n ) ) {
+                // some spammers send e.g. 'c-t: stuff subject:
+                // stuff'.  we ignore the second field entirely. who
+                // cares about spammers.
+                n.truncate();
+                p->step( p->input().length() );
+            }
+            else if ( p->nextChar() != '=' ) {
                 setError( "Bad parameter: " + n.quoted() );
                 return;
             }
@@ -223,19 +230,22 @@ void MimeField::parseParameters( EmailParser *p )
             }
             p->comment();
 
-            List< MimeFieldData::Parameter >::Iterator it( d->parameters );
-            while ( it && n != it->name )
-                ++it;
-            if ( !it ) {
-                MimeFieldData::Parameter * pm = new MimeFieldData::Parameter;
-                pm->name = n;
-                d->parameters.append( pm );
-                it = d->parameters.find( pm );
+            if ( !n.isEmpty() ) {
+                List< MimeFieldData::Parameter >::Iterator it( d->parameters );
+                while ( it && n != it->name )
+                    ++it;
+                if ( !it ) {
+                    MimeFieldData::Parameter * pm 
+                        = new MimeFieldData::Parameter;
+                    pm->name = n;
+                    d->parameters.append( pm );
+                    it = d->parameters.find( pm );
+                }
+                if ( havePart )
+                    it->parts.insert( partNumber, new String( v ) );
+                else
+                    it->value = v;
             }
-            if ( havePart )
-                it->parts.insert( partNumber, new String( v ) );
-            else
-                it->value = v;
         }
     }
 
