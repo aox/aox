@@ -572,11 +572,6 @@ void Header::simplify()
            ct->type() == "image" || ct->type() == "audio" ||
            ct->type() == "video" ) )
         ct->removeParameter( "charset" );
-    if ( ct && ct->parameter( "charset" ).lower() == "us-ascii" )
-        ct->removeParameter( "charset" );
-    if ( ct && ct->type() == "text" && ct->subtype() == "html" &&
-         ct->parameter( "charset" ).lower() == "iso-8859-1" )
-        ct->removeParameter( "charset" );
 
     HeaderField *m = field( HeaderField::MessageId );
     if ( m && m->rfc822().isEmpty() )
