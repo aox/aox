@@ -388,16 +388,40 @@ void ContentType::parse( const String &s )
             }
         }
         else {
+            bool mustGuess = false;
             if ( p.nextChar() == '/' ) {
                 // eek. this makes mime look like the special case.
                 p.step();
                 st = p.mimeToken().lower();
             }
-            else if ( t == "binary" ) {
+            else {
                 t = "application";
                 st = "octet-stream";
+                mustGuess = true;
             }
             parseParameters( &p );
+            if ( mustGuess ) {
+                String fn = parameter( "name" );
+                if ( fn.isEmpty() )
+                    fn = parameter( "filename" );
+                while ( fn.endsWith( "." ) )
+                    fn.truncate( fn.length() - 1 );
+                while ( fn.contains( '.' ) )
+                    fn = fn.section( ".", 2 );
+                fn = fn.lower();
+                if ( fn == "jpg" || fn == "jpeg" ) {
+                    t = "image";
+                    st = "jpeg";
+                }
+                else if ( fn == "htm" || fn == "html" ) {
+                    t = "text";
+                    st = "html";
+                }
+                else {
+                    t = "application";
+                    st = "octet-stream";
+                }
+            }
         }
     }
 
