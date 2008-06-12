@@ -153,7 +153,8 @@ void MimeField::parseParameters( EmailParser *p )
         uint i = p->pos();
         while ( p->nextChar() == ';' ||
                 p->nextChar() == ' ' || p->nextChar() == '\t' ||
-                p->nextChar() == '\r' || p->nextChar() == '\n' )
+                p->nextChar() == '\r' || p->nextChar() == '\n' ||
+                p->nextChar() == '"' )
             p->step();
         if ( i < p->pos() )
             done = false;
