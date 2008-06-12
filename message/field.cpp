@@ -175,6 +175,15 @@ HeaderField *HeaderField::create( const String &name,
 {
     HeaderField *hf = fieldNamed( name );
     hf->parse( value );
+    if ( hf->valid() )
+        return hf;
+
+    uint i = 0;
+    while ( value[i] == ':' || value[i] == ' ' )
+        i++;
+    HeaderField * suf = HeaderField::create( name, value.mid( i ) );
+    if ( suf->valid() )
+        return suf;
     return hf;
 }
 
