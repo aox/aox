@@ -384,6 +384,38 @@ void Query::bind( uint n, const class MessageSet & set, Format f )
 
 
 /*! \overload
+
+    This version binds each string in \a l as parameter \a n.
+    The format, \a f, must be Text.
+*/
+
+void Query::bind( uint n, const StringList & l, Format f )
+{
+    if ( f == Text ) {
+        String s( "{" );
+        s.reserve( l.count() * 16 );
+        StringList::Iterator it( l );
+        while ( it ) {
+            String t( *it );
+            if ( t.boring() )
+                s.append( t );
+            else
+                s.append( t.quoted() );
+            ++it;
+            if ( it )
+                s.append( "," );
+        }
+        s.append( "}" );
+        bind( n, s, Text );
+    }
+    else {
+        // XXX: Not implemented yet.
+    }
+
+}
+
+
+/*! \overload
     Binds NULL to the parameter \a n of this Query.
 */
 

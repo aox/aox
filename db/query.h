@@ -4,9 +4,8 @@
 #define QUERY_H
 
 #include "global.h"
-#include "string.h"
-#include "list.h"
 #include "database.h"
+#include "stringlist.h"
 
 
 class Row;
@@ -51,6 +50,7 @@ public:
     void bind( uint, const UString &, Format = Text );
     void bind( uint, const List<uint> *, Format = Text );
     void bind( uint, const class MessageSet &, Format = Text );
+    void bind( uint, const StringList &, Format = Text );
     void bindNull( uint );
     void submitLine();
 
