@@ -358,6 +358,7 @@ void ContentType::parse( const String &s )
         st = "plain";
     }
     else {
+        uint x = p.mark();
         t = p.mimeToken().lower();
         if ( p.atEnd() ) {
             if ( s == "text" ) {
@@ -404,6 +405,14 @@ void ContentType::parse( const String &s )
                 // eek. this makes mime look like the special case.
                 p.step();
                 st = p.mimeToken().lower();
+            }
+            else if ( p.nextChar() == '=' ) {
+                // oh no. someone skipped the content-type and
+                // supplied only some parameters. we'll assume it's
+                // text/plain and parse the parameters.
+                t = "text";
+                st = "plain";
+                p.restore( x );
             }
             else {
                 t = "application";
