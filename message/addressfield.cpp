@@ -83,7 +83,7 @@ void AddressField::parse( const String &s )
             setError( "" );
             a->clear();
         }
-        if ( s.contains( "<>" ) ) {
+        if ( !valid() && s.contains( "<>" ) ) {
             // some spammers attempt to send 'To: asdfsaf <>'.
             List<Address>::Iterator i( a );
             uint bounces = 0;
@@ -112,6 +112,11 @@ void AddressField::parse( const String &s )
             // instances of garbage, but if it doesn't contain even
             // one "@" and also not even one parsable address, surely
             // it's garbage.
+            setError( "" );
+        }
+        if ( !valid() && a->count() <= 1 && s.startsWith( "@" ) ) {
+            // some spammers send To: @hostname. forget it.
+            a->clear();
             setError( "" );
         }
         break;
