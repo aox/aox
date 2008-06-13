@@ -416,7 +416,7 @@ void HeaderField::parseText( const String &s )
         EmailParser p( s );
         UString t( p.text() );
         if ( p.atEnd() ) {
-            setValue( t );
+            setValue( t.trimmed() );
             h = true;
         }
     }
