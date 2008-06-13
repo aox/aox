@@ -529,6 +529,8 @@ void ContentTransferEncoding::parse( const String &s )
         setEncoding( String::Base64 );
     else if ( t == "x-uuencode" || t == "uuencode" )
         setEncoding( String::Uuencode );
+    else if ( t.contains( "bit" ) && t[0] >= '0' && t[0] <= '9' )
+        setEncoding( String::Binary );
     else
         setError( "Invalid c-t-e value: " + t.quoted() );
 }
