@@ -516,7 +516,7 @@ void ContentTransferEncoding::parse( const String &s )
 {
     EmailParser p( s );
 
-    String t = p.mimeToken().lower();
+    String t = p.mimeValue().lower();
     p.comment();
     // XXX shouldn't we do p.end() here and record parse errors?
 
