@@ -7,7 +7,7 @@
 #include "message.h"
 #include "mailbox.h"
 #include "injector.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "transaction.h"
 #include "addresscache.h"
 
@@ -55,7 +55,7 @@ void Reparse::execute()
 
         database( true );
         AddressCache::setup();
-        FieldNameCache::setup();
+        FieldName::setup();
         Mailbox::setup( this );
 
         d->q = new Query( "select mm.mailbox,mm.uid,mm.message as wrapper,"

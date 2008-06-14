@@ -12,7 +12,7 @@
 #include "mailbox.h"
 #include "bodypart.h"
 #include "datefield.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "mimefields.h"
 #include "messagecache.h"
 #include "addressfield.h"
@@ -987,7 +987,7 @@ void FieldCreator::selectFields()
     StringList::Iterator it( fields );
     while ( it ) {
         String name( *it );
-        if ( FieldNameCache::translate( name ) == 0 ) {
+        if ( FieldName::id( name ) == 0 ) {
             ++i;
             String p;
             q->bind( i, name );
@@ -1018,7 +1018,7 @@ void FieldCreator::processFields()
         Row * r = q->nextRow();
         uint id( r->getInt( "id" ) );
         String name( r->getString( "name" ) );
-        FieldNameCache::insert( name, id );
+        FieldName::add( name, id );
         unided.take( name );
     }
 
@@ -1664,7 +1664,7 @@ void Injector::createFields()
     StringList::Iterator it( d->otherFields );
     while ( it ) {
         String n( *it );
-        if ( FieldNameCache::translate( n ) == 0 &&
+        if ( FieldName::id( n ) == 0 &&
              !seen.contains( n ) )
             newFields.append( n );
         ++it;
@@ -1679,10 +1679,7 @@ void Injector::createFields()
 
 
 /*! This private function builds a list of FieldLinks containing every
-    header field used in the message, and uses
-    FieldNameCache::lookup() to associate each unknown HeaderField
-    with an ID. It causes execute() to be called when every field name
-    in d->fieldLinks has been resolved.
+    header field used in the message.
 */
 
 void Injector::buildFieldLinks()
@@ -2068,7 +2065,7 @@ void Injector::linkHeaderFields()
     while ( it ) {
         FieldLink *link = it;
 
-        uint t = FieldNameCache::translate( link->hf->name() );
+        uint t = FieldName::id( link->hf->name() );
         if ( !t )
             t = link->hf->type(); // XXX and what if this too fails?
 

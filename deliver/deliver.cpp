@@ -8,7 +8,7 @@
 #include "configuration.h"
 #include "addresscache.h"
 #include "permissions.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "injector.h"
@@ -242,7 +242,7 @@ int main( int argc, char *argv[] )
     Configuration::report();
     Mailbox::setup();
     AddressCache::setup();
-    FieldNameCache::setup();
+    FieldName::setup();
     (void)new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
 

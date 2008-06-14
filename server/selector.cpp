@@ -10,7 +10,7 @@
 #include "mailbox.h"
 #include "stringlist.h"
 #include "annotation.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "field.h"
 #include "user.h"
 
@@ -621,7 +621,7 @@ String Selector::whereHeaderField()
     if ( f <= HeaderField::LastAddressField )
         return whereAddressField( d->s8 );
 
-    uint t = FieldNameCache::translate( d->s8 );
+    uint t = FieldName::id( d->s8 );
     if ( !t )
         t = HeaderField::fieldType( d->s8 );
 
@@ -689,7 +689,7 @@ String Selector::whereAddressFields( const StringList & fields,
     StringList::Iterator it( fields );
     while ( it ) {
         uint fnum = placeHolder();
-        uint t = FieldNameCache::translate( *it );
+        uint t = FieldName::id( *it );
         if ( !t ) {
             t = HeaderField::fieldType( *it );
             if ( t == HeaderField::Other )
