@@ -802,15 +802,18 @@ void Injector::execute()
         d->transaction = new Transaction( this );
         d->state = CreatingNames;
         createNames();
+        createFields();
     }
 
     if ( d->state == CreatingNames ) {
         if ( ( d->flagCreation && !d->flagCreation->done() ) ||
-             ( d->annotationCreation && !d->annotationCreation->done() ) )
+             ( d->annotationCreation && !d->annotationCreation->done() ) ||
+             ( d->fieldCreation && !d->fieldCreation->done() ) )
             return;
 
         if ( ( d->flagCreation && d->flagCreation->failed() ) ||
-             ( d->annotationCreation && d->annotationCreation->failed() ) )
+             ( d->annotationCreation && d->annotationCreation->failed() ) ||
+             ( d->fieldCreation && d->fieldCreation->failed() ) )
         {
             d->failed = true;
             d->transaction->rollback();
@@ -855,7 +858,6 @@ void Injector::execute()
         else {
             d->state = CreatingFields;
             buildFieldLinks();
-            createFields();
         }
     }
 
@@ -1015,6 +1017,64 @@ void Injector::createNames()
     if ( !annotations.isEmpty() )
         d->annotationCreation =
             AnnotationName::create( annotations, d->transaction, this );
+}
+
+
+/*! Collects a list of unrecognised field names and arranges for
+    execute() to be called when they have all been created. */
+
+void Injector::createFields()
+{
+    List<Header> * l = new List<Header>;
+
+    Dict<int> seenFields;
+    StringList fields;
+
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+
+        // Collect each message's headers.
+
+        l->clear();
+        l->append( m->header() );
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            Bodypart *bp = bi;
+            l->append( bp->header() );
+            if ( bp->message() )
+                l->append( bp->message()->header() );
+            ++bi;
+        }
+
+        // And then step through them, looking for unknown fields.
+
+        List<Header>::Iterator hi( l );
+        while ( hi ) {
+            Header * hdr = hi;
+            List< HeaderField >::Iterator fi( hdr->fields() );
+            while ( fi ) {
+                HeaderField *hf = fi;
+                String n( hf->name() );
+
+                if ( hf->type() >= HeaderField::Other &&
+                     !seenFields.contains( n ) )
+                {
+                    fields.append( n );
+                    seenFields.insert( n, 0 );
+                }
+
+                ++fi;
+            }
+            ++hi;
+        }
+
+        ++it;
+    }
+
+    if ( !fields.isEmpty() )
+        d->fieldCreation =
+            FieldName::create( fields, d->transaction, this );
 }
 
 
@@ -1185,31 +1245,6 @@ void Injector::resolveAddressLinks()
     d->addressCreator =
         new AddressCreator( d->transaction, addresses, this );
     d->addressCreator->execute();
-}
-
-
-/*! This function creates a FieldCreator to create anything in
-    d->otherFields that we do not already recognise.
-*/
-
-void Injector::createFields()
-{
-    StringList newFields;
-
-    Dict<int> seen;
-    StringList::Iterator it( d->otherFields );
-    while ( it ) {
-        String n( *it );
-        if ( FieldName::id( n ) == 0 && !seen.contains( n ) ) {
-            newFields.append( n );
-            seen.insert( n, 0 );
-        }
-        ++it;
-    }
-
-    if ( !newFields.isEmpty() )
-        d->fieldCreation =
-            FieldName::create( newFields, d->transaction, this );
 }
 
 
