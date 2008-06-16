@@ -106,7 +106,7 @@ public:
           owner( 0 ), messages( 0 ), transaction( 0 ),
           midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
-          otherFields( 0 ), fieldCreation( 0 ), addressCreator( 0 ),
+          fieldCreation( 0 ), addressCreator( 0 ),
           flagCreation( 0 ), annotationCreation( 0 )
     {}
 
@@ -126,7 +126,6 @@ public:
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
     List< FieldLink > * dateLinks;
-    StringList * otherFields;
 
     Query * fieldCreation;
     AddressCreator * addressCreator;
@@ -1257,7 +1256,6 @@ void Injector::buildFieldLinks()
     d->fieldLinks = new List< FieldLink >;
     d->addressLinks = new List< AddressLink >;
     d->dateLinks = new List< FieldLink >;
-    d->otherFields = new StringList;
 
     List<Message>::Iterator it( d->messages );
     while ( it ) {
@@ -1310,9 +1308,6 @@ void Injector::buildLinksForHeader( Message * m, Header *hdr, const String &part
         link->part = part;
         link->position = hf->position();
         link->messageId = m->databaseId();
-
-        if ( hf->type() >= HeaderField::Other )
-            d->otherFields->append( new String ( hf->name() ) );
 
         if ( hf->type() > HeaderField::LastAddressField )
             d->fieldLinks->append( link );
