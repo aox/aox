@@ -1155,21 +1155,21 @@ bool FetcherData::TriviaDecoder::isDone( Message * m ) const
 
 void FetcherData::AnnotationDecoder::decode( Message * m, Row * r )
 {
-    AnnotationName * an = AnnotationName::find( r->getInt( "id" ) );
-    if ( !an ) {
-        an = new AnnotationName( r->getString( "name" ), r->getInt( "id" ) );
-        (void)new AnnotationNameFetcher( 0 ); // why create this, really?
+    uint id = r->getInt( id );
+
+    String n( AnnotationName::name( id ) );
+    if ( n.isEmpty() ) {
+        n = r->getString( "name" );
+        AnnotationName::add( n, id );
     }
 
-    Annotation * a = new Annotation;
-    a->setEntryName( an );
+    String v( r->getString( "value" ) );
 
     uint owner = 0;
     if ( !r->isNull( "owner" ) )
         owner = r->getInt( "owner" );
-    a->setOwnerId( owner );
-    a->setValue( r->getString( "value" ) );
 
+    Annotation * a = new Annotation( n, v, owner );
     m->replaceAnnotation( d->mailbox, a );
 }
 
