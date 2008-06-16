@@ -1887,7 +1887,7 @@ void Injector::handleWrapping()
             while ( bi ) {
                 Bodypart * b = bi;
                 if ( m->partNumber( b ) == "2" ) {
-                    q->bind( 1, b->id() );
+                    q->bind( 1, b->id(), Query::Binary );
                     q->submitLine();
                 }
                 ++bi;
