@@ -1155,7 +1155,7 @@ bool FetcherData::TriviaDecoder::isDone( Message * m ) const
 
 void FetcherData::AnnotationDecoder::decode( Message * m, Row * r )
 {
-    uint id = r->getInt( id );
+    uint id = r->getInt( "id" );
 
     String n( AnnotationName::name( id ) );
     if ( n.isEmpty() ) {
