@@ -1359,9 +1359,10 @@ void Injector::createFields()
     StringList::Iterator it( d->otherFields );
     while ( it ) {
         String n( *it );
-        if ( FieldName::id( n ) == 0 &&
-             !seen.contains( n ) )
+        if ( FieldName::id( n ) == 0 && !seen.contains( n ) ) {
             newFields.append( n );
+            seen.insert( n, 0 );
+        }
         ++it;
     }
 
