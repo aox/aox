@@ -109,33 +109,25 @@ void FieldNameCreator::execute()
 
 void FieldNameCreator::selectFields()
 {
-    q = new Query( "", this );
-
-    String s( "select id, name from field_names where " );
+    q = new Query( "select id, name from field_names where "
+                   "name=any($1)", this );
 
     unided.clear();
 
-    uint i = 0;
     StringList sl;
     StringList::Iterator it( fields );
     while ( it ) {
         String name( *it );
         if ( FieldName::id( name ) == 0 ) {
-            ++i;
-            String p;
-            q->bind( i, name );
-            p.append( "name=$" );
-            p.append( fn( i ) );
+            sl.append( name );
             unided.insert( name, 0 );
-            sl.append( p );
         }
         ++it;
     }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
+    q->bind( 1, sl );
     q->allowSlowness();
 
-    if ( i == 0 ) {
+    if ( sl.isEmpty() ) {
         state = 4;
     }
     else {
