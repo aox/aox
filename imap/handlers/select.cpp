@@ -129,6 +129,8 @@ void Select::execute()
             imap()->endSession();
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
+        if ( imap()->session() )
+            respond( "OK [CLOSED] " );
         imap()->beginSession( d->session );
         if ( !d->session->initialised() )
             d->session->refresh( this );
@@ -185,7 +187,7 @@ void Select::execute()
                      "] first unseen" );
     }
 
-    if ( imap()->clientSupports( IMAP::Condstore ) && 
+    if ( imap()->clientSupports( IMAP::Condstore ) &&
          !d->session->isEmpty() ) {
         uint nms = d->session->nextModSeq();
         if ( nms < 2 )

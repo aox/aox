@@ -190,6 +190,8 @@ void SmtpClient::parse()
                  Log::Error );
         }
     }
+    if ( EventLoop::global()->inShutdown() )
+        close();
 }
 
 

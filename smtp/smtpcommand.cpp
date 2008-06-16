@@ -9,6 +9,7 @@
 
 #include "smtpparser.h"
 #include "stringlist.h"
+#include "eventloop.h"
 #include "scope.h"
 #include "smtp.h"
 #include "tls.h"
@@ -216,6 +217,9 @@ SmtpCommand * SmtpCommand::create( SMTP * server, const String & command )
 
     if ( !r->done() && r->d->responseCode < 400 && !p->error().isEmpty() )
         r->respond( 501, p->error(), "5.5.2" );
+
+    if ( !r->done() && EventLoop::global()->inShutdown() )
+        r->respond( 421, "Server shutdown", "4.3.2" );
 
     if ( !r->d->done && r->d->responseCode >= 400 )
         r->d->done = true;

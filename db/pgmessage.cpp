@@ -845,7 +845,8 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
             cv->type = Column::Timestamp;
             break;
         default:
-            log( "PostgreSQL: Unknown field type " + fn( it->type ),
+            log( "PostgreSQL: Unknown field type " + fn( it->type ) +
+                 " for column " + cv->name.quoted(),
                  Log::Error );
             cv->type = Column::Unknown;
             break;

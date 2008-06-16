@@ -171,9 +171,10 @@ void SMTP::parse()
 /*! Reads a single SMTP/LMTP/Submit command from the client and
     creates an execution object for it.
 
-    Line length is limited to 4096: RFC 2821 section 4.5.3 says 512 is
-    acceptable and various SMTP extensions may increase it. RFC 2822
-    declares that line lengths should be limited to 998 characters.
+    Line length is limited to 4096 (for SMTP commands, not for message
+    bodies): RFC 2821 section 4.5.3 says 512 is acceptable and various
+    SMTP extensions may increase it. RFC 2822 declares that line
+    lengths should be limited to 998 characters.
 */
 
 void SMTP::parseCommand()
