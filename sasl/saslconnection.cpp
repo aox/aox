@@ -78,12 +78,6 @@ void SaslConnection::close()
     if ( !u )
         return;
 
-    if ( EventLoop::global()->inShutdown() ) {
-        log( "Cannot log connection in the connections table",
-             Log::Info );
-        return;
-    }
-
     Query * q = new Query(
         "insert into connections "
         "(userid,client,mechanism,authfailures,"

@@ -10,6 +10,7 @@
 #include "scope.h"
 #include "timer.h"
 #include "graph.h"
+#include "event.h"
 #include "list.h"
 #include "log.h"
 #include "sys.h"
@@ -45,6 +46,14 @@ public:
     bool stop;
     List< Connection > connections;
     List< Timer > timers;
+
+    class Stopper
+        : public EventHandler
+    {
+    public:
+        Stopper( uint s ) { (void)new Timer( this, s ); }
+        void execute() { if ( EventLoop::global() ) { EventLoop::global()->stop(); } }
+    };
 };
 
 
@@ -446,14 +455,41 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
 }
 
 
-/*! Instructs this EventLoop to perform an orderly shutdown, by sending
-    each participating Connection a Shutdown event before closing, and
-    then deleting each one.
+/*! Instructs this EventLoop to perform an orderly shutdown in \a s
+    seconds, by sending each participating Connection a Shutdown event
+    before closing.
+
+    Listener connections are closed right away, some/all external
+    connections get a Shutdown event at once, everyone get a Shutdown
+    event at final shutdown.
 */
 
-void EventLoop::stop()
+void EventLoop::stop( uint s )
 {
-    d->stop = true;
+    if ( !s ) {
+        d->stop = true;
+        return;
+    }
+
+    (void)new LoopData::Stopper( s );
+    List<Connection>::Iterator i( d->connections );
+    while ( i ) {
+        Connection * c = i;
+        ++i;
+        try {
+            Scope x( c->log() );
+            if ( c->hasProperty( Connection::Listens ) ) {
+                c->react( Connection::Shutdown );
+                c->close();
+                removeConnection( c );
+            }
+            else if ( !c->hasProperty( Connection::Internal ) ) {
+                c->react( Connection::Shutdown );
+            }
+        } catch ( Exception e ) {
+            removeConnection( c );
+        }
+    }
 }
 
 

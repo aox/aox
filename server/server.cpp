@@ -292,13 +292,12 @@ void Server::logSetup()
 static void shutdownLoop( int )
 {
     Server::killChildren();
-    EventLoop::shutdown();
+    if ( EventLoop::global() )
+        EventLoop::global()->stop( 2 );
 }
 
 
-/*! Called by signal handling to kill any children started in fork().
-
-*/
+/*! Called by signal handling to kill any children started in fork(). */
 
 void Server::killChildren()
 {

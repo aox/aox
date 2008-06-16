@@ -138,8 +138,7 @@ void IMAP::react( Event e )
             Scope s( d->reader->log() );
             d->reader->read();
         }
-        if ( d->session )
-            d->session->end();
+        endSession();
         break;
 
     case Connect:
@@ -149,14 +148,13 @@ void IMAP::react( Event e )
     case Close:
         if ( state() != Logout )
             log( "Unexpected close by client" );
-        if ( d->session )
-            d->session->end();
+        endSession();
         break;
 
     case Shutdown:
         enqueue( "* BYE server shutdown\r\n" );
-        if ( d->session )
-            d->session->end();
+        if ( d->session && d->commands.isEmpty() )
+            endSession();
         break;
     }
 
@@ -272,6 +270,11 @@ void IMAP::addCommand()
         enqueue( "* BAD " + p->error() + "\r\n" );
         recordSyntaxError();
         log( p->error(), Log::Error );
+        return;
+    }
+
+    if ( EventLoop::global()->inShutdown() && name != "logout" ) {
+        enqueue( tag + " NO server shutdown\r\n" );
         return;
     }
 
@@ -500,7 +503,9 @@ void IMAP::runCommands()
 }
 
 
-/*! Removes all commands that have finished executing from d->commands.
+/*! Removes all commands that have finished executing from
+    d->commands. If the server is shutting down and this removes the
+    last command, expireCommands() also closes the connection.
 */
 
 void IMAP::expireCommands()
@@ -512,6 +517,10 @@ void IMAP::expireCommands()
         else
             ++i;
     }
+    if ( d->commands.isEmpty() &&
+         EventLoop::global()->inShutdown() &&
+         Connection::state() == Connected )
+        Connection::setState( Closing );
 }
 
 

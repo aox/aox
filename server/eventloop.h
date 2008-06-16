@@ -17,7 +17,7 @@ public:
     virtual ~EventLoop();
 
     virtual void start();
-    virtual void stop();
+    virtual void stop( uint = 0 );
     virtual void addConnection( Connection * );
     virtual void removeConnection( Connection * );
     void closeAllExcept( Connection *, Connection * );
