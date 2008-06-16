@@ -907,53 +907,12 @@ void Injector::execute()
         linkDates();
         insertDeliveries();
         linkAddresses();
-
-        d->state = LinkingAddresses;
-        d->transaction->execute();
-    }
-
-    if ( d->state == LinkingAddresses ) {
-        List<Message>::Iterator it( d->messages );
-        while ( it ) {
-            Message * m = it;
-            List<Mailbox>::Iterator mi( m->mailboxes() );
-            while ( mi ) {
-                Mailbox * mb = mi;
-                StringList::Iterator i( m->flags( mb ) );
-                while ( i ) {
-                    if ( Flag::id( *i ) == 0 )
-                        return;
-                    ++i;
-                }
-                ++mi;
-            }
-            ++it;
-        }
         linkFlags();
-        d->state = LinkingFlags;
-    }
-
-    if ( d->state == LinkingFlags ) {
-        List<Message>::Iterator it( d->messages );
-        while ( it ) {
-            Message * m = it;
-            List<Mailbox>::Iterator mi( m->mailboxes() );
-            while ( mi ) {
-                Mailbox * mb = mi;
-                List<Annotation>::Iterator i( m->annotations( mb ) );
-                while ( i ) {
-                    Annotation * a = i;
-                    if ( AnnotationName::id( a->entryName() ) == 0 )
-                        return;
-                    ++i;
-                }
-                ++mi;
-            }
-            ++it;
-        }
         linkAnnotations();
         handleWrapping();
+
         d->state = LinkingAnnotations;
+        d->transaction->execute();
     }
 
     if ( d->state == LinkingAnnotations || d->transaction->failed() ) {
