@@ -30,7 +30,7 @@ public:
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
-          transaction( 0 ), annotationNameCreator( 0 )
+          transaction( 0 )
     {}
     MessageSet specified;
     MessageSet s;
@@ -52,7 +52,6 @@ public:
     Query * findSet;
 
     Transaction * transaction;
-    AnnotationNameCreator * annotationNameCreator;
 
     List<Annotation> annotations;
 };
@@ -206,7 +205,7 @@ void Store::parse()
         List<Annotation>::Iterator it( d->annotations );
         while ( it ) {
             l.append( " " );
-            l.append( it->entryName()->name() );
+            l.append( it->entryName() );
             ++it;
         }
         break;
@@ -235,9 +234,6 @@ void Store::parseAnnotationEntry()
     require( "(" );
     if ( !ok() )
         return;
-    AnnotationName * n = AnnotationName::find( entry );
-    if ( !n )
-        n = new AnnotationName( entry );
     bool more = true;
     uint id = imap()->user()->id();
     while ( more ) {
@@ -255,13 +251,14 @@ void Store::parseAnnotationEntry()
         }
         space();
         String value = string();
+        // XXX: Is the following really correct? Verify.
         List<Annotation>::Iterator it( d->annotations );
         if ( shared )
-            while ( it && ( it->entryName()->name() != entry ||
+            while ( it && ( it->entryName() != entry ||
                             it->ownerId() != id ) )
                 ++it;
         else
-            while ( it && ( it->entryName()->name() != entry ||
+            while ( it && ( it->entryName() != entry ||
                             it->ownerId() != 0 ) )
                 ++it;
         Annotation * a = it;
@@ -271,7 +268,7 @@ void Store::parseAnnotationEntry()
                 a->setOwnerId( 0 );
             else
                 a->setOwnerId( id );
-            a->setEntryName( n );
+            a->setEntryName( entry );
             d->annotations.append( a );
         }
         if ( attrib == "value" )
@@ -530,7 +527,7 @@ bool Store::processFlagNames()
     }
     if ( unknown.isEmpty() )
         return true;
-    Flag::create( unknown, this );
+    Flag::create( unknown, d->transaction, this );
     return false;
 }
 
@@ -544,14 +541,14 @@ bool Store::processAnnotationNames()
     List<Annotation>::Iterator it( d->annotations );
     StringList unknown;
     while ( it ) {
-        if ( !it->entryName()->id() )
-            unknown.append( it->entryName()->name() );
+        String n( it->entryName() );
+        if ( AnnotationName::id( n ) == 0 )
+            unknown.append( n );
         ++it;
     }
     if ( unknown.isEmpty() )
         return true;
-    if ( !d->annotationNameCreator )
-        d->annotationNameCreator = new AnnotationNameCreator( this, unknown );
+    (void)AnnotationName::create( unknown, d->transaction, this );
     return false;
 
 }
@@ -654,7 +651,7 @@ void Store::replaceAnnotations()
                            "name=$3 and " + o, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, d->s );
-            q->bind( 3, it->entryName()->id() );
+            q->bind( 3, AnnotationName::id( it->entryName() ) );
             if ( it->ownerId() )
                 q->bind( 4, u->id() );
             d->transaction->enqueue( q );
@@ -669,7 +666,7 @@ void Store::replaceAnnotations()
             bind( q, 1, it->value() );
             q->bind( 2, m->id() );
             q->bind( 3, d->s );
-            q->bind( 4, it->entryName()->id() );
+            q->bind( 4, AnnotationName::id( it->entryName() ) );
             if ( it->ownerId() )
                 q->bind( 5, u->id() );
             d->transaction->enqueue( q );
@@ -684,7 +681,7 @@ void Store::replaceAnnotations()
             bind( q, 1, it->value() );
             q->bind( 2, m->id() );
             q->bind( 3, d->s );
-            q->bind( 4, it->entryName()->id() );
+            q->bind( 4, AnnotationName::id( it->entryName() ) );
             if ( it->ownerId() )
                 q->bind( 5, it->ownerId() );
             else

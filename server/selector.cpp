@@ -10,7 +10,7 @@
 #include "mailbox.h"
 #include "stringlist.h"
 #include "annotation.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "field.h"
 #include "user.h"
 
@@ -621,7 +621,7 @@ String Selector::whereHeaderField()
     if ( f <= HeaderField::LastAddressField )
         return whereAddressField( d->s8 );
 
-    uint t = FieldNameCache::translate( d->s8 );
+    uint t = FieldName::id( d->s8 );
     if ( !t )
         t = HeaderField::fieldType( d->s8 );
 
@@ -689,7 +689,7 @@ String Selector::whereAddressFields( const StringList & fields,
     StringList::Iterator it( fields );
     while ( it ) {
         uint fnum = placeHolder();
-        uint t = FieldNameCache::translate( *it );
+        uint t = FieldName::id( *it );
         if ( !t ) {
             t = HeaderField::fieldType( *it );
             if ( t == HeaderField::Other )
@@ -920,24 +920,27 @@ String Selector::whereUid()
 String Selector::whereAnnotation()
 {
     root()->d->needAnnotations = true;
-    ::AnnotationName * a = ::AnnotationName::find( d->s8 );
+
+    uint id( AnnotationName::id( d->s8 ) );
+
     String annotations;
-    if ( a ) {
-        annotations = "a.name=" + fn( a->id() );
+    if ( id ) {
+        annotations = "a.name=" + fn( id );
     }
     else {
+        // XXX: Use ANY($1) here.
         uint n = 0;
         uint u = 0;
         while ( u <= ::AnnotationName::largestId() ) {
-            a = ::AnnotationName::find( u );
-            u++;
-            if ( a && lmatch( d->s8, 0, a->name(), 0 ) == 2 ) {
+            String a( AnnotationName::name( u ) );
+            if ( lmatch( d->s8, 0, a, 0 ) == 2 ) {
                 n++;
                 if ( !annotations.isEmpty() )
                     annotations.append( " or " );
                 annotations.append( "a.name=" );
-                annotations.append( fn( a->id() ) );
+                annotations.append( fn( u ) );
             }
+            u++;
         }
         if ( n > 1 )
             annotations = "(" + annotations + ")";

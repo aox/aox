@@ -153,7 +153,8 @@ void MimeField::parseParameters( EmailParser *p )
         uint i = p->pos();
         while ( p->nextChar() == ';' ||
                 p->nextChar() == ' ' || p->nextChar() == '\t' ||
-                p->nextChar() == '\r' || p->nextChar() == '\n' )
+                p->nextChar() == '\r' || p->nextChar() == '\n' ||
+                p->nextChar() == '"' )
             p->step();
         if ( i < p->pos() )
             done = false;
@@ -357,6 +358,7 @@ void ContentType::parse( const String &s )
         st = "plain";
     }
     else {
+        uint x = p.mark();
         t = p.mimeToken().lower();
         if ( p.atEnd() ) {
             if ( s == "text" ) {
@@ -403,6 +405,14 @@ void ContentType::parse( const String &s )
                 // eek. this makes mime look like the special case.
                 p.step();
                 st = p.mimeToken().lower();
+            }
+            else if ( p.nextChar() == '=' ) {
+                // oh no. someone skipped the content-type and
+                // supplied only some parameters. we'll assume it's
+                // text/plain and parse the parameters.
+                t = "text";
+                st = "plain";
+                p.restore( x );
             }
             else {
                 t = "application";
@@ -515,7 +525,7 @@ void ContentTransferEncoding::parse( const String &s )
 {
     EmailParser p( s );
 
-    String t = p.mimeToken().lower();
+    String t = p.mimeValue().lower();
     p.comment();
     // XXX shouldn't we do p.end() here and record parse errors?
 
@@ -528,6 +538,8 @@ void ContentTransferEncoding::parse( const String &s )
         setEncoding( String::Base64 );
     else if ( t == "x-uuencode" || t == "uuencode" )
         setEncoding( String::Uuencode );
+    else if ( t.contains( "bit" ) && t[0] >= '0' && t[0] <= '9' )
+        setEncoding( String::Binary );
     else
         setError( "Invalid c-t-e value: " + t.quoted() );
 }

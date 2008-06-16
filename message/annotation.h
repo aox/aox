@@ -3,63 +3,8 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
-#include "global.h"
-#include "list.h"
-#include "event.h"
-#include "stringlist.h"
-
-
-class AnnotationName
-    : public Garbage
-{
-public:
-    AnnotationName( const String & );
-    AnnotationName( const String &, uint );
-
-    String name() const;
-    uint id() const;
-
-    static AnnotationName * find( const String & );
-    static AnnotationName * find( uint );
-
-    static void setup();
-
-    static uint largestId();
-
-    void setId( uint );
-
-private:
-    class AnnotationNameData * d;
-    friend class AnnotationNameFetcher;
-};
-
-
-class AnnotationNameFetcher
-    : public EventHandler
-{
-public:
-    AnnotationNameFetcher( EventHandler * owner );
-
-    void execute();
-
-private:
-    class AnnotationNameFetcherData * d;
-    friend class AnnotationName;
-};
-
-
-class AnnotationNameCreator
-    : public EventHandler
-{
-public:
-    AnnotationNameCreator( EventHandler *, const StringList & );
-
-    void execute();
-
-private:
-    class AnnotationNameCreatorData * d;
-    friend class AnnotationName;
-};
+#include "string.h"
+#include "annotationname.h"
 
 
 class Annotation
@@ -67,11 +12,14 @@ class Annotation
 {
 public:
     Annotation();
+    Annotation( const String &, const String &, uint );
+
+    void setEntryName( const String & );
+    String entryName() const;
 
     void setValue( const String & );
     String value() const;
-    void setEntryName( AnnotationName * );
-    AnnotationName * entryName() const;
+
     void setOwnerId( uint );
     uint ownerId() const;
 

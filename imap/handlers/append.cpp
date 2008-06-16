@@ -159,10 +159,6 @@ void Append::parse()
                 return;
             }
 
-            AnnotationName * n = AnnotationName::find( entry );
-            if ( !n )
-                n = new AnnotationName( entry );
-
             space();
             require( "(" );
             bool attribsDone = false;
@@ -188,7 +184,7 @@ void Append::parse()
                 }
                 else {
                     Annotation * a = new Annotation;
-                    a->setEntryName( n );
+                    a->setEntryName( entry );
                     a->setOwnerId( oid );
                     a->setValue( string() );
                     d->annotations->append( a );

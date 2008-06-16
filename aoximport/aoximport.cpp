@@ -6,8 +6,9 @@
 #include "allocator.h"
 #include "configuration.h"
 #include "progressreporter.h"
+#include "annotationname.h"
 #include "addresscache.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "database.h"
@@ -100,7 +101,8 @@ int main( int ac, char ** av )
     Mailbox::setup( m );
 
     AddressCache::setup();
-    FieldNameCache::setup();
+    FieldName::setup();
+    AnnotationName::setup();
 
     ProgressReporter * p = new ProgressReporter( m, 5 );
     // 5? command-line option?

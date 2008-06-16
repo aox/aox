@@ -12,7 +12,7 @@
 #include "mailbox.h"
 #include "bodypart.h"
 #include "datefield.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "mimefields.h"
 #include "messagecache.h"
 #include "addressfield.h"
@@ -33,9 +33,6 @@ class MidFetcher;
 class UidFetcher;
 class BidFetcher;
 class AddressCreator;
-class NewFlagCreator;
-class NewAnnotationCreator;
-class FieldCreator;
 
 
 static PreparedStatement *lockUidnext;
@@ -109,8 +106,8 @@ public:
           owner( 0 ), messages( 0 ), transaction( 0 ),
           midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
-          otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
-          flagCreator( 0 ), annotationCreator( 0 )
+          otherFields( 0 ), fieldCreation( 0 ), addressCreator( 0 ),
+          flagCreation( 0 ), annotationCreation( 0 )
     {}
 
     State state;
@@ -131,10 +128,10 @@ public:
     List< FieldLink > * dateLinks;
     StringList * otherFields;
 
-    FieldCreator * fieldCreator;
+    Query * fieldCreation;
     AddressCreator * addressCreator;
-    NewFlagCreator * flagCreator;
-    NewAnnotationCreator * annotationCreator;
+    Query * flagCreation;
+    Query * annotationCreation;
 
     struct Delivery
         : public Garbage
@@ -616,469 +613,6 @@ void AddressCreator::processInsert()
 }
 
 
-class NewFlagCreator
-    : public EventHandler
-{
-public:
-    int state;
-    Query * q;
-    Transaction * t;
-    StringList flags;
-    EventHandler * owner;
-    Dict<uint> unided;
-    int savepoint;
-    bool failed;
-    bool done;
-
-    NewFlagCreator( Transaction * tr, const StringList & f, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), flags( f ), owner( ev ),
-          savepoint( 0 ), failed( false ), done( false )
-    {}
-
-    void execute();
-    void selectFlags();
-    void processFlags();
-    void insertFlags();
-    void processInsert();
-};
-
-void NewFlagCreator::execute()
-{
-    if ( state == 0 )
-        selectFlags();
-
-    if ( state == 1 )
-        processFlags();
-
-    if ( state == 2 )
-        insertFlags();
-
-    if ( state == 3 )
-        processInsert();
-
-    if ( state == 4 ) {
-        state = 42;
-        done = true;
-        owner->execute();
-    }
-}
-
-void NewFlagCreator::selectFlags()
-{
-    q = new Query( "", this );
-
-    String s( "select id, name from flag_names where " );
-
-    unided.clear();
-
-    uint i = 0;
-    StringList sl;
-    StringList::Iterator it( flags );
-    while ( it ) {
-        String name( *it );
-        if ( Flag::id( name ) == 0 ) {
-            ++i;
-            String p;
-            q->bind( i, name.lower() );
-            p.append( "lower(name)=$" );
-            p.append( fn( i ) );
-            unided.insert( name.lower(), 0 );
-            sl.append( p );
-        }
-        ++it;
-    }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
-    q->allowSlowness();
-
-    if ( i == 0 ) {
-        state = 4;
-    }
-    else {
-        state = 1;
-        t->enqueue( q );
-        t->execute();
-    }
-}
-
-void NewFlagCreator::processFlags()
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        String name( r->getString( "name" ) );
-        Flag::add( name, r->getInt( "id" ) );
-        unided.take( name.lower() );
-    }
-
-    if ( !q->done() )
-        return;
-
-    if ( unided.isEmpty() ) {
-        state = 0;
-        selectFlags();
-    }
-    else {
-        state = 2;
-    }
-}
-
-void NewFlagCreator::insertFlags()
-{
-    q = new Query( "savepoint c" + fn( savepoint ), this );
-    t->enqueue( q );
-
-    q = new Query( "copy flag_names (name) from stdin with binary", this );
-    StringList::Iterator it( unided.keys() );
-    while ( it ) {
-        q->bind( 1, *it, Query::Binary );
-        q->submitLine();
-        ++it;
-    }
-
-    state = 3;
-    t->enqueue( q );
-    t->execute();
-}
-
-void NewFlagCreator::processInsert()
-{
-    if ( !q->done() )
-        return;
-
-    state = 0;
-    if ( q->failed() ) {
-        if ( q->error().contains( "fn_uname" ) ) {
-            q = new Query( "rollback to c" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
-        }
-        else {
-            failed = true;
-            state = 4;
-        }
-    }
-    else {
-        q = new Query( "release savepoint c" + fn( savepoint ), this );
-        t->enqueue( q );
-    }
-
-    if ( state == 0 )
-        selectFlags();
-}
-
-
-class NewAnnotationCreator
-    : public EventHandler
-{
-public:
-    int state;
-    Query * q;
-    Transaction * t;
-    StringList names;
-    EventHandler * owner;
-    Dict<uint> unided;
-    int savepoint;
-    bool failed;
-    bool done;
-
-    NewAnnotationCreator( Transaction * tr, const StringList & f, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), names( f ), owner( ev ),
-          savepoint( 0 ), failed( false ), done( false )
-    {}
-
-    void execute();
-    void selectAnnotations();
-    void processAnnotations();
-    void insertAnnotations();
-    void processInsert();
-};
-
-void NewAnnotationCreator::execute()
-{
-    if ( state == 0 )
-        selectAnnotations();
-
-    if ( state == 1 )
-        processAnnotations();
-
-    if ( state == 2 )
-        insertAnnotations();
-
-    if ( state == 3 )
-        processInsert();
-
-    if ( state == 4 ) {
-        state = 42;
-        done = true;
-        owner->execute();
-    }
-}
-
-void NewAnnotationCreator::selectAnnotations()
-{
-    q = new Query( "", this );
-
-    String s( "select id, name from annotation_names where " );
-
-    unided.clear();
-
-    uint i = 0;
-    StringList sl;
-    StringList::Iterator it( names );
-    while ( it ) {
-        String name( *it );
-        AnnotationName * an =
-            AnnotationName::find( name );
-        if ( !an || !an->id() ) {
-            ++i;
-            String p;
-            q->bind( i, name );
-            p.append( "name=$" );
-            p.append( fn( i ) );
-            unided.insert( name, 0 );
-            sl.append( p );
-        }
-        ++it;
-    }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
-    q->allowSlowness();
-
-    if ( i == 0 ) {
-        state = 4;
-    }
-    else {
-        state = 1;
-        t->enqueue( q );
-        t->execute();
-    }
-}
-
-void NewAnnotationCreator::processAnnotations()
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        uint id = r->getInt( "id" );
-        String name( r->getString( "name" ) );
-        AnnotationName * an =
-            AnnotationName::find( name );
-        if ( !an )
-            an = new AnnotationName( name, id );
-        else
-            an->setId( id );
-        unided.take( name );
-    }
-
-    if ( !q->done() )
-        return;
-
-    if ( unided.isEmpty() ) {
-        state = 0;
-        selectAnnotations();
-    }
-    else {
-        state = 2;
-    }
-}
-
-void NewAnnotationCreator::insertAnnotations()
-{
-    q = new Query( "savepoint d" + fn( savepoint ), this );
-    t->enqueue( q );
-
-    q = new Query( "copy annotation_names (name) "
-                   "from stdin with binary", this );
-    StringList::Iterator it( unided.keys() );
-    while ( it ) {
-        q->bind( 1, *it, Query::Binary );
-        q->submitLine();
-        ++it;
-    }
-
-    state = 3;
-    t->enqueue( q );
-    t->execute();
-}
-
-void NewAnnotationCreator::processInsert()
-{
-    if ( !q->done() )
-        return;
-
-    state = 0;
-    if ( q->failed() ) {
-        if ( q->error().contains( "annotation_names_name_key" ) ) {
-            q = new Query( "rollback to d" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
-        }
-        else {
-            failed = true;
-            state = 4;
-        }
-    }
-    else {
-        q = new Query( "release savepoint d" + fn( savepoint ), this );
-        t->enqueue( q );
-    }
-
-    if ( state == 0 )
-        selectAnnotations();
-}
-
-
-class FieldCreator
-    : public EventHandler
-{
-public:
-    int state;
-    Query * q;
-    Transaction * t;
-    StringList fields;
-    EventHandler * owner;
-    Dict<uint> unided;
-    int savepoint;
-    bool failed;
-    bool done;
-
-    FieldCreator( Transaction * tr, const StringList & f, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), fields( f ), owner( ev ),
-          savepoint( 0 ), failed( false ), done( false )
-    {}
-
-    void execute();
-    void selectFields();
-    void processFields();
-    void insertFields();
-    void processInsert();
-};
-
-void FieldCreator::execute()
-{
-    if ( state == 0 )
-        selectFields();
-
-    if ( state == 1 )
-        processFields();
-
-    if ( state == 2 )
-        insertFields();
-
-    if ( state == 3 )
-        processInsert();
-
-    if ( state == 4 ) {
-        state = 42;
-        done = true;
-        owner->execute();
-    }
-}
-
-void FieldCreator::selectFields()
-{
-    q = new Query( "", this );
-
-    String s( "select id, name from field_names where " );
-
-    unided.clear();
-
-    uint i = 0;
-    StringList sl;
-    StringList::Iterator it( fields );
-    while ( it ) {
-        String name( *it );
-        if ( FieldNameCache::translate( name ) == 0 ) {
-            ++i;
-            String p;
-            q->bind( i, name );
-            p.append( "name=$" );
-            p.append( fn( i ) );
-            unided.insert( name, 0 );
-            sl.append( p );
-        }
-        ++it;
-    }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
-    q->allowSlowness();
-
-    if ( i == 0 ) {
-        state = 4;
-    }
-    else {
-        state = 1;
-        t->enqueue( q );
-        t->execute();
-    }
-}
-
-void FieldCreator::processFields()
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        uint id( r->getInt( "id" ) );
-        String name( r->getString( "name" ) );
-        FieldNameCache::insert( name, id );
-        unided.take( name );
-    }
-
-    if ( !q->done() )
-        return;
-
-    if ( unided.isEmpty() ) {
-        state = 0;
-        selectFields();
-    }
-    else {
-        state = 2;
-    }
-}
-
-void FieldCreator::insertFields()
-{
-    q = new Query( "savepoint e" + fn( savepoint ), this );
-    t->enqueue( q );
-
-    q = new Query( "copy field_names (name) from stdin with binary", this );
-    StringList::Iterator it( unided.keys() );
-    while ( it ) {
-        q->bind( 1, *it, Query::Binary );
-        q->submitLine();
-        ++it;
-    }
-
-    state = 3;
-    t->enqueue( q );
-    t->execute();
-}
-
-void FieldCreator::processInsert()
-{
-    if ( !q->done() )
-        return;
-
-    state = 0;
-    if ( q->failed() ) {
-        if ( q->error().contains( "field_names_name_key" ) ) {
-            q = new Query( "rollback to e" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
-        }
-        else {
-            failed = true;
-            state = 4;
-        }
-    }
-    else {
-        q = new Query( "release savepoint e" + fn( savepoint ), this );
-        t->enqueue( q );
-    }
-
-    if ( state == 0 )
-        selectFields();
-}
-
-
 /*! \class Injector injector.h
     This class delivers a Message to a List of Mailboxes.
 
@@ -1271,10 +805,10 @@ void Injector::execute()
     }
 
     if ( d->state == CreatingFlags ) {
-        if ( d->flagCreator && !d->flagCreator->done )
+        if ( d->flagCreation && !d->flagCreation->done() )
             return;
 
-        if ( d->flagCreator && d->flagCreator->failed ) {
+        if ( d->flagCreation && d->flagCreation->failed() ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -1286,10 +820,10 @@ void Injector::execute()
     }
 
     if ( d->state == CreatingAnnotationNames ) {
-        if ( d->annotationCreator && !d->annotationCreator->done )
+        if ( d->annotationCreation && !d->annotationCreation->done() )
             return;
 
-        if ( d->annotationCreator && d->annotationCreator->failed ) {
+        if ( d->annotationCreation && d->annotationCreation->failed() ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -1338,10 +872,10 @@ void Injector::execute()
     }
 
     if ( d->state == CreatingFields ) {
-        if ( d->fieldCreator && !d->fieldCreator->done )
+        if ( d->fieldCreation && !d->fieldCreation->done() )
             return;
 
-        if ( d->fieldCreator && d->fieldCreator->failed ) {
+        if ( d->fieldCreation && d->fieldCreation->failed() ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -1373,58 +907,12 @@ void Injector::execute()
         linkDates();
         insertDeliveries();
         linkAddresses();
-
-        d->state = LinkingAddresses;
-        d->transaction->execute();
-    }
-
-    if ( d->state == LinkingAddresses ) {
-        List<Message>::Iterator it( d->messages );
-        while ( it ) {
-            Message * m = it;
-            List<Mailbox>::Iterator mi( m->mailboxes() );
-            while ( mi ) {
-                Mailbox * mb = mi;
-                StringList::Iterator i( m->flags( mb ) );
-                while ( i ) {
-                    if ( Flag::id( *i ) == 0 )
-                        return;
-                    ++i;
-                }
-                ++mi;
-            }
-            ++it;
-        }
         linkFlags();
-        d->state = LinkingFlags;
-    }
-
-    if ( d->state == LinkingFlags ) {
-        List<Message>::Iterator it( d->messages );
-        while ( it ) {
-            Message * m = it;
-            List<Mailbox>::Iterator mi( m->mailboxes() );
-            while ( mi ) {
-                Mailbox * mb = mi;
-                List<Annotation>::Iterator i( m->annotations( mb ) );
-                while ( i ) {
-                    if ( i->entryName()->id() == 0 ) {
-                        AnnotationName * n;
-                        n = AnnotationName::find( i->entryName()->name() );
-                        if ( n->id() != 0 )
-                            i->setEntryName( n );
-                    }
-                    if ( i->entryName()->id() == 0 )
-                        return;
-                    ++i;
-                }
-                ++mi;
-            }
-            ++it;
-        }
         linkAnnotations();
         handleWrapping();
+
         d->state = LinkingAnnotations;
+        d->transaction->execute();
     }
 
     if ( d->state == LinkingAnnotations || d->transaction->failed() ) {
@@ -1664,25 +1152,21 @@ void Injector::createFields()
     StringList::Iterator it( d->otherFields );
     while ( it ) {
         String n( *it );
-        if ( FieldNameCache::translate( n ) == 0 &&
-             !seen.contains( n ) )
+        if ( FieldName::id( n ) == 0 && !seen.contains( n ) ) {
             newFields.append( n );
+            seen.insert( n, 0 );
+        }
         ++it;
     }
 
-    if ( !newFields.isEmpty() ) {
-        d->fieldCreator =
-            new FieldCreator( d->transaction, newFields, this );
-        d->fieldCreator->execute();
-    }
+    if ( !newFields.isEmpty() )
+        d->fieldCreation =
+            FieldName::create( newFields, d->transaction, this );
 }
 
 
 /*! This private function builds a list of FieldLinks containing every
-    header field used in the message, and uses
-    FieldNameCache::lookup() to associate each unknown HeaderField
-    with an ID. It causes execute() to be called when every field name
-    in d->fieldLinks has been resolved.
+    header field used in the message.
 */
 
 void Injector::buildFieldLinks()
@@ -2068,7 +1552,7 @@ void Injector::linkHeaderFields()
     while ( it ) {
         FieldLink *link = it;
 
-        uint t = FieldNameCache::translate( link->hf->name() );
+        uint t = FieldName::id( link->hf->name() );
         if ( !t )
             t = link->hf->type(); // XXX and what if this too fails?
 
@@ -2247,11 +1731,8 @@ void Injector::createFlags()
         ++it;
     }
 
-    if ( !unknown.isEmpty() ) {
-        d->flagCreator =
-            new NewFlagCreator( d->transaction, unknown, this );
-        d->flagCreator->execute();
-    }
+    if ( !unknown.isEmpty() )
+        d->flagCreation = Flag::create( unknown, d->transaction, this );
 }
 
 
@@ -2261,6 +1742,7 @@ void Injector::createFlags()
 
 void Injector::createAnnotationNames()
 {
+    Dict<int> seen;
     StringList unknown;
 
     List<Message>::Iterator it( d->messages );
@@ -2271,8 +1753,14 @@ void Injector::createAnnotationNames()
             Mailbox * mb = mi;
             List<Annotation>::Iterator ai( m->annotations( mb ) );
             while ( ai ) {
-                if ( !ai->entryName()->id() )
-                    unknown.append( ai->entryName()->name() );
+                Annotation * a = ai;
+                String n( a->entryName() );
+
+                if ( AnnotationName::id( n ) == 0 && !seen.contains( n ) ) {
+                    unknown.append( n );
+                    seen.insert( n, 0 );
+                }
+
                 ++ai;
             }
             ++mi;
@@ -2280,11 +1768,9 @@ void Injector::createAnnotationNames()
         ++it;
     }
 
-    if ( !unknown.isEmpty() ) {
-        d->annotationCreator =
-            new NewAnnotationCreator( d->transaction, unknown, this );
-        d->annotationCreator->execute();
-    }
+    if ( !unknown.isEmpty() )
+        d->annotationCreation =
+            AnnotationName::create( unknown, d->transaction, this );
 }
 
 
@@ -2342,9 +1828,12 @@ void Injector::linkAnnotations()
             List<Annotation>::Iterator ai( m->annotations( mb ) );
             while ( ai ) {
                 annotations++;
+
+                uint aid( AnnotationName::id( ai->entryName() ) );
+
                 q->bind( 1, mb->id(), Query::Binary );
                 q->bind( 2, m->uid( mb ), Query::Binary );
-                q->bind( 3, ai->entryName()->id(), Query::Binary );
+                q->bind( 3, aid, Query::Binary );
                 q->bind( 4, ai->value(), Query::Binary );
                 if ( ai->ownerId() == 0 )
                     q->bindNull( 5 );

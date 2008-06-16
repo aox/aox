@@ -16,10 +16,11 @@
 #include "listener.h"
 #include "database.h"
 #include "dbsignal.h"
-#include "fieldcache.h"
+#include "fieldname.h"
 #include "managesieve.h"
 #include "addresscache.h"
 #include "spoolmanager.h"
+#include "annotationname.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -219,8 +220,9 @@ int main( int argc, char *argv[] )
 
     TlsServer::setup();
     AddressCache::setup();
-    FieldNameCache::setup();
+    FieldName::setup();
     SpoolManager::setup();
+    AnnotationName::setup();
     Flag::setup();
     IMAP::setup();
 

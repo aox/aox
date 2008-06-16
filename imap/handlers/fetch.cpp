@@ -1368,7 +1368,7 @@ String Fetch::annotation( Multipart * m, User * u, Mailbox * mb,
         Annotation * a = i;
         ++i;
 
-        String entry( a->entryName()->name() );
+        String entry( a->entryName() );
         bool entryWanted = false;
         StringList::Iterator e( entrySpecs );
         while ( e ) {

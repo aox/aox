@@ -2,6 +2,7 @@
 
 #include "flag.h"
 
+#include "transaction.h"
 #include "allocator.h"
 #include "dbsignal.h"
 #include "string.h"
@@ -60,40 +61,146 @@ class FlagCreator
     : public EventHandler
 {
 public:
-    FlagCreator( const StringList & flags, EventHandler * o )
-        : owner( o )
+    StringList flags;
+    Transaction * t;
+    int state;
+    Query * q;
+    Query * result;
+    Dict<uint> unided;
+    int savepoint;
+
+    FlagCreator( const StringList & f, Transaction * tr, EventHandler * ev )
+        : flags( f ), t( tr ),
+          state( 0 ), q( 0 ), savepoint( 0 )
     {
-        StringList::Iterator it( flags );
-        while ( it ) {
-            Query * q =
-                new Query( "insert into flag_names (name) values ($1)",
-                           this );
-            q->bind( 1, *it );
-            q->allowFailure();
-            q->execute();
-            queries.append( q );
-            ++it;
-        }
+        result = new Query( ev );
+        execute();
     }
 
-    void execute()
-    {
-        List<Query>::Iterator it( queries );
-        while ( it ) {
-            if ( it->done() )
-                queries.take( it );
-            else
-                ++it;
-        }
-
-        if ( queries.isEmpty() )
-            (void)new FlagFetcher( owner );
-    }
-
-private:
-    EventHandler * owner;
-    List<Query> queries;
+    void execute();
+    void selectFlags();
+    void processFlags();
+    void insertFlags();
+    void processInsert();
 };
+
+void FlagCreator::execute()
+{
+    if ( state == 0 )
+        selectFlags();
+
+    if ( state == 1 )
+        processFlags();
+
+    if ( state == 2 )
+        insertFlags();
+
+    if ( state == 3 )
+        processInsert();
+
+    if ( state == 4 ) {
+        state = 42;
+        if ( !result->done() )
+            result->setState( Query::Completed );
+        result->notify();
+    }
+}
+
+void FlagCreator::selectFlags()
+{
+    q = new Query( "select id, name from flag_names where "
+                   "lower(name)=any($1)", this );
+
+    unided.clear();
+
+    StringList sl;
+    StringList::Iterator it( flags );
+    while ( it ) {
+        String name( *it );
+        if ( Flag::id( name ) == 0 ) {
+            String p( name.lower() );
+            sl.append( p );
+            unided.insert( p, 0 );
+        }
+        ++it;
+    }
+    q->bind( 1, sl );
+    q->allowSlowness();
+
+    if ( sl.isEmpty() ) {
+        state = 4;
+    }
+    else {
+        state = 1;
+        t->enqueue( q );
+        t->execute();
+    }
+}
+
+void FlagCreator::processFlags()
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        String name( r->getString( "name" ) );
+        Flag::add( name, r->getInt( "id" ) );
+        unided.take( name.lower() );
+    }
+
+    if ( !q->done() )
+        return;
+
+    if ( unided.isEmpty() ) {
+        state = 0;
+        selectFlags();
+    }
+    else {
+        state = 2;
+    }
+}
+
+void FlagCreator::insertFlags()
+{
+    q = new Query( "savepoint c" + fn( savepoint ), this );
+    t->enqueue( q );
+
+    q = new Query( "copy flag_names (name) from stdin with binary", this );
+    StringList::Iterator it( unided.keys() );
+    while ( it ) {
+        q->bind( 1, *it, Query::Binary );
+        q->submitLine();
+        ++it;
+    }
+
+    state = 3;
+    t->enqueue( q );
+    t->execute();
+}
+
+void FlagCreator::processInsert()
+{
+    if ( !q->done() )
+        return;
+
+    state = 0;
+    if ( q->failed() ) {
+        if ( q->error().contains( "fn_uname" ) ) {
+            q = new Query( "rollback to c" + fn( savepoint ), this );
+            t->enqueue( q );
+            savepoint++;
+        }
+        else {
+            result->setState( Query::Failed );
+            state = 4;
+        }
+    }
+    else {
+        q = new Query( "release savepoint c" + fn( savepoint ), this );
+        t->enqueue( q );
+    }
+
+    if ( state == 0 )
+        selectFlags();
+}
 
 
 class FlagObliterator
@@ -153,13 +260,15 @@ void Flag::reload( EventHandler * owner )
 }
 
 
-/*! Creates the specified \a flags and notifies the \a owner when that
-    is finished, i.e. when id() and name() recognise the newly-created
-    flags. */
+/*! Issues the queries needed to create the specified \a flags in the
+    transaction \a t and notifies the \a owner when that is done, i.e.
+    when id() and name() recognise the newly-created flags.
+*/
 
-void Flag::create( const StringList & flags, EventHandler * owner )
+Query * Flag::create( const StringList & flags, Transaction * t,
+                      EventHandler * owner )
 {
-    (void)new FlagCreator( flags, owner );
+    return (new FlagCreator( flags, t, owner ))->result;
 }
 
 

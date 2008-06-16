@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef FLAG_H
-#define FLAG_H
+#ifndef ANNOTATIONNAME_H
+#define ANNOTATIONNAME_H
 
 #include "stringlist.h"
 
@@ -9,11 +9,12 @@ class EventHandler;
 class Query;
 
 
-class Flag {
+class AnnotationName {
 public:
     static void setup();
 
     static void reload( EventHandler * = 0 );
+    static uint largestId();
 
     static Query * create( const StringList &, class Transaction *,
                            EventHandler * );

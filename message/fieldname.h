@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef FLAG_H
-#define FLAG_H
+#ifndef FIELDNAME_H
+#define FIELDNAME_H
 
 #include "stringlist.h"
 
@@ -9,7 +9,7 @@ class EventHandler;
 class Query;
 
 
-class Flag {
+class FieldName {
 public:
     static void setup();
 
