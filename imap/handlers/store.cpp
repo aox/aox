@@ -530,7 +530,7 @@ bool Store::processFlagNames()
     }
     if ( unknown.isEmpty() )
         return true;
-    Flag::create( unknown, this );
+    Flag::create( unknown, d->transaction, this );
     return false;
 }
 

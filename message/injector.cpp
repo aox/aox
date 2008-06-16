@@ -33,7 +33,6 @@ class MidFetcher;
 class UidFetcher;
 class BidFetcher;
 class AddressCreator;
-class NewFlagCreator;
 class NewAnnotationCreator;
 class FieldCreator;
 
@@ -110,7 +109,7 @@ public:
           midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
           otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
-          flagCreator( 0 ), annotationCreator( 0 )
+          flagCreation( 0 ), annotationCreator( 0 )
     {}
 
     State state;
@@ -133,7 +132,7 @@ public:
 
     FieldCreator * fieldCreator;
     AddressCreator * addressCreator;
-    NewFlagCreator * flagCreator;
+    Query * flagCreation;
     NewAnnotationCreator * annotationCreator;
 
     struct Delivery
@@ -613,157 +612,6 @@ void AddressCreator::processInsert()
 
     if ( state == 0 )
         selectAddresses();
-}
-
-
-class NewFlagCreator
-    : public EventHandler
-{
-public:
-    int state;
-    Query * q;
-    Transaction * t;
-    StringList flags;
-    EventHandler * owner;
-    Dict<uint> unided;
-    int savepoint;
-    bool failed;
-    bool done;
-
-    NewFlagCreator( Transaction * tr, const StringList & f, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), flags( f ), owner( ev ),
-          savepoint( 0 ), failed( false ), done( false )
-    {}
-
-    void execute();
-    void selectFlags();
-    void processFlags();
-    void insertFlags();
-    void processInsert();
-};
-
-void NewFlagCreator::execute()
-{
-    if ( state == 0 )
-        selectFlags();
-
-    if ( state == 1 )
-        processFlags();
-
-    if ( state == 2 )
-        insertFlags();
-
-    if ( state == 3 )
-        processInsert();
-
-    if ( state == 4 ) {
-        state = 42;
-        done = true;
-        owner->execute();
-    }
-}
-
-void NewFlagCreator::selectFlags()
-{
-    q = new Query( "", this );
-
-    String s( "select id, name from flag_names where " );
-
-    unided.clear();
-
-    uint i = 0;
-    StringList sl;
-    StringList::Iterator it( flags );
-    while ( it ) {
-        String name( *it );
-        if ( Flag::id( name ) == 0 ) {
-            ++i;
-            String p;
-            q->bind( i, name.lower() );
-            p.append( "lower(name)=$" );
-            p.append( fn( i ) );
-            unided.insert( name.lower(), 0 );
-            sl.append( p );
-        }
-        ++it;
-    }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
-    q->allowSlowness();
-
-    if ( i == 0 ) {
-        state = 4;
-    }
-    else {
-        state = 1;
-        t->enqueue( q );
-        t->execute();
-    }
-}
-
-void NewFlagCreator::processFlags()
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        String name( r->getString( "name" ) );
-        Flag::add( name, r->getInt( "id" ) );
-        unided.take( name.lower() );
-    }
-
-    if ( !q->done() )
-        return;
-
-    if ( unided.isEmpty() ) {
-        state = 0;
-        selectFlags();
-    }
-    else {
-        state = 2;
-    }
-}
-
-void NewFlagCreator::insertFlags()
-{
-    q = new Query( "savepoint c" + fn( savepoint ), this );
-    t->enqueue( q );
-
-    q = new Query( "copy flag_names (name) from stdin with binary", this );
-    StringList::Iterator it( unided.keys() );
-    while ( it ) {
-        q->bind( 1, *it, Query::Binary );
-        q->submitLine();
-        ++it;
-    }
-
-    state = 3;
-    t->enqueue( q );
-    t->execute();
-}
-
-void NewFlagCreator::processInsert()
-{
-    if ( !q->done() )
-        return;
-
-    state = 0;
-    if ( q->failed() ) {
-        if ( q->error().contains( "fn_uname" ) ) {
-            q = new Query( "rollback to c" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
-        }
-        else {
-            failed = true;
-            state = 4;
-        }
-    }
-    else {
-        q = new Query( "release savepoint c" + fn( savepoint ), this );
-        t->enqueue( q );
-    }
-
-    if ( state == 0 )
-        selectFlags();
 }
 
 
@@ -1271,10 +1119,10 @@ void Injector::execute()
     }
 
     if ( d->state == CreatingFlags ) {
-        if ( d->flagCreator && !d->flagCreator->done )
+        if ( d->flagCreation && !d->flagCreation->done() )
             return;
 
-        if ( d->flagCreator && d->flagCreator->failed ) {
+        if ( d->flagCreation && d->flagCreation->failed() ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -2244,11 +2092,8 @@ void Injector::createFlags()
         ++it;
     }
 
-    if ( !unknown.isEmpty() ) {
-        d->flagCreator =
-            new NewFlagCreator( d->transaction, unknown, this );
-        d->flagCreator->execute();
-    }
+    if ( !unknown.isEmpty() )
+        d->flagCreation = Flag::create( unknown, d->transaction, this );
 }
 
 

@@ -6,6 +6,7 @@
 #include "stringlist.h"
 
 class EventHandler;
+class Query;
 
 
 class Flag {
@@ -13,7 +14,9 @@ public:
     static void setup();
 
     static void reload( EventHandler * = 0 );
-    static void create( const StringList &, EventHandler * );
+
+    static Query * create( const StringList &, class Transaction *,
+                           EventHandler * );
 
     static void add( const String &, uint );
 
