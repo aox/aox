@@ -266,9 +266,10 @@ void Flag::reload( EventHandler * owner )
 }
 
 
-/*! Creates the specified \a flags and notifies the \a owner when that
-    is finished, i.e. when id() and name() recognise the newly-created
-    flags. */
+/*! Issues the queries needed to create the specified \a flags in the
+    transaction \a t and notifies the \a owner when that is done, i.e.
+    when id() and name() recognise the newly-created flags.
+*/
 
 Query * Flag::create( const StringList & flags, Transaction * t,
                       EventHandler * owner )

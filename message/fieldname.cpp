@@ -262,9 +262,10 @@ void FieldName::reload( EventHandler * owner )
 }
 
 
-/*! Creates the specified \a fields and notifies the \a owner when that
-    is finished, i.e. when id() and name() recognise the newly-created
-    field names. */
+/*! Issues the queries needed to create the specified \a fields in the
+    transaction \a t, and notifies the \a owner when that is done, i.e.
+    when when id() and name() recognise the newly-created field names.
+*/
 
 Query * FieldName::create( const StringList & fields, Transaction * t,
                            EventHandler * owner )
