@@ -34,7 +34,6 @@ class UidFetcher;
 class BidFetcher;
 class AddressCreator;
 class NewAnnotationCreator;
-class FieldCreator;
 
 
 static PreparedStatement *lockUidnext;
@@ -108,7 +107,7 @@ public:
           owner( 0 ), messages( 0 ), transaction( 0 ),
           midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
-          otherFields( 0 ), fieldCreator( 0 ), addressCreator( 0 ),
+          otherFields( 0 ), fieldCreation( 0 ), addressCreator( 0 ),
           flagCreation( 0 ), annotationCreator( 0 )
     {}
 
@@ -130,7 +129,7 @@ public:
     List< FieldLink > * dateLinks;
     StringList * otherFields;
 
-    FieldCreator * fieldCreator;
+    Query * fieldCreation;
     AddressCreator * addressCreator;
     Query * flagCreation;
     NewAnnotationCreator * annotationCreator;
@@ -775,158 +774,6 @@ void NewAnnotationCreator::processInsert()
 }
 
 
-class FieldCreator
-    : public EventHandler
-{
-public:
-    int state;
-    Query * q;
-    Transaction * t;
-    StringList fields;
-    EventHandler * owner;
-    Dict<uint> unided;
-    int savepoint;
-    bool failed;
-    bool done;
-
-    FieldCreator( Transaction * tr, const StringList & f, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), fields( f ), owner( ev ),
-          savepoint( 0 ), failed( false ), done( false )
-    {}
-
-    void execute();
-    void selectFields();
-    void processFields();
-    void insertFields();
-    void processInsert();
-};
-
-void FieldCreator::execute()
-{
-    if ( state == 0 )
-        selectFields();
-
-    if ( state == 1 )
-        processFields();
-
-    if ( state == 2 )
-        insertFields();
-
-    if ( state == 3 )
-        processInsert();
-
-    if ( state == 4 ) {
-        state = 42;
-        done = true;
-        owner->execute();
-    }
-}
-
-void FieldCreator::selectFields()
-{
-    q = new Query( "", this );
-
-    String s( "select id, name from field_names where " );
-
-    unided.clear();
-
-    uint i = 0;
-    StringList sl;
-    StringList::Iterator it( fields );
-    while ( it ) {
-        String name( *it );
-        if ( FieldName::id( name ) == 0 ) {
-            ++i;
-            String p;
-            q->bind( i, name );
-            p.append( "name=$" );
-            p.append( fn( i ) );
-            unided.insert( name, 0 );
-            sl.append( p );
-        }
-        ++it;
-    }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
-    q->allowSlowness();
-
-    if ( i == 0 ) {
-        state = 4;
-    }
-    else {
-        state = 1;
-        t->enqueue( q );
-        t->execute();
-    }
-}
-
-void FieldCreator::processFields()
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        uint id( r->getInt( "id" ) );
-        String name( r->getString( "name" ) );
-        FieldName::add( name, id );
-        unided.take( name );
-    }
-
-    if ( !q->done() )
-        return;
-
-    if ( unided.isEmpty() ) {
-        state = 0;
-        selectFields();
-    }
-    else {
-        state = 2;
-    }
-}
-
-void FieldCreator::insertFields()
-{
-    q = new Query( "savepoint e" + fn( savepoint ), this );
-    t->enqueue( q );
-
-    q = new Query( "copy field_names (name) from stdin with binary", this );
-    StringList::Iterator it( unided.keys() );
-    while ( it ) {
-        q->bind( 1, *it, Query::Binary );
-        q->submitLine();
-        ++it;
-    }
-
-    state = 3;
-    t->enqueue( q );
-    t->execute();
-}
-
-void FieldCreator::processInsert()
-{
-    if ( !q->done() )
-        return;
-
-    state = 0;
-    if ( q->failed() ) {
-        if ( q->error().contains( "field_names_name_key" ) ) {
-            q = new Query( "rollback to e" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
-        }
-        else {
-            failed = true;
-            state = 4;
-        }
-    }
-    else {
-        q = new Query( "release savepoint e" + fn( savepoint ), this );
-        t->enqueue( q );
-    }
-
-    if ( state == 0 )
-        selectFields();
-}
-
-
 /*! \class Injector injector.h
     This class delivers a Message to a List of Mailboxes.
 
@@ -1186,10 +1033,10 @@ void Injector::execute()
     }
 
     if ( d->state == CreatingFields ) {
-        if ( d->fieldCreator && !d->fieldCreator->done )
+        if ( d->fieldCreation && !d->fieldCreation->done() )
             return;
 
-        if ( d->fieldCreator && d->fieldCreator->failed ) {
+        if ( d->fieldCreation && d->fieldCreation->failed() ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -1518,11 +1365,9 @@ void Injector::createFields()
         ++it;
     }
 
-    if ( !newFields.isEmpty() ) {
-        d->fieldCreator =
-            new FieldCreator( d->transaction, newFields, this );
-        d->fieldCreator->execute();
-    }
+    if ( !newFields.isEmpty() )
+        d->fieldCreation =
+            FieldName::create( newFields, d->transaction, this );
 }
 
 

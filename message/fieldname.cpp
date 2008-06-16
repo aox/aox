@@ -2,6 +2,7 @@
 
 #include "fieldname.h"
 
+#include "transaction.h"
 #include "allocator.h"
 #include "dbsignal.h"
 #include "string.h"
@@ -60,40 +61,154 @@ class FieldNameCreator
     : public EventHandler
 {
 public:
-    FieldNameCreator( const StringList & fields, EventHandler * o )
-        : owner( o )
+    StringList fields;
+    Transaction * t;
+    int state;
+    Query * q;
+    Query * result;
+    Dict<uint> unided;
+    int savepoint;
+
+    FieldNameCreator( const StringList & f, Transaction * tr,
+                      EventHandler * ev )
+        : fields( f ), t( tr ),
+          state( 0 ), q( 0 ), savepoint( 0 )
     {
-        StringList::Iterator it( fields );
-        while ( it ) {
-            Query * q =
-                new Query( "insert into field_names (name) values ($1)",
-                           this );
-            q->bind( 1, *it );
-            q->allowFailure();
-            q->execute();
-            queries.append( q );
-            ++it;
-        }
+        result = new Query( ev );
     }
 
-    void execute()
-    {
-        List<Query>::Iterator it( queries );
-        while ( it ) {
-            if ( it->done() )
-                queries.take( it );
-            else
-                ++it;
-        }
-
-        if ( queries.isEmpty() )
-            (void)new FieldNameFetcher( owner );
-    }
-
-private:
-    EventHandler * owner;
-    List<Query> queries;
+    void execute();
+    void selectFields();
+    void processFields();
+    void insertFields();
+    void processInsert();
 };
+
+void FieldNameCreator::execute()
+{
+    if ( state == 0 )
+        selectFields();
+
+    if ( state == 1 )
+        processFields();
+
+    if ( state == 2 )
+        insertFields();
+
+    if ( state == 3 )
+        processInsert();
+
+    if ( state == 4 ) {
+        state = 42;
+        if ( !result->done() )
+            result->setState( Query::Completed );
+        result->notify();
+    }
+}
+
+void FieldNameCreator::selectFields()
+{
+    q = new Query( "", this );
+
+    String s( "select id, name from field_names where " );
+
+    unided.clear();
+
+    uint i = 0;
+    StringList sl;
+    StringList::Iterator it( fields );
+    while ( it ) {
+        String name( *it );
+        if ( FieldName::id( name ) == 0 ) {
+            ++i;
+            String p;
+            q->bind( i, name );
+            p.append( "name=$" );
+            p.append( fn( i ) );
+            unided.insert( name, 0 );
+            sl.append( p );
+        }
+        ++it;
+    }
+    s.append( sl.join( " or " ) );
+    q->setString( s );
+    q->allowSlowness();
+
+    if ( i == 0 ) {
+        state = 4;
+    }
+    else {
+        state = 1;
+        t->enqueue( q );
+        t->execute();
+    }
+}
+
+void FieldNameCreator::processFields()
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        uint id( r->getInt( "id" ) );
+        String name( r->getString( "name" ) );
+        FieldName::add( name, id );
+        unided.take( name );
+    }
+
+    if ( !q->done() )
+        return;
+
+    if ( unided.isEmpty() ) {
+        state = 0;
+        selectFields();
+    }
+    else {
+        state = 2;
+    }
+}
+
+void FieldNameCreator::insertFields()
+{
+    q = new Query( "savepoint e" + fn( savepoint ), this );
+    t->enqueue( q );
+
+    q = new Query( "copy field_names (name) from stdin with binary", this );
+    StringList::Iterator it( unided.keys() );
+    while ( it ) {
+        q->bind( 1, *it, Query::Binary );
+        q->submitLine();
+        ++it;
+    }
+
+    state = 3;
+    t->enqueue( q );
+    t->execute();
+}
+
+void FieldNameCreator::processInsert()
+{
+    if ( !q->done() )
+        return;
+
+    state = 0;
+    if ( q->failed() ) {
+        if ( q->error().contains( "field_names_name_key" ) ) {
+            q = new Query( "rollback to e" + fn( savepoint ), this );
+            t->enqueue( q );
+            savepoint++;
+        }
+        else {
+            result->setState( Query::Failed );
+            state = 4;
+        }
+    }
+    else {
+        q = new Query( "release savepoint e" + fn( savepoint ), this );
+        t->enqueue( q );
+    }
+
+    if ( state == 0 )
+        selectFields();
+}
 
 
 class FieldNameObliterator
@@ -151,9 +266,10 @@ void FieldName::reload( EventHandler * owner )
     is finished, i.e. when id() and name() recognise the newly-created
     field names. */
 
-void FieldName::create( const StringList & fields, EventHandler * owner )
+Query * FieldName::create( const StringList & fields, Transaction * t,
+                           EventHandler * owner )
 {
-    (void)new FieldNameCreator( fields, owner );
+    return (new FieldNameCreator( fields, t, owner ))->result;
 }
 
 
