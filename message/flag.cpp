@@ -108,33 +108,26 @@ void FlagCreator::execute()
 
 void FlagCreator::selectFlags()
 {
-    q = new Query( "", this );
-
-    String s( "select id, name from flag_names where " );
+    q = new Query( "select id, name from flag_names where "
+                   "lower(name)=any($1)", this );
 
     unided.clear();
 
-    uint i = 0;
     StringList sl;
     StringList::Iterator it( flags );
     while ( it ) {
         String name( *it );
         if ( Flag::id( name ) == 0 ) {
-            ++i;
-            String p;
-            q->bind( i, name.lower() );
-            p.append( "lower(name)=$" );
-            p.append( fn( i ) );
-            unided.insert( name.lower(), 0 );
+            String p( name.lower() );
             sl.append( p );
+            unided.insert( p, 0 );
         }
         ++it;
     }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
+    q->bind( 1, sl );
     q->allowSlowness();
 
-    if ( i == 0 ) {
+    if ( sl.isEmpty() ) {
         state = 4;
     }
     else {
