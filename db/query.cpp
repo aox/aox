@@ -125,7 +125,7 @@ Query::Query( const PreparedStatement &ps, EventHandler *ev )
     Inactive: This query has not yet been submitted to the Database.
     Submitted: The query has been submitted to the Database.
     Executing: The query has been sent to the server.
-    Succeeded: The query completed successfully.
+    Completed: The query completed successfully.
     Failed: The query has failed.
 */
 
