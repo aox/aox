@@ -20,6 +20,7 @@
 #include "managesieve.h"
 #include "addresscache.h"
 #include "spoolmanager.h"
+#include "annotationname.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -221,6 +222,7 @@ int main( int argc, char *argv[] )
     AddressCache::setup();
     FieldName::setup();
     SpoolManager::setup();
+    AnnotationName::setup();
     Flag::setup();
     IMAP::setup();
 

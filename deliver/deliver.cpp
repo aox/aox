@@ -6,6 +6,7 @@
 #include "allocator.h"
 #include "stderrlogger.h"
 #include "configuration.h"
+#include "annotationname.h"
 #include "addresscache.h"
 #include "permissions.h"
 #include "fieldname.h"
@@ -243,6 +244,7 @@ int main( int argc, char *argv[] )
     Mailbox::setup();
     AddressCache::setup();
     FieldName::setup();
+    AnnotationName::setup();
     (void)new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
 
