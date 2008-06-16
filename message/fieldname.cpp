@@ -281,7 +281,7 @@ void FieldName::add( const String & name, uint id )
     uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
     *tmp = id;
 
-    ::fieldsByName->insert( name.lower(), tmp );
+    ::fieldsByName->insert( name, tmp );
 }
 
 
@@ -293,7 +293,7 @@ uint FieldName::id( const String & name )
     uint id = 0;
 
     if ( ::fieldsByName ) {
-        uint * p = ::fieldsByName->find( name.lower() );
+        uint * p = ::fieldsByName->find( name );
         if ( p )
             id = *p;
     }

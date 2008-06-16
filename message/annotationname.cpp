@@ -291,7 +291,7 @@ void AnnotationName::add( const String & name, uint id )
     uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
     *tmp = id;
 
-    ::annotationsByName->insert( name.lower(), tmp );
+    ::annotationsByName->insert( name, tmp );
 }
 
 
@@ -303,7 +303,7 @@ uint AnnotationName::id( const String & name )
     uint id = 0;
 
     if ( ::annotationsByName ) {
-        uint * p = ::annotationsByName->find( name.lower() );
+        uint * p = ::annotationsByName->find( name );
         if ( p )
             id = *p;
     }
