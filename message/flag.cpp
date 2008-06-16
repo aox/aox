@@ -74,6 +74,7 @@ public:
           state( 0 ), q( 0 ), savepoint( 0 )
     {
         result = new Query( ev );
+        execute();
     }
 
     void execute();
