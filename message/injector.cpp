@@ -90,7 +90,7 @@ struct AddressLink
 
 enum State {
     Inactive,
-    CreatingNames, CreatingFields,
+    CreatingNames,
     InsertingBodyparts, InsertingAddresses, SelectingUids,
     InsertingMessages,
     LinkingAddresses, LinkingFlags, LinkingAnnotations,
@@ -855,22 +855,8 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            d->state = CreatingFields;
-            buildFieldLinks();
-        }
-    }
-
-    if ( d->state == CreatingFields ) {
-        if ( d->fieldCreation && !d->fieldCreation->done() )
-            return;
-
-        if ( d->fieldCreation && d->fieldCreation->failed() ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
             d->state = InsertingAddresses;
+            buildFieldLinks();
             resolveAddressLinks();
         }
     }
