@@ -40,6 +40,7 @@ private:
     static void setup();
 
     void finish();
+    void createNames();
     void selectUids();
     void selectMessageId();
     void resolveAddressLinks();
@@ -54,8 +55,6 @@ private:
     void linkHeaderFields();
     void linkAddresses();
     void linkDates();
-    void createFlags();
-    void createAnnotationNames();
     void createFields();
     void linkFlags();
     void linkAnnotations();

@@ -90,7 +90,7 @@ struct AddressLink
 
 enum State {
     Inactive,
-    CreatingFlags, CreatingAnnotationNames, CreatingFields,
+    CreatingNames, CreatingFields,
     InsertingBodyparts, InsertingAddresses, SelectingUids,
     InsertingMessages,
     LinkingAddresses, LinkingFlags, LinkingAnnotations,
@@ -800,30 +800,21 @@ void Injector::execute()
         logMessageDetails();
 
         d->transaction = new Transaction( this );
-        d->state = CreatingFlags;
-        createFlags();
+        d->state = CreatingNames;
+        createNames();
+        createFields();
     }
 
-    if ( d->state == CreatingFlags ) {
-        if ( d->flagCreation && !d->flagCreation->done() )
+    if ( d->state == CreatingNames ) {
+        if ( ( d->flagCreation && !d->flagCreation->done() ) ||
+             ( d->annotationCreation && !d->annotationCreation->done() ) ||
+             ( d->fieldCreation && !d->fieldCreation->done() ) )
             return;
 
-        if ( d->flagCreation && d->flagCreation->failed() ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
-            d->state = CreatingAnnotationNames;
-            createAnnotationNames();
-        }
-    }
-
-    if ( d->state == CreatingAnnotationNames ) {
-        if ( d->annotationCreation && !d->annotationCreation->done() )
-            return;
-
-        if ( d->annotationCreation && d->annotationCreation->failed() ) {
+        if ( ( d->flagCreation && d->flagCreation->failed() ) ||
+             ( d->annotationCreation && d->annotationCreation->failed() ) ||
+             ( d->fieldCreation && d->fieldCreation->failed() ) )
+        {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -867,7 +858,6 @@ void Injector::execute()
         else {
             d->state = CreatingFields;
             buildFieldLinks();
-            createFields();
         }
     }
 
@@ -967,6 +957,124 @@ void Injector::finish()
         log( "Injection succeeded" );
     d->owner->execute();
     d->owner = 0;
+}
+
+
+/*! Collects a list of unrecognised flags and annotation names and
+    arranges for execute() to be called when they have all been
+    created. */
+
+void Injector::createNames()
+{
+    Dict<int> seenFlags;
+    StringList flags;
+
+    Dict<int> seenAnnotations;
+    StringList annotations;
+
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+
+            StringList::Iterator i( m->flags( mb ) );
+            while ( i ) {
+                String n( *i );
+                if ( Flag::id( n ) == 0 && !seenFlags.contains( n ) ) {
+                    flags.append( n );
+                    seenFlags.insert( n, 0 );
+                }
+                ++i;
+            }
+
+            List<Annotation>::Iterator ai( m->annotations( mb ) );
+            while ( ai ) {
+                Annotation * a = ai;
+                String n( a->entryName() );
+
+                if ( AnnotationName::id( n ) == 0 &&
+                     !seenAnnotations.contains( n ) )
+                {
+                    annotations.append( n );
+                    seenAnnotations.insert( n, 0 );
+                }
+
+                ++ai;
+            }
+
+            ++mi;
+        }
+        ++it;
+    }
+
+    if ( !flags.isEmpty() )
+        d->flagCreation =
+            Flag::create( flags, d->transaction, this );
+
+    if ( !annotations.isEmpty() )
+        d->annotationCreation =
+            AnnotationName::create( annotations, d->transaction, this );
+}
+
+
+/*! Collects a list of unrecognised field names and arranges for
+    execute() to be called when they have all been created. */
+
+void Injector::createFields()
+{
+    List<Header> * l = new List<Header>;
+
+    Dict<int> seenFields;
+    StringList fields;
+
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+
+        // Collect each message's headers.
+
+        l->clear();
+        l->append( m->header() );
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            Bodypart *bp = bi;
+            l->append( bp->header() );
+            if ( bp->message() )
+                l->append( bp->message()->header() );
+            ++bi;
+        }
+
+        // And then step through them, looking for unknown fields.
+
+        List<Header>::Iterator hi( l );
+        while ( hi ) {
+            Header * hdr = hi;
+            List< HeaderField >::Iterator fi( hdr->fields() );
+            while ( fi ) {
+                HeaderField *hf = fi;
+                String n( hf->name() );
+
+                if ( hf->type() >= HeaderField::Other &&
+                     !seenFields.contains( n ) )
+                {
+                    fields.append( n );
+                    seenFields.insert( n, 0 );
+                }
+
+                ++fi;
+            }
+            ++hi;
+        }
+
+        ++it;
+    }
+
+    if ( !fields.isEmpty() )
+        d->fieldCreation =
+            FieldName::create( fields, d->transaction, this );
 }
 
 
@@ -1137,31 +1245,6 @@ void Injector::resolveAddressLinks()
     d->addressCreator =
         new AddressCreator( d->transaction, addresses, this );
     d->addressCreator->execute();
-}
-
-
-/*! This function creates a FieldCreator to create anything in
-    d->otherFields that we do not already recognise.
-*/
-
-void Injector::createFields()
-{
-    StringList newFields;
-
-    Dict<int> seen;
-    StringList::Iterator it( d->otherFields );
-    while ( it ) {
-        String n( *it );
-        if ( FieldName::id( n ) == 0 && !seen.contains( n ) ) {
-            newFields.append( n );
-            seen.insert( n, 0 );
-        }
-        ++it;
-    }
-
-    if ( !newFields.isEmpty() )
-        d->fieldCreation =
-            FieldName::create( newFields, d->transaction, this );
 }
 
 
@@ -1706,74 +1789,6 @@ void Injector::announce()
 }
 
 
-/*! Starts creating Flag objects for the flags we need to store for
-    this message.
-*/
-
-void Injector::createFlags()
-{
-    StringList unknown;
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        List<Mailbox>::Iterator mi( m->mailboxes() );
-        while ( mi ) {
-            Mailbox * mb = mi;
-            StringList::Iterator i( m->flags( mb ) );
-            while ( i ) {
-                if ( Flag::id( *i ) == 0 )
-                    unknown.append( *i );
-                ++i;
-            }
-            ++mi;
-        }
-        ++it;
-    }
-
-    if ( !unknown.isEmpty() )
-        d->flagCreation = Flag::create( unknown, d->transaction, this );
-}
-
-
-/*! Creates the AnnotationName objects needed to create the annotation
-    entries specified with the message.
-*/
-
-void Injector::createAnnotationNames()
-{
-    Dict<int> seen;
-    StringList unknown;
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        List<Mailbox>::Iterator mi( m->mailboxes() );
-        while ( mi ) {
-            Mailbox * mb = mi;
-            List<Annotation>::Iterator ai( m->annotations( mb ) );
-            while ( ai ) {
-                Annotation * a = ai;
-                String n( a->entryName() );
-
-                if ( AnnotationName::id( n ) == 0 && !seen.contains( n ) ) {
-                    unknown.append( n );
-                    seen.insert( n, 0 );
-                }
-
-                ++ai;
-            }
-            ++mi;
-        }
-        ++it;
-    }
-
-    if ( !unknown.isEmpty() )
-        d->annotationCreation =
-            AnnotationName::create( unknown, d->transaction, this );
-}
-
-
 /*! Inserts the flag table entries linking flag_names to the
     mailboxes/uids we occupy.
 */
@@ -1872,7 +1887,7 @@ void Injector::handleWrapping()
             while ( bi ) {
                 Bodypart * b = bi;
                 if ( m->partNumber( b ) == "2" ) {
-                    q->bind( 1, b->id() );
+                    q->bind( 1, b->id(), Query::Binary );
                     q->submitLine();
                 }
                 ++bi;
