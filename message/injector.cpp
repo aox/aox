@@ -409,7 +409,7 @@ void AddressCreator::selectAddresses()
     uint i = 0;
     StringList sl;
     List<Address>::Iterator it( addresses );
-    while ( it && i < 1024 ) {
+    while ( it && i < 128 ) {
         Address * a = it;
         if ( !a->id() ) {
             int n = 3*i+1;
