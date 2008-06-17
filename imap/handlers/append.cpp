@@ -314,8 +314,9 @@ void Append::execute()
         uids.add( h->message->uid( d->mailbox ) );
         ++h;
     }
-    setRespTextCode( "APPENDUID " + uids.set() );
-    
+    setRespTextCode( "APPENDUID"
+                     " " + fn( d->mailbox->uidvalidity() ) +
+                     " " + uids.set() );
     finish();
 }
 
