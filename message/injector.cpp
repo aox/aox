@@ -1058,6 +1058,8 @@ void Injector::updateAddresses( List<Address> * newAddresses,
             d->addresses.insert( k, a );
             addresses->append( a );
         }
+
+        ++ai;
     }
 }
 
