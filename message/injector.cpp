@@ -1295,19 +1295,10 @@ void Injector::setupBodyparts()
         return;
 
     hashes.removeDuplicates();
-    String r = "select id, hash from bodyparts where hash=$";
-    uint n = 1;
-    d->bidFetcher->look = new Query( "", d->bidFetcher );
-    StringList::Iterator h( hashes );
-    while ( h ) {
-        if ( n > 1 )
-            r.append( " or hash=$" );
-        r.append( fn( n ) );
-        d->bidFetcher->look->bind( n, *h );
-        ++n;
-        ++h;
-    }
-    d->bidFetcher->look->setString( r );
+    d->bidFetcher->look =
+        new Query( "select id, hash from bodyparts "
+                   "where hash=any($1)", d->bidFetcher );
+    d->bidFetcher->look->bind( 1, hashes );
 }
 
 
