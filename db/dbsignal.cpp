@@ -5,6 +5,7 @@
 #include "postgres.h"
 #include "event.h"
 #include "scope.h"
+#include "log.h"
 
 
 static List<DatabaseSignal> * signals = 0;
@@ -14,9 +15,10 @@ class DatabaseSignalData
     : public Garbage
 {
 public:
-    DatabaseSignalData(): o( 0 ) {}
+    DatabaseSignalData(): o( 0 ), l( new Log( Log::Database ) ) {}
     String n;
     EventHandler * o;
+    Log * l;
 };
 
 
@@ -39,6 +41,8 @@ public:
 DatabaseSignal::DatabaseSignal( const String & name, EventHandler * owner )
     : Garbage(), d( new DatabaseSignalData )
 {
+    Scope x( d->l );
+    owner->setLog( d->l );
     d->n = name;
     d->o = owner;
     if ( !signals ) {
@@ -46,6 +50,7 @@ DatabaseSignal::DatabaseSignal( const String & name, EventHandler * owner )
         Allocator::addEternal( signals, "database notify/listen listeners" );
     }
     signals->append( this );
+    log( "Listening for database signal " + name );
     Postgres::sendListen();
 }
 
@@ -62,7 +67,7 @@ void DatabaseSignal::notifyAll( const String & name )
         DatabaseSignal * s = i;
         ++i;
         if ( name == s->d->n && s->d->o ) {
-            Scope x( s->d->o->log() );
+            Scope x( s->d->l );
             s->d->o->execute();
         }
     }

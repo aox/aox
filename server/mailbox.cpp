@@ -161,7 +161,6 @@ class MailboxesWatcher
 {
 public:
     MailboxesWatcher(): EventHandler() {
-        setLog( new Log( Log::Server ) );
         (void)new DatabaseSignal( "mailboxes_updated", this );
     }
     void execute() { (new MailboxReader( 0, 0 ))->q->execute(); }
