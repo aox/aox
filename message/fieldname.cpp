@@ -255,6 +255,27 @@ void FieldName::reload( EventHandler * owner )
 }
 
 
+/*! Discards any field names that have been created by calling add()
+    rather than being loaded from the database. */
+
+void FieldName::rollback()
+{
+    if ( !::fieldsById )
+        return;
+
+    StringList::Iterator it( ::fieldsByName->keys() );
+    while ( it ) {
+        String k( *it );
+        uint id = *::fieldsByName->find( k );
+        if ( id > largestFieldNameId ) {
+            ::fieldsByName->take( k );
+            ::fieldsById->remove( id );
+        }
+        ++it;
+    }
+}
+
+
 /*! Issues the queries needed to create the specified \a fields in the
     transaction \a t, and notifies the \a owner when that is done, i.e.
     when when id() and name() recognise the newly-created field names.

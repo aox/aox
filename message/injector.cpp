@@ -857,6 +857,9 @@ void Injector::execute()
 
         if ( d->failed ) {
             ::failures->tick();
+            Flag::rollback();
+            FieldName::rollback();
+            AnnotationName::rollback();
         }
         else {
             announce();

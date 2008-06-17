@@ -260,6 +260,27 @@ void Flag::reload( EventHandler * owner )
 }
 
 
+/*! Discards any flags that have been created by calling add() rather
+    than being loaded from the database. */
+
+void Flag::rollback()
+{
+    if ( !::flagsByName )
+        return;
+
+    StringList::Iterator it( ::flagsByName->keys() );
+    while ( it ) {
+        String k( *it );
+        uint id = *::flagsByName->find( k );
+        if ( id > largestFlagId ) {
+            ::flagsByName->take( k );
+            ::flagsById->remove( id );
+        }
+        ++it;
+    }
+}
+
+
 /*! Issues the queries needed to create the specified \a flags in the
     transaction \a t and notifies the \a owner when that is done, i.e.
     when id() and name() recognise the newly-created flags.

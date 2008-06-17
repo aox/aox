@@ -14,6 +14,7 @@ public:
     static void setup();
 
     static void reload( EventHandler * = 0 );
+    static void rollback();
 
     static Query * create( const StringList &, class Transaction *,
                            EventHandler * );
