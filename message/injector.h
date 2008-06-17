@@ -45,7 +45,7 @@ private:
     void logDescription();
     void finish();
     void selectUids();
-    void selectMessageId();
+    bool selectMessageIds();
     void insertPartNumber( Query *, uint, const String &,
                            int = -1, int = -1, int = -1 );
     void setupBodyparts();

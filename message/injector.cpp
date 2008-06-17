@@ -56,75 +56,6 @@ struct Bid
 };
 
 
-class MidFetcher
-    : public EventHandler
-{
-public:
-    List<Message> * messages;
-    List<Query> * queries;
-    EventHandler *owner;
-    List<Message>::Iterator * it;
-    List<Query>::Iterator * qi;
-    Query * insert;
-    Query * select;
-    bool failed;
-    bool finished;
-    String error;
-
-    MidFetcher( List<Message> * ml, List<Query> * ql, EventHandler * ev )
-        : messages( ml ), queries( ql ), owner( ev ),
-          it( 0 ), qi( 0 ), insert( 0 ), select( 0 ),
-          failed( false ), finished( false )
-    {}
-
-    void execute() {
-        if ( finished )
-            return;
-
-        if ( !it ) {
-            it = new List<Message>::Iterator( messages );
-            qi = new List<Query>::Iterator( queries );
-        }
-
-        if ( !insert ) {
-            insert = *qi;
-            ++(*qi);
-            select = *qi;
-            ++(*qi);
-        }
-
-        if ( !insert->done() || !select->done() )
-            return;
-
-        Row * r = select->nextRow();
-        if ( r ) {
-            Message * m = *it;
-            m->setDatabaseId( r->getInt( "id" ) );
-        }
-        else {
-            failed = true;
-            if ( insert->failed() )
-                error = insert->error();
-            else if ( select->failed() )
-                error = select->error();
-        }
-
-        insert = 0;
-        select = 0;
-        ++(*it);
-
-        if ( !*it ) {
-            finished = true;
-            owner->execute();
-        }
-    }
-
-    bool done() const {
-        return finished;
-    }
-};
-
-
 class UidFetcher
     : public EventHandler
 {
@@ -525,7 +456,9 @@ void AddressCreator::processInsert()
 enum State {
     Inactive,
     CreatingDependencies,
-    InsertingBodyparts, SelectingUids, InsertingMessages,
+    InsertingBodyparts,
+    SelectingMessageIds, SelectingUids,
+    InsertingMessages,
     AwaitingCompletion, Done
 };
 
@@ -538,10 +471,11 @@ public:
         : messages( 0 ), owner( 0 ),
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
-          midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
+          uidFetcher( 0 ), bidFetcher( 0 ),
           headerFields( 0 ), addressFields( 0 ), dateFields( 0 ),
           flagCreation( 0 ), annotationCreation( 0 ),
-          fieldCreation( 0 ), addressCreator( 0 )
+          fieldCreation( 0 ), addressCreator( 0 ),
+          select( 0 ), copy( 0 ), message( 0 )
     {}
 
     List<Message> * messages;
@@ -558,7 +492,6 @@ public:
     List<Address> * addresses;
     Dict<Address> knownAddresses;
 
-    MidFetcher *midFetcher;
     UidFetcher *uidFetcher;
     BidFetcher *bidFetcher;
 
@@ -584,6 +517,9 @@ public:
     };
 
     List<Delivery> deliveries;
+    Query * select;
+    Query * copy;
+    List<Message>::Iterator * message;
 };
 
 
@@ -805,21 +741,27 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            selectMessageId();
-            selectUids();
-            d->transaction->execute();
-            d->state = SelectingUids;
+            d->state = SelectingMessageIds;
         }
+    }
+
+    if ( d->state == SelectingMessageIds ) {
+        if ( !selectMessageIds() )
+            return;
+
+        d->state = SelectingUids;
+        selectUids();
+        d->transaction->execute();
     }
 
     if ( d->state == SelectingUids && !d->transaction->failed() ) {
         // Once we have UIDs for each Mailbox, we can insert rows into
         // messages.
 
-        if ( !d->midFetcher->done() || !d->uidFetcher->done() )
+        if ( !d->uidFetcher->done() )
             return;
 
-        if ( d->midFetcher->failed || d->uidFetcher->failed ) {
+        if ( d->uidFetcher->failed ) {
             d->failed = true;
             d->transaction->rollback();
             d->state = AwaitingCompletion;
@@ -1096,35 +1038,54 @@ void Injector::finish()
 }
 
 
-/*! This private function inserts a new entry into the messages table
-    and creates an MidFetcher to fetch the id of the new row.
+/*! This function inserts rows into the messages table for each Message
+    in d->messages, and updates the objects with the newly-created ids.
+    It expects to be called repeatedly until it returns true, which it
+    does only when the work is done, or an error occurs.
 */
 
-void Injector::selectMessageId()
+bool Injector::selectMessageIds()
 {
-    List<Query> * queries = new List<Query>;
-
-    d->midFetcher =
-        new MidFetcher( d->messages, queries, this );
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-
-        Query * q =
-            new Query( "insert into messages(id,rfc822size) "
-                       "values (default,$1)", 0 );
-        q->bind( 1, m->rfc822().length() );
-        queries->append( q );
-        d->transaction->enqueue( q );
-
-        q = new Query( "select currval('messages_id_seq')::int "
-                       "as id", d->midFetcher );
-        queries->append( q );
-        d->transaction->enqueue( q );
-
-        ++it;
+    if ( !d->select ) {
+        d->message = new List<Message>::Iterator( d->messages );
+        d->select =
+            new Query( "select nextval('messages_id_seq')::int as mid "
+                       "from generate_series(1,$1)", this );
+        d->select->bind( 1, d->messages->count() );
+        d->transaction->enqueue( d->select );
+        d->transaction->execute();
     }
+
+    if ( !d->copy ) {
+        if ( !d->select->done() )
+            return false;
+
+        if ( d->select->failed() ) {
+            d->failed = true;
+            return true;
+        }
+
+        d->copy = new Query( "copy messages (id,rfc822size) "
+                             "from stdin with binary", this );
+
+        while ( d->select->hasResults() ) {
+            Message * m = *d->message;
+            Row * r = d->select->nextRow();
+            m->setDatabaseId( r->getInt( "mid" ) );
+            d->copy->bind( 1, m->databaseId() );
+            d->copy->bind( 2, m->rfc822().length() );
+            d->copy->submitLine();
+            ++(*d->message);
+        }
+
+        d->transaction->enqueue( d->copy );
+        d->transaction->execute();
+    }
+
+    if ( !d->copy->done() )
+        return false;
+
+    return true;
 }
 
 
