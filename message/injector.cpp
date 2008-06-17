@@ -62,30 +62,6 @@ struct Bid
 };
 
 
-// These structs represent each entry in the header_fields and
-// address_fields tables respectively.
-
-struct FieldLink
-    : public Garbage
-{
-    uint messageId;
-    HeaderField *hf;
-    String part;
-    int position;
-};
-
-struct AddressLink
-    : public Garbage
-{
-    uint messageId;
-    Address * address;
-    HeaderField::Type type;
-    String part;
-    int position;
-    int number;
-};
-
-
 // The following is everything the Injector needs to do its work.
 
 enum State {
@@ -105,9 +81,9 @@ public:
         : state( Inactive ), failed( false ),
           owner( 0 ), messages( 0 ), transaction( 0 ),
           midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
-          addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
-          fieldCreation( 0 ), addressCreator( 0 ),
-          flagCreation( 0 ), annotationCreation( 0 )
+          headerFields( 0 ), addressFields( 0 ), dateFields( 0 ),
+          flagCreation( 0 ), annotationCreation( 0 ),
+          fieldCreation( 0 ), addressCreator( 0 )
     {}
 
     State state;
@@ -123,14 +99,14 @@ public:
     UidFetcher *uidFetcher;
     BidFetcher *bidFetcher;
 
-    List< AddressLink > * addressLinks;
-    List< FieldLink > * fieldLinks;
-    List< FieldLink > * dateLinks;
+    Query * headerFields;
+    Query * addressFields;
+    Query * dateFields;
 
-    Query * fieldCreation;
-    AddressCreator * addressCreator;
     Query * flagCreation;
     Query * annotationCreation;
+    Query * fieldCreation;
+    AddressCreator * addressCreator;
 
     struct Delivery
         : public Garbage
@@ -145,6 +121,7 @@ public:
     };
 
     List<Delivery> deliveries;
+    Dict<Address> addresses;
 };
 
 
@@ -445,7 +422,7 @@ public:
     bool failed;
     bool done;
 
-    AddressCreator( Transaction * tr, List<Address> * a, EventHandler * ev )
+    AddressCreator( List<Address> * a, Transaction * tr, EventHandler * ev )
         : state( 0 ), q( 0 ), t( tr ), addresses( a ), owner( ev ),
           savepoint( 0 ), failed( false ), done( false )
     {}
@@ -807,12 +784,14 @@ void Injector::execute()
     if ( d->state == CreatingNames ) {
         if ( ( d->flagCreation && !d->flagCreation->done() ) ||
              ( d->annotationCreation && !d->annotationCreation->done() ) ||
-             ( d->fieldCreation && !d->fieldCreation->done() ) )
+             ( d->fieldCreation && !d->fieldCreation->done() ) ||
+             ( d->addressCreator && !d->addressCreator->done ) )
             return;
 
         if ( ( d->flagCreation && d->flagCreation->failed() ) ||
              ( d->annotationCreation && d->annotationCreation->failed() ) ||
-             ( d->fieldCreation && d->fieldCreation->failed() ) )
+             ( d->fieldCreation && d->fieldCreation->failed() ) ||
+             ( d->addressCreator && d->addressCreator->failed ) )
         {
             d->failed = true;
             d->transaction->rollback();
@@ -855,39 +834,17 @@ void Injector::execute()
             d->state = AwaitingCompletion;
         }
         else {
-            d->state = InsertingAddresses;
-            buildFieldLinks();
-            resolveAddressLinks();
+            insertMessages();
+            linkBodyparts();
+            linkHeaders();
+            insertDeliveries();
+            linkFlags();
+            linkAnnotations();
+            handleWrapping();
+
+            d->state = LinkingAnnotations;
+            d->transaction->execute();
         }
-    }
-
-    if ( d->state == InsertingAddresses ) {
-        if ( !d->addressCreator->done )
-            return;
-
-        if ( d->addressCreator->failed ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
-            d->state = InsertingMessages;
-        }
-    }
-
-    if ( d->state == InsertingMessages && !d->transaction->failed() ) {
-        insertMessages();
-        linkBodyparts();
-        linkHeaderFields();
-        linkDates();
-        insertDeliveries();
-        linkAddresses();
-        linkFlags();
-        linkAnnotations();
-        handleWrapping();
-
-        d->state = LinkingAnnotations;
-        d->transaction->execute();
     }
 
     if ( d->state == LinkingAnnotations || d->transaction->failed() ) {
@@ -1005,8 +962,9 @@ void Injector::createNames()
 }
 
 
-/*! Collects a list of unrecognised field names and arranges for
-    execute() to be called when they have all been created. */
+/*! Collects a list of unrecognised field names and addresses and
+    arranges for execute() to be called when they have all been
+    created. */
 
 void Injector::createFields()
 {
@@ -1015,11 +973,13 @@ void Injector::createFields()
     Dict<int> seenFields;
     StringList fields;
 
+    List<Address> * addresses = new List<Address>;
+
     List<Message>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
 
-        // Collect each message's headers.
+        // Collect the headers for each message.
 
         l->clear();
         l->append( m->header() );
@@ -1032,7 +992,8 @@ void Injector::createFields()
             ++bi;
         }
 
-        // And then step through them, looking for unknown fields.
+        // And then step through them, looking for unknown fields and
+        // address fields.
 
         List<Header>::Iterator hi( l );
         while ( hi ) {
@@ -1049,6 +1010,10 @@ void Injector::createFields()
                     seenFields.insert( n, 0 );
                 }
 
+                if ( hf->type() <= HeaderField::LastAddressField )
+                    updateAddresses( ((AddressField *)hf)->addresses(),
+                                     addresses );
+
                 ++fi;
             }
             ++hi;
@@ -1057,9 +1022,45 @@ void Injector::createFields()
         ++it;
     }
 
+    // Rows destined for deliveries/delivery_recipients also contain
+    // addresses that may need to be looked up or created.
+
+    List<Address> * sender = new List<Address>;
+    List<InjectorData::Delivery>::Iterator di( d->deliveries );
+    while ( di ) {
+        sender->clear();
+        sender->append( di->sender );
+        updateAddresses( sender, addresses );
+        updateAddresses( di->recipients, addresses );
+        ++di;
+    }
+
     if ( !fields.isEmpty() )
         d->fieldCreation =
             FieldName::create( fields, d->transaction, this );
+
+    d->addressCreator =
+        new AddressCreator( addresses, d->transaction, this );
+    d->addressCreator->execute();
+}
+
+
+/*! Adds entries from \a newAddresses to \a addresses if they do not
+    already exist in the latter. */
+
+void Injector::updateAddresses( List<Address> * newAddresses,
+                                List<Address> * addresses )
+{
+    List<Address>::Iterator ai( newAddresses );
+    while ( ai ) {
+        Address * a = ai;
+        String k = addressKey( a );
+
+        if ( !d->addresses.contains( k ) ) {
+            d->addresses.insert( k, a );
+            addresses->append( a );
+        }
+    }
 }
 
 
@@ -1159,168 +1160,6 @@ void Injector::selectUids()
         queries->append( q );
 
         ++mi;
-    }
-}
-
-
-/*! This private function builds a list of AddressLinks containing every
-    address used in the message, and initiates an AddressCache::lookup()
-    after excluding any duplicate addresses. It causes execute() to be
-    called when every address in d->addressLinks has been resolved (if
-    any need resolving).
-*/
-
-void Injector::resolveAddressLinks()
-{
-    List< Address > * addresses = new List< Address >;
-    Dict< Address > unique( 333 );
-    Dict< Address > naked( 333 );
-
-    List<AddressLink>::Iterator i( d->addressLinks );
-    while ( i ) {
-        String k = addressKey( i->address );
-
-        if ( unique.contains( k ) ) {
-            i->address = unique.find( k );
-        }
-        else {
-            unique.insert( k, i->address );
-            addresses->append( i->address );
-            k = i->address->lpdomain();
-            naked.insert( k, i->address );
-        }
-
-        ++i;
-    }
-
-    // if we're also going to insert deliveries rows, and one or more
-    // of the addresses aren't in the to/cc fields, make sure we
-    // create addresses rows and learn their ids.
-
-    List<InjectorData::Delivery>::Iterator di( d->deliveries );
-    while ( di ) {
-        List<Address>::Iterator ai( di->recipients );
-        while ( ai ) {
-            Address * a = ai;
-            String k( a->lpdomain() );
-
-            if ( naked.contains( k ) ) {
-                Address * same = naked.find( k );
-                if ( a != same ) {
-                    di->recipients->remove( a );
-                    di->recipients->prepend( same );
-                }
-            }
-            else {
-                naked.insert( k, a );
-                addresses->append( a );
-            }
-            ++ai;
-        }
-
-        String k( di->sender->lpdomain() );
-        if ( naked.contains( k ) )
-            di->sender = naked.find( k );
-        else
-            addresses->append( di->sender );
-
-        ++di;
-    }
-
-    d->addressCreator =
-        new AddressCreator( d->transaction, addresses, this );
-    d->addressCreator->execute();
-}
-
-
-/*! This private function builds a list of FieldLinks containing every
-    header field used in the message.
-*/
-
-void Injector::buildFieldLinks()
-{
-    d->fieldLinks = new List< FieldLink >;
-    d->addressLinks = new List< AddressLink >;
-    d->dateLinks = new List< FieldLink >;
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-
-        buildLinksForHeader( m, m->header(), "" );
-
-        // Since the MIME header fields belonging to the first-child of a
-        // single-part Message are physically collocated with the RFC 822
-        // header, we don't need to inject them into the database again.
-        bool skip = false;
-        ContentType *ct = m->header()->contentType();
-        if ( !ct || ct->type() != "multipart" )
-            skip = true;
-
-        List<Bodypart>::Iterator bi( m->allBodyparts() );
-        while ( bi ) {
-            Bodypart *bp = bi;
-            String pn = m->partNumber( bp );
-
-            if ( !skip )
-                buildLinksForHeader( m, bp->header(), pn );
-            else
-                skip = false;
-            if ( bp->message() )
-                buildLinksForHeader( m, bp->message()->header(),
-                                     pn + ".rfc822" );
-            ++bi;
-        }
-
-        ++it;
-    }
-
-}
-
-
-/*! This private function makes links in d->fieldLinks for each of the
-    fields in \a hdr (from the bodypart numbered \a part) of the given
-    message \a m. It is used by buildFieldLinks().
-*/
-
-void Injector::buildLinksForHeader( Message * m, Header *hdr, const String &part )
-{
-    List< HeaderField >::Iterator it( hdr->fields() );
-    while ( it ) {
-        HeaderField *hf = it;
-
-        FieldLink *link = new FieldLink;
-        link->hf = hf;
-        link->part = part;
-        link->position = hf->position();
-        link->messageId = m->databaseId();
-
-        if ( hf->type() > HeaderField::LastAddressField )
-            d->fieldLinks->append( link );
-
-        if ( part.isEmpty() && hf->type() == HeaderField::Date )
-            d->dateLinks->append( link );
-
-        if ( hf->type() <= HeaderField::LastAddressField ) {
-            List< Address > * al = ((AddressField *)hf)->addresses();
-            List< Address >::Iterator ai( al );
-            uint n = 0;
-            while ( ai ) {
-                AddressLink * link = new AddressLink;
-                link->part = part;
-                link->position = hf->position();
-                link->type = hf->type();
-                link->address = ai;
-                link->number = n;
-                link->messageId = m->databaseId();
-                d->addressLinks->append( link );
-
-                ++n;
-                ++ai;
-            }
-        }
-
-        ++it;
     }
 }
 
@@ -1490,18 +1329,22 @@ void Injector::insertDeliveries()
 
     List<InjectorData::Delivery>::Iterator di( d->deliveries );
     while ( di ) {
+        Address * sender =
+            d->addresses.find( addressKey( di->sender ) );
+
         Query * q =
             new Query( "insert into deliveries "
                        "(sender,message,injected_at,expires_at) "
                        "values ($1,$2,current_timestamp,"
                        "current_timestamp+interval '2 days')", 0 );
-        q->bind( 1, di->sender->id() );
+        q->bind( 1, sender->id() );
         q->bind( 2, di->message->databaseId() );
         d->transaction->enqueue( q );
 
         uint n = 0;
         List<Address>::Iterator it( di->recipients );
         while ( it ) {
+            Address * a = d->addresses.find( addressKey( it ) );
             Query * q =
                 new Query(
                     "insert into delivery_recipients (delivery,recipient) "
@@ -1509,7 +1352,7 @@ void Injector::insertDeliveries()
                     "currval(pg_get_serial_sequence('deliveries','id')),"
                     "$1)", 0
                 );
-            q->bind( 1, it->id() );
+            q->bind( 1, a->id() );
             d->transaction->enqueue( q );
             n++;
             ++it;
@@ -1601,86 +1444,115 @@ void Injector::insertPartNumber( Query *q, uint message,
 }
 
 
-/*! This private function inserts entries into the header_fields table
-    for each new message.
-*/
+/*! Iterates over the headers of each message and calls linkHeader()
+    for each one. */
 
-void Injector::linkHeaderFields()
+void Injector::linkHeaders()
 {
-    Query *q =
+    d->headerFields =
         new Query( "copy header_fields "
                    "(message,part,position,field,value) "
                    "from stdin with binary", 0 );
 
-    List< FieldLink >::Iterator it( d->fieldLinks );
-    while ( it ) {
-        FieldLink *link = it;
-
-        uint t = FieldName::id( link->hf->name() );
-        if ( !t )
-            t = link->hf->type(); // XXX and what if this too fails?
-
-        q->bind( 1, link->messageId, Query::Binary );
-        q->bind( 2, link->part, Query::Binary );
-        q->bind( 3, link->position, Query::Binary );
-        q->bind( 4, t, Query::Binary );
-        q->bind( 5, link->hf->value(), Query::Binary );
-        q->submitLine();
-
-        ++it;
-    }
-
-    d->transaction->enqueue( q );
-}
-
-
-/*! This private function inserts one entry per AddressLink into the
-    address_fields table for each new message.
-*/
-
-void Injector::linkAddresses()
-{
-    Query * q =
+    d->addressFields =
         new Query( "copy address_fields "
                    "(message,part,position,field,number,address) "
                    "from stdin with binary", 0 );
 
-    List< AddressLink >::Iterator it( d->addressLinks );
-    while ( it ) {
-        AddressLink *link = it;
+    d->dateFields =
+        new Query( "copy date_fields (message,value) "
+                   "from stdin with binary", 0 );
 
-        q->bind( 1, link->messageId, Query::Binary );
-        q->bind( 2, link->part, Query::Binary );
-        q->bind( 3, link->position, Query::Binary );
-        q->bind( 4, link->type, Query::Binary );
-        q->bind( 5, link->number, Query::Binary );
-        q->bind( 6, link->address->id(), Query::Binary );
-        q->submitLine();
+    List<Message>::Iterator it( d->messages );
+    while ( it ) {
+        Message * m = it;
+
+        linkHeader( m, m->header(), "" );
+
+        // Since the MIME header fields belonging to the first-child of
+        // a single-part Message are appended to the RFC 822 header, we
+        // don't need to inject them into the database again.
+        bool skip = false;
+        ContentType *ct = m->header()->contentType();
+        if ( !ct || ct->type() != "multipart" )
+            skip = true;
+
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            Bodypart *bp = bi;
+            String pn = m->partNumber( bp );
+
+            if ( !skip )
+                linkHeader( m, bp->header(), pn );
+            else
+                skip = false;
+            if ( bp->message() )
+                linkHeader( m, bp->message()->header(),
+                            pn + ".rfc822" );
+            ++bi;
+        }
 
         ++it;
     }
 
-    d->transaction->enqueue( q );
+    d->transaction->enqueue( d->headerFields );
+    d->transaction->enqueue( d->addressFields );
+    d->transaction->enqueue( d->dateFields );
 }
 
 
-/*! This private function inserts entries into the date_fields table
-    for each new message.
-*/
+/*! Inserts the fields from the header \a h of the specified \a part in
+    the message \a m. */
 
-void Injector::linkDates()
+void Injector::linkHeader( Message * m, Header * h, const String & part )
 {
-    List< FieldLink >::Iterator it( d->dateLinks );
-    while ( it ) {
-        FieldLink * link = it;
-        DateField * df = (DateField *)link->hf;
+    Query * q;
 
-        Query * q =
-           new Query( "insert into date_fields (message,value) "
-                       "values ($1,$2)", 0 );
-        q->bind( 1, link->messageId );
-        q->bind( 2, df->date()->isoDateTime() );
-        d->transaction->enqueue( q );
+    List< HeaderField >::Iterator it( h->fields() );
+    while ( it ) {
+        HeaderField *hf = it;
+
+        if ( hf->type() <= HeaderField::LastAddressField ) {
+            q = d->addressFields;
+            List< Address > * al = ((AddressField *)hf)->addresses();
+            List< Address >::Iterator ai( al );
+            uint n = 0;
+            while ( ai ) {
+                Address * a = d->addresses.find( addressKey( ai ) );
+                q->bind( 1, m->databaseId(), Query::Binary );
+                q->bind( 2, part, Query::Binary );
+                q->bind( 3, hf->position(), Query::Binary );
+                q->bind( 4, hf->type(), Query::Binary );
+                q->bind( 5, n, Query::Binary );
+                q->bind( 6, a->id(), Query::Binary );
+                q->submitLine();
+                ++ai;
+                ++n;
+            }
+        }
+        else {
+            q = d->headerFields;
+
+            uint t = FieldName::id( hf->name() );
+            if ( !t )
+                t = hf->type();
+
+            q->bind( 1, m->databaseId(), Query::Binary );
+            q->bind( 2, part, Query::Binary );
+            q->bind( 3, hf->position(), Query::Binary );
+            q->bind( 4, t, Query::Binary );
+            q->bind( 5, hf->value(), Query::Binary );
+            q->submitLine();
+
+            if ( part.isEmpty() && hf->type() == HeaderField::Date ) {
+                DateField * df = (DateField *)hf;
+
+                d->dateFields->bind( 1, m->databaseId(), Query::Binary );
+                d->dateFields->bind( 2, df->date()->isoDateTime(),
+                                     Query::Binary );
+                d->dateFields->submitLine();
+            }
+        }
 
         ++it;
     }

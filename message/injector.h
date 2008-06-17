@@ -41,21 +41,18 @@ private:
 
     void finish();
     void createNames();
+    void createFields();
     void selectUids();
     void selectMessageId();
-    void resolveAddressLinks();
-    void buildLinksForHeader( Message *, Header *, const String & );
-    void buildFieldLinks();
+    void updateAddresses( List<Address> *, List<Address> * );
     void insertPartNumber( Query *, uint, const String &,
                            int = -1, int = -1, int = -1 );
     void setupBodyparts();
     void insertMessages();
     void insertDeliveries();
     void linkBodyparts();
-    void linkHeaderFields();
-    void linkAddresses();
-    void linkDates();
-    void createFields();
+    void linkHeaders();
+    void linkHeader( Message *, Header *, const String & );
     void linkFlags();
     void linkAnnotations();
     void handleWrapping();
