@@ -1736,6 +1736,7 @@ void Injector::linkAnnotations()
                     q->bindNull( 5 );
                 else
                     q->bind( 5, ai->ownerId() );
+                q->submitLine();
                 ++ai;
             }
             ++mi;
