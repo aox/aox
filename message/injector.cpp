@@ -921,7 +921,7 @@ void Injector::scanMessages()
                 String n( hf->name() );
 
                 if ( hf->type() >= HeaderField::Other &&
-                     !seenFields.contains( n ) )
+                     FieldName::id( n ) == 0 && !seenFields.contains( n ) )
                 {
                     d->fields.append( n );
                     seenFields.insert( n, 0 );
