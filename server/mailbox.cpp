@@ -192,6 +192,7 @@ public:
         if ( !mr->done )
             return;
 
+        mr = 0;
         ::refreshing = false;
     }
 };
