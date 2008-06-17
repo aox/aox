@@ -1489,8 +1489,7 @@ void Injector::linkHeaders()
                    "from stdin with binary", 0 );
 
     d->dateFields =
-        new Query( "copy date_fields (message,value) "
-                   "from stdin with binary", 0 );
+        new Query( "copy date_fields (message,value) from stdin", 0 );
 
     List<Message>::Iterator it( d->messages );
     while ( it ) {
@@ -1575,10 +1574,8 @@ void Injector::linkHeader( Message * m, Header * h, const String & part )
 
             if ( part.isEmpty() && hf->type() == HeaderField::Date ) {
                 DateField * df = (DateField *)hf;
-
                 d->dateFields->bind( 1, m->databaseId() );
-                d->dateFields->bind( 2, df->date()->isoDateTime(),
-                                     Query::Binary );
+                d->dateFields->bind( 2, df->date()->isoDateTime() );
                 d->dateFields->submitLine();
             }
         }
