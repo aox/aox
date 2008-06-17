@@ -762,7 +762,7 @@ void Injector::execute()
         // names, and addresses that must be stored before the messages
         // themselves.
 
-        scanMessages();
+        findDependencies();
 
         if ( d->failed ) {
             finish();
@@ -882,7 +882,7 @@ void Injector::execute()
     building that list anyway.
 */
 
-void Injector::scanMessages()
+void Injector::findDependencies()
 {
     Dict<int> seenFlags;
     Dict<int> seenFields;
@@ -1011,9 +1011,9 @@ void Injector::updateAddresses( List<Address> * newAddresses )
 }
 
 
-/*! This function creates any unknown names found by scanMessages(). It
-    expects to be called repeatedly until it returns true, which it does
-    when all dependencies have been created or when an error occurs.
+/*! This function creates any unknown names found by findDependencies().
+    It expects to be called repeatedly until it returns true, which it
+    does only when the work is all done or when an error occurs.
 
     The various inserts must be executed one by one, because they use
     savepoints.

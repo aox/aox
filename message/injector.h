@@ -39,7 +39,7 @@ private:
 
     static void setup();
 
-    void scanMessages();
+    void findDependencies();
     void updateAddresses( List<Address> * );
     bool createDependencies();
     void logDescription();
