@@ -2,6 +2,10 @@ Schedule
 
   Abhijit hopes to be away in Orchha between 2008-06-20 to -22.
 
+  Arnt is away 2007-06-28 to -30 (little or no net).
+
+  Arnt is away 2007-08-07 to -16 (good net access).
+
 
 3.0.0: ?
 
@@ -142,22 +146,6 @@ db-address=localhost works, but needs improvement.
   It works, but the code is a little ugly. The error handling logic
   needs a careful look after some time. Once that's solid, the other
   callers (SpoolManager/SmtpClient etc.) can be converted.
-
-
-Graceful shutdown
-
-  When we decide to shut down, we should:
-
-  1. Close all listeners. Log the shutdown. Abort those SMTP
-     transactions which aren't currently in the responsibility
-     transfer phase described by RFC 1047.
-
-  2. Wait a second or two. Refuse new commands on existing connections
-     (fuzzy logic needed to define "command" in that context). Don't
-     start new database transactions.
-
-  3. Close the remaining connections, implicitly rolling back database
-     transactions. Quit.
 
 
 aox check schema

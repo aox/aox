@@ -342,15 +342,18 @@ String Parser::word()
 }
 
 
-/*! Parses and steps past a single value, which is either a number of
+/*! Parses and steps past a single value, which is either a number or
     an identifier.
 */
 
 String Parser::value()
 {
     uint j = whitespace( i );
-    if ( t[j] >= '0' && t[j] <= '9' ) {
+    if ( t[j] == '-' ||
+         ( t[j] >= '0' && t[j] <= '9' ) ) {
         uint k = j;
+        if ( t[k] == '-' )
+            k++;
         while ( t[k] >= '0' && t[k] <= '9' )
             k++;
         String r( t.mid( j, k-j ) );
