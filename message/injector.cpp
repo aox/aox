@@ -67,9 +67,7 @@ struct Bid
 enum State {
     Inactive,
     CreatingNames,
-    InsertingBodyparts, InsertingAddresses, SelectingUids,
-    InsertingMessages,
-    LinkingAddresses, LinkingFlags, LinkingAnnotations,
+    InsertingBodyparts, SelectingUids, InsertingMessages,
     AwaitingCompletion, Done
 };
 
@@ -842,12 +840,12 @@ void Injector::execute()
             linkAnnotations();
             handleWrapping();
 
-            d->state = LinkingAnnotations;
+            d->state = InsertingMessages;
             d->transaction->execute();
         }
     }
 
-    if ( d->state == LinkingAnnotations || d->transaction->failed() ) {
+    if ( d->state == InsertingMessages || d->transaction->failed() ) {
         // Now we just wait for everything to finish.
         if ( d->state < AwaitingCompletion ) {
             d->transaction->enqueue(
