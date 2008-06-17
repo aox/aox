@@ -744,7 +744,7 @@ String Injector::error() const
         ++it;
     }
 
-    if ( d->bidFetcher->failed )
+    if ( d->bidFetcher && d->bidFetcher->failed )
         return d->bidFetcher->error;
     if ( !d->transaction )
         return "";
