@@ -2,6 +2,7 @@
 
 #include "flag.h"
 
+#include "configuration.h"
 #include "transaction.h"
 #include "allocator.h"
 #include "dbsignal.h"
@@ -242,6 +243,9 @@ void Flag::setup()
 
     ::flagsById = new Map<String>;
     Allocator::addEternal( ::flagsById, "list of flags by id" );
+
+    if ( !Configuration::toggle( Configuration::Security ) )
+        (void)new FlagObliterator;
 
     reload();
 }

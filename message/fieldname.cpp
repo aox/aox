@@ -2,6 +2,7 @@
 
 #include "fieldname.h"
 
+#include "configuration.h"
 #include "transaction.h"
 #include "allocator.h"
 #include "dbsignal.h"
@@ -237,6 +238,9 @@ void FieldName::setup()
 
     ::fieldsById = new Map<String>;
     Allocator::addEternal( ::fieldsById, "list of fields by id" );
+
+    if ( !Configuration::toggle( Configuration::Security ) )
+        (void)new FieldNameObliterator;
 
     reload();
 }

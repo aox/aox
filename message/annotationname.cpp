@@ -2,6 +2,7 @@
 
 #include "annotationname.h"
 
+#include "configuration.h"
 #include "transaction.h"
 #include "allocator.h"
 #include "dbsignal.h"
@@ -233,10 +234,14 @@ public:
 void AnnotationName::setup()
 {
     ::annotationsByName = new Dict<uint>;
-    Allocator::addEternal( ::annotationsByName, "list of annotations by name" );
+    Allocator::addEternal( ::annotationsByName,
+                           "list of annotations by name" );
 
     ::annotationsById = new Map<String>;
     Allocator::addEternal( ::annotationsById, "list of annotations by id" );
+
+    if ( !Configuration::toggle( Configuration::Security ) )
+        (void)new AnnotationNameObliterator;
 
     reload();
 }
