@@ -1024,11 +1024,12 @@ bool Injector::createDependencies()
         d->fieldCreation =
             FieldName::create( d->fields, d->transaction, this );
 
-    if ( d->fieldCreation && !d->fieldCreation->done() )
-        return false;
-
-    if ( d->fieldCreation->failed() )
-        return true;
+    if ( d->fieldCreation ) {
+        if ( !d->fieldCreation->done() )
+            return false;
+        if ( d->fieldCreation->failed() )
+            return true;
+    }
 
     // When that's done, insert into flag_names.
 
@@ -1036,11 +1037,12 @@ bool Injector::createDependencies()
         d->flagCreation =
             Flag::create( d->flags, d->transaction, this );
 
-    if ( d->flagCreation && !d->flagCreation->done() )
-        return false;
-
-    if ( d->flagCreation->failed() )
-        return true;
+    if ( d->flagCreation ) {
+        if ( !d->flagCreation->done() )
+            return false;
+        if ( d->flagCreation->failed() )
+            return true;
+    }
 
     // Then annotation_names.
 
@@ -1048,11 +1050,12 @@ bool Injector::createDependencies()
         d->annotationCreation =
             AnnotationName::create( d->annotationNames, d->transaction, this );
 
-    if ( d->annotationCreation && !d->annotationCreation->done() )
-        return false;
-
-    if ( d->annotationCreation->failed() )
-        return true;
+    if ( d->annotationCreation ) {
+        if ( !d->annotationCreation->done() )
+            return false;
+        if ( d->annotationCreation->failed() )
+            return true;
+    }
 
     // And finally, addresses.
 
