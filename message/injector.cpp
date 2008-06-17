@@ -29,12 +29,6 @@
 #include "dsn.h"
 
 
-class MidFetcher;
-class UidFetcher;
-class BidFetcher;
-class AddressCreator;
-
-
 static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *incrUidnextWithRecent;
@@ -59,67 +53,6 @@ struct Bid
     String hash;
     Query * insert;
     Query * select;
-};
-
-
-// The following is everything the Injector needs to do its work.
-
-enum State {
-    Inactive,
-    CreatingNames,
-    InsertingBodyparts, SelectingUids, InsertingMessages,
-    AwaitingCompletion, Done
-};
-
-class InjectorData
-    : public Garbage
-{
-public:
-    InjectorData()
-        : state( Inactive ), failed( false ),
-          owner( 0 ), messages( 0 ), transaction( 0 ),
-          midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
-          headerFields( 0 ), addressFields( 0 ), dateFields( 0 ),
-          flagCreation( 0 ), annotationCreation( 0 ),
-          fieldCreation( 0 ), addressCreator( 0 )
-    {}
-
-    State state;
-
-    bool failed;
-
-    EventHandler *owner;
-    List<Message> * messages;
-
-    Transaction *transaction;
-
-    MidFetcher *midFetcher;
-    UidFetcher *uidFetcher;
-    BidFetcher *bidFetcher;
-
-    Query * headerFields;
-    Query * addressFields;
-    Query * dateFields;
-
-    Query * flagCreation;
-    Query * annotationCreation;
-    Query * fieldCreation;
-    AddressCreator * addressCreator;
-
-    struct Delivery
-        : public Garbage
-    {
-        Delivery( Message * m, Address * a, List<Address> * l )
-            : message( m ), sender( a ), recipients( l )
-        {}
-
-        Message * message;
-        Address * sender;
-        List<Address> * recipients;
-    };
-
-    List<Delivery> deliveries;
-    Dict<Address> addresses;
 };
 
 
@@ -406,6 +339,17 @@ public:
 };
 
 
+static String addressKey( Address * a )
+{
+    String r;
+    r.append( a->uname().utf8() );
+    r.append( '\0' );
+    r.append( a->localpart() );
+    r.append( '\0' );
+    r.append( a->domain().lower() );
+    return r;
+}
+
 class AddressCreator
     : public EventHandler
 {
@@ -451,17 +395,6 @@ void AddressCreator::execute()
         done = true;
         owner->execute();
     }
-}
-
-static String addressKey( Address * a )
-{
-    String r;
-    r.append( a->uname().utf8() );
-    r.append( '\0' );
-    r.append( a->localpart() );
-    r.append( '\0' );
-    r.append( a->domain().lower() );
-    return r;
 }
 
 void AddressCreator::selectAddresses()
@@ -587,13 +520,79 @@ void AddressCreator::processInsert()
 }
 
 
-/*! \class Injector injector.h
-    This class delivers a Message to a List of Mailboxes.
+// The following is everything the Injector needs to do its work.
 
-    The Injector takes a Message object, and performs all the database
-    operations necessary to inject it into each of a List of Mailboxes.
-    The message is assumed to be valid. The list of mailboxes must be
-    sorted.
+enum State {
+    Inactive,
+    CreatingDependencies,
+    InsertingBodyparts, SelectingUids, InsertingMessages,
+    AwaitingCompletion, Done
+};
+
+
+class InjectorData
+    : public Garbage
+{
+public:
+    InjectorData()
+        : messages( 0 ), owner( 0 ),
+          state( Inactive ), failed( false ), transaction( 0 ),
+          addresses( new List<Address> ),
+          midFetcher( 0 ), uidFetcher( 0 ), bidFetcher( 0 ),
+          headerFields( 0 ), addressFields( 0 ), dateFields( 0 ),
+          flagCreation( 0 ), annotationCreation( 0 ),
+          fieldCreation( 0 ), addressCreator( 0 )
+    {}
+
+    List<Message> * messages;
+    EventHandler * owner;
+
+    State state;
+    bool failed;
+
+    Transaction *transaction;
+
+    StringList flags;
+    StringList fields;
+    StringList annotationNames;
+    List<Address> * addresses;
+    Dict<Address> knownAddresses;
+
+    MidFetcher *midFetcher;
+    UidFetcher *uidFetcher;
+    BidFetcher *bidFetcher;
+
+    Query * headerFields;
+    Query * addressFields;
+    Query * dateFields;
+
+    Query * flagCreation;
+    Query * annotationCreation;
+    Query * fieldCreation;
+    AddressCreator * addressCreator;
+
+    struct Delivery
+        : public Garbage
+    {
+        Delivery( Message * m, Address * a, List<Address> * l )
+            : message( m ), sender( a ), recipients( l )
+        {}
+
+        Message * message;
+        Address * sender;
+        List<Address> * recipients;
+    };
+
+    List<Delivery> deliveries;
+};
+
+
+/*! \class Injector injector.h
+    Stores message objects in the database.
+
+    This class takes a list of Message objects and performs the database
+    operations necessary to inject them into their respective mailboxes.
+    Injection commences only when execute() is called.
 */
 
 
@@ -640,12 +639,14 @@ void Injector::setup()
             "values ($1,$2,$3,$4)"
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
+
+    ::failures = new GraphableCounter( "injection-errors" );
+    ::successes = new GraphableCounter( "messages-injected" );
 }
 
 
 /*! Creates a new Injector to deliver the \a messages on behalf of
     the \a owner, which is notified when the injection is completed.
-    Message delivery commences when the execute() function is called.
 */
 
 Injector::Injector( List<Message> * messages, EventHandler * owner )
@@ -751,45 +752,37 @@ String Injector::error() const
 }
 
 
-/*! This function creates and executes the series of database queries
-    needed to perform message delivery.
-*/
-
 void Injector::execute()
 {
     Scope x( log() );
 
     if ( d->state == Inactive ) {
-        List<Message>::Iterator it( d->messages );
-        while ( it ) {
-            Message * m = it;
-            if ( !m->valid() ) {
-                d->failed = true;
-                finish();
-                return;
-            }
-            ++it;
+        // We'll look over the messages to make sure they're all valid
+        // and to collect any unknown header fields, flags, annotation
+        // names, and addresses that must be stored before the messages
+        // themselves.
+
+        scanMessages();
+
+        if ( d->failed ) {
+            finish();
+            return;
         }
 
-        logMessageDetails();
+        logDescription();
 
         d->transaction = new Transaction( this );
-        d->state = CreatingNames;
-        createNames();
-        createFields();
+        d->state = CreatingDependencies;
     }
 
-    if ( d->state == CreatingNames ) {
-        if ( ( d->flagCreation && !d->flagCreation->done() ) ||
-             ( d->annotationCreation && !d->annotationCreation->done() ) ||
-             ( d->fieldCreation && !d->fieldCreation->done() ) ||
-             ( d->addressCreator && !d->addressCreator->done ) )
+    if ( d->state == CreatingDependencies ) {
+        if ( !createDependencies() )
             return;
 
         if ( ( d->flagCreation && d->flagCreation->failed() ) ||
-             ( d->annotationCreation && d->annotationCreation->failed() ) ||
              ( d->fieldCreation && d->fieldCreation->failed() ) ||
-             ( d->addressCreator && d->addressCreator->failed ) )
+             ( d->addressCreator && d->addressCreator->failed ) ||
+             ( d->annotationCreation && d->annotationCreation->failed() ) )
         {
             d->failed = true;
             d->transaction->rollback();
@@ -858,10 +851,6 @@ void Injector::execute()
     if ( d->state == AwaitingCompletion ) {
         if ( !d->transaction->done() )
             return;
-        if ( !::failures ) {
-            ::failures = new GraphableCounter( "injection-errors" );
-            ::successes = new GraphableCounter( "messages-injected" );
-        }
 
         if ( !d->failed )
             d->failed = d->transaction->failed();
@@ -879,105 +868,35 @@ void Injector::execute()
 }
 
 
-/*! This function notifies the owner of this Injector of its completion.
-    It will do so only once.
+/*! This private function looks through the list of messages given to
+    this Injector, to make sure that they are all valid, and to collect
+    lists of any unknown header field names, flags, annotation names, or
+    addresses.
+
+    In the common case there will be few, if any, entries to insert into
+    the *_names tables, so we build lists of them without worrying about
+    memory use. The list of addresses may be large, but we can't avoid
+    building that list anyway.
 */
 
-void Injector::finish()
-{
-    // XXX: If we fail early in the transaction, we'll continue to
-    // be notified of individual query failures. We don't want to
-    // pass them on, because d->owner would have killed itself.
-    if ( !d->owner )
-        return;
-
-    if ( d->failed )
-        log( "Injection failed: " + error() );
-    else
-        log( "Injection succeeded" );
-    d->owner->execute();
-    d->owner = 0;
-}
-
-
-/*! Collects a list of unrecognised flags and annotation names and
-    arranges for execute() to be called when they have all been
-    created. */
-
-void Injector::createNames()
+void Injector::scanMessages()
 {
     Dict<int> seenFlags;
-    StringList flags;
+    Dict<int> seenFields;
+    Dict<int> seenAnnotationNames;
 
-    Dict<int> seenAnnotations;
-    StringList annotations;
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-
-        List<Mailbox>::Iterator mi( m->mailboxes() );
-        while ( mi ) {
-            Mailbox * mb = mi;
-
-            StringList::Iterator i( m->flags( mb ) );
-            while ( i ) {
-                String n( *i );
-                if ( Flag::id( n ) == 0 && !seenFlags.contains( n ) ) {
-                    flags.append( n );
-                    seenFlags.insert( n, 0 );
-                }
-                ++i;
-            }
-
-            List<Annotation>::Iterator ai( m->annotations( mb ) );
-            while ( ai ) {
-                Annotation * a = ai;
-                String n( a->entryName() );
-
-                if ( AnnotationName::id( n ) == 0 &&
-                     !seenAnnotations.contains( n ) )
-                {
-                    annotations.append( n );
-                    seenAnnotations.insert( n, 0 );
-                }
-
-                ++ai;
-            }
-
-            ++mi;
-        }
-        ++it;
-    }
-
-    if ( !flags.isEmpty() )
-        d->flagCreation =
-            Flag::create( flags, d->transaction, this );
-
-    if ( !annotations.isEmpty() )
-        d->annotationCreation =
-            AnnotationName::create( annotations, d->transaction, this );
-}
-
-
-/*! Collects a list of unrecognised field names and addresses and
-    arranges for execute() to be called when they have all been
-    created. */
-
-void Injector::createFields()
-{
     List<Header> * l = new List<Header>;
 
-    Dict<int> seenFields;
-    StringList fields;
-
-    List<Address> * addresses = new List<Address>;
-
     List<Message>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
 
-        // Collect the headers for each message.
+        if ( !m->valid() ) {
+            d->failed = true;
+            return;
+        }
+
+        // Collect the headers for this message.
 
         l->clear();
         l->append( m->header() );
@@ -1004,63 +923,170 @@ void Injector::createFields()
                 if ( hf->type() >= HeaderField::Other &&
                      !seenFields.contains( n ) )
                 {
-                    fields.append( n );
+                    d->fields.append( n );
                     seenFields.insert( n, 0 );
                 }
 
                 if ( hf->type() <= HeaderField::LastAddressField )
-                    updateAddresses( ((AddressField *)hf)->addresses(),
-                                     addresses );
+                    updateAddresses( ((AddressField *)hf)->addresses() );
 
                 ++fi;
             }
             ++hi;
         }
 
+        // Then look through this message's mailboxes to find any
+        // unknown flags or annotation names.
+
+        List<Mailbox>::Iterator mi( m->mailboxes() );
+        while ( mi ) {
+            Mailbox * mb = mi;
+
+            StringList::Iterator fi( m->flags( mb ) );
+            while ( fi ) {
+                String n( *fi );
+                if ( Flag::id( n ) == 0 && !seenFlags.contains( n ) ) {
+                    seenFlags.insert( n, 0 );
+                    d->flags.append( n );
+                }
+                ++fi;
+            }
+
+            List<Annotation>::Iterator ai( m->annotations( mb ) );
+            while ( ai ) {
+                Annotation * a = ai;
+                String n( a->entryName() );
+
+                if ( AnnotationName::id( n ) == 0 &&
+                     !seenAnnotationNames.contains( n ) )
+                {
+                    seenAnnotationNames.insert( n, 0 );
+                    d->annotationNames.append( n );
+                }
+
+                ++ai;
+            }
+
+            ++mi;
+        }
+
         ++it;
     }
 
     // Rows destined for deliveries/delivery_recipients also contain
-    // addresses that may need to be looked up or created.
+    // addresses that need to be looked up.
 
     List<Address> * sender = new List<Address>;
     List<InjectorData::Delivery>::Iterator di( d->deliveries );
     while ( di ) {
         sender->clear();
         sender->append( di->sender );
-        updateAddresses( sender, addresses );
-        updateAddresses( di->recipients, addresses );
+        updateAddresses( sender );
+        updateAddresses( di->recipients );
         ++di;
     }
-
-    if ( !fields.isEmpty() )
-        d->fieldCreation =
-            FieldName::create( fields, d->transaction, this );
-
-    d->addressCreator =
-        new AddressCreator( addresses, d->transaction, this );
-    d->addressCreator->execute();
 }
 
 
-/*! Adds entries from \a newAddresses to \a addresses if they do not
-    already exist in the latter. */
+/*! Adds previously unknown addresses from \a newAddresses to
+    d->addresses and d->knownAddresses. */
 
-void Injector::updateAddresses( List<Address> * newAddresses,
-                                List<Address> * addresses )
+void Injector::updateAddresses( List<Address> * newAddresses )
 {
     List<Address>::Iterator ai( newAddresses );
     while ( ai ) {
         Address * a = ai;
         String k = addressKey( a );
 
-        if ( !d->addresses.contains( k ) ) {
-            d->addresses.insert( k, a );
-            addresses->append( a );
+        if ( !d->knownAddresses.contains( k ) ) {
+            d->knownAddresses.insert( k, a );
+            d->addresses->append( a );
         }
 
         ++ai;
     }
+}
+
+
+/*! This function creates any unknown names found by scanMessages(). It
+    expects to be called repeatedly until it returns true, which it does
+    when all dependencies have been created or when an error occurs.
+
+    The various inserts must be executed one by one, because they use
+    savepoints.
+*/
+
+bool Injector::createDependencies()
+{
+    // First insert header field names into field_names.
+
+    if ( !d->fields.isEmpty() && !d->fieldCreation )
+        d->fieldCreation =
+            FieldName::create( d->fields, d->transaction, this );
+
+    if ( d->fieldCreation && !d->fieldCreation->done() )
+        return false;
+
+    if ( d->fieldCreation->failed() )
+        return true;
+
+    // When that's done, insert into flag_names.
+
+    if ( !d->flags.isEmpty() && !d->flagCreation )
+        d->flagCreation =
+            Flag::create( d->flags, d->transaction, this );
+
+    if ( d->flagCreation && !d->flagCreation->done() )
+        return false;
+
+    if ( d->flagCreation->failed() )
+        return true;
+
+    // Then annotation_names.
+
+    if ( !d->annotationNames.isEmpty() && !d->annotationCreation )
+        d->annotationCreation =
+            AnnotationName::create( d->annotationNames, d->transaction, this );
+
+    if ( d->annotationCreation && !d->annotationCreation->done() )
+        return false;
+
+    if ( d->annotationCreation->failed() )
+        return true;
+
+    // And finally, addresses.
+
+    if ( !d->addressCreator ) {
+        d->addressCreator =
+            new AddressCreator( d->addresses, d->transaction, this );
+        d->addressCreator->execute();
+    }
+
+    if ( !d->addressCreator->done )
+        return false;
+
+    return true;
+}
+
+
+/*! This function notifies the owner of this Injector of its completion.
+    It will do so only once.
+*/
+
+void Injector::finish()
+{
+    // XXX: If we fail early in the transaction, we'll continue to
+    // be notified of individual query failures. We don't want to
+    // pass them on, because d->owner would have killed itself.
+    if ( !d->owner )
+        return;
+
+    if ( d->failed )
+        log( "Injection failed: " + error() );
+    else
+        log( "Injection succeeded" );
+    d->owner->execute();
+    d->owner = 0;
 }
 
 
@@ -1330,7 +1356,7 @@ void Injector::insertDeliveries()
     List<InjectorData::Delivery>::Iterator di( d->deliveries );
     while ( di ) {
         Address * sender =
-            d->addresses.find( addressKey( di->sender ) );
+            d->knownAddresses.find( addressKey( di->sender ) );
 
         Query * q =
             new Query( "insert into deliveries "
@@ -1344,7 +1370,7 @@ void Injector::insertDeliveries()
         uint n = 0;
         List<Address>::Iterator it( di->recipients );
         while ( it ) {
-            Address * a = d->addresses.find( addressKey( it ) );
+            Address * a = d->knownAddresses.find( addressKey( it ) );
             Query * q =
                 new Query(
                     "insert into delivery_recipients (delivery,recipient) "
@@ -1518,7 +1544,7 @@ void Injector::linkHeader( Message * m, Header * h, const String & part )
             List< Address >::Iterator ai( al );
             uint n = 0;
             while ( ai ) {
-                Address * a = d->addresses.find( addressKey( ai ) );
+                Address * a = d->knownAddresses.find( addressKey( ai ) );
                 q->bind( 1, m->databaseId(), Query::Binary );
                 q->bind( 2, part, Query::Binary );
                 q->bind( 3, hf->position(), Query::Binary );
@@ -1564,7 +1590,7 @@ void Injector::linkHeader( Message * m, Header * h, const String & part )
     into a single mailbox.
 */
 
-void Injector::logMessageDetails()
+void Injector::logDescription()
 {
     if ( d->messages->count() > 1 ) {
         log( "Injecting " + fn( d->messages->count() ) + " "

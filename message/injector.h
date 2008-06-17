@@ -39,12 +39,13 @@ private:
 
     static void setup();
 
+    void scanMessages();
+    void updateAddresses( List<Address> * );
+    bool createDependencies();
+    void logDescription();
     void finish();
-    void createNames();
-    void createFields();
     void selectUids();
     void selectMessageId();
-    void updateAddresses( List<Address> *, List<Address> * );
     void insertPartNumber( Query *, uint, const String &,
                            int = -1, int = -1, int = -1 );
     void setupBodyparts();
@@ -56,7 +57,6 @@ private:
     void linkFlags();
     void linkAnnotations();
     void handleWrapping();
-    void logMessageDetails();
     void announce();
 
     uint internalDate( Mailbox *, Message * ) const;
