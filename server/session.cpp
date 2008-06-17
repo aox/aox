@@ -654,12 +654,12 @@ void SessionInitialiser::writeViewChanges()
                                     "(mailbox,uid,message,modseq,"
                                     " deleted_by,reason) "
                                     "from stdin with binary", 0 );
-            remove->bind( 1, d->mailbox->id(), Query::Binary );
-            remove->bind( 2, vuid, Query::Binary );
-            remove->bind( 3, r->getInt( "id" ), Query::Binary );
-            remove->bind( 4, d->newModSeq, Query::Binary );
+            remove->bind( 1, d->mailbox->id() );
+            remove->bind( 2, vuid );
+            remove->bind( 3, r->getInt( "id" ) );
+            remove->bind( 4, d->newModSeq );
             remove->bindNull( 5 );
-            remove->bind( 6, String( "left view" ), Query::Binary );
+            remove->bind( 6, String( "left view" ) );
             remove->submitLine();
             removeInDb.add( vuid );
         }
@@ -672,11 +672,11 @@ void SessionInitialiser::writeViewChanges()
                                   "from stdin with binary", 0 );
             vuid = d->newUidnext;
             d->newUidnext++;
-            add->bind( 1, d->mailbox->id(), Query::Binary );
-            add->bind( 2, vuid, Query::Binary );
-            add->bind( 3, r->getInt( "smessage" ), Query::Binary );
-            add->bind( 4, r->getInt( "sidate" ), Query::Binary );
-            add->bind( 5, d->newModSeq, Query::Binary );
+            add->bind( 1, d->mailbox->id() );
+            add->bind( 2, vuid );
+            add->bind( 3, r->getInt( "smessage" ) );
+            add->bind( 4, r->getInt( "sidate" ) );
+            add->bind( 5, d->newModSeq );
             add->submitLine();
             addToSessions( vuid, d->newModSeq );
         }

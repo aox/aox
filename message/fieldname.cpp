@@ -167,7 +167,7 @@ void FieldNameCreator::insertFields()
     q = new Query( "copy field_names (name) from stdin with binary", this );
     StringList::Iterator it( unided.keys() );
     while ( it ) {
-        q->bind( 1, *it, Query::Binary );
+        q->bind( 1, *it );
         q->submitLine();
         ++it;
     }

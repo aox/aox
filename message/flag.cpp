@@ -166,7 +166,7 @@ void FlagCreator::insertFlags()
     q = new Query( "copy flag_names (name) from stdin with binary", this );
     StringList::Iterator it( unided.keys() );
     while ( it ) {
-        q->bind( 1, *it, Query::Binary );
+        q->bind( 1, *it );
         q->submitLine();
         ++it;
     }

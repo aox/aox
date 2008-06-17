@@ -264,8 +264,8 @@ void Threader::execute()
                     if ( !q )
                         q = new Query( "copy threads (mailbox,subject) "
                                        "from stdin with binary", this );
-                    q->bind( 1, d->mailbox->id(), Query::Binary );
-                    q->bind( 2, t->subject(), Query::Binary );
+                    q->bind( 1, d->mailbox->id() );
+                    q->bind( 2, t->subject() );
                     q->submitLine();
                 }
             }
@@ -289,9 +289,9 @@ void Threader::execute()
             while ( i ) {
                 ThreaderData::NewMessage * nm = i;
                 ++i;
-                q->bind( 1, nm->thread->id(), Query::Binary );
-                q->bind( 2, d->mailbox->id(), Query::Binary );
-                q->bind( 3, nm->uid, Query::Binary );
+                q->bind( 1, nm->thread->id() );
+                q->bind( 2, d->mailbox->id() );
+                q->bind( 3, nm->uid );
                 q->submitLine();
             }
             d->create->enqueue( q );

@@ -481,9 +481,9 @@ void AddressCreator::insertAddresses()
     StringList::Iterator it( unided.keys() );
     while ( it ) {
         Address * a = unided.take( *it );
-        q->bind( 1, a->uname(), Query::Binary );
-        q->bind( 2, a->localpart(), Query::Binary );
-        q->bind( 3, a->domain(), Query::Binary );
+        q->bind( 1, a->uname() );
+        q->bind( 2, a->localpart() );
+        q->bind( 3, a->domain() );
         q->submitLine();
         ++it;
     }
@@ -1330,11 +1330,11 @@ void Injector::insertMessages()
             uint uid = m->uid( mb );
             int64 ms = m->modSeq( mb );
 
-            qm->bind( 1, mb->id(), Query::Binary );
-            qm->bind( 2, uid, Query::Binary );
-            qm->bind( 3, m->databaseId(), Query::Binary );
-            qm->bind( 4, internalDate( mb, m ), Query::Binary );
-            qm->bind( 5, ms, Query::Binary );
+            qm->bind( 1, mb->id() );
+            qm->bind( 2, uid );
+            qm->bind( 3, m->databaseId() );
+            qm->bind( 4, internalDate( mb, m ) );
+            qm->bind( 5, ms );
             qm->submitLine();
 
             ++mi;
@@ -1451,21 +1451,21 @@ void Injector::insertPartNumber( Query *q, uint message,
                                  const String &part, int bodypart,
                                  int bytes, int lines )
 {
-    q->bind( 1, message, Query::Binary );
-    q->bind( 2, part, Query::Binary );
+    q->bind( 1, message );
+    q->bind( 2, part );
 
     if ( bodypart > 0 )
-        q->bind( 3, bodypart, Query::Binary );
+        q->bind( 3, bodypart );
     else
         q->bindNull( 3 );
 
     if ( bytes >= 0 )
-        q->bind( 4, bytes, Query::Binary );
+        q->bind( 4, bytes );
     else
         q->bindNull( 4 );
 
     if ( lines >= 0 )
-        q->bind( 5, lines, Query::Binary );
+        q->bind( 5, lines );
     else
         q->bindNull( 5 );
 
@@ -1548,12 +1548,12 @@ void Injector::linkHeader( Message * m, Header * h, const String & part )
             uint n = 0;
             while ( ai ) {
                 Address * a = d->knownAddresses.find( addressKey( ai ) );
-                q->bind( 1, m->databaseId(), Query::Binary );
-                q->bind( 2, part, Query::Binary );
-                q->bind( 3, hf->position(), Query::Binary );
-                q->bind( 4, hf->type(), Query::Binary );
-                q->bind( 5, n, Query::Binary );
-                q->bind( 6, a->id(), Query::Binary );
+                q->bind( 1, m->databaseId() );
+                q->bind( 2, part );
+                q->bind( 3, hf->position() );
+                q->bind( 4, hf->type() );
+                q->bind( 5, n );
+                q->bind( 6, a->id() );
                 q->submitLine();
                 ++ai;
                 ++n;
@@ -1566,17 +1566,17 @@ void Injector::linkHeader( Message * m, Header * h, const String & part )
             if ( !t )
                 t = hf->type();
 
-            q->bind( 1, m->databaseId(), Query::Binary );
-            q->bind( 2, part, Query::Binary );
-            q->bind( 3, hf->position(), Query::Binary );
-            q->bind( 4, t, Query::Binary );
-            q->bind( 5, hf->value(), Query::Binary );
+            q->bind( 1, m->databaseId() );
+            q->bind( 2, part );
+            q->bind( 3, hf->position() );
+            q->bind( 4, t );
+            q->bind( 5, hf->value() );
             q->submitLine();
 
             if ( part.isEmpty() && hf->type() == HeaderField::Date ) {
                 DateField * df = (DateField *)hf;
 
-                d->dateFields->bind( 1, m->databaseId(), Query::Binary );
+                d->dateFields->bind( 1, m->databaseId() );
                 d->dateFields->bind( 2, df->date()->isoDateTime(),
                                      Query::Binary );
                 d->dateFields->submitLine();
@@ -1691,9 +1691,9 @@ void Injector::linkFlags()
             StringList::Iterator i( m->flags( mb ) );
             while ( i ) {
                 flags++;
-                q->bind( 1, mb->id(), Query::Binary );
-                q->bind( 2, m->uid( mb ), Query::Binary );
-                q->bind( 3, Flag::id( *i ), Query::Binary );
+                q->bind( 1, mb->id() );
+                q->bind( 2, m->uid( mb ) );
+                q->bind( 3, Flag::id( *i ) );
                 q->submitLine();
                 ++i;
             }
@@ -1728,14 +1728,14 @@ void Injector::linkAnnotations()
 
                 uint aid( AnnotationName::id( ai->entryName() ) );
 
-                q->bind( 1, mb->id(), Query::Binary );
-                q->bind( 2, m->uid( mb ), Query::Binary );
-                q->bind( 3, aid, Query::Binary );
-                q->bind( 4, ai->value(), Query::Binary );
+                q->bind( 1, mb->id() );
+                q->bind( 2, m->uid( mb ) );
+                q->bind( 3, aid );
+                q->bind( 4, ai->value() );
                 if ( ai->ownerId() == 0 )
                     q->bindNull( 5 );
                 else
-                    q->bind( 5, ai->ownerId(), Query::Binary );
+                    q->bind( 5, ai->ownerId() );
                 ++ai;
             }
             ++mi;
@@ -1769,7 +1769,7 @@ void Injector::handleWrapping()
             while ( bi ) {
                 Bodypart * b = bi;
                 if ( m->partNumber( b ) == "2" ) {
-                    q->bind( 1, b->id(), Query::Binary );
+                    q->bind( 1, b->id() );
                     q->submitLine();
                 }
                 ++bi;

@@ -20,13 +20,14 @@ class QueryData
 {
 public:
     QueryData()
-        : state( Query::Inactive ),
+        : state( Query::Inactive ), format( Query::Text ),
           values( new Query::InputLine ), inputLines( 0 ),
           transaction( 0 ), owner( 0 ), totalRows( 0 ),
           canFail( false ), canBeSlow( false )
     {}
 
     Query::State state;
+    Query::Format format;
 
     String name;
     String query;
@@ -94,8 +95,8 @@ Query::Query( EventHandler *ev )
 Query::Query( const String &s, EventHandler *ev )
     : d( new QueryData )
 {
-    d->query = s;
     d->owner = ev;
+    setString( s );
 }
 
 
@@ -107,9 +108,9 @@ Query::Query( const String &s, EventHandler *ev )
 Query::Query( const PreparedStatement &ps, EventHandler *ev )
     : d( new QueryData )
 {
-    d->name = ps.name();
-    d->query = ps.query();
     d->owner = ev;
+    d->name = ps.name();
+    setString( ps.query() );
 }
 
 
@@ -240,13 +241,20 @@ void Query::setTransaction( Transaction *t )
 }
 
 
-/*! Binds the integer value \a s to the parameter \a n of this Query in
-    the specified format \a f (Binary or Text; Text by default).
-*/
+/*! Returns this Query's format, which may be Text (the default) or
+    Binary (set for "copy ... with binary" statements). */
 
-void Query::bind( uint n, int s, Format f )
+Query::Format Query::format() const
 {
-    if ( f == Binary ) {
+    return d->format;
+}
+
+
+/*! Binds the integer value \a s to the parameter \a n of this Query. */
+
+void Query::bind( uint n, int s )
+{
+    if ( d->format == Binary ) {
         String t;
         t.append( (char)( s >> 24 ) );
         t.append( (char)( s >> 16 ) );
@@ -262,27 +270,25 @@ void Query::bind( uint n, int s, Format f )
 
 /*! \overload
     Binds the unsigned 32-bit integer value \a s to the parameter \a n
-    of this Query in the specified format \a f (Binary or Text; Text by
-    default). \a s may not be larger than INT_MAX.
+    of this Query. \a s may not be larger than INT_MAX.
 */
 
-void Query::bind( uint n, uint s, Format f )
+void Query::bind( uint n, uint s )
 {
     if ( s > INT_MAX )
         die( Range );
-    bind( n, (int)s, f );
+    bind( n, (int)s );
 }
 
 
 /*! \overload
     Binds the 64-bit integer value \a s to the parameter \a n of this
-    Query in the specified format \a f (Binary or Text; Text by
-    default).
+    Query.
 */
 
-void Query::bind( uint n, int64 s, Format f )
+void Query::bind( uint n, int64 s )
 {
-    if ( f == Binary ) {
+    if ( d->format == Binary ) {
         String t;
         t.append( (char)( s >> 56 ) );
         t.append( (char)( s >> 48 ) );
@@ -302,41 +308,39 @@ void Query::bind( uint n, int64 s, Format f )
 
 /*! \overload
     Binds the String value \a s to the parameter \a n of this Query in
-    the specified format \a f (Binary or Text; Text by default).
+    the specified format \a f (or the default format for this query if
+    \a f is left at the default value of Unknown).
 */
 
 void Query::bind( uint n, const String &s, Format f )
 {
-    Value *v = new Value( n, s, f );
-    d->values->insert( v );
+    if ( f == Unknown )
+        f = d->format;
+
+    d->values->insert( new Value( n, s, f ) );
 }
 
 
 /*! \overload
     Converts \a s to the database's unicode encoding and binds the
-    result to the parameter \a n of this Query in the specified format
-    \a f (Binary or Text; Text by default).
-
+    result to the parameter \a n of this Query.
 */
 
-void Query::bind( uint n, const UString &s, Format f )
+void Query::bind( uint n, const UString &s )
 {
     PgUtf8Codec p;
-    bind( n, p.fromUnicode( s ), f );
+    bind( n, p.fromUnicode( s ) );
 }
 
 
 /*! \overload
-    Binds the array of integers \a l to the parameter \a n of this Query
-    in the specified format \a f (Binary or Text; Text by default).
-
-    XXX: Only List<uint> is supported now, because that's all we need to
-    issue a query like "where id = ANY($1)".
+    Binds the array of integers \a l to the parameter \a n of this
+    Query.
 */
 
-void Query::bind( uint n, const List<uint> * l, Format f )
+void Query::bind( uint n, const List<uint> * l )
 {
-    if ( f == Text ) {
+    if ( d->format == Text ) {
         String s( "{" );
         List<uint>::Iterator it( l );
         while ( it ) {
@@ -346,7 +350,7 @@ void Query::bind( uint n, const List<uint> * l, Format f )
                 s.append( "," );
         }
         s.append( "}" );
-        bind( n, s, Text );
+        bind( n, s );
     }
     else {
         // XXX: Not implemented yet.
@@ -356,13 +360,12 @@ void Query::bind( uint n, const List<uint> * l, Format f )
 
 /*! \overload
 
-    This version binds each number in \a set as parameter \a
-    n. The format, \a f, must be Text.
+    This version binds each number in \a set as parameter \a n.
 */
 
-void Query::bind( uint n, const class MessageSet & set, Format f )
+void Query::bind( uint n, const class MessageSet & set )
 {
-    if ( f == Text ) {
+    if ( d->format == Text ) {
         String s( "{" );
         uint i = 1;
         uint c = set.count();
@@ -374,7 +377,7 @@ void Query::bind( uint n, const class MessageSet & set, Format f )
             i++;
         }
         s.append( "}" );
-        bind( n, s, Text );
+        bind( n, s );
     }
     else {
         // XXX: Not implemented yet.
@@ -386,12 +389,11 @@ void Query::bind( uint n, const class MessageSet & set, Format f )
 /*! \overload
 
     This version binds each string in \a l as parameter \a n.
-    The format, \a f, must be Text.
 */
 
-void Query::bind( uint n, const StringList & l, Format f )
+void Query::bind( uint n, const StringList & l )
 {
-    if ( f == Text ) {
+    if ( d->format == Text ) {
         String s( "{" );
         s.reserve( l.count() * 16 );
         StringList::Iterator it( l );
@@ -406,12 +408,11 @@ void Query::bind( uint n, const StringList & l, Format f )
                 s.append( "," );
         }
         s.append( "}" );
-        bind( n, s, Text );
+        bind( n, s );
     }
     else {
         // XXX: Not implemented yet.
     }
-
 }
 
 
@@ -484,8 +485,12 @@ String Query::string() const
 
 void Query::setString( const String &s )
 {
-    if ( d->state == Inactive )
-        d->query = s;
+    if ( d->state != Inactive )
+        return;
+
+    d->query = s;
+    if ( s.lower().endsWith( "with binary" ) )
+        d->format = Binary;
 }
 
 

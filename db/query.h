@@ -41,16 +41,17 @@ public:
     Transaction *transaction() const;
     void setTransaction( Transaction * );
 
-    enum Format { Text, Binary };
+    enum Format { Unknown = -1, Text = 0, Binary };
+    Format format() const;
 
-    void bind( uint, int, Format = Text );
-    void bind( uint, uint, Format = Text );
-    void bind( uint, int64, Format = Text );
-    void bind( uint, const String &, Format = Text );
-    void bind( uint, const UString &, Format = Text );
-    void bind( uint, const List<uint> *, Format = Text );
-    void bind( uint, const class MessageSet &, Format = Text );
-    void bind( uint, const StringList &, Format = Text );
+    void bind( uint, int );
+    void bind( uint, uint );
+    void bind( uint, int64 );
+    void bind( uint, const String &, Format = Unknown );
+    void bind( uint, const UString & );
+    void bind( uint, const List<uint> * );
+    void bind( uint, const StringList & );
+    void bind( uint, const class MessageSet & );
     void bindNull( uint );
     void submitLine();
 
