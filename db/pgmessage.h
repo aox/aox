@@ -381,6 +381,8 @@ public:
 
 private:
     void encodeData();
+    void encodeText();
+    void encodeBinary();
     const Query *query;
 };
 

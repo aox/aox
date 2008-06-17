@@ -1050,6 +1050,40 @@ PgCopyData::PgCopyData( const Query *q )
 
 void PgCopyData::encodeData()
 {
+    if ( query->format() == Query::Text )
+        encodeText();
+    else
+        encodeBinary();
+}
+
+
+/*! Encodes a text-format CopyData message. */
+
+void PgCopyData::encodeText()
+{
+    List< Query::InputLine >::Iterator it( *query->inputLines() );
+    while ( it ) {
+        String s;
+
+        Query::InputLine::Iterator v( it );
+        while ( v ) {
+            s.append( v->data() );
+            ++v;
+            if ( v )
+                s.append( "\t" );
+        }
+        s.append( "\n" );
+        appendByten( s );
+
+        ++it;
+    }
+}
+
+
+/*! Encodes the default binary-format CopyData message. */
+
+void PgCopyData::encodeBinary()
+{
     // Header: Signature, flags, extension length.
     appendByten( "PGCOPY\n\377\r\n" );
     appendByte( '\0' );
@@ -1076,7 +1110,6 @@ void PgCopyData::encodeData()
     // Trailer.
     appendInt16( -1 );
 }
-
 
 
 /*! \class PgCopyDone pgmessage.h
