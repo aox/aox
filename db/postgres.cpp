@@ -210,10 +210,10 @@ void Postgres::processQuery( Query * q )
                                 "::int[],1)) as s(i) limit array_upper($" + fn( v ) +
                                 "::int[],1))" );
             }
-            if ( qs != q->string() )
+            if ( qs != q->string() ) {
+                Scope x( q->log() );
                 log( "Changing query string to: " + qs, Log::Debug );
-            // we could call Query::setString(), but the query's state
-            // is no longer Inactive, so that's a noop. hm.
+            }
         }
         PgParse a( qs, q->name() );
         a.enqueue( writeBuffer() );
