@@ -92,7 +92,8 @@ Scope::Scope( Log *l )
     : d( new ScopeData )
 {
     d->scope = this;
-    setLog( l );
+    if ( l )
+        setLog( l );
 }
 
 
