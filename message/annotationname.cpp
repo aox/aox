@@ -110,7 +110,7 @@ void AnnotationNameCreator::execute()
 void AnnotationNameCreator::selectAnnotations()
 {
     q = new Query( "select id, name from annotation_names where "
-                   "name=any($1)", this );
+                   "name=any($1::text[])", this );
 
     unided.clear();
 

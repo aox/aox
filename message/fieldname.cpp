@@ -111,7 +111,7 @@ void FieldNameCreator::execute()
 void FieldNameCreator::selectFields()
 {
     q = new Query( "select id, name from field_names where "
-                   "name=any($1)", this );
+                   "name=any($1::text[])", this );
 
     unided.clear();
 

@@ -1209,7 +1209,7 @@ void Injector::insertBodyparts()
     hashes.removeDuplicates();
     d->bidFetcher->look =
         new Query( "select id, hash from bodyparts "
-                   "where hash=any($1)", d->bidFetcher );
+                   "where hash=any($1::text[])", d->bidFetcher );
     d->bidFetcher->look->bind( 1, hashes );
 }
 
