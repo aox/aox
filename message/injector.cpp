@@ -56,96 +56,6 @@ struct Bid
 };
 
 
-class UidFetcher
-    : public EventHandler
-{
-public:
-    SortedList<Mailbox> * mailboxes;
-    List<Query> * queries;
-    List<Message> * messages;
-    EventHandler *owner;
-    bool failed;
-    String error;
-
-    UidFetcher( SortedList<Mailbox> * mbl, List<Query> *ql,
-                List<Message> * ml, EventHandler * ev )
-        : mailboxes( mbl ), queries( ql ), messages( ml ), owner( ev ),
-          failed( false )
-    {}
-
-    void execute() {
-        Query *q;
-
-        while ( ( q = queries->firstElement() ) != 0 &&
-                q->done() )
-        {
-            queries->shift();
-
-            if ( q->hasResults() )
-                process( q );
-            else
-                failed = true;
-        }
-
-        if ( failed || queries->isEmpty() )
-            owner->execute();
-    }
-
-    void process( Query * q )
-    {
-        Mailbox * mb = mailboxes->shift();
-
-        Row * r = q->nextRow();
-        uint uidnext = r->getInt( "uidnext" );
-        int64 nextms = r->getBigint( "nextmodseq" );
-
-        if ( uidnext > 0x7ff00000 ) {
-            Log::Severity level = Log::Error;
-            if ( uidnext > 0x7fffff00 )
-                level = Log::Disaster;
-            log( "Note: Mailbox " + mb->name().ascii() +
-                 " only has " + fn ( 0x7fffffff - uidnext ) +
-                 " more usable UIDs. Please contact info@oryx.com"
-                 " to resolve this problem.", level );
-        }
-
-        uint n = 0;
-        List<Message>::Iterator it( messages );
-        while ( it ) {
-            Message * m = it;
-            if ( m->inMailbox( mb ) ) {
-                m->setUid( mb, uidnext+n );
-                m->setModSeq( mb, nextms );
-                n++;
-            }
-            ++it;
-        }
-
-        uint recentIn = 0;
-        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
-            List<Session>::Iterator si( mb->sessions() );
-            if ( si ) {
-                recentIn++;
-                si->addRecent( uidnext, n );
-            }
-        }
-
-        Query * u;
-        if ( recentIn == 0 )
-            u = new Query( *incrUidnext, 0 );
-        else
-            u = new Query( *incrUidnextWithRecent, 0 );
-        u->bind( 1, mb->id() );
-        u->bind( 2, n );
-        q->transaction()->enqueue( u );
-    }
-
-    bool done() const {
-        return queries->isEmpty();
-    }
-};
-
-
 class BidFetcher
     : public EventHandler
 {
@@ -471,10 +381,11 @@ public:
         : messages( 0 ), owner( 0 ),
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
-          uidFetcher( 0 ), bidFetcher( 0 ),
+          mailboxes( new SortedList<Mailbox> ),
+          bidFetcher( 0 ),
           flagCreation( 0 ), annotationCreation( 0 ),
           fieldCreation( 0 ), addressCreation( 0 ),
-          select( 0 ), copy( 0 ), message( 0 )
+          queries( 0 ), select( 0 ), copy( 0 ), message( 0 )
     {}
 
     List<Message> * messages;
@@ -491,7 +402,8 @@ public:
     List<Address> * addresses;
     Dict<Address> knownAddresses;
 
-    UidFetcher *uidFetcher;
+    SortedList<Mailbox> * mailboxes;
+
     BidFetcher *bidFetcher;
 
     Query * flagCreation;
@@ -512,6 +424,7 @@ public:
     };
 
     List<Delivery> deliveries;
+    List<Query> * queries;
     Query * select;
     Query * copy;
     List<Message>::Iterator * message;
@@ -735,13 +648,7 @@ void Injector::execute()
             break;
 
         case SelectingUids:
-            if ( !d->uidFetcher ) {
-                selectUids();
-                d->transaction->execute();
-            }
-            else if ( d->uidFetcher->done() ) {
-                next();
-            }
+            selectUids();
             break;
 
         case InsertingMessages:
@@ -820,6 +727,7 @@ void Injector::findDependencies()
     Dict<int> seenFlags;
     Dict<int> seenFields;
     Dict<int> seenAnnotationNames;
+    Map<uint> seenMailboxes;
 
     List<Header> * l = new List<Header>;
 
@@ -872,11 +780,17 @@ void Injector::findDependencies()
         }
 
         // Then look through this message's mailboxes to find any
-        // unknown flags or annotation names.
+        // unknown flags or annotation names; and to build a list
+        // of unique mailboxes for use later.
 
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
             Mailbox * mb = mi;
+
+            if ( !seenMailboxes.find( mb->id() ) ) {
+                seenMailboxes.insert( mb->id(), (uint *)1 );
+                d->mailboxes->insert( mb );
+            }
 
             StringList::Iterator fi( m->flags( mb ) );
             while ( fi ) {
@@ -1064,42 +978,97 @@ void Injector::selectUids()
     // mailbox list must be sorted, so that the Injectors try to acquire
     // locks in the same order to avoid deadlock.
 
-    Map<uint> uniq;
-    SortedList<Mailbox> * mailboxes =
-        new SortedList<Mailbox>;
+    if ( !d->queries ) {
+        if ( d->mailboxes->isEmpty() ) {
+            next();
+            return;
+        }
 
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        List<Mailbox>::Iterator mi( m->mailboxes() );
+        // Lock the mailboxes in ascending order and fetch the
+        // uidnext/nextmodseq for each one.
+
+        d->queries = new List<Query>;
+        SortedList<Mailbox>::Iterator mi( d->mailboxes );
         while ( mi ) {
             Mailbox * mb = mi;
 
-            if ( !uniq.find( mb->id() ) ) {
-                uniq.insert( mb->id(), (uint *)1 );
-                mailboxes->insert( mb );
-            }
+            Query * q = new Query( *lockUidnext, this );
+            q->bind( 1, mb->id() );
+            d->queries->append( q );
+            d->transaction->enqueue( q );
 
             ++mi;
         }
-        ++it;
+
+        d->transaction->execute();
     }
 
-    List<Query> * queries = new List<Query>;
-    d->uidFetcher =
-        new UidFetcher( mailboxes, queries, d->messages, this );
+    Query * q;
+    while ( ( q = d->queries->firstElement() ) != 0 &&
+            q->done() )
+    {
+        if ( !q->hasResults() ) {
+            d->failed = true;
+            break;
+        }
 
-    SortedList<Mailbox>::Iterator mi( mailboxes );
-    while ( mi ) {
-        Mailbox * mb = mi;
+        d->queries->shift();
 
-        Query * q = new Query( *lockUidnext, d->uidFetcher );
-        q->bind( 1, mb->id() );
-        d->transaction->enqueue( q );
-        queries->append( q );
+        Mailbox * mb = d->mailboxes->shift();
 
-        ++mi;
+        Row * r = q->nextRow();
+        uint uidnext = r->getInt( "uidnext" );
+        int64 nextms = r->getBigint( "nextmodseq" );
+
+        if ( uidnext > 0x7ff00000 ) {
+            Log::Severity level = Log::Error;
+            if ( uidnext > 0x7fffff00 )
+                level = Log::Disaster;
+            log( "Note: Mailbox " + mb->name().ascii() +
+                 " only has " + fn ( 0x7fffffff - uidnext ) +
+                 " more usable UIDs. Please contact info@oryx.com"
+                 " to resolve this problem.", level );
+        }
+
+        // Any messages in this mailbox are assigned consecutive uids
+        // starting with uidnext, but all of them get the same modseq.
+
+        uint n = 0;
+        List<Message>::Iterator it( d->messages );
+        while ( it ) {
+            Message * m = it;
+            if ( m->inMailbox( mb ) ) {
+                m->setUid( mb, uidnext+n );
+                m->setModSeq( mb, nextms );
+                n++;
+            }
+            ++it;
+        }
+
+        uint recentIn = 0;
+        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
+            List<Session>::Iterator si( mb->sessions() );
+            if ( si ) {
+                recentIn++;
+                si->addRecent( uidnext, n );
+            }
+        }
+
+        // Update uidnext and nextmodseq based on what we did above.
+
+        Query * u;
+        if ( recentIn == 0 )
+            u = new Query( *incrUidnext, 0 );
+        else
+            u = new Query( *incrUidnextWithRecent, 0 );
+        u->bind( 1, mb->id() );
+        u->bind( 2, n );
+        d->transaction->enqueue( u );
+        d->transaction->execute();
     }
+
+    if ( d->queries->isEmpty() )
+        next();
 }
 
 
