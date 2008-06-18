@@ -751,12 +751,7 @@ void Injector::execute()
 
         case InsertingMessages:
             insertMessages();
-            linkBodyparts();
-            linkHeaders();
             insertDeliveries();
-            linkFlags();
-            linkAnnotations();
-            handleWrapping();
             next();
             d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
             d->transaction->commit();
@@ -1225,87 +1220,64 @@ void Injector::insertBodyparts()
 
 void Injector::insertMessages()
 {
-    Query *qm =
+    linkBodyparts();
+    linkHeaders();
+
+    Query * qm =
         new Query( "copy mailbox_messages "
                    "(mailbox,uid,message,idate,modseq) "
                    "from stdin with binary", 0 );
 
-    uint n = 0;
+    Query * qf =
+        new Query( "copy flags (mailbox,uid,flag) "
+                   "from stdin with binary", 0 );
+
+    Query * qa =
+        new Query( "copy annotations (mailbox,uid,name,value,owner) "
+                   "from stdin with binary", 0 );
+
+    Query * qw =
+        new Query( "copy unparsed_messages (bodypart) "
+                   "from stdin with binary", 0 );
+
+    uint flags = 0;
+    uint wrapped = 0;
+    uint mailboxes = 0;
+    uint annotations = 0;
+
     List<Message>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
+
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
-            n++;
             Mailbox *mb = mi;
-            uint uid = m->uid( mb );
-            int64 ms = m->modSeq( mb );
 
-            qm->bind( 1, mb->id() );
-            qm->bind( 2, uid );
-            qm->bind( 3, m->databaseId() );
-            qm->bind( 4, internalDate( mb, m ) );
-            qm->bind( 5, ms );
-            qm->submitLine();
+            mailboxes++;
+            addMailbox( qm, m, mb );
+
+            flags += addFlags( qf, m, mb );
+            annotations += addAnnotations( qa, m, mb );
 
             ++mi;
         }
+
+        if ( m->isWrapped() ) {
+            addWrapping( qw, m );
+            wrapped++;
+        }
+
         ++it;
     }
 
-    if ( n )
+    if ( mailboxes )
         d->transaction->enqueue( qm );
-}
-
-
-/*! This private function inserts one row per remote recipient into
-    the deliveries table.
-*/
-
-void Injector::insertDeliveries()
-{
-    if ( d->deliveries.isEmpty() )
-        return;
-
-    List<InjectorData::Delivery>::Iterator di( d->deliveries );
-    while ( di ) {
-        Address * sender =
-            d->knownAddresses.find( addressKey( di->sender ) );
-
-        Query * q =
-            new Query( "insert into deliveries "
-                       "(sender,message,injected_at,expires_at) "
-                       "values ($1,$2,current_timestamp,"
-                       "current_timestamp+interval '2 days')", 0 );
-        q->bind( 1, sender->id() );
-        q->bind( 2, di->message->databaseId() );
-        d->transaction->enqueue( q );
-
-        uint n = 0;
-        List<Address>::Iterator it( di->recipients );
-        while ( it ) {
-            Address * a = d->knownAddresses.find( addressKey( it ) );
-            Query * q =
-                new Query(
-                    "insert into delivery_recipients (delivery,recipient) "
-                    "values ("
-                    "currval(pg_get_serial_sequence('deliveries','id')),"
-                    "$1)", 0
-                );
-            q->bind( 1, a->id() );
-            d->transaction->enqueue( q );
-            n++;
-            ++it;
-        }
-
-        log( "Spooling message " + fn( di->message->databaseId() ) +
-             " for delivery to " + fn( n ) +
-             " remote recipients", Log::Significant );
-
-        ++di;
-    }
-
-    d->transaction->enqueue( new Query( "notify deliveries_updated", 0 ) );
+    if ( flags )
+        d->transaction->enqueue( qf );
+    if ( annotations )
+        d->transaction->enqueue( qa );
+    if ( wrapped )
+        d->transaction->enqueue( qw );
 }
 
 
@@ -1496,6 +1468,130 @@ void Injector::linkHeader( Message * m, Header * h, const String & part )
 }
 
 
+/*! Adds a mailbox_messages row for the message \a m in mailbox \a mb to
+    the query \a q. */
+
+void Injector::addMailbox( Query * q, Message * m, Mailbox * mb )
+{
+    q->bind( 1, mb->id() );
+    q->bind( 2, m->uid( mb ) );
+    q->bind( 3, m->databaseId() );
+    q->bind( 4, internalDate( mb, m ) );
+    q->bind( 5, m->modSeq( mb ) );
+    q->submitLine();
+}
+
+
+/*! Adds flags rows for the message \a m in mailbox \a mb to the query
+    \a q, and returns the number of flags (which may be 0). */
+
+uint Injector::addFlags( Query * q, Message * m, Mailbox * mb )
+{
+    uint n = 0;
+    StringList::Iterator it( m->flags( mb ) );
+    while ( it ) {
+        n++;
+        q->bind( 1, mb->id() );
+        q->bind( 2, m->uid( mb ) );
+        q->bind( 3, Flag::id( *it ) );
+        q->submitLine();
+        ++it;
+    }
+    return n;
+}
+
+
+/*! Adds annotations rows for the message \a m in mailbox \a mb to the
+    query \a q, and returns the number of annotations (may be 0). */
+
+uint Injector::addAnnotations( Query * q, Message * m, Mailbox * mb )
+{
+    uint n = 0;
+    List<Annotation>::Iterator ai( m->annotations( mb ) );
+    while ( ai ) {
+        n++;
+        q->bind( 1, mb->id() );
+        q->bind( 2, m->uid( mb ) );
+        q->bind( 3, AnnotationName::id( ai->entryName() ) );
+        q->bind( 4, ai->value() );
+        if ( ai->ownerId() == 0 )
+            q->bindNull( 5 );
+        else
+            q->bind( 5, ai->ownerId() );
+        q->submitLine();
+        ++ai;
+    }
+    return n;
+}
+
+
+/*! Adds an unparsed_messages row for the message \a m to \a q. */
+
+void Injector::addWrapping( Query * q, Message * m )
+{
+    List<Bodypart>::Iterator bi( m->allBodyparts() );
+    while ( bi ) {
+        Bodypart * b = bi;
+        if ( m->partNumber( b ) == "2" ) {
+            q->bind( 1, b->id() );
+            q->submitLine();
+        }
+        ++bi;
+    }
+}
+
+
+/*! This private function inserts one row per remote recipient into
+    the deliveries table.
+*/
+
+void Injector::insertDeliveries()
+{
+    if ( d->deliveries.isEmpty() )
+        return;
+
+    List<InjectorData::Delivery>::Iterator di( d->deliveries );
+    while ( di ) {
+        Address * sender =
+            d->knownAddresses.find( addressKey( di->sender ) );
+
+        Query * q =
+            new Query( "insert into deliveries "
+                       "(sender,message,injected_at,expires_at) "
+                       "values ($1,$2,current_timestamp,"
+                       "current_timestamp+interval '2 days')", 0 );
+        q->bind( 1, sender->id() );
+        q->bind( 2, di->message->databaseId() );
+        d->transaction->enqueue( q );
+
+        uint n = 0;
+        List<Address>::Iterator it( di->recipients );
+        while ( it ) {
+            Address * a = d->knownAddresses.find( addressKey( it ) );
+            Query * q =
+                new Query(
+                    "insert into delivery_recipients (delivery,recipient) "
+                    "values ("
+                    "currval(pg_get_serial_sequence('deliveries','id')),"
+                    "$1)", 0
+                );
+            q->bind( 1, a->id() );
+            d->transaction->enqueue( q );
+            n++;
+            ++it;
+        }
+
+        log( "Spooling message " + fn( di->message->databaseId() ) +
+             " for delivery to " + fn( n ) +
+             " remote recipients", Log::Significant );
+
+        ++di;
+    }
+
+    d->transaction->enqueue( new Query( "notify deliveries_updated", 0 ) );
+}
+
+
 /*! Logs a little information about the messages to be injected, and a
     little more for the special case of a single message being injected
     into a single mailbox.
@@ -1576,119 +1672,6 @@ void Injector::announce()
         }
         ++it;
     }
-}
-
-
-/*! Inserts the flag table entries linking flag_names to the
-    mailboxes/uids we occupy.
-*/
-
-void Injector::linkFlags()
-{
-    Query * q =
-        new Query( "copy flags (mailbox,uid,flag) "
-                   "from stdin with binary", this );
-
-    uint flags = 0;
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        List<Mailbox>::Iterator mi( m->mailboxes() );
-        while ( mi ) {
-            Mailbox * mb = mi;
-            StringList::Iterator i( m->flags( mb ) );
-            while ( i ) {
-                flags++;
-                q->bind( 1, mb->id() );
-                q->bind( 2, m->uid( mb ) );
-                q->bind( 3, Flag::id( *i ) );
-                q->submitLine();
-                ++i;
-            }
-            ++mi;
-        }
-        ++it;
-    }
-
-    if ( flags )
-        d->transaction->enqueue( q );
-}
-
-
-/*! Inserts the appropriate entries into the annotations table. */
-
-void Injector::linkAnnotations()
-{
-    Query * q =
-        new Query( "copy annotations (mailbox,uid,name,value,owner) "
-                   "from stdin with binary", this );
-
-    uint annotations = 0;
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        List<Mailbox>::Iterator mi( m->mailboxes() );
-        while ( mi ) {
-            Mailbox * mb = mi;
-            List<Annotation>::Iterator ai( m->annotations( mb ) );
-            while ( ai ) {
-                annotations++;
-
-                uint aid( AnnotationName::id( ai->entryName() ) );
-
-                q->bind( 1, mb->id() );
-                q->bind( 2, m->uid( mb ) );
-                q->bind( 3, aid );
-                q->bind( 4, ai->value() );
-                if ( ai->ownerId() == 0 )
-                    q->bindNull( 5 );
-                else
-                    q->bind( 5, ai->ownerId() );
-                q->submitLine();
-                ++ai;
-            }
-            ++mi;
-        }
-        ++it;
-    }
-
-    if ( annotations )
-        d->transaction->enqueue( q );
-}
-
-
-/*! If any of the messages are wrapped, this function inserts rows into
-    the unparsed_messages table for them.
-*/
-
-void Injector::handleWrapping()
-{
-    Query * q =
-        new Query( "copy unparsed_messages (bodypart) "
-                   "from stdin with binary", this );
-
-    uint wrapped = 0;
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        if ( m->isWrapped() ) {
-            wrapped++;
-
-            List<Bodypart>::Iterator bi( m->allBodyparts() );
-            while ( bi ) {
-                Bodypart * b = bi;
-                if ( m->partNumber( b ) == "2" ) {
-                    q->bind( 1, b->id() );
-                    q->submitLine();
-                }
-                ++bi;
-            }
-        }
-        ++it;
-    }
-
-    if ( wrapped )
-        d->transaction->enqueue( q );
 }
 
 
