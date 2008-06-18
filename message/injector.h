@@ -41,14 +41,14 @@ private:
 
     void findDependencies();
     void updateAddresses( List<Address> * );
-    bool createDependencies();
+    void createDependencies();
     void logDescription();
-    void finish();
+    void next();
     void selectUids();
-    bool selectMessageIds();
+    void selectMessageIds();
     void insertPartNumber( Query *, uint, const String &,
                            int = -1, int = -1, int = -1 );
-    void setupBodyparts();
+    void insertBodyparts();
     void insertMessages();
     void insertDeliveries();
     void linkBodyparts();

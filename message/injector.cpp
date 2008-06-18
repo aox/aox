@@ -688,85 +688,68 @@ String Injector::error() const
 }
 
 
+/*! This private function advances the injector to the next state. */
+
+void Injector::next()
+{
+    d->state = (State)(d->state + 1);
+}
+
+
 void Injector::execute()
 {
     Scope x( log() );
 
-    if ( d->state == Inactive ) {
-        // We'll look over the messages to make sure they're all valid
-        // and to collect any unknown header fields, flags, annotation
-        // names, and addresses that must be stored before the messages
-        // themselves.
+    State last;
 
-        findDependencies();
+    // We start in state Inactive, and execute the functions responsible
+    // for making progress in each state. If they change the state using
+    // next(), we restart the loop; otherwise we wait for callbacks. We
+    // check for errors after each call, so the functions don't need to
+    // do anything about errors, other than returning early or setting
+    // d->failed (if the error doesn't affect the Transaction).
 
-        if ( d->failed ) {
-            finish();
-            return;
-        }
+    do {
+        last = d->state;
+        switch ( d->state ) {
+        case Inactive:
+            findDependencies();
+            if ( d->failed )
+                break;
+            logDescription();
+            d->transaction = new Transaction( this );
+            next();
+            break;
 
-        logDescription();
+        case CreatingDependencies:
+            createDependencies();
+            break;
 
-        d->transaction = new Transaction( this );
-        d->state = CreatingDependencies;
-    }
+        case InsertingBodyparts:
+            if ( !d->bidFetcher ) {
+                insertBodyparts();
+                d->bidFetcher->execute();
+            }
+            else if ( d->bidFetcher->done ) {
+                next();
+            }
+            break;
 
-    if ( d->state == CreatingDependencies ) {
-        if ( !createDependencies() )
-            return;
+        case SelectingMessageIds:
+            selectMessageIds();
+            break;
 
-        if ( ( d->flagCreation && d->flagCreation->failed() ) ||
-             ( d->fieldCreation && d->fieldCreation->failed() ) ||
-             ( d->addressCreator && d->addressCreator->failed ) ||
-             ( d->annotationCreation && d->annotationCreation->failed() ) )
-        {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
-            d->state = InsertingBodyparts;
-            setupBodyparts();
-            d->bidFetcher->execute();
-        }
-    }
+        case SelectingUids:
+            if ( !d->uidFetcher ) {
+                selectUids();
+                d->transaction->execute();
+            }
+            else if ( d->uidFetcher->done() ) {
+                next();
+            }
+            break;
 
-    if ( d->state == InsertingBodyparts ) {
-        if ( !d->bidFetcher->done )
-            return;
-
-        if ( d->bidFetcher->failed ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
-            d->state = SelectingMessageIds;
-        }
-    }
-
-    if ( d->state == SelectingMessageIds ) {
-        if ( !selectMessageIds() )
-            return;
-
-        d->state = SelectingUids;
-        selectUids();
-        d->transaction->execute();
-    }
-
-    if ( d->state == SelectingUids && !d->transaction->failed() ) {
-        // Once we have UIDs for each Mailbox, we can insert rows into
-        // messages.
-
-        if ( !d->uidFetcher->done() )
-            return;
-
-        if ( d->uidFetcher->failed ) {
-            d->failed = true;
-            d->transaction->rollback();
-            d->state = AwaitingCompletion;
-        }
-        else {
+        case InsertingMessages:
             insertMessages();
             linkBodyparts();
             linkHeaders();
@@ -774,41 +757,60 @@ void Injector::execute()
             linkFlags();
             linkAnnotations();
             handleWrapping();
-
-            d->state = InsertingMessages;
-            d->transaction->execute();
-        }
-    }
-
-    if ( d->state == InsertingMessages || d->transaction->failed() ) {
-        // Now we just wait for everything to finish.
-        if ( d->state < AwaitingCompletion ) {
-            d->transaction->enqueue(
-                new Query( "notify mailboxes_updated", 0 ) );
+            next();
+            d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
             d->transaction->commit();
+            break;
+
+        case AwaitingCompletion:
+            if ( !d->transaction->done() )
+                return;
+
+            if ( d->failed || d->transaction->failed() ) {
+                ::failures->tick();
+                Flag::rollback();
+                FieldName::rollback();
+                AnnotationName::rollback();
+            }
+            else {
+                ::successes->tick();
+                announce();
+            }
+
+            next();
+            break;
+
+        case Done:
+            break;
         }
-        d->state = AwaitingCompletion;
-    }
 
-    if ( d->state == AwaitingCompletion ) {
-        if ( !d->transaction->done() )
-            return;
-
-        if ( !d->failed )
+        if ( !d->failed && d->transaction )
             d->failed = d->transaction->failed();
 
-        if ( d->failed ) {
-            ::failures->tick();
-            Flag::rollback();
-            FieldName::rollback();
-            AnnotationName::rollback();
+        if ( d->state != Done && d->failed ) {
+            if ( d->transaction ) {
+                d->state = AwaitingCompletion;
+                d->transaction->rollback();
+            }
+            else {
+                break;
+            }
         }
-        else {
-            announce();
-            ::successes->tick();
-        }
-        d->state = Done;
-        finish();
+    }
+    while ( last != d->state && d->state != Done );
+
+    if ( d->state == Done && d->owner ) {
+        if ( d->failed )
+            log( "Injection failed: " + error() );
+        else
+            log( "Injection succeeded" );
+
+        d->owner->execute();
+
+        // We don't want to notify the owner multiple times if we
+        // aborted early and continue to get callbacks for failed
+        // queries. XXX: But can that ever happen? I think not.
+        d->owner = 0;
     }
 }
 
@@ -954,55 +956,35 @@ void Injector::updateAddresses( List<Address> * newAddresses )
 
 
 /*! This function creates any unknown names found by findDependencies().
-    It expects to be called repeatedly until it returns true, which it
-    does only when the work is all done or when an error occurs.
-
-    The various inserts must be executed one by one, because they use
-    savepoints.
+    It advances to the next state if it completes successfully, or sets
+    d->failed if an error occurs.
 */
 
-bool Injector::createDependencies()
+void Injector::createDependencies()
 {
-    // First insert header field names into field_names.
-
-    if ( !d->fields.isEmpty() && !d->fieldCreation )
+    if ( !d->fieldCreation && !d->fields.isEmpty() )
         d->fieldCreation =
             FieldName::create( d->fields, d->transaction, this );
 
-    if ( d->fieldCreation ) {
-        if ( !d->fieldCreation->done() )
-            return false;
-        if ( d->fieldCreation->failed() )
-            return true;
-    }
+    if ( d->fieldCreation &&
+         ( !d->fieldCreation->done() || d->fieldCreation->failed() ) )
+        return;
 
-    // When that's done, insert into flag_names.
-
-    if ( !d->flags.isEmpty() && !d->flagCreation )
+    if ( !d->flagCreation && !d->flags.isEmpty() )
         d->flagCreation =
             Flag::create( d->flags, d->transaction, this );
 
-    if ( d->flagCreation ) {
-        if ( !d->flagCreation->done() )
-            return false;
-        if ( d->flagCreation->failed() )
-            return true;
-    }
+    if ( d->flagCreation &&
+         ( !d->flagCreation->done() || d->flagCreation->failed() ) )
+        return;
 
-    // Then annotation_names.
-
-    if ( !d->annotationNames.isEmpty() && !d->annotationCreation )
+    if ( !d->annotationCreation && !d->annotationNames.isEmpty() )
         d->annotationCreation =
             AnnotationName::create( d->annotationNames, d->transaction, this );
 
-    if ( d->annotationCreation ) {
-        if ( !d->annotationCreation->done() )
-            return false;
-        if ( d->annotationCreation->failed() )
-            return true;
-    }
-
-    // And finally, addresses.
+    if ( d->annotationCreation &&
+         ( !d->annotationCreation->done() || d->annotationCreation->failed() ) )
+        return;
 
     if ( !d->addressCreator ) {
         d->addressCreator =
@@ -1011,30 +993,9 @@ bool Injector::createDependencies()
     }
 
     if ( !d->addressCreator->done )
-        return false;
-
-    return true;
-}
-
-
-/*! This function notifies the owner of this Injector of its completion.
-    It will do so only once.
-*/
-
-void Injector::finish()
-{
-    // XXX: If we fail early in the transaction, we'll continue to
-    // be notified of individual query failures. We don't want to
-    // pass them on, because d->owner would have killed itself.
-    if ( !d->owner )
         return;
 
-    if ( d->failed )
-        log( "Injection failed: " + error() );
-    else
-        log( "Injection succeeded" );
-    d->owner->execute();
-    d->owner = 0;
+    next();
 }
 
 
@@ -1044,7 +1005,7 @@ void Injector::finish()
     does only when the work is done, or an error occurs.
 */
 
-bool Injector::selectMessageIds()
+void Injector::selectMessageIds()
 {
     if ( !d->select ) {
         d->message = new List<Message>::Iterator( d->messages );
@@ -1057,13 +1018,8 @@ bool Injector::selectMessageIds()
     }
 
     if ( !d->copy ) {
-        if ( !d->select->done() )
-            return false;
-
-        if ( d->select->failed() ) {
-            d->failed = true;
-            return true;
-        }
+        if ( !d->select->done() || d->select->failed() )
+            return;
 
         d->copy = new Query( "copy messages (id,rfc822size) "
                              "from stdin with binary", this );
@@ -1083,9 +1039,9 @@ bool Injector::selectMessageIds()
     }
 
     if ( !d->copy->done() )
-        return false;
+        return;
 
-    return true;
+    next();
 }
 
 
@@ -1163,7 +1119,7 @@ void Injector::selectUids()
     BidFetcher.
 */
 
-void Injector::setupBodyparts()
+void Injector::insertBodyparts()
 {
     List<Bid> * bodyparts = new List<Bid>;
 
