@@ -1192,7 +1192,7 @@ Message * Message::wrapUnparsableMessage( const String & message,
 /*! Records that this message's modseq (see RFC 4551) in \a mb is \a n. The
     initial value is 0, which is not a legal modseq. */
 
-void Message::setModSeq( Mailbox * mb, uint n )
+void Message::setModSeq( Mailbox * mb, int64 n )
 {
     MessageData::Mailbox * m = d->mailbox( mb, true );
     m->modseq = n;
@@ -1201,7 +1201,7 @@ void Message::setModSeq( Mailbox * mb, uint n )
 
 /*! Returns the RFC 4551 modseq set by setModSeq( \a mb ). */
 
-uint Message::modSeq( Mailbox * mb ) const
+int64 Message::modSeq( Mailbox * mb ) const
 {
     MessageData::Mailbox * m = d->mailbox( mb );
     if ( m )

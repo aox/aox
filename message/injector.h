@@ -39,24 +39,25 @@ private:
 
     static void setup();
 
+    void next();
     void findDependencies();
     void updateAddresses( List<Address> * );
-    bool createDependencies();
-    void logDescription();
-    void finish();
+    void createDependencies();
+    void insertBodyparts();
+    void selectMessageIds();
     void selectUids();
-    bool selectMessageIds();
-    void insertPartNumber( Query *, uint, const String &,
-                           int = -1, int = -1, int = -1 );
-    void setupBodyparts();
     void insertMessages();
     void insertDeliveries();
     void linkBodyparts();
+    void insertPartNumber( Query *, uint, const String &,
+                           int = -1, int = -1, int = -1 );
     void linkHeaders();
     void linkHeader( Message *, Header *, const String & );
-    void linkFlags();
-    void linkAnnotations();
-    void handleWrapping();
+    void addMailbox( Query *, Message *, Mailbox * );
+    uint addFlags( Query *, Message *, Mailbox * );
+    uint addAnnotations( Query *, Message *, Mailbox * );
+    void addWrapping( Query *, Message * );
+    void logDescription();
     void announce();
 
     uint internalDate( Mailbox *, Message * ) const;
