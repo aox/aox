@@ -285,20 +285,19 @@ class AddressCreator
     : public EventHandler
 {
 public:
-    int state;
-    Query * q;
-    Transaction * t;
     List<Address> * addresses;
-    EventHandler * owner;
-    Dict<Address> unided;
+    Transaction * t;
+    Query * result;
+    Query * q;
+    int state;
     int savepoint;
-    bool failed;
-    bool done;
+    Dict<Address> unided;
 
     AddressCreator( List<Address> * a, Transaction * tr, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), addresses( a ), owner( ev ),
-          savepoint( 0 ), failed( false ), done( false )
-    {}
+        : addresses( a ), t( tr ), q( 0 ), state( 0 ), savepoint( 0 )
+    {
+        result = new Query( ev );
+    }
 
     void execute();
     void selectAddresses();
@@ -323,8 +322,9 @@ void AddressCreator::execute()
 
     if ( state == 4 ) {
         state = 42;
-        done = true;
-        owner->execute();
+        if ( !result->done() )
+            result->setState( Query::Completed );
+        result->notify();
     }
 }
 
@@ -437,7 +437,7 @@ void AddressCreator::processInsert()
             savepoint++;
         }
         else {
-            failed = true;
+            result->setState( Query::Failed );
             state = 4;
         }
     }
@@ -473,7 +473,7 @@ public:
           addresses( new List<Address> ),
           uidFetcher( 0 ), bidFetcher( 0 ),
           flagCreation( 0 ), annotationCreation( 0 ),
-          fieldCreation( 0 ), addressCreator( 0 ),
+          fieldCreation( 0 ), addressCreation( 0 ),
           select( 0 ), copy( 0 ), message( 0 )
     {}
 
@@ -497,7 +497,7 @@ public:
     Query * flagCreation;
     Query * annotationCreation;
     Query * fieldCreation;
-    AddressCreator * addressCreator;
+    Query * addressCreation;
 
     struct Delivery
         : public Garbage
@@ -975,13 +975,14 @@ void Injector::createDependencies()
          ( !d->annotationCreation->done() || d->annotationCreation->failed() ) )
         return;
 
-    if ( !d->addressCreator ) {
-        d->addressCreator =
+    if ( !d->addressCreation ) {
+        AddressCreator * a =
             new AddressCreator( d->addresses, d->transaction, this );
-        d->addressCreator->execute();
+        d->addressCreation = a->result;
+        a->execute();
     }
 
-    if ( !d->addressCreator->done )
+    if ( !d->addressCreation->done() )
         return;
 
     next();
