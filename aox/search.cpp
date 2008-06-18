@@ -87,9 +87,16 @@ static Selector * parseSelector( StringList * arguments,
         if ( a == "(" ) {
             children.append( parseSelector( arguments, true, e ) );
         }
-        else while ( a == "not" ) {
+        else if ( a == "not" ) {
             seenNot = true;
+            i = arguments->shift();
+            n = arguments->firstElement();
+            if ( !i )
+                e = "NOT as last argument";
+            else
+                a = i->lower();
         }
+        Selector * c = 0;
 
         if ( a == "from" ||
              a == "to" ||
@@ -102,14 +109,16 @@ static Selector * parseSelector( StringList * arguments,
                 e = "No address supplied";
             }
             else if ( n->contains( "@" ) ) {
-                children.append( new Selector( Selector::Header,
-                                               Selector::Contains,
-                                               a, address( *n, e ) ) );
+                c = new Selector( Selector::Header,
+                                  Selector::Contains,
+                                  a, address( *n, e ) );
+                arguments->shift();
             }
             else if ( n->contains( "." ) ) {
-                children.append( new Selector( Selector::Header,
-                                               Selector::Contains,
-                                               a, domain( *n, e ) ) );
+                c = new Selector( Selector::Header,
+                                  Selector::Contains,
+                                  a, domain( *n, e ) );
+                arguments->shift();
             }
             else {
                 e = "Address search argument must be "
@@ -133,14 +142,32 @@ static Selector * parseSelector( StringList * arguments,
                 e = "No header field substring supplied";
             }
             else {
-                Utf8Codec c;
-                children.append( new Selector( Selector::Header,
-                                               Selector::Contains,
-                                               a, c.toUnicode( *n ) ) );
+                Utf8Codec uc;
+                c = new Selector( Selector::Header,
+                                  Selector::Contains,
+                                  a, uc.toUnicode( *n ) );
+                arguments->shift();
+            }
+        }
+        else {
+            e = "Bad argument";
+        }
+
+        if ( c ) {
+            if ( seenNot ) {
+                Selector * n = new Selector( Selector::Not );
+                n->add( c );
+                children.append( n );
+            }
+            else {
+                children.append( c );
             }
         }
 
-        if ( !arguments->isEmpty() ) {
+        if ( arguments->isEmpty() ) {
+            i = 0;
+        }
+        else if ( !e ) {
             i = arguments->shift();
             a = i->lower();
             if ( a == ")" ) {
@@ -184,7 +211,7 @@ static Selector * parseSelector( StringList * arguments,
         ++c;
     }
     return s;
-}
+}   
 
 
 Selector * parseSelector( StringList * arguments )
@@ -272,15 +299,15 @@ void dumpSelector( Selector * s, uint l )
             a = "All must be true:";
         else if ( s->action() == Selector::And )
             a = "Any must be true:";
-        else if ( s->action() == Selector::And )
-            a = "Not";
+        else if ( s->action() == Selector::Not )
+            a = "Not:";
         else
             children = false;
         break;
     }
 
     if ( !a.isEmpty() )
-        fprintf( stdout, " %*s%s\n", l*2, "", a.cstr() );
+        fprintf( stdout, "%*s%s\n", l*2, "", a.cstr() );
 
     if ( !children )
         return;
@@ -314,8 +341,16 @@ ShowSearch::ShowSearch( StringList * args )
     : AoxCommand( args )
 {
     Selector * s = parseSelector( args );
-    if ( s )
-        dumpSelector( s );
+    if ( !s )
+        return;
+    dumpSelector( s );
+    String sqlFormat = s->string();
+    s->simplify();
+    if ( sqlFormat == s->string() )
+        return;
+    fprintf( stdout,
+             "Search could be simplified. Showing simplified form:\n" );
+    dumpSelector( s );
 }
 
 
