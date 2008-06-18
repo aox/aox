@@ -5,6 +5,8 @@
 
 #include "database.h"
 
+class Query;
+
 
 class Postgres
     : public Database
@@ -25,7 +27,7 @@ public:
 private:
     class PgData *d;
 
-    void processQuery( class Query * );
+    void processQuery( Query * );
     void authentication( char );
     void backendStartup( char );
     void process( char );
@@ -33,7 +35,8 @@ private:
     void serverMessage();
     void error( const String & );
     void shutdown();
-    void countQueries( class Query * );
+    void countQueries( Query * );
+    String queryString( Query * );
     String mapped( const String & ) const;
 };
 

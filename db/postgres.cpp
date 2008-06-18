@@ -197,25 +197,7 @@ void Postgres::processQuery( Query * q )
     if ( q->name() == "" ||
          !d->prepared.contains( q->name() ) )
     {
-        String qs = q->string();
-        if ( ::serverVersion < 80200 && qs.contains( "=any($" ) ) {
-            bool ok = true;
-            while ( ok && qs.contains( "=any($" ) ) {
-                uint v = qs.section( "=any($", 2 ).
-                         section( ")", 1 ).number( &ok );
-                if ( ok )
-                    qs.replace( "=any($" + fn( v ) + ")",
-                                " in (select ($"+fn( v )+"::int[])[i] from "
-                                "generate_series(1,array_upper($" + fn( v ) +
-                                "::int[],1)) as s(i) limit array_upper($" + fn( v ) +
-                                "::int[],1))" );
-            }
-            if ( qs != q->string() ) {
-                Scope x( q->log() );
-                log( "Changing query string to: " + qs, Log::Debug );
-            }
-        }
-        PgParse a( qs, q->name() );
+        PgParse a( queryString( q ), q->name() );
         a.enqueue( writeBuffer() );
 
         if ( q->name() != "" ) {
@@ -1131,4 +1113,59 @@ void Postgres::sendListen()
             ::listener->processQuery( q );
         }
     }
+}
+
+
+/*! Returns the query string for \a q, after possibly applying
+    version-specific hacks and workarounds. */
+
+String Postgres::queryString( Query * q )
+{
+    String s( q->string() );
+
+    // Postgres 8.1 plans "where x=ANY($1)" with a seqscan, but we can
+    // use a grotesque generate_series hack to subvert that behaviour.
+    //
+    // "x=any($1)" should be rewritten to:
+    // "x in (select $1[i] from generate_series(1,array_upper($1,1)))"
+    //
+    // We add typecasts, and a "LIMIT" in the subquery seems to make
+    // Postgres believe that the outer query is selective enough to
+    // avoid a seqscan.
+
+    if ( s.contains( "=any($" ) && ::serverVersion < 80200 ) {
+        bool ok = true;
+        while ( s.contains( "=any($" ) ) {
+            String p( s.section( "=any($", 2 ).section( ")", 1 ) );
+
+            // p looks like "1" or "1::text[]".
+            uint v = p.section( "::", 1 ).number( &ok );
+            String type( p.section( "::", 2 ) );
+
+            // Most of the arrays we bind are int[], so we only require
+            // the exceptions to specify the type explicitly.
+            if ( type.isEmpty() )
+                type = "int[]";
+
+            // t should look like "1::int[]" or "1::text[]".
+            String t( fn( v ) );
+            t.append( "::" );
+            t.append( type );
+
+            if ( !ok )
+                break;
+
+            s.replace( "=any($" + p + ")",
+                       " in (select ($" + t + ")[i] "
+                       "from generate_series(1,array_upper($" + t + ",1)) "
+                       "as s(i) limit array_upper($" + t + ",1))" );
+        }
+    }
+
+    if ( s != q->string() ) {
+        Scope x( q->log() );
+        log( "Changing query string to: " + s, Log::Debug );
+    }
+
+    return s;
 }
