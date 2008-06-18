@@ -683,7 +683,7 @@ void Injector::execute()
         if ( !d->failed && d->transaction )
             d->failed = d->transaction->failed();
 
-        if ( d->state != Done && d->failed ) {
+        if ( d->state < AwaitingCompletion && d->failed ) {
             if ( d->transaction ) {
                 d->state = AwaitingCompletion;
                 d->transaction->rollback();
