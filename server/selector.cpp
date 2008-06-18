@@ -1831,3 +1831,54 @@ bool Selector::usesModseq() const
     }
     return false;
 }
+
+
+/*! Returns the 8-bit string supplied to some constructors, or an
+    empty string if none has been specified.
+*/
+
+String Selector::stringArgument() const
+{
+    return d->s8;
+}
+
+
+/*! Returns the unicode string supplied to some constructors, or an
+    empty string if none has been specified.
+*/
+
+UString Selector::ustringArgument() const
+{
+    return d->s16; // it's actually 32-bit, isn't it? who cares.
+}
+
+
+/*! Returns the numeric argument supplied to some constructors, or 0
+    if none has been specified.
+*/
+
+int Selector::integerArgument() const
+{
+    return d->n;
+}
+
+
+/*! Returns the message set supplied to some constructors, or an empty
+    set if none has been specified.
+*/
+
+MessageSet Selector::messageSetArgument() const
+{
+    return d->s;
+}
+
+
+/*! Returns a pointer to this selector's children (only applicable for
+    and/or/not selectors). May return a pointer to an empty list, but
+    will never return a null pointer.
+*/
+
+List<Selector> * Selector::children()
+{
+    return d->children;
+}
