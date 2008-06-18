@@ -12,6 +12,7 @@
 #include "users.h"
 #include "stats.h"
 #include "queue.h"
+#include "search.h"
 #include "aliases.h"
 #include "servers.h"
 #include "updatedb.h"
@@ -377,8 +378,11 @@ AoxCommand * AoxCommand::create( StringList * args )
             cmd = new ShowCounts( args );
         else if ( noun == "queue" )
             cmd = new ShowQueue( args );
+        else if ( noun == "search" )
+            cmd = new ShowSearch( args );
         else
-            bad( verb, noun, "status, build, cf, schema, counts, queue" );
+            bad( verb, noun,
+                 "status, build, cf, schema, counts, queue, search" );
     }
     else if ( verb == "upgrade" ) {
         String noun = ::next( args ).lower();

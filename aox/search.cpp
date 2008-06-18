@@ -1,5 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "search.h"
+
 #include "selector.h"
 
 #include "codec.h"
@@ -110,7 +112,8 @@ static Selector * parseSelector( StringList * arguments,
                                                a, domain( *n, e ) ) );
             }
             else {
-                e = "Cannot understand address search argument"; 
+                e = "Address search argument must be "
+                    "local@doma.in or doma.in"; 
             }
         }
         else if ( a == "subject" ||
@@ -297,3 +300,27 @@ void dumpSelector( Selector * s )
 }
 
 
+
+
+/*! \class ShowSearch search.h
+  
+    The ShowSearch class parses a search expression and then explains
+    what the search expression does in a different format. It's meant
+    to help people formulate searches for use with other aox commands,
+    and also to help us test.
+*/
+
+ShowSearch::ShowSearch( StringList * args )
+    : AoxCommand( args )
+{
+    Selector * s = parseSelector( args );
+    if ( s )
+        dumpSelector( s );
+}
+
+
+void ShowSearch::execute()
+{
+    // nothing yet - may one day carry out a search
+    finish();
+}
