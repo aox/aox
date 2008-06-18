@@ -110,7 +110,7 @@ void FlagCreator::execute()
 void FlagCreator::selectFlags()
 {
     q = new Query( "select id, name from flag_names where "
-                   "lower(name)=any($1)", this );
+                   "lower(name)=any($1::text[])", this );
 
     unided.clear();
 
