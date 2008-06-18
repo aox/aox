@@ -701,12 +701,13 @@ void Injector::execute()
         else
             log( "Injection succeeded" );
 
-        d->owner->execute();
-
         // We don't want to notify the owner multiple times if we
         // aborted early and continue to get callbacks for failed
-        // queries. XXX: But can that ever happen? I think not.
+        // queries.
+
+        EventHandler * owner = d->owner;
         d->owner = 0;
+        owner->execute();
     }
 }
 
