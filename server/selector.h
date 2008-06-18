@@ -78,6 +78,12 @@ public:
 
     String mboxId();
 
+    String stringArgument() const;
+    UString ustringArgument() const;
+    int integerArgument() const;
+    MessageSet messageSetArgument() const;
+    List<Selector> * children();
+
 private:
     class SelectorData * d;
 

@@ -3,11 +3,21 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
-#include "global.h"
+#include "aoxcommand.h"
 
 
-class Selector * parseSelector( StringList * );
-String dumpSelector( Selector * );
+class Selector * parseSelector( class StringList * );
+void dumpSelector( Selector * );
+
+
+class ShowSearch
+    : public AoxCommand
+{
+public:
+    ShowSearch( StringList * );
+
+    void execute();
+};
 
 
 #endif
