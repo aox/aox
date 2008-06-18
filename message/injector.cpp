@@ -984,8 +984,11 @@ void Injector::selectUids()
             return;
         }
 
-        // Lock the mailboxes in ascending order and fetch the
-        // uidnext/nextmodseq for each one.
+        // Lock the mailboxes in ascending order and fetch the uidnext
+        // and nextmodseq for each one separately. We can't do this in a
+        // single query ("id=any($1)") because that doesn't guarantee to
+        // lock the rows in order. The number of mailboxes is unlikely
+        // to be large enough for these queries to be a problem.
 
         d->queries = new List<Query>;
         SortedList<Mailbox>::Iterator mi( d->mailboxes );
