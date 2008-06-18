@@ -7,7 +7,7 @@
 
 
 class Selector * parseSelector( StringList * );
-String dumpSelector( Selector * );
+void dumpSelector( Selector * );
 
 
 #endif
