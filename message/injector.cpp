@@ -472,7 +472,6 @@ public:
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
           uidFetcher( 0 ), bidFetcher( 0 ),
-          headerFields( 0 ), addressFields( 0 ), dateFields( 0 ),
           flagCreation( 0 ), annotationCreation( 0 ),
           fieldCreation( 0 ), addressCreator( 0 ),
           select( 0 ), copy( 0 ), message( 0 )
@@ -494,10 +493,6 @@ public:
 
     UidFetcher *uidFetcher;
     BidFetcher *bidFetcher;
-
-    Query * headerFields;
-    Query * addressFields;
-    Query * dateFields;
 
     Query * flagCreation;
     Query * annotationCreation;
@@ -1214,28 +1209,32 @@ void Injector::insertBodyparts()
 }
 
 
-/*! This private function inserts one row per mailbox into the
-    mailbox_messages table.
-*/
+/*! Injects messages into the correct tables. */
 
 void Injector::insertMessages()
 {
-    linkBodyparts();
-    linkHeaders();
+    Query * qp =
+        new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
+                   "from stdin with binary", 0 );
+    Query * qh =
+        new Query( "copy header_fields (message,part,position,field,value) "
+                   "from stdin with binary", 0 );
+    Query * qa =
+        new Query( "copy address_fields "
+                   "(message,part,position,field,number,address) "
+                   "from stdin with binary", 0 );
+    Query * qd =
+        new Query( "copy date_fields (message,value) from stdin", 0 );
 
     Query * qm =
-        new Query( "copy mailbox_messages "
-                   "(mailbox,uid,message,idate,modseq) "
+        new Query( "copy mailbox_messages (mailbox,uid,message,idate,modseq) "
                    "from stdin with binary", 0 );
-
     Query * qf =
         new Query( "copy flags (mailbox,uid,flag) "
                    "from stdin with binary", 0 );
-
-    Query * qa =
+    Query * qn =
         new Query( "copy annotations (mailbox,uid,name,value,owner) "
                    "from stdin with binary", 0 );
-
     Query * qw =
         new Query( "copy unparsed_messages (bodypart) "
                    "from stdin with binary", 0 );
@@ -1248,6 +1247,58 @@ void Injector::insertMessages()
     List<Message>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
+        uint mid = m->databaseId();
+
+        // The top-level RFC 822 header fields are linked to a special
+        // part named "" that does not correspond to any entry in the
+        // bodyparts table.
+
+        addPartNumber( qp, mid, "" );
+        addHeader( qh, qa, qd, mid, "", m->header() );
+
+        // Since the MIME header fields belonging to the first-child of
+        // a single-part Message are appended to the RFC 822 header, we
+        // don't need to inject them into the database again.
+
+        bool skip = false;
+        ContentType *ct = m->header()->contentType();
+        if ( !ct || ct->type() != "multipart" )
+            skip = true;
+
+        // Now we insert the headers and bodies of every MIME bodypart.
+
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            Bodypart * b = bi;
+            String pn( m->partNumber( b ) );
+
+            addPartNumber( qp, mid, pn, b );
+            if ( !skip )
+                addHeader( qh, qa, qd, mid, pn, b->header() );
+            else
+                skip = false;
+
+            // message/rfc822 bodyparts get a special part number too.
+
+            if ( b->message() ) {
+                String rpn( pn + ".rfc822" );
+                addPartNumber( qp, mid, rpn, b );
+                addHeader( qh, qa, qd, mid, rpn, b->message()->header() );
+            }
+
+            // If the message we're injecting is a wrapper around a
+            // message we couldn't parse, record that fact too.
+
+            if ( m->isWrapped() && pn == "2" ) {
+                qw->bind( 1, b->id() );
+                qw->submitLine();
+                wrapped++;
+            }
+
+            ++bi;
+        }
+
+        // Then record any mailbox-specific information (e.g. flags).
 
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
@@ -1257,209 +1308,104 @@ void Injector::insertMessages()
             addMailbox( qm, m, mb );
 
             flags += addFlags( qf, m, mb );
-            annotations += addAnnotations( qa, m, mb );
+            annotations += addAnnotations( qn, m, mb );
 
             ++mi;
-        }
-
-        if ( m->isWrapped() ) {
-            addWrapping( qw, m );
-            wrapped++;
         }
 
         ++it;
     }
 
+    d->transaction->enqueue( qp );
+    d->transaction->enqueue( qh );
+    d->transaction->enqueue( qa );
+    d->transaction->enqueue( qd );
     if ( mailboxes )
         d->transaction->enqueue( qm );
     if ( flags )
         d->transaction->enqueue( qf );
     if ( annotations )
-        d->transaction->enqueue( qa );
+        d->transaction->enqueue( qn );
     if ( wrapped )
         d->transaction->enqueue( qw );
 }
 
 
-/*! This private function inserts rows into the part_numbers table for
-    each new message.
+/*! Adds a single part_numbers row for the given \a part number,
+    belonging to the message with id \a mid and the bodypart \a b
+    (which may be 0) to the query \a q.
 */
 
-void Injector::linkBodyparts()
+void Injector::addPartNumber( Query * q, uint mid, const String &part,
+                              Bodypart * b )
 {
-    Query *q =
-        new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
-                   "from stdin with binary", 0 );
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        uint mid = m->databaseId();
-
-        // A fake target part for top-level RFC 822 header fields.
-        insertPartNumber( q, mid, "" );
-
-        List<Bodypart>::Iterator bi( m->allBodyparts() );
-        while ( bi ) {
-            Bodypart * b = bi;
-            String pn( m->partNumber( b ) );
-
-            insertPartNumber( q, mid, pn, b->id(),
-                              b->numEncodedBytes(),
-                              b->numEncodedLines() );
-
-            if ( b->message() )
-                insertPartNumber( q, mid, pn + ".rfc822", b->id(),
-                                  b->numEncodedBytes(),
-                                  b->numEncodedLines() );
-
-            ++bi;
-        }
-
-        ++it;
-    }
-
-    d->transaction->enqueue( q );
-}
-
-
-/*! This private helper is used by linkBodyparts() to add a single row
-    of data to \a q for \a message, \a part, and \a bodypart.
-    If bodypart is smaller than 0, a NULL value is inserted instead.
-    If \a bytes and \a lines are greater than or equal to 0, their
-    values are inserted along with the \a bodypart.
-*/
-
-void Injector::insertPartNumber( Query *q, uint message,
-                                 const String &part, int bodypart,
-                                 int bytes, int lines )
-{
-    q->bind( 1, message );
+    q->bind( 1, mid );
     q->bind( 2, part );
 
-    if ( bodypart > 0 )
-        q->bind( 3, bodypart );
-    else
+    if ( b ) {
+        if ( b->id() )
+            q->bind( 3, b->id() );
+        else
+            q->bindNull( 3 );
+        q->bind( 4, b->numEncodedBytes() );
+        q->bind( 5, b->numEncodedLines() );
+    }
+    else {
         q->bindNull( 3 );
-
-    if ( bytes >= 0 )
-        q->bind( 4, bytes );
-    else
         q->bindNull( 4 );
-
-    if ( lines >= 0 )
-        q->bind( 5, lines );
-    else
         q->bindNull( 5 );
+    }
 
     q->submitLine();
 }
 
 
-/*! Iterates over the headers of each message and calls linkHeader()
-    for each one. */
+/*! Add each field from the header \a h (belonging to the given \a part
+    of the message with id \a mid) to one of the queries \a qh, \a qa,
+    or \a qd, depending on their type.
+*/
 
-void Injector::linkHeaders()
+void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
+                          const String & part, Header * h )
 {
-    d->headerFields =
-        new Query( "copy header_fields "
-                   "(message,part,position,field,value) "
-                   "from stdin with binary", 0 );
-
-    d->addressFields =
-        new Query( "copy address_fields "
-                   "(message,part,position,field,number,address) "
-                   "from stdin with binary", 0 );
-
-    d->dateFields =
-        new Query( "copy date_fields (message,value) from stdin", 0 );
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-
-        linkHeader( m, m->header(), "" );
-
-        // Since the MIME header fields belonging to the first-child of
-        // a single-part Message are appended to the RFC 822 header, we
-        // don't need to inject them into the database again.
-        bool skip = false;
-        ContentType *ct = m->header()->contentType();
-        if ( !ct || ct->type() != "multipart" )
-            skip = true;
-
-        List<Bodypart>::Iterator bi( m->allBodyparts() );
-        while ( bi ) {
-            Bodypart *bp = bi;
-            String pn = m->partNumber( bp );
-
-            if ( !skip )
-                linkHeader( m, bp->header(), pn );
-            else
-                skip = false;
-            if ( bp->message() )
-                linkHeader( m, bp->message()->header(),
-                            pn + ".rfc822" );
-            ++bi;
-        }
-
-        ++it;
-    }
-
-    d->transaction->enqueue( d->headerFields );
-    d->transaction->enqueue( d->addressFields );
-    d->transaction->enqueue( d->dateFields );
-}
-
-
-/*! Inserts the fields from the header \a h of the specified \a part in
-    the message \a m. */
-
-void Injector::linkHeader( Message * m, Header * h, const String & part )
-{
-    Query * q;
-
     List< HeaderField >::Iterator it( h->fields() );
     while ( it ) {
-        HeaderField *hf = it;
+        HeaderField * hf = it;
 
         if ( hf->type() <= HeaderField::LastAddressField ) {
-            q = d->addressFields;
             List< Address > * al = ((AddressField *)hf)->addresses();
             List< Address >::Iterator ai( al );
             uint n = 0;
             while ( ai ) {
                 Address * a = d->knownAddresses.find( addressKey( ai ) );
-                q->bind( 1, m->databaseId() );
-                q->bind( 2, part );
-                q->bind( 3, hf->position() );
-                q->bind( 4, hf->type() );
-                q->bind( 5, n );
-                q->bind( 6, a->id() );
-                q->submitLine();
+                qa->bind( 1, mid );
+                qa->bind( 2, part );
+                qa->bind( 3, hf->position() );
+                qa->bind( 4, hf->type() );
+                qa->bind( 5, n );
+                qa->bind( 6, a->id() );
+                qa->submitLine();
                 ++ai;
                 ++n;
             }
         }
         else {
-            q = d->headerFields;
-
             uint t = FieldName::id( hf->name() );
             if ( !t )
                 t = hf->type();
 
-            q->bind( 1, m->databaseId() );
-            q->bind( 2, part );
-            q->bind( 3, hf->position() );
-            q->bind( 4, t );
-            q->bind( 5, hf->value() );
-            q->submitLine();
+            qh->bind( 1, mid );
+            qh->bind( 2, part );
+            qh->bind( 3, hf->position() );
+            qh->bind( 4, t );
+            qh->bind( 5, hf->value() );
+            qh->submitLine();
 
             if ( part.isEmpty() && hf->type() == HeaderField::Date ) {
                 DateField * df = (DateField *)hf;
-                d->dateFields->bind( 1, m->databaseId() );
-                d->dateFields->bind( 2, df->date()->isoDateTime() );
-                d->dateFields->submitLine();
+                qd->bind( 1, mid );
+                qd->bind( 2, df->date()->isoDateTime() );
+                qd->submitLine();
             }
         }
 
@@ -1522,22 +1468,6 @@ uint Injector::addAnnotations( Query * q, Message * m, Mailbox * mb )
         ++ai;
     }
     return n;
-}
-
-
-/*! Adds an unparsed_messages row for the message \a m to \a q. */
-
-void Injector::addWrapping( Query * q, Message * m )
-{
-    List<Bodypart>::Iterator bi( m->allBodyparts() );
-    while ( bi ) {
-        Bodypart * b = bi;
-        if ( m->partNumber( b ) == "2" ) {
-            q->bind( 1, b->id() );
-            q->submitLine();
-        }
-        ++bi;
-    }
 }
 
 
