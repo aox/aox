@@ -56,96 +56,6 @@ struct Bid
 };
 
 
-class UidFetcher
-    : public EventHandler
-{
-public:
-    SortedList<Mailbox> * mailboxes;
-    List<Query> * queries;
-    List<Message> * messages;
-    EventHandler *owner;
-    bool failed;
-    String error;
-
-    UidFetcher( SortedList<Mailbox> * mbl, List<Query> *ql,
-                List<Message> * ml, EventHandler * ev )
-        : mailboxes( mbl ), queries( ql ), messages( ml ), owner( ev ),
-          failed( false )
-    {}
-
-    void execute() {
-        Query *q;
-
-        while ( ( q = queries->firstElement() ) != 0 &&
-                q->done() )
-        {
-            queries->shift();
-
-            if ( q->hasResults() )
-                process( q );
-            else
-                failed = true;
-        }
-
-        if ( failed || queries->isEmpty() )
-            owner->execute();
-    }
-
-    void process( Query * q )
-    {
-        Mailbox * mb = mailboxes->shift();
-
-        Row * r = q->nextRow();
-        uint uidnext = r->getInt( "uidnext" );
-        int64 nextms = r->getBigint( "nextmodseq" );
-
-        if ( uidnext > 0x7ff00000 ) {
-            Log::Severity level = Log::Error;
-            if ( uidnext > 0x7fffff00 )
-                level = Log::Disaster;
-            log( "Note: Mailbox " + mb->name().ascii() +
-                 " only has " + fn ( 0x7fffffff - uidnext ) +
-                 " more usable UIDs. Please contact info@oryx.com"
-                 " to resolve this problem.", level );
-        }
-
-        uint n = 0;
-        List<Message>::Iterator it( messages );
-        while ( it ) {
-            Message * m = it;
-            if ( m->inMailbox( mb ) ) {
-                m->setUid( mb, uidnext+n );
-                m->setModSeq( mb, nextms );
-                n++;
-            }
-            ++it;
-        }
-
-        uint recentIn = 0;
-        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
-            List<Session>::Iterator si( mb->sessions() );
-            if ( si ) {
-                recentIn++;
-                si->addRecent( uidnext, n );
-            }
-        }
-
-        Query * u;
-        if ( recentIn == 0 )
-            u = new Query( *incrUidnext, 0 );
-        else
-            u = new Query( *incrUidnextWithRecent, 0 );
-        u->bind( 1, mb->id() );
-        u->bind( 2, n );
-        q->transaction()->enqueue( u );
-    }
-
-    bool done() const {
-        return queries->isEmpty();
-    }
-};
-
-
 class BidFetcher
     : public EventHandler
 {
@@ -285,20 +195,19 @@ class AddressCreator
     : public EventHandler
 {
 public:
-    int state;
-    Query * q;
-    Transaction * t;
     List<Address> * addresses;
-    EventHandler * owner;
-    Dict<Address> unided;
+    Transaction * t;
+    Query * result;
+    Query * q;
+    int state;
     int savepoint;
-    bool failed;
-    bool done;
+    Dict<Address> unided;
 
     AddressCreator( List<Address> * a, Transaction * tr, EventHandler * ev )
-        : state( 0 ), q( 0 ), t( tr ), addresses( a ), owner( ev ),
-          savepoint( 0 ), failed( false ), done( false )
-    {}
+        : addresses( a ), t( tr ), q( 0 ), state( 0 ), savepoint( 0 )
+    {
+        result = new Query( ev );
+    }
 
     void execute();
     void selectAddresses();
@@ -323,8 +232,9 @@ void AddressCreator::execute()
 
     if ( state == 4 ) {
         state = 42;
-        done = true;
-        owner->execute();
+        if ( !result->done() )
+            result->setState( Query::Completed );
+        result->notify();
     }
 }
 
@@ -437,7 +347,7 @@ void AddressCreator::processInsert()
             savepoint++;
         }
         else {
-            failed = true;
+            result->setState( Query::Failed );
             state = 4;
         }
     }
@@ -471,11 +381,11 @@ public:
         : messages( 0 ), owner( 0 ),
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
-          uidFetcher( 0 ), bidFetcher( 0 ),
-          headerFields( 0 ), addressFields( 0 ), dateFields( 0 ),
+          mailboxes( new SortedList<Mailbox> ),
+          bidFetcher( 0 ),
           flagCreation( 0 ), annotationCreation( 0 ),
-          fieldCreation( 0 ), addressCreator( 0 ),
-          select( 0 ), copy( 0 ), message( 0 )
+          fieldCreation( 0 ), addressCreation( 0 ),
+          queries( 0 ), select( 0 ), copy( 0 ), message( 0 )
     {}
 
     List<Message> * messages;
@@ -492,17 +402,14 @@ public:
     List<Address> * addresses;
     Dict<Address> knownAddresses;
 
-    UidFetcher *uidFetcher;
-    BidFetcher *bidFetcher;
+    SortedList<Mailbox> * mailboxes;
 
-    Query * headerFields;
-    Query * addressFields;
-    Query * dateFields;
+    BidFetcher *bidFetcher;
 
     Query * flagCreation;
     Query * annotationCreation;
     Query * fieldCreation;
-    AddressCreator * addressCreator;
+    Query * addressCreation;
 
     struct Delivery
         : public Garbage
@@ -517,6 +424,7 @@ public:
     };
 
     List<Delivery> deliveries;
+    List<Query> * queries;
     Query * select;
     Query * copy;
     List<Message>::Iterator * message;
@@ -740,20 +648,13 @@ void Injector::execute()
             break;
 
         case SelectingUids:
-            if ( !d->uidFetcher ) {
-                selectUids();
-                d->transaction->execute();
-            }
-            else if ( d->uidFetcher->done() ) {
-                next();
-            }
+            selectUids();
             break;
 
         case InsertingMessages:
             insertMessages();
             insertDeliveries();
             next();
-            d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
             d->transaction->commit();
             break;
 
@@ -782,7 +683,7 @@ void Injector::execute()
         if ( !d->failed && d->transaction )
             d->failed = d->transaction->failed();
 
-        if ( d->state != Done && d->failed ) {
+        if ( d->state < AwaitingCompletion && d->failed ) {
             if ( d->transaction ) {
                 d->state = AwaitingCompletion;
                 d->transaction->rollback();
@@ -800,12 +701,13 @@ void Injector::execute()
         else
             log( "Injection succeeded" );
 
-        d->owner->execute();
-
         // We don't want to notify the owner multiple times if we
         // aborted early and continue to get callbacks for failed
-        // queries. XXX: But can that ever happen? I think not.
+        // queries.
+
+        EventHandler * owner = d->owner;
         d->owner = 0;
+        owner->execute();
     }
 }
 
@@ -826,6 +728,7 @@ void Injector::findDependencies()
     Dict<int> seenFlags;
     Dict<int> seenFields;
     Dict<int> seenAnnotationNames;
+    Map<uint> seenMailboxes;
 
     List<Header> * l = new List<Header>;
 
@@ -878,11 +781,17 @@ void Injector::findDependencies()
         }
 
         // Then look through this message's mailboxes to find any
-        // unknown flags or annotation names.
+        // unknown flags or annotation names; and to build a list
+        // of unique mailboxes for use later.
 
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
             Mailbox * mb = mi;
+
+            if ( !seenMailboxes.find( mb->id() ) ) {
+                seenMailboxes.insert( mb->id(), (uint *)1 );
+                d->mailboxes->insert( mb );
+            }
 
             StringList::Iterator fi( m->flags( mb ) );
             while ( fi ) {
@@ -981,13 +890,14 @@ void Injector::createDependencies()
          ( !d->annotationCreation->done() || d->annotationCreation->failed() ) )
         return;
 
-    if ( !d->addressCreator ) {
-        d->addressCreator =
+    if ( !d->addressCreation ) {
+        AddressCreator * a =
             new AddressCreator( d->addresses, d->transaction, this );
-        d->addressCreator->execute();
+        d->addressCreation = a->result;
+        a->execute();
     }
 
-    if ( !d->addressCreator->done )
+    if ( !d->addressCreation->done() )
         return;
 
     next();
@@ -1069,42 +979,110 @@ void Injector::selectUids()
     // mailbox list must be sorted, so that the Injectors try to acquire
     // locks in the same order to avoid deadlock.
 
-    Map<uint> uniq;
-    SortedList<Mailbox> * mailboxes =
-        new SortedList<Mailbox>;
+    if ( !d->queries ) {
+        if ( d->mailboxes->isEmpty() ) {
+            next();
+            return;
+        }
 
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        List<Mailbox>::Iterator mi( m->mailboxes() );
+        // Lock the mailboxes in ascending order and fetch the uidnext
+        // and nextmodseq for each one separately. We can't do this in a
+        // single query ("id=any($1)") because that doesn't guarantee to
+        // lock the rows in order. The number of mailboxes is unlikely
+        // to be large enough for these queries to be a problem.
+
+        d->queries = new List<Query>;
+        SortedList<Mailbox>::Iterator mi( d->mailboxes );
         while ( mi ) {
             Mailbox * mb = mi;
 
-            if ( !uniq.find( mb->id() ) ) {
-                uniq.insert( mb->id(), (uint *)1 );
-                mailboxes->insert( mb );
-            }
+            Query * q = new Query( *lockUidnext, this );
+            q->bind( 1, mb->id() );
+            d->queries->append( q );
+            d->transaction->enqueue( q );
 
             ++mi;
         }
-        ++it;
+
+        d->transaction->execute();
     }
 
-    List<Query> * queries = new List<Query>;
-    d->uidFetcher =
-        new UidFetcher( mailboxes, queries, d->messages, this );
+    // As the results of each query come in (in the same order), we
+    // identify the corresponding mailbox and assign a uid to each
+    // message in it.
 
-    SortedList<Mailbox>::Iterator mi( mailboxes );
-    while ( mi ) {
-        Mailbox * mb = mi;
+    Query * q;
+    while ( ( q = d->queries->firstElement() ) != 0 &&
+            q->done() )
+    {
+        if ( !q->hasResults() ) {
+            d->failed = true;
+            break;
+        }
 
-        Query * q = new Query( *lockUidnext, d->uidFetcher );
-        q->bind( 1, mb->id() );
-        d->transaction->enqueue( q );
-        queries->append( q );
+        d->queries->shift();
 
-        ++mi;
+        Mailbox * mb = d->mailboxes->shift();
+
+        Row * r = q->nextRow();
+        uint uidnext = r->getInt( "uidnext" );
+        int64 nextms = r->getBigint( "nextmodseq" );
+
+        // Until uidnext is a bigint, we're at some risk of running out.
+
+        if ( uidnext > 0x7ff00000 ) {
+            Log::Severity level = Log::Error;
+            if ( uidnext > 0x7fffff00 )
+                level = Log::Disaster;
+            log( "Note: Mailbox " + mb->name().ascii() +
+                 " only has " + fn ( 0x7fffffff - uidnext ) +
+                 " more usable UIDs. Please contact info@oryx.com"
+                 " to resolve this problem.", level );
+        }
+
+        // Any messages in this mailbox are assigned consecutive uids
+        // starting with uidnext, but all of them get the same modseq.
+
+        uint n = 0;
+        List<Message>::Iterator it( d->messages );
+        while ( it ) {
+            Message * m = it;
+            if ( m->inMailbox( mb ) ) {
+                m->setUid( mb, uidnext+n );
+                m->setModSeq( mb, nextms );
+                n++;
+            }
+            ++it;
+        }
+
+        // If we have sessions listening to the mailbox, then they get
+        // to see the messages as \Recent. Otherwise, whoever opens the
+        // mailbox next will update first_recent.
+
+        uint recentIn = 0;
+        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
+            List<Session>::Iterator si( mb->sessions() );
+            if ( si ) {
+                recentIn++;
+                si->addRecent( uidnext, n );
+            }
+        }
+
+        // Update uidnext and nextmodseq based on what we did above.
+
+        Query * u;
+        if ( recentIn == 0 )
+            u = new Query( *incrUidnext, 0 );
+        else
+            u = new Query( *incrUidnextWithRecent, 0 );
+        u->bind( 1, mb->id() );
+        u->bind( 2, n );
+        d->transaction->enqueue( u );
+        d->transaction->execute();
     }
+
+    if ( d->queries->isEmpty() )
+        next();
 }
 
 
@@ -1214,28 +1192,32 @@ void Injector::insertBodyparts()
 }
 
 
-/*! This private function inserts one row per mailbox into the
-    mailbox_messages table.
-*/
+/*! Injects messages into the correct tables. */
 
 void Injector::insertMessages()
 {
-    linkBodyparts();
-    linkHeaders();
+    Query * qp =
+        new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
+                   "from stdin with binary", 0 );
+    Query * qh =
+        new Query( "copy header_fields (message,part,position,field,value) "
+                   "from stdin with binary", 0 );
+    Query * qa =
+        new Query( "copy address_fields "
+                   "(message,part,position,field,number,address) "
+                   "from stdin with binary", 0 );
+    Query * qd =
+        new Query( "copy date_fields (message,value) from stdin", 0 );
 
     Query * qm =
-        new Query( "copy mailbox_messages "
-                   "(mailbox,uid,message,idate,modseq) "
+        new Query( "copy mailbox_messages (mailbox,uid,message,idate,modseq) "
                    "from stdin with binary", 0 );
-
     Query * qf =
         new Query( "copy flags (mailbox,uid,flag) "
                    "from stdin with binary", 0 );
-
-    Query * qa =
+    Query * qn =
         new Query( "copy annotations (mailbox,uid,name,value,owner) "
                    "from stdin with binary", 0 );
-
     Query * qw =
         new Query( "copy unparsed_messages (bodypart) "
                    "from stdin with binary", 0 );
@@ -1248,6 +1230,58 @@ void Injector::insertMessages()
     List<Message>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
+        uint mid = m->databaseId();
+
+        // The top-level RFC 822 header fields are linked to a special
+        // part named "" that does not correspond to any entry in the
+        // bodyparts table.
+
+        addPartNumber( qp, mid, "" );
+        addHeader( qh, qa, qd, mid, "", m->header() );
+
+        // Since the MIME header fields belonging to the first-child of
+        // a single-part Message are appended to the RFC 822 header, we
+        // don't need to inject them into the database again.
+
+        bool skip = false;
+        ContentType *ct = m->header()->contentType();
+        if ( !ct || ct->type() != "multipart" )
+            skip = true;
+
+        // Now we insert the headers and bodies of every MIME bodypart.
+
+        List<Bodypart>::Iterator bi( m->allBodyparts() );
+        while ( bi ) {
+            Bodypart * b = bi;
+            String pn( m->partNumber( b ) );
+
+            addPartNumber( qp, mid, pn, b );
+            if ( !skip )
+                addHeader( qh, qa, qd, mid, pn, b->header() );
+            else
+                skip = false;
+
+            // message/rfc822 bodyparts get a special part number too.
+
+            if ( b->message() ) {
+                String rpn( pn + ".rfc822" );
+                addPartNumber( qp, mid, rpn, b );
+                addHeader( qh, qa, qd, mid, rpn, b->message()->header() );
+            }
+
+            // If the message we're injecting is a wrapper around a
+            // message we couldn't parse, record that fact too.
+
+            if ( m->isWrapped() && pn == "2" ) {
+                qw->bind( 1, b->id() );
+                qw->submitLine();
+                wrapped++;
+            }
+
+            ++bi;
+        }
+
+        // Then record any mailbox-specific information (e.g. flags).
 
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
@@ -1257,209 +1291,106 @@ void Injector::insertMessages()
             addMailbox( qm, m, mb );
 
             flags += addFlags( qf, m, mb );
-            annotations += addAnnotations( qa, m, mb );
+            annotations += addAnnotations( qn, m, mb );
 
             ++mi;
-        }
-
-        if ( m->isWrapped() ) {
-            addWrapping( qw, m );
-            wrapped++;
         }
 
         ++it;
     }
 
-    if ( mailboxes )
+    d->transaction->enqueue( qp );
+    d->transaction->enqueue( qh );
+    d->transaction->enqueue( qa );
+    d->transaction->enqueue( qd );
+    if ( mailboxes ) {
         d->transaction->enqueue( qm );
+        d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
+    }
     if ( flags )
         d->transaction->enqueue( qf );
     if ( annotations )
-        d->transaction->enqueue( qa );
+        d->transaction->enqueue( qn );
     if ( wrapped )
         d->transaction->enqueue( qw );
 }
 
 
-/*! This private function inserts rows into the part_numbers table for
-    each new message.
+/*! Adds a single part_numbers row for the given \a part number,
+    belonging to the message with id \a mid and the bodypart \a b
+    (which may be 0) to the query \a q.
 */
 
-void Injector::linkBodyparts()
+void Injector::addPartNumber( Query * q, uint mid, const String &part,
+                              Bodypart * b )
 {
-    Query *q =
-        new Query( "copy part_numbers (message,part,bodypart,bytes,lines) "
-                   "from stdin with binary", 0 );
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        uint mid = m->databaseId();
-
-        // A fake target part for top-level RFC 822 header fields.
-        insertPartNumber( q, mid, "" );
-
-        List<Bodypart>::Iterator bi( m->allBodyparts() );
-        while ( bi ) {
-            Bodypart * b = bi;
-            String pn( m->partNumber( b ) );
-
-            insertPartNumber( q, mid, pn, b->id(),
-                              b->numEncodedBytes(),
-                              b->numEncodedLines() );
-
-            if ( b->message() )
-                insertPartNumber( q, mid, pn + ".rfc822", b->id(),
-                                  b->numEncodedBytes(),
-                                  b->numEncodedLines() );
-
-            ++bi;
-        }
-
-        ++it;
-    }
-
-    d->transaction->enqueue( q );
-}
-
-
-/*! This private helper is used by linkBodyparts() to add a single row
-    of data to \a q for \a message, \a part, and \a bodypart.
-    If bodypart is smaller than 0, a NULL value is inserted instead.
-    If \a bytes and \a lines are greater than or equal to 0, their
-    values are inserted along with the \a bodypart.
-*/
-
-void Injector::insertPartNumber( Query *q, uint message,
-                                 const String &part, int bodypart,
-                                 int bytes, int lines )
-{
-    q->bind( 1, message );
+    q->bind( 1, mid );
     q->bind( 2, part );
 
-    if ( bodypart > 0 )
-        q->bind( 3, bodypart );
-    else
+    if ( b ) {
+        if ( b->id() )
+            q->bind( 3, b->id() );
+        else
+            q->bindNull( 3 );
+        q->bind( 4, b->numEncodedBytes() );
+        q->bind( 5, b->numEncodedLines() );
+    }
+    else {
         q->bindNull( 3 );
-
-    if ( bytes >= 0 )
-        q->bind( 4, bytes );
-    else
         q->bindNull( 4 );
-
-    if ( lines >= 0 )
-        q->bind( 5, lines );
-    else
         q->bindNull( 5 );
+    }
 
     q->submitLine();
 }
 
 
-/*! Iterates over the headers of each message and calls linkHeader()
-    for each one. */
+/*! Add each field from the header \a h (belonging to the given \a part
+    of the message with id \a mid) to one of the queries \a qh, \a qa,
+    or \a qd, depending on their type.
+*/
 
-void Injector::linkHeaders()
+void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
+                          const String & part, Header * h )
 {
-    d->headerFields =
-        new Query( "copy header_fields "
-                   "(message,part,position,field,value) "
-                   "from stdin with binary", 0 );
-
-    d->addressFields =
-        new Query( "copy address_fields "
-                   "(message,part,position,field,number,address) "
-                   "from stdin with binary", 0 );
-
-    d->dateFields =
-        new Query( "copy date_fields (message,value) from stdin", 0 );
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-
-        linkHeader( m, m->header(), "" );
-
-        // Since the MIME header fields belonging to the first-child of
-        // a single-part Message are appended to the RFC 822 header, we
-        // don't need to inject them into the database again.
-        bool skip = false;
-        ContentType *ct = m->header()->contentType();
-        if ( !ct || ct->type() != "multipart" )
-            skip = true;
-
-        List<Bodypart>::Iterator bi( m->allBodyparts() );
-        while ( bi ) {
-            Bodypart *bp = bi;
-            String pn = m->partNumber( bp );
-
-            if ( !skip )
-                linkHeader( m, bp->header(), pn );
-            else
-                skip = false;
-            if ( bp->message() )
-                linkHeader( m, bp->message()->header(),
-                            pn + ".rfc822" );
-            ++bi;
-        }
-
-        ++it;
-    }
-
-    d->transaction->enqueue( d->headerFields );
-    d->transaction->enqueue( d->addressFields );
-    d->transaction->enqueue( d->dateFields );
-}
-
-
-/*! Inserts the fields from the header \a h of the specified \a part in
-    the message \a m. */
-
-void Injector::linkHeader( Message * m, Header * h, const String & part )
-{
-    Query * q;
-
     List< HeaderField >::Iterator it( h->fields() );
     while ( it ) {
-        HeaderField *hf = it;
+        HeaderField * hf = it;
 
         if ( hf->type() <= HeaderField::LastAddressField ) {
-            q = d->addressFields;
             List< Address > * al = ((AddressField *)hf)->addresses();
             List< Address >::Iterator ai( al );
             uint n = 0;
             while ( ai ) {
                 Address * a = d->knownAddresses.find( addressKey( ai ) );
-                q->bind( 1, m->databaseId() );
-                q->bind( 2, part );
-                q->bind( 3, hf->position() );
-                q->bind( 4, hf->type() );
-                q->bind( 5, n );
-                q->bind( 6, a->id() );
-                q->submitLine();
+                qa->bind( 1, mid );
+                qa->bind( 2, part );
+                qa->bind( 3, hf->position() );
+                qa->bind( 4, hf->type() );
+                qa->bind( 5, n );
+                qa->bind( 6, a->id() );
+                qa->submitLine();
                 ++ai;
                 ++n;
             }
         }
         else {
-            q = d->headerFields;
-
             uint t = FieldName::id( hf->name() );
             if ( !t )
                 t = hf->type();
 
-            q->bind( 1, m->databaseId() );
-            q->bind( 2, part );
-            q->bind( 3, hf->position() );
-            q->bind( 4, t );
-            q->bind( 5, hf->value() );
-            q->submitLine();
+            qh->bind( 1, mid );
+            qh->bind( 2, part );
+            qh->bind( 3, hf->position() );
+            qh->bind( 4, t );
+            qh->bind( 5, hf->value() );
+            qh->submitLine();
 
             if ( part.isEmpty() && hf->type() == HeaderField::Date ) {
                 DateField * df = (DateField *)hf;
-                d->dateFields->bind( 1, m->databaseId() );
-                d->dateFields->bind( 2, df->date()->isoDateTime() );
-                d->dateFields->submitLine();
+                qd->bind( 1, mid );
+                qd->bind( 2, df->date()->isoDateTime() );
+                qd->submitLine();
             }
         }
 
@@ -1522,22 +1453,6 @@ uint Injector::addAnnotations( Query * q, Message * m, Mailbox * mb )
         ++ai;
     }
     return n;
-}
-
-
-/*! Adds an unparsed_messages row for the message \a m to \a q. */
-
-void Injector::addWrapping( Query * q, Message * m )
-{
-    List<Bodypart>::Iterator bi( m->allBodyparts() );
-    while ( bi ) {
-        Bodypart * b = bi;
-        if ( m->partNumber( b ) == "2" ) {
-            q->bind( 1, b->id() );
-            q->submitLine();
-        }
-        ++bi;
-    }
 }
 
 

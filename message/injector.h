@@ -5,8 +5,6 @@
 
 #include "event.h"
 #include "list.h"
-#include "dict.h"
-
 
 class Query;
 class Header;
@@ -14,8 +12,6 @@ class Address;
 class Mailbox;
 class Message;
 class Bodypart;
-class StringList;
-class Annotation;
 
 
 class Injector
@@ -35,7 +31,7 @@ public:
     void addDelivery( Message *, Address *, List<Address> * );
 
 private:
-    class InjectorData *d;
+    class InjectorData * d;
 
     static void setup();
 
@@ -48,15 +44,11 @@ private:
     void selectUids();
     void insertMessages();
     void insertDeliveries();
-    void linkBodyparts();
-    void insertPartNumber( Query *, uint, const String &,
-                           int = -1, int = -1, int = -1 );
-    void linkHeaders();
-    void linkHeader( Message *, Header *, const String & );
+    void addPartNumber( Query *, uint, const String &, Bodypart * = 0 );
+    void addHeader( Query *, Query *, Query *, uint, const String &, Header * );
     void addMailbox( Query *, Message *, Mailbox * );
     uint addFlags( Query *, Message *, Mailbox * );
     uint addAnnotations( Query *, Message *, Mailbox * );
-    void addWrapping( Query *, Message * );
     void logDescription();
     void announce();
 
