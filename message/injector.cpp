@@ -1007,6 +1007,10 @@ void Injector::selectUids()
         d->transaction->execute();
     }
 
+    // As the results of each query come in (in the same order), we
+    // identify the corresponding mailbox and assign a uid to each
+    // message in it.
+
     Query * q;
     while ( ( q = d->queries->firstElement() ) != 0 &&
             q->done() )
@@ -1023,6 +1027,8 @@ void Injector::selectUids()
         Row * r = q->nextRow();
         uint uidnext = r->getInt( "uidnext" );
         int64 nextms = r->getBigint( "nextmodseq" );
+
+        // Until uidnext is a bigint, we're at some risk of running out.
 
         if ( uidnext > 0x7ff00000 ) {
             Log::Severity level = Log::Error;
@@ -1048,6 +1054,10 @@ void Injector::selectUids()
             }
             ++it;
         }
+
+        // If we have sessions listening to the mailbox, then they get
+        // to see the messages as \Recent. Otherwise, whoever opens the
+        // mailbox next will update first_recent.
 
         uint recentIn = 0;
         if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
