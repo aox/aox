@@ -253,7 +253,7 @@ void dumpSelector( Selector * s, uint l )
             a = "Any header field contains: " +
                 s->ustringArgument().utf8().quoted();
         else
-            a = "Header field " + s->stringArgument().quoted() +
+            a = "Header field " + s->stringArgument().quoted().headerCased() +
                 " contains: " + s->ustringArgument().utf8().quoted();
         break;
     case Selector::Body:
