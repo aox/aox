@@ -643,7 +643,7 @@ void EventLoop::setConnectionCounts()
         switch( c->type() ) {
         case Connection::Client:
         case Connection::LogServer:
-        case Connection::OryxServer:
+        case Connection::GrapDumper:
         case Connection::LogClient:
         case Connection::TlsProxy:
         case Connection::TlsClient:
@@ -664,6 +664,7 @@ void EventLoop::setConnectionCounts()
         case Connection::SmtpClient:
         case Connection::ManageSieveServer:
         case Connection::EGDServer:
+        case Connection::LdapRelay:
             other++;
             break;
         case Connection::Pop3Server:
