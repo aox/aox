@@ -1125,6 +1125,49 @@ Fetcher oomph
   fetcher.cpp drastically needs a documentation overhaul. I suck.
 
 
+Some unfortunate logging
+
+  This is the tail end of a connection Thunderbird used to save
+  something to the Sent folder, rewrapped for easier reading:
+
+    imap/info: 2/1/1/2442/6: 2008-06-18 12:53:54.109
+        Execution time 550ms
+    imap/debug: 2/1/1/2442/6: 2008-06-18 12:53:54.109
+        Finished
+    imap/debug: 2/1/1/2442: 2008-06-18 12:53:54.109
+        IMAP::runCommands, 1 commands
+    imap/info: 2/1/1/2442/6: 2008-06-18 12:53:54.109
+        Result: OK [APPENDUID 19] done
+    imap/debug: 2/1/1/2442/6: 2008-06-18 12:53:54.110
+        Retired
+    imap/debug: 2/1/1/2442: 2008-06-18 12:53:54.110
+        IMAP::runCommands, 0 commands
+    imap/info: 2/1/1/2442: 2008-06-18 13:23:53.458
+        Idle timeout
+    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
+        Closing: IMAP server 195.30.37.30:143
+                 connected to client 195.30.37.9:52209, on fd 26
+    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
+        IMAP::runCommands, 0 commands
+    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
+        IMAP::runCommands, 0 commands
+    imap/info: 2/1/1/2442: 2008-06-18 13:23:53.459
+        Unexpected close by client
+    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
+        IMAP::runCommands, 0 commands
+    general/debug: 2/1/1/2442/2/2/2: 2008-06-18 13:23:53.461
+        Closing: Byte forwarder 127.0.0.1:56695
+                 connected to client 127.0.0.1:2061, on fd 27
+    general/info: 2/1/1/2442/2/2/2: 2008-06-18 13:23:53.461
+        Shutting down byte forwarder due to peer close.
+    imap/info: 2/1/1/2442: 2008-06-18 13:23:53.464
+        Unexpected close by client
+    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.464
+        IMAP::runCommands, 0 commands
+
+  Hardly unexpected. Will fix later, not sure how.
+
+
 Dynamically preparing often-used queries
 
   We can prepare queries cleverly.
