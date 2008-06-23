@@ -643,7 +643,7 @@ void EventLoop::setConnectionCounts()
         switch( c->type() ) {
         case Connection::Client:
         case Connection::LogServer:
-        case Connection::GrapDumper:
+        case Connection::GraphDumper:
         case Connection::LogClient:
         case Connection::TlsProxy:
         case Connection::TlsClient:
