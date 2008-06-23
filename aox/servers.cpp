@@ -7,6 +7,7 @@
 #include "timer.h"
 #include "query.h"
 #include "paths.h"
+#include "buffer.h"
 #include "endpoint.h"
 #include "database.h"
 #include "resolver.h"
@@ -424,18 +425,6 @@ static void checkInetAddresses()
         true,
         Configuration::LogAddress, Configuration::LogPort,
         "log-address:port"
-    );
-
-    checkListener(
-        Configuration::toggle( Configuration::StartOcd ),
-        Configuration::OcdAddress, Configuration::OcdPort,
-        "ocd-address:port"
-    );
-
-    checkListener(
-        true,
-        Configuration::OcAdminAddress, Configuration::OcAdminPort,
-        "ocadmin-address:port"
     );
 
     checkListener(
@@ -875,6 +864,14 @@ public:
             break;
 
         case Read:
+            if ( readBuffer()->size() ) {
+                String * l = readBuffer()->removeLine();
+                if ( l && l->startsWith( "* BYE" ) ) {
+                    close();
+                    disconnected = true;
+                    owner->execute();
+                }
+            }
             break;
 
         case Close:
