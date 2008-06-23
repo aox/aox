@@ -21,7 +21,7 @@ public:
         ImapServer,
         LogServer,
         LogClient,
-        OryxServer,
+        GraphDumper,
         SmtpServer,
         SmtpClient,
         Pop3Server,
@@ -33,7 +33,8 @@ public:
         EGDServer,
         Listener,
         Pipe,
-        ManageSieveServer
+        ManageSieveServer,
+        LdapRelay
     };
     Connection();
     Connection( int, Type );

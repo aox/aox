@@ -268,7 +268,7 @@ void GraphableDataSet::addNumber( uint n )
 */
 
 GraphDumper::GraphDumper( int fd )
-    : Connection( fd, Connection::OryxServer )
+    : Connection( fd, Connection::GraphDumper )
 {
     EventLoop::global()->addConnection( this );
     List<GraphableNumber>::Iterator i( numbers );

@@ -185,7 +185,7 @@ bool Connection::hasProperty( Property p ) const
     case TlsClient:
     case RecorderClient:
     case RecorderServer:
-    case OryxServer:
+    case GraphDumper:
     case EGDServer:
         if ( p == Internal )
             return true;
@@ -212,6 +212,7 @@ bool Connection::hasProperty( Property p ) const
             return true;
         break;
 
+    case Connection::LdapRelay:
     case SmtpClient:
         break;
 
@@ -331,7 +332,7 @@ String Connection::description() const
     case LogClient:
         r = "Log client";
         break;
-    case OryxServer:
+    case GraphDumper:
         r = "Oryx administrative server";
         break;
     case SmtpServer:
@@ -363,6 +364,9 @@ String Connection::description() const
         break;
     case Listener:
         r = "Listener";
+        break;
+    case Connection::LdapRelay:
+        r = "LDAP relay";
         break;
     case Pipe:
         r = "Byte forwarder";
