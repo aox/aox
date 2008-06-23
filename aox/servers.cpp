@@ -898,7 +898,7 @@ public:
 void Stopper::execute()
 {
     // We decide what servers are running by looking at the pid files.
-    // We connect to logd, ocd, and archiveopteryx, and send SIGTERM
+    // We connect to logd and archiveopteryx, and send SIGTERM
     // to the processes we saw, and wait for the connections to die.
     // (Instead of using pid files at the first step, we could issue
     // shutdown commands via the ocd, and fall back to kill only if a
@@ -931,10 +931,6 @@ void Stopper::execute()
             Endpoint el( Configuration::text( Configuration::LogAddress ),
                          Configuration::scalar( Configuration::LogPort ) );
             d->lurkers->append( new Lurker( el, this ) );
-
-            Endpoint eo( Configuration::text( Configuration::OcdAddress ),
-                         Configuration::scalar( Configuration::OcdPort ) );
-            d->lurkers->append( new Lurker( eo, this ) );
 
             // We treat imap-address specially, because it's empty by
             // default.
