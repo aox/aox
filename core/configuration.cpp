@@ -165,7 +165,8 @@ static struct {
     { "managesieve-port", Configuration::ManageSievePort, 2000 },
     { "undelete-time", Configuration::UndeleteTime, 49 },
     { "smarthost-port", Configuration::SmartHostPort, 25 },
-    { "statistics-port", Configuration::StatisticsPort, 17220 }
+    { "statistics-port", Configuration::StatisticsPort, 17220 },
+    { "ldap-server-port", Configuration::LdapServerPort, 390 }
 };
 
 
@@ -221,7 +222,8 @@ static struct {
     { "managesieve-address", Configuration::ManageSieveAddress, "" },
     { "smarthost-address", Configuration::SmartHostAddress, "127.0.0.1" },
     { "address-separator", Configuration::AddressSeparator, "+" },
-    { "statistics-address", Configuration::StatisticsAddress, "127.0.0.1" }
+    { "statistics-address", Configuration::StatisticsAddress, "127.0.0.1" },
+    { "ldap-server-address", Configuration::LdapServerAddress, "127.0.0.1" }
 };
 
 
@@ -257,7 +259,8 @@ static struct {
     { "use-subaddressing", Configuration::UseSubaddressing, false },
     { "use-statistics", Configuration::UseStatistics, false },
     { "soft-bounce", Configuration::SoftBounce, true },
-    { "check-sender-addresses", Configuration::CheckSenderAddresses, false }
+    { "check-sender-addresses", Configuration::CheckSenderAddresses, false },
+    { "use-ldap-authentication", Configuration::UseLdaPAuthentication, false }
 };
 
 

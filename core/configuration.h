@@ -58,6 +58,7 @@ public:
         UndeleteTime,
         SmartHostPort,
         StatisticsPort,
+        LdapServerPort,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };
@@ -110,6 +111,7 @@ public:
         SmartHostAddress,
         AddressSeparator,
         StatisticsAddress,
+        LdapServerAddress,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };
@@ -146,6 +148,7 @@ public:
         UseStatistics,
         SoftBounce,
         CheckSenderAddresses,
+        UseLdaPAuthentication,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };
