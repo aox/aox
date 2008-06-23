@@ -306,6 +306,8 @@ void SaslMechanism::execute()
         }
 
         if ( Mailbox::refreshing() ) {
+            log( "Cannot complete login until the Mailbox tree is back",
+                 Log::Debug );
             Database::notifyWhenIdle( this );
             return;
         }
