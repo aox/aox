@@ -868,9 +868,7 @@ String Selector::whereFlags()
             return "false";
         // the database cannot look at the recent flag, so we turn
         // this query into a test for the relevant UIDs.
-        uint r = placeHolder();
-        root()->d->query->bind( r, root()->d->session->recent() );
-        return "mm.uid=any($" + fn( r ) + ")";
+        return whereSet( root()->d->session->recent() );
     }
 
     uint join = ++root()->d->join;
@@ -901,17 +899,43 @@ String Selector::whereFlags()
 }
 
 
+/*! Returns a condition to match the numbers in \a s. Binds 0-2
+    variables.
+*/
+
+String Selector::whereSet( const MessageSet & s )
+{
+    if ( s.isEmpty() )
+        return "false";
+
+    uint u = placeHolder();
+
+    // complex sets
+    if ( !s.isRange() ) {
+        root()->d->query->bind( u, s );
+        return "mm.uid=any($" + fn( u ) + ")";
+    }
+
+    // simple ranges
+    if ( s.count() > 1 ) {
+        uint u2 = placeHolder();
+        root()->d->query->bind( u, s.smallest() );
+        root()->d->query->bind( u2, s.largest() );
+        return "(mm.uid>=$" + fn( u ) + " and mm.uid<=$" + fn( u2 ) + ")";
+    }
+
+    // single-member sets
+    root()->d->query->bind( u, s.smallest() );
+    return "mm.uid=$" + fn( u );
+}
+
+
 /*! This implements searches on whether a message has the right UID.
 */
 
 String Selector::whereUid()
 {
-    if ( d->s.isEmpty() )
-        return "false";
-
-    uint u = placeHolder();
-    root()->d->query->bind( u, d->s );
-    return "mm.uid=any($" + fn( u ) + ")";
+    return whereSet( d->s );
 }
 
 

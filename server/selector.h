@@ -102,6 +102,8 @@ private:
     String whereModseq();
     String whereAge();
     String whereNoField();
+
+    String whereSet( const MessageSet & );
 };
 
 
