@@ -100,13 +100,13 @@ void POP::setState( State s )
         private:
             User * user;
             Mailbox * mailbox;
-            String w;
+            MessageSet s;
             ::Transaction * t;
             Query * nms;
 
         public:
             PopDeleter( User * u, Mailbox * m, const MessageSet & ms )
-                : user( u ), mailbox( m ), w( ms.where() ),
+                : user( u ), mailbox( m ), s( ms ),
                   t( 0 ), nms( 0 )
             {}
 
@@ -129,22 +129,18 @@ void POP::setState( State s )
                     nms = 0;
 
                     Query * q;
-                    q = new Query( "update mailbox_messages set modseq=$1 "
-                                   "where mailbox=$2 and (" + w + ")", 0 );
-                    q->bind( 1, ms );
-                    q->bind( 2, mailbox->id() );
-                    t->enqueue( q );
-
                     q = new Query(
                         "insert into deleted_messages "
                         "(mailbox,uid,message,modseq,deleted_by,reason) "
-                        "select mailbox,uid,message,modseq,$2,$3 "
+                        "select $1,uid,message,$5,$2,$3 "
                         "from mailbox_messages where mailbox=$1 "
-                        "and (" + w + ")", 0
+                        "and uid=any($4)", 0
                     );
                     q->bind( 1, mailbox->id() );
                     q->bind( 2, user->id() );
-                    q->bind( 3, "POP delete " + Scope::current()->log()->id() );
+                    q->bind( 3, "POP delete "+Scope::current()->log()->id() );
+                    q->bind( 4, s );
+                    q->bind( 5, ms );
                     t->enqueue( q );
 
                     q = new Query( "update mailboxes set "
