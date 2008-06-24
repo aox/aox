@@ -758,24 +758,18 @@ The "Database" link on home page
   databases.
 
 
-Interop pages
-
-  A variety needed.
-
-
-Protocols supported
-
-  A list detailing what our general idea is (internet standard,
-  interoperability, utility) and linking to each actual protocol page.
-
-  The URL for this is difficult.
-
-
 Search ourselves, not via google
 
   Or maybe farm that out, get google to search with an approximation
   of our design. http://www.google.com/faq_freewebsearch.html may be
   interesting.
+
+
+System flags in mailbox_messages
+
+  We're doing a lot of work on system flags, and we update
+  mailbox_messages for every single system flag change. Maybe we
+  should go back to storing \seen and \deleted in mailbox_messages.
 
 
 Logging to syslog
