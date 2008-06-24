@@ -208,7 +208,6 @@ Various TODO items from earlier releases.
   Miscellaneous:
 
   - Database replication support (local mirror)
-  - Split the injector transaction into fast and slow parts(?)
 
   THREAD?
 
@@ -319,13 +318,6 @@ Sieve
   We still haven't done imapflags.
 
   Reject probably has changed since we implemented it.
-
-
-Better caching.
-
-  FieldNameCache etc. can use less memory by reading all field and
-  flag names into RAM at startup. That way, the memory used won't be
-  scattered across many blocks.
 
 
 RFCs 2852 and 4865
@@ -771,6 +763,20 @@ System flags in mailbox_messages
   mailbox_messages for every single system flag change. Maybe we
   should go back to storing \seen and \deleted in mailbox_messages.
 
+  Changes needed:
+
+  1. Store needs to learn a new query. Dead easy
+  2. Fetcher needs to learn to fetch the flags. Slightly
+     tricky. An hour's work.
+  3. Selector needs to learn to search on the special cases.
+  4. Injector needs to set those flags if necessary.
+
+  The schema change is a little evil. Lots of rows changed.
+
+  Unfortunately I don't think this is doable in 3.0. 3.1, yes. 3.0,
+  no. We want 2.11 to use the same schema as 3.0.0, and practically
+  all of the code involved has been rewritten since 2.11.
+
 
 Logging to syslog
 
@@ -833,6 +839,8 @@ Multipart/signed automatic processing
 3.1.0: ?
 
   Make Query::bind() completely binary.
+
+  Move the most common flags into mailbox_messages.
 
 
 PGP automatic processing
