@@ -796,13 +796,84 @@ bool Starter::failed() const
 }
 
 
+
+class ServerPinger
+    : public Connection
+{
+public:
+    ServerPinger( Configuration::Text a, Configuration::Scalar p,
+                  EventHandler * owner )
+        : Connection(), up( false ), o( owner ) {
+        String addr;
+        if ( Configuration::text( a ).isEmpty() ) {
+            addr = "127.0.0.1";
+        }
+        else {
+            StringList::Iterator it(
+                Resolver::resolve( Configuration::text( a ) ) );
+            if ( it )
+                addr = *it;
+        }
+        if ( addr.isEmpty() ) {
+            printf( "Resolving %s failed\n",
+                    Configuration::text( a ).quoted().cstr() );
+            up = false;
+        }
+        else {
+            connect( Endpoint( addr, Configuration::scalar( p ) ) );
+            printf( "Connecting fd %d to port %d\n",
+                    fd(), Configuration::scalar( p ) );
+            EventLoop::global()->addConnection( this );
+        }
+    }
+    void react( Event e ) {
+        printf( "Event %d for fd %d, state %d\n", e, fd(), state() );
+        switch ( e ) {
+        case Read:
+        case Timeout:
+        case Shutdown:
+            break;
+
+        case Connect:
+            setState( Closing );
+            up = true;
+            break;
+
+        case Error:
+            setState( Closing );
+            up = false;
+            break;
+
+        case Close:
+            up = false;
+            break;
+        }
+        o->execute();
+    }
+    bool probing() const {
+        if ( up )
+            return false;
+        if ( state() == Connecting )
+            return true;
+        return false;
+    }
+    bool serverUp() const {
+        if ( up )
+            printf( "Server for fd %d is up\n", fd() );
+        return up;
+    }
+    bool up;
+    EventHandler * o;
+};
+
+
 class StopperData
     : public Garbage
 {
 public:
     StopperData()
         : state( 0 ), verbose( 0 ), owner( 0 ), timer( 0 ),
-          done( false ), lurkers( 0 )
+          done( false ), pingers( 0 )
     {
         int i = 0;
         while ( i < nservers )
@@ -815,7 +886,7 @@ public:
     Timer * timer;
     int pids[nservers];
     bool done;
-    List<class Lurker> * lurkers;
+    List<ServerPinger> * pingers;
 };
 
 
@@ -836,80 +907,26 @@ Stopper::Stopper( int verbose, EventHandler * owner )
 }
 
 
-class Lurker
-    : public Connection
-{
-private:
-    Stopper * owner;
-    bool disconnected;
-
-public:
-    Lurker( const Endpoint &e, Stopper * o )
-        : Connection(), owner( o ), disconnected( false )
-    {
-        connect( e );
-        EventLoop::global()->addConnection( this );
-    }
-
-    ~Lurker()
-    {
-        EventLoop::global()->removeConnection( this );
-    }
-
-    void react( Event e )
-    {
-        switch ( e ) {
-        case Connect:
-            owner->execute();
-            break;
-
-        case Read:
-            if ( readBuffer()->size() ) {
-                String * l = readBuffer()->removeLine();
-                if ( l && l->startsWith( "* BYE" ) ) {
-                    close();
-                    disconnected = true;
-                    owner->execute();
-                }
-            }
-            break;
-
-        case Close:
-        case Error:
-        case Timeout:
-        case Shutdown:
-            if ( !disconnected ) {
-                disconnected = true;
-                owner->execute();
-            }
-            break;
-        }
-    }
-};
-
-
 /*! Performs various configuration checks, and notifies the owner when
     they are done() or if something failed().
 */
 
 void Stopper::execute()
 {
-    // We decide what servers are running by looking at the pid files.
-    // We connect to logd and archiveopteryx, and send SIGTERM
-    // to the processes we saw, and wait for the connections to die.
-    // (Instead of using pid files at the first step, we could issue
-    // shutdown commands via the ocd, and fall back to kill only if a
-    // server didn't obey.)
+    // We decide what servers are running by looking at the pid files,
+    // kill those servers with SIGTERM, try a few times to connect,
+    // and if we still can connect after 2-3 seconds, then we use
+    // SIGKILL.
 
     if ( d->state == 0 ) {
-        if ( d->verbose > 0 )
-            printf( "Stopping servers: " );
-
+        // State 0: Send SIGTERM and see if that helps
         int i = 0;
         int n = 0;
         while ( i < nservers ) {
             d->pids[i] = serverPid( servers[nservers-i-1] );
             if ( d->pids[i] != -1 ) {
+                if ( d->verbose > 0 && !n )
+                    printf( "Stopping servers: " );
                 n++;
                 if ( d->verbose > 0 )
                     printf( "%s%s", servers[nservers-i-1],
@@ -917,71 +934,10 @@ void Stopper::execute()
             }
             i++;
         }
-
-        if ( d->verbose > 0 )
+        if ( d->verbose > 0 && n )
             printf( ".\n" );
 
-        if ( n > 0 ) {
-            d->state = 1;
-            d->lurkers = new List<Lurker>;
-            d->timer = new Timer( this, 5 );
-            Endpoint el( Configuration::text( Configuration::LogAddress ),
-                         Configuration::scalar( Configuration::LogPort ) );
-            d->lurkers->append( new Lurker( el, this ) );
-
-            // We treat imap-address specially, because it's empty by
-            // default.
-
-            String s( Configuration::text( Configuration::ImapAddress ) );
-            uint p( Configuration::scalar( Configuration::ImapPort ) );
-
-            if ( s.isEmpty() ) {
-                if ( Configuration::toggle( Configuration::UseIPv4 ) )
-                    s = "0.0.0.0";
-                else if ( Configuration::toggle( Configuration::UseIPv6 ) )
-                    s = "::";
-            }
-            else {
-                StringList::Iterator it( Resolver::resolve( s ) );
-                if ( !it )
-                    error( "Couldn't resolve imap-address: " + s );
-                s = *it;
-            }
-
-            Endpoint ei( s, p );
-            d->lurkers->append( new Lurker( ei, this ) );
-        }
-        else {
-            d->state = 3;
-        }
-    }
-
-    List<Lurker>::Iterator i( d->lurkers );
-    while ( i ) {
-        switch ( i->state() ) {
-        case Connection::Invalid:
-        case Connection::Inactive:
-        case Connection::Listening:
-        case Connection::Closing:
-            d->lurkers->take( i );
-            break;
-        case Connection::Connecting:
-        case Connection::Connected:
-            ++i;
-            break;
-        }
-    }
-
-    if ( d->state == 1 ) {
-        if ( d->timer->active() && !d->lurkers->isEmpty() )
-
-        delete d->timer;
-        d->timer = 0;
-
-        // Now we send SIGTERM to the servers we know about, whether we
-        // managed to connect or not.
-
-        int i = 0;
+        i = 0;
         while ( i < nservers ) {
             if ( d->pids[i] != -1 ) {
                 if ( d->verbose > 1 )
@@ -993,32 +949,18 @@ void Stopper::execute()
             i++;
         }
 
-        // If we have any active connections to the servers we killed,
-        // then we'll wait for those connections to die (or a timer to
-        // expire); otherwise we'll sleep for a moment.
-
-        int n = 1;
-        if ( !d->lurkers->isEmpty() )
-            n = 5;
-        d->state = 2;
-        d->timer = new Timer( this, n );
+        if ( n > 0 ) {
+            d->state = 1;
+            d->timer = new Timer( this, 2 );
+        }
+        else {
+            d->state = 2;
+        }
     }
 
-    if ( d->state == 2 ) {
-        if ( d->timer->active() && !d->lurkers->isEmpty() )
-            return;
-
-        delete d->timer;
-
-        // Unfortunately, waiting for the connections to die doesn't
-        // seem to guarantee that the server is also dead, so we end
-        // up sending SIGKILL sometimes during orderly shutdown. That
-        // seems rather harsh.
-
-        // We could avoid this by making the Lurker try to connect
-        // again as soon as it's closed, and only signal the Stopper
-        // when Lurker cannot reconnect.
-
+    if ( d->timer && !d->timer->active() && d->state < 2 ) {
+        // Servers didn't cooperate. We send SIGKILL and see whether
+        // that does the trick.
         int i = 0;
         while ( i < nservers ) {
             if ( d->pids[i] != -1 && kill( d->pids[i], 0 ) == 0 ) {
@@ -1029,7 +971,54 @@ void Stopper::execute()
             }
             i++;
         }
+        d->state = 2;
     }
+
+    if ( d->state == 1 ) {
+        // State 1: We try to connect to each server. If all attempts
+        // are refused, we're done. If an attempt succeeds, we try
+        // again. That's a busylock. The timer above will break it.
+
+        if ( !d->pingers ) {
+            d->pingers = new List<ServerPinger>;
+
+            if ( Configuration::toggle( Configuration::UseImap ) )
+                d->pingers->append(
+                    new ServerPinger( Configuration::ImapAddress,
+                                      Configuration::ImapPort, this ) );
+            if ( Configuration::toggle( Configuration::UseTls ) )
+                d->pingers->append(
+                    new ServerPinger( Configuration::TlsProxyAddress,
+                                      Configuration::TlsProxyPort, this ) );
+            d->pingers->append(
+                new ServerPinger( Configuration::LogAddress,
+                                  Configuration::LogPort, this ) );
+        }
+
+        List<ServerPinger>::Iterator i( d->pingers );
+        while ( i ) {
+            if ( i->probing() ) {
+                return;
+            }
+            else if ( i->serverUp() ) {
+                i = d->pingers->first();
+                while ( i ) {
+                    i->close();
+                    EventLoop::global()->removeConnection( i );
+                    ++i;
+                }
+                d->pingers = 0;
+                (void)new Timer( this, 0 ); // this leaks memory
+                return;
+            }
+            ++i;
+        }
+        if ( !i )
+            d->state = 2;
+    }
+
+    if ( d->state < 2 )
+        return;
 
     d->done = true;
     d->owner->execute();
