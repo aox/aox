@@ -67,7 +67,7 @@ $(LIBDIR)/installer as root. The new configuration file will be in
 $(CONFIGDIR)/archiveopteryx.conf.
 
 $(LIBDIR)/installer -n shows what it would do, without making any
-changes. (If you are just upgrading from an older version, 
+changes. (If you are just upgrading from an older version,
 $(BINDIR)/aox upgrade schema may be enough.
 $(BINDIR)/aox upgrade schema -n shows what it would do, without making
 any changes.)
@@ -109,7 +109,8 @@ rule GitBuildInfo {
     Depends $(<) : [ FDirName $(TOP) .git index ] ;
 }
 
-actions GitBuildInfo {
+actions GitBuildInfo bind $(TOP) {
+    [ -f $(TOP)/.git/index ] && \
     ( hostname | sed 's/^/Hostname: /' ; \
       git branch | sed 's/^\*/Git-Branch:/' ; \
       git config user.email | sed 's/^/Git-Branch-Owner: /' ; \
