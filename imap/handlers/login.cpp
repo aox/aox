@@ -4,6 +4,7 @@
 
 #include "capability.h"
 #include "imap.h"
+#include "mechanism.h"
 
 
 /*! \class Login login.h
@@ -44,20 +45,12 @@ void Login::execute()
         return;
 
     if ( !m ) {
-        if ( !imap()->accessPermitted() ) {
-            error( No, "TLS required for mail access" );
+        m = SaslMechanism::create( "plain", this, imap() );
+        if ( !m ) {
+            error( No, "Plaintext authentication disallowed" );
             setRespTextCode( "ALERT" );
             return;
         }
-
-        if ( !SaslMechanism::allowed( SaslMechanism::Plain,
-                                      imap()->hasTls() ) ) {
-            error( No,
-                   "Plain-text login is disabled in the configuration file" );
-            setRespTextCode( "ALERT" );
-            return;
-        }
-        m = new Plain( this );
         m->setState( SaslMechanism::Authenticating );
         m->setLogin( n );
         m->setSecret( p );

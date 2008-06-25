@@ -5,7 +5,6 @@
 
 #include "command.h"
 #include "string.h"
-#include "plain.h"
 
 
 class Login
@@ -19,7 +18,7 @@ public:
 
 private:
     String n, p;
-    Plain *m;
+    class SaslMechanism * m;
 };
 
 

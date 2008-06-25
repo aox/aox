@@ -315,7 +315,11 @@ bool PopCommand::pass()
 {
     if ( !d->m ) {
         log( "PASS Command" );
-        d->m = new Plain( this );
+        d->m = SaslMechanism::create( "plain", this, d->pop );
+        if ( !d->m ) {
+            d->pop->err( "Plaintext authentication disallowed" );
+            return true;
+        }
         d->m->setState( SaslMechanism::Authenticating );
         d->m->setLogin( d->pop->user()->login() );
         d->m->setSecret( nextArg() );
