@@ -47,6 +47,7 @@ public:
     static void checkAccess( class EventHandler * );
 
     static void notifyWhenIdle( class EventHandler * );
+    static bool idle();
 
 protected:
     static List< Query > *queries;

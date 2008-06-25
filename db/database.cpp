@@ -490,6 +490,22 @@ void Database::notifyWhenIdle( class EventHandler * h )
 }
 
 
+/*! Returns true if all handles() are idle and there's no queued work
+    for them. Returns false in all other cases.
+*/
+
+bool Database::idle()
+{
+    List< Database >::Iterator it( handles );
+    while ( it ) {
+        if ( !it->usable() )
+            return false;
+        ++it;
+    }
+    return true;
+}
+
+
 /*! Checks whether all handles are idle and usable, and there's no
     queued work. If the database system really is idle, calls and
     forgets the EventHandler objects recorded by notifyWhenIdle().
@@ -503,14 +519,7 @@ void Database::reactToIdleness()
     if ( !::whenIdle )
         return;
 
-    bool allIdle = true;
-    List< Database >::Iterator it( handles );
-    while ( allIdle && it ) {
-        if ( !it->usable() )
-            allIdle = false;
-        ++it;
-    }
-    if ( !allIdle )
+    if ( !idle() )
         return;
 
     if ( handlesNeeded() < handles->count() )
