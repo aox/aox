@@ -910,13 +910,21 @@ String Selector::whereSet( const MessageSet & s )
 
     uint u = placeHolder();
 
-    // big chunk of the mailbox, not necessarily continuous UIDs
-    if ( root()->d->session && s.largest() > 100 &&
+    // big chunk of the mailbox, not contiguous UIDs
+    if ( root()->d->session && !s.isRange() && s.count() > 100 &&
          s.intersection( root()->d->session->messages() ).set() == s.set() ) {
         uint u2 = placeHolder();
         root()->d->query->bind( u, s.smallest() );
         root()->d->query->bind( u2, s.largest() );
         return "(mm.uid>=$" + fn( u ) + " and mm.uid<=$" + fn( u2 ) + ")";
+    }
+
+    // very small set, disjoint
+    if ( !s.isRange() && s.count() == 2 ) {
+        uint u2 = placeHolder();
+        root()->d->query->bind( u, s.smallest() );
+        root()->d->query->bind( u2, s.largest() );
+        return "(mm.uid=$" + fn( u ) + " or mm.uid=$" + fn( u2 ) + ")";
     }
 
     // complex sets
