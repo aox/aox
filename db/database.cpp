@@ -490,7 +490,7 @@ void Database::notifyWhenIdle( class EventHandler * h )
 }
 
 
-/*! Returns true if all handles() are idle and there's no queued work
+/*! Returns true if all database handles are idle and there's no queued work
     for them. Returns false in all other cases.
 */
 
