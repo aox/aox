@@ -815,19 +815,14 @@ public:
                 addr = *it;
         }
         if ( addr.isEmpty() ) {
-            printf( "Resolving %s failed\n",
-                    Configuration::text( a ).quoted().cstr() );
             up = false;
         }
         else {
             connect( Endpoint( addr, Configuration::scalar( p ) ) );
-            printf( "Connecting fd %d to port %d\n",
-                    fd(), Configuration::scalar( p ) );
             EventLoop::global()->addConnection( this );
         }
     }
     void react( Event e ) {
-        printf( "Event %d for fd %d, state %d\n", e, fd(), state() );
         switch ( e ) {
         case Read:
         case Timeout:
@@ -858,8 +853,6 @@ public:
         return false;
     }
     bool serverUp() const {
-        if ( up )
-            printf( "Server for fd %d is up\n", fd() );
         return up;
     }
     bool up;

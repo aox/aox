@@ -205,7 +205,10 @@ void AoxCommand::finish( int status )
 {
     d->done = true;
     d->status = status;
-    (void)new AoxCommandData::FinishHelper;
+    if ( Database::idle() )
+        EventLoop::shutdown();
+    else
+        (void)new AoxCommandData::FinishHelper;
 }
 
 
