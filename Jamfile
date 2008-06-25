@@ -20,6 +20,7 @@ SubInclude TOP extractors ;
 SubInclude TOP archiveopteryx ;
 SubInclude TOP aoximport ;
 
+
 if ( $(BUILDDOC) ) {
     SubInclude TOP udoc ;
 }
@@ -99,3 +100,22 @@ if $(BUILDDOC) {
         echo Built but not documented: $(u) ;
     }
 }
+
+
+# The next bit updates buildinfo.git (and thereby aox show build) with
+# information from git. It will not create the file.
+
+rule GitBuildInfo {
+    Depends $(<) : [ FDirName $(TOP) .git index ] ;
+}
+
+actions GitBuildInfo {
+    ( hostname | sed 's/^/Hostname: /' ; \
+      git branch | sed 's/^\*/Git-Branch:/' ; \
+      git config user.email | sed 's/^/Git-Branch-Owner: /' ; \
+      git show HEAD | head -1 | sed 's/^commit /Git-Head: /' ) > $(<)
+}
+
+
+GitBuildInfo buildinfo.git ;
+

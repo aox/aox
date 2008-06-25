@@ -38,7 +38,16 @@ Schedule
 
   The connections table.
 
-  Not done: sharing transactions in the injector.
+  Added protection against the race condition described in RFC 1047.
+
+  The injector can now inject multiple messages with one transaction.
+  Performace isn't all it could be.
+
+  aox show search. Needs more search types.
+
+  Not done: Using searches for aox undelete.
+
+  Not done: aox set retention, aox show retention.
 
   Not done: Views on the web.
 
