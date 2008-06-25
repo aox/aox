@@ -910,6 +910,15 @@ String Selector::whereSet( const MessageSet & s )
 
     uint u = placeHolder();
 
+    // big chunk of the mailbox, not necessarily continuous UIDs
+    if ( root()->d->session && s.largest() > 100 &&
+         s.intersection( root()->d->session->messages() ).set() == s.set() ) {
+        uint u2 = placeHolder();
+        root()->d->query->bind( u, s.smallest() );
+        root()->d->query->bind( u2, s.largest() );
+        return "(mm.uid>=$" + fn( u ) + " and mm.uid<=$" + fn( u2 ) + ")";
+    }
+
     // complex sets
     if ( !s.isRange() ) {
         root()->d->query->bind( u, s );
@@ -1067,7 +1076,7 @@ static bool isAddressField( const String & s )
 
     As a hack, oops, as an optimization, this function also looks for
     an OR list of address-field searches, and if any, lifts the shared
-    parts of those seaches out so the DBMS processes the search
+    parts of those searches out so the DBMS processes the search
     faster.
 */
 
