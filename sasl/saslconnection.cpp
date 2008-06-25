@@ -72,28 +72,31 @@ void SaslConnection::close()
 {
     if ( state() == Invalid )
         return;
-    String client = peer().string();
+
+    Endpoint client = peer();
     Connection::close();
 
-    if ( !u )
+    if ( !u || client.protocol() == Endpoint::Unix ||
+         !Configuration::toggle( Configuration::Security ) )
         return;
 
     Query * q = new Query(
         "insert into connections "
-        "(userid,client,mechanism,authfailures,"
+        "(userid,address,port,mechanism,authfailures,"
         "syntaxerrors,started_at,ended_at) "
-        "values ($1,$2,$3,$4,$5,"
-        "$6::interval + 'epoch'::timestamptz,"
-        "$7::interval + 'epoch'::timestamptz)", 0
+        "values ($1,$2,$3,$4,$5,$6,"
+        "$7::interval + 'epoch'::timestamptz,"
+        "$8::interval + 'epoch'::timestamptz)", 0
     );
 
     q->bind( 1, u->id() );
-    q->bind( 2, client );
-    q->bind( 3, m );
-    q->bind( 4, af );
-    q->bind( 5, sf );
-    q->bind( 6, s );
-    q->bind( 7, (uint)time( 0 ) );
+    q->bind( 2, client.address() );
+    q->bind( 3, client.port() );
+    q->bind( 4, m );
+    q->bind( 5, af );
+    q->bind( 6, sf );
+    q->bind( 7, s );
+    q->bind( 8, (uint)time( 0 ) );
     q->execute();
 }
 
