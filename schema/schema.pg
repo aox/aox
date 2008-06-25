@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (72);
+insert into mailstore (revision) values (73);
 
 
 -- One entry for each unique address we've encountered.
@@ -425,7 +425,8 @@ create table autoresponses (
 create table connections (
     id          serial primary key,
     userid      integer references users(id),
-    client      varchar not null,
+    address     inet not null,
+    port        varchar not null,
     mechanism   varchar not null,
     authfailures integer not null,
     syntaxerrors integer not null,
