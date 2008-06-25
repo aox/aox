@@ -40,7 +40,7 @@ create table users (
 create unique index u_l on users (lower(login));
 
 
--- One entry per named group.
+-- One entry per group of users.
 
 create table groups (
     id          serial primary key,
@@ -145,7 +145,7 @@ create table bodyparts (
 );
 
 
--- A list of bodyparts belonging to each message, with IMAP part numbers.
+-- One entry for each bodypart in a message.
 
 create table part_numbers (
     message     integer references messages(id) on delete cascade,
@@ -167,7 +167,7 @@ create table field_names (
 );
 
 
--- A list of the header fields associated with each bodypart in a message.
+-- One entry for each header field in a message, except address fields.
 
 create table header_fields (
     id          serial primary key,
@@ -185,7 +185,8 @@ create table header_fields (
 create index hf_msgid on header_fields(value) where field=13;
 
 
--- A list of addresses associated with each message.
+-- One entry for each address associated with a message. Address
+-- fields are stored as one or more row here.
 
 create table address_fields (
     message     integer not null,
@@ -268,7 +269,7 @@ create table subscriptions (
 );
 
 
--- One entry per vendor- or RFC-defined name to be used in annotations
+-- One entry per vendor- or RFC-defined name to be used in annotations.
 
 create table annotation_names (
     id          serial primary key,
@@ -276,7 +277,7 @@ create table annotation_names (
 );
 
 
--- One entry per annotation
+-- One entry per annotation.
 
 create table annotations (
     id          serial primary key,
@@ -320,10 +321,10 @@ create table scripts (
 );
 
 
--- One entry per deleted (EXPUNGEd) message, which says "message #n used
--- to be (mailbox,uid) until it was deleted_by ... at ...". A given pair
--- of (mailbox,uid) may exist either in mailbox_messages or here, never
--- in both.
+-- One entry per deleted (EXPUNGEd) message. A row here says "message
+-- #n used to be (mailbox,uid) until it was deleted_by ... at ...". A
+-- given pair of (mailbox,uid) may exist either in mailbox_messages or
+-- here, never in both.
 
 create table deleted_messages (
     mailbox     integer not null references mailboxes(id),
@@ -370,8 +371,7 @@ create table deliveries (
 );
 
 
--- One or more rows identifying recipients for each entry in the
--- deliveries table.
+-- One entry for each recipient of pending outgoing mail.
 
 create table delivery_recipients (
     id          serial primary key,
