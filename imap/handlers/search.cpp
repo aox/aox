@@ -156,6 +156,7 @@ Selector * Search::parseKey()
         step();
         // it's an "and" list.
         Selector * s = new Selector( Selector::And );
+        s->add( parseKey() );
         while ( ok() && !present( ")" ) ) {
             space();
             s->add( parseKey() );
@@ -253,7 +254,7 @@ Selector * Search::parseKey()
     }
     else if ( present( "from" ) ) {
         space();
-        return new Selector( Selector::Header, Selector::Contains, 
+        return new Selector( Selector::Header, Selector::Contains,
                              "from", ustring( AString ) );
     }
     else if ( present( "to" ) ) {
@@ -345,14 +346,14 @@ Selector * Search::parseKey()
         String b = atom();
         space();
         UString c = ustring( NString );
-        
+
         uint i = 0;
         while ( ::legalAnnotationAttributes[i] &&
                 b != ::legalAnnotationAttributes[i] )
             i++;
         if ( !::legalAnnotationAttributes[i] )
             error( Bad, "Unknown annotation attribute: " + b );
-        
+
         return new Selector( Selector::Annotation, Selector::Contains,
                              a, b, c );
     }
@@ -379,7 +380,7 @@ Selector * Search::parseKey()
     }
 
     error( Bad, "expected search key, saw: " + following() );
-    return 0;
+    return new Selector;
 }
 
 
