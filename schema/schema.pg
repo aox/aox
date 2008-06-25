@@ -426,7 +426,7 @@ create table connections (
     id          serial primary key,
     userid      integer references users(id),
     address     inet not null,
-    port        varchar not null,
+    port        integer not null,
     mechanism   varchar not null,
     authfailures integer not null,
     syntaxerrors integer not null,
