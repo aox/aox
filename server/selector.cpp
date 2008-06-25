@@ -283,8 +283,6 @@ void Selector::simplify()
             d->a = None;
             break;
         case Header:
-            if ( d->s16.isEmpty() )
-                d->a = All;
             break;
         case Body:
             if ( d->s16.isEmpty() )
