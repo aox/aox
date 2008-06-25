@@ -46,8 +46,6 @@ public:
 Timer::Timer( class EventHandler * owner, uint delay )
     : Garbage(), d( new TimerData )
 {
-    if ( delay < 1 )
-        delay = 1;
     uint now = time( 0 );
     if ( delay + now < now )
         return; // would be after the end of the universe...

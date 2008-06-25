@@ -226,6 +226,10 @@ void EventLoop::start()
         if ( tv.tv_sec > 60 )
             tv.tv_sec = 60;
 
+        // we never ask the OS to sleep shorter than two milliseconds
+        if ( tv.tv_sec < 1 )
+            tv.tv_usec = 2000;
+
         int n = select( maxfd+1, &r, &w, 0, &tv );
         time_t now = time( 0 );
 
