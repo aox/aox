@@ -17,6 +17,7 @@
     We announce the following standard capabilities:
 
     RFC 3501: IMAP4rev1, STARTTLS, LOGINDISABLED.
+    RFC 3502: MULTIAPPEND
     RFC 2086: ACL
     RFC 2088: LITERAL+
     RFC 2177: IDLE
@@ -94,8 +95,10 @@ String Capability::capabilities( IMAP * i, bool all )
     if ( ( all || !login ) &&
          !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
         c.append( "LOGINDISABLED" );
-    if ( all || login )
+    if ( all || login ) {
+        c.append( "MULTIAPPEND" );        
         c.append( "NAMESPACE" );
+    }
     if ( all || login )
         c.append( "RIGHTS=ekntx" );
     if ( all || !login )
