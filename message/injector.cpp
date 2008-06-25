@@ -1550,6 +1550,14 @@ void Injector::logDescription()
 }
 
 
+struct MailboxAnnouncement {
+    MailboxAnnouncement(): mailbox( 0 ), uidnext( 0 ), nextmodseq( 0 ) {}
+    Mailbox * mailbox;
+    uint uidnext;
+    int64 nextmodseq;
+};
+
+
 /*! This function announces the injection of a message into the relevant
     mailboxes, using ocd. It should be called only when the Injector has
     completed successfully (done(), but not failed()).
@@ -1560,6 +1568,8 @@ void Injector::logDescription()
 
 void Injector::announce()
 {
+    Map<MailboxAnnouncement> announcements;
+    List<MailboxAnnouncement> al;
     List<Message>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
@@ -1580,12 +1590,28 @@ void Injector::announce()
                 ++si;
             }
 
-            if ( mb->uidnext() <= uid || mb->nextModSeq() <= ms )
-                mb->setUidnextAndNextModSeq( 1+uid, 1+ms );
+            if ( mb->uidnext() <= uid || mb->nextModSeq() <= ms ) {
+                MailboxAnnouncement * a = announcements.find( mb->id() );
+                if ( !a ) {
+                    a = new MailboxAnnouncement;
+                    a->mailbox = mb;
+                    announcements.insert( mb->id(), a );
+                    al.append( a );
+                }
+                if ( a->uidnext <= uid )
+                    a->uidnext = uid + 1;
+                if ( a->nextmodseq <= ms )
+                    a->nextmodseq = ms + 1;
+            }
 
             ++mi;
         }
         ++it;
+    }
+    List<MailboxAnnouncement>::Iterator i( al );
+    while ( i ) {
+        i->mailbox->setUidnextAndNextModSeq( i->uidnext, i->nextmodseq );
+        ++i;
     }
 }
 
