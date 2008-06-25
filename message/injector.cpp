@@ -634,13 +634,7 @@ void Injector::execute()
             break;
 
         case InsertingBodyparts:
-            if ( !d->bidFetcher ) {
-                insertBodyparts();
-                d->bidFetcher->execute();
-            }
-            else if ( d->bidFetcher->done ) {
-                next();
-            }
+            insertBodyparts();
             break;
 
         case SelectingMessageIds:
@@ -1089,11 +1083,17 @@ void Injector::selectUids()
 /*! This private function looks through d->bodyparts, and fills in the
     INSERT needed to create, and the SELECT needed to identify, every
     storable bodypart in the message. The queries are executed by the
-    BidFetcher.
+    BidFetcher one by one.
 */
 
 void Injector::insertBodyparts()
 {
+    if ( d->bidFetcher ) {
+        if ( d->bidFetcher->done )
+            next();
+        return;
+    }
+
     List<Bid> * bodyparts = new List<Bid>;
 
     d->bidFetcher =
@@ -1189,6 +1189,7 @@ void Injector::insertBodyparts()
         new Query( "select id, hash from bodyparts "
                    "where hash=any($1::text[])", d->bidFetcher );
     d->bidFetcher->look->bind( 1, hashes );
+    d->bidFetcher->execute();
 }
 
 
