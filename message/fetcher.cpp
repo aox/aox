@@ -8,6 +8,7 @@
 #include "allocator.h"
 #include "bodypart.h"
 #include "selector.h"
+#include "postgres.h"
 #include "mailbox.h"
 #include "message.h"
 #include "session.h"
@@ -347,6 +348,10 @@ void Fetcher::start()
     else if ( messages.isRange() && expected * n < 2000 )
         simple = true;
     else if ( expected * n < 1000 )
+        simple = true;
+    else if ( Postgres::version() < 80200 &&
+              fetching( OtherHeader ) &&
+              !fetching( Body ) )
         simple = true;
 
     // This selector selects by UID from a single mailbox. We could
