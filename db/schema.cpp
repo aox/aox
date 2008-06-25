@@ -465,6 +465,8 @@ bool Schema::singleStep()
         c = stepTo71(); break;
     case 71:
         c = stepTo72(); break;
+    case 72:
+        c = stepTo73(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3726,6 +3728,35 @@ bool Schema::stepTo72()
         }
         d->l->log( "Done.", Log::Debug );
         d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Split connections.client into address/port. */
+
+bool Schema::stepTo73()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Split connections.client into address/port." );
+        d->q = new Query( "delete from connections", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table connections add address "
+                          "inet not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table connections add port "
+                          "integer not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table connections drop client", this );
+        d->t->enqueue( d->q );
+        d->substate = 1;
+        d->t->execute();
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
     }
 
     return true;
