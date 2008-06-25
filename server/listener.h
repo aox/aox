@@ -63,6 +63,9 @@ public:
         if ( !use )
             return;
 
+        bool use4 = Configuration::toggle( Configuration::UseIPv4 );
+        bool use6 = Configuration::toggle( Configuration::UseIPv6 );
+
         uint c = 0;
         String a = Configuration::text( address );
         uint p = Configuration::scalar( port );
@@ -70,8 +73,9 @@ public:
         bool any6 = false;
 
         if ( a.isEmpty() ) {
-            addresses.append( "::" );
-            if ( !any6ListensTo4() )
+            if ( use6 )
+                addresses.append( "::" );
+            if ( addresses.isEmpty() || !any6ListensTo4() )
                 addresses.append( "0.0.0.0" );
         }
         else {
@@ -90,10 +94,10 @@ public:
                 bool u = true;
                 switch ( e.protocol() ) {
                 case Endpoint::IPv4:
-                    u = Configuration::toggle( Configuration::UseIPv4 );
+                    u = use4;
                     break;
                 case Endpoint::IPv6:
-                    u = Configuration::toggle( Configuration::UseIPv6 );
+                    u = use6;
                     break;
                 case Endpoint::Unix:
                     break;
