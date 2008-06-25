@@ -634,7 +634,7 @@ void Injector::execute()
             break;
 
         case InsertingBodyparts:
-            insertBodyparts();
+            insertBodypartsSlowly();
             break;
 
         case SelectingMessageIds:
@@ -1086,7 +1086,7 @@ void Injector::selectUids()
     BidFetcher one by one.
 */
 
-void Injector::insertBodyparts()
+void Injector::insertBodypartsSlowly()
 {
     if ( d->bidFetcher ) {
         if ( d->bidFetcher->done )
