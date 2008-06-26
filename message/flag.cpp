@@ -93,9 +93,9 @@ public:
     bugs). Transaction::error() should say what went wrong.
 */
 
-FlagCreator::FlagCreator( const StringList & f, Transaction * tr,
-                          EventHandler * ev )
-    : d( new FlagCreatorData( f, tr, ev ) )
+FlagCreator::FlagCreator( const StringList & flags, Transaction * t,
+                          EventHandler * owner )
+    : d( new FlagCreatorData( flags, t, owner ) )
 {
     execute();
 }
