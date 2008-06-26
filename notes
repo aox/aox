@@ -786,6 +786,10 @@ System flags in mailbox_messages
   no. We want 2.11 to use the same schema as 3.0.0, and practically
   all of the code involved has been rewritten since 2.11.
 
+  I think this is something we want to do in 3.1.0 and 3.0.2. We make
+  2.11 schema-compatible with 3.0.0, 2.12 with 3.0.1, but after 2.12
+  that stops. 3.0.2 can be schema-compatible with 3.1.0.
+
 
 Logging to syslog
 
