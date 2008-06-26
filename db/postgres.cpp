@@ -892,7 +892,7 @@ static const struct {
     {"field_names_name_key", // contype u
      "Operation would create two header field names with the same name"},
     {"fn_uname",
-     "Operation would store two identical flag name separately"},
+     "Operation would store two identical flag names separately"},
     {"group_members_groupname_fkey", // contype f
      "Operation would create group_members row with invalid groupname"},
     {"group_members_member_fkey", // contype f
