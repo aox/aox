@@ -34,6 +34,7 @@ public:
     void add( const MessageSet & );
 
     void remove( uint );
+    void remove( uint, uint );
     void remove( const MessageSet & );
     void clear();
 
