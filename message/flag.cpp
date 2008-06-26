@@ -101,11 +101,19 @@ FlagCreator::FlagCreator( const StringList & flags, Transaction * t,
 }
 
 
+/*! Returns true if this FlagCreator has done all it should, and false
+    if it's still working.
+*/
+
 bool FlagCreator::done() const
 {
     return d->state > 4;
 }
 
+
+/*! This private helper notifies the owner and makes sure it won't do
+    so again.
+*/
 
 void FlagCreator::notify()
 {
@@ -136,6 +144,10 @@ void FlagCreator::execute()
             processInsert();
     }
 }
+
+/*! This private helper issues a select to find the new flags, and
+    then moves to the next state to wait for results.
+*/
 
 void FlagCreator::selectFlags()
 {
@@ -168,6 +180,9 @@ void FlagCreator::selectFlags()
     }
 }
 
+
+/*! This private helper handles the results of selectFlags(). */
+
 void FlagCreator::processFlags()
 {
     while ( d->select->hasResults() ) {
@@ -187,6 +202,11 @@ void FlagCreator::processFlags()
         d->state = 2;
 }
 
+
+/*! This private helper issues a COPY (with supporting savepoints) to
+    insert the desired flags into flag_names.
+*/
+
 void FlagCreator::insertFlags()
 {
     Query * q = new Query( "savepoint c" + fn( d->savepoint ), this );
@@ -205,6 +225,11 @@ void FlagCreator::insertFlags()
     d->t->enqueue( d->insert );
     d->t->execute();
 }
+
+
+/*! This private helper handles the result of COPYing into
+    flag_names.
+*/
 
 void FlagCreator::processInsert()
 {
