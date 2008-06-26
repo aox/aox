@@ -383,7 +383,7 @@ public:
           addresses( new List<Address> ),
           mailboxes( new SortedList<Mailbox> ),
           bidFetcher( 0 ),
-          flagCreation( 0 ), annotationCreation( 0 ),
+          flagCreator( 0 ), annotationCreation( 0 ),
           fieldCreation( 0 ), addressCreation( 0 ),
           queries( 0 ), select( 0 ), copy( 0 ), message( 0 )
     {}
@@ -406,7 +406,7 @@ public:
 
     BidFetcher *bidFetcher;
 
-    Query * flagCreation;
+    FlagCreator * flagCreator;
     Query * annotationCreation;
     Query * fieldCreation;
     Query * addressCreation;
@@ -868,12 +868,10 @@ void Injector::createDependencies()
          ( !d->fieldCreation->done() || d->fieldCreation->failed() ) )
         return;
 
-    if ( !d->flagCreation && !d->flags.isEmpty() )
-        d->flagCreation =
-            Flag::create( d->flags, d->transaction, this );
+    if ( !d->flagCreator && !d->flags.isEmpty() )
+        d->flagCreator = new FlagCreator( d->flags, d->transaction, this );
 
-    if ( d->flagCreation &&
-         ( !d->flagCreation->done() || d->flagCreation->failed() ) )
+    if ( d->flagCreator && !d->flagCreator->done() )
         return;
 
     if ( !d->annotationCreation && !d->annotationNames.isEmpty() )

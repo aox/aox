@@ -30,6 +30,7 @@ public:
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
+          flagCreator( 0 ),
           transaction( 0 )
     {}
     MessageSet specified;
@@ -50,6 +51,7 @@ public:
     Query * modSeqQuery;
     Query * obtainModSeq;
     Query * findSet;
+    FlagCreator * flagCreator;
 
     Transaction * transaction;
 
@@ -520,6 +522,9 @@ void Store::execute()
 
 bool Store::processFlagNames()
 {
+    if ( d->flagCreator )
+        return d->flagCreator->done();
+
     StringList::Iterator it( d->flagNames );
     StringList unknown;
     while ( it ) {
@@ -529,7 +534,8 @@ bool Store::processFlagNames()
     }
     if ( unknown.isEmpty() )
         return true;
-    Flag::create( unknown, d->transaction, this );
+
+    d->flagCreator = new FlagCreator( unknown, d->transaction, this );
     return false;
 }
 
@@ -597,7 +603,7 @@ void Store::addFlags()
 
     StringList::Iterator it( d->flagNames );
     while ( it ) {
-        Query * q = new Query( 
+        Query * q = new Query(
             "insert into flags (flag,uid,mailbox) "
             "select $1,mm.uid,$2 from mailbox_messages mm "
             "left join flags f on "
