@@ -73,7 +73,7 @@ public:
     public:
         Decoder( FetcherData * fd )
             : q( 0 ), d( fd ), findById( false ), findByUid( false ) {
-            setLog( d->f->log() );
+            setLog( new Log( Log::Database ) );
         }
         void execute();
         virtual void decode( Message *, Row * ) = 0;
@@ -884,6 +884,7 @@ void Fetcher::makeQueries()
 
 void FetcherData::Decoder::execute()
 {
+    Scope x( log() );
     Row * r = q->nextRow();
     if ( r && !findByUid && !findById ) {
         if ( r->hasColumn( "message" ) ) {
