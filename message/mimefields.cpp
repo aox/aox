@@ -169,10 +169,9 @@ void MimeField::parseParameters( EmailParser *p )
             bool havePart = false;
             uint partNumber = 0;
 
-            if ( n.isEmpty() ) {
-                setError( "Empty parameter" );
+            if ( n.isEmpty() )
                 return;
-            }
+
             if ( n.contains( "*" ) ) {
                 uint star = n.find( "*" );
                 bool numberOk = false;
@@ -206,7 +205,6 @@ void MimeField::parseParameters( EmailParser *p )
                 p->step( p->input().length() );
             }
             else if ( p->nextChar() != '=' ) {
-                setError( "Bad parameter: " + n.quoted() );
                 return;
             }
 
@@ -236,7 +234,7 @@ void MimeField::parseParameters( EmailParser *p )
                 while ( it && n != it->name )
                     ++it;
                 if ( !it ) {
-                    MimeFieldData::Parameter * pm 
+                    MimeFieldData::Parameter * pm
                         = new MimeFieldData::Parameter;
                     pm->name = n;
                     d->parameters.append( pm );
