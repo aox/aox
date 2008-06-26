@@ -245,7 +245,6 @@ bool Fetcher::done() const
 void Fetcher::execute()
 {
     Scope x( log() );
-    log( "execute entered with state " + fn( d->state ) );
     State s = d->state;
     do {
         s = d->state;
@@ -264,7 +263,6 @@ void Fetcher::execute()
             break;
         }
     } while ( s != d->state );
-    log( "execute left with state " + fn( d->state ) );
 }
 
 
