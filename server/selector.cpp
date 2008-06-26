@@ -926,6 +926,11 @@ String Selector::whereSet( const MessageSet & s )
             uint u2 = placeHolder();
             root()->d->query->bind( u, s.smallest() );
             root()->d->query->bind( u2, s.largest() );
+            // this if ">=0" in the most common case (fetch 1:*
+            // flags), but we must do anything in our power to
+            // persuade pg to avoid those seqscans. if we can say
+            // ">=1000" when we know there aren't any UIDs below 1000,
+            // then let's do that.
             return "(mm.uid>=$" + fn( u ) + " and mm.uid<=$" + fn( u2 ) + ")";
         }
     }
