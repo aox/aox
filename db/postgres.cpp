@@ -891,6 +891,8 @@ static const struct {
      "Operation would store the same message for delivery twice"},
     {"field_names_name_key", // contype u
      "Operation would create two header field names with the same name"},
+    {"fn_uname",
+     "Operation would store two identical flag name separately"},
     {"group_members_groupname_fkey", // contype f
      "Operation would create group_members row with invalid groupname"},
     {"group_members_member_fkey", // contype f
@@ -962,8 +964,6 @@ String Postgres::mapped( const String & s ) const
     if ( maps != 1 )
         return s;
 
-    if ( !h.isEmpty() )
-        ::log( "Error maps to: " + h );
     return h;
 }
 
