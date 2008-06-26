@@ -785,6 +785,7 @@ void Fetch::sendFetchQueries()
         f->fetch( Fetcher::Trivia );
     if ( d->annotation && !haveAnnotations )
         f->fetch( Fetcher::Annotations );
+    f->setSession( imap()->session() );
     f->execute();
 
     FetchData::ResponseTrickler * t = new FetchData::ResponseTrickler( this );

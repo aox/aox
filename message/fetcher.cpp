@@ -33,7 +33,7 @@ public:
         : messagesRemaining( 0 ),
           batchIds( 0 ),
           owner( 0 ),
-          mailbox( 0 ),
+          mailbox( 0 ), session( 0 ),
           q( 0 ),
           findMessages( 0 ),
           f( 0 ),
@@ -55,6 +55,7 @@ public:
     List<uint> * batchIds;
     EventHandler * owner;
     Mailbox * mailbox;
+    Session * session;
     List<Query> * q;
     Query * findMessages;
 
@@ -384,7 +385,7 @@ void Fetcher::start()
         wanted.append( "idate" );
         wanted.append( "modseq" );
     }
-    d->findMessages = d->selector->query( 0, d->mailbox, 0, this,
+    d->findMessages = d->selector->query( 0, d->mailbox, d->session, this,
                                           true, &wanted );
     d->findMessages->execute();
     d->state = FindingMessages;
@@ -680,7 +681,7 @@ void Fetcher::makeQueries()
             // we're selecting complexly and not using
             // batches. perhaps due to IMAP 'fetch 1:* (uid flags)
             // (changedsince 1232)' in a smallish mailbox.
-            q = d->selector->query( 0, d->mailbox, 0, d->flags,
+            q = d->selector->query( 0, d->mailbox, d->session, d->flags,
                                     false, &wanted );
             r = q->string();
             r.replace( " where ",
@@ -716,8 +717,8 @@ void Fetcher::makeQueries()
         else {
             // we're selecting complexly and not using batches. perhaps
             // due to IMAP 'fetch 1:* (uid annotations) (changedsince 1232)'
-            q = d->selector->query( 0, d->mailbox, 0, d->annotations,
-                                    false, &wanted );
+            q = d->selector->query( 0, d->mailbox, d->session,
+                                    d->annotations, false, &wanted );
             r = q->string();
             if ( !r.contains( " join annotations " ) )
                 r.replace( " where ",
@@ -743,7 +744,7 @@ void Fetcher::makeQueries()
     if ( d->partnumbers && !d->body ) {
         // body (below) will handle this as a side effect
         if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, 0, d->partnumbers,
+            q = d->selector->query( 0, d->mailbox, d->session, d->partnumbers,
                                     false, &wanted );
             r = q->string();
             if ( !r.contains( " join part_numbers pn " ) )
@@ -768,7 +769,7 @@ void Fetcher::makeQueries()
 
     if ( d->addresses ) {
         if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, 0, d->addresses,
+            q = d->selector->query( 0, d->mailbox, d->session, d->addresses,
                                     false, &wanted );
             r = q->string();
             r.replace( "select distinct mm.",
@@ -798,7 +799,7 @@ void Fetcher::makeQueries()
 
     if ( d->otherheader ) {
         if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, 0, d->otherheader,
+            q = d->selector->query( 0, d->mailbox, d->session, d->otherheader,
                                     false, &wanted );
             r = q->string();
             r.replace( "select distinct mm.",
@@ -825,7 +826,7 @@ void Fetcher::makeQueries()
 
     if ( d->body ) {
         if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, 0, d->body,
+            q = d->selector->query( 0, d->mailbox, d->session, d->body,
                                     false, &wanted );
             r = q->string();
             if ( !r.contains( " join bodyparts bp " ) )
@@ -859,7 +860,7 @@ void Fetcher::makeQueries()
         if ( !d->batchSize ) {
             wanted.append( "idate" );
             wanted.append( "modseq" );
-            q = d->selector->query( 0, d->mailbox, 0, d->trivia,
+            q = d->selector->query( 0, d->mailbox, d->session, d->trivia,
                                     true, &wanted );
             r = q->string();
             if ( !r.contains( " join messages " ) )
@@ -1260,4 +1261,15 @@ bool Fetcher::fetching( Type t ) const
         break;
     }
     return false; // not reached
+}
+
+
+/*! Tells the Fetcher that its return values will be used in \a
+    s. Knowing the target Session enables the Fetcher to optimise some
+    queries.
+*/
+
+void Fetcher::setSession( class Session * s )
+{
+    d->session = s;
 }

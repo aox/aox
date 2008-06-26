@@ -33,6 +33,7 @@ public:
     };
 
     void addMessages( List<Message> * );
+    void setSession( class Session * );
 
     void fetch( Type );
     bool fetching( Type ) const;
