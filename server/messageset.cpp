@@ -355,6 +355,16 @@ void MessageSet::remove( uint value )
 }
 
 
+/*! Removes \a v1, \a v2 and all values between them from this set. */
+
+void MessageSet::remove( uint v1, uint v2 )
+{
+    MessageSet r;
+    r.add( v1, v2 );
+    remove( r );
+}
+
+
 /*! Removes all values contained in \a other from this set. */
 
 void MessageSet::remove( const MessageSet & other )
