@@ -26,9 +26,9 @@ private:
 private:
     bool processFlagNames();
     bool processAnnotationNames();
-    void removeFlags( bool opposite = false );
-    void addFlags();
-    void replaceFlags();
+    bool removeFlags( bool opposite = false );
+    bool addFlags();
+    bool replaceFlags();
     void replaceAnnotations();
     void parseAnnotationEntry();
     String entryName();
