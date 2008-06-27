@@ -841,8 +841,8 @@ void database()
 
     if ( d->state == CheckUser ) {
         d->state = CheckingUser;
-        d->q = new Query( "select usename from pg_catalog.pg_user where "
-                          "usename=$1", d );
+        d->q = new Query( "select usename::text from pg_catalog.pg_user "
+                          "where usename=$1", d );
         d->q->bind( 1, *dbuser );
         d->q->execute();
     }
@@ -896,8 +896,8 @@ void database()
 
     if ( d->state == CheckSuperuser ) {
         d->state = CheckingSuperuser;
-        d->q = new Query( "select usename from pg_catalog.pg_user where "
-                          "usename=$1", d );
+        d->q = new Query( "select usename::text from pg_catalog.pg_user "
+                          "where usename=$1", d );
         d->q->bind( 1, *dbowner );
         d->q->execute();
     }
