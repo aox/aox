@@ -831,7 +831,7 @@ void Fetcher::makeQueries()
                 r.replace( " where ",
                            " join part_numbers pn on"
                            " (mm.message=pn.message)"
-                           " join bodyparts bp on"
+                           " left join bodyparts bp on"
                            " (pn.bodypart=bp.id)"
                            " where " );
             r.replace( "select distinct mm.",
