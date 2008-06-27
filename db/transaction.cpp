@@ -65,7 +65,7 @@ void Transaction::setDatabase( Database *db )
     if ( d->queries )
         return;
     d->queries = new List<Query>;
-    Query * begin = new Query( "BEGIN", 0 );
+    Query * begin = new Query( "begin", 0 );
     begin->setTransaction( this );
     d->queries->append( begin );
 }
@@ -223,7 +223,7 @@ void Transaction::rollback()
             ++i;
         }
     }
-    enqueue( new Query( "ROLLBACK", d->owner ) );
+    enqueue( new Query( "rollback", d->owner ) );
     d->submittedCommit = true;
     execute();
 }
@@ -240,7 +240,7 @@ void Transaction::commit()
 {
     if ( d->submittedCommit )
         return;
-    enqueue( new Query( "COMMIT", 0 ) );
+    enqueue( new Query( "commit", 0 ) );
     d->submittedCommit = true;
     execute();
 }
@@ -265,7 +265,7 @@ void Transaction::execute()
     }
     else {
         // if not, we ask Database to give us one
-        Query * begin = new Query( "BEGIN", 0 );
+        Query * begin = new Query( "begin", 0 );
         begin->setTransaction( this );
         Database::submit( begin );
     }
