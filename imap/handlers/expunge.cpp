@@ -136,7 +136,7 @@ void Expunge::execute()
         return;
 
     if ( d->marked.isEmpty() ) {
-        d->t->rollback();
+        d->t->commit();
         finish();
         return;
     }
