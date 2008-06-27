@@ -1037,29 +1037,6 @@ We need to be able to disable users
   - a group admin cannot unblock an overall blockage
 
 
-Using whirlpool instead of MD5.
-
-  I get the impression that conventional opinion is slowly moving
-  towards whirlpool as the hash function of choice. At some point we
-  want to use it instead of MD5 for the bodyparts table.
-
-  I don't want to use SHA* functions, they're too similar to
-  MD5. Those aren't worth the move.
-
-  Two ways to move to Whirlpool:
-
-  1. Recompute all the hashes and update the table.
-
-  2. Just start inserting whirlpool hashes in the hash column, and
-     accept that if the same bodypart was inserted by an older
-     version, we'll store it twice.
-
-  I don't want to bother with the expensive rehashing. But maybe
-  people will be unhappy and ask us to do it as an aox command.
-
-  It seems that netbsd includes a whirlpool implementation.
-
-
 Assigning the "l" right automatically hurts shared hosting.
 
   Casey Shobe <casey@shobe.info> wants to host multiple customers in a
@@ -1126,18 +1103,9 @@ aox.org/badmail/
 
 Fetcher oomph
 
-  The fetcher now does considerably better than before on pg 8.2 and
-  later. It's slow on pg 8.1.
-
-  We can improve it further in some cases:
-
-  4. When we're fetching many bodies, we can use batches in the
-     FindingMessages stage, and then use messages.rfc822size to keep
-     the batch size down in terms of RAM.
-
-  5. Most importantly: Generating the FETCH responses is slow.
-
-  fetcher.cpp drastically needs a documentation overhaul. I suck.
+  The only remaining (big) problems are that generating the FETCH
+  responses is slow, and that fetcher.cpp needs a documentation
+  overhaul.
 
 
 Some unfortunate logging
