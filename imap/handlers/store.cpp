@@ -18,6 +18,7 @@
 #include "list.h"
 #include "imap.h"
 #include "user.h"
+#include "map.h"
 
 
 class StoreData
@@ -30,6 +31,7 @@ public:
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
+          presentFlags( 0 ), present( 0 ),
           flagCreator( 0 ),
           transaction( 0 )
     {}
@@ -51,6 +53,8 @@ public:
     Query * modSeqQuery;
     Query * obtainModSeq;
     Query * findSet;
+    Query * presentFlags;
+    Map<MessageSet> * present;
     FlagCreator * flagCreator;
 
     Transaction * transaction;
@@ -353,44 +357,59 @@ void Store::execute()
         if ( d->seenUnchangedSince )
             work->add( new Selector( Selector::Modseq, Selector::Smaller,
                                      d->unchangedSince+1 ) );
-        Selector * o = new Selector( Selector::Or );
-        if ( d->op == StoreData::AddFlags ) {
-            work->add( o );
-            StringList::Iterator i( d->flagNames );
-            while ( i ) {
-                Selector * n = new Selector( Selector::Not );
-                o->add( n );
-                n->add( new Selector( Selector::Flags, Selector::Contains,
-                                      *i ) );
-                ++i;
-            }
-        }
-        else if ( d->op == StoreData::RemoveFlags ) {
-            work->add( o );
-            StringList::Iterator i( d->flagNames );
-            while ( i ) {
-                o->add( new Selector( Selector::Flags, Selector::Contains,
-                                         *i ) );
-                ++i;
-            }
-        }
-        // ReplaceFlags can't be optimised because Selector is too
-        // weak. ReplaceAnnotations is not worth optimising - noone
-        // uses it.
         work->simplify();
         StringList r;
         r.append( "mailbox" );
         r.append( "uid" );
         d->findSet = work->query( imap()->user(), m, 0, this, false, &r );
-        d->findSet->setString( "select uid from mailbox_messages "
-                               "where (mailbox,uid) in ("+d->findSet->string()+")"
-                               " for update" );
+        String s = d->findSet->string();
+        s.replace( " distinct ", " " );
+        s.append( " for update" );
+        d->findSet->setString( s );
         d->transaction->enqueue( d->findSet );
+
+        if  (d->op == StoreData::AddFlags ||
+             d->op == StoreData::RemoveFlags ||
+             d->op == StoreData::ReplaceFlags ) {
+            d->present = new Map<MessageSet>;
+            StringList::Iterator i( d->flagNames );
+            MessageSet s;
+            while ( i ) {
+                uint id = Flag::id( *i );
+                ++i;
+                if ( id ) {
+                    s.add( id );
+                    d->present->insert( id, new MessageSet );
+                }
+            }
+            d->presentFlags =
+                new Query( "select mailbox, uid, flag from flags "
+                           "where mailbox=$1 and uid=any($2) and flag=any($3)",
+                           this );
+            d->presentFlags->bind( 1, m->id() );
+            d->presentFlags->bind( 2, d->specified );
+            d->presentFlags->bind( 3, s );
+            d->transaction->enqueue( d->presentFlags );
+        }
+
         d->transaction->execute();
     }
 
     while ( d->findSet->hasResults() )
         d->s.add( d->findSet->nextRow()->getInt( "uid" ) );
+
+    if ( d->presentFlags && d->presentFlags->hasResults() ) {
+        Row * r;
+        MessageSet * s = 0;
+        uint oldFlag = 0;
+        while ( (r=d->presentFlags->nextRow()) ) {
+            uint f = r->getInt( "flag" );
+            if ( !s || f != oldFlag )
+                s = d->present->find( f );
+            oldFlag = f;
+            s->add( r->getInt( "uid" ) );
+        }
+    }
 
     if ( d->op == StoreData::ReplaceAnnotations ) {
         if ( !processAnnotationNames() )
@@ -402,6 +421,9 @@ void Store::execute()
     }
 
     if ( !d->findSet->done() )
+        return;
+
+    if ( d->presentFlags && !d->presentFlags->done() )
         return;
 
     if ( !d->obtainModSeq ) {
@@ -419,7 +441,30 @@ void Store::execute()
                 return;
             }
             // no messages need to be changed. we'll just say OK
-            log( "No messages need changing", Log::Debug );
+            d->transaction->commit();
+            finish();
+            return;
+        }
+
+        bool work = false;
+        switch( d->op ) {
+        case StoreData::ReplaceFlags:
+            work = replaceFlags();
+            break;
+        case StoreData::AddFlags:
+            work = addFlags();
+            break;
+        case StoreData::RemoveFlags:
+            work = removeFlags();
+            break;
+        case StoreData::ReplaceAnnotations:
+            work = true;
+            replaceAnnotations();
+            break;
+        }
+
+        if ( !work ) {
+            // there's no actual work to be done.
             d->transaction->commit();
             finish();
             return;
@@ -431,20 +476,6 @@ void Store::execute()
         d->obtainModSeq->bind( 1, m->id() );
         d->transaction->enqueue( d->obtainModSeq );
 
-        switch( d->op ) {
-        case StoreData::ReplaceFlags:
-            replaceFlags();
-            break;
-        case StoreData::AddFlags:
-            addFlags();
-            break;
-        case StoreData::RemoveFlags:
-            removeFlags();
-            break;
-        case StoreData::ReplaceAnnotations:
-            replaceAnnotations();
-            break;
-        }
         d->transaction->execute();
     }
 
@@ -571,15 +602,23 @@ bool Store::processAnnotationNames()
     case, we could use a PreparedStatement. Later.
 */
 
-void Store::removeFlags( bool opposite )
+bool Store::removeFlags( bool opposite )
 {
     List<uint> flags;
-    StringList::Iterator it( d->flagNames );
-    while ( it ) {
-        flags.append( new uint( Flag::id( *it ) ) );
-        ++it;
-    }
 
+    StringList::Iterator i( d->flagNames );
+    while ( i ) {
+        uint id = Flag::id( *i );
+        ++i;
+        if ( id ) {
+            MessageSet * s = d->present->find( id );
+            if ( !s->isEmpty() )
+                flags.append( new uint( id ) );
+        }
+    }
+    if ( flags.isEmpty() && !opposite )
+        return false;
+    
     String s = "delete from flags where mailbox=$1 and uid=any($2) and ";
     if ( opposite )
         s.append( "not " );
@@ -590,32 +629,48 @@ void Store::removeFlags( bool opposite )
     q->bind( 2, d->s );
     q->bind( 3, &flags );
     d->transaction->enqueue( q );
+    return true;
 }
 
 
-/*! Adds all the necessary flags to the database.
+/*! Adds all the necessary flags to the database. Returns true if that
+    requires any work at all.
 */
 
-void Store::addFlags()
+bool Store::addFlags()
 {
-    Mailbox * m = imap()->session()->mailbox();
-    MessageSet s( d->s );
+    uint mailbox = imap()->session()->mailbox()->id();
+
+    bool work = false;
+    Query * q = new Query( "copy flags (mailbox, uid, flag) "
+                           "from stdin with binary", this );
 
     StringList::Iterator it( d->flagNames );
     while ( it ) {
-        Query * q = new Query(
-            "insert into flags (flag,uid,mailbox) "
-            "select $1,mm.uid,$2 from mailbox_messages mm "
-            "left join flags f on "
-            " (mm.mailbox=f.mailbox and mm.uid=f.uid and f.flag=$1) "
-            "where f.flag is null and mm.mailbox=$2 and mm.uid=any($3)",
-            0 );
-        q->bind( 1, Flag::id( *it ) );
-        q->bind( 2, m->id() );
-        q->bind( 3, s );
-        d->transaction->enqueue( q );
+        MessageSet s( d->s );
+        uint flag = Flag::id( *it );
         ++it;
+        if ( flag ) {
+            MessageSet * p = d->present->find( flag );
+            if ( p )
+                s.remove( *p );
+            if ( !s.isEmpty() ) {
+                work = true;
+                int c = s.count();
+                while ( c ) {
+                    uint uid = s.value( c );
+                    c--;
+                    q->bind( 1, mailbox );
+                    q->bind( 2, uid );
+                    q->bind( 3, flag );
+                    q->submitLine();
+                }
+            }
+        }
     }
+    if ( work )
+        d->transaction->enqueue( q );
+    return work;
 }
 
 
@@ -623,10 +678,14 @@ void Store::addFlags()
     the specified messages.
 */
 
-void Store::replaceFlags()
+bool Store::replaceFlags()
 {
-    removeFlags( true );
-    addFlags();
+    bool work = false;
+    if ( removeFlags( true ) )
+        work = true;
+    if ( addFlags() )
+        work = true;
+    return work;
 }
 
 

@@ -79,7 +79,7 @@ public:
 
 
 /*! \class FlagCreator flag.h
-  
+
     This class issuses queries using a supplied Transaction to add new
     flags to the database.
 */
@@ -120,10 +120,9 @@ void FlagCreator::notify()
     if ( done() )
         return;
     d->state = 5;
-    Scope x( d->owner->log() );
-    d->owner->execute();
+    d->owner->notify();
 }
-    
+
 
 void FlagCreator::execute()
 {

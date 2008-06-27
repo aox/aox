@@ -66,10 +66,8 @@ void DatabaseSignal::notifyAll( const String & name )
     while ( i ) {
         DatabaseSignal * s = i;
         ++i;
-        if ( name == s->d->n && s->d->o ) {
-            Scope x( s->d->l );
-            s->d->o->execute();
-        }
+        if ( name == s->d->n && s->d->o )
+            s->d->o->notify();
     }
 }
 
