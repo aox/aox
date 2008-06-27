@@ -115,8 +115,7 @@ void Timer::execute()
         d->timeout = 0;
         EventLoop::global()->removeTimer( this );
     }
-    Scope x( d->owner->log() );
-    d->owner->execute();
+    d->owner->notify();
 }
 
 

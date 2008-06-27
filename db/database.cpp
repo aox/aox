@@ -529,8 +529,7 @@ void Database::reactToIdleness()
     Allocator::removeEternal( ::whenIdle );
     ::whenIdle = 0;
     while ( i ) {
-        Scope x( i->log() );
-        i->execute();
+        i->notify();
         ++i;
     }
 }

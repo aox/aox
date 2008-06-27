@@ -217,10 +217,8 @@ void SMTP::execute()
         while ( i ) {
             SmtpCommand * c = i;
             ++i;
-            if ( !c->done() ) {
-                Scope s( c->log() );
-                c->execute();
-            }
+            if ( !c->done() )
+                c->notify();
         }
 
         // see if any old commands may be retired

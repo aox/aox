@@ -74,3 +74,14 @@ void EventHandler::log( const String &m, Log::Severity s ) const
     if ( l )
         l->log( m, s );
 }
+
+
+/*! This is just a wrapper around execute() which sets a Scope with
+    the event hander's own Log.
+*/
+
+void EventHandler::notify()
+{
+    Scope x( log() );
+    execute();
+}
