@@ -14,6 +14,7 @@
 #include "database.h"
 #include "mailbox.h"
 #include "entropy.h"
+#include "flag.h"
 #include "log.h"
 #include "utf.h"
 
@@ -100,6 +101,7 @@ int main( int ac, char ** av )
     Database::setup();
     Mailbox::setup( m );
 
+    Flag::setup();
     AddressCache::setup();
     FieldName::setup();
     AnnotationName::setup();
