@@ -724,6 +724,7 @@ void Message::setHeadersFetched()
 
 void Message::setBodiesFetched()
 {
+    setBytesAndLinesFetched();
     d->hasBodies = true;
 }
 
