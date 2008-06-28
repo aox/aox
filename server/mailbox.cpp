@@ -349,10 +349,11 @@ bool Mailbox::view() const
 
 bool Mailbox::isHome() const
 {
-    if ( d->name.startsWith( "/users/" ) &&
-         d->name.find( '/', 7 ) == -1 )
+    if ( !d->parent )
         return true;
-    return false;
+    if ( d->owner == d->parent->d->owner )
+        return false;
+    return true;
 }
 
 
