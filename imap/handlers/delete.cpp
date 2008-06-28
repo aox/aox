@@ -14,16 +14,18 @@ class DeleteData
     : public Garbage
 {
 public:
-    DeleteData(): m( 0 ), q( 0 ), t( 0 ) {}
+    DeleteData(): m( 0 ), messages( 0 ), t( 0 ) {}
 
     Mailbox * m;
-    Query * q;
+    Query * messages;
     Transaction * t;
 };
 
 
 /*! \class Delete delete.h
     Deletes an existing mailbox (RFC 3501 section 6.3.4)
+
+    Mailboxes cannot be deleted until they're empty of messages and 
 
     (Really deletes? What happens to the mail there?)
 
@@ -55,51 +57,70 @@ void Delete::execute()
     if ( state() != Executing )
         return;
 
-    if ( !d->q ) {
-        if ( d->m->sessions() ) {
-            error( No, "Mailbox is in use" );
-            setRespTextCode( "INUSE" );
-        }
-        else if ( d->m->synthetic() ) {
-            error( No,
-                   d->m->name().ascii() + " does not really exist anyway" );
-            setRespTextCode( "NONEXISTENT" );
-        }
-        if ( !ok() )
-            return;
+    if ( d->m->sessions() ) {
+        error( No, "Mailbox is in use" );
+        setRespTextCode( "INUSE" );
+    }
+    else if ( d->m->synthetic() ) {
+        error( No,
+               d->m->name().ascii() + " does not really exist anyway" );
+        setRespTextCode( "NONEXISTENT" );
+    }
+
+    if ( !ok() )
+        return;
+
+    if ( !d->t ) {
+        d->t = new Transaction( this );
+        Query * lock = new Query( "select * from mailboxes "
+                                  "where id=$1 for update", 0 );
+        lock->bind( 1, d->m->id() );
+        d->t->enqueue( lock );
+
+        // This query mentions the messages table for no particularly
+        // good reason, so it may be suboptimal. Deleting is not high
+        // on our priority list, so that doesn't seem like a big
+        // problem.
+        d->messages = new Query( "select count(*) as messages "
+                                 "from messages m "
+                                 "left join mailbox_messages mm on"
+                                 " (m.id=mm.message) "
+                                 "left join deleted_messages dm"
+                                 " on (m.id=dm.message) "
+                                 "where mm.mailbox=$1 or dm.mailbox=$1",
+                                 this );
+        d->messages->bind( 1, d->m->id() );
+        d->t->enqueue( d->messages );
+        d->t->execute();
+
         requireRight( d->m, Permissions::DeleteMailbox );
         requireRight( d->m, Permissions::DeleteMessages );
         requireRight( d->m, Permissions::Expunge );
-        d->q = new Query( "select count(*)::int as undeletable "
-                          "from deleted_messages "
-                          "where mailbox=$1", this );
-        d->q->bind( 1, d->m->id() );
-        d->q->execute();
     }
 
-    if ( !permitted() || !d->q->done() )
+    if ( !permitted() )
         return;
 
-    // XXX should make the permission checking more fine-grained. and
-    // there's a race with APPEND/COPY too. (See notes.)
+    if ( d->messages && !d->messages->done() )
+        return;
 
-    if ( !d->t ) {
-        uint undeletable = 0;
+    if ( d->messages ) {
+        uint messages = 0;
 
-        Row * r = d->q->nextRow();
-        if ( d->q->failed() || !r )
-            error( No, "Could not determine if undeletable messages exist" );
+        Row * r = d->messages->nextRow();
+        if ( d->messages->failed() || !r )
+            error( No, "Could not determine if any messages exist" );
         else
-            undeletable = r->getInt( "undeletable" );
+            messages = r->getInt( "messages" );
 
-        if ( undeletable )
-            error( No, "Cannot delete mailbox: " + fn( undeletable ) +
-                   " undeletable messages exist" );
+        if ( messages )
+            error( No, "Cannot delete mailbox: " + fn( messages ) +
+                   " messages exist" );
+        d->messages = 0;
 
         if ( !ok() )
             return;
 
-        d->t = new Transaction( this );
         if ( d->m->remove( d->t ) == 0 ) {
             error( No, "Cannot delete mailbox " + d->m->name().ascii() );
             return;
