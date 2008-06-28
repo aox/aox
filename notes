@@ -679,12 +679,6 @@ recognising spam
   They seem to work that way, but with n different protocols.
 
 
-Replace Mailbox::isHome with something correct.
-
-  It should look for a mailbox whose owner is different from its
-  parent's owner.
-
-
 TLS client support (smtp, postgresql)
 
 
@@ -962,29 +956,6 @@ SUBMITTER
 
   Easy peasy. But there's no value to offset this (small) cost, is
   there? Maybe as a hack when one of us is fed up.
-
-
-SSL/TLS hello
-
-  When a client sends us SSL or TLS hello instead of the appropriate
-  protocol, e.g. because a user has clicked 'use ssl' and left the
-  port at 143, what do we want to do? Two options:
-  - Silently start TLS.
-  - Send some sort of server hello saying "no, my friend"
-
-  Connection could have a utility function to look at whether the next
-  few bytes on the incoming connection match a TLS/SSL hello, and each
-  subclass could make the choice for itself. I think the real
-  protocols would want to say no, and HTTP might want to do something
-  else.
-
-  (I don't think we should make any concessions to such behaviour. We do
-  support the obvious SSL-straightaway ports (IMAPS, SMTPS, and HTTPS),
-  so there's no real reason to cooperate if they try it on one of the
-  standard ports. If HTTP wants to do something special (why? to help
-  people with broken proxies?), it can easily do so without involving
-  anyone else. -- AMS)
- 
 
 
 The groups and group_members tables seem a little underused
