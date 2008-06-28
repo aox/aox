@@ -16,7 +16,7 @@ class UserData
 {
 public:
     UserData()
-        : id( 0 ), inbox( 0 ), home( 0 ), address( 0 ),
+        : id( 0 ), inbox( 0 ), inboxId( 0 ), home( 0 ), address( 0 ),
           q( 0 ), result( 0 ), t( 0 ), user( 0 ),
           state( User::Unverified ),
           mode( LoungingAround )
@@ -26,6 +26,7 @@ public:
     UString secret;
     uint id;
     Mailbox * inbox;
+    uint inboxId;
     Mailbox * home;
     Address * address;
     Query * q;
@@ -143,6 +144,8 @@ UString User::secret() const
 
 Mailbox * User::inbox() const
 {
+    if ( !d->inbox )
+        d->inbox = Mailbox::find( d->inboxId );
     return d->inbox;
 }
 
@@ -313,7 +316,7 @@ void User::refreshHelper()
         d->id = r->getInt( "id" );
         d->login = r->getUString( "login" );
         d->secret = r->getUString( "secret" );
-        d->inbox = Mailbox::find( r->getInt( "inbox" ) );
+        d->inboxId = r->getInt( "inbox" );
         UString tmp = r->getUString( "parentspace" );
         tmp.append( '/' );
         tmp.append( d->login );
