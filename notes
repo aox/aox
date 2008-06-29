@@ -423,18 +423,6 @@ Memory use for common operations
   again... just a bunch of checks. Ignore output.
 
 
-Deleting mailbox has unclear semantics now
-
-  At present, we don't allow a mailbox to be deleted until all
-  undeletable messages from that mailbox have been sent to the great
-  mailbox in the sky.
-
-  We might want to change that, but what then? What if someone wants
-  to rename a new mailbox to the name that used to be taken by this
-  mailbox? Or creates ditto? What should happen to views onto this
-  mailbox?
-
-
 imapd/handlers/acl.cpp
 
   Different tasks, some shared code, same file. Separate this out into
