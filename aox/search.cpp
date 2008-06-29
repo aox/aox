@@ -150,14 +150,32 @@ static Selector * parseSelector( StringList * arguments,
             }
         }
         else if ( a == "text" ) {
-            i ( !n ) {
+            if ( !n ) {
                 e = "No body substring supplied";
             }
             else {
                 Utf8Codec uc;
                 c = new Selector( Selector::Body,
                                   Selector::Contains,
-                                  "", ac.toUnicode( *n ) );
+                                  uc.toUnicode( *n ) );
+                arguments->shift();
+            }
+        }
+        else if ( a == "older" || a == "younger" ) {
+            bool ok = false;
+            uint limit = 0;
+            if ( n )
+                limit = n->number( &ok );
+            if ( !ok ) {
+                e = "Message age must be given as a number of days";
+            }
+            else if ( a == "younger" ) {
+                c = new Selector( Selector::Age, Selector::Smaller, limit );
+                arguments->shift();
+            }
+            else {
+                c = new Selector( Selector::Age, Selector::Larger, limit );
+                arguments->shift();
             }
         }
         else {
@@ -233,6 +251,10 @@ Selector * parseSelector( StringList * arguments )
         return s;
 
     fprintf( stderr, "While parsing search arguments: %s\n", e );
+    if ( !arguments->isEmpty() )
+        fprintf( stderr, "Error happened near: %s\n",
+                 arguments->firstElement()->cstr() );
+        
     return 0;
 }
 
@@ -268,7 +290,7 @@ void dumpSelector( Selector * s, uint l )
                 " contains: " + s->ustringArgument().utf8().quoted();
         break;
     case Selector::Body:
-        a = "Body text contains: " + s->stringArgument().quoted();
+        a = "Body text contains: " + s->ustringArgument().utf8().quoted();
         break;
     case Selector::Rfc822Size:
         if ( s->action() == Selector::Smaller )
@@ -298,10 +320,10 @@ void dumpSelector( Selector * s, uint l )
         break;
     case Selector::Age:
         if ( s->action() == Selector::Smaller )
-            a = "Message id younger than " +
+            a = "Message is younger than " +
                 fn( s->integerArgument() ) + " days";
         else
-            a = "Message id older than " +
+            a = "Message is older than " +
                 fn( s->integerArgument() ) + " days";
         break;
     case Selector::NoField:
