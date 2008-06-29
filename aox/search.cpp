@@ -122,7 +122,7 @@ static Selector * parseSelector( StringList * arguments,
             }
             else {
                 e = "Address search argument must be "
-                    "local@doma.in or doma.in"; 
+                    "local@doma.in or doma.in";
             }
         }
         else if ( a == "subject" ||
@@ -147,6 +147,17 @@ static Selector * parseSelector( StringList * arguments,
                                   Selector::Contains,
                                   a, uc.toUnicode( *n ) );
                 arguments->shift();
+            }
+        }
+        else if ( a == "text" ) {
+            i ( !n ) {
+                e = "No body substring supplied";
+            }
+            else {
+                Utf8Codec uc;
+                c = new Selector( Selector::Body,
+                                  Selector::Contains,
+                                  "", ac.toUnicode( *n ) );
             }
         }
         else {
@@ -211,7 +222,7 @@ static Selector * parseSelector( StringList * arguments,
         ++c;
     }
     return s;
-}   
+}
 
 
 Selector * parseSelector( StringList * arguments )
@@ -311,7 +322,7 @@ void dumpSelector( Selector * s, uint l )
 
     if ( !children )
         return;
-    
+
     List<Selector>::Iterator i( s->children() );
     while ( i ) {
         Selector * c = i;
@@ -330,7 +341,7 @@ void dumpSelector( Selector * s )
 
 
 /*! \class ShowSearch search.h
-  
+
     The ShowSearch class parses a search expression and then explains
     what the search expression does in a different format. It's meant
     to help people formulate searches for use with other aox commands,
