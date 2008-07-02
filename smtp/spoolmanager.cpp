@@ -25,7 +25,7 @@ class SpoolManagerData
 public:
     SpoolManagerData()
         : nextRun( 0 ), q( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 ), uidnext( 0 ), spooled( false ), log( 0 )
+          agent( 0 ), uidnext( 0 ), retry( 1 ), log( 0 )
     {}
 
     Query * nextRun;
@@ -35,7 +35,7 @@ public:
     SmtpClient * client;
     DeliveryAgent * agent;
     uint uidnext;
-    bool spooled;
+    uint retry;
     Log * log;
 };
 
@@ -144,11 +144,15 @@ void SpoolManager::execute()
             }
 
             if ( !d->client->error().isEmpty() ) {
-                log( "Couldn't connect to smarthost. Ending queue run.",
+                log( "Couldn't connect to smarthost. Will try again in " +
+                     fn( d->retry ) + " seconds.",
                      Log::Significant );
                 d->client = 0;
                 reset();
-                d->t = new Timer( this, 300 );
+                d->t = new Timer( this, d->retry );
+                d->retry = d->retry * 2;
+                if ( d->retry > 300 )
+                    d->retry = 300;
                 return;
             }
 
@@ -164,9 +168,7 @@ void SpoolManager::execute()
         if ( d->agent ) {
             if ( !d->agent->done() )
                 return;
-
-            if ( !d->agent->delivered() )
-                d->spooled = true;
+            d->retry = 1;
         }
 
         d->row = 0;
@@ -203,7 +205,6 @@ void SpoolManager::reset()
     d->row = 0;
     d->agent = 0;
     d->nextRun = 0;
-    d->spooled = false;
 }
 
 
@@ -216,7 +217,7 @@ void SpoolManager::setup()
 {
     if ( ::sm )
         return;
-    
+
     ::sm = new SpoolManager;
     Allocator::addEternal( ::sm, "spool manager" );
     Database::notifyWhenIdle( sm );
