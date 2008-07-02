@@ -379,7 +379,8 @@ ShowSearch::ShowSearch( StringList * args )
     String sqlFormat = s->string();
     Selector * stored = Selector::fromString( sqlFormat );
     if ( stored->string() != s->string() )
-        fprintf( "Error: Round-trip coversion to/from db format failed\n" );
+        fprintf( stderr, 
+                 "Error: Round-trip coversion to/from db format failed\n" );
     dumpSelector( s );
     s->simplify();
     if ( sqlFormat == s->string() )
