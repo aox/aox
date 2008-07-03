@@ -1070,10 +1070,6 @@ void FetcherData::BodyDecoder::decode( Message * m, Row * r )
 
         if ( !r->isNull( "rawbytes" ) )
             bp->setNumBytes( r->getInt( "rawbytes" ) );
-        if ( !r->isNull( "bytes" ) )
-            bp->setNumEncodedBytes( r->getInt( "bytes" ) );
-        if ( !r->isNull( "lines" ) )
-            bp->setNumEncodedLines( r->getInt( "lines" ) );
     }
 
 
