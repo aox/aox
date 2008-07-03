@@ -446,6 +446,28 @@ void ContentType::parse( const String &s )
     if ( t.isEmpty() || st.isEmpty() )
         setError( "Both type and subtype must be nonempty: " + s.quoted() );
 
+    if ( valid() && !p.atEnd() &&
+         t == "multipart" && parameter( "boundary" ).isEmpty() &&
+         s.lower().containsWord( "boundary" ) ) {
+        EmailParser csp( s.mid( s.lower().find( "boundary" ) ) );
+        csp.require( "boundary" );
+        csp.whitespace();
+        if ( csp.present( "=" ) )
+            csp.whitespace();
+        uint m = csp.mark();
+        String b = csp.string();
+        if ( b.isEmpty() || !csp.ok() ) {
+            csp.restore( m );
+            b = csp.input().mid( csp.pos() ).section( ";", 1 ).simplified(); 
+            if ( b.isQuoted( '"' ) )
+                b = b.unquoted( '"' );
+            else if ( b.isQuoted( '\'' ) )
+                b = b.unquoted( '\'' );
+       }
+        if ( !b.isEmpty() )
+            addParameter( "boundary", b );
+    }
+
     if ( valid() && t == "multipart" && parameter( "boundary" ).isEmpty() )
         setError( "Multipart entities must have a boundary parameter." );
 
@@ -465,7 +487,7 @@ void ContentType::parse( const String &s )
     if ( valid() && !p.atEnd() &&
          t == "text" && parameter( "charset" ).isEmpty() &&
          s.mid( p.pos() ).lower().containsWord( "charset" ) ) {
-        EmailParser csp( s.mid( s.lower().find( "charset" ), p.pos() ) );
+        EmailParser csp( s.mid( s.lower().find( "charset" ) ) );
         csp.require( "charset" );
         csp.whitespace();
         if ( csp.present( "=" ) )
