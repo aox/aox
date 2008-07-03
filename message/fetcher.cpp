@@ -662,15 +662,19 @@ void Fetcher::makeQueries()
     String r;
 
     if ( d->flags && d->mailbox ) {
-        if ( d->batchSize ||
-             d->selector->field() == Selector::Uid ) {
-            // we're using batches OR
-            // we're selecting from a single mailbox based only on UIDs
-            if ( d->batchSize )
-                uids = findUids();
-            r =  "select mailbox, uid, flag from flags "
-                 "where mailbox=$1 and uid=any($2) "
-                 "order by mailbox, uid, flag";
+        if ( d->batchSize ) {
+            r = "select mm.message, mm.mailbox, mm.uid, f.flag "
+                "from mailbox_messages mm "
+                "join flags f using (mailbox,uid) "
+                "where mm.mailbox=$1 and mm.message=any($2)";
+            q = new Query( r, d->flags );
+            q->bind( 1, d->mailbox->id() ); 
+            bindBatchIds( q, 2, d->batchIds );
+        }
+        else if ( d->selector->field() == Selector::Uid ) {
+            r = "select mailbox, uid, flag from flags "
+                "where mailbox=$1 and uid=any($2) "
+                "order by mailbox, uid, flag";
             q = new Query( r, d->flags );
             q->bind( 1, d->mailbox->id() );
             bindUids( q, 2, uids, d->selector );
@@ -696,12 +700,19 @@ void Fetcher::makeQueries()
     }
 
     if ( d->annotations && d->mailbox ) {
-        if ( d->batchSize ||
-             d->selector->field() == Selector::Uid ) {
-            // we're using batches OR
-            // we're selecting from a single mailbox based only on UIDs
-            if ( !uids && d->batchSize )
-                uids = findUids();
+        if ( d->batchSize ) {
+            q = new Query( "select mm.message, a.mailbox, a.uid, "
+                           "a.owner, a.value, an.name, an.id "
+                           "from mailbox_messages mm "
+                           "join annotations a using (mailbox,uid) "
+                           "join annotation_names an on (a.name=an.id) "
+                           "where mm.mailbox=$1 and mm.message=any($2) "
+                           "order by a.mailbox, a.uid",
+                           d->annotations );
+            q->bind( 1, d->mailbox->id() );
+            bindBatchIds( q, 2, d->batchIds );
+        }
+        else if ( d->selector->field() == Selector::Uid ) {
             q = new Query( "select a.mailbox, a.uid, "
                            "a.owner, a.value, an.name, an.id "
                            "from annotations a "
