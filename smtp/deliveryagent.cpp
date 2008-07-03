@@ -290,9 +290,9 @@ Query * DeliveryAgent::fetchRecipients( uint delivery )
         new Query(
             "select recipient,localpart,domain,action,status,"
             "extract(epoch from last_attempt)::integer as last_attempt "
-            "from delivery_recipients join addresses "
+            "from delivery_recipients dr join addresses "
             "on (recipient=addresses.id) "
-            "where delivery=$1", this
+            "where delivery=$1 order by dr.id", this
         );
     q->bind( 1, delivery );
     return q;
