@@ -267,10 +267,8 @@ void Fetcher::execute()
 
 
 /*! Decides whether to issue a number of parallel SQL selects or to
-    make a transaction and up to two temporary tables. Makes the
-    tables if necessary.
-
-    The decision is based on entirely heuristic factors.
+    use a two-stage process with a complex intermediate data
+    structure. The decision is based on entirely heuristic factors.
 
     This function knows something about how many messages we want, but
     it doesn't know how many we'll get. The two numbers are equal in
@@ -347,10 +345,6 @@ void Fetcher::start()
     else if ( messages.isRange() && expected * n < 2000 )
         simple = true;
     else if ( expected * n < 1000 )
-        simple = true;
-    else if ( Postgres::version() < 80200 &&
-              fetching( OtherHeader ) &&
-              !fetching( Body ) )
         simple = true;
 
     // This selector selects by UID from a single mailbox. We could
