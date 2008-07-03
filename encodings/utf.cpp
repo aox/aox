@@ -548,6 +548,8 @@ UString Utf7Codec::toUnicode( const String & s )
                     c = s[++i];
                 }
                 e = ohno.de64();
+                if ( s[i] != '-' && valid() )
+                    setState( Invalid );
             }
             else {
                 while ( ( c >= 'A' && c <= 'Z' ) ||
