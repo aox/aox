@@ -213,10 +213,12 @@ void FlagCreator::insertFlags()
 
     d->insert = new Query( "copy flag_names (name) from stdin with binary",
                         this );
-    StringList::Iterator it( d->unided.keys() );
+    StringList::Iterator it( d->flags );
     while ( it ) {
-        d->insert->bind( 1, *it );
-        d->insert->submitLine();
+        if ( d->unided.contains( it->lower() ) ) {
+            d->insert->bind( 1, *it );
+            d->insert->submitLine();
+        }
         ++it;
     }
 
