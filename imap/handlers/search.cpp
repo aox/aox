@@ -201,9 +201,7 @@ Selector * Search::parseKey()
         return s;
     }
     else if ( present( "recent" ) ) {
-        Selector * s = new Selector( Selector::Not );
-        s->add( new Selector( Selector::Flags, Selector::Contains, "\\recent" ) );
-        return s;
+        return new Selector( Selector::Flags, Selector::Contains, "\\recent" );
     }
     else if ( present( "seen" ) ) {
         return new Selector( Selector::Flags, Selector::Contains, "\\seen" );
