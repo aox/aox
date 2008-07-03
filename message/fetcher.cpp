@@ -846,7 +846,7 @@ void Fetcher::makeQueries()
                            "bp.bytes as rawbytes, pn.bytes, pn.lines "
                            "from part_numbers pn "
                            "left join bodyparts bp on (pn.bodypart=bp.id) "
-                           "where bp.id is not null and pn.message=any($1)",
+                           "where pn.message=any($1)",
                            d->body );
             bindBatchIds( q, 1, d->batchIds );
         }
