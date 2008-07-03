@@ -167,6 +167,14 @@ Selector * Search::parseKey()
         // it's a pure set
         return new Selector( set( true ) );
     }
+    else if ( present( "older" ) ) {
+        space();
+        return new Selector( Selector::Age, Selector::Larger, nzNumber() );
+    }
+    else if ( present( "younger" ) ) {
+        space();
+        return new Selector( Selector::Age, Selector::Smaller, nzNumber() );
+    }
     else if ( present( "all" ) ) {
         return new Selector( Selector::NoField, Selector::All );
     }
@@ -369,14 +377,6 @@ Selector * Search::parseKey()
         }
         return new Selector( Selector::Modseq, Selector::Larger,
                              number() );
-    }
-    else if ( present( "older" ) ) {
-        space();
-        return new Selector( Selector::Age, Selector::Larger, nzNumber() );
-    }
-    else if ( present( "younger" ) ) {
-        space();
-        return new Selector( Selector::Age, Selector::Smaller, nzNumber() );
     }
 
     error( Bad, "expected search key, saw: " + following() );
