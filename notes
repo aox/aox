@@ -1042,11 +1042,18 @@ aox.org/badmail/
   pages.
 
 
-Fetcher oomph
+Autoexpunge
 
-  The only remaining (big) problems are that generating the FETCH
-  responses is slow, and that fetcher.cpp needs a documentation
-  overhaul.
+  Some IMAP clients, and some users, basically don't send
+  expunge. They don't look at the \deleted mail, but also never
+  expunge it. Outlook is a notorious case.
+
+  If/when we move \seen and \deleted to mailbox_messages, we can store
+  \deleted as a timestamptz. Null means not \deleted, a time means
+  \deleted at that time. And we can add a new variable,
+  auto-expunge-time, which automatically expunges mail when it's been
+  marked \deleted for that long, and suggest setting it to 14 days or
+  so on sites where Outlook and friends are a problem.
 
 
 Some unfortunate logging
