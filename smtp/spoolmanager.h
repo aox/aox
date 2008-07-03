@@ -17,6 +17,8 @@ public:
     static void setup();
     static void shutdown();
 
+    void deliverNewMessage();
+
 private:
     class SpoolManagerData * d;
     class SmtpClient * client();

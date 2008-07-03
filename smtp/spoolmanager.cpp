@@ -25,7 +25,7 @@ class SpoolManagerData
 public:
     SpoolManagerData()
         : nextRun( 0 ), q( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 ), uidnext( 0 ), retry( 1 ), log( 0 )
+          agent( 0 ), uidnext( 0 ), log( 0 )
     {}
 
     Query * nextRun;
@@ -35,7 +35,6 @@ public:
     SmtpClient * client;
     DeliveryAgent * agent;
     uint uidnext;
-    uint retry;
     Log * log;
 };
 
@@ -64,7 +63,7 @@ void SpoolManager::execute()
     // Find the number of seconds until we need to retry any existing
     // recipient (which will be 0 if we have anything to do right now).
 
-    if ( !d->nextRun ) {
+    if ( !d->q && !d->nextRun ) {
         d->nextRun =
             new Query(
                 "select coalesce("
@@ -81,7 +80,7 @@ void SpoolManager::execute()
         d->nextRun->execute();
     }
 
-    if ( !d->nextRun->done() )
+    if ( d->nextRun && !d->nextRun->done() )
         return;
 
     // Do we need to wake up yet?
@@ -144,15 +143,11 @@ void SpoolManager::execute()
             }
 
             if ( !d->client->error().isEmpty() ) {
-                log( "Couldn't connect to smarthost. Will try again in " +
-                     fn( d->retry ) + " seconds.",
+                log( "Couldn't connect to smarthost.",
                      Log::Significant );
                 d->client = 0;
                 reset();
-                d->t = new Timer( this, d->retry );
-                d->retry = d->retry * 2;
-                if ( d->retry > 300 )
-                    d->retry = 300;
+                d->t = new Timer( this, 300 );
                 return;
             }
 
@@ -168,7 +163,6 @@ void SpoolManager::execute()
         if ( d->agent ) {
             if ( !d->agent->done() )
                 return;
-            d->retry = 1;
         }
 
         d->row = 0;
@@ -181,6 +175,22 @@ void SpoolManager::execute()
     reset();
     d->t = new Timer( this, 0 );
 }
+
+
+/*! This function is called whenever a new row is added to the
+    deliveries table, and updates the state machine so the message
+    will be delivered soon.
+*/
+
+void SpoolManager::deliverNewMessage()
+{
+    if ( d->row )
+        return;
+
+    delete d->t;
+    d->t = new Timer( this, 1 );
+}
+
 
 
 /*! Returns a pointer to a new SmtpClient to talk to the smarthost. */
@@ -208,6 +218,15 @@ void SpoolManager::reset()
 }
 
 
+class SpoolRunner
+    : public EventHandler
+{
+public:
+    SpoolRunner(): EventHandler() {}
+    void execute() { if ( ::sm ) ::sm->deliverNewMessage(); }
+};
+
+
 /*! Creates a SpoolManager object and a timer to ensure that it's
     started once (after which it will ensure that it wakes up once
     in a while). This function expects to be called from ::main().
@@ -221,7 +240,7 @@ void SpoolManager::setup()
     ::sm = new SpoolManager;
     Allocator::addEternal( ::sm, "spool manager" );
     Database::notifyWhenIdle( sm );
-    (void)new DatabaseSignal( "deliveries_updated", sm );
+    (void)new DatabaseSignal( "deliveries_updated", new SpoolRunner );
 }
 
 
