@@ -321,6 +321,7 @@ void User::refreshHelper()
         tmp.append( '/' );
         tmp.append( d->login );
         d->home = Mailbox::obtain( tmp, true );
+        d->home->setOwner( d->id );
         UString n = r->getUString( "name" );
         String l = r->getString( "localpart" );
         String h = r->getString( "domain" );
