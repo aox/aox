@@ -163,6 +163,14 @@ void ImapSession::emitUidnext()
     if ( n <= d->uidnext )
         return;
 
+    if ( d->unsolicited ) {
+        List<Command>::Iterator c( d->i->commands() );
+        if ( c && c->state() == Command::Finished )
+            d->unsolicited = false;
+        else
+            return;
+    }
+
     uint x = messages().count();
     if ( x != d->exists || !d->uidnext )
         enqueue( "* " + fn( x ) + " EXISTS\r\n" );
