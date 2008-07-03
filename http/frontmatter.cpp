@@ -103,7 +103,8 @@ FrontMatter * FrontMatter::jQuery()
 {
     FrontMatter * fm = new FrontMatter( "script" );
     fm->append( "<script type=\"text/javascript\" "
-                "src=\"http://www.archiveopteryx.org/webmail/jquery.js\">"
+                "src=\"http://ajax.googleapis.com/"
+                "ajax/libs/jquery/1.2.6/jquery.min.js\">"
                 "</script>\n" );
     return fm;
 }

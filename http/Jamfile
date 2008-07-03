@@ -21,8 +21,6 @@ actions BuildBlob {
     sed -e 's/\(.*\)/"\1"/' > $(<)
 }
 
-BuildBlob jquery.inc : jquery.js ;
-
 Build http : http.cpp link.cpp webpage.cpp pagecomponent.cpp
     frontmatter.cpp httpsession.cpp messagerendering.cpp 
     htmlparser.cpp htmlform.cpp ;

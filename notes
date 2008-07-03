@@ -24,8 +24,7 @@ Schedule
   told about the new location.
 
   Fetching is faster in many cases, particularly when many messages
-  are involved. Can it still be improved? YES! The header_fields
-  select is hopelessly slow often. That has to be fixed.
+  are involved.
 
   Added check-sender-addresses. It's neat.
 
@@ -39,7 +38,7 @@ Schedule
   Added protection against the race condition described in RFC 1047.
 
   The injector can now inject multiple messages with one transaction.
-  Performace isn't all it could be.
+  Performance isn't all it could be.
 
   aox show search. Needs more search types.
 
@@ -55,7 +54,7 @@ Schedule
   quite understand, but I understood enough to think that it's a good
   idea and 3.0 is the right time to introduce it.
 
-  Not done: Refer to Google's copy of jquery instead of our own.
+  Refer to Google's copy of jquery instead of our own.
   http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js
 
 
