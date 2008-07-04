@@ -13,6 +13,7 @@ public:
     Cache();
     virtual ~Cache();
 
+    static uint lastCleared();
     static void clearAllCaches();
 
     virtual void clear() = 0;

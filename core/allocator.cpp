@@ -492,7 +492,8 @@ void Allocator::free()
     afterSweep.tv_usec = 0;
     gettimeofday( &start, 0 );
 
-    Cache::clearAllCaches();
+    if ( (uint)start.tv_sec > Cache::lastCleared() + 2 )
+        Cache::clearAllCaches();
 
     total = 0;
     uint freed = 0;
