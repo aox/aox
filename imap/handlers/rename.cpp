@@ -202,6 +202,7 @@ void Rename::execute()
             ++it;
         }
 
+        Mailbox::refreshMailboxes( d->t );
         d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
         d->t->commit();
         d->ready = true;

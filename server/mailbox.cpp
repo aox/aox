@@ -647,7 +647,7 @@ Query * Mailbox::create( Transaction * t, User * owner )
 
     t->enqueue( q );
 
-    t->enqueue( (new MailboxReader( 0, 0 ))->q );
+    refreshMailboxes( t );
 
     q = new Query( "notify mailboxes_updated", 0 );
     t->enqueue( q );
@@ -680,12 +680,22 @@ Query * Mailbox::remove( Transaction * t )
     q->bind( 1, id() );
     t->enqueue( q );
 
-    t->enqueue( (new MailboxReader( 0, 0 ))->q );
+    refreshMailboxes( t );
 
     q = new Query( "notify mailboxes_updated", 0 );
     t->enqueue( q );
 
     return q;
+}
+
+
+/*! Adds one or more queries to \a t, to ensure that the Mailbox tree
+    is up to date when \a t is commited.
+*/
+
+void Mailbox::refreshMailboxes( class Transaction * t )
+{
+    t->enqueue( (new MailboxReader( 0, 0 ))->q );
 }
 
 
