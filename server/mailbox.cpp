@@ -21,7 +21,6 @@
 #include "transaction.h"
 
 
-static bool refreshing = false;
 static Mailbox * root = 0;
 static Map<Mailbox> * mailboxes = 0;
 
@@ -97,9 +96,17 @@ public:
 };
 
 
+static List<MailboxReader> * readers = 0;
+
+
 MailboxReader::MailboxReader( EventHandler * ev, int64 c )
     : owner( ev ), q( 0 ), done( false )
 {
+    if ( !::readers ) {
+        ::readers = new List<MailboxReader>;
+        Allocator::addEternal( ::readers, "active mailbox readers" );
+    }
+    ::readers->append( this );
     q = new Query( "select m.id, m.name, m.deleted, m.owner, "
                    "m.uidnext, m.nextmodseq, m.uidvalidity, "
                    "v.nextmodseq as viewnms, v.selector, "
@@ -146,13 +153,16 @@ void MailboxReader::execute() {
             ::mailboxes->insert( m->d->id, m );
     }
 
-    if ( q->done() && owner ) {
-        if ( q->failed() )
-            log( "Couldn't create mailbox tree: " + q->error(),
-                 Log::Disaster );
-        done = true;
+    if ( !q->done() || done )
+        return;
+
+    done = true;
+    ::readers->remove( this );
+    if ( q->failed() )
+        log( "Couldn't create mailbox tree: " + q->error(),
+             Log::Disaster );
+    if ( owner )
         owner->execute();
-    }
 };
 
 
@@ -183,7 +193,6 @@ public:
             if ( ::root->children() )
                 ::root->children()->clear();
             ::mailboxes->clear();
-            ::refreshing = true;
             mr = new MailboxReader( this, 0 );
             mr->q->execute();
         }
@@ -192,7 +201,6 @@ public:
             return;
 
         mr = 0;
-        ::refreshing = false;
     }
 };
 
@@ -911,7 +919,9 @@ uint Mailbox::match( const UString & pattern, uint p,
 
 bool Mailbox::refreshing()
 {
-    if ( ::refreshing )
-        return true;
-    return false;
+    if ( !::readers )
+        return false;
+    if ( ::readers->isEmpty() )
+        return false;
+    return true;
 }
