@@ -436,12 +436,12 @@ void Store::execute()
         }
 
         if ( d->s.isEmpty() ) {
+            d->transaction->commit();
             if ( !d->silent && !d->expunged.isEmpty() ) {
                 error( No, "Cannot store on expunged messages" );
                 return;
             }
             // no messages need to be changed. we'll just say OK
-            d->transaction->commit();
             finish();
             return;
         }
@@ -618,7 +618,7 @@ bool Store::removeFlags( bool opposite )
     }
     if ( flags.isEmpty() && !opposite )
         return false;
-    
+
     String s = "delete from flags where mailbox=$1 and uid=any($2) and ";
     if ( opposite )
         s.append( "not " );

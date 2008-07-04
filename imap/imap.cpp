@@ -11,11 +11,12 @@
 #include "eventloop.h"
 #include "imapsession.h"
 #include "configuration.h"
+#include "handlers/capability.h"
 #include "imapparser.h"
 #include "command.h"
+#include "cache.h"
 #include "user.h"
 #include "tls.h"
-#include "handlers/capability.h"
 
 
 static bool endsWithLiteral( const String *, uint *, bool * );
@@ -249,7 +250,7 @@ void IMAP::parse()
 
 void IMAP::addCommand()
 {
-    // Be kind to the old man Arnt, who cannot unlearn his SMTP habits
+    // I love this feature
     if ( d->str == "quit" )
         d->str = "arnt logout";
 
@@ -292,6 +293,7 @@ void IMAP::addCommand()
         enqueue( tag + " BAD No such command: " + name + "\r\n" );
         log( "Unknown command. Line: " + p->firstLine().quoted(),
              Log::Error );
+        Cache::clearAllCaches();
         return;
     }
 

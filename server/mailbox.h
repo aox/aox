@@ -75,6 +75,7 @@ public:
 
     Query * create( class Transaction *, class User * );
     Query * remove( class Transaction * );
+    static void refreshMailboxes( class Transaction * );
 
     void addSession( class Session * );
     void removeSession( class Session * );
