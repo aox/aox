@@ -41,7 +41,6 @@ private:
     void createDependencies();
     void insertBodyparts();
     void addBodypartRow( Bodypart * );
-    void insertBodypartsSlowly();
     void selectMessageIds();
     void selectUids();
     void insertMessages();
