@@ -102,9 +102,14 @@ IMAP::IMAP( int s )
     if ( s < 0 )
         return;
 
-    enqueue( "* OK [CAPABILITY " +
-             Capability::capabilities( this ) + "] " +
-             Configuration::hostname() + " Archiveopteryx IMAP Server\r\n" );
+    String banner = "* OK [CAPABILITY " +
+                    Capability::capabilities( this ) + "] " +
+                    Configuration::hostname() +
+                    " Archiveopteryx IMAP Server";
+    if ( !Configuration::toggle( Configuration::Security ) )
+        banner.append( " (security checking disabled)" );
+    banner.append( "\r\n" );
+    enqueue( banner );
     setTimeoutAfter( 120 );
     EventLoop::global()->addConnection( this );
 }
