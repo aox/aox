@@ -701,9 +701,10 @@ void Injector::execute()
 
         if ( d->state < AwaitingCompletion && d->failed ) {
             if ( d->ignoreError ) {
+                d->failed = false;
                 d->ignoreError = false;
             }
-            if ( d->transaction ) {
+            else if ( d->transaction ) {
                 d->state = AwaitingCompletion;
                 Flag::rollback();
                 FieldName::rollback();
@@ -966,6 +967,7 @@ void Injector::selectMessageIds()
     if ( !d->copy->done() )
         return;
 
+    d->select = d->copy = 0;
     next();
 }
 
@@ -1173,6 +1175,7 @@ void Injector::insertBodyparts()
             ++it;
         }
 
+        d->copy->allowFailure();
         d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
         d->transaction->enqueue( d->copy );
         d->transaction->execute();
@@ -1185,7 +1188,8 @@ void Injector::insertBodyparts()
         d->ignoreError = true;
         d->bodypartsConflict = true;
         d->transaction->enqueue( new Query( "rollback to bp", 0 ) );
-        d->transaction->execute();
+        insertBodypartsSlowly();
+        return;
     }
 
     if ( d->bodypartsConflict ) {
@@ -1285,8 +1289,10 @@ void Injector::addBodypartRow( Bodypart * b )
 void Injector::insertBodypartsSlowly()
 {
     if ( d->bidFetcher ) {
-        if ( d->bidFetcher->done )
+        if ( d->bidFetcher->done ) {
+            d->select = d->copy = 0;
             next();
+        }
         return;
     }
 
