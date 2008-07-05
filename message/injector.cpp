@@ -705,6 +705,9 @@ void Injector::execute()
             }
             if ( d->transaction ) {
                 d->state = AwaitingCompletion;
+                Flag::rollback();
+                FieldName::rollback();
+                AnnotationName::rollback();
                 d->transaction->rollback();
             }
             else {
