@@ -61,7 +61,7 @@ void Id::execute()
     String v( Configuration::compiledIn( Configuration::Version ) );
     respond( "ID ("
              "\"name\" \"Archiveopteryx\" "
-             "\"version\" \"" + v + "\" "
+             "\"version\" " + v.quoted() + " "
              "\"compile-time\" \"" __DATE__ " " __TIME__ "\" "
              "\"homepage-url\" \"http://www.archiveopteryx.org\" "
              "\"support-url\" \"http://www.oryx.com\" "
