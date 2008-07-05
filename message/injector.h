@@ -40,6 +40,7 @@ private:
     void updateAddresses( List<Address> * );
     void createDependencies();
     void insertBodyparts();
+    void addBodypartRow( Bodypart * );
     void insertBodypartsSlowly();
     void selectMessageIds();
     void selectUids();
