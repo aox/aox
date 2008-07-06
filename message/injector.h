@@ -41,7 +41,6 @@ private:
     void createDependencies();
     void insertBodyparts();
     void addBodypartRow( Bodypart * );
-    void insertBodypartsSlowly();
     void selectMessageIds();
     void selectUids();
     void insertMessages();
@@ -53,6 +52,7 @@ private:
     uint addAnnotations( Query *, Message *, Mailbox * );
     void logDescription();
     void announce();
+    Query * selectNextvals( const String &, uint );
 
     uint internalDate( Mailbox *, Message * ) const;
 };

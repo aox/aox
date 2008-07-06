@@ -39,22 +39,6 @@ static GraphableCounter * successes;
 static GraphableCounter * failures;
 
 
-// This struct contains the id for a Bodypart, as well as the queries
-// used to create and identify it.
-
-struct Bid
-    : public Garbage
-{
-    Bid( Bodypart * b )
-        : bodypart( b ), insert( 0 ), select( 0 )
-    {}
-
-    Bodypart *bodypart;
-    String hash;
-    Query * insert;
-    Query * select;
-};
-
 struct BodypartRow
     : public Garbage
 {
@@ -68,130 +52,6 @@ struct BodypartRow
     String * data;
     uint bytes;
     List<Bodypart> bodyparts;
-};
-
-
-class BidFetcher
-    : public EventHandler
-{
-public:
-    Transaction * transaction;
-    Query * look;
-    List<Bid> * list;
-    EventHandler * owner;
-    List<Bid>::Iterator * li;
-    uint state;
-    uint savepoint;
-    bool done;
-    bool failed;
-    String error;
-
-    BidFetcher( Transaction * t, List<Bid> * l, EventHandler * ev )
-        : transaction( t ), look( 0 ), list( l ), owner( ev ), li( 0 ),
-          state( 0 ), savepoint( 0 ), done( false ), failed( false )
-    {}
-
-    void execute()
-    {
-        Query * q = 0;
-
-        if ( !li )
-            li = new List<Bid>::Iterator( list );
-
-        if ( look ) {
-            if ( look->state() == Query::Inactive ) {
-                transaction->enqueue( look );
-                transaction->execute();
-                return;
-            }
-            if ( !look->done() )
-                return;
-            // get all the bodyparts rows
-            Dict<Row> rows;
-            Row * r = 0;
-            while ( (r=look->nextRow()) != 0 )
-                rows.insert( r->getString( "hash" ), r );
-            // then tie each bodyparts row to all the Bodypart objects
-            // that have the right hash.
-            List<Bid>::Iterator bi( list );
-            while ( bi ) {
-                r = rows.find( bi->hash );
-                if ( r )
-                    bi->bodypart->setId( r->getInt( "id" ) );
-                ++bi;
-            }
-        }
-
-        while ( !done && *li ) {
-            while ( *li && ( !(*li)->insert || (*li)->bodypart->id() ) )
-                ++(*li);
-            if ( !*li )
-                break;
-
-            struct Bid * b = *li;
-            String s;
-
-            switch ( state ) {
-            case 0:
-                s.append( "savepoint a" );
-                s.append( fn( savepoint ) );
-                q = new Query( s, this );
-                transaction->enqueue( q );
-                transaction->enqueue( b->insert );
-                state = 1;
-                transaction->execute();
-                return;
-                break;
-            case 1:
-                if ( !b->insert->done() )
-                    return;
-                if ( b->insert->failed() ) {
-                    String e( b->insert->error() );
-                    if ( !e.contains( "bodyparts_hash_key" ) ) {
-                        error = e;
-                        done = failed = true;
-                        owner->execute();
-                        return;
-                    }
-                    String s( "rollback to a" );
-                    s.append( fn( savepoint ) );
-                    q = new Query( s, this );
-                    transaction->enqueue( q );
-                }
-                s = "release savepoint a";
-                s.append( fn( savepoint ) );
-                transaction->enqueue( new Query( s, 0 ) );
-                transaction->enqueue( b->select );
-                state = 2;
-                transaction->execute();
-                return;
-                break;
-            case 2:
-                if ( !b->select->done() ) {
-                    return;
-                }
-                else {
-                    Row * r = b->select->nextRow();
-                    if ( b->select->failed() || !r ) {
-                        done = failed = true;
-                        error = b->select->error();
-                        if ( !r && error.isEmpty() )
-                            error = "No matching bodypart found";
-                        owner->execute();
-                        return;
-                    }
-                    b->bodypart->setId( r->getInt( "id" ) );
-                }
-                ++(*li);
-                state = 0;
-                savepoint++;
-                break;
-            }
-        }
-
-        done = true;
-        owner->execute();
-    }
 };
 
 
@@ -397,11 +257,11 @@ public:
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
           mailboxes( new SortedList<Mailbox> ),
-          bidFetcher( 0 ),
           flagCreator( 0 ), annotationCreation( 0 ),
           fieldCreation( 0 ), addressCreation( 0 ),
           queries( 0 ), select( 0 ), copy( 0 ), message( 0 ),
-          ignoreError( false ), bodypartsConflict( false )
+          substate( 0 ), ignoreError( false ), bodypartsConflict( false ),
+          fetchedBodypartIds( false )
     {}
 
     List<Message> * messages;
@@ -419,8 +279,6 @@ public:
     Dict<Address> knownAddresses;
 
     SortedList<Mailbox> * mailboxes;
-
-    BidFetcher *bidFetcher;
 
     FlagCreator * flagCreator;
     Query * annotationCreation;
@@ -445,8 +303,10 @@ public:
     Query * copy;
     List<Message>::Iterator * message;
 
+    uint substate;
     bool ignoreError;
     bool bodypartsConflict;
+    bool fetchedBodypartIds;
 
     Dict<BodypartRow> hashes;
     List<BodypartRow> bodyparts;
@@ -610,8 +470,6 @@ String Injector::error() const
         ++it;
     }
 
-    if ( d->bidFetcher && d->bidFetcher->failed )
-        return d->bidFetcher->error;
     if ( !d->transaction )
         return "";
     return d->transaction->error();
@@ -926,6 +784,247 @@ void Injector::createDependencies()
 }
 
 
+/*! Inserts all unique bodyparts in the messages into the bodyparts
+    table, and updates the in-memory objects with the newly-created
+    bodyparts.ids. */
+
+void Injector::insertBodyparts()
+{
+    uint last;
+
+    do {
+        last = d->substate;
+
+        if ( d->substate == 0 ) {
+            List<Message>::Iterator it( d->messages );
+            while ( it ) {
+                Message * m = it;
+                List<Bodypart>::Iterator bi( m->allBodyparts() );
+                while ( bi ) {
+                    addBodypartRow( bi );
+                    ++bi;
+                }
+                ++it;
+            }
+
+            d->substate++;
+        }
+
+        if ( d->substate == 1 ) {
+            if ( !d->select ) {
+                d->select =
+                    new Query( "select id,hash from bodyparts where "
+                               "hash=any($1::text[])", this );
+                d->select->bind( 1, d->hashes.keys() );
+                d->transaction->enqueue( d->select );
+                d->transaction->execute();
+            }
+
+            while ( d->select->hasResults() ) {
+                Row * r = d->select->nextRow();
+                BodypartRow * br =
+                    d->hashes.take( r->getString( "hash" ) );
+                br->id = r->getInt( "id" );
+            }
+
+            if ( !d->select->done() || d->select->failed() )
+                return;
+
+            d->select = 0;
+            d->substate++;
+        }
+
+        if ( d->substate == 2 ) {
+            if ( d->fetchedBodypartIds ) {
+                d->substate++;
+            }
+            else {
+                if ( !d->select ) {
+                    d->select = selectNextvals( "bodypart_ids",
+                                                d->hashes.keys().count() );
+                    d->transaction->enqueue( d->select );
+                    d->transaction->execute();
+                }
+
+                if ( !d->select->done() || d->select->failed() )
+                    return;
+
+                StringList::Iterator it( d->hashes.keys() );
+                while ( it ) {
+                    Row * r = d->select->nextRow();
+                    BodypartRow * br = d->hashes.find( *it );
+                    br->id = r->getInt( "id" );
+                    ++it;
+                }
+
+                d->fetchedBodypartIds = true;
+                d->select = 0;
+                d->substate++;
+            }
+        }
+
+        if ( d->substate == 3 ) {
+            d->copy = new Query( "copy bodyparts (id,bytes,hash,text,data) "
+                                 "from stdin with binary", this );
+
+            StringList::Iterator it( d->hashes.keys() );
+            while ( it ) {
+                BodypartRow * br = d->hashes.find( *it );
+
+                d->copy->bind( 1, br->id );
+                d->copy->bind( 2, br->bytes );
+                d->copy->bind( 3, br->hash );
+                if ( br->text )
+                    d->copy->bind( 4, *br->text );
+                else
+                    d->copy->bindNull( 4 );
+                if ( br->data )
+                    d->copy->bind( 5, *br->data );
+                else
+                    d->copy->bindNull( 5 );
+                d->copy->submitLine();
+
+                ++it;
+            }
+
+            if ( !d->hashes.isEmpty() ) {
+                d->copy->allowFailure();
+                d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
+                d->transaction->enqueue( d->copy );
+                d->transaction->execute();
+                d->substate++;
+            }
+            else {
+                d->substate = 5;
+            }
+        }
+
+        if ( d->substate == 4 ) {
+            if ( !d->copy->done() )
+                return;
+
+            if ( d->copy->failed() ) {
+                d->ignoreError = true;
+                d->transaction->enqueue( new Query( "rollback to bp", 0 ) );
+                d->substate = 1;
+            }
+            else {
+                d->substate = 5;
+            }
+        }
+
+        if ( d->substate == 5 ) {
+            List<BodypartRow>::Iterator it( d->bodyparts );
+            while ( it ) {
+                BodypartRow * br = it;
+                List<Bodypart>::Iterator bi( br->bodyparts );
+                while ( bi ) {
+                    bi->setId( br->id );
+                    ++bi;
+                }
+                ++it;
+            }
+            break;
+        }
+    }
+    while ( last != d->substate );
+
+    d->select = d->copy = 0;
+    next();
+}
+
+
+/*! Returns a new Query to select \a num nextval()s as "id" from the
+    named \a sequence. */
+
+Query * Injector::selectNextvals( const String & sequence, uint num )
+{
+    Query * q =
+        new Query( "select nextval('" + sequence + "')::int as id "
+                   "from generate_series(1,$1)", this );
+    q->bind( 1, num );
+    return q;
+}
+
+
+/*! Adds \a b to the list of bodyparts if it's not there already. */
+
+void Injector::addBodypartRow( Bodypart * b )
+{
+    bool storeText = false;
+    bool storeData = false;
+
+    // Do we need to store anything at all?
+
+    ContentType *ct = b->contentType();
+    if ( ct ) {
+        if ( ct->type() == "text" ) {
+            storeText = true;
+            if ( ct->subtype() == "html" )
+                storeData = true;
+        }
+        else {
+            storeData = true;
+            if ( ct->type() == "multipart" && ct->subtype() != "signed" )
+                storeData = false;
+            if ( ct->type() == "message" && ct->subtype() == "rfc822" )
+                storeData = false;
+        }
+    }
+    else {
+        storeText = true;
+    }
+
+    if ( !( storeText || storeData ) )
+        return;
+
+    // Yes. What exactly do we need to store?
+
+    String * s;
+    String hash;
+    String * text = 0;
+    String * data = 0;
+    PgUtf8Codec u;
+
+    if ( storeText ) {
+        text = s = new String( u.fromUnicode( b->text() ) );
+
+        // For certain content types (whose names are "text/html"), we
+        // store the contents as data and a plaintext representation as
+        // text. (This code may need to move if we want to treat other
+        // content types this way. But where to?)
+
+        if ( storeData ) {
+            data = s;
+            text =
+                new String( u.fromUnicode( HTML::asText( b->text() ) ) );
+        }
+    }
+    else {
+        data = s = new String( b->data() );
+    }
+    hash = MD5::hash( *s ).hex();
+
+    // And where does it fit in the list of bodyparts we know already?
+    // Either we've seen it before (in which case we add it to the list
+    // of bodyparts in the appropriate BodypartRow entry), or we haven't
+    // (in which case we add a new BodypartRow).
+
+    BodypartRow * br = d->hashes.find( hash );
+
+    if ( !br ) {
+        br = new BodypartRow;
+        br->hash = hash;
+        br->text = text;
+        br->data = data;
+        br->bytes = b->numBytes();
+        d->hashes.insert( hash, br );
+        d->bodyparts.append( br );
+    }
+    br->bodyparts.append( b );
+}
+
+
 /*! This function inserts rows into the messages table for each Message
     in d->messages, and updates the objects with the newly-created ids.
     It expects to be called repeatedly until it returns true, which it
@@ -936,10 +1035,7 @@ void Injector::selectMessageIds()
 {
     if ( !d->select ) {
         d->message = new List<Message>::Iterator( d->messages );
-        d->select =
-            new Query( "select nextval('messages_id_seq')::int as mid "
-                       "from generate_series(1,$1)", this );
-        d->select->bind( 1, d->messages->count() );
+        d->select = selectNextvals( "messages_id_seq", d->messages->count() );
         d->transaction->enqueue( d->select );
         d->transaction->execute();
     }
@@ -954,7 +1050,7 @@ void Injector::selectMessageIds()
         while ( d->select->hasResults() ) {
             Message * m = *d->message;
             Row * r = d->select->nextRow();
-            m->setDatabaseId( r->getInt( "mid" ) );
+            m->setDatabaseId( r->getInt( "id" ) );
             d->copy->bind( 1, m->databaseId() );
             d->copy->bind( 2, m->rfc822().length() );
             d->copy->submitLine();
@@ -1106,293 +1202,6 @@ void Injector::selectUids()
 
     if ( d->queries->isEmpty() )
         next();
-}
-
-
-/*! Inserts all unique bodyparts in the messages into the bodyparts
-    table, and updates the in-memory objects with the newly-created
-    bodyparts.ids. */
-
-void Injector::insertBodyparts()
-{
-    // First, we build a list of unique bodyparts from all messages, and
-    // fetch a new bodypart id for each one.
-
-    if ( !d->select ) {
-        List<Message>::Iterator it( d->messages );
-        while ( it ) {
-            Message * m = it;
-            List<Bodypart>::Iterator bi( m->allBodyparts() );
-            while ( bi ) {
-                addBodypartRow( bi );
-                ++bi;
-            }
-            ++it;
-        }
-
-        d->select =
-            new Query( "select nextval('bodypart_ids')::int as bid "
-                       "from generate_series(1,$1)", this );
-        d->select->bind( 1, d->bodyparts.count() );
-        d->transaction->enqueue( d->select );
-        d->transaction->execute();
-    }
-
-    // Then we build a COPY data set for the bodyparts as the new values
-    // are returned.
-
-    if ( !d->copy ) {
-        if ( !d->select->done() || d->select->failed() )
-            return;
-
-        d->copy = new Query( "copy bodyparts (id,bytes,hash,text,data) "
-                             "from stdin with binary", this );
-
-        List<BodypartRow>::Iterator it( d->bodyparts );
-        while ( it ) {
-            BodypartRow * br = it;
-            Row * r = d->select->nextRow();
-            uint bid = r->getInt( "bid" );
-
-            List<Bodypart>::Iterator bi( br->bodyparts );
-            while ( bi ) {
-                bi->setId( bid );
-                ++bi;
-            }
-
-            d->copy->bind( 1, bid );
-            d->copy->bind( 2, br->bytes );
-            d->copy->bind( 3, br->hash );
-            if ( br->text )
-                d->copy->bind( 4, *br->text );
-            else
-                d->copy->bindNull( 4 );
-            if ( br->data )
-                d->copy->bind( 5, *br->data );
-            else
-                d->copy->bindNull( 5 );
-            d->copy->submitLine();
-
-            ++it;
-        }
-
-        d->copy->allowFailure();
-        d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
-        d->transaction->enqueue( d->copy );
-        d->transaction->execute();
-    }
-
-    if ( !d->copy->done() )
-        return;
-
-    if ( d->copy->failed() && !d->bodypartsConflict ) {
-        d->ignoreError = true;
-        d->bodypartsConflict = true;
-        d->transaction->enqueue( new Query( "rollback to bp", 0 ) );
-        insertBodypartsSlowly();
-        return;
-    }
-
-    if ( d->bodypartsConflict ) {
-        insertBodypartsSlowly();
-        return;
-    }
-
-    d->select = d->copy = 0;
-    next();
-}
-
-
-/*! Adds \a b to the list of bodyparts if it's not there already. */
-
-void Injector::addBodypartRow( Bodypart * b )
-{
-    bool storeText = false;
-    bool storeData = false;
-
-    // Do we need to store anything at all?
-
-    ContentType *ct = b->contentType();
-    if ( ct ) {
-        if ( ct->type() == "text" ) {
-            storeText = true;
-            if ( ct->subtype() == "html" )
-                storeData = true;
-        }
-        else {
-            storeData = true;
-            if ( ct->type() == "multipart" && ct->subtype() != "signed" )
-                storeData = false;
-            if ( ct->type() == "message" && ct->subtype() == "rfc822" )
-                storeData = false;
-        }
-    }
-    else {
-        storeText = true;
-    }
-
-    if ( !( storeText || storeData ) )
-        return;
-
-    // Yes. What exactly do we need to store?
-
-    String * s;
-    String hash;
-    String * text = 0;
-    String * data = 0;
-    PgUtf8Codec u;
-
-    if ( storeText ) {
-        text = s = new String( u.fromUnicode( b->text() ) );
-
-        // For certain content types (whose names are "text/html"), we
-        // store the contents as data and a plaintext representation as
-        // text. (This code may need to move if we want to treat other
-        // content types this way. But where to?)
-
-        if ( storeData ) {
-            data = s;
-            text =
-                new String( u.fromUnicode( HTML::asText( b->text() ) ) );
-        }
-    }
-    else {
-        data = s = new String( b->data() );
-    }
-    hash = MD5::hash( *s ).hex();
-
-    // And where does it fit in the list of bodyparts we know already?
-    // Either we've seen it before (in which case we add it to the list
-    // of bodyparts in the appropriate BodypartRow entry), or we haven't
-    // (in which case we add a new BodypartRow).
-
-    BodypartRow * br = d->hashes.find( hash );
-
-    if ( !br ) {
-        br = new BodypartRow;
-        br->hash = hash;
-        br->text = text;
-        br->data = data;
-        br->bytes = b->numBytes();
-        d->hashes.insert( hash, br );
-        d->bodyparts.append( br );
-    }
-    br->bodyparts.append( b );
-}
-
-
-/*! This private function looks through d->bodyparts, and fills in the
-    INSERT needed to create, and the SELECT needed to identify, every
-    storable bodypart in the message. The queries are executed by the
-    BidFetcher one by one.
-*/
-
-void Injector::insertBodypartsSlowly()
-{
-    if ( d->bidFetcher ) {
-        if ( d->bidFetcher->done ) {
-            d->select = d->copy = 0;
-            next();
-        }
-        return;
-    }
-
-    List<Bid> * bodyparts = new List<Bid>;
-
-    d->bidFetcher =
-        new BidFetcher( d->transaction, bodyparts, this );
-
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        Message * m = it;
-        List<Bodypart>::Iterator bi( m->allBodyparts() );
-        while ( bi ) {
-            bodyparts->append( new Bid( bi ) );
-            ++bi;
-        }
-        ++it;
-    }
-
-    StringList hashes;
-    List< Bid >::Iterator bi( bodyparts );
-    while ( bi ) {
-        Bodypart *b = bi->bodypart;
-
-        // These decisions should move into Bodypart member functions.
-
-        bool storeText = false;
-        bool storeData = false;
-
-        ContentType *ct = b->contentType();
-        if ( ct ) {
-            if ( ct->type() == "text" ) {
-                storeText = true;
-                if ( ct->subtype() == "html" )
-                    storeData = true;
-            }
-            else {
-                storeData = true;
-                if ( ct->type() == "multipart" && ct->subtype() != "signed" )
-                    storeData = false;
-                if ( ct->type() == "message" && ct->subtype() == "rfc822" )
-                    storeData = false;
-            }
-        }
-        else {
-            storeText = true;
-        }
-
-        if ( storeText || storeData ) {
-            PgUtf8Codec u;
-
-            String data;
-            if ( storeText )
-                data = u.fromUnicode( b->text() );
-            else if ( storeData )
-                data = b->data();
-            bi->hash = MD5::hash( data ).hex();
-
-            Query * i = new Query( *intoBodyparts, d->bidFetcher );
-            i->bind( 1, bi->hash );
-            i->bind( 2, b->numBytes() );
-            hashes.append( bi->hash );
-
-            if ( storeText ) {
-                String text( data );
-
-                if ( storeData )
-                    text = u.fromUnicode( HTML::asText( b->text() ) );
-
-                i->bind( 3, text, Query::Binary );
-            }
-            else {
-                i->bindNull( 3 );
-            }
-
-            if ( storeData )
-                i->bind( 4, data, Query::Binary );
-            else
-                i->bindNull( 4 );
-
-            i->allowFailure();
-
-            bi->insert = i;
-            bi->select = new Query( *idBodypart, d->bidFetcher );
-            bi->select->bind( 1, bi->hash );
-        }
-
-        ++bi;
-    }
-
-    if ( hashes.isEmpty() )
-        return;
-
-    hashes.removeDuplicates();
-    d->bidFetcher->look =
-        new Query( "select id, hash from bodyparts "
-                   "where hash=any($1::text[])", d->bidFetcher );
-    d->bidFetcher->look->bind( 1, hashes );
-    d->bidFetcher->execute();
 }
 
 
