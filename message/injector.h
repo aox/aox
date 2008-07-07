@@ -52,6 +52,7 @@ private:
     uint addAnnotations( Query *, Message *, Mailbox * );
     void logDescription();
     void announce();
+    Query * selectNextvals( const String &, uint );
 
     uint internalDate( Mailbox *, Message * ) const;
 };
