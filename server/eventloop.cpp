@@ -286,18 +286,14 @@ void EventLoop::start()
             }
         }
 
-        // Collect garbage if a) we've allocated something, but the
-        // last event loop iteration didn't allocate any more, b)
-        // we've increased our memory use by both 20% and 8MB since
-        // the last GC or c) we've allocated at least 128KB and
-        // haven't collected garbage in the past minute.
+        // Collect garbage if we've gone three minutes without doing
+        // so, or if we've passed the memory usage goal.
 
-        if ( !d->stop && Allocator::allocated() >= 131072 &&
-             ( ( Allocator::allocated() == alloc ) ||
-               ( Allocator::allocated() > 8*1024*1024 &&
-                 Allocator::allocated() * 5 > Allocator::inUse() ) ||
-               ( now - gc > 60 ) ) )
-        {
+        uint goal = 1024 * 1024 *
+                    Configuration::scalar( Configuration::MemoryUsage );
+
+        if ( !d->stop && ( now - gc > 180 ||
+                           Allocator::allocated() >= goal ) ) {
             Allocator::free();
             gc = time( 0 );
         }
