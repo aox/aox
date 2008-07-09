@@ -38,7 +38,6 @@ Schedule
   Added protection against the race condition described in RFC 1047.
 
   The injector can now inject multiple messages with one transaction.
-  Performance isn't all it could be.
 
   aox show search. Needs more search types.
 
