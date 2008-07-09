@@ -5,6 +5,7 @@
 #include "file.h"
 #include "list.h"
 #include "flag.h"
+#include "timer.h"
 #include "scope.h"
 #include "mailbox.h"
 #include "allocator.h"
@@ -390,9 +391,9 @@ public:
     MailboxMigratorData()
         : source( 0 ), destination( 0 ),
           migrator( 0 ),
-          message( 0 ),
           validated( false ), valid( false ),
           injector( 0 ),
+          gcHackTimer( 0 ),
           migrated( 0 ),
           mailboxCreator( 0 ),
           log( Log::General )
@@ -401,10 +402,11 @@ public:
     MigratorMailbox * source;
     Mailbox * destination;
     Migrator * migrator;
-    MigratorMessage * message;
+    List<MigratorMessage> messages;
     bool validated;
     bool valid;
     Injector * injector;
+    Timer * gcHackTimer;
     uint migrated;
     Transaction * mailboxCreator;
     String error;
@@ -446,13 +448,16 @@ bool MailboxMigrator::valid() const
     if ( !d->validated ) {
         d->validated = true;
         Scope x( &d->log );
-        d->message = d->source->nextMessage();
-        if ( d->message )
+        MigratorMessage * m = d->source->nextMessage();
+        if ( m )
             d->valid = true;
-        if ( d->valid )
+        if ( d->valid ) {
             log( "Source apparently is a valid mailbox" );
-        else
+            d->messages.append( m );
+        }
+        else {
             log( "Source is not a valid mailbox" );
+        }
     }
 
     return d->valid;
@@ -472,11 +477,10 @@ void MailboxMigrator::execute()
         // and then what? e is unused.
     }
     else if ( d->injector ) {
-        d->migrated++;
+        d->migrated += d->messages.count();
     }
     else if ( d->mailboxCreator ) {
         if ( d->mailboxCreator->failed() ) {
-            d->message = 0;
             d->validated = true;
             d->error = "Error creating " +
                        d->destination->name().ascii() +
@@ -493,27 +497,46 @@ void MailboxMigrator::execute()
         d->destination = d->migrator->target();
         if ( !d->destination ) {
             log( "Unable to migrate " + d->source->partialName() );
-            d->message = 0;
             d->migrator->execute();
             return;
         }
     }
 
-    if ( d->injector ) {
-        // we've already injected one message. must get another.
-        d->message = d->source->nextMessage();
+    if ( d->gcHackTimer ) {
+        delete d->gcHackTimer;
+        d->gcHackTimer = 0;
     }
-    else {
-        log( "Ready to start injecting messages" );
+    else if ( Allocator::allocated() > 5 * 1024 * 1024 ) {
+        d->messages.clear();
+        d->injector = 0;
+        EventLoop::freeMemorySoon();
+        d->gcHackTimer = new Timer( this, 0 );
+        return;
     }
 
-    if ( d->message ) {
+    MigratorMessage * mm = 0;
+    do {
+        mm = d->source->nextMessage();
+        if ( mm )
+            d->messages.append( mm );
+    } while ( mm && Allocator::allocated() < 64 * 1024 * 1024 );
+
+    if ( !d->messages.isEmpty() ) {
         Scope x( new Log( Log::General ) );
-        log( "Starting migration of message " + d->message->description() );
-        Message * m = d->message->message();
-        m->addMailbox( d->destination );
-        m->setFlags( d->destination, d->message->flags() );
-        d->injector = new Injector( m, this );
+        if ( !d->injector )
+            log( "Ready to start injecting messages" );
+        log( "Starting migration of " + fn ( d->messages.count() ) +
+             " messages starting with " + d->messages.first()->description() );
+        List<Message> * messages = new List<Message>;
+        List<MigratorMessage>::Iterator i ( d->messages );
+        while ( i ) {
+            Message * m = i->message();
+            m->addMailbox( d->destination );
+            m->setFlags( d->destination, i->flags() );
+            messages->append( m );
+            ++i;
+        }
+        d->injector = new Injector( messages, this );
         d->injector->setLog( x.log() );
         d->injector->execute();
     }
@@ -532,7 +555,7 @@ bool MailboxMigrator::done() const
 {
     if ( !d->validated )
         return false;
-    if ( d->message )
+    if ( !d->messages.isEmpty() )
         return false;
     return true;
 }

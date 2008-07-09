@@ -7,6 +7,7 @@
 #include "timer.h"
 
 #include <stdio.h>
+#include <time.h>
 
 
 class ProgressReporterData
@@ -14,12 +15,13 @@ class ProgressReporterData
 {
 public:
     ProgressReporterData()
-        : m( 0 ), t( 0 ), i( 0 ), l( 0 )
+        : m( 0 ), t( 0 ), i( 0 ), l( 0 ), w( 0 )
         {}
     Migrator * m;
     Timer * t;
     uint i;
     uint l;
+    uint w;
 };
 
 
@@ -42,21 +44,28 @@ ProgressReporter::ProgressReporter( Migrator * m, uint n )
     d->t = new Timer( this, n );
     d->t->setRepeating( true );
     d->i = n;
+    d->w = (uint)time( 0 );
 }
-
 
 /*! Reports on progress. */
 
 void ProgressReporter::execute()
 {
     uint n = d->m->messagesMigrated();
+    if ( n <= d->l )
+        return;
+    uint w = (uint)time( 0 );
+    uint p = w - d->w;
+    if ( p < 1 )
+        p = 1;
     fprintf( stdout,
              "Processed %d messages in %d mailboxes, %.1f/s, "
              "memory usage %s+%s\n",
              n, d->m->mailboxesMigrated() + d->m->migrators(),
-             ((double)( n - d->l )) / d->i,
+             ((double)( n - d->l )) / p ,
              String::humanNumber( Allocator::inUse() ).cstr(),
              String::humanNumber( Allocator::allocated() ).cstr() );
+    d->w = w;
     d->l = n;
 }
 

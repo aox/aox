@@ -106,7 +106,7 @@ int main( int ac, char ** av )
     FieldName::setup();
     AnnotationName::setup();
 
-    ProgressReporter * p = new ProgressReporter( m, 5 );
+    ProgressReporter * p = new ProgressReporter( m, 1 );
     // 5? command-line option?
 
     EventLoop::global()->start();
