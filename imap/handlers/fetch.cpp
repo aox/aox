@@ -737,6 +737,7 @@ void Fetch::sendFetchQueries()
     bool haveTrivia = true;
     bool haveFlags = true;
     bool haveAnnotations = true;
+    MessageSet cached;
 
     while ( !d->set.isEmpty() ) {
         uint uid = d->set.value( 1 );
@@ -745,10 +746,13 @@ void Fetch::sendFetchQueries()
         if ( !m ) {
             m = new Message;
         }
-        else if ( m->modSeq( mb ) + 1 < mb->nextModSeq() ) {
-            m->setFlagsFetched( mb, false );
-            m->setAnnotationsFetched( mb, false );
-            m->setModSeq( mb, 0 );
+        else {
+            cached.add( uid );
+            if ( m->modSeq( mb ) + 1 < mb->nextModSeq() ) {
+                m->setFlagsFetched( mb, false );
+                m->setAnnotationsFetched( mb, false );
+                m->setModSeq( mb, 0 );
+            }
         }
         if ( !m->hasAddresses() )
             haveAddresses = false;
@@ -768,6 +772,9 @@ void Fetch::sendFetchQueries()
         d->requested.append( m );
         l->append( m );
     }
+
+    if ( !cached.isEmpty() && !d->flags && !d->annotation )
+        setRespTextCode( "X-CACHED " + cached.set() );
 
     Fetcher * f = new Fetcher( mb, l, this );
     if ( d->needsAddresses && !haveAddresses )
