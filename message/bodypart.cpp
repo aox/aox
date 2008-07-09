@@ -363,7 +363,8 @@ void Bodypart::parseMultipart( uint i, uint end,
                             i--;
                     }
 
-                    Bodypart * bp = parseBodypart( start, i, rfc2822, h, parent );
+                    Bodypart * bp =
+                        parseBodypart( start, i, rfc2822, h, parent );
                     bp->d->number = pn;
                     children->append( bp );
                     pn++;
@@ -452,7 +453,8 @@ static Codec * guessHtmlCodec( const String & body )
 
     if ( !guess ||
          ( !guess->wellformed() &&
-           ( guess->name() == "ISO-8859-1" || guess->name() == "ISO-8859-15" ) ) ) {
+           ( guess->name() == "ISO-8859-1" ||
+             guess->name() == "ISO-8859-15" ) ) ) {
         // Some people believe that Windows codepage 1252 is
         // ISO-8859-1. Let's see if that works.
         Codec * windoze = new Cp1252Codec;
@@ -491,9 +493,11 @@ static Codec * guessHtmlCodec( const String & body )
                 g = guess->toUnicode( body );
             if ( meta &&
                  ( ( !m.isEmpty() && m == g ) ||
-                   ( meta->wellformed() && ( !guess || !guess->wellformed() ) ) ||
+                   ( meta->wellformed() &&
+                     ( !guess || !guess->wellformed() ) ) ||
                    ( meta->valid() && !guess ) ||
-                   ( meta->valid() && guess && guess->name() == "ISO-8859-1" ) ||
+                   ( meta->valid() && guess &&
+                     guess->name() == "ISO-8859-1" ) ||
                    ( meta->valid() && guess && !guess->valid() ) ) &&
                  meta->toUnicode( b ).ascii().contains( tag ) ) {
                 guess = meta;

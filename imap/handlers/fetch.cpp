@@ -1089,12 +1089,14 @@ static String hf( Header * f, HeaderField::Type t )
                 eu = HeaderField::encodePhrase( u );
             r.append( Command::imapQuoted( eu, Command::NString ) );
             r.append( " NIL " );
-            r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
+            r.append( Command::imapQuoted( it->localpart(),
+                                           Command::NString ) );
             r.append( " " );
             if ( it->domain().isEmpty() )
-                r.append( "\" \"" ); // see RFC 3501 page 77, second-to-last paragraph
+                r.append( "\" \"" ); // RFC 3501, page 77 near bottom
             else
-                r.append( Command::imapQuoted( it->domain(), Command::NString ) );
+                r.append( Command::imapQuoted( it->domain(),
+                                               Command::NString ) );
         }
         r.append( ")" );
         ++it;

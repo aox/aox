@@ -651,7 +651,8 @@ uint HeaderField::fieldType( const String & n )
 
 String HeaderField::wrap( const String &s ) const
 {
-    return s.wrapped( 78, d->name + ": ", " ", false ).mid( d->name.length() + 2 );
+    return s.wrapped( 78, d->name + ": ", " ", false )
+        .mid( d->name.length() + 2 );
 }
 
 

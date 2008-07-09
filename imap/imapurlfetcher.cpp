@@ -21,7 +21,8 @@ struct UrlLink
     : public Garbage
 {
     UrlLink( ImapUrl * u )
-        : url( u ), mailbox( 0 ), message( 0 ), section( 0 ), permissions( 0 ), q( 0 )
+        : url( u ), mailbox( 0 ), message( 0 ),
+          section( 0 ), permissions( 0 ), q( 0 )
     {}
 
     ImapUrl * url;

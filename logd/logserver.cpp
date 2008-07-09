@@ -175,7 +175,8 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
             i++;
         else
             i = 0;
-        ::syslog( sp, "%s/%s %s", fn( d->id, 36 ).cstr(), tag.cstr(), line.cstr()+i );
+        ::syslog( sp, "%s/%s %s",
+                  fn( d->id, 36 ).cstr(), tag.cstr(), line.cstr()+i );
         return;
     }
 

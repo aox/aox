@@ -1642,7 +1642,8 @@ void Header::fix8BitFields( class Codec * c )
             if ( i < v.length() ) {
                 c->setState( Codec::Valid );
                 UString u;
-                StringList::Iterator w( StringList::split( ' ', v.simplified() ) );
+                StringList::Iterator w( StringList::split( ' ',
+                                                           v.simplified() ) );
                 bool wasE = false;
                 while ( w ) {
                     UString o = EmailParser::de2047( *w );

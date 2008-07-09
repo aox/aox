@@ -510,7 +510,8 @@ String PermissionsChecker::error() const
     if it doesn't.
 */
 
-Permissions * PermissionsChecker::permissions( class Mailbox * m, class User * u ) const
+Permissions * PermissionsChecker::permissions( class Mailbox * m,
+                                               class User * u ) const
 {
     List<PermissionsCheckerData::Pair>::Iterator i( d->l );
     while ( i && ( i->p->mailbox() != m || i->p->user() != u ) )

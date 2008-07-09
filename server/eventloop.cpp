@@ -55,7 +55,9 @@ public:
     {
     public:
         Stopper( uint s ) { (void)new Timer( this, s ); }
-        void execute() { if ( EventLoop::global() ) { EventLoop::global()->stop(); } }
+        void execute() { if ( EventLoop::global() ) {
+                EventLoop::global()->stop(); }
+        }
     };
 };
 
@@ -171,7 +173,8 @@ void EventLoop::start()
         if ( !haveLoggedStartup && !inStartup() &&
              !Scope::current()->log()->disastersYet() ) {
             if ( !Server::name().isEmpty() )
-                log( Server::name() + ": Server startup complete", Log::Significant );
+                log( Server::name() + ": Server startup complete",
+                     Log::Significant );
             haveLoggedStartup = true;
         }
 

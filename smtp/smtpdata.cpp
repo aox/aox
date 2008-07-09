@@ -312,7 +312,8 @@ bool SmtpData::addressPermitted( Address * a ) const
         String ad = a->domain().lower();
         String al = a->localpart().lower();
         if ( sub )
-            al = al.section( Configuration::text( Configuration::AddressSeparator ), 1 );
+            al = al.section( Configuration::text(
+                                 Configuration::AddressSeparator ), 1 );
         List<Address>::Iterator p( server()->permittedAddresses() );
         while ( p &&
                 al != p->localpart().lower() &&

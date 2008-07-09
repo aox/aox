@@ -179,72 +179,89 @@ Selector * Search::parseKey()
         return new Selector( Selector::NoField, Selector::All );
     }
     else if ( present( "answered" ) ) {
-        return new Selector( Selector::Flags, Selector::Contains, "\\answered" );
+        return new Selector( Selector::Flags, Selector::Contains,
+                             "\\answered" );
     }
     else if ( present( "deleted" ) ) {
-        return new Selector( Selector::Flags, Selector::Contains, "\\deleted" );
+        return new Selector( Selector::Flags, Selector::Contains,
+                             "\\deleted" );
     }
     else if ( present( "flagged" ) ) {
-        return new Selector( Selector::Flags, Selector::Contains, "\\flagged" );
+        return new Selector( Selector::Flags, Selector::Contains,
+                             "\\flagged" );
     }
     else if ( present( "new" ) ) {
         Selector * s = new Selector( Selector::And );
-        s->add( new Selector( Selector::Flags, Selector::Contains, "\\recent" ) );
+        s->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\recent" ) );
         Selector * n = new Selector( Selector::Not );
         s->add( n );
-        n->add( new Selector( Selector::Flags, Selector::Contains, "\\seen" ) );
+        n->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\seen" ) );
         return s;
     }
     else if ( present( "old" ) ) {
         Selector * s = new Selector( Selector::Not );
-        s->add( new Selector( Selector::Flags, Selector::Contains, "\\recent" ) );
+        s->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\recent" ) );
         return s;
     }
     else if ( present( "recent" ) ) {
-        return new Selector( Selector::Flags, Selector::Contains, "\\recent" );
+        return new Selector( Selector::Flags, Selector::Contains,
+                             "\\recent" );
     }
     else if ( present( "seen" ) ) {
-        return new Selector( Selector::Flags, Selector::Contains, "\\seen" );
+        return new Selector( Selector::Flags, Selector::Contains,
+                             "\\seen" );
     }
     else if ( present( "unanswered" ) ) {
         Selector * s = new Selector( Selector::Not );
-        s->add(new Selector( Selector::Flags, Selector::Contains, "\\answered" ) );
+        s->add(new Selector( Selector::Flags, Selector::Contains,
+                             "\\answered" ) );
         return s;
     }
     else if ( present( "undeleted" ) ) {
         Selector * s = new Selector( Selector::Not );
-        s->add( new Selector( Selector::Flags, Selector::Contains, "\\deleted" ) );
+        s->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\deleted" ) );
         return s;
     }
     else if ( present( "unflagged" ) ) {
         Selector * s = new Selector( Selector::Not );
-        s->add( new Selector( Selector::Flags, Selector::Contains, "\\flagged" ) );
+        s->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\flagged" ) );
         return s;
     }
     else if ( present( "unseen" ) ) {
         Selector * s = new Selector( Selector::Not );
-        s->add( new Selector( Selector::Flags, Selector::Contains, "\\seen" ) );
+        s->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\seen" ) );
         return s;
     }
     else if ( present( "draft" ) ) {
-        return new Selector( Selector::Flags, Selector::Contains, "\\draft" );
+        return new Selector( Selector::Flags, Selector::Contains,
+                             "\\draft" );
     }
     else if ( present( "undraft" ) ) {
         Selector * s = new Selector( Selector::Not );
-        s->add( new Selector( Selector::Flags, Selector::Contains, "\\draft" ) );
+        s->add( new Selector( Selector::Flags, Selector::Contains,
+                              "\\draft" ) );
         return s;
     }
     else if ( present( "on" ) ) {
         space();
-        return new Selector( Selector::InternalDate, Selector::OnDate, date() );
+        return new Selector( Selector::InternalDate, Selector::OnDate,
+                             date() );
     }
     else if ( present( "before" ) ) {
         space();
-        return new Selector( Selector::InternalDate, Selector::BeforeDate, date() );
+        return new Selector( Selector::InternalDate, Selector::BeforeDate,
+                             date() );
     }
     else if ( present( "since" ) ) {
         space();
-        return new Selector( Selector::InternalDate, Selector::SinceDate, date() );
+        return new Selector( Selector::InternalDate, Selector::SinceDate,
+                             date() );
     }
     else if ( present( "sentbefore" ) ) {
         space();

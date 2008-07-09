@@ -288,7 +288,9 @@ void Schema::execute()
 }
 
 
-/*! This private helper logs a \a description of the step currently being made. */
+/*! This private helper logs a \a description of the step currently
+    being made.
+*/
 
 void Schema::describeStep( const String & description )
 {

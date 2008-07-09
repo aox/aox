@@ -765,7 +765,8 @@ void Injector::createDependencies()
             AnnotationName::create( d->annotationNames, d->transaction, this );
 
     if ( d->annotationCreation &&
-         ( !d->annotationCreation->done() || d->annotationCreation->failed() ) )
+         ( !d->annotationCreation->done() ||
+           d->annotationCreation->failed() ) )
         return;
 
     if ( !d->addressCreation ) {
@@ -882,7 +883,8 @@ void Injector::insertBodyparts()
             }
             else {
                 d->substate++;
-                d->transaction->enqueue( new Query( "release savepoint bp", 0 ) );
+                d->transaction->enqueue(
+                    new Query( "release savepoint bp", 0 ) );
                 d->select =
                     new Query( "select bid from bp order by i", this );
                 d->transaction->enqueue( d->select );

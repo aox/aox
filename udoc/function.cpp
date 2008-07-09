@@ -34,7 +34,8 @@ Function::Function( const String & type,
                     const String & arguments,
                     bool constness,
                     File * originFile, uint originLine )
-    : c( 0 ), t( type ), f( originFile ), l( originLine ), db( 0 ), ol( false ),
+    : c( 0 ), t( type ), f( originFile ),
+      l( originLine ), db( 0 ), ol( false ),
       cn( constness )
 {
     if ( !functions )
