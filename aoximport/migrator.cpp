@@ -8,6 +8,7 @@
 #include "timer.h"
 #include "scope.h"
 #include "mailbox.h"
+#include "database.h"
 #include "allocator.h"
 #include "transaction.h"
 #include "recipient.h"
@@ -164,7 +165,7 @@ void Migrator::execute()
                     source = sources;
             }
             else {
-                // what does this do, exactly? our of which loop does
+                // what does this do, exactly? out of which loop does
                 // it break?
                 break;
             }
@@ -173,7 +174,10 @@ void Migrator::execute()
 
     if ( d->working->isEmpty() && d->sources.isEmpty() ) {
         d->status = 0;
-        EventLoop::global()->shutdown();
+        if ( Database::idle() )
+            EventLoop::global()->shutdown();
+        else
+            Database::notifyWhenIdle( this );
     }
 }
 
