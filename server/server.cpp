@@ -135,7 +135,7 @@ Server::Server( const char * name, int argc, char * argv[] )
                  name, optind, argv[optind] );
         exit( 1 );
     }
-    if ( uc )
+    if ( uc || !d->useCache )
         fprintf( stdout, "%s: Will%s use caches\n",
                  name, d->useCache ? "" : " not" );
 }
