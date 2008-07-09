@@ -39,6 +39,7 @@ public:
     void run();
 
     static String name();
+    static bool useCache();
 
     static void killChildren();
 

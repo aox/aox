@@ -7,6 +7,8 @@ VERSION = 2.10 ;
 
 MKDIR = mkdir -p ;
 
+USECACHE = 1 ;
+
 if $(OPTIM) = "-O" {
     OPTIM = "-O3" ;
 }

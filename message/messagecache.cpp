@@ -4,6 +4,7 @@
 
 #include "message.h"
 #include "mailbox.h"
+#include "server.h"
 #include "dict.h"
 #include "list.h"
 
@@ -50,6 +51,8 @@ MessageCache::MessageCache()
 void MessageCache::insert( class Mailbox * mb, uint uid,
                            class Message * m )
 {
+    if ( !Server::useCache() )
+        return;
     if ( !c )
         c = new MessageCache;
     if ( !c->d->m )

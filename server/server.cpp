@@ -49,7 +49,7 @@ class ServerData
 public:
     ServerData( const char * n )
         : name( n ), stage( Server::Configuration ),
-          secured( false ), fork( false ),
+          secured( false ), fork( false ), useCache( USECACHE ),
           chrootMode( Server::JailDir ),
           queries( new List< Query > ),
           children( 0 ),
@@ -61,6 +61,7 @@ public:
     String configFile;
     bool secured;
     bool fork;
+    bool useCache;
     Server::ChrootMode chrootMode;
     List< Query > *queries;
     List<pid_t> * children;
@@ -90,8 +91,9 @@ Server::Server( const char * name, int argc, char * argv[] )
     d = new ServerData( name );
     Allocator::addEternal( d, "Server data" );
 
+    bool uc = false;
     int c;
-    while ( (c=getopt( argc, argv, "fc:" )) != -1 ) {
+    while ( (c=getopt( argc, argv, "fc:C" )) != -1 ) {
         switch ( c ) {
         case 'f':
             if ( d->fork ) {
@@ -116,6 +118,13 @@ Server::Server( const char * name, int argc, char * argv[] )
                 }
             }
             break;
+        case 'C':
+            // -C is undocumented on purpose. it should not change
+            // anything except performance, and exists only for
+            // testing.
+            d->useCache = !d->useCache;
+            uc = true;
+            break;
         default:
             exit( 1 );
             break;
@@ -126,6 +135,9 @@ Server::Server( const char * name, int argc, char * argv[] )
                  name, optind, argv[optind] );
         exit( 1 );
     }
+    if ( uc )
+        fprintf( stdout, "%s: Will%s use caches\n",
+                 name, d->useCache ? "" : " not" );
 }
 
 
@@ -651,4 +663,19 @@ String Server::name()
     if ( d )
         return d->name;
     return "";
+}
+
+
+/*! Returns true if this server is configured to cache this and that,
+    and false if it shouldn't cache.
+
+    Running without cache is a debugging aid.
+*/
+
+
+bool Server::useCache()
+{
+    if ( d )
+        return d->useCache;
+    return false;
 }

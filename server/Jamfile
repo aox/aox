@@ -7,6 +7,8 @@ SubInclude TOP message ;
 SubInclude TOP db ;
 SubInclude TOP message ;
 
+ObjectDefines server.cpp : USECACHE=$(USECACHE) ;
+
 Build server :
     connection.cpp endpoint.cpp event.cpp logclient.cpp tls.cpp
     eventloop.cpp byteforwarder.cpp server.cpp timer.cpp resolver.cpp
