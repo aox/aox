@@ -259,9 +259,8 @@ public:
           mailboxes( new SortedList<Mailbox> ),
           flagCreator( 0 ), annotationCreation( 0 ),
           fieldCreation( 0 ), addressCreation( 0 ),
-          queries( 0 ), select( 0 ), copy( 0 ), message( 0 ),
-          substate( 0 ), ignoreError( false ), bodypartsConflict( false ),
-          fetchedBodypartIds( false )
+          queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
+          substate( 0 ), ignoreError( false )
     {}
 
     List<Message> * messages;
@@ -300,13 +299,12 @@ public:
     List<Delivery> deliveries;
     List<Query> * queries;
     Query * select;
+    Query * insert;
     Query * copy;
     List<Message>::Iterator * message;
 
     uint substate;
     bool ignoreError;
-    bool bodypartsConflict;
-    bool fetchedBodypartIds;
 
     Dict<BodypartRow> hashes;
     List<BodypartRow> bodyparts;
@@ -811,125 +809,113 @@ void Injector::insertBodyparts()
         }
 
         if ( d->substate == 1 ) {
-            if ( !d->select ) {
-                d->select =
-                    new Query( "select id,hash from bodyparts where "
-                               "hash=any($1::text[])", this );
-                d->select->bind( 1, d->hashes.keys() );
-                d->transaction->enqueue( d->select );
-                d->transaction->execute();
+            Query * create =
+                new Query( "create temporary table bp ("
+                           "bid integer, bytes integer, "
+                           "hash text, text text, data bytea, "
+                           "i integer, n boolean default 'f')", 0 );
+
+            Query * copy =
+                new Query( "copy bp (bytes,hash,text,data,i) "
+                           "from stdin with binary", this );
+
+            uint i = 0;
+            List<BodypartRow>::Iterator bi( d->bodyparts );
+            while ( bi ) {
+                BodypartRow * br = bi;
+
+                copy->bind( 1, br->bytes );
+                copy->bind( 2, br->hash );
+                if ( br->text )
+                    copy->bind( 3, *br->text );
+                else
+                    copy->bindNull( 3 );
+                if ( br->data )
+                    copy->bind( 4, *br->data );
+                else
+                    copy->bindNull( 4 );
+                copy->bind( 5, i++ );
+                copy->submitLine();
+
+                ++bi;
             }
 
-            while ( d->select->hasResults() ) {
-                Row * r = d->select->nextRow();
-                BodypartRow * br =
-                    d->hashes.take( r->getString( "hash" ) );
-                br->id = r->getInt( "id" );
-            }
+            d->transaction->enqueue( create );
+            d->transaction->enqueue( copy );
 
-            if ( !d->select->done() || d->select->failed() )
-                return;
-
-            d->select = 0;
             d->substate++;
         }
 
         if ( d->substate == 2 ) {
-            if ( d->fetchedBodypartIds ) {
-                d->substate++;
-            }
-            else {
-                if ( !d->select ) {
-                    d->select = selectNextvals( "bodypart_ids",
-                                                d->hashes.keys().count() );
-                    d->transaction->enqueue( d->select );
-                    d->transaction->execute();
-                }
+            Query * setId =
+                new Query( "update bp set bid=b.id from bodyparts b where "
+                           "bp.hash=b.hash and not bp.text is distinct from "
+                           "b.text and not bp.data is distinct from b.data",
+                           0 );
 
-                if ( !d->select->done() || d->select->failed() )
-                    return;
+            Query * setNew =
+                new Query( "update bp set bid=nextval('bodypart_ids')::int, "
+                           "n='t' where bid is null", 0 );
 
-                StringList::Iterator it( d->hashes.keys() );
-                while ( it ) {
-                    Row * r = d->select->nextRow();
-                    BodypartRow * br = d->hashes.find( *it );
-                    br->id = r->getInt( "id" );
-                    ++it;
-                }
+            d->insert =
+                new Query( "insert into bodyparts "
+                           "(id,bytes,hash,text,data) "
+                           "select bid,bytes,hash,text,data "
+                           "from bp where n", this );
 
-                d->fetchedBodypartIds = true;
-                d->select = 0;
-                d->substate++;
-            }
+            d->substate++;
+            d->transaction->enqueue( setId );
+            d->transaction->enqueue( setNew );
+            d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
+            d->transaction->enqueue( d->insert );
+            d->transaction->execute();
         }
 
         if ( d->substate == 3 ) {
-            d->copy = new Query( "copy bodyparts (id,bytes,hash,text,data) "
-                                 "from stdin with binary", this );
+            if ( !d->insert->done() )
+                return;
 
-            StringList::Iterator it( d->hashes.keys() );
-            while ( it ) {
-                BodypartRow * br = d->hashes.find( *it );
-
-                d->copy->bind( 1, br->id );
-                d->copy->bind( 2, br->bytes );
-                d->copy->bind( 3, br->hash );
-                if ( br->text )
-                    d->copy->bind( 4, *br->text );
-                else
-                    d->copy->bindNull( 4 );
-                if ( br->data )
-                    d->copy->bind( 5, *br->data );
-                else
-                    d->copy->bindNull( 5 );
-                d->copy->submitLine();
-
-                ++it;
-            }
-
-            if ( !d->hashes.isEmpty() ) {
-                d->copy->allowFailure();
-                d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
-                d->transaction->enqueue( d->copy );
-                d->transaction->execute();
-                d->substate++;
+            if ( d->insert->failed() ) {
+                d->ignoreError = true;
+                d->transaction->enqueue( new Query( "rollback to bp", 0 ) );
+                d->substate = 2;
             }
             else {
-                d->substate = 5;
+                d->substate++;
+                d->transaction->enqueue( new Query( "release savepoint bp", 0 ) );
+                d->select =
+                    new Query( "select bid from bp order by i", this );
+                d->transaction->enqueue( d->select );
+                d->transaction->enqueue( new Query( "drop table bp", 0 ) );
+                d->transaction->execute();
             }
         }
 
         if ( d->substate == 4 ) {
-            if ( !d->copy->done() )
+            if ( !d->select->done() )
                 return;
 
-            if ( d->copy->failed() ) {
-                d->ignoreError = true;
-                d->transaction->enqueue( new Query( "rollback to bp", 0 ) );
-                d->substate = 1;
-            }
-            else {
-                d->substate = 5;
-            }
-        }
+            List<BodypartRow>::Iterator bi( d->bodyparts );
+            while ( bi ) {
+                BodypartRow * br = bi;
+                Row * r = d->select->nextRow();
+                uint id = r->getInt( "bid" );
 
-        if ( d->substate == 5 ) {
-            List<BodypartRow>::Iterator it( d->bodyparts );
-            while ( it ) {
-                BodypartRow * br = it;
-                List<Bodypart>::Iterator bi( br->bodyparts );
-                while ( bi ) {
-                    bi->setId( br->id );
-                    ++bi;
+                List<Bodypart>::Iterator it( br->bodyparts );
+                while ( it ) {
+                    it->setId( id );
+                    ++it;
                 }
-                ++it;
+
+                ++bi;
             }
+
             break;
         }
     }
     while ( last != d->substate );
 
-    d->select = d->copy = 0;
+    d->select = d->insert = d->copy = 0;
     next();
 }
 
