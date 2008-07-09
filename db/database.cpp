@@ -502,6 +502,10 @@ bool Database::idle()
             return false;
         ++it;
     }
+
+    if ( queries && !queries->isEmpty() )
+        return false;
+
     return true;
 }
 

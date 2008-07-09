@@ -480,5 +480,8 @@ AoxCommand * AoxCommand::create( StringList * args )
         cmd = new Help( args );
     }
 
+    if ( cmd )
+        Allocator::addEternal( cmd, "the command to be run" );
+
     return cmd;
 }
