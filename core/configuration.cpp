@@ -165,7 +165,7 @@ static struct {
     { "smarthost-port", Configuration::SmartHostPort, 25 },
     { "statistics-port", Configuration::StatisticsPort, 17220 },
     { "ldap-server-port", Configuration::LdapServerPort, 390 },
-    { "memory-usage", Configuration::MemoryUsage, 64 }
+    { "memory-limit", Configuration::MemoryLimit, 64 }
 };
 
 

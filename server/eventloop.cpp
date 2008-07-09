@@ -290,7 +290,7 @@ void EventLoop::start()
         // so, or if we've passed the memory usage goal.
 
         uint goal = 1024 * 1024 *
-                    Configuration::scalar( Configuration::MemoryUsage );
+                    Configuration::scalar( Configuration::MemoryLimit );
 
         if ( !d->stop && ( now - gc > 180 ||
                            Allocator::allocated() >= goal ) ) {

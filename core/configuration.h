@@ -57,7 +57,7 @@ public:
         SmartHostPort,
         StatisticsPort,
         LdapServerPort,
-        MemoryUsage,
+        MemoryLimit,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };
