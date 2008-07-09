@@ -65,6 +65,7 @@ public:
                 c->close();
             }
         }
+        EventLoop::freeMemorySoon();
     }
 };
 

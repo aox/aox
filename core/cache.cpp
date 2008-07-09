@@ -5,11 +5,8 @@
 #include "list.h"
 #include "allocator.h"
 
-#include <time.h>
-
 
 static List<Cache> * caches;
-static uint when = 0;
 
 
 /*! \class Cache cache.h
@@ -63,7 +60,6 @@ Cache::~Cache()
 
 void Cache::clearAllCaches()
 {
-    ::when = (uint)time( 0 );
     List<Cache>::Iterator i( ::caches );
     while ( i ) {
         Cache * c = i;
@@ -76,13 +72,3 @@ void Cache::clearAllCaches()
 /*! \fn virtual void Cache::clear() = 0;
     Implemented by subclasses to discards the contents of the cache.
 */
-
-
-/*! Returns the time (as a time_t) when clearAllCaches() was last
-    called. Returns 0 initially.
-*/
-
-uint Cache::lastCleared()
-{
-    return ::when;
-}

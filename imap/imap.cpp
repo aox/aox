@@ -298,7 +298,6 @@ void IMAP::addCommand()
         enqueue( tag + " BAD No such command: " + name + "\r\n" );
         log( "Unknown command. Line: " + p->firstLine().quoted(),
              Log::Error );
-        Cache::clearAllCaches();
         return;
     }
 

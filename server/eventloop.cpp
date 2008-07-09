@@ -29,6 +29,9 @@
 #include <unistd.h>
 
 
+static bool freeMemorySoon;
+
+
 static EventLoop * loop;
 
 
@@ -238,13 +241,6 @@ void EventLoop::start()
             sizeinram = new GraphableNumber( "memory-used" );
         sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
 
-        // Find out when we stop working, ie. when we no longer
-        // allocate RAM during even processing and have freed what we
-        // could. We want to run GC as soon as that happens.
-        uint alloc = Allocator::allocated();
-        if ( alloc > 16384 && tv.tv_sec > 1 )
-            tv.tv_sec = 3;
-
         if ( n < 0 ) {
             if ( errno == EINTR ) {
                 // We should see this only for signals we've handled,
@@ -286,22 +282,6 @@ void EventLoop::start()
             }
         }
 
-        // Collect garbage if we've gone three minutes without doing
-        // so, or if we've passed the memory usage goal.
-
-        uint goal = 1024 * 1024 *
-                    Configuration::scalar( Configuration::MemoryLimit );
-
-        if ( !d->stop && ( now - gc > 180 ||
-                           Allocator::allocated() >= goal ) ) {
-            Allocator::free();
-            gc = time( 0 );
-        }
-
-        // Graph our size after processing all the events too
-
-        sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
-
         // Any interesting timers?
 
         if ( !d->timers.isEmpty() ) {
@@ -330,6 +310,26 @@ void EventLoop::start()
             else {
                 removeConnection( c );
             }
+        }
+
+        // Graph our size after processing all the events too
+
+        sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
+
+        // Collect garbage if we've gone three minutes without doing
+        // so, or if we've passed the memory usage goal. This has to
+        // be at the end of the scope, since anything pointed by by
+        // local variables might be freed here.
+
+        uint goal = 1024 * 1024 *
+                    Configuration::scalar( Configuration::MemoryLimit );
+
+        if ( !d->stop && ( now - gc > 180 ||
+                           ::freeMemorySoon ||
+                           Allocator::allocated() >= goal ) ) {
+            Allocator::free();
+            gc = time( 0 );
+            ::freeMemorySoon = false;
         }
     }
 
@@ -716,4 +716,14 @@ void EventLoop::shutdownSSL()
             c->close();
         }
     }
+}
+
+
+/*! Requests the event loop to collect garbage and clear any caches at
+    the earliest opportunity. Used for debugging.
+*/
+
+void EventLoop::freeMemorySoon()
+{
+    ::freeMemorySoon = true;
 }

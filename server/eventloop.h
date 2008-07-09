@@ -36,6 +36,7 @@ public:
     static void setup( EventLoop * = 0 );
     static EventLoop * global();
     static void shutdown();
+    static void freeMemorySoon();
 
     virtual void addTimer( class Timer * );
     virtual void removeTimer( class Timer * );
