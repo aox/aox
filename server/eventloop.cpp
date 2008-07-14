@@ -336,9 +336,9 @@ void EventLoop::start()
         }
     }
 
-    // This is for event loop shutdown. A little brutal. Proper
-    // shutdown should first get rid of listeners, then a (long)
-    // while later call this.
+    // This is for event loop shutdown. A little brutal. With any
+    // luck, the listeners have been closed long ago and this is just
+    // for those who wouldn't disconnect voluntarily.
     log( "Shutting down event loop", Log::Debug );
     List< Connection >::Iterator it( d->connections );
     while ( it ) {
