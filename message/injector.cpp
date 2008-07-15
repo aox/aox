@@ -843,6 +843,7 @@ void Injector::insertBodyparts()
 
             d->transaction->enqueue( create );
             d->transaction->enqueue( copy );
+            d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
 
             d->substate++;
         }
@@ -867,7 +868,6 @@ void Injector::insertBodyparts()
             d->substate++;
             d->transaction->enqueue( setId );
             d->transaction->enqueue( setNew );
-            d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
             d->transaction->enqueue( d->insert );
             d->transaction->execute();
         }
