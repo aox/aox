@@ -60,11 +60,10 @@ void ProgressReporter::execute()
         p = 1;
     fprintf( stdout,
              "Processed %d messages in %d mailboxes, %.1f/s, "
-             "memory usage %s+%s\n",
+             "memory usage %s\n",
              n, d->m->mailboxesMigrated() + d->m->migrators(),
              ((double)( n - d->l )) / p ,
-             String::humanNumber( Allocator::inUse() ).cstr(),
-             String::humanNumber( Allocator::allocated() ).cstr() );
+             String::humanNumber( Allocator::inUse() + Allocator::allocated() ).cstr() );
     d->w = w;
     d->l = n;
 }
