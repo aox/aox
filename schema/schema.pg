@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (73);
+insert into mailstore (revision) values (74);
 
 
 -- One entry for each unique address we've encountered.
@@ -139,7 +139,7 @@ create sequence bodypart_ids;
 create table bodyparts (
     id          integer default nextval('bodypart_ids') primary key,
     bytes       integer not null,
-    hash        text not null unique,
+    hash        text not null,
     text        text,
     data        bytea
 );
