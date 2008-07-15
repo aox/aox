@@ -63,17 +63,8 @@ class FlagCreatorData
     : public Garbage
 {
 public:
-    FlagCreatorData( const StringList & f, Transaction * tr,
-                     EventHandler * ev )
-        : flags( f ), t( tr ), state( 0 ), select( 0 ),
-          insert( 0 ), owner( ev ) {}
+    FlagCreatorData( const StringList & f ): flags( f ) {}
     StringList flags;
-    Transaction * t;
-    uint state;
-    Query * select;
-    Query * insert;
-    EventHandler * owner;
-    Dict<uint> unided;
 };
 
 
@@ -92,162 +83,62 @@ public:
     bugs). Transaction::error() should say what went wrong.
 */
 
-FlagCreator::FlagCreator( const StringList & flags, Transaction * t,
-                          EventHandler * owner )
-    : d( new FlagCreatorData( flags, t, owner ) )
+FlagCreator::FlagCreator( const StringList & flags, Transaction * t )
+    : HelperRowCreator( "flag_names", t, "fn_uname" ),
+      d( new FlagCreatorData( flags ) )
 {
-    execute();
 }
 
 
-/*! Returns true if this FlagCreator has done all it should, and false
-    if it's still working.
-*/
-
-bool FlagCreator::done() const
+Query * FlagCreator::makeSelect()
 {
-    return d->state > 4;
-}
-
-
-/*! This private helper notifies the owner and makes sure it won't do
-    so again.
-*/
-
-void FlagCreator::notify()
-{
-    if ( done() )
-        return;
-    d->state = 5;
-    d->owner->notify();
-}
-
-
-void FlagCreator::execute()
-{
-    uint s = 42;
-    while ( s != d->state ) {
-        s = d->state;
-
-        if ( d->state == 0 || d->state == 4 )
-            selectFlags();
-
-        if ( d->state == 1 )
-            processFlags();
-
-        if ( d->state == 2 )
-            insertFlags();
-
-        if ( d->state == 3 )
-            processInsert();
-    }
-}
-
-/*! This private helper issues a select to find the new flags, and
-    then moves to the next state to wait for results.
-*/
-
-void FlagCreator::selectFlags()
-{
-    d->select = new Query( "select id, name from flag_names where "
+    Query * s = new Query( "select id, name from flag_names where "
                            "lower(name)=any($1::text[])", this );
-
-    d->unided.clear();
 
     StringList sl;
     StringList::Iterator it( d->flags );
     while ( it ) {
         String name( *it );
-        if ( Flag::id( name ) == 0 ) {
-            String p( name.lower() );
-            sl.append( p );
-            d->unided.insert( p, 0 );
-        }
+        if ( Flag::id( name ) == 0 )
+            sl.append( name.lower() );
         ++it;
     }
-    d->select->bind( 1, sl );
-    d->select->allowSlowness();
 
-    if ( !sl.isEmpty() ) {
-        if ( d->state == 0 )
-            d->t->enqueue( new Query( "savepoint flagcreator", 0 ) );
-        d->state = 1;
-        d->t->enqueue( d->select );
-        d->t->execute();
-    }
-    else if ( d->state == 4 ) {
-        notify();
+    if ( sl.isEmpty() )
+        return 0;
+    s->bind( 1, sl );
+    return s;
+}
+
+
+void FlagCreator::processSelect( Query * s )
+{
+    while ( s->hasResults() ) {
+        Row * r = s->nextRow();
+        Flag::add( r->getString( "name" ), r->getInt( "id" ) );
     }
 }
 
 
-/*! This private helper handles the results of selectFlags(). */
-
-void FlagCreator::processFlags()
+Query * FlagCreator::makeCopy()
 {
-    while ( d->select->hasResults() ) {
-        Row * r = d->select->nextRow();
-        String name( r->getString( "name" ) );
-        Flag::add( name, r->getInt( "id" ) );
-        d->unided.take( name.lower() );
-    }
-
-    if ( !d->select->done() )
-        return;
-    d->select = 0;
-
-    if ( d->unided.isEmpty() )
-        d->state = 4;
-    else
-        d->state = 2;
-}
-
-
-/*! This private helper issues a COPY (with supporting savepoints) to
-    insert the desired flags into flag_names.
-*/
-
-void FlagCreator::insertFlags()
-{
-    d->insert = new Query( "copy flag_names (name) from stdin with binary",
-                        this );
+    Query * c = new Query( "copy flag_names (name) from stdin with binary",
+                           this );
+    bool any = false;
     StringList::Iterator it( d->flags );
     while ( it ) {
-        if ( d->unided.contains( it->lower() ) ) {
-            d->insert->bind( 1, *it );
-            d->insert->submitLine();
+        if ( Flag::id( *it ) == 0 ) {
+            c->bind( 1, *it );
+            c->submitLine();
+            any = true;
         }
         ++it;
     }
 
-    d->state = 3;
-    d->t->enqueue( d->insert );
-    d->t->execute();
-}
-
-
-/*! This private helper handles the result of COPYing into
-    flag_names.
-*/
-
-void FlagCreator::processInsert()
-{
-    if ( !d->insert->done() )
-        return;
-
-    if ( !d->insert->failed() ) {
-        d->t->enqueue( new Query( "release savepoint flagcreator", this ) );
-        d->state = 4;
-    }
-    else if ( d->insert->error().contains( "fn_uname" ) ) {
-        d->t->enqueue( new Query( "rollback to flagcreator", this ) );
-        d->state = 4;
-    }
-    else {
-        // Total failure. t is now in Failed state, and there's
-        // nothing we can do other than notify our owner about it.
-        notify();
-    }
+    if ( !any )
+        return 0;
+    return c;
+    
 }
 
 

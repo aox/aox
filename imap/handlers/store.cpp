@@ -566,7 +566,8 @@ bool Store::processFlagNames()
     if ( unknown.isEmpty() )
         return true;
 
-    d->flagCreator = new FlagCreator( unknown, d->transaction, this );
+    d->flagCreator = new FlagCreator( unknown, d->transaction );
+    d->flagCreator->execute();
     return false;
 }
 

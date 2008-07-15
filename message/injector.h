@@ -58,4 +58,25 @@ private:
 };
 
 
+class HelperRowCreator
+    : public EventHandler
+{
+public:
+    HelperRowCreator( const String &, class Transaction *, const String & );
+
+    bool done() const;
+
+    void execute();
+
+private:
+    virtual Query * makeSelect() = 0;
+    virtual void processSelect( Query * ) = 0;
+    virtual Query * makeCopy() = 0;
+
+private:
+    class HelperRowCreatorData * d;
+};
+
+
+
 #endif
