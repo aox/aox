@@ -660,9 +660,10 @@ void Fetcher::makeQueries()
             r = "select mm.message, mm.mailbox, mm.uid, f.flag "
                 "from mailbox_messages mm "
                 "join flags f using (mailbox,uid) "
-                "where mm.mailbox=$1 and mm.message=any($2)";
+                "where mm.mailbox=$1 and mm.message=any($2) "
+                "order by mm.mailbox, mm.uid, f.flag";
             q = new Query( r, d->flags );
-            q->bind( 1, d->mailbox->id() ); 
+            q->bind( 1, d->mailbox->id() );
             bindBatchIds( q, 2, d->batchIds );
         }
         else if ( d->selector->field() == Selector::Uid ) {
