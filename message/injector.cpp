@@ -1796,7 +1796,7 @@ void HelperRowCreator::execute()
  */
 
 
-/*! \fn void HelperRowCreator::processSelect( Query * \a q )
+/*! \fn void HelperRowCreator::processSelect( Query * q )
 
     This pure virtual function is called to process the result of the
     makeSelect() Query. \a q is the Query returned by makeSelect()
