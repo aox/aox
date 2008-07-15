@@ -58,150 +58,61 @@ private:
 };
 
 
-class AnnotationNameCreator
-    : public EventHandler
+AnnotationNameCreator::AnnotationNameCreator( const StringList & f,
+                                              Transaction * t )
+    : HelperRowCreator( "annotation_names", t, "annotation_names_name_key" ),
+      names( f )
 {
-public:
-    StringList names;
-    Transaction * t;
-    int state;
-    Query * q;
-    Query * result;
-    Dict<uint> unided;
-    int savepoint;
-
-    AnnotationNameCreator( const StringList & f, Transaction * tr,
-                           EventHandler * ev )
-        : names( f ), t( tr ), state( 0 ), q( 0 ), savepoint( 0 )
-    {
-        result = new Query( ev );
-        execute();
-    }
-
-    void execute();
-    void selectAnnotations();
-    void processAnnotations();
-    void insertAnnotations();
-    void processInsert();
-};
-
-void AnnotationNameCreator::execute()
-{
-    if ( state == 0 )
-        selectAnnotations();
-
-    if ( state == 1 )
-        processAnnotations();
-
-    if ( state == 2 )
-        insertAnnotations();
-
-    if ( state == 3 )
-        processInsert();
-
-    if ( state == 4 ) {
-        state = 42;
-        if ( !result->done() )
-            result->setState( Query::Completed );
-        result->notify();
-    }
 }
 
-void AnnotationNameCreator::selectAnnotations()
+Query *  AnnotationNameCreator::makeSelect()
 {
-    q = new Query( "select id, name from annotation_names where "
-                   "name=any($1::text[])", this );
-
-    unided.clear();
+    Query * q = new Query( "select id, name from annotation_names where "
+                           "name=any($1::text[])", this );
 
     StringList sl;
     StringList::Iterator it( names );
     while ( it ) {
         String name( *it );
-        if ( AnnotationName::id( name ) == 0 ) {
+        if ( AnnotationName::id( name ) == 0 )
             sl.append( name );
-            unided.insert( name, 0 );
-        }
         ++it;
     }
-    q->bind( 1, sl );
-    q->allowSlowness();
+    if ( sl.isEmpty() )
+        return 0;
 
-    if ( sl.isEmpty() ) {
-        state = 4;
-    }
-    else {
-        state = 1;
-        t->enqueue( q );
-        t->execute();
-    }
+    q->bind( 1, sl );
+    return q;
 }
 
-void AnnotationNameCreator::processAnnotations()
+
+void AnnotationNameCreator::processSelect( Query * q )
 {
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
-        uint id = r->getInt( "id" );
-        String name( r->getString( "name" ) );
-        AnnotationName::add( name, id );
-        unided.take( name );
-    }
-
-    if ( !q->done() )
-        return;
-
-    if ( unided.isEmpty() ) {
-        state = 0;
-        selectAnnotations();
-    }
-    else {
-        state = 2;
+        AnnotationName::add( r->getString( "name" ), r->getInt( "id" ) );
     }
 }
 
-void AnnotationNameCreator::insertAnnotations()
-{
-    q = new Query( "savepoint d" + fn( savepoint ), this );
-    t->enqueue( q );
 
-    q = new Query( "copy annotation_names (name) "
-                   "from stdin with binary", this );
-    StringList::Iterator it( unided.keys() );
+Query * AnnotationNameCreator::makeCopy()
+{
+    Query * q = new Query( "copy annotation_names (name) "
+                           "from stdin with binary", this );
+    StringList::Iterator it( names );
+    bool any = false;
     while ( it ) {
-        q->bind( 1, *it );
-        q->submitLine();
+        if ( AnnotationName::id( *it ) == 0 ) {
+            any = true;
+            q->bind( 1, *it );
+            q->submitLine();
+        }
         ++it;
     }
 
-    state = 3;
-    t->enqueue( q );
-    t->execute();
-}
-
-void AnnotationNameCreator::processInsert()
-{
-    if ( !q->done() )
-        return;
-
-    state = 0;
-    if ( q->failed() ) {
-        if ( q->error().contains( "annotation_names_name_key" ) ) {
-            q = new Query( "rollback to d" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
-        }
-        else {
-            result->setState( Query::Failed );
-            state = 4;
-        }
-    }
-    else {
-        q = new Query( "release savepoint d" + fn( savepoint ), this );
-        t->enqueue( q );
-    }
-
-    if ( state == 0 )
-        selectAnnotations();
+    if ( !any )
+        return 0;
+    return q;
 }
 
 
@@ -287,19 +198,6 @@ void AnnotationName::rollback()
 uint AnnotationName::largestId()
 {
     return ::largestAnnotationNameId;
-}
-
-
-/*! Issues the queries needed to create the specified annotation
-    \a names in the transaction \a t and notifies the \a owner when that
-    is done, i.e. when id() and name() recognise the newly-created
-    annotation names.
-*/
-
-Query * AnnotationName::create( const StringList & names,
-                                Transaction * t, EventHandler * owner )
-{
-    return (new AnnotationNameCreator( names, t, owner ))->result;
 }
 
 

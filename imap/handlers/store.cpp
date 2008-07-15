@@ -33,6 +33,7 @@ public:
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
           presentFlags( 0 ), present( 0 ),
           flagCreator( 0 ),
+          annotationNameCreator( 0 ),
           transaction( 0 )
     {}
     MessageSet specified;
@@ -56,6 +57,7 @@ public:
     Query * presentFlags;
     Map<MessageSet> * present;
     FlagCreator * flagCreator;
+    AnnotationNameCreator * annotationNameCreator;
 
     Transaction * transaction;
 
@@ -578,6 +580,9 @@ bool Store::processFlagNames()
 
 bool Store::processAnnotationNames()
 {
+    if ( d->annotationNameCreator )
+        return d->annotationNameCreator->done();
+
     List<Annotation>::Iterator it( d->annotations );
     StringList unknown;
     while ( it ) {
@@ -588,7 +593,10 @@ bool Store::processAnnotationNames()
     }
     if ( unknown.isEmpty() )
         return true;
-    (void)AnnotationName::create( unknown, d->transaction, this );
+
+    d->annotationNameCreator 
+        = new AnnotationNameCreator( unknown, d->transaction );
+    d->annotationNameCreator->execute();
     return false;
 
 }

@@ -257,7 +257,7 @@ public:
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
           mailboxes( new SortedList<Mailbox> ),
-          flagCreator( 0 ), annotationCreation( 0 ),
+          flagCreator( 0 ), annotationNameCreator( 0 ),
           fieldCreation( 0 ), addressCreation( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), ignoreError( false )
@@ -280,7 +280,7 @@ public:
     SortedList<Mailbox> * mailboxes;
 
     FlagCreator * flagCreator;
-    Query * annotationCreation;
+    AnnotationNameCreator * annotationNameCreator;
     Query * fieldCreation;
     Query * addressCreation;
 
@@ -762,13 +762,13 @@ void Injector::createDependencies()
     if ( d->flagCreator && !d->flagCreator->done() )
         return;
 
-    if ( !d->annotationCreation && !d->annotationNames.isEmpty() )
-        d->annotationCreation =
-            AnnotationName::create( d->annotationNames, d->transaction, this );
+    if ( !d->annotationNameCreator && !d->annotationNames.isEmpty() ) {
+        d->annotationNameCreator 
+            = new AnnotationNameCreator( d->annotationNames, d->transaction );
+        d->annotationNameCreator->execute();
+    }
 
-    if ( d->annotationCreation &&
-         ( !d->annotationCreation->done() ||
-           d->annotationCreation->failed() ) )
+    if ( d->annotationNameCreator && !d->annotationNameCreator->done() )
         return;
 
     if ( !d->addressCreation ) {
