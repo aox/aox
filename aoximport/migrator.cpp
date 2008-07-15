@@ -398,7 +398,7 @@ public:
           validated( false ), valid( false ),
           injector( 0 ),
           gcHackTimer( 0 ),
-          migrated( 0 ),
+          migrated( 0 ), migrating( 0 ),
           mailboxCreator( 0 ),
           log( Log::General )
     {}
@@ -412,6 +412,7 @@ public:
     Injector * injector;
     Timer * gcHackTimer;
     uint migrated;
+    uint migrating;
     Transaction * mailboxCreator;
     String error;
     Log log;
@@ -476,12 +477,13 @@ void MailboxMigrator::execute()
     Scope x( &d->log );
 
     if ( d->injector && d->injector->failed() ) {
-        String e( "Database error: " );
-        e.append( d->injector->error() );
-        // and then what? e is unused.
+        d->error = "Database error: " + d->injector->error();
+        d->migrator->execute();
+        return;
     }
     else if ( d->injector ) {
-        d->migrated += d->messages.count();
+        d->migrated += d->migrating;
+        d->migrating = 0;
     }
     else if ( d->mailboxCreator ) {
         if ( d->mailboxCreator->failed() ) {
@@ -506,13 +508,14 @@ void MailboxMigrator::execute()
         }
     }
 
+    if ( d->injector )
+        d->injector = 0;
+
     if ( d->gcHackTimer ) {
         delete d->gcHackTimer;
         d->gcHackTimer = 0;
     }
     else if ( Allocator::allocated() > 5 * 1024 * 1024 ) {
-        d->messages.clear();
-        d->injector = 0;
         EventLoop::freeMemorySoon();
         d->gcHackTimer = new Timer( this, 0 );
         return;
@@ -527,8 +530,6 @@ void MailboxMigrator::execute()
 
     if ( !d->messages.isEmpty() ) {
         Scope x( new Log( Log::General ) );
-        if ( !d->injector )
-            log( "Ready to start injecting messages" );
         log( "Starting migration of " + fn ( d->messages.count() ) +
              " messages starting with " + d->messages.first()->description() );
         List<Message> * messages = new List<Message>;
@@ -541,8 +542,9 @@ void MailboxMigrator::execute()
             ++i;
         }
         d->injector = new Injector( messages, this );
-        d->injector->setLog( x.log() );
         d->injector->execute();
+        d->migrating = d->messages.count();
+        d->messages.clear();
     }
     else {
         d->migrator->execute();
