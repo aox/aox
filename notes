@@ -60,6 +60,8 @@ Schedule
   The IMAP MULTIAPPEND extension is now supported (this is basically
   IMAP access to the faster injector).
 
+  Bodyparts can have duplicate MD5 hashes now.
+
   aox show search. Needs more search types.
 
   Not done: Using searches for aox undelete.
@@ -447,26 +449,31 @@ imapd/handlers/acl.cpp
   logging statement to the end of parse().
 
 
+Threads in Archiveopteryx 4.0
+
+  I'm growing more and more fond of using a few threads, and not using
+  server-processes any more.
+
+  We'd replace server-processes with server-threads.
+
+  The core event loop would create a queue of work to be done, and
+  worker threads would take a piece of work, obtain the necessary
+  lock, and do it.
+
+  I think we'd have one lock for each SaslConnection and perhaps a
+  couple more. Scope would know what locks are needed in order to work
+  in that Scope.
+
+  We'd be able to collect garbage without halts. We'd be able to serve
+  all clients fairly, using all cores, using fewer database backends
+  than with server-processes.
+
+
 Convert more parsers to use AbnfParser
 
   There are still a few places where we roll our own messy parsers and
   suffer for it (e.g. HTTP, DigestMD5). We know they work, but making
   them use AbnfParser in a spare moment would be an act of kindness.
-
-
-aox/conf/*
-
-  Possible category pages, each listing all variables that influence
-  blah
-
-  conf/encryption
-  conf/authentication
-  conf/webmail
-  conf/submission
-  conf/imap
-  conf/database
-
-  More?
 
 
 aox/conf/tls-certificate
