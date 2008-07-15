@@ -66,7 +66,7 @@ public:
     FlagCreatorData( const StringList & f, Transaction * tr,
                      EventHandler * ev )
         : flags( f ), t( tr ), state( 0 ), select( 0 ),
-          insert( 0 ), owner( ev ), savepoint( 0 ) {}
+          insert( 0 ), owner( ev ) {}
     StringList flags;
     Transaction * t;
     uint state;
@@ -74,7 +74,6 @@ public:
     Query * insert;
     EventHandler * owner;
     Dict<uint> unided;
-    int savepoint;
 };
 
 
@@ -170,6 +169,8 @@ void FlagCreator::selectFlags()
     d->select->allowSlowness();
 
     if ( !sl.isEmpty() ) {
+        if ( d->state == 0 )
+            d->t->enqueue( new Query( "savepoint flagcreator", 0 ) );
         d->state = 1;
         d->t->enqueue( d->select );
         d->t->execute();
@@ -208,9 +209,6 @@ void FlagCreator::processFlags()
 
 void FlagCreator::insertFlags()
 {
-    Query * q = new Query( "savepoint c" + fn( d->savepoint ), this );
-    d->t->enqueue( q );
-
     d->insert = new Query( "copy flag_names (name) from stdin with binary",
                         this );
     StringList::Iterator it( d->flags );
@@ -238,14 +236,11 @@ void FlagCreator::processInsert()
         return;
 
     if ( !d->insert->failed() ) {
-        d->t->enqueue( new Query( "release savepoint c" + fn( d->savepoint ),
-                               this ) );
+        d->t->enqueue( new Query( "release savepoint flagcreator", this ) );
         d->state = 4;
     }
     else if ( d->insert->error().contains( "fn_uname" ) ) {
-        d->t->enqueue( new Query( "rollback to c" + fn( d->savepoint ),
-                                  this ) );
-        d->savepoint++;
+        d->t->enqueue( new Query( "rollback to flagcreator", this ) );
         d->state = 4;
     }
     else {
