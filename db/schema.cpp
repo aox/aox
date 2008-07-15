@@ -467,6 +467,8 @@ bool Schema::singleStep()
         c = stepTo72(); break;
     case 72:
         c = stepTo73(); break;
+    case 73:
+        c = stepTo74(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3759,5 +3761,20 @@ bool Schema::stepTo73()
             return false;
     }
 
+    return true;
+}
+
+
+/*! Make bodyparts.hash non-unique. */
+
+bool Schema::stepTo74()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Allow two bodyparts to have the same MD5 hash." );
+        d->t->enqueue( new Query( "alter table bodyparts "
+                                  "drop constraint bodyparts_hash_key", 0 ) );
+        d->substate = 1;
+        d->t->execute();
+    }
     return true;
 }
