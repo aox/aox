@@ -34,6 +34,7 @@ public:
 
     List< HeaderField > * fields() const;
     HeaderField * field( HeaderField::Type, uint = 0 ) const;
+    HeaderField * field( const char *, uint = 0 ) const;
     AddressField * addressField( HeaderField::Type, uint = 0 ) const;
 
     Date * date( HeaderField::Type = HeaderField::Date ) const;

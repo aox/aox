@@ -20,8 +20,8 @@ public:
     static HeaderField *assemble( const String &, const UString & );
 
     // The contents of this enum must be kept in sync with the data in
-    // src/schema/field-names. Furthermore, new entries MUST be added
-    // only at the end.
+    // src/schema/field-names. Furthermore, new entries MUST NEVER
+    // be added.
     enum Type {
         From = 1, ResentFrom,
         Sender, ResentSender,
@@ -39,7 +39,6 @@ public:
         MimeVersion,
         Received,
         ContentLanguage, ContentLocation, ContentMd5,
-        ContentBase,
         Other
     };
 
