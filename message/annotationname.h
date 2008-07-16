@@ -4,7 +4,7 @@
 #define ANNOTATIONNAME_H
 
 #include "stringlist.h"
-#include "injector.h"
+
 
 class EventHandler;
 class Query;
@@ -22,22 +22,6 @@ public:
 
     static String name( uint );
     static uint id( const String & );
-};
-
-
-class AnnotationNameCreator
-    : public HelperRowCreator
-{
-public:
-    AnnotationNameCreator( const StringList &, class Transaction * );
-
-private:
-    Query * makeSelect();
-    void processSelect( Query * );
-    Query * makeCopy();
-
-private:
-    StringList names;
 };
 
 

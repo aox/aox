@@ -5,6 +5,7 @@
 
 #include "stringlist.h"
 
+
 class EventHandler;
 class Query;
 
@@ -15,9 +16,6 @@ public:
 
     static void reload( EventHandler * = 0 );
     static void rollback();
-
-    static Query * create( const StringList &, class Transaction *,
-                           EventHandler * );
 
     static void add( const String &, uint );
 

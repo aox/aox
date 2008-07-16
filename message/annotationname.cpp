@@ -58,64 +58,6 @@ private:
 };
 
 
-AnnotationNameCreator::AnnotationNameCreator( const StringList & f,
-                                              Transaction * t )
-    : HelperRowCreator( "annotation_names", t, "annotation_names_name_key" ),
-      names( f )
-{
-}
-
-Query *  AnnotationNameCreator::makeSelect()
-{
-    Query * q = new Query( "select id, name from annotation_names where "
-                           "name=any($1::text[])", this );
-
-    StringList sl;
-    StringList::Iterator it( names );
-    while ( it ) {
-        String name( *it );
-        if ( AnnotationName::id( name ) == 0 )
-            sl.append( name );
-        ++it;
-    }
-    if ( sl.isEmpty() )
-        return 0;
-
-    q->bind( 1, sl );
-    return q;
-}
-
-
-void AnnotationNameCreator::processSelect( Query * q )
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        AnnotationName::add( r->getString( "name" ), r->getInt( "id" ) );
-    }
-}
-
-
-Query * AnnotationNameCreator::makeCopy()
-{
-    Query * q = new Query( "copy annotation_names (name) "
-                           "from stdin with binary", this );
-    StringList::Iterator it( names );
-    bool any = false;
-    while ( it ) {
-        if ( AnnotationName::id( *it ) == 0 ) {
-            any = true;
-            q->bind( 1, *it );
-            q->submitLine();
-        }
-        ++it;
-    }
-
-    if ( !any )
-        return 0;
-    return q;
-}
-
-
 class AnnotationNameObliterator
     : public EventHandler
 {

@@ -15,6 +15,7 @@
 #include "fieldname.h"
 #include "mimefields.h"
 #include "messagecache.h"
+#include "helperrowcreator.h"
 #include "addressfield.h"
 #include "transaction.h"
 #include "annotation.h"
@@ -257,8 +258,7 @@ public:
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
           mailboxes( new SortedList<Mailbox> ),
-          flagCreator( 0 ), annotationNameCreator( 0 ),
-          fieldCreation( 0 ), addressCreation( 0 ),
+          creators( 0 ), addressCreation( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), ignoreError( false )
     {}
@@ -279,9 +279,7 @@ public:
 
     SortedList<Mailbox> * mailboxes;
 
-    FlagCreator * flagCreator;
-    AnnotationNameCreator * annotationNameCreator;
-    Query * fieldCreation;
+    List<HelperRowCreator> * creators;
     Query * addressCreation;
 
     struct Delivery
@@ -746,30 +744,26 @@ void Injector::updateAddresses( List<Address> * newAddresses )
 
 void Injector::createDependencies()
 {
-    if ( !d->fieldCreation && !d->fields.isEmpty() )
-        d->fieldCreation =
-            FieldName::create( d->fields, d->transaction, this );
-
-    if ( d->fieldCreation &&
-         ( !d->fieldCreation->done() || d->fieldCreation->failed() ) )
-        return;
-
-    if ( !d->flagCreator && !d->flags.isEmpty() ) {
-        d->flagCreator = new FlagCreator( d->flags, d->transaction );
-        d->flagCreator->execute();
+    if ( !d->creators ) {
+        d->creators = new List<HelperRowCreator>;
+        if ( !d->fields.isEmpty() )
+            d->creators->append( new FieldNameCreator( d->fields,
+                                                       d->transaction ) );
+        if ( !d->flags.isEmpty() )
+            d->creators->append( new FlagCreator( d->flags, d->transaction ) );
+        if ( !d->annotationNames.isEmpty() )
+            d->creators->append( new AnnotationNameCreator( d->annotationNames,
+                                                            d->transaction ) );
     }
 
-    if ( d->flagCreator && !d->flagCreator->done() )
-        return;
-
-    if ( !d->annotationNameCreator && !d->annotationNames.isEmpty() ) {
-        d->annotationNameCreator 
-            = new AnnotationNameCreator( d->annotationNames, d->transaction );
-        d->annotationNameCreator->execute();
+    while ( !d->creators->isEmpty() ) {
+        HelperRowCreator * c = d->creators->firstElement();
+        if ( !c->done() )
+            c->execute();
+        if ( !c->done() )
+            return;
+        d->creators->shift();
     }
-
-    if ( d->annotationNameCreator && !d->annotationNameCreator->done() )
-        return;
 
     if ( !d->addressCreation ) {
         AddressCreator * a =
@@ -1661,156 +1655,3 @@ uint Injector::internalDate( Mailbox * mb, Message * m ) const
     m->setInternalDate( mb, id.unixTime() );
     return id.unixTime();
 }
-
-
-/*! \class HelperRowCreator injector.h
-
-    The HelperRowCreator class contains common logic and some code to
-    add rows to the helper tables flag_names, annotation_names and
-    header_fields. It's inherited by one class per table.
-
-    In theory this could handle bodyparts and addresses, but I think
-    not. Those are different. Those tables grow to be big. These three
-    tables frequently contain less than one row per thousand messages,
-    so we need to optimise this class for inserting zero, one or at
-    most a few rows.
-*/
-
-
-class HelperRowCreatorData
-    : public Garbage
-{
-public:
-    HelperRowCreatorData()
-        : s( 0 ), c( 0 ), t( 0 ), sp( false ), done( false ) {}
-
-    Query * s;
-    Query * c;
-    Transaction * t;
-    String n;
-    String e;
-    bool sp;
-    bool done;
-};
-
-
-/*!  Constructs an empty HelperRowCreator refering to \a table, using
-     \a transaction. If an error related to \a constraint occurs,
-     execute() will roll back to a savepoint and try again.
-*/
-
-HelperRowCreator::HelperRowCreator( const String & table, 
-                                    Transaction * transaction,
-                                    const String & constraint )
-    : EventHandler(), d( new HelperRowCreatorData )
-{
-    setLog( new Log( Log::Server ) );
-    d->t = transaction;
-    d->n = table + "_creator";
-    d->e = constraint;
-}
-
-
-/*! Returns true if this object is done with the Transaction, and
-    false if it will use the Transaction for one or more queries.
-*/
-
-bool HelperRowCreator::done() const
-{
-    return d->done;
-}
-
-
-void HelperRowCreator::execute()
-{
-    while ( !d->done ) {
-        if ( d->s && !d->s->done() )
-            return;
-        if ( d->c && !d->c->done() )
-            return;
-
-        if ( !d->s ) {
-            d->s = makeSelect();
-            if ( d->s ) {
-                d->t->enqueue( d->s );
-                d->t->execute();
-            }
-            else {
-                d->done = true;
-            }
-        }
-
-        if ( d->s && d->s->done() && !d->c ) {
-            processSelect( d->s );
-            d->s = 0;
-            d->c = makeCopy();
-            if ( d->c ) {
-                if ( !d->sp ) {
-                    d->t->enqueue( new Query( "savepoint " + d->n, 0 ) );
-                    d->sp = true;
-                }
-                d->t->enqueue( d->c );
-                d->t->execute();
-            }
-            else {
-                d->done = true;
-            }
-        }
-
-        if ( d->c && d->c->done() ) {
-            Query * c = d->c;
-            d->c = 0;
-            if ( !c->failed() ) {
-                // We inserted, hit no race.
-            }
-            else if ( d->c->error().contains( d->e ) ) {
-                // We inserted, but there was a race and we lost it.
-                d->t->enqueue( new Query( "rollback to savepoint "+d->n, 0 ) );
-            }
-            else {
-                // Total failure. The Transaction is now in Failed
-                // state, and there's nothing we can do other than
-                // notify our owner about it.
-                d->done = true;
-                d->sp = false;
-            }
-        }
-    }
-
-    if ( d->sp )
-        d->t->enqueue( new Query( "release savepoint " + d->n, 0 ) );
-    d->t->notify();
-}
-
-
-/*! \fn Query * HelperRowCreator::makeSelect()
-
-    This pure virtual function is called to make a query to return the
-    IDs of rows already in the database, or of newly inserted rows.
-
-    If nothing needs to be done, the makeSelect() can return a null
-    pointer.
-
-    If makeSelect() returns non-null, the returned Query should have
-    this object as owner.
- */
-
-
-/*! \fn void HelperRowCreator::processSelect( Query * q )
-
-    This pure virtual function is called to process the result of the
-    makeSelect() Query. \a q is the Query returned by makeSelect()
-    (never 0).
- */
-
-
-/*! \fn Query * HelperRowCreator::makeCopy()
-
-    This pure virtual function is called to make a query to insert the
-    necessary rows to the table.
-
-    If nothing needs to be inserted, makeCopy() can return 0.
-
-    If makeCopy() returns non-null, the returned Query should have
-    this object as owner.
- */

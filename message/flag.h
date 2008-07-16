@@ -4,7 +4,6 @@
 #define FLAG_H
 
 #include "stringlist.h"
-#include "injector.h"
 #include "event.h"
 
 
@@ -23,24 +22,6 @@ public:
     static String name( uint );
     static uint id( const String & );
 };
-
-
-class FlagCreator
-    : public HelperRowCreator
-{
-public:
-    FlagCreator( const StringList &, class Transaction * );
-
-private:
-    Query * makeSelect();
-    void processSelect( Query * );
-    Query * makeCopy();
-
-private:
-    class FlagCreatorData * d;
-};
-
-
 
 
 #endif

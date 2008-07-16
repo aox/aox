@@ -2,6 +2,7 @@
 
 #include "store.h"
 
+#include "helperrowcreator.h"
 #include "permissions.h"
 #include "transaction.h"
 #include "imapsession.h"
