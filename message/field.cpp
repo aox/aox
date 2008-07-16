@@ -47,7 +47,6 @@ static struct {
     { "Content-Description", HeaderField::ContentDescription },
     { "Content-Language", HeaderField::ContentLanguage },
     { "Content-Location", HeaderField::ContentLocation },
-    { "Content-Base", HeaderField::ContentBase },
     { "Content-Md5", HeaderField::ContentMd5 },
     { "Content-Id", HeaderField::ContentId },
     { "Mime-Version", HeaderField::MimeVersion },
@@ -106,7 +105,6 @@ HeaderField *HeaderField::fieldNamed( const String &name )
     case MimeVersion:
     case Received:
     case ContentLocation:
-    case ContentBase:
     case ContentMd5:
     case Other:
         if ( n == "List-Id" )
@@ -386,16 +384,18 @@ void HeaderField::parse( const String &s )
         parseContentLocation( s );
         break;
 
-    case ContentBase:
-        parseContentBase( s );
-        break;
-
     case InReplyTo:
     case Keywords:
     case Received:
     case ContentMd5:
-    case Other:
         parseOther( s );
+        break;
+
+    case Other:
+        if ( name() == "Content-Base" )
+            parseContentBase( s );
+        else
+            parseOther( s );
         break;
     }
 

@@ -187,12 +187,11 @@ List< HeaderField > *Header::fields() const
 }
 
 
-/*! This function returns a pointer to the header field with type \a t
-    and index \a n, or a null pointer if there is no such field in this
-    header.
+/*! Returns a pointer to the header field with type \a t and index \a
+    n, or a null pointer if there is no such field in this header.
 
     if \a n is 0, as it is by default, the first field with type \a t
-    is returned. 1 refer to the second.
+    is returned. 1 refers to the second.
 */
 
 HeaderField * Header::field( HeaderField::Type t, uint n ) const
@@ -208,6 +207,32 @@ HeaderField * Header::field( HeaderField::Type t, uint n ) const
     while ( it && it->type() != t )
         ++it;
     return it;
+}
+
+
+/*! Returns a pointer to the header field with type Other, name \a h
+    and index n, or a null pointer if there is no such field in this
+    header.
+
+    If \a n is 0, as it is by default, the first field with the
+    desired name is returned, 1 refers to the second, and so on.
+
+*/
+
+HeaderField * Header::field( const char * h, uint n ) const
+{
+    List<HeaderField>::Iterator it( d->fields );
+    while ( n > 0 && it ) {
+        while ( it && ( it->type() != HeaderField::Other || it->name() != h ) )
+            ++it;
+        n--;
+        if ( it )
+            ++it;
+    }
+    while ( it && ( it->type() != HeaderField::Other || it->name() != h ) )
+        ++it;
+    return it;
+    
 }
 
 
@@ -560,7 +585,7 @@ void Header::simplify()
     }
     else if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 &&
          !field( HeaderField::ContentLocation ) &&
-         !field( HeaderField::ContentBase ) ) {
+         !field( "Content-Base" ) ) {
         removeField( HeaderField::MimeVersion );
     }
     else {
