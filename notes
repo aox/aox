@@ -46,6 +46,8 @@ Schedule
 
   Bodyparts can have duplicate MD5 hashes now.
 
+  aox add alias newalias@whatev.er otherlocaladdress@whatev.er
+
   aox show search. Needs more search types.
 
   Not done: Using searches for aox undelete.
