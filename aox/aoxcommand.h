@@ -23,6 +23,8 @@ public:
 
 protected:
     String next();
+    StringList * args();
+    class Address * nextAsAddress();
     void setopt( char );
     uint opt( char );
     void parseOptions();

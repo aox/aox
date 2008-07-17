@@ -69,10 +69,10 @@ public:
     {}
 
     Address * address;
-    UString s;
+    Address * destination;
+    UString mailbox;
     Transaction * t;
     Query * q;
-
 };
 
 
@@ -91,52 +91,48 @@ void CreateAlias::execute()
     if ( !d->t ) {
         parseOptions();
         Utf8Codec c;
-        String address = next();
-        UString mailbox = c.toUnicode( next() );
+        d->address = nextAsAddress();
+        String * first = args()->firstElement();
+        if ( first && !first->startsWith( "/" ) && first->contains( "@" ) )
+            d->destination = nextAsAddress();
+        else
+            d->mailbox = c.toUnicode( next() );
         end();
 
         if ( !c.valid() )
             error( "Argument encoding: " + c.error() );
-        if ( address.isEmpty() )
-            error( "No address specified." );
-
-        if ( mailbox.isEmpty() )
-            error( "No mailbox specified." );
-
-        AddressParser p( address );
-        if ( !p.error().isEmpty() )
-            error( "Invalid address: " + p.error() );
-        if ( p.addresses()->count() != 1 )
-            error( "At most one address may be present" );
-
-        AddressCache::setup();
-
-        d->s = mailbox;
-        d->address = p.addresses()->first();
 
         database( true );
+        AddressCache::setup();
         d->t = new Transaction( this );
         List< Address > l;
         l.append( d->address );
+        if ( d->destination )
+            l.append( d->destination );
         AddressCache::lookup( d->t, &l, this );
-        d->t->commit();
-
-        Mailbox::setup( this );
     }
 
-    if ( !choresDone() || !d->t->done() )
+    if ( !d->address->id() || ( d->destination && !d->destination->id() ) )
         return;
 
     if ( !d->q ) {
-        Mailbox * m = Mailbox::obtain( d->s, false );
-        if ( !m )
-            error( "Invalid mailbox specified: " + d->s.utf8().quoted() );
-
-        d->q = new Query( "insert into aliases (address, mailbox) "
-                          "values ($1, $2)", this );
-        d->q->bind( 1, d->address->id() );
-        d->q->bind( 2, m->id() );
-        d->q->execute();
+        if ( d->destination ) {
+            d->q = new Query( "insert into aliases (address, mailbox) "
+                              "select $1, mailbox from aliases "
+                              "where address=$2",
+                              this );
+            d->q->bind( 1, d->address->id() );
+            d->q->bind( 2, d->destination->id() );
+        }
+        else {
+            d->q = new Query( "insert into aliases (address, mailbox) "
+                              "select $1, id from mailboxes where name=$2",
+                              this );
+            d->q->bind( 1, d->address->id() );
+            d->q->bind( 2, d->mailbox );
+        }
+        d->t->enqueue( d->q );
+        d->t->execute();
     }
 
     if ( !d->q->done() )
@@ -144,6 +140,14 @@ void CreateAlias::execute()
 
     if ( d->q->failed() )
         error( "Couldn't create alias" );
+
+    if ( d->q->rows() < 1 )
+        error( "Could not locate destination for alias" );
+    else if ( d->q->rows() > 1 )
+        error( "Internal error: Inserted " + fn( d->q->rows() ) +
+               " instead of 1. Not committing." );
+
+    d->t->commit();
 
     finish();
 }

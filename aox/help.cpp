@@ -278,12 +278,12 @@ void Help::execute()
         fprintf(
             stderr,
             "  add alias -- Create a delivery alias.\n\n"
-            "    Synopsis: aox add alias <address> <mailbox>\n\n"
+            "    Synopsis: aox add alias <address> <destination>\n\n"
             "    Creates an alias that instructs the L/SMTP server to accept\n"
             "    mail to a given address, and deliver it to a given mailbox.\n"
-            "    (Ordinarily, mail is accepted only to a user's main address,\n"
-            "    and stored in their INBOX. Aliases take precedence over this\n"
-            "    mechanism.)\n"
+            "    The destination mailbox can be specified by name (starting\n"
+            "    with '/') or by email address (ie. creating another alias for\n"
+            "    the same mailbox).\n"
         );
     }
     else if ( a == "delete" && b == "alias" ) {

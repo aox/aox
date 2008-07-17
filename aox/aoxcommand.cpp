@@ -7,6 +7,7 @@
 #include "configuration.h"
 #include "eventloop.h"
 #include "database.h"
+#include "address.h"
 #include "scope.h"
 
 #include "users.h"
@@ -107,6 +108,16 @@ static String next( StringList * sl )
 }
 
 
+/*! Returns the list of unparsed arguments. next() takes an argument
+    from the front of this list.
+*/
+
+StringList * AoxCommand::args()
+{
+    return d->args;
+}
+
+
 /*! Returns the next argument, or an empty string if there are no more
     arguments.
 */
@@ -114,6 +125,23 @@ static String next( StringList * sl )
 String AoxCommand::next()
 {
     return ::next( d->args );
+}
+
+
+/*! Returns the next argument as an address. Signals an error and
+    exits if the next argument isn't a string or there is no next
+    argument.
+*/
+
+class Address * AoxCommand::nextAsAddress()
+{
+    String n = next();
+    AddressParser p( n );
+    if ( !p.error().isEmpty() ||
+         p.addresses()->count() != 1 ) {
+        error( "Invalid address: " + p.error() );
+    }
+    return p.addresses()->first();
 }
 
 
