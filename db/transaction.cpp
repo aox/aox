@@ -15,12 +15,14 @@ class TransactionData
 {
 public:
     TransactionData()
-        : state( Transaction::Inactive ), submittedCommit( false ),
+        : state( Transaction::Inactive ),
+          submittedCommit( false ), submittedBegin( false ),
           owner( 0 ), db( 0 ), queries( 0 ), failedQuery( 0 )
     {}
 
     Transaction::State state;
     bool submittedCommit;
+    bool submittedBegin;
     EventHandler *owner;
     Database *db;
 
@@ -65,9 +67,12 @@ void Transaction::setDatabase( Database *db )
     if ( d->queries )
         return;
     d->queries = new List<Query>;
-    Query * begin = new Query( "begin", 0 );
-    begin->setTransaction( this );
-    d->queries->append( begin );
+    if ( !d->submittedBegin ) {
+        Query * begin = new Query( "begin", 0 );
+        begin->setTransaction( this );
+        d->queries->append( begin );
+        d->submittedBegin = true;
+    }
 }
 
 
@@ -263,11 +268,12 @@ void Transaction::execute()
         // if we've a handle already, it can work
         d->db->processQueue();
     }
-    else {
+    else if ( !d->submittedBegin ) {
         // if not, we ask Database to give us one
         Query * begin = new Query( "begin", 0 );
         begin->setTransaction( this );
         Database::submit( begin );
+        d->submittedBegin = true;
     }
 }
 

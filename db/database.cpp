@@ -477,6 +477,9 @@ Database::User Database::loginAs()
 /*! Instructs the database system to call \a h once as soon as the
     database system becomes completely idle (no queries queued or
     executing).
+    
+    \a h is not executed right away, even if the database is currently
+    idle, but rather the next time the database system becomes idle.
 */
 
 void Database::notifyWhenIdle( class EventHandler * h )
