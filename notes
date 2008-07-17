@@ -39,23 +39,7 @@ Schedule
 
   The injector can now inject multiple messages with one transaction.
 
-  aoximport uses the faster injector, and it seems to find a bug. At
-  least the injector sometimes does nothing after this:
-
-    general/info: 7/1/15/1: 2008-07-09 15:30:18.477
-        Dequeueing query "copy field_names (name) from stdin with binary"
-        on backend 1 (with 7 rows)
-    general/debug: 7/1/15/1: 2008-07-09 15:30:18.477
-        Sent parse/execute for "release savepoint e0" on backend 1
-    general/debug: 7/1/15/1: 2008-07-09 15:30:18.477
-        Sent parse/execute for "select id, name from field_names where 
-        name=any($1::text[])" ($1='{X-Sieve,X-E'... (89b)) on backend 1
-    general/info: 7/1/15/1: 2008-07-09 15:30:18.479
-        Dequeueing query "release savepoint e0" on backend 1
-    general/info: 7/1/15/1: 2008-07-09 15:30:18.480
-        Dequeueing query "select id, name from field_names where 
-        name=any($1::text[])" ($1='{X-Sieve,X-E'... (89b))
-        on backend 1 (with 7 rows)
+  aoximport uses the faster injector.
 
   The IMAP MULTIAPPEND extension is now supported (this is basically
   IMAP access to the faster injector).

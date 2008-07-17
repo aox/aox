@@ -170,7 +170,7 @@ void Vacuum::execute()
         return;
 
     if ( t->failed() )
-        error( t->error() );
+        error( "Vacuuming failed" );
 
     finish();
 }
@@ -281,7 +281,7 @@ void GrantPrivileges::execute()
         return;
 
     if ( q->failed() )
-        error( q->error() );
+        error( "Could not grant privileges" );
 
     finish();
 }

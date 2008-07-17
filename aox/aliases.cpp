@@ -143,7 +143,7 @@ void CreateAlias::execute()
         return;
 
     if ( d->q->failed() )
-        error( "Couldn't create alias: " + d->q->error() );
+        error( "Couldn't create alias" );
 
     finish();
 }
@@ -190,7 +190,7 @@ void DeleteAlias::execute()
         return;
 
     if ( q->failed() )
-        error( "Couldn't delete alias: " + q->error() );
+        error( "Couldn't delete alias" );
 
     finish();
 }

@@ -828,14 +828,6 @@ void Postgres::serverMessage()
             s.append( " (" + msg.detail() + ")" );
         s.append( " (" + code + ")" );
 
-        // Don't clutter the logs with queries that are known to run the
-        // risk of failure, or which failed only because the transaction
-        // they are in had failed already.
-        if ( q->canFail() || code == "25P02" )
-            ::log( s, Log::Debug );
-        else
-            ::log( s, Log::Error );
-
         // If we sent a Parse message for a named prepared statement
         // while processing this query, but don't already know that
         // it succeeded, we'll assume that statement name does not

@@ -117,7 +117,7 @@ void CreateView::execute()
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't create view: " + d->t->error() );
+        error( "Couldn't create view" );
 
     finish();
 }

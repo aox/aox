@@ -195,7 +195,7 @@ void CreateMailbox::execute()
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't create mailbox: " + d->t->error() );
+        error( "Couldn't create mailbox" );
 
     finish();
 }
@@ -261,7 +261,7 @@ void DeleteMailbox::execute()
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't delete mailbox: " + d->t->error() );
+        error( "Couldn't delete mailbox" );
 
     finish();
 }

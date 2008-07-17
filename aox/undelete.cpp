@@ -120,7 +120,7 @@ void Undelete::execute()
         return;
 
     if ( d->t->failed() ) {
-        error( "Couldn't undelete message: " + d->t->error() );
+        error( "Couldn't undelete message" );
     }
     else {
         Row * r = d->fetch->nextRow();

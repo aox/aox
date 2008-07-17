@@ -116,7 +116,7 @@ void Reparse::execute()
             return;
 
         if ( d->t->failed() )
-            error( "Couldn't delete reparsed message: " + d->t->error() );
+            error( "Couldn't delete reparsed message" );
 
         d->t = 0;
     }

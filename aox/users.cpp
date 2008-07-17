@@ -254,7 +254,7 @@ void DeleteUser::execute()
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't delete user: " + d->t->error() );
+        error( "Couldn't delete user" );
 
     finish();
 }
@@ -298,16 +298,15 @@ void ChangePassword::execute()
         u->setLogin( login );
         u->setSecret( passwd );
         q = u->changeSecret( this );
-        if ( q->failed() )
-            error( q->error() );
-        u->execute();
+        if ( !q->failed() )
+            u->execute();
     }
 
     if ( !q->done() )
         return;
 
     if ( q->failed() )
-        error( "Couldn't change password: " + q->error() );
+        error( "Couldn't change password" );
 
     finish();
 }
@@ -438,7 +437,7 @@ void ChangeUsername::execute()
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't change username: " + d->t->error() );
+        error( "Couldn't change username" );
 
     finish();
 }
@@ -536,7 +535,7 @@ void ChangeAddress::execute()
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't change address: " + d->t->error() );
+        error( "Couldn't change address" );
 
     finish();
 }

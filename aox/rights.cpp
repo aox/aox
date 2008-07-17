@@ -277,7 +277,7 @@ void SetAcl::execute()
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't assign rights: " + d->t->error() );
+        error( "Couldn't assign rights" );
 
     if ( opt( 'd' ) > 0 ) {
         printf( "Deleted rights on mailbox '%s' for user '%s'\n",
