@@ -152,7 +152,8 @@ rule Doc {
 
 
 actions together RemoveDirectories {
-    rm -rf $(TOP)/doc/man/man3 $(TOP)/doc/html $(TOP)/$(BUILD)
+    rm -rf $(TOP)/doc/man/man3 $(TOP)/$(BUILD)
+    find $(TOP)/doc/html -name udoc.css -prune -o -type f -exec rm {} \;
 }
 
 actions together Doc2 bind UDOCBIN {
