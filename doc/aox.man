@@ -150,6 +150,11 @@ is specified, in which case unqualified names are assumed to be under
 the user's home directory.
 .IP "aox delete mailbox <name>"
 Deletes the specified mailbox.
+.IP "aox add view <name> <source> <owner> <search>"
+Creates a new view mailbox which applies the specified search
+on the specified source mailbox. When a new message is added
+to the source, and it matches the search, it will automatically
+be added to the view as well.
 .IP "aox add alias <address> <mailbox>"
 Creates an alias that instructs the server to accept mail to the given
 .I address

@@ -5,6 +5,7 @@
 #include "utf.h"
 #include "user.h"
 #include "query.h"
+#include "search.h"
 #include "mailbox.h"
 #include "selector.h"
 #include "transaction.h"
@@ -46,9 +47,8 @@ void CreateView::execute()
         Utf8Codec c;
         d->name = c.toUnicode( next() );
         d->source = c.toUnicode( next() );
-        d->selector = Selector::fromString( next() );
         UString owner( c.toUnicode( next() ) );
-        end();
+        d->selector = parseSelector( args() );
 
         if ( !c.valid() )
             error( "Argument encoding: " + c.error() );

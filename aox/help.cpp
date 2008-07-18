@@ -288,6 +288,17 @@ void Help::execute()
             "    the same mailbox).\n"
         );
     }
+    else if ( a == "add" && b == "view" ) {
+        fprintf(
+            stderr,
+            "  add view -- Create a view mailbox.\n\n"
+            "    Synopsis: aox add view <name> <source> <owner> <search>\n\n"
+            "    Creates a new view mailbox which applies the specified search\n"
+            "    on the specified source mailbox. When a new message is added\n"
+            "    to the source, and it matches the search, it will automatically\n"
+            "    be added to the view as well.\n"
+        );
+    }
     else if ( a == "delete" && b == "alias" ) {
         fprintf(
             stderr,
