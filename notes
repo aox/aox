@@ -48,7 +48,8 @@ Schedule
 
   aox show search. Needs more search types.
 
-  aox undelete now uses search (aox undelete /users/arnt/inbox from oryx.com)
+  aox undelete and aox add view now use search expressions, e.g.
+    aox undelete /users/arnt/inbox from oryx.com
 
   Not done: aox set retention, aox show retention.
 
