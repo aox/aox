@@ -167,14 +167,15 @@ exactly those given.
 With -d, the identifier's rights are deleted altogether.
 .IP
 A summary of the changes made is displayed when the operation completes.
-.IP "aox undelete <mailbox> <uid>"
-Recovers a deleted message with the specified uid from the given
-mailbox.
-.IP
-Messages can be recovered only if
-.I aox vacuum
-has not permanently deleted them after the configured
+.IP "aox undelete <mailbox> <search>"
+Searches for deleted messages in the specified mailbox and
+restores those that match the search.
+.PP
+Messages can be restored after an IMAP EXPUNGE or POP3 DELE
+until aox vacuum permanently removes them after the configured
 .IR undelete-time .
+.PP
+Example: aox undelete /users/fred/inbox from example.com
 .IP "aox vacuum"
 Permanently deletes messages that were marked for deletion more than
 .I undelete-time

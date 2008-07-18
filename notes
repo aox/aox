@@ -48,7 +48,7 @@ Schedule
 
   aox show search. Needs more search types.
 
-  Not done: Using searches for aox undelete.
+  aox undelete now uses search (aox undelete /users/arnt/inbox from oryx.com)
 
   Not done: aox set retention, aox show retention.
 

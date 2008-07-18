@@ -2,6 +2,8 @@
 
 #include "help.h"
 
+#include "configuration.h"
+
 #include <stdio.h>
 
 
@@ -313,11 +315,12 @@ void Help::execute()
         fprintf(
             stderr,
             "  undelete -- Restore a message that has been deleted.\n\n"
-            "    Synopsis: undelete <mailbox> <uid>\n\n"
-            "    Restores the message with the specified mailbox and uid.\n\n"
+            "    Synopsis: undelete <mailbox> <search>\n\n"
+            "    Searches for deleted messages in the specified mailbox and\n"
+            "    restores those that match the search.\n"
             "    Messages can be restored after an IMAP EXPUNGE or POP3 DELE\n"
-            "    only if aox vacuum has not permanently removed them after\n"
-            "    the configured undelete-time (7 days by default).\n"
+            "    until aox vacuum permanently removes them %d days later.\n",
+            Configuration::scalar( Configuration::UndeleteTime )
         );
     }
     else if ( a == "vacuum" ) {

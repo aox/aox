@@ -406,6 +406,10 @@ void Selector::simplify()
     The \a mailbox to search is passed in separately, because
     we can't use the Session's mailbox while building views.
 
+    If \a deleted is supplied and true (the default is false), then
+    the Query looks at the deleted_messages table instead of the
+    mailbox_messages one.
+
     The search results will be ordered if \a order is true (this is
     the default). Each Query Row will have the result columns named in
     \a wanted, or "uid", "modseq", "message" and "idate" if \a wanted
@@ -415,7 +419,7 @@ void Selector::simplify()
 
 Query * Selector::query( User * user, Mailbox * mailbox,
                          Session * session, EventHandler * owner,
-                         bool order, StringList * wanted )
+                         bool order, StringList * wanted, bool deleted )
 {
     d->query = new Query( owner );
     d->user = user;
@@ -423,13 +427,20 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
+    if ( deleted )
+        d->mm = new String( "dm" );
+    else
+        d->mm = new String( "mm" );
     String q = "select distinct " + mm() + ".";
     if ( wanted )
         q.append( wanted->join( ", " + mm() + "." ) );
     else
         q.append( "uid, " + mm() + ".modseq, " +
                   mm() + ".message, " + mm() + ".idate" );
-    q.append( " from mailbox_messages " + mm() );
+    if ( deleted )
+        q.append( " from deleted_messages " + mm() );
+    else
+        q.append( " from mailbox_messages " + mm() );
     String w = where();
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );

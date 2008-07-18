@@ -4,25 +4,27 @@
 
 #include "transaction.h"
 #include "messageset.h"
+#include "selector.h"
 #include "mailbox.h"
-#include "session.h"
+#include "search.h"
 #include "query.h"
 #include "utf.h"
+
+#include <stdlib.h> // exit()
+
 
 class UndeleteData
     : public Garbage
 {
 public:
-    UndeleteData()
-        : uid( 0 ), q( 0 ), m( 0 ), t( 0 ), fetch( 0 )
-    {}
+    UndeleteData(): state( 0 ), m( 0 ), t( 0 ), find( 0 ), uidnext( 0 ) {}
 
-    UString mailbox;
-    uint uid;
-    Query * q;
+    uint state;
     Mailbox * m;
     Transaction * t;
-    Query * fetch;
+
+    Query * find;
+    Query * uidnext;
 };
 
 
@@ -38,110 +40,115 @@ Undelete::Undelete( StringList * args )
 
 void Undelete::execute()
 {
-    if ( d->mailbox.isEmpty() ) {
-        bool ok = false;
-        parseOptions();
+    if ( d->state == 0 ) {
+        database( true );
+        Mailbox::setup();
+        d->state = 1;
+    }
+
+    if ( d->state == 1 ) {
+        if ( !choresDone() )
+            return;
+        d->state = 2;
+    }
+
+    if ( d->state == 2 ) {
         Utf8Codec c;
-        d->mailbox.append( c.toUnicode( next() ) );
-        d->uid = next().number( &ok );
-        end();
+        UString m = c.toUnicode( next() );
 
         if ( !c.valid() )
-            error( "Mailbox name was not encoded using UTF-8: " + c.error() );
-
-        if ( d->mailbox.isEmpty() )
-            error( "No mailbox name supplied." );
-
-        if ( d->uid < 1 || !ok )
-            error( "No valid UID supplied." );
-
-        database( true );
-        Mailbox::setup( this );
-    }
-
-    if ( !choresDone() )
-        return;
-
-    if ( !d->q ) {
-        d->m = Mailbox::obtain( d->mailbox, false );
+            error( "Encoding error in mailbox name: " + c.error() );
+        else if ( m.isEmpty() )
+            error( "No mailbox name" );
+        else
+            d->m = Mailbox::find( m );
         if ( !d->m )
-            error( "No mailbox named " + d->mailbox.utf8().quoted() );
+            error( "No such mailbox: " + m.utf8() );
 
-        d->q = new Query( "select message from deleted_messages "
-                          "where mailbox=$1 and uid=$2", this );
-        d->q->bind( 1, d->m->id() );
-        d->q->bind( 2, d->uid );
-        d->q->execute();
-    }
-
-    if ( !d->t ) {
-        if ( !d->q->done() )
-            return;
-
-        Row * r = d->q->nextRow();
-        if ( d->q->failed() || !r )
-            error( "Couldn't find a deleted message with uid " +
-                   fn( d->uid ) + " in mailbox " +
-                   d->mailbox.utf8().quoted() );
-
-        uint message = r->getInt( "message" );
+        Selector * s = parseSelector( args() );
+        if ( !s )
+            exit( 1 );
+        s->simplify();
 
         d->t = new Transaction( this );
-        d->q = new Query( "delete from deleted_messages where mailbox=$1 "
-                          "and uid=$2", this );
-        d->q->bind( 1, d->m->id() );
-        d->q->bind( 2, d->uid );
-        d->t->enqueue( d->q );
 
-        d->q = new Query( "insert into mailbox_messages "
-                          "(mailbox,uid,message,idate,modseq) "
-                          "select $1,uidnext,$2,"
-                          "extract(epoch from current_timestamp),"
-                          "nextmodseq from mailboxes where id=$1 "
-                          "for update", this );
-        d->q->bind( 1, d->m->id() );
-        d->q->bind( 2, message );
-        d->t->enqueue( d->q );
+        StringList wanted;
+        wanted.append( "uid" );
 
-        d->fetch = new Query( "select uidnext,nextmodseq from mailboxes "
-                              "where id=$1", this );
-        d->fetch->bind( 1, d->m->id() );
-        d->t->enqueue( d->fetch );
+        d->find = s->query( 0, d->m, 0, 0, true, &wanted, true );
+        d->t->enqueue( d->find );
 
-        d->q = new Query( "update mailboxes set uidnext=uidnext+1, "
-                          "nextmodseq=nextmodseq+1 where id=$1", this );
-        d->q->bind( 1, d->m->id() );
-        d->t->enqueue( d->q );
-        d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
-        d->t->commit();
+        d->uidnext = new Query( "select uidnext, nextmodseq "
+                                "from mailboxes "
+                                "where id=$1 for update", this );
+        d->uidnext->bind( 1, d->m->id() );
+        d->t->enqueue( d->uidnext );
+
+        d->t->execute();
+        d->state = 3;
     }
 
-    if ( !d->t->done() )
-        return;
+    if ( d->state == 3 ) {
+        if ( !d->uidnext->done() )
+            return;
 
-    if ( d->t->failed() ) {
-        error( "Couldn't undelete message" );
-    }
-    else {
-        Row * r = d->fetch->nextRow();
+        Row * r = d->uidnext->nextRow();
+        if ( !r )
+            error( "Internal error - could not read mailbox UID" );
+        uint uidnext = r->getInt( "uidnext" );
+        int64 modseq = r->getBigint( "nextmodseq" );
 
-        if ( r ) {
-            uint uidnext = r->getInt( "uidnext" );
-            int64 nextmodseq = r->getBigint( "nextmodseq" );
-
-            List<Session>::Iterator si( d->m->sessions() );
-            while ( si ) {
-                MessageSet dummy;
-                dummy.add( uidnext );
-                si->addUnannounced( dummy );
-                ++si;
-            }
-
-            Mailbox * m = d->m;
-            if ( m->uidnext() <= uidnext || m->nextModSeq() <= nextmodseq )
-                m->setUidnextAndNextModSeq( 1+uidnext, 1+nextmodseq );
+        MessageSet s;
+        r = d->find->nextRow();
+        while ( r ) {
+            s.add( r->getInt( "uid" ) );
+            r = d->find->nextRow();
         }
+
+        if ( s.isEmpty() )
+            error( "No such deleted message (search returned 0 results)" );
+
+        Query * q;
+        q = new Query( "insert into mailbox_messages "
+                       "(mailbox,uid,message,idate,modseq) "
+                       "select $1,generate_series($2::int,$3::int),"
+                       "message,extract(epoch from current_timestamp),$4 "
+                       "from deleted_messages "
+                       "where mailbox=$1 and uid=any($5)", 0 );
+        q->bind( 1, d->m->id() );
+        q->bind( 2, uidnext );
+        q->bind( 3, uidnext + s.count() - 1 );
+        q->bind( 4, modseq );
+        q->bind( 5, s );
+        d->t->enqueue( q );
+
+        q = new Query( "delete from deleted_messages "
+                       "where mailbox=$1 and uid=any($2)", 0 );
+        q->bind( 1, d->m->id() );
+        q->bind( 5, s );
+        d->t->enqueue( q );
+
+        q = new Query( "update mailboxes "
+                       "set uidnext=$1, nextmodseq=$2 "
+                       "where id=$3", 0 );
+        q->bind( 1, uidnext + s.count() );
+        q->bind( 2, modseq + 1 );
+        q->bind( 3, d->m->id() );
+        d->t->enqueue( q );
+
+        q = new Query( "notify mailboxes_updated", 0 );
+        d->t->enqueue( q );
+
+        d->t->commit();
+        d->state = 4;
     }
 
-    finish();
+    if ( d->state == 4 ) {
+        if ( !d->t->done() )
+            return;
+
+        if ( d->t->failed() )
+            error( "Undelete failed." );
+        finish();
+    }
 }

@@ -254,7 +254,7 @@ Selector * parseSelector( StringList * arguments )
     if ( !arguments->isEmpty() )
         fprintf( stderr, "Error happened near: %s\n",
                  arguments->firstElement()->cstr() );
-        
+
     return 0;
 }
 
@@ -379,7 +379,7 @@ ShowSearch::ShowSearch( StringList * args )
     String sqlFormat = s->string();
     Selector * stored = Selector::fromString( sqlFormat );
     if ( stored->string() != s->string() )
-        fprintf( stderr, 
+        fprintf( stderr,
                  "Error: Round-trip coversion to/from db format failed\n" );
     dumpSelector( s );
     s->simplify();
