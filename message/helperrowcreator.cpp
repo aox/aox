@@ -253,8 +253,13 @@ Query * FlagCreator::makeCopy()
 */
 
 
+/*! Creates an object to ensure that all entries in \a f are present
+    in field_names, using \a tr for all its queryies.
+*/
+
+
 FieldNameCreator::FieldNameCreator( const StringList & f,
-                                              Transaction * tr )
+                                    Transaction * tr )
     : HelperRowCreator( "field_names", tr,  "field_names_name_key" ),
       names( f )
 {
@@ -309,6 +314,17 @@ Query * FieldNameCreator::makeCopy()
     return q;
 }
 
+
+/*! \class AnnotationNameCreator helperrowcreator.h
+
+    The AnnotationNameCreator is a HelperRowCreator to insert rows into
+    the annotation_names table. Nothing particular.
+*/
+
+
+/*! Creates an object to ensure that all entries in \a f are present
+    in annotation_names, using \a t for all its queryies.
+*/
 
 AnnotationNameCreator::AnnotationNameCreator( const StringList & f,
                                               Transaction * t )
