@@ -103,6 +103,8 @@ private:
     String whereAge();
     String whereNoField();
 
+    String mm();
+
     String whereSet( const MessageSet & );
 };
 

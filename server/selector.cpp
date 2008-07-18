@@ -27,7 +27,7 @@ public:
     SelectorData()
         : f( Selector::NoField ), a( Selector::None ), mboxId( 0 ),
           placeholder( 0 ), join( 0 ), query( 0 ), parent( 0 ),
-          children( new List< Selector > ),
+          children( new List< Selector > ), mm( 0 ),
           session( 0 ),
           needDateFields( false ),
           needAnnotations( false ),
@@ -64,6 +64,7 @@ public:
 
     Selector * parent;
     List< Selector > * children;
+    String * mm;
     Session * session;
     User * user;
 
@@ -422,12 +423,13 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
-    String q = "select distinct mm.";
+    String q = "select distinct " + mm() + ".";
     if ( wanted )
-        q.append( wanted->join( ", mm." ) );
+        q.append( wanted->join( ", " + mm() + "." ) );
     else
-        q.append( "uid, mm.modseq, mm.message, mm.idate" );
-    q.append( " from mailbox_messages mm" );
+        q.append( "uid, " + mm() + ".modseq, " +
+                  mm() + ".message, " + mm() + ".idate" );
+    q.append( " from mailbox_messages " + mm() );
     String w = where();
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );
@@ -435,22 +437,23 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     q.append( d->extraJoins.join( "" ) );
 
     if ( d->needDateFields )
-        q.append( " join date_fields df on (df.message=mm.message)" );
+        q.append( " join date_fields df on "
+                  "(df.message=" + mm() + ".message)" );
     if ( d->needAnnotations )
-        q.append( " join annotations a on (mm.mailbox=a.mailbox"
-                  " and mm.uid=a.uid)" );
+        q.append( " join annotations a on (" + mm() + ".mailbox=a.mailbox"
+                  " and " + mm() + ".uid=a.uid)" );
     if ( d->needBodyparts )
-        q.append( " join part_numbers pn on (pn.message=mm.message)"
+        q.append( " join part_numbers pn on (pn.message=" + mm() + ".message)"
                   " join bodyparts bp on (bp.id=pn.bodypart)" );
     if ( d->needMessages )
-        q.append( " join messages m on (mm.message=m.id)" );
+        q.append( " join messages m on (" + mm() + ".message=m.id)" );
 
-    q.append( " where mm.mailbox=$" );
+    q.append( " where " + mm() + ".mailbox=$" );
     q.append( fn( d->mboxId ) );
     if ( !w.isEmpty() && w != "true" )
         q.append( " and " + w );
     if ( order )
-        q.append( " order by mm.uid" );
+        q.append( " order by " + mm() + ".uid" );
 
     if ( d->needBodyparts )
         d->query->allowSlowness();
@@ -527,17 +530,18 @@ String Selector::whereInternalDate()
         root()->d->query->bind( n1, d1.unixTime() );
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return "(mm.idate>=$" + fn( n1 ) + " and mm.idate<=$" + fn( n2 ) + ")";
+        return "(" + mm() + ".idate>=$" + fn( n1 ) +
+            " and " + mm() + ".idate<=$" + fn( n2 ) + ")";
     }
     else if ( d->a == SinceDate ) {
         uint n1 = placeHolder();
         root()->d->query->bind( n1, d1.unixTime() );
-        return "mm.idate>=$" + fn( n1 );
+        return mm() + ".idate>=$" + fn( n1 );
     }
     else if ( d->a == BeforeDate ) {
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return "mm.idate<=$" + fn( n2 );
+        return mm() + ".idate<=$" + fn( n2 );
     }
 
     setError( "Cannot search for: " + debugString() );
@@ -630,7 +634,7 @@ String Selector::whereHeaderField()
     bool extra = false;
     String jn = fn( ++root()->d->join );
     String j = " left join header_fields hf" + jn +
-               " on (mm.message=hf" + jn + ".message ";
+               " on (" + mm() + ".message=hf" + jn + ".message ";
     if ( !d->s16.isEmpty() ) {
         uint like = placeHolder();
         root()->d->query->bind( like, q( d->s16 ) );
@@ -682,7 +686,7 @@ String Selector::whereAddressFields( const StringList & fields,
     uint join = ++root()->d->join;
     String jn = fn( join );
     String r( " left join address_fields af" + jn +
-              " on (af" + jn + ".message=mm.message)"
+              " on (af" + jn + ".message=" + mm() + ".message)"
               " left join addresses a" + jn +
               " on (a" + jn + ".id=af" + jn + ".address"
               " and " );
@@ -807,7 +811,7 @@ String Selector::whereHeader()
     root()->d->query->bind( like, q( d->s16 ) );
     String jn = "hf" + fn( ++root()->d->join );
     String j = " left join header_fields " + jn +
-               " on (mm.message=" + jn + ".message and " +
+               " on (" + mm() + ".message=" + jn + ".message and " +
                jn + ".value ilike " + matchAny( like ) + ")";
     root()->d->extraJoins.append( j );
     return "(" + jn + ".field is not null or " +
@@ -879,16 +883,17 @@ String Selector::whereFlags()
     if ( fid ) {
         // we know this flag, so look for it reasonably efficiently
         j = " left join flags f" + n +
-            " on (mm.mailbox=f" + n + ".mailbox and mm.uid=f" + n +
-            ".uid and f" + n + ".flag=" + fn( fid ) + ")";
+            " on (" + mm() + ".mailbox=f" + n + ".mailbox and " +
+            mm() + ".uid=f" + n + ".uid and "
+            "f" + n + ".flag=" + fn( fid ) + ")";
     }
     else {
         // just in case the cache is out of date we look in the db
         uint b = placeHolder();
         root()->d->query->bind( b, d->s8.lower() );
         j = " left join flags f" + n +
-            " on (mm.mailbox=f" + n + ".mailbox and mm.uid=f" + n +
-            ".uid and f" + n + ".flag="
+            " on (" + mm() + ".mailbox=f" + n + ".mailbox and " +
+            mm() + ".uid=f" + n + ".uid and f" + n + ".flag="
             "(select id from flag_names where lower(name)=$" + fn(b) + "))";
     }
     root()->d->extraJoins.append( j );
@@ -927,11 +932,10 @@ String Selector::whereSet( const MessageSet & s )
             root()->d->query->bind( u, s.smallest() );
             root()->d->query->bind( u2, s.largest() );
             // this if ">=0" in the most common case (fetch 1:*
-            // flags), but we must do anything in our power to
-            // persuade pg to avoid those seqscans. if we can say
-            // ">=1000" when we know there aren't any UIDs below 1000,
-            // then let's do that.
-            return "(mm.uid>=$" + fn( u ) + " and mm.uid<=$" + fn( u2 ) + ")";
+            // flags), but we prefer to use a format that tells pg
+            // about the size of the range.
+            return "(" + mm() + ".uid>=$" + fn( u ) +
+                " and " + mm() + ".uid<=$" + fn( u2 ) + ")";
         }
     }
 
@@ -940,13 +944,14 @@ String Selector::whereSet( const MessageSet & s )
         uint u2 = placeHolder();
         root()->d->query->bind( u, s.smallest() );
         root()->d->query->bind( u2, s.largest() );
-        return "(mm.uid=$" + fn( u ) + " or mm.uid=$" + fn( u2 ) + ")";
+        return "(" + mm() + ".uid=$" + fn( u ) +
+            " or " + mm() + ".uid=$" + fn( u2 ) + ")";
     }
 
     // complex sets
     if ( !s.isRange() ) {
         root()->d->query->bind( u, s );
-        return "mm.uid=any($" + fn( u ) + ")";
+        return mm() + ".uid=any($" + fn( u ) + ")";
     }
 
     // simple ranges
@@ -954,12 +959,13 @@ String Selector::whereSet( const MessageSet & s )
         uint u2 = placeHolder();
         root()->d->query->bind( u, s.smallest() );
         root()->d->query->bind( u2, s.largest() );
-        return "(mm.uid>=$" + fn( u ) + " and mm.uid<=$" + fn( u2 ) + ")";
+        return "(" + mm() + ".uid>=$" + fn( u ) +
+            " and " + mm() + ".uid<=$" + fn( u2 ) + ")";
     }
 
     // single-member sets
     root()->d->query->bind( u, s.smallest() );
-    return "mm.uid=$" + fn( u );
+    return mm() + ".uid=$" + fn( u );
 }
 
 
@@ -1065,9 +1071,9 @@ String Selector::whereModseq()
     root()->d->query->bind( i, d->n );
 
     if (action() == Larger )
-        return "mm.modseq>=$" + fn( i );
+        return mm() + ".modseq>=$" + fn( i );
     else if ( action() == Smaller )
-        return "mm.modseq<$" + fn( i );
+        return mm() + ".modseq<$" + fn( i );
 
     log( "Bad selector", Log::Error );
     return "false";
@@ -1081,8 +1087,8 @@ String Selector::whereAge()
     uint i = placeHolder();
     root()->d->query->bind( i, (uint)::time( 0 ) - d->n );
     if ( d->a == Larger )
-        return "mm.idate<=$" + fn( i );
-    return "mm.idate>=$" + fn( i );
+        return mm() + ".idate<=$" + fn( i );
+    return mm() + ".idate>=$" + fn( i );
 }
 
 
@@ -1940,4 +1946,20 @@ MessageSet Selector::messageSetArgument() const
 List<Selector> * Selector::children()
 {
     return d->children;
+}
+
+
+/*! Returns a string such as "mm", referring to the mailbox_messages
+    table. This may also be "dm", "dm2", "mm42" or worse, if the
+    search is really complex.
+*/
+
+String Selector::mm()
+{
+    Selector * t = this;
+    while ( t && !t->d->mm && t->d->parent )
+        t = t->d->parent;
+    if ( t->d->mm )
+        return *t->d->mm;
+    return "mm";
 }
