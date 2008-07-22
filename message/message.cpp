@@ -194,27 +194,6 @@ Header * Message::parseHeader( uint & i, uint end,
                                const String & rfc2822,
                                Header::Mode m )
 {
-    if ( m == Header::Rfc2822 &&
-         ( rfc2822[0] == 'F' || rfc2822[0] == ' ' ) ) {
-        String beginning = rfc2822.mid( i, 5 ).lower();
-        if ( beginning == "from " ||
-             beginning == " jan " || beginning == " feb " ||
-             beginning == " mar " || beginning == " apr " ||
-             beginning == " may " || beginning == " jun " ||
-             beginning == " jul " || beginning == " aug " ||
-             beginning == " sep " || beginning == " oct " ||
-             beginning == " nov " || beginning == " dec " ) {
-            uint j = i + 5;
-            while ( j < end && rfc2822[j] != '\r' && rfc2822[j] != '\n' )
-                j++;
-            while ( j < end && rfc2822[j] == '\r' )
-                j++;
-            while ( j < end && rfc2822[j] == '\n' )
-                j++;
-            if ( j < end )
-                i = j;
-        }
-    }
     Header * h = new Header( m );
     bool done = false;
     uint pos = 1;
@@ -230,7 +209,15 @@ Header * Message::parseHeader( uint & i, uint end,
                 rfc2822[j] <= 127 &&
                 rfc2822[j] != ':' )
             j++;
-        if ( j > i && rfc2822[j] == ':' ) {
+        if ( j == i + 4 && rfc2822.mid( i, j-i+1 ).lower() == "from " ) {
+            while ( i < end && rfc2822[i] != '\r' && rfc2822[i] != '\n' )
+                i++;
+            while ( rfc2822[i] == '\r' )
+                i++;
+            if ( rfc2822[i] == '\n' )
+                i++;
+        }
+        else if ( j > i && rfc2822[j] == ':' ) {
             String name = rfc2822.mid( i, j-i );
             i = j;
             i++;
