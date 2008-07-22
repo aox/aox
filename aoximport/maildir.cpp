@@ -112,7 +112,21 @@ MigratorMessage * MaildirMailbox::nextMessage()
 
     String f( d->path + "/" + *n );
     File m( f );
-    MigratorMessage * mm = new MigratorMessage( m.contents(), f );
+    String c( m.contents() );
+    if ( c[0] == ' ' && c[4] == ' ' ) {
+        // Some messages copied from Courier start with a line like
+        // " Feb 12 12:12:12 2012". Must drop that.
+        uint i = 0;
+        while ( i < c.length() && c[i] != '\r' && c[i] != '\n' )
+            i++;
+        while ( c[i] == '\r' )
+            i++;
+        if ( c[i] == '\n' )
+            i++;
+        c = c.mid( i );
+    }
+    MigratorMessage * mm = new MigratorMessage( c, f );
+
     int i = n->find( ',' );
     if ( i >= 0 ) {
         while ( i < (int)n->length() ) {
