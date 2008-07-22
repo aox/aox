@@ -367,7 +367,7 @@ Message * SmtpData::message( const String & body )
     received.append( server()->peer().address() );
     received.append( " (HELO " );
     received.append( server()->heloName() );
-    received.append( ")\n by " );
+    received.append( ") by " );
     received.append( Configuration::hostname() );
     switch ( server()->dialect() ) {
     case SMTP::Smtp:
@@ -392,7 +392,22 @@ Message * SmtpData::message( const String & body )
     }
     received.append( "; " );
     received.append( server()->transactionTime()->rfc822() );
-    received = received.wrapped( 72, "", " ", false );
+    int lfspace = body.find( "\n " );
+    int lftab = -1;
+    if ( lfspace > 400 )
+        lftab = body.find( "\n\t" );
+    String indentation = " ";
+    if ( lfspace >= 0 || lftab >= 0 ) {
+        int x = lfspace;
+        if ( x > lftab )
+            x = lftab;
+        x++;
+        int y = x;
+        while ( ( body[y] == ' ' || body[y] == '\t' ) && y < x + 16 )
+            y++;
+        indentation = body.mid( x, y-x );
+    }
+    received = received.wrapped( 72, "", indentation, false );
     received.append( "\r\n" );
 
     String rp;
