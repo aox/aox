@@ -83,7 +83,7 @@ void AddressField::parse( const String &s )
             setError( "" );
             a->clear();
         }
-        if ( !valid() && s.contains( "<>" ) ) {
+        if ( valid() && s.contains( "<>" ) ) {
             // some spammers attempt to send 'To: asdfsaf <>'.
             List<Address>::Iterator i( a );
             uint bounces = 0;
