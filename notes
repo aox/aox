@@ -766,6 +766,26 @@ System flags in mailbox_messages
   that stops. 3.0.2 can be schema-compatible with 3.1.0.
 
 
+Tuning the database
+
+  There are various things we can do to optimise the database for
+  different usage.
+
+  1. "mostly-writing": Less indexing, perhaps none?
+
+  2. "mostly-reading": Enough to handle simple fetches acceptably, but
+     no indexing beyond that minimum.
+
+  3. "advanced-reading": Full-text indexing on pg8.3, otherwise the
+     same as mostly-reading. Perhaps some additional indexing?
+
+  We could add the command 'aox tune database <type>' to set it.
+
+  At startup we can select a little in pg_catalog to to see if the
+  full-text stuff is there, and if so, Selector can generate full-text
+  queries.
+
+
 Logging to syslog
 
   The logd HUP handler can switch to syslog if it can't reopen the
