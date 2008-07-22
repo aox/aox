@@ -281,7 +281,7 @@ Message * SmtpData::message( const String & body )
     received.append( server()->peer().address() );
     received.append( " (HELO " );
     received.append( server()->heloName() );
-    received.append( ") by " );
+    received.append( ")\n by " );
     received.append( Configuration::hostname() );
     switch ( server()->dialect() ) {
     case SMTP::Smtp:
@@ -296,11 +296,17 @@ Message * SmtpData::message( const String & body )
     }
     received.append( " id " );
     received.append( server()->transactionId() );
-    // XXX: if the number of receivers is one, add a 'for' clause. if
-    // it's greater, add a comment with the count. but don't do this
-    // until the new code passes the existing tests.
+    uint recipients = server()->rcptTo()->count();
+    if ( recipients == 1 ) {
+        Address * a = server()->rcptTo()->firstElement()->address();
+        received.append( " for " + a->localpart() + "@" + a->domain() );
+    }
+    else if ( recipients > 1 ) {
+        received.append( " (" + fn( recipients ) + " recipients)" );
+    }
     received.append( "; " );
     received.append( server()->transactionTime()->rfc822() );
+    received = received.wrapped( 72, "", " ", false );
     received.append( "\r\n" );
 
     String rp;
