@@ -209,7 +209,8 @@ Header * Message::parseHeader( uint & i, uint end,
                 rfc2822[j] <= 127 &&
                 rfc2822[j] != ':' )
             j++;
-        if ( j == i + 4 && rfc2822.mid( i, j-i+1 ).lower() == "from " ) {
+        if ( j == i + 4 && m = Header::Rfc822 &&
+             rfc2822.mid( i, j-i+1 ).lower() == "from " ) {
             while ( i < end && rfc2822[i] != '\r' && rfc2822[i] != '\n' )
                 i++;
             while ( rfc2822[i] == '\r' )
