@@ -1804,7 +1804,7 @@ bool String::containsWord( const String & s ) const
 /*! Returns a copy of this string wrapped so that each line contains
     at most \a linelength characters. The first line is prefixed by \a
     firstPrefix, subsequent lines by \a otherPrefix. If \a spaceAtEOL
-    is true, each line except the last end with a space.
+    is true, all lines except the last end with a space.
 
     The prefixes are counted towards line length, but the optional
     trailing space is not.
@@ -1866,7 +1866,7 @@ String String::wrapped( uint linelength,
 }
 
 
-/*! Replaces all occurences of \a a in this strng with \a b. Rather
+/*! Replaces all occurences of \a a in this string with \a b. Rather
     slow and allocates much memory. Could be optimised if it ever
     shows up on the performance graphs.
 
