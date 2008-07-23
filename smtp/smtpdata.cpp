@@ -392,22 +392,7 @@ Message * SmtpData::message( const String & body )
     }
     received.append( "; " );
     received.append( server()->transactionTime()->rfc822() );
-    int lfspace = body.find( "\n " );
-    int lftab = -1;
-    if ( lfspace > 400 )
-        lftab = body.find( "\n\t" );
-    String indentation = " ";
-    if ( lfspace >= 0 || lftab >= 0 ) {
-        int x = lfspace;
-        if ( x > lftab )
-            x = lftab;
-        x++;
-        int y = x;
-        while ( ( body[y] == ' ' || body[y] == '\t' ) && y < x + 16 )
-            y++;
-        indentation = body.mid( x, y-x );
-    }
-    received = received.wrapped( 72, "", indentation, false );
+    received = received.wrapped( 72, "", " ", false );
     received.append( "\r\n" );
 
     String rp;
