@@ -487,6 +487,13 @@ AoxCommand * AoxCommand::create( StringList * args )
         else
             bad( verb, noun, "privileges" );
     }
+    else if ( verb == "tune" ) {
+        String noun = ::next( args ).lower();
+        if ( noun == "database" )
+            cmd = new TuneDatabase( args );
+        else
+            bad( verb, noun, "database" );
+    }
     else if ( verb == "setacl" ) {
         cmd = new SetAcl( args );
     }

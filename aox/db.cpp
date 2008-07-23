@@ -285,3 +285,173 @@ void GrantPrivileges::execute()
 
     finish();
 }
+
+
+struct TunableIndex {
+    const char * name;
+    const char * table;
+    const char * definition;
+    bool writing;
+    bool reading;
+    bool advanced;
+} tunableIndices[] = {
+    { "pn_b", "part_numbers",
+      "CREATE INDEX pn_b ON part_numbers "
+      "USING btree (bodypart)",
+      false, true, true },
+    { "ald", "addresses",
+      "CREATE INDEX ald ON addresses "
+      "USING btree (lower(localpart), lower(\"domain\"))",
+      false, true, true },
+    { "af_mp", "address_fields",
+      "CREATE INDEX af_mp ON address_fields "
+      "USING btree (message, part)",
+      false, true, true },
+    { "fl_mu", "flags",
+      "CREATE INDEX fl_mu ON flags "
+      "USING btree (mailbox, uid)",
+      false, true, true },
+    { "dm_mud", "deleted_messages",
+      "CREATE INDEX dm_mud ON deleted_messages "
+      "USING btree (mailbox, uid, deleted_at)",
+      false, true, true },
+    { "mm_m", "mailbox_messages",
+      "CREATE INDEX mm_m ON mailbox_messages "
+      "USING btree (message)",
+      false, true, true },
+    { "dm_m", "deleted_messages",
+      "CREATE INDEX dm_m ON deleted_messages "
+      "USING btree (message)",
+      false, true, true },
+    { "df_m", "date_fields",
+      "CREATE INDEX df_m ON date_fields "
+      "USING btree (message)",
+      false, true, true },
+    { "hf_msgid", "header_fields",
+      "CREATE INDEX hf_msgid ON header_fields "
+      "USING btree (value) WHERE (field = 13)",
+      false, true, true },
+    { 0, 0, 0, false, false, false }
+};
+
+
+class TuneDatabaseData
+    : public Garbage
+{
+public:
+    TuneDatabaseData(): mode( Reading ), t( 0 ), find( 0 ), set( false ) {}
+    enum Mode {
+        Writing, Reading, Advanced
+    };
+    Mode mode;
+    Transaction * t;
+    Query * find;
+    bool set;
+};
+      
+      
+      
+
+
+
+/*! \class TuneDatabase db.h
+    This class handles the "aox tune database" command.
+*/
+
+
+TuneDatabase::TuneDatabase( StringList * args )
+    : AoxCommand( args ), d( new TuneDatabaseData )
+{
+}
+
+
+void TuneDatabase::execute()
+{
+    if ( !d->t ) {
+        parseOptions();
+        String mode = next().lower();
+        if ( mode == "mostly-writing" )
+            d->mode = TuneDatabaseData::Writing;
+        else if ( mode == "mostly-reading" )
+            d->mode = TuneDatabaseData::Reading;
+        else if ( mode == "advanced-reading" )
+            d->mode = TuneDatabaseData::Advanced;
+        else
+            error( "Unknown database mode.\n"
+                   "Supported: mostly-writing, mostly-reading and "
+                   "advanced-reading" );
+        database( true );
+        d->t = new Transaction( this );
+        String q = "select indexdef from pg_indexes where ";
+        uint i = 0;
+        d->find = new Query( "", this );
+        while ( tunableIndices[i].name ) {
+            if ( i )
+                q.append( " or " );
+            q.append( "indexdef=$" );
+            q.append( fn( i+1 ) );
+            d->find->bind( i+1, tunableIndices[i].definition );
+            i++;
+        }
+        d->find->setString( q );
+        d->t->enqueue( d->find );
+        d->t->execute();
+    }
+
+    if ( !d->find->done() )
+        return;
+
+    if ( d->t->failed() )
+        error( "Cannot tune database" );
+
+    if ( !d->set ) {
+        StringList present;
+        while ( d->find->hasResults() ) {
+            Row * r = d->find->nextRow();
+            String definition = r->getString( "indexdef" );
+            uint i = 0;
+            while ( tunableIndices[i].name &&
+                    definition != tunableIndices[i].definition )
+                i++;
+            if ( tunableIndices[i].name )
+                present.append( tunableIndices[i].name );
+        }
+        uint i = 0;
+        while ( tunableIndices[i].name ) {
+            bool wanted = false;
+            switch ( d->mode ) {
+            case TuneDatabaseData::Writing:
+                wanted = tunableIndices[i].writing;
+                break;
+            case TuneDatabaseData::Reading:
+                wanted = tunableIndices[i].reading;
+                break;
+            case TuneDatabaseData::Advanced:
+                wanted = tunableIndices[i].advanced;
+                break;
+            }
+            Query * q = 0;
+            if ( wanted && !present.find( tunableIndices[i].name ) ) {
+                q = new Query( tunableIndices[i].definition, 0 );
+                printf( "Executing %s;\n", tunableIndices[i].definition );
+            }
+            else if ( present.find( tunableIndices[i].name ) && !wanted ) {
+                q = new Query( String("drop index ") + tunableIndices[i].name,
+                               0 );
+                printf( "Dropping index %s.\n", 
+                        tunableIndices[i].name );
+            }
+            if ( q )
+                d->t->enqueue( q );
+            i++;
+        }
+        d->t->enqueue( new Query( "notify database_retuned", 0 ) );
+        d->t->commit();
+        d->set = true;
+    }
+
+    if ( !d->t->done() )
+        return;
+
+    finish();
+}

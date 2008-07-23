@@ -308,6 +308,21 @@ void Help::execute()
             "    with a mailbox.\n"
         );
     }
+    else if ( a == "tune" && b == "database" ) {
+        fprintf(
+            stderr,
+            "  tune database <mode> -- Adds or removes indices.\n\n"
+            "    Synopsis: aox tune database <mode>\n\n"
+            "    There are three modes: mostly-writing, mostly-reading and\n"
+            "    advanced-reading."
+            "    Mode mostly-writing tunes the database for fast message\n"
+            "    injection at the most of reading."
+            "    Mode mostly-reading tunes the database for message reading,\n"
+            "    but without full-text indexing."
+            "    Mode advanced-writing tunes the database for fast message\n"
+            "    searching and reading, at the cost of injection speed."
+        );
+    }
     else if ( a == "setacl" ) {
         fprintf(
             stderr,

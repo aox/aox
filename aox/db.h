@@ -54,4 +54,16 @@ private:
 };
 
 
+class TuneDatabase
+    : public AoxCommand
+{
+public:
+    TuneDatabase( StringList * );
+    void execute();
+
+private:
+    class TuneDatabaseData * d;
+};
+
+
 #endif

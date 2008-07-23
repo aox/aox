@@ -51,6 +51,10 @@ Schedule
   aox undelete and aox add view now use search expressions, e.g.
     aox undelete /users/arnt/inbox from oryx.com
 
+  New command aox tune database, to tune the database for the expected
+  load. Three types: Mostly writing, mostly plain reading and mostly
+  reading with much searching. (The third is a no-op still.)
+
   Not done: aox set retention, aox show retention.
 
   Not done: Views on the web.
@@ -764,26 +768,6 @@ System flags in mailbox_messages
   I think this is something we want to do in 3.1.0 and 3.0.2. We make
   2.11 schema-compatible with 3.0.0, 2.12 with 3.0.1, but after 2.12
   that stops. 3.0.2 can be schema-compatible with 3.1.0.
-
-
-Tuning the database
-
-  There are various things we can do to optimise the database for
-  different usage.
-
-  1. "mostly-writing": Less indexing, perhaps none?
-
-  2. "mostly-reading": Enough to handle simple fetches acceptably, but
-     no indexing beyond that minimum.
-
-  3. "advanced-reading": Full-text indexing on pg8.3, otherwise the
-     same as mostly-reading. Perhaps some additional indexing?
-
-  We could add the command 'aox tune database <type>' to set it.
-
-  At startup we can select a little in pg_catalog to to see if the
-  full-text stuff is there, and if so, Selector can generate full-text
-  queries.
 
 
 Logging to syslog
