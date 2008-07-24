@@ -355,7 +355,7 @@ bool ManageSieveCommand::putScript()
         whitespace();
         d->script = string();
         SieveScript script;
-        script.parse( d->script );
+        script.parse( d->script.crlf() );
         end();
         if ( script.isEmpty() ) {
             no( "Script cannot be empty" );
