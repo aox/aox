@@ -1036,7 +1036,14 @@ void SieveCommand::parse( const String & previous )
         // nothing needed
     }
     else if ( i == "reject" ) {
-        // nothing needed
+        if ( arguments()->arguments()->isEmpty() ) {
+            // we accept reject without reason
+        }
+        else {
+            // if there is an argument, it must be a string
+            arguments()->numberRemainingArguments();
+            (void)arguments()->takeString( 1 );
+        }
     }
     else if ( i == "fileinto" ) {
         require( "fileinto" );
