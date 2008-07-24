@@ -458,6 +458,22 @@ Threads in Archiveopteryx 4.0
   than with server-processes.
 
 
+Full-text search
+
+  There Be Problems.
+
+  The code now assumes that the IMAP client searches for one or more
+  words, rather than an arbitrary substring. Postgres uses word
+  segmentation.
+
+  If postgres were to use e.g. overlapping three-letter languageless
+  substrings, we would do what IMAP wants. sounds senseless.
+
+  We also have a requirement to stem search arguments less.
+  Specifically, a search for ARM7TDMI should not return messages about
+  the ARM6 or about my left arm.
+
+
 Convert more parsers to use AbnfParser
 
   There are still a few places where we roll our own messy parsers and
