@@ -1231,75 +1231,6 @@ void Header::repair( Multipart * p, const String & body )
         }
     }
 
-    // If the From field is the bounce address, and we still haven't
-    // salvaged it, and the message-id wasn't added here, we use
-    // postmaster@<message-id-domain> and hope the postmaster there
-    // knows something about the real origin.
-
-    if ( occurrences[(int)HeaderField::From] == 1 &&
-         occurrences[(int)HeaderField::MessageId] == 1 ) {
-        AddressField * from = addressField( HeaderField::From );
-        if ( !from->valid() ) {
-            List<Address> * l = from->addresses();
-            if ( l->count() == 1 &&
-                 l->first()->type() == Address::Bounce )
-            {
-                Address * msgid = 0;
-                List<Address> * al = addresses( HeaderField::MessageId );
-                if ( al )
-                    msgid = al->first();
-
-                String me = Configuration::hostname().lower();
-                String victim;
-                if ( msgid )
-                    victim = msgid->domain().lower();
-                uint tld = victim.length();
-                if ( victim[tld-3] == '.' )
-                    tld -= 3; // .de
-                else if ( victim[tld-4] == '.' )
-                    tld -= 4; // .com
-                if ( tld < victim.length() ) {
-                    if ( victim[tld-3] == '.' )
-                        tld -= 3; // .co.uk
-                    else if ( victim[tld-4] == '.' )
-                        tld -= 4; // .com.au
-                    else if ( tld == victim.length() - 2 &&
-                              victim[tld-5] == '.' )
-                        tld -= 5; // .priv.no
-                }
-                int dot = victim.find( '.' );
-                if ( dot < (int)tld ) {
-                    victim = victim.mid( dot+1 );
-                    tld = tld - dot - 1;
-                }
-                if ( !victim.isEmpty() &&
-                     victim != me && !me.endsWith( "." + victim ) &&
-                     tld < victim.length() ) {
-                    Address * replacement
-                        = new Address( "postmaster "
-                                       "(on behalf of unnamed " +
-                                       msgid->domain() + " user)",
-                                       "postmaster", victim );
-                    l->clear();
-                    l->append( replacement );
-                    from->setError( "" );
-                }
-            }
-        }
-    }
-
-    // If the Reply-To field is bad and From is good, we forget
-    // Reply-To entirely.
-
-    if ( occurrences[(int)HeaderField::From] &&
-         occurrences[(int)HeaderField::ReplyTo] ) {
-        AddressField * from = addressField( HeaderField::From );
-        AddressField * rt = addressField( HeaderField::ReplyTo );
-        if ( from->valid() && !rt->valid() &&
-             from->addresses() && !from->addresses()->isEmpty() )
-            removeField( HeaderField::ReplyTo );
-    }
-
     // If there are two content-type fields, one is text/plain, and
     // the other is something other than text/plain and text/html,
     // then drop the text/plain one. It's frequently added as a
@@ -1493,6 +1424,63 @@ void Header::repair( Multipart * p, const String & body )
         }
     }
 
+    // If the From field is the bounce address, and we still haven't
+    // salvaged it, and the message-id wasn't added here, we use
+    // postmaster@<message-id-domain> and hope the postmaster there
+    // knows something about the real origin.
+
+    if ( occurrences[(int)HeaderField::From] == 1 &&
+         occurrences[(int)HeaderField::MessageId] == 1 ) {
+        AddressField * from = addressField( HeaderField::From );
+        if ( !from->valid() ) {
+            List<Address> * l = from->addresses();
+            if ( l->count() == 1 &&
+                 l->first()->type() == Address::Bounce )
+            {
+                Address * msgid = 0;
+                List<Address> * al = addresses( HeaderField::MessageId );
+                if ( al )
+                    msgid = al->first();
+
+                String me = Configuration::hostname().lower();
+                String victim;
+                if ( msgid )
+                    victim = msgid->domain().lower();
+                uint tld = victim.length();
+                if ( victim[tld-3] == '.' )
+                    tld -= 3; // .de
+                else if ( victim[tld-4] == '.' )
+                    tld -= 4; // .com
+                if ( tld < victim.length() ) {
+                    if ( victim[tld-3] == '.' )
+                        tld -= 3; // .co.uk
+                    else if ( victim[tld-4] == '.' )
+                        tld -= 4; // .com.au
+                    else if ( tld == victim.length() - 2 &&
+                              victim[tld-5] == '.' )
+                        tld -= 5; // .priv.no
+                }
+                int dot = victim.find( '.' );
+                if ( dot < (int)tld ) {
+                    victim = victim.mid( dot+1 );
+                    tld = tld - dot - 1;
+                }
+                if ( !victim.isEmpty() &&
+                     victim != me && !me.endsWith( "." + victim ) &&
+                     tld < victim.length() ) {
+                    Address * replacement
+                        = new Address( "postmaster "
+                                       "(on behalf of unnamed " +
+                                       msgid->domain() + " user)",
+                                       "postmaster", victim );
+                    l->clear();
+                    l->append( replacement );
+                    from->setError( "" );
+                }
+            }
+        }
+    }
+
     // If we have NO From field, or one which contains only <>, use
     // invalid@invalid.invalid. We try to include a display-name if we
     // can find one. hackish hacks abound.
@@ -1564,6 +1552,18 @@ void Header::repair( Multipart * p, const String & body )
             from->addresses()->append( a );
             add( from );
         }
+    }
+
+    // If the Reply-To field is bad and From is good, we forget
+    // Reply-To entirely.
+
+    if ( occurrences[(int)HeaderField::From] &&
+         occurrences[(int)HeaderField::ReplyTo] ) {
+        AddressField * from = addressField( HeaderField::From );
+        AddressField * rt = addressField( HeaderField::ReplyTo );
+        if ( from->valid() && !rt->valid() &&
+             from->addresses() && !from->addresses()->isEmpty() )
+            removeField( HeaderField::ReplyTo );
     }
 
     d->verified = false;
