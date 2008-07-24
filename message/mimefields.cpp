@@ -413,6 +413,7 @@ void ContentType::parse( const String &s )
                 p.restore( x );
             }
             else {
+                addParameter( "original-type", t + "/" + st );
                 t = "application";
                 st = "octet-stream";
                 mustGuess = true;
