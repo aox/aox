@@ -302,11 +302,14 @@ void ManageSieve::setReader( ManageSieveCommand * cmd )
 
 void ManageSieve::capabilities()
 {
+    // Avelsieve buggily demands that IMPLEMENTATION be the first
+    // advertise extension.
     String v( Configuration::compiledIn( Configuration::Version ) );
+    enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
+
     enqueue( "\"SIEVE\" " +
              SieveProduction::supportedExtensions()->join( " " ).quoted() +
              "\r\n" );
-    enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
     enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) +
              "\"\r\n" );
     if ( !hasTls() )
