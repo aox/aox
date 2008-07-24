@@ -84,6 +84,8 @@ public:
     MessageSet messageSetArgument() const;
     List<Selector> * children();
 
+    static void setup();
+
 private:
     class SelectorData * d;
 

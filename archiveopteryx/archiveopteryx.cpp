@@ -16,6 +16,7 @@
 #include "listener.h"
 #include "database.h"
 #include "dbsignal.h"
+#include "selector.h"
 #include "fieldname.h"
 #include "managesieve.h"
 #include "addresscache.h"
@@ -224,6 +225,7 @@ int main( int argc, char *argv[] )
     FieldName::setup();
     SpoolManager::setup();
     AnnotationName::setup();
+    Selector::setup();
     Flag::setup();
     IMAP::setup();
 

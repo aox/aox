@@ -11,10 +11,52 @@
 #include "stringlist.h"
 #include "annotation.h"
 #include "fieldname.h"
+#include "dbsignal.h"
 #include "field.h"
 #include "user.h"
 
 #include <time.h> // whereAge() calls time()
+
+
+static bool tsearchAvailable = false;
+static bool retunerCreated = false;
+
+
+class TuningDetector
+    : public EventHandler
+{
+public:
+    TuningDetector(): q( 0 ) {
+        ::tsearchAvailable = false;
+        q = new Query( "select indexdef from pg_indexes where "
+                       "tablename='bodyparts' and "
+                       "indexdef ilike '% USING gin(to_ts%'",
+                       this );
+        q->execute();
+    }
+    void execute() {
+        if ( !q->done() )
+            return;
+        ::tsearchAvailable = q->hasResults();
+    }
+    Query * q;
+};
+
+
+class RetuningDetector
+    : public EventHandler
+{
+public:
+    RetuningDetector(): EventHandler() {
+        ::retunerCreated = true;
+        setLog( new Log( Log::Server ) );
+        (void)new DatabaseSignal( "database_retuned", this );
+        (void)new TuningDetector();
+    }
+    void execute() {
+        (void)new TuningDetector();
+    }
+};
 
 
 static uint lmatch( const String &, uint, const String &, uint );
@@ -421,6 +463,9 @@ Query * Selector::query( User * user, Mailbox * mailbox,
                          Session * session, EventHandler * owner,
                          bool order, StringList * wanted, bool deleted )
 {
+    if ( !::retunerCreated )
+        (void)new RetuningDetector;
+
     d->query = new Query( owner );
     d->user = user;
     d->session = session;
@@ -834,6 +879,11 @@ String Selector::whereHeader()
     not do "full-text" search on the contents of e.g. jpeg
     pictures. (For some formats we search on the text part, because
     the injector sets bodyparts.text based on bodyparts.data.)
+
+    This function uses full-text search if available, but filters the
+    results with a plain 'ilike' in order to avoid overly liberal
+    stemming. (Perhaps we actually want liberal stemming. I don't
+    know. IMAP says not to do it, but do we listen?)
 */
 
 String Selector::whereBody()
@@ -845,9 +895,9 @@ String Selector::whereBody()
     uint bt = placeHolder();
     root()->d->query->bind( bt, q( d->s16 ) );
 
-    String db = Database::type();
-    if ( db.lower().endsWith( "tsearch2" ) )
-        s.append( "bp.ftidx @@ to_tsquery('default', $" + fn( bt ) + ")" );
+    if ( ::tsearchAvailable )
+        s.append( "(bp.text @@ plainto_tsquery($" + fn( bt ) + ") and"
+                  " bp.text ilike " + matchAny( bt ) + ")" );
     else
         s.append( "bp.text ilike " + matchAny( bt ) );
 
@@ -1973,4 +2023,15 @@ String Selector::mm()
     if ( t->d->mm )
         return *t->d->mm;
     return "mm";
+}
+
+
+/*! Performs whatever duties the Selector needs to have performed at
+    startup. Selector can be used even without calling setup().
+*/
+
+void Selector::setup()
+{
+    if ( !::retunerCreated )
+        (void)new RetuningDetector;
 }
