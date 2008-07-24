@@ -458,9 +458,11 @@ void ContentType::parse( const String &s )
         String b = csp.string();
         if ( b.isEmpty() || !csp.ok() ) {
             csp.restore( m );
-            b = csp.input().mid( csp.pos() ).section( ";", 1 ).simplified(); 
-            if ( b.isQuoted( '"' ) )
-                b = b.unquoted( '"' );
+            b = csp.input().mid( csp.pos() ).section( ";", 1 ).simplified();
+            if ( !b.isQuoted() )
+                b.replace( "\\", "" );
+            if ( b.isQuoted() )
+                b = b.unquoted();
             else if ( b.isQuoted( '\'' ) )
                 b = b.unquoted( '\'' );
        }
