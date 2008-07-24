@@ -354,13 +354,13 @@ bool ManageSieveCommand::putScript()
         d->name = string();
         whitespace();
         d->script = string();
-        SieveScript script;
-        script.parse( d->script.crlf() );
         end();
-        if ( script.isEmpty() ) {
+        if ( d->script.isEmpty() ) {
             no( "Script cannot be empty" );
             return true;
         }
+        SieveScript script;
+        script.parse( d->script.crlf() );
         String e = script.parseErrors();
         if ( !e.isEmpty() ) {
             no( e );
