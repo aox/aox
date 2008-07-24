@@ -84,7 +84,7 @@ void Sort::parse()
         String s = parser()->dotLetters( 2, 7 ).lower();
         if ( s == "reverse" ) {
             space();
-            s = atom();
+            s = parser()->dotLetters( 2, 7 ).lower();
             c->reverse = true;
         }
         if ( s == "arrival" )
