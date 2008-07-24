@@ -80,7 +80,6 @@ void SieveScript::parse( const String & script )
     s = d->script->first();
     while ( s && s->identifier() == "require" ) {
         if ( s->error().isEmpty() ) {
-            UStringList unused;
             UStringList * r = 0;
             if ( s->arguments() && 
                  s->arguments()->arguments() &&
@@ -88,35 +87,25 @@ void SieveScript::parse( const String & script )
                 r = s->arguments()->arguments()->first()->stringList();
             UStringList::Iterator i( r );
             while ( i ) {
-                if ( i->isAscii() && extensions->find( i->ascii() ) )
+                if ( i->isAscii() )
                     declared.append( i->ascii() );
-                else
-                    unused.append( i );
                 ++i;
             }
-            if ( !unused.isEmpty() )
-                s->setError( "Extension(s) not used: " +
-                             unused.join( " " ).utf8() );
         }
         ++s;
     }
-    if ( extensions->contains( "comparator-i;octet" ) )
-        declared.append( "comparator-i;octet" );
-    if ( extensions->contains( "comparator-i;ascii-casemap" ) )
-        declared.append( "comparator-i;ascii-casemap" );
-    if ( extensions->contains( "fileinto" ) )
-        declared.append( "fileinto" );
-    if ( extensions->contains( "reject" ) )
-        declared.append( "reject" );
-    declared.removeDuplicates();
-    if ( extensions->count() > declared.count() && d->script->first() ) {
-        StringList::Iterator i( extensions );
-        StringList undeclared;
-        while ( i ) {
-            if ( !declared.contains( *i ) )
-                undeclared.append( i->quoted() );
-            ++i;
-        }
+    declared.append( "comparator-i;octet" );
+    declared.append( "comparator-i;ascii-casemap" );
+    declared.append( "fileinto" );
+    declared.append( "reject" );
+    StringList::Iterator i( extensions );
+    StringList undeclared;
+    while ( i ) {
+        if ( !declared.contains( *i ) )
+            undeclared.append( *i );
+        ++i;
+    }
+    if ( !undeclared.isEmpty() ) {
         SieveCommand * f = d->script->first();
         if ( f->identifier() == "require" )
             f->setError( "Extensions used but not declared: " +
