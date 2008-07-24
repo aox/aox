@@ -350,6 +350,8 @@ void ContentType::parse( const String &s )
 {
     EmailParser p( s );
     p.whitespace();
+    while ( p.present( ":" ) )
+        p.whitespace();
 
     if ( p.atEnd() ) {
         t = "text";
