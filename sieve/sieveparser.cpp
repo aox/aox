@@ -481,6 +481,7 @@ class SieveCommand * SieveParser::command()
 
 List<SieveCommand> * SieveParser::commands()
 {
+    whitespace();
     List<SieveCommand> * l = new List<SieveCommand>;
     uint m = 0;
     while ( ok() ) {
