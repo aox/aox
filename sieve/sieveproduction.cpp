@@ -1036,6 +1036,7 @@ void SieveCommand::parse( const String & previous )
         // nothing needed
     }
     else if ( i == "reject" ) {
+        require( "reject" );
         if ( arguments()->arguments()->isEmpty() ) {
             // we accept reject without reason
         }

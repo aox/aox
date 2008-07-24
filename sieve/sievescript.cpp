@@ -104,6 +104,10 @@ void SieveScript::parse( const String & script )
         declared.append( "comparator-i;octet" );
     if ( extensions->contains( "comparator-i;ascii-casemap" ) )
         declared.append( "comparator-i;ascii-casemap" );
+    if ( extensions->contains( "fileinto" ) )
+        declared.append( "fileinto" );
+    if ( extensions->contains( "reject" ) )
+        declared.append( "reject" );
     declared.removeDuplicates();
     if ( extensions->count() > declared.count() && d->script->first() ) {
         StringList::Iterator i( extensions );
