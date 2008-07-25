@@ -312,7 +312,7 @@ void Postgres::react( Event e )
         if ( !d->active || d->startup ) {
             error( "Timeout negotiating connection to PostgreSQL." );
         }
-        else if ( d->transaction || d->queries.count() > 0 ) {
+        else if ( d->transaction || !d->queries.isEmpty() ) {
             Query * q = d->queries.firstElement();
             Scope x;
             if ( q )

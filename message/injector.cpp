@@ -1539,7 +1539,7 @@ void Injector::logDescription()
             dest.append( fn( mailboxes->count()-1 ) );
             dest.append( " other mailboxes)" );
         }
-        if ( mailboxes->count() > 0 )
+        if ( !mailboxes->isEmpty() )
             msg.append( dest );
 
         log( msg, Log::Significant );
