@@ -169,9 +169,8 @@ void EventLoop::start()
 
     log( "Starting event loop", Log::Debug );
 
-    while ( !d->stop ) {
-        if ( !haveLoggedStartup && !inStartup() &&
-             !Scope::current()->log()->disastersYet() ) {
+    while ( !d->stop && !Log::disastersYet() ) {
+        if ( !haveLoggedStartup && !inStartup() ) {
             if ( !Server::name().isEmpty() )
                 log( Server::name() + ": Server startup complete",
                      Log::Significant );
