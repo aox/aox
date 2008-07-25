@@ -587,7 +587,7 @@ void Query::setRows( uint r )
 
 bool Query::hasResults() const
 {
-    return d->rows.count() > 0;
+    return !d->rows.isEmpty();
 }
 
 
