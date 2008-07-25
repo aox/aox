@@ -213,16 +213,18 @@ PgClientMessage::PgClientMessage( char t )
 
 void PgClientMessage::enqueue( Buffer *buf )
 {
-    String data;
-
     encodeData();
-    data = msg;
-    msg = "";
 
     if ( type != '\0' )
-        msg.append( type );
-    appendInt32( 4+data.length() );
-    msg.append( data );
+        buf->append( &type, 1 );
+
+    char length[4];
+    uint n = 4+msg.length();
+    length[0] = (n >> 24);
+    length[1] = (n >> 16);
+    length[2] = (n >>  8);
+    length[3] =  n;
+    buf->append( length, 4 );
 
     buf->append( msg );
 }
@@ -1061,19 +1063,26 @@ void PgCopyData::encodeData()
 
 void PgCopyData::encodeText()
 {
-    List< Query::InputLine >::Iterator it( *query->inputLines() );
+    bool first = true;
+    List< Query::InputLine >::Iterator it( query->inputLines() );
     while ( it ) {
-        String s;
-
         Query::InputLine::Iterator v( it );
         while ( v ) {
-            s.append( v->data() );
+            if ( first ) {
+                String s = v->data();
+                msg.reserve( msg.length() +
+                             s.length() * query->inputLines()->count() );
+                msg.append( s );
+            }
+            else {
+                msg.append( v->data() );
+            }
+            first = false;
             ++v;
             if ( v )
-                s.append( "\t" );
+                appendByten( "\t" );
         }
-        s.append( "\n" );
-        appendByten( s );
+        appendByten( "\n" );
 
         ++it;
     }
