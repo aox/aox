@@ -284,68 +284,6 @@ void ImapSession::enqueue( const String & r )
 }
 
 
-/*! Records that \a f will be used by \a c. f \a c is the first
-    Command to use \a f in this ImapSession, addFlags() uses
-    Command::respond() to enqueue a FLAGS response announcing the new
-    list of flags.
-*/
-
-void ImapSession::addFlags( StringList * f, class Command * c )
-{
-    Scope x( d->l );
-    StringList::Iterator i( f );
-    bool announce = false;
-    while ( i ) {
-        uint iid = Flag::id( *i );
-
-        StringList::Iterator j( d->flags );
-        while ( j && Flag::id( *j ) < iid )
-            ++j;
-        if ( !j || Flag::id( *j ) > iid ) {
-            d->flags.insert( j, i );
-            announce = true;
-        }
-        ++i;
-    }
-
-    if ( !announce )
-        return;
-
-    String r;
-    i = d->flags;
-    while ( i ) {
-        if ( !r.isEmpty() )
-            r.append( " " );
-        r.append( *i );
-        ++i;
-    }
-
-    String s = "FLAGS (";
-    s.append( r );
-    s.append( ")" );
-    if ( c ) {
-        c->respond( s );
-    }
-    else {
-        enqueue( "* " );
-        enqueue( s );
-        enqueue( "\r\n" );
-    }
-
-    s = "OK [PERMANENTFLAGS (";
-    s.append( r );
-    s.append( " \\*)] permanent flags" );
-    if ( c ) {
-        c->respond( s );
-    }
-    else {
-        enqueue( "* " );
-        enqueue( s );
-        enqueue( "\r\n" );
-    }
-}
-
-
 /*! Records that no flag/annotation/modseq update is to be sent for \a
     ms. ImapSession may send one anyway, but tries to avoid it.
 */

@@ -1543,8 +1543,6 @@ void Fetch::pickup()
         if ( !msn )
             ok = false;
         if ( ok ) {
-            if ( d->flags )
-                imap()->session()->addFlags( m->flags( mb ), this );
             makeFetchResponse( m, m->uid( mb ), msn );
             done++;
             d->requested.shift();

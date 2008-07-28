@@ -136,12 +136,10 @@ void Select::execute()
             d->session->refresh( this );
     }
 
-    if ( !d->usedFlags && !d->session->isEmpty() ) {
-        d->usedFlags = new Query( "select distinct flag from flags where "
-                                  "mailbox=$1 "
-                                  "order by flag",
+    if ( !d->usedFlags ) {
+        d->usedFlags = new Query( "select name from flag_names "
+                                  "order by id",
                                   this );
-        d->usedFlags->bind( 1, d->mailbox->id() );
         d->usedFlags->execute();
     }
 
@@ -218,15 +216,13 @@ void Select::execute()
         flags.append( f );
 
     if ( d->usedFlags && d->usedFlags->hasResults() ) {
-        Row * r = 0;
-        while ( (r=d->usedFlags->nextRow()) != 0 ) {
-            String n( Flag::name( r->getInt( "flag" ) ) );
-            if ( !n.isEmpty() )
-                flags.append( n );
-        }
+        StringList l;
+        while ( d->usedFlags->hasResults() )
+            l.append( d->usedFlags->nextRow()->getString( "name" ) );
+        respond( "FLAGS (" + l.join( " " ) + ")" );
+        respond( "OK [PERMANENTFLAGS (" + l.join( " " ) +
+                 " \\*)] permanent flags" );
     }
-
-    d->session->addFlags( &flags, this );
 
     if ( imap()->clientSupports( IMAP::Annotate ) ) {
         Permissions * p  = d->session->permissions();

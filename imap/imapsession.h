@@ -27,8 +27,6 @@ public:
 
     void enqueue( const String & );
 
-    void addFlags( StringList *, class Command * );
-
     void ignoreModSeq( int64 );
 
 private:
