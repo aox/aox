@@ -55,12 +55,6 @@ public:
 
     void clear()
     {
-        Node *cur = head;
-        while ( cur ) {
-            Node *n = cur->next;
-            delete cur;
-            cur = n;
-        }
         head = tail = 0;
     }
 
