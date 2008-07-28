@@ -18,6 +18,7 @@
 #include "section.h"
 #include "listext.h"
 #include "fetcher.h"
+#include "iso8859.h"
 #include "codec.h"
 #include "query.h"
 #include "scope.h"
@@ -893,6 +894,8 @@ String Fetch::sectionData( Section * s, Message * m )
                 Codec * c = 0;
                 if ( ct )
                     c = Codec::byName( ct->parameter( "charset" ) );
+                if ( !c && ct && ct->subtype() == "html" )
+                    c = new Iso88591Codec;
                 if ( !c )
                     c = new Utf8Codec;
                 data = c->fromUnicode( text );
