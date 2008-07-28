@@ -3,6 +3,7 @@
 #include "store.h"
 
 #include "helperrowcreator.h"
+#include "messagecache.h"
 #include "permissions.h"
 #include "transaction.h"
 #include "imapsession.h"
@@ -28,7 +29,7 @@ class StoreData
 public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
-          checkedPermission( false ),
+          checkedPermission( false ), updatedModseqs( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
@@ -48,6 +49,7 @@ public:
     bool silent;
     bool uid;
     bool checkedPermission;
+    bool updatedModseqs;
 
     uint unchangedSince;
     bool seenUnchangedSince;
@@ -445,7 +447,8 @@ void Store::execute()
                 return;
             }
             // no messages need to be changed. we'll just say OK
-            finish();
+            if ( d->transaction->done() )
+                finish();
             return;
         }
 
@@ -524,6 +527,19 @@ void Store::execute()
         return;
     }
 
+    if ( !d->updatedModseqs ) {
+        uint i = d->s.count();
+        while ( i ) {
+            Message * c = MessageCache::find( m, d->s.value( i ) );
+            if ( c ) {
+                c->setFlagsFetched( m, false );
+                c->setModSeq( m, d->modseq );
+            }
+            i--;
+        }
+        d->updatedModseqs = false;
+    }
+
     if ( m->nextModSeq() <= d->modseq )
         m->setNextModSeq( d->modseq + 1 );
 
@@ -595,7 +611,7 @@ bool Store::processAnnotationNames()
     if ( unknown.isEmpty() )
         return true;
 
-    d->annotationNameCreator 
+    d->annotationNameCreator
         = new AnnotationNameCreator( unknown, d->transaction );
     d->annotationNameCreator->execute();
     return false;
