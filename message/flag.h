@@ -21,6 +21,8 @@ public:
 
     static String name( uint );
     static uint id( const String & );
+
+    static StringList allFlags();
 };
 
 

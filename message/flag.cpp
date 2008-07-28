@@ -190,3 +190,21 @@ String Flag::name( uint id )
 
     return name;
 }
+
+
+/*! Returns a list of all current known flags (except "\recent" of
+    course), sorted by id().
+*/
+
+StringList Flag::allFlags()
+{
+    StringList r;
+    uint i = 0;
+    while ( i <= ::largestFlagId ) {
+        String * n = ::flagsById->find( i );
+        if ( n )
+            r.append( n );
+        ++i;
+    }
+    return r;
+}

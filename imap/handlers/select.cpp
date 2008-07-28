@@ -20,14 +20,13 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
-          usedFlags( 0 ), firstUnseen( 0 ),
+          firstUnseen( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
     bool readOnly;
     bool annotate;
     bool condstore;
-    Query * usedFlags;
     Query * firstUnseen;
     Mailbox * mailbox;
     ImapSession * session;
@@ -136,13 +135,6 @@ void Select::execute()
             d->session->refresh( this );
     }
 
-    if ( !d->usedFlags ) {
-        d->usedFlags = new Query( "select name from flag_names "
-                                  "order by id",
-                                  this );
-        d->usedFlags->execute();
-    }
-
     if ( !d->firstUnseen && !d->session->isEmpty() ) {
         uint seen = Flag::id( "\\seen" );
         String sq;
@@ -159,9 +151,6 @@ void Select::execute()
         d->firstUnseen->bind( 1, d->mailbox->id() );
         d->firstUnseen->execute();
     }
-
-    if ( d->usedFlags && !d->usedFlags->done() )
-        return;
 
     if ( d->firstUnseen && !d->firstUnseen->done() )
         return;
@@ -215,14 +204,9 @@ void Select::execute()
     if ( Flag::id( f ) )
         flags.append( f );
 
-    if ( d->usedFlags && d->usedFlags->hasResults() ) {
-        StringList l;
-        while ( d->usedFlags->hasResults() )
-            l.append( d->usedFlags->nextRow()->getString( "name" ) );
-        respond( "FLAGS (" + l.join( " " ) + ")" );
-        respond( "OK [PERMANENTFLAGS (" + l.join( " " ) +
-                 " \\*)] permanent flags" );
-    }
+    String fl = Flag::allFlags().join( " " );
+    respond( "FLAGS (" + fl + ")" );
+    respond( "OK [PERMANENTFLAGS (" + fl + " \\*)] permanent flags" );
 
     if ( imap()->clientSupports( IMAP::Annotate ) ) {
         Permissions * p  = d->session->permissions();
