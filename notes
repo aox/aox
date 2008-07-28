@@ -570,6 +570,13 @@ C/R
   configuration?
 
 
+Allocator
+
+  The binary tree used in Allocator is likely to be extremely
+  unbalanced sometimes, perhaps often. Using a Patricia tree will work
+  well.
+
+
 Using rrdtool
 
   What could we want to graph with rrdtool? Lots.
