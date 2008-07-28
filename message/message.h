@@ -60,6 +60,7 @@ public:
     StringList * flags( Mailbox * ) const;
     void setFlags( Mailbox *, const StringList * );
     void setFlag( Mailbox *, const String & );
+    void resortFlags();
     List<Annotation> * annotations( Mailbox * ) const;
     void setAnnotations( Mailbox *, List<Annotation> * );
 

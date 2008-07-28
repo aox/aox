@@ -1576,10 +1576,10 @@ void Injector::announce()
             uint uid = m->uid( mb );
             int64 ms = m->modSeq( mb );
 
-            List<Session>::Iterator si( mb->sessions() );
-            if ( si )
-                MessageCache::insert( mb, uid, m );
+            m->resortFlags();
+            MessageCache::insert( mb, uid, m );
 
+            List<Session>::Iterator si( mb->sessions() );
             while ( si ) {
                 MessageSet dummy;
                 dummy.add( uid );

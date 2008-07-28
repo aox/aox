@@ -13,6 +13,7 @@
 #include "codec.h"
 #include "date.h"
 #include "dict.h"
+#include "flag.h"
 #include "md5.h"
 
 
@@ -619,7 +620,10 @@ void Message::setFlags( Mailbox * mb, const StringList * l )
 
 
 /*! Sets the specified flag \a f on this message for the given mailbox
-    \a mb. Does nothing if the flag is already set. */
+    \a mb. Does nothing if the flag is already set.
+
+    This function is rather slow.
+*/
 
 void Message::setFlag( Mailbox * mb, const String & f )
 {
@@ -628,10 +632,36 @@ void Message::setFlag( Mailbox * mb, const String & f )
         return;
 
     StringList::Iterator it( m->flags );
-    while ( it && *it != f )
+    while ( it && it->lower() != f.lower() )
         ++it;
     if ( !it )
         m->flags.append( f );
+}
+
+
+/*! Ensures that flags() returns a list which is sorted by flag
+    ID. This is slow.
+*/
+
+void Message::resortFlags()
+{
+    List<MessageData::Mailbox>::Iterator i( d->mailboxes );
+    while ( i ) {
+        StringList::Iterator f( i->flags );
+        i->flags.clear();
+        while ( f ) {
+            uint id = Flag::id( *f );
+            StringList::Iterator ri( i->flags );
+            while ( ri && Flag::id( *ri ) < id )
+                ++ri;
+            if ( !ri )
+                i->flags.append( f );
+            else if ( Flag::id( *ri ) > id )
+                i->flags.insert( ri, f );
+            ++f;
+        }
+        ++i;
+    }
 }
 
 
