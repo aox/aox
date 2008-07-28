@@ -230,6 +230,8 @@ void Server::configuration()
         Configuration::setup( "archiveopteryx.conf" );
     else
         Configuration::setup( d->configFile );
+    if ( d->useCache && !Configuration::scalar( Configuration::MemoryLimit ) )
+        d->useCache = false;
 }
 
 
