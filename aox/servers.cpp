@@ -723,9 +723,7 @@ bool Starter::startServer( const char * s )
     bool use = true;
 
     String t( s );
-    if ( t == "ocd" )
-        use = Configuration::toggle( Configuration::StartOcd );
-    else if ( t == "tlsproxy" )
+    if ( t == "tlsproxy" )
         use = Configuration::toggle( Configuration::UseTls );
     else if ( t == "archiveopteryx" )
         use = Configuration::toggle( Configuration::UseImap ) ||

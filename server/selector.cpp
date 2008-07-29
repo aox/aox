@@ -1056,7 +1056,7 @@ String Selector::whereAnnotation()
     else {
         // XXX: Use ANY($1) here.
         uint n = 0;
-        uint u = 0;
+        uint u = 1;
         while ( u <= ::AnnotationName::largestId() ) {
             String a( AnnotationName::name( u ) );
             if ( lmatch( d->s8, 0, a, 0 ) == 2 ) {

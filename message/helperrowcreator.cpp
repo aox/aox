@@ -46,7 +46,7 @@ public:
      execute() will roll back to a savepoint and try again.
 */
 
-HelperRowCreator::HelperRowCreator( const String & table, 
+HelperRowCreator::HelperRowCreator( const String & table,
                                     Transaction * transaction,
                                     const String & constraint )
     : EventHandler(), d( new HelperRowCreatorData )
@@ -124,8 +124,12 @@ void HelperRowCreator::execute()
         }
     }
 
-    if ( d->sp )
+    if ( d->sp ) {
         d->t->enqueue( new Query( "release savepoint " + d->n, 0 ) );
+        String ed = d->n;
+        ed.replace( "creator", "extended" );
+        d->t->enqueue( new Query( "notify " + ed, 0 ) );
+    }
     d->t->notify();
 }
 
@@ -242,12 +246,12 @@ Query * FlagCreator::makeCopy()
     if ( !any )
         return 0;
     return c;
-    
+
 }
 
 
 /*! \class FieldNameCreator helperrowcreator.h
-  
+
     The FieldNameCreator is a HelperRowCreator to insert rows into the
     field_names table. Nothing particular.
 */
