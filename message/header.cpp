@@ -232,7 +232,6 @@ HeaderField * Header::field( const char * h, uint n ) const
     while ( it && ( it->type() != HeaderField::Other || it->name() != h ) )
         ++it;
     return it;
-    
 }
 
 
@@ -780,6 +779,41 @@ void Header::repair()
             removeField( HeaderField::ContentTransferEncoding );
     }
 
+    // Sender sometimes is a straight copy of From, even if From
+    // contains more than one address.
+
+    if ( occurrences[(int)HeaderField::Sender] > 0 &&
+         addresses( HeaderField::Sender )->count() > 1 ) {
+        StringList from;
+        List<Address>::Iterator fi( addresses( HeaderField::From ) );
+        while ( fi ) {
+            from.append( fi->lpdomain().lower() );
+            ++fi;
+        }
+
+        StringList sender;
+        List<Address>::Iterator si( addresses( HeaderField::Sender ) );
+        while ( si ) {
+            sender.append( si->lpdomain().lower() );
+            ++si;
+        }
+
+        StringList::Iterator i( from );
+        bool difference = false;
+        while ( i && !difference ) {
+            if ( !sender.contains( *i ) )
+                difference = true;
+            ++i;
+        }
+        i = sender.first();
+        while ( i && difference ) {
+            if ( !from.contains( *i ) )
+                difference = true;
+            ++i;
+        }
+        if ( !difference )
+            removeField( HeaderField::Sender );
+    }
 }
 
 
