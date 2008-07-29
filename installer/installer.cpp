@@ -1051,8 +1051,8 @@ void database()
         d->ssa->execute();
 
         d->state = CheckingSchema;
-        d->q = new Query( "select relname from pg_catalog.pg_class where "
-                          "relname='mailstore'", d );
+        d->q = new Query( "select relname::text from pg_catalog.pg_class "
+                          "where relname='mailstore'", d );
         d->q->execute();
     }
 
