@@ -780,7 +780,8 @@ void Header::repair()
     }
 
     // Sender sometimes is a straight copy of From, even if From
-    // contains more than one address.
+    // contains more than one address. If it's a copy, or even an
+    // illegal subset, we drop it.
 
     if ( occurrences[(int)HeaderField::Sender] > 0 &&
          addresses( HeaderField::Sender )->count() > 1 ) {
@@ -798,14 +799,8 @@ void Header::repair()
             ++si;
         }
 
-        StringList::Iterator i( from );
+        StringList::Iterator i( sender );
         bool difference = false;
-        while ( i && !difference ) {
-            if ( !sender.contains( *i ) )
-                difference = true;
-            ++i;
-        }
-        i = sender.first();
         while ( i && difference ) {
             if ( !from.contains( *i ) )
                 difference = true;
