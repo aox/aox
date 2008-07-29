@@ -482,8 +482,6 @@ void ContentType::parse( const String &s )
             String cs = c->name().lower();
             if ( t == "text" && cs == "us-ascii" )
                 removeParameter( "charset" );
-            else if ( t == "text" && st == "html" && cs == "iso-8859-1" )
-                removeParameter( "charset" );
             else if ( cs != parameter( "charset" ).lower() )
                 addParameter( "charset", cs );
         }
