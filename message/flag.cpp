@@ -73,6 +73,20 @@ public:
 };
 
 
+class FlagWatcher
+    : public EventHandler
+{
+public:
+    FlagWatcher(): EventHandler() {
+        setLog( new Log( Log::Server ) );
+        (void)new DatabaseSignal( "flag_names_extended", this );
+    }
+    void execute() {
+        (void)new FlagFetcher( 0 );
+    }
+};
+
+
 /*! \class Flag flag.h
     Maps IMAP flag names to ids using the flag_names table.
 
@@ -101,6 +115,8 @@ void Flag::setup()
 
     if ( !Configuration::toggle( Configuration::Security ) )
         (void)new FlagObliterator;
+
+    (void)new FlagWatcher;
 
     reload();
 }
