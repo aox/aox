@@ -102,7 +102,7 @@ void SieveScript::parse( const String & script )
     StringList undeclared;
     while ( i ) {
         if ( !declared.contains( *i ) )
-            undeclared.append( *i );
+            undeclared.append( i->quoted() );
         ++i;
     }
     if ( !undeclared.isEmpty() ) {
