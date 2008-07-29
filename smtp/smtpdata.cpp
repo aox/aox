@@ -166,7 +166,6 @@ void SmtpData::execute()
             checkField( HeaderField::ResentFrom );
             checkField( HeaderField::Sender );
             checkField( HeaderField::ReturnPath );
-            checkField( HeaderField::ReplyTo ); // <-- even reply-to? hm?
             String e = d->message->error();
             if ( e.isEmpty() &&
                  !addressPermitted( server()->sieve()->sender() ) )
