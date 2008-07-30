@@ -878,7 +878,7 @@ bool Row::badFetch( uint i, Column::Type t ) const
     else if ( t != Column::Unknown &&
               columns[i].type != t )
         s = "Column " + columns[i].name + " is of type " +
-            Column::typeName( columns[i].type ) + ", not " +
+            Column::typeName( columns[i].type ) + ", query expected " +
             Column::typeName( t );
     else
         return false;
