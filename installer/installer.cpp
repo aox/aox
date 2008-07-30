@@ -125,7 +125,7 @@ int main( int ac, char *av[] )
             report = true;
         }
         else if ( s == "-g" || s == "-u" || s == "-p" || s == "-a" ||
-                  s == "-s" || s == "--schema" )
+                  s == "-s" || s == "-S" )
         {
             if ( ac == 1 )
                 error( s + " specified with no argument." );
@@ -139,7 +139,7 @@ int main( int ac, char *av[] )
                 dbaddress = new String( *av++ );
             else if ( s == "-s" )
                 dbsocket = new String( *av++ );
-            else if ( s == "--schema" )
+            else if ( s == "--S" )
                 dbschema = new String( *av++ );
             ac--;
         }
@@ -223,7 +223,7 @@ void help()
         "  Synopsis:\n\n"
         "    installer [-n] [-q]\n"
         "    installer [-g group] [-u user] [-p postgres] [-s socket]\n"
-        "              [-a address] [-t port] [--schema schema]\n\n"
+        "              [-a address] [-t port] [-S schema]\n\n"
         "  This program does the following:\n\n"
         "    - Creates a Unix group named %s, and a user named %s.\n"
         "    - Creates Postgres users named %s and %s.\n"
@@ -252,7 +252,7 @@ void help()
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The \"-t port\" flag allows you to specify a different port\n"
         "  for the Postgres server. The default is 5432.\n\n"
-        "  The \"--schema schema\" flag allows you to specify a default\n"
+        "  The \"-S schema\" flag allows you to specify a default\n"
         "  search_path for the new database user.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
         AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
