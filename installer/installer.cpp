@@ -139,7 +139,7 @@ int main( int ac, char *av[] )
                 dbaddress = new String( *av++ );
             else if ( s == "-s" )
                 dbsocket = new String( *av++ );
-            else if ( s == "--S" )
+            else if ( s == "-S" )
                 dbschema = new String( *av++ );
             ac--;
         }
@@ -1152,11 +1152,16 @@ void database()
         if ( !r ) {
             String cmd( "\\set ON_ERROR_STOP\n"
                         "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
-                        "SET client_min_messages TO 'ERROR';\n"
-                        "\\i " LIBDIR "/schema.pg\n"
+                        "SET client_min_messages TO 'ERROR';\n" );
+
+            if ( dbschema )
+                cmd.append( "SET search_path TO " + dbschema->quoted( '\'' ) );
+
+            cmd.append( "\\i " LIBDIR "/schema.pg\n"
                         "\\i " LIBDIR "/flag-names\n"
                         "\\i " LIBDIR "/field-names\n"
                         "\\i " LIBDIR "/grant-privileges\n" );
+
             d->state = Done;
             if ( report ) {
                 todo++;
