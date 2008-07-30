@@ -104,6 +104,7 @@ void Unsubscribe::execute()
                        "where owner=$1 and mailbox=$2", this );
         q->bind( 1, imap()->user()->id() );
         q->bind( 2, m->id() );
+        q->execute();
     }
 
     if ( q && !q->done() )
