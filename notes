@@ -1227,3 +1227,9 @@ Bug confusing U+ED00 and U+0000 in the message cache
   whether the cache is used or not. That has to be resolved somehow.
 
 
+Fetching headers is too slow, really.
+
+  Maybe other stuff. We know the results are ordered, so we should
+  take advantage of the ordering and keep state across rows. Right now
+  we're locating the Message/Bodypart/Header from first principles for
+  each row.
