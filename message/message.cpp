@@ -406,6 +406,17 @@ class Bodypart * Message::bodypart( const String & s, bool create )
         while ( i && i->number() < n )
             ++i;
         if ( i && i->number() == n ) {
+            if ( n == 1 && !i->header() ) {
+                // it's possible that i doesn't have a header of its
+                // own, and that the parent message's header functions
+                // as such. link it in if that's the case.
+                Header * h = header();
+                if ( bp && bp->message() )
+                    h = bp->message()->header();
+                if ( h && ( !h->contentType() ||
+                            h->contentType()->type() != "multipart" ) )
+                    i->setHeader( h );
+            }
             bp = i;
         }
         else if ( create ) {

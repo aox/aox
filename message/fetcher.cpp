@@ -953,8 +953,12 @@ void FetcherData::HeaderDecoder::decode( Message * m, Row * r )
             bp->message()->setParent( bp );
         }
         h = bp->message()->header();
+        (void)m->bodypart( part.mid( 0, part.length()-7 ) + ".1" );
     }
-    else if ( !part.isEmpty() ) {
+    else if ( part.isEmpty() ) {
+        (void)m->bodypart( "1" );
+    }
+    else {
         h = m->bodypart( part, true )->header();
     }
     HeaderField * f = HeaderField::assemble( name, value );
