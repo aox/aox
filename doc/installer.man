@@ -98,6 +98,10 @@ listening socket. The specified value is used as described above.
 Allows you to specify a different port for the Postgres server. The
 default is 5432. (This value is used only if the server address does
 not refer to a Unix socket.)
+.IP "--schema schema"
+Allows you to specify a schema name that will be used as the default
+.I search_path
+for the new database user.
 .PP
 The defaults come from
 .IR Jamsettings .
