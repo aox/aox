@@ -317,7 +317,7 @@ void Fetcher::start()
     log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
          what.join( " " ) );
 
-    if ( d->messages.count() == 1 &&
+    if ( d->messages.count() == 1 && !d->trivia &&
          d->messages.firstElement()->databaseId() ) {
         // we're fetching a message by ID, not UID. just do it.
         d->batchSize = 1;
