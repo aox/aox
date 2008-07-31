@@ -43,6 +43,7 @@ String * dbpass;
 String * dbowner;
 String * dbownerpass;
 String * dbpgpass;
+String * dbschema;
 
 uint dbport = 5432;
 bool askPass = false;
@@ -97,6 +98,7 @@ int main( int ac, char *av[] )
     dbsocket = 0;
     dbpgpass = 0;
     dbaddress = 0;
+    dbschema = 0;
     dbname = new String( DBNAME );
     Allocator::addEternal( dbname, "DBNAME" );
     dbuser = new String( AOXUSER );
@@ -123,7 +125,7 @@ int main( int ac, char *av[] )
             report = true;
         }
         else if ( s == "-g" || s == "-u" || s == "-p" || s == "-a" ||
-                  s == "-s" )
+                  s == "-s" || s == "-S" )
         {
             if ( ac == 1 )
                 error( s + " specified with no argument." );
@@ -137,6 +139,8 @@ int main( int ac, char *av[] )
                 dbaddress = new String( *av++ );
             else if ( s == "-s" )
                 dbsocket = new String( *av++ );
+            else if ( s == "-S" )
+                dbschema = new String( *av++ );
             ac--;
         }
         else if ( s == "-t" ) {
@@ -164,6 +168,8 @@ int main( int ac, char *av[] )
         Allocator::addEternal( dbsocket, "DBSOCKET" );
     if ( dbaddress )
         Allocator::addEternal( dbaddress, "DBADDRESS" );
+    if ( dbschema )
+        Allocator::addEternal( dbschema, "DBSCHEMA" );
 
     Allocator::addEternal( new StderrLogger( "installer", verbosity ),
                            "log object" );
@@ -217,7 +223,7 @@ void help()
         "  Synopsis:\n\n"
         "    installer [-n] [-q]\n"
         "    installer [-g group] [-u user] [-p postgres] [-s socket]\n"
-        "              [-a address] [-t port]\n\n"
+        "              [-a address] [-t port] [-S schema]\n\n"
         "  This program does the following:\n\n"
         "    - Creates a Unix group named %s, and a user named %s.\n"
         "    - Creates Postgres users named %s and %s.\n"
@@ -246,6 +252,8 @@ void help()
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The \"-t port\" flag allows you to specify a different port\n"
         "  for the Postgres server. The default is 5432.\n\n"
+        "  The \"-S schema\" flag allows you to specify a default\n"
+        "  search_path for the new database user.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
         AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
         dbowner->cstr(), dbuser->cstr(),
@@ -705,7 +713,8 @@ void oryxUser()
 enum DbState {
     Unused,
     CheckingVersion, CheckDatabase, CheckingDatabase, CheckUser,
-    CheckingUser, CreatingUser, CheckSuperuser, CheckingSuperuser,
+    CheckingUser, CreatingUser, SetSchema, SettingSchema,
+    CheckSuperuser, CheckingSuperuser,
     CreatingSuperuser, CreateDatabase, CreatingDatabase, CheckLang,
     CheckingLang, CreatingLang, CheckSchema, CheckingSchema,
     CreateSchema, CheckingRevision, UpgradingSchema,
@@ -859,7 +868,7 @@ void database()
 
             if ( report ) {
                 todo++;
-                d->state = CheckSuperuser;
+                d->state = SetSchema;
                 printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "%s -d template1 -qc \"%s\"\n\n",
@@ -877,7 +886,7 @@ void database()
         else {
             if ( generatedPass )
                 *dbpass = "(database user password here)";
-            d->state = CheckSuperuser;
+            d->state = SetSchema;
         }
     }
 
@@ -888,6 +897,46 @@ void database()
             fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
                      "Please create it by hand and re-run the installer.\n",
                      dbuser->cstr(), pgErr( d->q->error() ) );
+            EventLoop::shutdown();
+            return;
+        }
+        d->state = SetSchema;
+    }
+
+    if ( d->state == SetSchema ) {
+        String alter( "alter user " + *dbuser + " set "
+                      "search_path=" );
+        if ( dbschema )
+            alter.append( dbschema->quoted( '\'' ) );
+
+        if ( !dbschema ) {
+            d->state = CheckSuperuser;
+        }
+        else if ( report ) {
+            todo++;
+            d->state = CheckSuperuser;
+            printf( " - Set the default search_path to '%s'.\n"
+                    "   As user %s, run:\n\n"
+                    "%s -d template1 -qc \"%s\"\n\n",
+                    dbschema->cstr(), PGUSER, PSQL, alter.cstr() );
+        }
+        else {
+            d->state = SettingSchema;
+            if ( !silent )
+                printf( "Setting default search_path to '%s'.\n",
+                        dbschema->cstr() );
+            d->q = new Query( alter, d );
+            d->q->execute();
+        }
+    }
+
+    if ( d->state == SettingSchema ) {
+        if ( !d->q->done() )
+            return;
+        if ( d->q->failed() ) {
+            fprintf( stderr, "Couldn't set search_path to '%s' (%s).\n"
+                     "Please do it by hand and re-run the installer.\n",
+                     dbschema->cstr(), pgErr( d->q->error() ) );
             EventLoop::shutdown();
             return;
         }
@@ -1103,11 +1152,16 @@ void database()
         if ( !r ) {
             String cmd( "\\set ON_ERROR_STOP\n"
                         "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
-                        "SET client_min_messages TO 'ERROR';\n"
-                        "\\i " LIBDIR "/schema.pg\n"
+                        "SET client_min_messages TO 'ERROR';\n" );
+
+            if ( dbschema )
+                cmd.append( "SET search_path TO " + dbschema->quoted( '\'' ) );
+
+            cmd.append( "\\i " LIBDIR "/schema.pg\n"
                         "\\i " LIBDIR "/flag-names\n"
                         "\\i " LIBDIR "/field-names\n"
                         "\\i " LIBDIR "/grant-privileges\n" );
+
             d->state = Done;
             if ( report ) {
                 todo++;

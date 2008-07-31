@@ -1215,4 +1215,21 @@ SMS gateway
   if SMS is enabled and not configured when it's first used.
 
 
+Bug confusing U+ED00 and U+0000 in the message cache
 
+  When we write to the database, U+0000 (which occasionally occurs,
+  mostly by mistake but sometimes on purpose) is transformed to
+  U+ED00, and when we read it, back.
+
+  So if U+ED00 is written to the DB, it comes back as U+0000.
+
+  This means that Archiveopteryx works differently depending on
+  whether the cache is used or not. That has to be resolved somehow.
+
+
+Fetching headers is too slow, really.
+
+  Maybe other stuff. We know the results are ordered, so we should
+  take advantage of the ordering and keep state across rows. Right now
+  we're locating the Message/Bodypart/Header from first principles for
+  each row.

@@ -317,7 +317,7 @@ void Fetcher::start()
     log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
          what.join( " " ) );
 
-    if ( d->messages.count() == 1 &&
+    if ( d->messages.count() == 1 && !d->trivia &&
          d->messages.firstElement()->databaseId() ) {
         // we're fetching a message by ID, not UID. just do it.
         d->batchSize = 1;
@@ -953,8 +953,12 @@ void FetcherData::HeaderDecoder::decode( Message * m, Row * r )
             bp->message()->setParent( bp );
         }
         h = bp->message()->header();
+        (void)m->bodypart( part.mid( 0, part.length()-7 ) + ".1" );
     }
-    else if ( !part.isEmpty() ) {
+    else if ( part.isEmpty() ) {
+        (void)m->bodypart( "1" );
+    }
+    else {
         h = m->bodypart( part, true )->header();
     }
     HeaderField * f = HeaderField::assemble( name, value );
