@@ -78,18 +78,13 @@ void Delete::execute()
         lock->bind( 1, d->m->id() );
         d->t->enqueue( lock );
 
-        // This query mentions the messages table for no particularly
-        // good reason, so it may be suboptimal. Deleting is not high
-        // on our priority list, so that doesn't seem like a big
-        // problem.
-        d->messages = new Query( "select count(*) as messages "
-                                 "from messages m "
-                                 "left join mailbox_messages mm on"
-                                 " (m.id=mm.message) "
-                                 "left join deleted_messages dm"
-                                 " on (m.id=dm.message) "
-                                 "where mm.mailbox=$1 or dm.mailbox=$1",
-                                 this );
+        d->messages = new Query(
+            "select "
+            "(select count(*)::bigint from mailbox_messages where mailbox=$1) "
+            "+"
+            "(select count(*)::bigint from deleted_messages where mailbox=$1) "
+            "as messages",
+            this );
         d->messages->bind( 1, d->m->id() );
         d->t->enqueue( d->messages );
         d->t->execute();
@@ -106,13 +101,13 @@ void Delete::execute()
         return;
 
     if ( d->messages ) {
-        uint messages = 0;
+        int64 messages = 0;
 
         Row * r = d->messages->nextRow();
         if ( d->messages->failed() || !r )
             error( No, "Could not determine if any messages exist" );
         else
-            messages = r->getInt( "messages" );
+            messages = r->getBigint( "messages" );
 
         if ( messages )
             error( No, "Cannot delete mailbox: " + fn( messages ) +
