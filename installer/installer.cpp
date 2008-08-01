@@ -87,9 +87,10 @@ void createNamespace();
 void setSearchPath();
 void checkOwnership();
 void grantUsage();
+void splitPrivileges();
 void createSchema();
 void upgradeSchema();
-void grantPrivileges();
+void checkPrivileges();
 
 
 /*! \nodoc */
@@ -727,8 +728,7 @@ enum DbState {
     CheckVersion, CheckEncoding,
     CreateUser, CreateSuperuser, CreateDatabase, CreateLang,
     CreateNamespace, SetSearchPath, CheckOwnership, GrantUsage,
-    CreateSchema, UpgradeSchema,
-    GrantPrivileges,
+    SplitPrivileges, CreateSchema, UpgradeSchema, CheckPrivileges,
     Done
 };
 
@@ -843,6 +843,10 @@ void database()
             grantUsage();
             break;
 
+        case SplitPrivileges:
+            splitPrivileges();
+            break;
+
         case CreateSchema:
             createSchema();
             break;
@@ -851,8 +855,8 @@ void database()
             upgradeSchema();
             break;
 
-        case GrantPrivileges:
-            d->nextState();
+        case CheckPrivileges:
+            checkPrivileges();
             break;
 
         case Done:
@@ -1489,6 +1493,20 @@ void grantUsage()
 }
 
 
+// Archiveopteryx 2.10 introduced the privilege-separation scheme still
+// in use, where aoxsuper owns the database objects and has all rights,
+// while servers connects as user aox, which has only selected rights.
+// In earlier versions, the oryx user owned everything.
+//
+// This function is responsible for doing the one-time conversion from
+// the old scheme to the new one.
+
+void splitPrivileges()
+{
+    d->nextState();
+}
+
+
 // At this point, we know that the aox/aoxsuper users exist, that the
 // aox database exists, that any given schema exists, that PL/PgSQL is
 // available, and that the database/schema have the right ownership.
@@ -1604,6 +1622,9 @@ void createSchema()
 }
 
 
+// If the schema already exists, we might need to upgrade it to the
+// latest version.
+
 void upgradeSchema()
 {
     if ( !d->mailstoreExists ) {
@@ -1687,30 +1708,10 @@ void upgradeSchema()
 }
 
 
-void grantPrivileges()
+// Make sure the aox user has exactly those privileges it needs.
+
+void checkPrivileges()
 {
-    if ( !d->q ) {
-    }
-
-    if ( !d->u ) {
-        if ( !d->q->done() )
-            return;
-
-        Row * r = d->q->nextRow();
-        if ( d->q->failed() || !r ) {
-            return;
-        }
-    }
-
-    if ( d->u ) {
-        if ( !d->u->done() )
-            return;
-
-        if ( d->u->failed() ) {
-            return;
-        }
-    }
-
     d->nextState();
 }
 
