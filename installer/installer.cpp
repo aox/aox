@@ -2048,9 +2048,9 @@ void permissions()
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0600 %s\n"
-                    "   chown %s:%s %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0600 %s\n"
+                    "chown %s:%s %s\n\n",
                     cf.cstr(), cf.cstr(), AOXUSER, AOXGROUP, cf.cstr() );
         }
         else {
@@ -2078,9 +2078,9 @@ void permissions()
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0400 %s\n"
-                    "   chown root:root %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0400 %s\n"
+                    "chown root:root %s\n\n",
                     scf.cstr(), scf.cstr(), scf.cstr() );
         }
         else {
@@ -2110,9 +2110,9 @@ void permissions()
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0700 %s\n"
-                    "   chown %s:%s %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0700 %s\n"
+                    "chown %s:%s %s\n\n",
                     mcd.cstr(), mcd.cstr(), AOXUSER, AOXGROUP,
                     mcd.cstr() );
         }
@@ -2144,9 +2144,9 @@ void permissions()
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0700 %s\n"
-                    "   chown root:root %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0700 %s\n"
+                    "chown root:root %s\n\n",
                     jd.cstr(), jd.cstr(), jd.cstr() );
         }
         else {
