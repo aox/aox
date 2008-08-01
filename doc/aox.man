@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH aox 8 2008-08-03 aox.org "Archiveopteryx Documentation"
+.TH aox 8 2008-08-18 aox.org "Archiveopteryx Documentation"
 .SH NAME
 aox - management tool for Archiveopteryx.
 .SH SYNOPSIS
@@ -232,7 +232,7 @@ There is no command-line option to set the configuration file.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 3.0.0, released 2008-08-03,
+This man page covers Archiveopteryx version 3.0.0, released 2008-08-18,
 http://www.archiveopteryx.org/3.0.0
 .SH SEE ALSO
 .BR archiveopteryx (7),

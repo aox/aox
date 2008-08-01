@@ -60,7 +60,7 @@ const char * DBADDRESS;
 
 void help();
 void error( String );
-const char *pgErr( const String & );
+String pgErr( const Query * );
 bool exists( const String & );
 void configure();
 void findPostgres();
@@ -76,6 +76,20 @@ void configFile();
 void superConfig();
 void permissions();
 int psql( const String & );
+
+void checkVersion();
+void checkEncoding();
+void createUser();
+void createSuperuser();
+void createDatabase();
+void createLang();
+void createNamespace();
+void setSearchPath();
+void checkOwnership();
+void grantUsage();
+void createSchema();
+void upgradeSchema();
+void grantPrivileges();
 
 
 /*! \nodoc */
@@ -270,12 +284,11 @@ void error( String m )
 }
 
 
-const char * pgErr( const String & s )
+String pgErr( const Query * q )
 {
     String p( "PostgreSQL error: " );
-    p.append( s );
-    p.detach();
-    return p.cstr();
+    p.append( q->error() );
+    return p;
 }
 
 
@@ -711,15 +724,11 @@ void oryxUser()
 
 
 enum DbState {
-    Unused,
-    CheckingVersion, CheckDatabase, CheckingDatabase, CheckUser,
-    CheckingUser, CreatingUser, SetSchema, SettingSchema,
-    CheckSuperuser, CheckingSuperuser,
-    CreatingSuperuser, CreateDatabase, CreatingDatabase, CheckLang,
-    CheckingLang, CreatingLang, CheckSchema, CheckingSchema,
-    CreateSchema, CheckingRevision, UpgradingSchema,
-    CheckOwnership, AlterOwnership, AlteringOwnership, SelectObjects,
-    AlterPrivileges, AlteringPrivileges,
+    CheckVersion, CheckEncoding,
+    CreateUser, CreateSuperuser, CreateDatabase, CreateLang,
+    CreateNamespace, SetSearchPath, CheckOwnership, GrantUsage,
+    CreateSchema, UpgradeSchema,
+    GrantPrivileges,
     Done
 };
 
@@ -728,19 +737,39 @@ class Dispatcher
     : public EventHandler
 {
 public:
-    Query * q;
-    Query * ssa;
     DbState state;
-    bool createDatabase;
+    Query * q;
+    Query * u;
+    Query * ssa;
+    Query * ssp;
+    bool databaseExists;
+    bool namespaceExists;
+    bool mailstoreExists;
+    bool failed;
     String owner;
 
     Dispatcher()
-        : q( 0 ), ssa( 0 ), state( Unused ), createDatabase( false )
+        : state( CheckVersion ),
+          q( 0 ), u( 0 ), ssa( 0 ), ssp( 0 ),
+          databaseExists( false ), namespaceExists( false ),
+          mailstoreExists( false ), failed( false )
     {}
 
     void execute()
     {
         database();
+    }
+
+    void error( const String &s )
+    {
+        d->failed = true;
+        fprintf( stderr, "%s\n", s.cstr() );
+    }
+
+    void nextState()
+    {
+        d->q = d->u = 0;
+        state = (DbState)(state + 1);
     }
 };
 
@@ -762,50 +791,128 @@ void connectToDb( const String & dbname )
 }
 
 
-
 void database()
 {
     if ( !d ) {
         connectToDb( "template1" );
-
         d = new Dispatcher;
-        d->state = CheckingVersion;
+    }
+
+    DbState last;
+
+    do {
+        last = d->state;
+        switch ( d->state ) {
+        case CheckVersion:
+            checkVersion();
+            break;
+
+        case CheckEncoding:
+            checkEncoding();
+            break;
+
+        case CreateUser:
+            createUser();
+            break;
+
+        case CreateSuperuser:
+            createSuperuser();
+            break;
+
+        case CreateDatabase:
+            createDatabase();
+            break;
+
+        case CreateLang:
+            createLang();
+            break;
+
+        case CreateNamespace:
+            createNamespace();
+            break;
+
+        case SetSearchPath:
+            setSearchPath();
+            break;
+
+        case CheckOwnership:
+            checkOwnership();
+            break;
+
+        case GrantUsage:
+            grantUsage();
+            break;
+
+        case CreateSchema:
+            createSchema();
+            break;
+
+        case UpgradeSchema:
+            upgradeSchema();
+            break;
+
+        case GrantPrivileges:
+            d->nextState();
+            break;
+
+        case Done:
+            break;
+        }
+
+        if ( d->failed ) {
+            EventLoop::shutdown();
+            return;
+        }
+    }
+    while ( last != d->state && d->state != Done );
+
+    if ( d->state == Done )
+        configFile();
+}
+
+
+void checkVersion()
+{
+    // We could use Postgres::version() instead of issuing a query here,
+    // but it's not worth it. We have to check that we can issue queries
+    // anyway.
+
+    if ( !d->q ) {
         d->q = new Query( "select version() as version", d );
         d->q->execute();
     }
 
-    if ( d->state == CheckingVersion ) {
-        if ( !d->q->done() )
-            return;
+    if ( !d->q->done() )
+        return;
 
-        Row * r = d->q->nextRow();
-        if ( d->q->failed() || !r ) {
-            fprintf( stderr, "Couldn't check PostgreSQL server version.\n" );
-            EventLoop::shutdown();
-            return;
-        }
-
-        String v = r->getString( "version" ).simplified().section( " ", 2 );
-        if ( v.isEmpty() )
-            v = r->getString( "version" );
-        bool ok = true;
-        uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
-                       100 * v.section( ".", 2 ).number( &ok ) +
-                       v.section( ".", 3 ).number( &ok );
-        if ( !ok || version < 80100 ) {
-            fprintf( stderr, "Archiveopteryx requires PostgreSQL 8.1.0 "
-                     "or higher (found only '%s').\n", v.cstr() );
-            EventLoop::shutdown();
-            return;
-        }
-
-        d->state = CheckDatabase;
+    Row * r = d->q->nextRow();
+    if ( d->q->failed() || !r ) {
+        d->error( "Couldn't check Postgres server version. " + pgErr( d->q ) );
+        return;
     }
 
-    if ( d->state == CheckDatabase ) {
-        d->state = CheckingDatabase;
+    String v = r->getString( "version" ).simplified().section( " ", 2 );
+    if ( v.isEmpty() )
+        v = r->getString( "version" );
+    bool ok = true;
+    uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
+                   100 * v.section( ".", 2 ).number( &ok ) +
+                   v.section( ".", 3 ).number( &ok );
+    if ( !ok || version < 80100 ) {
+        d->error( "Archiveopteryx requires PostgreSQL 8.1.0 or higher "
+                  "(found only " + v + ")." );
+        return;
+    }
+
+    d->nextState();
+}
+
+
+void checkEncoding()
+{
+    if ( !d->q ) {
         d->owner = *dbowner;
-        d->q = new Query( "select datname::text,usename::text,"
+        d->q = new Query( "select usename::text, "
                           "pg_encoding_to_char(encoding)::text as encoding "
                           "from pg_database d join pg_user u "
                           "on (d.datdba=u.usesysid) where datname=$1", d );
@@ -813,147 +920,123 @@ void database()
         d->q->execute();
     }
 
-    if ( d->state == CheckingDatabase ) {
-        if ( !d->q->done() )
-            return;
+    if ( !d->q->done() )
+        return;
 
-        Row * r = d->q->nextRow();
-        if ( r ) {
-            String s;
-            bool warning = false;
-            d->owner = r->getString( "usename" );
-            String encoding( r->getString( "encoding" ) );
-
-            if ( d->owner != *dbowner && d->owner != *dbuser ) {
-                s = "is not owned by " + *dbowner + " or " + *dbuser;
-            }
-            else if ( encoding != "UNICODE" && encoding != "UTF8" ) {
-                s = "does not have encoding UNICODE/UTF8";
-                // If someone is using SQL_ASCII, it's probably... us.
-                if ( encoding == "SQL_ASCII" )
-                    warning = true;
-            }
-
-            if ( !s.isEmpty() ) {
-                fprintf( stderr, " - Database '%s' exists, but it %s.\n"
-                         "   (That will need to be fixed by hand.)\n",
-                         dbname->cstr(), s.cstr() );
-                if ( !warning )
-                    exit( -1 );
-            }
-        }
-        else {
-            d->createDatabase = true;
-        }
-        d->state = CheckUser;
+    if ( d->q->failed() ) {
+        d->error( "Couldn't check encoding for database " +
+                  dbname->quoted( '\'' ) + ". " + pgErr( d->q ) );
+        return;
     }
 
-    if ( d->state == CheckUser ) {
-        d->state = CheckingUser;
+    Row * r = d->q->nextRow();
+    if ( r ) {
+        d->databaseExists = true;
+
+        bool warning = false;
+        d->owner = r->getString( "usename" );
+        String encoding( r->getString( "encoding" ) );
+
+        if ( encoding != "UNICODE" && encoding != "UTF8" ) {
+            // If someone is using SQL_ASCII, it's probably... us.
+            if ( encoding == "SQL_ASCII" )
+                warning = true;
+
+            fprintf( stderr,
+                     " - Database %s exists, but it has encoding "
+                     "%s instead of UTF8/UNICODE.\n"
+                     "   (That will need to be fixed by hand.)\n",
+                     dbname->quoted().cstr(), encoding.cstr() );
+
+            if ( !warning ) {
+                d->failed = true;
+                return;
+            }
+        }
+    }
+
+    d->nextState();
+}
+
+
+void createUser()
+{
+    if ( !d->q ) {
         d->q = new Query( "select usename::text from pg_catalog.pg_user "
                           "where usename=$1", d );
         d->q->bind( 1, *dbuser );
         d->q->execute();
     }
 
-    if ( d->state == CheckingUser ) {
+    if ( !d->u ) {
         if ( !d->q->done() )
             return;
 
+        if ( d->q->failed() ) {
+            d->error( "Couldn't check user " + *dbuser + ". " + pgErr( d->q ) );
+            return;
+        }
+
         Row * r = d->q->nextRow();
         if ( !r ) {
-            // CREATE USER does not permit the username to be quoted.
             String create( "create user " + *dbuser + " with encrypted "
                            "password " + dbpass->quoted( '\'' ) );
 
             if ( report ) {
                 todo++;
-                d->state = SetSchema;
                 printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "%s -d template1 -qc \"%s\"\n\n",
                         dbuser->cstr(), PGUSER, PSQL, create.cstr() );
             }
             else {
-                d->state = CreatingUser;
                 if ( !silent )
                     printf( "Creating the '%s' PostgreSQL user.\n",
                             dbuser->cstr() );
-                d->q = new Query( create, d );
-                d->q->execute();
+                d->u = new Query( create, d );
+                d->u->execute();
             }
         }
         else {
             if ( generatedPass )
                 *dbpass = "(database user password here)";
-            d->state = SetSchema;
         }
     }
 
-    if ( d->state == CreatingUser ) {
-        if ( !d->q->done() )
+    if ( d->u ) {
+        if ( !d->u->done() )
             return;
-        if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
-                     "Please create it by hand and re-run the installer.\n",
-                     dbuser->cstr(), pgErr( d->q->error() ) );
-            EventLoop::shutdown();
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't create database user " + dbuser->quoted() +
+                      " (" + pgErr( d->u ) + ").\nPlease create it by hand "
+                      "and re-run the installer." );
             return;
-        }
-        d->state = SetSchema;
-    }
-
-    if ( d->state == SetSchema ) {
-        String alter( "alter user " + *dbuser + " set "
-                      "search_path=" );
-        if ( dbschema )
-            alter.append( dbschema->quoted( '\'' ) );
-
-        if ( !dbschema ) {
-            d->state = CheckSuperuser;
-        }
-        else if ( report ) {
-            todo++;
-            d->state = CheckSuperuser;
-            printf( " - Set the default search_path to '%s'.\n"
-                    "   As user %s, run:\n\n"
-                    "%s -d template1 -qc \"%s\"\n\n",
-                    dbschema->cstr(), PGUSER, PSQL, alter.cstr() );
-        }
-        else {
-            d->state = SettingSchema;
-            if ( !silent )
-                printf( "Setting default search_path to '%s'.\n",
-                        dbschema->cstr() );
-            d->q = new Query( alter, d );
-            d->q->execute();
         }
     }
 
-    if ( d->state == SettingSchema ) {
-        if ( !d->q->done() )
-            return;
-        if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't set search_path to '%s' (%s).\n"
-                     "Please do it by hand and re-run the installer.\n",
-                     dbschema->cstr(), pgErr( d->q->error() ) );
-            EventLoop::shutdown();
-            return;
-        }
-        d->state = CheckSuperuser;
-    }
+    d->nextState();
+}
 
-    if ( d->state == CheckSuperuser ) {
-        d->state = CheckingSuperuser;
+
+void createSuperuser()
+{
+    if ( !d->q ) {
         d->q = new Query( "select usename::text from pg_catalog.pg_user "
                           "where usename=$1", d );
         d->q->bind( 1, *dbowner );
         d->q->execute();
     }
 
-    if ( d->state == CheckingSuperuser ) {
+    if ( !d->u ) {
         if ( !d->q->done() )
             return;
+
+        if ( d->q->failed() ) {
+            d->error( "Couldn't check user " + *dbowner + ". " +
+                      pgErr( d->q ) );
+            return;
+        }
 
         Row * r = d->q->nextRow();
         if ( !r ) {
@@ -961,99 +1044,121 @@ void database()
                            "password " + dbownerpass->quoted( '\'' ) );
 
             if ( report ) {
-                d->state = CreateDatabase;
+                todo++;
                 printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "%s -d template1 -qc \"%s\"\n\n",
                         dbowner->cstr(), PGUSER, PSQL, create.cstr() );
             }
             else {
-                d->state = CreatingSuperuser;
                 if ( !silent )
                     printf( "Creating the '%s' PostgreSQL user.\n",
                             dbowner->cstr() );
-                d->q = new Query( create, d );
-                d->q->execute();
+                d->u = new Query( create, d );
+                d->u->execute();
             }
         }
         else {
             if ( generatedOwnerPass )
                 *dbownerpass = "(database owner password here)";
-            d->state = CreateDatabase;
         }
     }
 
-    if ( d->state == CreatingSuperuser ) {
-        if ( !d->q->done() )
+    if ( d->u ) {
+        if ( !d->u->done() )
             return;
-        if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
-                     "Please create it by hand and re-run the installer.\n",
-                     dbowner->cstr(), pgErr( d->q->error() ) );
-            EventLoop::shutdown();
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't create database user " + dbuser->quoted() +
+                      " (" + pgErr( d->u ) + ").\nPlease create it by hand "
+                      "and re-run the installer." );
             return;
         }
-        d->state = CreateDatabase;
     }
 
-    if ( d->state == CreateDatabase ) {
-        if ( d->createDatabase ) {
-            String create( "create database " + *dbname + " with owner " +
-                           *dbowner + " encoding 'UNICODE'" );
-            if ( report ) {
-                todo++;
-                printf( " - Create a database named '%s'.\n"
-                        "   As user %s, run:\n\n"
-                        "%s -d template1 -qc \"%s\"\n\n",
-                        dbname->cstr(), PGUSER, PSQL, create.cstr() );
+    d->nextState();
+}
 
-                // We fool CreateSchema into thinking that the mailstore
-                // query returned 0 rows, so that it displays a suitable
-                // message.
-                d->state = CreateSchema;
-            }
-            else {
-                d->state = CreatingDatabase;
-                if ( !silent )
-                    printf( "Creating the '%s' database.\n",
-                            dbname->cstr() );
-                d->q = new Query( create, d );
-                d->q->execute();
-            }
 
+// If the database does not exist (the common case), we create it, add
+// plpgsql, create a namespace and set the search_path if appropriate,
+// then create the schema and grant privileges. If the database DOES
+// exist, we don't need to create it, but we check everything else.
+
+void createDatabase()
+{
+    if ( d->databaseExists ) {
+        d->nextState();
+        return;
+    }
+
+    if ( !d->u ) {
+        String create( "create database " + *dbname + " with owner " +
+                       *dbowner + " encoding 'UNICODE'" );
+        if ( report ) {
+            todo++;
+            printf( " - Create a database named '%s'.\n"
+                    "   As user %s, run:\n\n"
+                    "%s -d template1 -qc \"%s\"\n\n",
+                    dbname->cstr(), PGUSER, PSQL, create.cstr() );
         }
         else {
-            d->state = CheckLang;
+            if ( !silent )
+                printf( "Creating the '%s' database.\n", dbname->cstr() );
+            d->u = new Query( create, d );
+            d->u->execute();
         }
     }
 
-    if ( d->state == CreatingDatabase ) {
-        if ( !d->q->done() )
+    if ( d->u ) {
+        if ( !d->u->done() )
             return;
-        if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create database '%s' (%s).\n"
-                     "Please create it by hand and re-run the installer.\n",
-                     dbname->cstr(), pgErr( d->q->error() ) );
-            EventLoop::shutdown();
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't create database " + dbname->quoted() +
+                      "(" + pgErr( d->u ) + ").\nPlease create it by "
+                      "hand and re-run the installer." );
             return;
         }
-        d->state = CheckLang;
     }
 
-    if ( d->state == CheckLang ) {
+    d->nextState();
+}
+
+
+// We must connect to the database for the next few tests, but we can do
+// so only if it existed before, or we just created it. Otherwise we'll
+// just report what we would have done and carry on.
+
+void createLang()
+{
+    if ( !d->databaseExists && report ) {
+        todo++;
+        printf( " - Add PL/PgSQL to the '%s' database.\n"
+                "   As user %s, run:\n\n"
+                "createlang plpgsql %s\n\n",
+                dbname->cstr(), PGUSER, dbname->cstr() );
+        d->nextState();
+        return;
+    }
+
+    if ( !d->q ) {
         Database::disconnect();
-
         connectToDb( *dbname );
 
-        d->state = CheckingLang;
         d->q = new Query( "select lanname::text from pg_catalog.pg_language "
                           "where lanname='plpgsql'", d );
         d->q->execute();
     }
 
-    if ( d->state == CheckingLang ) {
+    if ( !d->u ) {
         if ( !d->q->done() )
             return;
+
+        if ( d->q->failed() ) {
+            d->error( "Couldn't check for plpgsql. " + pgErr( d->q ) );
+            return;
+        }
 
         Row * r = d->q->nextRow();
         if ( !r ) {
@@ -1061,108 +1166,419 @@ void database()
 
             if ( report ) {
                 todo++;
-                d->state = CheckSchema;
                 printf( " - Add PL/PgSQL to the '%s' database.\n"
                         "   As user %s, run:\n\n"
                         "createlang plpgsql %s\n\n",
                         dbname->cstr(), PGUSER, dbname->cstr() );
             }
             else {
-                d->state = CreatingLang;
                 if ( !silent )
                     printf( "Adding PL/PgSQL to the '%s' database.\n",
                             dbname->cstr() );
-                d->q = new Query( create, d );
-                d->q->execute();
+                d->u = new Query( create, d );
+                d->u->execute();
+            }
+        }
+    }
+
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't add PL/PgSQL to the " + dbname->quoted() +
+                      "database (" + pgErr( d->u ) + ").\nPlease do it by "
+                      "hand and re-run the installer." );
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
+// If the user specified a schema with -S, we need to check if it
+// exists, create it if it doesn't, and set the default search_path
+// appropriately for both database users.
+//
+// We call our arrangement of database objects a schema (cf. schema.pg),
+// but now we're adding support for Postgres schemata; so there's some
+// confusion between the two terms here. I try to refer to the latter
+// as namespaces in the code, but commands still refer to "schema".
+
+void createNamespace()
+{
+    if ( !dbschema ) {
+        d->namespaceExists = true;
+        d->nextState();
+        return;
+    }
+
+    String create( "create schema " + *dbschema +
+                   " authorization " + *dbowner );
+
+    if ( !d->databaseExists && report ) {
+        todo++;
+        printf( " - Create a schema named '%s'.\n"
+                "   As user %s, run:\n\n"
+                "%s -d %s -qc \"%s\"\n\n",
+                dbschema->cstr(), PGUSER, PSQL, dbname->cstr(), create.cstr() );
+        d->nextState();
+        return;
+    }
+
+    if ( !d->q ) {
+        d->q = new Query( "select nspname::text from pg_catalog.pg_namespace "
+                          "where nspname=$1", d );
+        d->q->bind( 1, *dbschema );
+        d->q->execute();
+    }
+
+    if ( !d->u ) {
+        if ( !d->q->done() )
+            return;
+
+        if ( d->q->failed() ) {
+            d->error( "Couldn't check schema " + *dbschema + ". " +
+                      pgErr( d->q ) );
+            return;
+        }
+
+        Row * r = d->q->nextRow();
+        if ( !r ) {
+            if ( report ) {
+                todo++;
+                printf( " - Create a schema named '%s'.\n"
+                        "   As user %s, run:\n\n"
+                        "%s -d template1 -qc \"%s\"\n\n",
+                        dbschema->cstr(), PGUSER, PSQL, create.cstr() );
+            }
+            else {
+                if ( !silent )
+                    printf( "Creating the '%s' schema.\n", dbschema->cstr() );
+                d->u = new Query( create, d );
+                d->u->execute();
             }
         }
         else {
-            d->state = CheckSchema;
+            d->namespaceExists = true;
         }
     }
 
-    if ( d->state == CreatingLang ) {
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't create schema " + dbschema->quoted() + " "
+                      "in database " + dbname->quoted() + "(" +
+                      pgErr( d->u ) + ").\nPlease create it by hand and "
+                      "re-run the installer." );
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
+void setSearchPath()
+{
+    if ( !dbschema ) {
+        d->nextState();
+        return;
+    }
+
+    // XXX: If -S is given, we unconditionally set the user's
+    // search_path here. We could parse pg_user.useconfig to
+    // check if we really need to do this, but not now.
+
+    String alter( "alter user " + *dbuser + " set "
+                  "search_path=" + dbschema->quoted( '\'' ) );
+    String alter2( "alter user " + *dbowner + " set "
+                   "search_path=" + dbschema->quoted( '\'' ) );
+
+    if ( report ) {
+        todo++;
+        printf( " - Set the default search_path to '%s'.\n"
+                "   As user %s, run:\n\n"
+                "%s -d template1 -qc \"%s\"\n"
+                "%s -d template1 -qc \"%s\"\n\n",
+                dbschema->cstr(), PGUSER, PSQL, alter.cstr(),
+                PSQL, alter2.cstr() );
+        d->nextState();
+        return;
+    }
+
+    if ( !d->q ) {
+        d->q = new Query( alter, d );
+        d->q->execute();
+        d->u = new Query( alter2, d );
+        d->u->execute();
+    }
+
+    if ( !d->q->done() || !d->u->done() )
+        return;
+
+    if ( d->q->failed() ) {
+        d->error( "Couldn't set search_path for user " + dbuser->quoted() +
+                  " to " + dbschema->quoted() + " (" + pgErr( d->u ) + ").\n"
+                  "Please do it by hand and re-run the installer." );
+        return;
+    }
+
+    if ( d->u->failed() ) {
+        d->error( "Couldn't set search_path for user " + dbowner->quoted() +
+                  " to " + dbschema->quoted() + " (" + pgErr( d->u ) + ").\n"
+                  "Please do it by hand and re-run the installer." );
+        return;
+    }
+
+    d->nextState();
+}
+
+
+// Before we create database objects, we check ownership: if a schema
+// was specified, the dbowner should be its owner; if not, it should
+// own the database we're installing into.
+
+void checkOwnership()
+{
+    // If we just created either database or schema, the owner is
+    // already set correctly, and we don't need to do anything.
+
+    if ( !( d->databaseExists && d->namespaceExists ) ) {
+        d->nextState();
+        return;
+    }
+
+    // If a schema is specified, check its owner and decide what to do.
+    // We could do the same for the database if a schema is not given,
+    // but checkEncoding() already set d->owner, which we can use.
+
+    if ( !d->q ) {
+        if ( dbschema ) {
+            d->q = new Query( "select usename::text "
+                              "from pg_namespace n join pg_user u on "
+                              "(n.nspowner=u.usesysid) where nspname=$1", d );
+            d->q->bind( 1, *dbschema );
+            d->q->execute();
+        }
+        else if ( d->owner != *dbowner ) {
+            String alter( "alter database " + *dbname +
+                          " owner to " + *dbowner );
+
+            if ( report ) {
+                todo++;
+                printf( " - Alter owner of database '%s' from '%s' to '%s'.\n"
+                        "   As user %s, run:\n\n"
+                        "%s -d template1 -qc \"%s\"\n\n",
+                        dbname->cstr(), d->owner.cstr(), dbowner->cstr(),
+                        PGUSER, PSQL, alter.cstr() );
+            }
+            else {
+                if ( !silent )
+                    printf( "Altering ownership of database '%s' to '%s'.\n",
+                            dbname->cstr(), dbowner->cstr() );
+                d->u = new Query( alter, d );
+                d->u->execute();
+            }
+        }
+    }
+
+    if ( d->q && !d->u ) {
         if ( !d->q->done() )
             return;
-        if ( d->q->failed() ) {
-            fprintf( stderr,
-                     "Couldn't add PL/PGSQL to the '%s' database (%s).\n"
-                     "Please do it by hand and re-run the installer.\n",
-                     dbname->cstr(), pgErr( d->q->error() ) );
-            EventLoop::shutdown();
+
+        Row * r = d->q->nextRow();
+        if ( d->q->failed() || !r ) {
+            d->error( "Couldn't check ownership of schema " + *dbschema + ". " +
+                      pgErr( d->q ) );
             return;
         }
-        d->state = CheckSchema;
+
+        String owner( r->getString( "usename" ) );
+        if ( owner != *dbowner ) {
+            String alter( "alter schema " + *dbschema +
+                          " owner to " + *dbowner );
+
+            if ( report ) {
+                todo++;
+                printf( " - Alter owner of schema '%s' from '%s' to '%s'.\n"
+                        "   As user %s, run:\n\n"
+                        "%s -d %s -qc \"%s\"\n\n",
+                        dbschema->cstr(), owner.cstr(), dbowner->cstr(),
+                        PGUSER, PSQL, dbname->cstr(), alter.cstr() );
+            }
+            else {
+                if ( !silent )
+                    printf( "Altering ownership of schema '%s' to '%s'.\n",
+                            dbschema->cstr(), dbowner->cstr() );
+                d->u = new Query( alter, d );
+                d->u->execute();
+            }
+        }
     }
 
-    if ( d->state == CheckSchema ) {
-        d->ssa = new Query( "set session authorization " + d->owner, d );
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
+
+        if ( d->u->failed() ) {
+            String s( "Couldn't alter owner of " );
+            if ( dbschema )
+                s.append( "schema " + dbschema->quoted( '\'' ) );
+            else
+                s.append( "database " + dbname->quoted( '\'' ) );
+            s.append( " to " + dbowner->quoted( '\'' ) );
+            s.append( " (" );
+            s.append( pgErr( d->u ) );
+            s.append( ").\n" );
+            d->error( s + "Please set the owner by hand and re-run the "
+                      "installer." );
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
+void grantUsage()
+{
+    if ( !dbschema ) {
+        d->nextState();
+        return;
+    }
+
+    // Again, we make no attempt to ensure that the user doesn't already
+    // have usage privileges on the database; we just force the issue.
+
+    String grant( "grant usage on schema " + *dbschema + " to " + *dbuser );
+
+    if ( !d->u ) {
+        if ( report ) {
+            todo++;
+            printf( " - Grant usage on schema '%s' to user '%s'.\n"
+                    "   As user %s, run:\n\n"
+                    "%s -d %s -qc \"%s\"\n\n",
+                    dbschema->cstr(), dbuser->cstr(), PGUSER, PSQL,
+                    dbname->cstr(), grant.cstr() );
+        }
+        else {
+            d->u = new Query( grant, d );
+            d->u->execute();
+        }
+    }
+
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't grant usage on schema " +
+                      dbschema->quoted( '\'' ) + " to user " +
+                      dbuser->quoted( '\'' ) + " (" + pgErr( d->u ) +
+                      ").\nPlease grant it by hand and re-run the "
+                      "installer." );
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
+// At this point, we know that the aox/aoxsuper users exist, that the
+// aox database exists, that any given schema exists, that PL/PgSQL is
+// available, and that the database/schema have the right ownership.
+
+void createSchema()
+{
+    // This is what we need to feed to psql to create the schema.
+
+    String cmd( "\\set ON_ERROR_STOP\n"
+                "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
+                "SET client_min_messages TO 'ERROR';\n" );
+
+    if ( dbschema )
+        cmd.append( "SET search_path TO " +
+                    dbschema->quoted( '\'' ) + ";\n" );
+
+    cmd.append( "\\i " LIBDIR "/schema.pg\n"
+                "\\i " LIBDIR "/flag-names\n"
+                "\\i " LIBDIR "/field-names\n"
+                "\\i " LIBDIR "/grant-privileges\n" );
+
+    // And this function decides whether we need to invoke psql at all,
+    // based on whether we can find the "mailstore" table.
+
+    if ( report && !( d->databaseExists && d->namespaceExists ) ) {
+        todo++;
+        printf( " - Load the database schema.\n   "
+                "As user %s, run:\n\n"
+                "%s %s -f - <<PSQL;\n%sPSQL\n\n",
+                PGUSER, PSQL, dbname->cstr(), cmd.cstr() );
+        d->nextState();
+        return;
+    }
+
+    if ( !d->q ) {
+        d->ssa = new Query( "set session authorization " + *dbowner, d );
         d->ssa->execute();
 
-        d->state = CheckingSchema;
+        if ( dbschema ) {
+            d->ssp = new Query( "set search_path to " +
+                                dbschema->quoted( '\'' ), d );
+            d->ssp->execute();
+        }
+
         d->q = new Query( "select relname::text from pg_catalog.pg_class "
                           "where relname='mailstore'", d );
         d->q->execute();
     }
 
-    if ( d->state == CheckingSchema ) {
-        if ( !d->ssa->done() || !d->q->done() )
+    if ( !d->u ) {
+        if ( !d->ssa->done() || ( d->ssp && !d->ssp->done() ) ||
+             !d->q->done() )
             return;
 
+        String s;
+        Query * q = 0;
+
         if ( d->ssa->failed() ) {
-            if ( report ) {
-                todo++;
-                d->state = Done;
-                printf( " - May need to load the database schema.\n   "
-                        "(Couldn't authenticate as user '%s' to make sure "
-                        "it's needed: %s.)\n", dbname->cstr(),
-                        pgErr( d->ssa->error() ) );
-            }
-            else {
-                fprintf( stderr, "Couldn't query database '%s' to "
-                         "see if the schema needs to be loaded (%s).\n",
-                         dbname->cstr(), pgErr( d->q->error() ) );
-                EventLoop::shutdown();
-                return;
-            }
+            q = d->ssa;
+            s.append( "authenticate as user " );
+            s.append( dbowner->quoted( '\'' ) );
+        }
+        else if ( d->ssp && d->ssp->failed() ) {
+            q = d->ssp;
+            s.append( "set search_path to " );
+            s.append( dbschema->quoted( '\'' ) );
+        }
+        else if ( d->q->failed() ) {
+            q = d->q;
+            s.append( "query database " );
+            s.append( dbname->quoted( '\'' ) );
         }
 
-        if ( d->q->failed() ) {
+        if ( q ) {
             if ( report ) {
                 todo++;
-                d->state = Done;
-                printf( " - May need to load the database schema.\n   "
-                        "(Couldn't query database '%s' to make sure it's "
-                        "needed: %s.)\n", dbname->cstr(),
-                        pgErr( d->q->error() ) );
+                printf( " - May need to load the database schema.\n"
+                        "   (Couldn't %s to make sure it's needed. %s.)\n\n",
+                        s.cstr(), pgErr( q ).cstr() );
             }
             else {
-                fprintf( stderr, "Couldn't query database '%s' to "
-                         "see if the schema needs to be loaded (%s).\n",
-                         dbname->cstr(), pgErr( d->q->error() ) );
-                EventLoop::shutdown();
-                return;
+                d->error( "Couldn't " + s + " to see if the schema needs "
+                          "to be loaded. " + pgErr( q ) );
             }
+            d->state = Done;
+            return;
         }
-        d->state = CreateSchema;
-    }
 
-    if ( d->state == CreateSchema ) {
         Row * r = d->q->nextRow();
         if ( !r ) {
-            String cmd( "\\set ON_ERROR_STOP\n"
-                        "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
-                        "SET client_min_messages TO 'ERROR';\n" );
-
-            if ( dbschema )
-                cmd.append( "SET search_path TO " + dbschema->quoted( '\'' ) );
-
-            cmd.append( "\\i " LIBDIR "/schema.pg\n"
-                        "\\i " LIBDIR "/flag-names\n"
-                        "\\i " LIBDIR "/field-names\n"
-                        "\\i " LIBDIR "/grant-privileges\n" );
-
-            d->state = Done;
             if ( report ) {
                 todo++;
                 printf( " - Load the database schema.\n   "
@@ -1174,150 +1590,132 @@ void database()
                 if ( !silent )
                     printf( "Loading the database schema:\n" );
                 if ( psql( cmd ) < 0 )
-                    return;
+                    d->failed = true;
+                d->state = Done;
+                return;
             }
         }
         else {
-            d->state = CheckingRevision;
-            d->q = new Query( "select revision from mailstore", d );
-            d->q->execute();
+            d->mailstoreExists = true;
         }
     }
 
-    if ( d->state == CheckingRevision ) {
+    d->nextState();
+}
+
+
+void upgradeSchema()
+{
+    if ( !d->mailstoreExists ) {
+        d->nextState();
+        return;
+    }
+
+    if ( !d->q ) {
+        d->q = new Query( "select revision from mailstore", d );
+        d->q->execute();
+    }
+
+    if ( !d->u ) {
         if ( !d->q->done() )
             return;
 
-        d->state = Done;
+        // This query may fail even if the pg_class query for mailstore
+        // above succeeded, because we (aoxsuper) may not have rights to
+        // the schema or the mailstore table.
+
         Row * r = d->q->nextRow();
-        if ( !r || d->q->failed() ) {
+        if ( d->q->failed() || !r ) {
             if ( report ) {
                 todo++;
-                printf( " - May need to upgrade the database schema.\n   "
-                        "(Couldn't query mailstore table to make sure it's "
-                        "needed.)\n" );
+                printf( " - May need to upgrade the database schema.\n"
+                        "   (Couldn't query mailstore table to make sure "
+                        "it's needed.)\n\n" );
             }
             else {
-                fprintf( stderr, "Couldn't query database '%s' to "
-                         "see if the schema needs to be upgraded (%s).\n",
-                         dbname->cstr(), pgErr( d->q->error() ) );
-                EventLoop::shutdown();
-                return;
-            }
-        }
-        else {
-            uint revision = r->getInt( "revision" );
-
-            if ( revision > Database::currentRevision() ) {
-                String v( Configuration::compiledIn( Configuration::Version ) );
-                fprintf( stderr, "The schema in database '%s' (revision #%d) "
-                         "is newer than this version of Archiveopteryx (%s) "
-                         "recognises (up to #%d).\n", dbname->cstr(), revision,
-                         v.cstr(), Database::currentRevision() );
-                EventLoop::shutdown();
-                return;
-            }
-            else if ( revision < Database::currentRevision() ) {
-                if ( report ) {
-                    todo++;
-                    printf( " - Upgrade the database schema (\"aox upgrade "
-                            "schema -n\" to see what would happen).\n" );
-                    d->state = CheckOwnership;
+                String s( "Couldn't query database " );
+                s.append( dbname->quoted( '\'' ) );
+                s.append( " to see if the schema needs to be upgraded." );
+                if ( d->q->failed() ) {
+                    s.append( " " );
+                    s.append( pgErr( d->q ) );
                 }
-                else {
-                    d->state = UpgradingSchema;
-                    Schema * s = new Schema( d, true, true );
-                    d->q = s->result();
-                    s->execute();
-                }
+                d->error( s );
             }
-            else {
-                d->state = CheckOwnership;
-            }
-        }
-    }
-
-    if ( d->state == UpgradingSchema ) {
-        if ( !d->q->done() )
-            return;
-        if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't upgrade schema in database '%s' (%s).\n"
-                     "Please run \"aox upgrade schema -n\" by hand.\n",
-                     dbname->cstr(), pgErr( d->q->error() ) );
-            EventLoop::shutdown();
-            return;
-        }
-        d->state = CheckOwnership;
-    }
-
-    if ( d->state == CheckOwnership ) {
-        if ( d->owner != *dbowner ) {
-            d->state = AlterOwnership;
-            d->ssa = new Query( "set session authorization default", d );
-            d->ssa->execute();
-        }
-        else {
-            // We'll just assume that, if the database is owned by the
-            // right user already, the privileges are fine too.
             d->state = Done;
-        }
-    }
-
-    if ( d->state == AlterOwnership ) {
-        if ( !d->ssa->done() )
             return;
+        }
 
-        if ( d->ssa->failed() ) {
-            if ( !report ) {
-                report = true;
-                fprintf( stderr,
-                         "Couldn't reset session authorisation to alter "
-                         "ownership and privileges on database '%s' (%s)."
-                         "\nSwitching to reporting mode.\n", dbname->cstr(),
-                         pgErr( d->ssa->error() ) );
+        uint revision = r->getInt( "revision" );
+
+        if ( revision > Database::currentRevision() ) {
+            String v( Configuration::compiledIn( Configuration::Version ) );
+            fprintf( stderr, "The schema in database '%s' (revision #%d) "
+                     "is newer than this version of Archiveopteryx (%s) "
+                     "recognises (up to #%d).\n", dbname->cstr(), revision,
+                     v.cstr(), Database::currentRevision() );
+            d->failed = true;
+            return;
+        }
+        else if ( revision < Database::currentRevision() ) {
+            if ( report ) {
+                todo++;
+                printf( " - Upgrade the database schema (\"aox upgrade "
+                        "schema -n\" to see what would happen).\n\n" );
+            }
+            else {
+                Schema * s = new Schema( d, true, true );
+                d->u = s->result();
+                s->execute();
             }
         }
+    }
 
-        String alter( "alter database " + *dbname + " owner to " + *dbowner );
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
 
-        if ( report ) {
-            todo++;
-            printf( " - Alter owner of database '%s' from '%s' to '%s'.\n"
-                    "   As user %s, run:\n\n"
-                    "%s -d template1 -qc \"%s\"\n\n",
-                    dbname->cstr(), d->owner.cstr(), dbowner->cstr(),
-                    PGUSER, PSQL, alter.cstr() );
-            d->state = SelectObjects;
-        }
-        else {
-            d->state = AlteringOwnership;
-            if ( !silent )
-                printf( "Altering ownership of database '%s' to '%s'.\n",
-                        dbname->cstr(), dbowner->cstr() );
-            d->q = new Query( alter, d );
-            d->q->execute();
+        if ( d->u->failed() ) {
+            d->error( "Couldn't upgrade Archiveopteryx schema in database " +
+                      dbname->quoted( '\'' ) + " (" + pgErr( d->u ) + ").\n"
+                      "Please run \"aox upgrade schema -n\" by hand.\n" );
+            return;
         }
     }
 
-    if ( d->state == AlteringOwnership ) {
+    d->nextState();
+}
+
+
+void grantPrivileges()
+{
+    if ( !d->q ) {
+    }
+
+    if ( !d->u ) {
         if ( !d->q->done() )
             return;
 
-        if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't alter owner of database '%s' to '%s' "
-                     "(%s).\n"
-                     "Please set the owner by hand and re-run the installer.\n"
-                     "For Postgres 7.4, run the following query:\n"
-                     "\"update pg_database set datdba=(select usesysid from "
-                     "pg_user where usename='%s') where datname='%s'\"\n",
-                     dbname->cstr(), dbowner->cstr(), pgErr( d->q->error() ),
-                     dbowner->cstr(), dbname->cstr() );
-            EventLoop::shutdown();
+        Row * r = d->q->nextRow();
+        if ( d->q->failed() || !r ) {
             return;
         }
-
-        d->state = SelectObjects;
     }
+
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
+
+        if ( d->u->failed() ) {
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
+#if 0
 
     if ( d->state == SelectObjects ) {
         d->state = AlterPrivileges;
@@ -1458,6 +1856,8 @@ void database()
         configFile();
     }
 }
+
+#endif
 
 
 void configFile()
@@ -1625,6 +2025,7 @@ void superConfig()
 
 void permissions()
 {
+    int n = 0;
     struct stat st;
 
     struct passwd * p = getpwnam( AOXUSER );
@@ -1641,16 +2042,17 @@ void permissions()
 
     // If archiveopteryx.conf doesn't exist, or has the wrong ownership
     // or permissions:
-    if ( stat( cf.cstr(), &st ) != 0 || !p || !g ||
-         st.st_uid != p->pw_uid ||
+
+    n = stat( cf.cstr(), &st );
+    if ( n != 0 || !p || !g || st.st_uid != p->pw_uid ||
          (gid_t)st.st_gid != (gid_t)g->gr_gid ||
-         st.st_mode & S_IRWXU != ( S_IRUSR|S_IWUSR ) )
+         ( st.st_mode & 0777 ) != 0600 )
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0600 %s\n"
-                    "   chown %s:%s %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0600 %s\n"
+                    "chown %s:%s %s\n\n",
                     cf.cstr(), cf.cstr(), AOXUSER, AOXGROUP, cf.cstr() );
         }
         else {
@@ -1673,14 +2075,16 @@ void permissions()
 
     // If aoxsuper.conf doesn't exist, or has the wrong ownership or
     // permissions:
-    if ( stat( scf.cstr(), &st ) != 0 || st.st_uid != 0 ||
-         (gid_t)st.st_gid != (gid_t)0 || st.st_mode & S_IRWXU != S_IRUSR )
+
+    n = stat( scf.cstr(), &st );
+    if ( n != 0 || st.st_uid != 0 || (gid_t)st.st_gid != (gid_t)0 ||
+         ( st.st_mode & 0777 ) != 0400 )
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0400 %s\n"
-                    "   chown root:root %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0400 %s\n"
+                    "chown root:root %s\n\n",
                     scf.cstr(), scf.cstr(), scf.cstr() );
         }
         else {
@@ -1710,9 +2114,9 @@ void permissions()
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0700 %s\n"
-                    "   chown %s:%s %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0700 %s\n"
+                    "chown %s:%s %s\n\n",
                     mcd.cstr(), mcd.cstr(), AOXUSER, AOXGROUP,
                     mcd.cstr() );
         }
@@ -1744,9 +2148,9 @@ void permissions()
     {
         if ( report ) {
             todo++;
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0700 %s\n"
-                    "   chown root:root %s\n",
+            printf( " - Set permissions and ownership on %s.\n\n"
+                    "chmod 0700 %s\n"
+                    "chown root:root %s\n\n",
                     jd.cstr(), jd.cstr(), jd.cstr() );
         }
         else {
@@ -1823,7 +2227,6 @@ int psql( const String &cmd )
                      "%s -h %s -p %s %s -f - <<PSQL;\n%sPSQL\n\n",
                      PGUSER, PSQL, host.cstr(), port.cstr(),
                      dbname->cstr(), cmd.cstr() );
-            EventLoop::shutdown();
             return -1;
         }
     }
