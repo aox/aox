@@ -2025,6 +2025,7 @@ void superConfig()
 
 void permissions()
 {
+    int n = 0;
     struct stat st;
 
     struct passwd * p = getpwnam( AOXUSER );
@@ -2041,10 +2042,11 @@ void permissions()
 
     // If archiveopteryx.conf doesn't exist, or has the wrong ownership
     // or permissions:
-    if ( stat( cf.cstr(), &st ) != 0 || !p || !g ||
-         st.st_uid != p->pw_uid ||
+
+    n = stat( cf.cstr(), &st );
+    if ( n != 0 || !p || !g || st.st_uid != p->pw_uid ||
          (gid_t)st.st_gid != (gid_t)g->gr_gid ||
-         st.st_mode & S_IRWXU != ( S_IRUSR|S_IWUSR ) )
+         ( st.st_mode & 0777 ) != 0600 )
     {
         if ( report ) {
             todo++;
@@ -2073,8 +2075,10 @@ void permissions()
 
     // If aoxsuper.conf doesn't exist, or has the wrong ownership or
     // permissions:
-    if ( stat( scf.cstr(), &st ) != 0 || st.st_uid != 0 ||
-         (gid_t)st.st_gid != (gid_t)0 || st.st_mode & S_IRWXU != S_IRUSR )
+
+    n = stat( scf.cstr(), &st );
+    if ( n != 0 || st.st_uid != 0 || (gid_t)st.st_gid != (gid_t)0 ||
+         ( st.st_mode & 0777 ) != 0400 )
     {
         if ( report ) {
             todo++;
