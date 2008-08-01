@@ -3159,7 +3159,7 @@ bool Schema::stepTo62()
 {
     if ( d->substate == 0 ) {
         describeStep( "Adding deleted_messages_trigger." );
-        d->q = new Query( "select lanname from pg_catalog.pg_language "
+        d->q = new Query( "select lanname::text from pg_catalog.pg_language "
                           "where lanname='plpgsql'", this );
         d->t->enqueue( d->q );
         d->substate = 1;
