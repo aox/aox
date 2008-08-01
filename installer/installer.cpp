@@ -86,6 +86,7 @@ void createLang();
 void createNamespace();
 void setSearchPath();
 void checkOwnership();
+void grantUsage();
 void createSchema();
 void upgradeSchema();
 void grantPrivileges();
@@ -724,9 +725,9 @@ void oryxUser()
 
 enum DbState {
     CheckVersion, CheckEncoding,
-    CreateUser, CreateSuperuser, CreateDatabase,
-    CreateLang, CreateNamespace, SetSearchPath,
-    CheckOwnership, CreateSchema, UpgradeSchema,
+    CreateUser, CreateSuperuser, CreateDatabase, CreateLang,
+    CreateNamespace, SetSearchPath, CheckOwnership, GrantUsage,
+    CreateSchema, UpgradeSchema,
     GrantPrivileges,
     Done
 };
@@ -836,6 +837,10 @@ void database()
 
         case CheckOwnership:
             checkOwnership();
+            break;
+
+        case GrantUsage:
+            grantUsage();
             break;
 
         case CreateSchema:
@@ -1421,6 +1426,51 @@ void checkOwnership()
             s.append( pgErr( d->u ) );
             s.append( ").\n" );
             d->error( s + "Please set the owner by hand and re-run the "
+                      "installer." );
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
+void grantUsage()
+{
+    if ( !dbschema ) {
+        d->nextState();
+        return;
+    }
+
+    // Again, we make no attempt to ensure that the user doesn't already
+    // have usage privileges on the database; we just force the issue.
+
+    String grant( "grant usage on schema " + *dbschema + " to " + *dbuser );
+
+    if ( !d->u ) {
+        if ( report ) {
+            todo++;
+            printf( " - Grant usage on schema '%s' to user '%s'.\n"
+                    "   As user %s, run:\n\n"
+                    "%s -d %s -qc \"%s\"\n\n",
+                    dbschema->cstr(), dbuser->cstr(), PGUSER, PSQL,
+                    dbname->cstr(), grant.cstr() );
+        }
+        else {
+            d->u = new Query( grant, d );
+            d->u->execute();
+        }
+    }
+
+    if ( d->u ) {
+        if ( !d->u->done() )
+            return;
+
+        if ( d->u->failed() ) {
+            d->error( "Couldn't grant usage on schema " +
+                      dbschema->quoted( '\'' ) + " to user " +
+                      dbuser->quoted( '\'' ) + " (" + pgErr( d->u ) +
+                      ").\nPlease grant it by hand and re-run the "
                       "installer." );
             return;
         }
