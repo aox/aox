@@ -102,7 +102,10 @@ not refer to a Unix socket.)
 Allows you to specify a schema where the Archiveopteryx database objects
 will be installed, and which will be used as the default
 .I search_path
-for the new database users.
+for the new database users. If this is not specified, everything is
+installed into the
+.I public
+schema.
 .IP
 Note: If you have an existing installation and re-run the installer with
 a different
@@ -110,6 +113,11 @@ a different
 argument, the database objects will be reinstalled, and the old database
 objects will be obscured because of the altered
 .IR search_path .
+.IP
+Please do not use
+.I -S
+unless you are sure you understand all its implications. It is safe to
+ignore it entirely if you don't.
 .PP
 The defaults come from
 .IR Jamsettings .
