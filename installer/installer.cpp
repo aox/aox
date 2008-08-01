@@ -1545,14 +1545,21 @@ void createSchema()
         d->ssa = new Query( "set session authorization " + *dbowner, d );
         d->ssa->execute();
 
+        String s( "select tablename::text from pg_catalog.pg_tables "
+                  "where tablename=$1" );
+
         if ( dbschema ) {
             d->ssp = new Query( "set search_path to " +
                                 dbschema->quoted( '\'' ), d );
             d->ssp->execute();
+
+            s.append( " and schemaname=$2" );
         }
 
-        d->q = new Query( "select relname::text from pg_catalog.pg_class "
-                          "where relname='mailstore'", d );
+        d->q = new Query( s, d );
+        d->q->bind( 1, "mailstore" );
+        if ( dbschema )
+            d->q->bind( 2, *dbschema );
         d->q->execute();
     }
 
