@@ -1566,7 +1566,7 @@ void createSchema()
             if ( report ) {
                 todo++;
                 printf( " - May need to load the database schema.\n"
-                        "   (Couldn't %s to make sure it's needed. %s.)\n",
+                        "   (Couldn't %s to make sure it's needed. %s.)\n\n",
                         s.cstr(), pgErr( q ).cstr() );
             }
             else {
@@ -1630,7 +1630,7 @@ void upgradeSchema()
                 todo++;
                 printf( " - May need to upgrade the database schema.\n"
                         "   (Couldn't query mailstore table to make sure "
-                        "it's needed.)\n" );
+                        "it's needed.)\n\n" );
             }
             else {
                 String s( "Couldn't query database " );
@@ -1661,7 +1661,7 @@ void upgradeSchema()
             if ( report ) {
                 todo++;
                 printf( " - Upgrade the database schema (\"aox upgrade "
-                        "schema -n\" to see what would happen).\n" );
+                        "schema -n\" to see what would happen).\n\n" );
             }
             else {
                 Schema * s = new Schema( d, true, true );
