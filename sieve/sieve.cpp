@@ -552,7 +552,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
     else if ( c->identifier() == "stop" ) {
         done = true;
     }
-    else if ( c->identifier() == "reject" ) {
+    else if ( c->identifier() == "reject" ||
+              c->identifier() == "ereject" ) {
         implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Reject );
         actions.append( a );
