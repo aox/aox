@@ -1561,6 +1561,10 @@ void upgradeSchema()
         if ( !d->q->done() )
             return;
 
+        // This query may fail even if the pg_class query for mailstore
+        // above succeeded, because we (aoxsuper) may not have rights to
+        // the schema or the mailstore table.
+
         Row * r = d->q->nextRow();
         if ( d->q->failed() || !r ) {
             if ( report ) {
