@@ -1197,6 +1197,15 @@ void createLang()
 }
 
 
+// If the user specified a schema with -S, we need to check if it
+// exists, create it if it doesn't, and set the default search_path
+// appropriately for both database users.
+//
+// We call our arrangement of database objects a schema (cf. schema.pg),
+// but now we're adding support for Postgres schemata; so there's some
+// confusion between the two terms here. I try to refer to the latter
+// as namespaces in the code, but commands still refer to "schema".
+
 void createNamespace()
 {
     if ( !dbschema ) {
@@ -1702,7 +1711,6 @@ void grantPrivileges()
         }
     }
 
-    d->nextState();
     d->nextState();
 }
 
