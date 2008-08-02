@@ -1801,6 +1801,7 @@ void upgradeSchema()
                         "schema -n\" to see what would happen).\n\n" );
             }
             else {
+                Configuration::add( "db-user = " + dbuser->quoted() );
                 Schema * s = new Schema( d, true, true );
                 d->u = s->result();
                 s->execute();
