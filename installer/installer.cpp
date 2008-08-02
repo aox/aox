@@ -1361,7 +1361,7 @@ void checkOwnership()
     // We could do the same for the database if a schema is not given,
     // but checkEncoding() already set d->owner, which we can use.
 
-    if ( !d->q ) {
+    if ( !d->q && !d->u ) {
         if ( dbschema ) {
             d->q = new Query( "select usename::text "
                               "from pg_namespace n join pg_user u on "
