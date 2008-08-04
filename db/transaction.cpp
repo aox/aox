@@ -319,9 +319,9 @@ void Transaction::notify()
     }
     catch ( Exception e ) {
         d->owner = 0; // so we can't get close to a segfault again
-        if ( e == Range ) {
+        if ( e == Invariant ) {
             setError( 0,
-                      "Out-of-range memory access "
+                      "Invariant failed "
                       "while processing Transaction::notify()" );
             List<Connection>::Iterator i( EventLoop::global()->connections() );
             while ( i ) {
@@ -332,8 +332,7 @@ void Transaction::notify()
                     l = l->parent();
                 if ( l ) {
                     Scope x( l );
-                    ::log( "Out-of-range error. "
-                           "Closing connection abruptly.",
+                    ::log( "Invariant failed; Closing connection abruptly",
                            Log::Error );
                     EventLoop::global()->removeConnection( c );
                 }

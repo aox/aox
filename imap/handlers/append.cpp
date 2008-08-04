@@ -77,9 +77,6 @@ public:
     Injector. There is no way to insert anything but conformant
     messages, unlike some other IMAP servers. How could we do that?
     Not at all, I think.
-
-    MULTIAPPEND (RFC 3502) is supported, but consciously not
-    advertised, and performance is very bad.
 */
 
 Append::Append()

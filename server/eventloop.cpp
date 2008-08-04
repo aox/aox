@@ -435,8 +435,8 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
     catch ( Exception e ) {
         String s;
         switch (e) {
-        case Range:
-            s = "Out-of-range memory access";
+        case Invariant:
+            s = "Invariant failed";
             break;
         case Memory:
             s = "Out of memory";

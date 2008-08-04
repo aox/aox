@@ -100,6 +100,8 @@ public:
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();
 
+    ImapSession * session();
+
 private:
     class CommandData *d;
 

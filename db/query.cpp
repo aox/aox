@@ -276,7 +276,7 @@ void Query::bind( uint n, int s )
 void Query::bind( uint n, uint s )
 {
     if ( s > INT_MAX )
-        die( Range );
+        die( Invariant );
     bind( n, (int)s );
 }
 
@@ -552,9 +552,8 @@ void Query::notify()
     }
     catch ( Exception e ) {
         d->owner = 0; // so we can't get close to a segfault again
-        if ( e == Range ) {
-            setError( "Out-of-range memory access "
-                      "while processing Query::notify()" );
+        if ( e == Invariant ) {
+            setError( "Invariant failed while processing Query::notify()" );
             List<Connection>::Iterator i( EventLoop::global()->connections() );
             while ( i ) {
                 Connection * c = i;
@@ -564,8 +563,7 @@ void Query::notify()
                     l = l->parent();
                 if ( l ) {
                     Scope x( l );
-                    ::log( "Out-of-range error. "
-                           "Closing connection abruptly.",
+                    ::log( "Invarient failed; Closing connection abruptly",
                            Log::Error );
                     EventLoop::global()->removeConnection( c );
                 }

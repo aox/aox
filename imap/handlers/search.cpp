@@ -404,7 +404,9 @@ void Search::execute()
     if ( state() != Executing )
         return;
 
-    ImapSession * s = imap()->session();
+    ImapSession * s = session();
+    if ( !ok() )
+        return;
 
     if ( !d->query ) {
         if ( d->root->needSession() && !s->initialised() ) {
@@ -460,8 +462,11 @@ void Search::considerCache()
         return;
     ImapSession * s = imap()->session();
     bool needDb = false;
-    if ( d->root->field() == Selector::Uid &&
-         d->root->action() == Selector::Contains ) {
+    if ( !s ) {
+        needDb = true;
+    }
+    else if ( d->root->field() == Selector::Uid &&
+              d->root->action() == Selector::Contains ) {
         d->matches = s->messages().intersection( d->root->messageSet() );
         log( "UID-only search matched " +
              fn( d->matches.count() ) + " messages",
@@ -637,7 +642,7 @@ MessageSet Search::set( bool parseMsns )
 
 void Search::sendSearchResponse()
 {
-    ImapSession * s = imap()->session();
+    ImapSession * s = session();
     String result( "SEARCH" );
     uint i = 1;
     uint max = d->matches.count();
@@ -673,7 +678,7 @@ static uint max( uint a, uint b )
 
 void Search::sendEsearchResponse()
 {
-    ImapSession * s = imap()->session();
+    ImapSession * s = session();
     String result = "ESEARCH (tag " + tag().quoted() + ")";
     if ( d->uid )
         result.append( " uid" );

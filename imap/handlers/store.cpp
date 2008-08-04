@@ -124,7 +124,7 @@ void Store::parse()
 {
     space();
     d->specified = set( !d->uid );
-    d->expunged = imap()->session()->expunged().intersection( d->specified );
+    d->expunged = session()->expunged().intersection( d->specified );
     shrink( &d->specified );
     space();
 
@@ -304,11 +304,7 @@ void Store::execute()
     if ( state() != Executing )
         return;
 
-    Mailbox * m = 0;
-    if ( imap()->session() )
-        m = imap()->session()->mailbox();
-    else
-        error( No, "Left selected mode during execution" );
+    Mailbox * m = session()->mailbox();
 
     if ( !d->checkedPermission ) {
         if ( d->op == StoreData::ReplaceAnnotations ) {
@@ -551,7 +547,7 @@ void Store::execute()
         while ( n < d->s.count() ) {
             n++;
             uint uid = d->s.value( n );
-            uint msn = imap()->session()->msn( uid );
+            uint msn = session()->msn( uid );
             respond( fn( msn ) + " FETCH (UID " + fn( uid ) +
                      " MODSEQ (" + fn( d->modseq ) + "))" );
         }
@@ -651,7 +647,7 @@ bool Store::removeFlags( bool opposite )
     s.append( "flag=any($3)" );
 
     Query * q = new Query( s, 0 );
-    q->bind( 1, imap()->session()->mailbox()->id() );
+    q->bind( 1, session()->mailbox()->id() );
     q->bind( 2, d->s );
     q->bind( 3, &flags );
     d->transaction->enqueue( q );
@@ -665,7 +661,7 @@ bool Store::removeFlags( bool opposite )
 
 bool Store::addFlags()
 {
-    uint mailbox = imap()->session()->mailbox()->id();
+    uint mailbox = session()->mailbox()->id();
 
     bool work = false;
     Query * q = new Query( "copy flags (mailbox, uid, flag) "
@@ -728,7 +724,7 @@ static void bind( Query * q, uint i, const String & n )
 
 void Store::replaceAnnotations()
 {
-    Mailbox * m = imap()->session()->mailbox();
+    Mailbox * m = session()->mailbox();
     MessageSet s( d->s );
 
     List<Annotation>::Iterator it( d->annotations );

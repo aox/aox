@@ -113,7 +113,7 @@ void Copy::execute()
             return;
         }
 
-        Mailbox * current = imap()->session()->mailbox();
+        Mailbox * current = session()->mailbox();
         Query * q;
 
         uint cmailbox = current->id();

@@ -638,7 +638,7 @@ void Fetch::execute()
     if ( state() != Executing )
         return;
 
-    ImapSession * s = imap()->session();
+    ImapSession * s = session();
 
     if ( !d->peek && s->readOnly() )
         d->peek = true;
@@ -727,7 +727,7 @@ void Fetch::execute()
 
 void Fetch::sendFetchQueries()
 {
-    Mailbox * mb = imap()->session()->mailbox();
+    Mailbox * mb = session()->mailbox();
 
     List<Message> * l = new List<Message>;
 
@@ -1010,11 +1010,11 @@ void Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
         l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
     if ( d->annotation )
         l.append( "ANNOTATION " + annotation( m, imap()->user(),
-                                              imap()->session()->mailbox(),
+                                              session()->mailbox(),
                                               d->entries, d->attribs ) );
     if ( d->modseq )
         l.append( "MODSEQ (" +
-                  fn( m->modSeq( imap()->session()->mailbox() ) ) + ")" );
+                  fn( m->modSeq( session()->mailbox() ) ) + ")" );
 
     List< Section >::Iterator it( d->sections );
     while ( it ) {
@@ -1062,7 +1062,7 @@ String Fetch::flagList( Message * m, uint uid, Session * session )
 String Fetch::internalDate( Message * m )
 {
     Date date;
-    date.setUnixTime( m->internalDate( imap()->session()->mailbox() ) );
+    date.setUnixTime( m->internalDate( session()->mailbox() ) );
     return "\"" + date.imap() + "\"";
 }
 
