@@ -472,6 +472,8 @@ bool Schema::singleStep()
         c = stepTo73(); break;
     case 73:
         c = stepTo74(); break;
+    case 74:
+        c = stepTo75(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3634,10 +3636,26 @@ bool Schema::stepTo74()
 {
     if ( d->substate == 0 ) {
         describeStep( "Allow two bodyparts to have the same MD5 hash." );
+        d->substate = 1;
         d->t->enqueue( new Query( "alter table bodyparts "
                                   "drop constraint bodyparts_hash_key", 0 ) );
-        d->substate = 1;
         d->t->execute();
     }
+
+    return true;
+}
+
+
+/*! ...but don't make it non-indexed. */
+
+bool Schema::stepTo75()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Create an index on bodyparts.hash" );
+        d->substate = 1;
+        d->t->enqueue( new Query( "create index b_h on bodyparts(hash)", 0 ) );
+        d->t->execute();
+    }
+
     return true;
 }
