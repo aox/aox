@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (74);
+insert into mailstore (revision) values (75);
 
 
 -- One entry for each unique address we've encountered.
@@ -143,6 +143,7 @@ create table bodyparts (
     text        text,
     data        bytea
 );
+create index b_h on bodyparts(hash);
 
 
 -- One entry for each bodypart in a message.
