@@ -334,7 +334,12 @@ Sieve
 
   We still haven't done imapflags.
 
-  Reject probably has changed since we implemented it.
+Reject or ereject may want MDNs instead of DSNs
+
+  Our sieve code generates DSNs if it can't generate protocol-level
+  refusal, which it always can in practice. MDNs should be used in at
+  least some cases, if a non-zero percentage of zero can be considered
+  "some cases".
 
 
 RFCs 2852 and 4865

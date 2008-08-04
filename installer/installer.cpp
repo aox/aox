@@ -87,9 +87,10 @@ void createNamespace();
 void setSearchPath();
 void checkOwnership();
 void grantUsage();
+void splitPrivileges();
 void createSchema();
 void upgradeSchema();
-void grantPrivileges();
+void checkPrivileges();
 
 
 /*! \nodoc */
@@ -727,8 +728,7 @@ enum DbState {
     CheckVersion, CheckEncoding,
     CreateUser, CreateSuperuser, CreateDatabase, CreateLang,
     CreateNamespace, SetSearchPath, CheckOwnership, GrantUsage,
-    CreateSchema, UpgradeSchema,
-    GrantPrivileges,
+    SplitPrivileges, CreateSchema, UpgradeSchema, CheckPrivileges,
     Done
 };
 
@@ -740,6 +740,7 @@ public:
     DbState state;
     Query * q;
     Query * u;
+    Query * w;
     Query * ssa;
     Query * ssp;
     bool databaseExists;
@@ -750,7 +751,7 @@ public:
 
     Dispatcher()
         : state( CheckVersion ),
-          q( 0 ), u( 0 ), ssa( 0 ), ssp( 0 ),
+          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), ssp( 0 ),
           databaseExists( false ), namespaceExists( false ),
           mailstoreExists( false ), failed( false )
     {}
@@ -768,7 +769,7 @@ public:
 
     void nextState()
     {
-        d->q = d->u = 0;
+        d->q = d->u = d->w = 0;
         state = (DbState)(state + 1);
     }
 };
@@ -843,6 +844,10 @@ void database()
             grantUsage();
             break;
 
+        case SplitPrivileges:
+            splitPrivileges();
+            break;
+
         case CreateSchema:
             createSchema();
             break;
@@ -851,8 +856,8 @@ void database()
             upgradeSchema();
             break;
 
-        case GrantPrivileges:
-            d->nextState();
+        case CheckPrivileges:
+            checkPrivileges();
             break;
 
         case Done:
@@ -1356,7 +1361,7 @@ void checkOwnership()
     // We could do the same for the database if a schema is not given,
     // but checkEncoding() already set d->owner, which we can use.
 
-    if ( !d->q ) {
+    if ( !d->q && !d->u ) {
         if ( dbschema ) {
             d->q = new Query( "select usename::text "
                               "from pg_namespace n join pg_user u on "
@@ -1489,6 +1494,128 @@ void grantUsage()
 }
 
 
+// Archiveopteryx 2.10 introduced the privilege-separation scheme still
+// in use, where aoxsuper owns the database objects and has all rights,
+// while servers connects as user aox, which has only selected rights.
+// In earlier versions, the oryx user owned everything. This function
+// is responsible for doing the one-time conversion to the new scheme.
+
+void splitPrivileges()
+{
+    if ( !( d->databaseExists && d->namespaceExists ) ) {
+        d->nextState();
+        return;
+    }
+
+    if ( !d->q ) {
+        String s( "select tableowner::text from pg_catalog.pg_tables "
+                  "where tablename=$1" );
+        if ( dbschema )
+            s.append( " and schemaname=$2" );
+
+        d->q = new Query( s, d );
+        d->q->bind( 1, "messages" );
+        if ( dbschema )
+            d->q->bind( 2, *dbschema );
+        d->q->execute();
+    }
+
+    if ( !d->u ) {
+        if ( !d->q->done() )
+            return;
+
+        if ( d->q->failed() ) {
+            d->error( "Couldn't check ownership of messages table. " +
+                      pgErr( d->q ) );
+            return;
+        }
+
+        String owner( *dbowner );
+        Row * r = d->q->nextRow();
+        if ( r )
+            owner = r->getString( "tableowner" );
+
+        // If the messages table is owned by the user that the servers
+        // connect as, that's bad. But we have to be careful, because
+        // people may have dbuser and dbowner set to the same user.
+
+        if ( owner == *dbuser && *dbuser != *dbowner ) {
+            if ( report ) {
+                todo++;
+                printf( " - Alter the owner of all database objects "
+                        "to '%s'.\n\n", dbowner->cstr() );
+            }
+            else {
+                d->q = new Query(
+                    "create function exec(text) returns int "
+                    "language 'plpgsql' as "
+                    "$$begin execute $1;return 0;end;$$", d
+                );
+                d->q->execute();
+
+                d->u = new Query(
+                    "select "
+                    "exec('ALTER TABLE '||c.relname||' OWNER TO '||$1) "
+                    "from pg_catalog.pg_class c join "
+                    "pg_catalog.pg_namespace n on (n.oid=c.relnamespace) "
+                    "where n.nspname='public' and c.relkind='r' and "
+                    "pg_catalog.pg_table_is_visible(c.oid)", d
+                );
+                d->u->bind( 1, *dbowner );
+                d->u->execute();
+
+                // We have at least one unlinked sequence (bodypart_ids)
+                // whose ownership would not have been altered by the
+                // query above.
+
+                d->w = new Query(
+                    "select "
+                    "exec('ALTER TABLE '||c.relname||' OWNER TO '||$1) "
+                    "from pg_catalog.pg_class c join "
+                    "pg_catalog.pg_namespace n on (n.oid=c.relnamespace) "
+                    "where n.nspname='public' and c.relkind='S' and "
+                    "pg_catalog.pg_table_is_visible(c.oid)", d
+                );
+                d->w->bind( 1, *dbowner );
+                d->w->execute();
+
+                d->q = new Query( "drop function exec(text)", d );
+                d->q->execute();
+            }
+        }
+        else if ( owner != *dbowner ) {
+            d->error( "The messages table is not owned by user " +
+                      dbuser->quoted( '\'' ) + " or by user " +
+                      dbowner->quoted( '\'' ) + ".\n"
+                      "This configuration is unsupported. Please contact "
+                      "info@oryx.com for help." );
+            return;
+        }
+    }
+
+    if ( d->u ) {
+        if ( !d->u->done() || !d->w->done() || !d->q->done() )
+            return;
+
+        Query * q = 0;
+        if ( d->u->failed() )
+            q = d->u;
+        else if ( d->w->failed() )
+            q = d->w;
+        else if ( d->q->failed() )
+            q = d->q;
+
+        if ( q ) {
+            d->error( "Couldn't alter ownership of objects in the database " +
+                      dbname->quoted( '\'' ) + ". " + pgErr( q ) );
+            return;
+        }
+    }
+
+    d->nextState();
+}
+
+
 // At this point, we know that the aox/aoxsuper users exist, that the
 // aox database exists, that any given schema exists, that PL/PgSQL is
 // available, and that the database/schema have the right ownership.
@@ -1527,14 +1654,21 @@ void createSchema()
         d->ssa = new Query( "set session authorization " + *dbowner, d );
         d->ssa->execute();
 
+        String s( "select tablename::text from pg_catalog.pg_tables "
+                  "where tablename=$1" );
+
         if ( dbschema ) {
             d->ssp = new Query( "set search_path to " +
                                 dbschema->quoted( '\'' ), d );
             d->ssp->execute();
+
+            s.append( " and schemaname=$2" );
         }
 
-        d->q = new Query( "select relname::text from pg_catalog.pg_class "
-                          "where relname='mailstore'", d );
+        d->q = new Query( s, d );
+        d->q->bind( 1, "mailstore" );
+        if ( dbschema )
+            d->q->bind( 2, *dbschema );
         d->q->execute();
     }
 
@@ -1604,6 +1738,9 @@ void createSchema()
 }
 
 
+// If the schema already exists, we might need to upgrade it to the
+// latest version.
+
 void upgradeSchema()
 {
     if ( !d->mailstoreExists ) {
@@ -1664,6 +1801,7 @@ void upgradeSchema()
                         "schema -n\" to see what would happen).\n\n" );
             }
             else {
+                Configuration::add( "db-user = " + dbuser->quoted() );
                 Schema * s = new Schema( d, true, true );
                 d->u = s->result();
                 s->execute();
@@ -1687,177 +1825,12 @@ void upgradeSchema()
 }
 
 
-void grantPrivileges()
+// Make sure the aox user has exactly those privileges it needs.
+
+void checkPrivileges()
 {
-    if ( !d->q ) {
-    }
-
-    if ( !d->u ) {
-        if ( !d->q->done() )
-            return;
-
-        Row * r = d->q->nextRow();
-        if ( d->q->failed() || !r ) {
-            return;
-        }
-    }
-
-    if ( d->u ) {
-        if ( !d->u->done() )
-            return;
-
-        if ( d->u->failed() ) {
-            return;
-        }
-    }
-
     d->nextState();
 }
-
-
-#if 0
-
-    if ( d->state == SelectObjects ) {
-        d->state = AlterPrivileges;
-        d->q = new Query( "select c.relkind::text as type, c.relname::text "
-                          "as name from pg_catalog.pg_class c left join "
-                          "pg_catalog.pg_namespace n on (n.oid=c.relnamespace) "
-                          "where c.relkind in ('r','S') and n.nspname not in "
-                          "('pg_catalog','pg_toast') and "
-                          "pg_catalog.pg_table_is_visible(c.oid)", d );
-        d->q->execute();
-    }
-
-    if ( d->state == AlterPrivileges ) {
-        if ( !d->q->done() )
-            return;
-
-        if ( d->q->failed() ) {
-            fprintf( stderr,
-                     "Couldn't get a list of tables and sequences in database "
-                     "'%s' while trying to alter their privileges (%s).\n",
-                     dbname->cstr(), pgErr( d->q->error() ) );
-            exit( -1 );
-        }
-
-        StringList tables;
-        StringList sequences;
-
-        Row * r;
-        while ( ( r = d->q->nextRow() ) != 0 ) {
-            String type( r->getString( "type" ) );
-            if ( type == "r" )
-                tables.append( r->getString( "name" ) );
-            else if ( type == "S" )
-                sequences.append( r->getString( "name" ) );
-        }
-
-        String ap( Configuration::compiledIn( Configuration::LibDir ) );
-        setreuid( 0, 0 );
-        ap.append( "/fixup-privileges" );
-        File f( ap, File::Write, 0644 );
-        if ( !f.valid() ) {
-            fprintf( stderr, "Couldn't open '%s' for writing.\n", ap.cstr() );
-            exit( -1 );
-        }
-
-        StringList::Iterator it( tables );
-        while ( it ) {
-            String s( "alter table " );
-            s.append( *it );
-            s.append( " owner to " );
-            s.append( *dbowner );
-            s.append( ";\n" );
-            f.write( s );
-            ++it;
-        }
-
-        String trevoke( "revoke all privileges on " );
-        trevoke.append( tables.join( "," ) );
-        trevoke.append( "," );
-        trevoke.append( sequences.join( "," ) );
-        trevoke.append( " from " );
-        trevoke.append( *dbuser );
-        trevoke.append( ";\n" );
-        f.write( trevoke );
-
-        String tsgrant( "grant select on mailstore, addresses, namespaces, "
-                        "users, groups, group_members, mailboxes, aliases, "
-                        "permissions, messages, bodyparts, part_numbers, "
-                        "field_names, header_fields, address_fields, "
-                        "date_fields, flag_names, flags, subscriptions, "
-                        "annotation_names, annotations, views, view_messages, "
-                        "scripts, deleted_messages to " );
-        tsgrant.append( *dbuser );
-        tsgrant.append( ";\n" );
-        f.write( tsgrant );
-
-        String tigrant( "grant insert on addresses, mailboxes, permissions, "
-                        "messages, bodyparts, part_numbers, field_names, "
-                        "header_fields, address_fields, date_fields, flags, "
-                        "flag_names, subscriptions, views, annotation_names, "
-                        "annotations, view_messages, scripts, deleted_messages "
-                        "to " );
-        tigrant.append( *dbuser );
-        tigrant.append( ";\n" );
-        f.write( tigrant );
-
-        String tdgrant( "grant delete on permissions, flags, subscriptions, "
-                        "annotations, views, view_messages, scripts to " );
-        tdgrant.append( *dbuser );
-        tdgrant.append( ";\n" );
-        f.write( tdgrant );
-
-        String tugrant( "grant update on mailstore, permissions, mailboxes, "
-                        "aliases, annotations, views, scripts to " );
-        tugrant.append( *dbuser );
-        tugrant.append( ";\n" );
-        f.write( tugrant );
-
-        String sgrant( "grant select,update on " );
-        sgrant.append( sequences.join( "," ) );
-        sgrant.append( " to " );
-        sgrant.append( *dbuser );
-        sgrant.append( ";\n" );
-        f.write( sgrant );
-
-        String bigrant( "grant all privileges on bodypart_ids to " );
-        bigrant.append( *dbowner );
-        bigrant.append( ";\n" );
-        f.write( bigrant );
-
-        d->state = AlteringPrivileges;
-    }
-
-    if ( d->state == AlteringPrivileges ) {
-        d->state = Done;
-
-        String cmd( "SET client_min_messages TO 'ERROR';\n"
-                    "\\i " LIBDIR "/fixup-privileges\n" );
-
-        if ( report ) {
-            todo++;
-            printf( " - Alter privileges on database '%s'.\n"
-                    "   As user %s, run:\n\n"
-                    "%s %s -f - <<PSQL;\n%sPSQL\n\n",
-                    dbname->cstr(), PGUSER, PSQL, dbname->cstr(),
-                    cmd.cstr() );
-        }
-        else {
-            if ( !silent )
-                printf( "Altering privileges on database '%s'.\n",
-                        dbname->cstr() );
-            if ( psql( cmd ) < 0 )
-                return;
-        }
-    }
-
-    if ( d->state == Done ) {
-        configFile();
-    }
-}
-
-#endif
 
 
 void configFile()

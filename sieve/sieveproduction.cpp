@@ -190,6 +190,7 @@ StringList * SieveProduction::supportedExtensions()
         ++c;
     }
     r->append( "date" );
+    r->append( "ereject" );
     r->append( "envelope" );
     r->append( "fileinto" );
     r->append( "reject" );
@@ -1045,6 +1046,11 @@ void SieveCommand::parse( const String & previous )
             arguments()->numberRemainingArguments();
             (void)arguments()->takeString( 1 );
         }
+    }
+    else if ( i == "ereject" ) {
+        require( "reject" );
+        arguments()->numberRemainingArguments();
+        (void)arguments()->takeString( 1 );
     }
     else if ( i == "fileinto" ) {
         require( "fileinto" );
