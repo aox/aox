@@ -103,7 +103,7 @@ public:
         T &operator *() {
             ok();
             if ( !cur->data )
-                die( Range );
+                die( Invariant );
             return *(cur->data);
         }
 
@@ -120,7 +120,7 @@ public:
 
         void ok() {
             if ( !cur )
-                die( Range );
+                die( Invariant );
         }
 
         Node *cur;

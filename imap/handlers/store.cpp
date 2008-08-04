@@ -89,7 +89,7 @@ void Store::parse()
 {
     space();
     d->s = set( !d->uid );
-    d->expunged = imap()->session()->expunged().intersection( d->s );
+    d->expunged = session()->expunged().intersection( d->s );
     shrink( &d->s );
     space();
 
@@ -271,11 +271,7 @@ void Store::execute()
     if ( state() != Executing )
         return;
 
-    Mailbox * m = 0;
-    if ( imap()->session() )
-        m = imap()->session()->mailbox();
-    else
-        error( No, "Left selected mode during execution" );
+    Mailbox * m = session()->mailbox();
 
     if ( d->s.isEmpty() ) {
         if ( !d->expunged.isEmpty() )
@@ -353,7 +349,7 @@ void Store::execute()
         else {
             uint i = 1;
             while ( i <= d->modified.count() ) {
-                s.add( imap()->session()->msn( d->modified.value( i ) ) );
+                s.add( session()->msn( d->modified.value( i ) ) );
                 i++;
             }
         }
@@ -427,7 +423,7 @@ void Store::execute()
     }
 
     // record the change so that views onto this mailbox update themselves
-    Mailbox * mb = imap()->session()->mailbox();
+    Mailbox * mb = session()->mailbox();
     if ( mb->nextModSeq() <= d->modseq ) {
         mb->setNextModSeq( d->modseq + 1 );
         OCClient::send( "mailbox " + mb->name().utf8().quoted() + " "
@@ -436,15 +432,15 @@ void Store::execute()
 
     if ( !d->notifiedSession ) {
         if ( d->silent ) {
-            if ( imap()->session()->nextModSeq() == d->modseq )
-                imap()->session()->setNextModSeq( d->modseq + 1 );
+            if ( session()->nextModSeq() == d->modseq )
+                session()->setNextModSeq( d->modseq + 1 );
             if ( imap()->clientSupports( IMAP::Condstore ) )
                 sendModseqResponses();
         }
         else if ( d->op == StoreData::ReplaceFlags ) {
-            if ( imap()->session()->nextModSeq() == d->modseq ) {
+            if ( session()->nextModSeq() == d->modseq ) {
                 // avoid meltdown for store 1:* on a big mailbox
-                imap()->session()->setNextModSeq( d->modseq + 1 );
+                session()->setNextModSeq( d->modseq + 1 );
                 sendFlagResponses();
             }
         }
@@ -514,7 +510,7 @@ void Store::sendModseqResponses()
 {
     uint max = d->s.count();
     uint i = 1;
-    ImapSession * s = imap()->session();
+    ImapSession * s = session();
     String rest( " MODSEQ (" + fn( d->modseq ) + "))" );
     while ( i <= max ) {
         uint uid = d->s.value( i );
@@ -529,7 +525,7 @@ void Store::sendModseqResponses()
 
 void Store::sendFlagResponses()
 {
-    imap()->session()->addFlags( &d->flags, this );
+    session()->addFlags( &d->flags, this );
 
     String modseq;
     String flags;
@@ -548,7 +544,7 @@ void Store::sendFlagResponses()
             flags.append( " " );
     }
 
-    ImapSession * s = imap()->session();
+    ImapSession * s = session();
 
     uint i = 1;
     uint max = d->s.count();
@@ -585,7 +581,7 @@ void Store::sendFlagResponses()
 
 void Store::removeFlags( bool opposite )
 {
-    Mailbox * m = imap()->session()->mailbox();
+    Mailbox * m = session()->mailbox();
     MessageSet s( d->s );
 
     String flags;
@@ -653,7 +649,7 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
 
 void Store::addFlags()
 {
-    Mailbox * m = imap()->session()->mailbox();
+    Mailbox * m = session()->mailbox();
     MessageSet s( d->s );
 
     List<Flag>::Iterator it( d->flags );
@@ -689,7 +685,7 @@ static void bind( Query * q, uint i, const String & n )
 
 void Store::replaceAnnotations()
 {
-    Mailbox * m = imap()->session()->mailbox();
+    Mailbox * m = session()->mailbox();
     MessageSet s( d->s );
 
     List<Annotation>::Iterator it( d->annotations );

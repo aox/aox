@@ -101,6 +101,8 @@ public:
     bool permitted();
     bool permissionChecked() const;
 
+    ImapSession * session();
+
 private:
     class CommandData *d;
 

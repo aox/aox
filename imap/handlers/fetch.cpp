@@ -612,7 +612,7 @@ void Fetch::execute()
     if ( state() != Executing )
         return;
 
-    ImapSession * s = imap()->session();
+    ImapSession * s = session();
 
     if ( !d->peek && s->readOnly() )
         d->peek = true;
@@ -719,7 +719,7 @@ void Fetch::execute()
 
 void Fetch::sendFetchQueries()
 {
-    Mailbox * mb = imap()->session()->mailbox();
+    Mailbox * mb = session()->mailbox();
 
     List<Message> * l = new List<Message>;
 

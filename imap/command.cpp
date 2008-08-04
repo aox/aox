@@ -1360,3 +1360,22 @@ void Command::setRespTextCode( const String & s )
 {
     d->respTextCode = s;
 }
+
+
+/*! Returns a pointer to the Session for this Command. If there isn't
+    one, then session() logs an error and throws an exception (which
+    in turn closes the IMAP connection).
+*/
+
+ImapSession * Command::session()
+{
+    ImapSession * s = 0;
+    if ( imap() )
+        s = imap()->session();
+    if ( s )
+        return s;
+
+    log( "Mailbox session needed, but none present" );
+    die( Invariant );
+    return 0;
+}

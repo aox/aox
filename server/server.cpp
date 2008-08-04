@@ -191,8 +191,8 @@ void Server::setup( Stage s )
         // don't allocate memory or call anything here.
         const char * c = 0;
         switch (e) {
-        case Range:
-            c = "Out-of-range memory access during server startup.";
+        case Invariant:
+            c = "Invariant failed during server startup.";
             break;
         case Memory:
             c = "Out of memory during server startup.";
