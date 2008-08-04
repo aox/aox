@@ -2,6 +2,7 @@
 -- For now, its only purpose is to coordinate schema updates.
 
 create table mailstore (
+    -- Grant: select, update
     revision    integer not null primary key
 );
 insert into mailstore (revision) values (75);
@@ -10,6 +11,7 @@ insert into mailstore (revision) values (75);
 -- One entry for each unique address we've encountered.
 
 create table addresses (
+    -- Grant: select, insert
     id          serial primary key,
     name        text,
     localpart   text,
@@ -60,6 +62,7 @@ create table group_members (
 -- One entry per deliverable mailbox.
 
 create table mailboxes (
+    -- Grant: select, insert, update
     id          serial primary key,
     name        text not null unique,
     owner       integer references users(id),
@@ -89,6 +92,7 @@ create table mailboxes (
 -- accepted and delivered into the given mailbox.
 
 create table aliases (
+    -- Grant: select, update
     id          serial primary key,
     address     integer not null unique references addresses(id),
     mailbox     integer not null references mailboxes(id)
@@ -103,6 +107,7 @@ alter table users alter alias set not null;
 -- One row per <identifier, rights> entry for a mailbox.
 
 create table permissions (
+    -- Grant: select, insert, delete, update
     mailbox     integer not null references mailboxes(id),
     identifier  text not null,
     rights      text not null,
@@ -113,6 +118,7 @@ create table permissions (
 -- One entry per message stored
 
 create table messages (
+    -- Grant: select, insert
     id          serial primary key,
     rfc822size  integer
 );
@@ -121,6 +127,7 @@ create table messages (
 -- One (mailbox, uid) entry per message and mailbox.
 
 create table mailbox_messages (
+    -- Grant: select, insert, update
     mailbox     integer not null references mailboxes(id),
     uid         integer not null,
     message     integer not null references messages(id),
@@ -137,6 +144,7 @@ create index mm_m on mailbox_messages(message);
 
 create sequence bodypart_ids;
 create table bodyparts (
+    -- Grant: select, insert
     id          integer default nextval('bodypart_ids') primary key,
     bytes       integer not null,
     hash        text not null,
@@ -149,6 +157,7 @@ create index b_h on bodyparts(hash);
 -- One entry for each bodypart in a message.
 
 create table part_numbers (
+    -- Grant: select, insert
     message     integer references messages(id) on delete cascade,
     part        text not null,
     bodypart    integer references bodyparts(id),
@@ -163,6 +172,7 @@ create index pn_b on part_numbers(bodypart);
 -- (This table is partially populated from the field-names file.)
 
 create table field_names (
+    -- Grant: select, insert
     id          serial primary key,
     name        text unique
 );
@@ -171,6 +181,7 @@ create table field_names (
 -- One entry for each header field in a message, except address fields.
 
 create table header_fields (
+    -- Grant: select, insert
     id          serial primary key,
     message     integer not null,
     part        text not null,
@@ -190,6 +201,7 @@ create index hf_msgid on header_fields(value) where field=13;
 -- fields are stored as one or more row here.
 
 create table address_fields (
+    -- Grant: select, insert
     message     integer not null,
     part        text not null,
     position    integer not null,
@@ -206,6 +218,7 @@ create index af_mp on address_fields (message, part);
 -- The Date field from each message.
 
 create table date_fields (
+    -- Grant: select, insert
     message     integer not null references messages(id)
                 on delete cascade,
     value       timestamp with time zone
@@ -217,6 +230,7 @@ create index df_m on date_fields(message);
 -- One entry per unique thread.
 
 create table threads (
+    -- Grant: select, insert, update
     id          serial primary key,
     mailbox     integer not null references mailboxes(id),
     subject     text,
@@ -227,6 +241,7 @@ create table threads (
 -- One entry per message in each thread.
 
 create table thread_members (
+    -- Grant: select, insert
     thread      integer not null references threads(id),
     mailbox     integer not null,
     uid         integer not null,
@@ -240,6 +255,7 @@ create table thread_members (
 -- One entry per user-defined flag name to be used in flags.
 
 create table flag_names (
+    -- Grant: select, insert
     id          serial primary key,
     name        text
 );
@@ -249,6 +265,7 @@ create unique index fn_uname on flag_names(lower(name));
 -- One entry per user-defined IMAP message flag per message.
 
 create table flags (
+    -- Grant: select, insert, delete
     mailbox     integer not null,
     uid         integer not null,
     flag        integer not null references flag_names(id),
@@ -262,6 +279,7 @@ create index fl_mu on flags (mailbox, uid);
 -- One entry per subscribed mailbox per user.
 
 create table subscriptions (
+    -- Grant: select, insert, delete
     id          serial primary key,
     owner       integer not null references users(id)
                 on delete cascade,
@@ -273,6 +291,7 @@ create table subscriptions (
 -- One entry per vendor- or RFC-defined name to be used in annotations.
 
 create table annotation_names (
+    -- Grant: select, insert
     id          serial primary key,
     name        text unique
 );
@@ -281,6 +300,7 @@ create table annotation_names (
 -- One entry per annotation.
 
 create table annotations (
+    -- Grant: select, insert, delete, update
     id          serial primary key,
     mailbox     integer not null,
     uid         integer not null,
@@ -298,6 +318,7 @@ create table annotations (
 -- of applying the selector to the source mailbox.
 
 create table views (
+    -- Grant: select, insert, delete, update
     id          serial primary key,
     source      integer not null references mailboxes(id)
                 on delete cascade,
@@ -312,6 +333,7 @@ create table views (
 -- One entry per SIEVE script owned by a user.
 
 create table scripts (
+    -- Grant: select, insert, delete, update
     id          serial primary key,
     owner       integer not null references users(id)
                 on delete cascade,
@@ -328,6 +350,7 @@ create table scripts (
 -- here, never in both.
 
 create table deleted_messages (
+    -- Grant: select, insert
     mailbox     integer not null references mailboxes(id),
     uid         integer not null,
     message     integer not null references messages(id)
@@ -361,6 +384,7 @@ for each row execute procedure delete_message();
 -- One entry for each pending SMTP-submitted delivery.
 
 create table deliveries (
+    -- Grant: select, insert, delete, update
     id          serial primary key,
     sender      integer not null references addresses(id),
     message     integer not null references messages(id)
@@ -375,6 +399,7 @@ create table deliveries (
 -- One entry for each recipient of pending outgoing mail.
 
 create table delivery_recipients (
+    -- Grant: select, insert, update
     id          serial primary key,
     delivery    integer not null references deliveries(id)
                 on delete cascade,
@@ -389,6 +414,7 @@ create table delivery_recipients (
 -- (See URLAUTH, RFC 4467.)
 
 create table access_keys (
+    -- Grant: select, insert, delete
     userid      integer not null references users(id)
                 on delete cascade,
     mailbox     integer not null references mailboxes(id)
@@ -402,6 +428,7 @@ create table access_keys (
 -- that was wrapped as an application/octet-stream.
 
 create table unparsed_messages (
+    -- Grant: insert
     bodypart    integer not null references bodyparts(id)
                 on delete cascade,
     primary key(bodypart)
@@ -411,6 +438,7 @@ create table unparsed_messages (
 -- One entry for every autoresponse we send.
 
 create table autoresponses (
+    -- Grant: select, insert
     id          serial primary key,
     sent_from   integer not null references addresses(id),
     sent_to     integer not null references addresses(id),
@@ -424,6 +452,7 @@ create table autoresponses (
 -- servers.
 
 create table connections (
+    -- Grant: insert
     id          serial primary key,
     userid      integer references users(id),
     address     inet not null,
@@ -441,6 +470,7 @@ create table connections (
 -- cause the referring script to fail.
 
 create table fileinto_targets (
+    -- Grant: select, insert, delete
     id          serial primary key,
     script      integer not null references scripts(id)
                 on delete cascade,
