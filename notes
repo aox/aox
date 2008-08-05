@@ -1217,7 +1217,8 @@ SMS gateway
   Archiveopteryx users and weed out most other people.
 
   Perhaps a better alternative: Automatically register with clickatell
-  if SMS is enabled and not configured when it's first used.
+  if SMS is enabled and not configured when it's first used. (But it's
+  not possible to register with clickatell without intervention.)
 
 
 Bug confusing U+ED00 and U+0000 in the message cache
