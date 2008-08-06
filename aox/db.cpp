@@ -4,6 +4,7 @@
 
 #include "query.h"
 #include "schema.h"
+#include "granter.h"
 #include "recipient.h"
 #include "transaction.h"
 #include "configuration.h"
@@ -182,106 +183,45 @@ void Vacuum::execute()
 
 
 GrantPrivileges::GrantPrivileges( StringList * args )
-    : AoxCommand( args ), q( 0 )
+    : AoxCommand( args ), commit( true ), t( 0 ), q( 0 )
 {
 }
 
 
 void GrantPrivileges::execute()
 {
-    if ( !q ) {
+    if ( !t ) {
         parseOptions();
         String name = next();
         end();
 
-        if ( name.isEmpty() )
-            error( "No database username specified." );
+        if ( opt( 'n' ) > 0 )
+            commit = false;
 
         database( true );
 
-        q = new Query(
-            "revoke all on access_keys, address_fields, addresses, "
-            "addresses_id_seq, aliases, aliases_id_seq, annotation_names, "
-            "annotation_names_id_seq, annotations, annotations_id_seq, "
-            "autoresponses, autoresponses_id_seq, bodypart_ids, bodyparts, "
-            "date_fields, deleted_messages, deliveries, deliveries_id_seq, "
-            "delivery_recipients, delivery_recipients_id_seq, field_names, "
-            "field_names_id_seq, flag_names, flag_names_id_seq, flags, "
-            "group_members, groups, groups_id_seq, header_fields, "
-            "header_fields_id_seq, mailbox_messages, mailboxes, "
-            "mailboxes_id_seq, mailstore, messages, messages_id_seq, "
-            "namespaces, namespaces_id_seq, part_numbers, permissions, "
-            "scripts, scripts_id_seq, subscriptions, subscriptions_id_seq, "
-            "thread_members, threads, threads_id_seq, unparsed_messages, "
-            "users, users_id_seq, views, views_id_seq, connections, "
-            "connections_id_seq, fileinto_targets, fileinto_targets_id_seq "
-            "from " + name.quoted(),
-            this
-        );
-        q->execute();
-
-        q = new Query(
-            "grant select on mailstore, addresses, namespaces, users, "
-            "groups, group_members, mailboxes, aliases, permissions, "
-            "messages, bodyparts, part_numbers, field_names, "
-            "header_fields, address_fields, date_fields, threads, "
-            "thread_members, flag_names, flags, subscriptions, scripts, "
-            "annotation_names, annotations, views, deleted_messages, "
-            "deliveries, delivery_recipients, access_keys, autoresponses, "
-            "mailbox_messages, fileinto_targets to " + name.quoted(),
-            this
-        );
-        q->execute();
-
-        q = new Query(
-            "grant insert on addresses, mailboxes, permissions, messages, "
-            "bodyparts, part_numbers, field_names, header_fields, "
-            "address_fields, date_fields, threads, thread_members, "
-            "flag_names, flags, subscriptions, scripts, annotation_names, "
-            "annotations, views, deleted_messages, deliveries, "
-            "delivery_recipients, access_keys, unparsed_messages, "
-            "autoresponses, mailbox_messages, connections, "
-            "fileinto_targets to " + name.quoted(),
-            this
-        );
-        q->execute();
-
-        q = new Query(
-            "grant delete on permissions, flags, subscriptions, annotations, "
-            "views, scripts, deliveries, access_keys, fileinto_targets "
-            "to " + name.quoted(),
-            this
-        );
-        q->execute();
-
-        q = new Query(
-            "grant update on mailstore, permissions, mailboxes, aliases, "
-            "annotations, views, scripts, deliveries, delivery_recipients, "
-            "mailbox_messages, threads to " + name.quoted(),
-            this
-        );
-        q->execute();
-
-        q = new Query(
-            "grant select, update on messages_id_seq, addresses_id_seq, "
-            "aliases_id_seq, annotation_names_id_seq, bodypart_ids, "
-            "field_names_id_seq, flag_names_id_seq, groups_id_seq, "
-            "header_fields_id_seq, mailboxes_id_seq, namespaces_id_seq, "
-            "scripts_id_seq, subscriptions_id_seq, threads_id_seq, "
-            "users_id_seq, views_id_seq, deliveries_id_seq, "
-            "delivery_recipients_id_seq, annotations_id_seq, "
-            "autoresponses_id_seq, connections_id_seq, "
-            "fileinto_targets_id_seq to " + name.quoted(),
-            this
-        );
-        q->execute();
+        t = new Transaction( this );
+        Granter * s = new Granter( name, t, this );
+        q = s->result();
+        s->execute();
     }
 
-    if ( !q->done() )
+    if ( q ) {
+        if ( !q->done() )
+            return;
+
+        q = 0;
+        if ( commit )
+            t->rollback();
+        else
+            t->commit();
+    }
+
+    if ( !t->done() )
         return;
 
-    if ( q->failed() )
-        error( "Could not grant privileges" );
+    if ( t->failed() )
+        error( "Couldn't grant privileges: " + t->error() );
 
     finish();
 }

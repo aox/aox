@@ -5,6 +5,7 @@
 #include "log.h"
 #include "field.h"
 #include "query.h"
+#include "granter.h"
 #include "addresscache.h"
 #include "transaction.h"
 #include "stringlist.h"
@@ -28,7 +29,7 @@ public:
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
           result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),
           quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
-          uidnext( 0 ), nextmodseq( 0 )
+          uidnext( 0 ), nextmodseq( 0 ), granter( 0 )
     {
         dbuser = Configuration::text( Configuration::DbUser ).quoted();
     }
@@ -55,6 +56,8 @@ public:
     uint count;
     uint uidnext;
     int64 nextmodseq;
+
+    Granter * granter;
 };
 
 
@@ -156,7 +159,7 @@ void Schema::execute()
                   d->lock );
             d->revision = Database::currentRevision();
             d->t->commit();
-            d->state = 5;
+            d->state = 7;
         }
         else if ( d->revision == Database::currentRevision() ) {
             if ( d->upgrade )
@@ -166,7 +169,7 @@ void Schema::execute()
                            Log::Significant );
             d->result->setState( Query::Completed );
             d->t->commit();
-            d->state = 5;
+            d->state = 7;
         }
         else if ( d->upgrade && d->revision < Database::currentRevision() ) {
             d->l->log( "Upgrading schema from revision " +
@@ -196,7 +199,7 @@ void Schema::execute()
             fail( s );
             d->revision = Database::currentRevision();
             d->t->commit();
-            d->state = 5;
+            d->state = 7;
         }
     }
 
@@ -226,17 +229,30 @@ void Schema::execute()
             d->revision++;
 
             if ( d->revision == Database::currentRevision() ) {
-                if ( d->commit )
-                    d->t->commit();
-                else
-                    d->t->rollback();
-                d->state = 6;
+                d->state = 5;
                 break;
             }
         }
     }
 
-    if ( d->state == 5 || d->state == 6 ) {
+    if ( d->state == 5 ) {
+        if ( !d->granter ) {
+            d->granter = new Granter( d->dbuser, d->t, this );
+            d->q = d->granter->result();
+            d->granter->execute();
+        }
+
+        if ( d->q && !d->q->done() )
+            return;
+
+        d->state = 6;
+        if ( d->commit )
+            d->t->commit();
+        else
+            d->t->rollback();
+    }
+
+    if ( d->state == 6 ) {
         if ( !d->t->done() )
             return;
 
@@ -259,6 +275,13 @@ void Schema::execute()
                            Log::Significant );
         }
 
+        d->state = 7;
+    }
+
+    if ( d->state == 7 ) {
+        if ( !d->t->done() )
+            return;
+
         if ( d->t->failed() && !d->result->failed() ) {
             String s;
             if ( d->upgrade )
@@ -268,7 +291,7 @@ void Schema::execute()
                 s = "The schema could not be validated.";
             fail( s, d->t->failedQuery() );
         }
-        else if ( d->state == 6 ) {
+        else if ( d->upgrade ) {
             String s( "Schema upgraded to revision " );
             s.append( fn( Database::currentRevision() ) );
             if ( !d->commit )
@@ -278,10 +301,11 @@ void Schema::execute()
             d->l->log( s, Log::Significant );
             d->result->setState( Query::Completed );
         }
-        d->state = 7;
+
+        d->state = 8;
     }
 
-    if ( d->state == 7 ) {
+    if ( d->state == 8 ) {
         d->state = 42;
         d->result->notify();
     }

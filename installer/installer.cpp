@@ -6,10 +6,12 @@
 #include "stringlist.h"
 #include "stderrlogger.h"
 #include "configuration.h"
+#include "transaction.h"
 #include "eventloop.h"
 #include "database.h"
 #include "entropy.h"
 #include "schema.h"
+#include "granter.h"
 #include "query.h"
 #include "event.h"
 #include "file.h"
@@ -90,7 +92,7 @@ void grantUsage();
 void splitPrivileges();
 void createSchema();
 void upgradeSchema();
-void checkPrivileges();
+void grantPrivileges();
 
 
 /*! \nodoc */
@@ -728,7 +730,7 @@ enum DbState {
     CheckVersion, CheckEncoding,
     CreateUser, CreateSuperuser, CreateDatabase, CreateLang,
     CreateNamespace, SetSearchPath, CheckOwnership, GrantUsage,
-    SplitPrivileges, CreateSchema, UpgradeSchema, CheckPrivileges,
+    SplitPrivileges, CreateSchema, UpgradeSchema, GrantPrivileges,
     Done
 };
 
@@ -743,6 +745,7 @@ public:
     Query * w;
     Query * ssa;
     Query * ssp;
+    Transaction * t;
     bool databaseExists;
     bool namespaceExists;
     bool mailstoreExists;
@@ -751,7 +754,7 @@ public:
 
     Dispatcher()
         : state( CheckVersion ),
-          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), ssp( 0 ),
+          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), ssp( 0 ), t( 0 ),
           databaseExists( false ), namespaceExists( false ),
           mailstoreExists( false ), failed( false )
     {}
@@ -857,8 +860,8 @@ void database()
             upgradeSchema();
             break;
 
-        case CheckPrivileges:
-            checkPrivileges();
+        case GrantPrivileges:
+            grantPrivileges();
             break;
 
         case Done:
@@ -1828,8 +1831,44 @@ void upgradeSchema()
 
 // Make sure the aox user has exactly those privileges it needs.
 
-void checkPrivileges()
+void grantPrivileges()
 {
+    if ( report ) {
+        todo++;
+        printf( " - Grant privileges to user '%s'.\n   "
+                "(Run \"aox grant privileges -n %s\" to see "
+                "what would happen).\n\n",
+                dbuser->cstr(), dbuser->cstr() );
+        d->nextState();
+        return;
+    }
+
+    if ( !d->t ) {
+        d->t = new Transaction( d );
+        Granter * s = new Granter( *dbuser, d->t, d );
+        d->q = s->result();
+        s->execute();
+    }
+
+    if ( d->q ) {
+        if ( !d->q->done() )
+            return;
+
+        d->q = 0;
+        d->t->commit();
+    }
+
+    if ( !d->t->done() )
+        return;
+
+    if ( d->t->failed() ) {
+        d->error( "Couldn't grant privileges to user " +
+                  dbuser->quoted( '\'' ) + " (PostgreSQL error: " +
+                  d->t->error() + ").\nPlease run \"aox grant"
+                  "privileges -n\" by hand.\n" );
+        return;
+    }
+
     d->nextState();
 }
 
