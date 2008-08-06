@@ -1798,8 +1798,9 @@ void upgradeSchema()
         else if ( revision < Database::currentRevision() ) {
             if ( report ) {
                 todo++;
-                printf( " - Upgrade the database schema (\"aox upgrade "
-                        "schema -n\" to see what would happen).\n\n" );
+                printf( " - Upgrade the database schema.\n   "
+                        "(Try \"aox upgrade schema -n\" to see "
+                        "what would happen).\n\n" );
             }
             else {
                 Schema * s = new Schema( d, true, true );
