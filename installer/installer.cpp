@@ -780,6 +780,7 @@ void connectToDb( const String & dbname )
     Configuration::setup( "" );
     Configuration::add( "db-max-handles = 1" );
     Configuration::add( "db-name = " + dbname.quoted() );
+    Configuration::add( "db-user = " + dbuser->quoted() );
     Configuration::add( "db-address = " + db->quoted() );
     if ( !db->startsWith( "/" ) )
         Configuration::add( "db-port = " + fn( dbport ) );
@@ -1801,7 +1802,6 @@ void upgradeSchema()
                         "schema -n\" to see what would happen).\n\n" );
             }
             else {
-                Configuration::add( "db-user = " + dbuser->quoted() );
                 Schema * s = new Schema( d, true, true );
                 d->u = s->result();
                 s->execute();
