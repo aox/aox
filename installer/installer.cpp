@@ -1702,11 +1702,9 @@ void createSchema()
             }
             else {
                 if ( !silent )
-                    printf( "Loading the database schema:\n" );
+                    printf( "Loading the database schema.\n" );
                 if ( psql( cmd ) < 0 )
                     d->failed = true;
-                d->state = Done;
-                return;
             }
         }
         else {
@@ -1782,6 +1780,8 @@ void upgradeSchema()
                         "what would happen).\n\n" );
             }
             else {
+                if ( !silent )
+                    printf( "Upgrading the database schema.\n" );
                 Schema * s = new Schema( d, true, true );
                 d->u = s->result();
                 s->execute();
@@ -1820,6 +1820,8 @@ void grantPrivileges()
     }
 
     if ( !d->t ) {
+        if ( !silent )
+            printf( "Granting database privileges.\n" );
         d->t = new Transaction( d );
         Granter * s = new Granter( *dbuser, d->t, d );
         d->q = s->result();
