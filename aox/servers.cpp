@@ -766,7 +766,7 @@ bool Starter::startServer( const char * s )
     else {
         int status = 0;
         if ( waitpid( pid, &status, 0 ) < 0 ||
-             WIFEXITED( status ) && WEXITSTATUS( status ) != 0 )
+             ( WIFEXITED( status ) && WEXITSTATUS( status ) != 0 ) )
             error( "Couldn't exec(" + srv + ")" );
     }
 
@@ -1275,21 +1275,25 @@ void ShowStatus::execute()
 
         const char * noState = started ? "not running" : "not started";
 
-        if ( pid < 0 )
+        if ( pid < 0 ) {
             printf( " (%s)", noState );
-        else if ( kill( pid, 0 ) != 0 && errno == ESRCH )
+        }
+        else if ( kill( pid, 0 ) != 0 && errno == ESRCH ) {
             if ( opt( 'v' ) > 0 )
                 printf( " (%s, stale pidfile)", noState );
             else
                 printf( " (%s)", noState );
-        else if ( opt( 'v' ) > 0 )
+        }
+        else if ( opt( 'v' ) > 0 ) {
             printf( " (%d)", pid );
+        }
 
-        if ( i != nservers-1 )
+        if ( i != nservers-1 ) {
             if ( opt( 'v' ) > 0 )
                 printf( "\n  " );
             else
                 printf( ", " );
+        }
         i++;
     }
 

@@ -33,9 +33,9 @@ void ResetKey::parse()
 
             String mechanism;
             char c = nextChar();
-            while ( c >= 'a' && c <= 'z' ||
-                    c >= 'A' && c <= 'Z' ||
-                    c >= '0' && c <= '9' ||
+            while ( ( c >= 'a' && c <= 'z' ) ||
+                    ( c >= 'A' && c <= 'Z' ) ||
+                    ( c >= '0' && c <= '9' ) ||
                     c == '-' || c == '.' )
             {
                 step();
