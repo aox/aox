@@ -325,9 +325,12 @@ void TuneDatabase::execute()
         d->t = new Transaction( this );
         d->find = new Query( "", this );
 
-        String q = "select indexdef from pg_indexes where (";
+        String q( "select indexdef from pg_indexes where "
+                  "schemaname=$1 and (" );
 
-        uint i = 0;
+        d->find->bind( 1, Configuration::text( Configuration::DbSchema ) );
+
+        uint i = 1;
         while ( tunableIndices[i].name ) {
             if ( i )
                 q.append( " or " );
@@ -338,13 +341,6 @@ void TuneDatabase::execute()
         }
 
         q.append( ")" );
-
-        String schema( Configuration::text( Configuration::DbSchema ) );
-        if ( !schema.isEmpty() ) {
-            q.append( " and schemaname=$" + fn( i+1 ) );
-            d->find->bind( i+1, schema );
-            i++;
-        }
 
         d->find->setString( q );
         d->t->enqueue( d->find );

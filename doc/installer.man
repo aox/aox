@@ -102,7 +102,7 @@ not refer to a Unix socket.)
 Allows you to specify a schema where the Archiveopteryx database objects
 will be installed. If this is not specified, objects are installed into
 the
-.I public
+.I $DBSCHEMA
 schema.
 .IP
 Please do not use

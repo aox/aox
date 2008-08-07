@@ -81,20 +81,13 @@ void Granter::execute()
             "has_table_privilege($1, c.relname, 'update') as can_update, "
             "has_table_privilege($1, c.relname, 'delete') as can_delete "
             "from pg_class c join pg_namespace n on (c.relnamespace=n.oid) "
-            "where c.relkind in ('r','S')"
+            "where c.relkind in ('r','S') and n.nspname=$2"
         );
 
+        d->state = 1;
         d->q = new Query( s, this );
         d->q->bind( 1, d->name );
-
-        String schema( Configuration::text( Configuration::DbSchema ) );
-        if ( !schema.isEmpty() ) {
-            s.append( " and n.nspname=$2" );
-            d->q->bind( 2, schema );
-            d->q->setString( s );
-        }
-
-        d->state = 1;
+        d->q->bind( 2, Configuration::text( Configuration::DbSchema ) );
         d->t->enqueue( d->q );
         d->t->execute();
     }

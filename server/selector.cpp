@@ -29,18 +29,13 @@ class TuningDetector
 public:
     TuningDetector(): q( 0 ) {
         ::tsearchAvailable = false;
-
-        String s( "select indexdef from pg_indexes where "
-                  "indexdef ilike '% USING gin(to_ts%' and "
-                  "tablename='bodyparts'" );
-
-        String schema( Configuration::text( Configuration::DbSchema ) );
-        if ( !schema.isEmpty() )
-            s.append( " and schemaname=$1" );
-
-        q = new Query( s, this );
-        if ( !schema.isEmpty() )
-            q->bind( 1, schema );
+        q = new Query(
+            "select indexdef from pg_indexes where "
+            "indexdef ilike '% USING gin(to_ts%' and "
+            "tablename='bodyparts' and schemaname=$1",
+            this
+        );
+        q->bind( 1, Configuration::text( Configuration::DbSchema ) );
         q->execute();
     }
     void execute() {

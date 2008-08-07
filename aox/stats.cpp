@@ -31,18 +31,13 @@ ShowCounts::ShowCounts( StringList * args )
 }
 
 
-static String tuples( const String & schema, const String & table )
+static String tuples( const String & table )
 {
-    String s( "select reltuples from pg_class c" );
-    if ( !schema.isEmpty() ) {
-        s.append( " join pg_namespace n on (c.relnamespace=n.oid)" );
-        s.append( " where n.nspname=$1 and " );
-    }
-    else {
-        s.append( " where " );
-    }
-    s.append( "c.relname='" + table + "'" );
-
+    String s( "select reltuples from pg_class c join "
+              "pg_namespace n on (c.relnamespace=n.oid) "
+              "where n.nspname=$1 and c.relname='" );
+    s.append( table );
+    s.append( "'" );
     return s;
 }
 
@@ -63,15 +58,14 @@ void ShowCounts::execute()
             "(select count(*) from users)::int as users,"
             "(select count(*) from mailboxes where deleted='f')::int"
             " as mailboxes,"
-            "(" + tuples( s, "messages" ) + ")::int as messages,"
-            "(" + tuples( s, "bodyparts" ) + ")::int as bodyparts,"
-            "(" + tuples( s, "addresses" ) + ")::int as addresses,"
-            "(" + tuples( s, "deleted_messages" ) + ")::int as dm",
+            "(" + tuples( "messages" ) + ")::int as messages,"
+            "(" + tuples( "bodyparts" ) + ")::int as bodyparts,"
+            "(" + tuples( "addresses" ) + ")::int as addresses,"
+            "(" + tuples( "deleted_messages" ) + ")::int as dm",
             this
         );
 
-        if ( !s.isEmpty() )
-            d->query->bind( 1, s );
+        d->query->bind( 1, s );
         d->query->execute();
     }
 

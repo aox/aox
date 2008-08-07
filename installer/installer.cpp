@@ -47,6 +47,8 @@ String * dbownerpass;
 String * dbpgpass;
 String * dbschema;
 
+bool privateSchema = false;
+
 uint dbport = 5432;
 bool askPass = false;
 
@@ -125,10 +127,7 @@ int main( int ac, char *av[] )
     dbownerpass = new String( DBOWNERPASS );
     Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
 
-    dbschema = 0;
-    String * s = new String( DBSCHEMA );
-    if ( !s->isEmpty() )
-        dbschema = s;
+    dbschema = new String( DBSCHEMA );
 
     av++;
     while ( ac-- > 1 ) {
@@ -188,8 +187,8 @@ int main( int ac, char *av[] )
         Allocator::addEternal( dbsocket, "DBSOCKET" );
     if ( dbaddress )
         Allocator::addEternal( dbaddress, "DBADDRESS" );
-    if ( dbschema )
-        Allocator::addEternal( dbschema, "DBSCHEMA" );
+
+    Allocator::addEternal( dbschema, "DBSCHEMA" );
 
     Allocator::addEternal( new StderrLogger( "installer", verbosity ),
                            "log object" );
@@ -215,6 +214,9 @@ int main( int ac, char *av[] )
     Configuration::read( super, true );
 
     configure();
+
+    if ( *dbschema != "public" )
+        ::privateSchema = true;
 
     findPostgres();
 
@@ -561,13 +563,9 @@ void configure()
                     dbname->cstr() );
     }
 
-    if ( !dbschema ) {
-        String schema;
-        if ( Configuration::present( Configuration::DbSchema ) )
-            schema = Configuration::text( Configuration::DbSchema );
-        if ( !schema.isEmpty() ) {
-            dbschema = new String( schema );
-            Allocator::addEternal( dbschema, "DBSCHEMA" );
+    if ( *dbschema == DBSCHEMA ) {
+        if ( Configuration::present( Configuration::DbSchema ) ) {
+            *dbschema = Configuration::text( Configuration::DbSchema );
             if ( verbosity )
                 printf( "Using db-schema from the configuration: %s\n",
                         dbschema->cstr() );
@@ -800,12 +798,11 @@ void connectToDb( const String & dbname )
     Configuration::setup( "" );
     Configuration::add( "db-max-handles = 1" );
     Configuration::add( "db-name = " + dbname.quoted() );
+    Configuration::add( "db-schema = " + dbschema->quoted() );
     Configuration::add( "db-user = " + dbuser->quoted() );
     Configuration::add( "db-address = " + db->quoted() );
     if ( !db->startsWith( "/" ) )
         Configuration::add( "db-port = " + fn( dbport ) );
-    if ( dbschema )
-        Configuration::add( "db-schema = " + dbschema->quoted() );
 
     String pass;
     if ( dbpgpass )
@@ -1231,7 +1228,7 @@ void createLang()
 
 void createNamespace()
 {
-    if ( !dbschema ) {
+    if ( !privateSchema ) {
         d->namespaceExists = true;
         d->nextState();
         return;
@@ -1324,7 +1321,7 @@ void checkOwnership()
     // but checkEncoding() already set d->owner, which we can use.
 
     if ( !d->q && !d->u ) {
-        if ( dbschema ) {
+        if ( privateSchema ) {
             d->q = new Query( "select usename::text "
                               "from pg_namespace n join pg_user u on "
                               "(n.nspowner=u.usesysid) where nspname=$1", d );
@@ -1393,7 +1390,7 @@ void checkOwnership()
 
         if ( d->u->failed() ) {
             String s( "Couldn't alter owner of " );
-            if ( dbschema )
+            if ( privateSchema )
                 s.append( "schema " + dbschema->quoted( '\'' ) );
             else
                 s.append( "database " + dbname->quoted( '\'' ) );
@@ -1413,7 +1410,7 @@ void checkOwnership()
 
 void grantUsage()
 {
-    if ( !dbschema ) {
+    if ( !privateSchema ) {
         d->nextState();
         return;
     }
@@ -1489,15 +1486,10 @@ void splitPrivileges()
     }
 
     if ( !d->q ) {
-        String s( "select tableowner::text from pg_catalog.pg_tables "
-                  "where tablename=$1" );
-        if ( dbschema )
-            s.append( " and schemaname=$2" );
-
-        d->q = new Query( s, d );
+        d->q = new Query( "select tableowner::text from pg_catalog.pg_tables "
+                          "where tablename=$1 and schemaname=$2", d );
         d->q->bind( 1, "messages" );
-        if ( dbschema )
-            d->q->bind( 2, *dbschema );
+        d->q->bind( 2, *dbschema );
         d->q->execute();
     }
 
@@ -1609,7 +1601,7 @@ void createSchema()
                 "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
                 "SET client_min_messages TO 'ERROR';\n" );
 
-    if ( dbschema )
+    if ( privateSchema )
         cmd.append( "SET search_path TO " +
                     dbschema->quoted( '\'' ) + ";\n" );
 
@@ -1634,21 +1626,16 @@ void createSchema()
         d->ssa = new Query( "set session authorization " + *dbowner, d );
         d->ssa->execute();
 
-        String s( "select tablename::text from pg_catalog.pg_tables "
-                  "where tablename=$1" );
-
-        if ( dbschema ) {
+        if ( privateSchema ) {
             d->ssp = new Query( "set search_path to " +
                                 dbschema->quoted( '\'' ), d );
             d->ssp->execute();
-
-            s.append( " and schemaname=$2" );
         }
 
-        d->q = new Query( s, d );
+        d->q = new Query( "select tablename::text from pg_catalog.pg_tables "
+                          "where tablename=$1 and schemaname=$2", d );
         d->q->bind( 1, "mailstore" );
-        if ( dbschema )
-            d->q->bind( 2, *dbschema );
+        d->q->bind( 2, *dbschema );
         d->q->execute();
     }
 
@@ -1876,7 +1863,7 @@ void configFile()
     String name( "db-name = " + *dbname + "\n" );
 
     String schema;
-    if ( dbschema ) {
+    if ( privateSchema ) {
         schema.append( "db-schema = " );
         schema.append( *dbschema );
         schema.append( "\n" );
