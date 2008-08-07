@@ -1415,23 +1415,42 @@ void grantUsage()
         return;
     }
 
-    // Again, we make no attempt to ensure that the user doesn't already
-    // have usage privileges on the database; we just force the issue.
-
     String grant( "grant usage on schema " + *dbschema + " to " + *dbuser );
 
+    if ( !d->q ) {
+        d->q = new Query(
+            "select has_schema_privilege($1,nspname,'usage') as has_usage "
+            "from pg_catalog.pg_namespace where nspname=$2", d
+        );
+        d->q->bind( 1, *dbuser );
+        d->q->bind( 2, *dbschema );
+        d->q->execute();
+    }
+
     if ( !d->u ) {
-        if ( report ) {
-            todo++;
-            printf( " - Grant usage on schema '%s' to user '%s'.\n"
-                    "   As user %s, run:\n\n"
-                    "%s -d %s -qc \"%s\"\n\n",
-                    dbschema->cstr(), dbuser->cstr(), PGUSER, PSQL,
-                    dbname->cstr(), grant.cstr() );
+        if ( !d->q->done() )
+            return;
+
+        if ( d->q->failed() ) {
+            d->error( "Couldn't check usage privileges for schema " +
+                      dbschema->quoted( '\'' ) + ". " + pgErr( d->q ) );
+            return;
         }
-        else {
-            d->u = new Query( grant, d );
-            d->u->execute();
+
+        Row * r = d->q->nextRow();
+        if ( !r || !r->getBoolean( "has_usage" ) ) {
+            if ( report ) {
+                todo++;
+                printf( " - Grant usage on schema '%s' to user '%s'.\n"
+                        "   As user %s, run:\n\n"
+                        "%s -d %s -qc \"%s\"\n\n",
+                        dbschema->cstr(), dbuser->cstr(), PGUSER, PSQL,
+                        dbname->cstr(), grant.cstr() );
+            }
+            else {
+                d->u = new Query( grant, d );
+                d->u->execute();
+            }
         }
     }
 
