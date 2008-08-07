@@ -3,6 +3,7 @@
 #include "stats.h"
 
 #include "query.h"
+#include "configuration.h"
 
 #include <stdio.h>
 
@@ -30,6 +31,22 @@ ShowCounts::ShowCounts( StringList * args )
 }
 
 
+static String tuples( const String & schema, const String & table )
+{
+    String s( "select reltuples from pg_class c" );
+    if ( !schema.isEmpty() ) {
+        s.append( " join pg_namespace n on (c.relnamespace=n.oid)" );
+        s.append( " where n.nspname=$1 and " );
+    }
+    else {
+        s.append( " where " );
+    }
+    s.append( "c.relname='" + table + "'" );
+
+    return s;
+}
+
+
 void ShowCounts::execute()
 {
     if ( d->state == 0 ) {
@@ -38,19 +55,23 @@ void ShowCounts::execute()
 
         database();
         d->state = 1;
-        d->query =
-            new Query( "select "
-                       "(select count(*) from users)::int as users,"
-                       "(select count(*) from mailboxes where"
-                       " deleted='f')::int as mailboxes,"
-                       "(select reltuples from pg_class where"
-                       " relname='messages')::int as messages,"
-                       "(select reltuples from pg_class where"
-                       " relname='deleted_messages')::int as dm,"
-                       "(select reltuples from pg_class where"
-                       " relname='bodyparts')::int as bodyparts,"
-                       "(select reltuples from pg_class where"
-                       " relname='addresses')::int as addresses", this );
+
+        String s( Configuration::text( Configuration::DbSchema ) );
+
+        d->query = new Query(
+            "select "
+            "(select count(*) from users)::int as users,"
+            "(select count(*) from mailboxes where deleted='f')::int"
+            " as mailboxes,"
+            "(" + tuples( s, "messages" ) + ")::int as messages,"
+            "(" + tuples( s, "bodyparts" ) + ")::int as bodyparts,"
+            "(" + tuples( s, "addresses" ) + ")::int as addresses,"
+            "(" + tuples( s, "deleted_messages" ) + ")::int as dm",
+            this
+        );
+
+        if ( !s.isEmpty() )
+            d->query->bind( 1, s );
         d->query->execute();
     }
 
