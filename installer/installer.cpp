@@ -116,8 +116,10 @@ int main( int ac, char *av[] )
     dbsocket = 0;
     dbpgpass = 0;
     dbaddress = 0;
+
     dbname = new String( DBNAME );
-    Allocator::addEternal( dbname, "DBNAME" );
+    dbschema = new String( DBSCHEMA );
+
     dbuser = new String( AOXUSER );
     Allocator::addEternal( dbuser, "AOXUSER" );
     dbpass = new String( DBPASS );
@@ -126,8 +128,6 @@ int main( int ac, char *av[] )
     Allocator::addEternal( dbowner, "DBOWNER" );
     dbownerpass = new String( DBOWNERPASS );
     Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
-
-    dbschema = new String( DBSCHEMA );
 
     av++;
     while ( ac-- > 1 ) {
@@ -144,7 +144,7 @@ int main( int ac, char *av[] )
             report = true;
         }
         else if ( s == "-g" || s == "-u" || s == "-p" || s == "-a" ||
-                  s == "-s" || s == "-S" )
+                  s == "-s" || s == "-d" || s == "-S" )
         {
             if ( ac == 1 )
                 error( s + " specified with no argument." );
@@ -158,6 +158,8 @@ int main( int ac, char *av[] )
                 dbaddress = new String( *av++ );
             else if ( s == "-s" )
                 dbsocket = new String( *av++ );
+            else if ( s == "-d" )
+                dbname = new String( *av++ );
             else if ( s == "-S" )
                 dbschema = new String( *av++ );
             ac--;
@@ -188,6 +190,7 @@ int main( int ac, char *av[] )
     if ( dbaddress )
         Allocator::addEternal( dbaddress, "DBADDRESS" );
 
+    Allocator::addEternal( dbname, "DBNAME" );
     Allocator::addEternal( dbschema, "DBSCHEMA" );
 
     Allocator::addEternal( new StderrLogger( "installer", verbosity ),
@@ -245,7 +248,7 @@ void help()
         "  Synopsis:\n\n"
         "    installer [-n] [-q]\n"
         "    installer [-g group] [-u user] [-p postgres] [-s socket]\n"
-        "              [-a address] [-t port] [-S schema]\n\n"
+        "              [-a address] [-t port] [-d dbname] [-S schema]\n\n"
         "  This program does the following:\n\n"
         "    - Creates a Unix group named %s, and a user named %s.\n"
         "    - Creates Postgres users named %s and %s.\n"
@@ -274,13 +277,15 @@ void help()
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The \"-t port\" flag allows you to specify a different port\n"
         "  for the Postgres server. The default is 5432.\n\n"
+        "  The \"-d dbname\" flag allows you to specify a database name to\n"
+        "  use. The default is '%s'.\n\n"
         "  The \"-S schema\" flag allows you to specify a schema in the\n"
         "  database where objects are installed. The default is to assume\n"
         "  that objects live in the public schema.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
         AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
         dbowner->cstr(), dbuser->cstr(),
-        AOXGROUP, AOXUSER, DBADDRESS
+        AOXGROUP, AOXUSER, DBADDRESS, DBNAME
     );
     exit( 0 );
 }
@@ -556,11 +561,13 @@ void configure()
 {
     Entropy::setup();
 
-    if ( Configuration::present( Configuration::DbName ) ) {
-        *dbname = Configuration::text( Configuration::DbName );
-        if ( verbosity )
-            printf( "Using db-name from the configuration: %s\n",
-                    dbname->cstr() );
+    if ( *dbname == DBNAME ) {
+        if ( Configuration::present( Configuration::DbName ) ) {
+            *dbname = Configuration::text( Configuration::DbName );
+            if ( verbosity )
+                printf( "Using db-name from the configuration: %s\n",
+                        dbname->cstr() );
+        }
     }
 
     if ( *dbschema == DBSCHEMA ) {
