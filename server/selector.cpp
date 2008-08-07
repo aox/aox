@@ -14,6 +14,7 @@
 #include "dbsignal.h"
 #include "field.h"
 #include "user.h"
+#include "configuration.h"
 
 #include <time.h> // whereAge() calls time()
 
@@ -28,10 +29,18 @@ class TuningDetector
 public:
     TuningDetector(): q( 0 ) {
         ::tsearchAvailable = false;
-        q = new Query( "select indexdef from pg_indexes where "
-                       "tablename='bodyparts' and "
-                       "indexdef ilike '% USING gin(to_ts%'",
-                       this );
+
+        String s( "select indexdef from pg_indexes where "
+                  "indexdef ilike '% USING gin(to_ts%' and "
+                  "tablename='bodyparts'" );
+
+        String schema( Configuration::text( Configuration::DbSchema ) );
+        if ( !schema.isEmpty() )
+            s.append( " and schemaname=$1" );
+
+        q = new Query( s, this );
+        if ( !schema.isEmpty() )
+            q->bind( 1, schema );
         q->execute();
     }
     void execute() {

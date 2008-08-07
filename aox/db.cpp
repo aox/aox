@@ -321,10 +321,13 @@ void TuneDatabase::execute()
                    "Supported: mostly-writing, mostly-reading and "
                    "advanced-reading" );
         database( true );
+
         d->t = new Transaction( this );
-        String q = "select indexdef from pg_indexes where ";
-        uint i = 0;
         d->find = new Query( "", this );
+
+        String q = "select indexdef from pg_indexes where (";
+
+        uint i = 0;
         while ( tunableIndices[i].name ) {
             if ( i )
                 q.append( " or " );
@@ -333,6 +336,16 @@ void TuneDatabase::execute()
             d->find->bind( i+1, tunableIndices[i].definition );
             i++;
         }
+
+        q.append( ")" );
+
+        String schema( Configuration::text( Configuration::DbSchema ) );
+        if ( !schema.isEmpty() ) {
+            q.append( " and schemaname=$" + fn( i+1 ) );
+            d->find->bind( i+1, schema );
+            i++;
+        }
+
         d->find->setString( q );
         d->t->enqueue( d->find );
         d->t->execute();
