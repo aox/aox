@@ -30,26 +30,26 @@
 #include <termios.h>
 
 
-uid_t postgres;
+uid_t postgres = 0;
 class Dispatcher * d;
 bool report = false;
 bool silent = false;
 uint verbosity = 0;
 
-String * db;
-String * dbname;
-String * dbsocket;
-String * dbaddress;
-String * dbuser;
-String * dbpass;
-String * dbowner;
-String * dbownerpass;
-String * dbpgpass;
-String * dbschema;
+String * db = 0;
+String * dbname = 0;
+String * dbsocket = 0;
+String * dbaddress = 0;
+String * dbuser = 0;
+String * dbpass = 0;
+String * dbowner = 0;
+String * dbownerpass = 0;
+String * dbpgpass = 0;
+String * dbschema = 0;
 
 bool privateSchema = false;
 
-uint dbport = 5432;
+uint dbport = 0;
 bool askPass = false;
 
 int todo = 0;
@@ -111,24 +111,6 @@ int main( int ac, char *av[] )
     AOXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
-    db = 0;
-    postgres = 0;
-    dbsocket = 0;
-    dbpgpass = 0;
-    dbaddress = 0;
-
-    dbname = new String( DBNAME );
-    dbschema = new String( DBSCHEMA );
-
-    dbuser = new String( AOXUSER );
-    Allocator::addEternal( dbuser, "AOXUSER" );
-    dbpass = new String( DBPASS );
-    Allocator::addEternal( dbpass, "DBPASS" );
-    dbowner = new String( DBOWNER );
-    Allocator::addEternal( dbowner, "DBOWNER" );
-    dbownerpass = new String( DBOWNERPASS );
-    Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
-
     av++;
     while ( ac-- > 1 ) {
         String s( *av++ );
@@ -148,20 +130,31 @@ int main( int ac, char *av[] )
         {
             if ( ac == 1 )
                 error( s + " specified with no argument." );
-            if ( s == "-g" )
+
+            if ( s == "-g" ) {
                 AOXGROUP = *av++;
-            else if ( s == "-u" )
+            }
+            else if ( s == "-u" ) {
                 AOXUSER = *av++;
-            else if ( s == "-p" )
+                dbuser = new String( AOXUSER );
+            }
+            else if ( s == "-p" ) {
                 PGUSER = *av++;
-            else if ( s == "-a" )
+            }
+            else if ( s == "-a" ) {
                 dbaddress = new String( *av++ );
-            else if ( s == "-s" )
+            }
+            else if ( s == "-s" ) {
                 dbsocket = new String( *av++ );
-            else if ( s == "-d" )
+                Allocator::addEternal( dbsocket, "DBSOCKET" );
+            }
+            else if ( s == "-d" ) {
                 dbname = new String( *av++ );
-            else if ( s == "-S" )
+            }
+            else if ( s == "-S" ) {
                 dbschema = new String( *av++ );
+            }
+
             ac--;
         }
         else if ( s == "-t" ) {
@@ -184,14 +177,6 @@ int main( int ac, char *av[] )
             error( "Unrecognised argument: " + s.quoted() );
         }
     }
-
-    if ( dbsocket )
-        Allocator::addEternal( dbsocket, "DBSOCKET" );
-    if ( dbaddress )
-        Allocator::addEternal( dbaddress, "DBADDRESS" );
-
-    Allocator::addEternal( dbname, "DBNAME" );
-    Allocator::addEternal( dbschema, "DBSCHEMA" );
 
     Allocator::addEternal( new StderrLogger( "installer", verbosity ),
                            "log object" );
@@ -217,9 +202,6 @@ int main( int ac, char *av[] )
     Configuration::read( super, true );
 
     configure();
-
-    if ( *dbschema != "public" )
-        ::privateSchema = true;
 
     findPostgres();
 
@@ -561,51 +543,77 @@ void configure()
 {
     Entropy::setup();
 
-    if ( *dbname == DBNAME ) {
+    if ( !dbname ) {
+        String t( DBNAME );
+
         if ( Configuration::present( Configuration::DbName ) ) {
-            *dbname = Configuration::text( Configuration::DbName );
+            t = Configuration::text( Configuration::DbName );
             if ( verbosity )
                 printf( "Using db-name from the configuration: %s\n",
                         dbname->cstr() );
         }
-    }
 
-    if ( *dbschema == DBSCHEMA ) {
+        dbname = new String( t );
+    }
+    Allocator::addEternal( dbname, "DBNAME" );
+
+    if ( !dbschema ) {
+        String t( DBSCHEMA );
+
         if ( Configuration::present( Configuration::DbSchema ) ) {
-            *dbschema = Configuration::text( Configuration::DbSchema );
+            t = Configuration::text( Configuration::DbSchema );
             if ( verbosity )
                 printf( "Using db-schema from the configuration: %s\n",
                         dbschema->cstr() );
         }
+
+        dbschema = new String( t );
     }
+    Allocator::addEternal( dbschema, "DBSCHEMA" );
+
+    if ( *dbschema != "public" )
+        ::privateSchema = true;
 
     if ( !dbaddress ) {
+        String t( DBADDRESS );
+
         if ( Configuration::present( Configuration::DbAddress ) ) {
-            dbaddress =
-                new String( Configuration::text( Configuration::DbAddress ) );
+            t = Configuration::text( Configuration::DbAddress );
             if ( verbosity )
                 printf( "Using db-address from the configuration: %s\n",
                         dbaddress->cstr() );
         }
-        else {
-            dbaddress = new String( DBADDRESS );
+
+        dbaddress = new String( t );
+    }
+    Allocator::addEternal( dbaddress, "DBADDRESS" );
+
+    if ( dbport == 0 ) {
+        if ( Configuration::present( Configuration::DbPort ) ) {
+            dbport = Configuration::scalar( Configuration::DbPort );
+            if ( verbosity )
+                printf( "Using db-port from the configuration: %d\n", dbport );
         }
-        Allocator::addEternal( dbaddress, "DBADDRESS" );
+        else {
+            dbport = 5432;
+        }
     }
 
-    if ( Configuration::present( Configuration::DbPort ) ) {
-        dbport = Configuration::scalar( Configuration::DbPort );
-        if ( verbosity )
-            printf( "Using db-port from the configuration: %d\n", dbport );
-    }
+    if ( !dbuser ) {
+        String t( AOXUSER );
 
-    if ( Configuration::present( Configuration::DbUser ) ) {
-        *dbuser = Configuration::text( Configuration::DbUser );
-        if ( verbosity )
-            printf( "Using db-user from the configuration: %s\n",
-                    dbuser->cstr() );
-    }
+        if ( Configuration::present( Configuration::DbUser ) ) {
+            t = Configuration::text( Configuration::DbUser );
+            if ( verbosity )
+                printf( "Using db-user from the configuration: %s\n",
+                        dbuser->cstr() );
+        }
 
+        dbuser = new String( t );
+    }
+    Allocator::addEternal( dbuser, "AOXUSER" );
+
+    dbpass = new String( DBPASS );
     if ( Configuration::present( Configuration::DbPassword ) ) {
         *dbpass = Configuration::text( Configuration::DbPassword );
         if ( verbosity )
@@ -619,14 +627,18 @@ void configure()
         }
         dbpass->append( p );
     }
+    Allocator::addEternal( dbpass, "DBPASS" );
 
+    dbowner = new String( DBOWNER );
     if ( Configuration::present( Configuration::DbOwner ) ) {
         *dbowner = Configuration::text( Configuration::DbOwner );
         if ( verbosity )
             printf( "Using db-owner from the configuration: %s\n",
                     dbowner->cstr() );
     }
+    Allocator::addEternal( dbowner, "DBOWNER" );
 
+    dbownerpass = new String( DBOWNERPASS );
     if ( Configuration::present( Configuration::DbOwnerPassword ) ) {
         *dbownerpass = Configuration::text( Configuration::DbOwnerPassword );
         if ( verbosity )
@@ -640,6 +652,7 @@ void configure()
         }
         dbownerpass->append( p );
     }
+    Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
 }
 
 
