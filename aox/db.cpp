@@ -212,9 +212,9 @@ void GrantPrivileges::execute()
 
         q = 0;
         if ( commit )
-            t->rollback();
-        else
             t->commit();
+        else
+            t->rollback();
     }
 
     if ( !t->done() )
