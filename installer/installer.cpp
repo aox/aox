@@ -761,6 +761,7 @@ public:
     Query * u;
     Query * w;
     Query * ssa;
+    Query * ssp;
     Transaction * t;
     bool databaseExists;
     bool namespaceExists;
@@ -770,7 +771,7 @@ public:
 
     Dispatcher()
         : state( CheckVersion ),
-          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), t( 0 ),
+          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), ssp( 0 ), t( 0 ),
           databaseExists( false ), namespaceExists( false ),
           mailstoreExists( false ), failed( false )
     {}
@@ -1634,8 +1635,13 @@ void createSchema()
         String s( "select tablename::text from pg_catalog.pg_tables "
                   "where tablename=$1" );
 
-        if ( dbschema )
+        if ( dbschema ) {
+            d->ssp = new Query( "set search_path to " +
+                                dbschema->quoted( '\'' ), d );
+            d->ssp->execute();
+
             s.append( " and schemaname=$2" );
+        }
 
         d->q = new Query( s, d );
         d->q->bind( 1, "mailstore" );
@@ -1645,7 +1651,8 @@ void createSchema()
     }
 
     if ( !d->u ) {
-        if ( !d->ssa->done() || !d->q->done() )
+        if ( !d->ssa->done() || ( d->ssp && !d->ssp->done() ) ||
+             !d->q->done() )
             return;
 
         String s;
@@ -1655,6 +1662,11 @@ void createSchema()
             q = d->ssa;
             s.append( "authenticate as user " );
             s.append( dbowner->quoted( '\'' ) );
+        }
+        else if ( d->ssp && d->ssp->failed() ) {
+            q = d->ssp;
+            s.append( "set search_path to " );
+            s.append( dbschema->quoted( '\'' ) );
         }
         else if ( d->q->failed() ) {
             q = d->q;
