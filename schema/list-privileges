@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+my $table;
+open(F, "schema/schema.pg") || die "schema.pg: $!\n";
+while ( <F> ) {
+    chomp;
+    if ( /^create table (.*?) \(/ ) {
+        $table = $1;
+    }
+    elsif ( /^ *-- Grant: (\w+(?:\s*,\s*\w+)*)$/ ) {
+        local $" = ", ";
+
+        my %p = map { $_ => 1 } split /\s*,\s*/, $1;
+        my @p = map { exists $p{$_} ? "true" : "false" }
+                    qw(select insert update delete);
+
+        print " "x4, qq#{ "$table", @p },\n#;
+        $table = "";
+    }
+    elsif ( /^\);$/ && $table ) {
+        print " "x4, qq#{ "$table", true, false, false, false },\n#;
+    }
+}
