@@ -31,6 +31,7 @@ public:
           quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
           uidnext( 0 ), nextmodseq( 0 ), granter( 0 )
     {
+        schema = Configuration::text( Configuration::DbSchema );
         dbuser = Configuration::text( Configuration::DbUser ).quoted();
     }
 
@@ -46,6 +47,7 @@ public:
     bool commit;
     String version;
     String dbuser;
+    String schema;
 
     // The following state variables are needed by stepTo72().
 
