@@ -804,6 +804,8 @@ void connectToDb( const String & dbname )
     Configuration::add( "db-address = " + db->quoted() );
     if ( !db->startsWith( "/" ) )
         Configuration::add( "db-port = " + fn( dbport ) );
+    if ( dbschema )
+        Configuration::add( "db-schema = " + dbschema->quoted() );
 
     String pass;
     if ( dbpgpass )
