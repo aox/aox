@@ -68,6 +68,7 @@ public:
     enum Text {
         Db, // must be first, see addressVariables()
         DbName,
+        DbSchema,
         DbOwner,
         DbOwnerPassword,
         DbUser,

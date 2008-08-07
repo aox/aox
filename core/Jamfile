@@ -31,6 +31,7 @@ ObjectDefines configuration.cpp :
      AOXGROUP='\"$(AOXGROUP)\"'
      DBOWNER='\"$(DBOWNER)\"'
      DBNAME='\"$(DBNAME)\"'
+     DBSCHEMA='\"$(DBSCHEMA)\"'
      VERSION='\"$(VERSION)\"' ;
 
 # make sure configuration.o is rebuilt when the settings change. a bit hacky.

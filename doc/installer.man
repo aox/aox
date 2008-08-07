@@ -100,19 +100,10 @@ default is 5432. (This value is used only if the server address does
 not refer to a Unix socket.)
 .IP "-S schema"
 Allows you to specify a schema where the Archiveopteryx database objects
-will be installed, and which will be used as the default
-.I search_path
-for the new database users. If this is not specified, everything is
-installed into the
+will be installed. If this is not specified, objects are installed into
+the
 .I public
 schema.
-.IP
-Note: If you have an existing installation and re-run the installer with
-a different
-.I -S schema
-argument, the database objects will be reinstalled, and the old database
-objects will be obscured because of the altered
-.IR search_path .
 .IP
 Please do not use
 .I -S

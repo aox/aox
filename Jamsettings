@@ -110,18 +110,23 @@ DBADDRESS ?= 127.0.0.1 ;
 #
 # Notes:
 #
-# - DBOWNER must own the DBNAME database.
+# - DBOWNER must own the DBNAME database or the DBSCHEMA schema.
+# - It is safe to leave DBSCHEMA unset; database objects will then be
+#   installed in the default public schema.
 # - Because Postgres likes to use ident authentication, we use AOXUSER
 #   as both Unix user and unprivileged database user.
 # - The installer will generate a password for both users, so you don't
 #   have to set one here unless you want to use an existing user.
 #
-# These settings correspond to the db-name, db-owner, db-owner-password,
-# and db-password variables in archiveopteryx.conf. The value of db-user
-# is derived from AOXUSER (but you can specify a different username when
-# you run the installer).
+# These settings provide default values for the db-name, db-schema,
+# db-owner, db-owner-password, and db-password configuration variables
+# in archiveopteryx.conf. The value of db-user is derived from AOXUSER.
 #
+# (You can override these values when you run the installer.)
+#
+
 DBNAME ?= archiveopteryx ;
+DBSCHEMA ?= "" ;
 DBOWNER ?= aoxsuper ;
 DBOWNERPASS ?= "" ;
 DBPASS ?= "" ;

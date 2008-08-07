@@ -115,7 +115,6 @@ int main( int ac, char *av[] )
     dbsocket = 0;
     dbpgpass = 0;
     dbaddress = 0;
-    dbschema = 0;
     dbname = new String( DBNAME );
     Allocator::addEternal( dbname, "DBNAME" );
     dbuser = new String( AOXUSER );
@@ -126,6 +125,11 @@ int main( int ac, char *av[] )
     Allocator::addEternal( dbowner, "DBOWNER" );
     dbownerpass = new String( DBOWNERPASS );
     Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
+
+    dbschema = 0;
+    String * s = new String( DBSCHEMA );
+    if ( !s->isEmpty() )
+        dbschema = s;
 
     av++;
     while ( ac-- > 1 ) {
@@ -269,8 +273,9 @@ void help()
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The \"-t port\" flag allows you to specify a different port\n"
         "  for the Postgres server. The default is 5432.\n\n"
-        "  The \"-S schema\" flag allows you to specify a default\n"
-        "  search_path for the new database user.\n\n"
+        "  The \"-S schema\" flag allows you to specify a schema in the\n"
+        "  database where objects are installed. The default is to assume\n"
+        "  that objects live in the public schema.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
         AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
         dbowner->cstr(), dbuser->cstr(),
@@ -555,6 +560,19 @@ void configure()
         if ( verbosity )
             printf( "Using db-name from the configuration: %s\n",
                     dbname->cstr() );
+    }
+
+    if ( !dbschema ) {
+        String schema;
+        if ( Configuration::present( Configuration::DbSchema ) )
+            schema = Configuration::text( Configuration::DbSchema );
+        if ( !schema.isEmpty() ) {
+            dbschema = new String( schema );
+            Allocator::addEternal( dbschema, "DBSCHEMA" );
+            if ( verbosity )
+                printf( "Using db-schema from the configuration: %s\n",
+                        dbschema->cstr() );
+        }
     }
 
     if ( !dbaddress ) {
@@ -1895,9 +1913,17 @@ void configFile()
         dbhost.append( "# " );
     dbhost.append( "db-port = " + fn( dbport ) + "\n" );
 
+    String name( "db-name = " + *dbname + "\n" );
+
+    String schema;
+    if ( dbschema ) {
+        schema.append( "db-schema = " );
+        schema.append( *dbschema );
+        schema.append( "\n" );
+    }
+
     String cfg(
-        dbhost +
-        "db-name = " + *dbname + "\n"
+        dbhost + name + schema +
         "db-user = " + *dbuser + "\n"
         "db-password = " + p + "\n\n"
         "logfile = " LOGFILE "\n"

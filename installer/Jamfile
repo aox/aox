@@ -11,6 +11,7 @@ ObjectDefines installer.cpp :
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
      PSQL='\"$(PSQL)\"'
      DBNAME='\"$(DBNAME)\"'
+     DBSCHEMA='\"$(DBSCHEMA)\"'
      DBOWNER='\"$(DBOWNER)\"'
      DBOWNERPASS='\"$(DBOWNERPASS)\"'
      DBPASS='\"$(DBPASS)\"' ;

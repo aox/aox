@@ -91,6 +91,12 @@ The port number of the database server. The default is
 .IP db-name
 The name of the database to use. The default is
 .IR $DBNAME .
+.IP db-schema
+The name of the schema in the database where the database objects are
+installed. This is empty by default, which means that objects live in
+the the default schema for the database user, which is usually named
+.IR public .
+It is safe to ignore this setting.
 .IP db-user
 The name of the unprivileged Postgres user that the servers ordinarily
 use. The default is
