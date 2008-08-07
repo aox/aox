@@ -1838,7 +1838,7 @@ void grantPrivileges()
     if ( d->t->failed() ) {
         d->error( "Couldn't grant privileges to user " +
                   dbuser->quoted( '\'' ) + " (PostgreSQL error: " +
-                  d->t->error() + ").\nPlease run \"aox grant"
+                  d->t->error() + ").\nPlease run \"aox grant "
                   "privileges -n\" by hand.\n" );
         return;
     }
