@@ -1647,7 +1647,7 @@ void permissions()
          ( !( p && g ) ||
            ( st.st_uid != p->pw_uid ||
              (gid_t)st.st_gid != (gid_t)g->gr_gid ||
-             st.st_mode & S_IRWXU != S_IRWXU ) ) )
+             ( st.st_mode & S_IRWXU ) != S_IRWXU ) ) )
     {
         if ( report ) {
             todo++;

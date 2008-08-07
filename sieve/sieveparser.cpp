@@ -202,7 +202,7 @@ UString SieveParser::multiLine()
 {
     String r;
     require( "text:" );
-    while ( ok() && nextChar() == ' ' || nextChar() == '\t' )
+    while ( ok() && ( nextChar() == ' ' || nextChar() == '\t' ) )
         step();
     if ( !present( "\r\n" ) )
         hashComment();

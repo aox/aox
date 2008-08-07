@@ -266,7 +266,7 @@ void Selector::simplify()
 
     if ( d->a == Larger ) {
         if ( d->n == 0 || // > 0 matches everything
-             d->n == 1 && d->f == Modseq ) // all messages have modseq >= 1
+             ( d->n == 1 && d->f == Modseq ) ) // all messages have modseq >= 1
             d->a = All;
     }
     else if ( d->a == Contains && d->f == Uid ) {
