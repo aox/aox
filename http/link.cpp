@@ -700,7 +700,7 @@ void Link::parse( const String & s )
         d->webpage = trailingSlash( this );
     }
     else if ( h.count() == 1 && p->atEnd() &&
-              ( i == 5 || h.first()->components[i] == Void ) )
+              ( i >= 5 || h.first()->components[i] == Void ) )
     {
         WebPage *(*handler)( Link * ) = h.first()->handler;
         if ( d->suffix != None ) {
