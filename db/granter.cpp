@@ -29,14 +29,8 @@ public:
     Transaction * t;
     Query * q;
 
-    StringList rs;
-    StringList ri;
-    StringList ru;
-    StringList rd;
-    StringList gs;
-    StringList gi;
-    StringList gu;
-    StringList gd;
+    StringList rs, ri, ru, rd;
+    StringList gs, gi, gu, gd;
 };
 
 
