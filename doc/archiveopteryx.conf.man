@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH archiveopteryx.conf 5 2008-06-10 aox.org "Archiveopteryx Documentation"
+.TH archiveopteryx.conf 5 2008-08-18 aox.org "Archiveopteryx Documentation"
 .SH NAME
 archiveopteryx.conf - configuration file for Archiveopteryx.
 .SH SYNOPSIS
@@ -247,7 +247,7 @@ listens for admin requests.
 .I 2051
 by default.
 .SS "User Authentication"
-http://www.archiveopteryx.org/sasl describes SASL and
+http://www.archiveopteryx.org/2.11sasl describes SASL and
 authentication in more detail.
 .IP allow-plaintext-passwords
 controls whether the servers permit plaintext passwords, and how such
@@ -561,7 +561,7 @@ to mailboxes via the web. The default value is
 .IP webmail-css-url
 points to the style sheet used for webmail and archive pages.
 The default value is
-.IR http://www.archiveopteryx.org/webmail/default.css .
+.IR http://www.archiveopteryx.org/2.11webmail/default.css .
 By using a different URL you can change the appearance of the pages
 completely.
 .IP webmail-js-url
@@ -573,7 +573,7 @@ to change the behaviour of the webmail and archive pages.
 .IP favicon-url
 is the URL of the favicon displayed for your site by many web browsers.
 The default value is
-.IR http://www.archiveopteryx.org/favicon.ico ,
+.IR http://www.archiveopteryx.org/2.11favicon.ico ,
 but you can change it to anything. When the browser requests the favicon, 
 .BR archiveopteryx (8)
 responds with a redirect to this URL.
@@ -690,8 +690,8 @@ hostname=stuff.nonsense.example.com # also a comment
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 2.10, released 2008-06-10,
-http://www.archiveopteryx.org/2.06
+This man page covers Archiveopteryx version 2.11, released 2008-08-18,
+http://www.archiveopteryx.org/2.11
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR deliver (8),

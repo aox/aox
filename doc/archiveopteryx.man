@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH archiveopteryx 7 2008-06-10 aox.org "Archiveopteryx Documentation"
+.TH archiveopteryx 7 2008-08-18 aox.org "Archiveopteryx Documentation"
 .SH NAME
 Overview of Archiveopteryx.
 .SH SYNOPSIS
@@ -15,7 +15,7 @@ access to mail stored in a relational database (PostgreSQL).
 .SH "GETTING STARTED"
 The following five steps should suffice to install Archiveopteryx. If they
 don't, or if anything is unclear, more detailed instructions are
-available at http://www.archiveopteryx.org/installation
+available at http://www.archiveopteryx.org/2.11installation
 .SS "1. Install Archiveopteryx"
 Usually, this is as simple as:
 .IP
@@ -25,7 +25,7 @@ Usually, this is as simple as:
 .B "portinstall archiveopteryx"
 (on FreeBSD)
 .PP
-http://www.archiveopteryx.org/installation explains what to do in
+http://www.archiveopteryx.org/2.11installation explains what to do in
 other cases.
 .PP
 Use
@@ -61,7 +61,7 @@ The normal way to deliver mail from your MTA into Archiveopteryx is via LMTP.
 By default, Archiveopteryx listens on 127.0.0.1 port 2026.
 .PP
 On aox.org we describe how to configure some common MTAs to work with
-Archiveopteryx. See e.g. http://www.archiveopteryx.org/postfix for
+Archiveopteryx. See e.g. http://www.archiveopteryx.org/2.11postfix for
 .BR postfix (1).
 .SH ARCHITECTURE
 .PP
@@ -167,13 +167,13 @@ recipients is not a problem, because it's stored just once.
 Archiveopteryx is available under two
 licences, namely the OSL 3.0 license and a commercial software license.
 .PP
-The OSL 3.0 (see http://www.archiveopteryx.org/opensource) is a fairly
+The OSL 3.0 (see http://www.archiveopteryx.org/2.11opensource) is a fairly
 restrictive open source license similar to the more well-known GNU
 licenses. It includes a disclaimer of responsibility.
 .PP
 Our commercial license offers more flexibility than the OSL and a full
 warranty. There are also extra services. Contact info@oryx.com for
-more details, or see http://www.archiveopteryx.org/commercial
+more details, or see http://www.archiveopteryx.org/2.11commercial
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
 .IP SBINDIR
@@ -228,8 +228,8 @@ contains a private key and self-signed certificate used by
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 2.10, released 2008-06-10,
-http://www.archiveopteryx.org/2.06
+This man page covers Archiveopteryx version 2.11, released 2008-08-18,
+http://www.archiveopteryx.org/2.11
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
