@@ -86,7 +86,6 @@ void createSuperuser();
 void createDatabase();
 void createLang();
 void createNamespace();
-void setSearchPath();
 void checkOwnership();
 void grantUsage();
 void splitPrivileges();
@@ -747,8 +746,8 @@ void oryxUser()
 enum DbState {
     CheckVersion, CheckEncoding,
     CreateUser, CreateSuperuser, CreateDatabase, CreateLang,
-    CreateNamespace, SetSearchPath, CheckOwnership, GrantUsage,
-    SplitPrivileges, CreateSchema, UpgradeSchema, GrantPrivileges,
+    CreateNamespace, CheckOwnership, GrantUsage, SplitPrivileges,
+    CreateSchema, UpgradeSchema, GrantPrivileges,
     Done
 };
 
@@ -762,7 +761,6 @@ public:
     Query * u;
     Query * w;
     Query * ssa;
-    Query * ssp;
     Transaction * t;
     bool databaseExists;
     bool namespaceExists;
@@ -772,7 +770,7 @@ public:
 
     Dispatcher()
         : state( CheckVersion ),
-          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), ssp( 0 ), t( 0 ),
+          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), t( 0 ),
           databaseExists( false ), namespaceExists( false ),
           mailstoreExists( false ), failed( false )
     {}
@@ -852,10 +850,6 @@ void database()
 
         case CreateNamespace:
             createNamespace();
-            break;
-
-        case SetSearchPath:
-            setSearchPath();
             break;
 
         case CheckOwnership:
@@ -1108,9 +1102,9 @@ void createSuperuser()
 
 
 // If the database does not exist (the common case), we create it, add
-// plpgsql, create a namespace and set the search_path if appropriate,
-// then create the schema and grant privileges. If the database DOES
-// exist, we don't need to create it, but we check everything else.
+// plpgsql, create a namespace (if one is specified), create database
+// objects and grant privileges. If the database DOES exist, we don't
+// need to create it, but we check everything else.
 
 void createDatabase()
 {
@@ -1225,8 +1219,7 @@ void createLang()
 
 
 // If the user specified a schema with -S, we need to check if it
-// exists, create it if it doesn't, and set the default search_path
-// appropriately for both database users.
+// exists and create it if it doesn't.
 //
 // We call our arrangement of database objects a schema (cf. schema.pg),
 // but now we're adding support for Postgres schemata; so there's some
@@ -1303,62 +1296,6 @@ void createNamespace()
                       "re-run the installer." );
             return;
         }
-    }
-
-    d->nextState();
-}
-
-
-void setSearchPath()
-{
-    if ( !dbschema ) {
-        d->nextState();
-        return;
-    }
-
-    // XXX: If -S is given, we unconditionally set the user's
-    // search_path here. We could parse pg_user.useconfig to
-    // check if we really need to do this, but not now.
-
-    String alter( "alter user " + *dbuser + " set "
-                  "search_path=" + dbschema->quoted( '\'' ) );
-    String alter2( "alter user " + *dbowner + " set "
-                   "search_path=" + dbschema->quoted( '\'' ) );
-
-    if ( report ) {
-        todo++;
-        printf( " - Set the default search_path to '%s'.\n"
-                "   As user %s, run:\n\n"
-                "%s -d template1 -qc \"%s\"\n"
-                "%s -d template1 -qc \"%s\"\n\n",
-                dbschema->cstr(), PGUSER, PSQL, alter.cstr(),
-                PSQL, alter2.cstr() );
-        d->nextState();
-        return;
-    }
-
-    if ( !d->q ) {
-        d->q = new Query( alter, d );
-        d->q->execute();
-        d->u = new Query( alter2, d );
-        d->u->execute();
-    }
-
-    if ( !d->q->done() || !d->u->done() )
-        return;
-
-    if ( d->q->failed() ) {
-        d->error( "Couldn't set search_path for user " + dbuser->quoted() +
-                  " to " + dbschema->quoted() + " (" + pgErr( d->u ) + ").\n"
-                  "Please do it by hand and re-run the installer." );
-        return;
-    }
-
-    if ( d->u->failed() ) {
-        d->error( "Couldn't set search_path for user " + dbowner->quoted() +
-                  " to " + dbschema->quoted() + " (" + pgErr( d->u ) + ").\n"
-                  "Please do it by hand and re-run the installer." );
-        return;
     }
 
     d->nextState();
@@ -1678,13 +1615,8 @@ void createSchema()
         String s( "select tablename::text from pg_catalog.pg_tables "
                   "where tablename=$1" );
 
-        if ( dbschema ) {
-            d->ssp = new Query( "set search_path to " +
-                                dbschema->quoted( '\'' ), d );
-            d->ssp->execute();
-
+        if ( dbschema )
             s.append( " and schemaname=$2" );
-        }
 
         d->q = new Query( s, d );
         d->q->bind( 1, "mailstore" );
@@ -1694,8 +1626,7 @@ void createSchema()
     }
 
     if ( !d->u ) {
-        if ( !d->ssa->done() || ( d->ssp && !d->ssp->done() ) ||
-             !d->q->done() )
+        if ( !d->ssa->done() || !d->q->done() )
             return;
 
         String s;
@@ -1705,11 +1636,6 @@ void createSchema()
             q = d->ssa;
             s.append( "authenticate as user " );
             s.append( dbowner->quoted( '\'' ) );
-        }
-        else if ( d->ssp && d->ssp->failed() ) {
-            q = d->ssp;
-            s.append( "set search_path to " );
-            s.append( dbschema->quoted( '\'' ) );
         }
         else if ( d->q->failed() ) {
             q = d->q;

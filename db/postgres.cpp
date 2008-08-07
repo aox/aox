@@ -238,6 +238,11 @@ void Postgres::react( Event e )
             PgStartup msg;
             msg.setOption( "user", d->user );
             msg.setOption( "database", name() );
+
+            String schema( Configuration::text( Configuration::DbSchema ) );
+            if ( !schema.isEmpty() )
+                msg.setOption( "search_path", schema );
+
             msg.enqueue( writeBuffer() );
 
             d->active = true;
