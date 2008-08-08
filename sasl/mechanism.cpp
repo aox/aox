@@ -111,13 +111,12 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
         return 0;
 
     if ( !allowed( m->type(), connection->hasTls() ) ) {
-        m->log( "SASL mechanism not allowed by policy: " + s );
+        m->log( "SASL mechanism not allowed by policy: " + s, Log::Debug );
         return 0;
     }
 
     Scope x( m->d->l );
     m->d->connection = connection;
-    m->log( "SASL mechanism: " + s );
     return m;
 }
 
@@ -179,13 +178,13 @@ void SaslMechanism::setState( State newState )
         log( "Verifying client response", Log::Debug );
         break;
     case Succeeded:
-        log( "Authenticated: " + d->login.utf8().quoted() );
+        log( "Authenticated: " + d->login.utf8().quoted(), Log::Debug );
         break;
     case Failed:
         if ( d->connection )
             d->connection->recordAuthenticationFailure();
-        log( "Authentication failed. Attempted login: " +
-             d->login.utf8().quoted() );
+        log( "Authentication failed for: " + d->login.utf8().quoted(),
+             Log::Debug );
         break;
     case Terminated:
         log( "Authentication terminated", Log::Debug );
@@ -263,7 +262,8 @@ void SaslMechanism::readResponse( const String * r )
     }
     else if ( r ) {
         if ( state() != Failed )
-            log( "SASL negotiation failed due to unexpected SASL response." );
+            log( "SASL negotiation failed due to unexpected response.",
+                 Log::Debug );
         setState( Failed );
         execute();
     }

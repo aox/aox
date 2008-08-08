@@ -390,7 +390,8 @@ bool IMAP::idle() const
 
 void IMAP::setUser( User * user, const String & mechanism )
 {
-    log( "Authenticated as user " + user->login().ascii(), Log::Significant );
+    log( "Authenticated as " + user->login().ascii() + " using " +
+         mechanism, Log::Significant );
     SaslConnection::setUser( user, mechanism );
     setState( Authenticated );
 }
