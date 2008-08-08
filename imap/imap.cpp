@@ -301,9 +301,11 @@ void IMAP::addCommand()
         return;
     }
 
-    Scope x( cmd->log() );
-    ::log( "First line: " + p->firstLine(), Log::Debug );
     d->commands.append( cmd );
+
+    Scope x( cmd->log() );
+    if ( name.lower() != "login" ) // Don't put passwords in the log.
+        ::log( "First line: " + p->firstLine(), Log::Debug );
 }
 
 
