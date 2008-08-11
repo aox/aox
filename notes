@@ -436,6 +436,15 @@ Memory use for common operations
   again... just a bunch of checks. Ignore output.
 
 
+RFC 2554
+
+  Have to look closer at that, I hadn't grasped the MAIL FROM AUTH
+  issue and there may be more.
+
+  addParams( "auth", ... ) in MAIL FROM needs consideration. Not
+  important.
+
+
 imapd/handlers/acl.cpp
 
   Different tasks, some shared code, same file. Separate this out into
