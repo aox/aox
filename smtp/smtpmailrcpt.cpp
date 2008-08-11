@@ -126,7 +126,7 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
     }
     else if ( name == "auth" ) {
         // RFC 2554 page 4
-        log( "Responsible sender is supposedly " + value() );
+        log( "Responsible sender is supposedly " + value );
     }
     else {
         respond( 501,
