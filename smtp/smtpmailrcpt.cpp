@@ -124,6 +124,10 @@ void SmtpMailFrom::addParam( const String & name, const String & value )
             respond( 501, "Cannot deliver mail larger than 100MB" );
         // a configurable limit would be nice, not? perhaps even two?
     }
+    else if ( name == "auth" ) {
+        // RFC 2554 page 4
+        log( "Responsible sender is supposedly " + value );
+    }
     else {
         respond( 501,
                  "Unknown ESMTP parameter: " + name +
