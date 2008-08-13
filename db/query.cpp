@@ -554,6 +554,12 @@ void Query::notify()
         d->owner = 0; // so we can't get close to a segfault again
         if ( e == Invariant ) {
             setError( "Invariant failed while processing Query::notify()" );
+
+            // Analogous to EventLoop::dispatch, we try to close the
+            // connection that threw the exception. The problem is,
+            // we don't know which one did. So we try to find one
+            // whose Log object is an ancestor of the query's.
+
             List<Connection>::Iterator i( EventLoop::global()->connections() );
             while ( i ) {
                 Connection * c = i;
@@ -561,7 +567,7 @@ void Query::notify()
                 Log * l = Scope::current()->log();
                 while ( l && l != c->log() )
                     l = l->parent();
-                if ( l ) {
+                if ( c->type() != Connection::Listener && c->valid() && l ) {
                     Scope x( l );
                     ::log( "Invariant failed; Closing connection abruptly",
                            Log::Error );
