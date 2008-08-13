@@ -563,7 +563,7 @@ void Query::notify()
                     l = l->parent();
                 if ( l ) {
                     Scope x( l );
-                    ::log( "Invarient failed; Closing connection abruptly",
+                    ::log( "Invariant failed; Closing connection abruptly",
                            Log::Error );
                     EventLoop::global()->removeConnection( c );
                 }
