@@ -558,7 +558,8 @@ void Query::notify()
             // Analogous to EventLoop::dispatch, we try to close the
             // connection that threw the exception. The problem is,
             // we don't know which one did. So we try to find one
-            // whose Log object is an ancestor of the query's.
+            // whose Log object is an ancestor of this query's
+            // owner's Log object.
 
             List<Connection>::Iterator i( EventLoop::global()->connections() );
             while ( i ) {
