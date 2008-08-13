@@ -186,7 +186,6 @@ void EventLoop::start()
                 if ( c->timeout() > 0 && c->timeout() < timeout )
                     timeout = c->timeout();
             }
-
         }
 
         // Figure out whether any timers need attention soon
