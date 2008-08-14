@@ -477,7 +477,6 @@ String Injector::error() const
 void Injector::next()
 {
     d->state = (State)(d->state + 1);
-    log( "Advancing to state " + fn( d->state ), Log::Debug );
 }
 
 
