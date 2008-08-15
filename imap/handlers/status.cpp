@@ -6,7 +6,6 @@
 #include "imap.h"
 #include "query.h"
 #include "mailbox.h"
-#include "session.h"
 #include "imapsession.h"
 
 
@@ -18,14 +17,16 @@ public:
         messages( false ), uidnext( false ), uidvalidity( false ),
         recent( false ), unseen( false ),
         modseq( false ),
-        mailbox( 0 ), session( 0 ), unseenCount( 0 ),
-        highestModseq( 0 )
+        mailbox( 0 ), 
+        unseenCount( 0 ), highestModseq( 0 ),
+        messageCount( 0 ), recentCount( 0 )
         {}
     bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
-    Session * session;
     Query * unseenCount;
     Query * highestModseq;
+    Query * messageCount;
+    Query * recentCount;
 };
 
 
@@ -94,29 +95,21 @@ void Status::execute()
     if ( state() != Executing )
         return;
 
-    if ( !d->session &&
-         ( d->messages ||
-           d->recent ||
-           ( d->mailbox->view() && d->uidnext ) ) )
-    {
-        if ( imap()->session() &&
-             imap()->session()->mailbox() == d->mailbox )
-            d->session = imap()->session();
-        else
-            d->session = new Session( d->mailbox, true );
-        d->session->refresh( this );
-    }
+    Session * session = imap()->session();
+    Mailbox * current = 0;
+    if ( session )
+        current = session->mailbox();
 
     if ( d->unseen && !d->unseenCount ) {
-        // UNSEEN is a bit of a special case. we have to issue our own
-        // select and make the database reveal the number.
-        d->unseenCount
-            = new Query( "select count(*)::int as unseen "
-                         "from mailbox_messages mm "
-                         "left join flags f on "
-                         "(mm.uid=f.uid and mm.mailbox=f.mailbox and "
-                         " f.flag=$2) "
-                         "where mm.mailbox=$1 and f.flag is null", this );
+        // UNSEEN is horribly slow. I don't think this is fixable
+        // really.
+        d->unseenCount 
+            = new Query( "select "
+                         "(select count(*)::int from mailbox_messages"
+                         " where mailbox=$1)-"
+                         "(select count(*)::int from flags"
+                         " where mailbox=$1 and flag=$2) "
+                         "as unseen", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
 
         uint sid = Flag::id( "\\seen" );
@@ -129,6 +122,34 @@ void Status::execute()
             d->unseen = false;
             d->unseenCount = false;
         }
+    }
+
+    if ( !d->recent ) {
+        // nothing doing
+    }
+    else if ( d->mailbox == current ) {
+        // we'll pick it up from the session
+    }
+    else if ( !d->recentCount ) {
+        d->recentCount = new Query( "select uidnext-first_recent as recent "
+                                    "from mailboxes "
+                                    "where id=$1", this );
+        d->recentCount->bind( 1, d->mailbox->id() );
+        d->recentCount->execute();
+    }
+
+    if ( !d->messages ) {
+        // we don't need to collect
+    }
+    else if ( d->mailbox == current ) {
+        // we'll pick it up
+    }
+    else if ( d->messages && !d->messageCount ) {
+        d->messageCount 
+            = new Query( "select count(*)::int as messages "
+                         "from mailbox_messages where mailbox=$1", this );
+        d->messageCount->bind( 1, d->mailbox->id() );
+        d->messageCount->execute();
     }
 
     if ( d->modseq && !d->highestModseq ) {
@@ -144,28 +165,40 @@ void Status::execute()
     // second part: wait until we have the information
     if ( !permitted() )
         return;
-    if ( d->session && !d->session->initialised() )
-        return;
     if ( d->unseenCount && !d->unseenCount->done() )
         return;
     if ( d->highestModseq && !d->highestModseq->done() )
+        return;
+    if ( d->messageCount && !d->messageCount->done() )
+        return;
+    if ( d->recentCount && !d->recentCount->done() )
         return;
 
     // third part: return the payload.
     StringList status;
 
-    if ( d->session && d->session != imap()->session() )
-        d->session->clearUnannounced();
-
-    if ( d->messages )
-        status.append( "MESSAGES " + fn( d->session->count() ) );
-    if ( d->recent )
-        status.append( "RECENT " + fn( d->session->recent().count() ) );
-    if ( d->uidnext )
+    if ( d->messageCount ) {
+        Row * r = d->messageCount->nextRow();
+        if ( r )
+            status.append( "MESSAGES " + fn( r->getInt( "messages" ) ) );
+    }
+    else if ( d->messages && d->mailbox == current ) {
+        status.append( "MESSAGES " + fn( session->messages().count() ) );
+    }
+    if ( d->recentCount ) {
+        Row * r = d->recentCount->nextRow();
+        if ( r )
+            status.append( "RECENT " + fn( r->getInt( "messages" ) ) );
+    }
+    else if ( d->recent ) {
+        status.append( "RECENT " + fn( session->recent().count() ) );
+    }
+    if ( d->uidnext ) {
         status.append( "UIDNEXT " + fn( d->mailbox->uidnext() ) );
-    if ( d->uidvalidity )
-        status.append( "UIDVALIDITY " +
-                       fn( d->mailbox->uidvalidity() ) );
+    }
+    if ( d->uidvalidity ) {
+        status.append( "UIDVALIDITY " + fn( d->mailbox->uidvalidity() ) );
+    }
     if ( d->unseen ) {
         Row * r = d->unseenCount->nextRow();
         if ( r )
@@ -176,9 +209,6 @@ void Status::execute()
         if ( r )
             status.append( "HIGHESTMODSEQ " + fn( r->getBigint( "hm" ) ) );
     }
-
-    if ( d->session )
-        d->session->mailbox()->removeSession( d->session );
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
              " (" + status.join( " " ) + ")" );
