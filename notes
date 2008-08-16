@@ -545,6 +545,12 @@ Autoresponder
      reply-to is present).
 
 
+Received fields
+
+  We tend to say "with esmtp", and we probably could be more lucid
+  about submission users. Authenticated user etc.
+
+
 Message arrival tag
 
   Once annotate is done, we want a tag, ie. a magic annotation which
