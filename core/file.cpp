@@ -16,6 +16,11 @@
 // open
 #include <fcntl.h>
 
+// we want large file support if available, but don't care
+#if !defined(O_LARGEFILE)
+#define O_LARGEFILE 0
+#endif
+
 
 extern "C" void *memcpy(void *, const void *, uint);
 
@@ -108,16 +113,20 @@ void File::init( const String &name, File::Access a,
 
     switch ( a ) {
     case Read:
-        d->fd = ::open( chn.cstr(), O_RDONLY );
+        d->fd = ::open( chn.cstr(),
+                        O_RDONLY );
         break;
     case Write:
-        d->fd = ::open( chn.cstr(), O_WRONLY|O_CREAT|O_TRUNC, mode );
+        d->fd = ::open( chn.cstr(),
+                        O_WRONLY|O_CREAT|O_TRUNC|O_LARGEFILE, mode );
         break;
     case Append:
-        d->fd = ::open( chn.cstr(), O_APPEND|O_WRONLY|O_CREAT, mode );
+        d->fd = ::open( chn.cstr(),
+                        O_APPEND|O_WRONLY|O_CREAT|O_LARGEFILE, mode );
         break;
     case ExclusiveWrite:
-        d->fd = ::open( chn.cstr(), O_WRONLY|O_CREAT|O_EXCL, mode );
+        d->fd = ::open( chn.cstr(),
+                        O_WRONLY|O_CREAT|O_EXCL|O_LARGEFILE, mode );
         break;
     }
 
