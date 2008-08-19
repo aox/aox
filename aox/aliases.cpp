@@ -178,7 +178,7 @@ void DeleteAlias::execute()
 
         database( true );
         Address * a = p.addresses()->first();
-        q = new Query( "delete from aliases where address=(select id "
+        q = new Query( "delete from aliases where address=any(select id "
                        "from addresses where lower(localpart)=$1 and "
                        "lower(domain)=$2 and name='')", this );
         q->bind( 1, a->localpart().lower() );
