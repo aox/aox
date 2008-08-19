@@ -15,12 +15,15 @@
 #include "field.h"
 #include "user.h"
 #include "configuration.h"
+#include "allocator.h"
 
 #include <time.h> // whereAge() calls time()
 
 
 static bool tsearchAvailable = false;
 static bool retunerCreated = false;
+
+static String * tsconfig;
 
 
 class TuningDetector
@@ -31,8 +34,8 @@ public:
         ::tsearchAvailable = false;
         q = new Query(
             "select indexdef from pg_indexes where "
-            "indexdef ilike '% USING gin(to_ts%' and "
-            "tablename='bodyparts' and schemaname=$1",
+            "indexdef ilike '% USING gin (to_tsvector%'"
+            "and tablename='bodyparts' and schemaname=$1",
             this
         );
         q->bind( 1, Configuration::text( Configuration::DbSchema ) );
@@ -42,6 +45,21 @@ public:
         if ( !q->done() )
             return;
         ::tsearchAvailable = q->hasResults();
+        Row * r = q->nextRow();
+        if ( r ) {
+            String def( r->getString( "indexdef" ) );
+
+            uint n = 12 + def.find( "to_tsvector(" );
+            def = def.mid( n, def.length()-n-1 ).section( ",", 1 );
+
+            if ( def[0] == '\'' && def.endsWith( "::regconfig" ) ) {
+                tsconfig = new String( def );
+                Allocator::addEternal( tsconfig, "tsearch configuration" );
+            }
+            else {
+                ::tsearchAvailable = false;
+            }
+        }
     }
     Query * q;
 };
@@ -879,6 +897,17 @@ String Selector::whereHeader()
 }
 
 
+static String tsindexdef( const String & col )
+{
+    String s( "to_tsvector(" );
+    s.append( *tsconfig );
+    s.append( ", " );
+    s.append( col );
+    s.append( ")" );
+    return s;
+}
+
+
 /*! This implements searches on (text) bodyparts. We cannot and will
     not do "full-text" search on the contents of e.g. jpeg
     pictures. (For some formats we search on the text part, because
@@ -900,8 +929,9 @@ String Selector::whereBody()
     root()->d->query->bind( bt, q( d->s16 ) );
 
     if ( ::tsearchAvailable )
-        s.append( "(bp.text @@ plainto_tsquery($" + fn( bt ) + ") and"
-                  " bp.text ilike " + matchAny( bt ) + ")" );
+        s.append( "(" + tsindexdef( "bp.text" ) +
+                  " @@ plainto_tsquery($" + fn( bt ) + ")"
+                  " and bp.text ilike " + matchAny( bt ) + ")" );
     else
         s.append( "bp.text ilike " + matchAny( bt ) );
 
