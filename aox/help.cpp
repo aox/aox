@@ -320,7 +320,7 @@ void Help::execute()
             "    Mode mostly-reading tunes the database for message reading,\n"
             "    but without full-text indexing."
             "    Mode advanced-writing tunes the database for fast message\n"
-            "    searching and reading, at the cost of injection speed."
+            "    searching and reading, at the cost of injection speed.\n"
         );
     }
     else if ( a == "setacl" ) {
