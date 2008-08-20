@@ -316,10 +316,10 @@ void Help::execute()
             "    There are three modes: mostly-writing, mostly-reading and\n"
             "    advanced-reading."
             "    Mode mostly-writing tunes the database for fast message\n"
-            "    injection at the most of reading."
+            "    injection at the cost of reading."
             "    Mode mostly-reading tunes the database for message reading,\n"
             "    but without full-text indexing."
-            "    Mode advanced-writing tunes the database for fast message\n"
+            "    Mode advanced-reading tunes the database for fast message\n"
             "    searching and reading, at the cost of injection speed.\n"
         );
     }
