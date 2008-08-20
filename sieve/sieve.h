@@ -29,6 +29,7 @@ public:
     void setSender( Address * );
     void addRecipient( Address *, Mailbox *, User *, SieveScript * );
     void addRecipient( Address *, EventHandler * );
+    void addSubmission( Address * );
     void setMessage( Message *, Date * );
 
     Address * sender() const;

@@ -167,9 +167,7 @@ void SmtpMailFrom::execute()
         else if ( d->address->type() == Address::Normal )
             copy = d->address;
         if ( copy ) {
-            SieveScript * discard = new SieveScript;
-            discard->parse( "discard;" );
-            server()->sieve()->addRecipient( copy, 0, 0, discard );
+            server()->sieve()->addSubmission( copy );
             respond( 0, "Will send a copy to " + copy->toString() );
         }
     }
@@ -228,14 +226,10 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
 void SmtpRcptTo::execute()
 {
     if ( !d->added ) {
-        if ( server()->dialect() == SMTP::Submit ) {
-            SieveScript * discard = new SieveScript;
-            discard->parse( "discard;" );
-            server()->sieve()->addRecipient( d->address, 0, 0, discard );
-        }
-        else {
+        if ( server()->dialect() == SMTP::Submit )
+            server()->sieve()->addSubmission( d->address );
+        else
             server()->sieve()->addRecipient( d->address, this );
-        }
         d->added = true;
     }
 

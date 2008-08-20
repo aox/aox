@@ -78,6 +78,7 @@ public:
     Address * sender;
     List<Recipient> recipients;
     Recipient * currentRecipient;
+    List<Address> submissions;
     Message * message;
     Date * arrivalTime;
     uint state;
@@ -95,20 +96,22 @@ SieveData::Recipient * SieveData::recipient( Address * a )
     bool same = false;
     String dom = a->domain().lower();
     String lp = a->localpart().lower();
-    do {
+    while ( it && !same ) {
         if ( it->address->domain().lower() == dom ) {
             if ( it->mailbox ) {
+                // local addresses are case-insensitive
                 if ( it->address->localpart().lower() == lp )
                     same = true;
             }
             else {
+                // others probably aren't
                 if ( it->address->localpart() == a->localpart() )
                     same = true;
             }
         }
         if ( !same )
             ++it;
-    } while ( it && !same );
+    }
     return it;
 }
 
@@ -335,6 +338,16 @@ void Sieve::execute()
 void Sieve::setSender( Address * address )
 {
     d->sender = address;
+}
+
+
+/*! Records that the message should be forwarded via the smarthost to
+    \a address.
+*/
+
+void Sieve::addSubmission( Address * address )
+{
+    d->submissions.append( address );
 }
 
 
@@ -1487,16 +1500,28 @@ List<Address> * Sieve::forwarded() const
         }
         ++i;
     }
+    List<Address>::Iterator a( d->submissions );
+    while ( a ) {
+        String s = a->lpdomain();
+        if ( !uniq.contains( s ) ) {
+            uniq.append( s );
+            r->append( a );
+        }
+        ++a;
+    }
     return r;
 }
 
 
 /*! Returns true if this message has been rejected by (all of its)
-    recipient(s), and false if it's been accepted by at least one.
+    recipient(s), and false if it has no recipients or has been
+    accepted by at least one.
 */
 
 bool Sieve::rejected() const
 {
+    if ( d->recipients.isEmpty() )
+        return false;
     List<SieveData::Recipient>::Iterator i( d->recipients );
     while ( i ) {
         bool r = false;
