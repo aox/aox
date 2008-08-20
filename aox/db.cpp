@@ -330,13 +330,13 @@ void TuneDatabase::execute()
 
         d->find->bind( 1, Configuration::text( Configuration::DbSchema ) );
 
-        uint i = 1;
+        uint i = 0;
         while ( tunableIndices[i].name ) {
             if ( i )
                 q.append( " or " );
             q.append( "indexdef=$" );
-            q.append( fn( i+1 ) );
-            d->find->bind( i+1, tunableIndices[i].definition );
+            q.append( fn( i+2 ) );
+            d->find->bind( i+2, tunableIndices[i].definition );
             i++;
         }
 
