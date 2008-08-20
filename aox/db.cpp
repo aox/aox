@@ -271,6 +271,11 @@ struct TunableIndex {
       "CREATE INDEX hf_msgid ON header_fields "
       "USING btree (value) WHERE (field = 13)",
       false, true, true },
+    { "b_text", "bodyparts",
+      "CREATE INDEX b_text ON bodyparts "
+      "USING gin (to_tsvector('simple'::regconfig, text)) "
+      "WHERE (length(text) < (1024 * 1024))",
+      false, false, true },
     { 0, 0, 0, false, false, false }
 };
 
@@ -288,9 +293,9 @@ public:
     Query * find;
     bool set;
 };
-      
-      
-      
+
+
+
 
 
 
@@ -387,7 +392,7 @@ void TuneDatabase::execute()
             else if ( present.find( tunableIndices[i].name ) && !wanted ) {
                 q = new Query( String("drop index ") + tunableIndices[i].name,
                                0 );
-                printf( "Dropping index %s.\n", 
+                printf( "Dropping index %s.\n",
                         tunableIndices[i].name );
             }
             if ( q )
