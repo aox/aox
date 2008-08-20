@@ -414,7 +414,10 @@ If the sender already receives a copy of the message,
 .I submit-copy-to-sender
 has no effect. Senders will not receive two copies. The copy is
 always sent to the user who sends the message, even if the From and/or
-Return-Path is different.
+Return-Path is different. The sender's copy will be delivered through
+the configured
+.IR smarthost ,
+as with any other outgoing message.
 .IP smtp-submit-address
 specifies the address where
 .BR archiveopteryx (8)
