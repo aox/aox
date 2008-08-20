@@ -5,6 +5,7 @@
 #include "query.h"
 #include "schema.h"
 #include "granter.h"
+#include "postgres.h"
 #include "recipient.h"
 #include "transaction.h"
 #include "configuration.h"
@@ -382,8 +383,15 @@ void TuneDatabase::execute()
             }
             Query * q = 0;
             if ( wanted && !present.find( tunableIndices[i].name ) ) {
-                q = new Query( tunableIndices[i].definition, 0 );
-                printf( "Executing %s;\n", tunableIndices[i].definition );
+                if ( String( tunableIndices[i].name ) == "b_text" &&
+                     Postgres::version() < 80300 ) {
+                    printf( "Error: "
+                            "Full-text indexing needs PostgreSQL 8.3\n" );
+                }
+                else {
+                    q = new Query( tunableIndices[i].definition, 0 );
+                    printf( "Executing %s;\n", tunableIndices[i].definition );
+                }
             }
             else if ( present.find( tunableIndices[i].name ) && !wanted ) {
                 q = new Query( String("drop index ") + tunableIndices[i].name,
