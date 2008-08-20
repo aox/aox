@@ -292,7 +292,7 @@ Query * DeliveryAgent::fetchRecipients( uint delivery )
             "extract(epoch from last_attempt)::integer as last_attempt "
             "from delivery_recipients dr join addresses "
             "on (recipient=addresses.id) "
-            "where delivery=$1 order by dr.id", this
+            "where delivery=$1 order by domain, localpart", this
         );
     q->bind( 1, delivery );
     return q;
@@ -394,7 +394,7 @@ void DeliveryAgent::logDelivery( DSN * dsn )
         ++it;
     }
 
-    log( "Sending to " + l.join( "," ) +
+    log( "Sending to " + l.join( ", " ) +
          " (" + fn( active ) + " of " + fn( total ) +
          " recipients)" );
 }
