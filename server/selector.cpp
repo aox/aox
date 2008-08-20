@@ -897,12 +897,16 @@ String Selector::whereHeader()
 }
 
 
-static String tsindexdef( const String & col )
+static String matchTsvector( const String & col, uint n )
 {
-    String s( "to_tsvector(" );
+    String s( "length(" );
+    s.append( col );
+    s.append( ")<1024*1024 and to_tsvector(" );
     s.append( *tsconfig );
     s.append( ", " );
     s.append( col );
+    s.append( ") @@ plainto_tsquery($" );
+    s.append( fn( n ) );
     s.append( ")" );
     return s;
 }
@@ -929,9 +933,8 @@ String Selector::whereBody()
     root()->d->query->bind( bt, q( d->s16 ) );
 
     if ( ::tsearchAvailable )
-        s.append( "(" + tsindexdef( "bp.text" ) +
-                  " @@ plainto_tsquery($" + fn( bt ) + ")"
-                  " and bp.text ilike " + matchAny( bt ) + ")" );
+        s.append( "(" + matchTsvector( "bp.text", bt ) + " "
+                  "and bp.text ilike " + matchAny( bt ) + ")" );
     else
         s.append( "bp.text ilike " + matchAny( bt ) );
 
