@@ -295,10 +295,6 @@ public:
 };
 
 
-
-
-
-
 /*! \class TuneDatabase db.h
     This class handles the "aox tune database" command.
 */
@@ -339,9 +335,9 @@ void TuneDatabase::execute()
         while ( tunableIndices[i].name ) {
             if ( i )
                 q.append( " or " );
-            q.append( "indexdef=$" );
+            q.append( "indexname=$" );
             q.append( fn( i+2 ) );
-            d->find->bind( i+2, tunableIndices[i].definition );
+            d->find->bind( i+2, tunableIndices[i].name );
             i++;
         }
 
