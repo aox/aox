@@ -327,7 +327,7 @@ void TuneDatabase::execute()
         d->t = new Transaction( this );
         d->find = new Query( "", this );
 
-        String q( "select indexdef from pg_indexes where "
+        String q( "select indexname from pg_indexes where "
                   "schemaname=$1 and (" );
 
         d->find->bind( 1, Configuration::text( Configuration::DbSchema ) );
@@ -359,10 +359,10 @@ void TuneDatabase::execute()
         StringList present;
         while ( d->find->hasResults() ) {
             Row * r = d->find->nextRow();
-            String definition = r->getString( "indexdef" );
+            String name = r->getString( "indexname" );
             uint i = 0;
             while ( tunableIndices[i].name &&
-                    definition != tunableIndices[i].definition )
+                    name != tunableIndices[i].name )
                 i++;
             if ( tunableIndices[i].name )
                 present.append( tunableIndices[i].name );
