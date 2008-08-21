@@ -325,26 +325,19 @@ void TuneDatabase::execute()
         database( true );
 
         d->t = new Transaction( this );
-        d->find = new Query( "", this );
 
-        String q( "select indexname from pg_indexes where "
-                  "schemaname=$1 and (" );
-
-        d->find->bind( 1, Configuration::text( Configuration::DbSchema ) );
-
+        StringList indexnames;
         uint i = 0;
         while ( tunableIndices[i].name ) {
-            if ( i )
-                q.append( " or " );
-            q.append( "indexname=$" );
-            q.append( fn( i+2 ) );
-            d->find->bind( i+2, tunableIndices[i].name );
-            i++;
+            indexnames.append( tunableIndices[i].name );
+            ++i;
         }
+        d->find = new Query( "select indexname::text from pg_indexes where "
+                             "schemaname=$1 and indexname=any($2::text[])",
+                             this );
+        d->find->bind( 1, Configuration::text( Configuration::DbSchema ) );
+        d->find->bind( 2, indexnames );
 
-        q.append( ")" );
-
-        d->find->setString( q );
         d->t->enqueue( d->find );
         d->t->execute();
     }
