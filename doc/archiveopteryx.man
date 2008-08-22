@@ -15,7 +15,7 @@ access to mail stored in a relational database (PostgreSQL).
 .SH "GETTING STARTED"
 The following five steps should suffice to install Archiveopteryx. If they
 don't, or if anything is unclear, more detailed instructions are
-available at http://www.archiveopteryx.org/3.0.0installation
+available at http://www.archiveopteryx.org/installation
 .SS "1. Install Archiveopteryx"
 Usually, this is as simple as:
 .IP
@@ -25,7 +25,7 @@ Usually, this is as simple as:
 .B "portinstall archiveopteryx"
 (on FreeBSD)
 .PP
-http://www.archiveopteryx.org/3.0.0installation explains what to do in
+http://www.archiveopteryx.org/installation explains what to do in
 other cases.
 .PP
 Use
@@ -61,7 +61,7 @@ The normal way to deliver mail from your MTA into Archiveopteryx is via LMTP.
 By default, Archiveopteryx listens on 127.0.0.1 port 2026.
 .PP
 On aox.org we describe how to configure some common MTAs to work with
-Archiveopteryx. See e.g. http://www.archiveopteryx.org/3.0.0postfix for
+Archiveopteryx. See e.g. http://www.archiveopteryx.org/postfix for
 .BR postfix (1).
 .SH ARCHITECTURE
 .PP
@@ -167,13 +167,13 @@ recipients is not a problem, because it's stored just once.
 Archiveopteryx is available under two
 licences, namely the OSL 3.0 license and a commercial software license.
 .PP
-The OSL 3.0 (see http://www.archiveopteryx.org/3.0.0opensource) is a fairly
+The OSL 3.0 (see http://www.archiveopteryx.org/opensource) is a fairly
 restrictive open source license similar to the more well-known GNU
 licenses. It includes a disclaimer of responsibility.
 .PP
 Our commercial license offers more flexibility than the OSL and a full
 warranty. There are also extra services. Contact info@oryx.com for
-more details, or see http://www.archiveopteryx.org/3.0.0commercial
+more details, or see http://www.archiveopteryx.org/commercial
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
 .IP SBINDIR
