@@ -470,11 +470,12 @@ void Query::notify()
                 Log * l = Scope::current()->log();
                 while ( l && l != c->log() )
                     l = l->parent();
-                if ( c->type() != Connection::Listener && c->valid() && l ) {
+                if ( c->type() != Connection::Listener && l ) {
                     Scope x( l );
                     ::log( "Invariant failed; Closing connection abruptly",
                            Log::Error );
                     EventLoop::global()->removeConnection( c );
+                    c->close();
                 }
             }
         }
