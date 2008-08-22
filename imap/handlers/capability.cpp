@@ -38,6 +38,7 @@
     RFC 4959: SASL-IR
     RFC 4978: COMPRESS=DEFLATE
     RFC 5032: WITHIN
+    RFC 5258: LISTEXT
 
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
@@ -90,13 +91,13 @@ String Capability::capabilities( IMAP * i, bool all )
     c.append( "ID" );
     if ( all || login )
         c.append( "IDLE" );
-    //c.append( "X-DRAFT-W13-LISTEXT" ); when we've gone over the RFC, ok?
+    c.append( "LISTEXT" );
     c.append( "LITERAL+" );
     if ( ( all || !login ) &&
          !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
         c.append( "LOGINDISABLED" );
     if ( all || login ) {
-        c.append( "MULTIAPPEND" );        
+        c.append( "MULTIAPPEND" );
         c.append( "NAMESPACE" );
     }
     if ( all || login )
