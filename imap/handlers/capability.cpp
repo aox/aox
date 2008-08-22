@@ -38,6 +38,7 @@
     RFC 4959: SASL-IR
     RFC 4978: COMPRESS=DEFLATE
     RFC 5032: WITHIN
+    RFC 5256: SORT
     RFC 5258: LISTEXT
 
     We also announce a number of draft capabilities, if the

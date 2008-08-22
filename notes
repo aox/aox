@@ -258,16 +258,6 @@ The \Answered flag
   Want to implement? Not sure. I reviewed it some time ago.
 
 
-5256
-
-  Just mention (sort)
-
-
-5258
-
-  Listext needs verification.
-
-
 5255
 
   Imapext-i18n. What?
@@ -276,6 +266,25 @@ The \Answered flag
 5257
 
   No changes should be necessary
+
+
+Other RFCs
+
+  I think we need to consider these RFCs, or at least mention them
+  somewhere in the documentation so we know we've considered them:
+
+  1049 (should be handled fine, so check and mention)
+  1893 (ditto)
+  1894 (older version of something we handle, right?)
+  934  (?)
+  1641 (old mime?)
+  1731 (old imap?)
+  2044 (?)
+  2068 (HTTP? surely we do that)
+  821
+  974
+  2244
+  2222
 
 
 Cleartext passwords
