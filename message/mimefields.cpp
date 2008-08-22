@@ -413,6 +413,7 @@ void ContentType::parse( const String &s )
                 t = "text";
                 st = "plain";
                 p.restore( x );
+                mustGuess = true;
             }
             else {
                 addParameter( "original-type", t + "/" + st );
@@ -437,10 +438,6 @@ void ContentType::parse( const String &s )
                 else if ( fn == "htm" || fn == "html" ) {
                     t = "text";
                     st = "html";
-                }
-                else {
-                    t = "application";
-                    st = "octet-stream";
                 }
             }
         }
