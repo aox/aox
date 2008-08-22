@@ -292,7 +292,7 @@ void IMAP::addCommand()
     d->commands.append( cmd );
 
     Scope x( cmd->log() );
-    if ( name.lower() != "login" ) // Don't put passwords in the log.
+    if ( name.lower() != "login" && name.lower() != "authenticate" )
         ::log( "First line: " + p->firstLine(), Log::Debug );
 }
 
