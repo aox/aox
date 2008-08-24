@@ -14,11 +14,12 @@ class DeleteData
     : public Garbage
 {
 public:
-    DeleteData(): m( 0 ), messages( 0 ), t( 0 ) {}
+    DeleteData(): m( 0 ), messages( 0 ), t( 0 ), first( true ) {}
 
     Mailbox * m;
     Query * messages;
     Transaction * t;
+    bool first;
 };
 
 
@@ -57,17 +58,34 @@ void Delete::execute()
     if ( state() != Executing )
         return;
 
-    if ( d->m->sessions() ) {
-        error( No, "Mailbox is in use" );
-        setRespTextCode( "INUSE" );
-    }
-    else if ( d->m->synthetic() ) {
-        error( No,
-               d->m->name().ascii() + " does not really exist anyway" );
-        setRespTextCode( "NONEXISTENT" );
+    if ( d->first ) {
+        d->first = false;
+
+        if ( d->m->sessions() ) {
+            error( No, "Mailbox is in use" );
+            setRespTextCode( "INUSE" );
+        }
+        else if ( d->m->synthetic() ) {
+            error( No,
+                   d->m->name().ascii() + " does not really exist anyway" );
+            setRespTextCode( "NONEXISTENT" );
+        }
+
+        if ( !ok() )
+            return;
+
+        // We should really require DeleteMessages and Expunge only if
+        // we know the mailbox isn't empty; but we'll know that inside
+        // the transaction, and permitted() won't let us clean that up
+        // if we don't have permission. So it'll have to wait until we
+        // query permissions ourselves.
+
+        requireRight( d->m, Permissions::DeleteMailbox );
+        requireRight( d->m, Permissions::DeleteMessages );
+        requireRight( d->m, Permissions::Expunge );
     }
 
-    if ( !ok() )
+    if ( !permitted() )
         return;
 
     if ( !d->t ) {
@@ -87,19 +105,12 @@ void Delete::execute()
         d->messages->bind( 1, d->m->id() );
         d->t->enqueue( d->messages );
         d->t->execute();
-
-        requireRight( d->m, Permissions::DeleteMailbox );
-        requireRight( d->m, Permissions::DeleteMessages );
-        requireRight( d->m, Permissions::Expunge );
     }
 
-    if ( !permitted() )
-        return;
-
-    if ( d->messages && !d->messages->done() )
-        return;
-
     if ( d->messages ) {
+        if ( !d->messages->done() )
+            return;
+
         int64 messages = 0;
 
         Row * r = d->messages->nextRow();
@@ -113,13 +124,9 @@ void Delete::execute()
                    " messages exist" );
         d->messages = 0;
 
-        if ( !ok() )
-            return;
-
-        if ( d->m->remove( d->t ) == 0 ) {
+        if ( ok() && d->m->remove( d->t ) == 0 )
             error( No, "Cannot delete mailbox " + d->m->name().ascii() );
-            return;
-        }
+
         d->t->commit();
     }
 
