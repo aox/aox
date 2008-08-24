@@ -1261,3 +1261,54 @@ Fetching headers is too slow, really.
   take advantage of the ordering and keep state across rows. Right now
   we're locating the Message/Bodypart/Header from first principles for
   each row.
+
+
+Axel, /Mime problem
+
+  The problem is that the VCF file contains literal NUL bytes, but is
+  sent with a text/* MIME type, and we're mangling the NULs during
+  charset conversion (or so I guess, given that they become '?'s
+  instead).
+
+
+Various alias-related feature requests
+
+  e.g. Benjamin wants empty localparts, a number of people want multiple
+  targets (Axel, Ingo).
+
+
+String::wrapped() vs. canonical 13
+
+  Arnt commented out some code which shouldn't have made i/13 fail, but
+  did for him. Must investigate.
+
+
+Axel, /Unable to fetch 12MB mail
+
+  Some sort of loop in the fetcher? I didn't look.
+
+
+Axel, /2.10 status
+
+  Mail.app occasionally shows a panel, saying "SSL error: Identity of
+  mail3.chaos1.de can't be verified, hit "continue"or "abort".
+
+
+Axel, /Duplicated mails
+
+  There have been occasional reports of duplicated messages. Nothing
+  reproduceable that I've seen so far.
+
+
+Simon, /Segfault when accessing web-archive
+
+  Not looked yet, but probably the same as the one on archives. Will fix
+  with the other known bugs.
+
+
+Mike Geiger's Thunderbird problems
+
+  TLS breakage (not yet reproduced) and copy-to-sent hanging.
+
+
+
