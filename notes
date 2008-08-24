@@ -346,6 +346,7 @@ Sieve
 
   We still haven't done imapflags.
 
+
 Reject or ereject may want MDNs instead of DSNs
 
   Our sieve code generates DSNs if it can't generate protocol-level
@@ -674,12 +675,6 @@ We should be able to use a read-only local database mirror.
   read-only database mirror. all queries that update are sent to
   db-address, all selects are sent to db-mirror. db-mirror defaults to
   db-address.
-
-
-Add Maildir support to the migrator.
-
-  Currently works, with two exceptions: Submaildirs don't work, and
-  courier's extended flags don't work.
 
 
 We should test multipart/signed and multipart/encrypted support.
