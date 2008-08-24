@@ -157,6 +157,13 @@ void SmtpCommand::execute()
 
 /*! Creates an SmtpCommand object to handle \a command within the
     context of \a server. \a server cannot be null.
+
+    This function rejects commands issued while the server is shutting
+    down. If a command passes this hurdle, it will be executed to
+    completion, even if the server starts shutting down. This implies
+    that if we're receiving a message body when the shutdown command
+    is given, we will receive and inject the message, as RFC 1047
+    suggests.
 */
 
 SmtpCommand * SmtpCommand::create( SMTP * server, const String & command )
