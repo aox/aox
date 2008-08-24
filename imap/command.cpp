@@ -1375,7 +1375,7 @@ ImapSession * Command::session()
     if ( s )
         return s;
 
-    log( "Mailbox session needed, but none present" );
+    log( "Mailbox session needed, but none present", Log::Error );
     die( Invariant );
     return 0;
 }
