@@ -309,6 +309,7 @@ void Transaction::notify()
             setError( 0,
                       "Invariant failed "
                       "while processing Transaction::notify()" );
+            rollback();
             List<Connection>::Iterator i( EventLoop::global()->connections() );
             while ( i ) {
                 Connection * c = i;
