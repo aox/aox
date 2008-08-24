@@ -118,7 +118,7 @@ Postgres::Postgres()
          ", user " + d->user + ")", Log::Debug );
 
     if ( Connection::state() != Invalid ) {
-        setTimeoutAfter( 1000 );
+        setTimeoutAfter( 10 );
         EventLoop::global()->addConnection( this );
     }
     addHandle( this );
@@ -291,8 +291,6 @@ void Postgres::react( Event e )
                     Configuration::scalar( Configuration::DbHandleInterval );
                 if ( ::listener == this )
                     interval = interval * 2;
-                if ( interval < 1000 )
-                    interval = 1000;
                 setTimeoutAfter( interval );
             }
         }
