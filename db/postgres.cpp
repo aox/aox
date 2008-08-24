@@ -441,6 +441,8 @@ void Postgres::backendStartup( char type )
 
     case 'K':
         d->keydata = new PgKeyData( readBuffer() );
+        log( "Postgres backend " + fn( connectionNumber() ) +
+             " has pid " + fn( d->keydata->pid() ), Log::Debug );
         break;
 
     default:
