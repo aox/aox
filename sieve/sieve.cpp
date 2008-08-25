@@ -128,6 +128,9 @@ SieveData::Recipient * SieveData::recipient( Address * a )
     Once addRecipient() has been called, evaluate() may be, and can
     give results. It's unlikely (but possible) that results may be
     available before setMessage() has been called.
+
+    Sieve extensions are implemented in SieveProduction and Sieve. The
+    list is in SieveProduction::supportedExtensions();
 */
 
 

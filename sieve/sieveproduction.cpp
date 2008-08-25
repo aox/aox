@@ -175,6 +175,14 @@ String SieveProduction::error() const
 
 /*! Returns a list of all supported sieve extensions. The list is
     allocated for the purpose, so the caller can modify it at will.
+
+    The extensions are: BODY from RFC 5173. DATE from RFC
+    5260. EREJECT isn't an RFC yet. RFC 5228 defines several optional
+    capabilieies, we implement all (I think). RELATIONAL is from RFC
+    5231, SUBADDRESS is from RFC 5233 and VACATION from RFC 5230.
+
+    RFC 5260 also defines INDEX, which we don't implement, it doesn't
+    seem useful.
 */
 
 StringList * SieveProduction::supportedExtensions()
