@@ -632,11 +632,8 @@ bool Store::removeFlags( bool opposite )
     while ( i ) {
         uint id = Flag::id( *i );
         ++i;
-        if ( id ) {
-            MessageSet * s = d->present->find( id );
-            if ( !s->isEmpty() )
-                flags.append( new uint( id ) );
-        }
+        if ( id && d->present->contains( id ) )
+            flags.append( new uint( id ) );
     }
     if ( flags.isEmpty() && !opposite )
         return false;
