@@ -222,7 +222,7 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
                  "(mm.mailbox=sstm.mailbox and mm.uid=sstm.uid) "
                  "left join threads sst on "
                  "(sstm.thread=sst.id) ",
-                 "sst.subject",
+                 "lower(sst.subject)",
                  c->reverse );
         break;
     case To:
