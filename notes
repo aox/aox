@@ -198,20 +198,10 @@ The \Answered flag
   This would make it easier to force archiving.
 
 
-5173
-
-  5173 is new. I wrote an implementation, need to check that the RFC
-  didn't shift and mention 5173 somewhere.
-
-
-5183
-
-  Want to implement? Not sure. I reviewed it some time ago.
-
-
 5255
 
-  Imapext-i18n. What?
+  We already inplement I18NLEVEL=1, so I advertised that. I18NLEVEL=2
+  doesn't seem very useful. I also don't know how to do that in SQL.
 
 
 5257
