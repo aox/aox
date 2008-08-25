@@ -20,17 +20,12 @@ class GranterData
 {
 public:
     GranterData()
-        : state( 0 ), result( 0 ), t( 0 ), q( 0 )
+        : t( 0 ), q( 0 )
     {}
 
-    int state;
-    Query * result;
     String name;
     Transaction * t;
     Query * q;
-
-    StringList rs, ri, ru, rd;
-    StringList gs, gi, gu, gd;
 };
 
 
@@ -43,179 +38,113 @@ public:
 */
 
 /*! Creates a new Granter to grant permissions to \a name within the
-    Transaction \a t on behalf of \a owner, which will be notified
+    Transaction \a t. The transactions's owner will be notified
     when the Granter is done. */
 
-Granter::Granter( const String & name, Transaction * t,
-                  EventHandler * owner )
+Granter::Granter( const String & name, Transaction * t )
     : d( new GranterData )
 {
-    d->result = new Query( owner );
     d->name = name;
     d->t = t;
 }
 
 
-/*! Returns a pointer to a Query object that can be used to track the
-    progress of this Granter. */
-
-Query * Granter::result()
-{
-    return d->result;
-}
-
-
 void Granter::execute()
 {
-    if ( d->state == 0 ) {
-        String s(
+    if ( !d->q ) {
+        d->q = new Query(
             "select c.relname::text as name, c.relkind::text as kind, "
             "has_table_privilege($1, c.relname, 'select') as can_select, "
             "has_table_privilege($1, c.relname, 'insert') as can_insert, "
             "has_table_privilege($1, c.relname, 'update') as can_update, "
             "has_table_privilege($1, c.relname, 'delete') as can_delete "
             "from pg_class c join pg_namespace n on (c.relnamespace=n.oid) "
-            "where c.relkind in ('r','S') and n.nspname=$2"
-        );
-
-        d->state = 1;
-        d->q = new Query( s, this );
+            "where c.relkind in ('r','S') and n.nspname=$2 order by name",
+            this );
         d->q->bind( 1, d->name );
         d->q->bind( 2, Configuration::text( Configuration::DbSchema ) );
         d->t->enqueue( d->q );
         d->t->execute();
     }
 
-    if ( d->state == 1 ) {
-        if ( !d->q->done() )
-            return;
+    while ( d->q->hasResults() ) {
+        Row * r = d->q->nextRow();
+        String name( r->getString( "name" ) );
+        String kind( r->getString( "kind" ) );
+        bool cs = r->getBoolean( "can_select" );
+        bool ci = r->getBoolean( "can_insert" );
+        bool cu = r->getBoolean( "can_update" );
+        bool cd = r->getBoolean( "can_delete" );
+        StringList grant;
+        StringList revoke;
 
-        if ( d->q->failed() ) {
-            d->state = 42;
-            d->result->setError( d->q->error() );
-            d->result->notify();
-            return;
-        }
+        if ( kind == "r" ) {
+            uint i = 0;
+            while ( privileges[i].name &&
+                    name != privileges[i].name )
+                i++;
 
-        while ( d->q->hasResults() ) {
-            Row * r = d->q->nextRow();
-            String name( r->getString( "name" ) );
-            String kind( r->getString( "kind" ) );
-            bool cs( r->getBoolean( "can_select" ) );
-            bool ci( r->getBoolean( "can_insert" ) );
-            bool cu( r->getBoolean( "can_update" ) );
-            bool cd( r->getBoolean( "can_delete" ) );
-
-            if ( kind == "r" ) {
-                uint i = 0;
-                while ( privileges[i].name &&
-                        name != privileges[i].name )
-                    i++;
-
-                if ( privileges[i].name ) {
-                    struct {
-                        bool has, needs;
-                        StringList * revoke;
-                        StringList * grant;
-                    } l[] = {
-                        { cs, privileges[i].s, &d->rs, &d->gs },
-                        { ci, privileges[i].i, &d->ri, &d->gi },
-                        { cu, privileges[i].u, &d->ru, &d->gu },
-                        { cd, privileges[i].d, &d->rd, &d->gd },
-                    };
-
-                    uint j = 0;
-                    while ( j < 4 ) {
-                        bool has = l[j].has;
-                        bool needs = l[j].needs;
-
-                        if ( has && !needs )
-                            l[j].revoke->append( name );
-                        else if ( needs && !has )
-                            l[j].grant->append( name );
-
-                        j++;
-                    }
-                }
-            }
-            else if ( kind == "S" ) {
-                // We always grant select/usage on all sequences.
-                // (insert/delete are not supported for sequences.)
-                //
-                // XXX: has_table_privilege() doesn't support "usage"
-                // checks, so we actually grant update, not usage. It
-                // is a pity that insert doesn't grant just nextval()
-                // rights on a sequence. Besides, 8.1 doesn't support
-                // usage rights anyway, so we can't do any better.
-
-                if ( !cs )
-                    d->gs.append( name );
-                if ( !cu )
-                    d->gu.append( name );
+            if ( privileges[i].name ) {
+                if ( privileges[i].s && !cs )
+                    grant.append( "select" );
+                if ( privileges[i].i && !ci )
+                    grant.append( "insert" );
+                if ( privileges[i].u && !cu )
+                    grant.append( "update" );
+                if ( privileges[i].d && !cd )
+                    grant.append( "delete" );
+                    
+                if ( !privileges[i].s && cs )
+                    revoke.append( "select" );
+                if ( !privileges[i].i && ci )
+                    revoke.append( "insert" );
+                if ( !privileges[i].u && cu )
+                    revoke.append( "update" );
+                if ( !privileges[i].d && cd )
+                    revoke.append( "delete" );
             }
         }
+        else if ( kind == "S" ) {
+            // We always grant select/usage on all sequences.
+            // (insert/delete are not supported for sequences.)
+            //
+            // XXX: has_table_privilege() doesn't support "usage"
+            // checks, so we actually grant update, not usage. It
+            // is a pity that insert doesn't grant just nextval()
+            // rights on a sequence. Besides, 8.1 doesn't support
+            // usage rights anyway, so we can't do any better.
 
-        d->state = 2;
-    }
-
-    if ( d->state == 2 ) {
-        d->q = 0;
-
-        struct {
-            const char * op;
-            const char * priv;
-            StringList * list;
-        } pl[] = {
-            { "revoke", "select", &d->rs }, { "revoke", "insert", &d->ri },
-            { "revoke", "update", &d->ru }, { "revoke", "delete", &d->rd },
-            { "grant",  "select", &d->gs }, { "grant",  "insert", &d->gi },
-            { "grant",  "update", &d->gu }, { "grant",  "delete", &d->gd }
-        };
-        uint n = sizeof( pl ) / sizeof( pl[0] );
-
-        uint i = 0;
-        while ( i < n ) {
-            if ( !pl[i].list->isEmpty() ) {
-                String s( pl[i].op );
-                s.append( " " );
-                s.append( pl[i].priv );
-                s.append( " on " );
-                s.append( pl[i].list->join( "," ) );
-                s.append( *pl[i].op == 'g' ? " to " : " from " );
-                s.append( d->name.quoted() );
-                d->q = new Query( s, this );
-                d->t->enqueue( d->q );
-            }
-            i++;
+            if ( !cs )
+                grant.append( "select" );
+            if ( !cu )
+                grant.append( "update" );
         }
 
-        if ( d->q ) {
-            d->state = 3;
-            d->t->execute();
-        }
-        else {
-            d->state = 4;
-            d->result->setState( Query::Completed );
-        }
+        if ( !grant.isEmpty() )
+            d->t->enqueue( new Query( "grant " + grant.join( ", " ) +
+                                      " on " + name +
+                                      " to " + d->name.quoted(), 0 ) );
+        if ( !revoke.isEmpty() )
+            d->t->enqueue( new Query( "revoke " + revoke.join( ", " ) +
+                                      " on " + name +
+                                      " from " + d->name.quoted(), 0 ) );
     }
+    if ( !d->q->done() )
+        return;
 
-    if ( d->state == 3 ) {
-        if ( !d->q->done() )
-            return;
+    d->t->execute();
+    d->t->notify();
+}
 
-        if ( d->t->failed() ) {
-            d->state = 42;
-            d->result->setError( d->t->error() );
-            d->result->notify();
-            return;
-        }
 
-        d->result->setState( Query::Completed );
-        d->state = 4;
-    }
+/*! Returns true if this granter has done all it needs to with the
+    Transaction, and false if it may/will send at least one more
+    query.
+*/
 
-    if ( d->state == 4 ) {
-        d->state = 42;
-        d->result->notify();
-    }
+bool Granter::done() const
+{
+    if ( !d || !d->q )
+        return false;
+    return d->q->done();
 }

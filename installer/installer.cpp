@@ -780,6 +780,7 @@ public:
     Query * w;
     Query * ssa;
     Query * ssp;
+    Granter * g;
     Transaction * t;
     bool databaseExists;
     bool namespaceExists;
@@ -789,7 +790,7 @@ public:
 
     Dispatcher()
         : state( CheckVersion ),
-          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), ssp( 0 ), t( 0 ),
+          q( 0 ), u( 0 ), w( 0 ), ssa( 0 ), ssp( 0 ), g( 0 ), t( 0 ),
           databaseExists( false ), namespaceExists( false ),
           mailstoreExists( false ), failed( false )
     {}
@@ -1830,18 +1831,13 @@ void grantPrivileges()
         if ( !silent )
             printf( "Granting database privileges.\n" );
         d->t = new Transaction( d );
-        Granter * s = new Granter( *dbuser, d->t, d );
-        d->q = s->result();
-        s->execute();
+        d->g = new Granter( *dbuser, d->t );
+        d->g->execute();
     }
 
-    if ( d->q ) {
-        if ( !d->q->done() )
-            return;
-
-        d->q = 0;
-        d->t->commit();
-    }
+    if ( !d->g->done() )
+        return;
+    d->t->commit();
 
     if ( !d->t->done() )
         return;

@@ -10,10 +10,10 @@ class Granter
     : public EventHandler
 {
 public:
-    Granter( const String &, class Transaction *, EventHandler * );
+    Granter( const String &, class Transaction * );
 
-    class Query * result();
     void execute();
+    bool done() const;
 
 private:
     class GranterData * d;
