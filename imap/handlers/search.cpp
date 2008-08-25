@@ -65,8 +65,8 @@ public:
     Finds messages matching some criteria (RFC 3501 section 6.4.4)
 
     The entirety of the basic syntax is handled, as well as ESEARCH
-    (RFC 4731 and RFC 4466) and parts of CONDSTORE (RFC 4551). SEARCHM
-    probably will need to be implemented as a subclass of Search.
+    (RFC 4731 and RFC 4466), of CONDSTORE (RFC 4551), ANNOTATE (RFC
+    5257) and WITHIN (RFC 5032).
 
     Searches are first run against the RAM cache, rudimentarily. If
     the comparison is difficult, expensive or unsuccessful, it gives
