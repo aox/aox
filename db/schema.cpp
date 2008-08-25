@@ -239,6 +239,7 @@ void Schema::execute()
 
     if ( d->state == 5 ) {
         if ( !d->granter ) {
+            d->l->log( "Checking/granting privileges.", Log::Significant );
             d->granter = new Granter( d->dbuser.unquoted(), d->t, this );
             d->q = d->granter->result();
             d->granter->execute();
