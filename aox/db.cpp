@@ -184,7 +184,7 @@ void Vacuum::execute()
 
 
 GrantPrivileges::GrantPrivileges( StringList * args )
-    : AoxCommand( args ), commit( true ), t( 0 ), q( 0 )
+    : AoxCommand( args ), commit( true ), t( 0 ), g( 0 )
 {
 }
 
@@ -196,27 +196,26 @@ void GrantPrivileges::execute()
         String name = next();
         end();
 
+        if ( name.isEmpty() )
+            name = Configuration::text( Configuration::DbUser );
+
         if ( opt( 'n' ) > 0 )
             commit = false;
 
         database( true );
 
         t = new Transaction( this );
-        Granter * s = new Granter( name, t, this );
-        q = s->result();
-        s->execute();
+        g = new Granter( name, t );
+        g->execute();
     }
 
-    if ( q ) {
-        if ( !q->done() )
-            return;
+    if ( !g || !g->done() )
+        return;
 
-        q = 0;
-        if ( commit )
-            t->commit();
-        else
-            t->rollback();
-    }
+    if ( commit )
+        t->commit();
+    else
+        t->rollback();
 
     if ( !t->done() )
         return;

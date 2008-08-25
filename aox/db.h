@@ -52,7 +52,7 @@ public:
 private:
     bool commit;
     class Transaction * t;
-    class Query * q;
+    class Granter * g;
 };
 
 

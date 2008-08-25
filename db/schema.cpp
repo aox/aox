@@ -238,16 +238,20 @@ void Schema::execute()
     }
 
     if ( d->state == 5 ) {
-        if ( !d->granter ) {
+        if ( d->dbuser.unquoted() ==
+             Configuration::text( Configuration::DbOwner ) ) {
+            d->l->log( "Warning: db-user is the same as db-owner",
+                       Log::Significant );
+        }
+        else if ( !d->granter ) {
             d->l->log( "Checking/granting privileges.", Log::Significant );
-            d->granter = new Granter( d->dbuser.unquoted(), d->t, this );
-            d->q = d->granter->result();
+            d->granter = new Granter( d->dbuser.unquoted(), d->t );
             d->granter->execute();
         }
 
-        if ( d->q && !d->q->done() )
+        if ( d->granter && !d->granter->done() )
             return;
-
+        
         d->state = 6;
         if ( d->commit )
             d->t->commit();
