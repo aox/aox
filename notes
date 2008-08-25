@@ -6,70 +6,18 @@ Schedule
   the mountains in mid-November. (Exact dates to be confirmed).
 
 
+3.0.1: 2008-09-01
+
+  Just bug fixes.
+
+
 3.0.0: ?
-
-  log-level default changed to significant, some logging adjustments
-  to make significant DWIM.
-
-  Added syslog support. Not done: Bypass logd, so we don't have to run
-  logd at all if we're using syslog.
-
-  Digest-MD5 disabled by default due to interoperability problems, can
-  be enabled if desirable.
-
-  IMAP VIEW command removed, views remain supported.
-
-  PIDFILEDIR is now $(PREFIX)/lib/pidfiles.
-
-  Note needed for upgraders: logrotate/newsyslog/whatever has to be
-  told about the new location.
-
-  Fetching is faster in many cases, particularly when many messages
-  are involved.
-
-  Added check-sender-addresses. It's neat.
-
-  Schema changes: A partial index on header_fields, so we can locate
-  messages based on message-id. Some indexes on (message) to speed up
-  "aox vacuum" (by speeding up foreign key lookups to messages from
-  date_fields and mailbox_messages).
-
-  The connections table.
-
-  Added protection against the race condition described in RFC 1047.
-
-  The injector can now inject multiple messages with one transaction.
-
-  aoximport uses the faster injector.
-
-  The IMAP MULTIAPPEND extension is now supported (this is basically
-  IMAP access to the faster injector).
-
-  Bodyparts can have duplicate MD5 hashes now.
-
-  aox add alias newalias@whatev.er otherlocaladdress@whatev.er
-
-  aox show search. Needs more search types.
-
-  aox undelete and aox add view now use search expressions, e.g.
-    aox undelete /users/arnt/inbox from oryx.com
-
-  New command aox tune database, to tune the database for the expected
-  load. Three types: Mostly writing, mostly plain reading and mostly
-  reading with much searching. (The third is a no-op still.)
 
   Not done: aox set retention, aox show retention.
 
   Not done: Views on the web.
 
   Not done: Turning thread-index into references.
-
-  Note done: Axel wanted namespaces or something like that. I didn't
-  quite understand, but I understood enough to think that it's a good
-  idea and 3.0 is the right time to introduce it.
-
-  Refer to Google's copy of jquery instead of our own.
-  http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js
 
 
 Release cycle
@@ -1316,6 +1264,8 @@ Problems found in 3.0.0 by Timo
   - MULTIAPPEND is confused by separately-flagged messages.
     (See imap/multiappend)
 
+    Ditto separately-annotated messages. Fixed now.
+
   - We sometimes send "0 EXPUNGE" (seen in response to APPEND) and
     "MODSEQ (0)".
 
@@ -1328,16 +1278,27 @@ Problems found in 3.0.0 by Timo
     1219587181.341976 * 4 FETCH (UID 4)
     1219587181.341978 19.3 OK done
 
+    Oh fuck. The trickler does that.
+
   - LIST "" "" should say \NoSelect.
 
   - LIST "" testnew.16/*test4 doesn't find testnew.16/test3/test4.
 
   - SEARCH HEADER FROM "" returns messages that don't have From:
 
+    All RFC822 messages have From. If a message doesn't have From,
+    it's not a RFC822 object and no 822/2822/3501 rules apply to
+    it. We can do what we want to, and what we want to do is add
+    'From: invalid@invalid.invalid' to the message.
+
   - SEARCH TO groupname doesn't match a message with header:
 
     To: groupname: groupuser1@domain.org, groupuser2@domain.org;,
         groupname2: groupuser3@domain.org;
+
+    Right, we strip nonempty groups. Searching for groupuser1,
+    groupuser2 etc will work. This is because SQL databases don't like
+    hierarchical data.
 
   - Segfault in Store::replaceFlags()->removeFlags():
 
@@ -1345,8 +1306,9 @@ Problems found in 3.0.0 by Timo
     0x0819290f in MessageSet::isEmpty (this=0x0) at server/messageset.cpp:224
     224         return d->l.isEmpty();
 
+    Ought to be fixed. I added a test.
+
   - SEARCH SENTON/SENTBEFORE/SENTAFTER have some bugs.
     (Not verified because of segfault; will check later.)
 
-
-
+    No idea. We need to run Timo's test suite ourselves.
