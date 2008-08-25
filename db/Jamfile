@@ -8,7 +8,7 @@ rule PrivilegeList
     SCRIPT = [ FDirName $(TOP) schema list-privileges ] ;
     Depends $(<) : $(>) $(SCRIPT) ;
     Clean clean : $(<) ;
-    SEARCH on $(>) = $(SEARCH_SOURCE) ;
+    SEARCH on $(>) = schema ;
     MakeLocate $(<) : $(LOCATE_SOURCE) ;
 }
 
@@ -17,7 +17,7 @@ actions PrivilegeList bind SCRIPT
     perl $(SCRIPT) > $(<) ;
 }
 
-PrivilegeList privileges.inc : $(TOP) schema schema.pg ;
+PrivilegeList privileges.inc : schema.pg ;
 
 Build database : database.cpp postgres.cpp pgmessage.cpp cachelookup.cpp
     query.cpp transaction.cpp schema.cpp dbsignal.cpp granter.cpp ;
