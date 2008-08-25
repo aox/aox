@@ -92,7 +92,8 @@ String Capability::capabilities( IMAP * i, bool all )
     c.append( "ID" );
     if ( all || login )
         c.append( "IDLE" );
-    c.append( "LISTEXT" );
+    if ( all || login )
+        c.append( "LISTEXT" );
     c.append( "LITERAL+" );
     if ( ( all || !login ) &&
          !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
