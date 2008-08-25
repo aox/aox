@@ -110,7 +110,9 @@ public:
 
 
 /*! \class Fetch fetch.h
-    Returns message data (RFC 3501, section 6.4.5).
+  
+    Returns message data (RFC 3501, section 6.4.5, extended by RFC
+    4551 and RFC 5257).
 
     Our parser used to be slightly more permissive than the RFC. This
     is a bug (is it? why?), and many of the problems have been

@@ -69,7 +69,9 @@ public:
 
 
 /*! \class Store store.h
-    Alters message flags (RFC 3501 section 6.4.6).
+
+    Alters message flags (RFC 3501 section 6.4.6) or annotations (RFC
+    5257).
 
     The Store command is the principal means of altering message
     flags, although Append may be able to do the same.
