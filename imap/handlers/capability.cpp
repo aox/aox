@@ -38,6 +38,7 @@
     RFC 4959: SASL-IR
     RFC 4978: COMPRESS=DEFLATE
     RFC 5032: WITHIN
+    RFC 5255: I18NLEVEL=1
     RFC 5256: SORT
     RFC 5258: LISTEXT
 
@@ -87,8 +88,10 @@ String Capability::capabilities( IMAP * i, bool all )
     if ( all || login )
         c.append( "CONDSTORE" );
     c.append( "ENABLE" );
-    if ( all || login )
+    if ( all || login ) {
         c.append( "ESEARCH" );
+        c.append( "I18NLEVEL=1" );
+    }
     c.append( "ID" );
     if ( all || login )
         c.append( "IDLE" );
