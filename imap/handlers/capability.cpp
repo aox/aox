@@ -71,14 +71,14 @@ String Capability::capabilities( IMAP * i, bool all )
 
     // the remainder of the capabilities are kept sorted by name
 
-    // ugly X-DRAFT prefixes are disregarded when sorting by name
+    // ugly X-... prefixes are disregarded when sorting by name
 
     if ( all || ( !login && i->accessPermitted() ) )
         c.append( SaslMechanism::allowedMechanisms( "AUTH=", i->hasTls() ) );
 
     if ( all || login ) {
         c.append( "ACL" );
-        c.append( "ANNOTATE" );
+        c.append( "ANNOTATE-EXPERIMENT-1" );
         c.append( "BINARY" );
         c.append( "CATENATE" );
         c.append( "CHILDREN" );
