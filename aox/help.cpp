@@ -270,8 +270,11 @@ void Help::execute()
         fprintf(
             stderr,
             "  delete mailbox -- Delete a mailbox.\n\n"
-            "    Synopsis: aox delete mailbox <name>\n\n"
+            "    Synopsis: aox delete mailbox [-f] <name>\n\n"
             "    Deletes the specified mailbox.\n\n"
+            "    If -f is specified, the mailbox and any messages it contains\n"
+            "    are deleted permanently. Otherwise only empty mailboxes are\n"
+            "    deleted.\n\n"
             "    This command is synonymous with \"aox delete view\", and may\n"
             "    be used to delete mailboxes created with \"aox add view\".\n"
         );

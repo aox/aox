@@ -148,8 +148,13 @@ must be fully-qualified (begin with /), unless a
 .I username
 is specified, in which case unqualified names are assumed to be under
 the user's home directory.
-.IP "aox delete mailbox <name>"
+.IP "aox delete mailbox [-f] <name>"
 Deletes the specified mailbox.
+.IP
+If
+.I -f
+is specified, the mailbox and any messages it contains are permanently
+deleted. Otherwise, only empty mailboxes are deleted.
 .IP "aox add view <name> <source> <owner> <search>"
 Creates a new view mailbox which applies the specified search
 on the specified source mailbox. When a new message is added
