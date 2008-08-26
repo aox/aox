@@ -837,7 +837,7 @@ uint Mailbox::match( const UString & pattern, uint p,
                 uint s = match( pattern, p, name, i );
                 if ( s == 2 )
                     return 2;
-                if ( s == 1 )
+                if ( s == 1 || star )
                     r = 1;
                 i--;
             }
