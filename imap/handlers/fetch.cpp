@@ -67,7 +67,7 @@ public:
     MessageSet set;
     MessageSet expunged;
     List<Message> requested;
-    StringList available;
+    List<Message> available;
     int64 changedSince;
     Query * those;
     Store * store;
@@ -709,10 +709,10 @@ void Fetch::execute()
     if ( !d->requested.isEmpty() )
         return;
 
-    StringList::Iterator i( d->available );
-    while ( i ) {
-        respond( *i );
-        ++i;
+    while ( !d->available.isEmpty() ) {
+        Message * m = d->available.shift();
+        uint u = m->uid( s->mailbox() );
+        respond( makeFetchResponse( m, u, s->msn( u ) ) );
     }
     d->available.clear();
 
@@ -993,7 +993,7 @@ static String sectionResponse( Section * s, Message * m )
     The message must have all necessary content.
 */
 
-void Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
+String Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
 {
     StringList l;
     if ( d->uid )
@@ -1024,14 +1024,14 @@ void Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
         ++it;
     }
 
-    String * r = new String;
+    String r;
     String payload = l.join( " " );
-    r->reserve( payload.length() + 30 );
-    r->append( fn( msn ) );
-    r->append( " FETCH (" );
-    r->append( payload );
-    r->append( ")" );
-    d->available.append( r );
+    r.reserve( payload.length() + 30 );
+    r.append( fn( msn ) );
+    r.append( " FETCH (" );
+    r.append( payload );
+    r.append( ")" );
+    return r;
 }
 
 
@@ -1499,10 +1499,12 @@ void Fetch::trickle()
         d->responseRate = 1;
     }
 
+    Session * s = session();
     r = 0;
     while ( r < d->responseRate && !d->available.isEmpty() ) {
-        respond( *d->available.firstElement() );
-        d->available.shift();
+        Message * m = d->available.shift();
+        uint u = m->uid( s->mailbox() );
+        respond( makeFetchResponse( m, u, s->msn( u ) ) );
         r++;
     }
     emitUntaggedResponses();
@@ -1548,7 +1550,7 @@ void Fetch::pickup()
         if ( !msn )
             ok = false;
         if ( ok ) {
-            makeFetchResponse( m, m->uid( mb ), msn );
+            d->available.append( m );
             done++;
             d->requested.shift();
         }

@@ -1263,7 +1263,7 @@ Problems found in 3.0.0 by Timo
     1219587181.341976 * 4 FETCH (UID 4)
     1219587181.341978 19.3 OK done
 
-    Oh fuck. The trickler does that.
+    Should be fixed; the trickler now computes MSNs when it uses them.
 
   - LIST "" "" should say \NoSelect.
 
