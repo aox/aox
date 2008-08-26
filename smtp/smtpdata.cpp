@@ -366,7 +366,13 @@ Message * SmtpData::message( const String & body )
     received.append( server()->peer().address() );
     received.append( " (HELO " );
     received.append( server()->heloName() );
-    received.append( ") by " );
+    received.append( ")" );
+    if ( server()->user() ) {
+        received.append( " (authenticated as " );
+        received.append( server()->user()->address()->lpdomain() );
+        received.append( ")" );
+    }
+    received.append( " by " );
     received.append( Configuration::hostname() );
     switch ( server()->dialect() ) {
     case SMTP::Smtp:
