@@ -1271,6 +1271,8 @@ Problems found in 3.0.0 by Timo
 
   - LIST "" testnew.16/*test4 doesn't find testnew.16/test3/test4.
 
+    Fixed.
+
   - SEARCH HEADER FROM "" returns messages that don't have From:
 
     All RFC822 messages have From. If a message doesn't have From,
