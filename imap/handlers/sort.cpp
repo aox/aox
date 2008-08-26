@@ -2,6 +2,7 @@
 
 #include "sort.h"
 
+#include "user.h"
 #include "field.h"
 #include "mailbox.h"
 #include "threader.h"
@@ -23,16 +24,23 @@ public:
         Size,
         Subject,
         To,
+        Annotation,
         Unknown
     };
 
     class SortCriterion
         : public Garbage {
     public:
-        SortCriterion(): t( Unknown ), reverse( false ) {}
+        SortCriterion()
+            : t( Unknown ), reverse( false ),
+              priv( false ), b1( 0 ), b2( 0 ) {}
 
         SortCriterionType t;
         bool reverse;
+        // the rest applies only to annotation
+        String annotationEntry; 
+        bool priv;
+        uint b1, b2;
     };
 
     List<SortCriterion> c;
@@ -81,26 +89,45 @@ void Sort::parse()
         if ( !d->c.isEmpty() )
             space();
         SortData::SortCriterion * c = new SortData::SortCriterion;
-        String s = parser()->dotLetters( 2, 7 ).lower();
+        String s = parser()->dotLetters( 2, 10 ).lower();
         if ( s == "reverse" ) {
             space();
-            s = parser()->dotLetters( 2, 7 ).lower();
+            s = parser()->dotLetters( 2, 10 ).lower();
             c->reverse = true;
         }
-        if ( s == "arrival" )
+        if ( s == "arrival" ) {
             c->t = SortData::Arrival;
-        else if ( s == "cc" )
+        }
+        else if ( s == "cc" ) {
             c->t = SortData::Cc;
-        else if ( s == "date" )
+        }
+        else if ( s == "date" ) {
             c->t = SortData::Date;
-        else if ( s == "from" )
+        }
+        else if ( s == "from" ) {
             c->t = SortData::From;
-        else if ( s == "size" )
+        }
+        else if ( s == "size" ) {
             c->t = SortData::Size;
-        else if ( s == "subject" )
+        }
+        else if ( s == "subject" ) {
             c->t = SortData::Subject;
-        else if ( s == "to" )
+        }
+        else if ( s == "to" ) {
             c->t = SortData::To;
+        }
+        else if ( s == "annotation" ) {
+            c->t = SortData::Annotation;
+            space();
+            c->annotationEntry = astring();
+            space();
+            if ( present( "value.priv" ) )
+                c->priv = true;
+            else if ( !present( "value.shared" ) )
+                error( Bad,
+                       "Annotation attribute must be "
+                       "value.priv or value.shared" );
+        }
         if ( ok() && c->t != SortData::Unknown ) {
             if ( !d->usingCriterionType( c->t ) )
                 d->c.append( c );
@@ -132,11 +159,9 @@ void Sort::execute()
 {
     if ( state() != Executing )
         return;
-    if ( !imap() || !imap()->session() || !imap()->session()->mailbox() )
-        return;
 
     if ( d->usingCriterionType( SortData::Subject ) ) {
-        Threader * t = imap()->session()->mailbox()->threader();
+        Threader * t = session()->mailbox()->threader();
         if ( !t->updated( true ) ) {
             t->refresh( this );
             return;
@@ -146,11 +171,19 @@ void Sort::execute()
     if ( !d->q ) {
         Selector * s = selector();
         s->simplify();
-        d->q = s->query( imap()->user(), imap()->session()->mailbox(),
-                         imap()->session(), this );
+        d->q = s->query( imap()->user(), session()->mailbox(),
+                         session(), this );
         String t = d->q->string();
         List<SortData::SortCriterion>::Iterator c( d->c );
         while ( c ) {
+            if ( c->t == SortData::Annotation ) {
+                c->b1 = s->placeHolder();
+                d->q->bind( c->b1, c->annotationEntry );
+                if ( c->priv ) {
+                    c->b2 = s->placeHolder();
+                    d->q->bind( c->b2, imap()->user()->id() );
+                }
+            }
             d->addCondition( t, c );
             ++c;
         }
@@ -234,6 +267,26 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
                  "left join addresses sta on (staf.address=sta.id) ",
                  "sta.localpart",
                  c->reverse );
+        break;
+    case Annotation:
+        if ( c->priv )
+            addJoin( t,
+                     "left join annotations saa on "
+                     "(mm.mailbox=saa.mailbox and mm.uid=saa.uid and"
+                     " owner=$" + fn( c->b2 ) + " and name="
+                     "(select id from annotation_names where lower(name)=$" +
+                     fn( c->b1 ) + ")) ",
+                     "saa.value",
+                     c->reverse );
+        else
+            addJoin( t,
+                     "left join annotations saa on "
+                     "(mm.mailbox=saa.mailbox and mm.uid=saa.uid and"
+                     " owner is null and name="
+                     "(select id from annotation_names where lower(name)=$" +
+                     fn( c->b1 ) + ")) ",
+                     "saa.value",
+                     c->reverse );
         break;
     case Unknown:
         break;
