@@ -143,11 +143,16 @@ void ImapSession::emitExpunges()
     d->expungedFetched.remove( e );
 
     while ( !e.isEmpty() ) {
-        uint uid = e.value( 1 );
-        uint msn = m.index( uid );
+        uint uid = e.smallest();
         e.remove( uid );
-        m.remove( uid );
-        enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+        uint msn = m.index( uid );
+        if ( msn ) {
+            m.remove( uid );
+            enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+        }
+        else {
+            d->exists = 0;
+        }
         if ( d->exists )
             d->exists--;
     }
