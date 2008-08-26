@@ -207,12 +207,14 @@ class DeleteMailboxData
 {
 public:
     DeleteMailboxData()
-        : m( 0 ), t( 0 )
+        : m( 0 ), t( 0 ), count( 0 ), zap( 0 )
     {}
 
     UString name;
     Mailbox * m;
     Transaction * t;
+    Query * count;
+    Query * zap;
 };
 
 
@@ -249,19 +251,88 @@ void DeleteMailbox::execute()
 
     if ( !d->t ) {
         d->m = Mailbox::obtain( d->name, false );
-        if ( !d->m )
+        if ( !d->m || d->m->synthetic() )
             error( "No mailbox named " + d->name.utf8() );
+
         d->t = new Transaction( this );
-        if ( d->m->remove( d->t ) == 0 )
+        Query * lock = new Query( "select * from mailboxes where "
+                                  "id=$1 for update", this );
+        lock->bind( 1, d->m->id() );
+        d->t->enqueue( lock );
+    }
+
+    if ( opt( 'f' ) == 0 ) {
+        if ( !d->count ) {
+            d->count = new Query(
+                "select "
+                "(select count(*)::bigint from mailbox_messages"
+                " where mailbox=$1)"
+                "+"
+                "(select count(*)::bigint from deleted_messages"
+                " where mailbox=$1) "
+                "as messages", this
+            );
+            d->count->bind( 1, d->m->id() );
+            d->t->enqueue( d->count );
+            d->t->execute();
+        }
+
+        if ( !d->count->done() )
+            return;
+
+        Row * r = d->count->nextRow();
+        if ( d->count->failed() || !r )
+            error( "Could not determine if any messages exist." );
+
+        int64 messages = r->getBigint( "messages" );
+        if ( messages != 0 )
+            error( "Cannot delete mailbox: " + fn( messages ) +
+                   " messages exist. (Use -f to force.)" );
+    }
+
+    if ( !d->zap ) {
+        // First, we expunge the existing messages.
+        Query * q = new Query(
+            "insert into deleted_messages "
+            "(mailbox,uid,message,modseq,deleted_by,reason) "
+            "select mailbox,uid,message,modseq,$2,$3 "
+            "from mailbox_messages where mailbox=$1",
+            this
+        );
+        q->bind( 1, d->m->id() );
+        q->bindNull( 2 );
+        q->bind( 3, "aox delete -f" );
+        d->t->enqueue( q );
+
+        // Then we remove the messages that correspond to the
+        // just-deleted messages, so long as they are not used
+        // elsewhere. This is like what "aox vacuum" does. If
+        // we were to just delete from deleted_messages, we'd
+        // leave orphaned messages that vacuum wouldn't touch.
+
+        q = new Query(
+            "delete from messages where id in "
+            "(select dm.message from deleted_messages dm"
+            " left join mailbox_messages mm on (dm.message=mm.message)"
+            " left join deliveries d on (dm.message=d.message)"
+            " where mm.message is null and d.message is null and"
+            " dm.mailbox=$1)", this
+        );
+        q->bind( 1, d->m->id() );
+        d->t->enqueue( q );
+
+        d->zap = d->m->remove( d->t );
+        if ( !d->zap )
             error( "Couldn't delete mailbox " + d->name.utf8() );
+
         d->t->commit();
     }
 
-    if ( d->t && !d->t->done() )
+    if ( !d->t->done() )
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't delete mailbox" );
+        error( "Couldn't delete mailbox: " + d->t->error() );
 
     finish();
 }
