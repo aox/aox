@@ -11,6 +11,7 @@
 #include "mailbox.h"
 #include "query.h"
 #include "user.h"
+#include "dict.h"
 #include "map.h"
 
 
@@ -46,11 +47,8 @@ public:
 /*! \class Listext listext.h
 
     The Listext class implements the extended List command, ie. the
-    List command from imap4rev1 with the extensions added since.
-
-    The extension grammar is intentionally kept minimal, since it's
-    still a draft. Currently based on
-    draft-ietf-imapext-list-extensions-13.
+    List command from imap4rev1 with the extensions added since,
+    particularly RFC 5258.
 
     Archiveopteryx does not support remote mailboxes, so the listext
     option to show remote mailboxes is silently ignored.
@@ -73,6 +71,7 @@ Listext::Listext()
 void Listext::parse()
 {
     // list = "LIST" [SP list-select-opts] SP mailbox SP mbox-or-pat
+    //        [SP list-return-opts]
 
     space();
 
@@ -156,12 +155,18 @@ void Listext::execute()
 
     UStringList::Iterator it( d->patterns );
     while ( it ) {
-        if ( it->isEmpty() )
-            respond( "LIST () \"/\" \"\"" );
-        else if ( it->startsWith( "/" ) )
+        if ( it->isEmpty() && !d->extended ) {
+            if ( d->reference == Mailbox::root() )
+                respond( "LIST (\\noselect) \"/\" \"/\"" );
+            else
+                respond( "LIST (\\noselect) \"/\" \"\"" );
+        }
+        else if ( it->startsWith( "/" ) ) {
             listChildren( Mailbox::root(), it->titlecased() );
-        else
+        }
+        else {
             listChildren( d->reference, it->titlecased() );
+        }
         ++it;
     }
 
