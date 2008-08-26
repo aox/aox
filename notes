@@ -6,17 +6,22 @@ Schedule
   the mountains in mid-November. (Exact dates to be confirmed).
 
 
+2.12: ?
+
+  c2c0ce6a834ccb465b6e30e05c8b9329e6f53ec8 needs to go here
+  3597cd0c4fb5566bff4bf1bc33e85b5058110216 probably also
+
+
 3.0.1: 2008-09-01
 
   Just bug fixes.
 
 
-3.0.0: ?
+3.1.0: ?
 
+  From 3.0.0:
   Not done: aox set retention, aox show retention.
-
   Not done: Views on the web.
-
   Not done: Turning thread-index into references.
 
 
@@ -184,8 +189,6 @@ Various TODO items from earlier releases.
   Indexing for DOC bodyparts
 
   aox backup/restore (or similarly helpful procedure)
-
-  Full-text search
 
 
 The \Answered flag
