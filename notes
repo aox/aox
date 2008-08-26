@@ -204,11 +204,6 @@ The \Answered flag
   doesn't seem very useful. I also don't know how to do that in SQL.
 
 
-5257
-
-  No changes should be necessary
-
-
 Other RFCs
 
   I think we need to consider these RFCs, or at least mention them
@@ -1271,6 +1266,8 @@ Problems found in 3.0.0 by Timo
     Oh fuck. The trickler does that.
 
   - LIST "" "" should say \NoSelect.
+
+    Fixed. Although it will soon change anyway.
 
   - LIST "" testnew.16/*test4 doesn't find testnew.16/test3/test4.
 
