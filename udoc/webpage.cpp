@@ -26,7 +26,7 @@ static WebPage * wp = 0;
     directory \a dir. */
 
 WebPage::WebPage( const char * dir )
-    : fd( -1 ), directory( dir )
+    : fd( -1 ), directory( dir ), pstart( false )
 {
     wp = this;
 }
@@ -67,6 +67,7 @@ void WebPage::startHeadline( Class * c )
     startPage( c->name().lower(), c->name() + " documentation" );
     output( "<h1 class=\"classh\">" );
     para = "</h1>\n";
+    pstart = true;
 }
 
 
@@ -74,9 +75,15 @@ void WebPage::startHeadline( Class * c )
 
 void WebPage::startHeadline( Function * f )
 {
-    output( "<h2 class=\"functionh\">"
-            "<a name=\"" + anchor( f ) + "\"></a>");
+    String a = anchor( f );
+    String o = "<h2 class=\"functionh\">";
+    if ( !names.contains( a ) ) {
+         o.append( "<a name=\"" + anchor( f ) + "\"></a>");
+         names.append( a );
+    }
+    output( o );
     para = "</h2>\n";
+    pstart = true;
 }
 
 
@@ -98,10 +105,19 @@ void WebPage::addText( const String & text )
     if ( para.isEmpty() ) {
         output( "<p class=\"text\">" );
         para = "\n";
+        pstart = true;
+    }
+
+    uint i = 0;
+    if ( pstart ) {
+        while ( text[i] == ' ' )
+            i++;
+        if ( i >= text.length() )
+            return;
+        pstart = false;
     }
 
     String s;
-    uint i = 0;
     while ( i < text.length() ) {
         if ( text[i] == '<' )
             s.append( "&lt;" );
@@ -251,7 +267,9 @@ String WebPage::anchor( Function * f )
     while ( i > 0 && fn[i] != ':' )
         i--;
     if ( i > 0 )
-        return fn.mid( i + 1 );
+        fn = fn.mid( i + 1 );
+    if ( fn.startsWith( "~" ) )
+        fn = "destructor";
     return fn;
 }
 
@@ -288,12 +306,14 @@ void WebPage::endPage()
 
 void WebPage::startPage( const String & name, const String & title )
 {
+    names.clear();
     String filename = directory + "/" + name;
     fd = ::open( filename.cstr(), O_CREAT|O_WRONLY|O_TRUNC, 0644 );
     output( "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\">\n"
             "<html lang=en><head>" );
     output( "<title>" );
     para = "\n";
+    pstart = true;
     addText( title );
     output( "</title>\n" );
     output( "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"

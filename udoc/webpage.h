@@ -3,7 +3,7 @@
 #ifndef WEBPAGE_H
 #define WEBPAGE_H
 
-#include "string.h"
+#include "stringlist.h"
 
 #include "output.h"
 
@@ -42,6 +42,8 @@ private:
     int fd;
     String directory;
     String fn;
+    StringList names;
+    bool pstart;
 };
 
 
