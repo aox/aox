@@ -14,7 +14,7 @@ class SortData
     : public Garbage
 {
 public:
-    SortData(): Garbage(), q( 0 ), u( false ) {}
+    SortData(): Garbage(), s( 0 ), q( 0 ), u( false ) {}
 
     enum SortCriterionType {
         Arrival,
@@ -45,6 +45,7 @@ public:
 
     List<SortCriterion> c;
 
+    Selector * s;
     Query * q;
     bool u;
 
@@ -144,10 +145,11 @@ void Sort::parse()
     // search-criteria
     setCharset( astring() );
     space();
-    parseKey();
-    while ( nextChar() == ' ' ) {
+    d->s = new Selector;
+    d->s->add( parseKey() );
+    while ( ok() && !parser()->atEnd() ) {
         space();
-        parseKey();
+        d->s->add( parseKey() );
     }
     end();
 }
@@ -169,24 +171,25 @@ void Sort::execute()
     }
 
     if ( !d->q ) {
-        Selector * s = selector();
-        s->simplify();
-        d->q = s->query( imap()->user(), session()->mailbox(),
-                         session(), this );
+        d->s->simplify();
+        d->q = d->s->query( imap()->user(), session()->mailbox(),
+                            session(), this );
         String t = d->q->string();
+        log( "search: " + t, Log::Debug );
         List<SortData::SortCriterion>::Iterator c( d->c );
         while ( c ) {
             if ( c->t == SortData::Annotation ) {
-                c->b1 = s->placeHolder();
+                c->b1 = d->s->placeHolder();
                 d->q->bind( c->b1, c->annotationEntry );
                 if ( c->priv ) {
-                    c->b2 = s->placeHolder();
+                    c->b2 = d->s->placeHolder();
                     d->q->bind( c->b2, imap()->user()->id() );
                 }
             }
             d->addCondition( t, c );
             ++c;
         }
+        log( "with sort: " + t, Log::Debug );
         d->q->setString( t );
         d->q->execute();
     }
