@@ -44,7 +44,7 @@ private:
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
     String singlePartStructure( Multipart *, bool );
-    void makeFetchResponse( Message *, uint, uint );
+    String makeFetchResponse( Message *, uint, uint );
 
     void pickup();
 
