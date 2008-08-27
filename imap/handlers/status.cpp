@@ -188,7 +188,7 @@ void Status::execute()
     if ( d->recentCount ) {
         Row * r = d->recentCount->nextRow();
         if ( r )
-            status.append( "RECENT " + fn( r->getInt( "messages" ) ) );
+            status.append( "RECENT " + fn( r->getInt( "recent" ) ) );
     }
     else if ( d->recent ) {
         status.append( "RECENT " + fn( session->recent().count() ) );

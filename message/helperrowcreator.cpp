@@ -110,7 +110,7 @@ void HelperRowCreator::execute()
             if ( !c->failed() ) {
                 // We inserted, hit no race.
             }
-            else if ( d->c->error().contains( d->e ) ) {
+            else if ( c->error().contains( d->e ) ) {
                 // We inserted, but there was a race and we lost it.
                 d->t->enqueue( new Query( "rollback to savepoint "+d->n, 0 ) );
             }
