@@ -179,9 +179,12 @@ void Listext::execute()
         if ( d->selectQuery ) {
             if ( !d->selectQuery->done() )
                 return;
-            if ( d->selectQuery->failed() )
-                respond( "* NO Unable to get list of selected mailboxes: " +
-                         d->selectQuery->error() );
+            if ( d->selectQuery->failed() ) {
+                error( No,
+                       "Unable to get list of selected mailboxes: " +
+                       d->selectQuery->error() );
+                setRespTextCode( "SERVERBUG" );
+            }
         }
         d->state = 1;
     }
