@@ -11,7 +11,6 @@
 #include "mailbox.h"
 #include "query.h"
 #include "user.h"
-#include "dict.h"
 #include "map.h"
 
 
@@ -20,9 +19,10 @@ class ListextData
 {
 public:
     ListextData():
-        selectQuery( 0 ),
+        selectQuery( 0 ), permissionsQuery( 0 ),
         subscribed( 0 ),
         reference( 0 ),
+        state( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
         selectSubscribed( false ), selectRemote( false ),
@@ -30,10 +30,39 @@ public:
     {}
 
     Query * selectQuery;
+    Query * permissionsQuery;
     List<Mailbox> * subscribed;
     Mailbox * reference;
     String referenceName;
     UStringList patterns;
+    uint state;
+
+    class Permissions
+        : public Garbage
+    {
+    public:
+        Permissions( Mailbox * m ): mailbox( m ), set( false ) {}
+        Mailbox * mailbox;
+        bool set;
+        String user;
+        String anyone;
+    };
+
+    Map<Permissions> permissions;
+
+    Query * permissionFetcher;
+    
+    class Response
+        : public Garbage
+    {
+    public:
+        Response( Mailbox * m, const String & r )
+            : mailbox( m ), response ( r ) {}
+        Mailbox * mailbox;
+        String response;
+    };
+    
+    List<Response> responses;
 
     bool extended;
     bool returnSubscribed;
@@ -133,41 +162,126 @@ void Listext::parse()
 
 void Listext::execute()
 {
-    if ( d->returnSubscribed || d->selectSubscribed ) {
-        if ( !d->selectQuery ) {
-            d->selectQuery = new Query( "select mailbox from subscriptions "
-                                        "where owner=$1", this );
-            d->selectQuery->bind( 1, imap()->user()->id() );
-            d->selectQuery->execute();
+    if ( d->state == 0 ) {
+        if ( d->returnSubscribed || d->selectSubscribed ) {
+            if ( !d->selectQuery ) {
+                d->selectQuery 
+                    = new Query( "select mailbox from subscriptions "
+                                 "where owner=$1", this );
+                d->selectQuery->bind( 1, imap()->user()->id() );
+                d->selectQuery->execute();
+            }
+            Row * r = 0;
+            while ( (r=d->selectQuery->nextRow()) != 0 )
+                d->subscribed->append(Mailbox::find( r->getInt( "mailbox" ) ));
         }
-        Row * r = 0;
-        while ( (r=d->selectQuery->nextRow()) != 0 )
-            d->subscribed->append( Mailbox::find( r->getInt( "mailbox" ) ) );
+
+        if ( d->selectQuery ) {
+            if ( !d->selectQuery->done() )
+                return;
+            if ( d->selectQuery->failed() )
+                respond( "* NO Unable to get list of selected mailboxes: " +
+                         d->selectQuery->error() );
+        }
+        d->state = 1;
     }
 
-    if ( d->selectQuery ) {
-        if ( !d->selectQuery->done() )
+    if ( d->state == 1 ) {
+        UStringList::Iterator it( d->patterns );
+        while ( it ) {
+            if ( it->isEmpty() && !d->extended ) {
+                String r;
+                if ( d->reference == Mailbox::root() )
+                    r = "LIST (\\noselect) \"/\" \"/\"";
+                else
+                    r = "LIST (\\noselect) \"/\" \"\"";
+                d->responses.append(
+                    new ListextData::Response( d->reference, r ) );
+            }
+            else if ( it->startsWith( "/" ) ) {
+                listChildren( Mailbox::root(), it->titlecased() );
+            }
+            else {
+                listChildren( d->reference, it->titlecased() );
+            }
+            ++it;
+        }
+        d->state = 2;
+    }
+
+    if ( d->state == 2 ) {
+        if ( !d->permissionsQuery ) {
+            List<uint> ids;
+            List<ListextData::Response>::Iterator i( d->responses );
+            while ( i ) {
+                Mailbox * m = i->mailbox;
+                ++i;
+                while ( m != Mailbox::root() ) {
+                    if ( m->id() && !m->deleted() ) {
+                        ListextData::Permissions * p 
+                            = d->permissions.find( m->id() );
+                        if ( !p ) {
+                            p = new ListextData::Permissions( m );
+                            d->permissions.insert( m->id(), p );
+                            ids.append( new uint( m->id() ) );
+                        }
+                    }
+                    m = m->parent();
+                }
+            }
+            d->permissionsQuery 
+                = new Query( "select mailbox, identifier, rights "
+                             "from permissions "
+                             "where mailbox=any($1) "
+                             "and (identifier='anyone' or identifier=$2)",
+                             this );
+            d->permissionsQuery->bind( 1, &ids );
+            d->permissionsQuery->bind( 2, imap()->user()->login() );
+            d->permissionsQuery->execute();
+        }
+
+        while ( d->permissionsQuery &&
+                d->permissionsQuery->hasResults() ) {
+            Row * r = d->permissionsQuery->nextRow();
+            Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+            if ( m ) {
+                String identifier = r->getString( "identifier" );
+                ListextData::Permissions * p = d->permissions.find( m->id() );
+                if ( p ) {
+                    p->set = true;
+                    if ( identifier == "anyone" )
+                        p->anyone = r->getString( "rights" );
+                    else
+                        p->user = r->getString( "rights" );
+                }
+            }
+        }
+        if ( d->permissionsQuery && !d->permissionsQuery->done() )
             return;
-        if ( d->selectQuery->failed() )
-            respond( "* NO Unable to get list of selected mailboxes: " +
-                     d->selectQuery->error() );
+        d->state = 3;
     }
 
-    UStringList::Iterator it( d->patterns );
-    while ( it ) {
-        if ( it->isEmpty() && !d->extended ) {
-            if ( d->reference == Mailbox::root() )
-                respond( "LIST (\\noselect) \"/\" \"/\"" );
-            else
-                respond( "LIST (\\noselect) \"/\" \"\"" );
+    if ( d->state == 3 ) {
+        List<ListextData::Response>::Iterator i( d->responses );
+        while ( i ) {
+            Mailbox * m = i->mailbox;
+            String r;
+            bool set = false;
+            while ( m && r.isEmpty() ) {
+                ListextData::Permissions * p
+                    = d->permissions.find( m->id() );
+                if ( p && !p->user.isEmpty() )
+                    r = p->user;
+                else if ( p && !p->anyone.isEmpty() )
+                    r = p->anyone;
+                if ( p && p->set )
+                    set = true;
+                m = m->parent();
+            }
+            if ( r.contains( 'l' ) || !set )
+                respond( i->response );
+            ++i;
         }
-        else if ( it->startsWith( "/" ) ) {
-            listChildren( Mailbox::root(), it->titlecased() );
-        }
-        else {
-            listChildren( d->reference, it->titlecased() );
-        }
-        ++it;
     }
 
     finish();
@@ -333,7 +447,8 @@ void Listext::sendListResponse( Mailbox * mailbox )
         ext.append( ")" );
     }
 
-    respond( "LIST (" + a.join( " " ) + ") \"/\" " + name + ext );
+    String r = "LIST (" + a.join( " " ) + ") \"/\" " + name + ext;
+    d->responses.append( new ListextData::Response( mailbox, r ) );
 }
 
 
