@@ -51,7 +51,7 @@ public:
     Map<Permissions> permissions;
 
     Query * permissionFetcher;
-    
+
     class Response
         : public Garbage
     {
@@ -61,7 +61,7 @@ public:
         Mailbox * mailbox;
         String response;
     };
-    
+
     List<Response> responses;
 
     bool extended;
@@ -165,7 +165,7 @@ void Listext::execute()
     if ( d->state == 0 ) {
         if ( d->returnSubscribed || d->selectSubscribed ) {
             if ( !d->selectQuery ) {
-                d->selectQuery 
+                d->selectQuery
                     = new Query( "select mailbox from subscriptions "
                                  "where owner=$1", this );
                 d->selectQuery->bind( 1, imap()->user()->id() );
@@ -218,7 +218,7 @@ void Listext::execute()
                 ++i;
                 while ( m != Mailbox::root() ) {
                     if ( m->id() && !m->deleted() ) {
-                        ListextData::Permissions * p 
+                        ListextData::Permissions * p
                             = d->permissions.find( m->id() );
                         if ( !p ) {
                             p = new ListextData::Permissions( m );
@@ -229,7 +229,7 @@ void Listext::execute()
                     m = m->parent();
                 }
             }
-            d->permissionsQuery 
+            d->permissionsQuery
                 = new Query( "select mailbox, identifier, rights "
                              "from permissions "
                              "where mailbox=any($1) "
@@ -265,21 +265,26 @@ void Listext::execute()
         List<ListextData::Response>::Iterator i( d->responses );
         while ( i ) {
             Mailbox * m = i->mailbox;
-            String r;
-            bool set = false;
-            while ( m && r.isEmpty() ) {
-                ListextData::Permissions * p
-                    = d->permissions.find( m->id() );
-                if ( p && !p->user.isEmpty() )
-                    r = p->user;
-                else if ( p && !p->anyone.isEmpty() )
-                    r = p->anyone;
-                if ( p && p->set )
-                    set = true;
-                m = m->parent();
-            }
-            if ( r.contains( 'l' ) || !set )
+            if ( m->owner() == imap()->user()->id() ) {
                 respond( i->response );
+            }
+            else {
+                String r;
+                bool set = false;
+                while ( m && r.isEmpty() ) {
+                    ListextData::Permissions * p
+                        = d->permissions.find( m->id() );
+                    if ( p && !p->user.isEmpty() )
+                        r = p->user;
+                    else if ( p && !p->anyone.isEmpty() )
+                        r = p->anyone;
+                    if ( p && p->set )
+                        set = true;
+                    m = m->parent();
+                }
+                if ( r.contains( 'l' ) || !set )
+                    respond( i->response );
+            }
             ++i;
         }
     }
