@@ -20,6 +20,7 @@ public:
     class EventHandler * owner();
 
     void execute();
+    void notify();
 
     void setRepeating( bool );
     bool repeating() const;
