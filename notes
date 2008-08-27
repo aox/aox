@@ -19,10 +19,24 @@ Schedule
 
 3.1.0: ?
 
-  From 3.0.0:
-  Not done: aox set retention, aox show retention.
-  Not done: Views on the web.
-  Not done: Turning thread-index into references.
+  Make Query::bind() completely binary.
+
+  Move the most common flags into mailbox_messages.
+
+  aox set retention, aox show retention.
+
+  Views on the web.
+
+  Turning thread-index into references.
+
+  LIST doesn't enforce "l" any more. The semantics are:
+  - Everyone has l on own mailboxes
+  - l rights are inherited from anyone, then from the parent mailbox
+  - if the inheritance walks pas the root, the utter default is l
+  Setting another ACL on the root mailbox removes people's l rights.
+
+  Permissions needs to be updated similarly, that should be it. Maybe
+  Error301 too?
 
 
 Release cycle
@@ -806,13 +820,6 @@ Multipart/signed automatic processing
   PGP cannot be checked, except it sort of can. We can have a small
   default keyring including the heise.de CA key and so on, and treat
   that as root CAs, using the keyservers to dig up intermediate keys.
-
-
-3.1.0: ?
-
-  Make Query::bind() completely binary.
-
-  Move the most common flags into mailbox_messages.
 
 
 PGP automatic processing
