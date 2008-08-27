@@ -1127,16 +1127,6 @@ aox.org/clients/
   That's it, right?
 
 
-aox undelete is almost useless
-
-  Sure, it does the job, but finding the message to undelete demands a
-  more intimate knowledge of our schema than justified. Every time I've
-  needed to use it, I've wanted to undelete a message I've trashed a few
-  seconds earlier by mistake. aox undelete could easily take a mailbox
-  and tell me the from/subject and uid of the most recently deleted n
-  messages. That would make it a whole lot more useful.
-
-
 SMS gateway
 
   We want Archiveopteryx to work as installed. We want to support
@@ -1243,56 +1233,10 @@ Mike Geiger's Thunderbird problems
 
 Problems found in 3.0.0 by Timo
 
-  - MULTIAPPEND is confused by separately-flagged messages.
-    (See imap/multiappend)
-
-    Ditto separately-annotated messages. Fixed now.
-
   - We sometimes send "0 EXPUNGE" (seen in response to APPEND) and
     "MODSEQ (0)".
 
-  - FETCH responses are sent with the wrong msn after EXPUNGE:
-
-    1219587181.176799 19.3 uid fetch 2,4 uid
-    1219587181.224456 * 1 EXPUNGE
-    1219587181.224461 * 2 EXPUNGE
-    1219587181.341970 * 2 FETCH (UID 2)
-    1219587181.341976 * 4 FETCH (UID 4)
-    1219587181.341978 19.3 OK done
-
-    Should be fixed; the trickler now computes MSNs when it uses them.
-
-  - LIST "" "" should say \NoSelect.
-
-    Fixed. Although it will soon change anyway.
-
-  - LIST "" testnew.16/*test4 doesn't find testnew.16/test3/test4.
-
-    Fixed.
-
-  - SEARCH HEADER FROM "" returns messages that don't have From:
-
-    All RFC822 messages have From. If a message doesn't have From,
-    it's not a RFC822 object and no 822/2822/3501 rules apply to
-    it. We can do what we want to, and what we want to do is add
-    'From: invalid@invalid.invalid' to the message.
-
-  - SEARCH TO groupname doesn't match a message with header:
-
-    To: groupname: groupuser1@domain.org, groupuser2@domain.org;,
-        groupname2: groupuser3@domain.org;
-
-    Right, we strip nonempty groups. Searching for groupuser1,
-    groupuser2 etc will work. This is because SQL databases don't like
-    hierarchical data.
-
-  - Segfault in Store::replaceFlags()->removeFlags():
-
-    Program received signal SIGSEGV, Segmentation fault.
-    0x0819290f in MessageSet::isEmpty (this=0x0) at server/messageset.cpp:224
-    224         return d->l.isEmpty();
-
-    Ought to be fixed. I added a test.
+    Expunge fixed; MODSEQ?
 
   - SEARCH SENTON/SENTBEFORE/SENTAFTER have some bugs.
     (Not verified because of segfault; will check later.)
