@@ -29,10 +29,13 @@ class HelperRowCreatorData
 {
 public:
     HelperRowCreatorData()
-        : s( 0 ), c( 0 ), t( 0 ), sp( false ), done( false ) {}
+        : s( 0 ), c( 0 ), notify( 0 ), t( 0 ),
+          sp( false ), done( false )
+    {}
 
     Query * s;
     Query * c;
+    Query * notify;
     Transaction * t;
     String n;
     String e;
@@ -124,12 +127,18 @@ void HelperRowCreator::execute()
         }
     }
 
-    if ( d->sp ) {
+    if ( d->sp && !d->notify ) {
         d->t->enqueue( new Query( "release savepoint " + d->n, 0 ) );
         String ed = d->n;
         ed.replace( "creator", "extended" );
-        d->t->enqueue( new Query( "notify " + ed, 0 ) );
+        d->notify = new Query( "notify " + ed, this );
+        d->t->enqueue( d->notify );
+        d->t->execute();
     }
+
+    if ( d->notify && !d->notify->done() )
+        return;
+
     d->t->notify();
 }
 
