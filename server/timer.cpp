@@ -4,6 +4,7 @@
 
 #include "event.h"
 #include "eventloop.h"
+#include "connection.h"
 #include "scope.h"
 
 // time
@@ -115,7 +116,54 @@ void Timer::execute()
         d->timeout = 0;
         EventLoop::global()->removeTimer( this );
     }
-    d->owner->notify();
+
+    notify();
+}
+
+
+/*! This function notifies the owner of this Timer's expiration. */
+
+void Timer::notify()
+{
+    if ( !d->owner )
+        return;
+
+    // XXX: This is a copy of code in Query::notify() and
+    // Transaction::notify(). We need to fix this properly.
+
+    Scope s( d->owner->log() );
+    try {
+        d->owner->execute();
+    }
+    catch ( Exception e ) {
+        d->owner = 0; // so we can't get close to a segfault again
+        if ( e == Invariant ) {
+            // Analogous to EventLoop::dispatch, we try to close the
+            // connection that threw the exception. The problem is
+            // that we don't know which one did. So we try to find one
+            // whose Log object is an ancestor of this query's owner's
+            // Log object.
+
+            List<Connection>::Iterator i( EventLoop::global()->connections() );
+            while ( i ) {
+                Connection * c = i;
+                ++i;
+                Log * l = Scope::current()->log();
+                while ( l && l != c->log() )
+                    l = l->parent();
+                if ( c->type() != Connection::Listener && l ) {
+                    Scope x( l );
+                    ::log( "Invariant failed; Closing connection abruptly",
+                           Log::Error );
+                    EventLoop::global()->removeConnection( c );
+                    c->close();
+                }
+            }
+        }
+        else {
+            throw e;
+        }
+    }
 }
 
 
