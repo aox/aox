@@ -93,7 +93,6 @@ void Acl::execute()
         if ( d->type == SetAcl &&
              !Permissions::validRights( d->rights ) )
         {
-            // Should we complain about -l too?
             error( Bad, "Invalid rights" );
             return;
         }
@@ -137,19 +136,14 @@ void Acl::execute()
             }
             else {
                 StringList l;
+                l.append( "" );
 
-                // We always assign Lookup rights.
-                l.append( new String( "l" ) );
-
-                // And we could assign anything else.
                 uint i = 0;
                 while ( i < Permissions::NumRights ) {
                     String * s = new String;
                     Permissions::Right r = (Permissions::Right)i;
-                    if ( r != Permissions::Lookup ) {
-                        s->append( Permissions::rightChar( r ) );
-                        l.append( s );
-                    }
+                    s->append( Permissions::rightChar( r ) );
+                    l.append( s );
                     i++;
                 }
 
@@ -192,13 +186,6 @@ void Acl::execute()
                 // We should presumably not disallow pointless changes
                 // that add rights that already exist, but...
                 error( No, "can't change owner's rights" );
-                return;
-            }
-
-            if ( ( d->setOp == 0 && !d->rights.contains( 'l' ) ) ||
-                 ( d->setOp == 2 && d->rights.contains( 'l' ) ) )
-            {
-                error( No, "can't remove Lookup right" );
                 return;
             }
 

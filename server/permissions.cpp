@@ -37,7 +37,6 @@ public:
         uint i = 0;
         while ( i < Permissions::NumRights )
             allowed[i++] = false;
-        allowed[Permissions::Lookup] = true;
     }
 
     bool ready;
@@ -350,8 +349,6 @@ void Permissions::set( const String &rights )
         d->allowed[(int)DeleteMessages] = true;
         d->allowed[(int)DeleteMailbox] = true;
     }
-
-    d->allowed[(int)Lookup] = true;
 }
 
 
@@ -400,8 +397,6 @@ void Permissions::disallow( const String &rights )
         d->allowed[(int)DeleteMessages] = false;
         d->allowed[(int)DeleteMailbox] = false;
     }
-
-    d->allowed[(int)Lookup] = true;
 }
 
 
