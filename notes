@@ -29,14 +29,8 @@ Schedule
 
   Turning thread-index into references.
 
-  LIST doesn't enforce "l" any more. The semantics are:
-  - Everyone has l on own mailboxes
-  - l rights are inherited from anyone, then from the parent mailbox
-  - if the inheritance walks pas the root, the utter default is l
-  Setting another ACL on the root mailbox removes people's l rights.
-
-  Permissions needs to be updated similarly, that should be it. Maybe
-  Error301 too?
+  The l right is no longer granted to everyone. (Error301 needs
+  consideration.)
 
 
 Release cycle
