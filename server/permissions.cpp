@@ -186,10 +186,17 @@ void Permissions::execute()
 
         // For everyone else, we have to check.
         d->q = new Query( "select * from permissions "
-                          "where mailbox=$1 and "
-                          "(identifier=$2 or identifier='anyone')",
+                          "where mailbox=any($1) and "
+                          "(identifier=$2 or identifier='anyone') ",
                           this );
-        d->q->bind( 1, d->mailbox->id() );
+        List<uint> r;
+        Mailbox * m = d->mailbox;
+        while ( m ) {
+            if ( m->id() && !m->deleted() )
+                r.append( new uint( m->id() ) );
+            m = m->parent();
+        }
+        d->q->bind( 1, &r );
         d->q->bind( 2, d->user->login() );
         d->q->execute();
     }
@@ -197,11 +204,26 @@ void Permissions::execute()
     if ( !d->q->done() )
         return;
 
+    StringList p;
+    Mailbox * candidate = 0;
+
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
-        if ( !r->isNull( "rights" ) )
-            allow( r->getString( "rights" ) );
+        Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+        String id = r->getString( "identifier" );
+        if ( m && ( !candidate ||
+                    candidate->name().length() < m->name().length() ) ) {
+            candidate = m;
+            p.clear();
+        }
+        if ( candidate == m )
+            p.append( r->getString( "rights" ) );
     }
+
+    if ( p.isEmpty() )
+        allow( "l" );
+    else
+        allow( p.join( "" ) ); // ooooh.
 
     d->ready = true;
     d->owner->execute();
