@@ -164,7 +164,6 @@ void SmtpData::execute()
             // does it use the right addresses?
             checkField( HeaderField::From );
             checkField( HeaderField::ResentFrom );
-            checkField( HeaderField::Sender );
             checkField( HeaderField::ReturnPath );
             String e = d->message->error();
             if ( e.isEmpty() &&
@@ -439,16 +438,35 @@ Message * SmtpData::message( const String & body )
         h->removeField( HeaderField::Bcc );
         // add a message-id if there isn't any
         m->addMessageId();
+        // remove the specified sender if we know who the real sender
+        // is, and the specified sender isn't tied to that entity.
+        List<Address>::Iterator sender( h->addresses( HeaderField::Sender ) );
+        uint pos = UINT_MAX;
+        if ( server()->user() && sender && !addressPermitted( sender ) ) {
+            pos = h->field( HeaderField::Sender )->position();
+            h->removeField( HeaderField::Sender );
+        }
         // specify a sender if a) we know who the sender is, b) from
         // doesn't name the sender and c) the sender did not specify
-        // anything.
+        // anything valid.
         if ( server()->user() && !h->field( HeaderField::Sender ) ) {
             List<Address> * from = h->addresses( HeaderField::From );
             Address * s = server()->user()->address();
             if ( !from || from->count() != 1 ||
-                 from->first()->localpart().lower() !=s->localpart().lower() ||
-                 from->first()->domain().lower() != s->domain().lower() )
-                h->add( "Sender", s->toString() );
+                 !addressPermitted( from->first() ) ) {
+                // if From contains any address for the user, then we
+                // use that in Sender instead of the primary address
+                List<Address>::Iterator i( from );
+                while ( i ) {
+                    if ( addressPermitted( i ) )
+                        s = i;
+                    ++i;
+                }
+                HeaderField * sender
+                    = HeaderField::create( "Sender", s->lpdomain() );
+                sender->setPosition( pos );
+                h->add( sender);
+            }
         }
     }
     d->message = m;
