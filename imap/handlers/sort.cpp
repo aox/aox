@@ -38,7 +38,7 @@ public:
         SortCriterionType t;
         bool reverse;
         // the rest applies only to annotation
-        String annotationEntry; 
+        String annotationEntry;
         bool priv;
         uint b1, b2;
     };
@@ -175,7 +175,6 @@ void Sort::execute()
         d->q = d->s->query( imap()->user(), session()->mailbox(),
                             session(), this );
         String t = d->q->string();
-        log( "search: " + t, Log::Debug );
         List<SortData::SortCriterion>::Iterator c( d->c );
         while ( c ) {
             if ( c->t == SortData::Annotation ) {
@@ -189,7 +188,6 @@ void Sort::execute()
             d->addCondition( t, c );
             ++c;
         }
-        log( "with sort: " + t, Log::Debug );
         d->q->setString( t );
         d->q->execute();
     }
@@ -248,7 +246,7 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
         break;
     case Size:
         addJoin( t,
-                 "join messages m on (m.id=mm.message)",
+                 "join messages m on (m.id=mm.message) ",
                  "m.rfc822size",
                  c->reverse );
         break;
