@@ -19,7 +19,7 @@ public:
     Transaction( EventHandler * );
     void setDatabase( Database * );
 
-    enum State { Inactive, Executing, Completed, Failed };
+    enum State { Inactive, Executing, Blocked, Completed, Failed };
     void setState( State );
     State state() const;
     bool failed() const;
@@ -39,6 +39,9 @@ public:
     List< Query > *enqueuedQueries() const;
     EventHandler * owner() const;
     void notify();
+
+    Transaction * subTransaction( EventHandler * = 0 );
+    Transaction * parent() const;
 
 private:
     class TransactionData *d;
