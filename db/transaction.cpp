@@ -15,12 +15,15 @@ class TransactionData
 {
 public:
     TransactionData()
-        : state( Transaction::Inactive ),
+        : state( Transaction::Inactive ), parent( 0 ), children( 0 ),
           submittedCommit( false ), submittedBegin( false ),
           owner( 0 ), db( 0 ), queries( 0 ), failedQuery( 0 )
     {}
 
     Transaction::State state;
+    Transaction * parent;
+    String savepoint;
+    uint children;
     bool submittedCommit;
     bool submittedBegin;
     EventHandler *owner;
@@ -53,6 +56,43 @@ Transaction::Transaction( EventHandler *ev )
     : d( new TransactionData )
 {
     d->owner = ev;
+    d->savepoint = "s";
+}
+
+
+/*! Returns a pointer to a new Transaction that is subordinate to the
+    current one, but which can be independently committed or rolled
+    back. If \a ev is 0 (the default), the new Transaction shares its
+    parent's owner; otherwise the given owner is used instead.
+
+    ...
+*/
+
+Transaction * Transaction::subTransaction( EventHandler * ev )
+{
+    if ( d->state == Blocked )
+        return 0;
+
+    d->children++;
+    d->state = Blocked;
+
+    if ( ev == 0 )
+        ev = d->owner;
+
+    Transaction * t = new Transaction( ev );
+    t->d->parent = this;
+    t->d->savepoint = d->savepoint + "_" + fn( d->children );
+
+    return t;
+}
+
+
+/*! Returns a pointer to the parent of this Transaction, which will be 0
+    if this is not a subTransaction(). */
+
+Transaction * Transaction::parent() const
+{
+    return d->parent;
 }
 
 
@@ -215,6 +255,7 @@ void Transaction::rollback()
         log( "rollback() called after commit/rollback" );
         return;
     }
+
     // hm... is dropping these queries really worth it? it does reduce
     // log clutter.
     List<Query>::Iterator i( d->queries );
@@ -228,8 +269,17 @@ void Transaction::rollback()
             ++i;
         }
     }
-    enqueue( new Query( "rollback", d->owner ) );
+
+    if ( d->parent ) {
+        Query * q = new Query( "rollback to " + d->savepoint, d->owner );
+        enqueue( q );
+        q->setTransaction( d->parent );
+    }
+    else {
+        enqueue( new Query( "rollback", d->owner ) );
+    }
     d->submittedCommit = true;
+
     execute();
 }
 
@@ -245,8 +295,17 @@ void Transaction::commit()
 {
     if ( d->submittedCommit )
         return;
-    enqueue( new Query( "commit", 0 ) );
+
+    if ( d->parent ) {
+        Query * q = new Query( "release savepoint " + d->savepoint, d->owner );
+        enqueue( q );
+        q->setTransaction( d->parent );
+    }
+    else {
+        enqueue( new Query( "commit", 0 ) );
+    }
     d->submittedCommit = true;
+
     execute();
 }
 
@@ -269,10 +328,20 @@ void Transaction::execute()
         d->db->processQueue();
     }
     else if ( !d->submittedBegin ) {
-        // if not, we ask Database to give us one
-        Query * begin = new Query( "begin", 0 );
-        begin->setTransaction( this );
-        Database::submit( begin );
+        // if not, we ask Database to give us one, either through our
+        // parent or directly.
+        Query * begin;
+        if ( d->parent ) {
+            begin = new Query( "savepoint " + d->savepoint, d->owner );
+            d->parent->enqueue( begin );
+            begin->setTransaction( this );
+            d->parent->execute();
+        }
+        else {
+            begin = new Query( "begin", 0 );
+            begin->setTransaction( this );
+            Database::submit( begin );
+        }
         d->submittedBegin = true;
     }
 }
