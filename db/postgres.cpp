@@ -150,11 +150,12 @@ void Postgres::processQueue()
         l->shift();
         q->setState( Query::Executing );
 
-        if ( !d->transaction && q->transaction() ) {
-            d->transaction = q->transaction();
-            d->transaction->setState( Transaction::Executing );
-            d->transaction->setDatabase( this );
-            l = d->transaction->enqueuedQueries();
+        Transaction * t = q->transaction();
+        if ( t && t != d->transaction ) {
+            d->transaction = t;
+            t->setState( Transaction::Executing );
+            t->setDatabase( this );
+            l = t->enqueuedQueries();
         }
 
         if ( !d->error ) {
@@ -586,7 +587,7 @@ void Postgres::process( char type )
                     if ( !d->transaction->failed() )
                         d->transaction->setState( Transaction::Completed );
                     d->transaction->notify();
-                    d->transaction = 0;
+                    d->transaction = d->transaction->parent();
                 }
                 else if ( state() == FailedTransaction ) {
                     if ( msg.state() == InTransaction || msg.state() == Idle )
