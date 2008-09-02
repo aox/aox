@@ -110,21 +110,27 @@ void Expunge::execute()
         }
 
         d->t = new Transaction( this );
+
+        d->findUids = new Query( "", this );
+        d->findUids->bind( 1, d->s->mailbox()->id() );
+        d->findUids->bind( 2, fid );
+        String query( "select uid from mailbox_messages "
+                      "where (mailbox,uid) in "
+                      "(select mailbox, uid from flags"
+                      " where mailbox=$1 and flag=$2" );
+        if ( d->uid ) {
+            query.append( " and uid=any($3)" );
+            d->findUids->bind( 3, d->requested );
+        }
+        query.append( ") for update" );
+        d->findUids->setString( query );
+        d->t->enqueue( d->findUids );
+
         d->findModseq = new Query( "select nextmodseq from mailboxes "
                                    "where id=$1 for update", this );
         d->findModseq->bind( 1, d->s->mailbox()->id() );
         d->t->enqueue( d->findModseq );
 
-        String query( "select uid from flags where mailbox=$1 and flag=$2" );
-        if ( d->uid )
-            query.append( " and uid=any($3)" );
-
-        d->findUids = new Query( query, this );
-        d->findUids->bind( 1, d->s->mailbox()->id() );
-        d->findUids->bind( 2, fid );
-        if ( d->uid )
-            d->findUids->bind( 3, d->requested );
-        d->t->enqueue( d->findUids );
         d->t->execute();
     }
 
