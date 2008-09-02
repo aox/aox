@@ -24,13 +24,12 @@ class DeliveryAgentData
 {
 public:
     DeliveryAgentData()
-        : log( 0 ), messageId( 0 ), owner( 0 ), t( 0 ),
+        : messageId( 0 ), owner( 0 ), t( 0 ),
           qm( 0 ), qs( 0 ), qr( 0 ), row( 0 ), message( 0 ),
           dsn( 0 ), injector( 0 ), update( 0 ), client( 0 ),
           delivered( false ), committed( false )
     {}
 
-    Log * log;
     uint messageId;
     EventHandler * owner;
     Transaction * t;
@@ -62,8 +61,8 @@ DeliveryAgent::DeliveryAgent( SmtpClient * client, uint id,
                               EventHandler * owner )
     : d( new DeliveryAgentData )
 {
-    d->log = new Log( Log::SMTP );
-    Scope x( d->log );
+    setLog( new Log( Log::SMTP ) );
+    Scope x( log() );
     log( "Attempting delivery for message #" + fn( id ) );
     d->client = client;
     d->messageId = id;
@@ -73,8 +72,6 @@ DeliveryAgent::DeliveryAgent( SmtpClient * client, uint id,
 
 void DeliveryAgent::execute()
 {
-    Scope x( d->log );
-
     // Fetch and lock the row in deliveries matching (mailbox,uid).
 
     if ( !d->t ) {
@@ -207,7 +204,7 @@ void DeliveryAgent::execute()
         SpoolManager::shutdown();
     }
 
-    d->owner->execute();
+    d->owner->notify();
 }
 
 
