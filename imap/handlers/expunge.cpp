@@ -138,7 +138,7 @@ void Expunge::execute()
     while ( ( r = d->findUids->nextRow() ) != 0 ) {
         d->marked.add( r->getInt( "uid" ) );
     }
-    if ( !d->findUids->done() )
+    if ( !d->findModseq->done() )
         return;
 
     if ( d->marked.isEmpty() ) {
