@@ -27,7 +27,7 @@ public:
         : messageId( 0 ), owner( 0 ), t( 0 ),
           qm( 0 ), qs( 0 ), qr( 0 ), row( 0 ), message( 0 ),
           dsn( 0 ), injector( 0 ), update( 0 ), client( 0 ),
-          delivered( false ), committed( false )
+          delivered( false )
     {}
 
     uint messageId;
@@ -43,7 +43,6 @@ public:
     Query * update;
     SmtpClient * client;
     bool delivered;
-    bool committed;
 };
 
 
@@ -145,7 +144,7 @@ void DeliveryAgent::execute()
     // Once the SmtpClient has updated the action and status for each
     // recipient, we can decide whether or not to spool a bounce.
 
-    if ( !d->injector && !d->update && d->row ) {
+    if ( d->row && !d->injector ) {
         // Wait until there are no Unknown recipients.
         List<Recipient>::Iterator it( d->dsn->recipients() );
         while ( it && it->action() != Recipient::Unknown )
@@ -171,29 +170,21 @@ void DeliveryAgent::execute()
     // update the relevant rows in delivery_recipients, so that we
     // know what to do next time around.
 
-    if ( !d->update && d->row ) {
+    if ( d->row ) {
         if ( d->injector && !d->injector->done() )
             return;
 
         uint unhandled = updateDelivery( d->row->getInt( "id" ), d->dsn );
         if ( unhandled == 0 )
             d->delivered = true;
-
-        d->t->execute();
     }
 
     // Once the update finishes, we're done.
 
-    if ( !d->committed ) {
-        if ( d->update && !d->update->done() )
-            return;
-
-        d->committed = true;
+    if ( !d->t->done() ) {
         d->t->commit();
-    }
-
-    if ( !d->t->done() )
         return;
+    }
 
     if ( d->t->failed() ) {
         // We might end up resending copies of messages that we couldn't
@@ -239,9 +230,7 @@ Query * DeliveryAgent::fetchDelivery( uint messageId )
             "select id, sender, "
             "current_timestamp > expires_at as expired "
             "from deliveries "
-            "where message=$1 and "
-            "((tried_at is null or"
-            "  tried_at+interval '1 hour' < current_timestamp)) "
+            "where message=$1 "
             "for update", this );
     q->bind( 1, messageId );
     return q;
@@ -431,12 +420,6 @@ static GraphableCounter * messagesSent = 0;
 
 uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
 {
-    d->update =
-        new Query( "update deliveries set tried_at=current_timestamp "
-                   "where id=$1", this );
-    d->update->bind( 1, delivery );
-    d->t->enqueue( d->update );
-
     uint handled = 0;
     uint unhandled = 0;
     List<Recipient>::Iterator it( dsn->recipients() );
