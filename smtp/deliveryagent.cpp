@@ -428,24 +428,20 @@ uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
         ++it;
         if ( r->action() == Recipient::Unknown ||
              r->action() == Recipient::Delayed )
-        {
             unhandled++;
-        }
-        else {
-            // XXX: Using current_timestamp here makes testing harder.
-            Query * q =
-                new Query( "update delivery_recipients "
-                           "set action=$1, status=$2, "
-                           "last_attempt=current_timestamp "
-                           "where delivery=$3 and recipient=$4",
-                           this );
-            q->bind( 1, (int)r->action() );
-            q->bind( 2, r->status() );
-            q->bind( 3, delivery );
-            q->bind( 4, r->finalRecipient()->id() );
-            d->t->enqueue( q );
+        else
             handled++;
-        }
+        Query * q =
+            new Query( "update delivery_recipients "
+                       "set action=$1, status=$2, "
+                       "last_attempt=current_timestamp "
+                       "where delivery=$3 and recipient=$4",
+                       this );
+        q->bind( 1, (int)r->action() );
+        q->bind( 2, r->status() );
+        q->bind( 3, delivery );
+        q->bind( 4, r->finalRecipient()->id() );
+        d->t->enqueue( q );
     }
 
     if ( dsn->allOk() ) {
