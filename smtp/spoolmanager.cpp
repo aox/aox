@@ -25,7 +25,7 @@ class SpoolManagerData
 public:
     SpoolManagerData()
         : nextRun( 0 ), q( 0 ), t( 0 ), row( 0 ), client( 0 ),
-          agent( 0 ), uidnext( 0 ), log( 0 )
+          agent( 0 ), uidnext( 0 )
     {}
 
     Query * nextRun;
@@ -35,7 +35,6 @@ public:
     SmtpClient * client;
     DeliveryAgent * agent;
     uint uidnext;
-    Log * log;
 };
 
 
@@ -52,14 +51,12 @@ public:
 SpoolManager::SpoolManager()
     : d( new SpoolManagerData )
 {
-    d->log = new Log( Log::General );
+    setLog( new Log( Log::General ) );
 }
 
 
 void SpoolManager::execute()
 {
-    Scope x( d->log );
-
     // Find the number of seconds until we need to retry any existing
     // recipient (which will be 0 if we have anything to do right now).
 
@@ -157,7 +154,7 @@ void SpoolManager::execute()
             d->agent =
                 new DeliveryAgent( d->client, d->row->getInt( "message" ),
                                    this );
-            d->agent->execute();
+            d->agent->notify();
         }
 
         if ( d->agent ) {
@@ -184,11 +181,18 @@ void SpoolManager::execute()
 
 void SpoolManager::deliverNewMessage()
 {
-    if ( d->row )
+    if ( d->row ) {
+        log( "New message added to spool, "
+             "but spool is currently being attended to.",
+             Log::Debug );
         return;
-
-    delete d->t;
-    d->t = new Timer( this, 1 );
+    }
+    else {
+        log( "New message added to spool; will be handled in 1 second",
+             Log::Debug );
+        delete d->t;
+        d->t = new Timer( this, 1 );
+    }
 }
 
 
