@@ -106,10 +106,14 @@ void SpoolManager::execute()
     if ( !d->q ) {
         log( "Starting queue run" );
         reset();
-        d->q = new Query( "select distinct d.id, d.message from deliveries d "
-                          "join delivery_recipients dr on (d.id=dr.delivery) "
-                          "where dr.action=$1 or dr.action=$2",
-                          this );
+        d->q = new Query(
+            "select distinct d.id, d.message from deliveries d "
+            "join delivery_recipients dr on (d.id=dr.delivery) "
+            "where dr.action=$1 or dr.action=$2 and "
+            "((dr.last_attempt is null or"
+            "  dr.last_attempt+interval '1 hour' < current_timestamp)) "
+            "order by d.id",
+            this );
         d->q->bind( 1, Recipient::Unknown );
         d->q->bind( 2, Recipient::Delayed );
         d->q->execute();
