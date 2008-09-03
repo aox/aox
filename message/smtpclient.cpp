@@ -76,7 +76,7 @@ SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
     d->owner = owner;
     connect( address );
     EventLoop::global()->addConnection( this );
-    setTimeoutAfter( 300 );
+    setTimeoutAfter( 4 );
     log( "Connecting to " + address.string() );
     d->timerCloser = new SmtpClientData::TimerCloser( this );
 }
@@ -89,6 +89,7 @@ void SmtpClient::react( Event e )
         x.setLog( d->log );
     Connection::State s1 = Connection::state();
     SmtpClientData::State s2 = d->state;
+    String s3 = d->error;
     switch ( e ) {
     case Read:
         parse();
@@ -103,6 +104,7 @@ void SmtpClient::react( Event e )
 
     case Connect:
         d->state = SmtpClientData::Connected;
+        setTimeoutAfter( 300 );
         break; // we'll get a banner
 
     case Error:
@@ -125,8 +127,8 @@ void SmtpClient::react( Event e )
         break;
     }
 
-    if ( s1 == Connection::state() && s2 == d->state )
-        return;
+    if ( s1 == Connection::state() && s2 == d->state && s3 == d->error )
+       return;
     if ( d->user )
         d->user->notify();
     if ( d->owner )
