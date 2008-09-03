@@ -52,25 +52,46 @@ public:
 */
 
 /*! Creates a new DeliveryAgent object to deliver the message with the
-    given \a id using the specified SMTP \a client. The \a owner will
-    be notified upon completion.
+    given \a id. The \a owner will be notified upon completion or
+    error.
 */
 
-DeliveryAgent::DeliveryAgent( SmtpClient * client, uint id,
-                              EventHandler * owner )
+DeliveryAgent::DeliveryAgent( uint id, EventHandler * owner )
     : d( new DeliveryAgentData )
 {
     setLog( new Log( Log::SMTP ) );
     Scope x( log() );
     log( "Attempting delivery for message #" + fn( id ) );
-    d->client = client;
     d->messageId = id;
     d->owner = owner;
 }
 
 
+/*! Tells this DeliveryAgent that it should use \a client for sending
+    mail.
+*/
+
+void DeliveryAgent::setClient( SmtpClient * client )
+{
+    d->client = client;
+}
+
+
+/*! Returns whatever setClient() set, or 0 if setClient() hasn't been
+    called.
+*/
+
+SmtpClient * DeliveryAgent::client() const
+{
+    return d->client;
+}
+
+
 void DeliveryAgent::execute()
 {
+    if ( !d->client )
+        return;
+
     // Fetch and lock the row in deliveries matching (mailbox,uid).
 
     if ( !d->t ) {
