@@ -80,7 +80,7 @@ public:
 
     void replaceAnnotation( Mailbox *, class Annotation * );
 
-    static String baseSubject( const String & );
+    static UString baseSubject( const UString & );
 
     static String acceptableBoundary( const String & );
 

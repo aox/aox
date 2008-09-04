@@ -427,7 +427,7 @@ String ArchiveSearch::looongResultList() const
         s.append( "<a href=" );
         s.append( l.canonical().quoted() );
         s.append( ">" );
-        s.append( i->subject() ); // XXX ustring and encoding
+        s.append( quoted( i->subject() ) );
         s.append( "</a><br>\n" );
         MessageSet matching( i->members() );
         s.append( "Contains " );
