@@ -788,90 +788,149 @@ bool Message::hasTrivia() const
     linearly.
 */
 
-String Message::baseSubject( const String & subject )
+UString Message::baseSubject( const UString & subject )
 {
-    String s( subject.simplified() );
-    uint b = 0;
-    uint e = s.length();
+    // Comments and syntax mostly quoted on RFC 5256.
+    
+    // The basic algorithm here is: Loop for (only) as long as the
+    // string grows shorter.
 
-    // try to get rid of leading Re:, Fwd:, Re[2]: and similar.
-    bool done = false;
-    while ( !done ) {
-        done = true;
-        uint i = b;
-        if ( s[i] == '(' ) {
-            i++;
-            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                    ( s[i] >= 'a' && s[i] <= 'z' ) )
-                i++;
-            if ( i - b > 2 && i - b < 5 && s[i] == ')' ) {
-                done = false;
-                b = i + 1;
+    // (1) Convert any RFC 2047 encoded-words in the subject to
+    //     [UTF-8] as described in "Internationalization
+    //     Considerations".  Convert all tabs and continuations to
+    //     space.  Convert all multiple spaces to a single space.
+
+    // We also convert other space characters than SP to space, and
+    // convert to titlecase here.
+
+    UString s( subject.simplified().titlecased() );
+
+    // step 5 starts here
+    uint l6 = UINT_MAX;
+    do {
+        l6 = s.length();
+
+        // from this point on, s must be simplified at the end of each
+        // step.
+
+        // (2) Remove all trailing text of the subject that matches
+        //     the subj-trailer ABNF; repeat until no more matches are
+        //     possible.
+    
+        // subj-trailer    = "(fwd)" / WSP
+
+        while ( s.endsWith( "(FWD)" ) )
+            s = s.mid( 0, s.length() - 5 ).simplified();
+    
+        // step 5 starts here.
+        uint l5 = UINT_MAX;
+        do {
+            l5 = s.length();
+
+            // (3) Remove all prefix text of the subject that matches
+            //     the subj-leader ABNF.
+    
+            // subj-refwd      = ("re" / ("fw" ["d"])) *WSP [subj-blob] ":"
+            // subj-blob       = "[" *BLOBCHAR "]" *WSP
+            // subj-leader     = (*subj-blob subj-refwd) / WSP
+
+            uint l3 = UINT_MAX;
+            while ( s.length() < l3 ) {
+                l3 = s.length();
+                uint i = 0;
+                bool blob = true;
+                while ( blob && s[i] == '[' ) {
+                    uint j = i;
+                    while ( j < s.length() && s[j] != ']' )
+                        j++;
+                    if ( s[j] == ']' ) {
+                        j++;
+                        if ( s[j] == ' ' )
+                            j++;
+                    }
+                    else {
+                        blob = false;
+                    }
+                    if ( blob )
+                        i = j;
+                }
+                if ( s[i] == 'R' && s[i+1] == 'E' ) {
+                    i += 2;
+                }
+                else if ( s[i] == 'F' && s[i+1] == 'W' ) {
+                    i += 2;
+                    if ( s[i] == 'D' )
+                        i++;
+                }
+                else {
+                    i = 0;
+                }
+                if ( i ) {
+                    if ( s[i] == ' ' )
+                        i++;
+                    blob = true;
+                    while ( blob && s[i] == '[' ) {
+                        uint j = i;
+                        while ( j < s.length() && s[j] != ']' )
+                            j++;
+                        if ( s[j] == ']' ) {
+                            j++;
+                            if ( s[j] == ' ' )
+                                j++;
+                        }
+                        else {
+                            blob = false;
+                        }
+                        if ( blob )
+                            i = j;
+                    }
+                    if ( s[i] == ':' )
+                        s = s.mid( i+1 ).simplified();
+                }
             }
-        }
-        else if ( s[i] == '[' ) {
-            uint j = i;
-            i++;
-            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                    ( s[i] >= 'a' && s[i] <= 'z' ) ||
-                    ( s[i] >= '0' && s[i] <= '9' ) ||
-                    s[i] == '-' )
-                i++;
-            if ( s[i] == ']' ) {
-                i++;
-                done = false;
-                b = i;
-            }
-            else {
-                i = j;
-            }
-        }
-        else if ( s[i] >= 'A' && s[i] <= 'Z' ) {
-            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                    ( s[i] >= 'a' && s[i] <= 'z' ) )
-                i++;
-            uint l = i - b;
-            if ( s[i] == '[' ) {
-                uint j = i;
-                i++;
-                while ( ( s[i] >= '0' && s[i] <= '9' ) )
+
+            // (4) If there is prefix text of the subject that matches
+            //     the subj-blob ABNF, and removing that prefix leaves
+            //     a non-empty subj-base, then remove the prefix text.
+
+            // subj-blob       = "[" *BLOBCHAR "]" *WSP
+
+            uint i = 0;
+            if ( s[0] == '[' ) {
+                while ( i < s.length() && s[i] != ']' )
                     i++;
-                if ( s[i] == ']' )
+                if ( s[i] == ']' ) {
                     i++;
-                else
-                    i = j;
+                    if ( s[i] == ' ' )
+                        i++;
+                }
+                else {
+                    i = 0;
+                }
             }
-            if ( l >= 2 && l < 4 && s[i] == ':' && s[i+1] == ' ' ) {
-                i++;
-                b = i;
-                done = false;
+            if ( i ) {
+                UString rest = s.mid( i ).simplified();
+                if ( !rest.isEmpty() )
+                    s = rest;
             }
-        }
-        if ( !done && s[b] == 32 )
-            b++;
-    }
+        
+            // (5) Repeat (3) and (4) until no matches remain.
+        } while ( s.length() < l5 );
 
-    // try to get rid of trailing (Fwd) etc.
-    done = false;
-    while ( !done ) {
-        done = true;
-        uint i = e;
-        if ( i > 2 && s[i-1] == ')' ) {
-            i = i - 2;
-            while ( i > 0 &&
-                    ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                      ( s[i] >= 'a' && s[i] <= 'z' ) ) )
-                i--;
-            if ( e - i >= 4 && e - i < 6 && s[i] == '(' ) {
-                if ( i >0 && s[i-1] == ' ' )
-                    i--;
-                e = i;
-                done = false;
-            }
-        }
-    }
+        // (6) If the resulting text begins with the subj-fwd-hdr ABNF
+        //     and ends with the subj-fwd-trl ABNF, remove the
+        //     subj-fwd-hdr and subj-fwd-trl and repeat from step (2).
 
-    return s.mid( b, e-b );
+        // subj-fwd-hdr    = "[fwd:"
+        // subj-fwd-trl    = "]"
+
+        if ( s.startsWith( "[FWD:" ) && s.endsWith( "]" ) )
+            s = s.mid( 5, s.length() - 6 ).simplified();
+        else
+            l6 = 0;
+    } while ( s.length() < l6 );
+
+    return s;
 }
 
 
@@ -884,8 +943,8 @@ bool Message::isMessage() const
 
 
 /*! Adds \a a to the list of known annotations for this Message in \a
-    mb, forgetting any previous annotation with the same
-    Annotation::ownerId() and Annotation::entryName().
+  mb, forgetting any previous annotation with the same
+  Annotation::ownerId() and Annotation::entryName().
 */
 
 void Message::replaceAnnotation( Mailbox * mb, class Annotation * a )
@@ -904,7 +963,7 @@ void Message::replaceAnnotation( Mailbox * mb, class Annotation * a )
 
 
 /*! Returns a pointer to the list of annotations in \a mb belonging to
-    this message, or 0 if there are none.
+  this message, or 0 if there are none.
 */
 
 List<Annotation> * Message::annotations( Mailbox * mb ) const
@@ -941,16 +1000,16 @@ static String badFields( Header * h )
 
 
 /*! Tries to handle unlabelled 8-bit content in header fields, in
-    cooperation with Header::fix8BitFields().
+  cooperation with Header::fix8BitFields().
 
-    The idea is that if we know which encodings are used for the text
-    bodies, and all bodies agree, then any unlabelled header fields
-    probably use that encoding, too. At least if they're legal
-    according to the relevant codec.
+  The idea is that if we know which encodings are used for the text
+  bodies, and all bodies agree, then any unlabelled header fields
+  probably use that encoding, too. At least if they're legal
+  according to the relevant codec.
 
-    If we can't get charset information from any body, we try to see
-    if a single codec can encode the entire header, and if so, use
-    that.
+  If we can't get charset information from any body, we try to see
+  if a single codec can encode the entire header, and if so, use
+  that.
 */
 
 void Message::fix8BitHeaderFields()
@@ -1001,11 +1060,11 @@ void Message::fix8BitHeaderFields()
 
 
 /*! Returns a short string, e.g. "c", which can be used as a mime
-    boundary surrounding \a parts without causing problems.
+  boundary surrounding \a parts without causing problems.
 
-    \a parts may be one bodypart, or several separated by CRLF. The
-    important thing is that all the lines which might conflict with
-    the boundary are lines in \a parts.
+  \a parts may be one bodypart, or several separated by CRLF. The
+  important thing is that all the lines which might conflict with
+  the boundary are lines in \a parts.
 */
 
 String Message::acceptableBoundary( const String & parts )
@@ -1105,12 +1164,12 @@ static void addField( String & wrapper,
 
 
 /*! Wraps an unparsable \a message up in another, which contains a short
-    \a error message, a little helpful text (or so one hopes), and the
-    original message in a blob.
+  \a error message, a little helpful text (or so one hopes), and the
+  original message in a blob.
 
-    \a defaultSubject is the subject text to use if no halfway
-    sensible text can be extracted from \a message. \a id is used as
-    content-disposition filename if supplied and nonempty.
+  \a defaultSubject is the subject text to use if no halfway
+  sensible text can be extracted from \a message. \a id is used as
+  content-disposition filename if supplied and nonempty.
 */
 
 Message * Message::wrapUnparsableMessage( const String & message,

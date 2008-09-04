@@ -8,6 +8,7 @@
 #include "list.h"
 
 
+class UString;
 class Mailbox;
 class MessageSet;
 
@@ -21,8 +22,8 @@ public:
     MessageSet members() const;
     void add( uint );
 
-    void setSubject( const String & );
-    String subject() const;
+    void setSubject( const UString & );
+    UString subject() const;
 
     uint id() const;
     void setId( uint );

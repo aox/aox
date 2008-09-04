@@ -287,9 +287,9 @@ String ArchiveMailbox::threadRendering( Thread * t )
 
     s.append( "<div class=thread>\n" );
 
-    String subject = t->subject(); // <- should be a ustring
+    UString subject = t->subject();
     if ( subject.isEmpty() )
-        subject = "(No Subject)";
+        subject.append( "(No Subject)" );
     s.append( "<div class=headerfield>Subject: " );
     Link ml;
     ml.setType( d->link->type() );
