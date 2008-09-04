@@ -947,7 +947,7 @@ String Selector::whereBody()
 
 String Selector::whereRfc822Size()
 {
-    d->needMessages = true;
+    root()->d->needMessages = true;
     uint s = placeHolder();
     root()->d->query->bind( s, d->n );
     if ( d->a == Smaller )
