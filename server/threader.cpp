@@ -130,18 +130,22 @@ void Threader::execute()
         if ( !d->findnew ) {
             d->findnew
                 = new Query( "select mm.uid, hf.value "
-                             "from header_fields hf "
-                             "join mailbox_messages mm using (message) "
+                             "from mailbox_messages mm "
                              "left join thread_members tm using (mailbox,uid) "
-                             "where mm.mailbox=$1 and hf.field=$2 "
-                             " and hf.part='' and tm.thread is null", this );
+                             "left join header_fields hf"
+                             " on (mm.message=hf.message and hf.field=$2"
+                             " and hf.part='') "
+                             "where mm.mailbox=$1 and tm.thread is null",
+                             this );
             d->findnew->bind( 1, d->mailbox->id() );
             d->findnew->bind( 2, HeaderField::Subject );
             d->findnew->execute();
             d->newMessages.clear();
         }
         while ( (r=d->findnew->nextRow()) ) {
-            UString subject = Message::baseSubject( r->getUString( "value" ) );
+            UString subject;
+            if ( !r->isNull( "value" ) )
+                subject = Message::baseSubject( r->getUString( "value" ) );
             uint uid = r->getInt( "uid" );
             Thread * t = d->threads.find( subject.utf8() );
             if ( !t ) {
