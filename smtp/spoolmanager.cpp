@@ -71,7 +71,7 @@ void SpoolManager::execute()
             "join delivery_recipients dr on (d.id=dr.delivery) "
             "where dr.action=$1 or dr.action=$2 "
             "group by d.message "
-            "order by d.message",
+            "order by delay",
             this );
         d->q->bind( 1, Recipient::Unknown );
         d->q->bind( 2, Recipient::Delayed );

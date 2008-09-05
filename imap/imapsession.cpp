@@ -108,13 +108,13 @@ void ImapSession::emitExpunges()
 
     List<Command>::Iterator c( d->i->commands() );
 
-    bool can = false;
+    Command * can = 0;
     bool cannot = false;
 
     while ( c && !cannot ) {
         // expunges are permitted in idle mode
         if ( c->state() == Command::Executing && c->name() == "idle" )
-            can = true;
+            can = c;
         // we cannot send an expunge while a command is being
         // executed (not without NOTIFY at least...)
         else if ( c->state() == Command::Executing )
@@ -130,8 +130,8 @@ void ImapSession::emitExpunges()
         else if ( c->usesMsn() && c->name() != "copy" )
             cannot = true;
         // if another command is finished, we can.
-        else if ( c->state() == Command::Finished )
-            can = true;
+        else if ( c->state() == Command::Finished && !c->tag().isEmpty() )
+            can = c;
         ++c;
     }
     if ( cannot || !can )
@@ -148,7 +148,7 @@ void ImapSession::emitExpunges()
         uint msn = m.index( uid );
         if ( msn ) {
             m.remove( uid );
-            enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+            can->respond( fn( msn ) + " EXPUNGE" );
         }
         else {
             d->exists = 0;
