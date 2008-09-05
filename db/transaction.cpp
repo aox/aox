@@ -274,6 +274,8 @@ void Transaction::rollback()
         Query * q = new Query( "rollback to " + d->savepoint, d->owner );
         enqueue( q );
         q->setTransaction( d->parent );
+        d->parent->setState( Executing );
+        setState( Completed );
     }
     else {
         enqueue( new Query( "rollback", d->owner ) );
@@ -282,6 +284,34 @@ void Transaction::rollback()
 
     execute();
 }
+
+
+class SubtransactionTrampoline
+    : public EventHandler
+{
+private:
+    Transaction * t;
+    Query * q;
+
+public:
+    SubtransactionTrampoline( Transaction * transaction, Query * query )
+        : t( transaction ), q( query )
+    {}
+
+    void execute ()
+    {
+        if ( !q->done() )
+            return;
+
+        if ( !t->failed() && q->failed() )
+            t->setError( q, q->error() );
+
+        if ( !t->failed() )
+            t->setState( Transaction::Completed );
+        t->parent()->setState( Transaction::Executing );
+        t->notify();
+    }
+};
 
 
 /*! Issues a COMMIT to complete the Transaction (after sending any
@@ -297,7 +327,8 @@ void Transaction::commit()
         return;
 
     if ( d->parent ) {
-        Query * q = new Query( "release savepoint " + d->savepoint, d->owner );
+        Query * q = new Query( "release savepoint " + d->savepoint, 0 );
+        q->setOwner( new SubtransactionTrampoline( this, q ) );
         enqueue( q );
         q->setTransaction( d->parent );
     }
