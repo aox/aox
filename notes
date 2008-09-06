@@ -1232,14 +1232,3 @@ Mike Geiger's Thunderbird problems
   TLS breakage (not yet reproduced) and copy-to-sent hanging.
 
 
-Problems found in 3.0.0 by Timo
-
-  - We sometimes send "0 EXPUNGE" (seen in response to APPEND) and
-    "MODSEQ (0)".
-
-    Expunge fixed; MODSEQ?
-
-  - SEARCH SENTON/SENTBEFORE/SENTAFTER have some bugs.
-    (Not verified because of segfault; will check later.)
-
-    No idea. We need to run Timo's test suite ourselves.
