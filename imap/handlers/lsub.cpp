@@ -59,7 +59,8 @@ void Lsub::execute()
     if ( !d->q ) {
         d->q = new Query( "select mailbox from subscriptions s "
                           "join mailboxes m on (s.mailbox=m.id) "
-                          "where s.owner=$1 order by m.name",
+                          "where s.owner=$1 and m.deleted='f' "
+                          "order by m.name",
                           this );
         d->q->bind( 1, imap()->user()->id() );
         d->q->execute();
@@ -74,7 +75,12 @@ void Lsub::execute()
         }
     }
 
+    if ( !d->q->done() )
+        return;
+
     UString pattern = d->pat.titlecased();
+
+    String a;
 
     Row * r = 0;
     while ( (r=d->q->nextRow()) != 0 ) {
@@ -83,18 +89,32 @@ void Lsub::execute()
         Mailbox * p = m;
         while ( p && p != d->top )
             p = p->parent();
-        if ( p ) {
+        if ( !p ) {
+            // m is outside the tree we're looking at (typically we're
+            // looking at the user's home tree)
+        }
+        else if ( Mailbox::match( pattern, 0,
+                                  m->name().titlecased(), d->prefix ) == 2 )
+        {
+            respond( "LSUB () \"/\" " + imapQuoted( m ) );
+        }
+        else {
             p = m;
-            if ( !p->deleted() &&
-                 Mailbox::match( pattern, 0,
-                                 p->name().titlecased(), d->prefix ) == 2 ) {
-                String flags = "";
-                if ( p != m || p->synthetic() || p->deleted() )
-                    flags = "\\noselect";
-                // we quote a little too much here. we don't quote if
-                // the string is 1*astring-char. we could also include
-                // list-wildcards in the quote-free set.
-                respond( "LSUB (" + flags + ") \"/\" " + imapQuoted( m ) );
+            uint mr = 0;
+            do {
+                p = p->parent();
+                mr = Mailbox::match( pattern, 0,
+                                     p->name().titlecased(), d->prefix );
+            } while ( mr == 0 && p && p != d->top );
+            if ( mr == 2 ) {
+                String n = "LSUB (\\noselect) \"/\" " + imapQuoted( p );
+                if ( n != a )
+                    respond( n );
+                a = n;
+                // In IMAP, a server may send any response it wants,
+                // right? So we can legally do this:
+                //respond( "LSUB () \"/\" " + imapQuoted( m ) );
+                // What a pity that imaptest will blink red.
             }
         }
     }
