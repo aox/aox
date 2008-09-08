@@ -519,8 +519,6 @@ void Store::execute()
         return;
     if ( d->transaction->failed() ) {
         error( No, "Database error. Rolling transaction back" );
-        AnnotationName::rollback();
-        Flag::rollback();
         finish();
         return;
     }

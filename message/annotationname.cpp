@@ -113,27 +113,6 @@ void AnnotationName::reload( EventHandler * owner )
 }
 
 
-/*! Discards any annotation names that have been created by calling
-    add() rather than being loaded from the database. */
-
-void AnnotationName::rollback()
-{
-    if ( !::annotationsById )
-        return;
-
-    StringList::Iterator it( ::annotationsByName->keys() );
-    while ( it ) {
-        String k( *it );
-        uint id = *::annotationsByName->find( k );
-        if ( id > largestAnnotationNameId ) {
-            ::annotationsByName->take( k );
-            ::annotationsById->remove( id );
-        }
-        ++it;
-    }
-}
-
-
 /*! Returns the largest known id for an annotation name. May be 0 if the
     annotation_names table has not yet been loaded. */
 
