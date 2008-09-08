@@ -85,8 +85,10 @@ void HelperRowCreator::execute()
         if ( !d->s ) {
             d->s = makeSelect();
             if ( d->s ) {
-                d->parent->enqueue( d->s );
-                d->parent->execute();
+                if ( !d->t )
+                    d->t = d->parent->subTransaction( this );
+                d->t->enqueue( d->s );
+                d->t->execute();
             }
             else {
                 d->done = true;
@@ -98,8 +100,6 @@ void HelperRowCreator::execute()
             d->s = 0;
             d->c = makeCopy();
             if ( d->c ) {
-                if ( !d->t )
-                    d->t = d->parent->subTransaction( this );
                 d->t->enqueue( d->c );
                 d->t->execute();
             }
@@ -117,6 +117,7 @@ void HelperRowCreator::execute()
             else if ( c->error().contains( d->e ) ) {
                 // We inserted, but there was a race and we lost it.
                 d->t->rollback();
+                d->t = 0;
             }
             else {
                 // Total failure. The Transaction is now in Failed
@@ -129,12 +130,11 @@ void HelperRowCreator::execute()
     }
 
     if ( d->t && !d->notify ) {
-        d->t->commit();
         String ed = d->n;
         ed.replace( "creator", "extended" );
         d->notify = new Query( "notify " + ed, this );
-        d->parent->enqueue( d->notify );
-        d->parent->execute();
+        d->t->enqueue( d->notify );
+        d->t->commit();
     }
 
     if ( d->notify && !d->notify->done() )
