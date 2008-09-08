@@ -253,6 +253,7 @@ public:
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
           mailboxes( new SortedList<Mailbox> ),
+          fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
           creators( 0 ), addressCreation( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), subtransaction( 0 )
@@ -274,6 +275,9 @@ public:
 
     SortedList<Mailbox> * mailboxes;
 
+    HelperRowCreator * fieldNameCreator;
+    HelperRowCreator * flagCreator;
+    HelperRowCreator * annotationNameCreator;
     List<HelperRowCreator> * creators;
     Query * addressCreation;
 
@@ -730,14 +734,20 @@ void Injector::createDependencies()
 {
     if ( !d->creators ) {
         d->creators = new List<HelperRowCreator>;
-        if ( !d->fields.isEmpty() )
-            d->creators->append( new FieldNameCreator( d->fields,
-                                                       d->transaction ) );
-        if ( !d->flags.isEmpty() )
-            d->creators->append( new FlagCreator( d->flags, d->transaction ) );
-        if ( !d->annotationNames.isEmpty() )
-            d->creators->append( new AnnotationNameCreator( d->annotationNames,
-                                                            d->transaction ) );
+        if ( !d->fields.isEmpty() ) {
+            d->fieldNameCreator =
+                new FieldNameCreator( d->fields, d->transaction );
+            d->creators->append( d->fieldNameCreator );
+        }
+        if ( !d->flags.isEmpty() ) {
+            d->flagCreator = new FlagCreator( d->flags, d->transaction );
+            d->creators->append( d->flagCreator );
+        }
+        if ( !d->annotationNames.isEmpty() ) {
+            d->annotationNameCreator =
+                new AnnotationNameCreator( d->annotationNames, d->transaction );
+            d->creators->append( d->annotationNameCreator );
+        }
     }
 
     while ( !d->creators->isEmpty() ) {
@@ -1354,7 +1364,11 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
             }
         }
         else {
-            uint t = FieldName::id( hf->name() );
+            uint t = 0;
+            if ( d->fieldNameCreator )
+                t = d->fieldNameCreator->id( hf->name() );
+            if ( !t )
+                t = FieldName::id( hf->name() );
             if ( !t )
                 t = hf->type();
 
@@ -1400,10 +1414,15 @@ uint Injector::addFlags( Query * q, Message * m, Mailbox * mb )
     uint n = 0;
     StringList::Iterator it( m->flags( mb ) );
     while ( it ) {
+        uint flag = 0;
+        if ( d->flagCreator )
+            flag = d->flagCreator->id( *it );
+        if ( !flag )
+            flag = Flag::id( *it );
         n++;
         q->bind( 1, mb->id() );
         q->bind( 2, m->uid( mb ) );
-        q->bind( 3, Flag::id( *it ) );
+        q->bind( 3, flag );
         q->submitLine();
         ++it;
     }
@@ -1419,10 +1438,15 @@ uint Injector::addAnnotations( Query * q, Message * m, Mailbox * mb )
     uint n = 0;
     List<Annotation>::Iterator ai( m->annotations( mb ) );
     while ( ai ) {
+        uint aid = 0;
+        if ( d->annotationNameCreator )
+            aid = d->annotationNameCreator->id( ai->entryName() );
+        if ( !aid )
+            aid = AnnotationName::id( ai->entryName() );
         n++;
         q->bind( 1, mb->id() );
         q->bind( 2, m->uid( mb ) );
-        q->bind( 3, AnnotationName::id( ai->entryName() ) );
+        q->bind( 3, aid );
         q->bind( 4, ai->value() );
         if ( ai->ownerId() == 0 )
             q->bindNull( 5 );
