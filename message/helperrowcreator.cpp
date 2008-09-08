@@ -31,17 +31,17 @@ class HelperRowCreatorData
 {
 public:
     HelperRowCreatorData()
-        : s( 0 ), c( 0 ), notify( 0 ), t( 0 ),
-          sp( false ), done( false )
+        : s( 0 ), c( 0 ), notify( 0 ), parent( 0 ), t( 0 ),
+          done( false )
     {}
 
     Query * s;
     Query * c;
     Query * notify;
+    Transaction * parent;
     Transaction * t;
     String n;
     String e;
-    bool sp;
     bool done;
     Dict<uint> names;
 };
@@ -85,8 +85,8 @@ void HelperRowCreator::execute()
         if ( !d->s ) {
             d->s = makeSelect();
             if ( d->s ) {
-                d->t->enqueue( d->s );
-                d->t->execute();
+                d->parent->enqueue( d->s );
+                d->parent->execute();
             }
             else {
                 d->done = true;
@@ -98,10 +98,8 @@ void HelperRowCreator::execute()
             d->s = 0;
             d->c = makeCopy();
             if ( d->c ) {
-                if ( !d->sp ) {
-                    d->t->enqueue( new Query( "savepoint " + d->n, 0 ) );
-                    d->sp = true;
-                }
+                if ( !d->t )
+                    d->t = d->parent->subTransaction( this );
                 d->t->enqueue( d->c );
                 d->t->execute();
             }
@@ -118,31 +116,31 @@ void HelperRowCreator::execute()
             }
             else if ( c->error().contains( d->e ) ) {
                 // We inserted, but there was a race and we lost it.
-                d->t->enqueue( new Query( "rollback to savepoint "+d->n, 0 ) );
+                d->t->rollback();
             }
             else {
                 // Total failure. The Transaction is now in Failed
                 // state, and there's nothing we can do other than
                 // notify our owner about it.
                 d->done = true;
-                d->sp = false;
+                d->t = 0;
             }
         }
     }
 
-    if ( d->sp && !d->notify ) {
-        d->t->enqueue( new Query( "release savepoint " + d->n, 0 ) );
+    if ( d->t && !d->notify ) {
+        d->t->commit();
         String ed = d->n;
         ed.replace( "creator", "extended" );
         d->notify = new Query( "notify " + ed, this );
-        d->t->enqueue( d->notify );
-        d->t->execute();
+        d->parent->enqueue( d->notify );
+        d->parent->execute();
     }
 
     if ( d->notify && !d->notify->done() )
         return;
 
-    d->t->notify();
+    d->parent->notify();
 }
 
 
