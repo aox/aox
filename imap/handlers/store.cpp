@@ -630,7 +630,11 @@ bool Store::removeFlags( bool opposite )
 
     StringList::Iterator i( d->flagNames );
     while ( i ) {
-        uint id = Flag::id( *i );
+        uint id = 0;
+        if ( d->flagCreator )
+            id = d->flagCreator->id( *i );
+        if ( !id )
+            id = Flag::id( *i );
         ++i;
         if ( id ) {
             MessageSet * present = d->present->find( id );
@@ -670,7 +674,11 @@ bool Store::addFlags()
     StringList::Iterator it( d->flagNames );
     while ( it ) {
         MessageSet s( d->s );
-        uint flag = Flag::id( *it );
+        uint flag = 0;
+        if ( d->flagCreator )
+            flag = d->flagCreator->id( *it );
+        if ( !flag )
+            flag = Flag::id( *it );
         ++it;
         if ( flag ) {
             MessageSet * p = d->present->find( flag );
@@ -731,6 +739,13 @@ void Store::replaceAnnotations()
     User * u = imap()->user();
     while ( it ) {
         Query * q;
+
+        uint aid = 0;
+        if ( d->annotationNameCreator )
+            aid = d->annotationNameCreator->id( it->entryName() );
+        if ( !aid )
+            aid = AnnotationName::id( it->entryName() );
+
         if ( it->value().isEmpty() ) {
             String o = "owner=$4";
             if ( !it->ownerId() )
@@ -740,7 +755,7 @@ void Store::replaceAnnotations()
                            "name=$3 and " + o, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, d->s );
-            q->bind( 3, AnnotationName::id( it->entryName() ) );
+            q->bind( 3, aid );
             if ( it->ownerId() )
                 q->bind( 4, u->id() );
             d->transaction->enqueue( q );
@@ -755,7 +770,7 @@ void Store::replaceAnnotations()
             bind( q, 1, it->value() );
             q->bind( 2, m->id() );
             q->bind( 3, d->s );
-            q->bind( 4, AnnotationName::id( it->entryName() ) );
+            q->bind( 4, aid );
             if ( it->ownerId() )
                 q->bind( 5, u->id() );
             d->transaction->enqueue( q );
@@ -770,7 +785,7 @@ void Store::replaceAnnotations()
             bind( q, 1, it->value() );
             q->bind( 2, m->id() );
             q->bind( 3, d->s );
-            q->bind( 4, AnnotationName::id( it->entryName() ) );
+            q->bind( 4, aid );
             if ( it->ownerId() )
                 q->bind( 5, it->ownerId() );
             else
