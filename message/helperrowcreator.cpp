@@ -236,7 +236,7 @@ Query * FlagCreator::makeSelect()
     StringList::Iterator it( names );
     while ( it ) {
         String name( *it );
-        if ( Flag::id( name ) == 0 )
+        if ( id( name ) == 0 && Flag::id( name ) == 0 )
             sl.append( name.lower() );
         ++it;
     }
@@ -255,7 +255,7 @@ Query * FlagCreator::makeCopy()
     bool any = false;
     StringList::Iterator it( names );
     while ( it ) {
-        if ( Flag::id( *it ) == 0 ) {
+        if ( id( *it ) == 0 && Flag::id( *it ) == 0 ) {
             c->bind( 1, *it );
             c->submitLine();
             any = true;
@@ -298,7 +298,7 @@ Query * FieldNameCreator::makeSelect()
     StringList sl;
     StringList::Iterator it( names );
     while ( it ) {
-        if ( FieldName::id( *it ) == 0 )
+        if ( id( *it ) == 0 && FieldName::id( *it ) == 0 )
             sl.append( *it );
         ++it;
     }
@@ -316,7 +316,7 @@ Query * FieldNameCreator::makeCopy()
     StringList::Iterator it( names );
     bool any = false;
     while ( it ) {
-        if ( FieldName::id( *it ) == 0 ) {
+        if ( id( *it ) == 0 && FieldName::id( *it ) == 0 ) {
             q->bind( 1, *it );
             q->submitLine();
             any = true;
@@ -357,7 +357,7 @@ Query *  AnnotationNameCreator::makeSelect()
     StringList::Iterator it( names );
     while ( it ) {
         String name( *it );
-        if ( AnnotationName::id( name ) == 0 )
+        if ( id( name ) == 0 && AnnotationName::id( name ) == 0 )
             sl.append( name );
         ++it;
     }
@@ -376,7 +376,7 @@ Query * AnnotationNameCreator::makeCopy()
     StringList::Iterator it( names );
     bool any = false;
     while ( it ) {
-        if ( AnnotationName::id( *it ) == 0 ) {
+        if ( id( *it ) == 0 && AnnotationName::id( *it ) == 0 ) {
             any = true;
             q->bind( 1, *it );
             q->submitLine();
