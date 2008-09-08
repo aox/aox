@@ -877,10 +877,8 @@ bool ManageSieveCommand::explain()
                 ::x->message = 0;
             }
             else {
-                ::x->message = new Message( value );
-                ::x->message->setHeadersFetched();
-                ::x->message->setBodiesFetched();
-                ::x->message->setAddressesFetched();
+                ::x->message = new Message;
+                ::x->message->parse( value );
                 ::x->message->setRfc822Size( ::x->message->rfc822().length() );
                 if ( !::x->message->error().isEmpty() )
                     no( "Message parsing: " + ::x->message->error() );

@@ -82,7 +82,7 @@ public:
     RFC 3501 gives a basic syntax for Append. RFC 3502 modifies
     it. RFC 4466 modifies it too. RFC 5257 extends the modification
     given by RFC 4466.
-    
+
     We now use the syntax given by RFC 4466.
 */
 
@@ -118,7 +118,7 @@ void Append::parse()
 
         Appendage * h = new Appendage;
         d->messages.append( h );
-        
+
         if ( present( "(" ) ) {
             if ( nextChar() != ')' ) {
                 h->flags.append( flag() );
@@ -389,7 +389,8 @@ void Append::process( class Appendage * h )
         h->textparts->take( it );
     }
 
-    h->message = new Message( h->text );
+    h->message = new Message;
+    h->message->parse( h->text );
     h->message->addMailbox( d->mailbox );
     h->message->setFlags( d->mailbox, &h->flags );
     h->message->setAnnotations( d->mailbox, h->annotations );
