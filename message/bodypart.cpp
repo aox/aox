@@ -771,7 +771,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         // There are sometimes blank lines before the message.
         while ( rfc2822[start] == 13 || rfc2822[start] == 10 )
             start++;
-        Message * m = new Message( rfc2822.mid( start, end-start ), bp );
+        Message * m = new Message;
+        m->setParent( bp ); 
+        m->parse( rfc2822.mid( start, end-start ) );
         List<Bodypart>::Iterator it( m->children() );
         while ( it ) {
             bp->children()->append( it );

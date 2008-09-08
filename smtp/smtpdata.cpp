@@ -400,7 +400,8 @@ Message * SmtpData::message( const String & body )
              "\r\n";
 
     d->body = rp + received + body;
-    Message * m = new Message( d->body );
+    Message * m = new Message;
+    m->parse( d->body );
     // if the sender is another dickhead specifying <> in From to
     // evade replies, let's try harder.
     if ( !m->error().isEmpty() &&

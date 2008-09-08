@@ -109,10 +109,14 @@ public:
         : public Decoder
     {
     public:
-        TriviaDecoder( FetcherData * fd ): Decoder( fd ) {}
+        TriviaDecoder( FetcherData * fd )
+            : Decoder( fd ),
+              haveDecided( false ), findModSeq( false ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
+        bool haveDecided;
+        bool findModSeq;
     };
 
     class AnnotationDecoder
@@ -393,19 +397,25 @@ void Fetcher::findMessages()
     if ( !d->findMessages->done() )
         return;
 
-    Row * r = 0;
-    List<Message>::Iterator m( d->messages );
-    while ( (r=d->findMessages->nextRow()) != 0 ) {
-        d->messagesRemaining++;
-        uint uid = r->getInt( "uid" );
-        while ( m && m->uid( d->mailbox ) < uid )
-            ++m;
-        if ( m ) {
-            m->setDatabaseId( r->getInt( "message" ) );
-            if ( d->trivia ) {
-                m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );
-                m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
+    Row * r = d->findMessages->nextRow();
+    if ( r ) {
+        bool modseq = false;
+        if ( r->hasColumn( "modseq" ) )
+            modseq = true;
+        List<Message>::Iterator m( d->messages );
+        while ( r ) {
+            d->messagesRemaining++;
+            uint uid = r->getInt( "uid" );
+            while ( m && m->uid( d->mailbox ) < uid )
+                ++m;
+            if ( m ) {
+                m->setDatabaseId( r->getInt( "message" ) );
+                if ( modseq ) {
+                    m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );
+                    m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
+                }
             }
+            r = d->findMessages->nextRow();
         }
     }
 
@@ -1145,7 +1155,12 @@ bool FetcherData::PartNumberDecoder::isDone( Message * m ) const
 void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
 {
     m->setRfc822Size( r->getInt( "rfc822size" ) );
-    if ( findById )
+    if ( !haveDecided ) {
+        if ( r->hasColumn( "modseq" ) )
+            findModSeq = true;
+        haveDecided = true;
+    }
+    if ( !findModSeq )
         return;
     m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
     m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );

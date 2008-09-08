@@ -75,7 +75,7 @@ void Multipart::setParent( Multipart * pt )
 
 
 /*! Returns a pointer to a list of Bodyparts belonging to this object.
-    Will never return 0.
+    May return an empty list, but never returns a null pointer.
 */
 
 List< Bodypart > * Multipart::children() const

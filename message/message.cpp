@@ -25,16 +25,14 @@ class MessageData
 {
 public:
     MessageData()
-        : strict( false ), mailboxes( 0 ), databaseId( 0 ),
+        : mailboxes( 0 ), databaseId( 0 ),
           wrapped( false ), rfc822Size( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
           hasBytesAndLines( false )
     {}
 
-    bool strict;
     String error;
 
-    uint uid;
     class Mailbox
         : public Garbage
     {
@@ -115,15 +113,16 @@ Message::Message()
 }
 
 
-/*! Constructs a message by parsing the supplied \a rfc2822 text,
-    which will be set to have parent() \a p. */
+/*! Wipes out old message content and replaces it with a parse tree
+    based on \a rfc2822.
+*/
 
-Message::Message( const String & rfc2822, Multipart * p )
-    : d( new MessageData )
+void Message::parse( const String & rfc2822 )
 {
     uint i = 0;
 
-    setParent( p );
+    children()->clear();
+
     setHeader( parseHeader( i, rfc2822.length(), rfc2822, Header::Rfc2822 ) );
     header()->repair();
     header()->repair( this, rfc2822.mid( i ) );
@@ -1272,7 +1271,8 @@ Message * Message::wrapUnparsableMessage( const String & message,
     wrapper.append( message );
     wrapper.append( "\r\n--" + boundary + "--\r\n" );
 
-    Message * m = new Message( wrapper );
+    Message * m = new Message;
+    m->parse( wrapper );
     m->setWrapped( true );
     return m;
 }
