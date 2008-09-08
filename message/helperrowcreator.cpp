@@ -2,6 +2,8 @@
 
 #include "helperrowcreator.h"
 
+#include "dict.h"
+#include "allocator.h"
 #include "transaction.h"
 #include "query.h"
 
@@ -41,6 +43,7 @@ public:
     String e;
     bool sp;
     bool done;
+    Dict<uint> names;
 };
 
 
@@ -156,12 +159,18 @@ void HelperRowCreator::execute()
  */
 
 
-/*! \fn void HelperRowCreator::processSelect( Query * q )
-
-    This pure virtual function is called to process the result of the
+/*! This virtual function is called to process the result of the
     makeSelect() Query. \a q is the Query returned by makeSelect()
     (never 0).
  */
+
+void HelperRowCreator::processSelect( Query * q )
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        add( r->getString( "name" ), r->getInt( "id" ) );
+    }
+}
 
 
 /*! \fn Query * HelperRowCreator::makeCopy()
@@ -174,6 +183,28 @@ void HelperRowCreator::execute()
     If makeCopy() returns non-null, the returned Query should have
     this object as owner.
  */
+
+
+/*! Remembers that the given name \a s corresponds to the \a id. */
+
+void HelperRowCreator::add( const String & s, uint id )
+{
+    uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
+    *tmp = id;
+
+    d->names.insert( s.lower(), tmp );
+}
+
+
+/*! Returns the id stored earlier with add() for the name \a s. */
+
+uint HelperRowCreator::id( const String & s )
+{
+    uint * p = d->names.find( s.lower() );
+    if ( p )
+        return *p;
+    return 0;
+}
 
 
 /*! \class FlagCreator helperrowcreator.h
@@ -216,15 +247,6 @@ Query * FlagCreator::makeSelect()
         return 0;
     s->bind( 1, sl );
     return s;
-}
-
-
-void FlagCreator::processSelect( Query * s )
-{
-    while ( s->hasResults() ) {
-        Row * r = s->nextRow();
-        Flag::add( r->getString( "name" ), r->getInt( "id" ) );
-    }
 }
 
 
@@ -289,15 +311,6 @@ Query * FieldNameCreator::makeSelect()
 }
 
 
-void FieldNameCreator::processSelect( Query * q )
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        FieldName::add( r->getString( "name" ), r->getInt( "id" ) );
-    }
-}
-
-
 Query * FieldNameCreator::makeCopy()
 {
     Query * q = new Query( "copy field_names (name) from stdin with binary",
@@ -358,15 +371,6 @@ Query *  AnnotationNameCreator::makeSelect()
 }
 
 
-void AnnotationNameCreator::processSelect( Query * q )
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        AnnotationName::add( r->getString( "name" ), r->getInt( "id" ) );
-    }
-}
-
-
 Query * AnnotationNameCreator::makeCopy()
 {
     Query * q = new Query( "copy annotation_names (name) "
@@ -386,5 +390,3 @@ Query * AnnotationNameCreator::makeCopy()
         return 0;
     return q;
 }
-
-
