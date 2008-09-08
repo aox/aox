@@ -255,7 +255,7 @@ public:
           mailboxes( new SortedList<Mailbox> ),
           creators( 0 ), addressCreation( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
-          substate( 0 ), ignoreError( false )
+          substate( 0 ), subtransaction( 0 )
     {}
 
     List<Message> * messages;
@@ -297,7 +297,7 @@ public:
     List<Message>::Iterator * message;
 
     uint substate;
-    bool ignoreError;
+    Transaction * subtransaction;
 
     Dict<BodypartRow> hashes;
     List<BodypartRow> bodyparts;
@@ -549,11 +549,7 @@ void Injector::execute()
             d->failed = d->transaction->failed();
 
         if ( d->state < AwaitingCompletion && d->failed ) {
-            if ( d->ignoreError ) {
-                d->failed = false;
-                d->ignoreError = false;
-            }
-            else if ( d->transaction ) {
+            if ( d->transaction ) {
                 d->state = AwaitingCompletion;
                 Flag::rollback();
                 FieldName::rollback();
@@ -833,7 +829,7 @@ void Injector::insertBodyparts()
 
             d->transaction->enqueue( create );
             d->transaction->enqueue( copy );
-            d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
+            d->subtransaction = d->transaction->subTransaction();
 
             d->substate++;
         }
@@ -856,10 +852,10 @@ void Injector::insertBodyparts()
                            "from bp where n", this );
 
             d->substate++;
-            d->transaction->enqueue( setId );
-            d->transaction->enqueue( setNew );
-            d->transaction->enqueue( d->insert );
-            d->transaction->execute();
+            d->subtransaction->enqueue( setId );
+            d->subtransaction->enqueue( setNew );
+            d->subtransaction->enqueue( d->insert );
+            d->subtransaction->execute();
         }
 
         if ( d->substate == 3 ) {
@@ -867,14 +863,12 @@ void Injector::insertBodyparts()
                 return;
 
             if ( d->insert->failed() ) {
-                d->ignoreError = true;
-                d->transaction->enqueue( new Query( "rollback to bp", 0 ) );
+                d->subtransaction->rollback();
                 d->substate = 2;
             }
             else {
                 d->substate++;
-                d->transaction->enqueue(
-                    new Query( "release savepoint bp", 0 ) );
+                d->subtransaction->commit();
                 d->select =
                     new Query( "select bid from bp order by i", this );
                 d->transaction->enqueue( d->select );
