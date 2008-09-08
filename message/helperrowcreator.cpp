@@ -58,7 +58,7 @@ HelperRowCreator::HelperRowCreator( const String & table,
     : EventHandler(), d( new HelperRowCreatorData )
 {
     setLog( new Log( Log::Server ) );
-    d->t = transaction;
+    d->parent = transaction;
     d->n = table + "_creator";
     d->e = constraint;
 }
