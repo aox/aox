@@ -135,27 +135,6 @@ void Flag::reload( EventHandler * owner )
 }
 
 
-/*! Discards any flags that have been created by calling add() rather
-    than being loaded from the database. */
-
-void Flag::rollback()
-{
-    if ( !::flagsByName )
-        return;
-
-    StringList::Iterator it( ::flagsByName->keys() );
-    while ( it ) {
-        String k( *it );
-        uint id = *::flagsByName->find( k );
-        if ( id > largestFlagId ) {
-            ::flagsByName->take( k );
-            ::flagsById->remove( id );
-        }
-        ++it;
-    }
-}
-
-
 /*! Records that a flag with the given \a name and \a id exists. After
     this call, id( \a name ) returns \a id, and name( \a id ) returns
     \a name. */

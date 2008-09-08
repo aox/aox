@@ -15,7 +15,6 @@ public:
     static void setup();
 
     static void reload( EventHandler * = 0 );
-    static void rollback();
 
     static void add( const String &, uint );
 

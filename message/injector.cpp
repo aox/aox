@@ -529,9 +529,6 @@ void Injector::execute()
 
             if ( d->failed || d->transaction->failed() ) {
                 ::failures->tick();
-                Flag::rollback();
-                FieldName::rollback();
-                AnnotationName::rollback();
             }
             else {
                 ::successes->tick();
@@ -551,9 +548,6 @@ void Injector::execute()
         if ( d->state < AwaitingCompletion && d->failed ) {
             if ( d->transaction ) {
                 d->state = AwaitingCompletion;
-                Flag::rollback();
-                FieldName::rollback();
-                AnnotationName::rollback();
                 d->transaction->rollback();
             }
             else {
