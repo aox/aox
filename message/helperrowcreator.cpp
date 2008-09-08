@@ -176,15 +176,6 @@ void HelperRowCreator::execute()
  */
 
 
-class FlagCreatorData
-    : public Garbage
-{
-public:
-    FlagCreatorData( const StringList & f ): flags( f ) {}
-    StringList flags;
-};
-
-
 /*! \class FlagCreator helperrowcreator.h
 
     This class issuses queries using a supplied Transaction to add new
@@ -192,17 +183,17 @@ public:
 */
 
 
-/*! Starts constructing the queries needed to create the specified \a
-    flags in the transaction \a t. This object will notify the
+/*! Starts constructing the queries needed to create the flags specified
+    in \a f within the transaction \a t. This object will notify the
     Transaction::owner() when it's done.
 
     \a t will fail if flag creation fails for some reason (typically
     bugs). Transaction::error() should say what went wrong.
 */
 
-FlagCreator::FlagCreator( const StringList & flags, Transaction * t )
+FlagCreator::FlagCreator( const StringList & f, Transaction * t )
     : HelperRowCreator( "flag_names", t, "fn_uname" ),
-      d( new FlagCreatorData( flags ) )
+      names( f )
 {
 }
 
@@ -213,7 +204,7 @@ Query * FlagCreator::makeSelect()
                            "lower(name)=any($1::text[])", this );
 
     StringList sl;
-    StringList::Iterator it( d->flags );
+    StringList::Iterator it( names );
     while ( it ) {
         String name( *it );
         if ( Flag::id( name ) == 0 )
@@ -242,7 +233,7 @@ Query * FlagCreator::makeCopy()
     Query * c = new Query( "copy flag_names (name) from stdin with binary",
                            this );
     bool any = false;
-    StringList::Iterator it( d->flags );
+    StringList::Iterator it( names );
     while ( it ) {
         if ( Flag::id( *it ) == 0 ) {
             c->bind( 1, *it );

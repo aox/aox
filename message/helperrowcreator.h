@@ -39,7 +39,7 @@ private:
     Query * makeCopy();
 
 private:
-    class FlagCreatorData * d;
+    StringList names;
 };
 
 
