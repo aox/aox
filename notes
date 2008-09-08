@@ -429,6 +429,17 @@ Threads in Archiveopteryx 4.0
   than with server-processes.
 
 
+Sending FLAGS updates
+
+  We could do it without horrendous inefficiency if we send a complete
+  list... have the ImapSession register a DatabaseSignal so it learns
+  about it whenever flag_names is extended, and send 'select name from
+  flag_names order by name' then.
+
+  This may give the poor client a thousand flags on a big server, so
+  I'm not eager to do it.
+
+
 Full-text search
 
   There Be Problems.
@@ -1243,3 +1254,5 @@ Problems found in 3.0.0 by Timo
     (Not verified because of segfault; will check later.)
 
     No idea. We need to run Timo's test suite ourselves.
+
+
