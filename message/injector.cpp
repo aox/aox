@@ -72,15 +72,15 @@ class AddressCreator
 {
 public:
     List<Address> * addresses;
+    Transaction * parent;
     Transaction * t;
     Query * result;
     Query * q;
     int state;
-    int savepoint;
     Dict<Address> unided;
 
     AddressCreator( List<Address> * a, Transaction * tr, EventHandler * ev )
-        : addresses( a ), t( tr ), q( 0 ), state( 0 ), savepoint( 0 )
+        : addresses( a ), parent( tr ), q( 0 ), state( 0 )
     {
         result = new Query( ev );
     }
@@ -156,8 +156,8 @@ void AddressCreator::selectAddresses()
     }
     else {
         state = 1;
-        t->enqueue( q );
-        t->execute();
+        parent->enqueue( q );
+        parent->execute();
     }
 }
 
@@ -190,9 +190,7 @@ void AddressCreator::processAddresses()
 
 void AddressCreator::insertAddresses()
 {
-    q = new Query( "savepoint b" + fn( savepoint ), this );
-    t->enqueue( q );
-
+    t = parent->subTransaction();
     q = new Query( "copy addresses (name,localpart,domain) "
                    "from stdin with binary", this );
     StringList::Iterator it( unided.keys() );
@@ -218,9 +216,7 @@ void AddressCreator::processInsert()
     state = 0;
     if ( q->failed() ) {
         if ( q->error().contains( "addresses_nld_key" ) ) {
-            q = new Query( "rollback to b" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
+            t->rollback();
         }
         else {
             result->setState( Query::Failed );
@@ -228,8 +224,7 @@ void AddressCreator::processInsert()
         }
     }
     else {
-        q = new Query( "release savepoint b" + fn( savepoint ), this );
-        t->enqueue( q );
+        t->commit();
     }
 
     if ( state == 0 )
