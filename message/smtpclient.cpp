@@ -220,7 +220,7 @@ void SmtpClient::sendCommand()
         }
         send = "mail from:<";
         if ( d->dsn->sender()->type() == Address::Normal )
-            send.append( d->dsn->sender()->toString() );
+            send.append( d->dsn->sender()->lpdomain() );
         send.append( ">" );
 
         d->state = SmtpClientData::MailFrom;
