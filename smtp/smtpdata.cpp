@@ -362,15 +362,20 @@ Message * SmtpData::message( const String & body )
         return d->message;
 
     String received( "Received: from " );
-    received.append( server()->peer().address() );
+    if ( server()->user() ) {
+        received.append( server()->user()->address()->lpdomain() );
+        if ( server()->peer().protocol() != Endpoint::Unix ) {
+            received.append( " (client address " );
+            received.append( server()->peer().address() );
+            received.append( ")" );
+        }
+    }
+    else {
+        received.append( server()->peer().address() );
+    }
     received.append( " (HELO " );
     received.append( server()->heloName() );
     received.append( ")" );
-    if ( server()->user() ) {
-        received.append( " (authenticated as " );
-        received.append( server()->user()->address()->lpdomain() );
-        received.append( ")" );
-    }
     received.append( " by " );
     received.append( Configuration::hostname() );
     switch ( server()->dialect() ) {
