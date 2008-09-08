@@ -303,7 +303,8 @@ static String * errdir = 0;
 MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
     : s( desc ), o( rfc822 ), m( 0 )
 {
-    m = new Message( o );
+    m = new Message;
+    m->parse( o );
     if ( m->error().isEmpty() )
         return;
 
@@ -312,7 +313,8 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
                  desc.cstr(), m->error().cstr() );
     if ( Migrator::errorCopies() ) {
         String a = o.anonymised();
-        Message * am = new Message( a );
+        Message * am = new Message;
+        am->parse( a );
         String dir;
         String name;
         String c;

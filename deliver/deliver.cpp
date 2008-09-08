@@ -222,7 +222,8 @@ int main( int argc, char *argv[] )
 
     Configuration::setup( "archiveopteryx.conf" );
 
-    Message * message = new Message( contents );
+    Message * message = new Message;
+    message->parse( contents );
     if ( !message->error().isEmpty() ) {
         fprintf( stderr,
                  "Message parsing failed: %s", message->error().cstr( ) );

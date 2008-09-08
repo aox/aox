@@ -17,9 +17,14 @@ public:
 
     void execute();
 
+    uint id( const String & );
+
+protected:
+    void add( const String &, uint );
+
 private:
     virtual Query * makeSelect() = 0;
-    virtual void processSelect( Query * ) = 0;
+    virtual void processSelect( Query * );
     virtual Query * makeCopy() = 0;
 
 private:
@@ -35,11 +40,10 @@ public:
 
 private:
     Query * makeSelect();
-    void processSelect( Query * );
     Query * makeCopy();
 
 private:
-    class FlagCreatorData * d;
+    StringList names;
 };
 
 
@@ -51,7 +55,6 @@ public:
 
 private:
     Query * makeSelect();
-    void processSelect( Query * );
     Query * makeCopy();
 
 private:
@@ -67,7 +70,6 @@ public:
 
 private:
     Query * makeSelect();
-    void processSelect( Query * );
     Query * makeCopy();
 
 private:

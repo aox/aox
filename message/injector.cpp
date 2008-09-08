@@ -72,15 +72,15 @@ class AddressCreator
 {
 public:
     List<Address> * addresses;
+    Transaction * parent;
     Transaction * t;
     Query * result;
     Query * q;
     int state;
-    int savepoint;
     Dict<Address> unided;
 
     AddressCreator( List<Address> * a, Transaction * tr, EventHandler * ev )
-        : addresses( a ), t( tr ), q( 0 ), state( 0 ), savepoint( 0 )
+        : addresses( a ), parent( tr ), q( 0 ), state( 0 )
     {
         result = new Query( ev );
     }
@@ -156,8 +156,8 @@ void AddressCreator::selectAddresses()
     }
     else {
         state = 1;
-        t->enqueue( q );
-        t->execute();
+        parent->enqueue( q );
+        parent->execute();
     }
 }
 
@@ -190,9 +190,7 @@ void AddressCreator::processAddresses()
 
 void AddressCreator::insertAddresses()
 {
-    q = new Query( "savepoint b" + fn( savepoint ), this );
-    t->enqueue( q );
-
+    t = parent->subTransaction();
     q = new Query( "copy addresses (name,localpart,domain) "
                    "from stdin with binary", this );
     StringList::Iterator it( unided.keys() );
@@ -218,9 +216,7 @@ void AddressCreator::processInsert()
     state = 0;
     if ( q->failed() ) {
         if ( q->error().contains( "addresses_nld_key" ) ) {
-            q = new Query( "rollback to b" + fn( savepoint ), this );
-            t->enqueue( q );
-            savepoint++;
+            t->rollback();
         }
         else {
             result->setState( Query::Failed );
@@ -228,8 +224,7 @@ void AddressCreator::processInsert()
         }
     }
     else {
-        q = new Query( "release savepoint b" + fn( savepoint ), this );
-        t->enqueue( q );
+        t->commit();
     }
 
     if ( state == 0 )
@@ -258,9 +253,10 @@ public:
           state( Inactive ), failed( false ), transaction( 0 ),
           addresses( new List<Address> ),
           mailboxes( new SortedList<Mailbox> ),
+          fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
           creators( 0 ), addressCreation( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
-          substate( 0 ), ignoreError( false )
+          substate( 0 ), subtransaction( 0 )
     {}
 
     List<Message> * messages;
@@ -279,6 +275,9 @@ public:
 
     SortedList<Mailbox> * mailboxes;
 
+    HelperRowCreator * fieldNameCreator;
+    HelperRowCreator * flagCreator;
+    HelperRowCreator * annotationNameCreator;
     List<HelperRowCreator> * creators;
     Query * addressCreation;
 
@@ -302,7 +301,7 @@ public:
     List<Message>::Iterator * message;
 
     uint substate;
-    bool ignoreError;
+    Transaction * subtransaction;
 
     Dict<BodypartRow> hashes;
     List<BodypartRow> bodyparts;
@@ -534,9 +533,6 @@ void Injector::execute()
 
             if ( d->failed || d->transaction->failed() ) {
                 ::failures->tick();
-                Flag::rollback();
-                FieldName::rollback();
-                AnnotationName::rollback();
             }
             else {
                 ::successes->tick();
@@ -554,15 +550,8 @@ void Injector::execute()
             d->failed = d->transaction->failed();
 
         if ( d->state < AwaitingCompletion && d->failed ) {
-            if ( d->ignoreError ) {
-                d->failed = false;
-                d->ignoreError = false;
-            }
-            else if ( d->transaction ) {
+            if ( d->transaction ) {
                 d->state = AwaitingCompletion;
-                Flag::rollback();
-                FieldName::rollback();
-                AnnotationName::rollback();
                 d->transaction->rollback();
             }
             else {
@@ -745,14 +734,20 @@ void Injector::createDependencies()
 {
     if ( !d->creators ) {
         d->creators = new List<HelperRowCreator>;
-        if ( !d->fields.isEmpty() )
-            d->creators->append( new FieldNameCreator( d->fields,
-                                                       d->transaction ) );
-        if ( !d->flags.isEmpty() )
-            d->creators->append( new FlagCreator( d->flags, d->transaction ) );
-        if ( !d->annotationNames.isEmpty() )
-            d->creators->append( new AnnotationNameCreator( d->annotationNames,
-                                                            d->transaction ) );
+        if ( !d->fields.isEmpty() ) {
+            d->fieldNameCreator =
+                new FieldNameCreator( d->fields, d->transaction );
+            d->creators->append( d->fieldNameCreator );
+        }
+        if ( !d->flags.isEmpty() ) {
+            d->flagCreator = new FlagCreator( d->flags, d->transaction );
+            d->creators->append( d->flagCreator );
+        }
+        if ( !d->annotationNames.isEmpty() ) {
+            d->annotationNameCreator =
+                new AnnotationNameCreator( d->annotationNames, d->transaction );
+            d->creators->append( d->annotationNameCreator );
+        }
     }
 
     while ( !d->creators->isEmpty() ) {
@@ -838,7 +833,7 @@ void Injector::insertBodyparts()
 
             d->transaction->enqueue( create );
             d->transaction->enqueue( copy );
-            d->transaction->enqueue( new Query( "savepoint bp", 0 ) );
+            d->subtransaction = d->transaction->subTransaction();
 
             d->substate++;
         }
@@ -861,10 +856,10 @@ void Injector::insertBodyparts()
                            "from bp where n", this );
 
             d->substate++;
-            d->transaction->enqueue( setId );
-            d->transaction->enqueue( setNew );
-            d->transaction->enqueue( d->insert );
-            d->transaction->execute();
+            d->subtransaction->enqueue( setId );
+            d->subtransaction->enqueue( setNew );
+            d->subtransaction->enqueue( d->insert );
+            d->subtransaction->execute();
         }
 
         if ( d->substate == 3 ) {
@@ -872,14 +867,12 @@ void Injector::insertBodyparts()
                 return;
 
             if ( d->insert->failed() ) {
-                d->ignoreError = true;
-                d->transaction->enqueue( new Query( "rollback to bp", 0 ) );
+                d->subtransaction->rollback();
                 d->substate = 2;
             }
             else {
                 d->substate++;
-                d->transaction->enqueue(
-                    new Query( "release savepoint bp", 0 ) );
+                d->subtransaction->commit();
                 d->select =
                     new Query( "select bid from bp order by i", this );
                 d->transaction->enqueue( d->select );
@@ -1371,7 +1364,11 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
             }
         }
         else {
-            uint t = FieldName::id( hf->name() );
+            uint t = 0;
+            if ( d->fieldNameCreator )
+                t = d->fieldNameCreator->id( hf->name() );
+            if ( !t )
+                t = FieldName::id( hf->name() );
             if ( !t )
                 t = hf->type();
 
@@ -1417,10 +1414,15 @@ uint Injector::addFlags( Query * q, Message * m, Mailbox * mb )
     uint n = 0;
     StringList::Iterator it( m->flags( mb ) );
     while ( it ) {
+        uint flag = 0;
+        if ( d->flagCreator )
+            flag = d->flagCreator->id( *it );
+        if ( !flag )
+            flag = Flag::id( *it );
         n++;
         q->bind( 1, mb->id() );
         q->bind( 2, m->uid( mb ) );
-        q->bind( 3, Flag::id( *it ) );
+        q->bind( 3, flag );
         q->submitLine();
         ++it;
     }
@@ -1436,10 +1438,15 @@ uint Injector::addAnnotations( Query * q, Message * m, Mailbox * mb )
     uint n = 0;
     List<Annotation>::Iterator ai( m->annotations( mb ) );
     while ( ai ) {
+        uint aid = 0;
+        if ( d->annotationNameCreator )
+            aid = d->annotationNameCreator->id( ai->entryName() );
+        if ( !aid )
+            aid = AnnotationName::id( ai->entryName() );
         n++;
         q->bind( 1, mb->id() );
         q->bind( 2, m->uid( mb ) );
-        q->bind( 3, AnnotationName::id( ai->entryName() ) );
+        q->bind( 3, aid );
         q->bind( 4, ai->value() );
         if ( ai->ownerId() == 0 )
             q->bindNull( 5 );

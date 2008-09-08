@@ -76,7 +76,7 @@ SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
     d->owner = owner;
     connect( address );
     EventLoop::global()->addConnection( this );
-    setTimeoutAfter( 300 );
+    setTimeoutAfter( 4 );
     log( "Connecting to " + address.string() );
     d->timerCloser = new SmtpClientData::TimerCloser( this );
 }
@@ -87,6 +87,9 @@ void SmtpClient::react( Event e )
     Scope x( log() );
     if ( d->log )
         x.setLog( d->log );
+    Connection::State s1 = Connection::state();
+    SmtpClientData::State s2 = d->state;
+    String s3 = d->error;
     switch ( e ) {
     case Read:
         parse();
@@ -96,12 +99,12 @@ void SmtpClient::react( Event e )
         log( "SMTP server timed out", Log::Error );
         d->error = "Server timeout.";
         finish();
-        d->owner->execute();
-        Connection::setState( Closing );
+        close();
         break;
 
     case Connect:
         d->state = SmtpClientData::Connected;
+        setTimeoutAfter( 300 );
         break; // we'll get a banner
 
     case Error:
@@ -109,13 +112,12 @@ void SmtpClient::react( Event e )
         if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
             finish( "4.4.1" );
-            d->owner->execute();
         }
-        else if ( d->sent != "quit" ) {
+        else if ( d->state != SmtpClientData::Invalid &&
+                  d->sent != "quit" ) {
             log( "Unexpected close by server", Log::Error );
             d->error = "Unexpected close by server.";
             finish( "4.4.2" );
-            d->owner->execute();
         }
         break;
 
@@ -124,6 +126,13 @@ void SmtpClient::react( Event e )
         // legal at this point.
         break;
     }
+
+    if ( s1 == Connection::state() && s2 == d->state && s3 == d->error )
+       return;
+    if ( d->user )
+        d->user->notify();
+    if ( d->owner )
+        d->owner->notify();
 }
 
 
@@ -175,8 +184,11 @@ void SmtpClient::parse()
             case 4:
             case 5:
                 handleFailure( *s );
-                if ( response == 421 )
-                    setState( Closing );
+                if ( response == 421 ) {
+                    log( "Closing because the SMTP server sent 421" );
+                    close();
+                    d->state = SmtpClientData::Invalid;
+                }
                 break;
             default:
                 ok = false;
@@ -185,7 +197,6 @@ void SmtpClient::parse()
         }
 
         if ( !ok ) {
-            d->owner->execute();
             log( "L/SMTP error for command " + d->sent + ": " + *s,
                  Log::Error );
         }
@@ -214,10 +225,8 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Hello:
-        if ( !d->dsn ) {
-            d->owner->execute();
+        if ( !d->dsn )
             return;
-        }
         send = "mail from:<";
         if ( d->dsn->sender()->type() == Address::Normal )
             send.append( d->dsn->sender()->lpdomain() );
@@ -274,7 +283,6 @@ void SmtpClient::sendCommand()
         finish();
         delete d->closeTimer;
         d->closeTimer = new Timer( d->timerCloser, 298 );
-        d->owner->execute();
         return;
 
     case SmtpClientData::Error:
@@ -284,7 +292,7 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Quit:
-        Connection::setState( Connection::Closing );
+        close();
         break;
     }
 
@@ -539,7 +547,7 @@ void SmtpClient::finish( const char * status )
     }
 
     if ( d->user )
-        d->user->execute();
+        d->user->notify();
     d->dsn = 0;
     d->user = 0;
     d->log = 0;

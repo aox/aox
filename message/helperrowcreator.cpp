@@ -2,6 +2,8 @@
 
 #include "helperrowcreator.h"
 
+#include "dict.h"
+#include "allocator.h"
 #include "transaction.h"
 #include "query.h"
 
@@ -29,18 +31,19 @@ class HelperRowCreatorData
 {
 public:
     HelperRowCreatorData()
-        : s( 0 ), c( 0 ), notify( 0 ), t( 0 ),
-          sp( false ), done( false )
+        : s( 0 ), c( 0 ), notify( 0 ), parent( 0 ), t( 0 ),
+          done( false )
     {}
 
     Query * s;
     Query * c;
     Query * notify;
+    Transaction * parent;
     Transaction * t;
     String n;
     String e;
-    bool sp;
     bool done;
+    Dict<uint> names;
 };
 
 
@@ -82,8 +85,8 @@ void HelperRowCreator::execute()
         if ( !d->s ) {
             d->s = makeSelect();
             if ( d->s ) {
-                d->t->enqueue( d->s );
-                d->t->execute();
+                d->parent->enqueue( d->s );
+                d->parent->execute();
             }
             else {
                 d->done = true;
@@ -95,10 +98,8 @@ void HelperRowCreator::execute()
             d->s = 0;
             d->c = makeCopy();
             if ( d->c ) {
-                if ( !d->sp ) {
-                    d->t->enqueue( new Query( "savepoint " + d->n, 0 ) );
-                    d->sp = true;
-                }
+                if ( !d->t )
+                    d->t = d->parent->subTransaction( this );
                 d->t->enqueue( d->c );
                 d->t->execute();
             }
@@ -115,31 +116,31 @@ void HelperRowCreator::execute()
             }
             else if ( c->error().contains( d->e ) ) {
                 // We inserted, but there was a race and we lost it.
-                d->t->enqueue( new Query( "rollback to savepoint "+d->n, 0 ) );
+                d->t->rollback();
             }
             else {
                 // Total failure. The Transaction is now in Failed
                 // state, and there's nothing we can do other than
                 // notify our owner about it.
                 d->done = true;
-                d->sp = false;
+                d->t = 0;
             }
         }
     }
 
-    if ( d->sp && !d->notify ) {
-        d->t->enqueue( new Query( "release savepoint " + d->n, 0 ) );
+    if ( d->t && !d->notify ) {
+        d->t->commit();
         String ed = d->n;
         ed.replace( "creator", "extended" );
         d->notify = new Query( "notify " + ed, this );
-        d->t->enqueue( d->notify );
-        d->t->execute();
+        d->parent->enqueue( d->notify );
+        d->parent->execute();
     }
 
     if ( d->notify && !d->notify->done() )
         return;
 
-    d->t->notify();
+    d->parent->notify();
 }
 
 
@@ -156,12 +157,18 @@ void HelperRowCreator::execute()
  */
 
 
-/*! \fn void HelperRowCreator::processSelect( Query * q )
-
-    This pure virtual function is called to process the result of the
+/*! This virtual function is called to process the result of the
     makeSelect() Query. \a q is the Query returned by makeSelect()
     (never 0).
  */
+
+void HelperRowCreator::processSelect( Query * q )
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        add( r->getString( "name" ), r->getInt( "id" ) );
+    }
+}
 
 
 /*! \fn Query * HelperRowCreator::makeCopy()
@@ -176,13 +183,26 @@ void HelperRowCreator::execute()
  */
 
 
-class FlagCreatorData
-    : public Garbage
+/*! Remembers that the given name \a s corresponds to the \a id. */
+
+void HelperRowCreator::add( const String & s, uint id )
 {
-public:
-    FlagCreatorData( const StringList & f ): flags( f ) {}
-    StringList flags;
-};
+    uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
+    *tmp = id;
+
+    d->names.insert( s.lower(), tmp );
+}
+
+
+/*! Returns the id stored earlier with add() for the name \a s. */
+
+uint HelperRowCreator::id( const String & s )
+{
+    uint * p = d->names.find( s.lower() );
+    if ( p )
+        return *p;
+    return 0;
+}
 
 
 /*! \class FlagCreator helperrowcreator.h
@@ -192,17 +212,17 @@ public:
 */
 
 
-/*! Starts constructing the queries needed to create the specified \a
-    flags in the transaction \a t. This object will notify the
+/*! Starts constructing the queries needed to create the flags specified
+    in \a f within the transaction \a t. This object will notify the
     Transaction::owner() when it's done.
 
     \a t will fail if flag creation fails for some reason (typically
     bugs). Transaction::error() should say what went wrong.
 */
 
-FlagCreator::FlagCreator( const StringList & flags, Transaction * t )
+FlagCreator::FlagCreator( const StringList & f, Transaction * t )
     : HelperRowCreator( "flag_names", t, "fn_uname" ),
-      d( new FlagCreatorData( flags ) )
+      names( f )
 {
 }
 
@@ -213,7 +233,7 @@ Query * FlagCreator::makeSelect()
                            "lower(name)=any($1::text[])", this );
 
     StringList sl;
-    StringList::Iterator it( d->flags );
+    StringList::Iterator it( names );
     while ( it ) {
         String name( *it );
         if ( Flag::id( name ) == 0 )
@@ -228,21 +248,12 @@ Query * FlagCreator::makeSelect()
 }
 
 
-void FlagCreator::processSelect( Query * s )
-{
-    while ( s->hasResults() ) {
-        Row * r = s->nextRow();
-        Flag::add( r->getString( "name" ), r->getInt( "id" ) );
-    }
-}
-
-
 Query * FlagCreator::makeCopy()
 {
     Query * c = new Query( "copy flag_names (name) from stdin with binary",
                            this );
     bool any = false;
-    StringList::Iterator it( d->flags );
+    StringList::Iterator it( names );
     while ( it ) {
         if ( Flag::id( *it ) == 0 ) {
             c->bind( 1, *it );
@@ -295,15 +306,6 @@ Query * FieldNameCreator::makeSelect()
         return 0;
     q->bind( 1, sl );
     return q;
-}
-
-
-void FieldNameCreator::processSelect( Query * q )
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        FieldName::add( r->getString( "name" ), r->getInt( "id" ) );
-    }
 }
 
 
@@ -367,15 +369,6 @@ Query *  AnnotationNameCreator::makeSelect()
 }
 
 
-void AnnotationNameCreator::processSelect( Query * q )
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        AnnotationName::add( r->getString( "name" ), r->getInt( "id" ) );
-    }
-}
-
-
 Query * AnnotationNameCreator::makeCopy()
 {
     Query * q = new Query( "copy annotation_names (name) "
@@ -395,5 +388,3 @@ Query * AnnotationNameCreator::makeCopy()
         return 0;
     return q;
 }
-
-

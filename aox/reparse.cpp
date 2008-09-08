@@ -130,7 +130,8 @@ void Reparse::execute()
         else
             text = r->getString( "data" );
         d->m = Mailbox::find( r->getInt( "mailbox" ) );
-        d->msg = new Message( text );
+        d->msg = new Message;
+        d->msg->parse( text );
         if ( d->m && d->msg->valid() ) {
             d->row = r;
             d->msg->addMailbox( d->m );
@@ -166,9 +167,11 @@ static uint uniq = 0;
 
 String Reparse::writeErrorCopy( const String & o )
 {
-    Message * m = new Message( o );
+    Message * m = new Message;
+    m->parse( o );
     String a = o.anonymised();
-    Message * am = new Message( a );
+    Message * am = new Message;
+    am->parse( a );
     String dir;
     String name;
     String c;

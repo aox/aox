@@ -809,7 +809,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
         else if ( mime ) {
             reptext.append( reason.utf8() );
-            reply = new Message( reptext, 0 );
+            reply = new Message;
+            reply->parse( reptext );
         }
         else {
             if ( !reason.isAscii() )
@@ -817,7 +818,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                                 "Mime-Version: 1.0\r\n" );
             reptext.append( "\r\n" );
             reptext.append( reason.utf8() );
-            reply = new Message( reptext, 0 );
+            reply = new Message;
+            reply->parse( reptext );
         }
 
         if ( wantToReply && handle.isEmpty() ) {

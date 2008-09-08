@@ -105,13 +105,13 @@ void Threader::execute()
         while ( (r=d->complete->nextRow()) ) {
             uint uid = r->getInt( "uid" );
             uint tid = r->getInt( "thread" );
-            String subject = r->getString( "subject" );
-            Thread * t = d->threads.find( subject );
+            UString subject = r->getUString( "subject" );
+            Thread * t = d->threads.find( subject.utf8() );
             if ( !t ) {
                 t = new Thread;
                 t->setId( tid );
                 t->setSubject( subject );
-                d->threads.insert( subject, t );
+                d->threads.insert( subject.utf8(), t );
                 d->threadList.append( t );
             }
             t->add( uid );
@@ -130,24 +130,28 @@ void Threader::execute()
         if ( !d->findnew ) {
             d->findnew
                 = new Query( "select mm.uid, hf.value "
-                             "from header_fields hf "
-                             "join mailbox_messages mm using (message) "
+                             "from mailbox_messages mm "
                              "left join thread_members tm using (mailbox,uid) "
-                             "where mm.mailbox=$1 and hf.field=$2 "
-                             " and hf.part='' and tm.thread is null", this );
+                             "left join header_fields hf"
+                             " on (mm.message=hf.message and hf.field=$2"
+                             " and hf.part='') "
+                             "where mm.mailbox=$1 and tm.thread is null",
+                             this );
             d->findnew->bind( 1, d->mailbox->id() );
             d->findnew->bind( 2, HeaderField::Subject );
             d->findnew->execute();
             d->newMessages.clear();
         }
         while ( (r=d->findnew->nextRow()) ) {
-            String subject = Message::baseSubject( r->getString( "value" ) );
+            UString subject;
+            if ( !r->isNull( "value" ) )
+                subject = Message::baseSubject( r->getUString( "value" ) );
             uint uid = r->getInt( "uid" );
-            Thread * t = d->threads.find( subject );
+            Thread * t = d->threads.find( subject.utf8() );
             if ( !t ) {
                 t = new Thread;
                 t->setSubject( subject );
-                d->threads.insert( subject, t );
+                d->threads.insert( subject.utf8(), t );
                 d->threadList.append( t );
             }
             t->add( uid );
@@ -385,7 +389,7 @@ public:
     ThreadData(): id( 0 ) {}
 
     uint id;
-    String subject;
+    UString subject;
     MessageSet members;
 };
 
@@ -441,7 +445,7 @@ void Thread::add( uint uid )
     (ie. without "re", "fwd" or similar).
 */
 
-void Thread::setSubject( const String & subject )
+void Thread::setSubject( const UString & subject )
 {
     d->subject = subject;
 }
@@ -451,7 +455,7 @@ void Thread::setSubject( const String & subject )
     initially.
 */
 
-String Thread::subject() const
+UString Thread::subject() const
 {
     return d->subject;
 }

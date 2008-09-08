@@ -3,6 +3,8 @@
 #include "header.h"
 
 #include "field.h"
+#include "message.h"
+#include "mailbox.h"
 #include "datefield.h"
 #include "mimefields.h"
 #include "configuration.h"
@@ -885,6 +887,26 @@ void Header::repair( Multipart * p, const String & body )
                 parent = parent->parent();
             if ( parent )
                 date = *parent->header()->date();
+        }
+
+        if ( !date.valid() &&
+             occurrences[(int)HeaderField::Date] == 0 ) {
+            // Try to see if the top-level message has an internaldate,
+            // just in case it might be valid.
+            Multipart * parent = p;
+            while ( parent && parent->parent() )
+                parent = parent->parent();
+            if ( parent->isMessage() ) {
+                Message * adam = (Message*)parent;
+                List<Mailbox>::Iterator mb( adam->mailboxes() );
+                uint id = 0;
+                while ( mb && !id ) {
+                    id = adam->internalDate( mb );
+                    ++mb;
+                }
+                if ( id )
+                    date.setUnixTime( id );
+            }
         }
 
         if ( !date.valid() &&
