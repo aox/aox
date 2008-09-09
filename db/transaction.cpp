@@ -374,7 +374,7 @@ void Transaction::execute()
         // parent or directly.
         Query * begin;
         if ( d->parent ) {
-            begin = new Query( "savepoint " + d->savepoint, d->owner );
+            begin = new Query( "savepoint " + d->savepoint, 0 );
             d->parent->enqueue( begin );
             begin->setTransaction( this );
             d->parent->execute();
