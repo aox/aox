@@ -112,35 +112,30 @@ void HelperRowCreator::execute()
             Query * c = d->c;
             d->c = 0;
             if ( !c->failed() ) {
-                // We inserted, hit no race.
+                // We inserted, hit no race, and want to run another select.
             }
             else if ( c->error().contains( d->e ) ) {
                 // We inserted, but there was a race and we lost it.
                 d->t->rollback();
-                d->t = 0;
             }
             else {
                 // Total failure. The Transaction is now in Failed
                 // state, and there's nothing we can do other than
                 // notify our owner about it.
-                d->done = true;
+                d->t->commit();
                 d->t = 0;
             }
         }
     }
 
-    if ( d->t && !d->notify ) {
+    if ( d->t ) {
         String ed = d->n;
         ed.replace( "creator", "extended" );
-        d->notify = new Query( "notify " + ed, this );
-        d->t->enqueue( d->notify );
+        Query * q = new Query( "notify " + ed, this );
+        d->t->enqueue( q );
         d->t->commit();
+        d->t = 0;
     }
-
-    if ( d->notify && !d->notify->done() )
-        return;
-
-    d->parent->notify();
 }
 
 
