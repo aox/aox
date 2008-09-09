@@ -220,6 +220,7 @@ void Mailbox::setup( EventHandler * owner )
     UString r;
     r.append( '/' );
     ::root = new Mailbox( r );
+    ::wiped = true;
     Allocator::addEternal( ::root, "root mailbox" );
 
     ::mailboxes = new Map<Mailbox>;
