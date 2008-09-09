@@ -70,11 +70,7 @@ Transaction::Transaction( EventHandler *ev )
 
 Transaction * Transaction::subTransaction( EventHandler * ev )
 {
-    if ( d->state == Blocked )
-        return 0;
-
     d->children++;
-    d->state = Blocked;
 
     if ( ev == 0 )
         ev = d->owner;
@@ -276,6 +272,7 @@ void Transaction::rollback()
         q->setTransaction( d->parent );
         d->parent->setState( Executing );
         setState( Completed );
+        d->parent->notify();
     }
     else {
         enqueue( new Query( "rollback", d->owner ) );
@@ -294,9 +291,13 @@ private:
     Query * q;
 
 public:
-    SubtransactionTrampoline( Transaction * transaction, Query * query )
-        : t( transaction ), q( query )
-    {}
+    SubtransactionTrampoline( const String & sp, Transaction * transaction )
+        : t( transaction ), q ( 0 )
+    {
+        q = new Query( "release savepoint " + sp, this );
+        t->enqueue( q );
+        q->setTransaction( t->parent() );
+    }
 
     void execute ()
     {
@@ -306,10 +307,16 @@ public:
         if ( !t->failed() && q->failed() )
             t->setError( q, q->error() );
 
-        if ( !t->failed() )
+        if ( t->failed() ) {
+            t->parent()->setError( t->failedQuery(), t->error() );
+        }
+        else {
             t->setState( Transaction::Completed );
-        t->parent()->setState( Transaction::Executing );
+            t->parent()->setState( Transaction::Executing );
+            t->parent()->execute();
+        }
         t->notify();
+        t->parent()->notify();
     }
 };
 
@@ -326,15 +333,10 @@ void Transaction::commit()
     if ( d->submittedCommit )
         return;
 
-    if ( d->parent ) {
-        Query * q = new Query( "release savepoint " + d->savepoint, 0 );
-        q->setOwner( new SubtransactionTrampoline( this, q ) );
-        enqueue( q );
-        q->setTransaction( d->parent );
-    }
-    else {
+    if ( d->parent )
+        (void)new SubtransactionTrampoline( d->savepoint, this );
+    else
         enqueue( new Query( "commit", 0 ) );
-    }
     d->submittedCommit = true;
 
     execute();
@@ -345,13 +347,22 @@ void Transaction::commit()
 
 void Transaction::execute()
 {
-    if ( !d->queries || d->queries->isEmpty() )
+    if ( !d->queries || d->queries->isEmpty() || d->state == Blocked )
         return;
 
     List< Query >::Iterator it( d->queries );
-    while ( it ) {
+    while ( it && it->transaction() == this ) {
         it->setState( Query::Submitted );
         ++it;
+    }
+    if ( it && it->transaction() && it->transaction()->parent() == this ) {
+        // shift to subtransaction
+        it->setState( Query::Submitted );
+        d->state = Blocked;
+    }
+    else if ( it && it->transaction() && parent() == it->transaction() ) {
+        // shift to parent
+        it->setState( Query::Submitted );
     }
 
     if ( d->db ) {
