@@ -23,6 +23,7 @@
 
 static Mailbox * root = 0;
 static Map<Mailbox> * mailboxes = 0;
+static bool wiped = false;
 
 
 class MailboxData
@@ -158,6 +159,7 @@ void MailboxReader::execute() {
 
     done = true;
     ::readers->remove( this );
+    ::wiped = false;
     if ( q->failed() )
         log( "Couldn't create mailbox tree: " + q->error(),
              Log::Disaster );
@@ -193,6 +195,7 @@ public:
             if ( ::root->children() )
                 ::root->children()->clear();
             ::mailboxes->clear();
+            ::wiped = true;
             mr = new MailboxReader( this, 0 );
             mr->q->execute();
         }
@@ -919,6 +922,8 @@ uint Mailbox::match( const UString & pattern, uint p,
 
 bool Mailbox::refreshing()
 {
+    if ( !::wiped )
+        return false;
     if ( !::readers )
         return false;
     if ( ::readers->isEmpty() )
