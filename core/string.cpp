@@ -1378,6 +1378,18 @@ String String::eQP( bool underscore ) const
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
                 c += 3;
             }
+            else if ( c == 0 && d->str[i] == '-' && d->str[i+1] == '-' ) {
+                r.d->str[r.d->len++] = '=';
+                r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
+                r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
+                c += 3;
+            }
+            else if ( c == 0 && d->str[i] == 'F' && d->str[i+1] == 'r' ) {
+                r.d->str[r.d->len++] = '=';
+                r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
+                r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
+                c += 3;
+            }
             else if ( ( d->str[i] >= ' ' && d->str[i] < 127 &&
                         d->str[i] != '=' ) ||
                       ( d->str[i] == '\t' ) ) {
@@ -1407,6 +1419,8 @@ bool String::needsQP() const
     uint i = 0;
     uint c = 0;
     while ( i < length() ) {
+        if ( c == 0 && d->str[i] == '-' && d->str[i+1] == '-' )
+            return true;
         if ( d->str[i] == 10 )
              c = 0;
         else if ( c > 78 )
