@@ -82,7 +82,7 @@ void HelperRowCreator::execute()
         if ( d->c && !d->c->done() )
             return;
 
-        if ( !d->s ) {
+        if ( !d->s && !d->c ) {
             d->s = makeSelect();
             if ( d->s ) {
                 if ( !d->t )
@@ -116,7 +116,7 @@ void HelperRowCreator::execute()
             }
             else if ( c->error().contains( d->e ) ) {
                 // We inserted, but there was a race and we lost it.
-                d->t->rollback();
+                d->t->restart();
             }
             else {
                 // Total failure. The Transaction is now in Failed
