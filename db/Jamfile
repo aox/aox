@@ -8,7 +8,7 @@ rule PrivilegeList
     SCRIPT = [ FDirName $(TOP) schema list-privileges ] ;
     Depends $(<) : $(>) $(SCRIPT) ;
     Clean clean : $(<) ;
-    SEARCH on $(>) = schema ;
+    SEARCH on $(>) = [ FDirName $(TOP) schema ] ;
     MakeLocate $(<) : $(LOCATE_SOURCE) ;
 }
 
