@@ -216,7 +216,7 @@ void AddressCreator::processInsert()
     state = 0;
     if ( q->failed() ) {
         if ( q->error().contains( "addresses_nld_key" ) ) {
-            t->rollback();
+            t->restart();
         }
         else {
             result->setState( Query::Failed );
@@ -867,7 +867,7 @@ void Injector::insertBodyparts()
                 return;
 
             if ( d->insert->failed() ) {
-                d->subtransaction->rollback();
+                d->subtransaction->restart();
                 d->substate = 2;
             }
             else {

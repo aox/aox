@@ -34,6 +34,7 @@ public:
     void enqueue( Query * );
     void execute();
     void rollback();
+    void restart();
     void commit();
 
     List< Query > *enqueuedQueries() const;
