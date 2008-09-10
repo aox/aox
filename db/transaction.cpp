@@ -267,7 +267,9 @@ void Transaction::rollback()
     }
 
     if ( d->parent ) {
-        Query * q = new Query( "rollback to " + d->savepoint, d->owner );
+        Query * q = new Query( "rollback to " + d->savepoint, 0 );
+        enqueue( q );
+        q = new Query( "release savepoint " + d->savepoint, d->owner );
         enqueue( q );
         q->setTransaction( d->parent );
         d->parent->setState( Executing );
@@ -279,6 +281,31 @@ void Transaction::rollback()
     }
     d->submittedCommit = true;
 
+    execute();
+}
+
+
+/*! Unwinds whatever the subtransaction has done and restarts it.
+*/
+
+void Transaction::restart()
+{
+    if ( d->submittedCommit ) {
+        log( "restart() called after commit/rollback" );
+        return;
+    }
+    else if ( !d->parent ) {
+        log( "restart() called without subtransaction" );
+        return;
+    }
+    else if ( !d->submittedBegin ) {
+        return;
+    }
+
+    d->queries->clear();
+    Query * q = new Query( "rollback to " + d->savepoint, d->owner );
+    enqueue( q );
+    setState( Executing );
     execute();
 }
 
