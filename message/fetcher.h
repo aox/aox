@@ -42,6 +42,8 @@ public:
 
     bool done() const;
 
+    void setTransaction( class Transaction * );
+
 private:
     class FetcherData * d;
 
@@ -51,6 +53,7 @@ private:
     void prepareBatch();
     void makeQueries();
     void waitForEnd();
+    void submit( Query * );
     MessageSet * findUids();
 };
 
