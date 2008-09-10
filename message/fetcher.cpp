@@ -3,6 +3,7 @@
 #include "fetcher.h"
 
 #include "addressfield.h"
+#include "transaction.h"
 #include "messageset.h"
 #include "annotation.h"
 #include "allocator.h"
@@ -36,6 +37,7 @@ public:
           mailbox( 0 ), session( 0 ),
           q( 0 ),
           findMessages( 0 ),
+          transaction( 0 ),
           f( 0 ),
           state( NotStarted ),
           selector( 0 ),
@@ -58,6 +60,7 @@ public:
     Session * session;
     List<Query> * q;
     Query * findMessages;
+    Transaction * transaction;
 
     Fetcher * f;
     State state;
@@ -318,6 +321,9 @@ void Fetcher::start()
         return;
     }
 
+    if ( ( d->flags || d->annotations ) && !d->transaction && n > 1 )
+        d->transaction = new Transaction( this );
+
     log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
          what.join( " " ) );
 
@@ -383,8 +389,10 @@ void Fetcher::start()
     }
     d->findMessages = d->selector->query( 0, d->mailbox, d->session, this,
                                           true, &wanted );
-    d->findMessages->execute();
+    submit( d->findMessages );
     d->state = FindingMessages;
+    if ( d->transaction )
+        d->transaction->execute();
 }
 
 
@@ -487,8 +495,10 @@ void Fetcher::waitForEnd()
 
     if ( d->messages.isEmpty() ) {
         d->state = Done;
+        if ( d->transaction )
+            d->transaction->commit();
         if ( d->owner )
-            d->owner->execute();
+            d->owner->notify();
     }
     else {
         prepareBatch();
@@ -700,7 +710,7 @@ void Fetcher::makeQueries()
             r.append( " order by mm.mailbox, mm.uid, f.flag" );
             q->setString( r );
         }
-        q->execute();
+        submit( q );
         d->flags->q = q;
     }
 
@@ -748,7 +758,7 @@ void Fetcher::makeQueries()
             r.append( " order by f.mailbox, f.uid, f.flag" );
             q->setString( r );
         }
-        q->execute();
+        submit( q );
         d->annotations->q = q;
     }
 
@@ -777,7 +787,7 @@ void Fetcher::makeQueries()
                            d->partnumbers );
             q->bind( 1, d->batchIds );
         }
-        q->execute();
+        submit( q );
         d->partnumbers->q = q;
     }
 
@@ -807,7 +817,7 @@ void Fetcher::makeQueries()
                            d->addresses );
             bindBatchIds( q, 1, d->batchIds );
         }
-        q->execute();
+        submit( q );
         d->addresses->q = q;
     }
 
@@ -834,7 +844,7 @@ void Fetcher::makeQueries()
                            d->otherheader );
             bindBatchIds( q, 1, d->batchIds );
         }
-        q->execute();
+        submit( q );
         d->otherheader->q = q;
     }
 
@@ -866,7 +876,7 @@ void Fetcher::makeQueries()
                            d->body );
             bindBatchIds( q, 1, d->batchIds );
         }
-        q->execute();
+        submit( q );
         d->body->q = q;
     }
 
@@ -890,9 +900,11 @@ void Fetcher::makeQueries()
                            "from messages where id=any($1)", d->trivia );
             bindBatchIds( q, 1, d->batchIds );
         }
-        q->execute();
+        submit( q );
         d->trivia->q = q;
     }
+    if ( d->transaction )
+        d->transaction->execute();
 }
 
 
@@ -1292,4 +1304,28 @@ bool Fetcher::fetching( Type t ) const
 void Fetcher::setSession( class Session * s )
 {
     d->session = s;
+}
+
+
+/*! Records that all queries done by this Fetcher should be performed
+    within \a t. This can be useful e.g. if some messages may be
+    locked by \a t, or if the retrieval is tied to \a t logically.
+ */
+
+void Fetcher::setTransaction( class Transaction * t )
+{
+    d->transaction = t->subTransaction();
+}
+
+
+/*! This internal helper makes sure \a q is executed by the
+    database.
+*/
+
+void Fetcher::submit( Query * q )
+{
+    if ( d->transaction )
+        d->transaction->enqueue( q );
+    else
+        q->execute();
 }

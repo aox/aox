@@ -51,6 +51,7 @@ public:
     FetchData()
         : state( 0 ), peek( true ),
           changedSince( 0 ), those( 0 ),
+          t( 0 ),
           store( 0 ),
           timer( 0 ), responseRate( 0 ),
           uid( false ),
@@ -70,6 +71,7 @@ public:
     List<Message> available;
     int64 changedSince;
     Query * those;
+    Transaction * t;
     Store * store;
 
     class ResponseTrickler
@@ -110,7 +112,7 @@ public:
 
 
 /*! \class Fetch fetch.h
-  
+
     Returns message data (RFC 3501, section 6.4.5, extended by RFC
     4551 and RFC 5257).
 
@@ -177,7 +179,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
     }
 
     setAllowedState( IMAP::Selected );
-    setState( Executing );
+    setState( Blocked );
 }
 
 
@@ -648,14 +650,16 @@ void Fetch::execute()
     if ( d->state == 0 ) {
         if ( d->changedSince ) {
             if ( !d->those ) {
+                d->t = new Transaction( this );
                 d->those = new Query( "select uid from mailbox_messages "
                                       "where mailbox=$1 and modseq>$2 "
-                                      "and uid=any($3)",
+                                      "and uid=any($3) for update",
                                       this );
                 d->those->bind( 1, s->mailbox()->id() );
                 d->those->bind( 2, d->changedSince );
                 d->those->bind( 3, d->set );
-                d->those->execute();
+                d->t->enqueue( d->those );
+                d->t->execute();
             }
             if ( !d->those->done() )
                 return;
@@ -708,6 +712,9 @@ void Fetch::execute()
 
     if ( !d->requested.isEmpty() )
         return;
+
+    if ( d->t )
+        d->t->commit();
 
     while ( !d->available.isEmpty() ) {
         Message * m = d->available.shift();
@@ -789,6 +796,8 @@ void Fetch::sendFetchQueries()
     if ( d->annotation && !haveAnnotations )
         f->fetch( Fetcher::Annotations );
     f->setSession( imap()->session() );
+    if ( d->t )
+        f->setTransaction( d->t );
     f->execute();
 
     FetchData::ResponseTrickler * t = new FetchData::ResponseTrickler( this );
