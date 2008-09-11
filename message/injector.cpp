@@ -74,15 +74,13 @@ public:
     List<Address> * addresses;
     Transaction * parent;
     Transaction * t;
-    Query * result;
     Query * q;
-    int state;
+    uint state;
     Dict<Address> unided;
 
-    AddressCreator( List<Address> * a, Transaction * tr, EventHandler * ev )
+    AddressCreator( List<Address> * a, Transaction * tr )
         : addresses( a ), parent( tr ), t( 0 ), q( 0 ), state( 0 )
     {
-        result = new Query( ev );
     }
 
     void execute();
@@ -90,28 +88,25 @@ public:
     void processAddresses();
     void insertAddresses();
     void processInsert();
+
+    bool done() { return state > 3; }
 };
 
 void AddressCreator::execute()
 {
-    if ( state == 0 )
-        selectAddresses();
+    uint s = 4;
+    while ( s != state ) {
+        s = state;
 
-    if ( state == 1 )
-        processAddresses();
-
-    if ( state == 2 )
-        insertAddresses();
-
-    if ( state == 3 )
-        processInsert();
-
-    if ( state == 4 ) {
-        state = 42;
-        if ( !result->done() )
-            result->setState( Query::Completed );
-        result->notify();
-    }
+        if ( state == 0 )
+            selectAddresses();
+        if ( state == 1 )
+            processAddresses();
+        if ( state == 2 )
+            insertAddresses();
+        if ( state == 3 )
+            processInsert();
+    };
 }
 
 void AddressCreator::selectAddresses()
@@ -153,6 +148,10 @@ void AddressCreator::selectAddresses()
 
     if ( i == 0 ) {
         state = 4;
+        if ( t )
+            t->commit();
+        else
+            parent->notify();
     }
     else {
         state = 1;
@@ -185,13 +184,10 @@ void AddressCreator::processAddresses()
     if ( !q->done() )
         return;
 
-    if ( unided.isEmpty() ) {
+    if ( unided.isEmpty() )
         state = 0;
-        selectAddresses();
-    }
-    else {
+    else
         state = 2;
-    }
 }
 
 void AddressCreator::insertAddresses()
@@ -220,23 +216,17 @@ void AddressCreator::processInsert()
     if ( !q->done() )
         return;
 
-    state = 0;
-    if ( q->failed() ) {
-        if ( q->error().contains( "addresses_nld_key" ) ) {
-            t->restart();
-            state = 0;
-        }
-        else {
-            result->setState( Query::Failed );
-            state = 4;
-        }
+    if ( !q->failed() ) {
+        state = 0;
+    }
+    else if ( q->error().contains( "addresses_nld_key" ) ) {
+        t->restart();
+        state = 0;
     }
     else {
+        state = 4;
         t->commit();
     }
-
-    if ( state == 0 )
-        selectAddresses();
 }
 
 
@@ -262,7 +252,7 @@ public:
           addresses( new List<Address> ),
           mailboxes( new SortedList<Mailbox> ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
-          creators( 0 ), addressCreation( 0 ),
+          creators( 0 ), addressCreator( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), subtransaction( 0 )
     {}
@@ -287,7 +277,7 @@ public:
     HelperRowCreator * flagCreator;
     HelperRowCreator * annotationNameCreator;
     List<HelperRowCreator> * creators;
-    Query * addressCreation;
+    AddressCreator * addressCreator;
 
     struct Delivery
         : public Garbage
@@ -767,14 +757,13 @@ void Injector::createDependencies()
         d->creators->shift();
     }
 
-    if ( !d->addressCreation ) {
-        AddressCreator * a =
-            new AddressCreator( d->addresses, d->transaction, this );
-        d->addressCreation = a->result;
-        a->execute();
+    if ( !d->addressCreator ) {
+        d->addressCreator =
+            new AddressCreator( d->addresses, d->transaction );
+        d->addressCreator->execute();
     }
 
-    if ( !d->addressCreation->done() )
+    if ( !d->addressCreator->done() )
         return;
 
     next();
