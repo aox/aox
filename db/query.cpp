@@ -971,8 +971,17 @@ int Row::findColumn( const char *f ) const
         i++;
     }
 
-    String s = "Unknown column ";
-    s.append( f );
+    String s = "Result handler expected unknown column: ";
+    s.append( String(f).quoted() );
+    s.append( ". Columns present in server reply: " );
+    i = 0;
+    while ( i < n ) {
+        s.append( columns[i].name.quoted() );
+        i++;
+        if ( i < n )
+            s.append( ", " );
+    }
+    s.append( "." );
     log( s, Log::Error );
     return -1;
 }
