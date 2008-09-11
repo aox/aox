@@ -366,7 +366,6 @@ void Store::execute()
         r.append( "uid" );
         d->findSet = work->query( imap()->user(), m, 0, this, false, &r );
         String s = d->findSet->string();
-        s.replace( " distinct ", " " );
         s.append( " for update" );
         d->findSet->setString( s );
         d->transaction->enqueue( d->findSet );
