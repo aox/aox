@@ -28,7 +28,7 @@ public:
         : mailboxes( 0 ), databaseId( 0 ),
           wrapped( false ), rfc822Size( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
-          hasBytesAndLines( false )
+          hasSize( false ), hasBytesAndLines( false )
     {}
 
     String error;
@@ -41,7 +41,7 @@ public:
             : Garbage(),
               mailbox( 0 ), uid( 0 ), modseq( 0 ), internalDate( 0 ),
               annotations( 0 ),
-              hasFlags( false ), hasAnnotations( false ) {}
+              hasFlags( false ), hasAnnotations( false ), hasTrivia( false ) {}
         ::Mailbox * mailbox;
         uint uid;
         int64 modseq;
@@ -50,6 +50,7 @@ public:
         List<Annotation> * annotations;
         bool hasFlags;
         bool hasAnnotations;
+        bool hasTrivia;
     };
 
     List<Mailbox> * mailboxes;
@@ -81,6 +82,7 @@ public:
     bool hasHeaders: 1;
     bool hasAddresses: 1;
     bool hasBodies: 1;
+    bool hasSize : 1;
     bool hasBytesAndLines : 1;
 };
 
@@ -772,13 +774,47 @@ void Message::setAnnotationsFetched( Mailbox * mb, bool ok )
 }
 
 
-/*! Returns true if this message knows where its towel is, and false
-    if it's hopeless and clueless.
+/*! Returns true if this message knows its internalDate() and modSeq()
+    for \a mb, and false if not.
 */
 
-bool Message::hasTrivia() const
+bool Message::hasTrivia( Mailbox * mb ) const
 {
-    return d->rfc822Size > 0;
+    MessageData::Mailbox * m = d->mailbox( mb );
+    if ( m )
+        return m->hasTrivia;
+    return false;
+}
+
+
+/*! Records that the message now has correct values for internalDate()
+    and modSeq() for \a mb if \a ok is true, and that it doesn't if \a
+    ok is false.
+*/
+
+void Message::setTriviaFetched( Mailbox * mb, bool ok )
+{
+    MessageData::Mailbox * m = d->mailbox( mb, ok );
+    if ( m )
+        m->hasTrivia = ok;
+}
+
+
+/*! Returns true if rfc822Size() will return a correct size, and false
+    if not.
+*/
+
+bool Message::hasSize() const
+{
+    return d->hasSize;
+}
+
+
+/*! Records that this message knows its rfc822Size(). */
+
+void Message::setSizeFetched()
+{
+    d->hasSize = true;
 }
 
 
@@ -790,7 +826,7 @@ bool Message::hasTrivia() const
 UString Message::baseSubject( const UString & subject )
 {
     // Comments and syntax mostly quoted on RFC 5256.
-    
+
     // The basic algorithm here is: Loop for (only) as long as the
     // string grows shorter.
 
@@ -815,12 +851,12 @@ UString Message::baseSubject( const UString & subject )
         // (2) Remove all trailing text of the subject that matches
         //     the subj-trailer ABNF; repeat until no more matches are
         //     possible.
-    
+
         // subj-trailer    = "(fwd)" / WSP
 
         while ( s.endsWith( "(FWD)" ) )
             s = s.mid( 0, s.length() - 5 ).simplified();
-    
+
         // step 5 starts here.
         uint l5 = UINT_MAX;
         do {
@@ -828,7 +864,7 @@ UString Message::baseSubject( const UString & subject )
 
             // (3) Remove all prefix text of the subject that matches
             //     the subj-leader ABNF.
-    
+
             // subj-refwd      = ("re" / ("fw" ["d"])) *WSP [subj-blob] ":"
             // subj-blob       = "[" *BLOBCHAR "]" *WSP
             // subj-leader     = (*subj-blob subj-refwd) / WSP
@@ -912,7 +948,7 @@ UString Message::baseSubject( const UString & subject )
                 if ( !rest.isEmpty() )
                     s = rest;
             }
-        
+
             // (5) Repeat (3) and (4) until no matches remain.
         } while ( s.length() < l5 );
 

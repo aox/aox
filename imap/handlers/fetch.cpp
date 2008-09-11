@@ -242,7 +242,7 @@ void Fetch::parse()
     if ( !ok() )
         return;
     StringList l;
-    l.append( new String( "Fetch " + fn( d->set.count() ) + " messages: " ) );
+    l.append( new String( "Fetch <=" + fn( d->set.count() ) + " messages: " ) );
     if ( d->needsAddresses )
         l.append( "address" );
     if ( d->needsHeader )
@@ -251,7 +251,9 @@ void Fetch::parse()
         l.append( "body" );
     if ( d->flags )
         l.append( "flags" );
-    if ( d->rfc822size || d->internaldate || d->modseq )
+    if ( d->rfc822size )
+        l.append( "size" );
+    if ( d->internaldate || d->modseq )
         l.append( "trivia" );
     if ( d->needsPartNumbers )
         l.append( "bytes/lines" );
@@ -744,6 +746,7 @@ void Fetch::sendFetchQueries()
     bool haveHeader = true;
     bool haveBody = true;
     bool havePartNumbers = true;
+    bool haveSize = true;
     bool haveTrivia = true;
     bool haveFlags = true;
     bool haveAnnotations = true;
@@ -755,10 +758,11 @@ void Fetch::sendFetchQueries()
         if ( !m ) {
             m = new Message;
         }
-        else if ( m->modSeq( mb ) + 1 < mb->nextModSeq() ) {
+        else if ( m->hasTrivia( mb ) &&
+                  m->modSeq( mb ) + 1 < mb->nextModSeq() ) {
             m->setFlagsFetched( mb, false );
-            m->setAnnotationsFetched( mb, false );
-            m->setModSeq( mb, 0 );
+            m->setAnnotationsFetched( mb, false ); 
+            m->setTriviaFetched( mb, false );
         }
         if ( !m->hasAddresses() )
             haveAddresses = false;
@@ -768,7 +772,9 @@ void Fetch::sendFetchQueries()
             havePartNumbers = false;
         if ( !m->hasBodies() )
             haveBody = false;
-        if ( !m->hasTrivia() )
+        if ( !m->hasSize() )
+            haveSize = false;
+        if ( !m->hasTrivia( mb ) )
             haveTrivia = false;
         if ( !m->hasFlags( mb ) )
             haveFlags = false;
@@ -790,8 +796,9 @@ void Fetch::sendFetchQueries()
         f->fetch( Fetcher::PartNumbers );
     if ( d->flags && !haveFlags )
         f->fetch( Fetcher::Flags );
-    if ( ( d->rfc822size || d->internaldate || d->modseq ) &&
-         !haveTrivia )
+    if ( d->rfc822size && !haveSize )
+        f->fetch( Fetcher::Size );
+    if ( ( d->internaldate || d->modseq ) && !haveTrivia )
         f->fetch( Fetcher::Trivia );
     if ( d->annotation && !haveAnnotations )
         f->fetch( Fetcher::Annotations );
@@ -1549,8 +1556,9 @@ void Fetch::pickup()
             ok = false;
         if ( d->flags && !m->hasFlags( mb ) )
             ok = false;
-        if ( ( d->rfc822size || d->internaldate || d->modseq ) &&
-             !m->hasTrivia() )
+        if ( d->rfc822size && !m->hasSize() )
+            ok = false;
+        if ( ( d->internaldate || d->modseq ) && !m->hasTrivia( mb ) )
             ok = false;
         if ( d->annotation && !m->hasAnnotations( mb ) )
             ok = false;
