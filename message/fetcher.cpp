@@ -47,7 +47,7 @@ public:
           lastBatchStarted( 0 ),
           flags( 0 ), annotations( 0 ),
           addresses( 0 ), otherheader( 0 ),
-          body( 0 ), trivia( 0 ),
+          body( 0 ), size( 0 ), trivia( 0 ),
           partnumbers( 0 )
     {}
 
@@ -95,6 +95,7 @@ public:
     Decoder * addresses;
     Decoder * otherheader;
     Decoder * body;
+    Decoder * size;
     Decoder * trivia;
     Decoder * partnumbers;
 
@@ -108,13 +109,23 @@ public:
         bool isDone( Message * ) const;
     };
 
+    class SizeDecoder
+        : public Decoder
+    {
+    public:
+        SizeDecoder( FetcherData * fd )
+            : Decoder( fd ) {}
+        void decode( Message *, Row * );
+        void setDone( Message * );
+        bool isDone( Message * ) const;
+    };
+
     class TriviaDecoder
         : public Decoder
     {
     public:
         TriviaDecoder( FetcherData * fd )
-            : Decoder( fd ),
-              haveDecided( false ), findModSeq( false ) {}
+            : Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
@@ -308,6 +319,10 @@ void Fetcher::start()
         n++;
         what.append( "body" );
     }
+    if ( d->size ) {
+        n++;
+        what.append( "size" );
+    }
     if ( d->trivia ) {
         n++;
         what.append( "trivia" );
@@ -458,8 +473,10 @@ void Fetcher::waitForEnd()
         decoders.append( d->otherheader );
     if ( d->body )
         decoders.append( d->body );
+    if ( d->size )
+        decoders.append( d->size ); 
     if ( d->trivia )
-        decoders.append( d->trivia );
+        decoders.append( d->trivia ); 
     if ( d->partnumbers )
         decoders.append( d->partnumbers );
 
@@ -886,11 +903,9 @@ void Fetcher::makeQueries()
         d->body->q = q;
     }
 
-    if ( d->trivia ) {
+    if ( d->size ) {
         if ( !d->batchSize ) {
-            wanted.append( "idate" );
-            wanted.append( "modseq" );
-            q = d->selector->query( 0, d->mailbox, d->session, d->trivia,
+            q = d->selector->query( 0, d->mailbox, d->session, d->size,
                                     true, &wanted );
             r = q->string();
             if ( !r.contains( " join messages " ) )
@@ -903,11 +918,25 @@ void Fetcher::makeQueries()
         }
         else {
             q = new Query( "select id as message, rfc822size "
-                           "from messages where id=any($1)", d->trivia );
+                           "from messages where id=any($1)", d->size );
             bindBatchIds( q, 1, d->batchIds );
         }
         submit( q );
-        d->trivia->q = q;
+        d->size->q = q;
+    }
+
+    if ( d->trivia ) {
+        if ( !d->batchSize ) {
+            wanted.append( "idate" );
+            wanted.append( "modseq" );
+            q = d->selector->query( 0, d->mailbox, d->session, d->trivia,
+                                    true, &wanted );
+            submit( q );
+            d->trivia->q = q;
+        }
+        else {
+            // we have to have handled that already
+        }
     }
     if ( d->transaction )
         d->transaction->execute();
@@ -1170,30 +1199,40 @@ bool FetcherData::PartNumberDecoder::isDone( Message * m ) const
 }
 
 
-void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
+void FetcherData::SizeDecoder::decode( Message * m , Row * r )
 {
     m->setRfc822Size( r->getInt( "rfc822size" ) );
-    if ( !haveDecided ) {
-        if ( r->hasColumn( "modseq" ) )
-            findModSeq = true;
-        haveDecided = true;
-    }
-    if ( !findModSeq )
-        return;
+}
+
+
+void FetcherData::SizeDecoder::setDone( Message * m )
+{
+    m->setSizeFetched();
+}
+
+
+bool FetcherData::SizeDecoder::isDone( Message * m ) const
+{
+    return m->hasSize();
+}
+
+
+void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
+{
     m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
     m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );
 }
 
 
-void FetcherData::TriviaDecoder::setDone( Message * )
+void FetcherData::TriviaDecoder::setDone( Message * m )
 {
-    // hard work ;-)
+    m->setTriviaFetched( d->mailbox, true );
 }
 
 
 bool FetcherData::TriviaDecoder::isDone( Message * m ) const
 {
-    return m->rfc822Size() > 0;
+    return m->hasTrivia( d->mailbox );
 }
 
 
@@ -1257,6 +1296,10 @@ void Fetcher::fetch( Type t )
             d->body = new FetcherData::BodyDecoder( d );
         fetch( PartNumbers );
         break;
+    case Size:
+        if ( !d->size )
+            d->size = new FetcherData::SizeDecoder( d );
+        break;
     case Trivia:
         if ( !d->trivia )
             d->trivia = new FetcherData::TriviaDecoder( d );
@@ -1290,6 +1333,9 @@ bool Fetcher::fetching( Type t ) const
         break;
     case Body:
         return d->body != 0;
+        break;
+    case Size:
+        return d->size != 0;
         break;
     case Trivia:
         return d->trivia != 0;

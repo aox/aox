@@ -29,6 +29,7 @@ public:
         OtherHeader,
         Body,
         PartNumbers,
+        Size,
         Trivia
     };
 
