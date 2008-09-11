@@ -80,7 +80,7 @@ public:
     Dict<Address> unided;
 
     AddressCreator( List<Address> * a, Transaction * tr, EventHandler * ev )
-        : addresses( a ), parent( tr ), q( 0 ), state( 0 )
+        : addresses( a ), parent( tr ), t( 0 ), q( 0 ), state( 0 )
     {
         result = new Query( ev );
     }
@@ -156,8 +156,14 @@ void AddressCreator::selectAddresses()
     }
     else {
         state = 1;
-        parent->enqueue( q );
-        parent->execute();
+        if ( t ) {
+            t->enqueue( q );
+            t->execute();
+        }
+        else {
+            parent->enqueue( q );
+            parent->execute();
+        }
     }
 }
 
@@ -190,7 +196,8 @@ void AddressCreator::processAddresses()
 
 void AddressCreator::insertAddresses()
 {
-    t = parent->subTransaction();
+    if ( !t )
+        t = parent->subTransaction();
     q = new Query( "copy addresses (name,localpart,domain) "
                    "from stdin with binary", this );
     StringList::Iterator it( unided.keys() );
@@ -217,6 +224,7 @@ void AddressCreator::processInsert()
     if ( q->failed() ) {
         if ( q->error().contains( "addresses_nld_key" ) ) {
             t->restart();
+            state = 0;
         }
         else {
             result->setState( Query::Failed );
