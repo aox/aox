@@ -206,6 +206,8 @@ void Resolver::query( uint type, StringList * results )
 {
     d->bad = false;
     d->reply.reserve( 4096 );
+    log( "Starting DNS lookup (type " + fn( type ) + ") for " + d->host,
+         Log::Debug );
     int len = res_query( d->host.cstr(), C_IN, type,
                          (u_char*)d->reply.data(), d->reply.capacity() );
     if ( len <= 0 ) {
