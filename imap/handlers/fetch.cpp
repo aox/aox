@@ -179,7 +179,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
     }
 
     setAllowedState( IMAP::Selected );
-    setState( Blocked );
+    setState( Executing );
 }
 
 

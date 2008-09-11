@@ -87,9 +87,13 @@ void ImapSession::emitUpdates()
     if ( d->changed.isEmpty() )
         d->cms = d->nms;
 
+    // this is voodoo. I don't see any real reason to call only
+    // emitResponses() if a command is finished.
     List<Command>::Iterator c( d->i->commands() );
     if ( c && c->state() == Command::Finished )
         c->emitResponses();
+    else
+        d->i->unblockCommands();
 
     d->emitting = false;
 }

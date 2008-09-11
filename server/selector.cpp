@@ -498,7 +498,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         d->mm = new String( "dm" );
     else
         d->mm = new String( "mm" );
-    String q = "select distinct " + mm() + ".";
+    String q = "select " + mm() + ".";
     if ( wanted )
         q.append( wanted->join( ", " + mm() + "." ) );
     else

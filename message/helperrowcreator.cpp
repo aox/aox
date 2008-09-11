@@ -101,6 +101,10 @@ void HelperRowCreator::execute()
             d->c = makeCopy();
             if ( d->c ) {
                 d->t->enqueue( d->c );
+                String ed = d->n;
+                ed.replace( "creator", "extended" );
+                Query * q = new Query( "notify " + ed, this );
+                d->t->enqueue( q );
                 d->t->execute();
             }
             else {
@@ -120,19 +124,14 @@ void HelperRowCreator::execute()
             }
             else {
                 // Total failure. The Transaction is now in Failed
-                // state, and there's nothing we can do other than
-                // notify our owner about it.
-                d->t->commit();
-                d->t = 0;
+                // state, and there's nothing we can do other. We just
+                // have to let our owner deal with it.
+                d->done = true;
             }
         }
     }
 
     if ( d->t ) {
-        String ed = d->n;
-        ed.replace( "creator", "extended" );
-        Query * q = new Query( "notify " + ed, this );
-        d->t->enqueue( q );
         d->t->commit();
         d->t = 0;
     }

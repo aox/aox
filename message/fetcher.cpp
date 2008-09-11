@@ -321,9 +321,6 @@ void Fetcher::start()
         return;
     }
 
-    if ( ( d->flags || d->annotations ) && !d->transaction && n > 1 )
-        d->transaction = new Transaction( this );
-
     log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
          what.join( " " ) );
 
@@ -363,6 +360,11 @@ void Fetcher::start()
     if ( !d->selector )
         d->selector = new Selector( messages );
 
+    if ( ( d->flags || d->annotations ) && !d->transaction && n > 1 )
+        d->transaction = new Transaction( this );
+    if ( d->transaction && n > 1 )
+        simple = false;
+
     if ( simple ) {
         // a query or two. or at most three.
         makeQueries();
@@ -389,6 +391,9 @@ void Fetcher::start()
     }
     d->findMessages = d->selector->query( 0, d->mailbox, d->session, this,
                                           true, &wanted );
+    if ( d->flags || d->annotations )
+        d->findMessages->setString( d->findMessages->string() +
+                                    " for update" );
     submit( d->findMessages );
     d->state = FindingMessages;
     if ( d->transaction )
@@ -485,8 +490,9 @@ void Fetcher::waitForEnd()
     else {
         while ( !d->messages.isEmpty() ) {
             i = decoders.first();
+            Message * m = d->messages.firstElement();
             while ( i ) {
-                i->setDone( d->messages.firstElement() );
+                i->setDone( m );
                 ++i;
             }
             d->messages.shift();
@@ -705,8 +711,8 @@ void Fetcher::makeQueries()
                        " left join flags f on"
                        " (mm.mailbox=f.mailbox and m.uid=f.uid)"
                        " where " );
-            r.replace( "select distinct mm.",
-                       "select distinct f.flag, mm." );
+            r.replace( "select mm.",
+                       "select f.flag, mm." );
             r.append( " order by mm.mailbox, mm.uid, f.flag" );
             q->setString( r );
         }
@@ -752,8 +758,8 @@ void Fetcher::makeQueries()
             r.replace( " where ",
                        " join annotation_names an on (a.name=an.id)"
                        " where " );
-            r.replace( "select distinct mm.",
-                       "select distinct a.mailbox, a.uid, "
+            r.replace( "select mm.",
+                       "select a.mailbox, a.uid, "
                        "a.owner, a.value, an.name, an.id, mm." );
             r.append( " order by f.mailbox, f.uid, f.flag" );
             q->setString( r );
@@ -776,8 +782,8 @@ void Fetcher::makeQueries()
                            " join part_numbers pn on"
                            " (mm.message=pn.message)"
                            " where " );
-            r.replace( "select distinct mm.",
-                       "select distinct pn.part, pn.bytes, pn.lines, mm." );
+            r.replace( "select mm.",
+                       "select pn.part, pn.bytes, pn.lines, mm." );
             r.append( " order by mm.uid, pn.part" );
             q->setString( r );
         }
@@ -796,8 +802,8 @@ void Fetcher::makeQueries()
             q = d->selector->query( 0, d->mailbox, d->session, d->addresses,
                                     false, &wanted );
             r = q->string();
-            r.replace( "select distinct mm.",
-                       "select distinct "
+            r.replace( "select mm.",
+                       "select "
                        "af.part, af.position, af.field, af.number, "
                        "a.name, a.localpart, a.domain, mm." );
             r.replace( " where ",
@@ -826,8 +832,8 @@ void Fetcher::makeQueries()
             q = d->selector->query( 0, d->mailbox, d->session, d->otherheader,
                                     false, &wanted );
             r = q->string();
-            r.replace( "select distinct mm.",
-                       "select distinct "
+            r.replace( "select mm.",
+                       "select "
                        "hf.part, hf.position, fn.name, hf.value, mm." );
             r.replace( " where ",
                        " join header_fields hf on (mm.message=hf.message)"
@@ -860,8 +866,8 @@ void Fetcher::makeQueries()
                            " left join bodyparts bp on"
                            " (pn.bodypart=bp.id)"
                            " where " );
-            r.replace( "select distinct mm.",
-                       "select distinct "
+            r.replace( "select mm.",
+                       "select "
                        "pn.part, bp.text, bp.data, "
                        "bp.bytes as rawbytes, pn.bytes, pn.lines, mm." );
             r.append( " order by mm.uid, pn.part" );
@@ -891,8 +897,8 @@ void Fetcher::makeQueries()
                 r.replace( " where ",
                            " join messages m on (mm.message=m.id)"
                            " where " );
-            r.replace( "select distinct mm.",
-                       "select distinct m.rfc822size, mm." );
+            r.replace( "select mm.",
+                       "select m.rfc822size, mm." );
             q->setString( r );
         }
         else {
