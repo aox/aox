@@ -213,11 +213,6 @@ void SetAcl::execute()
         if ( d->user && d->user->id() == d->m->owner() )
             error( "Can't change mailbox owner's rights." );
 
-        if ( opt( 'd' ) == 0 &&
-             ( ( d->mode == 0 && !d->rights.contains( 'l' ) ) ||
-               ( d->mode == 2 && d->rights.contains( 'l' ) ) ) )
-            error( "Can't remove 'l' right from mailbox." );
-
         d->t = new Transaction( this );
         Query * q = new Query( "lock permissions in exclusive mode", this );
         d->t->enqueue( q );
