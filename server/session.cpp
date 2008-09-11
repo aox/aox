@@ -529,6 +529,8 @@ void SessionInitialiser::findRecent()
         s = d->sessions.firstElement(); // happens if all sessions are RO
     if ( !s )
         return; // could happen if a session violently dies
+    if ( recent >= d->newUidnext )
+        return; // just to avoid the unnecessary update below
     while ( recent < d->newUidnext )
         s->addRecent( recent++ );
 
