@@ -271,6 +271,10 @@ struct TunableIndex {
       "CREATE INDEX hf_msgid ON header_fields "
       "USING btree (value) WHERE (field = 13)",
       false, true, true },
+    { "dm_mm", "deleted_messages",
+      "CREATE INDEX dm_mm ON deleted_messages "
+      "USING btree (mailbox, modseq)",
+      false, true, true },
     { "b_text", "bodyparts",
       "CREATE INDEX b_text ON bodyparts "
       "USING gin (to_tsvector('simple'::regconfig, text)) "
