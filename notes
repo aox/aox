@@ -14,6 +14,9 @@ Schedule
 
   Just bug fixes.
 
+  Maybe aox upgrade schema should retune the database. If not, dm_mm
+  needs to be in 76.
+
 
 3.1.0: ?
 
@@ -1104,6 +1107,12 @@ Some unfortunate logging
   Hardly unexpected. Will fix later, not sure how.
 
 
+Schema 76
+
+  Drop deliveries.tried_at, drop the contents of threads and
+  thread_members.
+
+
 Dynamically preparing often-used queries
 
   We can prepare queries cleverly.
@@ -1246,11 +1255,13 @@ Problems found in 3.0.0 by Timo
   - We sometimes send "0 EXPUNGE" (seen in response to APPEND) and
     "MODSEQ (0)".
 
-    Expunge fixed; MODSEQ?
+    Expunge fixed; MODSEQ not. Easily reproduced by running imapsync
+    with just one user and ten sessions.
 
   - SEARCH SENTON/SENTBEFORE/SENTAFTER have some bugs.
     (Not verified because of segfault; will check later.)
 
-    No idea. We need to run Timo's test suite ourselves.
+    Not fixed; I lean towards fixing it if it's the only thing
+    imapsync complains about.
 
 
