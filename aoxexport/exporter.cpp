@@ -37,8 +37,8 @@ static const char * months[] = { "Jan", "Feb", "Mar", "Apr",
                                  "May", "Jun", "Jul", "Aug",
                                  "Sep", "Oct", "Nov", "Dec" };
 
-static const char * weekdays[] = { "Mon", "Tue", "Wed", "Thu",
-                                   "Fri", "Sat", "Sun" };
+static const char * weekdays[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
+                                   "Fri", "Sat" };
 
 
 /*! Constructs an Exporter object which will read the messages in \a
@@ -125,9 +125,9 @@ void Exporter::execute()
             from.append( rp->firstElement()->lpdomain() );
         else
             from.append( "invalid@invalid.invalid" );
+        from.append( "  " );
         Date id;
         id.setUnixTime( m->internalDate( d->mailbox ) );
-        from.append( " " );
         // Tue Jul 23 19:39:23 2002
         from.append( weekdays[id.weekday()] );
         from.append( " " );
