@@ -247,20 +247,26 @@ void SmtpRcptTo::execute()
 
     if ( server()->sieve()->local( d->address ) ) {
         server()->sieve()->evaluate();
-        if ( server()->sieve()->rejected( d->address ) )
-            respond( 550, d->address->toString().lower() + " rejects mail",
-                     "5.7.1" );
-        else
+        if ( !server()->sieve()->rejected( d->address ) )
             respond( 250, "Will send to " + d->address->toString().lower(),
                      "2.1.5" );
+        else if ( Configuration::toggle( Configuration::SoftBounce ) )
+            respond( 450, d->address->toString().lower() + " rejects mail",
+                     "4.7.1" );
+        else
+            respond( 550, d->address->toString().lower() + " rejects mail",
+                     "5.7.1" );
     }
     else {
         if ( server()->user() )
             respond( 250, "Submission accepted for " +
                      d->address->toString(), "2.1.5" );
-        else
+        else if ( Configuration::toggle( Configuration::SoftBounce ) )
             respond( 450, d->address->toString() +
                      " is not a legal destination address", "4.1.1" );
+        else
+            respond( 550, d->address->toString() +
+                     " is not a legal destination address", "5.1.1" );
     }
     if ( ok() )
         server()->addRecipient( this );
