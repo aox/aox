@@ -232,11 +232,11 @@ void help()
         "    installer [-g group] [-u user] [-p postgres] [-s socket]\n"
         "              [-a address] [-t port] [-d dbname] [-S schema]\n\n"
         "  This program does the following:\n\n"
-        "    - Creates a Unix group named %s, and a user named %s.\n"
-        "    - Creates Postgres users named %s and %s.\n"
-        "    - Creates a database named %s, owned by %s.\n"
+        "    - Creates a Unix group named aox, and a user named aox.\n"
+        "    - Creates Postgres users named aoxsuper and aox.\n"
+        "    - Creates a database named archiveopteryx, owned by aoxsuper.\n"
         "    - Loads the database schema and grants limited privileges "
-        "to user %s.\n"
+        "to user aox.\n"
         "    - Generates an initial configuration file.\n"
         "    - Adjusts ownership and permissions if necessary.\n\n"
         "  Options:\n\n"
@@ -265,8 +265,6 @@ void help()
         "  database where objects are installed. The default is to assume\n"
         "  that objects live in the public schema.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
-        AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
-        dbowner->cstr(), dbuser->cstr(),
         AOXGROUP, AOXUSER, DBADDRESS, DBNAME
     );
     exit( 0 );
