@@ -1,0 +1,11 @@
+SubDir TOP aoxexport ;
+SubInclude TOP encodings ;
+SubInclude TOP message ;
+SubInclude TOP server ;
+
+Build aoxexport : aoxexport.cpp exporter.cpp ;
+
+Program aoxexport :
+    aoxexport database server mailbox message user core encodings abnf
+    extractors ;
+
