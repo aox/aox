@@ -3,7 +3,7 @@
 JAMSETTINGS = Jamsettings ;
 include $(JAMSETTINGS:D=$(TOP)) ;
 
-VERSION = 3.0.0 ;
+VERSION = 3.0.1 ;
 
 MKDIR = mkdir -p ;
 
