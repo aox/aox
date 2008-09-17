@@ -876,6 +876,16 @@ Delaying seen-flag setting
   command nicely.
 
 
+aoxexport
+
+  Currently takes a mailbox name. Should instead take either a mailbox
+  name, a search, or both.
+
+  The problem with the search is that Selector has to learn not to
+  bind the mailbox ID and use it in the where clause. Which turns out
+  to be a problem I've gradually solved. It's done. Wow.
+
+
 The web interface should offer a download link for attachments.
 
   For patches attached as text/plain with the right Content-Disposition,
