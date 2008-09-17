@@ -29,7 +29,7 @@ class ManageSieveCommandData
 public:
     ManageSieveCommandData()
         : sieve( 0 ), pos( 0 ), done( false ),
-          tlsServer( 0 ), m( 0 ), r( 0 ),
+          tlsServer( 0 ), m( 0 ),
           user( 0 ), t( 0 ), query( 0 ), step( 0 )
     {}
 
@@ -42,7 +42,6 @@ public:
 
     TlsServer * tlsServer;
     SaslMechanism * m;
-    String * r;
     User * user;
 
     Transaction * t;
@@ -65,16 +64,16 @@ public:
 
 
 /*! Creates a new ManageSieveCommand object representing the command
-    \a cmd with arguments \a args for the ManageSieve server \a sieve.
+    \a cmd for the ManageSieve server \a sieve. It is also necessary
+    to call setArguments() and execute().
 */
 
 ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
-                                        Command cmd, const String & args )
+                                        Command cmd )
     : d( new ManageSieveCommandData )
 {
     d->sieve = sieve;
     d->cmd = cmd;
-    d->arg = args;
     setLog( new Log( Log::Server ) );
     Scope x( log() );
     switch( cmd ) {
@@ -118,9 +117,21 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
 }
 
 
+/*! Tells this command to parse \a args. This is usually the command's
+    own arguments, but can also be supplementary data supplied
+    later. SASL authentication uses supplmenetary data.
+*/
+
+void ManageSieveCommand::setArguments( const String & args )
+{
+    d->arg = args;
+    d->pos = 0;
+}
+
+
 /*! Returns true if this ManageSieveCommand has finished executing:
-  and false if
-    execute() hasn't been called, or if it has work left to do.
+    and false if execute() hasn't been called, or if it has work left
+    to do.
 */
 
 bool ManageSieveCommand::done()
@@ -129,22 +140,11 @@ bool ManageSieveCommand::done()
 }
 
 
-/*! Tries to read a single response line from the client. Upon return,
-    d->r points to the response, or is 0 if no response could be read.
-*/
-
-void ManageSieveCommand::read()
-{
-    d->r = d->sieve->readBuffer()->removeLine();
-}
-
-
 void ManageSieveCommand::execute()
 {
     if ( d->done )
         return;
 
-    Scope x( log() );
     bool ok = true;
     switch ( d->cmd ) {
     case Logout:
@@ -297,8 +297,9 @@ bool ManageSieveCommand::authenticate()
         d->m->readInitialResponse( r );
     }
 
-    if ( d->m->state() == SaslMechanism::AwaitingResponse && d->r )
-        d->m->readResponse( new String( d->r->unquoted() ) );
+    if ( d->m->state() == SaslMechanism::AwaitingResponse &&
+         d->arg.length() > d->pos )
+        d->m->readResponse( new String( string() ) );
 
     if ( !d->m->done() )
         return false;

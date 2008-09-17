@@ -110,10 +110,7 @@ void ManageSieve::parse()
     Buffer *b = readBuffer();
 
     while ( b->size() > 0 ) {
-        if ( d->reader ) {
-            d->reader->read();
-        }
-        else if ( d->readingLiteral ) {
+        if ( d->readingLiteral ) {
             if ( b->size() < d->literalSize )
                 return;
 
@@ -121,7 +118,7 @@ void ManageSieve::parse()
             b->remove( d->literalSize );
             d->readingLiteral = false;
         }
-        else {
+        if ( !d->readingLiteral ) {
             if ( d->reserved )
                 break;
 
@@ -159,8 +156,15 @@ void ManageSieve::parse()
                 }
             }
 
-            if ( !d->readingLiteral )
-                addCommand();
+            if ( !d->readingLiteral ) {
+                if ( d->reader ) {
+                    d->reader->setArguments( d->arg );
+                    d->arg.truncate();
+                }
+                else {
+                    addCommand();
+                }
+            }
         }
 
         runCommands();
@@ -212,8 +216,10 @@ void ManageSieve::addCommand()
             c = ManageSieveCommand::XAoxExplain;
     }
 
-    d->commands->append( new ManageSieveCommand( this, c, d->arg ) );
+    ManageSieveCommand * n = new ManageSieveCommand( this, c );
+    n->setArguments( d->arg );
     d->arg.truncate();
+    d->commands->append( n );
 }
 
 
@@ -270,7 +276,7 @@ void ManageSieve::runCommands()
         while ( it && it->done() )
             d->commands->take( it );
         if ( it && Connection::state() == Connected )
-            it->execute();
+            it->notify();
     } while ( it && it->done() );
 }
 
@@ -294,7 +300,6 @@ void ManageSieve::setReserved( bool r )
 void ManageSieve::setReader( ManageSieveCommand * cmd )
 {
     d->reader = cmd;
-    d->reserved = d->reader;
 }
 
 
@@ -312,7 +317,7 @@ void ManageSieve::capabilities()
              "\r\n" );
     enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) +
              "\"\r\n" );
-    if ( !hasTls() )
+    if ( Configuration::toggle( Configuration::UseTls ) && !hasTls() )
         enqueue( "\"STARTTLS\"\r\n" );
     enqueue( "\"X-AOX-EXPLAIN\"\r\n" );
 }
