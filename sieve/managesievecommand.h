@@ -18,9 +18,9 @@ public:
         Unknown
     };
 
-    ManageSieveCommand( class ManageSieve *, Command, const String & );
+    ManageSieveCommand( class ManageSieve *, Command );
+    void setArguments( const String & );
 
-    void read();
     void execute();
     bool done();
 
