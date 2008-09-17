@@ -1409,8 +1409,13 @@ bool String::needsQP() const
     uint i = 0;
     uint c = 0;
     while ( i < length() ) {
-        if ( c == 0 && d->str[i] == '-' && d->str[i+1] == '-' )
-            return true;
+        if ( c == 0 && d->str[i] == '-' && d->str[i+1] == '-' ) {
+            uint j = i;
+            while ( j < d->len && d->str[j] > ' ' && d->str[j] <= 'z' )
+                j++;
+            if ( i < d->len && d->str[j] == '\n' )
+                return true;
+        }
         if ( d->str[i] == 10 )
              c = 0;
         else if ( c > 78 )
