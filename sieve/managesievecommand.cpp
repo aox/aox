@@ -752,13 +752,30 @@ void ManageSieveCommand::no( const String & message )
 }
 
 
-/*! A thin wrapper around ManageSieve::encoded( \a input ), because
-    I'm too lazy to change the callers now.
+/*! Returns \a input encoded either as a managesieve quoted or literal
+    string. Quoted is preferred, if possible.
 */
 
 String ManageSieveCommand::encoded( const String & input )
 {
-    return ManageSieve::encoded( input );
+    bool q = true;
+    if ( input.length() > 1024 )
+        q = false;
+    uint i = 0;
+    while ( q && i < input.length() ) {
+        if ( input[i] == 0 || input[i] == 13 || input[i] == 10 )
+            q = false;
+        i++;
+    }
+
+    if ( q )
+        return input.quoted();
+
+    String r( "{" );
+    r.append( String::fromNumber( input.length() ) );
+    r.append( "+}\r\n" );
+    r.append( input );
+    return r;
 }
 
 
