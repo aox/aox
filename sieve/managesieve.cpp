@@ -320,9 +320,33 @@ void ManageSieve::capabilities()
 
 void ManageSieve::sendChallenge( const String & s )
 {
-    enqueue( "{" );
-    enqueue( fn( s.length() ) );
-    enqueue( "+}\r\n" );
-    enqueue( s );
+    enqueue( encoded( s ) );
     enqueue( "\r\n" );
+}
+
+
+/*! Returns \a input encoded either as a managesieve quoted or literal
+    string. Quoted is preferred, if possible.
+*/
+
+String ManageSieve::encoded( const String & input )
+{
+    bool q = true;
+    if ( input.length() > 1024 )
+        q = false;
+    uint i = 0;
+    while ( q && i < input.length() ) {
+        if ( input[i] == 0 || input[i] == 13 || input[i] == 10 )
+            q = false;
+        i++;
+    }
+
+    if ( q )
+        return input.quoted();
+
+    String r( "{" );
+    r.append( String::fromNumber( input.length() ) );
+    r.append( "+}\r\n" );
+    r.append( input );
+    return r;
 }

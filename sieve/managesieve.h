@@ -33,6 +33,8 @@ public:
 
     void capabilities();
 
+    static String encoded( const String & );
+
     virtual void sendChallenge( const String & );
 
 private:
