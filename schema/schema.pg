@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (75);
+insert into mailstore (revision) values (76);
 
 
 -- One entry for each unique address we've encountered.
@@ -364,6 +364,7 @@ create table deleted_messages (
 );
 
 create index dm_mud on deleted_messages(mailbox,uid,deleted_at);
+create index dm_mm on deleted_messages(mailbox,modseq);
 create index dm_m on deleted_messages(message);
 
 
