@@ -465,8 +465,10 @@ void Selector::simplify()
     \a user and \a session. The \a owner will be notified of query
     results.
 
-    The \a mailbox to search is passed in separately, because
-    we can't use the Session's mailbox while building views.
+    The \a mailbox to search is passed in separately, because we can't
+    use the Session's mailbox while building views. If \a mailbox is a
+    null pointer, the query will search either the entire database or
+    the part that's visible to \a user.
 
     If \a deleted is supplied and true (the default is false), then
     the Query looks at the deleted_messages table instead of the
@@ -526,10 +528,68 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( d->needMessages )
         q.append( " join messages m on (" + mm() + ".message=m.id)" );
 
-    q.append( " where " + mm() + ".mailbox=$" );
-    q.append( fn( d->mboxId ) );
-    if ( !w.isEmpty() && w != "true" )
-        q.append( " and " + w );
+    String mboxClause;
+    if ( d->mboxId ) {
+        // normal case: search one mailbox
+        mboxClause = mm() + ".mailbox=$" + fn( d->mboxId );
+    }
+    else if ( user ) {
+        // search all mailboxes accessible to user
+        uint owner = placeHolder();
+        d->query->bind( owner, user->id() );
+        q.append( " join mailboxes mb on (" + mm() + ".mailbox=mb.id)" );
+        uint n = placeHolder();
+        d->query->bind( n, user->login() );
+        mboxClause =
+            // I think this one needs commentary.
+            "exists "
+            // this subselect returns true if either anyone or the named user
+            // has the r right for subsubmailbox...
+            "(select rights "
+            " from permissions"
+            " where (identifier='anyone' or identifier=$"+fn(n)+") and"
+            "  rights='%r%' and"
+            "  mailbox=("
+            // this selects the mailbox whose permissions rows
+            // applies. that's either the mailbox itself, or the
+            // closest parent which has a permissions row.
+            "   select mp.id"
+            "    from mailboxes mp"
+            "    join permssions p on (mp.id=p.mailbox)"
+            "    where (p.identifier='anyone' or p.identifier=$"+fn(n)+") and"
+            "    (mp.id=mb.id or"
+            "     lower(mp.name)||'/'="
+            "     lower(substring(mb.name from 0 for length(mp.name)+1)))"
+            // use the mailbox which has permissions rows and has the
+            // longest name.
+            "    order by length(mp.name) desc limit 1))";
+    }
+    else {
+        // search all mailboxes
+    }
+
+    if ( mboxClause.isEmpty() && w == "true" ) {
+        // no mailbox, no condition. this will result in a large
+        // result set. can it be correct?
+    }
+    else if ( mboxClause.isEmpty() ) {
+        // a condition that applies to all mailboxes
+        q.append( " where " );
+        q.append( w );
+    }
+    else if ( w == "true" ) {
+        // a mailbox clause, but no condition
+        q.append( " where " );
+        q.append( mboxClause );
+    }
+    else {
+        // both.
+        q.append( " where " );
+        q.append( mboxClause );
+        q.append( " and " );
+        q.append( w );
+    }
+
     if ( order )
         q.append( " order by " + mm() + ".uid" );
 
