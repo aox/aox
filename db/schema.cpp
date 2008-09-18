@@ -471,6 +471,8 @@ bool Schema::singleStep()
         c = stepTo74(); break;
     case 74:
         c = stepTo75(); break;
+    case 75:
+        c = stepTo76(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3791,6 +3793,25 @@ bool Schema::stepTo75()
         describeStep( "Create an index on bodyparts.hash" );
         d->substate = 1;
         d->t->enqueue( new Query( "create index b_h on bodyparts(hash)", 0 ) );
+        d->t->execute();
+    }
+
+    return true;
+}
+
+
+/*! Add an index on d_m(mailbox,modseq) plus a couple of cleanups. */
+
+bool Schema::stepTo76()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Miscellaneous cleanups." );
+        d->substate = 1;
+        d->t->enqueue( new Query( "delete from threads", 0 ) );
+        d->t->enqueue( new Query( "delete from thread_members", 0 ) );
+        d->t->enqueue( new Query( "alter table deliveries drop tried_at", 0 ) );
+        d->t->enqueue( new Query( "create index dm_mm on deleted_messages "
+                                  "(mailbox,modseq)", 0 ) );
         d->t->execute();
     }
 
