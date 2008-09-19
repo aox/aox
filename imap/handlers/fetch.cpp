@@ -718,12 +718,8 @@ void Fetch::execute()
     if ( d->t )
         d->t->commit();
 
-    while ( !d->available.isEmpty() ) {
-        Message * m = d->available.shift();
-        uint u = m->uid( s->mailbox() );
-        respond( makeFetchResponse( m, u, s->msn( u ) ) );
-    }
-    d->available.clear();
+    while ( !d->available.isEmpty() )
+        waitFor( new ImapFetchResponse( s, d->available.shift(), this ) );
 
     if ( !d->expunged.isEmpty() ) {
         s->recordExpungedFetch( d->expunged );
@@ -761,7 +757,7 @@ void Fetch::sendFetchQueries()
         else if ( m->hasTrivia( mb ) &&
                   m->modSeq( mb ) + 1 < mb->nextModSeq() ) {
             m->setFlagsFetched( mb, false );
-            m->setAnnotationsFetched( mb, false ); 
+            m->setAnnotationsFetched( mb, false );
             m->setTriviaFetched( mb, false );
         }
         if ( !m->hasAddresses() )
@@ -1515,15 +1511,13 @@ void Fetch::trickle()
         d->responseRate = 1;
     }
 
-    Session * s = session();
+    ImapSession * s = session();
     r = 0;
     while ( r < d->responseRate && !d->available.isEmpty() ) {
-        Message * m = d->available.shift();
-        uint u = m->uid( s->mailbox() );
-        respond( makeFetchResponse( m, u, s->msn( u ) ) );
+        waitFor( new ImapFetchResponse( s, d->available.shift(), this ) );
         r++;
     }
-    emitUntaggedResponses();
+    imap()->emitResponses();
 }
 
 
@@ -1583,4 +1577,34 @@ void Fetch::pickup()
         log( "Processed " + fn( done ) + " messages",
              Log::Debug );
 
+}
+
+
+/*! \class ImapFetchResponse fetch.h
+
+    The ImapFetchResponse class models a single FETCH response. Its
+    primary responsibity is to pick the right MSN at send time.
+*/
+
+
+/*! Constructs a FETCH response for \a message, to be sent with the
+    MSN supplied by \a s and not sent unless \a s is active, and whose
+    content depends on the arguments to \a command.
+*/
+
+ImapFetchResponse::ImapFetchResponse( ImapSession * s,
+                                      Message * message,
+                                      Fetch * command )
+    : ImapResponse( s ), m( message ), f( command )
+{
+}
+
+
+String ImapFetchResponse::text() const
+{
+    uint uid = m->uid( session()->mailbox() );
+    uint msn = session()->msn( uid );
+    if ( uid && msn )
+        return f->makeFetchResponse( m, uid, msn );
+    return "";
 }

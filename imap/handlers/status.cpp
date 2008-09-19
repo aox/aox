@@ -17,7 +17,7 @@ public:
         messages( false ), uidnext( false ), uidvalidity( false ),
         recent( false ), unseen( false ),
         modseq( false ),
-        mailbox( 0 ), 
+        mailbox( 0 ),
         unseenCount( 0 ), highestModseq( 0 ),
         messageCount( 0 ), recentCount( 0 )
         {}
@@ -103,7 +103,7 @@ void Status::execute()
     if ( d->unseen && !d->unseenCount ) {
         // UNSEEN is horribly slow. I don't think this is fixable
         // really.
-        d->unseenCount 
+        d->unseenCount
             = new Query( "select "
                          "(select count(*)::int from mailbox_messages"
                          " where mailbox=$1)-"
@@ -145,7 +145,7 @@ void Status::execute()
         // we'll pick it up
     }
     else if ( d->messages && !d->messageCount ) {
-        d->messageCount 
+        d->messageCount
             = new Query( "select count(*)::int as messages "
                          "from mailbox_messages where mailbox=$1", this );
         d->messageCount->bind( 1, d->mailbox->id() );
@@ -212,6 +212,5 @@ void Status::execute()
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
              " (" + status.join( " " ) + ")" );
-
     finish();
 }

@@ -3,6 +3,7 @@
 #ifndef IMAPSESSION_H
 #define IMAPSESSION_H
 
+#include "imapresponse.h"
 #include "stringlist.h"
 #include "session.h"
 #include "list.h"
@@ -25,16 +26,26 @@ public:
 
     void recordExpungedFetch( const MessageSet & );
 
-    void enqueue( const String & );
-
     void ignoreModSeq( int64 );
 
 private:
     class ImapSessionData * d;
 
-    void emitExpunges();
-    void emitUidnext();
     void emitFlagUpdates();
+};
+
+
+class ImapExpungeResponse
+    : public ImapResponse
+{
+public:
+    ImapExpungeResponse( uint, ImapSession * );
+
+    String text() const;
+    void setSent();
+
+private:
+    uint u;
 };
 
 

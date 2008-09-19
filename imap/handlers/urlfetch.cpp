@@ -108,6 +108,6 @@ void UrlFetch::execute()
         ++it;
     }
 
-    respond( "URLFETCH " + l.join( " " ) );
+    waitFor( new ImapResponse( imap(), "URLFETCH " + l.join( " " ) ) );
     finish();
 }

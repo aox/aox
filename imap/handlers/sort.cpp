@@ -207,7 +207,7 @@ void Sort::execute()
         else
             s.append( fn( imap()->session()->msn( uid ) ) );
     }
-    respond( s, Untagged );
+    respond( s );
     finish();
 }
 

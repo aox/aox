@@ -158,7 +158,6 @@ void Select::execute()
     if ( !d->session->initialised() )
         return;
 
-    d->session->clearExpunged();
     d->session->emitUpdates();
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
