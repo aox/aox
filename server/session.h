@@ -55,7 +55,7 @@ public:
     const MessageSet & messages() const;
 
     void expunge( const MessageSet & );
-    void clearExpunged();
+    void clearExpunged( uint );
 
     virtual void emitUpdates();
 

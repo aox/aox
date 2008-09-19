@@ -3,9 +3,9 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include "global.h"
-#include "stringlist.h"
+#include "imapresponse.h"
 #include "permissions.h"
+#include "stringlist.h"
 #include "event.h"
 #include "imap.h"
 
@@ -48,16 +48,16 @@ public:
 
     IMAP * imap() const;
 
-    enum Response { Tagged, Untagged };
-    void respond( const String &, Response = Untagged );
+    void respond( const String & );
     void setRespTextCode( const String & );
 
     enum Error { No, Bad };
     void error( Error, const String & );
 
-    void emitUntaggedResponses();
+    void waitFor( ImapResponse * );
     void finish();
     void emitResponses();
+    void checkUntaggedResponses();
 
     char nextChar();
     void step( uint = 1 );

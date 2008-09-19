@@ -884,12 +884,16 @@ const MessageSet & Session::messages() const
 }
 
 
-/*! Clears the list of expunged messages. */
+/*! Records that the client has been told that \a uid no longer
+    exists.
 
-void Session::clearExpunged()
+    This is IMAP stuff infesting Session.
+*/
+
+void Session::clearExpunged( uint uid )
 {
-    d->msns.remove( d->expunges );
-    d->expunges.clear();
+    d->msns.remove( uid );
+    d->expunges.remove( uid );
 }
 
 

@@ -375,7 +375,6 @@ bool PopCommand::session()
     if ( !d->session->initialised() )
         return false;
 
-    d->session->clearExpunged();
     d->session->clearUnannounced();
     d->pop->setState( POP::Transaction );
     d->pop->ok( "Done" );

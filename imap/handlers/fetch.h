@@ -34,6 +34,8 @@ public:
 
     void trickle();
 
+    String makeFetchResponse( Message *, uint, uint );
+
 private:
     void parseFetchModifier();
     void parseBody( bool );
@@ -44,12 +46,24 @@ private:
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
     String singlePartStructure( Multipart *, bool );
-    String makeFetchResponse( Message *, uint, uint );
 
     void pickup();
 
 private:
     class FetchData * d;
+};
+
+
+class ImapFetchResponse
+    : public ImapResponse
+{
+public:
+    ImapFetchResponse( ImapSession *, Message *, Fetch * );
+    String text() const;
+
+private:
+    Message * m;
+    Fetch * f;
 };
 
 

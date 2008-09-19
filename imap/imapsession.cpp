@@ -16,7 +16,7 @@ class ImapSessionData
     : public Garbage
 {
 public:
-    ImapSessionData(): i( 0 ), l( 0 ), unsolicited( false ),
+    ImapSessionData(): i( 0 ), l( 0 ),
                        exists( 0 ), recent( 0 ),
                        uidnext( 0 ), nms( 0 ), cms( 0 ),
                        emitting( false ) {}
@@ -24,7 +24,6 @@ public:
     Log * l;
     MessageSet expungedFetched;
     MessageSet changed;
-    bool unsolicited;
     uint exists;
     uint recent;
     uint uidnext;
@@ -78,129 +77,43 @@ void ImapSession::emitUpdates()
 
     Scope x( d->l );
 
-    emitExpunges();
+    MessageSet e;
+    e.add( expunged() );
+    while ( !e.isEmpty() ) {
+        (void)new ImapExpungeResponse( e.smallest(), this );
+        e.remove( e.smallest() );
+    }
+
     emitFlagUpdates();
     clearUnannounced();
-    emitUidnext();
+
+    if ( d->uidnext < uidnext() ) {
+        uint x = messages().count();
+        if ( x > d->exists || !d->uidnext ) {
+            d->exists = x;
+            (void)new ImapResponse( this, fn( x ) + " EXISTS" );
+        }
+
+        uint r = recent().count();
+        if ( d->recent != r || !d->uidnext ) {
+            d->recent = r;
+            (void)new ImapResponse( this, fn( r ) + " RECENT" );
+        }
+        
+        d->uidnext = uidnext();
+        (void)new ImapResponse( this,
+                                "OK [UIDNEXT " + fn( d->uidnext ) +
+                                "] next uid" );
+    }
+
     if ( d->nms < nextModSeq() )
         d->nms = nextModSeq();
     if ( d->changed.isEmpty() )
         d->cms = d->nms;
 
-    // this is voodoo. I don't see any real reason to call only
-    // emitResponses() if a command is finished.
-    List<Command>::Iterator c( d->i->commands() );
-    if ( c && c->state() == Command::Finished )
-        c->emitResponses();
-    else
-        d->i->unblockCommands();
+    d->i->unblockCommands();
 
     d->emitting = false;
-}
-
-
-/*! This private helper sends whatever EXPUNGE responses may be
-    sent.
-*/
-
-void ImapSession::emitExpunges()
-{
-    MessageSet e;
-    e.add( expunged() );
-    if ( e.isEmpty() )
-        return;
-
-    List<Command>::Iterator c( d->i->commands() );
-
-    Command * can = 0;
-    bool cannot = false;
-
-    while ( c && !cannot ) {
-        // expunges are permitted in idle mode
-        if ( c->state() == Command::Executing && c->name() == "idle" )
-            can = c;
-        // we cannot send an expunge while a command is being
-        // executed (not without NOTIFY at least...)
-        else if ( c->state() == Command::Executing )
-            cannot = true;
-        // group 2 contains commands during which we may not send
-        // expunge, group 3 contains all commands that change
-        // flags.
-        else if ( c->group() == 2 || c->group() == 3 )
-            cannot = true;
-        // if there are MSNs in the pipeline we cannot send
-        // expunge. the copy rule is due to RFC 2180 section
-        // 4.4.1/2
-        else if ( c->usesMsn() && c->name() != "copy" )
-            cannot = true;
-        // if another command is finished, we can.
-        else if ( c->state() == Command::Finished && !c->tag().isEmpty() )
-            can = c;
-        ++c;
-    }
-    if ( cannot || !can )
-        return;
-
-    MessageSet m;
-    m.add( messages() );
-
-    d->expungedFetched.remove( e );
-
-    while ( !e.isEmpty() ) {
-        uint uid = e.smallest();
-        e.remove( uid );
-        uint msn = m.index( uid );
-        if ( msn ) {
-            m.remove( uid );
-            can->respond( fn( msn ) + " EXPUNGE" );
-        }
-        else {
-            d->exists = 0;
-        }
-        if ( d->exists )
-            d->exists--;
-    }
-    clearExpunged();
-}
-
-
-/*! This private helper sends EXISTS, UIDNEXT and RECENT. */
-
-void ImapSession::emitUidnext()
-{
-    uint n = uidnext();
-    if ( n <= d->uidnext )
-        return;
-
-    if ( d->unsolicited ) {
-        List<Command>::Iterator c( d->i->commands() );
-        if ( c && c->state() == Command::Finished )
-            d->unsolicited = false;
-        else
-            return;
-    }
-
-    uint x = messages().count();
-    if ( x != d->exists || !d->uidnext )
-        enqueue( "* " + fn( x ) + " EXISTS\r\n" );
-
-    if ( d->unsolicited ) {
-        List<Command>::Iterator c( d->i->commands() );
-        if ( c && c->state() == Command::Finished )
-            d->unsolicited = false;
-        else
-            return;
-    }
-    d->exists = x;
-
-    uint r = recent().count();
-    if ( d->recent != r || !d->uidnext ) {
-        d->recent = r;
-        enqueue( "* " + fn( r ) + " RECENT\r\n" );
-    }
-
-    d->uidnext = n;
-    enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
 }
 
 
@@ -264,32 +177,10 @@ void ImapSession::recordExpungedFetch( const MessageSet & set )
     if ( already.isEmpty() )
         return;
 
-    enqueue( "* BYE [CLIENTBUG] These messages have been expunged: " +
-             set.set() + "\r\n" );
-    d->i->setState( IMAP::Logout );
-}
-
-
-/*! Sends \a r to the client. \a r must end with CR LF. */
-
-void ImapSession::enqueue( const String & r )
-{
-    if ( d->i->session() != this ) {
-        mailbox()->removeSession( this );
-        return;
-    }
-
-    bool u = true;
-    List<Command>::Iterator c( d->i->commands() );
-    while ( c && u ) {
-        if ( c->state() == Command::Executing ||
-             c->state() == Command::Finished )
-            u = false;
-        ++c;
-    }
-    if ( u )
-        d->unsolicited = true;
-    d->i->enqueue( r );
+    (void)new ImapByeResponse( d->i,
+                               "[CLIENTBUG] "
+                               "These messages have been expunged: " +
+                               set.set() );
 }
 
 
@@ -300,4 +191,45 @@ void ImapSession::enqueue( const String & r )
 void ImapSession::ignoreModSeq( int64 ms )
 {
     d->ignorable.append( new int64( ms ) );
+}
+
+
+/*! \class ImapExpungeResponse imapsession.h
+
+    The ImapExpungeResponse the expun an Expunge response. It can
+    formulate the right text and modify the session to account for the
+    response's having been sent.
+*/
+
+
+/*! Constructs an ImapExpungeResponse for \a uid in \a session.
+
+*/
+
+ImapExpungeResponse::ImapExpungeResponse( uint uid, ImapSession * session )
+    : ImapResponse( session ), u( uid )
+{
+    setChangesMsn();
+}
+
+
+String ImapExpungeResponse::text() const
+{
+    String r;
+    uint msn = session()->msn( u );
+    if ( !msn ) {
+        log( "Warning: No MSN for UID " + fn( u ), Log::Error );
+        return r; // can this happen? no?
+    }
+
+    r.append( fn( msn ) );
+    r.append( " EXPUNGE" );
+    return r;
+}
+
+
+void ImapExpungeResponse::setSent()
+{
+    session()->clearExpunged( u );
+    ImapResponse::setSent();
 }

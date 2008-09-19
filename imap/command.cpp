@@ -54,7 +54,7 @@ class CommandData
 {
 public:
     CommandData()
-        : args( 0 ), responses( new StringList ),
+        : args( 0 ),
           tagged( false ),
           usesRelativeMailbox( false ),
           usesAbsoluteMailbox( false ),
@@ -72,7 +72,8 @@ public:
     String name;
     ImapParser * args;
 
-    StringList * responses;
+    List<ImapResponse> untagged;
+
     String respTextCode;
     bool tagged;
 
@@ -542,46 +543,16 @@ IMAP * Command::imap() const
 }
 
 
-/*! Adds \a r to the list of strings to be sent to the client, and
-    perhaps sends it right away, depending on whether it's acceptable
-    to send output at the moment. By default \a r is sent as an
-    untagged response, but if \a t is specified and has value Tagged,
-    \a r is sent as a tagged response.
-
-    \a r should not be CRLF-terminated.
-
-    If emitResponses() has been called already, this function does
-    nothing.
+/*! Adds \a r to the list of strings to be sent to the client. Neither
+    the leading star-space nor the trailing CRLF should be included in
+    \a r.
 */
 
-void Command::respond( const String & r, Response t )
+void Command::respond( const String & r )
 {
-    String * tmp = new String;
-    if ( t == Tagged ) {
-        *tmp = d->tag;
-        d->tagged = true;
-    }
-    else {
-        *tmp = "*";
-    }
-    tmp->reserve( tmp->length() + r.length() + 10 );
-    tmp->append( " " );
-    tmp->append( r );
-    tmp->append( "\r\n" );
-    if ( !d->responses )
-        return;
-
-    if ( t == Tagged ) {
-        log( "Result: " + r );
-        d->responses->append( tmp );
-    }
-    else {
-        StringList::Iterator i = d->responses->last();
-        while ( i && i->startsWith( "* " ) )
-            ++i;
-        d->responses->insert( i, tmp );
-    }
+    waitFor( new ImapResponse( d->imap, r ) );
 }
+
 
 
 /*! Sets the command's status code to be \a e and the attendant
@@ -614,6 +585,26 @@ void Command::error( Error e, const String & t )
 }
 
 
+/*! Make sure that this command's tagged OK is not sent until \a
+    response has been sent.
+*/
+
+void Command::waitFor( class ImapResponse * response )
+{
+    d->untagged.append( response );
+}
+
+
+/*! Checks that everything we waitFor() has been sent. */
+
+void Command::checkUntaggedResponses()
+{
+    while ( !d->untagged.isEmpty() &&
+            d->untagged.firstElement()->sent() )
+        d->untagged.shift();
+}
+
+
 /*! Sets this Command's state to ::Finished and emit any queued
     responses as soon as possible.
 */
@@ -643,77 +634,47 @@ void Command::emitResponses()
     if ( state() == Retired )
         return;
 
-    if ( d->emittingResponses )
-        return;
     Session * s = imap()->session();
     if ( s && !s->initialised() )
         return;
 
-    d->emittingResponses = true;
-
-    if ( !d->tagged ) {
-        if ( d->tag.isEmpty() ) {
-            // if we don't have a tag, we must be an implicit Fetch or
-            // Store used by ImapSession.
-        }
-        else if ( !d->error ) {
-            if ( d->respTextCode.isEmpty() )
-                respond( "OK done", Tagged );
-            else
-                respond( "OK [" + d->respTextCode + "] done", Tagged );
-        }
-        else {
-            String r;
-            if ( d->errorCode == Bad ) {
-                imap()->recordSyntaxError();
-                r = "BAD ";
-            }
-            else {
-                r = "NO ";
-            }
-            if ( !d->respTextCode.isEmpty() ) {
-                r.append( "[" );
-                r.append( d->respTextCode );
-                r.append( "] " );
-            }
-            r.append( d->errorText );
-            respond( r, Tagged );
-        }
-    }
-
-    emitUntaggedResponses();
-    if ( s )
-        s->emitUpdates();
-
-    if ( d->responses )
-        imap()->enqueue( d->responses->join( "" ) );
-
-    d->responses = 0;
+    imap()->emitResponses();
+    if ( !d->untagged.isEmpty() )
+        return;
     setState( Retired );
-    d->emittingResponses = false;
 
-    imap()->write();
-}
+    // we don't have a tag if we're an implicit Fetch or Store used by
+    // ImapSession.
+    if ( d->tag.isEmpty() )
+        return;
 
-
-/*! Emits some/all untagged responses right away. Stops at the first
-    tagged response.
-*/
-
-void Command::emitUntaggedResponses()
-{
-    uint n = 0;
-    List< String >::Iterator it( d->responses );
-    while ( it && it->startsWith( "* " ) ) {
-        imap()->enqueue( *it );
-        d->responses->take( it );
-        n++;
+    String t = tag();
+    if ( !d->error ) {
+        t.append( " OK " );
     }
+    else if ( d->errorCode == Bad ) {
+        imap()->recordSyntaxError();
+        t.append( " BAD " );
+    }
+    else {
+        t.append( " NO " );
+    }
+    if ( !d->respTextCode.isEmpty() ) {
+        t.append( "[" );
+        t.append( d->respTextCode );
+        t.append( "] " );
+    }
+    if ( d->error ) {
+        t.append( d->errorText );
+    }
+    else {
+        t.append( "done" );
+    }
+    log( t );
+    t.append( "\r\n" );
+    imap()->enqueue( t );
 
     imap()->write();
-
-    if ( n > 20 )
-        log( "Untagged responses: " + fn( n ), Log::Debug );
 }
 
 
@@ -816,8 +777,9 @@ void Command::space()
 
     while ( d->args->nextChar() == ' ' )
         d->args->step();
-    respond( "BAD Illegal space seen before this text: " + following(),
-             Untagged );
+    (void)new ImapResponse( imap(),
+                            "BAD Illegal space seen before this text: " +
+                            following() );
 }
 
 

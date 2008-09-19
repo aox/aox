@@ -51,7 +51,8 @@ public:
     bool readingLiteral;
     uint literalSize;
 
-    List< Command > commands;
+    List<Command> commands;
+    List<ImapResponse> responses;
 
     ImapSession *session;
     Mailbox *mailbox;
@@ -745,4 +746,83 @@ void IMAP::setPrefersAbsoluteMailboxes( bool b )
 bool IMAP::prefersAbsoluteMailboxes() const
 {
     return d->prefersAbsoluteMailboxes;
+}
+
+
+/*! Records that \a response needs to be sent at the earliest possible
+    date. When is the earliest possible date? Well, it depends on \a
+    response, on the commands active and so on.
+*/
+
+void IMAP::respond( class ImapResponse * response )
+{
+    d->responses.append( response );
+}
+
+
+/*! Emits those responses which can be emitted at this time. */
+
+void IMAP::emitResponses()
+{
+    // first, see if expunges are permitted
+    bool can = false;
+    bool cannot = false;
+    List<Command>::Iterator c( commands() );
+
+    while ( c && !cannot ) {
+        // expunges are permitted in idle mode
+        if ( c->state() == Command::Executing && c->name() == "idle" )
+            can = true;
+        // we cannot send an expunge while a command is being
+        // executed (not without NOTIFY at least...)
+        else if ( c->state() == Command::Executing )
+            cannot = true;
+        // group 2 contains commands during which we may not send
+        // expunge, group 3 contains all commands that change
+        // flags.
+        else if ( c->group() == 2 || c->group() == 3 )
+            cannot = true;
+        // if there are MSNs in the pipeline we cannot send
+        // expunge. the copy rule is due to RFC 2180 section
+        // 4.4.1/2
+        else if ( c->usesMsn() && c->name() != "copy" )
+            cannot = true;
+        // if another command is finished, we can.
+        else if ( c->state() == Command::Finished && !c->tag().isEmpty() )
+            can = true;
+        ++c;
+    }
+    if ( cannot )
+        can = false;
+
+    bool any = false;
+
+    Buffer * w = writeBuffer();
+    List<ImapResponse>::Iterator r( d->responses );
+    while ( r ) {
+        if ( r->meaningful() ) {
+            if ( !r->sent() && ( can || !r->changesMsn() ) ) {
+                w->append( "* ", 2 );
+                w->append( r->text() );
+                w->append( "\r\n", 2 );
+                r->setSent();
+                any = true;
+            }
+        }
+        if ( r->meaningful() && !r->sent() ) {
+            ++r;
+        }
+        else {
+            d->responses.take( r );
+        }
+    }
+
+    if ( !any )
+        return;
+
+    c = commands()->first();
+    while ( c ) {
+        c->checkUntaggedResponses();
+        ++c;
+    }
 }

@@ -46,6 +46,9 @@ public:
     void setPrefersAbsoluteMailboxes( bool );
     bool prefersAbsoluteMailboxes() const;
 
+    void respond( class ImapResponse * );
+    void emitResponses();
+
 private:
     class IMAPData *d;
 
