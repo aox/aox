@@ -802,9 +802,12 @@ void IMAP::emitResponses()
     while ( r ) {
         if ( r->meaningful() ) {
             if ( !r->sent() && ( can || !r->changesMsn() ) ) {
-                w->append( "* ", 2 );
-                w->append( r->text() );
-                w->append( "\r\n", 2 );
+                String t = r->text();
+                if ( !t.isEmpty() ) {
+                    w->append( "* ", 2 );
+                    w->append( t );
+                    w->append( "\r\n", 2 );
+                }
                 r->setSent();
                 any = true;
             }
