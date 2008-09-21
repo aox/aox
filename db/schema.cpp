@@ -3701,8 +3701,8 @@ bool Schema::stepTo76()
     if ( d->substate == 0 ) {
         describeStep( "Miscellaneous cleanups." );
         d->substate = 1;
-        d->t->enqueue( new Query( "delete from threads", 0 ) );
         d->t->enqueue( new Query( "delete from thread_members", 0 ) );
+        d->t->enqueue( new Query( "delete from threads", 0 ) );
         d->t->enqueue( new Query( "alter table deliveries drop tried_at", 0 ) );
         d->t->enqueue( new Query( "create index dm_mm on deleted_messages "
                                   "(mailbox,modseq)", 0 ) );
