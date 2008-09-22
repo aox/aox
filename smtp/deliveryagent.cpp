@@ -106,7 +106,8 @@ void DeliveryAgent::execute()
 
     if ( d->qm->hasResults() ) {
         d->row = d->qm->nextRow();
-        log( "Delivery ID is " + d->row->getInt( "id" ) );
+        log( "Delivery ID is " +
+             fn( d->row->getInt( "id" ) ) );
     }
 
     if ( !d->messageId )
