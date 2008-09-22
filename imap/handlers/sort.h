@@ -4,6 +4,7 @@
 #define SORT_H
 
 #include "search.h"
+#include "list.h"
 
 
 class Sort
@@ -16,6 +17,19 @@ public:
 
 private:
     class SortData * d;
+};
+
+
+class ImapSortResponse
+    : public ImapResponse
+{
+public:
+    ImapSortResponse( ImapSession *, List<uint> *, bool );
+    String text() const;
+
+private:
+    List<uint> * r;
+    bool u;
 };
 
 
