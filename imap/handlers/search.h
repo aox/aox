@@ -27,8 +27,6 @@ protected:
 
     Selector * selector() const;
 
-    void sendSearchResponse();
-    void sendEsearchResponse();
     void sendResponse();
 
 private:
@@ -43,6 +41,24 @@ private:
 private:
     class SearchData * d;
     friend class SearchData;
+};
+
+
+class ImapSearchResponse
+    : public ImapResponse
+{
+public:
+    ImapSearchResponse( ImapSession *, const MessageSet &,
+                        int64, const String & tag,
+                        bool,
+                        bool, bool, bool, bool );
+    String text() const;
+
+private:
+    MessageSet r;
+    int64 ms;
+    String t;
+    bool uid, min, max, count, all;
 };
 
 
