@@ -195,19 +195,11 @@ void Sort::execute()
     if ( !d->q->done() )
         return;
 
-    String s;
-    s.reserve( d->q->rows() * 6 );
-    s.append( "SORT" );
+    List<uint> * result = new List<uint>;
     Row * r;
-    while ( (r=d->q->nextRow()) != 0 ) {
-        s.append( " " );
-        uint uid = r->getInt( "uid" );
-        if ( d->u )
-            s.append( fn( uid ) );
-        else
-            s.append( fn( imap()->session()->msn( uid ) ) );
-    }
-    respond( s );
+    while ( (r=d->q->nextRow()) != 0 )
+        result->append( new uint( r->getInt( "uid" ) ) );
+    waitFor( new ImapSortResponse( session(), result, d->u ) );
     finish();
 }
 
@@ -339,3 +331,42 @@ bool SortData::usingCriterionType( SortCriterionType t )
     return false;
 }
 
+
+/*! \class ImapSortResponse sort.h
+  
+    The ImapSortResponse models the SORT response, and has to make
+    sure old MSNs aren't accidentally included.
+*/
+
+
+
+/*! Constructs a SORT response which will return \a result within \a
+    session, using UIDs if \a uid is true and MSNs if \a uid is false.
+*/
+
+ImapSortResponse::ImapSortResponse( ImapSession * session,
+                                    List<uint> * result, bool uid )
+    : ImapResponse( session ),r( result ), u( uid )
+{
+}
+
+
+String ImapSortResponse::text() const
+{
+    Session * s = session();
+    String result;
+    result.reserve( r->count() * 10 );
+    result.append( "SORT" );
+    List<uint>::Iterator i( r );
+    while ( i ) {
+        uint x = *i;
+        ++i;
+        if ( !u )
+            x = s->msn( x );
+        if ( x ) {
+            result.append( " " );
+            result.append( fn( x ) );
+        }
+    }
+    return result;
+}
