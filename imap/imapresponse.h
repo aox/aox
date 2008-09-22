@@ -14,6 +14,7 @@ public:
     ImapResponse( class ImapSession * );
     ImapResponse( IMAP *, const String & );
     ImapResponse( IMAP * );
+    virtual ~ImapResponse() {}
 
     bool sent() const;
     virtual void setSent();
