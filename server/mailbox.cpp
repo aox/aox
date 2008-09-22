@@ -15,6 +15,7 @@
 #include "session.h"
 #include "dbsignal.h"
 #include "threader.h"
+#include "eventloop.h"
 #include "allocator.h"
 #include "messageset.h"
 #include "stringlist.h"
