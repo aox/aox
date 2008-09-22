@@ -177,7 +177,10 @@ public:
     MailboxesWatcher(): EventHandler() {
         (void)new DatabaseSignal( "mailboxes_updated", this );
     }
-    void execute() { (new MailboxReader( 0, 0 ))->q->execute(); }
+    void execute() {
+        if ( !EventLoop::global()->inShutdown() )
+            (new MailboxReader( 0, 0 ))->q->execute();
+    }
 };
 
 
