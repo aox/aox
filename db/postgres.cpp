@@ -811,6 +811,23 @@ void Postgres::serverMessage()
         log( "Cannot authenticate as PostgreSQL user " + d->user.quoted() +
              ". Server message: " + msg.message(), Log::Disaster );
     }
+    else if ( code.startsWith( "53" ) ) {
+        uint m = Configuration::scalar( Configuration::DbMaxHandles );
+        if ( code == "53000" )
+            log( "PostgreSQL server reports too many client connections. "
+                 "Our connection count is " + fn( numHandles() ) + ", "
+                 "configured maximum is " + fn( m ) + ".",
+                 Log::Error );
+        else
+            log( "PostgreSQL server has a resource problem (" + code + "): " +
+                 msg.message(),
+                 Log::Significant );
+        if ( m > 2 ) {
+            log( "Setting db-max-handles to 2 (was " + fn( m ) + ")" );
+            Configuration::add( "db-max-handles = 2" );
+        }
+
+    }
     else if ( msg.type() == PgMessage::Notification ) {
         s.append( "PostgreSQL server: " );
         if ( q ) {
