@@ -495,9 +495,9 @@ void Search::considerCache()
                 d->matches.clear();
                 break;
             }
-            log( "Search considered " + fn( c ) + " of " + fn( max ) +
-                 " messages using cache", Log::Debug );
         }
+        log( "Search considered " + fn( c ) + " of " + fn( max ) +
+             " messages using cache", Log::Debug );
     }
     if ( !needDb )
         d->done = true;
@@ -637,34 +637,6 @@ MessageSet Search::set( bool parseMsns )
 }
 
 
-/*! Sends the SEARCH response.
-*/
-
-void Search::sendSearchResponse()
-{
-    ImapSession * s = session();
-    String result( "SEARCH" );
-    uint i = 1;
-    uint max = d->matches.count();
-    while ( i <= max ) {
-        uint uid = d->matches.value( i );
-        i++;
-        if ( !d->uid )
-            uid = s->msn( uid ); // ick
-        if ( uid ) {
-            result.append( " " );
-            result.append( fn( uid ) );
-        }
-    }
-    if ( d->returnModseq ) {
-        result.append( " (modseq " );
-        result.append( fn( d->highestmodseq ) );
-        result.append( ")" );
-    }
-    respond( result );
-}
-
-
 static uint max( uint a, uint b )
 {
     if ( a > b )
@@ -673,77 +645,134 @@ static uint max( uint a, uint b )
 }
 
 
-/*! Sends the ESEARCH response.
-*/
-
-void Search::sendEsearchResponse()
-{
-    ImapSession * s = session();
-    String result = "ESEARCH (tag " + tag().quoted() + ")";
-    if ( d->uid )
-        result.append( " uid" );
-    if ( d->returnCount ) {
-        result.append( " count " );
-        result.append( fn( d->matches.count() ) );
-    }
-    if ( d->returnMin && !d->matches.isEmpty() ) {
-        result.append( " min " );
-        uint uid = d->matches.value( 1 );
-        if ( !d->uid )
-            uid = s->msn( uid ); // ick
-        result.append( fn( uid ) );
-    }
-    if ( d->returnMax && !d->matches.isEmpty() ) {
-        result.append( " max " );
-        uint uid = d->matches.value( d->matches.count() );
-        if ( !d->uid )
-            uid = s->msn( uid ); // ick
-        result.append( fn( uid ) );
-    }
-    if ( d->returnAll && !d->matches.isEmpty() ) {
-        result.append( " all " );
-        if ( d->uid ) {
-            result.append( d->matches.set() );
-        }
-        else {
-            MessageSet msns;
-            uint i = 1;
-            uint max = d->matches.count();
-            while ( i <= max ) {
-                msns.add( s->msn( d->matches.value( i ) ) );
-                i++;
-            }
-            result.append( msns.set() );
-        }
-    }
-    if ( d->returnModseq && !d->matches.isEmpty() ) {
-        result.append( " modseq " );
-        if ( d->returnAll || d->returnCount )
-            result.append( fn( d->highestmodseq ) );
-        else if ( d->returnMin && d->returnMax )
-            result.append( fn( max( d->firstmodseq, d->lastmodseq ) ) );
-        else if ( d->returnMin )
-            result.append( fn( d->firstmodseq ) );
-        else if ( d->returnMax )
-            result.append( fn( d->lastmodseq ) );
-        else
-            result.append( "1" ); // should not happen
-    }
-    respond( result );
-}
-
-
-/*! Calls either sendSearchResponse or sendEsearchResponse(),
-    whichever is appropriate.
+/*! Makes sure a SEARCH or ESEARCH response is sent, whichever is
+    appropriate.
 */
 
 void Search::sendResponse()
 {
-    if ( d->returnAll ||
-         d->returnMax ||
-         d->returnMin ||
-         d->returnCount )
-        sendEsearchResponse();
-    else
-        sendSearchResponse();
+    int64 ms = 0;
+    if ( !d->returnModseq )
+        ; // means to send none
+    else if ( d->returnAll || d->returnCount )
+        ms = d->highestmodseq;
+    else if ( d->returnMin && d->returnMax )
+        ms = max( d->firstmodseq, d->lastmodseq );
+    else if ( d->returnMin )
+        ms = d->firstmodseq;
+    else if ( d->returnMax )
+        ms = d->lastmodseq;
+    waitFor( new ImapSearchResponse( session(), d->matches, ms, tag(),
+                                     d->uid,
+                                     d->returnMin,
+                                     d->returnMax,
+                                     d->returnCount,
+                                     d->returnAll ) );
+}
+
+
+/*! Constructs a search response, able to send a SEARCH or ESEARCH
+    response for \a set within \a session.
+
+    If \a u is true, UIDs will be sent, if not, MSNs. If a modseq
+    needs to be sent, \a modseq will be. If the response is ESEARCH,
+    then \a tag will be included as command tag.
+
+    The \a rmin, \a rmax, \a rcount and \a rall response modifiers
+    correspond to the four result options in RFC 4731.
+*/
+
+ImapSearchResponse::ImapSearchResponse( ImapSession * session,
+                                        const MessageSet & set, int64 modseq,
+                                        const String & tag,
+                                        bool u,
+                                        bool rmin, bool rmax,
+                                        bool rcount, bool rall )
+    : ImapResponse( session ), r( set ), ms( modseq ), t( tag ),
+      uid( u ), min( rmin ), max( rmax ), count( rcount ), all( rall )
+{
+}
+
+
+static void appendUid( String & r, Session * s, bool u, uint uid )
+{
+    if ( u ) {
+        r.append( fn( uid ) );
+    }
+    else {
+        uint m = s->msn( uid );
+        if ( m )
+            r.append( fn( m ) );
+    }
+}
+
+
+/*! Constructs a SEARCH or ESEARCH response depending on. */
+
+String ImapSearchResponse::text() const
+{
+    Session * s = session();
+    String result;
+    result.reserve( r.count() * 10 );
+    if ( all || max || min || count ) {
+        result.append( "ESEARCH (tag " );
+        result.append( t.quoted() );
+        result.append( ")" );
+        if ( uid )
+            result.append( " uid" );
+        if ( count ) {
+            result.append( " count " );
+            result.append( fn( r.count() ) );
+        }
+        if ( r.isEmpty() )
+            return result;
+
+        if ( min ) {
+            result.append( " min " );
+            appendUid( result, s, uid, r.smallest() );
+        }
+        if ( max ) {
+            result.append( " max " );
+            appendUid( result, s, uid, r.largest() );
+        }
+        if ( all ) {
+            result.append( " all " );
+            if ( uid ) {
+                result.append( r.set() );
+            }
+            else {
+                MessageSet msns;
+                uint i = 1;
+                uint max = r.count();
+                while ( i <= max ) {
+                    uint m = s->msn( r.value( i ) );
+                    if ( m )
+                        msns.add( m );
+                    i++;
+                }
+                result.append( msns.set() );
+            }
+        }
+        if ( ms ) {
+            result.append( " modseq " );
+            result.append( fn( ms ) );
+        }
+    }
+    else {
+        result.reserve( r.count() * 10 );
+        result.append( "SEARCH" );
+        uint i = 1;
+        uint max = r.count();
+        while ( i <= max ) {
+            result.append( " " );
+            appendUid( result, s, uid, r.value( i ) );
+            i++;
+        }
+        if ( ms ) {
+            result.append( " (modseq " );
+            result.append( fn( ms ) );
+            result.append( ")" );
+        }
+    }
+    return result;
 }
