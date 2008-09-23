@@ -27,18 +27,19 @@ void ShowQueue::execute()
         database();
 
         String s(
-            "select distinct d.id, d.message, "
+            "select d.id, d.message, "
             "a.localpart||'@'||a.domain as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
-            "(d.expires_at-current_timestamp)::text as expires_in, "
-            "(current_timestamp-tried_at)::text as tried_at "
+            "to_char(max(dr.last_attempt), 'YYYY-MM-DD HH24:MI:SS') as tried, "
+            "(extract(epoch from d.expires_at)-extract(epoch from current_timestamp))::bigint as expires_in "
             "from deliveries d join addresses a on (d.sender=a.id) "
+            "join delivery_recipients dr on (d.id=dr.delivery) "
         );
-
         if ( !opt( 'a' ) )
-            s.append( "join delivery_recipients dr on (d.id=dr.delivery) "
-                      "where dr.action=$1 or dr.action=$2 " );
-        s.append( "order by submitted" );
+            s.append( "where dr.action=$1 or dr.action=$2 " );
+        s.append( "group by d.id, d.message, "
+                  "a.domain, a.localpart, d.injected_at, d.expires_at "
+                  "order by submitted, tried, sender" );
 
         q = new Query( s, this );
         if ( !opt( 'a' ) ) {
@@ -54,13 +55,29 @@ void ShowQueue::execute()
             uint delivery = r->getInt( "id" );
             uint message = r->getInt( "message" );
             String sender( r->getString( "sender" ) );
-            String submitted( r->getString( "submitted" ) );
 
             if ( sender == "@" )
                 sender = "<>";
 
-            printf( "%d: Message %d from %s (%s)\n",
-                    delivery, message, sender.cstr(), submitted.cstr() );
+            printf( "%d: Message %d from %s (submitted %s)\n",
+                    delivery, message, sender.cstr(),
+                    r->getString( "submitted" ).cstr() );
+            bool nl = false;
+            if ( !r->isNull( "tried" ) ) {
+                printf( "\t(last tried %s",
+                        r->getString( "tried" ).cstr() );
+                nl = true;
+            }
+            int64 expires = r->getBigint( "expires_in" );
+            if ( expires > 0 && expires < 604800 ) {
+                printf( "%sexpires in %d:%02d:%02d",
+                        nl ? ", " : "\t(",
+                        (int)expires / 3600, ( (int)expires / 60 ) % 60,
+                        (int)expires % 60 );
+                nl = true;
+            }
+            if ( nl )
+                printf( ")\n" );
 
             String s(
                 "select action, status, "
@@ -107,7 +124,7 @@ void ShowQueue::execute()
             if ( !r->isNull( "status" ) )
                 status = r->getString( "status" );
             if ( opt( 'v' ) && !status.isEmpty() )
-                printf( ": %s", status.cstr() );
+                printf( ": status is %s", status.cstr() );
             printf( ")\n" );
         }
 
