@@ -483,7 +483,9 @@ bool SmtpClient::ready() const
 {
     if ( d->dsn )
         return false;
-    if ( d->state == SmtpClientData::Hello ||
+    if ( d->state == SmtpClientData::Invalid ||
+         d->state == SmtpClientData::Connected ||
+         d->state == SmtpClientData::Hello ||
          d->state == SmtpClientData::Rset )
         return true;
     return false;
@@ -524,7 +526,8 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     d->user = user;
     delete d->closeTimer;
     d->closeTimer = 0;
-    d->state = SmtpClientData::Hello;
+    if ( d->state == SmtpClientData::Rset )
+        d->state = SmtpClientData::Hello;
     sendCommand();
 }
 
