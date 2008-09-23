@@ -4,7 +4,7 @@
 
 #include <stdio.h> // fprintf
 #include <stdlib.h> // exit
-
+#include <sysexits.h> // all the exit codes
 
 /*! \class StderrLogger stderrlogger.h
 
@@ -40,7 +40,7 @@ void StderrLogger::send( const String &,
     // and in case of a disaster, we quit. the hard way.
     if ( s == Log::Disaster ) {
         fprintf( stderr, "%s: Fatal error. Exiting.\n", name().cstr() );
-        exit( 1 );
+        exit( EX_UNAVAILABLE );
     }
 }
 
