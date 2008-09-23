@@ -1021,9 +1021,10 @@ void Postgres::shutdown()
     PgTerminate msg;
     msg.enqueue( writeBuffer() );
 
-    if ( d->transaction ) {
+    while ( d->transaction ) {
         d->transaction->setError( 0, "Database connection shutdown" );
         d->transaction->notify();
+        d->transaction = d->transaction->parent();
     }
     List< Query >::Iterator q( d->queries );
     while ( q ) {
