@@ -160,9 +160,8 @@ void MailboxReader::execute() {
     done = true;
     ::readers->remove( this );
     ::wiped = false;
-    if ( q->failed() )
-        log( "Couldn't create mailbox tree: " + q->error(),
-             Log::Disaster );
+    if ( q->failed() && !EventLoop::global()->inShutdown() )
+        log( "Couldn't create mailbox tree: " + q->error(), Log::Disaster );
     if ( owner )
         owner->execute();
 };
