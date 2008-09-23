@@ -19,7 +19,10 @@ public:
     ImapSessionData(): i( 0 ), l( 0 ),
                        exists( 0 ), recent( 0 ),
                        uidnext( 0 ), nms( 0 ), cms( 0 ),
-                       emitting( false ) {}
+                       emitting( false ),
+                       existsResponse( 0 ), recentResponse( 0 ),
+                       uidnextResponse( 0 ) {}
+
     class IMAP * i;
     Log * l;
     MessageSet expungedFetched;
@@ -32,6 +35,74 @@ public:
     StringList flags;
     List<int64> ignorable;
     bool emitting;
+
+    class ExistsResponse
+        : public ImapResponse
+    {
+    public:
+        ExistsResponse( ImapSession * s, ImapSessionData * data )
+            : ImapResponse( s ), d( data ) {
+        }
+        String text() const {
+            session()->clearUnannounced();
+            uint x = session()->messages().count();
+            if ( x == d->exists )
+                return "";
+            d->exists = x;
+            return fn( x ) + " EXISTS";
+        }
+        void setSent() {
+            d->existsResponse = 0;
+        }
+
+        ImapSessionData * d;
+    };
+
+    class RecentResponse
+        : public ImapResponse
+    {
+    public:
+        RecentResponse( ImapSession * s, ImapSessionData * data )
+            : ImapResponse( s ), d( data ) {
+        }
+        String text() const {
+            uint x = session()->recent().count();
+            if ( x == d->recent )
+                return "";
+            d->recent = x;
+            return fn( x ) + " RECENT";
+        }
+        void setSent() {
+            d->recentResponse = 0;
+        }
+
+        ImapSessionData * d;
+    };
+
+    class UidnextResponse
+        : public ImapResponse
+    {
+    public:
+        UidnextResponse( ImapSession * s, ImapSessionData * data )
+            : ImapResponse( s ), d( data ) {
+        }
+        String text() const {
+            uint x = session()->uidnext();
+            if ( x <= d->uidnext )
+                return "";
+            d->uidnext = x;
+            return "OK [" + fn( x ) + " UIDNEXT] next uid";
+        }
+        void setSent() {
+            d->uidnextResponse = 0;
+        }
+
+        ImapSessionData * d;
+    };
+
+    ExistsResponse * existsResponse;
+    RecentResponse * recentResponse;
+    UidnextResponse * uidnextResponse;
 };
 
 
@@ -85,25 +156,17 @@ void ImapSession::emitUpdates()
     }
 
     emitFlagUpdates();
-    clearUnannounced();
 
-    if ( d->uidnext < uidnext() ) {
-        uint x = messages().count();
-        if ( x > d->exists || !d->uidnext ) {
-            d->exists = x;
-            (void)new ImapResponse( this, fn( x ) + " EXISTS" );
-        }
-
-        uint r = recent().count();
-        if ( d->recent != r || !d->uidnext ) {
-            d->recent = r;
-            (void)new ImapResponse( this, fn( r ) + " RECENT" );
-        }
-        
-        d->uidnext = uidnext();
-        (void)new ImapResponse( this,
-                                "OK [UIDNEXT " + fn( d->uidnext ) +
-                                "] next uid" );
+    if ( d->uidnext > uidnext() ) {
+        if ( !d->existsResponse )
+            d->existsResponse =
+                new ImapSessionData::ExistsResponse( this, d );
+        if ( !d->recentResponse )
+            d->recentResponse =
+                new ImapSessionData::RecentResponse( this, d );
+        if ( !d->uidnextResponse )
+            d->uidnextResponse =
+                new ImapSessionData::UidnextResponse( this, d );
     }
 
     if ( d->nms < nextModSeq() )
