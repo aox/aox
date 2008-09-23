@@ -30,6 +30,9 @@
 #include <sysexits.h>
 
 
+int verbose = 0;
+
+
 static void quit( uint s, const String & m )
 {
     if ( !m.isEmpty() )
@@ -133,6 +136,11 @@ public:
 
         if ( i->failed() )
             quit( EX_SOFTWARE, "Injection error: " + i->error() );
+        else if ( verbose )
+            fprintf( stderr,
+                     "deliver: Stored in %s as UID %d\n",
+                     mb.name().utf8().cstr(),
+                     m->uid( mb ) );
 
         i = 0;
         EventLoop::shutdown();
@@ -149,7 +157,6 @@ int main( int argc, char *argv[] )
     String recipient;
     String filename;
     bool error = false;
-    int verbose = 0;
 
     int n = 1;
     while ( n < argc ) {
