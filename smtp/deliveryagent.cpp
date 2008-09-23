@@ -146,14 +146,21 @@ void DeliveryAgent::execute()
 
         if ( d->dsn->deliveriesPending() ) {
             if ( !d->row->isNull( "expired" ) &&
-                 d->row->getBoolean( "expired" ) == true )
-            {
+                 d->row->getBoolean( "expired" ) == true ) {
                 log( "Delivery expired; will bounce", Log::Debug );
                 expireRecipients( d->dsn );
             }
-            else {
+            else if ( d->client->ready() ) {
                 logDelivery( d->dsn );
                 d->client->send( d->dsn, this );
+            }
+            else {
+                log( "Smarthost client is not ready to send; "
+                     "will try again later.", Log::Debug );
+                d->row = 0;
+                d->t->rollback();
+                d->owner->notify();
+                return;
             }
         }
         else {
@@ -162,6 +169,8 @@ void DeliveryAgent::execute()
             d->row = 0;
         }
     }
+
+
 
     // Once the SmtpClient has updated the action and status for each
     // recipient, we can decide whether or not to spool a bounce.
@@ -272,6 +281,7 @@ Message * DeliveryAgent::fetchMessage( uint messageId )
     f->fetch( Fetcher::Addresses );
     f->fetch( Fetcher::OtherHeader );
     f->fetch( Fetcher::Body );
+    f->setTransaction( d->t );
     f->execute();
     return m;
 }
