@@ -12,13 +12,11 @@ Schedule
 
 3.0.2: 2008-10-?
 
-  Three problems left.
+  Two problems left.
 
   Thunderbird takes a long time to open large mailboxes. This is
   because of the new imap response logic. It may have had problems
   earlier too, not sure.
-
-  Imaptest says "Message count dropped" sometimes. Why?
 
   DeliveryAgent can lose track of its state halfway through.
 
