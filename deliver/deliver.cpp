@@ -30,9 +30,6 @@
 #include <sysexits.h>
 
 
-int verbose = 0;
-
-
 static void quit( uint s, const String & m )
 {
     if ( !m.isEmpty() )
@@ -136,11 +133,6 @@ public:
 
         if ( i->failed() )
             quit( EX_SOFTWARE, "Injection error: " + i->error() );
-        else if ( verbose )
-            fprintf( stderr,
-                     "deliver: Stored in %s as UID %d\n",
-                     mb.name().utf8().cstr(),
-                     m->uid( mb ) );
 
         i = 0;
         EventLoop::shutdown();
@@ -156,6 +148,7 @@ int main( int argc, char *argv[] )
     UString mailbox;
     String recipient;
     String filename;
+    int verbose = 0;
     bool error = false;
 
     int n = 1;
@@ -253,8 +246,15 @@ int main( int argc, char *argv[] )
     AddressCache::setup();
     FieldName::setup();
     AnnotationName::setup();
-    (void)new Deliverator( message, mailbox, recipient );
+    Deliverator * d = new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
+    if ( !d->i || d->i->failed() )
+        return EX_UNAVAILABLE;
 
+    if ( verbose )
+        fprintf( stderr,
+                 "deliver: Stored in %s as UID %d\n",
+                 d->mb->name().utf8().cstr(),
+                 d->m->uid( d->mb ) );
     return 0;
 }
