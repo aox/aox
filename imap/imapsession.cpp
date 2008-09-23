@@ -157,7 +157,7 @@ void ImapSession::emitUpdates()
 
     emitFlagUpdates();
 
-    if ( d->uidnext > uidnext() ) {
+    if ( d->uidnext < uidnext() ) {
         if ( !d->existsResponse )
             d->existsResponse =
                 new ImapSessionData::ExistsResponse( this, d );
