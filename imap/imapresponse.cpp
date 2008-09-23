@@ -52,6 +52,10 @@ ImapResponse::ImapResponse( ImapSession * session, const String & response )
 }
 
 
+/*! \fn ImapResponse::~ImapResponse()
+    Virtual destructor to please gcc. */
+
+
 /*! Constructs a response which is bound to \a session. A subclass is
     responsible for text().
 
