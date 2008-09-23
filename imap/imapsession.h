@@ -28,6 +28,8 @@ public:
 
     void ignoreModSeq( int64 );
 
+    void clearExpunged( uint );
+
 private:
     class ImapSessionData * d;
 

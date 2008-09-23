@@ -233,3 +233,17 @@ void ImapExpungeResponse::setSent()
     session()->clearExpunged( u );
     ImapResponse::setSent();
 }
+
+
+/*! This reimplementation ensures that the ImapSession doesn't think
+    the EXISTS number is higher than what the IMAP client thinks.
+
+    This reimplementation doesn't use \a u, only Session does.
+*/
+
+void ImapSession::clearExpunged( uint u )
+{
+    Session::clearExpunged( u );
+    if ( d->exists )
+        d->exists--;
+}
