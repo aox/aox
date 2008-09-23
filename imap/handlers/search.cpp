@@ -671,7 +671,7 @@ void Search::sendResponse()
 }
 
 
-/*! \class ImapSearchResponse sort.h
+/*! \class ImapSearchResponse search.h
   
     The ImapSearchResponse models the SEARCH and ESEARCH responses. It
     is responsible for sending the right one, and for using only
