@@ -67,7 +67,7 @@ public:
         }
         String text() const {
             uint x = session()->recent().count();
-            if ( x == d->recent && !d->uidnext )
+            if ( x == d->recent && d->uidnext )
                 return "";
             d->recent = x;
             return fn( x ) + " RECENT";
