@@ -13,6 +13,13 @@
 #include "address.h"
 #include "message.h"
 
+#include <time.h> // time()
+
+
+static List<SmtpClient> * clients;
+static List<EventHandler> * waiting;
+static uint serviced;
+
 
 class SmtpClientData
     : public Garbage
@@ -20,7 +27,7 @@ class SmtpClientData
 public:
     SmtpClientData()
         : state( Invalid ), dsn( 0 ),
-          owner( 0 ), user( 0 ), log( 0 ),
+          owner( 0 ), log( 0 ), sentMail( false ),
           enhancedstatuscodes( false )
     {}
 
@@ -34,8 +41,8 @@ public:
     String error;
     DSN * dsn;
     EventHandler * owner;
-    EventHandler * user;
     Log * log;
+    bool sentMail;
     List<Recipient>::Iterator rcptTo;
     List<Recipient> accepted;
 
@@ -63,17 +70,15 @@ public:
 */
 
 /*! Constructs an SMTP client which will immediately connect to \a
-    address and introduce itself, and which notifies \a owner whenever
-    it becomes ready() to deliver another message.
+    address and introduce itself, and then wait politely for something
+    to do.
 */
 
-SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
+SmtpClient::SmtpClient( const Endpoint & address )
     : Connection( Connection::socket( address.protocol() ),
                   Connection::SmtpClient ),
       d( new SmtpClientData )
 {
-    Scope s( log() );
-    d->owner = owner;
     connect( address );
     EventLoop::global()->addConnection( this );
     setTimeoutAfter( 4 );
@@ -84,9 +89,8 @@ SmtpClient::SmtpClient( const Endpoint & address, EventHandler * owner )
 
 void SmtpClient::react( Event e )
 {
-    Scope x( log() );
-    if ( d->log )
-        x.setLog( d->log );
+    Scope x( d->log );
+
     Connection::State s1 = Connection::state();
     SmtpClientData::State s2 = d->state;
     String s3 = d->error;
@@ -100,6 +104,7 @@ void SmtpClient::react( Event e )
         d->error = "Server timeout.";
         finish();
         close();
+        ::clients->remove( this );
         break;
 
     case Connect:
@@ -109,6 +114,7 @@ void SmtpClient::react( Event e )
 
     case Error:
     case Close:
+        ::clients->remove( this );
         if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
             finish( "4.4.1" );
@@ -124,15 +130,17 @@ void SmtpClient::react( Event e )
     case Shutdown:
         // I suppose we might send quit, but then again, it may not be
         // legal at this point.
+        ::clients->remove( this );
         break;
     }
 
-    if ( s1 == Connection::state() && s2 == d->state && s3 == d->error )
-       return;
-    if ( d->user )
-        d->user->notify();
-    if ( d->owner )
+    if ( d->owner &&
+         ( s1 != Connection::state() || s2 != d->state || s3 != d->error ) )
         d->owner->notify();
+    if ( !d->owner && ready() && ::waiting && !waiting->isEmpty() ) {
+        ::serviced = (uint)time( 0 );
+        ::waiting->shift()->notify();
+    }
 }
 
 
@@ -187,6 +195,7 @@ void SmtpClient::parse()
                 if ( response == 421 ) {
                     log( "Closing because the SMTP server sent 421" );
                     close();
+                    ::clients->remove( this );
                     d->state = SmtpClientData::Invalid;
                 }
                 break;
@@ -264,6 +273,7 @@ void SmtpClient::sendCommand()
 
     case SmtpClientData::Body:
         if ( !d->accepted.isEmpty() ) {
+            d->sentMail = true;
             List<Recipient>::Iterator i( d->accepted );
             while ( i ) {
                 if ( i->action() == Recipient::Unknown ) {
@@ -292,6 +302,7 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Quit:
+        ::clients->remove( this );
         close();
         break;
     }
@@ -505,9 +516,9 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     if ( !ready() )
         return;
 
-    Scope x( log() );
-    d->log = new Log( Log::SMTP );
-    x.setLog( d->log );
+    d->log = new Log( Log::SMTP, user->log() );
+    Scope x( d->log );
+
     String s( "Sending message to " );
     s.append(  peer().address() );
     if ( !dsn->message()->header()->messageId().isEmpty() ) {
@@ -523,7 +534,8 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     log( s );
 
     d->dsn = dsn;
-    d->user = user;
+    d->owner = user;
+    d->sentMail = false;
     delete d->closeTimer;
     d->closeTimer = 0;
     if ( d->state == SmtpClientData::Rset )
@@ -549,10 +561,10 @@ void SmtpClient::finish( const char * status )
         }
     }
 
-    if ( d->user )
-        d->user->notify();
+    if ( d->owner )
+        d->owner->notify();
     d->dsn = 0;
-    d->user = 0;
+    d->owner = 0;
     d->log = 0;
 }
 
@@ -608,4 +620,78 @@ void SmtpClient::logout( uint t )
 String SmtpClient::error() const
 {
     return d->error;
+}
+
+
+class SmtpClientBouncer
+    : public EventHandler
+{
+public:
+    SmtpClientBouncer() {}
+    void execute();
+};
+
+void SmtpClientBouncer::execute()
+{
+    if ( !::waiting || ::waiting->isEmpty() ||
+         ::serviced + 7 > (uint)time( 0 ) )
+        return;
+
+    Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
+                Configuration::scalar( Configuration::SmartHostPort ) );
+    ::clients->append( new SmtpClient( e ) );
+    ::waiting->shift()->notify();
+}
+    
+    
+
+
+/*! Requests the attentions of an SMTP client.
+
+    If one is ready() for use now, request() returns its address. If
+    not, request() queues \a h and notifies it as soon as an SMTP
+    client becomes ready(). \a h needs to call request() again at that
+    time.
+*/
+
+SmtpClient * SmtpClient::request( EventHandler * h )
+{
+    if ( !::clients ) {
+        ::clients = new List<SmtpClient>;
+        Allocator::addEternal( ::clients, "smarthost clients" );
+    }
+    if ( ::clients->isEmpty() ) {
+        Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
+                    Configuration::scalar( Configuration::SmartHostPort ) );
+        ::clients->append( new SmtpClient( e ) );
+    }
+
+    List<SmtpClient>::Iterator c( ::clients );
+    while ( c && !c->ready() )
+        ++c;
+    if ( c ) {
+        if ( ::waiting )
+            ::waiting->take( ::waiting->find( h ) );
+        ::serviced = ::time( 0 );
+        return c;
+    }
+
+    if ( !::waiting ) {
+        ::waiting = new List<EventHandler>;
+        Allocator::addEternal( ::waiting, "event handlers waiting for smtp" );
+    }
+    if ( !waiting->find( h ) )
+        ::waiting->append( h );
+    (void)new Timer( new SmtpClientBouncer, 7 );
+    return 0;
+}
+
+
+/*! Returns true if the most recent transmission attempt worked for at
+    least one recipient, and false if not.
+*/
+
+bool SmtpClient::sent() const
+{
+    return d->sentMail;
 }

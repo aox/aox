@@ -21,7 +21,6 @@ public:
 
 private:
     class SpoolManagerData * d;
-    class SmtpClient * client();
     void reset();
 };
 
