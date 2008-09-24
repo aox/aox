@@ -46,7 +46,7 @@ public:
         String text() const {
             session()->clearUnannounced();
             uint x = session()->messages().count();
-            if ( x == d->exists )
+            if ( x == d->exists && d->uidnext )
                 return "";
             d->exists = x;
             return fn( x ) + " EXISTS";
@@ -67,7 +67,7 @@ public:
         }
         String text() const {
             uint x = session()->recent().count();
-            if ( x == d->recent )
+            if ( x == d->recent && d->uidnext )
                 return "";
             d->recent = x;
             return fn( x ) + " RECENT";
@@ -157,7 +157,7 @@ void ImapSession::emitUpdates()
 
     emitFlagUpdates();
 
-    if ( d->uidnext > uidnext() ) {
+    if ( d->uidnext < uidnext() ) {
         if ( !d->existsResponse )
             d->existsResponse =
                 new ImapSessionData::ExistsResponse( this, d );
