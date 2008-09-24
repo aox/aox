@@ -31,10 +31,11 @@ void log( const String &m, Log::Severity s )
     server.
 */
 
-/*! Constructs an empty Log object with facility \a f. */
+/*! Constructs a Log object with facility() \a f and the parent() that's
+    currently in Scope. */
 
 Log::Log( Facility f )
-    : fc( f ), children( 0 ), p( 0 )
+    : fc( f ), children( 1 ), p( 0 )
 {
     Scope * cs = Scope::current();
     if ( cs )
@@ -43,7 +44,14 @@ Log::Log( Facility f )
         ide = p->id() + "/" + fn( p->children++ );
     else
         ide = "1";
-    children = 1;
+}
+
+
+/*! Constructs a Log object with facility() \a f and parent() \a parent. */
+
+Log::Log( Facility f, Log * parent )
+    : fc( f ), children( 0 ), p( parent )
+{
 }
 
 
@@ -79,7 +87,7 @@ void Log::log( const String &m, Severity s )
 
 /*! This static function returns a string describing \a s. */
 
-const char *Log::severity( Severity s )
+const char * Log::severity( Severity s )
 {
     const char *i = 0;
 

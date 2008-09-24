@@ -20,6 +20,7 @@ public:
     enum Severity { Debug, Info, Significant, Error, Disaster };
 
     Log( Facility );
+    Log( Facility, Log * );
     void setFacility( Facility );
     void log( const String &, Severity = Info );
     String id();
