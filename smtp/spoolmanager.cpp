@@ -24,12 +24,11 @@ class SpoolManagerData
 {
 public:
     SpoolManagerData()
-        : q( 0 ), t( 0 ), client( 0 ), again( false )
+        : q( 0 ), t( 0 ), again( false )
     {}
 
     Query * q;
     Timer * t;
-    SmtpClient * client;
     List<DeliveryAgent> agents;
     bool again;
 };
@@ -57,24 +56,39 @@ void SpoolManager::execute()
     // Fetch a list of spooled messages, and the next time we can try
     // to deliver each of them.
 
-    if ( d->agents.isEmpty() && !d->q ) {
+    if ( !d->q ) {
+        List<uint> have;
+        List<DeliveryAgent>::Iterator a( d->agents );
+        while ( a ) {
+            if ( a->done() ) {
+                d->agents.take( a );
+            }
+            else {
+                have.append( new uint( a->messageId() ) );
+                ++a;
+            }
+        }
+
         log( "Starting queue run" );
         d->again = false;
         reset();
-        d->q = new Query(
-            "select d.message, "
-            "extract(epoch from"
-            " min(coalesce(dr.last_attempt+interval '900 s',"
-            " current_timestamp)))::bigint"
-            "-extract(epoch from current_timestamp)::bigint as delay "
-            "from deliveries d "
-            "join delivery_recipients dr on (d.id=dr.delivery) "
-            "where dr.action=$1 or dr.action=$2 "
-            "group by d.message "
-            "order by delay",
-            this );
+        String s( "select d.message, "
+                  "extract(epoch from"
+                  " min(coalesce(dr.last_attempt+interval '900 s',"
+                  " current_timestamp)))::bigint"
+                  "-extract(epoch from current_timestamp)::bigint as delay "
+                  "from deliveries d "
+                  "join delivery_recipients dr on (d.id=dr.delivery) "
+                  "where (dr.action=$1 or dr.action=$2) ");
+        if ( !have.isEmpty() )
+            s.append( "and not d.message=any($3) " );
+        s.append( "group by d.message "
+                  "order by delay" );
+        d->q = new Query( s, this );
         d->q->bind( 1, Recipient::Unknown );
         d->q->bind( 2, Recipient::Delayed );
+        if ( !have.isEmpty() )
+            d->q->bind( 3, &have );
         d->q->execute();
     }
 
@@ -86,7 +100,7 @@ void SpoolManager::execute()
     if ( d->q && !d->q->rows() ) {
         // No. Just finish.
         reset();
-        log( "Ending queue run (no messages spooled)" );
+        log( "Ending queue run" );
         return;
     }
 
@@ -97,9 +111,12 @@ void SpoolManager::execute()
         while ( d->q->hasResults() ) {
             Row * r = d->q->nextRow();
             int64 deliverableAt = r->getBigint( "delay" );
-            if ( deliverableAt <= 0 )
-                d->agents.append( new DeliveryAgent( r->getInt( "message" ),
-                                                     this ) );
+            if ( deliverableAt <= 0 ) {
+                DeliveryAgent * a 
+                    = new DeliveryAgent( r->getInt( "message" ), this );
+                (void)new Timer( a, d->agents.count() );
+                d->agents.append( a );
+            }
             else if ( delay > deliverableAt )
                 delay = deliverableAt;
         }
@@ -111,47 +128,6 @@ void SpoolManager::execute()
         d->q = 0;
     }
 
-    // We now have a lot of delivery agents. Process each of them in
-    // turn.
-
-    while ( !d->agents.isEmpty() ) {
-        DeliveryAgent * a = d->agents.first();
-        if ( !a->client() ) {
-            if ( d->client ) {
-                switch ( d->client->state() ) {
-                case Connection::Connecting:
-                case Connection::Connected:
-                    break;
-                case Connection::Inactive:
-                case Connection::Listening:
-                case Connection::Invalid:
-                case Connection::Closing:
-                    log( "Discarding existing SMTP client", Log::Debug );
-                    d->client = 0;
-                    break;
-                }
-            }
-
-            if ( !d->client )
-                d->client = client();
-
-            if ( !d->client->error().isEmpty() ) {
-                d->client = 0;
-                reset();
-                d->t = new Timer( this, 300 );
-                return;
-            }
-
-            a->setClient( d->client );
-            a->notify();
-        }
-        if ( !a->done() )
-            return;
-        d->agents.shift();
-    }
-
-    if ( d->client )
-        d->client->logout( 4 );
     reset();
 }
 
@@ -163,19 +139,19 @@ void SpoolManager::execute()
 
 void SpoolManager::deliverNewMessage()
 {
-    if ( d->q || !d->agents.isEmpty() ) {
+    if ( d->q ) {
         d->again = true;
         log( "New message added to spool while spool is being processed",
              Log::Debug );
         return;
     }
-    else if ( d->client ) {
-        log( "New message added to spool; reusing SMTP connection" );
+    else if ( SmtpClient::request( this ) ) {
+        log( "New message added to spool; SMTP connection available" );
         d->again = true;
         execute();
     }
     else {
-        log( "New message added to spool; delivering in 1 second" );
+        log( "New message added to spool; will deliver when possible" );
         d->again = true;
         reset();
     }
@@ -183,18 +159,8 @@ void SpoolManager::deliverNewMessage()
 
 
 
-/*! Returns a pointer to a new SmtpClient to talk to the smarthost. */
-
-SmtpClient * SpoolManager::client()
-{
-    Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
-                Configuration::scalar( Configuration::SmartHostPort ) );
-    return new SmtpClient( e, this );
-}
-
-
 /*! Resets the perishable state of this SpoolManager, i.e. all but the
-    Timer and the SmtpClient. Provided for convenience.
+    Timer. Provided for convenience.
 */
 
 void SpoolManager::reset()
@@ -204,7 +170,6 @@ void SpoolManager::reset()
     if ( d->again )
         d->t = new Timer( this, 1 );
     d->q = 0;
-    d->agents.clear();
 }
 
 

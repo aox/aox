@@ -61,35 +61,25 @@ DeliveryAgent::DeliveryAgent( uint id, EventHandler * owner )
 {
     setLog( new Log( Log::SMTP ) );
     Scope x( log() );
-    log( "Attempting delivery for message #" + fn( id ) );
+    log( "Attempting delivery for message " + fn( id ) );
     d->messageId = id;
     d->owner = owner;
 }
 
 
-/*! Tells this DeliveryAgent that it should use \a client for sending
-    mail.
+/*! Returns the database ID of the message serviced, as specified to
+    the constructor.
 */
 
-void DeliveryAgent::setClient( SmtpClient * client )
+uint DeliveryAgent::messageId() const
 {
-    d->client = client;
-}
-
-
-/*! Returns whatever setClient() set, or 0 if setClient() hasn't been
-    called.
-*/
-
-SmtpClient * DeliveryAgent::client() const
-{
-    return d->client;
+    return d->messageId;
 }
 
 
 void DeliveryAgent::execute()
 {
-    if ( !d->client )
+    if ( !d->messageId )
         return;
 
     // Fetch and lock the row in deliveries matching (mailbox,uid).
@@ -150,18 +140,6 @@ void DeliveryAgent::execute()
                 log( "Delivery expired; will bounce", Log::Debug );
                 expireRecipients( d->dsn );
             }
-            else if ( d->client->ready() ) {
-                logDelivery( d->dsn );
-                d->client->send( d->dsn, this );
-            }
-            else {
-                log( "Smarthost client is not ready to send; "
-                     "will try again later.", Log::Debug );
-                d->row = 0;
-                d->t->rollback();
-                d->owner->notify();
-                return;
-            }
         }
         else {
             log( "Delivery already completed; will do nothing", Log::Debug );
@@ -170,7 +148,12 @@ void DeliveryAgent::execute()
         }
     }
 
-
+    if ( !d->client && d->dsn->deliveriesPending() ) {
+        d->client = SmtpClient::request( this );
+        if ( !d->client )
+            return;
+        d->client->send( d->dsn, this );
+    }
 
     // Once the SmtpClient has updated the action and status for each
     // recipient, we can decide whether or not to spool a bounce.
@@ -217,16 +200,18 @@ void DeliveryAgent::execute()
         return;
     }
 
-    if ( d->t->failed() ) {
+    if ( d->t->failed() && d->client && d->client->sent() ) {
         // We might end up resending copies of messages that we couldn't
         // update during this transaction.
-        log( "Delivery attempt failed due to database error: " +
+        log( "Delivery attempt worked, but database could not be updated: " +
              d->t->error(), Log::Error );
-        log( "Shutting down spool manager.", Log::Error );
+        log( "Shutting down spool manager to avoid retransmissions.",
+             Log::Error );
         SpoolManager::shutdown();
     }
 
     d->owner->notify();
+    d->messageId = 0;
 }
 
 
@@ -236,6 +221,8 @@ void DeliveryAgent::execute()
 
 bool DeliveryAgent::done() const
 {
+    if ( !d->t )
+        return false;
     return d->t->done();
 }
 

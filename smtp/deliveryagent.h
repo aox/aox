@@ -20,13 +20,12 @@ class DeliveryAgent
 public:
     DeliveryAgent( uint, EventHandler * );
 
+    uint messageId() const;
+
     void execute();
 
     bool done() const;
     bool delivered() const;
-
-    void setClient( SmtpClient * );
-    SmtpClient * client() const;
 
 private:
     class DeliveryAgentData * d;
