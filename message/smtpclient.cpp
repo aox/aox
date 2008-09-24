@@ -134,10 +134,13 @@ void SmtpClient::react( Event e )
         break;
     }
 
-    if ( s1 == Connection::state() && s2 == d->state && s3 == d->error )
-       return;
-    if ( d->owner )
+    if ( d->owner &&
+         ( s1 != Connection::state() || s2 != d->state || s3 != d->error ) )
         d->owner->notify();
+    if ( !d->owner && ready() && ::waiting && !waiting->isEmpty() ) {
+        ::serviced = (uint)time( 0 );
+        ::waiting->shift()->notify();
+    }
 }
 
 
@@ -677,7 +680,8 @@ SmtpClient * SmtpClient::request( EventHandler * h )
         ::waiting = new List<EventHandler>;
         Allocator::addEternal( ::waiting, "event handlers waiting for smtp" );
     }
-    ::waiting->append( h );
+    if ( !waiting->find( h ) )
+        ::waiting->append( h );
     (void)new Timer( new SmtpClientBouncer, 7 );
     return 0;
 }
