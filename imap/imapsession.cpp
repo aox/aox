@@ -175,6 +175,7 @@ void ImapSession::emitUpdates()
         d->cms = d->nms;
 
     d->i->unblockCommands();
+    d->i->emitResponses();
 
     d->emitting = false;
 }
