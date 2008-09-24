@@ -378,6 +378,9 @@ Message * SmtpData::message( const String & body )
     received.append( ")" );
     received.append( " by " );
     received.append( Configuration::hostname() );
+    received.append( " (Archiveopteryx " );
+    received.append( Configuration::compiledIn( Configuration::Version )  );
+    received.append( ")" );
     switch ( server()->dialect() ) {
     case SMTP::Smtp:
         received.append( " with esmtp" );
