@@ -642,8 +642,8 @@ void SmtpClientBouncer::execute()
     ::clients->append( new SmtpClient( e ) );
     ::waiting->shift()->notify();
 }
-    
-    
+
+
 
 
 /*! Requests the attentions of an SMTP client.
@@ -683,6 +683,8 @@ SmtpClient * SmtpClient::request( EventHandler * h )
     if ( !waiting->find( h ) )
         ::waiting->append( h );
     (void)new Timer( new SmtpClientBouncer, 7 );
+    ::log( "Queuing for SMTP client access (" + fn( ::clients->count() ) +
+           " clients to serve " + fn( ::waiting->count() ) + " agents)" );
     return 0;
 }
 
