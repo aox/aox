@@ -227,7 +227,7 @@ bool DeliveryAgent::done()
         return false;
     // if the SmtpClient has, for some reason, forgotten about this
     // DeliveryAgent and this object is waiting for SC, then
-    // requeue. should not happen.
+    // requeue. should not happen.              
     execute();
     return d->t->done();
 }
