@@ -219,16 +219,10 @@ void DeliveryAgent::execute()
     deliveries for the message submitted to it.
 */
 
-bool DeliveryAgent::done()
+bool DeliveryAgent::done() const
 {
-    if ( !d->messageId )
-        return true;
     if ( !d->t )
         return false;
-    // if the SmtpClient has, for some reason, forgotten about this
-    // DeliveryAgent and this object is waiting for SC, then
-    // requeue. should not happen.              
-    execute();
     return d->t->done();
 }
 
