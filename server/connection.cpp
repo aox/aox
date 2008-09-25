@@ -383,9 +383,9 @@ String Connection::description() const
 
     if ( her.valid() ) {
         r.append( " connected to " );
-        if ( d->type == Client ||
-             d->type == LogClient ||
-             d->type == DatabaseClient )
+        if ( d->type == Client || d->type == LogClient ||
+             d->type == TlsClient || d->type == SmtpClient ||
+             d->type == DatabaseClient || d->type == RecorderClient )
             r.append( "server " );
         else
             r.append( "client " );
