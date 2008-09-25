@@ -14,6 +14,7 @@
 #include "graph.h"
 #include "query.h"
 #include "scope.h"
+#include "timer.h"
 #include "date.h"
 #include "dsn.h"
 #include "log.h"
@@ -221,8 +222,14 @@ void DeliveryAgent::execute()
 
 bool DeliveryAgent::done() const
 {
+    if ( !d->messageId )
+        return true;
     if ( !d->t )
         return false;
+    // make sure execute() will be called once, just in case the
+    // SmtpClient forgot about us. execute() would requeue if that
+    // were to happen.
+    (void)new Timer( (EventHandler*)this, 1 );
     return d->t->done();
 }
 
