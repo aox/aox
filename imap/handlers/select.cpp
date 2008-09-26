@@ -137,6 +137,9 @@ void Select::execute()
         return;
 
     d->session->emitUpdates();
+    // emitUpdates often calls Imap::runCommands, which calls this
+    // function, which will then change its state to Finished. so
+    // check that and don't repeat the last few responses.
     if ( state() != Executing )
         return;
     
