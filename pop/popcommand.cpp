@@ -47,6 +47,19 @@ public:
     bool started;
     Message * message;
     int n;
+
+    class PopSession
+        : public Session
+    {
+    public:
+        PopSession( Mailbox * m, bool ro, PopCommand * pc )
+            : Session( m, ro ), p( pc ) {}
+
+        void emitUpdates() { p->execute(); }
+
+    private:
+        class PopCommand * p;
+    };
 };
 
 
@@ -365,7 +378,7 @@ bool PopCommand::session()
                  d->permissions->allowed( Permissions::DeleteMessages ) &&
                  d->permissions->allowed( Permissions::Expunge ) )
                 ro = false;
-            d->session = new ::Session( d->mailbox, ro );
+            d->session = new PopCommandData::PopSession( d->mailbox, ro, this );
             d->session->setPermissions( d->permissions );
             d->pop->setSession( d->session );
         }
