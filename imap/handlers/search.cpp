@@ -645,9 +645,9 @@ static uint max( uint a, uint b )
 
 void Search::sendResponse()
 {
-    int64 ms = 0;
+    int64 ms = d->highestmodseq;
     if ( !d->returnModseq )
-        ; // means to send none
+        ms = 0; // means to send none
     else if ( d->returnAll || d->returnCount )
         ms = d->highestmodseq;
     else if ( d->returnMin && d->returnMax )
