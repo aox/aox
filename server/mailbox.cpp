@@ -711,8 +711,7 @@ void Mailbox::refreshMailboxes( class Transaction * t )
 
 
 /*! Adds \a s to the list of sessions watching this mailbox. The
-    Mailbox will call Session::refresh() when refreshment seems
-    productive.
+    SessionInitialiser will update \a s when necessary.
 
     Does nothing if \a s is already watching this mailbox.
 */
