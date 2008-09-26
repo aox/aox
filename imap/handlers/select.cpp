@@ -124,10 +124,8 @@ void Select::execute()
     }
 
     if ( !d->session ) {
-        if ( imap()->session() ) {
-            respond( "OK [CLOSED] " );
+        if ( imap()->session() )
             imap()->endSession();
-        }
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
         imap()->beginSession( d->session );
@@ -142,7 +140,7 @@ void Select::execute()
     // check that and don't repeat the last few responses.
     if ( state() != Executing )
         return;
-    
+
     if ( !d->firstUnseen && !d->session->isEmpty() ) {
         uint seen = Flag::id( "\\seen" );
         String sq;
