@@ -880,6 +880,7 @@ void Session::clearExpunged( uint uid )
 {
     d->msns.remove( uid );
     d->expunges.remove( uid );
+    d->unannounced.remove( uid );
 }
 
 
