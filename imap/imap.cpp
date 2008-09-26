@@ -620,6 +620,8 @@ void IMAP::endSession()
     Session * s = d->session;
     if ( !s )
         return;
+
+    (void)new ImapResponse( this, "OK [CLOSED] " );
     setState( Authenticated );
     d->session = 0;
     s->end();
