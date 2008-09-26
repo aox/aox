@@ -53,6 +53,7 @@ public:
         }
         void setSent() {
             d->existsResponse = 0;
+            ImapResponse::setSent();
         }
 
         ImapSessionData * d;
@@ -74,6 +75,7 @@ public:
         }
         void setSent() {
             d->recentResponse = 0;
+            ImapResponse::setSent();
         }
 
         ImapSessionData * d;
@@ -95,6 +97,7 @@ public:
         }
         void setSent() {
             d->uidnextResponse = 0;
+            ImapResponse::setSent();
         }
 
         ImapSessionData * d;
