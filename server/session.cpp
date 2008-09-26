@@ -798,8 +798,7 @@ void SessionInitialiser::recordExpunges()
 }
 
 
-/*! Persuades each Session to emit its responses and tells each
-    handler added with Session::refresh() to go on working.
+/*! Persuades each Session to emit its responses.
 */
 
 void SessionInitialiser::emitUpdates()
