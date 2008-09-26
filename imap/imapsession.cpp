@@ -245,7 +245,7 @@ void ImapSession::recordExpungedFetch( const MessageSet & set )
         return;
 
     (void)new ImapByeResponse( d->i,
-                               "[CLIENTBUG] "
+                               "BYE [CLIENTBUG] "
                                "These messages have been expunged: " +
                                set.set() );
 }
