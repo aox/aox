@@ -124,17 +124,22 @@ void Select::execute()
     }
 
     if ( !d->session ) {
-        if ( imap()->session() )
+        if ( imap()->session() ) {
+            respond( "OK [CLOSED] " );
             imap()->endSession();
+        }
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
-        if ( imap()->session() )
-            respond( "OK [CLOSED] " );
         imap()->beginSession( d->session );
-        if ( !d->session->initialised() )
-            d->session->refresh( this );
     }
 
+    if ( !d->session->initialised() )
+        return;
+
+    d->session->emitUpdates();
+    if ( state() != Executing )
+        return;
+    
     if ( !d->firstUnseen && !d->session->isEmpty() ) {
         uint seen = Flag::id( "\\seen" );
         String sq;
@@ -154,11 +159,6 @@ void Select::execute()
 
     if ( d->firstUnseen && !d->firstUnseen->done() )
         return;
-
-    if ( !d->session->initialised() )
-        return;
-
-    d->session->emitUpdates();
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
@@ -180,28 +180,6 @@ void Select::execute()
             nms = 2;
         respond( "OK [HIGHESTMODSEQ " + fn( nms-1 ) + "] highest modseq" );
     }
-
-    StringList flags;
-
-    String f( "\\Deleted" );
-    if ( Flag::id( f ) )
-        flags.append( f );
-
-    f = "\\Answered";
-    if ( Flag::id( f ) )
-        flags.append( f );
-
-    f = "\\Flagged";
-    if ( Flag::id( f ) )
-        flags.append( f );
-
-    f = "\\Draft";
-    if ( Flag::id( f ) )
-        flags.append( f );
-
-    f = "\\Seen";
-    if ( Flag::id( f ) )
-        flags.append( f );
 
     String fl = Flag::allFlags().join( " " );
     respond( "FLAGS (" + fl + ")" );
