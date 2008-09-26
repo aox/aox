@@ -990,7 +990,7 @@ static String sectionResponse( Section * s, Message * m )
     String data = Fetch::sectionData( s, m );
     if ( !s->item.startsWith( "BINARY.SIZE" ) )
         data = Command::imapQuoted( data, Command::NString );
-    if ( !m->databaseId() )
+    if ( !m->header() || !m->header()->field( HeaderField::From ) )
         data = "NIL";
     String r;
     r.reserve( data.length() + s->item.length() + 1 );
