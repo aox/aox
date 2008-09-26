@@ -368,7 +368,6 @@ bool PopCommand::session()
             d->session = new ::Session( d->mailbox, ro );
             d->session->setPermissions( d->permissions );
             d->pop->setSession( d->session );
-            d->session->refresh( this );
         }
     }
 

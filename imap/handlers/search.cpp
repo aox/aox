@@ -405,14 +405,8 @@ void Search::execute()
         return;
 
     ImapSession * s = session();
-    if ( !ok() )
-        return;
 
     if ( !d->query ) {
-        if ( d->root->needSession() && !s->initialised() ) {
-            s->refresh( this );
-            return;
-        }
         considerCache();
         if ( d->done ) {
             sendResponse();
@@ -672,7 +666,7 @@ void Search::sendResponse()
 
 
 /*! \class ImapSearchResponse search.h
-  
+
     The ImapSearchResponse models the SEARCH and ESEARCH responses. It
     is responsible for sending the right one, and for using only
     correct MSNs.

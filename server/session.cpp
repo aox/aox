@@ -34,7 +34,6 @@ public:
     int64 nextModSeq;
     Permissions * permissions;
     MessageSet unannounced;
-    List<EventHandler> watchers;
 };
 
 
@@ -48,12 +47,24 @@ public:
     the session is read-only.
 */
 
-Session::Session( Mailbox *m, bool readOnly )
+Session::Session( Mailbox * m, bool readOnly )
     : d( new SessionData )
 {
     d->mailbox = m;
     d->readOnly = readOnly;
+    Session * other = 0;
+    if ( d->mailbox->sessions() )
+        d->mailbox->sessions()->firstElement();
     d->mailbox->addSession( this );
+    if ( other ) {
+        d->uidnext = other->d->uidnext;
+        d->nextModSeq = other->d->nextModSeq;
+        d->msns.add( other->d->msns );
+        d->msns.add( other->d->unannounced );
+    }
+    else {
+        (void)new SessionInitialiser( m );
+    }
 }
 
 
@@ -272,16 +283,6 @@ void Session::emitUpdates()
 void Session::setUidnext( uint u )
 {
     d->uidnext = u;
-}
-
-
-/*! Refreshes this session, notifying \a handler when it's done.
-*/
-
-void Session::refresh( EventHandler * handler )
-{
-    d->watchers.append( handler );
-    d->mailbox->notifySessions();
 }
 
 
@@ -803,31 +804,17 @@ void SessionInitialiser::recordExpunges()
 
 void SessionInitialiser::emitUpdates()
 {
-    List<EventHandler> watchers;
     List<Session>::Iterator s( d->sessions );
     while ( s ) {
         if ( s->nextModSeq() < d->mailbox->nextModSeq() )
             s->setNextModSeq( d->mailbox->nextModSeq() );
         if ( s->uidnext() < d->mailbox->uidnext() )
             s->setUidnext( d->mailbox->uidnext() );
-        List<EventHandler>::Iterator it( s->d->watchers );
-        while ( it ) {
-            watchers.append( it );
-            ++it;
-        }
-        s->d->watchers.clear();
-
         s->emitUpdates();
 
         ++s;
     }
     d->sessions.clear();
-
-    List<EventHandler>::Iterator it( watchers );
-    while ( it ) {
-        it->execute();
-        ++it;
-    }
 }
 
 
