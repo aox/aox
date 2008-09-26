@@ -119,6 +119,9 @@ void PopCommand::read()
 
 void PopCommand::execute()
 {
+    if ( d->done )
+        return;
+
     switch ( d->cmd ) {
     case Quit:
         log( "Closing connection due to QUIT command", Log::Debug );
