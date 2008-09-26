@@ -987,9 +987,15 @@ String Fetch::sectionData( Section * s, Message * m )
 
 static String sectionResponse( Section * s, Message * m )
 {
-    String data( Fetch::sectionData( s, m ) );
-    if ( !s->item.startsWith( "BINARY.SIZE" ) )
-        data = Command::imapQuoted( data, Command::NString );
+    String data;
+    if ( m->databaseId() ) {
+        data = Fetch::sectionData( s, m );
+        if ( !s->item.startsWith( "BINARY.SIZE" ) )
+            data = Command::imapQuoted( data, Command::NString );
+    }
+    else {
+        data = "NIL";
+    }
     String r;
     r.reserve( data.length() + s->item.length() + 1 );
     r.append( s->item );
