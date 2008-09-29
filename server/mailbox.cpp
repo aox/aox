@@ -9,6 +9,7 @@
 #include "query.h"
 #include "scope.h"
 #include "event.h"
+#include "timer.h"
 #include "string.h"
 #include "message.h"
 #include "fetcher.h"
@@ -175,13 +176,35 @@ class MailboxesWatcher
     : public EventHandler
 {
 public:
-    MailboxesWatcher(): EventHandler() {
+    MailboxesWatcher(): EventHandler(), t( 0 ), m( 0 ) {
         (void)new DatabaseSignal( "mailboxes_updated", this );
     }
     void execute() {
-        if ( !EventLoop::global()->inShutdown() )
-            (new MailboxReader( 0, 0 ))->q->execute();
+        if ( EventLoop::global()->inShutdown() )
+            return;
+
+        if ( !t ) {
+            // use a timer to run only one mailboxreader per 2-3
+            // seconds.
+            t = new Timer( this, 2 );
+        }
+        else if ( t->active() ) {
+            // the timer is already running, so ignore this
+        }
+        else if ( m && !m->done ) {
+            // a mailboxreader is working, and one is enough, so try
+            // again later
+            t = new Timer( this, 2 );
+        }
+        else {
+            // time's out, time to work
+            t = 0;
+            m = new MailboxReader( 0, 0 );
+            m->q->execute();
+        }
     }
+    Timer * t;
+    MailboxReader * m;
 };
 
 
