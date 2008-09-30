@@ -135,14 +135,7 @@ void DeliveryAgent::execute()
 
         d->dsn = createDSN( d->message, d->qs, d->qr );
 
-        if ( d->dsn->deliveriesPending() ) {
-            if ( !d->row->isNull( "expired" ) &&
-                 d->row->getBoolean( "expired" ) == true ) {
-                log( "Delivery expired; will bounce", Log::Debug );
-                expireRecipients( d->dsn );
-            }
-        }
-        else {
+        if ( !d->dsn->deliveriesPending() ) {
             log( "Delivery already completed; will do nothing", Log::Debug );
             d->delivered = true;
             d->row = 0;
@@ -167,6 +160,21 @@ void DeliveryAgent::execute()
 
         if ( it )
             return;
+
+        // We tried to deliver the message even if it has expired, to
+        // handle the case where aox or the smarthost had to be taken
+        // down for repairs and the message expired meanwhile. But now
+        // that we're back up and have tried to deliver the message,
+        // expire anything that the smarthost didn't want.
+        if ( !d->row->isNull( "expired" ) &&
+             d->row->getBoolean( "expired" ) == true ) {
+            log( "Delivery expired; will bounce", Log::Debug );
+            expireRecipients( d->dsn );
+        }
+        // Actually. Do we want to do that? Maybe we should have a
+        // rule like "never expire in the first fifteen minutes after
+        // startup", to help admins who did not, after all, manage to
+        // fix the blah at startup?
 
         // Send a bounce message if all recipients have been handled,
         // and any of them failed.
