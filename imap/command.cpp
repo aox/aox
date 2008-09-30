@@ -63,7 +63,7 @@ public:
           emittingResponses( false ),
           state( Command::Unparsed ), group( 0 ),
           permittedStates( 0 ),
-          imap( 0 ), checker( 0 )
+          imap( 0 ), session( 0 ), checker( 0 )
     {
         (void)::gettimeofday( &started, 0 );
     }
@@ -92,6 +92,7 @@ public:
     struct timeval started;
 
     IMAP * imap;
+    ImapSession * session;
     PermissionsChecker * checker;
 };
 
@@ -1314,19 +1315,21 @@ void Command::setAllowedState( IMAP::State s  ) const
 }
 
 
-/*! Returns a pointer to the Session for this Command. If there isn't
-    one, then session() logs an error and throws an exception (which
-    in turn closes the IMAP connection).
+/*! Returns a pointer to the Session for this Command. The Session is
+    the one that applied when the Command started running. If there
+    isn't one, then session() logs an error and throws an exception
+    (which in turn closes the IMAP connection).
+
+    If the returned Session isn't active any longer, then ImapResponse
+    will make sure the command's results aren't displayed.
 */
 
 ImapSession * Command::session()
 {
-    ImapSession * s = 0;
-    if ( imap() )
-        s = imap()->session();
-    if ( s )
-        return s;
-
+    if ( d->imap && !d->session );
+        d->session = d->imap->session();
+    if ( d->session )
+        return d->session;
     log( "Mailbox session needed, but none present" );
     throw Invariant;
     return 0;
