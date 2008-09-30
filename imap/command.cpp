@@ -1326,7 +1326,7 @@ void Command::setAllowedState( IMAP::State s  ) const
 
 ImapSession * Command::session()
 {
-    if ( d->imap && !d->session );
+    if ( d->imap && !d->session )
         d->session = d->imap->session();
     if ( d->session )
         return d->session;
