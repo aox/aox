@@ -148,6 +148,7 @@ void ImapSession::emitUpdates()
     if ( d->emitting )
         return;
     d->emitting = true;
+    bool work = false;
 
     Scope x( d->l );
 
@@ -155,21 +156,28 @@ void ImapSession::emitUpdates()
     e.add( expunged() );
     while ( !e.isEmpty() ) {
         (void)new ImapExpungeResponse( e.smallest(), this );
+        work = true;
         e.remove( e.smallest() );
     }
 
     emitFlagUpdates();
 
     if ( d->uidnext < uidnext() ) {
-        if ( !d->existsResponse )
+        if ( !d->existsResponse ) {
             d->existsResponse =
                 new ImapSessionData::ExistsResponse( this, d );
-        if ( !d->recentResponse )
+            work = true;
+        }
+        if ( !d->recentResponse ) {
             d->recentResponse =
                 new ImapSessionData::RecentResponse( this, d );
-        if ( !d->uidnextResponse )
+            work = true;
+        }
+        if ( !d->uidnextResponse ) {
             d->uidnextResponse =
                 new ImapSessionData::UidnextResponse( this, d );
+            work = true;
+        }
     }
 
     if ( d->nms < nextModSeq() )
@@ -177,7 +185,8 @@ void ImapSession::emitUpdates()
     if ( d->changed.isEmpty() )
         d->cms = d->nms;
 
-    d->i->unblockCommands();
+    if ( work )
+        d->i->unblockCommands();
     d->i->emitResponses();
 
     d->emitting = false;
