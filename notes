@@ -562,6 +562,10 @@ Allocator
   unbalanced sometimes, perhaps often. Using a Patricia tree will work
   well.
 
+  A Patricia tree also makes a difference in other places, e.g. when
+  there's an extremely large number of mailboxes directly under
+  /users.
+
 
 Using rrdtool
 
