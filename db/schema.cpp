@@ -3806,13 +3806,25 @@ bool Schema::stepTo76()
 {
     if ( d->substate == 0 ) {
         describeStep( "Miscellaneous cleanups." );
+        d->q = new Query( "select 42 as answer from pg_indexes "
+                          "where schemaname=$1 and indexname='dm_mm'", this );
+        d->q->bind( 1, "public" );
+        d->t->enqueue( d->q );
         d->substate = 1;
         d->t->enqueue( new Query( "delete from threads", 0 ) );
         d->t->enqueue( new Query( "delete from thread_members", 0 ) );
         d->t->enqueue( new Query( "alter table deliveries drop tried_at", 0 ) );
-        d->t->enqueue( new Query( "create index dm_mm on deleted_messages "
-                                  "(mailbox,modseq)", 0 ) );
         d->t->execute();
+    }
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        if ( !d->q->hasResults() ) {
+            d->t->enqueue( new Query( "create index dm_mm on deleted_messages "
+                                      "(mailbox,modseq)", 0 ) );
+            d->t->execute();
+        }
+        d->substate = 2;
     }
 
     return true;
