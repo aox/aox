@@ -128,10 +128,15 @@ void MailboxReader::execute() {
         Row * r = q->nextRow();
 
         UString n = r->getUString( "name" );
-        Mailbox * m = Mailbox::obtain( n );
-        if ( n != m->d->name )
-            m->d->name = n;
-        m->setId( r->getInt( "id" ) );
+        uint id = r->getInt( "id" );
+        Mailbox * m = ::mailboxes->find( id );
+        if ( !m || m->name() != n ) {
+            m = Mailbox::obtain( n );
+            if ( n != m->d->name )
+                m->d->name = n;
+            m->setId( id );
+            ::mailboxes->insert( id, m );
+        }
 
         if ( r->getBoolean( "deleted" ) )
             m->setType( Mailbox::Deleted );
@@ -154,9 +159,6 @@ void MailboxReader::execute() {
             m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
                                         r->getBigint( "nextmodseq" ) );
         }
-
-        if ( m->d->id )
-            ::mailboxes->insert( m->d->id, m );
     }
 
     if ( !q->done() || done )
