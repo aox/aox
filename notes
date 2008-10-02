@@ -1250,12 +1250,6 @@ Axel, /2.10 status
   mail3.chaos1.de can't be verified, hit "continue"or "abort".
 
 
-Axel, /Duplicated mails
-
-  There have been occasional reports of duplicated messages. Nothing
-  reproduceable that I've seen so far.
-
-
 Simon, /Segfault when accessing web-archive
 
   Not looked yet, but probably the same as the one on archives. Will fix
