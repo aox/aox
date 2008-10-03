@@ -294,7 +294,7 @@ bool AoxCommand::validUsername( const UString & s )
     while ( i < s.length() &&
             ( ( s[i] >= '0' && s[i] <= '9' ) ||
               ( s[i] >= 'a' && s[i] <= 'z' ) ||
-              ( s[i] >= 'Z' && s[i] <= 'Z' ) ||
+              ( s[i] >= 'A' && s[i] <= 'Z' ) ||
               ( s[i] == '@' || s[i] == '.' ||
                 s[i] == '-' || s[i] == '_' ) ) )
         i++;
