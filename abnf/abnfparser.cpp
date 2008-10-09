@@ -308,7 +308,8 @@ void AbnfParser::restore()
 
 
 /*! Restores the cursor position and error state at the time when
-    mark() returned \a m. Does nothing if \a m is not a valid mark.
+    mark() returned \a m. Does nothing if \a m is not a valid mark. \a
+    m remains valid, so it's possibble to restore( \a m ) again.
 */
 
 void AbnfParser::restore( uint m )
