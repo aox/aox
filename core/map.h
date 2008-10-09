@@ -4,42 +4,37 @@
 #define MAP_H
 
 #include "global.h"
+#include "patriciatree.h"
 
 
-class MapTable
-    : public Garbage
-{ // helper class for Map
-public:
-    MapTable();
-    void * find( uint );
-    void insert( uint, void * );
-    uint count( uint ) const;
-    void clear();
-
-    static const uint Slice = 6;
-    static const uint Size = 1 << Slice;
-
-private:
-    MapTable * data[Size];
-};
+extern uint uintInNetworkOrder( uint );
 
 
 template<class T>
 class Map
-    : public Garbage
+    : public PatriciaTree<T>
 {
 public:
     Map() {} // more?
 
-    T * find( uint i ) { return (T*)(t.find( i )); }
-    void insert( uint i, T* r ) { t.insert( i, r ); }
-    void remove( uint i ) { t.insert( i, 0 ); }
+    T * find( uint i ) {
+        uint x=k(i);
+        return PatriciaTree<T>::find( (char*)&x, l() );
+    }
+    void insert( uint i, T * r ) {
+        uint x=k(i);
+        PatriciaTree<T>::insert( (char*)&x,l(),r );
+    }
+    void remove( uint i ) {
+        uint x=k(i);
+        PatriciaTree<T>::remove( (char*)&x, l() );
+    }
     bool contains( uint i ) { return find( i ) != 0; }
-    uint count() const { return t.count( sizeof(uint)*8/MapTable::Slice ); }
-    void clear() { t.clear(); }
 
 private:
-    MapTable t;
+    static uint k( uint i ) { return ::uintInNetworkOrder( i ); }
+    static uint l() { return 8 * sizeof( uint ); }
+
 private:
     // operators explicitly undefined because there is no single
     // correct way to implement them.

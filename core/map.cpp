@@ -2,7 +2,18 @@
 
 #include "map.h"
 
-#include "list.h"
+#include <arpa/inet.h> // ntohl
+
+// we need BYTE_ORDER and arpa/inet doesn't give us that on linux, so
+// try to coax that out of linux, but use ifdefs so that if we don't
+// need endian.h, we don't even try to include it. I hate the
+// endianness functions.
+#if !defined( BYTE_ORDER )
+  #if !defined( __USE_BSD )
+    #define __USE_BSD
+  #endif
+  #include <endian.h>
+#endif
 
 
 /*! \class Map map.h
@@ -37,7 +48,7 @@ Returns a pointer to the object at index \a i, or a null pointer if
 there is no such object. This function does not allocate any memory.
 */
 
-/*! \fn void Map::insert( uint i, T* r )
+/*! \fn void Map::insert( uint i, T * r )
 
 Inserts \a r into the Map at index \a i. This may cause memory
 allocation as the map builds intermediate tree nodes.
@@ -63,85 +74,32 @@ Removes everything in the map.
 */
 
 
-/*! \class MapTable map.h
-  The MapTable class is a helper for Map.
-
-  Map is meant to be fully inlined, as all good templates are, so it
-  uses the small array class MapTable to do its work.
-
-  MapTable implements a wide fixed-depth tree; see Map.
+/*! \fn uint Map::k( uint i )
+Returns \a i with the most significant byte first (AKA network byte
+order), useful for PatriciaTree.
 */
 
-/*! Creates an empty MapTable. */
+/*! \fn uint Map::l()
+Returns the number of bits in a uint.
+*/
 
-MapTable::MapTable()
+
+// This static helper returns the uint in network byte order, much
+// like ntohl, except that it supports 64-bit uints.
+
+uint uintInNetworkOrder( uint x )
 {
-    clear();
-}
-
-
-/*! Finds \a i in this MapTable. */
-
-void * MapTable::find( uint i )
-{
-    int o = 8*sizeof(uint)/Slice;
-    MapTable * t = this;
-    uint n = 0;
-    while ( o >= 0 ) {
-        n = (i >> (o*Slice))%Size;
-        if ( t->data[n] == 0 )
-            return 0;
-        t = t->data[n];
-        o--;
-    }
-    return t->data[n];
-}
-
-
-/*! Inserts \a r at index \a i into this MapTable. */
-
-void MapTable::insert( uint i, void * r )
-{
-    int o = 8*sizeof(uint)/Slice;
-    MapTable * t = this;
-    uint n = 0;
-    while ( o >= 0 ) {
-        n = (i >> (o*Slice))%Size;
-        if ( t->data[n] == 0 )
-            t->data[n] = new MapTable;
-        t = t->data[n];
-        o--;
-    }
-    t->data[n] = (MapTable*)r; // nasty, but...
-}
-
-
-/*! Returns the number of elements in the map. \a l is the map level;
-    it is 0 for the leaf table and nonzero for all intermediate tables
-    in the tree. */
-
-uint MapTable::count( uint l ) const
-{
-    uint i = 0;
-    uint r = 0;
-    while ( i < Size ) {
-        if ( data[i] == 0 )
-            ;
-        else if ( l > 0 )
-            r += data[i]->count( l - 1 );
-        else
-            r++;
-        i++;
-    }
-    return r;
-}
-
-
-/*! Removes every item from the map table. Bang. */
-
-void MapTable::clear()
-{
-    uint i = 0;
-    while( i < Size )
-        data[i++] = 0;
+    if ( BYTE_ORDER == BIG_ENDIAN )
+        return x;
+    else if ( sizeof( uint ) <= 4 )
+        return ntohl( x );
+    else
+        return (  (((x) & 0xff00000000000000ull) >> 56)
+                | (((x) & 0x00ff000000000000ull) >> 40) 
+                | (((x) & 0x0000ff0000000000ull) >> 24)           
+                | (((x) & 0x000000ff00000000ull) >> 8)            
+                | (((x) & 0x00000000ff000000ull) << 8)            
+                | (((x) & 0x0000000000ff0000ull) << 24)           
+                | (((x) & 0x000000000000ff00ull) << 40)           
+                | (((x) & 0x00000000000000ffull) << 56));
 }
