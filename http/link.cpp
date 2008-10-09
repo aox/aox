@@ -36,7 +36,7 @@ public:
     LinkData()
         : type( Link::Error ), magic( false ), views( false ),
           mailbox( 0 ), uid( 0 ), suffix( Link::None ),
-          arguments( new Dict<UString> ),
+          arguments( new Dict<Link::Argument> ),
           webpage( 0 ), server( 0 ), secure( false )
     {}
 
@@ -49,7 +49,7 @@ public:
     uint uid;
     String part;
     Link::Suffix suffix;
-    Dict<UString> * arguments;
+    Dict<Link::Argument> * arguments;
 
     WebPage * webpage;
 
@@ -201,7 +201,7 @@ void Link::setSuffix( Suffix suffix )
     the parameters from the query component of this Link.
 */
 
-Dict<UString> * Link::arguments() const
+Dict<Link::Argument> * Link::arguments() const
 {
     return d->arguments;
 }
@@ -213,11 +213,11 @@ String Link::query() const
 {
     String s;
     Utf8Codec c;
-    StringList::Iterator it( d->arguments->keys() );
+    Dict<Argument>::Iterator it( d->arguments );
     while ( it ) {
-        s.append( *it );
+        s.append( it->name );
         s.append( "=" );
-        String v = c.fromUnicode( *d->arguments->find( *it ) );
+        String v = c.fromUnicode( it->value );
         uint i = 0;
         while ( i < v.length() ) {
             char c = v[i];
@@ -683,14 +683,14 @@ void Link::parse( const String & s )
                 }
                 UString u = decoded( v );
                 if ( n.boring() && !u.isEmpty() )
-                    d->arguments->insert( n, new UString( u ) );
+                    addArgument( n, u );
                 if ( p->nextChar() == '&' )
                     p->step();
             }
             if ( p->ok() ) {
                 chosen = ::Arguments;
             } else {
-                d->arguments = new Dict<UString>;
+                d->arguments = new Dict<Argument>;
                 p->restore();
             }
         }
@@ -983,8 +983,9 @@ String LinkParser::pathComponent()
 
 void Link::addArgument( const String & name, const UString & value )
 {
-    if ( name.boring() )
-        d->arguments->insert( name, new UString( value ) );
+    if ( !name.boring() )
+        return;
+    d->arguments->insert( name, new Argument( name, value ) );
 }
 
 
@@ -1033,9 +1034,9 @@ UString Link::decoded( const String & s )
 
 UString Link::argument( const String & s ) const
 {
-    UString * u = d->arguments->find( s );
+    Argument * u = d->arguments->find( s );
+    UString r;
     if ( u )
-        return *u;
-    UString empty;
-    return empty;
+        r = u->value;
+    return r;
 }

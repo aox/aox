@@ -181,9 +181,12 @@ void Header::removeField( HeaderField::Type t )
     in this Header. Neither the list nor the HeaderField objects it in
     may be modified or freed by the caller - Header keeps other
     pointers to these objects.
+
+    The return value may point to an empty list, but can not be a null
+    pointer.
 */
 
-List< HeaderField > *Header::fields() const
+List< HeaderField > * Header::fields() const
 {
     return &d->fields;
 }

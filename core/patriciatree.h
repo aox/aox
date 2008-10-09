@@ -46,23 +46,23 @@ public:
         char key[1];
     };
 
-    T * find( char * k, uint l ) const {
+    T * find( const char * k, uint l ) const {
         Node * n = locate( k, l );
         if ( n )
             return n->payload;
         return 0;
     }
 
-    void remove( char * k, uint l ) {
-        Node * n = locate( k, l );
+    T * take( Node * n ) {
         if ( !n )
-            return;
+            return 0;
+        T * r = n->payload;
 
         if ( n->zero || n->one ) {
             // this is an internal node, so we have to drop the
             // payload, then do no more.
             n->payload = 0;
-            return;
+            return r;
         }
 
         if ( !n->parent ) {
@@ -101,11 +101,16 @@ public:
             free( p );
         }
         free( n );
+        return r;
     }
 
-    void insert( char * k, uint l, T * t ) {
+    T * take( const char * k, uint l ) {
+        return take( locate( k, l ) );
+    }
+
+    void insert( const char * k, uint l, T * t ) {
         Node * n = root;
-        bool d;
+        bool d = false;
         uint b = 0;
         while ( n && !d ) {
             // check entire bytes until we run out of something
@@ -157,6 +162,8 @@ public:
                 else
                     d = true;
             }
+            if ( b == l && l < n->length )
+                d = true;
         }
 
         uint kl = (l+7) / 8;
@@ -180,6 +187,21 @@ public:
                 n->one = x;
             else
                 n->zero = x;
+        }
+        else if ( b == l ) {
+            // k is a prefix of n's key, to n must be a child of x
+            x->parent = n->parent;
+            n->parent = x;
+            if ( !x->parent )
+                root = x;
+            else if ( x->parent->one == n )
+                x->parent->one = x;
+            else
+                x->parent->zero = x;
+            if ( n->key[b / 8] & ( 128 >> ( b % 8 ) ) )
+                x->one = n;
+            else
+                x->zero = n;
         }
         else {
             // n's key and k differ, so we make a new intermediate node
@@ -210,6 +232,13 @@ public:
                 i++;
             }
         }
+    }
+
+    bool isEmpty() {
+        if ( !root )
+            return true;
+        // is it possible for a tree to contain no payload nodes? no?
+        return false;
     }
 
     uint count() const {
@@ -329,6 +358,10 @@ public:
         return n;
     }
 
+    T * take( Iterator & i ) {
+        return take( i.cur );
+    }
+
 private:
     virtual Node * node( uint x ) {
         return new ( x ) Node;
@@ -337,7 +370,7 @@ private:
         Allocator::dealloc( n );
     }
 
-    Node * best( char * k, uint l ) const {
+    Node * best( const char * k, uint l ) const {
         Node * n = root;
         Node * p = n;
         while ( n && n->length < l ) {
@@ -352,7 +385,7 @@ private:
         return p;
     }
 
-    Node * ifMatch( Node * n, char * k, uint l ) const {
+    Node * ifMatch( Node * n, const char * k, uint l ) const {
         if ( !n )
             return 0;
         if ( n->length != l )
@@ -366,7 +399,7 @@ private:
         return n;
     }
 
-    Node * locate( char * k, uint l ) const {
+    Node * locate( const char * k, uint l ) const {
         return ifMatch( best( k, l ), k, l );
     }
 

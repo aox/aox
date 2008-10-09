@@ -3,45 +3,27 @@
 #ifndef DICT_H
 #define DICT_H
 
-#include "stringlist.h"
-
-class DictBase
-    : public Garbage
-{
-protected:
-    DictBase( uint size );
-
-    bool contains( const String & ) const;
-    void * find( const String & ) const;
-    void insert( const String & s, void* r );
-    void * take( const String & );
-    void clear();
-
-public:
-    void resize( uint );
-    StringList keys() const;
-    bool isEmpty() const;
-
-private:
-    static uint hash( const String & );
-
-private:
-    class DictBaseData * d;
-};
+#include "patriciatree.h"
+#include "string.h"
 
 
 template<class T>
-class Dict: public DictBase {
+class Dict: public PatriciaTree<T> {
 public:
-    Dict( uint size = 20 ): DictBase( size ) {} // more?
+    Dict(): PatriciaTree<T>() {}
 
-    T * find( const String & s ) const { return (T*)DictBase::find( s ); }
-    void insert( const String & s, T* r ) { DictBase::insert( s, r ); }
-    T* take( const String & s ) { return (T*)DictBase::take( s ); }
-    bool contains( const String & s ) const {
-        return DictBase::contains( s );
+    T * find( const String & s ) const {
+        return PatriciaTree<T>::find( s.data(), s.length() * 8 );
     }
-    void clear() { DictBase::clear(); }
+    void insert( const String & s, T* r ) {
+        PatriciaTree<T>::insert( s.data(), s.length() * 8, r );
+    }
+    T* take( const String & s ) {
+        return PatriciaTree<T>::take( s.data(), s.length() * 8 );
+    }
+    bool contains( const String & s ) const {
+        return find( s ) != 0;
+    }
 
 private:
     // operators explicitly undefined because there is no single

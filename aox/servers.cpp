@@ -98,7 +98,7 @@ public:
 
     Path * parent;
     const char * message;
-    Dict<Path> variables;
+    StringList variables;
     String name;
     Type type;
 
@@ -131,7 +131,7 @@ static void addPath( Path::Type type,
             // huge code to produce the right message if it ever bites
             // anyone.
             p->message = "has conflicting permission requirements";
-        p->variables.insert( Configuration::name( variable ), p );
+        p->variables.append( Configuration::name( variable ) );
         p = p->parent;
     }
 }
@@ -276,7 +276,8 @@ void Path::check()
     if ( !message )
         return;
     fprintf( stderr, "%s %s.\n", name.cstr(), message );
-    StringList::Iterator i( variables.keys() );
+    variables.removeDuplicates();
+    StringList::Iterator i( variables );
     while ( i ) {
         fprintf( stderr, " - affected variable: %s\n", i->cstr() );
         ++i;
@@ -332,9 +333,9 @@ static void checkFilePermissions()
         ++it;
     }
 
-    StringList::Iterator i( paths.keys() );
+    Dict<Path>::Iterator i( paths );
     while ( i ) {
-        paths.find( *i )->check();
+        i->check();
         ++i;
     }
 

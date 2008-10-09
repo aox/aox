@@ -196,9 +196,9 @@ void AddressCreator::insertAddresses()
         t = parent->subTransaction();
     q = new Query( "copy addresses (name,localpart,domain) "
                    "from stdin with binary", this );
-    StringList::Iterator it( unided.keys() );
+    Dict<Address>::Iterator it( unided );
     while ( it ) {
-        Address * a = unided.take( *it );
+        Address * a = it;
         q->bind( 1, a->uname() );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
@@ -589,9 +589,9 @@ void Injector::execute()
 
 void Injector::findDependencies()
 {
-    Dict<int> seenFlags;
-    Dict<int> seenFields;
-    Dict<int> seenAnnotationNames;
+    Dict<Injector> seenFlags;
+    Dict<Injector> seenFields;
+    Dict<Injector> seenAnnotationNames;
     Map<uint> seenMailboxes;
 
     List<Header> * l = new List<Header>;
@@ -633,7 +633,7 @@ void Injector::findDependencies()
                      FieldName::id( n ) == 0 && !seenFields.contains( n ) )
                 {
                     d->fields.append( n );
-                    seenFields.insert( n, 0 );
+                    seenFields.insert( n, this );
                 }
 
                 if ( hf->type() <= HeaderField::LastAddressField )
@@ -661,7 +661,7 @@ void Injector::findDependencies()
             while ( fi ) {
                 String n( *fi );
                 if ( Flag::id( n ) == 0 && !seenFlags.contains( n ) ) {
-                    seenFlags.insert( n, 0 );
+                    seenFlags.insert( n, this );
                     d->flags.append( n );
                 }
                 ++fi;
@@ -675,7 +675,7 @@ void Injector::findDependencies()
                 if ( AnnotationName::id( n ) == 0 &&
                      !seenAnnotationNames.contains( n ) )
                 {
-                    seenAnnotationNames.insert( n, 0 );
+                    seenAnnotationNames.insert( n, this );
                     d->annotationNames.append( n );
                 }
 

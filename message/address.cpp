@@ -1486,7 +1486,7 @@ void Address::uniquify( List<Address> * l )
     if ( !l || l->isEmpty() )
         return;
 
-    Dict<Address> unique( l->count() );
+    Dict<Address> unique;
 
     List<Address>::Iterator it( l );
     while ( it ) {

@@ -56,7 +56,7 @@ void MessageCache::insert( class Mailbox * mb, uint uid,
     if ( !c )
         c = new MessageCache;
     if ( !c->d->m )
-        c->d->m = new Dict<Message>( 1024 );
+        c->d->m = new Dict<Message>();
     String hack;
     hack.append( mb->id() ); // <- that is a unicode codepoint, ahem
     hack.append( uid ); // <- that is also a unicode codepoint, ahem ahem
