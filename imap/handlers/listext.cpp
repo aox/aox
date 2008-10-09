@@ -472,6 +472,8 @@ void Listext::reference()
             d->reference = imap()->user()->home();
     }
     else if ( s == "/" ) {
+        parser()->restore( x );
+        (void)mailboxName();
         d->reference = Mailbox::root();
     }
     else {

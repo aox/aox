@@ -181,7 +181,7 @@ void IMAP::react( Event e )
             if ( idle() )
                 setTimeoutAfter( 86400 ); // 24-hour timeout while IDLE
             else
-                setTimeoutAfter( 1800 ); // inactive client
+                setTimeoutAfter( 86400 ); // inactive client
             break;
         case Logout:
             break;
@@ -801,6 +801,7 @@ void IMAP::emitResponses()
 
     Buffer * w = writeBuffer();
     List<ImapResponse>::Iterator r( d->responses );
+    uint n = 0;
     while ( r ) {
         if ( r->meaningful() ) {
             if ( !r->sent() && ( can || !r->changesMsn() ) ) {
@@ -809,6 +810,7 @@ void IMAP::emitResponses()
                     w->append( "* ", 2 );
                     w->append( t );
                     w->append( "\r\n", 2 );
+                    n++;
                 }
                 r->setSent();
                 any = true;
@@ -819,6 +821,10 @@ void IMAP::emitResponses()
         }
         else {
             d->responses.take( r );
+        }
+        if ( n > 64 ) {
+            write();
+            n = 0;
         }
     }
 

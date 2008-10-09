@@ -66,7 +66,17 @@ public:
     Suffix suffix() const;
     void setSuffix( Suffix );
 
-    Dict<UString> * arguments() const;
+    class Argument
+        : public Garbage
+    {
+    public:
+        Argument( const String & n, const UString & v )
+            : name( n ), value( v ) {}
+        String name;
+        UString value;
+    };
+
+    Dict<Argument> * arguments() const;
     UString argument( const String & ) const;
     void addArgument( const String &, const UString & );
     String query() const;

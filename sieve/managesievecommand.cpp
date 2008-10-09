@@ -429,11 +429,9 @@ bool ManageSieveCommand::putScript()
         d->t->enqueue( d->query );
         d->t->execute();
 
-        StringList::Iterator i( d->create.keys() );
+        Dict<Mailbox>::Iterator i( d->create );
         while ( i ) {
-            Mailbox * m = d->create.find( *i );
-            if ( m )
-                (void)m->create( d->t, d->sieve->user() );
+            (void)i->create( d->t, d->sieve->user() );
             ++i;
         }
     }
@@ -466,9 +464,9 @@ bool ManageSieveCommand::putScript()
     if ( !d->t->done() )
         return false;
 
-    StringList::Iterator i( d->create.keys() );
+    Dict<Mailbox>::Iterator i( d->create );
     while ( i ) {
-        d->ok.append( "Created mailbox " + i->quoted() + "." );
+        d->ok.append( "Created mailbox " + i->name().utf8().quoted() + "." );
         ++i;
         if ( i )
             d->ok.append( "\r\n" );

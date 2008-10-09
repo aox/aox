@@ -59,7 +59,7 @@ public:
 
     PgKeyData *keydata;
     PgRowDescription *description;
-    Dict< int > prepared;
+    Dict<Postgres> prepared;
     StringList preparesPending;
 
     List< Query > queries;
@@ -202,7 +202,7 @@ void Postgres::processQuery( Query * q )
         a.enqueue( writeBuffer() );
 
         if ( q->name() != "" ) {
-            d->prepared.insert( q->name(), 0 );
+            d->prepared.insert( q->name(), this );
             d->preparesPending.append( q->name() );
         }
 
@@ -319,7 +319,7 @@ void Postgres::react( Event e )
             if ( q )
                 x.setLog( q->log() );
             if ( q && q->canBeSlow() ) {
-                extendTimeout( 10 );
+                extendTimeout( 1000 );
             }
             else {
                 if ( d->transaction ) {
@@ -874,7 +874,7 @@ void Postgres::serverMessage()
     if ( code.startsWith( "08" ) || // connection exception
          code == "57P01" || // admin shutdown
          code == "57P02" ) // crash shutdown
-        error( s );
+        error( "PostgreSQL server error: " + s );
 }
 
 
@@ -946,7 +946,7 @@ static const struct {
 String Postgres::mapped( const String & s ) const
 {
     if ( !s.contains( "_" ) )
-        return s;
+        return "PostgreSQL Server: " + s;
 
     String h;
     uint maps = 0;
@@ -976,7 +976,7 @@ String Postgres::mapped( const String & s ) const
         i++;
     }
     if ( maps != 1 )
-        return s;
+        return "PostgreSQL Server: " + s;
 
     return h;
 }
