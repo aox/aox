@@ -709,10 +709,9 @@ String Selector::whereHeaderField()
     if ( !t )
         t = HeaderField::fieldType( d->s8 );
 
-    bool extra = false;
     String jn = fn( ++root()->d->join );
     String j = " left join header_fields hf" + jn +
-               " on (" + mm() + ".message=hf" + jn + ".message ";
+               " on (" + mm() + ".message=hf" + jn + ".message";
     if ( !d->s16.isEmpty() ) {
         uint like = placeHolder();
         root()->d->query->bind( like, q( d->s16 ) );
@@ -723,18 +722,13 @@ String Selector::whereHeaderField()
         j.append( fn( t ) );
     }
     else {
-        uint fnum = placeHolder();
-        root()->d->query->bind( fnum, d->s8 );
-        j.append( ") left join field_names fn" + jn +
-                  " on (hf" + jn + ".field=fn" + jn + ".id "
-                  "and fn" + jn + ".name=$" + fn( fnum ) );
-        extra = true;
+        uint f = placeHolder();
+        root()->d->query->bind( f, d->s8 );
+        j.append( " and hf" + jn + ".field="
+                  "(select id from field_names where name=$" + fn(f) + ")" );
     }
     j.append( ")" );
     root()->d->extraJoins.append( j );
-
-    if ( extra )
-        return "fn" + jn + ".name is not null";
 
     return "hf" + jn + ".field is not null";
 }
