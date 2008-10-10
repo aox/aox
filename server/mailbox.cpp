@@ -139,15 +139,18 @@ void MailboxReader::execute() {
             m->setType( Mailbox::View );
 
         m->d->uidvalidity = r->getInt( "uidvalidity" );
-        m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                    r->getBigint( "nextmodseq" ) );
         if ( !r->isNull( "owner" ) )
             m->setOwner( r->getInt( "owner" ) );
 
         if ( m->type() == Mailbox::View ) {
             m->d->source = r->getInt( "source" );
-            m->d->nextModSeq = r->getBigint( "viewnms" );
             m->d->selector = r->getString( "selector" );
+            m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
+                                        r->getBigint( "viewnms" ) );
+        }
+        else {
+            m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
+                                        r->getBigint( "nextmodseq" ) );
         }
 
         if ( m->d->id )
@@ -609,6 +612,11 @@ void Mailbox::setUidnextAndNextModSeq( uint n, int64 m )
         return;
     d->uidnext = n;
     d->nextModSeq = m;
+    List<Mailbox>::Iterator v( d->views );
+    while ( v ) {
+        v->d->nextModSeq = n;
+        ++v;
+    }
     notifySessions();
 }
 
@@ -720,6 +728,8 @@ void Mailbox::addSession( Session * s )
 {
     if ( d->source ) {
         Mailbox * sm = source();
+        if ( sm && sm->d->nextModSeq > d->nextModSeq )
+            d->nextModSeq = sm->d->nextModSeq;
         if ( sm && !sm->d->views )
             sm->d->views = new List<Mailbox>;
         if ( sm && !sm->d->views->find( this ) )
@@ -802,6 +812,11 @@ void Mailbox::setNextModSeq( int64 n )
     if ( n == d->nextModSeq )
         return;
     d->nextModSeq = n;
+    List<Mailbox>::Iterator v( d->views );
+    while ( v ) {
+        v->d->nextModSeq = n;
+        ++v;
+    }
     notifySessions();
 }
 
