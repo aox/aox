@@ -558,25 +558,8 @@ void SessionInitialiser::findUidnext()
     if ( !r )
         return;
 
-    uint uidnext = r->getInt( "uidnext" );
-    int64 nms = r->getBigint( "nextmodseq" );
-
     if ( d->mailbox->view() )
         d->viewnms = r->getBigint( "viewnms" );
-
-    // XXX I don't like this code, it's icky.
-
-    if ( nms > d->newModSeq && uidnext > d->newUidnext )
-        d->mailbox->setUidnextAndNextModSeq( uidnext, nms );
-    else if ( nms > d->newModSeq )
-        d->mailbox->setUidnext( uidnext );
-    else if ( uidnext > d->newUidnext )
-        d->mailbox->setNextModSeq( nms );
-
-    if ( uidnext > d->newUidnext )
-        d->newUidnext = uidnext;
-    if ( nms > d->newModSeq )
-        d->newUidnext = nms;
 }
 
 
@@ -608,6 +591,8 @@ void SessionInitialiser::findViewChanges()
     d->messages = sel->query( 0, d->mailbox->source(), 0, this );
     uint vid = sel->placeHolder();
     d->messages->bind( vid, d->mailbox->id() );
+    uint vnms = sel->placeHolder();
+    d->messages->bind( vnms, d->viewnms );
 
     String s( "select m.id, "
               "v.uid as vuid, v.modseq as vmodseq, "
@@ -620,7 +605,7 @@ void SessionInitialiser::findViewChanges()
               " on m.id=s.message "
               "where ((s.uid is not null and v.uid is null)"
               "    or (s.uid is null and v.uid is not null)"
-              "    or s.modseq>=$" + fn( d->viewnms ) + ") "
+              "    or s.modseq>=$" + fn( vnms ) + ") "
               "order by v.uid, s.uid, m.id" );
     d->messages->setString( s );
     submit( d->messages );
@@ -662,7 +647,7 @@ void SessionInitialiser::writeViewChanges()
             remove->bind( 1, d->mailbox->id() );
             remove->bind( 2, vuid );
             remove->bind( 3, r->getInt( "id" ) );
-            remove->bind( 4, d->newModSeq );
+            remove->bind( 4, d->newModSeq-1 );
             remove->bindNull( 5 );
             remove->bind( 6, String( "left view" ) );
             remove->submitLine();
@@ -681,9 +666,9 @@ void SessionInitialiser::writeViewChanges()
             add->bind( 2, vuid );
             add->bind( 3, r->getInt( "smessage" ) );
             add->bind( 4, r->getInt( "sidate" ) );
-            add->bind( 5, d->newModSeq );
+            add->bind( 5, d->newModSeq-1 );
             add->submitLine();
-            addToSessions( vuid, d->newModSeq );
+            addToSessions( vuid, d->newModSeq-1 );
         }
         else if ( matched && vuid ) {
             // if it is in the search results and also in the db, then
@@ -700,8 +685,6 @@ void SessionInitialiser::writeViewChanges()
         q->bind( 2, d->newModSeq + 1 );
         q->bind( 3, d->mailbox->id() );
         submit( q );
-        d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
-                                             d->newModSeq + 1 );
     }
 
     if ( add ) {
@@ -805,12 +788,20 @@ void SessionInitialiser::emitUpdates()
 {
     List<Session>::Iterator s( d->sessions );
     while ( s ) {
-        if ( s->nextModSeq() < d->mailbox->nextModSeq() )
-            s->setNextModSeq( d->mailbox->nextModSeq() );
-        if ( s->uidnext() < d->mailbox->uidnext() )
-            s->setUidnext( d->mailbox->uidnext() );
+        if ( s->nextModSeq() < d->newModSeq )
+            s->setNextModSeq( d->newModSeq );
+        if ( s->uidnext() < d->newUidnext )
+            s->setUidnext( d->newUidnext );
+        ++s;
+    }
+    if ( d->mailbox->view() &&
+         ( d->mailbox->uidnext() < d->newUidnext ||
+           d->mailbox->nextModSeq() < d->newModSeq ) )
+        d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
+                                             d->newModSeq );
+    s = d->sessions.first();
+    while ( s ) {
         s->emitUpdates();
-
         ++s;
     }
     d->sessions.clear();
