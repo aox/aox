@@ -4,6 +4,7 @@
 
 #include "selector.h"
 
+#include "field.h"
 #include "codec.h"
 #include "utf.h"
 
@@ -103,21 +104,45 @@ static Selector * parseSelector( StringList * arguments,
              a == "cc" ||
              a == "reply-to" ||
              a == "address" ) {
-            if ( a == "address" )
-                a.truncate();
             if ( !n ) {
                 e = "No address supplied";
             }
             else if ( n->contains( "@" ) ) {
-                c = new Selector( Selector::Header,
-                                  Selector::Contains,
-                                  a, address( *n, e ) );
+                if ( a == "address" ) {
+                    c = new Selector( Selector::Or );
+                    HeaderField::Type t = HeaderField::From;
+                    while ( t <= HeaderField::LastAddressField ) {
+                        c->add( new Selector( Selector::Header,
+                                              Selector::Contains,
+                                              HeaderField::fieldName( t ),
+                                              address( *n, e ) ) );
+                        t = (HeaderField::Type)(1+(uint)t);
+                    }
+                }
+                else {
+                    c = new Selector( Selector::Header,
+                                      Selector::Contains,
+                                      a, address( *n, e ) );
+                }
                 arguments->shift();
             }
             else if ( n->contains( "." ) ) {
-                c = new Selector( Selector::Header,
-                                  Selector::Contains,
-                                  a, domain( *n, e ) );
+                if ( a == "address" ) {
+                    c = new Selector( Selector::Or );
+                    HeaderField::Type t = HeaderField::From;
+                    while ( t <= HeaderField::LastAddressField ) {
+                        c->add( new Selector( Selector::Header,
+                                              Selector::Contains,
+                                              HeaderField::fieldName( t ),
+                                              domain( *n, e ) ) );
+                        t = (HeaderField::Type)(1+(uint)t);
+                    }
+                }
+                else {
+                    c = new Selector( Selector::Header,
+                                      Selector::Contains,
+                                      a, domain( *n, e ) );
+                }
                 arguments->shift();
             }
             else {
@@ -330,7 +355,7 @@ void dumpSelector( Selector * s, uint l )
         children = true;
         if ( s->action() == Selector::And )
             a = "All must be true:";
-        else if ( s->action() == Selector::And )
+        else if ( s->action() == Selector::Or )
             a = "Any must be true:";
         else if ( s->action() == Selector::Not )
             a = "Not:";
@@ -373,6 +398,7 @@ void dumpSelector( Selector * s )
 ShowSearch::ShowSearch( StringList * args )
     : AoxCommand( args )
 {
+    parseOptions();
     Selector * s = parseSelector( args );
     if ( !s )
         return;
@@ -383,11 +409,27 @@ ShowSearch::ShowSearch( StringList * args )
                  "Error: Round-trip coversion to/from db format failed\n" );
     dumpSelector( s );
     s->simplify();
-    if ( sqlFormat == s->string() )
-        return;
-    fprintf( stdout,
-             "Search could be simplified. Showing simplified form:\n" );
-    dumpSelector( s );
+    if ( sqlFormat != s->string() ) {
+        fprintf( stdout,
+                 "Search could be simplified. Showing simplified form:\n" );
+        dumpSelector( s );
+    }
+    if ( opt( 's' ) ) {
+        StringList wanted;
+        wanted.append( "mailbox" );
+        wanted.append( "uid" );
+
+        Query * q = s->query( 0, 0, 0, 0, false, &wanted, false );
+        if ( q ) {
+            String qs = q->string();
+            qs.replace( " from", "\n  from" );
+            qs.replace( " join", "\n  join" );
+            qs.replace( " left\n  join", "\n  left join" );
+            qs.replace( " where", "\n  where" );
+            qs.replace( "\n", "\n  " );
+            fprintf( stdout, "Showing generic SQL form:\n  %s\n", qs.cstr() );
+        }
+    }
 }
 
 
