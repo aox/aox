@@ -487,16 +487,17 @@ Query * Selector::query( User * user, Mailbox * mailbox,
                          Session * session, EventHandler * owner,
                          bool order, StringList * wanted, bool deleted )
 {
-    if ( !::retunerCreated )
+    if ( !::retunerCreated && Database::numHandles() )
         (void)new RetuningDetector;
 
     d->query = new Query( owner );
     d->user = user;
     d->session = session;
     d->placeholder = 0;
-    if ( mailbox )
+    if ( mailbox ) {
         d->mboxId = placeHolder();
-    d->query->bind( d->mboxId, mailbox->id() );
+        d->query->bind( d->mboxId, mailbox->id() );
+    }
     if ( deleted )
         d->mm = new String( "dm" );
     else
