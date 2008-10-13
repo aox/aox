@@ -12,11 +12,7 @@ Schedule
 
 3.0.2: 2008-10-?
 
-  One problems left.
-
-  Thunderbird takes a long time to open large mailboxes. This is
-  because of the new imap response logic. It may have had problems
-  earlier too, not sure.
+  Do it now.
 
 
 3.1.0: ?
