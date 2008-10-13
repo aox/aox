@@ -177,6 +177,8 @@ void Transaction::setError( Query * query, const String &s )
     Scope x( d->owner->log() );
     if ( query && query->canFail() )
         log( s, Log::Debug );
+    else if ( d->parent )
+        log( s );
     else
         log( s, Log::Error );
     d->failedQuery = query;
