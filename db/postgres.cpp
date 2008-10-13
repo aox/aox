@@ -319,7 +319,7 @@ void Postgres::react( Event e )
             if ( q )
                 x.setLog( q->log() );
             if ( q && q->canBeSlow() ) {
-                extendTimeout( 1000 );
+                extendTimeout( 10 );
             }
             else {
                 if ( d->transaction ) {
