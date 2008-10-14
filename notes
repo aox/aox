@@ -1270,3 +1270,9 @@ Problems found in 3.0.0 by Timo
     imapsync complains about.
 
 
+Use current_setting('server_version_num') instead of parsing version()
+
+  (But only under 8.2+)
+
+
+
