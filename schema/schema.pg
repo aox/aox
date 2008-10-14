@@ -392,8 +392,7 @@ create table deliveries (
                 on delete cascade
                 unique,
     injected_at timestamp with time zone,
-    expires_at  timestamp with time zone,
-    tried_at    timestamp with time zone
+    expires_at  timestamp with time zone
 );
 
 
