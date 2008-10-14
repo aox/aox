@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH installer 8 2008-09-15 aox.org "Archiveopteryx Documentation"
+.TH installer 8 2008-10-15 aox.org "Archiveopteryx Documentation"
 .SH NAME
 installer - Archiveopteryx installer.
 .SH SYNOPSIS
@@ -121,8 +121,8 @@ errors. Disasters are logged via stderr.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 3.0.1, released 2008-09-15,
-http://www.archiveopteryx.org/3.0.1
+This man page covers Archiveopteryx version 3.0.2, released 2008-10-15,
+http://www.archiveopteryx.org/3.0.2
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
