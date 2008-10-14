@@ -218,18 +218,18 @@ Other RFCs
   I think we need to consider these RFCs, or at least mention them
   somewhere in the documentation so we know we've considered them:
 
-  1049 (should be handled fine, so check and mention)
-  1893 (ditto)
-  1894 (older version of something we handle, right?)
+  821
   934  (?)
+  974
+  1049 (should be handled fine, so check and mention)
   1641 (old mime?)
   1731 (old imap?)
+  1893 (ditto)
+  1894 (older version of something we handle, right?)
   2044 (?)
   2068 (HTTP? surely we do that)
-  821
-  974
-  2244
   2222
+  2244
 
 
 Cleartext passwords
@@ -1116,12 +1116,6 @@ Some unfortunate logging
         IMAP::runCommands, 0 commands
 
   Hardly unexpected. Will fix later, not sure how.
-
-
-Schema 76
-
-  Drop deliveries.tried_at, drop the contents of threads and
-  thread_members.
 
 
 Dynamically preparing often-used queries
