@@ -54,6 +54,7 @@ public:
     UString storedSecret() const;
     void setStoredSecret( const UString & );
     virtual void setChallenge( const String & );
+    UString ldapdn() const;
 
     static SaslMechanism * create( const String &, EventHandler *,
                                    class SaslConnection * );

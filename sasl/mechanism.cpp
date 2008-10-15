@@ -633,3 +633,14 @@ String SaslMechanism::name() const
     }
     return r;
 }
+
+
+/*! Returns the LDAP DN corrensponding to this User, for use by
+    LdapRelay.
+*/
+
+UString SaslMechanism::ldapdn() const
+{
+    UString r;
+    return r;
+}

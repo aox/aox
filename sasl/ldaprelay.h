@@ -6,28 +6,38 @@
 #include "connection.h"
 
 
+class SaslMechanism;
+
+
 class LdapRelay
     : public Connection
 {
 public:
-    LdapRelay();
+    LdapRelay( SaslMechanism * );
 
     void react( Event );
 
     enum State { Connecting,
                  Timeout,
                  ConnectionRefused,
-                 MechanismRejected,
                  BindFailed,
-                 BindSucceeded,
-                 ChallengeAvailable,
-                 WaitingForResponse,
-                 WaitingForChallenge );
+                 BindSucceeded };
 
     State state() const;
 
     String challenge();
     String setResponse( const String & );
+
+    static Endpoint server();
+
+    void parse();
+    void bind();
+
+private:
+    class LdapRelayData * d;
+
+    void fail( const String & );
+    void succeed();
 };
 
 
