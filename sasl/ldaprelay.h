@@ -23,9 +23,6 @@ public:
 
     State state() const;
 
-    String challenge();
-    String setResponse( const String & );
-
     static Endpoint server();
 
     void parse();

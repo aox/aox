@@ -57,7 +57,8 @@ LdapRelay::LdapRelay( SaslMechanism * mechanism )
 
 
 /*! Reacts to incoming packets from the LDAP server, changes the
-    object's state, and eventually notifies the Mechanism.
+    object's state, and eventually notifies the Mechanism. \a e is as
+    for Connection::react().
 */
 
 void LdapRelay::react( Event e )
