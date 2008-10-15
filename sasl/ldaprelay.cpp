@@ -225,7 +225,7 @@ void LdapRelay::bind()
     s.append( dn );
 
     //   authentication
-    //    80 -> type, but what is it? context-specific universal 0?
+    //    80 -> type: context-specific universal zero, and zero is "password"
     //    00 -> length
     s.append( '\200' );
     String pw = d->mechanism->secret().utf8();
