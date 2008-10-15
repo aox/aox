@@ -223,11 +223,14 @@ void LdapRelay::bind()
     String dn = d->mechanism->ldapdn().utf8();
     s.append( (char)dn.length() );
     s.append( dn );
+
     //   authentication
-    //    80 -> type
+    //    80 -> type, but what is it? context-specific universal 0?
     //    00 -> length
     s.append( '\200' );
-    s.append( '\000' ); // can't append that as part of a string literal
+    String pw = d->mechanism->secret().utf8();
+    s.append( (char)pw.length() );
+    s.append( pw );
 
     // now we need to send the ultimate header and the data
     String h;
