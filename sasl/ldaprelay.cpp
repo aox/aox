@@ -13,7 +13,7 @@ class LdapRelayData
 public:
     LdapRelayData()
         : mechanism( 0 ),
-          state( LdapRelay::Connecting ),
+          state( LdapRelay::Working ),
           haveReadType( false ), responseLength( 0 )
         {}
 
@@ -34,12 +34,7 @@ public:
 
     The LdapRelay state machine contains the following states:
 
-    Connecting: The LDAP server still hasn't answered.
-
-    Timeout: The LDAP server didn't answer in time (either didn't
-    accept the connection or didn't answer a bind request).
-
-    ConnectionRefused: The LDAP server refused our connection.
+    Working: The LDAP server still hasn't answered.
 
     BindFailed: We should reject this authentication.
 
@@ -67,7 +62,7 @@ LdapRelay::LdapRelay( SaslMechanism * mechanism )
 
 void LdapRelay::react( Event e )
 {
-    if ( d->state == BindSucceeded || d->state == BindFailed )
+    if ( d->state != Working )
         return;
 
     switch( e ) {
@@ -81,10 +76,12 @@ void LdapRelay::react( Event e )
 
     case Connect:
         bind();
-        // we'll receive a banner
         break;
 
     case Error:
+        fail( "Unexpected error" );
+        break;
+
     case Close:
         fail( "Unexpected close by LDAP server" );
         break;
@@ -93,10 +90,11 @@ void LdapRelay::react( Event e )
         break;
     }
 
-    if ( d->state == BindSucceeded || d->state == BindFailed ) {
-        setState( Closing );
-        d->mechanism->execute();
-    }
+    if ( d->state == Working )
+        return;
+
+    setState( Closing );
+    d->mechanism->execute();
 }
 
 
@@ -111,8 +109,8 @@ Endpoint LdapRelay::server()
 }
 
 
-/*!
-
+/*! Parses the response the server sends, which has to be a bind
+    response.
 */
 
 void LdapRelay::parse()
@@ -202,21 +200,16 @@ void LdapRelay::parse()
 }
 
 
-/*!
-
-*/
+/*! Sends a single bind request. */
 
 void LdapRelay::bind()
 {
-    // we need to send (example)
-    // LDAPMessage magic bytes (30 0c 02) (30 = type, 0c == length, 02=?)
-    // message-id (01) (01 == value)
-    //  bindrequest (60 07 02 01)
+    //  bindrequest (60 07)
     //    60 -> APPLICATION 0, ie. bindrequest
     //    07 -> length of remaining bytes
 
     String s;
-    // we'll do the bits above at the end
+    // we'll do the bits above at the end, when we know the length
     
     //   version (03)
     //    02 -> ? integer perhaps?
@@ -249,7 +242,7 @@ void LdapRelay::bind()
 
 void LdapRelay::fail( const String & error )
 {
-    if ( d->state == BindSucceeded || d->state == BindFailed )
+    if ( d->state != Working )
         return;
     
     d->state = BindFailed;
@@ -261,7 +254,7 @@ void LdapRelay::fail( const String & error )
 
 void LdapRelay::succeed()
 {
-    if ( d->state == BindSucceeded || d->state == BindFailed )
+    if ( d->state != Working )
         return;
     
     d->state = BindSucceeded;

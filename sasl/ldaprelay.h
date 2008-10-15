@@ -17,9 +17,7 @@ public:
 
     void react( Event );
 
-    enum State { Connecting,
-                 Timeout,
-                 ConnectionRefused,
+    enum State { Working,
                  BindFailed,
                  BindSucceeded };
 
