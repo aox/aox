@@ -208,9 +208,10 @@ void LdapRelay::bind()
     //  bindrequest (60 07)
     //    60 -> APPLICATION 0, ie. bindrequest
     //    07 -> length of remaining bytes
+    String h;
+    h.append( 0x60 );
 
     String s;
-    // we'll do the bits above at the end, when we know the length
     
     //   version (03)
     //    02 -> ? integer perhaps?
@@ -232,9 +233,7 @@ void LdapRelay::bind()
     s.append( (char)pw.length() );
     s.append( pw );
 
-    // now we need to send the ultimate header and the data
-    String h;
-    h.append( 0x60 );
+    // now we know the length and can send everything
     h.append( (char)s.length() );
 
     enqueue( h );
@@ -262,5 +261,5 @@ void LdapRelay::succeed()
         return;
     
     d->state = BindSucceeded;
-    log( "LDAP authentication failed" );
+    log( "LDAP authentication succeeded" );
 }
