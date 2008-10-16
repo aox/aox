@@ -1251,12 +1251,6 @@ Mike Geiger's Thunderbird problems
 
 Problems found in 3.0.0 by Timo
 
-  - We sometimes send "0 EXPUNGE" (seen in response to APPEND) and
-    "MODSEQ (0)".
-
-    Expunge fixed; MODSEQ not. Easily reproduced by running imapsync
-    with just one user and ten sessions.
-
   - SEARCH SENTON/SENTBEFORE/SENTAFTER have some bugs.
     (Not verified because of segfault; will check later.)
 
