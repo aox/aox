@@ -12,6 +12,7 @@ class PatriciaTree
 {
 public:
     PatriciaTree(): root( 0 ) { }
+    virtual ~PatriciaTree() {}
 
     class Node
         : public Garbage
@@ -38,6 +39,7 @@ public:
 
     private:
         friend class PatriciaTree;
+        friend class PatriciaTree::Iterator;
         Node * zero;
         Node * one;
         Node * parent;
