@@ -32,7 +32,7 @@ public:
     {}
 
     enum State { Invalid,
-                 Connected, Hello,
+                 Connected, Banner, Hello,
                  MailFrom, RcptTo, Data, Body,
                  Error, Rset, Quit };
     State state;
@@ -173,6 +173,8 @@ void SmtpClient::parse()
                 d->error = "Server sent 1xx response: " + *s;
                 break;
             case 2:
+                if ( d->state == SmtpClientData::Connected )
+                    d->state = SmtpClientData::Banner;
                 if ( d->state == SmtpClientData::Hello )
                     recordExtension( *s );
                 if ( d->rcptTo )
@@ -224,11 +226,15 @@ void SmtpClient::sendCommand()
     switch( d->state ) {
     case SmtpClientData::Invalid:
         break;
+
     case SmtpClientData::Data:
         d->state = SmtpClientData::Body;
         break;
 
     case SmtpClientData::Connected:
+        break;
+
+    case SmtpClientData::Banner:
         send = "ehlo " + Configuration::hostname();
         d->state = SmtpClientData::Hello;
         break;
