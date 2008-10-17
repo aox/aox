@@ -2,7 +2,6 @@
 
 #include "exporter.h"
 
-#include "transaction.h"
 #include "eventloop.h"
 #include "selector.h"
 #include "address.h"
@@ -22,14 +21,13 @@ class ExporterData
 {
 public:
     ExporterData()
-        : transaction( 0 ), find( 0 ), fetcher( 0 ),
+        : find( 0 ), fetchers( 0 ),
           mailbox( 0 ), selector( 0 ),
           messages( new List<Message> )
         {}
 
-    Transaction * transaction;
     Query * find;
-    Fetcher * fetcher;
+    List<Fetcher> * fetchers;
     UString sourceName;
     Mailbox * mailbox;
     Selector * selector;
@@ -79,47 +77,55 @@ void Exporter::execute()
         }
     }
 
-    if ( !d->transaction ) {
-        d->transaction = new Transaction( this );
+    if ( !d->find ) {
         StringList wanted;
         wanted.append( "message" );
         wanted.append( "mailbox" );
         wanted.append( "uid" );
         d->find = d->selector->query( 0, d->mailbox, 0, this,
                                       true, &wanted, false );
-        d->transaction->enqueue( d->find );
-        d->transaction->execute();
+        // we might select for update, to make sure the things don't
+        // go away... but do we care? really?
+        d->find->execute();
     }
 
     if ( !d->find->done() )
         return;
 
-    if ( !d->fetcher ) {
-        Map<Mailbox> mailboxes;
+    if ( !d->fetchers ) {
+        d->fetchers = new List<Fetcher>;
+        Map<Fetcher> fetchers;
         Map<Message> messages;
         while ( d->find->hasResults() ) {
             Row * r = d->find->nextRow();
             Mailbox * mb = Mailbox::find( r->getInt( "mailbox" ) );
             if ( mb ) {
-                Message * m = messages.find( r->getInt( "message" ) );
-                if ( !m ) {
-                    m = new Message;
+                Fetcher * f = fetchers.find( mb->id() );
+                if ( !f ) {
+                    f = new Fetcher( mb, new List<Message>, this );
+                    d->fetchers->append( f );
+                    fetchers.insert( mb->id(), f );
+                }
+                if ( !messages.contains( r->getInt( "message" ) ) ) {
+                    Message * m = new Message;
                     messages.insert( r->getInt( "message" ), m );
                     m->setDatabaseId( r->getInt( "message" ) );
+                    messages.insert( mb->id(), m );
+                    m->setUid( mb, r->getInt( "uid" ) );
+                    f->addMessage( m );
+                    d->messages->append( m );
                 }
-                messages.insert( mb->id(), m );
-                m->setUid( mb, r->getInt( "uid" ) );
-                d->messages->append( m );
             }
         }
-        d->fetcher = new Fetcher( d->mailbox, d->messages, this );
-        d->fetcher->fetch( Fetcher::Addresses );
-        d->fetcher->fetch( Fetcher::OtherHeader );
-        d->fetcher->fetch( Fetcher::Body );
-        if ( d->mailbox )
-            d->fetcher->fetch( Fetcher::Trivia );
-        d->fetcher->setTransaction( d->transaction );
-        d->fetcher->execute();
+        List<Fetcher>::Iterator f( d->fetchers );
+        while ( f ) {
+            f->fetch( Fetcher::Addresses );
+            f->fetch( Fetcher::OtherHeader );
+            f->fetch( Fetcher::Body );
+            f->fetch( Fetcher::Trivia );
+            f->execute();
+            ++f;
+        }
     }
 
     while ( !d->messages->isEmpty() ) {
@@ -130,7 +136,8 @@ void Exporter::execute()
             return;
         if ( !m->hasBodies() )
             return;
-        if ( d->mailbox && !m->hasTrivia( d->mailbox ) )
+        Mailbox * mb = m->mailboxes()->firstElement();
+        if ( mb && !m->hasTrivia( mb ) )
             return;
         d->messages->shift();
         String from = "From ";
@@ -149,8 +156,8 @@ void Exporter::execute()
             from.append( "invalid@invalid.invalid" );
         from.append( "  " );
         Date id;
-        if ( d->mailbox )
-            id.setUnixTime( m->internalDate( d->mailbox ) );
+        if ( mb )
+            id.setUnixTime( m->internalDate( mb ) );
         else if ( m->header()->date() )
             id = *m->header()->date();
         // Tue Jul 23 19:39:23 2002
@@ -177,9 +184,6 @@ void Exporter::execute()
         ::write( 1, rfc822.data(), rfc822.length() );
     }
 
-    d->transaction->commit();
-    if ( d->transaction->done() )
-        EventLoop::global()->stop();
-
+    EventLoop::global()->stop();
 }
 
