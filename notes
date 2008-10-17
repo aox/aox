@@ -1263,4 +1263,40 @@ Use current_setting('server_version_num') instead of parsing version()
   (But only under 8.2+)
 
 
+HTML representation of selectors
+
+  We need:
+
+    - An HTML representation of selectors.
+
+      Should be easy to generate, display reasonably even without CSS,
+      and easy to parse when we see it again.
+
+        <div id=1>
+         <span class=selector>and 2 3</span>
+         <span class=translated>Alle Begingungen müssen für jede Nachricht zutreffen</span>
+         <div id=2>
+          <span class=selector>header 4</span>
+          <span class=translated>Headers enthalten <span id=4>arnt</span></span>
+         </div>
+         <div id=3>
+          <span class=selector>body 5</span>
+          <span class=translated>Körpertext enthält <span id=5>expunge</span></span>
+         </div>
+        </div>
+
+      (We don't want to parse translated text because of the ambiguity
+      in mapping between texts and conditions if e.g. two conditions map
+      to the same Bangla text. Hence the selector/translated split.)
+
+    - A parser to turn HTML into a selector; and a way to turn a
+      selector into HTML (plus tests for the conversion).
+
+      We have HtmlParser.
+
+    - A component to display a view, and a component to edit a view
+      (complete with evil Javascript) and a magic URL to accept the
+      edited representation.
+
+
 
