@@ -7,9 +7,11 @@
 #include "fieldname.h"
 #include "logclient.h"
 #include "eventloop.h"
+#include "selector.h"
 #include "database.h"
 #include "mailbox.h"
 #include "entropy.h"
+#include "searchsyntax.h"
 #include "log.h"
 #include "utf.h"
 
@@ -63,14 +65,26 @@ int main( int ac, char ** av )
 
     Utf8Codec c;
     UString source;
-    if ( i < ac )
-        source = c.toUnicode( av[i++] );
-    else
+    if ( i >= ac && av[i][0] == '/' )
         bad = true;
+    else if ( av[i][0] == '/' )
+        source = c.toUnicode( av[i++] );
+
+    Selector * which;
+    if ( i < ac ) {
+        StringList args;
+        while ( i < ac )
+            args.append( new String( av[i++] ) );
+        which = parseSelector( &args );
+    }
+    else {
+        which = new Selector( Selector::NoField, Selector::All, 0 );
+    }
+    
 
     if ( bad ) {
         fprintf( stderr,
-                 "Usage: %s [-vq] <mailbox>"
+                 "Usage: %s [-vq] [mailbox] [search]"
                  "See aoxexport(8) or "
                  "http://aox.org/aoxexport/ for details.\n", av[0] );
         exit( -1 );
@@ -88,7 +102,7 @@ int main( int ac, char ** av )
     Database::setup();
     FieldName::setup();
 
-    Exporter * e = new Exporter( source );
+    Exporter * e = new Exporter( source, which );
 
     Mailbox::setup( e );
 

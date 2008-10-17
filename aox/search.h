@@ -6,8 +6,7 @@
 #include "aoxcommand.h"
 
 
-class Selector * parseSelector( class StringList * );
-void dumpSelector( Selector * );
+void dumpSelector( class Selector * );
 
 
 class ShowSearch

@@ -4,6 +4,7 @@
 
 #include "transaction.h"
 #include "eventloop.h"
+#include "selector.h"
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
@@ -11,6 +12,7 @@
 #include "query.h"
 #include "date.h"
 #include "list.h"
+#include "map.h"
 
 #include <unistd.h> // write()
 
@@ -21,7 +23,8 @@ class ExporterData
 public:
     ExporterData()
         : transaction( 0 ), find( 0 ), fetcher( 0 ),
-          mailbox( 0 ), messages( new List<Message> )
+          mailbox( 0 ), selector( 0 ),
+          messages( new List<Message> )
         {}
 
     Transaction * transaction;
@@ -29,6 +32,7 @@ public:
     Fetcher * fetcher;
     UString sourceName;
     Mailbox * mailbox;
+    Selector * selector;
     List<Message> * messages;
 };
 
@@ -41,16 +45,20 @@ static const char * weekdays[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
                                    "Fri", "Sat" };
 
 
-/*! Constructs an Exporter object which will read the messages in \a
-    source and write them to stdout.
-    
-    What happens if \a source is not a valid mailbox? Time will show
+/*! Constructs an Exporter object which will read those messages in \a
+    source which match \a selector and write them to stdout.
+
+    If \a source is empty, the entire database is searched.
+
+    If \a source is nonempty, but not a valid name, then the Exporter
+    will kill the program with a disaster.
 */
 
-Exporter::Exporter( const UString & source )
+Exporter::Exporter( const UString & source, Selector * selector )
     : d( new ExporterData )
 {
     d->sourceName = source;
+    d->selector = selector;
     setLog( new Log( Log::General ) );
 }
 
@@ -62,7 +70,7 @@ void Exporter::execute()
         return;
     }
 
-    if ( !d->mailbox ) {
+    if ( !d->mailbox && !d->sourceName.isEmpty() ) {
         d->mailbox = Mailbox::find( d->sourceName );
         if ( !d->mailbox ) {
             log( "No such mailbox: " + d->sourceName.utf8(),
@@ -73,10 +81,12 @@ void Exporter::execute()
 
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
-        d->find = new Query( "select uid from mailbox_messages "
-                             "where mailbox=$1 order by uid for update",
-                             this );
-        d->find->bind( 1, d->mailbox->id() );
+        StringList wanted;
+        wanted.append( "message" );
+        wanted.append( "mailbox" );
+        wanted.append( "uid" );
+        d->find = d->selector->query( 0, d->mailbox, 0, this,
+                                      true, &wanted, false );
         d->transaction->enqueue( d->find );
         d->transaction->execute();
     }
@@ -85,30 +95,42 @@ void Exporter::execute()
         return;
 
     if ( !d->fetcher ) {
+        Map<Mailbox> mailboxes;
+        Map<Message> messages;
         while ( d->find->hasResults() ) {
             Row * r = d->find->nextRow();
-            Message * m = new Message;
-            m->setUid( d->mailbox, r->getInt( "uid" ) );
-            d->messages->append( m );
+            Mailbox * mb = Mailbox::find( r->getInt( "mailbox" ) );
+            if ( mb ) {
+                Message * m = messages.find( r->getInt( "message" ) );
+                if ( !m ) {
+                    m = new Message;
+                    messages.insert( r->getInt( "message" ), m );
+                    m->setDatabaseId( r->getInt( "message" ) );
+                }
+                messages.insert( mb->id(), m );
+                m->setUid( mb, r->getInt( "uid" ) );
+                d->messages->append( m );
+            }
         }
         d->fetcher = new Fetcher( d->mailbox, d->messages, this );
         d->fetcher->fetch( Fetcher::Addresses );
         d->fetcher->fetch( Fetcher::OtherHeader );
         d->fetcher->fetch( Fetcher::Body );
-        d->fetcher->fetch( Fetcher::Trivia );
+        if ( d->mailbox )
+            d->fetcher->fetch( Fetcher::Trivia );
         d->fetcher->setTransaction( d->transaction );
         d->fetcher->execute();
     }
 
     while ( !d->messages->isEmpty() ) {
-        Message * m = d->messages->firstElement(); 
+        Message * m = d->messages->firstElement();
         if ( !m->hasAddresses() )
             return;
         if ( !m->hasHeaders() )
             return;
         if ( !m->hasBodies() )
             return;
-        if ( !m->hasTrivia( d->mailbox ) )
+        if ( d->mailbox && !m->hasTrivia( d->mailbox ) )
             return;
         d->messages->shift();
         String from = "From ";
@@ -127,7 +149,10 @@ void Exporter::execute()
             from.append( "invalid@invalid.invalid" );
         from.append( "  " );
         Date id;
-        id.setUnixTime( m->internalDate( d->mailbox ) );
+        if ( d->mailbox )
+            id.setUnixTime( m->internalDate( d->mailbox ) );
+        else if ( m->header()->date() )
+            id = *m->header()->date();
         // Tue Jul 23 19:39:23 2002
         from.append( weekdays[id.weekday()] );
         from.append( " " );

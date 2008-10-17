@@ -5,10 +5,10 @@
 #include "utf.h"
 #include "user.h"
 #include "query.h"
-#include "search.h"
 #include "mailbox.h"
 #include "selector.h"
 #include "transaction.h"
+#include "searchsyntax.h"
 #include "addresscache.h"
 
 

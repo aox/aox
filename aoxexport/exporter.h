@@ -5,6 +5,7 @@
 
 #include "event.h"
 
+class Selector;
 class UString;
 
 
@@ -12,10 +13,10 @@ class Exporter
     : public EventHandler
 {
 public:
-    Exporter( const UString & source );
+    Exporter( const UString &, Selector * );
 
     void execute();
-    
+
 private:
     class ExporterData * d;
 };
