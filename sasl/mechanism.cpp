@@ -7,6 +7,7 @@
 #include "configuration.h"
 #include "saslconnection.h"
 #include "stringlist.h"
+#include "ldaprelay.h"
 #include "mailbox.h"
 #include "scope.h"
 #include "graph.h"
@@ -29,22 +30,21 @@ class SaslData
 public:
     SaslData()
         : state( SaslMechanism::IssuingChallenge ),
-          command( 0 ), qd( false ), user( 0 ),
+          command( 0 ), user( 0 ),
           l( 0 ), type( SaslMechanism::Plain ),
-          connection( 0 )
+          connection( 0 ), ldapRelay( 0 )
     {}
 
     SaslMechanism::State state;
     EventHandler *command;
-    bool qd;
 
     User * user;
     UString login;
     UString secret;
-    UString storedSecret;
     Log *l;
     SaslMechanism::Type type;
     SaslConnection * connection;
+    LdapRelay * ldapRelay;
 };
 
 
@@ -314,8 +314,6 @@ void SaslMechanism::execute()
 
         if ( d->user->state() == User::Nonexistent )
             setState( Failed );
-        else
-            d->storedSecret = d->user->secret();
 
         if ( d->user->id() != 0 )
             verify();
@@ -379,6 +377,21 @@ void SaslMechanism::verify()
             setState( Succeeded );
         else
             setState( Failed );
+    }
+    else if ( d->ldapRelay ) {
+        switch ( d->ldapRelay->state() ) {
+        case LdapRelay::BindSucceeded:
+            setState( Succeeded );
+            break;
+        case LdapRelay::BindFailed:
+            setState( Failed );
+            break;
+        case LdapRelay::Working:
+            break;
+        }
+    }
+    else if ( d->user && !d->user->ldapdn().isEmpty() ) {
+        d->ldapRelay = new LdapRelay( this );
     }
     else if ( storedSecret().isEmpty() || storedSecret() == secret() ) {
         setState( Succeeded );
@@ -482,19 +495,10 @@ void SaslMechanism::setSecret( const String &secret )
 
 UString SaslMechanism::storedSecret() const
 {
-    return d->storedSecret;
-}
-
-
-/*! This function is only meant to be used while testing SaslMechanism
-    subclasses. It sets the stored secret to \a s, rather than waiting
-    for it to be retrieved from the database by execute().
-*/
-
-void SaslMechanism::setStoredSecret( const UString &s )
-{
-    d->qd = true;
-    d->storedSecret = s;
+    UString r;
+    if ( d->user && d->user->exists() )
+        r = d->user->secret();
+    return r;
 }
 
 
@@ -631,16 +635,5 @@ String SaslMechanism::name() const
         r = "digest-md5";
         break;
     }
-    return r;
-}
-
-
-/*! Returns the LDAP DN corrensponding to this User, for use by
-    LdapRelay.
-*/
-
-UString SaslMechanism::ldapdn() const
-{
-    UString r;
     return r;
 }

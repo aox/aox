@@ -24,6 +24,7 @@ public:
 
     UString login;
     UString secret;
+    UString ldapdn;
     uint id;
     Mailbox * inbox;
     uint inboxId;
@@ -135,6 +136,17 @@ void User::setSecret( const UString & secret )
 UString User::secret() const
 {
     return d->secret;
+}
+
+
+/*! Returns the user's LDAP DN, or an empty string if this user
+    doesn't have an LDAP DN. The LDAP DN is only used for performing
+    LDAP authentication (by LdapRelay).
+*/
+
+UString User::ldapdn() const
+{
+    return d->ldapdn;
 }
 
 
@@ -265,8 +277,10 @@ void User::refresh( EventHandler * user )
     d->user = user;
     if ( !psl ) {
         psl = new PreparedStatement(
-            "select u.id, u.login, u.secret, a.name, a.localpart, "
-            "a.domain, al.mailbox as inbox, n.name as parentspace "
+            "select u.id, u.login, u.secret, "
+            "null as ldapdn, "
+            "a.name, a.localpart, a.domain, "
+            "al.mailbox as inbox, n.name as parentspace "
             "from users u join aliases al on (u.alias=al.id) "
             "join addresses a on (al.address=a.id) "
             "join namespaces n on (u.parentspace=n.id) "
@@ -274,8 +288,10 @@ void User::refresh( EventHandler * user )
         );
 
         psa = new PreparedStatement(
-            "select u.id, u.login, u.secret, a.name, a.localpart, "
-            "a.domain, al.mailbox as inbox, n.name as parentspace "
+            "select u.id, u.login, u.secret, "
+            "null as ldapdn, "
+            "a.name, a.localpart, a.domain, "
+            "al.mailbox as inbox, n.name as parentspace "
             "from users u join aliases al on (u.alias=al.id) "
             "join addresses a on (al.address=a.id) "
             "join namespaces n on (u.parentspace=n.id) "
@@ -317,6 +333,10 @@ void User::refreshHelper()
         d->login = r->getUString( "login" );
         d->secret = r->getUString( "secret" );
         d->inboxId = r->getInt( "inbox" );
+        if ( r->isNull( "ldapdn" ) )
+            d->ldapdn.truncate();
+        else
+            d->ldapdn = r->getUString( "ldapdn" );
         UString tmp = r->getUString( "parentspace" );
         tmp.append( '/' );
         tmp.append( d->login );
