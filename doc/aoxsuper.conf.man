@@ -19,7 +19,7 @@ and other errors are logged on stderr.
 is usually created at installation time, by running
 .BR $LIBDIR/installer .
 .PP
-There is only one required variable, namely 
+There is only one required variable, namely
 .IR db-owner-password .
 .SH "SECURITY NOTE"
 Anyone who can read

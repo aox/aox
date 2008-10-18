@@ -80,7 +80,6 @@ int main( int ac, char ** av )
     else {
         which = new Selector( Selector::NoField, Selector::All, 0 );
     }
-    
 
     if ( bad ) {
         fprintf( stderr,

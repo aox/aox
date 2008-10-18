@@ -234,7 +234,7 @@ Fetcher::Fetcher( Message * m, EventHandler * owner )
 
 
 /*! Adds \a message to the list of messages fetched. This does not
-    re-execute the fetcher - the user must execute() it if done(). 
+    re-execute the fetcher - the user must execute() it if done().
 */
 
 void Fetcher::addMessage( Message * message )

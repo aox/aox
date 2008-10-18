@@ -772,7 +772,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         while ( rfc2822[start] == 13 || rfc2822[start] == 10 )
             start++;
         Message * m = new Message;
-        m->setParent( bp ); 
+        m->setParent( bp );
         m->parse( rfc2822.mid( start, end-start ) );
         List<Bodypart>::Iterator it( m->children() );
         while ( it ) {

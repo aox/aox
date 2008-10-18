@@ -1046,7 +1046,7 @@ aox.org/badmail/
 
   badmail/examples/comparison if I feel nasty and bored one day,
   showing how a few IMAP servers handle messages 1-8 and the
-  impossible one(s). Does "fetch envelope" return the right thing? 
+  impossible one(s). Does "fetch envelope" return the right thing?
   "fetch bodystructure"? Some choice searches? We don't want to link
   to this page very much. It gets a fine <table> containing many/few
   &#x2713; cells.

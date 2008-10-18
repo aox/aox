@@ -174,20 +174,20 @@ void LdapRelay::parse()
     uint resultCode = (*r)[2];
     r->remove( 3 );
     if ( resultCode != 0 )
-        fail( "LDAP server refused authentication with result code " + 
+        fail( "LDAP server refused authentication with result code " +
               fn( resultCode ) );
     else
         succeed();
 
     // I think we don't care about the rest of the data.
-    
+
     //   matchedDN
     //     04 -> octetstring
     //     00 -> length
     if ( (*r)[1] + 2 >= (int)r->size() )
         return;
     r->remove( (*r)[1] + 2 );
-    
+
     //   errorMessage
     //     04 -> octetstring
     //     00 -> length
@@ -213,7 +213,7 @@ void LdapRelay::bind()
     h.append( 0x60 );
 
     String s;
-    
+
     //   version (03)
     //    02 -> ? integer perhaps?
     //    01 -> length
@@ -250,7 +250,7 @@ void LdapRelay::fail( const String & error )
 {
     if ( d->state != Working )
         return;
-    
+
     d->state = BindFailed;
     log( error );
 }
@@ -262,7 +262,7 @@ void LdapRelay::succeed()
 {
     if ( d->state != Working )
         return;
-    
+
     d->state = BindSucceeded;
     log( "LDAP authentication succeeded" );
 }

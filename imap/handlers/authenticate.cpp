@@ -97,7 +97,7 @@ void Authenticate::execute()
         error( No, "sorry" );
         setRespTextCode( "AUTHENTICATIONFAILED" );
     }
-    
+
     finish();
 }
 

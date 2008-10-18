@@ -186,26 +186,26 @@ The configurable file and directory names in this build are as follows:
 (where the startup script lives) is
 .IR $INITDIR .
 .IP MANDIR
-(where manpages live) is 
+(where manpages live) is
 .IR $MANDIR .
 .IP PIDFILEDIR
-(where pidfiles live) is 
+(where pidfiles live) is
 .IR $PIDFILEDIR .
 .IP LIBDIR
-(where supporting files live) is 
+(where supporting files live) is
 .IR $LIBDIR .
 .IP JAILDIR
-(the working directory of the user-facing servers) is 
+(the working directory of the user-facing servers) is
 .IR $JAILDIR ,
 and can be overridden using the
 .I jail-directory
 variable in
 .BR archiveopteryx.conf (5).
 .IP CONFIGDIR
-(where the configuration files live) is 
+(where the configuration files live) is
 .IR $CONFIGDIR .
 .IP LOGFILE
-(the full name of the logfile) is 
+(the full name of the logfile) is
 .IR $LOGFILE ,
 and can be overridden using the
 .I logfile

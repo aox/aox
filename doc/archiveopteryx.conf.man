@@ -21,7 +21,7 @@ and its sibling
 are usually created at installation time, by running
 .BR $LIBDIR/installer .
 .PP
-There is only one required variable, namely 
+There is only one required variable, namely
 .IR db-password .
 .SH "SECURITY NOTE"
 Anyone who can read
@@ -38,7 +38,7 @@ All settings share a common format:
 .IP
 name = value # comment
 .PP
-For the 
+For the
 .I *-address
 variables, the value may be either a hostname, an IPv4 or IPv6
 address, the fully-qualified path to a Unix socket. For
@@ -147,7 +147,7 @@ or to
 which causes everything to be logged to
 .IR stdout .
 The default is to log to
-.IR $LOGFILE . 
+.IR $LOGFILE .
 .IP logfile-mode
 is
 .I $LOGFILEMODE
@@ -410,7 +410,7 @@ is
 .IR disabled .
 This can be used to ensure that all outgoing mail is archived.
 .IP
-If the sender already receives a copy of the message, 
+If the sender already receives a copy of the message,
 .I submit-copy-to-sender
 has no effect. Senders will not receive two copies. The copy is
 always sent to the user who sends the message, even if the From and/or
@@ -449,7 +449,7 @@ is enabled.)
 controls whether
 .BR archiveopteryx (8)
 should accept SSL-wrapped SMTP connections. The default is
-.IR false 
+.IR false
 (and the use of STARTTLS with SMTP Submit is strongly recommended
 instead).
 .IP smtps-address
@@ -478,7 +478,7 @@ listens for new connections. The
 default, an empty string, means to listen on all available IPv4 and
 IPv6 addresses.
 .IP imap-port
-is the port where 
+is the port where
 .BR archiveopteryx (8)
 accepts connections,
 .I 143
@@ -593,7 +593,7 @@ to change the behaviour of the webmail and archive pages.
 is the URL of the favicon displayed for your site by many web browsers.
 The default value is
 .IR http://www.archiveopteryx.org/favicon.ico ,
-but you can change it to anything. When the browser requests the favicon, 
+but you can change it to anything. When the browser requests the favicon,
 .BR archiveopteryx (8)
 responds with a redirect to this URL.
 .SS SIEVE
