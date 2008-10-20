@@ -92,8 +92,10 @@ void Multipart::appendMultipart( String &r ) const
     ContentType * ct = header()->contentType();
     String delim = ct->parameter( "boundary" );
     List<Bodypart>::Iterator it( children() );
-    r.append( "--" + delim + crlf );
+    r.append( "--" + delim );
     while ( it ) {
+        r.append( crlf );
+
         Bodypart * bp = it;
         ++it;
 
@@ -104,10 +106,9 @@ void Multipart::appendMultipart( String &r ) const
         r.append( crlf );
         r.append( "--" );
         r.append( delim );
-        if ( !it )
-            r.append( "--" );
-        r.append( crlf );
     }
+    r.append( "--" );
+    r.append( crlf );
 }
 
 
