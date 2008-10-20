@@ -491,6 +491,8 @@ void Query::setString( const String &s )
     d->query = s;
     if ( s.lower().endsWith( "with binary" ) )
         d->format = Binary;
+    if ( s.lower().startsWith( "copy " ) && !d->inputLines )
+        d->inputLines = new List< Query::InputLine >;
 }
 
 
