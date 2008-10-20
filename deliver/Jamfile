@@ -6,6 +6,6 @@ SubInclude TOP db ;
 Build deliver : deliver.cpp ;
 
 Program deliver :
-    deliver database message server mailbox core encodings user 
+    deliver database message server mailbox core encodings user
     extractors abnf ;
 

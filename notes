@@ -1,13 +1,19 @@
 Schedule
 
-  Abhijit is away for a weekend in the mountains in
-  mid-November. (Exact dates to be confirmed).
+  Hassath has to be away from the smoke in Delhi on choti Diwali/Diwali
+  nights (i.e. 27/28th October). Abhijit will not have connectivity, but
+  will work.
+
+  Abhijit is away for a weekend in the mountains in mid-November. (Exact
+  dates yet to be confirmed by Pooja, but likely to be 14th onwards).
 
 
 2.12: ?
 
   c2c0ce6a834ccb465b6e30e05c8b9329e6f53ec8 needs to go here
   3597cd0c4fb5566bff4bf1bc33e85b5058110216 probably also
+
+  (Both are in.)
 
 
 3.0.3: 2008-10-?
@@ -1046,7 +1052,7 @@ aox.org/badmail/
 
   badmail/examples/comparison if I feel nasty and bored one day,
   showing how a few IMAP servers handle messages 1-8 and the
-  impossible one(s). Does "fetch envelope" return the right thing? 
+  impossible one(s). Does "fetch envelope" return the right thing?
   "fetch bodystructure"? Some choice searches? We don't want to link
   to this page very much. It gets a fine <table> containing many/few
   &#x2713; cells.
@@ -1261,6 +1267,42 @@ Problems found in 3.0.0 by Timo
 Use current_setting('server_version_num') instead of parsing version()
 
   (But only under 8.2+)
+
+
+HTML representation of selectors
+
+  We need:
+
+    - An HTML representation of selectors.
+
+      Should be easy to generate, display reasonably even without CSS,
+      and easy to parse when we see it again.
+
+        <div id=1>
+         <span class=selector>and 2 3</span>
+         <span class=translated>Alle Begingungen müssen für jede Nachricht zutreffen</span>
+         <div id=2>
+          <span class=selector>header 4</span>
+          <span class=translated>Headers enthalten <span id=4>arnt</span></span>
+         </div>
+         <div id=3>
+          <span class=selector>body 5</span>
+          <span class=translated>Körpertext enthält <span id=5>expunge</span></span>
+         </div>
+        </div>
+
+      (We don't want to parse translated text because of the ambiguity
+      in mapping between texts and conditions if e.g. two conditions map
+      to the same Bangla text. Hence the selector/translated split.)
+
+    - A parser to turn HTML into a selector; and a way to turn a
+      selector into HTML (plus tests for the conversion).
+
+      We have HtmlParser.
+
+    - A component to display a view, and a component to edit a view
+      (complete with evil Javascript) and a magic URL to accept the
+      edited representation.
 
 
 

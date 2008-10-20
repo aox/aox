@@ -19,7 +19,7 @@ to the
 .BR recorder ,
 instead of directly to
 .BR imapd ,
-and 
+and
 .B recorder
 will produce a transcript of the IMAP session. If the client opens more
 than one connection,

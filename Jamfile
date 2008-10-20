@@ -19,6 +19,7 @@ SubInclude TOP installer ;
 SubInclude TOP extractors ;
 SubInclude TOP archiveopteryx ;
 SubInclude TOP aoximport ;
+SubInclude TOP aoxexport ;
 
 
 if ( $(BUILDDOC) ) {
@@ -87,8 +88,8 @@ Message install ;
 if $(BUILDDOC) {
     local s u ;
     local exceptions = canonical msgdump munger renderer logdmain tests
-    addressparser whip cram subscribe deliver aox recorder
-    cryptlib installer archiveopteryx aoximport dbtest ;
+    addressparser whip cram subscribe deliver aox recorder cmdsearch
+    cryptlib installer archiveopteryx aoximport aoxexport dbtest ;
     for s in $(sets) {
         if ! $(s) in $(documented-sets) && ! $(s) in $(u) &&
            ! $(s) in $(exceptions)

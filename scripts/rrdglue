@@ -43,7 +43,7 @@ for t in COUNTER GAUGE; do
             # Per two minutes for the last four days (2880 bi-minutes)
             # Per hour for the last four weeks (672 hours)
             # Per day for the last two years (inaccurately 720 days)
-            # If you also want maxima, you need MAX lines as well   
+            # If you also want maxima, you need MAX lines as well
 
             # The heartbeat is set to 30. Archiveopteryx will skip up
             # to 28 seconds of equal values, so a heartbeat of 30 is

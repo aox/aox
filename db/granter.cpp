@@ -93,7 +93,7 @@ void Granter::execute()
                     grant.append( "update" );
                 if ( privileges[i].d && !cd )
                     grant.append( "delete" );
-                    
+
                 if ( !privileges[i].s && cs )
                     revoke.append( "select" );
                 if ( !privileges[i].i && ci )

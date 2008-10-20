@@ -32,6 +32,8 @@ public:
     void setSecret( const UString & );
     UString secret() const;
 
+    UString ldapdn() const;
+
     void setInbox( Mailbox * & );
     Mailbox * inbox() const;
 

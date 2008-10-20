@@ -333,7 +333,7 @@ bool SortData::usingCriterionType( SortCriterionType t )
 
 
 /*! \class ImapSortResponse sort.h
-  
+
     The ImapSortResponse models the SORT response, and has to make
     sure old MSNs aren't accidentally included.
 */

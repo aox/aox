@@ -3,6 +3,8 @@ SubInclude TOP encodings ;
 SubInclude TOP message ;
 SubInclude TOP server ;
 
+HDRS += [ FDirName $(TOP) aox ] ;
+
 rule BuildInfo {
     Depends $(<) : $(>) ;
     Clean clean : $(<) ;
@@ -24,6 +26,8 @@ Build aox :
     anonymise.cpp mailboxes.cpp users.cpp stats.cpp updatedb.cpp
     rights.cpp views.cpp help.cpp undelete.cpp queue.cpp search.cpp ;
 
+Build cmdsearch : searchsyntax.cpp ;
+
 Program aox :
-    aox database server mailbox message user core
+    aox cmdsearch database server mailbox message user core
     encodings extractors abnf ;

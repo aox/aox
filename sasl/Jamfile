@@ -3,5 +3,5 @@ SubDir TOP sasl ;
 HDRS += [ FDirName $(TOP) sasl ] ;
 
 Build sasl : mechanism.cpp plain.cpp anonymous.cpp cram-md5.cpp
-             digest-md5.cpp sasllogin.cpp saslconnection.cpp 
+             digest-md5.cpp sasllogin.cpp saslconnection.cpp
              ldaprelay.cpp ;

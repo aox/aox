@@ -233,6 +233,17 @@ Fetcher::Fetcher( Message * m, EventHandler * owner )
 }
 
 
+/*! Adds \a message to the list of messages fetched. This does not
+    re-execute the fetcher - the user must execute() it if done().
+*/
+
+void Fetcher::addMessage( Message * message )
+{
+    if ( message )
+        d->messages.append( message );
+}
+
+
 /*! Adds \a messages to the list of messages fetched. This does not
     re-execute the fetcher - the user must execute() it if done(). */
 
@@ -474,9 +485,9 @@ void Fetcher::waitForEnd()
     if ( d->body )
         decoders.append( d->body );
     if ( d->size )
-        decoders.append( d->size ); 
+        decoders.append( d->size );
     if ( d->trivia )
-        decoders.append( d->trivia ); 
+        decoders.append( d->trivia );
     if ( d->partnumbers )
         decoders.append( d->partnumbers );
 

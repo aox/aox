@@ -324,7 +324,7 @@ void ManageSieve::capabilities()
 
 
 /*! Enqueues the SASL challenge \a s on this connection.
-    
+
     This version of the function avoids sending challenges as quoted
     strings, to please the KDE. The KDE behaviour is a clear bug, but
     unlikely to be fixed in KDE 3.x, maybe it won't be fixed at all.

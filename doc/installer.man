@@ -9,7 +9,7 @@ installer - Archiveopteryx installer.
 ] [
 .I -q
 ] [
-.I -v 
+.I -v
 ] ...
 .SH DESCRIPTION
 .nh
@@ -34,7 +34,7 @@ This program does the following:
 .PP
 .B installer
 should be run after
-.I "jam install" 
+.I "jam install"
 when installing from source.
 .PP
 By default, the address of the PostgreSQL server is derived from the

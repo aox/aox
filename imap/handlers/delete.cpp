@@ -26,7 +26,7 @@ public:
 /*! \class Delete delete.h
     Deletes an existing mailbox (RFC 3501 section 6.3.4)
 
-    Mailboxes cannot be deleted until they're empty of messages and 
+    Mailboxes cannot be deleted until they're empty of messages and
 
     (Really deletes? What happens to the mail there?)
 

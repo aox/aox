@@ -5,6 +5,7 @@
 #include "configuration.h"
 #include "mechanism.h"
 #include "buffer.h"
+#include "user.h"
 
 
 class LdapRelayData
@@ -173,20 +174,20 @@ void LdapRelay::parse()
     uint resultCode = (*r)[2];
     r->remove( 3 );
     if ( resultCode != 0 )
-        fail( "LDAP server refused authentication with result code " + 
+        fail( "LDAP server refused authentication with result code " +
               fn( resultCode ) );
     else
         succeed();
 
     // I think we don't care about the rest of the data.
-    
+
     //   matchedDN
     //     04 -> octetstring
     //     00 -> length
     if ( (*r)[1] + 2 >= (int)r->size() )
         return;
     r->remove( (*r)[1] + 2 );
-    
+
     //   errorMessage
     //     04 -> octetstring
     //     00 -> length
@@ -212,7 +213,7 @@ void LdapRelay::bind()
     h.append( 0x60 );
 
     String s;
-    
+
     //   version (03)
     //    02 -> ? integer perhaps?
     //    01 -> length
@@ -221,14 +222,16 @@ void LdapRelay::bind()
     //   name (?)
     //    04 -> octetstring
     //    00 -> length
-    String dn = d->mechanism->ldapdn().utf8();
+    String dn;
+    if ( d->mechanism->user() )
+        dn = d->mechanism->user()->ldapdn().utf8();
     s.append( (char)dn.length() );
     s.append( dn );
 
     //   authentication
     //    80 -> type: context-specific universal zero, and zero is "password"
     //    00 -> length
-    s.append( '\200' );
+    s.append( 0x80 );
     String pw = d->mechanism->secret().utf8();
     s.append( (char)pw.length() );
     s.append( pw );
@@ -247,7 +250,7 @@ void LdapRelay::fail( const String & error )
 {
     if ( d->state != Working )
         return;
-    
+
     d->state = BindFailed;
     log( error );
 }
@@ -259,7 +262,15 @@ void LdapRelay::succeed()
 {
     if ( d->state != Working )
         return;
-    
+
     d->state = BindSucceeded;
     log( "LDAP authentication succeeded" );
+}
+
+
+/*! Returns the relay object's current state. */
+
+LdapRelay::State LdapRelay::state() const
+{
+    return d->state;
 }

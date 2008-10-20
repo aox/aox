@@ -33,6 +33,7 @@ public:
         Trivia
     };
 
+    void addMessage( Message * );
     void addMessages( List<Message> * );
     void setSession( class Session * );
 

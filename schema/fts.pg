@@ -46,7 +46,7 @@ for each row execute procedure tsearch2(ftidx, text);
 -- update header_fields set subjectidx=to_tsvector('default',value) where field=20;
 -- create index hf_subjectidx on header_fields using gist(subjectidx) where field=20;
 -- vacuum full analyze header_fields;
--- 
+--
 -- create function tsearch2_subject() returns trigger as $$
 -- begin
 --     if NEW.field = 20 then
@@ -55,6 +55,6 @@ for each row execute procedure tsearch2(ftidx, text);
 --     return NEW;
 -- end;
 -- $$ language plpgsql;
--- 
+--
 -- create trigger hf_ftupdate before insert on header_fields
 -- for each row execute procedure tsearch2_subject();

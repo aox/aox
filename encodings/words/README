@@ -44,11 +44,11 @@ The data files in this directory are based on the following sources:
 
    GU distributes its language data under the following license:
 
-   # --------------------------------------------------------- # 
-   # ---- license                                         ---- # 
-   #---------------------------------------------------------- # 
+   # --------------------------------------------------------- #
+   # ---- license                                         ---- #
+   #---------------------------------------------------------- #
    Copyright (c) 2003 Språkbanken, Göteborgs universitet
-   
+
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this resource and associated documentation files (the
    "Resource"), to deal in the Resource without restriction, including
@@ -56,10 +56,10 @@ The data files in this directory are based on the following sources:
    distribute, sublicense, and/or sell copies of the Resource, and to
    permit persons to whom the Resource is furnished to do so, subject to
    the following conditions:
-   
+
    The above copyright notice and this permission notice shall be included
    in all copies or substantial portions of the Resource.
-   
+
    THE RESOURCE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -67,5 +67,5 @@ The data files in this directory are based on the following sources:
    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
    RESOURCE OR THE USE OR OTHER DEALINGS IN THE RESOURCE.
-   #---------------------------------------------------------- # 
+   #---------------------------------------------------------- #
 

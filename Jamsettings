@@ -4,12 +4,11 @@
 #
 # Remember the spaces around '=' and before ';'.
 
-
 ## Files and directories. The directory names MUST NOT end with /.
 
 # Prepended to directory names during installation, but not during use.
 #
-INSTALLROOT ?= "" ; 
+INSTALLROOT ?= "" ;
 
 # A convenient prefix used by most directory and file names,.
 #
@@ -28,7 +27,7 @@ SBINDIR = $(PREFIX)/sbin ;
 MANDIR = $(PREFIX)/man ;
 
 # Supporting files
-# 
+#
 LIBDIR = $(PREFIX)/lib ;
 
 # The startup/shutdown script's directory
@@ -75,17 +74,14 @@ AOXGROUP ?= aox ;
 C++FLAGS = -g -Werror -funsigned-char ;
 LINKFLAGS = -g ;
 
-
 # Mode for installed binaries
 
 EXEMODE ?= 555 ;
-
 
 # Uncomment the next line to use a cryptlib from the system. The
 # default is to use the one bundled with the archiveopteryx source.
 # USE_SYSTEM_CRYPTLIB = yes ;
 # You may also need to add/change something in tlsproxy/Jamfile.
-
 
 ## Database settings.
 

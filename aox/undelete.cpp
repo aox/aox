@@ -2,11 +2,11 @@
 
 #include "undelete.h"
 
+#include "searchsyntax.h"
 #include "transaction.h"
 #include "messageset.h"
 #include "selector.h"
 #include "mailbox.h"
-#include "search.h"
 #include "query.h"
 #include "utf.h"
 

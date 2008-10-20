@@ -25,7 +25,7 @@ for a in ROMAN.TXT ; do ( awk '/^0x[0123456789ABCDEF]/{ print $1, $2 }' < $a ; f
 
 # hp
 
-( awk '/^0x[0123456789ABCDEF]/{ print $1, $2 }' < hproman8.txt ; for hi in 0 1 2 3 4 5 6 7 8 9 A B C D E F ; do for lo in 0 1 2 3 4 5 6 7 8 9 A B C D E F ; do echo 0x$hi$lo 0xFFFD ; done ; done ) | sort | uniq -w4 | sed -e 's/#UNDEF.*$/0xFFFD/' | cut -c6- | paste '-d ' - - - - - - - - | sed -e 's/ /, /g' -e 's/$/,/' -e 's/^/    /' -e '$ s/,$//' > hproman8.inc 
+( awk '/^0x[0123456789ABCDEF]/{ print $1, $2 }' < hproman8.txt ; for hi in 0 1 2 3 4 5 6 7 8 9 A B C D E F ; do for lo in 0 1 2 3 4 5 6 7 8 9 A B C D E F ; do echo 0x$hi$lo 0xFFFD ; done ; done ) | sort | uniq -w4 | sed -e 's/#UNDEF.*$/0xFFFD/' | cut -c6- | paste '-d ' - - - - - - - - | sed -e 's/ /, /g' -e 's/$/,/' -e 's/^/    /' -e '$ s/,$//' > hproman8.inc
 
 
 p4 revert -a ...
