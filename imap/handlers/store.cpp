@@ -538,7 +538,7 @@ void Store::execute()
     if ( m->nextModSeq() <= d->modseq )
         m->setNextModSeq( d->modseq + 1 );
 
-    if ( !imap()->session()->initialised() )
+    if ( imap() && imap()->session() && !imap()->session()->initialised() )
         return;
 
     if ( d->silent && d->seenUnchangedSince ) {
