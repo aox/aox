@@ -37,6 +37,7 @@ create table users (
     id          serial primary key,
     login       text,
     secret      text,
+    ldapdn      text,
     parentspace integer not null references namespaces(id)
 );
 create unique index u_l on users (lower(login));
