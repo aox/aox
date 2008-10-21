@@ -312,11 +312,20 @@ void SaslMechanism::execute()
             return;
         }
 
-        if ( d->user->state() == User::Nonexistent )
+        switch ( d->user->state() ) {
+        case User::Unverified:
+            return;
+            break;
+            
+        case User::Nonexistent:
             setState( Failed );
-
-        if ( d->user->id() != 0 )
+            break;
+            
+        case User::Refreshed:
             verify();
+            break;
+        }
+
         tick();
     }
 
