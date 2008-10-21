@@ -17,7 +17,16 @@ Schedule
 
 3.0.3: 2008-10-?
 
-  61b38f2b394e6c0c0eb546eaf582fed7e600d2ed
+  Integrated:
+
+  61b38f2b394e6c0c0eb546eaf582fed7e600d2ed wait for the banner before sending...
+  a9beda90de7cc5aea7dd087f1443ec0b92194a0a handle zero-line COPY statements
+  446be9bb8012f9d47c0c41ae64e6c4ff933ac551 emit the right kind of...
+  e3db1bcc15e43ce3115d2ffac10c55137449a7d6 don't segfault, even if...
+  501399740d75ea1241ff63bdb4b0c488fb8fc1ec we do not reveal where a...
+
+  To be integrated:
+
 
 
 3.1.0: ?
