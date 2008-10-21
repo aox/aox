@@ -9,10 +9,14 @@ Schedule
 
 2.12: ?
 
-  c2c0ce6a834ccb465b6e30e05c8b9329e6f53ec8 needs to go here
-  3597cd0c4fb5566bff4bf1bc33e85b5058110216 probably also
+  Integrated:
 
-  (Both are in.)
+  b09851b661c61670a5b1576b1f2ecdcccdf97888 be more careful about what looks...
+  312c52d468c8fb0bb5e9031eea8aabd35d54a6ff q-p lines that start with "--" or...
+  c2c0ce6a834ccb465b6e30e05c8b9329e6f53ec8 pattern a*b may match children of...
+  3597cd0c4fb5566bff4bf1bc33e85b5058110216 send \noselect when a client asks...
+  9567c37afd4282dfc0308f045edfd054470ce6d6 do lsub correctly...
+
 
 
 3.0.3: 2008-10-?
