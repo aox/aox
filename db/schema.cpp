@@ -473,6 +473,8 @@ bool Schema::singleStep()
         c = stepTo75(); break;
     case 75:
         c = stepTo76(); break;
+    case 76:
+        c = stepTo77(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3828,4 +3830,20 @@ bool Schema::stepTo76()
     }
 
     return true;
+}
+
+
+/*! Add an ldapdn column to users. */
+
+bool Schema::stepTo77()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Add an LDAP-DN column to users" );
+        d->substate = 1;
+        d->t->enqueue( new Query( "alter table users add ldapdn text", 0 ) );
+        d->t->execute();
+    }
+
+    return true;
+    
 }
