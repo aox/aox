@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (76);
+insert into mailstore (revision) values (77);
 
 
 -- One entry for each unique address we've encountered.
@@ -115,6 +115,7 @@ create table permissions (
 
 create table messages (
     id          serial primary key,
+    idate       integer not null,
     rfc822size  integer
 );
 
@@ -125,7 +126,6 @@ create table mailbox_messages (
     mailbox     integer not null references mailboxes(id),
     uid         integer not null,
     message     integer not null references messages(id),
-    idate       integer not null,
     modseq      bigint not null,
     primary key (mailbox, uid)
 );
