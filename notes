@@ -4,21 +4,33 @@ Schedule
   nights (i.e. 27/28th October). Abhijit will not have connectivity, but
   will work.
 
-  Abhijit is away for a weekend in the mountains in mid-November. (Exact
-  dates yet to be confirmed by Pooja, but likely to be 14th onwards).
+  Abhijit is away in the mountains on 15/16/17 November.
 
 
 2.12: ?
 
-  c2c0ce6a834ccb465b6e30e05c8b9329e6f53ec8 needs to go here
-  3597cd0c4fb5566bff4bf1bc33e85b5058110216 probably also
+  Integrated:
 
-  (Both are in.)
+  b09851b661c61670a5b1576b1f2ecdcccdf97888 be more careful about what looks...
+  312c52d468c8fb0bb5e9031eea8aabd35d54a6ff q-p lines that start with "--" or...
+  c2c0ce6a834ccb465b6e30e05c8b9329e6f53ec8 pattern a*b may match children of...
+  3597cd0c4fb5566bff4bf1bc33e85b5058110216 send \noselect when a client asks...
+  9567c37afd4282dfc0308f045edfd054470ce6d6 do lsub correctly...
+
 
 
 3.0.3: 2008-10-?
 
-  61b38f2b394e6c0c0eb546eaf582fed7e600d2ed
+  Integrated:
+
+  61b38f2b394e6c0c0eb546eaf582fed7e600d2ed wait for the banner before sending...
+  a9beda90de7cc5aea7dd087f1443ec0b92194a0a handle zero-line COPY statements
+  446be9bb8012f9d47c0c41ae64e6c4ff933ac551 emit the right kind of...
+  e3db1bcc15e43ce3115d2ffac10c55137449a7d6 don't segfault, even if...
+  501399740d75ea1241ff63bdb4b0c488fb8fc1ec we do not reveal where a...
+
+  To be integrated:
+
 
 
 3.1.0: ?
