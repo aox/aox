@@ -312,7 +312,7 @@ void User::refresh( EventHandler * user )
         d->mode = UserData::Refreshing;
     }
     else {
-        user->execute();
+        d->state = Nonexistent;
     }
 }
 
