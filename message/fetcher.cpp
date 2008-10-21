@@ -796,8 +796,7 @@ void Fetcher::makeQueries()
         d->annotations->q = q;
     }
 
-    if ( d->batchSize )
-        wanted.append( "message" );
+    wanted.append( "message" );
 
     if ( d->partnumbers && !d->body ) {
         // body (below) will handle this as a side effect
