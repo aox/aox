@@ -3,6 +3,7 @@
 #include "ldaprelay.h"
 
 #include "configuration.h"
+#include "eventloop.h"
 #include "mechanism.h"
 #include "buffer.h"
 #include "user.h"
@@ -54,6 +55,7 @@ LdapRelay::LdapRelay( SaslMechanism * mechanism )
     d->mechanism = mechanism;
     setTimeoutAfter( 30 );
     connect( server() );
+    EventLoop::global()->addConnection( this );
 }
 
 
