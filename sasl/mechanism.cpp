@@ -550,9 +550,7 @@ void SaslMechanism::log( const String &m, Log::Severity s )
 
 User * SaslMechanism::user() const
 {
-    if ( state() == Succeeded )
-        return d->user;
-    return 0;
+    return d->user;
 }
 
 
