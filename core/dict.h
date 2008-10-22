@@ -18,8 +18,8 @@ public:
     void insert( const String & s, T* r ) {
         PatriciaTree<T>::insert( s.data(), s.length() * 8, r );
     }
-    T* take( const String & s ) {
-        return PatriciaTree<T>::take( s.data(), s.length() * 8 );
+    T* remove( const String & s ) {
+        return PatriciaTree<T>::remove( s.data(), s.length() * 8 );
     }
     bool contains( const String & s ) const {
         return find( s ) != 0;
