@@ -55,7 +55,7 @@ public:
         return 0;
     }
 
-    T * take( Node * n ) {
+    T * remove( Node * n ) {
         if ( !n )
             return 0;
         T * r = n->payload;
@@ -106,8 +106,8 @@ public:
         return r;
     }
 
-    T * take( const char * k, uint l ) {
-        return take( locate( k, l ) );
+    T * remove( const char * k, uint l ) {
+        return remove( locate( k, l ) );
     }
 
     void insert( const char * k, uint l, T * t ) {
@@ -360,8 +360,8 @@ public:
         return n;
     }
 
-    T * take( Iterator & i ) {
-        return take( i.cur );
+    T * remove( Iterator & i ) {
+        return remove( i.cur );
     }
 
 private:
