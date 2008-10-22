@@ -176,7 +176,7 @@ void AddressCreator::processAddresses()
                          r->getString( "domain" ) );
 
         Address * orig =
-            unided.take( addressKey( a ) );
+            unided.remove( addressKey( a ) );
         if ( orig )
             orig->setId( r->getInt( "id" ) );
     }

@@ -951,7 +951,7 @@ String Fetch::sectionData( Section * s, Message * m )
                 data = c->fromUnicode( text );
             }
             if ( !s->binary )
-                data = data.encode( bp->contentTransferEncoding(), 70 );
+                data = data.encoded( bp->contentTransferEncoding(), 70 );
         }
         else {
             // nonleaf part. probably wrong - this might use the wrong

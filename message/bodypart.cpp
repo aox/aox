@@ -556,9 +556,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         e = cte->encoding();
     if ( !body.isEmpty() ) {
         if ( e == String::Base64 || e == String::Uuencode )
-            body = body.decode( e );
+            body = body.decoded( e );
         else
-            body = body.crlf().decode( e );
+            body = body.crlf().decoded( e );
     }
 
     ContentType * ct = h->contentType();
@@ -786,7 +786,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
     bp->d->numBytes = body.length();
     if ( cte )
-        body = body.encode( cte->encoding(), 72 );
+        body = body.encoded( cte->encoding(), 72 );
     bp->d->numEncodedBytes = body.length();
     if ( bp->d->hasText ||
          ( ct->type() == "message" && ct->subtype() == "rfc822" ) ) {

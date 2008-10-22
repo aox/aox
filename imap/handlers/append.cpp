@@ -396,6 +396,7 @@ void Append::process( class Appendage * h )
     h->message->setFlags( d->mailbox, &h->flags );
     h->message->setAnnotations( d->mailbox, h->annotations );
     if ( !h->message->valid() ) {
+        setRespTextCode( "PARSE" );
         error( Bad, h->message->error() );
         return;
     }

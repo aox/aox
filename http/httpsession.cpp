@@ -42,7 +42,7 @@ HttpSession::HttpSession()
         sessions = new Dict< HttpSession >;
         Allocator::addEternal( sessions, "Session cache" );
     }
-    d->key = Entropy::asString( 42 ).encode( String::Base64 );
+    d->key = Entropy::asString( 42 ).encoded( String::Base64 );
     sessions->insert( d->key, this );
     refresh();
 }
