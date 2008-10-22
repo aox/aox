@@ -256,8 +256,7 @@ static struct {
     { "use-subaddressing", Configuration::UseSubaddressing, false },
     { "use-statistics", Configuration::UseStatistics, false },
     { "soft-bounce", Configuration::SoftBounce, true },
-    { "check-sender-addresses", Configuration::CheckSenderAddresses, false },
-    { "use-ldap-authentication", Configuration::UseLdaPAuthentication, false }
+    { "check-sender-addresses", Configuration::CheckSenderAddresses, false }
 };
 
 
