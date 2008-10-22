@@ -277,8 +277,7 @@ void User::refresh( EventHandler * user )
     d->user = user;
     if ( !psl ) {
         psl = new PreparedStatement(
-            "select u.id, u.login, u.secret, "
-            "null as ldapdn, "
+            "select u.id, u.login, u.secret, u.ldapdn, "
             "a.name, a.localpart, a.domain, "
             "al.mailbox as inbox, n.name as parentspace "
             "from users u join aliases al on (u.alias=al.id) "
@@ -288,8 +287,7 @@ void User::refresh( EventHandler * user )
         );
 
         psa = new PreparedStatement(
-            "select u.id, u.login, u.secret, "
-            "null as ldapdn, "
+            "select u.id, u.login, u.secret, u.ldapdn, "
             "a.name, a.localpart, a.domain, "
             "al.mailbox as inbox, n.name as parentspace "
             "from users u join aliases al on (u.alias=al.id) "
