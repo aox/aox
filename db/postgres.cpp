@@ -854,7 +854,7 @@ void Postgres::serverMessage()
         // exist for future use.
         String * pp = d->preparesPending.first();
         if ( q->name() != "" && pp && *pp == q->name() ) {
-            d->prepared.take( q->name() );
+            d->prepared.remove( q->name() );
             d->preparesPending.shift();
         }
         if ( q->inputLines() )

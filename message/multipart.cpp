@@ -144,7 +144,7 @@ void Multipart::appendAnyPart( String &r, const Bodypart * bp,
         bp->appendMultipart( r );
     }
     else {
-        r.append( bp->data().encode( e, 72 ) );
+        r.append( bp->data().encoded( e, 72 ) );
     }
 }
 
@@ -173,7 +173,7 @@ void Multipart::appendTextPart( String & r, const Bodypart * bp,
 
     String body = c->fromUnicode( bp->text() );
 
-    r.append( body.encode( e, 72 ) );
+    r.append( body.encoded( e, 72 ) );
 }
 
 
