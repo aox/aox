@@ -944,19 +944,19 @@ String String::fromNumber( int64 n, uint base )
     returns the input string.
 */
 
-String String::encode( Encoding e, uint n ) const
+String String::encoded( Encoding e, uint n ) const
 {
     if ( e == Base64 )
         return e64( n );
     else if ( e == QP )
-        return eQP();
+        return eQP( false, n > 0 );
     return *this;
 }
 
 
 /*! Returns a \a e decoded version of this String. */
 
-String String::decode( Encoding e ) const
+String String::decoded( Encoding e ) const
 {
     if ( e == Base64 )
         return de64();
@@ -1305,9 +1305,12 @@ static char qphexdigits[17] = "0123456789ABCDEF";
     If \a underscore is present and true, this function uses the variant
     of q-p specified by RFC 2047, where a space is encoded as an
     underscore and a few more characters need to be encoded.
+
+    If \a from is present and true, this function also makes sure that
+    no output line starts with "From" or "--".
 */
 
-String String::eQP( bool underscore ) const
+String String::eQP( bool underscore, bool from ) const
 {
     if ( isEmpty() )
         return *this;
@@ -1368,13 +1371,16 @@ String String::eQP( bool underscore ) const
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
                 c += 3;
             }
-            else if ( c == 0 && d->str[i] == '-' && d->str[i+1] == '-' ) {
+            else if ( from && c == 0 && d->len >= i + 1 &&
+                      d->str[i] == '-' && d->str[i+1] == '-' ) {
                 r.d->str[r.d->len++] = '=';
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
                 c += 3;
             }
-            else if ( c == 0 && d->str[i] == 'F' && d->str[i+1] == 'r' ) {
+            else if ( from && c == 0 && d->len >= i + 3 &&
+                      d->str[i] == 'F' && d->str[i+1] == 'r' && 
+                      d->str[i+2] == 'o' && d->str[i+3] == 'm' ) {
                 r.d->str[r.d->len++] = '=';
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
