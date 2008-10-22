@@ -145,7 +145,6 @@ public:
         UseStatistics,
         SoftBounce,
         CheckSenderAddresses,
-        UseLdaPAuthentication,
         // additional toggles go ABOVE THIS LINE
         NumToggles
     };
