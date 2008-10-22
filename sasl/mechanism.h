@@ -52,6 +52,7 @@ public:
     void setSecret( const UString & );
     void setSecret( const String & );
     UString storedSecret() const;
+    void setStoredSecret( const UString & );
     virtual void setChallenge( const String & );
 
     static SaslMechanism * create( const String &, EventHandler *,

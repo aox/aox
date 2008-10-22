@@ -41,6 +41,7 @@ public:
     User * user;
     UString login;
     UString secret;
+    UString storedSecret;
     Log *l;
     SaslMechanism::Type type;
     SaslConnection * connection;
@@ -322,6 +323,7 @@ void SaslMechanism::execute()
             break;
             
         case User::Refreshed:
+            setStoredSecret( d->user->secret() );
             verify();
             break;
         }
@@ -504,11 +506,20 @@ void SaslMechanism::setSecret( const String &secret )
 
 UString SaslMechanism::storedSecret() const
 {
-    UString r;
-    if ( d->user && d->user->exists() )
-        r = d->user->secret();
-    return r;
+    return d->storedSecret;
 }
+
+
+/*! This function is only meant to be used while testing SaslMechanism
+    subclasses. It sets the stored secret to \a s, rather than waiting
+    for it to be retrieved from the database by execute().
+*/
+
+void SaslMechanism::setStoredSecret( const UString &s )
+{
+    d->storedSecret = s;
+}
+
 
 
 /*! \fn void SaslMechanism::setChallenge( const String & c )
