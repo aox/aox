@@ -108,8 +108,8 @@ public:
     void setLength( uint );
 
     enum Encoding { Binary, Base64, QP, Uuencode };
-    String encode( Encoding, uint = 0 ) const;
-    String decode( Encoding ) const;
+    String encoded( Encoding, uint = 0 ) const;
+    String decoded( Encoding ) const;
 
     String eURI() const;
     String deURI() const;
@@ -117,7 +117,7 @@ public:
     String deUue() const;
     String e64( uint = 0 ) const;
     String deQP( bool = false ) const;
-    String eQP( bool = false ) const;
+    String eQP( bool = false, bool = false ) const;
     bool needsQP() const;
 
     friend inline bool operator==( const String &, const String & );
