@@ -208,35 +208,41 @@ void LdapRelay::parse()
 
 void LdapRelay::bind()
 {
+    // LDAP message
+    //     30 -> LDAP message
+    //     nn -> number of remaining bytes
+
+    String m;
+    m.append( 0x30 );
+
+    // Message id
+    //     02 -> integer
+    //     01 -> length
+    //     01 -> message-id
+
+    String id;
+    id.append( "\002\001\001" );
+
+    // Bind request
+    //     60 -> APPLICATION 0, i.e. bind request
+    //     nn -> number of remaining bytes
+
     String h;
-
-    // I don't know what the first five bytes are, but ldapsearch sends
-    // them, and Wireshark doesn't recognise the packet as LDAP without
-    // them.
-
-    h.append( 0x30 );
-    h.append( 0x32 );
-    h.append( 0x02 );
-    h.append( 0x01 );
-    h.append( 0x01 );
-
-    //  bindrequest (60 07)
-    //    60 -> APPLICATION 0, ie. bindrequest
-    //    nn -> length of remaining bytes
     h.append( 0x60 );
 
-    String s;
-
     //   version (03)
-    //    02 -> ? integer perhaps?
+    //    02 -> integer
     //    01 -> length
     //    03 -> version
+
+    String s;
     s.append( "\002\001\003" );
 
     //   name (?)
     //    04 -> octetstring
     //    nn -> length
     //    s* -> DN
+
     s.append( 0x04 );
     String dn;
     if ( d->mechanism->user() )
@@ -248,14 +254,19 @@ void LdapRelay::bind()
     //    80 -> type: context-specific universal zero, and zero is "password"
     //    nn -> length
     //    s* -> password
+
     s.append( 0x80 );
     String pw = d->mechanism->secret().utf8();
     s.append( (char)pw.length() );
     s.append( pw );
 
-    // now we know the length and can send everything
-    h.append( (char)s.length() );
+    // Fill in the length fields
 
+    h.append( (char)s.length() );
+    m.append( (char)( id.length() + h.length() + s.length() ) );
+
+    enqueue( m );
+    enqueue( id );
     enqueue( h );
     enqueue( s );
 }
