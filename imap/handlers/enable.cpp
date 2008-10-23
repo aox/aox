@@ -29,7 +29,7 @@ void Enable::parse()
         if ( capability == "CONDSTORE" ) {
             condstore = true;
         }
-        else if ( capability == "ANNOTATE" ) {
+        else if ( capability == "ANNOTATE-EXPERIMENT-1" ) {
             annotate = true;
         }
         else {
@@ -54,7 +54,7 @@ void Enable::execute()
     }
     if ( annotate ) {
         imap()->setClientSupports( IMAP::Annotate );
-        r.append( " ANNOTATE" );
+        r.append( " ANNOTATE-EXPERIMENT-1" );
     }
     respond( r );
     finish();
