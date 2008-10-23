@@ -35,7 +35,11 @@ Schedule
 
 3.1.0: ?
 
-  Make Query::bind() completely binary.
+  Add a script to do ldapsearch and adapt the aox user list
+  accordingly. New ldap users result in aox add users, removed LDAP
+  users are removed from the database too. (What to do about their
+  mail? Move it to someone, keep the user, but disabled, or delete
+  it? Configurable I think.)
 
   Move the most common flags into mailbox_messages.
 
