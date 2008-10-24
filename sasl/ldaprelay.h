@@ -27,6 +27,7 @@ public:
 
     void parse();
     void bind();
+    void unbind();
 
 private:
     class LdapRelayData * d;
