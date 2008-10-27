@@ -42,9 +42,7 @@
     RFC 5256: SORT
     RFC 5258: LISTEXT
 
-    We also announce a number of draft capabilities, if the
-    configuration variable announce-draft-support is set to true. By
-    default it's not.
+    We also announce a number of draft capabilities.
 */
 
 void Capability::execute()
@@ -109,8 +107,10 @@ String Capability::capabilities( IMAP * i, bool all )
         c.append( "RIGHTS=ekntx" );
     if ( all || !login )
         c.append( "SASL-IR" );
-    if ( all || login )
+    if ( all || login ) {
         c.append( "SORT" );
+        c.append( "SORT=DISPLAYFROM" ); // draft-karp-morg-displayfrom
+    }
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
     if ( all || login ) {
