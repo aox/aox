@@ -201,6 +201,9 @@ void LdapRelay::parse()
     String e( r->string( l ) );
     if ( !e.isEmpty() )
         log( "Note: LDAP server returned error message: " + e );
+
+    if ( d->state != BindFailed )
+        unbind();
 }
 
 
@@ -269,6 +272,22 @@ void LdapRelay::bind()
     enqueue( id );
     enqueue( h );
     enqueue( s );
+}
+
+
+/*! Sends an unbind request. */
+
+void LdapRelay::unbind()
+{
+    String m;
+    m.append( 0x30 );
+    m.append( 0x05 );
+    m.append( 0x02 );
+    m.append( 0x01 );
+    m.append( 0x03 );
+    m.append( 0x42 );
+    m.append( "\000", 1 );
+    enqueue( m );
 }
 
 
