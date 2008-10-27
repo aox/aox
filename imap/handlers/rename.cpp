@@ -194,7 +194,8 @@ void Rename::execute()
     if ( !d->ready ) {
         List< RenameData::MailboxPair >::Iterator it( d->renames );
         while ( it ) {
-            if ( it->from->sessions() ) {
+            List<Session>::Iterator s( it->from->sessions() );
+            while ( s ) {
                 error( No, "Mailbox is in use: " + it->from->name().ascii() );
                 setRespTextCode( "INUSE" );
                 return;
