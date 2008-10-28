@@ -82,6 +82,7 @@ public:
     bool endsWith( const char * ) const;
     uint number( bool *, uint = 10 ) const;
     static String fromNumber( int64, uint = 10 );
+    void appendNumber( int64, uint = 10 );
     static String humanNumber( int64 );
 
     int find( char, int=0 ) const;

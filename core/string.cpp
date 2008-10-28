@@ -912,27 +912,32 @@ uint String::number( bool * ok, uint base ) const
 
 String String::fromNumber( int64 n, uint base )
 {
-    if ( !n )
-        return "0";
+    String r;
+    r.appendNumber( n, base );
+    return r;
+}
 
-    String s;
-    while ( n ) {
-        uint d = n%base;
+
+
+/*! Converts \a n to a number in the \a base system and appends the
+    result to this string. If \a n is 0, "0" is appended.
+
+    Uses lower-case for digits above 9.
+*/
+
+void String::appendNumber( int64 n, uint base )
+{
+    int64 top = 1;
+    while ( top * base <= n )
+        top = base * top;
+    while ( top ) {
+        uint d = ( n / top ) % base;
         char  c = '0' + d;
         if ( d > 9 )
             c = 'a' + d - 10;
-        s.append( c );
-        n = n / base;
+        append( c );
+        top = top / base;
     }
-    String result;
-    result.reserve( s.length() );
-    result.d->len = s.d->len;
-    uint i = 0;
-    while ( i < s.length() ) {
-        result.d->str[s.length()-i-1] = s[i];
-        i++;
-    }
-    return result;
 }
 
 
@@ -1379,7 +1384,7 @@ String String::eQP( bool underscore, bool from ) const
                 c += 3;
             }
             else if ( from && c == 0 && d->len >= i + 3 &&
-                      d->str[i] == 'F' && d->str[i+1] == 'r' && 
+                      d->str[i] == 'F' && d->str[i+1] == 'r' &&
                       d->str[i+2] == 'o' && d->str[i+3] == 'm' ) {
                 r.d->str[r.d->len++] = '=';
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
