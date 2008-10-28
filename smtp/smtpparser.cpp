@@ -78,7 +78,7 @@ String SmtpParser::domain()
         r = subDomain();
         while ( nextChar() == '.' ) {
             step();
-            if ( nextChar() != ">" ) {
+            if ( nextChar() != '>' ) {
                 r.append( "." );
                 r.append( subDomain() );
             }
@@ -108,7 +108,7 @@ String SmtpParser::subDomain()
                     ( c >= '0' && c <= '9' ) ||
                     ( c == '-' ) ) );
     }
-    if ( r.isEmpty() && r.nextChar() == "." )
+    if ( r.isEmpty() && c == '.' )
         setError( "Consecutive dots aren't permitted" );
     else if ( r.isEmpty() )
         setError( "Domain cannot end with a dot" );
