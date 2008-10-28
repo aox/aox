@@ -20,6 +20,7 @@ public:
         Arrival,
         Cc,
         Date,
+        DisplayFrom,
         From,
         Size,
         Subject,
@@ -90,10 +91,10 @@ void Sort::parse()
         if ( !d->c.isEmpty() )
             space();
         SortData::SortCriterion * c = new SortData::SortCriterion;
-        String s = parser()->dotLetters( 2, 10 ).lower();
+        String s = parser()->dotLetters( 2, 11 ).lower();
         if ( s == "reverse" ) {
             space();
-            s = parser()->dotLetters( 2, 10 ).lower();
+            s = parser()->dotLetters( 2, 11 ).lower();
             c->reverse = true;
         }
         if ( s == "arrival" ) {
@@ -104,6 +105,9 @@ void Sort::parse()
         }
         else if ( s == "date" ) {
             c->t = SortData::Date;
+        }
+        else if ( s == "displayfrom" ) {
+            c->t = SortData::DisplayFrom;
         }
         else if ( s == "from" ) {
             c->t = SortData::From;
@@ -173,7 +177,7 @@ void Sort::execute()
     if ( !d->q ) {
         d->s->simplify();
         d->q = d->s->query( imap()->user(), session()->mailbox(),
-                            session(), this );
+                            session(), this, true );
         String t = d->q->string();
         List<SortData::SortCriterion>::Iterator c( d->c );
         while ( c ) {
@@ -234,6 +238,19 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
                  " sfaf.field=" + fn( HeaderField::From ) + ") "
                  "join addresses sfa on (sfaf.address=sfa.id) ",
                  "sfa.localpart",
+                 c->reverse );
+        break;
+    case DisplayFrom:
+        addJoin( t,
+                 "join address_fields sdfaf on "
+                 "(mm.message=sdfaf.message and "
+                 " sdfaf.part='' and sdfaf.number=0 and"
+                 " sdfaf.field=" + fn( HeaderField::From ) + ") "
+                 "join addresses sdfa on (sdfaf.address=sdfa.id) ",
+                 "case "
+                 "when sdfa.name='' then sdfa.localpart||'@'||sdfa.domain "
+                 "else sdfa.name "
+                 "end",
                  c->reverse );
         break;
     case Size:

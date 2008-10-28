@@ -598,7 +598,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( order ) {
         if ( wanted->contains( "uid" ) && wanted->contains( "mailbox" ) )
             q.append( " order by " + mm() + ".mailbox, " + mm() + ".uid" );
-        else if ( wanted->contains( "uid" ) )
+        else if ( wanted->contains( "uid" ) || !wanted )
             q.append( " order by " + mm() + ".uid" );
         else if ( wanted->contains( "message" ) )
             q.append( " order by " + mm() + ".message" );
