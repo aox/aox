@@ -366,7 +366,13 @@ public:
 
 private:
     virtual Node * node( uint x ) {
-        return new ( x ) Node;
+        Node * n = new ( x ) Node;
+        n->zero = 0;
+        n->one = 0;
+        n->parent = 0;
+        n->payload = 0;
+        n->length = 0;
+        return n;
     }
     virtual void free( Node * n ) {
         Allocator::dealloc( n );
