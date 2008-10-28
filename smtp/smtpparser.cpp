@@ -59,6 +59,9 @@ void SmtpParser::whitespace()
 
 /*! Parses and returns a domain. The domain literal form is somewhat
     too flexible (read: totally botched).
+
+    As a hack, a final "." is overlooked if the next character is a
+    ">", as in "rcpt to: <user@example.org.>".
 */
 
 String SmtpParser::domain()
@@ -74,9 +77,11 @@ String SmtpParser::domain()
     else {
         r = subDomain();
         while ( nextChar() == '.' ) {
-            r.append( "." );
             step();
-            r.append( subDomain() );
+            if ( nextChar() != ">" ) {
+                r.append( "." );
+                r.append( subDomain() );
+            }
         }
     }
     return r;
@@ -103,8 +108,10 @@ String SmtpParser::subDomain()
                     ( c >= '0' && c <= '9' ) ||
                     ( c == '-' ) ) );
     }
-    if ( r.isEmpty() )
-        setError( "Subdomain cannot be empty" );
+    if ( r.isEmpty() && r.nextChar() == "." )
+        setError( "Consecutive dots aren't permitted" );
+    else if ( r.isEmpty() )
+        setError( "Domain cannot end with a dot" );
     else if ( r[r.length()-1] == '-' )
         setError( "subdomain cannot end with hyphen (" + r + ")" );
     return r;
