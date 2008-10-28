@@ -70,6 +70,7 @@ public:
         if ( !n->parent ) {
             // this is the root
             root = 0;
+            free( n );
         }
         else if ( n->parent->payload ) {
             // the parent has to lose this child, but has payload, so
@@ -78,6 +79,7 @@ public:
                 n->parent->zero = 0;
             else
                 n->parent->one = 0;
+            free( n );
         }
         else {
             // the other child can be promoted to the parent's slot.
@@ -101,8 +103,8 @@ public:
                     c->parent = 0;
             }
             free( p );
+            free( n );
         }
-        free( n );
         return r;
     }
 
