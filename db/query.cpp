@@ -344,7 +344,7 @@ void Query::bind( uint n, const List<uint> * l )
         String s( "{" );
         List<uint>::Iterator it( l );
         while ( it ) {
-            s.append( fn( *it ) );
+            s.appendNumber( *it );
             ++it;
             if ( it )
                 s.append( "," );
@@ -371,7 +371,7 @@ void Query::bind( uint n, const class MessageSet & set )
         uint c = set.count();
         s.reserve( c * 10 );
         while ( i <= c ) {
-            s.append( fn( set.value( i ) ) );
+            s.appendNumber( set.value( i ) );
             if ( i < c )
                 s.append( "," );
             i++;
