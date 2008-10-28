@@ -28,6 +28,7 @@ public:
 
     String where( const String & table = "" ) const;
     String set() const;
+    String csl() const;
 
     void add( uint, uint );
     void add( uint n ) { add( n, n ); }

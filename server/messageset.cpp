@@ -463,3 +463,29 @@ String MessageSet::set() const
     }
     return r;
 }
+
+
+/*! Returns the contents of this set as a comma-separated list of
+    decimal numbers.
+*/
+
+String MessageSet::csl() const
+{
+    String r;
+    r.reserve( 2222 );
+    List< SetData::Range >::Iterator it( d->l );
+    while ( it ) {
+        if ( !r.isEmpty() )
+            r.append( "," );
+        r.appendNumber( it->start );
+        uint v = it->start + 1;
+        uint e = it->start + it->length;
+        while ( v < e ) {
+            r.append( "," );
+            r.appendNumber( v );
+            v++;
+        }
+        ++it;
+    }
+    return r;
+}

@@ -367,15 +367,7 @@ void Query::bind( uint n, const class MessageSet & set )
 {
     if ( d->format == Text ) {
         String s( "{" );
-        uint i = 1;
-        uint c = set.count();
-        s.reserve( c * 10 );
-        while ( i <= c ) {
-            s.appendNumber( set.value( i ) );
-            if ( i < c )
-                s.append( "," );
-            i++;
-        }
+        s.append( set.csl() );
         s.append( "}" );
         bind( n, s );
     }
