@@ -958,12 +958,12 @@ void FetcherData::Decoder::execute()
     Scope x( log() );
     Row * r = q->nextRow();
     if ( r && !findByUid && !findById ) {
-        if ( r->hasColumn( "message" ) ) {
-            findById = true;
-        }
-        else if ( r->hasColumn( "uid" ) ) {
+        if ( r->hasColumn( "uid" ) ) {
             mit = d->messages.first();
             findByUid = true;
+        }
+        else if ( r->hasColumn( "message" ) ) {
+            findById = true;
         }
     }
 
