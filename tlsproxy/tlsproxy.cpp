@@ -609,22 +609,17 @@ static void handleError( int cryptError, const String & function )
     else
         ::log( s, Log::Disaster );
 
-    int errorStringLength;
+    int errorStringLength = 0;
     status = cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
                                       0, &errorStringLength );
-    if ( cryptStatusOK( status ) && errorStringLength < 1024 ) {
-        String errorString;
-        errorString.reserve( errorStringLength );
-        status =
-            cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
-                                     (char *)errorString.data(),
-                                     &errorStringLength );
-        if ( cryptStatusOK( status ) ) {
-            errorString = errorString.simplified();
-            if ( !errorString.isEmpty() )
-                ::log( "Cryptlib error message: " + errorString,
-                       Log::Error );
-        }
+    if ( errorStringLength && errorStringLength < 1024 ) {
+        char errorString[1024];
+        errorString[0] = 0;
+        errorString[errorStringLength] = 0;
+        (void)cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
+                                       errorString, &errorStringLength );
+        if ( errorString[0] )
+            ::log( String("Cryptlib error message: ") + errorString, Log::Error );
     }
 
     if ( userside ) {
