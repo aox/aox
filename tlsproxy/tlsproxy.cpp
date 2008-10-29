@@ -541,16 +541,19 @@ void TlsProxy::encrypt()
 {
     Buffer * r = readBuffer();
     String s = r->string( r->size() );
-    if ( s.isEmpty() )
-        return;
-    int len = 0;
-    int status = cryptPushData( cs, s.data(), s.length(), &len );
-    handleError( status, "cryptPushData" );
-    if ( status == CRYPT_OK || status == CRYPT_ERROR_OVERFLOW ) {
-        r->remove( len );
-        status = cryptFlushData( cs );
-        handleError( status, "cryptFlushData" );
+    if ( !s.isEmpty() ) {
+        int len = 0;
+        int status = cryptPushData( cs, s.data(), s.length(), &len );
+        if ( status == CRYPT_OK )
+            r->remove( len );
+        if ( status != CRYPT_ERROR_OVERFLOW )
+            handleError( status, "cryptPushData" );
     }
+
+    int status = cryptFlushData( cs );
+    if ( status != CRYPT_OK &&
+         status != CRYPT_ERROR_TIMEOUT )
+        handleError( status, "cryptFlushData" );
 }
 
 
@@ -619,7 +622,7 @@ static void handleError( int cryptError, const String & function )
         (void)cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
                                        errorString, &errorStringLength );
         if ( errorString[0] )
-            ::log( String("Cryptlib error message: ") + errorString, Log::Error );
+            ::log( String("Cryptlib error message: ") + errorString );
     }
 
     if ( userside ) {
