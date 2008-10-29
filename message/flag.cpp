@@ -194,11 +194,9 @@ String Flag::name( uint id )
 StringList Flag::allFlags()
 {
     StringList r;
-    uint i = 0;
-    while ( i <= ::largestFlagId ) {
-        String * n = ::flagsById->find( i );
-        if ( n )
-            r.append( n );
+    Map<String>::Iterator i( ::flagsById );
+    while ( i ) {
+        r.append( *i );
         ++i;
     }
     return r;

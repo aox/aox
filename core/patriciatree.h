@@ -21,7 +21,6 @@ public:
         Node() : zero( 0 ), one( 0 ),
                  parent( 0 ),
                  payload( 0 ), length( 0 ) {
-            payload = 0;
         }
 
         uint count() {
@@ -36,7 +35,7 @@ public:
         }
 
         void * operator new( size_t ownSize, uint extra ) {
-            return Allocator::alloc( ownSize + extra, 4 );
+            return Allocator::alloc( ownSize + extra );
         }
 
     private:
@@ -364,11 +363,7 @@ public:
 private:
     virtual Node * node( uint x ) {
         Node * n = new ( x ) Node;
-        n->zero = 0;
-        n->one = 0;
-        n->parent = 0;
-        n->payload = 0;
-        n->length = 0;
+        //n->setFirstNonPointer( n->length );
         return n;
     }
     virtual void free( Node * n ) {
