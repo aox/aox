@@ -1539,7 +1539,6 @@ void Fetch::pickup()
     Message * m = 0;
     while ( ok && !d->requested.isEmpty() ) {
         m = d->requested.first();
-        uint msn = s->msn( m->uid( mb ) );
         if ( d->needsAddresses && !m->hasAddresses() )
             ok = false;
         if ( d->needsHeader && !m->hasHeaders() )
@@ -1557,8 +1556,6 @@ void Fetch::pickup()
         if ( d->annotation && !m->hasAnnotations( mb ) )
             ok = false;
         if ( !m->uid( mb ) )
-            ok = false;
-        if ( !msn )
             ok = false;
         if ( ok ) {
             d->available.append( m );
