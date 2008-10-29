@@ -34,7 +34,13 @@ Schedule
   To be integrated:
 
   657b2054d22e8abf030e6a3d9cf4c9043811ccc0 unfucks sort in two ways,
-  and one of them has to go into 3.0.3.
+  and one of them has to go into 3.0.3. (Come to think of it, maybe
+  3.0.2 doesn't have the breakage yet.)
+
+  366516ef1724322313a77330807da326b5bf442e unbreaks logging
+  366516ef1724322313a77330807da326b5bf442e too, less severely
+
+  17aef2fec3429499beb01a866c36d9a256fb118d unbreaks MODSQ (0)
 
 
 3.1.0: ?
