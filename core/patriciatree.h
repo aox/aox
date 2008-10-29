@@ -9,6 +9,7 @@
 
 template< class T >
 class PatriciaTree
+    : public Garbage
 {
 public:
     PatriciaTree(): root( 0 ) { }
