@@ -20,7 +20,9 @@ public:
     public:
         Node() : zero( 0 ), one( 0 ),
                  parent( 0 ),
-                 payload( 0 ), length( 0 ) {}
+                 payload( 0 ), length( 0 ) {
+            payload = 0;
+        }
 
         uint count() {
             uint c = 0;
@@ -87,21 +89,14 @@ public:
             Node * c = p->zero;
             if ( c == n )
                 c = p->one;
-            if ( p->parent ) {
-                // p is an internal node
-                if ( p->parent->one == p )
-                    p->parent->one = c;
-                else
-                    p->parent->zero = c;
-                if ( c )
-                    c->parent = p->parent;
-            }
-            else {
-                // p is the root
+            if ( c )
+                c->parent = p->parent;
+            if ( !p->parent )
                 root = c;
-                if ( c )
-                    c->parent = 0;
-            }
+            else if ( p->parent->one == p )
+                p->parent->one = c;
+            else
+                p->parent->zero = c;
             free( p );
             free( n );
         }
@@ -193,7 +188,7 @@ public:
                 n->zero = x;
         }
         else if ( b == l ) {
-            // k is a prefix of n's key, to n must be a child of x
+            // k is a prefix of n's key, so n must be a child of x
             x->parent = n->parent;
             n->parent = x;
             if ( !x->parent )
