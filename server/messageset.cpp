@@ -371,6 +371,7 @@ void MessageSet::remove( uint value )
         return;
 
     if ( (b->contents[i/BitsPerUint] & 1 << ( i % BitsPerUint )) ) {
+        b->contents[i/BitsPerUint] &= ~(1 << ( i % BitsPerUint ) );
         b->count--;
         if ( !b->count )
             d->b.remove( b->start );
