@@ -371,7 +371,7 @@ public:
 private:
     virtual Node * node( uint x ) {
         Node * n = new ( x ) Node;
-        //n->setFirstNonPointer( n->length );
+        n->setFirstNonPointer( &n->length );
         return n;
     }
     virtual void free( Node * n ) {
