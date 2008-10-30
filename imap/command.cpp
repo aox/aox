@@ -946,7 +946,7 @@ MessageSet Command::set( bool parseMsns = false )
         if ( c == '*' ) {
             step();
             n1 = 0;
-            if ( !s )
+            if ( s )
                 n1 = s->largestUid();
             else
                 error( Bad, "Need a mailbox session to use * as an UID/MSN" );
