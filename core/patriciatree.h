@@ -258,12 +258,12 @@ public:
         Iterator( Node *n )          { cur = n; }
         Iterator( PatriciaTree<T> * t ) {
             if ( t )
-                cur = t->first();
+                cur = t->firstNode();
             else
                 cur = 0;
         }
         Iterator( const PatriciaTree<T> &t ) {
-            cur = t.first();
+            cur = t.firstNode();
         }
 
         operator bool() { return cur && cur->payload ? true : false; }
@@ -350,15 +350,22 @@ public:
         Node *cur;
     };
 
-    Node * first() const {
-        Node * n = root;
-        while ( n && n->zero )
-            n = n->zero;
-        return n;
-    }
-
     T * remove( Iterator & i ) {
         return remove( i.cur );
+    }
+
+    T * first() {
+        Node * n = firstNode();
+        if ( n )
+            return n->payload;
+        return 0;
+    }
+
+    T * last() {
+        Node * n = lastNode();
+        if ( n )
+            return n->payload;
+        return 0;
     }
 
 private:
@@ -402,6 +409,20 @@ private:
 
     Node * locate( const char * k, uint l ) const {
         return ifMatch( best( k, l ), k, l );
+    }
+
+    Node * firstNode() const {
+        Node * n = root;
+        while ( n && n->zero )
+            n = n->zero;
+        return n;
+    }
+
+    Node * lastNode() const {
+        Node * n = root;
+        while ( n && n->one )
+            n = n->one;
+        return n;
     }
 
 private:
