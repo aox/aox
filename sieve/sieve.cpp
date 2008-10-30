@@ -173,7 +173,21 @@ void Sieve::execute()
                                                  r->getUString( "name" ),
                                                  r->getString( "localpart" ),
                                                  r->getString( "domain" ) ) );
-                        i->script->parse( r->getString( "script" ) );
+                        i->script->parse( r->getString( "script" ).crlf() );
+                        String errors = i->script->parseErrors();
+                        if ( !errors.isEmpty() ) {
+                            log( "Note: Sieve script for " +
+                                 i->user->login().utf8() +
+                                 "had parse errors.", Log::Error );
+                            String prefix = "Sieve script for " +
+                                            i->user->login().utf8();
+                            StringList::Iterator i(
+                                StringList::split( '\n', errors ) );
+                            while ( i ) {
+                                log( "Sieve: " + *i, Log::Error );
+                                ++i;
+                            }
+                        }
                         List<SieveCommand>::Iterator
                             c(i->script->topLevelCommands());
                         while ( c ) {
