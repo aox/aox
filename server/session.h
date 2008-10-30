@@ -44,6 +44,7 @@ public:
     uint uid( uint ) const;
     uint msn( uint ) const;
     uint count() const;
+    uint largestUid() const;
 
     MessageSet recent() const;
     bool isRecent( uint ) const;

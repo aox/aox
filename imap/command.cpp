@@ -945,9 +945,11 @@ MessageSet Command::set( bool parseMsns = false )
         char c = nextChar();
         if ( c == '*' ) {
             step();
-            n1 = UINT_MAX;
-            if ( s )
-                n1 = s->uid( s->count() );
+            n1 = 0;
+            if ( !s )
+                n1 = s->largestUid();
+            else
+                error( Bad, "Need a mailbox session to use * as an UID/MSN" );
         }
         else if ( c >= '1' && c <= '9' ) {
             if ( parseMsns )

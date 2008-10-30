@@ -19,14 +19,12 @@ public:
     uint largest() const;
     uint count() const;
     bool isEmpty() const;
-    bool isRange() const;
 
     bool contains( uint ) const;
 
     uint value( uint ) const;
     uint index( uint ) const;
 
-    String where( const String & table = "" ) const;
     String set() const;
     String csl() const;
 
@@ -43,6 +41,7 @@ public:
 
 private:
     class SetData * d;
+    void recount() const;
 };
 
 
