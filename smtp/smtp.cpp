@@ -506,9 +506,6 @@ void SMTP::setTransactionId( const String & id )
 }
 
 
-static uint sequence = 0;
-
-
 /*! Return an ESMTP id, either based on an internal algorithm or on
     something the client specified using an Oryx-specific extension.
 
@@ -525,7 +522,7 @@ String SMTP::transactionId() const
     d->id.append( '-' );
     d->id.append( fn( getpid() ) );
     d->id.append( '-' );
-    d->id.append( fn( ++sequence ) );
+    d->id.append( log()->id() );
     return d->id;
 }
 
