@@ -89,17 +89,6 @@ public:
                 count++;
             contents[i/BitsPerUint] |= 1 << ( i % BitsPerUint );
         }
-        inline void remove( uint n ) {
-            if ( n < start )
-                return;
-            uint i = n - start;
-            if ( i >= BlockSize )
-                return;
-
-            if ( (contents[i/BitsPerUint] & 1 << ( i % BitsPerUint )) )
-                count--;
-            contents[i/BitsPerUint] &= ~(1 << ( i % BitsPerUint ) );
-        }
 
         void recount() {
             count = 0;
@@ -224,7 +213,7 @@ void MessageSet::add( const MessageSet & set )
             b->merge( i );
         else
             d->b.insert( i->start, new SetData::Block( *i ) );
-        
+
         ++i;
     }
 }
@@ -374,8 +363,22 @@ bool MessageSet::contains( uint value ) const
 void MessageSet::remove( uint value )
 {
     SetData::Block * b = d->b.find( value - (value%BlockSize) );
-    if ( b )
-        b->remove( value );
+    if ( !b )
+        return;
+
+    uint i = value - b->start;
+    if ( value >= BlockSize )
+        return;
+
+    if ( (b->contents[i/BitsPerUint] & 1 << ( i % BitsPerUint )) ) {
+        b->count--;
+        if ( !b->count )
+            d->b.remove( b->start );
+    }
+    else {
+        b->contents[i/BitsPerUint] &= ~(1 << ( i % BitsPerUint ) );
+        recount();
+    }
 }
 
 
@@ -495,22 +498,24 @@ String MessageSet::set() const
         while ( n < ArraySize ) {
             uint j = 0;
             uint b = it->contents[n];
-            while ( j < BitsPerUint ) {
-                if ( b & ( 1 << j ) ) {
-                    if ( !e ) {
-                        s = v + j;
-                        e = s;
+            if ( b ) {
+                while ( j < BitsPerUint ) {
+                    if ( b & ( 1 << j ) ) {
+                        if ( !e ) {
+                            s = v + j;
+                            e = s;
+                        }
+                        else if ( e + 1 < v + j ) {
+                            addRange( r, s, e );
+                            s = v + j;
+                            e = s;
+                        }
+                        else {
+                            e = v + j;
+                        }
                     }
-                    else if ( e + 1 < v + j ) {
-                        addRange( r, s, e );
-                        s = v + j;
-                        e = s;
-                    }
-                    else {
-                        e = v + j;
-                    }
+                    j++;
                 }
-                j++;
             }
             n++;
             v += BitsPerUint;
@@ -534,20 +539,21 @@ String MessageSet::csl() const
 
     Map<SetData::Block>::Iterator it( d->b );
     while ( it ) {
-        uint v = it->start;
         uint n = 0;
         while ( n < ArraySize ) {
             uint j = 0;
             uint b = it->contents[n];
-            while ( j < BitsPerUint ) {
-                if ( b & ( 1 << j ) ) {
-                    if ( r.isEmpty() )
-                        r.append( ',' );
-                    r.appendNumber( v + j );
+            if ( b ) {
+                while ( j < BitsPerUint ) {
+                    if ( b & ( 1 << j ) ) {
+                        if ( !r.isEmpty() )
+                            r.append( ',' );
+                        r.appendNumber( it->start + n * BitsPerUint + j );
+                    }
+                    j++;
                 }
             }
             n++;
-            v += BitsPerUint;
         }
         ++it;
     }
