@@ -375,8 +375,6 @@ void Fetcher::start()
     bool simple = false;
     if ( n == 1 )
         simple = true;
-    else if ( messages.isRange() && expected * n < 2000 )
-        simple = true;
     else if ( expected * n < 1000 )
         simple = true;
 

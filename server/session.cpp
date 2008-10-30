@@ -220,6 +220,20 @@ uint Session::count() const
 }
 
 
+/*! Returns the UID of the highest-numbered message, or uidnext()-1 if
+    the mailbox is empty, or 1 if uidnext() is 1.
+*/
+
+uint Session::largestUid() const
+{
+    if ( d->uidnext == 1 )
+        return 1;
+    else if ( d->msns.isEmpty() )
+        return d->uidnext - 1;
+    return d->msns.largest();
+}
+
+
 /*! Returns a MessageSet containing all messages marked "\Recent" in
     this session.
 */

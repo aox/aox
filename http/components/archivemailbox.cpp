@@ -143,7 +143,7 @@ void ArchiveMailbox::execute()
             "on (hf.message=pn.message and hf.part=pn.part) "
             "where mm.mailbox=$1 "
             "and (hf.field=$2 or hf.field is null) "
-            "and (" + f.where() + ") and "
+            "and mm.uid=any($3) and "
             "(hf.value like 'text/html%' or "
             " hf.value like 'text/plain%' or "
             " hf.value is null) "
@@ -151,6 +151,7 @@ void ArchiveMailbox::execute()
             this );
         d->text->bind( 1, d->link->mailbox()->id() );
         d->text->bind( 2, HeaderField::ContentType );
+        d->text->bind( 3, f );
         d->text->execute();
     }
 

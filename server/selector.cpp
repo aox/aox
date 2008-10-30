@@ -337,8 +337,6 @@ void Selector::simplify()
     else if ( d->a == Contains && d->f == Uid ) {
         if ( d->s.isEmpty() )
             d->a = None; // contains d->a set of nonexistent messages
-        else if ( d->s.where() == "(uid>=1)" )
-            d->a = All; // contains any messages at all
     }
     else if ( d->a == Contains ) {
         // x contains y may match everything
@@ -1079,33 +1077,14 @@ String Selector::whereSet( const MessageSet & s )
         return "false";
 
     uint u = placeHolder();
+    uint c = s.count();
 
-    // big chunk of the mailbox, not contiguous UIDs
-    if ( root()->d->session && !s.isRange() && s.count() > 100 ) {
-        MessageSet n = root()->d->session->messages();
-        if ( n.smallest() < s.smallest() )
-            n.remove( n.smallest(), s.smallest() - 1 );
-        if ( n.largest() > s.largest() )
-            n.remove( s.largest()+1, n.largest() );
-        if ( s.set() != n.set() ) {
-            MessageSet m = s;
-            m.remove( n );
-            log( "Messages not in session: " + m.set() );
-        }
-        if ( s.count() > n.count() * 7 / 8 ) {
-            uint u2 = placeHolder();
-            root()->d->query->bind( u, s.smallest() );
-            root()->d->query->bind( u2, s.largest() );
-            // this if ">=0" in the most common case (fetch 1:*
-            // flags), but we prefer to use a format that tells pg
-            // about the size of the range.
-            return "(" + mm() + ".uid>=$" + fn( u ) +
-                " and " + mm() + ".uid<=$" + fn( u2 ) + ")";
-        }
+    if ( c > 2 ) {
+        root()->d->query->bind( u, s );
+        return mm() + ".uid=any($" + fn( u ) + ")";
     }
-
-    // very small set, disjoint
-    if ( !s.isRange() && s.count() == 2 ) {
+    
+    if ( c == 2 ) {
         uint u2 = placeHolder();
         root()->d->query->bind( u, s.smallest() );
         root()->d->query->bind( u2, s.largest() );
@@ -1113,22 +1092,6 @@ String Selector::whereSet( const MessageSet & s )
             " or " + mm() + ".uid=$" + fn( u2 ) + ")";
     }
 
-    // complex sets
-    if ( !s.isRange() ) {
-        root()->d->query->bind( u, s );
-        return mm() + ".uid=any($" + fn( u ) + ")";
-    }
-
-    // simple ranges
-    if ( s.count() > 1 ) {
-        uint u2 = placeHolder();
-        root()->d->query->bind( u, s.smallest() );
-        root()->d->query->bind( u2, s.largest() );
-        return "(" + mm() + ".uid>=$" + fn( u ) +
-            " and " + mm() + ".uid<=$" + fn( u2 ) + ")";
-    }
-
-    // single-member sets
     root()->d->query->bind( u, s.smallest() );
     return mm() + ".uid=$" + fn( u );
 }
@@ -1441,7 +1404,7 @@ String Selector::debugString() const
         w = "none";
         break;
     case Uid:
-        return d->s.where();
+        return d->s.set();
         break;
     case Annotation:
         w = "annotation " + d->s8b + " of ";

@@ -3,6 +3,50 @@
 #include "messageset.h"
 
 #include "stringlist.h"
+#include "map.h"
+
+
+static inline uint bitsSet( uint b )
+{
+    uint r = 0;
+    while ( b ) {
+        switch ( b & 15 ) {
+        case 0:
+            r += 0;
+            break;
+        case 1:
+        case 2:
+        case 4:
+        case 8:
+            r += 1;
+            break;
+        case 3:
+        case 5:
+        case 6:
+        case 9:
+        case 10:
+        case 12:
+            r += 2;
+            break;
+        case 7:
+        case 11:
+        case 13:
+        case 14:
+            r += 3;
+            break;
+        case 15:
+            r += 4;
+            break;
+        }
+        b >>= 4;
+    }
+    return r;
+};
+
+
+static const uint BlockSize = 8192;
+static const uint BitsPerUint = 8 * sizeof(uint);
+static const uint ArraySize = (BlockSize + BitsPerUint - 1) / BitsPerUint;
 
 
 class SetData
@@ -11,17 +55,70 @@ class SetData
 public:
     SetData() {}
 
-    struct Range
+    class Block
         : public Garbage
     {
-        Range( uint s, uint l ): start( s ), length( l ) {
-            setFirstNonPointer( &start );
+    public:
+        Block( uint s )
+            : Garbage(), start( s ), count( 0 ) {
+            uint i = 0;
+            while ( i < ArraySize )
+                contents[i++] = 0;
         }
+        Block( const Block & other )
+            : Garbage(), start( other.start ), count( other.count ) {
+            uint i = 0;
+            while ( i < ArraySize ) {
+                contents[i] = other.contents[i];
+                ++i;
+            }
+        }
+
         uint start;
-        uint length;
+        uint count;
+        uint contents[ArraySize];
+
+        inline void insert( uint n ) {
+            if ( n < start )
+                return;
+            uint i = n - start;
+            if ( i >= BlockSize )
+                return;
+
+            if ( !(contents[i/BitsPerUint] & 1 << ( i % BitsPerUint )) )
+                count++;
+            contents[i/BitsPerUint] |= 1 << ( i % BitsPerUint );
+        }
+        inline void remove( uint n ) {
+            if ( n < start )
+                return;
+            uint i = n - start;
+            if ( i >= BlockSize )
+                return;
+
+            if ( (contents[i/BitsPerUint] & 1 << ( i % BitsPerUint )) )
+                count--;
+            contents[i/BitsPerUint] &= ~(1 << ( i % BitsPerUint ) );
+        }
+
+        void recount() {
+            count = 0;
+            uint i = 0;
+            while ( i < ArraySize )
+                count += bitsSet( contents[i++] );
+        }
+
+        void merge( Block * other ) {
+            count = 0;
+            uint i = 0;
+            while ( i < ArraySize ) {
+                contents[i] |= other->contents[i];
+                ++i;
+            }
+        }
     };
 
-    List<Range> l;
+    Map<Block> b;
 };
 
 
@@ -61,10 +158,10 @@ MessageSet& MessageSet::operator=( const MessageSet & other )
         return *this;
 
     d = new SetData;
-    List< SetData::Range >::Iterator it( other.d->l );
-    while ( it ) {
-        d->l.append( new SetData::Range( it->start, it->length ) );
-        ++it;
+    Map<SetData::Block>::Iterator i( other.d->b );
+    while ( i ) {
+        d->b.insert( i->start, new SetData::Block( *i ) );
+        ++i;
     }
     return *this;
 }
@@ -74,11 +171,6 @@ MessageSet& MessageSet::operator=( const MessageSet & other )
     both \a n1 and \a n2.
 
     \a n1 and \a n2 must both be nonzero.
-
-    f \a n1 and \a n2 are large, this function tends towards O(n)
-    behaviour.  If the smallest of \a n1 and \a n2 is small, it tends
-    towards O(1).  For this reason, it's better to add ranges to a
-    MessageSet largest-first than smallest-first.
 */
 
 void MessageSet::add( uint n1, uint n2 )
@@ -94,57 +186,26 @@ void MessageSet::add( uint n1, uint n2 )
         return;
     }
 
-    List< SetData::Range >::Iterator i;
-    if ( d->l.lastElement() && d->l.lastElement()->start <= n1 )
-        i = d->l.last();
-    else
-        i = d->l.first();
-
-    // skip all ranges that are separated from [n1,n2] by at least one
-    // number, ie. whose last member is at most n1-2.
-
-    while ( i && i->start + i->length - 1 < n1 - 1 )
-        ++i;
-
-    // if we're looking at a range now, it either overlaps with, is
-    // adjacent to, or is after [n1,n2].
-
-    if ( !i ) {
-        // we're looking at the end
-        d->l.append( new SetData::Range( n1, n2-n1+1 ) );
-        i = d->l.last();
+    uint n = n1;
+    uint s = n - (n%BlockSize);
+    SetData::Block * b = d->b.find( s );
+    if ( !b ) {
+        b = new SetData::Block( s );
+        d->b.insert( s, b );
     }
-    else if ( i->start - 1 > n2 ) {
-        // it's after, not even touching
-        d->l.insert( i, new SetData::Range( n1, n2-n1+1 ) );
-        --i;
-    }
-    else {
-        // it touches or overlaps
-        uint s1 = n1;
-        uint s2 = n2;
-        if ( i->start < s1 )
-            s1 = i->start;
-        if ( i->start + i->length - 1 > s2 )
-            s2 = i->start + i->length - 1;
-        i->start = s1;
-        i->length = s2 + 1 - s1;
-    }
-
-    // the following ranges may touch or overlap this one.
-    bool touching = true;
-    while ( touching ) {
-        List<SetData::Range>::Iterator n( i );
+    b->insert( n );
+    while ( n < n2 ) {
         ++n;
-        if ( !n || n->start > i->start + i->length ) {
-            touching = false;
+        if ( s != n - (n%BlockSize) ) {
+            s = n - (n%BlockSize);
+            b = d->b.find( s );
+            if ( !b ) {
+                b = new SetData::Block( s );
+                d->b.insert( s, b );
+            }
         }
-        else {
-            if ( n->start + n->length > i->start + i->length )
-                i->length = n->start + n->length - i->start;
-            d->l.take( n );
-        }
-    };
+        b->insert( n );
+    }
 }
 
 
@@ -156,12 +217,16 @@ void MessageSet::add( const MessageSet & set )
         *this = set;
         return;
     }
-    List<SetData::Range>::Iterator it( set.d->l.last() );
-    while ( it ) {
-        add( it->start, it->start + it->length - 1 );
-        --it;
+    Map<SetData::Block>::Iterator i( set.d->b );
+    while( i ) {
+        SetData::Block * b = d->b.find( i->start );
+        if ( b )
+            b->merge( i );
+        else
+            d->b.insert( i->start, new SetData::Block( *i ) );
+        
+        ++i;
     }
-    // oh. a simple one.
 }
 
 
@@ -171,10 +236,7 @@ void MessageSet::add( const MessageSet & set )
 
 uint MessageSet::smallest() const
 {
-    SetData::Range * r = d->l.first();
-    if ( !r )
-        return 0;
-    return r->start;
+    return value( 1 );
 }
 
 
@@ -184,22 +246,17 @@ uint MessageSet::smallest() const
 
 uint MessageSet::largest() const
 {
-    SetData::Range * r = d->l.last();
-    if ( !r )
+    SetData::Block * b = d->b.last();
+    if ( !b )
         return 0;
-    return r->start + r->length - 1;
-}
-
-
-/*! Returns true if this set is a simple range, and 0 if it's more
-    complex. (One-member sets are necessarily always ranges.)
-*/
-
-bool MessageSet::isRange() const
-{
-    if ( d->l.count() == 1 )
-        return true;
-    return false;
+    uint i = ArraySize - 1;
+    while ( i && !b->contents[i] )
+        i--;
+    uint x = b->contents[i];
+    uint j = BitsPerUint-1;
+    while ( !(x & 1 << j) )
+        j--;
+    return i * BitsPerUint + j;
 }
 
 
@@ -207,10 +264,11 @@ bool MessageSet::isRange() const
 
 uint MessageSet::count() const
 {
+    recount();
     uint c = 0;
-    List<SetData::Range>::Iterator i( d->l );
+    Map<SetData::Block>::Iterator i( d->b );
     while ( i ) {
-        c += i->length;
+        c += i->count;
         ++i;
     }
     return c;
@@ -221,12 +279,12 @@ uint MessageSet::count() const
 
 bool MessageSet::isEmpty() const
 {
-    return d->l.isEmpty();
+    return d->b.isEmpty();
 }
 
 
-/*! Returns the value at \a index, or 0 if \a index is count() or
-    greater.
+/*! Returns the value at \a index, or 0 if \a index is greater than
+    count().
 
     If this set contains the UIDs in a mailbox, this function converts
     from MSNs to UIDs. See Session::uid().
@@ -234,15 +292,33 @@ bool MessageSet::isEmpty() const
 
 uint MessageSet::value( uint index ) const
 {
-    uint c = 1;
-    List<SetData::Range>::Iterator i( d->l );
-    while ( i && c + i->length <= index ) {
-        c += i->length;
+    if ( !index )
+        return 0;
+    recount();
+    uint c = 0;
+    Map<SetData::Block>::Iterator i( d->b );
+    while ( i && c + i->count < index ) {
+        c += i->count;
         ++i;
     }
-    if ( i && c <= index && c + i->length > index )
-        return i->start + index - c;
-    return 0;
+    if ( !i )
+        return 0;
+
+    uint bs = bitsSet( i->contents[0] );
+    uint n = 0;
+    while ( c + bs < index ) {
+        c += bs;
+        n++;
+        bs = bitsSet( i->contents[n] );
+    }
+    uint j = 0;
+    while ( c < index && j < BitsPerUint ) {
+        if ( i->contents[n] & ( 1 << j ) )
+            c++;
+        if ( c < index )
+            j++;
+    }
+    return i->start + n*BitsPerUint + j;
 }
 
 
@@ -255,84 +331,26 @@ uint MessageSet::value( uint index ) const
 
 uint MessageSet::index( uint value ) const
 {
-    uint c = 0;
-    List<SetData::Range>::Iterator i( d->l );
-    while ( i && i->start + i->length - 1 < value ) {
-        c += i->length;
-        ++i;
+    recount();
+    uint i = 0;
+    Map<SetData::Block>::Iterator b( d->b );
+    while ( b && b->start + BlockSize - 1 < value ) {
+        i += b->count;
+        ++b;
     }
-    if ( i && i->start <= value && i->start + i->length - 1 >= value )
-        return 1 + c + value - i->start;
-    return 0;
+    if ( !b )
+        return 0;
 
-}
-
-
-/*! Returns an SQL WHERE clause describing the set. No optimization is
-    done (yet). The "WHERE" prefix is not included, only e.g "uid>3"
-    or "(uid>3 and uid<77)". The result contains enough parentheses to
-    be suitable for use with boolean logic directly.
-
-    If \a table is non-empty, all column references are qualified with
-    its value (i.e., table.column). \a table should not contain a
-    trailing dot.
-*/
-
-String MessageSet::where( const String & table ) const
-{
-    if ( isEmpty() )
-        return "";
-
-    MessageSet singles;
-    if ( !isRange() ) {
-        List< SetData::Range >::Iterator it( d->l );
-        while ( it ) {
-            if ( it->length == 1 )
-                singles.add( it->start );
-            ++it;
-        }
-        if ( singles.count() < 4 )
-            singles.clear();
+    uint vi = (value-b->start)/BitsPerUint;
+    if ( !(b->contents[vi] & 1 << (value%BitsPerUint)) )
+        return 0;
+    uint n = 0;
+    while ( n < vi ) {
+        i += bitsSet( b->contents[n] );
+        n++;
     }
-
-    String n( "uid" );
-    if ( !table.isEmpty() )
-        n = table + ".uid";
-    StringList cl;
-
-    List< SetData::Range >::Iterator it( d->l );
-    while ( it ) {
-        SetData::Range *r = it;
-        String p;
-        ++it;
-
-        if ( r->length == 1 ) {
-            if ( singles.isEmpty() )
-                p = n + "=" + fn( r->start );
-        }
-        else if ( r->start + r->length < r->start ) {
-            // integer wraparound.
-            p = n + ">=" + fn( r->start );
-        }
-        else if ( r->start == 1 ) {
-            p = n + "<" + fn( 1+r->length );
-        }
-        else {
-            p = "(" + n + ">=" + fn( r->start ) + " and " +
-                n + "<" + fn( r->start + r->length ) + ")";
-        }
-        if ( !p.isEmpty() )
-            cl.append( p );
-    }
-    if ( !singles.isEmpty() )
-        cl.append( n + " in (" + singles.set() + ")" ); // ouch. but it works.
-    if ( cl.count() == 1 )
-        return *cl.firstElement();
-    String s;
-    s.append( "(" );
-    s.append( cl.join( " or " ) );
-    s.append( ")" );
-    return s;
+    i += bitsSet ( b->contents[vi] & ~( 0xfffffffe << (value%BitsPerUint) ) );
+    return i;
 }
 
 
@@ -340,7 +358,13 @@ String MessageSet::where( const String & table ) const
 
 bool MessageSet::contains( uint value ) const
 {
-    return index( value ) > 0;
+    SetData::Block * b = d->b.find( value - (value%BlockSize) );
+    if ( !b )
+        return false;
+    uint n = value%BlockSize;
+    if ( b->contents[n/BitsPerUint] & ( 1 << n%BitsPerUint ) )
+        return true;
+    return false;
 }
 
 
@@ -349,9 +373,9 @@ bool MessageSet::contains( uint value ) const
 
 void MessageSet::remove( uint value )
 {
-    MessageSet r;
-    r.add( value, value );
-    remove( r );
+    SetData::Block * b = d->b.find( value - (value%BlockSize) );
+    if ( b )
+        b->remove( value );
 }
 
 
@@ -369,38 +393,28 @@ void MessageSet::remove( uint v1, uint v2 )
 
 void MessageSet::remove( const MessageSet & other )
 {
-    List<SetData::Range>::Iterator mine( d->l );
-    List<SetData::Range>::Iterator hers( other.d->l );
+    Map<SetData::Block>::Iterator mine( d->b );
+    Map<SetData::Block>::Iterator hers( other.d->b );
     while ( mine && hers ) {
-        while ( hers && hers->start + hers->length - 1 < mine->start )
-            ++hers;
-        if ( hers ) {
-            // my start and end, her start and end
-            uint ms = mine->start;
-            uint me = mine->start + mine->length - 1;
-            uint hs = hers->start;
-            uint he = hers->start + hers->length - 1;
-            if ( hs <= ms && he >= ms && he < me ) {
-                // she includes my first byte, but not all of me
-                mine->start = he + 1;
-                mine->length = me + 1 - mine->start;
-            }
-            else if ( he >= me && hs > ms && hs <= me ) {
-                // she overlaps my last byte, but not all of me
-                mine->length = hs - ms;
-            }
-            else if ( hs > ms && he < me ) {
-                // she's within me: break myself in two
-                mine->length = hs - ms;
-                add( he+1, me );
-            }
-            else if ( hs <= ms && he >= me ) {
-                // she covers all of me
-                d->l.take( mine ); // steps mine to next
-            }
-        }
-        if ( hers && mine && mine->start + mine->length <= hers->start )
+        while ( mine && mine->start < hers->start )
             ++mine;
+        while ( hers && hers->start < mine->start )
+            ++hers;
+        if ( mine && hers ) {
+            uint i = 0;
+            uint u = 0;
+            uint s = mine->start;
+            while ( i < ArraySize ) {
+                mine->contents[i] &= ~ hers->contents[i];
+                u |= mine->contents[i];
+                i++;
+            }
+            mine->count = 0;
+            ++mine;
+            ++hers;
+            if ( !u )
+                d->b.remove( s );
+        }
     }
 }
 
@@ -410,23 +424,28 @@ void MessageSet::remove( const MessageSet & other )
 
 MessageSet MessageSet::intersection( const MessageSet & other ) const
 {
-    List<SetData::Range>::Iterator me( d->l.last() );
-    List<SetData::Range>::Iterator her( other.d->l.last() );
     MessageSet r;
-
-    while ( me && her ) {
-        uint b = me->start;
-        if ( me->start < her->start )
-            b = her->start;
-        uint e = me->start + me->length - 1;
-        if ( e > her->start + her->length - 1 )
-            e = her->start + her->length - 1;
-        if ( b <= e )
-            r.add( b, e );
-        if ( me->start >= b )
-            --me;
-        if ( her->start >= b )
-            --her;
+    Map<SetData::Block>::Iterator mine( d->b );
+    Map<SetData::Block>::Iterator hers( other.d->b );
+    while ( mine && hers ) {
+        while ( mine && mine->start < hers->start )
+            ++mine;
+        while ( hers && hers->start < mine->start )
+            ++hers;
+        if ( mine && hers ) {
+            SetData::Block * b = new SetData::Block( mine->start );
+            uint u = 0;
+            uint i = 0;
+            while ( i < ArraySize ) {
+                b->contents[i] = mine->contents[i] & hers->contents[i];
+                u |= b->contents[i];
+                i++;
+            }
+            if ( u )
+                r.d->b.insert( b->start, b );
+            ++mine;
+            ++hers;
+        }
     }
     return r;
 }
@@ -440,6 +459,21 @@ void MessageSet::clear()
 }
 
 
+static void addRange( String & r, uint s, uint e )
+{
+    if ( !r.isEmpty() )
+        r.append( ',' );
+    r.appendNumber( s );
+    if ( e <= s )
+        return;
+    if ( e == s + 1 )
+        r.append( ',' );
+    else
+        r.append( ':' );
+    r.appendNumber( e );
+}
+
+
 /*! Returns the contents of this set in IMAP syntax. The shortest
     possible representation is returned, with strictly increasing
     values, without repetitions, with ":" and "," as necessary.
@@ -450,17 +484,41 @@ void MessageSet::clear()
 String MessageSet::set() const
 {
     String r;
-    List< SetData::Range >::Iterator it( d->l );
+    r.reserve( 2222 );
+    uint s = 0;
+    uint e = 0;
+
+    Map<SetData::Block>::Iterator it( d->b );
     while ( it ) {
-        if ( !r.isEmpty() )
-            r.append( "," );
-        r.append( fn( it->start ) );
-        if ( it->length > 1 ) {
-            r.append( ":" );
-            r.append( fn( it->start + it->length - 1 ) );
+        uint v = it->start;
+        uint n = 0;
+        while ( n < ArraySize ) {
+            uint j = 0;
+            uint b = it->contents[n];
+            while ( j < BitsPerUint ) {
+                if ( b & ( 1 << j ) ) {
+                    if ( !e ) {
+                        s = v + j;
+                        e = s;
+                    }
+                    else if ( e + 1 < v + j ) {
+                        addRange( r, s, e );
+                        s = v + j;
+                        e = s;
+                    }
+                    else {
+                        e = v + j;
+                    }
+                }
+                j++;
+            }
+            n++;
+            v += BitsPerUint;
         }
         ++it;
     }
+    if ( e )
+        addRange( r, s, e );
     return r;
 }
 
@@ -473,19 +531,43 @@ String MessageSet::csl() const
 {
     String r;
     r.reserve( 2222 );
-    List< SetData::Range >::Iterator it( d->l );
+
+    Map<SetData::Block>::Iterator it( d->b );
     while ( it ) {
-        if ( !r.isEmpty() )
-            r.append( "," );
-        r.appendNumber( it->start );
-        uint v = it->start + 1;
-        uint e = it->start + it->length;
-        while ( v < e ) {
-            r.append( "," );
-            r.appendNumber( v );
-            v++;
+        uint v = it->start;
+        uint n = 0;
+        while ( n < ArraySize ) {
+            uint j = 0;
+            uint b = it->contents[n];
+            while ( j < BitsPerUint ) {
+                if ( b & ( 1 << j ) ) {
+                    if ( r.isEmpty() )
+                        r.append( ',' );
+                    r.appendNumber( v + j );
+                }
+            }
+            n++;
+            v += BitsPerUint;
         }
         ++it;
     }
     return r;
+}
+
+
+/*! This private helper ensures that all blocks have an accurate count
+    of set bits, and that no blocks are empty.
+*/
+
+void MessageSet::recount() const
+{
+    Map<SetData::Block>::Iterator i( d->b );
+    while ( i ) {
+        SetData::Block * b = i;
+        ++i;
+        if ( !b->count )
+            b->recount();
+        if ( !b->count )
+            d->b.remove( b->start );
+    }
 }
