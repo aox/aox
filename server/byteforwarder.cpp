@@ -51,10 +51,11 @@ void ByteForwarder::react( Event e )
             s->writeBuffer()->append( bytes );
             r->remove( bytes.length() );
             if ( u )
-                log( "Wrote " + fn( bytes.length() ) + " bytes to tlsproxy" );
+                log( "Wrote " + fn( bytes.length() ) + " bytes to tlsproxy",
+                     Log::Debug );
             else
                 log( "Wrote " + fn( bytes.length() ) + " bytes to " +
-                     p->peer().address() );
+                     p->peer().address(), Log::Debug );
             setTimeoutAfter( 3 );
         }
         break;
