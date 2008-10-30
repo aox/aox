@@ -245,7 +245,7 @@ uint MessageSet::largest() const
     uint j = BitsPerUint-1;
     while ( !(x & 1 << j) )
         j--;
-    return i * BitsPerUint + j;
+    return b->start + i * BitsPerUint + j;
 }
 
 
