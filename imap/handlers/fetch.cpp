@@ -1561,6 +1561,7 @@ void Fetch::pickup()
             d->available.append( m );
             done++;
             d->requested.shift();
+            m = 0;
         }
     }
     if ( !done )
