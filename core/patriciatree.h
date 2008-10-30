@@ -21,12 +21,12 @@ public:
     public:
         Node() : zero( 0 ), one( 0 ),
                  parent( 0 ),
-                 payload( 0 ), length( 0 ) {
+                 data( 0 ), length( 0 ) {
         }
 
         uint count() {
             uint c = 0;
-            if ( payload )
+            if ( data )
                 c = 1;
             if ( zero )
                 c += zero->count();
@@ -45,7 +45,7 @@ public:
         Node * zero;
         Node * one;
         Node * parent;
-        T * payload;
+        T * data;
         uint length;
         char key[1];
     };
@@ -53,19 +53,19 @@ public:
     T * find( const char * k, uint l ) const {
         Node * n = locate( k, l );
         if ( n )
-            return n->payload;
+            return n->data;
         return 0;
     }
 
     T * remove( Node * n ) {
         if ( !n )
             return 0;
-        T * r = n->payload;
+        T * r = n->data;
 
         if ( n->zero || n->one ) {
             // this is an internal node, so we have to drop the
-            // payload, then do no more.
-            n->payload = 0;
+            // data, then do no more.
+            n->data = 0;
             return r;
         }
 
@@ -74,8 +74,8 @@ public:
             root = 0;
             free( n );
         }
-        else if ( n->parent->payload ) {
-            // the parent has to lose this child, but has payload, so
+        else if ( n->parent->data ) {
+            // the parent has to lose this child, but has data, so
             // it has to stay
             if ( n->parent->zero == n )
                 n->parent->zero = 0;
@@ -147,7 +147,7 @@ public:
             if ( b == n->length ) {
                 if ( b == l ) {
                     // no, not to the child, n IS the right node
-                    n->payload = t;
+                    n->data = t;
                     return;
                 }
                 d = false;
@@ -168,7 +168,7 @@ public:
         uint kl = (l+7) / 8;
         Node * x = node( kl );
         x->length = l;
-        x->payload = t;
+        x->data = t;
         uint i = 0;
         while ( i < kl ) {
             x->key[i] = k[i];
@@ -236,7 +236,7 @@ public:
     bool isEmpty() {
         if ( !root )
             return true;
-        // is it possible for a tree to contain no payload nodes? no?
+        // is it possible for a tree to contain no data nodes? no?
         return false;
     }
 
@@ -266,9 +266,9 @@ public:
             cur = t.firstNode();
         }
 
-        operator bool() { return cur && cur->payload ? true : false; }
-        operator T *() { return cur ? cur->payload : 0; }
-        T *operator ->() { ok(); return cur->payload; }
+        operator bool() { return cur && cur->data ? true : false; }
+        operator T *() { return cur ? cur->data : 0; }
+        T *operator ->() { ok(); return cur->data; }
         Iterator &operator ++() { ok(); return next(); }
         Iterator &operator --() { ok(); return prev(); }
         Iterator &operator ++( int ) {
@@ -286,9 +286,9 @@ public:
 
         T &operator *() {
             ok();
-            if ( !cur->payload )
+            if ( !cur->data )
                 die( Invariant );
-            return *(cur->payload);
+            return *(cur->data);
         }
 
         bool operator ==( const Iterator &x ) { return cur == x.cur; }
@@ -317,7 +317,7 @@ public:
                 else {
                     cur = 0;
                 }
-            } while ( cur && !cur->payload );
+            } while ( cur && !cur->data );
             return *this;
         }
         Iterator &prev() {
@@ -338,7 +338,7 @@ public:
                 else {
                     cur = 0;
                 }
-            } while ( cur && !cur->payload );
+            } while ( cur && !cur->data );
             return *this;
         }
 
@@ -357,14 +357,14 @@ public:
     T * first() {
         Node * n = firstNode();
         if ( n )
-            return n->payload;
+            return n->data;
         return 0;
     }
 
     T * last() {
         Node * n = lastNode();
         if ( n )
-            return n->payload;
+            return n->data;
         return 0;
     }
 
