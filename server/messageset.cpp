@@ -61,6 +61,7 @@ public:
     public:
         Block( uint s )
             : Garbage(), start( s ), count( 0 ) {
+            setFirstNonPointer( &start );
             uint i = 0;
             while ( i < ArraySize )
                 contents[i++] = 0;
@@ -245,7 +246,7 @@ uint MessageSet::largest() const
     uint j = BitsPerUint-1;
     while ( !(x & 1 << j) )
         j--;
-    return i * BitsPerUint + j;
+    return b->start + i * BitsPerUint + j;
 }
 
 
