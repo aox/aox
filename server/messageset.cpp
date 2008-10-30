@@ -61,6 +61,7 @@ public:
     public:
         Block( uint s )
             : Garbage(), start( s ), count( 0 ) {
+            setFirstNonPointer( &start );
             uint i = 0;
             while ( i < ArraySize )
                 contents[i++] = 0;
