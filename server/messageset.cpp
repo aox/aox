@@ -367,17 +367,19 @@ void MessageSet::remove( uint value )
         return;
 
     uint i = value - b->start;
-    if ( value >= BlockSize )
+    if ( i >= BlockSize )
         return;
 
-    if ( (b->contents[i/BitsPerUint] & 1 << ( i % BitsPerUint )) ) {
-        b->contents[i/BitsPerUint] &= ~(1 << ( i % BitsPerUint ) );
+    if ( ! ( (b->contents[i/BitsPerUint] & 1 << ( i % BitsPerUint )) ) )
+        return;
+
+    b->contents[i/BitsPerUint] &= ~(1 << ( i % BitsPerUint ) );
+    if ( b->count ) {
         b->count--;
         if ( !b->count )
             d->b.remove( b->start );
     }
     else {
-        b->contents[i/BitsPerUint] &= ~(1 << ( i % BitsPerUint ) );
         recount();
     }
 }
