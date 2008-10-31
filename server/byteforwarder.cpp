@@ -50,13 +50,7 @@ void ByteForwarder::react( Event e )
             String bytes( r->string( r->size() ) );
             s->writeBuffer()->append( bytes );
             r->remove( bytes.length() );
-            if ( u )
-                log( "Wrote " + fn( bytes.length() ) + " bytes to tlsproxy",
-                     Log::Debug );
-            else
-                log( "Wrote " + fn( bytes.length() ) + " bytes to " +
-                     p->peer().address(), Log::Debug );
-            setTimeoutAfter( 3 );
+            setTimeoutAfter( 60 );
         }
         break;
 
@@ -64,10 +58,10 @@ void ByteForwarder::react( Event e )
         if ( !s )
             ; // we closed. there's no point in doing anything.
         else if ( u )
-            log( "No data received from client for three seconds",
+            log( "No data received from client for 60 seconds",
                  Log::Debug );
         else
-            log( "No data received from tlsproxy for three seconds",
+            log( "No data received from tlsproxy for 60 seconds",
                  Log::Debug );
         break;
 
