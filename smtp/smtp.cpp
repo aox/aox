@@ -266,7 +266,7 @@ String SMTP::heloName() const
 
 /*! Resets most transaction variables, so a new mail from/rcpt to/data
     cycle can begin. Leaves the heloName() untouched, since some
-    clients do not resent helo/ehlo/lhlo.
+    clients do not resend helo/ehlo/lhlo.
 */
 
 void SMTP::reset()
