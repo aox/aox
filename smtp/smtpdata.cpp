@@ -314,8 +314,8 @@ bool SmtpData::addressPermitted( Address * a ) const
                                  Configuration::AddressSeparator ), 1 );
         List<Address>::Iterator p( server()->permittedAddresses() );
         while ( p &&
-                al != p->localpart().lower() &&
-                ad != p->domain().lower() )
+                ( al != p->localpart().lower() ||
+                  ad != p->domain().lower() ) )
                 ++p;
         if ( !p )
             return false;
