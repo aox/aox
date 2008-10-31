@@ -9,7 +9,7 @@
 class ByteForwarder: public Connection
 {
 public:
-    ByteForwarder( int, Connection *, bool );
+    ByteForwarder( int, Connection * = 0 );
 
     void react( Event );
 
@@ -18,7 +18,6 @@ public:
 private:
     class ByteForwarder * s;
     Connection * p;
-    bool u;
 };
 
 #endif
