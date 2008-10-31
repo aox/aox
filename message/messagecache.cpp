@@ -5,8 +5,7 @@
 #include "message.h"
 #include "mailbox.h"
 #include "server.h"
-#include "dict.h"
-#include "list.h"
+#include "map.h"
 
 #include <time.h> // time(0)
 
@@ -18,9 +17,8 @@ class MessageCacheData
     : public Garbage
 {
 public:
-    MessageCacheData()
-        : m( 0 ) {}
-    Dict<Message> * m;
+    MessageCacheData(): Garbage() {}
+    Map<Map<Message> > m;
 };
 
 
@@ -55,12 +53,12 @@ void MessageCache::insert( class Mailbox * mb, uint uid,
         return;
     if ( !c )
         c = new MessageCache;
-    if ( !c->d->m )
-        c->d->m = new Dict<Message>();
-    String hack;
-    hack.append( mb->id() ); // <- that is a unicode codepoint, ahem
-    hack.append( uid ); // <- that is also a unicode codepoint, ahem ahem
-    c->d->m->insert( hack, m );
+    Map<Message> * mbcache = c->d->m.find( mb->id() );
+    if ( !mbcache ) {
+        mbcache = new Map<Message>;
+        c->d->m.insert( mb->id(), mbcache );
+    }
+    mbcache->insert( uid, m );
 }
 
 
@@ -70,16 +68,16 @@ void MessageCache::insert( class Mailbox * mb, uint uid,
 
 class Message * MessageCache::find( class Mailbox * mailbox, uint uid )
 {
-    if ( !c || !c->d->m )
+    if ( !c )
         return 0;
-    String hack;
-    hack.append( mailbox->id() );
-    hack.append( uid );
-    return c->d->m->find( hack );
+    Map<Message> * mbcache = c->d->m.find( mailbox->id() );
+    if ( mbcache )
+        return mbcache->find( uid );
+    return 0;
 }
 
 
 void MessageCache::clear()
 {
-    d->m = 0;
+    d->m.clear();
 }
