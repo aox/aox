@@ -437,6 +437,8 @@ void IMAP::runCommands()
 
     while ( d->runCommandsAgain ) {
         d->runCommandsAgain = false;
+        if ( d->commands.isEmpty() )
+            return;
         log( "IMAP::runCommands, " + fn( d->commands.count() ) + " commands",
              Log::Debug );
 
@@ -811,8 +813,6 @@ void IMAP::emitResponses()
             if ( !t.isEmpty() ) {
                 w->append( "* ", 2 );
                 w->append( t );
-                log( "Sending response: * " + t.mid( 0, 500 ),
-                     Log::Debug );
                 w->append( "\r\n", 2 );
                 n++;
             }
@@ -826,9 +826,6 @@ void IMAP::emitResponses()
     }
     if ( n )
         write();
-
-    log( "IMAP responses sent: " + fn( n ) +
-         ", queued: " + fn( d->responses.count() ) );
 
     if ( !any )
         return;
