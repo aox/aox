@@ -24,6 +24,10 @@ Schedule
 
 3.1.0: ?
 
+  IMAP RENAME now throws out any sessions accessing the old mailbox.
+  Sometimes clients keep sessions active without asking the user; that
+  prevented a rename with the old code.
+
   Add a script to do ldapsearch and adapt the aox user list
   accordingly. New ldap users result in aox add users, removed LDAP
   users are removed from the database too. (What to do about their

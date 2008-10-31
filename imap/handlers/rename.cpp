@@ -196,9 +196,18 @@ void Rename::execute()
         while ( it ) {
             List<Session>::Iterator s( it->from->sessions() );
             while ( s ) {
-                error( No, "Mailbox is in use: " + it->from->name().ascii() );
-                setRespTextCode( "INUSE" );
-                return;
+                Connection * c = s->connection();
+                if ( c->type() == Connection::ImapServer ) {
+                    IMAP * i = (IMAP*)c;
+                    (void)new ImapByeResponse( i,
+                                               "BYE Mailbox renamed to " +
+                                               it->toName.utf8() );
+                }
+                else {
+                    s->end();
+                    c->react( Connection::Close );
+                }
+                ++s;
             }
             ++it;
         }

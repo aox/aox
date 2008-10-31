@@ -20,13 +20,14 @@ class SessionData
 public:
     SessionData()
         : readOnly( true ),
-          mailbox( 0 ),
+          mailbox( 0 ), connection( 0 ),
           uidnext( 1 ), nextModSeq( 1 ),
           permissions( 0 )
     {}
 
     bool readOnly;
     Mailbox * mailbox;
+    Connection * connection;
     MessageSet msns;
     MessageSet recent;
     MessageSet expunges;
@@ -43,14 +44,15 @@ public:
     provide some protocol-specific actions.
 */
 
-/*! Creates a new Session for the Mailbox \a m. If \a readOnly is true,
-    the session is read-only.
+/*! Creates a new Session for the Mailbox \a m tied to Connection \a
+    c. If \a readOnly is true, the session is read-only.
 */
 
-Session::Session( Mailbox * m, bool readOnly )
+Session::Session( Mailbox * m, Connection * c, bool readOnly )
     : d( new SessionData )
 {
     d->mailbox = m;
+    d->connection = c;
     d->readOnly = readOnly;
     Session * other = 0;
     if ( d->mailbox->sessions() )
@@ -65,6 +67,15 @@ Session::Session( Mailbox * m, bool readOnly )
     else {
         (void)new SessionInitialiser( m );
     }
+}
+
+
+/*! Returns a pointer to the Connection served by this Session.
+*/
+
+Connection * Session::connection() const
+{
+    return d->connection;
 }
 
 
