@@ -803,32 +803,32 @@ void IMAP::emitResponses()
     List<ImapResponse>::Iterator r( d->responses );
     uint n = 0;
     while ( r ) {
-        if ( r->meaningful() ) {
-            if ( !r->sent() && ( can || !r->changesMsn() ) ) {
-                String t = r->text();
-                if ( !t.isEmpty() ) {
-                    w->append( "* ", 2 );
-                    w->append( t );
-                    log( "Sending response: * " + t.mid( 0, 500 ),
-                         Log::Debug );
-                    w->append( "\r\n", 2 );
-                    n++;
-                }
-                r->setSent();
-                any = true;
+        if ( !r->meaningful() ) {
+            r->setSent();
+        }
+        else if ( !r->sent() && ( can || !r->changesMsn() ) ) {
+            String t = r->text();
+            if ( !t.isEmpty() ) {
+                w->append( "* ", 2 );
+                w->append( t );
+                log( "Sending response: * " + t.mid( 0, 500 ),
+                     Log::Debug );
+                w->append( "\r\n", 2 );
+                n++;
             }
+            r->setSent();
+            any = true;
         }
-        if ( r->meaningful() && !r->sent() ) {
-            ++r;
-        }
-        else {
+        if ( r->sent() )
             d->responses.take( r );
-        }
-        if ( n > 64 ) {
-            write();
-            n = 0;
-        }
+        else
+            ++r;
     }
+    if ( n )
+        write();
+
+    log( "IMAP responses sent: " + fn( n ) +
+         ", queued: " + fn( d->responses.count() ) );
 
     if ( !any )
         return;
