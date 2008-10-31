@@ -9,6 +9,7 @@
 #include "event.h"
 #include "list.h"
 
+class Connection;
 class Mailbox;
 class Message;
 class Select;
@@ -19,9 +20,10 @@ class Session
     : public Garbage
 {
 public:
-    Session( Mailbox *, bool );
+    Session( Mailbox *, Connection *, bool );
     virtual ~Session();
 
+    class Connection * connection() const;
     void end();
 
     bool initialised() const;

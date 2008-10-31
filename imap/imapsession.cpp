@@ -118,8 +118,8 @@ public:
     using \a imap. If \a readOnly is true, the session is read-only.
 */
 
-ImapSession::ImapSession( IMAP * imap, Mailbox *m, bool readOnly )
-    : Session( m, readOnly ),
+ImapSession::ImapSession( IMAP * imap, Mailbox * m, bool readOnly )
+    : Session( m, imap, readOnly ),
       d( new ImapSessionData )
 {
     d->i = imap;
