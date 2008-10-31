@@ -54,7 +54,7 @@ public:
     bool isFirstCommand( SmtpCommand * ) const;
 
     void setTransactionId( const String & );
-    String transactionId() const;
+    String transactionId();
 
     void setTransactionTime( class Date * );
     class Date * transactionTime() const;

@@ -513,16 +513,18 @@ void SMTP::setTransactionId( const String & id )
     Rset resets it.
 */
 
-String SMTP::transactionId() const
+String SMTP::transactionId()
 {
     if ( !d->id.isEmpty() )
         return d->id;
 
+    Scope x( log() );
     d->id = fn( transactionTime()->unixTime() );
     d->id.append( '-' );
     d->id.append( fn( getpid() ) );
     d->id.append( '-' );
     d->id.append( log()->id() );
+    log( "Assigned transaction ID " + d->id );
     return d->id;
 }
 
