@@ -22,6 +22,7 @@ public:
         Node() : zero( 0 ), one( 0 ),
                  parent( 0 ),
                  data( 0 ), length( 0 ) {
+            setFirstNonPointer( &length );
         }
 
         uint count() {
@@ -371,7 +372,6 @@ public:
 private:
     virtual Node * node( uint x ) {
         Node * n = new ( x ) Node;
-        n->setFirstNonPointer( &n->length );
         return n;
     }
     virtual void free( Node * n ) {
