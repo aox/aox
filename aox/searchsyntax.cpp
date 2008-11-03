@@ -203,6 +203,15 @@ static Selector * parseSelector( StringList * arguments,
                 arguments->shift();
             }
         }
+        else if ( a == "flagged" ) {
+            if ( n ) {
+                c = new Selector( Selector::Flags, Selector::Contains, *n );
+                arguments->shift();
+            }
+            else {
+                e = "Must have a flag name";
+            }
+        }
         else {
             e = "Bad argument";
         }

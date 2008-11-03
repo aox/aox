@@ -356,7 +356,8 @@ void Selector::simplify()
         case Rfc822Size:
             break;
         case Flags:
-            if ( d->s8 != "\\recent" && !Flag::id( d->s8 ) )
+            if ( d->s8 != "\\recent" &&
+                 !Flag::id( d->s8 ) && Flag::id( "\\seen" ) )
                 d->a = None;
             break;
         case Uid:
@@ -1083,7 +1084,7 @@ String Selector::whereSet( const MessageSet & s )
         root()->d->query->bind( u, s );
         return mm() + ".uid=any($" + fn( u ) + ")";
     }
-    
+
     if ( c == 2 ) {
         uint u2 = placeHolder();
         root()->d->query->bind( u, s.smallest() );
