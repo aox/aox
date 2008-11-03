@@ -101,8 +101,8 @@ is used to store the automatically generated key and certificate.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 3.0.2, released 2008-11-03,
-http://www.archiveopteryx.org/3.0.2
+This man page covers Archiveopteryx version 3.0.3, released 2008-11-03,
+http://www.archiveopteryx.org/3.0.3
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
