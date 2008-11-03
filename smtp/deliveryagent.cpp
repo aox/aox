@@ -435,7 +435,6 @@ static GraphableCounter * messagesSent = 0;
 uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
 {
     d->update = new Query( "select 42", this );
-    d->update->bind( 1, delivery );
     d->t->enqueue( d->update );
 
     uint handled = 0;
