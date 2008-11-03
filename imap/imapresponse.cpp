@@ -48,7 +48,8 @@ ImapResponse::ImapResponse( ImapSession * session, const String & response )
     d->session = session;
     d->imap = session->imap();
     d->text = response;
-    d->imap->respond( this );
+    if ( d->imap )
+        d->imap->respond( this );
 }
 
 
@@ -67,7 +68,8 @@ ImapResponse::ImapResponse( ImapSession * session )
 {
     d->session = session;
     d->imap = session->imap();
-    d->imap->respond( this );
+    if ( d->imap )
+        d->imap->respond( this );
 }
 
 
@@ -83,7 +85,8 @@ ImapResponse::ImapResponse( IMAP * server, const String & response )
 {
     d->imap = server;
     d->text = response;
-    d->imap->respond( this );
+    if ( d->imap )
+        d->imap->respond( this );
 }
 
 
@@ -97,7 +100,8 @@ ImapResponse::ImapResponse( IMAP * server )
     : Garbage(), d( new ImapResponseData )
 {
     d->imap = server;
-    d->imap->respond( this );
+    if ( d->imap )
+        d->imap->respond( this );
 }
 
 
@@ -152,7 +156,7 @@ bool ImapResponse::meaningful() const
 {
     if ( !d->session )
         return true;
-    if ( d->imap->session() != d->session )
+    if ( !d->imap || d->imap->session() != d->session )
         return false;
     return true;
 }
