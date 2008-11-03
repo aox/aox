@@ -20,6 +20,8 @@ public:
     ImapSession( IMAP *, Mailbox *, bool );
     ~ImapSession();
 
+    void abort();
+
     IMAP * imap() const;
 
     void emitUpdates();

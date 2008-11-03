@@ -323,3 +323,14 @@ void ImapSession::clearExpunged( uint u )
     if ( d->exists )
         d->exists--;
 }
+
+
+/*! This reimplementation sends a BYE response and lets it be
+    processed in the usual manner.
+*/
+
+void ImapSession::abort()
+{
+    if ( d->i && d->i->session() == this )
+        (void)new ImapByeResponse( d->i, "BYE Session must be aborted" );
+}

@@ -25,6 +25,7 @@ public:
 
     class Connection * connection() const;
     void end();
+    virtual void abort();
 
     bool initialised() const;
     bool isEmpty() const;

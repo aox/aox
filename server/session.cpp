@@ -97,6 +97,22 @@ void Session::end()
 }
 
 
+/*! Aborts this Session. The default implementation disconnects the
+    client, subclasses may be more subtle.
+*/
+
+void Session::abort()
+{
+    if ( !d->connection )
+        return;
+
+    log( "Need to close connection in order to abort this session" );
+    Scope x( d->connection->log() );
+    log( "Session aborted" );
+    d->connection->react( Connection::Close );
+}
+
+
 /*! Returns true if this Session has updated itself from the database.
 */
 
