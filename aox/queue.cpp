@@ -30,8 +30,7 @@ void ShowQueue::execute()
             "select distinct d.id, d.message, "
             "a.localpart||'@'||a.domain as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
-            "(d.expires_at-current_timestamp)::text as expires_in, "
-            "(current_timestamp-tried_at)::text as tried_at "
+            "(d.expires_at-current_timestamp)::text as expires_in "
             "from deliveries d join addresses a on (d.sender=a.id) "
         );
 

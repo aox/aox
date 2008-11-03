@@ -241,10 +241,12 @@ Query * DeliveryAgent::fetchDelivery( uint messageId )
         new Query(
             "select id, sender, "
             "current_timestamp > expires_at as expired "
-            "from deliveries "
+            "from deliveries d "
             "where message=$1 and "
-            "((tried_at is null or"
-            "  tried_at+interval '1 hour' < current_timestamp)) "
+            "(select"
+            " coalesce(max(last_attempt),current_timestamp-interval '2 hours')"
+            " from delivery_recipients where delivery=d.id) + "
+            "interval '1 hour' < current_timestamp "
             "for update", this );
     q->bind( 1, messageId );
     return q;
@@ -432,9 +434,7 @@ static GraphableCounter * messagesSent = 0;
 
 uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
 {
-    d->update =
-        new Query( "update deliveries set tried_at=current_timestamp "
-                   "where id=$1", this );
+    d->update = new Query( "select 42", this );
     d->update->bind( 1, delivery );
     d->t->enqueue( d->update );
 
