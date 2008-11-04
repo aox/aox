@@ -5,24 +5,12 @@ Schedule
   Arnt is also away on 15 and 16 November.
 
 
-2.12: ?
+3.0.4: 2009-01-??
 
-  Select tried_at as a correlated subquery to cope with schema #76.
-
-
-3.0.3: 2008-10-?
-
-  To be integrated:
-
-  c34a25a37e943174926988555252a6ad9492b8f0 some trawler tried to login as ""...
-  a0521ec1ad065e21ccd09969a74280169341a2cb try to optimise Query::bind...
-  0ac5195325c2ac72639768e7134a1d67fa425225 make Query::bind( const...
-  657b2054d22e8abf030e6a3d9cf4c9043811ccc0 unfucks sort in two ways,
-  and one of them has to go into 3.0.3. (Come to think of it, maybe
-  3.0.2 doesn't have the breakage yet.)
+  Have some good ideas.
 
 
-3.1.0: ?
+3.1.0: 2009-01-??
 
   IMAP RENAME now throws out any sessions accessing the old mailbox.
   Sometimes clients keep sessions active without asking the user; that
