@@ -136,8 +136,7 @@ void Exporter::execute()
             return;
         if ( !m->hasBodies() )
             return;
-        Mailbox * mb = m->mailboxes()->firstElement();
-        if ( mb && !m->hasTrivia( mb ) )
+        if ( !m->hasTrivia() )
             return;
         d->messages->shift();
         String from = "From ";
