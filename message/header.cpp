@@ -788,8 +788,11 @@ void Header::repair()
     // contains more than one address. If it's a copy, or even an
     // illegal subset, we drop it.
 
+    List<Address> * senders = addresses( HeaderField::Sender );
+
     if ( occurrences[(int)HeaderField::Sender] > 0 &&
-         addresses( HeaderField::Sender )->count() > 1 ) {
+         ( !senders || senders->count() > 1 ) )
+    {
         StringList from;
         List<Address>::Iterator fi( addresses( HeaderField::From ) );
         while ( fi ) {
