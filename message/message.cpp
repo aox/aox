@@ -26,7 +26,7 @@ class MessageData
 public:
     MessageData()
         : mailboxes( 0 ), databaseId( 0 ),
-          wrapped( false ), rfc822Size( 0 ),
+          wrapped( false ), rfc822Size( 0 ), internalDate( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
           hasSize( false ), hasBytesAndLines( false )
     {}
@@ -39,13 +39,12 @@ public:
     public:
         Mailbox()
             : Garbage(),
-              mailbox( 0 ), uid( 0 ), modseq( 0 ), internalDate( 0 ),
+              mailbox( 0 ), uid( 0 ), modseq( 0 ),
               annotations( 0 ),
               hasFlags( false ), hasAnnotations( false ), hasTrivia( false ) {}
         ::Mailbox * mailbox;
         uint uid;
         int64 modseq;
-        uint internalDate;
         StringList flags;
         List<Annotation> * annotations;
         bool hasFlags;
@@ -78,6 +77,7 @@ public:
     bool wrapped;
 
     uint rfc822Size;
+    uint internalDate;
 
     bool hasHeaders: 1;
     bool hasAddresses: 1;
@@ -546,31 +546,27 @@ void Message::addMailbox( Mailbox * mb )
 }
 
 
-/*! Notifies this Message that its internaldate in \a mb is \a id. The
-    Message will remember \a id and internalDate() will return it.
+/*! Notifies this Message that its internaldate is \a id. The Message
+    will remember \a id and internalDate() will return it.
 */
 
-void Message::setInternalDate( Mailbox * mb, uint id )
+void Message::setInternalDate( uint id )
 {
-    MessageData::Mailbox * m = d->mailbox( mb, true );
-    m->internalDate = id;
+    d->internalDate = id;
 }
 
 
-/*! Returns the message's internaldate in \a mb, which is meant to be
-    the time when Archiveopteryx first saw it, although it actually is
+/*! Returns the message's internaldate mb, which is meant to be the
+    time when Archiveopteryx first saw it, although it actually is
     whatever was set using setInternalDate().
 
     If the messages comes from the database, this function's return
     value is valid only if hasTrivia();
 */
 
-uint Message::internalDate( Mailbox * mb ) const
+uint Message::internalDate() const
 {
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return m->internalDate;
-    return 0;
+    return d->internalDate;
 }
 
 
