@@ -53,8 +53,8 @@ public:
 
     void setRfc822Size( uint );
     uint rfc822Size() const;
-    void setInternalDate( Mailbox *, uint );
-    uint internalDate( Mailbox * ) const;
+    void setInternalDate( uint );
+    uint internalDate() const;
     void setModSeq( Mailbox *, int64 );
     int64 modSeq( Mailbox * ) const;
 

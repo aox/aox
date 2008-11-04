@@ -1067,7 +1067,7 @@ String Fetch::flagList( Message * m, uint uid, Session * session )
 String Fetch::internalDate( Message * m )
 {
     Date date;
-    date.setUnixTime( m->internalDate( session()->mailbox() ) );
+    date.setUnixTime( m->internalDate() );
     return "\"" + date.imap() + "\"";
 }
 

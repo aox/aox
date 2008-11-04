@@ -390,7 +390,7 @@ void Append::process( class Appendage * h )
     }
 
     h->message = new Message;
-    h->message->setInternalDate( d->mailbox, h->date.unixTime() );
+    h->message->setInternalDate( h->date.unixTime() );
     h->message->parse( h->text );
     h->message->addMailbox( d->mailbox );
     h->message->setFlags( d->mailbox, &h->flags );

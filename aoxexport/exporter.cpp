@@ -156,8 +156,8 @@ void Exporter::execute()
             from.append( "invalid@invalid.invalid" );
         from.append( "  " );
         Date id;
-        if ( mb )
-            id.setUnixTime( m->internalDate( mb ) );
+        if ( m->internalDate() )
+            id.setUnixTime( m->internalDate() );
         else if ( m->header()->date() )
             id = *m->header()->date();
         // Tue Jul 23 19:39:23 2002

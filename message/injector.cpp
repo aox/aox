@@ -1636,8 +1636,8 @@ uint Injector::internalDate( Mailbox * mb, Message * m ) const
 {
     if ( !m || !mb )
         return 0;
-    if ( m->internalDate( mb ) )
-        return m->internalDate( mb );
+    if ( m->internalDate() )
+        return m->internalDate();
 
     // first: try the most recent received field. this should be
     // very close to the correct internaldate.
@@ -1666,6 +1666,6 @@ uint Injector::internalDate( Mailbox * mb, Message * m ) const
     if ( !id.valid() )
         id.setCurrentTime();
 
-    m->setInternalDate( mb, id.unixTime() );
+    m->setInternalDate( id.unixTime() );
     return id.unixTime();
 }

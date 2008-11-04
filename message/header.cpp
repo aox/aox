@@ -904,7 +904,7 @@ void Header::repair( Multipart * p, const String & body )
                 List<Mailbox>::Iterator mb( adam->mailboxes() );
                 uint id = 0;
                 while ( mb && !id ) {
-                    id = adam->internalDate( mb );
+                    id = adam->internalDate();
                     ++mb;
                 }
                 if ( id )

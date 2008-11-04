@@ -350,7 +350,8 @@ void Fetcher::start()
     log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
          what.join( " " ) );
 
-    if ( d->messages.count() == 1 && !d->trivia &&
+    if ( d->messages.count() == 1 &&
+         !d->trivia && !d->flags && !d->annotations &&
          d->messages.firstElement()->databaseId() ) {
         // we're fetching a message by ID, not UID. just do it.
         d->batchSize = 1;
@@ -449,7 +450,7 @@ void Fetcher::findMessages()
                 m->setDatabaseId( r->getInt( "message" ) );
                 if ( modseq ) {
                     m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );
-                    m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
+                    m->setInternalDate( r->getInt( "idate" ) );
                 }
             }
             r = d->findMessages->nextRow();
@@ -1227,7 +1228,7 @@ bool FetcherData::SizeDecoder::isDone( Message * m ) const
 
 void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
 {
-    m->setInternalDate( d->mailbox, r->getInt( "idate" ) );
+    m->setInternalDate( r->getInt( "idate" ) );
     m->setModSeq( d->mailbox, r->getBigint( "modseq" ) );
 }
 
