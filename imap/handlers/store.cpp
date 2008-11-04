@@ -523,6 +523,7 @@ void Store::execute()
     }
 
     if ( !d->updatedModseqs ) {
+        d->updatedModseqs = true;
         uint i = d->s.count();
         while ( i ) {
             Message * c = MessageCache::find( m, d->s.value( i ) );
@@ -532,7 +533,6 @@ void Store::execute()
             }
             i--;
         }
-        d->updatedModseqs = false;
     }
 
     if ( m->nextModSeq() <= d->modseq )
