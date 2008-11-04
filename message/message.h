@@ -71,10 +71,8 @@ public:
     void setHeadersFetched();
     bool hasAddresses() const;
     void setAddressesFetched();
-    bool hasSize() const;
-    void setSizeFetched();
-    bool hasTrivia( Mailbox * ) const;
-    void setTriviaFetched( Mailbox *, bool );
+    bool hasTrivia() const;
+    void setTriviaFetched( bool );
     bool hasBodies() const;
     void setBodiesFetched();
     bool hasAnnotations( Mailbox * ) const;

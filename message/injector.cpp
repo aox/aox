@@ -1025,9 +1025,9 @@ void Injector::selectMessageIds()
             Row * r = d->select->nextRow();
             m->setDatabaseId( r->getInt( "id" ) );
             d->copy->bind( 1, m->databaseId() );
-            if ( !m->hasSize() ) {
+            if ( !m->hasTrivia() ) {
                 m->setRfc822Size( m->rfc822().length() );
-                m->setSizeFetched();
+                m->setTriviaFetched( true );
             }
             d->copy->bind( 2, m->rfc822Size() );
             d->copy->submitLine();
@@ -1590,7 +1590,6 @@ void Injector::announce()
             m->resortFlags();
             m->setFlagsFetched( mb, true );
             m->setAnnotationsFetched( mb, true );
-            m->setTriviaFetched( mb, true );
             MessageCache::insert( mb, uid, m );
 
             List<Session>::Iterator si( mb->sessions() );

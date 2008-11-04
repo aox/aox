@@ -409,7 +409,7 @@ bool PopCommand::fetch822Size()
     while ( n >= 1 ) {
         uint uid = d->set.value( n );
         Message * m = d->pop->message( uid );
-        if ( m && !m->hasSize() )
+        if ( m && !m->hasTrivia() )
             l->prepend( m );
         n--;
     }
@@ -420,7 +420,7 @@ bool PopCommand::fetch822Size()
     if ( !d->sentFetch ) {
         d->sentFetch = true;
         Fetcher * mtf = new Fetcher( s->mailbox(), l, this );
-        mtf->fetch( Fetcher::Size );
+        mtf->fetch( Fetcher::Trivia );
         mtf->execute();
     }
 

@@ -735,7 +735,6 @@ void Fetch::sendFetchQueries()
     bool haveHeader = true;
     bool haveBody = true;
     bool havePartNumbers = true;
-    bool haveSize = true;
     bool haveTrivia = true;
     bool haveFlags = true;
     bool haveAnnotations = true;
@@ -744,15 +743,8 @@ void Fetch::sendFetchQueries()
         uint uid = d->set.value( 1 );
         d->set.remove( uid );
         Message * m = MessageCache::find( mb, uid );
-        if ( !m ) {
+        if ( !m )
             m = new Message;
-        }
-        else if ( m->hasTrivia( mb ) &&
-                  m->modSeq( mb ) + 1 < mb->nextModSeq() ) {
-            m->setFlagsFetched( mb, false );
-            m->setAnnotationsFetched( mb, false );
-            m->setTriviaFetched( mb, false );
-        }
         if ( !m->hasAddresses() )
             haveAddresses = false;
         if ( !m->hasHeaders() )
@@ -761,9 +753,7 @@ void Fetch::sendFetchQueries()
             havePartNumbers = false;
         if ( !m->hasBodies() )
             haveBody = false;
-        if ( !m->hasSize() )
-            haveSize = false;
-        if ( !m->hasTrivia( mb ) )
+        if ( !m->hasTrivia() )
             haveTrivia = false;
         if ( !m->hasFlags( mb ) )
             haveFlags = false;
@@ -785,8 +775,8 @@ void Fetch::sendFetchQueries()
         f->fetch( Fetcher::PartNumbers );
     if ( d->flags && !haveFlags )
         f->fetch( Fetcher::Flags );
-    if ( d->rfc822size && !haveSize )
-        f->fetch( Fetcher::Size );
+    if ( d->rfc822size && !haveTrivia )
+        f->fetch( Fetcher::Trivia );
     if ( ( d->internaldate || d->modseq ) && !haveTrivia )
         f->fetch( Fetcher::Trivia );
     if ( d->annotation && !haveAnnotations )
@@ -1540,9 +1530,9 @@ void Fetch::pickup()
             ok = false;
         if ( d->flags && !m->hasFlags( mb ) )
             ok = false;
-        if ( d->rfc822size && !m->hasSize() )
+        if ( d->rfc822size && !m->hasTrivia() )
             ok = false;
-        if ( ( d->internaldate || d->modseq ) && !m->hasTrivia( mb ) )
+        if ( ( d->internaldate || d->modseq ) && !m->hasTrivia() )
             ok = false;
         if ( d->annotation && !m->hasAnnotations( mb ) )
             ok = false;

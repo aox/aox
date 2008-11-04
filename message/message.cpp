@@ -28,7 +28,7 @@ public:
         : mailboxes( 0 ), databaseId( 0 ),
           wrapped( false ), rfc822Size( 0 ), internalDate( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
-          hasSize( false ), hasBytesAndLines( false )
+          hasTrivia( false ), hasBytesAndLines( false )
     {}
 
     String error;
@@ -41,7 +41,7 @@ public:
             : Garbage(),
               mailbox( 0 ), uid( 0 ), modseq( 0 ),
               annotations( 0 ),
-              hasFlags( false ), hasAnnotations( false ), hasTrivia( false ) {}
+              hasFlags( false ), hasAnnotations( false ) {}
         ::Mailbox * mailbox;
         uint uid;
         int64 modseq;
@@ -49,7 +49,6 @@ public:
         List<Annotation> * annotations;
         bool hasFlags;
         bool hasAnnotations;
-        bool hasTrivia;
     };
 
     List<Mailbox> * mailboxes;
@@ -82,7 +81,7 @@ public:
     bool hasHeaders: 1;
     bool hasAddresses: 1;
     bool hasBodies: 1;
-    bool hasSize : 1;
+    bool hasTrivia : 1;
     bool hasBytesAndLines : 1;
 };
 
@@ -770,16 +769,13 @@ void Message::setAnnotationsFetched( Mailbox * mb, bool ok )
 }
 
 
-/*! Returns true if this message knows its internalDate() and modSeq()
-    for \a mb, and false if not.
+/*! Returns true if this message knows its internalDate() and
+    rfc822Size(), and false if not.
 */
 
-bool Message::hasTrivia( Mailbox * mb ) const
+bool Message::hasTrivia() const
 {
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return m->hasTrivia;
-    return false;
+    return d->hasTrivia;
 }
 
 
@@ -788,29 +784,9 @@ bool Message::hasTrivia( Mailbox * mb ) const
     ok is false.
 */
 
-void Message::setTriviaFetched( Mailbox * mb, bool ok )
+void Message::setTriviaFetched( bool ok )
 {
-    MessageData::Mailbox * m = d->mailbox( mb, ok );
-    if ( m )
-        m->hasTrivia = ok;
-}
-
-
-/*! Returns true if rfc822Size() will return a correct size, and false
-    if not.
-*/
-
-bool Message::hasSize() const
-{
-    return d->hasSize;
-}
-
-
-/*! Records that this message knows its rfc822Size(). */
-
-void Message::setSizeFetched()
-{
-    d->hasSize = true;
+    d->hasTrivia = ok;
 }
 
 
