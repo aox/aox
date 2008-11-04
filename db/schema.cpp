@@ -509,6 +509,8 @@ bool Schema::singleStep()
         c = stepTo76(); break;
     case 76:
         c = stepTo77(); break;
+    case 77:
+        c = stepTo78(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3760,6 +3762,30 @@ bool Schema::stepTo77()
             d->t->execute();
         }
         d->substate = 2;
+    }
+
+    return true;
+}
+
+
+/*! Move mailbox_messages.idate to messages.idate. */
+
+bool Schema::stepTo78()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Move mailbox_messages.idate to messages" );
+        d->substate = 1;
+        d->t->enqueue( new Query( "alter table messages add idate int", 0 ) );
+        d->t->enqueue( new Query( "update messages set idate=mm.idate "
+                                  "from mailbox_messages mm where "
+                                  "mm.message=messages.id", 0 ) );
+        d->t->enqueue( new Query( "update messages set idate=0 "
+                                  "where idate is null", 0 ) );
+        d->t->enqueue( new Query( "alter table messages alter idate "
+                                  "set not null", 0 ) );
+        d->t->enqueue( new Query( "alter table mailbox_messages "
+                                  "drop idate", 0 ) );
+        d->t->execute();
     }
 
     return true;
