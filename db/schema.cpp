@@ -3712,6 +3712,7 @@ bool Schema::stepTo76()
         d->t->enqueue( new Query( "alter table deliveries drop tried_at", 0 ) );
         d->t->execute();
     }
+
     if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
@@ -3727,17 +3728,39 @@ bool Schema::stepTo76()
 }
 
 
-/*! Add an ldapdn column to users. */
+/*! Add an ldapdn column to users (if it doesn't already exist).
+
+    3.0.3/schema.pg was mistakenly released with mailstore.revision=76,
+    but with all the changes from schema #77. So fresh installations of
+    3.0.3 will later try to execute stepTo77(), and we need to silently
+    succeed if there's nothing to do.
+*/
 
 bool Schema::stepTo77()
 {
     if ( d->substate == 0 ) {
         describeStep( "Add an LDAP-DN column to users" );
         d->substate = 1;
-        d->t->enqueue( new Query( "alter table users add ldapdn text", 0 ) );
+        d->q = new Query( "select 42 as answer "
+                          "from pg_attribute a "
+                          "join pg_class c on (a.attrelid=c.oid) "
+                          "join pg_namespace n on (c.relnamespace=n.oid) "
+                          "where c.relname='users' and a.attname='ldapdn' and "
+                          "n.nspname=$1", this );
+        d->q->bind( 1, Configuration::text( Configuration::DbSchema ) );
+        d->t->enqueue( d->q );
         d->t->execute();
     }
 
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        if ( !d->q->hasResults() ) {
+            d->t->enqueue( new Query( "alter table users add ldapdn text", 0 ) );
+            d->t->execute();
+        }
+        d->substate = 2;
+    }
+
     return true;
-    
 }
