@@ -14,7 +14,6 @@
 #include "eventloop.h"
 #include "injector.h"
 #include "mailbox.h"
-#include "message.h"
 #include "query.h"
 #include "file.h"
 #include "user.h"
@@ -44,13 +43,13 @@ class Deliverator
 public:
     Query * q;
     Injector * i;
-    Message * m;
+    InjectableMessage * m;
     UString mbn;
     String un;
     Permissions * p;
     Mailbox * mb;
 
-    Deliverator( Message * message,
+    Deliverator( InjectableMessage * message,
                  const UString & mailbox, const String & user )
         : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user ),
           p( 0 ), mb( 0 )
@@ -123,8 +122,12 @@ public:
                   mbn.ascii().quoted( '\'' ) );
 
         if ( !i ) {
-            m->addMailbox( mb );
-            i = new Injector( m, this );
+            StringList x;
+            m->setFlags( mb, &x );
+            i = new Injector( this );
+            List<InjectableMessage> y;
+            y.append( m );
+            i->addInjection( &y );
             i->execute();
         }
 
@@ -222,7 +225,7 @@ int main( int argc, char *argv[] )
 
     Configuration::setup( "archiveopteryx.conf" );
 
-    Message * message = new Message;
+    InjectableMessage * message = new InjectableMessage;
     message->parse( contents );
     if ( !message->error().isEmpty() ) {
         fprintf( stderr,

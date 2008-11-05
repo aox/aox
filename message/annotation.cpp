@@ -20,8 +20,10 @@ public:
     ie. it has an entr name, a value, an owner and associated data.
     The Annotation object doesn't register itself or maintain pointers
     to other objects - it's a simple value.
-    Message::replaceAnnotation() and Message::annotations() are the
-    main functions using Annotation.
+
+    InjectableMessage::replaceAnnotation(),
+    InjectableMessage::annotations(), Fetch::annotation() and the
+    Seelctor are the main users of Annotation.
 */
 
 /*! Constructs an empty Annotation. */

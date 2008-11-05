@@ -5,9 +5,12 @@
 
 #include "saslconnection.h"
 
+#include "map.h"
+
 class User;
 class String;
 class Session;
+class Message;
 
 
 class POP
@@ -39,6 +42,7 @@ public:
     void setReader( class PopCommand * );
 
     void markForDeletion( uint );
+    void setMessageMap( Map<Message> * );
 
     void badUser();
 

@@ -27,20 +27,22 @@ public:
     void parseAttribute( bool );
     static Section * parseSection( ImapParser *, bool = false );
     static String sectionData( Section *, Message * );
-    static String flagList( Message *, uint, class Session * );
-    static String annotation( Multipart *, class User *, Mailbox * m,
-                              const StringList &,
-                              const StringList & );
-
-    void trickle();
+    String flagList( uint );
+    String annotation( class User *, uint,
+                       const StringList &, const StringList & );
 
     String makeFetchResponse( Message *, uint, uint );
+
+    Message * message( uint ) const;
+    void forget( uint );
 
 private:
     void parseFetchModifier();
     void parseBody( bool );
     void parseAnnotation();
     void sendFetchQueries();
+    void sendFlagQuery();
+    void sendAnnotationsQuery();
     String dotLetters( uint, uint );
     String internalDate( Message * );
     String envelope( Message * );
@@ -58,12 +60,13 @@ class ImapFetchResponse
     : public ImapResponse
 {
 public:
-    ImapFetchResponse( ImapSession *, Message *, Fetch * );
+    ImapFetchResponse( ImapSession *, Fetch *, uint );
     String text() const;
+    void setSent();
 
 private:
-    Message * m;
     Fetch * f;
+    uint u;
 };
 
 

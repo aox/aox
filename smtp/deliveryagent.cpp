@@ -436,8 +436,8 @@ Injector * DeliveryAgent::injectBounce( DSN * dsn )
         return 0;
     l->append( dsn->sender() );
 
-    Injector * i = new Injector( dsn->result(), this );
-    i->addDelivery( new Address( "", "", "" ), l );
+    Injector * i = new Injector( this );
+    i->addDelivery( dsn->result(), new Address( "", "", "" ), l );
     return i;
 }
 

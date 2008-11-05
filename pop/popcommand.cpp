@@ -3,10 +3,12 @@
 #include "popcommand.h"
 
 #include "tls.h"
+#include "map.h"
 #include "utf.h"
 #include "list.h"
 #include "user.h"
 #include "plain.h"
+#include "query.h"
 #include "buffer.h"
 #include "fetcher.h"
 #include "message.h"
@@ -15,6 +17,7 @@
 #include "mechanism.h"
 #include "stringlist.h"
 #include "permissions.h"
+#include "messagecache.h"
 
 
 class PopCommandData
@@ -26,7 +29,7 @@ public:
           tlsServer( 0 ), m( 0 ), r( 0 ),
           user( 0 ), mailbox( 0 ), permissions( 0 ),
           session( 0 ), sentFetch( false ), started( false ),
-          message( 0 ), n( 0 )
+          message( 0 ), n( 0 ), findIds( 0 ), map( 0 )
     {}
 
     POP * pop;
@@ -47,6 +50,9 @@ public:
     bool started;
     Message * message;
     int n;
+
+    Query * findIds;
+    Map<Message> * map;
 
     class PopSession
         : public Session
@@ -391,7 +397,39 @@ bool PopCommand::session()
     if ( !d->session->initialised() )
         return false;
 
+    if ( !d->map ) {
+        MessageSet s( d->session->messages() );
+        MessageSet r;
+        d->map = new Map<Message>;
+        while ( !s.isEmpty() ) {
+            uint uid = s.smallest();
+            s.remove( uid );
+            Message * m = MessageCache::provide( d->mailbox, uid );
+            if ( !m->databaseId() )
+                r.add( uid );
+            d->map->insert( uid, m );
+        }
+        if ( !r.isEmpty() ) {
+            d->findIds = new Query( "select message, uid "
+                                    "from mailbox_messages "
+                                    "where mailbox=$1 and uid=any($2",
+                                    this );
+            d->findIds->bind( 1, d->mailbox->id() );
+            d->findIds->bind( 2, r );
+            d->findIds->execute();
+        }
+    }
+    if ( d->findIds && !d->findIds->done() )
+        return false;
+    while ( d->findIds && d->findIds->hasResults() ) {
+        Row * r = d->findIds->nextRow();
+        Message * m = d->map->find( r->getInt( "uid" ) );
+        if ( m )
+            m->setDatabaseId( r->getInt( "message" ) );
+    }
+
     d->session->clearUnannounced();
+    d->pop->setMessageMap( d->map );
     d->pop->setState( POP::Transaction );
     d->pop->ok( "Done" );
     return true;
@@ -403,7 +441,6 @@ bool PopCommand::session()
 bool PopCommand::fetch822Size()
 {
     ::List<Message> * l = new ::List<Message>;
-    ::Session * s = d->pop->session();
 
     uint n = d->set.count();
     while ( n >= 1 ) {
@@ -419,7 +456,7 @@ bool PopCommand::fetch822Size()
 
     if ( !d->sentFetch ) {
         d->sentFetch = true;
-        Fetcher * mtf = new Fetcher( s->mailbox(), l, this );
+        Fetcher * mtf = new Fetcher( l, this );
         mtf->fetch( Fetcher::Trivia );
         mtf->execute();
     }
@@ -550,10 +587,13 @@ bool PopCommand::retr( bool lines )
         }
 
         d->message = d->pop->message( s->uid( msn ) );
-        ::List<Message> * l = new ::List<Message>;
-        l->append( d->message );
+        if ( !d->message ) {
+            d->pop->err( "No such message" );
+            return true;
+        }
+            
         d->started = true;
-        Fetcher * f = new Fetcher( s->mailbox(), l, this );
+        Fetcher * f = new Fetcher( d->message, this );
         if ( !d->message->hasBodies() )
             f->fetch( Fetcher::Body );
         if ( !d->message->hasHeaders() )

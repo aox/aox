@@ -8,6 +8,7 @@
 #include "stringlist.h"
 #include "frontmatter.h"
 #include "permissions.h"
+#include "messagecache.h"
 #include "messagerendering.h"
 #include "addressfield.h"
 #include "mimefields.h"
@@ -16,6 +17,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "header.h"
+#include "query.h"
 #include "date.h"
 #include "utf.h"
 
@@ -25,11 +27,12 @@ class ArchiveMessageData
 {
 public:
     ArchiveMessageData()
-        : link( 0 ), message( 0 ), linkToThread( true )
+        : link( 0 ), message( 0 ), query( 0 ), linkToThread( true )
     {}
 
     Link * link;
     Message * message;
+    Query * query;
     String js;
     String buttons;
     bool linkToThread;
@@ -59,15 +62,41 @@ void ArchiveMessage::execute()
 
         page()->requireRight( m, Permissions::Read );
 
-        d->message = new Message;
-        d->message->setUid( m, d->link->uid() );
+        d->message = MessageCache::find( m, d->link->uid() );
+        if ( !d->message ) {
+            if ( !d->query ) {
+                d->query = new Query( "select message from mailbox_messages "
+                                      "where mailbox=$1 and uid=$2", this );
+                d->query->bind( 1, m->id() );
+                d->query->bind( 2, d->link->uid() );
+                d->query->execute();
+            }
+            if ( !d->query->done() )
+                return;
+            Row * r = d->query->nextRow();
+            d->message = new Message;
+            if ( r ) {
+                d->message->setDatabaseId( r->getInt( "message" ) );
+                MessageCache::insert( m, d->link->uid(), d->message );
+            }
+            else {
+                // the message has been deleted or never was
+                // there. XXX what to do?
+                d->message->setHeadersFetched();
+                d->message->setAddressesFetched();
+                d->message->setBodiesFetched();
+            }
+        }
         List<Message> messages;
         messages.append( d->message );
 
-        Fetcher * f = new Fetcher( m, &messages, page() );
-        f->fetch( Fetcher::OtherHeader );
-        f->fetch( Fetcher::Body );
-        f->fetch( Fetcher::Addresses );
+        Fetcher * f = new Fetcher( &messages, this );
+        if ( !d->message->hasHeaders() )
+            f->fetch( Fetcher::OtherHeader );
+        if ( !d->message->hasBodies() )
+            f->fetch( Fetcher::Body );
+        if ( d->message->hasAddresses() )
+            f->fetch( Fetcher::Addresses );
         f->execute();
     }
 
@@ -118,11 +147,12 @@ void ArchiveMessage::execute()
 }
 
 
-/*! Returns an HTML representation of the Bodypart \a bp, which belongs
-    to the Message \a first.
+/*! Returns an HTML representation of the Bodypart \a bp, which
+    belongs to the Message \a first. \a first is assumed to have UID
+    \a uid in the releavant mailbox.
 */
 
-String ArchiveMessage::bodypart( Message *first, Bodypart *bp )
+String ArchiveMessage::bodypart( Message * first, uint uid, Bodypart *bp )
 {
     String s;
     Utf8Codec u;
@@ -130,7 +160,7 @@ String ArchiveMessage::bodypart( Message *first, Bodypart *bp )
     Link l;
     l.setType( d->link->type() );
     l.setMailbox( d->link->mailbox() );
-    l.setUid( first->uid( d->link->mailbox() ) );
+    l.setUid( uid );
     l.setPart( first->partNumber( bp ) );
 
     String type = "text/plain";
@@ -173,7 +203,7 @@ String ArchiveMessage::bodypart( Message *first, Bodypart *bp )
         s.append( "<div class=multipart>\n" );
         List< Bodypart >::Iterator it( bp->children() );
         while ( it ) {
-            s.append( bodypart( first, it ) );
+            s.append( bodypart( first, uid, it ) );
             ++it;
         }
         s.append( "</div>\n" );
@@ -322,7 +352,7 @@ String ArchiveMessage::message( Message *first, Message *m )
 
     List< Bodypart >::Iterator jt( m->children() );
     while ( jt ) {
-        s.append( bodypart( first, jt ) );
+        s.append( bodypart( first, d->link->uid(), jt ) );
         ++jt;
     }
 

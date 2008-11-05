@@ -8,6 +8,7 @@
 #include "message.h"
 #include "fetcher.h"
 #include "imapparser.h"
+#include "messagecache.h"
 #include "handlers/fetch.h"
 #include "handlers/section.h"
 #include "permissions.h"
@@ -42,8 +43,10 @@ struct MailboxSet
     {}
 
     Mailbox * mailbox;
+    MessageSet a;
     MessageSet h;
     MessageSet b;
+    MessageSet i;
 };
 
 
@@ -53,7 +56,7 @@ class IufData
 public:
     IufData()
         : state( 0 ), done( false ), urls( 0 ), owner( 0 ),
-          checker( 0 ), fetchers( 0 )
+          checker( 0 ), fetchers( 0 ), findIds( 0 )
     {}
 
     int state;
@@ -64,6 +67,7 @@ public:
     EventHandler * owner;
     PermissionsChecker * checker;
     List<Fetcher> * fetchers;
+    Query * findIds;
 };
 
 
@@ -289,52 +293,126 @@ void ImapUrlFetcher::execute()
         d->state = 4;
 
         List<MailboxSet>::Iterator ms( sets );
-        while ( ms ) {
-            MessageSet either;
-            either.add( ms->h );
-            either.add( ms->b );
-            uint i = either.count();
-            List<Message> * hm = new List<Message>;
-            List<Message> * bm = new List<Message>;
-            while ( i ) {
-                Message * m = new Message;
-                uint uid = either.value( i );
-                m->setUid( ms->mailbox, uid );
-                if ( ms->h.contains( uid ) )
-                    hm->prepend( m );
-                if ( ms->b.contains( uid ) )
-                    bm->prepend( m );
-                List<UrlLink>::Iterator it( d->urls );
-                while ( it ) {
-                    if ( it->mailbox == ms->mailbox && it->url->uid() == uid )
-                        it->message = m;
-                    ++it;
+        List<Message> * al = new List<Message>;
+        List<Message> * hl = new List<Message>;
+        List<Message> * bl = 0;
+        bool h = true;
+        bool needIds = false;
+        while ( !bl ) {
+            if ( !h )
+                bl = new List<Message>;
+            while ( ms ) {
+                MessageSet s;
+                if ( h )
+                    s = ms->h;
+                else
+                    s = ms->b;
+                while ( !s.isEmpty() ) {
+                    uint uid = s.smallest();
+                    s.remove( uid );
+                    Message * m = MessageCache::provide( ms->mailbox, uid );
+                    if ( !m->databaseId() ) {
+                        ms->i.add( uid );
+                        needIds = true;
+                    }
+                    if ( h ) {
+                        if ( !m->hasHeaders() )
+                            hl->append( m );
+                        if ( !m->hasAddresses() )
+                            al->append( m );
+                    }
+                    else {
+                        if ( m->hasBodies() )
+                            bl->append( m );
+                    }
+                    List<UrlLink>::Iterator it( d->urls );
+                    while ( it ) {
+                        if ( it->mailbox == ms->mailbox &&
+                             it->url->uid() == uid )
+                            it->message = m;
+                        ++it;
+                    }
                 }
-                i--;
             }
-
-            Fetcher * f = 0;
-            if ( !hm->isEmpty() ) {
-                f = new Fetcher( ms->mailbox, hm, this );
-                f->fetch( Fetcher::OtherHeader );
-                f->fetch( Fetcher::Addresses );
-                d->fetchers->append( f );
-            }
-
-            if ( !bm->isEmpty() ) {
-                if ( !f ) {
-                    f = new Fetcher( ms->mailbox, bm, this );
-                    d->fetchers->append( f );
+            h = false;
+        }
+        if ( !al->isEmpty() ) {
+            Fetcher * f = new Fetcher( al, this );
+            f->fetch( Fetcher::Addresses );
+            d->fetchers->append( f );
+        }
+        if ( !hl->isEmpty() ) {
+            Fetcher * f = new Fetcher( al, this );
+            f->fetch( Fetcher::OtherHeader );
+            d->fetchers->append( f );
+        }
+        if ( !bl->isEmpty() ) {
+            Fetcher * f = new Fetcher( al, this );
+            f->fetch( Fetcher::Body );
+            d->fetchers->append( f );
+        }
+        if ( needIds ) {
+            uint n = 1;
+            d->findIds = new Query( "", this );
+            String a = "select mailbox, uid, message "
+                       "from mailbox_messages where ";
+            bool first = true;
+            List<MailboxSet>::Iterator it( sets );
+            while ( it ) {
+                if ( !it->i.isEmpty() ) {
+                    if ( !first )
+                        a.append( " or " );
+                    first = false;
+                    a.append( "(mailbox=$" );
+                    a.appendNumber( n );
+                    d->findIds->bind( n, it->mailbox->id() );
+                    n++;
+                    a.append( " and uid=any($" );
+                    a.appendNumber( n );
+                    d->findIds->bind( n, it->i );
+                    n++;
+                    a.append( "))" );
                 }
-                f->fetch( Fetcher::Body );
+                ++it;
             }
-            f->execute();
-
-            ++ms;
+            d->findIds->setString( a );
+            d->findIds->execute();
+        }
+        else {
+            List<Fetcher>::Iterator f( d->fetchers );
+            while ( f ) {
+                f->execute();
+                ++f;
+            }
         }
     }
 
     if ( d->state == 4 ) {
+        if ( d->findIds ) {
+            while ( d->findIds->hasResults() ) {
+                Row * r = d->findIds->nextRow();
+                Mailbox * mailbox = Mailbox::find( r->getInt( "mailbox" ) );
+                uint uid = r->getInt( "uid" );
+                uint id = r->getInt( "message" );
+                List<UrlLink>::Iterator it( d->urls );
+                while ( it ) {
+                    if ( it->mailbox == mailbox &&
+                         it->url->uid() == uid &&
+                         it->message )
+                        it->message->setDatabaseId( id );
+                    ++it;
+                }
+            }
+            if ( !d->findIds->done() )
+                return;
+            d->findIds = 0;
+            List<Fetcher>::Iterator f( d->fetchers );
+            while ( f ) {
+                f->execute();
+                ++f;
+            }
+        }
+
         List<Fetcher>::Iterator f( d->fetchers );
         while ( f ) {
             if ( !f->done() )

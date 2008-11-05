@@ -71,14 +71,14 @@ class AddressCreator
     : public EventHandler
 {
 public:
-    List<Address> * addresses;
+    Dict<Address> * addresses;
     Transaction * parent;
     Transaction * t;
     Query * q;
     uint state;
     Dict<Address> unided;
 
-    AddressCreator( List<Address> * a, Transaction * tr )
+    AddressCreator( Dict<Address> * a, Transaction * tr )
         : addresses( a ), parent( tr ), t( 0 ), q( 0 ), state( 0 )
     {
     }
@@ -120,7 +120,7 @@ void AddressCreator::selectAddresses()
 
     uint i = 0;
     StringList sl;
-    List<Address>::Iterator it( addresses );
+    Dict<Address>::Iterator it( addresses );
     while ( it && i < 128 ) {
         Address * a = it;
         if ( !a->id() ) {
@@ -247,37 +247,13 @@ class InjectorData
 {
 public:
     InjectorData()
-        : messages( 0 ), owner( 0 ),
+        : owner( 0 ),
           state( Inactive ), failed( false ), transaction( 0 ),
-          addresses( new List<Address> ),
-          mailboxes( new SortedList<Mailbox> ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
           creators( 0 ), addressCreator( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), subtransaction( 0 )
     {}
-
-    List<Message> * messages;
-    EventHandler * owner;
-
-    State state;
-    bool failed;
-
-    Transaction *transaction;
-
-    StringList flags;
-    StringList fields;
-    StringList annotationNames;
-    List<Address> * addresses;
-    Dict<Address> knownAddresses;
-
-    SortedList<Mailbox> * mailboxes;
-
-    HelperRowCreator * fieldNameCreator;
-    HelperRowCreator * flagCreator;
-    HelperRowCreator * annotationNameCreator;
-    List<HelperRowCreator> * creators;
-    AddressCreator * addressCreator;
 
     struct Delivery
         : public Garbage
@@ -291,7 +267,38 @@ public:
         List<Address> * recipients;
     };
 
+    List<Message> messages;
+    List<InjectableMessage> injectables;
     List<Delivery> deliveries;
+    
+    EventHandler * owner;
+
+    State state;
+    bool failed;
+
+    Transaction *transaction;
+
+    StringList flags;
+    StringList fields;
+    StringList annotationNames;
+    Dict<Address> addresses;
+
+    struct Mailbox
+        : public Garbage
+    {
+        Mailbox( ::Mailbox * m ): Garbage(), mailbox( m ) {}
+        ::Mailbox * mailbox;
+        List<InjectableMessage> messages;
+    };
+
+    Map<Mailbox> mailboxes;
+
+    HelperRowCreator * fieldNameCreator;
+    HelperRowCreator * flagCreator;
+    HelperRowCreator * annotationNameCreator;
+    List<HelperRowCreator> * creators;
+    AddressCreator * addressCreator;
+
     List<Query> * queries;
     Query * select;
     Query * insert;
@@ -323,7 +330,7 @@ void Injector::setup()
 {
     lockUidnext =
         new PreparedStatement(
-            "select uidnext,nextmodseq,first_recent from mailboxes "
+            "select id,uidnext,nextmodseq,first_recent from mailboxes "
             "where id=$1 for update"
         );
     Allocator::addEternal( lockUidnext, "lockUidnext" );
@@ -364,41 +371,38 @@ void Injector::setup()
 }
 
 
-/*! Creates a new Injector to deliver the \a messages on behalf of
-    the \a owner, which is notified when the injection is completed.
+/*! Creates a new Injector to inject messages into the database on
+    behalf of the \a owner, which is notified when the injection is
+    completed.
 */
 
-Injector::Injector( List<Message> * messages, EventHandler * owner )
+Injector::Injector( EventHandler * owner )
     : d( new InjectorData )
 {
     if ( !lockUidnext )
         setup();
 
     d->owner = owner;
-    d->messages = messages;
 }
 
 
-/*! \overload
-    Creates a new Injector to deliver the \a message on behalf of the
-    \a owner, which is notified when the injection is completed. This
-    single-message variant is provided for convenience.
-*/
+/*!  Notes that \a messages must be injected into the database. */
 
-Injector::Injector( Message * message, EventHandler * owner )
-    : d( new InjectorData )
+void Injector::addInjection( List<InjectableMessage> * messages )
 {
-    if ( !lockUidnext )
-        setup();
+    if ( !messages || messages->isEmpty() )
+        return;
 
-    d->owner = owner;
-    d->messages = new List<Message>;
-    d->messages->append( message );
+    List<InjectableMessage>::Iterator i( messages );
+    while ( i ) {
+        d->injectables.append( i );
+        ++i;
+    }
 }
 
 
-/*! Notes that the given \a message must be delivered to the specified
-    \a recipients from the given \a sender.
+/*! Notes that \a message must be injected, and spooled for delivery
+    to the specified \a recipients from the given \a sender.
 */
 
 void Injector::addDelivery( Message * message, Address * sender,
@@ -406,23 +410,6 @@ void Injector::addDelivery( Message * message, Address * sender,
 {
     d->deliveries.append( new InjectorData::Delivery( message, sender,
                                                       recipients ) );
-}
-
-
-/*! \overload
-    Notes that all messages must be delivered to the specified
-    \a recipients from the given \a sender. This version is provided as
-    a convenience to callers who only want to inject a single message
-    and don't want to mix ordinary injections and deliveries.
-*/
-
-void Injector::addDelivery( Address * sender, List<Address> * recipients )
-{
-    List<Message>::Iterator it( d->messages );
-    while ( it ) {
-        addDelivery( it, sender, recipients );
-        ++it;
-    }
 }
 
 
@@ -494,6 +481,7 @@ void Injector::execute()
         last = d->state;
         switch ( d->state ) {
         case Inactive:
+            findMessages();
             findDependencies();
             if ( d->failed )
                 break;
@@ -576,6 +564,35 @@ void Injector::execute()
 }
 
 
+/*! This private helper makes a master list of messages to be
+    inserted, based on what addDelivery() and addInjection() have
+    done.
+*/
+
+void Injector::findMessages()
+{
+    Map<Message> unique;
+    List<InjectableMessage>::Iterator im( d->injectables );
+    while ( im ) {
+        Message * m = im;
+        if ( !unique.contains( (uint)m ) ) {
+            unique.insert( (uint)m, m );
+            d->messages.append( m );
+        }
+        ++im;
+    }
+    List<InjectorData::Delivery>::Iterator dm( d->deliveries );
+    while ( im ) {
+        Message * m = dm->message;
+        if ( !unique.contains( (uint)m ) ) {
+            unique.insert( (uint)m, m );
+            d->messages.append( m );
+        }
+        ++im;
+    }
+}
+
+
 /*! This private function looks through the list of messages given to
     this Injector, to make sure that they are all valid, and to collect
     lists of any unknown header field names, flags, annotation names, or
@@ -589,16 +606,14 @@ void Injector::execute()
 
 void Injector::findDependencies()
 {
-    Dict<Injector> seenFlags;
     Dict<Injector> seenFields;
-    Dict<Injector> seenAnnotationNames;
-    Map<uint> seenMailboxes;
 
     List<Header> * l = new List<Header>;
 
     List<Message>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
+        ++it;
 
         if ( !m->valid() ) {
             d->failed = true;
@@ -643,6 +658,15 @@ void Injector::findDependencies()
             }
             ++hi;
         }
+    }
+
+    Dict<String> flags;
+    Dict<String> annotationNames;
+
+    List<InjectableMessage>::Iterator imi( d->injectables );
+    while ( imi ) {
+        InjectableMessage * m = imi;
+        ++imi;
 
         // Then look through this message's mailboxes to find any
         // unknown flags or annotation names; and to build a list
@@ -651,19 +675,16 @@ void Injector::findDependencies()
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
             Mailbox * mb = mi;
-
-            if ( !seenMailboxes.find( mb->id() ) ) {
-                seenMailboxes.insert( mb->id(), (uint *)1 );
-                d->mailboxes->insert( mb );
+            InjectorData::Mailbox * mbc = d->mailboxes.find( mb->id() );
+            if ( !mbc ) {
+                mbc = new InjectorData::Mailbox( mb );
+                d->mailboxes.insert( mb->id(), mbc );
             }
+            mbc->messages.append( m );
 
             StringList::Iterator fi( m->flags( mb ) );
             while ( fi ) {
-                String n( *fi );
-                if ( Flag::id( n ) == 0 && !seenFlags.contains( n ) ) {
-                    seenFlags.insert( n, this );
-                    d->flags.append( n );
-                }
+                flags.insert( *fi, fi );
                 ++fi;
             }
 
@@ -671,35 +692,45 @@ void Injector::findDependencies()
             while ( ai ) {
                 Annotation * a = ai;
                 String n( a->entryName() );
-
-                if ( AnnotationName::id( n ) == 0 &&
-                     !seenAnnotationNames.contains( n ) )
-                {
-                    seenAnnotationNames.insert( n, this );
-                    d->annotationNames.append( n );
-                }
-
+                annotationNames.insert( n, new String( n ) );
                 ++ai;
             }
 
             ++mi;
         }
+    }
 
-        ++it;
+    // Record the unknown used flag and annotation names.
+
+    if ( !flags.isEmpty() ) {
+        Dict<String>::Iterator i( flags );
+        while ( i ) {
+            if ( Flag::id( *i ) == 0 )
+                d->flags.append( *i );
+            ++i;
+        }
+    }
+
+    if ( !annotationNames.isEmpty() ) {
+        Dict<String>::Iterator i( annotationNames );
+        while ( i ) {
+            if ( AnnotationName::id( *i ) == 0 )
+                d->annotationNames.append( *i );
+            ++i;
+        }
     }
 
     // Rows destined for deliveries/delivery_recipients also contain
     // addresses that need to be looked up.
 
-    List<Address> * sender = new List<Address>;
+    List<Address> * senders = new List<Address>;
     List<InjectorData::Delivery>::Iterator di( d->deliveries );
     while ( di ) {
-        sender->clear();
-        sender->append( di->sender );
-        updateAddresses( sender );
+        senders->append( di->sender );
         updateAddresses( di->recipients );
         ++di;
     }
+    updateAddresses( senders );
 }
 
 
@@ -712,12 +743,7 @@ void Injector::updateAddresses( List<Address> * newAddresses )
     while ( ai ) {
         Address * a = ai;
         String k = addressKey( a );
-
-        if ( !d->knownAddresses.contains( k ) ) {
-            d->knownAddresses.insert( k, a );
-            d->addresses->append( a );
-        }
-
+        d->addresses.insert( k, a );
         ++ai;
     }
 }
@@ -759,7 +785,7 @@ void Injector::createDependencies()
 
     if ( !d->addressCreator ) {
         d->addressCreator =
-            new AddressCreator( d->addresses, d->transaction );
+            new AddressCreator( &d->addresses, d->transaction );
         d->addressCreator->execute();
     }
 
@@ -1008,7 +1034,7 @@ void Injector::selectMessageIds()
 {
     if ( !d->select ) {
         d->message = new List<Message>::Iterator( d->messages );
-        d->select = selectNextvals( "messages_id_seq", d->messages->count() );
+        d->select = selectNextvals( "messages_id_seq", d->messages.count() );
         d->transaction->enqueue( d->select );
         d->transaction->execute();
     }
@@ -1076,7 +1102,7 @@ void Injector::selectUids()
     // locks in the same order to avoid deadlock.
 
     if ( !d->queries ) {
-        if ( d->mailboxes->isEmpty() ) {
+        if ( d->mailboxes.isEmpty() ) {
             next();
             return;
         }
@@ -1088,9 +1114,9 @@ void Injector::selectUids()
         // to be large enough for these queries to be a problem.
 
         d->queries = new List<Query>;
-        SortedList<Mailbox>::Iterator mi( d->mailboxes );
+        Map<InjectorData::Mailbox>::Iterator mi( d->mailboxes );
         while ( mi ) {
-            Mailbox * mb = mi;
+            Mailbox * mb = mi->mailbox;
 
             Query * q = new Query( *lockUidnext, this );
             q->bind( 1, mb->id() );
@@ -1103,9 +1129,8 @@ void Injector::selectUids()
         d->transaction->execute();
     }
 
-    // As the results of each query come in (in the same order), we
-    // identify the corresponding mailbox and assign a uid to each
-    // message in it.
+    // As the results of each query come in, we identify the
+    // corresponding mailbox and assign a uid to each message in it.
 
     Query * q;
     while ( ( q = d->queries->firstElement() ) != 0 &&
@@ -1118,9 +1143,8 @@ void Injector::selectUids()
 
         d->queries->shift();
 
-        Mailbox * mb = d->mailboxes->shift();
-
         Row * r = q->nextRow();
+        InjectorData::Mailbox * mb = d->mailboxes.find( r->getInt( "id" ) );
         uint uidnext = r->getInt( "uidnext" );
         int64 nextms = r->getBigint( "nextmodseq" );
 
@@ -1130,7 +1154,7 @@ void Injector::selectUids()
             Log::Severity level = Log::Error;
             if ( uidnext > 0x7fffff00 )
                 level = Log::Disaster;
-            log( "Note: Mailbox " + mb->name().ascii() +
+            log( "Note: Mailbox " + mb->mailbox->name().ascii() +
                  " only has " + fn ( 0x7fffffff - uidnext ) +
                  " more usable UIDs. Please contact info@oryx.com"
                  " to resolve this problem.", level );
@@ -1140,26 +1164,24 @@ void Injector::selectUids()
         // starting with uidnext, but all of them get the same modseq.
 
         uint n = 0;
-        List<Message>::Iterator it( d->messages );
+        List<InjectableMessage>::Iterator it( mb->messages );
         while ( it ) {
-            Message * m = it;
-            if ( m->inMailbox( mb ) ) {
-                m->setUid( mb, uidnext+n );
-                m->setModSeq( mb, nextms );
-                n++;
-            }
+            InjectableMessage * m = it;
+            m->setUid( mb->mailbox, uidnext+n );
+            m->setModSeq( mb->mailbox, nextms );
+            n++;
             ++it;
         }
 
         // If we have sessions listening to the mailbox, then they get
-        // to see the messages as \Recent. Otherwise, whoever opens the
-        // mailbox next will update first_recent.
+        // to see the messages as \Recent. Otherwise, whoever opens
+        // the mailbox next will update first_recent.
 
-        uint recentIn = 0;
+        bool recentIn = false;
         if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
-            List<Session>::Iterator si( mb->sessions() );
+            List<Session>::Iterator si( mb->mailbox->sessions() );
             if ( si ) {
-                recentIn++;
+                recentIn = true;
                 si->addRecent( uidnext, n );
             }
         }
@@ -1167,11 +1189,11 @@ void Injector::selectUids()
         // Update uidnext and nextmodseq based on what we did above.
 
         Query * u;
-        if ( recentIn == 0 )
-            u = new Query( *incrUidnext, 0 );
-        else
+        if ( recentIn )
             u = new Query( *incrUidnextWithRecent, 0 );
-        u->bind( 1, mb->id() );
+        else
+            u = new Query( *incrUidnext, 0 );
+        u->bind( 1, mb->mailbox->id() );
         u->bind( 2, n );
         d->transaction->enqueue( u );
         d->transaction->execute();
@@ -1271,6 +1293,14 @@ void Injector::insertMessages()
             ++bi;
         }
 
+        ++it;
+    }
+
+    List<InjectableMessage>::Iterator imi( d->injectables );
+    while ( imi ) {
+        InjectableMessage * m = imi;
+        ++imi;
+
         // Then record any mailbox-specific information (e.g. flags).
 
         List<Mailbox>::Iterator mi( m->mailboxes() );
@@ -1285,8 +1315,6 @@ void Injector::insertMessages()
 
             ++mi;
         }
-
-        ++it;
     }
 
     d->transaction->enqueue( qp );
@@ -1352,7 +1380,7 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
             List< Address >::Iterator ai( al );
             uint n = 0;
             while ( ai ) {
-                Address * a = d->knownAddresses.find( addressKey( ai ) );
+                Address * a = d->addresses.find( addressKey( ai ) );
                 qa->bind( 1, mid );
                 qa->bind( 2, part );
                 qa->bind( 3, hf->position() );
@@ -1396,7 +1424,7 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
 /*! Adds a mailbox_messages row for the message \a m in mailbox \a mb to
     the query \a q. */
 
-void Injector::addMailbox( Query * q, Message * m, Mailbox * mb )
+void Injector::addMailbox( Query * q, InjectableMessage * m, Mailbox * mb )
 {
     q->bind( 1, mb->id() );
     q->bind( 2, m->uid( mb ) );
@@ -1410,7 +1438,7 @@ void Injector::addMailbox( Query * q, Message * m, Mailbox * mb )
 /*! Adds flags rows for the message \a m in mailbox \a mb to the query
     \a q, and returns the number of flags (which may be 0). */
 
-uint Injector::addFlags( Query * q, Message * m, Mailbox * mb )
+uint Injector::addFlags( Query * q, InjectableMessage * m, Mailbox * mb )
 {
     uint n = 0;
     StringList::Iterator it( m->flags( mb ) );
@@ -1434,7 +1462,7 @@ uint Injector::addFlags( Query * q, Message * m, Mailbox * mb )
 /*! Adds annotations rows for the message \a m in mailbox \a mb to the
     query \a q, and returns the number of annotations (may be 0). */
 
-uint Injector::addAnnotations( Query * q, Message * m, Mailbox * mb )
+uint Injector::addAnnotations( Query * q, InjectableMessage * m, Mailbox * mb )
 {
     uint n = 0;
     List<Annotation>::Iterator ai( m->annotations( mb ) );
@@ -1472,7 +1500,7 @@ void Injector::insertDeliveries()
     List<InjectorData::Delivery>::Iterator di( d->deliveries );
     while ( di ) {
         Address * sender =
-            d->knownAddresses.find( addressKey( di->sender ) );
+            d->addresses.find( addressKey( di->sender ) );
 
         Query * q =
             new Query( "insert into deliveries "
@@ -1486,7 +1514,7 @@ void Injector::insertDeliveries()
         uint n = 0;
         List<Address>::Iterator it( di->recipients );
         while ( it ) {
-            Address * a = d->knownAddresses.find( addressKey( it ) );
+            Address * a = d->addresses.find( addressKey( it ) );
             Query * q =
                 new Query(
                     "insert into delivery_recipients (delivery,recipient) "
@@ -1511,6 +1539,17 @@ void Injector::insertDeliveries()
 }
 
 
+static String msgid( Message * m ) {
+    Header * h = m->header();
+    String id;
+    if ( h )
+        id = h->messageId();
+    if ( id.isEmpty() )
+        id = "<>";
+    return id;
+}
+
+
 /*! Logs a little information about the messages to be injected, and a
     little more for the special case of a single message being injected
     into a single mailbox.
@@ -1518,37 +1557,42 @@ void Injector::insertDeliveries()
 
 void Injector::logDescription()
 {
-    if ( d->messages->count() > 1 ) {
-        log( "Injecting " + fn( d->messages->count() ) + " "
-             "messages", Log::Significant );
-    }
-    else {
-        Message * m = d->messages->first();
+    List<InjectableMessage>::Iterator im( d->injectables );
+    while ( im ) {
+        InjectableMessage * m = im;
+        ++im;
 
         String msg( "Injecting message " );
+        msg.append( msgid( m ) );
+        msg.append( " into " );
 
-        String id;
-        Header * h = m->header();
-        if ( h )
-            id = h->messageId();
-        if ( id.isEmpty() )
-            id = "<>";
-        msg.append( id );
-
-        String dest( " into " );
-        List<Mailbox> * mailboxes = m->mailboxes();
-        Mailbox * mb = mailboxes->first();
-        if ( mb ) {
-            dest.append( mb->name().ascii() );
+        StringList into;
+        List<Mailbox>::Iterator mb( m->mailboxes() );
+        while ( mb ) {
+            into.append( mb->name().utf8() );
+            ++mb;
         }
-        if ( mailboxes->count() > 1 ) {
-            dest.append( " (and " );
-            dest.append( fn( mailboxes->count()-1 ) );
-            dest.append( " other mailboxes)" );
-        }
-        if ( !mailboxes->isEmpty() )
-            msg.append( dest );
+        msg.append( into.join( ", " ) );
+        log( msg, Log::Significant );
+    }
+    List<InjectorData::Delivery>::Iterator dm( d->deliveries );
+    while ( dm ) {
+        InjectorData::Delivery * del = dm;
+        ++dm;
+        
+        String msg( "Spooling message " );
+        msg.append( msgid( del->message ) );
+        msg.append( " from " );
+        msg.append( del->sender->lpdomain() );
+        msg.append( " to " );
 
+        StringList to;
+        List<Address>::Iterator a( del->recipients );
+        while ( a ) {
+            to.append( a->lpdomain() );
+            ++a;
+        }
+        msg.append( to.join( ", " ) );
         log( msg, Log::Significant );
     }
 }
@@ -1572,11 +1616,10 @@ struct MailboxAnnouncement {
 
 void Injector::announce()
 {
-    Map<MailboxAnnouncement> announcements;
-    List<MailboxAnnouncement> al;
-    List<Message>::Iterator it( d->messages );
+    List<InjectableMessage>::Iterator it( d->injectables );
     while ( it ) {
-        Message * m = it;
+        InjectableMessage * m = it;
+        ++it;
         m->setBodiesFetched();
         m->setBytesAndLinesFetched();
         m->setAddressesFetched();
@@ -1585,11 +1628,7 @@ void Injector::announce()
         while ( mi ) {
             Mailbox * mb = mi;
             uint uid = m->uid( mb );
-            int64 ms = m->modSeq( mb );
 
-            m->resortFlags();
-            m->setFlagsFetched( mb, true );
-            m->setAnnotationsFetched( mb, true );
             MessageCache::insert( mb, uid, m );
 
             List<Session>::Iterator si( mb->sessions() );
@@ -1599,29 +1638,20 @@ void Injector::announce()
                 si->addUnannounced( dummy );
                 ++si;
             }
-
-            if ( mb->uidnext() <= uid || mb->nextModSeq() <= ms ) {
-                MailboxAnnouncement * a = announcements.find( mb->id() );
-                if ( !a ) {
-                    a = new MailboxAnnouncement;
-                    a->mailbox = mb;
-                    announcements.insert( mb->id(), a );
-                    al.append( a );
-                }
-                if ( a->uidnext <= uid )
-                    a->uidnext = uid + 1;
-                if ( a->nextmodseq <= ms )
-                    a->nextmodseq = ms + 1;
-            }
-
             ++mi;
         }
-        ++it;
     }
-    List<MailboxAnnouncement>::Iterator i( al );
-    while ( i ) {
-        i->mailbox->setUidnextAndNextModSeq( i->uidnext, i->nextmodseq );
-        ++i;
+
+    Map<InjectorData::Mailbox>::Iterator mbi( d->mailboxes );
+    while ( mbi ) {
+        Mailbox * mb = mbi->mailbox;
+        InjectableMessage * last = mbi->messages.lastElement();
+        if ( last && 
+             ( last->uid( mb ) >= mb->uidnext() ||
+               last->modSeq( mb ) >= mb->nextModSeq() ) )
+            mb->setUidnextAndNextModSeq( last->uid( mb )+1,
+                                         last->modSeq( mb )+1 );
+        ++mbi;
     }
 }
 
@@ -1668,3 +1698,327 @@ uint Injector::internalDate( Mailbox * mb, Message * m ) const
     m->setInternalDate( id.unixTime() );
     return id.unixTime();
 }
+
+
+class InjectableMessageData
+    : public Garbage
+{
+public:
+    class Mailbox
+        : public Garbage
+    {
+    public:
+        Mailbox()
+            : Garbage(),
+              mailbox( 0 ), uid( 0 ), modseq( 0 ),
+              flags( new StringList ), annotations( new List<Annotation> ) {}
+        ::Mailbox * mailbox;
+        uint uid;
+        int64 modseq;
+        StringList * flags;
+        List<Annotation> * annotations;
+    };
+
+    Map<Mailbox> mailboxes;
+
+    Mailbox * mailbox( ::Mailbox * mb, bool create = false ) { 
+        Mailbox * m = mailboxes.find( mb->id() );
+        if ( m )
+            return m;
+        if ( !create )
+            return 0;
+        Mailbox * n = new Mailbox;
+        n->mailbox = mb;
+        mailboxes.insert( mb->id(), n );
+        return n;
+    }
+};
+    
+
+
+/*!  Constructs an empty injectable message. The caller has to do
+     more.
+*/
+
+InjectableMessage::InjectableMessage()
+    : Message(), d( new InjectableMessageData )
+{
+}
+
+
+/*! Notifies the message that it has \a uid in \a mailbox. */
+
+void InjectableMessage::setUid( Mailbox * mailbox, uint uid )
+{
+    InjectableMessageData::Mailbox * m = d->mailbox( mailbox, true );
+    m->uid = uid;
+}
+
+
+/*! Returns what setUid() set for \a mailbox, or 0. */
+
+uint InjectableMessage::uid( Mailbox * mailbox ) const
+{
+    InjectableMessageData::Mailbox * m = d->mailbox( mailbox );
+    if ( !m )
+        return 0;
+    return m->uid;
+}
+
+
+/*! Notifies the message that it has \a modseq in \a mailbox. */
+
+void InjectableMessage::setModSeq( Mailbox * mailbox , int64 modseq )
+{
+    InjectableMessageData::Mailbox * m = d->mailbox( mailbox, true );
+    m->modseq = modseq;
+}
+
+
+/*! Returns what setModSeq() set for \a mailbox, or 0. */
+
+int64 InjectableMessage::modSeq( Mailbox * mailbox ) const
+{
+    InjectableMessageData::Mailbox * m = d->mailbox( mailbox );
+    if ( !m )
+        return 0;
+    return m->modseq;
+}
+
+
+/*! Returns a pointer to this message's flags in \a mailbox. The
+    return value is never null.
+*/
+
+StringList * InjectableMessage::flags( Mailbox * mailbox ) const
+{
+    return d->mailbox( mailbox, true )->flags;
+}
+
+
+/*! Notifies this message that its flags in \a mailbox are exactly \a
+    list.
+*/
+
+void InjectableMessage::setFlags( Mailbox * mailbox, const StringList * list )
+{
+    InjectableMessageData::Mailbox * m = d->mailbox( mailbox, true );
+    m->flags->clear();
+    StringList::Iterator i( list );
+    while ( i ) {
+        m->flags->append( i );
+        ++i;
+    }
+}
+
+
+/*! Returns a pointer ot this message's annotations in \a
+    mailbox. Never returns a null pointer.
+*/
+
+List<Annotation> * InjectableMessage::annotations( Mailbox * mailbox ) const
+{
+    return d->mailbox( mailbox, true )->annotations;
+}
+
+
+/*! Notifies this message that its annotations in \a mailbox are
+    exactly \a list.
+*/
+
+void InjectableMessage::setAnnotations( Mailbox * mailbox,
+                                        List<Annotation> * list )
+{
+    InjectableMessageData::Mailbox * m = d->mailbox( mailbox, true );
+    m->annotations = list;
+}
+
+
+/*! Allocates and return a sorted list of all Mailbox objects to which
+    this Message belongs. addMailboxes(), setUid() and friends cause
+    the Message to belong to one or more Mailbox objects.
+
+    This may return an empty list, but it never returns a null pointer.
+*/
+
+List<Mailbox> * InjectableMessage::mailboxes() const
+{
+    List<Mailbox> * m = new List<Mailbox>;
+    Map<InjectableMessageData::Mailbox>::Iterator i( d->mailboxes );
+    while ( i ) {
+        m->append( i->mailbox );
+        ++i;
+    }
+    return m;
+}
+
+
+// scans the message for a header field of the appropriate name, and
+// returns the field value. The name must not contain the trailing ':'.
+
+static String invalidField( const String & message, const String & name )
+{
+    uint i = 0;
+    while ( i < message.length() ) {
+        uint j = i;
+        while ( i < message.length() &&
+                message[i] != '\n' && message[i] != ':' )
+            i++;
+        if ( message[i] != ':' )
+            return "";
+        String h = message.mid( j, i-j ).headerCased();
+        i++;
+        j = i;
+        while ( i < message.length() &&
+                ( message[i] != '\n' ||
+                  ( message[i] == '\n' &&
+                    ( message[i+1] == ' ' || message[i+1] == '\t' ) ) ) )
+            i++;
+        if ( h == name )
+            return message.mid( j, i-j );
+        i++;
+        if ( message[i] == 10 || message[i] == 13 )
+            return "";
+    }
+    return "";
+}
+
+
+// looks for field in message and adds it to wrapper, if valid.
+
+static void addField( String & wrapper,
+                      const String & field, const String & message,
+                      const String & dflt = "" )
+{
+    String value = invalidField( message, field );
+    HeaderField * hf = 0;
+    if ( !value.isEmpty() )
+        hf = HeaderField::create( field, value );
+    if ( hf && hf->valid() ) {
+        wrapper.append( field );
+        wrapper.append( ": " );
+        wrapper.append( hf->rfc822() );
+        wrapper.append( "\r\n" );
+    }
+    else if ( !dflt.isEmpty() ) {
+        wrapper.append( field );
+        wrapper.append( ": " );
+        wrapper.append( dflt );
+        wrapper.append( "\r\n" );
+    }
+}
+
+
+/*! Wraps an unparsable \a message up in another, which contains a short
+  \a error message, a little helpful text (or so one hopes), and the
+  original message in a blob.
+
+  \a defaultSubject is the subject text to use if no halfway
+  sensible text can be extracted from \a message. \a id is used as
+  content-disposition filename if supplied and nonempty.
+*/
+
+InjectableMessage * InjectableMessage::wrapUnparsableMessage( const String & message, const String & error, const String & defaultSubject, const String & id ) // I hate long lines
+{
+    String boundary = acceptableBoundary( message );
+    String wrapper;
+
+    addField( wrapper, "From", message,
+              "Mail Storage Database <invalid@invalid.invalid>" );
+
+    String subject = invalidField( message, "Subject" );
+    HeaderField * hf = 0;
+    if ( !subject.isEmpty() )
+        hf = HeaderField::create( "Subject", subject );
+    uint n = 0;
+    while ( n < subject.length() && subject[n] < 127 && subject[n] >= 32 )
+        n++;
+    if ( hf && hf->valid() && n >= subject.length() )
+        subject = "Unparsable message: " + hf->rfc822();
+    else
+        subject = defaultSubject;
+    if ( !subject.isEmpty() )
+        wrapper.append( "Subject: " + subject + "\r\n" );
+
+    Date now;
+    now.setCurrentTime();
+    addField( wrapper, "Date", message, now.rfc822() );
+    addField( wrapper, "To", message, "Unknown-Recipients:;" );
+    addField( wrapper, "Cc", message );
+    addField( wrapper, "References", message );
+    addField( wrapper, "In-Reply-To", message );
+
+    wrapper.append( "MIME-Version: 1.0\r\n"
+                    "Content-Type: multipart/mixed; boundary=\"" +
+                    boundary + "\"\r\n"
+                    "\r\n\r\nYou are looking at an easter egg\r\n"
+                    "--" + boundary + "\r\n"
+                    "Content-Type: text/plain; format=flowed" ); // contd..
+
+    String report = "The appended message was received, "
+                    "but could not be stored in the mail \r\n"
+                    "database on " + Configuration::hostname() +
+                    ".\r\n\r\nThe error detected was: \r\n";
+    report.append( error );
+    report.append( "\r\n\r\n"
+                   "Here are a few header fields from the message "
+                   "(possibly corrupted due \r\nto syntax errors):\r\n"
+                   "\r\n" );
+    if ( !invalidField( message, "From" ).isEmpty() ) {
+        report.append( "From:" );
+        report.append( invalidField( message, "From" ) );
+        report.append( "\r\n" );
+    }
+    if ( !invalidField( message, "Subject" ).isEmpty() ) {
+        report.append( "Subject:" );
+        report.append( invalidField( message, "Subject" ) );
+        report.append( "\r\n" );
+    }
+    if ( !invalidField( message, "To" ).isEmpty() ) {
+        report.append( "To:" );
+        report.append( invalidField( message, "To" ) );
+        report.append( "\r\n" );
+    }
+    report.append( "\r\n"
+                   "The complete message as received is appended." );
+
+    // but which charset does the report use?
+    n = 0;
+    while ( n < report.length() && report[n] < 128 )
+        n++;
+    if ( n < report.length() )
+        wrapper.append( "; charset=unknown-8bit" ); // ... continues c-t
+    wrapper.append( "\r\n\r\n" );
+    wrapper.append( report );
+    wrapper.append( "\r\n\r\n--" + boundary + "\r\n" );
+    n = 0;
+    while ( n < message.length() &&
+            message[n] < 128 &&
+            ( message[n] >= 32 ||
+              message[n] == 10 ||
+              message[n] == 13 ) )
+        n++;
+    if ( n < message.length() )
+        wrapper.append( "Content-Type: application/octet-stream\r\n"
+                        "Content-Transfer-Encoding: 8bit\r\n" );
+    else
+        wrapper.append( "Content-Type: text/plain\r\n" );
+    wrapper.append( "Content-Disposition: attachment" );
+    if ( !id.isEmpty() ) {
+        wrapper.append( "; filename=" );
+        if ( id.boring() )
+            wrapper.append( id );
+        else
+            wrapper.append( id.quoted() );
+    }
+    wrapper.append( "\r\n\r\n" );
+    wrapper.append( message );
+    wrapper.append( "\r\n--" + boundary + "--\r\n" );
+
+    InjectableMessage * m = new InjectableMessage;
+    m->parse( wrapper );
+    m->setWrapped( true );
+    return m;
+}
+
+

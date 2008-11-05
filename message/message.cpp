@@ -25,52 +25,13 @@ class MessageData
 {
 public:
     MessageData()
-        : mailboxes( 0 ), databaseId( 0 ),
+        : databaseId( 0 ),
           wrapped( false ), rfc822Size( 0 ), internalDate( 0 ),
           hasHeaders( false ), hasAddresses( false ), hasBodies( false ),
           hasTrivia( false ), hasBytesAndLines( false )
     {}
 
     String error;
-
-    class Mailbox
-        : public Garbage
-    {
-    public:
-        Mailbox()
-            : Garbage(),
-              mailbox( 0 ), uid( 0 ), modseq( 0 ),
-              annotations( 0 ),
-              hasFlags( false ), hasAnnotations( false ) {}
-        ::Mailbox * mailbox;
-        uint uid;
-        int64 modseq;
-        StringList flags;
-        List<Annotation> * annotations;
-        bool hasFlags;
-        bool hasAnnotations;
-    };
-
-    List<Mailbox> * mailboxes;
-    Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
-        if ( mailboxes && !mailboxes->isEmpty() &&
-             mb == mailboxes->firstElement()->mailbox )
-            return mailboxes->firstElement();
-
-        List<Mailbox>::Iterator m( mailboxes );
-        while ( m && m->mailbox != mb )
-            ++m;
-        if ( m )
-            return m;
-        if ( !create )
-            return 0;
-        if ( !mailboxes )
-            mailboxes = new List<Mailbox>;
-        Mailbox * n = new Mailbox;
-        n->mailbox = mb;
-        mailboxes->append( n );
-        return n;
-    }
 
     uint databaseId;
     bool wrapped;
@@ -468,83 +429,6 @@ String Message::partNumber( Bodypart * bp ) const
 }
 
 
-/*! Notifies this Message that its UID in \a mb is \a u, which should
-    be returned by uid( \a mb ).
-*/
-
-void Message::setUid( Mailbox * mb, uint u )
-{
-    MessageData::Mailbox * m = d->mailbox( mb, true );
-    m->uid = u;
-}
-
-
-/*! Returns the UID of this Message in a\ mb, as set by
-    setUid(). Returns 0 if setUid() has not been called for \a mb.
- */
-
-uint Message::uid( Mailbox * mb ) const
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return m->uid;
-    return 0;
-}
-
-
-/*! Returns true if this message is in the given mailbox \a mb, i.e. it
-    was added to the mailbox using addMailbox() or addMailboxes().
-*/
-
-bool Message::inMailbox( Mailbox * mb ) const
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return true;
-    return false;
-}
-
-
-/*! Allocates and return a sorted list of all Mailbox objects to which
-    this Message belongs. addMailboxes(), setUid() and friends cause the
-    Message to belong to one or more Mailbox objects.
-
-    This may return an empty list, but it never returns a null pointer.
-*/
-
-List<Mailbox> * Message::mailboxes() const
-{
-    List<Mailbox> * m = new List<Mailbox>;
-    List<MessageData::Mailbox>::Iterator i( d->mailboxes );
-    while ( i ) {
-        m->append( i->mailbox );
-        ++i;
-    }
-    return m;
-}
-
-
-/*! Records that this object belongs to each of \a mailboxes.
-*/
-
-void Message::addMailboxes( List<Mailbox> * mailboxes )
-{
-    List<Mailbox>::Iterator i( mailboxes );
-    while ( i ) {
-        (void)d->mailbox( i, true );
-        ++i;
-    }
-}
-
-
-/*! Records that this Message belongs to \a mb. */
-
-void Message::addMailbox( Mailbox * mb )
-{
-    d->mailbox( mb, true );
-}
-
-
 /*! Notifies this Message that its internaldate is \a id. The Message
     will remember \a id and internalDate() will return it.
 */
@@ -589,102 +473,6 @@ uint Message::rfc822Size() const
 }
 
 
-/*! Returns a pointer to list of flags for this message in \a mb,
-    representing all flags that are currently set.
-
-    This may return an empty list, but never a null pointer.
-*/
-
-StringList * Message::flags( Mailbox * mb ) const
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return &m->flags;
-    return new StringList;
-}
-
-
-/*! Sets this message's flags for the mailbox \a mb to those specified
-    in \a l. Duplicates are ignored. */
-
-void Message::setFlags( Mailbox * mb, const StringList * l )
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( !m )
-        return;
-
-    Dict<void> uniq;
-    StringList::Iterator it( l );
-    while ( it ) {
-        String f( *it );
-        if ( !uniq.contains( f.lower() ) ) {
-            m->flags.append( f );
-            uniq.insert( f.lower(), (void *)1 );
-        }
-        ++it;
-    }
-}
-
-
-/*! Sets the specified flag \a f on this message for the given mailbox
-    \a mb. Does nothing if the flag is already set.
-
-    This function is rather slow.
-*/
-
-void Message::setFlag( Mailbox * mb, const String & f )
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( !m )
-        return;
-
-    StringList::Iterator it( m->flags );
-    while ( it && it->lower() != f.lower() )
-        ++it;
-    if ( !it )
-        m->flags.append( f );
-}
-
-
-/*! Ensures that flags() returns a list which is sorted by flag
-    ID. This is slow.
-*/
-
-void Message::resortFlags()
-{
-    List<MessageData::Mailbox>::Iterator i( d->mailboxes );
-    while ( i ) {
-        StringList::Iterator f( i->flags );
-        i->flags.clear();
-        while ( f ) {
-            uint id = Flag::id( *f );
-            StringList::Iterator ri( i->flags );
-            while ( ri && Flag::id( *ri ) < id )
-                ++ri;
-            if ( !ri )
-                i->flags.append( f );
-            else if ( Flag::id( *ri ) > id )
-                i->flags.insert( ri, f );
-            ++f;
-        }
-        ++i;
-    }
-}
-
-
-/*! Returns true if the flags have been loaded for \a mb, and false if
-    not.
-*/
-
-bool Message::hasFlags( Mailbox * mb ) const
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return m->hasFlags;
-    return false;
-}
-
-
 /*! Returns true if this message has read its headers from the
     database, and false it it has not.
 */
@@ -702,37 +490,6 @@ bool Message::hasHeaders() const
 bool Message::hasBodies() const
 {
     return d->hasBodies;
-}
-
-
-/*! Returns true if this message has read its annotations from the
-    database, and false if it has not.
-
-    Messages may have different annotations in different mailboxes;
-    this function's return value applies to \a mb.
-*/
-
-bool Message::hasAnnotations( Mailbox * mb ) const
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return m->hasAnnotations;
-    return false;
-}
-
-
-/*! Records that all the message flags in \a mb have been
-    fetched if \a ok is true and if that they no longer are valid if
-    \a ok is false.
-*/
-
-void Message::setFlagsFetched( Mailbox * mb, bool ok )
-{
-    MessageData::Mailbox * m = d->mailbox( mb, ok );
-    if ( m && !ok )
-        m->flags.clear();
-    if ( m )
-        m->hasFlags = ok;
 }
 
 
@@ -754,21 +511,6 @@ void Message::setBodiesFetched()
 }
 
 
-/*! Records that all the annotations on this Message in \a mb have
-    been fetched if \a ok is true and that they haven't if \a ok is
-    false.
-*/
-
-void Message::setAnnotationsFetched( Mailbox * mb, bool ok )
-{
-    MessageData::Mailbox * m = d->mailbox( mb, ok );
-    if ( m && !ok )
-        m->annotations = 0;
-    if ( m )
-        m->hasAnnotations = ok;
-}
-
-
 /*! Returns true if this message knows its internalDate() and
     rfc822Size(), and false if not.
 */
@@ -780,8 +522,8 @@ bool Message::hasTrivia() const
 
 
 /*! Records that the message now has correct values for internalDate()
-    and modSeq() for \a mb if \a ok is true, and that it doesn't if \a
-    ok is false.
+    and rfc822Size() for \a mb if \a ok is true, and that it doesn't
+    if \a ok is false.
 */
 
 void Message::setTriviaFetched( bool ok )
@@ -949,50 +691,6 @@ bool Message::isMessage() const
 }
 
 
-/*! Adds \a a to the list of known annotations for this Message in \a
-  mb, forgetting any previous annotation with the same
-  Annotation::ownerId() and Annotation::entryName().
-*/
-
-void Message::replaceAnnotation( Mailbox * mb, class Annotation * a )
-{
-    MessageData::Mailbox * m = d->mailbox( mb, true );
-    if ( !m->annotations )
-        m->annotations = new List<Annotation>;
-    List<Annotation>::Iterator it( m->annotations );
-    while ( it && ( it->ownerId() != a->ownerId() ||
-                    it->entryName() != a->entryName() ) )
-        ++it;
-    if ( it )
-        m->annotations->take( it );
-    m->annotations->append( a );
-}
-
-
-/*! Returns a pointer to the list of annotations in \a mb belonging to
-  this message, or 0 if there are none.
-*/
-
-List<Annotation> * Message::annotations( Mailbox * mb ) const
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return m->annotations;
-    return 0;
-}
-
-
-/*! Sets this message's annotations to \a l in the mailbox \a mb. */
-
-void Message::setAnnotations( Mailbox * mb, List<Annotation> * l )
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( !m )
-        return;
-    m->annotations = l;
-}
-
-
 static String badFields( Header * h )
 {
     StringList bad;
@@ -1110,200 +808,6 @@ String Message::acceptableBoundary( const String & parts )
         // if at first you don't succeed, try again with a bigger hammer!
         r = Entropy::asString( 36 ).e64();
     return r;
-}
-
-
-// scans the message for a header field of the appropriate name, and
-// returns the field value. The name must not contain the trailing ':'.
-
-static String invalidField( const String & message, const String & name )
-{
-    uint i = 0;
-    while ( i < message.length() ) {
-        uint j = i;
-        while ( i < message.length() &&
-                message[i] != '\n' && message[i] != ':' )
-            i++;
-        if ( message[i] != ':' )
-            return "";
-        String h = message.mid( j, i-j ).headerCased();
-        i++;
-        j = i;
-        while ( i < message.length() &&
-                ( message[i] != '\n' ||
-                  ( message[i] == '\n' &&
-                    ( message[i+1] == ' ' || message[i+1] == '\t' ) ) ) )
-            i++;
-        if ( h == name )
-            return message.mid( j, i-j );
-        i++;
-        if ( message[i] == 10 || message[i] == 13 )
-            return "";
-    }
-    return "";
-}
-
-
-// looks for field in message and adds it to wrapper, if valid.
-
-static void addField( String & wrapper,
-                      const String & field, const String & message,
-                      const String & dflt = "" )
-{
-    String value = invalidField( message, field );
-    HeaderField * hf = 0;
-    if ( !value.isEmpty() )
-        hf = HeaderField::create( field, value );
-    if ( hf && hf->valid() ) {
-        wrapper.append( field );
-        wrapper.append( ": " );
-        wrapper.append( hf->rfc822() );
-        wrapper.append( "\r\n" );
-    }
-    else if ( !dflt.isEmpty() ) {
-        wrapper.append( field );
-        wrapper.append( ": " );
-        wrapper.append( dflt );
-        wrapper.append( "\r\n" );
-    }
-}
-
-
-
-/*! Wraps an unparsable \a message up in another, which contains a short
-  \a error message, a little helpful text (or so one hopes), and the
-  original message in a blob.
-
-  \a defaultSubject is the subject text to use if no halfway
-  sensible text can be extracted from \a message. \a id is used as
-  content-disposition filename if supplied and nonempty.
-*/
-
-Message * Message::wrapUnparsableMessage( const String & message,
-                                          const String & error,
-                                          const String & defaultSubject,
-                                          const String & id )
-{
-    String boundary = acceptableBoundary( message );
-    String wrapper;
-
-    addField( wrapper, "From", message,
-              "Mail Storage Database <invalid@invalid.invalid>" );
-
-    String subject = invalidField( message, "Subject" );
-    HeaderField * hf = 0;
-    if ( !subject.isEmpty() )
-        hf = HeaderField::create( "Subject", subject );
-    uint n = 0;
-    while ( n < subject.length() && subject[n] < 127 && subject[n] >= 32 )
-        n++;
-    if ( hf && hf->valid() && n >= subject.length() )
-        subject = "Unparsable message: " + hf->rfc822();
-    else
-        subject = defaultSubject;
-    if ( !subject.isEmpty() )
-        wrapper.append( "Subject: " + subject + "\r\n" );
-
-    Date now;
-    now.setCurrentTime();
-    addField( wrapper, "Date", message, now.rfc822() );
-    addField( wrapper, "To", message, "Unknown-Recipients:;" );
-    addField( wrapper, "Cc", message );
-    addField( wrapper, "References", message );
-    addField( wrapper, "In-Reply-To", message );
-
-    wrapper.append( "MIME-Version: 1.0\r\n"
-                    "Content-Type: multipart/mixed; boundary=\"" +
-                    boundary + "\"\r\n"
-                    "\r\n\r\nYou are looking at an easter egg\r\n"
-                    "--" + boundary + "\r\n"
-                    "Content-Type: text/plain; format=flowed" ); // contd..
-
-    String report = "The appended message was received, "
-                    "but could not be stored in the mail \r\n"
-                    "database on " + Configuration::hostname() +
-                    ".\r\n\r\nThe error detected was: \r\n";
-    report.append( error );
-    report.append( "\r\n\r\n"
-                   "Here are a few header fields from the message "
-                   "(possibly corrupted due \r\nto syntax errors):\r\n"
-                   "\r\n" );
-    if ( !invalidField( message, "From" ).isEmpty() ) {
-        report.append( "From:" );
-        report.append( invalidField( message, "From" ) );
-        report.append( "\r\n" );
-    }
-    if ( !invalidField( message, "Subject" ).isEmpty() ) {
-        report.append( "Subject:" );
-        report.append( invalidField( message, "Subject" ) );
-        report.append( "\r\n" );
-    }
-    if ( !invalidField( message, "To" ).isEmpty() ) {
-        report.append( "To:" );
-        report.append( invalidField( message, "To" ) );
-        report.append( "\r\n" );
-    }
-    report.append( "\r\n"
-                   "The complete message as received is appended." );
-
-    // but which charset does the report use?
-    n = 0;
-    while ( n < report.length() && report[n] < 128 )
-        n++;
-    if ( n < report.length() )
-        wrapper.append( "; charset=unknown-8bit" ); // ... continues c-t
-    wrapper.append( "\r\n\r\n" );
-    wrapper.append( report );
-    wrapper.append( "\r\n\r\n--" + boundary + "\r\n" );
-    n = 0;
-    while ( n < message.length() &&
-            message[n] < 128 &&
-            ( message[n] >= 32 ||
-              message[n] == 10 ||
-              message[n] == 13 ) )
-        n++;
-    if ( n < message.length() )
-        wrapper.append( "Content-Type: application/octet-stream\r\n"
-                        "Content-Transfer-Encoding: 8bit\r\n" );
-    else
-        wrapper.append( "Content-Type: text/plain\r\n" );
-    wrapper.append( "Content-Disposition: attachment" );
-    if ( !id.isEmpty() ) {
-        wrapper.append( "; filename=" );
-        if ( id.boring() )
-            wrapper.append( id );
-        else
-            wrapper.append( id.quoted() );
-    }
-    wrapper.append( "\r\n\r\n" );
-    wrapper.append( message );
-    wrapper.append( "\r\n--" + boundary + "--\r\n" );
-
-    Message * m = new Message;
-    m->parse( wrapper );
-    m->setWrapped( true );
-    return m;
-}
-
-
-/*! Records that this message's modseq (see RFC 4551) in \a mb is \a n. The
-    initial value is 0, which is not a legal modseq. */
-
-void Message::setModSeq( Mailbox * mb, int64 n )
-{
-    MessageData::Mailbox * m = d->mailbox( mb, true );
-    m->modseq = n;
-}
-
-
-/*! Returns the RFC 4551 modseq set by setModSeq( \a mb ). */
-
-int64 Message::modSeq( Mailbox * mb ) const
-{
-    MessageData::Mailbox * m = d->mailbox( mb );
-    if ( m )
-        return m->modseq;
-    return 0;
 }
 
 

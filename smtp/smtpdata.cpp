@@ -9,10 +9,10 @@
 #include "spoolmanager.h"
 #include "sieveaction.h"
 #include "smtpparser.h"
+#include "injector.h"
 #include "address.h"
 #include "imapurl.h"
 #include "mailbox.h"
-#include "message.h"
 #include "buffer.h"
 #include "graph.h"
 #include "scope.h"
@@ -34,7 +34,7 @@ public:
 
     String body;
     uint state;
-    Message * message;
+    InjectableMessage * message;
     String ok;
 };
 
@@ -189,8 +189,8 @@ void SmtpData::execute()
         }
         else {
             // for SMTP/LMTP, we wrap the unparsable message
-            Message * m =
-                Message::wrapUnparsableMessage(
+            InjectableMessage * m =
+                InjectableMessage::wrapUnparsableMessage(
                     d->body, d->message->error(),
                     "Message arrived but could not be stored",
                     server()->transactionId()
@@ -356,7 +356,7 @@ void SmtpData::checkField( HeaderField::Type t )
     RFC 4409.
 */
 
-Message * SmtpData::message( const String & body )
+InjectableMessage * SmtpData::message( const String & body )
 {
     if ( d->message )
         return d->message;
@@ -407,7 +407,7 @@ Message * SmtpData::message( const String & body )
              "\r\n";
 
     d->body = rp + received + body;
-    Message * m = new Message;
+    InjectableMessage * m = new InjectableMessage;
     m->parse( d->body );
     // if the sender is another dickhead specifying <> in From to
     // evade replies, let's try harder.

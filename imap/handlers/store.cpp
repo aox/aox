@@ -29,7 +29,7 @@ class StoreData
 public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
-          checkedPermission( false ), updatedModseqs( false ),
+          checkedPermission( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
@@ -49,7 +49,6 @@ public:
     bool silent;
     bool uid;
     bool checkedPermission;
-    bool updatedModseqs;
 
     uint unchangedSince;
     bool seenUnchangedSince;
@@ -520,19 +519,6 @@ void Store::execute()
         error( No, "Database error. Rolling transaction back" );
         finish();
         return;
-    }
-
-    if ( !d->updatedModseqs ) {
-        d->updatedModseqs = true;
-        uint i = d->s.count();
-        while ( i ) {
-            Message * c = MessageCache::find( m, d->s.value( i ) );
-            if ( c ) {
-                c->setFlagsFetched( m, false );
-                c->setModSeq( m, d->modseq );
-            }
-            i--;
-        }
     }
 
     if ( m->nextModSeq() <= d->modseq )

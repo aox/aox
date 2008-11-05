@@ -3,6 +3,7 @@
 #ifndef INJECTOR_H
 #define INJECTOR_H
 
+#include "message.h"
 #include "event.h"
 #include "list.h"
 
@@ -10,16 +11,43 @@ class Query;
 class Header;
 class Address;
 class Mailbox;
-class Message;
 class Bodypart;
+class Annotation;
+
+
+class InjectableMessage
+    : public Message
+{
+public:
+    InjectableMessage();
+
+    void setUid( Mailbox *, uint );
+    uint uid( Mailbox * ) const;
+
+    void setModSeq( Mailbox *, int64 );
+    int64 modSeq( Mailbox * ) const;
+
+    StringList * flags( Mailbox * ) const;
+    void setFlags( Mailbox *, const StringList * );
+    List<Annotation> * annotations( Mailbox * ) const;
+    void setAnnotations( Mailbox *, List<Annotation> * );
+
+    List<Mailbox> * mailboxes() const;
+
+    static InjectableMessage * wrapUnparsableMessage( const String &,
+                                                      const String &,
+                                                      const String &,
+                                                      const String & = "" );
+private:
+    class InjectableMessageData * d;
+};
 
 
 class Injector
     : public EventHandler
 {
 public:
-    Injector( Message *, EventHandler * );
-    Injector( List<Message> *, EventHandler * );
+    Injector( EventHandler * );
 
     void execute();
 
@@ -27,7 +55,7 @@ public:
     bool failed() const;
     String error() const;
 
-    void addDelivery( Address *, List<Address> * );
+    void addInjection( List<InjectableMessage> * );
     void addDelivery( Message *, Address *, List<Address> * );
 
 private:
@@ -36,6 +64,7 @@ private:
     static void setup();
 
     void next();
+    void findMessages();
     void findDependencies();
     void updateAddresses( List<Address> * );
     void createDependencies();
@@ -47,9 +76,9 @@ private:
     void insertDeliveries();
     void addPartNumber( Query *, uint, const String &, Bodypart * = 0 );
     void addHeader( Query *, Query *, Query *, uint, const String &, Header * );
-    void addMailbox( Query *, Message *, Mailbox * );
-    uint addFlags( Query *, Message *, Mailbox * );
-    uint addAnnotations( Query *, Message *, Mailbox * );
+    void addMailbox( Query *, InjectableMessage *, Mailbox * );
+    uint addFlags( Query *, InjectableMessage *, Mailbox * );
+    uint addAnnotations( Query *, InjectableMessage *, Mailbox * );
     void logDescription();
     void announce();
     Query * selectNextvals( const String &, uint );

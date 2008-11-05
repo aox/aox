@@ -9,7 +9,6 @@
 
 
 class EventHandler;
-class Annotation;
 class Bodypart;
 class Mailbox;
 class String;
@@ -30,14 +29,6 @@ public:
     String rfc822() const;
     String body() const;
 
-    void setUid( Mailbox *, uint );
-    uint uid( Mailbox * ) const;
-
-    bool inMailbox( Mailbox * ) const;
-    List<Mailbox> * mailboxes() const;
-    void addMailboxes( List<Mailbox> * );
-    void addMailbox( Mailbox * );
-
     void setWrapped( bool ) const;
     bool isWrapped() const;
 
@@ -55,18 +46,7 @@ public:
     uint rfc822Size() const;
     void setInternalDate( uint );
     uint internalDate() const;
-    void setModSeq( Mailbox *, int64 );
-    int64 modSeq( Mailbox * ) const;
 
-    StringList * flags( Mailbox * ) const;
-    void setFlags( Mailbox *, const StringList * );
-    void setFlag( Mailbox *, const String & );
-    void resortFlags();
-    List<Annotation> * annotations( Mailbox * ) const;
-    void setAnnotations( Mailbox *, List<Annotation> * );
-
-    bool hasFlags( Mailbox * ) const;
-    void setFlagsFetched( Mailbox *, bool );
     bool hasHeaders() const;
     void setHeadersFetched();
     bool hasAddresses() const;
@@ -75,21 +55,13 @@ public:
     void setTriviaFetched( bool );
     bool hasBodies() const;
     void setBodiesFetched();
-    bool hasAnnotations( Mailbox * ) const;
-    void setAnnotationsFetched( Mailbox *, bool );
     bool hasBytesAndLines() const;
     void setBytesAndLinesFetched();
-
-    void replaceAnnotation( Mailbox *, class Annotation * );
 
     static UString baseSubject( const UString & );
 
     static String acceptableBoundary( const String & );
 
-    static Message * wrapUnparsableMessage( const String &,
-                                            const String &,
-                                            const String &,
-                                            const String & = "" );
     void addMessageId();
 
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );
@@ -100,7 +72,6 @@ private:
 private:
     class MessageData * d;
     friend class MessageBodyFetcher;
-    friend class MessageFlagFetcher;
 };
 
 

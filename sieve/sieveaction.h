@@ -9,8 +9,8 @@ class String;
 class UString;
 class Mailbox;
 class Address;
-class Message;
 class EventHandler;
+class InjectableMessage;
 
 
 class SieveAction
@@ -38,8 +38,8 @@ public:
     void setExpiry( uint );
     uint expiry() const;
 
-    void setMessage( Message * );
-    Message * message() const;
+    void setMessage( InjectableMessage * );
+    InjectableMessage * message() const;
 
     void setErrorMessage( const String & );
     String errorMessage() const;

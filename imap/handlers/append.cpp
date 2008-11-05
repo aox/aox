@@ -47,7 +47,7 @@ struct Appendage
           textparts( 0 ), urlFetcher( 0 ),
           annotations( 0 )
     {}
-    Message * message;
+    InjectableMessage * message;
     List<Textpart> * textparts;
     ImapUrlFetcher * urlFetcher;
     String text;
@@ -306,14 +306,15 @@ void Append::execute()
         return;
 
     if ( !d->injector ) {
-        List<Message> * m = new List<Message>;
+        List<InjectableMessage> * m = new List<InjectableMessage>;
         h = d->messages.first();
         while ( h ) {
             m->append( h->message );
             ++h;
         }
 
-        d->injector = new Injector( m, this );
+        d->injector = new Injector( this );
+        d->injector->addInjection( m );
         d->injector->execute();
     }
 
@@ -389,10 +390,9 @@ void Append::process( class Appendage * h )
         h->textparts->take( it );
     }
 
-    h->message = new Message;
+    h->message = new InjectableMessage;
     h->message->setInternalDate( h->date.unixTime() );
     h->message->parse( h->text );
-    h->message->addMailbox( d->mailbox );
     h->message->setFlags( d->mailbox, &h->flags );
     h->message->setAnnotations( d->mailbox, h->annotations );
     if ( !h->message->valid() ) {

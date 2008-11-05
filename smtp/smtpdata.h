@@ -16,7 +16,7 @@ public:
 
     void execute();
 
-    class Message * message( const String & );
+    class InjectableMessage * message( const String & );
 
     void makeCopy() const;
 

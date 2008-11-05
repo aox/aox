@@ -28,7 +28,7 @@ private:
     static String addressField( Message *, HeaderField::Type );
     //static String twoLines( Message * );
 
-    String bodypart( Message *, class Bodypart * );
+    String bodypart( Message *, uint, class Bodypart * );
     String message( Message *, Message * );
     String jsToggle( const String &, bool, const String &, const String & );
     String date( class Date *, const String & ) const;
