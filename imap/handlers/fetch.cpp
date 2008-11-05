@@ -101,7 +101,7 @@ public:
     public:
         DynamicData(): modseq( 0 ) {}
         int64 modseq;
-        StringList flags;
+        Dict<String> flags;
         List<Annotation> annotations;
     };
     Map<DynamicData> dynamics;
@@ -1049,16 +1049,16 @@ String Fetch::flagList( uint uid )
 {
     StringList r;
 
-    if ( session()->isRecent( uid ) )
-        r.append( "\\recent" );
 
     FetchData::DynamicData * dd = d->dynamics.find( uid );
-    StringList::Iterator i;
-    if ( dd )
-        i = dd->flags.first();
-    while ( i ) {
-        r.append( *i );
-        ++i;
+    if ( dd ) {
+        if ( session()->isRecent( uid ) )
+            dd->flags.insert( "\\recent", new String( "\\Recent" ) );
+        Dict<String>::Iterator i( dd->flags );
+        while ( i ) {
+            r.append( *i );
+            ++i;
+        }
     }
 
     return r.join( " " );
@@ -1501,7 +1501,7 @@ void Fetch::pickup()
             }
             String f = Flag::name( r->getInt( "flag" ) );
             if ( !f.isEmpty() )
-                dd->flags.append( f );
+                dd->flags.insert( f.lower(), new String( f ) );
         }
     }
 
@@ -1655,7 +1655,7 @@ void Fetch::sendAnnotationsQuery()
         "from annotations a "
         "join annotation_names an on (a.name=an.id) "
         "where a.mailbox=$1 and a.uid=any($2) "
-        "order by a.mailbox, a.uid",
+        "order by an.name",
         this );
     d->annotationFetcher->bind( 1, session()->mailbox()->id() );
     d->annotationFetcher->bind( 2, d->set );
