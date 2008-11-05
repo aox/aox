@@ -1043,7 +1043,7 @@ void Injector::selectMessageIds()
         if ( !d->select->done() || d->select->failed() )
             return;
 
-        d->copy = new Query( "copy messages (id,rfc822size) "
+        d->copy = new Query( "copy messages (id,rfc822size,idate) "
                              "from stdin with binary", this );
 
         while ( d->select->hasResults() ) {
@@ -1056,6 +1056,7 @@ void Injector::selectMessageIds()
                 m->setTriviaFetched( true );
             }
             d->copy->bind( 2, m->rfc822Size() );
+            d->copy->bind( 2, internalDate( m ) );
             d->copy->submitLine();
             ++(*d->message);
         }
@@ -1222,7 +1223,7 @@ void Injector::insertMessages()
         new Query( "copy date_fields (message,value) from stdin", 0 );
 
     Query * qm =
-        new Query( "copy mailbox_messages (mailbox,uid,message,idate,modseq) "
+        new Query( "copy mailbox_messages (mailbox,uid,message,modseq) "
                    "from stdin with binary", 0 );
     Query * qf =
         new Query( "copy flags (mailbox,uid,flag) "
@@ -1429,8 +1430,7 @@ void Injector::addMailbox( Query * q, InjectableMessage * m, Mailbox * mb )
     q->bind( 1, mb->id() );
     q->bind( 2, m->uid( mb ) );
     q->bind( 3, m->databaseId() );
-    q->bind( 4, internalDate( mb, m ) );
-    q->bind( 5, m->modSeq( mb ) );
+    q->bind( 4, m->modSeq( mb ) );
     q->submitLine();
 }
 
@@ -1661,9 +1661,9 @@ void Injector::announce()
     function tries to obtain a date heuristically.
 */
 
-uint Injector::internalDate( Mailbox * mb, Message * m ) const
+uint Injector::internalDate( Message * m ) const
 {
-    if ( !m || !mb )
+    if ( !m )
         return 0;
     if ( m->internalDate() )
         return m->internalDate();
