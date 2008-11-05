@@ -656,24 +656,31 @@ void Fetch::execute()
                                       "where mailbox=$1 and uid=any($2) "
                                       "and modseq>$3",
                                       this );
-            else
+            else if ( d->modseq ||
+                      d->needsAddresses || d->needsHeader ||
+                      d->needsBody || d->needsPartNumbers ||
+                      d->rfc822size || d->internaldate )
                 d->those = new Query( "select uid, message "
                                       "from mailbox_messages "
                                       "where mailbox=$1 and uid=any($2)",
                                       this );
-            d->those->bind( 1, s->mailbox()->id() );
-            d->those->bind( 2, d->set );
-            if ( d->changedSince )
-                d->those->bind( 2, d->changedSince );
-            if ( d->modseq ) {
-                String s = d->those->string();
-                s.replace( " from ", ", modseq from " );
-                d->those->setString( s );
+            if ( d->those ) {
+                d->those->bind( 1, s->mailbox()->id() );
+                d->those->bind( 2, d->set );
+                if ( d->changedSince )
+                    d->those->bind( 2, d->changedSince );
+                if ( d->modseq ) {
+                    String s = d->those->string();
+                    s.replace( " from ", ", modseq from " );
+                    d->those->setString( s );
+                }
+                d->those->execute();
             }
-            d->those->execute();
         }
-        if ( !d->those->done() )
+        if ( d->those && !d->those->done() )
             return;
+        d->remaining = d->set;
+        if ( d->those ) {
         d->set.clear();
         Mailbox * mb = s->mailbox();
         Row * r;
@@ -690,7 +697,15 @@ void Fetch::execute()
                 dd->modseq = r->getBigint( "modseq" );
             }
         }
-        d->remaining = d->set;
+        }
+        else {
+            MessageSet r( d->set );
+            while ( !r.isEmpty() ) {
+                uint uid = r.smallest();
+                r.remove( uid );
+                d->dynamics.insert( uid, new FetchData::DynamicData );
+            }
+        }
         d->state = 1;
     }
 
