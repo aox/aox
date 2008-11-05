@@ -475,10 +475,12 @@ void Selector::simplify()
     mailbox_messages one.
 
     The search results will be ordered if \a order is true (this is
-    the default). Each Query Row will have the result columns named in
-    \a wanted, or "uid", "modseq", "message" and "idate" if \a wanted
-    is left at the default value.
+    the default). The order is ascending and uses whatever is
+    specified in \a wanted of mailbox, uid, message and idate.
 
+    Each Query Row will have the result columns named in \a wanted, or
+    "uid", "modseq" and "message" if \a wanted is left at the default
+    value.
 */
 
 Query * Selector::query( User * user, Mailbox * mailbox,
@@ -504,8 +506,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( wanted )
         q.append( wanted->join( ", " + mm() + "." ) );
     else
-        q.append( "uid, " + mm() + ".modseq, " +
-                  mm() + ".message, " + mm() + ".idate" );
+        q.append( "uid, " + mm() + ".modseq, " + mm() + ".message" );
     if ( deleted )
         q.append( " from deleted_messages " + mm() );
     else
