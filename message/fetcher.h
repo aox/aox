@@ -50,6 +50,7 @@ private:
     void makeQueries();
     void waitForEnd();
     void submit( Query * );
+    void bindIds( Query *, uint, Type );
 };
 
 

@@ -29,7 +29,6 @@ class FetcherData
 public:
     FetcherData()
         : messagesRemaining( 0 ),
-          batchIds( 0 ),
           owner( 0 ),
           q( 0 ),
           transaction( 0 ),
@@ -46,7 +45,6 @@ public:
 
     List<Message> messages;
     uint messagesRemaining;
-    List<uint> * batchIds;
     Map<Message> batch;
     EventHandler * owner;
     List<Query> * q;
@@ -263,13 +261,16 @@ void Fetcher::start()
         n++;
         what.append( "bytes/lines" );
     }
-    if ( n < 1 ) {
+
+    d->messagesRemaining = d->messages.count();
+
+    if ( n < 1 || d->messagesRemaining < 1 ) {
         // nothing to do.
         d->state = Done;
         return;
     }
 
-    log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
+    log( "Fetching data for " + fn( d->messagesRemaining ) + " messages. " +
          what.join( " " ) );
 
     // we'll use two steps. first, we find a good size for the first
@@ -322,6 +323,7 @@ void Fetcher::waitForEnd()
     while ( bi ) {
         Message * m = bi;
         ++bi;
+        
         List<FetcherData::Decoder>::Iterator di( decoders );
         while ( di ) {
             di->setDone( m );
@@ -391,37 +393,58 @@ void Fetcher::prepareBatch()
 
     // Find out which messages we're going to fetch, and fill in the
     // batch array so we can tie responses to the Message objects.
-    // More than one Message may refer to the same row. This code
-    // carefully counts expected rows rather than affected Message
-    // objects. Shouldn't matter much, except that it makes the batch
-    // time calculator above happier.
     d->uniqueDatabaseIds = true;
-    d->batchIds = new List<uint>;
+    d->batch.clear();
     uint n = 0;
     while ( !d->messages.isEmpty() && n < d->batchSize ) {
         Message * m = d->messages.shift();
-        if ( !d->batch.contains( m->databaseId() ) ) {
-            n++;
-            d->batchIds->append( new uint( m->databaseId() ) );
-        }
         d->batch.insert( m->databaseId(), m );
+        n++;
         d->messagesRemaining--;
     }
 }
 
 
-static void bindBatchIds( Query * q, uint n, List<uint> * l )
+
+
+/*! Finds out which messages need information of \a type, and binds a
+    list of their database IDs to parameter \a n of \a query.
+*/
+
+void Fetcher::bindIds( Query * query, uint n, Type type )
 {
-    if ( l->firstElement() &&
-         l->firstElement() == l->lastElement() ) {
-        String s = q->string();
-        s.replace( "=any($" + fn( n ) + ")", "=$" + fn( n ) );
-        q->setString( s );
-        q->bind( n, *l->firstElement() );
+    List<uint> l;
+    Map<Message>::Iterator it( d->batch );
+    while ( it ) {
+        Message * m = it;
+        ++it;
+        bool need = true;
+        switch ( type ) {
+        case Addresses:
+            if ( m->hasAddresses() )
+                need = false;
+            break;
+        case OtherHeader:
+            if ( m->hasHeaders() )
+                need = false;
+            break;
+        case Body:
+            if ( m->hasBodies() )
+                need = false;
+            break;
+        case PartNumbers:
+            if ( m->hasBytesAndLines() )
+                need = false;
+            break;
+        case Trivia:
+            if ( m->hasTrivia() )
+                need = false;
+            break;
+        }
+        if ( need && m->databaseId() )
+            l.append( new uint( m->databaseId() ) );
     }
-    else {
-        q->bind( n, l );
-    }
+    query->bind( n, &l );
 }
 
 
@@ -445,9 +468,17 @@ void Fetcher::makeQueries()
         q = new Query( "select message, part, bytes, lines "
                        "from part_numbers where message=any($1)",
                        d->partnumbers );
-        q->bind( 1, d->batchIds );
+        bindIds( q, 1, PartNumbers );
         submit( q );
         d->partnumbers->q = q;
+    }
+
+    if ( d->trivia ) {
+        q = new Query( "select id as message, idate, rfc822size "
+                       "from messages where id=any($1)", d->trivia );
+        bindIds( q, 1, Trivia );
+        submit( q );
+        d->trivia->q = q;
     }
 
     if ( d->addresses ) {
@@ -459,7 +490,7 @@ void Fetcher::makeQueries()
                        "where af.message=any($1) "
                        "order by af.message, af.part, af.field, af.number",
                        d->addresses );
-        bindBatchIds( q, 1, d->batchIds );
+        bindIds( q, 1, Addresses );
         submit( q );
         d->addresses->q = q;
     }
@@ -471,7 +502,7 @@ void Fetcher::makeQueries()
                        "where hf.message=any($1) "
                        "order by hf.message, hf.part",
                        d->otherheader );
-        bindBatchIds( q, 1, d->batchIds );
+        bindIds( q, 1, OtherHeader );
         submit( q );
         d->otherheader->q = q;
     }
@@ -483,17 +514,9 @@ void Fetcher::makeQueries()
                        "left join bodyparts bp on (pn.bodypart=bp.id) "
                        "where pn.message=any($1)",
                        d->body );
-        bindBatchIds( q, 1, d->batchIds );
+        bindIds( q, 1, Body );
         submit( q );
         d->body->q = q;
-    }
-
-    if ( d->trivia ) {
-        q = new Query( "select id as message, idate, rfc822size "
-                       "from messages where id=any($1)", d->trivia );
-        bindBatchIds( q, 1, d->batchIds );
-        submit( q );
-        d->trivia->q = q;
     }
 
     if ( d->transaction )
