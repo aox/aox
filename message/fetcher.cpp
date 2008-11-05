@@ -286,9 +286,11 @@ void Fetcher::start()
 
     // we'll use two steps. first, we find a good size for the first
     // batch.
-    d->batchSize = 1024;
+    d->batchSize = 4096;
     if ( d->body )
         d->batchSize = d->batchSize / 2;
+    else if ( Postgres::version() >= 80100 && Postgres::version() < 80200 )
+        d->batchSize = 65536;
     if ( d->otherheader )
         d->batchSize = d->batchSize * 2 / 3;
     if ( d->addresses )
