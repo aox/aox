@@ -1656,7 +1656,7 @@ void Injector::announce()
 }
 
 
-/*! Returns a sensible internaldate for \a m in \a mb. If
+/*! Returns a sensible internaldate for \a m. If
     Message::internalDate() is not null, it is used, otherwise this
     function tries to obtain a date heuristically.
 */
