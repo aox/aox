@@ -250,9 +250,7 @@ void Fetch::parse()
         l.append( "body" );
     if ( d->flags )
         l.append( "flags" );
-    if ( d->rfc822size )
-        l.append( "size" );
-    if ( d->internaldate || d->modseq )
+    if ( d->internaldate || d->rfc822size )
         l.append( "trivia" );
     if ( d->needsPartNumbers )
         l.append( "bytes/lines" );
@@ -691,10 +689,11 @@ void Fetch::execute()
             Message * m = MessageCache::provide( mb, uid );
             d->messages.insert( uid, m );
             m->setDatabaseId( r->getInt( "message" ) );
-            if ( d->modseq ) {
+            if ( d->modseq || d->flags || d->annotation ) {
                 FetchData::DynamicData * dd = new FetchData::DynamicData;
                 d->dynamics.insert( uid, dd );
-                dd->modseq = r->getBigint( "modseq" );
+                if ( d->modseq )
+                    dd->modseq = r->getBigint( "modseq" );
             }
         }
         }
