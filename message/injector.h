@@ -83,7 +83,7 @@ private:
     void announce();
     Query * selectNextvals( const String &, uint );
 
-    uint internalDate( Mailbox *, Message * ) const;
+    uint internalDate( Message * ) const;
 };
 
 
