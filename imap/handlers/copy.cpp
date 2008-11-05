@@ -136,9 +136,9 @@ void Copy::execute()
             }
 
             q = new Query( "insert into mailbox_messages "
-                           "(mailbox, uid, message, idate, modseq) "
+                           "(mailbox, uid, message, modseq) "
                            "select $1, " + diff + ", m.message, "
-                           "m.idate, $6 from mailbox_messages m "
+                           "$6 from mailbox_messages m "
                            "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5",
                            this );
             q->bind( 1, tmailbox );
