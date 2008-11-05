@@ -687,7 +687,7 @@ void Fetch::execute()
             if ( d->modseq ) {
                 FetchData::DynamicData * dd = new FetchData::DynamicData;
                 d->dynamics.insert( uid, dd );
-                dd->modseq = r->getInt( "modseq" );
+                dd->modseq = r->getBigint( "modseq" );
             }
         }
         d->remaining = d->set;
