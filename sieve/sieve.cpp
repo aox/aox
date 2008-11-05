@@ -37,7 +37,7 @@ public:
           state( 0 ),
           handler( 0 ),
           autoresponses( 0 ),
-          mainInjector( 0 )
+          injector( 0 )
     {}
 
     class Recipient
@@ -79,12 +79,12 @@ public:
     List<Recipient> recipients;
     Recipient * currentRecipient;
     List<Address> submissions;
-    Message * message;
+    InjectableMessage * message;
     Date * arrivalTime;
     uint state;
     EventHandler * handler;
     Query * autoresponses;
-    Injector * mainInjector;
+    Injector * injector;
 
     Recipient * recipient( Address * a );
 };
@@ -212,140 +212,146 @@ void Sieve::execute()
         // we do NOT set the state to 1. act() does that.
     }
 
-    // 1: main injection of the incoming message and search for
-    // existing autoresponses.
+
+    // 1: If there are any autoresponses, see whether they ought to be
+    // suppressed.
     if ( d->state == 1 ) {
-        SortedList<Mailbox> * l = new SortedList<Mailbox>;
-        List<Mailbox>::Iterator i( mailboxes() );
-        while ( i ) {
-            if ( !l->find( i ) )
-                l->insert( i );
-            ++i;
+        if ( !d->injector ) {
+            d->injector = new Injector( this );
+            d->injector->setLog( new Log( Log::Database ) ); // XXX why here?
         }
 
-        d->message->addMailboxes( l );
-        d->mainInjector = new Injector( d->message, this );
-        d->mainInjector->setLog( new Log( Log::Database ) );
-
-        List<Address> * f = forwarded();
-        if ( !f->isEmpty() )
-            d->mainInjector->addDelivery( sender(), f );
-
-        d->state = 2;
-        if ( l->isEmpty() && f->isEmpty() )
-            d->mainInjector = 0;
-        else
-            d->mainInjector->execute();
-
-        // ... and suppress autoresponses
-        List<SieveAction> * v = vacations();
-        if ( !v->isEmpty() ) {
-            d->autoresponses = new Query( "", this );
-            String s = "select handle from autoresponses "
-                       "where expires_at > current_timestamp "
-                       "and (";
-            bool first = true;
-            bool n = 1;
-            List<SieveAction>::Iterator i( v );
-            while ( i ) {
-                if ( !first )
-                    s.append( " or " );
-                s.append( "(handle=$" );
-                s.append( fn( n ) );
-                d->autoresponses->bind( n, i->handle() );
-                s.append( " and sent_from in "
-                          "(select id from addresses "
-                          " where lower(localpart)=$" );
-                s.append( fn( n+1 ) );
-                s.append( " and lower(domain)=$" );
-                s.append( fn( n+2 ) );
-                Address * f = i->senderAddress();
-                d->autoresponses->bind( n+1, f->localpart().lower() );
-                d->autoresponses->bind( n+2, f->domain() );
-                s.append( ") and sent_to in "
-                          "(select id from addresses "
-                          " where lower(localpart)=$" );
-                s.append( fn( n+3 ) );
-                s.append( " and lower(domain)=$" );
-                s.append( fn( n+4 ) );
-                Address * r = i->recipientAddress();
-                d->autoresponses->bind( n+3, r->localpart().lower() );
-                d->autoresponses->bind( n+4, r->domain().lower() );
-                s.append( "))" );
-                ++i;
-                n += 5;
-                first = false;
-            }
-            s.append( ")" );
-            d->autoresponses->setString( s );
-            d->autoresponses->execute();
-        }
-    }
-
-    // 2: wait for the main injector to finish.
-    if ( d->state == 2 ) {
-        if ( d->mainInjector && !d->mainInjector->done() )
-            return;
-        d->state = 3;
-        if ( d->handler )
-            d->handler->execute();
-    }
-
-    // 3: find out which autoresponses should be suppressed and send
-    // the others.
-    if ( d->state == 3 ) {
         if ( d->autoresponses && !d->autoresponses->done() )
             return;
 
-        List<SieveAction> * v = vacations();
-        if ( d->autoresponses ) {
-            Row * r = 0;
-            while ( (r=d->autoresponses->nextRow()) ) {
+        if ( !d->autoresponses ) {
+            List<SieveAction> * v = vacations();
+            if ( v->isEmpty() ) {
+                d->state = 2;
+            }
+            else {
+                d->autoresponses = new Query( "", this );
+                String s = "select handle from autoresponses "
+                           "where expires_at > current_timestamp "
+                           "and (";
+                bool first = true;
+                bool n = 1;
+                List<SieveAction>::Iterator i( v );
+                while ( i ) {
+                    if ( !first )
+                        s.append( " or " );
+                    s.append( "(handle=$" );
+                    s.append( fn( n ) );
+                    d->autoresponses->bind( n, i->handle() );
+                    s.append( " and sent_from in "
+                              "(select id from addresses "
+                              " where lower(localpart)=$" );
+                    s.append( fn( n+1 ) );
+                    s.append( " and lower(domain)=$" );
+                    s.append( fn( n+2 ) );
+                    Address * f = i->senderAddress();
+                    d->autoresponses->bind( n+1, f->localpart().lower() );
+                    d->autoresponses->bind( n+2, f->domain() );
+                    s.append( ") and sent_to in "
+                              "(select id from addresses "
+                              " where lower(localpart)=$" );
+                    s.append( fn( n+3 ) );
+                    s.append( " and lower(domain)=$" );
+                    s.append( fn( n+4 ) );
+                    Address * r = i->recipientAddress();
+                    d->autoresponses->bind( n+3, r->localpart().lower() );
+                    d->autoresponses->bind( n+4, r->domain().lower() );
+                    s.append( "))" );
+                    ++i;
+                    n += 5;
+                    first = false;
+                }
+                s.append( ")" );
+                d->autoresponses->setString( s );
+                d->autoresponses->execute();
+            }
+        }
+
+        if ( d->autoresponses && d->autoresponses->hasResults() ) {
+            List<SieveAction> * v = vacations();
+            while ( d->autoresponses->hasResults() ) {
+                Row * r = d->autoresponses->nextRow();
                 UString h = r->getUString( "handle" );
                 List<SieveAction>::Iterator i( v );
                 while ( i && i->handle() != h )
                     i++;
                 if ( i ) {
                     log( "Suppressing vacation response to " +
-                         i->recipientAddress()->toString(), Log::Debug );
+                         i->recipientAddress()->toString() );
                     v->take( i );
                 }
-            }
-        }
+                else {
+                    Query * q
+                        = new Query(
+                            "insert into autoresponses "
+                            "(sent_from, sent_to, expires_at, handle) "
+                            "values ("
+                            "(select id from addresses "
+                            " where lower(localpart)=$1 and lower(domain)=$2 "
+                            " limit 1), "
+                            "(select id from addresses "
+                            " where lower(localpart)=$3 and lower(domain)=$4 "
+                            " limit 1), "
+                            "$5, $6)", 0 );
+                    q->bind( 1, i->senderAddress()->localpart().lower() );
+                    q->bind( 2, i->senderAddress()->domain().lower() );
+                    q->bind( 3, i->recipientAddress()->localpart().lower() );
+                    q->bind( 4, i->recipientAddress()->domain().lower() );
+                    Date e;
+                    e.setCurrentTime();
+                    e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
+                    q->bind( 5, e.isoDateTime() );
+                    q->bind( 6, i->handle() );
+                    q->execute();
 
-        List<SieveAction>::Iterator i( v );
+                    List<Address> * remote = new List<Address>;
+                    remote->append( i->recipientAddress() );
+                    d->injector->addDelivery( i->message(),
+                                              new Address( "", "", "" ),
+                                              remote );
+                }
+            }
+            if ( d->autoresponses->done() )
+                d->state = 2;
+        }
+    }
+    
+
+    // 2: main injection of the incoming message
+    if ( d->state == 1 ) {
+        List<Mailbox>::Iterator i( mailboxes() );
+        StringList flags;
         while ( i ) {
-            Query * q
-                = new Query(
-                    "insert into autoresponses "
-                    "(sent_from, sent_to, expires_at, handle) "
-                    "values ("
-                    "(select id from addresses "
-                    " where lower(localpart)=$1 and lower(domain)=$2 "
-                    " limit 1), "
-                    "(select id from addresses "
-                    " where lower(localpart)=$3 and lower(domain)=$4 "
-                    " limit 1), "
-                    "$5, $6)", 0 );
-            q->bind( 1, i->senderAddress()->localpart().lower() );
-            q->bind( 2, i->senderAddress()->domain().lower() );
-            q->bind( 3, i->recipientAddress()->localpart().lower() );
-            q->bind( 4, i->recipientAddress()->domain().lower() );
-            Date e;
-            e.setCurrentTime();
-            e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
-            q->bind( 5, e.isoDateTime() );
-            q->bind( 6, i->handle() );
-            q->execute();
-            Injector * v = new Injector( i->message(), 0 );
-            v->setLog( new Log( Log::Database ) );
-            List<Address> * remote = new List<Address>;
-            remote->append( i->recipientAddress() );
-            v->addDelivery( new Address( "", "", "" ), remote );
-            v->execute();
+            d->message->setFlags( i, &flags );
             ++i;
         }
-        d->state = 4;
+
+        if ( !d->message->mailboxes()->isEmpty() ) {
+            List<InjectableMessage> x;
+            x.append( d->message );
+            d->injector->addInjection( &x );
+        }
+
+        List<Address> * f = forwarded();
+        if ( !f->isEmpty() )
+            d->injector->addDelivery( d->message, sender(), f );
+
+        d->state = 3;
+        d->injector->execute();
+    }
+
+    // 3: wait for the main injector to finish.
+    if ( d->state == 2 ) {
+        if ( d->injector && !d->injector->done() )
+            return;
+        d->state = 3;
+        if ( d->handler )
+            d->handler->execute();
     }
 }
 
@@ -442,7 +448,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
     message's arrival time by fileinto/keep.
 */
 
-void Sieve::setMessage( Message * message, Date * when )
+void Sieve::setMessage( InjectableMessage * message, Date * when )
 {
     d->message = message;
     d->arrivalTime = when;
@@ -770,7 +776,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
 
         // reason
         UString reason = al->takeString( 1 );
-        Message * reply = 0;
+        InjectableMessage * reply = 0;
 
         String reptext;
         reptext.append( "From: " );
@@ -823,7 +829,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
         else if ( mime ) {
             reptext.append( reason.utf8() );
-            reply = new Message;
+            reply = new InjectableMessage;
             reply->parse( reptext );
         }
         else {
@@ -832,7 +838,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                                 "Mime-Version: 1.0\r\n" );
             reptext.append( "\r\n" );
             reptext.append( reason.utf8() );
-            reply = new Message;
+            reply = new InjectableMessage;
             reply->parse( reptext );
         }
 
@@ -1399,8 +1405,8 @@ String Sieve::error() const
         ++it;
     if ( it )
         return it->error;
-    if ( d->mainInjector && !d->mainInjector->error().isEmpty() )
-        return d->mainInjector->error();
+    if ( d->injector && !d->injector->error().isEmpty() )
+        return d->injector->error();
     return "";
 }
 

@@ -21,13 +21,13 @@ class ExporterData
 {
 public:
     ExporterData()
-        : find( 0 ), fetchers( 0 ),
+        : find( 0 ), fetcher( 0 ),
           mailbox( 0 ), selector( 0 ),
           messages( new List<Message> )
         {}
 
     Query * find;
-    List<Fetcher> * fetchers;
+    Fetcher * fetcher;
     UString sourceName;
     Mailbox * mailbox;
     Selector * selector;
@@ -80,52 +80,27 @@ void Exporter::execute()
     if ( !d->find ) {
         StringList wanted;
         wanted.append( "message" );
-        wanted.append( "mailbox" );
-        wanted.append( "uid" );
         d->find = d->selector->query( 0, d->mailbox, 0, this,
                                       true, &wanted, false );
-        // we might select for update, to make sure the things don't
-        // go away... but do we care? really?
         d->find->execute();
     }
 
     if ( !d->find->done() )
         return;
 
-    if ( !d->fetchers ) {
-        d->fetchers = new List<Fetcher>;
-        Map<Fetcher> fetchers;
-        Map<Message> messages;
+    if ( !d->fetcher ) {
+        d->messages = new List<Message>;
         while ( d->find->hasResults() ) {
             Row * r = d->find->nextRow();
-            Mailbox * mb = Mailbox::find( r->getInt( "mailbox" ) );
-            if ( mb ) {
-                Fetcher * f = fetchers.find( mb->id() );
-                if ( !f ) {
-                    f = new Fetcher( mb, new List<Message>, this );
-                    d->fetchers->append( f );
-                    fetchers.insert( mb->id(), f );
-                }
-                if ( !messages.contains( r->getInt( "message" ) ) ) {
-                    Message * m = new Message;
-                    messages.insert( r->getInt( "message" ), m );
-                    m->setDatabaseId( r->getInt( "message" ) );
-                    messages.insert( mb->id(), m );
-                    m->setUid( mb, r->getInt( "uid" ) );
-                    f->addMessage( m );
-                    d->messages->append( m );
-                }
-            }
+            Message * m = new Message;
+            m->setDatabaseId( r->getInt( "message" ) );
         }
-        List<Fetcher>::Iterator f( d->fetchers );
-        while ( f ) {
-            f->fetch( Fetcher::Addresses );
-            f->fetch( Fetcher::OtherHeader );
-            f->fetch( Fetcher::Body );
-            f->fetch( Fetcher::Trivia );
-            f->execute();
-            ++f;
-        }
+        d->fetcher = new Fetcher( d->messages, this );
+        d->fetcher->fetch( Fetcher::Addresses );
+        d->fetcher->fetch( Fetcher::OtherHeader );
+        d->fetcher->fetch( Fetcher::Body );
+        d->fetcher->fetch( Fetcher::Trivia );
+        d->fetcher->execute();
     }
 
     while ( !d->messages->isEmpty() ) {

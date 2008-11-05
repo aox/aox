@@ -81,3 +81,18 @@ void MessageCache::clear()
 {
     d->m.clear();
 }
+
+
+/*! Ensures that there is a message with \a mailbox and \a uid in the
+    cache, and returns a pointer to it.
+*/
+
+class Message * MessageCache::provide( class Mailbox * mailbox, uint uid )
+{
+    Message * m = find( mailbox, uid );
+    if ( m )
+        return m;
+    m = new Message;
+    insert( mailbox, uid, m );
+    return m;
+}

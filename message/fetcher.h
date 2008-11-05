@@ -19,12 +19,10 @@ class Fetcher
     : public EventHandler
 {
 public:
-    Fetcher( Mailbox *, List<Message> *, EventHandler * );
+    Fetcher( List<Message> *, EventHandler * );
     Fetcher( Message *, EventHandler * );
 
     enum Type {
-        Flags,
-        Annotations,
         Addresses,
         OtherHeader,
         Body,
@@ -34,7 +32,6 @@ public:
 
     void addMessage( Message * );
     void addMessages( List<Message> * );
-    void setSession( class Session * );
 
     void fetch( Type );
     bool fetching( Type ) const;
@@ -50,12 +47,10 @@ private:
 
 private:
     void start();
-    void findMessages();
     void prepareBatch();
     void makeQueries();
     void waitForEnd();
     void submit( Query * );
-    MessageSet * findUids();
 };
 
 

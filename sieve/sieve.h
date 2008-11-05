@@ -12,10 +12,10 @@ class User;
 class String;
 class UString;
 class Address;
-class Message;
 class Mailbox;
 class SieveAction;
 class SieveScript;
+class InjectableMessage;
 
 
 class Sieve
@@ -30,7 +30,7 @@ public:
     void addRecipient( Address *, Mailbox *, User *, SieveScript * );
     void addRecipient( Address *, EventHandler * );
     void addSubmission( Address * );
-    void setMessage( Message *, Date * );
+    void setMessage( InjectableMessage *, Date * );
 
     Address * sender() const;
     Address * recipient() const;

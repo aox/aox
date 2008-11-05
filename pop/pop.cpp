@@ -27,7 +27,7 @@ public:
     PopData()
         : state( POP::Authorization ), sawUser( false ),
           commands( new List< PopCommand > ), reader( 0 ),
-          reserved( false ), session( 0 )
+          reserved( false ), session( 0 ), messages( 0 )
     {}
 
     POP::State state;
@@ -39,7 +39,7 @@ public:
     bool reserved;
     Session * session;
     MessageSet toBeDeleted;
-    Map<Message> messages;
+    Map<Message> * messages;
 };
 
 
@@ -434,23 +434,30 @@ void POP::badUser()
 }
 
 
-/*! Returns a pointer to the Message object with UID \a uid, creating
-    one if there isn't any.
+/*! Returns a pointer to the Message object with UID \a uid, or 0 if
+    there isn't any.
 */
 
 class Message * POP::message( uint uid )
 {
-    Message * m = d->messages.find( uid );
-    if ( m )
-        return m;
-    m = new Message;
-    m->setUid( d->session->mailbox(), uid );
-    d->messages.insert( uid, m );
-    return m;
+    if ( !d->messages )
+        return 0;
+    return d->messages->find( uid );
 }
 
 
 void POP::sendChallenge( const String &s )
 {
     enqueue( "+ "+ s +"\r\n" );
+}
+
+
+/*! Records the Message objects needed for this Pop session. Each of
+    the Message objects is presumed to know its database ID, and may
+    know more. \a m is a map from UID to Message objects.
+*/
+
+void POP::setMessageMap( Map<Message> * m )
+{
+    d->messages = m;
 }

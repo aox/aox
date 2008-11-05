@@ -11,6 +11,7 @@
 #include "mailbox.h"
 #include "fetcher.h"
 #include "pagecomponent.h"
+#include "messagecache.h"
 #include "httpsession.h"
 #include "frontmatter.h"
 #include "mimefields.h"
@@ -631,10 +632,11 @@ class MessagePageData
 {
 public:
     MessagePageData()
-        : message( 0 )
+        : message( 0 ), query( 0 )
     {}
 
     Message * message;
+    Query * query;
 };
 
 
@@ -657,15 +659,41 @@ void MessagePage::execute()
 
         requireRight( m, Permissions::Read );
 
-        d->message = new Message;
-        d->message->setUid( m, link()->uid() );
+        d->message = MessageCache::find( m, link()->uid() );
+        if ( !d->message ) {
+            if ( !d->query ) {
+                d->query = new Query( "select message from mailbox_messages "
+                                      "where mailbox=$1 and uid=$2", this );
+                d->query->bind( 1, m->id() );
+                d->query->bind( 2, link()->uid() );
+                d->query->execute();
+            }
+            if ( !d->query->done() )
+                return;
+            Row * r = d->query->nextRow();
+            d->message = new Message;
+            if ( r ) {
+                d->message->setDatabaseId( r->getInt( "message" ) );
+                MessageCache::insert( m, link()->uid(), d->message );
+            }
+            else {
+                // the message has been deleted or never was
+                // there. XXX what to do?
+                d->message->setHeadersFetched();
+                d->message->setAddressesFetched();
+                d->message->setBodiesFetched();
+            }
+        }
         List<Message> messages;
         messages.append( d->message );
 
-        Fetcher * f = new Fetcher( m, &messages, this );
-        f->fetch( Fetcher::OtherHeader );
-        f->fetch( Fetcher::Body );
-        f->fetch( Fetcher::Addresses );
+        Fetcher * f = new Fetcher( &messages, this );
+        if ( !d->message->hasHeaders() )
+            f->fetch( Fetcher::OtherHeader );
+        if ( !d->message->hasBodies() )
+            f->fetch( Fetcher::Body );
+        if ( d->message->hasAddresses() )
+            f->fetch( Fetcher::Addresses );
         f->execute();
     }
 

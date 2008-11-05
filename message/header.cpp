@@ -904,12 +904,7 @@ void Header::repair( Multipart * p, const String & body )
                 parent = parent->parent();
             if ( parent->isMessage() ) {
                 Message * adam = (Message*)parent;
-                List<Mailbox>::Iterator mb( adam->mailboxes() );
-                uint id = 0;
-                while ( mb && !id ) {
-                    id = adam->internalDate();
-                    ++mb;
-                }
+                uint id = adam->internalDate();
                 if ( id )
                     date.setUnixTime( id );
             }

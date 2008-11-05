@@ -13,7 +13,7 @@
 #include "buffer.h"
 #include "address.h"
 #include "mailbox.h"
-#include "message.h"
+#include "injector.h"
 #include "allocator.h"
 #include "mechanism.h"
 #include "stringlist.h"
@@ -793,7 +793,7 @@ public:
     Address * to;
     Mailbox * keep;
     SieveScript * script;
-    Message * message;
+    InjectableMessage * message;
 };
 
 static ExplainStuff * x = 0;
@@ -876,7 +876,7 @@ bool ManageSieveCommand::explain()
                 ::x->message = 0;
             }
             else {
-                ::x->message = new Message;
+                ::x->message = new InjectableMessage;
                 ::x->message->parse( value );
                 ::x->message->setRfc822Size( ::x->message->rfc822().length() );
                 if ( !::x->message->error().isEmpty() )

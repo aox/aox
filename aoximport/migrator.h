@@ -4,7 +4,7 @@
 #define MIGRATOR_H
 
 #include "event.h"
-#include "message.h"
+#include "injector.h"
 #include "ustring.h"
 #include "stringlist.h"
 
@@ -78,12 +78,12 @@ public:
     const StringList * flags() const;
     void addFlag( const String & );
 
-    Message * message();
+    InjectableMessage * message();
 
 private:
     String s;
     String o;
-    Message * m;
+    InjectableMessage * m;
     StringList f;
 };
 

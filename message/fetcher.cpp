@@ -5,25 +5,22 @@
 #include "addressfield.h"
 #include "transaction.h"
 #include "messageset.h"
-#include "annotation.h"
 #include "allocator.h"
 #include "bodypart.h"
 #include "selector.h"
 #include "postgres.h"
 #include "mailbox.h"
 #include "message.h"
-#include "session.h"
 #include "ustring.h"
 #include "query.h"
 #include "scope.h"
-#include "flag.h"
 #include "utf.h"
+#include "map.h"
 
 #include <time.h> // time()
 
 
-enum State { NotStarted, FindingMessages, Fetching, Done };
-const uint batchHashSize = 1800;
+enum State { NotStarted, Fetching, Done };
 
 
 class FetcherData
@@ -34,18 +31,14 @@ public:
         : messagesRemaining( 0 ),
           batchIds( 0 ),
           owner( 0 ),
-          mailbox( 0 ), session( 0 ),
           q( 0 ),
-          findMessages( 0 ),
           transaction( 0 ),
           f( 0 ),
           state( NotStarted ),
-          selector( 0 ),
           maxBatchSize( 32768 ),
           batchSize( 0 ),
           uniqueDatabaseIds( true ),
           lastBatchStarted( 0 ),
-          flags( 0 ), annotations( 0 ),
           addresses( 0 ), otherheader( 0 ),
           body( 0 ), trivia( 0 ),
           partnumbers( 0 )
@@ -53,18 +46,14 @@ public:
 
     List<Message> messages;
     uint messagesRemaining;
-    List<Message> * batch[batchHashSize];
     List<uint> * batchIds;
+    Map<Message> batch;
     EventHandler * owner;
-    Mailbox * mailbox;
-    Session * session;
     List<Query> * q;
-    Query * findMessages;
     Transaction * transaction;
 
     Fetcher * f;
     State state;
-    Selector * selector;
     uint maxBatchSize;
     uint batchSize;
     bool uniqueDatabaseIds;
@@ -75,7 +64,7 @@ public:
     {
     public:
         Decoder( FetcherData * fd )
-            : q( 0 ), d( fd ), findById( false ), findByUid( false ) {
+            : q( 0 ), d( fd ) {
             setLog( new Log( Log::Database ) );
         }
         void execute();
@@ -84,29 +73,13 @@ public:
         virtual bool isDone( Message * ) const = 0;
         Query * q;
         FetcherData * d;
-
-        bool findById;
-        bool findByUid;
-        List<Message>::Iterator mit;
     };
 
-    Decoder * flags;
-    Decoder * annotations;
     Decoder * addresses;
     Decoder * otherheader;
     Decoder * body;
     Decoder * trivia;
     Decoder * partnumbers;
-
-    class FlagsDecoder
-        : public Decoder
-    {
-    public:
-        FlagsDecoder( FetcherData * fd ): Decoder( fd ) {}
-        void decode( Message *, Row * );
-        void setDone( Message * );
-        bool isDone( Message * ) const;
-    };
 
     class TriviaDecoder
         : public Decoder
@@ -114,16 +87,6 @@ public:
     public:
         TriviaDecoder( FetcherData * fd )
             : Decoder( fd ) {}
-        void decode( Message *, Row * );
-        void setDone( Message * );
-        bool isDone( Message * ) const;
-    };
-
-    class AnnotationDecoder
-        : public Decoder
-    {
-    public:
-        AnnotationDecoder( FetcherData * fd ): Decoder( fd ) {}
         void decode( Message *, Row * );
         void setDone( Message * );
         bool isDone( Message * ) const;
@@ -181,20 +144,19 @@ public:
     A Fetcher lives for a while, fetching data about a range of
     messages. Whenever it finishes its current retrieval, it finds the
     largest range of messages currently needing retrieval, and issues
-    an SQL select for them. Typically the select ends with "uid>=x and
-    uid<=y". When the Fetcher isn't useful any more, its owner drops
-    it on the floor.
+    an SQL select for them. Typically the select ends with
+    "mailbox=$71 and uid in any($72). When the Fetcher isn't useful
+    any more, its owner drops it on the floor.
 */
 
 
-/*! Constructs an empty Fetcher which will fetch \a messages in
-    mailbox \a m and notify \a e when it's done. */
+/*! Constructs an empty Fetcher which will fetch \a messages and
+    notify \a e when it's done. */
 
-Fetcher::Fetcher( Mailbox * m, List<Message> * messages, EventHandler * e )
+Fetcher::Fetcher( List<Message> * messages, EventHandler * e )
     : EventHandler(), d( new FetcherData )
 {
     setLog( new Log( Log::Database ) );
-    d->mailbox = m;
     d->owner = e;
     d->f = this;
     addMessages( messages );
@@ -212,7 +174,6 @@ Fetcher::Fetcher( Message * m, EventHandler * owner )
     : EventHandler(), d( new FetcherData )
 {
     setLog( new Log( Log::Database ) );
-    d->mailbox = 0;
     d->owner = owner;
     d->f = this;
     d->messages.append( m );
@@ -268,9 +229,6 @@ void Fetcher::execute()
         case NotStarted:
             start();
             break;
-        case FindingMessages:
-            findMessages();
-            break;
         case Fetching:
             waitForEnd();
             break;
@@ -296,14 +254,6 @@ void Fetcher::start()
     StringList what;
     what.append( new String( "Data type(s): " ) );
     uint n = 0;
-    if ( d->flags ) {
-        n++;
-        what.append( "flags" );
-    }
-    if ( d->annotations ) {
-        n++;
-        what.append( "annotations" );
-    }
     if ( d->addresses ) {
         n++;
         what.append( "addresses" );
@@ -326,58 +276,12 @@ void Fetcher::start()
     }
     if ( n < 1 ) {
         // nothing to do.
+        d->state = Done;
         return;
     }
 
     log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
          what.join( " " ) );
-
-    if ( d->messages.count() == 1 &&
-         !d->trivia && !d->flags && !d->annotations &&
-         d->messages.firstElement()->databaseId() ) {
-        // we're fetching a message by ID, not UID. just do it.
-        d->batchSize = 1;
-        d->messagesRemaining = 1;
-        prepareBatch();
-        makeQueries();
-        d->state = Fetching;
-        return;
-    }
-
-    MessageSet messages;
-    List<Message>::Iterator i( d->messages );
-    while ( i ) {
-        messages.add( i->uid( d->mailbox ) );
-        ++i;
-    }
-    uint expected = messages.count();
-
-    // Decide whether to use a separate query for finding the
-    // messages. We want to use the extra query only if the savings
-    // pay for the overhead.
-    bool simple = false;
-    if ( n == 1 )
-        simple = true;
-    else if ( expected * n < 1000 )
-        simple = true;
-
-    // This selector selects by UID from a single mailbox. We could
-    // also use any other Selector, so we can select messages based on
-    // anything and retrieve them.
-    if ( !d->selector )
-        d->selector = new Selector( messages );
-
-    if ( ( d->flags || d->annotations ) && !d->transaction && n > 1 )
-        d->transaction = new Transaction( this );
-    if ( d->transaction && n > 1 )
-        simple = false;
-
-    if ( simple ) {
-        // a query or two. or at most three.
-        makeQueries();
-        d->state = Fetching;
-        return;
-    }
 
     // we'll use two steps. first, we find a good size for the first
     // batch.
@@ -388,41 +292,6 @@ void Fetcher::start()
         d->batchSize = d->batchSize * 2 / 3;
     if ( d->addresses )
         d->batchSize = d->batchSize * 3 / 4;
-
-    StringList wanted;
-    wanted.append( "message" );
-    wanted.append( "uid" );
-    d->findMessages = d->selector->query( 0, d->mailbox, d->session, this,
-                                          true, &wanted );
-    submit( d->findMessages );
-    d->state = FindingMessages;
-    if ( d->transaction )
-        d->transaction->execute();
-}
-
-
-/*! Waits for the database to tell us how many messages it inserted
-    into the temporary table, and proceeds appropriately.
-*/
-
-void Fetcher::findMessages()
-{
-    if ( !d->findMessages->done() )
-        return;
-
-    Row * r = d->findMessages->nextRow();
-    if ( r ) {
-        List<Message>::Iterator m( d->messages );
-        while ( r ) {
-            d->messagesRemaining++;
-            uint uid = r->getInt( "uid" );
-            while ( m && m->uid( d->mailbox ) < uid )
-                ++m;
-            if ( m )
-                m->setDatabaseId( r->getInt( "message" ) );
-            r = d->findMessages->nextRow();
-        }
-    }
 
     d->state = Fetching;
     prepareBatch();
@@ -440,10 +309,6 @@ void Fetcher::findMessages()
 void Fetcher::waitForEnd()
 {
     List<FetcherData::Decoder> decoders;
-    if ( d->flags )
-        decoders.append( d->flags );
-    if ( d->annotations )
-        decoders.append( d->annotations );
     if ( d->addresses )
         decoders.append( d->addresses );
     if ( d->otherheader )
@@ -462,32 +327,14 @@ void Fetcher::waitForEnd()
         ++i;
     }
 
-    if ( d->batchSize ) {
-        i = decoders.first();
-        while ( i ) {
-            uint n = 0;
-            while ( n < batchHashSize ) {
-                if ( d->batch[n] ) {
-                    List<Message>::Iterator m( d->batch[n] );
-                    while ( m ) {
-                        i->setDone( m );
-                        ++m;
-                    }
-                }
-                n++;
-            }
-            ++i;
-        }
-    }
-    else {
-        while ( !d->messages.isEmpty() ) {
-            i = decoders.first();
-            Message * m = d->messages.firstElement();
-            while ( i ) {
-                i->setDone( m );
-                ++i;
-            }
-            d->messages.shift();
+    Map<Message>::Iterator bi( d->batch );
+    while ( bi ) {
+        Message * m = bi;
+        ++bi;
+        List<FetcherData::Decoder>::Iterator di( decoders );
+        while ( di ) {
+            di->setDone( m );
+            ++di;
         }
     }
 
@@ -558,85 +405,16 @@ void Fetcher::prepareBatch()
     // objects. Shouldn't matter much, except that it makes the batch
     // time calculator above happier.
     d->uniqueDatabaseIds = true;
-    uint n = 0;
-    while ( n < batchHashSize )
-        d->batch[n++] = 0;
     d->batchIds = new List<uint>;
-    n = 0;
-    while ( !d->messages.isEmpty() && n < d->batchSize ) {
-        Message * m = d->messages.firstElement();
-        d->messages.shift();
-        uint id = m->databaseId();
-        uint b = id % batchHashSize;
-        if ( d->batch[b] ) {
-            List<Message>::Iterator o( d->batch[b] );
-            while ( o && o->databaseId() != id )
-                ++o;
-            if ( o ) {
-                d->uniqueDatabaseIds = false;
-            }
-            else {
-                n++;
-                d->batchIds->append( new uint( id ) );
-            }
-        }
-        else {
-            d->batch[b] = new List<Message>;
-            d->batchIds->append( new uint( m->databaseId() ) );
-            n++;
-        }
-        d->batch[b]->append( m );
-        d->messagesRemaining--;
-    }
-}
-
-
-/*! Makes and returns a MessageSet containing all the UIDs to be used
-    for the coming batch.
-
-    This function silently assumes that all the messages are in the
-    same Mailbox.
-*/
-
-MessageSet * Fetcher::findUids()
-{
-    MessageSet * s = new MessageSet;
     uint n = 0;
-    while ( n < batchHashSize ) {
-        if ( d->batch[n] ) {
-            List<Message>::Iterator m( d->batch[n] );
-            while ( m ) {
-                s->add( m->uid( d->mailbox ) );
-                ++m;
-            }
+    while ( !d->messages.isEmpty() && n < d->batchSize ) {
+        Message * m = d->messages.shift();
+        if ( !d->batch.contains( m->databaseId() ) ) {
+            n++;
+            d->batchIds->append( new uint( m->databaseId() ) );
         }
-        n++;
-    }
-    return s;
-}
-
-
-static void bindUids( Query * q, uint n, MessageSet * s1, Selector * s2 )
-{
-    bool one = false;
-    if ( s1 && s1->count() == 1 )
-        one = true;
-    else if ( !s1 && s2->messageSet().count() == 1 )
-        one = true;
-    if ( one ) {
-        String s = q->string();
-        s.replace( "=any($" + fn( n ) + ")", "=$" + fn( n ) );
-        q->setString( s );
-        if ( s1 )
-            q->bind( n, s1->smallest() );
-        else
-            q->bind( n, s2->messageSet().smallest() );
-    }
-    else {
-        if ( s1 )
-            q->bind( n, *s1 );
-        else
-            q->bind( n, s2->messageSet() );
+        d->batch.insert( m->databaseId(), m );
+        d->messagesRemaining--;
     }
 }
 
@@ -657,9 +435,8 @@ static void bindBatchIds( Query * q, uint n, List<uint> * l )
 
 
 /*! Issues the necessary selects to retrieve data and feed the
-    decoders. This function is clever about the source (one of the
-    temporary tables or the original Selector) and does some
-    optimisation of the generated SQL.
+    decoders. This function does some optimisation of the generated
+    SQL.
 */
 
 void Fetcher::makeQueries()
@@ -667,234 +444,63 @@ void Fetcher::makeQueries()
     StringList wanted;
     wanted.append( "mailbox" );
     wanted.append( "uid" );
-
-    MessageSet * uids = 0;
+    wanted.append( "message" );
 
     Query * q = 0;
     String r;
 
-    if ( d->flags && d->mailbox ) {
-        if ( d->batchSize ) {
-            r = "select mm.message, mm.mailbox, mm.uid, f.flag "
-                "from mailbox_messages mm "
-                "join flags f using (mailbox,uid) "
-                "where mm.mailbox=$1 and mm.message=any($2) "
-                "order by mm.mailbox, mm.uid, f.flag";
-            q = new Query( r, d->flags );
-            q->bind( 1, d->mailbox->id() );
-            bindBatchIds( q, 2, d->batchIds );
-        }
-        else if ( d->selector->field() == Selector::Uid ) {
-            r = "select mailbox, uid, flag from flags "
-                "where mailbox=$1 and uid=any($2) "
-                "order by mailbox, uid, flag";
-            q = new Query( r, d->flags );
-            q->bind( 1, d->mailbox->id() );
-            bindUids( q, 2, uids, d->selector );
-        }
-        else {
-            // we're selecting complexly and not using
-            // batches. perhaps due to IMAP 'fetch 1:* (uid flags)
-            // (changedsince 1232)' in a smallish mailbox.
-            q = d->selector->query( 0, d->mailbox, d->session, d->flags,
-                                    false, &wanted );
-            r = q->string();
-            r.replace( " where ",
-                       " left join flags f on"
-                       " (mm.mailbox=f.mailbox and m.uid=f.uid)"
-                       " where " );
-            r.replace( "select mm.",
-                       "select f.flag, mm." );
-            r.append( " order by mm.mailbox, mm.uid, f.flag" );
-            q->setString( r );
-        }
-        submit( q );
-        d->flags->q = q;
-    }
-
-    if ( d->annotations && d->mailbox ) {
-        if ( d->batchSize ) {
-            q = new Query( "select mm.message, a.mailbox, a.uid, "
-                           "a.owner, a.value, an.name, an.id "
-                           "from mailbox_messages mm "
-                           "join annotations a using (mailbox,uid) "
-                           "join annotation_names an on (a.name=an.id) "
-                           "where mm.mailbox=$1 and mm.message=any($2) "
-                           "order by a.mailbox, a.uid",
-                           d->annotations );
-            q->bind( 1, d->mailbox->id() );
-            bindBatchIds( q, 2, d->batchIds );
-        }
-        else if ( d->selector->field() == Selector::Uid ) {
-            q = new Query( "select a.mailbox, a.uid, "
-                           "a.owner, a.value, an.name, an.id "
-                           "from annotations a "
-                           "join annotation_names an on (a.name=an.id) "
-                           "where a.mailbox=$1 and a.uid=any($2) "
-                           "order by a.mailbox, a.uid",
-                           d->annotations );
-            q->bind( 1, d->mailbox->id() );
-            bindUids( q, 2, uids, d->selector );
-        }
-        else {
-            // we're selecting complexly and not using batches. perhaps
-            // due to IMAP 'fetch 1:* (uid annotations) (changedsince 1232)'
-            q = d->selector->query( 0, d->mailbox, d->session,
-                                    d->annotations, false, &wanted );
-            r = q->string();
-            if ( !r.contains( " join annotations " ) )
-                r.replace( " where ",
-                           " join annotations a on"
-                           " (mm.mailbox=a.mailbox and mm.uid=a.uid)"
-                           " where " );
-            r.replace( " where ",
-                       " join annotation_names an on (a.name=an.id)"
-                       " where " );
-            r.replace( "select mm.",
-                       "select a.mailbox, a.uid, "
-                       "a.owner, a.value, an.name, an.id, mm." );
-            r.append( " order by f.mailbox, f.uid, f.flag" );
-            q->setString( r );
-        }
-        submit( q );
-        d->annotations->q = q;
-    }
-
-    wanted.append( "message" );
-
     if ( d->partnumbers && !d->body ) {
         // body (below) will handle this as a side effect
-        if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, d->session, d->partnumbers,
-                                    false, &wanted );
-            r = q->string();
-            if ( !r.contains( " join part_numbers pn " ) )
-                r.replace( " where ",
-                           " join part_numbers pn on"
-                           " (mm.message=pn.message)"
-                           " where " );
-            r.replace( "select mm.",
-                       "select pn.part, pn.bytes, pn.lines, mm." );
-            r.append( " order by mm.uid, pn.part" );
-            q->setString( r );
-        }
-        else {
-            q = new Query( "select message, part, bytes, lines "
-                           "from part_numbers where message=any($1)",
-                           d->partnumbers );
-            q->bind( 1, d->batchIds );
-        }
+        q = new Query( "select message, part, bytes, lines "
+                       "from part_numbers where message=any($1)",
+                       d->partnumbers );
+        q->bind( 1, d->batchIds );
         submit( q );
         d->partnumbers->q = q;
     }
 
     if ( d->addresses ) {
-        if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, d->session, d->addresses,
-                                    false, &wanted );
-            r = q->string();
-            r.replace( "select mm.",
-                       "select "
+        q = new Query( "select af.message, "
                        "af.part, af.position, af.field, af.number, "
-                       "a.name, a.localpart, a.domain, mm." );
-            r.replace( " where ",
-                       " join address_fields af on (mm.message=af.message)"
-                       " join addresses a on (af.address=a.id) where " );
-            r.append( " order by mm.uid, af.part, af.field, af.number" );
-            q->setString( r );
-        }
-        else {
-            q = new Query( "select af.message, "
-                           "af.part, af.position, af.field, af.number, "
-                           "a.name, a.localpart, a.domain "
-                           "from address_fields af "
-                           "join addresses a on (af.address=a.id) "
-                           "where af.message=any($1) "
-                           "order by af.message, af.part, af.field, af.number",
-                           d->addresses );
-            bindBatchIds( q, 1, d->batchIds );
-        }
+                       "a.name, a.localpart, a.domain "
+                       "from address_fields af "
+                       "join addresses a on (af.address=a.id) "
+                       "where af.message=any($1) "
+                       "order by af.message, af.part, af.field, af.number",
+                       d->addresses );
+        bindBatchIds( q, 1, d->batchIds );
         submit( q );
         d->addresses->q = q;
     }
 
     if ( d->otherheader ) {
-        if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, d->session, d->otherheader,
-                                    false, &wanted );
-            r = q->string();
-            r.replace( "select mm.",
-                       "select "
-                       "hf.part, hf.position, fn.name, hf.value, mm." );
-            r.replace( " where ",
-                       " join header_fields hf on (mm.message=hf.message)"
-                       " join field_names fn on (hf.field=fn.id) where " );
-            r.append( " order by mm.uid, hf.part" );
-            q->setString( r );
-        }
-        else {
-            q = new Query( "select hf.message, hf.part, hf.position, "
-                           "fn.name, hf.value from header_fields hf "
-                           "join field_names fn on (hf.field=fn.id) "
-                           "where hf.message=any($1) "
-                           "order by hf.message, hf.part",
-                           d->otherheader );
-            bindBatchIds( q, 1, d->batchIds );
-        }
+        q = new Query( "select hf.message, hf.part, hf.position, "
+                       "fn.name, hf.value from header_fields hf "
+                       "join field_names fn on (hf.field=fn.id) "
+                       "where hf.message=any($1) "
+                       "order by hf.message, hf.part",
+                       d->otherheader );
+        bindBatchIds( q, 1, d->batchIds );
         submit( q );
         d->otherheader->q = q;
     }
 
     if ( d->body ) {
-        if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, d->session, d->body,
-                                    false, &wanted );
-            r = q->string();
-            if ( !r.contains( " join bodyparts bp " ) )
-                r.replace( " where ",
-                           " join part_numbers pn on"
-                           " (mm.message=pn.message)"
-                           " left join bodyparts bp on"
-                           " (pn.bodypart=bp.id)"
-                           " where " );
-            r.replace( "select mm.",
-                       "select "
-                       "pn.part, bp.text, bp.data, "
-                       "bp.bytes as rawbytes, pn.bytes, pn.lines, mm." );
-            r.append( " order by mm.uid, pn.part" );
-            q->setString( r );
-        }
-        else {
-            q = new Query( "select pn.message, pn.part, bp.text, bp.data, "
-                           "bp.bytes as rawbytes, pn.bytes, pn.lines "
-                           "from part_numbers pn "
-                           "left join bodyparts bp on (pn.bodypart=bp.id) "
-                           "where pn.message=any($1)",
-                           d->body );
-            bindBatchIds( q, 1, d->batchIds );
-        }
+        q = new Query( "select pn.message, pn.part, bp.text, bp.data, "
+                       "bp.bytes as rawbytes, pn.bytes, pn.lines "
+                       "from part_numbers pn "
+                       "left join bodyparts bp on (pn.bodypart=bp.id) "
+                       "where pn.message=any($1)",
+                       d->body );
+        bindBatchIds( q, 1, d->batchIds );
         submit( q );
         d->body->q = q;
     }
 
     if ( d->trivia ) {
-        if ( !d->batchSize ) {
-            q = d->selector->query( 0, d->mailbox, d->session, d->trivia,
-                                    true, &wanted );
-            r = q->string();
-            if ( !r.contains( " join messages " ) )
-                r.replace( " where ",
-                           " join messages m on (mm.message=m.id)"
-                           " where " );
-            r.replace( "select mm.",
-                       "select m.rfc822size, m.idate, mm." );
-            q->setString( r );
-        }
-        else {
-            q = new Query( "select id as message, idate, rfc822size "
-                           "from messages where id=any($1)", d->trivia );
-            bindBatchIds( q, 1, d->batchIds );
-        }
+        q = new Query( "select id as message, idate, rfc822size "
+                       "from messages where id=any($1)", d->trivia );
+        bindBatchIds( q, 1, d->batchIds );
         submit( q );
         d->trivia->q = q;
     }
@@ -907,49 +513,11 @@ void Fetcher::makeQueries()
 void FetcherData::Decoder::execute()
 {
     Scope x( log() );
-    Row * r = q->nextRow();
-    if ( r && !findByUid && !findById ) {
-        if ( r->hasColumn( "uid" ) ) {
-            mit = d->messages.first();
-            findByUid = true;
-        }
-        else if ( r->hasColumn( "message" ) ) {
-            findById = true;
-        }
-    }
-
-    if ( !r ) {
-        // no rows, no work
-    }
-    else if ( findByUid ) {
-        while ( r ) {
-            uint uid = r->getInt( "uid" );
-            while ( mit && mit->uid( d->mailbox ) < uid )
-                ++mit;
-            if ( mit && !isDone( mit ) )
-                decode( mit, r );
-            r = q->nextRow();
-        }
-    }
-    else if ( findById ) {
-        while ( r ) {
-            uint id = r->getInt( "message" );
-            uint b = id%batchHashSize;
-            bool more = true;
-            if ( d->batch[b] ) {
-                List<Message>::Iterator m( d->batch[b] );
-                while ( m && more ) {
-                    if ( m->databaseId() == id ) {
-                        if ( !isDone( m ) )
-                            decode( m, r );
-                        if ( d->uniqueDatabaseIds )
-                            more = false;
-                    }
-                    ++m;
-                }
-            }
-            r = q->nextRow();
-        }
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        Message * m = d->batch.find( r->getInt( "message" ) );
+        if ( m )
+            decode( m, r );
     }
     if ( q->done() )
         d->f->execute();
@@ -1055,33 +623,6 @@ bool FetcherData::AddressDecoder::isDone( Message * m ) const
 }
 
 
-void FetcherData::FlagsDecoder::decode( Message * m, Row * r )
-{
-    String f = Flag::name( r->getInt( "flag" ) );
-    if ( !f.isEmpty() ) {
-        m->setFlag( d->mailbox, f );
-    }
-    else {
-        // XXX: consider this. The best course of action may be to
-        // silently ignore this flag for now. it's new, so we didn't
-        // announce it in the select response, either.
-    }
-}
-
-
-void FetcherData::FlagsDecoder::setDone( Message * m )
-{
-    m->setFlagsFetched( d->mailbox, true );
-
-}
-
-
-bool FetcherData::FlagsDecoder::isDone( Message * m ) const
-{
-    return m->hasFlags( d->mailbox );
-}
-
-
 void FetcherData::BodyDecoder::decode( Message * m, Row * r )
 {
     PartNumberDecoder::decode( m, r );
@@ -1179,53 +720,12 @@ bool FetcherData::TriviaDecoder::isDone( Message * m ) const
 }
 
 
-void FetcherData::AnnotationDecoder::decode( Message * m, Row * r )
-{
-    uint id = r->getInt( "id" );
-
-    String n( AnnotationName::name( id ) );
-    if ( n.isEmpty() ) {
-        n = r->getString( "name" );
-        AnnotationName::add( n, id );
-    }
-
-    String v( r->getString( "value" ) );
-
-    uint owner = 0;
-    if ( !r->isNull( "owner" ) )
-        owner = r->getInt( "owner" );
-
-    Annotation * a = new Annotation( n, v, owner );
-    m->replaceAnnotation( d->mailbox, a );
-}
-
-
-void FetcherData::AnnotationDecoder::setDone( Message * m )
-{
-    m->setAnnotationsFetched( d->mailbox, true );
-}
-
-
-bool FetcherData::AnnotationDecoder::isDone( Message * m ) const
-{
-    return m->hasAnnotations( d->mailbox );
-}
-
-
 /*! Instructs this Fetcher to fetch data of type \a t. */
 
 void Fetcher::fetch( Type t )
 {
     Scope x( log() );
     switch ( t ) {
-    case Flags:
-        if ( !d->flags )
-            d->flags = new FetcherData::FlagsDecoder( d );
-        break;
-    case Annotations:
-        if ( !d->annotations )
-            d->annotations = new FetcherData::AnnotationDecoder( d );
-        break;
     case Addresses:
         if ( !d->addresses )
             d->addresses = new FetcherData::AddressDecoder( d );
@@ -1258,12 +758,6 @@ void Fetcher::fetch( Type t )
 bool Fetcher::fetching( Type t ) const
 {
     switch ( t ) {
-    case Flags:
-        return d->flags != 0;
-        break;
-    case Annotations:
-        return d->annotations != 0;
-        break;
     case Addresses:
         return d->addresses != 0;
         break;
@@ -1281,17 +775,6 @@ bool Fetcher::fetching( Type t ) const
         break;
     }
     return false; // not reached
-}
-
-
-/*! Tells the Fetcher that its return values will be used in \a
-    s. Knowing the target Session enables the Fetcher to optimise some
-    queries.
-*/
-
-void Fetcher::setSession( class Session * s )
-{
-    d->session = s;
 }
 
 
