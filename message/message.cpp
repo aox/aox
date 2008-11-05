@@ -522,8 +522,8 @@ bool Message::hasTrivia() const
 
 
 /*! Records that the message now has correct values for internalDate()
-    and rfc822Size() for \a mb if \a ok is true, and that it doesn't
-    if \a ok is false.
+    and rfc822Size() if \a ok is true, and that it doesn't if \a ok is
+    false.
 */
 
 void Message::setTriviaFetched( bool ok )
