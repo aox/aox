@@ -189,8 +189,7 @@ void Copy::execute()
         q->bind( 2, tmailbox );
         d->transaction->enqueue( q );
 
-        q = new Query( "notify mailboxes_updated", 0 );
-        d->transaction->enqueue( q );
+        Mailbox::refreshMailboxes( d->transaction );
 
         d->transaction->commit();
     }

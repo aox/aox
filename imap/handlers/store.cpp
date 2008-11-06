@@ -506,7 +506,7 @@ void Store::execute()
         q->bind( 2, m->id() );
         d->transaction->enqueue( q );
 
-        d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
+        Mailbox::refreshMailboxes( d->transaction );
         d->transaction->commit();
 
         if ( d->silent )
