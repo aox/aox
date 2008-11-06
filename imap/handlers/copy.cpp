@@ -15,27 +15,24 @@ class CopyData
 {
 public:
     CopyData() :
-        uid( false ), firstUid( 0 ), modseq( 0 ),
+        uid( false ),
         mailbox( 0 ), transaction( 0 ),
         findUid( 0 ),
-        completedQueries( 0 )
+        report( 0 )
     {}
     bool uid;
     MessageSet set;
-    uint firstUid;
-    int64 modseq;
     Mailbox * mailbox;
     Transaction * transaction;
-    List<Query> queries;
     Query * findUid;
-    uint completedQueries;
+    Query * report;
 };
 
 
 /*! \class Copy copy.h
 
     The Copy class implements the IMAP COPY command (RFC 3501 section
-    6.4.7), as extended by RFC 2359.
+    6.4.7), as extended by RFC 4315.
 
     Copy copies all elements of a message, including such things as
     flags.
@@ -86,8 +83,9 @@ void Copy::execute()
     if ( !permitted() )
         return;
 
-    if ( !d->findUid ) {
+    if ( !d->transaction ) {
         d->transaction = new Transaction( this );
+
         d->findUid = new Query( "select uidnext,nextmodseq from mailboxes "
                                 "where id=$1 for update",
                                 this );
@@ -95,14 +93,17 @@ void Copy::execute()
         d->transaction->enqueue( d->findUid );
         d->transaction->execute();
     }
+
     if ( !d->findUid->done() )
         return;
 
-    if ( !d->firstUid ) {
+    if ( !d->report ) {
+        uint firstUid = 0;
+        int64 modseq = 0;
         Row * r = d->findUid->nextRow();
         if ( r ) {
-            d->firstUid = r->getInt( "uidnext" );
-            d->modseq = r->getBigint( "nextmodseq" );
+            firstUid = r->getInt( "uidnext" );
+            modseq = r->getBigint( "nextmodseq" );
         }
         else {
             error( No, "Could not allocate UID and modseq in target mailbox" );
@@ -113,103 +114,69 @@ void Copy::execute()
             return;
         }
 
-        Mailbox * current = session()->mailbox();
         Query * q;
 
-        uint cmailbox = current->id();
-        uint tmailbox = d->mailbox->id();
-        uint tuid = d->firstUid;
-        uint i = 1;
-        while ( i <= d->set.count() ) {
-            uint cuid = d->set.value( i );
-            uint j = i + 1;
-            // really big copies would be faster if the next loop were
-            // a binary search
-            while ( j-i == d->set.value( j ) - cuid )
-                j++;
-
-            String diff = "m.uid+$2";
-            uint delta = tuid-cuid;
-            if ( tuid < cuid ) {
-                diff = "m.uid-$2";
-                delta = cuid-tuid;
-            }
-
-            q = new Query( "insert into mailbox_messages "
-                           "(mailbox, uid, message, modseq) "
-                           "select $1, " + diff + ", m.message, "
-                           "$6 from mailbox_messages m "
-                           "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5",
-                           this );
-            q->bind( 1, tmailbox );
-            q->bind( 2, delta );
-            q->bind( 3, cmailbox );
-            q->bind( 4, cuid );
-            q->bind( 5, cuid + j - i );
-            q->bind( 6, d->modseq );
-            enqueue( q );
-
-            q = new Query( "insert into flags "
-                           "(mailbox, uid, flag) "
-                           "select $1, " + diff + ", m.flag "
-                           "from flags m "
-                           "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5",
-                           this );
-            q->bind( 1, tmailbox );
-            q->bind( 2, delta );
-            q->bind( 3, cmailbox );
-            q->bind( 4, cuid );
-            q->bind( 5, cuid + j - i );
-            enqueue( q );
-
-            q = new Query( "insert into annotations "
-                           "(mailbox, uid, owner, name, value) "
-                           "select $1, " + diff + ", $6, m.name, m.value "
-                           "from annotations m "
-                           "where m.mailbox=$3 and m.uid>=$4 and m.uid<$5"
-                           " and (m.owner is null or m.owner=$6)",
-                           this );
-            q->bind( 1, tmailbox );
-            q->bind( 2, delta );
-            q->bind( 3, cmailbox );
-            q->bind( 4, cuid );
-            q->bind( 5, cuid + j - i );
-            q->bind( 6, imap()->user()->id() );
-            enqueue( q );
-
-            tuid = tuid + j - i;
-            i = j;
-        }
-
-        q = new Query( "update mailboxes set uidnext=$1, nextmodseq=$2 "
-                       "where id=$3",
-                       this );
-        q->bind( 1, tuid );
-        q->bind( 2, d->modseq+1 );
-        q->bind( 2, tmailbox );
+        q = new Query( "create temporary table t ("
+                       "mailbox integer,"
+                       "uid integer,"
+                       "message integer,"
+                       "nuid integer"
+                       ")", 0 );
         d->transaction->enqueue( q );
+
+        q = new Query( "create temporary sequence s start " + fn( firstUid ), 0 );
+        d->transaction->enqueue( q );
+
+        q = new Query( "insert into t (mailbox, uid, message, nuid) "
+                       "select mailbox, uid, message, nextval('s') "
+                       "from mailbox_messages "
+                       "where mailbox=$1 and uid=any($2) order by uid", 0 );
+        q->bind( 1, session()->mailbox()->id() );
+        q->bind( 2, d->set );
+        d->transaction->enqueue( q );
+
+        q = new Query( "update mailboxes "
+                       "set uidnext=nextval('s'), nextmodseq=$1 "
+                       "where id=$2",
+                       this );
+        q->bind( 1, modseq+1 );
+        q->bind( 2, d->mailbox->id() );
+        d->transaction->enqueue( q );
+
+        d->transaction->enqueue( new Query( "drop sequence s", 0 ) );
+
+        q = new Query( "insert into mailbox_messages "
+                       "(mailbox, uid, message, modseq) "
+                       "select $1, t.nuid, message, $2 "
+                       "from t", 0 );
+        q->bind( 1, d->mailbox->id() );
+        q->bind( 2, modseq );
+        d->transaction->enqueue( q );
+
+        q = new Query( "insert into flags "
+                       "(mailbox, uid, flag) "
+                       "select $1, t.nuid, f.flag "
+                       "from flags f join t using (mailbox, uid)", 0 );
+        q->bind( 1, d->mailbox->id() );
+        d->transaction->enqueue( q );
+
+        q = new Query( "insert into annotations "
+                       "(mailbox, uid, owner, name, value) "
+                       "select $1, t.nuid, a.owner, a.name, a.value "
+                       "from annotations a join t using (mailbox, uid) "
+                       "where a.owner is null or a.owner=$2", 0 );
+        q->bind( 1, d->mailbox->id() );
+        q->bind( 2, imap()->user()->id() );
+        d->transaction->enqueue( q );
+
+        d->report = new Query( "select uid, nuid from t", 0 );
+        d->transaction->enqueue( d->report );
+
+        d->transaction->enqueue( new Query( "drop table t", 0 ) );
 
         Mailbox::refreshMailboxes( d->transaction );
 
         d->transaction->commit();
-    }
-
-    if ( d->set.count() > 256 ) {
-        uint completed = 0;
-        List<Query>::Iterator i( d->queries );
-        while ( i ) {
-            if ( i->state() == Query::Completed )
-                completed++;
-            ++i;
-        }
-        while ( d->completedQueries < completed ) {
-            imap()->enqueue( "* OK [PROGRESS " +
-                             tag() + " " +
-                             fn( d->completedQueries ) + " " +
-                             fn( d->queries.count() ) +
-                             "] working\r\n" );
-            d->completedQueries++;
-        }
     }
 
     if ( !d->transaction->done() )
@@ -220,28 +187,23 @@ void Copy::execute()
         return;
     }
 
-    uint next = d->firstUid + d->set.count();
-    if ( d->mailbox->uidnext() <= next )
-        d->mailbox->setUidnextAndNextModSeq( next, d->modseq+1 );
+    if ( imap() && imap()->session() &&
+         imap()->session()->mailbox() == d->mailbox &&
+         !imap()->session()->initialised() )
+        return;
 
-    MessageSet target;
-    target.add( d->firstUid, next - 1 );
-    setRespTextCode( "COPYUID " +
-                     fn( d->mailbox->uidvalidity() ) +
-                     " " +
-                     d->set.set() +
-                     " " +
-                     target.set() );
+    MessageSet from;
+    MessageSet to;
+
+    while ( d->report->hasResults() ) {
+        Row * r = d->report->nextRow();
+        from.add( r->getInt( "uid" ) );
+        to.add( r->getInt( "nuid" ) );
+    }
+
+    if ( !from.isEmpty() )
+        setRespTextCode( "COPYUID " +
+                         fn( d->mailbox->uidvalidity() ) + " " +
+                         from.set() + " " + to.set() );
     finish();
-}
-
-
-/*! Wrapper for Transaction::enqueue() which also stores \a q in a
-    list for later access.
-*/
-
-void Copy::enqueue( class Query * q )
-{
-    d->transaction->enqueue( q );
-    d->queries.append( q );
 }
