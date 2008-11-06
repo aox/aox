@@ -529,13 +529,15 @@ Mailbox * Mailbox::closestParent( const UString & name )
         return 0;
 
     UString n = name.titlecased();
-    Mailbox * m = find( n );
-    while ( !m || ( m->synthetic() && !m->isHome() ) ) {
+    Mailbox * m = 0;
+    while ( !m || ( m->synthetic() && !m->isHome() && m->parent() ) ) {
         uint i = n.length() - 1;
+        if ( !i )
+            return root();
         while ( i > 0 && n[i] != '/' )
             i--;
         n.truncate( i );
-        m = find( n );
+        m = obtain( n );
     }
     return m;
 }
