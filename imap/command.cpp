@@ -970,7 +970,7 @@ MessageSet Command::set( bool parseMsns = false )
             n1 = 0;
             step();
         }
-        else {
+        else if ( ok() ) {
             if ( n2 )
                 result.add( n1, n2 );
             else
