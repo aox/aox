@@ -119,13 +119,8 @@ void Delete::execute()
         if ( ok() && d->m->remove( d->t ) == 0 )
             error( No, "Cannot delete mailbox " + d->m->name().ascii() );
 
+        Mailbox::refreshMailboxes( d->t );
         d->t->commit();
-
-        List<Session>::Iterator s( d->m->sessions() );
-        while ( s ) {
-            s->abort();
-            ++s;
-        }
     }
 
     if ( !d->t->done() )
