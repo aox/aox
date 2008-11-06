@@ -25,7 +25,6 @@
 #include "store.h"
 #include "timer.h"
 #include "imap.h"
-#include "flag.h"
 #include "date.h"
 #include "user.h"
 #include "dict.h"
@@ -1546,7 +1545,7 @@ void Fetch::pickup()
                 dd = new FetchData::DynamicData;
                 d->dynamics.insert( uid, dd );
             }
-            String f = Flag::name( r->getInt( "flag" ) );
+            String f = r->getString( "name" );
             if ( !f.isEmpty() )
                 dd->flags.insert( f.lower(), new String( f ) );
         }
@@ -1562,14 +1561,7 @@ void Fetch::pickup()
                 d->dynamics.insert( uid, dd );
             }
 
-            uint id = r->getInt( "id" );
-
-            String n( AnnotationName::name( id ) );
-            if ( n.isEmpty() ) {
-                n = r->getString( "name" );
-                AnnotationName::add( n, id );
-            }
-
+            String n = r->getString( "name" );
             String v( r->getString( "value" ) );
 
             uint owner = 0;
@@ -1698,8 +1690,9 @@ Message * Fetch::message( uint uid ) const
 void Fetch::sendFlagQuery()
 {
     d->flagFetcher = new Query(
-        "select uid, flag from flags "
-        "where mailbox=$1 and uid=any($2)",
+        "select f.uid, fn.name from flags f "
+        "join flag_names fn on (f.flag=fn.id) "
+        "where f.mailbox=$1 and f.uid=any($2)",
         this );
     d->flagFetcher->bind( 1, session()->mailbox()->id() );
     d->flagFetcher->bind( 2, d->set );
@@ -1713,7 +1706,7 @@ void Fetch::sendAnnotationsQuery()
 {
     d->annotationFetcher = new Query(
         "select a.uid, "
-        "a.owner, a.value, an.name, an.id "
+        "a.owner, a.value, an.name "
         "from annotations a "
         "join annotation_names an on (a.name=an.id) "
         "where a.mailbox=$1 and a.uid=any($2) "
