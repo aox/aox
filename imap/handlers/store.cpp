@@ -365,7 +365,7 @@ void Store::execute()
         r.append( "uid" );
         d->findSet = work->query( imap()->user(), m, 0, this, false, &r );
         String s = d->findSet->string();
-        s.append( " for update" );
+        s.append( " order by mm.uid for update" );
         d->findSet->setString( s );
         d->transaction->enqueue( d->findSet );
 
