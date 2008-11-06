@@ -679,7 +679,7 @@ void Fetch::execute()
                     Message * m = MessageCache::find( mb, uid );
                     if ( m )
                         d->messages.insert( uid, m );
-                    if ( !m || !m->databaseId() )
+                    if ( !m || !m->databaseId() || d->modseq )
                         r.add( uid );
                 }
                 if ( !r.isEmpty() ) {
