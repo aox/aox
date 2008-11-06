@@ -61,11 +61,7 @@ void Delete::execute()
     if ( d->first ) {
         d->first = false;
 
-        if ( d->m->sessions() ) {
-            error( No, "Mailbox is in use" );
-            setRespTextCode( "INUSE" );
-        }
-        else if ( d->m->synthetic() ) {
+        if ( d->m->synthetic() ) {
             error( No,
                    d->m->name().ascii() + " does not really exist anyway" );
             setRespTextCode( "NONEXISTENT" );
@@ -95,13 +91,9 @@ void Delete::execute()
         lock->bind( 1, d->m->id() );
         d->t->enqueue( lock );
 
-        d->messages = new Query(
-            "select "
-            "(select count(*)::bigint from mailbox_messages where mailbox=$1) "
-            "+"
-            "(select count(*)::bigint from deleted_messages where mailbox=$1) "
-            "as messages",
-            this );
+        d->messages = new Query( "select count(*)::bigint as messages "
+                                 "from mailbox_messages where mailbox=$1",
+                                 this );
         d->messages->bind( 1, d->m->id() );
         d->t->enqueue( d->messages );
         d->t->execute();
@@ -128,6 +120,12 @@ void Delete::execute()
             error( No, "Cannot delete mailbox " + d->m->name().ascii() );
 
         d->t->commit();
+
+        List<Session>::Iterator s( d->m->sessions() );
+        while ( s ) {
+            s->abort();
+            ++s;
+        }
     }
 
     if ( !d->t->done() )

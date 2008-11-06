@@ -11,6 +11,7 @@
 #include "utf.h"
 
 #include <stdlib.h> // exit()
+#include <stdio.h> // printf()
 
 
 class UndeleteData
@@ -61,7 +62,7 @@ void Undelete::execute()
         else if ( m.isEmpty() )
             error( "No mailbox name" );
         else
-            d->m = Mailbox::find( m );
+            d->m = Mailbox::find( m, true );
         if ( !d->m )
             error( "No such mailbox: " + m.utf8() );
 
@@ -71,6 +72,14 @@ void Undelete::execute()
         s->simplify();
 
         d->t = new Transaction( this );
+        if ( d->m->deleted() ) {
+            if ( !d->m->create( d->t, 0 ) )
+                error( "Mailbox was deleted; recreating failed: " +
+                       d->m->name().utf8() );
+            printf( "aox: Note: Mailbox %s is recreated.\n"
+                    "     Its ownership and permissions could not be restored.\n",
+                    d->m->name().utf8().cstr() );
+        }
 
         StringList wanted;
         wanted.append( "uid" );
