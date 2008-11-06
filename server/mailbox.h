@@ -46,7 +46,7 @@ public:
     void setUidnextAndNextModSeq( uint, int64, Transaction * );
 
     Mailbox * parent() const;
-    List< Mailbox > *children() const;
+    List< Mailbox > * children() const;
     bool hasChildren() const;
 
     Mailbox * source() const;

@@ -23,8 +23,8 @@
 #include "transaction.h"
 
 
-static Mailbox * root = 0;
 static Map<Mailbox> * mailboxes = 0;
+static UDict<Mailbox> * mailboxesByName = 0;
 static bool wiped = false;
 
 
@@ -227,10 +227,10 @@ public:
     }
     void execute() {
         if ( !mr ) {
-            if ( ::root->children() )
-                ::root->children()->clear();
             ::mailboxes->clear();
+            ::mailboxesByName->clear();
             ::wiped = true;
+            (void)Mailbox::root();
             mr = new MailboxReader( this, 0 );
             mr->q->execute();
         }
@@ -252,14 +252,15 @@ public:
 
 void Mailbox::setup( EventHandler * owner )
 {
-    UString r;
-    r.append( '/' );
-    ::root = new Mailbox( r );
     ::wiped = true;
-    Allocator::addEternal( ::root, "root mailbox" );
 
     ::mailboxes = new Map<Mailbox>;
     Allocator::addEternal( ::mailboxes, "mailbox tree" );
+
+    ::mailboxesByName = new UDict<Mailbox>;
+    Allocator::addEternal( ::mailboxesByName, "mailbox tree" );
+
+    (void)root();
 
     (new MailboxReader( owner, 0 ))->q->execute();
 
@@ -476,9 +477,11 @@ String Mailbox::selector() const
     hierarchy.
 */
 
-Mailbox *Mailbox::root()
+Mailbox * Mailbox::root()
 {
-    return ::root;
+    UString r;
+    r.append( '/' );
+    return Mailbox::obtain( r, true );
 }
 
 
@@ -518,8 +521,6 @@ Mailbox * Mailbox::find( const UString &name, bool deleted )
 /*! Returns a pointer to the closest existing parent mailbox for \a
     name, or a null pointer if \a name doesn't look like a mailbox
     name at all, or if no parent mailboxes of \a name exist.
-
-    Never returns a null pointer or a pointer to a nonexistent mailbox.
 */
 
 Mailbox * Mailbox::closestParent( const UString & name )
@@ -527,30 +528,16 @@ Mailbox * Mailbox::closestParent( const UString & name )
     if ( name[0] != '/' )
         return 0;
 
-    Mailbox * candidate = ::root;
-    Mailbox * good = ::root;
-    uint i = 1;
-    while ( candidate && candidate->name() != name ) {
-        if ( candidate && !candidate->deleted() &&
-             ( !candidate->synthetic() || candidate->isHome() ) )
-            good = candidate;
-        if ( name[i] == '/' )
-            return 0; // two slashes -> syntax error
-        while ( i < name.length() && name[i] != '/' )
-            i++;
-        if ( !candidate->children() ) {
-            candidate = 0;
-        }
-        else {
-            UString next = name.mid( 0, i ).titlecased();
-            List<Mailbox>::Iterator it( candidate->children() );
-            while ( it && it->name().titlecased() != next )
-                ++it;
-            candidate = it;
-            i++;
-       }
+    UString n = name.titlecased();
+    Mailbox * m = find( n );
+    while ( !m || ( m->synthetic() && !m->isHome() ) ) {
+        uint i = n.length() - 1;
+        while ( i > 0 && n[i] != '/' )
+            i--;
+        n.truncate( i );
+        m = find( n );
     }
-    return good;
+    return m;
 }
 
 
@@ -570,39 +557,32 @@ Mailbox * Mailbox::obtain( const UString & name, bool create )
     if ( name[0] != '/' )
         return 0;
 
-    uint i = name.length();
-    while ( i > 0 && name[i] != '/' )
-        i--;
-    Mailbox * parent = ::root;
-    if ( i > 0 )
-        parent = obtain( name.mid( 0, i ), create );
-    else if ( ::root->name() == name )
-        return ::root;
-    if ( !parent )
-        return 0;
-    if ( !create && !parent->children() )
-        return 0;
-
-    if ( !parent->d->children )
-        parent->d->children = new List<Mailbox>;
-    List<Mailbox>::Iterator it( parent->d->children );
-    UString title = name.titlecased();
-    UString candidate;
-    if ( it )
-        candidate = it->name().titlecased();
-    while ( it && candidate < title ) {
-        ++it;
-        if ( it )
-            candidate = it->name().titlecased();
+    UString n = name.titlecased();
+    Mailbox * m = ::mailboxesByName->find( n );
+    if ( m || !create )
+        return m;
+    uint i = 0;
+    Mailbox * p = 0;
+    while ( i <= n.length() ) {
+        if ( i >= n.length() || n[i] == '/' ) {
+            uint l = i;
+            if ( !l )
+                l = 1;
+            m = ::mailboxesByName->find( n.mid( 0, l ) );
+            if ( !m ) {
+                m = new Mailbox( name.mid( 0, l ) );
+                ::mailboxesByName->insert( n.mid( 0, l ), m );
+                if ( p ) {
+                    if ( !p->d->children )
+                        p->d->children = new List<Mailbox>;
+                    p->d->children->append( m );
+                    m->d->parent = p;
+                }
+            }
+            p = m;
+        }
+        i++;
     }
-    if ( candidate == title )
-        return it;
-    if ( !create )
-        return 0;
-
-    Mailbox * m = new Mailbox( name );
-    m->d->parent = parent;
-    parent->d->children->insert( it, m );
     return m;
 }
 

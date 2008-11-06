@@ -74,6 +74,8 @@ public:
     UString simplified() const;
     UString trimmed() const;
 
+    inline const uint * data() const { return d ? (const uint*)d->str : 0; }
+
     UString titlecased() const;
 
     inline void detach() { if ( !modifiable() ) reserve( length() ); }
