@@ -509,7 +509,7 @@ void Store::execute()
         Mailbox::refreshMailboxes( d->transaction );
         d->transaction->commit();
 
-        if ( d->silent )
+        if ( d->silent && imap() && imap()->session() )
             imap()->session()->ignoreModSeq( d->modseq );
     }
 
