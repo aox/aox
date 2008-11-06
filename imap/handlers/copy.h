@@ -17,9 +17,6 @@ public:
 
 private:
     class CopyData * d;
-
-private:
-    void enqueue( class Query * );
 };
 
 
