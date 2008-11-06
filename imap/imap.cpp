@@ -813,6 +813,8 @@ void IMAP::emitResponses()
             if ( !t.isEmpty() ) {
                 w->append( "* ", 2 );
                 w->append( t );
+                log( "Sending response: * " + t.mid( 0, 64 ),
+                     Log::Debug );
                 w->append( "\r\n", 2 );
                 n++;
             }
