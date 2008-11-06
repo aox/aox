@@ -122,7 +122,7 @@ void Expunge::execute()
             query.append( " and uid=any($3)" );
             d->findUids->bind( 3, d->requested );
         }
-        query.append( ") for update" );
+        query.append( ") order by mailbox, uid for update" );
         d->findUids->setString( query );
         d->t->enqueue( d->findUids );
 
