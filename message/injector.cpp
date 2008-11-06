@@ -527,7 +527,6 @@ void Injector::execute()
             }
             else {
                 ::successes->tick();
-                announce();
             }
 
             next();
@@ -1178,13 +1177,16 @@ void Injector::selectUids()
             n++;
             ++it;
         }
+        if ( n )
+            log( "Using UIDs " + fn( uidnext ) + "-" + fn( uidnext + n - 1 ) +
+                 " in mailbox " + mb->mailbox->name().utf8() );
 
         // If we have sessions listening to the mailbox, then they get
         // to see the messages as \Recent. Otherwise, whoever opens
         // the mailbox next will update first_recent.
 
         bool recentIn = false;
-        if ( r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
+        if ( n && r->getInt( "uidnext" ) == r->getInt( "first_recent" ) ) {
             List<Session>::Iterator si( mb->mailbox->sessions() );
             if ( si ) {
                 recentIn = true;
@@ -1633,31 +1635,6 @@ void Injector::cache()
         }
     }
     
-}
-
-
-/*! Announces the successful injection. It should be called only when
-    the Injector has completed successfully (done(), but not
-    failed()).
-*/
-
-void Injector::announce()
-{
-    Map<InjectorData::Mailbox>::Iterator mbi( d->mailboxes );
-    while ( mbi ) {
-        Mailbox * mb = mbi->mailbox;
-        Session * s = 0;
-        if ( mb->sessions() )
-            s = mb->sessions()->firstElement();
-        if ( s ) {
-            List<Injectee>::Iterator i( mbi->messages );
-            while ( i ) {
-                s->addRecent( i->uid( mb ) );
-                ++i;
-            }
-        }
-        ++mbi;
-    }
 }
 
 

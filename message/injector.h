@@ -81,7 +81,6 @@ private:
     uint addAnnotations( Query *, Injectee *, Mailbox * );
     void logDescription();
     void cache();
-    void announce();
     Query * selectNextvals( const String &, uint );
 
     uint internalDate( Message * ) const;
