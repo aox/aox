@@ -519,6 +519,9 @@ Query * Selector::query( User * user, Mailbox * mailbox,
 
     q.append( d->extraJoins.join( "" ) );
 
+    if ( wanted && wanted->contains( "idate" ) )
+        d->needMessages = true;
+
     if ( d->needDateFields )
         q.append( " join date_fields df on "
                   "(df.message=" + mm() + ".message)" );
@@ -601,7 +604,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         else if ( wanted->contains( "message" ) )
             q.append( " order by " + mm() + ".message" );
         else if ( wanted->contains( "idate" ) )
-            q.append( " order by " + mm() + ".idate" );
+            q.append( " order by m.idate" );
     }
 
     if ( d->needBodyparts )
@@ -665,6 +668,8 @@ String Selector::where()
 
 String Selector::whereInternalDate()
 {
+    root()->d->needMessages = true;
+
     uint day = d->s8.mid( 0, 2 ).number( 0 );
     String month = d->s8.mid( 3, 3 );
     uint year = d->s8.mid( 7 ).number( 0 );
@@ -679,18 +684,18 @@ String Selector::whereInternalDate()
         root()->d->query->bind( n1, d1.unixTime() );
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return "(" + mm() + ".idate>=$" + fn( n1 ) +
-            " and " + mm() + ".idate<=$" + fn( n2 ) + ")";
+        return "(m.idate>=$" + fn( n1 ) +
+            " and m.idate<=$" + fn( n2 ) + ")";
     }
     else if ( d->a == SinceDate ) {
         uint n1 = placeHolder();
         root()->d->query->bind( n1, d1.unixTime() );
-        return mm() + ".idate>=$" + fn( n1 );
+        return "m.idate>=$" + fn( n1 );
     }
     else if ( d->a == BeforeDate ) {
         uint n2 = placeHolder();
         root()->d->query->bind( n2, d2.unixTime() );
-        return mm() + ".idate<=$" + fn( n2 );
+        return "m.idate<=$" + fn( n2 );
     }
 
     setError( "Cannot search for: " + debugString() );
@@ -1212,11 +1217,12 @@ String Selector::whereModseq()
 
 String Selector::whereAge()
 {
+    root()->d->needMessages = true;
     uint i = placeHolder();
     root()->d->query->bind( i, (uint)::time( 0 ) - d->n );
     if ( d->a == Larger )
-        return mm() + ".idate<=$" + fn( i );
-    return mm() + ".idate>=$" + fn( i );
+        return "m.idate<=$" + fn( i );
+    return "m.idate>=$" + fn( i );
 }
 
 
