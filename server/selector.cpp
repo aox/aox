@@ -356,8 +356,6 @@ void Selector::simplify()
         case Rfc822Size:
             break;
         case Flags:
-            if ( d->s8 != "\\recent" && !Flag::id( d->s8 ) )
-                d->a = None;
             break;
         case Uid:
             // if s contains all messages or is empty...
