@@ -292,7 +292,6 @@ void ImapUrlFetcher::execute()
 
         d->state = 4;
 
-        List<MailboxSet>::Iterator ms( sets );
         List<Message> * al = new List<Message>;
         List<Message> * hl = new List<Message>;
         List<Message> * bl = 0;
@@ -301,6 +300,7 @@ void ImapUrlFetcher::execute()
         while ( !bl ) {
             if ( !h )
                 bl = new List<Message>;
+            List<MailboxSet>::Iterator ms( sets );
             while ( ms ) {
                 MessageSet s;
                 if ( h )
@@ -333,6 +333,7 @@ void ImapUrlFetcher::execute()
                         ++it;
                     }
                 }
+                ++ms;
             }
             h = false;
         }
