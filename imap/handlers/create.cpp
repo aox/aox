@@ -76,6 +76,7 @@ void Create::execute()
             setRespTextCode( "ALREADYEXISTS" );
             return;
         }
+        Mailbox::refreshMailboxes( d->t );
         d->t->commit();
     }
 
