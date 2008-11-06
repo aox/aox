@@ -109,6 +109,7 @@ public:
     Map<DynamicData> dynamics;
     Query * flagFetcher;
     Query * annotationFetcher;
+    Query * modseqFetcher;
 };
 
 
@@ -694,9 +695,9 @@ void Fetch::execute()
             if ( d->those ) {
                 if ( d->changedSince )
                     d->those->bind( 2, d->changedSince );
-                if ( d->modseq ) {
+                if ( d->modseq || d->flags || d->annotation ) {
                     String s = d->those->string();
-                    s.replace( " from ", ", modseq from " );
+                    s.append( " for update" );
                     d->those->setString( s );
                 }
                 enqueue( d->those );
@@ -720,8 +721,6 @@ void Fetch::execute()
                 if ( d->modseq || d->flags || d->annotation ) {
                     FetchData::DynamicData * dd = new FetchData::DynamicData;
                     d->dynamics.insert( uid, dd );
-                    if ( d->modseq )
-                        dd->modseq = r->getBigint( "modseq" );
                 }
             }
         }
@@ -775,6 +774,8 @@ void Fetch::execute()
             sendFlagQuery();
         if ( d->annotation )
             sendAnnotationsQuery();
+        if ( d->modseq )
+            sendModSeqQuery();
     }
 
     if ( d->state < 4 )
@@ -1579,6 +1580,19 @@ void Fetch::pickup()
         }
     }
 
+    if ( d->modseqFetcher ) {
+        while ( d->modseqFetcher->hasResults() ) {
+            Row * r = d->modseqFetcher->nextRow();
+            uint uid = r->getInt( "uid" );
+            FetchData::DynamicData * dd = d->dynamics.find( uid );
+            if ( !dd ) {
+                dd = new FetchData::DynamicData;
+                d->dynamics.insert( uid, dd );
+            }
+            dd->modseq = r->getBigint( "modseq" );
+        }
+    }
+
     bool ok = true;
     uint done = 0;
     while ( ok && !d->remaining.isEmpty() ) {
@@ -1595,6 +1609,8 @@ void Fetch::pickup()
         if ( d->flagFetcher && !d->flagFetcher->done() )
             ok = false;
         if ( d->annotationFetcher && !d->annotationFetcher->done() )
+            ok = false;
+        if ( d->modseqFetcher && !d->modseqFetcher->done() )
             ok = false;
         if ( d->rfc822size && !m->hasTrivia() )
             ok = false;
@@ -1706,6 +1722,21 @@ void Fetch::sendAnnotationsQuery()
     d->annotationFetcher->bind( 1, session()->mailbox()->id() );
     d->annotationFetcher->bind( 2, d->set );
     enqueue( d->annotationFetcher );
+}
+
+
+/*! Sends a query to retrieve the modseq. */
+
+void Fetch::sendModSeqQuery()
+{
+    d->modseqFetcher = new Query(
+        "select uid, modseq "
+        "from mailbox_messages "
+        "where mailbox=$1 and uid=any($2)",
+        this );
+    d->modseqFetcher->bind( 1, session()->mailbox()->id() );
+    d->modseqFetcher->bind( 2, d->set );
+    enqueue( d->modseqFetcher );
 }
 
 

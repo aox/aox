@@ -45,6 +45,7 @@ private:
     void sendFetchQueries();
     void sendFlagQuery();
     void sendAnnotationsQuery();
+    void sendModSeqQuery();
     String dotLetters( uint, uint );
     String internalDate( Message * );
     String envelope( Message * );
