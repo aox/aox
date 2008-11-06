@@ -320,10 +320,10 @@ void Sieve::execute()
                 d->state = 2;
         }
     }
-    
+
 
     // 2: main injection of the incoming message
-    if ( d->state == 1 ) {
+    if ( d->state == 2 ) {
         List<Mailbox>::Iterator i( mailboxes() );
         StringList flags;
         while ( i ) {
@@ -346,10 +346,10 @@ void Sieve::execute()
     }
 
     // 3: wait for the main injector to finish.
-    if ( d->state == 2 ) {
+    if ( d->state == 3 ) {
         if ( d->injector && !d->injector->done() )
             return;
-        d->state = 3;
+        d->state = 4;
         if ( d->handler )
             d->handler->execute();
     }
