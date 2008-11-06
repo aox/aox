@@ -294,6 +294,8 @@ UString Mailbox::name() const
 void Mailbox::setType( Type t )
 {
     d->type = t;
+    if ( t == Deleted && d->sessions )
+        abortSessions();
 }
 
 
@@ -919,4 +921,19 @@ bool Mailbox::refreshing()
     if ( ::readers->isEmpty() )
         return false;
     return true;
+}
+
+
+/*! Aborts all sessions on this Mailbox. Good to call when a mailbox
+    is deleted.
+*/
+
+void Mailbox::abortSessions()
+{
+    List<Session>::Iterator it( d->sessions );
+    while ( it ) {
+        Session * s = it;
+        ++it;
+        s->abort();
+    }
 }

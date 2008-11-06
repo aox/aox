@@ -192,16 +192,6 @@ void Rename::execute()
         return;
 
     if ( !d->ready ) {
-        List< RenameData::MailboxPair >::Iterator it( d->renames );
-        while ( it ) {
-            List<Session>::Iterator s( it->from->sessions() );
-            while ( s ) {
-                s->abort();
-                ++s;
-            }
-            ++it;
-        }
-
         Mailbox::refreshMailboxes( d->t );
         d->t->commit();
         d->ready = true;
