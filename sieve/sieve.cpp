@@ -349,6 +349,14 @@ void Sieve::execute()
     if ( d->state == 3 ) {
         if ( d->injector && !d->injector->done() )
             return;
+        if ( d->injector->failed() ) {
+            List<SieveData::Recipient>::Iterator i( d->recipients );
+            while ( i ) {
+                if ( i->error.isEmpty() )
+                    i->error = "Injector: " + d->injector->error();
+                ++i;
+            }
+        }
         d->state = 4;
         if ( d->handler )
             d->handler->execute();
@@ -1413,7 +1421,7 @@ String Sieve::error() const
 
 /*! Returns true if the Sieve has finished evaluation (although not
     execution), and false if there's more to do before evaluation is
-    complete.
+    complete. injected() is this function's bigger sister.
 */
 
 bool Sieve::done() const
@@ -1586,7 +1594,11 @@ bool Sieve::ready() const
 
 bool Sieve::injected() const
 {
-    return d->state > 2;
+    if ( !d->injector )
+        return false;
+    if ( d->injector->done() )
+        return true;
+    return false;
 }
 
 
