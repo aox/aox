@@ -695,7 +695,6 @@ void Fetch::execute()
         }
         if ( d->those && !d->those->done() )
             return;
-        d->remaining = d->set;
         if ( d->those ) {
             d->set.clear();
             Row * r;
@@ -725,6 +724,7 @@ void Fetch::execute()
                 d->dynamics.insert( uid, new FetchData::DynamicData );
             }
         }
+        d->remaining = d->set;
         d->state = 1;
     }
 
@@ -1082,7 +1082,6 @@ String Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
 String Fetch::flagList( uint uid )
 {
     StringList r;
-
 
     FetchData::DynamicData * dd = d->dynamics.find( uid );
     if ( dd ) {
@@ -1669,7 +1668,7 @@ Message * Fetch::message( uint uid ) const
 
 void Fetch::sendFlagQuery()
 {
-    d->flagFetcher = new Query( 
+    d->flagFetcher = new Query(
         "select uid, flag from flags "
         "where mailbox=$1 and uid=any($2)",
         this );
@@ -1683,7 +1682,7 @@ void Fetch::sendFlagQuery()
 
 void Fetch::sendAnnotationsQuery()
 {
-    d->annotationFetcher = new Query( 
+    d->annotationFetcher = new Query(
         "select a.uid, "
         "a.owner, a.value, an.name, an.id "
         "from annotations a "
