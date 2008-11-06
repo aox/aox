@@ -78,12 +78,12 @@ public:
     const StringList * flags() const;
     void addFlag( const String & );
 
-    InjectableMessage * message();
+    Injectee * message();
 
 private:
     String s;
     String o;
-    InjectableMessage * m;
+    Injectee * m;
     StringList f;
 };
 

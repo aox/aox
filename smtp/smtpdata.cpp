@@ -34,7 +34,7 @@ public:
 
     String body;
     uint state;
-    InjectableMessage * message;
+    Injectee * message;
     String ok;
 };
 
@@ -189,8 +189,8 @@ void SmtpData::execute()
         }
         else {
             // for SMTP/LMTP, we wrap the unparsable message
-            InjectableMessage * m =
-                InjectableMessage::wrapUnparsableMessage(
+            Injectee * m =
+                Injectee::wrapUnparsableMessage(
                     d->body, d->message->error(),
                     "Message arrived but could not be stored",
                     server()->transactionId()
@@ -356,7 +356,7 @@ void SmtpData::checkField( HeaderField::Type t )
     RFC 4409.
 */
 
-InjectableMessage * SmtpData::message( const String & body )
+Injectee * SmtpData::message( const String & body )
 {
     if ( d->message )
         return d->message;
@@ -407,7 +407,7 @@ InjectableMessage * SmtpData::message( const String & body )
              "\r\n";
 
     d->body = rp + received + body;
-    InjectableMessage * m = new InjectableMessage;
+    Injectee * m = new Injectee;
     m->parse( d->body );
     // if the sender is another dickhead specifying <> in From to
     // evade replies, let's try harder.

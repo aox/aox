@@ -43,13 +43,13 @@ class Deliverator
 public:
     Query * q;
     Injector * i;
-    InjectableMessage * m;
+    Injectee * m;
     UString mbn;
     String un;
     Permissions * p;
     Mailbox * mb;
 
-    Deliverator( InjectableMessage * message,
+    Deliverator( Injectee * message,
                  const UString & mailbox, const String & user )
         : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user ),
           p( 0 ), mb( 0 )
@@ -125,7 +125,7 @@ public:
             StringList x;
             m->setFlags( mb, &x );
             i = new Injector( this );
-            List<InjectableMessage> y;
+            List<Injectee> y;
             y.append( m );
             i->addInjection( &y );
             i->execute();
@@ -225,7 +225,7 @@ int main( int argc, char *argv[] )
 
     Configuration::setup( "archiveopteryx.conf" );
 
-    InjectableMessage * message = new InjectableMessage;
+    Injectee * message = new Injectee;
     message->parse( contents );
     if ( !message->error().isEmpty() ) {
         fprintf( stderr,

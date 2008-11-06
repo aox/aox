@@ -15,11 +15,11 @@ class Bodypart;
 class Annotation;
 
 
-class InjectableMessage
+class Injectee
     : public Message
 {
 public:
-    InjectableMessage();
+    Injectee();
 
     void setUid( Mailbox *, uint );
     uint uid( Mailbox * ) const;
@@ -34,12 +34,12 @@ public:
 
     List<Mailbox> * mailboxes() const;
 
-    static InjectableMessage * wrapUnparsableMessage( const String &,
+    static Injectee * wrapUnparsableMessage( const String &,
                                                       const String &,
                                                       const String &,
                                                       const String & = "" );
 private:
-    class InjectableMessageData * d;
+    class InjecteeData * d;
 };
 
 
@@ -55,7 +55,7 @@ public:
     bool failed() const;
     String error() const;
 
-    void addInjection( List<InjectableMessage> * );
+    void addInjection( List<Injectee> * );
     void addDelivery( Message *, Address *, List<Address> * );
 
 private:
@@ -76,9 +76,9 @@ private:
     void insertDeliveries();
     void addPartNumber( Query *, uint, const String &, Bodypart * = 0 );
     void addHeader( Query *, Query *, Query *, uint, const String &, Header * );
-    void addMailbox( Query *, InjectableMessage *, Mailbox * );
-    uint addFlags( Query *, InjectableMessage *, Mailbox * );
-    uint addAnnotations( Query *, InjectableMessage *, Mailbox * );
+    void addMailbox( Query *, Injectee *, Mailbox * );
+    uint addFlags( Query *, Injectee *, Mailbox * );
+    uint addAnnotations( Query *, Injectee *, Mailbox * );
     void logDescription();
     void announce();
     Query * selectNextvals( const String &, uint );

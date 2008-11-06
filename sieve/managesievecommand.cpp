@@ -793,7 +793,7 @@ public:
     Address * to;
     Mailbox * keep;
     SieveScript * script;
-    InjectableMessage * message;
+    Injectee * message;
 };
 
 static ExplainStuff * x = 0;
@@ -876,7 +876,7 @@ bool ManageSieveCommand::explain()
                 ::x->message = 0;
             }
             else {
-                ::x->message = new InjectableMessage;
+                ::x->message = new Injectee;
                 ::x->message->parse( value );
                 ::x->message->setRfc822Size( ::x->message->rfc822().length() );
                 if ( !::x->message->error().isEmpty() )
