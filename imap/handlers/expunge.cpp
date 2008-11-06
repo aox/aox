@@ -173,7 +173,7 @@ void Expunge::execute()
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, d->s->mailbox()->id() );
         d->t->enqueue( q );
-        d->t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
+        Mailbox::refreshMailboxes( d->t );
         d->t->commit();
     }
 

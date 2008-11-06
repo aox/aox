@@ -145,8 +145,7 @@ void Undelete::execute()
         q->bind( 3, d->m->id() );
         d->t->enqueue( q );
 
-        q = new Query( "notify mailboxes_updated", 0 );
-        d->t->enqueue( q );
+        Mailboxes::refreshMailboxes( d->t );
 
         d->t->commit();
         d->state = 4;

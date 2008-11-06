@@ -169,14 +169,12 @@ void Copy::execute()
         q->bind( 2, imap()->user()->id() );
         d->transaction->enqueue( q );
 
-        Mailbox::refreshMailboxes( d->transaction );
-        q = new Query( "notify mailboxes_updated", 0 );
-        d->transaction->enqueue( q );
-
         d->report = new Query( "select uid, nuid from t", 0 );
         d->transaction->enqueue( d->report );
 
         d->transaction->enqueue( new Query( "drop table t", 0 ) );
+
+        Mailbox::refreshMailboxes( d->transaction );
 
         d->transaction->commit();
     }

@@ -510,6 +510,8 @@ void Injector::execute()
             insertMessages();
             insertDeliveries();
             next();
+            if ( !d->mailboxes.isEmpty() )
+                Mailbox::refreshMailboxes( d->transaction );
             d->transaction->commit();
             break;
 
@@ -1322,10 +1324,8 @@ void Injector::insertMessages()
     d->transaction->enqueue( qh );
     d->transaction->enqueue( qa );
     d->transaction->enqueue( qd );
-    if ( mailboxes ) {
+    if ( mailboxes )
         d->transaction->enqueue( qm );
-        d->transaction->enqueue( new Query( "notify mailboxes_updated", 0 ) );
-    }
     if ( flags )
         d->transaction->enqueue( qf );
     if ( annotations )

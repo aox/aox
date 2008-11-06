@@ -695,10 +695,7 @@ Query * Mailbox::create( Transaction * t, User * owner )
 
     t->enqueue( q );
 
-    refreshMailboxes( t );
-
-    q = new Query( "notify mailboxes_updated", 0 );
-    t->enqueue( q );
+    t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 
     return q;
 }
@@ -728,10 +725,7 @@ Query * Mailbox::remove( Transaction * t )
     q->bind( 1, id() );
     t->enqueue( q );
 
-    refreshMailboxes( t );
-
-    q = new Query( "notify mailboxes_updated", 0 );
-    t->enqueue( q );
+    t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 
     return q;
 }
@@ -744,6 +738,7 @@ Query * Mailbox::remove( Transaction * t )
 void Mailbox::refreshMailboxes( class Transaction * t )
 {
     t->enqueue( (new MailboxReader( 0, 0 ))->q );
+    t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 }
 
 
