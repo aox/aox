@@ -521,12 +521,6 @@ void Store::execute()
         return;
     }
 
-    if ( m->nextModSeq() <= d->modseq )
-        m->setNextModSeq( d->modseq + 1 );
-
-    if ( imap() && imap()->session() && !imap()->session()->initialised() )
-        return;
-
     if ( d->silent && d->seenUnchangedSince ) {
         uint n = 0;
         while ( n < d->s.count() ) {

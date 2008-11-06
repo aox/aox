@@ -9,6 +9,7 @@
 #include "event.h"
 #include "list.h"
 
+class Transaction;
 class Connection;
 class Mailbox;
 class Message;
@@ -60,7 +61,7 @@ public:
     void expunge( const MessageSet & );
     virtual void clearExpunged( uint );
 
-    virtual void emitUpdates();
+    virtual void emitUpdates( Transaction * );
 
     MessageSet unannounced() const;
     void addUnannounced( uint );
@@ -77,7 +78,7 @@ class SessionInitialiser
     : public EventHandler
 {
 public:
-    SessionInitialiser( Mailbox * );
+    SessionInitialiser( Mailbox *, Transaction * );
 
     void execute();
 

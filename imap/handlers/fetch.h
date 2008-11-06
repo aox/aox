@@ -6,12 +6,14 @@
 #include "command.h"
 
 
+class Query;
 class Header;
 class Section;
 class Message;
 class Bodypart;
 class Multipart;
 class ImapParser;
+class Transaction;
 
 
 class Fetch
@@ -19,7 +21,7 @@ class Fetch
 {
 public:
     Fetch( bool = false );
-    Fetch( bool, bool, const MessageSet &, int64, IMAP * );
+    Fetch( bool, bool, const MessageSet &, int64, IMAP *, Transaction * );
 
     void parse();
     void execute();
@@ -50,6 +52,8 @@ private:
     String singlePartStructure( Multipart *, bool );
 
     void pickup();
+
+    void enqueue( Query * q );
 
 private:
     class FetchData * d;

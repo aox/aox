@@ -24,7 +24,7 @@ public:
 
     IMAP * imap() const;
 
-    void emitUpdates();
+    void emitUpdates( Transaction * t );
 
     void recordExpungedFetch( const MessageSet & );
 
@@ -35,7 +35,7 @@ public:
 private:
     class ImapSessionData * d;
 
-    void emitFlagUpdates();
+    void emitFlagUpdates( Transaction * );
 };
 
 

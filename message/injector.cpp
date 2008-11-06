@@ -510,8 +510,10 @@ void Injector::execute()
             insertMessages();
             insertDeliveries();
             next();
-            if ( !d->mailboxes.isEmpty() )
+            if ( !d->mailboxes.isEmpty() ) {
+                cache();
                 Mailbox::refreshMailboxes( d->transaction );
+            }
             d->transaction->commit();
             break;
 
@@ -521,6 +523,7 @@ void Injector::execute()
 
             if ( d->failed || d->transaction->failed() ) {
                 ::failures->tick();
+                Cache::clearAllCaches();
             }
             else {
                 ::successes->tick();
@@ -1606,15 +1609,11 @@ struct MailboxAnnouncement {
 };
 
 
-/*! This function announces the injection of a message into the relevant
-    mailboxes, using ocd. It should be called only when the Injector has
-    completed successfully (done(), but not failed()).
-
-    The Mailbox objects in this process are notified immediately, to
-    avoid timing-dependent behaviour within one process.
+/*! Inserts this/these message/s into the MessageCache. If the
+    transaction fails, the cache has to be cleared.
 */
 
-void Injector::announce()
+void Injector::cache()
 {
     List<Injectee>::Iterator it( d->injectables );
     while ( it ) {
@@ -1627,30 +1626,36 @@ void Injector::announce()
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
             Mailbox * mb = mi;
+            ++mi;
             uint uid = m->uid( mb );
 
             MessageCache::insert( mb, uid, m );
-
-            List<Session>::Iterator si( mb->sessions() );
-            while ( si ) {
-                MessageSet dummy;
-                dummy.add( uid );
-                si->addUnannounced( dummy );
-                ++si;
-            }
-            ++mi;
         }
     }
+    
+}
 
+
+/*! Announces the successful injection. It should be called only when
+    the Injector has completed successfully (done(), but not
+    failed()).
+*/
+
+void Injector::announce()
+{
     Map<InjectorData::Mailbox>::Iterator mbi( d->mailboxes );
     while ( mbi ) {
         Mailbox * mb = mbi->mailbox;
-        Injectee * last = mbi->messages.lastElement();
-        if ( last &&
-             ( last->uid( mb ) >= mb->uidnext() ||
-               last->modSeq( mb ) >= mb->nextModSeq() ) )
-            mb->setUidnextAndNextModSeq( last->uid( mb )+1,
-                                         last->modSeq( mb )+1 );
+        Session * s = 0;
+        if ( mb->sessions() )
+            s = mb->sessions()->firstElement();
+        if ( s ) {
+            List<Injectee>::Iterator i( mbi->messages );
+            while ( i ) {
+                s->addRecent( i->uid( mb ) );
+                ++i;
+            }
+        }
         ++mbi;
     }
 }

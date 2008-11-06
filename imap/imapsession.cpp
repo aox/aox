@@ -141,9 +141,11 @@ IMAP * ImapSession::imap() const
 }
 
 
-/*! Emits whatever responses we can to the IMAP client. */
+/*! Emits whatever responses we can to the IMAP client, using \a t for
+    the database work.
+*/
 
-void ImapSession::emitUpdates()
+void ImapSession::emitUpdates( Transaction * t )
 {
     if ( d->emitting )
         return;
@@ -160,7 +162,7 @@ void ImapSession::emitUpdates()
         e.remove( e.smallest() );
     }
 
-    emitFlagUpdates();
+    emitFlagUpdates( t );
 
     if ( d->uidnext < uidnext() ) {
         if ( !d->existsResponse ) {
@@ -193,10 +195,11 @@ void ImapSession::emitUpdates()
 }
 
 
-/*! This private helper starts/sends whatever flag updates are needed.
+/*! This private helper starts/sends whatever flag updates are needed,
+    using \a t for the database work.
 */
 
-void ImapSession::emitFlagUpdates()
+void ImapSession::emitFlagUpdates( Transaction * t ) 
 {
     if ( !d->nms )
         return;
@@ -236,7 +239,7 @@ void ImapSession::emitFlagUpdates()
     }
 
     (void)new Fetch( true, d->i->clientSupports( IMAP::Annotate ),
-                     d->changed, d->cms - 1, d->i );
+                     d->changed, d->cms - 1, d->i, t );
     d->changed.clear();
 }
 
