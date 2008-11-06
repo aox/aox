@@ -20,7 +20,7 @@ public:
     Mailbox * mailbox;
     Address * sender;
     Address * recipient;
-    InjectableMessage * message;
+    Injectee * message;
     UString handle;
     String errorMessage;
     uint expiry;
@@ -189,7 +189,7 @@ UString SieveAction::handle() const
     type() is Vacation.
 */
 
-void SieveAction::setMessage( InjectableMessage * m )
+void SieveAction::setMessage( Injectee * m )
 {
     d->message = m;
 }
@@ -199,7 +199,7 @@ void SieveAction::setMessage( InjectableMessage * m )
     setMessage() hasn't been called.
 */
 
-InjectableMessage * SieveAction::message() const
+Injectee * SieveAction::message() const
 {
     return d->message;
 }

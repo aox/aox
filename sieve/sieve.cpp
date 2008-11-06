@@ -79,7 +79,7 @@ public:
     List<Recipient> recipients;
     Recipient * currentRecipient;
     List<Address> submissions;
-    InjectableMessage * message;
+    Injectee * message;
     Date * arrivalTime;
     uint state;
     EventHandler * handler;
@@ -332,7 +332,7 @@ void Sieve::execute()
         }
 
         if ( !d->message->mailboxes()->isEmpty() ) {
-            List<InjectableMessage> x;
+            List<Injectee> x;
             x.append( d->message );
             d->injector->addInjection( &x );
         }
@@ -448,7 +448,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
     message's arrival time by fileinto/keep.
 */
 
-void Sieve::setMessage( InjectableMessage * message, Date * when )
+void Sieve::setMessage( Injectee * message, Date * when )
 {
     d->message = message;
     d->arrivalTime = when;
@@ -776,7 +776,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
 
         // reason
         UString reason = al->takeString( 1 );
-        InjectableMessage * reply = 0;
+        Injectee * reply = 0;
 
         String reptext;
         reptext.append( "From: " );
@@ -829,7 +829,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
         else if ( mime ) {
             reptext.append( reason.utf8() );
-            reply = new InjectableMessage;
+            reply = new Injectee;
             reply->parse( reptext );
         }
         else {
@@ -838,7 +838,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                                 "Mime-Version: 1.0\r\n" );
             reptext.append( "\r\n" );
             reptext.append( reason.utf8() );
-            reply = new InjectableMessage;
+            reply = new Injectee;
             reply->parse( reptext );
         }
 

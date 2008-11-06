@@ -303,7 +303,7 @@ static String * errdir = 0;
 MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
     : s( desc ), o( rfc822 ), m( 0 )
 {
-    m = new InjectableMessage;
+    m = new Injectee;
     m->parse( o );
     if ( m->error().isEmpty() )
         return;
@@ -348,7 +348,7 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
         if ( Migrator::verbosity() > 1 )
             fprintf( stdout, " - Wrote to %s\n", f.name().cstr() );
     }
-    m = InjectableMessage::wrapUnparsableMessage( o, m->error(),
+    m = Injectee::wrapUnparsableMessage( o, m->error(),
                                                   "Unparsable message" );
 }
 
@@ -385,7 +385,7 @@ String MigratorMessage::original() const
 
 /*! Returns the parsed/corrected/inferred Message generated from original(). */
 
-InjectableMessage * MigratorMessage::message()
+Injectee * MigratorMessage::message()
 {
     return m;
 }
@@ -535,10 +535,10 @@ void MailboxMigrator::execute()
         Scope x( new Log( Log::General ) );
         log( "Starting migration of " + fn ( d->messages.count() ) +
              " messages starting with " + d->messages.first()->description() );
-        List<InjectableMessage> * messages = new List<InjectableMessage>;
+        List<Injectee> * messages = new List<Injectee>;
         List<MigratorMessage>::Iterator i ( d->messages );
         while ( i ) {
-            InjectableMessage * m = i->message();
+            Injectee * m = i->message();
             m->setFlags( d->destination, i->flags() );
             messages->append( m );
             ++i;

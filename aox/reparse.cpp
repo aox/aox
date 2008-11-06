@@ -75,7 +75,7 @@ void Reparse::execute()
         d->t = new Transaction( this );
     }
 
-    List<InjectableMessage> injectables;
+    List<Injectee> injectables;
     while ( d->q && d->q->hasResults() ) {
         Row * r = d->q->nextRow();
 
@@ -85,7 +85,7 @@ void Reparse::execute()
         else
             text = r->getString( "data" );
         Mailbox * mb = Mailbox::find( r->getInt( "mailbox" ) );
-        InjectableMessage * im = new InjectableMessage;
+        Injectee * im = new Injectee;
         im->parse( text );
         if ( im->valid() ) {
             StringList x;

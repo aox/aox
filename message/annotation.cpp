@@ -21,7 +21,7 @@ public:
     The Annotation object doesn't register itself or maintain pointers
     to other objects - it's a simple value.
 
-    InjectableMessage, Selector and Fetch::annotation() are the main
+    Injectee, Selector and Fetch::annotation() are the main
     users of Annotation.
 */
 

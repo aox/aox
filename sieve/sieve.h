@@ -15,7 +15,7 @@ class Address;
 class Mailbox;
 class SieveAction;
 class SieveScript;
-class InjectableMessage;
+class Injectee;
 
 
 class Sieve
@@ -30,7 +30,7 @@ public:
     void addRecipient( Address *, Mailbox *, User *, SieveScript * );
     void addRecipient( Address *, EventHandler * );
     void addSubmission( Address * );
-    void setMessage( InjectableMessage *, Date * );
+    void setMessage( Injectee *, Date * );
 
     Address * sender() const;
     Address * recipient() const;
