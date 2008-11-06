@@ -235,6 +235,11 @@ Query * Transaction::failedQuery() const
 
 void Transaction::enqueue( Query *q )
 {
+    if ( d->submittedCommit ) {
+        log( "Query submitted after commit/rollback: " + q->string(), 
+             Log::Error );
+        return;
+    }
     if ( !d->queries )
         d->queries = new List< Query >;
     q->setTransaction( this );
@@ -268,7 +273,10 @@ void Transaction::rollback()
         }
     }
 
-    if ( d->parent ) {
+    if ( !d->submittedBegin ) {
+        // if we haven't started, stopping is no work
+    }
+    else if ( d->parent ) {
         Query * q = new Query( "rollback to " + d->savepoint, 0 );
         enqueue( q );
         q = new Query( "release savepoint " + d->savepoint, d->owner );
@@ -296,18 +304,19 @@ void Transaction::restart()
         log( "restart() called after commit/rollback" );
         return;
     }
-    else if ( !d->parent ) {
-        log( "restart() called without subtransaction" );
-        return;
-    }
     else if ( !d->submittedBegin ) {
         return;
     }
-
-    d->queries->clear();
-    Query * q = new Query( "rollback to " + d->savepoint, d->owner );
-    enqueue( q );
-    setState( Executing );
+    else if ( !d->parent ) {
+        d->queries->clear();
+        enqueue( new Query( "rollback", d->owner ) );
+        d->submittedBegin = false;
+    }
+    else {
+        d->queries->clear();
+        enqueue( new Query( "rollback to " + d->savepoint, d->owner ) );
+        setState( Executing );
+    }
     execute();
 }
 
