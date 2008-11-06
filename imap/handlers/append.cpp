@@ -371,7 +371,7 @@ void Append::process( class Appendage * h )
         h->urlFetcher->execute();
     }
 
-    if ( !h->urlFetcher->done() )
+    if ( !h->urlFetcher->done() || h->message )
         return;
 
     if ( h->urlFetcher->failed() ) {
