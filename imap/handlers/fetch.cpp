@@ -694,9 +694,9 @@ void Fetch::execute()
             if ( d->those ) {
                 if ( d->changedSince )
                     d->those->bind( 2, d->changedSince );
-                if ( d->modseq || d->flags || d->annotation ) {
+                if ( d->modseq ) {
                     String s = d->those->string();
-                    s.append( " for update" );
+                    s.append( " order by uid for update" );
                     d->those->setString( s );
                 }
                 enqueue( d->those );
