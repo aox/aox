@@ -138,14 +138,20 @@ void Expunge::execute()
     while ( ( r = d->findUids->nextRow() ) != 0 ) {
         d->marked.add( r->getInt( "uid" ) );
     }
-    if ( !d->findModseq->done() )
-        return;
-
+    
     if ( d->marked.isEmpty() ) {
         d->t->commit();
         finish();
         return;
     }
+
+    if ( d->findModseq->hasResults() ) {
+        r = d->findModseq->nextRow();
+        d->modseq = r->getBigint( "nextmodseq" );
+    }
+
+    if ( !d->findModseq->done() )
+        return;
 
     if ( !d->expunge ) {
         r = d->findModseq->nextRow();
