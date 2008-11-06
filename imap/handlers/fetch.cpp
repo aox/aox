@@ -143,6 +143,9 @@ Fetch::Fetch( bool u )
     will include FLAGS sections and if \a a is true, ANNOTATION. The
     handler starts fetching those messagges in \a set that have a
     modseq greater than \a limit. The responses are sent via \a i.
+
+    If \a t is non-zero, the fetch operates within a subtransaction
+    of \a t.
 */
 
 Fetch::Fetch( bool f, bool a, const MessageSet & set,
