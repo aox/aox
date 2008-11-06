@@ -65,7 +65,7 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
         d->msns.add( other->d->unannounced );
     }
     else {
-        (void)new SessionInitialiser( m );
+        (void)new SessionInitialiser( m, 0 );
     }
 }
 
@@ -310,11 +310,13 @@ void Session::expunge( const MessageSet & uids )
 
 
 /*! This virtual function is responsible for telling the client about
-    any updates it need to hear.
+    any updates it need to hear. If \a t is non-null and any database
+    work is needed, it should use a subtransaction of \a t.
 */
 
-void Session::emitUpdates()
+void Session::emitUpdates( Transaction * t )
 {
+    t = t;
 }
 
 
@@ -374,13 +376,18 @@ public:
     modified Message objects.
 */
 
-/*! Constructs an SessionInitialiser for \a mailbox. */
+/*! Constructs an SessionInitialiser for \a mailbox. If \a t is
+    non-null, then thr initialiser will use a subtransaction of \a t
+    for its work.
+*/
 
-SessionInitialiser::SessionInitialiser( Mailbox * mailbox )
+SessionInitialiser::SessionInitialiser( Mailbox * mailbox, Transaction * t )
     : EventHandler(), d( new SessionInitialiserData )
 {
     setLog( new Log( Log::General ) );
     d->mailbox = mailbox;
+    if ( t )
+        d->t = t->subTransaction( this );
     execute();
 }
 
@@ -395,6 +402,7 @@ void SessionInitialiser::execute()
         case SessionInitialiserData::NoTransaction:
             findSessions();
             if ( d->sessions.isEmpty() ) {
+                emitUpdates();
                 d->state = SessionInitialiserData::QueriesDone;
             }
             else {
@@ -430,7 +438,6 @@ void SessionInitialiser::execute()
             releaseLock(); // may change d->state
             break;
         case SessionInitialiserData::QueriesDone:
-            emitUpdates();
             break;
         }
     } while ( state != d->state );
@@ -501,7 +508,7 @@ void SessionInitialiser::grabLock()
          fn( d->newModSeq ) + ">, UID [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );
 
-    if ( d->changeRecent || d->mailbox->view() )
+    if ( !d->t && ( d->changeRecent || d->mailbox->view() ) )
         d->t = new Transaction( this );
 
     if ( d->changeRecent )
@@ -528,13 +535,13 @@ void SessionInitialiser::grabLock()
 
 
 /*! Commits the transaction, releasing the locks we've held, and
-    updates the state so we'll tell the waiting sessions and
-    eventhandlers to go on.
+    updates the state. After this we're done.
 */
 
 void SessionInitialiser::releaseLock()
 {
     if ( d->t ) {
+        emitUpdates();
         d->t->commit();
         if ( !d->t->failed() && !d->t->done() )
             return;
@@ -839,10 +846,10 @@ void SessionInitialiser::emitUpdates()
          ( d->mailbox->uidnext() < d->newUidnext ||
            d->mailbox->nextModSeq() < d->newModSeq ) )
         d->mailbox->setUidnextAndNextModSeq( d->newUidnext,
-                                             d->newModSeq );
+                                             d->newModSeq, d->t );
     s = d->sessions.first();
     while ( s ) {
-        s->emitUpdates();
+        s->emitUpdates( d->t );
         ++s;
     }
     d->sessions.clear();

@@ -80,6 +80,7 @@ private:
     uint addFlags( Query *, Injectee *, Mailbox * );
     uint addAnnotations( Query *, Injectee *, Mailbox * );
     void logDescription();
+    void cache();
     void announce();
     Query * selectNextvals( const String &, uint );
 

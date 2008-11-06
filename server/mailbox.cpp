@@ -153,11 +153,13 @@ void MailboxReader::execute() {
             m->d->source = r->getInt( "source" );
             m->d->selector = r->getString( "selector" );
             m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                        r->getBigint( "viewnms" ) );
+                                        r->getBigint( "viewnms" ),
+                                        q->transaction() );
         }
         else {
             m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                        r->getBigint( "nextmodseq" ) );
+                                        r->getBigint( "nextmodseq" ),
+                                        q->transaction() );
         }
     }
 
@@ -171,6 +173,8 @@ void MailboxReader::execute() {
         log( "Couldn't create mailbox tree: " + q->error(), Log::Disaster );
     if ( owner )
         owner->execute();
+    if ( q->transaction() )
+        q->transaction()->commit();
 };
 
 
@@ -613,40 +617,30 @@ void Mailbox::setOwner( uint n )
 }
 
 
-/*! Changes this Mailbox's uidnext value to \a n. No checks are
-    performed - although uidnext should monotonically increase, this
-    function gives you total liberty.
-
-    Only MailboxReader is meant to call this function. Calling it
-    elsewhere will likely disturb either Session or Arnt.
+/*! Atomically sets both uidnext() to \a n and nextModSeq() to \a
+    m. Uses subtransactions of \a t for all work needed.
 */
 
-void Mailbox::setUidnext( uint n )
-{
-    if ( n == d->uidnext )
-        return;
-    d->uidnext = n;
-    notifySessions();
-}
-
-
-/*! Atomically sets both uidnext() to \a n and nextModSeq() to \a m,
-    so there's no chance notifySessions() might be called between the
-    two changes.
-*/
-
-void Mailbox::setUidnextAndNextModSeq( uint n, int64 m )
+void Mailbox::setUidnextAndNextModSeq( uint n, int64 m, Transaction * t )
 {
     if ( n == d->uidnext && m == d->nextModSeq )
         return;
     d->uidnext = n;
     d->nextModSeq = m;
+
+    if ( d->sessions )
+        (void)new SessionInitialiser( this, t );
+
     List<Mailbox>::Iterator v( d->views );
     while ( v ) {
-        v->d->nextModSeq = n;
+        // d->views is only added to, never pared down, so check
+        if ( v->source() == this && v->d->sessions ) {
+            v->d->nextModSeq = n; // is this line right? not sure.
+            (void)new SessionInitialiser( v, t );
+        }
+
         ++v;
     }
-    notifySessions();
 }
 
 
@@ -737,7 +731,9 @@ Query * Mailbox::remove( Transaction * t )
 
 void Mailbox::refreshMailboxes( class Transaction * t )
 {
-    t->enqueue( (new MailboxReader( 0, 0 ))->q );
+    Transaction * s = t->subTransaction();
+    s->enqueue( (new MailboxReader( 0, 0 ))->q );
+    s->execute();
     t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 }
 
@@ -789,26 +785,6 @@ void Mailbox::removeSession( Session * s )
 }
 
 
-/*! Creates a session initialiser for this mailbox and each view onto
-    it.
-*/
-
-void Mailbox::notifySessions()
-{
-    // our own sessions
-    if ( d->sessions )
-        (void)new SessionInitialiser( this );
-    // and all sessions on a view onto this mailbox
-    List<Mailbox>::Iterator v( d->views );
-    while ( v ) {
-        // d->views is only added to, never pared down, so check
-        if ( v->source() == this && v->d->sessions )
-            (void)new SessionInitialiser( v );
-        ++v;
-    }
-}
-
-
 /*! Returns a pointer to the sessions on this mailbox. The return
     value may be a null pointer. In the event of client/network
     problems it may also include sessions that have recently become
@@ -818,30 +794,6 @@ void Mailbox::notifySessions()
 List<Session> * Mailbox::sessions() const
 {
     return d->sessions;
-}
-
-
-/*! Records that the first unconsidered modseq for this mailbox is \a
-    n. If this mailbox is a view, this is a fine and sensible thing to
-    know: SessionInitialiser can call nextModSeq() and use the
-    recorded value to consider only new/changed messages.
-
-    For any mailboxes other than views, this function is almost meaningless.
-
-    MailboxReader updates the nextModSeq() value in case of views.
-*/
-
-void Mailbox::setNextModSeq( int64 n )
-{
-    if ( n == d->nextModSeq )
-        return;
-    d->nextModSeq = n;
-    List<Mailbox>::Iterator v( d->views );
-    while ( v ) {
-        v->d->nextModSeq = n;
-        ++v;
-    }
-    notifySessions();
 }
 
 

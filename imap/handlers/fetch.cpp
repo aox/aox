@@ -51,7 +51,8 @@ class FetchData
 public:
     FetchData()
         : state( 0 ), peek( true ), processed( 0 ),
-          changedSince( 0 ), those( 0 ), findIds( 0 ),
+          changedSince( 0 ),
+          transaction( 0 ), those( 0 ), findIds( 0 ),
           store( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
@@ -70,6 +71,7 @@ public:
     Map<Message> messages;
     uint processed;
     int64 changedSince;
+    Transaction * transaction;
     Query * those;
     Query * findIds;
     Store * store;
@@ -143,7 +145,8 @@ Fetch::Fetch( bool u )
     modseq greater than \a limit. The responses are sent via \a i.
 */
 
-Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
+Fetch::Fetch( bool f, bool a, const MessageSet & set,
+              int64 limit, IMAP * i, Transaction * t )
     : Command( i ), d( new FetchData )
 {
     setLog( new Log( Log::IMAP ) );
@@ -154,6 +157,8 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set, int64 limit, IMAP * i )
     d->set = set;
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
+    if ( t )
+        d->transaction = t->subTransaction();
 
     d->peek = true;
 
@@ -647,6 +652,10 @@ void Fetch::execute()
         d->peek = true;
 
     if ( d->state == 0 ) {
+        if ( !d->transaction ) {
+            if ( d->modseq && ( d->flags || d->annotation ) )
+                d->transaction = new Transaction( this );
+        }
         Mailbox * mb = s->mailbox();
         if ( !d->those ) {
             if ( d->changedSince ) {
@@ -690,7 +699,7 @@ void Fetch::execute()
                     s.replace( " from ", ", modseq from " );
                     d->those->setString( s );
                 }
-                d->those->execute();
+                enqueue( d->those );
             }
         }
         if ( d->those && !d->those->done() )
@@ -748,6 +757,8 @@ void Fetch::execute()
                     d->store = new Store( imap(), d->set, d->flags );
                     d->store->setState( Executing );
                     imap()->commands()->insert( c, d->store );
+                    // should we feed the Store a subtransaction, if
+                    // we're using one? I don't know.
                     d->store->execute();
                 }
             }
@@ -778,6 +789,8 @@ void Fetch::execute()
         s->recordExpungedFetch( d->expunged );
         error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
     }
+    if ( d->transaction )
+        d->transaction->commit();
     finish();
 }
 
@@ -1674,7 +1687,7 @@ void Fetch::sendFlagQuery()
         this );
     d->flagFetcher->bind( 1, session()->mailbox()->id() );
     d->flagFetcher->bind( 2, d->set );
-    d->flagFetcher->execute();
+    enqueue( d->flagFetcher );
 }
 
 
@@ -1692,5 +1705,21 @@ void Fetch::sendAnnotationsQuery()
         this );
     d->annotationFetcher->bind( 1, session()->mailbox()->id() );
     d->annotationFetcher->bind( 2, d->set );
-    d->annotationFetcher->execute();
+    enqueue( d->annotationFetcher );
+}
+
+
+/*! This helper enqueues \a q for execution, either directly of via a
+    transaction.
+*/
+
+void Fetch::enqueue( Query * q )
+{
+    if ( d->transaction ) {
+        d->transaction->enqueue( q );
+        d->transaction->execute();
+    }
+    else {
+        q->execute();
+    }
 }

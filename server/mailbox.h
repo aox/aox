@@ -41,11 +41,9 @@ public:
     uint owner() const;
 
     void setOwner( uint );
-    void setUidnext( uint );
     void setUidvalidity( uint );
-    void setNextModSeq( int64 );
     void setDeleted( bool );
-    void setUidnextAndNextModSeq( uint, int64 );
+    void setUidnextAndNextModSeq( uint, int64, Transaction * );
 
     Mailbox * parent() const;
     List< Mailbox > *children() const;
@@ -79,7 +77,6 @@ public:
 
     void addSession( class Session * );
     void removeSession( class Session * );
-    void notifySessions();
     List<class Session> * sessions() const;
 
     class Threader * threader() const;

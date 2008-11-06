@@ -434,7 +434,7 @@ void Command::setState( State s )
         if ( d->permittedStates & ( 1 << imap()->state() ) ) {
             log( "Executing", Log::Debug );
             if ( imap()->session() )
-                imap()->session()->emitUpdates();
+                imap()->session()->emitUpdates( 0 );
         }
         else {
             error( Bad, "" );
