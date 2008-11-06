@@ -212,7 +212,8 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
 {
     switch ( c->t ) {
     case Arrival:
-        addJoin( t, "", "mm.idate", c->reverse );
+        addJoin( t, "join messages m on (m.id=mm.message) ",
+                 "m.idate", c->reverse );
         break;
     case Cc:
         addJoin( t,

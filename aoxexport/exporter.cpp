@@ -94,6 +94,7 @@ void Exporter::execute()
             Row * r = d->find->nextRow();
             Message * m = new Message;
             m->setDatabaseId( r->getInt( "message" ) );
+            d->messages->append( m );
         }
         d->fetcher = new Fetcher( d->messages, this );
         d->fetcher->fetch( Fetcher::Addresses );

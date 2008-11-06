@@ -647,24 +647,42 @@ void Fetch::execute()
         d->peek = true;
 
     if ( d->state == 0 ) {
+        Mailbox * mb = s->mailbox();
         if ( !d->those ) {
-            if ( d->changedSince )
+            if ( d->changedSince ) {
                 d->those = new Query( "select uid, message "
                                       "from mailbox_messages "
                                       "where mailbox=$1 and uid=any($2) "
                                       "and modseq>$3",
                                       this );
+                d->those->bind( 1, s->mailbox()->id() );
+                d->those->bind( 2, d->set );
+            }
             else if ( d->modseq ||
                       d->needsAddresses || d->needsHeader ||
                       d->needsBody || d->needsPartNumbers ||
-                      d->rfc822size || d->internaldate )
-                d->those = new Query( "select uid, message "
-                                      "from mailbox_messages "
-                                      "where mailbox=$1 and uid=any($2)",
-                                      this );
+                      d->rfc822size || d->internaldate ) {
+                MessageSet r;
+                MessageSet s( d->set );
+                while ( !s.isEmpty() ) {
+                    uint uid = s.smallest();
+                    s.remove( uid );
+                    Message * m = MessageCache::find( mb, uid );
+                    if ( m )
+                        d->messages.insert( uid, m );
+                    if ( !m || !m->databaseId() )
+                        r.add( uid );
+                }
+                if ( !r.isEmpty() ) {
+                    d->those = new Query( "select uid, message "
+                                          "from mailbox_messages "
+                                          "where mailbox=$1 and uid=any($2)",
+                                          this );
+                    d->those->bind( 1, session()->mailbox()->id() );
+                    d->those->bind( 2, r );
+                }
+            }
             if ( d->those ) {
-                d->those->bind( 1, s->mailbox()->id() );
-                d->those->bind( 2, d->set );
                 if ( d->changedSince )
                     d->those->bind( 2, d->changedSince );
                 if ( d->modseq ) {
@@ -679,23 +697,25 @@ void Fetch::execute()
             return;
         d->remaining = d->set;
         if ( d->those ) {
-        d->set.clear();
-        Mailbox * mb = s->mailbox();
-        Row * r;
-        while ( d->those->hasResults() ) {
-            r = d->those->nextRow();
-            uint uid = r->getInt( "uid" );
-            d->set.add( uid );
-            Message * m = MessageCache::provide( mb, uid );
-            d->messages.insert( uid, m );
-            m->setDatabaseId( r->getInt( "message" ) );
-            if ( d->modseq || d->flags || d->annotation ) {
-                FetchData::DynamicData * dd = new FetchData::DynamicData;
-                d->dynamics.insert( uid, dd );
-                if ( d->modseq )
-                    dd->modseq = r->getBigint( "modseq" );
+            d->set.clear();
+            Row * r;
+            while ( d->those->hasResults() ) {
+                r = d->those->nextRow();
+                uint uid = r->getInt( "uid" );
+                d->set.add( uid );
+                Message * m = d->messages.find( uid );
+                if ( !m ) {
+                    m = MessageCache::provide( mb, uid );
+                    d->messages.insert( uid, m );
+                }
+                m->setDatabaseId( r->getInt( "message" ) );
+                if ( d->modseq || d->flags || d->annotation ) {
+                    FetchData::DynamicData * dd = new FetchData::DynamicData;
+                    d->dynamics.insert( uid, dd );
+                    if ( d->modseq )
+                        dd->modseq = r->getBigint( "modseq" );
+                }
             }
-        }
         }
         else {
             MessageSet r( d->set );

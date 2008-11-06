@@ -1735,6 +1735,17 @@ public:
 };
     
 
+/*! \class InjectableMessage injector.h
+    Represents a message and all its associated mailbox-specific data.
+
+    A message doesn't, by itself, have any mailbox-specific properties
+    (uid, flags, annotations, and so on). This subclass ties a message
+    to all such (variant, as opposed to the header/bodies) metadata.
+
+    The Injector takes a list of InjectableMessage objects to insert
+    into the database.
+*/
+
 
 /*!  Constructs an empty injectable message. The caller has to do
      more.
@@ -1835,8 +1846,8 @@ void InjectableMessage::setAnnotations( Mailbox * mailbox,
 
 
 /*! Allocates and return a sorted list of all Mailbox objects to which
-    this Message belongs. addMailboxes(), setUid() and friends cause
-    the Message to belong to one or more Mailbox objects.
+    this Message belongs. setUid() and friends cause the Message to
+    belong to one or more Mailbox objects.
 
     This may return an empty list, but it never returns a null pointer.
 */
