@@ -145,7 +145,7 @@ void Undelete::execute()
         q->bind( 3, d->m->id() );
         d->t->enqueue( q );
 
-        Mailboxes::refreshMailboxes( d->t );
+        Mailbox::refreshMailboxes( d->t );
 
         d->t->commit();
         d->state = 4;
