@@ -222,7 +222,7 @@ class MailboxObliterator
 public:
     MailboxReader * mr;
     MailboxObliterator(): EventHandler(), mr( 0 ) {
-        setLog( new Log( Log::Server ) );
+        setLog( log() );
         (void)new DatabaseSignal( "obliterated", this );
     }
     void execute() {
@@ -261,6 +261,7 @@ void Mailbox::setup( EventHandler * owner )
     ::mailboxes = new Map<Mailbox>;
     Allocator::addEternal( ::mailboxes, "mailbox tree" );
 
+    Scope x( new Log( Log::Server ) );
     (new MailboxReader( owner, 0 ))->q->execute();
 
     (void)new MailboxesWatcher;
@@ -733,6 +734,7 @@ Query * Mailbox::remove( Transaction * t )
 
 void Mailbox::refreshMailboxes( class Transaction * t )
 {
+    Scope x( new Log( Log::Server ) );
     Transaction * s = t->subTransaction();
     s->enqueue( (new MailboxReader( 0, 0 ))->q );
     s->execute();
