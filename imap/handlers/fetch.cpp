@@ -1611,11 +1611,14 @@ void Fetch::pickup()
             ok = false;
         if ( d->needsBody && !m->hasBodies() )
             ok = false;
-        if ( d->rfc822size && !m->hasTrivia() )
+        if ( ( d->rfc822size || d->internaldate ) && !m->hasTrivia() )
             ok = false;
-        if ( d->internaldate && !m->hasTrivia() )
-            ok = false;
-        log( "fetch " + fn( uid ) + ": " + ( ok ? "ready" : "not ready" ),
+        log( "fetch " + fn( uid ) + " (" + fn( m->databaseId() ) + "): " +
+             ( ok ? "ready" : "not ready" ) +
+             ( m->hasAddresses() ? " ha" : " !ha" ) +
+             ( m->hasHeaders() ? " hh" : " !hh" ) +
+             ( m->hasBodies() ? " hb" : " !hb" ) +
+             ( m->hasTrivia() ? " ht" : " !ht" ),
              Log::Debug );
         if ( ok ) {
             d->processed = uid;
