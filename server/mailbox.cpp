@@ -398,18 +398,16 @@ bool Mailbox::view() const
 
 
 /*! Returns true if this Mailbox represents a user's "home directory",
-    e.g. /users/ams. (This is currently determined only by looking at
-    the mailbox name, but it should be based on a flag that is set by
-    the tree builder.)
+    e.g. /users/ams.
 */
 
 bool Mailbox::isHome() const
 {
     if ( !d->parent )
         return true;
-    if ( d->owner == d->parent->d->owner )
-        return false;
-    return true;
+    if ( d->owner && !d->parent->d->owner )
+        return true;
+    return false;
 }
 
 
@@ -536,18 +534,24 @@ Mailbox * Mailbox::closestParent( const UString & name )
     if ( name[0] != '/' )
         return 0;
 
-    UString n = name.titlecased();
-    Mailbox * m = 0;
-    while ( !m || ( m->synthetic() && !m->isHome() && m->parent() ) ) {
+    UString n = name;
+    do {
         uint i = n.length() - 1;
         if ( !i )
             return root();
         while ( i > 0 && n[i] != '/' )
             i--;
+        if ( i < 2 )
+            return root();
         n.truncate( i );
-        m = obtain( n );
-    }
-    return m;
+        Mailbox * m = obtain( n );
+        if ( m->isHome() )
+            return m;
+        if ( !m->deleted() && !m->synthetic() )
+            return m;
+    } while ( true );
+
+    return 0;
 }
 
 
