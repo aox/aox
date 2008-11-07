@@ -745,8 +745,11 @@ void Fetch::execute()
         shrink( &d->set );
         d->remaining = d->set;
         d->state = 2;
-        if ( d->set.isEmpty() )
+        if ( d->set.isEmpty() ) {
             d->state = 5;
+            if ( d->transaction )
+                d->transaction->commit();
+        }
     }
 
     if ( d->state == 2 ) {
