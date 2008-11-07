@@ -734,7 +734,6 @@ void Fetch::execute()
                 d->dynamics.insert( uid, new FetchData::DynamicData );
             }
         }
-        d->remaining = d->set;
         d->state = 1;
     }
 
@@ -742,6 +741,7 @@ void Fetch::execute()
         if ( group() == 2 ) // then RFC 2180 section 4.1.2 applies
             d->expunged = s->expunged().intersection( d->set );
         shrink( &d->set );
+        d->remaining = d->set;
         d->state = 2;
         if ( d->set.isEmpty() )
             d->state = 5;
