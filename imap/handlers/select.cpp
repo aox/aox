@@ -141,13 +141,6 @@ void Select::execute()
     if ( !d->session->initialised() )
         return;
 
-    d->session->emitUpdates( 0 );
-    // emitUpdates often calls Imap::runCommands, which calls this
-    // function, which will then change its state to Finished. so
-    // check that and don't repeat the last few responses.
-    if ( state() != Executing )
-        return;
-
     if ( !d->firstUnseen && !d->session->isEmpty() ) {
         d->firstUnseen
             = new Query( "select uid from mailbox_messages mm "
@@ -164,6 +157,13 @@ void Select::execute()
         return;
 
     if ( d->allFlags && !d->allFlags->done() )
+        return;
+
+    d->session->emitUpdates( 0 );
+    // emitUpdates often calls Imap::runCommands, which calls this
+    // function, which will then change its state to Finished. so
+    // check that and don't repeat the last few responses.
+    if ( state() != Executing )
         return;
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
