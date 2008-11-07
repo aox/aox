@@ -20,7 +20,7 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
-          firstUnseen( 0 ),
+          firstUnseen( 0 ), allFlags( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
@@ -28,6 +28,7 @@ public:
     bool annotate;
     bool condstore;
     Query * firstUnseen;
+    Query * allFlags;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
@@ -131,7 +132,31 @@ void Select::execute()
         imap()->beginSession( d->session );
     }
 
+    if ( !d->allFlags ) {
+        d->allFlags = new Query( "select name from flag_names "
+                                 "order by lower(name)", this );
+        d->allFlags->execute();
+    }
+
     if ( !d->session->initialised() )
+        return;
+
+    if ( !d->firstUnseen && !d->session->isEmpty() ) {
+        d->firstUnseen
+            = new Query( "select uid from mailbox_messages mm "
+                         "where mailbox=$1 and uid not in "
+                         "(select uid from flags f"
+                         " join flag_names fn on (f.flag=fn.id)"
+                         " where f.mailbox=$1 and fn.name='\\\\seen') "
+                         "order by uid limit 1", this );
+        d->firstUnseen->bind( 1, d->mailbox->id() );
+        d->firstUnseen->execute();
+    }
+
+    if ( d->firstUnseen && !d->firstUnseen->done() )
+        return;
+
+    if ( d->allFlags && !d->allFlags->done() )
         return;
 
     d->session->emitUpdates( 0 );
@@ -139,26 +164,6 @@ void Select::execute()
     // function, which will then change its state to Finished. so
     // check that and don't repeat the last few responses.
     if ( state() != Executing )
-        return;
-
-    if ( !d->firstUnseen && !d->session->isEmpty() ) {
-        uint seen = Flag::id( "\\seen" );
-        String sq;
-        if ( seen )
-            sq = " and flag=" + fn( seen );
-        else
-            sq = " and flag in "
-                 "(select id from flags where lower(name)='\\seen')";
-        d->firstUnseen
-            = new Query( "select uid from mailbox_messages mm "
-                         "where mailbox=$1 and uid not in "
-                         "(select uid from flags where mailbox=$1 " + sq + ") "
-                         "order by mm.uid limit 1", this );
-        d->firstUnseen->bind( 1, d->mailbox->id() );
-        d->firstUnseen->execute();
-    }
-
-    if ( d->firstUnseen && !d->firstUnseen->done() )
         return;
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
@@ -182,9 +187,14 @@ void Select::execute()
         respond( "OK [HIGHESTMODSEQ " + fn( nms-1 ) + "] highest modseq" );
     }
 
-    String fl = Flag::allFlags().join( " " );
-    respond( "FLAGS (" + fl + ")" );
-    respond( "OK [PERMANENTFLAGS (" + fl + " \\*)] permanent flags" );
+    if ( d->allFlags ) {
+        StringList l;
+        while ( d->allFlags->hasResults() )
+            l.append( d->allFlags->nextRow()->getString( "name" ) );
+        String f = l.join( " " );
+        respond( "FLAGS (" + f + ")" );
+        respond( "OK [PERMANENTFLAGS (" + f + " \\*)] permanent flags" );
+    }
 
     if ( imap()->clientSupports( IMAP::Annotate ) ) {
         Permissions * p  = d->session->permissions();

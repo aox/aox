@@ -703,6 +703,8 @@ void Fetch::execute()
                     d->those->setString( s );
                 }
                 enqueue( d->those );
+                if ( d->transaction )
+                    d->transaction->execute();
             }
         }
         if ( d->those && !d->those->done() )
@@ -743,8 +745,11 @@ void Fetch::execute()
         shrink( &d->set );
         d->remaining = d->set;
         d->state = 2;
-        if ( d->set.isEmpty() )
+        if ( d->set.isEmpty() ) {
             d->state = 5;
+            if ( d->transaction )
+                d->transaction->commit();
+        }
     }
 
     if ( d->state == 2 ) {
@@ -778,6 +783,8 @@ void Fetch::execute()
             sendAnnotationsQuery();
         if ( d->modseq )
             sendModSeqQuery();
+        if ( d->transaction )
+            d->transaction->commit();
     }
 
     if ( d->state < 4 )
@@ -792,8 +799,6 @@ void Fetch::execute()
         s->recordExpungedFetch( d->expunged );
         error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
     }
-    if ( d->transaction )
-        d->transaction->commit();
     finish();
 }
 
@@ -835,19 +840,10 @@ void Fetch::sendFetchQueries()
         f->fetch( Fetcher::OtherHeader );
     if ( d->needsBody && !haveBody )
         f->fetch( Fetcher::Body );
-    if ( d->needsPartNumbers && !havePartNumbers )
-        f->fetch( Fetcher::PartNumbers );
-    if ( d->flags ) {
-        // XXX flags
-    }
     if ( ( d->rfc822size || d->internaldate ) && !haveTrivia )
         f->fetch( Fetcher::Trivia );
-    if ( d->modseq && !haveTrivia ) {
-        f->fetch( Fetcher::Trivia );
-    }
-    if ( d->annotation ) {
-        // XXX annotations
-    }
+    if ( d->needsPartNumbers && !havePartNumbers )
+        f->fetch( Fetcher::PartNumbers );
     f->execute();
 }
 
@@ -1588,6 +1584,20 @@ void Fetch::pickup()
         }
     }
 
+    if ( d->flagFetcher && !d->flagFetcher->done() ) {
+        log( "flag fetcher not done", Log::Debug );
+        return;
+    }
+
+    if ( d->annotationFetcher && !d->annotationFetcher->done() ) {
+        log( "annotation fetcher not done", Log::Debug );
+        return;
+    }
+    if ( d->modseqFetcher && !d->modseqFetcher->done() ) {
+        log( "modseq fetcher not done", Log::Debug );
+        return;
+    }
+
     bool ok = true;
     uint done = 0;
     while ( ok && !d->remaining.isEmpty() ) {
@@ -1601,16 +1611,12 @@ void Fetch::pickup()
             ok = false;
         if ( d->needsBody && !m->hasBodies() )
             ok = false;
-        if ( d->flagFetcher && !d->flagFetcher->done() )
-            ok = false;
-        if ( d->annotationFetcher && !d->annotationFetcher->done() )
-            ok = false;
-        if ( d->modseqFetcher && !d->modseqFetcher->done() )
-            ok = false;
         if ( d->rfc822size && !m->hasTrivia() )
             ok = false;
         if ( d->internaldate && !m->hasTrivia() )
             ok = false;
+        log( "fetch " + fn( uid ) + ": " + ( ok ? "ready" : "not ready" ),
+             Log::Debug );
         if ( ok ) {
             d->processed = uid;
             d->remaining.remove( uid );
@@ -1742,11 +1748,8 @@ void Fetch::sendModSeqQuery()
 
 void Fetch::enqueue( Query * q )
 {
-    if ( d->transaction ) {
+    if ( d->transaction )
         d->transaction->enqueue( q );
-        d->transaction->execute();
-    }
-    else {
+    else
         q->execute();
-    }
 }

@@ -325,8 +325,12 @@ void Postgres::react( Event e )
                 if ( d->transaction ) {
                     ::log( "Transaction timeout on backend " +
                            fn( connectionNumber() ), Log::Error );
-                    d->transaction->setError( 0, "Transaction timeout" );
-                    d->transaction->rollback();
+                    Transaction * t = d->transaction;
+                    while ( t ) {
+                        t->setError( 0, "Transaction timeout" );
+                        t->rollback();
+                        t = t->parent();
+                    }
                 }
                 else {
                     error( "Request timeout on backend " +

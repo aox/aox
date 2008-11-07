@@ -66,11 +66,12 @@ public:
             setLog( new Log( Log::Database ) );
         }
         void execute();
-        virtual void decode( Message *, Row * ) = 0;
+        virtual void decode( Message *, List<Row> * ) = 0;
         virtual void setDone( Message * ) = 0;
         virtual bool isDone( Message * ) const = 0;
         Query * q;
         FetcherData * d;
+        List<Row> mr;
     };
 
     Decoder * addresses;
@@ -85,7 +86,7 @@ public:
     public:
         TriviaDecoder( FetcherData * fd )
             : Decoder( fd ) {}
-        void decode( Message *, Row * );
+        void decode( Message *, List<Row> * );
         void setDone( Message * );
         bool isDone( Message * ) const;
     };
@@ -95,7 +96,7 @@ public:
     {
     public:
         AddressDecoder( FetcherData * fd ): Decoder( fd ) {}
-        void decode( Message *, Row * );
+        void decode( Message *, List<Row> * );
         void setDone( Message * );
         bool isDone( Message * ) const;
     };
@@ -105,7 +106,7 @@ public:
     {
     public:
         HeaderDecoder( FetcherData * fd ): Decoder( fd ) {}
-        void decode( Message *, Row * );
+        void decode( Message *, List<Row> * );
         void setDone( Message * );
         bool isDone( Message * ) const;
     };
@@ -115,7 +116,7 @@ public:
     {
     public:
         PartNumberDecoder( FetcherData * fd ): Decoder( fd ) {}
-        void decode( Message *, Row * );
+        void decode( Message *, List<Row> * );
         void setDone( Message * );
         bool isDone( Message * ) const;
     };
@@ -125,7 +126,7 @@ public:
     {
     public:
         BodyDecoder( FetcherData * fd ): PartNumberDecoder( fd ) {}
-        void decode( Message *, Row * );
+        void decode( Message *, List<Row> * );
         void setDone( Message * );
         bool isDone( Message * ) const;
     };
@@ -334,7 +335,7 @@ void Fetcher::waitForEnd()
     while ( bi ) {
         Message * m = bi;
         ++bi;
-        
+
         List<FetcherData::Decoder>::Iterator di( decoders );
         while ( di ) {
             di->setDone( m );
@@ -477,7 +478,8 @@ void Fetcher::makeQueries()
     if ( d->partnumbers && !d->body ) {
         // body (below) will handle this as a side effect
         q = new Query( "select message, part, bytes, lines "
-                       "from part_numbers where message=any($1)",
+                       "from part_numbers where message=any($1) "
+                       "order by message, part",
                        d->partnumbers );
         bindIds( q, 1, PartNumbers );
         submit( q );
@@ -485,6 +487,7 @@ void Fetcher::makeQueries()
     }
 
     if ( d->trivia ) {
+        // don't need to order this - just one row per message
         q = new Query( "select id as message, idate, rfc822size "
                        "from messages where id=any($1)", d->trivia );
         bindIds( q, 1, Trivia );
@@ -523,7 +526,8 @@ void Fetcher::makeQueries()
                        "bp.bytes as rawbytes, pn.bytes, pn.lines "
                        "from part_numbers pn "
                        "left join bodyparts bp on (pn.bodypart=bp.id) "
-                       "where pn.message=any($1)",
+                       "where pn.message=any($1) "
+                       "order by pn.message, pn.part",
                        d->body );
         bindIds( q, 1, Body );
         submit( q );
@@ -538,43 +542,71 @@ void Fetcher::makeQueries()
 void FetcherData::Decoder::execute()
 {
     Scope x( log() );
+    int mid = 0;
+    if ( !mr.isEmpty() )
+        mid = mr.firstElement()->getInt( "message" );
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
-        Message * m = d->batch.find( r->getInt( "message" ) );
-        if ( m )
-            decode( m, r );
+        if ( !mid || mid == r->getInt( "message" ) ) {
+            mr.append( r );
+        }
+        else {
+            Message * m = d->batch.find( mid );
+            if ( m && !isDone( m ) ) {
+                decode( m, &mr );
+                setDone( m );
+            }
+            mr.clear();
+            mr.append( r );
+            mid = r->getInt( "message" );
+        }
     }
-    if ( q->done() )
-        d->f->execute();
+    if ( !q->done() )
+        return;
+    if ( mid ) {
+        Message * m = d->batch.find( mid );
+        if ( m && !isDone( m ) ) {
+            decode( m, &mr );
+            setDone( m );
+        }
+        mr.clear();
+    }
+    d->f->execute();
 }
 
 
-void FetcherData::HeaderDecoder::decode( Message * m, Row * r )
+void FetcherData::HeaderDecoder::decode( Message * m, List<Row> * rows )
 {
-    String part = r->getString( "part" );
-    String name = r->getString( "name" );
-    UString value = r->getUString( "value" );
+    List<Row>::Iterator i( rows );
+    while ( i ) {
+        Row * r = i;
+        ++i;
 
-    Header * h = m->header();
-    if ( part.endsWith( ".rfc822" ) ) {
-        Bodypart * bp =
-            m->bodypart( part.mid( 0, part.length()-7 ), true );
-        if ( !bp->message() ) {
-            bp->setMessage( new Message );
-            bp->message()->setParent( bp );
+        String part = r->getString( "part" );
+        String name = r->getString( "name" );
+        UString value = r->getUString( "value" );
+
+        Header * h = m->header();
+        if ( part.endsWith( ".rfc822" ) ) {
+            Bodypart * bp =
+                m->bodypart( part.mid( 0, part.length()-7 ), true );
+            if ( !bp->message() ) {
+                bp->setMessage( new Message );
+                bp->message()->setParent( bp );
+            }
+            h = bp->message()->header();
+            (void)m->bodypart( part.mid( 0, part.length()-7 ) + ".1" );
         }
-        h = bp->message()->header();
-        (void)m->bodypart( part.mid( 0, part.length()-7 ) + ".1" );
+        else if ( part.isEmpty() ) {
+            (void)m->bodypart( "1" );
+        }
+        else {
+            h = m->bodypart( part, true )->header();
+        }
+        HeaderField * f = HeaderField::assemble( name, value );
+        f->setPosition( r->getInt( "position" ) );
+        h->add( f );
     }
-    else if ( part.isEmpty() ) {
-        (void)m->bodypart( "1" );
-    }
-    else {
-        h = m->bodypart( part, true )->header();
-    }
-    HeaderField * f = HeaderField::assemble( name, value );
-    f->setPosition( r->getInt( "position" ) );
-    h->add( f );
 }
 
 
@@ -591,48 +623,54 @@ bool FetcherData::HeaderDecoder::isDone( Message * m ) const
 
 
 
-void FetcherData::AddressDecoder::decode( Message * m, Row * r )
+void FetcherData::AddressDecoder::decode( Message * m, List<Row> * rows )
 {
-    String part = r->getString( "part" );
-    uint position = r->getInt( "position" );
+    List<Row>::Iterator i( rows );
+    while ( i ) {
+        Row * r = i;
+        ++i;
 
-    // XXX: use something for mapping
-    HeaderField::Type field = (HeaderField::Type)r->getInt( "field" );
+        String part = r->getString( "part" );
+        uint position = r->getInt( "position" );
 
-    Header * h = m->header();
-    if ( part.endsWith( ".rfc822" ) ) {
-        Bodypart * bp =
-            m->bodypart( part.mid( 0, part.length()-7 ), true );
-        if ( !bp->message() ) {
-            bp->setMessage( new Message );
-            bp->message()->setParent( bp );
+        // XXX: use something for mapping
+        HeaderField::Type field = (HeaderField::Type)r->getInt( "field" );
+
+        Header * h = m->header();
+        if ( part.endsWith( ".rfc822" ) ) {
+            Bodypart * bp =
+                m->bodypart( part.mid( 0, part.length()-7 ), true );
+            if ( !bp->message() ) {
+                bp->setMessage( new Message );
+                bp->message()->setParent( bp );
+            }
+            h = bp->message()->header();
         }
-        h = bp->message()->header();
+        else if ( !part.isEmpty() ) {
+            h = m->bodypart( part, true )->header();
+        }
+        AddressField * f = 0;
+        uint n = 0;
+        f = (AddressField*)h->field( field, 0 );
+        while ( f && f->position() < position ) {
+            n++;
+            f = (AddressField*)h->field( field, n );
+        }
+        if ( !f || f->position() > position ) {
+            f = new AddressField( field );
+            f->setPosition( position );
+            h->add( f );
+        }
+        // we could save a bit of memory here if we keep a data structure
+        // in the decoder, so every address with ID 4321432 becomes a
+        // pointer to the same address, at least within the same
+        // fetch. hm.
+        Utf8Codec u;
+        Address * a = new Address( r->getUString( "name" ),
+                                   r->getString( "localpart" ),
+                                   r->getString( "domain" ) );
+        f->addresses()->append( a );
     }
-    else if ( !part.isEmpty() ) {
-        h = m->bodypart( part, true )->header();
-    }
-    AddressField * f = 0;
-    uint n = 0;
-    f = (AddressField*)h->field( field, 0 );
-    while ( f && f->position() < position ) {
-        n++;
-        f = (AddressField*)h->field( field, n );
-    }
-    if ( !f || f->position() > position ) {
-        f = new AddressField( field );
-        f->setPosition( position );
-        h->add( f );
-    }
-    // we could save a bit of memory here if we keep a data structure
-    // in the decoder, so every address with ID 4321432 becomes a
-    // pointer to the same address, at least within the same
-    // fetch. hm.
-    Utf8Codec u;
-    Address * a = new Address( r->getUString( "name" ),
-                               r->getString( "localpart" ),
-                               r->getString( "domain" ) );
-    f->addresses()->append( a );
 }
 
 
@@ -648,9 +686,14 @@ bool FetcherData::AddressDecoder::isDone( Message * m ) const
 }
 
 
-void FetcherData::BodyDecoder::decode( Message * m, Row * r )
+void FetcherData::BodyDecoder::decode( Message * m, List<Row> * rows )
 {
-    PartNumberDecoder::decode( m, r );
+    PartNumberDecoder::decode( m, rows );
+
+    List<Row>::Iterator i( rows );
+    while ( i ) {
+        Row * r = i;
+        ++i;
 
     String part = r->getString( "part" );
 
@@ -665,8 +708,7 @@ void FetcherData::BodyDecoder::decode( Message * m, Row * r )
         if ( !r->isNull( "rawbytes" ) )
             bp->setNumBytes( r->getInt( "rawbytes" ) );
     }
-
-
+    }
 }
 
 
@@ -683,8 +725,13 @@ bool FetcherData::BodyDecoder::isDone( Message * m ) const
 }
 
 
-void FetcherData::PartNumberDecoder::decode( Message * m, Row * r )
+void FetcherData::PartNumberDecoder::decode( Message * m, List<Row> * rows )
 {
+    List<Row>::Iterator i( rows );
+    while ( i ) {
+        Row * r = i;
+        ++i;
+
     String part = r->getString( "part" );
 
     if ( part.endsWith( ".rfc822" ) ) {
@@ -709,8 +756,7 @@ void FetcherData::PartNumberDecoder::decode( Message * m, Row * r )
         if ( !r->isNull( "lines" ) )
             bp->setNumEncodedLines( r->getInt( "lines" ) );
     }
-
-
+    }
 }
 
 
@@ -726,10 +772,10 @@ bool FetcherData::PartNumberDecoder::isDone( Message * m ) const
 }
 
 
-void FetcherData::TriviaDecoder::decode( Message * m , Row * r )
+void FetcherData::TriviaDecoder::decode( Message * m , List<Row> * rows )
 {
-    m->setInternalDate( r->getInt( "idate" ) );
-    m->setRfc822Size( r->getInt( "rfc822size" ) );
+    m->setInternalDate( rows->firstElement()->getInt( "idate" ) );
+    m->setRfc822Size( rows->firstElement()->getInt( "rfc822size" ) );
 }
 
 
@@ -810,6 +856,7 @@ bool Fetcher::fetching( Type t ) const
 
 void Fetcher::setTransaction( class Transaction * t )
 {
+    Scope x( log() );
     d->transaction = t->subTransaction();
 }
 

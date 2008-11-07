@@ -169,12 +169,17 @@ void MailboxReader::execute() {
     done = true;
     ::readers->remove( this );
     ::wiped = false;
-    if ( q->failed() && !EventLoop::global()->inShutdown() )
-        log( "Couldn't create mailbox tree: " + q->error(), Log::Disaster );
-    if ( owner )
-        owner->execute();
+    if ( q->failed() && !EventLoop::global()->inShutdown() ) {
+        if ( q->transaction() )
+            log( "Couldn't update mailbox tree: " + q->error() );
+        else
+            log( "Couldn't create mailbox tree: " + q->error(),
+                 Log::Disaster );
+    }
     if ( q->transaction() )
         q->transaction()->commit();
+    if ( owner )
+        owner->execute();
 };
 
 
@@ -222,7 +227,7 @@ class MailboxObliterator
 public:
     MailboxReader * mr;
     MailboxObliterator(): EventHandler(), mr( 0 ) {
-        setLog( new Log( Log::Server ) );
+        setLog( log() );
         (void)new DatabaseSignal( "obliterated", this );
     }
     void execute() {
@@ -262,6 +267,7 @@ void Mailbox::setup( EventHandler * owner )
 
     (void)root();
 
+    Scope x( new Log( Log::Server ) );
     (new MailboxReader( owner, 0 ))->q->execute();
 
     (void)new MailboxesWatcher;
@@ -715,6 +721,7 @@ Query * Mailbox::remove( Transaction * t )
 
 void Mailbox::refreshMailboxes( class Transaction * t )
 {
+    Scope x( new Log( Log::Server ) );
     Transaction * s = t->subTransaction();
     s->enqueue( (new MailboxReader( 0, 0 ))->q );
     s->execute();
