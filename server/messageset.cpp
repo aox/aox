@@ -331,7 +331,7 @@ uint MessageSet::index( uint value ) const
     if ( !b )
         return 0;
 
-    if ( b->start > i )
+    if ( b->start > value )
         return 0;
 
     uint vi = (value-b->start)/BitsPerUint;
