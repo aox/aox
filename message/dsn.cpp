@@ -4,7 +4,7 @@
 
 #include "date.h"
 #include "address.h"
-#include "message.h"
+#include "injector.h"
 #include "bodypart.h"
 #include "stringlist.h"
 #include "configuration.h"
@@ -177,9 +177,9 @@ void DSN::addRecipient( Recipient * r )
     with much effort.
 */
 
-Message * DSN::result() const
+Injectee * DSN::result() const
 {
-    Message * r = new Message;
+    Injectee * r = new Injectee;
     Bodypart * plainText = new Bodypart( 1, r );
     Bodypart * dsn = new Bodypart( 2, r );
     Bodypart * original = new Bodypart( 3, r );
