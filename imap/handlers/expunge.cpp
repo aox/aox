@@ -138,12 +138,6 @@ void Expunge::execute()
     while ( ( r = d->findUids->nextRow() ) != 0 ) {
         d->marked.add( r->getInt( "uid" ) );
     }
-    
-    if ( d->marked.isEmpty() ) {
-        d->t->commit();
-        finish();
-        return;
-    }
 
     if ( d->findModseq->hasResults() ) {
         r = d->findModseq->nextRow();
@@ -153,10 +147,13 @@ void Expunge::execute()
     if ( !d->findModseq->done() )
         return;
 
-    if ( !d->expunge ) {
-        r = d->findModseq->nextRow();
-        d->modseq = r->getBigint( "nextmodseq" ); // XXX 0
+    if ( d->marked.isEmpty() ) {
+        d->t->commit();
+        finish();
+        return;
+    }
 
+    if ( !d->expunge ) {
         log( "Expunge " + fn( d->marked.count() ) + " messages: " +
              d->marked.set() );
 
