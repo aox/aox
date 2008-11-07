@@ -9,6 +9,7 @@
 
 class Address;
 class Message;
+class Injectee;
 
 
 class DSN
@@ -38,7 +39,7 @@ public:
     void setSender( Address * );
     Address * sender() const;
 
-    Message * result() const;
+    Injectee * result() const;
 
     void setResultDate( class Date * );
     Date * resultDate() const;

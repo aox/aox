@@ -258,11 +258,11 @@ public:
     struct Delivery
         : public Garbage
     {
-        Delivery( Message * m, Address * a, List<Address> * l )
+        Delivery( Injectee * m, Address * a, List<Address> * l )
             : message( m ), sender( a ), recipients( l )
         {}
 
-        Message * message;
+        Injectee * message;
         Address * sender;
         List<Address> * recipients;
     };
@@ -405,7 +405,7 @@ void Injector::addInjection( List<Injectee> * messages )
     to the specified \a recipients from the given \a sender.
 */
 
-void Injector::addDelivery( Message * message, Address * sender,
+void Injector::addDelivery( Injectee * message, Address * sender,
                             List<Address> * recipients )
 {
     d->deliveries.append( new InjectorData::Delivery( message, sender,
@@ -575,10 +575,10 @@ void Injector::execute()
 
 void Injector::findMessages()
 {
-    Map<Message> unique;
+    Map<Injectee> unique;
     List<Injectee>::Iterator im( d->injectables );
     while ( im ) {
-        Message * m = im;
+        Injectee * m = im;
         if ( !unique.contains( (uint)m ) ) {
             unique.insert( (uint)m, m );
             d->messages.append( m );
@@ -586,14 +586,17 @@ void Injector::findMessages()
         ++im;
     }
     List<InjectorData::Delivery>::Iterator dm( d->deliveries );
-    while ( im ) {
-        Message * m = dm->message;
+    while ( dm ) {
+        Injectee * m = dm->message;
         if ( !unique.contains( (uint)m ) ) {
             unique.insert( (uint)m, m );
             d->messages.append( m );
         }
-        ++im;
+        ++dm;
     }
+    log( "Injecting " + fn( d->messages.count() ) + " messages (" +
+         fn( d->injectables.count() ) + ", " +
+         fn( d->deliveries.count() ) + ")", Log::Debug );
 }
 
 
@@ -1634,7 +1637,6 @@ void Injector::cache()
             MessageCache::insert( mb, uid, m );
         }
     }
-    
 }
 
 

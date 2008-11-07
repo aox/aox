@@ -56,7 +56,7 @@ public:
     String error() const;
 
     void addInjection( List<Injectee> * );
-    void addDelivery( Message *, Address *, List<Address> * );
+    void addDelivery( Injectee *, Address *, List<Address> * );
 
 private:
     class InjectorData * d;
