@@ -264,6 +264,7 @@ void Fetcher::start()
     if ( d->body ) {
         n++;
         what.append( "body" );
+        d->partnumbers = 0;
     }
     if ( d->trivia ) {
         n++;
@@ -563,7 +564,8 @@ void FetcherData::Decoder::execute()
     }
     if ( !q->done() )
         return;
-    if ( mid ) {
+    if ( !mr.isEmpty() ) {
+        mid = mr.firstElement()->getInt( "message" );
         Message * m = d->batch.find( mid );
         if ( m && !isDone( m ) ) {
             decode( m, &mr );
