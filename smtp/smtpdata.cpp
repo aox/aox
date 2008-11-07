@@ -636,7 +636,7 @@ void SmtpData::makeCopy() const
 {
     String copy = Configuration::text( Configuration::MessageCopyDir );
     copy.append( '/' );
-    String filename = server->transactionId();
+    String filename = server()->transactionId();
     filename.replace( "/", "-" );
     copy.append( filename );
 
