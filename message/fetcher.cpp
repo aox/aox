@@ -856,6 +856,7 @@ bool Fetcher::fetching( Type t ) const
 
 void Fetcher::setTransaction( class Transaction * t )
 {
+    Scope x( log() );
     d->transaction = t->subTransaction();
 }
 
