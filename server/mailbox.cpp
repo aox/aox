@@ -169,12 +169,17 @@ void MailboxReader::execute() {
     done = true;
     ::readers->remove( this );
     ::wiped = false;
-    if ( q->failed() && !EventLoop::global()->inShutdown() )
-        log( "Couldn't create mailbox tree: " + q->error(), Log::Disaster );
-    if ( owner )
-        owner->execute();
+    if ( q->failed() && !EventLoop::global()->inShutdown() ) {
+        if ( q->transaction() )
+            log( "Couldn't update mailbox tree: " + q->error() );
+        else
+            log( "Couldn't create mailbox tree: " + q->error(),
+                 Log::Disaster );
+    }
     if ( q->transaction() )
         q->transaction()->commit();
+    if ( owner )
+        owner->execute();
 };
 
 
