@@ -703,6 +703,8 @@ void Fetch::execute()
                     d->those->setString( s );
                 }
                 enqueue( d->those );
+                if ( d->transaction )
+                    d->transaction->execute();
             }
         }
         if ( d->those && !d->those->done() )
@@ -1743,11 +1745,8 @@ void Fetch::sendModSeqQuery()
 
 void Fetch::enqueue( Query * q )
 {
-    if ( d->transaction ) {
+    if ( d->transaction )
         d->transaction->enqueue( q );
-        d->transaction->execute();
-    }
-    else {
+    else
         q->execute();
-    }
 }
