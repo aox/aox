@@ -593,8 +593,10 @@ void IMAP::beginSession( ImapSession * s )
 {
     if ( d->session == s )
         return;
-    if ( d->session )
+    if ( d->session ) {
+        (void)new ImapResponse( this, "OK [CLOSED] " );
         d->session->end();
+    }
     d->session = s;
     setState( Selected );
     log( "Starting session on mailbox " + s->mailbox()->name().ascii() );
@@ -623,8 +625,8 @@ void IMAP::endSession()
     if ( !s )
         return;
 
-    (void)new ImapResponse( this, "OK [CLOSED] " );
-    setState( Authenticated );
+    if ( d->state == Selected )
+        setState( Authenticated );
     d->session = 0;
     s->end();
 }
