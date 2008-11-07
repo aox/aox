@@ -331,6 +331,9 @@ uint MessageSet::index( uint value ) const
     if ( !b )
         return 0;
 
+    if ( b->start > i )
+        return 0;
+
     uint vi = (value-b->start)/BitsPerUint;
     if ( !(b->contents[vi] & 1 << (value%BitsPerUint)) )
         return 0;
