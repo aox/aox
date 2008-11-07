@@ -25,6 +25,7 @@ public:
 
     class IMAP * i;
     Log * l;
+    MessageSet expungesReported;
     MessageSet expungedFetched;
     MessageSet changed;
     uint exists;
@@ -156,10 +157,14 @@ void ImapSession::emitUpdates( Transaction * t )
 
     MessageSet e;
     e.add( expunged() );
-    while ( !e.isEmpty() ) {
-        (void)new ImapExpungeResponse( e.smallest(), this );
-        work = true;
-        e.remove( e.smallest() );
+    if ( !e.isEmpty() ) {
+        d->expungesReported = d->expungesReported.intersection( e );
+        e.remove( d->expungesReported );
+        while ( !e.isEmpty() ) {
+            (void)new ImapExpungeResponse( e.smallest(), this );
+            work = true;
+            e.remove( e.smallest() );
+        }
     }
 
     emitFlagUpdates( t );
@@ -199,7 +204,7 @@ void ImapSession::emitUpdates( Transaction * t )
     using \a t for the database work.
 */
 
-void ImapSession::emitFlagUpdates( Transaction * t ) 
+void ImapSession::emitFlagUpdates( Transaction * t )
 {
     if ( !d->nms )
         return;
