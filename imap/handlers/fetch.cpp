@@ -1613,13 +1613,14 @@ void Fetch::pickup()
             ok = false;
         if ( ( d->rfc822size || d->internaldate ) && !m->hasTrivia() )
             ok = false;
-        log( "fetch " + fn( uid ) + " (" + fn( m->databaseId() ) + "): " +
-             ( ok ? "ready" : "not ready" ) +
-             ( m->hasAddresses() ? " ha" : " !ha" ) +
-             ( m->hasHeaders() ? " hh" : " !hh" ) +
-             ( m->hasBodies() ? " hb" : " !hb" ) +
-             ( m->hasTrivia() ? " ht" : " !ht" ),
-             Log::Debug );
+        if ( m )
+            log( "fetch " + fn( uid ) + " (" + fn( m->databaseId() ) + "): " +
+                 ( ok ? "ready" : "not ready" ) +
+                 ( m->hasAddresses() ? " ha" : " !ha" ) +
+                 ( m->hasHeaders() ? " hh" : " !hh" ) +
+                 ( m->hasBodies() ? " hb" : " !hb" ) +
+                 ( m->hasTrivia() ? " ht" : " !ht" ),
+                 Log::Debug );
         if ( ok ) {
             d->processed = uid;
             d->remaining.remove( uid );
