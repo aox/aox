@@ -45,7 +45,7 @@ public:
 
     List<Message> messages;
     uint messagesRemaining;
-    Map<Message> batch;
+    Map< List<Message> > batch;
     EventHandler * owner;
     List<Query> * q;
     Transaction * transaction;
@@ -66,6 +66,7 @@ public:
             setLog( new Log( Log::Database ) );
         }
         void execute();
+        void process();
         virtual void decode( Message *, List<Row> * ) = 0;
         virtual void setDone( Message * ) = 0;
         virtual bool isDone( Message * ) const = 0;
@@ -321,15 +322,19 @@ void Fetcher::waitForEnd()
         ++i;
     }
 
-    Map<Message>::Iterator bi( d->batch );
+    Map< List<Message> >::Iterator bi( d->batch );
     while ( bi ) {
-        Message * m = bi;
+        List<Message>::Iterator li( *bi );
         ++bi;
+        while ( li ) {
+            Message * m = li;
+            ++li;
 
-        List<FetcherData::Decoder>::Iterator di( decoders );
-        while ( di ) {
-            di->setDone( m );
-            ++di;
+            List<FetcherData::Decoder>::Iterator di( decoders );
+            while ( di ) {
+                di->setDone( m );
+                ++di;
+            }
         }
     }
 
@@ -400,7 +405,12 @@ void Fetcher::prepareBatch()
     uint n = 0;
     while ( !d->messages.isEmpty() && n < d->batchSize ) {
         Message * m = d->messages.shift();
-        d->batch.insert( m->databaseId(), m );
+        List<Message> * l = d->batch.find( m->databaseId() );
+        if ( !l ) {
+            l = new List<Message>;
+            d->batch.insert( m->databaseId(), l );
+        }
+        l->append( m );
         n++;
         d->messagesRemaining--;
     }
@@ -416,35 +426,39 @@ void Fetcher::prepareBatch()
 void Fetcher::bindIds( Query * query, uint n, Type type )
 {
     List<uint> l;
-    Map<Message>::Iterator it( d->batch );
-    while ( it ) {
-        Message * m = it;
-        ++it;
-        bool need = true;
-        switch ( type ) {
-        case Addresses:
-            if ( m->hasAddresses() )
-                need = false;
-            break;
-        case OtherHeader:
-            if ( m->hasHeaders() )
-                need = false;
-            break;
-        case Body:
-            if ( m->hasBodies() )
-                need = false;
-            break;
-        case PartNumbers:
-            if ( m->hasBytesAndLines() )
-                need = false;
-            break;
-        case Trivia:
-            if ( m->hasTrivia() )
-                need = false;
-            break;
+    Map< List<Message> >::Iterator bi( d->batch );
+    while ( bi ) {
+        List<Message>::Iterator li( *bi );
+        ++bi;
+        while ( li ) {
+            Message * m = li;
+            ++li;
+            bool need = true;
+            switch ( type ) {
+            case Addresses:
+                if ( m->hasAddresses() )
+                    need = false;
+                break;
+            case OtherHeader:
+                if ( m->hasHeaders() )
+                    need = false;
+                break;
+            case Body:
+                if ( m->hasBodies() )
+                    need = false;
+                break;
+            case PartNumbers:
+                if ( m->hasBytesAndLines() )
+                    need = false;
+                break;
+            case Trivia:
+                if ( m->hasTrivia() )
+                    need = false;
+                break;
+            }
+            if ( need && m->databaseId() )
+                l.append( new uint( m->databaseId() ) );
         }
-        if ( need && m->databaseId() )
-            l.append( new uint( m->databaseId() ) );
     }
     query->bind( n, &l );
 }
@@ -537,34 +551,38 @@ void FetcherData::Decoder::execute()
         mid = mr.firstElement()->getInt( "message" );
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
-        if ( !mid || mid == r->getInt( "message" ) ) {
-            mr.append( r );
+        int id = r->getInt( "message" );
+        if ( mid != id ) {
+            process();
+            mid = id;
         }
-        else {
-            Message * m = d->batch.find( mid );
-            if ( m && !isDone( m ) ) {
-                decode( m, &mr );
-                setDone( m );
-            }
-            mr.clear();
-            mr.append( r );
-            mid = r->getInt( "message" );
-        }
+        mr.append( r );
     }
     if ( !q->done() )
         return;
-    if ( !mr.isEmpty() ) {
-        mid = mr.firstElement()->getInt( "message" );
-        Message * m = d->batch.find( mid );
+    process();
+    d->f->execute();
+}
+
+void FetcherData::Decoder::process()
+{
+    if ( mr.isEmpty() )
+        return;
+    uint id = mr.firstElement()->getInt( "message" );
+    List<Message> * l = d->batch.find( id );
+    if ( !l )
+        return;
+    List<Message>::Iterator i( l );
+    while ( i ) {
+        Message * m = i;
+        ++i;
         if ( m && !isDone( m ) ) {
             decode( m, &mr );
             setDone( m );
         }
-        mr.clear();
     }
-    d->f->execute();
+    mr.clear();
 }
-
 
 void FetcherData::HeaderDecoder::decode( Message * m, List<Row> * rows )
 {
