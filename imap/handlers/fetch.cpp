@@ -246,6 +246,8 @@ void Fetch::parse()
         // and we even need some data about the bodies
         d->needsPartNumbers = true;
     }
+    if ( d->needsBody )
+        d->needsHeader = true; // Bodypart::asText() needs mime type etc
     if ( !ok() )
         return;
     StringList l;
