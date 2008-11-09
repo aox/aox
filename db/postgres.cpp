@@ -1174,10 +1174,42 @@ String Postgres::queryString( Query * q )
             if ( !ok )
                 break;
 
-            s.replace( "=any($" + p + ")",
-                       " in (select ($" + t + ")[i] "
-                       "from generate_series(1,array_upper($" + t + ",1)) "
-                       "as s(i) limit array_upper($" + t + ",1))" );
+            // Now comes the really awful part. We look at the parameter
+            // bound to $v, and if it's a one-element array, we rewrite
+            // the =any($v) to =$v, and replace the parameter itself.
+
+            bool alone = false;
+            List<Query::Value> * values = q->values();
+            List<Query::Value>::Iterator it( values );
+            while ( it && it->position() != v )
+                ++it;
+            if ( it ) {
+                Query::Value * qv = it;
+
+                // By this time, a List is in {a,b,c} format, so we have
+                // to count elements by looking for commas.
+                String l( qv->data() );
+                l = l.mid( 1, l.length()-2 );
+
+                // 123 or foo or "f,o": we ignore the last for now.
+                if ( !l.contains( "," ) ) {
+                    alone = true;
+                    values->insert( it, new Query::Value( qv->position(), l,
+                                                          qv->format() ) );
+                    (void)values->take( it );
+                }
+            }
+
+            String z;
+
+            if ( alone )
+                z.append( "=$" + fn( v ) );
+            else
+                z.append( " in (select ($" + t + ")[i] "
+                          "from generate_series(1,array_upper($" + t + ",1)) "
+                          "as s(i) limit array_upper($" + t + ",1))" );
+
+            s.replace( "=any($" + p + ")", z );
         }
     }
 
