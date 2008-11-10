@@ -11,10 +11,8 @@
 #include "query.h"
 #include "dict.h"
 #include "list.h"
-#include "map.h"
 
 
-static Map< Address > *idCache;
 static Dict< Address > *nameCache;
 static PreparedStatement *addressLookup;
 static PreparedStatement *addressInsert;
@@ -46,14 +44,8 @@ static PreparedStatement *addressInsert;
 
 void AddressCache::setup()
 {
-    // The idCache maps numeric ids to their corresponding Addresses,
-    // and the nameCache maps a string representation of each address
-    // to the same set of objects.
-
-    idCache = new Map< Address >;
-    Allocator::addEternal( idCache, "address cache (id)" );
     nameCache = new Dict< Address >;
-    Allocator::addEternal( nameCache, "address cache (name)" );
+    Allocator::addEternal( nameCache, "address cache" );
 
     // The first query is used to resolve cache misses. If the address
     // doesn't exist in the table, the other query inserts it.
@@ -147,21 +139,7 @@ void AddressLookup::execute() {
 
         uint id = r->getInt( "id" );
         address->setId( id );
-        // get the strings, detach them so we don't accidentally keep
-        // pointers into any large input buffers, and create a
-        // long-lived cache object.
-        UString un( address->uname() );
-        String lp( address->localpart() );
-        String dom( address->domain() );
-        un.detach();
-        lp.detach();
-        dom.detach();
-        Address *a = new Address( un, lp, dom );
-        a->setId( id );
-
-        String s( a->toString() );
-        nameCache->insert( s, a );
-        idCache->insert( a->id(), a );
+        nameCache->insert( address->toString(), address );
     }
 
     if ( queries->isEmpty() ) {
@@ -192,9 +170,7 @@ CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
 
     List< Address >::Iterator it( l );
     while ( it ) {
-        Address *a = it;
-        String s( a->toString() );
-        a = nameCache->find( s );
+        Address * a = nameCache->find( it->toString() );
 
         if ( !a )
             (void)new AddressLookup( t, it, lookups, status, ev );
