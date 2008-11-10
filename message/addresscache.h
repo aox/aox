@@ -4,6 +4,7 @@
 #define ADDRESSCACHE_H
 
 #include "list.h"
+#include "cache.h"
 #include "cachelookup.h"
 
 
@@ -13,12 +14,14 @@ class EventHandler;
 
 
 class AddressCache
-    : public Garbage
+    : public Cache
 {
 public:
     static void setup();
     static CacheLookup *lookup( Transaction *, List< Address > *,
                                 EventHandler * );
+
+    void clear();
 };
 
 

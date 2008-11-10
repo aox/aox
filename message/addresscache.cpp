@@ -211,3 +211,12 @@ CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
 
     return status;
 }
+
+
+void AddressCache::clear()
+{
+    if ( ::idCache )
+        ::idCache->clear();
+    if ( ::nameCache )
+        ::nameCache->clear();
+}
