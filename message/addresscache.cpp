@@ -188,8 +188,6 @@ CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
 
 void AddressCache::clear()
 {
-    if ( ::idCache )
-        ::idCache->clear();
     if ( ::nameCache )
         ::nameCache->clear();
 }
