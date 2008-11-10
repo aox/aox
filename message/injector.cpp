@@ -569,12 +569,12 @@ void Injector::execute()
 
 void Injector::findMessages()
 {
-    Map<Injectee> unique;
+    PatriciaTree<Injectee> unique;
     List<Injectee>::Iterator im( d->injectables );
     while ( im ) {
         Injectee * m = im;
-        if ( !unique.contains( (uint)m ) ) {
-            unique.insert( (uint)m, m );
+        if ( !unique.find( (const char *)&m, sizeof(m) * 8 ) ) {
+            unique.insert( (const char *)&m, sizeof(m) * 8, m );
             d->messages.append( m );
         }
         ++im;
@@ -582,8 +582,8 @@ void Injector::findMessages()
     List<InjectorData::Delivery>::Iterator dm( d->deliveries );
     while ( dm ) {
         Injectee * m = dm->message;
-        if ( !unique.contains( (uint)m ) ) {
-            unique.insert( (uint)m, m );
+        if ( !unique.find( (const char *)&m, sizeof(m) * 8 ) ) {
+            unique.insert( (const char *)&m, sizeof(m) * 8, m );
             d->messages.append( m );
         }
         ++dm;
