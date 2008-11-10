@@ -118,10 +118,20 @@ void Undelete::execute()
             error( "No such deleted message (search returned 0 results)" );
 
         Query * q;
+
+        q = new Query( "update messages set idate="
+                       "extract(epoch from current_timestamp) "
+                       "from mailbox_messages mm where "
+                       "mm.message=messages.id and "
+                       "mm.mailbox=$1 and mm.uid=any($2)", 0 );
+        q->bind( 1, d->m->id() );
+        q->bind( 2, s );
+        d->t->enqueue( q );
+
         q = new Query( "insert into mailbox_messages "
-                       "(mailbox,uid,message,idate,modseq) "
+                       "(mailbox,uid,message,modseq) "
                        "select $1,generate_series($2::int,$3::int),"
-                       "message,extract(epoch from current_timestamp),$4 "
+                       "message,$4 "
                        "from deleted_messages "
                        "where mailbox=$1 and uid=any($5)", 0 );
         q->bind( 1, d->m->id() );
