@@ -61,17 +61,17 @@ public:
         : public Garbage
     {
     private:
-        int n;
+        uint n;
         bool null;
         String str;
         Query::Format fmt;
 
     public:
-        Value( int p )
+        Value( uint p )
             : n( p ), null( true )
         {}
 
-        Value( int p, const String &s, Query::Format f )
+        Value( uint p, const String &s, Query::Format f )
             : n( p ), null( false ), str( s ), fmt( f )
         {}
 
@@ -82,6 +82,7 @@ public:
         }
         String data() const { return str; }
         Query::Format format() const { return fmt; }
+        uint position() const { return n; }
 
         bool operator <=( const Value &b ) {
             return n <= b.n;
