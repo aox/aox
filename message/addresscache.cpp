@@ -57,9 +57,6 @@ void AddressCache::setup()
     addressInsert =
         new PreparedStatement( "insert into addresses(name,localpart,domain) "
                                "values ($1,$2,$3)" );
-
-    Allocator::addEternal( addressInsert, "address insertion statement" );
-    Allocator::addEternal( addressLookup, "address lookup statement" );
 }
 
 

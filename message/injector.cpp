@@ -19,7 +19,6 @@
 #include "addressfield.h"
 #include "transaction.h"
 #include "annotation.h"
-#include "allocator.h"
 #include "session.h"
 #include "scope.h"
 #include "graph.h"
@@ -333,7 +332,6 @@ void Injector::setup()
             "select id,uidnext,nextmodseq,first_recent from mailboxes "
             "where id=$1 for update"
         );
-    Allocator::addEternal( lockUidnext, "lockUidnext" );
 
     incrUidnext =
         new PreparedStatement(
@@ -341,7 +339,6 @@ void Injector::setup()
             "set uidnext=uidnext+$2,nextmodseq=nextmodseq+1 "
             "where id=$1"
         );
-    Allocator::addEternal( incrUidnext, "incrUidnext" );
 
     incrUidnextWithRecent =
         new PreparedStatement(
@@ -351,20 +348,17 @@ void Injector::setup()
                  "first_recent=first_recent+$2 "
             "where id=$1"
         );
-    Allocator::addEternal( incrUidnextWithRecent, "incrUidnext w/recent" );
 
     idBodypart =
         new PreparedStatement(
             "select id from bodyparts where hash=$1"
         );
-    Allocator::addEternal( idBodypart, "idBodypart" );
 
     intoBodyparts =
         new PreparedStatement(
             "insert into bodyparts (hash,bytes,text,data) "
             "values ($1,$2,$3,$4)"
         );
-    Allocator::addEternal( intoBodyparts, "intoBodyparts" );
 
     ::failures = new GraphableCounter( "injection-errors" );
     ::successes = new GraphableCounter( "messages-injected" );

@@ -1014,19 +1014,27 @@ bool Row::badFetch( uint i, Column::Type t ) const
     A PreparedStatement has a name() and an associated query(). Its only
     purpose is to be used to construct Query objects. Each object has a
     unique name.
+
+    A PreparedStatement is never freed during garbage collection.
 */
 
 
 static int prepareCounter = 0;
+List<PreparedStatement> * preparedStatementRoot = 0;
 
 
 /*! Creates a PreparedStatement containing the SQL statement \a s, and
-    generates a unique name for it.
+    generates a unique SQL name for it.
 */
 
 PreparedStatement::PreparedStatement( const String &s )
     : n( fn( prepareCounter++ ) ), q( s )
 {
+    if ( !preparedStatementRoot ) {
+        preparedStatementRoot = new List<PreparedStatement>;
+        Allocator::addEternal( preparedStatementRoot, "prepared statements" );
+    }
+    preparedStatementRoot->append( this );
 }
 
 
