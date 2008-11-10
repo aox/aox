@@ -2,7 +2,6 @@
 
 #include "user.h"
 
-#include "allocator.h"
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
@@ -281,8 +280,6 @@ void User::refresh( EventHandler * user )
             "join namespaces n on (u.parentspace=n.id) "
             "where lower(a.localpart)=$1 and lower(a.domain)=$2"
         );
-        Allocator::addEternal( psl, "select user by login" );
-        Allocator::addEternal( psa, "select user by address" );
     }
     if ( !d->login.isEmpty() ) {
         d->q = new Query( *psl, this );
