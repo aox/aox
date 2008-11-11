@@ -20,6 +20,8 @@ public:
 
     bool usable() const;
 
+    bool blocked( const class Transaction * ) const;
+
     static uint version();
 
     static void sendListen();

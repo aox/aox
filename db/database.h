@@ -49,6 +49,8 @@ public:
     static void notifyWhenIdle( class EventHandler * );
     static bool idle();
 
+    virtual bool blocked( const class Transaction * ) const = 0;
+
 protected:
     static List< Query > *queries;
 

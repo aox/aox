@@ -663,3 +663,14 @@ uint Database::currentRevision()
 {
     return 78;
 }
+
+
+/*! \fn bool Database::blocked( const Transaction * transaction ) const
+
+    Returns true if \a transaction is currently being processed, but
+    is blocked by a subtransaction.
+
+    Returns false if \a transaction is not blocked, as well as if it
+    not being processed.
+*/
+

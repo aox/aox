@@ -19,9 +19,10 @@ public:
     Transaction( EventHandler * );
     void setDatabase( Database * );
 
-    enum State { Inactive, Executing, Blocked, Completed, Failed };
+    enum State { Inactive, Executing, Completed, Failed };
     void setState( State );
     State state() const;
+    bool blocked() const;
     bool failed() const;
     bool done() const;
 
