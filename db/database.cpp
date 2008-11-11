@@ -665,7 +665,7 @@ uint Database::currentRevision()
 }
 
 
-/*! \fn bool Database::blocked( const Transaction * transaction ) const
+/*! \fn bool Database::blocked( const class Transaction * transaction ) const
 
     Returns true if \a transaction is currently being processed, but
     is blocked by a subtransaction.
