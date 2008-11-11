@@ -762,8 +762,6 @@ void SessionInitialiser::findMailboxChanges()
         initialising = true;
     String msgs = "select mm.uid, mm.modseq from mailbox_messages mm "
                   "where mm.mailbox=$1 and mm.uid<$2";
-    if ( initialising ) // largest-first to please messageset
-        msgs.append( " order by mm.uid desc" );
 
     // if we know we'll see one new modseq and at least one new
     // message, we could skip the test on mm.modseq.
