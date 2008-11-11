@@ -115,7 +115,7 @@ void LogClient::send( const String &id, Log::Severity s, const String & m )
 
     String t( id );
     t.reserve( m.length() + 35 );
-    t.append( " all/" );
+    t.append( " x/" );
     t.append( Log::severity( s ) );
     t.append( " " );
     t.append( time() );
