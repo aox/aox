@@ -119,26 +119,18 @@ void Undelete::execute()
 
         Query * q;
 
-        q = new Query( "update messages set idate="
-                       "extract(epoch from current_timestamp) "
-                       "from mailbox_messages mm where "
-                       "mm.message=messages.id and "
-                       "mm.mailbox=$1 and mm.uid=any($2)", 0 );
-        q->bind( 1, d->m->id() );
-        q->bind( 2, s );
+        q = new Query( "create temporary sequence s start " + fn( uidnext ),
+                       0 );
         d->t->enqueue( q );
 
         q = new Query( "insert into mailbox_messages "
                        "(mailbox,uid,message,modseq) "
-                       "select $1,generate_series($2::int,$3::int),"
-                       "message,$4 "
+                       "select $1,nextval('s'),message,$2 "
                        "from deleted_messages "
-                       "where mailbox=$1 and uid=any($5)", 0 );
+                       "where mailbox=$1 and uid=any($3)", 0 );
         q->bind( 1, d->m->id() );
-        q->bind( 2, uidnext );
-        q->bind( 3, uidnext + s.count() - 1 );
-        q->bind( 4, modseq );
-        q->bind( 5, s );
+        q->bind( 2, modseq );
+        q->bind( 3, s );
         d->t->enqueue( q );
 
         q = new Query( "delete from deleted_messages "
@@ -148,12 +140,13 @@ void Undelete::execute()
         d->t->enqueue( q );
 
         q = new Query( "update mailboxes "
-                       "set uidnext=$1, nextmodseq=$2 "
-                       "where id=$3", 0 );
-        q->bind( 1, uidnext + s.count() );
-        q->bind( 2, modseq + 1 );
-        q->bind( 3, d->m->id() );
+                       "set uidnext=nextval('s'), nextmodseq=$1 "
+                       "where id=$2", 0 );
+        q->bind( 1, modseq + 1 );
+        q->bind( 2, d->m->id() );
         d->t->enqueue( q );
+
+        d->t->enqueue( new Query( "drop sequence s", 0 ) );
 
         Mailbox::refreshMailboxes( d->t );
 
