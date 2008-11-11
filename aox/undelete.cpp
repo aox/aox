@@ -117,6 +117,9 @@ void Undelete::execute()
         if ( s.isEmpty() )
             error( "No such deleted message (search returned 0 results)" );
 
+        printf( "aox: Undeleting %d messages into %s\n",
+                s.count(), d->m->name().utf8().cstr() );
+
         Query * q;
 
         q = new Query( "create temporary sequence s start " + fn( uidnext ),
