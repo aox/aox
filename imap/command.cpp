@@ -579,7 +579,20 @@ void Command::error( Error e, const String & t )
     }
     else {
         d->errorCode = Bad;
-        d->errorText = "Not permitted in this state";
+        switch ( imap()->state() ) {
+        case IMAP::NotAuthenticated:
+            d->errorText = "Not permitted before authentication";
+            break;
+        case IMAP::Authenticated:
+            d->errorText = "Not permitted without mailbox";
+            break;
+        case IMAP::Selected:
+            d->errorText = "Not permitted while a mailbox is selected";
+            break;
+        case IMAP::Logout:
+            d->errorText = "Not permitted during logout";
+            break;
+        };
     }
     d->error = true;
     finish();
