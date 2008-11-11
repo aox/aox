@@ -65,7 +65,7 @@ int main( int ac, char ** av )
 
     Utf8Codec c;
     UString source;
-    if ( i >= ac && av[i][0] == '/' )
+    if ( i >= ac )
         bad = true;
     else if ( av[i][0] == '/' )
         source = c.toUnicode( av[i++] );
