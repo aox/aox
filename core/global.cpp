@@ -3,11 +3,23 @@
 #include "global.h"
 
 #include "allocator.h"
+#include "log.h"
 
 
 // This is just to aid in debugging.
 void die( Exception e )
 {
+    switch ( e ) {
+    case Invariant:
+        log( "die( Invariant ) called", Log::Error );
+        break;
+    case Memory:
+        // we log nothing in this case - Allocator can call this
+        break;
+    case FD:
+        log( "die( FD ) called", Log::Error );
+        break;
+    }
     throw e;
 }
 
