@@ -152,7 +152,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set,
               int64 limit, IMAP * i, Transaction * t )
     : Command( i ), d( new FetchData )
 {
-    setLog( new Log( Log::IMAP ) );
+    setLog( new Log );
     Scope x( log() );
     d->uid = true;
     d->flags = f;

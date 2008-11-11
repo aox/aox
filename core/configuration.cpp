@@ -620,7 +620,7 @@ void Configuration::report()
     if ( !d->errors )
         return;
 
-    Log l( Log::Configuration );
+    Log l;
     Scope x( &l );
 
     List<ConfigurationData::Error>::Iterator it( d->errors );

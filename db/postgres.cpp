@@ -97,8 +97,6 @@ public:
 Postgres::Postgres()
     : Database(), d( new PgData )
 {
-    log()->setFacility( Log::Database );
-
     d->user = Database::user();
     struct passwd * p = getpwnam( d->user.cstr() );
     if ( p && getuid() != p->pw_uid ) {

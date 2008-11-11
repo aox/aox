@@ -267,7 +267,7 @@ void Mailbox::setup( EventHandler * owner )
 
     (void)root();
 
-    Scope x( new Log( Log::Server ) );
+    Scope x( new Log );
     (new MailboxReader( owner, 0 ))->q->execute();
 
     (void)new MailboxesWatcher;
@@ -725,7 +725,7 @@ Query * Mailbox::remove( Transaction * t )
 
 void Mailbox::refreshMailboxes( class Transaction * t )
 {
-    Scope x( new Log( Log::Server ) );
+    Scope x( new Log );
     Transaction * s = t->subTransaction();
     s->enqueue( (new MailboxReader( 0, 0 ))->q );
     s->execute();

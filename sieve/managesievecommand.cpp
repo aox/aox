@@ -74,7 +74,7 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
 {
     d->sieve = sieve;
     d->cmd = cmd;
-    setLog( new Log( Log::Server ) );
+    setLog( new Log );
     Scope x( log() );
     switch( cmd ) {
     case Authenticate:

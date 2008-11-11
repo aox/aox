@@ -304,7 +304,7 @@ Command * Command::create( IMAP * imap,
     if ( logout )
         c->d->permittedStates |= ( 1 << IMAP::Logout );
 
-    c->setLog( new Log( Log::IMAP ) );
+    c->setLog( new Log );
     c->log( "IMAP Command: " + tag + " " + name );
 
     return c;

@@ -238,7 +238,7 @@ int main( int argc, char *argv[] )
 
     EventLoop::setup();
     Database::setup( 1 );
-    Log * l = new Log( Log::General );
+    Log * l = new Log;
     Allocator::addEternal( l, "delivery log" );
     global.setLog( l );
     Allocator::addEternal( new StderrLogger( "deliver", verbose ),

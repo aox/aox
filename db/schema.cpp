@@ -24,7 +24,7 @@ class SchemaData
 {
 public:
     SchemaData()
-        : l( new Log( Log::Database ) ),
+        : l( new Log ),
           state( 0 ), substate( 0 ), revision( 0 ),
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
           result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),

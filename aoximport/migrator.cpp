@@ -402,8 +402,7 @@ public:
           injector( 0 ),
           gcHackTimer( 0 ),
           migrated( 0 ), migrating( 0 ),
-          mailboxCreator( 0 ),
-          log( Log::General )
+          mailboxCreator( 0 )
     {}
 
     MigratorMailbox * source;
@@ -532,7 +531,7 @@ void MailboxMigrator::execute()
     } while ( mm && Allocator::allocated() < 64 * 1024 * 1024 );
 
     if ( !d->messages.isEmpty() ) {
-        Scope x( new Log( Log::General ) );
+        Scope x( new Log );
         log( "Starting migration of " + fn ( d->messages.count() ) +
              " messages starting with " + d->messages.first()->description() );
         List<Injectee> * messages = new List<Injectee>;

@@ -23,9 +23,7 @@ SelfLogger::SelfLogger()
 }
 
 
-void SelfLogger::send( const String & id,
-                       Log::Facility, Log::Severity s,
-                       const String & m )
+void SelfLogger::send( const String & id, Log::Severity s, const String & m )
 {
     ls->output( id, s, m );
 }

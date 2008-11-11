@@ -63,7 +63,7 @@ class AnnotationNameObliterator
 {
 public:
     AnnotationNameObliterator(): EventHandler() {
-        setLog( new Log( Log::Server ) );
+        setLog( new Log );
         (void)new DatabaseSignal( "obliterated", this );
     }
     void execute() {

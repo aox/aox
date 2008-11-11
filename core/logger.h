@@ -16,9 +16,7 @@ public:
     Logger();
     virtual ~Logger();
 
-    virtual void send( const String &,
-                       Log::Facility, Log::Severity,
-                       const String & ) = 0;
+    virtual void send( const String &, Log::Severity, const String & ) = 0;
 
     virtual String name() const;
 

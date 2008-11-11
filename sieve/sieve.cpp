@@ -139,7 +139,7 @@ SieveData::Recipient * SieveData::recipient( Address * a )
 Sieve::Sieve()
     : EventHandler(), d( new SieveData )
 {
-    setLog( new Log( Log::Server ) );
+    setLog( new Log );
 }
 
 
@@ -218,7 +218,7 @@ void Sieve::execute()
     if ( d->state == 1 ) {
         if ( !d->injector ) {
             d->injector = new Injector( this );
-            d->injector->setLog( new Log( Log::Database ) ); // XXX why here?
+            d->injector->setLog( new Log ); // XXX why here?
         }
 
         if ( d->autoresponses && !d->autoresponses->done() )

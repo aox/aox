@@ -47,7 +47,7 @@ int main( int ac, char *av[] )
                          Configuration::compiledIn( Configuration::ConfigDir) +
                          "/aoxsuper.conf", true );
 
-    Log * l = new Log( Log::General );
+    Log * l = new Log;
     Allocator::addEternal( l, "log object" );
     global.setLog( l );
     Allocator::addEternal( new StderrLogger( "aox", verbosity ),

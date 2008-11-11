@@ -15,7 +15,7 @@ class DatabaseSignalData
     : public Garbage
 {
 public:
-    DatabaseSignalData(): o( 0 ), l( new Log( Log::Database ) ) {}
+    DatabaseSignalData(): o( 0 ), l( new Log ) {}
     String n;
     EventHandler * o;
     Log * l;

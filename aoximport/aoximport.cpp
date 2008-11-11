@@ -33,7 +33,7 @@ int main( int ac, char ** av )
     Configuration::setup( "archiveopteryx.conf" );
 
     EventLoop::setup();
-    Log * l = new Log( Log::General );
+    Log * l = new Log;
     Allocator::addEternal( l, "aoximport log" );
     global.setLog( l );
     LogClient::setup( "aoximport" );

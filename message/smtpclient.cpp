@@ -522,7 +522,7 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     if ( !ready() )
         return;
 
-    d->log = new Log( Log::SMTP, user->log() );
+    d->log = new Log( user->log() );
     Scope x( d->log );
 
     String s( "Sending message to " );

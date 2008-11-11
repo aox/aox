@@ -351,7 +351,7 @@ void HTTP::parseRequest( String l )
     setTimeoutAfter( 1800 );
     d->state = Header;
     Scope s( Connection::log() );
-    d->requestLog = new Log( Log::HTTP );
+    d->requestLog = new Log;
     s.setLog( d->requestLog );
     ::log( "Request: " + l, Log::Debug );
 

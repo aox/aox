@@ -26,9 +26,7 @@ StderrLogger::StderrLogger( const String & name, uint verbosity )
 }
 
 
-void StderrLogger::send( const String &,
-                      Log::Facility, Log::Severity s,
-                      const String & m )
+void StderrLogger::send( const String &, Log::Severity s, const String & m )
 {
     // we don't need to handle Disaster, Log already has done that
     if ( s == Log::Error ||

@@ -273,7 +273,7 @@ int main( int argc, char ** argv )
     ::base = new String( argv[4] );
     Allocator::addEternal( ::base, "base of recorded file names" );
 
-    global.setLog( new Log( Log::General ) );
+    global.setLog( new Log );
     EventLoop::global()->start();
 }
 

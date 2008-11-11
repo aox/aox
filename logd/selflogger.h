@@ -15,9 +15,7 @@ class SelfLogger: public Logger
 public:
     SelfLogger();
 
-    void send( const String &,
-               Log::Facility, Log::Severity,
-               const String & );
+    void send( const String &, Log::Severity, const String & );
 
 private:
     LogServer * ls;

@@ -60,7 +60,7 @@ public:
 DeliveryAgent::DeliveryAgent( uint id, EventHandler * owner )
     : d( new DeliveryAgentData )
 {
-    setLog( new Log( Log::SMTP ) );
+    setLog( new Log );
     Scope x( log() );
     log( "Attempting delivery for message " + fn( id ) );
     d->messageId = id;

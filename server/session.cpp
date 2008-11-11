@@ -384,7 +384,7 @@ public:
 SessionInitialiser::SessionInitialiser( Mailbox * mailbox, Transaction * t )
     : EventHandler(), d( new SessionInitialiserData )
 {
-    setLog( new Log( Log::General ) );
+    setLog( new Log );
     d->mailbox = mailbox;
     if ( t )
         d->t = t->subTransaction( this );

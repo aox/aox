@@ -296,7 +296,7 @@ void Server::logSetup()
     EventLoop::setup();
     if ( !Logger::global() )
         LogClient::setup( d->name );
-    Scope::current()->setLog( new Log( Log::General ) );
+    Scope::current()->setLog( new Log );
     log( name() + ", Archiveopteryx version " +
          Configuration::compiledIn( Configuration::Version ) );
     Allocator::setReporting( true );

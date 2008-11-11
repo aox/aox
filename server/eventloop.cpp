@@ -40,7 +40,7 @@ class LoopData
 {
 public:
     LoopData()
-        : log( new Log( Log::Server ) ), startup( false ),
+        : log( new Log ), startup( false ),
           stop( false )
     {}
 

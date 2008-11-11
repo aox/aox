@@ -102,7 +102,7 @@ void grantPrivileges();
 int main( int ac, char *av[] )
 {
     Scope global;
-    Log * l = new Log( Log::General );
+    Log * l = new Log;
     Allocator::addEternal( l, "log object" );
     global.setLog( l );
 

@@ -577,7 +577,7 @@ void Database::checkAccess( EventHandler * owner )
         Query * result;
 
         AccessChecker( EventHandler * owner )
-            : l( new Log( Log::Database ) ), q( 0 ), result( 0 )
+            : l( new Log ), q( 0 ), result( 0 )
         {
             result = new Query( owner );
         }

@@ -71,7 +71,7 @@ class RetuningDetector
 public:
     RetuningDetector(): EventHandler() {
         ::retunerCreated = true;
-        setLog( new Log( Log::Server ) );
+        setLog( new Log );
         (void)new DatabaseSignal( "database_retuned", this );
         (void)new TuningDetector();
     }

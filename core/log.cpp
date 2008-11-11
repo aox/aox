@@ -31,11 +31,10 @@ void log( const String &m, Log::Severity s )
     server.
 */
 
-/*! Constructs a Log object with facility() \a f and the parent() that's
-    currently in Scope. */
+/*! Constructs a Log object the parent() that's currently in Scope. */
 
-Log::Log( Facility f )
-    : fc( f ), children( 1 ), p( 0 )
+Log::Log()
+    : children( 1 ), p( 0 )
 {
     Scope * cs = Scope::current();
     if ( cs )
@@ -47,19 +46,11 @@ Log::Log( Facility f )
 }
 
 
-/*! Constructs a Log object with facility() \a f and parent() \a parent. */
+/*! Constructs a Log object with parent() \a parent. */
 
-Log::Log( Facility f, Log * parent )
-    : fc( f ), children( 0 ), p( parent )
+Log::Log( Log * parent )
+    : children( 0 ), p( parent )
 {
-}
-
-
-/*! Changes this Log's facility to \a f. */
-
-void Log::setFacility( Facility f )
-{
-    fc = f;
 }
 
 
@@ -81,7 +72,7 @@ void Log::log( const String &m, Severity s )
     if ( !l )
         return;
 
-    l->send( ide, fc, s, m );
+    l->send( ide, s, m );
 }
 
 
@@ -106,46 +97,6 @@ const char * Log::severity( Severity s )
         break;
     case Log::Disaster:
         i = "disaster";
-        break;
-    }
-
-    return i;
-}
-
-
-/*! This static function returns a string describing \a f. */
-
-const char *Log::facility( Facility f )
-{
-    const char *i = 0;
-
-    switch ( f ) {
-    case Configuration:
-        i = "configuration";
-        break;
-    case Database:
-        i = "database";
-        break;
-    case Authentication:
-        i = "authentication";
-        break;
-    case IMAP:
-        i = "imap";
-        break;
-    case SMTP:
-        i = "smtp";
-        break;
-    case POP:
-        i = "pop";
-        break;
-    case HTTP:
-        i = "http";
-        break;
-    case Server:
-        i = "server";
-        break;
-    case General:
-        i = "general";
         break;
     }
 

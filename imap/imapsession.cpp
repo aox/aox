@@ -125,7 +125,7 @@ ImapSession::ImapSession( IMAP * imap, Mailbox * m, bool readOnly )
 {
     d->i = imap;
     Scope x( imap->log() );
-    d->l = new Log( Log::IMAP );
+    d->l = new Log;
 }
 
 

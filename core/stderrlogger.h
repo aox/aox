@@ -12,9 +12,7 @@ class StderrLogger
 public:
     StderrLogger( const String & name, uint verbosity );
 
-    void send( const String &,
-               Log::Facility, Log::Severity,
-               const String & );
+    void send( const String &, Log::Severity, const String & );
 
     virtual String name() const;
 

@@ -64,7 +64,7 @@ class FlagObliterator
 {
 public:
     FlagObliterator(): EventHandler() {
-        setLog( new Log( Log::Server ) );
+        setLog( new Log );
         (void)new DatabaseSignal( "obliterated", this );
     }
     void execute() {
@@ -78,7 +78,7 @@ class FlagWatcher
 {
 public:
     FlagWatcher(): EventHandler() {
-        setLog( new Log( Log::Server ) );
+        setLog( new Log );
         (void)new DatabaseSignal( "flag_names_extended", this );
     }
     void execute() {

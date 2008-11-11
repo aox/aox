@@ -80,7 +80,7 @@ public:
 Connection::Connection()
     : d( new ConnectionData )
 {
-    d->l = new Log( Log::General );
+    d->l = new Log;
 }
 
 
@@ -89,7 +89,7 @@ Connection::Connection()
 Connection::Connection( int fd, Type type )
     : d( new ConnectionData )
 {
-    d->l = new Log( Log::General );
+    d->l = new Log;
     setType( type );
     init( fd );
 }
@@ -276,25 +276,6 @@ int Connection::fd() const
 void Connection::setType( Type type )
 {
     d->type = type;
-    switch ( type ) {
-    case ImapServer:
-        d->l->setFacility( Log::IMAP );
-        break;
-    case SmtpServer:
-        d->l->setFacility( Log::SMTP );
-        break;
-    case Pop3Server:
-        d->l->setFacility( Log::POP );
-        break;
-    case HttpServer:
-        d->l->setFacility( Log::HTTP );
-        break;
-    case DatabaseClient:
-        d->l->setFacility( Log::Database );
-        break;
-    default:
-        break;
-    }
 }
 
 

@@ -23,7 +23,6 @@ public:
     static void reopen( int );
 
     static Log::Severity severity( const String & );
-    static Log::Facility facility( const String & );
 
     // only for SelfLogger
     void output( String, Log::Severity, const String & );

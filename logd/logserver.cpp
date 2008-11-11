@@ -95,8 +95,8 @@ void LogServer::parse()
 /*! Adds a single \a line to the log output.
 
     The line must consist of a client identifier (numbers and slashes)
-    followed by a space, the message facility, a slash and a severity,
-    followed by a space and the log message.
+    followed by a space, the (ignored) message facility, a slash and a
+    severity, followed by a space and the log message.
 */
 
 void LogServer::processLine( const String &line )
@@ -306,63 +306,6 @@ void LogServer::setLogFile( const String &name, const String &mode )
 void LogServer::setLogLevel( const String &l )
 {
     logLevel = severity( l );
-}
-
-
-/*! Maps \a l to the corresponding Log::Facility value, and returns
-    Log::General in case of error.
-
-    This function is the inverse of Log::facility().
-*/
-
-Log::Facility LogServer::facility( const String &l )
-{
-    Log::Facility f = Log::General;
-
-    switch ( l[0] ) {
-    case 'i':
-    case 'I':
-        f = Log::IMAP;
-        break;
-
-    case 'c':
-    case 'C':
-        f = Log::Configuration;
-        break;
-
-    case 'd':
-    case 'D':
-        f = Log::Database;
-        break;
-
-    case 'a':
-    case 'A':
-        f = Log::Authentication;
-        break;
-
-    case 's':
-    case 'S':
-        if ( (l[1]|0x20) == 'm' )
-            f = Log::SMTP;
-        else
-            f = Log::Server;
-        break;
-
-    case 'h':
-    case 'H':
-        f = Log::HTTP;
-        break;
-
-    case 'p':
-    case 'P':
-        f = Log::POP;
-        break;
-
-    default:
-        f = Log::General;
-        break;
-    }
-    return f;
 }
 
 

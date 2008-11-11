@@ -106,9 +106,7 @@ LogClient::LogClient()
 }
 
 
-void LogClient::send( const String &id,
-                      Log::Facility f, Log::Severity s,
-                      const String & m )
+void LogClient::send( const String &id, Log::Severity s, const String & m )
 {
     // We need to re-establish the connection to the log server after
     // the tlsproxy forks.
@@ -117,9 +115,7 @@ void LogClient::send( const String &id,
 
     String t( id );
     t.reserve( m.length() + 35 );
-    t.append( " " );
-    t.append( Log::facility( f ) );
-    t.append( "/" );
+    t.append( " all/" );
     t.append( Log::severity( s ) );
     t.append( " " );
     t.append( time() );

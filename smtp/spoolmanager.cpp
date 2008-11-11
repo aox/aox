@@ -47,7 +47,7 @@ public:
 SpoolManager::SpoolManager()
     : d( new SpoolManagerData )
 {
-    setLog( new Log( Log::General ) );
+    setLog( new Log );
 }
 
 

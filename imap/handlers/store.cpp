@@ -108,7 +108,7 @@ Store::Store( bool u )
 Store::Store( IMAP * imap, const MessageSet & set, bool silent )
     : Command( imap ), d( new StoreData )
 {
-    setLog( new Log( Log::IMAP ) );
+    setLog( new Log );
     Scope x( log() );
     log( "Store \\seen on " + set.set() );
     d->uid = true;

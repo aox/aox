@@ -129,7 +129,7 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
 SaslMechanism::SaslMechanism( EventHandler * cmd, Type type )
     : d( new SaslData )
 {
-    d->l = new Log( Log::Authentication );
+    d->l = new Log;
     d->command = cmd;
     d->type = type;
 }

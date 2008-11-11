@@ -57,7 +57,7 @@ Exporter::Exporter( const UString & source, Selector * selector )
 {
     d->sourceName = source;
     d->selector = selector;
-    setLog( new Log( Log::General ) );
+    setLog( new Log );
 }
 
 

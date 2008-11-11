@@ -45,7 +45,7 @@ public:
 SmtpCommand::SmtpCommand( class SMTP * s )
     : EventHandler(), d( new SmtpCommandData )
 {
-    setLog( new Log( Log::SMTP ) );
+    setLog( new Log );
     d->smtp = s;
 }
 

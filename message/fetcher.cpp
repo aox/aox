@@ -63,7 +63,7 @@ public:
     public:
         Decoder( FetcherData * fd )
             : q( 0 ), d( fd ) {
-            setLog( new Log( Log::Database ) );
+            setLog( new Log );
         }
         void execute();
         void process();
@@ -156,7 +156,7 @@ public:
 Fetcher::Fetcher( List<Message> * messages, EventHandler * e )
     : EventHandler(), d( new FetcherData )
 {
-    setLog( new Log( Log::Database ) );
+    setLog( new Log );
     d->owner = e;
     d->f = this;
     addMessages( messages );
@@ -173,7 +173,7 @@ Fetcher::Fetcher( List<Message> * messages, EventHandler * e )
 Fetcher::Fetcher( Message * m, EventHandler * owner )
     : EventHandler(), d( new FetcherData )
 {
-    setLog( new Log( Log::Database ) );
+    setLog( new Log );
     d->owner = owner;
     d->f = this;
     d->messages.append( m );
