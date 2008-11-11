@@ -72,7 +72,7 @@ void LogServer::react( Event e )
     case Timeout:
         // Timeout never should happen
     case Shutdown:
-        output( 0, Log::General, Log::Debug, "log server shutdown" );
+        output( 0, Log::Debug, "log server shutdown" );
         break;
     case Connect:
     case Error:
@@ -127,19 +127,18 @@ void LogServer::processLine( const String &line )
     if ( n < 0 )
         return;
 
-    Log::Facility f = facility( priority.mid( 0, n ) );
     Log::Severity s = severity( priority.mid( n+1 ) );
 
-    output( transaction, f, s, parameters );
+    output( transaction, s, parameters );
 }
 
 
 /*! This private function actually writes \a line to the log file with
-    the \a tag, facility \a f, and severity \a s converted into their
+    the \a tag and severity \a s converted into their
     textual representations.
 */
 
-void LogServer::output( String tag, Log::Facility f, Log::Severity s,
+void LogServer::output( String tag, Log::Severity s,
                         const String &line )
 {
     if ( s < logLevel )
@@ -183,8 +182,6 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
     String msg;
     msg.reserve( line.length() );
 
-    msg.append( Log::facility( f ) );
-    msg.append( "/" );
     msg.append( Log::severity( s ) );
     msg.append( ": " );
     msg.append( fn( d->id, 36 ) );

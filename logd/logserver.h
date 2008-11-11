@@ -26,7 +26,7 @@ public:
     static Log::Facility facility( const String & );
 
     // only for SelfLogger
-    void output( String, Log::Facility, Log::Severity, const String & );
+    void output( String, Log::Severity, const String & );
 
 private:
     void parse();
