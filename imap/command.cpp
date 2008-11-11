@@ -591,6 +591,9 @@ void Command::error( Error e, const String & t )
             break;
         case IMAP::Logout:
             d->errorText = "Not permitted during logout";
+            // in this case we give the client a NO, not a BAD, since
+            // the logout might be initiated by us.
+            d->errorCode = No;
             break;
         };
     }
