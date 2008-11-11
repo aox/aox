@@ -248,8 +248,7 @@ Query * Transaction::failedQuery() const
 void Transaction::enqueue( Query *q )
 {
     if ( d->submittedCommit ) {
-        log( "Query submitted after commit/rollback: " + q->string(),
-             Log::Error );
+        q->setError( "Query submitted after commit/rollback: " + q->string() );
         return;
     }
     if ( !d->queries )
@@ -429,6 +428,14 @@ void Transaction::execute()
             d->parent->enqueue( begin );
             begin->setTransaction( this );
             d->parent->execute();
+            if ( begin->failed() ) {
+                setError( begin, "Savepoint failed" );
+                List<Query>::Iterator i( d->queries );
+                while ( i ) {
+                    i->setError( "Failed due to earlier query" );
+                    ++i;
+                }
+            }
         }
         else {
             begin = new Query( "begin", 0 );
