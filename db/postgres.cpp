@@ -1220,3 +1220,21 @@ String Postgres::queryString( Query * q )
 
     return s;
 }
+
+
+bool Postgres::blocked( const class Transaction * transaction ) const
+{
+    if ( !transaction )
+        return false;
+
+    Transaction * t = d->transaction;
+    if ( t == transaction )
+        return false;
+    while ( t ) {
+        t = t->parent();
+        if ( t == transaction )
+            return true;
+    }
+
+    return false;
+}

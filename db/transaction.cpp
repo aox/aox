@@ -211,6 +211,18 @@ String Transaction::error() const
 }
 
 
+/*! Returns true if this transaction is executing, but blocked by a
+    subtransaction, and false in all other cases.
+*/
+
+bool Transaction::blocked() const
+{
+    if ( !d->db )
+        return false;
+    return d->db->blocked( this );
+}
+
+
 /*! Returns a pointer to the first Query in this transaction that
     failed. The return value is meaningful only if the transaction
     has failed, and 0 otherwise.
@@ -236,7 +248,7 @@ Query * Transaction::failedQuery() const
 void Transaction::enqueue( Query *q )
 {
     if ( d->submittedCommit ) {
-        log( "Query submitted after commit/rollback: " + q->string(), 
+        log( "Query submitted after commit/rollback: " + q->string(),
              Log::Error );
         return;
     }
@@ -282,16 +294,16 @@ void Transaction::rollback()
         q = new Query( "release savepoint " + d->savepoint, d->owner );
         enqueue( q );
         q->setTransaction( d->parent );
-        d->parent->setState( Executing );
+        execute();
         setState( Completed );
         d->parent->notify();
     }
     else {
         enqueue( new Query( "rollback", d->owner ) );
+        execute();
     }
     d->submittedCommit = true;
 
-    execute();
 }
 
 
@@ -385,7 +397,9 @@ void Transaction::commit()
 
 void Transaction::execute()
 {
-    if ( !d->queries || d->queries->isEmpty() || d->state == Blocked )
+    if ( !d->queries || d->queries->isEmpty() )
+        return;
+    if ( d->db && d->db->blocked( this ) )
         return;
 
     List< Query >::Iterator it( d->queries );
@@ -396,7 +410,6 @@ void Transaction::execute()
     if ( it && it->transaction() && it->transaction()->parent() == this ) {
         // shift to subtransaction
         it->setState( Query::Submitted );
-        d->state = Blocked;
     }
     else if ( it && it->transaction() && parent() == it->transaction() ) {
         // shift to parent
