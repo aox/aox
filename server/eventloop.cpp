@@ -347,6 +347,10 @@ void EventLoop::start()
                 c->react( Connection::Shutdown );
             if ( c->state() == Connection::Connected )
                 c->write();
+            if ( c->writeBuffer()->size() > 0 )
+                c->log( "Still have " +
+                        String::humanNumber( c->writeBuffer()->size() ) +
+                        " bytes to write", Log::Debug );
         } catch ( Exception e ) {
             // we don't really care at this point, do we?
         }
