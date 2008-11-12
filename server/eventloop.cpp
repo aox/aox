@@ -317,17 +317,16 @@ void EventLoop::start()
 
         sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
 
-        // Collect garbage if we've gone three minutes without doing
-        // so, or if we've passed the memory usage goal. This has to
-        // be at the end of the scope, since anything pointed by by
-        // local variables might be freed here.
+        // Collect garbage if someone asks for it, or if we've passed
+        // the memory usage goal. This has to be at the end of the
+        // scope, since anything pointed by by local variables might
+        // be freed here.
 
         uint goal = 1024 * 1024 *
                     Configuration::scalar( Configuration::MemoryLimit );
 
-        if ( !d->stop && ( now - gc > 180 ||
-                           ::freeMemorySoon ||
-                           Allocator::allocated() >= goal ) ) {
+        if ( !d->stop &&
+             ( ::freeMemorySoon || Allocator::allocated() >= goal ) ) {
             Allocator::free();
             gc = time( 0 );
             ::freeMemorySoon = false;
