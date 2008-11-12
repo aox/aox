@@ -207,6 +207,9 @@ int main( int argc, char *argv[] )
         "Statistics", Configuration::toggle( Configuration::UseStatistics ),
         Configuration::StatisticsAddress, Configuration::StatisticsPort
     );
+    
+    EventLoop::global()->setMemoryUsage( 
+        1024 * 1024 * Configuration::scalar( Configuration::MemoryLimit ) );
 
     Database::setup();
 
