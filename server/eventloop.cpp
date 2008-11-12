@@ -41,7 +41,7 @@ class LoopData
 public:
     LoopData()
         : log( new Log ), startup( false ),
-          stop( false )
+          stop( false ), limit( 0 )
     {}
 
     Log *log;
@@ -49,6 +49,7 @@ public:
     bool stop;
     List< Connection > connections;
     List< Timer > timers;
+    uint limit;
 
     class Stopper
         : public EventHandler
@@ -322,11 +323,9 @@ void EventLoop::start()
         // scope, since anything pointed by by local variables might
         // be freed here.
 
-        uint goal = 1024 * 1024 *
-                    Configuration::scalar( Configuration::MemoryLimit );
-
         if ( !d->stop &&
-             ( ::freeMemorySoon || Allocator::allocated() >= goal ) ) {
+             ( ::freeMemorySoon || 
+               ( now - gc > 180 && Allocator::allocated() >= d->limit ) ) ) {
             Allocator::free();
             gc = time( 0 );
             ::freeMemorySoon = false;
@@ -431,6 +430,11 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
             if ( c->writeBuffer()->error() != 0 ) {
                 c->setState( Connection::Closing );
                 c->react( Connection::Close );
+            }
+            else if ( c->writeBuffer()->size() > 0 ) {
+                c->log( "Still have " +
+                        String::humanNumber( c->writeBuffer()->size() ) +
+                        " bytes to write", Log::Debug );
             }
         }
     }
@@ -730,4 +734,15 @@ void EventLoop::shutdownSSL()
 void EventLoop::freeMemorySoon()
 {
     ::freeMemorySoon = true;
+}
+
+
+/*! Instructs this event loop to collect garbage when memory usage
+    passes \a limit bytes. The default is 0, which means to collect
+    garbage even if very little is being used.
+*/
+
+void EventLoop::setMemoryUsage( uint limit )
+{
+    d->limit = limit;
 }
