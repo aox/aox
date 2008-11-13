@@ -32,8 +32,6 @@
 static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *incrUidnextWithRecent;
-static PreparedStatement *idBodypart;
-static PreparedStatement *intoBodyparts;
 
 static GraphableCounter * successes;
 static GraphableCounter * failures;
@@ -347,17 +345,6 @@ void Injector::setup()
                  "nextmodseq=nextmodseq+1,"
                  "first_recent=first_recent+$2 "
             "where id=$1"
-        );
-
-    idBodypart =
-        new PreparedStatement(
-            "select id from bodyparts where hash=$1"
-        );
-
-    intoBodyparts =
-        new PreparedStatement(
-            "insert into bodyparts (hash,bytes,text,data) "
-            "values ($1,$2,$3,$4)"
         );
 
     ::failures = new GraphableCounter( "injection-errors" );
