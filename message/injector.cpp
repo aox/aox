@@ -480,8 +480,13 @@ void Injector::execute()
             if ( d->failed )
                 break;
             logDescription();
-            d->transaction = new Transaction( this );
-            next();
+            if ( d->messages.isEmpty() ) {
+                d->state = Done;
+            }
+            else {
+                d->transaction = new Transaction( this );
+                next();
+            }
             break;
 
         case CreatingDependencies:
