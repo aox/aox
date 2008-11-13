@@ -161,7 +161,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set,
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
     if ( t )
-        d->transaction = t->subTransaction();
+        d->transaction = t->subTransaction( this );
 
     d->peek = true;
 

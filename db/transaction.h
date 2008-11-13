@@ -42,7 +42,7 @@ public:
     EventHandler * owner() const;
     void notify();
 
-    Transaction * subTransaction( EventHandler * = 0 );
+    Transaction * subTransaction( EventHandler * );
     Transaction * parent() const;
 
 private:

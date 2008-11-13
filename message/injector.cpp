@@ -192,7 +192,7 @@ void AddressCreator::processAddresses()
 void AddressCreator::insertAddresses()
 {
     if ( !t )
-        t = parent->subTransaction();
+        t = parent->subTransaction( this );
     q = new Query( "copy addresses (name,localpart,domain) "
                    "from stdin with binary", this );
     Dict<Address>::Iterator it( unided );
@@ -857,7 +857,7 @@ void Injector::insertBodyparts()
 
             d->transaction->enqueue( create );
             d->transaction->enqueue( copy );
-            d->subtransaction = d->transaction->subTransaction();
+            d->subtransaction = d->transaction->subTransaction( this );
 
             d->substate++;
         }
