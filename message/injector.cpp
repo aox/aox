@@ -820,7 +820,10 @@ void Injector::insertBodyparts()
                 ++it;
             }
 
-            d->substate++;
+            if ( d->bodyparts.isEmpty() )
+                d->substate = 5;
+            else
+                d->substate++;
         }
 
         if ( d->substate == 1 ) {
@@ -923,8 +926,7 @@ void Injector::insertBodyparts()
 
                 ++bi;
             }
-
-            break;
+            d->substate++;
         }
     }
     while ( last != d->substate );
