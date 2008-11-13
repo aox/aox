@@ -726,8 +726,9 @@ Query * Mailbox::remove( Transaction * t )
 void Mailbox::refreshMailboxes( class Transaction * t )
 {
     Scope x( new Log );
-    Transaction * s = t->subTransaction();
-    s->enqueue( (new MailboxReader( 0, 0 ))->q );
+    MailboxReader * mr = new MailboxReader( 0, 0 );
+    Transaction * s = t->subTransaction( mr );
+    s->enqueue( mr->q );
     s->execute();
     t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 }
