@@ -1190,7 +1190,7 @@ String Postgres::queryString( Query * q )
                 l = l.mid( 1, l.length()-2 );
 
                 // 123 or foo or "f,o": we ignore the last for now.
-                if ( !l.contains( "," ) ) {
+                if ( !l.contains( "," ) && l != "{}" ) {
                     alone = true;
                     values->insert( it, new Query::Value( qv->position(), l,
                                                           qv->format() ) );
