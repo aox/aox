@@ -413,21 +413,51 @@ imapd/handlers/acl.cpp
 Threads in Archiveopteryx 4.0
 
   I'm growing more and more fond of using a few threads, and not using
-  server-processes any more.
+  server-processes any more.  We'd replace server-processes with
+  server-threads, or just keep the name.
 
-  We'd replace server-processes with server-threads.
+  The core event loop would create a queue of work to be done based on
+  which file descriptors have input, and worker threads would take a
+  piece of work, obtain the fd's lock, and do it.
 
-  The core event loop would create a queue of work to be done, and
-  worker threads would take a piece of work, obtain the necessary
-  lock, and do it.
+  The Query would have a optional Connection pointer, the Transaction
+  would have a mandatory one. Scope would probably have one. Perhaps
+  Q+T could copy Scope's. A worker thread which processes database
+  input would have to obtain the lock for the scope's fd whenever it
+  enters the scope.
 
-  I think we'd have one lock for each SaslConnection and perhaps a
-  couple more. Scope would know what locks are needed in order to work
-  in that Scope.
+  We'd be able to collect garbage without halts. Large IMAP Fetch
+  commands would also not cause halts. We'd be able to serve all
+  clients fairly, using all cores, using fewer database backends than
+  with server-processes.
 
-  We'd be able to collect garbage without halts. We'd be able to serve
-  all clients fairly, using all cores, using fewer database backends
-  than with server-processes.
+  The Apple Autozone GC looks good for this.
+
+  The default for server-processes ought to change to match the number
+  of processors:
+
+    Linux, Solaris, & AIX (per comments):
+        numCPU = sysconf( _SC_NPROCESSORS_ONLN );
+
+    FreeBSD, macosx, NetBSD, OpenBSD, etc.: 
+        int mib[4];
+        size_t len; 
+        
+        /* set the mib for hw.ncpu */
+        mib[0] = CTL_HW;
+        mib[1] = HW_AVAILCPU;  // alternatively, try HW_NCPU;
+        
+        /* get the number of CPUs from the system */
+        sysctl(mib, 2, &numCPU, &len, NULL, 0);
+        
+        if( numCPU < 1 ) 
+        {
+             mib[1] = HW_NCPU;
+             sysctl( mib, 2, &numCPU, &len, NULL, 0 );
+        
+             if( numCPU < 1 )
+                  numCPU = 1;
+        }
 
 
 Sending FLAGS updates
