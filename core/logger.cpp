@@ -31,12 +31,12 @@ Logger::Logger()
 
 
 /*! \fn void Logger::send( const String &id,
-                           Log::Facility f, Log::Severity s,
+                           Log::Severity s,
                            const String & m )
 
     This virtual function logs the message \a m belonging to
-    transaction \a id, whose severity is \a s and which is logged by
-    \a f, in a manner decided by the subclass.
+    transaction \a id, whose severity is \a s, in a manner decided by
+    the subclass.
 
     \a id uniquely identifies a Log object.
 */
