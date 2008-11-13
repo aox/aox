@@ -31,6 +31,7 @@ public:
         : op( ReplaceFlags ), silent( false ), uid( false ),
           checkedPermission( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
+          sentWorkQueries( false ),
           modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
           presentFlags( 0 ), present( 0 ),
@@ -52,6 +53,7 @@ public:
 
     uint unchangedSince;
     bool seenUnchangedSince;
+    bool sentWorkQueries;
     int64 modseq;
     Query * modSeqQuery;
     Query * obtainModSeq;
@@ -96,16 +98,18 @@ Store::Store( bool u )
 }
 
 
-/*! Constructs a Store handler which will set the "\seen" flag for the
-    messages in \a set within the mailbox currently selected by \a imap,
-    and emit flag updates iff \a silent is false.
+/*! Constructs a Store handler which will use \a transaction to set
+    the "\seen" flag for the messages in \a set within the mailbox
+    currently selected by \a imap, and emit flag updates iff \a silent
+    is false.
 
     This is basically a helper for Fetch, which occasionally needs to
     set "\seen" implicitly. It doesn't have a tag(), so it won't send
     any tagged final response.
 */
 
-Store::Store( IMAP * imap, const MessageSet & set, bool silent )
+Store::Store( IMAP * imap, const MessageSet & set, bool silent,
+              Transaction * transaction )
     : Command( imap ), d( new StoreData )
 {
     setLog( new Log( Log::IMAP ) );
@@ -118,6 +122,8 @@ Store::Store( IMAP * imap, const MessageSet & set, bool silent )
     d->silent = silent;
     d->flagNames.append( "\\seen" );
     setAllowedState( IMAP::Selected );
+    if ( transaction )
+        d->transaction = transaction->subTransaction( this );
 }
 
 
@@ -351,8 +357,15 @@ void Store::execute()
     if ( !ok() || !permitted() )
         return;
 
-    if ( !d->transaction ) {
-        d->transaction = new Transaction( this );
+    if ( !d->obtainModSeq ) {
+        if ( !d->transaction )
+            d->transaction = new Transaction( this );
+
+        d->obtainModSeq
+            = new Query( "select nextmodseq from mailboxes "
+                         "where id=$1 for update", this );
+        d->obtainModSeq->bind( 1, m->id() );
+        d->transaction->enqueue( d->obtainModSeq );
 
         Selector * work = new Selector;
         work->add( new Selector( d->specified ) );
@@ -427,7 +440,8 @@ void Store::execute()
     if ( d->presentFlags && !d->presentFlags->done() )
         return;
 
-    if ( !d->obtainModSeq ) {
+    if ( !d->sentWorkQueries ) {
+        d->sentWorkQueries = true;
         if ( d->seenUnchangedSince ) {
             MessageSet modified;
             modified.add( d->specified );
@@ -471,12 +485,6 @@ void Store::execute()
             finish();
             return;
         }
-
-        d->obtainModSeq
-            = new Query( "select nextmodseq from mailboxes "
-                         "where id=$1 for update", this );
-        d->obtainModSeq->bind( 1, m->id() );
-        d->transaction->enqueue( d->obtainModSeq );
 
         d->transaction->execute();
     }

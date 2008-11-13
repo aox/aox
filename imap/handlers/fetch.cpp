@@ -700,6 +700,17 @@ void Fetch::execute()
                 if ( d->changedSince )
                     d->those->bind( 2, d->changedSince );
                 if ( d->modseq ) {
+                    if ( !d->peek ) {
+                        // if we aren't peeking, then we have to lock
+                        // the mailbox before we lock the messages,
+                        // otherwise we might deadlock with Store or
+                        // Expunge.
+                        Query * q = new Query( "select nextmodseq "
+                                               "from mailboxes "
+                                               "where id=$1 for update", 0 );
+                        q->bind( 1, mb->id() );
+                        d->transaction->enqueue( q );
+                    }
                     String s = d->those->string();
                     s.append( " order by uid for update" );
                     d->those->setString( s );
@@ -762,7 +773,8 @@ void Fetch::execute()
             if ( !d->store ) {
                 List<Command>::Iterator c = imap()->commands()->find( this );
                 if ( c ) {
-                    d->store = new Store( imap(), d->set, d->flags );
+                    d->store = new Store( imap(), d->set, d->flags,
+                                          d->transaction );
                     d->store->setState( Executing );
                     imap()->commands()->insert( c, d->store );
                     // should we feed the Store a subtransaction, if
