@@ -111,6 +111,11 @@ void Expunge::execute()
 
         d->t = new Transaction( this );
 
+        d->findModseq = new Query( "select nextmodseq from mailboxes "
+                                   "where id=$1 for update", this );
+        d->findModseq->bind( 1, d->s->mailbox()->id() );
+        d->t->enqueue( d->findModseq );
+
         d->findUids = new Query( "", this );
         d->findUids->bind( 1, d->s->mailbox()->id() );
         d->findUids->bind( 2, fid );
@@ -126,11 +131,6 @@ void Expunge::execute()
         d->findUids->setString( query );
         d->t->enqueue( d->findUids );
 
-        d->findModseq = new Query( "select nextmodseq from mailboxes "
-                                   "where id=$1 for update", this );
-        d->findModseq->bind( 1, d->s->mailbox()->id() );
-        d->t->enqueue( d->findModseq );
-
         d->t->execute();
     }
 
@@ -144,7 +144,7 @@ void Expunge::execute()
         d->modseq = r->getBigint( "nextmodseq" );
     }
 
-    if ( !d->findModseq->done() )
+    if ( !d->findUids->done() )
         return;
 
     if ( d->marked.isEmpty() ) {
