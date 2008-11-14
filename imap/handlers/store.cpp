@@ -37,7 +37,7 @@ public:
           presentFlags( 0 ), present( 0 ),
           flagCreator( 0 ),
           annotationNameCreator( 0 ),
-          transaction( 0 )
+          transaction( 0 ), session( 0 )
     {}
     MessageSet specified;
     MessageSet s;
@@ -64,6 +64,8 @@ public:
     AnnotationNameCreator * annotationNameCreator;
 
     Transaction * transaction;
+
+    ImapSession * session;
 
     List<Annotation> annotations;
 };
@@ -311,7 +313,10 @@ void Store::execute()
     if ( state() != Executing )
         return;
 
-    Mailbox * m = session()->mailbox();
+    if ( !d->session )
+        d->session = session();
+
+    Mailbox * m = d->session->mailbox();
 
     if ( !d->checkedPermission ) {
         if ( d->op == StoreData::ReplaceAnnotations ) {
@@ -517,8 +522,8 @@ void Store::execute()
         Mailbox::refreshMailboxes( d->transaction );
         d->transaction->commit();
 
-        if ( d->silent && imap() && imap()->session() )
-            imap()->session()->ignoreModSeq( d->modseq );
+        if ( d->silent )
+            d->session->ignoreModSeq( d->modseq );
     }
 
     if ( !d->transaction->done() )
@@ -534,7 +539,7 @@ void Store::execute()
         while ( n < d->s.count() ) {
             n++;
             uint uid = d->s.value( n );
-            uint msn = session()->msn( uid );
+            uint msn = d->session->msn( uid );
             respond( fn( msn ) + " FETCH (UID " + fn( uid ) +
                      " MODSEQ (" + fn( d->modseq ) + "))" );
         }
@@ -638,7 +643,7 @@ bool Store::removeFlags( bool opposite )
     s.append( "flag=any($3)" );
 
     Query * q = new Query( s, 0 );
-    q->bind( 1, session()->mailbox()->id() );
+    q->bind( 1, d->session->mailbox()->id() );
     q->bind( 2, d->s );
     q->bind( 3, &flags );
     d->transaction->enqueue( q );
@@ -652,7 +657,7 @@ bool Store::removeFlags( bool opposite )
 
 bool Store::addFlags()
 {
-    uint mailbox = session()->mailbox()->id();
+    uint mailbox = d->session->mailbox()->id();
 
     bool work = false;
     Query * q = new Query( "copy flags (mailbox, uid, flag) "
@@ -719,7 +724,7 @@ static void bind( Query * q, uint i, const String & n )
 
 void Store::replaceAnnotations()
 {
-    Mailbox * m = session()->mailbox();
+    Mailbox * m = d->session->mailbox();
     MessageSet s( d->s );
 
     List<Annotation>::Iterator it( d->annotations );
