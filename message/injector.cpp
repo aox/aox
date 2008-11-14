@@ -247,7 +247,6 @@ public:
         : owner( 0 ),
           state( Inactive ), failed( false ), transaction( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
-          creators( 0 ), addressCreator( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), subtransaction( 0 )
     {}
@@ -293,8 +292,6 @@ public:
     HelperRowCreator * fieldNameCreator;
     HelperRowCreator * flagCreator;
     HelperRowCreator * annotationNameCreator;
-    List<HelperRowCreator> * creators;
-    AddressCreator * addressCreator;
 
     List<Query> * queries;
     Query * select;
@@ -728,7 +725,7 @@ void Injector::findDependencies()
 
 
 /*! Adds previously unknown addresses from \a newAddresses to
-    d->addresses and d->knownAddresses. */
+    d->addresses. */
 
 void Injector::updateAddresses( List<Address> * newAddresses )
 {
@@ -742,48 +739,33 @@ void Injector::updateAddresses( List<Address> * newAddresses )
 }
 
 
-/*! This function creates any unknown names found by findDependencies().
-    It advances to the next state if it completes successfully, or sets
-    d->failed if an error occurs.
+/*! This function creates any unknown names found by
+    findDependencies().  It creates up to four subtransactions and
+    advances to the next state, trusting Transaction to queue the work
+    appropriately.
 */
 
 void Injector::createDependencies()
 {
-    if ( !d->creators ) {
-        d->creators = new List<HelperRowCreator>;
-        if ( !d->fields.isEmpty() ) {
-            d->fieldNameCreator =
-                new FieldNameCreator( d->fields, d->transaction );
-            d->creators->append( d->fieldNameCreator );
-        }
-        if ( !d->flags.isEmpty() ) {
-            d->flagCreator = new FlagCreator( d->flags, d->transaction );
-            d->creators->append( d->flagCreator );
-        }
-        if ( !d->annotationNames.isEmpty() ) {
-            d->annotationNameCreator =
-                new AnnotationNameCreator( d->annotationNames, d->transaction );
-            d->creators->append( d->annotationNameCreator );
-        }
+    if ( !d->fields.isEmpty() ) {
+        d->fieldNameCreator =
+            new FieldNameCreator( d->fields, d->transaction );
+        d->fieldNameCreator->execute();
     }
 
-    while ( !d->creators->isEmpty() ) {
-        HelperRowCreator * c = d->creators->firstElement();
-        if ( !c->done() )
-            c->execute();
-        if ( !c->done() )
-            return;
-        d->creators->shift();
+    if ( !d->flags.isEmpty() ) {
+        d->flagCreator = new FlagCreator( d->flags, d->transaction );
+        d->flagCreator->execute();
     }
 
-    if ( !d->addressCreator ) {
-        d->addressCreator =
-            new AddressCreator( &d->addresses, d->transaction );
-        d->addressCreator->execute();
+    if ( !d->annotationNames.isEmpty() ) {
+        d->annotationNameCreator =
+            new AnnotationNameCreator( d->annotationNames, d->transaction );
+        d->annotationNameCreator->execute();
     }
 
-    if ( !d->addressCreator->done() )
-        return;
+    AddressCreator * ac = new AddressCreator( &d->addresses, d->transaction );
+    ac->execute();
 
     next();
 }
