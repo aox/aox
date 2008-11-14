@@ -400,7 +400,6 @@ public:
             t->parent()->execute();
         }
         t->notify();
-        t->parent()->notify();
     }
 };
 
