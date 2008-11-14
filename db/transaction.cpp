@@ -47,6 +47,22 @@ public:
     execute its queries, and keeps it until commit() or rollback(). If
     you give it a database handle using setDatabase(), it'll use that
     instead of asking for one.
+
+    The Transaction can also provide subtransactions; these are
+    implemented using SAVEPOINT, RELEASE SAVEPOINT for commit() and
+    ROLLBACK TO SAVEPOINT for restart() and rollback.
+
+    When you call subTransaction(), you get a new Transaction which
+    isn't yet active. The subtransaction becomes active when you
+    execute() or commit() it. At that point it blocks its parent, and
+    the parent remains blocked() until the subtransaction commits or
+    rolls back.
+
+    It's possible to use a Transaction for any combination of
+    subtransactions and queries. A Query enqueued in the parent waits
+    until any active subtransaction finishes. Similarly, if you
+    execute() one subtransaction while another is active, the new
+    subtransaction will wait.
 */
 
 
@@ -62,10 +78,15 @@ Transaction::Transaction( EventHandler *ev )
 
 /*! Returns a pointer to a new Transaction that is subordinate to the
     current one, but which can be independently committed or rolled
-    back. If \a ev is 0 (the default), the new Transaction shares its
-    parent's owner; otherwise the given owner is used instead.
+    back.
 
-    ...
+    The returned subtransaction isn't active yet; if you call
+    execute() or commit() on it, it will attempt to take over its
+    parent's Database and do its work. If you don't call execute() on
+    the subtransaction before commit() on the parent, then the
+    subtransaction cannot be used.
+
+    The subtransaction will notify \a ev when it succeeds or fails.
 */
 
 Transaction * Transaction::subTransaction( EventHandler * ev )
@@ -84,7 +105,8 @@ Transaction * Transaction::subTransaction( EventHandler * ev )
 
 
 /*! Returns a pointer to the parent of this Transaction, which will be 0
-    if this is not a subTransaction(). */
+    if this is not a subTransaction().
+*/
 
 Transaction * Transaction::parent() const
 {
@@ -93,6 +115,7 @@ Transaction * Transaction::parent() const
 
 
 /*! Sets this Transaction's Database handle to \a db.
+
     This function is used by the Database when the BEGIN is processed.
 */
 
@@ -288,17 +311,23 @@ void Transaction::rollback()
         // if we haven't started, stopping is no work
     }
     else if ( d->parent ) {
+        // if we're a subtransaction, then what we need to do is roll
+        // back to the savepoint, then release it... 
         Query * q = new Query( "rollback to " + d->savepoint, 0 );
         enqueue( q );
         q = new Query( "release savepoint " + d->savepoint, d->owner );
         enqueue( q );
+        // ... and make the "release savepoint" shift control to the
+        // parent.
         q->setTransaction( d->parent );
         execute();
+        // rollback() completes this transaction
         setState( Completed );
         d->parent->notify();
     }
     else {
         enqueue( new Query( "rollback", d->owner ) );
+        // shouldn't this set the state to Completed too? XXX
         execute();
     }
     d->submittedCommit = true;
@@ -345,6 +374,7 @@ public:
     {
         q = new Query( "release savepoint " + sp, this );
         t->enqueue( q );
+        // this statement has to shift control to the parent transaction
         q->setTransaction( t->parent() );
     }
 
@@ -354,14 +384,19 @@ public:
             return;
 
         if ( !t->failed() && q->failed() )
+            // if releasing the savepoint failed, so did the subtransaction
             t->setError( q, q->error() );
 
         if ( t->failed() ) {
+            // if the subtransaction failed, it couldn't be committed,
+            // and in that case, the parent fails, too.
             t->parent()->setError( t->failedQuery(), t->error() );
         }
         else {
+            // if the subtransaction works, all is fine.
             t->setState( Transaction::Completed );
-            t->parent()->setState( Transaction::Executing );
+            // the parent may have a queue it needs to service. make
+            // it do that.
             t->parent()->execute();
         }
         t->notify();
@@ -401,11 +436,15 @@ void Transaction::execute()
     if ( d->db && d->db->blocked( this ) )
         return;
 
+    // we can send all the queries that are simply ours
     List< Query >::Iterator it( d->queries );
     while ( it && it->transaction() == this ) {
         it->setState( Query::Submitted );
         ++it;
     }
+
+    // after that, we can send a single query that'll shift control to
+    // a subtransaction or to our parent.
     if ( it && it->transaction() && it->transaction()->parent() == this ) {
         // shift to subtransaction
         it->setState( Query::Submitted );
@@ -420,15 +459,18 @@ void Transaction::execute()
         d->db->processQueue();
     }
     else if ( !d->submittedBegin ) {
-        // if not, we ask Database to give us one, either through our
-        // parent or directly.
+        // if not, we have to obtain one
         Query * begin;
         if ( d->parent ) {
+            // we ask to borrow our parent's handle
             begin = new Query( "savepoint " + d->savepoint, 0 );
             d->parent->enqueue( begin );
             begin->setTransaction( this );
             d->parent->execute();
             if ( begin->failed() ) {
+                // if the parent has failed or succeeded, or perhaps
+                // for other reasons, then we couldn't borrow the
+                // handle, so we need to fail all our queries.
                 setError( begin, "Savepoint failed" );
                 List<Query>::Iterator i( d->queries );
                 while ( i ) {
@@ -438,7 +480,10 @@ void Transaction::execute()
             }
         }
         else {
+            // if we're an ordinary transaction, we queue a begin in
+            // the open pool...
             begin = new Query( "begin", 0 );
+            // ... and tell the db to shift control to us.
             begin->setTransaction( this );
             Database::submit( begin );
         }
