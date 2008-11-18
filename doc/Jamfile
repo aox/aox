@@ -28,4 +28,4 @@ Man 7 : oryx.man ;
 
 Man 8 :
     aoximport.man aox.man archiveopteryx.man deliver.man installer.man
-    logd.man ocd.man recorder.man tlsproxy.man ;
+    logd.man recorder.man tlsproxy.man ;
