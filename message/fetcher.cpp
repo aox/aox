@@ -281,12 +281,12 @@ void Fetcher::start()
     d->batchSize = 4096;
     if ( d->body )
         d->batchSize = d->batchSize / 2;
-    else if ( Postgres::version() >= 80100 && Postgres::version() < 80200 )
-        d->batchSize = 65536;
     if ( d->otherheader )
         d->batchSize = d->batchSize * 2 / 3;
     if ( d->addresses )
         d->batchSize = d->batchSize * 3 / 4;
+    if ( Postgres::version() < 80200 && d->batchSize > 50 && d->otherheader )
+        d->batchSize = 50;
 
     d->state = Fetching;
     prepareBatch();
@@ -387,9 +387,12 @@ void Fetcher::prepareBatch()
             d->batchSize = 128;
         if ( d->batchSize > d->maxBatchSize )
             d->batchSize = d->maxBatchSize;
-        log( "Batch time was " + fn ( now - d->lastBatchStarted ) +
-             " for " + fn( prevBatchSize ) + " messages, adjusting to " +
-             fn( d->batchSize ), Log::Debug );
+        if ( Postgres::version() < 80200 && d->batchSize > 50 && d->otherheader )
+            d->batchSize = 50;
+        if ( prevBatchSize != d->batchSize )
+            log( "Batch time was " + fn ( now - d->lastBatchStarted ) +
+                 " for " + fn( prevBatchSize ) + " messages, adjusting to " +
+                 fn( d->batchSize ), Log::Debug );
     }
     d->lastBatchStarted = now;
 
