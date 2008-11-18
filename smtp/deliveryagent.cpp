@@ -95,14 +95,15 @@ void DeliveryAgent::execute()
     if ( !d->qm->done() )
         return;
 
-    if ( d->qm->hasResults() ) {
+    if ( d->qm->hasResults() )
         d->row = d->qm->nextRow();
-        log( "Delivery ID is " +
-             fn( d->row->getInt( "id" ) ) );
-    }
 
-    if ( !d->messageId )
+    if ( !d->row ) {
+        d->t->rollback();
+        d->messageId = 0;
+        log( "Could not lock deliveries row; aborting" );
         return;
+    }
 
     // Fetch the sender address, the relevant delivery_recipients
     // entries, and the message itself. (If we're called again for
