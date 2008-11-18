@@ -28,6 +28,7 @@ public:
         : messageId( 0 ), owner( 0 ), t( 0 ),
           qm( 0 ), qs( 0 ), qr( 0 ), row( 0 ), message( 0 ),
           dsn( 0 ), injector( 0 ), update( 0 ), client( 0 ),
+          updatedDelivery( false ),
           delivered( false )
     {}
 
@@ -43,6 +44,7 @@ public:
     Injector * injector;
     Query * update;
     SmtpClient * client;
+    bool updatedDelivery;
     bool delivered;
 };
 
@@ -198,9 +200,12 @@ void DeliveryAgent::execute()
         if ( d->injector && !d->injector->done() )
             return;
 
-        uint unhandled = updateDelivery( d->row->getInt( "id" ), d->dsn );
-        if ( unhandled == 0 )
-            d->delivered = true;
+        if ( !d->updatedDelivery ) {
+            d->updatedDelivery = true;
+            uint unhandled = updateDelivery( d->row->getInt( "id" ), d->dsn );
+            if ( unhandled == 0 )
+                d->delivered = true;
+        }
     }
 
     // Once the update finishes, we're done.
