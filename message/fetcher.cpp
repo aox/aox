@@ -342,13 +342,13 @@ void Fetcher::waitForEnd()
         d->state = Done;
         if ( d->transaction )
             d->transaction->commit();
-        if ( d->owner )
-            d->owner->notify();
     }
     else {
         prepareBatch();
         makeQueries();
     }
+    if ( d->owner )
+        d->owner->notify();
 }
 
 
