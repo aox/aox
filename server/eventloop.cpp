@@ -325,7 +325,8 @@ void EventLoop::start()
 
         if ( !d->stop &&
              ( ::freeMemorySoon || 
-               ( now - gc > 180 && Allocator::allocated() >= d->limit ) ) ) {
+               ( now - gc > 180 && Allocator::allocated() >= d->limit ) ||
+               ( now - gc > 30 && Allocator::allocated() >= 2*d->limit ) ) ) {
             Allocator::free();
             gc = time( 0 );
             ::freeMemorySoon = false;
