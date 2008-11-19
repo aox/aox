@@ -1620,7 +1620,7 @@ void Fetch::pickup()
             ok = false;
         if ( d->needsBody && !m->hasBodies() )
             ok = false;
-        if ( d->rfc822size && !m->hasTrivia() )
+        if ( ( d->rfc822size || d->internaldate ) && !m->hasTrivia() )
             ok = false;
         if ( ok ) {
             d->processed = uid;
