@@ -28,8 +28,7 @@ class FetcherData
 {
 public:
     FetcherData()
-        : messagesRemaining( 0 ),
-          owner( 0 ),
+        : owner( 0 ),
           q( 0 ),
           transaction( 0 ),
           f( 0 ),
@@ -44,7 +43,6 @@ public:
     {}
 
     List<Message> messages;
-    uint messagesRemaining;
     Map< List<Message> > batch;
     EventHandler * owner;
     List<Query> * q;
@@ -265,15 +263,13 @@ void Fetcher::start()
         what.append( "bytes/lines" );
     }
 
-    d->messagesRemaining = d->messages.count();
-
-    if ( n < 1 || d->messagesRemaining < 1 ) {
+    if ( n < 1 || d->messages.isEmpty() ) {
         // nothing to do.
         d->state = Done;
         return;
     }
 
-    log( "Fetching data for " + fn( d->messagesRemaining ) + " messages. " +
+    log( "Fetching data for " + fn( d->messages.count() ) + " messages. " +
          what.join( " " ) );
 
     // we'll use two steps. first, we find a good size for the first
@@ -396,11 +392,6 @@ void Fetcher::prepareBatch()
     }
     d->lastBatchStarted = now;
 
-    // if we would fetch almost all of the messages, increase the
-    // batch size to avoid a very small last batch.
-    if ( d->messagesRemaining <= d->batchSize * 5 / 4 )
-        d->batchSize = d->messagesRemaining;
-
     // Find out which messages we're going to fetch, and fill in the
     // batch array so we can tie responses to the Message objects.
     d->uniqueDatabaseIds = true;
@@ -415,7 +406,6 @@ void Fetcher::prepareBatch()
         }
         l->append( m );
         n++;
-        d->messagesRemaining--;
     }
 }
 
