@@ -248,9 +248,11 @@ Allocator::~Allocator()
     left = 0;
 
 #if defined( MAP_ANON )
-    ::munmap( buffer, 0 );
-    ::munmap( used, 0 );
-    ::munmap( marked, 0 );
+    uint l = capacity * step;
+    uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
+    ::munmap( buffer, l );
+    ::munmap( used, bl );
+    ::munmap( marked, bl );
 #else
     ::free( buffer );
     ::free( used );
