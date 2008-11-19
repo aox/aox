@@ -724,7 +724,7 @@ void SessionInitialiser::findViewChanges()
     String s( "select m.id, "
               "v.uid as vuid, v.modseq as vmodseq, "
               "s.uid as suid, s.modseq as smodseq, "
-              "s.message as smessage, s.idate as sidate "
+              "s.message as smessage "
               "from messages m "
               "left join mailbox_messages v "
               " on (m.id=v.message and v.mailbox=$" + fn( vid ) + ") "
@@ -785,15 +785,14 @@ void SessionInitialiser::writeViewChanges()
             // want to add it to the db
             if ( !add )
                 add = new Query ( "copy mailbox_messages "
-                                  "(mailbox,uid,message,idate,modseq) "
+                                  "(mailbox,uid,message,modseq) "
                                   "from stdin with binary", 0 );
             vuid = d->newUidnext;
             d->newUidnext++;
             add->bind( 1, d->mailbox->id(), Query::Binary );
             add->bind( 2, vuid, Query::Binary );
             add->bind( 3, r->getInt( "smessage" ), Query::Binary );
-            add->bind( 4, r->getInt( "sidate" ), Query::Binary );
-            add->bind( 5, d->newModSeq, Query::Binary );
+            add->bind( 4, d->newModSeq, Query::Binary );
             add->submitLine();
             addToSessions( vuid, d->newModSeq );
         }

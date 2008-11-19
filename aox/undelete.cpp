@@ -95,9 +95,8 @@ void Undelete::execute()
         d->t->enqueue( d->q );
 
         d->q = new Query( "insert into mailbox_messages "
-                          "(mailbox,uid,message,idate,modseq) "
+                          "(mailbox,uid,message,modseq) "
                           "select $1,uidnext,$2,"
-                          "extract(epoch from current_timestamp),"
                           "nextmodseq from mailboxes where id=$1 "
                           "for update", this );
         d->q->bind( 1, d->m->id() );

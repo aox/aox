@@ -107,8 +107,10 @@ void ArchiveMailbox::execute()
 
     if ( !d->idate ) {
         // XXX this can go into d->af now that d->af joins anyway
-        d->idate = new Query( "select uid, idate "
-                              "from mailbox_messages where mailbox=$1",
+        d->idate = new Query( "select mm.uid, m.idate "
+                              "from mailbox_messages mm "
+                              "join messages m on (mm.messsage=m.id) "
+                              "where mm.mailbox=$1",
                               this );
         d->idate->bind( 1, d->link->mailbox()->id() );
         d->idate->execute();

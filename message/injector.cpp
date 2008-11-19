@@ -1488,12 +1488,13 @@ void Injector::finish()
 void Injector::selectMessageId()
 {
     Query * insert
-        = new Query( "insert into messages (id,rfc822size) "
-                     "values (default,$1)", 0 );
+        = new Query( "insert into messages (id,rfc822size,idate) "
+                     "values (default,$1,$2)", 0 );
     Query * select
         = new Query( "select currval('messages_id_seq')::int as id", 0 );
 
     insert->bind( 1, d->message->rfc822().length() );
+    insert->bind( 2, internalDate( d->message ) );
 
     d->midFetcher = new MidFetcher( insert, select, this );
 
@@ -1810,7 +1811,7 @@ void Injector::insertMessages()
 {
     Query *qm =
         new Query( "copy mailbox_messages "
-                   "(mailbox,uid,message,idate,modseq) "
+                   "(mailbox,uid,message,modseq) "
                    "from stdin with binary", 0 );
 
     List< Uid >::Iterator mi( d->mailboxes );
@@ -1821,8 +1822,7 @@ void Injector::insertMessages()
         qm->bind( 1, m->id(), Query::Binary );
         qm->bind( 2, uid, Query::Binary );
         qm->bind( 3, d->messageId, Query::Binary );
-        qm->bind( 4, internalDate( d->message ), Query::Binary );
-        qm->bind( 5, mi->ms, Query::Binary );
+        qm->bind( 4, mi->ms, Query::Binary );
         qm->submitLine();
 
         ++mi;

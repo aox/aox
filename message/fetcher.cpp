@@ -74,7 +74,7 @@ static void setupPreparedStatements()
         "order by m.uid, h.part";
     ::oldAddress = new PreparedStatement( q );
 
-    q = "select m.id, mm.uid, mm.idate, m.rfc822size, mm.modseq "
+    q = "select m.id, mm.uid, m.idate, m.rfc822size, mm.modseq "
         "from messages m join mailbox_messages mm on (mm.message=m.id) "
         "where mm.uid>=$1 and mm.uid<=$2 and mm.mailbox=$3 "
         "order by mm.uid";
