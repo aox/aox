@@ -210,7 +210,7 @@ Fetch::Fetch( bool f, bool a, const MessageSet & set,
 void Fetch::parse()
 {
     space();
-    d->set = set( !d->uid );
+    d->set = set( !d->uid ).intersection( session()->messages() );
     space();
     if ( nextChar() == '(' ) {
         // "(" fetch-att *(SP fetch-att) ")")
