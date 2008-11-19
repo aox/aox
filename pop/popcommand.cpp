@@ -61,7 +61,7 @@ public:
         PopSession( Mailbox * m, Connection * c, bool ro, PopCommand * pc )
             : Session( m, c, ro ), p( pc ) {}
 
-        void emitUpdates() { p->execute(); }
+        void emitUpdates( Transaction * ) { p->execute(); }
 
     private:
         class PopCommand * p;
@@ -387,7 +387,7 @@ bool PopCommand::session()
                  d->permissions->allowed( Permissions::DeleteMessages ) &&
                  d->permissions->allowed( Permissions::Expunge ) )
                 ro = false;
-            d->session = 
+            d->session =
                 new PopCommandData::PopSession( d->mailbox, d->pop, ro, this );
             d->session->setPermissions( d->permissions );
             d->pop->setSession( d->session );
@@ -398,6 +398,7 @@ bool PopCommand::session()
         return false;
 
     if ( !d->map ) {
+        d->session->clearUnannounced();
         MessageSet s( d->session->messages() );
         MessageSet r;
         d->map = new Map<Message>;
@@ -591,7 +592,7 @@ bool PopCommand::retr( bool lines )
             d->pop->err( "No such message" );
             return true;
         }
-            
+
         d->started = true;
         Fetcher * f = new Fetcher( d->message, this );
         if ( !d->message->hasBodies() )
