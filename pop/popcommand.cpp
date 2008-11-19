@@ -398,6 +398,7 @@ bool PopCommand::session()
         return false;
 
     if ( !d->map ) {
+        d->session->clearUnannounced();
         MessageSet s( d->session->messages() );
         MessageSet r;
         d->map = new Map<Message>;
