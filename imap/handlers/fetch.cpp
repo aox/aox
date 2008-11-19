@@ -1598,19 +1598,14 @@ void Fetch::pickup()
         }
     }
 
-    if ( d->flagFetcher && !d->flagFetcher->done() ) {
-        log( "flag fetcher not done", Log::Debug );
+    if ( d->flagFetcher && !d->flagFetcher->done() )
         return;
-    }
 
-    if ( d->annotationFetcher && !d->annotationFetcher->done() ) {
-        log( "annotation fetcher not done", Log::Debug );
+    if ( d->annotationFetcher && !d->annotationFetcher->done() )
         return;
-    }
-    if ( d->modseqFetcher && !d->modseqFetcher->done() ) {
-        log( "modseq fetcher not done", Log::Debug );
+
+    if ( d->modseqFetcher && !d->modseqFetcher->done() )
         return;
-    }
 
     bool ok = true;
     uint done = 0;
@@ -1627,10 +1622,6 @@ void Fetch::pickup()
             ok = false;
         if ( d->rfc822size && !m->hasTrivia() )
             ok = false;
-        if ( d->internaldate && !m->hasTrivia() )
-            ok = false;
-        log( "fetch " + fn( uid ) + ": " + ( ok ? "ready" : "not ready" ),
-             Log::Debug );
         if ( ok ) {
             d->processed = uid;
             d->remaining.remove( uid );
