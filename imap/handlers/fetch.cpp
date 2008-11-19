@@ -693,7 +693,7 @@ void Fetch::execute()
                                           "where mailbox=$1 and uid=any($2)",
                                           this );
                     d->those->bind( 1, session()->mailbox()->id() );
-                    d->those->bind( 2, r );
+                    d->those->bind( 2, d->set );
                 }
             }
             if ( d->those ) {
