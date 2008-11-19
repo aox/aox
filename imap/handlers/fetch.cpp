@@ -1642,8 +1642,11 @@ void Fetch::pickup()
             waitFor( new ImapFetchResponse( s, this, uid ) );
         }
     }
-    if ( done )
-        log( "Processed " + fn( done ) + " messages", Log::Debug );
+    
+    if ( !done )
+        return;
+    log( "Processed " + fn( done ) + " messages", Log::Debug );
+    imap()->emitResponses();    
 }
 
 

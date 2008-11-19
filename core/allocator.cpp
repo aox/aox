@@ -14,6 +14,11 @@
 #include <sys/time.h>
 #include <time.h>
 
+// mmap, munmap
+#include <sys/mman.h>
+
+#include <errno.h>
+
 
 struct AllocationBlock
 {
@@ -180,10 +185,26 @@ Allocator::Allocator( uint s )
     else
         capacity = 1;
     uint l = capacity * s;
+    uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
+#if defined( MAP_ANON )
+    uint e = 42;
+    buffer = ::mmap( 0, l, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    e = errno;
+    if ( buffer == MAP_FAILED )
+        die( Memory );
+    used = (ulong*)::mmap( 0, bl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    e = errno;
+    if ( used == MAP_FAILED )
+        die( Memory );
+    marked = (ulong*)::mmap( 0, bl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    e = errno;
+    if ( used == MAP_FAILED )
+        die( Memory );
+#else
     buffer = ::malloc( l );
-    uint bl = sizeof( ulong ) * (capacity + bits - 1)/bits;
     used = (ulong*)::malloc( bl );
     marked = (ulong*)::malloc( bl );
+#endif
     if ( !buffer || !used || !marked )
         die( Memory );
 
@@ -226,9 +247,15 @@ Allocator::~Allocator()
     right = 0;
     left = 0;
 
+#if defined( MAP_ANON )
+    ::munmap( buffer, 0 );
+    ::munmap( used, 0 );
+    ::munmap( marked, 0 );
+#else
     ::free( buffer );
     ::free( used );
     ::free( marked );
+#endif
 
     next = 0;
     used = 0;
