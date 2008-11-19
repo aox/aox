@@ -94,7 +94,7 @@ public:
             if ( x <= d->uidnext )
                 return "";
             d->uidnext = x;
-            return "OK [" + fn( x ) + " UIDNEXT] next uid";
+            return "OK [UIDNEXT " + fn( x ) + "] next uid";
         }
         void setSent() {
             d->uidnextResponse = 0;
