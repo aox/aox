@@ -36,26 +36,3 @@
     Returns true if an object identified by \a s exists in the
     dictionary, and false otherwise.
 */
-
-/*! \class UDict dict.h
-    A Dict that takes UString keys.
-*/
-
-/*! \fn UDict::UDict()
-    Creates an empty dictionary.
-*/
-
-/*! \fn T * UDict::find( const UString &s ) const
-    Looks for the object identified by \a s in the dictionary, and
-    returns a pointer to it (or 0 if no such object was found).
-*/
-
-/*! \fn void UDict::insert( const UString &s, T* r )
-    Inserts the object \a r into the dictionary, identified by the
-    UString \a s.
-*/
-
-/*! \fn bool UDict::contains( const UString &s ) const
-    Returns true if an object identified by \a s exists in the
-    dictionary, and false otherwise.
-*/
