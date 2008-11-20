@@ -540,8 +540,8 @@ void SessionInitialiser::grabLock()
 
 void SessionInitialiser::releaseLock()
 {
+    emitUpdates();
     if ( d->t ) {
-        emitUpdates();
         d->t->commit();
         if ( !d->t->failed() && !d->t->done() )
             return;
