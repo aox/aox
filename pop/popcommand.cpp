@@ -413,7 +413,7 @@ bool PopCommand::session()
         if ( !r.isEmpty() ) {
             d->findIds = new Query( "select message, uid "
                                     "from mailbox_messages "
-                                    "where mailbox=$1 and uid=any($2",
+                                    "where mailbox=$1 and uid=any($2)",
                                     this );
             d->findIds->bind( 1, d->mailbox->id() );
             d->findIds->bind( 2, r );
