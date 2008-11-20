@@ -147,9 +147,10 @@ void Select::execute()
                          "where mailbox=$1 and uid not in "
                          "(select uid from flags f"
                          " join flag_names fn on (f.flag=fn.id)"
-                         " where f.mailbox=$1 and fn.name='\\\\seen') "
+                         " where f.mailbox=$1 and fn.name=$2) "
                          "order by uid limit 1", this );
         d->firstUnseen->bind( 1, d->mailbox->id() );
+        d->firstUnseen->bind( 2, "\\seen" );
         d->firstUnseen->execute();
     }
 
