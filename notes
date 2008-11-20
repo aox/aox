@@ -583,16 +583,30 @@ C/R
   configuration?
 
 
+Squirrelmail
+
+  Inefficiency has a name.
+
+  1. Too many LOGINs. We can cache Users using a Cache, that'll solve
+     that. But LOGIN isn't that slow, so I'm not sure it's worth it.
+
+  2. Too many SELECTs and EXAMINEs. A Session cache will solve that,
+     and that IS worth it.
+
+  3. Too many EXPUNGEs. If we keep a "last expunged at modseq" in
+     ImapSession, check and set it in Expunge, and check and set it in
+     store ("if the last expunge was the previous modseq, and I'm not
+     adding any \deleted flags, then increase"), then we can turn
+     those expunges into noops.
+
+  That should speed up SM and probably other webmail systems nicely.
+
+
 Allocator
 
   The binary tree used in Allocator is likely to be extremely
   unbalanced sometimes, perhaps often. Using a Patricia tree will work
   well.
-
-  A Patricia tree also makes a difference in other places, e.g. when
-  there's an extremely large number of mailboxes directly under
-  /users.
-
 
 Using rrdtool
 
