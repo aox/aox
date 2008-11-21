@@ -45,6 +45,13 @@ static AllocationBlock ** stack;
 static Allocator * root = 0;
 
 
+static void oneMegabyteAllocated()
+{
+    // this is a good place to put a breakpoint when we want to
+    // find out who allocates memory.
+}
+
+
 /*! Allocates \a s bytes of collectible memory, which may contain up
     to \a n pointers. If n is too large to be contained within \a s
     bytes, alloc() uses the largest legal value. The default value is
@@ -71,11 +78,7 @@ void * Allocator::alloc( uint s, uint n )
     void * p = a->allocate( s, n );
     if ( ( ( ::total + ::allocated + s ) & 0xfff00000 ) >
          ( ( ::total + ::allocated ) & 0xfff00000 ) )
-    {
-        // this is a good place to put a breakpoint when we want to
-        // find out who allocates memory.
-        fprintf( stderr, "%s", "" );
-    }
+        ::oneMegabyteAllocated();
     ::allocated += a->chunkSize();
     return p;
 }
