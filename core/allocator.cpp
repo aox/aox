@@ -508,7 +508,6 @@ void Allocator::mark()
     ::free( stack );
     stack = 0;
     tos = 0;
-    peak = 0;
 }
 
 
@@ -528,6 +527,7 @@ void Allocator::free()
     Cache::clearAllCaches();
 
     total = 0;
+    peak = 0;
     uint freed = 0;
     uint objects = 0;
 
