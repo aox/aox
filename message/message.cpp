@@ -278,6 +278,10 @@ String Message::error() const
 String Message::rfc822() const
 {
     String r;
+    if ( d->rfc822Size )
+        r.reserve( d->rfc822Size );
+    else
+        r.reserve( 50000 );
 
     r.append( header()->asText() );
     r.append( crlf );

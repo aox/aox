@@ -1119,14 +1119,16 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
     if ( i >= s.length() ) // yes
         return s.quoted( '"' );
 
-    // can we send an ordinary literal?
-    while ( i < s.length() && s[i] > 0 )
-        i++;
-    if ( i >= s.length() )
-        return "{" + fn( s.length() ) + "}\r\n" + s;
-
-    // have to send literal8
-    return "~{" + fn( s.length() ) + "}\r\n" + s;
+    String r;
+    r.reserve( s.length() + 20 );
+    // if there's a null byte, we need to send a literal8
+    if ( s.contains( 0 ) )
+        r.append( '~' );
+    r.append( '{' );
+    r.appendNumber( s.length() );
+    r.append( "}\r\n" );
+    r.append( s );
+    return r;
 }
 
 
