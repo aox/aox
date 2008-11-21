@@ -508,6 +508,7 @@ void Allocator::mark()
     ::free( stack );
     stack = 0;
     tos = 0;
+    peak = 0;
 }
 
 
