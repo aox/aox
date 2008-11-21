@@ -527,6 +527,7 @@ void Allocator::free()
     Cache::clearAllCaches();
 
     total = 0;
+    peak = 0;
     uint freed = 0;
     uint objects = 0;
 
