@@ -554,16 +554,21 @@ void Allocator::free()
             objects += a->taken;
             a = a->next;
         }
+        Allocator * s = 0;
         a = allocators[i];
         while ( a ) {
-            blocks++;
-            while ( a->next && !a->next->taken ) {
-                Allocator * n = a->next;
-                a->next = a->next->next;
-                delete n;
+            Allocator * n = a->next;
+            if ( a->taken ) {
+                a->next = s;
+                s = a;
+                blocks++;
             }
-            a = a->next;
+            else {
+                delete a;
+            }
+            a = n;
         }
+        allocators[i] = s;
         i++;
     }
     gettimeofday( &afterSweep, 0 );
