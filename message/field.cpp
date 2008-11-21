@@ -668,7 +668,9 @@ String HeaderField::encodeWord( const UString &w )
     Codec * c = Codec::byString( w );
     String cw( c->fromUnicode( w ) );
 
-    String t( "=?" );
+    String t;
+    t.reserve( w.length() );
+    t.append( "=?" );
     t.append( c->name() );
     t.append( "?" );
     String qp = cw.eQP( true );
@@ -731,6 +733,7 @@ String HeaderField::encodeText( const UString &s )
 String HeaderField::encodePhrase( const UString &s )
 {
     String t;
+    t.reserve( s.length() );
     UStringList::Iterator it( UStringList::split( ' ', s.simplified() ) );
 
     while ( it ) {

@@ -1627,6 +1627,7 @@ void Header::repair( Multipart * p, const String & body )
 String Header::asText() const
 {
     String r;
+    r.reserve( d->fields.count() * 100 );
 
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
