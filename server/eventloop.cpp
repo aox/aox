@@ -159,6 +159,8 @@ List< Connection > *EventLoop::connections() const
 
 static GraphableNumber * sizeinram = 0;
 
+static const uint gcDelay = 5;
+
 
 /*! Starts the EventLoop and runs it until stop() is called. */
 
@@ -180,7 +182,7 @@ void EventLoop::start()
 
         Connection * c;
 
-        uint timeout = INT_MAX;
+        uint timeout = gcDelay;
         int maxfd = -1;
 
         fd_set r, w;
@@ -323,10 +325,12 @@ void EventLoop::start()
         // scope, since anything pointed by by local variables might
         // be freed here.
 
+        uint since = now - gc;
+
         if ( !d->stop &&
-             ( ::freeMemorySoon || 
-               ( now - gc > 180 && Allocator::allocated() >= d->limit ) ||
-               ( now - gc > 30 && Allocator::allocated() >= 2*d->limit ) ) ) {
+             ( ::freeMemorySoon ||
+               Allocator::allocated() > d->limit && since > gcDelay ||
+               Allocator::allocated() > 2*d->limit && since > gcDelay/2 ) ) {
             Allocator::free();
             gc = time( 0 );
             ::freeMemorySoon = false;
