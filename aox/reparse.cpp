@@ -44,7 +44,7 @@ Reparse::Reparse( StringList * args )
 
 void Reparse::execute()
 {
-    if ( !d->q ) {
+    if ( !d->q && !d->t ) {
         parseOptions();
         end();
 
@@ -70,7 +70,7 @@ void Reparse::execute()
     if ( !choresDone() )
         return;
 
-    if ( !d->injector ) {
+    if ( !d->t ) {
         d->injector = new Injector( this );
         d->t = new Transaction( this );
     }
