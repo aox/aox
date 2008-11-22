@@ -59,7 +59,7 @@ Archiveopteryx for the first time (see below if you're upgrading):
 
 4. Start the servers: "bin/aox start".
 
-   ms is the command-line administration tool for Archiveopteryx.
+   aox is the command-line administration tool for Archiveopteryx.
    See aox(8) or run "bin/aox help" for usage instructions.
 
    The servers write log output to $LOGFILE.
