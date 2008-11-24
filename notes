@@ -146,7 +146,6 @@ aox check schema
   g) locally added indices
   h) missing constraints
 
-
   Change 43939 and following move towards this: the idea is to
   introduce new functions e.g. Schema::checkIntegrity (in addition to
   checkRevision) and Schema::grantPrivileges, that can be used both by
@@ -579,6 +578,9 @@ C/R
   real mail, while simultaneously challenging most/all messages that
   don't come from valid senders? How can we provide suitable
   configuration?
+
+  Mail from freemail vendors tends to have a "Received: ... via HTT"
+  field.
 
 
 Squirrelmail
