@@ -188,28 +188,23 @@ Allocator::Allocator( uint s )
     else
         capacity = 1;
     uint l = capacity * s;
+    l = ( ( l-1 ) | 15 ) + 1;
     uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
+    bl = ( ( bl-1 ) | 15 ) + 1;
 #if defined( MAP_ANON )
-    uint e = 42;
-    buffer = ::mmap( 0, l, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
-    e = errno;
+    buffer = ::mmap( 0, l + bl + bl,
+                     PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if ( buffer == MAP_FAILED )
         die( Memory );
-    used = (ulong*)::mmap( 0, bl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
-    e = errno;
-    if ( used == MAP_FAILED )
-        die( Memory );
-    marked = (ulong*)::mmap( 0, bl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
-    e = errno;
-    if ( used == MAP_FAILED )
-        die( Memory );
+    used = (ulong*)((char*)buffer + l);
+    marked = (ulong*)((char*)used + bl);
 #else
     buffer = ::malloc( l );
     used = (ulong*)::malloc( bl );
     marked = (ulong*)::malloc( bl );
-#endif
     if ( !buffer || !used || !marked )
         die( Memory );
+#endif
 
     memset( buffer, 0, l );
     memset( used, 0, bl );
@@ -252,10 +247,10 @@ Allocator::~Allocator()
 
 #if defined( MAP_ANON )
     uint l = capacity * step;
+    l = ( ( l-1 ) | 15 ) + 1;
     uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
-    ::munmap( buffer, l );
-    ::munmap( used, bl );
-    ::munmap( marked, bl );
+    bl = ( ( bl-1 ) | 15 ) + 1;
+    ::munmap( buffer, l + bl + bl );
 #else
     ::free( buffer );
     ::free( used );
