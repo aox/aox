@@ -12,7 +12,6 @@
 #include "mailbox.h"
 #include "bodypart.h"
 #include "datefield.h"
-#include "fieldname.h"
 #include "mimefields.h"
 #include "messagecache.h"
 #include "helperrowcreator.h"
@@ -635,7 +634,7 @@ void Injector::findDependencies()
                 String n( hf->name() );
 
                 if ( hf->type() >= HeaderField::Other &&
-                     FieldName::id( n ) == 0 && !seenFields.contains( n ) )
+                     !seenFields.contains( n ) )
                 {
                     d->fields.append( n );
                     seenFields.insert( n, this );
@@ -1375,8 +1374,6 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
             uint t = 0;
             if ( d->fieldNameCreator )
                 t = d->fieldNameCreator->id( hf->name() );
-            if ( !t )
-                t = FieldName::id( hf->name() );
             if ( !t )
                 t = hf->type();
 

@@ -9,7 +9,6 @@
 #include "annotationname.h"
 #include "addresscache.h"
 #include "permissions.h"
-#include "fieldname.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "injector.h"
@@ -247,7 +246,6 @@ int main( int argc, char *argv[] )
     Configuration::report();
     Mailbox::setup();
     AddressCache::setup();
-    FieldName::setup();
     AnnotationName::setup();
     Deliverator * d = new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
