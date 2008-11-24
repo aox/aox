@@ -2,7 +2,7 @@
 
 #include "byteforwarder.h"
 
-#include "buffer.h"
+#include "scope.h"
 #include "log.h"
 
 // struct timeval, fd_set
@@ -11,6 +11,8 @@
 #include <sys/select.h>
 // read, select
 #include <unistd.h>
+// errno
+#include <errno.h>
 
 
 /*! \class ByteForwarder byteforwarder.h
@@ -33,8 +35,10 @@
 */
 
 ByteForwarder::ByteForwarder( int s, Connection * c, bool user )
-    : Connection( s, Pipe ), s( 0 ), p( c ), u( user )
+    : Connection( s, Pipe ), s( 0 ), p( c ), u( user ), eof( false ),
+      o( 0 ), l( 0 )
 {
+    setFirstNonPointer( &u );
 }
 
 
@@ -45,13 +49,7 @@ void ByteForwarder::react( Event e )
 
     switch( e ) {
     case Read:
-        if ( s ) {
-            Buffer * r = readBuffer();
-            String bytes( r->string( r->size() ) );
-            s->writeBuffer()->append( bytes );
-            r->remove( bytes.length() );
-            setTimeoutAfter( 60 );
-        }
+        setTimeoutAfter( 60 );
         break;
 
     case Timeout:
@@ -96,6 +94,7 @@ void ByteForwarder::react( Event e )
             }
         }
         close();
+        s->close();
         p->close();
         p = 0;
         break;
@@ -122,4 +121,100 @@ void ByteForwarder::setSibling( ByteForwarder * sibling )
     s = sibling;
     if ( sibling )
         sibling->setSibling( this );
+}
+
+
+/*! Reads a modest amount of data from the file descriptor. read()
+    blocks Connection::read(), and guarantees that the sibling's
+    write() will find something to do.
+*/
+
+void ByteForwarder::read()
+{
+    if ( !canRead() )
+        return;
+    int r = 1;
+    while ( r > 0 ) {
+        if ( l )
+            s->write();
+        r = 0;
+        uint m = 16384 - o - l;
+        if ( m )
+            r = ::read( fd(), b + o + l, m );
+        if ( r > 0 ) {
+            l += r;
+            s->write();
+        }
+        else if ( errno == ECONNRESET || r == 0 ) {
+            eof = true;
+        }
+        else if ( r < 0 && errno != EAGAIN && errno != EWOULDBLOCK ) {
+            log( "Read (" + fn( m ) + " bytes) failed with errno " +
+                 fn( errno ) );
+            close();
+            s->close();
+            if ( p ) {
+                p->log( "Closing due to byteforwarder problem" );
+                p->close();
+            }
+        }
+    }
+}
+
+
+/*! Writes the sibling's read buffer, or tries to, and adjusts the
+    sibling's read buffer.
+*/
+
+void ByteForwarder::write()
+{
+    if ( !canWrite() )
+        return;
+    Scope x( log() );
+    int r = ::write( fd(), s->b + s->o, s->l );
+    if ( r < 0 && errno != EAGAIN && errno != EWOULDBLOCK ) {
+        log( "Write (" + fn( s->l ) + " bytes) failed with errno " +
+             fn( errno ) );
+        close();
+        s->close();
+        if ( p ) {
+            p->log( "Closing due to byteforwarder problem" );
+            p->close();
+        }
+    }
+    else if ( r > 0 ) {
+        s->l -= r;
+        if ( s->l )
+            s->o += r;
+        else
+            s->o = 0;
+    }
+}
+
+
+/*! This reimplementation return true as long as the connection is
+    valid.
+*/
+
+bool ByteForwarder::canRead()
+{
+    if ( !valid() )
+        return false;
+    if ( eof )
+        return false;
+    return true;
+}
+
+
+/*! This reimplementation returns true if the sibling has read
+    anything.
+*/
+
+bool ByteForwarder::canWrite()
+{
+    if ( !s )
+        return false;
+    if ( !s->l )
+        return false;
+    return true;
 }

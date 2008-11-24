@@ -13,12 +13,21 @@ public:
 
     void react( Event );
 
+    void read();
+    void write();
+    bool canRead();
+    bool canWrite();
+
     void setSibling( ByteForwarder * );
 
 private:
     class ByteForwarder * s;
     Connection * p;
     bool u;
+    bool eof;
+    char b[16384];
+    uint o;
+    uint l;
 };
 
 #endif
