@@ -8,7 +8,6 @@
 #include "progressreporter.h"
 #include "annotationname.h"
 #include "addresscache.h"
-#include "fieldname.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "database.h"
@@ -103,7 +102,6 @@ int main( int ac, char ** av )
 
     Flag::setup();
     AddressCache::setup();
-    FieldName::setup();
     AnnotationName::setup();
 
     ProgressReporter * p = new ProgressReporter( m, 1 );

@@ -8,7 +8,6 @@
 #include "query.h"
 
 #include "annotationname.h"
-#include "fieldname.h"
 #include "flag.h"
 
 
@@ -298,7 +297,7 @@ Query * FieldNameCreator::makeSelect()
     StringList sl;
     StringList::Iterator it( names );
     while ( it ) {
-        if ( id( *it ) == 0 && FieldName::id( *it ) == 0 )
+        if ( !id( *it ) )
             sl.append( *it );
         ++it;
     }
@@ -316,7 +315,7 @@ Query * FieldNameCreator::makeCopy()
     StringList::Iterator it( names );
     bool any = false;
     while ( it ) {
-        if ( id( *it ) == 0 && FieldName::id( *it ) == 0 ) {
+        if ( !id( *it ) ) {
             q->bind( 1, *it );
             q->submitLine();
             any = true;

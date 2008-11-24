@@ -10,7 +10,6 @@
 #include "mailbox.h"
 #include "stringlist.h"
 #include "annotation.h"
-#include "fieldname.h"
 #include "dbsignal.h"
 #include "field.h"
 #include "user.h"
@@ -778,9 +777,9 @@ String Selector::whereHeaderField()
     if ( f <= HeaderField::LastAddressField )
         return whereAddressField( d->s8 );
 
-    uint t = FieldName::id( d->s8 );
-    if ( !t )
-        t = HeaderField::fieldType( d->s8 );
+    uint t = HeaderField::fieldType( d->s8 );
+    if ( t == HeaderField::Other )
+        t = 0;
 
     String jn = fn( ++root()->d->join );
     String j = " left join header_fields hf" + jn +
@@ -840,12 +839,9 @@ String Selector::whereAddressFields( const StringList & fields,
     StringList::Iterator it( fields );
     while ( it ) {
         uint fnum = placeHolder();
-        uint t = FieldName::id( *it );
-        if ( !t ) {
-            t = HeaderField::fieldType( *it );
-            if ( t == HeaderField::Other )
-                t = 0;
-        }
+        uint t = HeaderField::fieldType( *it );
+        if ( t == HeaderField::Other )
+            t = 0;
         if ( t ) {
             known.append( "af" + jn + ".field=$" + fn( fnum ) );
             query->bind( fnum, t );

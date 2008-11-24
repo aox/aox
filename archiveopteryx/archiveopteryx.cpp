@@ -17,7 +17,6 @@
 #include "database.h"
 #include "dbsignal.h"
 #include "selector.h"
-#include "fieldname.h"
 #include "managesieve.h"
 #include "addresscache.h"
 #include "spoolmanager.h"
@@ -207,8 +206,8 @@ int main( int argc, char *argv[] )
         "Statistics", Configuration::toggle( Configuration::UseStatistics ),
         Configuration::StatisticsAddress, Configuration::StatisticsPort
     );
-    
-    EventLoop::global()->setMemoryUsage( 
+
+    EventLoop::global()->setMemoryUsage(
         1024 * 1024 * Configuration::scalar( Configuration::MemoryLimit ) );
 
     Database::setup();
@@ -225,7 +224,6 @@ int main( int argc, char *argv[] )
 
     TlsServer::setup();
     AddressCache::setup();
-    FieldName::setup();
     SpoolManager::setup();
     AnnotationName::setup();
     Selector::setup();

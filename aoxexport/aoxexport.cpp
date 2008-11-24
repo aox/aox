@@ -4,7 +4,6 @@
 #include "string.h"
 #include "allocator.h"
 #include "configuration.h"
-#include "fieldname.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "selector.h"
@@ -99,7 +98,6 @@ int main( int ac, char ** av )
 
     Entropy::setup();
     Database::setup();
-    FieldName::setup();
 
     Exporter * e = new Exporter( source, which );
 
