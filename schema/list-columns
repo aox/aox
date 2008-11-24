@@ -1,0 +1,33 @@
+#!/usr/bin/perl
+
+sub process() {
+    if ( $line !~ /^primary key/ && $line !~ /^unique/ &&
+         $line =~ /^(\S+)\s+(\S+)\s*(.*)/ ) {
+        $column = $1;
+        $type = $2;
+        $constraints = $3;
+        print '{ "', $table, '", "', $column, '", "',
+             $type, '", false },', "\n";
+    }
+}
+
+while ( defined ( $_=<STDIN> ) ) {
+    s/--.*//;
+    s/^\s*//;
+    chomp;
+    if ( /^create table ([^ ]*)/ ) {
+        $table = $1;
+        $line = "";
+    }
+    elsif ( /^\);/ ) {
+        &process();
+        $table = undef;
+    }
+    elsif ( defined( $table ) ) {
+        $line .= $_;
+        if ( /,$/ ) {
+            &process();
+            $line = "";
+        }
+    }
+}

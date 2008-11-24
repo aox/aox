@@ -5,22 +5,40 @@ SubInclude TOP server ;
 
 rule PrivilegeList
 {
-    SCRIPT = [ FDirName $(TOP) schema list-privileges ] ;
-    Depends $(<) : $(>) $(SCRIPT) ;
+    LISTPRIVILEGES = [ FDirName $(TOP) schema list-privileges ] ;
+    Depends $(<) : $(>) $(LISTPRIVILEGES) ;
     Clean clean : $(<) ;
     SEARCH on $(>) = [ FDirName $(TOP) schema ] ;
     MakeLocate $(<) : $(LOCATE_SOURCE) ;
 }
 
-actions PrivilegeList bind SCRIPT
+actions PrivilegeList bind LISTPRIVILEGES
 {
-    perl $(SCRIPT) > $(<) ;
+    perl $(LISTPRIVILEGES) > $(<) ;
 }
 
 PrivilegeList privileges.inc : schema.pg ;
 
+rule ColumnList
+{
+    LISTCOLUMNS = [ FDirName $(TOP) schema list-columns ] ;
+    Depends $(<) : $(>) $(LISTCOLUMNS) ;
+    Clean clean : $(<) ;
+    SEARCH on $(>) = [ FDirName $(TOP) schema ] ;
+    MakeLocate $(<) : $(LOCATE_SOURCE) ;
+}
+
+actions ColumnList bind LISTCOLUMNS
+{
+    perl $(LISTCOLUMNS) > $(<) < $(>) ;
+}
+
+ColumnList columns.inc : schema.pg ;
+
+
 Build database : database.cpp postgres.cpp pgmessage.cpp cachelookup.cpp
-    query.cpp transaction.cpp schema.cpp dbsignal.cpp granter.cpp ;
+    query.cpp transaction.cpp schema.cpp dbsignal.cpp granter.cpp 
+    schemachecker.cpp ;
 
 if $(OS) != "OPENBSD" {
     UseLibrary postgres.cpp : crypt ;

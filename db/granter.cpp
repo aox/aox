@@ -45,7 +45,7 @@ Granter::Granter( const String & name, Transaction * t )
     : d( new GranterData )
 {
     d->name = name;
-    d->t = t;
+    d->t = t->subTransaction( this );
 }
 
 
@@ -132,19 +132,5 @@ void Granter::execute()
     if ( !d->q->done() )
         return;
 
-    d->t->execute();
-    d->t->notify();
-}
-
-
-/*! Returns true if this granter has done all it needs to with the
-    Transaction, and false if it may/will send at least one more
-    query.
-*/
-
-bool Granter::done() const
-{
-    if ( !d || !d->q )
-        return false;
-    return d->q->done();
+    d->t->commit();
 }

@@ -52,7 +52,6 @@ public:
 private:
     bool commit;
     class Transaction * t;
-    class Granter * g;
 };
 
 

@@ -13,7 +13,6 @@ public:
     Granter( const String &, class Transaction * );
 
     void execute();
-    bool done() const;
 
 private:
     class GranterData * d;

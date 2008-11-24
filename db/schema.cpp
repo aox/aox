@@ -2,17 +2,18 @@
 
 #include "schema.h"
 
-#include "log.h"
-#include "field.h"
-#include "query.h"
-#include "granter.h"
+#include "schemachecker.h"
 #include "addresscache.h"
 #include "transaction.h"
 #include "stringlist.h"
 #include "allocator.h"
 #include "address.h"
 #include "ustring.h"
+#include "granter.h"
+#include "field.h"
+#include "query.h"
 #include "dict.h"
+#include "log.h"
 #include "md5.h"
 #include "utf.h"
 
@@ -243,14 +244,14 @@ void Schema::execute()
             d->l->log( "Warning: db-user is the same as db-owner",
                        Log::Significant );
         }
-        else if ( !d->granter ) {
-            d->l->log( "Checking/granting privileges.", Log::Significant );
-            d->granter = new Granter( d->dbuser.unquoted(), d->t );
-            d->granter->execute();
-        }
 
-        if ( d->granter && !d->granter->done() )
-            return;
+        d->l->log( "Checking database, adjusting privileges.",
+                   Log::Significant );
+        Granter * g = new Granter( d->dbuser.unquoted(), d->t );
+        g->notify();
+
+        SchemaChecker * c = new SchemaChecker( d->t );
+        c->notify();
 
         d->state = 6;
         if ( d->commit )

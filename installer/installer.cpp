@@ -1833,8 +1833,6 @@ void grantPrivileges()
         d->g->execute();
     }
 
-    if ( !d->g->done() )
-        return;
     d->t->commit();
 
     if ( !d->t->done() )

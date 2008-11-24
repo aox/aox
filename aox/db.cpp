@@ -185,7 +185,7 @@ void Vacuum::execute()
 
 
 GrantPrivileges::GrantPrivileges( StringList * args )
-    : AoxCommand( args ), commit( true ), t( 0 ), g( 0 )
+    : AoxCommand( args ), commit( true ), t( 0 )
 {
 }
 
@@ -206,12 +206,9 @@ void GrantPrivileges::execute()
         database( true );
 
         t = new Transaction( this );
-        g = new Granter( name, t );
+        Granter * g = new Granter( name, t );
         g->execute();
     }
-
-    if ( !g || !g->done() )
-        return;
 
     if ( commit )
         t->commit();
