@@ -159,7 +159,7 @@ List< Connection > *EventLoop::connections() const
 
 static GraphableNumber * sizeinram = 0;
 
-static const uint gcDelay = 5;
+static const uint gcDelay = 30;
 
 
 /*! Starts the EventLoop and runs it until stop() is called. */
