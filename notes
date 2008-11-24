@@ -588,8 +588,9 @@ Squirrelmail
   1. Too many LOGINs. We can cache Users using a Cache, that'll solve
      that. But LOGIN isn't that slow, so I'm not sure it's worth it.
 
-  2. Too many SELECTs and EXAMINEs. A Session cache will solve that,
-     and that IS worth it.
+  2. Too many SELECTs and EXAMINEs. The Session cache solves that for
+     big mailboxes... the UNREAD query in Select may still be slow,
+     though.
 
   3. Too many EXPUNGEs. If we keep a "last expunged at modseq" in
      ImapSession, check and set it in Expunge, and check and set it in

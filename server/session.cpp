@@ -8,9 +8,11 @@
 #include "selector.h"
 #include "mailbox.h"
 #include "message.h"
+#include "cache.h"
 #include "event.h"
 #include "query.h"
 #include "scope.h"
+#include "map.h"
 #include "log.h"
 
 
@@ -35,7 +37,29 @@ public:
     int64 nextModSeq;
     Permissions * permissions;
     MessageSet unannounced;
+
+    class CachedData
+        : public Garbage
+    {
+    public:
+        CachedData(): Garbage(), uidnext( 0 ), nextModSeq( 1 ) {}
+        uint uidnext;
+        int64 nextModSeq;
+        MessageSet msns;
+    };
+
+    class SessionCache
+        : public Cache
+    {
+    public:
+        SessionCache(): Cache() {}
+        Map<CachedData> data;
+        void clear() { data.clear(); }
+    };
 };
+
+
+static SessionData::SessionCache * cache = 0;
 
 
 /*! \class Session session.h
@@ -65,6 +89,14 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
         d->msns.add( other->d->unannounced );
     }
     else {
+        if ( cache ) {
+            SessionData::CachedData * cd = cache->data.find( m->id() );
+            if ( cd ) {
+                d->uidnext = cd->uidnext;
+                d->nextModSeq = cd->nextModSeq;
+                d->msns.add( cd->msns );
+            }
+        }
         (void)new SessionInitialiser( m, 0 );
     }
 }
@@ -92,8 +124,32 @@ Session::~Session()
 
 void Session::end()
 {
-    if ( d->mailbox )
-        d->mailbox->removeSession( this );
+    if ( !d->mailbox )
+        return;
+
+    d->mailbox->removeSession( this );
+    if ( d->mailbox->sessions() )
+        return;
+
+    if ( !::cache )
+        ::cache = new SessionData::SessionCache;
+    SessionData::CachedData * cd = ::cache->data.find( d->mailbox->id() );
+    if ( !cd ) {
+        cd = new SessionData::CachedData;
+        ::cache->data.insert( d->mailbox->id(), cd );
+    }
+    cd->uidnext = d->uidnext;
+    cd->msns = d->msns;
+
+    // the session initialiser assumes that if it has all the messages
+    // and the modseq, then it also has the recent ones. but if this
+    // session is readonly and contains recent messages, then the next
+    // one may also need to set recent on something, even if no new
+    // mail has arrived.
+    if ( d->readOnly && !d->recent.isEmpty() )
+        cd->nextModSeq = d->nextModSeq - 1;
+    else
+        cd->nextModSeq = d->nextModSeq;
 }
 
 
