@@ -6,7 +6,6 @@
 #include "allocator.h"
 #include "configuration.h"
 #include "progressreporter.h"
-#include "annotationname.h"
 #include "addresscache.h"
 #include "logclient.h"
 #include "eventloop.h"
@@ -102,7 +101,6 @@ int main( int ac, char ** av )
 
     Flag::setup();
     AddressCache::setup();
-    AnnotationName::setup();
 
     ProgressReporter * p = new ProgressReporter( m, 1 );
     // 5? command-line option?

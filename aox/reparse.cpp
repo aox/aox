@@ -9,7 +9,6 @@
 #include "injector.h"
 #include "transaction.h"
 #include "addresscache.h"
-#include "annotationname.h"
 
 #include <stdio.h>
 #include <sys/stat.h> // mkdir
@@ -51,7 +50,6 @@ void Reparse::execute()
 
         database( true );
         AddressCache::setup();
-        AnnotationName::setup();
         Mailbox::setup( this );
 
         d->q = new Query( "select mm.mailbox, mm.uid, mm.modseq, "

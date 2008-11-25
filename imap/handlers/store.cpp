@@ -589,20 +589,17 @@ bool Store::processAnnotationNames()
         return d->annotationNameCreator->done();
 
     List<Annotation>::Iterator it( d->annotations );
-    StringList unknown;
+    StringList l;
     while ( it ) {
-        String n( it->entryName() );
-        if ( AnnotationName::id( n ) == 0 )
-            unknown.append( n );
+        l.append( it->entryName() );
         ++it;
     }
-    if ( unknown.isEmpty() )
-        return true;
+    l.removeDuplicates( true );
 
     d->annotationNameCreator
-        = new AnnotationNameCreator( unknown, d->transaction );
+        = new AnnotationNameCreator( l, d->transaction );
     d->annotationNameCreator->execute();
-    return false;
+    return d->annotationNameCreator->done();
 
 }
 
@@ -732,11 +729,7 @@ void Store::replaceAnnotations()
     while ( it ) {
         Query * q;
 
-        uint aid = 0;
-        if ( d->annotationNameCreator )
-            aid = d->annotationNameCreator->id( it->entryName() );
-        if ( !aid )
-            aid = AnnotationName::id( it->entryName() );
+        uint aid = d->annotationNameCreator->id( it->entryName() );
 
         if ( it->value().isEmpty() ) {
             String o = "owner=$4";
