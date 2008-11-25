@@ -293,10 +293,10 @@ void Sieve::execute()
                             "values ("
                             "(select id from addresses "
                             " where lower(localpart)=$1 and lower(domain)=$2 "
-                            " limit 1), "
+                            " order by name limit 1), "
                             "(select id from addresses "
                             " where lower(localpart)=$3 and lower(domain)=$4 "
-                            " limit 1), "
+                            " order by name limit 1), "
                             "$5, $6)", 0 );
                     q->bind( 1, i->senderAddress()->localpart().lower() );
                     q->bind( 2, i->senderAddress()->domain().lower() );
