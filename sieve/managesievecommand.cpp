@@ -434,6 +434,8 @@ bool ManageSieveCommand::putScript()
             (void)i->create( d->t, d->sieve->user() );
             ++i;
         }
+        if ( !d->create.isEmpty() )
+            Mailbox::refreshMailboxes( d->t );
     }
 
     if ( !d->query->done() )
