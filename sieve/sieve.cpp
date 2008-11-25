@@ -221,9 +221,6 @@ void Sieve::execute()
             d->injector->setLog( new Log ); // XXX why here?
         }
 
-        if ( d->autoresponses && !d->autoresponses->done() )
-            return;
-
         if ( !d->autoresponses ) {
             List<SieveAction> * v = vacations();
             if ( v->isEmpty() ) {
@@ -272,50 +269,53 @@ void Sieve::execute()
             }
         }
 
-        if ( d->autoresponses && d->autoresponses->hasResults() ) {
-            List<SieveAction> * v = vacations();
-            while ( d->autoresponses->hasResults() ) {
-                Row * r = d->autoresponses->nextRow();
-                UString h = r->getUString( "handle" );
-                List<SieveAction>::Iterator i( v );
-                while ( i && i->handle() != h )
-                    i++;
-                if ( i ) {
-                    log( "Suppressing vacation response to " +
-                         i->recipientAddress()->toString() );
-                    v->take( i );
-                }
-                else {
-                    Query * q
-                        = new Query(
-                            "insert into autoresponses "
-                            "(sent_from, sent_to, expires_at, handle) "
-                            "values ("
-                            "(select id from addresses "
-                            " where lower(localpart)=$1 and lower(domain)=$2 "
-                            " order by name limit 1), "
-                            "(select id from addresses "
-                            " where lower(localpart)=$3 and lower(domain)=$4 "
-                            " order by name limit 1), "
-                            "$5, $6)", 0 );
-                    q->bind( 1, i->senderAddress()->localpart().lower() );
-                    q->bind( 2, i->senderAddress()->domain().lower() );
-                    q->bind( 3, i->recipientAddress()->localpart().lower() );
-                    q->bind( 4, i->recipientAddress()->domain().lower() );
-                    Date e;
-                    e.setCurrentTime();
-                    e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
-                    q->bind( 5, e.isoDateTime() );
-                    q->bind( 6, i->handle() );
-                    q->execute();
+        if ( d->autoresponses && !d->autoresponses->done() )
+            return;
 
-                    List<Address> * remote = new List<Address>;
-                    remote->append( i->recipientAddress() );
-                    d->injector->addDelivery( i->message(),
-                                              new Address( "", "", "" ),
-                                              remote );
-                }
+        List<SieveAction> * v = vacations();
+        while ( d->autoresponses->hasResults() ) {
+            Row * r = d->autoresponses->nextRow();
+            UString h = r->getUString( "handle" );
+            List<SieveAction>::Iterator i( v );
+            while ( i && i->handle() != h )
+                i++;
+            if ( i ) {
+                log( "Suppressing vacation response to " +
+                     i->recipientAddress()->toString() );
+                v->take( i );
             }
+        }
+        List<SieveAction>::Iterator i( v );
+        while ( i ) {
+            Query * q
+                = new Query(
+                    "insert into autoresponses "
+                    "(sent_from, sent_to, expires_at, handle) "
+                    "values ("
+                    "(select id from addresses "
+                    " where lower(localpart)=$1 and lower(domain)=$2 "
+                    " order by name limit 1), "
+                    "(select id from addresses "
+                    " where lower(localpart)=$3 and lower(domain)=$4 "
+                    " order by name limit 1), "
+                    "$5, $6)", 0 );
+            q->bind( 1, i->senderAddress()->localpart().lower() );
+            q->bind( 2, i->senderAddress()->domain().lower() );
+            q->bind( 3, i->recipientAddress()->localpart().lower() );
+            q->bind( 4, i->recipientAddress()->domain().lower() );
+            Date e;
+            e.setCurrentTime();
+            e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
+            q->bind( 5, e.isoDateTime() );
+            q->bind( 6, i->handle() );
+            q->execute();
+
+            List<Address> * remote = new List<Address>;
+            remote->append( i->recipientAddress() );
+            d->injector->addDelivery( i->message(),
+                                      new Address( "", "", "" ),
+                                      remote );
+            ++i;
         }
         if ( d->autoresponses->done() )
             d->state = 2;
