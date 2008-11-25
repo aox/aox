@@ -707,7 +707,7 @@ Default c-t-e of PGP signatures
   contain only CR, LF and printable ASCII can be broken.
 
 
-recognising spam
+Recognising spam
 
   The good spam filters now all seem to require local training with
   both spam and nonspam corpora. We can do clever stuff... sometimes.
@@ -739,20 +739,6 @@ TLS client support (smtp, postgresql)
 
   We need to look at ISBN 0735617228 and improve security.html with
   points from it. It could also be that we'll improve the code itself.
-
-
-udoc stuff:
-
-  1. Support a single level of nested classes. (What file names to use
-     for output?)
-  2. Support enum annotation.
-  3. Suppress empty <p>, duplicate anchor names in output.
-
-
-Udoc web pages chores
-
-  Add "Related Pages" etc. Clarify where background.html
-  fits. usage.html is an orphan now; should it become a manpage?
 
 
 Play with PITR and write /ams/pitr.html
@@ -923,16 +909,6 @@ Delaying seen-flag setting
 
   This ought to cut down the number of transactions issued per imap
   command nicely.
-
-
-aoxexport
-
-  Currently takes a mailbox name. Should instead take either a mailbox
-  name, a search, or both.
-
-  The problem with the search is that Selector has to learn not to
-  bind the mailbox ID and use it in the where clause. Which turns out
-  to be a problem I've gradually solved. It's done. Wow.
 
 
 The web interface should offer a download link for attachments.
@@ -1245,14 +1221,6 @@ Bug confusing U+ED00 and U+0000 in the message cache
 
   This means that Archiveopteryx works differently depending on
   whether the cache is used or not. That has to be resolved somehow.
-
-
-Fetching headers is too slow, really.
-
-  Maybe other stuff. We know the results are ordered, so we should
-  take advantage of the ordering and keep state across rows. Right now
-  we're locating the Message/Bodypart/Header from first principles for
-  each row.
 
 
 Axel, /Mime problem
