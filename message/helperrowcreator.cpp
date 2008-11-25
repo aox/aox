@@ -7,7 +7,6 @@
 #include "transaction.h"
 #include "query.h"
 
-#include "annotationname.h"
 #include "flag.h"
 
 
@@ -356,7 +355,7 @@ Query *  AnnotationNameCreator::makeSelect()
     StringList::Iterator it( names );
     while ( it ) {
         String name( *it );
-        if ( id( name ) == 0 && AnnotationName::id( name ) == 0 )
+        if ( id( name ) == 0 )
             sl.append( name );
         ++it;
     }
@@ -375,7 +374,7 @@ Query * AnnotationNameCreator::makeCopy()
     StringList::Iterator it( names );
     bool any = false;
     while ( it ) {
-        if ( id( *it ) == 0 && AnnotationName::id( *it ) == 0 ) {
+        if ( id( *it ) == 0 ) {
             any = true;
             q->bind( 1, *it );
             q->submitLine();

@@ -649,9 +649,6 @@ void Injector::findDependencies()
         }
     }
 
-    Dict<String> flags;
-    Dict<String> annotationNames;
-
     List<Injectee>::Iterator imi( d->injectables );
     while ( imi ) {
         Injectee * m = imi;
@@ -673,15 +670,14 @@ void Injector::findDependencies()
 
             StringList::Iterator fi( m->flags( mb ) );
             while ( fi ) {
-                flags.insert( *fi, fi );
+                d->flags.append( fi );
                 ++fi;
             }
 
             List<Annotation>::Iterator ai( m->annotations( mb ) );
             while ( ai ) {
                 Annotation * a = ai;
-                String n( a->entryName() );
-                annotationNames.insert( n, new String( n ) );
+                d->annotationNames.append( a->entryName() );
                 ++ai;
             }
 
@@ -689,25 +685,8 @@ void Injector::findDependencies()
         }
     }
 
-    // Record the unknown used flag and annotation names.
-
-    if ( !flags.isEmpty() ) {
-        Dict<String>::Iterator i( flags );
-        while ( i ) {
-            if ( Flag::id( *i ) == 0 )
-                d->flags.append( *i );
-            ++i;
-        }
-    }
-
-    if ( !annotationNames.isEmpty() ) {
-        Dict<String>::Iterator i( annotationNames );
-        while ( i ) {
-            if ( AnnotationName::id( *i ) == 0 )
-                d->annotationNames.append( *i );
-            ++i;
-        }
-    }
+    d->flags.removeDuplicates();
+    d->annotationNames.removeDuplicates( true );
 
     // Rows destined for deliveries/delivery_recipients also contain
     // addresses that need to be looked up.
@@ -1442,11 +1421,7 @@ uint Injector::addAnnotations( Query * q, Injectee * m, Mailbox * mb )
     uint n = 0;
     List<Annotation>::Iterator ai( m->annotations( mb ) );
     while ( ai ) {
-        uint aid = 0;
-        if ( d->annotationNameCreator )
-            aid = d->annotationNameCreator->id( ai->entryName() );
-        if ( !aid )
-            aid = AnnotationName::id( ai->entryName() );
+        uint aid = d->annotationNameCreator->id( ai->entryName() );
         n++;
         q->bind( 1, mb->id() );
         q->bind( 2, m->uid( mb ) );

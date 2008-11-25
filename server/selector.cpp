@@ -512,11 +512,6 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );
 
-    q.append( d->extraJoins.join( "" ) );
-
-    if ( wanted && wanted->contains( "idate" ) )
-        d->needMessages = true;
-
     if ( d->needDateFields )
         q.append( " join date_fields df on "
                   "(df.message=" + mm() + ".message)" );
@@ -528,6 +523,11 @@ Query * Selector::query( User * user, Mailbox * mailbox,
                   " join bodyparts bp on (bp.id=pn.bodypart)" );
     if ( d->needMessages )
         q.append( " join messages m on (" + mm() + ".message=m.id)" );
+
+    q.append( d->extraJoins.join( "" ) );
+
+    if ( wanted && wanted->contains( "idate" ) )
+        d->needMessages = true;
 
     String mboxClause;
     if ( d->mboxId ) {
@@ -1111,52 +1111,23 @@ String Selector::whereAnnotation()
 {
     root()->d->needAnnotations = true;
 
-    uint id( AnnotationName::id( d->s8 ) );
-
-    String annotations;
-    if ( id ) {
-        annotations = "a.name=" + fn( id );
+    uint pattern = placeHolder();
+    String join = fn( ++root()->d->join );
+    root()->d->extraJoins.append(
+        " left join annotation_names an" + join +
+        " on (a.name=an" + join + ".id"
+        " and an" + join + ".name like $" + fn( pattern ) + ")"
+        );
+    String sql = 0;
+    uint i = 0;
+    while ( i < d->s8.length() ) {
+        if ( d->s8[i] == '*' )
+            sql.append( '%' );
+        else
+            sql.append( d->s8[i] );
+        i++;
     }
-    else {
-        // XXX: Use ANY($1) here.
-        uint n = 0;
-        uint u = 1;
-        while ( u <= ::AnnotationName::largestId() ) {
-            String a( AnnotationName::name( u ) );
-            if ( lmatch( d->s8, 0, a, 0 ) == 2 ) {
-                n++;
-                if ( !annotations.isEmpty() )
-                    annotations.append( " or " );
-                annotations.append( "a.name=" );
-                annotations.append( fn( u ) );
-            }
-            u++;
-        }
-        if ( n > 1 )
-            annotations = "(" + annotations + ")";
-        if ( ( n < 1 || n > 3 ) && d->s8.find( '%' ) < 0 ) {
-            // if we don't know the desired annotation or there seems
-            // to be many possibles, we're better off using set logic.
-            uint pattern = placeHolder();
-            annotations = "a.name in ("
-                          "select id from annotation_names where name like $" +
-                          fn( pattern ) +
-                          ")";
-            String sql = 0;
-            uint i = 0;
-            while ( i < d->s8.length() ) {
-                if ( d->s8[i] == '*' )
-                    sql.append( '%' );
-                else
-                    sql.append( d->s8[i] );
-                i++;
-            }
-            root()->d->query->bind( pattern, sql );
-        }
-        // this still leaves a bad case - e.g. if the client searches
-        // for '/vendor/microsoft/%' and we don't have any suitable
-        // annotation names in RAM.
-    }
+    root()->d->query->bind( pattern, sql );
 
     String user;
     String attribute;
@@ -1184,7 +1155,8 @@ String Selector::whereAnnotation()
         like = "ilike " + matchAny( i );
     }
 
-    return "(" + user + " and " + annotations + " and value " + like + ")";
+    return "(" + user + " and an" + join +
+        " is not null and value " + like + ")";
 }
 
 

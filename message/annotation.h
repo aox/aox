@@ -4,7 +4,6 @@
 #define ANNOTATION_H
 
 #include "string.h"
-#include "annotationname.h"
 
 
 class Annotation

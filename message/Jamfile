@@ -42,5 +42,5 @@ Build message :
     address.cpp date.cpp flag.cpp addresscache.cpp 
     injector.cpp fetcher.cpp smtpclient.cpp annotation.cpp 
     dsn.cpp recipient.cpp listidfield.cpp
-    messagecache.cpp annotationname.cpp helperrowcreator.cpp
+    messagecache.cpp helperrowcreator.cpp
     ;
