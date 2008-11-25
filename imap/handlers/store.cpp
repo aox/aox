@@ -563,19 +563,9 @@ bool Store::processFlagNames()
     if ( d->flagCreator )
         return d->flagCreator->done();
 
-    StringList::Iterator it( d->flagNames );
-    StringList unknown;
-    while ( it ) {
-        if ( Flag::id( *it ) == 0 )
-            unknown.append( *it );
-        ++it;
-    }
-    if ( unknown.isEmpty() )
-        return true;
-
-    d->flagCreator = new FlagCreator( unknown, d->transaction );
+    d->flagCreator = new FlagCreator( d->flagNames, d->transaction );
     d->flagCreator->execute();
-    return false;
+    return d->flagCreator->done();
 }
 
 
