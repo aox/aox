@@ -316,9 +316,9 @@ void Sieve::execute()
                                               remote );
                 }
             }
-            if ( d->autoresponses->done() )
-                d->state = 2;
         }
+        if ( d->autoresponses->done() )
+            d->state = 2;
     }
 
 
