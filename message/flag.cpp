@@ -15,48 +15,69 @@
 #include "log.h"
 
 
-static Dict<uint> * flagsByName;
-static Map<String> * flagsById;
-static uint largestFlagId;
-
-
-class FlagFetcher
+class FlagData
     : public EventHandler
 {
 public:
-    FlagFetcher( EventHandler * o )
-        : owner( o ), max( 0 )
-    {
-        q = new Query( "select id,name from flag_names "
-                       "where id >= $1", this );
-        q->bind( 1, ::largestFlagId );
-        q->execute();
-    }
+    FlagData( Flag * owner )
+        : EventHandler(),
+          that( owner ), largest( 0 ), again( false ), q( 0 ) {}
 
-    void execute()
-    {
-        while ( q->hasResults() ) {
-            Row * r = q->nextRow();
-            uint id = r->getInt( "id" );
-            Flag::add( r->getString( "name" ), id );
-            if ( id > max )
-                max = id;
-        }
+    void execute() { again = true; that->execute(); }
 
-        if ( !q->done() )
-            return;
+    Flag * that;
+    Dict<uint> byName;
+    Map<String> byId;
+    uint largest;
+    bool again;
 
-        ::largestFlagId = max;
-
-        if ( owner )
-            owner->execute();
-    }
-
-private:
-    EventHandler * owner;
     Query * q;
-    uint max;
 };
+
+
+static Flag * flagWatcher = 0;
+
+
+/*! Constructs a Flag cache. The new object will listen for new flags
+    continuously.
+*/
+
+Flag::Flag()
+    : EventHandler(), d( new FlagData( this ) )
+{
+    setLog( new Log );
+    (void)new DatabaseSignal( "flag_names_extended", d );
+}
+
+
+/*! Updates the RAM cache from the database table. */
+
+void Flag::execute()
+{
+    if ( !d->q ) {
+        d->q = new Query( "select id, name from flag_names where id >= $1",
+                          this );
+        d->q->bind( 1, d->largest );
+        d->q->execute();
+    }
+    while ( d->q->hasResults() ) {
+        Row * r = d->q->nextRow();
+        String name = r->getString( "name" );
+        uint * id = (uint *)Allocator::alloc( sizeof(uint), 0 );
+        *id = r->getInt( "id" );
+        d->byName.insert( name.lower(), id );
+        d->byId.insert( *id, new String( name ) );
+        if ( *id > d->largest )
+            d->largest = *id;
+    }
+    if ( d->q->done() ) {
+        d->q = 0;
+        if ( d->again ) {
+            d->again = false;
+            execute();
+        }
+    }
+}
 
 
 class FlagObliterator
@@ -68,21 +89,11 @@ public:
         (void)new DatabaseSignal( "obliterated", this );
     }
     void execute() {
-        Flag::reload();
-    }
-};
-
-
-class FlagWatcher
-    : public EventHandler
-{
-public:
-    FlagWatcher(): EventHandler() {
-        setLog( new Log );
-        (void)new DatabaseSignal( "flag_names_extended", this );
-    }
-    void execute() {
-        (void)new FlagFetcher( 0 );
+        ::flagWatcher->d->largest = 0;
+        ::flagWatcher->d->byName.clear();
+        ::flagWatcher->d->byId.clear();
+        ::flagWatcher->d->again = true;
+        ::flagWatcher->execute();
     }
 };
 
@@ -107,50 +118,15 @@ public:
 
 void Flag::setup()
 {
-    ::flagsByName = new Dict<uint>;
-    Allocator::addEternal( ::flagsByName, "list of flags by name" );
-
-    ::flagsById = new Map<String>;
-    Allocator::addEternal( ::flagsById, "list of flags by id" );
-
+    if ( ::flagWatcher )
+        return;
+    
+    ::flagWatcher = new Flag;
+    ::flagWatcher->execute();
     if ( !Configuration::toggle( Configuration::Security ) )
         (void)new FlagObliterator;
-
-    (void)new FlagWatcher;
-
-    reload();
 }
 
-
-/*! This function reloads the flag_names table and notifies the \a owner
-    when that is finished. */
-
-void Flag::reload( EventHandler * owner )
-{
-    ::largestFlagId = 0;
-    ::flagsById->clear();
-    ::flagsByName->clear();
-
-    (void)new FlagFetcher( owner );
-}
-
-
-/*! Records that a flag with the given \a name and \a id exists. After
-    this call, id( \a name ) returns \a id, and name( \a id ) returns
-    \a name. */
-
-void Flag::add( const String & name, uint id )
-{
-    String * n = new String( name );
-    n->detach();
-
-    ::flagsById->insert( id, n );
-
-    uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
-    *tmp = id;
-
-    ::flagsByName->insert( name.lower(), tmp );
-}
 
 
 /*! Returns the id of the flag with the given \a name, or 0 if the
@@ -158,15 +134,14 @@ void Flag::add( const String & name, uint id )
 
 uint Flag::id( const String & name )
 {
-    uint id = 0;
+    if ( !::flagWatcher )
+        setup();
 
-    if ( ::flagsByName ) {
-        uint * p = ::flagsByName->find( name.lower() );
-        if ( p )
-            id = *p;
-    }
+    uint * p = ::flagWatcher->d->byName.find( name.lower() );
+    if ( !p )
+        return 0;
 
-    return id;
+    return * p;
 }
 
 
@@ -175,29 +150,41 @@ uint Flag::id( const String & name )
 
 String Flag::name( uint id )
 {
-    String name;
+    if ( !::flagWatcher )
+        setup();
 
-    if ( ::flagsById ) {
-        String * p = ::flagsById->find( id );
-        if ( p )
-            name = *p;
-    }
+    String * p = ::flagWatcher->d->byId.find( id );
+    if ( p )
+        return *p;
 
-    return name;
+    return "";
 }
 
 
 /*! Returns a list of all current known flags (except "\recent" of
-    course), sorted by id().
+    course), sorted by the lowercase version of their names.
 */
 
 StringList Flag::allFlags()
 {
+    if ( !::flagWatcher )
+        setup();
+
     StringList r;
-    Map<String>::Iterator i( ::flagsById );
+    Map<uint>::Iterator i( ::flagWatcher->d->byName );
     while ( i ) {
-        r.append( *i );
+        r.append( ::flagWatcher->d->byId.find( *i ) );
         ++i;
     }
     return r;
+}
+
+
+/*! Returns the largest ID currently used by a flag. */
+
+uint Flag::largestId()
+{
+    if ( ::flagWatcher )
+        return ::flagWatcher->d->largest;
+    return 0;
 }

@@ -10,18 +10,26 @@
 class Query;
 
 
-class Flag {
+class Flag
+    : public EventHandler
+{
+private:
+    Flag();
+
 public:
     static void setup();
 
-    static void reload( EventHandler * = 0 );
-
-    static void add( const String &, uint );
-
     static String name( uint );
     static uint id( const String & );
+    static uint largestId();
 
     static StringList allFlags();
+
+    void execute();
+
+private:
+    friend class FlagObliterator;
+    class FlagData * d;
 };
 
 
