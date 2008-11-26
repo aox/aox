@@ -10,6 +10,7 @@
 #include "recipient.h"
 #include "deliveryagent.h"
 #include "configuration.h"
+#include "integerset.h"
 #include "smtpclient.h"
 #include "allocator.h"
 #include "scope.h"
@@ -57,14 +58,14 @@ void SpoolManager::execute()
     // to deliver each of them.
 
     if ( !d->q ) {
-        List<uint> have;
+        IntegerSet have;
         List<DeliveryAgent>::Iterator a( d->agents );
         while ( a ) {
             if ( a->done() ) {
                 d->agents.take( a );
             }
             else {
-                have.append( new uint( a->messageId() ) );
+                have.add( a->messageId() );
                 ++a;
             }
         }
@@ -88,7 +89,7 @@ void SpoolManager::execute()
         d->q->bind( 1, Recipient::Unknown );
         d->q->bind( 2, Recipient::Delayed );
         if ( !have.isEmpty() )
-            d->q->bind( 3, &have );
+            d->q->bind( 3, have );
         d->q->execute();
     }
 

@@ -3,7 +3,7 @@
 #include "mh.h"
 
 #include "file.h"
-#include "messageset.h"
+#include "integerset.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -55,9 +55,9 @@ public:
 
     bool opened;
     String path;
-    MessageSet messages;
-    MessageSet unseen;
-    MessageSet flagged;
+    IntegerSet messages;
+    IntegerSet unseen;
+    IntegerSet flagged;
 };
 
 
@@ -142,7 +142,7 @@ MigratorMessage * MhMailbox::nextMessage()
     disregarded.
 */
 
-void MhMailbox::addToSet( const String &line, class MessageSet * set )
+void MhMailbox::addToSet( const String &line, class IntegerSet * set )
 {
     uint e = 0;
     while ( e < line.length() && line[e] != ':' )

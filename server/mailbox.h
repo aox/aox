@@ -8,7 +8,7 @@
 
 class EventHandler;
 class Transaction;
-class MessageSet;
+class IntegerSet;
 class Message;
 class String;
 class Query;

@@ -18,7 +18,7 @@
 #include "threader.h"
 #include "eventloop.h"
 #include "allocator.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "stringlist.h"
 #include "transaction.h"
 

@@ -3,7 +3,7 @@
 #include "session.h"
 
 #include "transaction.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "allocator.h"
 #include "selector.h"
 #include "mailbox.h"
@@ -28,13 +28,13 @@ public:
     bool readOnly;
     Mailbox * mailbox;
     Connection * connection;
-    MessageSet msns;
-    MessageSet recent;
-    MessageSet expunges;
+    IntegerSet msns;
+    IntegerSet recent;
+    IntegerSet expunges;
     uint uidnext;
     int64 nextModSeq;
     Permissions * permissions;
-    MessageSet unannounced;
+    IntegerSet unannounced;
 };
 
 
@@ -261,11 +261,11 @@ uint Session::largestUid() const
 }
 
 
-/*! Returns a MessageSet containing all messages marked "\Recent" in
+/*! Returns a IntegerSet containing all messages marked "\Recent" in
     this session.
 */
 
-MessageSet Session::recent() const
+IntegerSet Session::recent() const
 {
     return d->recent.intersection( d->msns );
 }
@@ -303,7 +303,7 @@ void Session::addRecent( uint start, uint num )
     be told about it at the earliest possible moment.
 */
 
-void Session::expunge( const MessageSet & uids )
+void Session::expunge( const IntegerSet & uids )
 {
     d->expunges.add( uids );
 }
@@ -671,7 +671,7 @@ void SessionInitialiser::writeViewChanges()
 {
     if ( !d->messages->done() )
         return;
-    MessageSet removeInDb;
+    IntegerSet removeInDb;
     Query * add = 0;
     Query * remove = 0;
     Row * r = 0;
@@ -812,7 +812,7 @@ void SessionInitialiser::recordExpunges()
     if ( !d->expunges )
         return;
     Row * r = 0;
-    MessageSet uids;
+    IntegerSet uids;
     while ( (r=d->expunges->nextRow()) != 0 )
         uids.add( r->getInt( "uid" ) );
     if ( uids.isEmpty() )
@@ -890,7 +890,7 @@ void SessionInitialiser::submit( class Query * q )
     expunged in the database, but not yet reported to the client.
 */
 
-const MessageSet & Session::expunged() const
+const IntegerSet & Session::expunged() const
 {
     return d->expunges;
 }
@@ -901,7 +901,7 @@ const MessageSet & Session::expunged() const
     messages.
 */
 
-const MessageSet & Session::messages() const
+const IntegerSet & Session::messages() const
 {
     return d->msns;
 }
@@ -943,7 +943,7 @@ void Session::setNextModSeq( int64 ms ) const
     cleared by clearUnannounced().
 */
 
-MessageSet Session::unannounced() const
+IntegerSet Session::unannounced() const
 {
     return d->unannounced;
 }
@@ -954,7 +954,7 @@ MessageSet Session::unannounced() const
     added to the session.
 */
 
-void Session::addUnannounced( const MessageSet & s )
+void Session::addUnannounced( const IntegerSet & s )
 {
     d->unannounced.add( s );
 }

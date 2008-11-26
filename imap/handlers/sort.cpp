@@ -201,8 +201,11 @@ void Sort::execute()
 
     List<uint> * result = new List<uint>;
     Row * r;
-    while ( (r=d->q->nextRow()) != 0 )
-        result->append( new uint( r->getInt( "uid" ) ) );
+    while ( (r=d->q->nextRow()) != 0 ) {
+        uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
+        *tmp = r->getInt( "uid" );
+        result->append( tmp );
+    }
     waitFor( new ImapSortResponse( session(), result, d->u ) );
     finish();
 }

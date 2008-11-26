@@ -1,19 +1,19 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef MESSAGESET_H
-#define MESSAGESET_H
+#ifndef INTEGERSET_H
+#define INTEGERSET_H
 
 #include "string.h"
 
 
-class MessageSet
+class IntegerSet
     : public Garbage
 {
 public:
-    MessageSet();
-    MessageSet( const MessageSet & );
+    IntegerSet();
+    IntegerSet( const IntegerSet & );
 
-    MessageSet& operator=( const MessageSet & );
+    IntegerSet& operator=( const IntegerSet & );
 
     uint smallest() const;
     uint largest() const;
@@ -30,14 +30,14 @@ public:
 
     void add( uint, uint );
     void add( uint n ) { add( n, n ); }
-    void add( const MessageSet & );
+    void add( const IntegerSet & );
 
     void remove( uint );
     void remove( uint, uint );
-    void remove( const MessageSet & );
+    void remove( const IntegerSet & );
     void clear();
 
-    MessageSet intersection( const MessageSet & ) const;
+    IntegerSet intersection( const IntegerSet & ) const;
 
 private:
     class SetData * d;

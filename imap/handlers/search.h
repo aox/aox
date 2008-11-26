@@ -4,7 +4,7 @@
 #define SEARCH_H
 
 #include "command.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "selector.h"
 #include "ustring.h"
 
@@ -36,7 +36,7 @@ private:
 
     UString ustring( Command::QuoteMode stringType );
 
-    MessageSet set( bool );
+    IntegerSet set( bool );
 
 private:
     class SearchData * d;
@@ -48,14 +48,14 @@ class ImapSearchResponse
     : public ImapResponse
 {
 public:
-    ImapSearchResponse( ImapSession *, const MessageSet &,
+    ImapSearchResponse( ImapSession *, const IntegerSet &,
                         int64, const String & tag,
                         bool,
                         bool, bool, bool, bool );
     String text() const;
 
 private:
-    MessageSet r;
+    IntegerSet r;
     int64 ms;
     String t;
     bool uid, min, max, count, all;

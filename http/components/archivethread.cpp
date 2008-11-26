@@ -5,7 +5,7 @@
 #include "link.h"
 #include "field.h"
 #include "frontmatter.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "error404.h"
 #include "threader.h"
 #include "webpage.h"
@@ -82,7 +82,7 @@ void ArchiveThread::execute()
     }
 
     PageComponent * after = this;
-    MessageSet messages( thread->members() );
+    IntegerSet messages( thread->members() );
     while ( !messages.isEmpty() ) {
         uint uid = messages.smallest();
         messages.remove( uid );

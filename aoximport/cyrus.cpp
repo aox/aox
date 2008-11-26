@@ -3,7 +3,7 @@
 #include "cyrus.h"
 
 #include "file.h"
-#include "messageset.h"
+#include "integerset.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -55,8 +55,8 @@ public:
 
     bool opened;
     String path;
-    MessageSet messages;
-    MessageSet seen;
+    IntegerSet messages;
+    IntegerSet seen;
 };
 
 

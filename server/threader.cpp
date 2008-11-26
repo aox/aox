@@ -3,7 +3,7 @@
 #include "threader.h"
 
 #include "transaction.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "mailbox.h"
 #include "message.h"
 #include "field.h"
@@ -390,7 +390,7 @@ public:
 
     uint id;
     UString subject;
-    MessageSet members;
+    IntegerSet members;
 };
 
 
@@ -427,7 +427,7 @@ Thread::Thread()
 /*! Returns all the members of this thread. This may include deleted
     messages. */
 
-MessageSet Thread::members() const
+IntegerSet Thread::members() const
 {
     return d->members;
 }

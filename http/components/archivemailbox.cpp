@@ -10,7 +10,7 @@
 #include "codec.h"
 #include "field.h"
 #include "query.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "addressfield.h"
 #include "messagerendering.h"
 #include "frontmatter.h"
@@ -132,7 +132,7 @@ void ArchiveMailbox::execute()
 
     if ( !d->text ) {
         List<Thread>::Iterator i( t->allThreads() );
-        MessageSet f;
+        IntegerSet f;
         while ( i ) {
             f.add( i->members().smallest() );
             ++i;
@@ -253,7 +253,7 @@ String ArchiveMailbox::threadRendering( Thread * t )
     String s;
     List<Address> responders;
     Dict<Address> addresses;
-    MessageSet from( t->members() );
+    IntegerSet from( t->members() );
     uint i = from.count();
     while ( i ) {
         uint uid = from.value( i-- );
@@ -419,7 +419,7 @@ static const char * monthnames[12] = {
     \a uids.
 */
 
-String ArchiveMailbox::timespan( const MessageSet & uids ) const
+String ArchiveMailbox::timespan( const IntegerSet & uids ) const
 {
     uint oidate = UINT_MAX;
     uint yidate = 0;

@@ -4,7 +4,7 @@
 #define IMAPPARSER_H
 
 #include "abnfparser.h"
-#include "messageset.h"
+#include "integerset.h"
 
 
 class ImapParser

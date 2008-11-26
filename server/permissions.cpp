@@ -2,6 +2,7 @@
 
 #include "permissions.h"
 
+#include "integerset.h"
 #include "stringlist.h"
 #include "mailbox.h"
 #include "event.h"

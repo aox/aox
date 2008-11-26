@@ -5,7 +5,7 @@
 #include "imapsession.h"
 #include "imapparser.h"
 #include "annotation.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "listext.h"
 #include "mailbox.h"
 #include "message.h"
@@ -48,7 +48,7 @@ public:
     Selector * root;
 
     Query * query;
-    MessageSet matches;
+    IntegerSet matches;
     int64 highestmodseq;
     int64 firstmodseq;
     int64 lastmodseq;
@@ -624,9 +624,9 @@ Selector * Search::selector() const
     Command::set().
 */
 
-MessageSet Search::set( bool parseMsns )
+IntegerSet Search::set( bool parseMsns )
 {
-    MessageSet s( Command::set( parseMsns ) );
+    IntegerSet s( Command::set( parseMsns ) );
     return s;
 }
 
@@ -686,7 +686,7 @@ void Search::sendResponse()
 */
 
 ImapSearchResponse::ImapSearchResponse( ImapSession * session,
-                                        const MessageSet & set, int64 modseq,
+                                        const IntegerSet & set, int64 modseq,
                                         const String & tag,
                                         bool u,
                                         bool rmin, bool rmax,
@@ -744,7 +744,7 @@ String ImapSearchResponse::text() const
                 result.append( r.set() );
             }
             else {
-                MessageSet msns;
+                IntegerSet msns;
                 uint i = 1;
                 uint max = r.count();
                 while ( i <= max ) {

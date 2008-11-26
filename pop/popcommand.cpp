@@ -45,7 +45,7 @@ public:
     Mailbox * mailbox;
     Permissions * permissions;
     Session * session;
-    MessageSet set;
+    IntegerSet set;
     bool sentFetch;
     bool started;
     Message * message;
@@ -399,8 +399,8 @@ bool PopCommand::session()
 
     if ( !d->map ) {
         d->session->clearUnannounced();
-        MessageSet s( d->session->messages() );
-        MessageSet r;
+        IntegerSet s( d->session->messages() );
+        IntegerSet r;
         d->map = new Map<Message>;
         while ( !s.isEmpty() ) {
             uint uid = s.smallest();

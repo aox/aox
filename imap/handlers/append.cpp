@@ -326,7 +326,7 @@ void Append::execute()
         return;
     }
 
-    MessageSet uids;
+    IntegerSet uids;
     h = d->messages.first();
     while ( h ) {
         uids.add( h->message->uid( d->mailbox ) );
