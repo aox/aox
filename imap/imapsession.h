@@ -26,7 +26,7 @@ public:
 
     void emitUpdates( Transaction * t );
 
-    void recordExpungedFetch( const MessageSet & );
+    void recordExpungedFetch( const IntegerSet & );
 
     void ignoreModSeq( int64 );
 

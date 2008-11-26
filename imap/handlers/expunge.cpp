@@ -8,7 +8,7 @@
 #include "query.h"
 #include "scope.h"
 #include "mailbox.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "imapsession.h"
 #include "permissions.h"
 #include "transaction.h"
@@ -30,8 +30,8 @@ public:
     Query * findModseq;
     Query * expunge;
     Transaction * t;
-    MessageSet requested;
-    MessageSet marked;
+    IntegerSet requested;
+    IntegerSet marked;
 };
 
 

@@ -26,9 +26,9 @@ public:
 
     class IMAP * i;
     Log * l;
-    MessageSet expungesReported;
-    MessageSet expungedFetched;
-    MessageSet changed;
+    IntegerSet expungesReported;
+    IntegerSet expungedFetched;
+    IntegerSet changed;
     uint exists;
     uint recent;
     uint uidnext;
@@ -194,7 +194,7 @@ void ImapSession::emitUpdates( Transaction * t )
 
     Scope x( d->l );
 
-    MessageSet e;
+    IntegerSet e;
     e.add( expunged() );
     if ( !e.isEmpty() ) {
         d->expungesReported = d->expungesReported.intersection( e );
@@ -295,9 +295,9 @@ void ImapSession::emitFlagUpdates( Transaction * t )
     recordExpungedFetch() summarily closes the IMAP connection.
 */
 
-void ImapSession::recordExpungedFetch( const MessageSet & set )
+void ImapSession::recordExpungedFetch( const IntegerSet & set )
 {
-    MessageSet already = set.intersection( d->expungedFetched );
+    IntegerSet already = set.intersection( d->expungedFetched );
     d->expungedFetched.add( set );
     if ( already.isEmpty() )
         return;

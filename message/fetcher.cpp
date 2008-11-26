@@ -4,7 +4,7 @@
 
 #include "addressfield.h"
 #include "transaction.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "allocator.h"
 #include "bodypart.h"
 #include "selector.h"
@@ -431,7 +431,7 @@ void Fetcher::prepareBatch()
 
 void Fetcher::bindIds( Query * query, uint n, Type type )
 {
-    List<uint> l;
+    IntegerSet l;
     Map< List<Message> >::Iterator bi( d->batch );
     while ( bi ) {
         List<Message>::Iterator li( *bi );
@@ -463,10 +463,10 @@ void Fetcher::bindIds( Query * query, uint n, Type type )
                 break;
             }
             if ( need && m->databaseId() )
-                l.append( new uint( m->databaseId() ) );
+                l.add( m->databaseId() );
         }
     }
-    query->bind( n, &l );
+    query->bind( n, l );
 }
 
 

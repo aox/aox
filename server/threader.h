@@ -10,7 +10,7 @@
 
 class UString;
 class Mailbox;
-class MessageSet;
+class IntegerSet;
 
 
 class Thread
@@ -19,7 +19,7 @@ class Thread
 public:
     Thread();
 
-    MessageSet members() const;
+    IntegerSet members() const;
     void add( uint );
 
     void setSubject( const UString & );

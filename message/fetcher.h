@@ -11,7 +11,7 @@ class Row;
 class Query;
 class Message;
 class Mailbox;
-class MessageSet;
+class IntegerSet;
 class PreparedStatement;
 
 

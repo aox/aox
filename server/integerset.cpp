@@ -1,6 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "messageset.h"
+#include "integerset.h"
 
 #include "stringlist.h"
 #include "map.h"
@@ -112,10 +112,10 @@ public:
 };
 
 
-/*! \class MessageSet messageset.h
-    This class contains an IMAP message set.
+/*! \class IntegerSet integerset.h
+    This class contains a set of integers.
 
-    A MessageSet is just a set of nonnegative integers. It can add new
+    A IntegerSet is just a set of nonnegative integers. It can add new
     members to the set, find its members by value() or index() (sorted
     by size, with 1 first), look for the largest contained number, and
     produce an SQL "where" clause matching its contents.
@@ -124,7 +124,7 @@ public:
 
 /*! Constructs an empty set. */
 
-MessageSet::MessageSet()
+IntegerSet::IntegerSet()
 {
     d = new SetData;
 }
@@ -134,7 +134,7 @@ MessageSet::MessageSet()
     constructor is a little expensive, both in time and space.
 */
 
-MessageSet::MessageSet( const MessageSet & other )
+IntegerSet::IntegerSet( const IntegerSet & other )
     : Garbage()
 {
     d = 0;
@@ -142,7 +142,7 @@ MessageSet::MessageSet( const MessageSet & other )
 }
 
 
-MessageSet& MessageSet::operator=( const MessageSet & other )
+IntegerSet& IntegerSet::operator=( const IntegerSet & other )
 {
     if ( d == other.d )
         return *this;
@@ -163,7 +163,7 @@ MessageSet& MessageSet::operator=( const MessageSet & other )
     \a n1 and \a n2 must both be nonzero.
 */
 
-void MessageSet::add( uint n1, uint n2 )
+void IntegerSet::add( uint n1, uint n2 )
 {
     if ( n2 < n1 ) {
         add( n2, n1 );
@@ -201,7 +201,7 @@ void MessageSet::add( uint n1, uint n2 )
 
 /*! Adds each value in \a set to this set. */
 
-void MessageSet::add( const MessageSet & set )
+void IntegerSet::add( const IntegerSet & set )
 {
     if ( isEmpty() ) {
         *this = set;
@@ -220,21 +220,21 @@ void MessageSet::add( const MessageSet & set )
 }
 
 
-/*! Returns the smallest UID in this MessageSet, or 0 if the set is
+/*! Returns the smallest UID in this IntegerSet, or 0 if the set is
     empty.
 */
 
-uint MessageSet::smallest() const
+uint IntegerSet::smallest() const
 {
     return value( 1 );
 }
 
 
-/*! Returns the largest number in this MessageSet, or 0 if the set is
+/*! Returns the largest number in this IntegerSet, or 0 if the set is
     empty.
 */
 
-uint MessageSet::largest() const
+uint IntegerSet::largest() const
 {
     SetData::Block * b = d->b.last();
     if ( !b )
@@ -250,9 +250,9 @@ uint MessageSet::largest() const
 }
 
 
-/*! Returns the number of numbers in this MessageSet. */
+/*! Returns the number of numbers in this IntegerSet. */
 
-uint MessageSet::count() const
+uint IntegerSet::count() const
 {
     recount();
     uint c = 0;
@@ -267,7 +267,7 @@ uint MessageSet::count() const
 
 /*! Returns true if the set is empty, and false if not. */
 
-bool MessageSet::isEmpty() const
+bool IntegerSet::isEmpty() const
 {
     return d->b.isEmpty();
 }
@@ -280,7 +280,7 @@ bool MessageSet::isEmpty() const
     from MSNs to UIDs. See Session::uid().
 */
 
-uint MessageSet::value( uint index ) const
+uint IntegerSet::value( uint index ) const
 {
     if ( !index )
         return 0;
@@ -319,7 +319,7 @@ uint MessageSet::value( uint index ) const
     from UIDs to MSNs. See Session::msn().
 */
 
-uint MessageSet::index( uint value ) const
+uint IntegerSet::index( uint value ) const
 {
     recount();
     uint i = 0;
@@ -349,7 +349,7 @@ uint MessageSet::index( uint value ) const
 
 /*! Returns true if \a value is present in this set, and false if not. */
 
-bool MessageSet::contains( uint value ) const
+bool IntegerSet::contains( uint value ) const
 {
     SetData::Block * b = d->b.find( value - (value%BlockSize) );
     if ( !b )
@@ -364,7 +364,7 @@ bool MessageSet::contains( uint value ) const
 /*! Removes \a value from this set. Does nothing unless \a value is
     present in the set.*/
 
-void MessageSet::remove( uint value )
+void IntegerSet::remove( uint value )
 {
     SetData::Block * b = d->b.find( value - (value%BlockSize) );
     if ( !b )
@@ -391,9 +391,9 @@ void MessageSet::remove( uint value )
 
 /*! Removes \a v1, \a v2 and all values between them from this set. */
 
-void MessageSet::remove( uint v1, uint v2 )
+void IntegerSet::remove( uint v1, uint v2 )
 {
-    MessageSet r;
+    IntegerSet r;
     r.add( v1, v2 );
     remove( r );
 }
@@ -401,7 +401,7 @@ void MessageSet::remove( uint v1, uint v2 )
 
 /*! Removes all values contained in \a other from this set. */
 
-void MessageSet::remove( const MessageSet & other )
+void IntegerSet::remove( const IntegerSet & other )
 {
     Map<SetData::Block>::Iterator mine( d->b );
     Map<SetData::Block>::Iterator hers( other.d->b );
@@ -430,11 +430,11 @@ void MessageSet::remove( const MessageSet & other )
 
 
 /*! Returns a set containing all values which are contained in both
-    this MessageSet and in \a other. */
+    this IntegerSet and in \a other. */
 
-MessageSet MessageSet::intersection( const MessageSet & other ) const
+IntegerSet IntegerSet::intersection( const IntegerSet & other ) const
 {
-    MessageSet r;
+    IntegerSet r;
     Map<SetData::Block>::Iterator mine( d->b );
     Map<SetData::Block>::Iterator hers( other.d->b );
     while ( mine && hers ) {
@@ -463,7 +463,7 @@ MessageSet MessageSet::intersection( const MessageSet & other ) const
 
 /*! Removes all numbers from this set. */
 
-void MessageSet::clear()
+void IntegerSet::clear()
 {
     d = new SetData;
 }
@@ -491,7 +491,7 @@ static void addRange( String & r, uint s, uint e )
     If the set is empty, so is the returned string.
 */
 
-String MessageSet::set() const
+String IntegerSet::set() const
 {
     String r;
     r.reserve( 2222 );
@@ -539,7 +539,7 @@ String MessageSet::set() const
     decimal numbers.
 */
 
-String MessageSet::csl() const
+String IntegerSet::csl() const
 {
     String r;
     r.reserve( 2222 );
@@ -572,7 +572,7 @@ String MessageSet::csl() const
     of set bits, and that no blocks are empty.
 */
 
-void MessageSet::recount() const
+void IntegerSet::recount() const
 {
     Map<SetData::Block>::Iterator i( d->b );
     while ( i ) {

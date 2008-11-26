@@ -51,7 +51,7 @@ public:
     void bind( uint, const UString & );
     void bind( uint, const List<uint> * );
     void bind( uint, const StringList & );
-    void bind( uint, const class MessageSet & );
+    void bind( uint, const class IntegerSet & );
     void bindNull( uint );
     void submitLine();
 

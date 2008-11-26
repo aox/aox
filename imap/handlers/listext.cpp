@@ -214,7 +214,7 @@ void Listext::execute()
 
     if ( d->state == 2 ) {
         if ( !d->permissionsQuery ) {
-            List<uint> ids;
+            IntegerSet ids;
             List<ListextData::Response>::Iterator i( d->responses );
             while ( i ) {
                 Mailbox * m = i->mailbox;
@@ -226,7 +226,7 @@ void Listext::execute()
                         if ( !p ) {
                             p = new ListextData::Permissions( m );
                             d->permissions.insert( m->id(), p );
-                            ids.append( new uint( m->id() ) );
+                            ids.add( m->id() );
                         }
                     }
                     m = m->parent();
@@ -238,7 +238,7 @@ void Listext::execute()
                              "where mailbox=any($1) "
                              "and (identifier='anyone' or identifier=$2)",
                              this );
-            d->permissionsQuery->bind( 1, &ids );
+            d->permissionsQuery->bind( 1, ids );
             d->permissionsQuery->bind( 2, imap()->user()->login() );
             d->permissionsQuery->execute();
         }

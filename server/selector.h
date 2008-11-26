@@ -8,7 +8,7 @@
 #include "string.h"
 #include "ustring.h"
 #include "session.h"
-#include "messageset.h"
+#include "integerset.h"
 
 
 class StringList;
@@ -36,12 +36,12 @@ public:
     Selector( Field, Action, const String &, const UString & );
     Selector( Field, Action, const String &, const String &,
               const UString & );
-    Selector( const MessageSet & );
+    Selector( const IntegerSet & );
     Selector( Action );
 
     Field field() const;
     Action action() const;
-    const MessageSet & messageSet() const;
+    const IntegerSet & messageSet() const;
 
     uint placeHolder();
 
@@ -81,7 +81,7 @@ public:
     String stringArgument() const;
     UString ustringArgument() const;
     int integerArgument() const;
-    MessageSet messageSetArgument() const;
+    IntegerSet messageSetArgument() const;
     List<Selector> * children();
 
     static void setup();
@@ -107,7 +107,7 @@ private:
 
     String mm();
 
-    String whereSet( const MessageSet & );
+    String whereSet( const IntegerSet & );
 };
 
 

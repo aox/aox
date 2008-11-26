@@ -6,7 +6,7 @@
 #include "pagecomponent.h"
 
 
-class MessageSet;
+class IntegerSet;
 
 
 class ArchiveMailbox
@@ -19,7 +19,7 @@ public:
 
 private:
     String threadRendering( class Thread * );
-    String timespan( const MessageSet & ) const;
+    String timespan( const IntegerSet & ) const;
 
 private:
     class ArchiveMailboxData * d;

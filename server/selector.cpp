@@ -117,7 +117,7 @@ public:
     String s8;
     String s8b;
     UString s16;
-    MessageSet s;
+    IntegerSet s;
     uint n;
 
     uint mboxId;
@@ -232,9 +232,9 @@ Selector::Selector( Field f, Action a, const String &s,
 }
 
 
-/*! Creates a selector from the MessageSet \a s. */
+/*! Creates a selector from the IntegerSet \a s. */
 
-Selector::Selector( const MessageSet &s )
+Selector::Selector( const IntegerSet &s )
     : d( new SelectorData )
 {
     d->f = Uid;
@@ -1069,7 +1069,7 @@ String Selector::whereFlags()
     variables.
 */
 
-String Selector::whereSet( const MessageSet & s )
+String Selector::whereSet( const IntegerSet & s )
 {
     if ( s.isEmpty() )
         return "false";
@@ -1929,7 +1929,7 @@ Selector::Action Selector::action() const
     to an empty set.
 */
 
-const MessageSet & Selector::messageSet() const
+const IntegerSet & Selector::messageSet() const
 {
     return d->s;
 }
@@ -2031,7 +2031,7 @@ int Selector::integerArgument() const
     set if none has been specified.
 */
 
-MessageSet Selector::messageSetArgument() const
+IntegerSet Selector::messageSetArgument() const
 {
     return d->s;
 }

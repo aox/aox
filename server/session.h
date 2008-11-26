@@ -4,7 +4,7 @@
 #define SESSION_H
 
 #include "global.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "permissions.h"
 #include "event.h"
 #include "list.h"
@@ -50,22 +50,22 @@ public:
     uint count() const;
     uint largestUid() const;
 
-    MessageSet recent() const;
+    IntegerSet recent() const;
     bool isRecent( uint ) const;
     void addRecent( uint );
     void addRecent( uint, uint );
 
-    const MessageSet & expunged() const;
-    const MessageSet & messages() const;
+    const IntegerSet & expunged() const;
+    const IntegerSet & messages() const;
 
-    void expunge( const MessageSet & );
+    void expunge( const IntegerSet & );
     virtual void clearExpunged( uint );
 
     virtual void emitUpdates( Transaction * );
 
-    MessageSet unannounced() const;
+    IntegerSet unannounced() const;
     void addUnannounced( uint );
-    void addUnannounced( const MessageSet & );
+    void addUnannounced( const IntegerSet & );
     void clearUnannounced();
 
     virtual void sendFlagUpdate();

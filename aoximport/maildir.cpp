@@ -4,7 +4,7 @@
 
 #include "map.h"
 #include "file.h"
-#include "messageset.h"
+#include "integerset.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -178,7 +178,7 @@ void MaildirMailbox::readSubDir( const String & sub )
         return;
 
     Map<StringList> files;
-    MessageSet times;
+    IntegerSet times;
 
     struct dirent * de = readdir( dir );
     while ( de ) {

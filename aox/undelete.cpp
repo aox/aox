@@ -4,7 +4,7 @@
 
 #include "searchsyntax.h"
 #include "transaction.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "selector.h"
 #include "mailbox.h"
 #include "query.h"
@@ -107,7 +107,7 @@ void Undelete::execute()
         uint uidnext = r->getInt( "uidnext" );
         int64 modseq = r->getBigint( "nextmodseq" );
 
-        MessageSet s;
+        IntegerSet s;
         r = d->find->nextRow();
         while ( r ) {
             s.add( r->getInt( "uid" ) );

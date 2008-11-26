@@ -9,7 +9,6 @@
 #include "query.h"
 #include "message.h"
 #include "mailbox.h"
-#include "messageset.h"
 #include "imapsession.h"
 #include "permissions.h"
 
