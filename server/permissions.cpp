@@ -2,6 +2,7 @@
 
 #include "permissions.h"
 
+#include "integerset.h"
 #include "stringlist.h"
 #include "mailbox.h"
 #include "event.h"
@@ -188,14 +189,14 @@ void Permissions::execute()
                           "where mailbox=any($1) and "
                           "(identifier=$2 or identifier='anyone') ",
                           this );
-        List<uint> r;
+        IntegerSet r;
         Mailbox * m = d->mailbox;
         while ( m ) {
             if ( m->id() && !m->deleted() )
-                r.append( new uint( m->id() ) );
+                r.add( m->id() );
             m = m->parent();
         }
-        d->q->bind( 1, &r );
+        d->q->bind( 1, r );
         d->q->bind( 2, d->user->login() );
         d->q->execute();
     }

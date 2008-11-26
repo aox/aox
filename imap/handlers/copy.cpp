@@ -4,7 +4,7 @@
 
 #include "imapsession.h"
 #include "transaction.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "mailbox.h"
 #include "query.h"
 #include "user.h"
@@ -21,7 +21,7 @@ public:
         report( 0 )
     {}
     bool uid;
-    MessageSet set;
+    IntegerSet set;
     Mailbox * mailbox;
     Transaction * transaction;
     Query * findUid;
@@ -192,8 +192,8 @@ void Copy::execute()
          !imap()->session()->initialised() )
         return;
 
-    MessageSet from;
-    MessageSet to;
+    IntegerSet from;
+    IntegerSet to;
 
     while ( d->report->hasResults() ) {
         Row * r = d->report->nextRow();

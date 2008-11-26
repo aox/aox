@@ -9,7 +9,7 @@
 #include "buffer.h"
 #include "mailbox.h"
 #include "imapsession.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "imapparser.h"
 
 // Keep these alphabetical.
@@ -943,14 +943,14 @@ UString Command::listMailbox()
 }
 
 
-/*! Parses an IMAP set and returns the corresponding MessageSet object.
+/*! Parses an IMAP set and returns the corresponding IntegerSet object.
     The set always contains UIDs; this function creates an UID set even
     if \a parseMsns is true.
 */
 
-MessageSet Command::set( bool parseMsns = false )
+IntegerSet Command::set( bool parseMsns = false )
 {
-    MessageSet result;
+    IntegerSet result;
     ImapSession *s = 0;
     if ( imap() )
         s = imap()->session();
@@ -1008,13 +1008,13 @@ MessageSet Command::set( bool parseMsns = false )
     Does not emit any kind of error or response.
 */
 
-void Command::shrink( MessageSet * set )
+void Command::shrink( IntegerSet * set )
 {
     ImapSession * s = imap()->session();
     if ( !s || !set || set->isEmpty() )
         return;
 
-    MessageSet r = *set;
+    IntegerSet r = *set;
     set->remove( s->expunged() );
     *set = set->intersection( s->messages() );
 }

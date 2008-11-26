@@ -10,7 +10,7 @@
 #include "ustring.h"
 #include "database.h"
 #include "eventloop.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "stringlist.h"
 #include "transaction.h"
 
@@ -363,7 +363,7 @@ void Query::bind( uint n, const List<uint> * l )
     This version binds each number in \a set as parameter \a n.
 */
 
-void Query::bind( uint n, const class MessageSet & set )
+void Query::bind( uint n, const class IntegerSet & set )
 {
     if ( d->format == Text ) {
         String s( "{" );

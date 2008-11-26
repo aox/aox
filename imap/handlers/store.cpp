@@ -8,7 +8,7 @@
 #include "transaction.h"
 #include "imapsession.h"
 #include "annotation.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "selector.h"
 #include "mailbox.h"
 #include "message.h"
@@ -39,10 +39,10 @@ public:
           annotationNameCreator( 0 ),
           transaction( 0 ), session( 0 )
     {}
-    MessageSet specified;
-    MessageSet s;
-    MessageSet expunged;
-    MessageSet modified;
+    IntegerSet specified;
+    IntegerSet s;
+    IntegerSet expunged;
+    IntegerSet modified;
     StringList flagNames;
 
     enum Op { AddFlags, ReplaceFlags, RemoveFlags, ReplaceAnnotations } op;
@@ -59,7 +59,7 @@ public:
     Query * obtainModSeq;
     Query * findSet;
     Query * presentFlags;
-    Map<MessageSet> * present;
+    Map<IntegerSet> * present;
     FlagCreator * flagCreator;
     AnnotationNameCreator * annotationNameCreator;
 
@@ -110,7 +110,7 @@ Store::Store( bool u )
     any tagged final response.
 */
 
-Store::Store( IMAP * imap, const MessageSet & set, bool silent,
+Store::Store( IMAP * imap, const IntegerSet & set, bool silent,
               Transaction * transaction )
     : Command( imap ), d( new StoreData )
 {
@@ -390,15 +390,15 @@ void Store::execute()
         if  (d->op == StoreData::AddFlags ||
              d->op == StoreData::RemoveFlags ||
              d->op == StoreData::ReplaceFlags ) {
-            d->present = new Map<MessageSet>;
+            d->present = new Map<IntegerSet>;
             StringList::Iterator i( d->flagNames );
-            MessageSet s;
+            IntegerSet s;
             while ( i ) {
                 uint id = Flag::id( *i );
                 ++i;
                 if ( id ) {
                     s.add( id );
-                    d->present->insert( id, new MessageSet );
+                    d->present->insert( id, new IntegerSet );
                 }
             }
             d->presentFlags =
@@ -419,7 +419,7 @@ void Store::execute()
 
     if ( d->presentFlags && d->presentFlags->hasResults() ) {
         Row * r;
-        MessageSet * s = 0;
+        IntegerSet * s = 0;
         uint oldFlag = 0;
         while ( (r=d->presentFlags->nextRow()) ) {
             uint f = r->getInt( "flag" );
@@ -448,7 +448,7 @@ void Store::execute()
     if ( !d->sentWorkQueries ) {
         d->sentWorkQueries = true;
         if ( d->seenUnchangedSince ) {
-            MessageSet modified;
+            IntegerSet modified;
             modified.add( d->specified );
             modified.remove( d->s );
             if ( !modified.isEmpty() )
@@ -605,7 +605,7 @@ bool Store::processAnnotationNames()
 
 bool Store::removeFlags( bool opposite )
 {
-    List<uint> flags;
+    IntegerSet flags;
 
     StringList::Iterator i( d->flagNames );
     while ( i ) {
@@ -616,9 +616,9 @@ bool Store::removeFlags( bool opposite )
             id = Flag::id( *i );
         ++i;
         if ( id ) {
-            MessageSet * present = d->present->find( id );
+            IntegerSet * present = d->present->find( id );
             if ( present && !present->isEmpty() )
-                flags.append( new uint( id ) );
+                flags.add( id );
         }
     }
     if ( flags.isEmpty() && !opposite )
@@ -632,7 +632,7 @@ bool Store::removeFlags( bool opposite )
     Query * q = new Query( s, 0 );
     q->bind( 1, d->session->mailbox()->id() );
     q->bind( 2, d->s );
-    q->bind( 3, &flags );
+    q->bind( 3, flags );
     d->transaction->enqueue( q );
     return true;
 }
@@ -652,7 +652,7 @@ bool Store::addFlags()
 
     StringList::Iterator it( d->flagNames );
     while ( it ) {
-        MessageSet s( d->s );
+        IntegerSet s( d->s );
         uint flag = 0;
         if ( d->flagCreator )
             flag = d->flagCreator->id( *it );
@@ -660,7 +660,7 @@ bool Store::addFlags()
             flag = Flag::id( *it );
         ++it;
         if ( flag ) {
-            MessageSet * p = d->present->find( flag );
+            IntegerSet * p = d->present->find( flag );
             if ( p )
                 s.remove( *p );
             if ( !s.isEmpty() ) {
@@ -712,7 +712,7 @@ static void bind( Query * q, uint i, const String & n )
 void Store::replaceAnnotations()
 {
     Mailbox * m = d->session->mailbox();
-    MessageSet s( d->s );
+    IntegerSet s( d->s );
 
     List<Annotation>::Iterator it( d->annotations );
     User * u = imap()->user();

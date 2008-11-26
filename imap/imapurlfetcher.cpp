@@ -43,10 +43,10 @@ struct MailboxSet
     {}
 
     Mailbox * mailbox;
-    MessageSet a;
-    MessageSet h;
-    MessageSet b;
-    MessageSet i;
+    IntegerSet a;
+    IntegerSet h;
+    IntegerSet b;
+    IntegerSet i;
 };
 
 
@@ -302,7 +302,7 @@ void ImapUrlFetcher::execute()
                 bl = new List<Message>;
             List<MailboxSet>::Iterator ms( sets );
             while ( ms ) {
-                MessageSet s;
+                IntegerSet s;
                 if ( h )
                     s = ms->h;
                 else

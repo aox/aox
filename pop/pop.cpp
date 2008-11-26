@@ -38,7 +38,7 @@ public:
     PopCommand * reader;
     bool reserved;
     Session * session;
-    MessageSet toBeDeleted;
+    IntegerSet toBeDeleted;
     Map<Message> * messages;
 };
 
@@ -100,12 +100,12 @@ void POP::setState( State s )
         private:
             User * user;
             Mailbox * mailbox;
-            MessageSet s;
+            IntegerSet s;
             ::Transaction * t;
             Query * nms;
 
         public:
-            PopDeleter( User * u, Mailbox * m, const MessageSet & ms )
+            PopDeleter( User * u, Mailbox * m, const IntegerSet & ms )
                 : user( u ), mailbox( m ), s( ms ),
                   t( 0 ), nms( 0 )
             {}

@@ -6,7 +6,7 @@
 #include "imapsession.h"
 #include "transaction.h"
 #include "annotation.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "stringlist.h"
 #include "mimefields.h"
 #include "imapparser.h"
@@ -64,9 +64,9 @@ public:
 
     int state;
     bool peek;
-    MessageSet set;
-    MessageSet remaining;
-    MessageSet expunged;
+    IntegerSet set;
+    IntegerSet remaining;
+    IntegerSet expunged;
     Map<Message> messages;
     uint processed;
     int64 changedSince;
@@ -148,7 +148,7 @@ Fetch::Fetch( bool u )
     of \a t.
 */
 
-Fetch::Fetch( bool f, bool a, const MessageSet & set,
+Fetch::Fetch( bool f, bool a, const IntegerSet & set,
               int64 limit, IMAP * i, Transaction * t )
     : Command( i ), d( new FetchData )
 {
@@ -676,8 +676,8 @@ void Fetch::execute()
                       d->needsAddresses || d->needsHeader ||
                       d->needsBody || d->needsPartNumbers ||
                       d->rfc822size || d->internaldate ) {
-                MessageSet r;
-                MessageSet s( d->set );
+                IntegerSet r;
+                IntegerSet s( d->set );
                 while ( !s.isEmpty() ) {
                     uint uid = s.smallest();
                     s.remove( uid );
@@ -742,7 +742,7 @@ void Fetch::execute()
             }
         }
         else {
-            MessageSet r( d->set );
+            IntegerSet r( d->set );
             while ( !r.isEmpty() ) {
                 uint uid = r.smallest();
                 r.remove( uid );

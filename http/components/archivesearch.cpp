@@ -8,7 +8,7 @@
 #include "ustring.h"
 #include "frontmatter.h"
 #include "addressfield.h"
-#include "messageset.h"
+#include "integerset.h"
 #include "threader.h"
 #include "webpage.h"
 #include "message.h"
@@ -39,12 +39,12 @@ public:
         bool address;
         bool domain;
         Query * query;
-        MessageSet result;
+        IntegerSet result;
     };
 
     List<SearchTerm> terms;
-    MessageSet matchesAll;
-    MessageSet matchesSome;
+    IntegerSet matchesAll;
+    IntegerSet matchesSome;
     List<Thread> all;
     List<Thread> some;
 };
@@ -367,7 +367,7 @@ String ArchiveSearch::shortishResultList() const
     const PageComponent * p = this;
     String s( "<div class=searchresults>\n" );
 
-    MessageSet m = d->matchesAll;
+    IntegerSet m = d->matchesAll;
     bool stillAll = true;
     if ( m.isEmpty() ) {
         m = d->matchesSome;
@@ -429,7 +429,7 @@ String ArchiveSearch::looongResultList() const
         s.append( ">" );
         s.append( quoted( i->subject() ) );
         s.append( "</a><br>\n" );
-        MessageSet matching( i->members() );
+        IntegerSet matching( i->members() );
         s.append( "Contains " );
         s.append( fn ( matching.count() ) );
         s.append( " messages, " );

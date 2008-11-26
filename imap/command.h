@@ -11,7 +11,7 @@
 
 class Log;
 class ImapParser;
-class MessageSet;
+class IntegerSet;
 
 
 class Command
@@ -78,7 +78,7 @@ public:
     String nstring();
     String astring();
     UString listMailbox();
-    MessageSet set( bool );
+    IntegerSet set( bool );
     uint msn();
     String flag();
     class Mailbox * mailbox();
@@ -94,7 +94,7 @@ public:
                               const QuoteMode = PlainString );
     String imapQuoted( Mailbox *, Mailbox * = 0 );
 
-    void shrink( MessageSet * );
+    void shrink( IntegerSet * );
 
 
     void requireRight( Mailbox *, Permissions::Right );
