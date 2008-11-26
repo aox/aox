@@ -132,12 +132,6 @@ void Select::execute()
         imap()->beginSession( d->session );
     }
 
-    if ( !d->allFlags ) {
-        d->allFlags = new Query( "select name from flag_names "
-                                 "order by lower(name)", this );
-        d->allFlags->execute();
-    }
-
     if ( !d->session->initialised() )
         return;
 
@@ -155,9 +149,6 @@ void Select::execute()
     }
 
     if ( d->firstUnseen && !d->firstUnseen->done() )
-        return;
-
-    if ( d->allFlags && !d->allFlags->done() )
         return;
 
     d->session->emitUpdates( 0 );
@@ -186,15 +177,6 @@ void Select::execute()
         if ( nms < 2 )
             nms = 2;
         respond( "OK [HIGHESTMODSEQ " + fn( nms-1 ) + "] highest modseq" );
-    }
-
-    if ( d->allFlags ) {
-        StringList l;
-        while ( d->allFlags->hasResults() )
-            l.append( d->allFlags->nextRow()->getString( "name" ) );
-        String f = l.join( " " );
-        respond( "FLAGS (" + f + ")" );
-        respond( "OK [PERMANENTFLAGS (" + f + " \\*)] permanent flags" );
     }
 
     if ( imap()->clientSupports( IMAP::Annotate ) ) {

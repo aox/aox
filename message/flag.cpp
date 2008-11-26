@@ -6,6 +6,7 @@
 #include "transaction.h"
 #include "allocator.h"
 #include "dbsignal.h"
+#include "session.h"
 #include "string.h"
 #include "scope.h"
 #include "event.h"
@@ -28,6 +29,7 @@ public:
     Flag * that;
     Dict<uint> byName;
     Map<String> byId;
+    List<Session> sessions;
     uint largest;
     bool again;
 
@@ -187,4 +189,23 @@ uint Flag::largestId()
     if ( ::flagWatcher )
         return ::flagWatcher->d->largest;
     return 0;
+}
+
+
+/*! Records that \a s should be called whenever a new flag is recorded. */
+
+void Flag::addWatcher( class Session * s )
+{
+    if ( !::flagWatcher )
+        setup();
+    ::flagWatcher->d->sessions.append( s );
+}
+
+
+/*! Forgets \a s. */
+
+void Flag::removeWatcher( class Session * s )
+{
+    if ( ::flagWatcher )
+        ::flagWatcher->d->sessions.take( ::flagWatcher->d->sessions.find( s ) );
 }

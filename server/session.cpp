@@ -12,6 +12,7 @@
 #include "event.h"
 #include "query.h"
 #include "scope.h"
+#include "flag.h"
 #include "map.h"
 #include "log.h"
 
@@ -82,6 +83,7 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
     if ( d->mailbox->sessions() )
         d->mailbox->sessions()->firstElement();
     d->mailbox->addSession( this );
+    Flag::addWatcher( this );
     if ( other ) {
         d->uidnext = other->d->uidnext;
         d->nextModSeq = other->d->nextModSeq;
@@ -126,6 +128,8 @@ void Session::end()
 {
     if ( !d->mailbox )
         return;
+
+    Flag::removeWatcher( this );
 
     d->mailbox->removeSession( this );
     if ( d->mailbox->sessions() )
@@ -1033,4 +1037,14 @@ void Session::clearUnannounced()
 {
     d->msns.add( d->unannounced );
     d->unannounced.clear();
+}
+
+
+/*! Does whatever is necessary to tell the client about new
+    flags. This is really a hack for ImapSession.
+*/
+
+void Session::sendFlagUpdate()
+{
+    
 }

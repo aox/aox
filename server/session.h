@@ -68,6 +68,8 @@ public:
     void addUnannounced( const MessageSet & );
     void clearUnannounced();
 
+    virtual void sendFlagUpdate();
+
 private:
     friend class SessionInitialiser;
     class SessionData *d;

@@ -21,11 +21,14 @@ public:
 
     static String name( uint );
     static uint id( const String & );
-    static uint largestId();
 
+    static uint largestId();
     static StringList allFlags();
+    static void addWatcher( class Session * );
+    static void removeWatcher( class Session * );
 
     void execute();
+
 
 private:
     friend class FlagObliterator;

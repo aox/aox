@@ -32,6 +32,8 @@ public:
 
     void clearExpunged( uint );
 
+    void sendFlagUpdate();
+
 private:
     class ImapSessionData * d;
 

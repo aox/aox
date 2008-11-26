@@ -21,7 +21,8 @@ public:
                        uidnext( 0 ), nms( 0 ), cms( 0 ),
                        emitting( false ),
                        existsResponse( 0 ), recentResponse( 0 ),
-                       uidnextResponse( 0 ) {}
+                       uidnextResponse( 0 ),
+                       flagUpdate( 0 ), permaFlagUpdate( 0 ) {}
 
     class IMAP * i;
     Log * l;
@@ -107,6 +108,44 @@ public:
     ExistsResponse * existsResponse;
     RecentResponse * recentResponse;
     UidnextResponse * uidnextResponse;
+
+    uint flagUpdate;
+    uint permaFlagUpdate;
+
+    class FlagUpdateResponse
+        : public ImapResponse
+    {
+    public:
+        FlagUpdateResponse( ImapSession * s, ImapSessionData * data, bool p )
+            : ImapResponse( s ), d( data ), permahack( p ) {
+        }
+        String text() const {
+            if ( ( permahack ? d->permaFlagUpdate : d->flagUpdate )
+                 >= Flag::largestId() )
+                return "";
+            String x;
+            if ( permahack )
+                x.append( "OK [PERMANENT" );
+            x.append( "FLAGS (" );
+            x.append( Flag::allFlags().join( " " ) );
+            if ( permahack )
+                x.append( " \\*" );
+            x.append( ")" );
+            if ( permahack )
+                x.append( "] permanent flags" );
+            return x;
+        }
+        void setSent() {
+            if ( permahack )
+                d->permaFlagUpdate = Flag::largestId();
+            else
+                d->flagUpdate = Flag::largestId();
+            ImapResponse::setSent();
+        }
+
+        ImapSessionData * d;
+        bool permahack;
+    };
 };
 
 
@@ -206,6 +245,8 @@ void ImapSession::emitUpdates( Transaction * t )
 
 void ImapSession::emitFlagUpdates( Transaction * t )
 {
+    sendFlagUpdate();
+
     if ( !d->nms )
         return;
     if ( d->cms >= nextModSeq() )
@@ -341,4 +382,15 @@ void ImapSession::abort()
 {
     if ( d->i && d->i->session() == this )
         (void)new ImapByeResponse( d->i, "BYE Session must be aborted" );
+}
+
+
+/*! Sends a FLAG blah, used by Flag whenever the flag list grows. */
+
+void ImapSession::sendFlagUpdate()
+{
+    if ( d->flagUpdate >= Flag::largestId() )
+        return;
+    (void)new ImapSessionData::FlagUpdateResponse( this, d, false );
+    (void)new ImapSessionData::FlagUpdateResponse( this, d, true );
 }
