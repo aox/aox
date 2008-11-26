@@ -1418,6 +1418,8 @@ uint Injector::addFlags( Query * q, Injectee * m, Mailbox * mb )
 
 uint Injector::addAnnotations( Query * q, Injectee * m, Mailbox * mb )
 {
+    if ( !d->annotationNameCreator )
+        return 0;
     uint n = 0;
     List<Annotation>::Iterator ai( m->annotations( mb ) );
     while ( ai ) {
