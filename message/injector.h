@@ -60,6 +60,9 @@ public:
 
     void setTransaction( class Transaction * );
 
+    void addAddress( Address * );
+    uint addressId( Address * );
+
 private:
     class InjectorData * d;
 
