@@ -403,10 +403,10 @@ AoxCommand * AoxCommand::create( StringList * args )
             cmd = new ShowBuild( args );
         else if ( noun == "cf" || noun == "configuration" )
             cmd = new ShowConfiguration( args );
-        else if ( noun == "schema" )
-            cmd = new ShowSchema( args );
         else if ( noun == "counts" )
             cmd = new ShowCounts( args );
+        else if ( noun == "schema" )
+            cmd = new ShowSchema( args );
         else if ( noun == "queue" )
             cmd = new ShowQueue( args );
         else if ( noun == "search" )
