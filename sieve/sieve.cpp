@@ -20,6 +20,7 @@
 #include "ustringlist.h"
 #include "sievescript.h"
 #include "sieveaction.h"
+#include "transaction.h"
 #include "spoolmanager.h"
 #include "addressfield.h"
 #include "configuration.h"
@@ -37,7 +38,9 @@ public:
           state( 0 ),
           handler( 0 ),
           autoresponses( 0 ),
-          injector( 0 )
+          transaction( 0 ),
+          injector( 0 ),
+          vacations( 0 )
     {}
 
     class Recipient
@@ -84,7 +87,9 @@ public:
     uint state;
     EventHandler * handler;
     Query * autoresponses;
+    Transaction * transaction;
     Injector * injector;
+    List<SieveAction> * vacations;
 
     Recipient * recipient( Address * a );
 };
@@ -222,18 +227,23 @@ void Sieve::execute()
         }
 
         if ( !d->autoresponses ) {
-            List<SieveAction> * v = vacations();
-            if ( v->isEmpty() ) {
+            d->vacations = vacations();
+            if ( d->vacations->isEmpty() ) {
                 d->state = 2;
             }
             else {
+                d->transaction = new Transaction( this );
+                d->injector->setTransaction( d->transaction );
+//              d->transaction->enqueue(
+//                  new Query( "lock autoresponses in exclusive mode",
+//                             this ) );
                 d->autoresponses = new Query( "", this );
                 String s = "select handle from autoresponses "
                            "where expires_at > current_timestamp "
                            "and (";
                 bool first = true;
                 bool n = 1;
-                List<SieveAction>::Iterator i( v );
+                List<SieveAction>::Iterator i( d->vacations );
                 while ( i ) {
                     if ( !first )
                         s.append( " or " );
@@ -265,11 +275,11 @@ void Sieve::execute()
                 }
                 s.append( ")" );
                 d->autoresponses->setString( s );
-                d->autoresponses->execute();
+                d->transaction->enqueue( d->autoresponses );
+                d->transaction->execute();
             }
         }
 
-        List<SieveAction> * v = vacations();
         if ( d->autoresponses ) {
             if ( !d->autoresponses->done() )
                 return;
@@ -277,41 +287,21 @@ void Sieve::execute()
             while ( d->autoresponses->hasResults() ) {
                 Row * r = d->autoresponses->nextRow();
                 UString h = r->getUString( "handle" );
-                List<SieveAction>::Iterator i( v );
+                List<SieveAction>::Iterator i( d->vacations );
                 while ( i && i->handle() != h )
                     i++;
                 if ( i ) {
                     log( "Suppressing vacation response to " +
                          i->recipientAddress()->toString() );
-                    v->take( i );
+                    d->vacations->take( i );
                 }
             }
         }
 
-        List<SieveAction>::Iterator i( v );
+        List<SieveAction>::Iterator i( d->vacations );
         while ( i ) {
-            Query * q
-                = new Query(
-                    "insert into autoresponses "
-                    "(sent_from, sent_to, expires_at, handle) "
-                    "values ("
-                    "(select id from addresses "
-                    " where lower(localpart)=$1 and lower(domain)=$2 "
-                    " order by name limit 1), "
-                    "(select id from addresses "
-                    " where lower(localpart)=$3 and lower(domain)=$4 "
-                    " order by name limit 1), "
-                    "$5, $6)", 0 );
-            q->bind( 1, i->senderAddress()->localpart().lower() );
-            q->bind( 2, i->senderAddress()->domain().lower() );
-            q->bind( 3, i->recipientAddress()->localpart().lower() );
-            q->bind( 4, i->recipientAddress()->domain().lower() );
-            Date e;
-            e.setCurrentTime();
-            e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
-            q->bind( 5, e.isoDateTime() );
-            q->bind( 6, i->handle() );
-            q->execute();
+            d->injector->addAddress( i->senderAddress() );
+            d->injector->addAddress( i->recipientAddress() );
 
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );
@@ -325,7 +315,7 @@ void Sieve::execute()
     }
 
 
-    // 2: main injection of the incoming message
+    // 2: injection of all messages
     if ( d->state == 2 ) {
         List<Mailbox>::Iterator i( mailboxes() );
         StringList flags;
@@ -348,7 +338,7 @@ void Sieve::execute()
         d->injector->execute();
     }
 
-    // 3: wait for the main injector to finish.
+    // 3: wait for the injector to finish.
     if ( d->state == 3 ) {
         if ( d->injector && !d->injector->done() )
             return;
@@ -361,6 +351,32 @@ void Sieve::execute()
             }
         }
         d->state = 4;
+    }
+
+    // 4: record what autoresponses were sent
+    if ( d->state == 4 ) {
+        List<SieveAction>::Iterator i( d->vacations );
+        while ( i ) {
+            Query * q
+                = new Query(
+                    "insert into autoresponses "
+                    "(sent_from, sent_to, expires_at, handle) "
+                    "values ($1, $2, $3, $4)", this );
+            q->bind( 1, d->injector->addressId( i->senderAddress() ) );
+            q->bind( 1, d->injector->addressId( i->recipientAddress() ) );
+            Date e;
+            e.setCurrentTime();
+            e.setUnixTime( e.unixTime() + 86400 * i->expiry() );
+            q->bind( 3, e.isoDateTime() );
+            q->bind( 4, i->handle() );
+            d->transaction->enqueue( q );
+            ++i;
+        }
+        
+        if ( d->transaction )
+            d->transaction->commit();
+
+        d->state = 5;
         if ( d->handler )
             d->handler->execute();
     }
