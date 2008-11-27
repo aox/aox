@@ -269,22 +269,25 @@ void Sieve::execute()
             }
         }
 
-        if ( d->autoresponses && !d->autoresponses->done() )
-            return;
-
         List<SieveAction> * v = vacations();
-        while ( d->autoresponses->hasResults() ) {
-            Row * r = d->autoresponses->nextRow();
-            UString h = r->getUString( "handle" );
-            List<SieveAction>::Iterator i( v );
-            while ( i && i->handle() != h )
-                i++;
-            if ( i ) {
-                log( "Suppressing vacation response to " +
-                     i->recipientAddress()->toString() );
-                v->take( i );
+        if ( d->autoresponses ) {
+            if ( !d->autoresponses->done() )
+                return;
+
+            while ( d->autoresponses->hasResults() ) {
+                Row * r = d->autoresponses->nextRow();
+                UString h = r->getUString( "handle" );
+                List<SieveAction>::Iterator i( v );
+                while ( i && i->handle() != h )
+                    i++;
+                if ( i ) {
+                    log( "Suppressing vacation response to " +
+                         i->recipientAddress()->toString() );
+                    v->take( i );
+                }
             }
         }
+
         List<SieveAction>::Iterator i( v );
         while ( i ) {
             Query * q
@@ -317,8 +320,8 @@ void Sieve::execute()
                                       remote );
             ++i;
         }
-        if ( d->autoresponses->done() )
-            d->state = 2;
+
+        d->state = 2;
     }
 
 
