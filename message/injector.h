@@ -58,6 +58,8 @@ public:
     void addInjection( List<Injectee> * );
     void addDelivery( Injectee *, Address *, List<Address> * );
 
+    void setTransaction( class Transaction * );
+
 private:
     class InjectorData * d;
 
