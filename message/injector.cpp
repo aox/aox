@@ -731,6 +731,28 @@ void Injector::updateAddresses( List<Address> * newAddresses )
 }
 
 
+/*! Ensures that \a a is present in the database after injection. */
+
+void Injector::addAddress( Address * a )
+{
+    String k = addressKey( a );
+    d->addresses.insert( k, a );
+}
+
+
+/*! Returns the database ID of \a a, or 0 if this injector hasn't added
+    \a a to the database.
+*/
+
+uint Injector::addressId( Address * a )
+{
+    Address * a2 = d->addresses.find( addressKey( a ) );
+    if ( !a2 )
+        return 0;
+    return a2->id();
+}
+
+
 /*! This function creates any unknown names found by
     findDependencies().  It creates up to four subtransactions and
     advances to the next state, trusting Transaction to queue the work
@@ -1351,13 +1373,12 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
             List< Address >::Iterator ai( al );
             uint n = 0;
             while ( ai ) {
-                Address * a = d->addresses.find( addressKey( ai ) );
                 qa->bind( 1, mid );
                 qa->bind( 2, part );
                 qa->bind( 3, hf->position() );
                 qa->bind( 4, hf->type() );
                 qa->bind( 5, n );
-                qa->bind( 6, a->id() );
+                qa->bind( 6, addressId( ai ) );
                 qa->submitLine();
                 ++ai;
                 ++n;
