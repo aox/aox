@@ -441,6 +441,19 @@ void Injector::next()
 }
 
 
+/*! Instructs this Injector to use a subtransaction of \a t for all
+    its database work.
+
+    Does nothing if the injector already has a transaction.
+*/
+
+void Injector::setTransaction( class Transaction * t )
+{
+    if ( t && !d->transaction )
+        d->transaction = t->subTransaction( this );
+}
+
+
 void Injector::execute()
 {
     Scope x( log() );
@@ -467,7 +480,8 @@ void Injector::execute()
                 d->state = Done;
             }
             else {
-                d->transaction = new Transaction( this );
+                if ( !d->transaction )
+                    d->transaction = new Transaction( this );
                 next();
             }
             break;
@@ -1962,5 +1976,3 @@ Injectee * Injectee::wrapUnparsableMessage( const String & message,
     m->setWrapped( true );
     return m;
 }
-
-
