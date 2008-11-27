@@ -63,6 +63,8 @@ total size of the mail stored.
 The -f flag causes it to collect slow-but-accurate statistics. Without
 it, by default, you get quick estimates (more accurate after VACUUM
 ANALYSE).
+.IP "aox show queue"
+Displays a list of all mail queued for delivery to a smarthost.
 .IP "aox show schema"
 Displays the revision of the existing database schema.
 .IP "aox upgrade schema [-n]"
@@ -79,6 +81,9 @@ inclusion in
 This command is meant to be used while the server is running. It does
 its work in small chunks, so it can be restarted at any time, and is
 tolerant of interruptions.
+.IP "aox tune database <mostly-writing|mostly-reading|advanced-reading>"
+Adjusts the database indices and configuration to suit expected usage
+patterns.
 .IP "aox list mailboxes [-d] [-o username] [pattern]"
 Displays a list of mailboxes matching the specified shell glob pattern.
 Without a pattern, all mailboxes are listed.

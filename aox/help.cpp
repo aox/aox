@@ -67,6 +67,15 @@ void Help::execute()
             "    The -v flag enables (slightly) verbose diagnostic output.\n"
         );
     }
+    else if ( a == "show" && b.startsWith( "build" ) ) {
+        fprintf(
+            stderr,
+            "  show build -- Display build settings.\n\n"
+            "    Synopsis: aox show build\n\n"
+            "    Displays the build settings used for this installation.\n"
+            "    (As configured in Jamsettings.)\n"
+        );
+    }
     else if ( a == "show" && ( b == "cf" || b.startsWith( "conf" ) ) ) {
         fprintf(
             stderr,
@@ -83,15 +92,6 @@ void Help::execute()
             "      aox show configuration\n"
             "      aox show cf -p\n"
             "      aox show cf -v imap-address\n"
-        );
-    }
-    else if ( a == "show" && b.startsWith( "build" ) ) {
-        fprintf(
-            stderr,
-            "  show build -- Display build settings.\n\n"
-            "    Synopsis: aox show build\n\n"
-            "    Displays the build settings used for this installation.\n"
-            "    (As configured in Jamsettings.)\n"
         );
     }
     else if ( a == "show" && b.startsWith( "count" ) ) {
@@ -112,6 +112,14 @@ void Help::execute()
             "  show schema -- Display schema revision.\n\n"
             "    Synopsis: aox show schema\n\n"
             "    Displays the revision of the existing database schema.\n"
+        );
+    }
+    else if ( a == "show" && b == "queue" ) {
+        fprintf(
+            stderr,
+            "  show queue -- Display the outgoing mail queue.\n\n"
+            "    Synopsis: aox show queue\n\n"
+            "    Displays a list of mail queued for delivery to a smarthost.\n"
         );
     }
     else if ( a == "upgrade" && b == "schema" ) {
@@ -452,12 +460,14 @@ void Help::execute()
             "    show build         -- Displays compile-time configuration.\n"
             "    show counts        -- Shows number of users, messages etc.\n"
             "    show configuration -- Displays runtime configuration.\n"
+            "    show queue         -- Displays mail queued for delivery.\n"
             "\n"
             "    show schema        -- Displays the existing schema revision.\n"
             "    upgrade schema     -- Upgrades an older schema to work with\n"
             "                          the current server.\n"
             "    update database    -- Updates the database contents, if the\n"
             "                          current server needs to.\n"
+            "    tune database      -- Adjust database to suit expected use.\n"
             "\n"
             "                       -- User and mailbox management.\n"
             "    list <users|mailboxes|aliases|rights>\n"
@@ -469,6 +479,7 @@ void Help::execute()
             "    reparse            -- Try to reparse messages that could not\n"
             "                          be parsed by an older server.\n"
             "\n"
+            "    undelete           -- Undelete accidentally removed messages.\n"
             "    vacuum             -- Permanently remove deleted messages.\n"
             "    anonymise          -- Anonymise a message for a bug report.\n"
             "\n"
