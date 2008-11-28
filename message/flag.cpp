@@ -57,11 +57,13 @@ Flag::Flag()
 void Flag::execute()
 {
     if ( !d->q ) {
-        d->q = new Query( "select id, name from flag_names where id >= $1",
+        d->again = false;
+        d->q = new Query( "select id, name from flag_names where id > $1",
                           this );
         d->q->bind( 1, d->largest );
         d->q->execute();
     }
+
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
         String name = r->getString( "name" );
@@ -72,11 +74,20 @@ void Flag::execute()
         if ( *id > d->largest )
             d->largest = *id;
     }
-    if ( d->q->done() ) {
-        d->q = 0;
-        if ( d->again ) {
-            d->again = false;
-            execute();
+    if ( !d->q->done() )
+        return;
+
+    d->q = 0;
+    if ( d->again ) {
+        d->again = false;
+        execute();
+    }
+    else {
+        List<Session>::Iterator i( d->sessions );
+        while ( i ) {
+            Session * s = i;
+            ++i;
+            s->sendFlagUpdate();
         }
     }
 }
