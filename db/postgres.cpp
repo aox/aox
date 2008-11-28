@@ -1194,6 +1194,8 @@ String Postgres::queryString( Query * q )
                 // 123 or foo or "f,o": we ignore the last for now.
                 if ( !l.contains( "," ) && !l.isEmpty() ) {
                     alone = true;
+                    if ( l.isQuoted() )
+                        l = l.unquoted();
                     values->insert( it, new Query::Value( qv->position(), l,
                                                           qv->format() ) );
                     (void)values->take( it );
