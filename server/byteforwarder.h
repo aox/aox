@@ -25,7 +25,7 @@ private:
     Connection * p;
     bool u;
     bool eof;
-    char b[16384];
+    char b[24576];
     uint o;
     uint l;
 };
