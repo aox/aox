@@ -489,15 +489,16 @@ void Allocator::mark()
     while ( tos > 0 ) {
         AllocationBlock * b = stack[--tos];
         // mark its children
-        uint n = b->x.number;
-        if ( n == 32767 ) {
+        uint number = b->x.number;
+        if ( number == 32767 ) {
             Allocator * a = owner( b );
-            n = ( a->step - bytes ) / sizeof( void* );
+            number = ( a->step - bytes ) / sizeof( void* );
         }
-        while ( n ) {
-            n--;
+        uint n = 0;
+        while ( n < number ) {
             if ( b->payload[n] )
                 mark( b->payload[n] );
+            n++;
         }
     }
     ::free( stack );
