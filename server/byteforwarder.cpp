@@ -131,16 +131,14 @@ void ByteForwarder::setSibling( ByteForwarder * sibling )
 
 void ByteForwarder::read()
 {
-    if ( !canRead() )
-        return;
-    int r = 1;
-    while ( r > 0 ) {
-        if ( l )
-            s->write();
-        r = 0;
-        uint m = 16384 - o - l;
-        if ( m )
-            r = ::read( fd(), b + o + l, m );
+    if ( l )
+        s->write();
+    while ( canRead() ) {
+        uint m = 24576 - o - l;
+        if ( !m )
+            return;
+        
+        int r = ::read( fd(), b + o + l, m );
         if ( r > 0 ) {
             l += r;
             s->write();
@@ -148,7 +146,10 @@ void ByteForwarder::read()
         else if ( errno == ECONNRESET || r == 0 ) {
             eof = true;
         }
-        else if ( r < 0 && errno != EAGAIN && errno != EWOULDBLOCK ) {
+        else if ( r < 0 && ( errno == EAGAIN || errno != EWOULDBLOCK ) ) {
+            return;
+        }
+        else if ( r < 0 ) {
             log( "Read (" + fn( m ) + " bytes) failed with errno " +
                  fn( errno ) );
             close();
