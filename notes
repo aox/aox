@@ -682,6 +682,18 @@ We should test multipart/signed and multipart/encrypted support.
   sure they survive the round trip. No doubt there will be bugs.
 
 
+Per-user client certificates
+
+  We could store zero or more client certificates (or fingerprints, or
+  whatever) per user. When a user has logged in, we'd check whether
+  that user has a non-zero list of certificates, and if so, we'd do a
+  TLS renegotiation, this time demanding a client certificate. If the
+  client certificate matches, we allow access, otherwise we don't (and
+  we alert the user).
+
+  A bit difficult to do with the hands-off tlsproxy.
+
+
 We should store bodyparts.text for PDF/DOC.
 
   We need non-GPLed code to convert PDF and DOC to plaintext.
