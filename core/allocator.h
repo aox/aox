@@ -42,7 +42,6 @@ public:
     void setNumPointers( const void *, uint );
 
     static uint sizeOf( void * );
-    static void scan( void * );
 
 private:
     typedef unsigned long int ulong;
