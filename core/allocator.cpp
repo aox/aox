@@ -38,6 +38,7 @@ const uint SizeLimit = 512 * 1024 * 1024;
 
 static int total;
 static uint allocated;
+static uint objects;
 static uint tos;
 static uint peak;
 static AllocationBlock ** stack;
@@ -112,7 +113,7 @@ static Allocator * allocators[32];
 static struct {
     void * root;
     const char * name;
-    uint size;
+    uint objects;
 } roots[1024];
 
 static uint numRoots;
@@ -458,6 +459,7 @@ void Allocator::mark( void * p )
         return;
     // no. mark it
     a->marked[i/bits] |= (1UL << (i%bits));
+    objects++;
     // is there any chance that it contains children?
     if ( !b->x.number )
         return;
@@ -525,15 +527,17 @@ void Allocator::free()
     total = 0;
     peak = 0;
     uint freed = 0;
-    uint objects = 0;
+    objects = 0;
 
     // mark
     uint i = 0;
     while ( i < ::numRoots ) {
+        uint o = objects;
         mark( ::roots[i].root );
+        mark();
+        ::roots[i].objects = objects - o;
         i++;
     }
-    mark();
     gettimeofday( &afterMark, 0 );
 
     // and sweep
@@ -547,7 +551,6 @@ void Allocator::free()
                 a->sweep();
             freed = freed + ( taken - a->taken ) * a->step;
             total = total + a->taken * a->step;
-            objects += a->taken;
             a = a->next;
         }
         Allocator * s = 0;
@@ -625,7 +628,24 @@ void Allocator::free()
             }
             i++;
         }
-        log( objects, Log::Info );
+        log( objects, Log::Debug );
+    }
+    const uint ObjectLimit = 8192;
+    if ( verbose && objects > ObjectLimit ) {
+        i = 0;
+        while ( i < numRoots ) {
+            if ( roots[i].objects > ObjectLimit/2 ) {
+                String objects = "Root ";
+                objects.appendNumber( i );
+                objects.append( " (" );
+                objects.append( roots[i].name );
+                objects.append( ") reaches " );
+                objects.appendNumber( roots[i].objects );
+                objects.append( " objects." );
+                log( objects, Log::Debug );
+            }
+            i++;
+        }
     }
     ::allocated = 0;
 }
@@ -705,7 +725,7 @@ void Allocator::addEternal( const void * p, const char * t )
 {
     ::roots[::numRoots].root = (void*)p;
     ::roots[::numRoots].name = t;
-    ::roots[::numRoots].size = 0;
+    ::roots[::numRoots].objects = 0;
     ::numRoots++;
     if ( ::numRoots < 1024 )
         return;
@@ -734,7 +754,7 @@ void Allocator::removeEternal( void * p )
     while( i < ::numRoots ) {
         roots[i].root = roots[i+1].root;
         roots[i].name = roots[i+1].name;
-        roots[i].size = 0;
+        roots[i].objects = roots[i+1].objects;
         i++;
     }
 }
