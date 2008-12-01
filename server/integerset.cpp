@@ -68,6 +68,7 @@ public:
         }
         Block( const Block & other )
             : Garbage(), start( other.start ), count( other.count ) {
+            setFirstNonPointer( &start );
             uint i = 0;
             while ( i < ArraySize ) {
                 contents[i] = other.contents[i];
