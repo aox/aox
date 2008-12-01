@@ -44,8 +44,6 @@ public:
     static uint sizeOf( void * );
     static void scan( void * );
 
-    static void dumpRandomObject();
-
 private:
     typedef unsigned long int ulong;
 
@@ -66,10 +64,6 @@ private:
     static void mark();
     void sweep();
     void insert();
-
-    static uint scan1( void *, bool = false, uint = 0, uint = UINT_MAX );
-    static void scan2( void * );
-    static void scanRoots();
 };
 
 

@@ -39,6 +39,7 @@ const uint SizeLimit = 512 * 1024 * 1024;
 static int total;
 static uint allocated;
 static uint objects;
+static uint marked;
 static uint tos;
 static uint peak;
 static AllocationBlock ** stack;
@@ -114,6 +115,7 @@ static struct {
     void * root;
     const char * name;
     uint objects;
+    uint size;
 } roots[1024];
 
 static uint numRoots;
@@ -460,6 +462,7 @@ void Allocator::mark( void * p )
     // no. mark it
     a->marked[i/bits] |= (1UL << (i%bits));
     objects++;
+    ::marked += a->step;
     // is there any chance that it contains children?
     if ( !b->x.number )
         return;
@@ -528,14 +531,18 @@ void Allocator::free()
     peak = 0;
     uint freed = 0;
     objects = 0;
+    ::marked = 0;
 
     // mark
     uint i = 0;
     while ( i < ::numRoots ) {
         uint o = objects;
+        uint m = ::marked;
         mark( ::roots[i].root );
         mark();
         ::roots[i].objects = objects - o;
+        ::roots[i].size = ::marked - m;
+        
         i++;
     }
     gettimeofday( &afterMark, 0 );
@@ -641,7 +648,9 @@ void Allocator::free()
                 objects.append( roots[i].name );
                 objects.append( ") reaches " );
                 objects.appendNumber( roots[i].objects );
-                objects.append( " objects." );
+                objects.append( " objects, total size " );
+                objects.append( String::humanNumber( roots[i].size ) );
+                objects.append( "b" );
                 log( objects, Log::Debug );
             }
             i++;
@@ -678,6 +687,23 @@ void Allocator::sweep()
         b++;
     }
     base = 0;
+}
+
+
+/*! Returns the amount of memory allocated to hold \a p and any object
+    to which p points.
+
+    As a side effect, this marks \a p and the other objects so they
+    won't be freed during the next collection.
+*/
+
+uint Allocator::sizeOf( void * p )
+{
+    ::objects = 0;
+    ::marked = 0;
+    mark( p );
+    mark();
+    return ::marked;
 }
 
 
@@ -726,6 +752,7 @@ void Allocator::addEternal( const void * p, const char * t )
     ::roots[::numRoots].root = (void*)p;
     ::roots[::numRoots].name = t;
     ::roots[::numRoots].objects = 0;
+    ::roots[::numRoots].size = 0;
     ::numRoots++;
     if ( ::numRoots < 1024 )
         return;
@@ -808,240 +835,4 @@ uint Allocator::inUse()
 uint Allocator::chunkSize() const
 {
     return step;
-}
-
-
-/*! Scans the pointer in \a p and returns its total size, ie. the sum
-    of the sizes of the objects to which it contains. If it contains
-    several pointers to the same object, that object is counted several
-    times.
-
-    if \a print is true and the total cost is ast least \a limit,
-    scan1() also prints some debug output on stdout, prefixed by
-    \a level spaces. If \a print is false, \a level and \a limit are
-    ignored.
-*/
-
-uint Allocator::scan1( void * p, bool print, uint level, uint limit )
-{
-    uint sz = 0;
-
-    Allocator * a = owner( p );
-    if ( !a )
-        return 0;
-
-    ulong i = ((ulong)p - (ulong)a->buffer) / a->step;
-    AllocationBlock * b = (AllocationBlock *)a->block( i );
-    if ( !b )
-        return 0;
-    if ( ! (a->used[i/bits] & 1 << (i%bits)) )
-        return 0;
-    if ( (a->marked[i/bits] & 1 << (i%bits)) )
-        return 0;
-    if ( b->x.magic != ::magic )
-        return 0;
-
-    a->marked[i/bits] |= (1 << (i%bits));
-    uint n = b->x.number;
-    while ( n ) {
-        n--;
-        if ( b->payload[n] )
-            sz += scan1( b->payload[n], print, level+1, limit );
-    }
-    sz += a->step;
-
-    if ( !print || level >= 5 || (level > 0 && sz < limit ) )
-        return sz;
-
-    char s[16];
-    if ( sz > 1024*1024*1024 )
-        sprintf( s, "%.1fGB", sz / 1024.0 / 1024.0 / 1024.0 );
-    else if ( sz > 1024*1024 )
-        sprintf( s, "%.1fMB", sz / 1024.0 / 1024.0 );
-    else if ( sz > 1024 )
-        sprintf( s, "%.1fK", sz / 1024.0 );
-    else
-        sprintf( s, "%d", sz );
-    const char * levelspaces[] = {
-        "",
-        "    ",
-        "        ",
-        "            ",
-        "                "
-    };
-    printf( "%s0x%08lx (%s)\n", levelspaces[level], (ulong)p, s );
-    return sz;
-}
-
-
-/*! Scans the pointer in \a p and clears all the marked bits left by
-    scan1().
-*/
-
-void Allocator::scan2( void * p )
-{
-    Allocator * a = owner( p );
-    if ( !a )
-        return;
-
-    ulong i = ((ulong)p - (ulong)a->buffer) / a->step;
-    AllocationBlock * b = (AllocationBlock *)a->block( i );
-    if ( !b )
-        return;
-    if ( ! (a->used[i/bits] & 1 << (i%bits)) )
-        return;
-    if ( ! (a->marked[i/bits] & 1 << (i%bits)) )
-        return;
-    if ( b->x.magic != ::magic )
-        return;
-
-    a->marked[i/bits] &= ~(1 << (i%bits));
-    uint n = b->x.number;
-    while ( n ) {
-        n--;
-        if ( b->payload[n] )
-            scan2( b->payload[n] );
-    }
-}
-
-
-/*! This debug function prints a summary of the memory usage for \a p
-    on stdout. It can be conveniently be called using 'call
-    Allocator::scan( \a p )' from gdb.
-*/
-
-void Allocator::scan( void * p )
-{
-    scan1( p, true, 0, sizeOf( p ) / 20 );
-    scan2( p );
-}
-
-
-/*! Returns the amount of memory allocated to hold \a p and any object
-    to which p points.
-
-    The return value can bee an overstatement. For example, if \a p
-    contains two pointers to the same object, that object is counted
-    twice.
-*/
-
-uint Allocator::sizeOf( void * p )
-{
-    uint n = scan1( p, false );
-    scan2( p );
-    return n;
-}
-
-
-/*! Prints the memory usage of the roots.
-*/
-
-void Allocator::scanRoots()
-{
-    uint n = 0;
-    while ( n < numRoots ) {
-        if ( roots[n].root )
-            fprintf( stdout, "%s(%d) => %d\n", roots[n].name, n,
-                     sizeOf( roots[n].root ) );
-        n++;
-    }
-}
-
-
-// XXX This is a hack. Internal use only. Don't expect the function to
-// remain unchanged, or even to remain at all.
-
-extern "C" {
-    void *memcpy(void *dest, const void *src, size_t n);
-    long int random(void);
-};
-
-/*! This debug function selects an allocated memory block at random
-    and dumps its contents to stdout.
-
-    Each allocated byte has the same chance of being chosen, so this
-    function has a tendency to pick large objects. (Although, if
-    almost all of the allocated objects are 32-byte objects, this
-    function is almost certain to pick a 32-byte object.)
-*/
-
-void Allocator::dumpRandomObject()
-{
-    if ( !::total )
-        return;
-
-    // pick a random byte
-    uint r = (uint)random() % ::total;
-
-    // find that block
-    uint i = 0;
-    uint t = 0;
-    Allocator * a = 0;
-    AllocationBlock * b = 0;
-    while ( !b && i < 32 ) {
-        a = allocators[i];
-        while ( a && !b ) {
-            if ( t + a->taken * a->step > r ) {
-                uint n = 0;
-                while ( !b && n < a->capacity ) {
-                    if ( a->used[n/bits] & (1UL<<(n%bits)) ) {
-                        t += a->step;
-                        if ( t > r )
-                            b = (AllocationBlock *)a->block( n );
-                    }
-                    n++;
-                }
-            }
-            t = t + a->taken * a->step;
-            if ( !b )
-                a = a->next;
-        }
-        i++;
-    }
-
-    if ( !a || !b ) {
-        // shouldn't happen, but, well, before the first GC the rules
-        // are different.
-        fprintf( stdout, "Found nothing to dump (%d, %d, %d)\n",
-                 t, r, total );
-        return;
-    }
-
-    // dump the object: is it a string?
-    bool s = true;
-    i = 0;
-    while ( s && i < 200 && i < a->step-bytes ) {
-        char c = ((char*)b->payload)[i];
-        if ( c > 126 || ( c < 32 && c != 10 && c != 13 ) )
-             s = false;
-        i++;
-    }
-    if ( s ) {
-        char buffer[201];
-        memset( buffer, 0, 201 );
-        memcpy( buffer, b->payload,
-                a->step - bytes > 200 ? 200 : a->step - bytes );
-        // yes, so dump it as one.
-        fprintf( stdout,
-                 "String, maximum length %d, address %08lx, content:\n%s\n",
-                 a->step - bytes, (ulong)(b->payload), buffer );
-    }
-    else {
-        // no, so dump it as hex
-        fprintf( stdout,
-                 "Data, maximum length %d, address %08lx, content:\n",
-                 a->step - bytes, (ulong)(b->payload) );
-        i = 0;
-        bool crlf = false;
-        while ( i < 200 && i < a->step-bytes ) {
-            crlf = ( i % 16 == 15 );
-            fprintf( stdout, "%02x %s",
-                     ((char*)b->payload)[i], crlf ? "\n" : "" );
-            i++;
-        }
-        if ( !crlf )
-            fprintf( stdout, "%s\n", i < a->step-bytes ? "..." : "" );
-    }
-
-
 }
