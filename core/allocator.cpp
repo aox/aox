@@ -25,7 +25,7 @@ struct AllocationBlock
     union {
         struct {
             uint magic: 15;
-            uint number: 15;
+            uint number: 7;
         } x;
         uint y;
         void * z;
@@ -286,8 +286,8 @@ void * Allocator::allocate( uint size, uint pointers )
                             log( "Internal error in allocate" );
                         die( Memory );
                     }
-                    if ( pointers >= 32768 )
-                        b->x.number = 32767;
+                    if ( pointers >= 128 )
+                        b->x.number = 127;
                     else
                         b->x.number = pointers;
                     b->x.magic = ::magic;
@@ -351,8 +351,8 @@ void Allocator::deallocate( void * p )
 
 void Allocator::setNumPointers( const void * p, uint n )
 {
-    if ( n * sizeof( void * ) >= step || n > 32767 )
-        n = 32767;
+    if ( n * sizeof( void * ) >= step || n > 127 )
+        n = 127;
 
     ulong i = ((ulong)p - (ulong)buffer) / step;
     if ( i >= capacity )
@@ -492,7 +492,7 @@ void Allocator::mark()
         AllocationBlock * b = stack[--tos];
         // mark its children
         uint number = b->x.number;
-        if ( number == 32767 ) {
+        if ( number == 127 ) {
             Allocator * a = owner( b );
             number = ( a->step - bytes ) / sizeof( void* );
         }
