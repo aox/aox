@@ -1264,6 +1264,16 @@ Simon, /Segfault when accessing web-archive
   with the other known bugs.
 
 
+Caches that aren't
+
+  AddressCache isn't. Solvable by never using it in Archiveopteryx.
+  The AddressCreator takes over its duties.
+
+  There's a session "cache" in HTTP.
+
+  Digest-MD5 nonce
+
+
 Mike Geiger's Thunderbird problems
 
   TLS breakage (not yet reproduced) and copy-to-sent hanging.
