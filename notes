@@ -31,6 +31,9 @@ Schedule
   The l right is no longer granted to everyone. (Error301 needs
   consideration.)
 
+  Now sends FLAGS updates, although their order may be less than
+  ideal.
+
 
 Release cycle
 
@@ -455,17 +458,6 @@ Threads in Archiveopteryx 4.0
              if( numCPU < 1 )
                   numCPU = 1;
         }
-
-
-Sending FLAGS updates
-
-  We could do it without horrendous inefficiency if we send a complete
-  list... have the ImapSession register a DatabaseSignal so it learns
-  about it whenever flag_names is extended, and send 'select name from
-  flag_names order by name' then.
-
-  This may give the poor client a thousand flags on a big server, so
-  I'm not eager to do it.
 
 
 Full-text search
