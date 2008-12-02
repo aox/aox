@@ -3,7 +3,6 @@
 #include "schema.h"
 
 #include "schemachecker.h"
-#include "addresscache.h"
 #include "transaction.h"
 #include "stringlist.h"
 #include "allocator.h"
