@@ -250,7 +250,7 @@ public:
     {
     public:
         String name;
-        int table, column, type, size, mod, format;
+        int table, column, type, size, mod, format, column2;
     };
 
     List<Column> columns;

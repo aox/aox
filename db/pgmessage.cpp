@@ -752,13 +752,12 @@ PgParameterDescription::PgParameterDescription( Buffer *b )
     Int16 size, Int32 type-mod, Int16 format-code) for each column.
 */
 
-PgRowDescription::PgRowDescription( Buffer *b )
+PgRowDescription::PgRowDescription( Buffer * b )
     : PgServerMessage( b )
 {
     count = decodeInt16();
     uint c = 0;
     while ( c < count ) {
-        c++;
         Column *col = new Column;
 
         col->name = decodeString();
@@ -768,10 +767,15 @@ PgRowDescription::PgRowDescription( Buffer *b )
         col->size = decodeInt16();
         col->mod = decodeInt32();
         col->format = decodeInt16();
+        // pg sends us 0 for all columns, but we need a number, so we
+        // count the columns ourselves.
+        col->column2 = c;
 
         columns.append( col );
         names.insert( col->name.data(), 8 * col->name.length(), 
-                      &col->column );
+                      &col->column2 );
+
+        c++;
     }
     end();
 }
