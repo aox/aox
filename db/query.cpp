@@ -746,7 +746,7 @@ const Column * Row::fetch( const char * f, Column::Type type, bool warn ) const
     }
 
     if ( warn && type != data[*x].type )
-        log( "Node: Expected type " + Column::typeName( type ) +
+        log( "Note: Expected type " + Column::typeName( type ) +
              " for column " + String( f ).quoted() + ", but received " +
              Column::typeName( data[*x].type ), Log::Error );
     return &data[*x];
