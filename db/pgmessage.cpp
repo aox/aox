@@ -755,8 +755,10 @@ PgParameterDescription::PgParameterDescription( Buffer *b )
 PgRowDescription::PgRowDescription( Buffer *b )
     : PgServerMessage( b )
 {
-    uint c = decodeInt16();
-    while ( c-- ) {
+    count = decodeInt16();
+    uint c = 0;
+    while ( c < count ) {
+        c++;
         Column *col = new Column;
 
         col->name = decodeString();
@@ -768,6 +770,8 @@ PgRowDescription::PgRowDescription( Buffer *b )
         col->format = decodeInt16();
 
         columns.append( col );
+        names.insert( col->name.data(), 8 * col->name.length(), 
+                      &col->column );
     }
     end();
 }
@@ -825,7 +829,6 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
     while ( it ) {
         Column *cv = &columns[i];
 
-        cv->name = it->name;
         switch ( it->type ) {
         case 16:    // BOOL
             cv->type = Column::Boolean;
@@ -848,21 +851,91 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
             break;
         default:
             log( "PostgreSQL: Unknown field type " + fn( it->type ) +
-                 " for column " + cv->name.quoted(),
+                 " for column " + it->name.quoted(),
                  Log::Error );
             cv->type = Column::Unknown;
             break;
         }
-        cv->length = decodeInt32();
-        if ( cv->length > 0 )
-            cv->value = decodeByten( cv->length );
+
+        int length = decodeInt32();
+        if ( length == -1 )
+            cv->type = Column::Null;
+
+        switch ( cv->type ) {
+        case Column::Unknown:
+            // we've just logged the error, but supplement it
+            if ( length > 0 )
+                log( "Unknown column " + it->name.quoted() +
+                     " has value " + decodeByten( length ).quoted() );
+            break;
+        case Column::Boolean:
+            if ( length != 1 ) {
+                log( "Boolean column " + it->name.quoted() +
+                     " has value " + decodeByten( length ).quoted() );
+            }
+            else {
+                cv->b = (*buf)[0];
+                buf->remove( 1 );
+                n++;
+            }
+            break;
+        case Column::Integer:
+            switch ( length ) {
+            case 1:
+                cv->i = (*buf)[0];
+                buf->remove( 1 );
+                n++;
+                break;
+            case 2:
+                cv->i = ((*buf)[0] << 8) | (*buf)[1];
+                buf->remove( 2 );
+                n += 2;
+                break;
+            case 4:
+                cv->i = ((*buf)[0] << 24) | ((*buf)[1] << 16) |
+                        ((*buf)[2] <<  8) | (*buf)[3];
+                buf->remove( 4 );
+                n += 4;
+                break;
+            default:
+                log( "Integer column " + it->name.quoted() +
+                     " has value " + decodeByten( length ).quoted() );
+            }
+            break;
+        case Column::Bigint:
+            if ( length == 8 ) {
+                cv->bi = (((int64)(*buf)[0]) << 56) |
+                         (((int64)(*buf)[1]) << 48) |
+                         (((int64)(*buf)[2]) << 40) |
+                         (((int64)(*buf)[3]) << 32) |
+                         (((int64)(*buf)[4]) << 24) |
+                         (((int64)(*buf)[5]) << 16) |
+                         (((int64)(*buf)[6]) <<  8) |
+                         (*buf)[7];
+                buf->remove( 8 );
+                n += 8;
+            }
+            else
+                log( "Bigint column " + it->name.quoted() +
+                     " has value " + decodeByten( length ).quoted() );
+            break;
+        case Column::Bytes:
+            cv->s = decodeByten( length );
+            break;
+        case Column::Timestamp:
+            cv->s = decodeByten( length );
+            break;
+        case Column::Null:
+            // nothing needed
+            break;
+        }
 
         ++it;
         i++;
     }
     end();
 
-    r = new Row( c, columns );
+    r = new Row( &d->names, columns );
 }
 
 

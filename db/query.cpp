@@ -712,275 +712,152 @@ Row *Query::nextRow()
 */
 
 
-/*! Creates a row of data with \a num columns from the array \a c. */
+/*! Creates a row of data based on the columns \a c, presumed to be
+    named \a nameMap. The keys in \a nameMap point to unsigned
+    integers; each of which must exist in \a c.
+*/
 
-Row::Row( uint num, Column *c )
-    : n( num ), columns( c )
+Row::Row( const PatriciaTree<int> * nameMap, Column * c )
+    : names( nameMap ), data( c )
 {
-    // One could build a Dict< Column > here to supplant findColumn, but
-    // for a handful of columns, who cares?
 }
 
 
-/*! Returns true if the column at index \a i is NULL or does not exist,
+extern "C" {
+    uint strlen( const char * );
+};
+
+
+/*! This private helper returns the column named \a f, or a null
+    pointer if \a f does not exist.
+  
+    If \a warn is true and \a f does not exist or has a type other
+    than \a type, then fetch() logs a warning.
+*/
+
+const Column * Row::fetch( const char * f, Column::Type type, bool warn ) const
+{
+    int * x = names->find( f, strlen( f ) * 8 );
+    if ( !x ) {
+        if ( warn )
+            log( "Note: Column " + String( f ).quoted() + " does not exist",
+                 Log::Error );
+        return 0;
+    }
+
+    if ( warn && type != data[*x].type )
+        log( "Node: Expected type " + Column::typeName( type ) +
+             " for column " + String( f ).quoted() + ", but received " +
+             Column::typeName( data[*x].type ), Log::Error );
+    return &data[*x];
+}
+
+
+/*! Returns true if the column named \a f is NULL or does not exist,
     and false in all other cases.
 */
 
-bool Row::isNull( uint i ) const
+bool Row::isNull( const char *f ) const
 {
-    if ( columns[i].length == -1 || badFetch( i ) )
+    const Column * c = fetch( f, Column::Null, false );
+    if ( !c )
+        return true; // XXX the two isNull()s differed
+
+    if ( c->type == Column::Null )
         return true;
     return false;
 }
 
 
-/*! \overload
-    As above, but returns true only if the column named \a f is NULL.
-*/
-
-bool Row::isNull( const char *f ) const
-{
-    int i = findColumn( f );
-    if ( i < 0 )
-        return false;
-    return isNull( i );
-}
-
-
-/*! Returns the boolean value of the column at index \a i if it exists
+/*! Returns the boolean value of the column named \a f if it exists
     and is NOT NULL, and false otherwise.
 */
 
-bool Row::getBoolean( uint i ) const
+bool Row::getBoolean( const char * f ) const
 {
-    if ( badFetch( i, Column::Boolean ) )
+    const Column * c = fetch( f, Column::Boolean, true );
+    if ( !c )
         return false;
-    return columns[i].value[0];
+    if ( c->type != Column::Boolean )
+        return false;
+    return c->b;
 }
 
 
-/*! \overload
-    As above, but returns the boolean value of the column named \a f.
-*/
-
-bool Row::getBoolean( const char *f ) const
-{
-    int i = findColumn( f );
-    if ( i < 0 )
-        return false;
-    return getBoolean( i );
-}
-
-
-/*! Returns the integer value of the column at index \a i if it exists
+/*! Returns the integer value of the column named \a f if it exists
     and is NOT NULL, and 0 otherwise.
 */
 
-int Row::getInt( uint i ) const
+int Row::getInt( const char * f ) const
 {
-    if ( badFetch( i, Column::Integer ) )
+    const Column * c = fetch( f, Column::Integer, true );
+    if ( !c )
         return 0;
-
-    int n = 0;
-    Column *c = &columns[i];
-
-    switch ( c->length ) {
-    case 1:
-        n = c->value[0];
-        break;
-
-    case 2:
-        n = c->value[0] << 8 | c->value[1];
-        break;
-
-    case 4:
-        n = c->value[0] << 24 | c->value[1] << 16 |
-            c->value[2] << 8  | c->value[3];
-        break;
-
-    default:
-        /*
-        log( Log::Disaster,
-             "Integer field " + c->name + " has invalid length " +
-             fn( c->length ) );
-        */
-        break;
-    }
-
-    return n;
-}
-
-
-/*! \overload
-    As above, but returns the integer value of the column named \a f.
-*/
-
-int Row::getInt( const char *f ) const
-{
-    int i = findColumn( f );
-    if ( i < 0 )
+    if ( c->type != Column::Integer )
         return 0;
-    return getInt( i );
+    return c->i;
 }
 
 
 /*! Returns the 64-bit integer (i.e. Postgres bigint) value of the
-    column at index \a i if it exists and is NOT NULL; 0 otherwise.
-*/
-
-int64 Row::getBigint( uint i ) const
-{
-    if ( badFetch( i, Column::Bigint ) )
-        return 0;
-
-    int64 n = 0;
-    Column *c = &columns[i];
-
-    switch ( c->length ) {
-    case 8:
-        n = c->value[0] << 24 | c->value[1] << 16 |
-            c->value[2] <<  8 | c->value[3];
-        n = ( n << 32 ) |
-            c->value[4] << 24 | c->value[5] << 16 |
-            c->value[6] << 8  | c->value[7];
-        break;
-
-    default:
-        /*
-        log( Log::Disaster,
-             "Integer field " + c->name + " has invalid length " +
-             fn( c->length ) );
-        */
-        break;
-    }
-
-    return n;
-}
-
-
-/*! \overload
-    As above, but returns the 64-bit integer value of the column named
-    \a f.
+    column named \a f if it exists and is NOT NULL; 0 otherwise.
 */
 
 int64 Row::getBigint( const char * f ) const
 {
-    int i = findColumn( f );
-    if ( i < 0 )
+    const Column * c = fetch( f, Column::Bigint, true );
+    if ( !c )
         return 0;
-    return getBigint( i );
+    if ( c->type != Column::Bigint )
+        return 0;
+    return c->bi;
 }
 
 
-/*! Returns the string value of the column at index \a i if it exists
+/*! Returns the string value of the column named \a f i if it exists
     and is NOT NULL, and an empty string otherwise.
 */
 
-String Row::getString( uint i ) const
+String Row::getString( const char * f ) const
 {
-    if ( badFetch( i, Column::Bytes ) )
+    const Column * c = fetch( f, Column::Bytes, true );
+    if ( !c )
         return "";
-    return columns[i].value;
+    if ( c->type != Column::Bytes )
+        return "";
+    return c->s;
 }
 
 
-/*! \overload
-    As above, but returns the string value of the column named \a f.
-*/
-
-String Row::getString( const char *f ) const
-{
-    int i = findColumn( f );
-    if ( i < 0 )
-        return "";
-    return getString( i );
-}
-
-
-/*! Returns the string value of the column at index \a i if it exists
+/*! Returns the string value of the column named \a f if it exists
     and is NOT NULL, and an empty string otherwise.
-*/
-
-UString Row::getUString( uint i ) const
-{
-    UString r;
-    if ( badFetch( i, Column::Bytes ) )
-        return r;
-
-    PgUtf8Codec c;
-    r = c.toUnicode( columns[i].value );
-    return r;
-}
-
-
-/*! \overload
-    As above, but returns the string value of the column named \a f.
 */
 
 UString Row::getUString( const char * f ) const
 {
-    int i = findColumn( f );
-    if ( i >= 0 )
-        return getUString( i );
     UString r;
+    const Column * c = fetch( f, Column::Bytes, true );
+    if ( !c )
+        return r;
+    if ( c->type != Column::Bytes )
+        return r;
+    PgUtf8Codec uc;
+    r = uc.toUnicode( c->s );
     return r;
 }
 
 
-/*! This private function returns the index of the column named \a f, if
-    if exists, and -1 if it does not.
+/*! Returns true if this Row contains a column named \a f, and false
+    otherwise.
 */
 
-int Row::findColumn( const char *f ) const
+bool Row::hasColumn( const char * f ) const
 {
-    uint i = 0;
-    while ( i < n ) {
-        if ( columns[i].name == f )
-            return i;
-        i++;
-    }
-
-    String s = "Result handler expected unknown column: ";
-    s.append( String(f).quoted() );
-    s.append( ". Columns present in server reply: " );
-    i = 0;
-    while ( i < n ) {
-        s.append( columns[i].name.quoted() );
-        i++;
-        if ( i < n )
-            s.append( ", " );
-    }
-    s.append( "." );
-    log( s, Log::Error );
-    return -1;
+    const Column * c = fetch( f, Column::Null, false );
+    if ( c )
+        return true;
+    return false;
 }
-
-
-/*! This private method returns false only if the column at index \a i
-    exists, is NOT NULL, and (optionally) if its type matches \a t. If
-    not, it logs a disaster and returns true.
-*/
-
-bool Row::badFetch( uint i, Column::Type t ) const
-{
-    String s;
-
-    if ( i >= n )
-        s = "No column at index #" + fn( i );
-    else if ( columns[i].length == -1 )
-        s = "Column " + columns[i].name + " is NULL.";
-    else if ( t != Column::Unknown &&
-              columns[i].type != t )
-        s = "Column " + columns[i].name + " is of type " +
-            Column::typeName( columns[i].type ) + ", query expected " +
-            Column::typeName( t );
-    else
-        return false;
-
-    log( s, Log::Error );
-    return true;
-}
-
 
 
 /*! \class PreparedStatement query.h
@@ -1061,6 +938,9 @@ String Column::typeName( Type type )
     case Timestamp:
         n = "timestamptz";
         break;
+    case Null:
+        n = "null";
+        break;
     }
     return n;
 }
@@ -1079,20 +959,4 @@ class Log * Query::log() const
     if ( !l && d->transaction && d->transaction->owner() )
         l = d->transaction->owner()->log();
     return l;
-}
-
-
-/*! Returns true if this Row contains a column named \a f, and false
-    otherwise.
-*/
-
-bool Row::hasColumn( const char * f ) const
-{
-    uint i = 0;
-    while ( i < n ) {
-        if ( columns[i].name == f )
-            return true;
-        i++;
-    }
-    return false;
 }

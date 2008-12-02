@@ -253,7 +253,9 @@ public:
         int table, column, type, size, mod, format;
     };
 
-    List< Column > columns;
+    List<Column> columns;
+    PatriciaTree<int> names;
+    uint count;
 };
 
 

@@ -6,6 +6,7 @@
 #include "global.h"
 #include "database.h"
 #include "stringlist.h"
+#include "patriciatree.h"
 
 
 class Row;
@@ -123,12 +124,13 @@ class Column
     : public Garbage
 {
 public:
-    enum Type { Unknown, Boolean, Integer, Bigint, Bytes, Timestamp };
+    enum Type { Unknown, Boolean, Integer, Bigint, Bytes, Timestamp, Null };
 
-    String name;
     Type type;
-    int length;
-    String value;
+    String s;
+    bool b;
+    uint i;
+    int64 bi;
 
     static String typeName( Type );
 };
@@ -138,34 +140,21 @@ class Row
     : public Garbage
 {
 public:
-    Row( uint, Column * );
+    Row( const PatriciaTree<int> *, Column * );
 
-    bool isNull( uint ) const;
     bool isNull( const char * ) const;
-
-    int getInt( uint ) const;
     int getInt( const char * ) const;
-
-    int64 getBigint( uint ) const;
     int64 getBigint( const char * ) const;
-
-    bool getBoolean( uint ) const;
     bool getBoolean( const char * ) const;
-
-    String getString( uint ) const;
     String getString( const char * ) const;
-
-    UString getUString( uint ) const;
     UString getUString( const char * ) const;
-
     bool hasColumn( const char * ) const;
 
 private:
-    uint n;
-    Column *columns;
+    const PatriciaTree<int> * names;
+    const Column * data;
 
-    int findColumn( const char * ) const;
-    bool badFetch( uint, Column::Type = Column::Unknown ) const;
+    const Column * fetch( const char *, Column::Type, bool ) const;
 };
 
 
