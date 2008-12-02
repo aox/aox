@@ -6,7 +6,6 @@
 #include "allocator.h"
 #include "configuration.h"
 #include "progressreporter.h"
-#include "addresscache.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "database.h"
@@ -100,7 +99,6 @@ int main( int ac, char ** av )
     Mailbox::setup( m );
 
     Flag::setup();
-    AddressCache::setup();
 
     ProgressReporter * p = new ProgressReporter( m, 1 );
     // 5? command-line option?

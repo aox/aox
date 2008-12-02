@@ -9,7 +9,6 @@
 #include "selector.h"
 #include "transaction.h"
 #include "searchsyntax.h"
-#include "addresscache.h"
 
 
 class CreateViewData
@@ -60,7 +59,6 @@ void CreateView::execute()
             error( "Invalid search expression supplied." );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
 
         if ( !owner.isEmpty() ) {

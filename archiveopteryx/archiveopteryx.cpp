@@ -18,7 +18,6 @@
 #include "dbsignal.h"
 #include "selector.h"
 #include "managesieve.h"
-#include "addresscache.h"
 #include "spoolmanager.h"
 
 #include <sys/types.h>
@@ -222,7 +221,6 @@ int main( int argc, char *argv[] )
     Mailbox::setup( w );
 
     TlsServer::setup();
-    AddressCache::setup();
     SpoolManager::setup();
     Selector::setup();
     Flag::setup();

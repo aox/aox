@@ -7,7 +7,7 @@
 #include "address.h"
 #include "mailbox.h"
 #include "transaction.h"
-#include "addresscache.h"
+#include "helperrowcreator.h"
 
 #include <stdio.h>
 
@@ -103,13 +103,13 @@ void CreateAlias::execute()
             error( "Argument encoding: " + c.error() );
 
         database( true );
-        AddressCache::setup();
         d->t = new Transaction( this );
         List< Address > l;
         l.append( d->address );
         if ( d->destination )
             l.append( d->destination );
-        AddressCache::lookup( d->t, &l, this );
+        AddressCreator * ac = new AddressCreator( &l, d->t );
+        ac->execute();
     }
 
     if ( !d->address->id() || ( d->destination && !d->destination->id() ) )

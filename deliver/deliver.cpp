@@ -6,7 +6,6 @@
 #include "allocator.h"
 #include "stderrlogger.h"
 #include "configuration.h"
-#include "addresscache.h"
 #include "permissions.h"
 #include "logclient.h"
 #include "eventloop.h"
@@ -244,7 +243,6 @@ int main( int argc, char *argv[] )
 
     Configuration::report();
     Mailbox::setup();
-    AddressCache::setup();
     Deliverator * d = new Deliverator( message, mailbox, recipient );
     EventLoop::global()->start();
     if ( !d->i || d->i->failed() )

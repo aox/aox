@@ -2,12 +2,12 @@
 
 #include "user.h"
 
+#include "helperrowcreator.h"
+#include "configuration.h"
+#include "transaction.h"
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
-#include "configuration.h"
-#include "transaction.h"
-#include "addresscache.h"
 
 
 class UserData
@@ -394,9 +394,8 @@ void User::createHelper()
 
     if ( !d->q ) {
         if ( !a->id() ) {
-            List< Address > l;
-            l.append( a );
-            AddressCache::lookup( d->t, &l, this );
+            AddressCreator * ac = new AddressCreator( a, d->t );
+            ac->execute();
         }
 
         d->q = new Query( "select name from namespaces where id="

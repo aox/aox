@@ -8,7 +8,6 @@
 #include "mailbox.h"
 #include "stringlist.h"
 #include "transaction.h"
-#include "addresscache.h"
 
 #include <stdio.h>
 
@@ -158,7 +157,6 @@ void CreateMailbox::execute()
             error( "No mailbox name supplied." );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
 
         if ( !owner.isEmpty() ) {
@@ -242,7 +240,6 @@ void DeleteMailbox::execute()
             error( "No mailbox name supplied." );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
     }
 

@@ -8,7 +8,6 @@
 #include "mailbox.h"
 #include "injector.h"
 #include "transaction.h"
-#include "addresscache.h"
 
 #include <stdio.h>
 #include <sys/stat.h> // mkdir
@@ -49,7 +48,6 @@ void Reparse::execute()
         printf( "Looking for messages with parse failures\n" );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
 
         d->q = new Query( "select mm.mailbox, mm.uid, mm.modseq, "

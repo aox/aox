@@ -8,7 +8,7 @@
 #include "address.h"
 #include "mailbox.h"
 #include "transaction.h"
-#include "addresscache.h"
+#include "helperrowcreator.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,7 +114,6 @@ void CreateUser::execute()
             error( "At most one address may be present" );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
 
         d->user = new User;
@@ -189,7 +188,6 @@ void DeleteUser::execute()
             error( "Invalid username: " + login.utf8() );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
 
         d->user = new User;
@@ -357,7 +355,6 @@ void ChangeUsername::execute()
             error( "Invalid username: " + d->newname.utf8() );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
 
         d->user = new User;
@@ -492,7 +489,6 @@ void ChangeAddress::execute()
             error( "At most one address may be present" );
 
         database( true );
-        AddressCache::setup();
         Mailbox::setup( this );
 
         d->address = p.addresses()->first();
@@ -512,10 +508,8 @@ void ChangeAddress::execute()
             error( "No user named " + d->user->login().utf8() );
 
         d->t = new Transaction( this );
-        List< Address > l;
-        l.append( d->address );
-        AddressCache::lookup( d->t, &l, this );
-        d->t->execute();
+        AddressCreator * ac = new AddressCreator( d->address, d->t );
+        ac->execute();
     }
 
     if ( d->address->id() == 0 )

@@ -39,7 +39,7 @@ DomainList tld.inc : root.zone ;
 Build message :
     multipart.cpp message.cpp bodypart.cpp header.cpp parser.cpp
     field.cpp mimefields.cpp datefield.cpp addressfield.cpp
-    address.cpp date.cpp flag.cpp addresscache.cpp 
+    address.cpp date.cpp flag.cpp 
     injector.cpp fetcher.cpp smtpclient.cpp annotation.cpp
     dsn.cpp recipient.cpp listidfield.cpp
     messagecache.cpp helperrowcreator.cpp

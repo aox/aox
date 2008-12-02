@@ -8,9 +8,7 @@
 #include "query.h"
 #include "ustring.h"
 #include "address.h"
-#include "cachelookup.h"
 #include "transaction.h"
-#include "addresscache.h"
 
 #include <stdio.h>
 #include <stdlib.h>

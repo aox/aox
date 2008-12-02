@@ -36,7 +36,7 @@ actions ColumnList bind LISTCOLUMNS
 ColumnList columns.inc : schema.pg ;
 
 
-Build database : database.cpp postgres.cpp pgmessage.cpp cachelookup.cpp
+Build database : database.cpp postgres.cpp pgmessage.cpp 
     query.cpp transaction.cpp schema.cpp dbsignal.cpp granter.cpp 
     schemachecker.cpp ;
 
