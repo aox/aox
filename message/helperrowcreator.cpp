@@ -527,10 +527,10 @@ Query * AddressCreator::makeCopy()
 String AddressCreator::key( Address * a )
 {
     String r;
-    r.append( a->uname().utf8() );
+    r.append( a->domain().lower() );
     r.append( '\0' );
     r.append( a->localpart() );
     r.append( '\0' );
-    r.append( a->domain().lower() );
+    r.append( a->uname().utf8() );
     return r;
 }
