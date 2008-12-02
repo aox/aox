@@ -83,6 +83,8 @@ class AddressCreator
 {
 public:
     AddressCreator( Dict<Address> *, class Transaction * );
+    AddressCreator( Address *, class Transaction * );
+    AddressCreator( List<Address> *, class Transaction * );
 
     static String key( Address * );
 

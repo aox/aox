@@ -395,6 +395,17 @@ Query * AnnotationNameCreator::makeCopy()
 }
 
 
+/*! \class AddressCreator helperrowcreator.h
+
+    The AddressCreator ensures that a set of addresses exist in the
+    database and that their addresses are known.
+
+    You have to create an object, then execute it. It'll use a
+    subtransaction and implicitly block your transaction until the IDs
+    are known.
+*/
+
+
 /*! Constructs an AddressCreator which will ensure that all the \a
     addresses have an Address::id(), using a subtransaction if \a t
     for its work.
@@ -405,6 +416,37 @@ AddressCreator::AddressCreator( Dict<Address> * addresses,
     : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
       a( addresses )
 {
+}
+
+
+/*! Constructs an AddressCreator which will ensure that \a address has
+    an Address::id(), using a subtransaction if \a t for its work.
+*/
+
+AddressCreator::AddressCreator( Address * address, class Transaction * t )
+    : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
+      a( new Dict<Address> )
+{
+    a->insert( AddressCreator::key( address ), address );
+}
+
+
+/*! Constructs an AddressCreator which will ensure that all the \a
+    addresses have an Address::id(), using a subtransaction if \a t
+    for its work.
+*/
+
+
+AddressCreator::AddressCreator( List<Address> * addresses,
+                                class Transaction * t )
+    : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
+      a( new Dict<Address> )
+{
+    List<Address>::Iterator address( addresses );
+    while ( address ) {
+        a->insert( AddressCreator::key( address ), address );
+        ++address;
+    }
 }
 
 
