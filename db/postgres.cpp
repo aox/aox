@@ -271,7 +271,7 @@ void Postgres::react( Event e )
             }
             catch ( PgServerMessage::Error e ) {
                 error( "Malformed " + String( &msg, 1 ).quoted() +
-                       "message received." );
+                       " message received." );
             }
         }
         if ( d->needNotify )
