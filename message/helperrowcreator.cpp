@@ -75,29 +75,35 @@ bool HelperRowCreator::done() const
 void HelperRowCreator::execute()
 {
     while ( !d->done ) {
+        // If we're waiting for the db, just go away.
         if ( d->s && !d->s->done() )
             return;
         if ( d->c && !d->c->done() )
             return;
 
+        // First, we select the rows whose IDs we need.
         if ( !d->s && !d->c ) {
             d->s = makeSelect();
             if ( d->s ) {
+                // We don't know all we need, so issue a select.
                 if ( !d->t )
                     d->t = d->parent->subTransaction( this );
                 d->t->enqueue( d->s );
                 d->t->execute();
             }
             else {
+                // We do know everything, so we're done.
                 d->done = true;
             }
         }
 
+        // When the select is done, see if we need to copy into the table.
         if ( d->s && d->s->done() && !d->c ) {
             processSelect( d->s );
             d->s = 0;
             d->c = makeCopy();
             if ( d->c ) {
+                // We do need to insert something.
                 d->t->enqueue( d->c );
                 String ed = d->n;
                 ed.replace( "creator", "extended" );
@@ -106,15 +112,18 @@ void HelperRowCreator::execute()
                 d->t->execute();
             }
             else {
+                // We don't: we're done.
                 d->done = true;
             }
         }
 
+        // If we need to insert something, look at the fate of the copy.
         if ( d->c && d->c->done() ) {
             Query * c = d->c;
             d->c = 0;
             if ( !c->failed() ) {
-                // We inserted, hit no race, and want to run another select.
+                // We inserted, hit no race, and want to run another
+                // select to find the IDs.
             }
             else if ( c->error().contains( d->e ) ) {
                 // We inserted, but there was a race and we lost it.
@@ -135,7 +144,7 @@ void HelperRowCreator::execute()
     Transaction * t = d->t;
     d->t = 0;
     t->commit();
-    // the parent transaction's owne may have to wait for this creator
+    // the parent transaction's owner may have to wait for this creator
     // to finish.  notify it just in case.
     if ( t->parent() )
         t->parent()->notify();
