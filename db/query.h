@@ -49,7 +49,6 @@ public:
     void bind( uint, int64 );
     void bind( uint, const String &, Format = Unknown );
     void bind( uint, const UString & );
-    void bind( uint, const List<uint> * );
     void bind( uint, const StringList & );
     void bind( uint, const class IntegerSet & );
     void bindNull( uint );

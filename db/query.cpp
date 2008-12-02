@@ -334,31 +334,6 @@ void Query::bind( uint n, const UString &s )
 
 
 /*! \overload
-    Binds the array of integers \a l to the parameter \a n of this
-    Query.
-*/
-
-void Query::bind( uint n, const List<uint> * l )
-{
-    if ( d->format == Text ) {
-        String s( "{" );
-        List<uint>::Iterator it( l );
-        while ( it ) {
-            s.appendNumber( *it );
-            ++it;
-            if ( it )
-                s.append( "," );
-        }
-        s.append( "}" );
-        bind( n, s );
-    }
-    else {
-        // XXX: Not implemented yet.
-    }
-}
-
-
-/*! \overload
 
     This version binds each number in \a set as parameter \a n.
 */
