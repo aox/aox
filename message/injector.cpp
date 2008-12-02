@@ -52,180 +52,6 @@ struct BodypartRow
 };
 
 
-static String addressKey( Address * a )
-{
-    String r;
-    r.append( a->uname().utf8() );
-    r.append( '\0' );
-    r.append( a->localpart() );
-    r.append( '\0' );
-    r.append( a->domain().lower() );
-    return r;
-}
-
-class AddressCreator
-    : public EventHandler
-{
-public:
-    Dict<Address> * addresses;
-    Transaction * parent;
-    Transaction * t;
-    Query * q;
-    uint state;
-    Dict<Address> unided;
-
-    AddressCreator( Dict<Address> * a, Transaction * tr )
-        : addresses( a ), parent( tr ), t( 0 ), q( 0 ), state( 0 )
-    {
-    }
-
-    void execute();
-    void selectAddresses();
-    void processAddresses();
-    void insertAddresses();
-    void processInsert();
-
-    bool done() { return state > 3; }
-};
-
-void AddressCreator::execute()
-{
-    uint s = 4;
-    while ( s != state ) {
-        s = state;
-
-        if ( state == 0 )
-            selectAddresses();
-        if ( state == 1 )
-            processAddresses();
-        if ( state == 2 )
-            insertAddresses();
-        if ( state == 3 )
-            processInsert();
-    };
-}
-
-void AddressCreator::selectAddresses()
-{
-    q = new Query( "", this );
-
-    String s( "select id, name, localpart, domain "
-              "from addresses where " );
-
-    unided.clear();
-
-    uint i = 0;
-    StringList sl;
-    Dict<Address>::Iterator it( addresses );
-    while ( it && i < 128 ) {
-        Address * a = it;
-        if ( !a->id() ) {
-            int n = 3*i+1;
-            String p;
-            unided.insert( addressKey( a ), a );
-            q->bind( n, a->uname() );
-            p.append( "(name=$" );
-            p.append( fn( n++ ) );
-            q->bind( n, a->localpart() );
-            p.append( " and localpart=$" );
-            p.append( fn( n++ ) );
-            q->bind( n, a->domain().lower() );
-            p.append( " and lower(domain)=$" );
-            p.append( fn( n++ ) );
-            p.append( ")" );
-            sl.append( p );
-            ++i;
-        }
-        ++it;
-    }
-    s.append( sl.join( " or " ) );
-    q->setString( s );
-    q->allowSlowness();
-
-    if ( i == 0 ) {
-        state = 4;
-        if ( t )
-            t->commit();
-        else
-            parent->notify();
-    }
-    else {
-        state = 1;
-        if ( t ) {
-            t->enqueue( q );
-            t->execute();
-        }
-        else {
-            parent->enqueue( q );
-            parent->execute();
-        }
-    }
-}
-
-void AddressCreator::processAddresses()
-{
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        Address * a =
-            new Address( r->getUString( "name" ),
-                         r->getString( "localpart" ),
-                         r->getString( "domain" ) );
-
-        Address * orig =
-            unided.remove( addressKey( a ) );
-        if ( orig )
-            orig->setId( r->getInt( "id" ) );
-    }
-
-    if ( !q->done() )
-        return;
-
-    if ( unided.isEmpty() )
-        state = 0;
-    else
-        state = 2;
-}
-
-void AddressCreator::insertAddresses()
-{
-    if ( !t )
-        t = parent->subTransaction( this );
-    q = new Query( "copy addresses (name,localpart,domain) "
-                   "from stdin with binary", this );
-    Dict<Address>::Iterator it( unided );
-    while ( it ) {
-        Address * a = it;
-        q->bind( 1, a->uname() );
-        q->bind( 2, a->localpart() );
-        q->bind( 3, a->domain() );
-        q->submitLine();
-        ++it;
-    }
-
-    state = 3;
-    t->enqueue( q );
-    t->execute();
-}
-
-void AddressCreator::processInsert()
-{
-    if ( !q->done() )
-        return;
-
-    if ( !q->failed() ) {
-        state = 0;
-    }
-    else if ( q->error().contains( "addresses_nld_key" ) ) {
-        t->restart();
-        state = 0;
-    }
-    else {
-        state = 4;
-        t->commit();
-    }
-}
-
-
 // The following is everything the Injector needs to do its work.
 
 enum State {
@@ -724,7 +550,7 @@ void Injector::updateAddresses( List<Address> * newAddresses )
     List<Address>::Iterator ai( newAddresses );
     while ( ai ) {
         Address * a = ai;
-        String k = addressKey( a );
+        String k = AddressCreator::key( a );
         d->addresses.insert( k, a );
         ++ai;
     }
@@ -735,7 +561,7 @@ void Injector::updateAddresses( List<Address> * newAddresses )
 
 void Injector::addAddress( Address * a )
 {
-    String k = addressKey( a );
+    String k = AddressCreator::key( a );
     d->addresses.insert( k, a );
 }
 
@@ -746,7 +572,7 @@ void Injector::addAddress( Address * a )
 
 uint Injector::addressId( Address * a )
 {
-    Address * a2 = d->addresses.find( addressKey( a ) );
+    Address * a2 = d->addresses.find( AddressCreator::key( a ) );
     if ( !a2 )
         return 0;
     return a2->id();
@@ -1487,7 +1313,7 @@ void Injector::insertDeliveries()
     List<InjectorData::Delivery>::Iterator di( d->deliveries );
     while ( di ) {
         Address * sender =
-            d->addresses.find( addressKey( di->sender ) );
+            d->addresses.find( AddressCreator::key( di->sender ) );
 
         Query * q =
             new Query( "insert into deliveries "
@@ -1501,7 +1327,7 @@ void Injector::insertDeliveries()
         uint n = 0;
         List<Address>::Iterator it( di->recipients );
         while ( it ) {
-            Address * a = d->addresses.find( addressKey( it ) );
+            Address * a = d->addresses.find( AddressCreator::key( it ) );
             Query * q =
                 new Query(
                     "insert into delivery_recipients (delivery,recipient) "

@@ -5,6 +5,7 @@
 
 #include "injector.h"
 #include "stringlist.h"
+#include "dict.h"
 
 
 class HelperRowCreator
@@ -75,6 +76,30 @@ private:
 private:
     StringList names;
 };
+
+
+class AddressCreator
+    : public HelperRowCreator
+{
+public:
+    AddressCreator( Dict<Address> *, class Transaction * );
+
+    static String key( Address * );
+
+private:
+    Query * makeSelect();
+    void processSelect( Query * );
+    Query * makeCopy();
+
+private:
+    uint param( Dict<uint> *, const String &, uint &, Query * );
+
+private:
+    Dict<Address> * a;
+    List<Address> asked;
+};
+
+
 
 
 #endif

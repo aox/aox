@@ -5,9 +5,11 @@
 #include "dict.h"
 #include "allocator.h"
 #include "transaction.h"
+#include "address.h"
 #include "query.h"
-
 #include "flag.h"
+#include "utf.h"
+
 
 
 /*! \class HelperRowCreator helperrowcreator.h
@@ -110,10 +112,6 @@ void HelperRowCreator::execute()
                 Query * q = new Query( "notify " + ed, this );
                 d->t->enqueue( q );
                 d->t->execute();
-            }
-            else {
-                // We don't: we're done.
-                d->done = true;
             }
         }
 
@@ -394,4 +392,145 @@ Query * AnnotationNameCreator::makeCopy()
     if ( !any )
         return 0;
     return q;
+}
+
+
+/*! Constructs an AddressCreator which will ensure that all the \a
+    addresses have an Address::id(), using a subtransaction if \a t
+    for its work.
+*/
+
+AddressCreator::AddressCreator( Dict<Address> * addresses,
+                                Transaction * t )
+    : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
+      a( addresses )
+{
+}
+
+
+/*! This private helper looks for \a s in \a b, inserts it if not
+    present, and returns its number. Uses \a n to generate a new
+    unique number if necessary, and binds \a s to \a n in \a q.
+
+    \a b has to use key() as key for each member. Nothing will work if
+    you break this rule. This sounds a little fragile, but I can't
+    think of a good alternative right now.
+*/
+
+uint AddressCreator::param( Dict<uint> * b, const String & s,
+                            uint & n,
+                            Query * q )
+{
+    uint * r = b->find( s );
+    if ( !r ) {
+        r = (uint*)Allocator::alloc( sizeof( uint ), 0 );
+        *r = n++;
+        b->insert( s, r );
+        q->bind( *r, s );
+    }
+    return *r;
+}
+
+
+/*! Creates a select to look for as many addresses as possible, but
+    binding no more than 128 strings.
+*/
+
+Query * AddressCreator::makeSelect()
+{
+    String s = "select id, name, localpart, domain from addresses where ";
+    Query * q = new Query( "", this );
+    uint n = 1;
+    Dict<uint> binds;
+    PgUtf8Codec p;
+    bool first = true;
+    Dict<Address>::Iterator i( a );
+    asked.clear();
+    bool any = 0;
+    while ( i && n < 128 ) {
+        if ( !i->id() ) {
+            any = true;
+            String name( p.fromUnicode( i->uname() ) );
+            String lp( i->localpart() );
+            String dom( i->domain().lower() );
+
+            uint bn = param( &binds, name, n, q );
+            uint bl = param( &binds, lp, n, q );
+            uint bd = param( &binds, dom, n, q );
+
+            if ( !first )
+                s.append( " or " );
+            first = false;
+            s.append( "(name=$" );
+            s.appendNumber( bn );
+            s.append( " and localpart=$" );
+            s.appendNumber( bl );
+            s.append( " and lower(domain)=$" );
+            s.appendNumber( bd );
+            s.append( ")" );
+
+            asked.append( i );
+        }
+        ++i;
+    }
+    if ( !any )
+        return 0;
+    q->setString( s );
+    return q;
+}
+
+
+void AddressCreator::processSelect( Query * q )
+{
+    while ( q->hasResults() ) {
+        Row * r = q->nextRow();
+        Address * c =
+            new Address( r->getUString( "name" ),
+                         r->getString( "localpart" ),
+                         r->getString( "domain" ) );
+        Address * our = a->find( key( c ) );
+        if ( our )
+            our->setId( r->getInt( "id" ) );
+        else
+            log( "Unexpected result from db: " + c->toString() );
+    }
+}
+
+
+Query * AddressCreator::makeCopy()
+{
+    bool any = false;
+    Query * q = new Query( "copy addresses (name,localpart,domain) "
+                           "from stdin with binary", this );
+    List<Address>::Iterator i( asked );
+    while ( i ) {
+        if ( !i->id() ) {
+            q->bind( 1, i->uname() );
+            q->bind( 2, i->localpart() );
+            q->bind( 3, i->domain() );
+            q->submitLine();
+            any = true;
+        }
+        ++i;
+    }
+    if ( any )
+        return q;
+    return 0;
+}
+
+
+/*! Returns a String derived from \a a in a unique fashion. Two
+    addresses that are the same according to the RFC rules have the
+    same key().
+*/
+
+String AddressCreator::key( Address * a )
+{
+    String r;
+    r.append( a->uname().utf8() );
+    r.append( '\0' );
+    r.append( a->localpart() );
+    r.append( '\0' );
+    r.append( a->domain().lower() );
+    return r;
 }
