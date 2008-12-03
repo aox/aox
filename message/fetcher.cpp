@@ -361,7 +361,7 @@ void Fetcher::waitForEnd()
 
 /*! Messages are fetched in batches, so that we can deliver some rows
     early on. This function adjusts the size of the batches so we'll
-    get about one batch every 15 seconds, and updates the tables so we
+    get about one batch every 6 seconds, and updates the tables so we
     have a batch ready for reading.
 */
 
@@ -382,9 +382,9 @@ void Fetcher::prepareBatch()
         }
         else {
             // we adjust the batch size so the next batch could take
-            // something in the approximate region of 15 seconds.
+            // something in the approximate region of 6 seconds.
             uint diff = now - d->lastBatchStarted;
-            d->batchSize = d->batchSize * 15 / diff;
+            d->batchSize = d->batchSize * 6 / diff;
         }
         if ( d->batchSize > prevBatchSize * 3 )
             d->batchSize = prevBatchSize * 3;
