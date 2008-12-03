@@ -880,6 +880,10 @@ void Postgres::serverMessage()
 }
 
 
+// these errors are based on a selection of the results from
+// select indexname from pg_indexes where tablename in
+//  (select tablename from pg_tables where tableowner='aoxsuper')
+
 static const struct {
     const char * constraint;
     const char * human;
@@ -901,8 +905,6 @@ static const struct {
     {"annotations_mailbox_key1", // contype u
      "Operation would create a duplicate annotations row"},
     // XXX where does the annotations unique condition end up?
-    {"bodyparts_hash_key", // contype u
-     "Operation would store two identical bodyparts separately"},
     {"deliveries_message_key", // contype u
      "Operation would store the same message for delivery twice"},
     {"field_names_name_key", // contype u
