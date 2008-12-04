@@ -1863,9 +1863,8 @@ void configFile()
     String cf( Configuration::configFile() );
     String v( Configuration::compiledIn( Configuration::Version ) );
     String intro(
-        "# Archiveopteryx configuration. See archiveopteryx.conf(5) "
-        "or aox.org/conf/\n"
-        "# for details and a list of other variables.\n"
+        "# Archiveopteryx configuration. See archiveopteryx.conf(5) or\n"
+        "# http://aox.org/conf/ for details and other variables.\n"
         "# Automatically generated while installing Archiveopteryx "
         + v + ".\n\n"
     );
@@ -1932,8 +1931,8 @@ void configFile()
         "\n"
         "# There are almost a hundred other configuration variables.\n"
         "# The ones above are only what many people will want to change during\n"
-        "# installation. You can find a full list in the manual page for\n"
-        "# archiveopteryx.conf, and on the web at aox.org/conf/\n"
+        "# installation. There are full lists at http://aox.org/conf/ and in\n"
+        "# the archiveopteryx.conf manaul page.\n"
     );
 
     if ( exists( cf ) && generatedPass ) {
