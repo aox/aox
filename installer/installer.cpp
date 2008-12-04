@@ -1932,7 +1932,7 @@ void configFile()
         "# There are almost a hundred other configuration variables.\n"
         "# The ones above are only what many people will want to change during\n"
         "# installation. There are full lists at http://aox.org/conf/ and in\n"
-        "# the archiveopteryx.conf manaul page.\n"
+        "# the archiveopteryx.conf manual page.\n"
     );
 
     if ( exists( cf ) && generatedPass ) {
