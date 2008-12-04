@@ -1864,7 +1864,8 @@ void configFile()
     String v( Configuration::compiledIn( Configuration::Version ) );
     String intro(
         "# Archiveopteryx configuration. See archiveopteryx.conf(5) "
-        "for details.\n"
+        "or aox.org/conf/\n"
+        "# for details and a list of other variables.\n"
         "# Automatically generated while installing Archiveopteryx "
         + v + ".\n\n"
     );
@@ -1929,8 +1930,10 @@ void configFile()
         "# allow-plaintext-passwords = never\n"
         "# allow-plaintext-access = never\n"
         "\n"
-        "# Uncomment the next line to start the POP3 server.\n"
-        "# use-pop = true\n"
+        "# There are almost a hundred other configuration variables.\n"
+        "# The ones above are only what many people will want to change during\n"
+        "# installation. You can find a full list in the manual page for\n"
+        "# archiveopteryx.conf, and on the web at aox.org/conf/\n"
     );
 
     if ( exists( cf ) && generatedPass ) {
