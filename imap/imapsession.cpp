@@ -157,9 +157,9 @@ void ImapSession::emitUpdates( Transaction * t )
 
     IntegerSet e;
     e.add( expunged() );
+    e.remove( d->expungesReported );
     if ( !e.isEmpty() ) {
-        d->expungesReported = d->expungesReported.intersection( e );
-        e.remove( d->expungesReported );
+        d->expungesReported.add( e );
         while ( !e.isEmpty() ) {
             (void)new ImapExpungeResponse( e.smallest(), this );
             work = true;
@@ -321,13 +321,12 @@ void ImapExpungeResponse::setSent()
 
 /*! This reimplementation ensures that the ImapSession doesn't think
     the EXISTS number is higher than what the IMAP client thinks.
-
-    This reimplementation doesn't use \a u, only Session does.
 */
 
 void ImapSession::clearExpunged( uint u )
 {
     Session::clearExpunged( u );
+    d->expungesReported.remove( u );
     if ( d->exists )
         d->exists--;
 }
