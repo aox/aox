@@ -320,7 +320,8 @@ void ImapExpungeResponse::setSent()
 
 
 /*! This reimplementation ensures that the ImapSession doesn't think
-    the EXISTS number is higher than what the IMAP client thinks.
+    the EXISTS number is higher than what the IMAP client thinks after
+    the message with UID \a u is expunged.
 */
 
 void ImapSession::clearExpunged( uint u )
