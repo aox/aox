@@ -73,6 +73,8 @@ private:
     void findDependencies();
     void updateAddresses( List<Address> * );
     void createDependencies();
+    void convertThreadIndex();
+    void addMoreReferences();
     void insertBodyparts();
     void addBodypartRow( Bodypart * );
     void selectMessageIds();

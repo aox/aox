@@ -57,6 +57,7 @@ struct BodypartRow
 enum State {
     Inactive,
     CreatingDependencies,
+    ConvertingThreadIndex,
     InsertingBodyparts,
     SelectingMessageIds, SelectingUids,
     InsertingMessages,
@@ -73,7 +74,8 @@ public:
           state( Inactive ), failed( false ), transaction( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
-          substate( 0 ), subtransaction( 0 )
+          substate( 0 ), subtransaction( 0 ),
+          findParents( 0 ), findReferences( 0 )
     {}
 
     struct Delivery
@@ -129,6 +131,12 @@ public:
 
     Dict<BodypartRow> hashes;
     List<BodypartRow> bodyparts;
+
+    // for convertThreadIndex()
+    Dict< List<Message> > outlooks;
+    Map<String> outlookParentIds;
+    Query * findParents;
+    Query * findReferences;
 };
 
 
@@ -316,7 +324,12 @@ void Injector::execute()
             createDependencies();
             break;
 
+        case ConvertingThreadIndex:
+            convertThreadIndex();
+            break;
+
         case InsertingBodyparts:
+            addMoreReferences();
             insertBodyparts();
             break;
 
@@ -608,6 +621,185 @@ void Injector::createDependencies()
     ac->execute();
 
     next();
+}
+
+
+/*! Creates a proper References field for any messages sent by
+    Outlook*, ie. having Thread-Index instead of References.
+
+    In its final version, this doesn't actually use
+    Thread-Index. Instead it uses In-Reply-To, which Outlook also
+    sends. We could also look at Thread-Index if In-Reply-To fails
+    (which it will when we have some messages in the thread but miss
+    the message's direct antecedent).
+*/
+
+void Injector::convertThreadIndex()
+{
+    StringList ids;
+    if ( d->outlooks.isEmpty() ) {
+        List<Message>::Iterator i( d->messages );
+        while ( i ) {
+            Header * h = i->header();
+            if ( !h->field( HeaderField::References ) ) {
+                // this mostly catches outlook, but will also catch a
+                // few other senders
+                String irt = h->inReplyTo();
+                int lt = -1;
+                do {
+                    // we look at each possible message-id in the
+                    // in-reply-to field, not jus the first or last
+                    lt = irt.find( '<', lt + 1 );
+                    int gt = irt.find( '>', lt );
+                    if ( lt >= 0 && gt > lt ) {
+                        AddressParser ap( irt.mid( lt, gt + 1 - lt ) );
+                        if ( ap.error().isEmpty() &&
+                             ap.addresses()->count() == 1 ) {
+                            // there is a message-id, so map from it
+                            // to the message(s) that cite it as a
+                            // possible parent
+                            Address * a = ap.addresses()->firstElement();
+                            String msgid = "<" + a->lpdomain() + ">";
+                            if ( !d->outlooks.contains( msgid ) )
+                                d->outlooks.insert( msgid, new List<Message> );
+                            d->outlooks.find( msgid )->append( i );
+                            ids.append( msgid );
+                        }
+                    }
+                } while ( lt > 0 );
+            }
+            ++i;
+        }
+        if ( ids.isEmpty() ) {
+            // no message-ids found? skip the rest then
+            next();
+            return;
+        }
+    }
+
+    if ( !d->findParents ) {
+        // send a query to find messages.id for each message-id we
+        // found above
+        d->findParents = new Query( "", this );
+        String s = "select message, value "
+                   "from header_fields "
+                   "where field=";
+        s.appendNumber( HeaderField::MessageId );
+        s.append( " and (" );
+        bool first = true;
+        StringList::Iterator i( ids );
+        uint n = 1;
+        while ( i ) {
+            // use a series of value=$n instead of value=any($1),
+            // because postgres uses a bad plan for the latter.
+            if ( !first )
+                s.append( " or " );
+            first = false;
+            s.append( "value=$" );
+            s.appendNumber( n );
+            d->findParents->bind( n, *i );
+            n++;
+            ++i;
+        }
+        s.append( ")" );
+        d->findParents->setString( s );
+        d->transaction->enqueue( d->findParents );
+        d->transaction->execute();
+    }
+
+    if ( !d->findParents->done() )
+        return;
+
+    if ( !d->findReferences ) {
+        // once we've found  the message-ids and messages.id, map from
+        // the latter to the former so we can retrieve them
+        IntegerSet parents;
+        while ( d->findParents->hasResults() ) {
+            Row * r = d->findParents->nextRow();
+            d->outlookParentIds.insert( r->getInt( "message" ),
+                                        new String(r->getString( "value") ) );
+            parents.add( r->getInt( "message" ) );
+        }
+        if ( parents.isEmpty() ) {
+            // those message-ids weren't in the database? ok
+            next();
+            return;
+        }
+        // and send a new query to retrieve the References in those messages
+        d->findReferences = new Query( "select message, value "
+                                       "from header_fields "
+                                       "where message=any($1) and field=" +
+                                       fn( HeaderField::References ),
+                                       this );
+        d->findReferences->bind( 1, parents );
+        d->transaction->enqueue( d->findReferences );
+        d->transaction->execute();
+        // it would have been better to send both as one query, but
+        // postgres misplanned all our attempts to do that
+    }
+
+    while ( d->findReferences->hasResults() ) {
+        Row * r = d->findReferences->nextRow();
+        // we have the references field, and just for sanity
+        String *msgid = d->outlookParentIds.find( r->getInt( "message" ) );
+        if ( msgid ) {
+            // we have the message-id and the references field, so
+            // make a new child references
+            String ref = r->getString( "value" );
+            ref.append( " " );
+            ref.append( *msgid );
+            ref = ref.simplified().wrapped( 60, "", " ", false );
+            // ... and use that for each of the messages that claim to
+            // have this antecedent
+            List<Message>::Iterator m( d->outlooks.find( *msgid ) );
+            while ( m ) {
+                if ( !m->header()->field( HeaderField::References ) )
+                    m->header()->add( "References", ref );
+                ++m;
+            }
+        }
+    }
+
+    if ( d->findReferences && !d->findReferences->done() )
+        return;
+
+    next();
+}
+
+
+/*! Like convertThreadIndex(), except that it looks at other messages
+    being injected rather than messages already in the database.
+
+    This is a no-op when messages are inserted using SMTP or LMTP, but
+    can matter for aoximport.
+*/
+
+void Injector::addMoreReferences()
+{
+    List<Message> queue;
+    List<Message>::Iterator m( d->messages );
+    while ( m ) {
+        if ( m->header()->field( HeaderField::References ) )
+            queue.append( m );
+        ++m;
+    }
+
+    while ( !queue.isEmpty() ) {
+        Message * parent = queue.shift();
+        String msgid = parent->header()->messageId();
+        String r = parent->header()->field(HeaderField::References)->rfc822();
+        r.append( " " );
+        r.append( msgid );
+        r = r.simplified().wrapped( 60, "", " ", false );
+        List<Message>::Iterator child( d->outlooks.find( msgid ) );
+        while ( child ) {
+            if ( !child->header()->field( HeaderField::References ) ) {
+                child->header()->add( "References", r );
+                queue.append( child );
+            }
+            ++child;
+        }
+    }
 }
 
 
