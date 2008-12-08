@@ -511,6 +511,8 @@ bool Schema::singleStep()
         c = stepTo77(); break;
     case 77:
         c = stepTo78(); break;
+    case 78:
+        c = stepTo79(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3741,7 +3743,7 @@ bool Schema::stepTo76()
 bool Schema::stepTo77()
 {
     if ( d->substate == 0 ) {
-        describeStep( "Add an LDAP-DN column to users" );
+        describeStep( "Add an LDAP-DN column to users." );
         d->substate = 1;
         d->q = new Query( "select 42 as answer "
                           "from pg_attribute a "
@@ -3773,7 +3775,7 @@ bool Schema::stepTo77()
 bool Schema::stepTo78()
 {
     if ( d->substate == 0 ) {
-        describeStep( "Move mailbox_messages.idate to messages" );
+        describeStep( "Move mailbox_messages.idate to messages." );
         d->substate = 1;
         d->t->enqueue( new Query( "alter table messages add idate int", 0 ) );
         d->t->enqueue( new Query( "update messages set idate=mm.idate "
@@ -3785,6 +3787,25 @@ bool Schema::stepTo78()
                                   "set not null", 0 ) );
         d->t->enqueue( new Query( "alter table mailbox_messages "
                                   "drop idate", 0 ) );
+        d->t->execute();
+    }
+
+    return true;
+}
+
+
+/*! Create thread_indexes. */
+
+bool Schema::stepTo79()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Create thread_indexes." );
+        d->substate = 1;
+        d->t->enqueue( new Query( "create table thread_indexes "
+                                  "(message integer not null references "
+                                  "messages(id), thread_index text)", 0 ) );
+        d->t->enqueue( new Query( "create index ti_outlook_hack on "
+                                  "thread_indexes(thread_index)", 0 ) );
         d->t->execute();
     }
 

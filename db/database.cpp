@@ -655,16 +655,6 @@ uint Database::handlesNeeded()
 }
 
 
-/*! This static function returns the schema revision current at the time
-    this server was compiled.
-*/
-
-uint Database::currentRevision()
-{
-    return 78;
-}
-
-
 /*! \fn bool Database::blocked( const class Transaction * transaction ) const
 
     Returns true if \a transaction is currently being processed, but
@@ -674,3 +664,12 @@ uint Database::currentRevision()
     not being processed.
 */
 
+
+/*! This static function returns the schema revision current at the time
+    this server was compiled.
+*/
+
+uint Database::currentRevision()
+{
+    return 79;
+}
