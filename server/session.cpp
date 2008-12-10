@@ -89,6 +89,7 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
         d->nextModSeq = other->d->nextModSeq;
         d->msns.add( other->d->msns );
         d->msns.add( other->d->unannounced );
+        d->msns.remove( other->d->expunges );
     }
     else {
         if ( cache ) {
@@ -144,6 +145,7 @@ void Session::end()
     }
     cd->uidnext = d->uidnext;
     cd->msns = d->msns;
+    cd->msns.remove( d->expunges );
 
     // the session initialiser assumes that if it has all the messages
     // and the modseq, then it also has the recent ones. but if this
@@ -1046,5 +1048,4 @@ void Session::clearUnannounced()
 
 void Session::sendFlagUpdate()
 {
-    
 }
