@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (78);
+insert into mailstore (revision) values (79);
 
 
 -- One entry for each unique address we've encountered.
@@ -478,3 +478,16 @@ create table fileinto_targets (
     mailbox     integer not null references mailboxes(id),
     unique(script, mailbox)
 );
+
+
+-- One entry for each message that a poor misguided Exchange/Outlook
+-- contributes to its idea of a thread. Used to turn E/O threading
+-- into what the rest of the universe uses.
+
+create table thread_indexes (
+    -- Grant: select, insert
+    message integer not null references messages(id),
+    thread_index text
+);
+
+create index ti_outlook_hack on thread_indexes(thread_index);

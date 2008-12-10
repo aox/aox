@@ -1255,7 +1255,7 @@ Axel, /Unable to fetch 12MB mail
 Axel, /2.10 status
 
   Mail.app occasionally shows a panel, saying "SSL error: Identity of
-  mail3.chaos1.de can't be verified, hit "continue"or "abort".
+  mail3.chaos1.de can't be verified, hit "continue" or "abort".
 
 
 Simon, /Segfault when accessing web-archive
@@ -1265,9 +1265,6 @@ Simon, /Segfault when accessing web-archive
 
 
 Caches that aren't
-
-  AddressCache isn't. Solvable by never using it in Archiveopteryx.
-  The AddressCreator takes over its duties.
 
   There's a session "cache" in HTTP.
 
