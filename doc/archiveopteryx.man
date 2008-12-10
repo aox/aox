@@ -73,16 +73,12 @@ is supported.
 .IP logd
 The log server is an internal server which filters log entries so
 useful messages are logged while noise is suppressed.
-.IP ocd
-The Oryx coordination daemon performs miscellaneous coordination
-duties on behalf of the frontend servers.
 .IP tlsproxy
 This proxy performs TLS certificate and encryption services for the
 other servers. It's based on Cryptlib.
 .PP
 Each server is described more fully in its own man page:
 .BR logd (8),
-.BR ocd (8),
 .BR postgres (1)
 and
 .BR tlsproxy (8)
@@ -92,8 +88,6 @@ for the frontend server, which serves IMAP, POP3, LMTP and/or SMTP and
 perhaps webmail.
 .PP
 Normally, there is one
-.BR ocd (8)
-and one
 .BR logd (8)
 process running. In addition there will be at least one
 .BR postgres (1)
@@ -103,8 +97,6 @@ and tlsproxy processes.
 The servers use TCP to communicate internally, so they can be
 distributed across a server cluster. Generally, one host will run the
 database backend, one host (perhaps the same) will run
-.BR ocd (8)
-and
 .BR logd (8)
 and as many as required will run frontends.
 .PP
@@ -121,7 +113,7 @@ neither read nor write access to this directory.
 The internal servers, ie.
 .BR logd (8)
 and
-.BR ocd (8),
+.BR tlsproxy (8),
 run chrooted to other directories. All of the servers close all open
 files at startup and drop root privileges. By default they run as user
 .IR $AOXUSER ,
@@ -235,7 +227,6 @@ http://www.archiveopteryx.org/3.0.5
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
-.BR ocd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
 http://www.archiveopteryx.org

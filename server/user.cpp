@@ -459,9 +459,6 @@ void User::createHelper()
 
 /*! Enqueues a query to remove this user in the Transaction \a t, and
     returns the Query. Does not commit the Transaction.
-
-    XXX: This function doesn't tell ocd about the user going away, and
-    ocd wouldn't know what to do about it anyway.
 */
 
 Query * User::remove( Transaction * t )
