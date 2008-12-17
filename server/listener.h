@@ -16,11 +16,11 @@ class Listener
     : public Connection
 {
 public:
-    Listener( const Endpoint &e, const String & s )
+    Listener( const Endpoint &e, const String & s, bool silent = false )
         : Connection(), svc( s )
     {
         setType( Connection::Listener );
-        if ( listen( e ) >= 0 ) {
+        if ( listen( e, silent ) >= 0 ) {
             EventLoop::global()->addConnection( this );
         }
     }
@@ -106,11 +106,14 @@ public:
                     break;
                 }
                 if ( u ) {
-                    Listener<T> * l = new Listener<T>( e, svc );
+                    bool silent = false;
+                    if ( any6 && *it == "0.0.0.0" )
+                        silent = true;
+                    Listener<T> * l = new Listener<T>( e, svc, silent );
                     if ( l->state() != Listening ) {
                         delete l;
                         l = 0;
-                        if ( any6 && *it == "0.0.0.0" ) {
+                        if ( silent ) {
                             // if we listen on all addresses using
                             // ipv6 syntax, some platforms also listen
                             // to all ipv4 addresses, and an explicit

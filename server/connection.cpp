@@ -668,10 +668,12 @@ bool Connection::hasTls() const
     If the connection is not valid, a socket is created and associated
     with it first.
 
+    Logs errors only if \a silent is false.
+
     (Why does this return an int instead of a bool?)
 */
 
-int Connection::listen( const Endpoint &e )
+int Connection::listen( const Endpoint &e, bool silent )
 {
     if ( !e.valid() )
         return -1;
@@ -691,20 +693,23 @@ int Connection::listen( const Endpoint &e )
     int retcode = ::bind( d->fd, e.sockaddr(), e.sockaddrSize() );
     if ( retcode < 0 ) {
         if ( errno == EADDRINUSE ) {
-            log( "Cannot listen to " +
-                 e.address() + " port " + fn( e.port() ) +
-                 " because another process is occupying it", Log::Error );
+            if ( !silent )
+                log( "Cannot listen to " +
+                     e.address() + " port " + fn( e.port() ) +
+                     " because another process is occupying it", Log::Error );
             return -1;
         }
-        log( "bind( " + fn( d->fd ) + ", " +
-             e.address() + " port " + fn( e.port() ) +
-             " ) returned errno " + fn( errno ), Log::Debug );
+        if ( !silent )
+            log( "bind( " + fn( d->fd ) + ", " +
+                 e.address() + " port " + fn( e.port() ) +
+                 " ) returned errno " + fn( errno ), Log::Debug );
         return -1;
     }
     if ( ::listen( d->fd, 64 ) < 0 ) {
-        log( "listen( " + fn( d->fd ) + ", 64 ) for address " +
-             e.address() + " port " + fn( e.port() ) +
-             " ) returned errno " + fn( errno ), Log::Debug );
+        if ( !silent )
+            log( "listen( " + fn( d->fd ) + ", 64 ) for address " +
+                 e.address() + " port " + fn( e.port() ) +
+                 " ) returned errno " + fn( errno ), Log::Debug );
         return -1;
     }
 
