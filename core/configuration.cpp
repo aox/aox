@@ -687,7 +687,7 @@ void Configuration::setup( const String & global, bool allowFailure )
             in6.sin6_scope_id = 0;
             if ( ::bind( s, (struct sockaddr *)&in6, sizeof( in6 ) ) < 0 ) {
                 if ( errno == EADDRINUSE )
-                    good = true; // somone is using that: fine
+                    good = true; // someone is using that: fine
                 else
                     bad = true; // some other error: IPv6 presumably broken
             }

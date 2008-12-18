@@ -79,7 +79,7 @@ public:
 
     bool isPending( Event );
 
-    int listen( const Endpoint & );
+    int listen( const Endpoint &, bool );
     int connect( const Endpoint & );
     int connect( const String &, uint );
     int accept();

@@ -217,44 +217,6 @@ by default. If this is instead set to
 Archiveopteryx never uses anything less than perfectly random
 numbers. In this case, make sure that there's enough entropy, or else
 a series of rapid login attempts can block the entire server.
-.SS "Cluster Configuration"
-.IP start-ocd
-controls whether the
-.I ocd
-server should be started by this instance of Archiveopteryx. It is
-.I true
-by default, but if you are running multiple instances of Archiveopteryx,
-all but one instance should have it set to
-.IR false ;
-and the
-.I ocd-address
-and
-.I ocd-port
-should be set to the same values everywhere, so that all instances share
-one
-.IR ocd .
-.IP ocd-address
-The address where
-.BR ocd (8)
-listens for connections from other Archiveopteryx servers. The default is
-.IR 127.0.0.1 .
-.IP ocd-port
-The port number at which
-.BR ocd (8)
-listens, and to which the other servers connect,
-.I 2050
-by default.
-.IP ocadmin-address
-The address where
-.BR ocd (8)
-listens for admin requests. The default is
-.IR 127.0.0.1 .
-.IP ocadmin-port
-The port number at which
-.BR ocd (8)
-listens for admin requests.
-.I 2051
-by default.
 .SS "User Authentication"
 http://www.archiveopteryx.org/sasl describes SASL and
 authentication in more detail.
@@ -715,7 +677,6 @@ http://www.archiveopteryx.org/3.1.0
 .BR archiveopteryx (8),
 .BR deliver (8),
 .BR logd (8),
-.BR ocd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
 http://www.archiveopteryx.org

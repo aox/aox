@@ -54,13 +54,11 @@ jam -sINSTALLROOT=$RPM_BUILD_ROOT install
 /usr/local/archiveopteryx/man/man8/installer.8
 /usr/local/archiveopteryx/man/man8/logd.8
 /usr/local/archiveopteryx/man/man8/ms.8
-/usr/local/archiveopteryx/man/man8/ocd.8
 /usr/local/archiveopteryx/man/man8/recorder.8
 /usr/local/archiveopteryx/man/man8/tlsproxy.8
 /usr/local/archiveopteryx/osl-2.1.txt
 /usr/local/archiveopteryx/sbin/archiveopteryx
 /usr/local/archiveopteryx/sbin/logd
-/usr/local/archiveopteryx/sbin/ocd
 /usr/local/archiveopteryx/sbin/recorder
 /usr/local/archiveopteryx/sbin/tlsproxy
 
