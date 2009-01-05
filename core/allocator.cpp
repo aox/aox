@@ -7,6 +7,9 @@
 #include "string.h"
 #include "log.h"
 
+// typeid
+#include <typeinfo>
+
 // fprintf
 #include <stdio.h>
 
@@ -542,7 +545,7 @@ void Allocator::free()
         mark();
         ::roots[i].objects = objects - o;
         ::roots[i].size = ::marked - m;
-        
+
         i++;
     }
     gettimeofday( &afterMark, 0 );
@@ -835,4 +838,14 @@ uint Allocator::inUse()
 uint Allocator::chunkSize() const
 {
     return step;
+}
+
+
+const char * typeName( void * p )
+{
+    try {
+        return typeid( p ).name();
+    } catch( std::bad_typeid ) {
+    }
+    return "";
 }
