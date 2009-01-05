@@ -844,8 +844,8 @@ uint Allocator::chunkSize() const
 const char * typeName( void * p )
 {
     try {
-        return typeid( p ).name();
-    } catch( std::bad_typeid ) {
+        return typeid( (Garbage*)p ).name();
+    } catch( ... ) {
     }
     return "";
 }
