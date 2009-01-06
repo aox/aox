@@ -593,8 +593,8 @@ UString Message::baseSubject( const UString & subject )
                 uint i = 0;
                 bool blob = true;
                 while ( blob && s[i] == '[' ) {
-                    uint j = i;
-                    while ( j < s.length() && s[j] != ']' )
+                    uint j = i+1;
+                    while ( j < s.length() && s[j] != '[' && s[j] != ']' )
                         j++;
                     if ( s[j] == ']' ) {
                         j++;
@@ -623,8 +623,8 @@ UString Message::baseSubject( const UString & subject )
                         i++;
                     blob = true;
                     while ( blob && s[i] == '[' ) {
-                        uint j = i;
-                        while ( j < s.length() && s[j] != ']' )
+                        uint j = i+1;
+                        while ( j < s.length() && s[j] != '[' && s[j] != ']' )
                             j++;
                         if ( s[j] == ']' ) {
                             j++;
@@ -650,7 +650,8 @@ UString Message::baseSubject( const UString & subject )
 
             uint i = 0;
             if ( s[0] == '[' ) {
-                while ( i < s.length() && s[i] != ']' )
+                i++;
+                while ( i < s.length() && s[i] != '[' && s[i] != ']' )
                     i++;
                 if ( s[i] == ']' ) {
                     i++;
