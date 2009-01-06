@@ -23,6 +23,10 @@
 #include <errno.h>
 
 
+
+//#define ARNT
+
+
 struct AllocationBlock
 {
     union {
@@ -32,8 +36,11 @@ struct AllocationBlock
         } x;
         uint y;
         void * z;
+#if defined(ARNT)
+        AllocationBlock * up;
+#endif
     };
-    void* payload[1];
+    void* payload[0];
 };
 
 const uint SizeLimit = 512 * 1024 * 1024;
@@ -106,7 +113,7 @@ void Allocator::dealloc( void * p )
 }
 
 
-const uint bytes = sizeof(void*);
+const uint bytes = sizeof(AllocationBlock);
 const uint bits = 8 * sizeof(void*);
 const uint magic = 0x7d34;
 
@@ -296,6 +303,9 @@ void * Allocator::allocate( uint size, uint pointers )
                     else
                         b->x.number = pointers;
                     b->x.magic = ::magic;
+#if defined(ARNT)
+                    b->up = 0;
+#endif
                     marked[base/bits] &= ~( 1UL << j );
                     used[base/bits] |= ( 1UL << j );
                     taken++;
@@ -440,9 +450,13 @@ Allocator * Allocator::owner( const void * p )
 /*! This private helper checks that \a p is a valid pointer to
     unmarked GCable memory, marks it, and puts it on a stack so that
     mark() can process it and add its children to the stack.
+
+    \a u is unused normally. It basically a placeholder since I've
+    used a second argument here to many times, for different debugging
+    experiements, and grew tired of removing them before submitting.
 */
 
-void Allocator::mark( void * p )
+void Allocator::mark( void * p, void * u )
 {
     Allocator * a = owner( p );
     // a is the allocator we may want. does its area encompass p?
@@ -483,6 +497,11 @@ void Allocator::mark( void * p )
         tos = 0;
     }
     stack[tos++] = b;
+#if defined(ARNT)
+    b->up = u;
+    #else
+    u = u; // against warnings
+#endif
     if ( tos > peak )
         peak = tos;
 }
@@ -504,8 +523,9 @@ void Allocator::mark()
         }
         uint n = 0;
         while ( n < number ) {
-            if ( b->payload[n] )
-                mark( b->payload[n] );
+            if ( b->payload[n] ) {
+                mark( b->payload[n], b );
+            }
             n++;
         }
     }
@@ -541,7 +561,7 @@ void Allocator::free()
     while ( i < ::numRoots ) {
         uint o = objects;
         uint m = ::marked;
-        mark( ::roots[i].root );
+        mark( ::roots[i].root, 0 );
         mark();
         ::roots[i].objects = objects - o;
         ::roots[i].size = ::marked - m;
@@ -704,7 +724,7 @@ uint Allocator::sizeOf( void * p )
 {
     ::objects = 0;
     ::marked = 0;
-    mark( p );
+    mark( p, 0 );
     mark();
     return ::marked;
 }
@@ -838,14 +858,4 @@ uint Allocator::inUse()
 uint Allocator::chunkSize() const
 {
     return step;
-}
-
-
-const char * typeName( void * p )
-{
-    try {
-        return typeid( (Garbage*)p ).name();
-    } catch( ... ) {
-    }
-    return "";
 }
