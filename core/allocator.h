@@ -59,7 +59,7 @@ private:
     Allocator * right;
 
 private:
-    static void mark( void *, void * );
+    static void mark( void * );
     static void mark();
     void sweep();
     void insert();
