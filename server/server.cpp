@@ -647,7 +647,8 @@ void Server::run()
     }
 
     dup2( 0, 1 );
-    dup2( 0, 2 );
+    if ( d->fork )
+        dup2( 0, 2 );
     EventLoop::global()->start();
 
     if ( Scope::current()->log()->disastersYet() )
