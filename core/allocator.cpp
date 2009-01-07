@@ -836,3 +836,51 @@ uint Allocator::chunkSize() const
 {
     return step;
 }
+
+
+void pointers( void * p )
+{
+    if ( !p )
+        return;
+
+    uint bi = 0;
+    while ( bi < 32 ) {
+        Allocator * a = allocators[bi];
+        while ( a ) {
+            uint b = 0;
+            while ( b * bits < a->capacity ) {
+                uint i = 0;
+                while ( i < 32 ) {
+                    if ( (a->used[b] & (1UL<<i)) &&
+                         !(a->marked[b] & (1UL<<i)) ) {
+                        AllocationBlock * m
+                            = (AllocationBlock *)a->block( b * bits + i );
+                        if ( m ) {
+                            uint number = m->x.number;
+                            if ( number == 127 )
+                                number = ( a->step - bytes ) / sizeof( void* );
+                            uint n = 0;
+                            while ( n < number ) {
+                                if ( m->payload[n] == p ) {
+                                    fprintf( stderr,
+                                             "Pointer at 0x%p (in 0x%p, "
+                                             "size <= %d, %d pointers)\n",
+                                             &m->payload[n],
+                                             &m->payload[0],
+                                             a->step - bytes,
+                                             number );
+                                    number = 0;
+                                }
+                                n++;
+                            }
+                        }
+                    }
+                    i++;
+                }
+                b++;
+            }
+            a = a->next;
+        }
+        bi++;
+    }
+}

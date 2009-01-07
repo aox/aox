@@ -58,6 +58,8 @@ private:
     Allocator * left;
     Allocator * right;
 
+    friend void pointers( void * );
+
 private:
     static void mark( void * );
     static void mark();
