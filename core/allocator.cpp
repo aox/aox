@@ -56,9 +56,9 @@ static void oneMegabyteAllocated()
 
 /*! Allocates \a s bytes of collectible memory, which may contain up
     to \a n pointers. If n is too large to be contained within \a s
-    bytes, alloc() uses the largest legal value. The default value is
-    UINT_MAX, which in practise means that the entire object may
-    consist of pointers.
+    bytes, alloc() uses the largest number that will fit. The default
+    value is UINT_MAX, which in practice means that the entire object
+    may consist of pointers.
 
     Note that \a s is a uint, not a size_t. In our universe, it isn't
     possible to allocate more than 4GB at a time. So it is.
@@ -164,7 +164,7 @@ Allocator * Allocator::allocator( uint size )
     reachable. It can be called whenever there are no pointers into
     the heap, ie. only during the main event loop.
 
-    Ech single instance of the Allocator class allocates memory blocks
+    Each single instance of the Allocator class allocates memory blocks
     of a given size. There are static functions to the heavy loading,
     such as free() to free all unreachable memory, allocate() to
     allocate something, allocator() to find an Allocator responsible
@@ -442,7 +442,7 @@ Allocator * Allocator::owner( const void * p )
 void Allocator::mark( void * p )
 {
     Allocator * a = owner( p );
-    // a is the allocator we may want. does its area encompass p?
+    // a may be the allocator we want. does its area encompass p?
     if ( !a || (ulong)a->buffer > (ulong)p )
         return;
     // perhaps, but let's look closer
