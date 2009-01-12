@@ -8,7 +8,9 @@
 
     Our implementation of this data structure stores objects of a
     single type based on a bit string. The bit string can have any
-    length, it need not be an integer number of bytes.
+    length, it need not be an integer number of bytes. Our
+    implementation differs from that described by Knuth in supporting
+    keys that are prefixes of other keys.
 
     The class is optimised for fast retrieval. Inserting is a little
     slower.
