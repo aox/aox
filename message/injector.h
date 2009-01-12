@@ -73,7 +73,7 @@ private:
     void findDependencies();
     void updateAddresses( List<Address> * );
     void createDependencies();
-    void convertThreadIndex();
+    void convertInReplyTo();
     void addMoreReferences();
     void insertBodyparts();
     void addBodypartRow( Bodypart * );

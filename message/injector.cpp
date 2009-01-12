@@ -57,7 +57,7 @@ struct BodypartRow
 enum State {
     Inactive,
     CreatingDependencies,
-    ConvertingThreadIndex,
+    ConvertingInReplyTo,
     InsertingBodyparts,
     SelectingMessageIds, SelectingUids,
     InsertingMessages,
@@ -132,7 +132,7 @@ public:
     Dict<BodypartRow> hashes;
     List<BodypartRow> bodyparts;
 
-    // for convertThreadIndex()
+    // for convertInReplyTo()
     Dict< List<Message> > outlooks;
     Map<String> outlookParentIds;
     Query * findParents;
@@ -324,8 +324,8 @@ void Injector::execute()
             createDependencies();
             break;
 
-        case ConvertingThreadIndex:
-            convertThreadIndex();
+        case ConvertingInReplyTo:
+            convertInReplyTo();
             break;
 
         case InsertingBodyparts:
@@ -627,14 +627,11 @@ void Injector::createDependencies()
 /*! Creates a proper References field for any messages sent by
     Outlook*, ie. having Thread-Index instead of References.
 
-    In its final version, this doesn't actually use
-    Thread-Index. Instead it uses In-Reply-To, which Outlook also
-    sends. We could also look at Thread-Index if In-Reply-To fails
-    (which it will when we have some messages in the thread but miss
-    the message's direct antecedent).
+    As a bonus (or performance improvement, depending on how you look
+    at it), also looks at 
 */
 
-void Injector::convertThreadIndex()
+void Injector::convertInReplyTo()
 {
     StringList ids;
     if ( d->outlooks.isEmpty() ) {
@@ -685,23 +682,29 @@ void Injector::convertThreadIndex()
                    "from header_fields "
                    "where field=";
         s.appendNumber( HeaderField::MessageId );
-        s.append( " and (" );
-        bool first = true;
-        StringList::Iterator i( ids );
-        uint n = 1;
-        while ( i ) {
-            // use a series of value=$n instead of value=any($1),
-            // because postgres uses a bad plan for the latter.
-            if ( !first )
-                s.append( " or " );
-            first = false;
-            s.append( "value=$" );
-            s.appendNumber( n );
-            d->findParents->bind( n, *i );
-            n++;
-            ++i;
+        if ( ids.count() < 100 ) {
+            s.append( " and (" );
+            bool first = true;
+            StringList::Iterator i( ids );
+            uint n = 1;
+            while ( i ) {
+                // use a series of value=$n instead of value=any($1),
+                // because postgres uses a bad plan for the latter.
+                if ( !first )
+                    s.append( " or " );
+                first = false;
+                s.append( "value=$" );
+                s.appendNumber( n );
+                d->findParents->bind( n, *i );
+                n++;
+                ++i;
+            }
+            s.append( ")" );
         }
-        s.append( ")" );
+        else {
+            s.append( " and value=any($1)" );
+            d->findParents->bind( 1, ids );
+        }
         d->findParents->setString( s );
         d->transaction->enqueue( d->findParents );
         d->transaction->execute();
@@ -767,7 +770,7 @@ void Injector::convertThreadIndex()
 }
 
 
-/*! Like convertThreadIndex(), except that it looks at other messages
+/*! Like convertInReplyTo(), except that it looks at other messages
     being injected rather than messages already in the database.
 
     This is a no-op when messages are inserted using SMTP or LMTP, but
