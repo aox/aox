@@ -75,6 +75,8 @@ private:
     void createDependencies();
     void convertInReplyTo();
     void addMoreReferences();
+    void convertThreadIndex();
+    void insertThreadIndexes();
     void insertBodyparts();
     void addBodypartRow( Bodypart * );
     void selectMessageIds();

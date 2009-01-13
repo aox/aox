@@ -57,7 +57,8 @@ struct BodypartRow
 enum State {
     Inactive,
     CreatingDependencies,
-    ConvertingInReplyTo,
+    ConvertingInReplyTo, AddingMoreReferences,
+    ConvertingThreadIndex,
     InsertingBodyparts,
     SelectingMessageIds, SelectingUids,
     InsertingMessages,
@@ -75,7 +76,8 @@ public:
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
           queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), subtransaction( 0 ),
-          findParents( 0 ), findReferences( 0 )
+          findParents( 0 ), findReferences( 0 ),
+          findBlah( 0 ), findMessagesInOutlookThreads( 0 )
     {}
 
     struct Delivery
@@ -137,6 +139,19 @@ public:
     Map<String> outlookParentIds;
     Query * findParents;
     Query * findReferences;
+    // for convertThreadIndex()
+    Query * findBlah;
+    Query * findMessagesInOutlookThreads;
+
+    struct ThreadParentInfo
+        : public Garbage
+    {
+    public:
+        ThreadParentInfo(): Garbage() {}
+
+        String references;
+        String messageId;
+    };
 };
 
 
@@ -327,9 +342,17 @@ void Injector::execute()
         case ConvertingInReplyTo:
             convertInReplyTo();
             break;
+            
+        case AddingMoreReferences:
+            addMoreReferences();
+            next();
+            break;
+
+        case ConvertingThreadIndex:
+            convertThreadIndex();
+            break;
 
         case InsertingBodyparts:
-            addMoreReferences();
             insertBodyparts();
             break;
 
@@ -344,6 +367,7 @@ void Injector::execute()
         case InsertingMessages:
             insertMessages();
             insertDeliveries();
+            insertThreadIndexes();
             next();
             if ( !d->mailboxes.isEmpty() ) {
                 cache();
@@ -624,11 +648,9 @@ void Injector::createDependencies()
 }
 
 
-/*! Creates a proper References field for any messages sent by
-    Outlook*, ie. having Thread-Index instead of References.
-
-    As a bonus (or performance improvement, depending on how you look
-    at it), also looks at 
+/*! Creates a proper References field for any messages which have
+    In-Reply-To but not References. This covers some versions of
+    Outlook, but not all.
 */
 
 void Injector::convertInReplyTo()
@@ -645,7 +667,7 @@ void Injector::convertInReplyTo()
                 int lt = -1;
                 do {
                     // we look at each possible message-id in the
-                    // in-reply-to field, not jus the first or last
+                    // in-reply-to field, not just the first or last
                     lt = irt.find( '<', lt + 1 );
                     int gt = irt.find( '>', lt );
                     if ( lt >= 0 && gt > lt ) {
@@ -803,6 +825,200 @@ void Injector::addMoreReferences()
             ++child;
         }
     }
+
+    d->outlooks.clear();
+}
+
+
+/*! Creates a proper References field for any messages sent by
+    Outlook*, ie. having Thread-Index instead of References.
+*/
+
+void Injector::convertThreadIndex()
+{
+    StringList ids;
+    if ( d->outlooks.isEmpty() ) {
+        List<Message>::Iterator i( d->messages );
+        while ( i ) {
+            Header * h = i->header();
+            if ( !h->field( HeaderField::References ) ) {
+                HeaderField * ti = h->field( "Thread-Index" );
+                if ( ti ) {
+                    String t = ti->value().utf8().de64();
+                    if ( t.length() > 22 ) {
+                        t = t.mid( 0, 22 ).e64();
+                        ids.append( t );
+                        if ( !d->outlooks.contains( t ) )
+                            d->outlooks.insert( t, new List<Message> );
+                        d->outlooks.find( t )->append( i );
+                    }
+                }
+            }
+            ++i;
+        }
+        if ( ids.isEmpty() ) {
+            // no thread-indexes need fixing? skip the rest then
+            next();
+            return;
+        }
+
+        ids.removeDuplicates();
+        d->findBlah = new Query( "select message "
+                                 "from thread_indexes "
+                                 "where thread_index=any($1::text[])", this );
+        d->findBlah->bind( 1, ids );
+        d->transaction->enqueue( d->findBlah );
+        d->transaction->execute();
+    }
+
+    if ( !d->findMessagesInOutlookThreads ) {
+        if ( !d->findBlah->done() )
+            return;
+
+        IntegerSet ante;
+        while ( d->findBlah->hasResults() ) {
+            Row * r = d->findBlah->nextRow();
+            ante.add( r->getInt( "message" ) );
+        }
+
+        d->findMessagesInOutlookThreads
+            = new Query( "select message, field, value "
+                         "from header_fields "
+                         "where message=any($1) and part='' and ("
+                         "field=" + fn ( HeaderField::MessageId ) + " or "
+                         "field=" + fn ( HeaderField::References ) + " or "
+                         "field=" + fn ( d->fieldNameCreator->id(
+                                             "Thread-Index" ) ) + ") "
+                         "order by field desc",
+                         this );
+        d->findMessagesInOutlookThreads->bind( 1, ante );
+        d->transaction->enqueue( d->findMessagesInOutlookThreads );
+        d->transaction->execute();
+    }
+
+    if ( !d->findMessagesInOutlookThreads->done() )
+        return;
+
+    Dict<InjectorData::ThreadParentInfo> antecedents;
+    Map<InjectorData::ThreadParentInfo> antecedents2;
+
+    while ( d->findMessagesInOutlookThreads->hasResults() ) {
+        Row * r = d->findMessagesInOutlookThreads->nextRow();
+        uint m = r->getInt( "message" );
+        uint field = r->getInt( "field" );
+        InjectorData::ThreadParentInfo * t = antecedents2.find( m );
+        if ( field == HeaderField::MessageId ) {
+            if ( t )
+                t->messageId = r->getString( "value" );
+        }
+        else if ( field == HeaderField::References ) {
+            if ( t )
+                t->references = r->getString( "value" );
+        }
+        else if ( !t ) {
+            // this will be run first because of "order by field desc" above
+            t = new InjectorData::ThreadParentInfo;
+            antecedents.insert( r->getString( "value" ), t );
+            log( "antecedent <" + r->getString( "value" ) + ">", Log::Debug );
+            antecedents2.insert( m, t );
+        }
+    }
+
+    // at this time, we know the message-id, references and
+    // thread-index for a bunch of messages. if possible, we want to
+    // construct a references field for each message in outlooks now.
+
+    Dict< List<Message> >::Iterator i( d->outlooks );
+    while ( i ) {
+        List<Message>::Iterator m( *i );
+        while ( m ) {
+            String ref;
+            // we need to look for the full thread-index (indicating both
+            // thread and position within thread)
+            HeaderField * ti = m->header()->field( "Thread-Index" );
+            String t = ti->value().utf8().de64();
+            // we also look for the parent's and grandparent's thread-index
+            String pt = t.mid( 0, ( (t.length() - 22 - 1) / 5 ) * 5 + 22 );
+            InjectorData::ThreadParentInfo * tpi 
+                = antecedents.find( pt.e64() );
+            if ( tpi ) {
+                // we have the parent's information
+                ref = tpi->references;
+                ref.append( " " );
+                ref.append( tpi->messageId );
+            }
+            if ( !tpi && t.length() > 27 ) {
+                // we don't, but maybe there is a grandparent?
+                String gt = t.mid( 0, ( (t.length() - 22 - 6) / 5 ) * 5 + 22 );
+                log( "considering <" + gt.e64() + ">", Log::Debug );
+                tpi = antecedents.find( gt.e64() );
+            }
+            if ( tpi && ref.isEmpty() ) {
+                // we have the grandparent's information, and there is an
+                // in-reply-to field, so maybe we have the parent's
+                // message-id as well.
+                HeaderField * irtf 
+                    = m->header()->field( HeaderField::InReplyTo );
+                String irt;
+                if ( irtf )
+                    irt = irtf->rfc822();
+                int lt = irt.find( '<' );
+                int gt = irt.find( '>', lt );
+                if ( lt >= 0 && gt > lt ) {
+                    AddressParser ap( irt.mid( lt, gt + 1 - lt ) );
+                    if ( ap.error().isEmpty() &&
+                         ap.addresses()->count() == 1 ) {
+                        // yes, we have the parent's message-id, or a
+                        // plausible message-id anyway.
+                        Address * a = ap.addresses()->firstElement();
+
+                        ref = tpi->references;
+                        ref.append( " " );
+                        ref.append( tpi->messageId );
+                        ref.append( " <" );
+                        ref.append( a->lpdomain() );
+                        ref.append( ">" );
+                    }
+                }
+            }
+            if ( !ref.isEmpty() )
+                m->header()->add( "References",
+                                  ref.simplified().wrapped( 60, "", " ",
+                                                            false ) );
+            ++m;
+        }
+        ++i;
+    }
+
+    d->outlooks.clear();
+    next();
+}
+
+
+/*! Inserts rows into the thread_indexes table, so that
+    convertThreadIndex() will have fodder next time it runs.
+*/
+
+void Injector::insertThreadIndexes()
+{
+    Query * q = new Query( "copy thread_indexes (message, thread_index) "
+                           "from stdin with binary", 0 );
+
+    List<Message>::Iterator m( d->messages );
+    while ( m ) {
+        HeaderField * ti = m->header()->field( "Thread-Index" );
+        if ( ti ) {
+            String t = ti->value().utf8().de64();
+            if ( t.length() >= 22 ) {
+                q->bind( 1, m->databaseId() );
+                q->bind( 2, t.mid( 0, 22 ).e64() );
+                q->submitLine();
+            }
+        }
+        ++m;
+    }
+
+    d->transaction->enqueue( q );
 }
 
 
