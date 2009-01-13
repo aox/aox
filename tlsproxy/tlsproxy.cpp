@@ -19,8 +19,10 @@
 
 // cryptlib
 #include "cryptlib.h"
-// fork(), unlink()
+// fork(), unlink(), wait()
 #include <sys/types.h>
+// wait()
+#include <sys/wait.h>
 // stat(), chmod()
 #include <sys/stat.h>
 #include <unistd.h>
@@ -489,6 +491,8 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
         EventLoop::global()->removeConnection( other );
         close();
         other->close();
+        int dummy = 42;
+        wait( &dummy );
         return;
     }
 
