@@ -30,15 +30,15 @@ public:
     uint largestAtStart;
     uint uidnextAtStart;
     List<EventHandler> * users;
-    Dict<Thread> threads;
-    List<Thread> threadList;
+    Dict<SubjectThread> threads;
+    List<SubjectThread> threadList;
 
     class NewMessage
         : public Garbage
     {
     public:
         NewMessage(): Garbage(), thread( 0 ), uid( 0 ) {}
-        Thread * thread;
+        SubjectThread * thread;
         uint uid;
     };
     List<NewMessage> newMessages;
@@ -106,9 +106,9 @@ void Threader::execute()
             uint uid = r->getInt( "uid" );
             uint tid = r->getInt( "thread" );
             UString subject = r->getUString( "subject" );
-            Thread * t = d->threads.find( subject.utf8() );
+            SubjectThread * t = d->threads.find( subject.utf8() );
             if ( !t ) {
-                t = new Thread;
+                t = new SubjectThread;
                 t->setId( tid );
                 t->setSubject( subject );
                 d->threads.insert( subject.utf8(), t );
@@ -147,9 +147,9 @@ void Threader::execute()
             if ( !r->isNull( "value" ) )
                 subject = Message::baseSubject( r->getUString( "value" ) );
             uint uid = r->getInt( "uid" );
-            Thread * t = d->threads.find( subject.utf8() );
+            SubjectThread * t = d->threads.find( subject.utf8() );
             if ( !t ) {
-                t = new Thread;
+                t = new SubjectThread;
                 t->setSubject( subject );
                 d->threads.insert( subject.utf8(), t );
                 d->threadList.append( t );
@@ -210,13 +210,13 @@ void Threader::execute()
         }
 
         d->newishThreads = new Query( "", this );
-        List<Thread>::Iterator i( d->threadList );
+        List<SubjectThread>::Iterator i( d->threadList );
         String s( "select id, subject from threads "
                   "where mailbox=$1 and (" );
         d->newishThreads->bind( 1, d->mailbox->id() );
         uint n = 2;
         while ( i ) {
-            Thread * t = i;
+            SubjectThread * t = i;
             ++i;
             if ( !t->id() ) {
                 if ( n > 2 )
@@ -244,7 +244,7 @@ void Threader::execute()
     if ( d->state == 6 || d->state == 8 ) {
         Row * r = d->newishThreads->nextRow();
         while ( r ) {
-            Thread * t = d->threads.find( r->getString( "subject" ) );
+            SubjectThread * t = d->threads.find( r->getString( "subject" ) );
             if ( t )
                 t->setId( r->getInt( "id" ) );
             r = d->newishThreads->nextRow();
@@ -259,10 +259,10 @@ void Threader::execute()
         else {
             d->state = 7;
 
-            List<Thread>::Iterator i( d->threadList );
+            List<SubjectThread>::Iterator i( d->threadList );
             Query * q = 0;
             while ( i ) {
-                Thread * t = i;
+                SubjectThread * t = i;
                 ++i;
                 if ( !t->id() ) {
                     if ( !q )
@@ -382,11 +382,11 @@ void Threader::refresh( EventHandler * user )
 }
 
 
-class ThreadData
+class SubjectThreadData
     : public Garbage
 {
 public:
-    ThreadData(): id( 0 ) {}
+    SubjectThreadData(): id( 0 ) {}
 
     uint id;
     UString subject;
@@ -394,14 +394,15 @@ public:
 };
 
 
-/*! \class Thread threader.h
+/*! \class SubjectThread threader.h
 
-    The Thread class models a simple thread. Not a pretty tree or even
-    DAG, just a set of messages and a subject.
+    The SubjectThread class models a simple thread. Not a pretty tree
+    or even DAG, just a set of messages and a subject.
 
-    The Thread class is meant to be small, small and small: Sometimes
-    (perhaps often) we need to keep Thread objects for an entire
-    Mailbox in RAM. Size is more important than functionality.
+    The SubjectThread class is meant to be small, small and small:
+    Sometimes (perhaps often) we need to keep SubjectThread objects
+    for an entire Mailbox in RAM. Size is more important than
+    functionality.
 
     If an IMAP THREAD command needs to return a tree, it has to
     compute the tree itself. This class can help make that simpler,
@@ -411,15 +412,15 @@ public:
     threads, this class can help make it simpler, but it isn't
     sufficient in and of itself.
 
-    The Threader creates, owns and updates Thread objects.
+    The Threader creates and updates SubjectThread objects.
 */
 
 
 
 /*! Constructs an empty Thread. */
 
-Thread::Thread()
-    : d( new ThreadData )
+SubjectThread::SubjectThread()
+    : d( new SubjectThreadData )
 {
 }
 
@@ -427,7 +428,7 @@ Thread::Thread()
 /*! Returns all the members of this thread. This may include deleted
     messages. */
 
-IntegerSet Thread::members() const
+IntegerSet SubjectThread::members() const
 {
     return d->members;
 }
@@ -435,7 +436,7 @@ IntegerSet Thread::members() const
 
 /*! Records that \a uid is a member of this thread. */
 
-void Thread::add( uint uid )
+void SubjectThread::add( uint uid )
 {
     d->members.add( uid );
 }
@@ -445,7 +446,7 @@ void Thread::add( uint uid )
     (ie. without "re", "fwd" or similar).
 */
 
-void Thread::setSubject( const UString & subject )
+void SubjectThread::setSubject( const UString & subject )
 {
     d->subject = subject;
 }
@@ -455,7 +456,7 @@ void Thread::setSubject( const UString & subject )
     initially.
 */
 
-UString Thread::subject() const
+UString SubjectThread::subject() const
 {
     return d->subject;
 }
@@ -467,7 +468,7 @@ UString Thread::subject() const
     aren't known yet.
 */
 
-uint Thread::id() const
+uint SubjectThread::id() const
 {
     return d->id;
 }
@@ -475,17 +476,18 @@ uint Thread::id() const
 
 /*! Records that \a id is the database ID of this thread. */
 
-void Thread::setId( uint id )
+void SubjectThread::setId( uint id )
 {
     d->id = id;
 }
 
 
-/*! Returns a pointer to an unsorted list of all threads. Never
-    returns a null pointer. The returned list should not be modified.
+/*! Returns a pointer to an unsorted list of all subject threads.
+    Never returns a null pointer. The returned list should not be
+    modified.
 */
 
-List<Thread> * Threader::allThreads() const
+List<SubjectThread> * Threader::subjectThreads() const
 {
     return &d->threadList;
 }

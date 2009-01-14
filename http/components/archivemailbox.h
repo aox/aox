@@ -18,7 +18,7 @@ public:
     void execute();
 
 private:
-    String threadRendering( class Thread * );
+    String threadRendering( class SubjectThread * );
     String timespan( const IntegerSet & ) const;
 
 private:

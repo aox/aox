@@ -45,8 +45,8 @@ public:
     List<SearchTerm> terms;
     IntegerSet matchesAll;
     IntegerSet matchesSome;
-    List<Thread> all;
-    List<Thread> some;
+    List<SubjectThread> all;
+    List<SubjectThread> some;
 };
 
 
@@ -98,7 +98,7 @@ void ArchiveSearch::execute()
 
     Dict<Address> addresses;
 
-    List<Thread>::Iterator i( t->allThreads() );
+    List<SubjectThread>::Iterator i( t->subjectThreads() );
     while ( i ) {
         if ( !i->members().intersection( d->matchesAll ).isEmpty() )
             d->all.append( i );
@@ -411,7 +411,7 @@ String ArchiveSearch::looongResultList() const
 {
     String s( "<div class=searchresults>\n" );
 
-    List<Thread>::Iterator i( d->all );
+    List<SubjectThread>::Iterator i( d->all );
     bool stillAll = true;
     if ( !i ) {
         i = d->some.first();

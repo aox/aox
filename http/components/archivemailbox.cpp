@@ -23,7 +23,7 @@
 #include "header.h"
 
 
-static int byFirstYid( const Thread ** t1, const Thread ** t2 ) {
+static int byFirstYid( const SubjectThread ** t1, const SubjectThread ** t2 ) {
     if ( !t1 || !t2 || !*t1 || !*t2 )
         die( Memory );
     uint u1 = (*t1)->members().smallest();
@@ -122,16 +122,16 @@ void ArchiveMailbox::execute()
         return;
     }
 
-    log( "Mailbox contains " + fn( t->allThreads()->count() ) + " threads",
+    log( "Mailbox contains " + fn( t->subjectThreads()->count() ) + " threads",
          Log::Debug );
 
-    if ( t->allThreads()->isEmpty() ) {
+    if ( t->subjectThreads()->isEmpty() ) {
         setContents( "<p>Mailbox is empty" );
         return;
     }
 
     if ( !d->text ) {
-        List<Thread>::Iterator i( t->allThreads() );
+        List<SubjectThread>::Iterator i( t->subjectThreads() );
         IntegerSet f;
         while ( i ) {
             f.add( i->members().smallest() );
@@ -232,10 +232,10 @@ void ArchiveMailbox::execute()
 
     addresses.clear();
     String s;
-    List<Thread>::Iterator
-        it( t->allThreads()->sorted( (Comparator*)byFirstYid ) );
+    List<SubjectThread>::Iterator
+        it( t->subjectThreads()->sorted( (Comparator*)byFirstYid ) );
     while ( it ) {
-        Thread * t = it;
+        SubjectThread * t = it;
         ++it;
         s.append( threadRendering( t ) );
     }
@@ -248,7 +248,7 @@ void ArchiveMailbox::execute()
 /*! This private helper returns a HTML rendering of \a t.
 */
 
-String ArchiveMailbox::threadRendering( Thread * t )
+String ArchiveMailbox::threadRendering( SubjectThread * t )
 {
     String s;
     List<Address> responders;

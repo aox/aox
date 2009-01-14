@@ -130,7 +130,7 @@ String Imap::ThreadResponse::text() const
 {
     String result = "THREAD ";
     if ( d->threadAlg == Imap::ThreadData::OrderedSubject ) {
-        List< ::Thread>::Iterator t( d->threader->allThreads() );
+        List<SubjectThread>::Iterator t( d->threader->subjectThreads() );
         while ( t ) {
             IntegerSet members = t->members().intersection( d->result );
             t++;

@@ -13,11 +13,11 @@ class Mailbox;
 class IntegerSet;
 
 
-class Thread
+class SubjectThread
     : public Garbage
 {
 public:
-    Thread();
+    SubjectThread();
 
     IntegerSet members() const;
     void add( uint );
@@ -29,7 +29,7 @@ public:
     void setId( uint );
 
 private:
-    class ThreadData * d;
+    class SubjectThreadData * d;
 };
 
 
@@ -46,7 +46,7 @@ public:
 
     void execute();
 
-    List<Thread> * allThreads() const;
+    List<SubjectThread> * subjectThreads() const;
 
 private:
     class ThreaderData * d;

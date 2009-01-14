@@ -66,8 +66,8 @@ void ArchiveThread::execute()
 
     d->done = true;
 
-    List<Thread>::Iterator it( t->allThreads() );
-    Thread * thread = 0;
+    List<SubjectThread>::Iterator it( t->subjectThreads() );
+    SubjectThread * thread = 0;
     while ( it && !thread ) {
         if ( it->members().contains( d->link->uid() ) )
             thread = it;
