@@ -11,8 +11,8 @@ RRDDIR=/tmp
 
 # automatically generated variables
 
-GAUGES="db-connections http-connections imap-connections internal-connections memory-used other-connections pop3-connections query-queue-length smtp-connections"
-COUNTERS="anonymous-logins injection-errors login-failures messages-injected queries-executed queries-failed successful-logins"
+GAUGES="active-db-connections db-connections http-connections imap-connections internal-connections memory-used other-connections pop3-connections query-queue-length smtp-connections total-db-connections"
+COUNTERS="anonymous-logins injection-errors login-failures messages-injected messages-sent messages-submitted queries-executed queries-failed successful-logins unparsed-messages"
 
 
 # other variables
