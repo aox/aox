@@ -187,7 +187,7 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
     msg.append( "/" );
     msg.append( Log::severity( s ) );
     msg.append( ": " );
-    msg.append( fn( d->id, 36 ) );
+    msg.appendNumber( d->id, 36 );
     msg.append( "/" );
     msg.append( tag );
     msg.append( ": " );
