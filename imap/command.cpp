@@ -43,6 +43,7 @@
 #include "handlers/status.h"
 #include "handlers/store.h"
 #include "handlers/subscribe.h"
+#include "handlers/thread.h"
 #include "handlers/unselect.h"
 #include "handlers/urlfetch.h"
 
@@ -256,6 +257,8 @@ Command * Command::create( IMAP * imap,
             c = new Store( uid );
         else if ( n == "copy" )
             c = new Copy( uid );
+        else if ( n == "thread" )
+            c = new Imap::Thread( uid );
         else if ( n == "unselect" )
             c = new Unselect;
         else if ( n == "sort" )
