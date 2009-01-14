@@ -182,7 +182,7 @@ void Schema::execute()
         }
         else {
             String s( "The existing schema (revision " );
-            s.append( fn( d->revision ) );
+            s.appendNumber( d->revision );
             s.append( ") is " );
             if ( d->revision < Database::currentRevision() )
                 s.append( "older" );
@@ -191,7 +191,7 @@ void Schema::execute()
             s.append( " than this server (version " );
             s.append( Configuration::compiledIn( Configuration::Version ) );
             s.append( ") expected (revision " );
-            s.append( fn( Database::currentRevision() ) );
+            s.appendNumber( Database::currentRevision() );
             s.append( "). Please " );
             if ( d->revision < Database::currentRevision() )
                 s.append( "run 'aox upgrade schema'" );
@@ -300,7 +300,7 @@ void Schema::execute()
         }
         else if ( d->upgrade ) {
             String s( "Schema upgraded to revision " );
-            s.append( fn( Database::currentRevision() ) );
+            s.appendNumber( Database::currentRevision() );
             if ( !d->commit )
                 s.append( ", but not committed" );
             s.append( "." );
@@ -2629,7 +2629,7 @@ bool Schema::stepTo59()
                 dfa = "delete from addresses where id=";
             else
                 dfa.append( " or id=" );
-            dfa.append( fn( duplicate ) );
+            dfa.appendNumber( duplicate );
             r = d->q->nextRow();
         }
 

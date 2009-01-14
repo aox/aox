@@ -347,7 +347,7 @@ String ImapExpungeResponse::text() const
         return r; // can this happen? no?
     }
 
-    r.append( fn( msn ) );
+    r.appendNumber( msn );
     r.append( " EXPUNGE" );
     return r;
 }

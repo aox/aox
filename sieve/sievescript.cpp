@@ -174,7 +174,7 @@ String SieveScript::location( uint position ) const
     }
     String r = fn( l );
     r.append( ":" );
-    r.append( fn( position - s + 1 ) );
+    r.appendNumber( position - s + 1 );
     r.append( ": " );
     return r;
 }

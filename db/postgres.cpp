@@ -223,7 +223,7 @@ void Postgres::processQuery( Query * q )
     s.append( "execute for " );
     s.append( q->description() );
     s.append( " on backend " );
-    s.append( fn( connectionNumber() ) );
+    s.appendNumber( connectionNumber() );
     ::log( s, Log::Debug );
     recordExecution();
 }
@@ -546,7 +546,7 @@ void Postgres::process( char type )
                 s.append( "Dequeueing query " );
                 s.append( q->description() );
                 s.append( " on backend " );
-                s.append( fn( connectionNumber() ) );
+                s.appendNumber( connectionNumber() );
                 String command;
                 if ( cc )
                     command = cc->tag().section( " ", 1 );
@@ -560,7 +560,7 @@ void Postgres::process( char type )
                      command == "SELECT" || command == "FETCH" ||
                      command == "INSERT" || command == "UPDATE" ) {
                     s.append( " (with " );
-                    s.append( fn( q->rows() ) );
+                    s.appendNumber( q->rows() );
                     s.append( " rows)" );
                 }
                 ::log( s, Log::Info );

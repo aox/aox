@@ -571,7 +571,7 @@ String Query::description()
         i++;
 
         String r( "$" );
-        r.append( fn( i ) );
+        r.appendNumber( i );
         r.append( "=" );
         int n = v->length();
         if ( n == -1 ) {
@@ -730,7 +730,7 @@ extern "C" {
 
 /*! This private helper returns the column named \a f, or a null
     pointer if \a f does not exist.
-  
+
     If \a warn is true and \a f does not exist or has a type other
     than \a type, then fetch() logs a warning.
 */

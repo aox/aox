@@ -140,19 +140,19 @@ void Exporter::execute()
         from.append( " " );
         from.append( months[id.month()-1] );
         from.append( " " );
-        from.append( fn( id.day() ) );
+        from.appendNumber( id.day() );
         from.append( " " );
-        from.append( fn( id.hour() ) );
+        from.appendNumber( id.hour() );
         from.append( ":" );
         if ( id.minute() < 10 )
             from.append( "0" );
-        from.append( fn( id.minute() ) );
+        from.appendNumber( id.minute() );
         from.append( ":" );
         if ( id.second() < 10 )
             from.append( "0" );
-        from.append( fn( id.second() ) );
+        from.appendNumber( id.second() );
         from.append( " " );
-        from.append( fn( id.year() ) );
+        from.appendNumber( id.year() );
         from.append( "\r\n" );
         String rfc822 = m->rfc822();
         ::write( 1, from.data(), from.length() );
