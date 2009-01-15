@@ -350,6 +350,8 @@ void POP::runCommands()
         d->commands->take( it );
     if ( it )
         it->execute();
+    if ( d->commands->isEmpty() && d->state == Update )
+        Connection::setState( Closing );
 }
 
 
