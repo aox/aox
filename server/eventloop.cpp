@@ -124,8 +124,6 @@ void EventLoop::addConnection( Connection * c )
         return;
 
     d->connections.prepend( c );
-    if ( c->type() != Connection::LogClient )
-        log( "Added " + c->description(), Log::Debug );
     setConnectionCounts();
 }
 
@@ -140,9 +138,6 @@ void EventLoop::removeConnection( Connection *c )
 
     if ( d->connections.remove( c ) == 0 )
         return;
-
-    if ( c->type() != Connection::LogClient )
-        log( "Removed " + c->description(), Log::Debug );
     setConnectionCounts();
 }
 
