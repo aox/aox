@@ -344,7 +344,9 @@ void Postgres::react( Event e )
             shutdown();
         }
         else {
-            extendTimeout( 10 );
+            uint interval =
+                Configuration::scalar( Configuration::DbHandleTimeout );
+            extendTimeout( interval );
         }
         break;
 

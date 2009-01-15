@@ -52,6 +52,7 @@ public:
         ServerProcesses,
         DbMaxHandles,
         DbHandleInterval,
+        DbHandleTimeout,
         ManageSievePort,
         UndeleteTime,
         SmartHostPort,
