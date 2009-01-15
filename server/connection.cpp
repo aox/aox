@@ -145,10 +145,16 @@ void Connection::setState( Connection::State st )
     if ( st == d->state )
         return;
 
+    Scope x( log() );
+    bool internal = hasProperty( Internal );
     if ( st == Connected  )
-        log( "Connected: " + description(), Log::Debug );
-    else if ( st == Closing )
-        log( "Closing: " + description(), Log::Debug );
+        log( "Connected: " + description() + " (" + 
+             fn( EventLoop::global()->connections()->count() ) + " connections)",
+             internal ? Log::Debug : Log::Significant );
+    else if ( st == Invalid && ( d->state == Closing || d->state == Connected ) )
+        log( "Closing: " + description() + " (" + 
+             fn( EventLoop::global()->connections()->count() ) + " connections)",
+             internal ? Log::Debug : Log::Info );
     d->state = st;
 }
 

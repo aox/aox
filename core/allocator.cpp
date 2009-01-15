@@ -135,14 +135,8 @@ Allocator * Allocator::allocator( uint size )
         b = 16;
     while ( size + bytes > b << i )
         i++;
-    if ( !allocators[i] ) {
-        Allocator * a = new Allocator( b << i );
-        allocators[i] = a;
-        if ( verbose )
-            log( "Allocating " + String::humanNumber( a->capacity * a->step ) +
-                 " for " + fn( a->capacity ) + " " + fn( a->step - bytes ) +
-                 "-byte objects", Log::Debug );
-    }
+    if ( !allocators[i] )
+        allocators[i] = new Allocator( b << i );
     return allocators[i];
 }
 
