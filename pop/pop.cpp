@@ -191,7 +191,12 @@ void POP::react( Event e )
         break;
 
     case Connect:
+        break;
+
     case Error:
+        Connection::setState( Closing );
+        break;
+
     case Close:
         break;
 
