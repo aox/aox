@@ -49,13 +49,8 @@ public:
 
         int s = accept();
         if ( s >= 0 ) {
-            Connection *c = new T(s);
+            Connection * c = new T(s);
             c->setState( Connected );
-            Log::Severity level( Log::Significant );
-            if ( c->hasProperty( Internal ) )
-                level = Log::Debug;
-            log( "Accepted new " + svc + " connection from " +
-                 c->peer().string(), level );
         }
     }
 
