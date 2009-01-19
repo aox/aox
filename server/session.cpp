@@ -525,12 +525,21 @@ void SessionInitialiser::findSessions()
     d->oldModSeq = d->newModSeq;
     List<Session>::Iterator i( d->mailbox->sessions() );
     while ( i ) {
-        d->sessions.append( i );
-        if ( i->uidnext() < d->oldUidnext )
-            d->oldUidnext = i->uidnext();
-        if ( i->nextModSeq() < d->oldModSeq )
-            d->oldModSeq = i->nextModSeq();
+        Session * s = i;
         ++i;
+        Connection * c = s->connection();
+        if ( c && c->state() == Connection::Invalid ) {
+            Scope x( c->log() );
+            log( "Mailbox session found for dead connection.", Log::Error );
+            s->end();
+        }
+        else {
+            d->sessions.append( i );
+            if ( s->uidnext() < d->oldUidnext )
+                d->oldUidnext = s->uidnext();
+            if ( s->nextModSeq() < d->oldModSeq )
+                d->oldModSeq = s->nextModSeq();
+        }
     }
     if ( d->newUidnext <= d->oldUidnext &&
          d->newModSeq <= d->oldModSeq )
