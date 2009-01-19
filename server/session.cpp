@@ -534,7 +534,7 @@ void SessionInitialiser::findSessions()
             s->end();
         }
         else {
-            d->sessions.append( i );
+            d->sessions.append( s );
             if ( s->uidnext() < d->oldUidnext )
                 d->oldUidnext = s->uidnext();
             if ( s->nextModSeq() < d->oldModSeq )
