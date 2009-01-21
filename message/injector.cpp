@@ -342,7 +342,7 @@ void Injector::execute()
         case ConvertingInReplyTo:
             convertInReplyTo();
             break;
-            
+
         case AddingMoreReferences:
             addMoreReferences();
             next();
@@ -724,7 +724,7 @@ void Injector::convertInReplyTo()
             s.append( ")" );
         }
         else {
-            s.append( " and value=any($1)" );
+            s.append( " and value=any($1::text[])" );
             d->findParents->bind( 1, ids );
         }
         d->findParents->setString( s );
@@ -753,7 +753,7 @@ void Injector::convertInReplyTo()
         // and send a new query to retrieve the References in those messages
         d->findReferences = new Query( "select message, value "
                                        "from header_fields "
-                                       "where message=any($1) and field=" +
+                                       "where message=any($1::text[]) and field=" +
                                        fn( HeaderField::References ),
                                        this );
         d->findReferences->bind( 1, parents );
@@ -939,7 +939,7 @@ void Injector::convertThreadIndex()
             String t = ti->value().utf8().de64();
             // we also look for the parent's and grandparent's thread-index
             String pt = t.mid( 0, ( (t.length() - 22 - 1) / 5 ) * 5 + 22 );
-            InjectorData::ThreadParentInfo * tpi 
+            InjectorData::ThreadParentInfo * tpi
                 = antecedents.find( pt.e64() );
             if ( tpi ) {
                 // we have the parent's information
@@ -957,7 +957,7 @@ void Injector::convertThreadIndex()
                 // we have the grandparent's information, and there is an
                 // in-reply-to field, so maybe we have the parent's
                 // message-id as well.
-                HeaderField * irtf 
+                HeaderField * irtf
                     = m->header()->field( HeaderField::InReplyTo );
                 String irt;
                 if ( irtf )
