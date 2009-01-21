@@ -753,7 +753,7 @@ void Injector::convertInReplyTo()
         // and send a new query to retrieve the References in those messages
         d->findReferences = new Query( "select message, value "
                                        "from header_fields "
-                                       "where message=any($1::text[]) and field=" +
+                                       "where message=any($1) and field=" +
                                        fn( HeaderField::References ),
                                        this );
         d->findReferences->bind( 1, parents );
