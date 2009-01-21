@@ -32,6 +32,12 @@ public:
 
     static class StringList * supportedExtensions();
 
+    bool ihaveFailed() const;
+    void setIhaveFailed();
+
+    StringList * addedExtensions() const;
+    void addExtensions( const StringList * );
+
 private:
     class SieveProductionData * d;
 };

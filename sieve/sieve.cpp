@@ -372,7 +372,7 @@ void Sieve::execute()
             d->transaction->enqueue( q );
             ++i;
         }
-        
+
         if ( d->transaction )
             d->transaction->commit();
 
@@ -1259,6 +1259,13 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                 ++i;
             }
         }
+    }
+    else if ( t->identifier() == "ihave" ) {
+        UStringList::Iterator i( t->arguments()->takeStringList( 1 ) );
+        while ( i && t->supportedExtensions()->contains( i->ascii() ) )
+            ++i;
+        if ( i )
+            return False;
     }
     else {
         // unknown test. wtf?
