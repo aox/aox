@@ -26,6 +26,7 @@ public:
     String id();
 
     Log * parent() const;
+    bool isChildOf( Log * ) const;
 
     static const char * severity( Severity );
     static const char * facility( Facility );
