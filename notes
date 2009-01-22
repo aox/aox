@@ -577,7 +577,7 @@ Squirrelmail
 
   2. Too many SELECTs and EXAMINEs. The Session cache solves that for
      big mailboxes... the UNREAD query in Select may still be slow,
-     though.
+     though. Also fixable using another Cache.
 
   3. Too many EXPUNGEs. If we keep a "last expunged at modseq" in
      ImapSession, check and set it in Expunge, and check and set it in
@@ -593,6 +593,7 @@ Allocator
   The binary tree used in Allocator is likely to be extremely
   unbalanced sometimes, perhaps often. Using a Patricia tree will work
   well.
+
 
 Using rrdtool
 
