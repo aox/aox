@@ -673,3 +673,49 @@ uint Database::currentRevision()
 {
     return 79;
 }
+
+
+/*! Cancels all Query and Transaction objects that use \a l or a child
+    of \a l.
+
+    When a Connection goes away, it can use this function to cancel
+    all queries that somehow belong to it.
+*/
+
+void Database::cancelQueries( Log * l )
+{
+    if ( !l )
+        return;
+    Scope x( l );
+    if ( queries && !queries->isEmpty() ) {
+        List<Query>::Iterator q( queries );
+        while ( q ) {
+            if ( q->log() && q->log()->isChildOf( l ) )
+                queries->remove( q )->cancel();
+            else
+                ++q;
+        }
+    }
+    if ( handles && !handles->isEmpty() ) {
+        List<Database>::Iterator i( handles );
+        while ( i ) {
+            List<Query> * ql = i->activeQueries();
+            ++i;
+            List<Query>::Iterator q( ql );
+            while ( q ) {
+                if ( q->log() && q->log()->isChildOf( l ) )
+                    ql->remove( q )->cancel();
+                else
+                    ++q;
+            }
+        }
+    }
+}
+
+        
+/*! \fn List< Query > * Database:: activeQueries() const
+
+    Returns a list of Queries that this object has sent to the
+    RDBMS. Used by cancelQueries().
+*/
+

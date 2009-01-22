@@ -33,6 +33,8 @@ public:
     bool failed() const;
     bool done() const;
 
+    void cancel();
+
     bool canFail() const;
     void allowFailure();
 

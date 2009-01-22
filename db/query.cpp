@@ -960,3 +960,24 @@ class Log * Query::log() const
         l = d->transaction->owner()->log();
     return l;
 }
+
+
+/*! Cancels the query (if possible) and notifies the query's owner.
+*/
+
+void Query::cancel()
+{
+    if ( done() )
+        return;
+
+    State s = state();
+    setState( Failed );
+    if ( s == Executing )
+        setError( "Cancelled while executing" );
+    else
+        setError( "Cancelled" );
+    notify();
+
+    // if ( d->canBeSlow && s == Executing ) {
+    //     ... send a PostgreSQL cancel...
+}

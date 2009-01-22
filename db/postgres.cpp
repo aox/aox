@@ -1242,3 +1242,9 @@ bool Postgres::blocked( const class Transaction * transaction ) const
 
     return false;
 }
+
+
+List< Query > * Postgres::activeQueries() const
+{
+    return & d->queries;
+}

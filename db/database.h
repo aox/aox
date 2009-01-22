@@ -51,8 +51,11 @@ public:
 
     virtual bool blocked( const class Transaction * ) const = 0;
 
+    static void cancelQueries( Log * );
+
 protected:
     static List< Query > *queries;
+    virtual List< Query > * activeQueries() const = 0;
 
     void setState( State );
     State state() const;
