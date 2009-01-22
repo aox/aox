@@ -61,7 +61,6 @@ class AddressParser
 {
 public:
     AddressParser( String );
-    ~AddressParser();
 
     String error() const;
     List<Address> * addresses() const;

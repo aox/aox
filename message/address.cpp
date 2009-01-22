@@ -528,15 +528,6 @@ AddressParser::AddressParser( String s )
 }
 
 
-
-/*! Destroys the object. */
-
-AddressParser::~AddressParser()
-{
-    delete d;
-}
-
-
 /*! Finds the point between \a left and \a right which is most likely
     to be the border between two addresses. Mucho heuristics. Never
     used for correct addresses, only when we're grasping at straws.
