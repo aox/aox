@@ -775,6 +775,34 @@ Document IPC structure
   connecting to who and why.
 
 
+Reference counting GC
+
+  We can switch to using shared_ptr, intrusive_ptr, or a clone of
+  either.
+
+  shared_ptr and intrusive_ptr both are particular to the pointer
+  value, ie. if we allocate a MailboxData and it contains an UString
+  member, pointing to that UString isn't safe.
+
+  We can work around that with intrustive_ptr, if we provide a boolean
+  in Garbage: wasAllocatedUsingNew(), and a hack in the Garbage
+  constructor to make sure we know.
+
+    union {
+        Garbage * surrounder;
+        uint refcount;
+    }
+
+  intrusive_ptr_add_ref() would have to do this:
+
+    if ( g->wasAllocatedUsingNew() )
+        g->refcount++;
+    else
+        g->surrounder->refcount++;
+
+  If we do this, then everything we currently do should be safe.
+
+
 Add a web page about the charset encoding.
 
   It's a novel and good algorithm, so we can make a good page about
