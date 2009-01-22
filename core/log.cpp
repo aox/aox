@@ -137,3 +137,18 @@ Log * Log::parent() const
 {
     return p;
 }
+
+
+/*! Returns true if this object is \a other or a child of \a other
+    (through the parent() chain), and false if not.
+*/
+
+bool Log::isChildOf( Log * other ) const
+{
+    const Log * l = this;
+    while ( l && l != other )
+        l = l->parent();
+    if ( l )
+        return true;
+    return false;
+}
