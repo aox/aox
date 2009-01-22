@@ -18,9 +18,7 @@ class List
 {
 public:
     List() { head = tail = 0; }
-    ~List() {}
-
-
+    ~List() { clear(); }
     class Node
         : public Garbage
     {
@@ -55,7 +53,14 @@ public:
 
     void clear()
     {
+        Node * n = head;
         head = tail = 0;
+        while ( n ) {
+            Node * d = n->next;
+            n->next = 0;
+            n->prev = 0;
+            n = d;
+        }
     }
 
 
