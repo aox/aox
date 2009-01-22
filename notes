@@ -1344,4 +1344,10 @@ HTML representation of selectors
       edited representation.
 
 
+Caching search results
+
+  If a selector is !dynamic(), its results can be cached until the next
+  modseq change on the mailbox.
+
+
 
