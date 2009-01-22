@@ -41,15 +41,13 @@ public:
         }
 
         void clear() {
-            Node * z = zero;
-            Node * o = one;
+            if ( zero )
+                zero->clear();
+            if ( one )
+                one->clear();
             zero = 0;
             one = 0;
             parent = 0;
-            if ( z )
-                z->clear();
-            if ( o )
-                o->clear();
         }
 
     private:
@@ -262,9 +260,8 @@ public:
     void clear() {
         if ( !root )
             return;
-        Node * r = root;
+        root->clear();
         root = 0;
-        r->clear();
     }
 
     class Iterator
