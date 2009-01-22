@@ -559,6 +559,7 @@ void Allocator::free()
         while ( a ) {
             Allocator * n = a->next;
             if ( a->taken ) {
+                a->release();
                 a->next = s;
                 s = a;
                 blocks++;
@@ -681,6 +682,48 @@ void Allocator::sweep()
         b++;
     }
     base = 0;
+}
+
+
+/*! Releases parts of the RAM used by this Allocator to the OS, if
+    possible. The address space has to be kept, but some of the
+    contents do not, and that can help the OS.
+*/
+
+void Allocator::release()
+{
+#if defined(ADVICE)
+#error "Did not expect ADVICE to be defined"
+#endif
+
+#if defined(MADV_FREE)
+#define ADVICE MADV_FREE
+#elif defined(MADV_DONTNEED)
+#define ADVICE MADV_DONTNEED
+#endif
+    
+#if defined(ADVICE)
+    uint i = 0;
+    while ( i < capacity ) {
+        while ( i < capacity && used[i/bits] == ~(0UL) )
+            i += bits;
+        while ( i < capacity && ( used[i/bits] & ( 1UL << (i%bits) ) ) )
+            i++;
+        if ( i < capacity ) {
+            uint s = i;
+            while ( i < capacity && !( used[i/bits] & ( 1UL << (i%bits) ) ) )
+                i++;
+            if ( (i-s) * step > 4096 ) {
+                void * b = block( s );
+                b = (void*)((((ulong)b) + 4095) & ~4095);
+                void * e = block( i );
+                e = (void*)(((ulong)e) & ~4095);
+                if ( b != e )
+                    madvise( b, (ulong)e-(ulong)b, ADVICE );
+            }
+        }
+    }
+#endif
 }
 
 

@@ -20,7 +20,8 @@ class SieveProductionData
 {
 public:
     SieveProductionData( const char * n )
-        : parent( 0 ), parser( 0 ), start( 0 ), end( 0 ), name( n ) {}
+        : parent( 0 ), parser( 0 ), start( 0 ), end( 0 ), name( n ),
+          ihaveFailed( false ), addedExtensions( 0 ) {}
 
     SieveProduction * parent;
     SieveParser * parser;
@@ -28,6 +29,8 @@ public:
     uint end;
     const char * name;
     String error;
+    bool ihaveFailed;
+    StringList * addedExtensions;
 };
 
 
@@ -143,8 +146,20 @@ uint SieveProduction::end() const
 
 void SieveProduction::setError( const String & e )
 {
-    if ( d->error.isEmpty() || e.isEmpty() )
+    if ( e.isEmpty() ) {
+        // clearing an error is always possible
         d->error = e;
+    }
+    else if ( d->error.isEmpty() ) {
+        // clearing an error is only possible when ihave hasn't failed
+        // for this production
+        SieveProduction * p = this;
+        while ( p && !p->ihaveFailed() )
+            p = p->parent();
+        if ( !p )
+            d->error = e;
+    }
+
     if ( !d->error.isEmpty() && d->parser )
         d->parser->rememberBadProduction( this );
 }
@@ -158,6 +173,13 @@ void SieveProduction::setError( const String & e )
 
 void SieveProduction::require( const String & extension )
 {
+    SieveProduction * p = this;
+    while ( p ) {
+        if ( p->addedExtensions() &&
+             p->addedExtensions()->contains( extension ) )
+            return;
+        p = p->parent();
+    }
     if ( d->parser )
         d->parser->rememberNeededExtension( extension );
 }
@@ -176,10 +198,11 @@ String SieveProduction::error() const
 /*! Returns a list of all supported sieve extensions. The list is
     allocated for the purpose, so the caller can modify it at will.
 
-    The extensions are: BODY from RFC 5173. DATE from RFC
-    5260. EREJECT isn't an RFC yet. RFC 5228 defines several optional
-    capabilieies, we implement all (I think). RELATIONAL is from RFC
-    5231, SUBADDRESS is from RFC 5233 and VACATION from RFC 5230.
+    The extensions are: BODY from RFC 5173. DATE from RFC 5260.
+    EREJECT isn't an RFC yet, ditto IHAVE. RFC 5228 defines several
+    optional capabilieies, we implement all (I think).  RELATIONAL is
+    from RFC 5231, SUBADDRESS is from RFC 5233 and VACATION from RFC
+    5230.
 
     RFC 5260 also defines INDEX, which we don't implement, it doesn't
     seem useful.
@@ -201,11 +224,74 @@ StringList * SieveProduction::supportedExtensions()
     r->append( "ereject" );
     r->append( "envelope" );
     r->append( "fileinto" );
+    r->append( "ihave" );
     r->append( "reject" );
     r->append( "relational" );
     r->append( "subaddress" );
     r->append( "vacation" );
     return r;
+}
+
+
+/*! Returns true if (some) errors must be suppressed because this
+    production or a child of it might use unsupported extensions.
+*/
+
+bool SieveProduction::ihaveFailed() const
+{
+    return d->ihaveFailed;
+}
+
+
+/*! Records that an ihave test will fail when executed, so this
+    production (or a child) might contain unknown extensions.
+*/
+
+void SieveProduction::setIhaveFailed()
+{
+    d->ihaveFailed = true;
+}
+
+
+/*! Returns a pointer to a list of extensions added by ihave or
+    require, or a null pointer if none have been added.
+*/
+
+StringList * SieveProduction::addedExtensions() const
+{
+    return d->addedExtensions;
+}
+
+
+/*! Records that the \a list of extensions are available in this
+    production and its children.
+*/
+
+void SieveProduction::addExtensions( const StringList * list )
+{
+    if ( !list || list->isEmpty() )
+        return;
+
+    SieveProduction * p = this;
+    StringList already;
+    while ( p ) {
+        StringList::Iterator i( p->addedExtensions() );
+        while ( i ) {
+            already.append( i );
+            ++i;
+        }
+        p = p->parent();
+    }
+
+    StringList::Iterator i( list );
+    while ( i ) {
+        if ( !already.contains( *i ) ) {
+            if ( !d->addedExtensions )
+                d->addedExtensions = new StringList;
+            d->addedExtensions->append( i );
+        }
+        ++i;
+    }
 }
 
 
@@ -1028,9 +1114,12 @@ void SieveCommand::parse( const String & previous )
     else if ( i == "require" ) {
         arguments()->numberRemainingArguments();
         UStringList::Iterator i( arguments()->takeStringList( 1 ) );
+        StringList a;
         StringList e;
         while ( i ) {
-            if ( !supportedExtensions()->contains( i->ascii() ) )
+            if ( supportedExtensions()->contains( i->ascii() ) )
+                a.append( i->ascii().quoted() );
+            else
                 e.append( i->ascii().quoted() );
             ++i;
         }
@@ -1040,6 +1129,8 @@ void SieveCommand::parse( const String & previous )
                       "These are not: " + e.join( ", " ) );
         if ( !d->require )
             setError( "require is only permitted as the first command." );
+        else if ( parent() )
+            parent()->addExtensions( &a );
     }
     else if ( i == "stop" ) {
         // nothing needed
@@ -1189,6 +1280,12 @@ void SieveCommand::parse( const String & previous )
             List<SieveTest>::Iterator i( arguments()->tests() );
             while ( i ) {
                 i->parse();
+                if ( blk && block() ) {
+                    if ( i->ihaveFailed() )
+                        block()->setIhaveFailed();
+                    else
+                        block()->addExtensions( i->addedExtensions() );
+                }
                 ++i;
             }
         }
@@ -1278,6 +1375,9 @@ void SieveTest::parse()
         while ( i ) {
             any = true;
             i->parse();
+            if ( i->ihaveFailed() )
+                setIhaveFailed();
+            addExtensions( i->addedExtensions() );
             ++i;
         }
         if ( !any )
@@ -1387,11 +1487,32 @@ void SieveTest::parse()
         arguments()->numberRemainingArguments();
         d->keys = arguments()->takeStringList( 1 );
     }
+    else if ( identifier() == "ihave" ) {
+        require( "ihave" );
+        arguments()->numberRemainingArguments();
+        arguments()->takeStringList( 1 );
+    }
     else {
         setError( "Unknown test: " + identifier() );
     }
 
     arguments()->flagUnparsedAsBad();
+
+    // if the ihave was correctly parsed and names something we don't
+    // support, then we have to suppress some errors.
+    if ( identifier() == "ihave" && error().isEmpty() ) {
+        UStringList::Iterator i( arguments()->takeStringList( 1 ) );
+        StringList x;
+        while ( i && supportedExtensions()->contains( i->ascii() ) ) {
+            x.append( i->ascii() );
+            ++i;
+        }
+
+        if ( i )
+            setIhaveFailed();
+        else
+            addExtensions( &x );
+    }
 }
 
 

@@ -545,6 +545,33 @@ Message Retention Policy Framework
   can support that well.
 
 
+Sieve ihave
+
+  There are three holes in our ihave rules.
+
+  Single-child anyof doesn't promote the ihave:
+
+    if anyof( ihave "foo" ) {
+        foo; # errors should not be reported here
+    }
+
+  Not doesn't promote:
+
+    if not not ihave "foo" {
+        foo; # errors should not be reported here
+    }
+
+  Finally, if/elsif always applies the ihave to its own block, instead
+  of walking along elsif/else to find the block that might be executed
+  if ihave returns true:
+
+    if not ihave "foo" {
+        # errors should be reported here
+    } else {
+        foo; # but not here
+    }
+
+
 C/R
 
   C/R sucks. But it has its uses, so we can benefit from implementing
@@ -1316,6 +1343,12 @@ HTML representation of selectors
     - A component to display a view, and a component to edit a view
       (complete with evil Javascript) and a magic URL to accept the
       edited representation.
+
+
+Caching search results
+
+  If a selector is !dynamic(), its results can be cached until the next
+  modseq change on the mailbox.
 
 
 
