@@ -13,7 +13,7 @@ class PatriciaTree
 {
 public:
     PatriciaTree(): root( 0 ) { }
-    virtual ~PatriciaTree() {}
+    virtual ~PatriciaTree() { clear(); }
 
     class Node
         : public Garbage
@@ -38,6 +38,18 @@ public:
 
         void * operator new( size_t ownSize, uint extra ) {
             return Allocator::alloc( ownSize + extra );
+        }
+
+        void clear() {
+            Node * z = zero;
+            Node * o = one;
+            zero = 0;
+            one = 0;
+            parent = 0;
+            if ( z )
+                z->clear();
+            if ( o )
+                o->clear();
         }
 
     private:
@@ -248,7 +260,11 @@ public:
     }
 
     void clear() {
+        if ( !root )
+            return;
+        Node * r = root;
         root = 0;
+        r->clear();
     }
 
     class Iterator
