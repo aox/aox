@@ -1248,3 +1248,45 @@ List< Query > * Postgres::activeQueries() const
 {
     return & d->queries;
 }
+
+
+class PgCanceller
+    : public Postgres
+{
+private:
+    PgKeyData * k;
+
+public:
+    PgCanceller( PgKeyData * key )
+        : Postgres(), k( key )
+    {
+        log( "Sending cancel for pid " + fn( k->pid() ), Log::Debug );
+    }
+
+    void react( Event e )
+    {
+        switch (e) {
+        case Connect:
+            {
+                PgCancel msg( k );
+                msg.enqueue( writeBuffer() );
+                Connection::setState( Closing );
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+};
+
+
+/*! Issues a cancel request for the query \a q if it is being executed
+    by this Postgres object. If not, it does nothing.
+*/
+
+void Postgres::cancel( Query * q )
+{
+    if ( d->queries.find( q ) )
+        (void)new PgCanceller( d->keydata );
+}

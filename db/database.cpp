@@ -712,10 +712,23 @@ void Database::cancelQueries( Log * l )
     }
 }
 
-        
+
 /*! \fn List< Query > * Database:: activeQueries() const
 
     Returns a list of Queries that this object has sent to the
     RDBMS. Used by cancelQueries().
 */
 
+
+/*! This function issues a cancel request for the query \a q, if it is
+    currently being executed. If not, it does nothing.
+*/
+
+void Database::cancel( Query * q )
+{
+    List<Database>::Iterator it( handles );
+    while ( it ) {
+        it->cancel( q );
+        ++it;
+    }
+}
