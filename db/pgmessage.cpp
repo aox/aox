@@ -319,6 +319,29 @@ void PgStartup::setOption( const String &key, const String &val )
 
 
 
+/*! \class PgCancel pgmessage.h
+    C: A client issues this message on a new connection to cancel queries.
+
+    This message is sent instead of the normal PgStartup message. It
+    consists of an Int32 magic number, followed by the Int32 pid of the
+    target backend, and the Int32 cancellation key (as received from the
+    backend in PgKeyData).
+*/
+
+/*! \fn PgCancel::PgCancel( PgKeyData * key )
+    Creates a cancellation request from the given \a key data.
+*/
+
+
+void PgCancel::encodeData()
+{
+    appendInt32( 80877102 );
+    appendInt32( k->pid() );
+    appendInt32( k->key() );
+}
+
+
+
 /*! \class PgMessage pgmessage.h
     S: This is an error or notification message sent by the server.
 

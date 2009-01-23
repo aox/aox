@@ -26,6 +26,8 @@ public:
 
     static void sendListen();
 
+    void cancel( Query * );
+
 private:
     class PgData *d;
 

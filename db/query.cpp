@@ -978,6 +978,6 @@ void Query::cancel()
         setError( "Cancelled" );
     notify();
 
-    // if ( d->canBeSlow && s == Executing ) {
-    //     ... send a PostgreSQL cancel...
+    if ( d->canBeSlow && s == Executing )
+        Database::cancel( this );
 }

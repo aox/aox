@@ -29,6 +29,7 @@ public:
     static void setup( int, const String &, const String & );
     static void submit( Query * );
     static void submit( List< Query > * );
+    static void cancel( Query * );
     static void disconnect();
 
     virtual void processQueue() = 0;

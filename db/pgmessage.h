@@ -72,6 +72,20 @@ private:
 };
 
 
+class PgCancel
+    : public PgClientMessage
+{
+public:
+    PgCancel( class PgKeyData * key )
+        : PgClientMessage( '\0' ), k( key )
+    {}
+
+private:
+    class PgKeyData * k;
+    void encodeData();
+};
+
+
 class PgMessage
     : public PgServerMessage
 {
