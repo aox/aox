@@ -2,9 +2,11 @@
 
 #include "select.h"
 
+#include "map.h"
 #include "imap.h"
 #include "flag.h"
 #include "user.h"
+#include "cache.h"
 #include "timer.h"
 #include "query.h"
 #include "message.h"
@@ -19,6 +21,7 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
+          needFirstUnseen( false ),
           firstUnseen( 0 ), allFlags( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
@@ -26,12 +29,65 @@ public:
     bool readOnly;
     bool annotate;
     bool condstore;
+    bool needFirstUnseen;
     Query * firstUnseen;
     Query * allFlags;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
+
+    class FirstUnseenCache
+        : public Cache
+    {
+    public:
+        FirstUnseenCache(): Cache() {}
+
+        struct MailboxInfo
+            : public Garbage
+        {
+        public:
+            MailboxInfo(): Garbage(), fu( 0 ), ms( 0 ) {}
+            uint fu;
+            int64 ms;
+        };
+
+        Map<MailboxInfo> c;
+
+        int64 find( Mailbox * m, int64 ms ) {
+            if ( !m || !m->id() )
+                return 0;
+            MailboxInfo * mi = c.find( m->id() );
+            if ( !mi )
+                return 0;
+            if ( mi->ms < ms )
+                c.remove( m->id() );
+            if ( mi->ms != ms )
+                return 0;
+            return mi->fu;
+        }
+
+        void insert( Mailbox * m, int64 ms, uint uid ) {
+            if ( !m || !m->id() || !ms )
+                return;
+            MailboxInfo * mi = c.find( m->id() );
+            if ( !mi ) {
+                mi = new MailboxInfo();
+                c.insert( m->id(), mi );
+            }
+            if ( mi->ms < ms ) {
+                mi->fu = uid;
+                mi->ms = ms;
+            }
+        }
+
+        void clear() {
+            c.clear();
+        }
+    };
 };
+
+
+static SelectData::FirstUnseenCache * firstUnseenCache = 0;
 
 
 /*! \class Select select.h
@@ -134,7 +190,15 @@ void Select::execute()
     if ( !d->session->initialised() )
         return;
 
-    if ( !d->firstUnseen && !d->session->isEmpty() ) {
+    if ( d->session->isEmpty() )
+        d->needFirstUnseen = false;
+    else if ( ::firstUnseenCache &&
+              ::firstUnseenCache->find( d->mailbox, d->session->nextModSeq() ) )
+        d->needFirstUnseen = false;
+    else
+        d->needFirstUnseen = true;
+
+    if ( d->needFirstUnseen && !d->firstUnseen ) {
         d->firstUnseen
             = new Query( "select uid from mailbox_messages mm "
                          "where mailbox=$1 and uid not in "
@@ -156,15 +220,22 @@ void Select::execute()
     // check that and don't repeat the last few responses.
     if ( state() != Executing )
         return;
-
+    
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
 
     if ( d->firstUnseen ) {
+        if ( !::firstUnseenCache )
+            ::firstUnseenCache = new SelectData::FirstUnseenCache;
         Row * r = d->firstUnseen->nextRow();
-        uint unseen = 0;
         if ( r )
-            unseen = r->getInt( "uid" );
+            ::firstUnseenCache->insert( d->mailbox, d->session->nextModSeq(),
+                                        r->getInt( "uid" ) );
+    }
+    
+    if ( ::firstUnseenCache ) {
+        uint unseen = ::firstUnseenCache->find( d->mailbox,
+                                                d->session->nextModSeq() );
         if ( unseen )
             respond( "OK [UNSEEN " + fn( d->session->msn( unseen ) ) +
                      "] first unseen" );

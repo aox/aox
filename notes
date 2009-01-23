@@ -602,9 +602,8 @@ Squirrelmail
   1. Too many LOGINs. We can cache Users using a Cache, that'll solve
      that. But LOGIN isn't that slow, so I'm not sure it's worth it.
 
-  2. Too many SELECTs and EXAMINEs. The Session cache solves that for
-     big mailboxes... the UNREAD query in Select may still be slow,
-     though. Also fixable using another Cache.
+  2. Too many SELECTs and EXAMINEs. SessionCAche and FirstUnreadCache
+     solve that.
 
   3. Too many EXPUNGEs. If we keep a "last expunged at modseq" in
      ImapSession, check and set it in Expunge, and check and set it in
@@ -785,7 +784,7 @@ Reference counting GC
   member, pointing to that UString isn't safe.
 
   We can work around that with intrustive_ptr, if we provide a boolean
-  in Garbage: wasAllocatedUsingNew(), and a hack in the Garbage
+  in Garbage: allocatedUsingNew(), and a hack in the Garbage
   constructor to make sure we know.
 
     union {
@@ -793,14 +792,15 @@ Reference counting GC
         uint refcount;
     }
 
-  intrusive_ptr_add_ref() would have to do this:
+  intrusive_ptr_add_ref( Garbage * ) would have to do this:
 
-    if ( g->wasAllocatedUsingNew() )
+    if ( g->allocatedUsingNew() )
         g->refcount++;
     else
         g->surrounder->refcount++;
 
-  If we do this, then everything we currently do should be safe.
+  If we do this, then everything we currently do should be safe. But
+  the hack would be hacky.
 
 
 Add a web page about the charset encoding.
