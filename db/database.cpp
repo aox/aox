@@ -671,5 +671,5 @@ uint Database::handlesNeeded()
 
 uint Database::currentRevision()
 {
-    return 79;
+    return 80;
 }

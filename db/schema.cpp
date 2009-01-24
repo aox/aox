@@ -513,6 +513,8 @@ bool Schema::singleStep()
         c = stepTo78(); break;
     case 78:
         c = stepTo79(); break;
+    case 79:
+        c = stepTo80(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3806,6 +3808,26 @@ bool Schema::stepTo79()
                                   "messages(id), thread_index text)", 0 ) );
         d->t->enqueue( new Query( "create index ti_outlook_hack on "
                                   "thread_indexes(thread_index)", 0 ) );
+        d->t->execute();
+    }
+
+    return true;
+}
+
+
+/*! Add "on delete cascade" to thread_indexes.message. */
+
+bool Schema::stepTo80()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Add 'on delete cascade' to thread_indexes.message." );
+        d->substate = 1;
+        d->t->enqueue( new Query( "alter table thread_indexes drop constraint "
+                                  "thread_indexes_message_fkey", 0 ) );
+        d->t->enqueue( new Query( "alter table thread_indexes add constraint "
+                                  "thread_indexes_message_fkey foreign "
+                                  "key(message) references messages(id) "
+                                  "on delete cascade", 0 ) );
         d->t->execute();
     }
 
