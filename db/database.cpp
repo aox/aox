@@ -669,16 +669,6 @@ uint Database::handlesNeeded()
     Does nothing otherwise.
 */
 
-/*! This static function returns the schema revision current at the time
-    this server was compiled.
-*/
-
-uint Database::currentRevision()
-{
-    return 79;
-}
-
-
 /*! Cancels all Query and Transaction objects that use \a l or a child
     of \a l.
 
@@ -735,4 +725,14 @@ void Database::cancelQuery( Query * q )
         it->cancel( q );
         ++it;
     }
+}
+
+
+/*! This static function returns the schema revision current at the time
+    this server was compiled.
+*/
+
+uint Database::currentRevision()
+{
+    return 80;
 }
