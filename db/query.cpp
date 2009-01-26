@@ -979,5 +979,5 @@ void Query::cancel()
     notify();
 
     if ( d->canBeSlow && s == Executing )
-        Database::cancel( this );
+        Database::cancelQuery( this );
 }

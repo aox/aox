@@ -664,16 +664,10 @@ uint Database::handlesNeeded()
     not being processed.
 */
 
-
-/*! This static function returns the schema revision current at the time
-    this server was compiled.
+/*! \fn void Database::cancel( class Query * query )
+    Cancels the given query if it is being executed by this database object.
+    Does nothing otherwise.
 */
-
-uint Database::currentRevision()
-{
-    return 79;
-}
-
 
 /*! Cancels all Query and Transaction objects that use \a l or a child
     of \a l.
@@ -724,11 +718,21 @@ void Database::cancelQueries( Log * l )
     currently being executed. If not, it does nothing.
 */
 
-void Database::cancel( Query * q )
+void Database::cancelQuery( Query * q )
 {
     List<Database>::Iterator it( handles );
     while ( it ) {
         it->cancel( q );
         ++it;
     }
+}
+
+
+/*! This static function returns the schema revision current at the time
+    this server was compiled.
+*/
+
+uint Database::currentRevision()
+{
+    return 80;
 }

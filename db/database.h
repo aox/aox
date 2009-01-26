@@ -29,7 +29,6 @@ public:
     static void setup( int, const String &, const String & );
     static void submit( Query * );
     static void submit( List< Query > * );
-    static void cancel( Query * );
     static void disconnect();
 
     virtual void processQueue() = 0;
@@ -51,8 +50,10 @@ public:
     static bool idle();
 
     virtual bool blocked( const class Transaction * ) const = 0;
+    virtual void cancel( Query * ) = 0;
 
     static void cancelQueries( Log * );
+    static void cancelQuery( Query * );
 
 protected:
     static List< Query > *queries;
