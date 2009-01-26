@@ -521,7 +521,7 @@ String SMTP::transactionId()
     Scope x( log() );
     d->id = fn( transactionTime()->unixTime() );
     d->id.append( '-' );
-    d->id.appendNumber( getpid() );
+    d->id.append( fn( getpid() ) );
     d->id.append( '-' );
     d->id.append( log()->id() );
     log( "Assigned transaction ID " + d->id );

@@ -69,7 +69,7 @@ void ViewList::execute()
         while ( d->q->hasResults() ) {
             Row * r = d->q->nextRow();
             s.append( "<li>" );
-            s.appendNumber( r->getInt( "id" ) );
+            s.append( fn( r->getInt( "id" ) ) );
             s.append( ": " );
             s.append( r->getString( "name" ) );
             s.append( " as <code>" );

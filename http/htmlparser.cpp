@@ -488,7 +488,7 @@ static String entityName( uint c )
 #include "entitynames.inc"
     default:
         r.append( "&#" );
-        r.appendNumber( c );
+        r.append( fn( c ) );
         r.append( ";" );
         break;
     }

@@ -846,7 +846,7 @@ String Link::canonical() const
             break;
         case Uid:
             r.append( "/" );
-            r.appendNumber( d->uid );
+            r.append( fn( d->uid ) );
             break;
         case Part:
             r.append( "/" );
@@ -910,7 +910,7 @@ String Link::absolute() const
         port = Configuration::scalar( Configuration::HttpsPort );
     if ( ( d->secure && port != 443 ) || ( !d->secure && port != 80 ) ) {
         s.append( ":" );
-        s.appendNumber( port );
+        s.append( fn( port ) );
     }
 
     s.append( canonical() );

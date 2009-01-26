@@ -108,13 +108,13 @@ void SmtpData::execute()
         if ( local || remote )
             r.append( " (" );
         if ( local ) {
-            r.appendNumber( local );
+            r.append( fn( local ) );
             r.append( " local recipients" );
             if ( remote )
                 r.append( ", " );
         }
         if ( remote ) {
-            r.appendNumber( remote );
+            r.append( fn( remote ) );
             r.append( " remote recipients" );
         }
         r.append( ")\r\n" );

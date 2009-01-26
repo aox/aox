@@ -110,9 +110,9 @@ void ArchiveSearch::execute()
     String s;
 
     s.append( "<p>" );
-    s.appendNumber( d->matchesSome.count() );
+    s.append( fn( d->matchesSome.count() ) );
     s.append( " results found in " );
-    s.appendNumber( d->some.count() + d->all.count() );
+    s.append( fn( d->some.count() + d->all.count() ) );
     s.append( " threads\n" );
     s.append( "<p>Search terms:\n" );
     s.append( searchTerms() );
@@ -306,7 +306,7 @@ String ArchiveSearch::searchTerms() const
             l.addArgument( "query", i->term );
             s.append( l.canonical().quoted() );
             s.append( ">" );
-            s.appendNumber( c );
+            s.append( fn( c ) );
             s.append( " results</a>" );
         }
         else if ( c == 1 ) {

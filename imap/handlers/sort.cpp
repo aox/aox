@@ -386,7 +386,7 @@ String ImapSortResponse::text() const
             x = s->msn( x );
         if ( x ) {
             result.append( " " );
-            result.appendNumber( x );
+            result.append( fn( x ) );
         }
     }
     return result;

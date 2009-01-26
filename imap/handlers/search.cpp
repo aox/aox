@@ -700,12 +700,12 @@ ImapSearchResponse::ImapSearchResponse( ImapSession * session,
 static void appendUid( String & r, Session * s, bool u, uint uid )
 {
     if ( u ) {
-        r.appendNumber( uid );
+        r.append( fn( uid ) );
     }
     else {
         uint m = s->msn( uid );
         if ( m )
-            r.appendNumber( m );
+            r.append( fn( m ) );
     }
 }
 
@@ -725,7 +725,7 @@ String ImapSearchResponse::text() const
             result.append( " uid" );
         if ( count ) {
             result.append( " count " );
-            result.appendNumber( r.count() );
+            result.append( fn( r.count() ) );
         }
         if ( r.isEmpty() )
             return result;
@@ -758,7 +758,7 @@ String ImapSearchResponse::text() const
         }
         if ( ms ) {
             result.append( " modseq " );
-            result.appendNumber( ms );
+            result.append( fn( ms ) );
         }
     }
     else {
@@ -773,7 +773,7 @@ String ImapSearchResponse::text() const
         }
         if ( ms ) {
             result.append( " (modseq " );
-            result.appendNumber( ms );
+            result.append( fn( ms ) );
             result.append( ")" );
         }
     }

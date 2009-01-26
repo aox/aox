@@ -565,7 +565,7 @@ static int dow( int y, int m, int d )
 static String zeroPrefixed( int n, uint w )
 {
     String z( "0000" );
-    z.appendNumber( n );
+    z.append( fn( n ) );
     return z.mid( z.length()-w );
 }
 
@@ -595,11 +595,11 @@ String Date::rfc822() const
         r.append( ", " );
     }
 
-    r.appendNumber( d->day );
+    r.append( fn( d->day ) );
     r.append( " " );
     r.append( months[d->month-1] );
     r.append( " " );
-    r.appendNumber( d->year );
+    r.append( fn( d->year ) );
     r.append( " " );
     r.append( zeroPrefixed( d->hour, 2 ) );
     r.append( ":" );
