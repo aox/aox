@@ -151,15 +151,18 @@ void Vacuum::execute()
         q->bind( 2, Recipient::Delayed );
         t->enqueue( q );
 
-        q = new Query(
-            "delete from messages where id in "
-            "(select dm.message from deleted_messages dm"
-            " left join mailbox_messages mm on (dm.message=mm.message)"
-            " left join deliveries d on (dm.message=d.message)"
-            " where mm.message is null and d.message is null"
-            " and dm.deleted_at<current_timestamp-'" + fn( days ) +
-            " days'::interval)", 0
-        );
+        q = new Query( "delete from deleted_messages "
+                       "where dm.deleted_at<current_timestamp-'" + fn( days ) +
+                       " days'::interval)", 0 );
+        t->enqueue( q );
+
+        q = new Query( "delete from messages where id in "
+                       "(select m.id from messages m"
+                       " left join mailbox_messages mm on (m.id=mm.message)"
+                       " left join deleted_messages dm on (m.id=dm.message)"
+                       " left join deliveries d on (m.id=d.message)"
+                       " where mm.message is null and dm.message is null"
+                       " and d.message is null)", 0 );
         t->enqueue( q );
 
         q = new Query( "delete from bodyparts where id in (select id "
