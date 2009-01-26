@@ -205,7 +205,20 @@ static Selector * parseSelector( StringList * arguments,
         }
         else if ( a == "flagged" ) {
             if ( n ) {
-                c = new Selector( Selector::Flags, Selector::Contains, *n );
+                String h = n->lower();
+                while ( h.startsWith( "\\") )
+                    h = h.mid( 1 );
+                if ( h == "deleted" )
+                    h = "\\Deleted";
+                else if ( h == "answered" )
+                    h = "\\Answered";
+                else if ( h == "flagged" )
+                    h = "\\Flagged";
+                else if ( h == "draft" )
+                    h = "\\Draft";
+                else if ( h == "seen" )
+                    h = "\\Seen";
+                c = new Selector( Selector::Flags, Selector::Contains, h );
                 arguments->shift();
             }
             else {
