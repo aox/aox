@@ -281,10 +281,10 @@ GraphDumper::GraphDumper( int fd )
             uint t = i->oldestTime();
             while ( t <= i->youngestTime() ) {
                 l.append( " " );
-                l.appendNumber( t );
+                l.append( fn( t ) );
                 l.append( ":" );
                 uint v = i->value( t );
-                l.appendNumber( v );
+                l.append( fn( v ) );
                 t++;
                 uint n = 0;
                 while ( t < i->youngestTime() &&

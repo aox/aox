@@ -267,7 +267,7 @@ String Endpoint::address() const
                 else {
                     if ( sep )
                         result.append( ":" );
-                    result.appendNumber( d->ip6a[i++], 16 );
+                    result.append( fn( d->ip6a[i++], 16 ) );
                     sep = true;
                 }
             }

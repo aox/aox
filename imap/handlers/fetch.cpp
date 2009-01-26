@@ -437,7 +437,7 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
             ip->step();
             if ( ip->nextChar() >= '0' && ip->nextChar() <= '9' ) {
                 part.append( "." );
-                part.appendNumber( ip->nzNumber() );
+                part.append( fn( ip->nzNumber() ) );
             }
             else {
                 dot = true;
@@ -1093,7 +1093,7 @@ String Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     String r;
     String payload = l.join( " " );
     r.reserve( payload.length() + 30 );
-    r.appendNumber( msn );
+    r.append( fn( msn ) );
     r.append( " FETCH (" );
     r.append( payload );
     r.append( ")" );
@@ -1386,7 +1386,7 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
             //                   SP body SP body-fld-lines
             l.append( envelope( bp->message() ) );
             l.append( bodyStructure( bp->message(), extended ) );
-            l.append( fn ( bp->numEncodedLines() ) );
+            l.append( fn( bp->numEncodedLines() ) );
         }
         else if ( !ct || ct->type() == "text" ) {
             // body-type-text  = media-text SP body-fields SP body-fld-lines
@@ -1629,11 +1629,11 @@ void Fetch::pickup()
             waitFor( new ImapFetchResponse( s, this, uid ) );
         }
     }
-
+    
     if ( !done )
         return;
     log( "Processed " + fn( done ) + " messages", Log::Debug );
-    imap()->emitResponses();
+    imap()->emitResponses();    
 }
 
 

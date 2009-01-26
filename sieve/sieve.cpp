@@ -248,23 +248,23 @@ void Sieve::execute()
                     if ( !first )
                         s.append( " or " );
                     s.append( "(handle=$" );
-                    s.appendNumber( n );
+                    s.append( fn( n ) );
                     d->autoresponses->bind( n, i->handle() );
                     s.append( " and sent_from in "
                               "(select id from addresses "
                               " where lower(localpart)=$" );
-                    s.appendNumber( n+1 );
+                    s.append( fn( n+1 ) );
                     s.append( " and lower(domain)=$" );
-                    s.appendNumber( n+2 );
+                    s.append( fn( n+2 ) );
                     Address * f = i->senderAddress();
                     d->autoresponses->bind( n+1, f->localpart().lower() );
                     d->autoresponses->bind( n+2, f->domain() );
                     s.append( ") and sent_to in "
                               "(select id from addresses "
                               " where lower(localpart)=$" );
-                    s.appendNumber( n+3 );
+                    s.append( fn( n+3 ) );
                     s.append( " and lower(domain)=$" );
-                    s.appendNumber( n+4 );
+                    s.append( fn( n+4 ) );
                     Address * r = i->recipientAddress();
                     d->autoresponses->bind( n+3, r->localpart().lower() );
                     d->autoresponses->bind( n+4, r->domain().lower() );
@@ -1078,33 +1078,33 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
 
             String dp( t->datePart().ascii() );
             if ( dp == "year" ) {
-                z.appendNumber( dt.year() );
+                z.append( fn( dt.year() ) );
                 s.append( z.mid( z.length()-4 ) );
             }
             else if ( dp == "month" ) {
-                z.appendNumber( dt.month() );
+                z.append( fn( dt.month() ) );
                 s.append( z.mid( z.length()-2 ) );
             }
             else if ( dp == "day" ) {
-                z.appendNumber( dt.day() );
+                z.append( fn( dt.day() ) );
                 s.append( z.mid( z.length()-2 ) );
             }
             else if ( dp == "date" ) {
                 s.append( dt.isoDate() );
             }
             else if ( dp == "julian" ) {
-                s.appendNumber( 40587 + dt.unixTime()/86400 );
+                s.append( fn( 40587 + dt.unixTime()/86400 ) );
             }
             else if ( dp == "hour" ) {
-                z.appendNumber( dt.hour() );
+                z.append( fn( dt.hour() ) );
                 s.append( z.mid( z.length()-2 ) );
             }
             else if ( dp == "minute" ) {
-                z.appendNumber( dt.minute() );
+                z.append( fn( dt.minute() ) );
                 s.append( z.mid( z.length()-2 ) );
             }
             else if ( dp == "second" ) {
-                z.appendNumber( dt.second() );
+                z.append( fn( dt.second() ) );
                 s.append( z.mid( z.length()-2 ) );
             }
             else if ( dp == "time" ) {
@@ -1125,14 +1125,14 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                 else {
                     s.append( "+" );
                 }
-                z.appendNumber( n / 60 );
+                z.append( fn( n / 60 ) );
                 s.append( z.mid( z.length() - 2 ) );
                 z = "00";
-                z.appendNumber( n % 60 );
+                z.append( fn( n % 60 ) );
                 s.append( z.mid( z.length() - 2 ) );
             }
             else if ( dp == "weekday" ) {
-                s.appendNumber( dt.weekday() );
+                s.append( fn( dt.weekday() ) );
             }
 
             UString ds;

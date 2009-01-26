@@ -306,7 +306,7 @@ String ArchiveMailbox::threadRendering( Thread * t )
     s.append( "</a>" );
     s.append( " (" );
     if ( count > 1 ) {
-        s.appendNumber( count );
+        s.append( fn( count ) );
         s.append( " messages, " );
     }
     else {
@@ -359,7 +359,7 @@ String ArchiveMailbox::threadRendering( Thread * t )
         s.append( ml.canonical() );
         s.append( "\">Read entire thread</a> (" );
         if ( from.count() > 2 ) {
-            s.appendNumber( from.count() - 1 );
+            s.append( fn( from.count() - 1 ) );
             s.append( " responses" );
         }
         else {
@@ -395,7 +395,7 @@ String ArchiveMailbox::threadRendering( Thread * t )
             }
             if ( limit < responders.count() ) {
                 s.append( " and " );
-                s.appendNumber( responders.count() - limit );
+                s.append( fn( responders.count() - limit ) );
                 s.append( " others" );
             }
         }
@@ -451,18 +451,18 @@ String ArchiveMailbox::timespan( const IntegerSet & uids ) const
         r = fn( o.day() ) + " " + monthnames[o.month()-1];
         if ( o.year() < n.year() ) {
             r.append( " " );
-            r.appendNumber( o.year() );
+            r.append( fn( o.year() ) );
         }
     }
     else if ( o.year() < y.year() ) {
         // spans years
         r.append( monthnames[o.month()-1] );
         r.append( " " );
-        r.appendNumber( o.year() );
+        r.append( fn( o.year() ) );
         r.append( "&#8211;" );
         r.append( monthnames[y.month()-1] );
         r.append( " " );
-        r.appendNumber( y.year() );
+        r.append( fn( y.year() ) );
     }
     else if ( y.year() * 12 + y.month() + 3 >= n.year() * 12 + n.month() ) {
         // less than tree months old
@@ -474,15 +474,15 @@ String ArchiveMailbox::timespan( const IntegerSet & uids ) const
         }
         if ( o.year() < y.year() ) {
             r.append( " " );
-            r.appendNumber( o.year() );
+            r.append( fn( o.year() ) );
         }
         r.append( "&#8211;" );
-        r.appendNumber( y.day() );
+        r.append( fn( y.day() ) );
         r.append( " " );
         r.append( monthnames[y.month()-1] );
         if ( o.year() < y.year() || y.year() < n.year() ) {
             r.append( " " );
-            r.appendNumber( y.year() );
+            r.append( fn( y.year() ) );
         }
     }
     else if ( o.month() < y.month() ) {
@@ -492,14 +492,14 @@ String ArchiveMailbox::timespan( const IntegerSet & uids ) const
         r.append( monthnames[y.month()-1] );
         if ( y.year() < n.year() ) {
             r.append( " " );
-            r.appendNumber( y.year() );
+            r.append( fn( y.year() ) );
         }
     }
     else {
         // single month, some time ago
         r.append( monthnames[o.month()-1] );
         r.append( " " );
-        r.appendNumber( o.year() );
+        r.append( fn( o.year() ) );
     }
     return r;
 }

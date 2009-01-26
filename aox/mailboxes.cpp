@@ -97,7 +97,7 @@ void ListMailboxes::execute()
             String s;
             int messages = r->getInt( "messages" );
             int size = r->getInt( "size" );
-            s.appendNumber( messages );
+            s.append( fn( messages ) );
             if ( messages == 1 )
                 s.append( " message, " );
             else

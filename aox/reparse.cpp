@@ -177,7 +177,7 @@ String Reparse::writeErrorCopy( const String & o )
         errdir = new String;
         Allocator::addEternal( errdir, "error directory" );
         errdir->append( "errors/" );
-        errdir->appendNumber( getpid() );
+        errdir->append( fn( getpid() ) );
         ::mkdir( "errors", 0777 );
         ::mkdir( errdir->cstr(), 0777 );
     }
