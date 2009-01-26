@@ -203,7 +203,7 @@ static Selector * parseSelector( StringList * arguments,
                 arguments->shift();
             }
         }
-        else if ( a == "flagged" ) {
+        else if ( a == "flag" ) {
             if ( n ) {
                 String h = n->lower();
                 while ( h.startsWith( "\\") )
