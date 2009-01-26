@@ -34,6 +34,10 @@ Schedule
   Now sends FLAGS updates, although their order may be less than
   ideal.
 
+  aoxexport exists.
+
+  Optimisations to defeat common webmail systems.
+
 
 Release cycle
 
@@ -1329,7 +1333,7 @@ Problems found in 3.0.0 by Timo
     (Not verified because of segfault; will check later.)
 
     Not fixed; I lean towards fixing it if it's the only thing
-    imapsync complains about.
+    imaptest complains about.
 
 
 Use current_setting('server_version_num') instead of parsing version()
