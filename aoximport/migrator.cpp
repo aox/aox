@@ -322,7 +322,7 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
             errdir = new String;
             Allocator::addEternal( errdir, "error directory" );
             errdir->append( "errors/" );
-            errdir->append( fn( getpid() ) );
+            errdir->appendNumber( getpid() );
             ::mkdir( "errors", 0777 );
             ::mkdir( errdir->cstr(), 0777 );
             if ( Migrator::verbosity() > 0 )

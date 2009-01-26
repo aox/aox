@@ -596,7 +596,7 @@ String Query::description()
         i++;
 
         String r( "$" );
-        r.append( fn( i ) );
+        r.appendNumber( i );
         r.append( "=" );
         int n = v->length();
         if ( n == -1 ) {

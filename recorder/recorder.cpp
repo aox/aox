@@ -56,7 +56,7 @@ void RecorderData::dump( Direction dir )
         f.append( "receive " );
     else
         f.append( "send " );
-    f.append( fn( lines ) );
+    f.appendNumber( lines );
     f.append( "\n" );
     i = 0;
     while ( i < ls ) {
@@ -77,7 +77,7 @@ void RecorderData::assertEmpty()
     if ( !toServer.isEmpty() ) {
         String f;
         f.append( "# The following " );
-        f.append( fn( toServer.length() ) );
+        f.appendNumber( toServer.length() );
         f.append( " bytes were sent by the client after the last LF: " );
         f.append( toServer );
         f.append( "\n" );
@@ -86,7 +86,7 @@ void RecorderData::assertEmpty()
     if ( !toClient.isEmpty() ) {
         String f;
         f.append( "# The following " );
-        f.append( fn( toClient.length() ) );
+        f.appendNumber( toClient.length() );
         f.append( " bytes were sent by the server after the last LF: " );
         f.append( toClient );
         f.append( "\n" );

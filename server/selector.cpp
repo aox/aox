@@ -790,7 +790,7 @@ String Selector::whereHeaderField()
     }
     if ( t ) {
         j.append( " and hf" + jn + ".field=" );
-        j.append( fn( t ) );
+        j.appendNumber( t );
     }
     else {
         uint f = placeHolder();
@@ -968,7 +968,7 @@ static String matchTsvector( const String & col, uint n )
     s.append( ", " );
     s.append( col );
     s.append( ") @@ plainto_tsquery($" );
-    s.append( fn( n ) );
+    s.appendNumber( n );
     s.append( ")" );
     return s;
 }
@@ -1388,7 +1388,7 @@ String Selector::debugString() const
 
     r = w + " " + o + " ";
     if ( d->n )
-        r.append( fn( d->n ) );
+        r.appendNumber( d->n );
     else if ( d->s16.isEmpty() )
         r.append( d->s8 );
     else
@@ -1609,12 +1609,12 @@ String Selector::string()
         else
             r.append( "messagelarger" );
         r.append( " " );
-        r.append( fn( d->n ) );
+        r.appendNumber( d->n );
         break;
     case Smaller:
         r.append( "messagesmaller" );
         r.append( " " );
-        r.append( fn( d->n ) );
+        r.appendNumber( d->n );
         break;
     case And:
         r.append( "and" );

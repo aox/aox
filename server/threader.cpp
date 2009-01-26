@@ -223,7 +223,7 @@ void Threader::execute()
                     s.append( " or " );
                 d->newishThreads->bind( n, t->subject() );
                 s.append( "subject=$" );
-                s.append( fn( n ) );
+                s.appendNumber( n );
                 n++;
             }
         }
