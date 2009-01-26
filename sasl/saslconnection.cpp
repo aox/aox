@@ -62,7 +62,8 @@ void SaslConnection::setUser( User * user, const String & mechanism )
 }
 
 
-/*! This reimplementation only adds a record to the connections table.
+/*! This reimplementation logs the connection in the connections table
+    and cancels any other queries still running.
 
     If the connection is closed as part of server shutdown, then it's
     probably too late to execute a new Query. We're tolerant of that.
@@ -75,6 +76,8 @@ void SaslConnection::close()
 
     Endpoint client = peer();
     Connection::close();
+
+    Database::cancelQueries( log() );
 
     if ( !u || client.protocol() == Endpoint::Unix ||
          !Configuration::toggle( Configuration::Security ) )
