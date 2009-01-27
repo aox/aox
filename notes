@@ -806,6 +806,18 @@ Reference counting GC
   If we do this, then everything we currently do should be safe. But
   the hack would be hacky.
 
+  Reference counting has problems with circular structures. We have
+  two of those: Selector and Message.
+
+  Selector is solvable. Its parent pointers are used only to access
+  the root's d pointer, and we could change the implementation
+  accordingly.
+
+  Message seems more difficult. On one hand its circularity has
+  brought problems before so it would be nice to change. On the other
+  I don't know any way to get rid of the blah.  Functions like
+  Bodypart::contentType() seem to need Multipart::parent().
+
 
 Add a web page about the charset encoding.
 
