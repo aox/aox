@@ -3877,13 +3877,14 @@ bool Schema::stepTo81()
 }
 
 
-/*! Installs a trigger prevent mailbox delete from deleting nonempty
-    mailboxes.
-
-    What we really want is to delete the mail in the mailbox, but to
-    do that we need (at a minimum) the responsible user. So what we
-    must do is prevent the deletion, and in the application code we
-    must delete the messages before deleting the mailbox.
+/*! Installs a trigger to prevent deleting mailboxes that have to be
+    there for one reason or another.
+  
+    What we really want is to delete the mail in the mailbox when the
+    mailbox is deleted, but to do that we need (at a minimum) the
+    responsible user. So what we must do is prevent the deletion, and
+    in the application code we must delete the messages before
+    deleting the mailbox.
 
     However, if any bad mailboxes already exist (as they do, not sure
     why) then aox upgrade schema can delete any mail them. aox upgrade
@@ -3894,6 +3895,7 @@ bool Schema::stepTo82()
 {
     describeStep( "Add a trigger to prevent deleting nonempty mailboxes." );
 
+    // delete any mail we can't reach (but permit undeleting)
     d->t->enqueue(
         new Query( "insert into deleted_messages "
                    "(mailbox, uid, message, modseq, deleted_by, reason) "
@@ -3904,13 +3906,29 @@ bool Schema::stepTo82()
                    "join mailboxes mb on (mm.mailbox=mb.id) "
                    "where mb.deleted='t'", 0 ) );
 
+    // and recover any deleted mailboxes we might have deleted in the past
+    d->t->enqueue(
+        new Query( "update mailboxes set deleted='f' "
+                   "where deleted='f' and "
+                   "(id in (select mailbox from aliases) or"
+                   " id in (select fileinto_targets))", 0 ) );
+
+    // install a trigger to make sure necessary mailboxes don't disappear
     d->t->enqueue(
         new Query( "create function check_mailbox_update() "
                    "returns trigger as $$"
                    "begin "
                    "notify mailboxes_updated; "
-                   "if new.deleted='t' and old.deleted='f' and ... then "
+                   "if new.deleted='t' and old.deleted='f' then "
+                   "if "// there's mail in the mailbox
                    "raise exception '% is not empty', NEW.name;"
+                   "end if; "
+                   "if "// any aliases.mailbox point to it
+                   "raise exception '% is tied to alias %', NEW.name;"
+                   "end if; "
+                   "if "// any fileinto_targets.mailbox point to it
+                   "raise exception '% is referred to sieve fileinto', NEW.name;"
+                   "end if; "
                    "end if; "
                    "return new;"
                    "end;$$ language pgsql security definer", 0 ) );
@@ -3920,7 +3938,7 @@ bool Schema::stepTo82()
                    "row execute procedure check_mailbox_update()", 0 ) );
 
     return true;
-    
+
 }
 
 
