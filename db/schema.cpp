@@ -3833,3 +3833,132 @@ bool Schema::stepTo80()
 
     return true;
 }
+
+
+/*! Fixes mailbox ownership and installs a trigger to keep it right.
+
+    aoximport and perhaps other code could create mailboxes such as
+    /users/foo/stuff without knowing that /users/foo is someone's
+    home, and therefore the new mailbox should be owned by foo.
+*/
+
+bool Schema::stepTo81()
+{
+    describeStep( "Add a trigger to ensure that users own their mailboxes." );
+
+    // fix old rows (e.g. created by aoximport)
+    d->t->enqueue(
+        new Query( "update mailboxes set owner=u.id "
+                   "from users u join namespaces n on (u.parentspace=n.id) "
+                   "where mailboxes.name like n.name||'/'||u.login||'/%' and "
+                   "(owner is null or owner!=u.id)", 0 ) );
+
+    // then make sure that new rows are set up correctly
+    d->t->enqueue(
+        new Query( "create function set_mailbox_owner() "
+                   "returns trigger as $$"
+                   "begin "
+                   "if new.owner is null then "
+                   // I've no idea whether this is correct syntax or will work
+                   "new.owner=coalesce("
+                   "select u.id from users u "
+                   "join namespaces n on (u.parentspace=n.id) "
+                   "where new.name like n.name||'/'||u.login||'/%' "
+                   "or new.name = n.name||'/'||u.login', null) "
+                   "end if; "
+                   "return new;"
+                   "end;$$ language pgsql security definer", 0 ) );
+    d->t->enqueue(
+        new Query( "create trigger mailbox_owner_trigger "
+                   "before insert on mailboxes for each "
+                   "row execute procedure set_mailbox_owner()", 0 ) );
+
+    return true;
+}
+
+
+/*! Installs a trigger prevent mailbox delete from deleting nonempty
+    mailboxes.
+
+    What we really want is to delete the mail in the mailbox, but to
+    do that we need (at a minimum) the responsible user. So what we
+    must do is prevent the deletion, and in the application code we
+    must delete the messages before deleting the mailbox.
+
+    However, if any bad mailboxes already exist (as they do, not sure
+    why) then aox upgrade schema can delete any mail them. aox upgrade
+    schema knows who ran it.
+*/
+
+bool Schema::stepTo82()
+{
+    describeStep( "Add a trigger to prevent deleting nonempty mailboxes." );
+
+    d->t->enqueue(
+        new Query( "insert into deleted_messages "
+                   "(mailbox, uid, message, modseq, deleted_by, reason) "
+                   "select mm.mailbox, mm.uid, mm.message, mb.nextmodseq, "
+                   "current_timestamp, "
+                   "'aox upgrade schema found nonempty deleted mailbox' "
+                   "from mailbox_messages mm "
+                   "join mailboxes mb on (mm.mailbox=mb.id) "
+                   "where mb.deleted='t'", 0 ) );
+
+    d->t->enqueue(
+        new Query( "create function check_mailbox_update() "
+                   "returns trigger as $$"
+                   "begin "
+                   "notify mailboxes_updated; "
+                   "if new.deleted='t' and old.deleted='f' and ... then "
+                   "raise exception '% is not empty', NEW.name;"
+                   "end if; "
+                   "return new;"
+                   "end;$$ language pgsql security definer", 0 ) );
+    d->t->enqueue(
+        new Query( "create trigger mailbox_update_trigger "
+                   "before update on mailboxes for each "
+                   "row execute procedure check_mailbox_update()", 0 ) );
+
+    return true;
+    
+}
+
+
+/*! Installs one/two trigger(s) to ensure that a mailbox' nextmodseq
+    increases when necessary.
+
+    We could push it even further... insert into flags, annotations
+    and deleted_messages could set the modseq on deleted_messages /
+    mailbox_messages to mailboxes.nextmodseq. Then we'd need to select
+    the mailbox for update before updating it, but not care about
+    modseq in client code.
+*/
+
+bool Schema::stepTo83()
+{
+    describeStep( "Add triggers to ensure that modseq increases as it ought to." );
+
+    d->t->enqueue(
+        new Query( "create function increase_nextmodseq() "
+                   "returns trigger as $$"
+                   "begin "
+                   "update mailboxes "
+                   "set nextmodseq=new.modseq+1 "
+                   "where id=new.mailbox and nextmodseq<=new.modseq;"
+                   "return null;"
+                   "end;$$ language pgsql security definer", 0 ) );
+    d->t->enqueue(
+        new Query( "create trigger mailbox_messages_update_trigger "
+                   "after update or insert on mailbox_messages "
+                   "for each row execute procedure increase_nextmodseq()", 0 ) );
+    d->t->enqueue(
+        new Query( "create trigger deleted_messages_update_trigger "
+                   "after update or insert on mailbox_messages "
+                   "for each row execute procedure increase_nextmodseq()", 0 ) );
+
+    // wouldn't this be better as a "statement after" that uses
+    // max(new.modseq) group by mailbox? is that even possible? if it
+    // isn't, then maybe this is too expensive to do.
+
+    return true;
+}

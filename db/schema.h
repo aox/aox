@@ -105,6 +105,9 @@ private:
     bool stepTo78();
     bool stepTo79();
     bool stepTo80();
+    bool stepTo81();
+    bool stepTo82();
+    bool stepTo83();
 
     void describeStep( const String & );
 };
