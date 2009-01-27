@@ -665,7 +665,7 @@ uint Database::handlesNeeded()
 */
 
 /*! \fn void Database::cancel( class Query * query )
-    Cancels the given query if it is being executed by this database object.
+    Cancels the given \a query if it is being executed by this database object.
     Does nothing otherwise.
 */
 
@@ -681,28 +681,29 @@ void Database::cancelQueries( Log * l )
     if ( !l )
         return;
     Scope x( l );
-    if ( queries && !queries->isEmpty() ) {
-        List<Query>::Iterator q( queries );
-        while ( q ) {
-            if ( q->log() && q->log()->isChildOf( l ) )
-                queries->remove( q )->cancel();
-            else
-                ++q;
+
+    List< List<Query > > total;
+    total.append( queries );
+    if ( handles && !handles->isEmpty() ) {
+        List<Database>::Iterator h( handles );
+        while ( h ) {
+            total.append( h->activeQueries() );
+            ++h;
         }
     }
-    if ( handles && !handles->isEmpty() ) {
-        List<Database>::Iterator i( handles );
+
+    List< List<Query> >::Iterator ql( total );
+    while ( ql ) {
+        List<Query>::Iterator i( ql );
         while ( i ) {
-            List<Query> * ql = i->activeQueries();
+            List<Query>::Iterator q = i;
             ++i;
-            List<Query>::Iterator q( ql );
-            while ( q ) {
-                if ( q->log() && q->log()->isChildOf( l ) )
-                    ql->remove( q )->cancel();
-                else
-                    ++q;
+            if ( q->log() && q->log()->isChildOf( l ) ) {
+                ql->remove( q );
+                q->cancel();
             }
         }
+        ++ql;
     }
 }
 
