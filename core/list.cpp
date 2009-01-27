@@ -149,6 +149,12 @@ void listSortHelper( void * a, size_t n, size_t s,
     it was not found in the List.
 */
 
+/*! \fn T *List::remove( const Iterator & d )
+    Removes \a d from the list and returns it as a pointer.
+
+    \a d remains valid and can be dereferenced.
+*/
+
 /*! \fn List<T> * List::sorted( Comparator * comparator )
 
     Returns a list containing the same items as in this list, sorted

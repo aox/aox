@@ -262,7 +262,7 @@ public:
         return Iterator::newRef( cur );
     }
 
-    T *remove( const T *d )
+    T * remove( const T *d )
     {
         Node *cur = head;
 
@@ -283,6 +283,22 @@ public:
         }
 
         return 0;
+    }
+
+    T * remove( const Iterator & d )
+    {
+        if ( !d.node() )
+            return 0;
+        if ( d.node()->next )
+            d.node()->next->prev = d.node()->prev;
+        if ( d.node()->prev )
+            d.node()->prev->next = d.node()->next;
+        if ( head == d.node() )
+            head = d.node()->next; 
+        if ( tail == d.node() ) 
+            tail = d.node()->next;
+        d.node()->next = d.node()->prev = 0;
+        return d.node()->data;
     }
 
     List<T> * sorted( Comparator * comparator )
