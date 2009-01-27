@@ -7,6 +7,7 @@
 #include "query.h"
 #include "address.h"
 #include "mailbox.h"
+#include "integerset.h"
 #include "transaction.h"
 #include "helperrowcreator.h"
 
@@ -153,12 +154,13 @@ class DeleteUserData
 {
 public:
     DeleteUserData()
-        : user( 0 ), t( 0 ), query( 0 )
+        : user( 0 ), t( 0 ), query( 0 ), processed( false )
     {}
 
     User * user;
     Transaction * t;
     Query * query;
+    bool processed;
 };
 
 
@@ -194,11 +196,19 @@ void DeleteUser::execute()
         d->user->setLogin( login );
         d->user->refresh( this );
 
+        d->t = new Transaction( this );
+
         d->query =
-            new Query( "select m.id,m.name from mailboxes m join users u "
-                       "on (m.owner=u.id) where u.login=$1", this );
+            new Query(
+                "select m.id, "
+                "exists(select message from mailbox_messages where mailbox=m.id)"
+                " as nonempty "
+                "from mailboxes m join users u on (m.owner=u.id) where u.login=$1 "
+                "for update",
+                this );
         d->query->bind( 1, login );
-        d->query->execute();
+        d->t->enqueue( d->query );
+        d->t->execute();
     }
 
     if ( !choresDone() )
@@ -207,44 +217,73 @@ void DeleteUser::execute()
     if ( d->user->state() == User::Unverified )
         return;
 
+    if ( d->user->state() == User::Nonexistent )
+        error( "No user named " + d->user->login().utf8() );
+
     if ( !d->query->done() )
         return;
 
-    if ( !d->t ) {
-        if ( d->user->state() == User::Nonexistent )
-            error( "No user named " + d->user->login().utf8() );
+    if ( !d->processed ) {
 
-        if ( !opt( 'f' ) && d->query->hasResults() ) {
-            fprintf( stderr, "User %s still owns the following mailboxes:\n",
+        d->processed = true;
+
+        IntegerSet all;
+        IntegerSet nonempty;
+        while ( d->query->hasResults() ) {
+            Row * r = d->query->nextRow();
+            if ( r->getBoolean( "nonempty" ) )
+                nonempty.add( r->getInt( "id" ) );
+            all.add( r->getInt( "id" ) );
+        }
+
+        if ( nonempty.isEmpty() ) {
+            // we silently delete empty mailboxes, only actual mail matters to us
+        }
+        else if ( opt( 'f' ) ) {
+            Query * q = new Query( "insert into deleted_messages "
+                                   "(mailbox, uid, messages, modseq,"
+                                   " deleted_by, reason) "
+                                   "select mm.mailbox, mm.uid, mm.message,"
+                                   " mb.nextmodseq, null,"
+                                   " 'aox delete user -f' "
+                                   "from mailbox_messages mm "
+                                   "join mailboxes mb on (mm.mailbox=mb.id) "
+                                   "where mb.id=any($1)", 0 );
+            q->bind( 1, d->user->id() );
+            d->t->enqueue( q );
+        }
+        else {
+            fprintf( stderr, "User %s still owns the following nonempty mailboxes:\n",
                      d->user->login().utf8().cstr() );
-            while ( d->query->hasResults() ) {
-                Row * r = d->query->nextRow();
-                fprintf( stderr, "%s\n",
-                         r->getUString( "name" ).utf8().cstr() );
+            uint n = 1;
+            while ( n <= nonempty.count() ) {
+                Mailbox * m = Mailbox::find( nonempty.value( n ) );
+                ++n;
+                if ( m )
+                    fprintf( stderr, "    %s\n", m->name().utf8().cstr() );
             }
-            fprintf( stderr, "(Use 'aox delete user -f %s' to delete the "
+            fprintf( stderr, "(Use 'aox delete user -f %s' to delete these "
                      "mailboxes too.)\n", d->user->login().utf8().cstr() );
             exit( -1 );
         }
 
-        List<Query> aliases;
-        d->t = new Transaction( this );
-        while ( d->query->hasResults() ) {
-            Row * r = d->query->nextRow();
-            UString s = r->getUString( "name" );
-            Mailbox * m = Mailbox::obtain( s, false );
-            if ( !m || m->remove( d->t ) == 0 )
-                error( "Couldn't delete mailbox " + s.utf8() );
-            Query * q = new Query( "delete from aliases where mailbox=$1", 0 );
-            q->bind( 1, r->getInt( "id" ) );
-            aliases.append( q );
+        if ( !all.isEmpty() ) {
+            Query * q;
+
+            q = new Query( "delete from aliases where mailbox=any($1)", 0 );
+            q->bind( 1, all );
+            d->t->enqueue( q );
+
+            q = new Query( "update mailboxes set deleted='t',owner=null "
+                           "where owner=$1 and id=any($2) and not deleted='t'",
+                           0 );
+            q->bind( 1, d->user->id() );
+            q->bind( 2, all );
+            d->t->enqueue( q );
         }
-        d->query = d->user->remove( d->t );
-        List<Query>::Iterator it( aliases );
-        while ( it ) {
-            d->t->enqueue( it );
-            ++it;
-        }
+
+        d->user->remove( d->t );
+
         d->t->commit();
     }
 
