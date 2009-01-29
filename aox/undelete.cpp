@@ -8,6 +8,7 @@
 #include "selector.h"
 #include "mailbox.h"
 #include "query.h"
+#include "map.h"
 #include "utf.h"
 
 #include <stdlib.h> // exit()
@@ -18,7 +19,8 @@ class UndeleteData
     : public Garbage
 {
 public:
-    UndeleteData(): state( 0 ), m( 0 ), t( 0 ), find( 0 ), uidnext( 0 ) {}
+    UndeleteData(): state( 0 ), m( 0 ), t( 0 ),
+                    find( 0 ), uidnext( 0 ), usernames( 0 ) {}
 
     uint state;
     Mailbox * m;
@@ -26,6 +28,7 @@ public:
 
     Query * find;
     Query * uidnext;
+    Query * usernames;
 };
 
 
@@ -45,6 +48,7 @@ void Undelete::execute()
         database( true );
         Mailbox::setup();
         d->state = 1;
+        parseOptions();
     }
 
     if ( d->state == 1 ) {
@@ -83,6 +87,13 @@ void Undelete::execute()
 
         StringList wanted;
         wanted.append( "uid" );
+        if ( opt( 'v' ) ) {
+            wanted.append( "deleted_by" );
+            wanted.append( "deleted_at::text" );
+            wanted.append( "reason" );
+            d->usernames = new Query( "select id, login from users", 0 );
+            d->t->enqueue( d->usernames );
+        }
 
         d->find = s->query( 0, d->m, 0, 0, true, &wanted, true );
         d->t->enqueue( d->find );
@@ -107,11 +118,29 @@ void Undelete::execute()
         uint uidnext = r->getInt( "uidnext" );
         int64 modseq = r->getBigint( "nextmodseq" );
 
+        Map<String> logins;
+        if ( d->usernames ) {
+            while ( d->usernames->hasResults() ) {
+                r = d->usernames->nextRow();
+                logins.insert( r->getInt( "id" ),
+                               new String( r->getString( "login" ) ) );
+            }
+        }
+
+        Map<String> why;
         IntegerSet s;
-        r = d->find->nextRow();
-        while ( r ) {
-            s.add( r->getInt( "uid" ) );
+        while ( d->find->hasResults() ) {
             r = d->find->nextRow();
+            uint uid = r->getInt( "uid" );
+            s.add( uid );
+            if ( d->usernames )
+                why.insert( uid,
+                            new String( 
+                                " - Message " + fn( uid ) + " was deleted by " +
+                                *logins.find( r->getInt( "deleted_by" ) ).quoted() +
+                                " at " + r->getString( "deleted_at" ) +
+                                "\n   Reason: " +
+                                r->getString( "reason" ).simplified().quoted() ) );
         }
 
         if ( s.isEmpty() )
@@ -119,6 +148,12 @@ void Undelete::execute()
 
         printf( "aox: Undeleting %d messages into %s\n",
                 s.count(), d->m->name().utf8().cstr() );
+
+        Map<String>::Iterator i( why );
+        while ( i ) {
+            printf( "%s\n", i->cstr() );
+            ++i;
+        }
 
         Query * q;
 
