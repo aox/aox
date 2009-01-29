@@ -414,21 +414,11 @@ void User::createHelper()
         UString m = r->getUString( "name" );
         m.append( '/' );
         m.append( d->login );
+        UString inbox( m );
         m.append( "/INBOX" );
-        d->inbox = Mailbox::obtain( m, true );
-
-        if ( d->inbox->deleted() ) {
-            d->q = new Query( "update mailboxes set deleted='f' where id=$1",
-                              this );
-            d->q->bind( 1, d->inbox->id() );
-        }
-        else {
-            d->q = new Query( "insert into mailboxes (name) values ($1)",
-                              this );
-            d->q->bind( 1, m );
-        }
-        d->t->enqueue( d->q );
-
+        d->inbox = Mailbox::obtain( inbox, true );
+        d->inbox->create( d->t, 0 );
+        
         Query * q1
             = new Query( "insert into aliases (address, mailbox) values "
                          "($1, (select id from mailboxes where name=$2))",
@@ -450,9 +440,10 @@ void User::createHelper()
 
         Query *q3 =
             new Query( "update mailboxes set "
-                       "owner=(select currval('users_id_seq')::int) "
-                       "where name=$1", this );
-        q3->bind( 1, m );
+                       "owner=(select id from users where login=$1) "
+                       "where name=$2 or name like $2||'/%'", this );
+        q3->bind( 1, d->login );
+        q3->bind( 2, m );
         d->t->enqueue( q3 );
 
         d->t->commit();
