@@ -441,7 +441,7 @@ void User::createHelper()
         Query *q3 =
             new Query( "update mailboxes set "
                        "owner=(select id from users where login=$1) "
-                       "where name=$1 or name like $2||'/%'", this );
+                       "where name=$2 or name like $2||'/%'", this );
         q3->bind( 1, d->login );
         q3->bind( 2, m );
         d->t->enqueue( q3 );
