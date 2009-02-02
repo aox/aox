@@ -40,7 +40,7 @@ public:
 
     uint id;
 
-    String name;
+    EString name;
 };
 
 
@@ -86,7 +86,7 @@ void LogServer::react( Event e )
 
 void LogServer::parse()
 {
-    String *s;
+    EString *s;
     while ( ( s = readBuffer()->removeLine() ) != 0 )
         processLine( *s );
 }
@@ -99,7 +99,7 @@ void LogServer::parse()
     severity, followed by a space and the log message.
 */
 
-void LogServer::processLine( const String &line )
+void LogServer::processLine( const EString &line )
 {
     if ( line.startsWith( "name " ) ) {
         d->name = line.mid( 5 );
@@ -119,9 +119,9 @@ void LogServer::processLine( const String &line )
     if ( msg <= cmd+1 )
         return;
 
-    String transaction( line.mid( 0, cmd ) );
-    String priority( line.mid( cmd+1, msg-cmd-1 ) );
-    String parameters( line.mid( msg+1 ) );
+    EString transaction( line.mid( 0, cmd ) );
+    EString priority( line.mid( cmd+1, msg-cmd-1 ) );
+    EString parameters( line.mid( msg+1 ) );
 
     int n = priority.find( '/' );
     if ( n < 0 )
@@ -138,8 +138,8 @@ void LogServer::processLine( const String &line )
     textual representations.
 */
 
-void LogServer::output( String tag, Log::Severity s,
-                        const String &line )
+void LogServer::output( EString tag, Log::Severity s,
+                        const EString &line )
 {
     if ( s < logLevel )
         return;
@@ -179,7 +179,7 @@ void LogServer::output( String tag, Log::Severity s,
         return;
     }
 
-    String msg;
+    EString msg;
     msg.reserve( line.length() );
 
     msg.append( Log::severity( s ) );
@@ -202,10 +202,10 @@ void LogServer::output( String tag, Log::Severity s,
     from now on. (If the file has to be created, \a mode is used.)
 */
 
-void LogServer::setLogFile( const String &name, const String &mode )
+void LogServer::setLogFile( const EString &name, const EString &mode )
 {
     uint m = 0;
-    String s = mode;
+    EString s = mode;
     bool ok = false;
 
     if ( s.length() == 4 && s[0] == '0' )
@@ -237,7 +237,7 @@ void LogServer::setLogFile( const String &name, const String &mode )
     else if ( name.startsWith( "syslog/" ) ) {
         useSyslog = true;
         l = 0;
-        String f = name.section( "/", 2 ).lower();
+        EString f = name.section( "/", 2 ).lower();
         uint sfc = LOG_LOCAL7;
         if ( f == "auth" )
             sfc = LOG_AUTH;
@@ -303,7 +303,7 @@ void LogServer::setLogFile( const String &name, const String &mode )
 
 /*! Sets the log level to the Severity corresponding to \a l. */
 
-void LogServer::setLogLevel( const String &l )
+void LogServer::setLogLevel( const EString &l )
 {
     logLevel = severity( l );
 }
@@ -315,7 +315,7 @@ void LogServer::setLogLevel( const String &l )
     This function is the inverse of Log::severity().
 */
 
-Log::Severity LogServer::severity( const String &l )
+Log::Severity LogServer::severity( const EString &l )
 {
     Log::Severity s = Log::Info;
 

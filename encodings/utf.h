@@ -11,8 +11,8 @@ class Utf8Codec: public Codec
 public:
     Utf8Codec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 
 protected:
     bool pgutf;
@@ -31,8 +31,8 @@ class Utf16Codec: public Codec
 public:
     Utf16Codec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 private:
     bool be;
     bool bom;
@@ -44,8 +44,8 @@ class Utf16LeCodec: public Codec
 public:
     Utf16LeCodec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 
@@ -54,8 +54,8 @@ class Utf16BeCodec: public Codec
 public:
     Utf16BeCodec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 
@@ -64,11 +64,11 @@ class Utf7Codec: public Codec
 public:
     Utf7Codec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 
 protected:
-    String e( const UString & );
+    EString e( const UString & );
     Utf7Codec( bool );
 
 private:

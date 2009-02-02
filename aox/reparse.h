@@ -10,10 +10,10 @@ class Reparse
     : public AoxCommand
 {
 public:
-    Reparse( StringList * );
+    Reparse( EStringList * );
     void execute();
 
-    String writeErrorCopy( const String & );
+    EString writeErrorCopy( const EString & );
 
 private:
     class ReparseData * d;

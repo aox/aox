@@ -28,12 +28,12 @@ public:
 
     void parseAttribute( bool );
     static Section * parseSection( ImapParser *, bool = false );
-    static String sectionData( Section *, Message * );
-    String flagList( uint );
-    String annotation( class User *, uint,
-                       const StringList &, const StringList & );
+    static EString sectionData( Section *, Message * );
+    EString flagList( uint );
+    EString annotation( class User *, uint,
+                       const EStringList &, const EStringList & );
 
-    String makeFetchResponse( Message *, uint, uint );
+    EString makeFetchResponse( Message *, uint, uint );
 
     Message * message( uint ) const;
     void forget( uint );
@@ -46,11 +46,11 @@ private:
     void sendFlagQuery();
     void sendAnnotationsQuery();
     void sendModSeqQuery();
-    String dotLetters( uint, uint );
-    String internalDate( Message * );
-    String envelope( Message * );
-    String bodyStructure( Multipart *, bool );
-    String singlePartStructure( Multipart *, bool );
+    EString dotLetters( uint, uint );
+    EString internalDate( Message * );
+    EString envelope( Message * );
+    EString bodyStructure( Multipart *, bool );
+    EString singlePartStructure( Multipart *, bool );
 
     void pickup();
 
@@ -66,7 +66,7 @@ class ImapFetchResponse
 {
 public:
     ImapFetchResponse( ImapSession *, Fetch *, uint );
-    String text() const;
+    EString text() const;
     void setSent();
 
 private:

@@ -26,7 +26,7 @@ public:
     };
 
     static void setup( int = 0, Database::User = DbUser );
-    static void setup( int, const String &, const String & );
+    static void setup( int, const EString &, const EString & );
     static void submit( Query * );
     static void submit( List< Query > * );
     static void disconnect();
@@ -37,7 +37,7 @@ public:
 
     static uint numHandles();
     static uint handlesNeeded();
-    static String type();
+    static EString type();
 
     uint connectionNumber() const;
 
@@ -68,12 +68,12 @@ protected:
     static void removeHandle( Database * );
 
     static Endpoint server();
-    static String address();
+    static EString address();
     static uint port();
 
-    static String name();
-    static String user();
-    static String password();
+    static EString name();
+    static EString user();
+    static EString password();
     static User loginAs();
 
     static void recordExecution();

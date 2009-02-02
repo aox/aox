@@ -42,7 +42,7 @@ public:
     bool uid;
     bool done;
 
-    String charset;
+    EString charset;
     Codec * codec;
 
     Selector * root;
@@ -105,7 +105,7 @@ void Search::parse()
         bool any = false;
         while ( ok() && nextChar() != ')' &&
                 nextChar() >= 'A' && nextChar() <= 'z' ) {
-            String modifier = letters( 3, 5 ).lower();
+            EString modifier = letters( 3, 5 ).lower();
             any = true;
             if ( modifier == "all" )
                 d->returnAll = true;
@@ -327,7 +327,7 @@ Selector * Search::parseKey()
     }
     else if ( present( "header" ) ) {
         space();
-        String s1 = astring();
+        EString s1 = astring();
         space();
         UString s2 = ustring( AString );
         return new Selector( Selector::Header, Selector::Contains, s1, s2 );
@@ -362,11 +362,11 @@ Selector * Search::parseKey()
     }
     else if ( present( "annotation" ) ) {
         space();
-        String a = parser()->listMailbox();
+        EString a = parser()->listMailbox();
         if ( !parser()->ok() )
             error( Bad, parser()->error() );
         space();
-        String b = atom();
+        EString b = atom();
         space();
         UString c = ustring( NString );
 
@@ -503,7 +503,7 @@ void Search::considerCache()
     quotes). Month names are case-insensitive; RFC 3501 is not
     entirely clear about that. */
 
-String Search::date()
+EString Search::date()
 {
     // date-day "-" date-month "-" date-year
     char c = nextChar();
@@ -513,7 +513,7 @@ String Search::date()
         q = true;
         c = nextChar();
     }
-    String result;
+    EString result;
     result.append( digits( 1, 2 ) );
     if ( nextChar() != '-' )
         error( Bad, "expected -, saw " + following() );
@@ -522,7 +522,7 @@ String Search::date()
         result = "0" + result;
     result.append( "-" );
     step();
-    String month = letters( 3, 3 ).lower();
+    EString month = letters( 3, 3 ).lower();
     if ( month == "jan" || month == "feb" || month == "mar" ||
          month == "apr" || month == "may" || month == "jun" ||
          month == "jul" || month == "aug" || month == "sep" ||
@@ -537,7 +537,7 @@ String Search::date()
     uint year = digits( 4, 4 ).number( 0 );
     if ( year < 1500 )
         error( Bad, "Years before 1500 not supported" );
-    result.append( String::fromNumber( year ) );
+    result.append( EString::fromNumber( year ) );
     if ( q ) {
         if ( nextChar() != '"' )
             error( Bad, "Expected \", saw " + following() );
@@ -562,7 +562,7 @@ UString Search::ustring( Command::QuoteMode stringType )
     if ( !d->codec )
         d->codec = new AsciiCodec;
 
-    String raw;
+    EString raw;
     switch( stringType )
     {
     case AString:
@@ -588,15 +588,15 @@ UString Search::ustring( Command::QuoteMode stringType )
     this search to \a s.
 */
 
-void Search::setCharset( const String &s )
+void Search::setCharset( const EString &s )
 {
     d->charset = s;
     d->codec = Codec::byName( d->charset );
     if ( d->codec )
         return;
 
-    String r = "[BADCHARSET";
-    StringList::Iterator i( Codec::allCodecNames() );
+    EString r = "[BADCHARSET";
+    EStringList::Iterator i( Codec::allCodecNames() );
     while ( i ) {
         r.append( " " );
         r.append( imapQuoted( *i, AString ) );
@@ -687,7 +687,7 @@ void Search::sendResponse()
 
 ImapSearchResponse::ImapSearchResponse( ImapSession * session,
                                         const IntegerSet & set, int64 modseq,
-                                        const String & tag,
+                                        const EString & tag,
                                         bool u,
                                         bool rmin, bool rmax,
                                         bool rcount, bool rall )
@@ -697,7 +697,7 @@ ImapSearchResponse::ImapSearchResponse( ImapSession * session,
 }
 
 
-static void appendUid( String & r, Session * s, bool u, uint uid )
+static void appendUid( EString & r, Session * s, bool u, uint uid )
 {
     if ( u ) {
         r.appendNumber( uid );
@@ -712,10 +712,10 @@ static void appendUid( String & r, Session * s, bool u, uint uid )
 
 /*! Constructs a SEARCH or ESEARCH response depending on. */
 
-String ImapSearchResponse::text() const
+EString ImapSearchResponse::text() const
 {
     Session * s = session();
-    String result;
+    EString result;
     result.reserve( r.count() * 10 );
     if ( all || max || min || count ) {
         result.append( "ESEARCH (tag " );

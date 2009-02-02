@@ -13,7 +13,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "fetcher.h"
-#include "string.h"
+#include "estring.h"
 #include "query.h"
 #include "scope.h"
 #include "flag.h"
@@ -43,7 +43,7 @@ public:
     IntegerSet s;
     IntegerSet expunged;
     IntegerSet modified;
-    StringList flagNames;
+    EStringList flagNames;
 
     enum Op { AddFlags, ReplaceFlags, RemoveFlags, ReplaceAnnotations } op;
 
@@ -138,7 +138,7 @@ void Store::parse()
     space();
 
     if ( present( "(" ) ) {
-        String modifier = letters( 1, 14 ) .lower();
+        EString modifier = letters( 1, 14 ) .lower();
         while ( ok() && !modifier.isEmpty() ) {
             if ( modifier == "unchangedsince" ) {
                 space();
@@ -205,7 +205,7 @@ void Store::parse()
 
     if ( !ok() )
         return;
-    String l( "Store " );
+    EString l( "Store " );
     l.append( fn( d->specified.count() ) );
     switch( d->op ) {
     case StoreData::AddFlags:
@@ -243,7 +243,7 @@ void Store::parse()
 
 void Store::parseAnnotationEntry()
 {
-    String entry = entryName();;
+    EString entry = entryName();;
     if ( entry.startsWith( "/flags/" ) )
         error( Bad, "Cannot set top-level flags using STORE ANNOTATION" );
     if ( entry.contains( "//" ) )
@@ -257,7 +257,7 @@ void Store::parseAnnotationEntry()
     bool more = true;
     uint id = imap()->user()->id();
     while ( more ) {
-        String attrib = astring();
+        EString attrib = astring();
         bool shared = false;
         if ( attrib.endsWith( ".shared" ) ) {
             shared = true;
@@ -270,7 +270,7 @@ void Store::parseAnnotationEntry()
             error( Bad, "Must store either .priv or .shared attributes" );
         }
         space();
-        String value = string();
+        EString value = string();
         // XXX: Is the following really correct? Verify.
         List<Annotation>::Iterator it( d->annotations );
         if ( shared )
@@ -339,7 +339,7 @@ void Store::execute()
             bool deleted = false;
             bool seen = false;
             bool other = false;
-            StringList::Iterator it( d->flagNames );
+            EStringList::Iterator it( d->flagNames );
             while ( it ) {
                 if ( it->lower() == "\\deleted" )
                     deleted = true;
@@ -378,11 +378,11 @@ void Store::execute()
             work->add( new Selector( Selector::Modseq, Selector::Smaller,
                                      d->unchangedSince+1 ) );
         work->simplify();
-        StringList r;
+        EStringList r;
         r.append( "mailbox" );
         r.append( "uid" );
         d->findSet = work->query( imap()->user(), m, 0, this, false, &r );
-        String s = d->findSet->string();
+        EString s = d->findSet->string();
         s.append( " order by mm.uid for update" );
         d->findSet->setString( s );
         d->transaction->enqueue( d->findSet );
@@ -391,7 +391,7 @@ void Store::execute()
              d->op == StoreData::RemoveFlags ||
              d->op == StoreData::ReplaceFlags ) {
             d->present = new Map<IntegerSet>;
-            StringList::Iterator i( d->flagNames );
+            EStringList::Iterator i( d->flagNames );
             IntegerSet s;
             while ( i ) {
                 uint id = Flag::id( *i );
@@ -579,7 +579,7 @@ bool Store::processAnnotationNames()
         return d->annotationNameCreator->done();
 
     List<Annotation>::Iterator it( d->annotations );
-    StringList l;
+    EStringList l;
     while ( it ) {
         l.append( it->entryName() );
         ++it;
@@ -607,7 +607,7 @@ bool Store::removeFlags( bool opposite )
 {
     IntegerSet flags;
 
-    StringList::Iterator i( d->flagNames );
+    EStringList::Iterator i( d->flagNames );
     while ( i ) {
         uint id = 0;
         if ( d->flagCreator )
@@ -624,7 +624,7 @@ bool Store::removeFlags( bool opposite )
     if ( flags.isEmpty() && !opposite )
         return false;
 
-    String s = "delete from flags where mailbox=$1 and uid=any($2) and ";
+    EString s = "delete from flags where mailbox=$1 and uid=any($2) and ";
     if ( opposite )
         s.append( "not " );
     s.append( "flag=any($3)" );
@@ -650,7 +650,7 @@ bool Store::addFlags()
     Query * q = new Query( "copy flags (mailbox, uid, flag) "
                            "from stdin with binary", this );
 
-    StringList::Iterator it( d->flagNames );
+    EStringList::Iterator it( d->flagNames );
     while ( it ) {
         IntegerSet s( d->s );
         uint flag = 0;
@@ -698,7 +698,7 @@ bool Store::replaceFlags()
 }
 
 
-static void bind( Query * q, uint i, const String & n )
+static void bind( Query * q, uint i, const EString & n )
 {
     if ( n.isEmpty() )
         q->bindNull( i );
@@ -722,7 +722,7 @@ void Store::replaceAnnotations()
         uint aid = d->annotationNameCreator->id( it->entryName() );
 
         if ( it->value().isEmpty() ) {
-            String o = "owner=$4";
+            EString o = "owner=$4";
             if ( !it->ownerId() )
                 o = "owner is null";
             q = new Query( "delete from annotations where "
@@ -736,10 +736,10 @@ void Store::replaceAnnotations()
             d->transaction->enqueue( q );
         }
         else {
-            String o( "owner=$5" );
+            EString o( "owner=$5" );
             if ( !it->ownerId() )
                 o = "owner is null";
-            String existing( "where mailbox=$2 and uid=any($3) and "
+            EString existing( "where mailbox=$2 and uid=any($3) and "
                              "name=$4 and " + o );
             q = new Query( "update annotations set value=$1 " + existing, 0 );
             bind( q, 1, it->value() );
@@ -776,7 +776,7 @@ void Store::replaceAnnotations()
     if necessary.
 */
 
-String Store::entryName()
+EString Store::entryName()
 {
     UString r = listMailbox();
     if ( !r.isAscii() )

@@ -3,7 +3,7 @@
 #ifndef DOCBLOCK_H
 #define DOCBLOCK_H
 
-#include "string.h"
+#include "estring.h"
 #include "dict.h"
 
 class File;
@@ -16,14 +16,14 @@ class DocBlock
     : public Garbage
 {
 public:
-    DocBlock( File *, uint, const String &, Function * );
-    DocBlock( File *, uint, const String &, Class * );
-    DocBlock( File *, uint, const String &, Intro * );
+    DocBlock( File *, uint, const EString &, Function * );
+    DocBlock( File *, uint, const EString &, Class * );
+    DocBlock( File *, uint, const EString &, Intro * );
 
     bool isClass() const;
     bool isEnum() const;
 
-    String text() const;
+    EString text() const;
 
     void generate();
 
@@ -37,9 +37,9 @@ private:
     void whitespace( uint &, uint & );
     void word( uint &, uint, uint );
     void overload( uint, uint );
-    void plainWord( const String &, uint );
+    void plainWord( const EString &, uint );
     void checkEndState( uint );
-    void setState( State, const String &, uint );
+    void setState( State, const EString &, uint );
     void generateFunctionPreamble();
     void generateClassPreamble();
     void generateIntroPreamble();
@@ -50,7 +50,7 @@ private:
     Class * c;
     Function * f;
     Intro * i;
-    String t;
+    EString t;
     State s;
     Dict<void> arguments;
     bool isReimp;

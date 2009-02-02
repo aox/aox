@@ -211,7 +211,7 @@ void Threader::execute()
 
         d->newishThreads = new Query( "", this );
         List<SubjectThread>::Iterator i( d->threadList );
-        String s( "select id, subject from threads "
+        EString s( "select id, subject from threads "
                   "where mailbox=$1 and (" );
         d->newishThreads->bind( 1, d->mailbox->id() );
         uint n = 2;
@@ -244,7 +244,7 @@ void Threader::execute()
     if ( d->state == 6 || d->state == 8 ) {
         Row * r = d->newishThreads->nextRow();
         while ( r ) {
-            SubjectThread * t = d->threads.find( r->getString( "subject" ) );
+            SubjectThread * t = d->threads.find( r->getEString( "subject" ) );
             if ( t )
                 t->setId( r->getInt( "id" ) );
             r = d->newishThreads->nextRow();

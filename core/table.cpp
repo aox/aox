@@ -105,9 +105,9 @@ void TableBase::clear()
     prevent this string from growing out of all proportion.
 */
 
-String TableBase::failures()
+EString TableBase::failures()
 {
-    String s;
+    EString s;
     uint i = 0;
     while ( i < d->numWanted ) {
         s = s +

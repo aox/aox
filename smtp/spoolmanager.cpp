@@ -73,7 +73,7 @@ void SpoolManager::execute()
         log( "Starting queue run" );
         d->again = false;
         reset();
-        String s( "select d.message, "
+        EString s( "select d.message, "
                   "extract(epoch from"
                   " min(coalesce(dr.last_attempt+interval '900 s',"
                   " current_timestamp)))::bigint"

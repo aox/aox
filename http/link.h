@@ -5,7 +5,7 @@
 
 #include "abnfparser.h"
 #include "ustring.h"
-#include "string.h"
+#include "estring.h"
 #include "dict.h"
 
 
@@ -18,8 +18,8 @@ class LinkParser
     : public AbnfParser
 {
 public:
-    LinkParser( const String & );
-    String pathComponent();
+    LinkParser( const EString & );
+    EString pathComponent();
     char character();
 };
 
@@ -29,7 +29,7 @@ class Link
 {
 public:
     Link();
-    Link( const String &, HTTP * );
+    Link( const EString &, HTTP * );
 
     enum Type {
         Archive,
@@ -50,8 +50,8 @@ public:
     uint uid() const;
     void setUid( uint );
 
-    String part() const;
-    void setPart( const String & );
+    EString part() const;
+    void setPart( const EString & );
 
     enum Suffix {
         Thread,
@@ -70,31 +70,31 @@ public:
         : public Garbage
     {
     public:
-        Argument( const String & n, const UString & v )
+        Argument( const EString & n, const UString & v )
             : name( n ), value( v ) {}
-        String name;
+        EString name;
         UString value;
     };
 
     Dict<Argument> * arguments() const;
-    UString argument( const String & ) const;
-    void addArgument( const String &, const UString & );
-    String query() const;
+    UString argument( const EString & ) const;
+    void addArgument( const EString &, const UString & );
+    EString query() const;
 
-    String canonical() const;
-    String absolute() const;
-    String original() const;
+    EString canonical() const;
+    EString absolute() const;
+    EString original() const;
 
     WebPage * webPage() const;
 
     HTTP * server() const;
     void setSecure();
 
-    static UString decoded( const String & );
+    static UString decoded( const EString & );
 
 private:
     class LinkData * d;
-    void parse( const String & );
+    void parse( const EString & );
 };
 
 

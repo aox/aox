@@ -13,7 +13,7 @@ class ShowSearch
     : public AoxCommand
 {
 public:
-    ShowSearch( StringList * );
+    ShowSearch( EStringList * );
 
     void execute();
 };

@@ -13,7 +13,7 @@ class Function;
 class SourceFile: public File
 {
 public:
-    SourceFile( const String & );
+    SourceFile( const EString & );
 
     void parse();
 

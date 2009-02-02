@@ -12,7 +12,7 @@ class SmtpMailFrom
 public:
     SmtpMailFrom( SMTP *, SmtpParser * );
 
-    void addParam( const String &, const String & );
+    void addParam( const EString &, const EString & );
 
     void execute();
 
@@ -27,7 +27,7 @@ class SmtpRcptTo
 public:
     SmtpRcptTo( SMTP *, SmtpParser * );
 
-    void addParam( const String &, const String & );
+    void addParam( const EString &, const EString & );
 
     void execute();
 

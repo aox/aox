@@ -10,14 +10,14 @@ class StderrLogger
     : public Logger
 {
 public:
-    StderrLogger( const String & name, uint verbosity );
+    StderrLogger( const EString & name, uint verbosity );
 
-    void send( const String &, Log::Severity, const String & );
+    void send( const EString &, Log::Severity, const EString & );
 
-    virtual String name() const;
+    virtual EString name() const;
 
 private:
-    String n;
+    EString n;
     uint v;
 };
 

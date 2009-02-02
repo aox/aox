@@ -20,12 +20,12 @@ public:
 
     void finish();
 
-    void respond( uint, const String &, const char * = 0 );
+    void respond( uint, const EString &, const char * = 0 );
     void emitResponses();
 
     void execute();
 
-    static SmtpCommand * create( SMTP *, const String & );
+    static SmtpCommand * create( SMTP *, const EString & );
 
     SMTP * server() const;
 

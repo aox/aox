@@ -19,11 +19,11 @@ Error404::Error404( Link * link )
     : PageComponent( "error" )
 {
     addFrontMatter( FrontMatter::title( "Page Not Found" ) );
-    String r( "<h1>Page Not Found</h1>"
+    EString r( "<h1>Page Not Found</h1>"
               "<p>No such page: " );
     r.append( quoted( link->original() ) );
     r.append( "\n<p>" );
-    String c( link->canonical() );
+    EString c( link->canonical() );
     if ( link->type() == Link::Error || c == link->original() ) {
         r.append( "(Additionally, we couldn't find a haiku to process "
                   "the error.)" );

@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "migrator.h"
 #include "allocator.h"
 #include "configuration.h"
@@ -60,10 +60,10 @@ int main( int ac, char ** av )
         i++;
     }
 
-    String destination;
+    EString destination;
     if ( i < ac )
         destination = av[i++];
-    String mode;
+    EString mode;
     if ( i < ac )
         mode = av[i++];
     mode = mode.lower();

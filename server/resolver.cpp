@@ -24,10 +24,10 @@ class ResolverData
     : public Garbage
 {
 public:
-    StringList errors;
-    Dict<StringList> names;
-    String reply;
-    String host;
+    EStringList errors;
+    Dict<EStringList> names;
+    EString reply;
+    EString host;
     bool bad;
 };
 
@@ -70,7 +70,7 @@ Resolver::Resolver()
     errors().
 */
 
-StringList Resolver::resolve( const String & name )
+EStringList Resolver::resolve( const EString & name )
 {
     bool use4 = Configuration::toggle( Configuration::UseIPv4 );
     bool use6 = Configuration::toggle( Configuration::UseIPv6 );
@@ -80,7 +80,7 @@ StringList Resolver::resolve( const String & name )
     if ( r->d->names.contains( r->d->host ) )
         return *r->d->names.find( r->d->host );
 
-    StringList * results = new StringList;
+    EStringList * results = new EStringList;
     if ( r->d->host == "localhost" ) {
         if ( use6 )
             results->append( "::1" );
@@ -121,7 +121,7 @@ StringList Resolver::resolve( const String & name )
     resolution errors since startup.
 */
 
-StringList Resolver::errors()
+EStringList Resolver::errors()
 {
     resolver()->d->errors.removeDuplicates( false );
     return resolver()->d->errors;
@@ -152,11 +152,11 @@ Resolver * Resolver::resolver()
     returns an empty string, but logs no error.
 */
 
-String Resolver::readString( uint & i )
+EString Resolver::readString( uint & i )
 {
     bool ok = true;
     bool bad = false;
-    String r;
+    EString r;
     uint c = d->reply[i];
     if ( i >= d->reply.length() ) {
         ok = false;
@@ -170,7 +170,7 @@ String Resolver::readString( uint & i )
         r.append( d->reply.mid( i, c ) );
         i += c;
         // and just in case that wasn't all, do a spot of tail recursion
-        String domain = readString( i );
+        EString domain = readString( i );
         if ( !domain.isEmpty() ) {
             r.append( "." );
             r.append( domain );
@@ -202,7 +202,7 @@ String Resolver::readString( uint & i )
     ::res_query() unchanged.
 */
 
-void Resolver::query( uint type, StringList * results )
+void Resolver::query( uint type, EStringList * results )
 {
     d->bad = false;
     d->reply.reserve( 4096 );
@@ -215,10 +215,10 @@ void Resolver::query( uint type, StringList * results )
         if ( type == T_AAAA )
             name = "IPv6";
         if ( errno == HOST_NOT_FOUND )
-            d->errors.append( String("Found no ") + name +
+            d->errors.append( EString("Found no ") + name +
                               " address for " + d->host );
         else
-            d->errors.append( String("DNS error while looking up ") + name +
+            d->errors.append( EString("DNS error while looking up ") + name +
                               " address for " + d->host );
         return;
     }
@@ -242,8 +242,8 @@ void Resolver::query( uint type, StringList * results )
 
     // parse each A and AAAA in the answer section
     while ( p < d->reply.length() && ancount && !d->bad  ) {
-        String n = readString( p );
-        String a;
+        EString n = readString( p );
+        EString a;
         uint type = ( d->reply[p] << 8 ) + d->reply[p+1];
         uint rdlength = ( d->reply[p+8] << 8 ) + d->reply[p+9];
         p += 10;

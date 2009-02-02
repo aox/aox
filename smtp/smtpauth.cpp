@@ -18,8 +18,8 @@ public:
         : r( 0 ), m( 0 )
     {}
 
-    String mech;
-    String * r;
+    EString mech;
+    EString * r;
 
     SaslMechanism * m;
 };
@@ -57,7 +57,7 @@ SmtpAuth::SmtpAuth( SMTP * s, SmtpParser * p )
     // And an optional Base64-encoded initial response.
     if ( c == ' ' ) {
         p->step();
-        d->r = new String;
+        d->r = new EString;
         c = p->nextChar();
         while ( ( c >= 'A' && c <= 'Z' ) ||
                 ( c >= 'a' && c <= 'z' ) ||

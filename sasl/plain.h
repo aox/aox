@@ -12,12 +12,12 @@ class Plain
 public:
     Plain( EventHandler * );
 
-    void parseResponse( const String & );
+    void parseResponse( const EString & );
 
-    static bool parse( String & authenticateId,
-                       String & authorizeId,
-                       String & pw,
-                       const String & response );
+    static bool parse( EString & authenticateId,
+                       EString & authorizeId,
+                       EString & pw,
+                       const EString & response );
 };
 
 

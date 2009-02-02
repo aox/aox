@@ -3,7 +3,7 @@
 #ifndef RECIPIENT_H
 #define RECIPIENT_H
 
-#include "string.h"
+#include "estring.h"
 
 
 class Address;
@@ -26,24 +26,24 @@ public:
 
     enum Action { Unknown, Failed, Delayed, Delivered, Relayed, Expanded };
 
-    void setAction( Action, const String & );
+    void setAction( Action, const EString & );
     Action action() const;
-    String status() const;
+    EString status() const;
 
-    void setRemoteMTA( const String & );
-    String remoteMTA() const;
+    void setRemoteMTA( const EString & );
+    EString remoteMTA() const;
 
-    void setDiagnosticCode( const String & );
-    String diagnosticCode() const;
+    void setDiagnosticCode( const EString & );
+    EString diagnosticCode() const;
 
     void setLastAttempt( class Date * );
     Date * lastAttempt() const;
 
-    void setFinalLogId( const String & );
-    String finalLogId() const;
+    void setFinalLogId( const EString & );
+    EString finalLogId() const;
 
-    String plainTextParagraph() const;
-    String dsnParagraph() const;
+    EString plainTextParagraph() const;
+    EString dsnParagraph() const;
 
     void setMailbox( Mailbox * );
     Mailbox * mailbox() const;

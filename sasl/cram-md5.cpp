@@ -2,7 +2,7 @@
 
 #include "cram-md5.h"
 
-#include "string.h"
+#include "estring.h"
 #include "entropy.h"
 #include "configuration.h"
 #include "user.h"
@@ -29,10 +29,10 @@ CramMD5::CramMD5( EventHandler *c )
 }
 
 
-String CramMD5::challenge()
+EString CramMD5::challenge()
 {
-    String hn( Configuration::hostname() );
-    String random( Entropy::asString( 12 ).e64() );
+    EString hn( Configuration::hostname() );
+    EString random( Entropy::asString( 12 ).e64() );
 
     if ( hn.isEmpty() || hn.find( '.' ) < 0 )
         hn = "oryx.invalid";
@@ -43,7 +43,7 @@ String CramMD5::challenge()
 }
 
 
-void CramMD5::parseResponse( const String &s )
+void CramMD5::parseResponse( const EString &s )
 {
     uint i = s.length();
     while ( i > 0 && s[i] != ' ' )
@@ -75,7 +75,7 @@ void CramMD5::verify()
 }
 
 
-void CramMD5::setChallenge( const String &s )
+void CramMD5::setChallenge( const EString &s )
 {
     challengeSent = s;
 }

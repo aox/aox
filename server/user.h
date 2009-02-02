@@ -6,7 +6,7 @@
 #include "event.h"
 
 #include "ustring.h"
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 
 class Mailbox;
@@ -54,7 +54,7 @@ public:
     void execute();
 
     bool valid();
-    String error() const;
+    EString error() const;
 
 private:
     void refreshHelper();

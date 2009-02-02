@@ -3,7 +3,7 @@
 #ifndef FLAG_H
 #define FLAG_H
 
-#include "stringlist.h"
+#include "estringlist.h"
 #include "event.h"
 
 
@@ -19,11 +19,11 @@ private:
 public:
     static void setup();
 
-    static String name( uint );
-    static uint id( const String & );
+    static EString name( uint );
+    static uint id( const EString & );
 
     static uint largestId();
-    static StringList allFlags();
+    static EStringList allFlags();
     static void addWatcher( class Session * );
     static void removeWatcher( class Session * );
 

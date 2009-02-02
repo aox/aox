@@ -12,8 +12,8 @@ class Cp949Codec
 public:
     Cp949Codec( const char * = 0 );
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

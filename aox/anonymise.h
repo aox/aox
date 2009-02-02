@@ -10,7 +10,7 @@ class Anonymise
     : public AoxCommand
 {
 public:
-    Anonymise( StringList * );
+    Anonymise( EStringList * );
     void execute();
 };
 

@@ -59,7 +59,7 @@ void Imap::Thread::parse()
     // charset = atom / quoted
 
     space();
-    String threadAlg = atom();
+    EString threadAlg = atom();
     if ( threadAlg == "orderedsubject" )
         d->threadAlg = ThreadData::OrderedSubject;
     else
@@ -126,9 +126,9 @@ Imap::ThreadResponse::ThreadResponse( ThreadData * threadData )
 }
 
 
-String Imap::ThreadResponse::text() const
+EString Imap::ThreadResponse::text() const
 {
-    String result = "THREAD ";
+    EString result = "THREAD ";
     if ( d->threadAlg == Imap::ThreadData::OrderedSubject ) {
         List<SubjectThread>::Iterator t( d->threader->subjectThreads() );
         while ( t ) {

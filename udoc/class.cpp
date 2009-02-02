@@ -29,7 +29,7 @@ static SortedList<Class> * classes = 0;
     subclasses.
 */
 
-Class::Class( const String & s, File * sourceFile, uint sourceLine )
+Class::Class( const EString & s, File * sourceFile, uint sourceLine )
     : n( s ), f( sourceFile ), l( sourceLine ),
       super( 0 ), sub( 0 ),
       db( 0 ), done( false )
@@ -40,7 +40,7 @@ Class::Class( const String & s, File * sourceFile, uint sourceLine )
 }
 
 
-/*! \fn String Class::name() const
+/*! \fn EString Class::name() const
 
     Returns the class name, as specified to the constructor.
 */
@@ -50,7 +50,7 @@ Class::Class( const String & s, File * sourceFile, uint sourceLine )
     null pointer of there is no such object.
 */
 
-Class * Class::find( const String & s )
+Class * Class::find( const EString & s )
 {
     if ( !classes )
         return 0;
@@ -70,7 +70,7 @@ Class * Class::find( const String & s )
     Note that udoc does not support multiple or non-public inheritance.
 */
 
-void Class::setParent( const String & cn )
+void Class::setParent( const EString & cn )
 {
     superclassName = cn;
 }
@@ -186,7 +186,7 @@ void Class::buildHierarchy()
     Class * c = 0;
     while ( (c=it) != 0 ) {
         ++it;
-        String n = c->superclassName;
+        EString n = c->superclassName;
         int i = n.find( '<' );
         if ( i >= 0 )
             n = n.mid( 0, i );

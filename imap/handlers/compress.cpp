@@ -6,7 +6,6 @@
 #include "filter.h"
 #include "scope.h"
 #include "imap.h"
-#include "sys.h"
 #include "log.h"
 
 #include <zlib.h>
@@ -103,7 +102,7 @@ int InflateFilter::read( char * data, uint len, Buffer * next )
     int r = Z_OK;
     while ( done < len && next->size() > 0 && r == Z_OK ) {
         s.avail_in = next->size();
-        String b = next->string( s.avail_in );
+        EString b = next->string( s.avail_in );
         s.next_in = (Bytef*)b.data();
         s.next_out = (Bytef*)(data + done);
         s.avail_out = len-done;

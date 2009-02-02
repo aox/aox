@@ -4,31 +4,31 @@
 #define ABNFPARSER_H
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 
 
 class AbnfParser
     : public Garbage
 {
 public:
-    AbnfParser( const String & );
+    AbnfParser( const EString & );
     virtual ~AbnfParser();
 
     bool ok() const;
-    String error() const;
+    EString error() const;
 
     uint pos() const;
-    String input() const;
+    EString input() const;
 
     char nextChar() const;
     void step( uint = 1 );
-    bool present( const String & );
-    void require( const String & );
-    String digits( uint, uint );
-    String letters( uint, uint );
+    bool present( const EString & );
+    void require( const EString & );
+    EString digits( uint, uint );
+    EString letters( uint, uint );
     uint number();
     void end();
-    const String following() const;
+    const EString following() const;
 
     bool atEnd() const;
 
@@ -37,9 +37,9 @@ public:
     void restore( uint );
 
 protected:
-    String str;
+    EString str;
 
-    void setError( const String & );
+    void setError( const EString & );
 
 private:
     class AbnfParserData * d;

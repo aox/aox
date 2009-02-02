@@ -10,7 +10,7 @@ class Undelete
     : public AoxCommand
 {
 public:
-    Undelete( StringList * );
+    Undelete( EStringList * );
     void execute();
 
 private:

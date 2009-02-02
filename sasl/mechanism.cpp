@@ -6,7 +6,7 @@
 #include "connection.h"
 #include "configuration.h"
 #include "saslconnection.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "ldaprelay.h"
 #include "mailbox.h"
 #include "scope.h"
@@ -87,11 +87,11 @@ public:
     Ignores case in comparing the name.
 */
 
-SaslMechanism * SaslMechanism::create( const String & mechanism,
+SaslMechanism * SaslMechanism::create( const EString & mechanism,
                                        EventHandler * command,
                                        SaslConnection * connection )
 {
-    String s( mechanism.lower() );
+    EString s( mechanism.lower() );
     SaslMechanism * m = 0;
 
     if ( !connection->accessPermitted() )
@@ -204,13 +204,13 @@ void SaslMechanism::setState( State newState )
     challenge-less authentication.
 */
 
-String SaslMechanism::challenge()
+EString SaslMechanism::challenge()
 {
     return "";
 }
 
 
-/*! \fn void SaslMechanism::parseResponse( const String & response )
+/*! \fn void SaslMechanism::parseResponse( const EString & response )
 
     This pure virtual function handles a client response. \a response
     is the decoded representation of the client's response. \a
@@ -222,7 +222,7 @@ String SaslMechanism::challenge()
     no initial-response was supplied.
 */
 
-void SaslMechanism::readInitialResponse( const String * r )
+void SaslMechanism::readInitialResponse( const EString * r )
 {
     Scope x( d->l );
     if ( r ) {
@@ -247,7 +247,7 @@ void SaslMechanism::readInitialResponse( const String * r )
     response is available.
 */
 
-void SaslMechanism::readResponse( const String * r )
+void SaslMechanism::readResponse( const EString * r )
 {
     Scope x( d->l );
     if ( state() == AwaitingResponse ) {
@@ -450,7 +450,7 @@ void SaslMechanism::setLogin( const UString &name )
     sets the name to an empty string and logs the problem.
 */
 
-void SaslMechanism::setLogin( const String &name )
+void SaslMechanism::setLogin( const EString &name )
 {
     Utf8Codec u;
     d->login = u.toUnicode( name );
@@ -488,7 +488,7 @@ void SaslMechanism::setSecret( const UString &secret )
     problem.
 */
 
-void SaslMechanism::setSecret( const String &secret )
+void SaslMechanism::setSecret( const EString &secret )
 {
     Utf8Codec u;
     d->secret = u.toUnicode( secret );
@@ -522,7 +522,7 @@ void SaslMechanism::setStoredSecret( const UString &s )
 
 
 
-/*! \fn void SaslMechanism::setChallenge( const String & c )
+/*! \fn void SaslMechanism::setChallenge( const EString & c )
 
     This function is only meant to be used while testing SaslMechanism
     subclasses. This implementation does nothing; if a subclass uses a
@@ -530,7 +530,7 @@ void SaslMechanism::setStoredSecret( const UString &s )
     \a c as challenge.
 */
 
-void SaslMechanism::setChallenge( const String & )
+void SaslMechanism::setChallenge( const EString & )
 {
 }
 
@@ -538,7 +538,7 @@ void SaslMechanism::setChallenge( const String & )
 /*! Logs message \a m with severity \a s.
 */
 
-void SaslMechanism::log( const String &m, Log::Severity s )
+void SaslMechanism::log( const EString &m, Log::Severity s )
 {
     d->l->log( m, s );
 }
@@ -585,7 +585,7 @@ bool SaslMechanism::allowed( Type mechanism, bool privacy )
 
     if ( pt && !privacy ) {
         Configuration::Text p = Configuration::AllowPlaintextPasswords;
-        String s = Configuration::text( p ).lower();
+        EString s = Configuration::text( p ).lower();
         if ( s == "never" )
             a = false;
         // XXX add "warn" etc. here
@@ -602,9 +602,9 @@ bool SaslMechanism::allowed( Type mechanism, bool privacy )
     Each mechanism is prefixed by \a prefix.
 */
 
-String SaslMechanism::allowedMechanisms( const String & prefix, bool privacy )
+EString SaslMechanism::allowedMechanisms( const EString & prefix, bool privacy )
 {
-    StringList l;
+    EStringList l;
     if ( allowed( Anonymous, privacy ) )
         l.append( "ANONYMOUS" );
     if ( allowed( CramMD5, privacy ) )
@@ -633,9 +633,9 @@ SaslMechanism::Type SaslMechanism::type() const
     case. For example, "cram-md5" in the case of CramMD5.
 */
 
-String SaslMechanism::name() const
+EString SaslMechanism::name() const
 {
-    String r;
+    EString r;
     switch( d->type ) {
     case Anonymous:
         r = "anonymous";

@@ -8,7 +8,7 @@
 #include "date.h"
 #include "session.h"
 #include "mailbox.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "annotation.h"
 #include "dbsignal.h"
 #include "field.h"
@@ -22,7 +22,7 @@
 static bool tsearchAvailable = false;
 static bool retunerCreated = false;
 
-static String * tsconfig;
+static EString * tsconfig;
 
 
 class TuningDetector
@@ -46,13 +46,13 @@ public:
         ::tsearchAvailable = q->hasResults();
         Row * r = q->nextRow();
         if ( r ) {
-            String def( r->getString( "indexdef" ) );
+            EString def( r->getEString( "indexdef" ) );
 
             uint n = 12 + def.find( "to_tsvector(" );
             def = def.mid( n, def.length()-n-1 ).section( ",", 1 );
 
             if ( def[0] == '\'' && def.endsWith( "::regconfig" ) ) {
-                tsconfig = new String( def );
+                tsconfig = new EString( def );
                 Allocator::addEternal( tsconfig, "tsearch configuration" );
             }
             else {
@@ -80,7 +80,7 @@ public:
 };
 
 
-static uint lmatch( const String &, uint, const String &, uint );
+static uint lmatch( const EString &, uint, const EString &, uint );
 
 
 class SelectorData
@@ -112,10 +112,10 @@ public:
     Selector::Field f;
     Selector::Action a;
 
-    String error;
+    EString error;
 
-    String s8;
-    String s8b;
+    EString s8;
+    EString s8b;
     UString s16;
     IntegerSet s;
     uint n;
@@ -127,11 +127,11 @@ public:
 
     Selector * parent;
     List< Selector > * children;
-    String * mm;
+    EString * mm;
     Session * session;
     User * user;
 
-    StringList extraJoins;
+    EStringList extraJoins;
 
     bool needDateFields;
     bool needAnnotations;
@@ -180,7 +180,7 @@ Selector::Selector( Field f, Action a, uint n )
     value \a s.
 */
 
-Selector::Selector( Field f, Action a, const String &s )
+Selector::Selector( Field f, Action a, const EString &s )
     : d( new SelectorData )
 {
     d->f = f;
@@ -202,11 +202,11 @@ Selector::Selector( Field f, Action a, const UString &u )
 }
 
 
-/*! Creates a selector with Field \a f, Action \a a, the String value
+/*! Creates a selector with Field \a f, Action \a a, the EString value
     \a s, and the UString value \a u.
 */
 
-Selector::Selector( Field f, Action a, const String &s, const UString &u )
+Selector::Selector( Field f, Action a, const EString &s, const UString &u )
     : d( new SelectorData )
 {
     d->f = f;
@@ -216,12 +216,12 @@ Selector::Selector( Field f, Action a, const String &s, const UString &u )
 }
 
 
-/*! Creates a selector with Field \a f, Action \a a, the String values
+/*! Creates a selector with Field \a f, Action \a a, the EString values
     \a s and \a t, and the UString value \a u.
 */
 
-Selector::Selector( Field f, Action a, const String &s,
-                    const String &t, const UString &u )
+Selector::Selector( Field f, Action a, const EString &s,
+                    const EString &t, const UString &u )
     : d( new SelectorData )
 {
     d->f = f;
@@ -300,7 +300,7 @@ uint Selector::placeHolder()
     at the root of the tree (rather than the node where it occurred).
 */
 
-void Selector::setError( const String &s )
+void Selector::setError( const EString &s )
 {
     if ( root()->d->error.isEmpty() )
         root()->d->error = s;
@@ -483,7 +483,7 @@ void Selector::simplify()
 
 Query * Selector::query( User * user, Mailbox * mailbox,
                          Session * session, EventHandler * owner,
-                         bool order, StringList * wanted, bool deleted )
+                         bool order, EStringList * wanted, bool deleted )
 {
     if ( !::retunerCreated && Database::numHandles() )
         (void)new RetuningDetector;
@@ -497,10 +497,10 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         d->query->bind( d->mboxId, mailbox->id() );
     }
     if ( deleted )
-        d->mm = new String( "dm" );
+        d->mm = new EString( "dm" );
     else
-        d->mm = new String( "mm" );
-    String q = "select " + mm() + ".";
+        d->mm = new EString( "mm" );
+    EString q = "select " + mm() + ".";
     if ( wanted )
         q.append( wanted->join( ", " + mm() + "." ) );
     else
@@ -509,7 +509,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         q.append( " from deleted_messages " + mm() );
     else
         q.append( " from mailbox_messages " + mm() );
-    String w = where();
+    EString w = where();
     if ( d->a == And && w.startsWith( "(" ) && w.endsWith( ")" ) )
         w = w.mid( 1, w.length() - 2 );
 
@@ -530,7 +530,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( wanted && wanted->contains( "idate" ) )
         d->needMessages = true;
 
-    String mboxClause;
+    EString mboxClause;
     if ( d->mboxId ) {
         // normal case: search one mailbox
         mboxClause = mm() + ".mailbox=$" + fn( d->mboxId );
@@ -617,7 +617,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     will bind them as required.
 */
 
-String Selector::where()
+EString Selector::where()
 {
     switch( d->f ) {
     case InternalDate:
@@ -662,12 +662,12 @@ String Selector::where()
 /*! This implements the INTERNALDATE part of where().
 */
 
-String Selector::whereInternalDate()
+EString Selector::whereInternalDate()
 {
     root()->d->needMessages = true;
 
     uint day = d->s8.mid( 0, 2 ).number( 0 );
-    String month = d->s8.mid( 3, 3 );
+    EString month = d->s8.mid( 3, 3 );
     uint year = d->s8.mid( 7 ).number( 0 );
     // XXX: local time zone is ignored here
     Date d1;
@@ -702,12 +702,12 @@ String Selector::whereInternalDate()
 /*! This implements the SENTON/SENTBEFORE/SENTSINCE part of where().
 */
 
-String Selector::whereSent()
+EString Selector::whereSent()
 {
     root()->d->needDateFields = true;
 
     uint day = d->s8.mid( 0, 2 ).number( 0 );
-    String month = d->s8.mid( 3, 3 );
+    EString month = d->s8.mid( 3, 3 );
     uint year = d->s8.mid( 7 ).number( 0 );
 
     Date d1;
@@ -739,18 +739,18 @@ String Selector::whereSent()
 }
 
 
-static String matchAny( int n )
+static EString matchAny( int n )
 {
     return "'%'||$" + fn( n ) + "||'%'";
 }
 
 
-static String q( const UString & orig )
+static EString q( const UString & orig )
 {
     Utf8Codec c;
-    String r( c.fromUnicode( orig ) );
+    EString r( c.fromUnicode( orig ) );
 
-    String s;
+    EString s;
     uint i = 0;
     while ( i < r.length() ) {
         if ( r[i] == '\\' || r[i] == '_' || r[i] == '%' )
@@ -766,7 +766,7 @@ static String q( const UString & orig )
 /*! This implements searches on a single header field.
 */
 
-String Selector::whereHeaderField()
+EString Selector::whereHeaderField()
 {
     d->s8 = d->s8.headerCased();
 
@@ -781,8 +781,8 @@ String Selector::whereHeaderField()
     if ( t == HeaderField::Other )
         t = 0;
 
-    String jn = fn( ++root()->d->join );
-    String j = " left join header_fields hf" + jn +
+    EString jn = fn( ++root()->d->join );
+    EString j = " left join header_fields hf" + jn +
                " on (" + mm() + ".message=hf" + jn + ".message";
     if ( !d->s16.isEmpty() ) {
         uint like = placeHolder();
@@ -810,9 +810,9 @@ String Selector::whereHeaderField()
     on all address fields if \a field is empty.
 */
 
-String Selector::whereAddressField( const String & field )
+EString Selector::whereAddressField( const EString & field )
 {
-    StringList l;
+    EStringList l;
     if ( !field.isEmpty() )
         l.append( field );
     return whereAddressFields( l, d->s16 );
@@ -823,20 +823,20 @@ String Selector::whereAddressField( const String & field )
   on all address fields if \a fields is the empty list.
 */
 
-String Selector::whereAddressFields( const StringList & fields,
+EString Selector::whereAddressFields( const EStringList & fields,
                                      const UString & name )
 {
     Query * query = root()->d->query;
     uint join = ++root()->d->join;
-    String jn = fn( join );
-    String r( " left join address_fields af" + jn +
+    EString jn = fn( join );
+    EString r( " left join address_fields af" + jn +
               " on (af" + jn + ".message=" + mm() + ".message)"
               " left join addresses a" + jn +
               " on (a" + jn + ".id=af" + jn + ".address"
               " and " );
 
-    StringList known, unknown;
-    StringList::Iterator it( fields );
+    EStringList known, unknown;
+    EStringList::Iterator it( fields );
     while ( it ) {
         uint fnum = placeHolder();
         uint t = HeaderField::fieldType( *it );
@@ -853,7 +853,7 @@ String Selector::whereAddressFields( const StringList & fields,
         ++it;
     }
     if ( !unknown.isEmpty() ) {
-        String tmp = "af" + jn + ".field in "
+        EString tmp = "af" + jn + ".field in "
                      "(select id from field_names fn where ";
         if ( unknown.count() == 1 ) {
             tmp.append( unknown.join( "" ) );
@@ -875,7 +875,7 @@ String Selector::whereAddressFields( const StringList & fields,
         r.append( ") and " );
     }
 
-    String raw( q( name ) );
+    EString raw( q( name ) );
     int at = raw.find( '@' );
 
     if ( at < 0 ) {
@@ -886,7 +886,7 @@ String Selector::whereAddressFields( const StringList & fields,
                   " a" + jn + ".domain ilike " + matchAny( name ) + ")" );
     }
     else {
-        String lc, dc;
+        EString lc, dc;
         if ( at > 0 ) {
             uint lp = placeHolder();
             if ( raw.startsWith( "<" ) ) {
@@ -943,15 +943,15 @@ String Selector::whereAddressFields( const StringList & fields,
 /*! This implements searches on all header fields.
 */
 
-String Selector::whereHeader()
+EString Selector::whereHeader()
 {
     if ( d->s16.isEmpty() )
         return "true"; // there _is_ at least one header field ;)
 
     uint like = placeHolder();
     root()->d->query->bind( like, q( d->s16 ) );
-    String jn = "hf" + fn( ++root()->d->join );
-    String j = " left join header_fields " + jn +
+    EString jn = "hf" + fn( ++root()->d->join );
+    EString j = " left join header_fields " + jn +
                " on (" + mm() + ".message=" + jn + ".message and " +
                jn + ".value ilike " + matchAny( like ) + ")";
     root()->d->extraJoins.append( j );
@@ -960,9 +960,9 @@ String Selector::whereHeader()
 }
 
 
-static String matchTsvector( const String & col, uint n )
+static EString matchTsvector( const EString & col, uint n )
 {
-    String s( "length(" );
+    EString s( "length(" );
     s.append( col );
     s.append( ")<1024*1024 and to_tsvector(" );
     s.append( *tsconfig );
@@ -986,11 +986,11 @@ static String matchTsvector( const String & col, uint n )
     know. IMAP says not to do it, but do we listen?)
 */
 
-String Selector::whereBody()
+EString Selector::whereBody()
 {
     root()->d->needBodyparts = true;
 
-    String s;
+    EString s;
 
     uint bt = placeHolder();
     root()->d->query->bind( bt, q( d->s16 ) );
@@ -1008,7 +1008,7 @@ String Selector::whereBody()
 /*! This implements searches on the rfc822size of messages.
 */
 
-String Selector::whereRfc822Size()
+EString Selector::whereRfc822Size()
 {
     root()->d->needMessages = true;
     uint s = placeHolder();
@@ -1026,7 +1026,7 @@ String Selector::whereRfc822Size()
     flags.
 */
 
-String Selector::whereFlags()
+EString Selector::whereFlags()
 {
     if ( d->s8 == "\\recent" ) {
         if ( !root()->d->session )
@@ -1037,9 +1037,9 @@ String Selector::whereFlags()
     }
 
     uint join = ++root()->d->join;
-    String n = fn( join );
+    EString n = fn( join );
 
-    String j;
+    EString j;
     uint fid = Flag::id( d->s8 );
     if ( fid ) {
         // we know this flag, so look for it reasonably efficiently
@@ -1069,7 +1069,7 @@ String Selector::whereFlags()
     variables.
 */
 
-String Selector::whereSet( const IntegerSet & s )
+EString Selector::whereSet( const IntegerSet & s )
 {
     if ( s.isEmpty() )
         return "false";
@@ -1098,7 +1098,7 @@ String Selector::whereSet( const IntegerSet & s )
 /*! This implements searches on whether a message has the right UID.
 */
 
-String Selector::whereUid()
+EString Selector::whereUid()
 {
     return whereSet( d->s );
 }
@@ -1108,18 +1108,18 @@ String Selector::whereUid()
     the right annotation.
 */
 
-String Selector::whereAnnotation()
+EString Selector::whereAnnotation()
 {
     root()->d->needAnnotations = true;
 
     uint pattern = placeHolder();
-    String join = fn( ++root()->d->join );
+    EString join = fn( ++root()->d->join );
     root()->d->extraJoins.append(
         " left join annotation_names an" + join +
         " on (a.name=an" + join + ".id"
         " and an" + join + ".name like $" + fn( pattern ) + ")"
         );
-    String sql = 0;
+    EString sql = 0;
     uint i = 0;
     while ( i < d->s8.length() ) {
         if ( d->s8[i] == '*' )
@@ -1130,8 +1130,8 @@ String Selector::whereAnnotation()
     }
     root()->d->query->bind( pattern, sql );
 
-    String user;
-    String attribute;
+    EString user;
+    EString attribute;
     if ( d->s8b.endsWith( ".priv" ) ) {
         attribute = d->s8b.mid( 0, d->s8b.length()-5 ).lower();
         uint userId = placeHolder();
@@ -1149,7 +1149,7 @@ String Selector::whereAnnotation()
         root()->d->query->bind( userId, root()->d->user->id() );
     }
 
-    String like = "is not null";
+    EString like = "is not null";
     if ( !d->s16.isEmpty() ) {
         uint i = placeHolder();
         root()->d->query->bind( i, q( d->s16 ) );
@@ -1163,7 +1163,7 @@ String Selector::whereAnnotation()
 
 /*! This implements the modseq search-key. */
 
-String Selector::whereModseq()
+EString Selector::whereModseq()
 {
     uint i = placeHolder();
     root()->d->query->bind( i, d->n );
@@ -1180,7 +1180,7 @@ String Selector::whereModseq()
 
 /*! This implements the older/younger search-keys. */
 
-String Selector::whereAge()
+EString Selector::whereAge()
 {
     root()->d->needMessages = true;
     uint i = placeHolder();
@@ -1191,7 +1191,7 @@ String Selector::whereAge()
 }
 
 
-static bool isAddressField( const String & s )
+static bool isAddressField( const EString & s )
 {
     uint t = HeaderField::fieldType( s );
     if ( t > 0 && t <= HeaderField::LastAddressField )
@@ -1209,7 +1209,7 @@ static bool isAddressField( const String & s )
     faster.
 */
 
-String Selector::whereNoField()
+EString Selector::whereNoField()
 {
     if ( d->a == And || d->a == Or ) {
         if ( d->children->isEmpty() ) {
@@ -1217,9 +1217,9 @@ String Selector::whereNoField()
                 return "true";
             return "false";
         }
-        StringList conditions;
+        EStringList conditions;
         UString address;
-        StringList addressFields;
+        EStringList addressFields;
         if ( d->a == Or ) {
             List<Selector>::Iterator i( d->children );
             while ( i && ( i->d->f != Header || !isAddressField( i->d->s8 ) ) )
@@ -1239,7 +1239,7 @@ String Selector::whereNoField()
                 addressFields.append( i->d->s8.headerCased() );
             }
             else {
-                String w = i->where();
+                EString w = i->where();
                 if ( w == "true" )
                     t = true;
                 else if ( w == "false" )
@@ -1255,7 +1255,7 @@ String Selector::whereNoField()
                 addressFields.clear(); // there are only 12, so look for all
             conditions.append( whereAddressFields( addressFields, address ) );
         }
-        String r = "(";
+        EString r = "(";
         if ( d->a == And ) {
             if ( f )
                 return "false";
@@ -1270,7 +1270,7 @@ String Selector::whereNoField()
         return r;
     }
     else if ( d->a == Not ) {
-        String c = d->children->first()->where();
+        EString c = d->children->first()->where();
         if ( c == "true" )
             return "false";
         else if ( c == "false" )
@@ -1294,11 +1294,11 @@ String Selector::whereNoField()
     output or for equality testing.
 */
 
-String Selector::debugString() const
+EString Selector::debugString() const
 {
-    String r;
+    EString r;
 
-    String o, w;
+    EString o, w;
 
     switch ( d->a ) {
     case OnDate:
@@ -1476,8 +1476,8 @@ bool Selector::needSession() const
 }
 
 
-static uint lmatch( const String & pattern, uint p,
-                    const String & name, uint n )
+static uint lmatch( const EString & pattern, uint p,
+                    const EString & name, uint n )
 {
     uint r = 0;
     while ( p <= pattern.length() ) {
@@ -1529,7 +1529,7 @@ static uint lmatch( const String & pattern, uint p,
     placeholder that's bound to the mbox id.
 */
 
-String Selector::mboxId()
+EString Selector::mboxId()
 {
     return fn( root()->d->mboxId );
 }
@@ -1538,10 +1538,10 @@ String Selector::mboxId()
 /*! Returns the string representation of this Selector. This is what's
     stored in the views.selector column in the database. */
 
-String Selector::string()
+EString Selector::string()
 {
     Utf8Codec u;
-    String r( "(" );
+    EString r( "(" );
 
     switch ( d->a ) {
     case OnDate:
@@ -1650,7 +1650,7 @@ String Selector::string()
     if none has been recorded yet.
 */
 
-String Selector::error()
+EString Selector::error()
 {
     return root()->d->error;
 }
@@ -1661,7 +1661,7 @@ String Selector::error()
     parsing error.
 */
 
-Selector * Selector::fromString( const String &s )
+Selector * Selector::fromString( const EString &s )
 {
     Selector * r = new Selector;
 
@@ -1670,7 +1670,7 @@ Selector * Selector::fromString( const String &s )
     if ( s[i++] != '(' )
         return 0;
 
-    String op;
+    EString op;
     while ( s[i] <= 'z' && s[i] >= 'a' )
         op.append( s[i++] );
 
@@ -1786,13 +1786,13 @@ Selector * Selector::fromString( const String &s )
             if ( s[i++] != '"' )
                 return 0;
 
-            String t = s.mid( j, i-j ).unquoted();
+            EString t = s.mid( j, i-j ).unquoted();
 
             if ( r->d->f == Uid ) {
-                StringList * l = StringList::split( ',', t );
-                StringList::Iterator it( l );
+                EStringList * l = EStringList::split( ',', t );
+                EStringList::Iterator it( l );
                 while ( it ) {
-                    StringList * range = StringList::split( ':', *it );
+                    EStringList * range = EStringList::split( ':', *it );
                     r->d->s.add( range->first()->number( 0 ),
                                  range->last()->number( 0 ) );
                     ++it;
@@ -2001,7 +2001,7 @@ bool Selector::usesModseq() const
     empty string if none has been specified.
 */
 
-String Selector::stringArgument() const
+EString Selector::stringArgument() const
 {
     return d->s8;
 }
@@ -2053,7 +2053,7 @@ List<Selector> * Selector::children()
     search is really complex.
 */
 
-String Selector::mm()
+EString Selector::mm()
 {
     Selector * t = this;
     while ( t && !t->d->mm && t->d->parent )

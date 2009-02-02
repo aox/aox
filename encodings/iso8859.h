@@ -11,8 +11,8 @@ public:
     Iso88591Codec() : Codec( "ISO-8859-1" ) {}
 
 public:
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

@@ -18,7 +18,7 @@ public:
 
     WebPage * wp;
     UString text;
-    String html;
+    EString html;
     Codec * codec;
     bool flowed;
 
@@ -77,7 +77,7 @@ void MessageRendering::setTextFlowed( const UString & s )
   used to convert it to unicode.
 */
 
-void MessageRendering::setTextHtml( const String & s, Codec * c )
+void MessageRendering::setTextHtml( const EString & s, Codec * c )
 {
     d->root = 0;
     d->text.truncate();
@@ -105,7 +105,7 @@ void MessageRendering::setWebPage( class WebPage * wp )
     earlier call.
 */
 
-String MessageRendering::asHtml()
+EString MessageRendering::asHtml()
 {
     render();
     return d->root->rendered();

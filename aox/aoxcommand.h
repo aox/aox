@@ -7,36 +7,36 @@
 #include "ustring.h"
 
 
-class StringList;
+class EStringList;
 
 
 class AoxCommand
     : public EventHandler
 {
 public:
-    AoxCommand( StringList * );
+    AoxCommand( EStringList * );
 
     bool done() const;
     int status() const;
 
-    static AoxCommand * create( StringList * );
+    static AoxCommand * create( EStringList * );
 
 protected:
-    String next();
-    StringList * args();
+    EString next();
+    EStringList * args();
     class Address * nextAsAddress();
     void setopt( char );
     uint opt( char );
     void parseOptions();
     void end();
     void database( bool = false );
-    void error( const String & );
+    void error( const EString & );
     void finish( int = 0 );
     UString sqlPattern( const UString & );
     bool validUsername( const UString & );
     bool choresDone();
-    String readPassword( const String & );
-    String readNewPassword();
+    EString readPassword( const EString & );
+    EString readNewPassword();
 
 private:
     class AoxCommandData * d;

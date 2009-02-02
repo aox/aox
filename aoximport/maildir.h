@@ -11,11 +11,11 @@ class MaildirDirectory
     : public DirectoryTree
 {
 public:
-    MaildirDirectory( const String & );
+    MaildirDirectory( const EString & );
 
 protected:
-    bool isMailbox( const String &, struct stat * );
-    MigratorMailbox * newMailbox( const String &, uint );
+    bool isMailbox( const EString &, struct stat * );
+    MigratorMailbox * newMailbox( const EString &, uint );
 };
 
 
@@ -23,11 +23,11 @@ class MaildirMailbox
     : public MigratorMailbox
 {
 public:
-    MaildirMailbox( const String &, uint );
+    MaildirMailbox( const EString &, uint );
     MigratorMessage *nextMessage();
 
 private:
-    void readSubDir( const String & );
+    void readSubDir( const EString & );
 
     class MaildirMailboxData *d;
 };

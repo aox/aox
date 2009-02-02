@@ -5,7 +5,7 @@
 
 #include "log.h"
 #include "event.h"
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 
 class User;
@@ -25,7 +25,7 @@ public:
         DigestMD5
     };
     Type type() const;
-    String name() const;
+    EString name() const;
 
     enum State {
         AwaitingInitialResponse,
@@ -36,10 +36,10 @@ public:
     void setState( State );
 
     void execute();
-    void readInitialResponse( const String * );
-    void readResponse( const String * );
-    virtual String challenge();
-    virtual void parseResponse( const String & ) = 0;
+    void readInitialResponse( const EString * );
+    void readResponse( const EString * );
+    virtual EString challenge();
+    virtual void parseResponse( const EString & ) = 0;
     virtual void verify();
 
     bool done() const;
@@ -47,21 +47,21 @@ public:
     User * user() const;
     UString login() const;
     void setLogin( const UString & );
-    void setLogin( const String & );
+    void setLogin( const EString & );
     UString secret() const;
     void setSecret( const UString & );
-    void setSecret( const String & );
+    void setSecret( const EString & );
     UString storedSecret() const;
     void setStoredSecret( const UString & );
-    virtual void setChallenge( const String & );
+    virtual void setChallenge( const EString & );
 
-    static SaslMechanism * create( const String &, EventHandler *,
+    static SaslMechanism * create( const EString &, EventHandler *,
                                    class SaslConnection * );
 
     static bool allowed( Type, bool );
-    static String allowedMechanisms( const String &, bool );
+    static EString allowedMechanisms( const EString &, bool );
 
-    void log( const String &, Log::Severity = Log::Info );
+    void log( const EString &, Log::Severity = Log::Info );
 
     void tick();
 

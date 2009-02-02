@@ -20,17 +20,17 @@
 
 /*! Constructs an MhDirectory for \a path. */
 
-MhDirectory::MhDirectory( const String &path )
+MhDirectory::MhDirectory( const EString &path )
     : DirectoryTree( path )
 {
 }
 
 
-bool MhDirectory::isMailbox( const String &path, struct stat *st )
+bool MhDirectory::isMailbox( const EString &path, struct stat *st )
 {
     if ( S_ISDIR( st->st_mode ) ) {
         struct stat st;
-        String s( path + "/.mh_sequences" );
+        EString s( path + "/.mh_sequences" );
         if ( stat( s.cstr(), &st ) >= 0 )
             return true;
     }
@@ -39,7 +39,7 @@ bool MhDirectory::isMailbox( const String &path, struct stat *st )
 }
 
 
-MigratorMailbox * MhDirectory::newMailbox( const String &path, uint n )
+MigratorMailbox * MhDirectory::newMailbox( const EString &path, uint n )
 {
     return new MhMailbox( path, n );
 }
@@ -54,7 +54,7 @@ public:
     {}
 
     bool opened;
-    String path;
+    EString path;
     IntegerSet messages;
     IntegerSet unseen;
     IntegerSet flagged;
@@ -76,7 +76,7 @@ public:
     the path are disregarded when creating target mailboxes.
 */
 
-MhMailbox::MhMailbox( const String &path, uint n )
+MhMailbox::MhMailbox( const EString &path, uint n )
     : MigratorMailbox( path.mid( n ) ),
       d( new MhMailboxData )
 {
@@ -98,7 +98,7 @@ MigratorMessage * MhMailbox::nextMessage()
             struct dirent * de = readdir( dir );
             while ( de ) {
                 if ( de->d_name[0] >= '1' && de->d_name[0] <= '9' ) {
-                    String n( de->d_name );
+                    EString n( de->d_name );
                     bool ok = false;
                     uint number = n.number( &ok );
                     if ( ok )
@@ -109,7 +109,7 @@ MigratorMessage * MhMailbox::nextMessage()
             closedir( dir );
         }
         File sequences( d->path + "/.mh_sequences", File::Read );
-        StringList::Iterator l( sequences.lines() );
+        EStringList::Iterator l( sequences.lines() );
         while ( l ) {
             if ( l->startsWith( "unseen:" ) )
                 addToSet( *l, &d->unseen );
@@ -125,7 +125,7 @@ MigratorMessage * MhMailbox::nextMessage()
     uint i = d->messages.smallest();
     d->messages.remove( i );
 
-    String f( d->path + "/" + String::fromNumber( i ) );
+    EString f( d->path + "/" + EString::fromNumber( i ) );
     File m( f );
     MigratorMessage * mm = new MigratorMessage( m.contents(), f );
     if ( !d->unseen.contains( i ) )
@@ -142,7 +142,7 @@ MigratorMessage * MhMailbox::nextMessage()
     disregarded.
 */
 
-void MhMailbox::addToSet( const String &line, class IntegerSet * set )
+void MhMailbox::addToSet( const EString &line, class IntegerSet * set )
 {
     uint e = 0;
     while ( e < line.length() && line[e] != ':' )

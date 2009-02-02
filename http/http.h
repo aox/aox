@@ -6,11 +6,11 @@
 #include "connection.h"
 
 
-class String;
+class EString;
 class Command;
 class Mailbox;
 class Address;
-class StringList;
+class EStringList;
 
 
 class HTTP: public Connection {
@@ -23,53 +23,53 @@ public:
         Request, Header, Body, Parsed, Done
     };
     State state() const;
-    void parseRequest( String );
-    void parseHeader( const String & );
+    void parseRequest( EString );
+    void parseHeader( const EString & );
     void parseParameters();
 
-    class UString parameter( const String & ) const;
+    class UString parameter( const EString & ) const;
 
     class User * user() const;
 
     class HttpSession * session() const;
     void setSession( HttpSession * );
 
-    String hostHeader() const;
+    EString hostHeader() const;
 
-    String body() const;
+    EString body() const;
 
     void process();
 
     uint status() const;
-    void setStatus( uint, const String & );
-    void addHeader( const String & );
+    void setStatus( uint, const EString & );
+    void addHeader( const EString & );
 
-    void respond( const String &, const String & );
+    void respond( const EString &, const EString & );
 
 private:
-    void parseAccept( const String &, uint );
-    void parseAcceptCharset( const String &, uint );
-    void parseAcceptEncoding( const String &, uint );
-    void parseConnection( const String & );
-    void parseHost( const String & );
-    void parseIfMatch( const String & );
-    void parseIfModifiedSince( const String & );
-    void parseIfNoneMatch( const String & );
-    void parseIfUnmodifiedSince( const String & );
-    void parseReferer( const String & );
-    void parseTransferEncoding( const String & );
-    void parseUserAgent( const String & );
-    void parseCookie( const String & );
-    void parseContentLength( const String & );
+    void parseAccept( const EString &, uint );
+    void parseAcceptCharset( const EString &, uint );
+    void parseAcceptEncoding( const EString &, uint );
+    void parseConnection( const EString & );
+    void parseHost( const EString & );
+    void parseIfMatch( const EString & );
+    void parseIfModifiedSince( const EString & );
+    void parseIfNoneMatch( const EString & );
+    void parseIfUnmodifiedSince( const EString & );
+    void parseReferer( const EString & );
+    void parseTransferEncoding( const EString & );
+    void parseUserAgent( const EString & );
+    void parseCookie( const EString & );
+    void parseContentLength( const EString & );
 
-    void parseList( const String &, const String & );
-    void parseListItem( const String &, const String &, uint );
-    void skipValues( const String &, uint &, uint & );
-    void expect( const String & value, uint &, char );
+    void parseList( const EString &, const EString & );
+    void parseListItem( const EString &, const EString &, uint );
+    void skipValues( const EString &, uint &, uint & );
+    void expect( const EString & value, uint &, char );
     bool isTokenChar( char );
 
     bool canReadHTTPLine() const;
-    String line();
+    EString line();
 
     void clear();
 

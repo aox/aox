@@ -11,7 +11,7 @@
     This class handles the "aox help" command.
 */
 
-Help::Help( StringList * args )
+Help::Help( EStringList * args )
     : AoxCommand( args )
 {
 }
@@ -19,8 +19,8 @@ Help::Help( StringList * args )
 
 void Help::execute()
 {
-    String a = next().lower();
-    String b = next().lower();
+    EString a = next().lower();
+    EString b = next().lower();
 
     if ( a == "create" || a == "new" )
         a = "add";

@@ -5,7 +5,7 @@
 #include "list.h"
 #include "imapurl.h"
 #include "imapurlfetcher.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "mailbox.h"
 #include "user.h"
 
@@ -42,7 +42,7 @@ void UrlFetch::parse()
         // We want an authimapurlfull, which is an absolute URL that has
         // a URLAUTH component. We'll validate the access component when
         // we execute().
-        String s( astring() );
+        EString s( astring() );
         ImapUrl * url = new ImapUrl( s );
         if ( !url->valid() ) {
             // XXX: We're required to send a NIL URLFETCH response for
@@ -75,7 +75,7 @@ void UrlFetch::execute()
             //
             // XXX: "smtpserver" is a blatant concession to the lemonade
             // interop event. We'll need to do something better later.
-            String access( u->access() );
+            EString access( u->access() );
             if ( ( access.startsWith( "user+" ) &&
                    access != "user+" + imap()->user()->login().utf8() ) ||
                  ( access.startsWith( "submit+" ) &&
@@ -100,7 +100,7 @@ void UrlFetch::execute()
         return;
     }
 
-    StringList l;
+    EStringList l;
     List<ImapUrl>::Iterator it( d->urls );
     while ( it ) {
         l.append( imapQuoted( it->orig() ) );

@@ -7,7 +7,7 @@
 #include "allocator.h"
 #include "dbsignal.h"
 #include "session.h"
-#include "string.h"
+#include "estring.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
@@ -28,7 +28,7 @@ public:
 
     Flag * that;
     Dict<uint> byName;
-    Map<String> byId;
+    Map<EString> byId;
     List<Session> sessions;
     uint largest;
     bool again;
@@ -66,11 +66,11 @@ void Flag::execute()
 
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
-        String name = r->getString( "name" );
+        EString name = r->getEString( "name" );
         uint * id = (uint *)Allocator::alloc( sizeof(uint), 0 );
         *id = r->getInt( "id" );
         d->byName.insert( name.lower(), id );
-        d->byId.insert( *id, new String( name ) );
+        d->byId.insert( *id, new EString( name ) );
         if ( *id > d->largest )
             d->largest = *id;
     }
@@ -145,7 +145,7 @@ void Flag::setup()
 /*! Returns the id of the flag with the given \a name, or 0 if the
     flag is not known. */
 
-uint Flag::id( const String & name )
+uint Flag::id( const EString & name )
 {
     if ( !::flagWatcher )
         setup();
@@ -161,12 +161,12 @@ uint Flag::id( const String & name )
 /*! Returns the name of the flag with the given \a id, or an empty
     string if the flag is not known. */
 
-String Flag::name( uint id )
+EString Flag::name( uint id )
 {
     if ( !::flagWatcher )
         setup();
 
-    String * p = ::flagWatcher->d->byId.find( id );
+    EString * p = ::flagWatcher->d->byId.find( id );
     if ( p )
         return *p;
 
@@ -178,12 +178,12 @@ String Flag::name( uint id )
     course), sorted by the lowercase version of their names.
 */
 
-StringList Flag::allFlags()
+EStringList Flag::allFlags()
 {
     if ( !::flagWatcher )
         setup();
 
-    StringList r;
+    EStringList r;
     Map<uint>::Iterator i( ::flagWatcher->d->byName );
     while ( i ) {
         r.append( ::flagWatcher->d->byId.find( *i ) );

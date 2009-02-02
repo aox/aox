@@ -6,7 +6,7 @@
 #include "multipart.h"
 
 
-class String;
+class EString;
 class UString;
 class Header;
 class Message;
@@ -25,10 +25,10 @@ public:
     void setId( uint );
 
     ContentType * contentType() const;
-    String::Encoding contentTransferEncoding() const;
+    EString::Encoding contentTransferEncoding() const;
 
-    String data() const;
-    void setData( const String & );
+    EString data() const;
+    void setData( const EString & );
 
     Message * message() const;
     void setMessage( Message * );
@@ -47,15 +47,15 @@ public:
     uint numEncodedLines() const;
     void setNumEncodedLines( uint );
 
-    String asText() const;
+    EString asText() const;
 
-    String error() const;
+    EString error() const;
 
-    static Bodypart *parseBodypart( uint, uint, const String &,
+    static Bodypart *parseBodypart( uint, uint, const EString &,
                                     Header *, Multipart * );
 
-    static void parseMultipart( uint, uint, const String &,
-                                const String &, bool,
+    static void parseMultipart( uint, uint, const EString &,
+                                const EString &, bool,
                                 List< Bodypart > *, Multipart * );
 private:
     class BodypartData * d;

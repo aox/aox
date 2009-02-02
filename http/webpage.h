@@ -8,7 +8,7 @@
 
 
 class Link;
-class String;
+class EString;
 class Mailbox;
 class PageComponent;
 
@@ -22,7 +22,7 @@ public:
     Link * link() const;
     class User * user() const;
     class HTTP * server() const;
-    class UString parameter( const String & ) const;
+    class UString parameter( const EString & ) const;
 
     virtual void execute();
 
@@ -32,7 +32,7 @@ public:
 
     void addComponent( PageComponent *, const PageComponent * = 0 );
 
-    void setContents( const String &, const String & );
+    void setContents( const EString &, const EString & );
 
     void finish();
     bool finished() const;
@@ -40,9 +40,9 @@ public:
     uint uniqueNumber();
 
 protected:
-    String frontMatter() const;
-    String componentText() const;
-    virtual String contents() const;
+    EString frontMatter() const;
+    EString componentText() const;
+    virtual EString contents() const;
     virtual void handleAuthentication();
 
 private:
@@ -56,7 +56,7 @@ class PageFragment
 public:
     PageFragment( Link * );
 
-    String contents() const;
+    EString contents() const;
     void handleAuthentication();
 };
 

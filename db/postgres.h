@@ -39,11 +39,11 @@ private:
     void process( char );
     void unknown( char );
     void serverMessage();
-    void error( const String & );
+    void error( const EString & );
     void shutdown();
     void countQueries( Query * );
-    String queryString( Query * );
-    String mapped( const String & ) const;
+    EString queryString( Query * );
+    EString mapped( const EString & ) const;
 };
 
 

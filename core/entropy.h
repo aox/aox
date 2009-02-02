@@ -3,7 +3,7 @@
 #ifndef ENTROPY_H
 #define ENTROPY_H
 
-#include "string.h"
+#include "estring.h"
 
 
 class Entropy
@@ -11,7 +11,7 @@ class Entropy
 {
 public:
     static void setup();
-    static String asString( uint );
+    static EString asString( uint );
     static uint asNumber( uint );
 };
 

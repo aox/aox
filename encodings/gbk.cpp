@@ -30,9 +30,9 @@ GbkCodec::GbkCodec()
 
 /*! Returns the GBK-encoded representation of the UString \a u. */
 
-String GbkCodec::fromUnicode( const UString &u )
+EString GbkCodec::fromUnicode( const UString &u )
 {
-    String s;
+    EString s;
 
     uint i = 0;
     while ( i < u.length() ) {
@@ -56,9 +56,9 @@ String GbkCodec::fromUnicode( const UString &u )
 }
 
 
-/*! Returns the Unicode representation of the String \a s. */
+/*! Returns the Unicode representation of the EString \a s. */
 
-UString GbkCodec::toUnicode( const String &s )
+UString GbkCodec::toUnicode( const EString &s )
 {
     UString u;
 

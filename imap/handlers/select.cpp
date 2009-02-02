@@ -118,7 +118,7 @@ void Select::parse()
             // select-param can be a list or an astring. in our case,
             // only astring is legal, since we advertise no extension
             // that permits the list.
-            String param = astring().lower();
+            EString param = astring().lower();
             if ( param == "annotate" )
                 d->annotate = true;
             else if ( param == "condstore" )

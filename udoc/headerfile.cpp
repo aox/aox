@@ -30,7 +30,7 @@ static List<HeaderFile> * headers = 0;
     The file is parsed immediately.
 */
 
-HeaderFile::HeaderFile( const String & file )
+HeaderFile::HeaderFile( const EString & file )
     : File( file, Read )
 {
     if ( valid() ) {
@@ -54,19 +54,19 @@ void HeaderFile::parse()
     Parser p( contents() );
     p.scan( "\nclass " );
     while ( !p.atEnd() ) {
-        String className = p.identifier();
-        String superclass = 0;
+        EString className = p.identifier();
+        EString superclass = 0;
         p.whitespace();
         if ( p.lookingAt( ":" ) ) {
             p.step();
-            String inheritance = p.word();
+            EString inheritance = p.word();
             if ( inheritance != "public" ) {
                 (void)new Error( this, p.line(),
                                  "Non-public inheritance for class " +
                                  className );
                 return;
             }
-            String parent = p.identifier();
+            EString parent = p.identifier();
             if ( parent.isEmpty() ) {
                 (void)new Error( this, p.line(),
                                  "Cannot parse superclass name for class " +
@@ -111,8 +111,8 @@ void HeaderFile::parse()
                 if ( p.lookingAt( "virtual " ) )
                     p.scan( " " );
                 p.whitespace();
-                String t;
-                String n;
+                EString t;
+                EString n;
                 uint l = p.line();
                 if ( p.lookingAt( "operator " ) ) {
                     n = p.identifier();
@@ -126,7 +126,7 @@ void HeaderFile::parse()
                         while ( again ) {
                             p.step();
                             p.whitespace();
-                            String v = p.word();
+                            EString v = p.word();
                             if ( v.isEmpty() )
                                 (void)new Error( this, p.line(),
                                                  "Could not parse "
@@ -185,7 +185,7 @@ void HeaderFile::parse()
                     p.whitespace();
                     if ( p.lookingAt( ";" ) )
                         ok = true;
-                    String a = p.argumentList();
+                    EString a = p.argumentList();
                     p.whitespace();
                     bool fc = false;
                     if ( p.lookingAt( "const" ) ) {
@@ -231,14 +231,14 @@ void HeaderFile::parse()
     s, or a null pointer if there is no such HeaderFile.
 */
 
-HeaderFile * HeaderFile::find( const String & s )
+HeaderFile * HeaderFile::find( const EString & s )
 {
     if ( !headers )
         return 0;
 
     List<HeaderFile>::Iterator it( headers );
     HeaderFile * h = 0;
-    String hack = "/" + s;
+    EString hack = "/" + s;
     while ( (h=it) != 0 &&
             h->name() != s &&
             !h->name().endsWith( hack ) )

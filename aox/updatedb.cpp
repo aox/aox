@@ -18,7 +18,7 @@
     This class handles the "aox update database" command.
 */
 
-UpdateDatabase::UpdateDatabase( StringList * args )
+UpdateDatabase::UpdateDatabase( EStringList * args )
     : AoxCommand( args )
 {
     d = 0;

@@ -2,7 +2,7 @@
 
 #include "iso8859.h"
 
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 
 #include "utf.h"
@@ -26,9 +26,9 @@
     U+00FF to '?'.
 */
 
-String Iso88591Codec::fromUnicode( const UString & u )
+EString Iso88591Codec::fromUnicode( const UString & u )
 {
-    String s;
+    EString s;
     s.reserve( u.length() );
     uint i = 0;
     while ( i < u.length() ) {
@@ -44,7 +44,7 @@ String Iso88591Codec::fromUnicode( const UString & u )
 
 /*! Converts \a s from 8859-1 to Unicode. */
 
-UString Iso88591Codec::toUnicode( const String & s )
+UString Iso88591Codec::toUnicode( const EString & s )
 {
     UString u;
     u.reserve( s.length() );

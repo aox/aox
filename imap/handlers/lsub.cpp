@@ -80,7 +80,7 @@ void Lsub::execute()
 
     UString pattern = d->pat.titlecased();
 
-    String a;
+    EString a;
 
     Row * r = 0;
     while ( (r=d->q->nextRow()) != 0 ) {
@@ -107,7 +107,7 @@ void Lsub::execute()
                                      p->name().titlecased(), d->prefix );
             } while ( mr == 0 && p && p != d->top );
             if ( mr == 2 ) {
-                String n = "LSUB (\\noselect) \"/\" " + imapQuoted( p );
+                EString n = "LSUB (\\noselect) \"/\" " + imapQuoted( p );
                 if ( n != a )
                     respond( n );
                 a = n;
@@ -132,7 +132,7 @@ void Lsub::execute()
 void Lsub::reference()
 {
     uint x = parser()->mark();
-    String refname = parser()->astring();
+    EString refname = parser()->astring();
     if ( parser()->ok() && refname.isEmpty() ) {
         d->ref = imap()->user()->home();
     }

@@ -2,10 +2,9 @@
 
 #include "buffer.h"
 
-#include "sys.h"
 #include "list.h"
 #include "filter.h"
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
 
 // errno
@@ -14,6 +13,8 @@
 #include <fcntl.h>
 // read, write, unlink, lseek, close
 #include <unistd.h>
+// strlen, memmove
+#include <string.h>
 
 
 /*! \class Buffer buffer.h
@@ -93,10 +94,10 @@ void Buffer::append( const char *s, uint l )
 
 
 /*! \overload
-    Appends the String \a s to a Buffer.
+    Appends the EString \a s to a Buffer.
 */
 
-void Buffer::append(const String &s)
+void Buffer::append(const EString &s)
 {
     if ( s.length() > 0 )
         append( s.data(), s.length() );
@@ -281,9 +282,9 @@ char Buffer::at( uint i ) const
     This function does not remove() the returned data.
 */
 
-String Buffer::string( uint num ) const
+EString Buffer::string( uint num ) const
 {
-    String result;
+    EString result;
     uint n = size();
 
     if ( n == 0 )
@@ -339,17 +340,17 @@ void Buffer::addFilter( Filter * f )
 
 
 /*! This function removes a line (terminated by LF or CRLF) of at most
-    \a s bytes from the Buffer, and returns a pointer to a String with
+    \a s bytes from the Buffer, and returns a pointer to a EString with
     the line ending removed. If the Buffer does not contain a complete
     line less than \a s bytes long, this function a null pointer.
 
     If \a s has its default value of 0, the entire Buffer is searched.
 */
 
-String * Buffer::removeLine( uint s )
+EString * Buffer::removeLine( uint s )
 {
     uint i = 0, n = 0;
-    String * r;
+    EString * r;
 
     if ( s == 0 || s > size() )
         s = size();
@@ -366,7 +367,7 @@ String * Buffer::removeLine( uint s )
         n++;
     }
 
-    r = new String( string( i ) );
+    r = new EString( string( i ) );
     remove( i+n );
     return r;
 }

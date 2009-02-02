@@ -5,7 +5,7 @@
 #include "configuration.h"
 #include "sievescript.h"
 #include "smtpparser.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
@@ -62,9 +62,9 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
                  "5.1.0" );
 
     while ( p->ok() && !p->atEnd() ) {
-        String name = p->esmtpKeyword();
+        EString name = p->esmtpKeyword();
         p->require( "=" );
-        String value = p->esmtpValue();
+        EString value = p->esmtpValue();
         p->whitespace();
         if ( p->ok() )
             addParam( name, value );
@@ -77,7 +77,7 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
     change soon.
 */
 
-void SmtpMailFrom::addParam( const String & name, const String & value )
+void SmtpMailFrom::addParam( const EString & name, const EString & value )
 {
     if ( name == "ret" ) {
         if ( value.lower() == "full" || value.lower() == "hdrs" ) {
@@ -213,9 +213,9 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
     p->whitespace();
 
     while ( p->ok() && !p->atEnd() ) {
-        String name = p->esmtpKeyword();
+        EString name = p->esmtpKeyword();
         p->require( "=" );
-        String value = p->esmtpValue();
+        EString value = p->esmtpValue();
         p->whitespace();
         if ( p->ok() )
             addParam( name, value );
@@ -279,13 +279,13 @@ void SmtpRcptTo::execute()
     change soon.
 */
 
-void SmtpRcptTo::addParam( const String & name, const String & value )
+void SmtpRcptTo::addParam( const EString & name, const EString & value )
 {
     if ( name == "notify" ) {
         if ( value.lower() == "never" ) {
         }
         else {
-            StringList::Iterator v( StringList::split( ',', value.lower() ) );
+            EStringList::Iterator v( EStringList::split( ',', value.lower() ) );
             while ( v ) {
                 if ( v->lower() == "success" ) {
                     // but what do we do with these values?

@@ -21,7 +21,7 @@ DateField::DateField( HeaderField::Type t )
 }
 
 
-void DateField::parse( const String &s )
+void DateField::parse( const EString &s )
 {
     ::Date d;
     d.setRfc822( s );

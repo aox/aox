@@ -4,7 +4,7 @@
 
 #include "message.h"
 #include "bodypart.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "mimefields.h"
 #include "ustring.h"
 #include "codec.h"
@@ -87,10 +87,10 @@ List< Bodypart > * Multipart::children() const
 /*! Appends the text of this multipart MIME entity to the string \a r.
 */
 
-void Multipart::appendMultipart( String &r ) const
+void Multipart::appendMultipart( EString &r ) const
 {
     ContentType * ct = header()->contentType();
-    String delim = ct->parameter( "boundary" );
+    EString delim = ct->parameter( "boundary" );
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim );
     while ( it ) {
@@ -118,11 +118,11 @@ void Multipart::appendMultipart( String &r ) const
     The details of this function are certain to change.
 */
 
-void Multipart::appendAnyPart( String &r, const Bodypart * bp,
+void Multipart::appendAnyPart( EString &r, const Bodypart * bp,
                                ContentType * ct ) const
 {
     ContentType * childct = bp->header()->contentType();
-    String::Encoding e = String::Binary;
+    EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte
         = bp->header()->contentTransferEncoding();
     if ( cte )
@@ -155,12 +155,12 @@ void Multipart::appendAnyPart( String &r, const Bodypart * bp,
     The details of this function are certain to change.
 */
 
-void Multipart::appendTextPart( String & r, const Bodypart * bp,
+void Multipart::appendTextPart( EString & r, const Bodypart * bp,
                                 ContentType * ct ) const
 {
     Codec * c = 0;
 
-    String::Encoding e = String::Binary;
+    EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte
         = bp->header()->contentTransferEncoding();
     if ( cte )
@@ -171,7 +171,7 @@ void Multipart::appendTextPart( String & r, const Bodypart * bp,
     if ( !c )
         c = Codec::byString( bp->text() );
 
-    String body = c->fromUnicode( bp->text() );
+    EString body = c->fromUnicode( bp->text() );
 
     r.append( body.encoded( e, 72 ) );
 }
@@ -235,7 +235,7 @@ static void dumpMultipart( Multipart * m, int n )
 
 static void headerSummary( Header * h, int n )
 {
-    StringList l;
+    EStringList l;
 
     ContentType * ct = h->contentType();
     if ( ct )
@@ -243,18 +243,18 @@ static void headerSummary( Header * h, int n )
 
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte ) {
-        String s;
+        EString s;
         switch ( cte->encoding() ) {
-        case String::QP:
+        case EString::QP:
             s = "quoted-printable";
             break;
-        case String::Base64:
+        case EString::Base64:
             s = "base64";
             break;
-        case String::Uuencode:
+        case EString::Uuencode:
             s = "x-uuencode";
             break;
-        case String::Binary:
+        case EString::Binary:
             s = "7bit";
             break;
         }

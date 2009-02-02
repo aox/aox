@@ -18,7 +18,7 @@ public:
     }
 
     uint at;
-    String err;
+    EString err;
 
     AbnfParserData * next;
     uint mark;
@@ -28,7 +28,7 @@ public:
 /*! \class AbnfParser abnfparser.h
     Provides simple functions to parse ABNF productions.
 
-    This class maintains a cursor for an input String and provides
+    This class maintains a cursor for an input EString and provides
     functions to examine or extract tokens, advancing the cursor as
     required. These generic functions may be used by subclasses (e.g.
     ImapParser) to parse more complex productions.
@@ -48,9 +48,9 @@ public:
     completely parsed.
 */
 
-/*! Constructs an AbnfParser for the String \a s. */
+/*! Constructs an AbnfParser for the EString \a s. */
 
-AbnfParser::AbnfParser( const String & s )
+AbnfParser::AbnfParser( const EString & s )
     : str( s ), d( new AbnfParserData )
 {
 }
@@ -79,7 +79,7 @@ bool AbnfParser::ok() const
     also true).
 */
 
-String AbnfParser::error() const
+EString AbnfParser::error() const
 {
     return d->err;
 }
@@ -94,7 +94,7 @@ String AbnfParser::error() const
     individual parser functions.
 */
 
-void AbnfParser::setError( const String & s )
+void AbnfParser::setError( const EString & s )
 {
     if ( d->err.isEmpty() || s.isEmpty() )
         d->err = s;
@@ -113,7 +113,7 @@ uint AbnfParser::pos() const
 
 /*! Returns the input string. */
 
-String AbnfParser::input() const
+EString AbnfParser::input() const
 {
     return str;
 }
@@ -146,12 +146,12 @@ void AbnfParser::step( uint n )
     case insensitive.
 */
 
-bool AbnfParser::present( const String & s )
+bool AbnfParser::present( const EString & s )
 {
     if ( s.isEmpty() )
         return true;
 
-    String l = str.mid( d->at, s.length() ).lower();
+    EString l = str.mid( d->at, s.length() ).lower();
     if ( l != s.lower() )
         return false;
 
@@ -165,7 +165,7 @@ bool AbnfParser::present( const String & s )
     is not present(), it is considered an error().
 */
 
-void AbnfParser::require( const String & s )
+void AbnfParser::require( const EString & s )
 {
     if ( !present( s ) )
         setError( "Expected: " + s.quoted() + ", got: " + following() );
@@ -177,9 +177,9 @@ void AbnfParser::require( const String & s )
     available, it is an error().
 */
 
-String AbnfParser::digits( uint min, uint max )
+EString AbnfParser::digits( uint min, uint max )
 {
-    String r;
+    EString r;
     uint i = 0;
     char c = nextChar();
     while ( i < max && c >= '0' && c <= '9' ) {
@@ -200,9 +200,9 @@ String AbnfParser::digits( uint min, uint max )
     letters are available, it is an error().
 */
 
-String AbnfParser::letters( uint min, uint max )
+EString AbnfParser::letters( uint min, uint max )
 {
-    String r;
+    EString r;
     uint i = 0;
     char c = nextChar();
     while ( i < max &&
@@ -228,7 +228,7 @@ String AbnfParser::letters( uint min, uint max )
 
 uint AbnfParser::number()
 {
-    String s;
+    EString s;
     char c = nextChar();
 
     bool zero = false;
@@ -259,7 +259,7 @@ uint AbnfParser::number()
 void AbnfParser::end()
 {
     if ( !atEnd() )
-        setError( String( "More text follows end of input: " ) + following() );
+        setError( EString( "More text follows end of input: " ) + following() );
 }
 
 
@@ -267,7 +267,7 @@ void AbnfParser::end()
     unparsed bits of input. Meant for use in error messages.
 */
 
-const String AbnfParser::following() const
+const EString AbnfParser::following() const
 {
     return str.mid( d->at, 15 ).simplified();
 }

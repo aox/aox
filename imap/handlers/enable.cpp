@@ -25,7 +25,7 @@ void Enable::parse()
         error( Bad, "No capabilities enabled" );
     while ( ok() && nextChar() == ' ' ) {
         space();
-        String capability = atom().upper();
+        EString capability = atom().upper();
         if ( capability == "CONDSTORE" ) {
             condstore = true;
         }
@@ -33,8 +33,8 @@ void Enable::parse()
             annotate = true;
         }
         else {
-            String all = Capability::capabilities( imap(), true ).upper();
-            StringList::Iterator s( StringList::split( ' ', all ) );
+            EString all = Capability::capabilities( imap(), true ).upper();
+            EStringList::Iterator s( EStringList::split( ' ', all ) );
             while ( s && capability != *s )
                 ++s;
             if ( s )
@@ -47,7 +47,7 @@ void Enable::parse()
 
 void Enable::execute()
 {
-    String r = "ENABLED";
+    EString r = "ENABLED";
     if ( condstore ) {
         imap()->setClientSupports( IMAP::Condstore );
         r.append( " CONDSTORE" );

@@ -4,7 +4,7 @@
 
 #include "ustringlist.h"
 #include "sieveparser.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "collation.h"
 #include "bodypart.h"
 #include "mailbox.h"
@@ -28,9 +28,9 @@ public:
     uint start;
     uint end;
     const char * name;
-    String error;
+    EString error;
     bool ihaveFailed;
-    StringList * addedExtensions;
+    EStringList * addedExtensions;
 };
 
 
@@ -97,7 +97,7 @@ void SieveProduction::setParser( class SieveParser * p )
     8.
 */
 
-String SieveProduction::name() const
+EString SieveProduction::name() const
 {
     return d->name;
 }
@@ -144,7 +144,7 @@ uint SieveProduction::end() const
 /*! Records that this production suffers from error \a e. Does nothing
     if setError has been called already. */
 
-void SieveProduction::setError( const String & e )
+void SieveProduction::setError( const EString & e )
 {
     if ( e.isEmpty() ) {
         // clearing an error is always possible
@@ -171,7 +171,7 @@ void SieveProduction::setError( const String & e )
     "require" names this set of extensions.
 */
 
-void SieveProduction::require( const String & extension )
+void SieveProduction::require( const EString & extension )
 {
     SieveProduction * p = this;
     while ( p ) {
@@ -189,7 +189,7 @@ void SieveProduction::require( const String & extension )
     occured.
 */
 
-String SieveProduction::error() const
+EString SieveProduction::error() const
 {
     return d->error;
 }
@@ -208,14 +208,14 @@ String SieveProduction::error() const
     seem useful.
 */
 
-StringList * SieveProduction::supportedExtensions()
+EStringList * SieveProduction::supportedExtensions()
 {
-    StringList * r = new StringList;
+    EStringList * r = new EStringList;
     // sorted by name, please
     r->append( "body" );
-    StringList::Iterator c( Collation::supported() );
+    EStringList::Iterator c( Collation::supported() );
     while ( c ) {
-        String name = "comparator-";
+        EString name = "comparator-";
         name.append( *c );
         r->append( name );
         ++c;
@@ -257,7 +257,7 @@ void SieveProduction::setIhaveFailed()
     require, or a null pointer if none have been added.
 */
 
-StringList * SieveProduction::addedExtensions() const
+EStringList * SieveProduction::addedExtensions() const
 {
     return d->addedExtensions;
 }
@@ -267,15 +267,15 @@ StringList * SieveProduction::addedExtensions() const
     production and its children.
 */
 
-void SieveProduction::addExtensions( const StringList * list )
+void SieveProduction::addExtensions( const EStringList * list )
 {
     if ( !list || list->isEmpty() )
         return;
 
     SieveProduction * p = this;
-    StringList already;
+    EStringList already;
     while ( p ) {
-        StringList::Iterator i( p->addedExtensions() );
+        EStringList::Iterator i( p->addedExtensions() );
         while ( i ) {
             already.append( i );
             ++i;
@@ -283,11 +283,11 @@ void SieveProduction::addExtensions( const StringList * list )
         p = p->parent();
     }
 
-    StringList::Iterator i( list );
+    EStringList::Iterator i( list );
     while ( i ) {
         if ( !already.contains( *i ) ) {
             if ( !d->addedExtensions )
-                d->addedExtensions = new StringList;
+                d->addedExtensions = new EStringList;
             d->addedExtensions->append( i );
         }
         ++i;
@@ -300,7 +300,7 @@ class SieveArgumentData
 {
 public:
     SieveArgumentData(): number( 0 ), list( 0 ), calls( 0 ), parsed( false ) {}
-    String tag;
+    EString tag;
     uint number;
     UStringList * list;
     uint calls;
@@ -329,7 +329,7 @@ SieveArgument::SieveArgument()
 
 */
 
-void SieveArgument::setTag( const String & t )
+void SieveArgument::setTag( const EString & t )
 {
     d->tag = t;
     d->calls++;
@@ -340,7 +340,7 @@ void SieveArgument::setTag( const String & t )
     empty string if this object doesn't have a tag.
 */
 
-String SieveArgument::tag() const
+EString SieveArgument::tag() const
 {
     return d->tag;
 }
@@ -546,13 +546,13 @@ List<SieveTest> * SieveArgumentList::tests() const
     last argument.
 e*/
 
-SieveArgument * SieveArgumentList::argumentFollowingTag( const String & tag )
+SieveArgument * SieveArgumentList::argumentFollowingTag( const EString & tag )
 {
     SieveArgument * firstTag = 0;
     SieveArgument * result = 0;
     List<SieveArgument>::Iterator i( arguments() );
     while ( i ) {
-        String t = i->tag();
+        EString t = i->tag();
         if ( t == tag ) {
             if ( firstTag ) {
                 firstTag->setError( "Tag used twice: " + tag );
@@ -587,7 +587,7 @@ SieveArgument * SieveArgumentList::argumentFollowingTag( const String & tag )
     Marks both arguments as parsed.
 */
 
-UString SieveArgumentList::takeTaggedString( const String & tag )
+UString SieveArgumentList::takeTaggedString( const EString & tag )
 {
     SieveArgument * a = argumentFollowingTag( tag );
     UString r;
@@ -611,7 +611,7 @@ UString SieveArgumentList::takeTaggedString( const String & tag )
 
 */
 
-UStringList * SieveArgumentList::takeTaggedStringList( const String & tag )
+UStringList * SieveArgumentList::takeTaggedStringList( const EString & tag )
 {
     SieveArgument * a = argumentFollowingTag( tag );
     if ( !a )
@@ -630,7 +630,7 @@ UStringList * SieveArgumentList::takeTaggedStringList( const String & tag )
     Marks both arguments as parsed.
 */
 
-uint SieveArgumentList::takeTaggedNumber( const String & tag )
+uint SieveArgumentList::takeTaggedNumber( const EString & tag )
 {
     SieveArgument * a = argumentFollowingTag( tag );
     if ( !a )
@@ -649,7 +649,7 @@ uint SieveArgumentList::takeTaggedNumber( const String & tag )
     Marks the returned argument as parsed.
 */
 
-SieveArgument * SieveArgumentList::findTag( const String & tag ) const
+SieveArgument * SieveArgumentList::findTag( const EString & tag ) const
 {
     List<SieveArgument>::Iterator a( arguments() );
     while ( a && a->tag() != tag )
@@ -682,7 +682,7 @@ void SieveArgumentList::allowOneTag( const char * t1, const char * t2,
     List<SieveArgument> r;
     List<SieveArgument>::Iterator a( arguments() );
     while ( a ) {
-        String t = a->tag();
+        EString t = a->tag();
         if ( !t.isEmpty() &&
              ( t == t1 || t == t2 || t == t3 || t == t4 || t == t5 ) )
             r.append( a );
@@ -692,7 +692,7 @@ void SieveArgumentList::allowOneTag( const char * t1, const char * t2,
         return;
     a = r.first();
     a->setError( "Mutually exclusive tags used" );
-    String first = a->tag();
+    EString first = a->tag();
     ++a;
     while ( a ) {
         a->setError( "Tag " + first + " conflicts with " + a->tag() );
@@ -834,7 +834,7 @@ SieveArgument * SieveArgumentList::takeArgument( uint n )
     tag.
 */
 
-void SieveArgumentList::tagError( const char * tag, const String & error )
+void SieveArgumentList::tagError( const char * tag, const EString & error )
 {
     SieveArgument * t = argumentFollowingTag( tag );
     if ( !t )
@@ -896,7 +896,7 @@ class SieveCommandData
 public:
     SieveCommandData(): arguments( 0 ), block( 0 ), require( false ) {}
 
-    String identifier;
+    EString identifier;
     SieveArgumentList * arguments;
     SieveBlock * block;
     bool require;
@@ -918,7 +918,7 @@ SieveCommand::SieveCommand()
     value is an empty string, which is not valid.
 */
 
-void SieveCommand::setIdentifier( const String & i )
+void SieveCommand::setIdentifier( const EString & i )
 {
     d->identifier = i.lower();
 }
@@ -928,7 +928,7 @@ void SieveCommand::setIdentifier( const String & i )
     setIdentifier() has not been called.
 */
 
-String SieveCommand::identifier() const
+EString SieveCommand::identifier() const
 {
     return d->identifier;
 }
@@ -1009,7 +1009,7 @@ public:
           sizeOver( false ), sizeLimit( 0 )
     {}
 
-    String identifier;
+    EString identifier;
     SieveArgumentList * arguments;
     SieveBlock * block;
 
@@ -1045,7 +1045,7 @@ SieveTest::SieveTest()
     value is an empty string, which is not valid.
 */
 
-void SieveTest::setIdentifier( const String & i )
+void SieveTest::setIdentifier( const EString & i )
 {
     d->identifier = i.lower();
 }
@@ -1055,7 +1055,7 @@ void SieveTest::setIdentifier( const String & i )
     setIdentifier() has not been called.
 */
 
-String SieveTest::identifier() const
+EString SieveTest::identifier() const
 {
     return d->identifier;
 }
@@ -1091,7 +1091,7 @@ SieveArgumentList * SieveTest::arguments() const
     to verify that there's no if/elsif/else mismatch.
 */
 
-void SieveCommand::parse( const String & previous )
+void SieveCommand::parse( const EString & previous )
 {
     if ( identifier().isEmpty() )
         setError( "Command name is empty" );
@@ -1099,7 +1099,7 @@ void SieveCommand::parse( const String & previous )
     bool test = false;
     bool blk = false;
 
-    String i = identifier();
+    EString i = identifier();
     if ( i == "if" || i == "elsif" ) {
         test = true;
         blk = true;
@@ -1114,8 +1114,8 @@ void SieveCommand::parse( const String & previous )
     else if ( i == "require" ) {
         arguments()->numberRemainingArguments();
         UStringList::Iterator i( arguments()->takeStringList( 1 ) );
-        StringList a;
-        StringList e;
+        EStringList a;
+        EStringList e;
         while ( i ) {
             if ( supportedExtensions()->contains( i->ascii() ) )
                 a.append( i->ascii().quoted() );
@@ -1175,7 +1175,7 @@ void SieveCommand::parse( const String & previous )
     }
     else if ( i == "redirect" ) {
         arguments()->numberRemainingArguments();
-        String s = arguments()->takeString( 1 ).utf8();
+        EString s = arguments()->takeString( 1 ).utf8();
         AddressParser ap( s );
         if ( !ap.error().isEmpty() ||
              ap.addresses()->count() != 1 ||
@@ -1240,7 +1240,7 @@ void SieveCommand::parse( const String & previous )
             if ( !reason.isAscii() )
                 setError( ":mime bodies must be all-ASCII, "
                           "8-bit text is not permitted" ); // so says the RFC
-            String x = reason.utf8();
+            EString x = reason.utf8();
             uint i = 0;
             Header * h = Message::parseHeader( i, x.length(),
                                                x, Header::Mime );
@@ -1309,7 +1309,7 @@ void SieveCommand::parse( const String & previous )
                       " requires a subsidiary {..} block" );
         }
         else {
-            String prev;
+            EString prev;
             List<SieveCommand>::Iterator i( block()->commands() );
             while ( i ) {
                 i->parse( prev );
@@ -1393,7 +1393,7 @@ void SieveTest::parse()
         d->keys = arguments()->takeStringList( 2 );
         UStringList::Iterator i( d->envelopeParts );
         while ( i ) {
-            String s = i->utf8().lower();
+            EString s = i->utf8().lower();
             if ( s == "from" || s == "to" ) {
                 Utf8Codec c;
                 *i = c.toUnicode( s );
@@ -1502,7 +1502,7 @@ void SieveTest::parse()
     // support, then we have to suppress some errors.
     if ( identifier() == "ihave" && error().isEmpty() ) {
         UStringList::Iterator i( arguments()->takeStringList( 1 ) );
-        StringList x;
+        EStringList x;
         while ( i && supportedExtensions()->contains( i->ascii() ) ) {
             x.append( i->ascii() );
             ++i;
@@ -1557,7 +1557,7 @@ void SieveTest::findMatchType()
     if ( d->matchType == Value || d->matchType == Count ) {
         require( "relational" );
 
-        String t( ":value" );
+        EString t( ":value" );
         if ( d->matchType == Count )
             t = ":count";
 
@@ -1651,7 +1651,7 @@ Collation * SieveTest::comparator() const
     that each string is a valid header field name according to RFC
     2822 section 3.6.8, and if identifier() is "address", that each
     refers to an address field. The result is filtered through
-    String::headerCased().
+    EString::headerCased().
 */
 
 UStringList * SieveTest::takeHeaderFieldList( uint n )
@@ -1696,7 +1696,7 @@ UStringList * SieveTest::takeHeaderFieldList( uint n )
     or a null pointer if the identifier() is of a type that doesn't
     use any header fields.
 
-    Each string in the list is header-cased (see String::headerCased()).
+    Each string in the list is header-cased (see EString::headerCased()).
 */
 
 UStringList * SieveTest::headers() const

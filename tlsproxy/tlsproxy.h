@@ -18,7 +18,7 @@ private:
     void parse();
     void encrypt();
     void decrypt();
-    void start( TlsProxy *, const Endpoint &, const String & );
+    void start( TlsProxy *, const Endpoint &, const EString & );
 
 private:
     class TlsProxyData * d;

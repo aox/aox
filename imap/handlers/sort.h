@@ -25,7 +25,7 @@ class ImapSortResponse
 {
 public:
     ImapSortResponse( ImapSession *, List<uint> *, bool );
-    String text() const;
+    EString text() const;
 
 private:
     List<uint> * r;

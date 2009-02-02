@@ -140,7 +140,7 @@ void Postscript::endParagraph()
     if ( para.isEmpty() )
         return;
 
-    String r;
+    EString r;
     uint i = 0;
     while ( i < para.length() ) {
         if ( para[i] == '(' || para[i] == ')' || para[i] == '\\' )
@@ -157,7 +157,7 @@ void Postscript::endParagraph()
     characters correctly, and to start a new paragraph if necessary.
 */
 
-void Postscript::addText( const String & s )
+void Postscript::addText( const EString & s )
 {
     para.append( s );
 }
@@ -167,7 +167,7 @@ void Postscript::addText( const String & s )
   italics. Right now it's exactly as addText().
 */
 
-void Postscript::addArgument( const String & s )
+void Postscript::addArgument( const EString & s )
 {
     addText( s );
 }
@@ -177,7 +177,7 @@ void Postscript::addArgument( const String & s )
     number where \a f is documented.
 */
 
-void Postscript::addFunction( const String & text, Function * f )
+void Postscript::addFunction( const EString & text, Function * f )
 {
     addText( text );
     f = f;
@@ -189,7 +189,7 @@ void Postscript::addFunction( const String & text, Function * f )
 
 */
 
-void Postscript::addClass( const String & text, Class * c )
+void Postscript::addClass( const EString & text, Class * c )
 {
     addText( text );
     c = c;
@@ -198,7 +198,7 @@ void Postscript::addClass( const String & text, Class * c )
 
 /*! Writes \a s to the destination file as-is. */
 
-void Postscript::output( const String & s )
+void Postscript::output( const EString & s )
 {
     if ( file )
         file->write( s );

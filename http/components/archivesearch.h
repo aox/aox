@@ -20,13 +20,13 @@ private:
     void parseTerms();
     void sendQueries();
     void setTitle();
-    String searchTerms() const;
+    EString searchTerms() const;
     void computeResultSets();
     bool queriesDone() const;
 
-    String shortishResultList() const;
-    String middlingResultList() const;
-    String looongResultList() const;
+    EString shortishResultList() const;
+    EString middlingResultList() const;
+    EString looongResultList() const;
 };
 
 

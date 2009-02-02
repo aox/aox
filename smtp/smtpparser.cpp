@@ -17,7 +17,7 @@
     terminating CRLF), as received from the client.
 */
 
-SmtpParser::SmtpParser( const String &s )
+SmtpParser::SmtpParser( const EString &s )
     : AbnfParser( s )
 {
 }
@@ -25,9 +25,9 @@ SmtpParser::SmtpParser( const String &s )
 
 /*! Returns an SMTP cmmand, always in lower case. */
 
-String SmtpParser::command()
+EString SmtpParser::command()
 {
-    String c;
+    EString c;
     c.append( letters( 1, 10 ).lower() );
     if ( c == "mail" || c == "rcpt" ) {
         whitespace();
@@ -64,9 +64,9 @@ void SmtpParser::whitespace()
     ">", as in "rcpt to: <user@example.org.>".
 */
 
-String SmtpParser::domain()
+EString SmtpParser::domain()
 {
-    String r;
+    EString r;
     if ( nextChar() == '[' ) {
         uint start = pos();
         while ( !atEnd() && nextChar() != ']' )
@@ -92,9 +92,9 @@ String SmtpParser::domain()
     [Ldh-str]
 */
 
-String SmtpParser::subDomain()
+EString SmtpParser::subDomain()
 {
-    String r;
+    EString r;
     char c = nextChar();
     if ( ( c >= 'a' && c <= 'z' ) ||
          ( c >= 'A' && c <= 'Z' ) ||
@@ -135,7 +135,7 @@ class Address * SmtpParser::address()
         }
     }
 
-    String lp;
+    EString lp;
     if ( nextChar() == '"' )
         lp = quotedString();
     else
@@ -151,9 +151,9 @@ class Address * SmtpParser::address()
 
 /*! Returns an RFC 2821 dot-string. */
 
-String SmtpParser::dotString()
+EString SmtpParser::dotString()
 {
-    String r( atom() );
+    EString r( atom() );
     while ( nextChar() == '.' ) {
         r.append( "." );
         step();
@@ -167,10 +167,10 @@ String SmtpParser::dotString()
     2821). Does not enforce the ASCII-only rule.
 */
 
-String SmtpParser::quotedString()
+EString SmtpParser::quotedString()
 {
     require( "\"" );
-    String r;
+    EString r;
     while ( ok() && !atEnd() && nextChar() != '"' ) {
         if ( nextChar() == '\\' )
             step();
@@ -186,10 +186,10 @@ String SmtpParser::quotedString()
     from 2822, atom from 2821.)
 */
 
-String SmtpParser::atom()
+EString SmtpParser::atom()
 {
     char c = nextChar();
-    String r;
+    EString r;
     while ( ( c >= 'a' && c <= 'z' ) ||
             ( c >= 'A' && c <= 'Z' ) ||
             ( c >= '0' && c <= '9' ) ||
@@ -219,10 +219,10 @@ String SmtpParser::atom()
     Always returns lower case.
 */
 
-String SmtpParser::esmtpKeyword()
+EString SmtpParser::esmtpKeyword()
 {
     char c = nextChar();
-    String r;
+    EString r;
     while ( ( c >= 'a' && c <= 'z' ) ||
             ( c >= 'A' && c <= 'Z' ) ||
             ( c >= '0' && c <= '9' ) ||
@@ -241,9 +241,9 @@ String SmtpParser::esmtpKeyword()
     %d62-127)
 */
 
-String SmtpParser::esmtpValue()
+EString SmtpParser::esmtpValue()
 {
-    String r;
+    EString r;
     char c = nextChar();
     while ( !atEnd() && c != '=' && c > 32 && c < 128 ) {
         r.append( c );

@@ -12,8 +12,8 @@ class Gb2312Codec
 public:
     Gb2312Codec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

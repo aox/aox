@@ -1,9 +1,9 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "stderrlogger.h"
 #include "configuration.h"
 #include "transaction.h"
@@ -36,16 +36,16 @@ bool report = false;
 bool silent = false;
 uint verbosity = 0;
 
-String * db = 0;
-String * dbname = 0;
-String * dbsocket = 0;
-String * dbaddress = 0;
-String * dbuser = 0;
-String * dbpass = 0;
-String * dbowner = 0;
-String * dbownerpass = 0;
-String * dbpgpass = 0;
-String * dbschema = 0;
+EString * db = 0;
+EString * dbname = 0;
+EString * dbsocket = 0;
+EString * dbaddress = 0;
+EString * dbuser = 0;
+EString * dbpass = 0;
+EString * dbowner = 0;
+EString * dbownerpass = 0;
+EString * dbpgpass = 0;
+EString * dbschema = 0;
 
 bool privateSchema = false;
 
@@ -63,14 +63,14 @@ const char * DBADDRESS;
 
 
 void help();
-void error( String );
-String pgErr( const Query * );
-bool exists( const String & );
+void error( EString );
+EString pgErr( const Query * );
+bool exists( const EString & );
 void configure();
 void findPostgres();
 void findPgUser();
-void badSocket( String * );
-bool checkSocket( String * );
+void badSocket( EString * );
+bool checkSocket( EString * );
 void readPassword();
 void readPgPass();
 void oryxGroup();
@@ -79,7 +79,7 @@ void database();
 void configFile();
 void superConfig();
 void permissions();
-int psql( const String & );
+int psql( const EString & );
 
 void checkVersion();
 void checkEncoding();
@@ -113,7 +113,7 @@ int main( int ac, char *av[] )
 
     av++;
     while ( ac-- > 1 ) {
-        String s( *av++ );
+        EString s( *av++ );
 
         if ( s == "-?" || s == "-h" || s == "--help" ) {
             help();
@@ -136,23 +136,23 @@ int main( int ac, char *av[] )
             }
             else if ( s == "-u" ) {
                 AOXUSER = *av++;
-                dbuser = new String( AOXUSER );
+                dbuser = new EString( AOXUSER );
             }
             else if ( s == "-p" ) {
                 PGUSER = *av++;
             }
             else if ( s == "-a" ) {
-                dbaddress = new String( *av++ );
+                dbaddress = new EString( *av++ );
             }
             else if ( s == "-s" ) {
-                dbsocket = new String( *av++ );
+                dbsocket = new EString( *av++ );
                 Allocator::addEternal( dbsocket, "DBSOCKET" );
             }
             else if ( s == "-d" ) {
-                dbname = new String( *av++ );
+                dbname = new EString( *av++ );
             }
             else if ( s == "-S" ) {
-                dbschema = new String( *av++ );
+                dbschema = new EString( *av++ );
             }
 
             ac--;
@@ -160,7 +160,7 @@ int main( int ac, char *av[] )
         else if ( s == "-t" ) {
             if ( ac == 1 )
                 error( s + " specified with no argument." );
-            String p( *av++ );
+            EString p( *av++ );
             bool ok;
             dbport = p.number( &ok );
             if ( !ok )
@@ -189,7 +189,7 @@ int main( int ac, char *av[] )
         error( "Please run the installer as root." );
 
     if ( verbosity ) {
-        String d( Configuration::compiledIn( Configuration::ConfigDir ) );
+        EString d( Configuration::compiledIn( Configuration::ConfigDir ) );
         printf( "Will read these configuration files:\n"
                 "    %s/archiveopteryx.conf\n"
                 "    %s/aoxsuper.conf\n",
@@ -197,7 +197,7 @@ int main( int ac, char *av[] )
     }
 
     Configuration::setup( "archiveopteryx.conf" );
-    String super( Configuration::compiledIn( Configuration::ConfigDir ) );
+    EString super( Configuration::compiledIn( Configuration::ConfigDir ) );
     super.append( "/aoxsuper.conf" );
     Configuration::read( super, true );
 
@@ -271,22 +271,22 @@ void help()
 }
 
 
-void error( String m )
+void error( EString m )
 {
     fprintf( stderr, "%s\n", m.cstr() );
     exit( -1 );
 }
 
 
-String pgErr( const Query * q )
+EString pgErr( const Query * q )
 {
-    String p( "PostgreSQL error: " );
+    EString p( "PostgreSQL error: " );
     p.append( q->error() );
     return p;
 }
 
 
-bool exists( const String & f )
+bool exists( const EString & f )
 {
     struct stat st;
     return stat( f.cstr(), &st ) == 0;
@@ -295,10 +295,10 @@ bool exists( const String & f )
 
 void findPostgres()
 {
-    String port( fn( dbport ) );
+    EString port( fn( dbport ) );
 
     if ( !dbsocket && *dbaddress == "127.0.0.1" )
-        dbsocket = new String( "/tmp/.s.PGSQL." + port );
+        dbsocket = new EString( "/tmp/.s.PGSQL." + port );
 
     if ( dbsocket ) {
         findPgUser();
@@ -328,7 +328,7 @@ void findPostgres()
 }
 
 
-void badSocket( String * sock )
+void badSocket( EString * sock )
 {
     fprintf( stderr, "Error: Couldn't find the Postgres listening "
              "socket at '%s'.\n", sock->cstr() );
@@ -346,7 +346,7 @@ void badSocket( String * sock )
 }
 
 
-bool checkSocket( String * sock )
+bool checkSocket( EString * sock )
 {
     if ( !sock->startsWith( "/" ) )
         return false;
@@ -365,7 +365,7 @@ bool checkSocket( String * sock )
         // number, and letting psql turn that into a socket path. We
         // try to cooperate.
 
-        String s( "/.s.PGSQL." + fn( dbport ) );
+        EString s( "/.s.PGSQL." + fn( dbport ) );
         sock->append( s );
 
         if ( !( stat( sock->cstr(), &st ) == 0 &&
@@ -384,7 +384,7 @@ bool checkSocket( String * sock )
 
     if ( !sock->endsWith( "/.s.PGSQL." + fn( dbport ) ) ) {
         bool ok = false;
-        String s = *sock;
+        EString s = *sock;
 
         uint i = sock->length()-1;
         while ( i > 0 && (*sock)[i] != '/' )
@@ -392,7 +392,7 @@ bool checkSocket( String * sock )
         if ( i > 0 && (*sock)[i] == '/' ) {
             s = sock->mid( i+1 );
             if ( s.startsWith( ".s.PGSQL." ) ) {
-                String port( s.mid( 9 ) );
+                EString port( s.mid( 9 ) );
                 dbport = port.number( &ok );
             }
         }
@@ -423,23 +423,23 @@ void readPassword()
     printf( "Password: " );
     fgets( passwd, 128, stdin );
     tcsetattr( 0, TCSANOW, &term );
-    dbpgpass = new String( passwd );
+    dbpgpass = new EString( passwd );
     dbpgpass->truncate( dbpgpass->length()-1 );
     Allocator::addEternal( dbpgpass, "DBPGPASS" );
 }
 
 
-StringList * splitFields( const String & s )
+EStringList * splitFields( const EString & s )
 {
-    StringList * l = new StringList;
+    EStringList * l = new EStringList;
 
     uint i = 0;
-    String word;
+    EString word;
     while ( i < s.length() ) {
         char c = s[i++];
 
         if ( c == ':' || c == '\n' ) {
-            l->append( new String( word ) );
+            l->append( new EString( word ) );
             word.truncate( 0 );
         }
         else {
@@ -468,17 +468,17 @@ void readPgPass()
     if ( !f.valid() )
         return;
 
-    StringList::Iterator line( f.lines() );
+    EStringList::Iterator line( f.lines() );
     while ( line ) {
-        StringList * fields = splitFields( *line );
+        EStringList * fields = splitFields( *line );
         if ( fields->count() != 5 )
             return;
 
-        String host( *fields->shift() );
-        String port( *fields->shift() );
-        String database( *fields->shift() );
-        String username( *fields->shift() );
-        String password( *fields->shift() );
+        EString host( *fields->shift() );
+        EString port( *fields->shift() );
+        EString database( *fields->shift() );
+        EString username( *fields->shift() );
+        EString password( *fields->shift() );
 
         if ( ( host == "*" ||
                host == *db ||
@@ -488,7 +488,7 @@ void readPgPass()
              ( database == "*" || database == "template1" ) &&
              ( username == "*" || username == PGUSER ) )
         {
-            dbpgpass = new String( password );
+            dbpgpass = new EString( password );
             break;
         }
 
@@ -510,7 +510,7 @@ void findPgUser()
     if ( *PGUSER ) {
         p = getpwnam( PGUSER );
         if ( !p )
-            error( "PostgreSQL superuser " + String( PGUSER ).quoted() +
+            error( "PostgreSQL superuser " + EString( PGUSER ).quoted() +
                    " does not exist (rerun with -p username)." );
     }
 
@@ -530,8 +530,8 @@ void findPgUser()
 
     postgres = p->pw_uid;
 
-    String path( getenv( "PATH" ) );
-    path.append( ":" + String( p->pw_dir ) + "/bin" );
+    EString path( getenv( "PATH" ) );
+    path.append( ":" + EString( p->pw_dir ) + "/bin" );
     path.append( ":/usr/local/pgsql/bin" );
     setenv( "PATH", path.cstr(), 1 );
 }
@@ -542,7 +542,7 @@ void configure()
     Entropy::setup();
 
     if ( !dbname ) {
-        String t( DBNAME );
+        EString t( DBNAME );
 
         if ( Configuration::present( Configuration::DbName ) ) {
             t = Configuration::text( Configuration::DbName );
@@ -551,12 +551,12 @@ void configure()
                         dbname->cstr() );
         }
 
-        dbname = new String( t );
+        dbname = new EString( t );
     }
     Allocator::addEternal( dbname, "DBNAME" );
 
     if ( !dbschema ) {
-        String t( DBSCHEMA );
+        EString t( DBSCHEMA );
 
         if ( Configuration::present( Configuration::DbSchema ) ) {
             t = Configuration::text( Configuration::DbSchema );
@@ -565,7 +565,7 @@ void configure()
                         dbschema->cstr() );
         }
 
-        dbschema = new String( t );
+        dbschema = new EString( t );
     }
     Allocator::addEternal( dbschema, "DBSCHEMA" );
 
@@ -573,7 +573,7 @@ void configure()
         ::privateSchema = true;
 
     if ( !dbaddress ) {
-        String t( DBADDRESS );
+        EString t( DBADDRESS );
 
         if ( Configuration::present( Configuration::DbAddress ) ) {
             t = Configuration::text( Configuration::DbAddress );
@@ -582,7 +582,7 @@ void configure()
                         dbaddress->cstr() );
         }
 
-        dbaddress = new String( t );
+        dbaddress = new EString( t );
     }
     Allocator::addEternal( dbaddress, "DBADDRESS" );
 
@@ -598,7 +598,7 @@ void configure()
     }
 
     if ( !dbuser ) {
-        String t( AOXUSER );
+        EString t( AOXUSER );
 
         if ( Configuration::present( Configuration::DbUser ) ) {
             t = Configuration::text( Configuration::DbUser );
@@ -607,18 +607,18 @@ void configure()
                         dbuser->cstr() );
         }
 
-        dbuser = new String( t );
+        dbuser = new EString( t );
     }
     Allocator::addEternal( dbuser, "AOXUSER" );
 
-    dbpass = new String( DBPASS );
+    dbpass = new EString( DBPASS );
     if ( Configuration::present( Configuration::DbPassword ) ) {
         *dbpass = Configuration::text( Configuration::DbPassword );
         if ( verbosity )
             printf( "Using db-password from the configuration\n" );
     }
     else if ( dbpass->isEmpty() ) {
-        String p( "(database user password here)" );
+        EString p( "(database user password here)" );
         if ( !report ) {
             p = MD5::hash( Entropy::asString( 16 ) ).hex();
             generatedPass = true;
@@ -627,7 +627,7 @@ void configure()
     }
     Allocator::addEternal( dbpass, "DBPASS" );
 
-    dbowner = new String( DBOWNER );
+    dbowner = new EString( DBOWNER );
     if ( Configuration::present( Configuration::DbOwner ) ) {
         *dbowner = Configuration::text( Configuration::DbOwner );
         if ( verbosity )
@@ -636,14 +636,14 @@ void configure()
     }
     Allocator::addEternal( dbowner, "DBOWNER" );
 
-    dbownerpass = new String( DBOWNERPASS );
+    dbownerpass = new EString( DBOWNERPASS );
     if ( Configuration::present( Configuration::DbOwnerPassword ) ) {
         *dbownerpass = Configuration::text( Configuration::DbOwnerPassword );
         if ( verbosity )
             printf( "Using db-owner-password from the configuration\n" );
     }
     else if ( dbownerpass->isEmpty() ) {
-        String p( "(database owner password here)" );
+        EString p( "(database owner password here)" );
         if ( !report ) {
             p = MD5::hash( Entropy::asString( 16 ) ).hex();
             generatedOwnerPass = true;
@@ -667,7 +667,7 @@ void oryxGroup()
         return;
     }
 
-    String cmd;
+    EString cmd;
     if ( exists( "/usr/sbin/groupadd" ) ) {
         cmd.append( "/usr/sbin/groupadd " );
         cmd.append( AOXGROUP );
@@ -687,7 +687,7 @@ void oryxGroup()
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ||
          getgrnam( AOXGROUP ) == 0 )
     {
-        String s;
+        EString s;
         if ( cmd.isEmpty() )
             s.append( "Don't know how to create group " );
         else
@@ -717,7 +717,7 @@ void oryxUser()
         return;
     }
 
-    String cmd;
+    EString cmd;
     if ( exists( "/usr/sbin/useradd" ) ) {
         cmd.append( "/usr/sbin/useradd -g " );
         cmd.append( AOXGROUP );
@@ -741,7 +741,7 @@ void oryxUser()
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ||
          getpwnam( AOXUSER ) == 0 )
     {
-        String s;
+        EString s;
         if ( cmd.isEmpty() )
             s.append( "Don't know how to create user " );
         else
@@ -784,7 +784,7 @@ public:
     bool namespaceExists;
     bool mailstoreExists;
     bool failed;
-    String owner;
+    EString owner;
 
     Dispatcher()
         : state( CheckVersion ),
@@ -798,7 +798,7 @@ public:
         database();
     }
 
-    void error( const String &s )
+    void error( const EString &s )
     {
         d->failed = true;
         fprintf( stderr, "%s\n", s.cstr() );
@@ -812,7 +812,7 @@ public:
 };
 
 
-void connectToDb( const String & dbname )
+void connectToDb( const EString & dbname )
 {
     Configuration::setup( "" );
     Configuration::add( "db-max-handles = 1" );
@@ -823,7 +823,7 @@ void connectToDb( const String & dbname )
     if ( !db->startsWith( "/" ) )
         Configuration::add( "db-port = " + fn( dbport ) );
 
-    String pass;
+    EString pass;
     if ( dbpgpass )
         pass = *dbpgpass;
 
@@ -931,9 +931,9 @@ void checkVersion()
         return;
     }
 
-    String v = r->getString( "version" ).simplified().section( " ", 2 );
+    EString v = r->getEString( "version" ).simplified().section( " ", 2 );
     if ( v.isEmpty() )
-        v = r->getString( "version" );
+        v = r->getEString( "version" );
     bool ok = true;
     uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
                    100 * v.section( ".", 2 ).number( &ok ) +
@@ -974,8 +974,8 @@ void checkEncoding()
         d->databaseExists = true;
 
         bool warning = false;
-        d->owner = r->getString( "usename" );
-        String encoding( r->getString( "encoding" ) );
+        d->owner = r->getEString( "usename" );
+        EString encoding( r->getEString( "encoding" ) );
 
         if ( encoding != "UNICODE" && encoding != "UTF8" ) {
             // If someone is using SQL_ASCII, it's probably... us.
@@ -1019,7 +1019,7 @@ void createUser()
 
         Row * r = d->q->nextRow();
         if ( !r ) {
-            String create( "create user " + *dbuser + " with encrypted "
+            EString create( "create user " + *dbuser + " with encrypted "
                            "password " + dbpass->quoted( '\'' ) );
 
             if ( report ) {
@@ -1080,7 +1080,7 @@ void createSuperuser()
 
         Row * r = d->q->nextRow();
         if ( !r ) {
-            String create( "create user " + *dbowner + " with encrypted "
+            EString create( "create user " + *dbowner + " with encrypted "
                            "password " + dbownerpass->quoted( '\'' ) );
 
             if ( report ) {
@@ -1133,7 +1133,7 @@ void createDatabase()
     }
 
     if ( !d->u ) {
-        String create( "create database " + *dbname + " with owner " +
+        EString create( "create database " + *dbname + " with owner " +
                        *dbowner + " encoding 'UNICODE'" );
         if ( report ) {
             todo++;
@@ -1202,7 +1202,7 @@ void createLang()
 
         Row * r = d->q->nextRow();
         if ( !r ) {
-            String create( "create language plpgsql" );
+            EString create( "create language plpgsql" );
 
             if ( report ) {
                 todo++;
@@ -1253,7 +1253,7 @@ void createNamespace()
         return;
     }
 
-    String create( "create schema " + *dbschema +
+    EString create( "create schema " + *dbschema +
                    " authorization " + *dbowner );
 
     if ( !d->databaseExists && report ) {
@@ -1348,7 +1348,7 @@ void checkOwnership()
             d->q->execute();
         }
         else if ( d->owner != *dbowner ) {
-            String alter( "alter database " + *dbname +
+            EString alter( "alter database " + *dbname +
                           " owner to " + *dbowner );
 
             if ( report ) {
@@ -1380,9 +1380,9 @@ void checkOwnership()
             return;
         }
 
-        String owner( r->getString( "usename" ) );
+        EString owner( r->getEString( "usename" ) );
         if ( owner != *dbowner ) {
-            String alter( "alter schema " + *dbschema +
+            EString alter( "alter schema " + *dbschema +
                           " owner to " + *dbowner );
 
             if ( report ) {
@@ -1408,7 +1408,7 @@ void checkOwnership()
             return;
 
         if ( d->u->failed() ) {
-            String s( "Couldn't alter owner of " );
+            EString s( "Couldn't alter owner of " );
             if ( privateSchema )
                 s.append( "schema " + dbschema->quoted( '\'' ) );
             else
@@ -1434,7 +1434,7 @@ void grantUsage()
         return;
     }
 
-    String grant( "grant usage on schema " + *dbschema + " to " + *dbuser );
+    EString grant( "grant usage on schema " + *dbschema + " to " + *dbuser );
 
     if ( !d->q ) {
         d->q = new Query(
@@ -1522,10 +1522,10 @@ void splitPrivileges()
             return;
         }
 
-        String owner( *dbowner );
+        EString owner( *dbowner );
         Row * r = d->q->nextRow();
         if ( r )
-            owner = r->getString( "tableowner" );
+            owner = r->getEString( "tableowner" );
 
         // If the messages table is owned by the user that the servers
         // connect as, that's bad. But we have to be careful, because
@@ -1616,7 +1616,7 @@ void createSchema()
 {
     // This is what we need to feed to psql to create the schema.
 
-    String cmd( "\\set ON_ERROR_STOP\n"
+    EString cmd( "\\set ON_ERROR_STOP\n"
                 "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
                 "SET client_min_messages TO 'ERROR';\n" );
 
@@ -1663,7 +1663,7 @@ void createSchema()
              !d->q->done() )
             return;
 
-        String s;
+        EString s;
         Query * q = 0;
 
         if ( d->ssa->failed() ) {
@@ -1754,7 +1754,7 @@ void upgradeSchema()
                         "it's needed.)\n\n" );
             }
             else {
-                String s( "Couldn't query database " );
+                EString s( "Couldn't query database " );
                 s.append( dbname->quoted( '\'' ) );
                 s.append( " to see if the schema needs to be upgraded." );
                 if ( d->q->failed() ) {
@@ -1770,7 +1770,7 @@ void upgradeSchema()
         uint revision = r->getInt( "revision" );
 
         if ( revision > Database::currentRevision() ) {
-            String v( Configuration::compiledIn( Configuration::Version ) );
+            EString v( Configuration::compiledIn( Configuration::Version ) );
             fprintf( stderr, "The schema in database '%s' (revision #%d) "
                      "is newer than this version of Archiveopteryx (%s) "
                      "recognises (up to #%d).\n", dbname->cstr(), revision,
@@ -1854,34 +1854,34 @@ void configFile()
 {
     setreuid( 0, 0 );
 
-    String p( *dbpass );
+    EString p( *dbpass );
     if ( p.contains( " " ) )
         p = "'" + p + "'";
 
-    String cf( Configuration::configFile() );
-    String v( Configuration::compiledIn( Configuration::Version ) );
-    String intro(
+    EString cf( Configuration::configFile() );
+    EString v( Configuration::compiledIn( Configuration::Version ) );
+    EString intro(
         "# Archiveopteryx configuration. See archiveopteryx.conf(5) or\n"
         "# http://aox.org/conf/ for details and other variables.\n"
         "# Automatically generated while installing Archiveopteryx "
         + v + ".\n\n"
     );
 
-    String dbhost( "db-address = " + *dbaddress + "\n" );
+    EString dbhost( "db-address = " + *dbaddress + "\n" );
     if ( dbaddress->startsWith( "/" ) )
         dbhost.append( "# " );
     dbhost.append( "db-port = " + fn( dbport ) + "\n" );
 
-    String name( "db-name = " + *dbname + "\n" );
+    EString name( "db-name = " + *dbname + "\n" );
 
-    String schema;
+    EString schema;
     if ( privateSchema ) {
         schema.append( "db-schema = " );
         schema.append( *dbschema );
         schema.append( "\n" );
     }
 
-    String cfg(
+    EString cfg(
         dbhost + name + schema +
         "db-user = " + *dbuser + "\n"
         "db-password = " + p + "\n\n"
@@ -1889,7 +1889,7 @@ void configFile()
         "logfile-mode = " LOGFILEMODE "\n"
     );
 
-    String other(
+    EString other(
         "# Uncomment the next line to log more (or set it to debug for even more).\n"
         "# log-level = info\n"
         "\n"
@@ -1969,21 +1969,21 @@ void configFile()
 
 void superConfig()
 {
-    String p( *dbownerpass );
+    EString p( *dbownerpass );
     if ( p.contains( " " ) )
         p = "'" + p + "'";
 
-    String cf( Configuration::compiledIn( Configuration::ConfigDir ) );
+    EString cf( Configuration::compiledIn( Configuration::ConfigDir ) );
     cf.append( "/aoxsuper.conf" );
 
-    String v( Configuration::compiledIn( Configuration::Version ) );
-    String intro(
+    EString v( Configuration::compiledIn( Configuration::Version ) );
+    EString intro(
         "# Archiveopteryx configuration. See aoxsuper.conf(5) "
         "for details.\n"
         "# Automatically generated while installing Archiveopteryx "
         + v + ".\n\n"
     );
-    String cfg(
+    EString cfg(
         "# Security note: Anyone who can read this password can do\n"
         "# anything to the database, including delete all mail.\n"
         "db-owner = " + *dbowner + "\n"
@@ -2038,7 +2038,7 @@ void permissions()
         exit( -1 );
     }
 
-    String cf( Configuration::configFile() );
+    EString cf( Configuration::configFile() );
 
     // If archiveopteryx.conf doesn't exist, or has the wrong ownership
     // or permissions:
@@ -2070,7 +2070,7 @@ void permissions()
         }
     }
 
-    String scf( Configuration::compiledIn( Configuration::ConfigDir ) );
+    EString scf( Configuration::compiledIn( Configuration::ConfigDir ) );
     scf.append( "/aoxsuper.conf" );
 
     // If aoxsuper.conf doesn't exist, or has the wrong ownership or
@@ -2102,7 +2102,7 @@ void permissions()
         }
     }
 
-    String mcd( Configuration::text( Configuration::MessageCopyDir ) );
+    EString mcd( Configuration::text( Configuration::MessageCopyDir ) );
 
     // If the message-copy-directory exists and has the wrong ownership
     // or permissions:
@@ -2135,7 +2135,7 @@ void permissions()
         }
     }
 
-    String jd( Configuration::text( Configuration::JailDir ) );
+    EString jd( Configuration::text( Configuration::JailDir ) );
 
     // If the jail directory exists and has the wrong ownership or
     // permissions (i.e. we own it or have any rights to it):
@@ -2177,17 +2177,17 @@ void permissions()
 }
 
 
-int psql( const String &cmd )
+int psql( const EString &cmd )
 {
     int n;
     int fd[2];
     pid_t pid = -1;
 
-    String host( *dbaddress );
-    String port( fn( dbport ) );
+    EString host( *dbaddress );
+    EString port( fn( dbport ) );
 
     if ( dbsocket ) {
-        String s( ".s.PGSQL." + port );
+        EString s( ".s.PGSQL." + port );
         uint l = dbsocket->length() - s.length();
         host = dbsocket->mid( 0, l-1 );
     }

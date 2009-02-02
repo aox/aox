@@ -8,7 +8,7 @@
 #include "map.h"
 
 class User;
-class String;
+class EString;
 class Session;
 class Message;
 
@@ -23,7 +23,7 @@ public:
     void setState( State );
     State state() const;
 
-    virtual void setUser( User *, const String & );
+    virtual void setUser( User *, const EString & );
 
     void setSession( Session * );
     Session * session() const;
@@ -35,8 +35,8 @@ public:
 
     void runCommands();
 
-    void ok( const String & );
-    void err( const String & );
+    void ok( const EString & );
+    void err( const EString & );
 
     void setReserved( bool );
     void setReader( class PopCommand * );
@@ -46,7 +46,7 @@ public:
 
     void badUser();
 
-    virtual void sendChallenge( const String & );
+    virtual void sendChallenge( const EString & );
 
 private:
     class PopData *d;

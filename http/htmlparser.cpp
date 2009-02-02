@@ -3,7 +3,7 @@
 #include "htmlparser.h"
 
 #include "codec.h"
-#include "string.h"
+#include "estring.h"
 #include "ustringlist.h"
 #include "entities.h"
 #include "ustring.h"
@@ -20,12 +20,12 @@ public:
 
     HtmlNode * parent;
     List< HtmlNode > children;
-    Dict< String > attributes;
+    Dict< EString > attributes;
 
     UString text;
-    String tag;
-    String href;
-    String htmlclass;
+    EString tag;
+    EString href;
+    EString htmlclass;
 };
 
 
@@ -39,7 +39,7 @@ public:
 /*! Creates a new HtmlNode as a child of \a parent, with the given
     \a tag. */
 
-HtmlNode::HtmlNode( HtmlNode * parent, const String & tag )
+HtmlNode::HtmlNode( HtmlNode * parent, const EString & tag )
     : d( new HtmlNodeData )
 {
     setTag( tag );
@@ -78,7 +78,7 @@ List< HtmlNode > * HtmlNode::children() const
 /*! Returns a non-zero pointer to a Dict of attribute/value pairs for
     this node. The Dict may be empty if no attributes were specified. */
 
-Dict< String > * HtmlNode::attributes() const
+Dict< EString > * HtmlNode::attributes() const
 {
     return &d->attributes;
 }
@@ -86,7 +86,7 @@ Dict< String > * HtmlNode::attributes() const
 
 /*! Returns this node's tag, as specified to the constructor. */
 
-String HtmlNode::tag() const
+EString HtmlNode::tag() const
 {
     return d->tag;
 }
@@ -94,7 +94,7 @@ String HtmlNode::tag() const
 
 /*! Sets this node's tag to \a s. */
 
-void HtmlNode::setTag( const String & s )
+void HtmlNode::setTag( const EString & s )
 {
     d->tag = s;
 }
@@ -121,7 +121,7 @@ void HtmlNode::setText( const UString & s )
     setHtmlClass(). Returns an empty string if the node's
     class is not explicitly specified. */
 
-String HtmlNode::htmlclass() const
+EString HtmlNode::htmlclass() const
 {
     return d->htmlclass;
 }
@@ -129,7 +129,7 @@ String HtmlNode::htmlclass() const
 
 /*! Sets this node's htmlclass() to \a s. */
 
-void HtmlNode::setHtmlClass( const String & s )
+void HtmlNode::setHtmlClass( const EString & s )
 {
     d->htmlclass = s;
 }
@@ -138,7 +138,7 @@ void HtmlNode::setHtmlClass( const String & s )
 /*! Returns this node's HREF value, as specified with setHref(). Returns
     an empty string if the node is not a link. */
 
-String HtmlNode::href() const
+EString HtmlNode::href() const
 {
     return d->href;
 }
@@ -146,7 +146,7 @@ String HtmlNode::href() const
 
 /*! Sets this node's href() value to \a s. */
 
-void HtmlNode::setHref( const String & s )
+void HtmlNode::setHref( const EString & s )
 {
     d->href = s;
 }
@@ -157,7 +157,7 @@ void HtmlNode::setHref( const String & s )
 
 bool HtmlNode::isKnown() const
 {
-    String tag( d->tag );
+    EString tag( d->tag );
     if ( tag == "p" ||
          tag == "li" ||
          tag == "a" ||
@@ -468,7 +468,7 @@ void HtmlNode::findExcerpt( UStringList * excerpts ) const
 }
 
 
-static void ensureTrailingLf( String & r )
+static void ensureTrailingLf( EString & r )
 {
     int i = r.length() - 1;
     while ( i >= 0 &&
@@ -481,9 +481,9 @@ static void ensureTrailingLf( String & r )
 }
 
 
-static String entityName( uint c )
+static EString entityName( uint c )
 {
-    String r;
+    EString r;
     switch ( c ) {
 #include "entitynames.inc"
     default:
@@ -498,9 +498,9 @@ static String entityName( uint c )
 
 /*! Returns a textual representation of this node. */
 
-String HtmlNode::rendered() const
+EString HtmlNode::rendered() const
 {
-    String r;
+    EString r;
     bool pre = false;
     const HtmlNode * p = this;
     while ( p && p->tag() != "pre" )
@@ -508,13 +508,13 @@ String HtmlNode::rendered() const
     if ( p && p->tag() == "pre" )
         pre = true;
     if ( isBlock() ) {
-        String n;
+        EString n;
         if ( tag() != "a" && isKnown() )
             n = tag();
         if ( !n.isEmpty() ) {
             r.append( "<" );
             r.append( n );
-            String htmlClass( htmlclass() );
+            EString htmlClass( htmlclass() );
             if ( !htmlClass.isEmpty() ) {
                 r.append( " class=" );
                 if ( htmlClass.boring() )
@@ -529,7 +529,7 @@ String HtmlNode::rendered() const
         bool contents = false;
         List<HtmlNode>::Iterator i( children() );
         while ( i ) {
-            String e = i->rendered();
+            EString e = i->rendered();
             if ( e.isEmpty() ) {
                 // forget it
             }
@@ -616,7 +616,7 @@ String HtmlNode::rendered() const
                 r.append( (char)c );
         }
         if ( !pre ) {
-            String w = r.wrapped( 72, "", "", false );
+            EString w = r.wrapped( 72, "", "", false );
             // wrapped uses CRLF, which we turn to LF for easier testing
             r.truncate();
             i = 0;
@@ -641,7 +641,7 @@ void HtmlNode::addChild( HtmlNode * n )
 
 
 
-static uint entity( const String & s )
+static uint entity( const EString & s )
 {
     if ( s.startsWith( "&#" ) ) {
         bool ok = true;
@@ -657,7 +657,7 @@ static uint entity( const String & s )
             return n;
     }
     else {
-        String e = s.mid( 1 );
+        EString e = s.mid( 1 );
         uint bottom = 0;
         uint top = ents;
         // an array and a binary search is _almost_ the same as a
@@ -676,7 +676,7 @@ static uint entity( const String & s )
 }
 
 
-static UString toUnicode( class Codec * c, const String & s )
+static UString toUnicode( class Codec * c, const EString & s )
 {
     uint i = 0;
     UString r;
@@ -710,7 +710,7 @@ public:
         : codec( 0 ), root( 0 )
     {}
 
-    String html;
+    EString html;
     Codec * codec;
     HtmlNode * root;
 };
@@ -722,7 +722,7 @@ public:
 
 /*! Creates a new HtmlParser to parse \a html using \a codec. */
 
-HtmlParser::HtmlParser( const String & html, Codec * codec )
+HtmlParser::HtmlParser( const EString & html, Codec * codec )
     : d( new HtmlParserData )
 {
     d->html = html;
@@ -769,14 +769,14 @@ void HtmlParser::parse()
                     d->html[j] != ' ' && d->html[j] != '>' )
                 j++;
 
-            String tag( d->html.mid( i, j-i ).lower() );
+            EString tag( d->html.mid( i, j-i ).lower() );
 
             HtmlNode * n = new HtmlNode( 0, tag );
 
             parseAttributes( n->attributes(), i );
             i++;
 
-            String unwind;
+            EString unwind;
             if ( tag[0] == '/' )
                 unwind = tag.mid( 1 );
             else if ( tag == "p" )
@@ -835,9 +835,9 @@ void HtmlParser::parse()
     other shady things.
 */
 
-void HtmlParser::parseAttributes( Dict<String> * v, uint & i )
+void HtmlParser::parseAttributes( Dict<EString> * v, uint & i )
 {
-    String name;
+    EString name;
     do {
         while ( d->html[i] == ' ' ||
                 d->html[i] == '\t' ||
@@ -851,7 +851,7 @@ void HtmlParser::parseAttributes( Dict<String> * v, uint & i )
         name = d->html.mid( j, i-j ).simplified().lower();
         if ( !name.isEmpty() && d->html[i] == '=' ) {
             i++;
-            String value;
+            EString value;
             while ( d->html[i] == ' ' || d->html[i] == '\t' ||
                     d->html[i] == 13 || d->html[i] == 10 )
                 i++;
@@ -893,7 +893,7 @@ void HtmlParser::parseAttributes( Dict<String> * v, uint & i )
             //    might trick the browser into seeing null bytes where
             //    none are permitted or similar evil
             if ( name.boring() && !value.isEmpty() && !v->contains( name ) ) {
-                String v8;
+                EString v8;
                 uint p = 0;
                 bool ok = true;
                 while ( ok && p < value.length() ) {
@@ -921,7 +921,7 @@ void HtmlParser::parseAttributes( Dict<String> * v, uint & i )
                     Utf8Codec u;
                     (void)u.toUnicode( v8 );
                     if ( u.wellformed() )
-                        v->insert( name, new String( value ) );
+                        v->insert( name, new EString( value ) );
                 }
             }
         }

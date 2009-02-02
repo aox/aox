@@ -21,7 +21,7 @@ public:
 
     static Collation * create( const UString & );
 
-    static class StringList * supported();
+    static class EStringList * supported();
 };
 
 

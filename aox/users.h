@@ -10,7 +10,7 @@ class ListUsers
     : public AoxCommand
 {
 public:
-    ListUsers( StringList * );
+    ListUsers( EStringList * );
     void execute();
 
 private:
@@ -22,7 +22,7 @@ class CreateUser
     : public AoxCommand
 {
 public:
-    CreateUser( StringList * );
+    CreateUser( EStringList * );
     void execute();
 
 private:
@@ -34,7 +34,7 @@ class DeleteUser
     : public AoxCommand
 {
 public:
-    DeleteUser( StringList * );
+    DeleteUser( EStringList * );
     void execute();
 
 private:
@@ -46,7 +46,7 @@ class ChangePassword
     : public AoxCommand
 {
 public:
-    ChangePassword( StringList * );
+    ChangePassword( EStringList * );
     void execute();
 
 private:
@@ -58,7 +58,7 @@ class ChangeUsername
     : public AoxCommand
 {
 public:
-    ChangeUsername( StringList * );
+    ChangeUsername( EStringList * );
     void execute();
 
 private:
@@ -70,7 +70,7 @@ class ChangeAddress
     : public AoxCommand
 {
 public:
-    ChangeAddress( StringList * );
+    ChangeAddress( EStringList * );
     void execute();
 
 private:

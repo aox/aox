@@ -6,12 +6,12 @@
 #include "utf.h"
 #include "event.h"
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 #include "database.h"
 #include "eventloop.h"
 #include "integerset.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "transaction.h"
 
 
@@ -29,8 +29,8 @@ public:
     Query::State state;
     Query::Format format;
 
-    String name;
-    String query;
+    EString name;
+    EString query;
 
     Query::InputLine *values;
     List< Query::InputLine > *inputLines;
@@ -40,7 +40,7 @@ public:
     List< Row > rows;
     uint totalRows;
 
-    String error;
+    EString error;
 
     bool canFail;
     bool canBeSlow;
@@ -92,7 +92,7 @@ Query::Query( EventHandler *ev )
     progress or completion.
 */
 
-Query::Query( const String &s, EventHandler *ev )
+Query::Query( const EString &s, EventHandler *ev )
     : d( new QueryData )
 {
     d->owner = ev;
@@ -255,7 +255,7 @@ Query::Format Query::format() const
 void Query::bind( uint n, int s )
 {
     if ( d->format == Binary ) {
-        String t;
+        EString t;
         t.append( (char)( s >> 24 ) );
         t.append( (char)( s >> 16 ) );
         t.append( (char)( s >>  8 ) );
@@ -289,7 +289,7 @@ void Query::bind( uint n, uint s )
 void Query::bind( uint n, int64 s )
 {
     if ( d->format == Binary ) {
-        String t;
+        EString t;
         t.append( (char)( s >> 56 ) );
         t.append( (char)( s >> 48 ) );
         t.append( (char)( s >> 40 ) );
@@ -307,12 +307,12 @@ void Query::bind( uint n, int64 s )
 
 
 /*! \overload
-    Binds the String value \a s to the parameter \a n of this Query in
+    Binds the EString value \a s to the parameter \a n of this Query in
     the specified format \a f (or the default format for this query if
     \a f is left at the default value of Unknown).
 */
 
-void Query::bind( uint n, const String &s, Format f )
+void Query::bind( uint n, const EString &s, Format f )
 {
     if ( f == Unknown )
         f = d->format;
@@ -341,7 +341,7 @@ void Query::bind( uint n, const UString &s )
 void Query::bind( uint n, const class IntegerSet & set )
 {
     if ( d->format == Text ) {
-        String s( "{" );
+        EString s( "{" );
         s.append( set.csl() );
         s.append( "}" );
         bind( n, s );
@@ -358,14 +358,14 @@ void Query::bind( uint n, const class IntegerSet & set )
     This version binds each string in \a l as parameter \a n.
 */
 
-void Query::bind( uint n, const StringList & l )
+void Query::bind( uint n, const EStringList & l )
 {
     if ( d->format == Text ) {
-        String s( "{" );
+        EString s( "{" );
         s.reserve( l.count() * 16 );
-        StringList::Iterator it( l );
+        EStringList::Iterator it( l );
         while ( it ) {
-            String t( *it );
+            EString t( *it );
             if ( t.boring() )
                 s.append( t );
             else
@@ -422,7 +422,7 @@ void Query::execute()
     prepared statement.
 */
 
-String Query::name() const
+EString Query::name() const
 {
     return d->name;
 }
@@ -436,7 +436,7 @@ String Query::name() const
     This function is intended for use by the Database.
 */
 
-String Query::string() const
+EString Query::string() const
 {
     return d->query;
 }
@@ -450,7 +450,7 @@ String Query::string() const
     the database.
 */
 
-void Query::setString( const String &s )
+void Query::setString( const EString &s )
 {
     if ( d->state != Inactive )
         return;
@@ -560,17 +560,17 @@ void Query::notify()
     is suitable for logging and debugging.
 */
 
-String Query::description()
+EString Query::description()
 {
-    String s;
-    StringList p;
+    EString s;
+    EStringList p;
 
     int i = 0;
     List< Query::Value >::Iterator v( *values() );
     while ( v ) {
         i++;
 
-        String r( "$" );
+        EString r( "$" );
         r.appendNumber( i );
         r.append( "=" );
         int n = v->length();
@@ -579,7 +579,7 @@ String Query::description()
         }
         else if ( v->format() == Query::Binary ) {
             r.append( "binary: " );
-            r.append( String::humanNumber( n ) );
+            r.append( EString::humanNumber( n ) );
             r.append( "b " );
         }
         else if ( n <= 32 ) {
@@ -591,7 +591,7 @@ String Query::description()
             r.append( "'" );
             r.append( v->data().mid( 0, 12 ) );
             r.append( "'... (" );
-            r.append( String::humanNumber( n ) );
+            r.append( EString::humanNumber( n ) );
             r.append( "b)" );
         }
         p.append( r );
@@ -615,7 +615,7 @@ String Query::description()
     and an empty string otherwise.
 */
 
-String Query::error() const
+EString Query::error() const
 {
     return d->error;
 }
@@ -628,7 +628,7 @@ String Query::error() const
     This function is intended for use by the Database.
 */
 
-void Query::setError( const String &s )
+void Query::setError( const EString &s )
 {
     Scope x( log() );
     d->error = s;
@@ -706,7 +706,7 @@ Row *Query::nextRow()
     them to the originating Query.
 
     Users of Query can retrieve each row in turn with Query::nextRow(),
-    and use the getInt()/getString()/etc. accessor functions, each of
+    and use the getInt()/getEString()/etc. accessor functions, each of
     which takes a column name, to retrieve the values of each column
     in the Row.
 */
@@ -740,14 +740,14 @@ const Column * Row::fetch( const char * f, Column::Type type, bool warn ) const
     int * x = names->find( f, strlen( f ) * 8 );
     if ( !x ) {
         if ( warn )
-            log( "Note: Column " + String( f ).quoted() + " does not exist",
+            log( "Note: Column " + EString( f ).quoted() + " does not exist",
                  Log::Error );
         return 0;
     }
 
     if ( warn && type != data[*x].type )
         log( "Note: Expected type " + Column::typeName( type ) +
-             " for column " + String( f ).quoted() + ", but received " +
+             " for column " + EString( f ).quoted() + ", but received " +
              Column::typeName( data[*x].type ), Log::Error );
     return &data[*x];
 }
@@ -818,7 +818,7 @@ int64 Row::getBigint( const char * f ) const
     and is NOT NULL, and an empty string otherwise.
 */
 
-String Row::getString( const char * f ) const
+EString Row::getEString( const char * f ) const
 {
     const Column * c = fetch( f, Column::Bytes, true );
     if ( !c )
@@ -879,7 +879,7 @@ List<PreparedStatement> * preparedStatementRoot = 0;
     generates a unique SQL name for it.
 */
 
-PreparedStatement::PreparedStatement( const String &s )
+PreparedStatement::PreparedStatement( const EString &s )
     : n( fn( prepareCounter++ ) ), q( s )
 {
     if ( !preparedStatementRoot ) {
@@ -893,7 +893,7 @@ PreparedStatement::PreparedStatement( const String &s )
 /*! Returns the name of this PreparedStatement.
 */
 
-String PreparedStatement::name() const
+EString PreparedStatement::name() const
 {
     return n;
 }
@@ -902,7 +902,7 @@ String PreparedStatement::name() const
 /*! Returns the text of this PreparedStatement.
 */
 
-String PreparedStatement::query() const
+EString PreparedStatement::query() const
 {
     return q;
 }
@@ -916,9 +916,9 @@ String PreparedStatement::query() const
 
 /*! Returns the name of \a type, mostly for logging purposes. */
 
-String Column::typeName( Type type )
+EString Column::typeName( Type type )
 {
-    String n;
+    EString n;
     switch( type ) {
     case Unknown:
         n = "unknown";

@@ -16,7 +16,7 @@ public:
 
     void note( uint );
     void clear();
-    String failures();
+    EString failures();
 
 private:
     class TableBaseData * d;

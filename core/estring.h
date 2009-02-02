@@ -6,18 +6,18 @@
 #include "global.h"
 
 
-class StringData
+class EStringData
     : public Garbage
 {
 private:
-    StringData(): str( 0 ), len( 0 ), max( 0 ) {
+    EStringData(): str( 0 ), len( 0 ), max( 0 ) {
         setFirstNonPointer( &len );
     }
-    StringData( int );
+    EStringData( int );
 
-    friend class String;
-    friend bool operator==( const class String &, const class String & );
-    friend bool operator==( const class String &, const char * );
+    friend class EString;
+    friend bool operator==( const class EString &, const class EString & );
+    friend bool operator==( const class EString &, const char * );
     void * operator new( size_t, uint );
     void * operator new( size_t s ) { return Garbage::operator new( s); }
 
@@ -27,19 +27,19 @@ private:
 };
 
 
-class String
+class EString
     : public Garbage
 {
 public:
-    String();
-    String( const char * );
-    String( const char *, uint );
-    String( const String & );
-    ~String();
+    EString();
+    EString( const char * );
+    EString( const char *, uint );
+    EString( const EString & );
+    ~EString();
 
-    String & operator=( const String & );
-    String & operator=( const char * );
-    String & operator+=( const String & str ) { append( str ); return *this; }
+    EString & operator=( const EString & );
+    EString & operator=( const char * );
+    EString & operator+=( const EString & str ) { append( str ); return *this; }
 
     void operator delete( void * );
 
@@ -61,47 +61,47 @@ public:
     const char * cstr();
     const char * cstr() const;
 
-    String lower() const;
-    String upper() const;
-    String headerCased() const;
-    String mid( uint, uint = UINT_MAX ) const;
-    String simplified() const;
-    String trimmed() const;
-    String stripCRLF() const;
-    String hex() const;
+    EString lower() const;
+    EString upper() const;
+    EString headerCased() const;
+    EString mid( uint, uint = UINT_MAX ) const;
+    EString simplified() const;
+    EString trimmed() const;
+    EString stripCRLF() const;
+    EString hex() const;
     bool isQuoted( char = '"', char = '\\' ) const;
-    String unquoted( char = '"', char = '\\' ) const;
-    String quoted( char = '"', char = '\\' ) const;
+    EString unquoted( char = '"', char = '\\' ) const;
+    EString quoted( char = '"', char = '\\' ) const;
 
     enum Boring { Totally, IMAP, MIME };
     bool boring( Boring = Totally ) const;
 
-    bool startsWith( const String & ) const;
+    bool startsWith( const EString & ) const;
     bool startsWith( const char * ) const;
-    bool endsWith( const String & ) const;
+    bool endsWith( const EString & ) const;
     bool endsWith( const char * ) const;
     uint number( bool *, uint = 10 ) const;
-    static String fromNumber( int64, uint = 10 );
+    static EString fromNumber( int64, uint = 10 );
     void appendNumber( int64, uint = 10 );
-    static String humanNumber( int64 );
+    static EString humanNumber( int64 );
 
     int find( char, int=0 ) const;
-    int find( const String &, int=0 ) const;
-    bool contains( const String & ) const;
+    int find( const EString &, int=0 ) const;
+    bool contains( const EString & ) const;
     bool contains( const char ) const;
-    bool containsWord( const String & ) const;
-    String section( const String &, uint ) const;
+    bool containsWord( const EString & ) const;
+    EString section( const EString &, uint ) const;
 
-    void replace( const String &, const String & );
+    void replace( const EString &, const EString & );
 
     void append( char );
     void appendNumber( int, int = 10 );
     void appendNumber( uint, int = 10 );
-    void append( const String & );
+    void append( const EString & );
     void append( const char *, uint );
     void append( const char * );
 
-    void prepend( const String & );
+    void prepend( const EString & );
 
     void reserve( uint );
     void reserve2( uint );
@@ -109,29 +109,29 @@ public:
     void setLength( uint );
 
     enum Encoding { Binary, Base64, QP, Uuencode };
-    String encoded( Encoding, uint = 0 ) const;
-    String decoded( Encoding ) const;
+    EString encoded( Encoding, uint = 0 ) const;
+    EString decoded( Encoding ) const;
 
-    String eURI() const;
-    String deURI() const;
-    String de64() const;
-    String deUue() const;
-    String e64( uint = 0 ) const;
-    String deQP( bool = false ) const;
-    String eQP( bool = false, bool = false ) const;
+    EString eURI() const;
+    EString deURI() const;
+    EString de64() const;
+    EString deUue() const;
+    EString e64( uint = 0 ) const;
+    EString deQP( bool = false ) const;
+    EString eQP( bool = false, bool = false ) const;
     bool needsQP() const;
 
-    friend inline bool operator==( const String &, const String & );
-    friend bool operator==( const String &, const char * );
+    friend inline bool operator==( const EString &, const EString & );
+    friend bool operator==( const EString &, const char * );
 
-    bool operator<( const String & ) const;
-    bool operator>( const String & ) const;
-    bool operator<=( const String & ) const;
-    bool operator>=( const String & ) const;
+    bool operator<( const EString & ) const;
+    bool operator>( const EString & ) const;
+    bool operator<=( const EString & ) const;
+    bool operator>=( const EString & ) const;
 
     bool operator<( const char * ) const;
 
-    int compare( const String & ) const;
+    int compare( const EString & ) const;
 
     inline void detach() { if ( !modifiable() ) reserve( length() ); }
 
@@ -139,21 +139,21 @@ public:
 
     void print() const;
 
-    String anonymised() const;
+    EString anonymised() const;
 
-    String crlf() const;
+    EString crlf() const;
 
-    String wrapped( uint linelength,
-                    const String & firstPrefix, const String & otherPrefix,
+    EString wrapped( uint linelength,
+                    const EString & firstPrefix, const EString & otherPrefix,
                     bool spaceAtEOL ) const;
 
 private:
-    StringData * d;
+    EStringData * d;
 };
 
 
 // since operator== is called so often, we provide fastish inlines
-inline bool operator==( const String & a, const String & b ) {
+inline bool operator==( const EString & a, const EString & b ) {
     uint al = a.length();
     uint bl = b.length();
     if ( !al && !bl )
@@ -171,7 +171,7 @@ inline bool operator==( const String & a, const String & b ) {
 }
 
 
-inline bool operator==( const String & a, const char * b ) {
+inline bool operator==( const EString & a, const char * b ) {
     uint al = a.length();
     if ( !b || !*b ) {
         if ( al == 0 )
@@ -189,33 +189,33 @@ inline bool operator==( const String & a, const char * b ) {
 }
 
 
-inline bool operator==( const char * a, const String & b ) {
+inline bool operator==( const char * a, const EString & b ) {
     return b == a;
 }
 
 
-inline bool operator!=( const String & a, const char * b ) {
+inline bool operator!=( const EString & a, const char * b ) {
     return !( a == b );
 }
 
 
-inline bool operator!=( const char * a, const String & b ) {
+inline bool operator!=( const char * a, const EString & b ) {
     return !( b == a );
 }
 
 
-inline bool operator!=( const String & a, const String & b ) {
+inline bool operator!=( const EString & a, const EString & b ) {
     return !( a == b );
 }
 
 
-extern const String operator+( const String & a, const String & b );
-extern const String operator+=( const String & a, const String & b );
+extern const EString operator+( const EString & a, const EString & b );
+extern const EString operator+=( const EString & a, const EString & b );
 
 
-inline String fn( int64 n, uint b = 10 )
+inline EString fn( int64 n, uint b = 10 )
 {
-    return String::fromNumber( n, b );
+    return EString::fromNumber( n, b );
 }
 
 

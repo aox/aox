@@ -32,9 +32,9 @@ Gb2312Codec::Gb2312Codec()
 
 /*! Returns the GB2312-encoded representation of the UString \a u. */
 
-String Gb2312Codec::fromUnicode( const UString &u )
+EString Gb2312Codec::fromUnicode( const UString &u )
 {
-    String s;
+    EString s;
 
     uint i = 0;
     while ( i < u.length() ) {
@@ -57,9 +57,9 @@ String Gb2312Codec::fromUnicode( const UString &u )
 }
 
 
-/*! Returns the Unicode representation of the String \a s. */
+/*! Returns the Unicode representation of the EString \a s. */
 
-UString Gb2312Codec::toUnicode( const String &s )
+UString Gb2312Codec::toUnicode( const EString &s )
 {
     UString u;
 

@@ -5,7 +5,7 @@
 
 #include "imapresponse.h"
 #include "permissions.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "event.h"
 #include "imap.h"
 
@@ -22,7 +22,7 @@ public:
     Command( IMAP * );
     virtual ~Command();
 
-    static Command * create( IMAP *, const String &, const String &,
+    static Command * create( IMAP *, const EString &, const EString &,
                              ImapParser * );
 
     virtual void parse();
@@ -38,8 +38,8 @@ public:
 
     void setAllowedState( IMAP::State ) const;
 
-    String tag() const;
-    String name() const;
+    EString tag() const;
+    EString name() const;
 
     bool usesMsn() const;
 
@@ -48,11 +48,11 @@ public:
 
     IMAP * imap() const;
 
-    void respond( const String & );
-    void setRespTextCode( const String & );
+    void respond( const EString & );
+    void setRespTextCode( const EString & );
 
     enum Error { No, Bad };
-    void error( Error, const String & );
+    void error( Error, const EString & );
 
     void waitFor( ImapResponse * );
     void finish();
@@ -61,38 +61,38 @@ public:
 
     char nextChar();
     void step( uint = 1 );
-    bool present( const String & );
-    void require( const String & );
-    String digits( uint, uint );
-    String letters( uint, uint );
+    bool present( const EString & );
+    void require( const EString & );
+    EString digits( uint, uint );
+    EString letters( uint, uint );
 
     void nil();
     void space();
     uint number();
     uint nzNumber();
-    String atom();
-    String listChars();
-    String quoted();
-    String literal();
-    String string();
-    String nstring();
-    String astring();
+    EString atom();
+    EString listChars();
+    EString quoted();
+    EString literal();
+    EString string();
+    EString nstring();
+    EString astring();
     UString listMailbox();
     IntegerSet set( bool );
     uint msn();
-    String flag();
+    EString flag();
     class Mailbox * mailbox();
     UString mailboxName();
 
     void end();
-    const String following() const;
+    const EString following() const;
 
     enum QuoteMode {
         AString, NString, PlainString
     };
-    static String imapQuoted( const String &,
-                              const QuoteMode = PlainString );
-    String imapQuoted( Mailbox *, Mailbox * = 0 );
+    static EString imapQuoted( const EString &,
+                               const QuoteMode = PlainString );
+    EString imapQuoted( Mailbox *, Mailbox * = 0 );
 
     void shrink( IntegerSet * );
 

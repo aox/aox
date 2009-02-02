@@ -8,14 +8,14 @@ class File;
 
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 
 
 class Error
     : public Garbage
 {
 public:
-    Error( File *, uint, const String & );
+    Error( File *, uint, const EString & );
 
     static void report();
 
@@ -27,7 +27,7 @@ private:
 private:
     File * f;
     uint l;
-    String t;
+    EString t;
 };
 
 

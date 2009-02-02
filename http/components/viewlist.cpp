@@ -63,7 +63,7 @@ void ViewList::execute()
     if ( !d->q->done() )
         return;
 
-    String s;
+    EString s;
     if ( d->q->hasResults() ) {
         s.append( "<ul>\n" );
         while ( d->q->hasResults() ) {
@@ -71,9 +71,9 @@ void ViewList::execute()
             s.append( "<li>" );
             s.appendNumber( r->getInt( "id" ) );
             s.append( ": " );
-            s.append( r->getString( "name" ) );
+            s.append( r->getEString( "name" ) );
             s.append( " as <code>" );
-            s.append( r->getString( "selector" ) );
+            s.append( r->getEString( "selector" ) );
             s.append( "</code>\n" );
         }
         s.append( "</ul>" );

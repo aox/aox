@@ -27,7 +27,7 @@ void FormMail::execute()
     l.setMagic( true );
     l.setSuffix( Link::Send );
 
-    String s( "<form method=post action=\"" + l.canonical() + "\">\n"
+    EString s( "<form method=post action=\"" + l.canonical() + "\">\n"
               "<label for=from>From:</label>\n"
               "<input type=text name=from value=\"\"><br>\n"
               "<label for=to>To:</label>\n"

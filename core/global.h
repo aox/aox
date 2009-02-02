@@ -5,6 +5,13 @@
 
 #include <stddef.h>
 
+//#define shared_ptr P
+//#define weak_ptr W
+//#include <boost/shared_ptr.hpp>
+//#include <boost/weak_ptr.hpp>
+//#undef shared_ptr
+//#undef weak_ptr
+
 #if !defined(U32_MAX)
 #define U32_MAX (0xffffffffU)
 #endif

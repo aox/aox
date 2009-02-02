@@ -4,7 +4,7 @@
 
 #include "user.h"
 #include "query.h"
-#include "string.h"
+#include "estring.h"
 #include "endpoint.h"
 #include "eventloop.h"
 
@@ -31,7 +31,7 @@ SaslConnection::~SaslConnection()
 }
 
 
-/*! \fn virtual void SaslConnection::sendChallenge( const String & s ) = 0
+/*! \fn virtual void SaslConnection::sendChallenge( const EString & s ) = 0
 
     This virtual function must be defined by SaslConnection subclasses.
     It is called by a SaslMechanism to send the challenge \a s, and is
@@ -54,7 +54,7 @@ User * SaslConnection::user() const
     return the specified \a user.
 */
 
-void SaslConnection::setUser( User * user, const String & mechanism )
+void SaslConnection::setUser( User * user, const EString & mechanism )
 {
     u = user;
     m = mechanism;

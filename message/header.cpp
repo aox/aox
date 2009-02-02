@@ -39,7 +39,7 @@ public:
     Header::DefaultType defaultType;
 
     bool verified;
-    String error;
+    EString error;
 
     List< HeaderField > fields;
 };
@@ -98,7 +98,7 @@ bool Header::valid() const
     detected in this Header, or an empty string if there is no error.
 */
 
-String Header::error() const
+EString Header::error() const
 {
     verify();
     return d->error;
@@ -154,7 +154,7 @@ void Header::add( HeaderField * hf )
     appends it to this Header, adjusting validity as necessary.
 */
 
-void Header::add( const String &name, const String &value )
+void Header::add( const EString &name, const EString &value )
 {
     add( HeaderField::create( name, value ) );
 }
@@ -290,7 +290,7 @@ Date *Header::date( HeaderField::Type t ) const
     string. It'll have to morph soon, to handle RFC 2047 at least.
 */
 
-String Header::subject() const
+EString Header::subject() const
 {
     HeaderField * s = field( HeaderField::Subject );
     if ( s )
@@ -303,7 +303,7 @@ String Header::subject() const
     the RFC 2822 representation.
 */
 
-String Header::inReplyTo() const
+EString Header::inReplyTo() const
 {
     HeaderField * s = field( HeaderField::InReplyTo );
     if ( s )
@@ -319,7 +319,7 @@ String Header::inReplyTo() const
     an empty string.
 */
 
-String Header::messageId( HeaderField::Type t ) const
+EString Header::messageId( HeaderField::Type t ) const
 {
     AddressField *af = addressField( t );
     if ( !af )
@@ -383,7 +383,7 @@ ContentDisposition *Header::contentDisposition() const
     should it be?
 */
 
-String Header::contentDescription() const
+EString Header::contentDescription() const
 {
     HeaderField *hf = field( HeaderField::ContentDescription );
     if ( !hf )
@@ -396,7 +396,7 @@ String Header::contentDescription() const
     if there isn't one. The URI is not validated in any way.
 */
 
-String Header::contentLocation() const
+EString Header::contentLocation() const
 {
     HeaderField *hf = field( HeaderField::ContentLocation );
     if ( !hf )
@@ -524,8 +524,8 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 
     List<Address>::Iterator it( m );
     while ( it ) {
-        String lp = it->localpart();
-        String dom = it->domain().lower();
+        EString lp = it->localpart();
+        EString dom = it->domain().lower();
         List<Address>::Iterator i( l );
         while ( i && !( i->localpart() == lp && i->domain().lower() == dom ) )
             ++i;
@@ -554,7 +554,7 @@ void Header::simplify()
     }
 
     ContentTransferEncoding *cte = contentTransferEncoding();
-    if ( cte && cte->encoding() == String::Binary )
+    if ( cte && cte->encoding() == EString::Binary )
         removeField( HeaderField::ContentTransferEncoding );
 
     ContentDisposition *cdi = contentDisposition();
@@ -793,21 +793,21 @@ void Header::repair()
     if ( occurrences[(int)HeaderField::Sender] > 0 &&
          ( !senders || senders->count() > 1 ) )
     {
-        StringList from;
+        EStringList from;
         List<Address>::Iterator fi( addresses( HeaderField::From ) );
         while ( fi ) {
             from.append( fi->lpdomain().lower() );
             ++fi;
         }
 
-        StringList sender;
+        EStringList sender;
         List<Address>::Iterator si( addresses( HeaderField::Sender ) );
         while ( si ) {
             sender.append( si->lpdomain().lower() );
             ++si;
         }
 
-        StringList::Iterator i( sender );
+        EStringList::Iterator i( sender );
         bool difference = false;
         while ( i && difference ) {
             if ( !from.contains( *i ) )
@@ -826,7 +826,7 @@ void Header::repair()
     what/how to repair.
 */
 
-void Header::repair( Multipart * p, const String & body )
+void Header::repair( Multipart * p, const EString & body )
 {
     if ( valid() )
         return;
@@ -858,7 +858,7 @@ void Header::repair( Multipart * p, const String & body )
             // First, we take the date from the oldest plausible
             // Received field.
             if ( it->type() == HeaderField::Received ) {
-                String v = it->rfc822();
+                EString v = it->rfc822();
                 int i = 0;
                 while ( v.find( ';', i+1 ) > 0 )
                     i = v.find( ';', i+1 );
@@ -1148,7 +1148,7 @@ void Header::repair( Multipart * p, const String & body )
                 cand++;
             bool confused = false;
             bool done = false;
-            String boundary;
+            EString boundary;
             while ( cand >= 0 && cand < (int)body.length() &&
                     !done && !confused ) {
                 if ( body[cand] == '-' && body[cand+1] == '-' ) {
@@ -1172,7 +1172,7 @@ void Header::repair( Multipart * p, const String & body )
                     if ( i > cand + 2 &&
                          ( body[i] == '\r' || body[i] == '\n' ) ) {
                         // found a candidate line.
-                        String s = body.mid( cand+2, i-cand-2 );
+                        EString s = body.mid( cand+2, i-cand-2 );
                         if ( boundary.isEmpty() ) {
                             boundary = s;
                         }
@@ -1336,7 +1336,7 @@ void Header::repair( Multipart * p, const String & body )
                 bad.append( ct );
             }
             else if ( ct->type() == "text" && ct->subtype() == "html" ) {
-                String b = body.mid( 0, 2048 ).simplified().lower();
+                EString b = body.mid( 0, 2048 ).simplified().lower();
                 if ( b.startsWith( "<!doctype" ) ||
                      b.startsWith( "<html" ) )
                     good.append( ct );
@@ -1344,7 +1344,7 @@ void Header::repair( Multipart * p, const String & body )
                     bad.append( ct );
             }
             else if ( ct->type() == "multipart" ) {
-                String b = ct->parameter( "boundary" );
+                EString b = ct->parameter( "boundary" );
                 if ( b.isEmpty() || b != b.simplified() )
                     bad.append( ct );
                 else if ( body.startsWith( "n--" + b ) ||
@@ -1381,7 +1381,7 @@ void Header::repair( Multipart * p, const String & body )
         AddressField * sender = addressField( HeaderField::Sender );
         List<Address>::Iterator i( sender->addresses() );
         Address * last = sender->addresses()->last();
-        String domain = i->domain().lower();
+        EString domain = i->domain().lower();
         while ( i && i->domain().lower() == domain )
             ++i;
         if ( i == last ) {
@@ -1421,17 +1421,17 @@ void Header::repair( Multipart * p, const String & body )
                  ct->type() == "message" &&
                  ct->subtype() == "delivery-status" ) {
                 // woo.
-                StringList * lines = StringList::split( 10, i->data() );
-                StringList::Iterator l( lines );
-                String reportingMta;
+                EStringList * lines = EStringList::split( 10, i->data() );
+                EStringList::Iterator l( lines );
+                EString reportingMta;
                 Address * address = 0;
                 while ( l ) {
-                    String line = l->lower();
+                    EString line = l->lower();
                     ++l;
-                    String field = line.section( ":", 1 ).simplified();;
-                    String domain = line.section( ":", 2 ).section( ";", 1 )
+                    EString field = line.section( ":", 1 ).simplified();;
+                    EString domain = line.section( ":", 2 ).section( ";", 1 )
                                     .simplified();
-                    String value = line.section( ":", 2 ).section( ";", 2 )
+                    EString value = line.section( ":", 2 ).section( ";", 2 )
                                    .simplified();;
                     // value may be xtext, but I don't care. it's an
                     // odd error case in illegal mail, so who can say
@@ -1494,8 +1494,8 @@ void Header::repair( Multipart * p, const String & body )
                 if ( al )
                     msgid = al->first();
 
-                String me = Configuration::hostname().lower();
-                String victim;
+                EString me = Configuration::hostname().lower();
+                EString victim;
                 if ( msgid )
                     victim = msgid->domain().lower();
                 uint tld = victim.length();
@@ -1542,7 +1542,7 @@ void Header::repair( Multipart * p, const String & body )
              !addresses( HeaderField::From ) ) ||
            field( HeaderField::From )->error().contains( "No-bounce" ) ) ) {
         AddressField * from = addressField( HeaderField::From );
-        String raw;
+        EString raw;
         if ( from )
             raw = from->unparsedValue().simplified();
         if ( raw.endsWith( "<>" ) )
@@ -1624,9 +1624,9 @@ void Header::repair( Multipart * p, const String & body )
 
 /*! Returns the canonical text representation of this Header. */
 
-String Header::asText() const
+EString Header::asText() const
 {
-    String r;
+    EString r;
     r.reserve( d->fields.count() * 100 );
 
     List< HeaderField >::Iterator it( d->fields );
@@ -1647,7 +1647,7 @@ String Header::asText() const
     (The details of the function are liable to change.)
 */
 
-void Header::appendField( String &r, HeaderField *hf ) const
+void Header::appendField( EString &r, HeaderField *hf ) const
 {
     if ( !hf )
         return;
@@ -1666,7 +1666,7 @@ static int msgidness( const Address * a )
 {
     if ( !a )
         return 0;
-    String lp = a->localpart();
+    EString lp = a->localpart();
     uint score = lp.length();
     if ( score < 10 )
         return 0;
@@ -1713,14 +1713,14 @@ void Header::fix8BitFields( class Codec * c )
                // XXX: This should be more fine-grained:
                f->type() == HeaderField::Other ) )
         {
-            String v = f->unparsedValue();
+            EString v = f->unparsedValue();
             uint i = 0;
             while ( v[i] < 128 && v[i] > 0 )
                 i++;
             if ( i < v.length() ) {
                 c->setState( Codec::Valid );
                 UString u;
-                StringList::Iterator w( StringList::split( ' ',
+                EStringList::Iterator w( EStringList::split( ' ',
                                                            v.simplified() ) );
                 bool wasE = false;
                 while ( w ) {
@@ -1756,11 +1756,11 @@ void Header::fix8BitFields( class Codec * c )
                   f->type() == HeaderField::ContentLanguage )
         {
             MimeField * mf = (MimeField*)((HeaderField*)f);
-            StringList::Iterator p( mf->parameters() );
+            EStringList::Iterator p( mf->parameters() );
             while ( p ) {
-                StringList::Iterator a( p );
+                EStringList::Iterator a( p );
                 ++p;
-                String v = mf->parameter( *a );
+                EString v = mf->parameter( *a );
                 uint i = 0;
                 while ( v[i] < 128 && v[i] > 0 )
                     i++;
@@ -1783,16 +1783,16 @@ void Header::fix8BitFields( class Codec * c )
             }
         }
         else if ( f->type() == HeaderField::InReplyTo ) {
-            String v = f->unparsedValue();
+            EString v = f->unparsedValue();
             uint i = 0;
             while ( v[i] < 128 && v[i] > 0 )
                 i++;
             if ( i < v.length() ) {
-                StringList::Iterator i( StringList::split( '<', v ) );
+                EStringList::Iterator i( EStringList::split( '<', v ) );
                 Address * best = 0;
                 while ( i ) {
                     if ( i->contains( '>' ) ) {
-                        String c = "<" + i->section( ">", 1 ) + ">";
+                        EString c = "<" + i->section( ">", 1 ) + ">";
                         AddressParser * ap = AddressParser::references( c );
                         if ( ap->error().isEmpty() &&
                              ap->addresses()->count() == 1 ) {

@@ -4,10 +4,11 @@
 
 #include "allocator.h"
 #include "scope.h"
-#include "sys.h"
-#include "string.h"
+#include "estring.h"
 
 #include "../encodings/utf.h"
+
+#include <string.h> // strlen, memmove
 
 
 /*! \class UStringData ustring.h
@@ -24,7 +25,7 @@
     Creates a zero-length string. This is naturally read-only.
 */
 
-/*! Creates a new String with \a words capacity. */
+/*! Creates a new EString with \a words capacity. */
 
 UStringData::UStringData( int words )
     : str( 0 ), len( 0 ), max( words )
@@ -64,7 +65,7 @@ void * UStringData::operator new( size_t ownSize, uint extra )
 */
 
 
-/*!  Constructs an empty Unicode String. */
+/*!  Constructs an empty Unicode EString. */
 
 UString::UString()
     : Garbage(), d( 0 )
@@ -296,9 +297,9 @@ bool UString::isAscii() const
     AsciiCodec::fromUnicode().
 */
 
-String UString::ascii() const
+EString UString::ascii() const
 {
-    String r;
+    EString r;
     r.reserve( length() );
     uint i = 0;
     while ( i < length() ) {
@@ -478,9 +479,9 @@ UString UString::trimmed() const
     contain embedded nulls.
 */
 
-String UString::utf8() const
+EString UString::utf8() const
 {
-    String s;
+    EString s;
     Utf8Codec u;
     s = u.fromUnicode( *this );
     s.append( (char)0 );

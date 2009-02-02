@@ -17,7 +17,7 @@ public:
         Session
     };
 
-    PopCommand( class POP *, Command, class StringList * );
+    PopCommand( class POP *, Command, class EStringList * );
 
     void read();
     void execute();
@@ -27,7 +27,7 @@ public:
 private:
     class PopCommandData * d;
 
-    String nextArg();
+    EString nextArg();
     bool startTls();
     bool auth();
     bool user();

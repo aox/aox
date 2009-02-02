@@ -18,7 +18,7 @@ WebmailIndex::WebmailIndex()
 
 void WebmailIndex::execute()
 {
-    String s;
+    EString s;
 
     addFrontMatter(
         FrontMatter::script(

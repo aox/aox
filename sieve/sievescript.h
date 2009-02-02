@@ -5,7 +5,7 @@
 
 #include "sieveproduction.h"
 
-#include "string.h"
+#include "estring.h"
 
 
 class SieveScript
@@ -14,16 +14,16 @@ class SieveScript
 public:
     SieveScript();
 
-    void parse( const String & );
-    String parseErrors() const;
-    String source() const;
+    void parse( const EString & );
+    EString parseErrors() const;
+    EString source() const;
 
     bool isEmpty() const;
 
     List<SieveCommand> * topLevelCommands() const;
 
 private:
-    String location( uint ) const;
+    EString location( uint ) const;
 
 private:
     class SieveScriptData * d;

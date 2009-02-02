@@ -713,7 +713,7 @@ void SessionInitialiser::findViewChanges()
     uint vnms = sel->placeHolder();
     d->messages->bind( vnms, d->viewnms );
 
-    String s( "select m.id, "
+    EString s( "select m.id, "
               "v.uid as vuid, v.modseq as vmodseq, "
               "s.uid as suid, s.modseq as smodseq, "
               "s.message as smessage, s.idate as sidate "
@@ -768,7 +768,7 @@ void SessionInitialiser::writeViewChanges()
             remove->bind( 3, r->getInt( "id" ) );
             remove->bind( 4, d->newModSeq-1 );
             remove->bindNull( 5 );
-            remove->bind( 6, String( "left view" ) );
+            remove->bind( 6, EString( "left view" ) );
             remove->submitLine();
             removeInDb.add( vuid );
         }
@@ -831,7 +831,7 @@ void SessionInitialiser::findMailboxChanges()
     bool initialising = false;
     if ( d->oldUidnext <= 1 )
         initialising = true;
-    String msgs = "select mm.uid, mm.modseq from mailbox_messages mm "
+    EString msgs = "select mm.uid, mm.modseq from mailbox_messages mm "
                   "where mm.mailbox=$1 and mm.uid<$2";
 
     // if we know we'll see one new modseq and at least one new

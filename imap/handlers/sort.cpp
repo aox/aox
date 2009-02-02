@@ -39,7 +39,7 @@ public:
         SortCriterionType t;
         bool reverse;
         // the rest applies only to annotation
-        String annotationEntry;
+        EString annotationEntry;
         bool priv;
         uint b1, b2;
     };
@@ -52,8 +52,8 @@ public:
 
     bool usingCriterionType( SortCriterionType );
 
-    void addCondition( String &, class SortCriterion * );
-    void addJoin( String &, const String &, const String &, bool );
+    void addCondition( EString &, class SortCriterion * );
+    void addJoin( EString &, const EString &, const EString &, bool );
 };
 
 
@@ -91,7 +91,7 @@ void Sort::parse()
         if ( !d->c.isEmpty() )
             space();
         SortData::SortCriterion * c = new SortData::SortCriterion;
-        String s = parser()->dotLetters( 2, 11 ).lower();
+        EString s = parser()->dotLetters( 2, 11 ).lower();
         if ( s == "reverse" ) {
             space();
             s = parser()->dotLetters( 2, 11 ).lower();
@@ -178,7 +178,7 @@ void Sort::execute()
         d->s->simplify();
         d->q = d->s->query( imap()->user(), session()->mailbox(),
                             session(), this, true );
-        String t = d->q->string();
+        EString t = d->q->string();
         List<SortData::SortCriterion>::Iterator c( d->c );
         while ( c ) {
             if ( c->t == SortData::Annotation ) {
@@ -211,7 +211,7 @@ void Sort::execute()
 }
 
 
-void SortData::addCondition( String & t, class SortData::SortCriterion * c )
+void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
 {
     switch ( c->t ) {
     case Arrival:
@@ -308,8 +308,8 @@ void SortData::addCondition( String & t, class SortData::SortCriterion * c )
 }
 
 
-void SortData::addJoin( String & t,
-                        const String & join, const String & orderby,
+void SortData::addJoin( EString & t,
+                        const EString & join, const EString & orderby,
                         bool desc )
 {
     int w = t.find( " where " );
@@ -372,10 +372,10 @@ ImapSortResponse::ImapSortResponse( ImapSession * session,
 }
 
 
-String ImapSortResponse::text() const
+EString ImapSortResponse::text() const
 {
     Session * s = session();
-    String result;
+    EString result;
     result.reserve( r->count() * 10 );
     result.append( "SORT" );
     List<uint>::Iterator i( r );

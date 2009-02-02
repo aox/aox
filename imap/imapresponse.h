@@ -10,16 +10,16 @@ class ImapResponse
     : public Garbage
 {
 public:
-    ImapResponse( class ImapSession *, const String & );
+    ImapResponse( class ImapSession *, const EString & );
     ImapResponse( class ImapSession * );
-    ImapResponse( IMAP *, const String & );
+    ImapResponse( IMAP *, const EString & );
     ImapResponse( IMAP * );
     virtual ~ImapResponse() {}
 
     bool sent() const;
     virtual void setSent();
 
-    virtual String text() const;
+    virtual EString text() const;
 
     virtual bool meaningful() const;
     bool changesMsn() const;
@@ -37,7 +37,7 @@ class ImapByeResponse
     : public ImapResponse
 {
 public:
-    ImapByeResponse( IMAP *, const String & );
+    ImapByeResponse( IMAP *, const EString & );
 
     bool meaningful() const;
     void setSent();

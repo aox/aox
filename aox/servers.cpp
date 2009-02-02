@@ -40,16 +40,16 @@ static const char * servers[] = {
 static const int nservers = sizeof( servers ) / sizeof( servers[0] );
 
 
-static void error( const String & s )
+static void error( const EString & s )
 {
     fprintf( stderr, "%s\n", s.cstr() );
     exit( -1 );
 }
 
 
-static String pidFile( const char * s )
+static EString pidFile( const char * s )
 {
-    String pf( Configuration::compiledIn( Configuration::PidFileDir ) );
+    EString pf( Configuration::compiledIn( Configuration::PidFileDir ) );
     pf.append( "/" );
     pf.append( s );
     pf.append( ".pid" );
@@ -59,7 +59,7 @@ static String pidFile( const char * s )
 
 static int serverPid( const char * s )
 {
-    String pf = pidFile( s );
+    EString pf = pidFile( s );
     File f( pf, File::Read );
     if ( !f.valid() )
         return -1;
@@ -90,7 +90,7 @@ public:
         JailDir
     };
 
-    Path( const String &, Type );
+    Path( const EString &, Type );
     bool checked;
     bool ok;
     void check();
@@ -98,8 +98,8 @@ public:
 
     Path * parent;
     const char * message;
-    StringList variables;
-    String name;
+    EStringList variables;
+    EString name;
     Type type;
 
     static uint uid;
@@ -116,7 +116,7 @@ static Dict<Path> paths;
 static void addPath( Path::Type type,
                      Configuration::Text variable )
 {
-    String name = Configuration::text( variable );
+    EString name = Configuration::text( variable );
     Path * p = paths.find( name );
     if ( name.startsWith( "/" ) ) {
         if ( !p ) {
@@ -140,7 +140,7 @@ static void addPath( Path::Type type,
 static void addPath( Path::Type type,
                      Configuration::CompileTimeSetting variable )
 {
-    String name = Configuration::compiledIn( variable );
+    EString name = Configuration::compiledIn( variable );
     Path * p = paths.find( name );
     if ( name.startsWith( "/" ) ) {
         if ( !p ) {
@@ -151,25 +151,25 @@ static void addPath( Path::Type type,
 }
 
 
-static String parentOf( const String & name )
+static EString parentOf( const EString & name )
 {
     uint i = name.length();
     while ( i > 0 && name[i] != '/' )
         i--;
-    String pn = name.mid( 0, i );
+    EString pn = name.mid( 0, i );
     if ( i == 0 )
         pn = "/";
     return pn;
 }
 
 
-Path::Path( const String & s, Type t )
+Path::Path( const EString & s, Type t )
     : Garbage(),
       checked( false ), ok( true ),
       parent( 0 ), message( 0 ),
       name( s ), type( t )
 {
-    String pn = parentOf( name );
+    EString pn = parentOf( name );
     if ( pn.length() < name.length() ) {
         Path * p = paths.find( pn );
         if ( !p ) {
@@ -277,7 +277,7 @@ void Path::check()
         return;
     fprintf( stderr, "%s %s.\n", name.cstr(), message );
     variables.removeDuplicates();
-    StringList::Iterator i( variables );
+    EStringList::Iterator i( variables );
     while ( i ) {
         fprintf( stderr, " - affected variable: %s\n", i->cstr() );
         ++i;
@@ -289,14 +289,14 @@ void Path::check()
 
 static void checkFilePermissions()
 {
-    String user( Configuration::text( Configuration::JailUser ) );
+    EString user( Configuration::text( Configuration::JailUser ) );
     struct passwd * pw = getpwnam( user.cstr() );
     if ( !pw )
         error( user + " (jail-user) is not a valid username." );
     if ( pw->pw_uid == 0 )
         error( user + " (jail-user) has UID 0." );
 
-    String group( Configuration::text( Configuration::JailGroup ) );
+    EString group( Configuration::text( Configuration::JailGroup ) );
     struct group * gr = getgrnam( group.cstr() );
     if ( !gr )
         error( group + " (jail-group) is not a valid group." );
@@ -310,7 +310,7 @@ static void checkFilePermissions()
     addPath( Path::JailDir, Configuration::JailDir );
     addPath( Path::ReadableFile, Configuration::TlsCertFile );
     addPath( Path::ExistingSocket, Configuration::EntropySource );
-    String lf = Configuration::text( Configuration::LogFile );
+    EString lf = Configuration::text( Configuration::LogFile );
     if ( lf != "-" && !lf.startsWith( "syslog/" ) )
         addPath( Path::CreatableFile, Configuration::LogFile );
     addPath( Path::ReadableDir, Configuration::BinDir );
@@ -323,7 +323,7 @@ static void checkFilePermissions()
     List<Configuration::Text>::Iterator
         it( Configuration::addressVariables() );
     while ( it ) {
-        String s( Configuration::text( *it ) );
+        EString s( Configuration::text( *it ) );
         if ( s[0] == '/' &&
              ( *it == Configuration::DbAddress ||
                *it == Configuration::SmartHostAddress ) )
@@ -348,28 +348,28 @@ static void checkFilePermissions()
 static void checkListener( bool use,
                            Configuration::Text address,
                            Configuration::Scalar port,
-                           const String & description )
+                           const EString & description )
 {
     if ( !use )
         return;
 
-    String a( Configuration::text( address ) );
+    EString a( Configuration::text( address ) );
     uint p( Configuration::scalar( port ) );
 
-    StringList addresses;
+    EStringList addresses;
     if ( a.isEmpty() ) {
         addresses.append( "::" );
         addresses.append( "0.0.0.0" );
     }
     else {
-        StringList::Iterator it( Resolver::resolve( a ) );
+        EStringList::Iterator it( Resolver::resolve( a ) );
         while ( it ) {
             addresses.append( *it );
             ++it;
         }
     }
 
-    StringList::Iterator it( addresses );
+    EStringList::Iterator it( addresses );
     while ( it ) {
         Endpoint e( *it, p );
 
@@ -496,8 +496,8 @@ static void checkMiscellaneous()
     if ( Configuration::toggle( Configuration::UseSmtp ) ||
          Configuration::toggle( Configuration::UseLmtp ) )
     {
-        String mc( Configuration::text( Configuration::MessageCopy ) );
-        String mcd( Configuration::text( Configuration::MessageCopyDir ) );
+        EString mc( Configuration::text( Configuration::MessageCopy ) );
+        EString mcd( Configuration::text( Configuration::MessageCopyDir ) );
         if ( mc == "all" || mc == "errors" || mc == "delivered" ) {
             struct stat st;
             if ( mcd.isEmpty() )
@@ -520,7 +520,7 @@ static void checkMiscellaneous()
         }
     }
 
-    String sA( Configuration::text( Configuration::SmartHostAddress ) );
+    EString sA( Configuration::text( Configuration::SmartHostAddress ) );
     uint sP( Configuration::scalar( Configuration::SmartHostPort ) );
 
     if ( Configuration::toggle( Configuration::UseSmtp ) &&
@@ -693,7 +693,7 @@ Starter::Starter( int verbose, EventHandler * owner )
 
 void Starter::execute()
 {
-    String sbin( Configuration::compiledIn( Configuration::SbinDir ) );
+    EString sbin( Configuration::compiledIn( Configuration::SbinDir ) );
     if ( chdir( sbin.cstr() ) < 0 )
         error( "Couldn't chdir to SBINDIR (" + sbin + ")" );
 
@@ -717,13 +717,13 @@ void Starter::execute()
 
 bool Starter::startServer( const char * s )
 {
-    String srv( Configuration::compiledIn( Configuration::SbinDir ) );
+    EString srv( Configuration::compiledIn( Configuration::SbinDir ) );
     srv.append( "/" );
     srv.append( s );
 
     bool use = true;
 
-    String t( s );
+    EString t( s );
     if ( t == "tlsproxy" )
         use = Configuration::toggle( Configuration::UseTls );
     else if ( t == "archiveopteryx" )
@@ -803,12 +803,12 @@ public:
     ServerPinger( Configuration::Text a, Configuration::Scalar p,
                   EventHandler * owner )
         : Connection(), up( false ), o( owner ) {
-        String addr;
+        EString addr;
         if ( Configuration::text( a ).isEmpty() ) {
             addr = "127.0.0.1";
         }
         else {
-            StringList::Iterator it(
+            EStringList::Iterator it(
                 Resolver::resolve( Configuration::text( a ) ) );
             if ( it )
                 addr = *it;
@@ -1042,7 +1042,7 @@ bool Stopper::failed() const
     This class handles the "aox check config" command.
 */
 
-CheckConfig::CheckConfig( StringList * args )
+CheckConfig::CheckConfig( EStringList * args )
     : AoxCommand( args )
 {
 }
@@ -1083,7 +1083,7 @@ public:
     This class handles the "aox start" command.
 */
 
-Start::Start( StringList * args )
+Start::Start( EStringList * args )
     : AoxCommand( args ), d( new StartData )
 {
 }
@@ -1095,7 +1095,7 @@ void Start::execute()
         parseOptions();
         end();
 
-        String pfd( Configuration::compiledIn( Configuration::PidFileDir ) );
+        EString pfd( Configuration::compiledIn( Configuration::PidFileDir ) );
         if ( pfd.startsWith( "/var/run/" ) ) {
             // /var/run is wiped out at boot on many systems, which can
             // bother us. so if our pidfiledir is in a subdirectory of
@@ -1153,7 +1153,7 @@ void Start::execute()
     This class handles the "aox stop" command.
 */
 
-Stop::Stop( StringList * args )
+Stop::Stop( EStringList * args )
     : AoxCommand( args )
 {
 }
@@ -1195,7 +1195,7 @@ public:
     This class handles the "aox restart" command.
 */
 
-Restart::Restart( StringList * args )
+Restart::Restart( EStringList * args )
     : AoxCommand( args ), d( new RestartData )
 {
 }
@@ -1249,7 +1249,7 @@ void Restart::execute()
     This class handles the "aox show status" command.
 */
 
-ShowStatus::ShowStatus( StringList * args )
+ShowStatus::ShowStatus( EStringList * args )
     : AoxCommand( args )
 {
 }
@@ -1270,7 +1270,7 @@ void ShowStatus::execute()
         printf( "%s", servers[i] );
 
         bool started = true;
-        String t( servers[i] );
+        EString t( servers[i] );
         if ( t == "tlsproxy" )
             started = Configuration::toggle( Configuration::UseTls );
 
@@ -1311,7 +1311,7 @@ void ShowStatus::execute()
     This class handles the "aox show build" command.
 */
 
-ShowBuild::ShowBuild( StringList * args )
+ShowBuild::ShowBuild( EStringList * args )
     : AoxCommand( args )
 {
 }
@@ -1363,7 +1363,7 @@ void ShowBuild::execute()
     This class handles the "aox show configuration" command.
 */
 
-ShowConfiguration::ShowConfiguration( StringList * args )
+ShowConfiguration::ShowConfiguration( EStringList * args )
     : AoxCommand( args )
 {
 }
@@ -1371,18 +1371,18 @@ ShowConfiguration::ShowConfiguration( StringList * args )
 
 void ShowConfiguration::execute()
 {
-    SortedList<String> output;
+    SortedList<EString> output;
 
     parseOptions();
-    String pat = next();
+    EString pat = next();
     end();
 
     uint i = 0;
     while ( i < Configuration::NumScalars ) {
         Configuration::Scalar j = (Configuration::Scalar)i++;
 
-        String n( Configuration::name( j ) );
-        String v( fn( Configuration::scalar( j ) ) );
+        EString n( Configuration::name( j ) );
+        EString v( fn( Configuration::scalar( j ) ) );
         addVariable( &output, n, v, pat, Configuration::present( j ) );
     }
 
@@ -1390,8 +1390,8 @@ void ShowConfiguration::execute()
     while ( i < Configuration::NumToggles ) {
         Configuration::Toggle j = (Configuration::Toggle)i++;
 
-        String n( Configuration::name( j ) );
-        String v( Configuration::toggle( j ) ? "on" : "off" );
+        EString n( Configuration::name( j ) );
+        EString v( Configuration::toggle( j ) ? "on" : "off" );
         addVariable( &output, n, v, pat, Configuration::present( j ) );
     }
 
@@ -1399,8 +1399,8 @@ void ShowConfiguration::execute()
     while ( i < Configuration::NumTexts ) {
         Configuration::Text j = (Configuration::Text)i++;
 
-        String n( Configuration::name( j ) );
-        String v( Configuration::text( j ) );
+        EString n( Configuration::name( j ) );
+        EString v( Configuration::text( j ) );
         if ( j != Configuration::DbPassword &&
              j != Configuration::DbOwnerPassword ) {
             if ( !v.boring() )
@@ -1409,7 +1409,7 @@ void ShowConfiguration::execute()
         }
     }
 
-    StringList::Iterator it( output );
+    EStringList::Iterator it( output );
     while ( it ) {
         printf( "%s\n", it->cstr() );
         ++it;
@@ -1423,8 +1423,8 @@ void ShowConfiguration::execute()
     \a l if it matches \a pat and is explicitly \a mentioned.
 */
 
-void ShowConfiguration::addVariable( SortedList< String > * l,
-                                     String n, String v, String pat,
+void ShowConfiguration::addVariable( SortedList< EString > * l,
+                                     EString n, EString v, EString pat,
                                      bool mentioned )
 {
     int np = opt( 'p' );
@@ -1433,7 +1433,7 @@ void ShowConfiguration::addVariable( SortedList< String > * l,
     if ( ( pat.isEmpty() || n == pat ) &&
          ( np == 0 || mentioned ) )
     {
-        String * s = new String;
+        EString * s = new EString;
 
         if ( nv == 0 ) {
             s->append( n );

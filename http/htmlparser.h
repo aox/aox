@@ -8,7 +8,7 @@
 #include "dict.h"
 
 
-class String;
+class EString;
 class UString;
 class UStringList;
 
@@ -17,22 +17,22 @@ class HtmlNode
     : public Garbage
 {
 public:
-    HtmlNode( HtmlNode *, const String & = "" );
+    HtmlNode( HtmlNode *, const EString & = "" );
 
     HtmlNode * parent() const;
     void setParent( HtmlNode * );
 
     List< HtmlNode > * children() const;
-    Dict< String > * attributes() const;
+    Dict< EString > * attributes() const;
 
-    String tag() const;
-    void setTag( const String & );
+    EString tag() const;
+    void setTag( const EString & );
     UString & text() const;
     void setText( const UString & );
-    String htmlclass() const;
-    void setHtmlClass( const String & );
-    String href() const;
-    void setHref( const String & );
+    EString htmlclass() const;
+    void setHtmlClass( const EString & );
+    EString href() const;
+    void setHref( const EString & );
 
     bool isKnown() const;
     bool isBlock() const;
@@ -41,7 +41,7 @@ public:
     void clean();
 
     void findExcerpt( UStringList * ) const;
-    String rendered() const;
+    EString rendered() const;
 
 private:
     class HtmlNodeData * d;
@@ -54,7 +54,7 @@ class HtmlParser
     : public Garbage
 {
 public:
-    HtmlParser( const String &, class Codec * );
+    HtmlParser( const EString &, class Codec * );
 
     HtmlNode * rootNode() const;
 
@@ -62,7 +62,7 @@ private:
     class HtmlParserData * d;
 
     void parse();
-    void parseAttributes( Dict<String> *, uint & );
+    void parseAttributes( Dict<EString> *, uint & );
 };
 
 

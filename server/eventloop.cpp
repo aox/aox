@@ -5,7 +5,7 @@
 #include "connection.h"
 #include "allocator.h"
 #include "buffer.h"
-#include "string.h"
+#include "estring.h"
 #include "server.h"
 #include "scope.h"
 #include "timer.h"
@@ -13,7 +13,6 @@
 #include "event.h"
 #include "list.h"
 #include "log.h"
-#include "sys.h"
 
 // time
 #include <time.h>
@@ -348,7 +347,7 @@ void EventLoop::start()
                 c->write();
             if ( c->writeBuffer()->size() > 0 )
                 c->log( "Still have " +
-                        String::humanNumber( c->writeBuffer()->size() ) +
+                        EString::humanNumber( c->writeBuffer()->size() ) +
                         " bytes to write", Log::Debug );
         } catch ( Exception e ) {
             // we don't really care at this point, do we?
@@ -433,13 +432,13 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
             }
             else if ( c->writeBuffer()->size() > 0 ) {
                 c->log( "Still have " +
-                        String::humanNumber( c->writeBuffer()->size() ) +
+                        EString::humanNumber( c->writeBuffer()->size() ) +
                         " bytes to write", Log::Debug );
             }
         }
     }
     catch ( Exception e ) {
-        String s;
+        EString s;
         switch (e) {
         case Invariant:
             s = "Invariant failed";

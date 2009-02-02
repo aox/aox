@@ -19,7 +19,7 @@
     This class handles the "aox list users" command.
 */
 
-ListUsers::ListUsers( StringList * args )
+ListUsers::ListUsers( EStringList * args )
     : AoxCommand( args ), q( 0 )
 {
 }
@@ -36,7 +36,7 @@ void ListUsers::execute()
             error( "Argument encoding: " + c.error() );
 
         database();
-        String s( "select login, localpart||'@'||domain as address "
+        EString s( "select login, localpart||'@'||domain as address "
                   "from users u join aliases al on (u.alias=al.id) "
                   "join addresses a on (al.address=a.id)" );
         if ( !pattern.isEmpty() )
@@ -51,7 +51,7 @@ void ListUsers::execute()
         Row * r = q->nextRow();
         printf( "%-16s %s\n",
                 r->getUString( "login" ).utf8().cstr(),
-                r->getString( "address" ).cstr() );
+                r->getEString( "address" ).cstr() );
     }
 
     if ( !q->done() )
@@ -79,7 +79,7 @@ public:
     This class handles the "aox add user" command.
 */
 
-CreateUser::CreateUser( StringList * args )
+CreateUser::CreateUser( EStringList * args )
     : AoxCommand( args ), d( new CreateUserData )
 {
 }
@@ -98,7 +98,7 @@ void CreateUser::execute()
         else
             passwd = c.toUnicode( readNewPassword() );
 
-        String address = next();
+        EString address = next();
         end();
 
         if ( !c.valid() )
@@ -168,7 +168,7 @@ public:
     This class handles the "aox delete user" command.
 */
 
-DeleteUser::DeleteUser( StringList * args )
+DeleteUser::DeleteUser( EStringList * args )
     : AoxCommand( args ), d( new DeleteUserData )
 {
 }
@@ -302,7 +302,7 @@ void DeleteUser::execute()
     This class handles the "aox change password" command.
 */
 
-ChangePassword::ChangePassword( StringList * args )
+ChangePassword::ChangePassword( EStringList * args )
     : AoxCommand( args ), q( 0 )
 {
 }
@@ -369,7 +369,7 @@ public:
     This class handles the "aox change username" command.
 */
 
-ChangeUsername::ChangeUsername( StringList * args )
+ChangeUsername::ChangeUsername( EStringList * args )
     : AoxCommand( args ), d( new ChangeUsernameData )
 {
 }
@@ -499,7 +499,7 @@ public:
     This class handles the "aox change address" command.
 */
 
-ChangeAddress::ChangeAddress( StringList * args )
+ChangeAddress::ChangeAddress( EStringList * args )
     : AoxCommand( args ), d( new ChangeAddressData )
 {
 }
@@ -511,7 +511,7 @@ void ChangeAddress::execute()
         parseOptions();
         Utf8Codec c;
         UString name = c.toUnicode( next() );
-        String address = next();
+        EString address = next();
         end();
 
         if ( !c.valid() )

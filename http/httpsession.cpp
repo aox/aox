@@ -4,7 +4,7 @@
 
 #include "allocator.h"
 #include "entropy.h"
-#include "string.h"
+#include "estring.h"
 #include "user.h"
 #include "dict.h"
 
@@ -23,7 +23,7 @@ public:
         : user( 0 )
     {}
 
-    String key;
+    EString key;
     User *user;
     int timeout;
 };
@@ -42,7 +42,7 @@ HttpSession::HttpSession()
         sessions = new Dict< HttpSession >;
         Allocator::addEternal( sessions, "Session cache" );
     }
-    d->key = Entropy::asString( 42 ).encoded( String::Base64 );
+    d->key = Entropy::asString( 42 ).encoded( EString::Base64 );
     sessions->insert( d->key, this );
     refresh();
 }
@@ -53,7 +53,7 @@ HttpSession::HttpSession()
     (if you don't look too carefully).
 */
 
-String HttpSession::key() const
+EString HttpSession::key() const
 {
     return d->key;
 }
@@ -113,7 +113,7 @@ bool HttpSession::expired() const
     there is no such session. The returned session may have expired().
 */
 
-HttpSession *HttpSession::find( const String &key )
+HttpSession *HttpSession::find( const EString &key )
 {
     if ( sessions )
         return sessions->find( key );

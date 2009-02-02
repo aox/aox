@@ -249,8 +249,8 @@ void Fetcher::execute()
 
 void Fetcher::start()
 {
-    StringList what;
-    what.append( new String( "Data type(s): " ) );
+    EStringList what;
+    what.append( new EString( "Data type(s): " ) );
     uint n = 0;
     if ( d->addresses ) {
         n++;
@@ -477,13 +477,13 @@ void Fetcher::bindIds( Query * query, uint n, Type type )
 
 void Fetcher::makeQueries()
 {
-    StringList wanted;
+    EStringList wanted;
     wanted.append( "mailbox" );
     wanted.append( "uid" );
     wanted.append( "message" );
 
     Query * q = 0;
-    String r;
+    EString r;
 
     if ( d->partnumbers && !d->body ) {
         // body (below) will handle this as a side effect
@@ -597,8 +597,8 @@ void FetcherData::HeaderDecoder::decode( Message * m, List<Row> * rows )
         Row * r = i;
         ++i;
 
-        String part = r->getString( "part" );
-        String name = r->getString( "name" );
+        EString part = r->getEString( "part" );
+        EString name = r->getEString( "name" );
         UString value = r->getUString( "value" );
 
         Header * h = m->header();
@@ -645,7 +645,7 @@ void FetcherData::AddressDecoder::decode( Message * m, List<Row> * rows )
         Row * r = i;
         ++i;
 
-        String part = r->getString( "part" );
+        EString part = r->getEString( "part" );
         uint position = r->getInt( "position" );
 
         // XXX: use something for mapping
@@ -682,8 +682,8 @@ void FetcherData::AddressDecoder::decode( Message * m, List<Row> * rows )
         // fetch. hm.
         Utf8Codec u;
         Address * a = new Address( r->getUString( "name" ),
-                                   r->getString( "localpart" ),
-                                   r->getString( "domain" ) );
+                                   r->getEString( "localpart" ),
+                                   r->getEString( "domain" ) );
         f->addresses()->append( a );
     }
 }
@@ -710,13 +710,13 @@ void FetcherData::BodyDecoder::decode( Message * m, List<Row> * rows )
         Row * r = i;
         ++i;
 
-    String part = r->getString( "part" );
+    EString part = r->getEString( "part" );
 
     if ( !part.endsWith( ".rfc822" ) ) {
         Bodypart * bp = m->bodypart( part, true );
 
         if ( !r->isNull( "data" ) )
-            bp->setData( r->getString( "data" ) );
+            bp->setData( r->getEString( "data" ) );
         else if ( !r->isNull( "text" ) )
             bp->setText( r->getUString( "text" ) );
 
@@ -747,7 +747,7 @@ void FetcherData::PartNumberDecoder::decode( Message * m, List<Row> * rows )
         Row * r = i;
         ++i;
 
-    String part = r->getString( "part" );
+    EString part = r->getEString( "part" );
 
     if ( part.endsWith( ".rfc822" ) ) {
         Bodypart *bp = m->bodypart( part.mid( 0, part.length()-7 ),

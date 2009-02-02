@@ -3,7 +3,7 @@
 #ifndef MESSAGERENDERING_H
 #define MESSAGERENDERING_H
 
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 #include "dict.h"
 
@@ -16,10 +16,10 @@ public:
 
     void setTextPlain( const UString & );
     void setTextFlowed( const UString & );
-    void setTextHtml( const String &, class Codec * );
+    void setTextHtml( const EString &, class Codec * );
     void setWebPage( class WebPage * );
 
-    String asHtml();
+    EString asHtml();
 
     UString excerpt();
 

@@ -23,7 +23,7 @@ public:
         : t( 0 ), q( 0 )
     {}
 
-    String name;
+    EString name;
     Transaction * t;
     Query * q;
 };
@@ -41,7 +41,7 @@ public:
     Transaction \a t. The transactions's owner will be notified
     when the Granter is done. */
 
-Granter::Granter( const String & name, Transaction * t )
+Granter::Granter( const EString & name, Transaction * t )
     : d( new GranterData )
 {
     d->name = name;
@@ -69,14 +69,14 @@ void Granter::execute()
 
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
-        String name( r->getString( "name" ) );
-        String kind( r->getString( "kind" ) );
+        EString name( r->getEString( "name" ) );
+        EString kind( r->getEString( "kind" ) );
         bool cs = r->getBoolean( "can_select" );
         bool ci = r->getBoolean( "can_insert" );
         bool cu = r->getBoolean( "can_update" );
         bool cd = r->getBoolean( "can_delete" );
-        StringList grant;
-        StringList revoke;
+        EStringList grant;
+        EStringList revoke;
 
         if ( kind == "r" ) {
             uint i = 0;

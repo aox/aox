@@ -1,15 +1,16 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "string.h"
+#include "estring.h"
 
 #include "allocator.h"
-#include "sys.h"
 
 // stderr, fprintf
 #include <stdio.h>
+// strlen
+#include <string.h>
 
 
-/*! \class StringData string.h
+/*! \class EStringData estring.h
 
     This private helper class contains the actual string data. It has
     three fields, all accessible only to string. The only noteworthy
@@ -18,14 +19,14 @@
 */
 
 
-/*! \fn StringData::StringData()
+/*! \fn EStringData::EStringData()
 
     Creates a zero-length string. This is naturally read-only.
 */
 
-/*! Creates a new String with \a bytes capacity. */
+/*! Creates a new EString with \a bytes capacity. */
 
-StringData::StringData( int bytes )
+EStringData::EStringData( int bytes )
     : str( 0 ), len( 0 ), max( bytes )
 {
     if ( str )
@@ -33,48 +34,51 @@ StringData::StringData( int bytes )
 }
 
 
-void * StringData::operator new( size_t ownSize, uint extra )
+void * EStringData::operator new( size_t ownSize, uint extra )
 {
     return Allocator::alloc( ownSize + extra, 1 );
 }
 
 
-/*! \class String string.h
-    A generic 8-bit string class.
+/*! \class EString estring.h
+    An email-oriented 8-bit string class.
 
     The string data are counted, so null bytes are allowed, and most
     operations are very fast.
 
-    The data structure uses a simplifed variant of reference counting,
+    The data structure uses a simplified variant of reference counting,
     where only "one" and "many" are possible. The detach() function
     ensures that the count is "one" afterwards. Many functions leave
     the count on "many", even ones such as mid().
 
-    Only a small set of core operations are so far implemented,
-    including length(), cstr() (to convert to const char *) and data()
-    (to get at the raw data).
+    The usual string functions are implemented, along with a variety
+    of email-specific operations such as eQP(), deQP(), needsQP(),
+    e64(). boring() returns true if the string can be used unquoted in
+    e.g. MIME, quoted() quotes it. upper() and lower() have a third
+    sibling, headerCased(). simplified() and trimmed() remove white
+    space in ways email often needs.
 */
 
-/*! Creates an empty String */
+/*! Creates an empty EString */
 
-String::String()
+EString::EString()
     : d( 0 )
 {
 }
 
-/*! Creates a String from the NUL-terminated string \a s.
+/*! Creates a EString from the NUL-terminated string \a s.
     The NUL is not copied. */
 
-String::String( const char *s )
+EString::EString( const char *s )
     : d( 0 )
 {
     *this = s;
 }
 
-/*! Creates a String from the first \a n bytes of \a s, which may
+/*! Creates a EString from the first \a n bytes of \a s, which may
     contain NULs. */
 
-String::String( const char *s, uint n )
+EString::EString( const char *s, uint n )
     : d( 0 )
 {
     append( s, n );
@@ -83,22 +87,22 @@ String::String( const char *s, uint n )
 
 /*! Creates a copy of \a s. */
 
-String::String( const String &s )
+EString::EString( const EString &s )
     : Garbage(), d( 0 )
 {
     *this = s;
 }
 
 
-/*! \fn void String::detach()
+/*! \fn void EString::detach()
 
-    Ensures that the string is modifiable. All String functions call
+    Ensures that the string is modifiable. All EString functions call
     this prior to modifying the string. */
 
 
 /*! Destroys the string.
 
-    Because String is used so much, and can eat up such vast amounts
+    Because EString is used so much, and can eat up such vast amounts
     of memory so quickly, this destructor does something: If the
     string is the sole owner of its data, it frees them.
 
@@ -107,7 +111,7 @@ String::String( const String &s )
     lost.
 */
 
-String::~String()
+EString::~EString()
 {
     if ( d && d->max )
         Allocator::dealloc( d );
@@ -116,12 +120,12 @@ String::~String()
 
 
 /*! Deletes \a p. (This function exists only so that gcc -O3 doesn't
-    decide that String objects don't need destruction.)
+    decide that EString objects don't need destruction.)
 */
 
-void String::operator delete( void *p )
+void EString::operator delete( void *p )
 {
-    StringData * & d = ((String *)p)->d;
+    EStringData * & d = ((EString *)p)->d;
     if ( d && d->max )
         Allocator::dealloc( d );
     d = 0;
@@ -131,7 +135,7 @@ void String::operator delete( void *p )
 /*! Copies \a other to this string and returns a reference to this
     string. */
 
-String & String::operator=( const String & other )
+EString & EString::operator=( const EString & other )
 {
     d = other.d;
     if ( d )
@@ -143,7 +147,7 @@ String & String::operator=( const String & other )
 /*! Copies \a s to this string and returns a reference to this
     string. If \a s is a null pointer, the result is an empty string. */
 
-String & String::operator=( const char * s )
+EString & EString::operator=( const char * s )
 {
     if ( !s || !*s ) {
         d = 0;
@@ -160,20 +164,20 @@ String & String::operator=( const char * s )
 }
 
 
-/*! \fn uint String::length() const
+/*! \fn uint EString::length() const
 
     Returns the length of the string. The length does not include any
     terminator or padding. */
 
 
-/*! \fn uint String::capacity() const
+/*! \fn uint EString::capacity() const
 
     Returns the capacity of the string variable, that is, how long the
     string can be before it has to allocate memory.
 */
 
 
-/*! \fn const char *String::data() const
+/*! \fn const char *EString::data() const
 
     Returns a pointer to the string's byte representation, which is
     NOT necessarily zero-terminated. */
@@ -188,7 +192,7 @@ String & String::operator=( const char * s )
     call to reserve() causes a detach().
 */
 
-const char * String::cstr()
+const char * EString::cstr()
 {
     reserve( length()+1 );
     d->str[d->len] = '\0';
@@ -201,13 +205,13 @@ const char * String::cstr()
     object, and that it may cause some memory allocation elsewhere.
 */
 
-const char * String::cstr() const
+const char * EString::cstr() const
 {
     if ( d && d->max > d->len ) {
         d->str[d->len] = '\0';
         return data();
     }
-    String tmp;
+    EString tmp;
     tmp.reserve( length() + 1 );
     tmp = *this;
     return tmp.cstr();
@@ -217,9 +221,9 @@ const char * String::cstr() const
 /*! Returns a copy of this string where all upper-case letters (A-Z -
     this is ASCII only) have been changed to lower case. */
 
-String String::lower() const
+EString EString::lower() const
 {
-    String result( *this );
+    EString result( *this );
     uint i = 0;
     while ( i < result.length() ) {
         if ( result[i] >= 'A' && result[i] <= 'Z' ) {
@@ -235,9 +239,9 @@ String String::lower() const
 /*! Returns a copy of this string where all lower-case letters (a-z -
     this is ASCII only) have been changed to upper case. */
 
-String String::upper() const
+EString EString::upper() const
 {
-    String result( *this );
+    EString result( *this );
     uint i = 0;
     while ( i < result.length() ) {
         if ( result[i] >= 'a' && result[i] <= 'z' ) {
@@ -255,9 +259,9 @@ String String::upper() const
   and other letters are lower-cased. Other letters are upper-cased
   (notably including the very first character). */
 
-String String::headerCased() const
+EString EString::headerCased() const
 {
-    String result( *this );
+    EString result( *this );
     uint i = 0;
     bool u = true;
     while ( i < length() ) {
@@ -288,7 +292,7 @@ String String::headerCased() const
     in this string, or -1 if there is none.
 */
 
-int String::find( char c, int i ) const
+int EString::find( char c, int i ) const
 {
     while ( i < (int)length() && at( i ) != c )
         i++;
@@ -302,7 +306,7 @@ int String::find( char c, int i ) const
     in this string, or -1 if there is none.
 */
 
-int String::find( const String & s, int i ) const
+int EString::find( const EString & s, int i ) const
 {
     uint j = 0;
     while ( j < s.length() && i+j < length() ) {
@@ -327,7 +331,7 @@ int String::find( const String & s, int i ) const
     after the end of the string), section returns an empty string.
 */
 
-String String::section( const String & s, uint n ) const
+EString EString::section( const EString & s, uint n ) const
 {
     if ( s.isEmpty() || n == 0 )
         return *this;
@@ -348,7 +352,7 @@ String String::section( const String & s, uint n ) const
 
 /*! Appends \a other to this string. */
 
-void String::append( const String & other )
+void EString::append( const EString & other )
 {
     if ( !other.length() )
         return;
@@ -372,7 +376,7 @@ void String::append( const String & other )
     \a base. If \a base is null, this function does nothing.
 */
 
-void String::append( const char * base, uint num )
+void EString::append( const char * base, uint num )
 {
     if ( !base || !num )
         return;
@@ -389,7 +393,7 @@ void String::append( const char * base, uint num )
     or does nothing if \a s is null.
 */
 
-void String::append( const char * s )
+void EString::append( const char * s )
 {
     if ( s )
         append( s, strlen( s ) );
@@ -400,7 +404,7 @@ void String::append( const char * s )
     This version of append() appends the single character \a c.
 */
 
-void String::append( char c )
+void EString::append( char c )
 {
     reserve( length() + 1 );
     d->str[d->len] = c;
@@ -410,7 +414,7 @@ void String::append( char c )
 
 /*! Prepends \a other to this string. */
 
-void String::prepend( const String & other )
+void EString::prepend( const EString & other )
 {
     if ( other.isEmpty() )
         return;
@@ -421,7 +425,7 @@ void String::prepend( const String & other )
 }
 
 
-void String::appendNumber( int n, int base )
+void EString::appendNumber( int n, int base )
 {
     if ( n < 0 ) {
         append( '-' );
@@ -430,9 +434,9 @@ void String::appendNumber( int n, int base )
     appendNumber( (uint)n, base );
 }
 
-void String::appendNumber( uint n, int base )
+void EString::appendNumber( uint n, int base )
 {
-    String s( fromNumber( n, base ) );
+    EString s( fromNumber( n, base ) );
 
     if ( n > 0 )
         append( s );
@@ -448,7 +452,7 @@ void String::appendNumber( uint n, int base )
     num, while length() has not changed.
 */
 
-void String::reserve( uint num )
+void EString::reserve( uint num )
 {
     if ( num < length() )
         num = length();
@@ -466,17 +470,17 @@ void String::reserve( uint num )
     Noone except reserve() should call reserve2().
 */
 
-void String::reserve2( uint num )
+void EString::reserve2( uint num )
 {
-    num = Allocator::rounded( num + sizeof( StringData ) ) - sizeof( StringData );
+    num = Allocator::rounded( num + sizeof( EStringData ) ) - sizeof( EStringData );
 
-    StringData * freeable = 0;
+    EStringData * freeable = 0;
     if ( d && d->max )
         freeable = d;
 
-    StringData * nd = new( num ) StringData( 0 );
+    EStringData * nd = new( num ) EStringData( 0 );
     nd->max = num;
-    nd->str = sizeof( StringData ) + (char*)nd;
+    nd->str = sizeof( EStringData ) + (char*)nd;
     if ( d )
         nd->len = d->len;
     if ( nd->len > num )
@@ -495,7 +499,7 @@ void String::reserve2( uint num )
     empty after the function is called.
 */
 
-void String::truncate( uint l )
+void EString::truncate( uint l )
 {
     if ( !l ) {
         if ( d && d->max )
@@ -514,7 +518,7 @@ void String::truncate( uint l )
     the string used to be, the new part is uninitialised.
 */
 
-void String::setLength( uint l )
+void EString::setLength( uint l )
 {
     reserve( l );
     if ( l )
@@ -530,19 +534,19 @@ void String::setLength( uint l )
     If \a start is too large, an empty string is returned.
 */
 
-String String::mid( uint start, uint num ) const
+EString EString::mid( uint start, uint num ) const
 {
     if ( !d )
         num = 0;
     else if ( num > d->len || start + num > d->len )
         num = d->len - start;
 
-    String result;
+    EString result;
     if ( !num || start >= length() )
         return result;
 
     d->max = 0;
-    result.d = new StringData;
+    result.d = new EStringData;
     result.d->str = d->str + start;
     result.d->len = num;
     return result;
@@ -553,7 +557,7 @@ String String::mid( uint start, uint num ) const
     quote character and \a q (default '\') as escape character. \a c
     and \a q may be the same. */
 
-bool String::isQuoted( char c, char q ) const
+bool EString::isQuoted( char c, char q ) const
 {
     if ( length() < 2 || at( 0 ) != c || at( length() - 1 ) != c )
         return false;
@@ -579,11 +583,11 @@ bool String::isQuoted( char c, char q ) const
     \a c is converted into just \a c.
 */
 
-String String::unquoted( char c, char q ) const
+EString EString::unquoted( char c, char q ) const
 {
     if ( !isQuoted( c, q ) )
         return *this;
-    String r;
+    EString r;
     r.reserve( length() );
     uint i = 1;
     while ( i < length()-1 ) {
@@ -600,9 +604,9 @@ String String::unquoted( char c, char q ) const
     occurences of \a c or \a q are escaped with \a q.
 */
 
-String String::quoted( char c, char q ) const
+EString EString::quoted( char c, char q ) const
 {
-    String r;
+    EString r;
     r.reserve( length()+2 );
     r.append( c );
     uint i = 0;
@@ -627,7 +631,7 @@ String String::quoted( char c, char q ) const
     default value, it may include other characters.
 */
 
-bool String::boring( Boring b ) const
+bool EString::boring( Boring b ) const
 {
     if ( isEmpty() )
         return false; // empty strings aren't boring - they may need quoting
@@ -659,7 +663,7 @@ bool String::boring( Boring b ) const
     whitespace is removed altogether.
 */
 
-String String::simplified() const
+EString EString::simplified() const
 {
     // scan for the first nonwhitespace character
     uint i = 0;
@@ -692,7 +696,7 @@ String String::simplified() const
     if ( identity )
         return mid( first, last+1-first );
 
-    String result;
+    EString result;
     result.reserve( length() );
     i = 0;
     spaces = 0;
@@ -717,7 +721,7 @@ String String::simplified() const
     whitespace have been removed.
 */
 
-String String::trimmed() const
+EString EString::trimmed() const
 {
     uint i = 0;
     uint first = length();
@@ -736,17 +740,17 @@ String String::trimmed() const
     if ( last >= first )
         return mid( first, last + 1 - first );
 
-    String empty;
+    EString empty;
     return empty;
 }
 
 
-/*! Returns a copy of this String with at most one trailing LF or CRLF
+/*! Returns a copy of this EString with at most one trailing LF or CRLF
     removed. If there's more than one LF or CRLF, the remainder are
     left.
 */
 
-String String::stripCRLF() const
+EString EString::stripCRLF() const
 {
     uint n = 0;
     if ( endsWith( "\r\n" ) )
@@ -760,9 +764,9 @@ String String::stripCRLF() const
 
 /*! Returns the lowercase-hexadecimal representation of the string. */
 
-String String::hex() const
+EString EString::hex() const
 {
-    String s;
+    EString s;
     s.reserve( length()*2 );
 
     uint i = 0;
@@ -776,9 +780,9 @@ String String::hex() const
     return s;
 }
 
-const String operator+( const String & a, const String & b )
+const EString operator+( const EString & a, const EString & b )
 {
-    String result;
+    EString result;
     result.reserve( a.length() + b.length() );
     result.append( a );
     result.append( b );
@@ -790,7 +794,7 @@ const String operator+( const String & a, const String & b )
     does not.
 */
 
-bool String::startsWith( const String & prefix ) const
+bool EString::startsWith( const EString & prefix ) const
 {
     return length() >= prefix.length() &&
         prefix == mid( 0, prefix.length() );
@@ -801,7 +805,7 @@ bool String::startsWith( const String & prefix ) const
     does not.
 */
 
-bool String::startsWith( const char * prefix ) const
+bool EString::startsWith( const char * prefix ) const
 {
     if ( !prefix )
         return true;
@@ -818,7 +822,7 @@ bool String::startsWith( const char * prefix ) const
     does not.
 */
 
-bool String::endsWith( const String & suffix ) const
+bool EString::endsWith( const EString & suffix ) const
 {
     return length() >= suffix.length() &&
         suffix == mid( length()-suffix.length() );
@@ -829,7 +833,7 @@ bool String::endsWith( const String & suffix ) const
     does not.
 */
 
-bool String::endsWith( const char * suffix ) const
+bool EString::endsWith( const char * suffix ) const
 {
     if ( !suffix )
         return true;
@@ -855,7 +859,7 @@ bool String::endsWith( const char * suffix ) const
     If \a ok is a null pointer, it is not modified.
 */
 
-uint String::number( bool * ok, uint base ) const
+uint EString::number( bool * ok, uint base ) const
 {
     uint i = 0;
     uint n = 0;
@@ -910,9 +914,9 @@ uint String::number( bool * ok, uint base ) const
     9.
 */
 
-String String::fromNumber( int64 n, uint base )
+EString EString::fromNumber( int64 n, uint base )
 {
-    String r;
+    EString r;
     r.appendNumber( n, base );
     return r;
 }
@@ -925,7 +929,7 @@ String String::fromNumber( int64 n, uint base )
     Uses lower-case for digits above 9.
 */
 
-void String::appendNumber( int64 n, uint base )
+void EString::appendNumber( int64 n, uint base )
 {
     int64 top = 1;
     while ( top * base <= n )
@@ -941,7 +945,7 @@ void String::appendNumber( int64 n, uint base )
 }
 
 
-/*! Returns an \a e encoded version of this String. If \a e is Base64,
+/*! Returns an \a e encoded version of this EString. If \a e is Base64,
     then \a n specifies the maximum line length.
     The default is 0, i.e. no limit.
 
@@ -949,7 +953,7 @@ void String::appendNumber( int64 n, uint base )
     returns the input string.
 */
 
-String String::encoded( Encoding e, uint n ) const
+EString EString::encoded( Encoding e, uint n ) const
 {
     if ( e == Base64 )
         return e64( n );
@@ -959,9 +963,9 @@ String String::encoded( Encoding e, uint n ) const
 }
 
 
-/*! Returns a \a e decoded version of this String. */
+/*! Returns a \a e decoded version of this EString. */
 
-String String::decoded( Encoding e ) const
+EString EString::decoded( Encoding e ) const
 {
     if ( e == Base64 )
         return de64();
@@ -973,28 +977,28 @@ String String::decoded( Encoding e ) const
 }
 
 
-/*! Returns a version of this String with absolutely nothing changed.
+/*! Returns a version of this EString with absolutely nothing changed.
     (This function is eventually intended to percent-escape URIs, the
     opposite of deURI().)
 */
 
-String String::eURI() const
+EString EString::eURI() const
 {
     return *this;
 }
 
 
-/*! Returns a version of this String with every %xx escape replaced with
+/*! Returns a version of this EString with every %xx escape replaced with
     the corresponding character (as used to encode URIs). Invalid escape
     sequences are left unchanged, so this function cannot be used for
     input from potentially malevolent sources.
 */
 
-String String::deURI() const
+EString EString::deURI() const
 {
     uint l = length();
 
-    String s;
+    EString s;
     s.reserve( l );
 
     uint p = 0;
@@ -1021,7 +1025,7 @@ String String::deURI() const
     seen. Possibly not correct according to POSIX 1003.2b, who knows.
 */
 
-String String::deUue() const
+EString EString::deUue() const
 {
     if ( isEmpty() )
         return *this;
@@ -1034,7 +1038,7 @@ String String::deUue() const
             return *this;
         i = (uint)begin+1;
     }
-    String r;
+    EString r;
     while ( i < d->len ) {
         // step 0. skip over nonspace until CR/LF
         while ( i < d->len && d->str[i] != 13 && d->str[i] != 10 )
@@ -1123,12 +1127,12 @@ static char from64[128] =
 
 /*! Decodes this string using the base-64 algorithm and returns the result. */
 
-String String::de64() const
+EString EString::de64() const
 {
-    // this code comes from mailchen, adapted for String.
-    String result;
+    // this code comes from mailchen, adapted for EString.
+    EString result;
     result.reserve( length() * 3 / 4 + 20 ); // 20 = fudge
-    String body;
+    EString body;
     uint bp = 0;
     uint decoded = 0;
     int m = 0;
@@ -1186,12 +1190,12 @@ static char to64[65] =
     whitespace.
 */
 
-String String::e64( uint lineLength ) const
+EString EString::e64( uint lineLength ) const
 {
-    // this code comes from mailchen, adapted for String
+    // this code comes from mailchen, adapted for EString
     int l = length();
     int i = 0;
-    String r;
+    EString r;
     r.reserve( l*2 );
     int p = 0;
     uint c = 0;
@@ -1241,10 +1245,10 @@ String String::e64( uint lineLength ) const
     into spaces (as specified in RFC 2047).
 */
 
-String String::deQP( bool underscore ) const
+EString EString::deQP( bool underscore ) const
 {
     uint i = 0;
-    String r;
+    EString r;
     r.reserve( length() );
     while ( i < length() ) {
         if ( d->str[i] != '=' ) {
@@ -1315,12 +1319,12 @@ static char qphexdigits[17] = "0123456789ABCDEF";
     no output line starts with "From" or "--".
 */
 
-String String::eQP( bool underscore, bool from ) const
+EString EString::eQP( bool underscore, bool from ) const
 {
     if ( isEmpty() )
         return *this;
     uint i = 0;
-    String r;
+    EString r;
     // no input character can use more than six output characters (=
     // CR LF = 3 D), so we allocate as much space as we could possibly
     // need.
@@ -1415,7 +1419,7 @@ String String::eQP( bool underscore, bool from ) const
     with the changes made necessary by RFC 2646.
 */
 
-bool String::needsQP() const
+bool EString::needsQP() const
 {
     uint i = 0;
     uint c = 0;
@@ -1451,7 +1455,7 @@ bool String::needsQP() const
     The comparison is case sensitive - just a byte comparison.
 */
 
-int String::compare( const String & other ) const
+int EString::compare( const EString & other ) const
 {
     if ( d == other.d )
         return 0;
@@ -1471,31 +1475,31 @@ int String::compare( const String & other ) const
 }
 
 
-bool String::operator<( const String & other ) const
+bool EString::operator<( const EString & other ) const
 {
     return compare( other ) < 0;
 }
 
 
-bool String::operator>( const String & other ) const
+bool EString::operator>( const EString & other ) const
 {
     return compare( other ) > 0;
 }
 
 
-bool String::operator<=( const String & other ) const
+bool EString::operator<=( const EString & other ) const
 {
     return compare( other ) <= 0;
 }
 
 
-bool String::operator>=( const String & other ) const
+bool EString::operator>=( const EString & other ) const
 {
     return compare( other ) >= 0;
 }
 
 
-bool String::operator<( const char * other ) const
+bool EString::operator<( const char * other ) const
 {
     if ( !other )
         return false;
@@ -1521,7 +1525,7 @@ bool String::operator<( const char * other ) const
     stderr.
 */
 
-void String::print() const
+void EString::print() const
 {
     uint i = 0;
 
@@ -1538,7 +1542,7 @@ void String::print() const
     The number is rounded more or less correctly.
 */
 
-String String::humanNumber( int64 n )
+EString EString::humanNumber( int64 n )
 {
     if ( n < 1024 )
         return fromNumber( n );
@@ -1563,7 +1567,7 @@ String String::humanNumber( int64 n )
         s = 'T';
     }
 
-    String r;
+    EString r;
     // if it's single-digit, we add a decimal point. since we only go
     // to TB, not petabyte or exabyte, we don't need to check for
     // INT64_MAX/10. (actually we'd only need that check for exabytes.)
@@ -1611,7 +1615,7 @@ static const char * keywords[] = {
     0
 };
 
-// helper for String::anonymised()
+// helper for EString::anonymised()
 static inline bool isMungableChar( char c ) {
     if ( ( c >= 'a' && c <= 'z' ) ||
          ( c >= 'A' && c <= 'Z' ) ||
@@ -1641,10 +1645,10 @@ static inline bool isMungableChar( char c ) {
     case.
 */
 
-String String::anonymised() const
+EString EString::anonymised() const
 {
     uint b = 0;
-    String r;
+    EString r;
     while ( b < length() ) {
         uint e = b;
         while ( e < d->len && ( d->str[e] > 127 ||
@@ -1673,7 +1677,7 @@ String String::anonymised() const
         }
 
         if ( munge ) { // any keyword
-            String m = mid( b, e-b ).lower();
+            EString m = mid( b, e-b ).lower();
             uint i = 0;
             while ( keywords[i] && m != keywords[i] )
                 i++;
@@ -1722,7 +1726,7 @@ String String::anonymised() const
     where the last two characters are CRLF.
 */
 
-String String::crlf() const
+EString EString::crlf() const
 {
     bool copy = true;
     if ( length() < 2 ||
@@ -1741,7 +1745,7 @@ String String::crlf() const
     if ( copy )
         return *this;
 
-    String r;
+    EString r;
     r.reserve( length() );
     r.append( mid( 0, i ) );
     bool lf = false;
@@ -1778,7 +1782,7 @@ String String::crlf() const
 
 /*! Returns true if this string contains at least one instance of \a s. */
 
-bool String::contains( const String & s ) const
+bool EString::contains( const EString & s ) const
 {
     if ( find( s ) >= 0 )
         return true;
@@ -1788,7 +1792,7 @@ bool String::contains( const String & s ) const
 
 /*! Returns true if this string contains at least one instance of \a c. */
 
-bool String::contains( const char c ) const
+bool EString::contains( const char c ) const
 {
     if ( find( c ) >= 0 )
         return true;
@@ -1801,7 +1805,7 @@ bool String::contains( const char c ) const
     letters.
 */
 
-bool String::containsWord( const String & s ) const
+bool EString::containsWord( const EString & s ) const
 {
     int i = find( s );
     while ( i >= 0 ) {
@@ -1844,24 +1848,24 @@ bool String::containsWord( const String & s ) const
     replaced by a single CRLF. Linefeeds added use CRLF.
 */
 
-String String::wrapped( uint linelength,
-                        const String & firstPrefix, const String & otherPrefix,
+EString EString::wrapped( uint linelength,
+                        const EString & firstPrefix, const EString & otherPrefix,
                         bool spaceAtEOL ) const
 {
     // result must be modifiable() at all times, otherwise we allocate
     // all the RAM.
 
     // working:
-    String result;
+    EString result;
     result.reserve( length() );
     result.append( firstPrefix );
     // broken but should work. needs investigation.
-    // String result = firstPrefix;
+    // EString result = firstPrefix;
     // result.reserve( length() );
 
     // move is where we keep the text that has to be moved to the next
     // line. it too should be modifiable() all the time.
-    String move;
+    EString move;
     uint i = 0;
     uint linestart = 0;
     uint space = 0;
@@ -1906,7 +1910,7 @@ String String::wrapped( uint linelength,
     match.
 */
 
-void String::replace( const String & a, const String & b )
+void EString::replace( const EString & a, const EString & b )
 {
     if ( a == b)
         return; // noop
@@ -1915,7 +1919,7 @@ void String::replace( const String & a, const String & b )
 
     int i = find( a );
     while ( i >= 0 ) {
-        String r = mid( i+a.length() );
+        EString r = mid( i+a.length() );
         truncate( i );
         append( b );
         append( r );

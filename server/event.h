@@ -5,7 +5,7 @@
 
 #include "log.h"
 
-class String;
+class EString;
 
 
 class EventHandler
@@ -20,7 +20,7 @@ public:
 
     void notify();
     virtual void execute() = 0;
-    virtual void log( const String &, Log::Severity = Log::Info ) const;
+    virtual void log( const EString &, Log::Severity = Log::Info ) const;
 
 private:
     Log *l;

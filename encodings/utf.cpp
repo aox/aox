@@ -2,7 +2,7 @@
 
 #include "utf.h"
 
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 
 
@@ -36,9 +36,9 @@ Utf8Codec::Utf8Codec()
 
 
 
-String Utf8Codec::fromUnicode( const UString & u )
+EString Utf8Codec::fromUnicode( const UString & u )
 {
-    String r;
+    EString r;
     r.reserve( u.length() + 40 );
     uint i = 0;
     while ( i < u.length() ) {
@@ -88,7 +88,7 @@ String Utf8Codec::fromUnicode( const UString & u )
 }
 
 
-static bool ahead( const String & s, int i, uint l )
+static bool ahead( const EString & s, int i, uint l )
 {
     int j = i+1;
     while ( l > 0 ) {
@@ -101,7 +101,7 @@ static bool ahead( const String & s, int i, uint l )
 }
 
 
-static int pick( const String & s, int i, uint l )
+static int pick( const EString & s, int i, uint l )
 {
     int a = 0;
     while ( l > 0 ) {
@@ -114,7 +114,7 @@ static int pick( const String & s, int i, uint l )
 
 /*! Decodes the UTF-8 string \a s and returns the result. */
 
-UString Utf8Codec::toUnicode( const String & s )
+UString Utf8Codec::toUnicode( const EString & s )
 {
     UString u;
     u.reserve( s.length() );
@@ -226,9 +226,9 @@ Utf16Codec::Utf16Codec()
 }
 
 
-String Utf16Codec::fromUnicode( const UString & u )
+EString Utf16Codec::fromUnicode( const UString & u )
 {
-    String r;
+    EString r;
 
     if ( !bom ) {
         // if we don't output a BOM, reader should assume BE, so we
@@ -253,7 +253,7 @@ String Utf16Codec::fromUnicode( const UString & u )
 }
 
 
-UString Utf16Codec::toUnicode( const String & s )
+UString Utf16Codec::toUnicode( const EString & s )
 {
     if ( s[0] == 0xFF && s[1] == 0xFE ) {
         be = false;
@@ -301,9 +301,9 @@ Utf16LeCodec::Utf16LeCodec()
 }
 
 
-String Utf16LeCodec::fromUnicode( const UString & u )
+EString Utf16LeCodec::fromUnicode( const UString & u )
 {
-    String r;
+    EString r;
     r.reserve( u.length() * 2 );
     uint i = 0;
     while ( i < u.length() ) {
@@ -320,7 +320,7 @@ String Utf16LeCodec::fromUnicode( const UString & u )
     even length.
 */
 
-UString Utf16LeCodec::toUnicode( const String & s )
+UString Utf16LeCodec::toUnicode( const EString & s )
 {
     UString u;
     u.reserve( s.length() / 2 );
@@ -355,9 +355,9 @@ Utf16BeCodec::Utf16BeCodec()
 }
 
 
-String Utf16BeCodec::fromUnicode( const UString & u )
+EString Utf16BeCodec::fromUnicode( const UString & u )
 {
-    String r;
+    EString r;
     r.reserve( u.length() * 2 );
     uint i = 0;
     while ( i < u.length() ) {
@@ -374,7 +374,7 @@ String Utf16BeCodec::fromUnicode( const UString & u )
     even length.
 */
 
-UString Utf16BeCodec::toUnicode( const String & s )
+UString Utf16BeCodec::toUnicode( const EString & s )
 {
     UString u;
     u.reserve( s.length() / 2 );
@@ -413,13 +413,13 @@ Utf7Codec::Utf7Codec()
     including the special case for "+".
 */
 
-String Utf7Codec::e( const UString & u )
+EString Utf7Codec::e( const UString & u )
 {
     if ( u.length() == 1 &&
          u[0] == ( broken ? '&' : '+' ) )
         return "";
 
-    String t;
+    EString t;
     uint i = 0;
     while ( i < u.length() ) {
         uint c = u[i];
@@ -427,10 +427,10 @@ String Utf7Codec::e( const UString & u )
         t.append( c % 256 );
         i++;
     }
-    String e = t.e64().mid( 0, ( i * 16 + 5 ) / 6 );
+    EString e = t.e64().mid( 0, ( i * 16 + 5 ) / 6 );
     if ( !broken )
         return e;
-    String b;
+    EString b;
     i = 0;
     while ( i < e.length() ) {
         if ( e[i] == '/' )
@@ -443,7 +443,7 @@ String Utf7Codec::e( const UString & u )
 }
 
 
-String Utf7Codec::fromUnicode( const UString & u )
+EString Utf7Codec::fromUnicode( const UString & u )
 {
     UString u16;
     uint i = 0;
@@ -458,7 +458,7 @@ String Utf7Codec::fromUnicode( const UString & u )
         i++;
     }
     i = 0;
-    String r;
+    EString r;
     uint b = UINT_MAX;
     while ( i < u16.length() ) {
         uint c = u16[i];
@@ -518,7 +518,7 @@ String Utf7Codec::fromUnicode( const UString & u )
 }
 
 
-UString Utf7Codec::toUnicode( const String & s )
+UString Utf7Codec::toUnicode( const EString & s )
 {
     char shift = '+';
     if ( broken )
@@ -534,9 +534,9 @@ UString Utf7Codec::toUnicode( const String & s )
         else if ( c == shift ) {
             c = s[i];
             uint b = i;
-            String e;
+            EString e;
             if ( broken ) {
-                String ohno;
+                EString ohno;
                 while ( ( c >= 'A' && c <= 'Z' ) ||
                         ( c >= 'a' && c <= 'z' ) ||
                         ( c >= '0' && c <= '9' ) ||

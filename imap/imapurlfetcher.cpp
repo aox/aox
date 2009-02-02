@@ -12,7 +12,7 @@
 #include "handlers/fetch.h"
 #include "handlers/section.h"
 #include "permissions.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "mailbox.h"
 #include "query.h"
 #include "md5.h"
@@ -61,8 +61,8 @@ public:
 
     int state;
     bool done;
-    String error;
-    String badUrl;
+    EString error;
+    EString badUrl;
     List<UrlLink> * urls;
     EventHandler * owner;
     PermissionsChecker * checker;
@@ -227,9 +227,9 @@ void ImapUrlFetcher::execute()
                     return;
                 }
 
-                String rump( url->rump() );
-                String urlauth( url->urlauth() );
-                String key( r->getString( "key" ).de64() );
+                EString rump( url->rump() );
+                EString urlauth( url->urlauth() );
+                EString key( r->getEString( "key" ).de64() );
 
                 if ( urlauth != "0" + MD5::HMAC( key, rump ).hex() ) {
                     setError( "invalid URL", url->orig() );
@@ -249,7 +249,7 @@ void ImapUrlFetcher::execute()
                 }
             }
 
-            String section( url->section() );
+            EString section( url->section() );
             if ( !section.isEmpty() ) {
                 ImapParser * ip = new ImapParser( section );
                 it->section = Fetch::parseSection( ip );
@@ -355,7 +355,7 @@ void ImapUrlFetcher::execute()
         if ( needIds ) {
             uint n = 1;
             d->findIds = new Query( "", this );
-            String a = "select mailbox, uid, message "
+            EString a = "select mailbox, uid, message "
                        "from mailbox_messages where ";
             bool first = true;
             List<MailboxSet>::Iterator it( sets );
@@ -472,12 +472,12 @@ bool ImapUrlFetcher::failed() const
 }
 
 
-/*! Returns the ImapUrl (in String form) that caused the error(). This
+/*! Returns the ImapUrl (in EString form) that caused the error(). This
     function is meaningful only when failed() is true, and it is meant
     to set the BADURL resp-text-code.
 */
 
-String ImapUrlFetcher::badUrl() const
+EString ImapUrlFetcher::badUrl() const
 {
     return d->badUrl;
 }
@@ -487,7 +487,7 @@ String ImapUrlFetcher::badUrl() const
     string if it's still working, or completed successfully.
 */
 
-String ImapUrlFetcher::error() const
+EString ImapUrlFetcher::error() const
 {
     return d->error;
 }
@@ -498,7 +498,7 @@ String ImapUrlFetcher::error() const
     and badUrl() will return \a url. Subsequent calls are ignored.
 */
 
-void ImapUrlFetcher::setError( const String & msg, const String & url )
+void ImapUrlFetcher::setError( const EString & msg, const EString & url )
 {
     if ( d->error.isEmpty() ) {
         d->done = true;

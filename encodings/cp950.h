@@ -12,8 +12,8 @@ class Cp950Codec
 public:
     Cp950Codec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

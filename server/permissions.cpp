@@ -3,7 +3,7 @@
 #include "permissions.h"
 
 #include "integerset.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "mailbox.h"
 #include "event.h"
 #include "query.h"
@@ -104,7 +104,7 @@ public:
 */
 
 Permissions::Permissions( Mailbox * mailbox, const UString &authid,
-                          const String &rights )
+                          const EString &rights )
     : d( new PermissionData )
 {
     d->mailbox = mailbox;
@@ -204,20 +204,20 @@ void Permissions::execute()
     if ( !d->q->done() )
         return;
 
-    StringList p;
+    EStringList p;
     Mailbox * candidate = 0;
 
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
         Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-        String id = r->getString( "identifier" );
+        EString id = r->getEString( "identifier" );
         if ( m && ( !candidate ||
                     candidate->name().length() < m->name().length() ) ) {
             candidate = m;
             p.clear();
         }
         if ( candidate == m )
-            p.append( r->getString( "rights" ) );
+            p.append( r->getEString( "rights" ) );
     }
 
     if ( p.isEmpty() )
@@ -236,9 +236,9 @@ void Permissions::execute()
     (This is subject to change.)
 */
 
-String Permissions::string() const
+EString Permissions::string() const
 {
-    String s;
+    EString s;
 
     bool cr = false;
     bool dr = false;
@@ -282,9 +282,9 @@ char Permissions::rightChar( Permissions::Right right )
     or the virtual 'c' and 'd' rights.
 */
 
-String Permissions::describe( char c )
+EString Permissions::describe( char c )
 {
-    String r( rights );
+    EString r( rights );
 
     int i = r.find( c );
     if ( i < 0 )
@@ -298,7 +298,7 @@ String Permissions::describe( char c )
 
 bool Permissions::validRight( char c )
 {
-    if ( c == 'c' || c == 'd' || String( rights ).contains( c ) )
+    if ( c == 'c' || c == 'd' || EString( rights ).contains( c ) )
         return true;
     return false;
 }
@@ -306,10 +306,10 @@ bool Permissions::validRight( char c )
 
 /*! Returns true only if \a s represents a valid set of rights. */
 
-bool Permissions::validRights( const String &s )
+bool Permissions::validRights( const EString &s )
 {
     uint i = 0;
-    String r( rights );
+    EString r( rights );
     while ( i < s.length() ) {
         if ( !validRight( s[i] ) )
             return false;
@@ -321,9 +321,9 @@ bool Permissions::validRights( const String &s )
 
 /*! Returns a string containing all available rights characters. */
 
-String Permissions::all()
+EString Permissions::all()
 {
-    return String( rights ) + "cd";
+    return EString( rights ) + "cd";
 }
 
 
@@ -331,7 +331,7 @@ String Permissions::all()
     other rights.
 */
 
-void Permissions::set( const String &rights )
+void Permissions::set( const EString &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
@@ -357,7 +357,7 @@ void Permissions::set( const String &rights )
     Any unrecognised right characters are ignored.
 */
 
-void Permissions::allow( const String &rights )
+void Permissions::allow( const EString &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
@@ -381,7 +381,7 @@ void Permissions::allow( const String &rights )
     Any unrecognised right characters are ignored.
 */
 
-void Permissions::disallow( const String &rights )
+void Permissions::disallow( const EString &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
@@ -508,9 +508,9 @@ bool PermissionsChecker::ready() const
     string.
 */
 
-String PermissionsChecker::error() const
+EString PermissionsChecker::error() const
 {
-    StringList l;
+    EStringList l;
     List<PermissionsCheckerData::Pair>::Iterator i( d->l );
     while ( i ) {
         if ( !i->p->allowed( i->r ) )

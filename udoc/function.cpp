@@ -29,9 +29,9 @@ static List<Function> * functions = 0;
     error messages.
 */
 
-Function::Function( const String & type,
-                    const String & name,
-                    const String & arguments,
+Function::Function( const EString & type,
+                    const EString & name,
+                    const EString & arguments,
                     bool constness,
                     File * originFile, uint originLine )
     : c( 0 ), t( type ), f( originFile ),
@@ -59,15 +59,15 @@ Function::Function( const String & type,
 }
 
 
-/*! \fn String Function::type() const
+/*! \fn EString Function::type() const
     Returns the type of this Function.
 */
 
-/*! \fn String Function::name() const
+/*! \fn EString Function::name() const
     Returns the name of this Function.
 */
 
-/*! \fn String Function::arguments() const
+/*! \fn EString Function::arguments() const
     Returns the arguments of this Function as a string.
 */
 
@@ -89,14 +89,14 @@ Function::Function( const String & type,
     accepted.
 */
 
-Function * Function::find( const String & name,
-                           const String & arguments,
+Function * Function::find( const EString & name,
+                           const EString & arguments,
                            bool constness )
 {
     if ( !functions )
         return 0;
 
-    String tmp = name;
+    EString tmp = name;
     List<Function>::Iterator it( functions );
     Function * f = 0;
     if ( arguments.isEmpty() ) {
@@ -104,7 +104,7 @@ Function * Function::find( const String & name,
             ++it;
     }
     else {
-        String t = typesOnly( arguments );
+        EString t = typesOnly( arguments );
         while ( (f=it) != 0 &&
                 !( f->n == name && f->a == t && f->cn == constness ) )
             ++it;
@@ -114,19 +114,19 @@ Function * Function::find( const String & name,
 
 
 /*! Returns a version of the argument list \a a which is stripped of
-    argument names. For example, "( int a, const String & b, int )" is
-    transformed into "( int a, const String &, int )".
+    argument names. For example, "( int a, const EString & b, int )" is
+    transformed into "( int a, const EString &, int )".
 */
 
-String Function::typesOnly( const String & a )
+EString Function::typesOnly( const EString & a )
 {
     if ( a == "()" )
         return a;
-    String r;
+    EString r;
     Parser p( a );
     p.step(); // past the '('
-    String t;
-    String s = "( ";
+    EString t;
+    EString s = "( ";
     do {
         t = p.type();
         if ( t.startsWith( "class " ) )
@@ -176,17 +176,17 @@ Function * Function::super() const
         // normally the parent function's name is the same as this, but
         // for constructors or destructors it gets difficult. so let's
         // find out what the member name and immediate class name are.
-        String sn = n;
+        EString sn = n;
         int i = sn.length()-1;
         while ( i >= 0 && sn[i] != ':' )
             i--;
-        String memberName = sn.mid( i + 1 );
+        EString memberName = sn.mid( i + 1 );
         i = i - 2;
         while ( i >= 0 && sn[i] != ':' )
             i--;
         if ( i < 0 )
             i = -1;
-        String iClassName = sn.mid( i + 1 );
+        EString iClassName = sn.mid( i + 1 );
         i = 0;
         while ( iClassName[i] != ':' )
             i++;
@@ -231,7 +231,7 @@ void Function::setOverload()
     not.
 */
 
-bool Function::hasArgument( const String & s ) const
+bool Function::hasArgument( const EString & s ) const
 {
     int i = 0;
     while ( i >= 0 && i < (int)args.length() ) {
@@ -261,7 +261,7 @@ bool Function::hasArgument( const String & s ) const
     based on the .h file.
 */
 
-void Function::setArgumentList( const String & arguments )
+void Function::setArgumentList( const EString & arguments )
 {
     args = arguments;
 }

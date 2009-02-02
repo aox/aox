@@ -12,8 +12,8 @@ class Iso2022JpCodec
 public:
     Iso2022JpCodec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

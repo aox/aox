@@ -27,20 +27,20 @@ public:
     const IMAP * imap;
 
     User * user;
-    String auth;
-    String host;
+    EString auth;
+    EString host;
     uint port;
     UString mailbox;
     uint uidvalidity;
     uint uid;
-    String section;
+    EString section;
     Date * expires;
-    String access;
-    String mechanism;
-    String urlauth;
+    EString access;
+    EString mechanism;
+    EString urlauth;
 
-    String orig;
-    String text;
+    EString orig;
+    EString text;
 };
 
 
@@ -58,7 +58,7 @@ public:
     must be absolute (i.e., begin with "imap://").
 */
 
-ImapUrl::ImapUrl( const String & s )
+ImapUrl::ImapUrl( const EString & s )
     : d( new ImapUrlData )
 {
     parse( s );
@@ -74,7 +74,7 @@ ImapUrl::ImapUrl( const String & s )
     This behaviour is intended to serve the needs of CATENATE.
 */
 
-ImapUrl::ImapUrl( const IMAP * imap, const String & s )
+ImapUrl::ImapUrl( const IMAP * imap, const EString & s )
     : d( new ImapUrlData )
 {
     d->imap = imap;
@@ -87,7 +87,7 @@ ImapUrl::ImapUrl( const IMAP * imap, const String & s )
     false afterwards. Called by the constructor.
 */
 
-void ImapUrl::parse( const String & s )
+void ImapUrl::parse( const EString & s )
 {
     d->orig = s;
     ImapUrlParser * p = new ImapUrlParser( s );
@@ -211,7 +211,7 @@ bool ImapUrl::isRump() const
     not.
 */
 
-String ImapUrl::orig() const
+EString ImapUrl::orig() const
 {
     return d->orig;
 }
@@ -221,7 +221,7 @@ String ImapUrl::orig() const
     if the rump is not meaningfully defined.
 */
 
-String ImapUrl::rump() const
+EString ImapUrl::rump() const
 {
     return d->orig.mid( 0, d->rumpEnd );
 }
@@ -245,7 +245,7 @@ User * ImapUrl::user() const
     if none was specified.
 */
 
-String ImapUrl::auth() const
+EString ImapUrl::auth() const
 {
     return d->auth;
 }
@@ -255,7 +255,7 @@ String ImapUrl::auth() const
     allowance for relative URLs, because it's not needed yet.)
 */
 
-String ImapUrl::host() const
+EString ImapUrl::host() const
 {
     return d->host;
 }
@@ -304,7 +304,7 @@ uint ImapUrl::uid() const
     an entire message).
 */
 
-String ImapUrl::section() const
+EString ImapUrl::section() const
 {
     return d->section;
 }
@@ -324,7 +324,7 @@ Date * ImapUrl::expires() const
     an empty string if none was specified.
 */
 
-String ImapUrl::access() const
+EString ImapUrl::access() const
 {
     return d->access.lower();
 }
@@ -334,7 +334,7 @@ String ImapUrl::access() const
     URL, or an empty string if no URLAUTH was specified.
 */
 
-String ImapUrl::mechanism() const
+EString ImapUrl::mechanism() const
 {
     return d->mechanism;
 }
@@ -344,7 +344,7 @@ String ImapUrl::mechanism() const
     if no URLAUTH was specified.
 */
 
-String ImapUrl::urlauth() const
+EString ImapUrl::urlauth() const
 {
     return d->urlauth;
 }
@@ -354,7 +354,7 @@ String ImapUrl::urlauth() const
     for this URL to \a s.
 */
 
-void ImapUrl::setText( const String &s )
+void ImapUrl::setText( const EString &s )
 {
     d->text = s;
 }
@@ -364,7 +364,7 @@ void ImapUrl::setText( const String &s )
     ImapUrlFetcher, or an empty string if setText() has not been called.
 */
 
-String ImapUrl::text() const
+EString ImapUrl::text() const
 {
     return d->text;
 }
@@ -438,9 +438,9 @@ bool ImapUrlParser::escape( char * c )
     characters matching bchar are accepted instead.
 */
 
-String ImapUrlParser::xchars( bool b )
+EString ImapUrlParser::xchars( bool b )
 {
-    String s;
+    EString s;
 
     char c = nextChar();
     while ( c != '\0' ) {
@@ -474,7 +474,7 @@ String ImapUrlParser::xchars( bool b )
     \a host and \a port.
 */
 
-bool ImapUrlParser::hostport( String & host, uint * port )
+bool ImapUrlParser::hostport( EString & host, uint * port )
 {
     // We're very laid-back about parsing the "host" production. About
     // the only thing we'll reject is -foo.com, and not doing so would
@@ -584,9 +584,9 @@ Date * ImapUrlParser::isoTimestamp()
     digits are available at the cursor.
 */
 
-String ImapUrlParser::urlauth()
+EString ImapUrlParser::urlauth()
 {
-    String s;
+    EString s;
 
     char c = nextChar();
     while ( ( c >= '0' && c <= '9' ) ||

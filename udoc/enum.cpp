@@ -20,7 +20,7 @@
     in file \a f line \a l.
 */
 
-Enum::Enum( Class * c, const String & n, File * f, uint l )
+Enum::Enum( Class * c, const EString & n, File * f, uint l )
     : Garbage()
 {
     this->c = c; // ick. I must be drunk to do such a thing.
@@ -32,7 +32,7 @@ Enum::Enum( Class * c, const String & n, File * f, uint l )
 
 /*! Records that \a name is a member of this enum. */
 
-void Enum::addValue( const String & name )
+void Enum::addValue( const EString & name )
 {
     v.append( name );
 }
@@ -42,7 +42,7 @@ void Enum::addValue( const String & name )
 
 */
 
-StringList * Enum::values() const
+EStringList * Enum::values() const
 {
     return 0;
 }

@@ -10,7 +10,7 @@ class EventHandler;
 class Transaction;
 class IntegerSet;
 class Message;
-class String;
+class EString;
 class Query;
 
 
@@ -50,7 +50,7 @@ public:
     bool hasChildren() const;
 
     Mailbox * source() const;
-    String selector() const;
+    EString selector() const;
 
     static void setup( class EventHandler * = 0 );
     static Mailbox * find( const UString &, bool = false );

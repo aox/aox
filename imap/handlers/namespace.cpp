@@ -20,7 +20,7 @@
 
 void Namespace::execute()
 {
-    String personal, other, shared;
+    EString personal, other, shared;
 
     personal = "((\"\" \"/\"))";
     other    = "((\"/users/\" \"/\"))"; // XXX: should consult namespaces.

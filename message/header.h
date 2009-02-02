@@ -7,7 +7,7 @@
 #include "field.h"
 
 
-class String;
+class EString;
 class Address;
 class ContentType;
 class ContentTransferEncoding;
@@ -26,10 +26,10 @@ public:
 
     Mode mode() const;
     bool valid() const;
-    String error() const;
+    EString error() const;
 
     void add( HeaderField * );
-    void add( const String &, const String & );
+    void add( const EString &, const EString & );
     void removeField( HeaderField::Type );
 
     List< HeaderField > * fields() const;
@@ -38,23 +38,23 @@ public:
     AddressField * addressField( HeaderField::Type, uint = 0 ) const;
 
     Date * date( HeaderField::Type = HeaderField::Date ) const;
-    String subject() const;
-    String inReplyTo() const;
-    String messageId( HeaderField::Type = HeaderField::MessageId ) const;
+    EString subject() const;
+    EString inReplyTo() const;
+    EString messageId( HeaderField::Type = HeaderField::MessageId ) const;
     List< Address > * addresses( HeaderField::Type ) const;
     ContentType * contentType() const;
     ContentTransferEncoding * contentTransferEncoding() const;
     ContentDisposition * contentDisposition() const;
     ContentLanguage * contentLanguage() const;
-    String contentDescription() const;
-    String contentLocation() const;
+    EString contentDescription() const;
+    EString contentLocation() const;
 
     void simplify();
     void repair();
-    void repair( class Multipart *, const String & );
+    void repair( class Multipart *, const EString & );
     void fix8BitFields( class Codec * );
 
-    String asText() const;
+    EString asText() const;
 
     enum DefaultType { TextPlain, MessageRfc822 };
     void setDefaultType( DefaultType );
@@ -64,7 +64,7 @@ private:
     class HeaderData * d;
 
     void verify() const;
-    void appendField( String &, HeaderField * ) const;
+    void appendField( EString &, HeaderField * ) const;
 };
 
 

@@ -30,9 +30,9 @@ Cp950Codec::Cp950Codec()
 
 /*! Returns the encoded representation of the UString \a u. */
 
-String Cp950Codec::fromUnicode( const UString &u )
+EString Cp950Codec::fromUnicode( const UString &u )
 {
-    String s;
+    EString s;
 
     uint i = 0;
     while ( i < u.length() ) {
@@ -56,9 +56,9 @@ String Cp950Codec::fromUnicode( const UString &u )
 }
 
 
-/*! Returns the Unicode representation of the String \a s. */
+/*! Returns the Unicode representation of the EString \a s. */
 
-UString Cp950Codec::toUnicode( const String &s )
+UString Cp950Codec::toUnicode( const EString &s )
 {
     UString u;
 

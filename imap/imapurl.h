@@ -4,7 +4,7 @@
 #define IMAPURL_H
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 #include "imapparser.h"
 
@@ -16,33 +16,33 @@ class ImapUrl
     : public Garbage
 {
 public:
-    ImapUrl( const String & );
-    ImapUrl( const IMAP *, const String & );
+    ImapUrl( const EString & );
+    ImapUrl( const IMAP *, const EString & );
 
     bool valid() const;
     bool isRump() const;
 
-    String orig() const;
-    String rump() const;
+    EString orig() const;
+    EString rump() const;
 
     class User * user() const;
-    String auth() const;
-    String host() const;
+    EString auth() const;
+    EString host() const;
     uint port() const;
     UString mailboxName() const;
     uint uidvalidity() const;
     uint uid() const;
-    String section() const;
+    EString section() const;
     class Date * expires() const;
-    String access() const;
-    String mechanism() const;
-    String urlauth() const;
+    EString access() const;
+    EString mechanism() const;
+    EString urlauth() const;
 
-    void setText( const String & );
-    String text() const;
+    void setText( const EString & );
+    EString text() const;
 
 private:
-    void parse( const String & );
+    void parse( const EString & );
 
 private:
     class ImapUrlData * d;
@@ -53,18 +53,18 @@ class ImapUrlParser
     : public ImapParser
 {
 public:
-    ImapUrlParser( const String &s )
+    ImapUrlParser( const EString &s )
         : ImapParser( s )
     {}
 
     bool hasIuserauth();
     bool unreserved( char );
     bool escape( char * );
-    String xchars( bool = false );
-    bool hostport( String &, uint * );
+    EString xchars( bool = false );
+    bool hostport( EString &, uint * );
     bool hasUid();
     Date * isoTimestamp();
-    String urlauth();
+    EString urlauth();
 };
 
 

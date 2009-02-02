@@ -9,9 +9,9 @@
 class HeaderFile: public File
 {
 public:
-    HeaderFile( const String & );
+    HeaderFile( const EString & );
 
-    static HeaderFile * find( const String & );
+    static HeaderFile * find( const EString & );
 
     void parse();
 };

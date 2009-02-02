@@ -22,7 +22,7 @@ public:
     void execute();
 
 protected:
-    void setCharset( const String & );
+    void setCharset( const EString & );
     Selector * parseKey();
 
     Selector * selector() const;
@@ -30,7 +30,7 @@ protected:
     void sendResponse();
 
 private:
-    String date();
+    EString date();
 
     void considerCache();
 
@@ -49,15 +49,15 @@ class ImapSearchResponse
 {
 public:
     ImapSearchResponse( ImapSession *, const IntegerSet &,
-                        int64, const String & tag,
+                        int64, const EString & tag,
                         bool,
                         bool, bool, bool, bool );
-    String text() const;
+    EString text() const;
 
 private:
     IntegerSet r;
     int64 ms;
-    String t;
+    EString t;
     bool uid, min, max, count, all;
 };
 

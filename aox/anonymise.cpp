@@ -11,7 +11,7 @@
     This class handles the "aox anonymise" command.
 */
 
-Anonymise::Anonymise( StringList * args )
+Anonymise::Anonymise( EStringList * args )
     : AoxCommand( args )
 {
 }
@@ -19,7 +19,7 @@ Anonymise::Anonymise( StringList * args )
 
 void Anonymise::execute()
 {
-    String s( next() );
+    EString s( next() );
     end();
 
     File f( s );

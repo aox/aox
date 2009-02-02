@@ -50,9 +50,9 @@ EucJpCodec::EucJpCodec()
 
 /*! Returns the EUC-JP-encoded representation of the UString \a u. */
 
-String EucJpCodec::fromUnicode( const UString &u )
+EString EucJpCodec::fromUnicode( const UString &u )
 {
-    String s;
+    EString s;
 
     uint i = 0;
     while ( i < u.length() ) {
@@ -75,9 +75,9 @@ String EucJpCodec::fromUnicode( const UString &u )
 }
 
 
-/*! Returns the Unicode representation of the String \a s. */
+/*! Returns the Unicode representation of the EString \a s. */
 
-UString EucJpCodec::toUnicode( const String &s )
+UString EucJpCodec::toUnicode( const EString &s )
 {
     UString u;
 

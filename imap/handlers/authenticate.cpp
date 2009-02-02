@@ -38,7 +38,7 @@ void Authenticate::parse()
     if ( nextChar() == ' ' ) {
         char c;
         space();
-        r = new String;
+        r = new EString;
         while ( ( ( c = nextChar() ) >= '0' && c <= '9' ) ||
                 ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) ||
                 c == '+' || c == '/' || c == '=' )

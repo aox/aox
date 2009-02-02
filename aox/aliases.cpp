@@ -16,7 +16,7 @@
     This class handles the "aox list aliases" command.
 */
 
-ListAliases::ListAliases( StringList * args )
+ListAliases::ListAliases( EStringList * args )
     : AoxCommand( args ), q( 0 )
 {
 }
@@ -33,7 +33,7 @@ void ListAliases::execute()
             error( "Argument encoding: " + c.error() );
 
         database();
-        String s( "select localpart||'@'||domain as address, m.name "
+        EString s( "select localpart||'@'||domain as address, m.name "
                   "from aliases join addresses a on (address=a.id) "
                   "join mailboxes m on (mailbox=m.id)" );
         if ( !pattern.isEmpty() )
@@ -48,7 +48,7 @@ void ListAliases::execute()
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
         printf( "%s: %s\n",
-                r->getString( "address" ).cstr(),
+                r->getEString( "address" ).cstr(),
                 r->getUString( "name" ).utf8().cstr() );
     }
 
@@ -80,7 +80,7 @@ public:
     This class handles the "aox add alias" command.
 */
 
-CreateAlias::CreateAlias( StringList * args )
+CreateAlias::CreateAlias( EStringList * args )
     : AoxCommand( args ), d( new CreateAliasData )
 {
 }
@@ -92,7 +92,7 @@ void CreateAlias::execute()
         parseOptions();
         Utf8Codec c;
         d->address = nextAsAddress();
-        String * first = args()->firstElement();
+        EString * first = args()->firstElement();
         if ( first && !first->startsWith( "/" ) && first->contains( "@" ) )
             d->destination = nextAsAddress();
         else
@@ -158,7 +158,7 @@ void CreateAlias::execute()
     This class handles the "aox delete alias" command.
 */
 
-DeleteAlias::DeleteAlias( StringList * args )
+DeleteAlias::DeleteAlias( EStringList * args )
     : AoxCommand( args ), q( 0 )
 {
 }
@@ -168,7 +168,7 @@ void DeleteAlias::execute()
 {
     if ( !q ) {
         parseOptions();
-        String address = next();
+        EString address = next();
         end();
 
         if ( address.isEmpty() )

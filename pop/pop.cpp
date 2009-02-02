@@ -8,14 +8,14 @@
 #include "event.h"
 #include "query.h"
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "buffer.h"
 #include "mailbox.h"
 #include "message.h"
 #include "session.h"
 #include "eventloop.h"
 #include "popcommand.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "transaction.h"
 #include "configuration.h"
 
@@ -44,7 +44,7 @@ public:
 
 
 static void newCommand( List< PopCommand > *, POP *,
-                        PopCommand::Command, StringList * = 0 );
+                        PopCommand::Command, EStringList * = 0 );
 
 
 /*! \class POP pop.h
@@ -225,7 +225,7 @@ void POP::parse()
             if ( d->reserved )
                 break;
 
-            String *s = b->removeLine( 255 );
+            EString *s = b->removeLine( 255 );
 
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +
@@ -237,8 +237,8 @@ void POP::parse()
 
             bool unknown = false;
 
-            StringList * args = StringList::split( ' ', *s );
-            String cmd = args->take( args->first() )->lower();
+            EStringList * args = EStringList::split( ' ', *s );
+            EString cmd = args->take( args->first() )->lower();
 
             if ( d->sawUser && !( cmd == "quit" || cmd == "pass" ) ) {
                 d->sawUser = false;
@@ -321,7 +321,7 @@ void POP::parse()
 
 /*! Sends \a s as a positive +OK response. */
 
-void POP::ok( const String &s )
+void POP::ok( const EString &s )
 {
     enqueue( "+OK " + s + "\r\n" );
 }
@@ -329,7 +329,7 @@ void POP::ok( const String &s )
 
 /*! Sends \a s as a negative -ERR response. */
 
-void POP::err( const String &s )
+void POP::err( const EString &s )
 {
     enqueue( "-ERR " + s + "\r\n" );
     setReader( 0 );
@@ -360,13 +360,13 @@ void POP::runCommands()
 
 static void newCommand( List< PopCommand > * l, POP * pop,
                         PopCommand::Command cmd,
-                        StringList * args )
+                        EStringList * args )
 {
     l->append( new PopCommand( pop, cmd, args ) );
 }
 
 
-void POP::setUser( User * u, const String & m )
+void POP::setUser( User * u, const EString & m )
 {
     log( "Authenticated as user " + u->login().ascii(), Log::Significant );
     SaslConnection::setUser( u, m );
@@ -451,7 +451,7 @@ class Message * POP::message( uint uid )
 }
 
 
-void POP::sendChallenge( const String &s )
+void POP::sendChallenge( const EString &s )
 {
     enqueue( "+ "+ s +"\r\n" );
 }

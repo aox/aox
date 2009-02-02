@@ -5,7 +5,7 @@
 #include "sievescript.h"
 #include "sieveproduction.h"
 #include "ustringlist.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "utf.h"
 
 
@@ -16,7 +16,7 @@ public:
     SieveParserData(): bad( 0 ) {}
 
     List<SieveProduction> * bad;
-    StringList extensions;
+    EStringList extensions;
 };
 
 
@@ -34,7 +34,7 @@ public:
      script.
 */
 
-SieveParser::SieveParser( const String &s  )
+SieveParser::SieveParser( const EString &s  )
     : AbnfParser( s ), d( new SieveParserData )
 {
 }
@@ -96,7 +96,7 @@ void SieveParser::rememberBadProduction( class SieveProduction * p )
     is never a null pointer.
 */
 
-StringList * SieveParser::extensionsNeeded() const
+EStringList * SieveParser::extensionsNeeded() const
 {
     d->extensions.removeDuplicates();
     return &d->extensions;
@@ -108,7 +108,7 @@ StringList * SieveParser::extensionsNeeded() const
     ie. using SieveParser as a common storage object.
 */
 
-void SieveParser::rememberNeededExtension( const String & extension )
+void SieveParser::rememberNeededExtension( const EString & extension )
 {
     d->extensions.append( extension );
 }
@@ -167,10 +167,10 @@ void SieveParser::hashComment()
     Records an error if no identifier is present.
 */
 
-String SieveParser::identifier()
+EString SieveParser::identifier()
 {
     whitespace();
-    String r;
+    EString r;
     char c = nextChar();
     while ( ( c == '_' ) ||
             ( c >= 'a' && c <= 'z' ) ||
@@ -200,7 +200,7 @@ String SieveParser::identifier()
 
 UString SieveParser::multiLine()
 {
-    String r;
+    EString r;
     require( "text:" );
     while ( ok() && ( nextChar() == ' ' || nextChar() == '\t' ) )
         step();
@@ -234,7 +234,7 @@ UString SieveParser::multiLine()
 uint SieveParser::number()
 {
     bool ok = false;
-    String d = digits( 1, 30 );
+    EString d = digits( 1, 30 );
     uint n = d.number( &ok );
     uint f = 1;
     if ( present( "k" ) )
@@ -267,7 +267,7 @@ uint SieveParser::number()
 
 UString SieveParser::quotedString()
 {
-    String r;
+    EString r;
     require( "\"" );
     while ( ok() && !atEnd() && nextChar() != '"' ) {
         if ( present( "\r\n" ) ) {
@@ -291,7 +291,7 @@ UString SieveParser::quotedString()
 
 /*! tag = ":" identifier */
 
-String SieveParser::tag()
+EString SieveParser::tag()
 {
     whitespace();
     require( ":" );
@@ -500,7 +500,7 @@ List<SieveCommand> * SieveParser::commands()
     Returns just the string, not ":comparator" or the whitespace.
 */
 
-String SieveParser::comparator()
+EString SieveParser::comparator()
 {
     whitespace();
     require( ":comparator" );

@@ -3,7 +3,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-class String;
+class EString;
 
 #include "global.h"
 #include "log.h"
@@ -16,9 +16,9 @@ public:
     Logger();
     virtual ~Logger();
 
-    virtual void send( const String &, Log::Severity, const String & ) = 0;
+    virtual void send( const EString &, Log::Severity, const EString & ) = 0;
 
-    virtual String name() const;
+    virtual EString name() const;
 
     static Logger *global();
 };

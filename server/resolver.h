@@ -3,7 +3,7 @@
 #ifndef RESOLVER_H
 #define RESOLVER_H
 
-#include "stringlist.h"
+#include "estringlist.h"
 
 
 class Resolver
@@ -13,12 +13,12 @@ private:
     Resolver();
 
     static Resolver * resolver();
-    String readString( uint & );
-    void query( uint, StringList * );
+    EString readString( uint & );
+    void query( uint, EStringList * );
 
 public:
-    static StringList resolve( const String & );
-    static StringList errors();
+    static EStringList resolve( const EString & );
+    static EStringList errors();
 
 private:
     class ResolverData * d;

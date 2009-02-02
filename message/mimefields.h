@@ -4,8 +4,8 @@
 #define MIMEFIELDS_H
 
 #include "field.h"
-#include "string.h"
-#include "stringlist.h"
+#include "estring.h"
+#include "estringlist.h"
 
 
 class EmailParser;
@@ -18,17 +18,17 @@ protected:
     MimeField( HeaderField::Type );
 
 public:
-    StringList *parameters() const;
-    String parameterString() const;
-    String parameter( const String & ) const;
-    void addParameter( const String &, const String & );
-    void removeParameter( const String & );
+    EStringList *parameters() const;
+    EString parameterString() const;
+    EString parameter( const EString & ) const;
+    void addParameter( const EString &, const EString & );
+    void removeParameter( const EString & );
     void parseParameters( EmailParser * );
 
-    String rfc822() const;
+    EString rfc822() const;
     UString value() const;
 
-    virtual String baseValue() const = 0;
+    virtual EString baseValue() const = 0;
 
 private:
     class MimeFieldData *d;
@@ -42,15 +42,15 @@ public:
     ContentType();
     virtual ~ContentType();
 
-    void parse( const String & );
+    void parse( const EString & );
 
-    String type() const;
-    String subtype() const;
+    EString type() const;
+    EString subtype() const;
 
-    String baseValue() const;
+    EString baseValue() const;
 
 private:
-    String t, st;
+    EString t, st;
 };
 
 
@@ -60,15 +60,15 @@ class ContentTransferEncoding
 public:
     ContentTransferEncoding();
 
-    void parse( const String & );
+    void parse( const EString & );
 
-    void setEncoding( String::Encoding );
-    String::Encoding encoding() const;
+    void setEncoding( EString::Encoding );
+    EString::Encoding encoding() const;
 
-    String baseValue() const;
+    EString baseValue() const;
 
 private:
-    String::Encoding e;
+    EString::Encoding e;
 };
 
 
@@ -78,15 +78,15 @@ class ContentDisposition
 public:
     ContentDisposition();
 
-    void parse( const String & );
+    void parse( const EString & );
 
     enum Disposition { Inline, Attachment };
     Disposition disposition() const;
 
-    String baseValue() const;
+    EString baseValue() const;
 
 private:
-    String d;
+    EString d;
 };
 
 
@@ -97,14 +97,14 @@ public:
     ContentLanguage();
     virtual ~ContentLanguage();
 
-    void parse( const String & );
+    void parse( const EString & );
 
-    const StringList *languages() const;
+    const EStringList *languages() const;
 
-    String baseValue() const;
+    EString baseValue() const;
 
 private:
-    StringList l;
+    EStringList l;
 };
 
 

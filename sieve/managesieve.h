@@ -6,7 +6,7 @@
 #include "saslconnection.h"
 
 class User;
-class String;
+class EString;
 
 
 class ManageSieve
@@ -24,16 +24,16 @@ public:
 
     void runCommands();
 
-    void ok( const String & );
-    void no( const String & );
-    void send( const String & );
+    void ok( const EString & );
+    void no( const EString & );
+    void send( const EString & );
 
     void setReserved( bool );
     void setReader( class ManageSieveCommand * );
 
     void capabilities();
 
-    virtual void sendChallenge( const String & );
+    virtual void sendChallenge( const EString & );
 
 private:
     class ManageSieveData *d;

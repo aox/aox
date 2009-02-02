@@ -60,7 +60,7 @@ class CheckConfig
     : public AoxCommand
 {
 public:
-    CheckConfig( StringList * );
+    CheckConfig( EStringList * );
     void execute();
 
 private:
@@ -72,7 +72,7 @@ class Start
     : public AoxCommand
 {
 public:
-    Start( StringList * );
+    Start( EStringList * );
     void execute();
 
 private:
@@ -84,7 +84,7 @@ class Stop
     : public AoxCommand
 {
 public:
-    Stop( StringList * );
+    Stop( EStringList * );
     void execute();
 
 private:
@@ -96,7 +96,7 @@ class Restart
     : public AoxCommand
 {
 public:
-    Restart( StringList * );
+    Restart( EStringList * );
     void execute();
 
 private:
@@ -108,7 +108,7 @@ class ShowStatus
     : public AoxCommand
 {
 public:
-    ShowStatus( StringList * );
+    ShowStatus( EStringList * );
     void execute();
 };
 
@@ -117,7 +117,7 @@ class ShowBuild
     : public AoxCommand
 {
 public:
-    ShowBuild( StringList * );
+    ShowBuild( EStringList * );
     void execute();
 };
 
@@ -126,12 +126,12 @@ class ShowConfiguration
     : public AoxCommand
 {
 public:
-    ShowConfiguration( StringList * );
+    ShowConfiguration( EStringList * );
     void execute();
 
 private:
-    void addVariable( SortedList<String> *,
-                      String, String, String, bool );
+    void addVariable( SortedList<EString> *,
+                      EString, EString, EString, bool );
 };
 
 

@@ -32,7 +32,7 @@ public:
 private:
     class LdapRelayData * d;
 
-    void fail( const String & );
+    void fail( const EString & );
     void succeed();
 };
 

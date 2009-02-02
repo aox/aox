@@ -6,7 +6,7 @@
 #include "ascii-casemap.h"
 #include "ascii-numeric.h"
 
-#include "stringlist.h"
+#include "estringlist.h"
 
 
 /*! \class Collation collation.h
@@ -74,9 +74,9 @@ Collation * Collation::create( const UString & s )
     names are sorted alphabetically.
 */
 
-StringList * Collation::supported()
+EStringList * Collation::supported()
 {
-    StringList * l = new StringList;
+    EStringList * l = new EStringList;
     // alphabetically:
     l->append( "i;ascii-casemap" );
     l->append( "i;ascii-numeric" );

@@ -10,7 +10,7 @@
 #include "scope.h"
 #include "event.h"
 #include "timer.h"
-#include "string.h"
+#include "estring.h"
 #include "message.h"
 #include "fetcher.h"
 #include "session.h"
@@ -19,7 +19,7 @@
 #include "eventloop.h"
 #include "allocator.h"
 #include "integerset.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "transaction.h"
 
 
@@ -59,7 +59,7 @@ public:
     int64 nextModSeq;
 
     uint source;
-    String selector;
+    EString selector;
 
     List<Mailbox> * views;
 };
@@ -151,7 +151,7 @@ void MailboxReader::execute() {
 
         if ( m->type() == Mailbox::View ) {
             m->d->source = r->getInt( "source" );
-            m->d->selector = r->getString( "selector" );
+            m->d->selector = r->getEString( "selector" );
             m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
                                         r->getBigint( "viewnms" ),
                                         q->transaction() );
@@ -473,7 +473,7 @@ Mailbox * Mailbox::source() const
     string if this is not a View.
 */
 
-String Mailbox::selector() const
+EString Mailbox::selector() const
 {
     return d->selector;
 }

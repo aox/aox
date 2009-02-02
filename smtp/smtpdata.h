@@ -16,7 +16,7 @@ public:
 
     void execute();
 
-    class Injectee * message( const String & );
+    class Injectee * message( const EString & );
 
     void makeCopy() const;
 

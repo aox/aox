@@ -3,7 +3,7 @@
 #include "pgmessage.h"
 
 #include "log.h"
-#include "string.h"
+#include "estring.h"
 #include "buffer.h"
 
 
@@ -112,9 +112,9 @@ int PgServerMessage::decodeInt32()
     the input buffer or the message.
 */
 
-String PgServerMessage::decodeString()
+EString PgServerMessage::decodeString()
 {
-    String s;
+    EString s;
 
     uint i = 0;
     while ( i < buf->size() && i < l-n &&
@@ -155,12 +155,12 @@ char PgServerMessage::decodeByte()
     either the buffer or the message size.
 */
 
-String PgServerMessage::decodeByten( uint x )
+EString PgServerMessage::decodeByten( uint x )
 {
     if ( buf->size() < 1 || n+x > l )
         throw Syntax;
 
-    String s = buf->string( x );
+    EString s = buf->string( x );
     buf->remove( x );
     n += x;
 
@@ -262,7 +262,7 @@ void PgClientMessage::appendInt32( int n )
 
 /*! Appends \a s to the message data as a NUL-terminated string. */
 
-void PgClientMessage::appendString( const String & s )
+void PgClientMessage::appendString( const EString & s )
 {
     msg.append( s );
     msg.append( '\0' );
@@ -271,7 +271,7 @@ void PgClientMessage::appendString( const String & s )
 
 /*! Appends the bytes from \a s to the message data. */
 
-void PgClientMessage::appendByten( const String & s )
+void PgClientMessage::appendByten( const EString & s )
 {
     msg.append( s );
 }
@@ -290,7 +290,7 @@ void PgClientMessage::appendByte( char c )
     C: A client begins by sending a Startup message to the server.
 
     This message consists of an Int32 representing the desired protocol
-    version, and any number of pairs of Strings representing an option
+    version, and any number of pairs of EStrings representing an option
     name and value for the backend respectively. These can be set with
     the setOption() method.
 */
@@ -309,7 +309,7 @@ void PgStartup::encodeData()
 
 /*! Sets the the parameter named \a key to the value \a val. */
 
-void PgStartup::setOption( const String &key, const String &val )
+void PgStartup::setOption( const EString &key, const EString &val )
 {
     options.append( key  );
     options.append( '\0' );
@@ -345,7 +345,7 @@ void PgCancel::encodeData()
 /*! \class PgMessage pgmessage.h
     S: This is an error or notification message sent by the server.
 
-    The message data consists of (Byte, String) pairs, terminated by a
+    The message data consists of (Byte, EString) pairs, terminated by a
     trailing NUL. The byte identifies the type of value that follows.
     (For example, 'M' is followed by the error message.)
 */
@@ -361,7 +361,7 @@ PgMessage::PgMessage( Buffer *b )
     char type;
 
     while ( ( type = decodeByte() ) != '\0' ) {
-        String s = decodeString();
+        EString s = decodeString();
 
         switch ( type ) {
         case 'S': S = s; break;
@@ -387,63 +387,63 @@ PgMessage::PgMessage( Buffer *b )
     the server message this object represents.
 */
 
-/*! \fn String PgMessage::severity() const
+/*! \fn EString PgMessage::severity() const
     Returns the severity of a message, in the language Postgres is
     configured to use. If Postgres uses English, this has one of the
     following values: Unknown, Panic, Fatal, Error, Warning, Notice,
     Debug, Info, Log.
 */
 
-/*! \fn String PgMessage::code() const
+/*! \fn EString PgMessage::code() const
     Returns (as a string) the SQLstate code associated with the
     message.  There are listed by
     http://www.postgresql.org/docs/current/static/errcodes-appendix.html.
 */
 
 
-/*! \fn String PgMessage::message() const
+/*! \fn EString PgMessage::message() const
     Returns the contents of the message.
 */
 
 
-/*! \fn String PgMessage::detail() const
+/*! \fn EString PgMessage::detail() const
     Returns a detailed description of the message(), if available, or
     an empty string otherwise.
 */
 
 
-/*! \fn String PgMessage::hint() const
+/*! \fn EString PgMessage::hint() const
     Returns a hint to the user about what to do next, if available, or
     an empty string otherwise.
 */
 
 
-/*! \fn String PgMessage::position() const
+/*! \fn EString PgMessage::position() const
     Returns (as a string) the position in the query of whatever problem
     caused this message to be generated (or an empty string if no such
     thing was specified by the server).
 */
 
 
-/*! \fn String PgMessage::where() const
+/*! \fn EString PgMessage::where() const
     Returns a string describing where the error occurred, if available,
     or an empty string otherwise.
 */
 
 
-/*! \fn String PgMessage::file() const
+/*! \fn EString PgMessage::file() const
     Returns the name of the source file that generated the message, if
     available, or an empty string otherwise.
 */
 
 
-/*! \fn String PgMessage::line() const
+/*! \fn EString PgMessage::line() const
     Returns (as a string) the line number where the message was
     generated, if available, or an empty string otherwise.
 */
 
 
-/*! \fn String PgMessage::routine() const
+/*! \fn EString PgMessage::routine() const
     Returns the name of the routine that generated this message, if
     available, or an empty string otherwise.
 */
@@ -480,7 +480,7 @@ PgAuthRequest::PgAuthRequest( Buffer *b )
     Kerberos5, Credential.
 */
 
-/*! \fn String PgAuthRequest::salt() const
+/*! \fn EString PgAuthRequest::salt() const
     Returns the salt value specified for this authentication request.
 */
 
@@ -488,14 +488,14 @@ PgAuthRequest::PgAuthRequest( Buffer *b )
 /*! \class PgPasswordMessage pgmessage.h
     C: The client's response to an authentication request.
 
-    This message contains a password (String), which may be encrypted if
+    This message contains a password (EString), which may be encrypted if
     the server requested it.
 */
 
-/*! Creates a password message containing the String \a s.
+/*! Creates a password message containing the EString \a s.
 */
 
-PgPasswordMessage::PgPasswordMessage( const String &s )
+PgPasswordMessage::PgPasswordMessage( const EString &s )
     : PgClientMessage( 'p' ),
       p( s )
 {
@@ -512,7 +512,7 @@ void PgPasswordMessage::encodeData()
 /*! \class PgParameterStatus pgmessage.h
     S: This message communicates a parameter value to the client.
 
-    The message data consists of two Strings: the name of a parameter,
+    The message data consists of two EStrings: the name of a parameter,
     and its current value in the backend.
 */
 
@@ -525,11 +525,11 @@ PgParameterStatus::PgParameterStatus( Buffer *b )
 }
 
 
-/*! \fn String PgParameterStatus::name()
+/*! \fn EString PgParameterStatus::name()
     Returns the name of this parameter.
 */
 
-/*! \fn String PgParameterStatus::value()
+/*! \fn EString PgParameterStatus::value()
     Returns the value of this parameter.
 */
 
@@ -564,7 +564,7 @@ PgKeyData::PgKeyData( Buffer *b )
 /*! \class PgParse pgmessage.h
     C: The client uses this to create prepared statements.
 
-    This message contains a statement name (String), a query String, the
+    This message contains a statement name (EString), a query EString, the
     number of pre-specified parameter types (Int16), and the OID (Int32)
     of each parameter type. (We never pre-specify parameter types here.)
 */
@@ -573,7 +573,7 @@ PgKeyData::PgKeyData( Buffer *b )
     statement named \a n. By default, \a n is empty.
 */
 
-PgParse::PgParse( const String &s, const String &n )
+PgParse::PgParse( const EString &s, const EString &n )
     : PgClientMessage( 'P' ),
       name( n ), stmt( s ), types( 0 )
 {
@@ -627,7 +627,7 @@ PgParseComplete::PgParseComplete( Buffer *b )
     C: Creates a portal by binding values to a prepared statement.
 
     This message contains the names of a portal to create and a prepared
-    statement to bind values to (Strings); an Int16 count followed by an
+    statement to bind values to (EStrings); an Int16 count followed by an
     array of Int16 format codes; an Int16 count of values followed by an
     (Int32 length, Byten value) pair for each value; and an Int16 count
     followed by an array of Int16 result format codes.
@@ -638,7 +638,7 @@ PgParseComplete::PgParseComplete( Buffer *b )
     \a dst are empty.)
 */
 
-PgBind::PgBind( const String &src, const String &dst )
+PgBind::PgBind( const EString &src, const EString &dst )
     : PgClientMessage( 'B' ),
       stmt( src ), portal( dst ), values( 0 )
 {
@@ -710,14 +710,14 @@ PgBindComplete::PgBindComplete( Buffer *b )
     C: Requests a description of a prepared statement or portal.
 
     This message consists of one byte ('S' for a prepared statement, and
-    'P' for a portal) followed by a name (String).
+    'P' for a portal) followed by a name (EString).
 */
 
 /*! Creates a Describe message for the name \a n (empty by default) of
     type \a t, which must be P or S ('P' by default).
 */
 
-PgDescribe::PgDescribe( char t, const String &n )
+PgDescribe::PgDescribe( char t, const EString &n )
     : PgClientMessage( 'D' ),
       type( t ), name( n )
 {
@@ -771,7 +771,7 @@ PgParameterDescription::PgParameterDescription( Buffer *b )
     S: The description of a single row of data.
 
     The message data contains the 16-bit number of columns, and tuples
-    of (String name, Int32 table-oid, Int16 col-number, Int32 type-id,
+    of (EString name, Int32 table-oid, Int16 col-number, Int32 type-id,
     Int16 size, Int32 type-mod, Int16 format-code) for each column.
 */
 
@@ -795,7 +795,7 @@ PgRowDescription::PgRowDescription( Buffer * b )
         col->column2 = c;
 
         columns.append( col );
-        names.insert( col->name.data(), 8 * col->name.length(), 
+        names.insert( col->name.data(), 8 * col->name.length(),
                       &col->column2 );
 
         c++;
@@ -808,7 +808,7 @@ PgRowDescription::PgRowDescription( Buffer * b )
 /*! \class PgExecute pgmessage.h
     C: A request to execute a portal.
 
-    This message contains the name (String) of a portal to execute, and
+    This message contains the name (EString) of a portal to execute, and
     the number of rows (Int32) to return from it.
 */
 
@@ -816,7 +816,7 @@ PgRowDescription::PgRowDescription( Buffer * b )
     By default, \a n is empty and \a r is 0.
 */
 
-PgExecute::PgExecute( const String &n, uint r )
+PgExecute::PgExecute( const EString &n, uint r )
     : PgClientMessage( 'E' ),
       name( n ), rows( r )
 {
@@ -994,7 +994,7 @@ PgEmptyQueryResponse::PgEmptyQueryResponse( Buffer *b )
 /*! \class PgCommandComplete pgmessage.h
     S: Command completion notification.
 
-    The message data contains the tag of the completed command (String).
+    The message data contains the tag of the completed command (EString).
 */
 
 PgCommandComplete::PgCommandComplete( Buffer *b )
@@ -1082,13 +1082,13 @@ Database::State PgReady::state() const
 /*! \class PgQuery pgmessage.h
     C: A simple query.
 
-    The message data consists of the query as a String.
+    The message data consists of the query as a EString.
 */
 
 /*! Creates a new simple query message for the statement \a s.
 */
 
-PgQuery::PgQuery( const String &s )
+PgQuery::PgQuery( const EString &s )
     : PgClientMessage( 'Q' ),
       stmt( s )
 {
@@ -1169,7 +1169,7 @@ void PgCopyData::encodeText()
         Query::InputLine::Iterator v( it );
         while ( v ) {
             if ( first ) {
-                String s = v->data();
+                EString s = v->data();
                 msg.reserve( msg.length() +
                              s.length() * query->inputLines()->count() );
                 msg.append( s );
@@ -1272,7 +1272,7 @@ PgNotificationResponse::PgNotificationResponse( Buffer * b )
 
 /*! Returns the NOTIFY argument without any quoting. */
 
-String PgNotificationResponse::name() const
+EString PgNotificationResponse::name() const
 {
     return n;
 }
@@ -1280,7 +1280,7 @@ String PgNotificationResponse::name() const
 
 /*! Returns the notification source, usually an empty string. */
 
-String PgNotificationResponse::source() const
+EString PgNotificationResponse::source() const
 {
     return s;
 }

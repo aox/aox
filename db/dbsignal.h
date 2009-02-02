@@ -3,7 +3,7 @@
 #ifndef DBSIGNAL_H
 #define DBSIGNAL_H
 
-#include "stringlist.h"
+#include "estringlist.h"
 
 class EventHandler;
 
@@ -12,11 +12,11 @@ class DatabaseSignal
     : public Garbage
 {
 public:
-    DatabaseSignal( const String &, EventHandler * );
+    DatabaseSignal( const EString &, EventHandler * );
 
-    static void notifyAll( const String & );
+    static void notifyAll( const EString & );
 
-    static StringList * names();
+    static EStringList * names();
 
 private: // noone can destroy this
     ~DatabaseSignal();

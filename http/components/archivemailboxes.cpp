@@ -50,7 +50,7 @@ void ArchiveMailboxes::execute()
     if ( !d->q->done() )
         return;
 
-    String s( "<h1>Archives</h1>\n" );
+    EString s( "<h1>Archives</h1>\n" );
     s.append( "<p><ul>\n" );
 
     while ( d->q->hasResults() ) {

@@ -10,14 +10,14 @@ class FrontMatterData
     : public Garbage
 {
 public:
-    String element;
+    EString element;
 };
 
 
 /*! \class FrontMatter frontmatter.h
     Provides front matter needed to render the rest of a WebPage.
 
-    This class inherits from String and provides a collection of static
+    This class inherits from EString and provides a collection of static
     functions that return a pointer to a new FrontMatter object, whose
     contents are an HTML string suitable for inclusion into a WebPage.
 
@@ -29,7 +29,7 @@ public:
 
 /*! Creates a new FrontMatter object for the specified \a element. */
 
-FrontMatter::FrontMatter( const String & element )
+FrontMatter::FrontMatter( const EString & element )
     : d( new FrontMatterData )
 {
     d->element = element;
@@ -39,7 +39,7 @@ FrontMatter::FrontMatter( const String & element )
 /*! Returns this object's element name, as specified to the
     constructor. */
 
-String FrontMatter::element() const
+EString FrontMatter::element() const
 {
     return d->element;
 }
@@ -47,7 +47,7 @@ String FrontMatter::element() const
 
 /*! Returns a title element for \a s, which will be HTML quoted. */
 
-FrontMatter * FrontMatter::title( const String & s )
+FrontMatter * FrontMatter::title( const EString & s )
 {
     FrontMatter * fm = new FrontMatter( "title" );
     fm->append( PageComponent::quoted( s ) );
@@ -88,7 +88,7 @@ FrontMatter * FrontMatter::styleSheet()
 /*! Returns an object that contains \a s and belongs inside a <style>
     element. */
 
-FrontMatter * FrontMatter::style( const String &s )
+FrontMatter * FrontMatter::style( const EString &s )
 {
     FrontMatter * fm = new FrontMatter( "style" );
     fm->append( s );
@@ -112,7 +112,7 @@ FrontMatter * FrontMatter::jQuery()
 
 /*! Returns a <script> element wrapping the given code \a s. */
 
-FrontMatter * FrontMatter::script( const String &s )
+FrontMatter * FrontMatter::script( const EString &s )
 {
     FrontMatter * fm = new FrontMatter( "script" );
     fm->append( s );

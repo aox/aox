@@ -5,7 +5,7 @@
 
 #include "logger.h"
 
-class String;
+class EString;
 class Endpoint;
 
 
@@ -13,11 +13,11 @@ class LogClient
     : public Logger
 {
 public:
-    static void setup( const String & );
+    static void setup( const EString & );
 
-    void send( const String &, Log::Severity, const String & );
+    void send( const EString &, Log::Severity, const EString & );
 
-    String name() const;
+    EString name() const;
 
 private:
     class LogClientData * d;

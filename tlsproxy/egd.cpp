@@ -80,7 +80,7 @@ void EntropyProvider::process()
         switch( opcode ) {
         case 0:
             r->remove( 1 );
-            enqueue( String( "\000\010\000", 3 ) );
+            enqueue( EString( "\000\010\000", 3 ) );
             break;
         case 1:
         case 2:
@@ -98,7 +98,7 @@ void EntropyProvider::process()
             break;
         case 4:
             r->remove( 1 );
-            enqueue( String( "\0010", 2 ) );
+            enqueue( EString( "\0010", 2 ) );
             break;
         default:
             log( "Client sent non-EGD opcode: " + fn( opcode ), Log::Error );

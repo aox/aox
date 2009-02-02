@@ -5,7 +5,7 @@
 #include "scope.h"
 #include "configuration.h"
 #include "imap.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "log.h"
 #include "mechanism.h"
 #include "tls.h"
@@ -57,9 +57,9 @@ void Capability::execute()
     applicable to the current IMAP::state().
 */
 
-String Capability::capabilities( IMAP * i, bool all )
+EString Capability::capabilities( IMAP * i, bool all )
 {
-    StringList c;
+    EStringList c;
 
     c.append( "IMAP4rev1" );
 

@@ -5,7 +5,7 @@
 
 #include "pagecomponent.h"
 
-class String;
+class EString;
 
 
 class AddView

@@ -17,7 +17,7 @@
     command received from the client.
 */
 
-ImapParser::ImapParser( const String &s )
+ImapParser::ImapParser( const EString &s )
     : AbnfParser( s )
 {
 }
@@ -30,7 +30,7 @@ ImapParser::ImapParser( const String &s )
     with CRLF, as IMAP::parse() does.
 */
 
-String ImapParser::firstLine()
+EString ImapParser::firstLine()
 {
     return str.mid( 0, str.find( '\r' ) );
 }
@@ -41,9 +41,9 @@ String ImapParser::firstLine()
     the tag. It is an error if no valid tag is found at the cursor.
 */
 
-String ImapParser::tag()
+EString ImapParser::tag()
 {
-    String r;
+    EString r;
 
     char c = nextChar();
     while ( c > ' ' && c < 127 && c != '(' && c != ')' && c != '{' &&
@@ -67,9 +67,9 @@ String ImapParser::tag()
     the cursor.
 */
 
-String ImapParser::command()
+EString ImapParser::command()
 {
-    String r;
+    EString r;
 
     if ( present( "uid " ) )
         r.append( "uid " );
@@ -111,9 +111,9 @@ uint ImapParser::nzNumber()
     cursor.
 */
 
-String ImapParser::atom()
+EString ImapParser::atom()
 {
-    String r;
+    EString r;
 
     char c = nextChar();
     while ( c > ' ' && c < 127 &&
@@ -138,9 +138,9 @@ String ImapParser::atom()
     are found at the cursor.
 */
 
-String ImapParser::listChars()
+EString ImapParser::listChars()
 {
-    String r;
+    EString r;
 
     char c = nextChar();
     while ( c > ' ' && c < 127 && c != '(' && c != ')' && c != '{' &&
@@ -164,7 +164,7 @@ String ImapParser::listChars()
 
 void ImapParser::nil()
 {
-    String n( atom() );
+    EString n( atom() );
     if ( n.lower() != "nil" )
         setError( "Expected NIL, but saw: " + n );
 }
@@ -175,9 +175,9 @@ void ImapParser::nil()
     quoted-string does not occur at the cursor.
 */
 
-String ImapParser::quoted()
+EString ImapParser::quoted()
 {
-    String r;
+    EString r;
 
     char c = nextChar();
     if ( c != '"' ) {
@@ -218,7 +218,7 @@ String ImapParser::quoted()
     are the right size.
 */
 
-String ImapParser::literal()
+EString ImapParser::literal()
 {
     char c = nextChar();
     if ( c == '~' ) {
@@ -246,7 +246,7 @@ String ImapParser::literal()
     if ( !ok() )
         return "";
 
-    String r( str.mid( pos(), len ) );
+    EString r( str.mid( pos(), len ) );
     step( len );
     return r;
 }
@@ -257,7 +257,7 @@ String ImapParser::literal()
     cursor.
 */
 
-String ImapParser::string()
+EString ImapParser::string()
 {
     char c = nextChar();
 
@@ -276,7 +276,7 @@ String ImapParser::string()
     cursor.
 */
 
-String ImapParser::nstring()
+EString ImapParser::nstring()
 {
     char c = nextChar();
     if ( c == '"' || c == '{' )
@@ -292,13 +292,13 @@ String ImapParser::nstring()
     cursor.
 */
 
-String ImapParser::astring()
+EString ImapParser::astring()
 {
     char c = nextChar();
     if ( c == '"' || c == '{' )
         return string();
 
-    String r;
+    EString r;
     while ( c > ' ' && c < 128 &&
             c != '(' && c != ')' && c != '{' &&
             c != '"' && c != '\\' &&
@@ -322,9 +322,9 @@ String ImapParser::astring()
     list-mailbox is found at the cursor.
 */
 
-String ImapParser::listMailbox()
+EString ImapParser::listMailbox()
 {
-    String r;
+    EString r;
 
     char c = nextChar();
     if ( c == '"' || c == '{' )
@@ -350,13 +350,13 @@ String ImapParser::listMailbox()
     an error if no valid flag name was present at the cursor.
 */
 
-String ImapParser::flag()
+EString ImapParser::flag()
 {
     if ( !present( "\\" ) )
         return atom();
 
-    String r = "\\" + atom();
-    String l = r.lower();
+    EString r = "\\" + atom();
+    EString l = r.lower();
     if ( l == "\\answered" || l == "\\flagged" || l == "\\deleted" ||
          l == "\\seen" || l == "\\draft" )
         return r;
@@ -372,9 +372,9 @@ String ImapParser::flag()
     found at the cursor. Consecutive dots are accepted.
 */
 
-String ImapParser::dotLetters( uint min, uint max )
+EString ImapParser::dotLetters( uint min, uint max )
 {
-    String r;
+    EString r;
     uint i = 0;
     char c = nextChar();
     while ( i < max &&

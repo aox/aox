@@ -11,11 +11,11 @@ class MboxDirectory
     : public DirectoryTree
 {
 public:
-    MboxDirectory( const String & );
+    MboxDirectory( const EString & );
 
 protected:
-    bool isMailbox( const String &, struct stat * );
-    MigratorMailbox * newMailbox( const String &, uint );
+    bool isMailbox( const EString &, struct stat * );
+    MigratorMailbox * newMailbox( const EString &, uint );
 };
 
 
@@ -23,7 +23,7 @@ class MboxMailbox
     : public MigratorMailbox
 {
 public:
-    MboxMailbox( const String & path, uint );
+    MboxMailbox( const EString & path, uint );
 
     MigratorMessage * nextMessage();
 

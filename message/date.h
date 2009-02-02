@@ -3,7 +3,7 @@
 #ifndef DATE_H
 #define DATE_H
 
-#include "string.h"
+#include "estring.h"
 
 
 class Date
@@ -12,21 +12,21 @@ class Date
 public:
     Date();
 
-    void setRfc822( const String & );
-    String rfc822() const;
+    void setRfc822( const EString & );
+    EString rfc822() const;
     void setCurrentTime();
     void setUnixTime( uint );
     uint unixTime();
 
-    String imap() const;
+    EString imap() const;
 
-    String isoDate() const;
-    String isoTime() const;
+    EString isoDate() const;
+    EString isoTime() const;
     int offset() const;
-    String isoDateTime() const;
+    EString isoDateTime() const;
 
     void setDate( uint, uint, uint, uint, uint, uint, int );
-    void setDate( uint, const String &, uint, uint, uint,
+    void setDate( uint, const EString &, uint, uint, uint,
                   uint, int );
 
     uint year() const;
@@ -40,7 +40,7 @@ public:
     bool valid() const;
     void checkHarder();
 
-    void setTimezone( const String & );
+    void setTimezone( const EString & );
     void setLocalTimezone();
 
 private:

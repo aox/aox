@@ -5,7 +5,7 @@
 #include "configuration.h"
 #include "allocator.h"
 #include "entropy.h"
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 #include "user.h"
 #include "md5.h"
@@ -16,8 +16,8 @@
 struct Nonce
     : public Garbage
 {
-    String value;
-    String count;
+    EString value;
+    EString count;
     uint time;
 };
 
@@ -33,9 +33,9 @@ public:
     {}
 
     bool stale;
-    String rspauth;
-    String realm, nonce, qop;
-    String cnonce, nc, response, uri;
+    EString rspauth;
+    EString realm, nonce, qop;
+    EString cnonce, nc, response, uri;
     Nonce *cachedNonce;
 };
 
@@ -63,9 +63,9 @@ DigestMD5::DigestMD5( EventHandler *c )
 }
 
 
-String DigestMD5::challenge()
+EString DigestMD5::challenge()
 {
-    String r;
+    EString r;
 
     if ( d->rspauth.isEmpty() ) {
         d->nonce = Entropy::asString( 48 ).e64();
@@ -87,7 +87,7 @@ String DigestMD5::challenge()
 }
 
 
-void DigestMD5::parseResponse( const String &r )
+void DigestMD5::parseResponse( const EString &r )
 {
     // Is this a response to our second challenge?
     if ( !d->rspauth.isEmpty() ) {
@@ -149,7 +149,7 @@ void DigestMD5::parseResponse( const String &r )
     require( cnonce, "cnonce" );
     require( uri, "uri" );
 
-    String s;
+    EString s;
     if ( qop && ( !qop->unique() || qop->value() != "auth" ) ) {
         s = "qop invalid in DIGEST-MD5 response: " + qop->value();
         setState( Failed );
@@ -190,7 +190,7 @@ void DigestMD5::parseResponse( const String &r )
 
     d->cachedNonce = 0;
     if ( ok && state() == AwaitingInitialResponse ) {
-        String ncv = nonce->value().unquoted();
+        EString ncv = nonce->value().unquoted();
         List< Nonce >::Iterator it( cache );
         while ( it ) {
             if ( it->value == ncv )
@@ -229,9 +229,9 @@ void DigestMD5::parseResponse( const String &r )
     (naming \a v \a n) and sets the state to Failed.
 */
 
-void DigestMD5::require( class Variable * v, const String & n )
+void DigestMD5::require( class Variable * v, const EString & n )
 {
-    String l;
+    EString l;
     if ( !v )
         l = n + " is not present in DIGEST-MD5 response";
     else if ( !v->unique() )
@@ -248,7 +248,7 @@ void DigestMD5::require( class Variable * v, const String & n )
 
 void DigestMD5::verify()
 {
-    String R, A1, A2;
+    EString R, A1, A2;
 
     A1 = MD5::hash( login().utf8() +":"+ d->realm +":"+ storedSecret().utf8() )
          +":"+ d->nonce +":"+ d->cnonce;
@@ -289,7 +289,7 @@ void DigestMD5::verify()
 }
 
 
-void DigestMD5::setChallenge( const String &s )
+void DigestMD5::setChallenge( const EString &s )
 {
     List< Variable > l;
     Variable *v;
@@ -311,10 +311,10 @@ void DigestMD5::setChallenge( const String &s )
 }
 
 
-static String stripWSP( const String & s )
+static EString stripWSP( const EString & s )
 {
     if ( s.length() == 0 ) {
-        String r;
+        EString r;
         return r;
     }
 
@@ -327,7 +327,7 @@ static String stripWSP( const String & s )
         j--;
 
     if ( i > j ) {
-        String r;
+        EString r;
         return r;
     }
     return s.mid( i, j - i + 1 );
@@ -348,7 +348,7 @@ static String stripWSP( const String & s )
     to the instance already in \a l.
 */
 
-bool DigestMD5::parse( const String &s, List< Variable > &l )
+bool DigestMD5::parse( const EString &s, List< Variable > &l )
 {
     if ( stripWSP( s ).isEmpty() )
         return true;
@@ -369,7 +369,7 @@ bool DigestMD5::parse( const String &s, List< Variable > &l )
         }
 
         // There's one list element between s[ start..i ].
-        String elem = stripWSP( s.mid( start, i-start ) );
+        EString elem = stripWSP( s.mid( start, i-start ) );
         start = i+1;
 
         if ( !elem.isEmpty() ) {
@@ -378,8 +378,8 @@ bool DigestMD5::parse( const String &s, List< Variable > &l )
                 return false;
 
             // We should validate name and value.
-            String name = stripWSP( elem.mid( 0, eq ) ).lower();
-            String value = stripWSP( elem.mid( eq+1, elem.length()-eq ) );
+            EString name = stripWSP( elem.mid( 0, eq ) ).lower();
+            EString value = stripWSP( elem.mid( eq+1, elem.length()-eq ) );
             Variable *v = l.find( name );
 
             if ( !v ) {
@@ -387,7 +387,7 @@ bool DigestMD5::parse( const String &s, List< Variable > &l )
                 v->name = name;
                 l.append( v );
             }
-            v->values.append( new String( value ) );
+            v->values.append( new EString( value ) );
         }
     } while ( start < s.length() );
 

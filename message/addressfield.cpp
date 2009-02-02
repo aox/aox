@@ -22,7 +22,7 @@ AddressField::AddressField( HeaderField::Type t )
 }
 
 
-void AddressField::parse( const String &s )
+void AddressField::parse( const EString &s )
 {
     switch ( type() ) {
     case HeaderField::Sender:
@@ -150,9 +150,9 @@ void AddressField::parse( const String &s )
     addresses().
 */
 
-String AddressField::rfc822() const
+EString AddressField::rfc822() const
 {
-    String s;
+    EString s;
     s.reserve( 30 * addresses()->count() );
     HeaderField::Type t = type();
     List< Address >::Iterator it( addresses() );
@@ -184,7 +184,7 @@ String AddressField::rfc822() const
               t == HeaderField::References )
     {
         bool first = true;
-        String wsep, lsep;
+        EString wsep, lsep;
         uint c = name().length() + 2;
         uint lpos;
 
@@ -200,7 +200,7 @@ String AddressField::rfc822() const
         }
 
         while ( it ) {
-            String a = it->toString();
+            EString a = it->toString();
             ++it;
 
             if ( t == HeaderField::References )
@@ -242,7 +242,7 @@ UString AddressField::value() const
     the first problem found.
 */
 
-void AddressField::parseAddressList( const String &s )
+void AddressField::parseAddressList( const EString &s )
 {
     AddressParser ap( s );
     setError( ap.error() );
@@ -254,7 +254,7 @@ void AddressField::parseAddressList( const String &s )
     the first problem found.
 */
 
-void AddressField::parseMailboxList( const String &s )
+void AddressField::parseMailboxList( const EString &s )
 {
     parseAddressList( s );
 
@@ -272,7 +272,7 @@ void AddressField::parseMailboxList( const String &s )
     first problem found.
 */
 
-void AddressField::parseMailbox( const String &s )
+void AddressField::parseMailbox( const EString &s )
 {
     parseMailboxList( s );
 
@@ -288,7 +288,7 @@ void AddressField::parseMailbox( const String &s )
     problems found.
 */
 
-void AddressField::parseReferences( const String &s )
+void AddressField::parseReferences( const EString &s )
 {
     AddressParser *ap = AddressParser::references( s );
     a = ap->addresses();
@@ -300,7 +300,7 @@ void AddressField::parseReferences( const String &s )
     first serious error found.
 */
 
-void AddressField::parseMessageId( const String &s )
+void AddressField::parseMessageId( const EString &s )
 {
     AddressParser *ap = AddressParser::references( s );
 
@@ -315,7 +315,7 @@ void AddressField::parseMessageId( const String &s )
 
 /*! Like parseMessageId( \a s ), except that it also accepts <blah>. */
 
-void AddressField::parseContentId( const String & s )
+void AddressField::parseContentId( const EString & s )
 {
     AddressParser ap( s );
     setError( ap.error() );

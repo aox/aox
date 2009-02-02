@@ -3,7 +3,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "string.h"
+#include "estring.h"
 #include "abnfparser.h"
 
 class UString;
@@ -13,20 +13,20 @@ class EmailParser
     : public AbnfParser
 {
 public:
-    EmailParser( const String & os ) : AbnfParser( os ), mime( false ) {}
+    EmailParser( const EString & os ) : AbnfParser( os ), mime( false ) {}
 
     void setMime( bool );
     bool isMime() const { return mime; }
 
     UString whitespace();
 
-    String comment();
-    String string();
-    String dotAtom();
-    String domain();
-    String atom();
-    String mimeToken();
-    String mimeValue();
+    EString comment();
+    EString string();
+    EString dotAtom();
+    EString domain();
+    EString atom();
+    EString mimeToken();
+    EString mimeValue();
     uint number();
 
     enum EncodedText { Text, Comment, Phrase };
@@ -37,9 +37,9 @@ public:
 
     bool isAtext( char ) const;
 
-    static UString de2047( const String & );
+    static UString de2047( const EString & );
 
-    String lastComment() const;
+    EString lastComment() const;
 
     int cfws();
 
@@ -47,7 +47,7 @@ public:
 
 private:
     bool mime;
-    String lc;
+    EString lc;
 };
 
 

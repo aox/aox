@@ -75,8 +75,8 @@ void WebPage::startHeadline( Class * c )
 
 void WebPage::startHeadline( Function * f )
 {
-    String a = anchor( f );
-    String o = "<h2 class=\"functionh\">";
+    EString a = anchor( f );
+    EString o = "<h2 class=\"functionh\">";
     if ( !names.contains( a ) ) {
          o.append( "<a name=\"" + anchor( f ) + "\"></a>");
          names.append( a );
@@ -100,7 +100,7 @@ void WebPage::endParagraph()
 
 /*! As Output::addText(). \a text is used escaped (&amp; etc). */
 
-void WebPage::addText( const String & text )
+void WebPage::addText( const EString & text )
 {
     if ( para.isEmpty() ) {
         output( "<p class=\"text\">" );
@@ -117,7 +117,7 @@ void WebPage::addText( const String & text )
         pstart = false;
     }
 
-    String s;
+    EString s;
     while ( i < text.length() ) {
         if ( text[i] == '<' )
             s.append( "&lt;" );
@@ -135,10 +135,10 @@ void WebPage::addText( const String & text )
 
 /*! Adds a link to \a url with the given \a title. */
 
-void WebPage::addLink( const String & url, const String & title )
+void WebPage::addLink( const EString & url, const EString & title )
 {
     addText( "" );
-    String s( "<a href=\"" );
+    EString s( "<a href=\"" );
     s.append( url );
     s.append( "\">" );
     s.append( title );
@@ -149,7 +149,7 @@ void WebPage::addLink( const String & url, const String & title )
 
 /*! As Output::addArgument(). \a text is output in italics. */
 
-void WebPage::addArgument( const String & text )
+void WebPage::addArgument( const EString & text )
 {
     addText( "" );
     output( "<i>" );
@@ -163,9 +163,9 @@ void WebPage::addArgument( const String & text )
     all of \a text is made into a link.
 */
 
-void WebPage::addFunction( const String & text, Function * f )
+void WebPage::addFunction( const EString & text, Function * f )
 {
-    String name = f->name();
+    EString name = f->name();
     int ll = text.length();
     int ls = text.find( name );
     // if we don't find the complete function name, try just the member part
@@ -196,7 +196,7 @@ void WebPage::addFunction( const String & text, Function * f )
         output( "<span class=nobr>" );
     addText( text.mid( 0, ls ) );
     output( "<a href=\"" );
-    String target = f->parent()->name().lower();
+    EString target = f->parent()->name().lower();
     if ( fn != target )
         output( target );
     output( "#" + anchor( f ) + "\">" );
@@ -213,7 +213,7 @@ void WebPage::addFunction( const String & text, Function * f )
     all of \a text is made into a link.
 */
 
-void WebPage::addClass( const String & text, Class * c )
+void WebPage::addClass( const EString & text, Class * c )
 {
     int ll = text.length();
     int ls = text.find( c->name() );
@@ -233,7 +233,7 @@ void WebPage::addClass( const String & text, Class * c )
         output( "<span class=nobr>" );
     addText( text.mid( 0, ls ) );
     bool link = true;
-    String target = c->name().lower();
+    EString target = c->name().lower();
     if ( target == fn )
         link = false;
     if ( link )
@@ -249,7 +249,7 @@ void WebPage::addClass( const String & text, Class * c )
 
 /*! Write \a s to the output file. */
 
-void WebPage::output( const String & s )
+void WebPage::output( const EString & s )
 {
     if ( fd >= 0 && !s.isEmpty() )
         ::write( fd, s.data(), s.length() );
@@ -260,9 +260,9 @@ void WebPage::output( const String & s )
     \a f.
 */
 
-String WebPage::anchor( Function * f )
+EString WebPage::anchor( Function * f )
 {
-    String fn = f->name();
+    EString fn = f->name();
     int i = fn.length();
     while ( i > 0 && fn[i] != ':' )
         i--;
@@ -304,10 +304,10 @@ void WebPage::endPage()
     title. The \a title must not be empty per the HTML standard.
 */
 
-void WebPage::startPage( const String & name, const String & title )
+void WebPage::startPage( const EString & name, const EString & title )
 {
     names.clear();
-    String filename = directory + "/" + name;
+    EString filename = directory + "/" + name;
     fd = ::open( filename.cstr(), O_CREAT|O_WRONLY|O_TRUNC, 0644 );
     output( "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\">\n"
             "<html lang=en><head>" );

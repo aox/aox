@@ -130,7 +130,7 @@ void LdapRelay::parse()
         byte = (*r)[0];
         if ( byte != 0x30 ) {
             fail( "Expected LDAP type byte 0x30, received 0x" +
-                  String::fromNumber( byte, 16 ).lower() );
+                  EString::fromNumber( byte, 16 ).lower() );
             return;
         }
         d->responseLength = (*r)[1];
@@ -158,7 +158,7 @@ void LdapRelay::parse()
     //     07 -> length of remaining bytes
     if ( (*r)[0] != 0x61 ) {
         fail( "Expected LDAP response type 0x61, received type " +
-              String::fromNumber( (*r)[0] ) );
+              EString::fromNumber( (*r)[0] ) );
         return;
     }
     //uint bindResponseLength = (*r)[1];
@@ -198,7 +198,7 @@ void LdapRelay::parse()
         return;
     uint l = (*r)[1];
     r->remove( 2 );
-    String e( r->string( l ) );
+    EString e( r->string( l ) );
     if ( !e.isEmpty() )
         log( "Note: LDAP server returned error message: " + e );
 
@@ -215,7 +215,7 @@ void LdapRelay::bind()
     //     30 -> LDAP message
     //     nn -> number of remaining bytes
 
-    String m;
+    EString m;
     m.append( 0x30 );
 
     // Message id
@@ -223,14 +223,14 @@ void LdapRelay::bind()
     //     01 -> length
     //     01 -> message-id
 
-    String id;
+    EString id;
     id.append( "\002\001\001" );
 
     // Bind request
     //     60 -> APPLICATION 0, i.e. bind request
     //     nn -> number of remaining bytes
 
-    String h;
+    EString h;
     h.append( 0x60 );
 
     //   version (03)
@@ -238,7 +238,7 @@ void LdapRelay::bind()
     //    01 -> length
     //    03 -> version
 
-    String s;
+    EString s;
     s.append( "\002\001\003" );
 
     //   name (?)
@@ -247,7 +247,7 @@ void LdapRelay::bind()
     //    s* -> DN
 
     s.append( 0x04 );
-    String dn;
+    EString dn;
     if ( d->mechanism->user() )
         dn = d->mechanism->user()->ldapdn().utf8();
     s.append( (char)dn.length() );
@@ -259,7 +259,7 @@ void LdapRelay::bind()
     //    s* -> password
 
     s.append( 0x80 );
-    String pw = d->mechanism->secret().utf8();
+    EString pw = d->mechanism->secret().utf8();
     s.append( (char)pw.length() );
     s.append( pw );
 
@@ -279,7 +279,7 @@ void LdapRelay::bind()
 
 void LdapRelay::unbind()
 {
-    String m;
+    EString m;
     m.append( 0x30 );
     m.append( 0x05 );
     m.append( 0x02 );
@@ -293,7 +293,7 @@ void LdapRelay::unbind()
 
 /*! This private helper sets the state and logs \a error. */
 
-void LdapRelay::fail( const String & error )
+void LdapRelay::fail( const EString & error )
 {
     if ( d->state != Working )
         return;

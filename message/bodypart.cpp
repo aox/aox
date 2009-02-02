@@ -33,10 +33,10 @@ public:
     uint numEncodedBytes;
     uint numEncodedLines;
 
-    String data;
+    EString data;
     UString text;
     bool hasText;
-    String error;
+    EString error;
 };
 
 
@@ -133,14 +133,14 @@ ContentType * Bodypart::contentType() const
 
 
 /*! Returns the content transfer encoding of this Bodypart, which may
-    be any of String::Binary, String::QuotedPrintable and
-    String::Base64.
+    be any of EString::Binary, EString::QuotedPrintable and
+    EString::Base64.
 
     Note that data() and text() return the canonical representation of
     the body, not encoded with this.
 */
 
-String::Encoding Bodypart::contentTransferEncoding() const
+EString::Encoding Bodypart::contentTransferEncoding() const
 {
     ContentTransferEncoding * cte = header()->contentTransferEncoding();
     if ( !cte && parent() ) {
@@ -151,7 +151,7 @@ String::Encoding Bodypart::contentTransferEncoding() const
     }
     if ( cte )
         return cte->encoding();
-    return String::Binary;
+    return EString::Binary;
 }
 
 
@@ -159,7 +159,7 @@ String::Encoding Bodypart::contentTransferEncoding() const
     this Bodypart is a text part, data() returns an empty string.
 */
 
-String Bodypart::data() const
+EString Bodypart::data() const
 {
     return d->data;
 }
@@ -169,7 +169,7 @@ String Bodypart::data() const
     MessageBodyFetcher for now.
 */
 
-void Bodypart::setData( const String &s )
+void Bodypart::setData( const EString &s )
 {
     d->data = s;
 }
@@ -277,9 +277,9 @@ uint Bodypart::numEncodedLines() const
     the text according to the ContentType.
 */
 
-String Bodypart::asText() const
+EString Bodypart::asText() const
 {
-    String r;
+    EString r;
     Codec *c = 0;
 
     ContentType *ct = header()->contentType();
@@ -310,8 +310,8 @@ String Bodypart::asText() const
 */
 
 void Bodypart::parseMultipart( uint i, uint end,
-                               const String & rfc2822,
-                               const String & divider,
+                               const EString & rfc2822,
+                               const EString & divider,
                                bool digest,
                                List< Bodypart > * children,
                                Multipart * parent )
@@ -384,7 +384,7 @@ void Bodypart::parseMultipart( uint i, uint end,
 }
 
 
-static Codec * guessTextCodec( const String & body )
+static Codec * guessTextCodec( const EString & body )
 {
     // step 1. try iso-2022-jp. this goes first because it's so
     // restrictive, and because 2022 strings also match the ascii and
@@ -437,7 +437,7 @@ static Codec * guessTextCodec( const String & body )
 }
 
 
-static Codec * guessHtmlCodec( const String & body )
+static Codec * guessHtmlCodec( const EString & body )
 {
     // Let's see if the general function has something for us.
     Codec * guess = guessTextCodec( body );
@@ -468,10 +468,10 @@ static Codec * guessHtmlCodec( const String & body )
     // of the Content-Type field. Maybe that exists? And if it exists,
     // is it more likely to be correct than our guess above?
 
-    String b = body.lower().simplified();
+    EString b = body.lower().simplified();
     int i = 0;
     while ( i >= 0 ) {
-        String tag( "<meta http-equiv=\"content-type\" content=\"" );
+        EString tag( "<meta http-equiv=\"content-type\" content=\"" );
         i = b.find( tag, i );
         if ( i >= 0 ) {
             i = i + tag.length();
@@ -481,7 +481,7 @@ static Codec * guessHtmlCodec( const String & body )
             HeaderField * hf
                 = HeaderField::create( "Content-Type",
                                        b.mid( i, j-i ) );
-            String cs = ((MimeField*)hf)->parameter( "charset" );
+            EString cs = ((MimeField*)hf)->parameter( "charset" );
             Codec * meta = 0;
             if ( !cs.isEmpty() )
                 meta = Codec::byName( cs );
@@ -520,7 +520,7 @@ static Codec * guessHtmlCodec( const String & body )
 */
 
 Bodypart * Bodypart::parseBodypart( uint start, uint end,
-                                    const String & rfc2822,
+                                    const EString & rfc2822,
                                     Header * h, Multipart * parent )
 {
     if ( rfc2822[start] == 13 )
@@ -532,7 +532,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     bp->setParent( parent );
     bp->setHeader( h );
 
-    String body;
+    EString body;
     if ( end > start )
         body = rfc2822.mid( start, end-start );
     if ( !body.contains( '=' ) ) {
@@ -542,7 +542,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bool any = false;
         HeaderField * f = 0;
         while ( (f=h->field(HeaderField::ContentTransferEncoding,i)) != 0 ) {
-            if ( ((ContentTransferEncoding*)f)->encoding() == String::QP )
+            if ( ((ContentTransferEncoding*)f)->encoding() == EString::QP )
                 any = true;
             i++;
         }
@@ -550,12 +550,12 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             h->removeField( HeaderField::ContentTransferEncoding );
     }
 
-    String::Encoding e = String::Binary;
+    EString::Encoding e = EString::Binary;
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte )
         e = cte->encoding();
     if ( !body.isEmpty() ) {
-        if ( e == String::Base64 || e == String::Uuencode )
+        if ( e == EString::Base64 || e == EString::Uuencode )
             body = body.decoded( e );
         else
             body = body.crlf().decoded( e );
@@ -579,7 +579,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         Codec * c = 0;
 
         if ( ct ) {
-            String csn = ct->parameter( "charset" );
+            EString csn = ct->parameter( "charset" );
             if ( csn.lower() == "default" )
                 csn = "";
             if ( !csn.isEmpty() )
@@ -686,13 +686,13 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
         // if we ended up using a 16-bit codec and were using q-p, we
         // need to reevaluate without any trailing CRLF
-        if ( e == String::QP && c->name().startsWith( "UTF-16" ) )
+        if ( e == EString::QP && c->name().startsWith( "UTF-16" ) )
             bp->d->text = c->toUnicode( body.stripCRLF() );
 
         if ( !c->valid() && bp->d->error.isEmpty() ) {
             bp->d->error = "Could not convert body to Unicode";
             if ( specified ) {
-                String cs;
+                EString cs;
                 if ( ct )
                     cs = ct->parameter( "charset" );
                 if ( cs.isEmpty() )
@@ -718,8 +718,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 h->removeField( HeaderField::ContentTransferEncoding );
                 cte = 0;
             }
-            else if ( cte->encoding() != String::QP ) {
-                cte->setEncoding( String::QP );
+            else if ( cte->encoding() != EString::QP ) {
+                cte->setEncoding( EString::QP );
             }
         }
         else if ( qp ) {
@@ -730,24 +730,24 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     else {
         bp->d->data = body;
         if ( ct->type() != "multipart" && ct->type() != "message" ) {
-            e = String::Base64;
+            e = EString::Base64;
             // there may be exceptions. cases where some format really
             // needs another content-transfer-encoding:
             if ( ct->type() == "application" &&
                  ct->subtype().startsWith( "pgp-" ) &&
                  !body.needsQP() ) {
                 // seems some PGP things need "Version: 1" unencoded
-                e = String::Binary;
+                e = EString::Binary;
             }
             else if ( ct->type() == "application" &&
                       ct->subtype() == "octet-stream" &&
                       !body.needsQP() &&
                       body.contains( "BEGIN PGP MESSAGE" ) ) {
                 // mutt cannot handle PGP in base64 (what a crock)
-                e = String::Binary;
+                e = EString::Binary;
             }
             // change c-t-e to match the encoding decided above
-            if ( e == String::Binary ) {
+            if ( e == EString::Binary ) {
                 h->removeField( HeaderField::ContentTransferEncoding );
                 cte = 0;
             }
@@ -842,7 +842,7 @@ bool Bodypart::isBodypart() const
     an empty string if nothing seems to be the matter.
 */
 
-String Bodypart::error() const
+EString Bodypart::error() const
 {
     return d->error;
 }

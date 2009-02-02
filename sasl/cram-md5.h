@@ -12,13 +12,13 @@ class CramMD5
 public:
     CramMD5( EventHandler * );
 
-    String challenge();
-    void setChallenge( const String & );
-    void parseResponse( const String & );
+    EString challenge();
+    void setChallenge( const EString & );
+    void parseResponse( const EString & );
     void verify();
 
 private:
-    String challengeSent;
+    EString challengeSent;
 };
 
 

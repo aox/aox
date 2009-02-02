@@ -28,7 +28,7 @@ ListIdField::ListIdField()
 
 /*! Unremarkable except that it drops 8-bit data inside \a s. */
 
-void ListIdField::parse( const String & s )
+void ListIdField::parse( const EString & s )
 {
     AsciiCodec a;
     setValue( a.toUnicode( s ) );

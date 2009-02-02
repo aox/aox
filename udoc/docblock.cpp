@@ -25,7 +25,7 @@
 */
 
 DocBlock::DocBlock( File * sourceFile, uint sourceLine,
-                    const String & text, Function * function )
+                    const EString & text, Function * function )
     : file( sourceFile ), line( sourceLine ),
       c( 0 ), f( function ), i( 0 ),
       t( text ), s( Plain ), isReimp( false ), introduces( false )
@@ -39,7 +39,7 @@ DocBlock::DocBlock( File * sourceFile, uint sourceLine,
 */
 
 DocBlock::DocBlock( File * sourceFile, uint sourceLine,
-                    const String & text, Class * className )
+                    const EString & text, Class * className )
     : file( sourceFile ), line( sourceLine ),
       c( className ), f( 0 ), i( 0 ),
       t( text ), s( Plain ), introduces( false )
@@ -53,7 +53,7 @@ DocBlock::DocBlock( File * sourceFile, uint sourceLine,
 */
 
 DocBlock::DocBlock( File * sourceFile, uint sourceLine,
-                    const String & text, Intro * intro )
+                    const EString & text, Intro * intro )
     : file( sourceFile ), line( sourceLine ),
       c( 0 ), f( 0 ), i( intro ),
       t( text ), s( Plain ), introduces( false )
@@ -81,7 +81,7 @@ bool DocBlock::isEnum() const
 
 /*! Returns the source text of the documentation. */
 
-String DocBlock::text() const
+EString DocBlock::text() const
 {
     return t;
 }
@@ -117,7 +117,7 @@ void DocBlock::generate()
         }
     }
     if ( f && !isReimp ) {
-        String a = f->arguments();
+        EString a = f->arguments();
         uint i = 0;
         uint s = 0;
         char p = ' ';
@@ -125,7 +125,7 @@ void DocBlock::generate()
             char c = a[i];
             if ( c == ',' || c == ')' ) {
                 if ( s > 0 ) {
-                    String name = a.mid( s, i-s ).simplified();
+                    EString name = a.mid( s, i-s ).simplified();
                     if ( name.endsWith( "[]" ) )
                         name.truncate( name.length()-2 );
                     if ( name.find( ' ' ) < 0 && !arguments.contains( name ) )
@@ -187,7 +187,7 @@ void DocBlock::word( uint & i, uint l, uint n )
     while ( j < t.length() && !( t[j] == 32 || t[j] == 9 ||
                                  t[j] == 13 || t[j] == 10 ) )
         j++;
-    String w = t.mid( i, j-i );
+    EString w = t.mid( i, j-i );
     i = j;
     if ( w == "RFC" ) {
         while ( t[j] == ' ' || t[j] == '\n' )
@@ -200,11 +200,11 @@ void DocBlock::word( uint & i, uint l, uint n )
         bool ok;
         uint n = t.mid( start, j-start ).number( &ok );
         if ( ok ) {
-            String rfc( "http://www.rfc-editor.org/rfc/rfc" );
-            rfc.append( String::fromNumber( n ) );
+            EString rfc( "http://www.rfc-editor.org/rfc/rfc" );
+            rfc.append( EString::fromNumber( n ) );
             rfc.append( ".txt" );
 
-            Output::addLink( rfc, "RFC " + String::fromNumber( n ) );
+            Output::addLink( rfc, "RFC " + EString::fromNumber( n ) );
 
             i = j;
         }
@@ -259,7 +259,7 @@ void DocBlock::checkEndState( uint l )
   an error from line \a l if the link is dangling.
 */
 
-void DocBlock::plainWord( const String & w, uint l )
+void DocBlock::plainWord( const EString & w, uint l )
 {
     if ( s == Introduces ) {
         new Singleton( file, l, w );
@@ -277,7 +277,7 @@ void DocBlock::plainWord( const String & w, uint l )
         last--;
 
     if ( s == Argument ) {
-        String name = w.mid( 0, last+1 );
+        EString name = w.mid( 0, last+1 );
         if ( name[0] == '*' )
             name = name.mid( 1 ); // yuck, what an evil hack
 
@@ -299,7 +299,7 @@ void DocBlock::plainWord( const String & w, uint l )
             i++;
         if ( i > 0 && ( ( w[0] >= 'a' && w[0] <= 'z' ) ||
                         ( w[0] >= 'A' && w[0] <= 'Z' ) ) ) {
-            String name = w.mid( 0, i );
+            EString name = w.mid( 0, i );
             Function * link = 0;
             Class * scope = c;
             if ( f && !scope )
@@ -310,7 +310,7 @@ void DocBlock::plainWord( const String & w, uint l )
             else {
                 Class * parent = scope;
                 while ( parent && !link ) {
-                    String tmp = parent->name() + "::" + name;
+                    EString tmp = parent->name() + "::" + name;
                     link = Function::find( tmp );
                     if ( link )
                         name = tmp;
@@ -356,7 +356,7 @@ void DocBlock::plainWord( const String & w, uint l )
   state to the new is somehow wrong.
 */
 
-void DocBlock::setState( State newState, const String & w, uint l )
+void DocBlock::setState( State newState, const EString & w, uint l )
 {
     if ( s != Plain && newState != Plain )
         (void)new Error( file, l,
@@ -391,7 +391,7 @@ void DocBlock::overload( uint l, uint n )
 }
 
 
-static void addWithClass( const String & s, Class * in )
+static void addWithClass( const EString & s, Class * in )
 {
     Class * c = 0;
     uint i = 0;
@@ -424,7 +424,7 @@ void DocBlock::generateFunctionPreamble()
     addWithClass( f->type(), f->parent() );
     Output::addText( " " );
     Output::addText( f->name() );
-    String a = f->arguments();
+    EString a = f->arguments();
     if ( a == "()" ) {
         Output::addText( f->arguments() );
     }

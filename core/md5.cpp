@@ -2,9 +2,11 @@
 
 #include "md5.h"
 
-#include "string.h"
+#include "estring.h"
 #include "buffer.h"
-#include "sys.h"
+
+// memmove, memset
+#include <string.h>
 
 
 static void swapBytes( char *, int );
@@ -102,10 +104,10 @@ void MD5::add( const char *str, uint len )
 
 
 /*! \overload
-    As above, but adds data from the String \a s.
+    As above, but adds data from the EString \a s.
 */
 
-void MD5::add( const String &s )
+void MD5::add( const EString &s )
 {
     add( s.data(), s.length() );
 }
@@ -113,13 +115,13 @@ void MD5::add( const String &s )
 
 /*! Returns the 16-byte MD5 hash of the bytes add()ed so far. */
 
-String MD5::hash()
+EString MD5::hash()
 {
     uint count;
     char *p;
 
     if ( finalised )
-        return String( (char *)buf, 16 );
+        return EString( (char *)buf, 16 );
 
     /* Compute number of bytes mod 64. */
     count = (bits[0] >> 3) & 0x3F;
@@ -154,15 +156,15 @@ String MD5::hash()
     swapBytes( (char *)buf, 4 );
 
     finalised = true;
-    return String( (char *)buf, 16 );
+    return EString( (char *)buf, 16 );
 }
 
 
 /*! \overload
-    Returns the MD5 hash of the String \a s.
+    Returns the MD5 hash of the EString \a s.
 */
 
-String MD5::hash( const String &s )
+EString MD5::hash( const EString &s )
 {
     MD5 ctx;
 
@@ -175,7 +177,7 @@ String MD5::hash( const String &s )
     Returns the MD5 hash of the Buffer \a s.
 */
 
-String MD5::hash( const Buffer &s )
+EString MD5::hash( const Buffer &s )
 {
     return hash( s.string(s.size()) );
 }
@@ -185,10 +187,10 @@ String MD5::hash( const Buffer &s )
     hex string with lowercase letters. (RFC 2104)
 */
 
-String MD5::HMAC( const String &secret, const String &text )
+EString MD5::HMAC( const EString &secret, const EString &text )
 {
     uint i, len;
-    String s, t;
+    EString s, t;
     char kopad[64], kipad[64];
 
     /* Hash overly long keys. */

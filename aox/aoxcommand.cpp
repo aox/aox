@@ -3,7 +3,7 @@
 #include "aoxcommand.h"
 
 #include "list.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "configuration.h"
 #include "eventloop.h"
 #include "database.h"
@@ -44,7 +44,7 @@ public:
             options[i++] = 0;
     }
 
-    StringList * args;
+    EStringList * args;
     int options[256];
     bool done;
     int status;
@@ -81,7 +81,7 @@ public:
 
 /*! Creates a new AoxCommand object with arguments from \a args. */
 
-AoxCommand::AoxCommand( StringList * args )
+AoxCommand::AoxCommand( EStringList * args )
     : d( new AoxCommandData )
 {
     d->args = args;
@@ -100,7 +100,7 @@ bool AoxCommand::choresDone()
 }
 
 
-static String next( StringList * sl )
+static EString next( EStringList * sl )
 {
     if ( sl->isEmpty() )
         return "";
@@ -112,7 +112,7 @@ static String next( StringList * sl )
     from the front of this list.
 */
 
-StringList * AoxCommand::args()
+EStringList * AoxCommand::args()
 {
     return d->args;
 }
@@ -122,7 +122,7 @@ StringList * AoxCommand::args()
     arguments.
 */
 
-String AoxCommand::next()
+EString AoxCommand::next()
 {
     return ::next( d->args );
 }
@@ -135,7 +135,7 @@ String AoxCommand::next()
 
 class Address * AoxCommand::nextAsAddress()
 {
-    String n = next();
+    EString n = next();
     AddressParser p( n );
     if ( !p.error().isEmpty() ||
          p.addresses()->count() != 1 ) {
@@ -151,9 +151,9 @@ class Address * AoxCommand::nextAsAddress()
 
 void AoxCommand::parseOptions()
 {
-    StringList::Iterator it( d->args );
+    EStringList::Iterator it( d->args );
     while ( it ) {
-        String s = *it;
+        EString s = *it;
         if ( s[0] != '-' )
             break;
         if ( s.length() == 2 &&
@@ -203,7 +203,7 @@ void AoxCommand::end()
 
 /*! Prints the error message \a s and exits with an error status. */
 
-void AoxCommand::error( const String & s )
+void AoxCommand::error( const EString & s )
 {
     fprintf( stderr, "aox: %s\n", s.cstr() );
     exit( -1 );
@@ -313,7 +313,7 @@ bool AoxCommand::validUsername( const UString & s )
     characters) read from the console.
 */
 
-String AoxCommand::readPassword( const String & s )
+EString AoxCommand::readPassword( const EString & s )
 {
     char passwd[128];
     struct termios term;
@@ -331,7 +331,7 @@ String AoxCommand::readPassword( const String & s )
     fgets( passwd, 128, stdin );
     tcsetattr( 0, TCSANOW, &term );
 
-    String p( passwd );
+    EString p( passwd );
     p.truncate( p.length()-1 );
     return p;
 }
@@ -342,10 +342,10 @@ String AoxCommand::readPassword( const String & s )
     If they match, the value is returned.
 */
 
-String AoxCommand::readNewPassword()
+EString AoxCommand::readNewPassword()
 {
-    String s = readPassword( "Password:" );
-    String t = readPassword( "Retype password:" );
+    EString s = readPassword( "Password:" );
+    EString t = readPassword( "Retype password:" );
 
     if ( s != t )
         error( "Passwords do not match." );
@@ -353,7 +353,7 @@ String AoxCommand::readNewPassword()
 }
 
 
-static void bad( const String &verb, const String &noun, const String &ok )
+static void bad( const EString &verb, const EString &noun, const EString &ok )
 {
     if ( noun.isEmpty() )
         fprintf( stderr, "aox %s: No argument supplied.\n",
@@ -373,14 +373,14 @@ static void bad( const String &verb, const String &noun, const String &ok )
     a recognisable command).
 */
 
-AoxCommand * AoxCommand::create( StringList * args )
+AoxCommand * AoxCommand::create( EStringList * args )
 {
     AoxCommand * cmd = 0;
 
     if ( args->isEmpty() )
         return 0;
 
-    String verb( ::next( args ).lower() );
+    EString verb( ::next( args ).lower() );
     if ( verb == "add" || verb == "new" )
         verb = "create";
     else if ( verb == "del" || verb == "remove" )
@@ -396,7 +396,7 @@ AoxCommand * AoxCommand::create( StringList * args )
         cmd = new Restart( args );
     }
     else if ( verb == "show" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "status" )
             cmd = new ShowStatus( args );
         else if ( noun == "build" )
@@ -416,21 +416,21 @@ AoxCommand * AoxCommand::create( StringList * args )
                  "status, build, cf, schema, counts, queue, search" );
     }
     else if ( verb == "upgrade" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "schema" )
             cmd = new UpgradeSchema( args );
         else
             bad( verb, noun, "schema" );
     }
     else if ( verb == "update" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "database" )
             cmd = new UpdateDatabase( args );
         else
             bad( verb, noun, "database" );
     }
     else if ( verb == "list" || verb == "ls" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "users" )
             cmd = new ListUsers( args );
         else if ( noun == "mailboxes" )
@@ -443,7 +443,7 @@ AoxCommand * AoxCommand::create( StringList * args )
             bad( verb, noun, "users, mailboxes, aliases, rights" );
     }
     else if ( verb == "create" || verb == "delete" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( verb == "create" && noun == "user" )
             cmd = new CreateUser( args );
         else if ( verb == "delete" && noun == "user" )
@@ -463,7 +463,7 @@ AoxCommand * AoxCommand::create( StringList * args )
             bad( verb, noun, "user, mailbox, alias, view" );
     }
     else if ( verb == "change" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "password" )
             cmd = new ChangePassword( args );
         else if ( noun == "username" )
@@ -474,21 +474,21 @@ AoxCommand * AoxCommand::create( StringList * args )
             bad( verb, noun, "password, username, address" );
     }
     else if ( verb == "check" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "config" )
             cmd = new CheckConfig( args );
         else
             bad( verb, noun, "config" );
     }
     else if ( verb == "grant" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "privileges" )
             cmd = new GrantPrivileges( args );
         else
             bad( verb, noun, "privileges" );
     }
     else if ( verb == "tune" ) {
-        String noun = ::next( args ).lower();
+        EString noun = ::next( args ).lower();
         if ( noun == "database" )
             cmd = new TuneDatabase( args );
         else
@@ -511,7 +511,7 @@ AoxCommand * AoxCommand::create( StringList * args )
     }
     else {
         if ( verb != "help" )
-            args->prepend( new String( verb ) );
+            args->prepend( new EString( verb ) );
         cmd = new Help( args );
     }
 

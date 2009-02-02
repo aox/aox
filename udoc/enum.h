@@ -8,25 +8,25 @@ class Class;
 class File;
 
 
-#include "stringlist.h"
+#include "estringlist.h"
 
 
 class Enum
     : public Garbage
 {
 public:
-    Enum( Class *, const String &, File *, uint );
+    Enum( Class *, const EString &, File *, uint );
 
-    void addValue( const String & );
+    void addValue( const EString & );
 
-    StringList * values() const;
+    EStringList * values() const;
 
 private:
     Class * c;
-    String n;
+    EString n;
     File * f;
     uint l;
-    StringList v;
+    EStringList v;
 };
 
 

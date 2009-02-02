@@ -27,17 +27,17 @@ public:
     void setModSeq( Mailbox *, int64 );
     int64 modSeq( Mailbox * ) const;
 
-    StringList * flags( Mailbox * ) const;
-    void setFlags( Mailbox *, const StringList * );
+    EStringList * flags( Mailbox * ) const;
+    void setFlags( Mailbox *, const EStringList * );
     List<Annotation> * annotations( Mailbox * ) const;
     void setAnnotations( Mailbox *, List<Annotation> * );
 
     List<Mailbox> * mailboxes() const;
 
-    static Injectee * wrapUnparsableMessage( const String &,
-                                                      const String &,
-                                                      const String &,
-                                                      const String & = "" );
+    static Injectee * wrapUnparsableMessage( const EString &,
+                                                      const EString &,
+                                                      const EString &,
+                                                      const EString & = "" );
 private:
     class InjecteeData * d;
 };
@@ -53,7 +53,7 @@ public:
 
     bool done() const;
     bool failed() const;
-    String error() const;
+    EString error() const;
 
     void addInjection( List<Injectee> * );
     void addDelivery( Injectee *, Address *, List<Address> * );
@@ -83,14 +83,14 @@ private:
     void selectUids();
     void insertMessages();
     void insertDeliveries();
-    void addPartNumber( Query *, uint, const String &, Bodypart * = 0 );
-    void addHeader( Query *, Query *, Query *, uint, const String &, Header * );
+    void addPartNumber( Query *, uint, const EString &, Bodypart * = 0 );
+    void addHeader( Query *, Query *, Query *, uint, const EString &, Header * );
     void addMailbox( Query *, Injectee *, Mailbox * );
     uint addFlags( Query *, Injectee *, Mailbox * );
     uint addAnnotations( Query *, Injectee *, Mailbox * );
     void logDescription();
     void cache();
-    Query * selectNextvals( const String &, uint );
+    Query * selectNextvals( const EString &, uint );
 
     uint internalDate( Message * ) const;
 };

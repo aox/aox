@@ -4,7 +4,7 @@
 #define PERMISSIONS_H
 
 #include "event.h"
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 
 
@@ -12,7 +12,7 @@ class Permissions
     : public EventHandler
 {
 public:
-    Permissions( class Mailbox *, const UString &, const String & );
+    Permissions( class Mailbox *, const UString &, const EString & );
 
     Permissions( class Mailbox *, class User *,
                  class EventHandler * );
@@ -37,23 +37,23 @@ public:
     bool ready();
     void execute();
 
-    void set( const String & );
-    void allow( const String & );
-    void disallow( const String & );
+    void set( const EString & );
+    void allow( const EString & );
+    void disallow( const EString & );
     bool allowed( Right );
 
-    String string() const;
+    EString string() const;
 
     Mailbox * mailbox() const;
     User * user() const;
 
     static char rightChar( Permissions::Right );
-    static String describe( char );
+    static EString describe( char );
 
     static bool validRight( char );
-    static bool validRights( const String & );
+    static bool validRights( const EString & );
 
-    static String all();
+    static EString all();
 
     static const char * rights;
 
@@ -75,7 +75,7 @@ public:
     bool allowed() const;
     bool ready() const;
 
-    String error() const;
+    EString error() const;
 
 private:
     class PermissionsCheckerData * d;

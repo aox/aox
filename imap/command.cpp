@@ -69,13 +69,13 @@ public:
         (void)::gettimeofday( &started, 0 );
     }
 
-    String tag;
-    String name;
+    EString tag;
+    EString name;
     ImapParser * args;
 
     List<ImapResponse> untagged;
 
-    String respTextCode;
+    EString respTextCode;
     bool tagged;
 
     bool usesRelativeMailbox;
@@ -86,7 +86,7 @@ public:
     Command::State state;
     uint group;
     Command::Error errorCode;
-    String errorText;
+    EString errorText;
 
     uint permittedStates;
 
@@ -164,12 +164,12 @@ Command::~Command()
 */
 
 Command * Command::create( IMAP * imap,
-                           const String & tag,
-                           const String & name,
+                           const EString & tag,
+                           const EString & name,
                            ImapParser * args )
 {
     Command * c = 0;
-    String n = name.lower();
+    EString n = name.lower();
     bool uid = false;
     if ( n.startsWith( "uid " ) ) {
         uid = true;
@@ -453,7 +453,7 @@ void Command::setState( State s )
             Log::Severity level = Log::Debug;
             if ( elapsed > 3000 )
                 level = Log::Info;
-            String m;
+            EString m;
             m.append( "Execution time " );
             m.append( fn( ( elapsed + 499 ) / 1000 ) );
             m.append( "ms" );
@@ -468,7 +468,7 @@ void Command::setState( State s )
 
 /*! Returns the tag of this command. Useful for logging. */
 
-String Command::tag() const
+EString Command::tag() const
 {
     return d->tag;
 }
@@ -477,7 +477,7 @@ String Command::tag() const
 /*! Returns the name of this command, e.g. 'uid fetch', in lower
     case. */
 
-String Command::name() const
+EString Command::name() const
 {
     return d->name;
 }
@@ -552,7 +552,7 @@ IMAP * Command::imap() const
     \a r.
 */
 
-void Command::respond( const String & r )
+void Command::respond( const EString & r )
 {
     waitFor( new ImapResponse( d->imap, r ) );
 }
@@ -570,7 +570,7 @@ void Command::respond( const String & r )
     \a t should not be CRLF-terminated.
 */
 
-void Command::error( Error e, const String & t )
+void Command::error( Error e, const EString & t )
 {
     if ( d->error )
         return;
@@ -668,7 +668,7 @@ void Command::emitResponses()
     if ( d->tag.isEmpty() )
         return;
 
-    String t = tag();
+    EString t = tag();
     if ( !d->error ) {
         t.append( " OK " );
     }
@@ -724,7 +724,7 @@ void Command::step( uint n )
     Note that the match is completely case insensitive.
 */
 
-bool Command::present( const String & s )
+bool Command::present( const EString & s )
 {
     return d->args->present( s );
 }
@@ -735,7 +735,7 @@ bool Command::present( const String & s )
     required, require() calls error().
 */
 
-void Command::require( const String & s )
+void Command::require( const EString & s )
 {
     d->args->require( s );
     if ( !d->args->ok() )
@@ -747,9 +747,9 @@ void Command::require( const String & s )
     form. If fewer than \a min digits are available, error() is called.
 */
 
-String Command::digits( uint min, uint max )
+EString Command::digits( uint min, uint max )
 {
-    String r( d->args->digits( min, max ) );
+    EString r( d->args->digits( min, max ) );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -761,9 +761,9 @@ String Command::digits( uint min, uint max )
     called.
 */
 
-String Command::letters( uint min, uint max )
+EString Command::letters( uint min, uint max )
 {
-    String r( d->args->letters( min, max ) );
+    EString r( d->args->letters( min, max ) );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -829,9 +829,9 @@ uint Command::nzNumber()
     turns an empty string in case of error.
 */
 
-String Command::atom()
+EString Command::atom()
 {
-    String r( d->args->atom() );
+    EString r( d->args->atom() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -839,13 +839,13 @@ String Command::atom()
 
 
 /*! Parses one or more consecutive list-chars (ATOM-CHAR/list-wildcards/
-    resp-specials) and returns them as a String. Calls error() and
+    resp-specials) and returns them as a EString. Calls error() and
     returns an empty string in case of error.
 */
 
-String Command::listChars()
+EString Command::listChars()
 {
-    String r( d->args->atom() );
+    EString r( d->args->atom() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -860,9 +860,9 @@ String Command::listChars()
     respect, we deviate from the standard.
 */
 
-String Command::quoted()
+EString Command::quoted()
 {
-    String r( d->args->quoted() );
+    EString r( d->args->quoted() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -873,9 +873,9 @@ String Command::quoted()
     empty string in case of error.
 */
 
-String Command::literal()
+EString Command::literal()
 {
-    String r( d->args->literal() );
+    EString r( d->args->literal() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -886,9 +886,9 @@ String Command::literal()
     called appropriately.
 */
 
-String Command::string()
+EString Command::string()
 {
-    String r( d->args->string() );
+    EString r( d->args->string() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -899,9 +899,9 @@ String Command::string()
     NIL, an empty string is returned and error() is called.
 */
 
-String Command::nstring()
+EString Command::nstring()
 {
-    String r( d->args->nstring() );
+    EString r( d->args->nstring() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -912,9 +912,9 @@ String Command::nstring()
     astring() calls error() appropriately and returns an empty string.
 */
 
-String Command::astring()
+EString Command::astring()
 {
-    String r( d->args->astring() );
+    EString r( d->args->astring() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -928,7 +928,7 @@ String Command::astring()
 
 UString Command::listMailbox()
 {
-    String r( d->args->listMailbox() );
+    EString r( d->args->listMailbox() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
 
@@ -1061,9 +1061,9 @@ uint Command::msn()
     upper and lower case letters.
 */
 
-String Command::flag()
+EString Command::flag()
 {
-    String r( d->args->flag() );
+    EString r( d->args->flag() );
     if ( !d->args->ok() )
         error( Bad, d->args->error() );
     return r;
@@ -1087,7 +1087,7 @@ void Command::end()
     than 15 characters containing the first unparsed bits of input.
 */
 
-const String Command::following() const
+const EString Command::following() const
 {
     return d->args->following();
 }
@@ -1102,7 +1102,7 @@ const String Command::following() const
     parser, and we make life easy for ourselves too.
 */
 
-String Command::imapQuoted( const String & s, const QuoteMode mode )
+EString Command::imapQuoted( const EString & s, const QuoteMode mode )
 {
     // if we're asked for an nstring, NIL may do
     if ( mode == NString && s.isEmpty() )
@@ -1122,7 +1122,7 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
     if ( i >= s.length() ) // yes
         return s.quoted( '"' );
 
-    String r;
+    EString r;
     r.reserve( s.length() + 20 );
     // if there's a null byte, we need to send a literal8
     if ( s.contains( 0 ) )
@@ -1174,7 +1174,7 @@ class Mailbox * Command::mailbox()
 
 UString Command::mailboxName()
 {
-    String n = astring();
+    EString n = astring();
     if ( n.endsWith( "/" ) )
         n = n.mid( 0, n.length() - 1 );
 
@@ -1230,7 +1230,7 @@ UString Command::mailboxName()
     to prefer relative or absolute mailbox names.
 */
 
-String Command::imapQuoted( Mailbox * m, Mailbox * r )
+EString Command::imapQuoted( Mailbox * m, Mailbox * r )
 {
     Mailbox * base = 0;
     bool rel = false;
@@ -1322,7 +1322,7 @@ bool Command::permitted()
     emitResponses() adds those itself.
 */
 
-void Command::setRespTextCode( const String & s )
+void Command::setRespTextCode( const EString & s )
 {
     d->respTextCode = s;
 }

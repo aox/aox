@@ -16,7 +16,7 @@
 /*! Constructs a Parser for string \a s. The parser's cursor is left
     at the beginning of \a s. */
 
-Parser::Parser( const String & s )
+Parser::Parser( const EString & s )
     : t( s ), i( 0 ), ln( 1 ), li( 0 )
 {
     // nothing necessary
@@ -59,7 +59,7 @@ uint Parser::line()
 /*! Scans forward until an instance of \a text is found, and positions
     the cursor at the first character after that string. */
 
-void Parser::scan( const String & text )
+void Parser::scan( const EString & text )
 {
     uint j = 0;
     while ( i < t.length() && j < text.length() ) {
@@ -77,7 +77,7 @@ void Parser::scan( const String & text )
 /*! Scans for \a text and returns all the text, without the trailing
     instance of \a text. The cursor is left after \a text. */
 
-String Parser::textUntil( const String & text )
+EString Parser::textUntil( const EString & text )
 {
     uint j = i;
     scan( text );
@@ -97,10 +97,10 @@ void Parser::whitespace()
 }
 
 
-static String spaceless( const String & t )
+static EString spaceless( const EString & t )
 {
     uint i = 0;
-    String r;
+    EString r;
     while ( i < t.length() ) {
         if ( t[i] != 32 && t[i] != 9 && t[i] != 13 && t[i] != 10 )
             r.append( t[i] );
@@ -114,10 +114,10 @@ static String spaceless( const String & t )
     there isn't any. Steps past the identifier and any trailing whitespace.
 */
 
-String Parser::identifier()
+EString Parser::identifier()
 {
     int j = complexIdentifier( i );
-    String r = spaceless( t.mid( i, j - i ) );
+    EString r = spaceless( t.mid( i, j - i ) );
     i = j;
     return r;
 }
@@ -199,7 +199,7 @@ uint Parser::type( uint j )
         l = whitespace( k );
         while ( t[l] >= 'a' && t[l] <= 'z' )
             l++;
-        String modifier = t.mid( k, l-k ).simplified();
+        EString modifier = t.mid( k, l-k ).simplified();
         if ( !( modifier == "const" ||
                 modifier == "inline" ||
                 modifier == "unsigned" ||
@@ -234,10 +234,10 @@ uint Parser::type( uint j )
 
 */
 
-String Parser::type()
+EString Parser::type()
 {
     uint j = type( i );
-    String r = t.mid( i, j-i ).simplified(); // simplified() is not quite right
+    EString r = t.mid( i, j-i ).simplified(); // simplified() is not quite right
     i = j;
     return r;
 }
@@ -252,9 +252,9 @@ String Parser::type()
     error.
 */
 
-String Parser::argumentList()
+EString Parser::argumentList()
 {
-    String r;
+    EString r;
     uint j = whitespace( i );
     if ( t[j] != '(' )
         return r;
@@ -264,10 +264,10 @@ String Parser::argumentList()
         i++;
         return "()";
     }
-    String s = "";
+    EString s = "";
     bool more = true;
     while ( more ) {
-        String tp = type();
+        EString tp = type();
         if ( tp.isEmpty() )
             return ""; // error message here?
         whitespace();
@@ -316,7 +316,7 @@ void Parser::step()
 /*! Returns true if the first unparsed characters of the string are
     the same as \a pattern, and false if not. */
 
-bool Parser::lookingAt( const String & pattern )
+bool Parser::lookingAt( const EString & pattern )
 {
     return t.mid( i, pattern.length() ) == pattern;
 }
@@ -327,7 +327,7 @@ bool Parser::lookingAt( const String & pattern )
     string.
 */
 
-String Parser::word()
+EString Parser::word()
 {
     uint j = simpleIdentifier( i );
     while ( t[j] == '-' ) {
@@ -335,7 +335,7 @@ String Parser::word()
         if ( k > j + 1 )
             j = k;
     }
-    String r = t.mid( i, j-i ).simplified();
+    EString r = t.mid( i, j-i ).simplified();
     if ( !r.isEmpty() )
         i = j;
     return r;
@@ -346,7 +346,7 @@ String Parser::word()
     an identifier.
 */
 
-String Parser::value()
+EString Parser::value()
 {
     uint j = whitespace( i );
     if ( t[j] == '-' ||
@@ -356,7 +356,7 @@ String Parser::value()
             k++;
         while ( t[k] >= '0' && t[k] <= '9' )
             k++;
-        String r( t.mid( j, k-j ) );
+        EString r( t.mid( j, k-j ) );
         i = k;
         return r;
     }
@@ -398,7 +398,7 @@ uint Parser::operatorHack( uint j )
     k = whitespace( k );
 
     // Four possible cases: We're looking at a single character, two
-    // characters, '()', or "String".
+    // characters, '()', or "EString".
 
     uint chars = 0;
 

@@ -24,11 +24,11 @@ int main( int argc, char * argv[] )
     s.setup( Server::LogSetup );
     Allocator::addEternal( new SelfLogger, "the logger's logger" );
 
-    String logName( Configuration::text( Configuration::LogFile ) );
-    String logMode( Configuration::text( Configuration::LogfileMode ) );
+    EString logName( Configuration::text( Configuration::LogFile ) );
+    EString logMode( Configuration::text( Configuration::LogfileMode ) );
     LogServer::setLogFile( logName, logMode );
 
-    String logLevel( Configuration::text( Configuration::LogLevel ) );
+    EString logLevel( Configuration::text( Configuration::LogLevel ) );
     LogServer::setLogLevel( logLevel );
 
     s.setup( Server::Report );

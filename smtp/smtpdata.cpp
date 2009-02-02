@@ -32,10 +32,10 @@ public:
         : state( 2 ), message( 0 ), ok( "OK" )
     {}
 
-    String body;
+    EString body;
     uint state;
     Injectee * message;
-    String ok;
+    EString ok;
 };
 
 
@@ -104,7 +104,7 @@ void SmtpData::execute()
             return;
         }
 
-        String r = "354 Go ahead";
+        EString r = "354 Go ahead";
         if ( local || remote )
             r.append( " (" );
         if ( local ) {
@@ -126,7 +126,7 @@ void SmtpData::execute()
     // state 1: have sent 354, have not yet received CR LF "." CR LF.
     while ( d->state == 1 ) {
         Buffer * r = server()->readBuffer();
-        String * line = r->removeLine( 262144 );
+        EString * line = r->removeLine( 262144 );
         if ( !line && r->size() > 262144 ) {
             respond( 500, "Line too long (legal maximum is 998 bytes)",
                      "5.5.2" );
@@ -165,7 +165,7 @@ void SmtpData::execute()
             checkField( HeaderField::From );
             checkField( HeaderField::ResentFrom );
             checkField( HeaderField::ReturnPath );
-            String e = d->message->error();
+            EString e = d->message->error();
             if ( e.isEmpty() &&
                  !addressPermitted( server()->sieve()->sender() ) )
                 e = "Not authorised to use this SMTP sender address: " +
@@ -234,7 +234,7 @@ void SmtpData::execute()
     if ( d->state == 3 ) {
         if ( !server()->sieve()->injected() )
             return;
-        String mc = Configuration::text( Configuration::MessageCopy ).lower();
+        EString mc = Configuration::text( Configuration::MessageCopy ).lower();
         if ( mc == "all" )
             makeCopy();
         else if ( mc == "delivered" && server()->sieve()->error().isEmpty() )
@@ -261,7 +261,7 @@ void SmtpData::execute()
             Sieve * s = server()->sieve();
             List<SmtpRcptTo>::Iterator i( server()->rcptTo() );
             while ( i ) {
-                String prefix = i->address()->toString();
+                EString prefix = i->address()->toString();
                 if ( s->rejected( i->address() ) )
                     respond( 551, prefix + ": Rejected", "5.7.1" );
                 else if ( s->error( i->address() ).isEmpty() )
@@ -307,8 +307,8 @@ bool SmtpData::addressPermitted( Address * a ) const
     bool sub = Configuration::toggle( Configuration::UseSubaddressing );
 
     if ( a->type() ==  Address::Normal ) {
-        String ad = a->domain().lower();
-        String al = a->localpart().lower();
+        EString ad = a->domain().lower();
+        EString al = a->localpart().lower();
         if ( sub )
             al = al.section( Configuration::text(
                                  Configuration::AddressSeparator ), 1 );
@@ -356,12 +356,12 @@ void SmtpData::checkField( HeaderField::Type t )
     RFC 4409.
 */
 
-Injectee * SmtpData::message( const String & body )
+Injectee * SmtpData::message( const EString & body )
 {
     if ( d->message )
         return d->message;
 
-    String received( "Received: from " );
+    EString received( "Received: from " );
     if ( server()->user() )
         received.append( server()->user()->address()->lpdomain() );
     else
@@ -400,7 +400,7 @@ Injectee * SmtpData::message( const String & body )
     received = received.wrapped( 72, "", " ", false );
     received.append( "\r\n" );
 
-    String rp;
+    EString rp;
     if ( server()->sieve()->sender() )
         rp = "Return-Path: " +
              server()->sieve()->sender()->toString() +
@@ -484,7 +484,7 @@ public:
         : size( 0 ), read( false ), last( false ) {}
     uint size;
     bool read;
-    String chunk;
+    EString chunk;
     bool last;
 };
 
@@ -529,7 +529,7 @@ void SmtpBdat::execute()
     if ( !server()->isFirstCommand( this ) )
         return;
 
-    String b = server()->body();
+    EString b = server()->body();
     b.append( d->chunk );
     server()->setBody( b );
     if ( d->last ) {
@@ -565,7 +565,7 @@ SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
     : SmtpData( s, 0 ), d( new SmtpBurlData )
 {
     p->whitespace();
-    String u;
+    EString u;
     while ( !p->atEnd() && p->nextChar() != ' ' ) {
         u.append( p->nextChar() );
         p->step();
@@ -576,7 +576,7 @@ SmtpBurl::SmtpBurl( SMTP * s, SmtpParser * p )
         finish();
         return;
     }
-    String a = d->url->access().lower();
+    EString a = d->url->access().lower();
     u.truncate();
     if ( server()->user() )
         u = server()->user()->login().utf8().lower();
@@ -617,7 +617,7 @@ void SmtpBurl::execute()
     if ( !server()->isFirstCommand( this ) )
         return;
 
-    String b( server()->body() );
+    EString b( server()->body() );
     b.append( d->url->text() );
     server()->setBody( b );
     if ( d->last ) {
@@ -634,9 +634,9 @@ void SmtpBurl::execute()
 
 void SmtpData::makeCopy() const
 {
-    String copy = Configuration::text( Configuration::MessageCopyDir );
+    EString copy = Configuration::text( Configuration::MessageCopyDir );
     copy.append( '/' );
-    String filename = server()->transactionId();
+    EString filename = server()->transactionId();
     filename.replace( "/", "-" );
     copy.append( filename );
 
@@ -661,7 +661,7 @@ void SmtpData::makeCopy() const
     if ( !server()->sieve()->error().isEmpty() ||
          d->ok.startsWith( "Worked around: " ) ) {
         copy.append( "-err" );
-        String e;
+        EString e;
         if ( !server()->sieve()->error().isEmpty() ) {
             f.write( "Error: Sieve/Injector: " );
             f.write( server()->sieve()->error().simplified() );

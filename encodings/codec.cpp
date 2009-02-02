@@ -2,9 +2,9 @@
 
 #include "codec.h"
 
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
-#include "stringlist.h"
+#include "estringlist.h"
 
 #include "cp.h"
 #include "koi.h"
@@ -64,24 +64,24 @@ Codec::~Codec()
 }
 
 
-/*! \fn String Codec::name() const
+/*! \fn EString Codec::name() const
 
     Returns the name of the codec, as supplied to the constructor.
 */
 
 
 
-/*! \fn String Codec::fromUnicode( const UString & u )
+/*! \fn EString Codec::fromUnicode( const UString & u )
 
     This pure virtual function maps \a u from Unicode to the codec's
-    other encoding, and returns a String containing the result.
+    other encoding, and returns a EString containing the result.
 
     Each reimplementation must decide how to handle codepoints that
     cannot be represented in the target encoding.
 */
 
 
-/*! \fn UString Codec::toUnicode( const String & s )
+/*! \fn UString Codec::toUnicode( const EString & s )
 
     This pure virtual function maps \a s from codec's encoding to
     Uncode, and returns a UString containing the result.
@@ -116,7 +116,7 @@ Codec::~Codec()
     returns an empty string.
 */
 
-String Codec::error() const
+EString Codec::error() const
 {
     if ( state() != Invalid )
         return "";
@@ -143,7 +143,7 @@ void Codec::recordError( uint pos )
     Invalid.
 */
 
-void Codec::recordError( uint pos, const String & input )
+void Codec::recordError( uint pos, const EString & input )
 {
     setState( Invalid );
     if ( e.isEmpty() )
@@ -176,7 +176,7 @@ void Codec::recordError( uint pos, uint codepoint )
     stateful Codec. Also sets the state() to Invalid.
 */
 
-void Codec::recordError( const String &s )
+void Codec::recordError( const EString &s )
 {
     setState( Invalid );
     if ( e.isEmpty() )
@@ -197,12 +197,12 @@ static struct {
     included in the list.
 */
 
-StringList Codec::allCodecNames()
+EStringList Codec::allCodecNames()
 {
-    StringList r;
+    EStringList r;
     int i = 0;
     while ( codecaliases[i].alias ) {
-        String s = codecaliases[i].name;
+        EString s = codecaliases[i].name;
         s = s.lower();
         if ( s == codecaliases[i].alias )
             r.append( s );
@@ -218,12 +218,12 @@ StringList Codec::allCodecNames()
     If \a s is unknown, byName() returns 0.
 */
 
-Codec * Codec::byName( const String & s )
+Codec * Codec::byName( const EString & s )
 {
     if ( s.isEmpty() )
         return 0;
 
-    String name = s.lower();
+    EString name = s.lower();
 
     int i = 0;
     // next loop can be replaced by a binary search - codecaliases is
@@ -348,10 +348,10 @@ Codec * Codec::byString( const UString & u )
     in a typical Windows encoding.
 
     This function is a little slower than it could be, since it
-    creates a largish number of short String objects.
+    creates a largish number of short EString objects.
 */
 
-Codec * Codec::byString( const String & s )
+Codec * Codec::byString( const EString & s )
 {
     if ( s[0] == 0xFF && s[1] == 0xFE && (s.length() % 2) == 0 )
         return new Utf16LeCodec;
@@ -378,7 +378,7 @@ Codec * Codec::byString( const String & s )
             while ( i < e && s[i] < 128 )
                 i++;
             if ( i < e ) {
-                String w( s.mid( b, e-b ).lower() );
+                EString w( s.mid( b, e-b ).lower() );
                 uint top = NumForms-1;
                 uint bottom = 0;
                 while ( top >= bottom ) {
@@ -511,9 +511,9 @@ Codec * Codec::byString( const String & s )
     are converted to '?'.
 */
 
-String TableCodec::fromUnicode( const UString & u )
+EString TableCodec::fromUnicode( const UString & u )
 {
-    String s;
+    EString s;
     s.reserve( u.length() );
     uint i = 0;
     while ( i < u.length() ) {
@@ -533,7 +533,7 @@ String TableCodec::fromUnicode( const UString & u )
 
 /*! Converts \a s from the subclass' character encoding to Unicode. */
 
-UString TableCodec::toUnicode( const String & s )
+UString TableCodec::toUnicode( const EString & s )
 {
     UString u;
     u.reserve( s.length() );
@@ -657,9 +657,9 @@ AsciiCodec::AsciiCodec()
     than 127 are mapped to '?'.
 */
 
-String AsciiCodec::fromUnicode( const UString & u )
+EString AsciiCodec::fromUnicode( const UString & u )
 {
-    String r;
+    EString r;
     r.reserve( u.length() );
     uint i = 0;
     while ( i < u.length() ) {
@@ -673,7 +673,7 @@ String AsciiCodec::fromUnicode( const UString & u )
 }
 
 
-UString AsciiCodec::toUnicode( const String & s )
+UString AsciiCodec::toUnicode( const EString & s )
 {
     UString u;
     u.reserve( s.length() );

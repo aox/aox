@@ -10,7 +10,7 @@ class ShowQueue
     : public AoxCommand
 {
 public:
-    ShowQueue( StringList * );
+    ShowQueue( EStringList * );
     void execute();
 
 private:

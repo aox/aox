@@ -33,7 +33,7 @@ public:
     This class handles the "aox reparse" command.
 */
 
-Reparse::Reparse( StringList * args )
+Reparse::Reparse( EStringList * args )
     : AoxCommand( args ), d( new ReparseData )
 {
 }
@@ -73,16 +73,16 @@ void Reparse::execute()
     while ( d->q && d->q->hasResults() ) {
         Row * r = d->q->nextRow();
 
-        String text;
+        EString text;
         if ( r->isNull( "data" ) )
-            text = r->getString( "text" );
+            text = r->getEString( "text" );
         else
-            text = r->getString( "data" );
+            text = r->getEString( "data" );
         Mailbox * mb = Mailbox::find( r->getInt( "mailbox" ) );
         Injectee * im = new Injectee;
         im->parse( text );
         if ( im->valid() ) {
-            StringList x;
+            EStringList x;
             im->setFlags( mb, &x );
             injectables.append( im );
 
@@ -102,7 +102,7 @@ void Reparse::execute()
             q->bind( 4, r->getInt( "modseq" ) );
             q->bindNull( 5 );
             q->bind( 6,
-                     String( "reparsed by aox " ) +
+                     EString( "reparsed by aox " ) +
                      Configuration::compiledIn( Configuration::Version ) );
             d->t->enqueue( q );
             d->t->commit();
@@ -153,7 +153,7 @@ void Reparse::execute()
 }
 
 
-static String * errdir = 0;
+static EString * errdir = 0;
 static uint uniq = 0;
 
 
@@ -161,18 +161,18 @@ static uint uniq = 0;
     write \a o in anonymised form.
 */
 
-String Reparse::writeErrorCopy( const String & o )
+EString Reparse::writeErrorCopy( const EString & o )
 {
     Message * m = new Message;
     m->parse( o );
-    String a = o.anonymised();
+    EString a = o.anonymised();
     Message * am = new Message;
     am->parse( a );
-    String dir;
-    String name;
-    String c;
+    EString dir;
+    EString name;
+    EString c;
     if ( !errdir ) {
-        errdir = new String;
+        errdir = new EString;
         Allocator::addEternal( errdir, "error directory" );
         errdir->append( "errors/" );
         errdir->appendNumber( getpid() );
@@ -191,7 +191,7 @@ String Reparse::writeErrorCopy( const String & o )
         c = o;
     }
     ::mkdir( dir.cstr(), 0777 );
-    String r = dir + "/" + name;
+    EString r = dir + "/" + name;
     File f( r, File::Write );
     f.write( c );
     return r;

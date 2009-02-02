@@ -5,7 +5,7 @@
 
 
 class User;
-class String;
+class EString;
 
 #include "global.h"
 
@@ -16,14 +16,14 @@ class HttpSession
 public:
     HttpSession();
 
-    String key() const;
+    EString key() const;
     User *user() const;
     void setUser( User * );
     void refresh();
     void expireNow();
     bool expired() const;
 
-    static HttpSession *find( const String & );
+    static HttpSession *find( const EString & );
 
 private:
     class HttpSessionData *d;

@@ -3,7 +3,7 @@
 #ifndef INTEGERSET_H
 #define INTEGERSET_H
 
-#include "string.h"
+#include "estring.h"
 
 
 class IntegerSet
@@ -25,8 +25,8 @@ public:
     uint value( uint ) const;
     uint index( uint ) const;
 
-    String set() const;
-    String csl() const;
+    EString set() const;
+    EString csl() const;
 
     void add( uint, uint );
     void add( uint n ) { add( n, n ); }

@@ -34,7 +34,7 @@ public:
     uint uidnext;
     int64 nms;
     int64 cms;
-    StringList flags;
+    EStringList flags;
     List<int64> ignorable;
     bool emitting;
 
@@ -45,7 +45,7 @@ public:
         ExistsResponse( ImapSession * s, ImapSessionData * data )
             : ImapResponse( s ), d( data ) {
         }
-        String text() const {
+        EString text() const {
             session()->clearUnannounced();
             uint x = session()->messages().count();
             if ( x == d->exists && d->uidnext )
@@ -68,7 +68,7 @@ public:
         RecentResponse( ImapSession * s, ImapSessionData * data )
             : ImapResponse( s ), d( data ) {
         }
-        String text() const {
+        EString text() const {
             uint x = session()->recent().count();
             if ( x == d->recent && d->uidnext )
                 return "";
@@ -90,7 +90,7 @@ public:
         UidnextResponse( ImapSession * s, ImapSessionData * data )
             : ImapResponse( s ), d( data ) {
         }
-        String text() const {
+        EString text() const {
             uint x = session()->uidnext();
             if ( x <= d->uidnext )
                 return "";
@@ -119,11 +119,11 @@ public:
         FlagUpdateResponse( ImapSession * s, ImapSessionData * data, bool p )
             : ImapResponse( s ), d( data ), permahack( p ) {
         }
-        String text() const {
+        EString text() const {
             if ( ( permahack ? d->permaFlagUpdate : d->flagUpdate )
                  >= Flag::largestId() )
                 return "";
-            String x;
+            EString x;
             if ( permahack )
                 x.append( "OK [PERMANENT" );
             x.append( "FLAGS (" );
@@ -338,9 +338,9 @@ ImapExpungeResponse::ImapExpungeResponse( uint uid, ImapSession * session )
 }
 
 
-String ImapExpungeResponse::text() const
+EString ImapExpungeResponse::text() const
 {
-    String r;
+    EString r;
     uint msn = session()->msn( u );
     if ( !msn ) {
         log( "Warning: No MSN for UID " + fn( u ), Log::Error );

@@ -6,7 +6,7 @@
 #include "global.h"
 
 
-class String;
+class EString;
 
 
 class Server
@@ -38,7 +38,7 @@ public:
     void setup( Stage );
     void run();
 
-    static String name();
+    static EString name();
     static bool useCache();
 
     static void killChildren();

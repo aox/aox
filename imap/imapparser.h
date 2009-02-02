@@ -11,24 +11,24 @@ class ImapParser
     : public AbnfParser
 {
 public:
-    ImapParser( const String & );
+    ImapParser( const EString & );
 
-    String firstLine();
+    EString firstLine();
 
-    String tag();
-    String command();
+    EString tag();
+    EString command();
     uint nzNumber();
     void nil();
-    String atom();
-    String listChars();
-    String quoted();
-    String literal();
-    String string();
-    String nstring();
-    String astring();
-    String listMailbox();
-    String flag();
-    String dotLetters( uint, uint );
+    EString atom();
+    EString listChars();
+    EString quoted();
+    EString literal();
+    EString string();
+    EString nstring();
+    EString astring();
+    EString listMailbox();
+    EString flag();
+    EString dotLetters( uint, uint );
 };
 
 

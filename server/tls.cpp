@@ -4,7 +4,7 @@
 
 #include "allocator.h"
 #include "connection.h"
-#include "string.h"
+#include "estring.h"
 #include "configuration.h"
 #include "buffer.h"
 #include "event.h"
@@ -34,7 +34,7 @@ public:
 
         class TlsServerData * d;
 
-        String tag;
+        EString tag;
         bool done;
         bool connected;
     };
@@ -43,7 +43,7 @@ public:
     Client * serverside;
 
     Endpoint client;
-    String protocol;
+    EString protocol;
 
     bool done;
     bool ok;
@@ -75,13 +75,13 @@ void TlsServerData::Client::react( Event e )
         return;
     }
 
-    String * s = readBuffer()->removeLine();
+    EString * s = readBuffer()->removeLine();
     if ( !s )
         return;
 
     done = true;
 
-    String l = s->simplified();
+    EString l = s->simplified();
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
         connected = true;
@@ -123,7 +123,7 @@ void TlsServerData::Client::react( Event e )
 */
 
 TlsServer::TlsServer( EventHandler * handler, const Endpoint & client,
-                      const String & protocol )
+                      const EString & protocol )
     : d( new TlsServerData )
 {
     d->handler = handler;

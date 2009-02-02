@@ -37,8 +37,8 @@ public:
                  Error, Rset, Quit };
     State state;
 
-    String sent;
-    String error;
+    EString sent;
+    EString error;
     DSN * dsn;
     EventHandler * owner;
     Log * log;
@@ -93,7 +93,7 @@ void SmtpClient::react( Event e )
 
     Connection::State s1 = Connection::state();
     SmtpClientData::State s2 = d->state;
-    String s3 = d->error;
+    EString s3 = d->error;
     switch ( e ) {
     case Read:
         parse();
@@ -151,7 +151,7 @@ void SmtpClient::parse()
     Buffer * r = readBuffer();
 
     while ( true ) {
-        String * s = r->removeLine();
+        EString * s = r->removeLine();
         if ( !s )
             return;
         extendTimeout( 10 );
@@ -221,7 +221,7 @@ void SmtpClient::parse()
 
 void SmtpClient::sendCommand()
 {
-    String send;
+    EString send;
 
     switch( d->state ) {
     case SmtpClientData::Invalid:
@@ -328,9 +328,9 @@ void SmtpClient::sendCommand()
     characters to CRLF, but it doesn't yet.
 */
 
-String SmtpClient::dotted( const String & s )
+EString SmtpClient::dotted( const EString & s )
 {
-    String r;
+    EString r;
     uint i = 0;
     uint sol = true;
     while ( i < s.length() ) {
@@ -360,7 +360,7 @@ String SmtpClient::dotted( const String & s )
 }
 
 
-static String enhancedStatus( const String & l, bool e,
+static EString enhancedStatus( const EString & l, bool e,
                               SmtpClientData::State s )
 {
     if ( e && ( l[4] >= '2' || l[4] <= '5' ) && l[5] == '.' ) {
@@ -372,7 +372,7 @@ static String enhancedStatus( const String & l, bool e,
     uint response = l.mid( 0, 3 ).number( &ok );
     if ( !ok || response < 200 || response >= 600 )
         return "4.0.0";
-    String r;
+    EString r;
     switch ( response )
     {
     case 211: // System status, or system help reply
@@ -460,9 +460,9 @@ static String enhancedStatus( const String & l, bool e,
     complete SMTP reply line, including three-digit status code.
 */
 
-void SmtpClient::handleFailure( const String & line )
+void SmtpClient::handleFailure( const EString & line )
 {
-    String status = enhancedStatus( line, d->enhancedstatuscodes,
+    EString status = enhancedStatus( line, d->enhancedstatuscodes,
                                     d->state );
     bool permanent = false;
     if ( line[0] == '5' )
@@ -525,7 +525,7 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     d->log = new Log( user->log() );
     Scope x( d->log );
 
-    String s( "Sending message to " );
+    EString s( "Sending message to " );
     s.append(  peer().address() );
     if ( !dsn->message()->header()->messageId().isEmpty() ) {
         s.append( ", message-id " );
@@ -580,10 +580,10 @@ void SmtpClient::finish( const char * status )
     so on are silently ignored.
 */
 
-void SmtpClient::recordExtension( const String & line )
+void SmtpClient::recordExtension( const EString & line )
 {
-    String l = line.mid( 4 ).simplified();
-    String w = l;
+    EString l = line.mid( 4 ).simplified();
+    EString w = l;
     int s = l.find( ' ' );
     if ( s > 0 )
         w = w.mid( 0, s );
@@ -623,7 +623,7 @@ void SmtpClient::logout( uint t )
     occurred.
 */
 
-String SmtpClient::error() const
+EString SmtpClient::error() const
 {
     return d->error;
 }

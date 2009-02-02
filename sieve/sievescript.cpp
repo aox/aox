@@ -5,7 +5,7 @@
 #include "sieveproduction.h"
 #include "sieveparser.h"
 #include "ustringlist.h"
-#include "stringlist.h"
+#include "estringlist.h"
 
 
 
@@ -15,7 +15,7 @@ class SieveScriptData
 public:
     SieveScriptData(): Garbage(), script( 0 ), errors( 0 ) {}
 
-    String source;
+    EString source;
     List<SieveCommand> * script;
     List<SieveProduction> * errors;
 };
@@ -42,7 +42,7 @@ SieveScript::SieveScript()
     errors, they may be accessed as parseErrors().
 */
 
-void SieveScript::parse( const String & script )
+void SieveScript::parse( const EString & script )
 {
     d->source = script;
     SieveParser p( script );
@@ -66,7 +66,7 @@ void SieveScript::parse( const String & script )
 
     // do the semantic bits of parsing
     s = d->script->first();
-    String prev;
+    EString prev;
     while ( s ) {
         s->setParent( this );
         s->parse( prev );
@@ -75,8 +75,8 @@ void SieveScript::parse( const String & script )
     }
 
     // check that require lists the right extensions
-    StringList * extensions = p.extensionsNeeded();
-    StringList declared;
+    EStringList * extensions = p.extensionsNeeded();
+    EStringList declared;
     s = d->script->first();
     while ( s && s->identifier() == "require" ) {
         if ( s->error().isEmpty() ) {
@@ -98,8 +98,8 @@ void SieveScript::parse( const String & script )
     declared.append( "comparator-i;ascii-casemap" );
     declared.append( "fileinto" );
     declared.append( "reject" );
-    StringList::Iterator i( extensions );
-    StringList undeclared;
+    EStringList::Iterator i( extensions );
+    EStringList undeclared;
     while ( i ) {
         if ( !declared.contains( *i ) )
             undeclared.append( i->quoted() );
@@ -126,14 +126,14 @@ void SieveScript::parse( const String & script )
     CRLF after each line (except the last).
 */
 
-String SieveScript::parseErrors() const
+EString SieveScript::parseErrors() const
 {
-    String errors;
+    EString errors;
     List<SieveProduction>::Iterator i( d->errors );
     while ( i ) {
         SieveProduction * p = i;
         ++i;
-        String e = location( p->start() );
+        EString e = location( p->start() );
         e.append( "In " );
         e.append( p->name() );
         e.append( ": " );
@@ -142,7 +142,7 @@ String SieveScript::parseErrors() const
         while ( p->parent() &&
                 p->parent() != (SieveProduction*)this ) {
             p = p->parent();
-            String l = location( p->start() );
+            EString l = location( p->start() );
             l.append( "While parsing " );
             l.append( p->name() );
             l.append( ":\r\n" );
@@ -160,7 +160,7 @@ String SieveScript::parseErrors() const
     current script.
 */
 
-String SieveScript::location( uint position ) const
+EString SieveScript::location( uint position ) const
 {
     uint i = 0;
     uint l = 1;
@@ -172,7 +172,7 @@ String SieveScript::location( uint position ) const
         }
         i++;
     }
-    String r = fn( l );
+    EString r = fn( l );
     r.append( ":" );
     r.appendNumber( position - s + 1 );
     r.append( ": " );
@@ -192,7 +192,7 @@ bool SieveScript::isEmpty() const
 
 /*! Returns a copy of the source code of this script. */
 
-String SieveScript::source() const
+EString SieveScript::source() const
 {
     return d->source;
 }

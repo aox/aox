@@ -8,7 +8,7 @@
 #include "smtpauth.h"
 
 #include "smtpparser.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "eventloop.h"
 #include "scope.h"
 #include "smtp.h"
@@ -25,7 +25,7 @@ public:
 
     uint responseCode;
     const char * enhancedCode;
-    StringList response;
+    EStringList response;
     bool done;
     SMTP * smtp;
 };
@@ -84,12 +84,12 @@ void SmtpCommand::emitResponses()
         return;
 
     Scope x( log() );
-    String r;
-    String n = fn( d->responseCode );
-    StringList::Iterator it( d->response );
+    EString r;
+    EString n = fn( d->responseCode );
+    EStringList::Iterator it( d->response );
     uint crlf = 0;
     while ( it ) {
-        String l = *it;
+        EString l = *it;
         ++it;
         r.append( n );
         if ( !it )
@@ -105,7 +105,7 @@ void SmtpCommand::emitResponses()
             crlf = r.length();
         r.append( "\r\n" );
     }
-    String l = r.mid( 0, crlf );
+    EString l = r.mid( 0, crlf );
     if ( d->response.count() > 1 )
         l.append( " (+" + fn( d->response.count() - 1 ) + " more lines)" );
     log( "Response: " + l,
@@ -138,7 +138,7 @@ bool SmtpCommand::ok() const
     is not changed.
 */
 
-void SmtpCommand::respond( uint r, const String & s, const char * enh )
+void SmtpCommand::respond( uint r, const EString & s, const char * enh )
 {
     Scope x( log() );
     if ( r )
@@ -166,10 +166,10 @@ void SmtpCommand::execute()
     suggests.
 */
 
-SmtpCommand * SmtpCommand::create( SMTP * server, const String & command )
+SmtpCommand * SmtpCommand::create( SMTP * server, const EString & command )
 {
     SmtpParser * p = new SmtpParser( command );
-    String c = p->command();
+    EString c = p->command();
     SmtpCommand * r;
 
     if ( c == "helo" ) {

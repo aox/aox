@@ -4,7 +4,7 @@
 #define IMAPSESSION_H
 
 #include "imapresponse.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "session.h"
 #include "list.h"
 
@@ -47,7 +47,7 @@ class ImapExpungeResponse
 public:
     ImapExpungeResponse( uint, ImapSession * );
 
-    String text() const;
+    EString text() const;
     void setSent();
 
 private:

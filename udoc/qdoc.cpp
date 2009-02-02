@@ -1,13 +1,14 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "sourcefile.h"
 #include "intro.h"
 #include "class.h"
 #include "error.h"
 #include "webpage.h"
 #include "manpage.h"
 #include "postscript.h"
-#include "sys.h"
+#include "sourcefile.h"
+
+#include <stdlib.h> // exit
 
 #include <stdio.h> // fprintf()
 

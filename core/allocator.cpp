@@ -2,9 +2,8 @@
 
 #include "allocator.h"
 
-#include "sys.h"
 #include "cache.h"
-#include "string.h"
+#include "estring.h"
 #include "log.h"
 
 // fprintf
@@ -16,6 +15,12 @@
 
 // mmap, munmap
 #include <sys/mman.h>
+
+// memset
+#include <string.h>
+
+// malloc, free
+#include <stdlib.h>
 
 #include <errno.h>
 
@@ -91,7 +96,7 @@ void * Allocator::alloc( uint s, uint n )
     This is never strictly necessary, however, if a very large number
     of objects are allocated and deallocated, it may be
     beneficial. This function exists because it was beneficial in
-    String::reserve().
+    EString::reserve().
 */
 
 
@@ -165,7 +170,7 @@ Allocator * Allocator::allocator( uint size )
     for a given size and finally rounded(), to find the largest size
     which will fit comfortably in an allocation block, rounded().
 
-    The String and UString classes can call rounded() to optimize
+    The EString and UString classes can call rounded() to optimize
     their memory usage.
 */
 
@@ -307,7 +312,7 @@ void * Allocator::allocate( uint size, uint pointers )
 
 /*! Deallocates the object at \a p, provided that it's within this
     Allocator. Calling this function is never necessary, since free()
-    does the same job. However, String helps out by doing it
+    does the same job. However, EString helps out by doing it
     occasionally.
 */
 
@@ -590,13 +595,13 @@ void Allocator::free()
     if ( verbose && ( ::allocated >= 4*1024*1024 ||
                       timeToMark + timeToSweep >= 10000 ) )
         log( "Allocator: allocated " +
-             String::humanNumber( ::allocated ) +
+             EString::humanNumber( ::allocated ) +
              " then freed " +
-             String::humanNumber( freed ) +
+             EString::humanNumber( freed ) +
              " bytes, leaving " +
              fn( objects ) +
              " objects of " +
-             String::humanNumber( total ) +
+             EString::humanNumber( total ) +
              " bytes, across " +
              fn( blocks ) +
              " 1MB blocks. Recursion depth: " +
@@ -605,7 +610,7 @@ void Allocator::free()
              fn( (timeToSweep+500)/1000 ) + "ms.",
              Log::Info );
     if ( verbose && total > 8 * 1024 * 1024 ) {
-        String objects;
+        EString objects;
         i = 0;
         while ( i < 32 ) {
             uint n = 0;
@@ -624,8 +629,8 @@ void Allocator::free()
                 uint size = allocators[i]->step;
                 objects.append( " size " + fn( size-bytes ) + ": " +
                                 fn( n ) + " (" +
-                                String::humanNumber( size * n ) + " used, " +
-                                String::humanNumber( size * max ) +
+                                EString::humanNumber( size * n ) + " used, " +
+                                EString::humanNumber( size * max ) +
                                 " allocated)" );
             }
             i++;
@@ -637,14 +642,14 @@ void Allocator::free()
         i = 0;
         while ( i < numRoots ) {
             if ( roots[i].objects > ObjectLimit/2 ) {
-                String objects = "Root ";
+                EString objects = "Root ";
                 objects.appendNumber( i );
                 objects.append( " (" );
                 objects.append( roots[i].name );
                 objects.append( ") reaches " );
                 objects.appendNumber( roots[i].objects );
                 objects.append( " objects, total size " );
-                objects.append( String::humanNumber( roots[i].size ) );
+                objects.append( EString::humanNumber( roots[i].size ) );
                 objects.append( "b" );
                 log( objects, Log::Debug );
             }
@@ -701,7 +706,7 @@ void Allocator::release()
 #elif defined(MADV_DONTNEED)
 #define ADVICE MADV_DONTNEED
 #endif
-    
+
 #if defined(ADVICE)
     uint i = 0;
     while ( i < capacity ) {
@@ -764,7 +769,7 @@ void * Allocator::block( uint i )
     rounded(25) and rounded(28) all return 28, while rounded(29) might
     return something like 44.
 
-    This can be used by String and UString to optimize their memory
+    This can be used by EString and UString to optimize their memory
     usage. Perhaps also by other classes.
 */
 
@@ -796,7 +801,7 @@ void Allocator::addEternal( const void * p, const char * t )
 
     // we have a nasty memory leak. probably someone's allocating new
     // roots in a loop.
-    log( String( "Ran out of roots. Last allocated root: " ) + t,
+    log( EString( "Ran out of roots. Last allocated root: " ) + t,
          Log::Disaster );
     die( Memory );
 }

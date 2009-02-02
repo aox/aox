@@ -16,7 +16,7 @@
 #include "imapurl.h"
 #include "section.h"
 #include "message.h"
-#include "string.h"
+#include "estring.h"
 #include "fetch.h"
 #include "imap.h"
 #include "list.h"
@@ -33,7 +33,7 @@ struct Textpart
     enum Type { Text, Url };
 
     Type type;
-    String s;
+    EString s;
     ImapUrl * url;
 };
 
@@ -50,8 +50,8 @@ struct Appendage
     Injectee * message;
     List<Textpart> * textparts;
     ImapUrlFetcher * urlFetcher;
-    String text;
-    StringList flags;
+    EString text;
+    EStringList flags;
     List<Annotation> * annotations;
     Date date;
 };
@@ -141,7 +141,7 @@ void Append::parse()
                 day = number( 2 );
             }
             require( "-" );
-            String month = letters( 3, 3 );
+            EString month = letters( 3, 3 );
             require( "-" );
             uint year = number( 4 );
             space();
@@ -172,7 +172,7 @@ void Append::parse()
             bool entriesDone = false;
 
             do {
-                String entry( astring() );
+                EString entry( astring() );
                 if ( entry.startsWith( "/flags/" ) || entry.contains( "//" ) ||
                      entry.contains( "*" ) || entry.contains( "%" ) ||
                      entry.endsWith( "/" ) )
@@ -187,7 +187,7 @@ void Append::parse()
                 do {
                     int oid;
 
-                    String attrib( astring() );
+                    EString attrib( astring() );
                     if ( attrib.lower() == "value.priv" ) {
                         oid = imap()->user()->id();
                     }
@@ -282,7 +282,7 @@ void Append::parse()
 
 uint Append::number( uint n )
 {
-    String tmp = digits( n, n );
+    EString tmp = digits( n, n );
     return tmp.number( 0 );
 }
 

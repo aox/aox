@@ -9,7 +9,7 @@
 
 class Date;
 class User;
-class String;
+class EString;
 class UString;
 class Address;
 class Mailbox;
@@ -41,8 +41,8 @@ public:
     bool rejected( Address * ) const;
     bool succeeded( Address * ) const;
     bool failed( Address * ) const;
-    String error( Address * ) const;
-    String error() const;
+    EString error( Address * ) const;
+    EString error() const;
     bool done() const;
     bool ready() const;
     bool injected() const;

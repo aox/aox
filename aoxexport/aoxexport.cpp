@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
 #include "configuration.h"
 #include "logclient.h"
@@ -71,9 +71,9 @@ int main( int ac, char ** av )
 
     Selector * which;
     if ( i < ac ) {
-        StringList args;
+        EStringList args;
         while ( i < ac )
-            args.append( new String( av[i++] ) );
+            args.append( new EString( av[i++] ) );
         which = parseSelector( &args );
     }
     else {

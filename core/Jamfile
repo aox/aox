@@ -1,9 +1,9 @@
 SubDir TOP core ;
 
-Build core : global.cpp scope.cpp string.cpp
+Build core : global.cpp scope.cpp estring.cpp
     buffer.cpp list.cpp map.cpp dict.cpp table.cpp allocator.cpp
     md5.cpp file.cpp logger.cpp log.cpp configuration.cpp
-    stringlist.cpp entropy.cpp filter.cpp stderrlogger.cpp
+    estringlist.cpp entropy.cpp filter.cpp stderrlogger.cpp
     cache.cpp patriciatree.cpp
     ;
 

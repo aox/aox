@@ -10,7 +10,7 @@ class ShowCounts
     : public AoxCommand
 {
 public:
-    ShowCounts( StringList * );
+    ShowCounts( EStringList * );
     void execute();
 
 private:

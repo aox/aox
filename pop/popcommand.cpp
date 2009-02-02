@@ -15,7 +15,7 @@
 #include "session.h"
 #include "mailbox.h"
 #include "mechanism.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "permissions.h"
 #include "messagecache.h"
 
@@ -34,13 +34,13 @@ public:
 
     POP * pop;
     PopCommand::Command cmd;
-    StringList * args;
+    EStringList * args;
 
     bool done;
 
     TlsServer * tlsServer;
     SaslMechanism * m;
-    String * r;
+    EString * r;
     User * user;
     Mailbox * mailbox;
     Permissions * permissions;
@@ -80,7 +80,7 @@ public:
     the POP server \a pop, with the arguments in \a args.
 */
 
-PopCommand::PopCommand( POP * pop, Command cmd, StringList * args )
+PopCommand::PopCommand( POP * pop, Command cmd, EStringList * args )
     : d( new PopCommandData )
 {
     d->pop = pop;
@@ -137,7 +137,7 @@ void PopCommand::execute()
 
     case Capa:
         {
-            String c( "TOP\r\n"
+            EString c( "TOP\r\n"
                       "UIDL\r\n"
                       "SASL\r\n"
                       "USER\r\n"
@@ -256,17 +256,17 @@ bool PopCommand::auth()
 {
     if ( !d->m ) {
         log( "AUTH Command" );
-        String t = nextArg().lower();
+        EString t = nextArg().lower();
         d->m = SaslMechanism::create( t, this, d->pop );
         if ( !d->m ) {
             d->pop->err( "SASL mechanism " + t + " not available" );
             return true;
         }
 
-        String s( nextArg() );
-        String * r = 0;
+        EString s( nextArg() );
+        EString * r = 0;
         if ( !s.isEmpty() )
-            r = new String( s );
+            r = new EString( s );
 
         d->pop->setReader( this );
         d->m->readInitialResponse( r );
@@ -517,7 +517,7 @@ bool PopCommand::list()
         }
         else {
             bool ok;
-            String arg = *d->args->first();
+            EString arg = *d->args->first();
             uint msn = arg.number( &ok );
             if ( !ok || msn < 1 || msn > s->count() ) {
                 d->pop->err( "Bad message number" );
@@ -617,7 +617,7 @@ bool PopCommand::retr( bool lines )
     int ln = d->n;
     bool header = true;
 
-    String * t;
+    EString * t;
     while ( ( t = b->removeLine() ) != 0 ) {
         if ( header && t->isEmpty() )
             header = false;
@@ -631,7 +631,7 @@ bool PopCommand::retr( bool lines )
         d->pop->enqueue( "\r\n" );
     }
 
-    String st = b->string( b->size() );
+    EString st = b->string( b->size() );
     if ( !st.isEmpty() && !( !header && lines && ln-- < 0 ) ) {
         if ( st.startsWith( "." ) )
             d->pop->enqueue( "." );
@@ -724,7 +724,7 @@ bool PopCommand::uidl()
     than there are arguments? The POP parser does enforce this.)
 */
 
-String PopCommand::nextArg()
+EString PopCommand::nextArg()
 {
     if ( d->args && !d->args->isEmpty() )
         return *d->args->take( d->args->first() );

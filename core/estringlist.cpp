@@ -5,23 +5,23 @@
 #include "dict.h"
 
 
-/*! \class StringList stringlist.h
+/*! \class EStringList estringlist.h
 
-    The StringList class is a List of String object, offering a few
+    The EStringList class is a List of EString object, offering a few
     convenience functions such as join() and removeDuplicates().
 */
 
 
-/*! Constructs an empty List of (pointers to) String objects. */
+/*! Constructs an empty List of (pointers to) EString objects. */
 
-StringList::StringList()
+EStringList::EStringList()
 {
 }
 
 
-/*! \fn void StringList::append( String * s )
+/*! \fn void EStringList::append( EString * s )
 
-    Appends the String \a s to this StringList. (Inline reimplementation
+    Appends the EString \a s to this EStringList. (Inline reimplementation
     to work around the shadowing rules of C++.)
 */
 
@@ -31,31 +31,31 @@ StringList::StringList()
     copy to the list.
 */
 
-void StringList::append( const String & s )
+void EStringList::append( const EString & s )
 {
-    List<String>::append( new String( s ) );
+    List<EString>::append( new EString( s ) );
 }
 
 
-/*! This version of append() makes a String copy of \a s and appends
+/*! This version of append() makes a EString copy of \a s and appends
     that copy to the list.
 */
 
-void StringList::append( const char * s )
+void EStringList::append( const char * s )
 {
-    List<String>::append( new String( s ) );
+    List<EString>::append( new EString( s ) );
 }
 
 
-/*! Returns a string containing every String in this list, with \a
+/*! Returns a string containing every EString in this list, with \a
     separator between the items.
 
-    If this List isEmpty(), this function returns an empty String.
+    If this List isEmpty(), this function returns an empty EString.
 */
 
-String StringList::join( const String & separator ) const
+EString EStringList::join( const EString & separator ) const
 {
-    String r;
+    EString r;
     Iterator it( this );
     uint l = 0;
     while ( it ) {
@@ -79,14 +79,14 @@ String StringList::join( const String & separator ) const
     of \a c cause the list to contain empty elements.
 */
 
-StringList *StringList::split( char c, const String &s )
+EStringList *EStringList::split( char c, const EString &s )
 {
-    StringList *l = new StringList;
+    EStringList *l = new EStringList;
 
     int n = 0;
     int last = 0;
     do {
-        String w;
+        EString w;
         n = s.find( c, last );
         if ( n >= 0 ) {
             w = s.mid( last, n-last );
@@ -112,13 +112,13 @@ StringList *StringList::split( char c, const String &s )
     the first and removes the second and later copies.
 */
 
-void StringList::removeDuplicates( bool caseSensitive )
+void EStringList::removeDuplicates( bool caseSensitive )
 {
     Dict<uint> e;
     uint tmp = 1;
     Iterator i( this );
     while ( i ) {
-        String s = *i;
+        EString s = *i;
         if ( !caseSensitive )
             s = s.lower();
         if ( e.contains( s ) ) {
@@ -134,7 +134,7 @@ void StringList::removeDuplicates( bool caseSensitive )
 
 /*! Returns true if \a s occurs in this string list, and false if not. */
 
-bool StringList::contains( const String & s ) const
+bool EStringList::contains( const EString & s ) const
 {
     Iterator i( this );
     while ( i && s != *i )

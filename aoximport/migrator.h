@@ -6,7 +6,7 @@
 #include "event.h"
 #include "injector.h"
 #include "ustring.h"
-#include "stringlist.h"
+#include "estringlist.h"
 
 
 class Migrator
@@ -17,7 +17,7 @@ public:
     Migrator( Mode );
 
     void setDestination( const UString & );
-    void addSource( const String & );
+    void addSource( const EString & );
 
     Mailbox * target() const;
 
@@ -54,15 +54,15 @@ class MigratorMailbox
     : public Garbage
 {
 public:
-    MigratorMailbox( const String & );
+    MigratorMailbox( const EString & );
     virtual ~MigratorMailbox();
 
-    String partialName();
+    EString partialName();
 
     virtual class MigratorMessage * nextMessage() = 0;
 
 private:
-    String n;
+    EString n;
 };
 
 
@@ -70,21 +70,21 @@ class MigratorMessage
     : public Garbage
 {
 public:
-    MigratorMessage( const String &, const String & );
+    MigratorMessage( const EString &, const EString & );
     virtual ~MigratorMessage();
 
-    String description() const;
-    String original() const;
-    const StringList * flags() const;
-    void addFlag( const String & );
+    EString description() const;
+    EString original() const;
+    const EStringList * flags() const;
+    void addFlag( const EString & );
 
     Injectee * message();
 
 private:
-    String s;
-    String o;
+    EString s;
+    EString o;
     Injectee * m;
-    StringList f;
+    EStringList f;
 };
 
 
@@ -97,7 +97,7 @@ public:
 
     bool valid() const;
     bool done() const;
-    String error() const;
+    EString error() const;
 
     void execute();
 

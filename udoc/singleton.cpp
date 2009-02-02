@@ -25,7 +25,7 @@ static Dict<Singleton> * refs = 0;
 /*! Constructs a Singleton to \a name, which is located at \a file,
     \a line. */
 
-Singleton::Singleton( File * file, uint line, const String & name )
+Singleton::Singleton( File * file, uint line, const EString & name )
     : f( file ), l( line )
 {
     if ( !refs )

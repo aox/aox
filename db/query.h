@@ -5,7 +5,7 @@
 
 #include "global.h"
 #include "database.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "patriciatree.h"
 
 
@@ -21,7 +21,7 @@ class Query
 {
 public:
     Query( EventHandler * = 0 );
-    Query( const String &, EventHandler * );
+    Query( const EString &, EventHandler * );
     Query( const PreparedStatement &, EventHandler * );
     virtual ~Query() {}
 
@@ -50,9 +50,9 @@ public:
     void bind( uint, int );
     void bind( uint, uint );
     void bind( uint, int64 );
-    void bind( uint, const String &, Format = Unknown );
+    void bind( uint, const EString &, Format = Unknown );
     void bind( uint, const UString & );
-    void bind( uint, const StringList & );
+    void bind( uint, const EStringList & );
     void bind( uint, const class IntegerSet & );
     void bindNull( uint );
     void submitLine();
@@ -65,7 +65,7 @@ public:
     private:
         uint n;
         bool null;
-        String str;
+        EString str;
         Query::Format fmt;
 
     public:
@@ -73,7 +73,7 @@ public:
             : n( p ), null( true )
         {}
 
-        Value( uint p, const String &s, Query::Format f )
+        Value( uint p, const EString &s, Query::Format f )
             : n( p ), null( false ), str( s ), fmt( f )
         {}
 
@@ -82,7 +82,7 @@ public:
                 return -1;
             return str.length();
         }
-        String data() const { return str; }
+        EString data() const { return str; }
         Query::Format format() const { return fmt; }
         uint position() const { return n; }
 
@@ -91,9 +91,9 @@ public:
         }
     };
 
-    virtual String name() const;
-    virtual String string() const;
-    virtual void setString( const String & );
+    virtual EString name() const;
+    virtual EString string() const;
+    virtual void setString( const EString & );
 
     typedef SortedList< Query::Value > InputLine;
 
@@ -104,10 +104,10 @@ public:
     EventHandler *owner() const;
     void notify();
 
-    String description();
+    EString description();
 
-    String error() const;
-    void setError( const String & );
+    EString error() const;
+    void setError( const EString & );
 
     uint rows() const;
     void setRows( uint );
@@ -129,12 +129,12 @@ public:
     enum Type { Unknown, Boolean, Integer, Bigint, Bytes, Timestamp, Null };
 
     Type type;
-    String s;
+    EString s;
     bool b;
     uint i;
     int64 bi;
 
-    static String typeName( Type );
+    static EString typeName( Type );
 };
 
 
@@ -148,7 +148,7 @@ public:
     int getInt( const char * ) const;
     int64 getBigint( const char * ) const;
     bool getBoolean( const char * ) const;
-    String getString( const char * ) const;
+    EString getEString( const char * ) const;
     UString getUString( const char * ) const;
     bool hasColumn( const char * ) const;
 
@@ -164,12 +164,12 @@ class PreparedStatement
     : public Garbage
 {
 public:
-    PreparedStatement( const String & );
-    String name() const;
-    String query() const;
+    PreparedStatement( const EString & );
+    EString name() const;
+    EString query() const;
 
 private:
-    String n, q;
+    EString n, q;
 };
 
 

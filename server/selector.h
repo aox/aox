@@ -5,13 +5,13 @@
 
 #include "list.h"
 #include "query.h"
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 #include "session.h"
 #include "integerset.h"
 
 
-class StringList;
+class EStringList;
 
 
 class Selector
@@ -31,10 +31,10 @@ public:
     Selector();
 
     Selector( Field, Action, uint );
-    Selector( Field, Action, const String & = 0 );
+    Selector( Field, Action, const EString & = 0 );
     Selector( Field, Action, const UString & );
-    Selector( Field, Action, const String &, const UString & );
-    Selector( Field, Action, const String &, const String &,
+    Selector( Field, Action, const EString &, const UString & );
+    Selector( Field, Action, const EString &, const EString &,
               const UString & );
     Selector( const IntegerSet & );
     Selector( Action );
@@ -48,18 +48,18 @@ public:
     const Selector * root() const;
     const Selector * parent() const;
 
-    String error();
-    void setError( const String & );
+    EString error();
+    void setError( const EString & );
 
     Query * query( class User *, class Mailbox *,
                    class Session *, class EventHandler *,
-                   bool = true, class StringList * = 0, bool = false );
+                   bool = true, class EStringList * = 0, bool = false );
 
     void simplify();
 
     void add( Selector * );
 
-    String debugString() const;
+    EString debugString() const;
     bool needSession() const;
     enum MatchResult {
         Yes,
@@ -68,17 +68,17 @@ public:
     };
     MatchResult match( class Session *, uint );
 
-    String string();
+    EString string();
 
-    static Selector * fromString( const String & );
+    static Selector * fromString( const EString & );
 
     bool dynamic() const;
     bool timeSensitive() const;
     bool usesModseq() const;
 
-    String mboxId();
+    EString mboxId();
 
-    String stringArgument() const;
+    EString stringArgument() const;
     UString ustringArgument() const;
     int integerArgument() const;
     IntegerSet messageSetArgument() const;
@@ -89,25 +89,25 @@ public:
 private:
     class SelectorData * d;
 
-    String where();
-    String whereInternalDate();
-    String whereSent();
-    String whereHeader();
-    String whereHeaderField();
-    String whereAddressField( const String & = "" );
-    String whereAddressFields( const StringList &, const UString & );
-    String whereBody();
-    String whereRfc822Size();
-    String whereFlags();
-    String whereUid();
-    String whereAnnotation();
-    String whereModseq();
-    String whereAge();
-    String whereNoField();
+    EString where();
+    EString whereInternalDate();
+    EString whereSent();
+    EString whereHeader();
+    EString whereHeaderField();
+    EString whereAddressField( const EString & = "" );
+    EString whereAddressFields( const EStringList &, const UString & );
+    EString whereBody();
+    EString whereRfc822Size();
+    EString whereFlags();
+    EString whereUid();
+    EString whereAnnotation();
+    EString whereModseq();
+    EString whereAge();
+    EString whereNoField();
 
-    String mm();
+    EString mm();
 
-    String whereSet( const IntegerSet & );
+    EString whereSet( const IntegerSet & );
 };
 
 

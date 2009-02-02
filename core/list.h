@@ -4,7 +4,7 @@
 #define LIST_H
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
 
 
@@ -253,7 +253,7 @@ public:
         return Iterator::newRef( cur );
     }
 
-    Iterator &find( const String &s )
+    Iterator &find( const EString &s )
     {
         Node *cur = head;
 

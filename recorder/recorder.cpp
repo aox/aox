@@ -25,8 +25,8 @@ public:
     RecorderClient * client;
     RecorderServer * server;
     File * log;
-    String toServer;
-    String toClient;
+    EString toServer;
+    EString toClient;
 
     enum Direction { ToServer, ToClient };
     void dump( Direction );
@@ -36,7 +36,7 @@ public:
 
 void RecorderData::dump( Direction dir )
 {
-    String * s = &toServer;
+    EString * s = &toServer;
     if ( dir == ToClient )
         s = &toClient;
     uint lines = 0;
@@ -51,7 +51,7 @@ void RecorderData::dump( Direction dir )
     }
     if ( !lines )
         return;
-    String f;
+    EString f;
     if ( dir == ToClient )
         f.append( "receive " );
     else
@@ -75,7 +75,7 @@ void RecorderData::assertEmpty()
 {
     log->write( "end\n" );
     if ( !toServer.isEmpty() ) {
-        String f;
+        EString f;
         f.append( "# The following " );
         f.appendNumber( toServer.length() );
         f.append( " bytes were sent by the client after the last LF: " );
@@ -84,7 +84,7 @@ void RecorderData::assertEmpty()
         log->write( f );
     }
     if ( !toClient.isEmpty() ) {
-        String f;
+        EString f;
         f.append( "# The following " );
         f.appendNumber( toClient.length() );
         f.append( " bytes were sent by the server after the last LF: " );
@@ -95,7 +95,7 @@ void RecorderData::assertEmpty()
 }
 
 
-static String * base = 0;
+static EString * base = 0;
 
 
 /*! \class RecorderServer recorder.h
@@ -128,7 +128,7 @@ RecorderServer::RecorderServer( int fd )
 
 void RecorderServer::react( Event e )
 {
-    String tmp;
+    EString tmp;
     switch( e ) {
     case Read:
         tmp = readBuffer()->string( readBuffer()->size() );
@@ -171,7 +171,7 @@ RecorderClient::RecorderClient( RecorderData * sd )
 
 void RecorderClient::react( Event e )
 {
-    String tmp;
+    EString tmp;
     switch( e ) {
     case Read:
         tmp = readBuffer()->string( readBuffer()->size() );
@@ -216,7 +216,7 @@ int main( int argc, char ** argv )
 
     uint port = 0;
     if ( ok ) {
-        port = String( argv[1] ).number( &ok );
+        port = EString( argv[1] ).number( &ok );
         if ( !ok )
             error = "Could not parse own port number";
     }
@@ -236,16 +236,16 @@ int main( int argc, char ** argv )
     }
 
     if ( ok ) {
-        port = String( argv[3] ).number( &ok );
+        port = EString( argv[3] ).number( &ok );
         if ( !ok )
             error = "Could not parse server's port number";
     }
 
     if ( ok ) {
-        StringList l = Resolver::resolve( argv[2] );
+        EStringList l = Resolver::resolve( argv[2] );
         if ( l.isEmpty() ) {
             ok = false;
-            error = (String("Cannot resolve ") + argv[2] +
+            error = (EString("Cannot resolve ") + argv[2] +
                      ": " + Resolver::errors().join( ", " ) ).cstr();
         }
         else {
@@ -270,7 +270,7 @@ int main( int argc, char ** argv )
         exit( 1 );
     }
 
-    ::base = new String( argv[4] );
+    ::base = new EString( argv[4] );
     Allocator::addEternal( ::base, "base of recorded file names" );
 
     global.setLog( new Log );

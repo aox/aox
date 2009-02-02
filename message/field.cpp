@@ -10,7 +10,7 @@
 #include "listidfield.h"
 #include "addressfield.h"
 #include "ustringlist.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "parser.h"
 #include "utf.h"
 
@@ -62,10 +62,10 @@ public:
     HeaderFieldData() : type( HeaderField::Other ), position( (uint)-1 ) {}
 
     HeaderField::Type type;
-    String name;
+    EString name;
     UString value;
-    String unparsed;
-    String error;
+    EString unparsed;
+    EString error;
     uint position;
 };
 
@@ -86,10 +86,10 @@ public:
     HeaderField object of a type appropriate to the given \a name.
 */
 
-HeaderField *HeaderField::fieldNamed( const String &name )
+HeaderField *HeaderField::fieldNamed( const EString &name )
 {
     int i = 0;
-    String n = name.headerCased();
+    EString n = name.headerCased();
     while ( fieldNames[i].name && n != fieldNames[i].name )
         i++;
 
@@ -168,8 +168,8 @@ HeaderField *HeaderField::fieldNamed( const String &name )
     This function is for use by the message parser.
 */
 
-HeaderField *HeaderField::create( const String &name,
-                                  const String &value )
+HeaderField *HeaderField::create( const EString &name,
+                                  const EString &value )
 {
     HeaderField *hf = fieldNamed( name );
     hf->parse( value );
@@ -194,7 +194,7 @@ HeaderField *HeaderField::create( const String &name,
     This function is for use by the message fetcher.
 */
 
-HeaderField *HeaderField::assemble( const String &name,
+HeaderField *HeaderField::assemble( const EString &name,
                                     const UString &data )
 {
     HeaderField *hf = fieldNamed( name );
@@ -240,7 +240,7 @@ HeaderField::Type HeaderField::type() const
 
 /*! Returns the canonical name of this header field. */
 
-String HeaderField::name() const
+EString HeaderField::name() const
 {
     if ( d->type != Other )
         return fieldName( d->type );
@@ -250,7 +250,7 @@ String HeaderField::name() const
 
 /*! Sets the name of this HeaderField to \a n. */
 
-void HeaderField::setName( const String &n )
+void HeaderField::setName( const EString &n )
 {
     d->name = n;
 }
@@ -261,7 +261,7 @@ void HeaderField::setName( const String &n )
     is a string we can hand out to clients.
 */
 
-String HeaderField::rfc822() const
+EString HeaderField::rfc822() const
 {
     if ( d->type == Subject ||
          d->type == Comments ||
@@ -321,7 +321,7 @@ bool HeaderField::valid() const
     is the case for all unknown fields -- not parsed.
 */
 
-String HeaderField::error() const
+EString HeaderField::error() const
 {
     return d->error;
 }
@@ -329,7 +329,7 @@ String HeaderField::error() const
 
 /*! Records the error text \a s encountered during parsing. */
 
-void HeaderField::setError( const String &s )
+void HeaderField::setError( const EString &s )
 {
     d->error = s;
 }
@@ -341,7 +341,7 @@ void HeaderField::setError( const String &s )
     using functions like parseText().
 */
 
-void HeaderField::parse( const String &s )
+void HeaderField::parse( const EString &s )
 {
     switch ( d->type ) {
     case From:
@@ -409,7 +409,7 @@ void HeaderField::parse( const String &s )
     and Comments fields.
 */
 
-void HeaderField::parseText( const String &s )
+void HeaderField::parseText( const EString &s )
 {
     bool h = false;
     if ( !h ) {
@@ -435,7 +435,7 @@ void HeaderField::parseText( const String &s )
         // common: Subject: =?ISO-8859-1?q?foo bar baz?=
         // unusual, but seen: Subject: =?ISO-8859-1?q?foo bar?= baz
         EmailParser p1( s.simplified() );
-        String tmp;
+        EString tmp;
         bool inWord = false;
         while ( !p1.atEnd() ) {
             if ( p1.present( "=?" ) ) {
@@ -475,7 +475,7 @@ void HeaderField::parseText( const String &s )
     NULs or 8-bit characters.
 */
 
-void HeaderField::parseOther( const String &s )
+void HeaderField::parseOther( const EString &s )
 {
     AsciiCodec a;
     setValue( a.toUnicode( s ) );
@@ -495,11 +495,11 @@ void HeaderField::parseOther( const String &s )
     comment to be a sure spam sign.
 */
 
-void HeaderField::parseMimeVersion( const String &s )
+void HeaderField::parseMimeVersion( const EString &s )
 {
     EmailParser p( s );
     p.comment();
-    String v = p.dotAtom();
+    EString v = p.dotAtom();
     p.comment();
     AsciiCodec a;
     UString c = a.toUnicode( p.lastComment().simplified() );
@@ -523,20 +523,20 @@ void HeaderField::parseMimeVersion( const String &s )
     first problem found.
 */
 
-void HeaderField::parseContentLocation( const String &s )
+void HeaderField::parseContentLocation( const EString &s )
 {
     EmailParser p( s.trimmed().unquoted() );
 
     p.whitespace();
     uint e = p.pos();
     bool ok = true;
-    String r;
+    EString r;
     while ( ok ) {
         ok = true;
         char c = p.nextChar();
         p.step();
         if ( c == '%' ) {
-            String hex;
+            EString hex;
             hex.append( p.nextChar() );
             p.step();
             hex.append( p.nextChar() );
@@ -564,7 +564,7 @@ void HeaderField::parseContentLocation( const String &s )
         }
         // RFC 1738 escape
         else if ( c == '%' || c >= 127 ) {
-            String hex = String::fromNumber( c, 16 );
+            EString hex = EString::fromNumber( c, 16 );
             r.append( "%" );
             if ( hex.length() < 2 )
                 r.append( "0" );
@@ -601,7 +601,7 @@ void HeaderField::parseContentLocation( const String &s )
     colon, the URL is absolute, so it accepts -:/asr as a valid URL.
 */
 
-void HeaderField::parseContentBase( const String & s )
+void HeaderField::parseContentBase( const EString & s )
 {
     parseContentLocation( s );
     if ( !valid() )
@@ -628,9 +628,9 @@ const char *HeaderField::fieldName( HeaderField::Type t )
     isn't known.
 */
 
-uint HeaderField::fieldType( const String & n )
+uint HeaderField::fieldType( const EString & n )
 {
-    String fn = n.headerCased();
+    EString fn = n.headerCased();
     if ( fn.endsWith( ":" ) )
         fn.truncate( fn.length()-1 );
     uint i = 0;
@@ -649,7 +649,7 @@ uint HeaderField::fieldType( const String & n )
     XXX: Well, except that we ignore the rules right now.
 */
 
-String HeaderField::wrap( const String &s ) const
+EString HeaderField::wrap( const EString &s ) const
 {
     return s.wrapped( 78, d->name + ": ", " ", false )
         .mid( d->name.length() + 2 );
@@ -660,21 +660,21 @@ String HeaderField::wrap( const String &s ) const
     \a w.
 */
 
-String HeaderField::encodeWord( const UString &w )
+EString HeaderField::encodeWord( const UString &w )
 {
     if ( w.isEmpty() )
         return "";
 
     Codec * c = Codec::byString( w );
-    String cw( c->fromUnicode( w ) );
+    EString cw( c->fromUnicode( w ) );
 
-    String t;
+    EString t;
     t.reserve( w.length() );
     t.append( "=?" );
     t.append( c->name() );
     t.append( "?" );
-    String qp = cw.eQP( true );
-    String b64 = cw.e64();
+    EString qp = cw.eQP( true );
+    EString b64 = cw.e64();
     if ( qp.length() <= b64.length() + 3 &&
          t.length() + qp.length() <= 73 ) {
         t.append( "q?" );
@@ -682,13 +682,13 @@ String HeaderField::encodeWord( const UString &w )
         t.append( "?=" );
     }
     else {
-        String prefix = t;
+        EString prefix = t;
         prefix.append( "b?" );
         t = "";
         while ( !b64.isEmpty() ) {
             uint allowed = 73 - prefix.length();
             allowed = 4 * (allowed/4);
-            String word = prefix;
+            EString word = prefix;
             word.append( b64.mid( 0, allowed ) );
             word.append( "?=" );
             b64 = b64.mid( allowed );
@@ -705,9 +705,9 @@ String HeaderField::encodeWord( const UString &w )
 /*! This static function returns the RFC 2047-encoded version of \a s.
 */
 
-String HeaderField::encodeText( const UString &s )
+EString HeaderField::encodeText( const UString &s )
 {
-    StringList r;
+    EStringList r;
     AsciiCodec a;
     UStringList::Iterator w( UStringList::split( ' ', s ) );
     while ( w ) {
@@ -730,9 +730,9 @@ String HeaderField::encodeText( const UString &s )
 /*! This static function returns the RFC 2047-encoded version of \a s.
 */
 
-String HeaderField::encodePhrase( const UString &s )
+EString HeaderField::encodePhrase( const UString &s )
 {
-    String t;
+    EString t;
     t.reserve( s.length() );
     UStringList::Iterator it( UStringList::split( ' ', s.simplified() ) );
 
@@ -790,7 +790,7 @@ uint HeaderField::position() const
 
 */
 
-String HeaderField::unparsedValue() const
+EString HeaderField::unparsedValue() const
 {
     if ( valid() )
         d->unparsed.truncate();
@@ -803,7 +803,7 @@ String HeaderField::unparsedValue() const
     will return \a s, unless the string is/becomes valid().
 */
 
-void HeaderField::setUnparsedValue( const String & s )
+void HeaderField::setUnparsedValue( const EString & s )
 {
     d->unparsed = s;
 }

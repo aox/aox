@@ -43,9 +43,9 @@ Cp949Codec::Cp949Codec( const char * n )
 
 /*! Returns the encoded representation of the UString \a u. */
 
-String Cp949Codec::fromUnicode( const UString &u )
+EString Cp949Codec::fromUnicode( const UString &u )
 {
-    String s;
+    EString s;
 
     uint i = 0;
     while ( i < u.length() ) {
@@ -69,9 +69,9 @@ String Cp949Codec::fromUnicode( const UString &u )
 }
 
 
-/*! Returns the Unicode representation of the String \a s. */
+/*! Returns the Unicode representation of the EString \a s. */
 
-UString Cp949Codec::toUnicode( const String &s )
+UString Cp949Codec::toUnicode( const EString &s )
 {
     UString u;
 

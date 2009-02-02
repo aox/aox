@@ -3,7 +3,7 @@
 #include "entropy.h"
 
 #include "configuration.h"
-#include "string.h"
+#include "estring.h"
 #include "log.h"
 
 // read()
@@ -38,7 +38,7 @@ void Entropy::setup()
     if ( fd > -1 )
         ::close( fd );
 
-    String source( Configuration::text( Configuration::EntropySource ) );
+    EString source( Configuration::text( Configuration::EntropySource ) );
     fd = ::open( source.cstr(), O_RDONLY );
 }
 
@@ -47,13 +47,13 @@ void Entropy::setup()
     exception if entropy isn't available.
 */
 
-String Entropy::asString( uint bytes )
+EString Entropy::asString( uint bytes )
 {
-    String r;
+    EString r;
     if ( bytes == 0 )
         return r;
     if ( fd < 0 ) {
-        String source( Configuration::text( Configuration::EntropySource ) );
+        EString source( Configuration::text( Configuration::EntropySource ) );
         ::log( "Entropy requested, but " + source + " is not available",
                Log::Disaster );
         die( FD );
@@ -83,6 +83,6 @@ String Entropy::asString( uint bytes )
 
 uint Entropy::asNumber( uint bytes )
 {
-    String e = asString( bytes );
+    EString e = asString( bytes );
     return e[0] | ( e[1] << 8 )  | ( e[2] << 16 )  | ( e[3] << 24 );
 }

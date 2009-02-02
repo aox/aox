@@ -42,9 +42,9 @@ Iso2022KrCodec::Iso2022KrCodec()
     \a u.
 */
 
-String Iso2022KrCodec::fromUnicode( const UString &u )
+EString Iso2022KrCodec::fromUnicode( const UString &u )
 {
-    String s;
+    EString s;
 
     enum { ASCII, KSC } mode = ASCII;
 
@@ -88,9 +88,9 @@ String Iso2022KrCodec::fromUnicode( const UString &u )
 }
 
 
-/*! Returns the Unicode representation of the String \a s. */
+/*! Returns the Unicode representation of the EString \a s. */
 
-UString Iso2022KrCodec::toUnicode( const String &s )
+UString Iso2022KrCodec::toUnicode( const EString &s )
 {
     UString u;
 

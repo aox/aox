@@ -12,8 +12,8 @@ class GbkCodec
 public:
     GbkCodec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

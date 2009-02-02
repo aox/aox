@@ -3,7 +3,7 @@
 #include "database.h"
 
 #include "list.h"
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
 #include "configuration.h"
 #include "eventloop.h"
@@ -30,8 +30,8 @@ static List< Database > *handles;
 static time_t lastExecuted;
 static time_t lastCreated;
 static Database::User loginAs;
-static String * username;
-static String * password;
+static EString * username;
+static EString * password;
 static List<EventHandler> * whenIdle;
 
 
@@ -73,8 +73,8 @@ Database::Database()
     This function expects to be called from ::main().
 */
 
-void Database::setup( int desired, const String & user,
-                      const String & pass )
+void Database::setup( int desired, const EString & user,
+                      const EString & pass )
 {
     if ( !queries ) {
         queries = new List< Query >;
@@ -88,17 +88,17 @@ void Database::setup( int desired, const String & user,
 
     if ( ::username )
         Allocator::removeEternal( ::username );
-    ::username = new String( user );
+    ::username = new EString( user );
     Allocator::addEternal( ::username, "database username" );
 
     if ( ::password )
         Allocator::removeEternal( ::password );
-    ::password = new String( pass );
+    ::password = new EString( pass );
     Allocator::addEternal( ::password, "database password" );
 
-    String db = Configuration::text( Configuration::Db ).lower();
+    EString db = Configuration::text( Configuration::Db ).lower();
 
-    String dbt = db.section( "+", 1 );
+    EString dbt = db.section( "+", 1 );
 
     if ( dbt != "pg" && dbt != "pgsql" && dbt != "postgres" ) {
         ::log( "Unsupported database type: " + db, Log::Disaster );
@@ -132,8 +132,8 @@ void Database::setup( int desired, const String & user,
 
 void Database::setup( int desired, Database::User login )
 {
-    String user;
-    String pass;
+    EString user;
+    EString pass;
 
     ::loginAs = login;
     if ( login == Database::DbUser ) {
@@ -351,7 +351,7 @@ void Database::removeHandle( Database * d )
     postgres.
 */
 
-String Database::type()
+EString Database::type()
 {
     return Configuration::text( Configuration::Db );
 }
@@ -370,7 +370,7 @@ Endpoint Database::server()
 
 /*! Returns the address of the database server (db-address). */
 
-String Database::address()
+EString Database::address()
 {
     return Configuration::text( Configuration::DbAddress );
 }
@@ -386,7 +386,7 @@ uint Database::port()
 
 /*! Returns the configured database name (db-name). */
 
-String Database::name()
+EString Database::name()
 {
     return Configuration::text( Configuration::DbName );
 }
@@ -396,7 +396,7 @@ String Database::name()
     to (or inferred by) setup().
 */
 
-String Database::user()
+EString Database::user()
 {
     return *::username;
 }
@@ -405,7 +405,7 @@ String Database::user()
 /*! Returns the configured database password (db-password or
     db-owner-password). */
 
-String Database::password()
+EString Database::password()
 {
     return *::password;
 }
@@ -605,7 +605,7 @@ void Database::checkAccess( EventHandler * owner )
             if ( q->failed() || !r ||
                  r->getBoolean( "allowed" ) == false )
             {
-                String s( "Refusing to start because we have too many "
+                EString s( "Refusing to start because we have too many "
                           "privileges on the messages table in secure "
                           "mode." );
                 result->setError( s );

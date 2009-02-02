@@ -40,8 +40,8 @@ public:
     Query * notify;
     Transaction * parent;
     Transaction * t;
-    String n;
-    String e;
+    EString n;
+    EString e;
     bool done;
     Dict<uint> names;
 };
@@ -52,9 +52,9 @@ public:
      execute() will roll back to a savepoint and try again.
 */
 
-HelperRowCreator::HelperRowCreator( const String & table,
+HelperRowCreator::HelperRowCreator( const EString & table,
                                     Transaction * transaction,
-                                    const String & constraint )
+                                    const EString & constraint )
     : EventHandler(), d( new HelperRowCreatorData )
 {
     setLog( new Log );
@@ -107,7 +107,7 @@ void HelperRowCreator::execute()
             if ( d->c ) {
                 // We do need to insert something.
                 d->t->enqueue( d->c );
-                String ed = d->n;
+                EString ed = d->n;
                 ed.replace( "creator", "extended" );
                 Query * q = new Query( "notify " + ed, this );
                 d->t->enqueue( q );
@@ -171,7 +171,7 @@ void HelperRowCreator::processSelect( Query * q )
 {
     while ( q->hasResults() ) {
         Row * r = q->nextRow();
-        add( r->getString( "name" ), r->getInt( "id" ) );
+        add( r->getEString( "name" ), r->getInt( "id" ) );
     }
 }
 
@@ -190,7 +190,7 @@ void HelperRowCreator::processSelect( Query * q )
 
 /*! Remembers that the given name \a s corresponds to the \a id. */
 
-void HelperRowCreator::add( const String & s, uint id )
+void HelperRowCreator::add( const EString & s, uint id )
 {
     uint * tmp = (uint *)Allocator::alloc( sizeof(uint), 0 );
     *tmp = id;
@@ -201,7 +201,7 @@ void HelperRowCreator::add( const String & s, uint id )
 
 /*! Returns the id stored earlier with add() for the name \a s. */
 
-uint HelperRowCreator::id( const String & s )
+uint HelperRowCreator::id( const EString & s )
 {
     uint * p = d->names.find( s.lower() );
     if ( p )
@@ -225,7 +225,7 @@ uint HelperRowCreator::id( const String & s )
     bugs). Transaction::error() should say what went wrong.
 */
 
-FlagCreator::FlagCreator( const StringList & f, Transaction * t )
+FlagCreator::FlagCreator( const EStringList & f, Transaction * t )
     : HelperRowCreator( "flag_names", t, "fn_uname" ),
       names( f )
 {
@@ -237,10 +237,10 @@ Query * FlagCreator::makeSelect()
     Query * s = new Query( "select id, name from flag_names where "
                            "lower(name)=any($1::text[])", this );
 
-    StringList sl;
-    StringList::Iterator it( names );
+    EStringList sl;
+    EStringList::Iterator it( names );
     while ( it ) {
-        String name( *it );
+        EString name( *it );
         if ( id( name ) == 0 && Flag::id( name ) == 0 )
             sl.append( name.lower() );
         ++it;
@@ -258,7 +258,7 @@ Query * FlagCreator::makeCopy()
     Query * c = new Query( "copy flag_names (name) from stdin with binary",
                            this );
     bool any = false;
-    StringList::Iterator it( names );
+    EStringList::Iterator it( names );
     while ( it ) {
         if ( id( *it ) == 0 && Flag::id( *it ) == 0 ) {
             c->bind( 1, *it );
@@ -287,7 +287,7 @@ Query * FlagCreator::makeCopy()
 */
 
 
-FieldNameCreator::FieldNameCreator( const StringList & f,
+FieldNameCreator::FieldNameCreator( const EStringList & f,
                                     Transaction * tr )
     : HelperRowCreator( "field_names", tr,  "field_names_name_key" ),
       names( f )
@@ -300,8 +300,8 @@ Query * FieldNameCreator::makeSelect()
     Query * q = new Query( "select id, name from field_names where "
                            "name=any($1::text[])", this );
 
-    StringList sl;
-    StringList::Iterator it( names );
+    EStringList sl;
+    EStringList::Iterator it( names );
     while ( it ) {
         if ( !id( *it ) )
             sl.append( *it );
@@ -318,7 +318,7 @@ Query * FieldNameCreator::makeCopy()
 {
     Query * q = new Query( "copy field_names (name) from stdin with binary",
                            this );
-    StringList::Iterator it( names );
+    EStringList::Iterator it( names );
     bool any = false;
     while ( it ) {
         if ( !id( *it ) ) {
@@ -346,7 +346,7 @@ Query * FieldNameCreator::makeCopy()
     in annotation_names, using \a t for all its queryies.
 */
 
-AnnotationNameCreator::AnnotationNameCreator( const StringList & f,
+AnnotationNameCreator::AnnotationNameCreator( const EStringList & f,
                                               Transaction * t )
     : HelperRowCreator( "annotation_names", t, "annotation_names_name_key" ),
       names( f )
@@ -358,10 +358,10 @@ Query *  AnnotationNameCreator::makeSelect()
     Query * q = new Query( "select id, name from annotation_names where "
                            "name=any($1::text[])", this );
 
-    StringList sl;
-    StringList::Iterator it( names );
+    EStringList sl;
+    EStringList::Iterator it( names );
     while ( it ) {
-        String name( *it );
+        EString name( *it );
         if ( id( name ) == 0 )
             sl.append( name );
         ++it;
@@ -378,7 +378,7 @@ Query * AnnotationNameCreator::makeCopy()
 {
     Query * q = new Query( "copy annotation_names (name) "
                            "from stdin with binary", this );
-    StringList::Iterator it( names );
+    EStringList::Iterator it( names );
     bool any = false;
     while ( it ) {
         if ( id( *it ) == 0 ) {
@@ -459,7 +459,7 @@ AddressCreator::AddressCreator( List<Address> * addresses,
     think of a good alternative right now.
 */
 
-uint AddressCreator::param( Dict<uint> * b, const String & s,
+uint AddressCreator::param( Dict<uint> * b, const EString & s,
                             uint & n,
                             Query * q )
 {
@@ -480,7 +480,7 @@ uint AddressCreator::param( Dict<uint> * b, const String & s,
 
 Query * AddressCreator::makeSelect()
 {
-    String s = "select id, name, localpart, domain from addresses where ";
+    EString s = "select id, name, localpart, domain from addresses where ";
     Query * q = new Query( "", this );
     uint n = 1;
     Dict<uint> binds;
@@ -492,9 +492,9 @@ Query * AddressCreator::makeSelect()
     while ( i && n < 128 ) {
         if ( !i->id() ) {
             any = true;
-            String name( p.fromUnicode( i->uname() ) );
-            String lp( i->localpart() );
-            String dom( i->domain().lower() );
+            EString name( p.fromUnicode( i->uname() ) );
+            EString lp( i->localpart() );
+            EString dom( i->domain().lower() );
 
             uint bn = param( &binds, name, n, q );
             uint bl = param( &binds, lp, n, q );
@@ -528,8 +528,8 @@ void AddressCreator::processSelect( Query * q )
         Row * r = q->nextRow();
         Address * c =
             new Address( r->getUString( "name" ),
-                         r->getString( "localpart" ),
-                         r->getString( "domain" ) );
+                         r->getEString( "localpart" ),
+                         r->getEString( "domain" ) );
         Address * our = a->find( key( c ) );
         if ( our )
             our->setId( r->getInt( "id" ) );
@@ -561,14 +561,14 @@ Query * AddressCreator::makeCopy()
 }
 
 
-/*! Returns a String derived from \a a in a unique fashion. Two
+/*! Returns a EString derived from \a a in a unique fashion. Two
     addresses that are the same according to the RFC rules have the
     same key().
 */
 
-String AddressCreator::key( Address * a )
+EString AddressCreator::key( Address * a )
 {
-    String r;
+    EString r;
     r.append( a->domain().lower() );
     r.append( '\0' );
     r.append( a->localpart() );

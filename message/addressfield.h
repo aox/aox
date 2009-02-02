@@ -14,20 +14,20 @@ class AddressField
 public:
     AddressField( HeaderField::Type );
 
-    void parse( const String & );
+    void parse( const EString & );
 
-    String rfc822() const;
+    EString rfc822() const;
     UString value() const;
 
     List< Address > *addresses() const;
 
 protected:
-    void parseAddressList( const String & );
-    void parseMailboxList( const String & );
-    void parseMailbox( const String & );
-    void parseReferences( const String & );
-    void parseMessageId( const String & );
-    void parseContentId( const String & );
+    void parseAddressList( const EString & );
+    void parseMailboxList( const EString & );
+    void parseMailbox( const EString & );
+    void parseReferences( const EString & );
+    void parseMessageId( const EString & );
+    void parseContentId( const EString & );
 
 private:
     void outlawBounce();

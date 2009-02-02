@@ -11,7 +11,7 @@
 
 void dumpSelector( Selector * s, uint l )
 {
-    String a;
+    EString a;
     bool children = false;
 
     switch( s->field() ) {
@@ -45,10 +45,10 @@ void dumpSelector( Selector * s, uint l )
     case Selector::Rfc822Size:
         if ( s->action() == Selector::Smaller )
             a = "Message is smaller than " + fn( s->integerArgument() ) +
-                " (" + String::humanNumber( s->integerArgument() ) + ")";
+                " (" + EString::humanNumber( s->integerArgument() ) + ")";
         else
             a = "Message is larger than " + fn( s->integerArgument() ) +
-                " (" + String::humanNumber( s->integerArgument() ) + ")";
+                " (" + EString::humanNumber( s->integerArgument() ) + ")";
         break;
     case Selector::Flags:
         a = "Message has flag: " + s->stringArgument().quoted();
@@ -118,14 +118,14 @@ void dumpSelector( Selector * s )
     and also to help us test.
 */
 
-ShowSearch::ShowSearch( StringList * args )
+ShowSearch::ShowSearch( EStringList * args )
     : AoxCommand( args )
 {
     parseOptions();
     Selector * s = parseSelector( args );
     if ( !s )
         return;
-    String sqlFormat = s->string();
+    EString sqlFormat = s->string();
     Selector * stored = Selector::fromString( sqlFormat );
     if ( stored->string() != s->string() )
         fprintf( stderr,
@@ -138,13 +138,13 @@ ShowSearch::ShowSearch( StringList * args )
         dumpSelector( s );
     }
     if ( opt( 's' ) ) {
-        StringList wanted;
+        EStringList wanted;
         wanted.append( "mailbox" );
         wanted.append( "uid" );
 
         Query * q = s->query( 0, 0, 0, 0, false, &wanted, false );
         if ( q ) {
-            String qs = q->string();
+            EString qs = q->string();
             qs.replace( " from", "\n  from" );
             qs.replace( " join", "\n  join" );
             qs.replace( " left\n  join", "\n  left join" );

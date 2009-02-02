@@ -7,7 +7,7 @@
 #include "message.h"
 #include "configuration.h"
 #include "permissions.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "webpage.h"
 #include "http.h"
 #include "utf.h"
@@ -40,14 +40,14 @@ public:
           webpage( 0 ), server( 0 ), secure( false )
     {}
 
-    String original;
+    EString original;
 
     Link::Type type;
     bool magic;
     bool views;
     Mailbox * mailbox;
     uint uid;
-    String part;
+    EString part;
     Link::Suffix suffix;
     Dict<Link::Argument> * arguments;
 
@@ -78,7 +78,7 @@ Link::Link()
     \a server.
 */
 
-Link::Link( const String &s, HTTP * server )
+Link::Link( const EString &s, HTTP * server )
     : d( new LinkData )
 {
     d->server = server;
@@ -165,7 +165,7 @@ void Link::setUid( uint uid )
     question.
 */
 
-String Link::part() const
+EString Link::part() const
 {
     return d->part;
 }
@@ -173,7 +173,7 @@ String Link::part() const
 
 /*! Sets this Link's part number to \a part. */
 
-void Link::setPart( const String & part )
+void Link::setPart( const EString & part )
 {
     d->part = part;
 }
@@ -209,22 +209,22 @@ Dict<Link::Argument> * Link::arguments() const
 
 /*! Returns the specified query string, if any, or an empty string. */
 
-String Link::query() const
+EString Link::query() const
 {
-    String s;
+    EString s;
     Utf8Codec c;
     Dict<Argument>::Iterator it( d->arguments );
     while ( it ) {
         s.append( it->name );
         s.append( "=" );
-        String v = c.fromUnicode( it->value );
+        EString v = c.fromUnicode( it->value );
         uint i = 0;
         while ( i < v.length() ) {
             char c = v[i];
             ++i;
             if ( c == '&' || c == '%' || c == '+' || c > 'z' ) {
                 s.append( '%' );
-                String num = String::fromNumber( c, 16 ).lower();// XXX lower?
+                EString num = EString::fromNumber( c, 16 ).lower();// XXX lower?
                 if ( num.length() < 2 )
                     s.append( '0' );
                 s.append( num );
@@ -247,7 +247,7 @@ String Link::query() const
 
 /*! Returns the URL passed to the constructor. */
 
-String Link::original() const
+EString Link::original() const
 {
     return d->original;
 }
@@ -463,15 +463,15 @@ static const struct {
 static uint numSuffixes = sizeof( suffixes ) / sizeof( suffixes[0] );
 
 
-static bool checkPrefix( LinkParser * p, const String & s, bool legal )
+static bool checkPrefix( LinkParser * p, const EString & s, bool legal )
 {
     if ( !legal )
         return false;
 
     p->mark();
 
-    StringList * want = StringList::split( '/', s );
-    StringList::Iterator it( want );
+    EStringList * want = EStringList::split( '/', s );
+    EStringList::Iterator it( want );
     if ( it && it->isEmpty() )
         ++it;
     while ( it ) {
@@ -493,7 +493,7 @@ static Component checkPrefixes( LinkParser * p,
     Component e = Void;
     Component c = ArchivePrefix;
     while ( c <= WebmailPrefix ) {
-        String s;
+        EString s;
         Configuration::Text var;
         Configuration::Toggle use;
         switch ( c ) {
@@ -527,7 +527,7 @@ static Component checkPrefixes( LinkParser * p,
     cannot contain any escape sequences.
 */
 
-void Link::parse( const String & s )
+void Link::parse( const EString & s )
 {
     List< const Handler > h;
 
@@ -578,12 +578,12 @@ void Link::parse( const String & s )
             Mailbox * m = Mailbox::root();
 
             p->mark();
-            String seen;
+            EString seen;
             while ( p->present( "/" ) ) {
-                String have( p->pathComponent().lower() );
+                EString have( p->pathComponent().lower() );
                 List<Mailbox>::Iterator it( m->children() );
                 while ( it ) {
-                    String name( seen + "/" + have );
+                    EString name( seen + "/" + have );
                     if ( name == it->name().utf8().lower() ) {
                         m = it;
                         seen = name;
@@ -624,7 +624,7 @@ void Link::parse( const String & s )
         if ( chosen == Void && legalComponents[Part] ) {
             p->mark();
             p->require( "/" );
-            String part( p->digits( 1, 10 ) );
+            EString part( p->digits( 1, 10 ) );
             while ( p->ok() && p->present( "." ) ) {
                 part.append( "." );
                 part.append( p->digits( 1, 10 ) );
@@ -667,11 +667,11 @@ void Link::parse( const String & s )
         }
 
         if ( chosen == Void && legalComponents[::Arguments] ) {
-            Dict<String> args;
+            Dict<EString> args;
             p->mark();
             p->require( "?" );
             while ( !p->atEnd() ) {
-                String n, v;
+                EString n, v;
                 while ( p->nextChar() != '=' &&
                         p->nextChar() != '&' &&
                         !p->atEnd() )
@@ -780,7 +780,7 @@ static bool checkForComponent( uint i, Component c, bool wanted )
 
 /*! Generates a path that represents this Link object. */
 
-String Link::canonical() const
+EString Link::canonical() const
 {
     Component prefix = ArchivePrefix; // set it just to silence gcc -O3
     switch ( d->type ) {
@@ -827,7 +827,7 @@ String Link::canonical() const
         i++;
     }
 
-    String r;
+    EString r;
 
     uint c = 0;
     while ( c < 5 ) {
@@ -887,16 +887,16 @@ String Link::canonical() const
     allow-plaintext-access requires it.
 */
 
-String Link::absolute() const
+EString Link::absolute() const
 {
-    String s;
+    EString s;
 
     if ( d->secure )
         s.append( "https" );
     else
         s.append( "http" );
     s.append( "://" );
-    String hn;
+    EString hn;
     if ( Configuration::toggle( Configuration::AcceptAnyHttpHost ) )
         hn = d->server->hostHeader();
     else
@@ -927,7 +927,7 @@ String Link::absolute() const
 
 /*! Creates a new LinkParser to parse \a s. */
 
-LinkParser::LinkParser( const String & s )
+LinkParser::LinkParser( const EString & s )
     : AbnfParser( s )
 {
 }
@@ -944,7 +944,7 @@ char LinkParser::character()
 
     if ( c == '%' ) {
         bool ok;
-        String a;
+        EString a;
         a.append( nextChar() );
         step();
         a.append( nextChar() );
@@ -964,9 +964,9 @@ char LinkParser::character()
     "?".
 */
 
-String LinkParser::pathComponent()
+EString LinkParser::pathComponent()
 {
-    String r;
+    EString r;
 
     while ( nextChar() != '/' && nextChar() != '&' &&
             nextChar() != '?' && !atEnd() )
@@ -981,7 +981,7 @@ String LinkParser::pathComponent()
     fiat), \a value can contain any unicode.
 */
 
-void Link::addArgument( const String & name, const UString & value )
+void Link::addArgument( const EString & name, const UString & value )
 {
     if ( !name.boring() )
         return;
@@ -993,11 +993,11 @@ void Link::addArgument( const String & name, const UString & value )
     somehow bad.
 */
 
-UString Link::decoded( const String & s )
+UString Link::decoded( const EString & s )
 {
     UString r;
     Utf8Codec c;
-    String v8;
+    EString v8;
     uint i = 0;
     while ( i < s.length() ) {
         char c = s[i];
@@ -1032,7 +1032,7 @@ UString Link::decoded( const String & s )
     error.
 */
 
-UString Link::argument( const String & s ) const
+UString Link::argument( const EString & s ) const
 {
     Argument * u = d->arguments->find( s );
     UString r;

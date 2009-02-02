@@ -3,7 +3,7 @@
 #include "address.h"
 
 #include "field.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "endpoint.h"
 #include "ustring.h"
 #include "parser.h"
@@ -19,10 +19,10 @@ public:
 
     uint id;
     UString name;
-    String localpart;
-    String domain;
+    EString localpart;
+    EString domain;
     Address::Type type;
-    String error;
+    EString error;
 };
 
 
@@ -91,7 +91,7 @@ Address::Address()
     is \a l and whose domain is \a o.
 */
 
-Address::Address( const UString &n, const String &l, const String &o )
+Address::Address( const UString &n, const EString &l, const EString &o )
     : d( new AddressData )
 {
     init( n, l, o );
@@ -102,7 +102,7 @@ Address::Address( const UString &n, const String &l, const String &o )
     in ASCII), whose localpart is \a l and whose domain is \a o.
 */
 
-Address::Address( const String &n, const String &l, const String &o )
+Address::Address( const EString &n, const EString &l, const EString &o )
     : d( new AddressData )
 {
     AsciiCodec a;
@@ -118,7 +118,7 @@ Address::Address( const String &n, const String &l, const String &o )
     and domain \a o and an appropriate type().
 */
 
-void Address::init( const UString &n, const String &l, const String &o )
+void Address::init( const UString &n, const EString &l, const EString &o )
 {
     d->name = n;
     d->localpart = l;
@@ -189,7 +189,7 @@ void Address::setId( uint id )
     domain() are both empty.
 */
 
-String Address::name() const
+EString Address::name() const
 {
     bool atom = true;
     bool ascii = true;
@@ -245,7 +245,7 @@ UString Address::uname() const
     memberless group, localpart() returns an empty string.
 */
 
-String Address::localpart() const
+EString Address::localpart() const
 {
     return d->localpart;
 }
@@ -255,19 +255,19 @@ String Address::localpart() const
     group, domain() returns an empty string.
 */
 
-String Address::domain() const
+EString Address::domain() const
 {
     return d->domain;
 }
 
 
-/*! Returns the localpart and domain as a String. Returns toString()
+/*! Returns the localpart and domain as a EString. Returns toString()
     if the type() isn't Normal or Local.
 */
 
-String Address::lpdomain() const
+EString Address::lpdomain() const
 {
-    String r;
+    EString r;
     if ( type() == Normal ||
          type() == Local ) {
         if ( localpartIsSensible() )
@@ -288,9 +288,9 @@ String Address::lpdomain() const
 /*! Returns an RFC 2822 representation of this address.
 */
 
-String Address::toString() const
+EString Address::toString() const
 {
-    String r;
+    EString r;
     switch( type() ) {
     case Invalid:
         r = "";
@@ -364,11 +364,11 @@ class AddressParserData
 public:
     AddressParserData() {}
 
-    String s;
-    String firstError;
-    String recentError;
+    EString s;
+    EString firstError;
+    EString recentError;
     List<Address> a;
-    String lastComment;
+    EString lastComment;
 };
 
 
@@ -431,7 +431,7 @@ obs-addr-list   =       1*([address] [CFWS] "," [CFWS]) [address]
     addresses() and error() may be accessed immediately.
 */
 
-AddressParser::AddressParser( String s )
+AddressParser::AddressParser( EString s )
     : d( new AddressParserData )
 {
     d->s = s;
@@ -502,7 +502,7 @@ AddressParser::AddressParser( String s )
     // Plan C: Is it an attempt at group syntax by someone who should
     // rather be filling shelves at a supermarktet?
     if ( s.contains( ":;" ) && !s.contains( "@" ) ) {
-        String n = s.mid( 0, s.find( ":;" ) ).simplified();
+        EString n = s.mid( 0, s.find( ":;" ) ).simplified();
         UString name;
         uint j = 0;
         bool bad = false;
@@ -627,7 +627,7 @@ int AddressParser::findBorder( int left, int right )
 
 /*! Returns the first error detected (and not compensated) this parser. */
 
-String AddressParser::error() const
+EString AddressParser::error() const
 {
     return d->firstError;
 }
@@ -650,8 +650,8 @@ List<Address> * AddressParser::addresses() const
 */
 
 void AddressParser::add( UString name,
-                         const String & localpart,
-                         const String & domain )
+                         const EString & localpart,
+                         const EString & domain )
 {
     // if the localpart is too long, reject the add()
     if ( localpart.length() > 256 ) {
@@ -681,7 +681,7 @@ void AddressParser::add( UString name,
 
     // anti-outlook, step 2: if the name is the same as the address,
     // just kill it.
-    String an = name.ascii().lower();
+    EString an = name.ascii().lower();
     if ( an == localpart.lower() ||
          ( an.length() == localpart.length()+1+domain.length() &&
            an == localpart.lower()+"@"+domain.lower() ) )
@@ -695,8 +695,8 @@ void AddressParser::add( UString name,
 
 /*! This version of add() uses only \a localpart and \a domain. */
 
-void AddressParser::add( const String & localpart,
-                         const String & domain )
+void AddressParser::add( const EString & localpart,
+                         const EString & domain )
 {
     UString n;
     add( n, localpart, domain );
@@ -713,7 +713,7 @@ void AddressParser::add( const String & localpart,
     the references field of an otherwise impeccable message.
 */
 
-AddressParser * AddressParser::references( const String & r )
+AddressParser * AddressParser::references( const EString & r )
 {
     AddressParser * ap = new AddressParser( "" );
     ap->d->s = r;
@@ -722,8 +722,8 @@ AddressParser * AddressParser::references( const String & r )
     while ( i > 0 ) {
         int l = i;
         bool ok = true;
-        String dom;
-        String lp;
+        EString dom;
+        EString lp;
         if ( r[i] != '>' ) {
             ok = false;
         }
@@ -771,7 +771,7 @@ void AddressParser::address( int & i )
     d->lastComment = "";
     d->recentError.truncate();
     comment( i );
-    String & s = d->s;
+    EString & s = d->s;
     while ( i > 0 && s[i] == ',' ) {
         i--;
         comment( i );
@@ -818,8 +818,8 @@ void AddressParser::address( int & i )
     else if ( s[i] == '>' ) {
         // name-addr
         i--;
-        String dom = domain( i );
-        String lp;
+        EString dom = domain( i );
+        EString lp;
         UString name;
         if ( s[i] == '<' ) {
             lp = dom;
@@ -842,7 +842,7 @@ void AddressParser::address( int & i )
                               s[j] == ' ' ) )
                         j--;
                     if ( j >= 0 && s[j] == '<' ) {
-                        String tmp = s.mid( j + 1, i - j );
+                        EString tmp = s.mid( j + 1, i - j );
                         if ( s[i+1] == ' ' )
                             tmp.append( ' ' );
                         tmp.append( lp );
@@ -883,12 +883,12 @@ void AddressParser::address( int & i )
     else if ( i > 1 && s[i] == '=' && s[i-1] == '?' && s[i-2] == '>' ) {
         // we're looking at "=?charset?q?safdsafsdfs<a@b>?=". how ugly.
         i = i - 3;
-        String dom = domain( i );
+        EString dom = domain( i );
         if ( s[i] == '@' ) {
             i--;
             while ( i > 0 && s[i] == '@' )
                 i--;
-            String lp = localpart( i );
+            EString lp = localpart( i );
             if ( s[i] == '<' ) {
                 i--;
                 (void)atom( i ); // discard the "supplied" display-name
@@ -939,10 +939,10 @@ void AddressParser::address( int & i )
         // quite likely we're looking at x%"y@z", as once used on vms
         int x = i;
         x--;
-        String dom = domain( x );
+        EString dom = domain( x );
         if ( x > 0 && s[x] == '@' ) {
             x--;
-            String lp = localpart( x );
+            EString lp = localpart( x );
             if ( x > 2 && s[x] == '"' && s[x-1] == '%' ) {
                 x = x - 2;
                 (void)domain( x );
@@ -965,7 +965,7 @@ void AddressParser::address( int & i )
                 name.truncate();
             name.truncate(); // do it anyway: we don't want name <localpart>.
         }
-        String lp = atom( i );
+        EString lp = atom( i );
         if ( i > 2 && s[i] == ':' && s[i-1] == ':' ) {
             i = i - 2;
             lp = atom( i ) + "::" + lp;
@@ -981,7 +981,7 @@ void AddressParser::address( int & i )
         int x = i;
         while ( x > 0 && s[x] != '"' )
             x--;
-        String date = s.mid( x+1, i-x-1 ).lower().simplified();
+        EString date = s.mid( x+1, i-x-1 ).lower().simplified();
         uint dp = 0;
         char c = date[0];
         while ( dp < date.length() &&
@@ -1000,8 +1000,8 @@ void AddressParser::address( int & i )
         UString name = a.toUnicode( d->lastComment );
         if ( !a.wellformed() || d->lastComment.contains( "=?" ) )
             name.truncate();
-        String dom = domain( i );
-        String lp;
+        EString dom = domain( i );
+        EString lp;
         if ( s[i] == '@' ) {
             i--;
             while ( i > 0 && s[i] == '@' )
@@ -1024,7 +1024,7 @@ void AddressParser::address( int & i )
             }
             else if ( aftercomment > i && i < 0 ) {
                 // To: (Recipient list suppressed)@localhost
-                String n = d->lastComment.simplified();
+                EString n = d->lastComment.simplified();
                 lp = "";
                 dom = "";
                 name.truncate();
@@ -1132,10 +1132,10 @@ void AddressParser::ccontent( int & i )
     sequences of spaces into a single space. It returns the result.
 */
 
-String AddressParser::unqp( const String & s )
+EString AddressParser::unqp( const EString & s )
 {
     bool sp = false;
-    String r;
+    EString r;
     uint j = 0;
     while ( j < s.length() ) {
         if ( s[j] == ' ' || s[j] == 9 ||
@@ -1170,7 +1170,7 @@ String AddressParser::unqp( const String & s )
     syntactical validity.
 */
 
-String AddressParser::domain( int & i )
+EString AddressParser::domain( int & i )
 {
     comment( i );
 
@@ -1182,7 +1182,7 @@ String AddressParser::domain( int & i )
     //                 %d94-126        ;  characters not including "[",
     //                                 ;  "]", or "\"
 
-    String dom;
+    EString dom;
     if ( i < 0 )
         return dom;
 
@@ -1217,15 +1217,15 @@ String AddressParser::domain( int & i )
     else {
         // atoms, separated by '.' and (obsoletely) spaces. the spaces
         // are stripped.
-        StringList atoms;
+        EStringList atoms;
 
         atoms.append( atom( i ) );
         comment( i );
         while( i >= 0 && d->s[i] == '.' ) {
             i--;
-            String a = atom( i );
+            EString a = atom( i );
             if ( !a.isEmpty() )
-                atoms.prepend( new String( a ) );
+                atoms.prepend( new EString( a ) );
         }
         dom = atoms.join( "." );
         if ( dom.isEmpty() )
@@ -1238,11 +1238,11 @@ String AddressParser::domain( int & i )
 
 /*! This private function parses and returns the atom ending at \a i. */
 
-String AddressParser::atom( int & i )
+EString AddressParser::atom( int & i )
 {
     comment( i );
     int j = i;
-    String & s = d->s;
+    EString & s = d->s;
     while ( i >= 0 &&
             ( ( s[i] >= 'a' && s[i] <= 'z' ) ||
               ( s[i] >= 'A' && s[i] <= 'Z' ) ||
@@ -1258,7 +1258,7 @@ String AddressParser::atom( int & i )
               s[i] == '|' || s[i] == '}' ||
               s[i] == '~' ) )
         i--;
-    String r = s.mid( i+1, j-i );
+    EString r = s.mid( i+1, j-i );
     comment( i );
     return r;
 }
@@ -1295,7 +1295,7 @@ UString AddressParser::phrase( int & i )
             }
             if ( i < 0 || d->s[i] != '"' )
                 error( "quoted phrase must begin with '\"'", i );
-            String w = d->s.mid( i, j + 1 - i ).unquoted();
+            EString w = d->s.mid( i, j + 1 - i ).unquoted();
             int l = 0;
             while ( l >= 0 && !drop ) {
                 int b = w.find( "=?", l );
@@ -1334,14 +1334,14 @@ UString AddressParser::phrase( int & i )
         }
         else {
             // single word
-            String a = atom( i );
+            EString a = atom( i );
             // outlook or something close to it seems to occasionally
             // put backslashes into otherwise unquoted names. work
             // around that:
             uint l = a.length();
             while ( l > 0 && i >= 0 && d->s[i] == '\\' ) {
                 i--;
-                String w = atom( i );
+                EString w = atom( i );
                 l = w.length();
                 a = w + a;
             }
@@ -1394,16 +1394,16 @@ UString AddressParser::phrase( int & i )
     returns it as a string.
 */
 
-String AddressParser::localpart( int & i )
+EString AddressParser::localpart( int & i )
 {
-    String r;
-    String s;
+    EString r;
+    EString s;
     bool more = true;
     if ( i < 0 )
         more = false;
     bool atomOnly = true;
     while ( more ) {
-        String w;
+        EString w;
         if ( d->s[i] == '"' ) {
             atomOnly = false;
             UString u = phrase( i );
@@ -1415,7 +1415,7 @@ String AddressParser::localpart( int & i )
         else {
             w = atom( i );
         }
-        String t = w;
+        EString t = w;
         t.append( s );
         t.append( r );
         r = t;
@@ -1448,7 +1448,7 @@ void AddressParser::error( const char * s, int i )
     if ( i < 0 )
         i = 0;
     d->recentError
-        = String( s ) + " at position " + fn( i ) +
+        = EString( s ) + " at position " + fn( i ) +
         " (nearby text: '" +
         d->s.mid( i > 8 ? i-8 : 0, 20 ).simplified() + ")";
     if ( d->firstError.isEmpty() )
@@ -1456,9 +1456,9 @@ void AddressParser::error( const char * s, int i )
 }
 
 
-static String key( Address * a )
+static EString key( Address * a )
 {
-    String t;
+    EString t;
 
     t.append( a->uname().utf8() );
     t.append( " " );
@@ -1483,7 +1483,7 @@ void Address::uniquify( List<Address> * l )
     while ( it ) {
         Address *a = it;
         ++it;
-        String k = key( a );
+        EString k = key( a );
         if ( !unique.contains( k ) ) {
             unique.insert( k, a );
             if ( !a->uname().isEmpty() ) {
@@ -1567,7 +1567,7 @@ void AddressParser::route( int & i )
         return;
 
     i--;
-    String rdom = domain( i );
+    EString rdom = domain( i );
     if ( rdom == "mailto" )
         return;
     while ( i >= 0 && !rdom.isEmpty() &&
@@ -1586,7 +1586,7 @@ void AddressParser::route( int & i )
     this Address. The initial value is empty.
 */
 
-void Address::setError( const String & message )
+void Address::setError( const EString & message )
 {
     d->error = message;
 }
@@ -1594,7 +1594,7 @@ void Address::setError( const String & message )
 
 /*! Returns whatever setError() set, or an empty string. */
 
-String Address::error() const
+EString Address::error() const
 {
     return d->error;
 }

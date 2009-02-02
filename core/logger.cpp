@@ -2,7 +2,7 @@
 
 #include "logger.h"
 
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
 
 
@@ -30,9 +30,9 @@ Logger::Logger()
 }
 
 
-/*! \fn void Logger::send( const String &id,
+/*! \fn void Logger::send( const EString &id,
                            Log::Severity s,
-                           const String & m )
+                           const EString & m )
 
     This virtual function logs the message \a m belonging to
     transaction \a id, whose severity is \a s, in a manner decided by
@@ -66,7 +66,7 @@ Logger *Logger::global()
     (in core) get at information held by the Server class (in server).
 */
 
-String Logger::name() const
+EString Logger::name() const
 {
     return "Archiveopteryx";
 }

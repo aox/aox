@@ -2,7 +2,7 @@
 
 #include "list.h"
 
-#include "string.h"
+#include "estring.h"
 
 #include <stdlib.h>
 
@@ -135,9 +135,9 @@ void listSortHelper( void * a, size_t n, size_t s,
 */
 
 
-/*! \fn Iterator &List::find( const String &d )
+/*! \fn Iterator &List::find( const EString &d )
     Returns an Iterator pointing to the position of the first element in
-    the List that points to an object that is equal to the String \a d.
+    the List that points to an object that is equal to the EString \a d.
 
 */
 

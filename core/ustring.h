@@ -5,7 +5,7 @@
 
 #include "global.h"
 
-class String;
+class EString;
 
 
 class UStringData
@@ -60,8 +60,8 @@ public:
     void truncate( uint = 0 );
 
     bool isAscii() const;
-    String ascii() const;
-    String utf8() const;
+    EString ascii() const;
+    EString utf8() const;
 
     int find( char, int=0 ) const;
     int find( const UString &, int=0 ) const;
@@ -89,10 +89,10 @@ public:
 
     int compare( const UString & ) const;
 
-    bool startsWith( const String & ) const;
+    bool startsWith( const EString & ) const;
     bool startsWith( const UString & ) const;
     bool startsWith( const char * ) const;
-    bool endsWith( const String & ) const;
+    bool endsWith( const EString & ) const;
     bool endsWith( const UString & ) const;
     bool endsWith( const char * ) const;
 

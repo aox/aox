@@ -4,7 +4,7 @@
 
 #include "scope.h"
 #include "logger.h"
-#include "string.h"
+#include "estring.h"
 
 // sprintf, fprintf
 #include <stdio.h>
@@ -13,7 +13,7 @@
 static bool disasters = false;
 
 
-void log( const String &m, Log::Severity s )
+void log( const EString &m, Log::Severity s )
 {
     Scope * cs = Scope::current();
     Log *l = 0;
@@ -58,12 +58,12 @@ Log::Log( Log * parent )
     on the type of Logger used, and the log server configuration.
 */
 
-void Log::log( const String &m, Severity s )
+void Log::log( const EString &m, Severity s )
 {
     Logger * l = Logger::global();
     if ( s == Disaster ) {
         disasters = true;
-        String n = "Archiveopteryx";
+        EString n = "Archiveopteryx";
         if ( l )
             n = l->name();
         fprintf( stderr, "%s: %s\n", n.cstr(), m.simplified().cstr() );
@@ -121,7 +121,7 @@ bool Log::disastersYet()
     used to locate log data in the logfile.
 */
 
-String Log::id()
+EString Log::id()
 {
     return ide;
 }

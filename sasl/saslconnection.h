@@ -14,10 +14,10 @@ class SaslConnection
 public:
     SaslConnection( int, Type );
     virtual ~SaslConnection();
-    virtual void sendChallenge( const String & ) = 0;
+    virtual void sendChallenge( const EString & ) = 0;
 
     User * user() const;
-    virtual void setUser( User *, const String & );
+    virtual void setUser( User *, const EString & );
 
     void close();
 
@@ -26,7 +26,7 @@ public:
 
 private:
     User * u;
-    String m;
+    EString m;
     uint af;
     uint sf;
     uint s;

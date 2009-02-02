@@ -77,8 +77,8 @@ int main( int argc, char *argv[] )
 
     if ( Configuration::toggle( Configuration::UseSmtp ) ||
          Configuration::toggle( Configuration::UseLmtp ) ) {
-        String mc( Configuration::text( Configuration::MessageCopy ) );
-        String mcd( Configuration::text( Configuration::MessageCopyDir ) );
+        EString mc( Configuration::text( Configuration::MessageCopy ) );
+        EString mcd( Configuration::text( Configuration::MessageCopyDir ) );
         if ( mc == "all" || mc == "errors" || mc == "delivered" ) {
             struct stat st;
             if ( mcd.isEmpty() )
@@ -99,7 +99,7 @@ int main( int argc, char *argv[] )
     }
 
 
-    String sA( Configuration::text( Configuration::SmartHostAddress ) );
+    EString sA( Configuration::text( Configuration::SmartHostAddress ) );
     uint sP( Configuration::scalar( Configuration::SmartHostPort ) );
 
     if ( Configuration::toggle( Configuration::UseSmtp ) &&
@@ -133,7 +133,7 @@ int main( int argc, char *argv[] )
     }
 
 
-    String app =
+    EString app =
         Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
     if ( !( app == "always" || app == "never" ) )
         ::log( "Unknown value for allow-plaintext-passwords: " + app,
@@ -146,7 +146,7 @@ int main( int argc, char *argv[] )
                "but only plaintext authentication mechanisms are allowed",
                Log::Disaster );
 
-    String apa =
+    EString apa =
         Configuration::text( Configuration::AllowPlaintextAccess ).lower();
     if ( !( apa == "always" || apa == "localhost" || apa == "never" ) )
         ::log( "Unknown value for allow-plaintext-access: " + apa,

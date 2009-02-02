@@ -18,8 +18,8 @@ public:
     void execute();
 
 private:
-    void addReturnOption( const String & );
-    void addSelectOption( const String & );
+    void addReturnOption( const EString & );
+    void addSelectOption( const EString & );
 
     void list( Mailbox *, const UString & );
     void listChildren( Mailbox *, const UString & );

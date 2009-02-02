@@ -2,8 +2,7 @@
 
 #include "endpoint.h"
 
-#include "string.h"
-#include "sys.h"
+#include "estring.h"
 #include "file.h"
 
 #include <sys/types.h>
@@ -22,15 +21,15 @@ public:
 
     bool valid;
     Endpoint::Protocol proto;
-    String ua;
+    EString ua;
     ushort ip6a[8];
     uint ip4a;
     uint port;
 };
 
 
-static uint ip4a( const String &, bool * );
-static void ip6a( const String &, ushort [], bool * );
+static uint ip4a( const EString &, bool * );
+static void ip6a( const EString &, ushort [], bool * );
 
 
 /*! \class Endpoint endpoint.h
@@ -69,7 +68,7 @@ Endpoint::Endpoint( const Endpoint & other )
     \a address is a Unix path, the \a port is ignored.
 */
 
-Endpoint::Endpoint( const String &address, uint port )
+Endpoint::Endpoint( const EString &address, uint port )
     : d( new EndpointData )
 {
     if ( address[0] == '/' ) {
@@ -158,12 +157,12 @@ Endpoint::Endpoint( Configuration::Text address,
                     Configuration::Scalar port )
     : d( new EndpointData )
 {
-    String a( Configuration::text( address ) );
+    EString a( Configuration::text( address ) );
     if ( a[0] == '/' ) {
         Endpoint tmp( a, 0 );
         *this = tmp;
         if ( Configuration::present( port ) )
-            log( String( Configuration::name( port ) ) +
+            log( EString( Configuration::name( port ) ) +
                  " meaningless since " +
                  Configuration::name( address ) +
                  " is a unix-domain address",
@@ -203,9 +202,9 @@ Endpoint::Protocol Endpoint::protocol() const
     If the Endpoint isn't valid(), address() returns an empty string.
 */
 
-String Endpoint::address() const
+EString Endpoint::address() const
 {
-    String result;
+    EString result;
 
     if ( !d->valid )
         return "";
@@ -325,7 +324,7 @@ struct sockaddr * Endpoint::sockaddr() const
     switch ( d->proto ) {
     case Unix:
         {
-            String n = File::chrooted( d->ua );
+            EString n = File::chrooted( d->ua );
             sa.un.sun_family = AF_UNIX;
             // Does anyone have sun_len any more?
             // sa.un.sun_len = n.length();
@@ -389,12 +388,12 @@ uint Endpoint::sockaddrSize() const
     The returned value does not contain slash, backslash or parens.
 */
 
-String Endpoint::string() const
+EString Endpoint::string() const
 {
     if ( !d->valid )
         return "";
 
-    String s;
+    EString s;
     switch ( d->proto ) {
     case Unix:
         s = address();
@@ -445,7 +444,7 @@ Endpoint & Endpoint::operator=( const Endpoint & other )
 }
 
 
-static uint ip4a( const String &address, bool * good )
+static uint ip4a( const EString &address, bool * good )
 {
     uint i = 0;
     uint b = 0;
@@ -471,7 +470,7 @@ static uint ip4a( const String &address, bool * good )
 }
 
 
-static void ip6a( const String &address, unsigned short int r[], bool * good )
+static void ip6a( const EString &address, unsigned short int r[], bool * good )
 {
     uint i = 0;
     uint b = 0;

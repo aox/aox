@@ -11,11 +11,11 @@ class MhDirectory
     : public DirectoryTree
 {
 public:
-    MhDirectory( const String & );
+    MhDirectory( const EString & );
 
 protected:
-    bool isMailbox( const String &, struct stat * );
-    MigratorMailbox * newMailbox( const String &, uint );
+    bool isMailbox( const EString &, struct stat * );
+    MigratorMailbox * newMailbox( const EString &, uint );
 };
 
 
@@ -23,12 +23,12 @@ class MhMailbox
     : public MigratorMailbox
 {
 public:
-    MhMailbox( const String &, uint );
+    MhMailbox( const EString &, uint );
     MigratorMessage *nextMessage();
 
 private:
     class MhMailboxData *d;
-    void addToSet( const String &, class IntegerSet * );
+    void addToSet( const EString &, class IntegerSet * );
 };
 
 

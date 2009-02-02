@@ -6,7 +6,7 @@
 #include "global.h"
 #include "configuration.h"
 
-class String;
+class EString;
 
 
 class Endpoint
@@ -15,7 +15,7 @@ class Endpoint
 public:
     Endpoint();
     Endpoint( const Endpoint & );
-    Endpoint( const String &, uint );
+    Endpoint( const EString &, uint );
     Endpoint( const struct sockaddr * );
     Endpoint( Configuration::Text, Configuration::Scalar );
 
@@ -23,14 +23,14 @@ public:
 
     bool valid() const;
     Protocol protocol() const;
-    String address() const;
+    EString address() const;
     uint port() const;
     void zeroPort();
 
     struct sockaddr *sockaddr() const;
     uint sockaddrSize() const;
 
-    String string() const;
+    EString string() const;
 
     Endpoint & operator=( const Endpoint & );
 

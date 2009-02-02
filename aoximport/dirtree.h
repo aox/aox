@@ -10,12 +10,12 @@ class DirectoryTree
     : public MigratorSource
 {
 public:
-    DirectoryTree( const String & );
+    DirectoryTree( const EString & );
     MigratorMailbox * nextMailbox();
 
 protected:
-    virtual bool isMailbox( const String &, struct stat * ) = 0;
-    virtual MigratorMailbox * newMailbox( const String &, uint ) = 0;
+    virtual bool isMailbox( const EString &, struct stat * ) = 0;
+    virtual MigratorMailbox * newMailbox( const EString &, uint ) = 0;
 
 private:
     class DirectoryTreeData *d;

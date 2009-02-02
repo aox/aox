@@ -10,7 +10,7 @@ class ListMailboxes
     : public AoxCommand
 {
 public:
-    ListMailboxes( StringList * );
+    ListMailboxes( EStringList * );
     void execute();
 
 private:
@@ -22,7 +22,7 @@ class CreateMailbox
     : public AoxCommand
 {
 public:
-    CreateMailbox( StringList * );
+    CreateMailbox( EStringList * );
     void execute();
 
 private:
@@ -34,7 +34,7 @@ class DeleteMailbox
     : public AoxCommand
 {
 public:
-    DeleteMailbox( StringList * );
+    DeleteMailbox( EStringList * );
     void execute();
 
 private:

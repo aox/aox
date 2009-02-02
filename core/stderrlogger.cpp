@@ -20,13 +20,13 @@
     suppressed.
 */
 
-StderrLogger::StderrLogger( const String & name, uint verbosity )
+StderrLogger::StderrLogger( const EString & name, uint verbosity )
     : Logger(), n( name ), v( verbosity )
 {
 }
 
 
-void StderrLogger::send( const String &, Log::Severity s, const String & m )
+void StderrLogger::send( const EString &, Log::Severity s, const EString & m )
 {
     // we don't need to handle Disaster, Log already has done that
     if ( s == Log::Error ||
@@ -45,7 +45,7 @@ void StderrLogger::send( const String &, Log::Severity s, const String & m )
 
 /*! Returns the name of this object, as supplied to the constructor. */
 
-String StderrLogger::name() const
+EString StderrLogger::name() const
 {
     return n;
 }

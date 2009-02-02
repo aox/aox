@@ -6,7 +6,7 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "permissions.h"
 #include "transaction.h"
 
@@ -31,7 +31,7 @@ public:
     This class handles the "aox list rights" command.
 */
 
-ListRights::ListRights( StringList * args )
+ListRights::ListRights( EStringList * args )
     : AoxCommand( args ), d( new ListRightsData )
 {
 }
@@ -63,7 +63,7 @@ void ListRights::execute()
         if ( !m )
             error( "No mailbox named " + d->mailbox.utf8().quoted() );
 
-        String s( "select identifier,rights from permissions p "
+        EString s( "select identifier,rights from permissions p "
                   "join mailboxes m on (p.mailbox=m.id) where "
                   "mailbox=$1" );
         if ( !d->identifier.isEmpty() )
@@ -78,8 +78,8 @@ void ListRights::execute()
 
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
-        printf( "%s: %s\n", r->getString( "identifier" ).cstr(),
-                describe( r->getString( "rights" ) ).cstr() );
+        printf( "%s: %s\n", r->getEString( "identifier" ).cstr(),
+                describe( r->getEString( "rights" ) ).cstr() );
     }
 
     if ( !d->q->done() )
@@ -101,12 +101,12 @@ void ListRights::execute()
     whether the user used -v or not.
 */
 
-String ListRights::describe( const String &s )
+EString ListRights::describe( const EString &s )
 {
-    String p( s );
+    EString p( s );
 
     if ( opt( 'v' ) > 0 ) {
-        StringList l;
+        EStringList l;
         uint i = 0;
         while ( i < s.length() )
             l.append( Permissions::describe( s[i++] ) );
@@ -131,8 +131,8 @@ public:
     int mode;
     UString mailbox;
     UString identifier;
-    String rights;
-    String oldRights;
+    EString rights;
+    EString oldRights;
     User * user;
     Mailbox * m;
     Transaction * t;
@@ -145,7 +145,7 @@ public:
     This class handles the "aox setacl" command.
 */
 
-SetAcl::SetAcl( StringList * args )
+SetAcl::SetAcl( EStringList * args )
     : AoxCommand( args ), d( new SetAclData )
 {
 }
@@ -230,7 +230,7 @@ void SetAcl::execute()
     if ( !d->store ) {
         Row * r = d->fetch->nextRow();
         if ( r )
-            d->oldRights = r->getString( "rights" );
+            d->oldRights = r->getEString( "rights" );
 
         Permissions * p =
             new Permissions( d->m, d->identifier, d->oldRights );

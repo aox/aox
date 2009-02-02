@@ -3,7 +3,7 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
-#include "string.h"
+#include "estring.h"
 
 
 class Annotation
@@ -11,13 +11,13 @@ class Annotation
 {
 public:
     Annotation();
-    Annotation( const String &, const String &, uint );
+    Annotation( const EString &, const EString &, uint );
 
-    void setEntryName( const String & );
-    String entryName() const;
+    void setEntryName( const EString & );
+    EString entryName() const;
 
-    void setValue( const String & );
-    String value() const;
+    void setValue( const EString & );
+    EString value() const;
 
     void setOwnerId( uint );
     uint ownerId() const;

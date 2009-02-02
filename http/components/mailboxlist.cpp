@@ -60,7 +60,7 @@ void MailboxList::execute()
     if ( !d->q->done() )
         return;
 
-    String s( "<h1>Mailboxes</h1>\n" );
+    EString s( "<h1>Mailboxes</h1>\n" );
     s.append( "<p><ul>\n" );
 
     while ( d->q->hasResults() ) {

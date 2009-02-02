@@ -64,8 +64,8 @@ void SchemaChecker::enqueue()
                            "tablename name)", 0 );
     d->t->enqueue( q );
 
-    String schemaname;
-    String aoxsuper;
+    EString schemaname;
+    EString aoxsuper;
 
     // a list of the tables we ought to have
     if ( schemaname == "public" ) {
@@ -133,12 +133,12 @@ static const struct {
 
 void SchemaChecker::checkColumns()
 {
-    StringList columnsFound;
+    EStringList columnsFound;
     while ( d->columns->hasResults() ) {
         Row * r = d->columns->nextRow();
-        String column = r->getString( "column" );
-        String table = r->getString( "table" );
-        String type = r->getString( "type" );
+        EString column = r->getEString( "column" );
+        EString table = r->getEString( "table" );
+        EString type = r->getEString( "type" );
         bool notnull = r->getBoolean( "notnull" );
         uint i = 0;
         while ( expectedColumns[i].column &&
@@ -153,7 +153,7 @@ void SchemaChecker::checkColumns()
             if ( type != expectedColumns[i].type )
                 log( "Type mismatch for " + column.quoted() +
                      " in table " + table.quoted() + ": expected " +
-                     String( expectedColumns[i].type ).quoted() + ", saw " +
+                     EString( expectedColumns[i].type ).quoted() + ", saw " +
                      type.quoted() );
             if ( notnull && !expectedColumns[i].notnull )
                 log( "" + column.quoted() +
@@ -168,13 +168,13 @@ void SchemaChecker::checkColumns()
     }
     uint i = 0;
     while ( expectedColumns[i].column ) {
-        String x = expectedColumns[i].tablename;
+        EString x = expectedColumns[i].tablename;
         x.append( "." );
         x.append( expectedColumns[i].column );
         if ( !columnsFound.contains( x ) )
             log( "Could not find column " +
-                 String( expectedColumns[i].column ).quoted() +
+                 EString( expectedColumns[i].column ).quoted() +
                  " in table " +
-                 String( expectedColumns[i].tablename ).quoted() );
+                 EString( expectedColumns[i].tablename ).quoted() );
     }
 }

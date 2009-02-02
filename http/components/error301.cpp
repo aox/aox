@@ -23,7 +23,7 @@
 Error301::Error301( Link * target )
     : PageComponent( "redirect" )
 {
-    String t( target->absolute() );
+    EString t( target->absolute() );
     setContents( "<h1>Wrong URL</h1>"
                  "<p>The correct URL is <a href=\"" + t + "\">" +
                  quoted( t ) + "</a>.</p>" );

@@ -12,7 +12,7 @@
     This class handles the "aox show queue" command.
 */
 
-ShowQueue::ShowQueue( StringList * args )
+ShowQueue::ShowQueue( EStringList * args )
     : AoxCommand( args ), q( 0 ), qr( 0 )
 {
 }
@@ -26,7 +26,7 @@ void ShowQueue::execute()
 
         database();
 
-        String s(
+        EString s(
             "select d.id, d.message, "
             "a.localpart||'@'||a.domain as sender, "
             "to_char(d.injected_at, 'YYYY-MM-DD HH24:MI:SS') as submitted, "
@@ -54,18 +54,18 @@ void ShowQueue::execute()
             Row * r = q->nextRow();
             uint delivery = r->getInt( "id" );
             uint message = r->getInt( "message" );
-            String sender( r->getString( "sender" ) );
+            EString sender( r->getEString( "sender" ) );
 
             if ( sender == "@" )
                 sender = "<>";
 
             printf( "%d: Message %d from %s (submitted %s)\n",
                     delivery, message, sender.cstr(),
-                    r->getString( "submitted" ).cstr() );
+                    r->getEString( "submitted" ).cstr() );
             bool nl = false;
             if ( !r->isNull( "tried" ) ) {
                 printf( "\t(last tried %s",
-                        r->getString( "tried" ).cstr() );
+                        r->getEString( "tried" ).cstr() );
                 nl = true;
             }
             int64 expires = r->getBigint( "expires_in" );
@@ -79,7 +79,7 @@ void ShowQueue::execute()
             if ( nl )
                 printf( ")\n" );
 
-            String s(
+            EString s(
                 "select action, status, "
                 "lower(a.domain) as domain, a.localpart, "
                 "a.localpart||'@'||a.domain as recipient "
@@ -95,7 +95,7 @@ void ShowQueue::execute()
         while ( qr->hasResults() ) {
             Row * r = qr->nextRow();
 
-            String recipient( r->getString( "recipient" ) );
+            EString recipient( r->getEString( "recipient" ) );
             printf( "\t%s", recipient.cstr() );
 
             uint action = r->getInt( "action" );
@@ -120,9 +120,9 @@ void ShowQueue::execute()
                 break;
             }
 
-            String status;
+            EString status;
             if ( !r->isNull( "status" ) )
-                status = r->getString( "status" );
+                status = r->getEString( "status" );
             if ( opt( 'v' ) && !status.isEmpty() )
                 printf( ": status is %s", status.cstr() );
             printf( ")\n" );

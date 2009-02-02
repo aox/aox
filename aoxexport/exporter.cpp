@@ -78,7 +78,7 @@ void Exporter::execute()
     }
 
     if ( !d->find ) {
-        StringList wanted;
+        EStringList wanted;
         wanted.append( "message" );
         d->find = d->selector->query( 0, d->mailbox, 0, this,
                                       true, &wanted, false );
@@ -115,7 +115,7 @@ void Exporter::execute()
         if ( !m->hasTrivia() )
             return;
         d->messages->shift();
-        String from = "From ";
+        EString from = "From ";
         Header * h = m->header();
         List<Address> * rp = 0;
         if ( h ) {
@@ -154,7 +154,7 @@ void Exporter::execute()
         from.append( " " );
         from.appendNumber( id.year() );
         from.append( "\r\n" );
-        String rfc822 = m->rfc822();
+        EString rfc822 = m->rfc822();
         ::write( 1, from.data(), from.length() );
         ::write( 1, rfc822.data(), rfc822.length() );
     }

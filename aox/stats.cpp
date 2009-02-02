@@ -25,15 +25,15 @@ public:
     This class handles the "aox show counts" command.
 */
 
-ShowCounts::ShowCounts( StringList * args )
+ShowCounts::ShowCounts( EStringList * args )
     : AoxCommand( args ), d( new ShowCountsData )
 {
 }
 
 
-static String tuples( const String & table )
+static EString tuples( const EString & table )
 {
-    String s( "select reltuples from pg_class c join "
+    EString s( "select reltuples from pg_class c join "
               "pg_namespace n on (c.relnamespace=n.oid) "
               "where n.nspname=$1 and c.relname='" );
     s.append( table );
@@ -51,7 +51,7 @@ void ShowCounts::execute()
         database();
         d->state = 1;
 
-        String s( Configuration::text( Configuration::DbSchema ) );
+        EString s( Configuration::text( Configuration::DbSchema ) );
 
         d->query = new Query(
             "select "
@@ -118,7 +118,7 @@ void ShowCounts::execute()
         if ( dm != 0 )
             printf( " (%d marked for deletion)", dm );
         printf( " (total size: %s)\n",
-                String::humanNumber( r->getBigint( "totalsize" ) ).cstr() );
+                EString::humanNumber( r->getBigint( "totalsize" ) ).cstr() );
 
         d->query =
             new Query( "select count(*)::int as bodyparts,"
@@ -139,8 +139,8 @@ void ShowCounts::execute()
 
         printf( "Bodyparts: %d (text size: %s, data size: %s)\n",
                 r->getInt( "bodyparts" ),
-                String::humanNumber( r->getBigint( "textsize" ) ).cstr(),
-                String::humanNumber( r->getBigint( "datasize" ) ).cstr() );
+                EString::humanNumber( r->getBigint( "textsize" ) ).cstr(),
+                EString::humanNumber( r->getBigint( "datasize" ) ).cstr() );
 
         d->query =
             new Query( "select count(*)::int as addresses "

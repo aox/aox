@@ -5,7 +5,7 @@
 
 #include "global.h"
 
-class String;
+class EString;
 class EventHandler;
 class Endpoint;
 class Connection;
@@ -15,7 +15,7 @@ class TlsServer
     : public Garbage
 {
 public:
-    TlsServer( EventHandler *, const Endpoint &, const String & );
+    TlsServer( EventHandler *, const Endpoint &, const EString & );
 
     bool done() const;
     bool ok() const;

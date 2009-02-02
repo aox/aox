@@ -10,7 +10,7 @@ class ListAliases
     : public AoxCommand
 {
 public:
-    ListAliases( StringList * );
+    ListAliases( EStringList * );
     void execute();
 
 private:
@@ -22,7 +22,7 @@ class CreateAlias
     : public AoxCommand
 {
 public:
-    CreateAlias( StringList * );
+    CreateAlias( EStringList * );
     void execute();
 
 private:
@@ -34,7 +34,7 @@ class DeleteAlias
     : public AoxCommand
 {
 public:
-    DeleteAlias( StringList * );
+    DeleteAlias( EStringList * );
     void execute();
 
 private:

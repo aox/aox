@@ -3,7 +3,7 @@
 #ifndef INTRO_H
 #define INTRO_H
 
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 #include "class.h"
 
@@ -15,17 +15,17 @@ class Intro
     : public Garbage
 {
 public:
-    Intro( const String & );
+    Intro( const EString & );
 
     void setDocBlock( DocBlock * );
     void addClass( Class * );
 
     static void output();
 
-    String name() const;
+    EString name() const;
 
 private:
-    String n;
+    EString n;
     DocBlock * docBlock;
     SortedList<Class> classes;
 };

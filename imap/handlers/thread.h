@@ -28,7 +28,7 @@ class ThreadResponse
 {
 public:
     ThreadResponse( class ThreadData * );
-    String text() const;
+    EString text() const;
 
 private:
     class Imap::ThreadData * d;

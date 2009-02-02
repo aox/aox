@@ -4,7 +4,7 @@
 #define LOGIN_H
 
 #include "command.h"
-#include "string.h"
+#include "estring.h"
 
 
 class Login
@@ -17,7 +17,7 @@ public:
     void execute();
 
 private:
-    String n, p;
+    EString n, p;
     class SaslMechanism * m;
 };
 

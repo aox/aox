@@ -4,7 +4,7 @@
 #define FUNCTION_H
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 
 
 class File;
@@ -16,29 +16,29 @@ class Function
     : public Garbage
 {
 public:
-    Function( const String & type,
-              const String & name,
-              const String & arguments,
+    Function( const EString & type,
+              const EString & name,
+              const EString & arguments,
               bool constness,
               File * originFile, uint originLine );
 
-    static Function * find( const String & name,
-                            const String & arguments = "",
+    static Function * find( const EString & name,
+                            const EString & arguments = "",
                             bool constness = false );
 
     Function * super() const;
 
     File * file() const { return f; }
     uint line() const { return l; }
-    String type() const { return t; }
-    String name() const { return n; }
-    String arguments() const { return args; }
+    EString type() const { return t; }
+    EString name() const { return n; }
+    EString arguments() const { return args; }
     bool isConst() const { return cn; }
 
-    void setArgumentList( const String & );
-    bool hasArgument( const String & ) const;
+    void setArgumentList( const EString & );
+    bool hasArgument( const EString & ) const;
 
-    static String typesOnly( const String & );
+    static EString typesOnly( const EString & );
     DocBlock * docBlock() const { return db; }
     void setDocBlock( DocBlock * docblock ) { db = docblock; }
 
@@ -51,7 +51,7 @@ public:
 
 private:
     Class * c;
-    String t, n, a, args;
+    EString t, n, a, args;
     File * f;
     uint l;
     DocBlock * db;

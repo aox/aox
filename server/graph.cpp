@@ -25,7 +25,7 @@ public:
             values[i++] = 0;
         setFirstNonPointer( &min );
     }
-    String name;
+    EString name;
     // no pointers after this line
     uint min;
     uint max;
@@ -49,7 +49,7 @@ public:
 
 /*!  Constructs a number called \a name. */
 
-GraphableNumber::GraphableNumber( const String & name )
+GraphableNumber::GraphableNumber( const EString & name )
     : d( new GraphableNumberData )
 {
     d->name = name;
@@ -181,7 +181,7 @@ uint GraphableNumber::value( uint t )
 
 /*! Returns the name supplied to this object's constructor. */
 
-String GraphableNumber::name() const
+EString GraphableNumber::name() const
 {
     return d->name;
 }
@@ -196,7 +196,7 @@ String GraphableNumber::name() const
 
 /*! Constructs an empty counter and registers it as \a name. */
 
-GraphableCounter::GraphableCounter( const String & name )
+GraphableCounter::GraphableCounter( const EString & name )
     : GraphableNumber( name )
 {
     setValue( 0 );
@@ -234,7 +234,7 @@ public:
 
 /*! Constructs an empty data set named \a name. */
 
-GraphableDataSet::GraphableDataSet( const String & name )
+GraphableDataSet::GraphableDataSet( const EString & name )
     : GraphableNumber( name )
 {
 }
@@ -272,7 +272,7 @@ GraphDumper::GraphDumper( int fd )
 {
     EventLoop::global()->addConnection( this );
     List<GraphableNumber>::Iterator i( numbers );
-    String l;
+    EString l;
     l.reserve( graphableHistorySize * 20 );
     while ( i ) {
         l.truncate();

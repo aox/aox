@@ -5,7 +5,7 @@
 #include "date.h"
 #include "address.h"
 #include "mailbox.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "configuration.h"
 
 
@@ -24,11 +24,11 @@ public:
     Address * originalRecipient;
     Address * finalRecipient;
     Recipient::Action action;
-    String status;
-    String remoteMta;
-    String diagnosticCode;
+    EString status;
+    EString remoteMta;
+    EString diagnosticCode;
     Date * lastAttemptDate;
-    String finalLogId;
+    EString finalLogId;
     Mailbox * mailbox;
 };
 
@@ -131,7 +131,7 @@ class Address * Recipient::finalRecipient() const
     defined in RFC 3463.
 */
 
-void Recipient::setAction( Action a, const String & s )
+void Recipient::setAction( Action a, const EString & s )
 {
     d->action = a;
     d->status = s;
@@ -148,7 +148,7 @@ Recipient::Action Recipient::action() const
 
 /*! Returns the status recorded by setAction(). */
 
-String Recipient::status() const
+EString Recipient::status() const
 {
     return d->status;
 }
@@ -159,7 +159,7 @@ String Recipient::status() const
     means that we didn't try to deliver the message to any remote MTA.
 */
 
-void Recipient::setRemoteMTA( const String & mta )
+void Recipient::setRemoteMTA( const EString & mta )
 {
     d->remoteMta = mta;
 }
@@ -167,7 +167,7 @@ void Recipient::setRemoteMTA( const String & mta )
 
 /*! Returns the MTA recorded by setRemoteMTA(). */
 
-String Recipient::remoteMTA() const
+EString Recipient::remoteMTA() const
 {
     return d->remoteMta;
 }
@@ -179,7 +179,7 @@ String Recipient::remoteMTA() const
     is no such code. The initial value is empty.
 */
 
-void Recipient::setDiagnosticCode( const String & code )
+void Recipient::setDiagnosticCode( const EString & code )
 {
     d->diagnosticCode = code;
 }
@@ -187,7 +187,7 @@ void Recipient::setDiagnosticCode( const String & code )
 
 /*! Records the diagnostic code recorded by setDiagnosticCode(). */
 
-String Recipient::diagnosticCode() const
+EString Recipient::diagnosticCode() const
 {
     return d->diagnosticCode;
 }
@@ -219,7 +219,7 @@ Date * Recipient::lastAttempt() const
     reported and none will be reported by Recipient.
 */
 
-void Recipient::setFinalLogId( const String & id )
+void Recipient::setFinalLogId( const EString & id )
 {
     d->finalLogId = id;
 }
@@ -230,7 +230,7 @@ void Recipient::setFinalLogId( const String & id )
 
 */
 
-String Recipient::finalLogId() const
+EString Recipient::finalLogId() const
 {
     return d->finalLogId;
 }
@@ -240,13 +240,13 @@ String Recipient::finalLogId() const
     Recipient.
 */
 
-String Recipient::plainTextParagraph() const
+EString Recipient::plainTextParagraph() const
 {
     if ( !valid() )
         return "";
 
-    String s;
-    String a;
+    EString s;
+    EString a;
 
     if ( finalRecipient() && originalRecipient() &&
          finalRecipient()->toString() != originalRecipient()->toString() ) {
@@ -337,13 +337,13 @@ String Recipient::plainTextParagraph() const
     trailing LF.
 */
 
-String Recipient::dsnParagraph() const
+EString Recipient::dsnParagraph() const
 {
     if ( !valid() )
         return "";
 
-    StringList l;
-    String s;
+    EStringList l;
+    EString s;
 
     // [ original-recipient-field CRLF ]
     if ( originalRecipient() && originalRecipient() != finalRecipient() )

@@ -6,7 +6,7 @@
 #include "address.h"
 #include "injector.h"
 #include "bodypart.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "configuration.h"
 
 
@@ -22,9 +22,9 @@ public:
           sender( 0 )
         {}
     Message * message;
-    String envid;
+    EString envid;
     bool full;
-    String receivedFrom;
+    EString receivedFrom;
     Date * arrivalDate;
     Date * resultDate;
     Address * sender;
@@ -72,7 +72,7 @@ Message * DSN::message() const
     envid.
 */
 
-void DSN::setEnvelopeId( const String & envid )
+void DSN::setEnvelopeId( const EString & envid )
 {
     d->envid = envid;
 }
@@ -82,7 +82,7 @@ void DSN::setEnvelopeId( const String & envid )
     string if none has been recorded.
 */
 
-String DSN::envelopeId() const
+EString DSN::envelopeId() const
 {
     return d->envid;
 }
@@ -113,7 +113,7 @@ bool DSN::fullReport() const
     some unknown origin, or wasn't really received at all.
 */
 
-void DSN::setReceivedFrom( const String & mta )
+void DSN::setReceivedFrom( const EString & mta )
 {
     d->receivedFrom = mta;
 }
@@ -123,7 +123,7 @@ void DSN::setReceivedFrom( const String & mta )
     string if none did or we don't know who did.
 */
 
-String DSN::receivedFrom() const
+EString DSN::receivedFrom() const
 {
     return d->receivedFrom;
 }
@@ -313,12 +313,12 @@ bool DSN::deliveriesPending() const
 
 /*! Returns the body text for this bounce's plain-text body. */
 
-String DSN::plainBody() const
+EString DSN::plainBody() const
 {
-    String r;
+    EString r;
     List<Recipient>::Iterator recipient( recipients() );
     while ( recipient ) {
-        String tmp = recipient->plainTextParagraph();
+        EString tmp = recipient->plainTextParagraph();
         if ( !tmp.isEmpty() ) {
             r.append( tmp.wrapped( 72, "", "", true ).crlf() );
             r.append( "\r\n" );
@@ -336,7 +336,7 @@ String DSN::plainBody() const
     r.append( ".\r\n" );
 
     if ( arrivalDate() && !receivedFrom().isEmpty() ) {
-        String tmp = "\nThe message arrived at ";
+        EString tmp = "\nThe message arrived at ";
         tmp.append( arrivalDate()->isoDate() );
         tmp.append( ", " );
         tmp.append( arrivalDate()->isoTime() );
@@ -346,13 +346,13 @@ String DSN::plainBody() const
         r.append( tmp.wrapped( 72, "", "", true ).crlf() );
     }
     else if ( arrivalDate() ) {
-        String tmp = "\nThe message arrived at ";
+        EString tmp = "\nThe message arrived at ";
         tmp.append( arrivalDate()->isoDate() );
         tmp.append( "." );
         r.append( tmp.wrapped( 72, "", "", true ).crlf() );
     }
     else if ( !receivedFrom().isEmpty() ) {
-        String tmp = "\nThe message was received from host ";
+        EString tmp = "\nThe message was received from host ";
         tmp.append( receivedFrom() );
         tmp.append( "." );
         r.append( tmp.wrapped( 72, "", "", true ).crlf() );
@@ -364,9 +364,9 @@ String DSN::plainBody() const
 
 /*! Computes and returns the DSN bodypart. */
 
-String DSN::dsnBody() const
+EString DSN::dsnBody() const
 {
-    String r;
+    EString r;
     // [ original-envelope-id-field CRLF ]
     if ( !envelopeId().isEmpty() )
         r.append( "Original-Envelope-Id: " + envelopeId() + "\r\n" );

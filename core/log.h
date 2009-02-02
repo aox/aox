@@ -4,9 +4,9 @@
 #define LOG_H
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 
-class String;
+class EString;
 
 
 class Log
@@ -17,8 +17,8 @@ public:
 
     Log();
     Log( Log * );
-    void log( const String &, Severity = Info );
-    String id();
+    void log( const EString &, Severity = Info );
+    EString id();
 
     Log * parent() const;
     bool isChildOf( Log * ) const;
@@ -27,13 +27,13 @@ public:
     static bool disastersYet();
 
 private:
-    String ide;
+    EString ide;
     uint children;
     Log * p;
 };
 
 
-void log( const String &, Log::Severity = Log::Info );
+void log( const EString &, Log::Severity = Log::Info );
 
 
 #endif

@@ -7,7 +7,7 @@
 
 
 class Query;
-class String;
+class EString;
 class Database;
 class EventHandler;
 
@@ -27,8 +27,8 @@ public:
     bool done() const;
 
     void clearError();
-    void setError( Query *, const String & );
-    String error() const;
+    void setError( Query *, const EString & );
+    EString error() const;
 
     Query * failedQuery() const;
 

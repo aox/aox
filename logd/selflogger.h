@@ -6,7 +6,7 @@
 #include "logger.h"
 #include "connection.h"
 
-class String;
+class EString;
 class LogServer;
 
 
@@ -15,7 +15,7 @@ class SelfLogger: public Logger
 public:
     SelfLogger();
 
-    void send( const String &, Log::Severity, const String & );
+    void send( const EString &, Log::Severity, const EString & );
 
 private:
     LogServer * ls;

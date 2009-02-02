@@ -16,8 +16,8 @@ public:
     {}
 
     uint status;
-    String divClass;
-    String contents;
+    EString divClass;
+    EString contents;
     List<FrontMatter> frontMatter;
     WebPage * page;
     bool done;
@@ -32,7 +32,7 @@ public:
 
 /*! Creates a new PageComponent with the div class name \a divClass. */
 
-PageComponent::PageComponent( const String & divClass )
+PageComponent::PageComponent( const EString & divClass )
     : d( new PageComponentData )
 {
     d->divClass = divClass;
@@ -90,9 +90,9 @@ void PageComponent::setPage( WebPage * page )
     return value is meaningful only if done() is true.
 */
 
-String PageComponent::contents() const
+EString PageComponent::contents() const
 {
-    String s( "<div class=\"" );
+    EString s( "<div class=\"" );
     s.append( d->divClass );
     s.append( "\">\n" );
     s.append( d->contents );
@@ -107,7 +107,7 @@ String PageComponent::contents() const
     meant for use by subclasses.
 */
 
-void PageComponent::setContents( const String & s )
+void PageComponent::setContents( const EString & s )
 {
     d->done = true;
     d->contents = s;
@@ -120,7 +120,7 @@ void PageComponent::setContents( const String & s )
     the constructor.
 */
 
-String PageComponent::divClass() const
+EString PageComponent::divClass() const
 {
     return d->divClass;
 }
@@ -151,9 +151,9 @@ void PageComponent::execute()
 
 /*! Returns an HTML-quoted version of \a s. */
 
-String PageComponent::quoted( const String & s )
+EString PageComponent::quoted( const EString & s )
 {
-    String r;
+    EString r;
     r.reserve( s.length() );
     uint i = 0;
     while ( i < s.length() ) {
@@ -177,9 +177,9 @@ String PageComponent::quoted( const String & s )
 
 /*! Returns an HTML-quoted version of \a u. */
 
-String PageComponent::quoted( const UString & u )
+EString PageComponent::quoted( const UString & u )
 {
-    String r;
+    EString r;
     r.reserve( u.length() );
     uint i = 0;
     while ( i < u.length() ) {
@@ -208,9 +208,9 @@ String PageComponent::quoted( const UString & u )
 
 /*! Returns an HTML representation of \a a. */
 
-String PageComponent::address( Address * a )
+EString PageComponent::address( Address * a )
 {
-    String s( "<span class=address>" );
+    EString s( "<span class=address>" );
     bool n = true;
     if ( a->uname().isEmpty() )
         n = false;
@@ -234,9 +234,9 @@ String PageComponent::address( Address * a )
     address (such as an alias).
 */
 
-String PageComponent::address( const UString & a )
+EString PageComponent::address( const UString & a )
 {
-    String s( "<span class=address>" );
+    EString s( "<span class=address>" );
     s.append( quoted( a ) );
     s.append( "</span>" );
 

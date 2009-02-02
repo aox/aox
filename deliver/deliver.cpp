@@ -2,7 +2,7 @@
 
 #include "scope.h"
 #include "event.h"
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
 #include "stderrlogger.h"
 #include "configuration.h"
@@ -26,7 +26,7 @@
 #include <sysexits.h>
 
 
-static void quit( uint s, const String & m )
+static void quit( uint s, const EString & m )
 {
     if ( !m.isEmpty() )
         fprintf( stderr, "deliver: %s\n", m.cstr() );
@@ -42,12 +42,12 @@ public:
     Injector * i;
     Injectee * m;
     UString mbn;
-    String un;
+    EString un;
     Permissions * p;
     Mailbox * mb;
 
     Deliverator( Injectee * message,
-                 const UString & mailbox, const String & user )
+                 const UString & mailbox, const EString & user )
         : q( 0 ), i( 0 ), m( message ), mbn( mailbox ), un( user ),
           p( 0 ), mb( 0 )
     {
@@ -88,7 +88,7 @@ public:
             if ( !r )
                 quit( EX_NOUSER, "No such user: " + un );
             if ( !r->isNull( "login" ) &&
-                 r->getString( "login" ) == "anonymous" )
+                 r->getEString( "login" ) == "anonymous" )
                 quit( EX_DATAERR, "Cannot deliver to the anonymous user" );
             if ( mbn.isEmpty() ) {
                 mb = Mailbox::find( r->getInt( "mailbox" ) );
@@ -119,7 +119,7 @@ public:
                   mbn.ascii().quoted( '\'' ) );
 
         if ( !i ) {
-            StringList x;
+            EStringList x;
             m->setFlags( mb, &x );
             i = new Injector( this );
             List<Injectee> y;
@@ -144,10 +144,10 @@ int main( int argc, char *argv[] )
 {
     Scope global;
 
-    String sender;
+    EString sender;
     UString mailbox;
-    String recipient;
-    String filename;
+    EString recipient;
+    EString filename;
     int verbose = 0;
     bool error = false;
 
@@ -204,7 +204,7 @@ int main( int argc, char *argv[] )
         exit( -1 );
     }
 
-    String contents;
+    EString contents;
     if ( filename.isEmpty() ) {
         char s[128];
         while ( fgets( s, 128, stdin ) != 0 )

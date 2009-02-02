@@ -37,9 +37,9 @@ Iso2022JpCodec::Iso2022JpCodec()
 
 /*! Returns the ISO-2022-JP-encoded representation of the UString \a u. */
 
-String Iso2022JpCodec::fromUnicode( const UString &u )
+EString Iso2022JpCodec::fromUnicode( const UString &u )
 {
-    String s;
+    EString s;
 
     enum { ASCII, JIS } mode = ASCII;
 
@@ -87,9 +87,9 @@ String Iso2022JpCodec::fromUnicode( const UString &u )
 }
 
 
-/*! Returns the Unicode representation of the String \a s. */
+/*! Returns the Unicode representation of the EString \a s. */
 
-UString Iso2022JpCodec::toUnicode( const String &s )
+UString Iso2022JpCodec::toUnicode( const EString &s )
 {
     UString u;
 

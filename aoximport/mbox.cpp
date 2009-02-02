@@ -2,7 +2,7 @@
 
 #include "mbox.h"
 
-#include "stringlist.h"
+#include "estringlist.h"
 #include "file.h"
 
 #include <sys/types.h>
@@ -21,13 +21,13 @@
 
 /*!  Constructs an MboxDirectory for \a path. */
 
-MboxDirectory::MboxDirectory( const String & path )
+MboxDirectory::MboxDirectory( const EString & path )
     : DirectoryTree( path )
 {
 }
 
 
-bool MboxDirectory::isMailbox( const String &, struct stat *st )
+bool MboxDirectory::isMailbox( const EString &, struct stat *st )
 {
     if ( S_ISREG( st->st_mode ) )
         return true;
@@ -35,7 +35,7 @@ bool MboxDirectory::isMailbox( const String &, struct stat *st )
 }
 
 
-MigratorMailbox * MboxDirectory::newMailbox( const String &path, uint n )
+MigratorMailbox * MboxDirectory::newMailbox( const EString &path, uint n )
 {
     return new MboxMailbox( path, n );
 }
@@ -47,7 +47,7 @@ class MboxMailboxData
 public:
     MboxMailboxData(): file( 0 ), msn( 1 ) {}
 
-    String path;
+    EString path;
     FILE * file;
     uint msn;
 };
@@ -68,7 +68,7 @@ public:
      \a path are disregarded when creating the target mailboxes.
 */
 
-MboxMailbox::MboxMailbox( const String & path, uint n )
+MboxMailbox::MboxMailbox( const EString & path, uint n )
     : MigratorMailbox( path.mid( n ) ), d( new MboxMailboxData )
 {
     d->path = path;
@@ -81,7 +81,7 @@ static bool isFrom( const char * s )
          s[4] != ' ' )
         return false;
 
-    String f( s );
+    EString f( s );
 
     uint n = 5;
     while ( n < f.length() &&
@@ -133,7 +133,7 @@ MigratorMessage * MboxMailbox::nextMessage()
             return 0;
     }
 
-    String contents;
+    EString contents;
     bool done = false;
     while ( !done ) {
         s[65536] = '\0';
@@ -154,7 +154,7 @@ MigratorMessage * MboxMailbox::nextMessage()
     while( it && it->name() != "Status" )
         ++it;
     if ( it ) {
-        String v = it->rfc822().simplified();
+        EString v = it->rfc822().simplified();
         uint f = 0;
         while ( f < v.length() ) {
             switch( v[f] ) {

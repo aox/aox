@@ -10,12 +10,12 @@ class ListRights
     : public AoxCommand
 {
 public:
-    ListRights( StringList * );
+    ListRights( EStringList * );
     void execute();
 
 private:
     class ListRightsData * d;
-    String describe( const String & );
+    EString describe( const EString & );
 };
 
 
@@ -23,7 +23,7 @@ class SetAcl
     : public AoxCommand
 {
 public:
-    SetAcl( StringList * );
+    SetAcl( EStringList * );
     void execute();
 
 private:

@@ -10,7 +10,7 @@ class Help
     : public AoxCommand
 {
 public:
-    Help( StringList * );
+    Help( EStringList * );
     void execute();
 };
 

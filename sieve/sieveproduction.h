@@ -18,25 +18,25 @@ public:
 
     void setParser( class SieveParser * );
 
-    String name() const;
+    EString name() const;
 
     void setStart( uint );
     uint start() const;
     void setEnd( uint );
     uint end() const;
 
-    void setError( const String & );
-    String error() const;
+    void setError( const EString & );
+    EString error() const;
 
-    void require( const String & );
+    void require( const EString & );
 
-    static class StringList * supportedExtensions();
+    static class EStringList * supportedExtensions();
 
     bool ihaveFailed() const;
     void setIhaveFailed();
 
-    StringList * addedExtensions() const;
-    void addExtensions( const StringList * );
+    EStringList * addedExtensions() const;
+    void addExtensions( const EStringList * );
 
 private:
     class SieveProductionData * d;
@@ -49,8 +49,8 @@ class SieveArgument
 public:
     SieveArgument();
 
-    void setTag( const String & );
-    String tag() const;
+    void setTag( const EString & );
+    EString tag() const;
 
     void setNumber( uint );
     uint number() const;
@@ -83,11 +83,11 @@ public:
     void append( class SieveTest * );
     List<class SieveTest> * tests() const;
 
-    SieveArgument * argumentFollowingTag( const String & tag );
-    class UString takeTaggedString( const String & tag );
-    class UStringList * takeTaggedStringList( const String & tag );
-    uint takeTaggedNumber( const String & tag );
-    SieveArgument * findTag( const String & tag ) const;
+    SieveArgument * argumentFollowingTag( const EString & tag );
+    class UString takeTaggedString( const EString & tag );
+    class UStringList * takeTaggedStringList( const EString & tag );
+    uint takeTaggedNumber( const EString & tag );
+    SieveArgument * findTag( const EString & tag ) const;
     void allowOneTag( const char *, const char *, const char * = 0,
                       const char * = 0, const char * = 0 );
 
@@ -99,7 +99,7 @@ public:
 
     void flagUnparsedAsBad();
 
-    void tagError( const char *, const String & );
+    void tagError( const char *, const EString & );
 
 private:
     class SieveArgumentListData * d;
@@ -126,10 +126,10 @@ class SieveCommand
 public:
     SieveCommand();
 
-    void parse( const String & );
+    void parse( const EString & );
 
-    void setIdentifier( const String & );
-    String identifier() const;
+    void setIdentifier( const EString & );
+    EString identifier() const;
 
     void setArguments( SieveArgumentList * );
     SieveArgumentList * arguments() const;
@@ -152,8 +152,8 @@ class SieveTest
 public:
     SieveTest();
 
-    void setIdentifier( const String & );
-    String identifier() const;
+    void setIdentifier( const EString & );
+    EString identifier() const;
 
     void setArguments( SieveArgumentList * );
     SieveArgumentList * arguments() const;

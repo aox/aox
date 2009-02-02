@@ -21,14 +21,14 @@
 void Id::parse()
 {
     space();
-    String name;
-    String version;
+    EString name;
+    EString version;
     if ( nextChar() == '(' ) {
         step();
         while ( nextChar() != ')' ) {
-            String name = string();
+            EString name = string();
             space();
-            String value = nstring();
+            EString value = nstring();
             if ( nextChar() == ' ' )
                 space();
             if ( ok() && !name.isEmpty() && !value.isEmpty() ) {
@@ -58,7 +58,7 @@ void Id::parse()
 
 void Id::execute()
 {
-    String v( Configuration::compiledIn( Configuration::Version ) );
+    EString v( Configuration::compiledIn( Configuration::Version ) );
     respond( "ID ("
              "\"name\" \"Archiveopteryx\" "
              "\"version\" " + v.quoted() + " "

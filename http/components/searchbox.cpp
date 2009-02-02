@@ -25,7 +25,7 @@ void SearchBox::execute()
     Link action;
     action.setType( l->type() );
     action.setMailbox( l->mailbox() );
-    String s( "<form action=\"" );
+    EString s( "<form action=\"" );
     s.append( action.canonical() );
     s.append( "\"><input type=text name=query value=\"" );
     if ( !query.isEmpty() )

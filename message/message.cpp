@@ -31,7 +31,7 @@ public:
           hasTrivia( false ), hasBytesAndLines( false )
     {}
 
-    String error;
+    EString error;
 
     uint databaseId;
     bool wrapped;
@@ -79,7 +79,7 @@ Message::Message()
     based on \a rfc2822.
 */
 
-void Message::parse( const String & rfc2822 )
+void Message::parse( const EString & rfc2822 )
 {
     uint i = 0;
 
@@ -105,7 +105,7 @@ void Message::parse( const String & rfc2822 )
     fix8BitHeaderFields();
     header()->simplify();
 
-    String e = d->error;
+    EString e = d->error;
     recomputeError();
     if ( d->error.isEmpty() )
         d->error = e;
@@ -187,7 +187,7 @@ void Message::recomputeError()
 */
 
 Header * Message::parseHeader( uint & i, uint end,
-                               const String & rfc2822,
+                               const EString & rfc2822,
                                Header::Mode m )
 {
     Header * h = new Header( m );
@@ -215,7 +215,7 @@ Header * Message::parseHeader( uint & i, uint end,
                 i++;
         }
         else if ( j > i && rfc2822[j] == ':' ) {
-            String name = rfc2822.mid( i, j-i );
+            EString name = rfc2822.mid( i, j-i );
             i = j;
             i++;
             while ( rfc2822[i] == ' ' || rfc2822[i] == '\t' )
@@ -229,7 +229,7 @@ Header * Message::parseHeader( uint & i, uint end,
                 j++;
             if ( j && rfc2822[j-1] == '\r' )
                 j--;
-            String value = rfc2822.mid( i, j-i );
+            EString value = rfc2822.mid( i, j-i );
             if ( !value.simplified().isEmpty() ||
                  name.lower().startsWith( "x-" ) ) {
                 HeaderField * f = HeaderField::create( name, value );
@@ -264,7 +264,7 @@ bool Message::valid() const
     this message, or an empty string if no error has been detected.
 */
 
-String Message::error() const
+EString Message::error() const
 {
     return d->error;
 }
@@ -275,9 +275,9 @@ String Message::error() const
     whatever was parsed.
 */
 
-String Message::rfc822() const
+EString Message::rfc822() const
 {
-    String r;
+    EString r;
     if ( d->rfc822Size )
         r.reserve( d->rfc822Size );
     else
@@ -293,9 +293,9 @@ String Message::rfc822() const
 
 /*! Returns the text representation of the body of this message. */
 
-String Message::body() const
+EString Message::body() const
 {
-    String r;
+    EString r;
 
     ContentType *ct = header()->contentType();
     if ( ct && ct->type() == "multipart" ) {
@@ -349,7 +349,7 @@ List<Bodypart> *Message::allBodyparts() const
     false.
 */
 
-class Bodypart * Message::bodypart( const String & s, bool create )
+class Bodypart * Message::bodypart( const EString & s, bool create )
 {
     uint b = 0;
     Bodypart * bp = 0;
@@ -405,11 +405,11 @@ class Bodypart * Message::bodypart( const String & s, bool create )
     Multipart.
 */
 
-String Message::partNumber( Bodypart * bp ) const
+EString Message::partNumber( Bodypart * bp ) const
 {
     Multipart * m = bp;
 
-    String r;
+    EString r;
     while ( m && m->isBodypart() ) {
         if ( !r.isEmpty() )
             r = "." + r;
@@ -696,9 +696,9 @@ bool Message::isMessage() const
 }
 
 
-static String badFields( Header * h )
+static EString badFields( Header * h )
 {
-    StringList bad;
+    EStringList bad;
     List<HeaderField>::Iterator hf( h->fields() );
     while ( hf ) {
         if ( !hf->valid() )
@@ -724,8 +724,8 @@ static String badFields( Header * h )
 
 void Message::fix8BitHeaderFields()
 {
-    String charset;
-    String fallback = "us-ascii";
+    EString charset;
+    EString fallback = "us-ascii";
     bool conflict = false;
     List<Bodypart>::Iterator i( allBodyparts() );
     while ( i ) {
@@ -733,7 +733,7 @@ void Message::fix8BitHeaderFields()
         if ( i->header() )
             ct = i->header()->contentType();
         if ( ct && ct->type() == "text" ) {
-            String cs = ct->parameter( "charset" ).lower();
+            EString cs = ct->parameter( "charset" ).lower();
             if ( cs == "windows-1252" )
                 cs = "iso-8859-1";
             if ( cs.isEmpty() )
@@ -777,7 +777,7 @@ void Message::fix8BitHeaderFields()
   the boundary are lines in \a parts.
 */
 
-String Message::acceptableBoundary( const String & parts )
+EString Message::acceptableBoundary( const EString & parts )
 {
     uint i = 0;
     uint boundaries = 0;
@@ -800,7 +800,7 @@ String Message::acceptableBoundary( const String & parts )
     while ( i < 32 && ( boundaries & ( 1 << i ) ) != 0 )
         i++;
     if ( i < 32 ) {
-        String r;
+        EString r;
         r.append( boundaryChars[i] );
         return r;
     }
@@ -808,7 +808,7 @@ String Message::acceptableBoundary( const String & parts )
     // in the all too likely case that some unfriendly soul tries
     // to attack us, we'd better have some alternative plan,
     // e.g. a string containing eight random base64 characters.
-    String r = Entropy::asString( 6 ).e64();
+    EString r = Entropy::asString( 6 ).e64();
     while ( parts.contains( r ) )
         // if at first you don't succeed, try again with a bigger hammer!
         r = Entropy::asString( 36 ).e64();

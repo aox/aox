@@ -11,11 +11,11 @@ class CyrusDirectory
     : public DirectoryTree
 {
 public:
-    CyrusDirectory( const String & );
+    CyrusDirectory( const EString & );
 
 protected:
-    bool isMailbox( const String &, struct stat * );
-    MigratorMailbox * newMailbox( const String &, uint );
+    bool isMailbox( const EString &, struct stat * );
+    MigratorMailbox * newMailbox( const EString &, uint );
 };
 
 
@@ -23,7 +23,7 @@ class CyrusMailbox
     : public MigratorMailbox
 {
 public:
-    CyrusMailbox( const String &, uint );
+    CyrusMailbox( const EString &, uint );
     MigratorMessage *nextMessage();
 
 private:

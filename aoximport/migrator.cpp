@@ -81,7 +81,7 @@ void Migrator::setDestination( const UString &s )
     this Migrator's list of sources.
 */
 
-void Migrator::addSource( const String &s )
+void Migrator::addSource( const EString &s )
 {
     switch( d->mode ) {
     case Mbox:
@@ -253,7 +253,7 @@ MigratorSource::~MigratorSource()
     partialName will be used for creating a destination mailbox.
 */
 
-MigratorMailbox::MigratorMailbox( const String & partialName )
+MigratorMailbox::MigratorMailbox( const EString & partialName )
     : n( partialName )
 {
 }
@@ -275,14 +275,14 @@ MigratorMailbox::~MigratorMailbox()
     within the directory being migrated.
 */
 
-String MigratorMailbox::partialName()
+EString MigratorMailbox::partialName()
 {
     return n;
 }
 
 
 static uint uniq = 0;
-static String * errdir = 0;
+static EString * errdir = 0;
 
 
 /*! \class MigratorMessage migrator.h
@@ -300,7 +300,7 @@ static String * errdir = 0;
     human-readably described by \a desc.
 */
 
-MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
+MigratorMessage::MigratorMessage( const EString & rfc822, const EString & desc )
     : s( desc ), o( rfc822 ), m( 0 )
 {
     m = new Injectee;
@@ -312,14 +312,14 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
         fprintf( stdout, "Message %s: Working around error: %s\n",
                  desc.cstr(), m->error().cstr() );
     if ( Migrator::errorCopies() ) {
-        String a = o.anonymised();
+        EString a = o.anonymised();
         Message * am = new Message;
         am->parse( a );
-        String dir;
-        String name;
-        String c;
+        EString dir;
+        EString name;
+        EString c;
         if ( !errdir ) {
-            errdir = new String;
+            errdir = new EString;
             Allocator::addEternal( errdir, "error directory" );
             errdir->append( "errors/" );
             errdir->appendNumber( getpid() );
@@ -362,7 +362,7 @@ MigratorMessage::~MigratorMessage()
     constructor.
 */
 
-String MigratorMessage::description() const
+EString MigratorMessage::description() const
 {
     return s;
 }
@@ -377,7 +377,7 @@ String MigratorMessage::description() const
     problems.
 */
 
-String MigratorMessage::original() const
+EString MigratorMessage::original() const
 {
     return o;
 }
@@ -416,7 +416,7 @@ public:
     uint migrated;
     uint migrating;
     Transaction * mailboxCreator;
-    String error;
+    EString error;
     Log log;
 };
 
@@ -581,7 +581,7 @@ uint MailboxMigrator::migrated() const
     message. If all is in order, this returns an empty string.
 */
 
-String MailboxMigrator::error() const
+EString MailboxMigrator::error() const
 {
     return d->error;
 }
@@ -675,7 +675,7 @@ bool Migrator::errorCopies()
     message. The list may contain duplicates.
 */
 
-const StringList * MigratorMessage::flags() const
+const EStringList * MigratorMessage::flags() const
 {
     return &f;
 }
@@ -683,7 +683,7 @@ const StringList * MigratorMessage::flags() const
 
 /*! Records that \a flag should be set on the injected message. */
 
-void MigratorMessage::addFlag( const String & flag )
+void MigratorMessage::addFlag( const EString & flag )
 {
     f.append( flag );
 }

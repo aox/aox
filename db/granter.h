@@ -10,7 +10,7 @@ class Granter
     : public EventHandler
 {
 public:
-    Granter( const String &, class Transaction * );
+    Granter( const EString &, class Transaction * );
 
     void execute();
 

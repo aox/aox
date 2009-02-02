@@ -17,17 +17,17 @@ public:
     HtmlFormData()
     {}
 
-    String action;
-    String method;
+    EString action;
+    EString method;
 
     struct Field {
-        Field( const String &n, const String &t, const String &d, bool r )
+        Field( const EString &n, const EString &t, const EString &d, bool r )
             : name( n ), type( t ), dflt( d ), required( r )
         {}
 
-        String name;
-        String type;
-        String dflt;
+        EString name;
+        EString type;
+        EString dflt;
         UString value;
         bool required;
     };
@@ -49,7 +49,7 @@ public:
     default).
 */
 
-HtmlForm::HtmlForm( const String &a, const String &m )
+HtmlForm::HtmlForm( const EString &a, const EString &m )
     : d( new HtmlFormData )
 {
     d->action = a;
@@ -63,8 +63,8 @@ HtmlForm::HtmlForm( const String &a, const String &m )
     return false unless it has a non-empty value.
 */
 
-void HtmlForm::addField( const String &name, const String &type,
-                         const String &dflt, bool required )
+void HtmlForm::addField( const EString &name, const EString &type,
+                         const EString &dflt, bool required )
 {
     // XXX: The simple list-of-fields representation will need changes
     // in future: fields will need to become user-visible objects, and
@@ -85,8 +85,8 @@ void HtmlForm::addField( const String &name, const String &type,
     only for clarity.
 */
 
-void HtmlForm::requireField( const String &name, const String &type,
-                             const String &dflt )
+void HtmlForm::requireField( const EString &name, const EString &type,
+                             const EString &dflt )
 {
     addField( name, type, dflt, true );
 }
@@ -95,7 +95,7 @@ void HtmlForm::requireField( const String &name, const String &type,
     if the given \a name does not correspond to a field that was added
     to this form (e.g. by using requireField()). */
 
-void HtmlForm::setValue( const String &name, const UString &value )
+void HtmlForm::setValue( const EString &name, const UString &value )
 {
     List<HtmlFormData::Field>::Iterator it( d->fields );
     while ( it && it->name != name )
@@ -125,7 +125,7 @@ void HtmlForm::setValuesFrom( WebPage * page )
     setValue()) and the field has no default value either.
 */
 
-UString HtmlForm::getValue( const String &name )
+UString HtmlForm::getValue( const EString &name )
 {
     List<HtmlFormData::Field>::Iterator it( d->fields );
     while ( it && it->name != name )
@@ -178,9 +178,9 @@ void HtmlForm::clear()
 
 /*! Returns an HTML representation of this form. */
 
-String HtmlForm::html() const
+EString HtmlForm::html() const
 {
-    String s( "<form method=" );
+    EString s( "<form method=" );
     s.append( d->method );
     if ( !d->action.isEmpty() ) {
         s.append( " action=" );

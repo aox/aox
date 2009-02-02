@@ -17,13 +17,13 @@ public:
     void execute();
     bool done() const;
     bool failed() const;
-    String badUrl() const;
-    String error() const;
+    EString badUrl() const;
+    EString error() const;
 
 private:
     class IufData *d;
 
-    void setError( const String &, const String & );
+    void setError( const EString &, const EString & );
 };
 
 

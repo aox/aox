@@ -7,7 +7,7 @@
 
 
 class Date;
-class String;
+class EString;
 class UString;
 class Address;
 
@@ -16,8 +16,8 @@ class HeaderField
     : public Garbage
 {
 public:
-    static HeaderField *create( const String &, const String & );
-    static HeaderField *assemble( const String &, const UString & );
+    static HeaderField *create( const EString &, const EString & );
+    static HeaderField *assemble( const EString &, const UString & );
 
     // The contents of this enum must be kept in sync with the data in
     // src/schema/field-names. Furthermore, new entries MUST NEVER
@@ -49,44 +49,44 @@ protected:
 public:
     Type type() const;
 
-    String name() const;
-    void setName( const String & );
+    EString name() const;
+    void setName( const EString & );
 
-    virtual String rfc822() const;
+    virtual EString rfc822() const;
 
     virtual UString value() const;
     void setValue( const UString & );
 
-    String unparsedValue() const;
-    void setUnparsedValue( const String & );
+    EString unparsedValue() const;
+    void setUnparsedValue( const EString & );
 
     void setPosition( uint );
     uint position() const;
 
     bool valid() const;
-    String error() const;
-    void setError( const String & );
+    EString error() const;
+    void setError( const EString & );
 
-    virtual void parse( const String & );
+    virtual void parse( const EString & );
 
     static const char *fieldName( HeaderField::Type );
-    static uint fieldType( const String & );
+    static uint fieldType( const EString & );
 
-    String wrap( const String & ) const;
+    EString wrap( const EString & ) const;
 
-    static String encodeWord( const UString & );
-    static String encodeText( const UString & );
-    static String encodePhrase( const UString & );
+    static EString encodeWord( const UString & );
+    static EString encodeText( const UString & );
+    static EString encodePhrase( const UString & );
 
 private:
-    static HeaderField *fieldNamed( const String & );
+    static HeaderField *fieldNamed( const EString & );
     class HeaderFieldData *d;
 
-    void parseText( const String & );
-    void parseOther( const String & );
-    void parseMimeVersion( const String & );
-    void parseContentLocation( const String & );
-    void parseContentBase( const String & );
+    void parseText( const EString & );
+    void parseOther( const EString & );
+    void parseMimeVersion( const EString & );
+    void parseContentLocation( const EString & );
+    void parseContentBase( const EString & );
 };
 
 

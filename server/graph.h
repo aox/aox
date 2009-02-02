@@ -3,7 +3,7 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#include "string.h"
+#include "estring.h"
 #include "connection.h"
 
 
@@ -11,7 +11,7 @@ class GraphableNumber
     : public Garbage
 {
 public:
-    GraphableNumber( const String & );
+    GraphableNumber( const EString & );
 
     void setValue( uint );
     uint maximumSince( uint ) const;
@@ -19,7 +19,7 @@ public:
     uint averageSince( uint ) const;
     uint lastValue() const;
 
-    String name() const;
+    EString name() const;
     uint oldestTime() const;
     uint youngestTime() const;
     uint value( uint );
@@ -34,7 +34,7 @@ class GraphableCounter
     : public GraphableNumber
 {
 public:
-    GraphableCounter( const String & );
+    GraphableCounter( const EString & );
 
     void tick();
 };
@@ -44,7 +44,7 @@ class GraphableDataSet
     : public GraphableNumber
 {
 public:
-    GraphableDataSet( const String & );
+    GraphableDataSet( const EString & );
 
     void addNumber( uint );
 

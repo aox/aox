@@ -2,14 +2,14 @@
 
 #include "dirtree.h"
 
-#include "sys.h"
 #include "file.h"
-#include "stringlist.h"
+#include "estringlist.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <string.h> // strlen
 
 
 class DirectoryTreeData
@@ -20,7 +20,7 @@ public:
         : prefixLength( 0 )
     {}
 
-    StringList paths;
+    EStringList paths;
     uint prefixLength;
 };
 
@@ -34,7 +34,7 @@ public:
 
 /*! Constructs a DirectoryTree rooted at \a path. */
 
-DirectoryTree::DirectoryTree( const String &path )
+DirectoryTree::DirectoryTree( const EString &path )
     : d( new DirectoryTreeData )
 {
     if ( path.length() > 0 && path[path.length()-1] == '/' )
@@ -55,7 +55,7 @@ DirectoryTree::DirectoryTree( const String &path )
 
 MigratorMailbox * DirectoryTree::nextMailbox()
 {
-    String *p = 0;
+    EString *p = 0;
 
     while ( !p ) {
         if ( d->paths.isEmpty() )
@@ -78,7 +78,7 @@ MigratorMailbox * DirectoryTree::nextMailbox()
                               ( de->d_name[1] == '.' &&
                                 de->d_name[2] == '\0' ) ) ) )
                     {
-                        String * tmp = new String;
+                        EString * tmp = new EString;
                         uint len = strlen( de->d_name );
                         tmp->reserve( p->length() + 1 + len );
                         tmp->append( *p );
@@ -102,7 +102,7 @@ MigratorMailbox * DirectoryTree::nextMailbox()
 }
 
 
-/*! \fn bool DirectoryTree::isMailbox( const String &p, struct stat *st )
+/*! \fn bool DirectoryTree::isMailbox( const EString &p, struct stat *st )
 
     Returns true if \a p (described by the stat results in \a st) is a
     valid Mailbox, and false if it should be ignored. This function is
@@ -110,7 +110,7 @@ MigratorMailbox * DirectoryTree::nextMailbox()
 */
 
 
-/*! \fn MigratorMailbox * DirectoryTree::newMailbox( const String &fn,
+/*! \fn MigratorMailbox * DirectoryTree::newMailbox( const EString &fn,
                                                      uint prefixLength )
 
     Returns a pointer to a new MigratorMailbox created from \a fn, the

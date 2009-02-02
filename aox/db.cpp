@@ -36,7 +36,7 @@ static int nv = sizeof( versions ) / sizeof( versions[0] );
     This class handles the "aox show schema" command.
 */
 
-ShowSchema::ShowSchema( StringList * args )
+ShowSchema::ShowSchema( EStringList * args )
     : AoxCommand( args ), q( 0 )
 {
 }
@@ -59,7 +59,7 @@ void ShowSchema::execute()
     if ( r ) {
         int rev = r->getInt( "revision" );
 
-        String s;
+        EString s;
         if ( rev >= nv ) {
             s = "too new for ";
             s.append( Configuration::compiledIn( Configuration::Version ) );
@@ -86,7 +86,7 @@ void ShowSchema::execute()
     This class handles the "aox upgrade schema" command.
 */
 
-UpgradeSchema::UpgradeSchema( StringList * args )
+UpgradeSchema::UpgradeSchema( EStringList * args )
     : AoxCommand( args ), q( 0 )
 {
 }
@@ -120,7 +120,7 @@ void UpgradeSchema::execute()
     This class handles the "aox vacuum" command.
 */
 
-Vacuum::Vacuum( StringList * args )
+Vacuum::Vacuum( EStringList * args )
     : AoxCommand( args ), t( 0 )
 {
 }
@@ -187,7 +187,7 @@ void Vacuum::execute()
 */
 
 
-GrantPrivileges::GrantPrivileges( StringList * args )
+GrantPrivileges::GrantPrivileges( EStringList * args )
     : AoxCommand( args ), commit( true ), t( 0 )
 {
 }
@@ -197,7 +197,7 @@ void GrantPrivileges::execute()
 {
     if ( !t ) {
         parseOptions();
-        String name = next();
+        EString name = next();
         end();
 
         if ( name.isEmpty() )
@@ -305,7 +305,7 @@ public:
 */
 
 
-TuneDatabase::TuneDatabase( StringList * args )
+TuneDatabase::TuneDatabase( EStringList * args )
     : AoxCommand( args ), d( new TuneDatabaseData )
 {
 }
@@ -315,7 +315,7 @@ void TuneDatabase::execute()
 {
     if ( !d->t ) {
         parseOptions();
-        String mode = next().lower();
+        EString mode = next().lower();
         if ( mode == "mostly-writing" )
             d->mode = TuneDatabaseData::Writing;
         else if ( mode == "mostly-reading" )
@@ -330,7 +330,7 @@ void TuneDatabase::execute()
 
         d->t = new Transaction( this );
 
-        StringList indexnames;
+        EStringList indexnames;
         uint i = 0;
         while ( tunableIndices[i].name ) {
             indexnames.append( tunableIndices[i].name );
@@ -353,10 +353,10 @@ void TuneDatabase::execute()
         error( "Cannot tune database" );
 
     if ( !d->set ) {
-        StringList present;
+        EStringList present;
         while ( d->find->hasResults() ) {
             Row * r = d->find->nextRow();
-            String name = r->getString( "indexname" );
+            EString name = r->getEString( "indexname" );
             uint i = 0;
             while ( tunableIndices[i].name &&
                     name != tunableIndices[i].name )
@@ -380,7 +380,7 @@ void TuneDatabase::execute()
             }
             Query * q = 0;
             if ( wanted && !present.find( tunableIndices[i].name ) ) {
-                if ( String( tunableIndices[i].name ) == "b_text" &&
+                if ( EString( tunableIndices[i].name ) == "b_text" &&
                      Postgres::version() < 80300 ) {
                     printf( "Error: "
                             "Full-text indexing needs PostgreSQL 8.3\n" );
@@ -391,7 +391,7 @@ void TuneDatabase::execute()
                 }
             }
             else if ( present.find( tunableIndices[i].name ) && !wanted ) {
-                q = new Query( String("drop index ") + tunableIndices[i].name,
+                q = new Query( EString("drop index ") + tunableIndices[i].name,
                                0 );
                 printf( "Dropping index %s.\n",
                         tunableIndices[i].name );

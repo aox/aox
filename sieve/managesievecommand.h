@@ -19,7 +19,7 @@ public:
     };
 
     ManageSieveCommand( class ManageSieve *, Command );
-    void setArguments( const String & );
+    void setArguments( const EString & );
 
     void execute();
     bool done();
@@ -37,14 +37,14 @@ private:
     bool deleteScript();
     bool explain();
 
-    String string();
+    EString string();
     uint number();
     void whitespace();
     void end();
 
-    void no( const String & );
+    void no( const EString & );
 
-    static String encoded( const String & );
+    static EString encoded( const EString & );
 };
 
 

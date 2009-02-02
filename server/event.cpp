@@ -69,7 +69,7 @@ Log *EventHandler::log() const
     Log, as specified with setLog().
 */
 
-void EventHandler::log( const String &m, Log::Severity s ) const
+void EventHandler::log( const EString &m, Log::Severity s ) const
 {
     if ( l )
         l->log( m, s );

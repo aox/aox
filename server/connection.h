@@ -61,7 +61,7 @@ public:
     Endpoint peer() const;
     void setType( Type );
     Type type() const;
-    virtual String description() const;
+    virtual EString description() const;
 
     void startTls( TlsServer * );
     bool hasTls() const;
@@ -72,7 +72,7 @@ public:
     virtual bool canRead();
     virtual bool canWrite();
 
-    void enqueue( const String & );
+    void enqueue( const EString & );
 
     enum Event { Error, Connect, Read, Timeout, Close, Shutdown };
     virtual void react( Event ) = 0;
@@ -81,7 +81,7 @@ public:
 
     int listen( const Endpoint &, bool );
     int connect( const Endpoint & );
-    int connect( const String &, uint );
+    int connect( const EString &, uint );
     int accept();
     static void setAny6ListensTo4( bool );
     static bool any6ListensTo4();
@@ -89,7 +89,7 @@ public:
     static int socket( Endpoint::Protocol );
 
     Log * log() const;
-    void log( const String &, Log::Severity = Log::Info );
+    void log( const EString &, Log::Severity = Log::Info );
 
     bool accessPermitted() const;
 

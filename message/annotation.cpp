@@ -8,8 +8,8 @@ class AnnotationData
 {
 public:
     AnnotationData(): ownerId( 0 ) {}
-    String name;
-    String value;
+    EString name;
+    EString value;
     uint ownerId;
 };
 
@@ -38,7 +38,7 @@ Annotation::Annotation()
     \a owner.
 */
 
-Annotation::Annotation( const String & name, const String & value,
+Annotation::Annotation( const EString & name, const EString & value,
                         uint owner )
     : d( new AnnotationData )
 {
@@ -52,7 +52,7 @@ Annotation::Annotation( const String & name, const String & value,
     value is an empty string.
 */
 
-void Annotation::setValue( const String & v )
+void Annotation::setValue( const EString & v )
 {
     d->value = v;
 }
@@ -60,7 +60,7 @@ void Annotation::setValue( const String & v )
 
 /*! Returns the annotation's value, as set by setValue(). */
 
-String Annotation::value() const
+EString Annotation::value() const
 {
     return d->value;
 }
@@ -70,7 +70,7 @@ String Annotation::value() const
     Annotation does not enforce validity.
 */
 
-void Annotation::setEntryName( const String & name )
+void Annotation::setEntryName( const EString & name )
 {
     d->name = name;
 }
@@ -78,7 +78,7 @@ void Annotation::setEntryName( const String & name )
 
 /*! Returns the annotation's entry name, as set by setEntryName(). */
 
-String Annotation::entryName() const
+EString Annotation::entryName() const
 {
     return d->name;
 }

@@ -7,7 +7,7 @@
 #include "log.h"
 #include "scope.h"
 #include "allocator.h"
-#include "stringlist.h"
+#include "estringlist.h"
 
 // gethostname()
 #include <unistd.h>
@@ -20,8 +20,8 @@
 #include <netinet/in.h>
 // errno
 #include <errno.h>
-
-#include "sys.h" // memmove()
+// memmove()
+#include <string.h>
 
 
 class ConfigurationData
@@ -31,7 +31,7 @@ public:
     ConfigurationData(): errors( 0 ) {}
 
     uint scalar[Configuration::NumScalars];
-    String text[Configuration::NumTexts];
+    EString text[Configuration::NumTexts];
     bool toggle[Configuration::NumToggles];
 
     struct Error
@@ -39,14 +39,14 @@ public:
     {
         Error() : s( Log::Info ) {}
 
-        String e;
+        EString e;
         Log::Severity s;
     };
     List<Error> * errors;
-    StringList seen;
-    bool contains( const String & s )
+    EStringList seen;
+    bool contains( const EString & s )
     {
-        StringList::Iterator i( seen );
+        EStringList::Iterator i( seen );
         while ( i && *i != s )
             ++i;
         if ( i )
@@ -81,7 +81,7 @@ public:
     Comments extend from a '#' sign until the end of the line. In
     quoted strings '#' may be used.
 
-    During initialization, create a number of Configuration::String,
+    During initialization, create a number of Configuration::EString,
     Configuration::Scalar or Configuration::Toggle objects naming the
     variables. When all configuration variable objects have been
     created, call report(), and all errors are reported via the log
@@ -107,7 +107,7 @@ Configuration::Configuration()
     read, it is not treated as an error.
 */
 
-void Configuration::read( const String & file, bool allowFailure )
+void Configuration::read( const EString & file, bool allowFailure )
 {
     File f( file );
     if ( !f.valid() ) {
@@ -119,7 +119,7 @@ void Configuration::read( const String & file, bool allowFailure )
 
     log( "Using configuration file " + file, Log::Debug );
 
-    String buffer( f.contents() );
+    EString buffer( f.contents() );
     // we now want to loop across buffer, picking up entire lines and
     // parsing them as variables.
     uint i = 0;
@@ -266,7 +266,7 @@ static struct {
     vaguely sensible.
 */
 
-void Configuration::add( const String & l )
+void Configuration::add( const EString & l )
 {
     uint i = 0;
     while ( i < l.length() && ( l[i] == ' ' || l[i] == '\t' ) )
@@ -280,7 +280,7 @@ void Configuration::add( const String & l )
               ( l[i] >= '0' && l[i] <= '9' ) ||
               ( l[i] == '-' ) ) )
         i++;
-    String name = l.mid( 0, i ).lower().simplified();
+    EString name = l.mid( 0, i ).lower().simplified();
     while ( l[i] == ' ' || l[i] == '\t' )
         i++;
     if ( l[i] == '#' ) {
@@ -328,14 +328,14 @@ void Configuration::add( const String & l )
     n. If there are any errors, the name of \a n is used for reporting.
 */
 
-void Configuration::parseScalar( uint n, const String & line )
+void Configuration::parseScalar( uint n, const EString & line )
 {
     uint i = 0;
     while ( i < line.length() && line[i] >= '0' && line[i] <= '9' )
         i++;
 
-    String name( scalarDefaults[n].name );
-    String v( line.mid( 0, i ) );
+    EString name( scalarDefaults[n].name );
+    EString v( line.mid( 0, i ) );
 
     bool ok = true;
     d->scalar[n] = v.number( &ok );
@@ -351,7 +351,7 @@ void Configuration::parseScalar( uint n, const String & line )
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
     if ( i < line.length() && line[i] != '#' ) {
-        String s;
+        EString s;
         s.append( line[i] );
 
         log( "Non-numeric character " + s.quoted() + " after " + name + " = " +
@@ -364,9 +364,9 @@ void Configuration::parseScalar( uint n, const String & line )
     n. If there are any errors, the name of \a n is used for reporting.
 */
 
-void Configuration::parseText( uint n, const String & line )
+void Configuration::parseText( uint n, const EString & line )
 {
-    String name( textDefaults[n].name );
+    EString name( textDefaults[n].name );
     uint i = 0;
     if ( line[0] == '"' || line[0] == '\'' ) {
         // quoted, either with ' or "
@@ -399,7 +399,7 @@ void Configuration::parseText( uint n, const String & line )
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
     if ( i < line.length() && line[i] != '#' ) {
-        String s;
+        EString s;
         s.append( line[i] );
 
         log( "Unquoted special character " + s.quoted() + " after " +
@@ -412,16 +412,16 @@ void Configuration::parseText( uint n, const String & line )
     n. If there are any errors, the name of \a n is used for reporting.
 */
 
-void Configuration::parseToggle( uint n, const String & line )
+void Configuration::parseToggle( uint n, const EString & line )
 {
-    String name( toggleDefaults[n].name );
+    EString name( toggleDefaults[n].name );
     uint i = 0;
     while ( i < line.length() &&
             ( ( line[i] >= '0' && line[i] <= '9' ) ||
               ( line[i] >= 'a' && line[i] <= 'z' ) ||
               ( line[i] >= 'A' && line[i] <= 'Z' ) ) )
         i++;
-    String v = line.mid( 0, i ).lower();
+    EString v = line.mid( 0, i ).lower();
 
     if ( v.isEmpty() )
         log( "No value specified for " + name, Log::Disaster );
@@ -438,7 +438,7 @@ void Configuration::parseToggle( uint n, const String & line )
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
     if ( i < line.length() && line[i] != '#' ) {
-        String s;
+        EString s;
         s.append( line[i] );
 
         log( "Unrecognised character " + s.quoted() +
@@ -501,9 +501,9 @@ const char * Configuration::compiledIn( CompileTimeSetting setting )
     Merely a convenience.
 */
 
-String Configuration::configFile()
+EString Configuration::configFile()
 {
-    String s( compiledIn( ConfigDir ) );
+    EString s( compiledIn( ConfigDir ) );
     s.append( "/archiveopteryx.conf" );
     return s;
 }
@@ -537,7 +537,7 @@ bool Configuration::present( Scalar s )
     value if it hasn't been configured.
 */
 
-String Configuration::text( Text t )
+EString Configuration::text( Text t )
 {
     if ( present( t ) )
         return d->text[t];
@@ -648,7 +648,7 @@ void Configuration::report()
     tolerated silently. Another installer-helping measure.
 */
 
-void Configuration::setup( const String & global, bool allowFailure )
+void Configuration::setup( const EString & global, bool allowFailure )
 {
     d = new ConfigurationData;
     Allocator::addEternal( d, "configuration data" );
@@ -658,10 +658,10 @@ void Configuration::setup( const String & global, bool allowFailure )
     else if ( global[0] == '/' )
         read( global, allowFailure );
     else
-        read( String( compiledIn( ConfigDir ) ) + "/" + global,
+        read( EString( compiledIn( ConfigDir ) ) + "/" + global,
               allowFailure );
 
-    String hn = text( Hostname );
+    EString hn = text( Hostname );
     if ( hn.find( '.' ) < 0 )
         log( "Hostname does not contain a dot: " + hn, Log::Error );
     if ( hn.lower() == "localhost" || hn.lower().startsWith( "localhost." ) )
@@ -709,7 +709,7 @@ void Configuration::setup( const String & global, bool allowFailure )
 }
 
 
-/*! \fn String Configuration::hostname()
+/*! \fn EString Configuration::hostname()
     Returns the configured hostname (or our best guess, if no hostname
     has been specified in the configuration).
 */
@@ -719,16 +719,16 @@ void Configuration::setup( const String & global, bool allowFailure )
     system's functions.
 */
 
-String Configuration::osHostname()
+EString Configuration::osHostname()
 {
     char buffer[257];
     gethostname( buffer, 256 );
     buffer[256] = '\0';
-    String host( buffer );
+    EString host( buffer );
     if ( host.find( '.' ) < 0 ) {
         struct hostent * he = gethostbyname( buffer );
         if ( he ) {
-            String candidate = he->h_name;
+            EString candidate = he->h_name;
             int i = 0;
             bool done = false;
             do {
@@ -751,7 +751,7 @@ String Configuration::osHostname()
     does it later, when the log subsystem is ready.
 */
 
-void Configuration::log( const String & m, Log::Severity s )
+void Configuration::log( const EString & m, Log::Severity s )
 {
     if ( !d->errors )
         d->errors = new List<ConfigurationData::Error>;
@@ -771,7 +771,7 @@ List<Configuration::Text> * Configuration::addressVariables()
     uint i = 0;
     List<Text> * r = new List<Text>;
     while ( i < NumTexts ) {
-        String name( textDefaults[i].name );
+        EString name( textDefaults[i].name );
         if ( name.endsWith( "-address" ) ) {
             Configuration::Text * t = new Configuration::Text;
             *t = (Configuration::Text)i;

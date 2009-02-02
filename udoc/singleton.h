@@ -3,7 +3,7 @@
 #ifndef SINGLETON_H
 #define SINGLETON_H
 
-#include "string.h"
+#include "estring.h"
 
 class File;
 
@@ -12,7 +12,7 @@ class Singleton
     : public Garbage
 {
 public:
-    Singleton( File *, uint, const String & );
+    Singleton( File *, uint, const EString & );
 
     File * file() const;
     uint line() const;

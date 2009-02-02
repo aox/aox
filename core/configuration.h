@@ -3,7 +3,7 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 #include "log.h"
 
@@ -14,7 +14,7 @@ class Configuration
 private:
     Configuration();
 public:
-    static void setup( const String &, bool = false );
+    static void setup( const EString &, bool = false );
     static void report();
 
     enum CompileTimeSetting {
@@ -34,7 +34,7 @@ public:
     };
 
     static const char * compiledIn( CompileTimeSetting );
-    static String configFile();
+    static EString configFile();
 
     enum Scalar {
         DbPort,
@@ -114,7 +114,7 @@ public:
         // additional texts go ABOVE THIS LINE
         NumTexts
     };
-    static String text( Text );
+    static EString text( Text );
     static bool present( Text );
     static const char * name( Text );
 
@@ -153,22 +153,22 @@ public:
     static bool present( Toggle );
     static const char * name( Toggle );
 
-    static String hostname() { return text( Hostname ); }
+    static EString hostname() { return text( Hostname ); }
 
-    static void add( const String & );
+    static void add( const EString & );
 
-    static void read( const String &, bool );
+    static void read( const EString &, bool );
 
     static List<Text> * addressVariables();
 
 private:
-    static String osHostname();
+    static EString osHostname();
 
-    static void log( const String &, Log::Severity );
+    static void log( const EString &, Log::Severity );
 
-    static void parseScalar( uint, const String & );
-    static void parseText( uint, const String & );
-    static void parseToggle( uint, const String & );
+    static void parseScalar( uint, const EString & );
+    static void parseText( uint, const EString & );
+    static void parseToggle( uint, const EString & );
 
     static class ConfigurationData * d;
 };

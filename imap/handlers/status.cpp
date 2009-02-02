@@ -48,14 +48,14 @@ void Status::parse()
     space();
     require( "(" );
 
-    String l( "Status " );
+    EString l( "Status " );
     if ( d->mailbox ) {
         l.append(  d->mailbox->name().ascii() );
         l.append( ":" );
     }
     bool atEnd = false;
     while ( !atEnd ) {
-        String item = letters( 1, 13 ).lower();
+        EString item = letters( 1, 13 ).lower();
         l.append( " " );
         l.append( item );
 
@@ -175,7 +175,7 @@ void Status::execute()
         return;
 
     // third part: return the payload.
-    StringList status;
+    EStringList status;
 
     if ( d->messageCount ) {
         Row * r = d->messageCount->nextRow();

@@ -5,7 +5,7 @@
 
 #include "patriciatree.h"
 #include "ustring.h"
-#include "string.h"
+#include "estring.h"
 
 
 template<class T>
@@ -13,16 +13,16 @@ class Dict: public PatriciaTree<T> {
 public:
     Dict(): PatriciaTree<T>() {}
 
-    T * find( const String & s ) const {
+    T * find( const EString & s ) const {
         return PatriciaTree<T>::find( s.data(), s.length() * 8 );
     }
-    void insert( const String & s, T* r ) {
+    void insert( const EString & s, T* r ) {
         PatriciaTree<T>::insert( s.data(), s.length() * 8, r );
     }
-    T* remove( const String & s ) {
+    T* remove( const EString & s ) {
         return PatriciaTree<T>::remove( s.data(), s.length() * 8 );
     }
-    bool contains( const String & s ) const {
+    bool contains( const EString & s ) const {
         return find( s ) != 0;
     }
 

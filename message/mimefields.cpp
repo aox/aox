@@ -3,7 +3,7 @@
 #include "mimefields.h"
 
 #include "field.h"
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
 #include "parser.h"
 #include "codec.h"
@@ -19,9 +19,9 @@ public:
     struct Parameter
         : public Garbage
     {
-        String name;
-        String value;
-        Map<String> parts;
+        EString name;
+        EString value;
+        Map<EString> parts;
     };
     List< Parameter > parameters;
 };
@@ -48,12 +48,12 @@ MimeField::MimeField( HeaderField::Type t )
 /*! Returns a pointer to a list of the parameters for this MimeField.
     This is never a null pointer. */
 
-StringList *MimeField::parameters() const
+EStringList *MimeField::parameters() const
 {
-    StringList *l = new StringList;
+    EStringList *l = new EStringList;
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it ) {
-        l->append( new String( it->name ) );
+        l->append( new EString( it->name ) );
         ++it;
     }
     return l;
@@ -65,17 +65,17 @@ StringList *MimeField::parameters() const
     there are no parameters.
 */
 
-String MimeField::parameterString() const
+EString MimeField::parameterString() const
 {
-    String s;
+    EString s;
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it ) {
         s.append( "; " );
         s.append( it->name );
         s.append( "=" );
 
-        String v = it->value;
-        if ( v.boring( String::MIME ) )
+        EString v = it->value;
+        if ( v.boring( EString::MIME ) )
             s.append( v );
         else
             s.append( v.quoted() );
@@ -91,9 +91,9 @@ String MimeField::parameterString() const
     empty string.
 */
 
-String MimeField::parameter( const String &n ) const
+EString MimeField::parameter( const EString &n ) const
 {
-    String s = n.lower();
+    EString s = n.lower();
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
@@ -107,9 +107,9 @@ String MimeField::parameter( const String &n ) const
     previous setting.
 */
 
-void MimeField::addParameter( const String &n, const String &v )
+void MimeField::addParameter( const EString &n, const EString &v )
 {
-    String s = n.lower();
+    EString s = n.lower();
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
@@ -129,9 +129,9 @@ void MimeField::addParameter( const String &n, const String &v )
     nothing if there is no such parameter.
 */
 
-void MimeField::removeParameter( const String &n )
+void MimeField::removeParameter( const EString &n )
 {
-    String s = n.lower();
+    EString s = n.lower();
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
@@ -164,7 +164,7 @@ void MimeField::parseParameters( EmailParser *p )
             done = true;
         first = false;
         if ( !done ) {
-            String n = p->mimeToken().lower();
+            EString n = p->mimeToken().lower();
             p->comment();
             bool havePart = false;
             uint partNumber = 0;
@@ -210,7 +210,7 @@ void MimeField::parseParameters( EmailParser *p )
 
             p->step();
             p->whitespace();
-            String v;
+            EString v;
             if ( p->nextChar() == '"' ) {
                 v = p->mimeValue();
             }
@@ -241,7 +241,7 @@ void MimeField::parseParameters( EmailParser *p )
                     it = d->parameters.find( pm );
                 }
                 if ( havePart )
-                    it->parts.insert( partNumber, new String( v ) );
+                    it->parts.insert( partNumber, new EString( v ) );
                 else
                     it->value = v;
             }
@@ -253,7 +253,7 @@ void MimeField::parseParameters( EmailParser *p )
         if ( it->value.isEmpty() && it->parts.find( 0 ) ) {
             // I get to be naughty too sometimes
             uint n = 0;
-            String * v;
+            EString * v;
             while ( (v=it->parts.find( n++ )) )
                 it->value.append( *v );
         }
@@ -262,23 +262,23 @@ void MimeField::parseParameters( EmailParser *p )
 }
 
 
-String MimeField::rfc822() const
+EString MimeField::rfc822() const
 {
-    String s = baseValue();
+    EString s = baseValue();
     uint lineLength = name().length() + 2 + s.length();
 
-    StringList words;
+    EStringList words;
     List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it ) {
-        String s = it->value;
-        if ( !s.boring( String::MIME ) )
+        EString s = it->value;
+        if ( !s.boring( EString::MIME ) )
             s = s.quoted();
         words.append( it->name + "=" + s );
         ++it;
     }
 
     while ( !words.isEmpty() ) {
-        StringList::Iterator i( words );
+        EStringList::Iterator i( words );
         while ( i && lineLength + 2 + i->length() > 78 )
             ++i;
         if ( i ) {
@@ -311,7 +311,7 @@ UString MimeField::value() const
 }
 
 
-/*! \fn virtual String MimeField::baseValue() const
+/*! \fn virtual EString MimeField::baseValue() const
 
     This pure virtual function is used by rfc822() and value() to
     fetch the value of this header field without any parameters().
@@ -346,7 +346,7 @@ ContentType::~ContentType()
 }
 
 
-void ContentType::parse( const String &s )
+void ContentType::parse( const EString &s )
 {
     EmailParser p( s );
     p.whitespace();
@@ -423,7 +423,7 @@ void ContentType::parse( const String &s )
             }
             parseParameters( &p );
             if ( mustGuess ) {
-                String fn = parameter( "name" );
+                EString fn = parameter( "name" );
                 if ( fn.isEmpty() )
                     fn = parameter( "filename" );
                 while ( fn.endsWith( "." ) )
@@ -455,7 +455,7 @@ void ContentType::parse( const String &s )
         if ( csp.present( "=" ) )
             csp.whitespace();
         uint m = csp.mark();
-        String b = csp.string();
+        EString b = csp.string();
         if ( b.isEmpty() || !csp.ok() ) {
             csp.restore( m );
             b = csp.input().mid( csp.pos() ).section( ";", 1 ).simplified();
@@ -476,7 +476,7 @@ void ContentType::parse( const String &s )
     if ( !parameter( "charset" ).isEmpty() ) {
         Codec * c = Codec::byName( parameter( "charset" ) );
         if ( c ) {
-            String cs = c->name().lower();
+            EString cs = c->name().lower();
             if ( t == "text" && cs == "us-ascii" )
                 removeParameter( "charset" );
             else if ( cs != parameter( "charset" ).lower() )
@@ -501,7 +501,7 @@ void ContentType::parse( const String &s )
 
 /*! Returns the media type as a lower-case string. */
 
-String ContentType::type() const
+EString ContentType::type() const
 {
     return t;
 }
@@ -509,13 +509,13 @@ String ContentType::type() const
 
 /*! Returns the media subtype as a lower-case string. */
 
-String ContentType::subtype() const
+EString ContentType::subtype() const
 {
     return st;
 }
 
 
-String ContentType::baseValue() const
+EString ContentType::baseValue() const
 {
     return t + "/" + st;
 }
@@ -541,25 +541,25 @@ ContentTransferEncoding::ContentTransferEncoding()
 }
 
 
-void ContentTransferEncoding::parse( const String &s )
+void ContentTransferEncoding::parse( const EString &s )
 {
     EmailParser p( s );
 
-    String t = p.mimeValue().lower();
+    EString t = p.mimeValue().lower();
     p.comment();
     // XXX shouldn't we do p.end() here and record parse errors?
 
     if ( t == "7bit" || t == "8bit" || t == "8bits" || t == "binary" ||
          t == "unknown" )
-        setEncoding( String::Binary );
+        setEncoding( EString::Binary );
     else if ( t == "quoted-printable" )
-        setEncoding( String::QP );
+        setEncoding( EString::QP );
     else if ( t == "base64" )
-        setEncoding( String::Base64 );
+        setEncoding( EString::Base64 );
     else if ( t == "x-uuencode" || t == "uuencode" )
-        setEncoding( String::Uuencode );
+        setEncoding( EString::Uuencode );
     else if ( t.contains( "bit" ) && t[0] >= '0' && t[0] <= '9' )
-        setEncoding( String::Binary );
+        setEncoding( EString::Binary );
     else
         setError( "Invalid c-t-e value: " + t.quoted() );
 }
@@ -570,7 +570,7 @@ void ContentTransferEncoding::parse( const String &s )
     attempt to preserve field order.
 */
 
-void ContentTransferEncoding::setEncoding( String::Encoding en )
+void ContentTransferEncoding::setEncoding( EString::Encoding en )
 {
     e = en;
 }
@@ -578,26 +578,26 @@ void ContentTransferEncoding::setEncoding( String::Encoding en )
 
 /*! Returns the encoding, or Binary in case of error. */
 
-String::Encoding ContentTransferEncoding::encoding() const
+EString::Encoding ContentTransferEncoding::encoding() const
 {
     return e;
 }
 
 
-String ContentTransferEncoding::baseValue() const
+EString ContentTransferEncoding::baseValue() const
 {
-    String s;
+    EString s;
     switch ( e ) {
-    case String::Binary:
+    case EString::Binary:
         s = "7bit";
         break;
-    case String::QP:
+    case EString::QP:
         s = "quoted-printable";
         break;
-    case String::Base64:
+    case EString::Base64:
         s = "base64";
         break;
-    case String::Uuencode:
+    case EString::Uuencode:
         s = "x-uuencode";
         break;
     }
@@ -624,12 +624,12 @@ ContentDisposition::ContentDisposition()
 
 /*! Parses a Content-Disposition field in \a s. */
 
-void ContentDisposition::parse( const String &s )
+void ContentDisposition::parse( const EString &s )
 {
     EmailParser p( s );
 
     uint m = p.mark();
-    String t = p.mimeToken().lower();
+    EString t = p.mimeToken().lower();
     p.whitespace();
     if ( p.nextChar() == '=' && t != "inline" && t != "attachment" )
         p.restore( m ); // handle c-d: filename=foo
@@ -660,7 +660,7 @@ ContentDisposition::Disposition ContentDisposition::disposition() const
 }
 
 
-String ContentDisposition::baseValue() const
+EString ContentDisposition::baseValue() const
 {
     return d;
 }
@@ -696,14 +696,14 @@ ContentLanguage::~ContentLanguage()
 
 /*! Parses a Content-Language field in \a s. */
 
-void ContentLanguage::parse( const String &s )
+void ContentLanguage::parse( const EString &s )
 {
     EmailParser p( s );
 
     do {
         // We're not going to bother trying to validate language tags.
         p.comment();
-        String t = p.mimeToken();
+        EString t = p.mimeToken();
         if ( t != "" )
             l.append( t );
         p.comment();
@@ -716,13 +716,13 @@ void ContentLanguage::parse( const String &s )
 
 /*! Returns the list of language tags. */
 
-const StringList *ContentLanguage::languages() const
+const EStringList *ContentLanguage::languages() const
 {
     return &l;
 }
 
 
-String ContentLanguage::baseValue() const
+EString ContentLanguage::baseValue() const
 {
     return l.join( ", " );
 }

@@ -6,7 +6,7 @@
 #include "global.h"
 
 
-class Selector * parseSelector( class StringList * );
+class Selector * parseSelector( class EStringList * );
 
 
 #endif

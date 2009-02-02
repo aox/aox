@@ -2,7 +2,7 @@
 
 #include "integerset.h"
 
-#include "stringlist.h"
+#include "estringlist.h"
 #include "map.h"
 
 
@@ -470,7 +470,7 @@ void IntegerSet::clear()
 }
 
 
-static void addRange( String & r, uint s, uint e )
+static void addRange( EString & r, uint s, uint e )
 {
     if ( !r.isEmpty() )
         r.append( ',' );
@@ -492,9 +492,9 @@ static void addRange( String & r, uint s, uint e )
     If the set is empty, so is the returned string.
 */
 
-String IntegerSet::set() const
+EString IntegerSet::set() const
 {
-    String r;
+    EString r;
     r.reserve( 2222 );
     uint s = 0;
     uint e = 0;
@@ -540,9 +540,9 @@ String IntegerSet::set() const
     decimal numbers.
 */
 
-String IntegerSet::csl() const
+EString IntegerSet::csl() const
 {
-    String r;
+    EString r;
     r.reserve( 2222 );
 
     Map<SetData::Block>::Iterator it( d->b );

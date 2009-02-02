@@ -33,7 +33,7 @@ public:
     This class handles the "aox add view" command.
 */
 
-CreateView::CreateView( StringList * args )
+CreateView::CreateView( EStringList * args )
     : AoxCommand( args ), d( new CreateViewData )
 {
 }

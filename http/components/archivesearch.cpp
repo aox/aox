@@ -107,7 +107,7 @@ void ArchiveSearch::execute()
         ++i;
     }
 
-    String s;
+    EString s;
 
     s.append( "<p>" );
     s.appendNumber( d->matchesSome.count() );
@@ -182,11 +182,11 @@ void ArchiveSearch::sendQueries()
 {
     List<ArchiveSearchData::SearchTerm>::Iterator term( d->terms );
     while ( term ) {
-        String localpart;
-        String domain;
-        String t8 = term->term.utf8();
+        EString localpart;
+        EString domain;
+        EString t8 = term->term.utf8();
         if ( t8.contains( '@' ) ) {
-            StringList * l = StringList::split( '@', t8 );
+            EStringList * l = EStringList::split( '@', t8 );
             if ( l->count() == 2 ) {
                 localpart = l->first()->lower();
                 domain = l->last()->lower();
@@ -243,7 +243,7 @@ void ArchiveSearch::sendQueries()
             term->query->bind( 3, domain );
         }
         else {
-            String s;
+            EString s;
             s = "select mm.uid from mailbox_messages mm "
                 "left join header_fields hf on "
                 " (mm.message=hf.message and hf.field=20 and "
@@ -283,9 +283,9 @@ void ArchiveSearch::setTitle()
 
 /*! Returns HTML to describe the search terms as parsed and used. */
 
-String ArchiveSearch::searchTerms() const
+EString ArchiveSearch::searchTerms() const
 {
-    String s( "<ul class=searchtermlist>\n" );
+    EString s( "<ul class=searchtermlist>\n" );
     List<ArchiveSearchData::SearchTerm>::Iterator i( d->terms );
     while ( i ) {
         s.append( "<li>" );
@@ -362,10 +362,10 @@ bool ArchiveSearch::queriesDone() const
 /*! Returns a list of search results, optimised for small result
     set. */
 
-String ArchiveSearch::shortishResultList() const
+EString ArchiveSearch::shortishResultList() const
 {
     const PageComponent * p = this;
-    String s( "<div class=searchresults>\n" );
+    EString s( "<div class=searchresults>\n" );
 
     IntegerSet m = d->matchesAll;
     bool stillAll = true;
@@ -396,7 +396,7 @@ String ArchiveSearch::shortishResultList() const
     sets.
 */
 
-String ArchiveSearch::middlingResultList() const
+EString ArchiveSearch::middlingResultList() const
 {
     // I'm tired, tired, tired, and don't have good ideas now.
     return looongResultList();
@@ -407,9 +407,9 @@ String ArchiveSearch::middlingResultList() const
     sets.
 */
 
-String ArchiveSearch::looongResultList() const
+EString ArchiveSearch::looongResultList() const
 {
-    String s( "<div class=searchresults>\n" );
+    EString s( "<div class=searchresults>\n" );
 
     List<SubjectThread>::Iterator i( d->all );
     bool stillAll = true;

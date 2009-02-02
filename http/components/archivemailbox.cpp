@@ -168,8 +168,8 @@ void ArchiveMailbox::execute()
         Address * a = addresses.find( aid );
         if ( !a ) {
             a = new Address( r->getUString( "name" ),
-                             r->getString( "localpart" ),
-                             r->getString( "domain" ) );
+                             r->getEString( "localpart" ),
+                             r->getEString( "domain" ) );
             a->setId( aid );
             addresses.insert( aid, a );
         }
@@ -190,7 +190,7 @@ void ArchiveMailbox::execute()
         if ( r->isNull( "value" ) )
             ct->parse( "text/plain" );
         else
-            ct->parse( r->getString( "value" ) ); // parse? is that correct?
+            ct->parse( r->getEString( "value" ) ); // parse? is that correct?
         ArchiveMailboxData::Message * m = d->messages.find( uid );
         if ( !m )
             m = new ArchiveMailboxData::Message( uid, d );
@@ -207,13 +207,13 @@ void ArchiveMailbox::execute()
                 if ( !c )
                     c = new AsciiCodec;
                 MessageRendering mr;
-                mr.setTextHtml( r->getString( "data" ), c );
+                mr.setTextHtml( r->getEString( "data" ), c );
                 m->text = mr.excerpt();
             }
         }
     }
 
-    log( String("Query doneness: ") +
+    log( EString("Query doneness: ") +
          ( d->af->done() ? "af " : "" ) +
          ( d->idate->done() ? "idate " : "" ) +
          ( d->text->done() ? "text " : "" ),
@@ -231,7 +231,7 @@ void ArchiveMailbox::execute()
     // subjects, from and thread information is ready now.
 
     addresses.clear();
-    String s;
+    EString s;
     List<SubjectThread>::Iterator
         it( t->subjectThreads()->sorted( (Comparator*)byFirstYid ) );
     while ( it ) {
@@ -248,9 +248,9 @@ void ArchiveMailbox::execute()
 /*! This private helper returns a HTML rendering of \a t.
 */
 
-String ArchiveMailbox::threadRendering( SubjectThread * t )
+EString ArchiveMailbox::threadRendering( SubjectThread * t )
 {
-    String s;
+    EString s;
     List<Address> responders;
     Dict<Address> addresses;
     IntegerSet from( t->members() );
@@ -272,7 +272,7 @@ String ArchiveMailbox::threadRendering( SubjectThread * t )
             while ( it ) {
                 Address * a = it;
                 ++it;
-                String key = a->localpart().lower();
+                EString key = a->localpart().lower();
                 key.append( "@" );
                 key.append( a->domain().lower() );
                 if ( !addresses.contains( key ) ) {
@@ -419,7 +419,7 @@ static const char * monthnames[12] = {
     \a uids.
 */
 
-String ArchiveMailbox::timespan( const IntegerSet & uids ) const
+EString ArchiveMailbox::timespan( const IntegerSet & uids ) const
 {
     uint oidate = UINT_MAX;
     uint yidate = 0;
@@ -443,7 +443,7 @@ String ArchiveMailbox::timespan( const IntegerSet & uids ) const
     Date n;
     n.setCurrentTime();
 
-    String r;
+    EString r;
     if ( y.year() == o.year() &&
          y.month() == o.month() &&
          y.day() == o.day() ) {

@@ -3,7 +3,7 @@
 #include "sieveaction.h"
 
 #include "ustring.h"
-#include "string.h"
+#include "estring.h"
 
 
 class SieveActionData
@@ -22,7 +22,7 @@ public:
     Address * recipient;
     Injectee * message;
     UString handle;
-    String errorMessage;
+    EString errorMessage;
     uint expiry;
 };
 
@@ -149,7 +149,7 @@ bool SieveAction::failed() const
     is Error.
 */
 
-void SieveAction::setErrorMessage( const String & m )
+void SieveAction::setErrorMessage( const EString & m )
 {
     d->errorMessage = m;
 }
@@ -159,7 +159,7 @@ void SieveAction::setErrorMessage( const String & m )
     setErrorMessage() has not been called.
 */
 
-String SieveAction::errorMessage() const
+EString SieveAction::errorMessage() const
 {
     return d->errorMessage;
 }

@@ -4,7 +4,7 @@
 #define AUTHENTICATE_H
 
 #include "command.h"
-#include "string.h"
+#include "estring.h"
 
 
 class Authenticate
@@ -19,8 +19,8 @@ public:
 
 private:
     class SaslMechanism * m;
-    String * r;
-    String t;
+    EString * r;
+    EString t;
 };
 
 

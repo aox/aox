@@ -7,21 +7,21 @@
 #include "estring.h"
 
 
-class StringList
-    : public List< String >
+class EStringList
+    : public List< EString >
 {
 public:
-    StringList();
+    EStringList();
 
-    void append( String * s ) { List<String>::append( s ); }
-    void append( const String & );
+    void append( EString * s ) { List<EString>::append( s ); }
+    void append( const EString & );
     void append( const char * );
 
     void removeDuplicates( bool = true );
-    bool contains( const String & ) const;
+    bool contains( const EString & ) const;
 
-    String join( const String & ) const;
-    static StringList *split( char, const String & );
+    EString join( const EString & ) const;
+    static EStringList *split( char, const EString & );
 };
 
 

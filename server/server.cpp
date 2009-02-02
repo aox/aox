@@ -31,7 +31,7 @@
 #include "log.h"
 #include "file.h"
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "connection.h"
@@ -56,9 +56,9 @@ public:
           mainProcess( false )
     {}
 
-    String name;
+    EString name;
     Server::Stage stage;
-    String configFile;
+    EString configFile;
     bool secured;
     bool fork;
     bool useCache;
@@ -243,10 +243,10 @@ void Server::nameResolution()
 {
     List<Configuration::Text>::Iterator i( Configuration::addressVariables() );
     while ( i ) {
-        const StringList & r
+        const EStringList & r
             = Resolver::resolve( Configuration::text( *i ) );
         if ( r.isEmpty() ) {
-            log( String("Unable to resolve ") +
+            log( EString("Unable to resolve ") +
                  Configuration::name( *i ) +
                  " = " + Configuration::text( *i ),
                  Log::Disaster );
@@ -256,7 +256,7 @@ void Server::nameResolution()
     if ( !Log::disastersYet() )
         return;
 
-    StringList::Iterator e( Resolver::errors() );
+    EStringList::Iterator e( Resolver::errors() );
     while ( e ) {
         log( *e );
         ++e;
@@ -408,9 +408,9 @@ void Server::pidFile()
     if ( !d->mainProcess )
         return;
 
-    String dir( Configuration::compiledIn( Configuration::PidFileDir ) );
+    EString dir( Configuration::compiledIn( Configuration::PidFileDir ) );
 
-    String n = dir + "/" + d->name + ".pid";
+    EString n = dir + "/" + d->name + ".pid";
     File f( n, File::Write );
     if ( f.valid() )
         f.write( fn( getpid() ) + "\n" );
@@ -428,7 +428,7 @@ void Server::logStartup()
     log( "Starting server " + d->name +
          " (host " + Configuration::hostname() + ")" +
          " (pid " + fn( getpid() ) + ") " +
-         String( d->secured ? "securely" : "insecurely" ) );
+         EString( d->secured ? "securely" : "insecurely" ) );
 }
 
 
@@ -452,7 +452,7 @@ void Server::secure()
         return;
     }
 
-    String user( Configuration::text( Configuration::JailUser ) );
+    EString user( Configuration::text( Configuration::JailUser ) );
     struct passwd * pw = getpwnam( user.cstr() );
     if ( !pw ) {
         log( "Cannot secure server " + d->name +
@@ -467,7 +467,7 @@ void Server::secure()
         exit( 1 );
     }
 
-    String group( Configuration::text( Configuration::JailGroup ) );
+    EString group( Configuration::text( Configuration::JailGroup ) );
     struct group * gr = getgrnam( group.cstr() );
     if ( !gr ) {
         log( "Cannot secure server " + d->name +
@@ -476,7 +476,7 @@ void Server::secure()
         exit( 1 );
     }
 
-    String cfn( d->configFile );
+    EString cfn( d->configFile );
     if ( cfn.isEmpty() )
         cfn = Configuration::configFile();
 
@@ -514,7 +514,7 @@ void Server::secure()
         exit( 1 );
     }
 
-    String root;
+    EString root;
     switch ( d->chrootMode ) {
     case MessageCopyDir:
         root = Configuration::text( Configuration::MessageCopyDir );
@@ -661,7 +661,7 @@ void Server::run()
     Is server the right way to publicise this name?
 */
 
-String Server::name()
+EString Server::name()
 {
     if ( d )
         return d->name;

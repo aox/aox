@@ -3,22 +3,22 @@
 #ifndef FRONTMATTER_H
 #define FRONTMATTER_H
 
-#include "string.h"
+#include "estring.h"
 
 
 class FrontMatter
-    : public String
+    : public EString
 {
 public:
-    FrontMatter( const String & );
+    FrontMatter( const EString & );
 
-    String element() const;
+    EString element() const;
 
-    static FrontMatter * title( const String & );
+    static FrontMatter * title( const EString & );
     static FrontMatter * styleSheet();
-    static FrontMatter * style( const String & );
+    static FrontMatter * style( const EString & );
     static FrontMatter * jQuery();
-    static FrontMatter * script( const String & );
+    static FrontMatter * script( const EString & );
     static FrontMatter * jsToggles();
 
 private:

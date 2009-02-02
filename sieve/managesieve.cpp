@@ -4,11 +4,11 @@
 
 #include "log.h"
 #include "query.h"
-#include "string.h"
+#include "estring.h"
 #include "buffer.h"
 #include "mechanism.h"
 #include "eventloop.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "configuration.h"
 #include "sieveproduction.h"
 #include "managesievecommand.h"
@@ -31,7 +31,7 @@ public:
     ManageSieveCommand * reader;
     bool reserved;
 
-    String arg;
+    EString arg;
 
     bool readingLiteral;
     uint literalSize;
@@ -122,7 +122,7 @@ void ManageSieve::parse()
             if ( d->reserved )
                 break;
 
-            String * s = b->removeLine( 3072 );
+            EString * s = b->removeLine( 3072 );
 
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +
@@ -182,7 +182,7 @@ void ManageSieve::addCommand()
     if ( i < 0 )
         i = d->arg.length();
 
-    String cmd = d->arg.mid( 0, i ).lower();
+    EString cmd = d->arg.mid( 0, i ).lower();
     d->arg = d->arg.mid( i+1 );
 
     ManageSieveCommand::Command c = ManageSieveCommand::Unknown;
@@ -225,7 +225,7 @@ void ManageSieve::addCommand()
 
 /*! Sends \a s as a positive OK response. */
 
-void ManageSieve::ok( const String &s )
+void ManageSieve::ok( const EString &s )
 {
     enqueue( "OK" );
     if ( !s.isEmpty() )
@@ -236,7 +236,7 @@ void ManageSieve::ok( const String &s )
 
 /*! Sends \a s as a negative NO response. */
 
-void ManageSieve::no( const String &s )
+void ManageSieve::no( const EString &s )
 {
     enqueue( "NO" );
     if ( !s.isEmpty() )
@@ -248,7 +248,7 @@ void ManageSieve::no( const String &s )
 
 /*! Sends the literal response \a s without adding a tag. */
 
-void ManageSieve::send( const String &s )
+void ManageSieve::send( const EString &s )
 {
     enqueue( s );
     enqueue( "\r\n" );
@@ -309,7 +309,7 @@ void ManageSieve::capabilities()
 {
     // Avelsieve buggily demands that IMPLEMENTATION be the first
     // advertise extension.
-    String v( Configuration::compiledIn( Configuration::Version ) );
+    EString v( Configuration::compiledIn( Configuration::Version ) );
     enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
 
     enqueue( "\"SIEVE\" " +
@@ -333,7 +333,7 @@ void ManageSieve::capabilities()
 */
 
 
-void ManageSieve::sendChallenge( const String & s )
+void ManageSieve::sendChallenge( const EString & s )
 {
     enqueue( "{" );
     enqueue( fn( s.length() ) );

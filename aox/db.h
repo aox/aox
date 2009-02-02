@@ -10,7 +10,7 @@ class ShowSchema
     : public AoxCommand
 {
 public:
-    ShowSchema( StringList * );
+    ShowSchema( EStringList * );
     void execute();
 
 private:
@@ -22,7 +22,7 @@ class UpgradeSchema
     : public AoxCommand
 {
 public:
-    UpgradeSchema( StringList * );
+    UpgradeSchema( EStringList * );
     void execute();
 
 private:
@@ -34,7 +34,7 @@ class Vacuum
     : public AoxCommand
 {
 public:
-    Vacuum( StringList * );
+    Vacuum( EStringList * );
     void execute();
 
 private:
@@ -46,7 +46,7 @@ class GrantPrivileges
     : public AoxCommand
 {
 public:
-    GrantPrivileges( StringList * );
+    GrantPrivileges( EStringList * );
     void execute();
 
 private:
@@ -59,7 +59,7 @@ class TuneDatabase
     : public AoxCommand
 {
 public:
-    TuneDatabase( StringList * );
+    TuneDatabase( EStringList * );
     void execute();
 
 private:

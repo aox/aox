@@ -7,7 +7,7 @@
 #include "list.h"
 
 
-class String;
+class EString;
 class Filter;
 
 
@@ -19,7 +19,7 @@ public:
 
     void addFilter( Filter * );
 
-    void append( const String & );
+    void append( const EString & );
     void append( const char *, uint = 0 );
 
     void read( int );
@@ -29,8 +29,8 @@ public:
     uint error() const;
     uint size() const { return bytes; }
     void remove( uint );
-    String string( uint ) const;
-    String * removeLine( uint = 0 );
+    EString string( uint ) const;
+    EString * removeLine( uint = 0 );
 
     char operator[]( uint i ) const {
         if ( i >= bytes )

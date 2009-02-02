@@ -3,7 +3,7 @@
 #include "logclient.h"
 
 #include "eventloop.h"
-#include "string.h"
+#include "estring.h"
 #include "server.h"
 #include "connection.h"
 #include "configuration.h"
@@ -20,7 +20,7 @@
 
 /* This static function returns a nicely-formatted timestamp. */
 
-static String time()
+static EString time()
 {
     struct timeval tv;
     struct timezone tz;
@@ -84,7 +84,7 @@ public:
 
     Endpoint logServer;
     Logger *owner;
-    String name;
+    EString name;
 };
 
 
@@ -106,14 +106,14 @@ LogClient::LogClient()
 }
 
 
-void LogClient::send( const String &id, Log::Severity s, const String & m )
+void LogClient::send( const EString &id, Log::Severity s, const EString & m )
 {
     // We need to re-establish the connection to the log server after
     // the tlsproxy forks.
     if ( d->state() == Connection::Invalid )
         d->reconnect();
 
-    String t( id );
+    EString t( id );
     t.reserve( m.length() + 35 );
     t.append( " x/" );
     t.append( Log::severity( s ) );
@@ -135,13 +135,13 @@ void LogClient::send( const String &id, Log::Severity s, const String & m )
     application.
 */
 
-void LogClient::setup( const String & n )
+void LogClient::setup( const EString & n )
 {
     Endpoint e( Configuration::LogAddress, Configuration::LogPort );
     if ( !e.valid() ) {
         fprintf( stderr,
                  "%s: Unable to parse log server address %s:%d\n",
-                 String(n).cstr(),
+                 EString(n).cstr(),
                  Configuration::text( Configuration::LogAddress ).cstr(),
                  Configuration::scalar( Configuration::LogPort ) );
         exit( -1 );
@@ -165,7 +165,7 @@ void LogClient::setup( const String & n )
 
 /*! Returns the logclient's name, as set using setup(). */
 
-String LogClient::name() const
+EString LogClient::name() const
 {
     return d->name;
 }

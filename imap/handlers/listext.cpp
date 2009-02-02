@@ -2,9 +2,9 @@
 
 #include "listext.h"
 
-#include "string.h"
+#include "estring.h"
 #include "ustring.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "ustringlist.h"
 #include "imapparser.h"
 #include "address.h"
@@ -33,7 +33,7 @@ public:
     Query * permissionsQuery;
     List<Mailbox> * subscribed;
     Mailbox * reference;
-    String referenceName;
+    EString referenceName;
     UStringList patterns;
     uint state;
 
@@ -44,8 +44,8 @@ public:
         Permissions( Mailbox * m ): mailbox( m ), set( false ) {}
         Mailbox * mailbox;
         bool set;
-        String user;
-        String anyone;
+        EString user;
+        EString anyone;
     };
 
     Map<Permissions> permissions;
@@ -56,10 +56,10 @@ public:
         : public Garbage
     {
     public:
-        Response( Mailbox * m, const String & r )
+        Response( Mailbox * m, const EString & r )
             : mailbox( m ), response ( r ) {}
         Mailbox * mailbox;
-        String response;
+        EString response;
     };
 
     List<Response> responses;
@@ -193,7 +193,7 @@ void Listext::execute()
         UStringList::Iterator it( d->patterns );
         while ( it ) {
             if ( it->isEmpty() && !d->extended ) {
-                String r;
+                EString r;
                 if ( d->reference == Mailbox::root() )
                     r = "LIST (\\noselect) \"/\" \"/\"";
                 else
@@ -248,14 +248,14 @@ void Listext::execute()
             Row * r = d->permissionsQuery->nextRow();
             Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
             if ( m ) {
-                String identifier = r->getString( "identifier" );
+                EString identifier = r->getEString( "identifier" );
                 ListextData::Permissions * p = d->permissions.find( m->id() );
                 if ( p ) {
                     p->set = true;
                     if ( identifier == "anyone" )
-                        p->anyone = r->getString( "rights" );
+                        p->anyone = r->getEString( "rights" );
                     else
-                        p->user = r->getString( "rights" );
+                        p->user = r->getEString( "rights" );
                 }
             }
         }
@@ -272,7 +272,7 @@ void Listext::execute()
                 respond( i->response );
             }
             else {
-                String r;
+                EString r;
                 bool set = false;
                 while ( m && r.isEmpty() ) {
                     ListextData::Permissions * p
@@ -299,7 +299,7 @@ void Listext::execute()
 /*! Parses and remembers the return \a option, or emits a suitable
     error. \a option must be in lower case.*/
 
-void Listext::addReturnOption( const String & option )
+void Listext::addReturnOption( const EString & option )
 {
     if ( option == "subscribed" )
         d->returnSubscribed = true;
@@ -313,7 +313,7 @@ void Listext::addReturnOption( const String & option )
 /*! Parses the selection \a option, or emits a suitable error. \a
     option must be lower-cased. */
 
-void Listext::addSelectOption( const String & option )
+void Listext::addSelectOption( const EString & option )
 {
     if ( option == "subscribed" )
         d->selectSubscribed = true;
@@ -409,7 +409,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
         return;
 
     bool childSubscribed = false;
-    StringList a;
+    EStringList a;
 
     // add the easy mailbox attributes
     if ( mailbox->deleted() )
@@ -445,9 +445,9 @@ void Listext::sendListResponse( Mailbox * mailbox )
         }
     }
 
-    String name = imapQuoted( mailbox );
+    EString name = imapQuoted( mailbox );
 
-    String ext = "";
+    EString ext = "";
     if ( childSubscribed ) {
         ext = " (";
         if ( childSubscribed )
@@ -455,7 +455,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
         ext.append( ")" );
     }
 
-    String r = "LIST (" + a.join( " " ) + ") \"/\" " + name + ext;
+    EString r = "LIST (" + a.join( " " ) + ") \"/\" " + name + ext;
     d->responses.append( new ListextData::Response( mailbox, r ) );
 }
 
@@ -466,7 +466,7 @@ void Listext::reference()
 {
     uint x = parser()->mark();
     d->reference = 0;
-    String s = parser()->astring();
+    EString s = parser()->astring();
     if ( s.isEmpty() ) {
         if ( imap()->user() )
             d->reference = imap()->user()->home();

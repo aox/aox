@@ -7,7 +7,7 @@
 #include "configuration.h"
 #include "eventloop.h"
 #include "resolver.h"
-#include "string.h"
+#include "estring.h"
 #include "log.h"
 
 
@@ -16,7 +16,7 @@ class Listener
     : public Connection
 {
 public:
-    Listener( const Endpoint &e, const String & s, bool silent = false )
+    Listener( const Endpoint &e, const EString & s, bool silent = false )
         : Connection(), svc( s )
     {
         setType( Connection::Listener );
@@ -29,7 +29,7 @@ public:
     void write() {}
     bool canRead() { return true; }
     bool canWrite() { return false; }
-    String description() const {
+    EString description() const {
         return svc + " " + Connection::description();
     }
 
@@ -54,7 +54,7 @@ public:
         }
     }
 
-    static void create( const String &svc, bool use,
+    static void create( const EString &svc, bool use,
                         Configuration::Text address,
                         Configuration::Scalar port )
     {
@@ -65,9 +65,9 @@ public:
         bool use6 = Configuration::toggle( Configuration::UseIPv6 );
 
         uint c = 0;
-        String a = Configuration::text( address );
+        EString a = Configuration::text( address );
         uint p = Configuration::scalar( port );
-        StringList addresses;
+        EStringList addresses;
         bool any6 = false;
 
         if ( a.isEmpty() ) {
@@ -78,14 +78,14 @@ public:
         }
         else {
             // XXX: Hack to make it compile
-            StringList::Iterator it( Resolver::resolve( a ) );
+            EStringList::Iterator it( Resolver::resolve( a ) );
             while ( it ) {
                 addresses.append( *it );
                 ++it;
             }
         }
 
-        StringList::Iterator it( addresses );
+        EStringList::Iterator it( addresses );
         while ( it ) {
             Endpoint e( *it, p );
             if ( e.valid() ) {
@@ -131,7 +131,7 @@ public:
                     }
                 }
                 else {
-                    String r;
+                    EString r;
                     r.append( "Ignoring address " );
                     r.append( e.address() );
                     if ( !a.isEmpty() ) {
@@ -163,7 +163,7 @@ public:
     }
 
 private:
-    String svc;
+    EString svc;
 };
 
 #endif

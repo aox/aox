@@ -7,7 +7,7 @@
 
 
 class Query;
-class String;
+class EString;
 
 
 class Schema
@@ -18,13 +18,13 @@ public:
     Query * result() const;
     void execute();
 
-    String serverVersion() const;
+    EString serverVersion() const;
 
     static void checkRevision( EventHandler * );
 
 private:
     class SchemaData *d;
-    void fail( const String &, Query * = 0 );
+    void fail( const EString &, Query * = 0 );
     bool singleStep();
     bool stepTo2();
     bool stepTo3();
@@ -109,7 +109,7 @@ private:
     bool stepTo82();
     bool stepTo83();
 
-    void describeStep( const String & );
+    void describeStep( const EString & );
 };
 
 

@@ -22,7 +22,7 @@ public:
 
     Transaction::State state;
     Transaction * parent;
-    String savepoint;
+    EString savepoint;
     uint children;
     bool submittedCommit;
     bool submittedBegin;
@@ -32,7 +32,7 @@ public:
     List< Query > *queries;
 
     Query * failedQuery;
-    String error;
+    EString error;
 };
 
 
@@ -192,7 +192,7 @@ void Transaction::clearError()
     was not specific to a query within the transaction).
 */
 
-void Transaction::setError( Query * query, const String &s )
+void Transaction::setError( Query * query, const EString &s )
 {
     if ( d->state == Failed || !d->owner )
         return;
@@ -209,7 +209,7 @@ void Transaction::setError( Query * query, const String &s )
     d->state = Failed;
     if ( !query )
         return;
-    String qs = query->string();
+    EString qs = query->string();
     if ( qs.startsWith( "select " ) && qs.contains( " from " ) )
         qs = qs.section( " from ", 1 ) + "...";
     else if ( qs.startsWith( "insert into " ) && qs.contains( " values " ) )
@@ -228,7 +228,7 @@ void Transaction::setError( Query * query, const String &s )
     value is meaningful only if the Transaction has failed().
 */
 
-String Transaction::error() const
+EString Transaction::error() const
 {
     return d->error;
 }
@@ -369,7 +369,7 @@ private:
     Query * q;
 
 public:
-    SubtransactionTrampoline( const String & sp, Transaction * transaction )
+    SubtransactionTrampoline( const EString & sp, Transaction * transaction )
         : t( transaction ), q ( 0 )
     {
         q = new Query( "release savepoint " + sp, this );

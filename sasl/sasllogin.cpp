@@ -25,7 +25,7 @@ SaslLogin::SaslLogin( EventHandler * c )
 }
 
 
-String SaslLogin::challenge()
+EString SaslLogin::challenge()
 {
     if ( login().isEmpty() )
         return "Username:";
@@ -34,7 +34,7 @@ String SaslLogin::challenge()
 }
 
 
-void SaslLogin::parseResponse( const String &s )
+void SaslLogin::parseResponse( const EString &s )
 {
     if ( login().isEmpty() ) {
         if ( s.isEmpty() ) {

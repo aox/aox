@@ -16,7 +16,7 @@
 #include "injector.h"
 #include "allocator.h"
 #include "mechanism.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "sieveaction.h"
 #include "sievescript.h"
 #include "transaction.h"
@@ -35,7 +35,7 @@ public:
 
     ManageSieve * sieve;
     ManageSieveCommand::Command cmd;
-    String arg;
+    EString arg;
     uint pos;
 
     bool done;
@@ -46,14 +46,14 @@ public:
 
     Transaction * t;
     Query * query;
-    String no;
-    String ok;
+    EString no;
+    EString ok;
     uint step;
 
     // for putscript. I think we need subclasses here too.
     Dict<Mailbox> create;
-    String name;
-    String script;
+    EString name;
+    EString script;
 };
 
 
@@ -122,7 +122,7 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
     later. SASL authentication uses supplmenetary data.
 */
 
-void ManageSieveCommand::setArguments( const String & args )
+void ManageSieveCommand::setArguments( const EString & args )
 {
     d->arg = args;
     d->pos = 0;
@@ -276,11 +276,11 @@ bool ManageSieveCommand::startTls()
 bool ManageSieveCommand::authenticate()
 {
     if ( !d->m ) {
-        String t = string().lower();
-        String * r = 0;
+        EString t = string().lower();
+        EString * r = 0;
         if ( d->arg[d->pos] == ' ' ) {
             whitespace();
-            r = new String( string() );
+            r = new EString( string() );
         }
         end();
 
@@ -299,7 +299,7 @@ bool ManageSieveCommand::authenticate()
 
     if ( d->m->state() == SaslMechanism::AwaitingResponse &&
          d->arg.length() > d->pos )
-        d->m->readResponse( new String( string() ) );
+        d->m->readResponse( new EString( string() ) );
 
     if ( !d->m->done() )
         return false;
@@ -362,7 +362,7 @@ bool ManageSieveCommand::putScript()
         }
         SieveScript script;
         script.parse( d->script.crlf() );
-        String e = script.parseErrors();
+        EString e = script.parseErrors();
         if ( !e.isEmpty() ) {
             no( e );
             return true;
@@ -494,7 +494,7 @@ bool ManageSieveCommand::listScripts()
 
     while ( d->query->hasResults() ) {
         Row * r = d->query->nextRow();
-        String line = encoded( r->getString( "name" ) );
+        EString line = encoded( r->getEString( "name" ) );
         if ( r->getBoolean( "active" ) )
             line.append( " ACTIVE" );
         d->sieve->send( line );
@@ -512,7 +512,7 @@ bool ManageSieveCommand::listScripts()
 bool ManageSieveCommand::setActive()
 {
     if ( !d->t ) {
-        String name = string();
+        EString name = string();
         end();
         if ( !d->no.isEmpty() )
             return true;
@@ -550,15 +550,15 @@ bool ManageSieveCommand::setActive()
             return true;
         }
         d->query = 0;
-        if ( !r->getString( "name" ).isEmpty() ) {
+        if ( !r->getEString( "name" ).isEmpty() ) {
             Query * q = new Query( "update scripts set active=(name=$2) "
                                    "where owner=$1 and "
                                    "(name=$2 or active='t')",
                                    this );
             q->bind( 1, d->sieve->user()->id() );
-            q->bind( 2, r->getString( "name" ) );
+            q->bind( 2, r->getEString( "name" ) );
             d->t->enqueue( q );
-            log( "Activating script " + r->getString( "name" ) );
+            log( "Activating script " + r->getEString( "name" ) );
         }
         d->t->commit();
     }
@@ -578,7 +578,7 @@ bool ManageSieveCommand::setActive()
 bool ManageSieveCommand::getScript()
 {
     if ( !d->query ) {
-        String name = string();
+        EString name = string();
         end();
         d->query =
             new Query( "select script from scripts where owner=$1 and name=$2",
@@ -597,7 +597,7 @@ bool ManageSieveCommand::getScript()
     if ( !r )
         no( "No such script" );
     else if ( !d->query->failed() )
-        d->sieve->enqueue( encoded( r->getString( "script" ) ) + "\r\n" );
+        d->sieve->enqueue( encoded( r->getEString( "script" ) ) + "\r\n" );
 
     return true;
 }
@@ -653,9 +653,9 @@ bool ManageSieveCommand::deleteScript()
     or sends a NO.
 */
 
-String ManageSieveCommand::string()
+EString ManageSieveCommand::string()
 {
-    String r;
+    EString r;
     if ( d->arg[d->pos] == '"' ) {
         uint i = d->pos + 1;
         while ( i < d->arg.length() && d->arg[i] != '"' ) {
@@ -685,7 +685,7 @@ String ManageSieveCommand::string()
     }
 
     if ( d->no.isEmpty() )
-        log( "String argument: " + r, Log::Debug );
+        log( "EString argument: " + r, Log::Debug );
 
     return r;
 }
@@ -744,7 +744,7 @@ void ManageSieveCommand::end()
     message.
 */
 
-void ManageSieveCommand::no( const String & message )
+void ManageSieveCommand::no( const EString & message )
 {
     if ( d->no.isEmpty() ) {
         d->no = message;
@@ -757,7 +757,7 @@ void ManageSieveCommand::no( const String & message )
     string. Quoted is preferred, if possible.
 */
 
-String ManageSieveCommand::encoded( const String & input )
+EString ManageSieveCommand::encoded( const EString & input )
 {
     bool q = true;
     if ( input.length() > 1024 )
@@ -772,8 +772,8 @@ String ManageSieveCommand::encoded( const String & input )
     if ( q )
         return input.quoted();
 
-    String r( "{" );
-    r.append( String::fromNumber( input.length() ) );
+    EString r( "{" );
+    r.append( EString::fromNumber( input.length() ) );
     r.append( "+}\r\n" );
     r.append( input );
     return r;
@@ -826,9 +826,9 @@ bool ManageSieveCommand::explain()
 
     whitespace();
     while ( d->no.isEmpty() && d->pos < d->arg.length() ) {
-        String name = string();
+        EString name = string();
         whitespace();
-        String value = string();
+        EString value = string();
         whitespace();
         if ( name == "from" || name == "to" ) {
             if ( value.isEmpty() ) {
@@ -868,7 +868,7 @@ bool ManageSieveCommand::explain()
                 ::x->script->parse( value );
                 if ( ::x->script->isEmpty() )
                     no( "Script cannot be empty" );
-                String e = ::x->script->parseErrors();
+                EString e = ::x->script->parseErrors();
                 if ( !e.isEmpty() )
                     no( e );
             }
@@ -921,7 +921,7 @@ bool ManageSieveCommand::explain()
     uint n = 0;
     List<SieveAction>::Iterator sa( s.actions( ::x->to ) );
     while ( sa ) {
-        String r( "Action: " );
+        EString r( "Action: " );
         switch ( sa->type() ) {
         case SieveAction::Reject:
             r.append( "reject" );

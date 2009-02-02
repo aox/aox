@@ -10,7 +10,7 @@ class CreateView
     : public AoxCommand
 {
 public:
-    CreateView( StringList * );
+    CreateView( EStringList * );
     void execute();
 
 private:

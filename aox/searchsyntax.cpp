@@ -11,9 +11,9 @@
 #include <stdio.h> // fprintf, stderr
 
 
-static UString address( const String & i, const char * & e )
+static UString address( const EString & i, const char * & e )
 {
-    String r = i;
+    EString r = i;
     bool lt = false;
     if ( r.contains( '<' ) ) {
         if ( !r.contains( '>' ) )
@@ -47,9 +47,9 @@ static UString address( const String & i, const char * & e )
 }
 
 
-static UString domain( const String & i, const char * & e )
+static UString domain( const EString & i, const char * & e )
 {
-    String r = i;
+    EString r = i;
     if ( r.contains( '>' ) )
         r = r.mid( 0, r.find( '>' ) );
     r = r.lower();
@@ -73,7 +73,7 @@ static UString domain( const String & i, const char * & e )
 }
 
 
-static Selector * parseSelector( StringList * arguments,
+static Selector * parseSelector( EStringList * arguments,
                                  bool paren, const char * & e )
 {
     Selector * s = 0;
@@ -81,10 +81,10 @@ static Selector * parseSelector( StringList * arguments,
     bool seenAnd = false;
     bool seenOr = false;
     bool seenNot = false;
-    String * i = arguments->shift();
+    EString * i = arguments->shift();
     while ( i && !e ) {
-        String * n = arguments->firstElement();
-        String a = i->lower();
+        EString * n = arguments->firstElement();
+        EString a = i->lower();
         if ( a == "(" ) {
             children.append( parseSelector( arguments, true, e ) );
         }
@@ -205,7 +205,7 @@ static Selector * parseSelector( StringList * arguments,
         }
         else if ( a == "flag" ) {
             if ( n ) {
-                String h = n->lower();
+                EString h = n->lower();
                 while ( h.startsWith( "\\") )
                     h = h.mid( 1 );
                 if ( h == "deleted" )
@@ -290,7 +290,7 @@ static Selector * parseSelector( StringList * arguments,
 }
 
 
-Selector * parseSelector( StringList * arguments )
+Selector * parseSelector( EStringList * arguments )
 {
     const char * e = 0;
     Selector * s = parseSelector( arguments, false, e );

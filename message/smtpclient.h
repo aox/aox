@@ -8,7 +8,7 @@
 
 
 class DSN;
-class String;
+class EString;
 class Message;
 class Address;
 class Recipient;
@@ -30,18 +30,18 @@ public:
 
     void logout( uint );
 
-    String error() const;
+    EString error() const;
 
 private:
     class SmtpClientData * d;
 
     void parse();
     void sendCommand();
-    void handleFailure( const String & );
+    void handleFailure( const EString & );
     void finish( const char * status = 0 );
-    void recordExtension( const String & );
+    void recordExtension( const EString & );
 
-    static String dotted( const String & );
+    static EString dotted( const EString & );
 };
 
 

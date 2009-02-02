@@ -25,7 +25,7 @@ static List<Intro> * intros = 0;
 
 /*!  Constructs an Intro object to go into file \a name. */
 
-Intro::Intro( const String & name )
+Intro::Intro( const EString & name )
     : n( name )
 {
     if ( !intros )
@@ -75,7 +75,7 @@ void Intro::output()
 
 /*! Returns the name supplied to the constructor. */
 
-String Intro::name() const
+EString Intro::name() const
 {
     return n;
 }

@@ -57,11 +57,11 @@ void Idle::read()
         error( Bad, "Leaving idle mode due to connection state change" );
     }
     else {
-        String * s = imap()->readBuffer()->removeLine();
+        EString * s = imap()->readBuffer()->removeLine();
         if ( !s )
             return;
 
-        String r = s->lower();
+        EString r = s->lower();
         if ( r != "done" )
             error( Bad, "Leaving idle mode due to syntax error: " + r );
         else

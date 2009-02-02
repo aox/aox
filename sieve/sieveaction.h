@@ -5,7 +5,7 @@
 
 #include "global.h"
 
-class String;
+class EString;
 class UString;
 class Mailbox;
 class Address;
@@ -41,8 +41,8 @@ public:
     void setMessage( Injectee * );
     Injectee * message() const;
 
-    void setErrorMessage( const String & );
-    String errorMessage() const;
+    void setErrorMessage( const EString & );
+    EString errorMessage() const;
 
     bool done() const;
     bool failed() const;

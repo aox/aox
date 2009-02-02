@@ -7,7 +7,7 @@
 #include "transaction.h"
 #include "annotation.h"
 #include "integerset.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "mimefields.h"
 #include "imapparser.h"
 #include "bodypart.h"
@@ -93,8 +93,8 @@ public:
     bool needsBody;
     bool needsPartNumbers;
 
-    StringList entries;
-    StringList attribs;
+    EStringList entries;
+    EStringList attribs;
 
     struct DynamicData
         : public Garbage
@@ -102,7 +102,7 @@ public:
     public:
         DynamicData(): modseq( 0 ) {}
         int64 modseq;
-        Dict<String> flags;
+        Dict<EString> flags;
         List<Annotation> annotations;
     };
     Map<DynamicData> dynamics;
@@ -250,8 +250,8 @@ void Fetch::parse()
         d->needsHeader = true; // Bodypart::asText() needs mime type etc
     if ( !ok() )
         return;
-    StringList l;
-    l.append( new String( "Fetch <=" + fn( d->set.count() ) + " messages: " ) );
+    EStringList l;
+    l.append( new EString( "Fetch <=" + fn( d->set.count() ) + " messages: " ) );
     if ( d->needsAddresses )
         l.append( "address" );
     if ( d->needsHeader )
@@ -277,7 +277,7 @@ void Fetch::parse()
 
 void Fetch::parseAttribute( bool alsoMacro )
 {
-    String keyword = dotLetters( 3, 13 ).lower(); // UID/ALL, RFC822.HEADER
+    EString keyword = dotLetters( 3, 13 ).lower(); // UID/ALL, RFC822.HEADER
     if ( alsoMacro && keyword == "all" ) {
         // equivalent to: (FLAGS INTERNALDATE RFC822.SIZE ENVELOPE)
         d->flags = true;
@@ -395,9 +395,9 @@ void Fetch::parseAttribute( bool alsoMacro )
     Consecutive dots ARE allowed.
 */
 
-String Fetch::dotLetters( uint min, uint max )
+EString Fetch::dotLetters( uint min, uint max )
 {
-    String r( parser()->dotLetters( min, max ) );
+    EString r( parser()->dotLetters( min, max ) );
     if ( !parser()->ok() )
         error( Bad, parser()->error() );
     return r;
@@ -431,7 +431,7 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
     // Parse a section-part.
     bool dot = false;
     if ( ip->nextChar() >= '0' && ip->nextChar() <= '9' ) {
-        String part;
+        EString part;
         part.append( fn( ip->nzNumber() ) );
         while ( ip->nextChar() == '.' ) {
             ip->step();
@@ -448,7 +448,7 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
     }
 
     // Parse any section-text.
-    String item = ip->dotLetters( 0, 17 ).lower();
+    EString item = ip->dotLetters( 0, 17 ).lower();
     if ( binary && !item.isEmpty() ) {
         s->error = "BINARY with section-text is not legal, saw " + item;
     }
@@ -466,10 +466,10 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
               item == "header.fields.not" )
     {
         ip->require( " (" );
-        s->fields.append( new String( ip->astring().headerCased() ) );
+        s->fields.append( new EString( ip->astring().headerCased() ) );
         while ( ip->nextChar() == ' ' ) {
             ip->require( " " );
-            s->fields.append( new String( ip->astring().headerCased() ) );
+            s->fields.append( new EString( ip->astring().headerCased() ) );
         }
         ip->require( ")" );
         if ( item == "header.fields.not" ) {
@@ -477,7 +477,7 @@ Section * Fetch::parseSection( ImapParser * ip, bool binary )
             s->needsAddresses = true;
             s->needsHeader = true;
         }
-        StringList::Iterator i( s->fields );
+        EStringList::Iterator i( s->fields );
         while ( i && ( !s->needsAddresses || !s->needsHeader ) ) {
             uint t = HeaderField::fieldType( *i );
             if ( t > 0 && t <= HeaderField::LastAddressField )
@@ -542,10 +542,10 @@ void Fetch::parseBody( bool binary )
 }
 
 
-void record( StringList & l, Dict<void> & d, const String & a )
+void record( EStringList & l, Dict<void> & d, const EString & a )
 {
     if ( !d.contains( a.lower() ) )
-        l.append( new String( a ) );
+        l.append( new EString( a ) );
     d.insert( a.lower(), (void *)1 );
 }
 
@@ -578,7 +578,7 @@ void Fetch::parseAnnotation()
 
     atEnd = false;
     while ( !atEnd ) {
-        d->entries.append( new String( parser()->listMailbox() ) );
+        d->entries.append( new EString( parser()->listMailbox() ) );
         if ( !parser()->ok() )
             error( Bad, parser()->error() );
 
@@ -608,7 +608,7 @@ void Fetch::parseAnnotation()
 
     atEnd = false;
     while ( !atEnd ) {
-        String a( astring() );
+        EString a( astring() );
 
         // XXX: This check (and the legalAnnotationAttributes table) is
         // duplicated in Search::parseKey(). But where should a common
@@ -711,7 +711,7 @@ void Fetch::execute()
                         q->bind( 1, mb->id() );
                         d->transaction->enqueue( q );
                     }
-                    String s = d->those->string();
+                    EString s = d->those->string();
                     s.append( " order by uid for update" );
                     d->those->setString( s );
                 }
@@ -867,9 +867,9 @@ void Fetch::sendFetchQueries()
     that Append may use it for CATENATE.
 */
 
-String Fetch::sectionData( Section * s, Message * m )
+EString Fetch::sectionData( Section * s, Message * m )
 {
-    String item, data;
+    EString item, data;
 
     if ( s->id == "rfc822" ) {
         item = s->id.upper();
@@ -910,7 +910,7 @@ String Fetch::sectionData( Section * s, Message * m )
                     include = listed;
             }
             if ( include ) {
-                String n = it->name().headerCased();
+                EString n = it->name().headerCased();
                 data.append( n );
                 data.append( ": " );
                 data.append( it->rfc822() );
@@ -1038,12 +1038,12 @@ String Fetch::sectionData( Section * s, Message * m )
    fetchResponses() below.
 */
 
-static String sectionResponse( Section * s, Message * m )
+static EString sectionResponse( Section * s, Message * m )
 {
-    String data( Fetch::sectionData( s, m ) );
+    EString data( Fetch::sectionData( s, m ) );
     if ( !s->item.startsWith( "BINARY.SIZE" ) )
         data = Command::imapQuoted( data, Command::NString );
-    String r;
+    EString r;
     r.reserve( data.length() + s->item.length() + 1 );
     r.append( s->item );
     r.append( " " );
@@ -1058,9 +1058,9 @@ static String sectionResponse( Section * s, Message * m )
     The message must have all necessary content.
 */
 
-String Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
+EString Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
 {
-    StringList l;
+    EStringList l;
     if ( d->uid )
         l.append( "UID " + fn( uid ) );
     if ( d->rfc822size )
@@ -1090,8 +1090,8 @@ String Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
         ++it;
     }
 
-    String r;
-    String payload = l.join( " " );
+    EString r;
+    EString payload = l.join( " " );
     r.reserve( payload.length() + 30 );
     r.appendNumber( msn );
     r.append( " FETCH (" );
@@ -1105,15 +1105,15 @@ String Fetch::makeFetchResponse( Message * m, uint uid, uint msn )
     message with \a uid.
 */
 
-String Fetch::flagList( uint uid )
+EString Fetch::flagList( uint uid )
 {
-    StringList r;
+    EStringList r;
 
     FetchData::DynamicData * dd = d->dynamics.find( uid );
     if ( dd ) {
         if ( session()->isRecent( uid ) )
-            dd->flags.insert( "\\recent", new String( "\\Recent" ) );
-        Dict<String>::Iterator i( dd->flags );
+            dd->flags.insert( "\\recent", new EString( "\\Recent" ) );
+        Dict<EString>::Iterator i( dd->flags );
         while ( i ) {
             r.append( *i );
             ++i;
@@ -1126,7 +1126,7 @@ String Fetch::flagList( uint uid )
 
 /*! Returns the internaldate of \a m in IMAP format. */
 
-String Fetch::internalDate( Message * m )
+EString Fetch::internalDate( Message * m )
 {
     Date date;
     date.setUnixTime( m->internalDate() );
@@ -1134,12 +1134,12 @@ String Fetch::internalDate( Message * m )
 }
 
 
-static String hf( Header * f, HeaderField::Type t )
+static EString hf( Header * f, HeaderField::Type t )
 {
     List<Address> * a = f->addresses( t );
     if ( !a || a->isEmpty() )
         return "NIL ";
-    String r;
+    EString r;
     r.reserve( 50 );
     r.append( "(" );
     List<Address>::Iterator it( a );
@@ -1152,7 +1152,7 @@ static String hf( Header * f, HeaderField::Type t )
         } else if ( it->type() == Address::Local ||
                     it->type() == Address::Normal ) {
             UString u = it->uname();
-            String eu;
+            EString eu;
             if ( u.isAscii() )
                 eu = u.simplified().utf8();
             else
@@ -1178,7 +1178,7 @@ static String hf( Header * f, HeaderField::Type t )
 
 /*! Returns the IMAP envelope for \a m. */
 
-String Fetch::envelope( Message * m )
+EString Fetch::envelope( Message * m )
 {
     Header * h = m->header();
 
@@ -1186,7 +1186,7 @@ String Fetch::envelope( Message * m )
     //                env-sender SP env-reply-to SP env-to SP env-cc SP
     //                env-bcc SP env-in-reply-to SP env-message-id ")"
 
-    String r;
+    EString r;
     r.reserve( 300 );
     r.append( "(" );
 
@@ -1212,36 +1212,36 @@ String Fetch::envelope( Message * m )
 }
 
 
-static String parameterString( MimeField *mf )
+static EString parameterEString( MimeField *mf )
 {
-    StringList *p = 0;
+    EStringList *p = 0;
 
     if ( mf )
         p = mf->parameters();
     if ( !mf || !p || p->isEmpty() )
         return "NIL";
 
-    StringList l;
-    StringList::Iterator it( p );
+    EStringList l;
+    EStringList::Iterator it( p );
     while ( it ) {
         l.append( Command::imapQuoted( *it ) );
         l.append( Command::imapQuoted( mf->parameter( *it ) ) );
         ++it;
     }
 
-    String r = l.join( " " );
+    EString r = l.join( " " );
     r.prepend( "(" );
     r.append( ")" );
     return r;
 }
 
 
-static String dispositionString( ContentDisposition *cd )
+static EString dispositionEString( ContentDisposition *cd )
 {
     if ( !cd )
         return "NIL";
 
-    String s;
+    EString s;
     switch ( cd->disposition() ) {
     case ContentDisposition::Inline:
         s = "inline";
@@ -1251,18 +1251,18 @@ static String dispositionString( ContentDisposition *cd )
         break;
     }
 
-    return "(\"" + s + "\" " + parameterString( cd ) + ")";
+    return "(\"" + s + "\" " + parameterEString( cd ) + ")";
 }
 
 
-static String languageString( ContentLanguage *cl )
+static EString languageEString( ContentLanguage *cl )
 {
     if ( !cl )
         return "NIL";
 
-    StringList m;
-    const StringList *l = cl->languages();
-    StringList::Iterator it( l );
+    EStringList m;
+    const EStringList *l = cl->languages();
+    EStringList::Iterator it( l );
     while ( it ) {
         m.append( Command::imapQuoted( *it ) );
         ++it;
@@ -1270,7 +1270,7 @@ static String languageString( ContentLanguage *cl )
 
     if ( l->count() == 1 )
         return *m.first();
-    String r = m.join( " " );
+    EString r = m.join( " " );
     r.prepend( "(" );
     r.append( ")" );
     return r;
@@ -1282,15 +1282,15 @@ static String languageString( ContentLanguage *cl )
     false, BODY.
 */
 
-String Fetch::bodyStructure( Multipart * m, bool extended )
+EString Fetch::bodyStructure( Multipart * m, bool extended )
 {
-    String r;
+    EString r;
 
     Header * hdr = m->header();
     ContentType * ct = hdr->contentType();
 
     if ( ct && ct->type() == "multipart" ) {
-        StringList children;
+        EStringList children;
         List< Bodypart >::Iterator it( m->children() );
         while ( it ) {
             children.append( bodyStructure( it, extended ) );
@@ -1304,11 +1304,11 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
 
         if ( extended ) {
             r.append( " " );
-            r.append( parameterString( ct ) );
+            r.append( parameterEString( ct ) );
             r.append( " " );
-            r.append( dispositionString( hdr->contentDisposition() ) );
+            r.append( dispositionEString( hdr->contentDisposition() ) );
             r.append( " " );
-            r.append( languageString( hdr->contentLanguage() ) );
+            r.append( languageEString( hdr->contentLanguage() ) );
             r.append( " " );
             r.append( imapQuoted( hdr->contentLocation(), NString ) );
         }
@@ -1329,9 +1329,9 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
     included.
 */
 
-String Fetch::singlePartStructure( Multipart * mp, bool extended )
+EString Fetch::singlePartStructure( Multipart * mp, bool extended )
 {
-    StringList l;
+    EStringList l;
 
     if ( !mp )
         return "";
@@ -1348,23 +1348,23 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
         l.append( "\"plain\"" );
     }
 
-    l.append( parameterString( ct ) );
+    l.append( parameterEString( ct ) );
     l.append( imapQuoted( mp->header()->messageId( HeaderField::ContentId ),
                           NString ) );
     l.append( imapQuoted( mp->header()->contentDescription(), NString ) );
 
     if ( mp->header()->contentTransferEncoding() ) {
         switch( mp->header()->contentTransferEncoding()->encoding() ) {
-        case String::Binary:
+        case EString::Binary:
             l.append( "\"8BIT\"" ); // hm. is this entirely sound?
             break;
-        case String::Uuencode:
+        case EString::Uuencode:
             l.append( "\"x-uuencode\"" ); // should never happen
             break;
-        case String::Base64:
+        case EString::Base64:
             l.append( "\"BASE64\"" );
             break;
-        case String::QP:
+        case EString::QP:
             l.append( "\"QUOTED-PRINTABLE\"" );
             break;
         }
@@ -1395,18 +1395,18 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
     }
 
     if ( extended ) {
-        String md5;
+        EString md5;
         HeaderField *f = mp->header()->field( HeaderField::ContentMd5 );
         if ( f )
             md5 = f->rfc822();
 
         l.append( imapQuoted( md5, NString ) );
-        l.append( dispositionString( mp->header()->contentDisposition() ) );
-        l.append( languageString( mp->header()->contentLanguage() ) );
+        l.append( dispositionEString( mp->header()->contentDisposition() ) );
+        l.append( languageEString( mp->header()->contentLanguage() ) );
         l.append( imapQuoted( mp->header()->contentLocation(), NString ) );
     }
 
-    String r = l.join( " " );
+    EString r = l.join( " " );
     r.prepend( "(" );
     r.append( ")" );
     return r;
@@ -1421,9 +1421,9 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
     the .priv or .shared suffix).
 */
 
-String Fetch::annotation( User * u, uint uid,
-                          const StringList & entrySpecs,
-                          const StringList & attributes )
+EString Fetch::annotation( User * u, uint uid,
+                          const EStringList & entrySpecs,
+                          const EStringList & attributes )
 {
     FetchData::DynamicData * dd = d->dynamics.find( uid );
     if ( !dd ) {
@@ -1431,10 +1431,10 @@ String Fetch::annotation( User * u, uint uid,
         return "()";
     }
 
-    typedef Dict< String > AttributeDict;
+    typedef Dict< EString > AttributeDict;
     Dict< AttributeDict > entries;
 
-    StringList entryNames;
+    EStringList entryNames;
 
     uint user = 0;
     if ( u )
@@ -1444,9 +1444,9 @@ String Fetch::annotation( User * u, uint uid,
         Annotation * a = i;
         ++i;
 
-        String entry( a->entryName() );
+        EString entry( a->entryName() );
         bool entryWanted = false;
-        StringList::Iterator e( entrySpecs );
+        EStringList::Iterator e( entrySpecs );
         while ( e && !entryWanted ) {
             AsciiCodec c;
             if ( Mailbox::match( c.toUnicode( *e ), 0,
@@ -1471,30 +1471,30 @@ String Fetch::annotation( User * u, uint uid,
             if ( a->ownerId() )
                 suffix = ".priv";
 
-            String * v = new String( a->value() );
-            String * s = new String( fn( v->length() ) );
+            EString * v = new EString( a->value() );
+            EString * s = new EString( fn( v->length() ) );
 
-            atts->insert( String( "value" ) + suffix, v );
-            atts->insert( String( "size" ) + suffix, s );
+            atts->insert( EString( "value" ) + suffix, v );
+            atts->insert( EString( "size" ) + suffix, s );
         }
     }
 
-    String r( "(" );
-    StringList::Iterator e( entryNames );
+    EString r( "(" );
+    EStringList::Iterator e( entryNames );
     while ( e ) {
-        String entry( *e );
+        EString entry( *e );
 
-        StringList l;
-        StringList::Iterator a( attributes );
+        EStringList l;
+        EStringList::Iterator a( attributes );
         while ( a ) {
-            String attrib( *a );
+            EString attrib( *a );
 
-            String * value = 0;
+            EString * value = 0;
             AttributeDict * atts = entries.find( entry );
             if ( atts )
                 value = atts->find( attrib );
 
-            String tmp = attrib;
+            EString tmp = attrib;
             tmp.append( " " );
             if ( value )
                 tmp.append( imapQuoted( *value ) );
@@ -1528,7 +1528,7 @@ String Fetch::annotation( User * u, uint uid,
 
 void Fetch::parseFetchModifier()
 {
-    String name = atom().lower();
+    EString name = atom().lower();
     if ( name == "changedsince" ) {
         space();
         d->changedSince = number();
@@ -1558,9 +1558,9 @@ void Fetch::pickup()
                 dd = new FetchData::DynamicData;
                 d->dynamics.insert( uid, dd );
             }
-            String f = r->getString( "name" );
+            EString f = r->getEString( "name" );
             if ( !f.isEmpty() )
-                dd->flags.insert( f.lower(), new String( f ) );
+                dd->flags.insert( f.lower(), new EString( f ) );
         }
     }
 
@@ -1574,8 +1574,8 @@ void Fetch::pickup()
                 d->dynamics.insert( uid, dd );
             }
 
-            String n = r->getString( "name" );
-            String v( r->getString( "value" ) );
+            EString n = r->getEString( "name" );
+            EString v( r->getEString( "value" ) );
 
             uint owner = 0;
             if ( !r->isNull( "owner" ) )
@@ -1656,7 +1656,7 @@ ImapFetchResponse::ImapFetchResponse( ImapSession * s,
 }
 
 
-String ImapFetchResponse::text() const
+EString ImapFetchResponse::text() const
 {
     uint msn = session()->msn( u );
     if ( u && msn )

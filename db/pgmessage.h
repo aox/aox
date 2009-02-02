@@ -4,7 +4,7 @@
 #define PGMESSAGE_H
 
 #include "database.h"
-#include "string.h"
+#include "estring.h"
 #include "query.h"
 #include "list.h"
 
@@ -30,8 +30,8 @@ protected:
     int16 decodeInt16();
     int decodeInt32();
     char decodeByte();
-    String decodeString();
-    String decodeByten( uint );
+    EString decodeString();
+    EString decodeByten( uint );
     void end();
 };
 
@@ -47,13 +47,13 @@ public:
 
 protected:
     char type;
-    String msg;
+    EString msg;
 
     void appendInt16( int16 );
     void appendInt32( int );
     void appendByte( char );
-    void appendByten( const String & );
-    void appendString( const String & );
+    void appendByten( const EString & );
+    void appendString( const EString & );
 
     virtual void encodeData() = 0;
 };
@@ -64,10 +64,10 @@ class PgStartup
 {
 public:
     PgStartup() : PgClientMessage( '\0' ) {}
-    void setOption( const String &, const String & );
+    void setOption( const EString &, const EString & );
 
 private:
-    String options;
+    EString options;
     void encodeData();
 };
 
@@ -95,20 +95,20 @@ public:
     enum Type { Notification, Error };
 
     Type type()       const { return t; }
-    String severity() const { return S; }
-    String code()     const { return C; }
-    String message()  const { return M; }
-    String detail()   const { return D; }
-    String hint()     const { return H; }
-    String position() const { return P; }
-    String where()    const { return W; }
-    String file()     const { return F; }
-    String line()     const { return L; }
-    String routine()  const { return R; }
+    EString severity() const { return S; }
+    EString code()     const { return C; }
+    EString message()  const { return M; }
+    EString detail()   const { return D; }
+    EString hint()     const { return H; }
+    EString position() const { return P; }
+    EString where()    const { return W; }
+    EString file()     const { return F; }
+    EString line()     const { return L; }
+    EString routine()  const { return R; }
 
 private:
     Type t;
-    String S, C, M, D, H, P, W, F, L, R;
+    EString S, C, M, D, H, P, W, F, L, R;
 };
 
 
@@ -126,11 +126,11 @@ public:
     };
 
     Type type()   const { return t; }
-    String salt() const { return s; }
+    EString salt() const { return s; }
 
 private:
     Type t;
-    String s;
+    EString s;
 };
 
 
@@ -138,12 +138,12 @@ class PgPasswordMessage
     : public PgClientMessage
 {
 public:
-    PgPasswordMessage( const String & );
+    PgPasswordMessage( const EString & );
 
 private:
     void encodeData();
 
-    String p;
+    EString p;
 };
 
 
@@ -153,11 +153,11 @@ class PgParameterStatus
 public:
     PgParameterStatus( Buffer * );
 
-    String name() { return k; }
-    String value() { return v; }
+    EString name() { return k; }
+    EString value() { return v; }
 
 private:
-    String k, v;
+    EString k, v;
 };
 
 
@@ -179,14 +179,14 @@ class PgParse
     : public PgClientMessage
 {
 public:
-    PgParse( const String &, const String & = "" );
+    PgParse( const EString &, const EString & = "" );
     void bindTypes( List< int > * );
 
 private:
     void encodeData();
 
-    String name;
-    String stmt;
+    EString name;
+    EString stmt;
     List< int > *types;
 };
 
@@ -203,14 +203,14 @@ class PgBind
     : public PgClientMessage
 {
 public:
-    PgBind( const String & = "", const String & = "" );
+    PgBind( const EString & = "", const EString & = "" );
     void bind( List< Query::Value > * );
 
 private:
     void encodeData();
 
-    String stmt;
-    String portal;
+    EString stmt;
+    EString portal;
     List< Query::Value > *values;
 };
 
@@ -227,13 +227,13 @@ class PgDescribe
     : public PgClientMessage
 {
 public:
-    PgDescribe( char = 'P', const String & = "" );
+    PgDescribe( char = 'P', const EString & = "" );
 
 private:
     void encodeData();
 
     char type;
-    String name;
+    EString name;
 };
 
 
@@ -263,7 +263,7 @@ public:
         : public Garbage
     {
     public:
-        String name;
+        EString name;
         int table, column, type, size, mod, format, column2;
     };
 
@@ -277,12 +277,12 @@ class PgExecute
     : public PgClientMessage
 {
 public:
-    PgExecute( const String & = "", uint = 0 );
+    PgExecute( const EString & = "", uint = 0 );
 
 private:
     void encodeData();
 
-    String name;
+    EString name;
     uint rows;
 };
 
@@ -313,10 +313,10 @@ class PgCommandComplete
 public:
     PgCommandComplete( Buffer * );
 
-    String tag() { return t; }
+    EString tag() { return t; }
 
 private:
-    String t;
+    EString t;
 };
 
 
@@ -359,12 +359,12 @@ class PgQuery
     : public PgClientMessage
 {
 public:
-    PgQuery( const String & );
+    PgQuery( const EString & );
 
 private:
     void encodeData();
 
-    String stmt;
+    EString stmt;
 };
 
 
@@ -431,12 +431,12 @@ class PgNotificationResponse
 public:
     PgNotificationResponse( Buffer * );
 
-    String name() const;
-    String source() const;
+    EString name() const;
+    EString source() const;
     uint pid() const;
 
 private:
-    String n, s;
+    EString n, s;
     uint p;
 };
 

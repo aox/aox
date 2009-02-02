@@ -19,7 +19,7 @@
 */
 
 
-/*! \fn EmailParser::EmailParser( const String & s )
+/*! \fn EmailParser::EmailParser( const EString & s )
     Creates a new RFC 822 parser object to parse \a s.
 */
 
@@ -94,9 +94,9 @@ UString EmailParser::whitespace()
     Returns a null string if there was no comment.
 */
 
-String EmailParser::comment()
+EString EmailParser::comment()
 {
-    String r;
+    EString r;
     whitespace();
     while ( present( "(" ) ) {
         r = "";
@@ -132,7 +132,7 @@ String EmailParser::comment()
 
 /*! Steps past an atom or a quoted-text, and returns that text. */
 
-String EmailParser::string()
+EString EmailParser::string()
 {
     comment();
 
@@ -140,7 +140,7 @@ String EmailParser::string()
     if ( nextChar() != '"' )
         return atom();
 
-    String output;
+    EString output;
     step();
     bool done = false;
     while( !done && !atEnd() ) {
@@ -156,7 +156,7 @@ String EmailParser::string()
         else if ( c == 9 || c == '\r' || c == '\n' || c == ' ' ) {
             uint wsp = pos()-1;
             whitespace();
-            String t = input().mid( wsp, pos()-wsp );
+            EString t = input().mid( wsp, pos()-wsp );
             if ( t.contains( "\r" ) || t.contains( "\n" ) )
                 output.append( ' ' );
             else
@@ -181,9 +181,9 @@ String EmailParser::string()
     '[213.203.59.59]' and '[IPv6:::ffff:213.203.59.59]'.
 */
 
-String EmailParser::domain()
+EString EmailParser::domain()
 {
-    String l;
+    EString l;
     comment();
     if ( present( "[" ) ) {
         int j = pos() - 1;
@@ -221,9 +221,9 @@ void EmailParser::setMime( bool m )
     comments.
 */
 
-String EmailParser::dotAtom()
+EString EmailParser::dotAtom()
 {
-    String r = atom();
+    EString r = atom();
     if ( r.isEmpty() )
         return r;
 
@@ -233,7 +233,7 @@ String EmailParser::dotAtom()
         comment();
         require( "." );
         comment();
-        String a = atom();
+        EString a = atom();
         if ( a.isEmpty() )
             setError( "Trailing dot in dot-atom" );
         if ( valid() ) {
@@ -254,10 +254,10 @@ String EmailParser::dotAtom()
     before and after it.
 */
 
-String EmailParser::atom()
+EString EmailParser::atom()
 {
     comment();
-    String output;
+    EString output;
     while ( !atEnd() && isAtext( nextChar() ) ) {
         output.append( nextChar() );
         step();
@@ -270,11 +270,11 @@ String EmailParser::atom()
     is an atom minus [/?=] plus [.].
 */
 
-String EmailParser::mimeToken()
+EString EmailParser::mimeToken()
 {
     comment();
 
-    String output;
+    EString output;
     char c = nextChar();
 
     while ( c > 32 && c < 128 &&
@@ -297,7 +297,7 @@ String EmailParser::mimeToken()
     string.
 */
 
-String EmailParser::mimeValue()
+EString EmailParser::mimeValue()
 {
     comment();
     if ( nextChar() == '"' )
@@ -323,7 +323,7 @@ UString EmailParser::encodedWord( EncodedText type )
     //uint start = pos();
 
     UString r;
-    String charset;
+    EString charset;
     uint m = mark();
     require( "=?" );
     if ( !valid() ) {
@@ -354,19 +354,19 @@ UString EmailParser::encodedWord( EncodedText type )
 
     require( "?" );
 
-    String::Encoding encoding = String::QP;
+    EString::Encoding encoding = EString::QP;
     if ( present( "q" ) )
-        encoding = String::QP;
+        encoding = EString::QP;
     else if ( present( "b" ) )
-        encoding = String::Base64;
+        encoding = EString::Base64;
     else
         setError( "Unknown encoding: " + nextChar() );
 
     require( "?" );
 
-    String text;
+    EString text;
     c = nextChar();
-    if ( encoding == String::Base64 ) {
+    if ( encoding == EString::Base64 ) {
         while ( ( c >= '0' && c <= '9' ) ||
                 ( c >= 'a' && c <= 'z' ) ||
                 ( c >= 'A' && c <= 'Z' ) ||
@@ -405,7 +405,7 @@ UString EmailParser::encodedWord( EncodedText type )
         return r;
     }
 
-    if ( encoding == String::QP )
+    if ( encoding == EString::QP )
         r = cs->toUnicode( text.deQP( true ) );
     else
         r = cs->toUnicode( text.de64() );
@@ -439,7 +439,7 @@ UString EmailParser::encodedWord( EncodedText type )
     rules. This function checks nothing, it just decodes.
 */
 
-UString EmailParser::de2047( const String & s )
+UString EmailParser::de2047( const EString & s )
 {
     UString out;
 
@@ -457,8 +457,8 @@ UString EmailParser::de2047( const String & s )
     Codec * codec = Codec::byName( s.mid( cs, ce-cs ) );
     if ( s[es+1] != '?' )
         return out;
-    String encoded = s.mid( es+2, s.length() - es - 2 - 2 );
-    String decoded;
+    EString encoded = s.mid( es+2, s.length() - es - 2 - 2 );
+    EString decoded;
     switch ( s[es] ) {
     case 'Q':
     case 'q':
@@ -680,7 +680,7 @@ uint EmailParser::number()
 {
     comment();
     bool ok = false;
-    String s = digits( 1, 15 );
+    EString s = digits( 1, 15 );
     uint n = s.number( &ok );
     if ( !ok )
         setError( "number " + s + " is bad somehow" );
@@ -692,7 +692,7 @@ uint EmailParser::number()
     string if none has been seen yet.
 */
 
-String EmailParser::lastComment() const
+EString EmailParser::lastComment() const
 {
     return lc;
 }

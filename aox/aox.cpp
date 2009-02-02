@@ -1,9 +1,9 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "configuration.h"
 #include "stderrlogger.h"
 #include "aoxcommand.h"
@@ -29,21 +29,21 @@ int main( int ac, char *av[] )
 
     int i = 0;
     while ( i < ac ) {
-        if ( String( av[i] ) == "-v" )
+        if ( EString( av[i] ) == "-v" )
             verbosity++;
         else
             break;
         i++;
     }
 
-    StringList * args = new StringList;
+    EStringList * args = new EStringList;
     while ( i < ac )
-        args->append( new String( av[i++] ) );
+        args->append( new EString( av[i++] ) );
 
     EventLoop::setup();
 
     Configuration::setup( "archiveopteryx.conf" );
-    Configuration::read( String( "" ) +
+    Configuration::read( EString( "" ) +
                          Configuration::compiledIn( Configuration::ConfigDir) +
                          "/aoxsuper.conf", true );
 

@@ -3,7 +3,7 @@
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 
 
@@ -15,8 +15,8 @@ class Address
 {
 public:
     Address();
-    Address( const UString &, const String &, const String & );
-    Address( const String &, const String &, const String & );
+    Address( const UString &, const EString &, const EString & );
+    Address( const EString &, const EString &, const EString & );
     Address( const Address & );
     ~Address();
 
@@ -28,13 +28,13 @@ public:
     uint id() const;
     void setId( uint );
 
-    String name() const;
+    EString name() const;
     UString uname() const;
-    String localpart() const;
-    String domain() const;
+    EString localpart() const;
+    EString domain() const;
 
-    String lpdomain() const;
-    String toString() const;
+    EString lpdomain() const;
+    EString toString() const;
 
     bool valid() const { return type() != Invalid; }
 
@@ -46,13 +46,13 @@ public:
 
     void clone( const Address & );
 
-    void setError( const String & );
-    String error() const;
+    void setError( const EString & );
+    EString error() const;
 
 private:
     class AddressData * d;
 
-    void init( const UString &, const String &, const String & );
+    void init( const UString &, const EString &, const EString & );
 };
 
 
@@ -60,30 +60,30 @@ class AddressParser
     : public Garbage
 {
 public:
-    AddressParser( String );
+    AddressParser( EString );
 
-    String error() const;
+    EString error() const;
     List<Address> * addresses() const;
 
-    static AddressParser * references( const String & );
+    static AddressParser * references( const EString & );
 
 private:
     void address( int & );
     void space( int & );
     void comment( int & );
     void ccontent( int & );
-    String domain( int & );
+    EString domain( int & );
     UString phrase( int & );
-    String localpart( int & );
-    String atom( int & );
-    static String unqp( const String & );
+    EString localpart( int & );
+    EString atom( int & );
+    static EString unqp( const EString & );
     void route( int & );
     int findBorder( int, int );
 
     void error( const char *, int );
 
-    void add( UString, const String &, const String & );
-    void add( const String &, const String & );
+    void add( UString, const EString &, const EString & );
+    void add( const EString &, const EString & );
 
     class AddressParserData * d;
 };

@@ -20,17 +20,17 @@
 
 /*! Constructs an CyrusDirectory for \a path. */
 
-CyrusDirectory::CyrusDirectory( const String &path )
+CyrusDirectory::CyrusDirectory( const EString &path )
     : DirectoryTree( path )
 {
 }
 
 
-bool CyrusDirectory::isMailbox( const String &path, struct stat *st )
+bool CyrusDirectory::isMailbox( const EString &path, struct stat *st )
 {
     if ( S_ISDIR( st->st_mode ) ) {
         struct stat st;
-        String s( path + "/cyrus.seen" );
+        EString s( path + "/cyrus.seen" );
         if ( stat( s.cstr(), &st ) >= 0 )
             return true;
     }
@@ -39,7 +39,7 @@ bool CyrusDirectory::isMailbox( const String &path, struct stat *st )
 }
 
 
-MigratorMailbox * CyrusDirectory::newMailbox( const String &path, uint n )
+MigratorMailbox * CyrusDirectory::newMailbox( const EString &path, uint n )
 {
     return new CyrusMailbox( path, n );
 }
@@ -54,7 +54,7 @@ public:
     {}
 
     bool opened;
-    String path;
+    EString path;
     IntegerSet messages;
     IntegerSet seen;
 };
@@ -70,7 +70,7 @@ public:
     of the path are disregarded when creating target mailboxes.
 */
 
-CyrusMailbox::CyrusMailbox( const String &path, uint n )
+CyrusMailbox::CyrusMailbox( const EString &path, uint n )
     : MigratorMailbox( path.mid( n ) ),
       d( new CyrusMailboxData )
 {
@@ -96,7 +96,7 @@ MigratorMessage *CyrusMailbox::nextMessage()
                     while ( de->d_name[i] >= '0' && de->d_name[i] <= '9' )
                         i++;
                     if ( de->d_name[i] == '.' ) {
-                        String n( de->d_name, i );
+                        EString n( de->d_name, i );
                         bool ok = false;
                         uint number = n.number( &ok );
                         if ( ok )
@@ -108,10 +108,10 @@ MigratorMessage *CyrusMailbox::nextMessage()
             closedir( dir );
         }
         File seen( d->path + "/cyrus.seen", File::Read );
-        StringList::Iterator l( seen.lines() );
+        EStringList::Iterator l( seen.lines() );
         bool ok = true;
         while ( l && ok ) {
-            String line = l->simplified();
+            EString line = l->simplified();
             ++l;
             while ( line.contains( ' ' ) )
                 line = line.mid( line.find( ' ' ) + 1 );
@@ -144,7 +144,7 @@ MigratorMessage *CyrusMailbox::nextMessage()
     uint i = d->messages.smallest();
     d->messages.remove( i );
 
-    String f( d->path + "/" + String::fromNumber( i ) + "." );
+    EString f( d->path + "/" + EString::fromNumber( i ) + "." );
     File m( f );
     MigratorMessage * mm = new MigratorMessage( m.contents(), f );
     if ( d->seen.contains( i ) )

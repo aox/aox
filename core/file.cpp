@@ -2,7 +2,7 @@
 
 #include "file.h"
 
-#include "string.h"
+#include "estring.h"
 #include "allocator.h"
 #include "scope.h"
 #include "log.h"
@@ -34,8 +34,8 @@ public:
     {}
 
     int fd;
-    String n;
-    String c;
+    EString n;
+    EString c;
     uint t;
     bool ok;
 };
@@ -77,7 +77,7 @@ File::File( int fd )
     is 0.
 */
 
-File::File( const String &name, uint maxLength )
+File::File( const EString &name, uint maxLength )
     : d( new FileData )
 {
     init( name, File::Read, 0, maxLength );
@@ -91,7 +91,7 @@ File::File( const String &name, uint maxLength )
     \a mode if it does not exist.
 */
 
-File::File( const String &name, File::Access a, uint mode )
+File::File( const EString &name, File::Access a, uint mode )
     : d( new FileData )
 {
     init( name, a, mode, 0 );
@@ -104,12 +104,12 @@ File::File( const String &name, File::Access a, uint mode )
     is used if the file is to be created.
 */
 
-void File::init( const String &name, File::Access a,
+void File::init( const EString &name, File::Access a,
                  uint mode, uint maxLength )
 {
     d->n = name;
 
-    String chn = chrooted( name );
+    EString chn = chrooted( name );
 
     switch ( a ) {
     case Read:
@@ -171,7 +171,7 @@ void File::init( const String &name, File::Access a,
     }
     while ( l > 0 );
 
-    d->c = String( b, total );
+    d->c = EString( b, total );
 
     ::close( d->fd );
     d->fd = -1;
@@ -181,7 +181,7 @@ void File::init( const String &name, File::Access a,
 
 /*! Returns the name of the file, as specified to the constructor. */
 
-String File::name() const
+EString File::name() const
 {
     return d->n;
 }
@@ -191,20 +191,20 @@ String File::name() const
     this file is being written to, not read, then contents() returns
     an empty string. */
 
-String File::contents() const
+EString File::contents() const
 {
     return d->c;
 }
 
 
-/*! Returns a non-zero pointer to a StringList containing the lines of
+/*! Returns a non-zero pointer to a EStringList containing the lines of
     text read from this File. The lines are returned unmodified, with
     trailing CRLF, if any, intact.
 */
 
-StringList * File::lines()
+EStringList * File::lines()
 {
-    StringList * lines = new StringList;
+    EStringList * lines = new EStringList;
 
     int i = 0;
     int last = 0;
@@ -256,14 +256,14 @@ bool File::valid() const
     OS errors are disregarded.
 */
 
-void File::write( const String & s )
+void File::write( const EString & s )
 {
     if ( d->fd >= 0 && s.length() > 0 )
         ::write( d->fd, s.data(), s.length() );
 }
 
 
-static String * root = 0;
+static EString * root = 0;
 
 /*! Records that the root directory is now \a d. The initial value is
     "/". This value is used by chrooted().
@@ -271,7 +271,7 @@ static String * root = 0;
     If \a d does not end with a '/', setRoot() appends one.
 */
 
-void File::setRoot( const String & d )
+void File::setRoot( const EString & d )
 {
     if ( d == root() )
         return;
@@ -286,10 +286,10 @@ void File::setRoot( const String & d )
     last setRoot() call.
 */
 
-String File::root()
+EString File::root()
 {
     if ( !::root ) {
-        ::root = new String;
+        ::root = new EString;
         Allocator::addEternal( ::root, "root directory name" );
     }
     if ( ::root->isEmpty() )
@@ -310,7 +310,7 @@ String File::root()
     messages.
 */
 
-String File::chrooted( const String & filename )
+EString File::chrooted( const EString & filename )
 {
     if ( filename[0] != '/' )
         return filename; // it's relative. can't check that case.
@@ -326,7 +326,7 @@ String File::chrooted( const String & filename )
     blithely ignored.
 */
 
-void  File::unlink( String s )
+void  File::unlink( EString s )
 {
     ::unlink( s.cstr() );
 }

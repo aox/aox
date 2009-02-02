@@ -3,7 +3,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-#include "stringlist.h"
+#include "estringlist.h"
 #include "multipart.h"
 #include "header.h"
 
@@ -11,7 +11,7 @@
 class EventHandler;
 class Bodypart;
 class Mailbox;
-class String;
+class EString;
 
 
 class Message
@@ -20,14 +20,14 @@ class Message
 public:
     Message();
 
-    void parse( const String & );
+    void parse( const EString & );
 
     bool valid() const;
-    String error() const;
+    EString error() const;
     void recomputeError();
 
-    String rfc822() const;
-    String body() const;
+    EString rfc822() const;
+    EString body() const;
 
     void setWrapped( bool ) const;
     bool isWrapped() const;
@@ -37,8 +37,8 @@ public:
 
     bool isMessage() const;
 
-    Bodypart * bodypart( const String &, bool create = false );
-    String partNumber( Bodypart * ) const;
+    Bodypart * bodypart( const EString &, bool create = false );
+    EString partNumber( Bodypart * ) const;
 
     List<Bodypart> * allBodyparts() const;
 
@@ -60,11 +60,11 @@ public:
 
     static UString baseSubject( const UString & );
 
-    static String acceptableBoundary( const String & );
+    static EString acceptableBoundary( const EString & );
 
     void addMessageId();
 
-    static Header * parseHeader( uint &, uint, const String &, Header::Mode );
+    static Header * parseHeader( uint &, uint, const EString &, Header::Mode );
 
 private:
     void fix8BitHeaderFields();

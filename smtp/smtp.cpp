@@ -38,13 +38,13 @@ public:
     SMTP::Dialect dialect;
     Sieve * sieve;
     List<SmtpCommand> commands;
-    String heloName;
+    EString heloName;
     User * user;
     List<Address> * permittedAddresses;
     List<SmtpRcptTo> * recipients;
-    String body;
+    EString body;
     Date * now;
-    String id;
+    EString id;
 
     class AddressFinder
         : public EventHandler
@@ -180,7 +180,7 @@ void SMTP::parse()
 void SMTP::parseCommand()
 {
     Buffer * r = readBuffer();
-    String * line = r->removeLine( 4096 );
+    EString * line = r->removeLine( 4096 );
     if ( !line && r->size() > 4096 ) {
         log( "Connection closed due to overlong line", Log::Error );
         enqueue( "500 Line too long (legal maximum is 998 bytes)\r\n" );
@@ -248,7 +248,7 @@ SMTP::Dialect SMTP::dialect() const
     generated.
 */
 
-void SMTP::setHeloName( const String & name )
+void SMTP::setHeloName( const EString & name )
 {
     d->heloName = name;
 }
@@ -258,7 +258,7 @@ void SMTP::setHeloName( const String & name )
     initial value is an empty string.
 */
 
-String SMTP::heloName() const
+EString SMTP::heloName() const
 {
     return d->heloName;
 }
@@ -343,8 +343,8 @@ void SMTPData::AddressFinder::execute()
     Row * r = q->nextRow();
     while ( r ) {
         a->append( new Address( "",
-                                r->getString( "localpart" ),
-                                r->getString( "domain" ) ) );
+                                r->getEString( "localpart" ),
+                                r->getEString( "domain" ) ) );
         r = q->nextRow();
     }
 }
@@ -406,7 +406,7 @@ List<SmtpRcptTo> * SMTP::rcptTo() const
 
 /*! Records \a b for later recall. reset() clears this. */
 
-void SMTP::setBody( const String & b )
+void SMTP::setBody( const EString & b )
 {
     d->body = b;
 }
@@ -416,7 +416,7 @@ void SMTP::setBody( const String & b )
     coordinate the body.
 */
 
-String SMTP::body() const
+EString SMTP::body() const
 {
     return d->body;
 }
@@ -441,7 +441,7 @@ class SMTPSData
 public:
     SMTPSData() : tlsServer( 0 ), helper( 0 ) {}
     TlsServer * tlsServer;
-    String banner;
+    EString banner;
     class SmtpsHelper * helper;
 };
 
@@ -469,7 +469,7 @@ private:
 SMTPS::SMTPS( int s )
     : SMTPSubmit( s ), d( new SMTPSData )
 {
-    String * tmp = writeBuffer()->removeLine();
+    EString * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
     d->helper = new SmtpsHelper( this );
@@ -500,7 +500,7 @@ void SMTPS::finish()
     for debugging.
 */
 
-void SMTP::setTransactionId( const String & id )
+void SMTP::setTransactionId( const EString & id )
 {
     d->id = id;
 }
@@ -513,7 +513,7 @@ void SMTP::setTransactionId( const String & id )
     Rset resets it.
 */
 
-String SMTP::transactionId()
+EString SMTP::transactionId()
 {
     if ( !d->id.isEmpty() )
         return d->id;
@@ -555,7 +555,7 @@ class Date * SMTP::transactionTime() const
 }
 
 
-void SMTP::sendChallenge( const String &s )
+void SMTP::sendChallenge( const EString &s )
 {
     enqueue( "334 "+ s +"\r\n" );
 }

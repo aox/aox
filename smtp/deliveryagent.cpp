@@ -4,7 +4,7 @@
 
 #include "spoolmanager.h"
 #include "transaction.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "smtpclient.h"
 #include "recipient.h"
 #include "injector.h"
@@ -341,8 +341,8 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
 
     Row * r = qs->nextRow();
     Address * a =
-        new Address( "", r->getString( "localpart" ),
-                     r->getString( "domain" ) );
+        new Address( "", r->getEString( "localpart" ),
+                     r->getEString( "domain" ) );
     dsn->setSender( a );
 
     if ( Configuration::hostname().endsWith( ".test.oryx.com" ) ) {
@@ -358,8 +358,8 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
         Recipient * recipient = new Recipient;
 
         Address * a =
-            new Address( "", r->getString( "localpart" ),
-                         r->getString( "domain" ) );
+            new Address( "", r->getEString( "localpart" ),
+                         r->getEString( "domain" ) );
         a->setId( r->getInt( "recipient" ) );
         recipient->setFinalRecipient( a );
 
@@ -367,9 +367,9 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
             (Recipient::Action)r->getInt( "action" );
         if ( action == Recipient::Delayed )
             action = Recipient::Unknown;
-        String status;
+        EString status;
         if ( !r->isNull( "status" ) )
-            status = r->getString( "status" );
+            status = r->getEString( "status" );
         recipient->setAction( action, status );
 
         if ( !r->isNull( "last_attempt" ) ) {
@@ -410,7 +410,7 @@ void DeliveryAgent::logDelivery( DSN * dsn )
 {
     uint total = dsn->recipients()->count();
     uint active = 0;
-    StringList l;
+    EStringList l;
 
     List<Recipient>::Iterator it( dsn->recipients() );
     while ( it ) {

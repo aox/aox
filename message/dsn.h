@@ -3,7 +3,7 @@
 #ifndef DSN_H
 #define DSN_H
 
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 #include "recipient.h"
 
@@ -21,14 +21,14 @@ public:
     void setMessage( Message * );
     Message * message() const;
 
-    void setEnvelopeId( const String & );
-    String envelopeId() const;
+    void setEnvelopeId( const EString & );
+    EString envelopeId() const;
 
     void setFullReport( bool );
     bool fullReport() const;
 
-    void setReceivedFrom( const String & );
-    String receivedFrom() const;
+    void setReceivedFrom( const EString & );
+    EString receivedFrom() const;
 
     void setArrivalDate( class Date * );
     Date * arrivalDate() const;
@@ -48,8 +48,8 @@ public:
     bool allFailed() const;
     bool deliveriesPending() const;
 
-    String plainBody() const;
-    String dsnBody() const;
+    EString plainBody() const;
+    EString dsnBody() const;
 
     bool valid() const;
 

@@ -14,7 +14,6 @@
 #include "server.h"
 #include "list.h"
 #include "file.h"
-#include "sys.h"
 #include "egd.h"
 
 // cryptlib
@@ -34,15 +33,17 @@
 #include <signal.h>
 // ioctl, FIONREAD
 #include <sys/ioctl.h>
+// exit
+#include <stdlib.h>
 
 
 static void setupKey();
-static void setupSelfSigned( String, String, String );
-static void generateKey( String, String, String );
-static void handleError( int, const String & );
-static String cryptlibError( int );
-static String cryptlibLocus( int );
-static String cryptlibType( int );
+static void setupSelfSigned( EString, EString, EString );
+static void generateKey( EString, EString, EString );
+static void handleError( int, const EString & );
+static EString cryptlibError( int );
+static EString cryptlibLocus( int );
+static EString cryptlibType( int );
 
 
 int main( int argc, char *argv[] )
@@ -54,7 +55,7 @@ int main( int argc, char *argv[] )
     s.setup( Server::Report );
 
     // set up an EGD server for cryptlib to use
-    String egd = Configuration::compiledIn( Configuration::LibDir );
+    EString egd = Configuration::compiledIn( Configuration::LibDir );
     if ( !egd.endsWith( "/" ) )
         egd.append( "/" );
     egd.append( "tlsproxy/var/run/egd-pool" );
@@ -94,7 +95,7 @@ int main( int argc, char *argv[] )
 }
 
 
-static bool isOpenSslCert( const String & file ) {
+static bool isOpenSslCert( const EString & file ) {
     File f( file );
     if ( f.contents().contains( "---BEGIN " ) ) {
         log( "File " + file + " exists, "
@@ -117,14 +118,14 @@ static void setupKey()
     int status;
     CRYPT_KEYSET keyset;
 
-    String label( Configuration::hostname() );
+    EString label( Configuration::hostname() );
     if ( Configuration::present( Configuration::TlsCertLabel ) )
         label = Configuration::text( Configuration::TlsCertLabel );
-    String secret( Configuration::text( Configuration::TlsCertSecret ) );
-    String keyFile( Configuration::text( Configuration::TlsCertFile ) );
+    EString secret( Configuration::text( Configuration::TlsCertSecret ) );
+    EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
 
     if ( keyFile.isEmpty() ) {
-        String file( Configuration::compiledIn( Configuration::LibDir ) );
+        EString file( Configuration::compiledIn( Configuration::LibDir ) );
         file.append( "/automatic-key.p15" );
         setupSelfSigned( file, label, secret );
         return;
@@ -137,7 +138,7 @@ static void setupKey()
                                  CRYPT_ALGO_RSA );
     handleError( status, "cryptCreateContext" );
     status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
-                              ((String)keyFile).cstr(), CRYPT_KEYOPT_NONE );
+                              ((EString)keyFile).cstr(), CRYPT_KEYOPT_NONE );
     handleError( status, "cryptKeysetOpen" );
     status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
                                  label.cstr(), secret.cstr() );
@@ -152,7 +153,7 @@ static void setupKey()
 }
 
 
-static void setupSelfSigned( String file, String label, String secret )
+static void setupSelfSigned( EString file, EString label, EString secret )
 {
     int status = 0;
 
@@ -191,7 +192,7 @@ static void setupSelfSigned( String file, String label, String secret )
         name[length] = '\0';
     }
 
-    String hostname = Configuration::hostname();
+    EString hostname = Configuration::hostname();
     if ( status == CRYPT_OK && hostname == name ) {
         status = cryptCheckCert( publicKey, CRYPT_UNUSED );
         if ( status == CRYPT_OK )
@@ -203,11 +204,11 @@ static void setupSelfSigned( String file, String label, String secret )
 }
 
 
-static void generateKey( String file, String label, String secret )
+static void generateKey( EString file, EString label, EString secret )
 {
     int status = 0;
 
-    String hostname = Configuration::hostname();
+    EString hostname = Configuration::hostname();
     log( "Generating self-signed certificate for " + hostname );
 
     // Generate an RSA private key.
@@ -294,7 +295,7 @@ public:
         EncryptedSide
     };
 
-    String key;
+    EString key;
     State state;
 };
 
@@ -412,29 +413,29 @@ void TlsProxy::read()
 
 void TlsProxy::parse()
 {
-    String * l = readBuffer()->removeLine();
+    EString * l = readBuffer()->removeLine();
     if ( !l )
         return;
-    String cmd = l->simplified();
+    EString cmd = l->simplified();
 
     int i = cmd.find( ' ' );
     bool ok = true;
     if ( i <= 0 )
         ok = false;
 
-    String tag = cmd.mid( 0, i ).de64();
+    EString tag = cmd.mid( 0, i ).de64();
     cmd = cmd.mid( i+1 );
     i = cmd.find( ' ' );
     if ( i <= 0 )
         ok = false;
 
-    String proto = cmd.mid( 0, i );
+    EString proto = cmd.mid( 0, i );
     cmd = cmd.mid( i+1 );
     i = cmd.find( ' ' );
     if ( i <= 0 )
         ok = false;
 
-    String addr = cmd.mid( 0, i );
+    EString addr = cmd.mid( 0, i );
     uint port = 0;
     if ( ok )
         port = cmd.mid( i+1 ).number( &ok );
@@ -473,7 +474,7 @@ void TlsProxy::parse()
 */
 
 void TlsProxy::start( TlsProxy * other, const Endpoint & client,
-                      const String & protocol )
+                      const EString & protocol )
 {
     proxies->take( proxies->find( this ) );
     proxies->take( proxies->find( other ) );
@@ -544,7 +545,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
 void TlsProxy::encrypt()
 {
     Buffer * r = readBuffer();
-    String s = r->string( r->size() );
+    EString s = r->string( r->size() );
     if ( !s.isEmpty() ) {
         int len = 0;
         int status = cryptPushData( cs, s.data(), s.length(), &len );
@@ -592,7 +593,7 @@ void TlsProxy::decrypt()
    returned \a cryptError.
 */
 
-static void handleError( int cryptError, const String & function )
+static void handleError( int cryptError, const EString & function )
 {
     if ( cryptError == CRYPT_OK )
         return;
@@ -606,7 +607,7 @@ static void handleError( int cryptError, const String & function )
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORLOCUS, &locus );
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORTYPE, &type );
 
-    String s = function + " reported error: " + cryptlibError( cryptError );
+    EString s = function + " reported error: " + cryptlibError( cryptError );
     if ( locus )
         s.append( ", locus: " + cryptlibLocus( locus ) );
     if ( type )
@@ -626,7 +627,7 @@ static void handleError( int cryptError, const String & function )
         (void)cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
                                        errorString, &errorStringLength );
         if ( errorString[0] )
-            ::log( String("Cryptlib error message: ") + errorString );
+            ::log( EString("Cryptlib error message: ") + errorString );
     }
 
     if ( userside ) {
@@ -638,9 +639,9 @@ static void handleError( int cryptError, const String & function )
 }
 
 
-static String cryptlibError( int cryptError )
+static EString cryptlibError( int cryptError )
 {
-    String e;
+    EString e;
 
     // The comments and strings below are copied from cryptlib.h (and
     // slightly modified).
@@ -766,18 +767,18 @@ static String cryptlibError( int cryptError )
 }
 
 
-static String cryptlibLocus( int locus )
+static EString cryptlibLocus( int locus )
 {
-    String r = fn( locus );
+    EString r = fn( locus );
 
     // There are too many attributes to specify them all here.
     return r;
 }
 
 
-static String cryptlibType( int type )
+static EString cryptlibType( int type )
 {
-    String r = fn( type ) + ": ";
+    EString r = fn( type ) + ": ";
 
     // The comments and strings below are copied from cryptlib.h (and
     // slightly modified).

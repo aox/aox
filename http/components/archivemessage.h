@@ -25,13 +25,13 @@ private:
     class ArchiveMessageData * d;
 
 private:
-    static String addressField( Message *, HeaderField::Type );
-    //static String twoLines( Message * );
+    static EString addressField( Message *, HeaderField::Type );
+    //static EString twoLines( Message * );
 
-    String bodypart( Message *, uint, class Bodypart * );
-    String message( Message *, Message * );
-    String jsToggle( const String &, bool, const String &, const String & );
-    String date( class Date *, const String & ) const;
+    EString bodypart( Message *, uint, class Bodypart * );
+    EString message( Message *, Message * );
+    EString jsToggle( const EString &, bool, const EString &, const EString & );
+    EString date( class Date *, const EString & ) const;
 };
 
 

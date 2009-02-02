@@ -7,7 +7,7 @@ class File;
 class Function;
 class DocBlock;
 
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 
 
@@ -15,19 +15,19 @@ class Class
     : public Garbage
 {
 public:
-    Class( const String &, File *, uint );
+    Class( const EString &, File *, uint );
 
-    static Class * find( const String & );
+    static Class * find( const EString & );
     static void buildHierarchy();
     static void output();
 
     File * file() const;
     uint line() const;
 
-    void setParent( const String & );
+    void setParent( const EString & );
     Class * parent() const { return super; }
 
-    String name() const { return n; }
+    EString name() const { return n; }
 
     void insert( Function * );
 
@@ -42,12 +42,12 @@ public:
     List<Function> * members();
 
 private:
-    String n;
+    EString n;
     File * f;
     uint l;
     Class * super;
     SortedList<Class> * sub;
-    String superclassName;
+    EString superclassName;
     SortedList<Function> m;
     DocBlock * db;
     bool done;

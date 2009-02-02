@@ -33,7 +33,7 @@ public:
     This class handles the "aox undelete" command.
 */
 
-Undelete::Undelete( StringList * args )
+Undelete::Undelete( EStringList * args )
     : AoxCommand( args ), d( new UndeleteData )
 {
 }
@@ -81,7 +81,7 @@ void Undelete::execute()
                     d->m->name().utf8().cstr() );
         }
 
-        StringList wanted;
+        EStringList wanted;
         wanted.append( "uid" );
 
         d->find = s->query( 0, d->m, 0, 0, true, &wanted, true );

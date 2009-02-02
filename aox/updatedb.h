@@ -10,13 +10,13 @@ class UpdateDatabase
     : public AoxCommand
 {
 public:
-    UpdateDatabase( StringList * );
+    UpdateDatabase( EStringList * );
     void execute();
 
 private:
     class UpdateDatabaseData * d;
-    bool convertField( uint, uint, const String &, uint, uint,
-                       const String & );
+    bool convertField( uint, uint, const EString &, uint, uint,
+                       const EString & );
 };
 
 

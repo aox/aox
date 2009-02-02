@@ -31,7 +31,7 @@ public:
     int day, month, year;
     int hour, minute, second;
     int tz;
-    String tzn;
+    EString tzn;
     bool valid;
     bool minus0;
 };
@@ -220,7 +220,7 @@ static const char * weekdays[] = { "Mon", "Tue", "Wed", "Thu",
                                    "Fri", "Sat", "Sun" };
 
 // return 1-12 for january-december, or 0 for error
-static uint month( const String & name )
+static uint month( const EString & name )
 {
     uint n = 0;
     switch ( name[0] ) {
@@ -278,7 +278,7 @@ static uint month( const String & name )
 
 
 // return true if this may possibly be a weekday.
-static bool weekday( const String & name )
+static bool weekday( const EString & name )
 {
     if ( month( name ) )
         return false;
@@ -301,10 +301,10 @@ static bool weekday( const String & name )
     A number of common syntax errors are accepted.
 */
 
-void Date::setRfc822( const String & s )
+void Date::setRfc822( const EString & s )
 {
     EmailParser p( s );
-    String a;
+    EString a;
 
     d->reset();
 
@@ -332,11 +332,11 @@ void Date::setRfc822( const String & s )
     // next comes the date. it _should_ be 13 dec 2003, but we'll also
     // accept 13 dec 03, dec 13 03 and dec 13 2003.
 
-    String s1 = a;
+    EString s1 = a;
     p.comment();
     (void)p.present( "," ); // and we accept "13, dec 2003"
     bool ok = false;
-    String s2;
+    EString s2;
     bool yearAtEnd = false;
     // this whole block is for Date: 13-Dec-2003
     if ( s1[2] == '-' ) {
@@ -427,7 +427,7 @@ void Date::setRfc822( const String & s )
     // the minute part be 0 <= x <= 59 and the hour 0 <= x <= 29.
 
 
-    String tzn = p.comment();
+    EString tzn = p.comment();
     d->tz = 0;
     bool tzok = false;
     a = p.string();
@@ -561,10 +561,10 @@ static int dow( int y, int m, int d )
 }
 
 
-// these two may be candidates for String...
-static String zeroPrefixed( int n, uint w )
+// these two may be candidates for EString...
+static EString zeroPrefixed( int n, uint w )
 {
-    String z( "0000" );
+    EString z( "0000" );
     z.appendNumber( n );
     return z.mid( z.length()-w );
 }
@@ -583,9 +583,9 @@ static int abs( int i )
   Returns an empty string if the date is invalid.
 */
 
-String Date::rfc822() const
+EString Date::rfc822() const
 {
-    String r;
+    EString r;
     if ( !valid() )
         return r;
 
@@ -633,9 +633,9 @@ String Date::rfc822() const
 
 */
 
-String Date::imap() const
+EString Date::imap() const
 {
-    String r;
+    EString r;
     if ( !d->valid )
         return r;
 
@@ -699,7 +699,7 @@ void Date::setDate( uint year, uint month, uint day,
     arguments are handled identically.
 */
 
-void Date::setDate( uint year, const String & month, uint day,
+void Date::setDate( uint year, const EString & month, uint day,
                     uint hour, uint minute, uint second,
                     int zone )
 {
@@ -720,9 +720,9 @@ bool Date::valid() const
     date, eg. "2004-02-29".
 */
 
-String Date::isoDate() const
+EString Date::isoDate() const
 {
-    String r;
+    EString r;
     if ( d->valid )
         r = zeroPrefixed( d->year, 4 ) + "-" +
             zeroPrefixed( d->month, 2 ) + "-" +
@@ -737,9 +737,9 @@ String Date::isoDate() const
     Returns an empty string if the date is invalid.
 */
 
-String Date::isoTime() const
+EString Date::isoTime() const
 {
-    String r;
+    EString r;
     if ( d->valid )
         r = zeroPrefixed( d->hour, 2 ) + ":" +
             zeroPrefixed( d->minute, 2 ) + ":" +
@@ -764,9 +764,9 @@ int Date::offset() const
     all mangled together: YYYY-MM-DDTHH:MM:SS+NN:NN).
 */
 
-String Date::isoDateTime() const
+EString Date::isoDateTime() const
 {
-    String r;
+    EString r;
     if ( !d->valid )
         return r;
 
@@ -927,7 +927,7 @@ uint Date::weekday() const
     nothing (as a concession to Sieve's :originalzone).
 */
 
-void Date::setTimezone( const String & z )
+void Date::setTimezone( const EString & z )
 {
     if ( z == "-0000" )
         return;

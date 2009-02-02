@@ -4,7 +4,7 @@
 
 #include "schemachecker.h"
 #include "transaction.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "allocator.h"
 #include "address.h"
 #include "ustring.h"
@@ -45,9 +45,9 @@ public:
     Query * unparsed;
     bool upgrade;
     bool commit;
-    String version;
-    String dbuser;
-    String schema;
+    EString version;
+    EString dbuser;
+    EString schema;
 
     // The following state variables are needed by stepTo72().
 
@@ -126,7 +126,7 @@ void Schema::checkRevision( EventHandler * owner )
     ("8.1.3") of the running Postgres server.
 */
 
-String Schema::serverVersion() const
+EString Schema::serverVersion() const
 {
     return d->version;
 }
@@ -152,7 +152,7 @@ void Schema::execute()
         Row *r = d->lock->nextRow();
         if ( r ) {
             d->version
-                = r->getString( "version" ).simplified().section( " ", 2 );
+                = r->getEString( "version" ).simplified().section( " ", 2 );
             d->revision = r->getInt( "revision" );
         }
 
@@ -181,7 +181,7 @@ void Schema::execute()
             d->state = 2;
         }
         else {
-            String s( "The existing schema (revision " );
+            EString s( "The existing schema (revision " );
             s.appendNumber( d->revision );
             s.append( ") is " );
             if ( d->revision < Database::currentRevision() )
@@ -290,7 +290,7 @@ void Schema::execute()
             return;
 
         if ( d->t->failed() && !d->result->failed() ) {
-            String s;
+            EString s;
             if ( d->upgrade )
                 s = "The schema could not be upgraded to revision " +
                     fn( Database::currentRevision() ) + ".";
@@ -299,7 +299,7 @@ void Schema::execute()
             fail( s, d->t->failedQuery() );
         }
         else if ( d->upgrade ) {
-            String s( "Schema upgraded to revision " );
+            EString s( "Schema upgraded to revision " );
             s.appendNumber( Database::currentRevision() );
             if ( !d->commit )
                 s.append( ", but not committed" );
@@ -323,7 +323,7 @@ void Schema::execute()
     being made.
 */
 
-void Schema::describeStep( const String & description )
+void Schema::describeStep( const EString & description )
 {
     d->l->log( fn( d->revision ) + "-" + fn( d->revision + 1 ) + ": " +
                description, Log::Significant );
@@ -336,7 +336,7 @@ void Schema::describeStep( const String & description )
     the error message for d->result to \a s.
 */
 
-void Schema::fail( const String &s, Query * q )
+void Schema::fail( const EString &s, Query * q )
 {
     d->result->setError( s );
     d->l->log( s, Log::Disaster );
@@ -595,18 +595,18 @@ bool Schema::stepTo3()
     if ( d->substate == 1 ) {
         while ( d->q->hasResults() ) {
             Row *r = d->q->nextRow();
-            String text, data;
+            EString text, data;
 
             Query *u =
                 new Query( "update bodyparts set "
                            "text2=$1,hash=$2 where id=$3", this );
             if ( r->isNull( "text" ) ) {
-                data = r->getString( "data" );
+                data = r->getEString( "data" );
                 u->bindNull( 1 );
                 u->bind( 2, MD5::hash( data ).hex() );
             }
             else {
-                text = r->getString( "text" );
+                text = r->getEString( "text" );
                 u->bind( 1, text );
                 u->bind( 2, MD5::hash( text ).hex() );
             }
@@ -646,13 +646,13 @@ bool Schema::stepTo3()
         if ( !d->q->done() )
             return false;
 
-        StringList ids;
+        EStringList ids;
         Dict< uint > hashes;
 
         while ( d->q->hasResults() ) {
             Row *r = d->q->nextRow();
             uint id = r->getInt( "id" );
-            String hash = r->getString( "hash" );
+            EString hash = r->getEString( "hash" );
 
             uint *old = hashes.find( hash );
             if ( old ) {
@@ -871,7 +871,7 @@ bool Schema::stepTo7()
                            this );
             u->bind( 1, r->getInt( "mailbox" ) );
             u->bind( 2, r->getInt( "uid" ) );
-            u->bind( 3, r->getString( "part" ) );
+            u->bind( 3, r->getEString( "part" ) );
             d->t->enqueue( u );
 
             u = new Query( "alter sequence hf_pos restart with 1", this );
@@ -994,7 +994,7 @@ bool Schema::stepTo10()
     if ( d->substate == 0 ) {
         describeStep( "Altering mailboxes_owner_fkey." );
 
-        String constraint = "mailboxes_owner_fkey";
+        EString constraint = "mailboxes_owner_fkey";
         if ( d->version.startsWith( "7" ) )
             constraint = "$1";
 
@@ -1147,8 +1147,8 @@ bool Schema::stepTo15()
     if ( d->substate == 0 ) {
         describeStep( "Altering subscriptions_owner_fkey." );
 
-        String ca( "subscriptions_owner_fkey" );
-        String cb( "annotations_owner_fkey" );
+        EString ca( "subscriptions_owner_fkey" );
+        EString cb( "annotations_owner_fkey" );
         if ( d->version.startsWith( "7" ) ) {
             ca = "$1";
             cb = "$1";
@@ -1367,7 +1367,7 @@ bool Schema::stepTo22()
 
         Row * r;
         while ( (r=d->q->nextRow()) != 0 ) {
-            d->l->log( "Unbreaking " + r->getString( "name" ) + ".",
+            d->l->log( "Unbreaking " + r->getEString( "name" ) + ".",
                        Log::Debug );
 
             Query * q;
@@ -1548,7 +1548,7 @@ bool Schema::stepTo27()
     if ( d->substate == 0 ) {
         describeStep( "Altering modsequences_mailbox_fkey." );
 
-        String constraint = "modsequences_mailbox_fkey";
+        EString constraint = "modsequences_mailbox_fkey";
         if ( d->version.startsWith( "7" ) )
             constraint = "$1";
 
@@ -1734,7 +1734,7 @@ bool Schema::stepTo32()
         d->q = new Query( "set enable_hashjoin to true", 0 );
         d->t->enqueue( d->q );
 
-        String last( fn( HeaderField::LastAddressField ) );
+        EString last( fn( HeaderField::LastAddressField ) );
         d->q = new Query( "create index hf_fp on header_fields(field) where "
                           "field<=" + last + " and part<>''", 0 );
         d->t->enqueue( d->q );
@@ -1746,7 +1746,7 @@ bool Schema::stepTo32()
                        " and part<>'')", 0 );
         d->t->enqueue( d->q );
 
-        String constraint = "address_fields_mailbox_fkey";
+        EString constraint = "address_fields_mailbox_fkey";
         if ( d->version.startsWith( "7" ) )
             constraint = "$2";
 
@@ -2429,8 +2429,8 @@ bool Schema::stepTo55()
             MUtf7Codec mu;
             Utf8Codec u;
 
-            String oldName( r->getString( "name" ) );
-            String newName( u.fromUnicode( mu.toUnicode( oldName ) ) );
+            EString oldName( r->getEString( "name" ) );
+            EString newName( u.fromUnicode( mu.toUnicode( oldName ) ) );
 
             if ( mu.wellformed() && oldName != newName ) {
                 Query * q =
@@ -2591,7 +2591,7 @@ bool Schema::stepTo59()
                                "set sent_from=$1 where sent_from=$2" );
         PreparedStatement art( "update autoresponses "
                                "set sent_to=$1 where sent_to=$2" );
-        String dfa;
+        EString dfa;
 
         Query * q;
         Row * r = d->q->nextRow();
@@ -2599,10 +2599,10 @@ bool Schema::stepTo59()
             uint original = r->getInt( "original" );
             uint duplicate = r->getInt( "duplicate" );
             d->l->log( "Changing " +
-                       r->getString( "localpart" ) + "@" +
-                       r->getString( "domain2" ) + " to " +
-                       r->getString( "localpart" ) + "@" +
-                       r->getString( "domain" ) + "@" );
+                       r->getEString( "localpart" ) + "@" +
+                       r->getEString( "domain2" ) + " to " +
+                       r->getEString( "localpart" ) + "@" +
+                       r->getEString( "domain" ) + "@" );
             q = new Query( af, 0 );
             q->bind( 1, original );
             q->bind( 1, duplicate );
@@ -2725,13 +2725,13 @@ bool Schema::stepTo60()
             d->substate = 42;
         }
         else {
-            Dict<String> constraints;
+            Dict<EString> constraints;
 
             while ( d->q->hasResults() ) {
                 Row * r = d->q->nextRow();
                 constraints.insert(
-                    r->getString( "relname" ),
-                    new String( r->getString( "conname" ) )
+                    r->getEString( "relname" ),
+                    new EString( r->getEString( "conname" ) )
                 );
             }
 
@@ -2830,13 +2830,13 @@ bool Schema::stepTo60()
             d->substate = 42;
         }
         else {
-            Dict<String> constraints;
+            Dict<EString> constraints;
 
             while ( d->q->hasResults() ) {
                 Row * r = d->q->nextRow();
                 constraints.insert(
-                    r->getString( "relname" ),
-                    new String( r->getString( "conname" ) )
+                    r->getEString( "relname" ),
+                    new EString( r->getEString( "conname" ) )
                 );
             }
 
@@ -2894,7 +2894,7 @@ bool Schema::stepTo60()
             Row * r = d->q->nextRow();
 
             d->q = new Query( "alter table part_numbers drop constraint " +
-                              r->getString( "conname" ).quoted(), this );
+                              r->getEString( "conname" ).quoted(), this );
             d->t->enqueue( d->q );
             d->q = new Query( "alter table part_numbers add constraint "
                               "part_numbers_pkey primary key (message,part)",
@@ -2922,13 +2922,13 @@ bool Schema::stepTo60()
             d->substate = 42;
         }
         else {
-            Dict<String> constraints;
+            Dict<EString> constraints;
 
             while ( d->q->hasResults() ) {
                 Row * r = d->q->nextRow();
                 constraints.insert(
-                    r->getString( "relname" ),
-                    new String( r->getString( "conname" ) )
+                    r->getEString( "relname" ),
+                    new EString( r->getEString( "conname" ) )
                 );
             }
 
@@ -3145,7 +3145,7 @@ bool Schema::stepTo60()
             Row * r = d->q->nextRow();
 
             d->q = new Query( "alter table users drop constraint " +
-                              r->getString( "conname" ).quoted(), this );
+                              r->getEString( "conname" ).quoted(), this );
             d->t->enqueue( d->q );
             d->q = new Query( "drop index u_l", this );
             d->t->enqueue( d->q );
@@ -3351,7 +3351,7 @@ bool Schema::stepTo66()
         else {
             Row * r = d->q->nextRow();
             d->q = new Query( "alter table threads drop constraint " +
-                              r->getString( "conname" ).quoted(), this );
+                              r->getEString( "conname" ).quoted(), this );
             d->t->enqueue( d->q );
             d->q = new Query( "alter table threads add constraint "
                               "threads_subject_key unique "

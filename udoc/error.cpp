@@ -30,7 +30,7 @@ static SortedList<Error> * errors = 0;
     The returned pointer may be discarded.
 */
 
-Error::Error( File * file, uint line, const String & text )
+Error::Error( File * file, uint line, const EString & text )
     : f( file ), l( line ), t( text )
 {
     if ( !f )

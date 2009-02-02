@@ -36,7 +36,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         return;
     respond( 250, Configuration::hostname() );
     if ( t == Ehlo || t == Lhlo ) {
-        String auth( SaslMechanism::allowedMechanisms( "", s->hasTls() ) );
+        EString auth( SaslMechanism::allowedMechanisms( "", s->hasTls() ) );
         respond( 0, "AUTH " + auth );
         // should we also send AUTH=?
         // respond( 0, "AUTH=" + auth );

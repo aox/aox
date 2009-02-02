@@ -8,7 +8,7 @@
 
 
 class User;
-class String;
+class EString;
 class Address;
 class SmtpCommand;
 
@@ -33,8 +33,8 @@ public:
 
     Dialect dialect() const;
 
-    void setHeloName( const String & );
-    String heloName() const;
+    void setHeloName( const EString & );
+    EString heloName() const;
 
     class Sieve * sieve() const;
 
@@ -48,18 +48,18 @@ public:
     void addRecipient( class SmtpRcptTo * );
     List<class SmtpRcptTo> * rcptTo() const;
 
-    void setBody( const String & );
-    String body() const;
+    void setBody( const EString & );
+    EString body() const;
 
     bool isFirstCommand( SmtpCommand * ) const;
 
-    void setTransactionId( const String & );
-    String transactionId();
+    void setTransactionId( const EString & );
+    EString transactionId();
 
     void setTransactionTime( class Date * );
     class Date * transactionTime() const;
 
-    virtual void sendChallenge( const String & );
+    virtual void sendChallenge( const EString & );
 
 private:
     void parseCommand();

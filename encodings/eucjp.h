@@ -12,8 +12,8 @@ class EucJpCodec
 public:
     EucJpCodec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

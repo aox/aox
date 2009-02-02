@@ -5,9 +5,9 @@
 #include "utf.h"
 #include "user.h"
 #include "query.h"
-#include "string.h"
+#include "estring.h"
 #include "mailbox.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "permissions.h"
 #include "transaction.h"
 
@@ -26,8 +26,8 @@ public:
     Acl::Type type;
 
     UString authid;
-    String rights;
-    String username;
+    EString rights;
+    EString username;
 
     Mailbox * mailbox;
     Permissions * permissions;
@@ -130,17 +130,17 @@ void Acl::execute()
         }
 
         if ( d->type == ListRights ) {
-            String s( "LISTRIGHTS " + imapQuoted( d->mailbox ) + " " );
+            EString s( "LISTRIGHTS " + imapQuoted( d->mailbox ) + " " );
             if ( d->user->id() == d->mailbox->owner() ) {
                 s.append( Permissions::all() );
             }
             else {
-                StringList l;
+                EStringList l;
                 l.append( "" );
 
                 uint i = 0;
                 while ( i < Permissions::NumRights ) {
-                    String * s = new String;
+                    EString * s = new EString;
                     Permissions::Right r = (Permissions::Right)i;
                     s->append( Permissions::rightChar( r ) );
                     l.append( s );
@@ -161,7 +161,7 @@ void Acl::execute()
             d->q->execute();
         }
         else if ( d->type == GetAcl ) {
-            String s;
+            EString s;
 
             if ( d->mailbox->owner() != 0 ) {
                 s.append( "select (select login from users where id=$2) "
@@ -208,13 +208,13 @@ void Acl::execute()
             return;
 
         if ( d->type == GetAcl ) {
-            StringList l;
+            EStringList l;
             while ( d->q->hasResults() ) {
-                String * s = new String;
+                EString * s = new EString;
                 Row * r = d->q->nextRow();
-                s->append( r->getString( "identifier" ) );
+                s->append( r->getEString( "identifier" ) );
                 s->append( " " );
-                s->append( r->getString( "rights" ) );
+                s->append( r->getEString( "rights" ) );
                 l.append( s );
             }
             respond( "ACL " + imapQuoted( d->mailbox ) + " " + l.join( " " ) );
@@ -224,7 +224,7 @@ void Acl::execute()
                 Row * r = d->q->nextRow();
                 Permissions * target =
                     new Permissions( d->mailbox, d->authid,
-                                     r->getString( "rights" ) );
+                                     r->getEString( "rights" ) );
                 if ( d->setOp == 0 )
                     target->set( d->rights );
                 else if ( d->setOp == 1 )

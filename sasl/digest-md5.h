@@ -13,29 +13,29 @@ class DigestMD5
 public:
     DigestMD5( EventHandler * );
 
-    String challenge();
-    void setChallenge( const String & );
-    void parseResponse( const String & );
+    EString challenge();
+    void setChallenge( const EString & );
+    void parseResponse( const EString & );
     void verify();
 
     class Variable
         : public Garbage
     {
     public:
-        String name;
-        String value() const { return *values.first(); }
+        EString name;
+        EString value() const { return *values.first(); }
         bool unique() const  { return values.count() == 1; }
-        bool operator !=( const String &s ) { return name != s; }
-        List< String > values;
+        bool operator !=( const EString &s ) { return name != s; }
+        List< EString > values;
     };
 
-    static bool parse( const String &s, List< Variable > &l );
+    static bool parse( const EString &s, List< Variable > &l );
 
 private:
     class DigestData *d;
 
 private:
-    void require( class Variable *, const String & );
+    void require( class Variable *, const EString & );
 };
 
 

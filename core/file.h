@@ -4,8 +4,8 @@
 #define FILE_H
 
 #include "global.h"
-#include "string.h"
-#include "stringlist.h"
+#include "estring.h"
+#include "estringlist.h"
 
 
 class File
@@ -16,29 +16,29 @@ public:
         Read, Write, Append, ExclusiveWrite
     };
     File( int );
-    File( const String &, uint = 0 );
-    File( const String &, File::Access, uint = 0644 );
+    File( const EString &, uint = 0 );
+    File( const EString &, File::Access, uint = 0644 );
     ~File();
 
     bool valid() const;
 
-    String name() const;
-    String contents() const;
-    StringList * lines();
+    EString name() const;
+    EString contents() const;
+    EStringList * lines();
 
     uint modificationTime() const;
 
-    void write( const String & );
+    void write( const EString & );
 
-    static void setRoot( const String & );
-    static String root();
-    static String chrooted( const String & );
+    static void setRoot( const EString & );
+    static EString root();
+    static EString chrooted( const EString & );
 
-    static void unlink( String );
+    static void unlink( EString );
 
 private:
     class FileData * d;
-    void init( const String &, File::Access, uint, uint );
+    void init( const EString &, File::Access, uint, uint );
 };
 
 

@@ -10,23 +10,23 @@ class SmtpParser
     : public AbnfParser
 {
 public:
-    SmtpParser( const String & );
+    SmtpParser( const EString & );
 
-    String command();
+    EString command();
 
     void whitespace();
 
-    String domain();
-    String subDomain();
+    EString domain();
+    EString subDomain();
 
     class Address * address();
 
-    String dotString();
-    String quotedString();
-    String atom();
+    EString dotString();
+    EString quotedString();
+    EString atom();
 
-    String esmtpKeyword();
-    String esmtpValue();
+    EString esmtpKeyword();
+    EString esmtpValue();
 };
 
 

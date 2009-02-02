@@ -4,8 +4,8 @@
 #define SECTION_H
 
 #include "global.h"
-#include "string.h"
-#include "stringlist.h"
+#include "estring.h"
+#include "estringlist.h"
 
 
 class Section
@@ -18,10 +18,10 @@ public:
           needsAddresses( false ), needsHeader( false ), needsBody( false )
     {}
 
-    String id;
-    String item;
-    String part;
-    StringList fields;
+    EString id;
+    EString item;
+    EString part;
+    EStringList fields;
     bool binary;
     bool partial;
     uint offset;
@@ -30,7 +30,7 @@ public:
     bool needsAddresses;
     bool needsHeader;
     bool needsBody;
-    String error;
+    EString error;
 };
 
 

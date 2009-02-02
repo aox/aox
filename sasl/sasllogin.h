@@ -11,8 +11,8 @@ class SaslLogin
 {
 public:
     SaslLogin( EventHandler * );
-    String challenge();
-    void parseResponse( const String & );
+    EString challenge();
+    void parseResponse( const EString & );
 };
 
 

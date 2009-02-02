@@ -4,7 +4,7 @@
 #define COMPRESS_H
 
 #include "command.h"
-#include "string.h"
+#include "estring.h"
 
 
 class Compress: public Command {
@@ -14,7 +14,7 @@ public:
     void execute();
 
 private:
-    String a;
+    EString a;
 };
 
 

@@ -9,7 +9,7 @@
 #include "scope.h"
 #include "query.h"
 #include "buffer.h"
-#include "string.h"
+#include "estring.h"
 #include "endpoint.h"
 #include "eventloop.h"
 #include "byteforwarder.h"
@@ -300,9 +300,9 @@ Connection::Type Connection::type() const
     insufficient.
 */
 
-String Connection::description() const
+EString Connection::description() const
 {
-    String r;
+    EString r;
     switch( d->type ) {
     case Client:
         r = "Client";
@@ -568,7 +568,7 @@ bool Connection::isPending( Event e )
 /*! Appends \a s to this Connection's writeBuffer().
 */
 
-void Connection::enqueue( const String &s )
+void Connection::enqueue( const EString &s )
 {
     writeBuffer()->append( s );
 }
@@ -607,7 +607,7 @@ public:
     void react( Event e ) {
         if ( e == Read ) {
             uint n = readBuffer()->size();
-            String data = readBuffer()->string( n );
+            EString data = readBuffer()->string( n );
             partner->enqueue( data );
             partner->write();
             readBuffer()->remove( n );
@@ -819,7 +819,7 @@ Log * Connection::log() const
     object.
 */
 
-void Connection::log( const String &m, Log::Severity s )
+void Connection::log( const EString &m, Log::Severity s )
 {
     d->l->log( m, s );
 }
@@ -855,7 +855,7 @@ bool Connection::any6ListensTo4()
 
 bool Connection::accessPermitted() const
 {
-    String x;
+    EString x;
     x = Configuration::text( Configuration::AllowPlaintextAccess );
     x = x.lower();
 
@@ -1009,17 +1009,17 @@ public:
     valid connection targets), and 0 on (temporary) success.
 */
 
-int Connection::connect( const String & address, uint port )
+int Connection::connect( const EString & address, uint port )
 {
-    StringList names( Resolver::resolve( address ) );
+    EStringList names( Resolver::resolve( address ) );
     if ( names.count() == 1 )
         return connect( Endpoint( address, port ) );
 
     List<SerialConnector> * l = new List<SerialConnector>;
 
-    StringList::Iterator it( names );
+    EStringList::Iterator it( names );
     while ( it ) {
-        String name( *it );
+        EString name( *it );
         Endpoint e( name, port );
         if ( e.valid() )
             l->append( new SerialConnector( this, l, e ) );

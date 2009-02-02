@@ -14,7 +14,7 @@
 
 #include "plain.h"
 
-#include "stringlist.h"
+#include "estringlist.h"
 
 
 /*! Creates a plain-text SASL authentication object on behalf of \a c */
@@ -26,11 +26,11 @@ Plain::Plain( EventHandler *c )
 }
 
 
-void Plain::parseResponse( const String & response )
+void Plain::parseResponse( const EString & response )
 {
-    String authorizeId;
-    String authenticateId;
-    String secret;
+    EString authorizeId;
+    EString authenticateId;
+    EString secret;
 
     bool ok = parse( authorizeId, authenticateId, secret, response );
     if ( !ok || authenticateId != authorizeId ) {
@@ -56,14 +56,14 @@ void Plain::parseResponse( const String & response )
     \a authorizeId, and \a pw.
 */
 
-bool Plain::parse( String & authorizeId, String & authenticateId,
-                   String & pw, const String & response )
+bool Plain::parse( EString & authorizeId, EString & authenticateId,
+                   EString & pw, const EString & response )
 {
-    StringList * l = StringList::split( 0, response );
+    EStringList * l = EStringList::split( 0, response );
     if ( !l || l->count() != 3 )
         return false;
 
-    StringList::Iterator i( l );
+    EStringList::Iterator i( l );
     authorizeId = *i;
     ++i;
     authenticateId = *i;

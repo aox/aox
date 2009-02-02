@@ -12,8 +12,8 @@ class Iso2022KrCodec
 public:
     Iso2022KrCodec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

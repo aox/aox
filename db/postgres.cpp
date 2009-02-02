@@ -4,13 +4,13 @@
 
 #include "dict.h"
 #include "list.h"
-#include "string.h"
+#include "estring.h"
 #include "buffer.h"
 #include "dbsignal.h"
 #include "allocator.h"
 #include "configuration.h"
 #include "transaction.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "pgmessage.h"
 #include "eventloop.h"
 #include "graph.h"
@@ -55,18 +55,18 @@ public:
     bool sendingCopy;
     bool error;
     bool mustSendListen;
-    StringList listening;
+    EStringList listening;
 
     PgKeyData *keydata;
     PgRowDescription *description;
     Dict<Postgres> prepared;
-    StringList preparesPending;
+    EStringList preparesPending;
 
     List< Query > queries;
     Transaction *transaction;
     Query * needNotify;
 
-    String user;
+    EString user;
 };
 
 
@@ -192,7 +192,7 @@ void Postgres::processQueue()
 void Postgres::processQuery( Query * q )
 {
     Scope x( q->log() );
-    String s( "Sent " );
+    EString s( "Sent " );
     if ( q->name() == "" ||
          !d->prepared.contains( q->name() ) )
     {
@@ -270,7 +270,7 @@ void Postgres::react( Event e )
                     unknown( msg );
             }
             catch ( PgServerMessage::Error e ) {
-                error( "Malformed " + String( &msg, 1 ).quoted() +
+                error( "Malformed " + EString( &msg, 1 ).quoted() +
                        " message received." );
             }
         }
@@ -379,7 +379,7 @@ void Postgres::authentication( char type )
             case PgAuthRequest::Crypt:
             case PgAuthRequest::MD5:
                 {
-                    String pass = password();
+                    EString pass = password();
 
                     if ( d->setSessionAuthorisation ) {
                         error( "Cannot supply credentials during proxy "
@@ -544,12 +544,12 @@ void Postgres::process( char type )
                 PgEmptyQueryResponse msg( readBuffer() );
 
             if ( q ) {
-                String s;
+                EString s;
                 s.append( "Dequeueing query " );
                 s.append( q->description() );
                 s.append( " on backend " );
                 s.appendNumber( connectionNumber() );
-                String command;
+                EString command;
                 if ( cc )
                     command = cc->tag().section( " ", 1 );
                 if ( cc && !q->rows() ) {
@@ -607,7 +607,7 @@ void Postgres::process( char type )
     case 'A':
         {
             PgNotificationResponse msg( readBuffer() );
-            String s;
+            EString s;
             if ( !msg.source().isEmpty() )
                 s = " (" + msg.source() + ")";
             log( "Received notify " + msg.name().quoted() +
@@ -636,9 +636,9 @@ void Postgres::unknown( char type )
             d->unknownMessage = false;
             PgParameterStatus msg( readBuffer() );
 
-            String n = msg.name();
-            String v = msg.value();
-            String e;
+            EString n = msg.name();
+            EString v = msg.value();
+            EString e;
             bool known = true;
             if ( n == "client_encoding" ) {
                 if ( v != "UTF8" && v != "SQL_ASCII" )
@@ -695,7 +695,7 @@ void Postgres::unknown( char type )
                 // we're entirely silent about this. all is well.
             }
             else {
-                String s( "PostgreSQL server: " );
+                EString s( "PostgreSQL server: " );
                 if ( e.isEmpty() )
                     s.append( "SET " );
                 else
@@ -719,7 +719,7 @@ void Postgres::unknown( char type )
 
     default:
         {
-            String err = "Unexpected message (";
+            EString err = "Unexpected message (";
 
             if ( type > 32 && type < 127 )
                 err.append( type );
@@ -746,11 +746,11 @@ void Postgres::unknown( char type )
 void Postgres::serverMessage()
 {
     Scope x;
-    String s;
+    EString s;
     PgMessage msg( readBuffer() );
     Query *q = d->queries.firstElement();
-    String m( msg.message() );
-    String code = msg.code();
+    EString m( msg.message() );
+    EString code = msg.code();
     Endpoint server( peer() );
 
     if ( code == "57P03" ) {
@@ -763,7 +763,7 @@ void Postgres::serverMessage()
     else if ( code == "28000" && m.lower().containsWord( "ident" ) ) {
         int b = m.find( '"' );
         int e = m.find( '"', b+1 );
-        String user( m.mid( b+1, e-b-1 ) );
+        EString user( m.mid( b+1, e-b-1 ) );
 
         struct passwd * u = getpwnam( d->user.cstr() );
 
@@ -785,7 +785,7 @@ void Postgres::serverMessage()
             d->setSessionAuthorisation = true;
             log( "Attempting to authenticate as superuser to use "
                  "SET SESSION AUTHORIZATION", Log::Info );
-            d->user = String( p->pw_name );
+            d->user = EString( p->pw_name );
             uid_t e = geteuid();
             setreuid( 0, p->pw_uid );
             close();
@@ -856,7 +856,7 @@ void Postgres::serverMessage()
         // while processing this query, but don't already know that
         // it succeeded, we'll assume that statement name does not
         // exist for future use.
-        String * pp = d->preparesPending.first();
+        EString * pp = d->preparesPending.first();
         if ( q->name() != "" && pp && *pp == q->name() ) {
             d->prepared.remove( q->name() );
             d->preparesPending.shift();
@@ -949,14 +949,14 @@ static const struct {
     none.
 */
 
-String Postgres::mapped( const String & s ) const
+EString Postgres::mapped( const EString & s ) const
 {
     if ( !s.contains( "_" ) )
         return "PostgreSQL Server: " + s;
 
-    String h;
+    EString h;
     uint maps = 0;
-    String w;
+    EString w;
     uint i = 0;
     while ( maps < 2 && i <= s.length() ) {
         char c = s[i];
@@ -995,7 +995,7 @@ String Postgres::mapped( const String & s ) const
 
 */
 
-void Postgres::error( const String &s )
+void Postgres::error( const EString &s )
 {
     Scope x( log() );
     ::log( s, Log::Error );
@@ -1121,9 +1121,9 @@ void Postgres::sendListen()
     if ( ::listener->state() != Idle || ::listener->d->transaction )
         return;
     ::listener->d->mustSendListen = false;
-    StringList::Iterator s( DatabaseSignal::names() );
+    EStringList::Iterator s( DatabaseSignal::names() );
     while ( s ) {
-        String name = *s;
+        EString name = *s;
         ++s;
         if ( !::listener->d->listening.contains( name ) ) {
             ::listener->d->listening.append( name );
@@ -1140,9 +1140,9 @@ void Postgres::sendListen()
 /*! Returns the query string for \a q, after possibly applying
     version-specific hacks and workarounds. */
 
-String Postgres::queryString( Query * q )
+EString Postgres::queryString( Query * q )
 {
-    String s( q->string() );
+    EString s( q->string() );
 
     // Postgres 8.1 plans "where x=ANY($1)" with a seqscan, but we can
     // use a grotesque generate_series hack to subvert that behaviour.
@@ -1157,11 +1157,11 @@ String Postgres::queryString( Query * q )
     if ( s.contains( "=any($" ) && ::serverVersion < 80200 ) {
         bool ok = true;
         while ( s.contains( "=any($" ) ) {
-            String p( s.section( "=any($", 2 ).section( ")", 1 ) );
+            EString p( s.section( "=any($", 2 ).section( ")", 1 ) );
 
             // p looks like "1" or "1::text[]".
             uint v = p.section( "::", 1 ).number( &ok );
-            String type( p.section( "::", 2 ) );
+            EString type( p.section( "::", 2 ) );
 
             // Most of the arrays we bind are int[], so we only require
             // the exceptions to specify the type explicitly.
@@ -1169,7 +1169,7 @@ String Postgres::queryString( Query * q )
                 type = "int[]";
 
             // t should look like "1::int[]" or "1::text[]".
-            String t( fn( v ) );
+            EString t( fn( v ) );
             t.append( "::" );
             t.append( type );
 
@@ -1190,7 +1190,7 @@ String Postgres::queryString( Query * q )
 
                 // By this time, a List is in {a,b,c} format, so we have
                 // to count elements by looking for commas.
-                String l( qv->data() );
+                EString l( qv->data() );
                 l = l.mid( 1, l.length()-2 );
 
                 // 123 or foo or "f,o": we ignore the last for now.
@@ -1204,7 +1204,7 @@ String Postgres::queryString( Query * q )
                 }
             }
 
-            String z;
+            EString z;
 
             if ( alone )
                 z.append( "=$" + fn( v ) );

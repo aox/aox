@@ -4,7 +4,7 @@
 #define LOGSERVER_H
 
 #include "connection.h"
-#include "string.h"
+#include "estring.h"
 #include "log.h"
 
 
@@ -15,17 +15,17 @@ public:
 
     void react(Event e);
 
-    void processLine( const String & );
+    void processLine( const EString & );
 
-    static void setLogFile( const String &, const String & );
-    static void setLogLevel( const String & );
+    static void setLogFile( const EString &, const EString & );
+    static void setLogLevel( const EString & );
 
     static void reopen( int );
 
-    static Log::Severity severity( const String & );
+    static Log::Severity severity( const EString & );
 
     // only for SelfLogger
-    void output( String, Log::Severity, const String & );
+    void output( EString, Log::Severity, const EString & );
 
 private:
     void parse();

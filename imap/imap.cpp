@@ -5,7 +5,7 @@
 #include "log.h"
 #include "list.h"
 #include "scope.h"
-#include "string.h"
+#include "estring.h"
 #include "buffer.h"
 #include "mailbox.h"
 #include "eventloop.h"
@@ -19,7 +19,7 @@
 #include "tls.h"
 
 
-static bool endsWithLiteral( const String *, uint *, bool * );
+static bool endsWithLiteral( const EString *, uint *, bool * );
 
 
 class IMAPData
@@ -43,7 +43,7 @@ public:
 
     Command * reader;
 
-    String str;
+    EString str;
 
     bool prefersAbsoluteMailboxes;
     bool runningCommands;
@@ -103,7 +103,7 @@ IMAP::IMAP( int s )
     if ( s < 0 )
         return;
 
-    String banner = "* OK [CAPABILITY " +
+    EString banner = "* OK [CAPABILITY " +
                     Capability::capabilities( this ) + "] " +
                     Configuration::hostname() +
                     " Archiveopteryx IMAP Server";
@@ -205,7 +205,7 @@ void IMAP::parse()
         // and create a Command to deal with it.
         if ( !d->readingLiteral && !d->reader ) {
             bool plus = false;
-            String * s;
+            EString * s;
             uint n;
 
             // Do we have a complete line yet?
@@ -262,7 +262,7 @@ void IMAP::addCommand()
 
     ImapParser * p = new ImapParser( d->str );
 
-    String tag = p->tag();
+    EString tag = p->tag();
     if ( !p->ok() ) {
         enqueue( "* BAD " + p->error() + "\r\n" );
         recordSyntaxError();
@@ -272,7 +272,7 @@ void IMAP::addCommand()
 
     p->require( " " );
 
-    String name = p->command();
+    EString name = p->command();
     if ( !p->ok() ) {
         enqueue( "* BAD " + p->error() + "\r\n" );
         recordSyntaxError();
@@ -329,7 +329,7 @@ void IMAP::setState( State s )
     if ( s == d->state )
         return;
     d->state = s;
-    String name;
+    EString name;
     switch ( s ) {
     case NotAuthenticated:
         name = "not authenticated";
@@ -389,7 +389,7 @@ bool IMAP::idle() const
     the IMAP object to Authenticated.
 */
 
-void IMAP::setUser( User * user, const String & mechanism )
+void IMAP::setUser( User * user, const EString & mechanism )
 {
     log( "Authenticated as " + user->login().ascii() + " using " +
          mechanism, Log::Significant );
@@ -560,7 +560,7 @@ void IMAP::run( Command * c )
     '+' (for LITERAL+). Returns false if it couldn't find a literal.
 */
 
-static bool endsWithLiteral( const String *s, uint *n, bool *plus )
+static bool endsWithLiteral( const EString *s, uint *n, bool *plus )
 {
     if ( !s->endsWith( "}" ) )
         return false;
@@ -638,7 +638,7 @@ class IMAPSData
 public:
     IMAPSData() : tlsServer( 0 ), helper( 0 ) {}
     TlsServer * tlsServer;
-    String banner;
+    EString banner;
     class ImapsHelper * helper;
 };
 
@@ -666,7 +666,7 @@ private:
 IMAPS::IMAPS( int s )
     : IMAP( s ), d( new IMAPSData )
 {
-    String * tmp = writeBuffer()->removeLine();
+    EString * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
     d->helper = new ImapsHelper( this );
@@ -729,7 +729,7 @@ List<Command> * IMAP::commands() const
 }
 
 
-void IMAP::sendChallenge( const String &s )
+void IMAP::sendChallenge( const EString &s )
 {
     enqueue( "+ "+ s +"\r\n" );
 }
@@ -811,7 +811,7 @@ void IMAP::emitResponses()
             r->setSent();
         }
         else if ( !r->sent() && ( can || !r->changesMsn() ) ) {
-            String t = r->text();
+            EString t = r->text();
             if ( !t.isEmpty() ) {
                 w->append( "* ", 2 );
                 w->append( t );

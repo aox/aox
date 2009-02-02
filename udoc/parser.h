@@ -8,29 +8,29 @@ class Class;
 class Function;
 
 
-#include "string.h"
+#include "estring.h"
 
 
 class Parser
     : public Garbage
 {
 public:
-    Parser( const String & );
+    Parser( const EString & );
 
     bool atEnd() const;
     uint line();
 
     void step();
-    bool lookingAt( const String & );
+    bool lookingAt( const EString & );
 
-    void scan( const String & );
-    String textUntil( const String & );
+    void scan( const EString & );
+    EString textUntil( const EString & );
     void whitespace();
-    String identifier();
-    String type();
-    String argumentList();
-    String word();
-    String value();
+    EString identifier();
+    EString type();
+    EString argumentList();
+    EString word();
+    EString value();
 
 private:
     uint simpleIdentifier( uint );
@@ -40,7 +40,7 @@ private:
     uint whitespace( uint );
 
 private:
-    String t;
+    EString t;
     uint i;
     uint ln, li;
 };

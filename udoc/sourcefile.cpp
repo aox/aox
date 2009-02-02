@@ -24,7 +24,7 @@
 
 /*!  Constructs a SourceFile named \a f, and parses it if it can be opened. */
 
-SourceFile::SourceFile( const String & f )
+SourceFile::SourceFile( const EString & f )
     : File( f, Read )
 {
     if ( valid() )
@@ -48,7 +48,7 @@ void SourceFile::parse()
         Function * f = 0;
         Class * c = 0;
         Intro * i = 0;
-        String d;
+        EString d;
         uint l = p.line();
         if ( p.lookingAt( "\\fn " ) ) {
             p.scan( " " );
@@ -57,7 +57,7 @@ void SourceFile::parse()
         }
         else if ( p.lookingAt( "\\chapter " ) ) {
             p.scan( " " );
-            String name = p.word();
+            EString name = p.word();
             if ( name.isEmpty() )
                 (void)new Error( this, p.line(),
                                  "\\chapter must be followed by name" );
@@ -67,7 +67,7 @@ void SourceFile::parse()
         }
         else if ( p.lookingAt( "\\class " ) ) {
             p.scan( " " );
-            String className = p.identifier();
+            EString className = p.identifier();
             if ( className.isEmpty() ) {
                 (void)new Error( this, l,
                                  "\\class must be followed by a class name" );
@@ -76,7 +76,7 @@ void SourceFile::parse()
             if ( !c )
                 c = new Class( className, 0, 0 );
             p.whitespace();
-            String hn = p.word();
+            EString hn = p.word();
             while ( p.lookingAt( "." ) ) {
                 p.step();
                 hn.append( "." );
@@ -94,7 +94,7 @@ void SourceFile::parse()
                 HeaderFile * h = HeaderFile::find( hn );
                 if ( !h ) {
                     if ( name().contains( "/" ) ) {
-                        String dir = name();
+                        EString dir = name();
                         uint i = dir.length()-1;
                         while ( i > 0 && dir[i] != '/' )
                             i--;
@@ -149,15 +149,15 @@ void SourceFile::parse()
 Function * SourceFile::function( Parser * p )
 {
     Function * f = 0;
-    String t = p->type();
+    EString t = p->type();
     uint l = p->line();
-    String n = p->identifier();
+    EString n = p->identifier();
     if ( n.isEmpty() && p->lookingAt( "(" ) && t.find( ':' ) > 0 ) {
         // constructor support hack. eeek.
         n = t;
         t = "";
     }
-    String a = p->argumentList();
+    EString a = p->argumentList();
     p->whitespace();
     bool cn = false;
     if ( p->lookingAt( "const" ) ) {

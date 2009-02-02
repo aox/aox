@@ -12,8 +12,8 @@ class Cp932Codec
 public:
     Cp932Codec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

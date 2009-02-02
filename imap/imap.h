@@ -6,7 +6,7 @@
 #include "saslconnection.h"
 #include "list.h"
 
-class String;
+class EString;
 class Command;
 class ImapSession;
 
@@ -40,8 +40,8 @@ public:
     List<Command> * commands() const;
     void unblockCommands();
 
-    void sendChallenge( const String & );
-    void setUser( class User *, const String & );
+    void sendChallenge( const EString & );
+    void setUser( class User *, const EString & );
 
     void setPrefersAbsoluteMailboxes( bool );
     bool prefersAbsoluteMailboxes() const;

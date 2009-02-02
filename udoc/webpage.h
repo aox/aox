@@ -3,7 +3,7 @@
 #ifndef WEBPAGE_H
 #define WEBPAGE_H
 
-#include "stringlist.h"
+#include "estringlist.h"
 
 #include "output.h"
 
@@ -25,24 +25,24 @@ public:
     void startHeadline( Class * );
     void startHeadline( Function * );
     void endParagraph();
-    void addText( const String & );
-    void addLink( const String &, const String & );
-    void addArgument( const String & );
-    void addFunction( const String &, Function * );
-    void addClass( const String &, Class * );
+    void addText( const EString & );
+    void addLink( const EString &, const EString & );
+    void addArgument( const EString & );
+    void addFunction( const EString &, Function * );
+    void addClass( const EString &, Class * );
 
 private:
-    void output( const String & );
-    String anchor( Function * );
+    void output( const EString & );
+    EString anchor( Function * );
     void endPage();
-    void startPage( const String &, const String & );
+    void startPage( const EString &, const EString & );
 
 private:
-    String para;
+    EString para;
     int fd;
-    String directory;
-    String fn;
-    StringList names;
+    EString directory;
+    EString fn;
+    EStringList names;
     bool pstart;
 };
 

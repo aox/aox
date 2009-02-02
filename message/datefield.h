@@ -13,7 +13,7 @@ class DateField
 public:
     DateField( HeaderField::Type );
 
-    void parse( const String & );
+    void parse( const EString & );
 
     ::Date *date() const;
 };

@@ -6,7 +6,7 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "transaction.h"
 
 #include <stdio.h>
@@ -16,7 +16,7 @@
     This class handles the "aox list mailboxes" command.
 */
 
-ListMailboxes::ListMailboxes( StringList * args )
+ListMailboxes::ListMailboxes( EStringList * args )
     : AoxCommand( args ), q( 0 )
 {
 }
@@ -25,8 +25,8 @@ ListMailboxes::ListMailboxes( StringList * args )
 void ListMailboxes::execute()
 {
     if ( !q ) {
-        String owner;
-        String p( next() );
+        EString owner;
+        EString p( next() );
 
         while ( p[0] == '-' ) {
             if ( p == "-d" ) {
@@ -56,7 +56,7 @@ void ListMailboxes::execute()
 
         database();
 
-        String s( "select name,login as owner" );
+        EString s( "select name,login as owner" );
         if ( opt( 's' ) > 0 )
             s.append( ",(select count(*) from messages "
                       "where mailbox=m.id)::int as messages,"
@@ -65,7 +65,7 @@ void ListMailboxes::execute()
         s.append( " from mailboxes m left join users u on (m.owner=u.id)" );
 
         int n = 1;
-        StringList where;
+        EStringList where;
         if ( opt( 'd' ) == 0 )
             where.append( "not deleted" );
         if ( !pattern.isEmpty() )
@@ -93,7 +93,7 @@ void ListMailboxes::execute()
         printf( "%s", n.utf8().cstr() );
 
         if ( opt( 's' ) > 0 ) {
-            String s;
+            EString s;
             int messages = r->getInt( "messages" );
             int size = r->getInt( "size" );
             s.appendNumber( messages );
@@ -101,7 +101,7 @@ void ListMailboxes::execute()
                 s.append( " message, " );
             else
                 s.append( " messages, " );
-            s.append( String::humanNumber( size ) );
+            s.append( EString::humanNumber( size ) );
             s.append( " bytes" );
             printf( " (%s)", s.cstr() );
         }
@@ -136,7 +136,7 @@ public:
     This class handles the "aox add mailbox" command.
 */
 
-CreateMailbox::CreateMailbox( StringList * args )
+CreateMailbox::CreateMailbox( EStringList * args )
     : AoxCommand( args ), d( new CreateMailboxData )
 {
 }
@@ -220,7 +220,7 @@ public:
     This class handles the "aox delete mailbox" command.
 */
 
-DeleteMailbox::DeleteMailbox( StringList * args )
+DeleteMailbox::DeleteMailbox( EStringList * args )
     : AoxCommand( args ), d( new DeleteMailboxData )
 {
 }

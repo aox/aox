@@ -6,7 +6,7 @@
 #include "list.h"
 #include "query.h"
 #include "imapurl.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "configuration.h"
 #include "transaction.h"
 #include "entropy.h"
@@ -22,7 +22,7 @@ struct UrlKey
     {}
 
     Query * q;
-    String key;
+    EString key;
     ImapUrl * url;
     Mailbox * mailbox;
 };
@@ -58,7 +58,7 @@ void GenUrlauth::parse()
     do {
         space();
 
-        String s( astring() );
+        EString s( astring() );
         ImapUrl * url = new ImapUrl( s );
         if ( !url->valid() ) {
             error( Bad, "Invalid URL: " + s );
@@ -138,7 +138,7 @@ void GenUrlauth::execute()
 
             if ( q->hasResults() ) {
                 Row * r = q->nextRow();
-                it->key = r->getString( "key" );
+                it->key = r->getEString( "key" );
             }
             else if ( q->rows() == 0 ) {
                 it->key = Entropy::asString( 16 ).e64();
@@ -167,11 +167,11 @@ void GenUrlauth::execute()
             return;
         }
 
-        StringList l;
+        EStringList l;
         List<UrlKey>::Iterator it( d->urlKeys );
         while ( it ) {
-            String orig( it->url->orig() );
-            String u( orig );
+            EString orig( it->url->orig() );
+            EString u( orig );
             u.append( ":internal:0" );
             u.append( MD5::HMAC( it->key.de64(), orig ).hex() );
             l.append( imapQuoted( u ) );

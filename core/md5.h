@@ -6,7 +6,7 @@
 #include "global.h"
 
 
-class String;
+class EString;
 class Buffer;
 
 
@@ -17,12 +17,12 @@ public:
     MD5();
 
     void add( const char *, uint );
-    void add( const String & );
+    void add( const EString & );
 
-    String hash();
-    static String hash( const String & );
-    static String hash( const Buffer & );
-    static String HMAC( const String &, const String & );
+    EString hash();
+    static EString hash( const EString & );
+    static EString hash( const Buffer & );
+    static EString HMAC( const EString &, const EString & );
 
 private:
     bool finalised;

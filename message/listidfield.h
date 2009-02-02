@@ -15,7 +15,7 @@ class ListIdField
 public:
     ListIdField();
 
-    void parse( const String & );
+    void parse( const EString & );
 };
 
 

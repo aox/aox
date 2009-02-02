@@ -13,15 +13,15 @@ class SieveParser
     : public AbnfParser
 {
 public:
-    SieveParser( const String & );
+    SieveParser( const EString & );
 
     // the unique functions in this class
 
     List<class SieveProduction> * bad( class SieveProduction * );
     void rememberBadProduction( class SieveProduction * );
 
-    class StringList * extensionsNeeded() const;
-    void rememberNeededExtension( const String & );
+    class EStringList * extensionsNeeded() const;
+    void rememberNeededExtension( const EString & );
 
     // productions in RFC3028bis section 8.1
 
@@ -29,7 +29,7 @@ public:
     void comment();
     void hashComment();
 
-    String identifier();
+    EString identifier();
 
     UString multiLine();
 
@@ -37,7 +37,7 @@ public:
 
     UString quotedString();
 
-    String tag();
+    EString tag();
 
     void whitespace();
 
@@ -54,7 +54,7 @@ public:
 
     List<class SieveCommand> * commands();
 
-    String comparator();
+    EString comparator();
 
     UString string();
 

@@ -83,7 +83,7 @@ void Output::endParagraph()
 
 /*! Adds \a text as ordinary text to all output devices. */
 
-void Output::addText( const String & text )
+void Output::addText( const EString & text )
 {
     if ( needSpace ) {
         needSpace = false;
@@ -100,7 +100,7 @@ void Output::addText( const String & text )
 
 /*! Adds \a url and \a title as a link to all capable output devices. */
 
-void Output::addLink( const String & url, const String & title )
+void Output::addLink( const EString & url, const EString & title )
 {
     if ( needSpace ) {
         needSpace = false;
@@ -117,7 +117,7 @@ void Output::addLink( const String & url, const String & title )
 
 /*! Adds \a text as an argument name to all output devices. */
 
-void Output::addArgument( const String & text )
+void Output::addArgument( const EString & text )
 {
     if ( needSpace ) {
         needSpace = false;
@@ -136,7 +136,7 @@ void Output::addArgument( const String & text )
     device may express the link differently.
 */
 
-void Output::addFunction( const String & text, Function * f )
+void Output::addFunction( const EString & text, Function * f )
 {
     if ( needSpace ) {
         needSpace = false;
@@ -155,7 +155,7 @@ void Output::addFunction( const String & text, Function * f )
     device may express the link differently.
 */
 
-void Output::addClass( const String & text, Class * c )
+void Output::addClass( const EString & text, Class * c )
 {
     if ( needSpace ) {
         needSpace = false;
@@ -181,39 +181,39 @@ void Output::addSpace()
 }
 
 
-static String * o;
+static EString * o;
 
 /*! Remembers that \a owner is the owner of the input. Most output
     will carry the name.
 */
 
-void Output::setOwner( const String & owner )
+void Output::setOwner( const EString & owner )
 {
     if ( !o )
-        o = new String;
+        o = new EString;
     *o = owner;
 }
 
 
 /*! Returns the owner string, or an empty string if none has been set. */
 
-String Output::owner()
+EString Output::owner()
 {
     return o ? *o : "";
 }
 
 
-static String * u;
+static EString * u;
 
 
 /*! Remembers that \a url is the home page of the rights owner. Most
     output will link to or mention \a url.
 */
 
-void Output::setOwnerHome( const String & url )
+void Output::setOwnerHome( const EString & url )
 {
     if ( !u )
-        u = new String;
+        u = new EString;
     *u = url;
 }
 
@@ -222,7 +222,7 @@ void Output::setOwnerHome( const String & url )
     has been set.
 */
 
-String Output::ownerHome()
+EString Output::ownerHome()
 {
     return u ? *u : "";
 }

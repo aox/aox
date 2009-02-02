@@ -29,9 +29,9 @@ public:
 
     List< Bodypart > * children() const;
 
-    void appendMultipart( String & ) const;
-    void appendAnyPart( String &, const Bodypart *, ContentType * ) const;
-    void appendTextPart( String &, const Bodypart *, ContentType * ) const;
+    void appendMultipart( EString & ) const;
+    void appendAnyPart( EString &, const Bodypart *, ContentType * ) const;
+    void appendTextPart( EString &, const Bodypart *, ContentType * ) const;
 
 private:
     Header * h;

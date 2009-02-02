@@ -63,7 +63,7 @@ void ProgressReporter::execute()
              "memory usage %s\n",
              n, d->m->mailboxesMigrated() + d->m->migrators(),
              ((double)( n - d->l )) / p ,
-             String::humanNumber( Allocator::inUse() + Allocator::allocated() ).cstr() );
+             EString::humanNumber( Allocator::inUse() + Allocator::allocated() ).cstr() );
     d->w = w;
     d->l = n;
 }

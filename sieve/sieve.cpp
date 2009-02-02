@@ -16,7 +16,7 @@
 #include "injector.h"
 #include "collation.h"
 #include "mimefields.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "ustringlist.h"
 #include "sievescript.h"
 #include "sieveaction.h"
@@ -63,12 +63,12 @@ public:
         bool ok;
         bool implicitKeep;
         bool explicitKeep;
-        String result;
+        EString result;
         List<SieveAction> actions;
         List<SieveCommand> pending;
         Query * sq;
         SieveScript * script;
-        String error;
+        EString error;
         UString prefix;
         User * user;
         EventHandler * handler;
@@ -99,8 +99,8 @@ SieveData::Recipient * SieveData::recipient( Address * a )
 {
     List<SieveData::Recipient>::Iterator it( recipients );
     bool same = false;
-    String dom = a->domain().lower();
-    String lp = a->localpart().lower();
+    EString dom = a->domain().lower();
+    EString lp = a->localpart().lower();
     while ( it && !same ) {
         if ( it->address->domain().lower() == dom ) {
             if ( it->mailbox ) {
@@ -176,18 +176,18 @@ void Sieve::execute()
                         i->user->setId( r->getInt( "userid" ) );
                         i->user->setAddress( new Address(
                                                  r->getUString( "name" ),
-                                                 r->getString( "localpart" ),
-                                                 r->getString( "domain" ) ) );
-                        i->script->parse( r->getString( "script" ).crlf() );
-                        String errors = i->script->parseErrors();
+                                                 r->getEString( "localpart" ),
+                                                 r->getEString( "domain" ) ) );
+                        i->script->parse( r->getEString( "script" ).crlf() );
+                        EString errors = i->script->parseErrors();
                         if ( !errors.isEmpty() ) {
                             log( "Note: Sieve script for " +
                                  i->user->login().utf8() +
                                  "had parse errors.", Log::Error );
-                            String prefix = "Sieve script for " +
+                            EString prefix = "Sieve script for " +
                                             i->user->login().utf8();
-                            StringList::Iterator i(
-                                StringList::split( '\n', errors ) );
+                            EStringList::Iterator i(
+                                EStringList::split( '\n', errors ) );
                             while ( i ) {
                                 log( "Sieve: " + *i, Log::Error );
                                 ++i;
@@ -238,7 +238,7 @@ void Sieve::execute()
 //                  new Query( "lock autoresponses in exclusive mode",
 //                             this ) );
                 d->autoresponses = new Query( "", this );
-                String s = "select handle from autoresponses "
+                EString s = "select handle from autoresponses "
                            "where expires_at > current_timestamp "
                            "and (";
                 bool first = true;
@@ -318,7 +318,7 @@ void Sieve::execute()
     // 2: injection of all messages
     if ( d->state == 2 ) {
         List<Mailbox>::Iterator i( mailboxes() );
-        StringList flags;
+        EStringList flags;
         while ( i ) {
             d->message->setFlags( i, &flags );
             ++i;
@@ -454,10 +454,10 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                        "left join namespaces n on (u.parentspace=n.id) "
                        "where m.deleted='f' and "
                        "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
-    String localpart( address->localpart() );
+    EString localpart( address->localpart() );
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
         Configuration::Text t = Configuration::AddressSeparator;
-        String sep( Configuration::text( t ) );
+        EString sep( Configuration::text( t ) );
         int n = localpart.find( sep );
         if ( n > 0 )
             localpart = localpart.mid( 0, n );
@@ -532,7 +532,7 @@ void Sieve::evaluate()
             log( "Evaluated Sieve script for " + i->address->toString() );
             List<SieveAction>::Iterator a( i->actions );
             while ( a ) {
-                String r;
+                EString r;
                 switch ( a->type() ) {
                 case SieveAction::Reject:
                     r = "reject";
@@ -733,7 +733,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
 
         // look for suspect senders
-        String slp = d->sender->localpart().lower();
+        EString slp = d->sender->localpart().lower();
         if ( d->sender->type() != Address::Normal )
             wantToReply = false;
         else if ( slp.startsWith( "owner-" ) )
@@ -751,7 +751,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         if ( wantToReply ) {
             List<HeaderField>::Iterator i( d->message->header()->fields() );
             while ( i && wantToReply ) {
-                String n = i->name();
+                EString n = i->name();
                 if ( n == "Auto-Submitted" ||
                      n.startsWith( "List-" ) ||
                      n == "Precedence" ||
@@ -770,8 +770,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             l.append( d->message->header()->addresses( HeaderField::Cc ) );
             List<Address>::Iterator i( l );
             while ( i && !wantToReply ) {
-                String lp = i->localpart().lower();
-                String dom = i->domain().lower();
+                EString lp = i->localpart().lower();
+                EString dom = i->domain().lower();
                 List<Address>::Iterator me( addresses );
                 while ( me && !wantToReply ) {
                     if ( lp == me->localpart().lower() &&
@@ -805,7 +805,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         UString reason = al->takeString( 1 );
         Injectee * reply = 0;
 
-        String reptext;
+        EString reptext;
         reptext.append( "From: " );
         reptext.append( from->toString() );
         reptext.append( "\r\n"
@@ -814,7 +814,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         reptext.append( "\r\n"
                         "Subject: " );
         if ( subject.isEmpty() ) {
-            String s = d->message->header()->subject().simplified();
+            EString s = d->message->header()->subject().simplified();
             while ( s.lower().startsWith( "auto:" ) )
                 s = s.mid( 5 ).simplified();
             reptext.append( "Auto: " );
@@ -830,7 +830,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                         "Date: " );
         Date replyDate;
         if ( d->message->header()->field( HeaderField::Received ) ) {
-            String v = d->message->header()->
+            EString v = d->message->header()->
                        field( HeaderField::Received )->rfc822();
             int i = 0;
             while ( v.find( ';', i+1 ) > 0 )
@@ -919,13 +919,13 @@ static void addAddress( UStringList * l, Address * a,
     UString * s = new UString;
     Utf8Codec c;
 
-    String user;
-    String detail;
-    String localpart( a->localpart() );
+    EString user;
+    EString detail;
+    EString localpart( a->localpart() );
 
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
         Configuration::Text p = Configuration::AddressSeparator;
-        String sep( Configuration::text( p ) );
+        EString sep( Configuration::text( p ) );
         int n = localpart.find( sep );
         if ( n > 0 ) {
             user = localpart.mid( 0, n );
@@ -1073,10 +1073,10 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             dt.setLocalTimezone();
 
         if ( dt.valid() ) {
-            String s;
-            String z( "0000" );
+            EString s;
+            EString z( "0000" );
 
-            String dp( t->datePart().ascii() );
+            EString dp( t->datePart().ascii() );
             if ( dp == "year" ) {
                 z.appendNumber( dt.year() );
                 s.append( z.mid( z.length()-4 ) );
@@ -1192,7 +1192,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             List<Bodypart>::Iterator i( d->message->allBodyparts() );
             while ( i ) {
                 Header * h = i->header();
-                String ct;
+                EString ct;
                 if ( !h->contentType() ) {
                     switch( h->defaultType() ) {
                     case Header::TextPlain:
@@ -1216,7 +1216,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
                 else {
                     UStringList::Iterator k( t->contentTypes() );
                     while ( k ) {
-                        String mk = k->ascii();
+                        EString mk = k->ascii();
                         ++k;
                         // this logic is based exactly on the draft.
                         if ( mk.startsWith( "/" ) ||
@@ -1419,7 +1419,7 @@ bool Sieve::rejected( Address * address ) const
     address is not a valid address.
 */
 
-String Sieve::error( Address * address ) const
+EString Sieve::error( Address * address ) const
 {
     SieveData::Recipient * i = d->recipient( address );
     if ( !i )
@@ -1432,7 +1432,7 @@ String Sieve::error( Address * address ) const
     run-time error, and an empty string in all other cases.
 */
 
-String Sieve::error() const
+EString Sieve::error() const
 {
     List<SieveData::Recipient>::Iterator it( d->recipients );
     while ( it && it->error.isEmpty() )
@@ -1543,13 +1543,13 @@ List<Mailbox> * Sieve::mailboxes() const
 List<Address> * Sieve::forwarded() const
 {
     List<Address> * r = new List<Address>;
-    StringList uniq;
+    EStringList uniq;
     List<SieveData::Recipient>::Iterator i( d->recipients );
     while ( i ) {
         List<SieveAction>::Iterator a( i->actions );
         while ( a ) {
             if ( a->type() == SieveAction::Redirect ) {
-                String s = a->recipientAddress()->lpdomain();
+                EString s = a->recipientAddress()->lpdomain();
                 if ( !uniq.contains( s ) ) {
                     uniq.append( s );
                     r->append( a->recipientAddress() );
@@ -1561,7 +1561,7 @@ List<Address> * Sieve::forwarded() const
     }
     List<Address>::Iterator a( d->submissions );
     while ( a ) {
-        String s = a->lpdomain();
+        EString s = a->lpdomain();
         if ( !uniq.contains( s ) ) {
             uniq.append( s );
             r->append( a );

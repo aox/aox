@@ -4,7 +4,7 @@
 #define PAGECOMPONENT_H
 
 #include "event.h"
-#include "string.h"
+#include "estring.h"
 #include "list.h"
 
 
@@ -17,7 +17,7 @@ class PageComponent
     : public EventHandler
 {
 public:
-    PageComponent( const String & );
+    PageComponent( const EString & );
 
     bool done() const;
     void execute();
@@ -28,18 +28,18 @@ public:
     WebPage * page() const;
     void setPage( WebPage * );
 
-    String contents() const;
-    void setContents( const String & );
+    EString contents() const;
+    void setContents( const EString & );
 
     List<FrontMatter> * frontMatter() const;
     void addFrontMatter( FrontMatter * );
 
-    String divClass() const;
+    EString divClass() const;
 
-    static String quoted( const String & );
-    static String quoted( const UString & );
-    static String address( class Address * );
-    static String address( const UString & );
+    static EString quoted( const EString & );
+    static EString quoted( const UString & );
+    static EString address( class Address * );
+    static EString address( const UString & );
 
     uint uniqueNumber();
 

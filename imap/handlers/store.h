@@ -31,7 +31,7 @@ private:
     bool replaceFlags();
     void replaceAnnotations();
     void parseAnnotationEntry();
-    String entryName();
+    EString entryName();
 };
 
 

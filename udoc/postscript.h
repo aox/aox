@@ -3,7 +3,7 @@
 #ifndef POSTSCRIPT_H
 #define POSTSCRIPT_H
 
-#include "string.h"
+#include "estring.h"
 
 #include "output.h"
 
@@ -27,17 +27,17 @@ public:
     void startHeadline( Class * );
     void startHeadline( Function * );
     void endParagraph();
-    void addText( const String & );
-    void addArgument( const String & );
-    void addFunction( const String &, Function * );
-    void addClass( const String &, Class * );
+    void addText( const EString & );
+    void addArgument( const EString & );
+    void addFunction( const EString &, Function * );
+    void addClass( const EString &, Class * );
 
 private:
-    void output( const String & );
+    void output( const EString & );
 
 private:
     File * file;
-    String para;
+    EString para;
 };
 
 

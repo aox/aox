@@ -33,7 +33,7 @@ public:
     Query * result;
     Transaction * t;
     EventHandler * user;
-    String error;
+    EString error;
     User::State state;
 
     enum Operation {
@@ -179,7 +179,7 @@ Address * User::address()
 {
     if ( !d->address ) {
         // XXX: This does not match the documentation above.
-        String dom = Configuration::hostname();
+        EString dom = Configuration::hostname();
         uint i = dom.find( '.' );
         if ( i > 0 )
             dom = dom.mid( i+1 );
@@ -338,8 +338,8 @@ void User::refreshHelper()
         d->home = Mailbox::obtain( tmp, true );
         d->home->setOwner( d->id );
         UString n = r->getUString( "name" );
-        String l = r->getString( "localpart" );
-        String h = r->getString( "domain" );
+        EString l = r->getEString( "localpart" );
+        EString h = r->getEString( "domain" );
         d->address = new Address( n, l, h );
         d->state = Refreshed;
     }
@@ -547,7 +547,7 @@ bool User::valid()
     perhaps other functions.
 */
 
-String User::error() const
+EString User::error() const
 {
     return d->error;
 }

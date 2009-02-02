@@ -4,7 +4,7 @@
 #define HELPERROWCREATOR_H
 
 #include "injector.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "dict.h"
 
 
@@ -12,16 +12,16 @@ class HelperRowCreator
     : public EventHandler
 {
 public:
-    HelperRowCreator( const String &, class Transaction *, const String & );
+    HelperRowCreator( const EString &, class Transaction *, const EString & );
 
     bool done() const;
 
     void execute();
 
-    uint id( const String & );
+    uint id( const EString & );
 
 protected:
-    void add( const String &, uint );
+    void add( const EString &, uint );
 
 private:
     virtual Query * makeSelect() = 0;
@@ -37,14 +37,14 @@ class FlagCreator
     : public HelperRowCreator
 {
 public:
-    FlagCreator( const StringList &, class Transaction * );
+    FlagCreator( const EStringList &, class Transaction * );
 
 private:
     Query * makeSelect();
     Query * makeCopy();
 
 private:
-    StringList names;
+    EStringList names;
 };
 
 
@@ -52,14 +52,14 @@ class FieldNameCreator
     : public HelperRowCreator
 {
 public:
-    FieldNameCreator( const StringList &, class Transaction * );
+    FieldNameCreator( const EStringList &, class Transaction * );
 
 private:
     Query * makeSelect();
     Query * makeCopy();
 
 private:
-    StringList names;
+    EStringList names;
 };
 
 
@@ -67,14 +67,14 @@ class AnnotationNameCreator
     : public HelperRowCreator
 {
 public:
-    AnnotationNameCreator( const StringList &, class Transaction * );
+    AnnotationNameCreator( const EStringList &, class Transaction * );
 
 private:
     Query * makeSelect();
     Query * makeCopy();
 
 private:
-    StringList names;
+    EStringList names;
 };
 
 
@@ -86,7 +86,7 @@ public:
     AddressCreator( Address *, class Transaction * );
     AddressCreator( List<Address> *, class Transaction * );
 
-    static String key( Address * );
+    static EString key( Address * );
 
 private:
     Query * makeSelect();
@@ -94,7 +94,7 @@ private:
     Query * makeCopy();
 
 private:
-    uint param( Dict<uint> *, const String &, uint &, Query * );
+    uint param( Dict<uint> *, const EString &, uint &, Query * );
 
 private:
     Dict<Address> * a;

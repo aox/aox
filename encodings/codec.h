@@ -6,7 +6,7 @@
 class UString;
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 
 
 class Codec
@@ -16,8 +16,8 @@ public:
     Codec( const char * );
     virtual ~Codec();
 
-    virtual String fromUnicode( const UString & ) = 0;
-    virtual UString toUnicode( const String & ) = 0;
+    virtual EString fromUnicode( const UString & ) = 0;
+    virtual UString toUnicode( const EString & ) = 0;
 
     bool wellformed() const { return state() == Valid; }
     bool valid() const { return state() != Invalid; }
@@ -27,27 +27,27 @@ public:
     enum State { Valid, BadlyFormed, Invalid, Aborted };
     void setState( State st ) { s = st; }
     State state() const { return s; }
-    String error() const;
+    EString error() const;
     void recordError( uint );
-    void recordError( uint, const String & );
+    void recordError( uint, const EString & );
     void recordError( uint, uint );
-    void recordError( const String & );
+    void recordError( const EString & );
 
-    static Codec * byName(  const String & );
+    static Codec * byName(  const EString & );
     static Codec * byString( const UString & );
-    static Codec * byString( const String & );
+    static Codec * byString( const EString & );
 
-    String name() const { return n; }
+    EString name() const { return n; }
 
     void append( UString &, uint );
     void mangleTrailingSurrogate( UString & );
 
-    static class StringList allCodecNames();
+    static class EStringList allCodecNames();
 
 private:
     State s;
-    String n;
-    String e;
+    EString n;
+    EString e;
     bool a;
 };
 
@@ -58,8 +58,8 @@ protected:
         : Codec( cs ), t( table ) {}
 
 public:
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 
 private:
     const uint * t;
@@ -70,8 +70,8 @@ class AsciiCodec: public Codec {
 public:
     AsciiCodec();
 
-    String fromUnicode( const UString & );
-    UString toUnicode( const String & );
+    EString fromUnicode( const UString & );
+    UString toUnicode( const EString & );
 };
 
 

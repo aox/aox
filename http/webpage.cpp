@@ -54,8 +54,8 @@ public:
     bool requiresUser;
     User * user;
 
-    String contentType;
-    String contents;
+    EString contentType;
+    EString contents;
 
     uint uniq;
     bool finished;
@@ -110,7 +110,7 @@ HTTP * WebPage::server() const
     that parameter was not specified in the request. Provided for
     convenience. */
 
-UString WebPage::parameter( const String & s ) const
+UString WebPage::parameter( const EString & s ) const
 {
     return d->link->server()->parameter( s );
 }
@@ -121,7 +121,7 @@ UString WebPage::parameter( const String & s ) const
     instead.)
 */
 
-void WebPage::setContents( const String &type, const String &text )
+void WebPage::setContents( const EString &type, const EString &text )
 {
     d->contentType = type;
     d->contents = text;
@@ -214,11 +214,11 @@ void WebPage::execute()
     an HTML page.
 */
 
-String WebPage::frontMatter() const
+EString WebPage::frontMatter() const
 {
-    String title;
-    String style;
-    String script;
+    EString title;
+    EString style;
+    EString script;
     List<FrontMatter> frontMatter;
 
     List<PageComponent>::Iterator it( d->components );
@@ -238,7 +238,7 @@ String WebPage::frontMatter() const
         ++it;
     }
 
-    String s;
+    EString s;
 
     s.append( "<title>" );
     s.append( title );
@@ -271,9 +271,9 @@ String WebPage::frontMatter() const
     PageComponent::done() is not true for all of the components.
 */
 
-String WebPage::componentText() const
+EString WebPage::componentText() const
 {
-    String s;
+    EString s;
 
     List<PageComponent>::Iterator it( d->components );
     while ( it ) {
@@ -290,9 +290,9 @@ String WebPage::componentText() const
     execute() checks.
 */
 
-String WebPage::contents() const
+EString WebPage::contents() const
 {
-    String html(
+    EString html(
         "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">\n"
     );
 
@@ -499,7 +499,7 @@ PageFragment::PageFragment( Link * link )
 
 /*! Returns the text assembled from the constituent component(s). */
 
-String PageFragment::contents() const
+EString PageFragment::contents() const
 {
     return componentText();
 }
@@ -571,7 +571,7 @@ void BodypartPage::execute()
         d->c->bind( 1, link()->mailbox()->id() );
         d->c->bind( 2, link()->uid() );
 
-        String part( link()->part() );
+        EString part( link()->part() );
         d->c->bind( 3, part );
         if ( part == "1" )
             d->c->bind( 4, "" );
@@ -592,19 +592,19 @@ void BodypartPage::execute()
 
     Row * r;
 
-    String t( "text/plain" );
+    EString t( "text/plain" );
     r = d->c->nextRow();
     if ( r )
-        t = r->getString( "value" );
+        t = r->getEString( "value" );
 
-    String b;
+    EString b;
     r = d->b->nextRow();
 
     if ( !r ) {
         // XXX: Invalid part
     }
     else if ( r->isNull( "data" ) ) {
-        b = r->getString( "text" );
+        b = r->getEString( "text" );
 
         ContentType * ct = new ContentType;
         ct->parse( t );
@@ -619,7 +619,7 @@ void BodypartPage::execute()
         }
     }
     else {
-        b = r->getString( "data" );
+        b = r->getEString( "data" );
     }
 
     setContents( t, b );

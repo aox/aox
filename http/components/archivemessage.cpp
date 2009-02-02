@@ -5,7 +5,7 @@
 #include "link.h"
 #include "webpage.h"
 #include "ustring.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "frontmatter.h"
 #include "permissions.h"
 #include "messagecache.h"
@@ -33,8 +33,8 @@ public:
     Link * link;
     Message * message;
     Query * query;
-    String js;
-    String buttons;
+    EString js;
+    EString buttons;
     bool linkToThread;
 };
 
@@ -110,7 +110,7 @@ void ArchiveMessage::execute()
 
     if ( d->link == page()->link() ) {
         FrontMatter * n = new FrontMatter( "title" );
-        String subject = d->message->header()->subject(); // XXX UString
+        EString subject = d->message->header()->subject(); // XXX UString
         if ( subject.length() > 20 ) {
             int space = subject.find( ' ', 15 );
             if ( space < 0 || space > 22 )
@@ -152,9 +152,9 @@ void ArchiveMessage::execute()
     \a uid in the releavant mailbox.
 */
 
-String ArchiveMessage::bodypart( Message * first, uint uid, Bodypart *bp )
+EString ArchiveMessage::bodypart( Message * first, uint uid, Bodypart *bp )
 {
-    String s;
+    EString s;
     Utf8Codec u;
 
     Link l;
@@ -163,7 +163,7 @@ String ArchiveMessage::bodypart( Message * first, uint uid, Bodypart *bp )
     l.setUid( uid );
     l.setPart( first->partNumber( bp ) );
 
-    String type = "text/plain";
+    EString type = "text/plain";
     ContentType *ct = bp->header()->contentType();
     if ( ct )
         type = ct->type() + "/" + ct->subtype();
@@ -217,7 +217,7 @@ String ArchiveMessage::bodypart( Message * first, uint uid, Bodypart *bp )
         s.append( "<p><a href=\"" + l.canonical() + "\">" );
         s.append( "Save" );
 
-        String fn;
+        EString fn;
         ContentDisposition * cd = bp->header()->contentDisposition();
         if ( cd )
             fn = cd->parameter( "filename" );
@@ -231,7 +231,7 @@ String ArchiveMessage::bodypart( Message * first, uint uid, Bodypart *bp )
 
         s.append( "</a>" );
         s.append( " (size " );
-        s.append( String::humanNumber( bp->numBytes() ) );
+        s.append( EString::humanNumber( bp->numBytes() ) );
         s.append( ")</div>\n" );
     }
 
@@ -243,18 +243,18 @@ String ArchiveMessage::bodypart( Message * first, uint uid, Bodypart *bp )
     the Message \a first.
 */
 
-String ArchiveMessage::message( Message *first, Message *m )
+EString ArchiveMessage::message( Message *first, Message *m )
 {
     bool topLevel = false;
     if ( first == m )
         topLevel = true;
 
-    String s;
-    String t;
+    EString s;
+    EString t;
     HeaderField *hf;
     bool dateShown = false;
 
-    String h;
+    EString h;
     h.append( addressField( m, HeaderField::From ) );
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
@@ -275,7 +275,7 @@ String ArchiveMessage::message( Message *first, Message *m )
 
     }
 
-    String o;
+    EString o;
     o.append( "<div class=optionalheader>\n" );
     o.append( addressField( m, HeaderField::Cc ) );
 
@@ -369,9 +369,9 @@ String ArchiveMessage::message( Message *first, Message *m )
     the message \a m.
 */
 
-String ArchiveMessage::addressField( Message *m, HeaderField::Type t )
+EString ArchiveMessage::addressField( Message *m, HeaderField::Type t )
 {
-    String s;
+    EString s;
 
     AddressField *af = m->header()->addressField( t );
     if ( !af )
@@ -406,15 +406,15 @@ String ArchiveMessage::addressField( Message *m, HeaderField::Type t )
 */
 
 
-String ArchiveMessage::jsToggle( const String &html,
+EString ArchiveMessage::jsToggle( const EString &html,
                                  bool visible,
-                                 const String &show,
-                                 const String &hide )
+                                 const EString &show,
+                                 const EString &hide )
 {
     uint u = uniqueNumber();
 
-    String v = "text" + fn( u );
-    String f = "button" + fn( u );
+    EString v = "text" + fn( u );
+    EString f = "button" + fn( u );
 
     d->js.append(
         "var " + v + "=" + ( visible ? "true" : "false" ) + ";\n"
@@ -437,7 +437,7 @@ String ArchiveMessage::jsToggle( const String &html,
         d->buttons.append( quoted( show ) );
     d->buttons.append( "</a><br>\n" );
 
-    String s;
+    EString s;
     s.append( "<div id=" + v );
     if ( visible )
         s.append( " class=njsvisible>\n" );
@@ -462,10 +462,10 @@ String ArchiveMessage::jsToggle( const String &html,
     If no bodyparts can be used, this function returns an empty string.
 */
 
-String ArchiveMessage::twoLines( Message * m )
+EString ArchiveMessage::twoLines( Message * m )
 {
     List<Bodypart>::Iterator bp( m->allBodyparts() );
-    String type;
+    EString type;
     while ( bp && type != "text/plain" && type != "text/html" ) {
         type = "text/plain";
         ContentType * ct = bp->header()->contentType();
@@ -479,9 +479,9 @@ String ArchiveMessage::twoLines( Message * m )
     if ( type == "text/html" )
         return;
 
-    String r;
+    EString r;
     Utf8Codec u; // XXX UString needs find() and more.
-    String b = u.fromUnicode( bp->text() );
+    EString b = u.fromUnicode( bp->text() );
     int i = 0;
     while ( i >= 0 && b[i] == '>' && b[i] > ' ' ) {
         i = b.find( '\n', i + 1 );
@@ -520,9 +520,9 @@ bool ArchiveMessage::linkToThread() const
     Original-Date.
 */
 
-String ArchiveMessage::date( class Date * date, const String & name ) const
+EString ArchiveMessage::date( class Date * date, const EString & name ) const
 {
-    String s;
+    EString s;
     s.append( "<div class=headerfield>" );
     s.append( quoted( name ) );
     s.append( ": " );

@@ -119,7 +119,7 @@ void Expunge::execute()
         d->findUids = new Query( "", this );
         d->findUids->bind( 1, d->s->mailbox()->id() );
         d->findUids->bind( 2, fid );
-        String query( "select uid from mailbox_messages "
+        EString query( "select uid from mailbox_messages "
                       "where (mailbox,uid) in "
                       "(select mailbox, uid from flags"
                       " where mailbox=$1 and flag=$2" );

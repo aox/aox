@@ -16,7 +16,7 @@ class DatabaseSignalData
 {
 public:
     DatabaseSignalData(): o( 0 ), l( new Log ) {}
-    String n;
+    EString n;
     EventHandler * o;
     Log * l;
 };
@@ -38,7 +38,7 @@ public:
     owner. Forever.
 */
 
-DatabaseSignal::DatabaseSignal( const String & name, EventHandler * owner )
+DatabaseSignal::DatabaseSignal( const EString & name, EventHandler * owner )
     : Garbage(), d( new DatabaseSignalData )
 {
     Scope x( d->l );
@@ -60,7 +60,7 @@ DatabaseSignal::DatabaseSignal( const String & name, EventHandler * owner )
     name.
 */
 
-void DatabaseSignal::notifyAll( const String & name )
+void DatabaseSignal::notifyAll( const EString & name )
 {
     List<DatabaseSignal>::Iterator i( signals );
     while ( i ) {
@@ -86,9 +86,9 @@ DatabaseSignal::~DatabaseSignal()
     duplicates.
 */
 
-StringList * DatabaseSignal::names()
+EStringList * DatabaseSignal::names()
 {
-    StringList * r = new StringList;
+    EStringList * r = new EStringList;
     List<DatabaseSignal>::Iterator i( signals );
     while ( i ) {
         r->append( i->d->n );

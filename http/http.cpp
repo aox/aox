@@ -9,7 +9,7 @@
 #include "eventloop.h"
 #include "httpsession.h"
 #include "configuration.h"
-#include "stringlist.h"
+#include "estringlist.h"
 #include "webpage.h"
 #include "scope.h"
 #include "log.h"
@@ -33,9 +33,9 @@ public:
     HTTP::State state;
 
     uint status;
-    String method;
-    String message;
-    String hostSupplied;
+    EString method;
+    EString message;
+    EString hostSupplied;
 
     bool use11;
     bool sendContents;
@@ -46,11 +46,11 @@ public:
     bool acceptsIdentity;
     bool connectionClose;
 
-    String body;
-    String path;
-    String referer;
-    StringList headers;
-    StringList ignored;
+    EString body;
+    EString path;
+    EString referer;
+    EStringList headers;
+    EStringList ignored;
     uint contentLength;
     Dict< UString > parameters;
 
@@ -66,7 +66,7 @@ public:
     {
         HeaderListItem(): q( 0 ) {}
 
-        String n;
+        EString n;
         uint q; // q*100
     };
 
@@ -144,7 +144,7 @@ void HTTP::process()
         Buffer *r = readBuffer();
 
         if ( d->contentLength <= r->size() ) {
-            String s = r->string( d->contentLength );
+            EString s = r->string( d->contentLength );
             r->remove( d->contentLength );
             if ( d->method == "POST" )
                 d->body = s;
@@ -168,9 +168,9 @@ void HTTP::process()
 
 /*! Sends \a response as a response of type \a type. */
 
-void HTTP::respond( const String & type, const String & response )
+void HTTP::respond( const EString & type, const EString & response )
 {
-    String srv( "Server: Archiveopteryx/" );
+    EString srv( "Server: Archiveopteryx/" );
     srv.append( Configuration::compiledIn( Configuration::Version ) );
     srv.append( " (http://www.archiveopteryx.org)" );
 
@@ -265,7 +265,7 @@ User *HTTP::user() const
     is empty.
 */
 
-String HTTP::body() const
+EString HTTP::body() const
 {
     return d->body;
 }
@@ -280,12 +280,12 @@ uint HTTP::status() const
 }
 
 
-/*! Returns the String value of the parameter named \a s,
+/*! Returns the EString value of the parameter named \a s,
     or an empty string if the parameter was not specified in the
     request.
 */
 
-UString HTTP::parameter( const String & s ) const
+UString HTTP::parameter( const EString & s ) const
 {
     UString * v = d->parameters.find( s );
     if ( v )
@@ -328,11 +328,11 @@ bool HTTP::canReadHTTPLine() const
     but not returned.
 */
 
-String HTTP::line()
+EString HTTP::line()
 {
     Buffer * r = readBuffer();
     uint i = inputLength( r );
-    String l;
+    EString l;
     if ( i >= r->size() )
         return l;
     l = r->string( i );
@@ -346,7 +346,7 @@ String HTTP::line()
 
 /*! Parses the original GET/HEAD request line \a l. */
 
-void HTTP::parseRequest( String l )
+void HTTP::parseRequest( EString l )
 {
     setTimeoutAfter( 1800 );
     d->state = Header;
@@ -363,7 +363,7 @@ void HTTP::parseRequest( String l )
         return;
     }
 
-    String request = l.mid( 0, space );
+    EString request = l.mid( 0, space );
     l = l.mid( space+1 );
     space = l.find( ' ' );
     if ( space < 0 ) {
@@ -386,13 +386,13 @@ void HTTP::parseRequest( String l )
         return;
     }
 
-    String path = l.mid( 0, space );
+    EString path = l.mid( 0, space );
     l = l.mid( space+1 );
 
     // Thanks to our friend LWS, HTTP-Version might say " 1   .     1"
     // when it means "1.1".
 
-    String protocol = l.simplified();
+    EString protocol = l.simplified();
     l.replace( " ", "" );
 
     if ( !protocol.startsWith( "HTTP/" ) ) {
@@ -446,11 +446,11 @@ void HTTP::parseRequest( String l )
 }
 
 
-/*! Parses a single HTTP header in the String \a h and stores its
+/*! Parses a single HTTP header in the EString \a h and stores its
     contents appropriately. May step on to the Done state.
 */
 
-void HTTP::parseHeader( const String & h )
+void HTTP::parseHeader( const EString & h )
 {
     if ( h.isEmpty() ) {
         d->state = Body;
@@ -462,8 +462,8 @@ void HTTP::parseHeader( const String & h )
        setStatus( 400, "Bad header: " + h.simplified() );
         return;
     }
-    String n = h.mid( 0, i ).simplified().headerCased();
-    String v = h.mid( i+1 ).simplified();
+    EString n = h.mid( 0, i ).simplified().headerCased();
+    EString v = h.mid( i+1 ).simplified();
 
     ::log( "Received: " + n.quoted() + " = " + v.quoted(), Log::Debug );
 
@@ -526,7 +526,7 @@ void HTTP::parseHeader( const String & h )
     unless another non-200 message has already been set.
 */
 
-void HTTP::setStatus( uint status, const String &message )
+void HTTP::setStatus( uint status, const EString &message )
 {
     if ( d->status && d->status != status )
         ::log( "Status changed to " + fn( status ) + "/" + message );
@@ -558,16 +558,16 @@ void HTTP::clear()
     quite compliant, since we don't handle exclusions using
     wildcards. */
 
-void HTTP::parseAccept( const String & type, uint q )
+void HTTP::parseAccept( const EString & type, uint q )
 {
     int i = type.find( '/' );
     if ( i < 0 )
         i = type.length();
-    String major = type.mid( 0, i ).simplified().lower();
+    EString major = type.mid( 0, i ).simplified().lower();
     int j = type.find( ';', i+1 );
     if ( j < 0 )
         j = type.length();
-    String minor = type.mid( i, j-i ).simplified().lower();
+    EString minor = type.mid( i, j-i ).simplified().lower();
     if ( !q ) {
         // if q is 0, we ignore this type.
     }
@@ -593,7 +593,7 @@ void HTTP::parseAccept( const String & type, uint q )
     mean anything except unicode.
 */
 
-void HTTP::parseAcceptCharset( const String & cs, uint q )
+void HTTP::parseAcceptCharset( const EString & cs, uint q )
 {
     if ( cs == "*" && q ) {
         d->acceptsUtf8 = true;
@@ -614,7 +614,7 @@ void HTTP::parseAcceptCharset( const String & cs, uint q )
     have to use TLS.
 */
 
-void HTTP::parseAcceptEncoding( const String & encoding, uint q )
+void HTTP::parseAcceptEncoding( const EString & encoding, uint q )
 {
     if ( q && ( encoding == "identity" || encoding == "*" ) )
         d->acceptsIdentity = true;
@@ -625,9 +625,9 @@ void HTTP::parseAcceptEncoding( const String & encoding, uint q )
     information.
 */
 
-void HTTP::parseConnection( const String & v )
+void HTTP::parseConnection( const EString & v )
 {
-    String l = " " + v.lower() + " ";
+    EString l = " " + v.lower() + " ";
     if ( v.containsWord( "close" ) )
         d->connectionClose = true;
 }
@@ -636,7 +636,7 @@ void HTTP::parseConnection( const String & v )
 /*! Parses the "Host" header \a v and records the parsed information.
 */
 
-void HTTP::parseHost( const String & v )
+void HTTP::parseHost( const EString & v )
 {
     d->hostSupplied = v.lower();
     if ( d->hostSupplied.endsWith( "." ) )
@@ -689,7 +689,7 @@ void HTTP::parseHost( const String & v )
     if ( Configuration::toggle( Configuration::AcceptAnyHttpHost ) )
         return;
 
-    String correct = Configuration::text( Configuration::Hostname ).lower();
+    EString correct = Configuration::text( Configuration::Hostname ).lower();
     if ( d->hostSupplied == correct )
         return;
    setStatus( 400, "No such host: " + d->hostSupplied +
@@ -699,7 +699,7 @@ void HTTP::parseHost( const String & v )
 
 /*! Parses the "If-Match" header and records the parsed information. */
 
-void HTTP::parseIfMatch( const String & )
+void HTTP::parseIfMatch( const EString & )
 {
     // later
 }
@@ -709,7 +709,7 @@ void HTTP::parseIfMatch( const String & )
     information.
 */
 
-void HTTP::parseIfModifiedSince( const String & )
+void HTTP::parseIfModifiedSince( const EString & )
 {
     // later
 }
@@ -717,7 +717,7 @@ void HTTP::parseIfModifiedSince( const String & )
 
 /*! Parses the "If-None-Match" header and records the parsed information. */
 
-void HTTP::parseIfNoneMatch( const String & )
+void HTTP::parseIfNoneMatch( const EString & )
 {
     // later
 }
@@ -727,7 +727,7 @@ void HTTP::parseIfNoneMatch( const String & )
     information.
 */
 
-void HTTP::parseIfUnmodifiedSince( const String & )
+void HTTP::parseIfUnmodifiedSince( const EString & )
 {
     // later
 }
@@ -736,7 +736,7 @@ void HTTP::parseIfUnmodifiedSince( const String & )
 /*! Parses the "Referer" header \a v and records the parsed information.
 */
 
-void HTTP::parseReferer( const String & v )
+void HTTP::parseReferer( const EString & v )
 {
     d->referer = v;
 }
@@ -746,7 +746,7 @@ void HTTP::parseReferer( const String & v )
     information.
 */
 
-void HTTP::parseTransferEncoding( const String & )
+void HTTP::parseTransferEncoding( const EString & )
 {
 
 }
@@ -754,7 +754,7 @@ void HTTP::parseTransferEncoding( const String & )
 
 /*! Parses the "User-Agent" header and records the parsed information. */
 
-void HTTP::parseUserAgent( const String & )
+void HTTP::parseUserAgent( const EString & )
 {
     // we ignore user-agent. thoroughly.
 }
@@ -762,12 +762,12 @@ void HTTP::parseUserAgent( const String & )
 
 /*! Parses a single component of the Cookie header \a s. */
 
-void HTTP::parseCookie( const String &s )
+void HTTP::parseCookie( const EString &s )
 {
     int eq = s.find( '=' );
     if ( eq > 0 ) {
-        String name = s.mid( 0, eq ).simplified().lower();
-        String value = s.mid( eq+1 ).simplified();
+        EString name = s.mid( 0, eq ).simplified().lower();
+        EString value = s.mid( eq+1 ).simplified();
 
         if ( name == "session" &&
              ( !d->session || d->session->expired() ) )
@@ -778,7 +778,7 @@ void HTTP::parseCookie( const String &s )
 
 /*! Parses the Content-Length header \a s. */
 
-void HTTP::parseContentLength( const String &s )
+void HTTP::parseContentLength( const EString &s )
 {
     d->contentLength = s.number( 0 );
 }
@@ -788,7 +788,7 @@ void HTTP::parseContentLength( const String &s )
     CR or LF.
 */
 
-void HTTP::addHeader( const String & s )
+void HTTP::addHeader( const EString & s )
 {
     d->headers.append( s );
 }
@@ -798,7 +798,7 @@ void HTTP::addHeader( const String & s )
     parseAccept() et al for each individual item.
 */
 
-void HTTP::parseList( const String & name, const String & value )
+void HTTP::parseList( const EString & name, const EString & value )
 {
     uint i = 0;
     while ( i < value.length() ) {
@@ -806,7 +806,7 @@ void HTTP::parseList( const String & name, const String & value )
         while ( isTokenChar( value[i] ) ||
                 value[i] == '/' || value[i] == '=' || value[i] == '"' )
             i++;
-        String item = value.mid( start, i-start );
+        EString item = value.mid( start, i-start );
         uint q = 1000;
         skipValues( value, i, q );
         if ( i >= value.length() ) {
@@ -833,7 +833,7 @@ void HTTP::parseList( const String & name, const String & value )
 
 */
 
-void HTTP::parseListItem( const String & header, const String & item, uint q )
+void HTTP::parseListItem( const EString & header, const EString & item, uint q )
 {
     if ( header == "Accept" )
         parseAccept( item, q );
@@ -853,7 +853,7 @@ void HTTP::parseListItem( const String & header, const String & item, uint q )
     skipValues() is a noop.
 */
 
-void HTTP::skipValues( const String & value, uint & i, uint & q )
+void HTTP::skipValues( const EString & value, uint & i, uint & q )
 {
     bool hasSeenQ = false;
     while ( true ) {
@@ -892,7 +892,7 @@ void HTTP::skipValues( const String & value, uint & i, uint & q )
                         uint n = i;
                         while ( value[i] >= '0' && value[i] <= '9' )
                             i++;
-                        String decimals = value.mid( n, i-n ) + "000";
+                        EString decimals = value.mid( n, i-n ) + "000";
                         bool ok;
                         q = q + decimals.mid( 0, 3 ).number( &ok );
                         if ( q > 1000 )
@@ -920,12 +920,12 @@ void HTTP::skipValues( const String & value, uint & i, uint & q )
     and skips past trailing whitespace.
 */
 
-void HTTP::expect( const String & value, uint & i, char c )
+void HTTP::expect( const EString & value, uint & i, char c )
 {
     while ( value[i] == ' ' )
         i++;
     if ( value[i] != c ) {
-        String e( "Expected '" );
+        EString e( "Expected '" );
         e.append( c );
         e.append( "' at position " +
                   fn( i ) +
@@ -965,16 +965,16 @@ bool HTTP::isTokenChar( char c )
 
 void HTTP::parseParameters()
 {
-    StringList *p = StringList::split( '&', d->body );
-    StringList::Iterator it( p );
+    EStringList *p = EStringList::split( '&', d->body );
+    EStringList::Iterator it( p );
 
     while ( it ) {
-        String s = *it;
+        EString s = *it;
         ++it;
 
         int i = s.find( '=' );
         if ( i > 0 ) {
-            String n = s.mid( 0, i ).deURI();
+            EString n = s.mid( 0, i ).deURI();
             UString v = Link::decoded( s.mid( i+1 ) );
             if ( n.boring() && !v.isEmpty() )
                 d->parameters.insert( n, new UString( v ) );
@@ -1052,7 +1052,7 @@ void HTTPS::finish()
     unchanged.
 */
 
-String HTTP::hostHeader() const
+EString HTTP::hostHeader() const
 {
     return d->hostSupplied;
 }

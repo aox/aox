@@ -44,9 +44,9 @@ struct BodypartRow
     {}
 
     uint id;
-    String hash;
-    String * text;
-    String * data;
+    EString hash;
+    EString * text;
+    EString * data;
     uint bytes;
     List<Bodypart> bodyparts;
 };
@@ -103,9 +103,9 @@ public:
 
     Transaction *transaction;
 
-    StringList flags;
-    StringList fields;
-    StringList annotationNames;
+    EStringList flags;
+    EStringList fields;
+    EStringList annotationNames;
     Dict<Address> addresses;
 
     struct Mailbox
@@ -136,7 +136,7 @@ public:
 
     // for convertInReplyTo()
     Dict< List<Message> > outlooks;
-    Map<String> outlookParentIds;
+    Map<EString> outlookParentIds;
     Query * findParents;
     Query * findReferences;
     // for convertThreadIndex()
@@ -149,8 +149,8 @@ public:
     public:
         ThreadParentInfo(): Garbage() {}
 
-        String references;
-        String messageId;
+        EString references;
+        EString messageId;
     };
 };
 
@@ -263,7 +263,7 @@ bool Injector::failed() const
     if it succeeded or hasn't failed yet.
 */
 
-String Injector::error() const
+EString Injector::error() const
 {
     if ( !d->failed )
         return "";
@@ -508,7 +508,7 @@ void Injector::findDependencies()
             List< HeaderField >::Iterator fi( hdr->fields() );
             while ( fi ) {
                 HeaderField *hf = fi;
-                String n( hf->name() );
+                EString n( hf->name() );
 
                 if ( hf->type() >= HeaderField::Other &&
                      !seenFields.contains( n ) )
@@ -545,7 +545,7 @@ void Injector::findDependencies()
             }
             mbc->messages.append( m );
 
-            StringList::Iterator fi( m->flags( mb ) );
+            EStringList::Iterator fi( m->flags( mb ) );
             while ( fi ) {
                 d->flags.append( fi );
                 ++fi;
@@ -587,7 +587,7 @@ void Injector::updateAddresses( List<Address> * newAddresses )
     List<Address>::Iterator ai( newAddresses );
     while ( ai ) {
         Address * a = ai;
-        String k = AddressCreator::key( a );
+        EString k = AddressCreator::key( a );
         d->addresses.insert( k, a );
         ++ai;
     }
@@ -598,7 +598,7 @@ void Injector::updateAddresses( List<Address> * newAddresses )
 
 void Injector::addAddress( Address * a )
 {
-    String k = AddressCreator::key( a );
+    EString k = AddressCreator::key( a );
     d->addresses.insert( k, a );
 }
 
@@ -655,7 +655,7 @@ void Injector::createDependencies()
 
 void Injector::convertInReplyTo()
 {
-    StringList ids;
+    EStringList ids;
     if ( d->outlooks.isEmpty() ) {
         List<Message>::Iterator i( d->messages );
         while ( i ) {
@@ -663,7 +663,7 @@ void Injector::convertInReplyTo()
             if ( !h->field( HeaderField::References ) ) {
                 // this mostly catches outlook, but will also catch a
                 // few other senders
-                String irt = h->inReplyTo();
+                EString irt = h->inReplyTo();
                 int lt = -1;
                 do {
                     // we look at each possible message-id in the
@@ -678,7 +678,7 @@ void Injector::convertInReplyTo()
                             // to the message(s) that cite it as a
                             // possible parent
                             Address * a = ap.addresses()->firstElement();
-                            String msgid = "<" + a->lpdomain() + ">";
+                            EString msgid = "<" + a->lpdomain() + ">";
                             if ( !d->outlooks.contains( msgid ) )
                                 d->outlooks.insert( msgid, new List<Message> );
                             d->outlooks.find( msgid )->append( i );
@@ -700,14 +700,14 @@ void Injector::convertInReplyTo()
         // send a query to find messages.id for each message-id we
         // found above
         d->findParents = new Query( "", this );
-        String s = "select message, value "
+        EString s = "select message, value "
                    "from header_fields "
                    "where field=";
         s.appendNumber( HeaderField::MessageId );
         if ( ids.count() < 100 ) {
             s.append( " and (" );
             bool first = true;
-            StringList::Iterator i( ids );
+            EStringList::Iterator i( ids );
             uint n = 1;
             while ( i ) {
                 // use a series of value=$n instead of value=any($1),
@@ -742,7 +742,7 @@ void Injector::convertInReplyTo()
         while ( d->findParents->hasResults() ) {
             Row * r = d->findParents->nextRow();
             d->outlookParentIds.insert( r->getInt( "message" ),
-                                        new String(r->getString( "value") ) );
+                                        new EString(r->getEString( "value") ) );
             parents.add( r->getInt( "message" ) );
         }
         if ( parents.isEmpty() ) {
@@ -766,11 +766,11 @@ void Injector::convertInReplyTo()
     while ( d->findReferences->hasResults() ) {
         Row * r = d->findReferences->nextRow();
         // we have the references field, and just for sanity
-        String *msgid = d->outlookParentIds.find( r->getInt( "message" ) );
+        EString *msgid = d->outlookParentIds.find( r->getInt( "message" ) );
         if ( msgid ) {
             // we have the message-id and the references field, so
             // make a new child references
-            String ref = r->getString( "value" );
+            EString ref = r->getEString( "value" );
             ref.append( " " );
             ref.append( *msgid );
             ref = ref.simplified().wrapped( 60, "", " ", false );
@@ -811,8 +811,8 @@ void Injector::addMoreReferences()
 
     while ( !queue.isEmpty() ) {
         Message * parent = queue.shift();
-        String msgid = parent->header()->messageId();
-        String r = parent->header()->field(HeaderField::References)->rfc822();
+        EString msgid = parent->header()->messageId();
+        EString r = parent->header()->field(HeaderField::References)->rfc822();
         r.append( " " );
         r.append( msgid );
         r = r.simplified().wrapped( 60, "", " ", false );
@@ -836,7 +836,7 @@ void Injector::addMoreReferences()
 
 void Injector::convertThreadIndex()
 {
-    StringList ids;
+    EStringList ids;
     if ( d->outlooks.isEmpty() ) {
         List<Message>::Iterator i( d->messages );
         while ( i ) {
@@ -844,7 +844,7 @@ void Injector::convertThreadIndex()
             if ( !h->field( HeaderField::References ) ) {
                 HeaderField * ti = h->field( "Thread-Index" );
                 if ( ti ) {
-                    String t = ti->value().utf8().de64();
+                    EString t = ti->value().utf8().de64();
                     if ( t.length() > 22 ) {
                         t = t.mid( 0, 22 ).e64();
                         ids.append( t );
@@ -909,17 +909,17 @@ void Injector::convertThreadIndex()
         InjectorData::ThreadParentInfo * t = antecedents2.find( m );
         if ( field == HeaderField::MessageId ) {
             if ( t )
-                t->messageId = r->getString( "value" );
+                t->messageId = r->getEString( "value" );
         }
         else if ( field == HeaderField::References ) {
             if ( t )
-                t->references = r->getString( "value" );
+                t->references = r->getEString( "value" );
         }
         else if ( !t ) {
             // this will be run first because of "order by field desc" above
             t = new InjectorData::ThreadParentInfo;
-            antecedents.insert( r->getString( "value" ), t );
-            log( "antecedent <" + r->getString( "value" ) + ">", Log::Debug );
+            antecedents.insert( r->getEString( "value" ), t );
+            log( "antecedent <" + r->getEString( "value" ) + ">", Log::Debug );
             antecedents2.insert( m, t );
         }
     }
@@ -932,13 +932,13 @@ void Injector::convertThreadIndex()
     while ( i ) {
         List<Message>::Iterator m( *i );
         while ( m ) {
-            String ref;
+            EString ref;
             // we need to look for the full thread-index (indicating both
             // thread and position within thread)
             HeaderField * ti = m->header()->field( "Thread-Index" );
-            String t = ti->value().utf8().de64();
+            EString t = ti->value().utf8().de64();
             // we also look for the parent's and grandparent's thread-index
-            String pt = t.mid( 0, ( (t.length() - 22 - 1) / 5 ) * 5 + 22 );
+            EString pt = t.mid( 0, ( (t.length() - 22 - 1) / 5 ) * 5 + 22 );
             InjectorData::ThreadParentInfo * tpi
                 = antecedents.find( pt.e64() );
             if ( tpi ) {
@@ -949,7 +949,7 @@ void Injector::convertThreadIndex()
             }
             if ( !tpi && t.length() > 27 ) {
                 // we don't, but maybe there is a grandparent?
-                String gt = t.mid( 0, ( (t.length() - 22 - 6) / 5 ) * 5 + 22 );
+                EString gt = t.mid( 0, ( (t.length() - 22 - 6) / 5 ) * 5 + 22 );
                 log( "considering <" + gt.e64() + ">", Log::Debug );
                 tpi = antecedents.find( gt.e64() );
             }
@@ -959,7 +959,7 @@ void Injector::convertThreadIndex()
                 // message-id as well.
                 HeaderField * irtf
                     = m->header()->field( HeaderField::InReplyTo );
-                String irt;
+                EString irt;
                 if ( irtf )
                     irt = irtf->rfc822();
                 int lt = irt.find( '<' );
@@ -1008,7 +1008,7 @@ void Injector::insertThreadIndexes()
     while ( m ) {
         HeaderField * ti = m->header()->field( "Thread-Index" );
         if ( ti ) {
-            String t = ti->value().utf8().de64();
+            EString t = ti->value().utf8().de64();
             if ( t.length() >= 22 ) {
                 q->bind( 1, m->databaseId() );
                 q->bind( 2, t.mid( 0, 22 ).e64() );
@@ -1164,7 +1164,7 @@ void Injector::insertBodyparts()
 /*! Returns a new Query to select \a num nextval()s as "id" from the
     named \a sequence. */
 
-Query * Injector::selectNextvals( const String & sequence, uint num )
+Query * Injector::selectNextvals( const EString & sequence, uint num )
 {
     Query * q =
         new Query( "select nextval('" + sequence + "')::int as id "
@@ -1207,14 +1207,14 @@ void Injector::addBodypartRow( Bodypart * b )
 
     // Yes. What exactly do we need to store?
 
-    String * s;
-    String hash;
-    String * text = 0;
-    String * data = 0;
+    EString * s;
+    EString hash;
+    EString * text = 0;
+    EString * data = 0;
     PgUtf8Codec u;
 
     if ( storeText ) {
-        text = s = new String( u.fromUnicode( b->text() ) );
+        text = s = new EString( u.fromUnicode( b->text() ) );
 
         // For certain content types (whose names are "text/html"), we
         // store the contents as data and a plaintext representation as
@@ -1224,11 +1224,11 @@ void Injector::addBodypartRow( Bodypart * b )
         if ( storeData ) {
             data = s;
             text =
-                new String( u.fromUnicode( HTML::asText( b->text() ) ) );
+                new EString( u.fromUnicode( HTML::asText( b->text() ) ) );
         }
     }
     else {
-        data = s = new String( b->data() );
+        data = s = new EString( b->data() );
     }
     hash = MD5::hash( *s ).hex();
 
@@ -1497,7 +1497,7 @@ void Injector::insertMessages()
         List<Bodypart>::Iterator bi( m->allBodyparts() );
         while ( bi ) {
             Bodypart * b = bi;
-            String pn( m->partNumber( b ) );
+            EString pn( m->partNumber( b ) );
 
             addPartNumber( qp, mid, pn, b );
             if ( !skip )
@@ -1508,7 +1508,7 @@ void Injector::insertMessages()
             // message/rfc822 bodyparts get a special part number too.
 
             if ( b->message() ) {
-                String rpn( pn + ".rfc822" );
+                EString rpn( pn + ".rfc822" );
                 addPartNumber( qp, mid, rpn, b );
                 addHeader( qh, qa, qd, mid, rpn, b->message()->header() );
             }
@@ -1569,7 +1569,7 @@ void Injector::insertMessages()
     (which may be 0) to the query \a q.
 */
 
-void Injector::addPartNumber( Query * q, uint mid, const String &part,
+void Injector::addPartNumber( Query * q, uint mid, const EString &part,
                               Bodypart * b )
 {
     q->bind( 1, mid );
@@ -1599,7 +1599,7 @@ void Injector::addPartNumber( Query * q, uint mid, const String &part,
 */
 
 void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
-                          const String & part, Header * h )
+                          const EString & part, Header * h )
 {
     List< HeaderField >::Iterator it( h->fields() );
     while ( it ) {
@@ -1667,7 +1667,7 @@ void Injector::addMailbox( Query * q, Injectee * m, Mailbox * mb )
 uint Injector::addFlags( Query * q, Injectee * m, Mailbox * mb )
 {
     uint n = 0;
-    StringList::Iterator it( m->flags( mb ) );
+    EStringList::Iterator it( m->flags( mb ) );
     while ( it ) {
         uint flag = 0;
         if ( d->flagCreator )
@@ -1763,9 +1763,9 @@ void Injector::insertDeliveries()
 }
 
 
-static String msgid( Message * m ) {
+static EString msgid( Message * m ) {
     Header * h = m->header();
-    String id;
+    EString id;
     if ( h )
         id = h->messageId();
     if ( id.isEmpty() )
@@ -1786,11 +1786,11 @@ void Injector::logDescription()
         Injectee * m = im;
         ++im;
 
-        String msg( "Injecting message " );
+        EString msg( "Injecting message " );
         msg.append( msgid( m ) );
         msg.append( " into " );
 
-        StringList into;
+        EStringList into;
         List<Mailbox>::Iterator mb( m->mailboxes() );
         while ( mb ) {
             into.append( mb->name().utf8() );
@@ -1804,13 +1804,13 @@ void Injector::logDescription()
         InjectorData::Delivery * del = dm;
         ++dm;
 
-        String msg( "Spooling message " );
+        EString msg( "Spooling message " );
         msg.append( msgid( del->message ) );
         msg.append( " from " );
         msg.append( del->sender->lpdomain() );
         msg.append( " to " );
 
-        StringList to;
+        EStringList to;
         List<Address>::Iterator a( del->recipients );
         while ( a ) {
             to.append( a->lpdomain() );
@@ -1874,7 +1874,7 @@ uint Injector::internalDate( Message * m ) const
     List< HeaderField >::Iterator it( m->header()->fields() );
     while ( it && !id.valid() ) {
         if ( it->type() == HeaderField::Received ) {
-            String v = it->rfc822();
+            EString v = it->rfc822();
             int i = 0;
             while ( v.find( ';', i+1 ) > 0 )
                 i = v.find( ';', i+1 );
@@ -1911,11 +1911,11 @@ public:
         Mailbox()
             : Garbage(),
               mailbox( 0 ), uid( 0 ), modseq( 0 ),
-              flags( new StringList ), annotations( new List<Annotation> ) {}
+              flags( new EStringList ), annotations( new List<Annotation> ) {}
         ::Mailbox * mailbox;
         uint uid;
         int64 modseq;
-        StringList * flags;
+        EStringList * flags;
         List<Annotation> * annotations;
     };
 
@@ -2001,7 +2001,7 @@ int64 Injectee::modSeq( Mailbox * mailbox ) const
     return value is never null.
 */
 
-StringList * Injectee::flags( Mailbox * mailbox ) const
+EStringList * Injectee::flags( Mailbox * mailbox ) const
 {
     return d->mailbox( mailbox, true )->flags;
 }
@@ -2011,11 +2011,11 @@ StringList * Injectee::flags( Mailbox * mailbox ) const
     list.
 */
 
-void Injectee::setFlags( Mailbox * mailbox, const StringList * list )
+void Injectee::setFlags( Mailbox * mailbox, const EStringList * list )
 {
     InjecteeData::Mailbox * m = d->mailbox( mailbox, true );
     m->flags->clear();
-    StringList::Iterator i( list );
+    EStringList::Iterator i( list );
     while ( i ) {
         m->flags->append( i );
         ++i;
@@ -2067,7 +2067,7 @@ List<Mailbox> * Injectee::mailboxes() const
 // scans the message for a header field of the appropriate name, and
 // returns the field value. The name must not contain the trailing ':'.
 
-static String invalidField( const String & message, const String & name )
+static EString invalidField( const EString & message, const EString & name )
 {
     uint i = 0;
     while ( i < message.length() ) {
@@ -2077,7 +2077,7 @@ static String invalidField( const String & message, const String & name )
             i++;
         if ( message[i] != ':' )
             return "";
-        String h = message.mid( j, i-j ).headerCased();
+        EString h = message.mid( j, i-j ).headerCased();
         i++;
         j = i;
         while ( i < message.length() &&
@@ -2097,11 +2097,11 @@ static String invalidField( const String & message, const String & name )
 
 // looks for field in message and adds it to wrapper, if valid.
 
-static void addField( String & wrapper,
-                      const String & field, const String & message,
-                      const String & dflt = "" )
+static void addField( EString & wrapper,
+                      const EString & field, const EString & message,
+                      const EString & dflt = "" )
 {
-    String value = invalidField( message, field );
+    EString value = invalidField( message, field );
     HeaderField * hf = 0;
     if ( !value.isEmpty() )
         hf = HeaderField::create( field, value );
@@ -2129,18 +2129,18 @@ static void addField( String & wrapper,
   content-disposition filename if supplied and nonempty.
 */
 
-Injectee * Injectee::wrapUnparsableMessage( const String & message,
-                                            const String & error,
-                                            const String & defaultSubject,
-                                            const String & id )
+Injectee * Injectee::wrapUnparsableMessage( const EString & message,
+                                            const EString & error,
+                                            const EString & defaultSubject,
+                                            const EString & id )
 {
-    String boundary = acceptableBoundary( message );
-    String wrapper;
+    EString boundary = acceptableBoundary( message );
+    EString wrapper;
 
     addField( wrapper, "From", message,
               "Mail Storage Database <invalid@invalid.invalid>" );
 
-    String subject = invalidField( message, "Subject" );
+    EString subject = invalidField( message, "Subject" );
     HeaderField * hf = 0;
     if ( !subject.isEmpty() )
         hf = HeaderField::create( "Subject", subject );
@@ -2169,7 +2169,7 @@ Injectee * Injectee::wrapUnparsableMessage( const String & message,
                     "--" + boundary + "\r\n"
                     "Content-Type: text/plain; format=flowed" ); // contd..
 
-    String report = "The appended message was received, "
+    EString report = "The appended message was received, "
                     "but could not be stored in the mail \r\n"
                     "database on " + Configuration::hostname() +
                     ".\r\n\r\nThe error detected was: \r\n";

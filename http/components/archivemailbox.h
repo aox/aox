@@ -18,8 +18,8 @@ public:
     void execute();
 
 private:
-    String threadRendering( class SubjectThread * );
-    String timespan( const IntegerSet & ) const;
+    EString threadRendering( class SubjectThread * );
+    EString timespan( const IntegerSet & ) const;
 
 private:
     class ArchiveMailboxData * d;

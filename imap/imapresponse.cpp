@@ -18,7 +18,7 @@ public:
 
     Session * session;
     IMAP * imap;
-    String text;
+    EString text;
     bool sent;
     bool cmsn;
 };
@@ -42,7 +42,7 @@ public:
     changesMsn() returns false.
 */
 
-ImapResponse::ImapResponse( ImapSession * session, const String & response )
+ImapResponse::ImapResponse( ImapSession * session, const EString & response )
     : Garbage(), d( new ImapResponseData )
 {
     d->session = session;
@@ -80,7 +80,7 @@ ImapResponse::ImapResponse( ImapSession * session )
     The response is always meaningful(). changesMsn() returns false.
 */
 
-ImapResponse::ImapResponse( IMAP * server, const String & response )
+ImapResponse::ImapResponse( IMAP * server, const EString & response )
     : Garbage(), d( new ImapResponseData )
 {
     d->imap = server;
@@ -139,7 +139,7 @@ void ImapResponse::setSent()
     response and not send it.
 */
 
-String ImapResponse::text() const
+EString ImapResponse::text() const
 {
     return d->text;
 }
@@ -211,7 +211,7 @@ IMAP * ImapResponse::imap() const
     text. The \a text may include a resp-text-code.
 */
 
-ImapByeResponse::ImapByeResponse( IMAP * server, const String & text )
+ImapByeResponse::ImapByeResponse( IMAP * server, const EString & text )
     : ImapResponse( server, text )
 {
 }

@@ -4,7 +4,7 @@
 #define HTMLFORM_H
 
 #include "global.h"
-#include "string.h"
+#include "estring.h"
 
 class UString;
 
@@ -13,21 +13,21 @@ class HtmlForm
     : public Garbage
 {
 public:
-    HtmlForm( const String & = "", const String & = "post" );
+    HtmlForm( const EString & = "", const EString & = "post" );
 
-    void addField( const String &, const String & = "text",
-                   const String & = "", bool = false );
-    void requireField( const String &, const String & = "text",
-                       const String & = "" );
+    void addField( const EString &, const EString & = "text",
+                   const EString & = "", bool = false );
+    void requireField( const EString &, const EString & = "text",
+                       const EString & = "" );
 
-    void setValue( const String &, const UString & );
+    void setValue( const EString &, const UString & );
     void setValuesFrom( class WebPage * );
-    UString getValue( const String & );
+    UString getValue( const EString & );
 
     bool filled() const;
     void clear();
 
-    String html() const;
+    EString html() const;
 
 private:
     class HtmlFormData * d;
