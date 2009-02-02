@@ -4,7 +4,7 @@
 #define STRINGLIST_H
 
 #include "list.h"
-#include "string.h"
+#include "estring.h"
 
 
 class StringList
