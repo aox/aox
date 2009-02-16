@@ -274,7 +274,9 @@ void ImapSession::recordExpungedFetch( const IntegerSet & set )
 
 void ImapSession::ignoreModSeq( int64 ms )
 {
-    d->ignorable.append( new int64( ms ) );
+    int64 * tmp = (int64 *)Allocator::alloc( sizeof(int64), 0 );
+    *tmp = ms;
+    d->ignorable.append( tmp );
 }
 
 
