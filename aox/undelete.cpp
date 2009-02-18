@@ -137,7 +137,7 @@ void Undelete::execute()
                 why.insert( uid,
                             new String( 
                                 " - Message " + fn( uid ) + " was deleted by " +
-                                *logins.find( r->getInt( "deleted_by" ) ).quoted() +
+                                (*logins.find( r->getInt( "deleted_by" ) )).quoted() +
                                 " at " + r->getString( "deleted_at" ) +
                                 "\n   Reason: " +
                                 r->getString( "reason" ).simplified().quoted() ) );
