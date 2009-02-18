@@ -118,16 +118,16 @@ void Undelete::execute()
         uint uidnext = r->getInt( "uidnext" );
         int64 modseq = r->getBigint( "nextmodseq" );
 
-        Map<String> logins;
+        Map<EString> logins;
         if ( d->usernames ) {
             while ( d->usernames->hasResults() ) {
                 r = d->usernames->nextRow();
                 logins.insert( r->getInt( "id" ),
-                               new String( r->getString( "login" ) ) );
+                               new EString( r->getEString( "login" ) ) );
             }
         }
 
-        Map<String> why;
+        Map<EString> why;
         IntegerSet s;
         while ( d->find->hasResults() ) {
             r = d->find->nextRow();
@@ -135,12 +135,12 @@ void Undelete::execute()
             s.add( uid );
             if ( d->usernames )
                 why.insert( uid,
-                            new String( 
+                            new EString(
                                 " - Message " + fn( uid ) + " was deleted by " +
                                 (*logins.find( r->getInt( "deleted_by" ) )).quoted() +
-                                " at " + r->getString( "deleted_at" ) +
+                                " at " + r->getEString( "deleted_at" ) +
                                 "\n   Reason: " +
-                                r->getString( "reason" ).simplified().quoted() ) );
+                                r->getEString( "reason" ).simplified().quoted() ) );
         }
 
         if ( s.isEmpty() )
@@ -149,7 +149,7 @@ void Undelete::execute()
         printf( "aox: Undeleting %d messages into %s\n",
                 s.count(), d->m->name().utf8().cstr() );
 
-        Map<String>::Iterator i( why );
+        Map<EString>::Iterator i( why );
         while ( i ) {
             printf( "%s\n", i->cstr() );
             ++i;
