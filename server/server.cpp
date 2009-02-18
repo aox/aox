@@ -311,6 +311,20 @@ static void shutdownLoop( int )
 }
 
 
+static void dumpCoreAndGoOn( int )
+{
+    if ( fork() )
+        return;
+
+    // we're now a child process. we can dump core and the real server
+    // will just go on.
+
+    // do we need to do anything about the files? no? I think not.
+
+    abort();
+}
+
+
 /*! Called by signal handling to kill any children started in fork(). */
 
 void Server::killChildren()
@@ -335,6 +349,8 @@ void Server::loop()
     // sigpipe happens if we're writing to an already-closed fd. we'll
     // discover that it's closed a little later.
     ::signal( SIGPIPE, SIG_IGN );
+    // a custom signal to dump core and go on
+    ::signal( SIGUSR1, dumpCoreAndGoOn );
 }
 
 
