@@ -123,9 +123,8 @@ void Thread::execute()
 */
 
 
-/*!  Constructs a THREAD response that'll send either \s set as UIDs
-     (if \a uid is true) or MSNs (if \a uid is false) within \a
-     session, threaded as specified by \a threader.
+/*! Constructs a THREAD response that'll look at \a threadData and
+    send the relevant response when possible.
 */
 
 ThreadResponse::ThreadResponse( ThreadData * threadData )
