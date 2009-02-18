@@ -112,6 +112,17 @@ void Thread::execute()
 }
 
 
+/*! \class ThreadResponse thread.h
+
+    The Thread class formats the IMAP THREAD response, as specified in
+    RFC 5256 section BASE.6.4.THREAD.
+
+    There's a question of who's to do more... at present Thread and
+    ThreadResponse can't do very good thread reporting. Either Thread
+    or ThreadResponse has to grow better. Think.
+*/
+
+
 /*!  Constructs a THREAD response that'll send either \s set as UIDs
      (if \a uid is true) or MSNs (if \a uid is false) within \a
      session, threaded as specified by \a threader.
