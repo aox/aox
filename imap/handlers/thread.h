@@ -7,9 +7,6 @@
 #include "imapresponse.h"
 
 
-namespace Imap {
-
-
 class Thread
     : public Search
 {
@@ -31,11 +28,8 @@ public:
     EString text() const;
 
 private:
-    class Imap::ThreadData * d;
+    class ThreadData * d;
 };
-
-
-}
 
 
 #endif

@@ -8,10 +8,7 @@
 #include "query.h"
 
 
-using namespace Imap;
-
-
-class Imap::ThreadData
+class ThreadData
     : public Garbage
 {
 public:
@@ -43,14 +40,14 @@ public:
     true, otherwise MSNs.
 */
 
-Imap::Thread::Thread( bool u )
+Thread::Thread( bool u )
     : Search( u ), d( new ThreadData )
 {
     d->uid = u;
 }
 
 
-void Imap::Thread::parse()
+void Thread::parse()
 {
     // thread = ["UID" SP] "THREAD" SP thread-alg SP search-criteria
     // thread-alg = "ORDEREDSUBJECT" / "REFERENCES" / thread-alg-ext
@@ -83,7 +80,7 @@ void Imap::Thread::parse()
 
 */
 
-void Imap::Thread::execute()
+void Thread::execute()
 {
     if ( !d->threader ) {
         d->session = session();
@@ -110,7 +107,7 @@ void Imap::Thread::execute()
     if ( !d->find->done() )
         return;
 
-    waitFor( new Imap::ThreadResponse( d ) );
+    waitFor( new ThreadResponse( d ) );
     finish();
 }
 
@@ -120,16 +117,16 @@ void Imap::Thread::execute()
      session, threaded as specified by \a threader.
 */
 
-Imap::ThreadResponse::ThreadResponse( ThreadData * threadData )
+ThreadResponse::ThreadResponse( ThreadData * threadData )
     : ImapResponse( threadData->session ), d( threadData )
 {
 }
 
 
-EString Imap::ThreadResponse::text() const
+EString ThreadResponse::text() const
 {
     EString result = "THREAD ";
-    if ( d->threadAlg == Imap::ThreadData::OrderedSubject ) {
+    if ( d->threadAlg == ThreadData::OrderedSubject ) {
         List<SubjectThread>::Iterator t( d->threader->subjectThreads() );
         while ( t ) {
             IntegerSet members = t->members().intersection( d->result );

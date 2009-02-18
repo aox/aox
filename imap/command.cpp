@@ -258,7 +258,7 @@ Command * Command::create( IMAP * imap,
         else if ( n == "copy" )
             c = new Copy( uid );
         else if ( n == "thread" )
-            c = new Imap::Thread( uid );
+            c = new Thread( uid );
         else if ( n == "unselect" )
             c = new Unselect;
         else if ( n == "sort" )
