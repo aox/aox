@@ -3,6 +3,28 @@ Schedule
   Nothing worth mentioning.
 
 
+P/W: Stuff we may want to keep
+
+  List::take()->remove() was good
+
+  also keeping iterators working
+
+  Scope
+
+  Having EH make a new Log by default
+
+  Simplifying the way Connection objects are added to the main loop
+
+  List::append( List ) -> appendList()
+
+  smtpclient has simpler logic... but don't break what works
+
+  cancelQuery rewrite. not sure.
+
+  Do (some of) these, one at a time, making sure nothing breaks after
+  each one. None soon.
+
+
 3.0.5: 2009-01-??
 
   Have some good ideas.
