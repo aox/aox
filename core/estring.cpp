@@ -1301,6 +1301,22 @@ EString EString::deQP( bool underscore ) const
 static char qphexdigits[17] = "0123456789ABCDEF";
 
 
+static bool maybeBoundary( const EString & s, uint i ) {
+    if ( s.length() < i + 2 )
+        return false;
+    if ( s[i] != '-' || s[i+1] != '-' )
+        return false;
+    while ( i < s.length() && s[i] >= ' ' ) {
+        if ( s[i] == ' ' )
+            return false;
+        if ( s[i] == '_' )
+            return false;
+        ++i;
+    }
+    return true;
+}
+
+
 /*! Encodes this string using the quoted-printable algorithm and
     returns the encoded version. In the encoded version, all line
     feeds are CRLF, and soft line feeds are positioned so that the q-p
@@ -1316,7 +1332,7 @@ static char qphexdigits[17] = "0123456789ABCDEF";
     underscore and a few more characters need to be encoded.
 
     If \a from is present and true, this function also makes sure that
-    no output line starts with "From" or "--".
+    no output line starts with "From " or looks like a MIME boundary.
 */
 
 EString EString::eQP( bool underscore, bool from ) const
@@ -1380,16 +1396,16 @@ EString EString::eQP( bool underscore, bool from ) const
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
                 c += 3;
             }
-            else if ( from && c == 0 && d->len >= i + 1 &&
-                      d->str[i] == '-' && d->str[i+1] == '-' ) {
+            else if ( from && c == 0 && maybeBoundary( *this, i ) ) {
                 r.d->str[r.d->len++] = '=';
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
                 c += 3;
             }
-            else if ( from && c == 0 && d->len >= i + 3 &&
+            else if ( from && c == 0 && d->len >= i + 4 &&
                       d->str[i] == 'F' && d->str[i+1] == 'r' &&
-                      d->str[i+2] == 'o' && d->str[i+3] == 'm' ) {
+                      d->str[i+2] == 'o' && d->str[i+3] == 'm' &&
+                      d->str[i+4] == ' ' ) {
                 r.d->str[r.d->len++] = '=';
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
