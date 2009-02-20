@@ -153,7 +153,7 @@ void Vacuum::execute()
 
         q = new Query( "delete from deleted_messages "
                        "where deleted_at<current_timestamp-'" + fn( days ) +
-                       " days'::interval)", 0 );
+                       " days'::interval", 0 );
         t->enqueue( q );
 
         q = new Query( "delete from messages where id in "

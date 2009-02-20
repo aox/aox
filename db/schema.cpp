@@ -3879,7 +3879,7 @@ bool Schema::stepTo81()
 
 /*! Installs a trigger to prevent deleting mailboxes that have to be
     there for one reason or another.
-  
+
     What we really want is to delete the mail in the mailbox when the
     mailbox is deleted, but to do that we need (at a minimum) the
     responsible user. So what we must do is prevent the deletion, and
@@ -3909,7 +3909,7 @@ bool Schema::stepTo82()
     // and recover any deleted mailboxes we might have deleted in the past
     d->t->enqueue(
         new Query( "update mailboxes set deleted='f' "
-                   "where deleted='f' and "
+                   "where deleted='t' and "
                    "(id in (select mailbox from aliases) or"
                    " id in (select fileinto_targets))", 0 ) );
 
