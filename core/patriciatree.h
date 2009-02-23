@@ -273,7 +273,9 @@ public:
         if ( sl > n->length )
             sl = n->length;
         uint bl = sl / 8;
-        int r  = memcmp( n->key, k, bl );
+        int r = 0;
+        if ( bl )
+            r = memcmp( n->key, k, bl );
         // a difference within the first bl bytes?
         if ( r != 0 )
             return r;
