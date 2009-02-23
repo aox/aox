@@ -264,6 +264,86 @@ public:
         root = 0;
     }
 
+    // returns <0 if n sorts before k/l, >0 if it sorts after, 0 if
+    // the same.
+    int comparedTo( Node * n, const char * k, uint l ) {
+        if ( !n )
+            return 0;
+        uint sl = l;
+        if ( sl > n->length )
+            sl = n->length;
+        uint bl = sl / 8;
+        int r  = memcmp( n->key, k, bl );
+        // a difference within the first bl bytes?
+        if ( r != 0 )
+            return r;
+        // equality?
+        if ( bl * 8 == sl && sl == l && sl == n->length )
+            return 0;
+        // shared, untested prefix?
+        if ( bl * 8 < sl ) {
+            uint nb = n->key[bl] & ( 0xff > ( sl%8 ) );
+            uint b = k[bl] & ( 0xff > ( sl%8 ) );
+            if ( nb < b )
+                return -1;
+            else if ( nb > b )
+                return 1;
+        }
+        // prefix is the same. length decides:
+        if ( l > sl ) {
+            uint b = k[bl] & ( 0x80 > ( sl%8 ) );
+            if ( b )
+                return 1;
+            return -1;
+        }
+        else {
+            uint nb = n->key[bl] & ( 0x80 > ( sl%8 ) );
+            if ( nb )
+                return -1;
+            return 1;
+        }
+    }
+
+    T * findLargestBelow( const char * k, uint l ) {
+        Node * best = 0;
+        Node * n = root;
+        Node * p = 0;
+        while ( n && n != p ) {
+            p = n;
+            int x = comparedTo( n, k, l );
+            if ( x > 0 ) {
+                n = n->zero;
+            }
+            else if ( x < 0 ) {
+                if ( n->data )
+                    best = n;
+                if ( n->one )
+                    n = n->one;
+            }
+        }
+        while ( n != p ) {
+            p = n;
+            while ( n && n->zero && comparedTo( n, k, l ) > 0 )
+                n = n->zero;
+            while ( n && comparedTo( n, k, l ) < 0 ) {
+                if ( n->data )
+                    best = n;
+                if ( n->one )
+                    n = n->one;
+            }
+        }
+        if ( best )
+            return best->data;
+        if ( !n )
+            return 0;
+        // if we've never seen a node with data, best is still 0 and
+        // we just need to step back from n (which may be slow, but it
+        // should be extremely uncommon).
+        Iterator i( n );
+        --i;
+        return i;
+    }
+
     class Iterator
         : public Garbage
     {
