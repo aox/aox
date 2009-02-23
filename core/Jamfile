@@ -1,7 +1,7 @@
 SubDir TOP core ;
 
 Build core : global.cpp scope.cpp estring.cpp
-    buffer.cpp list.cpp map.cpp dict.cpp table.cpp allocator.cpp
+    buffer.cpp list.cpp map.cpp dict.cpp allocator.cpp
     md5.cpp file.cpp logger.cpp log.cpp configuration.cpp
     estringlist.cpp entropy.cpp filter.cpp stderrlogger.cpp
     cache.cpp patriciatree.cpp
