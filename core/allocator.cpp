@@ -94,8 +94,8 @@ void * Allocator::alloc( uint s, uint n )
 /*! Deallocates the object at \a p.
 
     This is never strictly necessary, however, if a very large number
-    of objects are allocated and deallocated, it may be
-    beneficial. This function exists because it was beneficial in
+    of objects are allocated and deallocated, it may be beneficial.
+    This function exists because it was beneficial in
     EString::reserve().
 */
 
