@@ -55,17 +55,14 @@ private:
     void * buffer;
     Allocator * next;
 
-    Allocator * left;
-    Allocator * right;
-
     friend void pointers( void * );
+    friend class AllocatorMapTable;
 
 private:
     static void mark( void * );
     static void mark();
     void sweep();
     void release();
-    void insert();
 };
 
 

@@ -25,6 +25,79 @@
 #include <errno.h>
 
 
+
+class AllocatorMapTable // NOT a Garbage class
+{
+public:
+    AllocatorMapTable(): l( 0 ) {
+        uint i = 0;
+        while ( i < Size ) {
+            data[i] = 0;
+            ++i;
+        }
+    }
+
+    static Allocator * find( const void * address ) {
+        ulong v = ((ulong)address) >> 20;
+        AllocatorMapTable * t = root;
+        if ( v & ( ((ulong)-1) << ( t->l + Slice ) ) )
+            return 0;
+        while ( t && t->l )
+            t = t->children[(v >> t->l) & Mask];
+        if ( !t )
+            return 0;
+        return t->data[v & Mask];
+    }
+    static void insert( Allocator * a ) {
+        ulong v = ((ulong)a->buffer) >> 20;
+        if ( !root )
+            root = new AllocatorMapTable;
+        while ( v & ( ((ulong)-1) << ( root->l + Slice ) ) ) {
+            AllocatorMapTable * nroot = new AllocatorMapTable;
+            nroot->l = root->l + Slice;
+            nroot->children[0] = root;
+            root = nroot;
+        }
+        AllocatorMapTable * t = root;
+        while ( t->l ) {
+            uint i = ( v >> t->l ) & Mask;
+            if ( !t->children[i] ) {
+                t->children[i] = new AllocatorMapTable;
+                t->children[i]->l = t->l - Slice;
+            }
+            t = t->children[i];
+        }
+        t->data[v & Mask] = a;
+    }
+    static void remove( Allocator * a ) {
+        ulong v = ((ulong)a->buffer) >> 20;
+        AllocatorMapTable * t = root;
+        while ( t && t->l )
+            t = t->children[(v >> t->l) & Mask];
+        if ( t && t->data[v & Mask] == a )
+            t->data[v & Mask] = 0;
+    }
+
+    static const uint Slice = 6;
+    static const uint Size = 1 << Slice;
+    static const uint Mask = Size - 1;
+
+private:
+    uint l;
+    union {
+        AllocatorMapTable * children[Size]; // if l>0
+        Allocator * data[Size]; // if l==0
+    };
+
+    static AllocatorMapTable * root;
+};
+
+
+AllocatorMapTable * AllocatorMapTable::root = 0;
+
+
+
+
 struct AllocationBlock
 {
     union {
@@ -48,8 +121,6 @@ static uint marked;
 static uint tos;
 static uint peak;
 static AllocationBlock ** stack;
-
-static Allocator * root = 0;
 
 
 static void oneMegabyteAllocated()
@@ -102,7 +173,7 @@ void * Allocator::alloc( uint s, uint n )
 
 void Allocator::dealloc( void * p )
 {
-    Allocator * a = Allocator::owner( p );
+    Allocator * a = AllocatorMapTable::find( p );
     if ( a )
         a->deallocate( p );
 }
@@ -183,7 +254,7 @@ Allocator * Allocator::allocator( uint size )
 Allocator::Allocator( uint s )
     : base( 0 ), step( s ), taken( 0 ), capacity( 0 ),
       used( 0 ), marked( 0 ), buffer( 0 ),
-      next( 0 ), left( 0 ), right( 0 )
+      next( 0 )
 {
     if ( s < ( 1 << 20 ) )
         capacity = ( 1 << 20 ) / ( s );
@@ -193,26 +264,41 @@ Allocator::Allocator( uint s )
     l = ( ( l-1 ) | 15 ) + 1;
     uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
     bl = ( ( bl-1 ) | 15 ) + 1;
-#if defined( MAP_ANON )
-    buffer = ::mmap( 0, l + bl + bl,
-                     PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
-    if ( buffer == MAP_FAILED )
+
+    buffer = mmap( 0, l, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    if ( ((ulong)buffer) & ((1<<20-1)) ) {
+        // if we didn't get what we want, try to allocate 1MB more
+        // than we need, then choose a block that starts at a megabyte
+        // boundary and drop the rest.
+        munmap( buffer, l );
+        uint xl = l + (1<<20);
+        buffer = mmap( 0, xl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE,
+                       -1, 0 );
+        void * start = (void*)
+                       (((((ulong)buffer) - 1) | ( (1 << 20) - 1 ) ) + 1 );
+        if ( start != buffer ) {
+            uint l = (ulong)start - (ulong)buffer;
+            munmap( buffer, l );
+        }
+        void * end = (void*)
+                     (((ulong)start) + ( ( (l-1) | 4095 ) + 1 ));
+        if ( (ulong)end < xl + (ulong)buffer ) {
+            uint l = xl + (ulong)buffer - (ulong)end;
+            munmap( end, l );
+        }
+        buffer = start;
+    }
+    used = (ulong*)::mmap( 0, bl + bl,
+                           PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    if ( used == MAP_FAILED )
         die( Memory );
-    used = (ulong*)((char*)buffer + l);
     marked = (ulong*)((char*)used + bl);
-#else
-    buffer = ::malloc( l );
-    used = (ulong*)::malloc( bl );
-    marked = (ulong*)::malloc( bl );
-    if ( !buffer || !used || !marked )
-        die( Memory );
-#endif
 
     memset( buffer, 0, l );
     memset( used, 0, bl );
     memset( marked, 0, bl );
 
-    insert();
+    AllocatorMapTable::insert( this );
 }
 
 
@@ -221,43 +307,12 @@ Allocator::Allocator( uint s )
 
 Allocator::~Allocator()
 {
-    if ( ::root == this ) {
-        ::root = 0;
-    }
-    else {
-        Allocator * p = ::root;
-        Allocator * prev = 0;
-        while ( p != prev ) {
-            prev = p;
-            if ( p->right == this )
-                p->right = 0;
-            else if ( p->left == this )
-                p->left = 0;
-            else if ( (ulong)p->buffer < (ulong)buffer )
-                p = p->right;
-            else if ( (ulong)p->buffer > (ulong)buffer )
-                p = p->left;
-        }
-    }
-    if ( right && right != ::root )
-        right->insert();
-    if ( left && left != ::root )
-        left->insert();
-
-    right = 0;
-    left = 0;
-
-#if defined( MAP_ANON )
+    AllocatorMapTable::remove( this );
     uint l = capacity * step;
     l = ( ( l-1 ) | 15 ) + 1;
     uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
     bl = ( ( bl-1 ) | 15 ) + 1;
-    ::munmap( buffer, l + bl + bl );
-#else
-    ::free( buffer );
-    ::free( used );
-    ::free( marked );
-#endif
+    ::munmap( used, bl + bl );
 
     next = 0;
     used = 0;
@@ -369,70 +424,6 @@ void Allocator::setNumPointers( const void * p, uint n )
 }
 
 
-/*! This private helper inserts the allocator in the tree used by
-    owner().
-*/
-
-void Allocator::insert()
-{
-    if ( !::root ) {
-        ::root = this;
-        return;
-    }
-
-    Allocator * p = ::root;
-    while ( p != this ) {
-        if ( (ulong)p->buffer < (ulong)buffer ) {
-            if ( !p->right )
-                p->right = this;
-            p = p->right;
-        }
-        else if ( (ulong)p->buffer > (ulong)buffer ) {
-            if ( !p->left )
-                p->left = this;
-            p = p->left;
-        }
-    }
-}
-
-
-/*! Returns a pointer to the Allocator in which \a p lies, or a null
-    pointer if \a p doesn't seem to be a valid pointer.
-*/
-
-Allocator * Allocator::owner( const void * p )
-{
-    if ( !p )
-        return 0;
-
-    Allocator * l = 0;
-    Allocator * a = ::root;
-    while ( a ) {
-        // is a to the left of p, and l even further to the left? move
-        // l closer.
-        if ( a && (ulong)a->buffer <= (ulong)p &&
-             ( !l || (ulong)a->buffer > (ulong)l->buffer ) )
-            l = a;
-        // move a towards p - left or right
-        if ( (ulong)a->buffer < (ulong)p )
-            a = a->right;
-        else if ( (ulong)a->buffer > (ulong)p )
-            a = a->left;
-        else
-            a = 0;
-    }
-    // at this point, we know two things:
-
-    // EITHER: on the path from the root towards p, we've visited the
-    // node that's closest to p on its left
-    if ( l )
-        return l;
-
-    // OR: p is to the left of the leftmost node (a)
-    return 0;
-}
-
-
 /*! This private helper checks that \a p is a valid pointer to
     unmarked GCable memory, marks it, and puts it on a stack so that
     mark() can process it and add its children to the stack.
@@ -440,7 +431,7 @@ Allocator * Allocator::owner( const void * p )
 
 void Allocator::mark( void * p )
 {
-    Allocator * a = owner( p );
+    Allocator * a = AllocatorMapTable::find( p );
     // a may be the allocator we want. does its area encompass p?
     if ( !a || (ulong)a->buffer > (ulong)p )
         return;
@@ -495,7 +486,7 @@ void Allocator::mark()
         // mark its children
         uint number = b->x.number;
         if ( number == 127 ) {
-            Allocator * a = owner( b );
+            Allocator * a = AllocatorMapTable::find( b );
             number = ( a->step - bytes ) / sizeof( void* );
         }
         uint n = 0;
@@ -925,4 +916,15 @@ void pointers( void * p )
         }
         bi++;
     }
+}
+
+
+/*! Returns a pointer to the Allocator that manages \a p.
+
+    Should go away. As soon as possible.
+*/
+
+Allocator * Allocator::owner( const void * p )
+{
+    return AllocatorMapTable::find( p );
 }
