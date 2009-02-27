@@ -50,8 +50,14 @@ public:
     }
     static void insert( Allocator * a ) {
         ulong v = ((ulong)a->buffer) >> 20;
-        if ( !root )
+        if ( !root ) {
             root = new AllocatorMapTable;
+            uint rv = v;
+            while ( rv & ~Mask ) {
+                rv = rv >> Slice;
+                root->l++;
+            }
+        }
         while ( v & ( ((ulong)-1) << ( root->l + Slice ) ) ) {
             AllocatorMapTable * nroot = new AllocatorMapTable;
             nroot->l = root->l + Slice;
@@ -76,6 +82,10 @@ public:
             t = t->children[(v >> t->l) & Mask];
         if ( t && t->data[v & Mask] == a )
             t->data[v & Mask] = 0;
+        // scan upwards and get rid of empty tables
+        
+        // scan downwards from the root and get rid of single-element
+        // tables
     }
 
     static const uint Slice = 6;
