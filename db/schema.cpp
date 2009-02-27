@@ -3860,14 +3860,13 @@ bool Schema::stepTo81()
                    "begin "
                    "if new.owner is null then "
                    // I've no idea whether this is correct syntax or will work
-                   "new.owner=coalesce("
-                   "select u.id from users u "
-                   "join namespaces n on (u.parentspace=n.id) "
+                   "select into new.owner u.id "
+                   "from users u join namespaces n on (u.parentspace=n.id) "
                    "where new.name like n.name||'/'||u.login||'/%' "
-                   "or new.name = n.name||'/'||u.login', null) "
+                   "or new.name = n.name||'/'||u.login;"
                    "end if; "
                    "return new;"
-                   "end;$$ language pgsql security definer", 0 ) );
+                   "end;$$ language 'plpgsql' security definer", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_owner_trigger "
                    "before insert on mailboxes for each "
