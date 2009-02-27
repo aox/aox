@@ -580,7 +580,8 @@ void TlsProxy::decrypt()
             serverside->close();
             exit( 0 );
         }
-        if ( status != CRYPT_ERROR_COMPLETE )
+        if ( status != CRYPT_ERROR_COMPLETE &&
+             status != CRYPT_ERROR_TIMEOUT )
             handleError( status, "cryptPopData" );
         if ( len > 0 )
             serverside->writeBuffer()->append( buffer, len );
