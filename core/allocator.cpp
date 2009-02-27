@@ -55,7 +55,7 @@ public:
             uint rv = v;
             while ( rv & ~Mask ) {
                 rv = rv >> Slice;
-                root->l++;
+                root->l += Slice;
             }
         }
         while ( v & ( ((ulong)-1) << ( root->l + Slice ) ) ) {
@@ -276,7 +276,7 @@ Allocator::Allocator( uint s )
     bl = ( ( bl-1 ) | 15 ) + 1;
 
     buffer = mmap( 0, l, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
-    if ( ((ulong)buffer) & ((1<<20-1)) ) {
+    if ( ((ulong)buffer) & ((1<<20)-1) ) {
         // if we didn't get what we want, try to allocate 1MB more
         // than we need, then choose a block that starts at a megabyte
         // boundary and drop the rest.
