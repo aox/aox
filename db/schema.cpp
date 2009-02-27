@@ -3964,14 +3964,14 @@ bool Schema::stepTo83()
                    "set nextmodseq=new.modseq+1 "
                    "where id=new.mailbox and nextmodseq<=new.modseq;"
                    "return null;"
-                   "end;$$ language pgsql security definer", 0 ) );
+                   "end;$$ language 'plpgsql' security definer", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_messages_update_trigger "
                    "after update or insert on mailbox_messages "
                    "for each row execute procedure increase_nextmodseq()", 0 ) );
     d->t->enqueue(
         new Query( "create trigger deleted_messages_update_trigger "
-                   "after update or insert on mailbox_messages "
+                   "after update or insert on deleted_messages "
                    "for each row execute procedure increase_nextmodseq()", 0 ) );
 
     // wouldn't this be better as a "statement after" that uses
