@@ -3859,11 +3859,10 @@ bool Schema::stepTo81()
                    "returns trigger as $$"
                    "begin "
                    "if new.owner is null then "
-                   // I've no idea whether this is correct syntax or will work
                    "select into new.owner u.id "
                    "from users u join namespaces n on (u.parentspace=n.id) "
                    "where new.name like n.name||'/'||u.login||'/%' "
-                   "or new.name = n.name||'/'||u.login;"
+                   "or new.name = n.name||'/'||u.login limit 1;"
                    "end if; "
                    "return new;"
                    "end;$$ language 'plpgsql' security definer", 0 ) );
