@@ -88,7 +88,7 @@ public:
         // tables
     }
 
-    static const uint Slice = 6;
+    static const uint Slice = 10;
     static const uint Size = 1 << Slice;
     static const uint Mask = Size - 1;
 
