@@ -2,8 +2,10 @@
 
 #include "status.h"
 
+#include "map.h"
 #include "flag.h"
 #include "imap.h"
+#include "cache.h"
 #include "query.h"
 #include "mailbox.h"
 #include "imapsession.h"
@@ -27,7 +29,56 @@ public:
     Query * highestModseq;
     Query * messageCount;
     Query * recentCount;
+
+    class CacheItem
+        : public Garbage
+    {
+    public:
+        CacheItem():
+            hasMessages( false ), hasUnseen( false ), hasRecent( false ),
+            messages( 0 ), unseen( 0 ), recent( 0 ),
+            nextmodseq( 0 )
+            {}
+        bool hasMessages;
+        bool hasUnseen;
+        bool hasRecent;
+        uint messages;
+        uint unseen;
+        uint recent;
+        int64 nextmodseq;
+    };
+
+    class StatusCache
+        : public Cache
+    {
+    public:
+        void clear() { c.clear(); }
+
+        CacheItem * provide( Mailbox * m ) {
+            CacheItem * i = 0;
+            if ( !m )
+                return i;
+            i = c.find( m->id() );
+            if ( !i ) {
+                i = new CacheItem;
+                i->nextmodseq = m->nextModSeq();
+                c.insert( m->id(), i );
+            }
+            if ( i->nextmodseq < m->nextModSeq() ) {
+                i->nextmodseq = m->nextModSeq();
+                i->hasMessages = false;
+                i->hasUnseen = false;
+                i->hasRecent = false;
+            }
+            return i;
+        }
+
+        Map<CacheItem> c;
+    };
 };
+
+
+static StatusData::StatusCache * cache = 0;
 
 
 /*! \class Status status.h
@@ -100,7 +151,11 @@ void Status::execute()
     if ( session )
         current = session->mailbox();
 
-    if ( d->unseen && !d->unseenCount ) {
+    if ( !::cache )
+        ::cache = new StatusData::StatusCache;
+    StatusData::CacheItem * i = ::cache->provide( d->mailbox );
+
+    if ( d->unseen && !d->unseenCount && !i->hasUnseen ) {
         // UNSEEN is horribly slow. I don't think this is fixable
         // really.
         d->unseenCount
@@ -130,6 +185,9 @@ void Status::execute()
     else if ( d->mailbox == current ) {
         // we'll pick it up from the session
     }
+    else if ( i->hasRecent ) {
+        // the cache has it
+    }
     else if ( !d->recentCount ) {
         d->recentCount = new Query( "select uidnext-first_recent as recent "
                                     "from mailboxes "
@@ -143,6 +201,9 @@ void Status::execute()
     }
     else if ( d->mailbox == current ) {
         // we'll pick it up
+    }
+    else if ( i->hasMessages ) {
+        // the cache has it
     }
     else if ( d->messages && !d->messageCount ) {
         d->messageCount
@@ -179,16 +240,22 @@ void Status::execute()
 
     if ( d->messageCount ) {
         Row * r = d->messageCount->nextRow();
-        if ( r )
-            status.append( "MESSAGES " + fn( r->getInt( "messages" ) ) );
+        if ( r ) {
+            i->hasMessages = true;
+            i->messages = r->getInt( "messages" );
+            status.append( "MESSAGES " + fn( i->messages ) );
+        }
     }
     else if ( d->messages && d->mailbox == current ) {
         status.append( "MESSAGES " + fn( session->messages().count() ) );
     }
     if ( d->recentCount ) {
         Row * r = d->recentCount->nextRow();
-        if ( r )
-            status.append( "RECENT " + fn( r->getInt( "recent" ) ) );
+        if ( r ) {
+            i->hasRecent = true;
+            i->recent = r->getInt( "recent" );
+            status.append( "RECENT " + fn( i->recent ) );
+        }
     }
     else if ( d->recent ) {
         status.append( "RECENT " + fn( session->recent().count() ) );
@@ -201,8 +268,11 @@ void Status::execute()
     }
     if ( d->unseen ) {
         Row * r = d->unseenCount->nextRow();
-        if ( r )
-            status.append( "UNSEEN " + fn( r->getInt( "unseen" ) ) );
+        if ( r ) {
+            i->hasUnseen = true;
+            i->unseen = r->getInt( "unseen" );
+            status.append( "UNSEEN " + fn( i->unseen ) );
+        }
     }
     if ( d->modseq ) {
         Row * r = d->highestModseq->nextRow();
