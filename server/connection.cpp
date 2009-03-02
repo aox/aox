@@ -529,6 +529,7 @@ void Connection::close()
     if ( valid() && d->fd >= 0 )
         ::close( d->fd );
     setState( Invalid );
+    EventLoop::global()->removeConnection( this );
 }
 
 
