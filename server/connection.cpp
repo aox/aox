@@ -123,6 +123,8 @@ Connection::~Connection()
 }
 
 
+static uint limes = 20;
+
 /*! Sets the connection state to \a st, which must be one of the
     following states:
 
@@ -148,14 +150,26 @@ void Connection::setState( Connection::State st )
     Scope x( log() );
     bool internal = hasProperty( Internal );
     if ( st == Connected  )
-        log( "Connected: " + description() + " (" + 
+        log( "Connected: " + description() + " (" +
              fn( EventLoop::global()->connections()->count() ) + " connections)",
              internal ? Log::Debug : Log::Significant );
     else if ( st == Invalid && ( d->state == Closing || d->state == Connected ) )
-        log( "Closing: " + description() + " (" + 
+        log( "Closing: " + description() + " (" +
              fn( EventLoop::global()->connections()->count() ) + " connections)",
              internal ? Log::Debug : Log::Info );
     d->state = st;
+
+    if ( EventLoop::global()->connections()->count() > limes ) {
+        limes += 10;
+        List<Connection>::Iterator i( EventLoop::global()->connections() );
+        uint n = 0;
+        while ( i ) {
+            log( "Connection " + fn( n ) + ": " + i->description(),
+                 Log::Debug );
+            ++i;
+            ++n;
+        }
+    }
 }
 
 
