@@ -13,6 +13,7 @@
 #include "configuration.h"
 #include "handlers/capability.h"
 #include "imapparser.h"
+#include "database.h"
 #include "command.h"
 #include "cache.h"
 #include "user.h"
