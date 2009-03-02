@@ -229,40 +229,43 @@ void Status::execute()
         if ( r ) {
             i->hasMessages = true;
             i->messages = r->getInt( "messages" );
-            status.append( "MESSAGES " + fn( i->messages ) );
         }
     }
-    else if ( d->messages && d->mailbox == current ) {
+    if ( d->messages && i->hasMessages )
+        status.append( "MESSAGES " + fn( i->messages ) );
+    else if ( d->messages && d->mailbox == current )
         status.append( "MESSAGES " + fn( session->messages().count() ) );
-    }
+
     if ( d->recentCount ) {
         Row * r = d->recentCount->nextRow();
         if ( r ) {
             i->hasRecent = true;
             i->recent = r->getInt( "recent" );
-            status.append( "RECENT " + fn( i->recent ) );
         }
     }
-    else if ( d->recent && d->mailbox == current ) {
+    if ( d->recent && i->hasRecent )
+        status.append( "RECENT " + fn( i->recent ) );
+    else if ( d->recent && d->mailbox == current )
         status.append( "RECENT " + fn( session->recent().count() ) );
-    }
-    if ( d->uidnext ) {
+
+    if ( d->uidnext )
         status.append( "UIDNEXT " + fn( d->mailbox->uidnext() ) );
-    }
-    if ( d->uidvalidity ) {
+
+    if ( d->uidvalidity )
         status.append( "UIDVALIDITY " + fn( d->mailbox->uidvalidity() ) );
-    }
-    if ( d->unseen ) {
+
+    if ( d->unseenCount ) {
         Row * r = d->unseenCount->nextRow();
         if ( r ) {
             i->hasUnseen = true;
             i->unseen = r->getInt( "unseen" );
-            status.append( "UNSEEN " + fn( i->unseen ) );
         }
     }
-    if ( d->modseq ) {
+    if ( d->unseen && i->hasUnseen )
+        status.append( "UNSEEN " + fn( i->unseen ) );
+
+    if ( d->modseq )
         status.append( "HIGHESTMODSEQ " + fn( d->mailbox->nextModSeq() - 1 ) );
-    }
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
              " (" + status.join( " " ) + ")" );
