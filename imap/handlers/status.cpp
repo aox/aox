@@ -20,13 +20,11 @@ public:
         recent( false ), unseen( false ),
         modseq( false ),
         mailbox( 0 ),
-        unseenCount( 0 ), highestModseq( 0 ),
-        messageCount( 0 ), recentCount( 0 )
+        unseenCount( 0 ), messageCount( 0 ), recentCount( 0 )
         {}
     bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
     Query * unseenCount;
-    Query * highestModseq;
     Query * messageCount;
     Query * recentCount;
 
@@ -213,22 +211,10 @@ void Status::execute()
         d->messageCount->execute();
     }
 
-    if ( d->modseq && !d->highestModseq ) {
-        // HIGHESTMODSEQ too needs a DB query
-        d->highestModseq
-            = new Query( "select coalesce(max(modseq),1) as hm "
-                         "from mailbox_messages "
-                         "where mailbox=$1", this );
-        d->highestModseq->bind( 1, d->mailbox->id() );
-        d->highestModseq->execute();
-    }
-
     // second part: wait until we have the information
     if ( !permitted() )
         return;
     if ( d->unseenCount && !d->unseenCount->done() )
-        return;
-    if ( d->highestModseq && !d->highestModseq->done() )
         return;
     if ( d->messageCount && !d->messageCount->done() )
         return;
@@ -275,9 +261,7 @@ void Status::execute()
         }
     }
     if ( d->modseq ) {
-        Row * r = d->highestModseq->nextRow();
-        if ( r )
-            status.append( "HIGHESTMODSEQ " + fn( r->getBigint( "hm" ) ) );
+        status.append( "HIGHESTMODSEQ " + fn( d->mailbox->nextModSeq() - 1 ) );
     }
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
