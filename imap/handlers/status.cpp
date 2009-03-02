@@ -243,7 +243,7 @@ void Status::execute()
             status.append( "RECENT " + fn( i->recent ) );
         }
     }
-    else if ( d->recent ) {
+    else if ( d->recent && d->mailbox == current ) {
         status.append( "RECENT " + fn( session->recent().count() ) );
     }
     if ( d->uidnext ) {
