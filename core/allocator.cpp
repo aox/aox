@@ -38,9 +38,9 @@ public:
     }
 
     static Allocator * find( const void * address ) {
-        ulong v = ((ulong)address) >> 20;
+        Allocator::ulong v = ((Allocator::ulong)address) >> 20;
         AllocatorMapTable * t = root;
-        if ( v & ( ((ulong)-1) << ( t->l + Slice ) ) )
+        if ( v & ( ((Allocator::ulong)-1) << ( t->l + Slice ) ) )
             return 0;
         while ( t && t->l )
             t = t->children[(v >> t->l) & Mask];
@@ -49,7 +49,7 @@ public:
         return t->data[v & Mask];
     }
     static void insert( Allocator * a ) {
-        ulong v = ((ulong)a->buffer) >> 20;
+        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> 20;
         if ( !root ) {
             root = new AllocatorMapTable;
             uint rv = v;
@@ -58,7 +58,7 @@ public:
                 root->l += Slice;
             }
         }
-        while ( v & ( ((ulong)-1) << ( root->l + Slice ) ) ) {
+        while ( v & ( ((Allocator::ulong)-1) << ( root->l + Slice ) ) ) {
             AllocatorMapTable * nroot = new AllocatorMapTable;
             nroot->l = root->l + Slice;
             nroot->children[0] = root;
@@ -76,14 +76,14 @@ public:
         t->data[v & Mask] = a;
     }
     static void remove( Allocator * a ) {
-        ulong v = ((ulong)a->buffer) >> 20;
+        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> 20;
         AllocatorMapTable * t = root;
         while ( t && t->l )
             t = t->children[(v >> t->l) & Mask];
         if ( t && t->data[v & Mask] == a )
             t->data[v & Mask] = 0;
         // scan upwards and get rid of empty tables
-        
+
         // scan downwards from the root and get rid of single-element
         // tables
     }
