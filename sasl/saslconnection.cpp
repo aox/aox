@@ -77,8 +77,6 @@ void SaslConnection::close()
     Endpoint client = peer();
     Connection::close();
 
-    Database::cancelQueries( log() );
-
     if ( !u || client.protocol() == Endpoint::Unix ||
          !Configuration::toggle( Configuration::Security ) )
         return;
