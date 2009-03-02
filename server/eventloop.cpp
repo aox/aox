@@ -489,7 +489,6 @@ void EventLoop::stop( uint s )
             if ( c->hasProperty( Connection::Listens ) ) {
                 c->react( Connection::Shutdown );
                 c->close();
-                removeConnection( c );
             }
             else if ( !c->hasProperty( Connection::Internal ) ) {
                 c->react( Connection::Shutdown );
@@ -511,10 +510,8 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
     while ( it ) {
         Connection * c = it;
         ++it;
-        if ( c != c1 && c != c2 ) {
-            removeConnection( c );
+        if ( c != c1 && c != c2 )
             c->close();
-        }
     }
 }
 
@@ -529,10 +526,8 @@ void EventLoop::closeAllExceptListeners()
     while ( it ) {
         Connection * c = it;
         ++it;
-        if ( c->type() != Connection::Listener ) {
-            removeConnection( c );
+        if ( c->type() != Connection::Listener )
             c->close();
-        }
     }
 }
 
@@ -719,10 +714,8 @@ void EventLoop::shutdownSSL()
         Connection * c = it;
         ++it;
         if ( c->hasProperty( Connection::Listens ) &&
-             c->hasProperty( Connection::StartsSSL ) ) {
-            removeConnection( c );
+             c->hasProperty( Connection::StartsSSL ) )
             c->close();
-        }
     }
 }
 
