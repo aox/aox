@@ -135,7 +135,7 @@ void UpgradeSchema::execute()
 
 
 static AoxFactory<Vacuum>
-f3( "vacuum", "-- Perform", "utine maintenance.",
+f3( "vacuum", "", "Perform routine maintenance.",
     "    Synopsis: aox vacuum\n\n"
     "    Permanently deletes messages that were marked for deletion\n"
     "    more than a certain number of days ago (cf. undelete-time)\n"

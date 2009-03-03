@@ -1039,7 +1039,7 @@ bool Stopper::failed() const
 
 
 static AoxFactory<CheckConfig>
-f( "check", "config", "Check that the configuration is sane.\n\n",
+f( "check", "config", "Check that the configuration is sane.",
    "    Synopsis: aox check config\n\n"
    "    Reads the configuration and reports any problems it finds.\n" );
 
@@ -1163,7 +1163,7 @@ void Start::execute()
 
 
 static AoxFactory<Stop>
-f3( "stop", "", "Start the server(s).\n\n",
+f3( "stop", "", "Start the server(s).",
     "    Synopsis: aox stop [-v]\n\n"
     "    Stops Archiveopteryx and helper servers in the correct order.\n"
     "    The -v flag enables (slightly) verbose diagnostic output.\n" );
