@@ -48,7 +48,15 @@ class AoxCommandMap
 public:
     AoxCommandMap( const char * verb, const char * noun,
                    const char * brief, const char * about )
-        : v( verb ), n( noun ), b( brief), a( about ), x( 0 ) {
+        : v( verb ), n( noun ), b( brief), a( about ), x( 0 ), c( 0 ) {
+        x = first;
+        first = this;
+    }
+    AoxCommandMap( const char * verb, const char * noun,
+                   AoxCommandMap * canonical )
+        : v( verb ), n( noun ),
+          b( canonical->b ), a( canonical->a ),
+          x( 0 ), c( canonical ) {
         x = first;
         first = this;
     }
@@ -72,6 +80,8 @@ private:
 
     AoxCommandMap * x;
 
+    AoxCommandMap * c;
+
     static AoxCommandMap * first;
 };
 
@@ -85,6 +95,9 @@ public:
     AoxFactory( const char * verb, const char * noun,
                 const char * brief, const char * about )
         : AoxCommandMap( verb, noun, brief, about ) {}
+    AoxFactory( const char * verb, const char * noun,
+                AoxFactory<T> * canonical )
+        : AoxCommandMap( verb, noun, canonical ) {}
     AoxCommand * provide( EStringList * l ) { return new T( l ); }
 };
 

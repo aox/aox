@@ -1416,6 +1416,12 @@ f7( "show", "configuration", "Display configuration variables.",
     "      aox show cf -p\n"
     "      aox show cf -v imap-address\n" );
 
+static AoxFactory<ShowConfiguration>
+f8( "show", "cf", &f7 );
+
+static AoxFactory<ShowConfiguration>
+f9( "show", "conf", &f7 );
+
 
 /*! \class ShowConfiguration servers.h
     This class handles the "aox show configuration" command.
