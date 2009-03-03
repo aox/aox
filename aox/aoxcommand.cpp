@@ -404,12 +404,14 @@ AoxCommand * AoxCommand::create( EStringList * args )
         return cmd;
 
     if ( AoxCommandMap::validVerbs()->contains( verb ) )
-        fprintf( stderr, "aox %s: Valid arguments: %s.\n",
+        fprintf( stderr, "aox %s: Valid arguments:\n%s.\n",
                  verb.cstr(),
-                 AoxCommandMap::validNouns( verb )->join( ", " ).cstr() );
+                 AoxCommandMap::validNouns( verb )->join( ", " )
+                 .wrapped( 70, "    ", "    ", false ).cstr() );
     else
-        fprintf( stderr, "aox: Valid commands: %s.\n",
-                 AoxCommandMap::validVerbs()->join( ", " ).cstr() );
+        fprintf( stderr, "aox: Valid commands:\n%s.\n",
+                 AoxCommandMap::validVerbs()->join( ", " )
+                 .wrapped( 70, "    ", "    ", false ).cstr() );
 
     exit( -1 );
     return 0;
