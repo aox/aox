@@ -147,15 +147,9 @@ bool EStringList::contains( const EString & s ) const
 
 static int caseSensitively( const void * a, const void * b )
 {
-    if ( !a && !b )
-        return 0;
-    if ( !b )
-        return 1;
-    if ( !a )
-        return -1;
-    const EString * ea = reinterpret_cast<const EString*>( a );
-    const EString * eb = reinterpret_cast<const EString*>( b );
-    return ea->compare( *eb );
+    const EString ** ea = (const EString**)a;
+    const EString ** eb = (const EString**)b;
+    return (*ea)->compare( **eb );
 }
 
 
