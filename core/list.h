@@ -294,14 +294,14 @@ public:
         if ( d.node()->prev )
             d.node()->prev->next = d.node()->next;
         if ( head == d.node() )
-            head = d.node()->next; 
-        if ( tail == d.node() ) 
+            head = d.node()->next;
+        if ( tail == d.node() )
             tail = d.node()->next;
         d.node()->next = d.node()->prev = 0;
         return d.node()->data;
     }
 
-    List<T> * sorted( Comparator * comparator )
+    List<T> * sorted( Comparator * comparator ) const
     {
         uint c = count();
         T** a = (T**)Allocator::alloc( c * sizeof(T*) );
