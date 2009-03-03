@@ -385,18 +385,8 @@ AoxCommand * AoxCommand::create( EStringList * args )
         verb = "delete";
 
     EString noun;
-    if ( verb == "start" || verb == "stop" ||
-         verb == "restart" ||
-         verb == "vacuum" ||
-         verb == "reparse" ||
-         verb == "undelete" ||
-         verb == "help" ||
-         verb == "anonymise" ) {
-        // no noun for these verbs
-    }
-    else if ( !args->isEmpty() ) {
+    if ( AoxCommandMap::needsNoun( verb ) )
         noun = ::next( args ).lower();
-    }
 
     AoxCommand * cmd = AoxCommandMap::provide( verb, noun, args );
 
@@ -415,8 +405,6 @@ AoxCommand * AoxCommand::create( EStringList * args )
 
     exit( -1 );
     return 0;
-
-
 
     if ( verb == "start" ) {
         cmd = new Start( args );
@@ -636,4 +624,21 @@ EString AoxCommandMap::inBrief( const EString & verb, const EString & noun )
         m = m->x;
     }
     return "";
+}
+
+
+/*! Returns true if \a verb needs a noun, and false if it works on its
+    own (as e.g. aox restart does) or doesn't exist.
+*/
+
+bool AoxCommandMap::needsNoun( const EString & verb )
+{
+    AoxCommandMap * m = first;
+    while ( m && verb != m->v )
+        m = m->x;
+    if ( !m )
+        return true;
+    if ( *m->n )
+        return true;
+    return false;
 }

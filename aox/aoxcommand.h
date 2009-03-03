@@ -62,6 +62,7 @@ public:
     static EStringList * validNouns( const EString & );
     static EString aboutCommand( const EString &, const EString & );
     static EString inBrief( const EString &, const EString & );
+    static bool needsNoun( const EString & );
 
 private:
     const char * v;

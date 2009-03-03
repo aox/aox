@@ -25,12 +25,15 @@ f( "help", "", "Offer help on a commands and more",
 void Help::execute()
 {
     EString a = next().lower();
-    EString b = next().lower();
 
     if ( a == "create" || a == "new" )
         a = "add";
     else if ( a == "del" || a == "remove" )
         a = "delete";
+
+    EString b;
+    if ( AoxCommandMap::needsNoun( a ) )
+        b = next().lower();
 
     EString about = AoxCommandMap::aboutCommand( a, b );
     if ( !about.isEmpty() ) {
