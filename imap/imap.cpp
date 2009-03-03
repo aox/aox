@@ -182,9 +182,9 @@ void IMAP::react( Event e )
         case Authenticated:
         case Selected:
             if ( idle() )
-                setTimeoutAfter( 86400 ); // 24-hour timeout while IDLE
+                setTimeoutAfter( 604800 ); // one-week timeout while IDLE
             else
-                setTimeoutAfter( 86400 ); // inactive client
+                setTimeoutAfter( 604800 ); // inactive client
             break;
         case Logout:
             break;
