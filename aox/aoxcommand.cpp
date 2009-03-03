@@ -569,14 +569,14 @@ AoxCommandMap * AoxCommandMap::first;
 
 EStringList * AoxCommandMap::validVerbs()
 {
-    EStringList * r = new EStringList;
+    EStringList r;
     AoxCommandMap * m = first;
     while ( m ) {
-        r->append( m->v );
+        r.append( m->v );
         m = m->x;
     }
-    r->removeDuplicates();
-    return r;
+    r.removeDuplicates();
+    return r.sorted();
 
 }
 
@@ -586,15 +586,15 @@ EStringList * AoxCommandMap::validVerbs()
 
 EStringList * AoxCommandMap::validNouns( const EString & verb )
 {
-    EStringList * r = new EStringList;
+    EStringList r;
     AoxCommandMap * m = first;
     while ( m ) {
         if ( verb == m->v )
-            r->append( m->n );
+            r.append( m->n );
         m = m->x;
     }
-    r->removeDuplicates();
-    return r;
+    r.removeDuplicates();
+    return r.sorted();
 }
 
 
