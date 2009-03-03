@@ -319,6 +319,8 @@ Allocator::~Allocator()
     AllocatorMapTable::remove( this );
     uint l = capacity * step;
     l = ( ( l-1 ) | 4095 ) + 1;
+    ::munmap( buffer, l );
+
     ::free( used );
     ::free( marked );
 
