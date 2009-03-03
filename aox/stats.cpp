@@ -21,6 +21,16 @@ public:
 };
 
 
+static AoxFactory<ShowCounts>
+f( "show", "counts", "Show number of users, messages etc..",
+   "    Synopsis: aox show counts [-f]\n\n"
+   "    Displays the number of rows in the most important tables,\n"
+   "    as well as the total size of the mail stored.\n"
+   "\n"
+   "    The -f flag makes aox collect slow-but-accurate counts.\n"
+   "    Without it, by default, you get quick estimates.\n" );
+
+
 /*! \class ShowCounts stats.h
     This class handles the "aox show counts" command.
 */

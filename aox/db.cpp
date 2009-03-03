@@ -32,6 +32,13 @@ static const char * versions[] = {
 static int nv = sizeof( versions ) / sizeof( versions[0] );
 
 
+static AoxFactory<ShowSchema>
+f( "show", "schema", "Display schema revision.",
+   "    Synopsis: aox show schema\n\n"
+   "    Displays the revision of the existing database schema.\n" );
+
+
+
 /*! \class ShowSchema schema.h
     This class handles the "aox show schema" command.
 */
@@ -82,6 +89,18 @@ void ShowSchema::execute()
 
 
 
+static AoxFactory<UpgradeSchema>
+f2( "upgrade", "schema", "Upgrade the database schema.",
+    "    Synopsis: aox upgrade schema [-n]\n\n"
+    "    Checks that the database schema is one that this version of\n"
+    "    Archiveopteryx is compatible with, and updates it if needed.\n"
+    "\n"
+    "    The -n flag causes aox to perform the SQL statements for the\n"
+    "    schema upgrade and report on their status without COMMITting\n"
+    "    the transaction (i.e. see what the upgrade would do, without\n"
+    "    changing anything).\n" );
+
+
 /*! \class UpgradeSchema schema.h
     This class handles the "aox upgrade schema" command.
 */
@@ -115,6 +134,15 @@ void UpgradeSchema::execute()
 }
 
 
+static AoxFactory<Vacuum>
+f3( "vacuum", "-- Perform", "utine maintenance.",
+    "    Synopsis: aox vacuum\n\n"
+    "    Permanently deletes messages that were marked for deletion\n"
+    "    more than a certain number of days ago (cf. undelete-time)\n"
+    "    and removes any bodyparts that are no longer used.\n\n"
+    "    This is not a replacement for running VACUUM ANALYSE on the\n"
+    "    database (either with vaccumdb or via autovacuum).\n\n"
+    "    This command should be run (we suggest daily) via crontab.\n" );
 
 /*! \class Vacuum Vacuum.h
     This class handles the "aox vacuum" command.
@@ -180,6 +208,13 @@ void Vacuum::execute()
 
     finish();
 }
+
+
+static AoxFactory<GrantPrivileges>
+f4( "grant", "privileges", "Grant required privileges to db-user.",
+    "    Synopsis: aox grant privileges username\n\n"
+    "    Makes sure that the named user has all the right permissions\n"
+    "    needed by db-user (i.e. an unprivileged user), and no more.\n" );
 
 
 /*! \class GrantPrivileges db.h
@@ -299,6 +334,18 @@ public:
     bool set;
 };
 
+
+static AoxFactory<TuneDatabase>
+f5( "tune", "database", "Adds or removes indices.",
+    "    Synopsis: aox tune database <mode>\n\n"
+    "    There are three modes: mostly-writing, mostly-reading and\n"
+    "    advanced-reading.\n"
+    "    Mode mostly-writing tunes the database for fast message\n"
+    "    injection at the cost of reading.\n"
+    "    Mode mostly-reading tunes the database for message reading,\n"
+    "    but without full-text indexing.\n"
+    "    Mode advanced-reading tunes the database for fast message\n"
+    "    searching and reading, at the cost of injection speed.\n" );
 
 /*! \class TuneDatabase db.h
     This class handles the "aox tune database" command.

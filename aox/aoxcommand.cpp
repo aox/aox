@@ -375,8 +375,6 @@ static void bad( const EString &verb, const EString &noun, const EString &ok )
 
 AoxCommand * AoxCommand::create( EStringList * args )
 {
-    AoxCommand * cmd = 0;
-
     if ( args->isEmpty() )
         return 0;
 
@@ -385,6 +383,38 @@ AoxCommand * AoxCommand::create( EStringList * args )
         verb = "create";
     else if ( verb == "del" || verb == "remove" )
         verb = "delete";
+
+    EString noun;
+    if ( verb == "start" || verb == "stop" ||
+         verb == "restart" ||
+         verb == "vacuum" ||
+         verb == "reparse" ||
+         verb == "undelete" ||
+         verb == "help" ||
+         verb == "anonymise" ) {
+        // no noun for these verbs
+    }
+    else if ( !args->isEmpty() ) {
+        noun = ::next( args ).lower();
+    }
+
+    AoxCommand * cmd = AoxCommandMap::provide( verb, noun, args );
+
+    if ( cmd )
+        return cmd;
+
+    if ( AoxCommandMap::validVerbs()->contains( verb ) )
+        fprintf( stderr, "aox %s: Valid arguments: %s.\n",
+                 verb.cstr(),
+                 AoxCommandMap::validNouns( verb )->join( ", " ).cstr() );
+    else
+        fprintf( stderr, "aox: Valid commands: %s.\n",
+                 AoxCommandMap::validVerbs()->join( ", " ).cstr() );
+
+    exit( -1 );
+    return 0;
+
+
 
     if ( verb == "start" ) {
         cmd = new Start( args );
@@ -519,4 +549,75 @@ AoxCommand * AoxCommand::create( EStringList * args )
         Allocator::addEternal( cmd, "the command to be run" );
 
     return cmd;
+}
+
+
+/*! Returns a pointer to the AoxCommand sublass which handles \a verb
+    \a noun, or a null pointer if there isn't any such subclass.
+*/
+
+AoxCommand * AoxCommandMap::provide( const EString & verb,
+                                     const EString & noun,
+                                     EStringList * args )
+{
+    AoxCommandMap * m = first;
+    while ( m ) {
+        if ( verb == m->v && noun == m->n )
+            return m->provide( args );
+        m = m->x;
+    }
+    return 0;
+}
+
+
+AoxCommandMap * AoxCommandMap::first;
+
+
+/*! Returns a list of valid aox commands.
+
+*/
+
+EStringList * AoxCommandMap::validVerbs()
+{
+    EStringList * r = new EStringList;
+    AoxCommandMap * m = first;
+    while ( m ) {
+        r->append( m->v );
+        m = m->x;
+    }
+    r->removeDuplicates();
+    return r;
+    
+}
+
+
+/*! Returns a list of valid arguments for \a verb.
+ */
+
+EStringList * AoxCommandMap::validNouns( const EString & verb )
+{
+    EStringList * r = new EStringList;
+    AoxCommandMap * m = first;
+    while ( m ) {
+        if ( verb == m->v )
+            r->append( m->n );
+        m = m->x;
+    }
+    r->removeDuplicates();
+    return r;
+}
+
+
+/*! Returns the "about" text for \a verb \a noun. */
+
+EString AoxCommandMap::aboutCommand( const EString & verb,
+                                     const EString & noun )
+{
+    AoxCommandMap * m = first;
+    while ( m ) {
+        if ( verb == m->v && noun == m->n )
+            return m->a;
+        m = m->x;
+    }
+    return "";
 }

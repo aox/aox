@@ -41,6 +41,50 @@ protected:
 private:
     class AoxCommandData * d;
 };
+    
+    
+class AoxCommandMap
+{
+public:
+    AoxCommandMap( const char * verb, const char * noun,
+                   const char * brief, const char * about )
+        : v( verb ), n( noun ), b( brief), a( about ), x( 0 ) {
+        x = first;
+        first = this;
+    }
+
+    static AoxCommand * provide( const EString &, const EString &,
+                                 EStringList * );
+
+    virtual AoxCommand * provide( EStringList * ) = 0;
+
+    static EStringList * validVerbs();
+    static EStringList * validNouns( const EString & );
+    static EString aboutCommand( const EString &, const EString & );
+
+private:
+    const char * v;
+    const char * n;
+    const char * b;
+    const char * a;
+
+    AoxCommandMap * x;
+
+    static AoxCommandMap * first;
+};
+  
+
+
+template<class T>
+class AoxFactory
+    : public AoxCommandMap
+{
+public:
+    AoxFactory( const char * verb, const char * noun,
+                const char * brief, const char * about )
+        : AoxCommandMap( verb, noun, brief, about ) {}
+    AoxCommand * provide( EStringList * l ) { return new T( l ); }
+};
 
 
 #endif

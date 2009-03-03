@@ -29,6 +29,14 @@ public:
 };
 
 
+static AoxFactory<Reparse>
+f( "reparse", "", "Retry previously-stored unparsable messages.",
+   "    Synopsis: aox reparse\n\n"
+   "    Looks for messages that \"arrived but could not be stored\",\n"
+   "    and tries to reparse them with parsing workarounds added more\n"
+   "    recently. If it succeeds, the new messages are injected.\n" );
+
+
 /*! \class Reparse reparse.h
     This class handles the "aox reparse" command.
 */

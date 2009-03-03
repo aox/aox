@@ -7,6 +7,16 @@
 #include <stdio.h>
 
 
+static AoxFactory<Anonymise>
+f( "anonymise", "", "Anonymise a named mail message.",
+   "    Synopsis: aox anonymise filename\n\n"
+   "    Reads a mail message from the named file, obscures most or\n"
+   "    all content and prints the result on stdout. The output\n"
+   "    resembles the original closely enough to be used in a bug\n"
+   "    report.\n" );
+
+
+
 /*! \class Anonymise anonymise.h
     This class handles the "aox anonymise" command.
 */

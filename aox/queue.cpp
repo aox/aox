@@ -8,6 +8,12 @@
 #include <stdio.h>
 
 
+static AoxFactory<ShowQueue>
+f( "show", "queue", "Display the outgoing mail queue.",
+   "    Synopsis: aox show queue\n\n"
+   "    Displays a list of mail queued for delivery to a smarthost.\n" );
+
+
 /*! \class ShowQueue schema.h
     This class handles the "aox show queue" command.
 */
