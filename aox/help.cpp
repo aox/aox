@@ -2,7 +2,7 @@
 
 #include "help.h"
 
-#include "configuration.h"
+#include "estringlist.h"
 
 #include <stdio.h>
 
@@ -32,52 +32,74 @@ void Help::execute()
     else if ( a == "del" || a == "remove" )
         a = "delete";
 
-    // We really need a better way of constructing help texts.
-    // (And better help text, now that I think about it.)
-
-        fprintf(
-            stderr,
-            "  Available aox commands:\n\n"
-            "    start              -- Server management.\n"
+    EString about = AoxCommandMap::aboutCommand( a, b );
+    if ( !about.isEmpty() ) {
+        printf( "aox %s %s -- %s\n%s",
+                a.cstr(), b.cstr(), AoxCommandMap::inBrief( a, b ).cstr(),
+                about.cstr() );
+    }
+    else if ( AoxCommandMap::validVerbs()->contains( a ) ) {
+        printf( "aox %s: Valid arguments:\n", a.cstr() );
+        EStringList::Iterator i( AoxCommandMap::validNouns( a ) );
+        while ( i ) {
+            printf( "  %s -- %s\n",
+                    i->cstr(), AoxCommandMap::inBrief( a, *i ).cstr() );
+            ++i;
+        }
+    }
+    else if ( a == "commands" || a.isEmpty() ) {
+        printf(
+            "aox: Command summary:\n"
+            "  Server management:\n"
+            "    start\n"
             "    stop\n"
-            "    restart\n\n"
-            "    check config       -- Check that the configuration is sane.\n"
-            "    show status        -- Are the servers running?\n"
-            "    show build         -- Displays compile-time configuration.\n"
-            "    show counts        -- Shows number of users, messages etc.\n"
-            "    show configuration -- Displays runtime configuration.\n"
-            "    show queue         -- Displays mail queued for delivery.\n"
+            "    restart\n"
+            "    show status\n"
             "\n"
-            "    show schema        -- Displays the existing schema revision.\n"
-            "    upgrade schema     -- Upgrades an older schema to work with\n"
-            "                          the current server.\n"
-            "    update database    -- Updates the database contents, if the\n"
-            "                          current server needs to.\n"
-            "    tune database      -- Adjust database to suit expected use.\n"
+            "  Configuration:\n"
+            "    check config\n"
+            "    show build\n"
+            "    show configuration\n"
+            "    tune database\n"
             "\n"
-            "                       -- User and mailbox management.\n"
+            "  Administration:\n"
             "    list <users|mailboxes|aliases|rights>\n"
             "    add <user|mailbox|alias>\n"
             "    delete <user|mailbox|alias>\n"
             "    change <username|password|address>\n"
             "    setacl\n"
             "\n"
-            "    reparse            -- Try to reparse messages that could not\n"
-            "                          be parsed by an older server.\n"
+            "  Other:\n"
+            "    show queue\n"
+            "    undelete\n"
+            "    vacuum\n"
+            "    ...\n"
             "\n"
-            "    undelete           -- Undelete accidentally removed messages.\n"
-            "    vacuum             -- Permanently remove deleted messages.\n"
-            "    anonymise          -- Anonymise a message for a bug report.\n"
-            "\n"
-            "  Use \"aox help command name\" for more specific help.\n"
-        );
-        fprintf(
-            stderr,
-            "  aox -- A command-line interface to Archiveopteryx.\n\n"
-            "    Synopsis: aox <verb> <noun> [options] [arguments]\n\n"
-            "    Use \"aox help commands\" for a list of commands.\n"
-            "    Use \"aox help start\" for help with \"start\".\n"
-        );
+            "  Use \"aox help command name\" for more specific help,\n"
+            "  \"aox help allcommands\" for a complete list of commands or\n"
+            "  e.g. \"aox help show\" for a list of arguments to show.\n"
+            );
+    }
+    else if ( a == "allcommands" ) {
+        printf( "aox: Valid commands:\n" );
+        EStringList::Iterator v( AoxCommandMap::validVerbs() );
+        while ( v ) {
+            EStringList::Iterator n( AoxCommandMap::validNouns( *v ) );
+            while ( n ) {
+                printf( "  %s %s -- %s\n",
+                        v->cstr(), n->cstr(),
+                        AoxCommandMap::inBrief( *v, *n ).cstr() );
+                ++n;
+            }
+            ++v;
+        }
+    }
+    else {
+        printf( "aox %s: Invalid command.\n  Valid commands:\n%s\n",
+                a.cstr(),
+                AoxCommandMap::validVerbs()->join( ", " )
+                .wrapped( 70, "    ", "    ", false ).cstr() );
+    }
 
     finish();
 }

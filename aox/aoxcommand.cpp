@@ -587,7 +587,7 @@ EStringList * AoxCommandMap::validVerbs()
     }
     r->removeDuplicates();
     return r;
-    
+
 }
 
 
@@ -617,6 +617,20 @@ EString AoxCommandMap::aboutCommand( const EString & verb,
     while ( m ) {
         if ( verb == m->v && noun == m->n )
             return m->a;
+        m = m->x;
+    }
+    return "";
+}
+
+
+/*! Returns the brief one-line description of \a verb \a noun. */
+
+EString AoxCommandMap::inBrief( const EString & verb, const EString & noun )
+{
+    AoxCommandMap * m = first;
+    while ( m ) {
+        if ( verb == m->v && noun == m->n )
+            return m->b;
         m = m->x;
     }
     return "";

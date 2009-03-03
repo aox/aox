@@ -41,8 +41,8 @@ protected:
 private:
     class AoxCommandData * d;
 };
-    
-    
+
+
 class AoxCommandMap
 {
 public:
@@ -61,6 +61,7 @@ public:
     static EStringList * validVerbs();
     static EStringList * validNouns( const EString & );
     static EString aboutCommand( const EString &, const EString & );
+    static EString inBrief( const EString &, const EString & );
 
 private:
     const char * v;
@@ -72,7 +73,7 @@ private:
 
     static AoxCommandMap * first;
 };
-  
+
 
 
 template<class T>
