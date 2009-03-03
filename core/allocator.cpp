@@ -271,32 +271,32 @@ Allocator::Allocator( uint s )
     else
         capacity = 1;
     uint l = capacity * s;
-    l = ( ( l-1 ) | 15 ) + 1;
+    l = ( ( l-1 ) | 4095 ) + 1;
+    capacity = l / s;
     uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
-    bl = ( ( bl-1 ) | 15 ) + 1;
+    bl = ( ( bl-1 ) | 4095 ) + 1;
 
     buffer = mmap( 0, l, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    if ( buffer == MAP_FAILED )
+        die( Memory );
     if ( ((ulong)buffer) & ((1<<20)-1) ) {
-        // if we didn't get what we want, try to allocate 1MB more
-        // than we need, then choose a block that starts at a megabyte
-        // boundary and drop the rest.
+        // the block we got wasn't at a megabyte boundary. drop it,
+        // ask for one that MUST span an entire megabyte, then drop
+        // what we don't need from that block.
         munmap( buffer, l );
+
         uint xl = l + (1<<20);
         buffer = mmap( 0, xl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE,
                        -1, 0 );
-        void * start = (void*)
-                       (((((ulong)buffer) - 1) | ( (1 << 20) - 1 ) ) + 1 );
-        if ( start != buffer ) {
-            uint l = (ulong)start - (ulong)buffer;
-            munmap( buffer, l );
-        }
-        void * end = (void*)
-                     (((ulong)start) + ( ( (l-1) | 4095 ) + 1 ));
-        if ( (ulong)end < xl + (ulong)buffer ) {
-            uint l = xl + (ulong)buffer - (ulong)end;
-            munmap( end, l );
-        }
-        buffer = start;
+        if ( buffer == MAP_FAILED )
+            die( Memory );
+        ulong start = (ulong)buffer;
+        ulong desired = ((start-1)|((1<<20)-1))+1;
+        if ( desired != (ulong)buffer )
+            munmap( buffer, desired - start );
+        if ( start + xl > desired + l )
+            munmap( (void*)(desired+l), (start+xl) - (desired+l) );
+        buffer = (void*)desired;
     }
     used = (ulong*)::mmap( 0, bl + bl,
                            PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
