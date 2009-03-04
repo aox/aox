@@ -46,8 +46,6 @@ void Delete::parse()
     space();
     d->m = mailbox();
     end();
-    if ( d->m == imap()->user()->inbox() )
-            error( No, "Cannot delete INBOX" );
     if ( ok() )
         log( "Delete mailbox: " + d->m->name().ascii() );
 }
