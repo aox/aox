@@ -184,6 +184,8 @@ bool Connection::hasProperty( Property p ) const
 
     switch ( type() ) {
     case Client:
+        if ( p == Internal )
+            return true;
         break;
     case DatabaseClient:
     case LogServer:
