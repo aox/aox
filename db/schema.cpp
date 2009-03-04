@@ -3918,14 +3918,26 @@ bool Schema::stepTo82()
                    "begin "
                    "notify mailboxes_updated; "
                    "if new.deleted='t' and old.deleted='f' then "
-                   "if "// there's mail in the mailbox
+                   // check that the mailbox contains no extant messages
+                   "select count(*) into existing_messages"
+                   " from mailbox_messages"
+                   " where mailbox=new.id; "
+                   "if existing_messages > 0 then "
                    "raise exception '% is not empty', NEW.name;"
                    "end if; "
-                   "if "// any aliases.mailbox point to it
-                   "raise exception '% is tied to alias %', NEW.name;"
+                   // check that the mailbox isn't a target of an alias
+                   "select a.localpart||'@'||a.domain as address into alias"
+                   " from addresses a join aliases al on (a.id=al.address)"
+                   " where al.mailbox=new.id;"
+                   "if address is not null then "
+                   "raise exception '% is tied to alias %', NEW.name, address;"
                    "end if; "
-                   "if "// any fileinto_targets.mailbox point to it
-                   "raise exception '% is referred to sieve fileinto', NEW.name;"
+                   // check that the mailbox isn't a target of fileinto
+                   "select count(*) into existing_fileinto"
+                   " from fileinto_targets"
+                   " where mailbox=new.id; "
+                   "if existing_fileinto > 0 then "
+                   "raise exception '% is referred to by sieve fileinto', NEW.name;"
                    "end if; "
                    "end if; "
                    "return new;"
