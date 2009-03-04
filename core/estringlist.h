@@ -20,6 +20,8 @@ public:
     void removeDuplicates( bool = true );
     bool contains( const EString & ) const;
 
+    EStringList * sorted() const;
+
     EString join( const EString & ) const;
     static EStringList *split( char, const EString & );
 };

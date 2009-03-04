@@ -29,10 +29,15 @@ static List<Cache> * caches;
 /*! Constructs an empty Cache. This constructor makes sure the object
     will not be freed during garbage collection, and that clear() will
     be called when appropriate.
+
+    \a f is the duration factor of this cache; it will be cleared once
+    every \a f garbage collections. It should be low for expensive
+    caches and for ones whose objects will stale quickly, large (say
+    5-10) for cheap ones whose objects stale slowly.
 */
 
-Cache::Cache()
-    : Garbage()
+Cache::Cache( uint f )
+    : Garbage(), factor( f ), n( 0 )
 {
     if ( !::caches ) {
         ::caches = new List<Cache>;
@@ -64,7 +69,11 @@ void Cache::clearAllCaches()
     while ( i ) {
         Cache * c = i;
         ++i;
-        c->clear(); // careful: no iterator pointing to c meanwhile
+        c->n++;
+        if ( c->n > c->factor ) {
+            c->n = 0;
+            c->clear(); // careful: no iterator pointing to c meanwhile
+        }
     }
 }
 

@@ -15,6 +15,17 @@
 #include <stdlib.h>
 
 
+static AoxFactory<ListUsers>
+f2( "list", "users", "Display existing users.",
+    "    Synopsis: aox list users [pattern]\n\n"
+    "    Displays a list of users matching the specified shell\n"
+    "    glob pattern. Without a pattern, all users are listed.\n\n"
+    "    ls is an acceptable abbreviation for list.\n\n"
+    "    Examples:\n\n"
+    "      aox list users\n"
+    "      aox ls users ab?cd*\n" );
+
+
 /*! \class ListUsers users.h
     This class handles the "aox list users" command.
 */
@@ -73,6 +84,19 @@ public:
     User * user;
     Query * query;
 };
+
+
+static AoxFactory<CreateUser>
+f3( "add", "user", "Create a new user.",
+    "    Synopsis:\n"
+    "      aox add user <username> <password> <email-address>\n"
+    "      aox add user -p <username> <email-address>\n\n"
+    "    Creates a new Archiveopteryx user with the given username,\n"
+    "    password, and email address.\n\n"
+    "    The -p flag causes the password to be read interactively, and\n"
+    "    not from the command line.\n\n"
+    "    Examples:\n\n"
+    "      aox add user nirmala secret nirmala@example.org\n" );
 
 
 /*! \class CreateUser users.h
@@ -162,6 +186,14 @@ public:
     Query * query;
     bool processed;
 };
+
+
+static AoxFactory<DeleteUser>
+f4( "delete", "user", "Delete a user.",
+    "    Synopsis: aox delete user [-f] <username>\n\n"
+    "    Deletes the Archiveopteryx user with the specified name.\n\n"
+    "    The -f flag causes any mailboxes owned by the user to be deleted\n"
+    "    (even if they aren't empty).\n" );
 
 
 /*! \class DeleteUser users.h
@@ -298,6 +330,16 @@ void DeleteUser::execute()
 
 
 
+static AoxFactory<ChangePassword>
+f( "change", "password", "Change a user's password.",
+   "    Synopsis:\n"
+   "      aox change password <username> <new-password>\n"
+   "      aox change password -p <username>\n\n"
+   "    Changes the specified user's password.\n\n"
+   "    The -p flag causes the password to be read interactively, and\n"
+   "    not from the command line.\n\n" );
+
+
 /*! \class ChangePassword users.h
     This class handles the "aox change password" command.
 */
@@ -363,6 +405,12 @@ public:
     Transaction * t;
     Query * query;
 };
+
+
+static AoxFactory<ChangeUsername>
+f5( "change", "username", "Change a user's name.",
+    "    Synopsis: aox change username <username> <new-username>\n\n"
+    "    Changes the specified user's username.\n" );
 
 
 /*! \class ChangeUsername users.h
@@ -493,6 +541,12 @@ public:
     Transaction * t;
     Query * query;
 };
+
+
+static AoxFactory<ChangeAddress>
+f6( "change", "address", "Change a user's email address.",
+    "    Synopsis: aox change address <username> <new-address>\n\n"
+    "    Changes the specified user's email address.\n" );
 
 
 /*! \class ChangeAddress users.h

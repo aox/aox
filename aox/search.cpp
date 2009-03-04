@@ -110,6 +110,14 @@ void dumpSelector( Selector * s )
 }
 
 
+static AoxFactory<ShowSearch>
+f( "show", "search", "Parse and explain the effects of a search expression",
+   "    Synopsis: show search <search>\n\n"
+   "    Parses the search expression and explains (in a different way) what\n"
+   "    it does. This is a good way to experiment with searches before using\n"
+   "    e.g. aox undelete.\n" );
+
+
 /*! \class ShowSearch search.h
 
     The ShowSearch class parses a search expression and then explains

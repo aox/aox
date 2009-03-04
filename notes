@@ -60,6 +60,8 @@ P/W: Stuff we may want to keep
 
   Optimisations to defeat common webmail systems.
 
+  Optimisation to defeat overeager use of STATUS.
+
 
 Release cycle
 

@@ -43,4 +43,64 @@ private:
 };
 
 
+class AoxCommandMap
+{
+public:
+    AoxCommandMap( const char * verb, const char * noun,
+                   const char * brief, const char * about )
+        : v( verb ), n( noun ), b( brief), a( about ), x( 0 ), c( 0 ) {
+        x = first;
+        first = this;
+    }
+    AoxCommandMap( const char * verb, const char * noun,
+                   AoxCommandMap * canonical )
+        : v( verb ), n( noun ),
+          b( canonical->b ), a( canonical->a ),
+          x( 0 ), c( canonical ) {
+        x = first;
+        first = this;
+    }
+    virtual ~AoxCommandMap() {}
+
+    static AoxCommand * provide( const EString &, const EString &,
+                                 EStringList * );
+
+    virtual AoxCommand * provide( EStringList * ) = 0;
+
+    static EStringList * validVerbs();
+    static EStringList * validNouns( const EString & );
+    static EString aboutCommand( const EString &, const EString & );
+    static EString inBrief( const EString &, const EString & );
+    static bool needsNoun( const EString & );
+
+private:
+    const char * v;
+    const char * n;
+    const char * b;
+    const char * a;
+
+    AoxCommandMap * x;
+
+    AoxCommandMap * c;
+
+    static AoxCommandMap * first;
+};
+
+
+
+template<class T>
+class AoxFactory
+    : public AoxCommandMap
+{
+public:
+    AoxFactory( const char * verb, const char * noun,
+                const char * brief, const char * about )
+        : AoxCommandMap( verb, noun, brief, about ) {}
+    AoxFactory( const char * verb, const char * noun,
+                AoxFactory<T> * canonical )
+        : AoxCommandMap( verb, noun, canonical ) {}
+    AoxCommand * provide( EStringList * l ) { return new T( l ); }
+};
+
+
 #endif

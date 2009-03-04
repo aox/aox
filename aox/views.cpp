@@ -29,6 +29,15 @@ public:
 };
 
 
+static AoxFactory<CreateView>
+f( "add", "view", "Create a view mailbox.",
+   "    Synopsis: aox add view <name> <source> <owner> <search>\n\n"
+   "    Creates a new view mailbox which applies the specified search\n"
+   "    on the specified source mailbox. When a new message is added\n"
+   "    to the source, and it matches the search, it will automatically\n"
+   "    be added to the view as well.\n" );
+
+
 /*! \class CreateView views.h
     This class handles the "aox add view" command.
 */

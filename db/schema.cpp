@@ -515,6 +515,12 @@ bool Schema::singleStep()
         c = stepTo79(); break;
     case 79:
         c = stepTo80(); break;
+    case 80:
+        c = stepTo81(); break;
+    case 81:
+        c = stepTo82(); break;
+    case 82:
+        c = stepTo83(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3865,7 +3871,7 @@ bool Schema::stepTo81()
                    "or new.name = n.name||'/'||u.login limit 1;"
                    "end if; "
                    "return new;"
-                   "end;$$ language 'plpgsql' security definer", 0 ) );
+                   "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_owner_trigger "
                    "before insert on mailboxes for each "
@@ -3898,7 +3904,7 @@ bool Schema::stepTo82()
         new Query( "insert into deleted_messages "
                    "(mailbox, uid, message, modseq, deleted_by, reason) "
                    "select mm.mailbox, mm.uid, mm.message, mb.nextmodseq, "
-                   "current_timestamp, "
+                   "null, "
                    "'aox upgrade schema found nonempty deleted mailbox' "
                    "from mailbox_messages mm "
                    "join mailboxes mb on (mm.mailbox=mb.id) "
@@ -3909,27 +3915,36 @@ bool Schema::stepTo82()
         new Query( "update mailboxes set deleted='f' "
                    "where deleted='t' and "
                    "(id in (select mailbox from aliases) or"
-                   " id in (select fileinto_targets))", 0 ) );
+                   " id in (select mailbox from fileinto_targets))", 0 ) );
 
     // install a trigger to make sure necessary mailboxes don't disappear
     d->t->enqueue(
         new Query( "create function check_mailbox_update() "
                    "returns trigger as $$"
+                   "declare address text; "
                    "begin "
                    "notify mailboxes_updated; "
                    "if new.deleted='t' and old.deleted='f' then "
-                   "if "// there's mail in the mailbox
-                   "raise exception '% is not empty', NEW.name;"
+                   // check that the mailbox contains no extant messages
+                   "perform * from mailbox_messages where mailbox=new.id; "
+                   "if found then "
+                   "raise exception '% is not empty', new.name;"
                    "end if; "
-                   "if "// any aliases.mailbox point to it
-                   "raise exception '% is tied to alias %', NEW.name;"
+                   // check that the mailbox isn't a target of an alias
+                   "select a.localpart||'@'||a.domain into address"
+                   " from addresses a join aliases al on (a.id=al.address)"
+                   " where al.mailbox=new.id;"
+                   "if address is not null then "
+                   "raise exception '% used by alias %', new.name, address; "
                    "end if; "
-                   "if "// any fileinto_targets.mailbox point to it
-                   "raise exception '% is referred to sieve fileinto', NEW.name;"
+                   // check that the mailbox isn't a target of fileinto
+                   "perform * from fileinto_targets where mailbox=new.id; "
+                   "if found then "
+                   "raise exception '% is used by sieve fileinto', new.name;"
                    "end if; "
                    "end if; "
                    "return new;"
-                   "end;$$ language pgsql security definer", 0 ) );
+                   "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_update_trigger "
                    "before update on mailboxes for each "
@@ -3962,7 +3977,7 @@ bool Schema::stepTo83()
                    "set nextmodseq=new.modseq+1 "
                    "where id=new.mailbox and nextmodseq<=new.modseq;"
                    "return null;"
-                   "end;$$ language 'plpgsql' security definer", 0 ) );
+                   "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_messages_update_trigger "
                    "after update or insert on mailbox_messages "

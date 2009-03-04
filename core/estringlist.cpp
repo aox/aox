@@ -143,3 +143,22 @@ bool EStringList::contains( const EString & s ) const
         return true;
     return false;
 }
+
+
+static int caseSensitively( const void * a, const void * b )
+{
+    const EString ** ea = (const EString**)a;
+    const EString ** eb = (const EString**)b;
+    return (*ea)->compare( **eb );
+}
+
+
+/*! Returns a new list containing the same items as this, but
+    sorted. The sorting is case sensitive.
+*/
+
+EStringList * EStringList::sorted() const
+{
+    return reinterpret_cast<EStringList*>(
+        List<EString>::sorted( caseSensitively ) );
+}

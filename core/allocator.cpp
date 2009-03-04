@@ -25,6 +25,10 @@
 #include <errno.h>
 
 
+static uint BlockShift = 20;
+static uint BlockSize = 1 << BlockShift;
+
+
 
 class AllocatorMapTable // NOT a Garbage class
 {
@@ -38,7 +42,7 @@ public:
     }
 
     static Allocator * find( const void * address ) {
-        Allocator::ulong v = ((Allocator::ulong)address) >> 20;
+        Allocator::ulong v = ((Allocator::ulong)address) >> BlockShift;
         AllocatorMapTable * t = root;
         if ( v & ( ((Allocator::ulong)-1) << ( t->l + Slice ) ) )
             return 0;
@@ -48,8 +52,7 @@ public:
             return 0;
         return t->data[v & Mask];
     }
-    static void insert( Allocator * a ) {
-        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> 20;
+    static AllocatorMapTable * provide( ulong v ) {
         if ( !root ) {
             root = new AllocatorMapTable;
             uint rv = v;
@@ -73,19 +76,33 @@ public:
             }
             t = t->children[i];
         }
-        t->data[v & Mask] = a;
+        return t;
     }
-    static void remove( Allocator * a ) {
-        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> 20;
-        AllocatorMapTable * t = root;
-        while ( t && t->l )
-            t = t->children[(v >> t->l) & Mask];
+
+    static void insert( ulong v, Allocator * a ) {
+        provide( v )->data[v & Mask] = a;
+    }
+    static void insert( Allocator * a ) {
+        ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
+        ulong i = 0;
+        while ( i < a->step * a->capacity ) {
+            insert( v + i, a );
+            i += BlockSize;
+        }
+    }
+
+    static void remove( ulong v, Allocator * a ) {
+        AllocatorMapTable * t = provide( v );
         if ( t && t->data[v & Mask] == a )
             t->data[v & Mask] = 0;
-        // scan upwards and get rid of empty tables
-
-        // scan downwards from the root and get rid of single-element
-        // tables
+    }
+    static void remove( Allocator * a ) {
+        ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
+        ulong i = 0;
+        while ( i < a->step * a->capacity ) {
+            remove( v + i, a );
+            i += BlockSize;
+        }
     }
 
     static const uint Slice = 10;
@@ -266,47 +283,46 @@ Allocator::Allocator( uint s )
       used( 0 ), marked( 0 ), buffer( 0 ),
       next( 0 )
 {
-    if ( s < ( 1 << 20 ) )
-        capacity = ( 1 << 20 ) / ( s );
+    if ( s < ( BlockSize ) )
+        capacity = ( BlockSize ) / ( s );
     else
         capacity = 1;
     uint l = capacity * s;
-    l = ( ( l-1 ) | 15 ) + 1;
-    uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
-    bl = ( ( bl-1 ) | 15 ) + 1;
+    l = ( ( l-1 ) | 4095 ) + 1;
+    capacity = l / s;
 
     buffer = mmap( 0, l, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
-    if ( ((ulong)buffer) & ((1<<20)-1) ) {
-        // if we didn't get what we want, try to allocate 1MB more
-        // than we need, then choose a block that starts at a megabyte
-        // boundary and drop the rest.
+    if ( buffer == MAP_FAILED )
+        die( Memory );
+    if ( ((ulong)buffer) & (BlockSize-1) ) {
+        // the block we got wasn't at a megabyte boundary. drop it,
+        // ask for one that MUST span an entire megabyte, then drop
+        // what we don't need from that block.
         munmap( buffer, l );
-        uint xl = l + (1<<20);
+
+        uint xl = l + BlockSize;
         buffer = mmap( 0, xl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE,
                        -1, 0 );
-        void * start = (void*)
-                       (((((ulong)buffer) - 1) | ( (1 << 20) - 1 ) ) + 1 );
-        if ( start != buffer ) {
-            uint l = (ulong)start - (ulong)buffer;
-            munmap( buffer, l );
-        }
-        void * end = (void*)
-                     (((ulong)start) + ( ( (l-1) | 4095 ) + 1 ));
-        if ( (ulong)end < xl + (ulong)buffer ) {
-            uint l = xl + (ulong)buffer - (ulong)end;
-            munmap( end, l );
-        }
-        buffer = start;
+        if ( buffer == MAP_FAILED )
+            die( Memory );
+        ulong start = (ulong)buffer;
+        ulong desired = ((start-1)|(BlockSize-1))+1;
+        if ( desired != (ulong)buffer )
+            munmap( buffer, desired - start );
+        if ( start + xl > desired + l )
+            munmap( (void*)(desired+l), (start+xl) - (desired+l) );
+        buffer = (void*)desired;
     }
-    used = (ulong*)::mmap( 0, bl + bl,
-                           PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
-    if ( used == MAP_FAILED )
-        die( Memory );
-    marked = (ulong*)((char*)used + bl);
 
     memset( buffer, 0, l );
-    memset( used, 0, bl );
-    memset( marked, 0, bl );
+
+    uint bl = (capacity + bits - 1)/bits;
+    used = (ulong*)::calloc( bl, sizeof( ulong ) );
+    if ( !used )
+        die( Memory );
+    marked = (ulong*)::calloc( bl, sizeof( ulong ) );
+    if ( !marked )
+        die( Memory );
 
     AllocatorMapTable::insert( this );
 }
@@ -319,10 +335,11 @@ Allocator::~Allocator()
 {
     AllocatorMapTable::remove( this );
     uint l = capacity * step;
-    l = ( ( l-1 ) | 15 ) + 1;
-    uint bl = sizeof( ulong ) * ((capacity + bits - 1)/bits);
-    bl = ( ( bl-1 ) | 15 ) + 1;
-    ::munmap( used, bl + bl );
+    l = ( ( l-1 ) | 4095 ) + 1;
+    ::munmap( buffer, l );
+
+    ::free( used );
+    ::free( marked );
 
     next = 0;
     used = 0;

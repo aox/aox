@@ -1038,6 +1038,12 @@ bool Stopper::failed() const
 
 
 
+static AoxFactory<CheckConfig>
+f( "check", "config", "Check that the configuration is sane.",
+   "    Synopsis: aox check config\n\n"
+   "    Reads the configuration and reports any problems it finds.\n" );
+
+
 /*! \class CheckConfig servers.h
     This class handles the "aox check config" command.
 */
@@ -1077,6 +1083,13 @@ public:
     Checker * checker;
     Starter * starter;
 };
+
+
+static AoxFactory<Start>
+f2( "start", "", "Start the server(s).",
+    "    Synopsis: aox start [-v]\n\n"
+    "    Starts Archiveopteryx and helper servers in the correct order.\n"
+    "    The -v flag enables (slightly) verbose diagnostic output.\n" );
 
 
 /*! \class Start servers.h
@@ -1149,6 +1162,13 @@ void Start::execute()
 
 
 
+static AoxFactory<Stop>
+f3( "stop", "", "Start the server(s).",
+    "    Synopsis: aox stop [-v]\n\n"
+    "    Stops Archiveopteryx and helper servers in the correct order.\n"
+    "    The -v flag enables (slightly) verbose diagnostic output.\n" );
+
+
 /*! \class Stop servers.h
     This class handles the "aox stop" command.
 */
@@ -1189,6 +1209,14 @@ public:
     Stopper * stopper;
     Starter * starter;
 };
+
+
+static AoxFactory<Restart>
+f4( "restart", "", "Restart the servers.",
+    "    Synopsis: aox restart [-v]\n\n"
+    "    Restarts Archiveopteryx and its helpers in the correct order.\n"
+    "    (Currently equivalent to start && stop.)\n\n"
+    "    The -v flag enables (slightly) verbose diagnostic output.\n" );
 
 
 /*! \class Restart servers.h
@@ -1243,6 +1271,13 @@ void Restart::execute()
     finish();
 }
 
+
+
+static AoxFactory<ShowStatus>
+f5( "show", "status", "Display a summary of the running servers.",
+    "    Synopsis: aox show status [-v]\n\n"
+    "    Displays a summary of the running servers.\n"
+    "    The -v flag enables (slightly) verbose diagnostic output.\n" );
 
 
 /*! \class ShowStatus servers.h
@@ -1307,6 +1342,13 @@ void ShowStatus::execute()
 
 
 
+static AoxFactory<ShowBuild>
+f6( "show", "build", "Display build settings.",
+    "    Synopsis: aox show build\n\n"
+    "    Displays the build settings used for this installation.\n"
+    "    (As configured in Jamsettings.)\n" );
+
+
 /*! \class ShowBuild servers.h
     This class handles the "aox show build" command.
 */
@@ -1357,6 +1399,28 @@ void ShowBuild::execute()
     finish();
 }
 
+
+
+static AoxFactory<ShowConfiguration>
+f7( "show", "configuration", "Display configuration variables.",
+    "    Synopsis: aox show conf [ -p -v ] [variable-name]\n\n"
+    "    Displays variables configured in archiveopteryx.conf.\n\n"
+    "    If a variable-name is specified, only that variable\n"
+    "    is displayed.\n\n"
+    "    The -v flag displays only the value of the variable.\n"
+    "    The -p flag restricts the results to variables whose\n"
+    "    value has been changed from the default.\n\n"
+    "    configuration may be abbreviated as cf.\n\n"
+    "    Examples:\n\n"
+    "      aox show configuration\n"
+    "      aox show cf -p\n"
+    "      aox show cf -v imap-address\n" );
+
+static AoxFactory<ShowConfiguration>
+f8( "show", "cf", &f7 );
+
+static AoxFactory<ShowConfiguration>
+f9( "show", "conf", &f7 );
 
 
 /*! \class ShowConfiguration servers.h

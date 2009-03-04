@@ -14,6 +14,16 @@
 #include <stdlib.h>
 
 
+static AoxFactory<UpdateDatabase>
+f( "update", "database", "Update the database contents.",
+   "    Synopsis: aox update database\n\n"
+   "    Performs any updates to the database contents which are too\n"
+   "    slow for inclusion in \"aox upgrade schema\". This command is\n"
+   "    meant to be used while the server is running. It does its\n"
+   "    work in small chunks, so it can be restarted at any time,\n"
+   "    and is tolerant of interruptions.\n" );
+
+
 /*! \class UpdateDatabase updatedb.h
     This class handles the "aox update database" command.
 */

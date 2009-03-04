@@ -27,6 +27,18 @@ public:
 };
 
 
+static AoxFactory<ListRights>
+f( "list", "rights", "Display permissions on a mailbox.",
+   "    Synopsis: aox list rights <mailbox> [username]\n\n"
+   "    Displays a list of users and the rights they have been\n"
+   "    granted to the specified mailbox. If a username is given,\n"
+   "    only that user's rights are displayed.\n\n"
+   "    ls is an acceptable abbreviation for list.\n\n"
+   "    Examples:\n\n"
+   "      aox list rights /archives/mailstore-users anonymous\n"
+   "      aox light right /users/xyzzy/shared\n" );
+
+
 /*! \class ListRights rights.h
     This class handles the "aox list rights" command.
 */
@@ -140,6 +152,17 @@ public:
     Query * store;
 };
 
+
+static AoxFactory<SetAcl>
+f2( "setacl", "", "Manipulate prmissions on a mailbox.",
+    "    Synopsis: setacl [-d] <mailbox> <identifier> <rights>\n\n"
+    "    Assigns the specified rights to the given identifier on the\n"
+    "    mailbox. If the rights begin with + or -, the specified rights\n"
+    "    are added to or subtracted from the existing rights; otherwise,\n"
+    "    the rights are set to exactly those given.\n\n"
+    "    With -d, the identifier's rights are deleted altogether.\n\n"
+    "    A summary of the changes made is displayed when the operation\n"
+    "    completes.\n" );
 
 /*! \class SetAcl rights.h
     This class handles the "aox setacl" command.

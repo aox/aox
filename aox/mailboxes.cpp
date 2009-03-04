@@ -12,6 +12,22 @@
 #include <stdio.h>
 
 
+static AoxFactory<ListMailboxes>
+f4( "list", "mailboxes", "Display existing mailboxes.",
+    "    Synopsis: aox list mailboxes [-d] [-o user] [pattern]\n\n"
+    "    Displays a list of mailboxes matching the specified shell\n"
+    "    glob pattern. Without a pattern, all mailboxes are listed.\n\n"
+    "    The -d flag includes deleted mailboxes in the list.\n\n"
+    "    The \"-o username\" flag restricts the list to mailboxes\n"
+    "    owned by the specified user.\n\n"
+    "    The -s flag shows a count of messages and the total size\n"
+    "    of messages in each mailbox.\n\n"
+    "    ls is an acceptable abbreviation for list.\n\n"
+    "    Examples:\n\n"
+    "      aox list mailboxes\n"
+    "      aox ls mailboxes /users/ab?cd*\n" );
+
+
 /*! \class ListMailboxes mailboxes.h
     This class handles the "aox list mailboxes" command.
 */
@@ -132,6 +148,16 @@ public:
 };
 
 
+static AoxFactory<CreateMailbox>
+f2( "add", "mailbox", "Create a new mailbox.",
+    "    Synopsis: aox add mailbox <name> [username]\n\n"
+    "    Creates a new mailbox with the specified name and,\n"
+    "    if a username is specified, owned by that user.\n\n"
+    "    The mailbox name must be fully-qualified (begin with /),\n"
+    "    unless a username is specified, in which case unqualified\n"
+    "    names are assumed to be under the user's home directory.\n" );
+
+
 /*! \class CreateMailbox mailboxes.h
     This class handles the "aox add mailbox" command.
 */
@@ -214,6 +240,17 @@ public:
     Query * count;
     Query * zap;
 };
+
+
+static AoxFactory<DeleteMailbox>
+f3( "delete", "mailbox", "Delete a mailbox.",
+    "    Synopsis: aox delete mailbox [-f] <name>\n\n"
+    "    Deletes the specified mailbox.\n\n"
+    "    If -f is specified, the mailbox and any messages it contains\n"
+    "    are deleted permanently. Otherwise only empty mailboxes are\n"
+    "    deleted.\n\n"
+    "    This command is synonymous with \"aox delete view\", and may\n"
+    "    be used to delete mailboxes created with \"aox add view\".\n" );
 
 
 /*! \class DeleteMailbox mailboxes.h

@@ -12,6 +12,19 @@
 #include <stdio.h>
 
 
+static AoxFactory<ListAliases> 
+f( "list", "aliases", "Display delivery aliases.",
+   "    Synopsis: aox list aliases [pattern]\n\n"
+   "    Displays a list of aliases where either the address or the\n"
+   "    target mailbox matches the specified shell glob pattern.\n"
+   "    Without a pattern, all aliases are listed.\n\n"
+   "    ls is an acceptable abbreviation for list.\n\n"
+   "    Examples:\n\n"
+   "      aox list aliases\n"
+   "      aox ls aliases /users/\\*\n" );
+
+
+
 /*! \class ListAliases aliases.h
     This class handles the "aox list aliases" command.
 */
@@ -58,6 +71,15 @@ void ListAliases::execute()
     finish();
 }
 
+
+static AoxFactory<CreateAlias>
+f2( "add", "alias", "Create a delivery alias.",
+    "    Synopsis: aox add alias <address> <destination>\n\n"
+    "    Creates an alias that instructs the L/SMTP server to accept\n"
+    "    mail to a given address, and deliver it to a given mailbox.\n"
+    "    The destination mailbox can be specified by name (starting\n"
+    "    with '/') or by email address (ie. creating another alias for\n"
+    "    the same mailbox).\n" );
 
 
 class CreateAliasData
@@ -152,6 +174,12 @@ void CreateAlias::execute()
     finish();
 }
 
+
+static AoxFactory<DeleteAlias>
+f3( "delete", "alias", "Delete a delivery alias.",
+    "    Synopsis: aox delete alias <address>\n\n"
+    "    Deletes the alias that associated the specified address\n"
+    "    with a mailbox.\n" );
 
 
 /*! \class DeleteAlias aliases.h
