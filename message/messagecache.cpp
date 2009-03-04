@@ -36,7 +36,7 @@ public:
 */
 
 MessageCache::MessageCache()
-    : Cache(), d( new MessageCacheData )
+    : Cache( 1 ), d( new MessageCacheData )
 {
     // nothing
 }

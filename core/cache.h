@@ -10,12 +10,16 @@ class Cache
     : public Garbage
 {
 public:
-    Cache();
+    Cache( uint );
     virtual ~Cache();
 
     static void clearAllCaches();
 
     virtual void clear() = 0;
+
+private:
+    uint factor;
+    uint n;
 };
 
 

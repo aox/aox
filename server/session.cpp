@@ -53,7 +53,7 @@ public:
         : public Cache
     {
     public:
-        SessionCache(): Cache() {}
+        SessionCache(): Cache( 3 ) {}
         Map<CachedData> data;
         void clear() { data.clear(); }
     };

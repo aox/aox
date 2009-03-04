@@ -40,7 +40,7 @@ public:
         : public Cache
     {
     public:
-        FirstUnseenCache(): Cache() {}
+        FirstUnseenCache(): Cache( 10 ) {}
 
         struct MailboxInfo
             : public Garbage
@@ -220,7 +220,7 @@ void Select::execute()
     // check that and don't repeat the last few responses.
     if ( state() != Executing )
         return;
-    
+
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
 
@@ -232,7 +232,7 @@ void Select::execute()
             ::firstUnseenCache->insert( d->mailbox, d->session->nextModSeq(),
                                         r->getInt( "uid" ) );
     }
-    
+
     if ( ::firstUnseenCache ) {
         uint unseen = ::firstUnseenCache->find( d->mailbox,
                                                 d->session->nextModSeq() );

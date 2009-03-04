@@ -50,6 +50,7 @@ public:
         : public Cache
     {
     public:
+        StatusCache(): Cache( 10 ) {}
         void clear() { c.clear(); }
 
         CacheItem * provide( Mailbox * m ) {
