@@ -83,7 +83,12 @@ public:
         provide( v )->data[v & Mask] = a;
     }
     static void insert( Allocator * a ) {
-        insert( ((Allocator::ulong)a->buffer) >> BlockShift, a );
+        ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
+        ulong i = 0;
+        while ( i < a->step * a->capacity ) {
+            insert( v + i, a );
+            i += BlockSize;
+        }
     }
 
     static void remove( ulong v, Allocator * a ) {
@@ -92,7 +97,12 @@ public:
             t->data[v & Mask] = 0;
     }
     static void remove( Allocator * a ) {
-        remove( ((Allocator::ulong)a->buffer) >> BlockShift, a );
+        ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
+        ulong i = 0;
+        while ( i < a->step * a->capacity ) {
+            remove( v + i, a );
+            i += BlockSize;
+        }
     }
 
     static const uint Slice = 10;
