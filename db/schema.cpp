@@ -515,6 +515,12 @@ bool Schema::singleStep()
         c = stepTo79(); break;
     case 79:
         c = stepTo80(); break;
+    case 80:
+        c = stepTo81(); break;
+    case 81:
+        c = stepTo82(); break;
+    case 82:
+        c = stepTo83(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
