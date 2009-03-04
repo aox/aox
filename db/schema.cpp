@@ -3928,19 +3928,19 @@ bool Schema::stepTo82()
                    // check that the mailbox contains no extant messages
                    "perform * from mailbox_messages where mailbox=new.id; "
                    "if found then "
-                   "raise exception '% is not empty', NEW.name;"
+                   "raise exception '% is not empty', new.name;"
                    "end if; "
                    // check that the mailbox isn't a target of an alias
                    "select a.localpart||'@'||a.domain into address"
                    " from addresses a join aliases al on (a.id=al.address)"
                    " where al.mailbox=new.id;"
                    "if address is not null then "
-                   "raise exception '% used by alias %', NEW.name, address; "
+                   "raise exception '% used by alias %', new.name, address; "
                    "end if; "
                    // check that the mailbox isn't a target of fileinto
                    "perform * from fileinto_targets where mailbox=new.id; "
                    "if found then "
-                   "raise exception '% is used by sieve fileinto', NEW.name;"
+                   "raise exception '% is used by sieve fileinto', new.name;"
                    "end if; "
                    "end if; "
                    "return new;"
