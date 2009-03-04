@@ -25,6 +25,10 @@
 #include <errno.h>
 
 
+static uint BlockShift = 20;
+static uint BlockSize = 1 << BlockShift;
+
+
 
 class AllocatorMapTable // NOT a Garbage class
 {
@@ -38,7 +42,7 @@ public:
     }
 
     static Allocator * find( const void * address ) {
-        Allocator::ulong v = ((Allocator::ulong)address) >> 20;
+        Allocator::ulong v = ((Allocator::ulong)address) >> BlockShift;
         AllocatorMapTable * t = root;
         if ( v & ( ((Allocator::ulong)-1) << ( t->l + Slice ) ) )
             return 0;
@@ -49,7 +53,7 @@ public:
         return t->data[v & Mask];
     }
     static void insert( Allocator * a ) {
-        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> 20;
+        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
         if ( !root ) {
             root = new AllocatorMapTable;
             uint rv = v;
@@ -76,7 +80,7 @@ public:
         t->data[v & Mask] = a;
     }
     static void remove( Allocator * a ) {
-        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> 20;
+        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
         AllocatorMapTable * t = root;
         while ( t && t->l )
             t = t->children[(v >> t->l) & Mask];
@@ -266,8 +270,8 @@ Allocator::Allocator( uint s )
       used( 0 ), marked( 0 ), buffer( 0 ),
       next( 0 )
 {
-    if ( s < ( 1 << 20 ) )
-        capacity = ( 1 << 20 ) / ( s );
+    if ( s < ( BlockSize ) )
+        capacity = ( BlockSize ) / ( s );
     else
         capacity = 1;
     uint l = capacity * s;
@@ -277,19 +281,19 @@ Allocator::Allocator( uint s )
     buffer = mmap( 0, l, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if ( buffer == MAP_FAILED )
         die( Memory );
-    if ( ((ulong)buffer) & ((1<<20)-1) ) {
+    if ( ((ulong)buffer) & (BlockSize-1) ) {
         // the block we got wasn't at a megabyte boundary. drop it,
         // ask for one that MUST span an entire megabyte, then drop
         // what we don't need from that block.
         munmap( buffer, l );
 
-        uint xl = l + (1<<20);
+        uint xl = l + BlockSize;
         buffer = mmap( 0, xl, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE,
                        -1, 0 );
         if ( buffer == MAP_FAILED )
             die( Memory );
         ulong start = (ulong)buffer;
-        ulong desired = ((start-1)|((1<<20)-1))+1;
+        ulong desired = ((start-1)|(BlockSize-1))+1;
         if ( desired != (ulong)buffer )
             munmap( buffer, desired - start );
         if ( start + xl > desired + l )
