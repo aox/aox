@@ -52,8 +52,7 @@ public:
             return 0;
         return t->data[v & Mask];
     }
-    static void insert( Allocator * a ) {
-        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
+    static AllocatorMapTable * provide( ulong v ) {
         if ( !root ) {
             root = new AllocatorMapTable;
             uint rv = v;
@@ -77,19 +76,23 @@ public:
             }
             t = t->children[i];
         }
-        t->data[v & Mask] = a;
+        return t;
     }
-    static void remove( Allocator * a ) {
-        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
-        AllocatorMapTable * t = root;
-        while ( t && t->l )
-            t = t->children[(v >> t->l) & Mask];
+
+    static void insert( ulong v, Allocator * a ) {
+        provide( v )->data[v & Mask] = a;
+    }
+    static void insert( Allocator * a ) {
+        insert( ((Allocator::ulong)a->buffer) >> BlockShift, a );
+    }
+
+    static void remove( ulong v, Allocator * a ) {
+        AllocatorMapTable * t = provide( v );
         if ( t && t->data[v & Mask] == a )
             t->data[v & Mask] = 0;
-        // scan upwards and get rid of empty tables
-
-        // scan downwards from the root and get rid of single-element
-        // tables
+    }
+    static void remove( Allocator * a ) {
+        remove( ((Allocator::ulong)a->buffer) >> BlockShift, a );
     }
 
     static const uint Slice = 10;
