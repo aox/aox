@@ -3940,7 +3940,7 @@ bool Schema::stepTo82()
                    // check that the mailbox isn't a target of fileinto
                    "perform * from fileinto_targets where mailbox=new.id; "
                    "if found then "
-                   "raise exception '% is referred to by sieve fileinto', NEW.name;"
+                   "raise exception '% is used by sieve fileinto', NEW.name;"
                    "end if; "
                    "end if; "
                    "return new;"
