@@ -3871,7 +3871,7 @@ bool Schema::stepTo81()
                    "or new.name = n.name||'/'||u.login limit 1;"
                    "end if; "
                    "return new;"
-                   "end;$$ language 'plpgsql' security definer", 0 ) );
+                   "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_owner_trigger "
                    "before insert on mailboxes for each "
@@ -3904,7 +3904,7 @@ bool Schema::stepTo82()
         new Query( "insert into deleted_messages "
                    "(mailbox, uid, message, modseq, deleted_by, reason) "
                    "select mm.mailbox, mm.uid, mm.message, mb.nextmodseq, "
-                   "current_timestamp, "
+                   "null, "
                    "'aox upgrade schema found nonempty deleted mailbox' "
                    "from mailbox_messages mm "
                    "join mailboxes mb on (mm.mailbox=mb.id) "
@@ -3915,39 +3915,36 @@ bool Schema::stepTo82()
         new Query( "update mailboxes set deleted='f' "
                    "where deleted='t' and "
                    "(id in (select mailbox from aliases) or"
-                   " id in (select fileinto_targets))", 0 ) );
+                   " id in (select mailbox from fileinto_targets))", 0 ) );
 
     // install a trigger to make sure necessary mailboxes don't disappear
     d->t->enqueue(
         new Query( "create function check_mailbox_update() "
                    "returns trigger as $$"
+                   "declare address text; "
                    "begin "
                    "notify mailboxes_updated; "
                    "if new.deleted='t' and old.deleted='f' then "
                    // check that the mailbox contains no extant messages
-                   "select count(*) into existing_messages"
-                   " from mailbox_messages"
-                   " where mailbox=new.id; "
-                   "if existing_messages > 0 then "
+                   "perform * from mailbox_messages where mailbox=new.id; "
+                   "if found then "
                    "raise exception '% is not empty', NEW.name;"
                    "end if; "
                    // check that the mailbox isn't a target of an alias
-                   "select a.localpart||'@'||a.domain as address into alias"
+                   "select a.localpart||'@'||a.domain into address"
                    " from addresses a join aliases al on (a.id=al.address)"
                    " where al.mailbox=new.id;"
                    "if address is not null then "
-                   "raise exception '% is tied to alias %', NEW.name, address;"
+                   "raise exception '% used by alias %', NEW.name, address; "
                    "end if; "
                    // check that the mailbox isn't a target of fileinto
-                   "select count(*) into existing_fileinto"
-                   " from fileinto_targets"
-                   " where mailbox=new.id; "
-                   "if existing_fileinto > 0 then "
+                   "perform * from fileinto_targets where mailbox=new.id; "
+                   "if found then "
                    "raise exception '% is referred to by sieve fileinto', NEW.name;"
                    "end if; "
                    "end if; "
                    "return new;"
-                   "end;$$ language pgsql security definer", 0 ) );
+                   "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_update_trigger "
                    "before update on mailboxes for each "
@@ -3980,7 +3977,7 @@ bool Schema::stepTo83()
                    "set nextmodseq=new.modseq+1 "
                    "where id=new.mailbox and nextmodseq<=new.modseq;"
                    "return null;"
-                   "end;$$ language 'plpgsql' security definer", 0 ) );
+                   "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger mailbox_messages_update_trigger "
                    "after update or insert on mailbox_messages "
