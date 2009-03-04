@@ -60,6 +60,7 @@ public:
         x = first;
         first = this;
     }
+    virtual ~AoxCommandMap() {}
 
     static AoxCommand * provide( const EString &, const EString &,
                                  EStringList * );
