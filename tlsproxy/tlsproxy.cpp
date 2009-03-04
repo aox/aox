@@ -557,7 +557,8 @@ void TlsProxy::encrypt()
 
     int status = cryptFlushData( cs );
     if ( status != CRYPT_OK &&
-         status != CRYPT_ERROR_TIMEOUT )
+         status != CRYPT_ERROR_TIMEOUT &&
+         status != CRYPT_ERROR_COMPLETE )
         handleError( status, "cryptFlushData" );
 }
 
@@ -613,7 +614,8 @@ static void handleError( int cryptError, const EString & function )
         s.append( ", locus: " + cryptlibLocus( locus ) );
     if ( type )
         s.append( ", type: " + cryptlibType( type ) );
-    if ( cryptError == CRYPT_ERROR_TIMEOUT )
+    if ( cryptError == CRYPT_ERROR_TIMEOUT ||
+         cryptError == CRYPT_ERROR_COMPLETE )
         ::log( s );
     else
         ::log( s, Log::Disaster );
