@@ -13,7 +13,7 @@ public:
     Cache( uint );
     virtual ~Cache();
 
-    static void clearAllCaches();
+    static void clearAllCaches( bool );
 
     virtual void clear() = 0;
 

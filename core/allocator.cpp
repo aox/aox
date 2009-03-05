@@ -542,7 +542,7 @@ void Allocator::free()
     afterSweep.tv_usec = 0;
     gettimeofday( &start, 0 );
 
-    Cache::clearAllCaches();
+    Cache::clearAllCaches( false );
 
     total = 0;
     peak = 0;
