@@ -25,7 +25,7 @@ public:
         Connecting, Idle, InTransaction, FailedTransaction, Broken
     };
 
-    static void setup( int = 0, Database::User = DbUser );
+    static void setup( uint = 0, Database::User = DbUser );
     static void setup( int, const EString &, const EString & );
     static void submit( Query * );
     static void submit( List< Query > * );

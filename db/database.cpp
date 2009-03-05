@@ -73,7 +73,7 @@ Database::Database()
     This function expects to be called from ::main().
 */
 
-void Database::setup( int desired, const EString & user,
+void Database::setup( uint desired, const EString & user,
                       const EString & pass )
 {
     if ( !queries ) {
