@@ -766,10 +766,8 @@ void Postgres::serverMessage()
         else
             log( "PostgreSQL reports a crash; closing connection.", Log::Info );
         removeHandle( this );
-        if ( ::listener == this ) {
+        if ( ::listener == this )
             ::listener = 0;
-            log( "Notify listener went away." );
-        }
         close();
         if ( d->transaction ) {
             error( "PostgreSQL server shut down" );
