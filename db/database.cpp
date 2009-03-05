@@ -115,8 +115,6 @@ void Database::setup( int desired, const EString & user,
             desired = max;
         if ( desired > max )
             desired = max;
-        if ( desired > 4 )
-            desired = 4;
     }
 
     while ( desired ) {
