@@ -386,18 +386,45 @@ void Fetcher::prepareBatch()
             uint diff = now - d->lastBatchStarted;
             d->batchSize = d->batchSize * 6 / diff;
         }
+
+        // the batch size can't increase too much
         if ( d->batchSize > prevBatchSize * 3 )
             d->batchSize = prevBatchSize * 3;
         if ( d->batchSize > prevBatchSize + 2000 )
             d->batchSize = prevBatchSize + 2000;
+
+        // and we generally don't want it to be too large or small
         if ( d->batchSize < 128 )
             d->batchSize = 128;
         if ( d->batchSize > d->maxBatchSize )
             d->batchSize = d->maxBatchSize;
+
+        // if we're memory-constrained, then we adjust the batch size
+        // to the amount of RAM we'll probably use. the amount of RAM
+        // we use per message is higher if we'll issue all queries in
+        // sequence, lower if we issue them in parallel. both 40k and
+        // 80k are dreadful estimates, some messages are many-megabyte
+        // monsters, others just 4k.
+        uint limit = 1024 * 1024 *
+                     Configuration::scalar( Configuration::MemoryLimit );
+        uint already = Allocator::inUse() + Allocator::allocated();
+        uint perMessage = 40 * 1024;
+        if ( d->transaction || Database::numHandles() < 2 )
+            perMessage = 80 * 1024;
+        uint batchSizeLimit = ( limit - already ) / perMessage;
+        if ( batchSizeLimit < 32 )
+            batchSizeLimit = 32; // just sanity, shouldn't actually hit
+        if ( d->batchSize > batchSizeLimit )
+            d->batchSize = batchSizeLimit;
+
+        // finally, if pg is old enough to misplan =any(...) and the
+        // often-misplanned query would be run, then we keep the batch
+        // size properly down
         if ( Postgres::version() < 80200 &&
              d->batchSize > 50 &&
              d->otherheader )
             d->batchSize = 50;
+
         if ( prevBatchSize != d->batchSize )
             log( "Batch time was " + fn ( now - d->lastBatchStarted ) +
                  " for " + fn( prevBatchSize ) + " messages, adjusting to " +
