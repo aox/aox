@@ -52,7 +52,7 @@ public:
             return 0;
         return t->data[v & Mask];
     }
-    static AllocatorMapTable * provide( ulong v ) {
+    static AllocatorMapTable * provide( Allocator::ulong v ) {
         if ( !root ) {
             root = new AllocatorMapTable;
             uint rv = v;
@@ -79,26 +79,26 @@ public:
         return t;
     }
 
-    static void insert( ulong v, Allocator * a ) {
+    static void insert( Allocator::ulong v, Allocator * a ) {
         provide( v )->data[v & Mask] = a;
     }
     static void insert( Allocator * a ) {
-        ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
-        ulong i = 0;
+        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
+        Allocator::ulong i = 0;
         while ( i < a->step * a->capacity ) {
             insert( v + i, a );
             i += BlockSize;
         }
     }
 
-    static void remove( ulong v, Allocator * a ) {
+    static void remove( Allocator::ulong v, Allocator * a ) {
         AllocatorMapTable * t = provide( v );
         if ( t && t->data[v & Mask] == a )
             t->data[v & Mask] = 0;
     }
     static void remove( Allocator * a ) {
-        ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
-        ulong i = 0;
+        Allocator::ulong v = ((Allocator::ulong)a->buffer) >> BlockShift;
+        Allocator::ulong i = 0;
         while ( i < a->step * a->capacity ) {
             remove( v + i, a );
             i += BlockSize;
