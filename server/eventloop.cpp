@@ -320,16 +320,36 @@ void EventLoop::start()
         // scope, since anything pointed by by local variables might
         // be freed here.
 
-        uint since = now - gc;
+        if ( !d->stop ) {
+            if ( !::freeMemorySoon ) {
+                uint a = Allocator::inUse() + Allocator::allocated();
+                // if we have a set limit, and memory usage is above
+                // the limit, then we have to free memory soon.
+                // gcDelay is the basic period.
 
-        if ( !d->stop &&
-             ( ::freeMemorySoon ||
-               ( Allocator::allocated() > d->limit && since > gcDelay ) ||
-               ( Allocator::allocated() > 2*d->limit && since > gcDelay/2 ) ||
-               ( Allocator::allocated() > 3*d->limit && since > 2 ) ) ) {
-            Allocator::free();
-            gc = time( 0 );
-            ::freeMemorySoon = false;
+                // if we're below the limit, we don't modify the
+                // limit. if we're above, but below 2x, we halve the
+                // limit (right-shift by one bit). if we're at 2-3x,
+                // we right-shift by two. if we're at 3-4x, we
+                // right-shift by three, etc.
+                
+                // if memory usage is extreme enough we'll collect
+                // garbage every second.
+
+                // if we don't have a set limit, we try to stay below
+                // 4MB, but collect garbage no more than once per
+                // second.
+                if ( d->limit && now > gc &&
+                     (uint)( now - gc ) > ( gcDelay >> ( a / d->limit ) ) )
+                    ::freeMemorySoon = true;
+                else if ( a > 4*1024*1024 && now > gc )
+                    ::freeMemorySoon = true;
+            }
+            if ( ::freeMemorySoon ) {
+                Allocator::free();
+                gc = time( 0 );
+                ::freeMemorySoon = false;
+            }
         }
     }
 
