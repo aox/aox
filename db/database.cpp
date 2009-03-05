@@ -131,7 +131,7 @@ void Database::setup( uint desired, const EString & user,
     forwards the call to setup() with the appropriate parameters.
 */
 
-void Database::setup( int desired, Database::User login )
+void Database::setup( uint desired, Database::User login )
 {
     EString user;
     EString pass;

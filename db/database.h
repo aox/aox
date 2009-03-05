@@ -26,7 +26,7 @@ public:
     };
 
     static void setup( uint = 0, Database::User = DbUser );
-    static void setup( int, const EString &, const EString & );
+    static void setup( uint, const EString &, const EString & );
     static void submit( Query * );
     static void submit( List< Query > * );
     static void disconnect();
