@@ -108,10 +108,13 @@ void Database::setup( int desired, const EString & user,
     Endpoint srv( Configuration::DbAddress, Configuration::DbPort );
 
     if ( desired == 0 ) {
+        uint max = Configuration::scalar( Configuration::DbMaxHandles );
         desired = 3;
         if ( Configuration::toggle( Configuration::Security ) &&
              srv.protocol() == Endpoint::Unix )
-            desired = Configuration::scalar( Configuration::DbMaxHandles );
+            desired = max;
+        if ( desired > max )
+            desired = max;
         if ( desired > 4 )
             desired = 4;
     }
