@@ -280,7 +280,7 @@ void Postgres::react( Event e )
             d->needNotify->notify();
         d->needNotify = 0;
 
-        if ( d->authenticated && !::listener ) {
+        if ( d->authenticated && Connection::state() == Connected && !::listener ) {
             ::listener = this;
             sendListen();
         }
@@ -760,6 +760,28 @@ void Postgres::serverMessage()
         sleep( 1 );
         connect( server );
     }
+    else if ( code == "57P01" || code == "57P02" ) {
+        if ( code == "57P01" )
+            log( "PostgreSQL is shutting down; closing connection.", Log::Info );
+        else
+            log( "PostgreSQL reports a crash; closing connection.", Log::Info );
+        removeHandle( this );
+        if ( ::listener == this ) {
+            ::listener = 0;
+            log( "Notify listener went away." );
+        }
+        close();
+        if ( d->transaction ) {
+            error( "PostgreSQL server shut down" );
+        }
+        else {
+            List< Query >::Iterator q( d->queries );
+            while ( q ) {
+                submit( q );
+                ++q;
+            }
+        }
+    }
     else if ( code == "28000" && m.lower().containsWord( "ident" ) ) {
         int b = m.find( '"' );
         int e = m.find( '"', b+1 );
@@ -875,9 +897,7 @@ void Postgres::serverMessage()
                Log::Error );
     }
 
-    if ( code.startsWith( "08" ) || // connection exception
-         code == "57P01" || // admin shutdown
-         code == "57P02" ) // crash shutdown
+    if ( code.startsWith( "08" ) ) // connection exception
         error( "PostgreSQL server error: " + s );
 }
 
