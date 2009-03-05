@@ -16,7 +16,7 @@
 /* Comment out the following to disable printed warnings about possible
    conflicts with signal handlers and other system services */
 
-#define DEBUG_CONFLICTS
+/* #define DEBUG_CONFLICTS */
 
 /* General includes */
 
