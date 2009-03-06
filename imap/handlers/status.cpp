@@ -170,14 +170,14 @@ void Status::execute()
         // really.
         if ( mailboxGroup() ) {
             d->unseenCount
-                = new Query( "select mailbox, min(uid) as unseen "
+                = new Query( "select mailbox, count(uid) as unseen "
                              "from mailbox_messages "
                              "where mailbox=any($1) and not seen", this );
             d->unseenCount->bind( 1, mailboxes );
         }
         else {
             d->unseenCount
-                = new Query( "select mailbox, min(uid) as unseen "
+                = new Query( "select mailbox, count(uid) as unseen "
                              "from mailbox_messages "
                              "where mailbox=$1 and not seen", this );
             d->unseenCount->bind( 1, d->mailbox->id() );
@@ -197,16 +197,16 @@ void Status::execute()
     else if ( !d->recentCount ) {
         if ( mailboxGroup() ) {
             d->recentCount
-                = new Query( "select mailbox, uidnext-first_recent as recent "
-                             "from mailboxes "
-                             "where id=any($1)", this );
+                = new Query( "select id as mailbox, "
+                             "uidnext-first_recent as recent "
+                             "from mailboxes where id=any($1)", this );
             d->recentCount->bind( 1, mailboxes );
         }
         else {
             d->recentCount
-                = new Query( "select mailbox, uidnext-first_recent as recent "
-                             "from mailboxes "
-                             "where id=$1", this );
+                = new Query( "select id as mailbox, "
+                             "uidnext-first_recent as recent "
+                             "from mailboxes where id=$1", this );
             d->recentCount->bind( 1, d->mailbox->id() );
         }
         d->recentCount->execute();
