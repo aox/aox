@@ -384,6 +384,20 @@ void Query::bind( uint n, const EStringList & l )
 
 
 /*! \overload
+
+    This version binds \a b as parameter \a n.
+*/
+
+void Query::bind( uint n, bool b )
+{
+    n = n;
+    b = b;
+    die( Invariant );
+    // we need both text and binary bind for bool
+}
+
+
+/*! \overload
     Binds NULL to the parameter \a n of this Query.
 */
 

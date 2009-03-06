@@ -47,6 +47,7 @@ public:
     enum Format { Unknown = -1, Text = 0, Binary };
     Format format() const;
 
+    void bind( uint, bool );
     void bind( uint, int );
     void bind( uint, uint );
     void bind( uint, int64 );
