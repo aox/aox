@@ -20,13 +20,16 @@ public:
         recent( false ), unseen( false ),
         modseq( false ),
         mailbox( 0 ),
-        unseenCount( 0 ), messageCount( 0 ), recentCount( 0 )
+        unseenCount( 0 ), messageCount( 0 ), recentCount( 0 ),
+        checkedGroup( false ), group( 0 )
         {}
     bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
     Query * unseenCount;
     Query * messageCount;
     Query * recentCount;
+    bool checkedGroup;
+    MailboxGroup * group;
 
     class CacheItem
         : public Garbage
@@ -149,6 +152,11 @@ void Status::execute()
     Mailbox * current = 0;
     if ( session )
         current = session->mailbox();
+
+    if ( !d->checkedGroup ) {
+        d->group = imap()->mostLikelyGroup( d->mailbox, 3 );
+        d->checkedGroup = true;
+    }
 
     if ( !::cache )
         ::cache = new StatusData::StatusCache;

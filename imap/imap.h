@@ -8,6 +8,7 @@
 
 class EString;
 class Command;
+class Mailbox;
 class ImapSession;
 class MailboxGroup;
 
@@ -52,7 +53,7 @@ public:
 
     void addMailboxGroup( MailboxGroup * );
     void removeMailboxGroup( MailboxGroup * );
-    List<MailboxGroup> * mailboxGroups() const;
+    MailboxGroup * mostLikelyGroup( Mailbox *, uint );
 
 private:
     class IMAPData *d;

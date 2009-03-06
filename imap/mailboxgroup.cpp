@@ -66,17 +66,22 @@ MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes, IMAP * imap )
 bool MailboxGroup::contains( const Mailbox * m )
 {
     bool c = d->mailboxes.contains( m->id() );
+    bool r = false;
     if ( c ) {
         d->hits++;
         d->mailboxes.remove( m->id() );
+        if ( d->mailboxes.isEmpty() )
+            r = true;
     }
     else {
         d->misses++;
-        if ( d->misses > 2 && d->imap ) {
-            IMAP * i = d->imap;
-            d->imap = 0;
-            i->removeMailboxGroup( this );
-        }
+        if ( d->misses > 2 )
+            r = true;
+    }
+    if ( r ) {
+        IMAP * i = d->imap;
+        d->imap = 0;
+        i->removeMailboxGroup( this );
     }
     return c;
 }
@@ -106,4 +111,12 @@ List<Mailbox> * MailboxGroup::contents() const
         ++i;
     }
     return r;
+}
+
+
+/*! Returns the number of mailboxes (still) in this group. */
+
+uint MailboxGroup::count() const
+{
+    return d->mailboxes.count();
 }

@@ -18,6 +18,7 @@ public:
     bool contains( const Mailbox * );
 
     uint hits() const;
+    uint count() const;
 
     List<Mailbox> * contents() const;
 

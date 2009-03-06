@@ -12,6 +12,7 @@
 #include "imapsession.h"
 #include "configuration.h"
 #include "handlers/capability.h"
+#include "mailboxgroup.h"
 #include "imapparser.h"
 #include "database.h"
 #include "command.h"
@@ -863,9 +864,30 @@ void IMAP::removeMailboxGroup( MailboxGroup * m )
 }
 
 
-/*! Returns a list of currently active mailbox groups. */
+/*! Returns the MailboxGroup most likely to be the one the client is
+    working on, assuming that the client performs an operation on \a
+    m.
 
-List<MailboxGroup> * IMAP::mailboxGroups() const
+    Returns a null pointer if the client doesn't seem to be working on
+    any easily defined group, or if it is working on one, but
+    MailboxGroup::hits() returns a value less than \a l.
+*/
+
+MailboxGroup * IMAP::mostLikelyGroup( Mailbox * m, uint l )
 {
-    return &d->possibleGroups;
+    List<MailboxGroup>::Iterator i( d->possibleGroups );
+    MailboxGroup * best = 0;
+    uint bestCount = 0;
+    while ( i ) {
+        MailboxGroup * g = i;
+        ++i;
+        if ( g->contains( m ) || g->hits() < l ) {
+            uint count = g->count();
+            if ( !best || bestCount > count ) {
+                best = g;
+                bestCount = count;
+            }
+        }
+    }
+    return best;
 }
