@@ -348,6 +348,7 @@ void Query::bind( uint n, const class IntegerSet & set )
     }
     else {
         // XXX: Not implemented yet.
+        die( Invariant );
     }
 
 }
@@ -379,6 +380,7 @@ void Query::bind( uint n, const EStringList & l )
     }
     else {
         // XXX: Not implemented yet.
+        die( Invariant );
     }
 }
 
@@ -390,10 +392,23 @@ void Query::bind( uint n, const EStringList & l )
 
 void Query::bind( uint n, bool b )
 {
-    n = n;
-    b = b;
-    die( Invariant );
-    // we need both text and binary bind for bool
+    EString s;
+    if ( d->format == Text )
+        s.append( b ? "t" : "f" );
+    else
+        s.append( (char)b );
+    bind( n, s );
+}
+
+
+/*! \overload
+
+    Binds string value \a s to the parameter \a n.
+*/
+
+void Query::bind( uint n, const char * s )
+{
+    bind( n, EString( s ) );
 }
 
 

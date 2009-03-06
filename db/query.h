@@ -55,6 +55,7 @@ public:
     void bind( uint, const UString & );
     void bind( uint, const EStringList & );
     void bind( uint, const class IntegerSet & );
+    void bind( uint, const char * );
     void bindNull( uint );
     void submitLine();
 
