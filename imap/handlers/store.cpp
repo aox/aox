@@ -635,7 +635,7 @@ bool Store::removeFlags( bool opposite )
         d->mmExtra.append( ",deleted='f'" );
 
     if ( flags.isEmpty() && !opposite )
-        return d->mmExtra.isEmpty();
+        return !d->mmExtra.isEmpty();
         
     EString s = "delete from flags where mailbox=$1 and uid=any($2) and ";
     if ( opposite )
