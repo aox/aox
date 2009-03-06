@@ -6,18 +6,18 @@
 #include "list.h"
 
 class Mailbox;
+class IMAP;
 
 
 class MailboxGroup
     : public Garbage
 {
 public:
-    MailboxGroup( List<Mailbox> * );
+    MailboxGroup( List<Mailbox> *, IMAP * );
 
     bool contains( const Mailbox * );
 
     uint hits() const;
-    uint misses() const;
 
     List<Mailbox> * contents() const;
 

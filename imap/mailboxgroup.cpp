@@ -3,6 +3,7 @@
 #include "mailboxgroup.h"
 
 #include "mailbox.h"
+#include "imap.h"
 #include "map.h"
 
 
@@ -10,11 +11,12 @@ class MailboxGroupData
     : public Garbage
 {
 public:
-    MailboxGroupData(): hits( 0 ), misses( 0 ) {}
+    MailboxGroupData(): hits( 0 ), misses( 0 ), imap( 0 ) {}
 
     Map<Mailbox> mailboxes;
     uint hits;
     uint misses;
+    IMAP * imap;
 };
 
 
@@ -37,9 +39,9 @@ public:
 
 
 
-/*!  Constructs a group of \a mailboxes. */
+/*! Constructs a group of \a mailboxes relating to the client of \a imap. */
 
-MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes )
+MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes, IMAP * imap )
     : d( new MailboxGroupData )
 {
     List<Mailbox>::Iterator i( mailboxes );
@@ -47,12 +49,15 @@ MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes )
         d->mailboxes.insert( i->id(), i );
         ++i;
     }
+    d->imap = imap;
 }
 
 
-/*! Returns true if this group contains \a m, and false if not,
-    updates the hits() and misses() counters, and removes \a m from
-    this group if present.
+/*! Returns true if this group contains \a m, and false if not.
+
+    Also updates the hits() and misses() counters, removes \a m from
+    this group if present, and removes itself if the number of misses
+    is too large.
 */
 
 bool MailboxGroup::contains( const Mailbox * m )
@@ -64,24 +69,21 @@ bool MailboxGroup::contains( const Mailbox * m )
     }
     else {
         d->misses++;
+        if ( d->misses > 2 && d->imap ) {
+            IMAP * i = d->imap;
+            d->imap = 0;
+            i->removeMailboxGroup( this );
+        }
     }
     return c;
 }
 
 
-/*! Returns the number of times recordHit() has been called. */
+/*! Returns the number of times contains() returned true. */
 
 uint MailboxGroup::hits() const
 {
     return d->hits;
-}
-
-
-/*! Returns the number of times recordMiss() has been called. */
-
-uint MailboxGroup::misses() const
-{
-    return d->misses;
 }
 
 

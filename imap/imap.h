@@ -9,6 +9,7 @@
 class EString;
 class Command;
 class ImapSession;
+class MailboxGroup;
 
 
 class IMAP
@@ -48,6 +49,10 @@ public:
 
     void respond( class ImapResponse * );
     void emitResponses();
+
+    void addMailboxGroup( MailboxGroup * );
+    void removeMailboxGroup( MailboxGroup * );
+    List<MailboxGroup> * mailboxGroups() const;
 
 private:
     class IMAPData *d;

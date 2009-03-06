@@ -61,6 +61,8 @@ public:
     uint bytesArrived;
 
     bool clientCapabilities[IMAP::NumClientCapabilities];
+
+    List<MailboxGroup> possibleGroups;
 };
 
 
@@ -840,4 +842,30 @@ void IMAP::emitResponses()
         c->checkUntaggedResponses();
         ++c;
     }
+}
+
+
+/*! Records that \a m is a (possibly) active mailbox group. */
+
+void IMAP::addMailboxGroup( MailboxGroup * m )
+{
+    d->possibleGroups.append( m );
+}
+
+
+/*! Records that \a m is no longer active. MailboxGroup calls this,
+    noone else needs to.
+*/
+
+void IMAP::removeMailboxGroup( MailboxGroup * m )
+{
+    d->possibleGroups.remove( m );
+}
+
+
+/*! Returns a list of currently active mailbox groups. */
+
+List<MailboxGroup> * IMAP::mailboxGroups() const
+{
+    return &d->possibleGroups;
 }
