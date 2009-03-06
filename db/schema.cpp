@@ -3972,22 +3972,24 @@ bool Schema::stepTo83()
     q = new Query( "update mailbox_messages set seen='t' "
                    "where (mailbox,uid) in "
                    "(select mailbox,uid from flags f"
-                   " join flag_names fn where lower(fn.name)=$1", 0 );
+                   " join flag_names fn on (f.flag=fn.id)"
+                   " where lower(fn.name)=$1)", 0 );
     q->bind( 1, "\\seen" );
     d->t->enqueue( q );
+
     q = new Query( "update mailbox_messages set deleted='t' "
                    "where (mailbox,uid) in "
                    "(select mailbox,uid from flags f"
-                   " join flag_names fn where lower(fn.name)=$1)", 0 );
+                   " join flag_names fn on (f.flag=fn.id)"
+                   " where lower(fn.name)=$1)", 0 );
     q->bind( 1, "\\deleted" );
     d->t->enqueue( q );
 
-    d->t->enqueue( new Query( "delete from flags where flag in "
-                              "(select id from flag_names"
-                              " where lower(name)=$1 or lower(name)=$2)",
-                              0 ) );
+    q = new Query( "delete from flags where flag in "
+                   "(select id from flag_names"
+                   " where lower(name)=$1 or lower(name)=$2)", 0 );
     q->bind( 1, "\\seen" );
-    q->bind( 1, "\\deleted" );
+    q->bind( 2, "\\deleted" );
     d->t->enqueue( q );
 
     return true;
