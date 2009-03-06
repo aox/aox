@@ -382,7 +382,7 @@ void Injector::execute()
 
             if ( d->failed || d->transaction->failed() ) {
                 ::failures->tick();
-                Cache::clearAllCaches();
+                Cache::clearAllCaches( false );
             }
             else {
                 ::successes->tick();

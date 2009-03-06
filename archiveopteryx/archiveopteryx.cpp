@@ -12,6 +12,7 @@
 #include "tls.h"
 #include "flag.h"
 #include "event.h"
+#include "cache.h"
 #include "mailbox.h"
 #include "listener.h"
 #include "database.h"
@@ -59,11 +60,11 @@ public:
                  !c->hasProperty( Connection::Internal ) ) {
                 Scope x( c->log() );
                 log( "The database was obliterated" );
-                EventLoop::global()->removeConnection( c );
                 c->close();
             }
         }
         EventLoop::freeMemorySoon();
+        Cache::clearAllCaches( true );
     }
 };
 

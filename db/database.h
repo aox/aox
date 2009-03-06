@@ -5,7 +5,6 @@
 
 #include "list.h"
 #include "connection.h"
-#include "configuration.h"
 
 
 class Query;

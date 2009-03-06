@@ -60,17 +60,18 @@ Cache::~Cache()
 
 
 /*! Calls clear() for each currently extant Cache. Called from
-    Allocator::free().
+    Allocator::free(). If \a harder is set, then all caches are
+    cleared completely, no matter how high their duration factors are.
 */
 
-void Cache::clearAllCaches()
+void Cache::clearAllCaches( bool harder)
 {
     List<Cache>::Iterator i( ::caches );
     while ( i ) {
         Cache * c = i;
         ++i;
         c->n++;
-        if ( c->n > c->factor ) {
+        if ( harder || c->n > c->factor ) {
             c->n = 0;
             c->clear(); // careful: no iterator pointing to c meanwhile
         }
