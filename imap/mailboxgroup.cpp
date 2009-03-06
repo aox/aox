@@ -58,7 +58,7 @@ MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes, IMAP * imap )
 
 /*! Returns true if this group contains \a m, and false if not.
 
-    Also updates the hits() and misses() counters, removes \a m from
+    Also updates the hits() and misses counters, removes \a m from
     this group if present, and removes itself if the number of misses
     is too large.
 */
