@@ -201,13 +201,9 @@ void Select::execute()
     if ( d->needFirstUnseen && !d->firstUnseen ) {
         d->firstUnseen
             = new Query( "select uid from mailbox_messages mm "
-                         "where mailbox=$1 and uid not in "
-                         "(select uid from flags f"
-                         " join flag_names fn on (f.flag=fn.id)"
-                         " where f.mailbox=$1 and fn.name=$2) "
+                         "where mailbox=$1 and not seen "
                          "order by uid limit 1", this );
         d->firstUnseen->bind( 1, d->mailbox->id() );
-        d->firstUnseen->bind( 2, "\\seen" );
         d->firstUnseen->execute();
     }
 

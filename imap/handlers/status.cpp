@@ -168,25 +168,21 @@ void Status::execute()
     if ( d->unseen && !d->unseenCount && !i->hasUnseen ) {
         // UNSEEN is horribly slow. I don't think this is fixable
         // really.
-        d->unseenCount
-            = new Query( "select "
-                         "(select count(*)::int from mailbox_messages"
-                         " where mailbox=$1)-"
-                         "(select count(*)::int from flags"
-                         " where mailbox=$1 and flag=$2) "
-                         "as unseen, $1 as mailbox", this );
-        d->unseenCount->bind( 1, d->mailbox->id() );
-
-        uint sid = Flag::id( "\\seen" );
-        if ( sid ) {
-            d->unseenCount->bind( 2, sid );
-            d->unseenCount->execute();
+        if ( mailboxGroup() ) {
+            d->unseenCount
+                = new Query( "select mailbox, min(uid) as unseen "
+                             "from mailbox_messages "
+                             "where mailbox=any($1) and not seen", this );
+            d->unseenCount->bind( 1, mailboxes );
         }
         else {
-            // what can we do? at least not crash.
-            d->unseen = false;
-            d->unseenCount = false;
+            d->unseenCount
+                = new Query( "select mailbox, min(uid) as unseen "
+                             "from mailbox_messages "
+                             "where mailbox=$1 and not seen", this );
+            d->unseenCount->bind( 1, d->mailbox->id() );
         }
+        d->unseenCount->execute();
     }
 
     if ( !d->recent ) {
@@ -265,8 +261,8 @@ void Status::execute()
                 ci->hasMessages = true;
             if ( d->recentCount )
                 ci->hasMessages = true;
-            // but we cannot set hasUnseen here, since the query above
-            // doesn't do the real thing.
+            if ( d->unseenCount )
+                ci->hasUnseen = true;
             ++i;
         }
     }
@@ -313,10 +309,8 @@ void Status::execute()
             Row * r = d->unseenCount->nextRow();
             Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
             StatusData::CacheItem * ci = ::cache->provide( m );
-            if ( ci ) {
-                ci->hasUnseen = true;
+            if ( ci )
                 ci->unseen = r->getInt( "unseen" );
-            }
         }
     }
     if ( d->unseen && i->hasUnseen )
