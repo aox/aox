@@ -3968,21 +3968,27 @@ bool Schema::stepTo83()
                               "add deleted boolean not null default 'f'",
                               0 ) );
 
-    d->t->enqueue( new Query( "update mailbox_messages set seen='t'"
-                              "where (mailbox,uid) in "
-                              "(select mailbox,uid from flags f"
-                              " join flag_names fn where fn.name='\\Seen')",
-                              0 ) );
-    d->t->enqueue( new Query( "update mailbox_messages set deleted='t'"
-                              "where (mailbox,uid) in "
-                              "(select mailbox,uid from flags f"
-                              " join flag_names fn where fn.name='\\Deleted')",
-                              0 ) );
+    Query * q;
+    q = new Query( "update mailbox_messages set seen='t' "
+                   "where (mailbox,uid) in "
+                   "(select mailbox,uid from flags f"
+                   " join flag_names fn where lower(fn.name)=$1", 0 );
+    q->bind( 1, "\\seen" );
+    d->t->enqueue( q );
+    q = new Query( "update mailbox_messages set deleted='t' "
+                   "where (mailbox,uid) in "
+                   "(select mailbox,uid from flags f"
+                   " join flag_names fn where lower(fn.name)=$1)", 0 );
+    q->bind( 1, "\\deleted" );
+    d->t->enqueue( q );
 
     d->t->enqueue( new Query( "delete from flags where flag in "
                               "(select id from flag_names"
-                              " where name='\\Seen' or name='\\Deleted')",
+                              " where lower(name)=$1 or lower(name)=$2)",
                               0 ) );
+    q->bind( 1, "\\seen" );
+    q->bind( 1, "\\deleted" );
+    d->t->enqueue( q );
 
     return true;
 }
