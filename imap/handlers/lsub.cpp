@@ -4,6 +4,7 @@
 
 #include "user.h"
 #include "mailbox.h"
+#include "mailboxgroup.h"
 #include "imapparser.h"
 #include "ustring.h"
 #include "query.h"
@@ -20,7 +21,6 @@ public:
     Mailbox * ref;
     uint prefix;
     UString pat;
-
 };
 
 
@@ -79,12 +79,14 @@ void Lsub::execute()
         return;
 
     UString pattern = d->pat.titlecased();
+    List<Mailbox> mailboxes;
 
     EString a;
 
     Row * r = 0;
     while ( (r=d->q->nextRow()) != 0 ) {
         Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+        mailboxes.append( m );
 
         Mailbox * p = m;
         while ( p && p != d->top )
@@ -119,8 +121,8 @@ void Lsub::execute()
         }
     }
 
-    if ( d->q->done() )
-        finish();
+    (void)new MailboxGroup( &mailboxes, imap() );
+    finish();
 }
 
 

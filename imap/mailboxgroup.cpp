@@ -39,7 +39,9 @@ public:
 
 
 
-/*! Constructs a group of \a mailboxes relating to the client of \a imap. */
+/*! Constructs a group of \a mailboxes relating to the client of \a imap,
+    and adds it to \a imap.
+*/
 
 MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes, IMAP * imap )
     : d( new MailboxGroupData )
@@ -50,6 +52,7 @@ MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes, IMAP * imap )
         ++i;
     }
     d->imap = imap;
+    d->imap->addMailboxGroup( this );
 }
 
 
