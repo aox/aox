@@ -774,7 +774,7 @@ EString ManageSieveCommand::encoded( const EString & input )
 
     EString r( "{" );
     r.append( EString::fromNumber( input.length() ) );
-    r.append( "+}\r\n" );
+    r.append( "}\r\n" );
     r.append( input );
     return r;
 }
