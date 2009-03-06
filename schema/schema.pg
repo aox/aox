@@ -90,7 +90,7 @@ create table mailboxes (
 
 
 -- When aoximport or others create /users/foo/bar, bar needs to own
-   the mailbox, so ensure that that happens.
+-- the mailbox, so ensure that that happens.
 
 create function set_mailbox_owner() returns trigger as $$
 begin
