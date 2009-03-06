@@ -195,6 +195,28 @@ aox check schema
   checking/granting/whatevering. but that's okay.
 
 
+aox upgrade schema, in reverse
+
+  Each schema starting with 86 can write a pgsql function called
+  downgrade_to_x (downgrade_to_85 in the case of stepTo86()), and if
+  aox upgrade schema is called when the current schema version is
+  higher than its goal, then it does:
+
+     while ( current > target ) {
+          EString fn( "downgrade_to_" + fn( current-1 ) + "()" );
+          t->enqueue( new Query( fn, 0 ) );
+          t->enqueue( new Query( "drop function " + fn, 0 );
+          current--;
+     }
+     t->enqueue( "update mailstore set revision=" + fn( target ), 0 );
+
+  Done. A little hacky but really quite good.
+
+  stepTo85() would add the three functions necessary to step back to
+  where 3.0.7 is. Then 3.0.7 doesn't need any substantial new code
+  from 3.1.0, only bugfixes and the really quite small code above.
+
+
 Items for web site
 
   In addition to stuff in the operations guide:
