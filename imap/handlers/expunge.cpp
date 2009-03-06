@@ -103,12 +103,6 @@ void Expunge::execute()
     }
 
     if ( !d->t ) {
-        uint fid = Flag::id( "\\deleted" );
-        if ( fid == 0 ) {
-            error( No, "Internal error - no \\Deleted flag" );
-            return;
-        }
-
         d->t = new Transaction( this );
 
         d->findModseq = new Query( "select nextmodseq from mailboxes "
@@ -118,16 +112,13 @@ void Expunge::execute()
 
         d->findUids = new Query( "", this );
         d->findUids->bind( 1, d->s->mailbox()->id() );
-        d->findUids->bind( 2, fid );
         EString query( "select uid from mailbox_messages "
-                      "where (mailbox,uid) in "
-                      "(select mailbox, uid from flags"
-                      " where mailbox=$1 and flag=$2" );
+                       "where mailbox=$1 and deleted" );
         if ( d->uid ) {
-            query.append( " and uid=any($3)" );
-            d->findUids->bind( 3, d->requested );
+            query.append( " and uid=any($2)" );
+            d->findUids->bind( 2, d->requested );
         }
-        query.append( ") order by mailbox, uid for update" );
+        query.append( " order by uid for update" );
         d->findUids->setString( query );
         d->t->enqueue( d->findUids );
 

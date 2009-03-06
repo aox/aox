@@ -22,6 +22,9 @@ public:
     static EString name( uint );
     static uint id( const EString & );
 
+    static bool isSeen( uint );
+    static bool isDeleted( uint );
+
     static uint largestId();
     static EStringList allFlags();
     static void addWatcher( class Session * );

@@ -30,6 +30,7 @@ public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
           checkedPermission( false ),
+          seen( false ), deleted( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
           sentWorkQueries( false ),
           modseq( 0 ),
@@ -50,6 +51,8 @@ public:
     bool silent;
     bool uid;
     bool checkedPermission;
+    bool seen;
+    bool deleted;
 
     uint unchangedSince;
     bool seenUnchangedSince;
@@ -68,6 +71,7 @@ public:
     ImapSession * session;
 
     List<Annotation> annotations;
+    EString mmExtra;
 };
 
 
@@ -336,22 +340,20 @@ void Store::execute()
                 requireRight( m, Permissions::WriteSharedAnnotation );
         }
         else {
-            bool deleted = false;
-            bool seen = false;
             bool other = false;
             EStringList::Iterator it( d->flagNames );
             while ( it ) {
                 if ( it->lower() == "\\deleted" )
-                    deleted = true;
+                    d->deleted = true;
                 else if ( it->lower() == "\\seen" )
-                    seen = true;
+                    d->seen = true;
                 else
                     other = true;
                 ++it;
             }
-            if ( seen )
+            if ( d->seen )
                 requireRight( m, Permissions::KeepSeen );
-            if ( deleted )
+            if ( d->deleted )
                 requireRight( m, Permissions::DeleteMessages );
             if ( other || d->flagNames.isEmpty() )
                 requireRight( m, Permissions::Write );
@@ -396,19 +398,22 @@ void Store::execute()
             while ( i ) {
                 uint id = Flag::id( *i );
                 ++i;
-                if ( id ) {
+                if ( id && !Flag::isSeen( id ) && !Flag::isDeleted( id ) ) {
                     s.add( id );
                     d->present->insert( id, new IntegerSet );
                 }
             }
-            d->presentFlags =
-                new Query( "select mailbox, uid, flag from flags "
-                           "where mailbox=$1 and uid=any($2) and flag=any($3)",
-                           this );
-            d->presentFlags->bind( 1, m->id() );
-            d->presentFlags->bind( 2, d->specified );
-            d->presentFlags->bind( 3, s );
-            d->transaction->enqueue( d->presentFlags );
+            if ( !s.isEmpty() ) {
+                d->presentFlags =
+                    new Query(
+                        "select mailbox, uid, flag from flags "
+                        "where mailbox=$1 and uid=any($2) and flag=any($3)",
+                        this );
+                d->presentFlags->bind( 1, m->id() );
+                d->presentFlags->bind( 2, d->specified );
+                d->presentFlags->bind( 3, s );
+                d->transaction->enqueue( d->presentFlags );
+            }
         }
 
         d->transaction->execute();
@@ -507,6 +512,7 @@ void Store::execute()
         d->modseq = r->getBigint( "nextmodseq" );
         Query * q = 0;
         q = new Query( "update mailbox_messages set modseq=$1 "
+                       + d->mmExtra +
                        "where mailbox=$2 and uid=any($3)", 0 );
         q->bind( 1, d->modseq );
         q->bind( 2, m->id() );
@@ -621,9 +627,16 @@ bool Store::removeFlags( bool opposite )
                 flags.add( id );
         }
     }
-    if ( flags.isEmpty() && !opposite )
-        return false;
+    if ( ( d->seen && !opposite ) ||
+         ( opposite && !d->seen ) )
+        d->mmExtra.append( ",seen='f'" );
+    if ( ( d->deleted && !opposite ) ||
+         ( opposite && !d->deleted ) )
+        d->mmExtra.append( ",deleted='f'" );
 
+    if ( flags.isEmpty() && !opposite )
+        return d->mmExtra.isEmpty();
+        
     EString s = "delete from flags where mailbox=$1 and uid=any($2) and ";
     if ( opposite )
         s.append( "not " );
@@ -659,7 +672,7 @@ bool Store::addFlags()
         if ( !flag )
             flag = Flag::id( *it );
         ++it;
-        if ( flag ) {
+        if ( flag && !Flag::isSeen( flag ) && !Flag::isDeleted( flag ) ) {
             IntegerSet * p = d->present->find( flag );
             if ( p )
                 s.remove( *p );
@@ -679,7 +692,8 @@ bool Store::addFlags()
     }
     if ( work )
         d->transaction->enqueue( q );
-    return work;
+
+    return work || d->seen || d->deleted;
 }
 
 

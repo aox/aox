@@ -1036,11 +1036,16 @@ EString Selector::whereFlags()
         return whereSet( root()->d->session->recent() );
     }
 
+    uint fid = Flag::id( d->s8 );
+    if ( Flag::isSeen( fid ) )
+        return mm() + ".seen";
+    else if ( Flag::isDeleted( fid ) )
+        return mm() + ".deleted";
+
     uint join = ++root()->d->join;
     EString n = fn( join );
 
     EString j;
-    uint fid = Flag::id( d->s8 );
     if ( fid ) {
         // we know this flag, so look for it reasonably efficiently
         j = " left join flags f" + n +

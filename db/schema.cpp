@@ -3955,41 +3955,34 @@ bool Schema::stepTo82()
 }
 
 
-/*! Installs one/two trigger(s) to ensure that a mailbox' nextmodseq
-    increases when necessary.
-
-    We could push it even further... insert into flags, annotations
-    and deleted_messages could set the modseq on deleted_messages /
-    mailbox_messages to mailboxes.nextmodseq. Then we'd need to select
-    the mailbox for update before updating it, but not care about
-    modseq in client code.
+/*! Move the Seen and Deleted flags into mailbox_messages, where we
+    can test them much faster.
 */
 
 bool Schema::stepTo83()
 {
-    describeStep( "Add triggers to ensure that modseq increases as it ought to." );
+    describeStep( "Move Seen and Deleted flags to mailbox_messages." );
 
-    d->t->enqueue(
-        new Query( "create function increase_nextmodseq() "
-                   "returns trigger as $$"
-                   "begin "
-                   "update mailboxes "
-                   "set nextmodseq=new.modseq+1 "
-                   "where id=new.mailbox and nextmodseq<=new.modseq;"
-                   "return null;"
-                   "end;$$ language 'plpgsql'", 0 ) );
-    d->t->enqueue(
-        new Query( "create trigger mailbox_messages_update_trigger "
-                   "after update or insert on mailbox_messages "
-                   "for each row execute procedure increase_nextmodseq()", 0 ) );
-    d->t->enqueue(
-        new Query( "create trigger deleted_messages_update_trigger "
-                   "after update or insert on deleted_messages "
-                   "for each row execute procedure increase_nextmodseq()", 0 ) );
+    d->t->enqueue( new Query( "alter table mailbox_messages "
+                              "add seen boolean not null default 'f', "
+                              "add deleted boolean not null default 'f'",
+                              0 ) );
 
-    // wouldn't this be better as a "statement after" that uses
-    // max(new.modseq) group by mailbox? is that even possible? if it
-    // isn't, then maybe this is too expensive to do.
+    d->t->enqueue( new Query( "update mailbox_messages set seen='t'"
+                              "where (mailbox,uid) in "
+                              "(select mailbox,uid from flags f"
+                              " join flag_names fn where fn.name='\\Seen')",
+                              0 ) );
+    d->t->enqueue( new Query( "update mailbox_messages set deleted='t'"
+                              "where (mailbox,uid) in "
+                              "(select mailbox,uid from flags f"
+                              " join flag_names fn where fn.name='\\Deleted')",
+                              0 ) );
+
+    d->t->enqueue( new Query( "delete from flags where flag in "
+                              "(select id from flag_names"
+                              " where name='\\Seen' or name='\\Deleted')",
+                              0 ) );
 
     return true;
 }

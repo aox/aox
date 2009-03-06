@@ -133,7 +133,7 @@ void Flag::setup()
 {
     if ( ::flagWatcher )
         return;
-    
+
     ::flagWatcher = new Flag;
     ::flagWatcher->execute();
     if ( !Configuration::toggle( Configuration::Security ) )
@@ -219,4 +219,30 @@ void Flag::removeWatcher( class Session * s )
 {
     if ( ::flagWatcher )
         ::flagWatcher->d->sessions.take( ::flagWatcher->d->sessions.find( s ) );
+}
+
+
+static uint seenId = 0;
+
+
+/*! Returns true if \a f is the "\Seen" flag and false otherwise. */
+
+bool Flag::isSeen( uint f )
+{
+    if ( !::seenId )
+        ::seenId = id( "\\seen" );
+    return f == ::seenId;
+}
+
+
+static uint deletedId = 0;
+
+
+/*! Returns true if \a f is the "\Deleted" flag and false otherwise. */
+
+bool Flag::isDeleted( uint f )
+{
+    if ( !::deletedId )
+        ::deletedId = id( "\\deleted" );
+    return f == ::deletedId;
 }

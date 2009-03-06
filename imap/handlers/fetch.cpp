@@ -59,7 +59,9 @@ public:
           internaldate( false ), rfc822size( false ),
           annotation( false ), modseq( false ),
           needsHeader( false ), needsAddresses( false ),
-          needsBody( false ), needsPartNumbers( false )
+          needsBody( false ), needsPartNumbers( false ),
+          seenDeletedFetcher( 0 ), flagFetcher( 0 ),
+          annotationFetcher( 0 ), modseqFetcher( 0 )
     {}
 
     int state;
@@ -106,6 +108,7 @@ public:
         List<Annotation> annotations;
     };
     Map<DynamicData> dynamics;
+    Query * seenDeletedFetcher;
     Query * flagFetcher;
     Query * annotationFetcher;
     Query * modseqFetcher;
@@ -1549,7 +1552,24 @@ void Fetch::pickup()
     if ( !s )
         return;
 
-    if ( d->flagFetcher ) {
+    if ( d->seenDeletedFetcher ) {
+        EString seenl( "\\seen" );
+        EString * seen = new EString( "\\Seen" );
+        EString deletedl( "\\deleted" );
+        EString * deleted = new EString( "\\Deleted" );
+        while ( d->seenDeletedFetcher->hasResults() ) {
+            Row * r = d->seenDeletedFetcher->nextRow();
+            uint uid = r->getInt( "uid" );
+            FetchData::DynamicData * dd = d->dynamics.find( uid );
+            if ( !dd ) {
+                dd = new FetchData::DynamicData;
+                d->dynamics.insert( uid, dd );
+            }
+            if ( r->getBoolean( "seen" ) )
+                dd->flags.insert( seenl, seen );
+            if ( r->getBoolean( "deleted" ) )
+                dd->flags.insert( deletedl, deleted );
+        }
         while ( d->flagFetcher->hasResults() ) {
             Row * r = d->flagFetcher->nextRow();
             uint uid = r->getInt( "uid" );
@@ -1561,6 +1581,11 @@ void Fetch::pickup()
             EString f = r->getEString( "name" );
             if ( !f.isEmpty() )
                 dd->flags.insert( f.lower(), new EString( f ) );
+        }
+        if ( d->seenDeletedFetcher->done() &&
+             d->flagFetcher->done() ) {
+            d->seenDeletedFetcher = 0;
+            d->flagFetcher = 0;
         }
     }
 
@@ -1706,6 +1731,14 @@ Message * Fetch::message( uint uid ) const
 
 void Fetch::sendFlagQuery()
 {
+    d->seenDeletedFetcher = new Query(
+        "select uid, seen, deleted from mailbox_messages "
+        "where mailbox=$1 and uid=any($2)",
+        this );
+    d->seenDeletedFetcher->bind( 1, session()->mailbox()->id() );
+    d->seenDeletedFetcher->bind( 2, d->set );
+    enqueue( d->seenDeletedFetcher );
+
     d->flagFetcher = new Query(
         "select f.uid, fn.name from flags f "
         "join flag_names fn on (f.flag=fn.id) "
