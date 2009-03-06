@@ -96,11 +96,12 @@ public:
 
     void shrink( IntegerSet * );
 
-
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();
 
     ImapSession * session();
+
+    MailboxGroup * mailboxGroup();
 
 private:
     class CommandData *d;

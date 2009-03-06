@@ -21,16 +21,13 @@ public:
         recent( false ), unseen( false ),
         modseq( false ),
         mailbox( 0 ),
-        unseenCount( 0 ), messageCount( 0 ), recentCount( 0 ),
-        checkedGroup( false ), group( 0 )
+        unseenCount( 0 ), messageCount( 0 ), recentCount( 0 )
         {}
     bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
     Query * unseenCount;
     Query * messageCount;
     Query * recentCount;
-    bool checkedGroup;
-    MailboxGroup * group;
 
     class CacheItem
         : public Garbage
@@ -154,19 +151,14 @@ void Status::execute()
     if ( session )
         current = session->mailbox();
 
-    if ( !d->checkedGroup ) {
-        d->group = imap()->mostLikelyGroup( d->mailbox, 3 );
-        d->checkedGroup = true;
-    }
-
     if ( !::cache )
         ::cache = new StatusData::StatusCache;
     StatusData::CacheItem * i = ::cache->provide( d->mailbox );
 
     IntegerSet mailboxes;
-    if ( d->group ) {
+    if ( mailboxGroup() ) {
         mailboxes.add( d->mailbox->id() );
-        List<Mailbox>::Iterator i( d->group->contents() );
+        List<Mailbox>::Iterator i( mailboxGroup()->contents() );
         while ( i ) {
             mailboxes.add( i->id() );
             ++i;
@@ -207,7 +199,7 @@ void Status::execute()
         // the cache has it
     }
     else if ( !d->recentCount ) {
-        if ( d->group ) {
+        if ( mailboxGroup() ) {
             d->recentCount
                 = new Query( "select mailbox, uidnext-first_recent as recent "
                              "from mailboxes "
@@ -234,7 +226,7 @@ void Status::execute()
         // the cache has it
     }
     else if ( d->messages && !d->messageCount ) {
-        if ( d->group ) {
+        if ( mailboxGroup() ) {
             d->messageCount
                 = new Query( "select count(*)::int as messages, mailbox "
                              "from mailbox_messages where mailbox=any($1) "
@@ -260,11 +252,11 @@ void Status::execute()
     if ( d->recentCount && !d->recentCount->done() )
         return;
 
-    if ( d->group ) {
+    if ( mailboxGroup() ) {
         // the queries often return zero rows if all the numbers are
         // zero, so we have to fill in hasRecent etc. even if we don't
         // get a row.
-        List<Mailbox> * l = d->group->contents();
+        List<Mailbox> * l = mailboxGroup()->contents();
         l->append( d->mailbox );
         List<Mailbox>::Iterator i( l );
         while ( i ) {

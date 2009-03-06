@@ -50,6 +50,9 @@
 #include <sys/time.h> // gettimeofday, struct timeval
 
 
+class MailboxGroup;
+
+
 class CommandData
     : public Garbage
 {
@@ -64,7 +67,8 @@ public:
           emittingResponses( false ),
           state( Command::Unparsed ), group( 0 ),
           permittedStates( 0 ),
-          imap( 0 ), session( 0 ), checker( 0 )
+          imap( 0 ), session( 0 ), checker( 0 ),
+          mailbox( 0 ), mailboxGroup( 0 )
     {
         (void)::gettimeofday( &started, 0 );
     }
@@ -95,6 +99,9 @@ public:
     IMAP * imap;
     ImapSession * session;
     PermissionsChecker * checker;
+
+    Mailbox * mailbox;
+    MailboxGroup * mailboxGroup;
 };
 
 
@@ -1163,6 +1170,9 @@ class Mailbox * Command::mailbox()
         return 0;
     }
 
+    if ( !d->mailbox )
+        d->mailbox = m;
+
     return m;
 }
 
@@ -1356,4 +1366,20 @@ ImapSession * Command::session()
     log( "Mailbox session needed, but none present" );
     throw Invariant;
     return 0;
+}
+
+
+/*! Guesses whether this command is part of a client loop processing
+    group of mailboxes, and returns a pointer to the mailbox group if
+    that seems to be the case. Returns a null pointer if not.
+*/
+
+MailboxGroup * Command::mailboxGroup()
+{
+    if ( d->mailbox && !d->mailboxGroup ) {
+        d->mailboxGroup = imap()->mostLikelyGroup( d->mailbox, 3 );
+        d->mailbox = 0;
+    }
+
+    return d->mailboxGroup;
 }
