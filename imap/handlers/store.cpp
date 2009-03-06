@@ -672,7 +672,13 @@ bool Store::addFlags()
         if ( !flag )
             flag = Flag::id( *it );
         ++it;
-        if ( flag && !Flag::isSeen( flag ) && !Flag::isDeleted( flag ) ) {
+        if ( Flag::isSeen( flag ) ) {
+            d->mmExtra.append( ", seen='t'" );
+        }
+        else if ( Flag::isDeleted( flag ) ) {
+            d->mmExtra.append( ", deleted='t'" );
+        }
+        else if ( flag ) {
             IntegerSet * p = d->present->find( flag );
             if ( p )
                 s.remove( *p );
