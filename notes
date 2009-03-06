@@ -1,6 +1,6 @@
 Schedule
 
-  Nothing worth mentioning.
+  2009-03, 13–15: AMS -> Sattal
 
 
 P/W: Stuff we may want to keep
@@ -18,6 +18,8 @@ P/W: Stuff we may want to keep
   List::append( List ) -> appendList()
 
   smtpclient has simpler logic... but don't break what works
+
+  Transaction::enqueue( const char * )
 
   cancelQuery rewrite. not sure.
 
