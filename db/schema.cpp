@@ -521,6 +521,8 @@ bool Schema::singleStep()
         c = stepTo82(); break;
     case 82:
         c = stepTo83(); break;
+    case 83:
+        c = stepTo84(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -3992,5 +3994,20 @@ bool Schema::stepTo83()
     q->bind( 2, "\\deleted" );
     d->t->enqueue( q );
 
+    return true;
+}
+
+
+/*! Add a retention_policies table for use by "aox set/show retention". */
+
+bool Schema::stepTo84()
+{
+    describeStep( "Create the retention_policies table." );
+    d->t->enqueue( new Query( "create table retention_policies (id serial "
+                              "primary key, action text not null, mailbox "
+                              "integer references mailboxes(id), duration "
+                              "integer not null, selector text, constraint "
+                              "rp_action check (action in ('retain','delete')))",
+                              0 ) );
     return true;
 }

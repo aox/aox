@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (83);
+insert into mailstore (revision) values (84);
 
 
 -- One entry for each unique address we've encountered.
@@ -87,6 +87,57 @@ create table mailboxes (
     -- that its UIDVALIDITY can be incremented if it is ever re-created.
     deleted     boolean not null default false
 );
+
+
+-- When aoximport or others create /users/foo/bar, bar needs to own
+   the mailbox, so ensure that that happens.
+
+create function set_mailbox_owner() returns trigger as $$
+begin
+    if new.owner is null then
+    select into new.owner u.id
+        from users u join namespaces n on (u.parentspace=n.id)
+        where new.name like n.name||'/'||u.login||'/%'
+        or new.name = n.name||'/'||u.login limit 1;
+    end if;
+    return new;
+end;
+$$ language 'plpgsql';
+
+create trigger mailbox_owner_trigger
+before insert on mailboxes for each
+row execute procedure set_mailbox_owner();
+
+-- Ensure that mailboxes cannot be deleted while something relies on
+-- their existence
+
+create function check_mailbox_update() returns trigger as $$
+declare address text;
+begin
+    notify mailboxes_updated;
+    if new.deleted='t' and old.deleted='f' then
+        perform * from mailbox_messages where mailbox=new.id;
+        if found then
+            raise exception '% is not empty', new.name;
+        end if;
+        select a.localpart||'@'||a.domain into address
+            from addresses a join aliases al on (a.id=al.address)
+            where al.mailbox=new.id;
+        if address is not null then
+            raise exception '% used by alias %', new.name, address;
+        end if;
+        perform * from fileinto_targets where mailbox=new.id;
+        if found then
+            raise exception '% is used by sieve fileinto', new.name;
+        end if;
+    end if;
+    return new;
+end;
+$$ language 'plpgsql';
+
+create trigger mailbox_update_trigger
+before update on mailboxes for each
+row execute procedure check_mailbox_update();
 
 
 -- One entry per delivery alias: mail to the given address should be
@@ -496,52 +547,14 @@ create table thread_indexes (
 create index ti_outlook_hack on thread_indexes(thread_index);
 
 
--- When aoximport or others create /users/foo/bar, bar needs to own
-   the mailbox, so ensure that that happens.
+-- One row for each explicit retention policy defined by the
+-- administrator.
 
-create function set_mailbox_owner() returns trigger as $$
-begin
-    if new.owner is null then
-    select into new.owner u.id
-        from users u join namespaces n on (u.parentspace=n.id)
-        where new.name like n.name||'/'||u.login||'/%'
-        or new.name = n.name||'/'||u.login limit 1;
-    end if;
-    return new;
-end;
-$$ language 'plpgsql';
-
-create trigger mailbox_owner_trigger
-before insert on mailboxes for each
-row execute procedure set_mailbox_owner();
-
--- Ensure that mailboxes cannot be deleted while something relies on
--- their existence
-
-create function check_mailbox_update() returns trigger as $$
-declare address text;
-begin
-    notify mailboxes_updated;
-    if new.deleted='t' and old.deleted='f' then
-        perform * from mailbox_messages where mailbox=new.id;
-        if found then
-            raise exception '% is not empty', new.name;
-        end if;
-        select a.localpart||'@'||a.domain into address
-            from addresses a join aliases al on (a.id=al.address)
-            where al.mailbox=new.id;
-        if address is not null then
-            raise exception '% used by alias %', new.name, address;
-        end if;
-        perform * from fileinto_targets where mailbox=new.id;
-        if found then
-            raise exception '% is used by sieve fileinto', new.name;
-        end if;
-    end if;
-    return new;
-end;
-$$ language 'plpgsql';
-
-create trigger mailbox_update_trigger
-before update on mailboxes for each
-row execute procedure check_mailbox_update();
+create table retention_policies (
+    id          serial primary key,
+    action      text not null,
+    mailbox     integer references mailboxes(id),
+    duration    integer not null,
+    selector    text,
+    constraint rp_action check (action in ('retain','delete'))
+);
