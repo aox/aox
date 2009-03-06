@@ -1454,7 +1454,8 @@ void Injector::insertMessages()
         new Query( "copy date_fields (message,value) from stdin", 0 );
 
     Query * qm =
-        new Query( "copy mailbox_messages (mailbox,uid,message,modseq) "
+        new Query( "copy mailbox_messages "
+                   "(mailbox,uid,message,modseq,seen,deleted) "
                    "from stdin with binary", 0 );
     Query * qf =
         new Query( "copy flags (mailbox,uid,flag) "
@@ -1657,6 +1658,19 @@ void Injector::addMailbox( Query * q, Injectee * m, Mailbox * mb )
     q->bind( 2, m->uid( mb ) );
     q->bind( 3, m->databaseId() );
     q->bind( 4, m->modSeq( mb ) );
+    EStringList::Iterator i( m->flags( mb ) );
+    bool seen = false;
+    bool deleted = false;
+    while ( i ) {
+        uint id = Flag::id( *i );
+        ++i;
+        if ( Flag::isSeen( id ) )
+            seen = true;
+        else if ( Flag::isDeleted( id ) )
+            deleted = true;
+    }
+    q->bind( 5, seen );
+    q->bind( 6, deleted );
     q->submitLine();
 }
 
@@ -1674,11 +1688,13 @@ uint Injector::addFlags( Query * q, Injectee * m, Mailbox * mb )
             flag = d->flagCreator->id( *it );
         if ( !flag )
             flag = Flag::id( *it );
-        n++;
-        q->bind( 1, mb->id() );
-        q->bind( 2, m->uid( mb ) );
-        q->bind( 3, flag );
-        q->submitLine();
+        if ( !Flag::isSeen( flag ) && !Flag::isDeleted( flag ) ) {
+            n++;
+            q->bind( 1, mb->id() );
+            q->bind( 2, m->uid( mb ) );
+            q->bind( 3, flag );
+            q->submitLine();
+        }
         ++it;
     }
     return n;
