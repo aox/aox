@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (82);
+insert into mailstore (revision) values (83);
 
 
 -- One entry for each unique address we've encountered.
@@ -134,6 +134,8 @@ create table mailbox_messages (
     uid         integer not null,
     message     integer not null references messages(id),
     modseq      bigint not null,
+    seen        boolean not null default false,
+    deleted     boolean not null default false,
     primary key (mailbox, uid)
 );
 
