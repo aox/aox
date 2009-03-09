@@ -321,8 +321,14 @@ void Status::execute()
     if ( d->unseen && i->hasUnseen )
         status.append( "UNSEEN " + fn( i->unseen ) );
 
-    if ( d->modseq )
-        status.append( "HIGHESTMODSEQ " + fn( d->mailbox->nextModSeq() - 1 ) );
+    if ( d->modseq ) {
+        int64 hms = d->mailbox->nextModSeq();
+        // don't like this. an empty mailbox will have a STATUS HMS of
+        // 1 before it receives its first message, and also 1 after.
+        if ( hms > 1 )
+            hms--;
+        status.append( "HIGHESTMODSEQ " + fn( hms ) );
+    }
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
              " (" + status.join( " " ) + ")" );
