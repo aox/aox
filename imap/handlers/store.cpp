@@ -498,6 +498,9 @@ void Store::execute()
             break;
         }
 
+        if ( d->flagCreator )
+            session()->sendFlagUpdate( d->flagCreator );
+
         if ( !work && !d->changeSeen && !d->changeDeleted ) {
             // there's no actual work to be done.
             d->transaction->commit();

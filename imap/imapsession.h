@@ -33,6 +33,7 @@ public:
     void clearExpunged( uint );
 
     void sendFlagUpdate();
+    void sendFlagUpdate( class FlagCreator * );
 
 private:
     class ImapSessionData * d;

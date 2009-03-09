@@ -2,6 +2,7 @@
 
 #include "imapsession.h"
 
+#include "helperrowcreator.h"
 #include "handlers/fetch.h"
 #include "command.h"
 #include "fetcher.h"
@@ -116,18 +117,27 @@ public:
         : public ImapResponse
     {
     public:
-        FlagUpdateResponse( ImapSession * s, ImapSessionData * data, bool p )
-            : ImapResponse( s ), d( data ), permahack( p ) {
+        FlagUpdateResponse( ImapSession * s, ImapSessionData * d, bool p,
+                            FlagCreator * c )
+            : ImapResponse( s ), permahack( p ), creator( c ), limit( 0 ) {
+            if ( p )
+                limit = &d->permaFlagUpdate;
+            else
+                limit = &d->flagUpdate;
         }
         EString text() const {
-            if ( ( permahack ? d->permaFlagUpdate : d->flagUpdate )
-                 >= Flag::largestId() )
+            if ( *limit >= Flag::largestId() &&
+                 ( !creator || !creator->inserted() ) )
                 return "";
             EString x;
             if ( permahack )
                 x.append( "OK [PERMANENT" );
             x.append( "FLAGS (" );
-            x.append( Flag::allFlags().join( " " ) );
+            EStringList all = Flag::allFlags();
+            if ( creator )
+                all.append( *creator->allFlags() );
+            all.removeDuplicates( false );
+            x.append( all.sorted()->join( " " ) );
             if ( permahack )
                 x.append( " \\*" );
             x.append( ")" );
@@ -136,15 +146,22 @@ public:
             return x;
         }
         void setSent() {
-            if ( permahack )
-                d->permaFlagUpdate = Flag::largestId();
-            else
-                d->flagUpdate = Flag::largestId();
+            *limit = Flag::largestId();
+            if ( creator ) {
+                EStringList::Iterator i( creator->allFlags() );
+                while ( i ) {
+                    uint id = creator->id( *i );
+                    if ( id > *limit )
+                        *limit = id;
+                    ++i;
+                }
+            }
             ImapResponse::setSent();
         }
 
-        ImapSessionData * d;
         bool permahack;
+        FlagCreator * creator;
+        uint * limit;
     };
 };
 
@@ -393,6 +410,17 @@ void ImapSession::sendFlagUpdate()
 {
     if ( d->flagUpdate >= Flag::largestId() )
         return;
-    (void)new ImapSessionData::FlagUpdateResponse( this, d, false );
-    (void)new ImapSessionData::FlagUpdateResponse( this, d, true );
+    (void)new ImapSessionData::FlagUpdateResponse( this, d, false, 0 );
+    (void)new ImapSessionData::FlagUpdateResponse( this, d, true, 0 );
+}
+
+
+/*! Sends a FLAG blah, using Flag and also the FlagCreator \a c. Used
+    by STORE to make sure creating a flag sends the response.
+*/
+
+void ImapSession::sendFlagUpdate( FlagCreator * c )
+{
+    (void)new ImapSessionData::FlagUpdateResponse( this, d, false, c );
+    (void)new ImapSessionData::FlagUpdateResponse( this, d, true, c );
 }
