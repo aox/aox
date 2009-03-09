@@ -79,6 +79,8 @@ void TlsServerData::Client::react( Event e )
     if ( !s )
         return;
 
+    log( "TlsServeR: Received" + s->simplified() );
+
     EString l = s->simplified();
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
