@@ -1623,6 +1623,9 @@ void Fetch::pickup()
         }
     }
 
+    if ( d->seenDeletedFetcher && !d->seenDeletedFetcher->done() )
+        return;
+
     if ( d->flagFetcher && !d->flagFetcher->done() )
         return;
 
