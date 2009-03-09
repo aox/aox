@@ -66,6 +66,7 @@ void TlsServerData::Client::react( Event e )
     }
     else if ( e != Read ) {
         d->done = true;
+        log( "TlsServer: Unexpected event of type " + fn( e ), Log::Error );
         d->handler->execute();
         d->serverside->close();
         d->userside->close();
