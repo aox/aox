@@ -173,6 +173,14 @@ void Schema::execute()
             d->t->commit();
             d->state = 7;
         }
+        else if ( d->upgrade && d->revision > Database::currentRevision() &&
+                  d->revision >= 85 && Database::currentRevision() >= 80 ) {
+            d->l->log( "Downgrading schema from revision " +
+                       fn( d->revision ) + " to revision " +
+                       fn( Database::currentRevision() ) + ".",
+                       Log::Significant );
+            d->state = 2;
+        }
         else if ( d->upgrade && d->revision < Database::currentRevision() ) {
             d->l->log( "Upgrading schema from revision " +
                        fn( d->revision ) + " to revision " +
@@ -193,7 +201,8 @@ void Schema::execute()
             s.append( ") expected (revision " );
             s.appendNumber( Database::currentRevision() );
             s.append( "). Please " );
-            if ( d->revision < Database::currentRevision() )
+            if ( d->revision < Database::currentRevision() ||
+                 ( Database::currentRevision() >= 80 && d->revision >= 85 ) )
                 s.append( "run 'aox upgrade schema'" );
             else
                 s.append( "upgrade" );
@@ -203,6 +212,19 @@ void Schema::execute()
             d->t->commit();
             d->state = 7;
         }
+    }
+
+    if ( d->revision >= 85 && d->revision > Database::currentRevision() ) {
+        while ( d->revision > Database::currentRevision() ) {
+            EString function( "downgrade_to_" + fn( d->revision - 1 ) + "()" );
+            d->l->log( "Invoking stored function " + function );
+            d->t->enqueue( new Query( function, 0 ) );
+            d->t->enqueue( new Query( "drop function " + function, 0 ) );
+            d->revision--;
+        }
+        Query * q = new Query( "update mailstore set revision=$1", 0 );
+        q->bind( 1, Database::currentRevision() );
+        d->state = 5;
     }
 
     while ( d->revision < Database::currentRevision() ) {
