@@ -16,6 +16,7 @@ public:
     void append( EString * s ) { List<EString>::append( s ); }
     void append( const EString & );
     void append( const char * );
+    void append( const EStringList & l ) { List<EString>::append( l ); }
 
     void removeDuplicates( bool = true );
     bool contains( const EString & ) const;

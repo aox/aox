@@ -220,6 +220,15 @@ public:
         }
     }
 
+    void append( const List<T> & other )
+    {
+        Iterator o( other );
+        while ( o ) {
+            append( o );
+            ++o;
+        }
+    }
+
     void append( List<T> * other )
     {
         Iterator o( other );
