@@ -276,8 +276,8 @@ void Status::execute()
     if ( d->messageCount ) {
         while ( d->messageCount->hasResults() ) {
             Row * r = d->messageCount->nextRow();
-            Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-            StatusData::CacheItem * ci = ::cache->provide( m );
+            StatusData::CacheItem * ci =
+                ::cache->find( r->getInt( "mailbox" ) );
             if ( ci )
                 ci->messages = r->getInt( "messages" );
         }
@@ -290,8 +290,8 @@ void Status::execute()
     if ( d->recentCount ) {
         while ( d->recentCount->hasResults() ) {
             Row * r = d->recentCount->nextRow();
-            Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-            StatusData::CacheItem * ci = ::cache->provide( m );
+            StatusData::CacheItem * ci =
+                ::cache->find( r->getInt( "mailbox" ) );
             if ( ci )
                 ci->recent = r->getInt( "recent" );
         }
@@ -310,8 +310,8 @@ void Status::execute()
     if ( d->unseenCount ) {
         while ( d->unseenCount->hasResults() ) {
             Row * r = d->unseenCount->nextRow();
-            Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-            StatusData::CacheItem * ci = ::cache->provide( m );
+            StatusData::CacheItem * ci =
+                ::cache->find( r->getInt( "mailbox" ) );
             if ( ci )
                 ci->unseen = r->getInt( "unseen" );
         }
