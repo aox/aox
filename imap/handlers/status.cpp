@@ -36,7 +36,7 @@ public:
         CacheItem():
             hasMessages( false ), hasUnseen( false ), hasRecent( false ),
             messages( 0 ), unseen( 0 ), recent( 0 ),
-            nextmodseq( 0 )
+            nextmodseq( 0 ), mailbox( 0 )
             {}
         bool hasMessages;
         bool hasUnseen;
@@ -45,6 +45,7 @@ public:
         uint unseen;
         uint recent;
         int64 nextmodseq;
+        Mailbox * mailbox;
     };
 
     class StatusCache
@@ -61,6 +62,7 @@ public:
             i = c.find( m->id() );
             if ( !i ) {
                 i = new CacheItem;
+                i->mailbox = m;
                 i->nextmodseq = m->nextModSeq();
                 c.insert( m->id(), i );
             }
@@ -71,6 +73,9 @@ public:
                 i->hasRecent = false;
             }
             return i;
+        }
+        CacheItem * find( uint id ) {
+            return c.find( id );
         }
 
         Map<CacheItem> c;
@@ -156,8 +161,8 @@ void Status::execute()
     StatusData::CacheItem * i = ::cache->provide( d->mailbox );
 
     IntegerSet mailboxes;
+    mailboxes.add( d->mailbox->id() );
     if ( mailboxGroup() ) {
-        mailboxes.add( d->mailbox->id() );
         List<Mailbox>::Iterator i( mailboxGroup()->contents() );
         while ( i ) {
             mailboxes.add( i->id() );
@@ -248,25 +253,23 @@ void Status::execute()
     if ( d->recentCount && !d->recentCount->done() )
         return;
 
-    if ( mailboxGroup() ) {
-        // the queries often return zero rows if all the numbers are
-        // zero, so we have to fill in hasRecent etc. even if we don't
-        // get a row.
-        List<Mailbox> * l = mailboxGroup()->contents();
-        l->append( d->mailbox );
-        List<Mailbox>::Iterator i( l );
-        while ( i ) {
-            StatusData::CacheItem * ci = ::cache->provide( i );
+    // the queries often return zero rows if all the numbers are zero,
+    // so we have to fill in hasRecent etc. even if we don't get a
+    // row.
+    uint id = mailboxes.count();
+    while ( id ) {
+        StatusData::CacheItem * ci = ::cache->find( mailboxes.value( id ) );
+        if ( ci ) {
             if ( d->messageCount )
                 ci->hasMessages = true;
             if ( d->recentCount )
-                ci->hasMessages = true;
+                ci->hasRecent = true;
             if ( d->unseenCount )
                 ci->hasUnseen = true;
-            ++i;
         }
+        --id;
     }
-
+    
     // third part: return the payload.
     EStringList status;
 
