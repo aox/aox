@@ -185,13 +185,20 @@ void Status::execute()
     if ( d->uidvalidity ) {
         status.append( "UIDVALIDITY " + fn( d->mailbox->uidvalidity() ) );
     }
+
     if ( d->unseen ) {
         Row * r = d->unseenCount->nextRow();
         if ( r )
             status.append( "UNSEEN " + fn( r->getInt( "unseen" ) ) );
     }
+
     if ( d->modseq ) {
-        status.append( "HIGHESTMODSEQ " + fn( d->mailbox->nextModSeq() - 1 ) );
+        int64 hms = d->mailbox->nextModSeq();
+        // don't like this. an empty mailbox will have a STATUS HMS of
+        // 1 before it receives its first message, and also 1 after.
+        if ( hms > 1 )
+            hms--;
+        status.append( "HIGHESTMODSEQ " + fn( hms ) );
     }
 
     respond( "STATUS " + imapQuoted( d->mailbox ) +
