@@ -54,7 +54,7 @@ ManageSieve::ManageSieve( int s )
 {
     capabilities();
     enqueue( "OK\r\n" );
-    setTimeoutAfter( 1800 );
+    setTimeoutAfter( 120 );
     EventLoop::global()->addConnection( this );
 }
 
@@ -81,7 +81,8 @@ void ManageSieve::react( Event e )
 {
     switch ( e ) {
     case Read:
-        setTimeoutAfter( 600 );
+        if ( user() )
+            setTimeoutAfter( 3600 );
         parse();
         break;
 
