@@ -38,7 +38,10 @@ public:
           presentFlags( 0 ), present( 0 ),
           flagCreator( 0 ),
           annotationNameCreator( 0 ),
-          transaction( 0 ), session( 0 )
+          transaction( 0 ), session( 0 ),
+          changeSeen( false ), changeDeleted( false ),
+          newSeen( false ), newDeleted( false ),
+          sentNextModSeq( false ), modseqUpdate( 0 )
     {}
     IntegerSet specified;
     IntegerSet s;
@@ -71,7 +74,14 @@ public:
     ImapSession * session;
 
     List<Annotation> annotations;
-    EString mmExtra;
+    bool changeSeen;
+    bool changeDeleted;
+    bool newSeen;
+    bool newDeleted;
+    IntegerSet changedUids;
+
+    bool sentNextModSeq;
+    Query * modseqUpdate;
 };
 
 
@@ -306,7 +316,6 @@ void Store::parseAnnotationEntry()
 }
 
 
-
 /*! Stores all the annotations/flags, using potentially enormous
     numbers of database queries. The command is kept atomic by the use
     of a Transaction.
@@ -489,7 +498,7 @@ void Store::execute()
             break;
         }
 
-        if ( !work ) {
+        if ( !work && !d->changeSeen && !d->changeDeleted ) {
             // there's no actual work to be done.
             d->transaction->commit();
             finish();
@@ -510,17 +519,89 @@ void Store::execute()
             return;
         }
         d->modseq = r->getBigint( "nextmodseq" );
-        Query * q = 0;
-        q = new Query( "update mailbox_messages set modseq=$1 "
-                       + d->mmExtra +
-                       "where mailbox=$2 and uid=any($3)", 0 );
-        q->bind( 1, d->modseq );
-        q->bind( 2, m->id() );
-        q->bind( 3, d->s );
-        d->transaction->enqueue( q );
 
-        q = new Query( "update mailboxes set nextmodseq=$1 "
-                       "where id=$2", 0 );
+        d->modseqUpdate = new Query( "", this );
+        d->modseqUpdate->bind( 1, d->modseq );
+        d->modseqUpdate->bind( 2, m->id() );
+        d->modseqUpdate->bind( 3, d->s );
+        EString uq(  "update mailbox_messages set modseq=$1" );
+        if ( d->changeSeen ) {
+            uq.append( ",seen=" );
+            if ( d->newSeen )
+                uq.append( "true" );
+            else
+                uq.append( "false" );
+        }
+        if ( d->changeDeleted ) {
+            uq.append( ",deleted=" );
+            if ( d->newDeleted )
+                uq.append( "true" );
+            else
+                uq.append( "false" );
+        }
+        uq.append( " where mailbox=$2 and uid=any($3)" );
+        EStringList extraConditions;
+        bool checkSeenDeleted = true;
+        if ( d->changedUids.isEmpty() ) {
+            // in this case we're only changing seen/deleted
+        }
+        else if ( d->changedUids.contains( d->s ) ) {
+            // we change another flag on every message we touch, so
+            // there's nothing more we need
+            checkSeenDeleted = false;
+        }
+        else {
+            // we change flags on some messages, but maybe
+            // seen/deleted on more?
+            extraConditions.join( "uid=any($4)" );
+            d->modseqUpdate->bind( 4, d->changedUids );
+        }
+        if ( checkSeenDeleted ) {
+            if ( d->changeSeen ) {
+                if ( d->newSeen )
+                    extraConditions.append( "not seen" );
+                else
+                    extraConditions.append( "seen" );
+            }
+            if ( d->changeDeleted ) {
+                if ( d->newDeleted )
+                    extraConditions.append( "not deleted" );
+                else
+                    extraConditions.append( "deleted" );
+            }
+        }
+        if ( extraConditions.isEmpty() ) {
+            // nothing needed
+        }
+        else if ( extraConditions.count() == 1 ) {
+            uq.append( " and " );
+            uq.append( extraConditions.join( "" ) );
+        }
+        else {
+            uq.append( " and (" );
+            uq.append( extraConditions.join( " or " ) );
+            uq.append( ")" );
+        }
+        d->modseqUpdate->setString( uq );
+        d->transaction->enqueue( d->modseqUpdate );
+        d->transaction->execute();
+    }
+
+    if ( !d->modseqUpdate->done() )
+        return;
+
+    if ( !d->sentNextModSeq ) {
+        if ( !d->modseqUpdate->rows() ) {
+            // we updated zero mailbox_messages rows, so we also
+            // should not consume a modseq.
+            d->transaction->commit();
+            finish();
+            return;
+        }
+        d->sentNextModSeq = true;
+
+        Query * q = new Query( "update mailboxes set nextmodseq=$1 "
+                               "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, m->id() );
         d->transaction->enqueue( q );
@@ -604,6 +685,8 @@ bool Store::processAnnotationNames()
     database. If \a opposite, removes all other flags, but leaves the
     specified flags.
 
+    Returns true if it enqueues a query and false if it does not.
+
     This is a not ideal for the case where a single flag is removed
     from a single messages or from a simple range of messages. In that
     case, we could use a PreparedStatement. Later.
@@ -613,6 +696,8 @@ bool Store::removeFlags( bool opposite )
 {
     IntegerSet flags;
 
+    IntegerSet unchanged;
+    unchanged.add( d->specified );
     EStringList::Iterator i( d->flagNames );
     while ( i ) {
         uint id = 0;
@@ -623,19 +708,30 @@ bool Store::removeFlags( bool opposite )
         ++i;
         if ( id ) {
             IntegerSet * present = d->present->find( id );
-            if ( present && !present->isEmpty() )
+            if ( present && !present->isEmpty() ) {
                 flags.add( id );
+                unchanged = unchanged.intersection( *present );
+            }
         }
     }
+    IntegerSet changed;
+    changed.add( d->specified );
+    changed.remove( unchanged );
+    d->changedUids.add( changed );
+
     if ( ( d->seen && !opposite ) ||
-         ( opposite && !d->seen ) )
-        d->mmExtra.append( ",seen='f'" );
+         ( opposite && !d->seen ) ) {
+        d->changeSeen = true;
+        d->newSeen = false;
+    }
     if ( ( d->deleted && !opposite ) ||
-         ( opposite && !d->deleted ) )
-        d->mmExtra.append( ",deleted='f'" );
+         ( opposite && !d->deleted ) ) {
+        d->changeDeleted = true;
+        d->newDeleted = false;
+    }
 
     if ( flags.isEmpty() && !opposite )
-        return !d->mmExtra.isEmpty();
+        return false;
         
     EString s = "delete from flags where mailbox=$1 and uid=any($2) and ";
     if ( opposite )
@@ -651,8 +747,8 @@ bool Store::removeFlags( bool opposite )
 }
 
 
-/*! Adds all the necessary flags to the database. Returns true if that
-    requires any work at all.
+/*! Adds all the necessary flags to the database. Returns true if it
+    sends any queries.
 */
 
 bool Store::addFlags()
@@ -673,10 +769,12 @@ bool Store::addFlags()
             flag = Flag::id( *it );
         ++it;
         if ( Flag::isSeen( flag ) ) {
-            d->mmExtra.append( ", seen='t'" );
+            d->changeSeen = true;
+            d->newSeen = true;
         }
         else if ( Flag::isDeleted( flag ) ) {
-            d->mmExtra.append( ", deleted='t'" );
+            d->changeDeleted = true;
+            d->newDeleted = true;
         }
         else if ( flag ) {
             IntegerSet * p = d->present->find( flag );
@@ -699,7 +797,7 @@ bool Store::addFlags()
     if ( work )
         d->transaction->enqueue( q );
 
-    return work || d->seen || d->deleted;
+    return work;
 }
 
 
