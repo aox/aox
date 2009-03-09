@@ -4011,3 +4011,59 @@ bool Schema::stepTo84()
                               0 ) );
     return true;
 }
+
+
+/*! Starting with schema 80, we want aox upgrade schema to be able to
+    downgrade. We do that by storing downgrade functions in the
+    database. This schema adds the first few.
+*/
+
+bool Schema::stepTo85()
+{
+    describeStep( "Adding functions to downgrade the schema." );
+    d->t->enqueue(
+        new Query( "create function downgrade_to_84() as $$"
+                   "begin " // no-op
+                   "drop table retention_policies; "
+                   "end;$$ language 'plpgsql'", 0 ) );
+    d->t->enqueue(
+        new Query( "create function downgrade_to_83() as $$"
+                   "begin "
+                   "drop table retention_policies; "
+                   "end;$$ language 'plpgsql'", 0 ) );
+    d->t->enqueue(
+        new Query( "create function downgrade_to_82() as $$"
+                   "begin "
+                   "insert into flags (mailbox, uid, seen) "
+                   "select mailbox, uid, "
+                   " (select id from flags where name='\\Seen') "
+                   "from mailbox_messages where seen; "
+                   "insert into flags (mailbox, uid, seen) "
+                   "select mailbox, uid, "
+                   " (select id from flags where name='\\Deleted') "
+                   "from mailbox_messages where deleted; "
+                   "alter table mailbox_messages drop seen, drop deleted; "
+                   "end;$$ language 'plpgsql'", 0 ) );
+    d->t->enqueue(
+        new Query( "create function downgrade_to_81() as $$"
+                   "begin "
+                   "drop trigger mailbox_update_trigger on mailboxes; "
+                   "drop function mailbox_update_trigger(); "
+                   "end;$$ language 'plpgsql'", 0 ) );
+    d->t->enqueue(
+        new Query( "create function downgrade_to_80() as $$"
+                   "begin "
+                   "drop trigger mailbox_owner_trigger on mailboxes; "
+                   "drop function set_mailbox_owner(); "
+                   "end;$$ language 'plpgsql'", 0 ) );
+    return true;
+}
+
+
+// should only do the substantive change. other code will drop the
+// function and adjust the mailstore revision.
+
+//    d->t->enqueue(
+//        new Query( "create function downgrade_to_84() as $$"
+//                   "begin "
+//                   "end;$$ language 'plpgsql'", 0 ) );
