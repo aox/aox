@@ -32,7 +32,7 @@ class HelperRowCreatorData
 public:
     HelperRowCreatorData()
         : s( 0 ), c( 0 ), notify( 0 ), parent( 0 ), t( 0 ),
-          done( false )
+          done( false ), inserted( false )
     {}
 
     Query * s;
@@ -43,6 +43,7 @@ public:
     EString n;
     EString e;
     bool done;
+    bool inserted;
     Dict<uint> names;
 };
 
@@ -112,6 +113,7 @@ void HelperRowCreator::execute()
                 Query * q = new Query( "notify " + ed, this );
                 d->t->enqueue( q );
                 d->t->execute();
+                d->inserted = true;
             }
         }
 
@@ -207,6 +209,16 @@ uint HelperRowCreator::id( const EString & s )
     if ( p )
         return *p;
     return 0;
+}
+
+
+/*! Returns true if this creator inserted at least one row, and false
+    if lookup alone was enough to do the work.
+*/
+
+bool HelperRowCreator::inserted() const
+{
+    return d->inserted;
 }
 
 

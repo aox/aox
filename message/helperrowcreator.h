@@ -20,6 +20,8 @@ public:
 
     uint id( const EString & );
 
+    bool inserted() const;
+
 protected:
     void add( const EString &, uint );
 
@@ -38,6 +40,8 @@ class FlagCreator
 {
 public:
     FlagCreator( const EStringList &, class Transaction * );
+
+    EStringList * allFlags() { return &names; }
 
 private:
     Query * makeSelect();
