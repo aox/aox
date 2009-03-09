@@ -182,7 +182,8 @@ void Status::execute()
         }
         else {
             d->unseenCount
-                = new Query( "select $1::int as mailbox, count(uid) as unseen "
+                = new Query( "select $1::int as mailbox, "
+                             "count(uid)::int as unseen "
                              "from mailbox_messages "
                              "where mailbox=$1 and not seen", this );
             d->unseenCount->bind( 1, d->mailbox->id() );
