@@ -35,7 +35,6 @@ public:
         class TlsServerData * d;
 
         EString tag;
-        bool done;
         bool connected;
     };
 
@@ -52,7 +51,7 @@ public:
 
 TlsServerData::Client::Client( TlsServerData * data )
     : Connection(),
-      d( data ), done( false ), connected( false )
+      d( data ), connected( false )
 {
     setTimeoutAfter( 10 );
     connect( *tlsProxy );
@@ -78,8 +77,6 @@ void TlsServerData::Client::react( Event e )
     EString * s = readBuffer()->removeLine();
     if ( !s )
         return;
-
-    done = true;
 
     EString l = s->simplified();
     if ( l.startsWith( "tlsproxy " ) ) {
