@@ -21,6 +21,7 @@ public:
     bool isEmpty() const;
 
     bool contains( uint ) const;
+    bool contains( const IntegerSet & ) const;
 
     uint value( uint ) const;
     uint index( uint ) const;

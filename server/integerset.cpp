@@ -585,3 +585,32 @@ void IntegerSet::recount() const
             d->b.remove( b->start );
     }
 }
+
+
+/*! Returns true if this set contains all values in \a other, and
+    false if not.
+*/
+
+bool IntegerSet::contains( const IntegerSet & other ) const
+{
+    Map<SetData::Block>::Iterator m( d->b );
+    Map<SetData::Block>::Iterator h( other.d->b );
+    while ( h ) {
+        while ( m && m->start < h->start )
+            ++m;
+        if ( !m )
+            return false;
+        if ( h->start < m->start )
+            return false;
+        if ( h->count && m->count && h->count > m->count )
+            return false;
+        uint i = 0;
+        while ( i < ArraySize ) {
+            if ( ( m->contents[i] & h->contents[i] ) != h->contents[i] )
+                return false;
+            i++;
+        }
+        ++h;
+    }
+    return true;
+}
