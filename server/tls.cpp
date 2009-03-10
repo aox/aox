@@ -31,6 +31,7 @@ public:
     public:
         Client( TlsServerData * );
         void react( Event );
+        void connect();
 
         class TlsServerData * d;
 
@@ -53,9 +54,14 @@ TlsServerData::Client::Client( TlsServerData * data )
     : Connection(),
       d( data ), connected( false )
 {
-    setTimeoutAfter( 10 );
-    connect( *tlsProxy );
     EventLoop::global()->addConnection( this );
+}
+
+
+void TlsServerData::Client::connect()
+{
+    setTimeoutAfter( 10 );
+    Connection::connect( *tlsProxy );
 }
 
 
@@ -133,6 +139,8 @@ TlsServer::TlsServer( EventHandler * handler, const Endpoint & client,
     if ( Configuration::toggle( Configuration::UseTls ) ) {
         d->serverside = new TlsServerData::Client( d );
         d->userside = new TlsServerData::Client( d );
+        d->serverside->connect();
+        d->userside->connect();
     }
     else {
         d->done = true;
