@@ -177,7 +177,8 @@ void Status::execute()
             d->unseenCount
                 = new Query( "select mailbox, count(uid) as unseen "
                              "from mailbox_messages "
-                             "where mailbox=any($1) and not seen", this );
+                             "where mailbox=any($1) and not seen "
+                             "group by mailbox", this );
             d->unseenCount->bind( 1, mailboxes );
         }
         else {
