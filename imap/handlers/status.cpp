@@ -21,13 +21,15 @@ public:
         recent( false ), unseen( false ),
         modseq( false ),
         mailbox( 0 ),
-        unseenCount( 0 ), messageCount( 0 ), recentCount( 0 )
+        unseenCount( 0 ), messageCount( 0 ), recentCount( 0 ),
+        cacheState( 0 )
         {}
     bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
     Query * unseenCount;
     Query * messageCount;
     Query * recentCount;
+    uint cacheState;
 
     class CacheItem
         : public Garbage
@@ -151,43 +153,145 @@ void Status::execute()
     if ( state() != Executing )
         return;
 
+    // first part. set up.
+    if ( !permitted() )
+        return;
+
     Session * session = imap()->session();
     Mailbox * current = 0;
     if ( session )
         current = session->mailbox();
 
+    // second part. see if anything has happened, and feed the cache if
+    // so. make sure we feed the cache at once.
+    if ( d->unseenCount || d->recentCount || d->messageCount ) {
+        if ( d->unseenCount && !d->unseenCount->done() )
+            return;
+        if ( d->messageCount && !d->messageCount->done() )
+            return;
+        if ( d->recentCount && !d->recentCount->done() )
+            return;
+    }
     if ( !::cache )
         ::cache = new StatusData::StatusCache;
-    StatusData::CacheItem * i = ::cache->provide( d->mailbox );
-
-    IntegerSet mailboxes;
-    if ( mailboxGroup() ) {
-        List<Mailbox>::Iterator i( mailboxGroup()->contents() );
-        while ( i ) {
-            mailboxes.add( i->id() );
-            ++i;
+    
+    if ( d->unseenCount ) {
+        while ( d->unseenCount->hasResults() ) {
+            Row * r = d->unseenCount->nextRow();
+            StatusData::CacheItem * ci =
+                ::cache->find( r->getInt( "mailbox" ) );
+            if ( ci ) {
+                ci->hasUnseen = true;
+                ci->unseen = r->getInt( "unseen" );
+            }
+        }
+    }
+    if ( d->recentCount ) {
+        while ( d->recentCount->hasResults() ) {
+            Row * r = d->recentCount->nextRow();
+            StatusData::CacheItem * ci =
+                ::cache->find( r->getInt( "mailbox" ) );
+            if ( ci ) {
+                ci->hasRecent = true;
+                ci->recent = r->getInt( "recent" );
+            }
+        }
+    }
+    if ( d->messageCount ) {
+        while ( d->messageCount->hasResults() ) {
+            Row * r = d->messageCount->nextRow();
+            StatusData::CacheItem * ci =
+                ::cache->find( r->getInt( "mailbox" ) );
+            if ( ci ) {
+                ci->hasMessages = true;
+                ci->messages = r->getInt( "messages" );
+            }
         }
     }
 
+    // third part. are we processing the first command in a STATUS
+    // loop? if so, see if we ought to preload the cache.
+    if ( mailboxGroup() && d->cacheState < 3 ) {
+        IntegerSet mailboxes;
+        if ( d->cacheState < 1 ) {
+            // cache state 0: decide which messages
+            List<Mailbox>::Iterator i( mailboxGroup()->contents() );
+            while ( i ) {
+                StatusData::CacheItem * ci = ::cache->provide( i );
+                bool need = false;
+                if ( d->unseen || d->recent || d->messages )
+                    need = true;
+                if ( ci->hasUnseen || ci->hasRecent || ci->hasMessages )
+                    need = false;
+                if ( need )
+                    mailboxes.add( i->id() );
+                ++i;
+            }
+            if ( mailboxes.count() < 3 )
+                d->cacheState = 3;
+        }
+        if ( d->cacheState == 1 ) {
+            // state 1: send queries
+            if ( d->unseen ) {
+                d->unseenCount
+                    = new Query( "select mailbox, count(uid)::int as unseen "
+                                 "from mailbox_messages "
+                                 "where mailbox=any($1) and not seen "
+                                 "group by mailbox", this );
+                d->unseenCount->bind( 1, mailboxes );
+                d->unseenCount->execute();
+            }
+            if ( d->recent ) {
+                d->recentCount
+                    = new Query( "select id as mailbox, "
+                                 "uidnext-first_recent as recent "
+                                 "from mailboxes where id=any($1)", this );
+                d->recentCount->bind( 1, mailboxes );
+                d->recentCount->execute();
+            }
+            if ( d->messages ) {
+                d->messageCount
+                    = new Query( "select count(*)::int as messages, mailbox "
+                                 "from mailbox_messages where mailbox=any($1) "
+                                 "group by mailbox", this );
+                d->messageCount->bind( 1, mailboxes );
+                d->messageCount->execute();
+            }
+            d->cacheState = 2;
+        }
+        if ( d->cacheState == 2 ) {
+            // state 2: mark the cache as complete.
+            IntegerSet mailboxes;
+            List<Mailbox>::Iterator i( mailboxGroup()->contents() );
+            while ( i ) {
+                StatusData::CacheItem * ci = ::cache->find( i->id() );
+                if ( ci && d->unseenCount )
+                    ci->hasUnseen = true;
+                if ( ci && d->recentCount )
+                    ci->hasRecent = true;
+                if ( ci && d->messageCount )
+                    ci->hasMessages = true;
+                ++i;
+            }
+            // and drop the queries
+            d->cacheState = 3;
+            d->unseenCount = 0;
+            d->recentCount = 0;
+            d->messageCount = 0;
+        }
+    }
+
+    // the cache item we'll actually read from
+    StatusData::CacheItem * i = ::cache->provide( d->mailbox );
+
+    // fourth part: send individual queries if there's anything we need
     if ( d->unseen && !d->unseenCount && !i->hasUnseen ) {
-        // UNSEEN is horribly slow. I don't think this is fixable
-        // really.
-        if ( mailboxGroup() ) {
-            d->unseenCount
-                = new Query( "select mailbox, count(uid)::int as unseen "
-                             "from mailbox_messages "
-                             "where mailbox=any($1) and not seen "
-                             "group by mailbox", this );
-            d->unseenCount->bind( 1, mailboxes );
-        }
-        else {
-            d->unseenCount
-                = new Query( "select $1::int as mailbox, "
-                             "count(uid)::int as unseen "
-                             "from mailbox_messages "
-                             "where mailbox=$1 and not seen", this );
-            d->unseenCount->bind( 1, d->mailbox->id() );
-        }
+        d->unseenCount
+            = new Query( "select $1::int as mailbox, "
+                         "count(uid)::int as unseen "
+                         "from mailbox_messages "
+                         "where mailbox=$1 and not seen", this );
+        d->unseenCount->bind( 1, d->mailbox->id() );
         d->unseenCount->execute();
     }
 
@@ -201,20 +305,11 @@ void Status::execute()
         // the cache has it
     }
     else if ( !d->recentCount ) {
-        if ( mailboxGroup() ) {
-            d->recentCount
-                = new Query( "select id as mailbox, "
-                             "uidnext-first_recent as recent "
-                             "from mailboxes where id=any($1)", this );
-            d->recentCount->bind( 1, mailboxes );
-        }
-        else {
-            d->recentCount
-                = new Query( "select id as mailbox, "
-                             "uidnext-first_recent as recent "
-                             "from mailboxes where id=$1", this );
-            d->recentCount->bind( 1, d->mailbox->id() );
-        }
+        d->recentCount
+            = new Query( "select id as mailbox, "
+                         "uidnext-first_recent as recent "
+                         "from mailboxes where id=$1", this );
+        d->recentCount->bind( 1, d->mailbox->id() );
         d->recentCount->execute();
     }
 
@@ -228,76 +323,31 @@ void Status::execute()
         // the cache has it
     }
     else if ( d->messages && !d->messageCount ) {
-        if ( mailboxGroup() ) {
-            d->messageCount
-                = new Query( "select count(*)::int as messages, mailbox "
-                             "from mailbox_messages where mailbox=any($1) "
-                             "group by mailbox", this );
-            d->messageCount->bind( 1, mailboxes );
-        }
-        else {
-            d->messageCount
-                = new Query( "select count(*)::int as messages, "
-                             "$1::int as mailbox "
-                             "from mailbox_messages where mailbox=$1", this );
-            d->messageCount->bind( 1, d->mailbox->id() );
-        }
+        d->messageCount
+            = new Query( "select count(*)::int as messages, "
+                         "$1::int as mailbox "
+                         "from mailbox_messages where mailbox=$1", this );
+        d->messageCount->bind( 1, d->mailbox->id() );
         d->messageCount->execute();
     }
 
-    // second part: wait until we have the information
-    if ( !permitted() )
-        return;
-    if ( d->unseenCount && !d->unseenCount->done() )
-        return;
-    if ( d->messageCount && !d->messageCount->done() )
-        return;
-    if ( d->recentCount && !d->recentCount->done() )
-        return;
-
-    // the queries often return zero rows if all the numbers are zero,
-    // so we have to fill in hasRecent etc. even if we don't get a
-    // row.
-    uint id = mailboxes.count();
-    while ( id ) {
-        StatusData::CacheItem * ci = ::cache->find( mailboxes.value( id ) );
-        if ( ci ) {
-            if ( d->messageCount )
-                ci->hasMessages = true;
-            if ( d->recentCount )
-                ci->hasRecent = true;
-            if ( d->unseenCount )
-                ci->hasUnseen = true;
-        }
-        --id;
+    if ( d->unseenCount || d->recentCount || d->messageCount ) {
+        if ( d->unseenCount && !d->unseenCount->done() )
+            return;
+        if ( d->messageCount && !d->messageCount->done() )
+            return;
+        if ( d->recentCount && !d->recentCount->done() )
+            return;
     }
 
-    // third part: return the payload.
+    // fifth part: return the payload.
     EStringList status;
 
-    if ( d->messageCount ) {
-        while ( d->messageCount->hasResults() ) {
-            Row * r = d->messageCount->nextRow();
-            StatusData::CacheItem * ci =
-                ::cache->find( r->getInt( "mailbox" ) );
-            if ( ci )
-                ci->messages = r->getInt( "messages" );
-        }
-    }
     if ( d->messages && i->hasMessages )
         status.append( "MESSAGES " + fn( i->messages ) );
     else if ( d->messages && d->mailbox == current )
         status.append( "MESSAGES " + fn( session->messages().count() ) );
 
-    if ( d->recentCount ) {
-        while ( d->recentCount->hasResults() ) {
-            Row * r = d->recentCount->nextRow();
-            StatusData::CacheItem * ci =
-                ::cache->find( r->getInt( "mailbox" ) );
-            if ( ci )
-                ci->recent = r->getInt( "recent" );
-        }
-    }
     if ( d->recent && i->hasRecent )
         status.append( "RECENT " + fn( i->recent ) );
     else if ( d->recent && d->mailbox == current )
@@ -309,15 +359,6 @@ void Status::execute()
     if ( d->uidvalidity )
         status.append( "UIDVALIDITY " + fn( d->mailbox->uidvalidity() ) );
 
-    if ( d->unseenCount ) {
-        while ( d->unseenCount->hasResults() ) {
-            Row * r = d->unseenCount->nextRow();
-            StatusData::CacheItem * ci =
-                ::cache->find( r->getInt( "mailbox" ) );
-            if ( ci )
-                ci->unseen = r->getInt( "unseen" );
-        }
-    }
     if ( d->unseen && i->hasUnseen )
         status.append( "UNSEEN " + fn( i->unseen ) );
 
