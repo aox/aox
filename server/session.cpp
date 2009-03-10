@@ -1058,3 +1058,125 @@ void Session::clearUnannounced()
 void Session::sendFlagUpdate()
 {
 }
+
+
+class SessionPreloaderData
+    : public Garbage
+{
+public:
+    SessionPreloaderData(): owner( 0 ), lock( 0 ), uids( 0 ), done( false ) {}
+
+    List<Mailbox> l;
+    EventHandler * owner;
+    Query * lock;
+    Query * uids;
+    bool done;
+};
+
+
+/*!  Constructs a SessionPreloader which will preload the session cache
+     with information about \a mailboxes, and then notify \a handler.
+
+     If the cache already contains all that information, then
+     execute() will set done() and not call \a handler.
+*/
+
+SessionPreloader::SessionPreloader( List<Mailbox> * mailboxes,
+                                  EventHandler * handler )
+    : d( new SessionPreloaderData )
+{
+    List<Mailbox>::Iterator i( mailboxes );
+    while ( i ) {
+        d->l.append( i );
+        ++i;
+    }
+    d->owner = handler;
+}
+
+
+void SessionPreloader::execute()
+{
+    if ( !::cache )
+        ::cache = new SessionData::SessionCache;
+
+    if ( !d->uids ) {
+        IntegerSet e;
+        IntegerSet a;
+        IntegerSet s;
+        List<Mailbox>::Iterator i( d->l );
+        while ( i ) {
+            if ( i->uidnext() <= 1 )
+                e.add( i->id() );
+            else if ( ::cache->data.find( i->id() ) )
+                a.add( i->id() );
+            else
+                s.add( i->id() );
+            ++i;
+        }
+        if ( s.count() > 2 ) {
+            log( "Session preloader: " +
+                 fn( a.count() ) + " already cached, " +
+                 fn( e.count() ) + " mailboxes empty, " +
+                 fn( s.count() ) + " can be preloaded." );
+            Transaction * t = new Transaction( this );
+            d->lock
+                = new Query( "select id, uidnext, nextmodseq, first_recent "
+                             "from mailboxes where id=any($1) "
+                             "order by id for update", 0 );
+            d->lock->bind( 1, s );
+            t->enqueue( d->lock );
+            d->uids = new Query( "select mailbox, uid from mailbox_messages "
+                                 "where mailbox=any($1)", this );
+            d->uids->bind( 1, s );
+            t->enqueue( d->uids );
+            t->commit();
+        }
+        else {
+            // for just 0-2 mailboxes this query won't be a net gain
+            d->done = true;
+        }
+    }
+
+    if ( !d->uids || !d->uids->done() )
+        return;
+
+    while ( d->lock->hasResults() ) {
+        Row * r = d->lock->nextRow();
+
+        SessionData::CachedData * cd = ::cache->data.find( r->getInt( "id" ) );
+        if ( !cd ) {
+            cd = new SessionData::CachedData;
+            ::cache->data.insert( r->getInt( "id" ), cd );
+        }
+
+        cd->uidnext = r->getInt( "uidnext" );
+        cd->nextModSeq = r->getBigint( "nextmodseq" );
+
+        // if there are recent messages the next SI has to look, so
+        // force it. sigh. recent is such a mess.
+        if ( cd->uidnext > (uint)r->getInt( "first_recent" ) )
+            cd->nextModSeq--;
+    }
+
+    while ( d->uids->hasResults() ) {
+        Row * r = d->uids->nextRow();
+        SessionData::CachedData * cd =
+            ::cache->data.find( r->getInt( "mailbox" ) );
+        if ( cd )
+            cd->msns.add( r->getInt( "uid" ) );
+    }
+
+    d->done = true;
+    d->owner->notify();
+}
+
+
+/*! Returns true if the SessionPreloader has done all it's going to do,
+    and false if it hasn't.
+
+*/
+
+bool SessionPreloader::done()
+{
+    return d->done;
+}

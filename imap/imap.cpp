@@ -881,9 +881,9 @@ MailboxGroup * IMAP::mostLikelyGroup( Mailbox * m, uint l )
     while ( i ) {
         MailboxGroup * g = i;
         ++i;
-        if ( g->contains( m ) || g->hits() < l ) {
+        if ( g->contains( m ) && g->hits() >= l ) {
             uint count = g->count();
-            if ( !best || bestCount > count ) {
+            if ( !best || bestCount < count ) {
                 best = g;
                 bestCount = count;
             }

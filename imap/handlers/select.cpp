@@ -13,6 +13,7 @@
 #include "mailbox.h"
 #include "imapsession.h"
 #include "permissions.h"
+#include "mailboxgroup.h"
 
 
 class SelectData
@@ -23,7 +24,8 @@ public:
         : readOnly( false ), annotate( false ), condstore( false ),
           needFirstUnseen( false ),
           firstUnseen( 0 ), allFlags( 0 ),
-          mailbox( 0 ), session( 0 ), permissions( 0 )
+          mailbox( 0 ), session( 0 ), permissions( 0 ),
+          cacheFirstUnseen( 0 ), sessionPreloader( 0 )
     {}
 
     bool readOnly;
@@ -35,6 +37,8 @@ public:
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
+    Query * cacheFirstUnseen;
+    SessionPreloader * sessionPreloader;
 
     class FirstUnseenCache
         : public Cache
@@ -178,6 +182,46 @@ void Select::execute()
              !d->permissions->allowed( Permissions::KeepSeen ) )
             d->readOnly = true;
     }
+
+    if ( !::firstUnseenCache )
+        ::firstUnseenCache = new SelectData::FirstUnseenCache;
+
+    if ( mailboxGroup() && !d->sessionPreloader ) {
+        d->sessionPreloader = new SessionPreloader( mailboxGroup()->contents(),
+                                                    this );
+        d->sessionPreloader->execute();
+
+        IntegerSet s;
+        List<Mailbox>::Iterator i( mailboxGroup()->contents() );
+        while ( i ) {
+            if ( !::firstUnseenCache->find( i, i->nextModSeq() ) )
+                s.add( i->id() );
+            ++i;
+        }
+        if ( s.count() > 2 ) {
+            d->cacheFirstUnseen
+                = new Query( "select min(uid) as uid, mailbox, "
+                             "max(modseq) as modseq "
+                             "from mailbox_messages mm "
+                             "where mailbox=any($1) and not seen "
+                             "group by mailbox", this );
+            d->cacheFirstUnseen->bind( 1, s );
+            d->cacheFirstUnseen->execute();
+        }
+    }
+    if ( d->sessionPreloader ) {
+        while ( d->cacheFirstUnseen && d->cacheFirstUnseen->hasResults() ) {
+            Row * r = d->cacheFirstUnseen->nextRow();
+            Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+            ::firstUnseenCache->insert( m, 1 + r->getBigint( "modseq" ),
+                                        r->getInt( "uid" ) );
+        }
+        if ( d->cacheFirstUnseen && !d->cacheFirstUnseen->done() )
+            return;
+        if ( !d->sessionPreloader->done() )
+            return;
+    }
+
 
     if ( !d->session ) {
         if ( imap()->session() )
