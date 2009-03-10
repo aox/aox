@@ -1016,7 +1016,7 @@ EString Postgres::mapped( const EString & s ) const
 void Postgres::error( const EString &s )
 {
     Scope x( log() );
-    ::log( s, Log::Error );
+    ::log( s + " (on backend " + fn( connectionNumber() ) + ")", Log::Error );
 
     d->error = true;
     d->active = false;
@@ -1033,6 +1033,9 @@ void Postgres::error( const EString &s )
 
     writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );
+
+    if ( ::listener == this )
+        ::listener = 0;
 }
 
 
