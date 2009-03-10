@@ -161,7 +161,6 @@ void Status::execute()
     StatusData::CacheItem * i = ::cache->provide( d->mailbox );
 
     IntegerSet mailboxes;
-    mailboxes.add( d->mailbox->id() );
     if ( mailboxGroup() ) {
         List<Mailbox>::Iterator i( mailboxGroup()->contents() );
         while ( i ) {
@@ -272,7 +271,7 @@ void Status::execute()
         }
         --id;
     }
-    
+
     // third part: return the payload.
     EStringList status;
 

@@ -58,9 +58,8 @@ MailboxGroup::MailboxGroup( List<Mailbox> * mailboxes, IMAP * imap )
 
 /*! Returns true if this group contains \a m, and false if not.
 
-    Also updates the hits() and misses counters, removes \a m from
-    this group if present, and removes itself if the number of misses
-    is too large.
+    Also updates the hits() and misses counters, and removes itself if
+    the number of misses is too large.
 */
 
 bool MailboxGroup::contains( const Mailbox * m )
@@ -119,4 +118,12 @@ List<Mailbox> * MailboxGroup::contents() const
 uint MailboxGroup::count() const
 {
     return d->mailboxes.count();
+}
+
+
+/*! Removes \a m from this group. */
+
+void MailboxGroup::remove( Mailbox * m )
+{
+    d->mailboxes.remove( m->id() );
 }

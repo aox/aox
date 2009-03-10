@@ -8,9 +8,10 @@
 #include "user.h"
 #include "buffer.h"
 #include "mailbox.h"
-#include "imapsession.h"
 #include "integerset.h"
 #include "imapparser.h"
+#include "imapsession.h"
+#include "mailboxgroup.h"
 
 // Keep these alphabetical.
 #include "handlers/acl.h"
@@ -645,6 +646,9 @@ void Command::finish()
         imap()->setPrefersAbsoluteMailboxes( false );
     else if ( d->usesAbsoluteMailbox )
         imap()->setPrefersAbsoluteMailboxes( true );
+
+    if ( d->mailboxGroup && d->mailbox )
+        d->mailboxGroup->remove( d->mailbox );
 
     setState( Finished );
 }

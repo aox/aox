@@ -17,6 +17,8 @@ public:
 
     bool contains( const Mailbox * );
 
+    void remove( Mailbox * );
+
     uint hits() const;
     uint count() const;
 
