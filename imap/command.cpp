@@ -69,7 +69,8 @@ public:
           state( Command::Unparsed ), group( 0 ),
           permittedStates( 0 ),
           imap( 0 ), session( 0 ), checker( 0 ),
-          mailbox( 0 ), mailboxGroup( 0 )
+          mailbox( 0 ), mailboxGroup( 0 ),
+          checkedMailboxGroup( false )
     {
         (void)::gettimeofday( &started, 0 );
     }
@@ -103,6 +104,7 @@ public:
 
     Mailbox * mailbox;
     MailboxGroup * mailboxGroup;
+    bool checkedMailboxGroup;
 };
 
 
@@ -1380,9 +1382,9 @@ ImapSession * Command::session()
 
 MailboxGroup * Command::mailboxGroup()
 {
-    if ( d->mailbox && !d->mailboxGroup ) {
+    if ( d->mailbox && !d->checkedMailboxGroup ) {
         d->mailboxGroup = imap()->mostLikelyGroup( d->mailbox, 3 );
-        d->mailbox = 0;
+        d->checkedMailboxGroup = true;
     }
 
     return d->mailboxGroup;
