@@ -414,7 +414,8 @@ void Search::execute()
             return;
         }
 
-        d->query = d->root->query( imap()->user(), s->mailbox(), s, this );
+        d->query = d->root->query( imap()->user(), s->mailbox(),
+                                   s, this, false );
         d->query->execute();
     }
 
