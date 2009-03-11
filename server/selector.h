@@ -113,4 +113,20 @@ private:
 };
 
 
+class RetentionSelector
+    : public EventHandler
+{
+public:
+    RetentionSelector( Mailbox *, int64, EventHandler * );
+    RetentionSelector( EventHandler * );
+
+    void execute();
+    bool done();
+    Query * query();
+
+private:
+    class RetentionSelectorData * d;
+};
+
+
 #endif

@@ -2153,3 +2153,219 @@ bool Selector::alsoChildren() const
 {
     return d->mc;
 }
+
+
+class RetentionSelectorData
+    : public Garbage
+{
+public:
+    RetentionSelectorData()
+        : m( 0 ), ms( 0 ), done( false ), q( 0 ),
+          root( 0 ), owner( 0 ) {}
+    Mailbox * m;
+    int64 ms;
+    bool done;
+    Query * q;
+    Selector * root;
+    EventHandler * owner;
+};
+
+
+/*! \class RetentionSelector selector.h
+
+    The RetentionSelector class makes a Selector based on the
+    retention_policies table, and produces queries to do what
+    retention demands.
+
+    Somewhat slow, perhaps. We'll have to optimise that later.
+*/
+
+
+/*! Constructs a retention selector to clear the deleted flag on all
+    messages in \a m which should be retained, setting their modseq to
+    \a ms, and notifies \a h once the query is ready().
+
+    Once execute() has been called and done() returns true, query()
+    returns a suitable query.
+
+    The query may be ready after the first execute(). In that case \a
+    h is not notified separately.
+*/
+
+RetentionSelector::RetentionSelector( Mailbox * m, int64 ms,
+                                      EventHandler * h )
+    : d( new RetentionSelectorData )
+{
+    d->m = m;
+    d->ms = ms;
+    d->owner = h;
+}
+
+
+/*! Constructs a RetentionSelector to cook up the giant 'insert into
+    deleted_messages' query aox vacuum needs. Will notify() \a h when
+    done(). You have to call execute() once.
+*/
+
+RetentionSelector::RetentionSelector( EventHandler * h )
+    : d( new RetentionSelectorData )
+{
+    d->owner = h;
+}
+
+
+void RetentionSelector::execute()
+{
+    if ( d->root )
+        return;
+
+    if ( !d->q ) {
+        if ( d->m ) {
+            // we're looking for 'retain' policies that apply to d->m
+            IntegerSet ids;
+            Mailbox * m = d->m;
+            while ( m ) {
+                if ( m->id() && !m->deleted() )
+                    ids.add( m->id() );
+                m = m->parent();
+            }
+            if ( ids.isEmpty() ) {
+                // no mailboxes, so no policies. note no owner->notify().
+                d->done = true;
+                return;
+            }
+            if ( ids.count() == 1 ) {
+                d->q = new Query( "select duration, selector, id "
+                                  "from retention_policies "
+                                  "where mailbox=$1 and action='retain'",
+                                  this );
+                d->q->bind( 1, ids.smallest() );
+            }
+            else {
+                d->q = new Query( "select duration, selector, id "
+                                  "from retention_policies "
+                                  "where mailbox=any($1) and action='retain'",
+                                  this );
+                d->q->bind( 1, ids );
+            }
+        }
+        else {
+            // we need ALL policies
+            d->q = new Query( "select duration, selector, action, mailbox, id "
+                              "from retention_policies",
+                              this );
+        }
+        d->q->execute();
+    }
+
+    if ( !d->q->done() )
+        return;
+
+    Selector * retains = new Selector( Selector::Or );
+    Selector * deletes = new Selector( Selector::Or );
+
+    while ( d->q->hasResults() ) {
+        Row * r = d->q->nextRow();
+        Selector * s = new Selector( Selector::And );
+        Selector::Action action = Selector::Smaller;
+        if ( !d->m ) {
+            Mailbox * subtree = Mailbox::find( r->getUString( "mailbox" ) );
+            s->add( new Selector( subtree, true ) );
+            if ( r->getEString( "action" ) == "delete" )
+                action = Selector::Larger;
+                    
+        }
+        Selector * specified =
+            Selector::fromString( r->getEString( "selector" ) );
+        if ( specified )
+            s->add( specified );
+        else
+            log( "Error while parsing retention_policies row " +
+                 fn( r->getInt( "id" ) ), Log::Error );
+        uint duration = r->getInt( "duration" );
+        if ( duration )
+            s->add( new Selector( Selector::Age, action, duration ) );
+        if ( !specified )
+            ; // have to ignore that row. don't like this.
+        else if ( action == Selector::Smaller )
+            retains->add( s );
+        else
+            deletes->add( s );
+    }
+
+    // at this point the paths diverge
+
+    d->root = new Selector( Selector::And );
+
+    if ( d->m ) {
+        // a single mailbox. we care only about retains, and we only
+        // care about messages which might otherwise be expunged.
+        d->root->add( new Selector( Selector::Flags, Selector::Contains,
+                                    "\\deleted" ) );
+        d->root->add( retains );
+    }
+    else {
+        // all the mailboxes. any delete minus any retain.
+        d->root->add( deletes );
+        Selector * s = new Selector( Selector::Not );
+        d->root->add( s );
+        s->add( retains );
+    }
+    d->root->simplify();
+
+    d->done = true;
+    if ( d->owner )
+        d->owner->notify();
+}
+
+
+/*!
+
+*/
+
+bool RetentionSelector::done()
+{
+    return d->done;
+}
+
+
+/*!
+
+*/
+
+Query * RetentionSelector::query()
+{
+    if ( !d->root )
+        return 0;
+    EStringList wanted;
+    wanted.append( "mailbox" );
+    wanted.append( "uid" );
+    if ( !d->m )
+        wanted.append( "message" );
+    Query * q = d->root->query( 0, d->m, 0, d->owner, false, &wanted, false );
+    EString s = q->string();
+    uint ms = d->root->placeHolder();
+    q->bind( ms, d->ms );
+    if ( d->m ) {
+        // we want to change the query to an update
+        q->setString( "update mailbox_messages mm "
+                      "set deleted=false, modseq=$" + fn( ms ) + " "
+                      "where (mailbox,uid) in (" + s + ")" );
+    }
+    else {
+        // we want to insert into deleted_messages
+        int f = s.find( " from " );
+        uint deletedBy = d->root->placeHolder();
+        uint reason = d->root->placeHolder();
+        q->setString( "insert into deleted_messages "
+                      "(mailbox,uid,message,modseq,deleted_by,reason) " +
+                      s.mid( 0, f ) +
+                      ", $" + fn( ms ) +
+                      ", $" + fn( deletedBy ) +
+                      ", $" + fn( reason ) +
+                      s.mid( f ) );
+        q->bindNull( deletedBy );
+        q->bind( reason, "aox vacuum due to retention rules" );
+    }
+    return q;
+}
