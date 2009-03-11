@@ -197,15 +197,15 @@ static struct {
     included in the list.
 */
 
-StringList Codec::allCodecNames()
+StringList * Codec::allCodecNames()
 {
-    StringList r;
+    StringList * r = new StringList;
     int i = 0;
     while ( codecaliases[i].alias ) {
         String s = codecaliases[i].name;
         s = s.lower();
         if ( s == codecaliases[i].alias )
-            r.append( s );
+            r->append( s );
         i++;
     }
     return r;
