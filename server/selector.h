@@ -25,7 +25,7 @@ public:
 
     enum Field {
         InternalDate, Sent, Header, Body, Rfc822Size, Flags, Uid,
-        Annotation, Modseq, Age, NoField
+        Annotation, Modseq, Age, NoField, MailboxTree
     };
 
     Selector();
@@ -38,6 +38,7 @@ public:
               const UString & );
     Selector( const IntegerSet & );
     Selector( Action );
+    Selector( Mailbox *, bool );
 
     Field field() const;
     Action action() const;
@@ -76,13 +77,13 @@ public:
     bool timeSensitive() const;
     bool usesModseq() const;
 
-    EString mboxId();
-
     EString stringArgument() const;
     UString ustringArgument() const;
     int integerArgument() const;
     IntegerSet messageSetArgument() const;
     List<Selector> * children();
+    Mailbox * mailbox() const;
+    bool alsoChildren() const;
 
     static void setup();
 
@@ -104,6 +105,7 @@ private:
     EString whereModseq();
     EString whereAge();
     EString whereNoField();
+    EString whereMailbox();
 
     EString mm();
 

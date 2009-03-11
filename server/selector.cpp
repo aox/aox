@@ -88,7 +88,8 @@ class SelectorData
 {
 public:
     SelectorData()
-        : f( Selector::NoField ), a( Selector::None ), mboxId( 0 ),
+        : f( Selector::NoField ), a( Selector::None ),
+          n( 0 ), m( 0 ), mc( 0 ),
           placeholder( 0 ), join( 0 ), query( 0 ), parent( 0 ),
           children( new List< Selector > ), mm( 0 ),
           session( 0 ),
@@ -106,6 +107,8 @@ public:
         s16 = o->s16;
         s = o->s;
         n = o->n;
+        m = o->m;
+        mc = o->mc;
         children = o->children;
     }
 
@@ -119,8 +122,9 @@ public:
     UString s16;
     IntegerSet s;
     uint n;
+    Mailbox * m;
+    bool mc;
 
-    uint mboxId;
     int placeholder;
     int join;
     Query * query;
@@ -253,6 +257,19 @@ Selector::Selector( Action a )
 }
 
 
+/*! Constructs a selector that matches messages in \a mailbox and if
+    \a alsoChildren is true, also in its children.
+*/
+
+Selector::Selector( Mailbox * mailbox, bool alsoChildren )
+    : d( new SelectorData )
+{
+    d->f = MailboxTree;
+    d->m = mailbox;
+    d->mc = alsoChildren;
+}
+
+
 /*! Returns the ultimate parent of this Selector. */
 
 const Selector * Selector::root() const
@@ -371,6 +388,8 @@ void Selector::simplify()
             break;
         case Age:
             // cannot be simplified, should not happen
+        case MailboxTree:
+            // cannot be simplified
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
@@ -492,9 +511,10 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->user = user;
     d->session = session;
     d->placeholder = 0;
+    uint mboxId = 0;
     if ( mailbox ) {
-        d->mboxId = placeHolder();
-        d->query->bind( d->mboxId, mailbox->id() );
+        mboxId = placeHolder();
+        d->query->bind( mboxId, mailbox->id() );
     }
     if ( deleted )
         d->mm = new EString( "dm" );
@@ -531,9 +551,9 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         d->needMessages = true;
 
     EString mboxClause;
-    if ( d->mboxId ) {
+    if ( mboxId ) {
         // normal case: search one mailbox
-        mboxClause = mm() + ".mailbox=$" + fn( d->mboxId );
+        mboxClause = mm() + ".mailbox=$" + fn( mboxId );
     }
     else if ( user ) {
         // search all mailboxes accessible to user
@@ -567,7 +587,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             "    order by length(mp.name) desc limit 1))";
     }
     else {
-        // search all mailboxes
+        // search all mailboxes, optionally limited by mailbox
+        // selectors in the tree.
     }
 
     if ( mboxClause.isEmpty() && w == "true" ) {
@@ -582,12 +603,12 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     else if ( w == "true" ) {
         // a mailbox clause, but no condition
         q.append( " where " );
-        q.append( mboxClause );
+        q.append( mboxClause.simplified() );
     }
     else {
         // both.
         q.append( " where " );
-        q.append( mboxClause );
+        q.append( mboxClause.simplified() );
         q.append( " and " );
         q.append( w );
     }
@@ -649,8 +670,13 @@ EString Selector::where()
         break;
     case Modseq:
         return whereModseq();
+        break;
     case Age:
         return whereAge();
+        break;
+    case MailboxTree:
+        return whereMailbox();
+        break;
     case NoField:
         return whereNoField();
         break;
@@ -1295,6 +1321,35 @@ EString Selector::whereNoField()
 }
 
 
+/*! This implements a search that's bound to a specific mailbox or a
+    subtree.
+*/
+
+EString Selector::whereMailbox()
+{
+    IntegerSet ids;
+    List<Mailbox> fifo;
+    fifo.append( d->m );
+    while ( !fifo.isEmpty() ) {
+        Mailbox * m = fifo.shift();
+        if ( m && m->id() && !m->deleted() )
+            ids.add( m->id() );
+        if ( d->mc && m )
+            fifo.append( m->children() );
+    }
+
+    uint i = placeHolder();
+    if ( ids.count() == 1 ) {
+        root()->d->query->bind( i, ids.smallest() );
+        return mm() + ".mailbox=$" + fn( i );
+    }
+
+    root()->d->query->bind( i, ids );
+    return mm() + ".mailbox=any($" + fn( i ) + ")";
+
+}
+
+
 /*! Give an ASCII representatation of this object, suitable for debug
     output or for equality testing.
 */
@@ -1385,6 +1440,12 @@ EString Selector::debugString() const
     case Annotation:
         w = "annotation " + d->s8b + " of ";
         break;
+    case MailboxTree:
+        if ( d->mc )
+            w = "subtree ";
+        else
+            w = "mailbox ";
+        break;
     case Modseq:
         w = "modseq";
         break;
@@ -1397,6 +1458,8 @@ EString Selector::debugString() const
         r.appendNumber( d->n );
     else if ( d->s16.isEmpty() )
         r.append( d->s8 );
+    else if ( d->m )
+        r.append( d->m->name().ascii() );
     else
         r.append( d->s16.ascii() );
 
@@ -1527,16 +1590,6 @@ static uint lmatch( const EString & pattern, uint p,
         n++;
     }
     return r;
-}
-
-
-/*! Returns a string representing the number (without $) of the
-    placeholder that's bound to the mbox id.
-*/
-
-EString Selector::mboxId()
-{
-    return fn( root()->d->mboxId );
 }
 
 
@@ -2077,4 +2130,22 @@ void Selector::setup()
 {
     if ( !::retunerCreated )
         (void)new RetuningDetector;
+}
+
+
+/*! Returns a pointer to the mailbox on which this selector operates. */
+
+Mailbox * Selector::mailbox() const
+{
+    return d->m;
+}
+
+
+/*! Returns true if this selector should match messages in children of
+    mailbox(), and false if not.
+*/
+
+bool Selector::alsoChildren() const
+{
+    return d->mc;
 }

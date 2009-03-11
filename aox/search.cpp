@@ -31,6 +31,13 @@ void dumpSelector( Selector * s, uint l )
         else if ( s->action() == Selector::BeforeDate )
             a = "Message was sent on or before: " + s->stringArgument();
         break;
+    case Selector::MailboxTree:
+        if ( s->alsoChildren() )
+            a = "Message is in subtree: ";
+        else
+            a = "Message is in mailbox: ";
+        a.append( s->mailbox()->name().ascii() );
+        break;
     case Selector::Header:
         if ( s->stringArgument().isEmpty() )
             a = "Any header field contains: " +
