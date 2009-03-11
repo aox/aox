@@ -42,7 +42,7 @@ public:
     void append( UString &, uint );
     void mangleTrailingSurrogate( UString & );
 
-    static class EStringList allCodecNames();
+    static class EStringList * allCodecNames();
 
 private:
     State s;
