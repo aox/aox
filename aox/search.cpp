@@ -5,6 +5,7 @@
 #include "searchsyntax.h"
 
 #include "selector.h"
+#include "mailbox.h"
 
 #include <stdio.h> // fprintf, stderr
 
