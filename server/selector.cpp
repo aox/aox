@@ -1323,6 +1323,10 @@ EString Selector::whereNoField()
 
 /*! This implements a search that's bound to a specific mailbox or a
     subtree.
+
+    This does no permission checking. query() includes a gargantuan
+    clause to limit the search to mailboxes the user can read; this
+    function relies on that clause.
 */
 
 EString Selector::whereMailbox()
