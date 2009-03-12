@@ -18,6 +18,7 @@
 #include "maildir.h"
 #include "cyrus.h"
 #include "mbox.h"
+#include "utf.h"
 #include "mh.h"
 
 #include <stdio.h>
@@ -31,7 +32,7 @@ class MigratorData
 {
 public:
     MigratorData()
-        : working( 0 ), target( 0 ),
+        : working( 0 ),
           messagesDone( 0 ), mailboxesDone( 0 ),
           status( 0 ), mode( Migrator::Mbox )
     {}
@@ -39,7 +40,6 @@ public:
     UString destination;
     List< MigratorSource > sources;
     List< MailboxMigrator > * working;
-    Mailbox * target;
 
     uint messagesDone;
     uint mailboxesDone;
@@ -77,6 +77,14 @@ void Migrator::setDestination( const UString &s )
 }
 
 
+/*! Returns this Migrator's destination, as set by setDestination(). */
+
+UString Migrator::destination() const
+{
+    return d->destination;
+}
+
+
 /*! Creates a MigratorSource object from the string \a s, and adds it to
     this Migrator's list of sources.
 */
@@ -100,33 +108,12 @@ void Migrator::addSource( const EString &s )
 }
 
 
-/*! Returns the target mailbox, as inferred from setDestination(). This
-    function is a ghastly, short-term hack.
-*/
-
-Mailbox * Migrator::target() const
-{
-    return d->target;
-}
-
-
 /*! Fills up the quota of working mailboxes, so we're continuously
     migrating four mailboxes.
 */
 
 void Migrator::execute()
 {
-    if ( !d->target ) {
-        d->target = Mailbox::find( d->destination );
-        if ( !d->target ) {
-            d->status = -1;
-            fprintf( stderr, "aoximport: Target mailbox does not exist: %s\n",
-                     d->destination.ascii().cstr() );
-            EventLoop::global()->shutdown();
-            return;
-        }
-    }
-
     if ( !d->working ) {
         log( "Starting migration" );
         d->working = new List< MailboxMigrator >;
@@ -349,7 +336,7 @@ MigratorMessage::MigratorMessage( const EString & rfc822, const EString & desc )
             fprintf( stdout, " - Wrote to %s\n", f.name().cstr() );
     }
     m = Injectee::wrapUnparsableMessage( o, m->error(),
-                                                  "Unparsable message" );
+                                         "Unparsable message" );
 }
 
 
@@ -500,15 +487,27 @@ void MailboxMigrator::execute()
         }
         if ( !d->mailboxCreator->done() )
             return;
+        d->mailboxCreator = 0;
     }
     else if ( !d->destination ) {
-        d->destination = d->migrator->target();
-        if ( !d->destination ) {
-            log( "Unable to migrate " + d->source->partialName() );
-            d->migrator->execute();
-            return;
+        UString tmp = d->migrator->destination();
+        if ( !d->source->partialName().isEmpty() ) {
+            if ( !d->source->partialName().startsWith( "/" ) )
+                tmp.append( '/' );
+            Utf8Codec u;
+            tmp.append( u.toUnicode( d->source->partialName() ) );
+        }
+        d->destination = Mailbox::obtain( tmp, true );
+        if ( !d->destination->id() || d->destination->deleted() ) {
+            d->mailboxCreator = new Transaction( this );
+            (void)d->destination->create( d->mailboxCreator, 0 );
+            d->mailboxCreator->commit();
         }
     }
+    else if ( !d->destination->id() || d->destination->deleted() ) {
+        return;
+    }
+        
 
     if ( d->injector )
         d->injector = 0;

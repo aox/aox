@@ -17,6 +17,7 @@ public:
     Migrator( Mode );
 
     void setDestination( const UString & );
+    UString destination() const;
     void addSource( const EString & );
 
     Mailbox * target() const;
