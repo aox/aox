@@ -4082,6 +4082,35 @@ bool Schema::stepTo85()
 }
 
 
+/*! We want to cache retention_policies rows. For that to work we have
+    to clear the cache when a new row is added or one is deleted.
+*/
+
+bool Schema::stepTo86()
+{
+    describeStep( "Extending retention_policies to help caching." );
+    d->t->enqueue(
+        new Query( "create function notify_retention_policies() as $$"
+                   "begin "
+                   "notify 'retention_policies_updated'; "
+                   "end;$$ language 'plpgsql'", 0 ) );
+    d->t->enqueue(
+        new Query( "create trigger retention_policies_trigger "
+                   "after insert or update or delete "
+                   "on mailboxes "
+                   "for each statement "
+                   "execute procedure notify_retention_policies()", 0 ) );
+    d->t->enqueue(
+        new Query( "create function downgrade_to_85() as $$"
+                   "begin "
+                   "drop trigger retention_policies_trigger "
+                   "on retention_policies; "
+                   "drop function notify_retention_policies(); "
+                   "end;$$ language 'plpgsql'", 0 ) );
+    return true;
+}
+
+
 // /*!
 // 
 // */

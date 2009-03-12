@@ -2,19 +2,21 @@
 
 #include "selector.h"
 
+#include "map.h"
 #include "utf.h"
 #include "dict.h"
 #include "flag.h"
 #include "date.h"
+#include "cache.h"
 #include "session.h"
 #include "mailbox.h"
+#include "allocator.h"
 #include "estringlist.h"
+#include "configuration.h"
 #include "annotation.h"
 #include "dbsignal.h"
 #include "field.h"
 #include "user.h"
-#include "configuration.h"
-#include "allocator.h"
 
 #include <time.h> // whereAge() calls time()
 
@@ -2155,6 +2157,29 @@ bool Selector::alsoChildren() const
 }
 
 
+class RetentionPoliciesCache
+    : public Cache
+{
+public:
+    class X: public EventHandler {
+    public:
+        X( RetentionPoliciesCache * rpc ): me( rpc ) {
+            (void)new DatabaseSignal( "retention_policies_updated", this );
+        }
+        void execute() {
+            me->retains.clear();
+        }
+        RetentionPoliciesCache * me;
+    };
+    RetentionPoliciesCache(): Cache( 5 ) {}
+    void clear() { retains.clear(); }
+    Map<Selector> retains;
+};
+
+static RetentionPoliciesCache * cache = 0;
+
+
+
 class RetentionSelectorData
     : public Garbage
 {
@@ -2169,6 +2194,10 @@ public:
     Selector * deletes;
     EventHandler * owner;
 };
+
+
+
+
 
 
 /*! \class RetentionSelector selector.h
@@ -2197,6 +2226,18 @@ RetentionSelector::RetentionSelector( Mailbox * m, EventHandler * h )
 {
     d->m = m;
     d->owner = h;
+    if ( !m )
+        return;
+
+    if ( !::cache )
+        ::cache = new RetentionPoliciesCache;
+    Selector * s = ::cache->retains.find( m->id() );
+    if ( !s )
+        return;
+
+    d->done = true;
+    if ( !s->children()->isEmpty() )
+        d->retains = s;
 }
 
 
@@ -2292,6 +2333,9 @@ void RetentionSelector::execute()
         else
             d->deletes->add( s );
     }
+
+    if ( d->m && ::cache )
+        ::cache->retains.insert( d->m->id(), d->retains );
 
     if ( d->retains->children()->isEmpty() )
         d->retains = 0;
