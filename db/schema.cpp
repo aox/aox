@@ -4082,10 +4082,18 @@ bool Schema::stepTo85()
 }
 
 
-// should only do the substantive change. other code will drop the
-// function and adjust the mailstore revision.
-
-//    d->t->enqueue(
-//        new Query( "create function downgrade_to_84() as $$"
-//                   "begin "
-//                   "end;$$ language 'plpgsql'", 0 ) );
+// /*!
+// 
+// */
+// 
+// bool Schema::stepTo86()
+// {
+//     describeStep( "Adding functions to downgrade the schema." );
+//     ...
+// the function should only do the substantive change. other code will
+// drop the function and adjust the mailstore revision.
+//     d->t->enqueue(
+//         new Query( "create function downgrade_to_85() as $$"
+//                    "begin "
+//                    "end;$$ language 'plpgsql'", 0 ) );
+// }
