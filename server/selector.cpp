@@ -2160,13 +2160,13 @@ class RetentionSelectorData
 {
 public:
     RetentionSelectorData()
-        : m( 0 ), ms( 0 ), done( false ), q( 0 ),
-          root( 0 ), owner( 0 ) {}
+        : m( 0 ), done( false ), q( 0 ),
+          retains( 0 ), deletes( 0 ), owner( 0 ) {}
     Mailbox * m;
-    int64 ms;
     bool done;
     Query * q;
-    Selector * root;
+    Selector * retains;
+    Selector * deletes;
     EventHandler * owner;
 };
 
@@ -2177,27 +2177,25 @@ public:
     retention_policies table, and produces queries to do what
     retention demands.
 
-    Somewhat slow, perhaps. We'll have to optimise that later.
+    Somewhat slow, perhaps. We'll have to add some caching so we don't
+    select on retention_policies all the time.
 */
 
 
-/*! Constructs a retention selector to clear the deleted flag on all
-    messages in \a m which should be retained, setting their modseq to
-    \a ms, and notifies \a h once the query is ready().
+/*! Constructs a retention selector to find the messages in \a m that
+    should be retained, and notifies \a h once the query is ready().
 
-    Once execute() has been called and done() returns true, query()
-    returns a suitable query.
+    Once execute() has been called and done() returns true, retains()
+    and deletes() return a selector expressing those policies.
 
-    The query may be ready after the first execute(). In that case \a
+    The selector may be ready after the first execute(). In that case \a
     h is not notified separately.
 */
 
-RetentionSelector::RetentionSelector( Mailbox * m, int64 ms,
-                                      EventHandler * h )
+RetentionSelector::RetentionSelector( Mailbox * m, EventHandler * h )
     : d( new RetentionSelectorData )
 {
     d->m = m;
-    d->ms = ms;
     d->owner = h;
 }
 
@@ -2216,7 +2214,7 @@ RetentionSelector::RetentionSelector( EventHandler * h )
 
 void RetentionSelector::execute()
 {
-    if ( d->root )
+    if ( d->done )
         return;
 
     if ( !d->q ) {
@@ -2261,8 +2259,10 @@ void RetentionSelector::execute()
     if ( !d->q->done() )
         return;
 
-    Selector * retains = new Selector( Selector::Or );
-    Selector * deletes = new Selector( Selector::Or );
+    d->done = true;
+
+    d->retains = new Selector( Selector::Or );
+    d->deletes = new Selector( Selector::Or );
 
     while ( d->q->hasResults() ) {
         Row * r = d->q->nextRow();
@@ -2273,7 +2273,7 @@ void RetentionSelector::execute()
             s->add( new Selector( subtree, true ) );
             if ( r->getEString( "action" ) == "delete" )
                 action = Selector::Larger;
-                    
+
         }
         Selector * specified =
             Selector::fromString( r->getEString( "selector" ) );
@@ -2288,40 +2288,22 @@ void RetentionSelector::execute()
         if ( !specified )
             ; // have to ignore that row. don't like this.
         else if ( action == Selector::Smaller )
-            retains->add( s );
+            d->retains->add( s );
         else
-            deletes->add( s );
+            d->deletes->add( s );
     }
 
-    // at this point the paths diverge
+    if ( d->retains->children()->isEmpty() )
+        d->retains = 0;
+    if ( d->deletes->children()->isEmpty() )
+        d->deletes = 0;
 
-    d->root = new Selector( Selector::And );
-
-    if ( d->m ) {
-        // a single mailbox. we care only about retains, and we only
-        // care about messages which might otherwise be expunged.
-        d->root->add( new Selector( Selector::Flags, Selector::Contains,
-                                    "\\deleted" ) );
-        d->root->add( retains );
-    }
-    else {
-        // all the mailboxes. any delete minus any retain.
-        d->root->add( deletes );
-        Selector * s = new Selector( Selector::Not );
-        d->root->add( s );
-        s->add( retains );
-    }
-    d->root->simplify();
-
-    d->done = true;
     if ( d->owner )
         d->owner->notify();
 }
 
 
-/*!
-
-*/
+/*! Returns true if the object is done, false if it's still working. */
 
 bool RetentionSelector::done()
 {
@@ -2329,43 +2311,29 @@ bool RetentionSelector::done()
 }
 
 
-/*!
+/*! Returns a pointer to the Selector that will match all messages
+    that need to be retained, or 0 if there is no applicable retention
+    policy.
+
+    Selector::simplify() has not been called.
 
 */
 
-Query * RetentionSelector::query()
+Selector * RetentionSelector::retains()
 {
-    if ( !d->root )
-        return 0;
-    EStringList wanted;
-    wanted.append( "mailbox" );
-    wanted.append( "uid" );
-    if ( !d->m )
-        wanted.append( "message" );
-    Query * q = d->root->query( 0, d->m, 0, d->owner, false, &wanted, false );
-    EString s = q->string();
-    uint ms = d->root->placeHolder();
-    q->bind( ms, d->ms );
-    if ( d->m ) {
-        // we want to change the query to an update
-        q->setString( "update mailbox_messages mm "
-                      "set deleted=false, modseq=$" + fn( ms ) + " "
-                      "where (mailbox,uid) in (" + s + ")" );
-    }
-    else {
-        // we want to insert into deleted_messages
-        int f = s.find( " from " );
-        uint deletedBy = d->root->placeHolder();
-        uint reason = d->root->placeHolder();
-        q->setString( "insert into deleted_messages "
-                      "(mailbox,uid,message,modseq,deleted_by,reason) " +
-                      s.mid( 0, f ) +
-                      ", $" + fn( ms ) +
-                      ", $" + fn( deletedBy ) +
-                      ", $" + fn( reason ) +
-                      s.mid( f ) );
-        q->bindNull( deletedBy );
-        q->bind( reason, "aox vacuum due to retention rules" );
-    }
-    return q;
+    return d->retains;
+}
+
+
+/*! Returns a pointer to the Selector that will match all messages
+    that need to be deleted, or 0 if there is no applicable retention
+    policy.
+    
+    Selector::simplify() has not been called.
+
+*/
+
+Selector * RetentionSelector::deletes()
+{
+    return d->deletes;
 }

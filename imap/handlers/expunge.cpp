@@ -8,6 +8,7 @@
 #include "query.h"
 #include "scope.h"
 #include "mailbox.h"
+#include "selector.h"
 #include "integerset.h"
 #include "imapsession.h"
 #include "permissions.h"
@@ -19,11 +20,12 @@ class ExpungeData
 {
 public:
     ExpungeData()
-        : uid( false ), modseq( 0 ), s( 0 ),
-          findUids( 0 ), findModseq( 0 ), expunge( 0 ), t( 0 )
+        : uid( false ), commit( false ), modseq( 0 ), s( 0 ),
+          findUids( 0 ), findModseq( 0 ), expunge( 0 ), t( 0 ), r( 0 )
     {}
 
     bool uid;
+    bool commit;
     int64 modseq;
     Session * s;
     Query * findUids;
@@ -32,6 +34,7 @@ public:
     Transaction * t;
     IntegerSet requested;
     IntegerSet marked;
+    RetentionSelector * r;
 };
 
 
@@ -102,6 +105,11 @@ void Expunge::execute()
         return;
     }
 
+    if ( !d->r ) {
+        d->r = new RetentionSelector( d->s->mailbox(), this );
+        d->r->execute();
+    }
+
     if ( !d->t ) {
         d->t = new Transaction( this );
 
@@ -125,17 +133,20 @@ void Expunge::execute()
         d->t->execute();
     }
 
-    Row * r;
-    while ( ( r = d->findUids->nextRow() ) != 0 ) {
+    while ( d->findUids->hasResults() ) {
+        Row * r = d->findUids->nextRow();
         d->marked.add( r->getInt( "uid" ) );
     }
 
     if ( d->findModseq->hasResults() ) {
-        r = d->findModseq->nextRow();
+        Row * r = d->findModseq->nextRow();
         d->modseq = r->getBigint( "nextmodseq" );
     }
 
     if ( !d->findUids->done() )
+        return;
+
+    if ( !d->r->done() )
         return;
 
     if ( d->marked.isEmpty() ) {
@@ -148,19 +159,64 @@ void Expunge::execute()
         log( "Expunge " + fn( d->marked.count() ) + " messages: " +
              d->marked.set() );
 
-        d->expunge =
-            new Query( "insert into deleted_messages "
-                       "(mailbox,uid,message,modseq,deleted_by,reason) "
-                       "select mailbox,uid,message,$4,$2,$3 "
-                       "from mailbox_messages where mailbox=$1 "
-                       "and uid=any($5)",
-                       this );
-        d->expunge->bind( 1, d->s->mailbox()->id() );
-        d->expunge->bind( 2, imap()->user()->id() );
-        d->expunge->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
-        d->expunge->bind( 4, d->modseq );
-        d->expunge->bind( 5, d->marked );
+        Selector * s = new Selector;
+        s->add( new Selector( d->marked ) );
+        if ( d->r->retains() ) {
+            Selector * n = new Selector( Selector::Not );
+            s->add( n );
+            n->add( d->r->retains() );
+        }
+        s->simplify();
+
+        EStringList wanted;
+        wanted.append( "mailbox" );
+        wanted.append( "uid" );
+        wanted.append( "message" );
+
+        d->expunge = s->query( imap()->user(), d->s->mailbox(),
+                               d->s, this, false, &wanted,
+                               false );
+
+        int i = d->expunge->string().find( " from " );
+        uint ub = s->placeHolder();
+        uint msb = s->placeHolder();
+        uint rb = s->placeHolder();
+        d->expunge->setString(
+            "insert into deleted_messages "
+            "(mailbox,uid,message,modseq,deleted_by,reason) " +
+            d->expunge->string().mid( 0, i ) + ", $" + fn( msb ) +", $" +
+            fn( ub ) + ", $" + fn( rb ) + d->expunge->string().mid( i ) );
+        d->expunge->bind( ub, imap()->user()->id() );
+        d->expunge->bind( msb, d->modseq );
+        d->expunge->bind( rb,
+                          "IMAP expunge " + Scope::current()->log()->id() );
         d->t->enqueue( d->expunge );
+        d->t->execute();
+    }
+
+    if ( !d->expunge->done() )
+        return;
+
+    if ( !d->commit ) {
+        d->commit = true;
+        if ( d->expunge->rows() < d->marked.count() ) {
+            log( "User requested expunging " + fn( d->marked.count() ) +
+                 " messages, of which " +
+                 fn ( d->marked.count() - d->expunge->rows() ) +
+                 " must be retained" );
+            // there was something we were asked to expunge, but which
+            // must be retained due to a configured policy. clear the
+            // deleted flag on those messages, so the retention policy
+            // is clearly visible.
+            Query * q = new Query( "update mailbox_messages "
+                                   "set modseq=$1, deleted=false "
+                                   "where mailbox=$2 and uid=any($3)",
+                                   0 );
+            q->bind( 1, d->modseq );
+            q->bind( 2, d->s->mailbox()->id() );
+            q->bind( 3, d->marked );
+            d->t->enqueue( q );
+        }
 
         Query * q = new Query( "update mailboxes set nextmodseq=$1 "
                                "where id=$2", 0 );

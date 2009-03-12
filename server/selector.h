@@ -117,16 +117,17 @@ class RetentionSelector
     : public EventHandler
 {
 public:
-    RetentionSelector( Mailbox *, int64, EventHandler * );
+    RetentionSelector( Mailbox *, EventHandler * );
     RetentionSelector( EventHandler * );
 
     void execute();
     bool done();
-    Query * query();
+
+    Selector * retains();
+    Selector * deletes();
 
 private:
     class RetentionSelectorData * d;
 };
-
 
 #endif
