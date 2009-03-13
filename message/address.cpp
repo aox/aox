@@ -7,6 +7,7 @@
 #include "endpoint.h"
 #include "ustring.h"
 #include "parser.h"
+#include "cache.h"
 #include "dict.h"
 #include "utf.h"
 
@@ -92,7 +93,7 @@ Address::Address()
 */
 
 Address::Address( const UString &n, const EString &l, const EString &o )
-    : d( new AddressData )
+    : d( 0 )
 {
     init( n, l, o );
 }
@@ -103,7 +104,7 @@ Address::Address( const UString &n, const EString &l, const EString &o )
 */
 
 Address::Address( const EString &n, const EString &l, const EString &o )
-    : d( new AddressData )
+    : d( 0 )
 {
     AsciiCodec a;
     UString un( a.toUnicode( n ) );
@@ -113,26 +114,59 @@ Address::Address( const EString &n, const EString &l, const EString &o )
 }
 
 
-/*! This private function contains the shared part of the constructors,
-    initialising the object with the display-name \a n, localpart \a l,
-    and domain \a o and an appropriate type().
+class AddressCache
+    : public Cache
+{
+public:
+    AddressCache(): Cache( 8 ) {}
+    void clear() { step1.clear(); }
+    Dict< Dict< UDict<AddressData> > > step1;
+};
+
+static AddressCache * cache = 0;
+
+
+/*! This private function contains the shared part of the
+    constructors, initialising the object with the display-name \a n,
+    localpart \a l, and domain \a o and an appropriate type(). Uses a
+    cache to try to share the id() with other instances of the same
+    address.
 */
 
 void Address::init( const UString &n, const EString &l, const EString &o )
 {
-    d->name = n;
-    d->localpart = l;
-    d->domain = o;
-    if ( !d->domain.isEmpty() )
-        d->type = Normal;
-    else if ( !d->localpart.isEmpty() )
-        d->type = Local;
-    else if ( !d->name.isEmpty() )
-        d->type = EmptyGroup;
-    else if ( d->name.isEmpty() &&
-              d->localpart.isEmpty() &&
-              d->domain.isEmpty() )
-        d->type = Bounce;
+    if ( !::cache )
+        ::cache = new AddressCache;
+
+    EString dl( o.lower() );
+    Dict< UDict<AddressData> > * step2 = ::cache->step1.find( dl );
+    if ( !step2 ) {
+        step2 = new Dict< UDict<AddressData> >;
+        ::cache->step1.insert( dl, step2 );
+    }
+    UDict<AddressData> * step3 = step2->find( l );
+    if ( !step3 ) {
+        step3 = new UDict<AddressData>;
+        step2->insert( l, step3 );
+    }
+    d = step3->find( n );
+    if ( !d ) {
+        d = new AddressData;
+        d->name = n;
+        d->localpart = l;
+        d->domain = o;
+        if ( !d->domain.isEmpty() )
+            d->type = Normal;
+        else if ( !d->localpart.isEmpty() )
+            d->type = Local;
+        else if ( !d->name.isEmpty() )
+            d->type = EmptyGroup;
+        else if ( d->name.isEmpty() &&
+                  d->localpart.isEmpty() &&
+                  d->domain.isEmpty() )
+            d->type = Bounce;
+        step3->insert( n, d );
+    }
 }
 
 
@@ -142,14 +176,6 @@ Address::Address( const Address & other )
     : Garbage(), d( 0 )
 {
     *this = other;
-}
-
-
-/*! Destroys the object and frees any allocated resources. */
-
-Address::~Address()
-{
-    delete d;
 }
 
 
@@ -337,16 +363,6 @@ EString Address::toString() const
     Returns true if this Address is a meaningful object, or false if
     its content is meaningless.
 */
-
-
-/*! Sets this Address to have name \a n, overwriting whatever was
-    there before.
-*/
-
-void Address::setName( const UString & n )
-{
-    d->name = n;
-}
 
 
 static struct {

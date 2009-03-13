@@ -18,7 +18,6 @@ public:
     Address( const UString &, const EString &, const EString & );
     Address( const EString &, const EString &, const EString & );
     Address( const Address & );
-    ~Address();
 
     Address &operator=( const Address & );
 
@@ -37,8 +36,6 @@ public:
     EString toString() const;
 
     bool valid() const { return type() != Invalid; }
-
-    void setName( const UString & );
 
     static void uniquify( List<Address> * );
 
