@@ -501,6 +501,7 @@ void MailboxMigrator::execute()
         if ( !d->destination->id() || d->destination->deleted() ) {
             d->mailboxCreator = new Transaction( this );
             (void)d->destination->create( d->mailboxCreator, 0 );
+            Mailbox::refreshMailboxes( d->mailboxCreator );
             d->mailboxCreator->commit();
         }
     }
