@@ -1359,9 +1359,9 @@ void Injector::selectUids()
         int64 nextms = r->getBigint( "nextmodseq" );
 
         if ( uidnext > 0x7ff00000 ) {
-            Log::Severity level = Log::Error;
+            Log::Severity level = Log::Significant;
             if ( uidnext > 0x7fffff00 )
-                level = Log::Disaster;
+                level = Log::Error;
             log( "Note: Mailbox " + mb->mailbox->name().ascii() +
                  " only has " + fn ( 0x7fffffff - uidnext ) +
                  " more usable UIDs. Please contact info@oryx.com"
