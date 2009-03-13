@@ -538,6 +538,9 @@ void Injector::findDependencies()
         List<Mailbox>::Iterator mi( m->mailboxes() );
         while ( mi ) {
             Mailbox * mb = mi;
+            if ( !mb->id() || mb->deleted() )
+                log( "Internal error: Mailbox " + mb->name() +
+                     " is not properly known", Log::Disaster );
             InjectorData::Mailbox * mbc = d->mailboxes.find( mb->id() );
             if ( !mbc ) {
                 mbc = new InjectorData::Mailbox( mb );
