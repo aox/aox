@@ -144,10 +144,6 @@ void HelperRowCreator::execute()
     Transaction * t = d->t;
     d->t = 0;
     t->commit();
-    // the parent transaction's owner may have to wait for this creator
-    // to finish.  notify it just in case.
-    if ( t->parent() )
-        t->parent()->notify();
 }
 
 

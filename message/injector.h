@@ -69,6 +69,7 @@ private:
     static void setup();
 
     void next();
+    void createMailboxes();
     void findMessages();
     void findDependencies();
     void updateAddresses( List<Address> * );

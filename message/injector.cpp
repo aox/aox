@@ -58,6 +58,8 @@ struct BodypartRow
 
 enum State {
     Inactive,
+    CreatingMailboxes,
+    FindingDependencies,
     CreatingDependencies,
     ConvertingInReplyTo, AddingMoreReferences,
     ConvertingThreadIndex,
@@ -75,6 +77,7 @@ public:
     InjectorData()
         : owner( 0 ),
           state( Inactive ), failed( false ), retried( 0 ), transaction( 0 ),
+          mailboxesCreated( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
           lockUidnext( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), subtransaction( 0 ),
@@ -110,6 +113,7 @@ public:
     EStringList fields;
     EStringList annotationNames;
     Dict<Address> addresses;
+    List< ::Mailbox > * mailboxesCreated;
 
     struct Mailbox
         : public Garbage
@@ -324,9 +328,6 @@ void Injector::execute()
         switch ( d->state ) {
         case Inactive:
             findMessages();
-            findDependencies();
-            if ( d->failed )
-                break;
             logDescription();
             if ( d->messages.isEmpty() ) {
                 d->state = Done;
@@ -336,6 +337,15 @@ void Injector::execute()
                     d->transaction = new Transaction( this );
                 next();
             }
+            break;
+
+        case CreatingMailboxes:
+            createMailboxes();
+            break;
+
+        case FindingDependencies:
+            findDependencies();
+            next();
             break;
 
         case CreatingDependencies:
@@ -400,18 +410,8 @@ void Injector::execute()
 
         if ( !d->failed && d->transaction )
             d->failed = d->transaction->failed();
-
-        if ( d->state < AwaitingCompletion && d->failed ) {
-            if ( d->transaction ) {
-                d->state = AwaitingCompletion;
-                d->transaction->rollback();
-            }
-            else {
-                break;
-            }
-        }
     }
-    while ( last != d->state && d->state != Done );
+    while ( last != d->state && d->state != Done && !d->failed );
 
     if ( d->failed && !d->retried ) {
         // Sometimes injection fails for temporary reasons, such as
@@ -423,38 +423,44 @@ void Injector::execute()
         // treat all problems as temporary. But just in case there
         // really are bugs, we retry only once.
 
-        InjectorData * retry = new InjectorData;
-        retry->retried = true;
-        retry->messages.append( d->messages );
-        retry->injectables.append( d->injectables );
-        retry->deliveries.append( d->deliveries );
-        retry->owner = d->owner;
+        log( "Injection failed. Retrying once." );
 
-        if ( d->transaction && d->transaction->parent() ) {
+        InjectorData * old = d;
+        d = new InjectorData;
+        d->retried = true;
+        d->messages.append( old->messages );
+        d->injectables.append( old->injectables );
+        d->deliveries.append( old->deliveries );
+        d->owner = old->owner;
+
+        if ( old->transaction && old->transaction->parent() ) {
             // The Injector is part of a larger transaction, which we
             // need to continue using.
-            retry->transaction = d->transaction;
+            d->transaction = old->transaction;
             // We have to find out whether what failed was our
             // subtransaction or the bigger transaction.
             d->transaction->restart();
             // To do that we send a bogus query. If it fails, the
             // transaction will be set to Failed again, and we'll fail
             // permanently when we wake up in a few seconds.
-            retry->transaction->enqueue( new Query( "select 42 as a", 0 ) );
-            retry->transaction->execute();
+            d->transaction->enqueue( new Query( "select 42 as a", this ) );
+            d->transaction->execute();
+        }
+        else if ( old->transaction && !old->transaction->failed() ) {
+            old->transaction->rollback();
         }
         else {
+            // hm, nothing to do?
         }
         // We try again in five seconds, that should be enough for
         // Postgres to shut down if that's what it's doing. Database
         // will wait for pg to come back up.
         (void)new Timer( this, 5 );
-        d = retry;
 
         // And just to make sure there's no evil cache effect
         // involving obliteration, we clear all caches completely.
         Cache::clearAllCaches( true );
-        
+
         return;
     }
 
@@ -504,6 +510,49 @@ void Injector::findMessages()
     log( "Injecting " + fn( d->messages.count() ) + " messages (" +
          fn( d->injectables.count() ) + ", " +
          fn( d->deliveries.count() ) + ")", Log::Debug );
+}
+
+
+/*! This private function looks through the list of messages, notes
+    what mailboxes are needed, and creates any that do not exist or
+    are currently deleted.
+*/
+
+void Injector::createMailboxes()
+{
+    if ( !d->mailboxesCreated ) {
+        d->mailboxesCreated = new List<Mailbox>;
+        UDict<Mailbox> nonexistent;
+        List<Injectee>::Iterator imi( d->injectables );
+        while ( imi ) {
+            Injectee * m = imi;
+            ++imi;
+
+            List<Mailbox>::Iterator mi( m->mailboxes() );
+            while ( mi ) {
+                Mailbox * mb = mi;
+                ++mi;
+                if ( ( mb->synthetic() || mb->deleted() ) &&
+                     !nonexistent.contains( mb->name() ) ) {
+                    mb->create( d->transaction, 0 );
+                    d->mailboxesCreated->append( mb );
+                    nonexistent.insert( mb->name(), mb );
+                }
+            }
+        }
+        if ( !d->mailboxesCreated->isEmpty() ) {
+            Mailbox::refreshMailboxes( d->transaction );
+        }
+    }
+    List<Mailbox>::Iterator m( d->mailboxesCreated );
+    while ( m ) {
+        if ( m->synthetic() )
+            return;
+        if ( m->deleted() )
+            return;
+        ++m;
+    }
+    next();
 }
 
 
@@ -638,9 +687,9 @@ void Injector::updateAddresses( List<Address> * newAddresses )
     List<Address>::Iterator ai( newAddresses );
     while ( ai ) {
         Address * a = ai;
+        ++ai;
         EString k = AddressCreator::key( a );
         d->addresses.insert( k, a );
-        ++ai;
     }
 }
 
@@ -692,8 +741,11 @@ void Injector::createDependencies()
         d->annotationNameCreator->execute();
     }
 
-    AddressCreator * ac = new AddressCreator( &d->addresses, d->transaction );
-    ac->execute();
+    if ( !d->addresses.isEmpty() ) {
+        AddressCreator * ac
+            = new AddressCreator( &d->addresses, d->transaction );
+        ac->execute();
+    }
 
     next();
 }
@@ -1961,17 +2013,20 @@ public:
         List<Annotation> * annotations;
     };
 
-    Map<Mailbox> mailboxes;
+    List<Mailbox> mailboxes;
 
     Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
-        Mailbox * m = mailboxes.find( mb->id() );
-        if ( m )
-            return m;
-        if ( !create )
-            return 0;
+        if ( mailboxes.firstElement() &&
+             mailboxes.firstElement()->mailbox == mb )
+            return mailboxes.firstElement();
+        List<Mailbox>::Iterator i( mailboxes );
+        while ( i && i->mailbox != mb )
+            ++i;
+        if ( i || !create )
+            return i;
         Mailbox * n = new Mailbox;
         n->mailbox = mb;
-        mailboxes.insert( mb->id(), n );
+        mailboxes.append( n );
         return n;
     }
 };
@@ -2097,7 +2152,7 @@ void Injectee::setAnnotations( Mailbox * mailbox,
 List<Mailbox> * Injectee::mailboxes() const
 {
     List<Mailbox> * m = new List<Mailbox>;
-    Map<InjecteeData::Mailbox>::Iterator i( d->mailboxes );
+    List<InjecteeData::Mailbox>::Iterator i( d->mailboxes );
     while ( i ) {
         m->append( i->mailbox );
         ++i;
