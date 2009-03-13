@@ -74,7 +74,7 @@ public:
         : owner( 0 ),
           state( Inactive ), failed( false ), transaction( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
-          queries( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
+          lockUidnext( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
           findBlah( 0 ), findMessagesInOutlookThreads( 0 )
@@ -122,7 +122,7 @@ public:
     HelperRowCreator * flagCreator;
     HelperRowCreator * annotationNameCreator;
 
-    List<Query> * queries;
+    Query * lockUidnext;
     Query * select;
     Query * insert;
     Query * copy;
@@ -173,7 +173,7 @@ void Injector::setup()
     lockUidnext =
         new PreparedStatement(
             "select id,uidnext,nextmodseq,first_recent from mailboxes "
-            "where id=$1 for update"
+            "where id=any($1) order by id for update"
         );
 
     incrUidnext =
@@ -539,7 +539,7 @@ void Injector::findDependencies()
         while ( mi ) {
             Mailbox * mb = mi;
             if ( !mb->id() || mb->deleted() )
-                log( "Internal error: Mailbox " + mb->name() +
+                log( "Internal error: Mailbox " + mb->name().ascii() +
                      " is not properly known", Log::Disaster );
             InjectorData::Mailbox * mbc = d->mailboxes.find( mb->id() );
             if ( !mbc ) {
@@ -1328,59 +1328,35 @@ void Injector::selectUids()
     // and modseq by that number, once per mailbox instead of once per
     // message.
     //
-    // To protect against concurrent injection into the same mailboxes,
-    // we hold a write lock on the mailboxes during injection; thus, the
-    // mailbox list must be sorted, so that the Injectors try to acquire
-    // locks in the same order to avoid deadlock.
+    // To protect against concurrent injection into the same
+    // mailboxes, we hold a write lock on the mailboxes during
+    // injection; thus, the Injectors try to acquire locks in the same
+    // order to avoid deadlock.
 
-    if ( !d->queries ) {
+    if ( !d->lockUidnext ) {
         if ( d->mailboxes.isEmpty() ) {
             next();
             return;
         }
 
-        // Lock the mailboxes in ascending order and fetch the uidnext
-        // and nextmodseq for each one separately. We can't do this in a
-        // single query ("id=any($1)") because that doesn't guarantee to
-        // lock the rows in order. The number of mailboxes is unlikely
-        // to be large enough for these queries to be a problem.
-
-        d->queries = new List<Query>;
+        IntegerSet ids;
         Map<InjectorData::Mailbox>::Iterator mi( d->mailboxes );
         while ( mi ) {
-            Mailbox * mb = mi->mailbox;
-
-            Query * q = new Query( *lockUidnext, this );
-            q->bind( 1, mb->id() );
-            d->queries->append( q );
-            d->transaction->enqueue( q );
-
+            ids.add( mi->mailbox->id() );
             ++mi;
         }
 
+        d->lockUidnext = new Query( *::lockUidnext, this );
+        d->lockUidnext->bind( 1, ids );
+        d->transaction->enqueue( d->lockUidnext );
         d->transaction->execute();
     }
 
-    // As the results of each query come in, we identify the
-    // corresponding mailbox and assign a uid to each message in it.
-
-    Query * q;
-    while ( ( q = d->queries->firstElement() ) != 0 &&
-            q->done() )
-    {
-        if ( !q->hasResults() ) {
-            d->failed = true;
-            break;
-        }
-
-        d->queries->shift();
-
-        Row * r = q->nextRow();
+    while ( d->lockUidnext->hasResults() ) {
+        Row * r = d->lockUidnext->nextRow();
         InjectorData::Mailbox * mb = d->mailboxes.find( r->getInt( "id" ) );
         uint uidnext = r->getInt( "uidnext" );
         int64 nextms = r->getBigint( "nextmodseq" );
-
-        // Until uidnext is a bigint, we're at some risk of running out.
 
         if ( uidnext > 0x7ff00000 ) {
             Log::Severity level = Log::Error;
@@ -1431,10 +1407,9 @@ void Injector::selectUids()
         u->bind( 1, mb->mailbox->id() );
         u->bind( 2, n );
         d->transaction->enqueue( u );
-        d->transaction->execute();
     }
 
-    if ( d->queries->isEmpty() )
+    if ( d->lockUidnext->done() )
         next();
 }
 
