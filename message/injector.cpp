@@ -422,7 +422,7 @@ void Injector::execute()
 
         EventHandler * owner = d->owner;
         d->owner = 0;
-        owner->execute();
+        owner->notify();
     }
 }
 
