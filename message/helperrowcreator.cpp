@@ -665,14 +665,14 @@ void AddressCreator::execute()
             new Query(
                 "update na set f=true, id=a.id from addresses a "
                 "where na.localpart=a.localpart "
-                "and na.domain=a.domain "
+                "and lower(na.domain)=lower(a.domain) "
                 "and na.name=a.name "
                 "and not f", 0 ) );
         sub->enqueue(
             new Query(
                 "update na "
                 "set id=nextval(pg_get_serial_sequence('addresses','id')) "
-                "where not f", 0 ) );
+                "where id = 0 and not f", 0 ) );
         insert =
             new Query(
                 "insert into addresses "
