@@ -7,7 +7,9 @@
 #include "mailbox.h"
 #include "utf.h"
 #include "searchsyntax.h"
+#include "ustringlist.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 
@@ -141,9 +143,24 @@ void SetRetention::execute()
 }
 
 
+class ShowRetentionData
+    : public Garbage
+{
+public:
+    ShowRetentionData()
+        : q( 0 )
+    {}
+
+    Query * q;
+};
+
+
 static AoxFactory<ShowRetention>
 b( "show", "retention", "Display mailbox retention policies",
-   "" );
+   "    Synopsis: aox show retention [mailbox]\n\n"
+   "    This command displays the retention policies related to the\n"
+   "    specified mailbox, or all existing policies if no mailbox is\n"
+   "    specified.\n" );
 
 
 /*! \class ShowRetention retention.h
@@ -151,10 +168,84 @@ b( "show", "retention", "Display mailbox retention policies",
 */
 
 ShowRetention::ShowRetention( EStringList * args )
-    : AoxCommand( args )
+    : AoxCommand( args ), d( new ShowRetentionData )
 {
+    database( true );
+    Mailbox::setup();
 }
 
 void ShowRetention::execute()
 {
+    if ( !choresDone() )
+        return;
+
+    if ( !d->q ) {
+        parseOptions();
+
+        Mailbox * m = 0;
+        if ( !args()->isEmpty() ) {
+            EString s( *args()->first() );
+            Utf8Codec c;
+            UString name = c.toUnicode( s );
+
+            if ( !c.valid() )
+                error( "Encoding error in mailbox name: " + c.error() );
+            m = Mailbox::find( name, true );
+            if ( !m )
+                error( "No such mailbox: " + name.utf8() );
+
+            (void)args()->shift();
+        }
+
+        end();
+
+        EString q(
+            "select coalesce(m.name,'Global') as name, action, duration, "
+            "selector "
+            "from retention_policies rp left join mailboxes m "
+            "on (m.id=rp.mailbox) "
+        );
+
+        if ( m )
+            q.append( "where m.name is null or m.name=any($1::text[])" );
+
+        d->q = new Query( q, this );
+
+        if ( m ) {
+            UStringList l;
+            while ( m && m->parent() != 0 ) {
+                l.append( m->name() );
+                m = m->parent();
+            }
+            d->q->bind( 1, l );
+        }
+
+        d->q->execute();
+    }
+
+    UString last;
+    while ( d->q->hasResults() ) {
+        Row * r = d->q->nextRow();
+
+        UString name( r->getUString( "name" ) );
+
+        if ( name != last ) {
+            printf( "%s:\n", name.utf8().cstr() );
+            last = name;
+        }
+
+        printf( "\t%s %d days", r->getEString( "action" ).cstr(),
+                r->getInt( "duration" ) );
+        if ( !r->isNull( "selector" ) )
+            printf( " %s", r->getEString( "selector" ).cstr() );
+        printf( "\n" );
+    }
+
+    if ( !d->q->done() )
+        return;
+
+    if ( d->q->failed() )
+        error( "Couldn't fetch retention policies: " + d->q->error() );
+
+    finish();
 }
