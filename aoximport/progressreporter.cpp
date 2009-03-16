@@ -61,7 +61,7 @@ void ProgressReporter::execute()
     fprintf( stdout,
              "Processed %d messages in %d mailboxes, %.1f/s, "
              "memory usage %s\n",
-             n, d->m->mailboxesMigrated() + d->m->migrators(),
+             n, d->m->mailboxesMigrated(),
              ((double)( n - d->l )) / p ,
              EString::humanNumber( Allocator::inUse() + Allocator::allocated() ).cstr() );
     d->w = w;

@@ -103,9 +103,14 @@ int main( int ac, char ** av )
     ProgressReporter * p = new ProgressReporter( m, 1 );
     // 5? command-line option?
 
+    uint limit = Configuration::scalar( Configuration::MemoryLimit );
+    if ( !limit )
+        limit = 128;
+    EventLoop::global()->setMemoryUsage( 1024 * 1024 * limit );
+
     EventLoop::global()->start();
 
     p->execute();
 
-    return m->status();
+    return Log::disastersYet() ? 1 : 0;
 }
