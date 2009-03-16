@@ -137,7 +137,7 @@ void ByteForwarder::read()
         uint m = 24576 - o - l;
         if ( !m )
             return;
-        
+
         int r = ::read( fd(), b + o + l, m );
         if ( r > 0 ) {
             l += r;

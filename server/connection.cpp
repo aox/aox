@@ -680,7 +680,7 @@ void Connection::startTls( TlsServer * s )
 
 
 /*! Returns true if TLS has been or is being negotiated for this
-    connection, and false if ne
+    connection, and false if not.
 */
 
 bool Connection::hasTls() const

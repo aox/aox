@@ -225,7 +225,10 @@ void POP::parse()
             if ( d->reserved )
                 break;
 
-            String *s = b->removeLine( 255 );
+            String * s = b->removeLine( 255 );
+
+            if ( !s && b->size() < 255 )
+                return;
 
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +

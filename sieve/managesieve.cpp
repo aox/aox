@@ -124,6 +124,8 @@ void ManageSieve::parse()
                 break;
 
             String * s = b->removeLine( 3072 );
+            if ( !s && b->size() < 3072 )
+                return;
 
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +

@@ -370,5 +370,3 @@ String * Buffer::removeLine( uint s )
     remove( i+n );
     return r;
 }
-
-
