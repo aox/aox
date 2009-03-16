@@ -31,6 +31,8 @@ public:
     static void setErrorCopies( bool );
     static bool errorCopies();
 
+    uint uptime();
+
 private:
     class MigratorData * d;
 };

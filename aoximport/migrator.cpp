@@ -25,6 +25,7 @@
 #include <sys/stat.h> // mkdir
 #include <sys/types.h> // mkdir
 #include <unistd.h> // getpid
+#include <time.h> // time
 
 
 class MigratorData
@@ -34,7 +35,8 @@ public:
     MigratorData()
         : working( 0 ),
           messagesDone( 0 ), mailboxesDone( 0 ),
-          mode( Migrator::Mbox )
+          mode( Migrator::Mbox ),
+          startup( (uint)time( 0 ) )
     {}
 
     UString destination;
@@ -44,6 +46,7 @@ public:
     uint messagesDone;
     uint mailboxesDone;
     Migrator::Mode mode;
+    uint startup;
 };
 
 
@@ -444,8 +447,13 @@ void MailboxMigrator::execute()
         d->destination = Mailbox::obtain( tmp, true );
     }
 
-    if ( d->injector )
+    if ( d->injector ) {
+        uint done = d->migrator->messagesMigrated() + d->migrated;
+        fprintf( stdout,
+                 "Processed %d messages, %.1f/s\n",
+                 done, ((double)done) / d->migrator->uptime() );
         d->injector = 0;
+    }
 
     uint limit = EventLoop::global()->memoryUsage() / 2;
     MigratorMessage * mm = 0;
@@ -596,4 +604,12 @@ const EStringList * MigratorMessage::flags() const
 void MigratorMessage::addFlag( const EString & flag )
 {
     f.append( flag );
+}
+
+
+/*! Returns the number of seconds since the Migrator was constructed. */
+
+uint Migrator::uptime()
+{
+    return (uint)time( 0 ) - d->startup;
 }
