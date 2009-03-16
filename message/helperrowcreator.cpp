@@ -3,6 +3,7 @@
 #include "helperrowcreator.h"
 
 #include "dict.h"
+#include "scope.h"
 #include "allocator.h"
 #include "transaction.h"
 #include "address.h"
@@ -77,6 +78,7 @@ bool HelperRowCreator::done() const
 
 void HelperRowCreator::execute()
 {
+    Scope x( log() );
     while ( !d->done ) {
         // If we're waiting for the db, just go away.
         if ( d->s && !d->s->done() )
@@ -257,6 +259,7 @@ Query * FlagCreator::makeSelect()
     if ( sl.isEmpty() )
         return 0;
     s->bind( 1, sl );
+    log( "Looking up " + fn( sl.count() ) + " flags", Log::Debug );
     return s;
 }
 
@@ -265,19 +268,20 @@ Query * FlagCreator::makeCopy()
 {
     Query * c = new Query( "copy flag_names (name) from stdin with binary",
                            this );
-    bool any = false;
+    uint count = 0;
     EStringList::Iterator it( names );
     while ( it ) {
         if ( id( *it ) == 0 && Flag::id( *it ) == 0 ) {
             c->bind( 1, *it );
             c->submitLine();
-            any = true;
+            count++;
         }
         ++it;
     }
 
-    if ( !any )
+    if ( !count )
         return 0;
+    log( "Inserting " + fn( count ) + " new flags" );
     return c;
 
 }
@@ -318,6 +322,7 @@ Query * FieldNameCreator::makeSelect()
     if ( sl.isEmpty() )
         return 0;
     q->bind( 1, sl );
+    log( "Looking up " + fn( sl.count() ) + " field names", Log::Debug );
     return q;
 }
 
@@ -327,18 +332,19 @@ Query * FieldNameCreator::makeCopy()
     Query * q = new Query( "copy field_names (name) from stdin with binary",
                            this );
     EStringList::Iterator it( names );
-    bool any = false;
+    uint count = 0;
     while ( it ) {
         if ( !id( *it ) ) {
             q->bind( 1, *it );
             q->submitLine();
-            any = true;
+            count++;
         }
         ++it;
     }
 
-    if ( !any )
+    if ( !count )
         return 0;
+    log( "Inserting " + fn( count ) + " new header field names" );
     return q;
 }
 
@@ -378,6 +384,7 @@ Query *  AnnotationNameCreator::makeSelect()
         return 0;
 
     q->bind( 1, sl );
+    log( "Looking up " + fn( sl.count() ) + " annotation names", Log::Debug );
     return q;
 }
 
@@ -387,18 +394,19 @@ Query * AnnotationNameCreator::makeCopy()
     Query * q = new Query( "copy annotation_names (name) "
                            "from stdin with binary", this );
     EStringList::Iterator it( names );
-    bool any = false;
+    uint count = 0;
     while ( it ) {
         if ( id( *it ) == 0 ) {
-            any = true;
+            count++;
             q->bind( 1, *it );
             q->submitLine();
         }
         ++it;
     }
 
-    if ( !any )
+    if ( !count )
         return 0;
+    log( "Inserting " + fn( count ) + " new annotation names" );
     return q;
 }
 
@@ -499,10 +507,8 @@ Query * AddressCreator::makeSelect()
     bool first = true;
     Dict<Address>::Iterator i( a );
     asked.clear();
-    bool any = 0;
     while ( i && n < 128 ) {
         if ( !i->id() ) {
-            any = true;
             EString name( p.fromUnicode( i->uname() ) );
             EString lp( i->localpart() );
             EString dom( i->domain().lower() );
@@ -526,9 +532,10 @@ Query * AddressCreator::makeSelect()
         }
         ++i;
     }
-    if ( !any )
+    if ( asked.isEmpty() )
         return 0;
     q->setString( s );
+    log( "Looking up " + fn( asked.count() ) + " addresses", Log::Debug );
     return q;
 }
 
@@ -552,7 +559,7 @@ void AddressCreator::processSelect( Query * q )
 
 Query * AddressCreator::makeCopy()
 {
-    bool any = false;
+    uint count = 0;
     Query * q = new Query( "copy addresses (name,localpart,domain) "
                            "from stdin with binary", this );
     List<Address>::Iterator i( asked );
@@ -562,13 +569,14 @@ Query * AddressCreator::makeCopy()
             q->bind( 2, i->localpart() );
             q->bind( 3, i->domain() );
             q->submitLine();
-            any = true;
+            count++;
         }
         ++i;
     }
-    if ( any )
-        return q;
-    return 0;
+    if ( !count )
+        return 0;
+    log( "Inserting " + fn( count ) + " new addresses" );
+    return q;
 }
 
 
@@ -602,6 +610,7 @@ static uint useTempTable = 30;
 
 void AddressCreator::execute()
 {
+    Scope x( log() );
     if ( !decided ) {
         uint c = 0;
         Dict<Address>::Iterator i( a );
