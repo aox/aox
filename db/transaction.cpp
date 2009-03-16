@@ -312,7 +312,7 @@ void Transaction::rollback()
     }
     else if ( d->parent ) {
         // if we're a subtransaction, then what we need to do is roll
-        // back to the savepoint, then release it... 
+        // back to the savepoint, then release it...
         Query * q = new Query( "rollback to " + d->savepoint, 0 );
         enqueue( q );
         q = new Query( "release savepoint " + d->savepoint, d->owner );
@@ -395,8 +395,7 @@ public:
         else {
             // if the subtransaction works, all is fine.
             t->setState( Transaction::Completed );
-            // the parent may have a queue it needs to service. make
-            // it do that.
+            // the parent may have a queue it needs to service.
             t->parent()->execute();
         }
         t->notify();
@@ -557,4 +556,8 @@ void Transaction::notify()
             throw e;
         }
     }
+    if ( done() && d->parent &&
+         d->parent->d->queries &&
+         d->parent->d->queries->isEmpty() )
+        d->parent->notify();
 }
