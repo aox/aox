@@ -364,7 +364,7 @@ public:
     bool valid;
     Injector * injector;
     uint migrated;
-    uint migrating;
+    bool migrating;
     EString error;
     Log log;
 };
@@ -435,6 +435,7 @@ void MailboxMigrator::execute()
     else if ( d->injector ) {
         d->migrated += d->migrating;
         d->migrating = 0;
+        d->injector = 0;
     }
     else if ( !d->destination ) {
         UString tmp = d->migrator->destination();
@@ -447,21 +448,25 @@ void MailboxMigrator::execute()
         d->destination = Mailbox::obtain( tmp, true );
     }
 
-    if ( d->injector ) {
-        uint done = d->migrator->messagesMigrated() + d->migrated;
-        fprintf( stdout,
-                 "Processed %d messages, %.1f/s\n",
-                 done, ((double)done) / d->migrator->uptime() );
-        d->injector = 0;
-    }
-
-    uint limit = EventLoop::global()->memoryUsage() / 2;
+    uint limit = EventLoop::global()->memoryUsage();
+    uint before = Allocator::allocated();
     MigratorMessage * mm = 0;
     do {
         mm = d->source->nextMessage();
         if ( mm )
             d->messages.append( mm );
-    } while ( mm && Allocator::allocated() + Allocator::inUse() < limit );
+    } while ( mm && Allocator::allocated() * 2 - before < limit );
+
+    uint done = d->migrator->messagesMigrated();
+    if ( done && d->migrator->uptime() ) {
+        fprintf( stdout,
+                 "Processed %d messages, %.1f/s",
+                 done, ((double)done) / d->migrator->uptime() );
+        if ( !d->messages.isEmpty() )
+            fprintf( stdout, ", next chunk %d messages",
+                     d->messages.count() );
+        fprintf( stdout, "\n" );
+    }
 
     if ( !d->messages.isEmpty() ) {
         Scope x( new Log );
@@ -482,8 +487,7 @@ void MailboxMigrator::execute()
         d->messages.clear();
     }
     else {
-        (void)new Timer( d->migrator, 0 );
-        EventLoop::global()->freeMemorySoon();
+        d->migrator->execute();
     }
 }
 
