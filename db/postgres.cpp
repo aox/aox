@@ -884,7 +884,10 @@ void Postgres::serverMessage()
         if ( q->inputLines() )
             d->sendingCopy = false;
         d->queries.shift();
-        q->setError( mapped( m ) );
+        m = mapped( m );
+        if ( !msg.detail().isEmpty() )
+            s.append( " (" + msg.detail() + ")" );
+        q->setError( m );
         q->notify();
     }
     else {
