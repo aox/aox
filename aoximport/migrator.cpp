@@ -364,7 +364,7 @@ public:
     bool valid;
     Injector * injector;
     uint migrated;
-    bool migrating;
+    uint migrating;
     EString error;
     Log log;
 };
