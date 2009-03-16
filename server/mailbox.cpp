@@ -729,8 +729,8 @@ void Mailbox::refreshMailboxes( class Transaction * t )
     MailboxReader * mr = new MailboxReader( 0, 0 );
     Transaction * s = t->subTransaction( mr );
     s->enqueue( mr->q );
+    s->enqueue( new Query( "notify mailboxes_updated", 0 ) );
     s->execute();
-    t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 }
 
 

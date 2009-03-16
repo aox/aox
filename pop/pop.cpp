@@ -13,6 +13,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "session.h"
+#include "selector.h"
 #include "eventloop.h"
 #include "popcommand.h"
 #include "estringlist.h"
@@ -103,15 +104,23 @@ void POP::setState( State s )
             IntegerSet s;
             ::Transaction * t;
             Query * nms;
+            RetentionSelector * r;
+            Query * iq;
+            int64 ms;
 
         public:
             PopDeleter( User * u, Mailbox * m, const IntegerSet & ms )
                 : user( u ), mailbox( m ), s( ms ),
-                  t( 0 ), nms( 0 )
+                  t( 0 ), nms( 0 ), r( 0 ), iq( 0 ), ms( 0 )
             {}
 
             void execute()
             {
+                if ( !r ) {
+                    r = new RetentionSelector( mailbox, this );
+                    r->execute();
+                }
+
                 if ( !t ) {
                     t = new ::Transaction( this );
                     nms = new Query( "select nextmodseq from mailboxes "
@@ -122,33 +131,61 @@ void POP::setState( State s )
                 }
 
                 if ( nms ) {
+                    if ( !r->done() )
+                        return;
+
                     if ( !nms->done() )
                         return;
 
-                    int64 ms( nms->nextRow()->getBigint( "nextmodseq" ) );
+                    ms = nms->nextRow()->getBigint( "nextmodseq" );
                     nms = 0;
 
-                    Query * q;
-                    q = new Query(
+                    Selector * s = new Selector;
+                    if ( r->retains() ) {
+                        Selector * n = new Selector( Selector::Not );
+                        s->add( n );
+                        n->add( r->retains() );
+                    }
+                    s->add( new Selector( this->s ) );
+                    s->simplify();
+                    EStringList wanted;
+                    wanted.append( "mailbox" );
+                    wanted.append( "uid" );
+                    wanted.append( "message" );
+                    iq = s->query( 0, mailbox, 0, this, false,
+                                   &wanted, false );
+                    int i = iq->string().find( " from " );
+                    uint ub = s->placeHolder();
+                    uint msb = s->placeHolder();
+                    uint rb = s->placeHolder();
+                    iq->setString(
                         "insert into deleted_messages "
-                        "(mailbox,uid,message,modseq,deleted_by,reason) "
-                        "select $1,uid,message,$5,$2,$3 "
-                        "from mailbox_messages where mailbox=$1 "
-                        "and uid=any($4)", 0
-                    );
-                    q->bind( 1, mailbox->id() );
-                    q->bind( 2, user->id() );
-                    q->bind( 3, "POP delete "+Scope::current()->log()->id() );
-                    q->bind( 4, s );
-                    q->bind( 5, ms );
-                    t->enqueue( q );
+                        "(mailbox,uid,message,modseq,deleted_by,reason) " +
+                        iq->string().mid( 0, i ) + ", $" + fn( msb ) +", $" +
+                        fn( ub ) + ", $" + fn( rb ) + iq->string().mid( i ) );
+                    iq->bind( ub, user->id() );
+                    iq->bind( msb, ms );
+                    iq->bind( rb,
+                             "POP delete " + Scope::current()->log()->id() );
+                    t->enqueue( iq );
+                    t->execute();
+                }
 
-                    q = new Query( "update mailboxes set "
-                                   "nextmodseq=nextmodseq+1 where id=$1",
-                                   this );
-                    q->bind( 1, mailbox->id() );
-                    t->enqueue( q );
-                    Mailbox::refreshMailboxes( t );
+                if ( iq ) {
+                    if ( !iq->done() )
+                        return;
+
+                    if ( iq->rows() ) {
+                        // at least one message was deleted
+                        Query * q = new Query( "update mailboxes set "
+                                               "nextmodseq=$1 where id=$2",
+                                               this );
+                        q->bind( 1, ms );
+                        q->bind( 2, mailbox->id() );
+                        t->enqueue( q );
+                        Mailbox::refreshMailboxes( t );
+                    }
+                    iq = 0;
                     t->commit();
                 }
 

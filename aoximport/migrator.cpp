@@ -18,12 +18,14 @@
 #include "maildir.h"
 #include "cyrus.h"
 #include "mbox.h"
+#include "utf.h"
 #include "mh.h"
 
 #include <stdio.h>
 #include <sys/stat.h> // mkdir
 #include <sys/types.h> // mkdir
 #include <unistd.h> // getpid
+#include <time.h> // time
 
 
 class MigratorData
@@ -31,20 +33,20 @@ class MigratorData
 {
 public:
     MigratorData()
-        : working( 0 ), target( 0 ),
+        : working( 0 ),
           messagesDone( 0 ), mailboxesDone( 0 ),
-          status( 0 ), mode( Migrator::Mbox )
+          mode( Migrator::Mbox ),
+          startup( (uint)time( 0 ) )
     {}
 
     UString destination;
     List< MigratorSource > sources;
-    List< MailboxMigrator > * working;
-    Mailbox * target;
+    MailboxMigrator * working;
 
     uint messagesDone;
     uint mailboxesDone;
-    int status;
     Migrator::Mode mode;
+    uint startup;
 };
 
 
@@ -77,6 +79,14 @@ void Migrator::setDestination( const UString &s )
 }
 
 
+/*! Returns this Migrator's destination, as set by setDestination(). */
+
+UString Migrator::destination() const
+{
+    return d->destination;
+}
+
+
 /*! Creates a MigratorSource object from the string \a s, and adds it to
     this Migrator's list of sources.
 */
@@ -100,97 +110,40 @@ void Migrator::addSource( const EString &s )
 }
 
 
-/*! Returns the target mailbox, as inferred from setDestination(). This
-    function is a ghastly, short-term hack.
-*/
-
-Mailbox * Migrator::target() const
-{
-    return d->target;
-}
-
-
-/*! Fills up the quota of working mailboxes, so we're continuously
-    migrating four mailboxes.
+/*! Finds another mailbox to migrate.
 */
 
 void Migrator::execute()
 {
-    if ( !d->target ) {
-        d->target = Mailbox::find( d->destination );
-        if ( !d->target ) {
-            d->status = -1;
-            fprintf( stderr, "aoximport: Target mailbox does not exist: %s\n",
-                     d->destination.ascii().cstr() );
-            EventLoop::global()->shutdown();
-            return;
+    if ( d->working && d->working->done() ) {
+        d->messagesDone += d->working->migrated();
+        d->mailboxesDone++;
+        d->working = 0;
+    }
+
+    while ( !d->working && !d->sources.isEmpty() ) {
+        MigratorSource * source = d->sources.first();
+        MigratorMailbox * m( source->nextMailbox() );
+        if ( m ) {
+            MailboxMigrator * n = new MailboxMigrator( m, this );
+            if ( n->valid() ) {
+                d->working = n;
+                n->execute();
+                return;
+            }
+        }
+        else {
+            d->sources.shift();
         }
     }
 
-    if ( !d->working ) {
-        log( "Starting migration" );
-        d->working = new List< MailboxMigrator >;
-    }
+    if ( d->working )
+        return;
 
-    List< MailboxMigrator >::Iterator it( d->working );
-    while ( it ) {
-        List< MailboxMigrator >::Iterator mm( it );
-        if ( mm->done() ) {
-            d->messagesDone += mm->migrated();
-            d->mailboxesDone++;
-            d->working->take( mm );
-        }
-        ++it;
-    }
-
-    if ( d->working->count() < 4 ) {
-        List< MigratorSource >::Iterator sources( d->sources );
-        while ( sources ) {
-            MigratorSource * source = sources;
-
-            MigratorMailbox * m( source->nextMailbox() );
-            while ( m && d->working->count() < 4 ) {
-                MailboxMigrator * n = new MailboxMigrator( m, this );
-                if ( n->valid() ) {
-                    d->working->append( n );
-                    n->execute();
-                }
-                m = source->nextMailbox();
-            }
-
-            if ( !m && d->working->count() < 4 ) {
-                d->sources.take( sources );
-                source = 0;
-                if ( sources )
-                    source = sources;
-            }
-            else {
-                // what does this do, exactly? out of which loop does
-                // it break?
-                break;
-            }
-        }
-    }
-
-    if ( d->working->isEmpty() && d->sources.isEmpty() ) {
-        d->status = 0;
-        if ( Database::idle() )
-            EventLoop::global()->shutdown();
-        else
-            Database::notifyWhenIdle( this );
-    }
-}
-
-
-/*! Returns the status code of this Migrator object.
-    (Nascent function, nascent documentation.)
-
-    Why is this an int instead of an enum?
-*/
-
-int Migrator::status() const
-{
-    return d->status;
+    if ( Database::idle() )
+        EventLoop::global()->shutdown();
+    else
+        Database::notifyWhenIdle( this );
 }
 
 
@@ -349,7 +302,7 @@ MigratorMessage::MigratorMessage( const EString & rfc822, const EString & desc )
             fprintf( stdout, " - Wrote to %s\n", f.name().cstr() );
     }
     m = Injectee::wrapUnparsableMessage( o, m->error(),
-                                                  "Unparsable message" );
+                                         "Unparsable message" );
 }
 
 
@@ -400,9 +353,7 @@ public:
           migrator( 0 ),
           validated( false ), valid( false ),
           injector( 0 ),
-          gcHackTimer( 0 ),
-          migrated( 0 ), migrating( 0 ),
-          mailboxCreator( 0 )
+          migrated( 0 ), migrating( 0 )
     {}
 
     MigratorMailbox * source;
@@ -412,10 +363,8 @@ public:
     bool validated;
     bool valid;
     Injector * injector;
-    Timer * gcHackTimer;
     uint migrated;
     uint migrating;
-    Transaction * mailboxCreator;
     EString error;
     Log log;
 };
@@ -486,49 +435,38 @@ void MailboxMigrator::execute()
     else if ( d->injector ) {
         d->migrated += d->migrating;
         d->migrating = 0;
-    }
-    else if ( d->mailboxCreator ) {
-        if ( d->mailboxCreator->failed() ) {
-            d->validated = true;
-            d->error = "Error creating " +
-                       d->destination->name().ascii() +
-                       ": " +
-                       d->mailboxCreator->error();
-            log( d->error, Log::Error );
-            d->migrator->execute();
-            return;
-        }
-        if ( !d->mailboxCreator->done() )
-            return;
+        d->injector = 0;
     }
     else if ( !d->destination ) {
-        d->destination = d->migrator->target();
-        if ( !d->destination ) {
-            log( "Unable to migrate " + d->source->partialName() );
-            d->migrator->execute();
-            return;
+        UString tmp = d->migrator->destination();
+        if ( !d->source->partialName().isEmpty() ) {
+            if ( !d->source->partialName().startsWith( "/" ) )
+                tmp.append( '/' );
+            Utf8Codec u;
+            tmp.append( u.toUnicode( d->source->partialName() ) );
         }
+        d->destination = Mailbox::obtain( tmp, true );
     }
 
-    if ( d->injector )
-        d->injector = 0;
-
-    if ( d->gcHackTimer ) {
-        delete d->gcHackTimer;
-        d->gcHackTimer = 0;
-    }
-    else if ( Allocator::allocated() > 5 * 1024 * 1024 ) {
-        EventLoop::freeMemorySoon();
-        d->gcHackTimer = new Timer( this, 0 );
-        return;
-    }
-
+    uint limit = EventLoop::global()->memoryUsage();
+    uint before = Allocator::allocated();
     MigratorMessage * mm = 0;
     do {
         mm = d->source->nextMessage();
         if ( mm )
             d->messages.append( mm );
-    } while ( mm && Allocator::allocated() < 64 * 1024 * 1024 );
+    } while ( mm && Allocator::allocated() * 2 - before < limit );
+
+    uint done = d->migrator->messagesMigrated();
+    if ( done && d->migrator->uptime() ) {
+        fprintf( stdout,
+                 "Processed %d messages, %.1f/s",
+                 done, ((double)done) / d->migrator->uptime() );
+        if ( !d->messages.isEmpty() )
+            fprintf( stdout, ", next chunk %d messages",
+                     d->messages.count() );
+        fprintf( stdout, "\n" );
+    }
 
     if ( !d->messages.isEmpty() ) {
         Scope x( new Log );
@@ -592,35 +530,19 @@ EString MailboxMigrator::error() const
 uint Migrator::messagesMigrated() const
 {
     uint n = d->messagesDone;
-    List<MailboxMigrator>::Iterator i( d->working );
-    while ( i ) {
-        n += i->migrated();
-        ++i;
-    }
+    if ( d->working )
+        n += d->working->migrated();
     return n;
 }
 
 
 /*! Returns the number of mailboxes completely processed so far. The
-    mailboxes which are currently being processed are not counted
-    here.
+    mailbox currently being processed is not counted here.
 */
 
 uint Migrator::mailboxesMigrated() const
 {
     return d->mailboxesDone;
-}
-
-
-/*! Returns the number of currently active migrators, which is also
-    the number of mailboxes currently being processed.
-*/
-
-uint Migrator::migrators() const
-{
-    if ( d->working )
-        return d->working->count();
-    return 0;
 }
 
 
@@ -686,4 +608,12 @@ const EStringList * MigratorMessage::flags() const
 void MigratorMessage::addFlag( const EString & flag )
 {
     f.append( flag );
+}
+
+
+/*! Returns the number of seconds since the Migrator was constructed. */
+
+uint Migrator::uptime()
+{
+    return (uint)time( 0 ) - d->startup;
 }

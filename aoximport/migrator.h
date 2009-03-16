@@ -17,22 +17,21 @@ public:
     Migrator( Mode );
 
     void setDestination( const UString & );
+    UString destination() const;
     void addSource( const EString & );
 
-    Mailbox * target() const;
-
     void execute();
-    int status() const;
 
     uint messagesMigrated() const;
     uint mailboxesMigrated() const;
-    uint migrators() const;
 
     static void setVerbosity( uint );
     static uint verbosity();
 
     static void setErrorCopies( bool );
     static bool errorCopies();
+
+    uint uptime();
 
 private:
     class MigratorData * d;

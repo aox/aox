@@ -6,6 +6,7 @@
 #include "global.h"
 #include "database.h"
 #include "estringlist.h"
+#include "ustringlist.h"
 #include "patriciatree.h"
 
 
@@ -54,6 +55,7 @@ public:
     void bind( uint, const EString &, Format = Unknown );
     void bind( uint, const UString & );
     void bind( uint, const EStringList & );
+    void bind( uint, const UStringList & );
     void bind( uint, const class IntegerSet & );
     void bind( uint, const char * );
     void bindNull( uint );

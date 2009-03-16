@@ -3,6 +3,7 @@
 #include "helperrowcreator.h"
 
 #include "dict.h"
+#include "scope.h"
 #include "allocator.h"
 #include "transaction.h"
 #include "address.h"
@@ -77,6 +78,7 @@ bool HelperRowCreator::done() const
 
 void HelperRowCreator::execute()
 {
+    Scope x( log() );
     while ( !d->done ) {
         // If we're waiting for the db, just go away.
         if ( d->s && !d->s->done() )
@@ -144,10 +146,6 @@ void HelperRowCreator::execute()
     Transaction * t = d->t;
     d->t = 0;
     t->commit();
-    // the parent transaction's owner may have to wait for this creator
-    // to finish.  notify it just in case.
-    if ( t->parent() )
-        t->parent()->notify();
 }
 
 
@@ -261,6 +259,7 @@ Query * FlagCreator::makeSelect()
     if ( sl.isEmpty() )
         return 0;
     s->bind( 1, sl );
+    log( "Looking up " + fn( sl.count() ) + " flags", Log::Debug );
     return s;
 }
 
@@ -269,19 +268,20 @@ Query * FlagCreator::makeCopy()
 {
     Query * c = new Query( "copy flag_names (name) from stdin with binary",
                            this );
-    bool any = false;
+    uint count = 0;
     EStringList::Iterator it( names );
     while ( it ) {
         if ( id( *it ) == 0 && Flag::id( *it ) == 0 ) {
             c->bind( 1, *it );
             c->submitLine();
-            any = true;
+            count++;
         }
         ++it;
     }
 
-    if ( !any )
+    if ( !count )
         return 0;
+    log( "Inserting " + fn( count ) + " new flags" );
     return c;
 
 }
@@ -322,6 +322,7 @@ Query * FieldNameCreator::makeSelect()
     if ( sl.isEmpty() )
         return 0;
     q->bind( 1, sl );
+    log( "Looking up " + fn( sl.count() ) + " field names", Log::Debug );
     return q;
 }
 
@@ -331,18 +332,19 @@ Query * FieldNameCreator::makeCopy()
     Query * q = new Query( "copy field_names (name) from stdin with binary",
                            this );
     EStringList::Iterator it( names );
-    bool any = false;
+    uint count = 0;
     while ( it ) {
         if ( !id( *it ) ) {
             q->bind( 1, *it );
             q->submitLine();
-            any = true;
+            count++;
         }
         ++it;
     }
 
-    if ( !any )
+    if ( !count )
         return 0;
+    log( "Inserting " + fn( count ) + " new header field names" );
     return q;
 }
 
@@ -382,6 +384,7 @@ Query *  AnnotationNameCreator::makeSelect()
         return 0;
 
     q->bind( 1, sl );
+    log( "Looking up " + fn( sl.count() ) + " annotation names", Log::Debug );
     return q;
 }
 
@@ -391,18 +394,19 @@ Query * AnnotationNameCreator::makeCopy()
     Query * q = new Query( "copy annotation_names (name) "
                            "from stdin with binary", this );
     EStringList::Iterator it( names );
-    bool any = false;
+    uint count = 0;
     while ( it ) {
         if ( id( *it ) == 0 ) {
-            any = true;
+            count++;
             q->bind( 1, *it );
             q->submitLine();
         }
         ++it;
     }
 
-    if ( !any )
+    if ( !count )
         return 0;
+    log( "Inserting " + fn( count ) + " new annotation names" );
     return q;
 }
 
@@ -426,7 +430,8 @@ Query * AnnotationNameCreator::makeCopy()
 AddressCreator::AddressCreator( Dict<Address> * addresses,
                                 Transaction * t )
     : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
-      a( addresses )
+      a( addresses ), bulk( false ), decided( false ),
+      base( t ), sub( 0 ), insert( 0 ), obtain( 0 )
 {
 }
 
@@ -437,7 +442,8 @@ AddressCreator::AddressCreator( Dict<Address> * addresses,
 
 AddressCreator::AddressCreator( Address * address, class Transaction * t )
     : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
-      a( new Dict<Address> )
+      a( new Dict<Address> ), bulk( false ), decided( false ),
+      base( t ), sub( 0 ), insert( 0 ), obtain( 0 )
 {
     a->insert( AddressCreator::key( address ), address );
 }
@@ -452,7 +458,8 @@ AddressCreator::AddressCreator( Address * address, class Transaction * t )
 AddressCreator::AddressCreator( List<Address> * addresses,
                                 class Transaction * t )
     : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
-      a( new Dict<Address> )
+      a( new Dict<Address> ), bulk( false ), decided( false ),
+      base( t ), sub( 0 ), insert( 0 ), obtain( 0 )
 {
     List<Address>::Iterator address( addresses );
     while ( address ) {
@@ -500,10 +507,8 @@ Query * AddressCreator::makeSelect()
     bool first = true;
     Dict<Address>::Iterator i( a );
     asked.clear();
-    bool any = 0;
     while ( i && n < 128 ) {
         if ( !i->id() ) {
-            any = true;
             EString name( p.fromUnicode( i->uname() ) );
             EString lp( i->localpart() );
             EString dom( i->domain().lower() );
@@ -527,9 +532,10 @@ Query * AddressCreator::makeSelect()
         }
         ++i;
     }
-    if ( !any )
+    if ( asked.isEmpty() )
         return 0;
     q->setString( s );
+    log( "Looking up " + fn( asked.count() ) + " addresses", Log::Debug );
     return q;
 }
 
@@ -553,7 +559,7 @@ void AddressCreator::processSelect( Query * q )
 
 Query * AddressCreator::makeCopy()
 {
-    bool any = false;
+    uint count = 0;
     Query * q = new Query( "copy addresses (name,localpart,domain) "
                            "from stdin with binary", this );
     List<Address>::Iterator i( asked );
@@ -563,13 +569,14 @@ Query * AddressCreator::makeCopy()
             q->bind( 2, i->localpart() );
             q->bind( 3, i->domain() );
             q->submitLine();
-            any = true;
+            count++;
         }
         ++i;
     }
-    if ( any )
-        return q;
-    return 0;
+    if ( !count )
+        return 0;
+    log( "Inserting " + fn( count ) + " new addresses" );
+    return q;
 }
 
 
@@ -587,4 +594,105 @@ EString AddressCreator::key( Address * a )
     r.append( '\0' );
     r.append( a->uname().utf8() );
     return r;
+}
+
+
+// this constant decides when we change to using the temptable. where's
+// the crossover point?
+
+static uint useTempTable = 30;
+
+
+/*! This overloads HelperRowCreator::execute() and conditionally
+    replaces its state machine with one that's faster for large
+    address sets.
+*/
+
+void AddressCreator::execute()
+{
+    Scope x( log() );
+    if ( !decided ) {
+        uint c = 0;
+        Dict<Address>::Iterator i( a );
+        while ( c < useTempTable && i ) {
+            if ( !i->id() )
+                ++c;
+            ++i;
+        }
+        if ( c >= useTempTable )
+            bulk = true;
+        decided = true;
+    }
+
+    if ( !bulk ) {
+        HelperRowCreator::execute();
+        return;
+    }
+
+    if ( !sub ) {
+        base->enqueue( new Query( "create temporary table na ("
+                                  "id integer, "
+                                  "f boolean, "
+                                  "name text, "
+                                  "localpart text, "
+                                  "domain text )", 0 ) );
+        Query * q = new Query( "copy na (id, f, name,localpart,domain) "
+                               "from stdin with binary", this );
+        Dict<Address>::Iterator i( a );
+        while ( i ) {
+            if ( !i->id() ) {
+                q->bind( 1, 0 );
+                q->bind( 2, false );
+                q->bind( 3, i->uname() );
+                q->bind( 4, i->localpart() );
+                q->bind( 5, i->domain() );
+                q->submitLine();
+            }
+            ++i;
+        }
+        base->enqueue( q );
+
+        sub = base->subTransaction( this );
+    }
+
+    if ( insert && insert->failed() ) {
+        sub->restart();
+        insert = 0;
+    }
+
+    if ( !insert ) {
+        sub->enqueue(
+            new Query(
+                "update na set f=true, id=a.id from addresses a "
+                "where na.localpart=a.localpart "
+                "and lower(na.domain)=lower(a.domain) "
+                "and na.name=a.name "
+                "and not f", 0 ) );
+        sub->enqueue(
+            new Query(
+                "update na "
+                "set id=nextval(pg_get_serial_sequence('addresses','id')) "
+                "where id = 0 and not f", 0 ) );
+        insert =
+            new Query(
+                "insert into addresses "
+                "(id, name, localpart, domain) "
+                "select id, name, localpart, domain "
+                "from na where not f", this );
+        sub->enqueue( insert );
+        sub->execute();
+    }
+
+    if ( !insert->done() )
+        return;
+
+    if ( !obtain ) {
+        obtain = new Query( "select id, name, localpart, domain "
+                            "from na", this );
+        sub->enqueue( obtain );
+        sub->enqueue( new Query( "drop table na", 0 ) );
+        sub->commit();
+    }
+
+    processSelect( obtain );
 }

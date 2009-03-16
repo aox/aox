@@ -5,7 +5,6 @@
 #include "migrator.h"
 #include "allocator.h"
 #include "configuration.h"
-#include "progressreporter.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "database.h"
@@ -100,12 +99,12 @@ int main( int ac, char ** av )
 
     Flag::setup();
 
-    ProgressReporter * p = new ProgressReporter( m, 1 );
-    // 5? command-line option?
+    uint limit = Configuration::scalar( Configuration::MemoryLimit );
+    if ( !limit )
+        limit = 128;
+    EventLoop::global()->setMemoryUsage( 1024 * 1024 * limit );
 
     EventLoop::global()->start();
 
-    p->execute();
-
-    return m->status();
+    return Log::disastersYet() ? 1 : 0;
 }

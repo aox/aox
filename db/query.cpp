@@ -387,6 +387,39 @@ void Query::bind( uint n, const EStringList & l )
 
 /*! \overload
 
+    This version binds each string in \a l as parameter \a n.
+*/
+
+void Query::bind( uint n, const UStringList & l )
+{
+    if ( d->format == Text ) {
+        PgUtf8Codec p;
+
+        EString s( "{" );
+        s.reserve( l.count() * 16 );
+        UStringList::Iterator it( l );
+        while ( it ) {
+            EString t( p.fromUnicode( *it ) );
+            if ( t.boring() )
+                s.append( t );
+            else
+                s.append( t.quoted() );
+            ++it;
+            if ( it )
+                s.append( "," );
+        }
+        s.append( "}" );
+        bind( n, s );
+    }
+    else {
+        // XXX: Not implemented yet.
+        die( Invariant );
+    }
+}
+
+
+/*! \overload
+
     This version binds \a b as parameter \a n.
 */
 
