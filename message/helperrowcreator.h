@@ -92,6 +92,8 @@ public:
 
     static EString key( Address * );
 
+    void execute();
+
 private:
     Query * makeSelect();
     void processSelect( Query * );
@@ -103,6 +105,12 @@ private:
 private:
     Dict<Address> * a;
     List<Address> asked;
+    bool bulk;
+    bool decided;
+    Transaction * base;
+    Transaction * sub;
+    Query * insert;
+    Query * obtain;
 };
 
 

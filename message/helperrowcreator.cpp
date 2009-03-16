@@ -422,7 +422,8 @@ Query * AnnotationNameCreator::makeCopy()
 AddressCreator::AddressCreator( Dict<Address> * addresses,
                                 Transaction * t )
     : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
-      a( addresses )
+      a( addresses ), bulk( false ), decided( false ),
+      base( t ), sub( 0 ), insert( 0 ), obtain( 0 )
 {
 }
 
@@ -433,7 +434,8 @@ AddressCreator::AddressCreator( Dict<Address> * addresses,
 
 AddressCreator::AddressCreator( Address * address, class Transaction * t )
     : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
-      a( new Dict<Address> )
+      a( new Dict<Address> ), bulk( false ), decided( false ),
+      base( t ), sub( 0 ), insert( 0 ), obtain( 0 )
 {
     a->insert( AddressCreator::key( address ), address );
 }
@@ -448,7 +450,8 @@ AddressCreator::AddressCreator( Address * address, class Transaction * t )
 AddressCreator::AddressCreator( List<Address> * addresses,
                                 class Transaction * t )
     : HelperRowCreator( "addresses", t, "addresses_nld_key" ),
-      a( new Dict<Address> )
+      a( new Dict<Address> ), bulk( false ), decided( false ),
+      base( t ), sub( 0 ), insert( 0 ), obtain( 0 )
 {
     List<Address>::Iterator address( addresses );
     while ( address ) {
@@ -583,4 +586,104 @@ EString AddressCreator::key( Address * a )
     r.append( '\0' );
     r.append( a->uname().utf8() );
     return r;
+}
+
+
+// this constant decides when we change to using the temptable. where's
+// the crossover point?
+
+static uint useTempTable = 30;
+
+
+/*! This overloads HelperRowCreator::execute() and conditionally
+    replaces its state machine with one that's faster for large
+    address sets.
+*/
+
+void AddressCreator::execute()
+{
+    if ( !decided ) {
+        uint c = 0;
+        Dict<Address>::Iterator i( a );
+        while ( c < useTempTable && i ) {
+            if ( !i->id() )
+                ++c;
+            ++i;
+        }
+        if ( c >= useTempTable )
+            bulk = true;
+        decided = true;
+    }
+
+    if ( !bulk ) {
+        HelperRowCreator::execute();
+        return;
+    }
+
+    if ( !sub ) {
+        base->enqueue( new Query( "create temporary table na ("
+                                  "id integer, "
+                                  "f boolean, "
+                                  "name text, "
+                                  "localpart text, "
+                                  "domain text )", 0 ) );
+        Query * q = new Query( "copy na (id, f, name,localpart,domain) "
+                               "from stdin with binary", this );
+        Dict<Address>::Iterator i( a );
+        while ( i ) {
+            if ( !i->id() ) {
+                q->bind( 1, 0 );
+                q->bind( 2, false );
+                q->bind( 3, i->uname() );
+                q->bind( 4, i->localpart() );
+                q->bind( 5, i->domain() );
+                q->submitLine();
+            }
+            ++i;
+        }
+        base->enqueue( q );
+
+        sub = base->subTransaction( this );
+    }
+
+    if ( insert && insert->failed() ) {
+        sub->restart();
+        insert = 0;
+    }
+
+    if ( !insert ) {
+        sub->enqueue(
+            new Query(
+                "update na set f=true, id=a.id from addresses a "
+                "where na.localpart=a.localpart "
+                "and na.domain=a.domain "
+                "and na.name=a.name "
+                "and not f", 0 ) );
+        sub->enqueue(
+            new Query(
+                "update na "
+                "set id=nextval(pg_get_serial_sequence('addresses','id')) "
+                "where not f", 0 ) );
+        insert =
+            new Query(
+                "insert into addresses "
+                "(id, name, localpart, domain) "
+                "select id, name, localpart, domain "
+                "from na where not f", this );
+        sub->enqueue( insert );
+        sub->execute();
+    }
+
+    if ( !insert->done() )
+        return;
+
+    if ( !obtain ) {
+        obtain = new Query( "select id, name, localpart, domain "
+                            "from na", this );
+        sub->enqueue( obtain );
+        sub->enqueue( new Query( "drop table na", 0 ) );
+        sub->commit();
+    }
+
+    processSelect( obtain );
 }
