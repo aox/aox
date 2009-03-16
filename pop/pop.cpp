@@ -225,7 +225,10 @@ void POP::parse()
             if ( d->reserved )
                 break;
 
-            EString *s = b->removeLine( 255 );
+            EString * s = b->removeLine( 255 );
+
+            if ( !s && b->size() < 255 )
+                return;
 
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +
