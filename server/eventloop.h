@@ -46,6 +46,7 @@ public:
     void shutdownSSL();
 
     void setMemoryUsage( uint );
+    uint memoryUsage() const;
 
 private:
     class LoopData *d;

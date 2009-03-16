@@ -767,3 +767,13 @@ void EventLoop::setMemoryUsage( uint limit )
 {
     d->limit = limit;
 }
+
+
+/*! Returns whatever setMemoryUsage() has recorded, or 0 meaning to
+    collect garbage often.
+*/
+
+uint EventLoop::memoryUsage() const
+{
+    return d->limit;
+}
