@@ -112,12 +112,6 @@ void dumpSelector( Selector * s, uint l )
 }
 
 
-void dumpSelector( Selector * s )
-{
-    dumpSelector( s, 0 );
-}
-
-
 static AoxFactory<ShowSearch>
 f( "show", "search", "Parse and explain the effects of a search expression",
    "    Synopsis: show search <search>\n\n"

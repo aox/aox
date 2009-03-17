@@ -2,12 +2,13 @@
 
 #include "retention.h"
 
+#include "utf.h"
 #include "query.h"
+#include "search.h"
 #include "selector.h"
 #include "mailbox.h"
-#include "utf.h"
-#include "searchsyntax.h"
 #include "ustringlist.h"
+#include "searchsyntax.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -234,11 +235,13 @@ void ShowRetention::execute()
             last = name;
         }
 
-        printf( "\t%s %d days", r->getEString( "action" ).cstr(),
+        printf( "  %s %d days\n", r->getEString( "action" ).cstr(),
                 r->getInt( "duration" ) );
-        if ( !r->isNull( "selector" ) )
-            printf( " %s", r->getEString( "selector" ).cstr() );
-        printf( "\n" );
+        if ( !r->isNull( "selector" ) ) {
+            Selector * s = Selector::fromString( r->getEString( "selector" ) );
+            if ( s )
+                dumpSelector( s, 1 );
+        }
     }
 
     if ( !d->q->done() )
