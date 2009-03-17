@@ -1732,6 +1732,10 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
 
 void Injector::addMailbox( Query * q, Injectee * m, Mailbox * mb )
 {
+    if ( !mb->id() ) {
+        log( "Asked to inject into synthetic mailbox " + mb->name().ascii() );
+        return;
+    }
     q->bind( 1, mb->id() );
     q->bind( 2, m->uid( mb ) );
     q->bind( 3, m->databaseId() );
