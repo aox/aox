@@ -65,6 +65,25 @@ P/W: Stuff we may want to keep
   Optimisation to defeat overeager use of STATUS.
 
 
+Functions and views
+
+  Views that'll be good for people:
+  - Valid local email addresses and users
+  - Sender information
+    - How many earlier messages from that address
+    - How many messages to that address
+    - How many earlier messages to/from the domain
+
+  Functions:
+  - Create user
+  - Delete user
+  - Rename user
+  - Change password
+  - Change password, given old and new password, checking
+  - Enable/disable alias
+  - Add/delete/rename alias
+
+
 Release cycle
 
   Five weeks, t-35 to t (a Monday).
