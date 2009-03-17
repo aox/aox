@@ -311,6 +311,25 @@ static void shutdownLoop( int )
 }
 
 
+static void closeGuiltyConnection( int )
+{
+    List<Connection>::Iterator i( EventLoop::global()->connections() );
+    while ( i ) {
+        Connection * c = i;
+        ++i;
+        Log * l = Scope::current()->log();
+        while ( l && l != c->log() )
+            l = l->parent();
+        if ( c->type() != Connection::Listener && l ) {
+            Scope x( l );
+            ::log( "Invariant failed; Closing connection abruptly",
+                   Log::Error );
+            c->close();
+        }
+    }
+}
+
+
 static void dumpCoreAndGoOn( int )
 {
     if ( fork() )
@@ -349,6 +368,9 @@ void Server::loop()
     // sigpipe happens if we're writing to an already-closed fd. we'll
     // discover that it's closed a little later.
     ::signal( SIGPIPE, SIG_IGN );
+    // if we dereference a null pointer, we usually can close some fd
+    // and go on
+    ::signal( SIGSEGV, closeGuiltyConnection );
     // a custom signal to dump core and go on
     ::signal( SIGUSR1, dumpCoreAndGoOn );
 }
