@@ -218,8 +218,8 @@ void ShowRetention::execute()
         end();
 
         EString q(
-            "select coalesce(m.name,'Global') as name, action, duration, id "
-            "selector "
+            "select coalesce(m.name,'Global') as name, action, duration, "
+            "selector, id "
             "from retention_policies rp left join mailboxes m "
             "on (m.id=rp.mailbox)"
         );
