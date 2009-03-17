@@ -79,7 +79,7 @@ public:
           state( Inactive ), failed( false ), retried( 0 ), transaction( 0 ),
           mailboxesCreated( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
-          lockUidnext( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
+          lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
           findBlah( 0 ), findMessagesInOutlookThreads( 0 )
@@ -132,8 +132,6 @@ public:
     Query * lockUidnext;
     Query * select;
     Query * insert;
-    Query * copy;
-    List<Message>::Iterator * message;
 
     uint substate;
     Transaction * subtransaction;
@@ -1259,7 +1257,8 @@ void Injector::insertBodyparts()
     }
     while ( last != d->substate );
 
-    d->select = d->insert = d->copy = 0;
+    d->select = 0;
+    d->insert = 0;
     next();
 }
 
@@ -1364,42 +1363,37 @@ void Injector::addBodypartRow( Bodypart * b )
 void Injector::selectMessageIds()
 {
     if ( !d->select ) {
-        d->message = new List<Message>::Iterator( d->messages );
         d->select = selectNextvals( "messages_id_seq", d->messages.count() );
         d->transaction->enqueue( d->select );
         d->transaction->execute();
     }
 
-    if ( !d->copy ) {
-        if ( !d->select->done() || d->select->failed() )
-            return;
-
-        d->copy = new Query( "copy messages (id,rfc822size,idate) "
-                             "from stdin with binary", this );
-
-        while ( d->select->hasResults() ) {
-            Message * m = *d->message;
-            Row * r = d->select->nextRow();
-            m->setDatabaseId( r->getInt( "id" ) );
-            d->copy->bind( 1, m->databaseId() );
-            if ( !m->hasTrivia() ) {
-                m->setRfc822Size( m->rfc822().length() );
-                m->setTriviaFetched( true );
-            }
-            d->copy->bind( 2, m->rfc822Size() );
-            d->copy->bind( 2, internalDate( m ) );
-            d->copy->submitLine();
-            ++(*d->message);
-        }
-
-        d->transaction->enqueue( d->copy );
-        d->transaction->execute();
-    }
-
-    if ( !d->copy->done() )
+    if ( !d->select->done() )
         return;
 
-    d->select = d->copy = 0;
+    if ( d->select->failed() )
+        return;
+
+    Query * copy = new Query( "copy messages (id,rfc822size,idate) "
+                              "from stdin with binary", this );
+
+    List<Message>::Iterator m( d->messages );
+    while ( m && d->select->hasResults() ) {
+        Row * r = d->select->nextRow();
+        m->setDatabaseId( r->getInt( "id" ) );
+        copy->bind( 1, m->databaseId() );
+        if ( !m->hasTrivia() ) {
+            m->setRfc822Size( m->rfc822().length() );
+            m->setTriviaFetched( true );
+        }
+        copy->bind( 2, m->rfc822Size() );
+        copy->bind( 2, internalDate( m ) );
+        copy->submitLine();
+        ++m;
+    }
+
+    d->transaction->enqueue( copy );
+
     next();
 }
 
