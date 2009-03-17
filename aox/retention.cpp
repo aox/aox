@@ -219,12 +219,13 @@ void ShowRetention::execute()
         d->q = new Query( q, this );
 
         if ( m ) {
-            UStringList l;
-            while ( m && m->parent() != 0 ) {
-                l.append( m->name() );
+            IntegerSet ids;
+            while ( m ) {
+                if ( m->id() )
+                    ids.add( m->id() );
                 m = m->parent();
             }
-            d->q->bind( 1, l );
+            d->q->bind( 1, ids );
         }
 
         d->q->execute();
