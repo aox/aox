@@ -66,8 +66,6 @@ public:
 private:
     class InjectorData * d;
 
-    static void setup();
-
     void next();
     void createMailboxes();
     void findMessages();
