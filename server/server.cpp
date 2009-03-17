@@ -365,7 +365,6 @@ void Server::loop()
     sa.sa_sigaction = 0; // may be union with sa_handler above
     sigemptyset( &sa.sa_mask ); // we block no other signals
     sa.sa_flags = 0; // in particular, we don't want SA_RESETHAND
-    sa.sa_restorer = 0;
 
     // we cannot reread files, so we ignore sighup
     sa.sa_handler = SIG_IGN;
