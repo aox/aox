@@ -55,10 +55,10 @@ CONFIGDIR = $(PREFIX) ;
 #
 READMEDIR = $(PREFIX) ;
 
-# The log file's default name. (This is the only configurable file
-# name, all the others are directory names.)
+# The log file's default name. (This can be a file name or syslog/x,
+# where x is a facility.)
 #
-LOGFILE = $(PREFIX)/logfile ;
+LOGFILE = "syslog/mail" ;
 
 # The default mode for the log file.
 #

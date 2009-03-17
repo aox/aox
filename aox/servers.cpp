@@ -726,6 +726,10 @@ bool Starter::startServer( const char * s )
     EString t( s );
     if ( t == "tlsproxy" )
         use = Configuration::toggle( Configuration::UseTls );
+    else if ( t == "logd" )
+        use = Configuration::present( Configuration::LogFile ) &&
+              !Configuration::text(
+                  Configuration::LogFile ).startsWith( "syslog/" );
     else if ( t == "archiveopteryx" )
         use = Configuration::toggle( Configuration::UseImap ) ||
               Configuration::toggle( Configuration::UseImaps ) ||
@@ -982,9 +986,12 @@ void Stopper::execute()
                 d->pingers->append(
                     new ServerPinger( Configuration::TlsProxyAddress,
                                       Configuration::TlsProxyPort, this ) );
-            d->pingers->append(
-                new ServerPinger( Configuration::LogAddress,
-                                  Configuration::LogPort, this ) );
+            if ( Configuration::present( Configuration::LogFile ) &&
+                 !Configuration::text(
+                     Configuration::LogFile ).startsWith( "syslog/" ) )
+                d->pingers->append(
+                    new ServerPinger( Configuration::LogAddress,
+                                      Configuration::LogPort, this ) );
         }
 
         List<ServerPinger>::Iterator i( d->pingers );
