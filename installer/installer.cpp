@@ -1885,8 +1885,6 @@ void configFile()
         dbhost + name + schema +
         "db-user = " + *dbuser + "\n"
         "db-password = " + p + "\n\n"
-        "logfile = " LOGFILE "\n"
-        "logfile-mode = " LOGFILEMODE "\n"
     );
 
     EString other(
