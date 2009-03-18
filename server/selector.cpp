@@ -267,6 +267,7 @@ Selector::Selector( Action a )
 Selector::Selector( Mailbox * mailbox, bool alsoChildren )
     : d( new SelectorData )
 {
+    d->a = Contains;
     d->f = MailboxTree;
     d->m = mailbox;
     d->mc = alsoChildren;
@@ -438,9 +439,6 @@ void Selector::simplify()
         if ( d->a != Or )
             d->children->clear();
     }
-
-    if ( d->f == MailboxTree && d->m->parent() )
-        return;
 
     if ( d->a == All || d->a == None )
         d->f = NoField;
