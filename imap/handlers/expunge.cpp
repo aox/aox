@@ -178,16 +178,16 @@ void Expunge::execute()
                                false );
 
         int i = d->expunge->string().find( " from " );
-        uint ub = s->placeHolder();
         uint msb = s->placeHolder();
+        uint ub = s->placeHolder();
         uint rb = s->placeHolder();
         d->expunge->setString(
             "insert into deleted_messages "
             "(mailbox,uid,message,modseq,deleted_by,reason) " +
             d->expunge->string().mid( 0, i ) + ", $" + fn( msb ) +", $" +
             fn( ub ) + ", $" + fn( rb ) + d->expunge->string().mid( i ) );
-        d->expunge->bind( ub, imap()->user()->id() );
         d->expunge->bind( msb, d->modseq );
+        d->expunge->bind( ub, imap()->user()->id() );
         d->expunge->bind( rb,
                           "IMAP expunge " + Scope::current()->log()->id() );
         d->t->enqueue( d->expunge );
