@@ -391,8 +391,10 @@ void Selector::simplify()
             break;
         case Age:
             // cannot be simplified, should not happen
+            break;
         case MailboxTree:
             // cannot be simplified
+            break;
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
@@ -436,6 +438,10 @@ void Selector::simplify()
         if ( d->a != Or )
             d->children->clear();
     }
+
+    if ( d->f == MailboxTree && d->m->parent() )
+        return;
+
     if ( d->a == All || d->a == None )
         d->f = NoField;
 
@@ -2317,7 +2323,7 @@ void RetentionSelector::execute()
         Selector * s = new Selector( Selector::And );
         Selector::Action action = Selector::Smaller;
         if ( !d->m && !r->isNull( "mailbox" ) ) {
-            Mailbox * subtree = Mailbox::find( r->getUString( "mailbox" ) );
+            Mailbox * subtree = Mailbox::find( r->getInt( "mailbox" ) );
             s->add( new Selector( subtree, true ) );
         }
         if ( r->getEString( "action" ) == "delete" )

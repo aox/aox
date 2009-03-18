@@ -4,6 +4,7 @@
 
 #include "query.h"
 #include "schema.h"
+#include "mailbox.h"
 #include "granter.h"
 #include "postgres.h"
 #include "selector.h"
@@ -163,10 +164,9 @@ void Vacuum::execute()
         end();
 
         database( true );
+        Mailbox::setup( this );
         t = new Transaction( this );
         uint days = Configuration::scalar( Configuration::UndeleteTime );
-        r = new RetentionSelector( t, this );
-        r->execute();
 
         Query * q;
 
@@ -201,6 +201,10 @@ void Vacuum::execute()
                        "from bodyparts b left join part_numbers p on "
                        "(b.id=p.bodypart) where bodypart is null)", 0 );
         t->enqueue( q );
+
+        r = new RetentionSelector( t, this );
+        r->execute();
+
         t->execute();
     }
 
@@ -223,16 +227,16 @@ void Vacuum::execute()
             wanted.append( "message" );
             Query * iq = s->query( 0, 0, 0, this, false, &wanted, false );
             int i = iq->string().find( " from " );
-            uint ub = s->placeHolder();
             uint msb = s->placeHolder();
+            uint ub = s->placeHolder();
             uint rb = s->placeHolder();
             iq->setString( "insert into deleted_messages "
                            "(mailbox,uid,message,modseq,deleted_by,reason) " +
                            iq->string().mid( 0, i ) + ", $" + fn( msb )
                            + ", $" + fn( ub ) + ", $" + fn( rb ) +
                            iq->string().mid( i ) );
-            iq->bindNull( ub );
             iq->bind( msb, 0 );
+            iq->bindNull( ub );
             iq->bind( rb, "Retention policy" );
             t->enqueue( iq );
         }
