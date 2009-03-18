@@ -2330,7 +2330,7 @@ void RetentionSelector::execute()
             s->add( Selector::fromString( r->getEString( "selector" ) ) );
         uint duration = r->getInt( "duration" );
         if ( duration )
-            s->add( new Selector( Selector::Age, action, duration ) );
+            s->add( new Selector( Selector::Age, action, duration * 86400 ) );
         if ( action == Selector::Smaller )
             d->retains->add( s );
         else
