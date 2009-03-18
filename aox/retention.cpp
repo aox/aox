@@ -259,12 +259,15 @@ void ShowRetention::execute()
             last = name;
         }
 
-        printf( "  %s %d days\n", r->getEString( "action" ).cstr(),
+        printf( "  %s %d days:\n", r->getEString( "action" ).cstr(),
                 r->getInt( "duration" ) );
-        if ( !r->isNull( "selector" ) ) {
+        if ( r->isNull( "selector" ) ) {
+            printf( "    Unconditional\n" );
+        }
+        else {
             Selector * s = Selector::fromString( r->getEString( "selector" ) );
             if ( s )
-                dumpSelector( s, 1 );
+                dumpSelector( s, 2 );
         }
     }
 
