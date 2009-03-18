@@ -213,13 +213,13 @@ void Vacuum::execute()
 
     if ( !s ) {
         s = new Selector( Selector::And );
-        if ( r->retains() ) {
-            Selector * n = new Selector( Selector::Not );
-            s->add( n );
-            n->add( r->retains() );
-        }
         if ( r->deletes() ) {
             s->add( r->deletes() );
+            if ( r->retains() ) {
+                Selector * n = new Selector( Selector::Not );
+                s->add( n );
+                n->add( r->retains() );
+            }
             s->simplify();
             EStringList wanted;
             wanted.append( "mailbox" );
