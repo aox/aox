@@ -6,6 +6,7 @@
 #include "schema.h"
 #include "granter.h"
 #include "postgres.h"
+#include "selector.h"
 #include "recipient.h"
 #include "transaction.h"
 #include "configuration.h"
@@ -150,7 +151,7 @@ f3( "vacuum", "", "Perform routine maintenance.",
 */
 
 Vacuum::Vacuum( EStringList * args )
-    : AoxCommand( args ), t( 0 )
+    : AoxCommand( args ), t( 0 ), r( 0 ), s( 0 )
 {
 }
 
@@ -164,6 +165,8 @@ void Vacuum::execute()
         database( true );
         t = new Transaction( this );
         uint days = Configuration::scalar( Configuration::UndeleteTime );
+        r = new RetentionSelector( t, this );
+        r->execute();
 
         Query * q;
 
@@ -198,6 +201,42 @@ void Vacuum::execute()
                        "from bodyparts b left join part_numbers p on "
                        "(b.id=p.bodypart) where bodypart is null)", 0 );
         t->enqueue( q );
+        t->execute();
+    }
+
+    if ( !r->done() )
+        return;
+
+    if ( !s ) {
+        s = new Selector( Selector::And );
+        if ( r->retains() ) {
+            Selector * n = new Selector( Selector::Not );
+            s->add( n );
+            n->add( r->retains() );
+        }
+        if ( r->deletes() ) {
+            s->add( r->deletes() );
+            s->simplify();
+            EStringList wanted;
+            wanted.append( "mailbox" );
+            wanted.append( "uid" );
+            wanted.append( "message" );
+            Query * iq = s->query( 0, 0, 0, this, false, &wanted, false );
+            int i = iq->string().find( " from " );
+            uint ub = s->placeHolder();
+            uint msb = s->placeHolder();
+            uint rb = s->placeHolder();
+            iq->setString( "insert into deleted_messages "
+                           "(mailbox,uid,message,modseq,deleted_by,reason) " +
+                           iq->string().mid( 0, i ) + ", $" + fn( msb )
+                           + ", $" + fn( ub ) + ", $" + fn( rb ) +
+                           iq->string().mid( i ) );
+            iq->bindNull( ub );
+            iq->bind( msb, 0 );
+            iq->bind( rb, "Retention policy" );
+            t->enqueue( iq );
+        }
+            
         t->commit();
     }
 

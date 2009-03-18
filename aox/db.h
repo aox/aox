@@ -39,6 +39,8 @@ public:
 
 private:
     class Transaction * t;
+    class RetentionSelector * r;
+    class Selector * s;
 };
 
 

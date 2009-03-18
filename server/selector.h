@@ -118,7 +118,7 @@ class RetentionSelector
 {
 public:
     RetentionSelector( Mailbox *, EventHandler * );
-    RetentionSelector( EventHandler * );
+    RetentionSelector( Transaction *, EventHandler * );
 
     void execute();
     bool done();
