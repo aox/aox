@@ -224,21 +224,55 @@ void Vacuum::execute()
             EStringList wanted;
             wanted.append( "mailbox" );
             wanted.append( "uid" );
-            wanted.append( "message" );
+            // moving stuff from mm to dm while increasing modseq
+            // appropriately and not locking unrelated mailboxes is
+            // complicated.
+            
+            // make a staging table.
+            t->enqueue( new Query( "create temporary table s ("
+                                   "mailbox integer, "
+                                   "uid integer )", 0 ) );
+
+            // insert the messages to be deleted there.
             Query * iq = s->query( 0, 0, 0, this, false, &wanted, false );
-            int i = iq->string().find( " from " );
-            uint msb = s->placeHolder();
-            uint ub = s->placeHolder();
-            uint rb = s->placeHolder();
-            iq->setString( "insert into deleted_messages "
-                           "(mailbox,uid,message,modseq,deleted_by,reason) " +
-                           iq->string().mid( 0, i ) + ", $" + fn( msb )
-                           + ", $" + fn( ub ) + ", $" + fn( rb ) +
-                           iq->string().mid( i ) );
-            iq->bind( msb, 0 );
-            iq->bindNull( ub );
-            iq->bind( rb, "Retention policy" );
+            iq->setString( "insert into s (mailbox,uid) " + iq->string() );
             t->enqueue( iq );
+
+            // lock all relevant mailboxes against concurrent
+            // modification.  this doesn't quite work, since something
+            // may have changed the mailbox concurrently with the
+            // insert above. but it'll lock at least as many mailboxes
+            // as we need, and very seldom any extra ones.
+            t->enqueue( new Query( "select nextmodseq from mailboxes "
+                                   "join s on (mailboxes.id=s.mailbox) "
+                                   "order by id "
+                                   "for update", 0 ) );
+
+            // insert those messages which still exist into dm. we
+            // join against mm just in case someone deleted one of
+            // those messages while the insert was running.
+            t->enqueue( new Query( "insert into deleted_messages "
+                                   "(mailbox, uid, message,"
+                                   " modseq, deleted_by, reason) "
+                                   "select s.mailbox, s.uid, mm.message,"
+                                   " m.nextmodseq, null, 'Retention policy' "
+                                   "from s "
+                                   "join mailbox_messages mm"
+                                   " using (mailbox,uid) "
+                                   "join mailboxes m on (s.mailbox=m.id)",
+                                   0 ) );
+
+            // consume a modseq for each mailbox we (may have) modified.
+            t->enqueue( new Query( "update mailboxes "
+                                   "set nextmodseq=nextmodseq+1 "
+                                   "where id in (select mailbox from s)",
+                                   0 ) );
+
+            // we don't need the staging table any more
+            t->enqueue( new Query( "drop table s", 0 ) );
+
+            // but we do need to notify the running server of the change
+            t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
         }
             
         t->commit();
