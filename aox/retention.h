@@ -6,16 +6,24 @@
 #include "aoxcommand.h"
 
 
-class SetRetention
+class RetainMessages
     : public AoxCommand
 {
 public:
-    SetRetention( EStringList * );
+    RetainMessages( EStringList *, bool = true );
 
     void execute();
 
 private:
-    class SetRetentionData * d;
+    class RetainMessagesData * d;
+};
+
+
+class DeleteMessages
+    : public RetainMessages
+{
+public:
+    DeleteMessages( EStringList * );
 };
 
 

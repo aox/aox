@@ -14,11 +14,11 @@
 #include <stdlib.h>
 
 
-class SetRetentionData
+class RetainMessagesData
     : public Garbage
 {
 public:
-    SetRetentionData()
+    RetainMessagesData()
         : state( 0 ), duration( 0 ), m( 0 ), selector( 0 ), t( 0 )
     {}
 
@@ -31,35 +31,36 @@ public:
 };
 
 
-/*! \class SetRetention retention.h
+/*! \class RetainMessages retention.h
     Sets mailbox retention policies.
 */
 
-// XXX: Listen to the documentation: "create", not "set".
+static AoxFactory<RetainMessages>
+a( "retain", "messages", "Create a new message retention policy",
+   "    Synopsis: aox retain mail <days> [mailbox] [search]\n\n"
+   "    This command creates a retention policy: mail is retained for as many\n"
+   "    days as specified (by either a positive integer or \"forever\"). An\n"
+   "    optional mailbox name and search expression may be specified to limit\n"
+   "    the scope of the policy to matching messages.\n" );
 
-static AoxFactory<SetRetention>
-a( "set", "retention", "Set mailbox retention policies",
-   "    Synopsis: aox set retention <retain|delete> <days> [mailbox] [search]\n\n"
-   "    This command creates a retention policy. The action (retain or delete)\n"
-   "    and the duration (a positive number, or \"forever\") must be specified.\n"
-   "    Optionally, a mailbox name and a search expression may be specified, to\n"
-   "    limit the scope of the policy to matching messages.\n" );
+static AoxFactory<RetainMessages>
+a2( "retain", "mail", &a );
 
 
-SetRetention::SetRetention( EStringList * args )
-    : AoxCommand( args ), d( new SetRetentionData )
+RetainMessages::RetainMessages( EStringList * args, bool retain )
+    : AoxCommand( args ), d( new RetainMessagesData )
 {
+    if ( retain )
+        d->action = "retain";
+    else
+        d->action = "delete";
 }
 
 
-void SetRetention::execute()
+void RetainMessages::execute()
 {
     if ( d->state == 0 ) {
         parseOptions();
-
-        d->action = next();
-        if ( !( d->action == "retain" || d->action == "delete" ) )
-            error( "Unknown retention policy action: " + d->action );
 
         EString ds( next() );
         if ( ds != "forever" ) {
@@ -161,6 +162,28 @@ void SetRetention::execute()
 }
 
 
+static AoxFactory<DeleteMessages>
+b( "delete", "messages", "Create a new message deletion policy",
+   "    Synopsis: aox delete mail <days> [mailbox] [search]\n\n"
+   "    This command creates a deletion policy: mail is deleted after as many\n"
+   "    days as specified (by a positive integer). An optional mailbox name and\n"
+   "    search expression may be specified to limit the scope of the policy to\n"
+   "    matching messages.\n" );
+
+static AoxFactory<DeleteMessages>
+b2( "delete", "mail", &b );
+
+/*! \class DeleteMessages retention.h
+    Creates a mail deletion policy through a suitably-inverted
+    RetainMessages object.
+*/
+
+DeleteMessages::DeleteMessages( EStringList * e )
+    : RetainMessages( e, false )
+{
+}
+
+
 class ShowRetentionData
     : public Garbage
 {
@@ -174,7 +197,7 @@ public:
 
 
 static AoxFactory<ShowRetention>
-b( "show", "retention", "Display mailbox retention policies",
+c( "show", "retention", "Display mailbox retention policies",
    "    Synopsis: aox show retention [mailbox]\n\n"
    "    This command displays the retention policies related to the\n"
    "    specified mailbox, or all existing policies if no mailbox is\n"
