@@ -85,10 +85,7 @@ static Selector * parseSelector( StringList * arguments,
     while ( i && !e ) {
         String * n = arguments->firstElement();
         String a = i->lower();
-        if ( a == "(" ) {
-            children.append( parseSelector( arguments, true, e ) );
-        }
-        else if ( a == "not" ) {
+        if ( a == "not" ) {
             seenNot = true;
             i = arguments->shift();
             n = arguments->firstElement();
@@ -99,7 +96,15 @@ static Selector * parseSelector( StringList * arguments,
         }
         Selector * c = 0;
 
-        if ( a == "from" ||
+        if ( a == "(" ) {
+            children.append( parseSelector( arguments, true, e ) );
+            if ( arguments->firstElement() )
+                fprintf( stderr, "next first: %s\n",
+                         arguments->firstElement()->cstr() );
+            else
+                fprintf( stderr, "child parser consumed everything\n" );
+        }
+        else if ( a == "from" ||
              a == "to" ||
              a == "cc" ||
              a == "reply-to" ||
