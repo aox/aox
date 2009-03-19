@@ -4100,7 +4100,7 @@ bool Schema::stepTo86()
         new Query( "create function notify_retention_policies() "
                    "returns trigger as $$ "
                    "begin "
-                   "notify retention_policies_updated; "
+                   "notify retention_policies_updated; return NULL; "
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger retention_policies_trigger "
