@@ -13,6 +13,7 @@
 #include "allocator.h"
 #include "estringlist.h"
 #include "configuration.h"
+#include "transaction.h"
 #include "annotation.h"
 #include "dbsignal.h"
 #include "field.h"
@@ -266,6 +267,7 @@ Selector::Selector( Action a )
 Selector::Selector( Mailbox * mailbox, bool alsoChildren )
     : d( new SelectorData )
 {
+    d->a = Contains;
     d->f = MailboxTree;
     d->m = mailbox;
     d->mc = alsoChildren;
@@ -390,8 +392,10 @@ void Selector::simplify()
             break;
         case Age:
             // cannot be simplified, should not happen
+            break;
         case MailboxTree:
             // cannot be simplified
+            break;
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
@@ -435,6 +439,7 @@ void Selector::simplify()
         if ( d->a != Or )
             d->children->clear();
     }
+
     if ( d->a == All || d->a == None )
         d->f = NoField;
 
@@ -2186,13 +2191,15 @@ class RetentionSelectorData
 public:
     RetentionSelectorData()
         : m( 0 ), done( false ), q( 0 ),
-          retains( 0 ), deletes( 0 ), owner( 0 ) {}
+          retains( 0 ), deletes( 0 ), owner( 0 ),
+          transaction( 0 ) {}
     Mailbox * m;
     bool done;
     Query * q;
     Selector * retains;
     Selector * deletes;
     EventHandler * owner;
+    Transaction * transaction;
 };
 
 
@@ -2242,14 +2249,15 @@ RetentionSelector::RetentionSelector( Mailbox * m, EventHandler * h )
 
 
 /*! Constructs a RetentionSelector to cook up the giant 'insert into
-    deleted_messages' query aox vacuum needs. Will notify() \a h when
-    done(). You have to call execute() once.
+    deleted_messages' query aox vacuum needs, using \a t. Will
+    notify() \a h when done(). You have to call execute() once.
 */
 
-RetentionSelector::RetentionSelector( EventHandler * h )
+RetentionSelector::RetentionSelector( Transaction * t, EventHandler * h )
     : d( new RetentionSelectorData )
 {
     d->owner = h;
+    d->transaction = t;
 }
 
 
@@ -2294,7 +2302,10 @@ void RetentionSelector::execute()
                               "from retention_policies",
                               this );
         }
-        d->q->execute();
+        if ( d->transaction )
+            d->transaction->enqueue( d->q );
+        else
+            d->q->execute();
     }
 
     if ( !d->q->done() )
@@ -2309,26 +2320,18 @@ void RetentionSelector::execute()
         Row * r = d->q->nextRow();
         Selector * s = new Selector( Selector::And );
         Selector::Action action = Selector::Smaller;
-        if ( !d->m ) {
-            Mailbox * subtree = Mailbox::find( r->getUString( "mailbox" ) );
+        if ( !d->m && !r->isNull( "mailbox" ) ) {
+            Mailbox * subtree = Mailbox::find( r->getInt( "mailbox" ) );
             s->add( new Selector( subtree, true ) );
-            if ( r->getEString( "action" ) == "delete" )
-                action = Selector::Larger;
-
         }
-        Selector * specified =
-            Selector::fromString( r->getEString( "selector" ) );
-        if ( specified )
-            s->add( specified );
-        else
-            log( "Error while parsing retention_policies row " +
-                 fn( r->getInt( "id" ) ), Log::Error );
+        if ( r->getEString( "action" ) == "delete" )
+            action = Selector::Larger;
+        if ( !r->isNull( "selector" ) )
+            s->add( Selector::fromString( r->getEString( "selector" ) ) );
         uint duration = r->getInt( "duration" );
         if ( duration )
-            s->add( new Selector( Selector::Age, action, duration ) );
-        if ( !specified )
-            ; // have to ignore that row. don't like this.
-        else if ( action == Selector::Smaller )
+            s->add( new Selector( Selector::Age, action, duration * 86400 ) );
+        if ( action == Selector::Smaller )
             d->retains->add( s );
         else
             d->deletes->add( s );
@@ -2372,7 +2375,7 @@ Selector * RetentionSelector::retains()
 /*! Returns a pointer to the Selector that will match all messages
     that need to be deleted, or 0 if there is no applicable retention
     policy.
-    
+
     Selector::simplify() has not been called.
 
 */

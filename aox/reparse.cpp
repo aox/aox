@@ -107,7 +107,7 @@ void Reparse::execute()
             q->bind( 3, r->getInt( "wrapper" ) );
             // using the unchanged modseq here is really a bug, but
             // the right value isn't available, at least not yet.
-            q->bind( 4, r->getInt( "modseq" ) );
+            q->bind( 4, r->getBigint( "modseq" ) );
             q->bindNull( 5 );
             q->bind( 6,
                      EString( "reparsed by aox " ) +

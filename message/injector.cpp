@@ -30,10 +30,6 @@
 #include "dsn.h"
 
 
-static PreparedStatement *lockUidnext;
-static PreparedStatement *incrUidnext;
-static PreparedStatement *incrUidnextWithRecent;
-
 static GraphableCounter * successes;
 static GraphableCounter * failures;
 
@@ -79,7 +75,7 @@ public:
           state( Inactive ), failed( false ), retried( 0 ), transaction( 0 ),
           mailboxesCreated( 0 ),
           fieldNameCreator( 0 ), flagCreator( 0 ), annotationNameCreator( 0 ),
-          lockUidnext( 0 ), select( 0 ), insert( 0 ), copy( 0 ), message( 0 ),
+          lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
           findBlah( 0 ), findMessagesInOutlookThreads( 0 )
@@ -132,8 +128,6 @@ public:
     Query * lockUidnext;
     Query * select;
     Query * insert;
-    Query * copy;
-    List<Message>::Iterator * message;
 
     uint substate;
     Transaction * subtransaction;
@@ -171,39 +165,6 @@ public:
 */
 
 
-/*! This setup function expects to be called by ::main() to perform what
-    little initialisation is required by the Injector.
-*/
-
-void Injector::setup()
-{
-    lockUidnext =
-        new PreparedStatement(
-            "select id,uidnext,nextmodseq,first_recent from mailboxes "
-            "where id=any($1) order by id for update"
-        );
-
-    incrUidnext =
-        new PreparedStatement(
-            "update mailboxes "
-            "set uidnext=uidnext+$2,nextmodseq=nextmodseq+1 "
-            "where id=$1"
-        );
-
-    incrUidnextWithRecent =
-        new PreparedStatement(
-            "update mailboxes "
-            "set uidnext=uidnext+$2,"
-                 "nextmodseq=nextmodseq+1,"
-                 "first_recent=first_recent+$2 "
-            "where id=$1"
-        );
-
-    ::failures = new GraphableCounter( "injection-errors" );
-    ::successes = new GraphableCounter( "messages-injected" );
-}
-
-
 /*! Creates a new Injector to inject messages into the database on
     behalf of the \a owner, which is notified when the injection is
     completed.
@@ -212,8 +173,10 @@ void Injector::setup()
 Injector::Injector( EventHandler * owner )
     : d( new InjectorData )
 {
-    if ( !lockUidnext )
-        setup();
+    if ( !::successes ) {
+        ::failures = new GraphableCounter( "injection-errors" );
+        ::successes = new GraphableCounter( "messages-injected" );
+    }
 
     d->owner = owner;
 }
@@ -1259,7 +1222,8 @@ void Injector::insertBodyparts()
     }
     while ( last != d->substate );
 
-    d->select = d->insert = d->copy = 0;
+    d->select = 0;
+    d->insert = 0;
     next();
 }
 
@@ -1364,42 +1328,37 @@ void Injector::addBodypartRow( Bodypart * b )
 void Injector::selectMessageIds()
 {
     if ( !d->select ) {
-        d->message = new List<Message>::Iterator( d->messages );
         d->select = selectNextvals( "messages_id_seq", d->messages.count() );
         d->transaction->enqueue( d->select );
         d->transaction->execute();
     }
 
-    if ( !d->copy ) {
-        if ( !d->select->done() || d->select->failed() )
-            return;
-
-        d->copy = new Query( "copy messages (id,rfc822size,idate) "
-                             "from stdin with binary", this );
-
-        while ( d->select->hasResults() ) {
-            Message * m = *d->message;
-            Row * r = d->select->nextRow();
-            m->setDatabaseId( r->getInt( "id" ) );
-            d->copy->bind( 1, m->databaseId() );
-            if ( !m->hasTrivia() ) {
-                m->setRfc822Size( m->rfc822().length() );
-                m->setTriviaFetched( true );
-            }
-            d->copy->bind( 2, m->rfc822Size() );
-            d->copy->bind( 2, internalDate( m ) );
-            d->copy->submitLine();
-            ++(*d->message);
-        }
-
-        d->transaction->enqueue( d->copy );
-        d->transaction->execute();
-    }
-
-    if ( !d->copy->done() )
+    if ( !d->select->done() )
         return;
 
-    d->select = d->copy = 0;
+    if ( d->select->failed() )
+        return;
+
+    Query * copy = new Query( "copy messages (id,rfc822size,idate) "
+                              "from stdin with binary", this );
+
+    List<Message>::Iterator m( d->messages );
+    while ( m && d->select->hasResults() ) {
+        Row * r = d->select->nextRow();
+        m->setDatabaseId( r->getInt( "id" ) );
+        copy->bind( 1, m->databaseId() );
+        if ( !m->hasTrivia() ) {
+            m->setRfc822Size( m->rfc822().length() );
+            m->setTriviaFetched( true );
+        }
+        copy->bind( 2, m->rfc822Size() );
+        copy->bind( 2, internalDate( m ) );
+        copy->submitLine();
+        ++m;
+    }
+
+    d->transaction->enqueue( copy );
+
     next();
 }
 
@@ -1446,7 +1405,9 @@ void Injector::selectUids()
             ++mi;
         }
 
-        d->lockUidnext = new Query( *::lockUidnext, this );
+        d->lockUidnext = new Query( 
+            "select id,uidnext,nextmodseq,first_recent from mailboxes "
+            "where id=any($1) order by id for update", this );
         d->lockUidnext->bind( 1, ids );
         d->transaction->enqueue( d->lockUidnext );
         d->transaction->execute();
@@ -1501,9 +1462,15 @@ void Injector::selectUids()
 
         Query * u;
         if ( recentIn )
-            u = new Query( *incrUidnextWithRecent, 0 );
+            u = new Query( "update mailboxes "
+                           "set uidnext=uidnext+$2,"
+                           "nextmodseq=nextmodseq+1,"
+                           "first_recent=first_recent+$2 "
+                           "where id=$1", 0 );
         else
-            u = new Query( *incrUidnext, 0 );
+            u = new Query( "update mailboxes "
+                           "set uidnext=uidnext+$2,nextmodseq=nextmodseq+1 "
+                           "where id=$1", 0 );
         u->bind( 1, mb->mailbox->id() );
         u->bind( 2, n );
         d->transaction->enqueue( u );
@@ -1732,6 +1699,10 @@ void Injector::addHeader( Query * qh, Query * qa, Query * qd, uint mid,
 
 void Injector::addMailbox( Query * q, Injectee * m, Mailbox * mb )
 {
+    if ( !mb->id() ) {
+        log( "Asked to inject into synthetic mailbox " + mb->name().ascii() );
+        return;
+    }
     q->bind( 1, mb->id() );
     q->bind( 2, m->uid( mb ) );
     q->bind( 3, m->databaseId() );

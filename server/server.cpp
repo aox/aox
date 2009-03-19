@@ -20,7 +20,7 @@
 #include <sys/types.h>
 // fprintf, stderr
 #include <stdio.h>
-// signal
+// sigaction, sigemptyset
 #include <signal.h>
 
 // our own includes, _after_ the system header files. lots of system
@@ -311,6 +311,25 @@ static void shutdownLoop( int )
 }
 
 
+static void closeGuiltyConnection( int )
+{
+    List<Connection>::Iterator i( EventLoop::global()->connections() );
+    while ( i ) {
+        Connection * c = i;
+        ++i;
+        Log * l = Scope::current()->log();
+        while ( l && l != c->log() )
+            l = l->parent();
+        if ( c->type() != Connection::Listener && l ) {
+            Scope x( l );
+            ::log( "Invariant failed; Closing connection abruptly",
+                   Log::Error );
+            c->close();
+        }
+    }
+}
+
+
 static void dumpCoreAndGoOn( int )
 {
     if ( fork() )
@@ -341,16 +360,34 @@ void Server::killChildren()
 
 void Server::loop()
 {
+    struct sigaction sa;
+    sa.sa_handler = 0;
+    sa.sa_sigaction = 0; // may be union with sa_handler above
+    sigemptyset( &sa.sa_mask ); // we block no other signals
+    sa.sa_flags = 0; // in particular, we don't want SA_RESETHAND
+
     // we cannot reread files, so we ignore sighup
-    ::signal( SIGHUP, SIG_IGN );
+    sa.sa_handler = SIG_IGN;
+    ::sigaction( SIGHUP, &sa, 0 );
+
     // sigint and sigterm both should stop the server
-    ::signal( SIGINT, shutdownLoop );
-    ::signal( SIGTERM, shutdownLoop );
+    sa.sa_handler = shutdownLoop;
+    ::sigaction( SIGINT, &sa, 0 );
+    ::sigaction( SIGTERM, &sa, 0 );
+
     // sigpipe happens if we're writing to an already-closed fd. we'll
     // discover that it's closed a little later.
-    ::signal( SIGPIPE, SIG_IGN );
+    sa.sa_handler = SIG_IGN;
+    ::sigaction( SIGPIPE, &sa, 0 );
+
+    // if we dereference a null pointer, we usually can close some fd
+    // and go on
+    sa.sa_handler = closeGuiltyConnection;
+    ::sigaction( SIGSEGV, &sa, 0 );
+
     // a custom signal to dump core and go on
-    ::signal( SIGUSR1, dumpCoreAndGoOn );
+    sa.sa_handler = dumpCoreAndGoOn;
+    ::sigaction( SIGUSR1, &sa, 0 );
 }
 
 

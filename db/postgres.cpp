@@ -1166,6 +1166,9 @@ void Postgres::sendListen()
 
 EString Postgres::queryString( Query * q )
 {
+    if ( !q->name().isEmpty() )
+        return q->string();
+
     EString s( q->string() );
 
     // Postgres 8.1 plans "where x=ANY($1)" with a seqscan, but we can

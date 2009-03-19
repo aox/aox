@@ -2,12 +2,13 @@
 
 #include "retention.h"
 
+#include "utf.h"
 #include "query.h"
+#include "search.h"
 #include "selector.h"
 #include "mailbox.h"
-#include "utf.h"
+#include "transaction.h"
 #include "searchsyntax.h"
-#include "ustringlist.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +19,7 @@ class SetRetentionData
 {
 public:
     SetRetentionData()
-        : state( 0 ), duration( 0 ), m( 0 ), selector( 0 ), q( 0 )
+        : state( 0 ), duration( 0 ), m( 0 ), selector( 0 ), t( 0 )
     {}
 
     int state;
@@ -26,7 +27,7 @@ public:
     int duration;
     Mailbox * m;
     Selector * selector;
-    Query * q;
+    Transaction * t;
 };
 
 
@@ -114,29 +115,46 @@ void SetRetention::execute()
     }
 
     if ( d->state == 2 ) {
-        d->q = new Query( "insert into retention_policies "
-                          "(action, duration, mailbox, selector) "
-                          "values ($1, $2, $3, $4)", this );
-        d->q->bind( 1, d->action );
-        d->q->bind( 2, d->duration );
+        d->t = new Transaction( this );
+        Query * q;
+        q = new Query( "delete from retention_policies "
+                       "where mailbox=$1 and action=$2 and selector=$3", 0 );
         if ( d->m )
-            d->q->bind( 3, d->m->id() );
+            q->bind( 1, d->m->id() );
         else
-            d->q->bindNull( 3 );
+            q->bindNull( 1 );
+        q->bind( 2, d->action );
         if ( d->selector )
-            d->q->bind( 4, d->selector->string() );
+            q->bind( 3, d->selector->string() );
         else
-            d->q->bindNull( 4 );
-        d->q->execute();
+            q->bindNull( 3 );
+        d->t->enqueue( q );
+
+        q = new Query( "insert into retention_policies "
+                       "(action, duration, mailbox, selector) "
+                       "values ($1, $2, $3, $4)", 0 );
+        q->bind( 1, d->action );
+        q->bind( 2, d->duration );
+        if ( d->m )
+            q->bind( 3, d->m->id() );
+        else
+            q->bindNull( 3 );
+        if ( d->selector )
+            q->bind( 4, d->selector->string() );
+        else
+            q->bindNull( 4 );
+        d->t->enqueue( q );
+
+        d->t->commit();
         d->state = 3;
     }
 
     if ( d->state == 3 ) {
-        if ( !d->q->done() )
+        if ( !d->t->done() )
             return;
 
-        if ( d->q->failed() )
-            error( "Couldn't set retention policy: " + d->q->error() );
+        if ( d->t->failed() )
+            error( "Couldn't set retention policy: " + d->t->error() );
     }
 
     finish();
@@ -201,23 +219,30 @@ void ShowRetention::execute()
 
         EString q(
             "select coalesce(m.name,'Global') as name, action, duration, "
-            "selector "
+            "selector, rp.id "
             "from retention_policies rp left join mailboxes m "
-            "on (m.id=rp.mailbox) "
+            "on (m.id=rp.mailbox)"
         );
 
         if ( m )
-            q.append( "where m.name is null or m.name=any($1::text[])" );
+            q.append( " where m.name is null or m.name=any($1::text[])" );
+
+        q.append( " order by name='Global' desc," // global first, others after
+                  " lower(name) asc," // others sorted by mailbox
+                  " action desc," // retain before delete
+                  " duration asc," // and increasing time
+                  " rp.id" ); // and as tiebreaker, older policy first
 
         d->q = new Query( q, this );
 
         if ( m ) {
-            UStringList l;
-            while ( m && m->parent() != 0 ) {
-                l.append( m->name() );
+            IntegerSet ids;
+            while ( m ) {
+                if ( m->id() )
+                    ids.add( m->id() );
                 m = m->parent();
             }
-            d->q->bind( 1, l );
+            d->q->bind( 1, ids );
         }
 
         d->q->execute();
@@ -234,11 +259,16 @@ void ShowRetention::execute()
             last = name;
         }
 
-        printf( "\t%s %d days", r->getEString( "action" ).cstr(),
+        printf( "  %s %d days:\n", r->getEString( "action" ).cstr(),
                 r->getInt( "duration" ) );
-        if ( !r->isNull( "selector" ) )
-            printf( " %s", r->getEString( "selector" ).cstr() );
-        printf( "\n" );
+        if ( r->isNull( "selector" ) ) {
+            printf( "    Unconditional\n" );
+        }
+        else {
+            Selector * s = Selector::fromString( r->getEString( "selector" ) );
+            if ( s )
+                dumpSelector( s, 2 );
+        }
     }
 
     if ( !d->q->done() )

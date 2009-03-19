@@ -22,6 +22,7 @@ public:
 private:
     class LogClientData * d;
     LogClient();
+    bool useSyslog;
 };
 
 

@@ -218,7 +218,7 @@ void Schema::execute()
         while ( d->revision > Database::currentRevision() ) {
             EString function( "downgrade_to_" + fn( d->revision - 1 ) + "()" );
             d->l->log( "Invoking stored function " + function );
-            d->t->enqueue( new Query( function, 0 ) );
+            d->t->enqueue( new Query( "select " + function, 0 ) );
             d->t->enqueue( new Query( "drop function " + function, 0 ) );
             d->revision--;
         }
@@ -545,6 +545,10 @@ bool Schema::singleStep()
         c = stepTo83(); break;
     case 83:
         c = stepTo84(); break;
+    case 84:
+        c = stepTo85(); break;
+    case 85:
+        c = stepTo86(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4044,39 +4048,42 @@ bool Schema::stepTo85()
 {
     describeStep( "Adding functions to downgrade the schema." );
     d->t->enqueue(
-        new Query( "create function downgrade_to_84() as $$"
+        new Query( "create function downgrade_to_84() returns int as $$"
                    "begin " // no-op
-                   "drop table retention_policies; "
+                   "return 0;"
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_83() as $$"
+        new Query( "create function downgrade_to_83() returns int as $$"
                    "begin "
-                   "drop table retention_policies; "
+                   "drop table retention_policies; return 0;"
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_82() as $$"
+        new Query( "create function downgrade_to_82() returns int as $$"
                    "begin "
-                   "insert into flags (mailbox, uid, seen) "
+                   "insert into flags (mailbox, uid, flag) "
                    "select mailbox, uid, "
-                   " (select id from flags where name='\\Seen') "
+                   " (select id from flag_names where name=E'\\Seen') "
                    "from mailbox_messages where seen; "
-                   "insert into flags (mailbox, uid, seen) "
+                   "insert into flags (mailbox, uid, flag) "
                    "select mailbox, uid, "
-                   " (select id from flags where name='\\Deleted') "
+                   " (select id from flag_names where name=E'\\Deleted') "
                    "from mailbox_messages where deleted; "
                    "alter table mailbox_messages drop seen, drop deleted; "
+                   "return 0; "
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_81() as $$"
+        new Query( "create function downgrade_to_81() returns int as $$"
                    "begin "
                    "drop trigger mailbox_update_trigger on mailboxes; "
-                   "drop function mailbox_update_trigger(); "
+                   "drop function check_mailbox_update(); "
+                   "return 0; "
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_80() as $$"
+        new Query( "create function downgrade_to_80() returns int as $$"
                    "begin "
                    "drop trigger mailbox_owner_trigger on mailboxes; "
                    "drop function set_mailbox_owner(); "
+                   "return 0; "
                    "end;$$ language 'plpgsql'", 0 ) );
     return true;
 }
@@ -4090,22 +4097,24 @@ bool Schema::stepTo86()
 {
     describeStep( "Extending retention_policies to help caching." );
     d->t->enqueue(
-        new Query( "create function notify_retention_policies() as $$"
+        new Query( "create function notify_retention_policies() "
+                   "returns trigger as $$ "
                    "begin "
-                   "notify 'retention_policies_updated'; "
+                   "notify retention_policies_updated; "
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
         new Query( "create trigger retention_policies_trigger "
                    "after insert or update or delete "
-                   "on mailboxes "
+                   "on retention_policies "
                    "for each statement "
                    "execute procedure notify_retention_policies()", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_85() as $$"
+        new Query( "create function downgrade_to_85() returns int as $$"
                    "begin "
                    "drop trigger retention_policies_trigger "
                    "on retention_policies; "
                    "drop function notify_retention_policies(); "
+                   "return 0; "
                    "end;$$ language 'plpgsql'", 0 ) );
     return true;
 }

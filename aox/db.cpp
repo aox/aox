@@ -4,8 +4,10 @@
 
 #include "query.h"
 #include "schema.h"
+#include "mailbox.h"
 #include "granter.h"
 #include "postgres.h"
+#include "selector.h"
 #include "recipient.h"
 #include "transaction.h"
 #include "configuration.h"
@@ -28,7 +30,7 @@ static const char * versions[] = {
     "2.06", "2.06", "2.06", "2.10", "2.10", "2.10", // 64-69
     "2.10", "2.10", "2.10", "2.11", "2.11", "2.11", // 70-75
     "2.12", "2.13", "2.13", "2.14", "3.0.6", "3.1", // 76-81
-    "3.1", "3.1", "3.1"
+    "3.1", "3.1", "3.1", "3.1", "3.1"
 };
 static int nv = sizeof( versions ) / sizeof( versions[0] );
 
@@ -150,7 +152,7 @@ f3( "vacuum", "", "Perform routine maintenance.",
 */
 
 Vacuum::Vacuum( EStringList * args )
-    : AoxCommand( args ), t( 0 )
+    : AoxCommand( args ), t( 0 ), r( 0 ), s( 0 )
 {
 }
 
@@ -162,6 +164,7 @@ void Vacuum::execute()
         end();
 
         database( true );
+        Mailbox::setup( this );
         t = new Transaction( this );
         uint days = Configuration::scalar( Configuration::UndeleteTime );
 
@@ -198,6 +201,80 @@ void Vacuum::execute()
                        "from bodyparts b left join part_numbers p on "
                        "(b.id=p.bodypart) where bodypart is null)", 0 );
         t->enqueue( q );
+
+        r = new RetentionSelector( t, this );
+        r->execute();
+
+        t->execute();
+    }
+
+    if ( !r->done() )
+        return;
+
+    if ( !s ) {
+        s = new Selector( Selector::And );
+        if ( r->deletes() ) {
+            s->add( r->deletes() );
+            if ( r->retains() ) {
+                Selector * n = new Selector( Selector::Not );
+                s->add( n );
+                n->add( r->retains() );
+            }
+            s->simplify();
+            EStringList wanted;
+            wanted.append( "mailbox" );
+            wanted.append( "uid" );
+            // moving stuff from mm to dm while increasing modseq
+            // appropriately and not locking unrelated mailboxes is
+            // complicated.
+            
+            // make a staging table.
+            t->enqueue( new Query( "create temporary table s ("
+                                   "mailbox integer, "
+                                   "uid integer )", 0 ) );
+
+            // insert the messages to be deleted there.
+            Query * iq = s->query( 0, 0, 0, this, false, &wanted, false );
+            iq->setString( "insert into s (mailbox,uid) " + iq->string() );
+            t->enqueue( iq );
+
+            // lock all relevant mailboxes against concurrent
+            // modification.  this doesn't quite work, since something
+            // may have changed the mailbox concurrently with the
+            // insert above. but it'll lock at least as many mailboxes
+            // as we need, and very seldom any extra ones.
+            t->enqueue( new Query( "select nextmodseq from mailboxes "
+                                   "join s on (mailboxes.id=s.mailbox) "
+                                   "order by id "
+                                   "for update", 0 ) );
+
+            // insert those messages which still exist into dm. we
+            // join against mm just in case someone deleted one of
+            // those messages while the insert was running.
+            t->enqueue( new Query( "insert into deleted_messages "
+                                   "(mailbox, uid, message,"
+                                   " modseq, deleted_by, reason) "
+                                   "select s.mailbox, s.uid, mm.message,"
+                                   " m.nextmodseq, null, 'Retention policy' "
+                                   "from s "
+                                   "join mailbox_messages mm"
+                                   " using (mailbox,uid) "
+                                   "join mailboxes m on (s.mailbox=m.id)",
+                                   0 ) );
+
+            // consume a modseq for each mailbox we (may have) modified.
+            t->enqueue( new Query( "update mailboxes "
+                                   "set nextmodseq=nextmodseq+1 "
+                                   "where id in (select mailbox from s)",
+                                   0 ) );
+
+            // we don't need the staging table any more
+            t->enqueue( new Query( "drop table s", 0 ) );
+
+            // but we do need to notify the running server of the change
+            t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
+        }
+            
         t->commit();
     }
 

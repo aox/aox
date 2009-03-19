@@ -6,7 +6,7 @@
 #include "aoxcommand.h"
 
 
-void dumpSelector( class Selector * );
+void dumpSelector( class Selector *, uint l = 0 );
 
 
 class ShowSearch

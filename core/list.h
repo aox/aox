@@ -162,7 +162,6 @@ public:
         ++i;
 
         T *d = cur->data;
-        delete cur;
         return d;
     }
 
@@ -189,7 +188,6 @@ public:
 
     void insert( const Iterator &i, T *d )
     {
-        Node *n = new Node( d );
         Node *cur = i.node();
 
         if ( !cur ) {
@@ -199,6 +197,7 @@ public:
             prepend( d );
         }
         else {
+            Node *n = new Node( d );
             n->next = cur;
             n->prev = cur->prev;
             cur->prev->next = n;

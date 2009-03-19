@@ -199,7 +199,7 @@ EString SieveProduction::error() const
     allocated for the purpose, so the caller can modify it at will.
 
     The extensions are: BODY from RFC 5173. DATE from RFC 5260.
-    EREJECT isn't an RFC yet, ditto IHAVE. RFC 5228 defines several
+    EREJECT from RFC 5429, IHAVE from RFC 5463. RFC 5228 defines several
     optional capabilieies, we implement all (I think).  RELATIONAL is
     from RFC 5231, SUBADDRESS is from RFC 5233 and VACATION from RFC
     5230.

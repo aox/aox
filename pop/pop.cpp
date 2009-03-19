@@ -155,16 +155,16 @@ void POP::setState( State s )
                     iq = s->query( 0, mailbox, 0, this, false,
                                    &wanted, false );
                     int i = iq->string().find( " from " );
-                    uint ub = s->placeHolder();
                     uint msb = s->placeHolder();
+                    uint ub = s->placeHolder();
                     uint rb = s->placeHolder();
                     iq->setString(
                         "insert into deleted_messages "
                         "(mailbox,uid,message,modseq,deleted_by,reason) " +
                         iq->string().mid( 0, i ) + ", $" + fn( msb ) +", $" +
                         fn( ub ) + ", $" + fn( rb ) + iq->string().mid( i ) );
-                    iq->bind( ub, user->id() );
                     iq->bind( msb, ms );
+                    iq->bind( ub, user->id() );
                     iq->bind( rb,
                              "POP delete " + Scope::current()->log()->id() );
                     t->enqueue( iq );

@@ -8,6 +8,9 @@
 
 // sprintf, fprintf
 #include <stdio.h>
+// getpid()
+#include <sys/types.h>
+#include <unistd.h>
 
 
 static bool disasters = false;
@@ -42,7 +45,7 @@ Log::Log()
     if ( p )
         ide = p->id() + "/" + fn( p->children++ );
     else
-        ide = "1";
+        ide = EString::fromNumber( getpid() );
 }
 
 
@@ -51,6 +54,10 @@ Log::Log()
 Log::Log( Log * parent )
     : children( 0 ), p( parent )
 {
+    if ( p )
+        ide = p->id() + "/" + fn( p->children++ );
+    else
+        ide = EString::fromNumber( getpid() );
 }
 
 
