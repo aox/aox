@@ -40,6 +40,7 @@
     RFC 5032: WITHIN
     RFC 5255: I18NLEVEL=1
     RFC 5256: SORT
+    RFC 5257: ANNOTATE-EXPERIMENT-1
     RFC 5258: LISTEXT
 
     We also announce a number of draft capabilities.
