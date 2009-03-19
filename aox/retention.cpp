@@ -227,7 +227,7 @@ void ShowRetention::execute()
         if ( m )
             q.append( " where m.name is null or m.name=any($1::text[])" );
 
-        q.append( " order by name='Global'," // global first, others after
+        q.append( " order by name='Global' desc," // global first, others after
                   " lower(name) asc," // others sorted by mailbox
                   " action desc," // retain before delete
                   " duration asc," // and increasing time
