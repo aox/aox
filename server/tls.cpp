@@ -23,7 +23,8 @@ public:
     TlsServerData()
         : handler( 0 ),
           userside( 0 ), serverside( 0 ),
-          done( false ), ok( false ), connected( false ) {}
+          done( false ), ok( false ), connected( false ),
+          sentRequest( false ) {}
 
     EventHandler * handler;
 
@@ -49,6 +50,7 @@ public:
     bool done;
     bool ok;
     bool connected;
+    bool sentRequest;
 };
 
 
@@ -103,16 +105,19 @@ void TlsServerData::Client::react( Event e )
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
         if ( d->serverside->tag.isEmpty() ||
-             d->userside->tag.isEmpty() )
+             d->userside->tag.isEmpty() ||
+             d->sentRequest )
             return;
 
         String request = d->serverside->tag + " " +
                          d->protocol + " " +
                          d->client.address() + " " +
                          fn( d->client.port() );
+
         log( "Tlsproxy request: '" + request + "'", Log::Debug );
 
         d->userside->enqueue( request + "\r\n" );
+        d->sentRequest = true;
     }
     else if ( l == "ok" ) {
         d->done = true;
