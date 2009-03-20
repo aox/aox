@@ -13,6 +13,7 @@
 
 
 static Endpoint * tlsProxy = 0;
+static bool tlsAvailable;
 
 
 class TlsServerData
@@ -169,9 +170,6 @@ bool TlsServer::done() const
 {
     return d->done;
 }
-
-
-static bool tlsAvailable;
 
 
 /*! Returns true if the TLS proxy is available for use, and false is
