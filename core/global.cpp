@@ -13,6 +13,10 @@ void die( Exception e )
     case Invariant:
         log( "die( Invariant ) called", Log::Error );
         break;
+    case Segfault:
+        // we log nothing in this case - it should never be called and
+        // can be called at any time.
+        break;
     case Memory:
         // we log nothing in this case - Allocator can call this
         break;

@@ -203,6 +203,9 @@ void Server::setup( Stage s )
         case Invariant:
             c = "Invariant failed during server startup.";
             break;
+        case Segfault:
+            c = "Segfault detected during server startup.";
+            break;
         case Memory:
             c = "Out of memory during server startup.";
             break;
@@ -313,20 +316,7 @@ static void shutdownLoop( int )
 
 static void closeGuiltyConnection( int )
 {
-    List<Connection>::Iterator i( EventLoop::global()->connections() );
-    while ( i ) {
-        Connection * c = i;
-        ++i;
-        Log * l = Scope::current()->log();
-        while ( l && l != c->log() )
-            l = l->parent();
-        if ( c->type() != Connection::Listener && l ) {
-            Scope x( l );
-            ::log( "Invariant failed; Closing connection abruptly",
-                   Log::Error );
-            c->close();
-        }
-    }
+    die( Segfault );
 }
 
 

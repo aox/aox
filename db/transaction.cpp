@@ -531,7 +531,7 @@ void Transaction::notify()
     }
     catch ( Exception e ) {
         d->owner = 0; // so we can't get close to a segfault again
-        if ( e == Invariant ) {
+        if ( e == Invariant || e == Segfault ) {
             setError( 0,
                       "Invariant failed "
                       "while processing Transaction::notify()" );

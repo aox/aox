@@ -32,6 +32,7 @@ typedef long long int int64;
 
 enum Exception {
     Invariant,
+    Segfault,
     Memory,
     FD
 };
