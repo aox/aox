@@ -105,15 +105,15 @@ void TlsServerData::Client::react( Event e )
     EString l = s->simplified();
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
-        connected = true;
-        if ( !d->serverside->connected || !d->userside->connected )
+        if ( d->serverside->tag.isEmpty() ||
+             d->userside->tag.isEmpty() )
             return;
         
         EString request = d->serverside->tag + " " +
                           d->protocol + " " +
                           d->client.address() + " " +
                           fn( d->client.port() );
-        log( "Tlsproxy request: '" + request + "'" );
+        log( "Tlsproxy request: '" + request + "'", Log:Debug );
 
         d->userside->enqueue( request + "\r\n" );
     }
