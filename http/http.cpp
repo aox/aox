@@ -1038,7 +1038,6 @@ void HTTPS::finish()
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
-        EventLoop::global()->shutdownSSL();
         log( "Couldn't negotiate TLS with " + peer().string(), Log::Error );
         close();
         return;

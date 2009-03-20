@@ -22,7 +22,7 @@ public:
     TlsServerData()
         : handler( 0 ),
           userside( 0 ), serverside( 0 ),
-          done( false ), ok( false ) {}
+          done( false ), ok( false ), connected( false ) {}
 
     EventHandler * handler;
 
@@ -47,6 +47,7 @@ public:
 
     bool done;
     bool ok;
+    bool connected;
 };
 
 
@@ -67,12 +68,26 @@ void TlsServerData::Client::connect()
 
 void TlsServerData::Client::react( Event e )
 {
-    if ( e == Connect ) {
+    if ( e == Read ) {
+        if ( !connected )
+            log( "TlsServer: Read before Connect? Strange" );
+        connected = true;
+    }
+    else if ( e == Connect ) {
+        connected = true;
         return;
     }
     else if ( e != Read ) {
+        if ( e == Error && !connected ) {
+            log( "TlsServer: Error while connecting to tlsproxy. "
+                 "Shutting down TLS.",
+                 Log::Significant );
+            EventLoop::global()->shutdownSSL();
+        }
+        else {
+            log( "TlsServer: Unexpected event of type " + fn( e ), Log::Error );
+        }
         d->done = true;
-        log( "TlsServer: Unexpected event of type " + fn( e ), Log::Error );
         d->handler->execute();
         d->serverside->close();
         d->userside->close();
@@ -84,8 +99,6 @@ void TlsServerData::Client::react( Event e )
     EString * s = readBuffer()->removeLine();
     if ( !s )
         return;
-
-    log( "TlsServeR: Received" + s->simplified() );
 
     EString l = s->simplified();
     if ( l.startsWith( "tlsproxy " ) ) {
@@ -162,11 +175,6 @@ static bool tlsAvailable;
 
 /*! Returns true if the TLS proxy is available for use, and false is
     an error happened or setup is still going on.
-
-    If TLS negotiation fails, available() starts returning false. This
-    is a decent policy for a while -- the only sensible reason why TLS
-    negotiation would fail is a bug on our part. Sometime before 1.0
-    we probably need to change that.
 */
 
 bool TlsServer::ok() const
@@ -175,9 +183,6 @@ bool TlsServer::ok() const
         return false;
     if ( d->ok )
         return true;
-    if ( ::tlsAvailable )
-        ::log( "Disabling TLS support due to unexpected error" );
-    ::tlsAvailable = false;
     return false;
 }
 
