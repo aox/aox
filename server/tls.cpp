@@ -13,6 +13,7 @@
 
 
 static Endpoint * tlsProxy = 0;
+static bool tlsAvailable;
 
 
 class TlsServerData
@@ -101,15 +102,17 @@ void TlsServerData::Client::react( Event e )
     String l = s->simplified();
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
-        connected = true;
-        if ( !d->serverside->connected || !d->userside->connected )
+        if ( d->serverside->tag.isEmpty() ||
+             d->userside->tag.isEmpty() )
             return;
 
-        d->userside->enqueue( d->serverside->tag + " " +
-                              d->protocol + " " +
-                              d->client.address() + " " +
-                              fn( d->client.port() ) +
-                              "\r\n" );
+        String request = d->serverside->tag + " " +
+                         d->protocol + " " +
+                         d->client.address() + " " +
+                         fn( d->client.port() );
+        log( "Tlsproxy request: '" + request + "'", Log::Debug );
+
+        d->userside->enqueue( request + "\r\n" );
     }
     else if ( l == "ok" ) {
         d->done = true;
@@ -164,9 +167,6 @@ bool TlsServer::done() const
 {
     return d->done;
 }
-
-
-static bool tlsAvailable;
 
 
 /*! Returns true if the TLS proxy is available for use, and false is
