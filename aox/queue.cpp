@@ -4,6 +4,7 @@
 
 #include "query.h"
 #include "recipient.h"
+#include "transaction.h"
 
 #include <stdio.h>
 
@@ -14,7 +15,7 @@ f( "show", "queue", "Display the outgoing mail queue.",
    "    Displays a list of mail queued for delivery to a smarthost.\n" );
 
 
-/*! \class ShowQueue schema.h
+/*! \class ShowQueue queue.h
     This class handles the "aox show queue" command.
 */
 
@@ -144,6 +145,45 @@ void ShowQueue::execute()
     }
 
     if ( !q->done() )
+        return;
+
+    finish();
+}
+
+
+static AoxFactory<FlushQueue>
+g( "flush", "queue", "Trigger delivery attempts for all spooled mail.",
+   "    Synopsis: aox flush queue\n\n"
+   "    Instructs the running server to try to deliver all spooled mail"
+   "    to the smarthost.\n" );
+
+
+/*! \class FlushQueue queue.h
+    This class handles the "aox flush queue" command.
+*/
+
+FlushQueue::FlushQueue( EStringList * args )
+    : AoxCommand( args ), t( 0 )
+{
+}
+
+
+void FlushQueue::execute()
+{
+    if ( !t ) {
+        parseOptions();
+        end();
+
+        database();
+        t = new Transaction( this );
+        t->enqueue( new Query( "update delivery_recipients "
+                               "set last_attempt=null "
+                               "where action=2", 0 ) );
+        t->enqueue( new Query( "notify deliveries_updated", 0 ) );
+        t->commit();
+    }
+
+    if ( !t->done() )
         return;
 
     finish();

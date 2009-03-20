@@ -688,7 +688,6 @@ void IMAPS::finish()
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
-        EventLoop::global()->shutdownSSL();
         log( "Cannot negotiate TLS", Log::Error );
         close();
         return;

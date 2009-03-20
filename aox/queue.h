@@ -19,4 +19,16 @@ private:
 };
 
 
+class FlushQueue
+    : public AoxCommand
+{
+public:
+    FlushQueue( EStringList * );
+    void execute();
+
+private:
+    class Transaction * t;
+};
+
+
 #endif

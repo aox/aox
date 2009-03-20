@@ -1405,7 +1405,7 @@ void Injector::selectUids()
             ++mi;
         }
 
-        d->lockUidnext = new Query( 
+        d->lockUidnext = new Query(
             "select id,uidnext,nextmodseq,first_recent from mailboxes "
             "where id=any($1) order by id for update", this );
         d->lockUidnext->bind( 1, ids );
