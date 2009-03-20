@@ -108,12 +108,14 @@ void TlsServerData::Client::react( Event e )
         connected = true;
         if ( !d->serverside->connected || !d->userside->connected )
             return;
+        
+        EString request = d->serverside->tag + " " +
+                          d->protocol + " " +
+                          d->client.address() + " " +
+                          fn( d->client.port() );
+        log( "Tlsproxy request: '" + request + "'" );
 
-        d->userside->enqueue( d->serverside->tag + " " +
-                              d->protocol + " " +
-                              d->client.address() + " " +
-                              fn( d->client.port() ) +
-                              "\r\n" );
+        d->userside->enqueue( request + "\r\n" );
     }
     else if ( l == "ok" ) {
         d->done = true;
