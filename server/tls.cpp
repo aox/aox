@@ -77,6 +77,7 @@ void TlsServerData::Client::react( Event e )
             log( "TlsServer: Error while connecting to tlsproxy. "
                  "Shutting down TLS.",
                  Log::Significant );
+            ::tlsAvailable = false;
             EventLoop::global()->shutdownSSL();
         }
         else {
