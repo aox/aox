@@ -241,17 +241,15 @@ void ShowRetention::execute()
         end();
 
         EString q(
-            "select coalesce(m.name,'Global') as name, action, duration, "
-            "selector, rp.id "
+            "select m.name, action, duration, selector, rp.id "
             "from retention_policies rp left join mailboxes m "
             "on (m.id=rp.mailbox)"
         );
 
         if ( m )
-            q.append( " where m.name is null or m.name=any($1::text[])" );
+            q.append( " where m.name=any($1::text[])" );
 
-        q.append( " order by name='Global' desc," // global first, others after
-                  " lower(name) asc," // others sorted by mailbox
+        q.append( " order by lower(name) asc," // mailbox name, '/' first
                   " action desc," // retain before delete
                   " duration asc," // and increasing time
                   " rp.id" ); // and as tiebreaker, older policy first
