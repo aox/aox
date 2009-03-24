@@ -120,6 +120,8 @@ MailboxReader::MailboxReader( EventHandler * ev, int64 c )
                    //"where change>=$1"
                    this );
     c = c; //query->bind( 1, c );
+    if ( !::mailboxes )
+        Mailbox::setup();
 }
 
 
@@ -570,6 +572,9 @@ Mailbox * Mailbox::obtain( const UString & name, bool create )
 {
     if ( name[0] != '/' )
         return 0;
+
+    if ( !::mailboxes )
+        setup();
 
     UString n = name.titlecased();
     Mailbox * m = ::mailboxesByName->find( n );
