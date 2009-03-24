@@ -2219,7 +2219,7 @@ public:
 
 
 /*! Constructs a retention selector to find the messages in \a m that
-    should be retained, and notifies \a h once the query is ready().
+    should be retained, and notifies \a h once done().
 
     Once execute() has been called and done() returns true, retains()
     and deletes() return a selector expressing those policies.
