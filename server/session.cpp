@@ -81,7 +81,7 @@ Session::Session( Mailbox * m, Connection * c, bool readOnly )
     d->readOnly = readOnly;
     Session * other = 0;
     if ( d->mailbox->sessions() )
-        d->mailbox->sessions()->firstElement();
+        other = d->mailbox->sessions()->firstElement();
     d->mailbox->addSession( this );
     Flag::addWatcher( this );
     if ( other ) {
