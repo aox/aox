@@ -120,15 +120,20 @@ void Copy::execute()
                        "mailbox integer,"
                        "uid integer,"
                        "message integer,"
-                       "nuid integer"
+                       "nuid integer,"
+                       "seen boolean,"
+                       "deleted boolean"
                        ")", 0 );
         d->transaction->enqueue( q );
 
-        q = new Query( "create temporary sequence s start " + fn( firstUid ), 0 );
+        q = new Query( "create temporary sequence s start " + fn( firstUid ),
+                       0 );
         d->transaction->enqueue( q );
 
-        q = new Query( "insert into t (mailbox, uid, message, nuid) "
-                       "select mailbox, uid, message, nextval('s') "
+        q = new Query( "insert into t "
+                       "(mailbox, uid, message, nuid, seen, deleted ) "
+                       "select mailbox, uid, message, nextval('s'), "
+                       "seen, deleted "
                        "from mailbox_messages "
                        "where mailbox=$1 and uid=any($2) order by uid", 0 );
         q->bind( 1, session()->mailbox()->id() );
@@ -146,8 +151,8 @@ void Copy::execute()
         d->transaction->enqueue( new Query( "drop sequence s", 0 ) );
 
         q = new Query( "insert into mailbox_messages "
-                       "(mailbox, uid, message, modseq) "
-                       "select $1, t.nuid, message, $2 "
+                       "(mailbox, uid, message, modseq, seen, deleted) "
+                       "select $1, t.nuid, message, $2, t.seen, t.deleted "
                        "from t", 0 );
         q->bind( 1, d->mailbox->id() );
         q->bind( 2, modseq );
