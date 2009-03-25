@@ -10,6 +10,7 @@
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
+#include "dict.h"
 #include "user.h"
 #include "map.h"
 
@@ -62,7 +63,12 @@ public:
         EString response;
     };
 
-    List<Response> responses;
+    UDict<Response> responses;
+    void addResponse( const UString & n, Response * r ) {
+        UString k = n;
+        k.append( (uint)0 );
+        responses.insert( k.titlecased(), r );
+    }
 
     bool extended;
     bool returnSubscribed;
@@ -194,12 +200,18 @@ void Listext::execute()
         while ( it ) {
             if ( it->isEmpty() && !d->extended ) {
                 EString r;
-                if ( d->reference == Mailbox::root() )
+                if ( d->reference == Mailbox::root() ) {
                     r = "LIST (\\noselect) \"/\" \"/\"";
-                else
+                    d->addResponse(
+                        Mailbox::root()->name(),
+                        new ListextData::Response( d->reference, r ) );
+                }
+                else {
                     r = "LIST (\\noselect) \"/\" \"\"";
-                d->responses.append(
-                    new ListextData::Response( d->reference, r ) );
+                    d->addResponse(
+                        UString(),
+                        new ListextData::Response( d->reference, r ) );
+                }
             }
             else if ( it->startsWith( "/" ) ) {
                 listChildren( Mailbox::root(), it->titlecased() );
@@ -215,7 +227,7 @@ void Listext::execute()
     if ( d->state == 2 ) {
         if ( !d->permissionsQuery ) {
             IntegerSet ids;
-            List<ListextData::Response>::Iterator i( d->responses );
+            UDict<ListextData::Response>::Iterator i( d->responses );
             while ( i ) {
                 Mailbox * m = i->mailbox;
                 ++i;
@@ -265,7 +277,7 @@ void Listext::execute()
     }
 
     if ( d->state == 3 ) {
-        List<ListextData::Response>::Iterator i( d->responses );
+        UDict<ListextData::Response>::Iterator i( d->responses );
         while ( i ) {
             Mailbox * m = i->mailbox;
             if ( m->owner() == imap()->user()->id() ) {
@@ -386,12 +398,13 @@ void Listext::list( Mailbox * m, const UString & p )
 void Listext::listChildren( Mailbox * mailbox, const UString & pattern )
 {
     List<Mailbox> * c = mailbox->children();
-    if ( c ) {
-        List<Mailbox>::Iterator it( c );
-        while ( it ) {
-            list( it, pattern );
-            ++it;
-        }
+    if ( !c )
+        return;
+
+    List<Mailbox>::Iterator it( c );
+    while ( it ) {
+        list( it, pattern );
+        ++it;
     }
 }
 
@@ -456,7 +469,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
     }
 
     EString r = "LIST (" + a.join( " " ) + ") \"/\" " + name + ext;
-    d->responses.append( new ListextData::Response( mailbox, r ) );
+    d->addResponse( mailbox->name(), new ListextData::Response( mailbox, r ) );
 }
 
 
