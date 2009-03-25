@@ -657,10 +657,10 @@ void Fetch::execute()
         d->peek = true;
 
     if ( d->state == 0 ) {
-        if ( !d->transaction ) {
-            if ( d->modseq && ( d->flags || d->annotation ) )
-                d->transaction = new Transaction( this );
-        }
+        if ( !d->transaction &&
+             ( !d->peek ||
+               ( d->modseq && ( d->flags || d->annotation ) ) ) )
+            d->transaction = new Transaction( this );
         Mailbox * mb = s->mailbox();
         if ( !d->those ) {
             if ( d->changedSince ) {
