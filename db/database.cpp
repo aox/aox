@@ -699,7 +699,9 @@ void Database::cancelQueries( Log * l )
         while ( i ) {
             List<Query>::Iterator q = i;
             ++i;
-            if ( q->log() && q->log()->isChildOf( l ) ) {
+            EString s = q->string();
+            if ( q->log() && q->log()->isChildOf( l ) &&
+                 s != "rollback" && s != "commit" ) {
                 ql->remove( q );
                 q->cancel();
             }
