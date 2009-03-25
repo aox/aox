@@ -15,6 +15,7 @@
 #include "log.h"
 #include "md5.h"
 #include "utf.h"
+#include "mailbox.h"
 
 #include <stdio.h>
 
@@ -549,6 +550,8 @@ bool Schema::singleStep()
         c = stepTo85(); break;
     case 85:
         c = stepTo86(); break;
+    case 86:
+        c = stepTo87(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4119,6 +4122,57 @@ bool Schema::stepTo86()
     return true;
 }
 
+
+static void addVMailboxes( List<Mailbox> * l, Mailbox * m )
+{
+    if ( m->id() == 0 )
+        l->append( m );
+
+    List<Mailbox>::Iterator it( m->children() );
+    while ( it ) {
+        addVMailboxes( l, it );
+        ++it;
+    }
+}
+
+
+/*! Materialise internal nodes in the mailbox tree. */
+
+bool Schema::stepTo87()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Materialising interior mailbox nodes." );
+        d->substate++;
+        Mailbox::refreshMailboxes( d->t );
+    }
+
+    if ( d->substate == 1 ) {
+        if ( Mailbox::refreshing() )
+            return false;
+
+        List<Mailbox> mailboxes;
+        addVMailboxes( &mailboxes, Mailbox::root() );
+
+        d->q = new Query( "copy mailboxes (name) from stdin with binary", 0 );
+        List<Mailbox>::Iterator it( mailboxes );
+        while ( it ) {
+            Mailbox * m = it;
+            d->q->bind( 1, m->name() );
+            d->q->submitLine();
+            ++it;
+        }
+
+        d->substate++;
+        d->t->enqueue( d->q );
+        d->t->enqueue(
+            new Query( "create function downgrade_to_86() returns int as $$"
+                       "begin "
+                       "return 0; "
+                       "end;$$ language 'plpgsql'", 0 ) );
+    }
+
+    return true;
+}
 
 // /*!
 // 

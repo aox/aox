@@ -111,6 +111,7 @@ private:
     bool stepTo84();
     bool stepTo85();
     bool stepTo86();
+    bool stepTo87();
 
     void describeStep( const EString & );
 };
