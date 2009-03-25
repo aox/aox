@@ -1042,4 +1042,6 @@ void Query::cancel()
 
     if ( d->canBeSlow && s == Executing )
         Database::cancelQuery( this );
+    else if ( d->transaction )
+        d->transaction->rollback();
 }
