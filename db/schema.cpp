@@ -3892,7 +3892,7 @@ bool Schema::stepTo81()
 
     // then make sure that new rows are set up correctly
     d->t->enqueue(
-        new Query( "create function set_mailbox_owner() "
+        new Query( "create or replace function set_mailbox_owner() "
                    "returns trigger as $$"
                    "begin "
                    "if new.owner is null then "
@@ -3950,7 +3950,7 @@ bool Schema::stepTo82()
 
     // install a trigger to make sure necessary mailboxes don't disappear
     d->t->enqueue(
-        new Query( "create function check_mailbox_update() "
+        new Query( "create or replace function check_mailbox_update() "
                    "returns trigger as $$"
                    "declare address text; "
                    "begin "
@@ -4051,17 +4051,20 @@ bool Schema::stepTo85()
 {
     describeStep( "Adding functions to downgrade the schema." );
     d->t->enqueue(
-        new Query( "create function downgrade_to_84() returns int as $$"
+        new Query( "create or replace function downgrade_to_84() "
+                   "returns int as $$"
                    "begin " // no-op
                    "return 0;"
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_83() returns int as $$"
+        new Query( "create or replace function downgrade_to_83() "
+                   "returns int as $$"
                    "begin "
                    "drop table retention_policies; return 0;"
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_82() returns int as $$"
+        new Query( "create or replace function downgrade_to_82() "
+                   "returns int as $$"
                    "begin "
                    "insert into flags (mailbox, uid, flag) "
                    "select mailbox, uid, "
@@ -4075,14 +4078,16 @@ bool Schema::stepTo85()
                    "return 0; "
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_81() returns int as $$"
+        new Query( "create or replace function downgrade_to_81() "
+                   "returns int as $$"
                    "begin "
                    "drop trigger mailbox_update_trigger on mailboxes; "
                    "drop function check_mailbox_update(); "
                    "return 0; "
                    "end;$$ language 'plpgsql'", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_80() returns int as $$"
+        new Query( "create or replace function downgrade_to_80() "
+                   "returns int as $$"
                    "begin "
                    "drop trigger mailbox_owner_trigger on mailboxes; "
                    "drop function set_mailbox_owner(); "
@@ -4100,7 +4105,7 @@ bool Schema::stepTo86()
 {
     describeStep( "Extending retention_policies to help caching." );
     d->t->enqueue(
-        new Query( "create function notify_retention_policies() "
+        new Query( "create or replace function notify_retention_policies() "
                    "returns trigger as $$ "
                    "begin "
                    "notify retention_policies_updated; return NULL; "
@@ -4112,7 +4117,8 @@ bool Schema::stepTo86()
                    "for each statement "
                    "execute procedure notify_retention_policies()", 0 ) );
     d->t->enqueue(
-        new Query( "create function downgrade_to_85() returns int as $$"
+        new Query( "create or replace function downgrade_to_85() "
+                   "returns int as $$"
                    "begin "
                    "drop trigger retention_policies_trigger "
                    "on retention_policies; "
@@ -4165,7 +4171,8 @@ bool Schema::stepTo87()
         d->substate++;
         d->t->enqueue( d->q );
         d->t->enqueue(
-            new Query( "create function downgrade_to_86() returns int as $$"
+            new Query( "create or replace function downgrade_to_86() "
+                       "returns int as $$"
                        "begin "
                        "return 0; "
                        "end;$$ language 'plpgsql'", 0 ) );
