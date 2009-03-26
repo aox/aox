@@ -73,7 +73,7 @@ void ListAliases::execute()
 
 
 static AoxFactory<CreateAlias>
-f2( "add", "alias", "Create a delivery alias.",
+f2( "create", "alias", "Create a delivery alias.",
     "    Synopsis: aox add alias <address> <destination>\n\n"
     "    Creates an alias that instructs the L/SMTP server to accept\n"
     "    mail to a given address, and deliver it to a given mailbox.\n"

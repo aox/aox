@@ -30,7 +30,7 @@ public:
 
 
 static AoxFactory<CreateView>
-f( "add", "view", "Create a view mailbox.",
+f( "create", "view", "Create a view mailbox.",
    "    Synopsis: aox add view <name> <source> <owner> <search>\n\n"
    "    Creates a new view mailbox which applies the specified search\n"
    "    on the specified source mailbox. When a new message is added\n"

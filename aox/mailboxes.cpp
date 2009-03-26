@@ -149,7 +149,7 @@ public:
 
 
 static AoxFactory<CreateMailbox>
-f2( "add", "mailbox", "Create a new mailbox.",
+f2( "create", "mailbox", "Create a new mailbox.",
     "    Synopsis: aox add mailbox <name> [username]\n\n"
     "    Creates a new mailbox with the specified name and,\n"
     "    if a username is specified, owned by that user.\n\n"
