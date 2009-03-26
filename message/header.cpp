@@ -132,7 +132,6 @@ void Header::add( HeaderField * hf )
                 old->append( it );
                 ++it;
             }
-            Address::uniquify( old );
             return;
         }
     }
@@ -537,15 +536,26 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 }
 
 
-/*! Removes any redundant header fields from this header. For example,
-    if 'sender' or 'reply-to' points to the same address as 'from',
-    that field can be removed.
+/*! Removes any redundant header fields from this header, and
+  simplifies the value of some.
+  
+    For example, if 'sender' or 'reply-to' points to the same address
+    as 'from', that field can be removed, and if 'from' contains the
+    same address twice, one can be removed.
 */
 
 void Header::simplify()
 {
     if ( !valid() )
         return;
+
+    uint i = 0;
+    while ( i <= HeaderField::LastAddressField ) {
+        AddressField * af = addressField( (HeaderField::Type)i );
+        if ( af )
+            Address::uniquify( af->addresses() );
+        i++;
+    }
 
     HeaderField *cde = field( HeaderField::ContentDescription );
     if ( cde && cde->rfc822().isEmpty() ) {
