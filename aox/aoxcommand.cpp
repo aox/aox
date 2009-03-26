@@ -589,7 +589,7 @@ EStringList * AoxCommandMap::validNouns( const EString & verb )
     EStringList r;
     AoxCommandMap * m = first;
     while ( m ) {
-        if ( verb == m->v && !m->c )
+        if ( verb == m->v )
             r.append( m->n );
         m = m->x;
     }
