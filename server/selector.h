@@ -25,7 +25,7 @@ public:
 
     enum Field {
         InternalDate, Sent, Header, Body, Rfc822Size, Flags, Uid,
-        Annotation, Modseq, Age, NoField, MailboxTree
+        Annotation, Modseq, Age, NoField, MailboxTree, InThread
     };
 
     Selector();
@@ -106,6 +106,7 @@ private:
     EString whereAge();
     EString whereNoField();
     EString whereMailbox();
+    EString whereInThread();
 
     EString mm();
 

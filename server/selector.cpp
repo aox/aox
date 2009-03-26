@@ -396,6 +396,9 @@ void Selector::simplify()
         case MailboxTree:
             // cannot be simplified
             break;
+        case InThread:
+            // cannot be simplified
+            break;
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
@@ -683,6 +686,9 @@ EString Selector::where()
         break;
     case MailboxTree:
         return whereMailbox();
+        break;
+    case InThread:
+        return whereInThread();
         break;
     case NoField:
         return whereNoField();
@@ -1357,7 +1363,30 @@ EString Selector::whereMailbox()
 
     root()->d->query->bind( i, ids );
     return mm() + ".mailbox=any($" + fn( i ) + ")";
+}
 
+
+/*! This implements inthread, that is, a thread-specific search.
+  
+    Conceptually simple but perhaps a little hard on the RDBMS.
+*/
+
+EString Selector::whereInThread()
+{
+    EString join = fn( ++root()->d->join );
+    root()->d->extraJoins.append(
+        " join thread_members tmp" + join +
+        " on (" + mm() + ".mailbox=tmp" + join + ".mailbox"
+        " and " + mm() + ".uid=tm" + join + ".uid)"
+        " join thread_members tm" + join +
+        " on (tmp" + join + ".mailbox=tm" + join + ".mailbox"
+        " and tmp" + join + ".thread=tm" + join + ".thread)"
+        " join mailbox_messages mm" + join +
+        " on (tm" + join + ".mailbox=mm" + join + ".mailbox"
+        " and tm" + join + ".uid=mm" + join + ".uid)"
+        );
+    d->mm = new EString( "mm" + join );
+    return d->children->first()->where();
 }
 
 
@@ -1456,6 +1485,9 @@ EString Selector::debugString() const
             w = "subtree ";
         else
             w = "mailbox ";
+        break;
+    case InThread:
+        w = "inthread";
         break;
     case Modseq:
         w = "modseq";
