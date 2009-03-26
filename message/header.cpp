@@ -107,12 +107,10 @@ EString Header::error() const
 
 /*! Appends the HeaderField \a hf to this Header.
 
-    If \a hf is a From/To/Cc/Reply-To/Bcc field, and the same address
-    field already is present in this header, the addresses in \a hf
-    are merged into the existing field and \a hf is discarded. This is
-    nominally incorrect, and we do it to accept mail from a variety of
-    buggy mail senders. More address fields may be added to the list
-    if necessary.
+    If the HeaderField::position() is -1, add() sets it one higher
+    than that of the last HeaderField. This tends to make it unique
+    and larger than all others, but it may not be unique.
+    Unfortunately guaranteeing uniqueness is O(n).
 */
 
 void Header::add( HeaderField * hf )
@@ -135,16 +133,19 @@ void Header::add( HeaderField * hf )
             return;
         }
     }
-    List<HeaderField>::Iterator i( d->fields );
-    uint maxpos = 0;
-    while ( i && i->position() <= hf->position() ) {
-        if ( i->position() > maxpos )
-            maxpos = i->position();
-        ++i;
+    if ( hf->position() == (uint)-1 ) {
+        if ( d->fields.isEmpty() )
+            hf->setPosition( 1 );
+        else
+            hf->setPosition( d->fields.last()->position() + 1 );
+        d->fields.append( hf );
     }
-    if ( !i && hf->position() == (uint)-1 )
-        hf->setPosition( maxpos + 1 );
-    d->fields.insert( i, hf );
+    else {
+        List<HeaderField>::Iterator i( d->fields );
+        while ( i && i->position() < hf->position() )
+            ++i;
+        d->fields.insert( i, hf );
+    }
     d->verified = false;
 }
 

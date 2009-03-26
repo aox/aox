@@ -192,7 +192,6 @@ Header * Message::parseHeader( uint & i, uint end,
 {
     Header * h = new Header( m );
     bool done = false;
-    uint pos = 1;
     while ( !done ) {
         if ( i >= end )
             done = true;
@@ -233,7 +232,6 @@ Header * Message::parseHeader( uint & i, uint end,
             if ( !value.simplified().isEmpty() ||
                  name.lower().startsWith( "x-" ) ) {
                 HeaderField * f = HeaderField::create( name, value );
-                f->setPosition( pos++ );
                 h->add( f );
             }
             i = j;
