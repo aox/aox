@@ -353,6 +353,8 @@ void ContentType::parse( const EString &s )
     while ( p.present( ":" ) )
         p.whitespace();
 
+    bool mustGuess = false;
+
     if ( p.atEnd() ) {
         t = "text";
         st = "plain";
@@ -400,7 +402,6 @@ void ContentType::parse( const EString &s )
             }
         }
         else {
-            bool mustGuess = false;
             if ( p.nextChar() == '/' ) {
                 // eek. this makes mime look like the special case.
                 p.step();
@@ -422,24 +423,25 @@ void ContentType::parse( const EString &s )
                 mustGuess = true;
             }
             parseParameters( &p );
-            if ( mustGuess ) {
-                EString fn = parameter( "name" );
-                if ( fn.isEmpty() )
-                    fn = parameter( "filename" );
-                while ( fn.endsWith( "." ) )
-                    fn.truncate( fn.length() - 1 );
-                while ( fn.contains( '.' ) )
-                    fn = fn.section( ".", 2 );
-                fn = fn.lower();
-                if ( fn == "jpg" || fn == "jpeg" ) {
-                    t = "image";
-                    st = "jpeg";
-                }
-                else if ( fn == "htm" || fn == "html" ) {
-                    t = "text";
-                    st = "html";
-                }
-            }
+        }
+    }
+
+    if ( mustGuess ) {
+        EString fn = parameter( "name" );
+        if ( fn.isEmpty() )
+            fn = parameter( "filename" );
+        while ( fn.endsWith( "." ) )
+            fn.truncate( fn.length() - 1 );
+        while ( fn.contains( '.' ) )
+            fn = fn.section( ".", 2 );
+        fn = fn.lower();
+        if ( fn == "jpg" || fn == "jpeg" ) {
+            t = "image";
+            st = "jpeg";
+        }
+        else if ( fn == "htm" || fn == "html" ) {
+            t = "text";
+            st = "html";
         }
     }
 
@@ -465,7 +467,7 @@ void ContentType::parse( const EString &s )
                 b = b.unquoted();
             else if ( b.isQuoted( '\'' ) )
                 b = b.unquoted( '\'' );
-       }
+        }
         if ( !b.isEmpty() )
             addParameter( "boundary", b );
     }
