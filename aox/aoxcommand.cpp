@@ -572,8 +572,7 @@ EStringList * AoxCommandMap::validVerbs()
     EStringList r;
     AoxCommandMap * m = first;
     while ( m ) {
-        if ( !m->c )
-            r.append( m->v );
+        r.append( m->v );
         m = m->x;
     }
     r.removeDuplicates();
