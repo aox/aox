@@ -688,6 +688,30 @@ Query * Mailbox::create( Transaction * t, User * owner )
 
     t->enqueue( q );
 
+    // We assume that the caller has checked permissions.
+
+    Mailbox * m = parent();
+    while ( m ) {
+        Query * q = 0;
+        if ( m->deleted() ) {
+            // Should we leave it be or undelete it?
+        }
+        else if ( m->id() == 0 ) {
+            q = new Query( "insert into mailboxes "
+                           "(name,owner,uidnext,uidvalidity,deleted) "
+                           "values ($1,null,1,1,'f')", 0 );
+            q->bind( 1, m->name() );
+        }
+
+        // We rely on the trigger to set the ownership of the
+        // intermediate mailboxes being created.
+
+        if ( q )
+            t->enqueue( q );
+
+        m = m->parent();
+    }
+
     t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
 
     return q;
