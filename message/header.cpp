@@ -140,7 +140,7 @@ void Header::add( HeaderField * hf )
     while ( i && i->position() <= hf->position() ) {
         if ( i->position() > maxpos )
             maxpos = i->position();
-        i++;
+        ++i;
     }
     if ( !i && hf->position() == (uint)-1 )
         hf->setPosition( maxpos + 1 );

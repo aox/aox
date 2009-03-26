@@ -140,7 +140,7 @@ EString ThreadResponse::text() const
         List<SubjectThread>::Iterator t( d->threader->subjectThreads() );
         while ( t ) {
             IntegerSet members = t->members().intersection( d->result );
-            t++;
+            ++t;
             switch ( members.count() ) {
             case 0:
                 break;

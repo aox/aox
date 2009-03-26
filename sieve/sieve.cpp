@@ -289,7 +289,7 @@ void Sieve::execute()
                 UString h = r->getUString( "handle" );
                 List<SieveAction>::Iterator i( d->vacations );
                 while ( i && i->handle() != h )
-                    i++;
+                    ++i;
                 if ( i ) {
                     log( "Suppressing vacation response to " +
                          i->recipientAddress()->toString() );

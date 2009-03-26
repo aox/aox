@@ -745,7 +745,7 @@ void Message::fix8BitHeaderFields()
             if ( ct && ct->subtype() == "html" )
                 fallback = "iso-8859-1";
         }
-        i++;
+        ++i;
     }
     Codec * c = 0;
     if ( !charset.isEmpty() )

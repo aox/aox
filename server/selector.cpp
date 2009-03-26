@@ -1261,7 +1261,7 @@ EString Selector::whereNoField()
         if ( d->a == Or ) {
             List<Selector>::Iterator i( d->children );
             while ( i && ( i->d->f != Header || !isAddressField( i->d->s8 ) ) )
-                i++;
+                ++i;
             if ( i )
                 address = i->d->s16; // this is the address we optimize for
         }
@@ -1285,7 +1285,7 @@ EString Selector::whereNoField()
                 else
                     conditions.append( w );
             }
-            i++;
+            ++i;
         }
         if ( !addressFields.isEmpty() ) {
             addressFields.removeDuplicates();
