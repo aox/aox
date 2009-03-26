@@ -741,7 +741,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
             else if ( ct->type() == "application" &&
                       ct->subtype() == "octet-stream" &&
-                      !body.needsQP() &&
                       body.contains( "BEGIN PGP MESSAGE" ) ) {
                 // mutt cannot handle PGP in base64 (what a crock)
                 e = EString::Binary;
