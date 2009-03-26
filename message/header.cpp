@@ -1629,6 +1629,45 @@ void Header::repair( Multipart * p, const EString & body )
             removeField( HeaderField::ReplyTo );
     }
 
+    // If c-t-e is bad, we try to detect.
+
+    if ( occurrences[(int)HeaderField::ContentTransferEncoding] ) {
+        ContentTransferEncoding * cte = contentTransferEncoding();
+        if ( cte && !cte->valid() ) {
+            uint minl = UINT_MAX;
+            uint maxl = 0;
+            uint i = 0;
+            uint l = 0;
+            uint n = 0;
+            while ( i < body.length() ) {
+                if ( body[i] == '\n' || body[i] == '\r' ) {
+                    if ( l > maxl )
+                        maxl = l;
+                    if ( l < minl )
+                        minl = l;
+                    l = 0;
+                    n++;
+                }
+                else {
+                    ++l;
+                }
+                ++i;
+            }
+            if ( n > 5 && maxl == minl && minl > 50 ) {
+                // more than five lines, all (except the last) equally
+                // long. it really looks like base64.
+                removeField( HeaderField::ContentTransferEncoding );
+                add( "Content-Transfer-Encoding", "base64" );
+            }
+            else {
+                // it can be q-p or none. do we really care? can we
+                // even decide reliably? I think we might as well
+                // assume none.
+                removeField( HeaderField::ContentTransferEncoding );
+            }
+        }
+    }
+
     d->verified = false;
 }
 
