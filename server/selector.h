@@ -20,7 +20,7 @@ class Selector
 public:
     enum Action {
         OnDate, SinceDate, BeforeDate, Contains, Larger, Smaller,
-        And, Or, Not, All, None
+        And, Or, Not, All, None, Special
     };
 
     enum Field {
@@ -30,6 +30,7 @@ public:
 
     Selector();
 
+    Selector( Field );
     Selector( Field, Action, uint );
     Selector( Field, Action, const EString & = 0 );
     Selector( Field, Action, const UString & );

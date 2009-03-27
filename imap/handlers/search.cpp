@@ -393,6 +393,12 @@ Selector * Search::parseKey()
         return new Selector( Selector::Modseq, Selector::Larger,
                              number() );
     }
+    else if ( present( "inthread" ) ) {
+        space();
+        Selector * s = new Selector( Selector::InThread );
+        s->add( parseKey() );
+        return s;
+    }
 
     error( Bad, "expected search key, saw: " + following() );
     return new Selector;
