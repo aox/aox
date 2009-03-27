@@ -47,8 +47,8 @@ public:
 
     uint placeHolder();
 
-    const Selector * root() const;
-    const Selector * parent() const;
+    Selector * root();
+    Selector * parent();
 
     EString error();
     void setError( const EString & );

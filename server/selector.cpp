@@ -286,9 +286,9 @@ Selector::Selector( Mailbox * mailbox, bool alsoChildren )
 
 /*! Returns the ultimate parent of this Selector. */
 
-const Selector * Selector::root() const
+Selector * Selector::root()
 {
-    const Selector * p = this;
+    Selector * p = this;
 
     while ( p->parent() )
         p = p->parent();
@@ -299,7 +299,7 @@ const Selector * Selector::root() const
 
 /*! Returns the parent of this Selector, or 0 if it is the root. */
 
-const Selector * Selector::parent() const
+Selector * Selector::parent()
 {
     return d->parent;
 }
@@ -868,21 +868,231 @@ EString Selector::whereAddressField( const EString & field )
 }
 
 
+static bool addressPartLegal( const EString & s, bool domain )
+{
+    if ( s.isEmpty() )
+        return false;
+    uint i = 0;
+    while ( i < s.length() ) {
+        char c = s[i];
+        if ( c <= ' ' ) {
+            // don't bother searching for domains or localparts
+            // containing spaces or contrl characters.
+            return false;
+        }
+        else if ( c >= 127 ) {
+            // ditto DEL or non-ASCII
+            return false;
+        }
+        else if ( ( c >= 'a' && c <= 'z' ) ||
+                  ( c >= 'A' && c <= 'Z' ) ||
+                  ( c >= '0' && c <= '9' ) ||
+                  ( c == '-' ) ) {
+            // a-z, A-Z, 0-9 and - are acceptable in both localparts
+            // and domains, we search for those
+        }
+        else if ( c == '.' ) {
+            // dots are acceptable in both, but consecutive dots
+            // do not appear in domains.a
+            if ( s[i+1] == '.' && domain )
+                return false;
+        }
+        else if ( domain ) {
+            // we summarily reject domains that contain ", :, \ and so on
+            return false;
+        }
+        else if ( c == '<' || c == '>' || c == '@' ) {
+            // those three characters are highly suspect in localparts
+            // and illegal in domains. if we're asked to search for
+            // them, that's probably an IMAP clent on crack (do you
+            // hear that, rsa.com?)
+            return false;
+        }
+        ++i;
+    }
+    return true;
+}
+
+
+static void addAddressTerm( EStringList * terms,
+                            Selector * root,
+                            Query * query,
+                            const EString & jn,
+                            const char * part,
+                            const EString & s,
+                            bool isPrefix,
+                            bool isPostfix )
+{
+    bool ascii = true;
+    uint i = 0;
+    while ( i < s.length() && ascii ) {
+        if ( s[i] > 127 || s[i] < 32 )
+            ascii = false;
+        ++i;
+    }
+    EString r;
+    if ( ascii )
+        r.append( "lower(" );
+    r.append( "a" );
+    r.append( jn );
+    r.append( "." );
+    r.append( part );
+    if ( ascii )
+        r.append( ")" );
+    uint b = root->placeHolder();
+    if ( ascii )
+        query->bind( b, s.lower() );
+    else
+        query->bind( b, s );
+    if ( isPrefix && isPostfix ) {
+        if ( ascii )
+            r.append( "=" );
+        else
+            r.append( " ilike " );
+        r.append( "$" );
+        r.appendNumber( b );
+    }
+    else {
+        if ( ascii )
+            r.append( " like " );
+        else
+            r.append( " ilike " );
+        if ( !isPrefix )
+            r.append( "'%'||" );
+        r.append( "$" );
+        r.appendNumber( b );
+        if ( !isPostfix )
+            r.append( "||'%'" );
+    }
+    terms->append( r );
+}
+
+
 /*! This implements searching for \a name on the address \a fields, or
   on all address fields if \a fields is the empty list.
 */
 
 EString Selector::whereAddressFields( const EStringList & fields,
-                                     const UString & name )
+                                      const UString & name )
 {
-    Query * query = root()->d->query;
+    // analyse the search term to see whether we have to look at it
+    // everywhere or whether we can perhaps do it cleverly.
+    EString raw( q( name ) );
+    int at = raw.find( '@' );
+    int lt = raw.find( '<' );
+    if ( lt >= 0 && raw.find( '@', lt ) )
+        at = raw.find( '@', lt );
+    int gt = raw.find( '>' );
+    if ( at >= 0 && raw.find( '>', at ) )
+        gt = raw.find( '>', at );
+
+    // look for the domain candidate
+    EString dom;
+    bool domPrefix = false;
+    bool domPostfix = false;
+    if ( at >= 0 && gt > 0 ) {
+        // an entire domain perhaps?
+        dom = raw.mid( at + 1, gt - at - 1 );
+        domPrefix = true;
+        domPostfix = true;
+    }
+    else if ( at >= 0 ) {
+        // a domain prefix
+        dom = raw.mid( at + 1 );
+        domPrefix = true;
+    }
+    else if ( gt >= 0 ) {
+        // a domain postfix
+        dom = raw.mid( 0, gt );
+        domPostfix = true;
+    }
+    else {
+        // no idea really
+        dom = raw;
+    }
+
+    // look for the localpart candidate
+    EString lp;
+    bool lpPrefix = false;
+    bool lpPostfix = false;
+    if ( lt >= 0 && at > lt ) {
+        // an entire localpart
+        lp = raw.mid( lt + 1, at - lt - 1 );
+        lpPrefix = true;
+        lpPostfix = true;
+    }
+    else if ( at >= 0 ) {
+        // a postfix
+        lp = raw.mid( 0, at );
+        lpPostfix = true;
+    }
+    else if ( lt >= 0 ) {
+        lp = raw.mid( lt + 1 );
+        lpPrefix = true;
+    }
+    else {
+        lp = raw;
+    }
+
+    // the name is... hm...
+    EString dn;
+    bool dnPostfix = false;
+    if ( lt >= 0 ) {
+        dn = raw.mid( 0, lt ).simplified();
+        dnPostfix = true;
+    }
+    else if ( at >= 0 || gt >= 0 ) {
+        // we're looking for e.g. asdf@asdf or asdf>, so we just don't
+        // have a display-name
+    }
+    else {
+        dn = raw;
+    }
+    
+    bool dnUsed = false;
+    if ( !dn.isEmpty() ) {
+        dnUsed = true;
+    }
+    bool lpUsed = false;
+    if ( lp.isEmpty() ) {
+        if ( lpPrefix && lpPostfix )
+            return "false";
+    }
+    else if ( addressPartLegal( lp, false ) ) {
+        lpUsed = true;
+    }
+    else {
+        if ( lpPrefix || lpPostfix )
+            return "false";
+        lpUsed = false;
+    }
+    bool domUsed = false;
+    if ( dom.isEmpty() ) {
+        if ( domPrefix && domPostfix )
+            return "false";
+    }
+    else if ( addressPartLegal( dom, true ) ) {
+        domUsed = true;
+    }
+    else {
+        if ( domPrefix || domPostfix )
+            return "false";
+        domUsed = false;
+    }
+
+    if ( raw.isEmpty() && ( !dnUsed && !lpUsed && !domUsed ) )
+        return "true";
+
+    // at this point it's safe to begin binding variables etc: we will
+    // join in something and use the variables
+
+    // put together the initial part of the join
     uint join = ++root()->d->join;
     EString jn = fn( join );
     EString r( " left join address_fields af" + jn +
-              " on (af" + jn + ".message=" + mm() + ".message)"
-              " left join addresses a" + jn +
-              " on (a" + jn + ".id=af" + jn + ".address"
-              " and " );
+               " on (af" + jn + ".message=" + mm() + ".message)"
+               " left join addresses a" + jn +
+               " on (a" + jn + ".id=af" + jn + ".address" );
 
     EStringList known, unknown;
     EStringList::Iterator it( fields );
@@ -893,11 +1103,11 @@ EString Selector::whereAddressFields( const EStringList & fields,
             t = 0;
         if ( t ) {
             known.append( "af" + jn + ".field=$" + fn( fnum ) );
-            query->bind( fnum, t );
+            root()->d->query->bind( fnum, t );
         }
         else {
             unknown.append( "fn.name=$" + fn( fnum ) );
-            query->bind( fnum, *it );
+            root()->d->query->bind( fnum, *it );
         }
         ++it;
     }
@@ -915,75 +1125,48 @@ EString Selector::whereAddressFields( const EStringList & fields,
         known.append( tmp );
     }
     if ( known.count() == 1 ) {
-        r.append( known.join( "" ) );
         r.append( " and " );
+        r.append( known.join( "" ) );
     }
     else if ( !known.isEmpty() ) {
-        r.append( "(" );
+        r.append( " and (" );
         r.append( known.join( " or " ) );
-        r.append( ") and " );
+        r.append( ")" );
     }
 
-    EString raw( q( name ) );
-    int at = raw.find( '@' );
-
-    if ( at < 0 ) {
-        uint name = placeHolder();
-        query->bind( name, raw );
-        r.append( "(a" + jn + ".name ilike " + matchAny( name ) + " or"
-                  " a" + jn + ".localpart ilike " + matchAny( name ) + " or"
-                  " a" + jn + ".domain ilike " + matchAny( name ) + ")" );
+    // next, the terms 
+    EStringList terms;
+    if ( dnUsed )
+        addAddressTerm( &terms, root(), root()->d->query, jn, "name",
+                        dn, false, dnPostfix );
+    if ( lpUsed )
+        addAddressTerm( &terms, root(), root()->d->query, jn, "localpart",
+                        lp, lpPrefix, lpPostfix );
+    if ( domUsed )
+        addAddressTerm( &terms, root(), root()->d->query, jn, "domain",
+                        dom, domPrefix, domPostfix );
+    
+    if ( terms.isEmpty() ) {
+        // nothing needed
+    }
+    if ( terms.count() == 1 ) {
+        r.append( " and " );
+        r.append( *terms.firstElement() );
+    }
+    else if ( ( lpUsed && ( lpPrefix || lpPostfix ) ) ||
+              ( domUsed && ( domPrefix || domPostfix ) ) ) {
+        r.append( " and " );
+        r.append( terms.join( " and " ) );
     }
     else {
-        EString lc, dc;
-        if ( at > 0 ) {
-            uint lp = placeHolder();
-            if ( raw.startsWith( "<" ) ) {
-                query->bind( lp, raw.mid( 1, at-1 ).lower() );
-                lc = "lower(a" + jn + ".localpart)=$" + fn( lp );
-            }
-            else {
-                query->bind( lp, raw.mid( 0, at ) );
-                lc = "a" + jn + ".localpart ilike '%'||$" + fn( lp ) + " ";
-            }
-        }
-        if ( at < (int)raw.length() - 1 ) {
-            uint dom = placeHolder();
-            if ( raw.endsWith( ">" ) ) {
-                query->bind( dom, raw.mid( at+1, raw.length()-at-2 ).lower() );
-                dc = "lower(a" + jn + ".domain)=$" + fn( dom );
-            }
-            else {
-                query->bind( dom, raw.mid( at+1 ) );
-                dc = "a" + jn + ".domain ilike $" + fn( dom ) + "||'%'";
-            }
-        }
-        if ( !lc.isEmpty() && !dc.isEmpty() ) {
-            bool paren = true;
-            if ( r.isEmpty() )
-                paren = false;
-            if ( paren )
-                r.append( "(" );
-            r.append( lc );
-            r.append( " and " );
-            r.append( dc );
-            if ( paren )
-                r.append( ")" );
-        }
-        else if ( !lc.isEmpty() ) {
-            r.append( lc );
-        }
-        else if ( !dc.isEmpty() ) {
-            r.append( dc );
-        }
-        else {
-            // imap SEARCH FROM "@" matches messages with a nonempty
-            // from field. the sort of thing only a test suite would
-            // do.
-            r.truncate( r.length() - 5 ); // " and "
-        }
+        r.append( " and (" );
+        r.append( terms.join( " or " ) );
+        r.append( ")" );
     }
     r.append( ")" );
+
+    // finally, bang in the join and return a not-wrappable test of
+    // whether the join found something
     root()->d->extraJoins.append( r );
     return "a" + jn + ".id is not null";
 }
