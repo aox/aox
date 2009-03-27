@@ -406,6 +406,8 @@ void ContentType::parse( const EString &s )
                 // eek. this makes mime look like the special case.
                 p.step();
                 st = p.mimeToken().lower();
+                if ( st.isEmpty() )
+                    mustGuess = true;
             }
             else if ( p.nextChar() == '=' ) {
                 // oh no. someone skipped the content-type and
