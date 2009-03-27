@@ -246,5 +246,7 @@ void LogClient::setup( const EString & n )
 
 EString LogClient::name() const
 {
-    return d->name;
+    if ( d )
+        return d->name;
+    return "Archiveopteryx";
 }
