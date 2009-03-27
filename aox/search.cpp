@@ -39,6 +39,9 @@ void dumpSelector( Selector * s, uint l )
             a = "Message is in mailbox: ";
         a.append( s->mailbox()->name().ascii() );
         break;
+    case Selector::InThread:
+        a = "A message in the same thread matches:";
+        break;
     case Selector::Header:
         if ( s->stringArgument().isEmpty() )
             a = "Any header field contains: " +
