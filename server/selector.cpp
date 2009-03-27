@@ -1373,6 +1373,7 @@ EString Selector::whereMailbox()
 
 EString Selector::whereInThread()
 {
+    d->mm = 0;
     EString join = fn( ++root()->d->join );
     root()->d->extraJoins.append(
         " join thread_members tmp" + join +
