@@ -97,7 +97,7 @@ private:
     EString whereHeader();
     EString whereHeaderField();
     EString whereAddressField( const EString & = "" );
-    EString whereAddressFields( const EStringList &, const UString & );
+    EString whereAddressFields( const EStringList &, const UString &, bool );
     EString whereBody();
     EString whereRfc822Size();
     EString whereFlags();
