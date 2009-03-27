@@ -104,7 +104,7 @@ EStringList Resolver::resolve( const EString & name )
         // it's a unix pipe
         results->append( name );
     }
-    else {
+    else if ( !r->d->host.isEmpty() ) {
         // it's a domain name. we use res_search() since getnameinfo()
         // had such bad karma when we tried it.
         if ( use6 )
