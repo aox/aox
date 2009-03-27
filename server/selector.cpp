@@ -139,6 +139,7 @@ public:
     User * user;
 
     EStringList extraJoins;
+    EStringList leftJoins;
 
     bool needDateFields;
     bool needAnnotations;
@@ -566,6 +567,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         q.append( " join messages m on (" + mm() + ".message=m.id)" );
 
     q.append( d->extraJoins.join( "" ) );
+    q.append( d->leftJoins.join( "" ) );
 
     if ( wanted && wanted->contains( "idate" ) )
         d->needMessages = true;
@@ -849,7 +851,7 @@ EString Selector::whereHeaderField()
                   "(select id from field_names where name=$" + fn(f) + ")" );
     }
     j.append( ")" );
-    root()->d->extraJoins.append( j );
+    root()->d->leftJoins.append( j );
 
     return "hf" + jn + ".field is not null";
 }
@@ -864,7 +866,7 @@ EString Selector::whereAddressField( const EString & field )
     EStringList l;
     if ( !field.isEmpty() )
         l.append( field );
-    return whereAddressFields( l, d->s16 );
+    return whereAddressFields( l, d->s16, true );
 }
 
 
@@ -973,7 +975,8 @@ static void addAddressTerm( EStringList * terms,
 */
 
 EString Selector::whereAddressFields( const EStringList & fields,
-                                      const UString & name )
+                                      const UString & name,
+                                      bool direct )
 {
     // analyse the search term to see whether we have to look at it
     // everywhere or whether we can perhaps do it cleverly.
@@ -1048,7 +1051,7 @@ EString Selector::whereAddressFields( const EStringList & fields,
     else {
         dn = raw;
     }
-    
+
     bool dnUsed = false;
     if ( !dn.isEmpty() ) {
         dnUsed = true;
@@ -1089,10 +1092,20 @@ EString Selector::whereAddressFields( const EStringList & fields,
     // put together the initial part of the join
     uint join = ++root()->d->join;
     EString jn = fn( join );
-    EString r( " left join address_fields af" + jn +
-               " on (af" + jn + ".message=" + mm() + ".message)"
-               " left join addresses a" + jn +
-               " on (a" + jn + ".id=af" + jn + ".address" );
+    EString r;
+    bool anded = false;
+    if ( direct &&
+         ( this == root() ||
+           ( parent() == root() && parent()->action() == And ) ) )
+        anded = true;
+    if ( !anded )
+        r.append( " left" );
+    r.append( " join address_fields af" + jn +
+              " on (af" + jn + ".message=" + mm() + ".message)" );
+    if ( !anded )
+        r.append( " left" );
+    r.append( " join addresses a" + jn +
+              " on (a" + jn + ".id=af" + jn + ".address" );
 
     EStringList known, unknown;
     EStringList::Iterator it( fields );
@@ -1134,7 +1147,7 @@ EString Selector::whereAddressFields( const EStringList & fields,
         r.append( ")" );
     }
 
-    // next, the terms 
+    // next, the terms
     EStringList terms;
     if ( dnUsed )
         addAddressTerm( &terms, root(), root()->d->query, jn, "name",
@@ -1145,7 +1158,7 @@ EString Selector::whereAddressFields( const EStringList & fields,
     if ( domUsed )
         addAddressTerm( &terms, root(), root()->d->query, jn, "domain",
                         dom, domPrefix, domPostfix );
-    
+
     if ( terms.isEmpty() ) {
         // nothing needed
     }
@@ -1167,7 +1180,11 @@ EString Selector::whereAddressFields( const EStringList & fields,
 
     // finally, bang in the join and return a not-wrappable test of
     // whether the join found something
-    root()->d->extraJoins.append( r );
+    if ( anded ) {
+        root()->d->extraJoins.append( r );
+        return "true";
+    }
+    root()->d->leftJoins.append( r );
     return "a" + jn + ".id is not null";
 }
 
@@ -1186,9 +1203,10 @@ EString Selector::whereHeader()
     EString j = " left join header_fields " + jn +
                " on (" + mm() + ".message=" + jn + ".message and " +
                jn + ".value ilike " + matchAny( like ) + ")";
-    root()->d->extraJoins.append( j );
+    root()->d->leftJoins.append( j );
+    EStringList empty;
     return "(" + jn + ".field is not null or " +
-        whereAddressField() + ")";
+        whereAddressFields( empty, d->s16, false ) + ")";
 }
 
 
@@ -1294,7 +1312,7 @@ EString Selector::whereFlags()
             mm() + ".uid=f" + n + ".uid and f" + n + ".flag="
             "(select id from flag_names where lower(name)=$" + fn(b) + "))";
     }
-    root()->d->extraJoins.append( j );
+    root()->d->leftJoins.append( j );
 
     // finally use the join in a manner which doesn't accidentally
     // confuse different flags.
@@ -1351,7 +1369,7 @@ EString Selector::whereAnnotation()
 
     uint pattern = placeHolder();
     EString join = fn( ++root()->d->join );
-    root()->d->extraJoins.append(
+    root()->d->leftJoins.append(
         " left join annotation_names an" + join +
         " on (a.name=an" + join + ".id"
         " and an" + join + ".name like $" + fn( pattern ) + ")"
@@ -1490,7 +1508,8 @@ EString Selector::whereNoField()
             addressFields.removeDuplicates();
             if ( addressFields.count() == 12 )
                 addressFields.clear(); // there are only 12, so look for all
-            conditions.append( whereAddressFields( addressFields, address ) );
+            conditions.append(
+                whereAddressFields( addressFields, address, true ) );
         }
         EString r = "(";
         if ( d->a == And ) {
