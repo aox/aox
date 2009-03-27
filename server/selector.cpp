@@ -170,6 +170,16 @@ Selector::Selector()
 }
 
 
+/*! Constructs an empty selector with field \a f and Action Special. */
+
+Selector::Selector( Field f )
+    : d( new SelectorData )
+{
+    d->f = f;
+    d->a = Special;
+}
+
+
 /*! Creates a selector with Field \a f, Action \a a, and the integer
     value \a n.
 */
@@ -267,7 +277,7 @@ Selector::Selector( Action a )
 Selector::Selector( Mailbox * mailbox, bool alsoChildren )
     : d( new SelectorData )
 {
-    d->a = Contains;
+    d->a = Special;
     d->f = MailboxTree;
     d->m = mailbox;
     d->mc = alsoChildren;
@@ -1367,7 +1377,7 @@ EString Selector::whereMailbox()
 
 
 /*! This implements inthread, that is, a thread-specific search.
-  
+
     Conceptually simple but perhaps a little hard on the RDBMS.
 */
 
@@ -1377,7 +1387,7 @@ EString Selector::whereInThread()
     root()->d->extraJoins.append(
         " join thread_members tmp" + join +
         " on (" + mm() + ".mailbox=tmp" + join + ".mailbox"
-        " and " + mm() + ".uid=tm" + join + ".uid)"
+        " and " + mm() + ".uid=tmp" + join + ".uid)"
         " join thread_members tm" + join +
         " on (tmp" + join + ".mailbox=tm" + join + ".mailbox"
         " and tmp" + join + ".thread=tm" + join + ".thread)"
@@ -1429,6 +1439,8 @@ EString Selector::debugString() const
         break;
     case None:
         return "none";
+        break;
+    case Special:
         break;
     };
 
@@ -1733,6 +1745,13 @@ EString Selector::string()
     case None:
         r.append( "false" );
         break;
+    case Special:
+        if ( d->f == InThread ) {
+            r.append( "inthread" );
+        }
+        else if ( d->f == MailboxTree ) {
+            r.append( "mailbox" ); // XXX needs more
+        }
     }
 
     List< Selector >::Iterator it( d->children );
