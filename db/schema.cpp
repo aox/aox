@@ -218,7 +218,7 @@ void Schema::execute()
         while ( d->revision > Database::currentRevision() ) {
             String function( "downgrade_to_" + fn( d->revision - 1 ) + "()" );
             d->l->log( "Invoking stored function " + function );
-            d->t->enqueue( new Query( function, 0 ) );
+            d->t->enqueue( new Query( "select " + function, 0 ) );
             d->t->enqueue( new Query( "drop function " + function, 0 ) );
             d->revision--;
         }
