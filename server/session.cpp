@@ -1074,6 +1074,12 @@ public:
 };
 
 
+/*! \class SessionPreloader session.h
+
+    Loads information about selected mailboxes into the session cache,
+    so that newly-created sessions have access to it straightaway.
+*/
+
 /*!  Constructs a SessionPreloader which will preload the session cache
      with information about \a mailboxes, and then notify \a handler.
 
