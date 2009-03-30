@@ -224,6 +224,7 @@ void Schema::execute()
         }
         Query * q = new Query( "update mailstore set revision=$1", 0 );
         q->bind( 1, Database::currentRevision() );
+        d->t->enqueue( q );
         d->state = 5;
     }
 
