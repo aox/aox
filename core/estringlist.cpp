@@ -47,6 +47,12 @@ void EStringList::append( const char * s )
 }
 
 
+/*! \fn void EStringList::append( const EStringList & l )
+
+    Appends the contents of the EStringList \a l to this EStringList.
+*/
+
+
 /*! Returns a string containing every EString in this list, with \a
     separator between the items.
 
