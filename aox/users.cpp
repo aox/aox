@@ -87,7 +87,7 @@ public:
 
 
 static AoxFactory<CreateUser>
-f3( "add", "user", "Create a new user.",
+f3( "create", "user", "Create a new user.",
     "    Synopsis:\n"
     "      aox add user <username> <password> <email-address>\n"
     "      aox add user -p <username> <email-address>\n\n"
