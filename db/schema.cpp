@@ -4182,10 +4182,6 @@ bool Schema::stepTo87()
     return true;
 }
 
-// /*!
-// 
-// */
-// 
 // bool Schema::stepTo86()
 // {
 //     describeStep( "Adding functions to downgrade the schema." );
