@@ -955,13 +955,19 @@ EString Selector::whereHeaders( List<Selector> * sl )
             ++si;
         }
 
-        if ( !fc.isEmpty() )
-            fc.append( " and " );
+        bool p = false;
+        if ( !fc.isEmpty() ) {
+            p = true;
+            fc = "(" + fc + " and ";
+        }
 
         if ( orl.count() > 1 )
             fc.append( "(" + orl.join( " or " ) + ")" );
         else
             fc.append( *orl.first() );
+
+        if ( p )
+            fc.append( ")" );
 
         filters.append( fc );
     }
