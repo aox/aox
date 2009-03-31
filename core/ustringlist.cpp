@@ -120,3 +120,31 @@ bool UStringList::contains( const UString & s ) const
         return true;
     return false;
 }
+
+
+/*! Removes duplicate entries from the list. If \a caseSensitive is
+    true (this is the default), strings are compared exactly. If \a
+    caseSensitive is false, ASCII A-Z are treated as equal to a-z.
+
+    When two more more strings are equal, removeDuplicates() leaves
+    the first and removes the second and later copies.
+*/
+
+void UStringList::removeDuplicates( bool caseSensitive )
+{
+    UDict<uint> e;
+    uint tmp = 1;
+    Iterator i( this );
+    while ( i ) {
+        UString s = *i;
+        if ( !caseSensitive )
+            s = s.titlecased();
+        if ( e.contains( s ) ) {
+            take( i );
+        }
+        else {
+            ++i;
+            e.insert( s, &tmp );
+        }
+    }
+}

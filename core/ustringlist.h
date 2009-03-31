@@ -16,6 +16,7 @@ public:
     void append( UString * s ) { List<UString>::append( s ); }
     void append( const UString & );
 
+    void removeDuplicates( bool = true );
     bool contains( const UString & ) const;
 
     UString join( const UString & );
