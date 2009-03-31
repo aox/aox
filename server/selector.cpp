@@ -128,6 +128,9 @@ public:
     Mailbox * m;
     bool mc;
 
+    Dict<uint> estringPlaceholders;
+    UDict<uint> ustringPlaceholders;
+
     int placeholder;
     int join;
     Query * query;
@@ -324,6 +327,38 @@ uint Selector::placeHolder()
 {
     root()->d->placeholder++;
     return root()->d->placeholder;
+}
+
+
+/*! Returns a placeholder bound to \a s, creating one if necessary. */
+
+uint Selector::placeHolder( const EString & s )
+{
+    uint * x = root()->d->estringPlaceholders.find( s );
+    if ( !x ) {
+        x = (uint*)Allocator::alloc( sizeof( uint ) );
+        * x = placeHolder();
+        root()->d->estringPlaceholders.insert( s, x );
+        root()->d->query->bind( *x, s );
+    }
+    return *x;
+    
+}
+
+
+/*! Returns a placeholder bound to \a s, creating one if necessary. */
+
+uint Selector::placeHolder( const UString & s )
+{
+    uint * x = root()->d->ustringPlaceholders.find( s );
+    if ( !x ) {
+        x = (uint*)Allocator::alloc( sizeof( uint ) );
+        * x = placeHolder();
+        root()->d->ustringPlaceholders.insert( s, x );
+        root()->d->query->bind( *x, s );
+    }
+    return *x;
+    
 }
 
 
@@ -532,6 +567,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->user = user;
     d->session = session;
     d->placeholder = 0;
+    d->estringPlaceholders.clear();
+    d->ustringPlaceholders.clear();
     uint mboxId = 0;
     if ( mailbox ) {
         mboxId = placeHolder();
@@ -582,8 +619,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         uint owner = placeHolder();
         d->query->bind( owner, user->id() );
         q.append( " join mailboxes mb on (" + mm() + ".mailbox=mb.id)" );
-        uint n = placeHolder();
-        d->query->bind( n, user->login() );
+        uint n = placeHolder( user->login() );
         mboxClause =
             // I think this one needs commentary.
             "exists "
@@ -836,8 +872,7 @@ EString Selector::whereHeaderField()
     EString j = " left join header_fields hf" + jn +
                " on (" + mm() + ".message=hf" + jn + ".message";
     if ( !d->s16.isEmpty() ) {
-        uint like = placeHolder();
-        root()->d->query->bind( like, q( d->s16 ) );
+        uint like = placeHolder( q( d->s16 ) );
         j.append( " and hf" + jn + ".value ilike " + matchAny( like ) );
     }
     if ( t ) {
@@ -845,8 +880,7 @@ EString Selector::whereHeaderField()
         j.appendNumber( t );
     }
     else {
-        uint f = placeHolder();
-        root()->d->query->bind( f, d->s8 );
+        uint f = placeHolder( d->s8 );
         j.append( " and hf" + jn + ".field="
                   "(select id from field_names where name=$" + fn(f) + ")" );
     }
@@ -878,16 +912,6 @@ EString Selector::whereHeaders( List<Selector> * sl )
     fields.removeDuplicates( true );
     likes.removeDuplicates( false );
 
-    Dict<uint> b;
-    EStringList::Iterator i( likes );
-    while ( i ) {
-        uint * x = (uint*)Allocator::alloc( sizeof( uint ), 0 );
-        *x = placeHolder();
-        root()->d->query->bind( *x, *i );
-        b.insert( *i, x );
-        ++i;
-    }
-    
     EString jn = "hf" + fn( ++root()->d->join );
     EString j = " left join header_fields " + jn +
                 " on (" + mm() + ".message=" + jn + ".message";
@@ -924,9 +948,10 @@ EString Selector::whereHeaders( List<Selector> * sl )
         EStringList orl;
         si = sl->first();
         while ( si ) {
-            if ( fn == si->d->s8.headerCased() )
-                orl.append( jn + ".value ilike " +
-                            matchAny( *b.find( q( si->d->s16 ) ) ) );
+            if ( fn == si->d->s8.headerCased() ) {
+                uint b = placeHolder( q( si->d->s16 ) );
+                orl.append( jn + ".value ilike " + matchAny( b ) );
+            }
             ++si;
         }
 
@@ -1012,7 +1037,6 @@ static bool addressPartLegal( const UString & s, bool domain )
 
 static void addAddressTerm( EStringList * terms,
                             Selector * root,
-                            Query * query,
                             const EString & jn,
                             const char * part,
                             const UString & s,
@@ -1035,11 +1059,11 @@ static void addAddressTerm( EStringList * terms,
     r.append( part );
     if ( ascii )
         r.append( ")" );
-    uint b = root->placeHolder();
+    uint b;
     if ( ascii )
-        query->bind( b, s.ascii().lower() );
+        b = root->placeHolder( s.ascii().lower() );
     else
-        query->bind( b, s );
+        b = root->placeHolder( s );
     if ( isPrefix && isPostfix ) {
         if ( ascii )
             r.append( "=" );
@@ -1237,13 +1261,13 @@ EString Selector::whereAddressFields( List<Selector> * fields )
         if ( canMatch && !knownMatch ) {
             EStringList terms;
             if ( dnUsed )
-                addAddressTerm( &terms, root(), root()->d->query, jn,
+                addAddressTerm( &terms, root(), jn,
                                 "name", dn, false, dnPostfix );
             if ( lpUsed )
-                addAddressTerm( &terms, root(), root()->d->query, jn,
+                addAddressTerm( &terms, root(),  jn,
                                 "localpart", lp, lpPrefix, lpPostfix );
             if ( domUsed )
-                addAddressTerm( &terms, root(), root()->d->query, jn,
+                addAddressTerm( &terms, root(), jn,
                                 "domain", dom, domPrefix, domPostfix );
 
             EString s;
@@ -1312,8 +1336,7 @@ EString Selector::whereHeader()
     if ( d->s16.isEmpty() )
         return "true"; // there _is_ at least one header field ;)
 
-    uint like = placeHolder();
-    root()->d->query->bind( like, q( d->s16 ) );
+    uint like = placeHolder( q( d->s16 ) );
     EString jn = "hf" + fn( ++root()->d->join );
     EString j = " left join header_fields " + jn +
                " on (" + mm() + ".message=" + jn + ".message and " +
@@ -1358,8 +1381,7 @@ EString Selector::whereBody()
 
     EString s;
 
-    uint bt = placeHolder();
-    root()->d->query->bind( bt, q( d->s16 ) );
+    uint bt = placeHolder( q( d->s16 ) );
 
     if ( ::tsearchAvailable )
         s.append( "(" + matchTsvector( "bp.text", bt ) + " "
@@ -1421,8 +1443,7 @@ EString Selector::whereFlags()
     }
     else {
         // just in case the cache is out of date we look in the db
-        uint b = placeHolder();
-        root()->d->query->bind( b, d->s8.lower() );
+        uint b = placeHolder( d->s8.lower() );
         j = " left join flags f" + n +
             " on (" + mm() + ".mailbox=f" + n + ".mailbox and " +
             mm() + ".uid=f" + n + ".uid and f" + n + ".flag="
@@ -1522,8 +1543,7 @@ EString Selector::whereAnnotation()
 
     EString like = "is not null";
     if ( !d->s16.isEmpty() ) {
-        uint i = placeHolder();
-        root()->d->query->bind( i, q( d->s16 ) );
+        uint i = placeHolder( q( d->s16 ) );
         like = "ilike " + matchAny( i );
     }
 

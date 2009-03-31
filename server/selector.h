@@ -46,6 +46,8 @@ public:
     const IntegerSet & messageSet() const;
 
     uint placeHolder();
+    uint placeHolder( const EString & );
+    uint placeHolder( const UString & );
 
     Selector * root();
     Selector * parent();
