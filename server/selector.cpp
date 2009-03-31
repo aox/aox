@@ -1254,18 +1254,25 @@ EString Selector::whereAddressFields( List<Selector> * fields )
             else if ( terms.count() == 1 ||
                       ( lpUsed && ( lpPrefix || lpPostfix ) ) ||
                       ( domUsed && ( domPrefix || domPostfix ) ) ) {
+                s = "(";
                 if ( !fieldLimit.isEmpty() )
                     terms.prepend( new EString( fieldLimit ) );
                 s.append( terms.join( " and " ) );
+                s.append( ")" );
             }
             else {
+                bool p = false;
                 if ( !fieldLimit.isEmpty() ) {
+                    s = "(";
+                    p = true;
                     s.append( fieldLimit );
                     s.append( " and " );
                 }
                 s.append( "(" );
                 s.append( terms.join( " or " ) );
                 s.append( ")" );
+                if ( p )
+                    s.append( ")" );
             }
 
             addresses.append( s );
