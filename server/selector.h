@@ -97,8 +97,8 @@ private:
     EString whereHeader();
     EString whereHeaders( List<Selector> * );
     EString whereHeaderField();
-    EString whereAddressField( const EString & = "" );
-    EString whereAddressFields( const EStringList &, const UString &, bool );
+    EString whereAddressField();
+    EString whereAddressFields( List<Selector> * );
     EString whereBody();
     EString whereRfc822Size();
     EString whereFlags();

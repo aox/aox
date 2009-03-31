@@ -826,7 +826,7 @@ EString Selector::whereHeaderField()
             HeaderField::fieldName( (HeaderField::Type)f ) != d->s8 )
         f++;
     if ( f <= HeaderField::LastAddressField )
-        return whereAddressField( d->s8 );
+        return whereAddressField();
 
     uint t = HeaderField::fieldType( d->s8 );
     if ( t == HeaderField::Other )
@@ -930,10 +930,13 @@ EString Selector::whereHeaders( List<Selector> * sl )
             ++si;
         }
 
+        if ( !fc.isEmpty() )
+            fc.append( " and " );
+
         if ( orl.count() > 1 )
-            fc.append( " and (" + orl.join( " or " ) + ")" );
+            fc.append( "(" + orl.join( " or " ) + ")" );
         else
-            fc.append( " and " + orl.join( "" ) );
+            fc.append( *orl.first() );
 
         filters.append( fc );
     }
@@ -949,29 +952,28 @@ EString Selector::whereHeaders( List<Selector> * sl )
 }
 
 
-/*! This implements searches on the single address field \a field, or
-    on all address fields if \a field is empty.
+/*! This implements searches on a single address field, or
+    on all address fields if stringArgument() is empty.
 */
 
-EString Selector::whereAddressField( const EString & field )
+EString Selector::whereAddressField()
 {
-    EStringList l;
-    if ( !field.isEmpty() )
-        l.append( field );
-    return whereAddressFields( l, d->s16, true );
+    List<Selector> l;
+    l.append( this );
+    return whereAddressFields( &l );
 }
 
 
-static bool addressPartLegal( const EString & s, bool domain )
+static bool addressPartLegal( const UString & s, bool domain )
 {
     if ( s.isEmpty() )
         return false;
     uint i = 0;
     while ( i < s.length() ) {
-        char c = s[i];
+        uint c = s[i];
         if ( c <= ' ' ) {
             // don't bother searching for domains or localparts
-            // containing spaces or contrl characters.
+            // containing spaces or control characters.
             return false;
         }
         else if ( c >= 127 ) {
@@ -1013,7 +1015,7 @@ static void addAddressTerm( EStringList * terms,
                             Query * query,
                             const EString & jn,
                             const char * part,
-                            const EString & s,
+                            const UString & s,
                             bool isPrefix,
                             bool isPostfix )
 {
@@ -1035,7 +1037,7 @@ static void addAddressTerm( EStringList * terms,
         r.append( ")" );
     uint b = root->placeHolder();
     if ( ascii )
-        query->bind( b, s.lower() );
+        query->bind( b, s.ascii().lower() );
     else
         query->bind( b, s );
     if ( isPrefix && isPostfix ) {
@@ -1066,216 +1068,230 @@ static void addAddressTerm( EStringList * terms,
   on all address fields if \a fields is the empty list.
 */
 
-EString Selector::whereAddressFields( const EStringList & fields,
-                                      const UString & name,
-                                      bool direct )
+EString Selector::whereAddressFields( List<Selector> * fields )
 {
-    // analyse the search term to see whether we have to look at it
-    // everywhere or whether we can perhaps do it cleverly.
-    EString raw( q( name ) );
-    int at = raw.find( '@' );
-    int lt = raw.find( '<' );
-    if ( lt >= 0 && raw.find( '@', lt ) )
-        at = raw.find( '@', lt );
-    int gt = raw.find( '>' );
-    if ( at >= 0 && raw.find( '>', at ) )
-        gt = raw.find( '>', at );
+    UStringList names;
+    List<Selector>::Iterator si( fields );
+    while ( si ) {
+        names.append( si->d->s16 );
+        ++si;
+    }
+    names.removeDuplicates( false );
 
-    // look for the domain candidate
-    EString dom;
-    bool domPrefix = false;
-    bool domPostfix = false;
-    if ( at >= 0 && gt > 0 ) {
-        // an entire domain perhaps?
-        dom = raw.mid( at + 1, gt - at - 1 );
-        domPrefix = true;
-        domPostfix = true;
-    }
-    else if ( at >= 0 ) {
-        // a domain prefix
-        dom = raw.mid( at + 1 );
-        domPrefix = true;
-    }
-    else if ( gt >= 0 ) {
-        // a domain postfix
-        dom = raw.mid( 0, gt );
-        domPostfix = true;
-    }
-    else {
-        // no idea really
-        dom = raw;
-    }
-
-    // look for the localpart candidate
-    EString lp;
-    bool lpPrefix = false;
-    bool lpPostfix = false;
-    if ( lt >= 0 && at > lt ) {
-        // an entire localpart
-        lp = raw.mid( lt + 1, at - lt - 1 );
-        lpPrefix = true;
-        lpPostfix = true;
-    }
-    else if ( at >= 0 ) {
-        // a postfix
-        lp = raw.mid( 0, at );
-        lpPostfix = true;
-    }
-    else if ( lt >= 0 ) {
-        lp = raw.mid( lt + 1 );
-        lpPrefix = true;
-    }
-    else {
-        lp = raw;
-    }
-
-    // the name is... hm...
-    EString dn;
-    bool dnPostfix = false;
-    if ( lt >= 0 ) {
-        dn = raw.mid( 0, lt ).simplified();
-        dnPostfix = true;
-    }
-    else if ( at >= 0 || gt >= 0 ) {
-        // we're looking for e.g. asdf@asdf or asdf>, so we just don't
-        // have a display-name
-    }
-    else {
-        dn = raw;
-    }
-
-    bool dnUsed = false;
-    if ( !dn.isEmpty() ) {
-        dnUsed = true;
-    }
-    bool lpUsed = false;
-    if ( lp.isEmpty() ) {
-        if ( lpPrefix && lpPostfix )
-            return "false";
-    }
-    else if ( addressPartLegal( lp, false ) ) {
-        lpUsed = true;
-    }
-    else {
-        if ( lpPrefix || lpPostfix )
-            return "false";
-        lpUsed = false;
-    }
-    bool domUsed = false;
-    if ( dom.isEmpty() ) {
-        if ( domPrefix && domPostfix )
-            return "false";
-    }
-    else if ( addressPartLegal( dom, true ) ) {
-        domUsed = true;
-    }
-    else {
-        if ( domPrefix || domPostfix )
-            return "false";
-        domUsed = false;
-    }
-
-    if ( raw.isEmpty() && ( !dnUsed && !lpUsed && !domUsed ) )
-        return "true";
-
-    // at this point it's safe to begin binding variables etc: we will
-    // join in something and use the variables
+    bool knownMatch = false;
 
     // put together the initial part of the join
     uint join = ++root()->d->join;
     EString jn = fn( join );
-    EString r;
-    bool anded = false;
-    if ( direct &&
-         ( this == root() ||
-           ( parent() == root() && parent()->action() == And ) ) )
-        anded = true;
-    if ( !anded )
-        r.append( " left" );
-    r.append( " join address_fields af" + jn +
-              " on (af" + jn + ".message=" + mm() + ".message)" );
-    if ( !anded )
-        r.append( " left" );
-    r.append( " join addresses a" + jn +
-              " on (a" + jn + ".id=af" + jn + ".address" );
 
-    EStringList known, unknown;
-    EStringList::Iterator it( fields );
-    while ( it ) {
-        uint fnum = placeHolder();
-        uint t = HeaderField::fieldType( *it );
-        if ( t == HeaderField::Other )
-            t = 0;
-        if ( t ) {
-            known.append( "af" + jn + ".field=$" + fn( fnum ) );
-            root()->d->query->bind( fnum, t );
+    EStringList addresses;
+
+    UStringList::Iterator n( names );
+    while ( n ) {
+        UString name = *n;
+        ++n;
+        // analyse the search term to see whether we have to look at it
+        // everywhere or whether we can perhaps do it cleverly.
+        int at = name.find( '@' );
+        int lt = name.find( '<' );
+        if ( lt >= 0 && name.find( '@', lt ) )
+            at = name.find( '@', lt );
+        int gt = name.find( '>' );
+        if ( at >= 0 && name.find( '>', at ) )
+            gt = name.find( '>', at );
+
+        // look for the domain candidate
+        UString dom;
+        bool domPrefix = false;
+        bool domPostfix = false;
+        if ( at >= 0 && gt > 0 ) {
+            // an entire domain perhaps?
+            dom = name.mid( at + 1, gt - at - 1 );
+            domPrefix = true;
+            domPostfix = true;
+        }
+        else if ( at >= 0 ) {
+            // a domain prefix
+            dom = name.mid( at + 1 );
+            domPrefix = true;
+        }
+        else if ( gt >= 0 ) {
+            // a domain postfix
+            dom = name.mid( 0, gt );
+            domPostfix = true;
         }
         else {
-            unknown.append( "fn.name=$" + fn( fnum ) );
-            root()->d->query->bind( fnum, *it );
+            // no idea really
+            dom = name;
         }
-        ++it;
-    }
-    if ( !unknown.isEmpty() ) {
-        EString tmp = "af" + jn + ".field in "
-                     "(select id from field_names fn where ";
-        if ( unknown.count() == 1 ) {
-            tmp.append( unknown.join( "" ) );
+
+        // look for the localpart candidate
+        UString lp;
+        bool lpPrefix = false;
+        bool lpPostfix = false;
+        if ( lt >= 0 && at > lt ) {
+            // an entire localpart
+            lp = name.mid( lt + 1, at - lt - 1 );
+            lpPrefix = true;
+            lpPostfix = true;
+        }
+        else if ( at >= 0 ) {
+            // a postfix
+            lp = name.mid( 0, at );
+            lpPostfix = true;
+        }
+        else if ( lt >= 0 ) {
+            lp = name.mid( lt + 1 );
+            lpPrefix = true;
         }
         else {
-            tmp.append( "(" );
-            tmp.append( unknown.join( " or " ) );
-            tmp.append( ")" );
+            lp = name;
         }
-        known.append( tmp );
-    }
-    if ( known.count() == 1 ) {
-        r.append( " and " );
-        r.append( known.join( "" ) );
-    }
-    else if ( !known.isEmpty() ) {
-        r.append( " and (" );
-        r.append( known.join( " or " ) );
-        r.append( ")" );
+
+        // the name is... hm...
+        UString dn;
+        bool dnPostfix = false;
+        if ( lt >= 0 ) {
+            dn = name.mid( 0, lt ).simplified();
+            dnPostfix = true;
+        }
+        else if ( at >= 0 || gt >= 0 ) {
+            // we're looking for e.g. asdf@asdf or asdf>, so we just don't
+            // have a display-name
+        }
+        else {
+            dn = name;
+        }
+
+        bool canMatch = true;
+
+        bool dnUsed = false;
+        if ( !dn.isEmpty() ) {
+            dnUsed = true;
+        }
+        bool lpUsed = false;
+        if ( lp.isEmpty() ) {
+            if ( lpPrefix && lpPostfix )
+                canMatch = false;
+        }
+        else if ( addressPartLegal( lp, false ) ) {
+            lpUsed = true;
+        }
+        else {
+            if ( lpPrefix || lpPostfix )
+                canMatch = false;
+            lpUsed = false;
+        }
+        bool domUsed = false;
+        if ( dom.isEmpty() ) {
+            if ( domPrefix && domPostfix )
+                canMatch = false;
+        }
+        else if ( addressPartLegal( dom, true ) ) {
+            domUsed = true;
+        }
+        else {
+            if ( domPrefix || domPostfix )
+                canMatch = false;
+            domUsed = false;
+        }
+
+        EString fieldLimit;
+        bool matchesFrom = false;
+        if ( canMatch ) {
+            IntegerSet fieldsUsed;
+            List<Selector>::Iterator si( fields );
+            while ( si ) {
+                if ( si->d->s16 == name ) {
+                    if ( si->d->s8.isEmpty() ) {
+                        fieldsUsed.add( 1, HeaderField::LastAddressField );
+                    }
+                    else {
+                        uint t = HeaderField::fieldType( si->d->s8 );
+                        if ( t <= HeaderField::LastAddressField )
+                            fieldsUsed.add( t );
+                    }
+                }
+                ++si;
+            }
+            if ( fieldsUsed.contains( HeaderField::From ) )
+                matchesFrom = true;
+            if ( fieldsUsed.count() < HeaderField::LastAddressField ) {
+                uint x = 1;
+                EStringList l;
+                while ( x <= fieldsUsed.count() ) {
+                    l.append( "af" + jn + ".field=" + 
+                              fn( fieldsUsed.value( x ) ) );
+                    x++;
+                }
+                if ( l.count() == 1 )
+                    fieldLimit = *l.first();
+                else
+                    fieldLimit = "(" + l.join( " or " ) + ")";
+            }
+        }
+
+        if ( matchesFrom && name.isEmpty() && !dnUsed && !lpUsed && !domUsed )
+            knownMatch = true;
+
+        if ( canMatch && !knownMatch ) {
+            EStringList terms;
+            if ( dnUsed )
+                addAddressTerm( &terms, root(), root()->d->query, jn,
+                                "name", dn, false, dnPostfix );
+            if ( lpUsed )
+                addAddressTerm( &terms, root(), root()->d->query, jn,
+                                "localpart", lp, lpPrefix, lpPostfix );
+            if ( domUsed )
+                addAddressTerm( &terms, root(), root()->d->query, jn,
+                                "domain", dom, domPrefix, domPostfix );
+
+            EString s;
+            if ( terms.isEmpty() ) {
+                if ( !fieldLimit.isEmpty() )
+                    s.append( fieldLimit );
+            }
+            else if ( terms.count() == 1 ||
+                      ( lpUsed && ( lpPrefix || lpPostfix ) ) ||
+                      ( domUsed && ( domPrefix || domPostfix ) ) ) {
+                if ( !fieldLimit.isEmpty() )
+                    terms.prepend( new EString( fieldLimit ) );
+                s.append( terms.join( " and " ) );
+            }
+            else {
+                if ( !fieldLimit.isEmpty() ) {
+                    s.append( fieldLimit );
+                    s.append( " and " );
+                }
+                s.append( "(" );
+                s.append( terms.join( " or " ) );
+                s.append( ")" );
+            }
+
+            addresses.append( s );
+        }
+    
     }
 
-    // next, the terms
-    EStringList terms;
-    if ( dnUsed )
-        addAddressTerm( &terms, root(), root()->d->query, jn, "name",
-                        dn, false, dnPostfix );
-    if ( lpUsed )
-        addAddressTerm( &terms, root(), root()->d->query, jn, "localpart",
-                        lp, lpPrefix, lpPostfix );
-    if ( domUsed )
-        addAddressTerm( &terms, root(), root()->d->query, jn, "domain",
-                        dom, domPrefix, domPostfix );
+    // after all that, we finally have what we need to put together
+    // the join condition
+    EString r = " left join address_fields af" + jn +
+                " on (af" + jn + ".message=" + mm() + ".message)"
+                " left join addresses a" + jn +
+                " on (a" + jn + ".id=af" + jn + ".address";
 
-    if ( terms.isEmpty() ) {
-        // nothing needed
-    }
-    if ( terms.count() == 1 ) {
+    if ( !addresses.isEmpty() ) {
         r.append( " and " );
-        r.append( *terms.firstElement() );
-    }
-    else if ( ( lpUsed && ( lpPrefix || lpPostfix ) ) ||
-              ( domUsed && ( domPrefix || domPostfix ) ) ) {
-        r.append( " and " );
-        r.append( terms.join( " and " ) );
-    }
-    else {
-        r.append( " and (" );
-        r.append( terms.join( " or " ) );
-        r.append( ")" );
+        if ( addresses.count() > 1 )
+            r.append( "(" );
+        r.append( addresses.join( " or " ) );
+        if ( addresses.count() > 1 )
+            r.append( ")" );
     }
     r.append( ")" );
-
-    // finally, bang in the join and return a not-wrappable test of
+        
+    // finally, bang in the join and return a "not"-wrappable test of
     // whether the join found something
-    if ( anded ) {
-        root()->d->extraJoins.append( r );
-        return "true";
-    }
     root()->d->leftJoins.append( r );
     return "a" + jn + ".id is not null";
 }
@@ -1296,9 +1312,10 @@ EString Selector::whereHeader()
                " on (" + mm() + ".message=" + jn + ".message and " +
                jn + ".value ilike " + matchAny( like ) + ")";
     root()->d->leftJoins.append( j );
-    EStringList empty;
+    List<Selector> dummy;
+    dummy.append( this );
     return "(" + jn + ".field is not null or " +
-        whereAddressFields( empty, d->s16, false ) + ")";
+        whereAddressFields( &dummy ) + ")";
 }
 
 
@@ -1558,64 +1575,72 @@ static bool isAddressField( const EString & s )
 
 EString Selector::whereNoField()
 {
-    if ( d->a == And || d->a == Or ) {
-        if ( d->children->isEmpty() ) {
-            if ( d->a == And )
-                return "true";
-            return "false";
-        }
-        EStringList conditions;
-        UString address;
-        EStringList addressFields;
-        if ( d->a == Or ) {
-            List<Selector>::Iterator i( d->children );
-            while ( i && ( i->d->f != Header || !isAddressField( i->d->s8 ) ) )
-                ++i;
-            if ( i )
-                address = i->d->s16; // this is the address we optimize for
-        }
-        bool t = false;
+    if ( d->a == And ) {
         bool f = false;
+        EStringList conditions;
         List<Selector>::Iterator i( d->children );
         while ( i ) {
-            if ( d->a == Or &&
-                 i->d->f == Header &&
-                 !address.isEmpty() &&
-                 isAddressField( i->d->s8 ) &&
-                 address == i->d->s16 ) {
-                addressFields.append( i->d->s8.headerCased() );
+            EString w = i->where();
+            if ( w == "false" )
+                f = true;
+            else if ( w != "true" )
+                conditions.append( w );
+            ++i;
+        }
+        if ( conditions.isEmpty() )
+            return "true";
+        if ( f )
+            return "false";
+        if ( conditions.count() == 1 )
+            return conditions.join( "" );
+        EString r;
+        r.append( "(" );
+        r.append( conditions.join( " and " ) );
+        r.append( ")" );
+        return r;
+    }
+    else if ( d->a == Or ) {
+        List<Selector> addressTests;
+        List<Selector> otherHeaderTests;
+        List<Selector> rest;
+        
+        List<Selector>::Iterator i( d->children );
+        while ( i ) {
+            if ( i->d->f == Header ) {
+                if ( i->d->s8.isEmpty() ) {
+                    addressTests.append( i );
+                    otherHeaderTests.append( i );
+                }
+                else if ( isAddressField( i->d->s8 ) ) {
+                    addressTests.append( i );
+                }
+                else {
+                    otherHeaderTests.append( i );
+                }
             }
             else {
-                EString w = i->where();
-                if ( w == "true" )
-                    t = true;
-                else if ( w == "false" )
-                    f = true;
-                else
-                    conditions.append( w );
+                rest.append( i );
             }
             ++i;
         }
-        if ( !addressFields.isEmpty() ) {
-            addressFields.removeDuplicates();
-            if ( addressFields.count() == 12 )
-                addressFields.clear(); // there are only 12, so look for all
-            conditions.append(
-                whereAddressFields( addressFields, address, true ) );
+
+        EStringList conditions;
+        List<Selector>::Iterator si( rest );
+        while ( si ) {
+            EString w = si->where();
+            if ( w == "true" )
+                return "true";
+            conditions.append( w );
+            ++si;
         }
-        EString r = "(";
-        if ( d->a == And ) {
-            if ( f )
-                return "false";
-            r.append( conditions.join( " and " ) );
-        }
-        else {
-            if ( t )
-                return "false";
-            r.append( conditions.join( " or " ) );
-        }
-        r.append( ")" );
-        return r;
+        if ( !addressTests.isEmpty() )
+            conditions.append( whereAddressFields( &addressTests ) );
+        if ( !otherHeaderTests.isEmpty() )
+            conditions.append( whereHeaders( &otherHeaderTests ) );
+
+        if ( conditions.count() == 1 )
+            return *conditions.first();
+        return "(" + conditions.join( " or " ) + ")";
     }
     else if ( d->a == Not ) {
         EString c = d->children->first()->where();
