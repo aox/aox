@@ -95,6 +95,7 @@ private:
     EString whereInternalDate();
     EString whereSent();
     EString whereHeader();
+    EString whereHeaders( List<Selector> * );
     EString whereHeaderField();
     EString whereAddressField( const EString & = "" );
     EString whereAddressFields( const EStringList &, const UString &, bool );
