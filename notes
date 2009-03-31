@@ -1297,6 +1297,23 @@ aox.org/clients/
   That's it, right?
 
 
+Defending against PGP Desktop and similar
+
+  There are several more things to do:
+
+  - Guess that it's repeating a query for smallish UID sets and do the
+    query once and for all.
+
+  - Defend against 'OR BODY asdf BODY asd' by recognising in
+    simplify() that when asd matches, asdf always will. Added bonus
+    for the base64 shit.
+
+  - Hack in Search::parse() for that/those specific search keys, and
+    setting up a more sensible selector.
+
+  The first two make sense IMO.
+
+
 SMS gateway
 
   We want Archiveopteryx to work as installed. We want to support
