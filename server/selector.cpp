@@ -128,6 +128,9 @@ public:
     Mailbox * m;
     bool mc;
 
+    Dict<uint> estringPlaceholders;
+    UDict<uint> ustringPlaceholders;
+
     int placeholder;
     int join;
     Query * query;
@@ -139,6 +142,7 @@ public:
     User * user;
 
     EStringList extraJoins;
+    EStringList leftJoins;
 
     bool needDateFields;
     bool needAnnotations;
@@ -167,6 +171,16 @@ Selector::Selector()
     : d( new SelectorData )
 {
     d->a = And;
+}
+
+
+/*! Constructs an empty selector with field \a f and Action Special. */
+
+Selector::Selector( Field f )
+    : d( new SelectorData )
+{
+    d->f = f;
+    d->a = Special;
 }
 
 
@@ -267,7 +281,7 @@ Selector::Selector( Action a )
 Selector::Selector( Mailbox * mailbox, bool alsoChildren )
     : d( new SelectorData )
 {
-    d->a = Contains;
+    d->a = Special;
     d->f = MailboxTree;
     d->m = mailbox;
     d->mc = alsoChildren;
@@ -276,9 +290,9 @@ Selector::Selector( Mailbox * mailbox, bool alsoChildren )
 
 /*! Returns the ultimate parent of this Selector. */
 
-const Selector * Selector::root() const
+Selector * Selector::root()
 {
-    const Selector * p = this;
+    Selector * p = this;
 
     while ( p->parent() )
         p = p->parent();
@@ -289,7 +303,7 @@ const Selector * Selector::root() const
 
 /*! Returns the parent of this Selector, or 0 if it is the root. */
 
-const Selector * Selector::parent() const
+Selector * Selector::parent()
 {
     return d->parent;
 }
@@ -313,6 +327,38 @@ uint Selector::placeHolder()
 {
     root()->d->placeholder++;
     return root()->d->placeholder;
+}
+
+
+/*! Returns a placeholder bound to \a s, creating one if necessary. */
+
+uint Selector::placeHolder( const EString & s )
+{
+    uint * x = root()->d->estringPlaceholders.find( s );
+    if ( !x ) {
+        x = (uint*)Allocator::alloc( sizeof( uint ) );
+        * x = placeHolder();
+        root()->d->estringPlaceholders.insert( s, x );
+        root()->d->query->bind( *x, s );
+    }
+    return *x;
+    
+}
+
+
+/*! Returns a placeholder bound to \a s, creating one if necessary. */
+
+uint Selector::placeHolder( const UString & s )
+{
+    uint * x = root()->d->ustringPlaceholders.find( s );
+    if ( !x ) {
+        x = (uint*)Allocator::alloc( sizeof( uint ) );
+        * x = placeHolder();
+        root()->d->ustringPlaceholders.insert( s, x );
+        root()->d->query->bind( *x, s );
+    }
+    return *x;
+    
 }
 
 
@@ -394,6 +440,9 @@ void Selector::simplify()
             // cannot be simplified, should not happen
             break;
         case MailboxTree:
+            // cannot be simplified
+            break;
+        case InThread:
             // cannot be simplified
             break;
         case NoField:
@@ -518,6 +567,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->user = user;
     d->session = session;
     d->placeholder = 0;
+    d->estringPlaceholders.clear();
+    d->ustringPlaceholders.clear();
     uint mboxId = 0;
     if ( mailbox ) {
         mboxId = placeHolder();
@@ -553,6 +604,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         q.append( " join messages m on (" + mm() + ".message=m.id)" );
 
     q.append( d->extraJoins.join( "" ) );
+    q.append( d->leftJoins.join( "" ) );
 
     if ( wanted && wanted->contains( "idate" ) )
         d->needMessages = true;
@@ -567,8 +619,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         uint owner = placeHolder();
         d->query->bind( owner, user->id() );
         q.append( " join mailboxes mb on (" + mm() + ".mailbox=mb.id)" );
-        uint n = placeHolder();
-        d->query->bind( n, user->login() );
+        uint n = placeHolder( user->login() );
         mboxClause =
             // I think this one needs commentary.
             "exists "
@@ -683,6 +734,9 @@ EString Selector::where()
         break;
     case MailboxTree:
         return whereMailbox();
+        break;
+    case InThread:
+        return whereInThread();
         break;
     case NoField:
         return whereNoField();
@@ -808,7 +862,7 @@ EString Selector::whereHeaderField()
             HeaderField::fieldName( (HeaderField::Type)f ) != d->s8 )
         f++;
     if ( f <= HeaderField::LastAddressField )
-        return whereAddressField( d->s8 );
+        return whereAddressField();
 
     uint t = HeaderField::fieldType( d->s8 );
     if ( t == HeaderField::Other )
@@ -818,8 +872,7 @@ EString Selector::whereHeaderField()
     EString j = " left join header_fields hf" + jn +
                " on (" + mm() + ".message=hf" + jn + ".message";
     if ( !d->s16.isEmpty() ) {
-        uint like = placeHolder();
-        root()->d->query->bind( like, q( d->s16 ) );
+        uint like = placeHolder( q( d->s16 ) );
         j.append( " and hf" + jn + ".value ilike " + matchAny( like ) );
     }
     if ( t ) {
@@ -827,28 +880,217 @@ EString Selector::whereHeaderField()
         j.appendNumber( t );
     }
     else {
-        uint f = placeHolder();
-        root()->d->query->bind( f, d->s8 );
+        uint f = placeHolder( d->s8 );
         j.append( " and hf" + jn + ".field="
                   "(select id from field_names where name=$" + fn(f) + ")" );
     }
     j.append( ")" );
-    root()->d->extraJoins.append( j );
+    root()->d->leftJoins.append( j );
 
     return "hf" + jn + ".field is not null";
 }
 
 
-/*! This implements searches on the single address field \a field, or
-    on all address fields if \a field is empty.
+/*! This helper helps the OR optimiser in whereNoField() to search for
+    any of a set of headers or header fields, disregarding address
+    fields.
+
+    \a sl must be a non-null pointer to a nonempty list of headers or
+    header fields.
 */
 
-EString Selector::whereAddressField( const EString & field )
+EString Selector::whereHeaders( List<Selector> * sl )
 {
-    EStringList l;
-    if ( !field.isEmpty() )
-        l.append( field );
-    return whereAddressFields( l, d->s16 );
+    EStringList likes;
+    EStringList fields;
+    List<Selector>::Iterator si( sl );
+    while ( si ) {
+        fields.append( si->d->s8 );
+        likes.append( q( si->d->s16 ) );
+        ++si;
+    }
+    fields.removeDuplicates( true );
+    likes.removeDuplicates( false );
+
+    EString jn = "hf" + fn( ++root()->d->join );
+    EString j = " left join header_fields " + jn +
+                " on (" + mm() + ".message=" + jn + ".message";
+    EStringList filters;
+
+    EStringList::Iterator fi( fields );
+    while ( fi ) {
+        EString fn = fi->headerCased();
+        ++fi;
+       
+        EString fc;
+
+        if ( fn.isEmpty() ) {
+            // we look for all fields
+        }
+        else {
+            uint t = HeaderField::fieldType( fn );
+            if ( t == HeaderField::Other ) {
+                // we look for an unknown field
+                uint f = placeHolder();
+                root()->d->query->bind( f, fn );
+                fc.append( jn + ".field="
+                           "(select id from field_names where name=$" );
+                fc.appendNumber( f );
+                fc.append( ")" );
+            }
+            else {
+                // we look for one field, and we know what it is
+                fc.append( jn + ".field=" );
+                fc.appendNumber( t );
+            }
+        }
+
+        EStringList orl;
+        si = sl->first();
+        while ( si ) {
+            if ( fn == si->d->s8.headerCased() ) {
+                uint b = placeHolder( q( si->d->s16 ) );
+                orl.append( jn + ".value ilike " + matchAny( b ) );
+            }
+            ++si;
+        }
+
+        bool p = false;
+        if ( !fc.isEmpty() ) {
+            p = true;
+            fc = "(" + fc + " and ";
+        }
+
+        if ( orl.count() > 1 )
+            fc.append( "(" + orl.join( " or " ) + ")" );
+        else
+            fc.append( *orl.first() );
+
+        if ( p )
+            fc.append( ")" );
+
+        filters.append( fc );
+    }
+
+    if ( filters.count() > 1 )
+        j.append( " and (" + filters.join( " or " ) + ")" );
+    else
+        j.append( " and (" + filters.join( "" ) + ")" );
+    j.append( ")" );
+                
+    root()->d->extraJoins.append( j );
+    return jn + ".field is not null";
+}
+
+
+/*! This implements searches on a single address field, or
+    on all address fields if stringArgument() is empty.
+*/
+
+EString Selector::whereAddressField()
+{
+    List<Selector> l;
+    l.append( this );
+    return whereAddressFields( &l );
+}
+
+
+static bool addressPartLegal( const UString & s, bool domain )
+{
+    if ( s.isEmpty() )
+        return false;
+    uint i = 0;
+    while ( i < s.length() ) {
+        uint c = s[i];
+        if ( c <= ' ' ) {
+            // don't bother searching for domains or localparts
+            // containing spaces or control characters.
+            return false;
+        }
+        else if ( c >= 127 ) {
+            // ditto DEL or non-ASCII
+            return false;
+        }
+        else if ( ( c >= 'a' && c <= 'z' ) ||
+                  ( c >= 'A' && c <= 'Z' ) ||
+                  ( c >= '0' && c <= '9' ) ||
+                  ( c == '-' ) ) {
+            // a-z, A-Z, 0-9 and - are acceptable in both localparts
+            // and domains, we search for those
+        }
+        else if ( c == '.' ) {
+            // dots are acceptable in both, but consecutive dots
+            // do not appear in domains.a
+            if ( s[i+1] == '.' && domain )
+                return false;
+        }
+        else if ( domain ) {
+            // we summarily reject domains that contain ", :, \ and so on
+            return false;
+        }
+        else if ( c == '<' || c == '>' || c == '@' ) {
+            // those three characters are highly suspect in localparts
+            // and illegal in domains. if we're asked to search for
+            // them, that's probably an IMAP clent on crack (do you
+            // hear that, rsa.com?)
+            return false;
+        }
+        ++i;
+    }
+    return true;
+}
+
+
+static void addAddressTerm( EStringList * terms,
+                            Selector * root,
+                            const EString & jn,
+                            const char * part,
+                            const UString & s,
+                            bool isPrefix,
+                            bool isPostfix )
+{
+    bool ascii = true;
+    uint i = 0;
+    while ( i < s.length() && ascii ) {
+        if ( s[i] > 127 || s[i] < 32 )
+            ascii = false;
+        ++i;
+    }
+    EString r;
+    if ( ascii )
+        r.append( "lower(" );
+    r.append( "a" );
+    r.append( jn );
+    r.append( "." );
+    r.append( part );
+    if ( ascii )
+        r.append( ")" );
+    uint b;
+    if ( ascii )
+        b = root->placeHolder( s.ascii().lower() );
+    else
+        b = root->placeHolder( s );
+    if ( isPrefix && isPostfix ) {
+        if ( ascii )
+            r.append( "=" );
+        else
+            r.append( " ilike " );
+        r.append( "$" );
+        r.appendNumber( b );
+    }
+    else {
+        if ( ascii )
+            r.append( " like " );
+        else
+            r.append( " ilike " );
+        if ( !isPrefix )
+            r.append( "'%'||" );
+        r.append( "$" );
+        r.appendNumber( b );
+        if ( !isPostfix )
+            r.append( "||'%'" );
+    }
+    terms->append( r );
 }
 
 
@@ -856,119 +1098,238 @@ EString Selector::whereAddressField( const EString & field )
   on all address fields if \a fields is the empty list.
 */
 
-EString Selector::whereAddressFields( const EStringList & fields,
-                                     const UString & name )
+EString Selector::whereAddressFields( List<Selector> * fields )
 {
-    Query * query = root()->d->query;
+    UStringList names;
+    List<Selector>::Iterator si( fields );
+    while ( si ) {
+        names.append( si->d->s16 );
+        ++si;
+    }
+    names.removeDuplicates( false );
+
+    bool knownMatch = false;
+
+    // put together the initial part of the join
     uint join = ++root()->d->join;
     EString jn = fn( join );
-    EString r( " left join address_fields af" + jn +
-              " on (af" + jn + ".message=" + mm() + ".message)"
-              " left join addresses a" + jn +
-              " on (a" + jn + ".id=af" + jn + ".address"
-              " and " );
 
-    EStringList known, unknown;
-    EStringList::Iterator it( fields );
-    while ( it ) {
-        uint fnum = placeHolder();
-        uint t = HeaderField::fieldType( *it );
-        if ( t == HeaderField::Other )
-            t = 0;
-        if ( t ) {
-            known.append( "af" + jn + ".field=$" + fn( fnum ) );
-            query->bind( fnum, t );
+    EStringList addresses;
+
+    UStringList::Iterator n( names );
+    while ( n ) {
+        UString name = *n;
+        ++n;
+        // analyse the search term to see whether we have to look at it
+        // everywhere or whether we can perhaps do it cleverly.
+        int at = name.find( '@' );
+        int lt = name.find( '<' );
+        if ( lt >= 0 && name.find( '@', lt ) )
+            at = name.find( '@', lt );
+        int gt = name.find( '>' );
+        if ( at >= 0 && name.find( '>', at ) )
+            gt = name.find( '>', at );
+
+        // look for the domain candidate
+        UString dom;
+        bool domPrefix = false;
+        bool domPostfix = false;
+        if ( at >= 0 && gt > 0 ) {
+            // an entire domain perhaps?
+            dom = name.mid( at + 1, gt - at - 1 );
+            domPrefix = true;
+            domPostfix = true;
+        }
+        else if ( at >= 0 ) {
+            // a domain prefix
+            dom = name.mid( at + 1 );
+            domPrefix = true;
+        }
+        else if ( gt >= 0 ) {
+            // a domain postfix
+            dom = name.mid( 0, gt );
+            domPostfix = true;
         }
         else {
-            unknown.append( "fn.name=$" + fn( fnum ) );
-            query->bind( fnum, *it );
+            // no idea really
+            dom = name;
         }
-        ++it;
-    }
-    if ( !unknown.isEmpty() ) {
-        EString tmp = "af" + jn + ".field in "
-                     "(select id from field_names fn where ";
-        if ( unknown.count() == 1 ) {
-            tmp.append( unknown.join( "" ) );
+
+        // look for the localpart candidate
+        UString lp;
+        bool lpPrefix = false;
+        bool lpPostfix = false;
+        if ( lt >= 0 && at > lt ) {
+            // an entire localpart
+            lp = name.mid( lt + 1, at - lt - 1 );
+            lpPrefix = true;
+            lpPostfix = true;
+        }
+        else if ( at >= 0 ) {
+            // a postfix
+            lp = name.mid( 0, at );
+            lpPostfix = true;
+        }
+        else if ( lt >= 0 ) {
+            lp = name.mid( lt + 1 );
+            lpPrefix = true;
         }
         else {
-            tmp.append( "(" );
-            tmp.append( unknown.join( " or " ) );
-            tmp.append( ")" );
+            lp = name;
         }
-        known.append( tmp );
+
+        // the name is... hm...
+        UString dn;
+        bool dnPostfix = false;
+        if ( lt >= 0 ) {
+            dn = name.mid( 0, lt ).simplified();
+            dnPostfix = true;
+        }
+        else if ( at >= 0 || gt >= 0 ) {
+            // we're looking for e.g. asdf@asdf or asdf>, so we just don't
+            // have a display-name
+        }
+        else {
+            dn = name;
+        }
+
+        bool canMatch = true;
+
+        bool dnUsed = false;
+        if ( !dn.isEmpty() ) {
+            dnUsed = true;
+        }
+        bool lpUsed = false;
+        if ( lp.isEmpty() ) {
+            if ( lpPrefix && lpPostfix )
+                canMatch = false;
+        }
+        else if ( addressPartLegal( lp, false ) ) {
+            lpUsed = true;
+        }
+        else {
+            if ( lpPrefix || lpPostfix )
+                canMatch = false;
+            lpUsed = false;
+        }
+        bool domUsed = false;
+        if ( dom.isEmpty() ) {
+            if ( domPrefix && domPostfix )
+                canMatch = false;
+        }
+        else if ( addressPartLegal( dom, true ) ) {
+            domUsed = true;
+        }
+        else {
+            if ( domPrefix || domPostfix )
+                canMatch = false;
+            domUsed = false;
+        }
+
+        EString fieldLimit;
+        bool matchesFrom = false;
+        if ( canMatch ) {
+            IntegerSet fieldsUsed;
+            List<Selector>::Iterator si( fields );
+            while ( si ) {
+                if ( si->d->s16 == name ) {
+                    if ( si->d->s8.isEmpty() ) {
+                        fieldsUsed.add( 1, HeaderField::LastAddressField );
+                    }
+                    else {
+                        uint t = HeaderField::fieldType( si->d->s8 );
+                        if ( t <= HeaderField::LastAddressField )
+                            fieldsUsed.add( t );
+                    }
+                }
+                ++si;
+            }
+            if ( fieldsUsed.contains( HeaderField::From ) )
+                matchesFrom = true;
+            if ( fieldsUsed.count() < HeaderField::LastAddressField ) {
+                uint x = 1;
+                EStringList l;
+                while ( x <= fieldsUsed.count() ) {
+                    l.append( "af" + jn + ".field=" + 
+                              fn( fieldsUsed.value( x ) ) );
+                    x++;
+                }
+                if ( l.count() == 1 )
+                    fieldLimit = *l.first();
+                else
+                    fieldLimit = "(" + l.join( " or " ) + ")";
+            }
+        }
+
+        if ( matchesFrom && name.isEmpty() && !dnUsed && !lpUsed && !domUsed )
+            knownMatch = true;
+
+        if ( canMatch && !knownMatch ) {
+            EStringList terms;
+            if ( dnUsed )
+                addAddressTerm( &terms, root(), jn,
+                                "name", dn, false, dnPostfix );
+            if ( lpUsed )
+                addAddressTerm( &terms, root(),  jn,
+                                "localpart", lp, lpPrefix, lpPostfix );
+            if ( domUsed )
+                addAddressTerm( &terms, root(), jn,
+                                "domain", dom, domPrefix, domPostfix );
+
+            EString s;
+            if ( terms.isEmpty() ) {
+                if ( !fieldLimit.isEmpty() )
+                    s.append( fieldLimit );
+            }
+            else if ( terms.count() == 1 ||
+                      ( lpUsed && ( lpPrefix || lpPostfix ) ) ||
+                      ( domUsed && ( domPrefix || domPostfix ) ) ) {
+                s = "(";
+                if ( !fieldLimit.isEmpty() )
+                    terms.prepend( new EString( fieldLimit ) );
+                s.append( terms.join( " and " ) );
+                s.append( ")" );
+            }
+            else {
+                bool p = false;
+                if ( !fieldLimit.isEmpty() ) {
+                    s = "(";
+                    p = true;
+                    s.append( fieldLimit );
+                    s.append( " and " );
+                }
+                s.append( "(" );
+                s.append( terms.join( " or " ) );
+                s.append( ")" );
+                if ( p )
+                    s.append( ")" );
+            }
+
+            addresses.append( s );
+        }
+    
     }
-    if ( known.count() == 1 ) {
-        r.append( known.join( "" ) );
+
+    // after all that, we finally have what we need to put together
+    // the join condition
+    EString r = " left join address_fields af" + jn +
+                " on (af" + jn + ".message=" + mm() + ".message)"
+                " left join addresses a" + jn +
+                " on (a" + jn + ".id=af" + jn + ".address";
+
+    if ( !addresses.isEmpty() ) {
         r.append( " and " );
-    }
-    else if ( !known.isEmpty() ) {
-        r.append( "(" );
-        r.append( known.join( " or " ) );
-        r.append( ") and " );
-    }
-
-    EString raw( q( name ) );
-    int at = raw.find( '@' );
-
-    if ( at < 0 ) {
-        uint name = placeHolder();
-        query->bind( name, raw );
-        r.append( "(a" + jn + ".name ilike " + matchAny( name ) + " or"
-                  " a" + jn + ".localpart ilike " + matchAny( name ) + " or"
-                  " a" + jn + ".domain ilike " + matchAny( name ) + ")" );
-    }
-    else {
-        EString lc, dc;
-        if ( at > 0 ) {
-            uint lp = placeHolder();
-            if ( raw.startsWith( "<" ) ) {
-                query->bind( lp, raw.mid( 1, at-1 ).lower() );
-                lc = "lower(a" + jn + ".localpart)=$" + fn( lp );
-            }
-            else {
-                query->bind( lp, raw.mid( 0, at ) );
-                lc = "a" + jn + ".localpart ilike '%'||$" + fn( lp ) + " ";
-            }
-        }
-        if ( at < (int)raw.length() - 1 ) {
-            uint dom = placeHolder();
-            if ( raw.endsWith( ">" ) ) {
-                query->bind( dom, raw.mid( at+1, raw.length()-at-2 ).lower() );
-                dc = "lower(a" + jn + ".domain)=$" + fn( dom );
-            }
-            else {
-                query->bind( dom, raw.mid( at+1 ) );
-                dc = "a" + jn + ".domain ilike $" + fn( dom ) + "||'%'";
-            }
-        }
-        if ( !lc.isEmpty() && !dc.isEmpty() ) {
-            bool paren = true;
-            if ( r.isEmpty() )
-                paren = false;
-            if ( paren )
-                r.append( "(" );
-            r.append( lc );
-            r.append( " and " );
-            r.append( dc );
-            if ( paren )
-                r.append( ")" );
-        }
-        else if ( !lc.isEmpty() ) {
-            r.append( lc );
-        }
-        else if ( !dc.isEmpty() ) {
-            r.append( dc );
-        }
-        else {
-            // imap SEARCH FROM "@" matches messages with a nonempty
-            // from field. the sort of thing only a test suite would
-            // do.
-            r.truncate( r.length() - 5 ); // " and "
-        }
+        if ( addresses.count() > 1 )
+            r.append( "(" );
+        r.append( addresses.join( " or " ) );
+        if ( addresses.count() > 1 )
+            r.append( ")" );
     }
     r.append( ")" );
-    root()->d->extraJoins.append( r );
+        
+    // finally, bang in the join and return a "not"-wrappable test of
+    // whether the join found something
+    root()->d->leftJoins.append( r );
     return "a" + jn + ".id is not null";
 }
 
@@ -981,15 +1342,16 @@ EString Selector::whereHeader()
     if ( d->s16.isEmpty() )
         return "true"; // there _is_ at least one header field ;)
 
-    uint like = placeHolder();
-    root()->d->query->bind( like, q( d->s16 ) );
+    uint like = placeHolder( q( d->s16 ) );
     EString jn = "hf" + fn( ++root()->d->join );
     EString j = " left join header_fields " + jn +
                " on (" + mm() + ".message=" + jn + ".message and " +
                jn + ".value ilike " + matchAny( like ) + ")";
-    root()->d->extraJoins.append( j );
+    root()->d->leftJoins.append( j );
+    List<Selector> dummy;
+    dummy.append( this );
     return "(" + jn + ".field is not null or " +
-        whereAddressField() + ")";
+        whereAddressFields( &dummy ) + ")";
 }
 
 
@@ -1025,8 +1387,7 @@ EString Selector::whereBody()
 
     EString s;
 
-    uint bt = placeHolder();
-    root()->d->query->bind( bt, q( d->s16 ) );
+    uint bt = placeHolder( q( d->s16 ) );
 
     if ( ::tsearchAvailable )
         s.append( "(" + matchTsvector( "bp.text", bt ) + " "
@@ -1088,14 +1449,13 @@ EString Selector::whereFlags()
     }
     else {
         // just in case the cache is out of date we look in the db
-        uint b = placeHolder();
-        root()->d->query->bind( b, d->s8.lower() );
+        uint b = placeHolder( d->s8.lower() );
         j = " left join flags f" + n +
             " on (" + mm() + ".mailbox=f" + n + ".mailbox and " +
             mm() + ".uid=f" + n + ".uid and f" + n + ".flag="
             "(select id from flag_names where lower(name)=$" + fn(b) + "))";
     }
-    root()->d->extraJoins.append( j );
+    root()->d->leftJoins.append( j );
 
     // finally use the join in a manner which doesn't accidentally
     // confuse different flags.
@@ -1152,7 +1512,7 @@ EString Selector::whereAnnotation()
 
     uint pattern = placeHolder();
     EString join = fn( ++root()->d->join );
-    root()->d->extraJoins.append(
+    root()->d->leftJoins.append(
         " left join annotation_names an" + join +
         " on (a.name=an" + join + ".id"
         " and an" + join + ".name like $" + fn( pattern ) + ")"
@@ -1189,8 +1549,7 @@ EString Selector::whereAnnotation()
 
     EString like = "is not null";
     if ( !d->s16.isEmpty() ) {
-        uint i = placeHolder();
-        root()->d->query->bind( i, q( d->s16 ) );
+        uint i = placeHolder( q( d->s16 ) );
         like = "ilike " + matchAny( i );
     }
 
@@ -1249,63 +1608,72 @@ static bool isAddressField( const EString & s )
 
 EString Selector::whereNoField()
 {
-    if ( d->a == And || d->a == Or ) {
-        if ( d->children->isEmpty() ) {
-            if ( d->a == And )
-                return "true";
-            return "false";
-        }
-        EStringList conditions;
-        UString address;
-        EStringList addressFields;
-        if ( d->a == Or ) {
-            List<Selector>::Iterator i( d->children );
-            while ( i && ( i->d->f != Header || !isAddressField( i->d->s8 ) ) )
-                ++i;
-            if ( i )
-                address = i->d->s16; // this is the address we optimize for
-        }
-        bool t = false;
+    if ( d->a == And ) {
         bool f = false;
+        EStringList conditions;
         List<Selector>::Iterator i( d->children );
         while ( i ) {
-            if ( d->a == Or &&
-                 i->d->f == Header &&
-                 !address.isEmpty() &&
-                 isAddressField( i->d->s8 ) &&
-                 address == i->d->s16 ) {
-                addressFields.append( i->d->s8.headerCased() );
+            EString w = i->where();
+            if ( w == "false" )
+                f = true;
+            else if ( w != "true" )
+                conditions.append( w );
+            ++i;
+        }
+        if ( conditions.isEmpty() )
+            return "true";
+        if ( f )
+            return "false";
+        if ( conditions.count() == 1 )
+            return conditions.join( "" );
+        EString r;
+        r.append( "(" );
+        r.append( conditions.join( " and " ) );
+        r.append( ")" );
+        return r;
+    }
+    else if ( d->a == Or ) {
+        List<Selector> addressTests;
+        List<Selector> otherHeaderTests;
+        List<Selector> rest;
+        
+        List<Selector>::Iterator i( d->children );
+        while ( i ) {
+            if ( i->d->f == Header ) {
+                if ( i->d->s8.isEmpty() ) {
+                    addressTests.append( i );
+                    otherHeaderTests.append( i );
+                }
+                else if ( isAddressField( i->d->s8 ) ) {
+                    addressTests.append( i );
+                }
+                else {
+                    otherHeaderTests.append( i );
+                }
             }
             else {
-                EString w = i->where();
-                if ( w == "true" )
-                    t = true;
-                else if ( w == "false" )
-                    f = true;
-                else
-                    conditions.append( w );
+                rest.append( i );
             }
             ++i;
         }
-        if ( !addressFields.isEmpty() ) {
-            addressFields.removeDuplicates();
-            if ( addressFields.count() == 12 )
-                addressFields.clear(); // there are only 12, so look for all
-            conditions.append( whereAddressFields( addressFields, address ) );
+
+        EStringList conditions;
+        List<Selector>::Iterator si( rest );
+        while ( si ) {
+            EString w = si->where();
+            if ( w == "true" )
+                return "true";
+            conditions.append( w );
+            ++si;
         }
-        EString r = "(";
-        if ( d->a == And ) {
-            if ( f )
-                return "false";
-            r.append( conditions.join( " and " ) );
-        }
-        else {
-            if ( t )
-                return "false";
-            r.append( conditions.join( " or " ) );
-        }
-        r.append( ")" );
-        return r;
+        if ( !addressTests.isEmpty() )
+            conditions.append( whereAddressFields( &addressTests ) );
+        if ( !otherHeaderTests.isEmpty() )
+            conditions.append( whereHeaders( &otherHeaderTests ) );
+
+        if ( conditions.count() == 1 )
+            return *conditions.first();
+        return "(" + conditions.join( " or " ) + ")";
     }
     else if ( d->a == Not ) {
         EString c = d->children->first()->where();
@@ -1357,7 +1725,31 @@ EString Selector::whereMailbox()
 
     root()->d->query->bind( i, ids );
     return mm() + ".mailbox=any($" + fn( i ) + ")";
+}
 
+
+/*! This implements inthread, that is, a thread-specific search.
+
+    Conceptually simple but perhaps a little hard on the RDBMS.
+*/
+
+EString Selector::whereInThread()
+{
+    d->mm = 0;
+    EString join = fn( ++root()->d->join );
+    root()->d->extraJoins.append(
+        " join thread_members tmp" + join +
+        " on (" + mm() + ".mailbox=tmp" + join + ".mailbox"
+        " and " + mm() + ".uid=tmp" + join + ".uid)"
+        " join thread_members tm" + join +
+        " on (tmp" + join + ".mailbox=tm" + join + ".mailbox"
+        " and tmp" + join + ".thread=tm" + join + ".thread)"
+        " join mailbox_messages mm" + join +
+        " on (tm" + join + ".mailbox=mm" + join + ".mailbox"
+        " and tm" + join + ".uid=mm" + join + ".uid)"
+        );
+    d->mm = new EString( "mm" + join );
+    return d->children->first()->where();
 }
 
 
@@ -1400,6 +1792,8 @@ EString Selector::debugString() const
         break;
     case None:
         return "none";
+        break;
+    case Special:
         break;
     };
 
@@ -1456,6 +1850,9 @@ EString Selector::debugString() const
             w = "subtree ";
         else
             w = "mailbox ";
+        break;
+    case InThread:
+        w = "inthread";
         break;
     case Modseq:
         w = "modseq";
@@ -1701,6 +2098,13 @@ EString Selector::string()
     case None:
         r.append( "false" );
         break;
+    case Special:
+        if ( d->f == InThread ) {
+            r.append( "inthread" );
+        }
+        else if ( d->f == MailboxTree ) {
+            r.append( "mailbox" ); // XXX needs more
+        }
     }
 
     List< Selector >::Iterator it( d->children );

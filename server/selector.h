@@ -20,16 +20,17 @@ class Selector
 public:
     enum Action {
         OnDate, SinceDate, BeforeDate, Contains, Larger, Smaller,
-        And, Or, Not, All, None
+        And, Or, Not, All, None, Special
     };
 
     enum Field {
         InternalDate, Sent, Header, Body, Rfc822Size, Flags, Uid,
-        Annotation, Modseq, Age, NoField, MailboxTree
+        Annotation, Modseq, Age, NoField, MailboxTree, InThread
     };
 
     Selector();
 
+    Selector( Field );
     Selector( Field, Action, uint );
     Selector( Field, Action, const EString & = 0 );
     Selector( Field, Action, const UString & );
@@ -45,9 +46,11 @@ public:
     const IntegerSet & messageSet() const;
 
     uint placeHolder();
+    uint placeHolder( const EString & );
+    uint placeHolder( const UString & );
 
-    const Selector * root() const;
-    const Selector * parent() const;
+    Selector * root();
+    Selector * parent();
 
     EString error();
     void setError( const EString & );
@@ -94,9 +97,10 @@ private:
     EString whereInternalDate();
     EString whereSent();
     EString whereHeader();
+    EString whereHeaders( List<Selector> * );
     EString whereHeaderField();
-    EString whereAddressField( const EString & = "" );
-    EString whereAddressFields( const EStringList &, const UString & );
+    EString whereAddressField();
+    EString whereAddressFields( List<Selector> * );
     EString whereBody();
     EString whereRfc822Size();
     EString whereFlags();
@@ -106,6 +110,7 @@ private:
     EString whereAge();
     EString whereNoField();
     EString whereMailbox();
+    EString whereInThread();
 
     EString mm();
 
