@@ -857,6 +857,98 @@ EString Selector::whereHeaderField()
 }
 
 
+/*! This helper helps the OR optimiser in whereNoField() to search for
+    any of a set of headers or header fields, disregarding address
+    fields.
+
+    \a sl must be a non-null pointer to a nonempty list of headers or
+    header fields.
+*/
+
+EString Selector::whereHeaders( List<Selector> * sl )
+{
+    EStringList likes;
+    EStringList fields;
+    List<Selector>::Iterator si( sl );
+    while ( si ) {
+        fields.append( si->d->s8 );
+        likes.append( q( si->d->s16 ) );
+        ++si;
+    }
+    fields.removeDuplicates( true );
+    likes.removeDuplicates( false );
+
+    Dict<uint> b;
+    EStringList::Iterator i( likes );
+    while ( i ) {
+        uint * x = (uint*)Allocator::alloc( sizeof( uint ), 0 );
+        *x = placeHolder();
+        root()->d->query->bind( *x, *i );
+        b.insert( *i, x );
+        ++i;
+    }
+    
+    EString jn = "hf" + fn( ++root()->d->join );
+    EString j = " left join header_fields " + jn +
+                " on (" + mm() + ".message=" + jn + ".message";
+    EStringList filters;
+
+    EStringList::Iterator fi( fields );
+    while ( fi ) {
+        EString fn = fi->headerCased();
+        ++fi;
+       
+        EString fc;
+
+        if ( fn.isEmpty() ) {
+            // we look for all fields
+        }
+        else {
+            uint t = HeaderField::fieldType( fn );
+            if ( t == HeaderField::Other ) {
+                // we look for an unknown field
+                uint f = placeHolder();
+                root()->d->query->bind( f, fn );
+                fc.append( " and hf" + jn + ".field="
+                           "(select id from field_names where name=$" );
+                fc.appendNumber( f );
+                fc.append( ")" );
+            }
+            else {
+                // we look for one field, and we know what it is
+                fc.append( " and hf" + jn + ".field=" );
+                fc.appendNumber( t );
+            }
+        }
+
+        EStringList orl;
+        si = sl->first();
+        while ( si ) {
+            if ( fn == si->d->s8.headerCased() )
+                orl.append( jn + ".value ilike " +
+                            matchAny( *b.find( q( si->d->s16 ) ) ) );
+            ++si;
+        }
+
+        if ( orl.count() > 1 )
+            fc.append( " and (" + orl.join( " or " ) + ")" );
+        else
+            fc.append( " and " + orl.join( "" ) );
+
+        filters.append( fc );
+    }
+
+    if ( filters.count() > 1 )
+        j.append( " and (" + filters.join( " or " ) + ")" );
+    else
+        j.append( " and (" + filters.join( "" ) + ")" );
+    j.append( ")" );
+                
+    root()->d->extraJoins.append( j );
+    return jn + ".field is not null";
+}
+
+
 /*! This implements searches on the single address field \a field, or
     on all address fields if \a field is empty.
 */
