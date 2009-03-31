@@ -26,8 +26,8 @@ void Help::execute()
 {
     EString a = next().lower();
 
-    if ( a == "create" || a == "new" )
-        a = "add";
+    if ( a == "add" || a == "new" )
+        a = "create";
     else if ( a == "del" || a == "remove" )
         a = "delete";
 
