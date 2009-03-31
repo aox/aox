@@ -933,14 +933,14 @@ EString Selector::whereHeaders( List<Selector> * sl )
                 // we look for an unknown field
                 uint f = placeHolder();
                 root()->d->query->bind( f, fn );
-                fc.append( " and hf" + jn + ".field="
+                fc.append( jn + ".field="
                            "(select id from field_names where name=$" );
                 fc.appendNumber( f );
                 fc.append( ")" );
             }
             else {
                 // we look for one field, and we know what it is
-                fc.append( " and hf" + jn + ".field=" );
+                fc.append( jn + ".field=" );
                 fc.appendNumber( t );
             }
         }
