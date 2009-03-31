@@ -225,6 +225,7 @@ void Schema::execute()
         }
         Query * q = new Query( "update mailstore set revision=$1", 0 );
         q->bind( 1, Database::currentRevision() );
+        d->t->enqueue( q );
         d->state = 5;
     }
 
@@ -4068,11 +4069,11 @@ bool Schema::stepTo85()
                    "begin "
                    "insert into flags (mailbox, uid, flag) "
                    "select mailbox, uid, "
-                   " (select id from flag_names where name=E'\\Seen') "
+                   " (select id from flag_names where name=E'\\\\Seen') "
                    "from mailbox_messages where seen; "
                    "insert into flags (mailbox, uid, flag) "
                    "select mailbox, uid, "
-                   " (select id from flag_names where name=E'\\Deleted') "
+                   " (select id from flag_names where name=E'\\\\Deleted') "
                    "from mailbox_messages where deleted; "
                    "alter table mailbox_messages drop seen, drop deleted; "
                    "return 0; "
@@ -4181,10 +4182,6 @@ bool Schema::stepTo87()
     return true;
 }
 
-// /*!
-// 
-// */
-// 
 // bool Schema::stepTo86()
 // {
 //     describeStep( "Adding functions to downgrade the schema." );

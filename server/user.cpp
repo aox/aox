@@ -414,9 +414,8 @@ void User::createHelper()
         UString m = r->getUString( "name" );
         m.append( '/' );
         m.append( d->login );
-        UString inbox( m );
         m.append( "/INBOX" );
-        d->inbox = Mailbox::obtain( inbox, true );
+        d->inbox = Mailbox::obtain( m, true );
         d->inbox->create( d->t, 0 );
         
         Query * q1

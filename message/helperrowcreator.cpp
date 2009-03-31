@@ -287,6 +287,12 @@ Query * FlagCreator::makeCopy()
 }
 
 
+/*! \fn EStringList * FlagCreator::allFlags()
+
+    Returns a pointer to a list of all flags known to this FlagCreator.
+*/
+
+
 /*! \class FieldNameCreator helperrowcreator.h
 
     The FieldNameCreator is a HelperRowCreator to insert rows into the

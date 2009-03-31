@@ -26,8 +26,8 @@ void Help::execute()
 {
     EString a = next().lower();
 
-    if ( a == "create" || a == "new" )
-        a = "add";
+    if ( a == "add" || a == "new" )
+        a = "create";
     else if ( a == "del" || a == "remove" )
         a = "delete";
 
@@ -78,7 +78,7 @@ void Help::execute()
             "    vacuum\n"
             "    ...\n"
             "\n"
-            "  Use \"aox help command name\" for more specific help,\n"
+            "  Use \"aox help <command name>\" for more specific help,\n"
             "  \"aox help allcommands\" for a complete list of commands or\n"
             "  e.g. \"aox help show\" for a list of arguments to show.\n"
             );
