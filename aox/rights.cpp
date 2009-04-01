@@ -189,9 +189,6 @@ void SetAcl::execute()
             error( "Mailbox and username must be non-empty." );
 
         if ( opt( 'd' ) == 0 ) {
-            if ( d->rights.isEmpty() )
-                error( "No rights supplied." );
-
             if ( d->rights[0] == '-' || d->rights[0] == '+' ) {
                 if ( d->rights[0] == '+' )
                     d->mode = 1;
