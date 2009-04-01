@@ -556,7 +556,7 @@ void Store::execute()
         else {
             // we change flags on some messages, but maybe
             // seen/deleted on more?
-            extraConditions.join( "uid=any($4)" );
+            extraConditions.append( "uid=any($4)" );
             d->modseqUpdate->bind( 4, d->changedUids );
         }
         if ( checkSeenDeleted ) {
@@ -735,7 +735,7 @@ bool Store::removeFlags( bool opposite )
 
     if ( flags.isEmpty() && !opposite )
         return false;
-        
+
     EString s = "delete from flags where mailbox=$1 and uid=any($2) and ";
     if ( opposite )
         s.append( "not " );
