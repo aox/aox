@@ -265,9 +265,9 @@ void Listext::execute()
                 if ( p ) {
                     p->set = true;
                     if ( identifier == "anyone" )
-                        p->anyone = r->getEString( "rights" );
+                        p->anyone = r->getEString( "rights" ) + " ";
                     else
-                        p->user = r->getEString( "rights" );
+                        p->user = r->getEString( "rights" ) + " ";
                 }
             }
         }
@@ -286,7 +286,7 @@ void Listext::execute()
             else {
                 EString r;
                 bool set = false;
-                while ( m && r.isEmpty() ) {
+                while ( m && !set ) {
                     ListextData::Permissions * p
                         = d->permissions.find( m->id() );
                     if ( p && !p->user.isEmpty() )
