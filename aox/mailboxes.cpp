@@ -295,7 +295,7 @@ void DeleteMailbox::execute()
         d->t->enqueue( lock );
     }
 
-    if ( opt( 'f' ) == 0 ) {
+    if ( opt( 'f' ) == 0 && !d->zap ) {
         if ( !d->count ) {
             d->count = new Query(
                 "select "
