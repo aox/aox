@@ -231,7 +231,7 @@ void Listext::execute()
             while ( i ) {
                 Mailbox * m = i->mailbox;
                 ++i;
-                while ( m != Mailbox::root() ) {
+                while ( m ) {
                     if ( m->id() && !m->deleted() ) {
                         ListextData::Permissions * p
                             = d->permissions.find( m->id() );
