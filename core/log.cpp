@@ -5,6 +5,7 @@
 #include "scope.h"
 #include "logger.h"
 #include "estring.h"
+#include "configuration.h"
 
 // sprintf, fprintf
 #include <stdio.h>
@@ -14,10 +15,35 @@
 
 
 static bool disasters = false;
+static Log::Severity logLevel = Log::Disaster;
+
+
+static void setLogLevel()
+{
+    if ( logLevel != Log::Disaster )
+        return;
+
+    EString ll( Configuration::text( Configuration::LogLevel ) );
+    if ( ll == Log::severity( Log::Disaster ) )
+        logLevel = Log::Disaster;
+    else if ( ll == Log::severity( Log::Error ) )
+        logLevel = Log::Error;
+    else if ( ll == Log::severity( Log::Significant ) )
+        logLevel = Log::Significant;
+    else if ( ll == Log::severity( Log::Info ) )
+        logLevel = Log::Info;
+    else if ( ll == Log::severity( Log::Debug ) )
+        logLevel = Log::Debug;
+    else
+        logLevel = Log::Significant; // hm. silent failure.
+}
 
 
 void log( const EString &m, Log::Severity s )
 {
+    if ( s < logLevel )
+        return;
+
     Scope * cs = Scope::current();
     Log *l = 0;
     if ( cs )
@@ -39,6 +65,7 @@ void log( const EString &m, Log::Severity s )
 Log::Log()
     : children( 1 ), p( 0 )
 {
+    ::setLogLevel();
     Scope * cs = Scope::current();
     if ( cs )
         p = cs->log();
@@ -54,6 +81,7 @@ Log::Log()
 Log::Log( Log * parent )
     : children( 0 ), p( parent )
 {
+    ::setLogLevel();
     if ( p )
         ide = p->id() + "/" + fn( p->children++ );
     else
