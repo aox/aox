@@ -326,7 +326,10 @@ void User::refreshHelper()
     if ( r ) {
         d->id = r->getInt( "id" );
         d->login = r->getUString( "login" );
-        d->secret = r->getUString( "secret" );
+        if ( r->isNull( "secret" ) )
+            d->secret.truncate();
+        else
+            d->secret = r->getUString( "secret" );
         d->inboxId = r->getInt( "inbox" );
         if ( r->isNull( "ldapdn" ) )
             d->ldapdn.truncate();
@@ -417,7 +420,7 @@ void User::createHelper()
         m.append( "/INBOX" );
         d->inbox = Mailbox::obtain( m, true );
         d->inbox->create( d->t, 0 );
-        
+
         Query * q1
             = new Query( "insert into aliases (address, mailbox) values "
                          "($1, (select id from mailboxes where name=$2))",
