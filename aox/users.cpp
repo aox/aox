@@ -273,7 +273,7 @@ void DeleteUser::execute()
         }
         else if ( opt( 'f' ) ) {
             Query * q = new Query( "insert into deleted_messages "
-                                   "(mailbox, uid, messages, modseq,"
+                                   "(mailbox, uid, message, modseq,"
                                    " deleted_by, reason) "
                                    "select mm.mailbox, mm.uid, mm.message,"
                                    " mb.nextmodseq, null,"
@@ -281,7 +281,7 @@ void DeleteUser::execute()
                                    "from mailbox_messages mm "
                                    "join mailboxes mb on (mm.mailbox=mb.id) "
                                    "where mb.id=any($1)", 0 );
-            q->bind( 1, d->user->id() );
+            q->bind( 1, nonempty );
             d->t->enqueue( q );
         }
         else {
@@ -301,6 +301,10 @@ void DeleteUser::execute()
 
         if ( !all.isEmpty() ) {
             Query * q;
+
+            q = new Query( "update users set alias=null where id=$1", 0 );
+            q->bind( 1, d->user->id() );
+            d->t->enqueue( q );
 
             q = new Query( "delete from aliases where mailbox=any($1)", 0 );
             q->bind( 1, all );
