@@ -73,6 +73,8 @@ public:
     static EString inBrief( const EString &, const EString & );
     static bool needsNoun( const EString & );
 
+    static EStringList * aliases();
+
 private:
     const char * v;
     const char * n;
