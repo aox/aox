@@ -6,6 +6,8 @@
 #include "event.h"
 #include "ustring.h"
 
+#include <string.h> // strcmp
+
 
 class EStringList;
 
@@ -95,7 +97,16 @@ class AoxFactory
 public:
     AoxFactory( const char * verb, const char * noun,
                 const char * brief, const char * about )
-        : AoxCommandMap( verb, noun, brief, about ) {}
+        : AoxCommandMap( verb, noun, brief, about ) {
+        if ( !strcmp( verb, "create" ) ) {
+            (void)new AoxFactory<T>( "add", noun, this );
+            (void)new AoxFactory<T>( "new", noun, this );
+        }
+        else if ( !strcmp( verb, "delete" ) ) {
+            (void)new AoxFactory<T>( "del", noun, this );
+            (void)new AoxFactory<T>( "remove", noun, this );
+        }
+    }
     AoxFactory( const char * verb, const char * noun,
                 AoxFactory<T> * canonical )
         : AoxCommandMap( verb, noun, canonical ) {}

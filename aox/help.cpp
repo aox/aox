@@ -27,11 +27,6 @@ void Help::execute()
 {
     EString a = next().lower();
 
-    if ( a == "add" || a == "new" )
-        a = "create";
-    else if ( a == "del" || a == "remove" )
-        a = "delete";
-
     EString b;
     if ( AoxCommandMap::needsNoun( a ) )
         b = next().lower();
