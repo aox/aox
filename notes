@@ -1359,6 +1359,15 @@ New RFCs
   5490: sieve metadata
 
   5442: lemonade profile-bis
+
+
+aox anonymise
+
+  1. An alias for anonymize
+
+  2. aox anonymise -a should make a set of cleartext.<n> and anon.<n>
+     files in the current directory based on unparsed_messages, so
+     it's easy to report everything to us.
   
 
 Bug confusing U+ED00 and U+0000 in the message cache
