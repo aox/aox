@@ -87,12 +87,13 @@ class CreateAliasData
 {
 public:
     CreateAliasData()
-        : address( 0 ), t( 0 ), q( 0 )
+        : address( 0 ), mailbox( 0 ), t( 0 ), q( 0 )
     {}
 
     Address * address;
     Address * destination;
-    UString mailbox;
+    UString mailboxName;
+    Mailbox * mailbox;
     Transaction * t;
     Query * q;
 };
@@ -110,21 +111,36 @@ CreateAlias::CreateAlias( EStringList * args )
 
 void CreateAlias::execute()
 {
-    if ( !d->t ) {
-        parseOptions();
+    if ( !d->address ) {
         Utf8Codec c;
+        parseOptions();
         d->address = nextAsAddress();
         EString * first = args()->firstElement();
         if ( first && !first->startsWith( "/" ) && first->contains( "@" ) )
             d->destination = nextAsAddress();
         else
-            d->mailbox = c.toUnicode( next() );
+            d->mailboxName = c.toUnicode( next() );
         end();
 
         if ( !c.valid() )
             error( "Argument encoding: " + c.error() );
 
         database( true );
+        if ( !d->mailboxName.isEmpty() )
+            Mailbox::setup( this );
+    }
+
+    if ( !choresDone() )
+        return;
+
+    if ( !d->t ) {
+        if ( !d->mailboxName.isEmpty() ) {
+            d->mailbox = Mailbox::obtain( d->mailboxName, false );
+            if ( !d->mailbox ||
+                 d->mailbox->synthetic() || d->mailbox->deleted() )
+                error( "No mailbox named " + d->mailboxName.utf8() );
+        }
+
         d->t = new Transaction( this );
         List< Address > l;
         l.append( d->address );
@@ -148,10 +164,9 @@ void CreateAlias::execute()
         }
         else {
             d->q = new Query( "insert into aliases (address, mailbox) "
-                              "select $1, id from mailboxes where name=$2",
-                              this );
+                              "values ($1, $2)", this );
             d->q->bind( 1, d->address->id() );
-            d->q->bind( 2, d->mailbox );
+            d->q->bind( 2, d->mailbox->id() );
         }
         d->t->enqueue( d->q );
         d->t->execute();
@@ -161,7 +176,7 @@ void CreateAlias::execute()
         return;
 
     if ( d->q->failed() )
-        error( "Couldn't create alias" );
+        error( "Couldn't create alias: " + d->q->error() );
 
     if ( d->q->rows() < 1 )
         error( "Could not locate destination for alias" );
@@ -222,7 +237,7 @@ void DeleteAlias::execute()
         return;
 
     if ( q->failed() )
-        error( "Couldn't delete alias" );
+        error( "Couldn't delete alias: " + q->error() );
 
     finish();
 }
