@@ -553,6 +553,8 @@ bool Schema::singleStep()
         c = stepTo86(); break;
     case 86:
         c = stepTo87(); break;
+    case 87:
+        c = stepTo88(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4177,6 +4179,28 @@ bool Schema::stepTo87()
                        "begin "
                        "return 0; "
                        "end;$$ language 'plpgsql'", 0 ) );
+    }
+
+    return true;
+}
+
+
+/*! Make users.alias nullable to help "aox delete user". */
+
+bool Schema::stepTo88()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Making users.alias nullable to help 'aox delete user'." );
+        d->t->enqueue( new Query( "alter table users alter alias "
+                                  "drop not null", 0 ) );
+        d->t->enqueue(
+            new Query( "create or replace function downgrade_to_87() "
+                       "returns int as $$"
+                       "begin "
+                       "alter table users alter alias set not null; "
+                       "return 0; "
+                       "end;$$ language 'plpgsql'", 0 ) );
+        d->substate++;
     }
 
     return true;

@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (87);
+insert into mailstore (revision) values (88);
 
 
 -- One entry for each unique address we've encountered.
@@ -153,7 +153,6 @@ create table aliases (
 
 
 alter table users add alias integer references aliases(id);
-alter table users alter alias set not null;
 
 
 -- One row per <identifier, rights> entry for a mailbox.
