@@ -379,10 +379,6 @@ AoxCommand * AoxCommand::create( EStringList * args )
         return 0;
 
     EString verb( ::next( args ).lower() );
-    if ( verb == "add" || verb == "new" )
-        verb = "create";
-    else if ( verb == "del" || verb == "remove" )
-        verb = "delete";
 
     EString noun;
     if ( AoxCommandMap::needsNoun( verb ) )
