@@ -279,9 +279,10 @@ void User::refresh( EventHandler * user )
             "select u.id, u.login, u.secret, u.ldapdn, "
             "a.name, a.localpart, a.domain, "
             "al.mailbox as inbox, n.name as parentspace "
-            "from users u join aliases al on (u.alias=al.id) "
-            "join addresses a on (al.address=a.id) "
+            "from users u "
             "join namespaces n on (u.parentspace=n.id) "
+            "left join aliases al on (u.alias=al.id) "
+            "left join addresses a on (al.address=a.id) "
             "where lower(u.login)=lower($1)"
         );
 
@@ -289,9 +290,10 @@ void User::refresh( EventHandler * user )
             "select u.id, u.login, u.secret, u.ldapdn, "
             "a.name, a.localpart, a.domain, "
             "al.mailbox as inbox, n.name as parentspace "
-            "from users u join aliases al on (u.alias=al.id) "
-            "join addresses a on (al.address=a.id) "
+            "from users u "
             "join namespaces n on (u.parentspace=n.id) "
+            "join aliases al on (u.alias=al.id) "
+            "join addresses a on (al.address=a.id) "
             "where lower(a.localpart)=$1 and lower(a.domain)=$2"
         );
     }
@@ -340,10 +342,15 @@ void User::refreshHelper()
         tmp.append( d->login );
         d->home = Mailbox::obtain( tmp, true );
         d->home->setOwner( d->id );
-        UString n = r->getUString( "name" );
-        EString l = r->getEString( "localpart" );
-        EString h = r->getEString( "domain" );
-        d->address = new Address( n, l, h );
+        if ( r->isNull( "localpart" ) ) {
+            d->address = new Address( "", "", "" );
+        }
+        else {
+            UString n = r->getUString( "name" );
+            EString l = r->getEString( "localpart" );
+            EString h = r->getEString( "domain" );
+            d->address = new Address( n, l, h );
+        }
         d->state = Refreshed;
     }
     if ( d->user )
