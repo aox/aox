@@ -33,6 +33,8 @@ public:
     Query * failedQuery() const;
 
     void enqueue( Query * );
+    void enqueue( const char * );
+    void enqueue( const EString & );
     void execute();
     void rollback();
     void restart();
