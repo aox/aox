@@ -86,6 +86,7 @@ AoxCommand::AoxCommand( EStringList * args )
 {
     d->args = args;
     (void)new AoxCommandData::ChoresDoneHelper( &d->choresDone, this );
+    Allocator::addEternal( this, "the command to be run" );
 }
 
 
