@@ -106,6 +106,9 @@ public:
             (void)new AoxFactory<T>( "del", noun, this );
             (void)new AoxFactory<T>( "remove", noun, this );
         }
+        else if ( !strcmp( verb, "list" ) ) {
+            (void)new AoxFactory<T>( "ls", noun, this );
+        }
     }
     AoxFactory( const char * verb, const char * noun,
                 AoxFactory<T> * canonical )
