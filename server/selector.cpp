@@ -1094,8 +1094,10 @@ static void addAddressTerm( EStringList * terms,
 }
 
 
-/*! This implements searching for \a name on the address \a fields, or
-  on all address fields if \a fields is the empty list.
+/*! This implements searching for the given address \a fields, or
+    on all address fields if \a fields is the empty list.
+
+    XXX: This comment may be wrong.
 */
 
 EString Selector::whereAddressFields( List<Selector> * fields )

@@ -281,6 +281,31 @@ void Transaction::enqueue( Query *q )
 }
 
 
+/*! \overload
+
+    This version creates a new Query based on \a text and enqueues it.
+    It does not give the caller a chance to set the query's owner or to
+    bind parameters, so it's most useful for things like DDL.
+*/
+
+void Transaction::enqueue( const char * text )
+{
+    enqueue( new Query( text, 0 ) );
+}
+
+
+/*! \overload
+
+    This version creates a new Query based on \a text and enqueues it.
+    Limitations as for the const char * variant above.
+*/
+
+void Transaction::enqueue( const EString & text )
+{
+    enqueue( new Query( text, 0 ) );
+}
+
+
 /*! Issues a ROLLBACK to abandon the Transaction, and fails any
     queries that still haven't been sent to the server. The owner is
     notified of completion.

@@ -19,17 +19,10 @@ P/W: Stuff we may want to keep
 
   smtpclient has simpler logic... but don't break what works
 
-  Transaction::enqueue( const char * )
-
   cancelQuery rewrite. not sure.
 
   Do (some of) these, one at a time, making sure nothing breaks after
   each one. None soon.
-
-
-3.0.5: 2009-01-??
-
-  Have some good ideas.
 
 
 3.1.0: 2009-01-??
@@ -1359,6 +1352,15 @@ New RFCs
   5490: sieve metadata
 
   5442: lemonade profile-bis
+
+
+aox anonymise
+
+  1. An alias for anonymize
+
+  2. aox anonymise -a should make a set of cleartext.<n> and anon.<n>
+     files in the current directory based on unparsed_messages, so
+     it's easy to report everything to us.
   
 
 Bug confusing U+ED00 and U+0000 in the message cache
