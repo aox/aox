@@ -42,10 +42,15 @@ int main( int ac, char *av[] )
 
     EventLoop::setup();
 
+    AoxCommand * cmd = AoxCommand::create( args );
+    if ( cmd->done() )
+        return 0;
+
     Configuration::setup( "archiveopteryx.conf" );
-    Configuration::read( EString( "" ) +
-                         Configuration::compiledIn( Configuration::ConfigDir) +
-                         "/aoxsuper.conf", true );
+    Configuration::read(
+        EString( "" ) +
+        Configuration::compiledIn( Configuration::ConfigDir) +
+        "/aoxsuper.conf", true );
 
     Log * l = new Log;
     Allocator::addEternal( l, "log object" );
@@ -58,7 +63,6 @@ int main( int ac, char *av[] )
     if ( Scope::current()->log()->disastersYet() )
         exit( -1 );
 
-    AoxCommand * cmd = AoxCommand::create( args );
     if ( cmd ) {
         cmd->execute();
         if ( !cmd->done() )

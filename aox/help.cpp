@@ -14,6 +14,7 @@
 Help::Help( EStringList * args )
     : AoxCommand( args )
 {
+    execute();
 }
 
 
