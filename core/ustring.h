@@ -96,6 +96,10 @@ public:
     bool endsWith( const UString & ) const;
     bool endsWith( const char * ) const;
 
+    static bool isDigit( uint );
+    static bool isLetter( uint );
+    static bool isSpace( uint );
+
 private:
     void reserve2( uint );
 
