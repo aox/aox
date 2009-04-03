@@ -86,6 +86,7 @@ AoxCommand::AoxCommand( EStringList * args )
 {
     d->args = args;
     (void)new AoxCommandData::ChoresDoneHelper( &d->choresDone, this );
+    Allocator::addEternal( this, "the command to be run" );
 }
 
 
@@ -531,9 +532,6 @@ AoxCommand * AoxCommand::create( EStringList * args )
         cmd = new Help( args );
     }
 
-    if ( cmd )
-        Allocator::addEternal( cmd, "the command to be run" );
-
     return cmd;
 }
 
@@ -667,5 +665,5 @@ EStringList * AoxCommandMap::aliases()
     }
     r.removeDuplicates();
     return r.sorted();
-    
+
 }
