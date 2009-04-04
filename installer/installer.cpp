@@ -1626,7 +1626,8 @@ void createSchema()
 
     cmd.append( "\\i " LIBDIR "/schema.pg\n"
                 "\\i " LIBDIR "/flag-names\n"
-                "\\i " LIBDIR "/field-names\n" );
+                "\\i " LIBDIR "/field-names\n"
+                "\\i " LIBDIR "/downgrades\n" );
 
     // And this function decides whether we need to invoke psql at all,
     // based on whether we can find the "mailstore" table.
