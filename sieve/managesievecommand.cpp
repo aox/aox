@@ -839,6 +839,7 @@ bool ManageSieveCommand::explain()
             }
             else {
                 AddressParser ap( value );
+                ap.assertSingleAddress();
                 if ( ap.addresses()->count() != 1 )
                     no( "Need exactly one address for " + name );
                 else if ( name == "from" )
