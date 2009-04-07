@@ -201,7 +201,7 @@ EString SieveProduction::error() const
 
     The extensions are: BODY from RFC 5173. DATE from RFC 5260.
     EREJECT from RFC 5429, IHAVE from RFC 5463. RFC 5228 defines several
-    optional capabilieies, we implement all (I think).  RELATIONAL is
+    optional capabilities, we implement all (I think).  RELATIONAL is
     from RFC 5231, SUBADDRESS is from RFC 5233 and VACATION from RFC
     5230.
 
@@ -1267,6 +1267,7 @@ void SieveCommand::parse( const EString & previous )
         }
     }
     else if ( i == "notify" ) {
+        require( "enotify" );
         UString from;
         if ( arguments()->findTag( ":from" ))
             from = arguments()->takeTaggedString( ":from" );
@@ -1521,6 +1522,32 @@ void SieveTest::parse()
         require( "ihave" );
         arguments()->numberRemainingArguments();
         arguments()->takeStringList( 1 );
+    }
+    else if ( identifier() == "valid_notify_method" ) {
+        require( "enotify" );
+        arguments()->numberRemainingArguments();
+        UStringList * urls = arguments()->takeStringList( 1 );
+        if ( !urls || urls->isEmpty() )
+            setError( "No URLs" );
+    }
+    else if ( identifier() == "notify_method_capability" ) {
+        require( "enotify" );
+        findComparator();
+        findMatchType();
+        arguments()->numberRemainingArguments();
+        (void)new SieveNotifyMethod( arguments()->takeString( 1 ),
+                                     arguments()->takeArgument( 1 ),
+                                     this );
+        EString capa = arguments()->takeString( 2 ).utf8().lower();
+        if ( capa != "online" )
+            setError( "Unknown capability: " + capa );
+        UStringList::Iterator i( arguments()->takeStringList( 3 ) );
+        while ( i ) {
+            EString v = i->ascii().lower();
+            if ( v != "yes" && v != "no" && v != "maybe" )
+                setError( "Unknown key: " + v );
+            ++i;
+        }
     }
     else {
         setError( "Unknown test: " + identifier() );
