@@ -306,11 +306,9 @@ void SmtpRcptTo::addParam( const EString & name, const EString & value )
         if ( value.lower().startsWith( "rfc822;" ) ) {
             // the original address may legitimately be non-822
             AddressParser p( value.mid( 7 ) );
+            p.assertSingleAddress();
             if ( !p.error().isEmpty() ) {
                 respond( 501, "Bad ORCPT: " + p.error(), "5.5.4" ); // 5.1.0?
-            } else if ( p.addresses()->count() != 1 ) {
-                respond( 501, "Bad ORCPT: " + fn( p.addresses()->count() ) +
-                         " addresses instead of one", "5.5.4" );
             }
             else {
                 if ( d->address->toString() ==

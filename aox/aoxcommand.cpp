@@ -138,8 +138,8 @@ class Address * AoxCommand::nextAsAddress()
 {
     EString n = next();
     AddressParser p( n );
-    if ( !p.error().isEmpty() ||
-         p.addresses()->count() != 1 ) {
+    p.assertSingleAddress();
+    if ( !p.error().isEmpty() ) {
         error( "Invalid address: " + p.error() );
     }
     return p.addresses()->first();

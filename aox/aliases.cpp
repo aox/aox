@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 
-static AoxFactory<ListAliases> 
+static AoxFactory<ListAliases>
 f( "list", "aliases", "Display delivery aliases.",
    "    Synopsis: aox list aliases [pattern]\n\n"
    "    Displays a list of aliases where either the address or the\n"
@@ -218,10 +218,9 @@ void DeleteAlias::execute()
             error( "No address specified." );
 
         AddressParser p( address );
+        p.assertSingleAddress();
         if ( !p.error().isEmpty() )
             error( "Invalid address: " + p.error() );
-        if ( p.addresses()->count() != 1 )
-            error( "At most one address may be present" );
 
         database( true );
         Address * a = p.addresses()->first();

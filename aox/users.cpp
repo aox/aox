@@ -133,10 +133,9 @@ void CreateUser::execute()
             error( "Invalid username: " + login.utf8() );
 
         AddressParser p( address );
+        p.assertSingleAddress();
         if ( !p.error().isEmpty() )
             error( "Invalid address: " + p.error() );
-        if ( p.addresses()->count() != 1 )
-            error( "At most one address may be present" );
 
         database( true );
         Mailbox::setup( this );
@@ -580,10 +579,9 @@ void ChangeAddress::execute()
             error( "Invalid username: " + name.utf8() );
 
         AddressParser p( address );
+        p.assertSingleAddress();
         if ( !p.error().isEmpty() )
             error( "Invalid address: " + p.error() );
-        if ( p.addresses()->count() != 1 )
-            error( "At most one address may be present" );
 
         database( true );
         Mailbox::setup( this );

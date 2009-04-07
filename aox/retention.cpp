@@ -280,8 +280,10 @@ void ShowRetention::execute()
             last = name;
         }
 
-        printf( "  %s %d days:\n", r->getEString( "action" ).cstr(),
-                r->getInt( "duration" ) );
+        printf( "  %s %d days, policy %d:\n",
+                r->getEString( "action" ).cstr(),
+                r->getInt( "duration" ),
+                r->getInt( "id" ) );
         if ( r->isNull( "selector" ) ) {
             printf( "    Unconditional\n" );
         }
