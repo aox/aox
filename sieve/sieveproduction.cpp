@@ -5,6 +5,7 @@
 #include "ustringlist.h"
 #include "sieveparser.h"
 #include "estringlist.h"
+#include "sievenotify.h"
 #include "collation.h"
 #include "bodypart.h"
 #include "mailbox.h"
@@ -1177,9 +1178,8 @@ void SieveCommand::parse( const EString & previous )
         arguments()->numberRemainingArguments();
         EString s = arguments()->takeString( 1 ).utf8();
         AddressParser ap( s );
-        if ( !ap.error().isEmpty() ||
-             ap.addresses()->count() != 1 ||
-             ap.addresses()->first()->type() != Address::Normal )
+        ap.assertSingleAddress();
+        if ( !ap.error().isEmpty() )
             setError( "Expected one normal address (local@domain), but got: "
                       + s );
     }
@@ -1211,7 +1211,7 @@ void SieveCommand::parse( const EString & previous )
         if ( arguments()->findTag( ":from" ) ) {
             parseAsAddress( arguments()->takeTaggedString( ":from" ),
                             ":from" );
-            // we don't enforce its being a local address.
+            // XXX we don't enforce its being a local address.
         }
 
         // :addresses
@@ -1264,6 +1264,43 @@ void SieveCommand::parse( const EString & previous )
         else {
             if ( reason.isEmpty() )
                 setError( "Empty vacation text does not make sense" );
+        }
+    }
+    else if ( i == "notify" ) {
+        UString from;
+        if ( arguments()->findTag( ":from" ))
+            from = arguments()->takeTaggedString( ":from" );
+
+        UString importance;
+        importance.append( "2" );
+        if ( arguments()->findTag( ":importance" ) )
+            importance = arguments()->takeTaggedString( ":from" );
+        uint c = importance[0];
+        if ( c < '1' || c > '3' )
+            arguments()->tagError( ":importance",
+                                   "Importance must be 1, 2 or 3" );
+
+        UStringList * options;
+        if ( arguments()->findTag( ":options" ) )
+            options = arguments()->takeTaggedStringList( ":options" );
+
+        UString message;
+        if ( arguments()->findTag( ":message" ) )
+            message = arguments()->takeTaggedString( ":message" );
+
+        arguments()->numberRemainingArguments();
+        UString method = arguments()->takeString( 1 );
+
+        SieveNotifyMethod * m
+            = new SieveNotifyMethod( method,
+                                     arguments()->takeArgument( 1 ),
+                                     this );
+
+        if ( m->valid() ) {
+            if ( arguments()->findTag( ":from" ) )
+                m->setFrom( from, arguments()->findTag( ":from" ) );
+            if ( arguments()->findTag( ":message" ) )
+                m->setMessage( message, arguments()->findTag( ":message" ) );
         }
     }
     else {
@@ -1336,16 +1373,9 @@ void SieveCommand::parse( const EString & previous )
 void SieveCommand::parseAsAddress( const UString & s, const char * t )
 {
     AddressParser ap( s.utf8() );
+    ap.assertSingleAddress();
     if ( !ap.error().isEmpty() )
         arguments()->tagError( t, ap.error() );
-    else if ( ap.addresses()->count() != 1 )
-        arguments()->tagError( t, "Expected 1 addresses, got " +
-                               fn( ap.addresses()->count() ) );
-    else if ( ap.addresses()->first()->type() != Address::Normal )
-        arguments()->tagError( t,
-                               "Expected normal email address "
-                               "(whatever@wherev.er), got " +
-                               ap.addresses()->first()->toString() );
 }
 
 
