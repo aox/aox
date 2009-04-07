@@ -83,18 +83,6 @@ UString::UString( const UString & other )
 }
 
 
-/*! Constructs a UString containing the \a asciiData.
-
-   \a asciiData must be just that. No UTF-8 or ISO-8859-x.
-*/
-
-UString::UString( const char * asciiData )
-    : Garbage(), d( new UStringData )
-{
-    append( asciiData );
-}
-
-
 /*! Destroys the string. Doesn't free anything. */
 
 UString::~UString()
