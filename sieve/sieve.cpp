@@ -908,7 +908,68 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
     }
     else if ( c->identifier() == "notify" ) {
-        // XXX arnt 1
+        SieveNotifyMethod * m = new SieveNotifyMethod( method, 0, c );
+        if ( c->arguments()->findTag( ":from" ) ) {
+            m->setFrom( c->arguments()->takeTaggedString( ":from" ), c );
+        }
+        else {
+            m->setFrom( d->currentRecipient->address );
+        }
+
+        // we disregard :importance entirely. $#@$ featuritis.
+
+        // we have no use for :options
+
+        if ( arguments()->findTag( ":message" ) ) {
+            m->setMessage( c->arguments()->takeTaggedString( ":message" ), c );
+        }
+        else {
+            UString b;
+            Header * h = d->message->header();
+            if ( h->addresses( HeaderField::From ) ) {
+                b.append( "From: " );
+                List<Address>::Iterator i( h->addresses( HeaderField::From ) );
+                bool first = true;
+                while ( i ) {
+                    if ( !first )
+                        b.append( ", " );
+                    first = false;
+                    if ( i->uname().isEmpty() ) {
+                        b.append( i->lpdomain().cstr() );
+                    }
+                    else {
+                        b.append( i->uname() );
+                        b.append( " <" );
+                        b.append( i->lpdomain().cstr() );
+                        b.append( ">" );
+                    }
+                    ++i;
+                }
+                b.append( "\r\n" );
+            }
+            HeaderField * subject = h->field( HeaderField::Subject );
+            if ( subject->value().isEmpty() ) {
+                b.append( "No subject specified\r\n" );
+            }
+            else {
+                b.append( "Subject: " );
+                b.append( subject->value() );
+                b.append( "\r\n" );
+            }
+            if ( h->addresses( HeaderField::To ) &&
+                 h->addresses( HeaderField::To )->count() == 1 ) {
+                Address * to = h->addresses( HeaderField::To )->first();
+                if ( to->lpdomain().lower() !=
+                     d->currentRecipient->address->lpdomain().lower() ) {
+                    b.append( "To: " );
+                    b.append( to->lpdomain().cstr() );
+                    b.append( "\r\n" );
+                }
+            }
+            m->setMessage( b );
+        }
+        // this is where we want to start with 'm' and move towards an
+        // entry in the deliveries table.
     }
     else {
         // ?
