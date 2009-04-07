@@ -12,4 +12,4 @@ SubInclude TOP message ;
 
 Build sieve : managesieve.cpp managesievecommand.cpp
     sieveaction.cpp sievescript.cpp sieve.cpp
-    sieveparser.cpp sieveproduction.cpp ;
+    sieveparser.cpp sieveproduction.cpp sievenotify.cpp ;
