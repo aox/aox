@@ -998,6 +998,13 @@ The web interface should offer a download link for attachments.
   for example.
 
 
+Sending forged From despite check-sender-addresses
+
+  vacation :from and notify :mailto :from don't check
+
+  The injector probably needs to get the logic from the smtp server.
+
+
 Per-group and systemwide sieves
 
   People always seem to want such things. It'll be easy to implement.

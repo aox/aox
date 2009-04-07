@@ -73,11 +73,15 @@ void ListMailboxes::execute()
         database();
 
         EString s( "select name,login as owner" );
-        if ( opt( 's' ) > 0 )
-            s.append( ",(select count(*) from messages "
-                      "where mailbox=m.id)::int as messages,"
-                      "(select sum(rfc822size) from messages "
-                      "where mailbox=m.id)::int as size" );
+        if ( opt( 's' ) > 0 ) {
+            EString num( "select count(*) from mailbox_messages "
+                         "where mailbox=m.id" );
+            EString size( "select sum(rfc822size) from messages ma "
+                          "join mailbox_messages mm on (ma.id=mm.message) "
+                          "where mm.mailbox=m.id" );
+            s.append( ", coalesce((" + num + "), 0)::bigint as messages"
+                      ", coalesce((" + size + "), 0)::bigint as size" );
+        }
         s.append( " from mailboxes m left join users u on (m.owner=u.id)" );
 
         int n = 1;
@@ -110,8 +114,8 @@ void ListMailboxes::execute()
 
         if ( opt( 's' ) > 0 ) {
             EString s;
-            int messages = r->getInt( "messages" );
-            int size = r->getInt( "size" );
+            int64 messages = r->getBigint( "messages" );
+            int64 size = r->getBigint( "size" );
             s.appendNumber( messages );
             if ( messages == 1 )
                 s.append( " message, " );
@@ -119,7 +123,8 @@ void ListMailboxes::execute()
                 s.append( " messages, " );
             s.append( EString::humanNumber( size ) );
             s.append( " bytes" );
-            printf( " (%s)", s.cstr() );
+            if ( messages != 0 )
+                printf( " (%s)", s.cstr() );
         }
         printf( "\n" );
     }
