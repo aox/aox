@@ -19,17 +19,10 @@ P/W: Stuff we may want to keep
 
   smtpclient has simpler logic... but don't break what works
 
-  Transaction::enqueue( const char * )
-
   cancelQuery rewrite. not sure.
 
   Do (some of) these, one at a time, making sure nothing breaks after
   each one. None soon.
-
-
-3.0.5: 2009-01-??
-
-  Have some good ideas.
 
 
 3.1.0: 2009-01-??

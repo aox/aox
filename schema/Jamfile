@@ -15,4 +15,5 @@ rule SchemaFile {
 SchemaFile schema.pg ;
 SchemaFile flag-names ;
 SchemaFile field-names ;
+SchemaFile downgrades ;
 SchemaFile fts.pg ;

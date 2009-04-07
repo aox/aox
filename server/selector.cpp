@@ -342,7 +342,6 @@ uint Selector::placeHolder( const EString & s )
         root()->d->query->bind( *x, s );
     }
     return *x;
-    
 }
 
 
@@ -358,7 +357,6 @@ uint Selector::placeHolder( const UString & s )
         root()->d->query->bind( *x, s );
     }
     return *x;
-    
 }
 
 
@@ -921,7 +919,7 @@ EString Selector::whereHeaders( List<Selector> * sl )
     while ( fi ) {
         EString fn = fi->headerCased();
         ++fi;
-       
+
         EString fc;
 
         if ( fn.isEmpty() ) {
@@ -977,7 +975,7 @@ EString Selector::whereHeaders( List<Selector> * sl )
     else
         j.append( " and (" + filters.join( "" ) + ")" );
     j.append( ")" );
-                
+
     root()->d->extraJoins.append( j );
     return jn + ".field is not null";
 }
@@ -1094,8 +1092,10 @@ static void addAddressTerm( EStringList * terms,
 }
 
 
-/*! This implements searching for \a name on the address \a fields, or
-  on all address fields if \a fields is the empty list.
+/*! This implements searching for the given address \a fields, or
+    on all address fields if \a fields is the empty list.
+
+    XXX: This comment may be wrong.
 */
 
 EString Selector::whereAddressFields( List<Selector> * fields )
@@ -1250,7 +1250,7 @@ EString Selector::whereAddressFields( List<Selector> * fields )
                 uint x = 1;
                 EStringList l;
                 while ( x <= fieldsUsed.count() ) {
-                    l.append( "af" + jn + ".field=" + 
+                    l.append( "af" + jn + ".field=" +
                               fn( fieldsUsed.value( x ) ) );
                     x++;
                 }
@@ -1307,7 +1307,7 @@ EString Selector::whereAddressFields( List<Selector> * fields )
 
             addresses.append( s );
         }
-    
+
     }
 
     // after all that, we finally have what we need to put together
@@ -1326,7 +1326,7 @@ EString Selector::whereAddressFields( List<Selector> * fields )
             r.append( ")" );
     }
     r.append( ")" );
-        
+
     // finally, bang in the join and return a "not"-wrappable test of
     // whether the join found something
     root()->d->leftJoins.append( r );
@@ -1370,6 +1370,26 @@ static EString matchTsvector( const EString & col, uint n )
 }
 
 
+static bool sensibleWords( const UString & s )
+{
+    uint l = 0;
+    uint i = 0;
+    while ( i < s.length() ) {
+        uint c = s[i];
+        if ( UString::isLetter( c ) )
+            l++;
+        else if ( UString::isDigit( c ) || UString::isSpace( c ) )
+            ; // no action, but ok
+        else
+            return false;
+        ++i;
+    }
+    if ( l > 0 )
+        return true;
+    return false;
+}
+
+
 /*! This implements searches on (text) bodyparts. We cannot and will
     not do "full-text" search on the contents of e.g. jpeg
     pictures. (For some formats we search on the text part, because
@@ -1389,7 +1409,7 @@ EString Selector::whereBody()
 
     uint bt = placeHolder( q( d->s16 ) );
 
-    if ( ::tsearchAvailable )
+    if ( ::tsearchAvailable && sensibleWords( d->s16 ) )
         s.append( "(" + matchTsvector( "bp.text", bt ) + " "
                   "and bp.text ilike " + matchAny( bt ) + ")" );
     else
@@ -1636,7 +1656,7 @@ EString Selector::whereNoField()
         List<Selector> addressTests;
         List<Selector> otherHeaderTests;
         List<Selector> rest;
-        
+
         List<Selector>::Iterator i( d->children );
         while ( i ) {
             if ( i->d->f == Header ) {

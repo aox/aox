@@ -357,7 +357,9 @@ uint UString::number( bool * ok, uint base ) const
 }
 
 
-static bool isSpace( uint c )
+/*! Returns true if \a c is a unicode space character, and false if not. */
+
+bool UString::isSpace( uint c )
 {
     if ( c == 9 || c == 10 || c == 13 || c == 32 ||
          c == 0x00A0 || c == 0x1680 || c == 0x2002 ||
@@ -704,4 +706,27 @@ UString UString::titlecased() const
         i++;
     }
     return r;
+}
+
+
+#include "unicode-isalnum.inc"
+
+
+/*! Returns true if \a c is a digit, and false if not. */
+
+bool UString::isDigit( uint c )
+{
+    if ( c >= numDigits )
+        return false;
+    return unidata[c].isDigit;
+}
+
+
+/*! Returns true if \a c is a letter, and false if not. */
+
+bool UString::isLetter( uint c )
+{
+    if ( c >= numLetters )
+        return false;
+    return unidata[c].isAlpha;
 }

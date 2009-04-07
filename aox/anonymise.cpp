@@ -24,6 +24,7 @@ f( "anonymise", "", "Anonymise a named mail message.",
 Anonymise::Anonymise( EStringList * args )
     : AoxCommand( args )
 {
+    execute();
 }
 
 

@@ -1294,6 +1294,7 @@ f5( "show", "status", "Display a summary of the running servers.",
 ShowStatus::ShowStatus( EStringList * args )
     : AoxCommand( args )
 {
+    execute();
 }
 
 
@@ -1363,6 +1364,7 @@ f6( "show", "build", "Display build settings.",
 ShowBuild::ShowBuild( EStringList * args )
     : AoxCommand( args )
 {
+    execute();
 }
 
 
