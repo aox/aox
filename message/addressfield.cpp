@@ -23,7 +23,7 @@ AddressField::AddressField( HeaderField::Type t )
 
 
 /*! Constructs an AddressField of \a type, containing the single
-    Address \a .
+    Address \a address .
 */
 
 AddressField::AddressField( HeaderField::Type type, Address * address )
