@@ -37,6 +37,13 @@ public:
         Mailto,
         Invalid
     };
+    
+    enum Reachability {
+        Immediate,
+        Delayed,
+        Unknown
+    };
+    Reachability reachability() const;
 
 private:
     class SieveNotifyMethodData * d;

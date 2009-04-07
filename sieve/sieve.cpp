@@ -18,6 +18,7 @@
 #include "mimefields.h"
 #include "estringlist.h"
 #include "ustringlist.h"
+#include "sievenotify.h"
 #include "sievescript.h"
 #include "sieveaction.h"
 #include "transaction.h"
@@ -906,6 +907,9 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             a->setExpiry( days );
         }
     }
+    else if ( c->identifier() == "notify" ) {
+        // XXX arnt 1
+    }
     else {
         // ?
     }
@@ -1266,6 +1270,36 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             ++i;
         if ( i )
             return False;
+    }
+    else if ( t->identifier() == "valid_method_method" ) {
+        UStringList::Iterator i( t->arguments()->takeStringList( 1 ) );
+        while ( i ) {
+            SieveNotifyMethod * m = new SieveNotifyMethod( *i, 0, t );
+            if ( !m->valid() )
+                return False;
+            ++i;
+        }
+        return True;
+    }
+    else if ( t->identifier() == "notify_method_capability" ) {
+        UString capa = t->arguments()->takeString( 2 ).titlecased();
+        if ( capa != "ONLINE" )
+            return False;
+        SieveNotifyMethod * m 
+            = new SieveNotifyMethod( t->arguments()->takeString( 1 ), 0, t );
+        UString hack;
+        switch( m->reachability() ) {
+        case SieveNotifyMethod::Immediate:
+            hack.append( "yes" );
+            break;
+        case SieveNotifyMethod::Unknown:
+            hack.append( "maybe" );
+            break;
+        case SieveNotifyMethod::Delayed:
+            hack.append( "no" );
+            break;
+        }
+        haystack->append( hack );
     }
     else {
         // unknown test. wtf?

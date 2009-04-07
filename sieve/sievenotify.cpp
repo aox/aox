@@ -182,3 +182,17 @@ bool SieveNotifyMethod::valid()
     reportError( "Mailto header would be bad: " + d->header->error() );
     return false;
 }
+
+
+/*! Returns... hm, returns Unknown. We don't support any IM methods
+    yet.
+
+    I think that when we do add support for XMPP, this may still
+    return Unknown for XMPP, if we've started looking but not found
+    the answer yet.
+*/
+
+SieveNotifyMethod::Reachability SieveNotifyMethod::reachability() const
+{
+    return Unknown;
+}

@@ -1538,16 +1538,8 @@ void SieveTest::parse()
         (void)new SieveNotifyMethod( arguments()->takeString( 1 ),
                                      arguments()->takeArgument( 1 ),
                                      this );
-        EString capa = arguments()->takeString( 2 ).utf8().lower();
-        if ( capa != "online" )
-            setError( "Unknown capability: " + capa );
-        UStringList::Iterator i( arguments()->takeStringList( 3 ) );
-        while ( i ) {
-            EString v = i->ascii().lower();
-            if ( v != "yes" && v != "no" && v != "maybe" )
-                setError( "Unknown key: " + v );
-            ++i;
-        }
+        (void)arguments()->takeString( 2 ).utf8().lower();
+        d->keys = arguments()->takeStringList( 3 );
     }
     else {
         setError( "Unknown test: " + identifier() );
