@@ -25,9 +25,9 @@ public:
                        class SieveProduction *,
                        class SieveProduction * );
 
-    void setFrom( const UString &, SieveArgument * );
+    void setFrom( const UString &, SieveProduction * );
     void setFrom( Address * );
-    void setMessage( const UString &, SieveArgument * );
+    void setMessage( const UString &, SieveProduction * );
 
     SieveProduction * command() const;
 

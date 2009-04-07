@@ -129,7 +129,7 @@ SieveProduction * SieveNotifyMethod::command() const
     as From, and that any errors should be recorded via \a a.
 */
 
-void SieveNotifyMethod::setFrom( const UString & f, SieveArgument * a )
+void SieveNotifyMethod::setFrom( const UString & f, SieveProduction * a )
 {
     AddressParser p( f.utf8() );
     p.assertSingleAddress();
@@ -155,7 +155,7 @@ void SieveNotifyMethod::setFrom( Address * f )
     This may cause errors. If it does, then they'll be reported via \a a.
 */
 
-void SieveNotifyMethod::setMessage( const UString & m, SieveArgument * a )
+void SieveNotifyMethod::setMessage( const UString & m, SieveProduction * a )
 {
     d->message = m;
     switch ( d->type ) {

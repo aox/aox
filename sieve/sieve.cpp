@@ -908,7 +908,9 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
     }
     else if ( c->identifier() == "notify" ) {
-        SieveNotifyMethod * m = new SieveNotifyMethod( method, 0, c );
+        SieveNotifyMethod * m 
+            = new SieveNotifyMethod( c->arguments()->takeString( 1 ),
+                                     0, c );
         if ( c->arguments()->findTag( ":from" ) ) {
             m->setFrom( c->arguments()->takeTaggedString( ":from" ), c );
         }
@@ -920,7 +922,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
 
         // we have no use for :options
 
-        if ( arguments()->findTag( ":message" ) ) {
+        if ( c->arguments()->findTag( ":message" ) ) {
             m->setMessage( c->arguments()->takeTaggedString( ":message" ), c );
         }
         else {
@@ -938,7 +940,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                         b.append( i->lpdomain().cstr() );
                     }
                     else {
-                        b.append( i->uname() );
+                        b.append( i->uname().simplified() );
                         b.append( " <" );
                         b.append( i->lpdomain().cstr() );
                         b.append( ">" );
@@ -966,7 +968,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                     b.append( "\r\n" );
                 }
             }
-            m->setMessage( b );
+            m->setMessage( b, c );
         }
         // this is where we want to start with 'm' and move towards an
         // entry in the deliveries table.
