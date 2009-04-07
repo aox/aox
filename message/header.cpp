@@ -539,7 +539,7 @@ static bool sameAddresses( AddressField *a, AddressField *b )
 
 /*! Removes any redundant header fields from this header, and
   simplifies the value of some.
-  
+
     For example, if 'sender' or 'reply-to' points to the same address
     as 'from', that field can be removed, and if 'from' contains the
     same address twice, one can be removed.
@@ -977,7 +977,8 @@ void Header::repair( Multipart * p, const EString & body )
                 ++f;
             if ( f ) {
                 AddressParser ap( f->rfc822().section( " ", 1 ) );
-                if ( ap.error().isEmpty() && ap.addresses()->count() == 1 )
+                ap.assertSingleAddress();
+                if ( ap.error().isEmpty() )
                     a = ap.addresses();
             }
         }
@@ -998,7 +999,8 @@ void Header::repair( Multipart * p, const EString & body )
             if ( f->name() == "Return-Receipt-To" ||
                  f->name() == "Disposition-Notification-To" ) {
                 AddressParser ap( f->rfc822().section( " ", 1 ) );
-                if ( ap.error().isEmpty() && ap.addresses()->count() == 1 )
+                ap.assertSingleAddress();
+                if ( ap.error().isEmpty() )
                     a = ap.addresses();
             }
             ++f;

@@ -736,8 +736,8 @@ void Injector::convertInReplyTo()
                     int gt = irt.find( '>', lt );
                     if ( lt >= 0 && gt > lt ) {
                         AddressParser ap( irt.mid( lt, gt + 1 - lt ) );
-                        if ( ap.error().isEmpty() &&
-                             ap.addresses()->count() == 1 ) {
+                        ap.assertSingleAddress();
+                        if ( ap.error().isEmpty() ) {
                             // there is a message-id, so map from it
                             // to the message(s) that cite it as a
                             // possible parent
@@ -1030,8 +1030,8 @@ void Injector::convertThreadIndex()
                 int gt = irt.find( '>', lt );
                 if ( lt >= 0 && gt > lt ) {
                     AddressParser ap( irt.mid( lt, gt + 1 - lt ) );
-                    if ( ap.error().isEmpty() &&
-                         ap.addresses()->count() == 1 ) {
+                    ap.assertSingleAddress();
+                    if ( ap.error().isEmpty() ) {
                         // yes, we have the parent's message-id, or a
                         // plausible message-id anyway.
                         Address * a = ap.addresses()->firstElement();

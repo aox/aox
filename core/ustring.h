@@ -35,6 +35,7 @@ class UString
 public:
     UString();
     UString( const UString & );
+    UString( const char * );
     ~UString();
 
     UString & operator=( const UString & );

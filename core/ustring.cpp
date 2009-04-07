@@ -74,12 +74,24 @@ UString::UString()
 }
 
 
-/*!  Constructs an exact copy of \a other on the current arena. */
+/*!  Constructs an exact copy of \a other. */
 
 UString::UString( const UString & other )
     : Garbage(), d( new UStringData )
 {
     *this = other;
+}
+
+
+/*! Constructs a UString containing the \a asciiData.
+
+   \a asciiData must be just that. No UTF-8 or ISO-8859-x.
+*/
+
+UString::UString( const char * asciiData )
+    : Garbage(), d( new UStringData )
+{
+    append( asciiData );
 }
 
 

@@ -15,6 +15,7 @@ class Address
 {
 public:
     Address();
+    Address( const char *, const EString &, const EString & );
     Address( const UString &, const EString &, const EString & );
     Address( const EString &, const EString &, const EString & );
     Address( const Address & );
@@ -61,6 +62,8 @@ public:
 
     EString error() const;
     List<Address> * addresses() const;
+
+    void assertSingleAddress();
 
     static AddressParser * references( const EString & );
 

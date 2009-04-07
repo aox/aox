@@ -114,6 +114,21 @@ Address::Address( const EString &n, const EString &l, const EString &o )
 }
 
 
+/*! Constructs an address whose display-name is \a n (which must be
+    in ASCII), whose localpart is \a l and whose domain is \a o.
+*/
+
+Address::Address( const char * n, const EString & l, const EString & o )
+    : d( 0 )
+{
+    UString u;
+    u.append( n );
+    if ( !u.isAscii() )
+        u.truncate();
+    init( u, l, o );
+}
+
+
 class AddressCache
     : public Cache
 {
@@ -658,6 +673,42 @@ EString AddressParser::error() const
 List<Address> * AddressParser::addresses() const
 {
     return &d->a;
+}
+
+
+/*! Asserts that addresses() should return a list of a single regular
+    fully-qualified address. error() will return an error message if
+    that isn't the case.
+*/
+
+void AddressParser::assertSingleAddress()
+{
+    uint normal = 0;
+    List<Address>::Iterator i( d->a );
+    while ( i ) {
+        if ( i->type() == Address::Normal ) {
+            normal++;
+            if ( normal > 1 )
+                i->setError( "This is address no. " + fn( normal ) +
+                             " of 1 allowed" );
+        }
+        else {
+            i->setError( "Expected normal email address "
+                         "(whatever@example.com), got " +
+                         i->toString() );
+        }
+        ++i;
+    }
+
+    i = d->a.first();
+    while ( i ) {
+        if ( !i->error().isEmpty() )
+            error( i->error().cstr(), 0 );
+        ++i;
+    }
+
+    if ( d->a.isEmpty() )
+        error( "No address supplied", 0 );
 }
 
 
