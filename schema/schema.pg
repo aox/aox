@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (88);
+insert into mailstore (revision) values (89);
 
 
 -- One entry for each unique address we've encountered.
@@ -507,7 +507,7 @@ create table autoresponses (
 create table connections (
     -- Grant: insert
     id          serial primary key,
-    userid      integer references users(id),
+    username    text,
     address     inet not null,
     port        integer not null,
     mechanism   varchar not null,

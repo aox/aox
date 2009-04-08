@@ -555,6 +555,8 @@ bool Schema::singleStep()
         c = stepTo87(); break;
     case 87:
         c = stepTo88(); break;
+    case 88:
+        c = stepTo89(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4206,14 +4208,15 @@ bool Schema::stepTo88()
     return true;
 }
 
-// bool Schema::stepTo86()
-// {
-//     describeStep( "Adding functions to downgrade the schema." );
-//     ...
-// the function should only do the substantive change. other code will
-// drop the function and adjust the mailstore revision.
-//     d->t->enqueue(
-//         new Query( "create function downgrade_to_85() as $$"
-//                    "begin "
-//                    "end;$$ language 'plpgsql'", 0 ) );
-// }
+
+/*! Change connections.userid to username to help "aox delete user". */
+
+bool Schema::stepTo89()
+{
+    describeStep( "Dropping connections.userid; creating c.username." );
+    d->t->enqueue( "alter table connections add username text" );
+    d->t->enqueue( "update connections set username=users.login "
+                   "from users where users.id=connections.userid" );
+    d->t->enqueue( "alter table connections drop userid" );
+    return true;
+}
