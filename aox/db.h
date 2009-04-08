@@ -69,4 +69,18 @@ private:
 };
 
 
+class CheckDatabase
+    : public AoxCommand
+{
+public:
+    CheckDatabase( EStringList * );
+    void execute();
+    void expectEmpty( const char * );
+    void scream( class Query * );
+    
+private:
+    Transaction * t;
+};
+
+
 #endif

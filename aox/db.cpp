@@ -228,7 +228,7 @@ void Vacuum::execute()
             // moving stuff from mm to dm while increasing modseq
             // appropriately and not locking unrelated mailboxes is
             // complicated.
-            
+
             // make a staging table.
             t->enqueue( new Query( "create temporary table s ("
                                    "mailbox integer, "
@@ -275,7 +275,7 @@ void Vacuum::execute()
             // but we do need to notify the running server of the change
             t->enqueue( new Query( "notify mailboxes_updated", 0 ) );
         }
-            
+
         t->commit();
     }
 
@@ -535,4 +535,132 @@ void TuneDatabase::execute()
         return;
 
     finish();
+}
+
+
+static AoxFactory<CheckDatabase>
+f6( "check", "database", "Check database contents.",
+    "    Synopsis: aox check database\n\n"
+    "    Performs a number of sanity checks on the database contents.\n"
+    "    If the database has been damaged (e.g. during backup/restore),\n"
+    "    then one of these checks will probably report a problem.\n\n"
+    "    This command is very slow.\n" );
+
+
+/*! \class CheckDatabase db.h
+
+    Performs a number of consistency checks on the data in the
+    database.  This is meant to verify that a database is sensible,
+    e.g. after a backup. It is likely to be very, very slow.
+*/
+
+
+CheckDatabase::CheckDatabase( EStringList * args )
+    : AoxCommand( args ), t( 0 )
+{
+}
+
+
+void CheckDatabase::execute()
+{
+    if ( t )
+        return;
+
+    t = new Transaction( this );
+    // no message should have a UID larger than what the mailbox permits
+    expectEmpty( "select mm.uid, mb.name "
+                 "from mailbox_messages mm "
+                 "join mailboxes mb on (mb.mailbox=m.id) "
+                 "where mm.uid >= m.uidnext || mm.modseq >= m.nextmodseq" );
+    // that also applies to deleted mail
+    expectEmpty( "select dm.uid, mb.name "
+                 "from deleted_messages dm "
+                 "join mailboxes mb on (mb.mailbox=m.id) "
+                 "where dm.uid >= m.uidnext || dm.modseq >= m.nextmodseq" );
+    // we should have at least one header field for each message (date)
+    expectEmpty( "select m.id from messages m "
+                 "left join header_fields hf on (m.id=hf.message) "
+                 "where hf.message is null" );
+    // we should have at least one address field for each message (from)
+    expectEmpty( "select m.id from messages m "
+                 "left join address_fields af on (m.id=af.message) "
+                 "where af.message is null" );
+    // we should have a date field for each message
+    expectEmpty( "select m.id from messages m "
+                 "left join date_fields df on (m.id=df.message) "
+                 "where df.message is null" );
+
+    // the header fields in each header should be numbered 1-n
+    t->enqueue( "create temporary table have ("
+                "message integer, "
+                "part text, "
+                "position integer,"
+                "hf boolean, "
+                "af boolean"
+                ")" );
+    t->enqueue( "insert into have "
+                "(message, part, position, hf, af) "
+                "select distinct message, part, position, true, false "
+                "from header_fields" );
+    t->enqueue( "insert into have "
+                "(message, part, position, hf, af) "
+                "select distinct message, part, position, false, true "
+                "from address_fields" );
+    // if two fields have the same position...
+    expectEmpty( "select message, count(*) as duplicates from have "
+                 "group by (message, part, position) "
+                 "where duplicates>1" );
+    // if we're missing a field and have a higher-position field...
+    t->enqueue( "create temporary table need ("
+                "message integer, "
+                "part text, "
+                "position integer"
+                ")" );
+    t->enqueue( "insert into need "
+                "(message, part, position) "
+                "select s.message, s.part, "
+                "generate_series( 1, s.pos ) from "
+                "(select message, part, max(position) as maxpos"
+                " from have group by message, part)" );
+    expectEmpty( "select need.message from need "
+                 "left join have using (message,part,position) "
+                 "where have.message is null" );
+
+    t->commit();
+    finish();
+}
+
+
+class EmptinessChecker
+    : public EventHandler
+{
+public:
+    EmptinessChecker(): EventHandler(), q( 0 ), c( 0 ) {}
+
+    Query * q;
+    CheckDatabase * c;
+    void execute() {
+        if ( q && q->hasResults() )
+            c->scream( q );
+    }
+};
+
+
+/*! Sends \a query and complains if the results are anything but empty. */
+
+void CheckDatabase::expectEmpty( const char * query )
+{
+    EmptinessChecker * x = new EmptinessChecker;
+    x->c = this;
+    x->q = new Query( query, x );
+    t->enqueue( x->q );
+}
+
+
+/*! Screams that \a q gave a BAD UGLY result. */
+
+void CheckDatabase::scream( class Query * q )
+{
+    error( "Unexpected rows in the database. Contact info@oryx.com. "
+           "Query: " + q->string() );
 }
