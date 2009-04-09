@@ -49,7 +49,7 @@ public:
 /*! Constructs a SieveNotifyMethod object to parse and generally check
     \a url.
 
-    Reports errors using\a argument if that is non-null, otherwise
+    Reports errors using \a argument if that is non-null, otherwise
     using \a command.
 */
 
@@ -207,4 +207,14 @@ bool SieveNotifyMethod::valid()
 SieveNotifyMethod::Reachability SieveNotifyMethod::reachability() const
 {
     return Unknown;
+}
+
+
+/*! Returns the notification type, as inferred using the URL at
+    construction time.
+*/
+
+SieveNotifyMethod::Type SieveNotifyMethod::type() const
+{
+    return d->type;
 }

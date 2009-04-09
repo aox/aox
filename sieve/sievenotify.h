@@ -11,12 +11,6 @@ class SieveArgument;
 class Address;
 
 
-class SieveNotifier
-    : public Garbage
-{
-};
-
-
 class SieveNotifyMethod
     : public Garbage
 {
@@ -37,7 +31,9 @@ public:
         Mailto,
         Invalid
     };
-    
+
+    Type type() const;
+
     enum Reachability {
         Immediate,
         Delayed,
@@ -48,7 +44,7 @@ public:
 private:
     class SieveNotifyMethodData * d;
     void reportError( const EString &, class SieveProduction * = 0 );
-    
+
 };
 
 
