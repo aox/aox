@@ -406,12 +406,12 @@ void Server::fork()
     while ( d->mainProcess ) {
         List<pid_t>::Iterator c( d->children );
         while ( c ) {
-            List<pid_t>::Iterator c( d->children );
-            int r = ESRCH;
-            if ( *c )
-                r = ::kill( *c, 0 );
-            if ( r == ESRCH )
-                *c = 0;
+            if ( *c ) {
+                int r = ::kill( *c, 0 );
+                if ( r < 0 && errno == ESRCH )
+                    *c = 0;
+            }
+            ++c;
         }
         c = d->children->first();
         uint i = 0;
@@ -425,13 +425,13 @@ void Server::fork()
                 }
                 else if ( *c > 0 ) {
                     // the parent, all is well
-                    ++i;
                 }
                 else {
                     // a child. fork() must return.
                     d->mainProcess = false;
                 }
             }
+            ++i;
             ++c;
         }
         int status = 0;
@@ -444,9 +444,9 @@ void Server::fork()
     log( "Process " + fn( getpid() ) + " started" );
     if ( Configuration::toggle( Configuration::UseStatistics ) ) {
         uint port = Configuration::scalar( Configuration::StatisticsPort );
-        log( "Using port " + fn( port + i ) +
+        log( "Using port " + fn( port + i - 1 ) +
              " for statistics queries" );
-        Configuration::add( "statistics-port = " + fn( port + i ) );
+        Configuration::add( "statistics-port = " + fn( port + i - 1 ) );
     }
 }
 
