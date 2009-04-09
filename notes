@@ -1,6 +1,6 @@
 Schedule
 
-  Nothing yet.
+  AMS: 04/28–05/12: Munsiari.
 
 
 P/W: Stuff we may want to keep
@@ -1441,6 +1441,13 @@ Caching search results
 
   If a selector is !dynamic(), its results can be cached until the next
   modseq change on the mailbox.
+
+
+Bugs
+
+  - "aox start" doesn't complain when there's a schema mismatch error.
+  - connections aren't logged for ams on penne.
+  - aox -v -v is broken by the syslog change.
 
 
 

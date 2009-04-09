@@ -60,3 +60,12 @@ begin
     alter table users alter alias set not null;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_88()
+returns int as $$
+begin
+    alter table connections add userid integer;
+    update connections set userid=users.id from users where users.login=connections.username;
+    alter table connections drop username;
+    alter table connections add foreign key(userid) references users(id);
+end;$$ language 'plpgsql';
