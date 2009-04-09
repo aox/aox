@@ -206,9 +206,6 @@ void Server::setup( Stage s )
         case Invariant:
             c = "Invariant failed during server startup.";
             break;
-        case Segfault:
-            c = "Segfault detected during server startup.";
-            break;
         case Memory:
             c = "Out of memory during server startup.";
             break;
@@ -317,12 +314,6 @@ static void shutdownLoop( int )
 }
 
 
-static void closeGuiltyConnection( int )
-{
-    die( Segfault );
-}
-
-
 static void dumpCoreAndGoOn( int )
 {
     if ( fork() )
@@ -372,11 +363,6 @@ void Server::loop()
     // discover that it's closed a little later.
     sa.sa_handler = SIG_IGN;
     ::sigaction( SIGPIPE, &sa, 0 );
-
-    // if we dereference a null pointer, we usually can close some fd
-    // and go on
-    sa.sa_handler = closeGuiltyConnection;
-    ::sigaction( SIGSEGV, &sa, 0 );
 
     // a custom signal to dump core and go on
     sa.sa_handler = dumpCoreAndGoOn;

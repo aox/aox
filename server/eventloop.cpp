@@ -475,9 +475,6 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
         case Invariant:
             s = "Invariant failed";
             break;
-        case Segfault:
-            s = "Segfault";
-            break;
         case Memory:
             s = "Out of memory";
             break;
