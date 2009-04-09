@@ -83,14 +83,14 @@ void SaslConnection::close()
 
     Query * q = new Query(
         "insert into connections "
-        "(userid,address,port,mechanism,authfailures,"
+        "(username,address,port,mechanism,authfailures,"
         "syntaxerrors,started_at,ended_at) "
         "values ($1,$2,$3,$4,$5,$6,"
         "$7::interval + 'epoch'::timestamptz,"
         "$8::interval + 'epoch'::timestamptz)", 0
     );
 
-    q->bind( 1, u->id() );
+    q->bind( 1, u->login() );
     q->bind( 2, client.address() );
     q->bind( 3, client.port() );
     q->bind( 4, m );
