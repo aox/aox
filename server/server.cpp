@@ -394,12 +394,10 @@ void Server::fork()
     }
 
     d->mainProcess = true;
-    uint children = 0;
-    if ( d->name == "archiveopteryx" ) {
+    d->children = new List<pid_t>;
+    uint children = 1;
+    if ( d->name == "archiveopteryx" )
         children = Configuration::scalar( Configuration::ServerProcesses );
-        if ( children > 1 )
-            d->children = new List<pid_t>;
-    }
     uint i = 0;
     while ( i < children ) {
         d->children->append( new pid_t( 0 ) );
