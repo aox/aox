@@ -121,8 +121,7 @@ void Copy::execute()
                        "uid integer,"
                        "message integer,"
                        "nuid integer,"
-                       "seen boolean,"
-                       "deleted boolean"
+                       "seen boolean"
                        ")", 0 );
         d->transaction->enqueue( q );
 
@@ -132,8 +131,7 @@ void Copy::execute()
 
         q = new Query( "insert into t "
                        "(mailbox, uid, message, nuid, seen, deleted ) "
-                       "select mailbox, uid, message, nextval('s'), "
-                       "seen, deleted "
+                       "select mailbox, uid, message, nextval('s'), seen "
                        "from mailbox_messages "
                        "where mailbox=$1 and uid=any($2) order by uid", 0 );
         q->bind( 1, session()->mailbox()->id() );
@@ -152,7 +150,7 @@ void Copy::execute()
 
         q = new Query( "insert into mailbox_messages "
                        "(mailbox, uid, message, modseq, seen, deleted) "
-                       "select $1, t.nuid, message, $2, t.seen, t.deleted "
+                       "select $1, t.nuid, message, $2, t.seen, false "
                        "from t", 0 );
         q->bind( 1, d->mailbox->id() );
         q->bind( 2, modseq );
