@@ -1446,7 +1446,6 @@ Caching search results
 Bugs
 
   - "aox start" doesn't complain when there's a schema mismatch error.
-  - connections aren't logged for ams on penne.
   - aox -v -v is broken by the syslog change.
 
 
