@@ -137,7 +137,7 @@ void Timer::notify()
     }
     catch ( Exception e ) {
         d->owner = 0; // so we can't get close to a segfault again
-        if ( e == Invariant || e == Segfault ) {
+        if ( e == Invariant ) {
             // Analogous to EventLoop::dispatch, we try to close the
             // connection that threw the exception. The problem is
             // that we don't know which one did. So we try to find one
