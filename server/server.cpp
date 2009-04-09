@@ -22,6 +22,9 @@
 #include <stdio.h>
 // sigaction, sigemptyset
 #include <signal.h>
+// waitpid()
+#include <sys/types.h>
+#include <sys/wait.h>
 
 // our own includes, _after_ the system header files. lots of system
 // header files break if we've already defined UINT_MAX, etc.
@@ -403,6 +406,7 @@ void Server::fork()
     } else if ( p > 0 ) {
         exit( 0 );
     }
+
     d->mainProcess = true;
     uint children = 0;
     if ( d->name == "archiveopteryx" ) {
@@ -410,32 +414,55 @@ void Server::fork()
         if ( children > 1 )
             d->children = new List<pid_t>;
     }
-    uint i = 1;
-    while ( d->children && i < children ) {
-        pid_t * child = new pid_t;
-        *child = ::fork();
-        if ( *child < 0 ) {
-            log( "Unable to fork server; pressing on. Error code " +
-                 fn( errno ), Log::Error );
-        }
-        else if ( *child > 0 ) {
-            log( "Process " + fn( getpid() ) + " forked " + fn( *child ) );
-            d->children->append( child );
-        }
-        else {
-            d->mainProcess = false;
-            d->children = 0;
-            EventLoop::global()->closeAllExceptListeners();
-            log( "Process " + fn( getpid() ) + " started" );
-            if ( Configuration::toggle( Configuration::UseStatistics ) ) {
-                uint port
-                    = Configuration::scalar( Configuration::StatisticsPort );
-                log( "Using port " + fn( port + i ) +
-                     " for statistics queries" );
-                Configuration::add( "statistics-port = " + fn( port + i ) );
-            }
-        }
+    uint i = 0;
+    while ( i < children ) {
+        d->children->append( new pid_t( 0 ) );
         i++;
+    }
+    while ( d->mainProcess ) {
+        List<pid_t>::Iterator c( d->children );
+        while ( c ) {
+            List<pid_t>::Iterator c( d->children );
+            int r = ESRCH;
+            if ( *c )
+                r = ::kill( *c, 0 );
+            if ( r == ESRCH )
+                *c = 0;
+        }
+        c = d->children->first();
+        uint i = 0;
+        while ( c && d->mainProcess ) {
+            if ( !*c ) {
+                *c = ::fork();
+                if ( *c < 0 ) {
+                    log( "Unable to fork server; pressing on. Error code " +
+                         fn( errno ), Log::Error );
+                    *c = 0;
+                }
+                else if ( *c > 0 ) {
+                    // the parent, all is well
+                    ++i;
+                }
+                else {
+                    // a child. fork() must return.
+                    d->mainProcess = false;
+                }
+            }
+            ++c;
+        }
+        int status = 0;
+        ::waitpid( -1, &status, 0 );
+    }
+
+    // only a child gets this far
+    d->children = 0;
+    EventLoop::global()->closeAllExceptListeners();
+    log( "Process " + fn( getpid() ) + " started" );
+    if ( Configuration::toggle( Configuration::UseStatistics ) ) {
+        uint port = Configuration::scalar( Configuration::StatisticsPort );
+        log( "Using port " + fn( port + i ) +
+             " for statistics queries" );
+        Configuration::add( "statistics-port = " + fn( port + i ) );
     }
 }
 
