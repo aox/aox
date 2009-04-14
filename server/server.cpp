@@ -55,7 +55,7 @@ public:
           secured( false ), fork( false ), useCache( USECACHE ),
           chrootMode( Server::JailDir ),
           queries( new List< Query > ),
-          children( 0 ),
+          children( 0 ), parent( 0 ),
           mainProcess( false )
     {}
 
@@ -68,6 +68,7 @@ public:
     Server::ChrootMode chrootMode;
     List< Query > *queries;
     List<pid_t> * children;
+    pid_t parent;
     bool mainProcess;
 };
 
@@ -332,9 +333,16 @@ static void dumpCoreAndGoOn( int )
 
 void Server::killChildren()
 {
+    if ( d->parent ) {
+        pid_t p = d->parent;
+        d->parent = 0;
+        kill( p, SIGTERM );
+    }
     List<pid_t>::Iterator child( d->children );
+    d->children = 0;
     while ( child ) {
-        ::kill( *child, SIGTERM );
+        if ( *child )
+            ::kill( *child, SIGTERM );
         ++child;
     }
 }
@@ -403,6 +411,7 @@ void Server::fork()
         d->children->append( new pid_t( 0 ) );
         i++;
     }
+    pid_t pid = ::getpid();
     while ( d->mainProcess ) {
         List<pid_t>::Iterator c( d->children );
         while ( c ) {
@@ -415,7 +424,6 @@ void Server::fork()
         }
         c = d->children->first();
         uint i = 0;
-        uint forked = 0;
         while ( c && d->mainProcess ) {
             if ( !*c ) {
                 *c = ::fork();
@@ -426,7 +434,6 @@ void Server::fork()
                 }
                 else if ( *c > 0 ) {
                     // the parent, all is well
-                    forked++;
                 }
                 else {
                     // a child. fork() must return.
@@ -437,13 +444,12 @@ void Server::fork()
             ++c;
         }
         int status = 0;
-        if ( forked )
-            ::sleep( forked + 5 );
         ::waitpid( -1, &status, 0 );
     }
 
     // only a child gets this far
     d->children = 0;
+    d->parent = pid;
     EventLoop::global()->closeAllExceptListeners();
     log( "Process " + fn( getpid() ) + " started" );
     if ( Configuration::toggle( Configuration::UseStatistics ) ) {
