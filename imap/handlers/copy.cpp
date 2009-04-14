@@ -130,7 +130,7 @@ void Copy::execute()
         d->transaction->enqueue( q );
 
         q = new Query( "insert into t "
-                       "(mailbox, uid, message, nuid, seen, deleted ) "
+                       "(mailbox, uid, message, nuid, seen) "
                        "select mailbox, uid, message, nextval('s'), seen "
                        "from mailbox_messages "
                        "where mailbox=$1 and uid=any($2) order by uid", 0 );
