@@ -125,7 +125,8 @@ void AddressField::parse( const EString &s )
             // it's garbage.
             setError( "" );
         }
-        if ( !valid() && a->count() <= 1 && s.startsWith( "@" ) ) {
+        if ( !valid() && a->count() <= 1 && 
+             ( s.startsWith( "@" ) || s.startsWith( "<@" ) ) ) {
             // some spammers send To: @hostname. forget it.
             a->clear();
             setError( "" );
