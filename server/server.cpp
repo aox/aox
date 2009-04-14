@@ -25,6 +25,8 @@
 // waitpid()
 #include <sys/types.h>
 #include <sys/wait.h>
+// time()
+#include <time.h>
 
 // our own includes, _after_ the system header files. lots of system
 // header files break if we've already defined UINT_MAX, etc.
@@ -412,6 +414,7 @@ void Server::fork()
         i++;
     }
     pid_t pid = ::getpid();
+    uint failures = 0;
     while ( d->mainProcess ) {
         List<pid_t>::Iterator c( d->children );
         while ( c ) {
@@ -424,6 +427,7 @@ void Server::fork()
         }
         c = d->children->first();
         uint i = 0;
+        bool forked = false;
         while ( c && d->mainProcess ) {
             if ( !*c ) {
                 *c = ::fork();
@@ -434,6 +438,7 @@ void Server::fork()
                 }
                 else if ( *c > 0 ) {
                     // the parent, all is well
+                    forked = true;
                 }
                 else {
                     // a child. fork() must return.
@@ -443,8 +448,20 @@ void Server::fork()
             ++i;
             ++c;
         }
-        int status = 0;
-        ::waitpid( -1, &status, 0 );
+        if ( d->mainProcess ) {
+            int status = 0;
+            time_t now = time( 0 );
+            // did a server quit in less than five seconds?
+            ::waitpid( -1, &status, 0 );
+            if ( time( 0 ) < now + 5 )
+                failures++;
+            else
+                failures = 0;
+            if ( failures > 5 )
+                exit( 0 ); // happens all the time, very bad
+            else if ( forked && failures > 1 )
+                sleep( 2 ); // happened twice, don't try again at once
+        }
     }
 
     // only a child gets this far
