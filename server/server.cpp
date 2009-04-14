@@ -415,6 +415,7 @@ void Server::fork()
         }
         c = d->children->first();
         uint i = 0;
+        uint forked = 0;
         while ( c && d->mainProcess ) {
             if ( !*c ) {
                 *c = ::fork();
@@ -425,6 +426,7 @@ void Server::fork()
                 }
                 else if ( *c > 0 ) {
                     // the parent, all is well
+                    forked++;
                 }
                 else {
                     // a child. fork() must return.
@@ -435,6 +437,8 @@ void Server::fork()
             ++c;
         }
         int status = 0;
+        if ( forked )
+            ::sleep( forked + 5 );
         ::waitpid( -1, &status, 0 );
     }
 
