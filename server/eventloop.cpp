@@ -27,6 +27,9 @@
 // read, select
 #include <unistd.h>
 
+// memset (for FD_* under OpenBSD)
+#include <string.h>
+
 
 static bool freeMemorySoon;
 
