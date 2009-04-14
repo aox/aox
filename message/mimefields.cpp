@@ -405,7 +405,8 @@ void ContentType::parse( const EString &s )
             if ( p.nextChar() == '/' ) {
                 // eek. this makes mime look like the special case.
                 p.step();
-                st = p.mimeToken().lower();
+                if ( !p.atEnd() )
+                    st = p.mimeToken().lower();
                 if ( st.isEmpty() )
                     mustGuess = true;
             }
@@ -444,6 +445,9 @@ void ContentType::parse( const EString &s )
         else if ( fn == "htm" || fn == "html" ) {
             t = "text";
             st = "html";
+        }
+        else if ( fn.isEmpty() && st.isEmpty() && t == "text" ) {
+            st = "plain";
         }
     }
 
