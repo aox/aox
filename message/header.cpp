@@ -1334,7 +1334,7 @@ void Header::repair( Multipart * p, const EString & body )
     // - Good HTML starts with doctype or html
     // - Syntactically invalid fields are bad
     // - All others are neutral
-    // If we have exactly one good field at the end, we dump the
+    // If we have at least one good field at the end, we dump the
     // neutral and bad ones. If we have no good fields, one neutral
     // field and the rest bad, we dump the bad ones.
     if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
@@ -1371,11 +1371,11 @@ void Header::repair( Multipart * p, const EString & body )
             }
             hf = field( HeaderField::ContentType, ++i );
         }
-        if ( good.count() == 1 ) {
+        if ( !good.isEmpty() ) {
             removeField( HeaderField::ContentType );
             add( good.first() );
         }
-        else if ( good.isEmpty() && neutral.count() == 1 ) {
+        else if ( neutral.count() == 1 ) {
             removeField( HeaderField::ContentType );
             add( neutral.first() );
         }
