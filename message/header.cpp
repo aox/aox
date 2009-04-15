@@ -1633,7 +1633,8 @@ void Header::repair( Multipart * p, const EString & body )
 
     if ( occurrences[(int)HeaderField::ContentTransferEncoding] ) {
         ContentTransferEncoding * cte = contentTransferEncoding();
-        if ( cte && !cte->valid() ) {
+        HeaderField * cte2 = field( HeaderField::ContentTransferEncoding, 1 );
+        if ( cte && ( cte2 || !cte->valid() ) ) {
             uint minl = UINT_MAX;
             uint maxl = 0;
             uint i = 0;
