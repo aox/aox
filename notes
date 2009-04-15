@@ -554,13 +554,6 @@ Message arrival tag
   something like that.
 
 
-Message Retention Policy Framework
-
-  A lot of sites will want explicit policies regarding what mail may
-  not be deleted, what may be deleted, and what must be deleted. We
-  can support that well.
-
-
 Sieve ihave
 
   There are three holes in our ihave rules.
@@ -628,13 +621,6 @@ Squirrelmail
      those expunges into noops.
 
   That should speed up SM and probably other webmail systems nicely.
-
-
-Allocator
-
-  The binary tree used in Allocator is likely to be extremely
-  unbalanced sometimes, perhaps often. Using a Patricia tree will work
-  well.
 
 
 Using rrdtool
@@ -790,47 +776,6 @@ Document IPC structure
   connecting to who and why.
 
 
-Reference counting GC
-
-  We can switch to using shared_ptr, intrusive_ptr, or a clone of
-  either.
-
-  shared_ptr and intrusive_ptr both are particular to the pointer
-  value, ie. if we allocate a MailboxData and it contains an UString
-  member, pointing to that UString isn't safe.
-
-  We can work around that with intrustive_ptr, if we provide a boolean
-  in Garbage: allocatedUsingNew(), and a hack in the Garbage
-  constructor to make sure we know.
-
-    union {
-        Garbage * surrounder;
-        uint refcount;
-    }
-
-  intrusive_ptr_add_ref( Garbage * ) would have to do this:
-
-    if ( g->allocatedUsingNew() )
-        g->refcount++;
-    else
-        g->surrounder->refcount++;
-
-  If we do this, then everything we currently do should be safe. But
-  the hack would be hacky.
-
-  Reference counting has problems with circular structures. We have
-  two of those: Selector and Message.
-
-  Selector is solvable. Its parent pointers are used only to access
-  the root's d pointer, and we could change the implementation
-  accordingly.
-
-  Message seems more difficult. On one hand its circularity has
-  brought problems before so it would be nice to change. On the other
-  I don't know any way to get rid of the blah.  Functions like
-  Bodypart::contentType() seem to need Multipart::parent().
-
-
 Add a web page about the charset encoding.
 
   It's a novel and good algorithm, so we can make a good page about
@@ -859,31 +804,6 @@ Search ourselves, not via google
   Or maybe farm that out, get google to search with an approximation
   of our design. http://www.google.com/faq_freewebsearch.html may be
   interesting.
-
-
-System flags in mailbox_messages
-
-  We're doing a lot of work on system flags, and we update
-  mailbox_messages for every single system flag change. Maybe we
-  should go back to storing \seen and \deleted in mailbox_messages.
-
-  Changes needed:
-
-  1. Store needs to learn a new query. Dead easy
-  2. Fetcher needs to learn to fetch the flags. Slightly
-     tricky. An hour's work.
-  3. Selector needs to learn to search on the special cases.
-  4. Injector needs to set those flags if necessary.
-
-  The schema change is a little evil. Lots of rows changed.
-
-  Unfortunately I don't think this is doable in 3.0. 3.1, yes. 3.0,
-  no. We want 2.11 to use the same schema as 3.0.0, and practically
-  all of the code involved has been rewritten since 2.11.
-
-  I think this is something we want to do in 3.1.0 and 3.0.2. We make
-  2.11 schema-compatible with 3.0.0, 2.12 with 3.0.1, but after 2.12
-  that stops. 3.0.2 can be schema-compatible with 3.1.0.
 
 
 Logging to syslog
@@ -1107,13 +1027,6 @@ We need to be able to disable users
   - a group admin can enable/disable group members
   - a superadmin can enable/disable anyone
   - a group admin cannot unblock an overall blockage
-
-
-Assigning the "l" right automatically hurts shared hosting.
-
-  Casey Shobe <casey@shobe.info> wants to host multiple customers in a
-  single Archiveopteryx installation, and doesn't want them to be able
-  to see each other's mailboxes. We could support that now (2008-01).
 
 
 Showing email addresses in public archives is... well...
