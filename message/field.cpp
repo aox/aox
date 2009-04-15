@@ -183,6 +183,8 @@ HeaderField *HeaderField::create( const EString &name,
     suf->parse( value.mid( i ) );
     if ( suf->valid() )
         return suf;
+    if ( !hf->valid() )
+        hf->setUnparsedValue( value );
     return hf;
 }
 
@@ -398,9 +400,6 @@ void HeaderField::parse( const EString &s )
             parseOther( s );
         break;
     }
-
-    if ( !valid() )
-        setUnparsedValue( s );
 }
 
 

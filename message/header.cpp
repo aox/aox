@@ -1671,6 +1671,22 @@ void Header::repair( Multipart * p, const EString & body )
         }
     }
 
+    // Some people don't know c-t from c-t-e
+
+    if ( occurrences[(int)HeaderField::ContentTransferEncoding] == 0 &&
+         occurrences[(int)HeaderField::ContentType] &&
+         !contentType()->valid() ) {
+        ContentTransferEncoding * phaps =
+            new ContentTransferEncoding;
+        phaps->parse( contentType()->unparsedValue() );
+        if ( phaps->valid() ) {
+            removeField( HeaderField::ContentTransferEncoding );
+            removeField( HeaderField::ContentType );
+            add( phaps );
+            add( "Content-Type", "application/octet-stream" );
+        }
+    }
+
     d->verified = false;
 }
 

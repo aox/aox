@@ -502,6 +502,9 @@ void ContentType::parse( const EString &s )
         if ( c )
             addParameter( "charset", c->name().lower() );
     }
+
+    if ( !valid() )
+        setUnparsedValue( s );
 }
 
 
