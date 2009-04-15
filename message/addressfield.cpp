@@ -114,8 +114,8 @@ void AddressField::parse( const EString &s )
             // it's garbage.
             setError( "" );
         }
-        if ( !valid() && a->count() <= 1 && 
-             ( s.startsWith( "@" ) || s.startsWith( "<@" ) ) ) {
+        if ( !valid() && a->count() <= 1 &&
+             ( s.startsWith( "@" ) || s.contains( "<@" ) ) ) {
             // some spammers send To: @hostname. forget it.
             a->clear();
             setError( "" );
@@ -142,8 +142,6 @@ void AddressField::parse( const EString &s )
 
     if ( type() != HeaderField::ReturnPath )
         outlawBounce();
-    if ( !valid() )
-        setUnparsedValue( s );
 }
 
 
