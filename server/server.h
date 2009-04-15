@@ -55,6 +55,7 @@ private:
     void pidFile();
     void logStartup();
     void secure();
+    void maintainChildren();
 };
 
 

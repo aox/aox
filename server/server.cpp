@@ -57,7 +57,7 @@ public:
           secured( false ), fork( false ), useCache( USECACHE ),
           chrootMode( Server::JailDir ),
           queries( new List< Query > ),
-          children( 0 ), parent( 0 ),
+          children( 0 ),
           mainProcess( false )
     {}
 
@@ -70,7 +70,6 @@ public:
     Server::ChrootMode chrootMode;
     List< Query > *queries;
     List<pid_t> * children;
-    pid_t parent;
     bool mainProcess;
 };
 
@@ -198,6 +197,7 @@ void Server::setup( Stage s )
                 secure();
                 break;
             case Finish:
+                maintainChildren();
                 break;
             }
             d->stage = (Stage)(d->stage + 1);
@@ -335,11 +335,6 @@ static void dumpCoreAndGoOn( int )
 
 void Server::killChildren()
 {
-    if ( d->parent ) {
-        pid_t p = d->parent;
-        d->parent = 0;
-        kill( p, SIGTERM );
-    }
     List<pid_t>::Iterator child( d->children );
     d->children = 0;
     while ( child ) {
@@ -402,79 +397,6 @@ void Server::fork()
     } else if ( p > 0 ) {
         exit( 0 );
     }
-
-    d->mainProcess = true;
-    d->children = new List<pid_t>;
-    uint children = 1;
-    if ( d->name == "archiveopteryx" )
-        children = Configuration::scalar( Configuration::ServerProcesses );
-    uint i = 0;
-    while ( i < children ) {
-        d->children->append( new pid_t( 0 ) );
-        i++;
-    }
-    pid_t pid = ::getpid();
-    uint failures = 0;
-    while ( d->mainProcess ) {
-        List<pid_t>::Iterator c( d->children );
-        while ( c ) {
-            if ( *c ) {
-                int r = ::kill( *c, 0 );
-                if ( r < 0 && errno == ESRCH )
-                    *c = 0;
-            }
-            ++c;
-        }
-        c = d->children->first();
-        uint i = 0;
-        bool forked = false;
-        while ( c && d->mainProcess ) {
-            if ( !*c ) {
-                *c = ::fork();
-                if ( *c < 0 ) {
-                    log( "Unable to fork server; pressing on. Error code " +
-                         fn( errno ), Log::Error );
-                    *c = 0;
-                }
-                else if ( *c > 0 ) {
-                    // the parent, all is well
-                    forked = true;
-                }
-                else {
-                    // a child. fork() must return.
-                    d->mainProcess = false;
-                }
-            }
-            ++i;
-            ++c;
-        }
-        if ( d->mainProcess ) {
-            int status = 0;
-            time_t now = time( 0 );
-            // did a server quit in less than five seconds?
-            ::waitpid( -1, &status, 0 );
-            if ( time( 0 ) < now + 5 )
-                failures++;
-            else
-                failures = 0;
-            if ( failures > 5 )
-                exit( 0 ); // happens all the time, very bad
-            else if ( forked && failures > 1 )
-                sleep( 2 ); // happened twice, don't try again at once
-        }
-    }
-
-    // only a child gets this far
-    d->children = 0;
-    d->parent = pid;
-    EventLoop::global()->closeAllExceptListeners();
-    log( "Process " + fn( getpid() ) + " started" );
-    if ( Configuration::toggle( Configuration::UseStatistics ) ) {
-        uint port = Configuration::scalar( Configuration::StatisticsPort );
-        log( "Using port " + fn( port + i - 1 ) +
-             " for statistics queries" );
-        Configuration::add( "statistics-port = " + fn( port + i - 1 ) );
-    }
 }
 
 
@@ -486,9 +408,6 @@ void Server::fork()
 
 void Server::pidFile()
 {
-    if ( !d->mainProcess )
-        return;
-
     EString dir( Configuration::compiledIn( Configuration::PidFileDir ) );
 
     EString n = dir + "/" + d->name + ".pid";
@@ -762,4 +681,85 @@ bool Server::useCache()
     if ( d )
         return d->useCache;
     return false;
+}
+
+
+/*! Maintains the requisite number of children. Only child processes
+    return from this function.
+*/
+
+void Server::maintainChildren()
+{
+    d->mainProcess = true;
+    d->children = new List<pid_t>;
+    uint children = 1;
+    if ( d->name == "archiveopteryx" )
+        children = Configuration::scalar( Configuration::ServerProcesses );
+    uint i = 0;
+    while ( i < children ) {
+        d->children->append( new pid_t( 0 ) );
+        i++;
+    }
+    uint failures = 0;
+    while ( d->mainProcess ) {
+        List<pid_t>::Iterator c( d->children );
+        while ( c ) {
+            if ( *c ) {
+                int r = ::kill( *c, 0 );
+                if ( r < 0 && errno == ESRCH )
+                    *c = 0;
+            }
+            ++c;
+        }
+        c = d->children->first();
+        uint i = 0;
+        bool forked = false;
+        while ( c && d->mainProcess ) {
+            if ( !*c ) {
+                *c = ::fork();
+                if ( *c < 0 ) {
+                    log( "Unable to fork server; pressing on. Error code " +
+                         fn( errno ), Log::Error );
+                    *c = 0;
+                }
+                else if ( *c > 0 ) {
+                    // the parent, all is well
+                    forked = true;
+                }
+                else {
+                    // a child. fork() must return.
+                    d->mainProcess = false;
+                }
+            }
+            ++i;
+            ++c;
+        }
+        if ( d->mainProcess ) {
+            int status = 0;
+            time_t now = time( 0 );
+            // did a server quit in less than five seconds?
+            ::waitpid( -1, &status, 0 );
+            if ( forked && time( 0 ) < now + 5 ) {
+                if ( failures > 5 )
+                    exit( 0 ); // the children keep dying, best quit
+                else if ( failures )
+                    ::sleep( 2 );
+                failures++;
+            }
+            else {
+                failures = 0;
+            }
+        }
+    }
+
+    // only a child gets this far
+    d->children = 0;
+    EventLoop::global()->closeAllExceptListeners();
+    log( "Process " + fn( getpid() ) + " started" );
+    if ( Configuration::toggle( Configuration::UseStatistics ) ) {
+        uint port = Configuration::scalar( Configuration::StatisticsPort );
+        log( "Using port " + fn( port + i - 1 ) +
+             " for statistics queries" );
+        Configuration::add( "statistics-port = " + fn( port + i - 1 ) );
+    }
 }
