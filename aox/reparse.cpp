@@ -7,6 +7,7 @@
 #include "message.h"
 #include "mailbox.h"
 #include "injector.h"
+#include "integerset.h"
 #include "transaction.h"
 
 #include <stdio.h>
@@ -20,11 +21,10 @@ class ReparseData
 {
 public:
     ReparseData()
-        : q( 0 ), injector( 0 ), t( 0 )
+        : q( 0 ), t( 0 )
     {}
 
     Query * q;
-    Injector * injector;
     Transaction * t;
 };
 
@@ -58,24 +58,30 @@ void Reparse::execute()
         database( true );
         Mailbox::setup( this );
 
+        d->t = new Transaction( this );
         d->q = new Query( "select mm.mailbox, mm.uid, mm.modseq, "
                           "mm.message as wrapper, "
+                          "mb.nextmodseq, "
                           "b.id as bodypart, b.text, b.data "
                           "from unparsed_messages u "
                           "join bodyparts b on (u.bodypart=b.id) "
                           "join part_numbers p on (p.bodypart=b.id) "
-                          "join mailbox_messages mm on (p.message=mm.message)",
+                          "join mailbox_messages mm on (p.message=mm.message) "
+                          "join mailboxes mb on (mm.mailbox=mb.id) "
+                          "order by mm.mailbox "
+                          "for update",
                           this );
-        d->q->execute();
+        d->t->enqueue( d->q );
+        d->t->execute();
     }
 
     if ( !choresDone() )
         return;
 
-    if ( !d->t ) {
-        d->injector = new Injector( this );
-        d->t = new Transaction( this );
-    }
+    if ( !d->q->done() )
+        return;
+
+    IntegerSet parsable;
 
     List<Injectee> injectables;
     while ( d->q && d->q->hasResults() ) {
@@ -94,26 +100,21 @@ void Reparse::execute()
             im->setFlags( mb, &x );
             injectables.append( im );
 
-            Query * q =
-                new Query( "delete from unparsed_messages where "
-                           "bodypart=$1", this );
-            q->bind( 1, r->getInt( "bodypart" ) );
-            d->t->enqueue( q );
-            q = new Query( "insert into deleted_messages "
-                           "(mailbox,uid,message,modseq,deleted_by,reason) "
-                           "values ($1,$2,$3,$4,$5,$6)", this );
+            parsable.add( r->getInt( "bodypart" ) );
+
+            Query * q
+                = new Query( "insert into deleted_messages "
+                             "(mailbox,uid,message,modseq,deleted_by,reason) "
+                             "values ($1,$2,$3,$4,$5,$6)", this );
             q->bind( 1, r->getInt( "mailbox" ) );
             q->bind( 2, r->getInt( "uid" ) );
             q->bind( 3, r->getInt( "wrapper" ) );
-            // using the unchanged modseq here is really a bug, but
-            // the right value isn't available, at least not yet.
-            q->bind( 4, r->getBigint( "modseq" ) );
+            q->bind( 4, r->getBigint( "nextmodseq" ) );
             q->bindNull( 5 );
             q->bind( 6,
                      EString( "reparsed by aox " ) +
                      Configuration::compiledIn( Configuration::Version ) );
             d->t->enqueue( q );
-            d->t->commit();
             printf( "- reparsed %s:%d\n",
                     mb->name().utf8().cstr(),
                     r->getInt( "uid" ) );
@@ -126,37 +127,29 @@ void Reparse::execute()
                 printf( "- wrote a copy to %s\n",
                         writeErrorCopy( text ).cstr() );
         }
-    }
-    if ( d->injector )
-        d->injector->addInjection( &injectables );
 
-    if ( d->q && !d->q->done() )
-        return;
-    if ( d->q ) {
-        d->q = 0;
-        d->injector->execute();
+    }
+    if ( !injectables.isEmpty() ) {
+        Query * q =
+            new Query( "delete from unparsed_messages where "
+                       "bodypart=any($1)", this );
+        q->bind( 1, parsable );
+        d->t->enqueue( q );
+
+        Injector * injector = new Injector( this );
+        injector->addInjection( &injectables );
+        injector->setTransaction( d->t );
+        injector->execute();
+
     }
 
-    if ( d->injector && !d->injector->done() )
-        return;
-
-    if ( d->injector ) {
-        if ( d->injector->failed() ) {
-            error( "Couldn't inject reparsed message: " +
-                   d->injector->error() );
-        }
-        else {
-            d->t->commit();
-            d->injector = 0;
-        }
-    }
+    d->t->commit();
 
     if ( !d->t->done() )
         return;
 
     if ( d->t->failed() )
-        error( "Couldn't delete reparsed message (now stored both parsed and unparsed" );
-
+        error( "Reparsing failed: " + d->t->error() );
     finish();
 }
 
