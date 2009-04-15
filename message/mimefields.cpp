@@ -405,7 +405,7 @@ void ContentType::parse( const EString &s )
             if ( p.nextChar() == '/' ) {
                 // eek. this makes mime look like the special case.
                 p.step();
-                if ( !p.atEnd() )
+                if ( !p.atEnd() || p.nextChar() != ';' )
                     st = p.mimeToken().lower();
                 if ( st.isEmpty() )
                     mustGuess = true;
@@ -435,14 +435,12 @@ void ContentType::parse( const EString &s )
             fn = parameter( "filename" );
         while ( fn.endsWith( "." ) )
             fn.truncate( fn.length() - 1 );
-        while ( fn.contains( '.' ) )
-            fn = fn.section( ".", 2 );
         fn = fn.lower();
-        if ( fn == "jpg" || fn == "jpeg" ) {
+        if ( fn.endsWith( "jpg" ) || fn.endsWith( "jpeg" ) ) {
             t = "image";
             st = "jpeg";
         }
-        else if ( fn == "htm" || fn == "html" ) {
+        else if ( fn.endsWith( "htm" ) || fn.endsWith( "html" ) ) {
             t = "text";
             st = "html";
         }
