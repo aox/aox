@@ -100,8 +100,8 @@ Status::Status()
 
 
 /*! Constructs a tagless Status command that'll return UIDNEXT and
-    perhaps HIGHESTMODSEQ for \a mailbox using \a i. This is a helper
-    for Notify.
+    perhaps HIGHESTMODSEQ for \a m using \a i. This is a helper for
+    Notify.
 */
 
 Status::Status( IMAP * i, Mailbox * m )

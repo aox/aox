@@ -110,7 +110,7 @@ void Notify::parseEventGroup()
 }
 
 
-/*! Parses a single event description and records it for execute(). */
+/*! Parses a single event description and records it using \a s. */
 
 void Notify::parseEvent( EventFilterSpec * s )
 {
