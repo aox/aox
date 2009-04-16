@@ -102,7 +102,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || login ) {
         c.append( "MULTIAPPEND" );
         c.append( "NAMESPACE" );
-        c.append( "NOTIFY" );
+        //c.append( "NOTIFY" );
     }
     if ( all || login )
         c.append( "RIGHTS=ekntx" );
@@ -115,6 +115,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
     if ( all || login ) {
+        // also THREAD=...
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
