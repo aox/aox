@@ -34,6 +34,7 @@
 #include "handlers/logout.h"
 #include "handlers/lsub.h"
 #include "handlers/namespace.h"
+#include "handlers/notify.h"
 #include "handlers/noop.h"
 #include "handlers/rename.h"
 #include "handlers/resetkey.h"
@@ -245,6 +246,8 @@ Command * Command::create( IMAP * imap,
             c = new GenUrlauth;
         else if ( n == "urlfetch" )
             c = new UrlFetch;
+        else if ( n == "notify" )
+            c = new Notify;
 
         if ( c ) {
             authenticated = true;

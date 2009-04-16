@@ -35,8 +35,7 @@ public:
 
 
 
-/*! Constructs an empty EventFilterSpec. The settings should be close
-    to "tell nothing about anything".
+/*! Constructs an empty EventFilterSpec with a strong omerta policy.
 */
 
 EventFilterSpec::EventFilterSpec()
@@ -161,7 +160,7 @@ bool EventFilterSpec::appliesTo( Mailbox * mailbox )
 EventMap::EventMap()
     : Garbage()
 {
-    // nothing more
+    // nothing
 }
 
 
