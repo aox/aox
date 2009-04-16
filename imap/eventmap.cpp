@@ -2,6 +2,12 @@
 
 #include "eventmap.h"
 
+#include "transaction.h"
+#include "integerset.h"
+#include "mailbox.h"
+#include "query.h"
+#include "user.h"
+
 
 class EventFilterSpecData
     : public Garbage
@@ -26,7 +32,7 @@ public:
 
 
 /*! \class EventFilterSpec eventmap.h
-  
+
     The EventFilterSpec class is a helper for EventMap: It remembers
     what the client wants for a particular something (the selected
     mailbox, a subtree, etc.) EventMap and IMAP use that to notify the
@@ -66,7 +72,7 @@ EventFilterSpec::Type EventFilterSpec::type() const
 /*! Records that this spec applies to \a mailboxes. The initial value
     is an empty list.
 
-    This is only used if the type() is Subtree or Mailboxes.
+    EventMap::refresh() overwrites this for the Subscribed etc.
 */
 
 void EventFilterSpec::setMailboxes( List<Mailbox> * mailboxes )
@@ -126,19 +132,42 @@ bool EventFilterSpec::notificationWanted( Event type )
 }
 
 
-/*! Returns true if \a mailbox is the list recorded by
-    setMailboxes().
+/*! Returns true if \a mailbox is the list recorded by setMailboxes(),
+    or if type() is Subtree and one of its parents is on that
+    list. Returns false in all other cases.
 */
 
 bool EventFilterSpec::appliesTo( Mailbox * mailbox )
 {
-    List<Mailbox>::Iterator i( d->mailboxes );
-    while ( i && i != mailbox )
-        ++i;
-    if ( i )
-        return true;
+    while ( mailbox ) {
+        List<Mailbox>::Iterator i( d->mailboxes );
+        while ( i && i != mailbox )
+            ++i;
+        if ( i )
+            return true;
+        if ( type() == Subtree )
+            mailbox = mailbox->parent();
+        else
+            mailbox = 0;
+    }
     return false;
 }
+
+
+class EventMapData
+    : public Garbage
+{
+public:
+    EventMapData(): Garbage(), 
+                    t( 0 ),
+                    inboxes( 0 ), personal( 0 ), subscribed( 0 ) {}
+
+    List<EventFilterSpec> l;
+    Transaction * t;
+    Query * inboxes;
+    Query * personal;
+    Query * subscribed;
+};
 
 
 /*! \class EventMap eventmap.h
@@ -158,7 +187,7 @@ bool EventFilterSpec::appliesTo( Mailbox * mailbox )
 /*! Constructs an empty message event map. */
 
 EventMap::EventMap()
-    : Garbage()
+    : EventHandler(), d( new EventMapData )
 {
     // nothing
 }
@@ -173,7 +202,7 @@ EventMap::EventMap()
 
 EventFilterSpec * EventMap::applicable( Mailbox * mailbox, Mailbox * selected )
 {
-    List<EventFilterSpec>::Iterator i( l );
+    List<EventFilterSpec>::Iterator i( d->l );
     while ( i ) {
         if ( selected && mailbox == selected &&
              ( i->type() == EventFilterSpec::Selected ||
@@ -191,5 +220,157 @@ EventFilterSpec * EventMap::applicable( Mailbox * mailbox, Mailbox * selected )
 
 void EventMap::add( EventFilterSpec * s )
 {
-    l.append( s );
+    d->l.append( s );
+}
+
+
+void EventMap::execute()
+{
+    if ( d->inboxes && !d->inboxes->done() )
+        return;
+    if ( d->personal && !d->personal->done() )
+        return;
+    if ( d->subscribed && !d->subscribed->done() )
+        return;
+    d->t = 0;
+    List<Mailbox> * inboxes = new List<Mailbox>;
+    List<Mailbox> * personal = new List<Mailbox>;
+    List<Mailbox> * subscribed = new List<Mailbox>;
+    if ( d->inboxes ) {
+        while ( d->inboxes->hasResults() ) {
+            Row * r = d->inboxes->nextRow();
+            inboxes->append( Mailbox::find( r->getInt( "id" ) ) );
+        }
+        d->inboxes = 0;
+    }
+    if ( d->personal ) {
+        while ( d->personal->hasResults() ) {
+            Row * r = d->personal->nextRow();
+            personal->append( Mailbox::find( r->getInt( "id" ) ) );
+        }
+        d->personal = 0;
+    }
+    if ( d->subscribed ) {
+        while ( d->subscribed->hasResults() ) {
+            Row * r = d->subscribed->nextRow();
+            subscribed->append( Mailbox::find( r->getInt( "mailbox" ) ) );
+        }
+        d->subscribed = 0;
+    }
+    List<EventFilterSpec>::Iterator i( d->l );
+    while ( i ) {
+        if ( i->type() == EventFilterSpec::Inboxes )
+            i->setMailboxes( inboxes );
+        else if ( i->type() == EventFilterSpec::Personal )
+            i->setMailboxes( personal );
+        else if ( i->type() == EventFilterSpec::Subscribed )
+            i->setMailboxes( subscribed );
+        ++i;
+    }
+}
+
+
+/*! Refreshes the mailbox lists in each of the filter specs using a
+    subtransaction of \a t. Does nothing if already active. Uses \a u
+    to interpret e.g. Inboxes.
+*/
+
+void EventMap::refresh( class Transaction * t, User * u )
+{
+    if ( d->t )
+        return;
+    d->t = t->subTransaction( this );
+    List<EventFilterSpec>::Iterator i( d->l );
+    while ( i ) {
+        if ( i->type() == EventFilterSpec::Inboxes &&
+             !d->inboxes ) {
+            d->inboxes = new Query(
+                "select m.id from mailboxes m "
+                "join fileinto_targets ft on (m.id=ft.mailbox) "
+                "where m.owner=$1 "
+                "union "
+                "select m.id from mailboxes m "
+                "join aliases al on (m.id=al.mailbox) "
+                "where m.owner=$1",
+                this );
+            d->inboxes->bind( 1, u->id() );
+            d->t->enqueue( d->inboxes );
+        }
+        else if ( i->type() == EventFilterSpec::Personal &&
+                  !d->personal ) {
+            d->personal = new Query(
+                "select m.id from mailboxes m "
+                "where m.owner=$1",
+                this );
+            d->personal->bind( 1, u->id() );
+            d->t->enqueue( d->personal );
+        }
+        else if ( i->type() == EventFilterSpec::Subscribed &&
+                  !d->subscribed ) {
+            d->subscribed = new Query(
+                "select mailbox from subscriptions "
+                "where owner=$1",
+                this );
+            d->subscribed->bind( 1, u->id() );
+            d->t->enqueue( d->subscribed );
+        }
+        ++i;
+    }
+    d->t->commit();
+}
+
+
+static void add( List<Mailbox> * l, IntegerSet & in,
+                 List<Mailbox> * s, bool r = false )
+{
+    List<Mailbox>::Iterator i( s );
+    while ( i ) {
+        if ( !i->deleted() && !in.contains( i->id() ) ) {
+            in.add( i->id() );
+            l->append( i );
+        }
+        if ( r )
+            add( l, in, i->children(), true );
+        ++i;
+    }
+}
+
+
+/*! Returns a list of all the mailboxes in this Map. The list may be
+    empty, but is never null. No mailboxes are repeated.
+*/
+
+List<Mailbox> * EventMap::mailboxes() const
+{
+    IntegerSet in;
+    List<Mailbox> * l = new List<Mailbox>;
+    List<EventFilterSpec>::Iterator i( d->l );
+    while ( i ) {
+        switch ( i->type() ) {
+        case EventFilterSpec::Selected:
+            // nothing
+            break;
+        case EventFilterSpec::SelectedDelayed:
+            // nothing
+            break;
+        case EventFilterSpec::Inboxes:
+            ::add( l, in, i->mailboxes() );
+            break;
+        case EventFilterSpec::Personal:
+            ::add( l, in, i->mailboxes() );
+            break;
+        case EventFilterSpec::Subscribed:
+            ::add( l, in, i->mailboxes() );
+            break;
+        case EventFilterSpec::Subtree:
+            ::add( l, in, i->mailboxes(), true );
+            break;
+        case EventFilterSpec::Mailboxes:
+            ::add( l, in, i->mailboxes() );
+            break;
+        }
+
+        ++i;
+    }
+    return l;
 }

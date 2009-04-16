@@ -2,8 +2,11 @@
 
 #include "notify.h"
 
+#include "mailboxgroup.h"
+#include "transaction.h"
 #include "imapparser.h"
 #include "eventmap.h"
+#include "status.h"
 #include "fetch.h"
 
 
@@ -11,17 +14,18 @@ class NotifyData
     : public Garbage
 {
 public:
-    NotifyData(): status( false ), events( new EventMap ) {}
+    NotifyData(): status( false ), events( new EventMap ), transaction( 0 ) {}
 
     bool status;
     EventMap * events;
+    Transaction * transaction;
 };
 
 
 /*! \class Notify notify.h
 
     The Notify class implements the IMAP NOTIFY extension, RFC 5465.
-    
+
     It doesn't actually do very much, just parse the MUA's wishes and
     sets a variable or two or three or forty-four for IMAP to use.
 */
@@ -176,11 +180,27 @@ List<Mailbox> * Notify::parseMailboxes()
 
 void Notify::execute()
 {
-    if ( state() != Executing )
+    if ( state() != Executing || !imap()->user() )
         return;
-    imap()->setEventMap( d->events );
-    if ( d->status ) {
-        //
+    if ( !d->transaction ) {
+        d->transaction = new Transaction( this );
+        d->events->refresh( d->transaction, imap()->user() );
+        d->transaction->commit();
     }
+    if ( !d->transaction->done() )
+        return;
+    if ( d->status ) {
+        List<Mailbox> * m = d->events->mailboxes();
+        (void)new MailboxGroup( m, imap() );
+        List<Mailbox>::Iterator i( m );
+        List<Command>::Iterator c = imap()->commands()->find( this );
+        while ( c && i ) {
+            Status * s = new Status( imap(), i );
+            imap()->commands()->insert( c, s );
+            ++i;
+            s->execute();
+        }
+    }
+    imap()->setEventMap( d->events );
     finish();
 }

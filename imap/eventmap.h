@@ -3,7 +3,7 @@
 #ifndef EVENTMAP_H
 #define EVENTMAP_H
 
-#include "global.h"
+#include "event.h"
 #include "list.h"
 
 
@@ -44,7 +44,7 @@ private:
 
 
 class EventMap
-    : public Garbage
+    : public EventHandler
 {
 public:
     EventMap();
@@ -53,8 +53,14 @@ public:
 
     void add( EventFilterSpec * );
 
+    void execute();
+
+    void refresh( class Transaction *, class User * );
+
+    List<Mailbox> * mailboxes() const;
+
 private:
-    List<EventFilterSpec> l;
+    class EventMapData * d;
 };
 
 
