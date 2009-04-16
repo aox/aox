@@ -25,6 +25,15 @@ public:
 };
 
 
+/*! \class EventFilterSpec eventmap.h
+  
+    The EventFilterSpec class is a helper for EventMap: It remembers
+    what the client wants for a particular something (the selected
+    mailbox, a subtree, etc.) EventMap and IMAP use that to notify the
+    IMAP client about the kinds of events that interest it.
+*/
+
+
 
 /*! Constructs an empty EventFilterSpec. The settings should be close
     to "tell nothing about anything".
