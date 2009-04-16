@@ -178,7 +178,7 @@ void Notify::execute()
 {
     if ( state() != Executing )
         return;
-    //imap()->setEventMap( d->events );
+    imap()->setEventMap( d->events );
     if ( d->status ) {
         //
     }
