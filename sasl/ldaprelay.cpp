@@ -41,6 +41,8 @@ public:
     BindFailed: We should reject this authentication.
 
     BindSucceeded: We should accept this authentication.
+
+    The implementation is based on RFC 4511.
 */
 
 
