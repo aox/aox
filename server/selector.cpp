@@ -869,10 +869,16 @@ EString Selector::whereHeaderField()
     EString jn = fn( ++root()->d->join );
     EString j = " left join header_fields hf" + jn +
                " on (" + mm() + ".message=hf" + jn + ".message";
-    if ( !d->s16.isEmpty() ) {
+    if ( t == HeaderField::MessageId &&
+         d->s16.startsWith( "<" ) && d->s16.endsWith( ">" ) ) {
+        uint like = placeHolder( q( d->s16 ) );
+        j.append( " and hf" + jn + ".value=$" + fn( like ) );
+    }
+    else if ( !d->s16.isEmpty() ) {
         uint like = placeHolder( q( d->s16 ) );
         j.append( " and hf" + jn + ".value ilike " + matchAny( like ) );
     }
+
     if ( t ) {
         j.append( " and hf" + jn + ".field=" );
         j.appendNumber( t );
@@ -947,8 +953,15 @@ EString Selector::whereHeaders( List<Selector> * sl )
         si = sl->first();
         while ( si ) {
             if ( fn == si->d->s8.headerCased() ) {
-                uint b = placeHolder( q( si->d->s16 ) );
-                orl.append( jn + ".value ilike " + matchAny( b ) );
+                if ( fn == "Message-Id" &&
+                     si->d->s16.startsWith( "<" ) && si->d->s16.endsWith( ">" ) ) {
+                    uint b = placeHolder( si->d->s16.utf8() );
+                    orl.append( jn + ".value=$" + ::fn( b ) );
+                }
+                else {
+                    uint b = placeHolder( q( si->d->s16 ) );
+                    orl.append( jn + ".value ilike " + matchAny( b ) );
+                }
             }
             ++si;
         }
