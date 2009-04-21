@@ -37,7 +37,7 @@ our regression tests, so we can be sure that new versions of
 do not have the same error.
 .SH EXAMPLE
 To intercept and record traffic to the IMAP server
-on 192.0.2.4.17 and place a record of the connections in files called
+on 192.0.2.17 and place a record of the connections in files called
 .I /tmp/bugreport*
 you can do the following:
 .SS "Disable TLS"
