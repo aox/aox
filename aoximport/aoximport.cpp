@@ -88,7 +88,7 @@ int main( int ac, char ** av )
     if ( bad ) {
         fprintf( stderr,
                  "Usage: %s [-vq] "
-                 "<destination> <mode> <source [, source ...]>\n"
+                 "<mailbox> <type> <source [, source ...]>\n"
                  "See aoximport(8) for details.\n", av[0] );
         exit( -1 );
     }
