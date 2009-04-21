@@ -585,6 +585,9 @@ void Command::error( Error e, const EString & t )
     if ( d->error )
         return;
 
+    if ( !imap() )
+        return;
+
     if ( (d->permittedStates & ( 1 << imap()->state() )) ||
          ( !t.isEmpty() && imap()->state() != IMAP::NotAuthenticated ) ) {
         d->errorCode = e;
