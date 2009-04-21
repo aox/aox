@@ -41,6 +41,7 @@ Notify::Notify()
 
 void Notify::parse()
 {
+    space();
     if ( present( "none" ) ) {
         end();
         return;
