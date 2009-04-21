@@ -1185,8 +1185,11 @@ void Injector::insertBodyparts()
                 return;
 
             if ( d->insert->failed() ) {
-                d->subtransaction->restart();
-                d->substate = 2;
+                // this will fail only if there is some kind of
+                // serious, serious failure, the kind where retrying
+                // will fail again.
+                d->subtransaction->commit();
+                d->substate = 100;
             }
             else {
                 d->substate++;
