@@ -43,6 +43,13 @@ int main( int ac, char *av[] )
     EventLoop::setup();
 
     AoxCommand * cmd = AoxCommand::create( args );
+
+    if ( !cmd ) {
+        fprintf( stderr, "aox: Use 'aox help' to list commands; "
+                 "and 'aox help <command>' for more.\n" );
+        exit( 0 );
+    }
+
     if ( cmd->done() )
         return 0;
 
