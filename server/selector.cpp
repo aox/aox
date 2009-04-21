@@ -2282,14 +2282,14 @@ void RetentionSelector::execute()
                 return;
             }
             if ( ids.count() == 1 ) {
-                d->q = new Query( "select duration, selector, id "
+                d->q = new Query( "select duration, selector, action, id "
                                   "from retention_policies "
                                   "where mailbox=$1 and action='retain'",
                                   this );
                 d->q->bind( 1, ids.smallest() );
             }
             else {
-                d->q = new Query( "select duration, selector, id "
+                d->q = new Query( "select duration, selector, action, id "
                                   "from retention_policies "
                                   "where mailbox=any($1) and action='retain'",
                                   this );
