@@ -1046,6 +1046,17 @@ void AddressParser::address( int & i )
             // at least it resembles the kind of date field we skip
             i = x;
     }
+    else if ( s.isQuoted() && s.contains( '@' ) ) {
+        AddressParser wrapped( s.unquoted() );
+        if ( wrapped.error().isEmpty() ) {
+            // changes the address order...
+            d->a.append( wrapped.addresses() );
+            i = -1;
+        }
+        else {
+            error( "Unexpected quote character", i );
+        }
+    }
     else {
         // addr-spec
         AsciiCodec a;
