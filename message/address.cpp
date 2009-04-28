@@ -484,27 +484,29 @@ AddressParser::AddressParser( EString s )
              ( d->s[leftBorder] == '.' || d->s[leftBorder] == '>' ) )
             leftBorder++;
         int end = atsign + 1;
+        while ( end <= rightBorder && s[end] == ' ' )
+            end++;
         while ( end <= rightBorder &&
                 ( ( s[end] >= 'a' && s[end] <= 'z' ) ||
                   ( s[end] >= 'A' && s[end] <= 'Z' ) ||
                   ( s[end] >= '0' && s[end] <= '9' ) ||
-                  s[end] == '.' || s[end] == '-' ) )
+                  s[end] == '.' ||
+                  s[end] == '-' ) )
             end++;
-        if ( end <= rightBorder && s[end] == '>' )
-            end++;
-        else if ( end > leftBorder && s[end-1] == '.' )
-            end--;
-        AddressParser sub( "" );
-        sub.d->s = s.mid( leftBorder, end - leftBorder );
-        int i = sub.d->s.length() - 1;
-        sub.address( i );
-        if ( sub.error().isEmpty() ) {
-            List<Address>::Iterator a( sub.d->a );
-            while ( a ) {
-                d->a.append( a );
-                ++a;
-            }
-        }
+        int start = atsign;
+        while ( start >= leftBorder && s[start-1] == ' ' )
+            start--;
+        while ( start >= leftBorder &&
+                ( ( s[start-1] >= 'a' && s[start-1] <= 'z' ) ||
+                  ( s[start-1] >= 'A' && s[start-1] <= 'Z' ) ||
+                  ( s[start-1] >= '0' && s[start-1] <= '9' ) ||
+                  s[start-1] == '.' ||
+                  s[start-1] == '-' ) )
+            start--;
+        EString lp = s.mid( start, atsign - start ).simplified();
+        EString dom = s.mid( atsign+1, end - atsign - 1 ).simplified();
+        if ( !lp.isEmpty() && !dom.isEmpty() )
+            d->a.append( new Address( "", lp, dom ) );
         atsign = nextAtsign;
         leftBorder = rightBorder;
     }
@@ -516,7 +518,7 @@ AddressParser::AddressParser( EString s )
     }
 
     // Plan C: Is it an attempt at group syntax by someone who should
-    // rather be filling shelves at a supermarktet?
+    // rather be filling shelves at a supermarket?
     if ( s.contains( ":;" ) && !s.contains( "@" ) ) {
         EString n = s.mid( 0, s.find( ":;" ) ).simplified();
         UString name;
