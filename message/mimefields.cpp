@@ -361,7 +361,10 @@ void ContentType::parse( const EString &s )
     }
     else {
         uint x = p.mark();
-        t = p.mimeToken().lower();
+        if ( p.nextChar() == '/' )
+            mustGuess = true;
+        else
+            t = p.mimeToken().lower();
         if ( p.atEnd() ) {
             if ( s == "text" ) {
                 t = "text"; // elm? mailtool? someone does this, anyway.
@@ -403,7 +406,6 @@ void ContentType::parse( const EString &s )
         }
         else {
             if ( p.nextChar() == '/' ) {
-                // eek. this makes mime look like the special case.
                 p.step();
                 if ( !p.atEnd() || p.nextChar() != ';' )
                     st = p.mimeToken().lower();
@@ -446,6 +448,15 @@ void ContentType::parse( const EString &s )
         }
         else if ( fn.isEmpty() && st.isEmpty() && t == "text" ) {
             st = "plain";
+        }
+        else if ( t == "text" ) {
+            addParameter( "original-type", t + "/" + st );
+            st = "plain";
+        }
+        else {
+            addParameter( "original-type", t + "/" + st );
+            t = "application";
+            st = "octet-stream";
         }
     }
 
