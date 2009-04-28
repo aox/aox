@@ -463,6 +463,15 @@ void ContentType::parse( const EString &s )
     if ( t.isEmpty() || st.isEmpty() )
         setError( "Both type and subtype must be nonempty: " + s.quoted() );
 
+    if ( valid() && t == "multipart" && st == "appledouble" &&
+         parameter( "boundary" ).isEmpty() ) {
+        // some people send appledouble without the header. what can
+        // we do? let's just call it application/octet-stream. whoever
+        // wants to decode can try, or reply.
+        t = "application";
+        st = "octet-steam";
+    }
+
     if ( valid() && !p.atEnd() &&
          t == "multipart" && parameter( "boundary" ).isEmpty() &&
          s.lower().containsWord( "boundary" ) ) {
