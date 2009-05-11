@@ -11,7 +11,7 @@ class Status
 {
 public:
     Status();
-    Status( IMAP *, Mailbox * );
+    Status( Command *, Mailbox * );
 
     void parse();
     void execute();

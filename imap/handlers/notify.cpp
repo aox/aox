@@ -84,10 +84,12 @@ void Notify::parseEventGroup()
     }
     else if ( present( "subtree" ) ) {
         s->setType( EventFilterSpec::Subtree );
+        space();
         s->setMailboxes( parseMailboxes() );
     }
     else if ( present( "mailboxes" ) ) {
         s->setType( EventFilterSpec::Mailboxes );
+        space();
         s->setMailboxes( parseMailboxes() );
     }
     else {
@@ -96,6 +98,7 @@ void Notify::parseEventGroup()
     space();
     if ( present( "none" ) ) {
         //huh
+        require( ")" );
         return;
     }
 
@@ -107,6 +110,7 @@ void Notify::parseEventGroup()
     while ( ok() && present( " " ) )
         parseEvent( s );
     require( ")" );
+    require( ")" );
     d->events->add( s );
 }
 
@@ -117,19 +121,16 @@ void Notify::parseEvent( EventFilterSpec * s )
 {
     if ( present( "messagenew" ) ) {
         // "MessageNew" [SP "(" fetch-att *(SP fetch-att) ")" ]
-        uint x = parser()->mark();
-        space();
-        require( "(" );
-        Fetch * f = new Fetch( false );
-        f->setParser( parser() );
-        f->parseAttribute( false );
-        while( ok() && present( " " ) )
+        if ( present( " " ) ) {
+            require( "(" );
+            Fetch * f = new Fetch( false );
+            f->setParser( parser() );
             f->parseAttribute( false );
-        require( ")" );
-        if ( ok() )
+            while( parser()->ok() && present( " " ) )
+                f->parseAttribute( false );
+            require( ")" );
             s->setNewMessageFetcher( f );
-        else
-            parser()->restore( x );
+        }
     } else if ( present( "messageexpunge" ) ) {
         s->setNotificationWanted( EventFilterSpec::Expunge, true );
     } else if ( present( "flagchange" ) ) {
@@ -194,12 +195,9 @@ void Notify::execute()
         List<Mailbox> * m = d->events->mailboxes();
         (void)new MailboxGroup( m, imap() );
         List<Mailbox>::Iterator i( m );
-        List<Command>::Iterator c = imap()->commands()->find( this );
-        while ( c && i ) {
-            Status * s = new Status( imap(), i );
-            imap()->commands()->insert( c, s );
+        while ( i ) {
+            (void)new Status( this, i );
             ++i;
-            s->execute();
         }
     }
     imap()->setEventMap( d->events );
