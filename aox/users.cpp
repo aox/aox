@@ -315,6 +315,13 @@ void DeleteUser::execute()
             q->bind( 1, d->user->id() );
             q->bind( 2, all );
             d->t->enqueue( q );
+
+            q = new Query( "update deleted_messages set deleted_by=null "
+                           "where deleted_by=$1",
+                           0 );
+            q->bind( 1, d->user->id() );
+            d->t->enqueue( q );
+
         }
 
         d->user->remove( d->t );
