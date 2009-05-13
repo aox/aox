@@ -62,7 +62,6 @@ private:
     static void mark( void * );
     static void mark();
     void sweep();
-    void release();
 };
 
 
