@@ -25,7 +25,7 @@
 #include <errno.h>
 
 
-static uint BlockShift = 20;
+static uint BlockShift = 17;
 static uint BlockSize = 1 << BlockShift;
 
 

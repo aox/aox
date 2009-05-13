@@ -2,6 +2,8 @@ Schedule
 
   AMS: 04/28–05/12: Munsiari.
 
+  Welcome back, Abhijit.
+
 
 P/W: Stuff we may want to keep
 
@@ -25,9 +27,11 @@ P/W: Stuff we may want to keep
   each one. None soon.
 
 
-3.1.1: 2009-04-13
+3.1.2: 2009-05-xx
 
-  Various bugfixes.
+  Bugfixes.
+
+  Something about pg_toast perhaps.
 
   Add stuff so retention policies can be deleted
 
