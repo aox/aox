@@ -304,22 +304,26 @@ void SmtpRcptTo::addParam( const EString & name, const EString & value )
     }
     else if ( name == "orcpt" ) {
         if ( value.lower().startsWith( "rfc822;" ) ) {
-            // the original address may legitimately be non-822
+            // 3461 page 8:
+            //   The "addr-type" portion of the
+            //   original-recipient-address is used to indicate the
+            //   "type" of the address which appears in the ORCPT
+            //   parameter value.  However, the address associated
+            //   with the ORCPT keyword is NOT constrained to conform
+            //   to the syntax rules for that "addr-type".
             AddressParser p( value.mid( 7 ) );
             p.assertSingleAddress();
             if ( !p.error().isEmpty() ) {
-                respond( 501, "Bad ORCPT: " + p.error(), "5.5.4" ); // 5.1.0?
+                // sender did indeed not constrain himself
+            }
+            else if ( d->address->toString() ==
+                      p.addresses()->first()->toString() ) {
+                // ORCPT not necessary at all
             }
             else {
-                if ( d->address->toString() ==
-                     p.addresses()->first()->toString() ) {
-                    // unnecessary orcpt, ignore this case
-                }
-                else {
-                    // XXX real orcpt. what to do?
-                }
+                log( "Original recipient: " +
+                     p.addresses()->first()->lpdomain() );
             }
-
         }
     }
     else {
