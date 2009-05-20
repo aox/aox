@@ -322,6 +322,7 @@ void ManageSieve::capabilities()
              "\"\r\n" );
     if ( Configuration::toggle( Configuration::UseTls ) && !hasTls() )
         enqueue( "\"STARTTLS\"\r\n" );
+    enqueue( "\"VERSION\" \"1.0\"" );
     enqueue( "\"X-AOX-EXPLAIN\"\r\n" );
 }
 
