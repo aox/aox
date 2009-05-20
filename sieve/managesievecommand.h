@@ -14,7 +14,7 @@ public:
     enum Command {
         Authenticate, StartTls, Logout, Capability, HaveSpace,
         PutScript, ListScripts, SetActive, GetScript, DeleteScript,
-        RenameScript,
+        RenameScript, Noop,
         XAoxExplain,
         Unknown
     };
@@ -37,6 +37,7 @@ private:
     bool getScript();
     bool deleteScript();
     bool renameScript();
+    bool noop();
     bool explain();
 
     EString string();
