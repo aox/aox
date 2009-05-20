@@ -649,6 +649,49 @@ bool ManageSieveCommand::deleteScript()
 }
 
 
+/*! The RENAMESCRIPT command. Nothing out of the ordinary. */
+
+bool ManageSieveCommand::renameScript()
+{
+    if ( !d->t ) {
+        EString from = string();
+        space();
+        EString to = string():
+        end();
+        if ( !d->no.isEmpty() )
+            return true;
+
+        d->t = new Transaction( this );
+        // select first, so the no() calls below work
+        d->query =
+            new Query( "update scripts set name=$3 "
+                       "where owner=$1 and name=$2",
+                       this );
+        d->query->bind( 1, d->sieve->user()->id() );
+        d->query->bind( 2, from );
+        d->query->bind( 3, to );
+        d->t->enqueue( d->query );
+        d->t->commit();
+    }
+
+    if ( !d->t->done() )
+        return false;
+
+    if ( d->query->failed() &&
+         d->query->error().contains( "scripts_owner_key" ) )
+        no( "(ALREADYEXISTS) " + d->t->error() )
+    else if ( d->t->failed() )
+        no( "Couldn't delete script: " + d->t->error() );
+    else if ( d->query->rows() < 1 )
+        no( "(NONEXISTENT) No such script" )
+    else
+        log( "Renamed script" );
+
+    return true;
+    
+}
+
+
 /*! Returns the next argument from the client, which must be a string,
     or sends a NO.
 */

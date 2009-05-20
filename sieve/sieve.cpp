@@ -908,7 +908,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         }
     }
     else if ( c->identifier() == "notify" ) {
-        SieveNotifyMethod * m 
+        SieveNotifyMethod * m
             = new SieveNotifyMethod( c->arguments()->takeString( 1 ),
                                      0, c );
         if ( c->arguments()->findTag( ":from" ) ) {
@@ -1232,12 +1232,15 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
     else if ( t->identifier() == "size" ) {
         if ( !d->message )
             return Undecidable;
+        uint s = d->message->rfc822Size();
+        if ( !s )
+            s = d->message->rfc822().length();
         if ( t->sizeOverLimit() ) {
-            if ( d->message->rfc822Size() > t->sizeLimit() )
+            if ( s > t->sizeLimit() )
                 return True;
         }
         else {
-            if ( d->message->rfc822Size() < t->sizeLimit() )
+            if ( s < t->sizeLimit() )
                 return True;
         }
         return False;
@@ -1348,7 +1351,7 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
         UString capa = t->arguments()->takeString( 2 ).titlecased();
         if ( capa != "ONLINE" )
             return False;
-        SieveNotifyMethod * m 
+        SieveNotifyMethod * m
             = new SieveNotifyMethod( t->arguments()->takeString( 1 ), 0, t );
         UString hack;
         switch( m->reachability() ) {
