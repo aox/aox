@@ -743,10 +743,13 @@ EString ManageSieveCommand::string()
         uint pos = d->pos;
         d->pos++;
         uint len = number();
-        if ( d->arg.mid( d->pos, 4 ) != "+}\r\n" )
+        if ( d->arg.mid( d->pos, 3 ) == "}\r\n" )
+            d->pos += 3;
+        else if ( d->arg.mid( d->pos, 4 ) == "+}\r\n" )
+            d->pos += 4;
+        else
             no( "Could not parse literal at position " + fn( pos ) + ": " +
                 d->arg.mid( pos, d->pos + 4 - pos ) );
-        d->pos += 4;
         r = d->arg.mid( d->pos, len );
         d->pos += len;
     }
