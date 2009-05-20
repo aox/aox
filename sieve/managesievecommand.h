@@ -14,6 +14,7 @@ public:
     enum Command {
         Authenticate, StartTls, Logout, Capability, HaveSpace,
         PutScript, ListScripts, SetActive, GetScript, DeleteScript,
+        RenameScript,
         XAoxExplain,
         Unknown
     };

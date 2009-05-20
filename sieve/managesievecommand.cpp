@@ -107,6 +107,9 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
     case DeleteScript:
         log( "Executing deletescript command" );
         break;
+    case RenameScript:
+        log( "Executing renamescript command" );
+        break;
     case XAoxExplain:
         log( "Executing xaoxexplain command" );
         break;
@@ -188,6 +191,10 @@ void ManageSieveCommand::execute()
 
     case DeleteScript:
         ok = deleteScript();
+        break;
+
+    case RenameScript:
+        ok = renameScript();
         break;
 
     case XAoxExplain:
@@ -655,8 +662,7 @@ bool ManageSieveCommand::renameScript()
 {
     if ( !d->t ) {
         EString from = string();
-        space();
-        EString to = string():
+        EString to = string();
         end();
         if ( !d->no.isEmpty() )
             return true;
@@ -679,11 +685,11 @@ bool ManageSieveCommand::renameScript()
 
     if ( d->query->failed() &&
          d->query->error().contains( "scripts_owner_key" ) )
-        no( "(ALREADYEXISTS) " + d->t->error() )
+        no( "(ALREADYEXISTS) " + d->t->error() );
     else if ( d->t->failed() )
         no( "Couldn't delete script: " + d->t->error() );
     else if ( d->query->rows() < 1 )
-        no( "(NONEXISTENT) No such script" )
+        no( "(NONEXISTENT) No such script" );
     else
         log( "Renamed script" );
 
