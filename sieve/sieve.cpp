@@ -1168,12 +1168,15 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
     else if ( t->identifier() == "size" ) {
         if ( !d->message )
             return Undecidable;
+        uint s = d->message->rfc822Size();
+        if ( !s )
+            s = d->message->rfc822().length();
         if ( t->sizeOverLimit() ) {
-            if ( d->message->rfc822Size() > t->sizeLimit() )
+            if ( s > t->sizeLimit() )
                 return True;
         }
         else {
-            if ( d->message->rfc822Size() < t->sizeLimit() )
+            if ( s < t->sizeLimit() )
                 return True;
         }
         return False;

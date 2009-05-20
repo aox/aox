@@ -35,6 +35,7 @@ private:
     bool setActive();
     bool getScript();
     bool deleteScript();
+    bool renameScript();
     bool explain();
 
     EString string();
