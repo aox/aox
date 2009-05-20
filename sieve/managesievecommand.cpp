@@ -110,6 +110,9 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
     case RenameScript:
         log( "Executing renamescript command" );
         break;
+    case Noop:
+        log( "Executing noop command" );
+        break;
     case XAoxExplain:
         log( "Executing xaoxexplain command" );
         break;
@@ -195,6 +198,10 @@ void ManageSieveCommand::execute()
 
     case RenameScript:
         ok = renameScript();
+        break;
+
+    case Noop:
+        ok = noop();
         break;
 
     case XAoxExplain:
@@ -662,6 +669,7 @@ bool ManageSieveCommand::renameScript()
 {
     if ( !d->t ) {
         EString from = string();
+        whitespace();
         EString to = string();
         end();
         if ( !d->no.isEmpty() )
@@ -695,6 +703,20 @@ bool ManageSieveCommand::renameScript()
 
     return true;
     
+}
+
+
+/*! Does nothing, either simply or with inscrutable features. */
+
+bool ManageSieveCommand::noop()
+{
+    whitespace();
+    if ( d->pos < d->arg.length() )
+        d->ok = "(TAG " + encoded( string() ) + ") Ubi sunt latrinae?";
+    else
+        d->ok = "(TAG " + encoded( string() ) + ") Valeo";
+    end();
+    return true;
 }
 
 

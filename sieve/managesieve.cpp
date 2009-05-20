@@ -217,6 +217,8 @@ void ManageSieve::addCommand()
             c = ManageSieveCommand::DeleteScript;
         else if ( cmd == "renamescript" )
             c = ManageSieveCommand::RenameScript;
+        else if ( cmd == "noop" )
+            c = ManageSieveCommand::Noop;
         else if ( cmd == "x-aox-explain" )
             c = ManageSieveCommand::XAoxExplain;
     }
