@@ -161,7 +161,7 @@ static struct {
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
     { "db-handle-timeout", Configuration::DbHandleTimeout, 10 },
-    { "managesieve-port", Configuration::ManageSievePort, 2000 },
+    { "managesieve-port", Configuration::ManageSievePort, 4190 },
     { "undelete-time", Configuration::UndeleteTime, 49 },
     { "smarthost-port", Configuration::SmartHostPort, 25 },
     { "statistics-port", Configuration::StatisticsPort, 17220 },
