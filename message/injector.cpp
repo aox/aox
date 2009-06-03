@@ -376,7 +376,7 @@ void Injector::execute()
     }
     while ( last != d->state && d->state != Done && !d->failed );
 
-    if ( d->failed && !d->retried ) {
+    if ( d->failed && !d->retried && d->transaction ) {
         // Sometimes injection fails for temporary reasons, such as
         // Postgres shutting down and restarting. If that happens, the
         // best response is to retry the entire transaction.
@@ -395,7 +395,7 @@ void Injector::execute()
         d->deliveries.append( old->deliveries );
         d->owner = old->owner;
 
-        if ( old->transaction && old->transaction->parent() ) {
+        if ( old->transaction->parent() ) {
             // The Injector is part of a larger transaction, which we
             // need to continue using.
             d->transaction = old->transaction;
@@ -408,11 +408,10 @@ void Injector::execute()
             d->transaction->enqueue( new Query( "select 42 as a", this ) );
             d->transaction->execute();
         }
-        else if ( old->transaction && !old->transaction->failed() ) {
-            old->transaction->rollback();
-        }
         else {
-            // hm, nothing to do?
+            // The transaction was independent. Roll it back
+            // explicitly, then discard it.
+            old->transaction->rollback();
         }
         // We try again in five seconds, that should be enough for
         // Postgres to shut down if that's what it's doing. Database
