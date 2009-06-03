@@ -391,7 +391,6 @@ void Injector::execute()
         InjectorData * old = d;
         d = new InjectorData;
         d->retried = true;
-        d->messages.append( old->messages );
         d->injectables.append( old->injectables );
         d->deliveries.append( old->deliveries );
         d->owner = old->owner;
