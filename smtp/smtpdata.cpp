@@ -245,7 +245,8 @@ void SmtpData::execute()
             d->state = 4;
         }
         else {
-            if ( Configuration::toggle( Configuration::SoftBounce ) )
+            if ( Configuration::toggle( Configuration::SoftBounce ) ||
+                 server()->sieve()->softError() )
                 respond( 451, "Injection error: " + server()->sieve()->error(),
                          "4.6.0" );
             else

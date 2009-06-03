@@ -43,6 +43,7 @@ public:
     bool failed( Address * ) const;
     EString error( Address * ) const;
     EString error() const;
+    bool softError() const;
     bool done() const;
     bool ready() const;
     bool injected() const;
