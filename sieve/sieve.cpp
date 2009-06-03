@@ -41,7 +41,8 @@ public:
           autoresponses( 0 ),
           transaction( 0 ),
           injector( 0 ),
-          vacations( 0 )
+          vacations( 0 ),
+          softError( false )
     {}
 
     class Recipient
@@ -91,6 +92,7 @@ public:
     Transaction * transaction;
     Injector * injector;
     List<SieveAction> * vacations;
+    bool softError;
 
     Recipient * recipient( Address * a );
 };
@@ -344,6 +346,7 @@ void Sieve::execute()
         if ( d->injector && !d->injector->done() )
             return;
         if ( d->injector->failed() ) {
+            d->softError = true;
             List<SieveData::Recipient>::Iterator i( d->recipients );
             while ( i ) {
                 if ( i->error.isEmpty() )
@@ -1746,4 +1749,16 @@ List<SieveAction> * Sieve::vacations() const
         ++r;
     }
     return v;
+}
+
+
+/*! Returns true if an error has happened and should be signalled as a
+  soft error, false if an error has happened and should be signalled
+  as configured by soft-bounce, and an undefined value if no error
+  has occured.
+*/
+
+bool Sieve::softError() const
+{
+    return d->softError;
 }
