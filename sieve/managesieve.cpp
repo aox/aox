@@ -315,7 +315,7 @@ void ManageSieve::setReader( ManageSieveCommand * cmd )
 void ManageSieve::capabilities()
 {
     // Avelsieve buggily demands that IMPLEMENTATION be the first
-    // advertise extension.
+    // advertised extension.
     EString v( Configuration::compiledIn( Configuration::Version ) );
     enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
 
@@ -326,7 +326,7 @@ void ManageSieve::capabilities()
              "\"\r\n" );
     if ( Configuration::toggle( Configuration::UseTls ) && !hasTls() )
         enqueue( "\"STARTTLS\"\r\n" );
-    enqueue( "\"VERSION\" \"1.0\"" );
+    enqueue( "\"VERSION\" \"1.0\"\r\n" );
     enqueue( "\"X-AOX-EXPLAIN\"\r\n" );
 }
 
