@@ -413,13 +413,13 @@ void Injector::execute()
             old->transaction->rollback();
         }
         else {
-            // hm, nothing to do?
+            old->transaction->rollback();
         }
         // We try again in five seconds, that should be enough for
         // Postgres to shut down if that's what it's doing. Database
         // will wait for pg to come back up.
         (void)new Timer( this, 5 );
-
+ 
         // And just to make sure there's no evil cache effect
         // involving obliteration, we clear all caches completely.
         Cache::clearAllCaches( true );
