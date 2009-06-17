@@ -95,7 +95,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || login )
         c.append( "IDLE" );
     if ( all || login )
-        c.append( "LISTEXT" );
+        c.append( "LIST-EXTENDED" );
     c.append( "LITERAL+" );
     if ( ( all || !login ) &&
          !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
