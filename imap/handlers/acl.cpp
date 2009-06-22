@@ -212,9 +212,11 @@ void Acl::execute()
             while ( d->q->hasResults() ) {
                 EString * s = new EString;
                 Row * r = d->q->nextRow();
-                s->append( r->getEString( "identifier" ) );
+                s->append( imapQuoted( r->getEString( "identifier" ),
+                                       AString ) );
                 s->append( " " );
-                s->append( r->getEString( "rights" ) );
+                s->append( imapQuoted( r->getEString( "rights" ),
+                                       AString ) );
                 l.append( s );
             }
             respond( "ACL " + imapQuoted( d->mailbox ) + " " + l.join( " " ) );
