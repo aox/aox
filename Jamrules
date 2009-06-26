@@ -161,7 +161,7 @@ actions together RemoveDirectories {
 
 actions together Doc2 bind UDOCBIN {
     mkdir -p doc/man/man3 doc/html build/doc
-    $(UDOCBIN) -o 'Oryx Mail Systems GmbH' -u 'http://www.oryx.com' -m doc/man/man3 -w doc/html $(>)
+    $(UDOCBIN) -o 'Oryx Mail Systems GmbH' -m doc/man/man3 -w doc/html $(>)
 }
 
 
