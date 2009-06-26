@@ -35,30 +35,30 @@ if ( $(BUILDDOC) ) {
     Depends doc : exe ;
 }
 
-MkDir $(BINDIR) ;
-MkDir $(MANDIR) ;
-MkDir $(JAILDIR) ;
-MkDir $(MESSAGEDIR) ;
-MkDir $(PIDFILEDIR) ;
-MkDir $(CONFIGDIR) ;
-MkDir $(LOGFILE:D) ;
-MkDir $(LIBDIR) ;
-MkDir $(LIBDIR)/contrib ;
-MkDir $(LIBDIR)/tlsproxy/var/run ;
+MkDir $(INSTALLROOT)$(BINDIR) ;
+MkDir $(INSTALLROOT)$(MANDIR) ;
+MkDir $(INSTALLROOT)$(JAILDIR) ;
+MkDir $(INSTALLROOT)$(MESSAGEDIR) ;
+MkDir $(INSTALLROOT)$(PIDFILEDIR) ;
+MkDir $(INSTALLROOT)$(CONFIGDIR) ;
+MkDir $(INSTALLROOT)$(LOGFILE:D) ;
+MkDir $(INSTALLROOT)$(LIBDIR) ;
+MkDir $(INSTALLROOT)$(LIBDIR)/contrib ;
+MkDir $(INSTALLROOT)$(LIBDIR)/tlsproxy/var/run ;
 
 Depends install :
     $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) $(PIDFILEDIR)
     $(LIBDIR)/tlsproxy/var/run ;
 
 # if we make JAILDIR, we should chmod it so noone can read it:
-MODE on $(JAILDIR) = 700 ;
-Chmod $(JAILDIR) ;
+MODE on $(INSTALLROOT)$(JAILDIR) = 700 ;
+Chmod $(INSTALLROOT)$(JAILDIR) ;
 
 # if we make MESSAGEDIR, we should chmod it similarly. AOXUSER needs to
 # be able to write to it, but we can't chown here, because the user may
 # not exist yet.
-MODE on $(MESSAGEDIR) = 700 ;
-Chmod $(MESSAGEDIR) ;
+MODE on $(INSTALLROOT)$(MESSAGEDIR) = 700 ;
+Chmod $(INSTALLROOT)$(MESSAGEDIR) ;
 
 
 actions Message {

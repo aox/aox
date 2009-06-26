@@ -180,7 +180,7 @@ void POP::setState( State s )
                         Query * q = new Query( "update mailboxes set "
                                                "nextmodseq=$1 where id=$2",
                                                this );
-                        q->bind( 1, ms );
+                        q->bind( 1, ms+1 );
                         q->bind( 2, mailbox->id() );
                         t->enqueue( q );
                         Mailbox::refreshMailboxes( t );

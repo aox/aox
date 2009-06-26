@@ -19,8 +19,13 @@ Help::Help( EStringList * args )
 
 
 static AoxFactory<Help>
-f( "help", "", "Offer help on a commands and more",
-   "XXX writeme" );
+f( "help", "", "Offer help on commands and more",
+   "    Synopsis: aox help ...\n\n"
+   "    Displays a brief help text on any aox command.\n"
+   "    Examples: aox help, aox help show, aox help show counts,\n"
+   "    aox help allcommands.\n"
+   "    More verbose help is available in the aox manpage and at aox.org/aox/,\n"
+   "    e.g. aox.org/aox/showcounts for aox show counts." );
 
 
 void Help::execute()
