@@ -25,8 +25,8 @@ public:
         ManDir,
         LibDir,
         InitDir,
-        OryxUser,
-        OryxGroup,
+        AoxUser,
+        AoxGroup,
         PgUser,
         DefaultDbAddress,
         // additional settings go ABOVE THIS LINE

@@ -474,10 +474,10 @@ const char * Configuration::compiledIn( CompileTimeSetting setting )
     case InitDir:
         return INITDIR;
         break;
-    case OryxUser:
+    case AoxUser:
         return AOXUSER;
         break;
-    case OryxGroup:
+    case AoxGroup:
         return AOXGROUP;
         break;
     case PgUser:
