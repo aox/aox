@@ -7,7 +7,7 @@ License:        OSL 2.1
 URL:            http://www.archiveopteryx.org/
 Source:         http://www.aox.org/download/%{name}-%{version}.tar.bz2
 Vendor:         Oryx Mail Systems GmbH
-Packager:       info@oryx.com
+Packager:       info@aox.org
 Requires:       postgresql >= 7.4.2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -17,7 +17,7 @@ a normalized PostgreSQL database. It is optimised for high-volume,
 long-term archival.
 
 Author:
-    Oryx Mail Systems GmbH <info@oryx.com>
+    The Archiveopteryx Developers <info@aox.org>
     http://www.archiveopteryx.org/
 
 %prep

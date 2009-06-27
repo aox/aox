@@ -214,5 +214,5 @@ void SpoolManager::shutdown()
     ::sm = 0;
     ::shutdown = true;
     ::log( "Shutting down outgoing mail due to software problem. "
-           "Please contact info@oryx.com", Log::Error );
+           "Please contact info@aox.org", Log::Error );
 }

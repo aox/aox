@@ -1580,7 +1580,7 @@ void splitPrivileges()
                       dbuser->quoted( '\'' ) + " or by user " +
                       dbowner->quoted( '\'' ) + ".\n"
                       "This configuration is unsupported. Please contact "
-                      "info@oryx.com for help." );
+                      "info@aox.org for help." );
             return;
         }
     }
