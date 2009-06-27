@@ -84,7 +84,7 @@ will generate a self-signed certificate at startup. No clients trust
 this certificate, but we think it's better to have a self-signed
 certificate than to not use TLS.
 .PP
-Oryx strongly recommends getting a proper signed certificate. Using
+We strongly recommend that you get a proper signed certificate. Using
 the dynamically generated certificate preserves some of the advantages
 of TLS, but far from all.
 .PP
@@ -94,7 +94,7 @@ PKCS #15 key file that
 can use with the
 .I pemtrans
 program, available from
-.IR http://www.oryx.com/ams/pemtrans.html .
+.IR http://toroid.org/ams/pemtrans .
 .SH FILES
 .IP $LIBDIR/automatic-key.p15
 is used to store the automatically generated key and certificate.
@@ -108,5 +108,4 @@ http://www.archiveopteryx.org/3.1.0
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
-.BR oryx (7),
 http://www.archiveopteryx.org
