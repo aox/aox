@@ -73,8 +73,8 @@ void badSocket( EString * );
 bool checkSocket( EString * );
 void readPassword();
 void readPgPass();
-void oryxGroup();
-void oryxUser();
+void aoxGroup();
+void aoxUser();
 void database();
 void configFile();
 void superConfig();
@@ -208,8 +208,8 @@ int main( int ac, char *av[] )
     if ( report )
         printf( "Reporting what the installer needs to do.\n" );
 
-    oryxGroup();
-    oryxUser();
+    aoxGroup();
+    aoxUser();
 
     if ( postgres != 0 )
         seteuid( postgres );
@@ -654,7 +654,7 @@ void configure()
 }
 
 
-void oryxGroup()
+void aoxGroup()
 {
     struct group * g = getgrnam( AOXGROUP );
     if ( g )
@@ -703,7 +703,7 @@ void oryxGroup()
 }
 
 
-void oryxUser()
+void aoxUser()
 {
     struct passwd * p = getpwnam( AOXUSER );
     if ( p )
