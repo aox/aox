@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #ifndef CREATE_H
 #define CREATE_H

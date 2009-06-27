@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #ifndef DELIVERYAGENT_H
 #define DELIVERYAGENT_H

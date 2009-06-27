@@ -1,4 +1,4 @@
-.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 .TH deliver 8 2009-03-30 aox.org "Archiveopteryx Documentation"
 .SH NAME
 deliver - deliver mail into Archiveopteryx.
