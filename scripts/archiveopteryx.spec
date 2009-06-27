@@ -6,7 +6,7 @@ Group:          Productivity/Networking/Email/Servers
 License:        OSL 2.1
 URL:            http://www.archiveopteryx.org/
 Source:         http://www.aox.org/download/%{name}-%{version}.tar.bz2
-Vendor:         Oryx Mail Systems GmbH
+Vendor:         The Archiveopteryx Developers
 Packager:       info@aox.org
 Requires:       postgresql >= 7.4.2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build

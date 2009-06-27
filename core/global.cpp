@@ -29,11 +29,11 @@ void die( Exception e )
     The Garbage class provides an object which will allocated using
     Allocator and be freed automatically when nothing points to it.
 
-    Almost all Oryx classes inherit Garbage directly or
-    indirectly. Any that need special allocation handling (Allocator
-    itself is one example) can avoid inheriting Garbage, or can
-    provide their own operator new implementations which call
-    ::malloc() or the Allocator's ::alloc() on their own.
+    Almost all classes inherit Garbage directly or indirectly. Any that
+    need special allocation handling (Allocator itself is one example)
+    can avoid inheriting Garbage, or can provide their own operator new
+    implementations which call ::malloc() or the Allocator's ::alloc()
+    on their own.
 */
 
 

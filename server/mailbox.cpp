@@ -221,7 +221,7 @@ public:
 };
 
 
-// this helper class is used to recover when Oryx testing tools
+// this helper class is used to recover when testing tools
 // violate various database invariants.
 class MailboxObliterator
     : public EventHandler

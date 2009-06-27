@@ -322,7 +322,7 @@ EString Connection::description() const
         r = "Log client";
         break;
     case GraphDumper:
-        r = "Oryx administrative server";
+        r = "Administrative server";
         break;
     case SmtpServer:
         r = "SMTP server";

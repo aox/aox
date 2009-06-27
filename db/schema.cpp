@@ -66,9 +66,9 @@ public:
 
 /*! \class Schema schema.h
 
-    This class manipulates the Oryx database schema. It knows all the
-    schema revisions and can upgrade a database to the latest schema
-    version automatically.
+    This class manipulates the Archiveopteryx database schema. It knows
+    all the schema revisions and can upgrade a database to the latest
+    schema version automatically.
 */
 
 
