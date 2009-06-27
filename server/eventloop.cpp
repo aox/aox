@@ -270,7 +270,7 @@ void EventLoop::start()
                                     " was unexpectedly closed: "
                                     "Removing corresponding connection: " +
                                     c->description(), Log::Error );
-                            c->log( "Please notify info@oryx.com about what "
+                            c->log( "Please notify info@aox.org about what "
                                     "happened with this connection" );
                         }
                         removeConnection( c );

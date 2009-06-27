@@ -715,7 +715,7 @@ UString AsciiCodec::toUnicode( const EString & s )
     currently using the 1999 revision of 8859-5.
 
     The selection of encodings is too small still. To extend it, we
-    need test data for more encodings. Please write to info@oryx.com
+    need test data for more encodings. Please write to info@aox.org
     if you can provide some.
 */
 

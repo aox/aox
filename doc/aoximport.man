@@ -32,7 +32,7 @@ preserves the error, and to errors/plaintext else. The message is also
 written to the target mailbox, as an attachment to a special error
 message.
 .IP
-The messages in the errors directory may be sent to info@oryx.com, and
+The messages in the errors directory may be sent to info@aox.org, and
 we'll try to find out what the problem is. Please delete
 personal/confidential messages from errors/plaintext first.
 .SH SYNTAX
@@ -59,7 +59,7 @@ aoximport /users/nirmala/imap mbox ~/Mail/imap/*
 After a large import, it's a good idea to run
 .IR "aox vacuum" .
 .SH AUTHOR
-The Archiveopteryx developers, info@oryx.com.
+The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.0, released 2009-03-30,
 http://www.archiveopteryx.org/3.1.0

@@ -27,7 +27,7 @@ than one connection,
 stores more than one file.
 .PP
 The file format is pure ASCII and can be edited. We suggest that you
-edit out your password, then send the rest to info@oryx.com and we may
+edit out your password, then send the rest to info@aox.org and we may
 be able to find out what's happening.
 .PP
 Oryx has debug tools that can replay the connection, so we can fix any
@@ -84,9 +84,9 @@ Please edit the files to remove any passwords or other confidential
 data. If you can, don't change the number of words or bytes. It's best
 to change all the letters in passwords and confidential words to 'x'.
 .PP
-That's it. Now you can send an excellent bug report to info@oryx.com.
+That's it. Now you can send an excellent bug report to info@aox.org.
 .SH AUTHOR
-The Archiveopteryx developers, info@oryx.com.
+The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.0, released 2009-03-30,
 http://www.archiveopteryx.org/3.1.0

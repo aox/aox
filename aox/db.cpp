@@ -661,6 +661,6 @@ void CheckDatabase::expectEmpty( const char * query )
 
 void CheckDatabase::scream( class Query * q )
 {
-    error( "Unexpected rows in the database. Contact info@oryx.com. "
+    error( "Unexpected rows in the database. Contact info@aox.org. "
            "Query: " + q->string() );
 }
