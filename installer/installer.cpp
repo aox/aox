@@ -107,8 +107,8 @@ int main( int ac, char *av[] )
     global.setLog( l );
 
     PGUSER = Configuration::compiledIn( Configuration::PgUser );
-    AOXUSER = Configuration::compiledIn( Configuration::OryxUser );
-    AOXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
+    AOXUSER = Configuration::compiledIn( Configuration::AoxUser );
+    AOXGROUP = Configuration::compiledIn( Configuration::AoxGroup );
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
     av++;
