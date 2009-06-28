@@ -1800,11 +1800,13 @@ void Injector::insertDeliveries()
         q->bind( 1, sender->id() );
         q->bind( 2, di->message->databaseId() );
         d->transaction->enqueue( q );
-
+        
         uint n = 0;
         List<Address>::Iterator it( di->recipients );
+        EStringList domains;
         while ( it ) {
             Address * a = d->addresses.find( AddressCreator::key( it ) );
+            domains.append( a->domain().lower() );
             Query * q =
                 new Query(
                     "insert into delivery_recipients (delivery,recipient) "
@@ -1818,6 +1820,23 @@ void Injector::insertDeliveries()
             ++it;
         }
 
+        Header * h = di->message->header();
+        if ( h && h->field( "Auto-Submitted" ) ) {
+            q = new Query( "update deliveries "
+                           "set deliver_after=injected_at+'1 minute' "
+                           "where message=$1 and exists ("
+                           "(select dr.id from delivery_recipients dr"
+                           " join addresses a on (dr.recipient=a.id)"
+                           " where dr.action>$2"
+                           " and dr.last_attempt > current_timestamp-'1 minute'"
+                           " and lower(a.domain)=any($3::text[]))", 0 );
+            q->bind( 1, di->message->databaseId() );
+            q->bind( 2, Recipient::Delayed );
+            domains.removeDuplicates();
+            q->bind( 3, domains );
+            d->transaction->enqueue( q );
+        }
+                
         log( "Spooling message " + fn( di->message->databaseId() ) +
              " for delivery to " + fn( n ) +
              " remote recipients", Log::Significant );
