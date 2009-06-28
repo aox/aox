@@ -4220,3 +4220,14 @@ bool Schema::stepTo89()
     d->t->enqueue( "alter table connections drop userid" );
     return true;
 }
+
+
+/*! Add a deliveries column so we can deliver mail later, not now. */
+
+bool Schema::stepTo90()
+{
+    describeStep( "Adding deliveries.deliver_after to improve autoresponders." );
+    d->t->enqueue( "alter table deliveries "
+                   "add deliver_after timestamp with time zone" );
+    return true;
+}

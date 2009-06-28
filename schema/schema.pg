@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (89);
+insert into mailstore (revision) values (90);
 
 
 -- One entry for each unique address we've encountered.
@@ -445,7 +445,8 @@ create table deliveries (
                 on delete cascade
                 unique,
     injected_at timestamp with time zone,
-    expires_at  timestamp with time zone
+    expires_at  timestamp with time zone,
+    deliver_after timestamp with time zone
 );
 
 
