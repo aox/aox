@@ -70,7 +70,7 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
             addParam( name, value );
     }
 
-    if ( server()->dialect() == SMTP::Submit && !accessPermitted() )
+    if ( server()->dialect() == SMTP::Submit && !server()->accessPermitted() )
         respond( 501, "Must use encrytion to send mail", "5.7.0" );
 }
 
