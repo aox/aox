@@ -187,8 +187,15 @@ void Permissions::execute()
         // For everyone else, we have to check.
         d->q = new Query( "select * from permissions "
                           "where mailbox=any($1) and "
-                          "(identifier=$2 or identifier='anyone') ",
+                          "(identifier=$1 or"
+                          " identifier='anyone' or"
+                          " identifier in ("
+                          "select g.groupname from groups g "
+                          "join group_members gm on (g.id=gm.group)"
+                          "join users u on (gm.member=u.id)"
+                          "where u.login=$1))",
                           this );
+          
         IntegerSet r;
         Mailbox * m = d->mailbox;
         while ( m ) {
