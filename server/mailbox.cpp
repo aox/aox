@@ -543,7 +543,6 @@ Mailbox * Mailbox::closestParent( const UString & name )
 
     if \a create is true (this is the default) and there is no such
     Mailbox, obtain() creates one, including any necessary parents.
-    The new mailbox is initially synthetic().
 
     If \a create is false and there is no such Mailbox, obtain()
     returns null without creating anything.
