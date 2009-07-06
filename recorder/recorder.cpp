@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "recorder.h"
 
@@ -102,9 +102,9 @@ static EString * base = 0;
 
     The RecorderServer class provides the client-facing side of a man
     in the middle that records the TCP stream in a format suitable for
-    reporting to Oryx.
+    reporting to us.
 
-    Oryx has debug/test tools that accept approximately this format.
+    We have debug/test tools that accept approximately this format.
 */
 
 

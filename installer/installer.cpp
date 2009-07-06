@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "scope.h"
 #include "estring.h"
@@ -73,8 +73,8 @@ void badSocket( EString * );
 bool checkSocket( EString * );
 void readPassword();
 void readPgPass();
-void oryxGroup();
-void oryxUser();
+void aoxGroup();
+void aoxUser();
 void database();
 void configFile();
 void superConfig();
@@ -107,8 +107,8 @@ int main( int ac, char *av[] )
     global.setLog( l );
 
     PGUSER = Configuration::compiledIn( Configuration::PgUser );
-    AOXUSER = Configuration::compiledIn( Configuration::OryxUser );
-    AOXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
+    AOXUSER = Configuration::compiledIn( Configuration::AoxUser );
+    AOXGROUP = Configuration::compiledIn( Configuration::AoxGroup );
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
     av++;
@@ -208,8 +208,8 @@ int main( int ac, char *av[] )
     if ( report )
         printf( "Reporting what the installer needs to do.\n" );
 
-    oryxGroup();
-    oryxUser();
+    aoxGroup();
+    aoxUser();
 
     if ( postgres != 0 )
         seteuid( postgres );
@@ -654,7 +654,7 @@ void configure()
 }
 
 
-void oryxGroup()
+void aoxGroup()
 {
     struct group * g = getgrnam( AOXGROUP );
     if ( g )
@@ -703,7 +703,7 @@ void oryxGroup()
 }
 
 
-void oryxUser()
+void aoxUser()
 {
     struct passwd * p = getpwnam( AOXUSER );
     if ( p )
@@ -1580,7 +1580,7 @@ void splitPrivileges()
                       dbuser->quoted( '\'' ) + " or by user " +
                       dbowner->quoted( '\'' ) + ".\n"
                       "This configuration is unsupported. Please contact "
-                      "info@oryx.com for help." );
+                      "info@aox.org for help." );
             return;
         }
     }

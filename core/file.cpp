@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "file.h"
 
@@ -44,9 +44,8 @@ public:
 /*! \class File file.h
     Represents a file.
 
-    In the Oryx system, a file is read once on object construction and
-    never read later, or opened and truncated, ready for later
-    writing.
+    A file is read once on object construction and never read later, or
+    opened and truncated, ready for later writing.
 
     Once read, a file's contents() returns the entire contents of the
     file. To write to a file, write() is available. The file remains

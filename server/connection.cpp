@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "connection.h"
 
@@ -322,7 +322,7 @@ EString Connection::description() const
         r = "Log client";
         break;
     case GraphDumper:
-        r = "Oryx administrative server";
+        r = "Administrative server";
         break;
     case SmtpServer:
         r = "SMTP server";

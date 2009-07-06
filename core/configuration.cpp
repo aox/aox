@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "configuration.h"
 
@@ -474,10 +474,10 @@ const char * Configuration::compiledIn( CompileTimeSetting setting )
     case InitDir:
         return INITDIR;
         break;
-    case OryxUser:
+    case AoxUser:
         return AOXUSER;
         break;
-    case OryxGroup:
+    case AoxGroup:
         return AOXGROUP;
         break;
     case PgUser:

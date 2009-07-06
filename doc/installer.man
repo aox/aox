@@ -1,4 +1,4 @@
-.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 .TH installer 8 2009-03-30 aox.org "Archiveopteryx Documentation"
 .SH NAME
 installer - Archiveopteryx installer.
@@ -119,7 +119,7 @@ The defaults come from
 The return code is zero if all goes well, and a non-zero in case of
 errors. Disasters are logged via stderr.
 .SH AUTHOR
-The Archiveopteryx developers, info@oryx.com.
+The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.0, released 2009-03-30,
 http://www.archiveopteryx.org/3.1.0
@@ -128,5 +128,4 @@ http://www.archiveopteryx.org/3.1.0
 .BR archiveopteryx.conf (5),
 .BR logd (8),
 .BR tlsproxy (8),
-.BR oryx (7),
 http://www.archiveopteryx.org

@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
@@ -25,8 +25,8 @@ public:
         ManDir,
         LibDir,
         InitDir,
-        OryxUser,
-        OryxGroup,
+        AoxUser,
+        AoxGroup,
         PgUser,
         DefaultDbAddress,
         // additional settings go ABOVE THIS LINE

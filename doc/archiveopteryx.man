@@ -1,4 +1,4 @@
-.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 .TH archiveopteryx 7 2009-03-30 aox.org "Archiveopteryx Documentation"
 .SH NAME
 Overview of Archiveopteryx.
@@ -164,7 +164,7 @@ restrictive open source license similar to the more well-known GNU
 licenses. It includes a disclaimer of responsibility.
 .PP
 Our commercial license offers more flexibility than the OSL and a full
-warranty. There are also extra services. Contact info@oryx.com for
+warranty. There are also extra services. Contact info@aox.org for
 more details, or see http://www.archiveopteryx.org/commercial
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
@@ -218,7 +218,7 @@ contains a private key and self-signed certificate used by
 .BR tlsproxy (8)
 (and indirectly by the other servers).
 .SH AUTHOR
-The Archiveopteryx developers, info@oryx.com.
+The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.0, released 2009-03-30,
 http://www.archiveopteryx.org/3.1.0
@@ -228,5 +228,4 @@ http://www.archiveopteryx.org/3.1.0
 .BR deliver (8),
 .BR logd (8),
 .BR tlsproxy (8),
-.BR oryx (7),
 http://www.archiveopteryx.org

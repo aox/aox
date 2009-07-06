@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "schema.h"
 
@@ -66,9 +66,9 @@ public:
 
 /*! \class Schema schema.h
 
-    This class manipulates the Oryx database schema. It knows all the
-    schema revisions and can upgrade a database to the latest schema
-    version automatically.
+    This class manipulates the Archiveopteryx database schema. It knows
+    all the schema revisions and can upgrade a database to the latest
+    schema version automatically.
 */
 
 

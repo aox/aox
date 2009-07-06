@@ -1,4 +1,4 @@
-.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 .TH logd 8 2009-03-30 aox.org "Archiveopteryx Documentation"
 .SH NAME
 logd - logging server for Archiveopteryx.
@@ -84,7 +84,7 @@ $CONFIGDIR/archiveopteryx.conf
 .br
 $SBINDIR/logd
 .SH AUTHOR
-The Archiveopteryx developers, info@oryx.com.
+The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.0, released 2009-03-30,
 http://www.archiveopteryx.org/3.1.0
@@ -94,5 +94,4 @@ http://www.archiveopteryx.org/3.1.0
 .BR deliver (8),
 .BR aox (8),
 .BR tlsproxy (8),
-.BR oryx (7),
 http://www.archiveopteryx.org

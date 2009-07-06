@@ -1,4 +1,4 @@
-.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 .TH aoxsuper.conf 5 2009-03-30 aox.org "Archiveopteryx Documentation"
 .SH NAME
 aoxsuper.conf - configuration file for Archiveopteryx.
@@ -57,7 +57,7 @@ The default is an empty string.
 Unless a password is specified, the Archiveopteryx installer sets up a
 randomly-chosen password and writes it to the configuration file.
 .SH AUTHOR
-The Archiveopteryx developers, info@oryx.com.
+The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.0, released 2009-03-30,
 http://www.archiveopteryx.org/3.1.0
@@ -67,5 +67,4 @@ http://www.archiveopteryx.org/3.1.0
 .BR deliver (8),
 .BR logd (8),
 .BR tlsproxy (8),
-.BR oryx (7),
 http://www.archiveopteryx.org

@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "spoolmanager.h"
 
@@ -216,5 +216,5 @@ void SpoolManager::shutdown()
     ::sm = 0;
     ::shutdown = true;
     ::log( "Shutting down outgoing mail due to software problem. "
-           "Please contact info@oryx.com", Log::Error );
+           "Please contact info@aox.org", Log::Error );
 }

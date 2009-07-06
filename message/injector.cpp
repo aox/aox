@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "injector.h"
 
@@ -1423,7 +1423,7 @@ void Injector::selectUids()
                 level = Log::Error;
             log( "Note: Mailbox " + mb->mailbox->name().ascii() +
                  " only has " + fn ( 0x7fffffff - uidnext ) +
-                 " more usable UIDs. Please contact info@oryx.com"
+                 " more usable UIDs. Please contact info@aox.org"
                  " to resolve this problem.", level );
         }
 

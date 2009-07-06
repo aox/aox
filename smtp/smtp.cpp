@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "smtp.h"
 
@@ -506,7 +506,8 @@ void SMTP::setTransactionId( const EString & id )
 
 
 /*! Return an ESMTP id, either based on an internal algorithm or on
-    something the client specified using an Oryx-specific extension.
+    something the client specified using an Archiveopteryx-specific
+    extension.
 
     This function returns the same ID even if called several times.
     Rset resets it.

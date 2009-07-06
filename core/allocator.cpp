@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "allocator.h"
 
@@ -246,14 +246,14 @@ Allocator * Allocator::allocator( uint size )
 
 /*! \class Allocator allocator.h
 
-    The Allocator class does the heavy lifting for Oryx memory
+    The Allocator class does the heavy lifting for Archiveopteryx memory
     allocation system, a simple garbage collector for event-driven
     servers.
 
     Our GC system is based on the notion of eternal objects and safe
     GC points. Eternal objects must be declared by calling
     addEternal. Collectible objects are allocated by calling alloc(),
-    or alternatively by inheriting Garbage. Most Oryx classes inherit
+    or alternatively by inheriting Garbage. Most classes inherit from
     Garbage.
 
     The free() function mark all objects that can be reached from the

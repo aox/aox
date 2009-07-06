@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "servers.h"
 
@@ -1399,9 +1399,9 @@ void ShowBuild::execute()
     printf( "INITDIR = %s\n",
             Configuration::compiledIn( Configuration::InitDir ) );
     printf( "AOXUSER = %s\n",
-            Configuration::compiledIn( Configuration::OryxUser ) );
+            Configuration::compiledIn( Configuration::AoxUser ) );
     printf( "AOXGROUP = %s\n",
-            Configuration::compiledIn( Configuration::OryxGroup ) );
+            Configuration::compiledIn( Configuration::AoxGroup ) );
     printf( "VERSION = %s\n",
             Configuration::compiledIn( Configuration::Version ) );
 

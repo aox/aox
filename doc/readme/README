@@ -120,12 +120,12 @@ Mailing Lists
 There are mailing lists for Archiveopteryx users and announcements. To
 subscribe to the users list (which also gets announcements), send mail:
 
-    echo|mail -s subscribe mailstore-users-request@oryx.com
+    echo|mail -s subscribe users-request@aox.org
 
 To subscribe instead to the low-volume announcements list:
 
-    echo|mail -s subscribe mailstore-announce-request@oryx.com
+    echo|mail -s subscribe announce-request@aox.org
 
 
 If you encounter any problems or have any suggestions, please write to
-info@oryx.com. Your comments help us improve Archiveopteryx.
+info@aox.org. Your comments help us improve Archiveopteryx.

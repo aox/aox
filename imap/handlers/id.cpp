@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "id.h"
 
@@ -64,9 +64,6 @@ void Id::execute()
              "\"version\" " + v.quoted() + " "
              "\"compile-time\" \"" __DATE__ " " __TIME__ "\" "
              "\"homepage-url\" \"http://www.archiveopteryx.org\" "
-             "\"release-url\" \"http://www.archiveopteryx.org/" + v + "\" "
-             "\"support-url\" \"http://www.oryx.com\" "
-             "\"support-email\" \"info@oryx.com\" "
-             "\"vendor\" \"Oryx Mail Systems GmbH\")" );
+             "\"release-url\" \"http://www.archiveopteryx.org/" + v + "\" )" );
     finish();
 }

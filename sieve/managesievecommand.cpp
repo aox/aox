@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "managesievecommand.h"
 
@@ -877,7 +877,7 @@ static ExplainStuff * x = 0;
 
 /*! This Archiveopteryx extension explains what a sieve script (the
     first argument) does with a given message. It is intended for
-    automated testing at Oryx.
+    automated testing.
 
     The command takes a number of name-value pairs as aguments. The
     possible names are from, to, keep, script and message. The

@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "mailbox.h"
 
@@ -218,7 +218,7 @@ public:
 };
 
 
-// this helper class is used to recover when Oryx testing tools
+// this helper class is used to recover when testing tools
 // violate various database invariants.
 class MailboxObliterator
     : public EventHandler

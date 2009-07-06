@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "ustring.h"
 
@@ -45,9 +45,9 @@ void * UStringData::operator new( size_t ownSize, uint extra )
 /*! \class UString ustring.h
     The UString class provides a normalized Unicode string.
 
-    At Oryx, Unicode strings are used sparingly. Unicode is the common
-    character encoding for all strings except those limited to US-ASCII,
-    but such strings are sparingly manipulated.
+    Unicode is the common character encoding for all strings except
+    those limited to US-ASCII, but such strings are sparingly
+    manipulated.
 
     Most of the functionality of UString is concerned with conversion
     to/from other encodings, such as ISO-8859-15, KOI-U, etc, etc. Other

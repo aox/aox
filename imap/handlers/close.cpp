@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 /*! \class Close close.h
     Performs a silent EXPUNGE+UNSELECT (RFC 3501 section 6.4.2)

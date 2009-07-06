@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+// Copyright 2009 The Archiveopteryx Developers <info@aox.org>
 
 #include "logclient.h"
 
@@ -93,7 +93,7 @@ public:
 /*! \class LogClient logclient.h
     A Logger subclass that talks to our log server. (LogdClient)
 
-    This is the Logger that's used throughout most of the Oryx system.
+    This is the Logger that's used throughout most of the system.
     All programs that want to use the regular log server must call
     LogClient::setup() at startup.
 */
