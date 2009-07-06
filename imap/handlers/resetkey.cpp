@@ -57,8 +57,8 @@ void ResetKey::execute()
     if ( !q ) {
         EString query( "delete from access_keys where userid=$1" );
         if ( m ) {
-            if ( m->synthetic() || m->deleted() ) {
-                error( No, "Can't reset keys on mailbox " +
+            if ( m->deleted() ) {
+                error( No, "Can't reset keys on deleted mailbox " +
                        m->name().ascii() );
                 return;
             }

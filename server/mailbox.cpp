@@ -33,7 +33,7 @@ class MailboxData
 {
 public:
     MailboxData()
-        : type( Mailbox::Synthetic ), id( 0 ),
+        : type( Mailbox::Ordinary ), id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ),
           sessions( 0 ), threader( 0 ),
@@ -75,14 +75,11 @@ public:
 
     Some mailboxes aren't quite real. A Mailbox can be deleted(), in
     which case it can contain no messags. If recreated, a deleted()
-    mailbox preserves its uidvalidity() and uid series. It can also be
-    synthetic(), meaning that it exists only in RAM, not in the database.
+    mailbox preserves its uidvalidity() and uid series.
 
     This class maintains a tree of mailboxes, based on the contents of
     the mailboxes table and descriptive messages from the OCServer. It
-    can find() a named mailbox in this hierarchy. Synthetic messages
-    are internal nodes in the tree, necessary to connect the root to
-    the leaves.
+    can find() a named mailbox in this hierarchy.
 */
 
 
@@ -297,7 +294,7 @@ UString Mailbox::name() const
 
 
 /*! Sets the type of this Mailbox to \a t. The initial value is
-    Synthetic (because it has to be something).
+    Ordinary (because it has to be something).
 */
 
 void Mailbox::setType( Type t )
@@ -308,8 +305,8 @@ void Mailbox::setType( Type t )
 }
 
 
-/*! Returns the type of this Mailbox. May be Synthetic, Ordinary,
-    Deleted, or View.
+/*! Returns the type of this Mailbox. May be Ordinary, Deleted, or
+    View.
 */
 
 Mailbox::Type Mailbox::type() const
@@ -318,8 +315,7 @@ Mailbox::Type Mailbox::type() const
 }
 
 
-/*! Returns the database ID of this Mailbox, or 0 if this Mailbox is
-    synthetic().
+/*! Returns the database ID of this Mailbox.
 */
 
 uint Mailbox::id() const
@@ -328,8 +324,7 @@ uint Mailbox::id() const
 }
 
 
-/*! Notifies this Mailbox that its database ID is \a i. If \a i is 0,
-    the Mailbox is synthetic.
+/*! Notifies this Mailbox that its database ID is \a i.
 */
 
 void Mailbox::setId( uint i ) const
@@ -361,17 +356,6 @@ void Mailbox::setUidvalidity( uint i )
 uint Mailbox::uidvalidity() const
 {
     return d->uidvalidity;
-}
-
-
-/*! Returns true if this Mailbox has been synthesized in-RAM in order
-    to fully connect the mailbox tree, and false if the Mailbox exists
-    in the database.
-*/
-
-bool Mailbox::synthetic() const
-{
-    return d->type == Synthetic;
 }
 
 
@@ -451,7 +435,7 @@ bool Mailbox::hasChildren() const
 {
     List<Mailbox>::Iterator it( d->children );
     while ( it ) {
-        if ( !it->deleted() && !it->synthetic() )
+        if ( !it->deleted() )
             return true;
         if ( it->hasChildren() )
             return true;
@@ -496,8 +480,7 @@ Mailbox * Mailbox::root()
 /*! Returns a pointer to the Mailbox with \a id, or a null pointer if
     there is no such (known) Mailbox.
 
-    Deleted mailboxes are included in the search, but synthetic ones
-    aren't.
+    Deleted mailboxes are included in the search.
 */
 
 Mailbox * Mailbox::find( uint id )
@@ -519,8 +502,6 @@ Mailbox * Mailbox::find( const UString &name, bool deleted )
     if ( !m )
         return 0;
     if ( m->deleted() && !deleted )
-        return 0;
-    if ( m->synthetic() )
         return 0;
     return m;
 }
@@ -549,7 +530,7 @@ Mailbox * Mailbox::closestParent( const UString & name )
         Mailbox * m = obtain( n );
         if ( m->isHome() )
             return m;
-        if ( !m->deleted() && !m->synthetic() )
+        if ( !m->deleted() )
             return m;
     } while ( true );
 
@@ -725,7 +706,7 @@ Query * Mailbox::create( Transaction * t, User * owner )
 
 Query * Mailbox::remove( Transaction * t )
 {
-    if ( synthetic() || deleted() )
+    if ( deleted() )
         return 0;
 
     Query * q =

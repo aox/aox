@@ -493,8 +493,7 @@ void Injector::createMailboxes()
             while ( mi ) {
                 Mailbox * mb = mi;
                 ++mi;
-                if ( ( mb->synthetic() || mb->deleted() ) &&
-                     !nonexistent.contains( mb->name() ) ) {
+                if ( mb->deleted() && !nonexistent.contains( mb->name() ) ) {
                     mb->create( d->transaction, 0 );
                     d->mailboxesCreated->append( mb );
                     nonexistent.insert( mb->name(), mb );
@@ -507,8 +506,6 @@ void Injector::createMailboxes()
     }
     List<Mailbox>::Iterator m( d->mailboxesCreated );
     while ( m ) {
-        if ( m->synthetic() )
-            return;
         if ( m->deleted() )
             return;
         ++m;

@@ -93,7 +93,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     renames.append( p );
 
     Mailbox * to = Mailbox::obtain( p->toName, false );
-    if ( to && !( to->synthetic() || to->deleted() ) ) {
+    if ( to && !to->deleted() ) {
         c->error( Rename::No,
                   "Destination mailbox exists: " + p->toName.ascii() );
         c->setRespTextCode( "ALREADYEXISTS" );
@@ -105,7 +105,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
 
     // if an old mailbox is there already, use it and bump uidvalidity
     Query * q = 0;
-    if ( to && !to->synthetic() ) {
+    if ( to ) {
         q = new Query( "update mailboxes set name=$1 where id=$2", 0 );
         q->bind( 1, Entropy::asString( 16 ).hex() );
         q->bind( 2, to->id() );
@@ -126,7 +126,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     // insert a deleted placeholder to ensure that uidnext/uidvalidity
     // will be okay if a new mailbox is created with the same name as
     // this one used to have
-    if ( to && !to->synthetic() ) {
+    if ( to ) {
         // if we have the old mailbox, use it
         q = new Query( "update mailboxes "
                        "set name=$1,uidnext=$2,uidvalidity=$3,deleted='t' "

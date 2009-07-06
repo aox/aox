@@ -136,8 +136,7 @@ void CreateAlias::execute()
     if ( !d->t ) {
         if ( !d->mailboxName.isEmpty() ) {
             d->mailbox = Mailbox::obtain( d->mailboxName, false );
-            if ( !d->mailbox ||
-                 d->mailbox->synthetic() || d->mailbox->deleted() )
+            if ( !d->mailbox || d->mailbox->deleted() )
                 error( "No mailbox named " + d->mailboxName.utf8() );
         }
 

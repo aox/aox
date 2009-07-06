@@ -20,7 +20,7 @@ class Mailbox
     Mailbox( const UString & );
 
 public:
-    enum Type { Synthetic, Ordinary, Deleted, View };
+    enum Type { Ordinary, Deleted, View };
 
     UString name() const;
     uint id() const;
@@ -32,7 +32,6 @@ public:
     void setType( Type );
     Type type() const;
 
-    bool synthetic() const;
     bool ordinary() const;
     bool deleted() const;
     bool view() const;

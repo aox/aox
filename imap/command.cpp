@@ -1173,10 +1173,6 @@ class Mailbox * Command::mailbox()
         error( No, "No such mailbox: " + n.ascii() );
         return 0;
     }
-    if ( m->synthetic() ) {
-        error( No, "Mailbox is not selectable: " + n.ascii() );
-        return 0;
-    }
     if ( m->deleted() ) {
         error( No, "Mailbox deleted: " + n.ascii() );
         return 0;
@@ -1262,7 +1258,7 @@ EString Command::imapQuoted( Mailbox * m, Mailbox * r )
         base = imap()->user()->home();
     // find out whether this name can be expressed as a relative name
     if ( base ) {
-        Mailbox * p = m->parent();
+        Mailbox * p = m;
         while ( p && p != base )
             p = p->parent();
         if ( p )

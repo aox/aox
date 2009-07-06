@@ -410,7 +410,7 @@ bool ManageSieveCommand::putScript()
                     Mailbox * p = m;
                     while ( p && p != home )
                         p = p->parent();
-                    if ( !m->synthetic() && !m->deleted() ) {
+                    if ( !m->deleted() ) {
                         // no action needed
                     }
                     else if ( p == home ) {

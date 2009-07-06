@@ -290,7 +290,7 @@ void DeleteMailbox::execute()
 
     if ( !d->t ) {
         d->m = Mailbox::obtain( d->name, false );
-        if ( !d->m || d->m->synthetic() )
+        if ( !d->m )
             error( "No mailbox named " + d->name.utf8() );
 
         d->t = new Transaction( this );
