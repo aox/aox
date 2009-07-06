@@ -21,7 +21,6 @@ class ListextData
 public:
     ListextData():
         selectQuery( 0 ), permissionsQuery( 0 ),
-        subscribed( 0 ),
         reference( 0 ),
         state( 0 ),
         extended( false ),
@@ -32,7 +31,6 @@ public:
 
     Query * selectQuery;
     Query * permissionsQuery;
-    List<Mailbox> * subscribed;
     Mailbox * reference;
     EString referenceName;
     UStringList patterns;
@@ -63,12 +61,8 @@ public:
         EString response;
     };
 
-    UDict<Response> responses;
-    void addResponse( const UString & n, Response * r ) {
-        UString k = n;
-        k.append( (uint)0 );
-        responses.insert( k.titlecased(), r );
-    }
+    EString previousResponse;
+    List<Response> responses;
 
     bool extended;
     bool returnSubscribed;
@@ -157,9 +151,6 @@ void Listext::parse()
     if ( d->selectSubscribed )
         d->returnSubscribed = true;
 
-    if ( d->returnSubscribed )
-        d->subscribed = new List<Mailbox>;
-
    if ( ok() )
        log( "List " + d->reference->name().ascii() +
             " " + d->patterns.join( " " ).ascii() );
@@ -168,66 +159,143 @@ void Listext::parse()
 
 void Listext::execute()
 {
-    if ( d->state == 0 ) {
-        if ( d->returnSubscribed || d->selectSubscribed ) {
-            if ( !d->selectQuery ) {
-                d->selectQuery
-                    = new Query( "select mailbox from subscriptions "
-                                 "where owner=$1", this );
-                d->selectQuery->bind( 1, imap()->user()->id() );
-                d->selectQuery->execute();
-            }
-            Row * r = 0;
-            while ( (r=d->selectQuery->nextRow()) != 0 )
-                d->subscribed->append(Mailbox::find( r->getInt( "mailbox" ) ));
-        }
+    if ( d->state == 0 && d->patterns.count() == 1 &&
+         d->patterns.first()->isEmpty() ) {
+        EString r;
+        if ( d->reference == Mailbox::root() )
+            r = "LIST () \"/\" \"/\"";
+        else
+            r = "LIST () \"/\" \"\"";
+        d->previousResponse = r;
+        d->responses.append(
+            new ListextData::Response( imap()->user()->inbox(), r ) );
+        d->state = 2;
+    }
 
-        if ( d->selectQuery ) {
-            if ( !d->selectQuery->done() )
-                return;
-            if ( d->selectQuery->failed() ) {
-                error( No,
-                       "Unable to get list of selected mailboxes: " +
-                       d->selectQuery->error() );
-                setRespTextCode( "SERVERBUG" );
-            }
+    if ( d->state == 0 ) {
+        d->selectQuery = new Query( "", this );
+        uint bn = 1;
+        EString sel;
+        if ( d->selectSubscribed && d->selectRecursiveMatch ) {
+            sel = "select mb.id, mb.name, s.id as sid, "
+                  "exists(select cmb.id from mailboxes cmb "
+                  "join subscriptions cs on"
+                  " (cmb.id=cs.mailbox and cs.owner=$1) "
+                  "where lower(mb.name)||'/'="
+                  "lower(substring(cmb.name from 1 for length(mb.name)+1)))"
+                  " as csub "
+                  "from mailboxes mb "
+                  "left join subscriptions s on"
+                  " (mb.id=s.mailbox and s.owner=$1) "
+                  "where ";
+            d->selectQuery->bind( 1, imap()->user()->id() );
+            bn = 2;
         }
+        else if ( d->selectSubscribed ) {
+            sel = "select mb.id, mb.name, s.id as sid from mailboxes mb "
+                  "join subscriptions s on (mb.id=s.mailbox and s.owner=$1) "
+                  "where ";
+            d->selectQuery->bind( 1, imap()->user()->id() );
+            bn = 2;
+        }
+        else {
+            sel = "select mb.id, mb.name";
+            if ( d->returnSubscribed ) {
+                sel.append( ", s.id as sid from mailboxes mb "
+                            "left join subscriptions s on"
+                            " (mb.id=s.mailbox and s.owner=$1)" );
+                d->selectQuery->bind( 1, imap()->user()->id() );
+                bn = 2;
+            }
+            else {
+                sel.append( " from mailboxes mb" );
+            }
+            sel.append( " where " );
+        }
+        EStringList conditions;
+        UStringList::Iterator i( d->patterns );
+        bool first = true;
+        while ( i ) {
+            if ( !first )
+                sel.append( " or " );
+            first = false;
+            UString p = *i;
+            if ( !p.startsWith( "/" ) ) {
+                p = d->reference->name();
+                if ( !i->isEmpty() ) {
+                    p.append( "/" );
+                    p.append( *i );
+                }
+            }
+            UStringList constparts;
+            uint n = 0;
+            uint wn = 0;
+            while ( n <= p.length() ) {
+                if ( n >= p.length() || p[n] == '%' || p[n] == '*' ) {
+                    constparts.append( p.mid( wn, n-wn ) );
+                    n++;
+                    while ( p[n] == '%' || p[n] == '*' )
+                        n++;
+                    wn = n;
+                }
+                else {
+                    n++;
+                }
+            }
+            if ( constparts.isEmpty() ) {
+                sel.append( "true" );
+            }
+            else {
+                sel.append( "mb.name ilike " );
+                UStringList::Iterator constpart( constparts );
+                while ( constpart ) {
+                    sel.append( "$" );
+                    sel.appendNumber( bn );
+                    d->selectQuery->bind( bn, *constpart );
+                    bn++;
+                    ++constpart;
+                    if ( constpart )
+                        sel.append( "||'%'||" );
+                }
+            }
+            ++i;
+        }
+        sel.append( " order by lower(mb.name)||' '" );
+        d->selectQuery->setString( sel );
+        d->selectQuery->execute();
+
         d->state = 1;
     }
 
     if ( d->state == 1 ) {
-        UStringList::Iterator it( d->patterns );
-        while ( it ) {
-            if ( it->isEmpty() && !d->extended ) {
-                EString r;
-                if ( d->reference == Mailbox::root() ) {
-                    r = "LIST (\\noselect) \"/\" \"/\"";
-                    d->addResponse(
-                        Mailbox::root()->name(),
-                        new ListextData::Response( d->reference, r ) );
+        while ( d->selectQuery->hasResults() ) {
+            Row * r = d->selectQuery->nextRow();
+            UString mn = r->getUString( "name" );
+            bool matches = false;
+
+            UStringList::Iterator i( d->patterns );
+            while ( i && !matches ) {
+                uint s = 0;
+                if ( (*i)[0] != '*' && (*i)[0] != '/' ) {
+                    s = d->reference->name().length();
+                    if ( !i->isEmpty() && !d->reference->name().endsWith( "/" ) )
+                        s++;
                 }
-                else {
-                    r = "LIST (\\noselect) \"/\" \"\"";
-                    d->addResponse(
-                        UString(),
-                        new ListextData::Response( d->reference, r ) );
-                }
+                if ( Mailbox::match( *i, 0, mn.titlecased(), s ) == 2 )
+                    matches = true;
+                ++i;
             }
-            else if ( it->startsWith( "/" ) ) {
-                listChildren( Mailbox::root(), it->titlecased() );
-            }
-            else {
-                listChildren( d->reference, it->titlecased() );
-            }
-            ++it;
+            if ( matches )
+                makeResponse( r );
         }
-        d->state = 2;
+        if ( d->selectQuery->done() )
+            d->state = 2;
     }
 
     if ( d->state == 2 ) {
         if ( !d->permissionsQuery ) {
             IntegerSet ids;
-            UDict<ListextData::Response>::Iterator i( d->responses );
+            List<ListextData::Response>::Iterator i( d->responses );
             while ( i ) {
                 Mailbox * m = i->mailbox;
                 ++i;
@@ -244,15 +312,17 @@ void Listext::execute()
                     m = m->parent();
                 }
             }
-            d->permissionsQuery
-                = new Query( "select mailbox, identifier, rights "
-                             "from permissions "
-                             "where mailbox=any($1) "
-                             "and (identifier='anyone' or identifier=$2)",
-                             this );
-            d->permissionsQuery->bind( 1, ids );
-            d->permissionsQuery->bind( 2, imap()->user()->login() );
-            d->permissionsQuery->execute();
+            if ( !ids.isEmpty() ) {
+                d->permissionsQuery
+                    = new Query( "select mailbox, identifier, rights "
+                                 "from permissions "
+                                 "where mailbox=any($1) "
+                                 "and (identifier='anyone' or identifier=$2)",
+                                 this );
+                d->permissionsQuery->bind( 1, ids );
+                d->permissionsQuery->bind( 2, imap()->user()->login() );
+                d->permissionsQuery->execute();
+            }
         }
 
         while ( d->permissionsQuery &&
@@ -277,7 +347,7 @@ void Listext::execute()
     }
 
     if ( d->state == 3 ) {
-        UDict<ListextData::Response>::Iterator i( d->responses );
+        List<ListextData::Response>::Iterator i( d->responses );
         while ( i ) {
             Mailbox * m = i->mailbox;
             if ( m->owner() == imap()->user()->id() ) {
@@ -302,9 +372,8 @@ void Listext::execute()
             }
             ++i;
         }
+        finish();
     }
-
-    finish();
 }
 
 
@@ -338,96 +407,21 @@ void Listext::addSelectOption( const EString & option )
 }
 
 
-/*! Considers whether the mailbox \a m or any of its children may match
-    the pattern \a p, and if so, emits list responses. (Calls itself
-    recursively to handle children.)
+/*! Sends a LIST or LSUB response for \a row.
 */
 
-void Listext::list( Mailbox * m, const UString & p )
+void Listext::makeResponse( Row * row )
 {
-    if ( !m )
-        return;
-
-    bool matches = false;
-    bool matchChildren = false;
-
-    uint s = 0;
-    if ( p[0] != '/' && p[0] != '*' ) {
-        s = d->reference->name().length();
-        if ( !d->reference->name().endsWith( "/" ) )
-            s++;
-    }
-
-    switch( Mailbox::match( p, 0, m->name().titlecased(), s ) ) {
-    case 0:
-        break;
-    case 1:
-        matchChildren = true;
-        break;
-    default:
-        matchChildren = true;
-        matches = true;
-        break;
-    }
-
-    if ( matches ) {
-        if ( d->selectSubscribed ) {
-            List<Mailbox>::Iterator it( *d->subscribed );
-            while ( it && it != m )
-                ++it;
-            if ( !it )
-                matches = false;
-        }
-        else {
-            if ( ( m->synthetic() || m->deleted() ) && !m->hasChildren() )
-                matches = false;
-        }
-    }
-
-
-    if ( matches )
-        sendListResponse( m );
-
-    if ( matchChildren )
-        listChildren( m, p );
-}
-
-
-/*! Calls list() for each child of \a mailbox using \a pattern. */
-
-void Listext::listChildren( Mailbox * mailbox, const UString & pattern )
-{
-    List<Mailbox> * c = mailbox->children();
-    if ( !c )
-        return;
-
-    List<Mailbox>::Iterator it( c );
-    while ( it ) {
-        list( it, pattern );
-        ++it;
-    }
-}
-
-
-/*! Sends a LIST or LSUB response for \a mailbox.
-
-    Open issue: If \a mailbox is the inbox, what should we send?
-    INBOX, or the fully qualified name, or the name relative to the
-    user's home directory?
-*/
-
-void Listext::sendListResponse( Mailbox * mailbox )
-{
+    Mailbox * mailbox = Mailbox::find( row->getInt( "id" ) );
     if ( !mailbox )
         return;
 
-    bool childSubscribed = false;
     EStringList a;
 
     // add the easy mailbox attributes
     if ( mailbox->deleted() )
         a.append( "\\nonexistent" );
-    if ( mailbox->synthetic() || mailbox->deleted() )
+    if ( mailbox->deleted() )
         a.append( "\\noselect" );
     if ( mailbox->hasChildren() )
         a.append( "\\haschildren" );
@@ -436,40 +430,32 @@ void Listext::sendListResponse( Mailbox * mailbox )
     if ( mailbox->view() )
         a.append( "\\view" );
 
-    // then there's subscription, which isn't too pretty
-    if ( d->subscribed ) {
-        List<Mailbox>::Iterator it( *d->subscribed );
-        while ( it && it != mailbox )
-            ++it;
-        if ( it )
+    // then there's subscription
+    bool include = false;
+    EString ext = "";
+    if ( row->hasColumn( "sid" ) || row->hasColumn( "csub" ) ) {
+        if ( !row->isNull( "sid" ) ) {
             a.append( "\\subscribed" );
-
-        if ( d->selectRecursiveMatch ) {
-            // recursivematch is hard work... almost O(world)
-            it = d->subscribed->first();
-            while ( it && !childSubscribed ) {
-                Mailbox * p = it;
-                while ( p && p != mailbox )
-                    p = p->parent();
-                if ( p && p != it )
-                    childSubscribed = true;
-                ++it;
-            }
+            include = true;
+        }
+        if ( row->getBoolean( "csub" ) ) {
+            ext = ( " ((\"childinfo\" (\"subscribed\")))" );
+            include = true;
         }
     }
+    
+    if ( d->selectSubscribed && !include )
+        return;
 
     EString name = imapQuoted( mailbox );
 
-    EString ext = "";
-    if ( childSubscribed ) {
-        ext = " (";
-        if ( childSubscribed )
-            ext.append( "(\"childinfo\" (\"subscribed\"))" );
-        ext.append( ")" );
-    }
-
     EString r = "LIST (" + a.join( " " ) + ") \"/\" " + name + ext;
-    d->addResponse( mailbox->name(), new ListextData::Response( mailbox, r ) );
+
+    if ( r == d->previousResponse )
+        return;
+
+    d->previousResponse = r;
+    d->responses.append( new ListextData::Response( mailbox, r ) );
 }
 
 
