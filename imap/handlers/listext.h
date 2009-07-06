@@ -21,9 +21,7 @@ private:
     void addReturnOption( const EString & );
     void addSelectOption( const EString & );
 
-    void list( Mailbox *, const UString & );
-    void listChildren( Mailbox *, const UString & );
-    void sendListResponse( Mailbox * );
+    void makeResponse( class Row * );
 
     void reference();
 
