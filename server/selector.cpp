@@ -588,7 +588,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             "    where (p.identifier='anyone' or p.identifier=$"+fn(n)+") and"
             "    (mp.id=mb.id or"
             "     lower(mp.name)||'/'="
-            "     lower(substring(mb.name from 0 for length(mp.name)+1)))"
+            "     lower(substring(mb.name from 1 for length(mp.name)+1)))"
             // use the mailbox which has permissions rows and has the
             // longest name.
             "    order by length(mp.name) desc limit 1))";
