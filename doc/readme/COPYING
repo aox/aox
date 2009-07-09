@@ -1,9 +1,7 @@
 Archiveopteryx $VERSION is licensed to you by Oryx Mail Systems GmbH
-under the Open Software License version 3.0, a copy of which is
-enclosed in the file osl-3.0.txt.
-
-(If you cannot or do not wish to meet the requirements of the OSL 3.0,
-contact info@aox.org for alternative terms.)
+under the BSD License, a copy of which is enclosed in the file
+bsd.txt. We adapted the text from that used by PostgreSQL,
+http://www.postgresql.org/about/licence
 
 Cryptlib (the files in the cryptlib subdirectory) is not part of
 Archiveopteryx, merely bundled for convenience. For Cryptlib's
