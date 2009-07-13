@@ -1,8 +1,10 @@
-Schedule
+3.1.2: 2009-05-xx
 
-  AMS: 04/28–05/12: Munsiari.
+  Bugfixes.
 
-  Welcome back, Abhijit.
+  Something about pg_toast perhaps.
+
+  Add stuff so retention policies can be deleted
 
 
 P/W: Stuff we may want to keep
@@ -25,15 +27,6 @@ P/W: Stuff we may want to keep
 
   Do (some of) these, one at a time, making sure nothing breaks after
   each one. None soon.
-
-
-3.1.2: 2009-05-xx
-
-  Bugfixes.
-
-  Something about pg_toast perhaps.
-
-  Add stuff so retention policies can be deleted
 
 
 Functions and views
