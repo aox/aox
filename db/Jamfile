@@ -36,6 +36,23 @@ actions ColumnList bind LISTCOLUMNS
 ColumnList columns.inc : schema.pg ;
 
 
+rule DowngradeList
+{
+    DOWNGRADES = [ FDirName $(TOP) schema list-downgrades ] ;
+    Depends $(<) : $(>) $(DOWNGRADES) ;
+    Clean clean : $(<) ;
+    SEARCH on $(>) = [ FDirName $(TOP) schema ] ;
+    MakeLocate $(<) : $(LOCATE_SOURCE) ;
+}
+
+actions DowngradeList bind DOWNGRADES
+{
+    perl $(DOWNGRADES) > $(<) < $(>) ;
+}
+
+DowngradeList downgrades.inc : downgrades ;
+
+
 Build database : database.cpp postgres.cpp pgmessage.cpp 
     query.cpp transaction.cpp schema.cpp dbsignal.cpp granter.cpp 
     schemachecker.cpp ;
