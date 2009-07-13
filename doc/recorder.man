@@ -1,5 +1,5 @@
 .\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
-.TH recorder 8 2009-07-20 aox.org "Archiveopteryx Documentation"
+.TH recorder 8 2009-07-13 aox.org "Archiveopteryx Documentation"
 .SH NAME
 recorder - IMAP connection recorder
 .SH SYNOPSIS
@@ -89,7 +89,7 @@ That's it. Now you can send an excellent bug report to info@aox.org.
 .SH AUTHOR
 The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
-This man page covers Archiveopteryx version 3.1.2, released 2009-07-20,
+This man page covers Archiveopteryx version 3.1.2, released 2009-07-13,
 http://www.archiveopteryx.org/3.1.2
 .SH SEE ALSO
 .BR archiveopteryx (8),
