@@ -447,6 +447,9 @@ void Listext::makeResponse( Row * row )
     if ( d->selectSubscribed && !include )
         return;
 
+    if ( mailbox->deleted() && !mailbox->hasChildren() && !include )
+        return;
+
     EString name = imapQuoted( mailbox );
 
     EString r = "LIST (" + a.join( " " ) + ") \"/\" " + name + ext;
