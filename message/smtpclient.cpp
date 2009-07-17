@@ -703,3 +703,13 @@ bool SmtpClient::sent() const
 {
     return d->sentMail;
 }
+
+
+/*! Returns a pointer to the DSN currently being sent, or a null
+    pointer if none.
+*/
+
+DSN * SmtpClient::sending() const
+{
+    return d->dsn;
+}

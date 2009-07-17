@@ -26,6 +26,7 @@ public:
 
     bool ready() const;
     void send( DSN *, EventHandler * );
+    DSN * sending() const;
     bool sent() const;
 
     void logout( uint );
