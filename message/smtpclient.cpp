@@ -138,6 +138,7 @@ void SmtpClient::react( Event e )
          ( s1 != Connection::state() || s2 != d->state || s3 != d->error ) )
         d->owner->notify();
     if ( !d->owner && ready() && ::waiting && !waiting->isEmpty() ) {
+        log( "SMTP client ready to serve another DA" );
         ::serviced = (uint)time( 0 );
         ::waiting->shift()->notify();
     }
