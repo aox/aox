@@ -36,10 +36,9 @@ public:
 
 
 /*! \class SpoolManager spoolmanager.h
-    This class periodically attempts to deliver mail from the special
-    /archiveopteryx/spool mailbox to a smarthost using DeliveryAgent.
-    Messages in the spool are marked for deletion when the delivery
-    either succeeds, or is permanently abandoned.
+  
+    This class periodically attempts to deliver mail from the
+    deliveries table to a smarthost using DeliveryAgent.
 
     Each archiveopteryx process has only one instance of this class,
     which is created by SpoolManager::setup().
@@ -57,16 +56,19 @@ void SpoolManager::execute()
     // Fetch a list of spooled messages, and the next time we can try
     // to deliver each of them.
 
+    uint delay = UINT_MAX;
+
     if ( !d->q ) {
         IntegerSet have;
         List<DeliveryAgent>::Iterator a( d->agents );
         while ( a ) {
-            if ( a->done() ) {
-                d->agents.take( a );
+            if ( a->working() ) {
+                have.add( a->messageId() );
+                delay = 900;
+                ++a;
             }
             else {
-                have.add( a->messageId() );
-                ++a;
+                d->agents.take( a );
             }
         }
 
@@ -110,7 +112,6 @@ void SpoolManager::execute()
     // Yes. What?
 
     if ( d->q ) {
-        uint delay = UINT_MAX;
         while ( d->q->hasResults() ) {
             Row * r = d->q->nextRow();
             int64 deliverableAt = r->getBigint( "delay" );
