@@ -48,6 +48,17 @@ SpoolManager::SpoolManager()
     : d( new SpoolManagerData )
 {
     setLog( new Log );
+
+    Query * q = new Query( "update deliveries "
+                           "set expires_at=current_timestamp+interval '900 s' "
+                           "where expires_at<=current_timestamp "
+                           "and id in "
+                           "(select delivery from delivery_recipients"
+                           " where action=$1 or action=$2)",
+                           0 );
+    q->bind( 1, Recipient::Unknown );
+    q->bind( 2, Recipient::Delayed );
+    q->execute();
 }
 
 
