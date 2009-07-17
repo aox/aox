@@ -24,7 +24,7 @@ public:
 
     void execute();
 
-    bool done() const;
+    bool working() const;
     bool delivered() const;
 
 private:

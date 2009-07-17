@@ -230,21 +230,15 @@ void DeliveryAgent::execute()
 }
 
 
-/*! Returns true if this DeliveryAgent has finished processing
-    deliveries for the message submitted to it.
+/*! Returns true if this DeliveryAgent is working on something, and
+    false if not.
 */
 
-bool DeliveryAgent::done() const
+bool DeliveryAgent::working() const
 {
-    if ( !d->messageId )
+    if ( d->t && !d->t->done() )
         return true;
-    if ( !d->t )
-        return false;
-    // make sure execute() will be called once, just in case the
-    // SmtpClient forgot about us. execute() would requeue if that
-    // were to happen.
-    (void)new Timer( (EventHandler*)this, 1 );
-    return d->t->done();
+    return false;
 }
 
 
