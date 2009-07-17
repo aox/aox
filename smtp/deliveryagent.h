@@ -30,15 +30,13 @@ public:
 private:
     class DeliveryAgentData * d;
 
-    Query * fetchDelivery( uint );
     Message * fetchMessage( uint );
-    Query * fetchSender( uint );
-    Query * fetchRecipients( uint );
-    DSN * createDSN( Message *, Query *, Query * );
+    void createDSN();
     void expireRecipients( DSN * );
     void logDelivery( DSN * );
     Injector * injectBounce( DSN * );
-    uint updateDelivery( uint, DSN * );
+    void updateDelivery();
+    void restart();
 };
 
 
