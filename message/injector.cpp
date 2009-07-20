@@ -1797,7 +1797,7 @@ void Injector::insertDeliveries()
         q->bind( 1, sender->id() );
         q->bind( 2, di->message->databaseId() );
         d->transaction->enqueue( q );
-        
+
         uint n = 0;
         List<Address>::Iterator it( di->recipients );
         EStringList domains;
@@ -1833,7 +1833,7 @@ void Injector::insertDeliveries()
             q->bind( 3, domains );
             d->transaction->enqueue( q );
         }
-                
+
         log( "Spooling message " + fn( di->message->databaseId() ) +
              " for delivery to " + fn( n ) +
              " remote recipients", Log::Significant );
