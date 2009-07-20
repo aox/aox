@@ -320,20 +320,34 @@ void Postgres::react( Event e )
                 extendTimeout( 10 );
             }
             else {
-                if ( d->transaction ) {
+                if ( d->transaction )
                     ::log( "Transaction timeout on backend " +
                            fn( connectionNumber() ), Log::Error );
-                    Transaction * t = d->transaction;
-                    while ( t ) {
-                        t->setError( 0, "Transaction timeout" );
-                        t->rollback();
-                        t = t->parent();
-                    }
-                }
-                else {
+                else
                     error( "Request timeout on backend " +
                            fn( connectionNumber() ) );
+
+                Transaction * t = d->transaction;
+                d->transaction = 0;
+
+                List< Query >::Iterator q( d->queries );
+                if ( q && server().protocol() != Endpoint::Unix )
+                    cancel( q );
+
+                while ( t ) {
+                    t->setError( 0, "Transaction timeout" );
+                    t->notify();
+                    t = t->parent();
                 }
+
+                while ( q ) {
+                    if ( !q->done() ) {
+                        q->setError( "Query timeout" );
+                        q->notify();
+                    }
+                    ++q;
+                }
+                d->queries.clear();
             }
         }
         else if ( server().protocol() != Endpoint::Unix &&
