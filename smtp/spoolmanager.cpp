@@ -129,7 +129,7 @@ void SpoolManager::execute()
             if ( deliverableAt <= 0 ) {
                 DeliveryAgent * a
                     = new DeliveryAgent( r->getInt( "message" ), this );
-                a->execute();
+                (void)new Timer( a, d->agents.count() );
                 d->agents.append( a );
             }
             else if ( delay > deliverableAt )
