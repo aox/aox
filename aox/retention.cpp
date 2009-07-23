@@ -189,9 +189,10 @@ class ShowRetentionData
 {
 public:
     ShowRetentionData()
-        : q( 0 )
+        : state( 0 ), q( 0 )
     {}
 
+    int state;
     Query * q;
 };
 
@@ -211,17 +212,21 @@ c( "show", "retention", "Display mailbox retention policies",
 ShowRetention::ShowRetention( EStringList * args )
     : AoxCommand( args ), d( new ShowRetentionData )
 {
-    database( true );
-    Mailbox::setup();
 }
 
 void ShowRetention::execute()
 {
-    if ( !choresDone() )
-        return;
-
-    if ( !d->q ) {
+    if ( d->state == 0 ) {
         parseOptions();
+
+        d->state++;
+        database( true );
+        Mailbox::setup();
+    }
+
+    if ( d->state == 1 ) {
+        if ( !choresDone() )
+            return;
 
         Mailbox * m = 0;
         if ( !args()->isEmpty() ) {
@@ -266,6 +271,7 @@ void ShowRetention::execute()
             d->q->bind( 1, ids );
         }
 
+        d->state++;
         d->q->execute();
     }
 
