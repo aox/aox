@@ -1355,4 +1355,9 @@ Bugs
   - aox -v -v is broken by the syslog change.
 
 
+APOP
+
+  Some mobile devices want to use it.
+
+
 
