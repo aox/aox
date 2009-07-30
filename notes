@@ -1177,7 +1177,7 @@ SMS gateway
   We want Archiveopteryx to work as installed. We want to support
   Sieve notify, including SMS.
 
-  I think that means Oryx needs to operate an Archiveopteryx->SMS
+  I think that means we need to operate an Archiveopteryx->SMS
   gateway, allow people do send a few SMSes, and provide people with
   the ability to operate a gateway of their own.
 
