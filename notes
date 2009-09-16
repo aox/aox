@@ -1,6 +1,6 @@
 3.1.3: 2009-08-xx
 
-    ?
+    What do we want?
 
 
 P/W: Stuff we may want to keep
@@ -1177,7 +1177,7 @@ SMS gateway
   We want Archiveopteryx to work as installed. We want to support
   Sieve notify, including SMS.
 
-  I think that means Oryx needs to operate an Archiveopteryx->SMS
+  I think that means we need to operate an Archiveopteryx->SMS
   gateway, allow people do send a few SMSes, and provide people with
   the ability to operate a gateway of their own.
 
@@ -1353,6 +1353,11 @@ Bugs
 
   - "aox start" doesn't complain when there's a schema mismatch error.
   - aox -v -v is broken by the syslog change.
+
+
+APOP
+
+  Some mobile devices want to use it.
 
 
 
