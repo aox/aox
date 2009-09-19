@@ -16,7 +16,6 @@
 #include <time.h> // time()
 
 
-static List<SmtpClient> * clients;
 static List<EventHandler> * waiting;
 static uint serviced;
 
@@ -104,7 +103,6 @@ void SmtpClient::react( Event e )
         d->error = "Server timeout.";
         finish();
         close();
-        ::clients->remove( this );
         break;
 
     case Connect:
@@ -114,7 +112,6 @@ void SmtpClient::react( Event e )
 
     case Error:
     case Close:
-        ::clients->remove( this );
         if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
             finish( "4.4.1" );
@@ -130,7 +127,6 @@ void SmtpClient::react( Event e )
     case Shutdown:
         // I suppose we might send quit, but then again, it may not be
         // legal at this point.
-        ::clients->remove( this );
         break;
     }
 
@@ -198,7 +194,6 @@ void SmtpClient::parse()
                 if ( response == 421 ) {
                     log( "Closing because the SMTP server sent 421" );
                     close();
-                    ::clients->remove( this );
                     d->state = SmtpClientData::Invalid;
                 }
                 break;
@@ -309,7 +304,6 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Quit:
-        ::clients->remove( this );
         close();
         break;
     }
@@ -646,7 +640,7 @@ void SmtpClientBouncer::execute()
 
     Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
                 Configuration::scalar( Configuration::SmartHostPort ) );
-    ::clients->append( new SmtpClient( e ) );
+    (void)new SmtpClient( e );
     ::waiting->shift()->notify();
 }
 
@@ -663,17 +657,14 @@ void SmtpClientBouncer::execute()
 
 SmtpClient * SmtpClient::request( EventHandler * h )
 {
-    if ( !::clients ) {
-        ::clients = new List<SmtpClient>;
-        Allocator::addEternal( ::clients, "smarthost clients" );
-    }
-    if ( ::clients->isEmpty() ) {
+    List<SmtpClient>::Iterator c( clients() );
+    if ( !c ) {
         Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
                     Configuration::scalar( Configuration::SmartHostPort ) );
-        ::clients->append( new SmtpClient( e ) );
+        (void)new SmtpClient( e );
+        c = clients();
     }
 
-    List<SmtpClient>::Iterator c( ::clients );
     while ( c && !c->ready() )
         ++c;
     if ( c ) {
@@ -690,7 +681,7 @@ SmtpClient * SmtpClient::request( EventHandler * h )
     if ( !waiting->find( h ) )
         ::waiting->append( h );
     (void)new Timer( new SmtpClientBouncer, 7 );
-    ::log( "Queuing for SMTP client access (" + fn( ::clients->count() ) +
+    ::log( "Queuing for SMTP client access (" + fn( clients()->count() ) +
            " clients to serve " + fn( ::waiting->count() ) + " agents)" );
     return 0;
 }
@@ -714,3 +705,23 @@ DSN * SmtpClient::sending() const
 {
     return d->dsn;
 }
+
+
+/*! Returns a list of all extant SMTP clients. The list will never be
+ *  null, but it may be empty.
+*/
+
+List<SmtpClient> * SmtpClient::clients()
+{
+    List<SmtpClient> * l = new List<SmtpClient>;
+    List<Connection>::Iterator c( EventLoop::global()->connections() );
+    while ( c ) {
+        if ( c->type() == Connection::SmtpClient ) {
+            Connection * tmp = c;
+            l->append( (SmtpClient*)tmp );
+        }
+        ++c;
+    }
+    return l;
+}
+
