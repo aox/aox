@@ -42,6 +42,8 @@ private:
     void recordExtension( const EString & );
 
     static EString dotted( const EString & );
+    
+    static List<SmtpClient> * clients();
 };
 
 
