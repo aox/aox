@@ -18,7 +18,7 @@ class DeliveryAgent
     : public EventHandler
 {
 public:
-    DeliveryAgent( uint, EventHandler * );
+    DeliveryAgent( uint );
 
     uint messageId() const;
 
