@@ -276,20 +276,17 @@ void SmtpClient::sendCommand()
             }
         }
         finish();
-        if ( idleClient() ) {
-            send = "quit";
-            d->state = SmtpClientData::Quit;
-        }
-        else {
-            send = "rset";
-            d->state = SmtpClientData::Rset;
-        }
+        send = "rset";
+        d->state = SmtpClientData::Rset;
         break;
 
     case SmtpClientData::Rset:
         finish();
         delete d->closeTimer;
-        d->closeTimer = new Timer( d->timerCloser, 298 );
+        if ( idleClient() == this )
+            d->closeTimer = new Timer( d->timerCloser, 298 );
+        else
+            d->closeTimer = new Timer( d->timerCloser, 15 );
         return;
 
     case SmtpClientData::Error:
