@@ -22,7 +22,7 @@ public:
 
     void react( Event );
 
-    static SmtpClient * request( EventHandler * );
+    static SmtpClient * provide();
 
     bool ready() const;
     void send( DSN *, EventHandler * );
@@ -44,7 +44,7 @@ private:
 
     static EString dotted( const EString & );
     
-    static List<SmtpClient> * clients();
+    static SmtpClient * idleClient();
 };
 
 

@@ -25,7 +25,6 @@ public:
     void execute();
 
     bool working() const;
-    bool delivered() const;
 
 private:
     class DeliveryAgentData * d;
@@ -36,7 +35,6 @@ private:
     void logDelivery( DSN * );
     Injector * injectBounce( DSN * );
     void updateDelivery();
-    void restart();
 };
 
 

@@ -13,12 +13,6 @@
 #include "address.h"
 #include "message.h"
 
-#include <time.h> // time()
-
-
-static List<EventHandler> * waiting;
-static uint serviced;
-
 
 class SmtpClientData
     : public Garbage
@@ -133,10 +127,6 @@ void SmtpClient::react( Event e )
     if ( d->owner &&
          ( s1 != Connection::state() || s2 != d->state || s3 != d->error ) )
         d->owner->notify();
-    if ( !d->owner && ready() && ::waiting && !waiting->isEmpty() ) {
-        ::serviced = (uint)time( 0 );
-        ::waiting->shift()->notify();
-    }
 }
 
 
@@ -286,8 +276,14 @@ void SmtpClient::sendCommand()
             }
         }
         finish();
-        send = "rset";
-        d->state = SmtpClientData::Rset;
+        if ( idleClient() ) {
+            send = "quit";
+            d->state = SmtpClientData::Quit;
+        }
+        else {
+            send = "rset";
+            d->state = SmtpClientData::Rset;
+        }
         break;
 
     case SmtpClientData::Rset:
@@ -309,7 +305,7 @@ void SmtpClient::sendCommand()
 
     if ( send.isEmpty() )
         return;
-
+    
     log( "Sending: " + send, Log::Debug );
     enqueue( send + "\r\n" );
     d->sent = send;
@@ -623,66 +619,21 @@ EString SmtpClient::error() const
 }
 
 
-class SmtpClientBouncer
-    : public EventHandler
-{
-public:
-    SmtpClientBouncer() {}
-    void execute();
-};
+/*! Provides an SMTP client.
 
-void SmtpClientBouncer::execute()
+    If one is idly waiting now, provide() returns its address. If not,
+    provide() makes one and then returns it.
+*/
+
+SmtpClient * SmtpClient::provide()
 {
-    if ( !::waiting || ::waiting->isEmpty() ||
-         ::serviced + 7 > (uint)time( 0 ) )
-        return;
+    SmtpClient * c = idleClient();
+    if ( c )
+        return c;
 
     Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
                 Configuration::scalar( Configuration::SmartHostPort ) );
-    (void)new SmtpClient( e );
-    ::waiting->shift()->notify();
-}
-
-
-
-
-/*! Requests the attentions of an SMTP client.
-
-    If one is ready() for use now, request() returns its address. If
-    not, request() queues \a h and notifies it as soon as an SMTP
-    client becomes ready(). \a h needs to call request() again at that
-    time.
-*/
-
-SmtpClient * SmtpClient::request( EventHandler * h )
-{
-    List<SmtpClient>::Iterator c( clients() );
-    if ( !c ) {
-        Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
-                    Configuration::scalar( Configuration::SmartHostPort ) );
-        (void)new SmtpClient( e );
-        c = clients();
-    }
-
-    while ( c && !c->ready() )
-        ++c;
-    if ( c ) {
-        if ( ::waiting )
-            ::waiting->take( ::waiting->find( h ) );
-        ::serviced = ::time( 0 );
-        return c;
-    }
-
-    if ( !::waiting ) {
-        ::waiting = new List<EventHandler>;
-        Allocator::addEternal( ::waiting, "event handlers waiting for smtp" );
-    }
-    if ( !waiting->find( h ) )
-        ::waiting->append( h );
-    (void)new Timer( new SmtpClientBouncer, 7 );
-    ::log( "Queuing for SMTP client access (" + fn( clients()->count() ) +
-           " clients to serve " + fn( ::waiting->count() ) + " agents)" );
-    return 0;
+    return new SmtpClient( e );
 }
 
 
@@ -696,25 +647,6 @@ bool SmtpClient::sent() const
 }
 
 
-/*! Returns a list of all extant SMTP clients. The list will never be
- *  null, but it may be empty.
-*/
-
-List<SmtpClient> * SmtpClient::clients()
-{
-    List<SmtpClient> * l = new List<SmtpClient>;
-    List<Connection>::Iterator c( EventLoop::global()->connections() );
-    while ( c ) {
-        if ( c->type() == Connection::SmtpClient ) {
-            Connection * tmp = c;
-            l->append( (SmtpClient*)tmp );
-        }
-        ++c;
-    }
-    return l;
-}
-
-
 /*! Returns a pointer to the DSN currently being sent, or a null
     pointer if none.
 */
@@ -722,4 +654,24 @@ List<SmtpClient> * SmtpClient::clients()
 DSN * SmtpClient::sending() const
 {
     return d->dsn;
+}
+
+
+/*! This private helper returns a pointer to an idle SMTP client, or a
+    null pointer if none are idle.
+*/
+
+SmtpClient * SmtpClient::idleClient()
+{
+    List<Connection>::Iterator c( EventLoop::global()->connections() );
+    while ( c ) {
+        if ( c->type() == Connection::SmtpClient ) {
+            Connection * tmp = c;
+            SmtpClient * sc = (SmtpClient*)tmp;
+            if ( sc->d->state == SmtpClientData::Rset )
+                return sc;
+        }
+        ++c;
+    }
+    return 0;
 }
