@@ -25,14 +25,13 @@ class DeliveryAgentData
 {
 public:
     DeliveryAgentData()
-        : messageId( 0 ), owner( 0 ), t( 0 ),
+        : messageId( 0 ), t( 0 ),
           qm( 0 ), qs( 0 ), qr( 0 ), message( 0 ), expired( false ),
           dsn( 0 ), injector( 0 ), update( 0 ), client( 0 ),
           updatedDelivery( false )
     {}
 
     uint messageId;
-    EventHandler * owner;
     Transaction * t;
     Query * qm;
     Query * qs;
@@ -54,18 +53,16 @@ public:
 */
 
 /*! Creates a new DeliveryAgent object to deliver the message with the
-    given \a id. The \a owner will be notified upon completion or
-    error.
+    given \a id.
 */
 
-DeliveryAgent::DeliveryAgent( uint id, EventHandler * owner )
+DeliveryAgent::DeliveryAgent( uint id )
     : d( new DeliveryAgentData )
 {
     setLog( new Log );
     Scope x( log() );
     log( "Attempting delivery for message " + fn( id ) );
     d->messageId = id;
-    d->owner = owner;
 }
 
 
@@ -214,7 +211,6 @@ void DeliveryAgent::execute()
         SpoolManager::shutdown();
     }
 
-    d->owner->notify();
     d->messageId = 0;
 }
 
