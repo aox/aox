@@ -83,7 +83,10 @@ void DeliveryAgent::execute()
 {
     // Fetch and lock the row in deliveries matching (mailbox,uid).
 
-    if ( d->messageId && !d->t ) {
+    if ( !d->messageId )
+        return;
+
+    if ( !d->t ) {
         d->t = new Transaction( this );
         d->qm = new Query(
             "select id, sender, current_timestamp > expires_at as expired "
@@ -94,7 +97,7 @@ void DeliveryAgent::execute()
         d->t->execute();
     }
 
-    if ( !d->qm || !d->qm->done() )
+    if ( !d->qm->done() )
         return;
 
     // Fetch other delivery data
@@ -109,8 +112,8 @@ void DeliveryAgent::execute()
         d->qs = new Query( "select localpart, domain from addresses "
                            "where id=$1", this );
         d->qs->bind( 1, r->getInt( "sender" ) );
-       d->t->enqueue( d->qs );
-        
+        d->t->enqueue( d->qs );
+
         d->qr = new Query(
             "select recipient,localpart,domain,action,status,"
             "extract(epoch from last_attempt)::integer as last_attempt "
@@ -127,9 +130,9 @@ void DeliveryAgent::execute()
             d->expired = true;
     }
     else if ( !d->qs ) {
-        restart();
+        d->t->rollback();
         d->messageId = 0;
-        log( "Could not lock deliveries row; aborting" );
+        log( "Could not find/lock deliveries row; aborting" );
         return;
     }
 
@@ -148,20 +151,15 @@ void DeliveryAgent::execute()
         createDSN();
 
         if ( !d->dsn->deliveriesPending() ) {
-            log( "Delivery already completed; will do nothing", Log::Debug );
-            restart();
+            d->t->rollback();
             d->messageId = 0;
+            log( "Delivery already completed; will do nothing", Log::Debug );
             return;
         }
     }
 
-    if ( d->client && d->client->sending() != d->dsn )
-        d->client = 0;
-
     if ( !d->client && d->dsn->deliveriesPending() ) {
-        d->client = SmtpClient::request( this );
-        if ( !d->client )
-            return;
+        d->client = SmtpClient::provide();
         d->client->send( d->dsn, this );
     }
 
@@ -218,7 +216,6 @@ void DeliveryAgent::execute()
 
     d->owner->notify();
     d->messageId = 0;
-    restart();
 }
 
 
@@ -253,7 +250,7 @@ Message * DeliveryAgent::fetchMessage( uint messageId )
 }
 
 
-/*! Returns a pointer to a newly-created DSN for the given \a message,
+/*! Returns a pointer to a newly-created DSN for the DA's message,
     based on earlier queries. All queries are assumed to have
     completed successfully.
 */
@@ -412,27 +409,8 @@ void DeliveryAgent::updateDelivery()
             ::messagesSent = new GraphableCounter( "messages-sent" );
         ::messagesSent->tick();
     }
-    // XXX at this point we probably want to do
-    //   else if ( !unhandled ) {
-    //       ...send a DSN...
-    //   }
     else {
         log( "Recipients handled: " + fn( handled ) +
              ", still queued: " + fn( unhandled ) );
     }
-}
-
-
-/*!
-
-*/
-
-void DeliveryAgent::restart()
-{
-    DeliveryAgentData * nd = new DeliveryAgentData;
-    nd->messageId = d->messageId;
-    nd->owner = d->owner;
-    if ( d->t )
-        d->t->rollback();
-    d = nd;
 }

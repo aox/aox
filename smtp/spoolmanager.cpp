@@ -36,7 +36,7 @@ public:
 
 
 /*! \class SpoolManager spoolmanager.h
-  
+
     This class periodically attempts to deliver mail from the
     deliveries table to a smarthost using DeliveryAgent.
 
@@ -159,11 +159,6 @@ void SpoolManager::deliverNewMessage()
         log( "New message added to spool while spool is being processed",
              Log::Debug );
         return;
-    }
-    else if ( SmtpClient::request( this ) ) {
-        log( "New message added to spool; SMTP connection available" );
-        d->again = true;
-        execute();
     }
     else {
         log( "New message added to spool; will deliver when possible" );
