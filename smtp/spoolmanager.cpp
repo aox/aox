@@ -89,13 +89,12 @@ void SpoolManager::execute()
         EString s( "select d.message, "
                    "extract(epoch from"
                    " min(coalesce(dr.last_attempt+interval '900 s',"
+                   " d.deliver_after,"
                    " current_timestamp)))::bigint"
                    "-extract(epoch from current_timestamp)::bigint as delay "
                    "from deliveries d "
                    "join delivery_recipients dr on (d.id=dr.delivery) "
-                   "where (dr.action=$1 or dr.action=$2) "
-                   "and (d.deliver_after is null"
-                   " or d.deliver_after<=current_timestamp) " );
+                   "where (dr.action=$1 or dr.action=$2) " );
         if ( !have.isEmpty() )
             s.append( "and not d.message=any($3) " );
         s.append( "group by d.message "
