@@ -1796,7 +1796,7 @@ void Injector::insertDeliveries()
             new Query( "insert into deliveries "
                        "(sender,message,injected_at,expires_at,deliver_after) "
                        "values ($1,$2,current_timestamp,"
-                       "current_timestamp+interval '2 weeks'),$3", 0 );
+                       "current_timestamp+interval '2 weeks',$3)", 0 );
         q->bind( 1, sender->id() );
         q->bind( 2, di->message->databaseId() );
         if ( di->later )
