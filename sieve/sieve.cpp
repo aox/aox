@@ -35,6 +35,7 @@ public:
     SieveData()
         : sender( 0 ),
           currentRecipient( 0 ),
+          forwardingDate( 0 ),
           message( 0 ),
           state( 0 ),
           handler( 0 ),
@@ -84,6 +85,7 @@ public:
     List<Recipient> recipients;
     Recipient * currentRecipient;
     List<Address> submissions;
+    Date * forwardingDate;
     Injectee * message;
     Date * arrivalTime;
     uint state;
@@ -335,7 +337,8 @@ void Sieve::execute()
 
         List<Address> * f = forwarded();
         if ( !f->isEmpty() )
-            d->injector->addDelivery( d->message, sender(), f );
+            d->injector->addDelivery( d->message, sender(), f,
+                                      d->forwardingDate );
 
         d->state = 3;
         d->injector->execute();
@@ -402,6 +405,28 @@ void Sieve::setSender( Address * address )
 void Sieve::addSubmission( Address * address )
 {
     d->submissions.append( address );
+}
+
+
+/*! Records that this message should be delivered to the smarthost
+    sometime \a later. This applies only to messages delivered to the
+    smarthost, messages injected into local mailboxes are always
+    injected at once.
+ */
+
+void Sieve::setForwardingDate( class Date * later )
+{
+    d->forwardingDate = later;
+}
+
+
+/*! Returns what setForwardingDate() recorded, or null if
+    setForwardingDate() has not been called.
+*/
+
+Date * Sieve::forwardingDate() const
+{
+    return d->forwardingDate;
 }
 
 
