@@ -7,6 +7,12 @@
 
   The better SpoolManager etc. has to go in here.
 
+  aox check database now seems to work.
+
+  managesieve-port = 4190 can go into 3.1.3; the rfc is on its way
+
+  The schema downgrade code is good (downgrade.pl etc)
+
 
 P/W: Stuff we may want to keep
 
@@ -298,26 +304,12 @@ Database schema range
   nulls in bodyparts'.
 
 
-Sieve
-
-  Alexey suggests the following extensions (in the following order):
-  Vacation, reject, imapflags, subaddress.
-
-  We still haven't done imapflags.
-
-
 Reject or ereject may want MDNs instead of DSNs
 
   Our sieve code generates DSNs if it can't generate protocol-level
   refusal, which it always can in practice. MDNs should be used in at
   least some cases, if a non-zero percentage of zero can be considered
   "some cases".
-
-
-RFCs 2852 and 4865
-
-  Easy to do once we have port 587; we need to set the start and end
-  columns right, that's about it.
 
 
 Message tracking
@@ -962,9 +954,7 @@ SMTP extensions
   Here are the ones we still don't implement, but ought to implement
   at some point:
 
-  SUBMITTER? perhaps
   DELIVERBY (RFC 2852): At some time.
-  FUTURERELEASE (RFC 4865): At some time.
   MTRK: As soon as someone else does it.
 
   http://www.iana.org/assignments/mail-parameters
@@ -972,25 +962,6 @@ SMTP extensions
   DELIVERBY has the funny little characteristic that we can support it
   with great ease iff the smarthost does, so we ought to advertise iff
   if the smarthost does.
-
-
-SUBMITTER
-
-  The work needed to support that:
-
-  1. Pass a submitter to SmtpClient.
-  2. Pass the sieve owner or logged-in user's address as submitter.
-  3. Send that as SUBMITTER= if the smarthost advertises SUBMITTER and
-     the submitter is different from mail-from.
-
-  4. Advertise SUBMITTER.
-  5. If the SMTP/LMTP/Submit client sends SUBMITTER and it's different
-     from the mail-from, record the address in Received.
-  6. If there's a sieve extension specifying how, push the submitter
-     into the envelope so the sieve can see it.
-
-  Easy peasy. But there's no value to offset this (small) cost, is
-  there? Maybe as a hack when one of us is fed up.
 
 
 The groups and group_members tables seem a little underused
@@ -1230,15 +1201,6 @@ Sieve notify
   mailto: combined with :from is unchecked
 
 
-aox anonymise
-
-  1. An alias for anonymize
-
-  2. aox anonymise -a should make a set of cleartext.<n> and anon.<n>
-     files in the current directory based on unparsed_messages, so
-     it's easy to report everything to us.
-  
-
 Bug confusing U+ED00 and U+0000 in the message cache
 
   When we write to the database, U+0000 (which occasionally occurs,
@@ -1263,12 +1225,6 @@ Various alias-related feature requests
 
   e.g. Benjamin wants empty localparts, a number of people want multiple
   targets (Axel, Ingo).
-
-
-String::wrapped() vs. canonical 13
-
-  Arnt commented out some code which shouldn't have made i/13 fail, but
-  did for him. Must investigate.
 
 
 Axel, /Unable to fetch 12MB mail
