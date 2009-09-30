@@ -207,18 +207,12 @@ void SmtpData::execute()
         if ( !server()->sieve()->done() )
             server()->sieve()->evaluate();
 
-        // we tell the sieve that our remote recipients are "immediate
-        // redirects". strange concept, but...
         bool remotes = false;
         List<SmtpRcptTo>::Iterator it( server()->rcptTo() );
         while ( it ) {
             if ( server()->dialect() == SMTP::Submit ||
                  it->remote() ) {
-                SieveAction * a = new SieveAction( SieveAction::Redirect );
-                a->setSenderAddress( server()->sieve()->sender() );
-                a->setRecipientAddress( it->address() );
-                a->setMessage( d->message );
-                server()->sieve()->addAction( a );
+                server()->sieve()->addSubmission( it->address() );
                 remotes = true;
             }
             ++it;
@@ -386,6 +380,10 @@ Injectee * SmtpData::message( const EString & body )
         received.append( " with esmtp" );
         break;
     }
+    if ( server()->sieve()->forwardingDate() )
+        received.append( " (delay until " +
+                         server()->sieve()->forwardingDate()->isoDateTime() +
+                         " requested)" );
     received.append( " id " );
     received.append( server()->transactionId() );
     uint recipients = server()->rcptTo()->count();
