@@ -566,17 +566,18 @@ void CheckDatabase::execute()
     if ( t )
         return;
 
+    database();
     t = new Transaction( this );
     // no message should have a UID larger than what the mailbox permits
     expectEmpty( "select mm.uid, mb.name "
                  "from mailbox_messages mm "
-                 "join mailboxes mb on (mb.mailbox=m.id) "
-                 "where mm.uid >= m.uidnext || mm.modseq >= m.nextmodseq" );
+                 "join mailboxes mb on (mm.mailbox=mb.id) "
+                 "where mm.uid >= mb.uidnext or mm.modseq >= mb.nextmodseq" );
     // that also applies to deleted mail
     expectEmpty( "select dm.uid, mb.name "
                  "from deleted_messages dm "
-                 "join mailboxes mb on (mb.mailbox=m.id) "
-                 "where dm.uid >= m.uidnext || dm.modseq >= m.nextmodseq" );
+                 "join mailboxes mb on (dm.mailbox=mb.id) "
+                 "where dm.uid >= mb.uidnext or dm.modseq >= mb.nextmodseq" );
     // we should have at least one header field for each message (date)
     expectEmpty( "select m.id from messages m "
                  "left join header_fields hf on (m.id=hf.message) "
@@ -591,40 +592,29 @@ void CheckDatabase::execute()
                  "where df.message is null" );
 
     // the header fields in each header should be numbered 1-n
-    t->enqueue( "create temporary table have ("
+    t->enqueue( "create temporary table h ("
                 "message integer, "
                 "part text, "
                 "position integer,"
                 "hf boolean, "
                 "af boolean"
                 ")" );
-    t->enqueue( "insert into have "
+    t->enqueue( "insert into h "
                 "(message, part, position, hf, af) "
                 "select distinct message, part, position, true, false "
                 "from header_fields" );
-    t->enqueue( "insert into have "
+    t->enqueue( "insert into h "
                 "(message, part, position, hf, af) "
                 "select distinct message, part, position, false, true "
                 "from address_fields" );
     // if two fields have the same position...
-    expectEmpty( "select message, count(*) as duplicates from have "
-                 "group by (message, part, position) "
-                 "where duplicates>1" );
-    // if we're missing a field and have a higher-position field...
-    t->enqueue( "create temporary table need ("
-                "message integer, "
-                "part text, "
-                "position integer"
-                ")" );
-    t->enqueue( "insert into need "
-                "(message, part, position) "
-                "select s.message, s.part, "
-                "generate_series( 1, s.pos ) from "
-                "(select message, part, max(position) as maxpos"
-                " from have group by message, part)" );
-    expectEmpty( "select need.message from need "
-                 "left join have using (message,part,position) "
-                 "where have.message is null" );
+    expectEmpty( "select message from h "
+                 "group by message, part, position "
+                 "having count(*) > 1" );
+    // if there's a gap in the position series...
+    expectEmpty( "select message from h "
+                 "group by message, part "
+                 "having max(position)>count(*)" );
 
     t->commit();
     finish();

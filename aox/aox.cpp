@@ -8,6 +8,7 @@
 #include "stderrlogger.h"
 #include "aoxcommand.h"
 #include "eventloop.h"
+#include "database.h"
 #include "logger.h"
 #include "log.h"
 
@@ -72,7 +73,7 @@ int main( int ac, char *av[] )
 
     if ( cmd ) {
         cmd->execute();
-        if ( !cmd->done() )
+        if ( !cmd->done() || !Database::idle() )
             EventLoop::global()->start();
         return cmd->status();
     }
