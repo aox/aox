@@ -46,7 +46,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         respond( 0, "ENHANCEDSTATUSCODES" );
         if ( s->dialect() == SMTP::Submit ) {
             int delay = 1901520000 - ::time( 0 );
-            respond( 0, "FUTURERELEASE " + fn( delay ) +
+            respond( 0, "FUTURERELEASE " + fn( delay ) + " " +
                      "2030-04-04T08:00:00Z" );
         }
         if ( !Configuration::toggle( Configuration::Security ) )
