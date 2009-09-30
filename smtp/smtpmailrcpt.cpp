@@ -63,8 +63,12 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
                  "Address specied was: " + d->address->toString(),
                  "5.1.0" );
 
+    EStringList paramsSeen;
     while ( p->ok() && !p->atEnd() ) {
         EString name = p->esmtpKeyword();
+        if ( paramsSeen.contains( name.lower() ) )
+            respond( 501, "Parameter repeated: " + name );
+        paramsSeen.append( name.lower() );
         p->require( "=" );
         EString value = p->esmtpValue();
         p->whitespace();
@@ -232,8 +236,12 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
     d->address = p->address();
     p->whitespace();
 
+    EStringList paramsSeen;
     while ( p->ok() && !p->atEnd() ) {
         EString name = p->esmtpKeyword();
+        if ( paramsSeen.contains( name.lower() ) )
+            respond( 501, "Parameter repeated: " + name );
+        paramsSeen.append( name.lower() );
         p->require( "=" );
         EString value = p->esmtpValue();
         p->whitespace();
