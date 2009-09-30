@@ -15,6 +15,8 @@
 #include "smtp.h"
 #include "user.h"
 
+#include <time.h> // time( 0 )
+
 
 class SmtpMailFromData
     : public Garbage
@@ -130,6 +132,21 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
     else if ( name == "auth" ) {
         // RFC 2554 page 4
         log( "Responsible sender is supposedly " + value );
+    }
+    else if ( name == "holdfor" && server()->dialect() == SMTP::Submit ) {
+        bool ok = false;
+        uint n = value.number( &ok );
+        if ( !ok )
+            respond( 501, "HOLDFOR must be a decimal number" );
+        n += time( 0 );
+        if ( n > 1901520000 )
+            respond( 501, "Too far into the future" );
+        Date * tmp = new Date;
+        tmp->setUnixTime( n );
+        server()->sieve()->setForwardingDate( tmp );
+    }
+    else if ( name == "holduntil" && server()->dialect() == SMTP::Submit ) {
+        respond( 501, "Syntax problem wrt. internet-style-date-time-utc" );
     }
     else {
         respond( 501,
