@@ -43,12 +43,12 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         // should we also send AUTH=?
         // respond( 0, "AUTH=" + auth );
         respond( 0, "BURL IMAP IMAP://" + Configuration::hostname() );
-        respond( 0, "ENHANCEDSTATUSCODES" );
         if ( s->dialect() == SMTP::Submit ) {
             int delay = 1901520000 - ::time( 0 );
             respond( 0, "FUTURERELEASE " + fn( delay ) + " " +
                      "2030-04-04T08:00:00Z" );
         }
+        respond( 0, "ENHANCEDSTATUSCODES" );
         if ( !Configuration::toggle( Configuration::Security ) )
             respond( 0, "X-ORYX-TESTING-1" );
         respond( 0, "BINARYMIME" );
