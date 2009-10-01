@@ -110,7 +110,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "SASL-IR" );
     if ( all || login ) {
         c.append( "SORT" );
-        c.append( "SORT=DISPLAYFROM" ); // draft-karp-morg-displayfrom
+        c.append( "SORT=DISPLAY" ); // draft-ietf-morg-sortdisplay
     }
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
