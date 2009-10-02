@@ -228,19 +228,25 @@ void SmtpData::execute()
     if ( d->state == 3 ) {
         if ( !server()->sieve()->injected() )
             return;
+        
+        bool soft = false;
+        if ( Configuration::toggle( Configuration::SoftBounce ) ||
+             server()->sieve()->softError() )
+            soft = true;
+
         EString mc = Configuration::text( Configuration::MessageCopy ).lower();
         if ( mc == "all" )
-            makeCopy();
+            makeCopy( soft );
         else if ( mc == "delivered" && server()->sieve()->error().isEmpty() )
-            makeCopy();
+            makeCopy( soft );
         else if ( mc == "errors" && !server()->sieve()->error().isEmpty() )
-            makeCopy();
+            makeCopy( soft );
+
         if ( server()->sieve()->error().isEmpty() ) {
             d->state = 4;
         }
         else {
-            if ( Configuration::toggle( Configuration::SoftBounce ) ||
-                 server()->sieve()->softError() )
+            if ( soft )
                 respond( 451, "Injection error: " + server()->sieve()->error(),
                          "4.6.0" );
             else
@@ -631,7 +637,7 @@ void SmtpBurl::execute()
 
 /*! Writes a copy of the incoming message to the file system. */
 
-void SmtpData::makeCopy() const
+void SmtpData::makeCopy( bool soft ) const
 {
     EString copy = Configuration::text( Configuration::MessageCopyDir );
     copy.append( '/' );
@@ -669,7 +675,16 @@ void SmtpData::makeCopy() const
             f.write( "Parser: " );
             f.write( d->ok.simplified() );
         }
+        f.write( "\n"
+                 "Type: " );
+        if ( soft )
+            f.write( "soft (MTA will retry" );
+        else
+            f.write( "hard (MTA will NOT retry" );
         f.write( "\n" );
+    }
+    else {
+        f.write( "Type: delivered\n" );
     }
 
     f.write( "\n" );
