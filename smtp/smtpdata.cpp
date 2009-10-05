@@ -228,19 +228,25 @@ void SmtpData::execute()
     if ( d->state == 3 ) {
         if ( !server()->sieve()->injected() )
             return;
+        
+        bool soft = false;
+        if ( Configuration::toggle( Configuration::SoftBounce ) ||
+             server()->sieve()->softError() )
+            soft = true;
+
         EString mc = Configuration::text( Configuration::MessageCopy ).lower();
         if ( mc == "all" )
-            makeCopy();
+            makeCopy( soft );
         else if ( mc == "delivered" && server()->sieve()->error().isEmpty() )
-            makeCopy();
+            makeCopy( soft );
         else if ( mc == "errors" && !server()->sieve()->error().isEmpty() )
-            makeCopy();
+            makeCopy( soft );
+
         if ( server()->sieve()->error().isEmpty() ) {
             d->state = 4;
         }
         else {
-            if ( Configuration::toggle( Configuration::SoftBounce ) ||
-                 server()->sieve()->softError() )
+            if ( soft )
                 respond( 451, "Injection error: " + server()->sieve()->error(),
                          "4.6.0" );
             else
@@ -252,6 +258,11 @@ void SmtpData::execute()
 
     // state 4: we're done. give the report suggested by the sieve.
     if ( d->state == 4 ) {
+        bool soft = false;
+        if ( Configuration::toggle( Configuration::SoftBounce ) ||
+             server()->sieve()->softError() )
+            soft = true;
+
         if ( server()->dialect() == SMTP::Lmtp ) {
             Sieve * s = server()->sieve();
             List<SmtpRcptTo>::Iterator i( server()->rcptTo() );
@@ -261,7 +272,7 @@ void SmtpData::execute()
                     respond( 551, prefix + ": Rejected", "5.7.1" );
                 else if ( s->error( i->address() ).isEmpty() )
                     respond( 250, prefix + ": " + d->ok, "2.1.5" );
-                else if ( Configuration::toggle( Configuration::SoftBounce ) )
+                else if ( soft )
                     respond( 450, prefix + ": " + s->error( i->address() ),
                              "4.0.0" );
                 else
@@ -272,8 +283,11 @@ void SmtpData::execute()
             }
         }
         else {
-            if ( server()->sieve()->rejected() )
+            if ( server()->sieve()->rejected() && soft )
+                respond( 451, "Rejected by all recipients", "4.7.1" );
+            else if ( server()->sieve()->rejected() )
                 respond( 551, "Rejected by all recipients", "5.7.1" );
+
             if ( !server()->sieve()->error().isEmpty() )
                 respond( 451, "Sieve runtime error: " +
                          server()->sieve()->error(), "4.0.0" );
@@ -631,7 +645,7 @@ void SmtpBurl::execute()
 
 /*! Writes a copy of the incoming message to the file system. */
 
-void SmtpData::makeCopy() const
+void SmtpData::makeCopy( bool soft ) const
 {
     EString copy = Configuration::text( Configuration::MessageCopyDir );
     copy.append( '/' );
@@ -669,7 +683,16 @@ void SmtpData::makeCopy() const
             f.write( "Parser: " );
             f.write( d->ok.simplified() );
         }
+        f.write( "\n"
+                 "Fate: " );
+        if ( soft )
+            f.write( "soft error (MTA will retry" );
+        else
+            f.write( "hard error (MTA will NOT retry" );
         f.write( "\n" );
+    }
+    else {
+        f.write( "FAte: delivered\n" );
     }
 
     f.write( "\n" );
