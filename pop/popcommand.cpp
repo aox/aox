@@ -2,6 +2,7 @@
 
 #include "popcommand.h"
 
+#include "md5.h"
 #include "tls.h"
 #include "map.h"
 #include "utf.h"
@@ -170,6 +171,11 @@ void PopCommand::execute()
 
     case Pass:
         if ( !pass() )
+            return;
+        break;
+
+    case Apop:
+        if ( !apop() )
             return;
         break;
 
@@ -355,6 +361,64 @@ bool PopCommand::pass()
         return session();
 
     d->pop->err( "Authentication failed" );
+    return true;
+}
+
+
+/*! Handles APOP authentication. */
+
+bool PopCommand::apop()
+{
+    class Apop
+        : public Plain
+    {
+    public:
+        Apop( EventHandler * ev, const UString & s )
+            : Plain( ev ), challenge( s )
+        {}
+
+        void verify()
+        {
+            UString s( challenge );
+            s.append( storedSecret() );
+
+            if ( storedSecret().isEmpty() ||
+                 MD5::hash( s.utf8()  ).hex() == secret().utf8() )
+            {
+                setState( Succeeded );
+            }
+            else {
+                setState( Failed );
+            }
+        }
+
+    private:
+        UString challenge;
+    };
+
+    if ( !d->m ) {
+        log( "APOP Command" );
+
+        Utf8Codec c;
+        d->m = new Apop( this, c.toUnicode( d->pop->challenge() ) );
+        d->m->setState( SaslMechanism::Authenticating );
+        d->m->setLogin( c.toUnicode( nextArg() ) );
+        d->m->setSecret( nextArg() );
+        d->m->execute();
+    }
+
+    if ( !d->m->done() )
+        return false;
+
+    if ( d->m->state() == SaslMechanism::Succeeded ) {
+        d->pop->setUser( d->m->user(), d->m->name() );
+        d->cmd = Session;
+        return session();
+    }
+    else {
+        d->pop->err( "Authentication failed" );
+    }
+
     return true;
 }
 
