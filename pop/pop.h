@@ -48,6 +48,8 @@ public:
 
     virtual void sendChallenge( const EString & );
 
+    EString challenge() const;
+
 private:
     class PopData *d;
 };

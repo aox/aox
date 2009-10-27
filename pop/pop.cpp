@@ -8,6 +8,7 @@
 #include "event.h"
 #include "query.h"
 #include "scope.h"
+#include "entropy.h"
 #include "estring.h"
 #include "buffer.h"
 #include "mailbox.h"
@@ -41,11 +42,24 @@ public:
     Session * session;
     IntegerSet toBeDeleted;
     Map<Message> * messages;
+    EString challenge;
 };
 
 
 static void newCommand( List< PopCommand > *, POP *,
                         PopCommand::Command, EStringList * = 0 );
+
+
+static EString randomChallenge()
+{
+    EString hn( Configuration::hostname() );
+    EString random( Entropy::asString( 12 ).e64() );
+
+    if ( hn.isEmpty() || hn.find( '.' ) < 0 )
+        hn = "aox.invalid";
+
+    return "<" + random + "@" + hn + ">";
+}
 
 
 /*! \class POP pop.h
@@ -64,7 +78,8 @@ POP::POP( int s )
     : SaslConnection( s, Connection::Pop3Server ),
       d( new PopData )
 {
-    ok( "Archiveopteryx POP3 server ready." );
+    d->challenge = randomChallenge();
+    ok( "Archiveopteryx POP3 server ready " + d->challenge );
     setTimeoutAfter( 600 );
     EventLoop::global()->addConnection( this );
 }
@@ -308,6 +323,9 @@ void POP::parse()
                     d->sawUser = false;
                     newCommand( d->commands, this, PopCommand::Pass, args );
                 }
+                else if ( cmd == "apop" && args->count() == 2 ) {
+                    newCommand( d->commands, this, PopCommand::Apop, args );
+                }
                 else {
                     unknown = true;
                 }
@@ -505,4 +523,13 @@ void POP::sendChallenge( const EString &s )
 void POP::setMessageMap( Map<Message> * m )
 {
     d->messages = m;
+}
+
+
+/*! Returns the challenge sent at the beginning of this connection for
+    use with APOP authentication. */
+
+EString POP::challenge() const
+{
+    return d->challenge;
 }

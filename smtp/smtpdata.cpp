@@ -643,7 +643,8 @@ void SmtpBurl::execute()
 }
 
 
-/*! Writes a copy of the incoming message to the file system. */
+/*! Writes a copy of the incoming message to the file system. \a soft is
+    true if the message provoked a temporary delivery failure. */
 
 void SmtpData::makeCopy( bool soft ) const
 {
@@ -692,7 +693,7 @@ void SmtpData::makeCopy( bool soft ) const
         f.write( "\n" );
     }
     else {
-        f.write( "FAte: delivered\n" );
+        f.write( "Fate: delivered\n" );
     }
 
     f.write( "\n" );
