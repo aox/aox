@@ -117,11 +117,15 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
             respond( 501, "Time must be a unix time", "5.5.4" );
     }
     else if ( name == "body" ) {
-        if ( value.lower() == "7bit" || value.lower() == "8bitmime" ) {
+        if ( value.lower() == "7bit" ||
+             value.lower() == "8bitmime" ||
+             value.lower() == "binarymine" ) {
             // nothing needed
         }
         else {
-            respond( 501, "BODY must be 7BIT or 8BITMIME", "5.5.4" );
+            respond( 501,
+                     "BODY must be 7BIT, 8BITMIME or BINARYMIME",
+                     "5.5.4" );
         }
     }
     else if ( name == "size" ) {
