@@ -12,7 +12,7 @@ class PopCommand
 {
 public:
     enum Command {
-        Quit, Capa, Noop, Stls, Auth, User, Pass,
+        Quit, Capa, Noop, Stls, Auth, User, Pass, Apop,
         Stat, List, Retr, Dele, Rset, Top, Uidl,
         Session
     };
@@ -32,6 +32,7 @@ private:
     bool auth();
     bool user();
     bool pass();
+    bool apop();
     bool session();
     bool fetch822Size();
     bool stat();
