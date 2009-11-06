@@ -358,8 +358,10 @@ static void checkListener( bool use,
 
     EStringList addresses;
     if ( a.isEmpty() ) {
-        addresses.append( "::" );
-        addresses.append( "0.0.0.0" );
+        if ( Configuration::toggle( Configuration::UseIPv6 ) )
+            addresses.append( "::" );
+        if ( Configuration::toggle( Configuration::UseIPv4 ) )
+            addresses.append( "0.0.0.0" );
     }
     else {
         EStringList::Iterator it( Resolver::resolve( a ) );
@@ -384,7 +386,7 @@ static void checkListener( bool use,
                      "recommended.\n", description.cstr(),
                      e.string().cstr() );
         }
-
+        
         // We bind to that address (and port 0, to make bind assign
         // a random number) to see if it's a valid local address at
         // all. I can't see any way to check if we can listen to a
