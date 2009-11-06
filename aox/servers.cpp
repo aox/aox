@@ -386,7 +386,7 @@ static void checkListener( bool use,
                      "recommended.\n", description.cstr(),
                      e.string().cstr() );
         }
-        
+
         // We bind to that address (and port 0, to make bind assign
         // a random number) to see if it's a valid local address at
         // all. I can't see any way to check if we can listen to a
@@ -713,6 +713,31 @@ void Starter::execute()
 }
 
 
+/*! Returns true if \a service is needed, and false if not (typically
+    due to configuration, e.g. use-tls for tlsproxy).
+*/
+
+bool Starter::needed( const EString & service )
+{
+    bool use = true;
+
+    if ( service == "tlsproxy" )
+        use = Configuration::toggle( Configuration::UseTls );
+    else if ( service == "logd" )
+        use = Configuration::present( Configuration::LogFile ) &&
+              !Configuration::text(
+                  Configuration::LogFile ).startsWith( "syslog/" );
+    else if ( service == "archiveopteryx" )
+        use = Configuration::toggle( Configuration::UseImap ) ||
+              Configuration::toggle( Configuration::UseImaps ) ||
+              Configuration::toggle( Configuration::UseSmtp ) ||
+              Configuration::toggle( Configuration::UseLmtp ) ||
+              Configuration::toggle( Configuration::UseHttp ) ||
+              Configuration::toggle( Configuration::UsePop );
+    return use;
+}
+
+
 /*! Starts the server named \a s and returns true, or false if the
     server did not need to be started.
 */
@@ -723,23 +748,7 @@ bool Starter::startServer( const char * s )
     srv.append( "/" );
     srv.append( s );
 
-    bool use = true;
-
-    EString t( s );
-    if ( t == "tlsproxy" )
-        use = Configuration::toggle( Configuration::UseTls );
-    else if ( t == "logd" )
-        use = Configuration::present( Configuration::LogFile ) &&
-              !Configuration::text(
-                  Configuration::LogFile ).startsWith( "syslog/" );
-    else if ( t == "archiveopteryx" )
-        use = Configuration::toggle( Configuration::UseImap ) ||
-              Configuration::toggle( Configuration::UseImaps ) ||
-              Configuration::toggle( Configuration::UseSmtp ) ||
-              Configuration::toggle( Configuration::UseLmtp ) ||
-              Configuration::toggle( Configuration::UseHttp ) ||
-              Configuration::toggle( Configuration::UsePop );
-    // that big use looks like a configuration sanity check to me...
+    bool use = needed( s );
 
     if ( !use ) {
         if ( d->verbose > 0 )
@@ -1314,12 +1323,8 @@ void ShowStatus::execute()
         int pid = serverPid( servers[i] );
         printf( "%s", servers[i] );
 
-        bool started = true;
-        EString t( servers[i] );
-        if ( t == "tlsproxy" )
-            started = Configuration::toggle( Configuration::UseTls );
-
-        const char * noState = started ? "not running" : "not started";
+        const char * noState =
+            Starter::needed( servers[i] ) ? "not running" : "not started";
 
         if ( pid < 0 ) {
             printf( " (%s)", noState );
