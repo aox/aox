@@ -348,6 +348,8 @@ void Postgres::react( Event e )
                     ++q;
                 }
                 d->queries.clear();
+                if ( server().protocol() != Endpoint::Unix )
+                    shutdown();
             }
         }
         else if ( server().protocol() != Endpoint::Unix &&
@@ -1081,6 +1083,9 @@ void Postgres::shutdown()
 
     removeHandle( this );
     d->active = false;
+
+    if ( ::listener == this )
+        ::listener = 0;
 }
 
 
