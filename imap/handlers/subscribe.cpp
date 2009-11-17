@@ -44,8 +44,6 @@ void Subscribe::execute()
 
     if ( m->deleted() )
         error( No, "Cannot subscribe to deleted mailbox" );
-    else if ( m->synthetic() )
-        error( No, "Cannot subscribe to synthetic mailbox" );
 
     requireRight( m, Permissions::Lookup );
 

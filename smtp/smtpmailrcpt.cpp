@@ -15,6 +15,8 @@
 #include "smtp.h"
 #include "user.h"
 
+#include <time.h> // time( 0 )
+
 
 class SmtpMailFromData
     : public Garbage
@@ -61,8 +63,12 @@ SmtpMailFrom::SmtpMailFrom( SMTP * s, SmtpParser * p )
                  "Address specied was: " + d->address->toString(),
                  "5.1.0" );
 
+    EStringList paramsSeen;
     while ( p->ok() && !p->atEnd() ) {
         EString name = p->esmtpKeyword();
+        if ( paramsSeen.contains( name.lower() ) )
+            respond( 501, "Parameter repeated: " + name );
+        paramsSeen.append( name.lower() );
         p->require( "=" );
         EString value = p->esmtpValue();
         p->whitespace();
@@ -111,11 +117,15 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
             respond( 501, "Time must be a unix time", "5.5.4" );
     }
     else if ( name == "body" ) {
-        if ( value.lower() == "7bit" || value.lower() == "8bitmime" ) {
+        if ( value.lower() == "7bit" ||
+             value.lower() == "8bitmime" ||
+             value.lower() == "binarymine" ) {
             // nothing needed
         }
         else {
-            respond( 501, "BODY must be 7BIT or 8BITMIME", "5.5.4" );
+            respond( 501,
+                     "BODY must be 7BIT, 8BITMIME or BINARYMIME",
+                     "5.5.4" );
         }
     }
     else if ( name == "size" ) {
@@ -130,6 +140,21 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
     else if ( name == "auth" ) {
         // RFC 2554 page 4
         log( "Responsible sender is supposedly " + value );
+    }
+    else if ( name == "holdfor" && server()->dialect() == SMTP::Submit ) {
+        bool ok = false;
+        uint n = value.number( &ok );
+        if ( !ok )
+            respond( 501, "HOLDFOR must be a decimal number" );
+        n += time( 0 );
+        if ( n > 1901520000 )
+            respond( 501, "Too far into the future" );
+        Date * tmp = new Date;
+        tmp->setUnixTime( n );
+        server()->sieve()->setForwardingDate( tmp );
+    }
+    else if ( name == "holduntil" && server()->dialect() == SMTP::Submit ) {
+        respond( 501, "Syntax problem wrt. internet-style-date-time-utc" );
     }
     else {
         respond( 501,
@@ -215,8 +240,12 @@ SmtpRcptTo::SmtpRcptTo( SMTP * s, SmtpParser * p )
     d->address = p->address();
     p->whitespace();
 
+    EStringList paramsSeen;
     while ( p->ok() && !p->atEnd() ) {
         EString name = p->esmtpKeyword();
+        if ( paramsSeen.contains( name.lower() ) )
+            respond( 501, "Parameter repeated: " + name );
+        paramsSeen.append( name.lower() );
         p->require( "=" );
         EString value = p->esmtpValue();
         p->whitespace();

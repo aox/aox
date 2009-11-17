@@ -410,7 +410,7 @@ bool ManageSieveCommand::putScript()
                     Mailbox * p = m;
                     while ( p && p != home )
                         p = p->parent();
-                    if ( !m->synthetic() && !m->deleted() ) {
+                    if ( !m->deleted() ) {
                         // no action needed
                     }
                     else if ( p == home ) {
@@ -913,6 +913,7 @@ bool ManageSieveCommand::explain()
             }
             else {
                 AddressParser ap( value );
+                ap.assertSingleAddress();
                 if ( ap.addresses()->count() != 1 )
                     no( "Need exactly one address for " + name );
                 else if ( name == "from" )

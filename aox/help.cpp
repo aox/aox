@@ -98,6 +98,10 @@ void Help::execute()
             ++v;
         }
     }
+    else if ( a == "aliases" ) {
+        printf( "aox: Valid Aliases:\n  %s\n",
+                AoxCommandMap::aliases()->join( "\n  " ).cstr() );
+    }
     else {
         printf( "aox %s: Invalid command.\n  Valid commands:\n%s\n",
                 a.cstr(),

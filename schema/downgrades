@@ -69,3 +69,9 @@ begin
     alter table connections drop username;
     alter table connections add foreign key(userid) references users(id);
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_89()
+returns int as $$
+begin
+    alter table deliveries drop deliver_after;
+end;$$ language 'plpgsql';

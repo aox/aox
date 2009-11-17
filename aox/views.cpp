@@ -96,11 +96,11 @@ void CreateView::execute()
         }
 
         d->ms = Mailbox::obtain( d->source );
-        if ( !d->ms || d->ms->synthetic() || d->ms->deleted() )
+        if ( !d->ms || d->ms->deleted() )
             error( "Can't create view on " + d->source.utf8() );
 
         d->mv = Mailbox::obtain( d->name );
-        if ( !d->mv || !( d->mv->synthetic() || d->mv->deleted() ) )
+        if ( !d->mv || !d->mv->deleted() )
             error( "Can't create view named " + d->name.utf8() );
 
         d->t = new Transaction( this );

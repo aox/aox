@@ -1337,6 +1337,7 @@ void Header::repair( Multipart * p, const EString & body )
     // If we have at least one good field at the end, we dump the
     // neutral and bad ones. If we have no good fields, one neutral
     // field and the rest bad, we dump the bad ones.
+
     if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
         List<ContentType> good;
         List<ContentType> bad;
@@ -1378,6 +1379,25 @@ void Header::repair( Multipart * p, const EString & body )
         else if ( neutral.count() == 1 ) {
             removeField( HeaderField::ContentType );
             add( neutral.first() );
+        }
+    }
+
+    // If there are several content-type fields, all text/html, and
+    // they're different, we just remove all but one. Why are webheads
+    // so clueless?
+
+    if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
+        ContentType * ct = contentType();
+        uint i = 1;
+        while ( ct && ct->valid() &&
+                ct->type() == "text" && ct->subtype() == "html" ) {
+            ct = (ContentType*)field( HeaderField::ContentType, i );
+            i++;
+        }
+        if ( !ct ) {
+            ct = contentType();
+            removeField( HeaderField::ContentType );
+            add( ct );
         }
     }
 
@@ -1686,7 +1706,7 @@ void Header::repair( Multipart * p, const EString & body )
             add( "Content-Type", "application/octet-stream" );
         }
     }
-    
+
     // If Content-Base or Content-Location is/are bad, we just drop it/them
 
     while ( field( "Content-Base" ) || field( "Content-Location" ) ) {

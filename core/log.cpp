@@ -95,6 +95,9 @@ Log::Log( Log * parent )
 
 void Log::log( const EString &m, Severity s )
 {
+    if ( s < logLevel )
+        return;
+
     Logger * l = Logger::global();
     if ( s == Disaster ) {
         disasters = true;

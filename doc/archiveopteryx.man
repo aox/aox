@@ -1,5 +1,9 @@
 .\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
+<<<<<<< HEAD:doc/archiveopteryx.man
 .TH archiveopteryx 7 2009-07-13 aox.org "Archiveopteryx Documentation"
+=======
+.TH archiveopteryx 7 2009-03-30 aox.org "Archiveopteryx Documentation"
+>>>>>>> next:doc/archiveopteryx.man
 .SH NAME
 Overview of Archiveopteryx.
 .SH SYNOPSIS

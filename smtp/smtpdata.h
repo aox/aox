@@ -18,7 +18,7 @@ public:
 
     class Injectee * message( const EString & );
 
-    void makeCopy() const;
+    void makeCopy( bool ) const;
 
     void checkField( HeaderField::Type );
     bool addressPermitted( Address * ) const;

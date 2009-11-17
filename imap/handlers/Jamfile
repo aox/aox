@@ -22,6 +22,7 @@ Build imap :
     lsub.cpp
     namespace.cpp
     noop.cpp
+    notify.cpp
     rename.cpp
     resetkey.cpp
     search.cpp

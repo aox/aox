@@ -371,6 +371,9 @@ void Schema::fail( const EString &s, Query * q )
 }
 
 
+#include "downgrades.inc"
+
+
 /*! Uses a helper function to upgrade the schema from d->revision to
     d->revision+1. Returns false if the helper has not yet completed
     its work.
@@ -565,6 +568,10 @@ bool Schema::singleStep()
         c = true;
         break;
     }
+    if ( d->revision >= 89 &&
+         d->revision <= numDowngradeFunctions &&
+         downgradeFunctions[d->revision] )
+        d->t->enqueue( downgradeFunctions[d->revision] );
 
     return c;
 }
@@ -4187,6 +4194,7 @@ bool Schema::stepTo87()
 
     return true;
 }
+
 
 /*! Make users.alias nullable to help "aox delete user". */
 

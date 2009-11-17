@@ -68,7 +68,7 @@ void AddView::execute()
 
         UString source( page()->user()->mailboxName( s ) );
         d->ms = Mailbox::obtain( source, false );
-        if ( !d->ms || d->ms->synthetic() || d->ms->deleted() ) {
+        if ( !d->ms || d->ms->deleted() ) {
             setContents( "Invalid source name." );
             return;
         }
