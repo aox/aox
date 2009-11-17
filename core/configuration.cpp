@@ -677,7 +677,7 @@ void Configuration::setup( const EString & global, bool allowFailure )
         if ( !bad ) {
             struct sockaddr_in6 in6;
             in6.sin6_family = AF_INET6;
-            in6.sin6_port = ntohs( 15352 ); // random would perhaps be better
+            in6.sin6_port = ntohs( 17 ); // stomping on fortune is okay
             in6.sin6_flowinfo = 0;
             int i = 0;
             while ( i < 15 ) {
