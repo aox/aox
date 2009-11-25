@@ -84,13 +84,14 @@ public:
     struct Delivery
         : public Garbage
     {
-        Delivery( Injectee * m, Address * a, List<Address> * l )
-            : message( m ), sender( a ), recipients( l )
+        Delivery( Injectee * m, Address * a, List<Address> * l, Date * when )
+            : message( m ), sender( a ), recipients( l ), later( when )
         {}
 
         Injectee * message;
         Address * sender;
         List<Address> * recipients;
+        Date * later;
     };
 
     List<Message> messages;
@@ -198,14 +199,16 @@ void Injector::addInjection( List<Injectee> * messages )
 
 
 /*! Notes that \a message must be injected, and spooled for delivery
-    to the specified \a recipients from the given \a sender.
+    to the specified \a recipients from the given \a sender, and
+    delivered \a later if \a later is non-null.
 */
 
 void Injector::addDelivery( Injectee * message, Address * sender,
-                            List<Address> * recipients )
+                            List<Address> * recipients,
+                            Date * later )
 {
     d->deliveries.append( new InjectorData::Delivery( message, sender,
-                                                      recipients ) );
+                                                      recipients, later ) );
 }
 
 
@@ -493,8 +496,7 @@ void Injector::createMailboxes()
             while ( mi ) {
                 Mailbox * mb = mi;
                 ++mi;
-                if ( ( mb->synthetic() || mb->deleted() ) &&
-                     !nonexistent.contains( mb->name() ) ) {
+                if ( mb->deleted() && !nonexistent.contains( mb->name() ) ) {
                     mb->create( d->transaction, 0 );
                     d->mailboxesCreated->append( mb );
                     nonexistent.insert( mb->name(), mb );
@@ -507,8 +509,6 @@ void Injector::createMailboxes()
     }
     List<Mailbox>::Iterator m( d->mailboxesCreated );
     while ( m ) {
-        if ( m->synthetic() )
-            return;
         if ( m->deleted() )
             return;
         ++m;
@@ -1794,11 +1794,15 @@ void Injector::insertDeliveries()
 
         Query * q =
             new Query( "insert into deliveries "
-                       "(sender,message,injected_at,expires_at) "
+                       "(sender,message,injected_at,expires_at,deliver_after) "
                        "values ($1,$2,current_timestamp,"
-                       "current_timestamp+interval '2 weeks')", 0 );
+                       "current_timestamp+interval '2 weeks',$3)", 0 );
         q->bind( 1, sender->id() );
         q->bind( 2, di->message->databaseId() );
+        if ( di->later )
+            q->bind( 3, di->later->isoDateTime() );
+        else
+            q->bindNull( 3 );
         d->transaction->enqueue( q );
         
         uint n = 0;
@@ -1821,7 +1825,7 @@ void Injector::insertDeliveries()
         }
 
         Header * h = di->message->header();
-        if ( h && h->field( "Auto-Submitted" ) ) {
+        if ( h && h->field( "Auto-Submitted" ) && !di->later ) {
             q = new Query( "update deliveries "
                            "set deliver_after=injected_at+'1 minute' "
                            "where message=$1 and exists ("
@@ -1836,7 +1840,7 @@ void Injector::insertDeliveries()
             q->bind( 3, domains );
             d->transaction->enqueue( q );
         }
-                
+
         log( "Spooling message " + fn( di->message->databaseId() ) +
              " for delivery to " + fn( n ) +
              " remote recipients", Log::Significant );

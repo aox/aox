@@ -57,6 +57,9 @@ public:
     bool rejected() const;
 
     void addAction( SieveAction * );
+    
+    void setForwardingDate( Date * );
+    Date * forwardingDate() const;
 
 private:
     class SieveData * d;

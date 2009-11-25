@@ -15,6 +15,7 @@
 #include "mailboxgroup.h"
 #include "imapparser.h"
 #include "database.h"
+#include "eventmap.h"
 #include "command.h"
 #include "cache.h"
 #include "user.h"
@@ -34,11 +35,17 @@ public:
           runningCommands( false ), runCommandsAgain( false ),
           readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ),
-          bytesArrived( 0 )
+          bytesArrived( 0 ),
+          eventMap( new EventMap )
     {
         uint i = 0;
         while ( i < IMAP::NumClientCapabilities )
             clientCapabilities[i++] = false;
+        EventFilterSpec * normal = new EventFilterSpec;
+        normal->setNotificationWanted( EventFilterSpec::FlagChange, true );
+        normal->setNotificationWanted( EventFilterSpec::NewMessage, true );
+        normal->setNotificationWanted( EventFilterSpec::Expunge, true );
+        eventMap->add( normal );
     }
 
     IMAP::State state;
@@ -64,6 +71,8 @@ public:
     bool clientCapabilities[IMAP::NumClientCapabilities];
 
     List<MailboxGroup> possibleGroups;
+
+    EventMap * eventMap;
 };
 
 
@@ -889,4 +898,26 @@ MailboxGroup * IMAP::mostLikelyGroup( Mailbox * m, uint l )
         }
     }
     return best;
+}
+
+
+/*! Returns a pointer to the event map currently in force. This is
+    never a null pointer; IMAP sets up a suitable map when it starts.
+*/
+
+class EventMap * IMAP::eventMap() const
+{
+    return d->eventMap;
+}
+
+
+/*! Records that IMAP should base its notification decisions on \a map
+    henceforth. \a map must not be null.
+
+*/
+
+void IMAP::setEventMap( class EventMap * map )
+{
+    if ( map )
+        d->eventMap = map;
 }

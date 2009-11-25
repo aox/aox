@@ -1,0 +1,35 @@
+#!/usr/bin/perl
+
+$/ = undef;
+
+$all = join( "", <STDIN> );
+
+$m = 1;
+
+foreach $f ( split( /\n(?=create or replace function downgrade_to_)/s, $all ) ) {
+    if ( $f =~ /downgrade_to_([0-9]+)/ ) {
+	$n = 1+$1;
+        $functions{$n} = $f;
+	if ( $n > $m ) {
+	    $m = $n;
+	}
+    }
+}
+
+$m++;
+
+print "static uint numDowngradeFunctions = ", $m, ";\n";
+print "static const char * downgradeFunctions[", $m, "] = {\n";
+$n = 0;
+while ( $n < $m ) {
+    if ( defined( $functions{$n} ) ) {
+        $f = $functions{$n};
+	$f =~ s/;\n*$//s;
+	$f =~ s/\n/"\n    "/gs;
+	print "\n// step to ", $n, "\n", '    "', $f, '"', "\n";
+    } else {
+	print "    0, // $n undefined\n"
+    }
+    $n++;
+}
+print "};\n";

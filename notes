@@ -1,6 +1,17 @@
-Schedule
+3.1.3: 2009-08-xx
 
-  Nothing yet.
+  Schema 90 should now be complete. It provides smart delays for
+  auto-submitted mail, plus 4865 HOLDFOR. It does not provide
+  HOLDUNTIL, but that'll be simple once there's an erratum fixing the
+  missing ABNF.
+
+  The better SpoolManager etc. has to go in here.
+
+  aox check database now seems to work.
+
+  managesieve-port = 4190 can go into 3.1.3; the rfc is on its way
+
+  The schema downgrade code is good (downgrade.pl etc)
 
 
 P/W: Stuff we may want to keep
@@ -19,50 +30,10 @@ P/W: Stuff we may want to keep
 
   smtpclient has simpler logic... but don't break what works
 
-  Transaction::enqueue( const char * )
-
   cancelQuery rewrite. not sure.
 
   Do (some of) these, one at a time, making sure nothing breaks after
   each one. None soon.
-
-
-3.0.5: 2009-01-??
-
-  Have some good ideas.
-
-
-3.1.0: 2009-01-??
-
-  IMAP RENAME now throws out any sessions accessing the old mailbox.
-  Sometimes clients keep sessions active without asking the user; that
-  prevented a rename with the old code.
-
-  Add a script to do ldapsearch and adapt the aox user list
-  accordingly. New ldap users result in aox add users, removed LDAP
-  users are removed from the database too. (What to do about their
-  mail? Move it to someone, keep the user, but disabled, or delete
-  it? Configurable I think.)
-
-  Move the most common flags into mailbox_messages.
-
-  aox set retention, aox show retention.
-
-  Views on the web.
-
-  Thread-Index mostly becomes References.
-
-  The l right is no longer granted to everyone. (Error301 needs
-  consideration.)
-
-  Now sends FLAGS updates, although their order may be less than
-  ideal.
-
-  aoxexport exists.
-
-  Optimisations to defeat common webmail systems.
-
-  Optimisation to defeat overeager use of STATUS.
 
 
 Functions and views
@@ -214,28 +185,6 @@ aox check schema
   checking/granting/whatevering. but that's okay.
 
 
-aox upgrade schema, in reverse
-
-  Each schema starting with 86 can write a pgsql function called
-  downgrade_to_x (downgrade_to_85 in the case of stepTo86()), and if
-  aox upgrade schema is called when the current schema version is
-  higher than its goal, then it does:
-
-     while ( current > target ) {
-          EString fn( "downgrade_to_" + fn( current-1 ) + "()" );
-          t->enqueue( new Query( fn, 0 ) );
-          t->enqueue( new Query( "drop function " + fn, 0 );
-          current--;
-     }
-     t->enqueue( "update mailstore set revision=" + fn( target ), 0 );
-
-  Done. A little hacky but really quite good.
-
-  stepTo85() would add the three functions necessary to step back to
-  where 3.0.7 is. Then 3.0.7 doesn't need any substantial new code
-  from 3.1.0, only bugfixes and the really quite small code above.
-
-
 Items for web site
 
   In addition to stuff in the operations guide:
@@ -355,26 +304,12 @@ Database schema range
   nulls in bodyparts'.
 
 
-Sieve
-
-  Alexey suggests the following extensions (in the following order):
-  Vacation, reject, imapflags, subaddress.
-
-  We still haven't done imapflags.
-
-
 Reject or ereject may want MDNs instead of DSNs
 
   Our sieve code generates DSNs if it can't generate protocol-level
   refusal, which it always can in practice. MDNs should be used in at
   least some cases, if a non-zero percentage of zero can be considered
   "some cases".
-
-
-RFCs 2852 and 4865
-
-  Easy to do once we have port 587; we need to set the start and end
-  columns right, that's about it.
 
 
 Message tracking
@@ -609,13 +544,6 @@ Message arrival tag
   something like that.
 
 
-Message Retention Policy Framework
-
-  A lot of sites will want explicit policies regarding what mail may
-  not be deleted, what may be deleted, and what must be deleted. We
-  can support that well.
-
-
 Sieve ihave
 
   There are three holes in our ihave rules.
@@ -683,13 +611,6 @@ Squirrelmail
      those expunges into noops.
 
   That should speed up SM and probably other webmail systems nicely.
-
-
-Allocator
-
-  The binary tree used in Allocator is likely to be extremely
-  unbalanced sometimes, perhaps often. Using a Patricia tree will work
-  well.
 
 
 Using rrdtool
@@ -845,47 +766,6 @@ Document IPC structure
   connecting to who and why.
 
 
-Reference counting GC
-
-  We can switch to using shared_ptr, intrusive_ptr, or a clone of
-  either.
-
-  shared_ptr and intrusive_ptr both are particular to the pointer
-  value, ie. if we allocate a MailboxData and it contains an UString
-  member, pointing to that UString isn't safe.
-
-  We can work around that with intrustive_ptr, if we provide a boolean
-  in Garbage: allocatedUsingNew(), and a hack in the Garbage
-  constructor to make sure we know.
-
-    union {
-        Garbage * surrounder;
-        uint refcount;
-    }
-
-  intrusive_ptr_add_ref( Garbage * ) would have to do this:
-
-    if ( g->allocatedUsingNew() )
-        g->refcount++;
-    else
-        g->surrounder->refcount++;
-
-  If we do this, then everything we currently do should be safe. But
-  the hack would be hacky.
-
-  Reference counting has problems with circular structures. We have
-  two of those: Selector and Message.
-
-  Selector is solvable. Its parent pointers are used only to access
-  the root's d pointer, and we could change the implementation
-  accordingly.
-
-  Message seems more difficult. On one hand its circularity has
-  brought problems before so it would be nice to change. On the other
-  I don't know any way to get rid of the blah.  Functions like
-  Bodypart::contentType() seem to need Multipart::parent().
-
-
 Add a web page about the charset encoding.
 
   It's a novel and good algorithm, so we can make a good page about
@@ -914,31 +794,6 @@ Search ourselves, not via google
   Or maybe farm that out, get google to search with an approximation
   of our design. http://www.google.com/faq_freewebsearch.html may be
   interesting.
-
-
-System flags in mailbox_messages
-
-  We're doing a lot of work on system flags, and we update
-  mailbox_messages for every single system flag change. Maybe we
-  should go back to storing \seen and \deleted in mailbox_messages.
-
-  Changes needed:
-
-  1. Store needs to learn a new query. Dead easy
-  2. Fetcher needs to learn to fetch the flags. Slightly
-     tricky. An hour's work.
-  3. Selector needs to learn to search on the special cases.
-  4. Injector needs to set those flags if necessary.
-
-  The schema change is a little evil. Lots of rows changed.
-
-  Unfortunately I don't think this is doable in 3.0. 3.1, yes. 3.0,
-  no. We want 2.11 to use the same schema as 3.0.0, and practically
-  all of the code involved has been rewritten since 2.11.
-
-  I think this is something we want to do in 3.1.0 and 3.0.2. We make
-  2.11 schema-compatible with 3.0.0, 2.12 with 3.0.1, but after 2.12
-  that stops. 3.0.2 can be schema-compatible with 3.1.0.
 
 
 Logging to syslog
@@ -1053,6 +908,13 @@ The web interface should offer a download link for attachments.
   for example.
 
 
+Sending forged From despite check-sender-addresses
+
+  vacation :from and notify :mailto :from don't check
+
+  The injector probably needs to get the logic from the smtp server.
+
+
 Per-group and systemwide sieves
 
   People always seem to want such things. It'll be easy to implement.
@@ -1092,9 +954,7 @@ SMTP extensions
   Here are the ones we still don't implement, but ought to implement
   at some point:
 
-  SUBMITTER? perhaps
   DELIVERBY (RFC 2852): At some time.
-  FUTURERELEASE (RFC 4865): At some time.
   MTRK: As soon as someone else does it.
 
   http://www.iana.org/assignments/mail-parameters
@@ -1102,25 +962,6 @@ SMTP extensions
   DELIVERBY has the funny little characteristic that we can support it
   with great ease iff the smarthost does, so we ought to advertise iff
   if the smarthost does.
-
-
-SUBMITTER
-
-  The work needed to support that:
-
-  1. Pass a submitter to SmtpClient.
-  2. Pass the sieve owner or logged-in user's address as submitter.
-  3. Send that as SUBMITTER= if the smarthost advertises SUBMITTER and
-     the submitter is different from mail-from.
-
-  4. Advertise SUBMITTER.
-  5. If the SMTP/LMTP/Submit client sends SUBMITTER and it's different
-     from the mail-from, record the address in Received.
-  6. If there's a sieve extension specifying how, push the submitter
-     into the envelope so the sieve can see it.
-
-  Easy peasy. But there's no value to offset this (small) cost, is
-  there? Maybe as a hack when one of us is fed up.
 
 
 The groups and group_members tables seem a little underused
@@ -1155,13 +996,6 @@ We need to be able to disable users
   - a group admin can enable/disable group members
   - a superadmin can enable/disable anyone
   - a group admin cannot unblock an overall blockage
-
-
-Assigning the "l" right automatically hurts shared hosting.
-
-  Casey Shobe <casey@shobe.info> wants to host multiple customers in a
-  single Archiveopteryx installation, and doesn't want them to be able
-  to see each other's mailboxes. We could support that now (2008-01).
 
 
 Showing email addresses in public archives is... well...
@@ -1297,12 +1131,29 @@ aox.org/clients/
   That's it, right?
 
 
+Defending against PGP Desktop and similar
+
+  There are several more things to do:
+
+  - Guess that it's repeating a query for smallish UID sets and do the
+    query once and for all.
+
+  - Defend against 'OR BODY asdf BODY asd' by recognising in
+    simplify() that when asd matches, asdf always will. Added bonus
+    for the base64 shit.
+
+  - Hack in Search::parse() for that/those specific search keys, and
+    setting up a more sensible selector.
+
+  The first two make sense IMO.
+
+
 SMS gateway
 
   We want Archiveopteryx to work as installed. We want to support
   Sieve notify, including SMS.
 
-  I think that means Oryx needs to operate an Archiveopteryx->SMS
+  I think that means we need to operate an Archiveopteryx->SMS
   gateway, allow people do send a few SMSes, and provide people with
   the ability to operate a gateway of their own.
 
@@ -1335,13 +1186,20 @@ SMS gateway
 
 New RFCs
 
+  5463: sieve ihave
+  5490: sieve metadata
+
+  5442: lemonade profile-bis
+
+
+Sieve notify
+
   5435: sieve notify
   5436: sieve notify mailto
   5437: sieve notify xmpp
-  5463: sieve ihave
 
-  5442: lemonade profile-bis
-  
+  mailto: combined with :from is unchecked
+
 
 Bug confusing U+ED00 and U+0000 in the message cache
 
@@ -1367,12 +1225,6 @@ Various alias-related feature requests
 
   e.g. Benjamin wants empty localparts, a number of people want multiple
   targets (Axel, Ingo).
-
-
-String::wrapped() vs. canonical 13
-
-  Arnt commented out some code which shouldn't have made i/13 fail, but
-  did for him. Must investigate.
 
 
 Axel, /Unable to fetch 12MB mail
@@ -1456,6 +1308,17 @@ Caching search results
 
   If a selector is !dynamic(), its results can be cached until the next
   modseq change on the mailbox.
+
+
+Bugs
+
+  - "aox start" doesn't complain when there's a schema mismatch error.
+  - aox -v -v is broken by the syslog change.
+
+
+APOP
+
+  Some mobile devices want to use it.
 
 
 

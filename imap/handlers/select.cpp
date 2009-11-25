@@ -155,10 +155,7 @@ void Select::execute()
             imap()->setClientSupports( IMAP::Condstore );
         if ( d->annotate )
             imap()->setClientSupports( IMAP::Annotate );
-        if ( d->mailbox->synthetic() )
-            error( No,
-                   d->mailbox->name().ascii() + " is not in the database" );
-        else if ( d->mailbox->deleted() )
+        if ( d->mailbox->deleted() )
             error( No, d->mailbox->name().ascii() + " is deleted" );
 
         if ( !ok() ) {

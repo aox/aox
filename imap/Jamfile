@@ -10,4 +10,4 @@ SubInclude TOP imap handlers ;
 
 Build imap :
     imap.cpp imapparser.cpp imapsession.cpp command.cpp imapurl.cpp
-    imapurlfetcher.cpp imapresponse.cpp mailboxgroup.cpp ;
+    imapurlfetcher.cpp imapresponse.cpp mailboxgroup.cpp eventmap.cpp ;

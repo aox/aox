@@ -55,6 +55,9 @@ public:
     void removeMailboxGroup( MailboxGroup * );
     MailboxGroup * mostLikelyGroup( Mailbox *, uint );
 
+    class EventMap * eventMap() const;
+    void setEventMap( class EventMap * );
+
 private:
     class IMAPData *d;
 
