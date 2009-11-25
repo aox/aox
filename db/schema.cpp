@@ -371,6 +371,9 @@ void Schema::fail( const EString &s, Query * q )
 }
 
 
+#include "downgrades.inc"
+
+
 /*! Uses a helper function to upgrade the schema from d->revision to
     d->revision+1. Returns false if the helper has not yet completed
     its work.
@@ -557,12 +560,18 @@ bool Schema::singleStep()
         c = stepTo88(); break;
     case 88:
         c = stepTo89(); break;
+    case 89:
+        c = stepTo90(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
         c = true;
         break;
     }
+    if ( d->revision >= 89 && 
+         d->revision <= numDowngradeFunctions &&
+         downgradeFunctions[d->revision] )
+        d->t->enqueue( downgradeFunctions[d->revision] );
 
     return c;
 }
@@ -4217,5 +4226,16 @@ bool Schema::stepTo89()
     d->t->enqueue( "update connections set username=users.login "
                    "from users where users.id=connections.userid" );
     d->t->enqueue( "alter table connections drop userid" );
+    return true;
+}
+
+
+/*! Add a deliveries column so we can deliver mail later, not now. */
+
+bool Schema::stepTo90()
+{
+    describeStep( "Adding deliveries.deliver_after to improve autoresponders." );
+    d->t->enqueue( "alter table deliveries "
+                   "add deliver_after timestamp with time zone" );
     return true;
 }

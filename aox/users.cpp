@@ -137,13 +137,29 @@ void CreateUser::execute()
         if ( !p.error().isEmpty() )
             error( "Invalid address: " + p.error() );
 
+        Address * a = p.addresses()->first();
+        if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
+            if ( Configuration::present( Configuration::AddressSeparator ) ) {
+                Configuration::Text t = Configuration::AddressSeparator;
+                if ( a->localpart().contains( Configuration::text( t ) ) ) {
+                    error( "Localpart cannot contain subaddress separator" );
+                }
+            }
+            else if ( a->localpart().contains( "-" ) ) {
+                error( "Localpart cannot contain subaddress separator '-'" );
+            }
+            else if ( a->localpart().contains( "+" ) ) {
+                error( "Localpart cannot contain subaddress separator '+'" );
+            }
+        }
+
         database( true );
         Mailbox::setup( this );
 
         d->user = new User;
         d->user->setLogin( login );
         d->user->setSecret( passwd );
-        d->user->setAddress( p.addresses()->first() );
+        d->user->setAddress( a );
         d->user->refresh( this );
     }
 

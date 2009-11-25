@@ -13,6 +13,7 @@ class AddressField
 {
 public:
     AddressField( HeaderField::Type );
+    AddressField( HeaderField::Type, Address * );
 
     void parse( const EString & );
 

@@ -490,3 +490,34 @@ bool AoxCommandMap::needsNoun( const EString & verb )
         return true;
     return false;
 }
+
+
+/*! Returns a list of aliases and what they mean. Each string has the
+    format "x y -- a b".
+*/
+
+EStringList * AoxCommandMap::aliases()
+{
+    EStringList r;
+    AoxCommandMap * m = first;
+    while ( m ) {
+        if ( m->c ) {
+            EString s = m->v;
+            if ( m->n && *m->n ) {
+                s.append( " " );
+                s.append( m->n );
+            }
+            s.append( " -- " );
+            s.append( m->c->v );
+            if ( m->c->n && *m->c->n ) {
+                s.append( " " );
+                s.append( m->c->n );
+            }
+            r.append( s );
+        }
+        m = m->x;
+    }
+    r.removeDuplicates();
+    return r.sorted();
+
+}

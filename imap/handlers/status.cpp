@@ -99,6 +99,31 @@ Status::Status()
 }
 
 
+/*! Constructs a tagless Status command that'll return UIDNEXT and
+    perhaps HIGHESTMODSEQ for \a m, before \a c sends its completion
+    OK. This is a helper for Notify.
+*/
+
+Status::Status( Command * c, Mailbox * m )
+    : Command( c->imap() ), d( new StatusData )
+{
+    setGroup( 4 );
+    d->mailbox = m;
+    d->uidnext = true;
+
+    IMAP * i = c->imap();
+    if ( !i )
+        return;
+
+    if ( i->clientSupports( IMAP::Condstore ) )
+        d->modseq = true;
+    requireRight( d->mailbox, Permissions::Read );
+
+    i->commands()->insert( i->commands()->find( c ), this );
+    setState( Executing );
+}
+
+
 void Status::parse()
 {
     space();
@@ -174,7 +199,7 @@ void Status::execute()
     }
     if ( !::cache )
         ::cache = new StatusData::StatusCache;
-    
+
     if ( d->unseenCount ) {
         while ( d->unseenCount->hasResults() ) {
             Row * r = d->unseenCount->nextRow();

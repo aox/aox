@@ -18,27 +18,23 @@ class DeliveryAgent
     : public EventHandler
 {
 public:
-    DeliveryAgent( uint, EventHandler * );
+    DeliveryAgent( uint );
 
     uint messageId() const;
 
     void execute();
 
-    bool done() const;
-    bool delivered() const;
+    bool working() const;
 
 private:
     class DeliveryAgentData * d;
 
-    Query * fetchDelivery( uint );
     Message * fetchMessage( uint );
-    Query * fetchSender( uint );
-    Query * fetchRecipients( uint );
-    DSN * createDSN( Message *, Query *, Query * );
+    void createDSN();
     void expireRecipients( DSN * );
     void logDelivery( DSN * );
     Injector * injectBounce( DSN * );
-    uint updateDelivery( uint, DSN * );
+    void updateDelivery();
 };
 
 

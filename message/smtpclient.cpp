@@ -13,13 +13,6 @@
 #include "address.h"
 #include "message.h"
 
-#include <time.h> // time()
-
-
-static List<SmtpClient> * clients;
-static List<EventHandler> * waiting;
-static uint serviced;
-
 
 class SmtpClientData
     : public Garbage
@@ -104,7 +97,6 @@ void SmtpClient::react( Event e )
         d->error = "Server timeout.";
         finish();
         close();
-        ::clients->remove( this );
         break;
 
     case Connect:
@@ -114,7 +106,6 @@ void SmtpClient::react( Event e )
 
     case Error:
     case Close:
-        ::clients->remove( this );
         if ( state() == Connecting ) {
             d->error = "Connection refused by SMTP/LMTP server";
             finish( "4.4.1" );
@@ -130,17 +121,12 @@ void SmtpClient::react( Event e )
     case Shutdown:
         // I suppose we might send quit, but then again, it may not be
         // legal at this point.
-        ::clients->remove( this );
         break;
     }
 
     if ( d->owner &&
          ( s1 != Connection::state() || s2 != d->state || s3 != d->error ) )
         d->owner->notify();
-    if ( !d->owner && ready() && ::waiting && !waiting->isEmpty() ) {
-        ::serviced = (uint)time( 0 );
-        ::waiting->shift()->notify();
-    }
 }
 
 
@@ -197,7 +183,6 @@ void SmtpClient::parse()
                 if ( response == 421 ) {
                     log( "Closing because the SMTP server sent 421" );
                     close();
-                    ::clients->remove( this );
                     d->state = SmtpClientData::Invalid;
                 }
                 break;
@@ -298,7 +283,10 @@ void SmtpClient::sendCommand()
     case SmtpClientData::Rset:
         finish();
         delete d->closeTimer;
-        d->closeTimer = new Timer( d->timerCloser, 298 );
+        if ( idleClient() == this )
+            d->closeTimer = new Timer( d->timerCloser, 298 );
+        else
+            d->closeTimer = new Timer( d->timerCloser, 15 );
         return;
 
     case SmtpClientData::Error:
@@ -308,14 +296,13 @@ void SmtpClient::sendCommand()
         break;
 
     case SmtpClientData::Quit:
-        ::clients->remove( this );
         close();
         break;
     }
 
     if ( send.isEmpty() )
         return;
-
+    
     log( "Sending: " + send, Log::Debug );
     enqueue( send + "\r\n" );
     d->sent = send;
@@ -629,69 +616,21 @@ EString SmtpClient::error() const
 }
 
 
-class SmtpClientBouncer
-    : public EventHandler
-{
-public:
-    SmtpClientBouncer() {}
-    void execute();
-};
+/*! Provides an SMTP client.
 
-void SmtpClientBouncer::execute()
+    If one is idly waiting now, provide() returns its address. If not,
+    provide() makes one and then returns it.
+*/
+
+SmtpClient * SmtpClient::provide()
 {
-    if ( !::waiting || ::waiting->isEmpty() ||
-         ::serviced + 7 > (uint)time( 0 ) )
-        return;
+    SmtpClient * c = idleClient();
+    if ( c )
+        return c;
 
     Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
                 Configuration::scalar( Configuration::SmartHostPort ) );
-    ::clients->append( new SmtpClient( e ) );
-    ::waiting->shift()->notify();
-}
-
-
-
-
-/*! Requests the attentions of an SMTP client.
-
-    If one is ready() for use now, request() returns its address. If
-    not, request() queues \a h and notifies it as soon as an SMTP
-    client becomes ready(). \a h needs to call request() again at that
-    time.
-*/
-
-SmtpClient * SmtpClient::request( EventHandler * h )
-{
-    if ( !::clients ) {
-        ::clients = new List<SmtpClient>;
-        Allocator::addEternal( ::clients, "smarthost clients" );
-    }
-    if ( ::clients->isEmpty() ) {
-        Endpoint e( Configuration::text( Configuration::SmartHostAddress ),
-                    Configuration::scalar( Configuration::SmartHostPort ) );
-        ::clients->append( new SmtpClient( e ) );
-    }
-
-    List<SmtpClient>::Iterator c( ::clients );
-    while ( c && !c->ready() )
-        ++c;
-    if ( c ) {
-        if ( ::waiting )
-            ::waiting->take( ::waiting->find( h ) );
-        ::serviced = ::time( 0 );
-        return c;
-    }
-
-    if ( !::waiting ) {
-        ::waiting = new List<EventHandler>;
-        Allocator::addEternal( ::waiting, "event handlers waiting for smtp" );
-    }
-    if ( !waiting->find( h ) )
-        ::waiting->append( h );
-    (void)new Timer( new SmtpClientBouncer, 7 );
-    ::log( "Queuing for SMTP client access (" + fn( ::clients->count() ) +
-           " clients to serve " + fn( ::waiting->count() ) + " agents)" );
-    return 0;
+    return new SmtpClient( e );
 }
 
 
@@ -702,4 +641,34 @@ SmtpClient * SmtpClient::request( EventHandler * h )
 bool SmtpClient::sent() const
 {
     return d->sentMail;
+}
+
+
+/*! Returns a pointer to the DSN currently being sent, or a null
+    pointer if none.
+*/
+
+DSN * SmtpClient::sending() const
+{
+    return d->dsn;
+}
+
+
+/*! This private helper returns a pointer to an idle SMTP client, or a
+    null pointer if none are idle.
+*/
+
+SmtpClient * SmtpClient::idleClient()
+{
+    List<Connection>::Iterator c( EventLoop::global()->connections() );
+    while ( c ) {
+        if ( c->type() == Connection::SmtpClient ) {
+            Connection * tmp = c;
+            SmtpClient * sc = (SmtpClient*)tmp;
+            if ( sc->d->state == SmtpClientData::Rset )
+                return sc;
+        }
+        ++c;
+    }
+    return 0;
 }

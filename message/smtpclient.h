@@ -22,10 +22,11 @@ public:
 
     void react( Event );
 
-    static SmtpClient * request( EventHandler * );
+    static SmtpClient * provide();
 
     bool ready() const;
     void send( DSN *, EventHandler * );
+    DSN * sending() const;
     bool sent() const;
 
     void logout( uint );
@@ -42,6 +43,8 @@ private:
     void recordExtension( const EString & );
 
     static EString dotted( const EString & );
+    
+    static SmtpClient * idleClient();
 };
 
 

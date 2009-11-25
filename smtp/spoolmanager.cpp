@@ -36,10 +36,9 @@ public:
 
 
 /*! \class SpoolManager spoolmanager.h
-    This class periodically attempts to deliver mail from the special
-    /archiveopteryx/spool mailbox to a smarthost using DeliveryAgent.
-    Messages in the spool are marked for deletion when the delivery
-    either succeeds, or is permanently abandoned.
+
+    This class periodically attempts to deliver mail from the
+    deliveries table to a smarthost using DeliveryAgent.
 
     Each archiveopteryx process has only one instance of this class,
     which is created by SpoolManager::setup().
@@ -49,6 +48,17 @@ SpoolManager::SpoolManager()
     : d( new SpoolManagerData )
 {
     setLog( new Log );
+
+    Query * q = new Query( "update deliveries "
+                           "set expires_at=current_timestamp+interval '900 s' "
+                           "where expires_at<=current_timestamp "
+                           "and id in "
+                           "(select delivery from delivery_recipients"
+                           " where action=$1 or action=$2)",
+                           0 );
+    q->bind( 1, Recipient::Unknown );
+    q->bind( 2, Recipient::Delayed );
+    q->execute();
 }
 
 
@@ -57,16 +67,19 @@ void SpoolManager::execute()
     // Fetch a list of spooled messages, and the next time we can try
     // to deliver each of them.
 
+    uint delay = UINT_MAX;
+
     if ( !d->q ) {
         IntegerSet have;
         List<DeliveryAgent>::Iterator a( d->agents );
         while ( a ) {
-            if ( a->done() ) {
-                d->agents.take( a );
+            if ( a->working() ) {
+                have.add( a->messageId() );
+                delay = 900;
+                ++a;
             }
             else {
-                have.add( a->messageId() );
-                ++a;
+                d->agents.take( a );
             }
         }
 
@@ -74,13 +87,14 @@ void SpoolManager::execute()
         d->again = false;
         reset();
         EString s( "select d.message, "
-                  "extract(epoch from"
-                  " min(coalesce(dr.last_attempt+interval '900 s',"
-                  " current_timestamp)))::bigint"
-                  "-extract(epoch from current_timestamp)::bigint as delay "
-                  "from deliveries d "
-                  "join delivery_recipients dr on (d.id=dr.delivery) "
-                  "where (dr.action=$1 or dr.action=$2) ");
+                   "extract(epoch from"
+                   " min(coalesce(dr.last_attempt+interval '900 s',"
+                   " d.deliver_after,"
+                   " current_timestamp)))::bigint"
+                   "-extract(epoch from current_timestamp)::bigint as delay "
+                   "from deliveries d "
+                   "join delivery_recipients dr on (d.id=dr.delivery) "
+                   "where (dr.action=$1 or dr.action=$2) " );
         if ( !have.isEmpty() )
             s.append( "and not d.message=any($3) " );
         s.append( "group by d.message "
@@ -108,14 +122,13 @@ void SpoolManager::execute()
     // Yes. What?
 
     if ( d->q ) {
-        uint delay = UINT_MAX;
         while ( d->q->hasResults() ) {
             Row * r = d->q->nextRow();
             int64 deliverableAt = r->getBigint( "delay" );
             if ( deliverableAt <= 0 ) {
                 DeliveryAgent * a
-                    = new DeliveryAgent( r->getInt( "message" ), this );
-                (void)new Timer( a, d->agents.count() );
+                    = new DeliveryAgent( r->getInt( "message" ) );
+                (void)new Timer( a, d->agents.count() * 5 );
                 d->agents.append( a );
             }
             else if ( delay > deliverableAt )
@@ -145,11 +158,6 @@ void SpoolManager::deliverNewMessage()
         log( "New message added to spool while spool is being processed",
              Log::Debug );
         return;
-    }
-    else if ( SmtpClient::request( this ) ) {
-        log( "New message added to spool; SMTP connection available" );
-        d->again = true;
-        execute();
     }
     else {
         log( "New message added to spool; will deliver when possible" );

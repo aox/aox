@@ -16,34 +16,33 @@
 
     We announce the following standard capabilities:
 
-    RFC 3501: IMAP4rev1, STARTTLS, LOGINDISABLED.
-    RFC 3502: MULTIAPPEND
-    RFC 2086: ACL
-    RFC 2088: LITERAL+
-    RFC 2177: IDLE
-    RFC 2971: ID
-    RFC 2342: NAMESPACE
-    RFC 2359: UIDPLUS
-    RFC 3691: UNSELECT
-    RFC 2245: AUTH=ANONYMOUS
-    RFC 2595: AUTH=PLAIN
-    RFC 2195: AUTH=CRAM-MD5
-    RFC 2831: AUTH=DIGEST-MD5
-    RFC 3348: CHILDREN
-    RFC 3516: BINARY
-    RFC 4469: CATENATE
-    RFC 4551: CONDSTORE
-    RFC 4467: URLAUTH
-    RFC 4731: ESEARCH (also from RFC 4466)
-    RFC 4959: SASL-IR
-    RFC 4978: COMPRESS=DEFLATE
-    RFC 5032: WITHIN
-    RFC 5255: I18NLEVEL=1
-    RFC 5256: SORT
-    RFC 5257: ANNOTATE-EXPERIMENT-1
-    RFC 5258: LISTEXT
-
-    We also announce a number of draft capabilities.
+    RFC 3501: IMAP4rev1, STARTTLS, LOGINDISABLED,
+    RFC 3502: MULTIAPPEND,
+    RFC 2086: ACL,
+    RFC 2088: LITERAL+,
+    RFC 2177: IDLE,
+    RFC 2971: ID,
+    RFC 2342: NAMESPACE,
+    RFC 2359: UIDPLUS,
+    RFC 3691: UNSELECT,
+    RFC 2245: AUTH=ANONYMOUS,
+    RFC 2595: AUTH=PLAIN,
+    RFC 2195: AUTH=CRAM-MD5,
+    RFC 2831: AUTH=DIGEST-MD5,
+    RFC 3348: CHILDREN,
+    RFC 3516: BINARY,
+    RFC 4469: CATENATE,
+    RFC 4551: CONDSTORE,
+    RFC 4467: URLAUTH,
+    RFC 4731: ESEARCH (also from RFC 4466),
+    RFC 4959: SASL-IR,
+    RFC 4978: COMPRESS=DEFLATE,
+    RFC 5032: WITHIN,
+    RFC 5255: I18NLEVEL=1,
+    RFC 5256: SORT,
+    RFC 5257: ANNOTATE-EXPERIMENT-1,
+    RFC 5258: LISTEXT,
+    RFC 5465: NOTIFY.
 */
 
 void Capability::execute()
@@ -103,6 +102,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || login ) {
         c.append( "MULTIAPPEND" );
         c.append( "NAMESPACE" );
+        //c.append( "NOTIFY" );
     }
     if ( all || login )
         c.append( "RIGHTS=ekntx" );
@@ -110,11 +110,12 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "SASL-IR" );
     if ( all || login ) {
         c.append( "SORT" );
-        c.append( "SORT=DISPLAYFROM" ); // draft-karp-morg-displayfrom
+        c.append( "SORT=DISPLAY" ); // draft-ietf-morg-sortdisplay
     }
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
     if ( all || login ) {
+        // also THREAD=...
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );

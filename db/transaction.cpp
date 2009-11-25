@@ -313,8 +313,8 @@ void Transaction::enqueue( const EString & text )
 
 void Transaction::rollback()
 {
-    if ( d->submittedCommit ) {
-        log( "rollback() called after commit/rollback" );
+    if ( state() == Completed ) {
+        log( "rollback() called after commit" );
         return;
     }
 

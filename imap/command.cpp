@@ -34,6 +34,7 @@
 #include "handlers/logout.h"
 #include "handlers/lsub.h"
 #include "handlers/namespace.h"
+#include "handlers/notify.h"
 #include "handlers/noop.h"
 #include "handlers/rename.h"
 #include "handlers/resetkey.h"
@@ -245,6 +246,8 @@ Command * Command::create( IMAP * imap,
             c = new GenUrlauth;
         else if ( n == "urlfetch" )
             c = new UrlFetch;
+        else if ( n == "notify" )
+            c = new Notify;
 
         if ( c ) {
             authenticated = true;
@@ -1170,10 +1173,6 @@ class Mailbox * Command::mailbox()
         error( No, "No such mailbox: " + n.ascii() );
         return 0;
     }
-    if ( m->synthetic() ) {
-        error( No, "Mailbox is not selectable: " + n.ascii() );
-        return 0;
-    }
     if ( m->deleted() ) {
         error( No, "Mailbox deleted: " + n.ascii() );
         return 0;
@@ -1259,7 +1258,7 @@ EString Command::imapQuoted( Mailbox * m, Mailbox * r )
         base = imap()->user()->home();
     // find out whether this name can be expressed as a relative name
     if ( base ) {
-        Mailbox * p = m->parent();
+        Mailbox * p = m;
         while ( p && p != base )
             p = p->parent();
         if ( p )

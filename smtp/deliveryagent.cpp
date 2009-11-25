@@ -25,27 +25,25 @@ class DeliveryAgentData
 {
 public:
     DeliveryAgentData()
-        : messageId( 0 ), owner( 0 ), t( 0 ),
-          qm( 0 ), qs( 0 ), qr( 0 ), row( 0 ), message( 0 ),
+        : messageId( 0 ), t( 0 ),
+          qm( 0 ), qs( 0 ), qr( 0 ), message( 0 ), expired( false ),
           dsn( 0 ), injector( 0 ), update( 0 ), client( 0 ),
-          updatedDelivery( false ),
-          delivered( false )
+          updatedDelivery( false )
     {}
 
     uint messageId;
-    EventHandler * owner;
     Transaction * t;
     Query * qm;
     Query * qs;
     Query * qr;
-    Row * row;
     Message * message;
+    uint deliveryId;
+    bool expired;
     DSN * dsn;
     Injector * injector;
     Query * update;
     SmtpClient * client;
     bool updatedDelivery;
-    bool delivered;
 };
 
 
@@ -55,18 +53,16 @@ public:
 */
 
 /*! Creates a new DeliveryAgent object to deliver the message with the
-    given \a id. The \a owner will be notified upon completion or
-    error.
+    given \a id.
 */
 
-DeliveryAgent::DeliveryAgent( uint id, EventHandler * owner )
+DeliveryAgent::DeliveryAgent( uint id )
     : d( new DeliveryAgentData )
 {
     setLog( new Log );
     Scope x( log() );
     log( "Attempting delivery for message " + fn( id ) );
     d->messageId = id;
-    d->owner = owner;
 }
 
 
@@ -82,14 +78,18 @@ uint DeliveryAgent::messageId() const
 
 void DeliveryAgent::execute()
 {
+    // Fetch and lock the row in deliveries matching (mailbox,uid).
+
     if ( !d->messageId )
         return;
 
-    // Fetch and lock the row in deliveries matching (mailbox,uid).
-
     if ( !d->t ) {
         d->t = new Transaction( this );
-        d->qm = fetchDelivery( d->messageId );
+        d->qm = new Query(
+            "select id, sender, current_timestamp > expires_at as expired "
+            "from deliveries where message=$1 for update",
+            this );
+        d->qm->bind( 1, d->messageId );
         d->t->enqueue( d->qm );
         d->t->execute();
     }
@@ -97,37 +97,46 @@ void DeliveryAgent::execute()
     if ( !d->qm->done() )
         return;
 
-    if ( d->qm->hasResults() )
-        d->row = d->qm->nextRow();
+    // Fetch other delivery data
 
-    if ( !d->row ) {
-        d->t->rollback();
-        d->messageId = 0;
-        log( "Could not lock deliveries row; aborting" );
-        return;
-    }
-
-    // Fetch the sender address, the relevant delivery_recipients
-    // entries, and the message itself. (If we're called again for
-    // the same message after we've completed delivery, we'll do a
-    // lot of work before realising that nothing needs to be done.)
-
-    if ( !d->message && d->row ) {
+    if ( d->qm->hasResults() ) {
         d->message = fetchMessage( d->messageId );
 
-        d->qs = fetchSender( d->row->getInt( "sender" ) );
+        Row * r = d->qm->nextRow();
+
+        d->deliveryId = r->getInt( "id" );
+
+        d->qs = new Query( "select localpart, domain from addresses "
+                           "where id=$1", this );
+        d->qs->bind( 1, r->getInt( "sender" ) );
         d->t->enqueue( d->qs );
 
-        d->qr = fetchRecipients( d->row->getInt( "id" ) );
+        d->qr = new Query(
+            "select recipient,localpart,domain,action,status,"
+            "extract(epoch from last_attempt)::integer as last_attempt "
+            "from delivery_recipients dr join addresses "
+            "on (recipient=addresses.id) "
+            "where delivery=$1 order by domain, localpart",
+            this );
+        d->qr->bind( 1, d->deliveryId );
         d->t->enqueue( d->qr );
 
         d->t->execute();
+
+        if ( !r->isNull( "expired" ) && r->getBoolean( "expired" ) == true )
+            d->expired = true;
+    }
+    else if ( !d->qs ) {
+        d->t->rollback();
+        d->messageId = 0;
+        log( "Could not find/lock deliveries row; aborting" );
+        return;
     }
 
     // When we have everything we need, we create a DSN for the message,
     // set the sender and recipients, then decide what to do.
 
-    if ( !d->dsn && d->row ) {
+    if ( !d->dsn ) {
         if ( !d->qs->done() || !d->qr->done() )
             return;
 
@@ -136,76 +145,53 @@ void DeliveryAgent::execute()
                 d->message->hasBodies() ) )
             return;
 
-        d->dsn = createDSN( d->message, d->qs, d->qr );
+        createDSN();
 
         if ( !d->dsn->deliveriesPending() ) {
+            d->t->rollback();
+            d->messageId = 0;
             log( "Delivery already completed; will do nothing", Log::Debug );
-            d->delivered = true;
-            d->row = 0;
+            return;
         }
     }
 
     if ( !d->client && d->dsn->deliveriesPending() ) {
-        d->client = SmtpClient::request( this );
-        if ( !d->client )
-            return;
+        d->client = SmtpClient::provide();
         d->client->send( d->dsn, this );
     }
 
     // Once the SmtpClient has updated the action and status for each
     // recipient, we can decide whether or not to spool a bounce.
 
-    if ( d->row && !d->injector ) {
+    if ( !d->updatedDelivery ) {
         // Wait until there are no Unknown recipients.
         List<Recipient>::Iterator it( d->dsn->recipients() );
         while ( it && it->action() != Recipient::Unknown )
             ++it;
-
         if ( it )
             return;
 
-        // We tried to deliver the message even if it has expired, to
-        // handle the case where aox or the smarthost had to be taken
-        // down for repairs and the message expired meanwhile. But now
-        // that we're back up and have tried to deliver the message,
-        // expire anything that the smarthost didn't want.
-        if ( !d->row->isNull( "expired" ) &&
-             d->row->getBoolean( "expired" ) == true ) {
+        d->updatedDelivery = true;
+        updateDelivery();
+
+        if ( d->expired ) {
             log( "Delivery expired; will bounce", Log::Debug );
             expireRecipients( d->dsn );
         }
-        // Actually. Do we want to do that? Maybe we should have a
-        // rule like "never expire in the first fifteen minutes after
-        // startup", to help admins who did not, after all, manage to
-        // fix the blah at startup?
 
-        // Send a bounce message if all recipients have been handled,
-        // and any of them failed.
-        if ( !( d->dsn->deliveriesPending() ||
-                d->dsn->allOk() ) )
-        {
+        if ( d->dsn->deliveriesPending() ) {
+            // must try again
+        }
+        else if ( d->dsn->allOk() ) {
+            // no need to tell anyone, right?
+        }
+        else {
             log( "Sending bounce message", Log::Debug );
             d->injector = injectBounce( d->dsn );
         }
 
         if ( d->injector )
             d->injector->execute();
-    }
-
-    // Once we're done delivering (or bouncing) the message, we'll
-    // update the relevant rows in delivery_recipients, so that we
-    // know what to do next time around.
-
-    if ( d->row ) {
-        if ( d->injector && !d->injector->done() )
-            return;
-
-        if ( !d->updatedDelivery ) {
-            d->updatedDelivery = true;
-            uint unhandled = updateDelivery( d->row->getInt( "id" ), d->dsn );
-            if ( unhandled == 0 )
-                d->delivered = true;
-        }
     }
 
     // Once the update finishes, we're done.
@@ -225,54 +211,19 @@ void DeliveryAgent::execute()
         SpoolManager::shutdown();
     }
 
-    d->owner->notify();
     d->messageId = 0;
 }
 
 
-/*! Returns true if this DeliveryAgent has finished processing
-    deliveries for the message submitted to it.
+/*! Returns true if this DeliveryAgent is working on something, and
+    false if not.
 */
 
-bool DeliveryAgent::done() const
+bool DeliveryAgent::working() const
 {
-    if ( !d->messageId )
+    if ( d->t && !d->t->done() )
         return true;
-    if ( !d->t )
-        return false;
-    // make sure execute() will be called once, just in case the
-    // SmtpClient forgot about us. execute() would requeue if that
-    // were to happen.
-    (void)new Timer( (EventHandler*)this, 1 );
-    return d->t->done();
-}
-
-
-/*! Returns true if the message was delivered (or the delivery was
-    permanently abandoned), and the spooled message may be deleted.
-*/
-
-bool DeliveryAgent::delivered() const
-{
-    return d->delivered;
-}
-
-
-/*! Returns a pointer to a Query that selects and locks the single row
-    from deliveries that matches the given \a messageId.
-*/
-
-Query * DeliveryAgent::fetchDelivery( uint messageId )
-{
-    Query * q =
-        new Query(
-            "select id, sender, "
-            "current_timestamp > expires_at as expired "
-            "from deliveries "
-            "where message=$1 "
-            "for update", this );
-    q->bind( 1, messageId );
-    return q;
+    return false;
 }
 
 
@@ -295,71 +246,35 @@ Message * DeliveryAgent::fetchMessage( uint messageId )
 }
 
 
-/*! Returns a pointer to a Query to fetch the address information for a
-    message sender with the given \a sender id.
+/*! Returns a pointer to a newly-created DSN for the DA's message,
+    based on earlier queries. All queries are assumed to have
+    completed successfully.
 */
 
-Query * DeliveryAgent::fetchSender( uint sender )
+void DeliveryAgent::createDSN()
 {
-    Query * q =
-        new Query( "select localpart,domain from addresses "
-                   "where id=$1", this );
-    q->bind( 1, sender );
-    return q;
-}
+    d->dsn = new DSN;
+    d->dsn->setMessage( d->message );
 
-
-/*! Returns a pointer to a Query that will fetch rows for the given
-    \a delivery id from delivery_recipients.
-*/
-
-Query * DeliveryAgent::fetchRecipients( uint delivery )
-{
-    Query * q =
-        new Query(
-            "select recipient,localpart,domain,action,status,"
-            "extract(epoch from last_attempt)::integer as last_attempt "
-            "from delivery_recipients dr join addresses "
-            "on (recipient=addresses.id) "
-            "where delivery=$1 order by domain, localpart", this
-        );
-    q->bind( 1, delivery );
-    return q;
-}
-
-
-/*! Returns a pointer to a newly-created DSN for the given \a message.
-    The sender is filled in from \a qs (from fetchSender()), while the
-    recipients are filled in from \a qr (from fetchRecipients()). Both
-    queries are assumed to have completed successfully.
-*/
-
-DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
-{
-    DSN * dsn = new DSN;
-    dsn->setMessage( message );
-
-    Row * r = qs->nextRow();
-    Address * a =
-        new Address( "", r->getEString( "localpart" ),
-                     r->getEString( "domain" ) );
-    dsn->setSender( a );
+    Row * r = d->qs->nextRow();
+    Address * a = new Address( "", r->getEString( "localpart" ),
+                               r->getEString( "domain" ) );
+    d->dsn->setSender( a );
 
     if ( Configuration::hostname().endsWith( ".test.oryx.com" ) ) {
         // the sun never sets on the oryx empire. *sigh*
         Date * testTime = new Date;
         testTime->setUnixTime( 1181649536 );
-        dsn->setResultDate( testTime );
+        d->dsn->setResultDate( testTime );
     }
 
-    while ( qr->hasResults() ) {
-        r = qr->nextRow();
+    while ( d->qr->hasResults() ) {
+        r = d->qr->nextRow();
 
         Recipient * recipient = new Recipient;
 
-        Address * a =
-            new Address( "", r->getEString( "localpart" ),
-                         r->getEString( "domain" ) );
+        Address * a = new Address( "", r->getEString( "localpart" ),
+                                   r->getEString( "domain" ) );
         a->setId( r->getInt( "recipient" ) );
         recipient->setFinalRecipient( a );
 
@@ -378,10 +293,8 @@ DSN * DeliveryAgent::createDSN( Message * message, Query * qs, Query * qr )
             recipient->setLastAttempt( date );
         }
 
-        dsn->addRecipient( recipient );
+        d->dsn->addRecipient( recipient );
     }
-
-    return dsn;
 }
 
 
@@ -443,6 +356,7 @@ Injector * DeliveryAgent::injectBounce( DSN * dsn )
     l->append( dsn->sender() );
 
     Injector * i = new Injector( this );
+    i->setTransaction( d->t );
     i->addDelivery( dsn->result(), new Address( "", "", "" ), l );
     return i;
 }
@@ -451,18 +365,16 @@ Injector * DeliveryAgent::injectBounce( DSN * dsn )
 static GraphableCounter * messagesSent = 0;
 
 
-/*! Updates the row in deliveries matching \a delivery, as well as any
-    related rows in delivery_recipients, based on the status of \a dsn.
-    Returns the number of recipients for whom delivery is pending. The
-    queries needed to perform the update are enqueued directly into
-    d->t, for the caller to execute at will.
+/*! Updates the row in deliveries, as well as any related rows in
+    delivery_recipients. The queries needed to perform the update are
+    enqueued directly into d->t, for the caller to execute at will.
 */
 
-uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
+void DeliveryAgent::updateDelivery()
 {
     uint handled = 0;
     uint unhandled = 0;
-    List<Recipient>::Iterator it( dsn->recipients() );
+    List<Recipient>::Iterator it( d->dsn->recipients() );
     while ( it ) {
         Recipient * r = it;
         ++it;
@@ -479,12 +391,12 @@ uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
                        this );
         q->bind( 1, (int)r->action() );
         q->bind( 2, r->status() );
-        q->bind( 3, delivery );
+        q->bind( 3, d->deliveryId );
         q->bind( 4, r->finalRecipient()->id() );
         d->t->enqueue( q );
     }
 
-    if ( dsn->allOk() ) {
+    if ( d->dsn->allOk() ) {
         if ( handled )
             log( "Delivered message " + fn( d->messageId ) +
                  " successfully to " + fn( handled ) + " recipients",
@@ -493,14 +405,8 @@ uint DeliveryAgent::updateDelivery( uint delivery, DSN * dsn )
             ::messagesSent = new GraphableCounter( "messages-sent" );
         ::messagesSent->tick();
     }
-    // XXX at this point we probably want to do
-    //   else if ( !unhandled ) {
-    //       ...send a DSN...
-    //   }
     else {
         log( "Recipients handled: " + fn( handled ) +
              ", still queued: " + fn( unhandled ) );
     }
-
-    return unhandled;
 }

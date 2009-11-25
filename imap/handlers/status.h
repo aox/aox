@@ -11,6 +11,7 @@ class Status
 {
 public:
     Status();
+    Status( Command *, Mailbox * );
 
     void parse();
     void execute();

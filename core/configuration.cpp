@@ -161,7 +161,7 @@ static struct {
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
     { "db-handle-timeout", Configuration::DbHandleTimeout, 10 },
-    { "managesieve-port", Configuration::ManageSievePort, 2000 },
+    { "managesieve-port", Configuration::ManageSievePort, 4190 },
     { "undelete-time", Configuration::UndeleteTime, 49 },
     { "smarthost-port", Configuration::SmartHostPort, 25 },
     { "statistics-port", Configuration::StatisticsPort, 17220 },
@@ -677,7 +677,7 @@ void Configuration::setup( const EString & global, bool allowFailure )
         if ( !bad ) {
             struct sockaddr_in6 in6;
             in6.sin6_family = AF_INET6;
-            in6.sin6_port = ntohs( 15352 ); // random would perhaps be better
+            in6.sin6_port = ntohs( 17 ); // stomping on fortune is okay
             in6.sin6_flowinfo = 0;
             int i = 0;
             while ( i < 15 ) {

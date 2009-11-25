@@ -281,7 +281,8 @@ void Listext::execute()
                     if ( !i->isEmpty() && !d->reference->name().endsWith( "/" ) )
                         s++;
                 }
-                if ( Mailbox::match( *i, 0, mn.titlecased(), s ) == 2 )
+                if ( Mailbox::match( i->titlecased(), 0,
+                                     mn.titlecased(), s ) == 2 )
                     matches = true;
                 ++i;
             }
@@ -443,7 +444,7 @@ void Listext::makeResponse( Row * row )
             include = true;
         }
     }
-    
+
     if ( d->selectSubscribed && !include )
         return;
 

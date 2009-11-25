@@ -18,6 +18,7 @@
 #include "mimefields.h"
 #include "estringlist.h"
 #include "ustringlist.h"
+#include "sievenotify.h"
 #include "sievescript.h"
 #include "sieveaction.h"
 #include "transaction.h"
@@ -34,6 +35,7 @@ public:
     SieveData()
         : sender( 0 ),
           currentRecipient( 0 ),
+          forwardingDate( 0 ),
           message( 0 ),
           state( 0 ),
           handler( 0 ),
@@ -83,6 +85,7 @@ public:
     List<Recipient> recipients;
     Recipient * currentRecipient;
     List<Address> submissions;
+    Date * forwardingDate;
     Injectee * message;
     Date * arrivalTime;
     uint state;
@@ -334,7 +337,8 @@ void Sieve::execute()
 
         List<Address> * f = forwarded();
         if ( !f->isEmpty() )
-            d->injector->addDelivery( d->message, sender(), f );
+            d->injector->addDelivery( d->message, sender(), f,
+                                      d->forwardingDate );
 
         d->state = 3;
         d->injector->execute();
@@ -404,6 +408,28 @@ void Sieve::addSubmission( Address * address )
 }
 
 
+/*! Records that this message should be delivered to the smarthost
+    sometime \a later. This applies only to messages delivered to the
+    smarthost, messages injected into local mailboxes are always
+    injected at once.
+ */
+
+void Sieve::setForwardingDate( class Date * later )
+{
+    d->forwardingDate = later;
+}
+
+
+/*! Returns what setForwardingDate() recorded, or null if
+    setForwardingDate() has not been called.
+*/
+
+Date * Sieve::forwardingDate() const
+{
+    return d->forwardingDate;
+}
+
+
 /*! Records that \a address is one of the recipients for this message,
     and that \a destination is where the mailbox should be stored by
     default. Sieve will use \a script as script. If \a user is
@@ -459,11 +485,24 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                        "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
     EString localpart( address->localpart() );
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
-        Configuration::Text t = Configuration::AddressSeparator;
-        EString sep( Configuration::text( t ) );
-        int n = localpart.find( sep );
-        if ( n > 0 )
-            localpart = localpart.mid( 0, n );
+        if ( Configuration::present( Configuration::AddressSeparator ) ) {
+            Configuration::Text t = Configuration::AddressSeparator;
+            EString sep( Configuration::text( t ) );
+            int n = localpart.find( sep );
+            if ( n > 0 )
+                localpart = localpart.mid( 0, n );
+        }
+        else {
+            int plus = localpart.find( '+' );
+            int minus = localpart.find( '-' );
+            int n = -1;
+            if ( plus > 0 )
+                n = plus;
+            if ( minus > 0 && minus < n )
+                n = minus;
+            if ( n > 0 )
+                localpart = localpart.mid( 0, n );
+        }
     }
     r->sq->bind( 1, localpart.lower() );
     r->sq->bind( 2, address->domain().lower() );
@@ -909,6 +948,72 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             a->setExpiry( days );
         }
     }
+    else if ( c->identifier() == "notify" ) {
+        SieveNotifyMethod * m
+            = new SieveNotifyMethod( c->arguments()->takeString( 1 ),
+                                     0, c );
+        if ( c->arguments()->findTag( ":from" ) ) {
+            m->setFrom( c->arguments()->takeTaggedString( ":from" ), c );
+        }
+        else {
+            m->setFrom( d->currentRecipient->address );
+        }
+
+        // we disregard :importance entirely. $#@$ featuritis.
+
+        // we have no use for :options
+
+        if ( c->arguments()->findTag( ":message" ) ) {
+            m->setMessage( c->arguments()->takeTaggedString( ":message" ), c );
+        }
+        else {
+            UString b;
+            Header * h = d->message->header();
+            if ( h->addresses( HeaderField::From ) ) {
+                b.append( "From: " );
+                List<Address>::Iterator i( h->addresses( HeaderField::From ) );
+                bool first = true;
+                while ( i ) {
+                    if ( !first )
+                        b.append( ", " );
+                    first = false;
+                    if ( i->uname().isEmpty() ) {
+                        b.append( i->lpdomain().cstr() );
+                    }
+                    else {
+                        b.append( i->uname().simplified() );
+                        b.append( " <" );
+                        b.append( i->lpdomain().cstr() );
+                        b.append( ">" );
+                    }
+                    ++i;
+                }
+                b.append( "\r\n" );
+            }
+            HeaderField * subject = h->field( HeaderField::Subject );
+            if ( subject->value().isEmpty() ) {
+                b.append( "No subject specified\r\n" );
+            }
+            else {
+                b.append( "Subject: " );
+                b.append( subject->value() );
+                b.append( "\r\n" );
+            }
+            if ( h->addresses( HeaderField::To ) &&
+                 h->addresses( HeaderField::To )->count() == 1 ) {
+                Address * to = h->addresses( HeaderField::To )->first();
+                if ( to->lpdomain().lower() !=
+                     d->currentRecipient->address->lpdomain().lower() ) {
+                    b.append( "To: " );
+                    b.append( to->lpdomain().cstr() );
+                    b.append( "\r\n" );
+                }
+            }
+            m->setMessage( b, c );
+        }
+        // this is where we want to start with 'm' and move towards an
+        // entry in the deliveries table.
+    }
     else {
         // ?
     }
@@ -1272,6 +1377,36 @@ SieveData::Recipient::Result SieveData::Recipient::evaluate( SieveTest * t )
             ++i;
         if ( i )
             return False;
+    }
+    else if ( t->identifier() == "valid_method_method" ) {
+        UStringList::Iterator i( t->arguments()->takeStringList( 1 ) );
+        while ( i ) {
+            SieveNotifyMethod * m = new SieveNotifyMethod( *i, 0, t );
+            if ( !m->valid() )
+                return False;
+            ++i;
+        }
+        return True;
+    }
+    else if ( t->identifier() == "notify_method_capability" ) {
+        UString capa = t->arguments()->takeString( 2 ).titlecased();
+        if ( capa != "ONLINE" )
+            return False;
+        SieveNotifyMethod * m
+            = new SieveNotifyMethod( t->arguments()->takeString( 1 ), 0, t );
+        UString hack;
+        switch( m->reachability() ) {
+        case SieveNotifyMethod::Immediate:
+            hack.append( "yes" );
+            break;
+        case SieveNotifyMethod::Unknown:
+            hack.append( "maybe" );
+            break;
+        case SieveNotifyMethod::Delayed:
+            hack.append( "no" );
+            break;
+        }
+        haystack->append( hack );
     }
     else {
         // unknown test. wtf?

@@ -21,6 +21,7 @@ public:
         Cc,
         Date,
         DisplayFrom,
+        DisplayTo,
         From,
         Size,
         Subject,
@@ -108,6 +109,9 @@ void Sort::parse()
         }
         else if ( s == "displayfrom" ) {
             c->t = SortData::DisplayFrom;
+        }
+        else if ( s == "displayto" ) {
+            c->t = SortData::DisplayTo;
         }
         else if ( s == "from" ) {
             c->t = SortData::From;
@@ -254,6 +258,19 @@ void SortData::addCondition( EString & t, class SortData::SortCriterion * c )
                  "case "
                  "when sdfa.name='' then sdfa.localpart||'@'||sdfa.domain "
                  "else sdfa.name "
+                 "end",
+                 c->reverse );
+        break;
+    case DisplayTo:
+        addJoin( t,
+                 "join address_fields sdtaf on "
+                 "(mm.message=sdtaf.message and "
+                 " sdtaf.part='' and sdtaf.number=0 and"
+                 " sdtaf.field=" + fn( HeaderField::To ) + ") "
+                 "join addresses sdta on (sdtaf.address=sdta.id) ",
+                 "case "
+                 "when sdta.name='' then sdta.localpart||'@'||sdta.domain "
+                 "else sdta.name "
                  "end",
                  c->reverse );
         break;

@@ -1659,6 +1659,7 @@ void AddressParser::route( int & i )
         rdom = domain( i );
     }
     d->firstError = "";
+    d->recentError = "";
 }
 
 

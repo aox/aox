@@ -54,20 +54,11 @@ void Delete::parse()
 
 void Delete::execute()
 {
-    if ( state() != Executing )
+    if ( state() != Executing || !ok() )
         return;
 
     if ( d->first ) {
         d->first = false;
-
-        if ( d->m->synthetic() ) {
-            error( No,
-                   d->m->name().ascii() + " does not really exist anyway" );
-            setRespTextCode( "NONEXISTENT" );
-        }
-
-        if ( !ok() )
-            return;
 
         // We should really require DeleteMessages and Expunge only if
         // we know the mailbox isn't empty; but we'll know that inside

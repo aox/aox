@@ -35,9 +35,9 @@ public:
     List<Mailbox> * mailboxes() const;
 
     static Injectee * wrapUnparsableMessage( const EString &,
-                                                      const EString &,
-                                                      const EString &,
-                                                      const EString & = "" );
+                                             const EString &,
+                                             const EString &,
+                                             const EString & = "" );
 private:
     class InjecteeData * d;
 };
@@ -56,7 +56,8 @@ public:
     EString error() const;
 
     void addInjection( List<Injectee> * );
-    void addDelivery( Injectee *, Address *, List<Address> * );
+    void addDelivery( Injectee *, Address *, List<Address> *,
+                      class Date * = 0 );
 
     void setTransaction( class Transaction * );
 
