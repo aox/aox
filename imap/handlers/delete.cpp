@@ -2,6 +2,7 @@
 
 #include "delete.h"
 
+#include "date.h"
 #include "imap.h"
 #include "user.h"
 #include "query.h"
@@ -89,10 +90,17 @@ void Delete::execute()
         lock->bind( 1, d->m->id() );
         d->t->enqueue( lock );
 
-        d->messages = new Query( "select count(*)::bigint as messages "
-                                 "from mailbox_messages where mailbox=$1",
+        d->messages = new Query( "select count(mm.uid)::bigint as messages "
+                                 "from mailbox_messages mm "
+                                 "join messages m on (mm.message=m.id) "
+                                 "join mailboxes mb on (mm.mailbox=mb.id) "
+                                 "where mm.mailbox=$1 and not mm.seen and "
+                                 "(mm.uid>=mb.first_recent or m.idate>$2)",
                                  this );
         d->messages->bind( 1, d->m->id() );
+        Date now;
+        now.setCurrentTime();
+        d->messages->bind( 2, now.unixTime() - 20 );
         d->t->enqueue( d->messages );
         d->t->execute();
     }
