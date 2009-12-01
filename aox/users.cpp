@@ -326,7 +326,7 @@ void DeleteUser::execute()
             d->t->enqueue( q );
 
             q = new Query( "update mailboxes set deleted='t',owner=null "
-                           "where owner=$1 and id=any($2) and not deleted='t'",
+                           "where owner=$1 and id=any($2)",
                            0 );
             q->bind( 1, d->user->id() );
             q->bind( 2, all );
