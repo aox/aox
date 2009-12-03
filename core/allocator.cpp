@@ -621,7 +621,9 @@ void Allocator::free()
              EString::humanNumber( total ) +
              " bytes, across " +
              fn( blocks ) +
-             " 1MB blocks. Recursion depth: " +
+             " " +
+             EString::humanNumber( BlockSize ) +
+             " blocks. Recursion depth: " +// 
              fn( peak ) + ". Time needed to mark: " +
              fn( (timeToMark+500)/1000 ) + "ms. To sweep: " +
              fn( (timeToSweep+500)/1000 ) + "ms.",
