@@ -899,24 +899,64 @@ void AddressParser::address( int & i )
                 i--;
                 while ( i > 0 && s[i] == '@' )
                     i--;
-                lp = localpart( i );
-                if ( lp.isEmpty() && i >= 0 && s[i] > 127 ) {
-                    error( "localpart contains 8-bit character", i );
-                }
-                else if ( s[i] != '<' ) {
-                    int j = i;
-                    while ( j >= 0 &&
-                            ( ( s[j] >= 'a' && s[j] <= 'z' ) ||
-                              ( s[j] >= 'A' && s[j] <= 'Z' ) ||
-                              s[j] == ' ' ) )
+
+                int aftercomment = i;
+                comment( i );
+                if ( i >= 1 && s[i] == ';' ) {
+                    int j = i-1;
+                    while ( j > 0 && d->s[j] == ' ' )
                         j--;
-                    if ( j >= 0 && s[j] == '<' ) {
-                        EString tmp = s.mid( j + 1, i - j );
-                        if ( s[i+1] == ' ' )
-                            tmp.append( ' ' );
-                        tmp.append( lp );
-                        lp = tmp;
-                        i = j;
+                    if ( d->s[j] == ':' ) {
+                        // <unlisted-recipients:; (no To-header on input)@do.ma.in>
+                        j --;
+                        UString n = phrase( j );
+                        if ( !n.isEmpty() ) {
+                            lp = "";
+                            dom = "";
+                            name = n;
+                            i = j;
+                        }
+                    }
+                }
+                else if ( aftercomment > i && i < 0 ) {
+                    // To: <(Recipient list suppressed)@localhost>
+                    EString n = d->lastComment.simplified();
+                    lp = "";
+                    dom = "";
+                    name.truncate();
+                    uint j = 0;
+                    while ( j < n.length() ) {
+                        if ( ( n[j] >= 'a' && n[j] <= 'z' ) ||
+                             ( n[j] >= 'A' && n[j] <= 'Z' ) ||
+                             ( n[j] >= '0' && n[j] <= '9' ) )
+                            name.append( n[j] );
+                        else if ( n[j] == ' ' || n[j] == '_' || n[j] == '-' )
+                            name.append( '-' );
+                        else
+                            error( "localpart contains parentheses", i );
+                        j++;
+                    }
+                }
+                else {
+                    lp = localpart( i );
+                    if ( lp.isEmpty() && i >= 0 && s[i] > 127 ) {
+                        error( "localpart contains 8-bit character", i );
+                    }
+                    else if ( s[i] != '<' ) {
+                        int j = i;
+                        while ( j >= 0 &&
+                                ( ( s[j] >= 'a' && s[j] <= 'z' ) ||
+                                  ( s[j] >= 'A' && s[j] <= 'Z' ) ||
+                                  s[j] == ' ' ) )
+                            j--;
+                        if ( j >= 0 && s[j] == '<' ) {
+                            EString tmp = s.mid( j + 1, i - j );
+                            if ( s[i+1] == ' ' )
+                                tmp.append( ' ' );
+                            tmp.append( lp );
+                            lp = tmp;
+                            i = j;
+                        }
                     }
                 }
             }
@@ -926,27 +966,29 @@ void AddressParser::address( int & i )
             i--;
             while ( i >= 0 && s[i] == '<' )
                 i--;
-            name = phrase( i );
+            UString n = phrase( i );
             while ( i >= 0 && ( s[i] > 127 || s[i] == '@' || s[i] == '<' ) ) {
                 // we're looking at an unencoded 8-bit name, or at
                 // 'lp@domain<lp@domain>', or at 'x<y<z@domain>'. we
                 // react to that by ignoring the display-name.
                 i--;
                 (void)phrase( i );
-                name.truncate();
+                n.truncate();
             }
-            // if the display-name contains unknown-8bit, the
-            // undisplayable marker control characters, we drop the
-            // display-name.
-            uint i = 0;
-            while ( i < name.length() &&
-                    ( name[i] < 0xED80 || name[i] > 0xEDFF ) &&
-                    name[i] >= ' ' &&
-                    name[i] != 0xFFFD )
-                i++;
-            if ( i < name.length() )
-                name.truncate();
+            if ( !n.isEmpty() )
+                name = n;
         }
+        // if the display-name contains unknown-8bit or the
+        // undisplayable marker control characters, we drop the
+        // display-name.
+        uint i = 0;
+        while ( i < name.length() &&
+                ( name[i] < 0xED80 || name[i] > 0xEDFF ) &&
+                name[i] >= ' ' &&
+                name[i] != 0xFFFD )
+            i++;
+        if ( i < name.length() )
+            name.truncate();
         add( name, lp, dom );
     }
     else if ( i > 1 && s[i] == '=' && s[i-1] == '?' && s[i-2] == '>' ) {
@@ -1088,18 +1130,20 @@ void AddressParser::address( int & i )
                 i--;
             int aftercomment = i;
             comment( i );
-            if ( i >= 1 && s[i] == ';' && s[i-1] == ':' ) {
-                // To: unlisted-recipients:; (no To-header on input)@do.ma.in
-                int j = i;
-                i -= 2;
-                UString n = phrase( i );
-                if ( n.isEmpty() ) {
-                    i = j;
-                }
-                else {
-                    lp = "";
-                    dom = "";
-                    name = n;
+            if ( i >= 1 && s[i] == ';' ) {
+                int j = i-1;
+                while ( j > 0 && d->s[j] == ' ' )
+                    j--;
+                if ( d->s[j] == ':' ) {
+                    // unlisted-recipients:; (no To-header on input)@do.ma.in
+                    j --;
+                    UString n = phrase( j );
+                    if ( !n.isEmpty() ) {
+                        lp = "";
+                        dom = "";
+                        name = n;
+                        i = j;
+                    }
                 }
             }
             else if ( aftercomment > i && i < 0 ) {

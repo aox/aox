@@ -1381,7 +1381,7 @@ void Header::repair( Multipart * p, const EString & body )
             add( neutral.first() );
         }
     }
-    
+
     // If there are several content-type fields, all text/html, and
     // they're different, we just remove all but one. Why are webheads
     // so clueless?
@@ -1400,7 +1400,7 @@ void Header::repair( Multipart * p, const EString & body )
             add( ct );
         }
     }
-    
+
     // If Sender contains more than one address, that may be due do
     // inappropriate fixups. For example, javamail+postfix will create
     // Sender: System@postfix, Administrator@postfix, root@origin

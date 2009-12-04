@@ -35,20 +35,30 @@ if ( $(BUILDDOC) ) {
     Depends doc : exe ;
 }
 
-MkDir $(INSTALLROOT)$(BINDIR) ;
-MkDir $(INSTALLROOT)$(MANDIR) ;
-MkDir $(INSTALLROOT)$(JAILDIR) ;
-MkDir $(INSTALLROOT)$(MESSAGEDIR) ;
-MkDir $(INSTALLROOT)$(PIDFILEDIR) ;
-MkDir $(INSTALLROOT)$(CONFIGDIR) ;
-MkDir $(INSTALLROOT)$(LOGFILE:D) ;
-MkDir $(INSTALLROOT)$(LIBDIR) ;
-MkDir $(INSTALLROOT)$(LIBDIR)/contrib ;
-MkDir $(INSTALLROOT)$(LIBDIR)/tlsproxy/var/run ;
 
-Depends install :
-    $(JAILDIR) $(MESSAGEDIR) $(CONFIGDIR) $(LOGFILE:D) $(PIDFILEDIR)
-    $(LIBDIR)/tlsproxy/var/run ;
+rule Prepare
+{
+    Depends install : $(<) ;
+}
+
+
+actions together Prepare
+{
+    mkdir -p $(<) ;
+}
+
+
+Prepare $(INSTALLROOT)$(BINDIR) ;
+Prepare $(INSTALLROOT)$(MANDIR) ;
+Prepare $(INSTALLROOT)$(JAILDIR) ;
+Prepare $(INSTALLROOT)$(MESSAGEDIR) ;
+Prepare $(INSTALLROOT)$(PIDFILEDIR) ;
+Prepare $(INSTALLROOT)$(CONFIGDIR) ;
+Prepare $(INSTALLROOT)$(LOGFILE:D) ;
+Prepare $(INSTALLROOT)$(LIBDIR) ;
+Prepare $(INSTALLROOT)$(LIBDIR)/contrib ;
+Prepare $(INSTALLROOT)$(LIBDIR)/tlsproxy/var/run ;
+
 
 # if we make JAILDIR, we should chmod it so noone can read it:
 MODE on $(INSTALLROOT)$(JAILDIR) = 700 ;

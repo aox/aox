@@ -228,7 +228,7 @@ void SmtpData::execute()
     if ( d->state == 3 ) {
         if ( !server()->sieve()->injected() )
             return;
-        
+
         bool soft = false;
         if ( Configuration::toggle( Configuration::SoftBounce ) ||
              server()->sieve()->softError() )

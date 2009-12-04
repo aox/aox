@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-open( I, "< /usr/share/perl/5.8.8/unicore/UnicodeData.txt" ) || die;
+open( I, "< /usr/share/perl/5.10.0/unicore/UnicodeData.txt" ) || die;
 while ( <I> ) {
     #0069;LATIN SMALL LETTER I;Ll;0;L;;;;;N;;;0049;;0049
     ($cp,$desc,$cl,$j,$j,$j,$j,$j,$j,$j,$j,$j,$equiv) = split( /;/, $_ );

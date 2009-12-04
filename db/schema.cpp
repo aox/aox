@@ -568,7 +568,7 @@ bool Schema::singleStep()
         c = true;
         break;
     }
-    if ( d->revision >= 89 && 
+    if ( d->revision >= 89 &&
          d->revision <= numDowngradeFunctions &&
          downgradeFunctions[d->revision] )
         d->t->enqueue( downgradeFunctions[d->revision] );
@@ -4194,6 +4194,7 @@ bool Schema::stepTo87()
 
     return true;
 }
+
 
 /*! Make users.alias nullable to help "aox delete user". */
 

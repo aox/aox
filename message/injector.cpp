@@ -1804,7 +1804,7 @@ void Injector::insertDeliveries()
         else
             q->bindNull( 3 );
         d->transaction->enqueue( q );
-        
+
         uint n = 0;
         List<Address>::Iterator it( di->recipients );
         EStringList domains;
