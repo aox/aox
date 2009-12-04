@@ -485,14 +485,8 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                        "lower(a.localpart)=$1 and lower(a.domain)=$2", this );
     EString localpart( address->localpart() );
     if ( Configuration::toggle( Configuration::UseSubaddressing ) ) {
-        if ( Configuration::present( Configuration::AddressSeparator ) ) {
-            Configuration::Text t = Configuration::AddressSeparator;
-            EString sep( Configuration::text( t ) );
-            int n = localpart.find( sep );
-            if ( n > 0 )
-                localpart = localpart.mid( 0, n );
-        }
-        else {
+        EString sep( Configuration::text( Configuration::AddressSeparator ) );
+        if ( sep.isEmpty() ) {
             int plus = localpart.find( '+' );
             int minus = localpart.find( '-' );
             int n = -1;
@@ -500,6 +494,11 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
                 n = plus;
             if ( minus > 0 && minus < n )
                 n = minus;
+            if ( n > 0 )
+                localpart = localpart.mid( 0, n );
+        }
+        else {
+            int n = localpart.find( sep );
             if ( n > 0 )
                 localpart = localpart.mid( 0, n );
         }
