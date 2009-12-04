@@ -492,7 +492,7 @@ void Sieve::addRecipient( Address * address, EventHandler * user )
             int n = -1;
             if ( plus > 0 )
                 n = plus;
-            if ( minus > 0 && minus < n )
+            if ( minus > 0 && ( minus < n || n < 0 ) )
                 n = minus;
             if ( n > 0 )
                 localpart = localpart.mid( 0, n );
