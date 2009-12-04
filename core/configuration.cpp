@@ -220,7 +220,7 @@ static struct {
     { "entropy-source", Configuration::EntropySource, "/dev/urandom" },
     { "managesieve-address", Configuration::ManageSieveAddress, "" },
     { "smarthost-address", Configuration::SmartHostAddress, "127.0.0.1" },
-    { "address-separator", Configuration::AddressSeparator, "+" },
+    { "address-separator", Configuration::AddressSeparator, "" },
     { "statistics-address", Configuration::StatisticsAddress, "127.0.0.1" },
     { "ldap-server-address", Configuration::LdapServerAddress, "127.0.0.1" }
 };
