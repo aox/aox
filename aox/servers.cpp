@@ -1098,7 +1098,7 @@ static void selfSignCertificate()
 
     
 
-    system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 365 -newkey rsa: -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
+    system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 1764 -newkey rsa: -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
 
     // one one hand, File::write() does no checking. On the other,
     // this does at least not pass user-supplied data to the shell.
