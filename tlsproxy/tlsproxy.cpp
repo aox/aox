@@ -583,9 +583,15 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     handleError( status, "cryptSetAttribute(ACTIVE)" );
     cryptDestroyContext( privateKey );
 #else
+    EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
+    if ( keyFile.isEmpty() ) {
+        EString file( Configuration::compiledIn( Configuration::LibDir ) );
+        file.append( "/automatic-key.pem" );
+    }
+
     (void)::execlp( "stunnel", "stunnel",
                     "-f", 
-                    "-p", Configuration::text( Configuration::TlsCertFile ).cstr(),
+                    "-p", keyFile.cstr(),
                     NULL );
 #endif
     log( "Could not exec() stunnel -f", Log::Error );
