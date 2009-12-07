@@ -8,11 +8,12 @@ if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
     # aren't in the compiler's include path.
     HDRS += /usr/local/include ;
 }
-else {
+else if ( $(USE_CRYPTLIB) = "yes" ) {
     SubInclude TOP cryptlib ;
-
+    
     HDRS += [ FDirName $(TOP) cryptlib ] ;
 }
+
 
 Build tls : tlsproxy.cpp egd.cpp ;
 
@@ -25,10 +26,11 @@ if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
     LINKFLAGS on tlsproxy += -pthread -L/usr/local/lib ;
     # and the library itself
     LINKLIBS on tlsproxy = -lcl ;
+    ObjectDefines tlsproxy.cpp :
+        USE_CRYPTLIB=1 ;
 }
-else {
+else if ( $(USE_CRYPTLIB) = "yes" ) {
     LinkLibraries tlsproxy : libcl ;
 }
-
 
 HDRS = $(OrigHDRS) ;

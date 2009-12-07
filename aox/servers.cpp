@@ -1056,6 +1056,65 @@ bool Stopper::failed() const
 
 
 
+static void selfSignCertificate()
+{
+#if !defined(USE_CRYPTLIB)
+    EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
+
+    if ( keyFile.isEmpty() ) {
+        EString file( Configuration::compiledIn( Configuration::LibDir ) );
+        file.append( "/automatic-key.pem" );
+    }
+    
+    File key( keyFile );
+    if ( !key.contents().isEmpty() )
+        return; // could verify here, for the expiry date
+    
+    File osslcf( "/tmp/aox-ossl.conf", File::Write );
+    osslcf.write( "[ req ]"
+                  " default_bits = 1024\n"
+                  " default_keyfile = privkey.pem\n"
+                  " distinguished_name = req_distinguished_name\n"
+                  " attributes = req_attributes\n"
+                  " x509_extensions = v3_ca\n"
+                  " prompt = no\n"
+                  "\n"
+                  " dirstring_type = nobmp\n"
+                  "\n"
+                  "[ req_distinguished_name ]\n"
+                  " CN=" + Configuration::hostname() + "\n"
+                  "\n"
+                  "[ req_attributes ]\n"
+                  " challengePassword = \"\"\n"
+                  "\n"
+                  " [ v3_ca ]\n"
+                  "\n"
+                  " keyUsage = cRLSign, keyCertSign\n"
+                  " nsCertType = server\n"
+                  " nsComment = \"Automatically generated self-signed certificate\"\n"
+                  " subjectKeyIdentifier=hash\n"
+                  " authorityKeyIdentifier=keyid:always,issuer:always\n"
+                  " basicConstraints = CA:true\n" );
+
+    
+
+    system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 365 -newkey rsa: -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
+
+    // one one hand, File::write() does no checking. On the other,
+    // this does at least not pass user-supplied data to the shell.
+    File ossl( "/tmp/aox-ossl.pem" );
+    File result( keyFile, File::Write );
+    result.write( ossl.contents() );
+    File::unlink( "/tmp/aox-ossl.pem" );
+
+    printf( "Created self-signed certificate for %s in %s.\n"
+            "Please verify that file's permissions.\n", 
+            Configuration::hostname().cstr(),
+            keyFile.cstr() );
+#endif
+}
+
+
 static AoxFactory<CheckConfig>
 f( "check", "config", "Check that the configuration is sane.",
    "    Synopsis: aox check config\n\n"
@@ -1078,6 +1137,8 @@ void CheckConfig::execute()
         parseOptions();
         end();
 
+        selfSignCertificate();
+
         checker = new Checker( opt( 'v' ), this );
         checker->execute();
     }
@@ -1087,6 +1148,8 @@ void CheckConfig::execute()
 
     finish();
 }
+
+
 
 
 
@@ -1154,6 +1217,8 @@ void Start::execute()
             if ( any && ok )
                 log( "Created pid file directory: " + pfd );
         }
+        
+        selfSignCertificate();
 
         d->checker = new Checker( opt( 'v' ), this );
         d->checker->execute();
@@ -1252,6 +1317,8 @@ void Restart::execute()
     if ( !d->checker ) {
         parseOptions();
         end();
+
+        selfSignCertificate();
 
         d->checker = new Checker( opt( 'v' ), this );
         d->checker->execute();

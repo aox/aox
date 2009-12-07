@@ -78,6 +78,10 @@ LINKFLAGS = -g ;
 
 EXEMODE ?= 555 ;
 
+# Uncomment the next line to use cryptlib instead of stunnel. This
+# setting will be removed in the near future.
+# USE_CRYPTLIB = yes ;
+
 # Uncomment the next line to use a cryptlib from the system. The
 # default is to use the one bundled with the archiveopteryx source.
 # USE_SYSTEM_CRYPTLIB = yes ;
