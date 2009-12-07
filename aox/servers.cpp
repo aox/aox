@@ -1062,8 +1062,8 @@ static void selfSignCertificate()
     EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
 
     if ( keyFile.isEmpty() ) {
-        EString file( Configuration::compiledIn( Configuration::LibDir ) );
-        file.append( "/automatic-key.pem" );
+        keyFile = Configuration::compiledIn( Configuration::LibDir );
+        keyFile.append( "/automatic-key.pem" );
     }
     
     File key( keyFile );
