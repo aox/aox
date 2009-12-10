@@ -5,7 +5,6 @@ HDRS += [ FDirName $(TOP) server ] ;
 SubInclude TOP core ;
 SubInclude TOP message ;
 SubInclude TOP db ;
-SubInclude TOP message ;
 
 ObjectDefines server.cpp : USECACHE=$(USECACHE) ;
 
