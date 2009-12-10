@@ -27,7 +27,7 @@ public:
     EventFilterSpec::Type type;
     List<Mailbox> mailboxes;
     Fetch * fetcher;
-    bool notify[EventFilterSpec::Subscription];
+    bool notify[EventFilterSpec::Subscription + 1];
 };
 
 
@@ -158,7 +158,7 @@ class EventMapData
     : public Garbage
 {
 public:
-    EventMapData(): Garbage(), 
+    EventMapData(): Garbage(),
                     t( 0 ),
                     inboxes( 0 ), personal( 0 ), subscribed( 0 ) {}
 
