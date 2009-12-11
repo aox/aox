@@ -377,7 +377,7 @@ void TlsProxy::react( Event e )
             parse();
         }
         else {
-#if defined(USE_CRYPTLIB)    
+#if defined(USE_CRYPTLIB)
             try {
                 encrypt();
                 decrypt();
@@ -566,7 +566,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     ::userside = this;
     userside->setBlocking( true );
 
-#if defined(USE_CRYPTLIB)    
+#if defined(USE_CRYPTLIB)
     int status;
     status = cryptCreateSession( &cs, CRYPT_UNUSED,
                                  CRYPT_SESSION_SSL_SERVER );
@@ -590,16 +590,16 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     }
 
     (void)::execlp( "stunnel", "stunnel",
-                    "-f", 
+                    "-f",
                     "-p", keyFile.cstr(),
-                    NULL );
+                    0 );
 #endif
     log( "Could not exec() stunnel -f", Log::Error );
     exit( 0 );
 }
 
 
-#if defined(USE_CRYPTLIB)    
+#if defined(USE_CRYPTLIB)
 
 /*! Encrypts and forwards the cleartext which is available on the socket. */
 

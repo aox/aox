@@ -31,6 +31,8 @@ if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
 }
 else if ( $(USE_CRYPTLIB) = "yes" ) {
     LinkLibraries tlsproxy : libcl ;
+    ObjectDefines tlsproxy.cpp :
+        USE_CRYPTLIB=1 ;
 }
 
 HDRS = $(OrigHDRS) ;
