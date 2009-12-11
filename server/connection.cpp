@@ -1010,6 +1010,12 @@ public:
 
     Returns -1 on failure (i.e. the name could not be resolved to any
     valid connection targets), and 0 on (temporary) success.
+    
+    This function disregards RFC 3484 completely, and instead issues
+    many (partially concurrent) TCP connections. We think many
+    concurrent connections is better than serial ordered approach 3484
+    prescribes, but combining the two approaches would be even better
+    (ie. order as 3484 says, but issue connection as we do).
 */
 
 int Connection::connect( const EString & address, uint port )
