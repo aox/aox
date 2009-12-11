@@ -2,6 +2,7 @@
 
 #include "compress.h"
 
+#include "imapparser.h"
 #include "buffer.h"
 #include "filter.h"
 #include "scope.h"
@@ -149,6 +150,10 @@ Compress::Compress()
 
 void Compress::parse()
 {
+    if ( parser()->atEnd() ) {
+        a = "deflate";
+        return;
+    }
     space();
     a = astring();
     end();
