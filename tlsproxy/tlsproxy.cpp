@@ -16,20 +16,14 @@
 #include "file.h"
 #include "egd.h"
 
-#if defined(USE_CRYPTLIB)
-
 // cryptlib
 #include "cryptlib.h"
-
-#endif
-
 // fork(), unlink(), wait()
 #include <sys/types.h>
 // wait()
 #include <sys/wait.h>
 // stat(), chmod()
 #include <sys/stat.h>
-// execl(), execlp(), more
 #include <unistd.h>
 // errno
 #include <errno.h>
@@ -43,18 +37,13 @@
 #include <stdlib.h>
 
 
-
 static void setupKey();
-
-#if defined(USE_CRYPTLIB)
 static void setupSelfSigned( EString, EString, EString );
 static void generateKey( EString, EString, EString );
 static void handleError( int, const EString & );
 static EString cryptlibError( int );
 static EString cryptlibLocus( int );
 static EString cryptlibType( int );
-
-#endif
 
 
 int main( int argc, char *argv[] )
@@ -84,14 +73,12 @@ int main( int argc, char *argv[] )
     if ( ::chmod( egd.cstr(), 0666 ) < 0 )
         log( "Could not grant r/w access to EGD socket", Log::Disaster );
 
-#if defined(USE_CRYPTLIB)
     // let cryptlib set up while still root, so it can read files etc.
     int status;
     status = cryptInit();
     handleError( status, "cryptInit" );
     status = cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
     handleError( status, "cryptAddRandom" );
-#endif
     setupKey();
 
     // finally listen for tlsproxy requests
@@ -108,66 +95,44 @@ int main( int argc, char *argv[] )
 }
 
 
-static bool isCertFileBad( const EString & file ) {
+static bool isOpenSslCert( const EString & file ) {
     File f( file );
     if ( f.contents().contains( "---BEGIN " ) ) {
-#if defined(USE_CRYPTLIB)
         log( "File " + file + " exists, "
              "but is not in Cryptlib format. "
              "It seems to be in OpenSSL format. Please see "
              "http://aox.org/faq/mailstore#opensslcert",
              Log::Disaster );
         return true;
-#endif
-    }
-    else {
-#if !defined(USE_CRYPTLIB)
-        log( "File " + file + " exists, "
-             "but is not in OpenSSL PEM format. "
-             "Perhaps it is in Cryptlib format?",
-             Log::Disaster );
-        return true;
-#endif
     }
     return false;
 }
 
 
-#if defined(USE_CRYPTLIB)
-
 static CRYPT_SESSION cs;
 static CRYPT_CONTEXT privateKey;
-
-#endif
 
 
 static void setupKey()
 {
-#if defined(USE_CRYPTLIB)
+    int status;
+    CRYPT_KEYSET keyset;
+
     EString label( Configuration::hostname() );
     if ( Configuration::present( Configuration::TlsCertLabel ) )
         label = Configuration::text( Configuration::TlsCertLabel );
     EString secret( Configuration::text( Configuration::TlsCertSecret ) );
-#endif
     EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
 
     if ( keyFile.isEmpty() ) {
         EString file( Configuration::compiledIn( Configuration::LibDir ) );
-#if defined(USE_CRYPTLIB)
         file.append( "/automatic-key.p15" );
         setupSelfSigned( file, label, secret );
-#else
-        file.append( "/automatic-key.pem" );
-#endif
         return;
     }
 
-    if ( isCertFileBad( keyFile ) )
+    if ( isOpenSslCert( keyFile ) )
         return;
-
-#if defined(USE_CRYPTLIB)
-    CRYPT_KEYSET keyset;
-    int status;
 
     status = cryptCreateContext( &privateKey, CRYPT_UNUSED,
                                  CRYPT_ALGO_RSA );
@@ -185,11 +150,7 @@ static void setupKey()
                                      label.cstr(), secret.cstr() );
     }
     handleError( status, "cryptGetPrivateKey" );
-#endif
 }
-
-
-#if defined(USE_CRYPTLIB)
 
 
 static void setupSelfSigned( EString file, EString label, EString secret )
@@ -314,8 +275,6 @@ static void generateKey( EString file, EString label, EString secret )
     cryptDestroyCert( cert );
 }
 
-#endif
-
 
 static List<TlsProxy> * proxies;
 static TlsProxy * userside;
@@ -377,7 +336,6 @@ void TlsProxy::react( Event e )
             parse();
         }
         else {
-#if defined(USE_CRYPTLIB)
             try {
                 encrypt();
                 decrypt();
@@ -386,9 +344,6 @@ void TlsProxy::react( Event e )
                 // connections. close both.
                 exit( 0 );
             }
-#else
-            exit( 0 );
-#endif
         }
         break;
 
@@ -566,7 +521,6 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     ::userside = this;
     userside->setBlocking( true );
 
-#if defined(USE_CRYPTLIB)
     int status;
     status = cryptCreateSession( &cs, CRYPT_UNUSED,
                                  CRYPT_SESSION_SSL_SERVER );
@@ -582,24 +536,9 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     status = cryptSetAttribute( cs, CRYPT_SESSINFO_ACTIVE, 1 );
     handleError( status, "cryptSetAttribute(ACTIVE)" );
     cryptDestroyContext( privateKey );
-#else
-    EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
-    if ( keyFile.isEmpty() ) {
-        EString file( Configuration::compiledIn( Configuration::LibDir ) );
-        file.append( "/automatic-key.pem" );
-    }
-
-    (void)::execlp( "stunnel", "stunnel",
-                    "-f",
-                    "-p", keyFile.cstr(),
-                    0 );
-#endif
-    log( "Could not exec() stunnel -f", Log::Error );
-    exit( 0 );
 }
 
 
-#if defined(USE_CRYPTLIB)
 
 /*! Encrypts and forwards the cleartext which is available on the socket. */
 
@@ -883,5 +822,3 @@ static EString cryptlibType( int type )
 
     return r;
 }
-#endif
-
