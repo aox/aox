@@ -24,3 +24,10 @@ Build mailbox :
     permissions.cpp selector.cpp threader.cpp ;
 
 Build user : user.cpp ;
+
+if ( $(USE_CRYPTLIB) = "yes" ) {
+    SubInclude TOP tlsproxy ;
+    ObjectDefines connection.cpp tls.cpp : USE_CRYPTLIB=1 ;
+} else {
+    Build server : tlsthread.cpp ;
+}

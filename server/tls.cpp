@@ -11,8 +11,13 @@
 #include "log.h"
 #include "eventloop.h"
 
+#if defined(USE_CRYPTLIB)
+#endif
 
+
+#if defined(USE_CRYPTLIB)
 static Endpoint * tlsProxy = 0;
+#endif
 static bool tlsAvailable;
 
 
@@ -28,6 +33,7 @@ public:
 
     EventHandler * handler;
 
+#if defined(USE_CRYPTLIB)
     class Client: public Connection
     {
     public:
@@ -43,17 +49,21 @@ public:
 
     Client * userside;
     Client * serverside;
+#endif
 
     Endpoint client;
     EString protocol;
 
     bool done;
     bool ok;
+#if defined(USE_CRYPTLIB)
     bool connected;
     bool sentRequest;
+#endif
 };
 
 
+#if defined(USE_CRYPTLIB)
 TlsServerData::Client::Client( TlsServerData * data )
     : Connection(),
       d( data ), connected( false )
@@ -111,7 +121,7 @@ void TlsServerData::Client::react( Event e )
              d->userside->tag.isEmpty() ||
              d->sentRequest )
             return;
-        
+
         EString request = d->serverside->tag + " " +
                           d->protocol + " " +
                           d->client.address() + " " +
@@ -128,6 +138,7 @@ void TlsServerData::Client::react( Event e )
         d->handler->execute();
     }
 }
+#endif
 
 
 /*! \class TlsServer tls.h
@@ -159,10 +170,16 @@ TlsServer::TlsServer( EventHandler * handler, const Endpoint & client,
     d->client = client;
 
     if ( Configuration::toggle( Configuration::UseTls ) ) {
+#if defined(USE_CRYPTLIB)
         d->serverside = new TlsServerData::Client( d );
         d->userside = new TlsServerData::Client( d );
         d->serverside->connect();
         d->userside->connect();
+#else
+        d->thread = new TlsThread();
+        d->done = true;
+        d->ok = true;
+#endif
     }
     else {
         d->done = true;
@@ -198,6 +215,7 @@ bool TlsServer::ok() const
 void TlsServer::setup()
 {
     ::tlsAvailable = Configuration::toggle( Configuration::UseTls );
+#if defined(USE_CRYPTLIB)
     if ( !tlsAvailable )
         return;
 
@@ -210,6 +228,7 @@ void TlsServer::setup()
     ::tlsAvailable = true;
     ::tlsProxy = e;
     Allocator::addEternal( ::tlsProxy, "tls proxy name" );
+#endif
 }
 
 
@@ -223,6 +242,7 @@ bool TlsServer::available()
 }
 
 
+#if defined(USE_CRYPTLIB)
 /*! Returns the Configuration to be used for the server (plaintext) side. */
 
 Connection * TlsServer::serverSide() const
@@ -237,3 +257,4 @@ Connection * TlsServer::userSide() const
 {
     return d->userside;
 }
+#endif

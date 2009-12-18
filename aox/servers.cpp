@@ -35,7 +35,11 @@ static const char * buildinfo[] = {
 
 
 static const char * servers[] = {
-    "logd", "tlsproxy", "archiveopteryx"
+    "logd",
+#if defined(USE_CRYPTLIB)
+    "tlsproxy",
+#endif
+    "archiveopteryx"
 };
 static const int nservers = sizeof( servers ) / sizeof( servers[0] );
 
@@ -485,11 +489,13 @@ static void checkInetAddresses()
         "managesieve-address:port"
     );
 
+#if defined(USE_CRYPTLIB)
     checkListener(
         Configuration::toggle( Configuration::UseTls ),
         Configuration::TlsProxyAddress, Configuration::TlsProxyPort,
         "tlsproxy-address:port"
     );
+#endif
 }
 
 
@@ -993,10 +999,12 @@ void Stopper::execute()
                 d->pingers->append(
                     new ServerPinger( Configuration::ImapAddress,
                                       Configuration::ImapPort, this ) );
+#if defined(USE_CRYPTLIB)
             if ( Configuration::toggle( Configuration::UseTls ) )
                 d->pingers->append(
                     new ServerPinger( Configuration::TlsProxyAddress,
                                       Configuration::TlsProxyPort, this ) );
+#endif
             if ( Configuration::present( Configuration::LogFile ) &&
                  !Configuration::text(
                      Configuration::LogFile ).startsWith( "syslog/" ) )
@@ -1065,11 +1073,11 @@ static void selfSignCertificate()
         keyFile = Configuration::compiledIn( Configuration::LibDir );
         keyFile.append( "/automatic-key.pem" );
     }
-    
+
     File key( keyFile );
     if ( !key.contents().isEmpty() )
         return; // could verify here, for the expiry date
-    
+
     File osslcf( "/tmp/aox-ossl.conf", File::Write );
     osslcf.write( "[ req ]"
                   " default_bits = 1024\n"
@@ -1096,7 +1104,7 @@ static void selfSignCertificate()
                   " authorityKeyIdentifier=keyid:always,issuer:always\n"
                   " basicConstraints = CA:true\n" );
 
-    
+
 
     system( "openssl req -config /tmp/aox-ossl.conf -x509 -days 1764 -newkey rsa: -nodes -keyout /tmp/aox-ossl.pem -out /tmp/aox-ossl.pem" );
 
@@ -1108,7 +1116,7 @@ static void selfSignCertificate()
     File::unlink( "/tmp/aox-ossl.pem" );
 
     printf( "Created self-signed certificate for %s in %s.\n"
-            "Please verify that file's permissions.\n", 
+            "Please verify that file's permissions.\n",
             Configuration::hostname().cstr(),
             keyFile.cstr() );
 #endif
@@ -1217,7 +1225,7 @@ void Start::execute()
             if ( any && ok )
                 log( "Created pid file directory: " + pfd );
         }
-        
+
         selfSignCertificate();
 
         d->checker = new Checker( opt( 'v' ), this );

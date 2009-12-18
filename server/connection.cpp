@@ -631,6 +631,8 @@ void Connection::startTls( TlsServer * s )
 
     write();
 
+#if defined(USE_CRYPTLIB)
+
     EventLoop::global()->removeConnection( this );
     EventLoop::global()->removeConnection( s->serverSide() );
     EventLoop::global()->removeConnection( s->userSide() );
@@ -652,6 +654,24 @@ void Connection::startTls( TlsServer * s )
     EventLoop::global()->addConnection( b1 );
     EventLoop::global()->addConnection( b2 );
     EventLoop::global()->addConnection( this );
+
+#else
+
+    int sv[2];
+    int r = ::socketpair( AF_UNIX, SOCK_STREAM, 0, &sv );
+    if 9( r < 0 ) {
+        log( "Cannot create more FDs", Log::Error );
+        // there's nothing much to do, we just have to close the
+        // connection and hope the situation passes.
+        close();
+        return;
+    }
+    
+    s->setClientFD( d->fd );
+    s->setServerFD( sv[0] );
+    d->fd = sv[1];
+
+#endif
 
     log( "Negotiating TLS for client " + b1->peer().string(),
          Log::Debug );
@@ -1010,7 +1030,7 @@ public:
 
     Returns -1 on failure (i.e. the name could not be resolved to any
     valid connection targets), and 0 on (temporary) success.
-    
+
     This function disregards RFC 3484 completely, and instead issues
     many (partially concurrent) TCP connections. We think many
     concurrent connections is better than serial ordered approach 3484

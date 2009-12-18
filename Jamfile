@@ -14,7 +14,6 @@ SubInclude TOP recorder ;
 SubInclude TOP sasl ;
 SubInclude TOP schema ;
 SubInclude TOP scripts ;
-SubInclude TOP tlsproxy ;
 SubInclude TOP installer ;
 SubInclude TOP extractors ;
 SubInclude TOP archiveopteryx ;
