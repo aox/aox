@@ -2,6 +2,10 @@
 
 #include "tlsthread.h"
 
+#include <unistd.h>
+
+#include <pthread.h>
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -13,6 +17,18 @@ class TlsThreadData
     : public Garbage
 {
 public:
+    TlsThreadData()
+        : Garbage(),
+          ssl( 0 ),
+          ctrbo( 0 ), ctrbs( 0 ),
+          ctwbo( 0 ), ctwbs( 0 ),
+          ctfd( -1 ),
+          encrbo( 0 ), encrbs( 0 ),
+          encwbo( 0 ), encwbs( 0 ),
+          encfd( -1 ),
+          networkBio( 0 ), sslBio( 0 ), thread( 0 )
+        {}
+
     SSL * ssl;
     
     char ctrb[bs];
@@ -21,24 +37,30 @@ public:
     char ctwb[bs];
     int ctwbo;
     int ctwbs;
+    int ctfd;
     char encrb[bs];
     int encrbo;
     int encrbs;
     char encwb[bs];
     int encwbo;
     int encwbs;
+    int encfd;
 
-    
+    BIO * networkBio;
+    BIO * sslBio;
+
+    pthread_t * thread;
 };
 
 
-static void trampoline( void * t )
+static void * trampoline( void * t )
 {
     ((TlsThread*)t)->start();
+    return 0;
 }
 
 
-
+static SSL_CTX * ctx = 0;
 
 
 
@@ -47,14 +69,14 @@ static void trampoline( void * t )
 */
 
 TlsThread::TlsThread()
-    : Connection( d( new TlsThreadData )
+    : d( new TlsThreadData )
 {
     if ( !ctx ) {
         // everyone does this...
         SSL_load_error_strings();
         SSLeay_add_ssl_algorithms();
 
-        ctx = ::SSL_CTX_new( SSL23_server_method() );
+        ctx = ::SSL_CTX_new( SSLv23_client_method() );
         int options = SSL_OP_ALL;
         SSL_CTX_set_options( ctx, options );
 
@@ -73,10 +95,7 @@ TlsThread::TlsThread()
     }
     ::SSL_set_bio( d->ssl, d->sslBio, d->sslBio );
     
-    d->encfd = c->fd();
-
-    d->threadId = pthread_create( d->thread, 0, trampoline, (void*)this );
-    // if tid is... ?
+    (void)pthread_create( d->thread, 0, trampoline, (void*)this );
 }
 
 
@@ -86,8 +105,8 @@ TlsThread::TlsThread()
 
 TlsThread::~TlsThread()
 {
-    ::SSL_free( ssl );
-    ssl = 0;
+    ::SSL_free( d->ssl );
+    d->ssl = 0;
 }
 
 
@@ -108,8 +127,8 @@ void TlsThread::start()
         again = false;
 
         // are our read buffers empty? if so, try to read
-        if ( d->cdfd >= 0 && d->ctrbs == 0 ) {
-            d->ctrbs = ::read( d->ctrd, d->ctrb, bs );
+        if ( d->ctfd >= 0 && d->ctrbs == 0 ) {
+            d->ctrbs = ::read( d->ctfd, d->ctrb, bs );
             if ( d->ctrbs > 0 )
                 again = true;
             else if ( d->ctrbs == 0 && crct )
@@ -135,7 +154,7 @@ void TlsThread::start()
         }
 
         // is there something in our write buffers? if so, try to write
-        if ( c->ctfd >= 0 && d->ctwbs > 0 ) {
+        if ( d->ctfd >= 0 && d->ctwbs > 0 ) {
             int r = ::write( d->ctfd,
                              d->ctwb + d->ctwbs,
                              d->ctwbs - d->ctwbo );
@@ -179,7 +198,7 @@ void TlsThread::start()
             }
             else {
                 if ( d->ctwbs < 0 && !finish )
-                    finish = sslErrorSeriousness();
+                    finish = sslErrorSeriousness( d->ctwbs );
                 d->ctwbs = 0;
             }
         }
@@ -203,8 +222,8 @@ void TlsThread::start()
             if ( r > 0 ) {
                 again = true;
                 d->ctrbo += r;
-            } else if ( r < 0 ) {
-                finish ||= sslErrorSeriousness();
+            } else if ( r < 0 && !finish ) {
+                finish = sslErrorSeriousness( r );
             }
             if ( d->ctrbo >= d->ctrbs ) { 
                 d->ctrbo = 0;
@@ -240,7 +259,6 @@ void TlsThread::start()
                 tv.tv_usec = 50000; // 0.05s
                 maxfd = -1;
             }
-            }
 
             int n = select( maxfd+1, &r, &w, 0, &tv );
             if ( n < 0 && errno == EBADF )
@@ -261,27 +279,26 @@ void TlsThread::start()
     pthread_exit( 0 );
 }
 
-bool sslErrorSeriousness() {
-        switch( SSL_get_error( d->ssl ) ) {
-	case SSL_ERROR_NONE:
-	case SSL_ERROR_WANT_READ:
-	case SSL_ERROR_WANT_WRITE:
-        case SSL_ERROR_WANT_ACCEPT:
-        case SSL_ERROR_WANT_CONNECT:
-        case SSL_ERROR_WANT_X509_LOOKUP:
-            return false;
-            break;
+bool TlsThread::sslErrorSeriousness( int r ) {
+    switch( SSL_get_error( d->ssl, r  ) ) {
+    case SSL_ERROR_NONE:
+    case SSL_ERROR_WANT_READ:
+    case SSL_ERROR_WANT_WRITE:
+    case SSL_ERROR_WANT_ACCEPT:
+    case SSL_ERROR_WANT_CONNECT:
+    case SSL_ERROR_WANT_X509_LOOKUP:
+        return false;
+        break;
 
-	case SSL_ERROR_ZERO_RETURN:
-            // not an error, client closed cleanly
-            return true;
-            break;
-
-        case SSL_ERROR_SSL:
-        case SSL_ERROR_SYSCALL:
-        case SSL_ERROR_ZERO_RETURN:
-            return true;
-            break;
-        }
+    case SSL_ERROR_ZERO_RETURN:
+        // not an error, client closed cleanly
         return true;
+        break;
+
+    case SSL_ERROR_SSL:
+    case SSL_ERROR_SYSCALL:
+        return true;
+        break;
+    }
+    return true;
 }

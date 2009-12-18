@@ -11,7 +11,14 @@ class TlsThread
 {
 public:
     TlsThread();
+    ~TlsThread();
+    
+    void start();
 
+    bool sslErrorSeriousness( int );
+
+private:
+    class TlsThreadData * d;
 };
 
 #endif
