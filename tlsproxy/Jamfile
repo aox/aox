@@ -1,4 +1,6 @@
 SubDir TOP tlsproxy ;
+SubInclude TOP core ;
+SubInclude TOP encodings ;
 SubInclude TOP server ;
 
 OrigHDRS = $(HDRS) ;
