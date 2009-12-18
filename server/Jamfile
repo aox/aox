@@ -30,4 +30,6 @@ if ( $(USE_CRYPTLIB) = "yes" ) {
     ObjectDefines connection.cpp tls.cpp : USE_CRYPTLIB=1 ;
 } else {
     Build server : tlsthread.cpp ;
+    UseLibrary tlsthread.cpp : ssl ;
+    C++FLAGS += -pthread ;
 }
