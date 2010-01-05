@@ -1833,7 +1833,7 @@ void Injector::insertDeliveries()
                            " join addresses a on (dr.recipient=a.id)"
                            " where dr.action>$2"
                            " and dr.last_attempt > current_timestamp-'1 minute'"
-                           " and lower(a.domain)=any($3::text[]))", 0 );
+                           " and lower(a.domain)=any($3::text[])))", 0 );
             q->bind( 1, di->message->databaseId() );
             q->bind( 2, Recipient::Delayed );
             domains.removeDuplicates();
