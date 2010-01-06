@@ -3,7 +3,6 @@ SubDir TOP archiveopteryx ;
 SubInclude TOP imap ;
 SubInclude TOP pop ;
 SubInclude TOP sieve ;
-SubInclude TOP http ;
 SubInclude TOP smtp ;
 
 

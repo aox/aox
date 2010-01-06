@@ -5,7 +5,6 @@
 
 #include "pop.h"
 #include "imap.h"
-#include "http.h"
 #include "smtp.h"
 #include "graph.h"
 
@@ -169,14 +168,6 @@ int main( int argc, char *argv[] )
     Listener< POP >::create(
         "POP3", Configuration::toggle( Configuration::UsePop ),
         Configuration::PopAddress, Configuration::PopPort
-    );
-    Listener< HTTP >::create(
-        "HTTP", Configuration::toggle( Configuration::UseHttp ),
-        Configuration::HttpAddress, Configuration::HttpPort
-    );
-    Listener< HTTPS >::create(
-        "HTTPS", Configuration::toggle( Configuration::UseHttps ),
-        Configuration::HttpsAddress, Configuration::HttpsPort
     );
     Listener< ManageSieve >::create(
         "Sieve", Configuration::toggle( Configuration::UseSieve ),
