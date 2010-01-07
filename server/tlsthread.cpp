@@ -49,7 +49,7 @@ public:
     BIO * networkBio;
     BIO * sslBio;
 
-    pthread_t * thread;
+    pthread_t thread;
 };
 
 
@@ -76,7 +76,7 @@ TlsThread::TlsThread()
         SSL_load_error_strings();
         SSLeay_add_ssl_algorithms();
 
-        ctx = ::SSL_CTX_new( SSLv23_client_method() );
+        ctx = ::SSL_CTX_new( SSLv23_server_method() );
         int options = SSL_OP_ALL;
         SSL_CTX_set_options( ctx, options );
 
@@ -95,7 +95,7 @@ TlsThread::TlsThread()
     }
     ::SSL_set_bio( d->ssl, d->sslBio, d->sslBio );
     
-    (void)pthread_create( d->thread, 0, trampoline, (void*)this );
+    (void)pthread_create( &d->thread, 0, trampoline, (void*)this );
 }
 
 
@@ -129,23 +129,37 @@ void TlsThread::start()
         // are our read buffers empty? if so, try to read
         if ( d->ctfd >= 0 && d->ctrbs == 0 ) {
             d->ctrbs = ::read( d->ctfd, d->ctrb, bs );
-            if ( d->ctrbs > 0 )
+            if ( d->ctrbs > 0 ) {
                 again = true;
-            else if ( d->ctrbs == 0 && crct )
+            }
+            else if ( d->ctrbs == 0 && crct ) {
                 ctgone = true;
+            }
             else if ( d->ctrbs < 0 && 
-                      errno != EAGAIN && errno != EWOULDBLOCK )
+                      ( errno == EAGAIN || errno == EWOULDBLOCK ) ) {
+                d->ctrbs = 0;
+                again = true;
+            }
+            else if ( d->ctrbs < 0 ) {
                 ctgone = true;
+            }
         }
         if ( d->encfd >= 0 && d->encrbs == 0 ) {
             d->encrbs = ::read( d->encfd, d->encrb, bs );
-            if ( d->encrbs > 0 )
+            if ( d->encrbs > 0 ) {
                 again = true;
-            else if ( d->encrbs == 0 && crenc )
+            }
+            else if ( d->encrbs == 0 && crenc ) {
                 encgone = true;
+            }
             else if ( d->encrbs < 0 && 
-                      errno != EAGAIN && errno != EWOULDBLOCK )
+                      ( errno == EAGAIN || errno == EWOULDBLOCK ) ) {
+                d->encrbs = 0;
+                again = true;
+            }
+            else if ( d->encrbs < 0 ) {
                 encgone = true;
+            }
         }
         if ( ctgone && encgone ) {
             // if both file descriptors are gone, there's nothing left
@@ -156,7 +170,7 @@ void TlsThread::start()
         // is there something in our write buffers? if so, try to write
         if ( d->ctfd >= 0 && d->ctwbs > 0 ) {
             int r = ::write( d->ctfd,
-                             d->ctwb + d->ctwbs,
+                             d->ctwb + d->ctwbo,
                              d->ctwbs - d->ctwbo );
             if ( r >= 0 )
                 d->ctwbo += r;
@@ -170,7 +184,7 @@ void TlsThread::start()
         }
         if ( d->encfd >= 0 && d->encwbs > 0 ) {
             int r = ::write( d->encfd,
-                             d->encwb + d->encwbs,
+                             d->encwb + d->encwbo,
                              d->encwbs - d->encwbo );
             if ( r >= 0 )
                 d->encwbo += r;
@@ -184,24 +198,6 @@ void TlsThread::start()
         }
 
         // we've served file descriptors. now for glorious openssl.
-        if ( d->encwbs == 0 ) {
-            d->encwbs = BIO_read( d->networkBio, d->encwb, bs );
-            if ( d->encwbs > 0 )
-                again = true;
-            else
-                d->encwbs = 0;
-        }
-        if ( d->ctwbs == 0 ) {
-            d->ctwbs = SSL_read( d->ssl, d->ctwb, bs );
-            if ( d->ctwbs > 0 ) {
-                again = true;
-            }
-            else {
-                if ( d->ctwbs < 0 && !finish )
-                    finish = sslErrorSeriousness( d->ctwbs );
-                d->ctwbs = 0;
-            }
-        }
         if ( d->encrbs > 0 ) {
             int r = BIO_write( d->networkBio,
                                d->encrb + d->encrbo,
@@ -230,7 +226,24 @@ void TlsThread::start()
                 d->ctrbs = 0;
             }
         }
-
+        if ( d->encwbs == 0 ) {
+            d->encwbs = BIO_read( d->networkBio, d->encwb, bs );
+            if ( d->encwbs >= 0 )
+                again = true;
+            else
+                d->encwbs = 0;
+        }
+        if ( d->ctwbs == 0 ) {
+            d->ctwbs = SSL_read( d->ssl, d->ctwb, bs );
+            if ( d->ctwbs >= 0 ) {
+                again = true;
+            }
+            else {
+                if ( d->ctwbs < 0 && !finish )
+                    finish = sslErrorSeriousness( d->ctwbs );
+                d->ctwbs = 0;
+            }
+        }
 
         if ( !finish && !again ) {
             int maxfd = -1;
@@ -280,7 +293,8 @@ void TlsThread::start()
 }
 
 bool TlsThread::sslErrorSeriousness( int r ) {
-    switch( SSL_get_error( d->ssl, r  ) ) {
+    int e = SSL_get_error( d->ssl, r  );
+    switch( e ) {
     case SSL_ERROR_NONE:
     case SSL_ERROR_WANT_READ:
     case SSL_ERROR_WANT_WRITE:

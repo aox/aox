@@ -684,6 +684,15 @@ void Connection::startTls( TlsServer * s )
     TlsThread * t = new TlsThread();
     d->hack = t;
     
+    int flags = fcntl( sv[0], F_GETFL, 0 );
+    if ( flags < 0 )
+        die( FD );
+    flags = flags | O_NDELAY;
+    if ( fcntl( sv[0], F_SETFL, flags ) < 0 )
+        die( FD );
+    if ( fcntl( sv[1], F_SETFL, flags ) < 0 )
+        die( FD );
+
     t->setClientFD( d->fd );
     t->setServerFD( sv[0] );
     d->fd = sv[1];
