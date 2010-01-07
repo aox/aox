@@ -59,5 +59,19 @@ void StartTLS::execute()
 #endif
 
     finish();
+}
+
+
+/*! This reimplementation starts TLS negotiation just after OK is
+    sent.
+*/
+
+void StartTLS::emitResponses()
+{
+    if ( state() == Retired )
+        return;
+    Command::emitResponses();
+    if ( state() != Retired )
+        return;
     imap()->startTls( tlsServer );
 }

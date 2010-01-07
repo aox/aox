@@ -56,7 +56,7 @@ public:
 
     void waitFor( ImapResponse * );
     void finish();
-    void emitResponses();
+    virtual void emitResponses();
     void checkUntaggedResponses();
 
     char nextChar();
