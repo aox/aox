@@ -44,6 +44,11 @@ else {
     }
 }
 
+if ( $(USE_CRYPTLIB) = "yes" ) {
+    BUILD = $(BUILD)-cl ;
+}
+
+
 LINK = $(C++) ;
 
 rule SubInclude

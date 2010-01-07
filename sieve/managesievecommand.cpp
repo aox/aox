@@ -2,7 +2,9 @@
 
 #include "managesievecommand.h"
 
+#if defined(USE_CRYPTLIB)
 #include "tls.h"
+#endif
 #include "utf.h"
 #include "date.h"
 #include "dict.h"
@@ -255,6 +257,7 @@ bool ManageSieveCommand::startTls()
         return true;
     }
 
+#if defined(USE_CRYPTLIB)
     if ( !d->tlsServer ) {
         end();
         if ( !d->no.isEmpty() )
@@ -265,14 +268,23 @@ bool ManageSieveCommand::startTls()
 
     if ( !d->tlsServer->done() )
         return false;
+#endif
 
     if ( !d->sieve->hasTls() ) {
+#if defined(USE_CRYPTLIB)
         d->sieve->setReserved( false );
+#else
+        end();
+        if ( !d->no.isEmpty() )
+            return true;
+#endif
 
+#if defined(USE_CRYPTLIB)
         if ( !d->tlsServer->ok() ) {
             no( "Internal error starting TLS engine" );
             return true;
         }
+#endif
 
         d->sieve->enqueue( "OK\r\n" );
         d->sieve->write();
@@ -702,7 +714,7 @@ bool ManageSieveCommand::renameScript()
         log( "Renamed script" );
 
     return true;
-    
+
 }
 
 

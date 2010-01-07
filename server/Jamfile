@@ -9,8 +9,8 @@ SubInclude TOP db ;
 ObjectDefines server.cpp : USECACHE=$(USECACHE) ;
 
 Build server :
-    connection.cpp endpoint.cpp event.cpp logclient.cpp tls.cpp
-    eventloop.cpp byteforwarder.cpp server.cpp timer.cpp resolver.cpp
+    connection.cpp endpoint.cpp event.cpp logclient.cpp
+    eventloop.cpp server.cpp timer.cpp resolver.cpp
     graph.cpp integerset.cpp ;
 
 # We must link with -lresolv on linux, but not on the BSDs.
@@ -26,10 +26,12 @@ Build mailbox :
 Build user : user.cpp ;
 
 if ( $(USE_CRYPTLIB) = "yes" ) {
-    SubInclude TOP tlsproxy ;
     ObjectDefines connection.cpp tls.cpp : USE_CRYPTLIB=1 ;
+    Build server : tls.cpp byteforwarder.cpp ;
 } else {
     Build server : tlsthread.cpp ;
     UseLibrary tlsthread.cpp : ssl ;
+    # UseLibrary tlsthread.cpp : pthread ;
     C++FLAGS += -pthread ;
+    LINKFLAGS += -pthread ;
 }

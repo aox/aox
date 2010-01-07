@@ -8,7 +8,9 @@
 #include "estringlist.h"
 #include "log.h"
 #include "mechanism.h"
+#if defined(USE_CRYPTLIB)
 #include "tls.h"
+#endif
 
 
 /*! \class Capability capability.h
@@ -112,7 +114,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "SORT" );
         c.append( "SORT=DISPLAY" ); // draft-ietf-morg-sortdisplay
     }
-    if ( TlsServer::available() && !i->hasTls() )
+    if ( Configuration::toggle( Configuration::UseTls ) && !i->hasTls() )
         c.append( "STARTTLS" );
     if ( all || login ) {
         // also THREAD=...

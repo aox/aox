@@ -11,3 +11,8 @@ Build smtp : smtp.cpp
     smtpparser.cpp
     smtpcommand.cpp smtphelo.cpp smtpmailrcpt.cpp smtpauth.cpp smtpdata.cpp
     spoolmanager.cpp deliveryagent.cpp ;
+
+
+if ( $(USE_CRYPTLIB) = "yes" ) {
+    ObjectDefines smtp.cpp smtpcommand.cpp : USE_CRYPTLIB=1 ;
+}

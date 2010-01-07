@@ -12,7 +12,9 @@
 #include "eventloop.h"
 #include "scope.h"
 #include "smtp.h"
+#if defined(USE_CRYPTLIB)
 #include "tls.h"
+#endif
 
 
 class SmtpCommandData
@@ -302,7 +304,10 @@ SmtpStarttls::SmtpStarttls( SMTP * s, SmtpParser * )
     : SmtpCommand( s ), startedTls( false ), tlsServer( 0 )
 {
     Scope x( log() );
+#if defined(USE_CRYPTLIB)
     tlsServer = new TlsServer( this, server()->peer(), "SMTP" );
+#else
+#endif
 }
 
 
@@ -314,10 +319,11 @@ void SmtpStarttls::execute()
         return;
     }
 
-    if ( !tlsServer->done() )
+    if ( !server()->isFirstCommand( this ) )
         return;
 
-    if ( !server()->isFirstCommand( this ) )
+#if defined(USE_CRYPTLIB)
+    if ( !tlsServer->done() )
         return;
 
     if ( !server()->hasTls() ) {
@@ -334,6 +340,14 @@ void SmtpStarttls::execute()
         server()->startTls( tlsServer );
         finish();
     }
+#else
+    startedTls = true;
+    log( "Negotiating TLS", Log::Debug );
+    server()->enqueue( "220 2.0.0 Start negotiating TLS now.\r\n" );
+    server()->write();
+    server()->startTls( tlsServer );
+    finish();
+#endif
 }
 
 

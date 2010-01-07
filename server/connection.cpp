@@ -2,7 +2,12 @@
 
 #include "connection.h"
 
+#if defined(USE_CRYPTLIB)
 #include "tls.h"
+#else
+#include "tlsthread.h"
+#endif
+
 #include "log.h"
 #include "file.h"
 #include "user.h"
@@ -38,7 +43,8 @@ public:
           state( Connection::Invalid ),
           type( Connection::Client ),
           tls( false ), pending( false ),
-          l( 0 )
+          l( 0 ),
+          hack( 0 )
     {}
 
     int fd;
@@ -52,6 +58,8 @@ public:
     Endpoint self, peer;
     Connection::Event event;
     Log *l;
+    
+    Garbage * hack;
 };
 
 
@@ -655,26 +663,35 @@ void Connection::startTls( TlsServer * s )
     EventLoop::global()->addConnection( b2 );
     EventLoop::global()->addConnection( this );
 
+    log( "Negotiating TLS for client " + b1->peer().string(),
+         Log::Debug );
+
 #else
 
+    log( "Negotiating TLS for client " + peer().string(),
+         Log::Debug );
+
     int sv[2];
-    int r = ::socketpair( AF_UNIX, SOCK_STREAM, 0, &sv );
-    if 9( r < 0 ) {
+    int r = ::socketpair( AF_UNIX, SOCK_STREAM, 0, sv );
+    if ( r < 0 ) {
         log( "Cannot create more FDs", Log::Error );
         // there's nothing much to do, we just have to close the
         // connection and hope the situation passes.
         close();
         return;
     }
+
+    TlsThread * t = new TlsThread();
+    d->hack = t;
     
-    s->setClientFD( d->fd );
-    s->setServerFD( sv[0] );
+    t->setClientFD( d->fd );
+    t->setServerFD( sv[0] );
     d->fd = sv[1];
+    
+    if ( s )
+        log( "Note: TlsServer was created and need not be", Log::Debug );
 
 #endif
-
-    log( "Negotiating TLS for client " + b1->peer().string(),
-         Log::Debug );
 
     d->tls = true;
 }

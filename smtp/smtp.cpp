@@ -14,7 +14,9 @@
 #include "sieve.h"
 #include "date.h"
 #include "user.h"
+#if defined(USE_CRYPTLIB)
 #include "tls.h"
+#endif
 
 // getpid()
 #include <sys/types.h>
@@ -472,9 +474,14 @@ SMTPS::SMTPS( int s )
     EString * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
+#if defined(USE_CRYPTLIB)
     d->helper = new SmtpsHelper( this );
     d->tlsServer = new TlsServer( d->helper, peer(), "SMTPS" );
     EventLoop::global()->removeConnection( this );
+#else
+    startTls( 0 );
+    enqueue( d->banner + "\r\n" );
+#endif
 }
 
 
@@ -482,6 +489,7 @@ SMTPS::SMTPS( int s )
 
 void SMTPS::finish()
 {
+#if defined(USE_CRYPTLIB)
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
@@ -492,6 +500,7 @@ void SMTPS::finish()
 
     startTls( d->tlsServer );
     enqueue( d->banner + "\r\n" );
+#endif
 }
 
 

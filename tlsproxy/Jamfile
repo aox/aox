@@ -5,6 +5,7 @@ SubInclude TOP server ;
 
 OrigHDRS = $(HDRS) ;
 
+
 if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
     # this is the directory where cryptlib's header files are, if they
     # aren't in the compiler's include path.
@@ -20,6 +21,7 @@ Build tls : tlsproxy.cpp egd.cpp ;
 
 
 Server tlsproxy : tls server core encodings ;
+
 
 if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
     # additional flags that may be needed to link against cryptlib,

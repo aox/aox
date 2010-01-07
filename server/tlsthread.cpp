@@ -302,3 +302,23 @@ bool TlsThread::sslErrorSeriousness( int r ) {
     }
     return true;
 }
+
+
+/*! Records that \a fd should be used for cleartext communication with
+    the main aox thread. The TLS thread will close \a fd when it's done.
+*/
+
+void TlsThread::setServerFD( int fd )
+{
+    d->ctfd = fd;
+}
+
+
+/*! Records that \a fd should be used for encrypted communication with
+    the client. The TLS thread will close \a fd when it's done.
+*/
+
+void TlsThread::setClientFD( int fd )
+{
+    d->encfd = fd;
+}

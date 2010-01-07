@@ -3,7 +3,9 @@
 #include "popcommand.h"
 
 #include "md5.h"
+#if defined(USE_CRYPTLIB)
 #include "tls.h"
+#endif
 #include "map.h"
 #include "utf.h"
 #include "list.h"
@@ -231,6 +233,7 @@ void PopCommand::execute()
 
 bool PopCommand::startTls()
 {
+#if defined(USE_CRYPTLIB)
     if ( !d->tlsServer ) {
         log( "STLS Command" );
 
@@ -247,7 +250,9 @@ bool PopCommand::startTls()
         d->pop->err( "Internal error starting TLS engine" );
         return true;
     }
-
+#else
+    log( "STLS Command" );
+#endif
     d->pop->ok( "Done" );
     d->pop->write();
     d->pop->startTls( d->tlsServer );

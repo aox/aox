@@ -12,6 +12,9 @@ class TlsThread
 public:
     TlsThread();
     ~TlsThread();
+
+    void setServerFD( int );
+    void setClientFD( int );
     
     void start();
 

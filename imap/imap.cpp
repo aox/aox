@@ -19,7 +19,9 @@
 #include "command.h"
 #include "cache.h"
 #include "user.h"
+#if defined(USE_CRYPTLIB)
 #include "tls.h"
+#endif
 
 
 static bool endsWithLiteral( const EString *, uint *, bool * );
@@ -684,9 +686,15 @@ IMAPS::IMAPS( int s )
     EString * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
+#if defined(USE_CRYPTLIB)
     d->helper = new ImapsHelper( this );
     d->tlsServer = new TlsServer( d->helper, peer(), "IMAPS" );
     EventLoop::global()->removeConnection( this );
+#else
+    d->tlsServer = 0;
+    startTls( 0 );
+    enqueue( d->banner + "\r\n" );
+#endif
 }
 
 
@@ -694,6 +702,7 @@ IMAPS::IMAPS( int s )
 
 void IMAPS::finish()
 {
+#if defined(USE_CRYPTLIB)
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
@@ -704,6 +713,7 @@ void IMAPS::finish()
 
     startTls( d->tlsServer );
     enqueue( d->banner + "\r\n" );
+#endif
 }
 
 

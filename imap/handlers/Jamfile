@@ -38,3 +38,7 @@ Build imap :
     ;
 
 UseLibrary compress.cpp : z ;
+
+if ( $(USE_CRYPTLIB) = "yes" ) {
+    ObjectDefines starttls.cpp : USE_CRYPTLIB=1 ;
+}

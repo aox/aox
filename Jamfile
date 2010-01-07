@@ -19,6 +19,9 @@ SubInclude TOP extractors ;
 SubInclude TOP archiveopteryx ;
 SubInclude TOP aoximport ;
 SubInclude TOP aoxexport ;
+if ( $(USE_CRYPTLIB) = "yes" ) {
+    SubInclude TOP tlsproxy ;
+}
 
 
 if ( $(BUILDDOC) ) {
@@ -26,7 +29,7 @@ if ( $(BUILDDOC) ) {
 }
 
 Doc oryxdoc : core database schema encodings imap logd mailbox message sasl
-    server smtp tls user http pop sieve extractors abnf collations ;
+    server smtp tls user pop sieve extractors abnf collations ;
 
 if ( $(BUILDDOC) ) {
     Depends install : doc ;
@@ -56,7 +59,9 @@ Prepare $(INSTALLROOT)$(CONFIGDIR) ;
 Prepare $(INSTALLROOT)$(LOGFILE:D) ;
 Prepare $(INSTALLROOT)$(LIBDIR) ;
 Prepare $(INSTALLROOT)$(LIBDIR)/contrib ;
-Prepare $(INSTALLROOT)$(LIBDIR)/tlsproxy/var/run ;
+if ( $(USE_CRYPTLIB) = "yes" ) {
+    Prepare $(INSTALLROOT)$(LIBDIR)/tlsproxy/var/run ;
+}
 
 
 # if we make JAILDIR, we should chmod it so noone can read it:

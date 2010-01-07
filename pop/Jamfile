@@ -8,3 +8,7 @@ SubInclude TOP message ;
 HDRS += [ FDirName $(TOP) pop ] ;
 
 Build pop : pop.cpp popcommand.cpp ;
+
+if ( $(USE_CRYPTLIB) = "yes" ) {
+    ObjectDefines popcommand.cpp : USE_CRYPTLIB=1 ;
+}
