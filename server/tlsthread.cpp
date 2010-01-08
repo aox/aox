@@ -2,6 +2,9 @@
 
 #include "tlsthread.h"
 
+#include "estring.h"
+#include "configuration.h"
+
 #include <unistd.h>
 
 #include <pthread.h>
@@ -65,7 +68,6 @@ static SSL_CTX * ctx = 0;
 
 
 /*!  Constructs an empty
-
 */
 
 TlsThread::TlsThread()
@@ -74,14 +76,27 @@ TlsThread::TlsThread()
     if ( !ctx ) {
         // everyone does this...
         SSL_load_error_strings();
-        SSLeay_add_ssl_algorithms();
+        SSL_library_init();
 
         ctx = ::SSL_CTX_new( SSLv23_server_method() );
         int options = SSL_OP_ALL;
         SSL_CTX_set_options( ctx, options );
 
-        // later turn off weak ciphers here. but first find out which
-        // ones are weak.
+        SSL_CTX_set_cipher_list( ctx, "ALL:!LOW" );
+
+        EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
+        if ( keyFile.isEmpty() ) {
+            keyFile = Configuration::compiledIn( Configuration::LibDir );
+            keyFile.append( "/automatic-key.pem" );
+        }
+        if ( !SSL_CTX_use_certificate_chain_file( ctx, keyFile.cstr() ) ||
+             !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
+                                              SSL_FILETYPE_PEM ) )
+            log( "OpenSSL needs both the certificate and "
+                 "private key in this file: " + keyFile,
+                 Log::Disaster );
+        // we go on anyway; the disaster will take down the server in
+        // a hurry.
 
         // we don't ask for a client cert
         SSL_CTX_set_verify( ctx, SSL_VERIFY_NONE, NULL );
@@ -96,6 +111,7 @@ TlsThread::TlsThread()
     ::SSL_set_bio( d->ssl, d->sslBio, d->sslBio );
     
     (void)pthread_create( &d->thread, 0, trampoline, (void*)this );
+    d->ok
 }
 
 
@@ -311,6 +327,7 @@ bool TlsThread::sslErrorSeriousness( int r ) {
 
     case SSL_ERROR_SSL:
     case SSL_ERROR_SYSCALL:
+        //ERR_print_errors_fp( stdout );
         return true;
         break;
     }
