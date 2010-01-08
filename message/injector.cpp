@@ -1827,7 +1827,7 @@ void Injector::insertDeliveries()
         Header * h = di->message->header();
         if ( h && h->field( "Auto-Submitted" ) && !di->later ) {
             q = new Query( "update deliveries "
-                           "set deliver_after=injected_at+'1 minute' "
+                           "set deliver_after=injected_at+'1 minute'::interval "
                            "where message=$1 and exists ("
                            "(select dr.id from delivery_recipients dr"
                            " join addresses a on (dr.recipient=a.id)"
