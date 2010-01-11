@@ -79,6 +79,7 @@ end;$$ language 'plpgsql';
 create or replace function downgrade_to_90()
 returns int as $$
 begin
+ 
 end;$$ language 'plpgsql';
 
 create or replace function downgrade_to_91()
