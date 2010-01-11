@@ -167,7 +167,7 @@ void TlsThread::start()
             else if ( d->encrbs == 0 && crenc )
                 encgone = true;
             else if ( d->encrbs < 0 &&
-                      ( errno == EAGAIN || errno == EWOULDBLOCK ) ) {
+                      ( errno == EAGAIN || errno == EWOULDBLOCK ) )
                 d->encrbs = 0;
             else if ( d->encrbs < 0 )
                 encgone = true;
