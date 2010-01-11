@@ -564,6 +564,8 @@ bool Schema::singleStep()
         c = stepTo90(); break;
     case 90:
         c = stepTo91(); break;
+    case 91:
+        c = stepTo92(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4250,5 +4252,16 @@ bool Schema::stepTo90()
 bool Schema::stepTo91()
 {
     describeStep( "Storing correct downgrade_to_x procedures." );
+    return true;
+}
+
+
+/*! Reintroduce connections.userid, for logging (only). */
+
+bool Schema::stepTo91()
+{
+    describeStep( "Restoring connections.userid." );
+    d->t->enqueue( "alter table connections "
+                   "add userid integer" );
     return true;
 }

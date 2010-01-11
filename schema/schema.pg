@@ -508,6 +508,7 @@ create table autoresponses (
 create table connections (
     -- Grant: insert
     id          serial primary key,
+    userid      integer,
     username    text,
     address     inet not null,
     port        integer not null,
