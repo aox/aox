@@ -1832,7 +1832,7 @@ void Injector::insertDeliveries()
                            "(select dr.id from delivery_recipients dr"
                            " join addresses a on (dr.recipient=a.id)"
                            " where dr.action>$2"
-                           " and dr.last_attempt > current_timestamp-'1 minute'"
+                           " and dr.last_attempt > current_timestamp-'1 minute'::interval"
                            " and lower(a.domain)=any($3::text[])))", 0 );
             q->bind( 1, di->message->databaseId() );
             q->bind( 2, Recipient::Delayed );
