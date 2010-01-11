@@ -18,6 +18,7 @@
 #include "endpoint.h"
 #include "eventloop.h"
 #include "byteforwarder.h"
+#include "allocator.h"
 #include "resolver.h"
 #include "user.h"
 
@@ -43,8 +44,7 @@ public:
           state( Connection::Invalid ),
           type( Connection::Client ),
           tls( false ), pending( false ),
-          l( 0 ),
-          hack( 0 )
+          l( 0 )
     {}
 
     int fd;
@@ -58,8 +58,6 @@ public:
     Endpoint self, peer;
     Connection::Event event;
     Log *l;
-    
-    Garbage * hack;
 };
 
 
@@ -682,8 +680,8 @@ void Connection::startTls( TlsServer * s )
     }
 
     TlsThread * t = new TlsThread();
-    d->hack = t;
-    
+    Allocator::addEternal( t, "another TLS thread" );
+
     int flags = fcntl( sv[0], F_GETFL, 0 );
     if ( flags < 0 )
         die( FD );

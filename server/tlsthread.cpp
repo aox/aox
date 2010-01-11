@@ -66,6 +66,11 @@ static void * trampoline( void * t )
 static SSL_CTX * ctx = 0;
 
 
+/*! \class TlsThread tlsthread.h
+    Creates and manages a thread for TLS processing using openssl
+*/
+
+
 
 /*!  Constructs an empty
 */
@@ -111,12 +116,12 @@ TlsThread::TlsThread()
     ::SSL_set_bio( d->ssl, d->sslBio, d->sslBio );
     
     (void)pthread_create( &d->thread, 0, trampoline, (void*)this );
-    d->ok
 }
 
 
 /*! Destroys the object and frees any allocated resources. Except we
-    probably should do this in react() or close() or something.
+    probably should do this in Connection::react() or
+    Connection::close() or something.
 */
 
 TlsThread::~TlsThread()
@@ -305,8 +310,14 @@ void TlsThread::start()
     ::close( d->encfd );
     ::close( d->ctfd );
     SSL_free( d->ssl );
+    Allocator::removeEternal( this );
     pthread_exit( 0 );
 }
+
+
+/*! Returns true if the openssl result status \a r is a serious error,
+    and false otherwise.
+*/
 
 bool TlsThread::sslErrorSeriousness( int r ) {
     int e = SSL_get_error( d->ssl, r  );
