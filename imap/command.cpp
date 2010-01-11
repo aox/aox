@@ -199,8 +199,6 @@ Command * Command::create( IMAP * imap,
         c = new Authenticate;
     else if ( n == "starttls" )
         c = new StartTLS;
-    else if ( n == "compress" )
-        c = new Compress;
 
     if ( c )
         notAuthenticated = true;
@@ -248,6 +246,8 @@ Command * Command::create( IMAP * imap,
             c = new UrlFetch;
         else if ( n == "notify" )
             c = new Notify;
+        else if ( n == "compress" )
+            c = new Compress;
 
         if ( c ) {
             authenticated = true;
@@ -591,8 +591,11 @@ void Command::error( Error e, const EString & t )
     if ( !imap() )
         return;
 
-    if ( (d->permittedStates & ( 1 << imap()->state() )) ||
-         ( !t.isEmpty() && imap()->state() != IMAP::NotAuthenticated ) ) {
+    if ( d->permittedStates & ( 1 << imap()->state() ) ) {
+        d->errorCode = e;
+        d->errorText = t;
+    }
+    else if ( !t.isEmpty() && imap()->state() != IMAP::NotAuthenticated ) {
         d->errorCode = e;
         d->errorText = t;
     }
