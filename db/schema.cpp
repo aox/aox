@@ -562,6 +562,8 @@ bool Schema::singleStep()
         c = stepTo89(); break;
     case 89:
         c = stepTo90(); break;
+    case 90:
+        c = stepTo91(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4238,5 +4240,15 @@ bool Schema::stepTo90()
     describeStep( "Adding deliveries.deliver_after to improve autoresponders." );
     d->t->enqueue( "alter table deliveries "
                    "add deliver_after timestamp with time zone" );
+    return true;
+}
+
+
+/*! Nothing. Needed so that the right downgrade_to_ functions are
+    written (they were bad in schema 90). */
+
+bool Schema::stepTo90()
+{
+    describeStep( "Storing correct downgrade_to_x procedures." );
     return true;
 }

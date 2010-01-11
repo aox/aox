@@ -75,3 +75,8 @@ returns int as $$
 begin
     alter table deliveries drop deliver_after;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_90()
+returns int as $$
+begin
+end;$$ language 'plpgsql';
