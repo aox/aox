@@ -19,17 +19,17 @@ foreach $f ( split( /\n(?=create or replace function downgrade_to_)/s, $all ) ) 
 $m++;
 
 print "static uint numDowngradeFunctions = ", $m, ";\n";
-print "static const char * downgradeFunctions[", $m, "] = {\n";
+print "static const char * downgradeFunctions[", 1+$m, "] = {\n";
 $n = 0;
 while ( $n < $m ) {
     if ( defined( $functions{$n} ) ) {
         $f = $functions{$n};
 	$f =~ s/;\n*$//s;
 	$f =~ s/\n/"\n    "/gs;
-	print "\n// step to ", $n, "\n", '    "', $f, '"', "\n";
+	print "\n// step to ", $n, "\n", '    "', $f, '",', "\n";
     } else {
 	print "    0, // $n undefined\n"
     }
     $n++;
 }
-print "};\n";
+print "\n// dummy final entry\n    0\n};\n";
