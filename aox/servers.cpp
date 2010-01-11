@@ -1097,7 +1097,6 @@ static void selfSignCertificate()
                   "\n"
                   " [ v3_ca ]\n"
                   "\n"
-                  " keyUsage = cRLSign, keyCertSign\n"
                   " nsCertType = server\n"
                   " nsComment = \"Automatically generated self-signed certificate\"\n"
                   " subjectKeyIdentifier=hash\n"
