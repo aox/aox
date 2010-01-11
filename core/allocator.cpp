@@ -553,12 +553,14 @@ void Allocator::free()
     // mark
     uint i = 0;
     while ( i < ::numRoots ) {
-        uint o = objects;
-        uint m = ::marked;
-        mark( ::roots[i].root );
-        mark();
-        ::roots[i].objects = objects - o;
-        ::roots[i].size = ::marked - m;
+        if ( ::roots[i].root ) {
+            uint o = objects;
+            uint m = ::marked;
+            mark( ::roots[i].root );
+            mark();
+            ::roots[i].objects = objects - o;
+            ::roots[i].size = ::marked - m;
+        }
 
         i++;
     }
@@ -660,7 +662,7 @@ void Allocator::free()
     if ( verbose && objects > ObjectLimit ) {
         i = 0;
         while ( i < numRoots ) {
-            if ( roots[i].objects > ObjectLimit/2 ) {
+            if ( roots[i].root && roots[i].objects > ObjectLimit/2 ) {
                 EString objects = "Root ";
                 objects.appendNumber( i );
                 objects.append( " (" );
@@ -768,11 +770,18 @@ uint Allocator::rounded( uint size )
 
 void Allocator::addEternal( const void * p, const char * t )
 {
-    ::roots[::numRoots].root = (void*)p;
-    ::roots[::numRoots].name = t;
-    ::roots[::numRoots].objects = 0;
-    ::roots[::numRoots].size = 0;
-    ::numRoots++;
+    uint i = 0;
+    while ( i < numRoots && roots[i].root )
+        i++;
+
+    roots[i].root = (void *)p;
+    roots[i].name = t;
+    roots[i].objects = 0;
+    roots[i].size = 0;
+
+    if ( i == numRoots )
+        numRoots++;
+
     if ( ::numRoots < 1024 )
         return;
 
@@ -791,16 +800,14 @@ void Allocator::addEternal( const void * p, const char * t )
 void Allocator::removeEternal( void * p )
 {
     uint i = 0;
-    while( i < ::numRoots && roots[i].root != p )
-        i++;
-    if ( i >= numRoots )
-        return;
-
-    ::numRoots--;
-    while( i < ::numRoots ) {
-        roots[i].root = roots[i+1].root;
-        roots[i].name = roots[i+1].name;
-        roots[i].objects = roots[i+1].objects;
+    while ( i < ::numRoots ) {
+        if ( roots[i].root == p ) {
+            roots[i].root = 0;
+            roots[i].name = 0;
+            roots[i].size = 0;
+            roots[i].objects = 0;
+            break;
+        }
         i++;
     }
 }

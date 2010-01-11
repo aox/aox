@@ -305,6 +305,7 @@ void TlsThread::start()
     ::close( d->encfd );
     ::close( d->ctfd );
     SSL_free( d->ssl );
+    Allocator::removeEternal( this );
     pthread_exit( 0 );
 }
 
