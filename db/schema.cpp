@@ -4247,7 +4247,7 @@ bool Schema::stepTo90()
 /*! Nothing. Needed so that the right downgrade_to_ functions are
     written (they were bad in schema 90). */
 
-bool Schema::stepTo90()
+bool Schema::stepTo91()
 {
     describeStep( "Storing correct downgrade_to_x procedures." );
     return true;
