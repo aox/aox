@@ -770,6 +770,8 @@ uint Allocator::rounded( uint size )
 
 void Allocator::addEternal( const void * p, const char * t )
 {
+    // If there are holes left by removeEternal(), we'll fill them;
+    // otherwise, we'll use a new index and increase numRoots.
     uint i = 0;
     while ( i < numRoots && roots[i].root )
         i++;
