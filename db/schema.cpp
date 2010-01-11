@@ -4258,7 +4258,7 @@ bool Schema::stepTo91()
 
 /*! Reintroduce connections.userid, for logging (only). */
 
-bool Schema::stepTo91()
+bool Schema::stepTo92()
 {
     describeStep( "Restoring connections.userid." );
     d->t->enqueue( "alter table connections "
