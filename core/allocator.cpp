@@ -214,12 +214,14 @@ const uint magic = 0x7d34;
 static Allocator * allocators[32];
 
 
+static const uint maxRoots = 4096;
+
 static struct {
     void * root;
     const char * name;
     uint objects;
     uint size;
-} roots[1024];
+} roots[maxRoots];
 
 static uint numRoots;
 
@@ -625,7 +627,7 @@ void Allocator::free()
              fn( blocks ) +
              " " +
              EString::humanNumber( BlockSize ) +
-             " blocks. Recursion depth: " +// 
+             " blocks. Recursion depth: " +//
              fn( peak ) + ". Time needed to mark: " +
              fn( (timeToMark+500)/1000 ) + "ms. To sweep: " +
              fn( (timeToSweep+500)/1000 ) + "ms.",
@@ -784,7 +786,7 @@ void Allocator::addEternal( const void * p, const char * t )
     if ( i == numRoots )
         numRoots++;
 
-    if ( ::numRoots < 1024 )
+    if ( i < maxRoots )
         return;
 
     // we have a nasty memory leak. probably someone's allocating new
@@ -802,16 +804,16 @@ void Allocator::addEternal( const void * p, const char * t )
 void Allocator::removeEternal( void * p )
 {
     uint i = 0;
-    while ( i < ::numRoots ) {
-        if ( roots[i].root == p ) {
-            roots[i].root = 0;
-            roots[i].name = 0;
-            roots[i].size = 0;
-            roots[i].objects = 0;
-            break;
-        }
+    while ( i < ::numRoots && roots[i].root != p )
         i++;
+    if ( i < maxRoots && roots[i].root == p ) {
+        roots[i].root = 0;
+        roots[i].name = 0;
+        roots[i].size = 0;
+        roots[i].objects = 0;
     }
+    while ( numRoots && !roots[numRoots-1].root )
+        numRoots--;
 }
 
 
