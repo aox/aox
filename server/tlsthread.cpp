@@ -155,7 +155,7 @@ void TlsThread::start()
             else if ( d->ctrbs == 0 && crct )
                 ctgone = true;
             else if ( d->ctrbs < 0 &&
-                      ( errno == EAGAIN || errno == EWOULDBLOCK ) ) {
+                      ( errno == EAGAIN || errno == EWOULDBLOCK ) )
                 d->ctrbs = 0;
             else if ( d->ctrbs < 0 )
                 ctgone = true;
