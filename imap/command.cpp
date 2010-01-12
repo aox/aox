@@ -1069,10 +1069,13 @@ uint Command::msn()
         r = nzNumber();
     }
 
-    if ( r > star ) // should we send an EXISTS here?
-        error( Bad,
-               "MSN " + fn( r ) + " is too large. Highest MSN is " +
-               fn( star ) + "." );
+    if ( r > star ) { 
+        respond( "OK MSN " + fn( r ) + " is too large. "
+                 "I hope you mean " + fn( star ) +
+                 " and will act accordingly." );
+        respond( fn( star ) + " EXISTS" );
+        r = star;
+    }
 
     return session->uid( r );
 }
