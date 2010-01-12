@@ -680,6 +680,13 @@ void Connection::startTls( TlsServer * s )
     }
 
     TlsThread * t = new TlsThread();
+    if ( t->broken() ) {
+        log( "Cannot create more threads", Log::Error );
+        close();
+        ::close( sv[0] );
+        ::close( sv[1] );
+        return;
+    }
     Allocator::addEternal( t, "another TLS thread" );
 
     int flags = fcntl( sv[0], F_GETFL, 0 );
@@ -694,7 +701,7 @@ void Connection::startTls( TlsServer * s )
     t->setClientFD( d->fd );
     t->setServerFD( sv[0] );
     d->fd = sv[1];
-    
+
     if ( s )
         log( "Note: TlsServer was created and need not be", Log::Debug );
 

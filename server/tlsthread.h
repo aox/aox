@@ -18,6 +18,8 @@ public:
     
     void start();
 
+    bool broken() const;
+
     bool sslErrorSeriousness( int );
 
 private:
