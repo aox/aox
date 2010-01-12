@@ -185,6 +185,16 @@ void TlsThread::start()
             // to do. but maybe we try anyway.
             finish = true;
         }
+        if ( ctgone && d->encwbs == 0 ) {
+            // if the cleartext one is gone and we have nothing to
+            // write to enc, finish
+            finish = true;
+        }
+        if ( encgone && d->ctwbs == 0 ) {
+            // if the enfd is gone and we have nothing to write to ct,
+            // finish
+            finish = true;
+        }
 
         // is there something in our write buffers? if so, try to write
         if ( d->ctfd >= 0 && d->ctwbs > 0 ) {
