@@ -1073,7 +1073,6 @@ uint Command::msn()
         respond( "OK MSN " + fn( r ) + " is too large. "
                  "I hope you mean " + fn( star ) +
                  " and will act accordingly." );
-        respond( fn( star ) + " EXISTS" );
         r = star;
     }
 
