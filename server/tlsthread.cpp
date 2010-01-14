@@ -29,7 +29,8 @@ public:
           encrbo( 0 ), encrbs( 0 ),
           encwbo( 0 ), encwbs( 0 ),
           encfd( -1 ),
-          networkBio( 0 ), sslBio( 0 ), thread( 0 )
+          networkBio( 0 ), sslBio( 0 ), thread( 0 ),
+          broken( false )
         {}
 
     SSL * ssl;
@@ -53,6 +54,7 @@ public:
     BIO * sslBio;
 
     pthread_t thread;
+    bool broken;
 };
 
 
@@ -115,7 +117,13 @@ TlsThread::TlsThread()
     }
     ::SSL_set_bio( d->ssl, d->sslBio, d->sslBio );
 
-    (void)pthread_create( &d->thread, 0, trampoline, (void*)this );
+    int r = pthread_create( &d->thread, 0, trampoline, (void*)this );
+    if ( r ) {
+        log( "pthread_create returned nonzero (" + fn( r ) + ")" );
+        d->broken = true;
+        ::SSL_free( d->ssl );
+        d->ssl = 0;
+    }
 }
 
 
@@ -175,6 +183,16 @@ void TlsThread::start()
         if ( ctgone && encgone ) {
             // if both file descriptors are gone, there's nothing left
             // to do. but maybe we try anyway.
+            finish = true;
+        }
+        if ( ctgone && d->encwbs == 0 ) {
+            // if the cleartext one is gone and we have nothing to
+            // write to enc, finish
+            finish = true;
+        }
+        if ( encgone && d->ctwbs == 0 ) {
+            // if the enfd is gone and we have nothing to write to ct,
+            // finish
             finish = true;
         }
 
@@ -297,6 +315,7 @@ void TlsThread::start()
     ::close( d->encfd );
     ::close( d->ctfd );
     SSL_free( d->ssl );
+    d->ssl = 0;
     Allocator::removeEternal( this );
     pthread_exit( 0 );
 }
@@ -350,4 +369,14 @@ void TlsThread::setServerFD( int fd )
 void TlsThread::setClientFD( int fd )
 {
     d->encfd = fd;
+}
+
+
+/*! Returns true if this TlsThread is broken somehow, and false if
+    it's in working order.
+*/
+
+bool TlsThread::broken() const
+{
+    return d->broken;
 }
