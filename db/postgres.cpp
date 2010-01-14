@@ -1102,13 +1102,17 @@ static bool hasMessage( Buffer *b )
 /*! Returns true if this handle is willing to process new queries: i.e.
     if it has an active and error-free connection to the server, and no
     outstanding queries; and false otherwise.
+
+    This tries to keep the NOTIFY listener free, so that no
+    transactions can possibly interfere with LISTENing.
 */
 
 bool Postgres::usable() const
 {
     return ( d->active && !d->startup &&
              !( state() == Connecting || state() == Broken ) &&
-             d->queries.isEmpty() );
+             d->queries.isEmpty() &&
+             ::listener != this );
 }
 
 
