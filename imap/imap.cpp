@@ -4,6 +4,7 @@
 
 #include "log.h"
 #include "list.h"
+#include "timer.h"
 #include "scope.h"
 #include "estring.h"
 #include "buffer.h"
@@ -23,6 +24,8 @@
 #include "tls.h"
 #endif
 
+#include "time.h"
+
 
 static bool endsWithLiteral( const EString *, uint *, bool * );
 
@@ -38,7 +41,8 @@ public:
           readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ),
           bytesArrived( 0 ),
-          eventMap( new EventMap )
+          eventMap( new EventMap ),
+          lastBadTime( 0 )
     {
         uint i = 0;
         while ( i < IMAP::NumClientCapabilities )
@@ -75,6 +79,19 @@ public:
     List<MailboxGroup> possibleGroups;
 
     EventMap * eventMap;
+
+    uint lastBadTime;
+
+    class BadBouncer
+        : public EventHandler
+    {
+    public:
+        BadBouncer( IMAP * owner ) : i( owner ) {}
+
+        void execute() { i->unblockCommands(); }
+
+        IMAP * i;
+    };
 };
 
 
@@ -454,8 +471,10 @@ void IMAP::runCommands()
 
     while ( d->runCommandsAgain ) {
         d->runCommandsAgain = false;
-        if ( d->commands.isEmpty() )
+        if ( d->commands.isEmpty() ) {
+            d->runningCommands = false;
             return;
+        }
         log( "IMAP::runCommands, " + fn( d->commands.count() ) + " commands",
              Log::Debug );
 
@@ -486,6 +505,26 @@ void IMAP::runCommands()
                 d->reader = 0;
             c->emitResponses();
             n++;
+        }
+
+        // slow down the command rate if the client is sending
+        // errors. specificaly, if we've sent a NO/BAD, then we don't
+        // start any new commands for n seconds, where n is the number
+        // of NO/BADs we've sent, bounded at 16.
+        
+        int delayNeeded = (int)syntaxErrors();
+        if ( delayNeeded > 16 )
+            delayNeeded = 16;
+        delayNeeded = (int)d->lastBadTime + delayNeeded - (int)::time(0);
+        if ( delayNeeded < 0 )
+            delayNeeded = 0;
+        if ( delayNeeded > 0 ) {
+            log( "Delaying next IMAP command for " + fn( delayNeeded ) +
+                 " seconds (because of " + fn( syntaxErrors() ) +
+                 " syntax errors)" );
+            (void)new Timer( new IMAPData::BadBouncer( this ), delayNeeded );
+            d->runningCommands = false;
+            return;
         }
 
         // we may be able to start new commands.
@@ -930,4 +969,15 @@ void IMAP::setEventMap( class EventMap * map )
 {
     if ( map )
         d->eventMap = map;
+}
+
+
+/*! Reimplemented in order to record the time, so we can rate-limit
+    bad IMAP commands in runCommands();
+*/
+
+void IMAP::recordSyntaxError()
+{
+    SaslConnection::recordSyntaxError();
+    d->lastBadTime = time( 0 );
 }

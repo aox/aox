@@ -22,7 +22,8 @@ public:
     void close();
 
     void recordAuthenticationFailure();
-    void recordSyntaxError();
+    virtual void recordSyntaxError();
+    uint syntaxErrors();
 
 private:
     User * u;

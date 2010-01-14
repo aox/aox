@@ -58,6 +58,8 @@ public:
     class EventMap * eventMap() const;
     void setEventMap( class EventMap * );
 
+    void recordSyntaxError();
+
 private:
     class IMAPData *d;
 

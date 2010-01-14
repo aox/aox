@@ -103,8 +103,7 @@ void SaslConnection::close()
 }
 
 
-/*! Used to count authentication failures for logging and
-    statistics.
+/*! Used to count authentication failures for logging and statistics.
 */
 
 void SaslConnection::recordAuthenticationFailure()
@@ -113,11 +112,18 @@ void SaslConnection::recordAuthenticationFailure()
 }
 
 
-/*! Used to count protocol syntax errors for logging and
-    statistics.
+/*! Used to count protocol syntax errors for logging and statistics.
 */
 
 void SaslConnection::recordSyntaxError()
 {
     sf++;
+}
+
+
+/*! Returns the number of syntax errors seen so far. */
+
+uint SaslConnection::syntaxErrors()
+{
+    return sf;
 }
