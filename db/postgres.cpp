@@ -278,7 +278,9 @@ void Postgres::react( Event e )
             d->needNotify->notify();
         d->needNotify = 0;
 
-        if ( d->authenticated && Connection::state() == Connected && !::listener ) {
+        if ( d->authenticated &&
+             Connection::state() == Connected &&
+             !::listener ) {
             ::listener = this;
             sendListen();
         }
@@ -303,8 +305,6 @@ void Postgres::react( Event e )
     case Close:
         if ( d->active )
             error( "Connection terminated by the server." );
-        if ( ::listener == this )
-            ::listener = 0;
         break;
 
     case Timeout:
@@ -321,8 +321,8 @@ void Postgres::react( Event e )
             }
             else {
                 if ( d->transaction )
-                    ::log( "Transaction timeout on backend " +
-                           fn( connectionNumber() ), Log::Error );
+                    error( "Transaction timeout on backend " +
+                           fn( connectionNumber() ) );
                 else
                     error( "Request timeout on backend " +
                            fn( connectionNumber() ) );
@@ -1034,6 +1034,9 @@ EString Postgres::mapped( const EString & s ) const
 
 void Postgres::error( const EString &s )
 {
+    if ( ::listener == this )
+        ::listener = 0;
+
     Scope x( log() );
     ::log( s + " (on backend " + fn( connectionNumber() ) + ")", Log::Error );
 
@@ -1052,9 +1055,6 @@ void Postgres::error( const EString &s )
 
     writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );
-
-    if ( ::listener == this )
-        ::listener = 0;
 }
 
 
@@ -1064,6 +1064,9 @@ void Postgres::error( const EString &s )
 
 void Postgres::shutdown()
 {
+    if ( ::listener == this )
+        ::listener = 0;
+
     PgTerminate msg;
     msg.enqueue( writeBuffer() );
 
@@ -1083,9 +1086,6 @@ void Postgres::shutdown()
 
     removeHandle( this );
     d->active = false;
-
-    if ( ::listener == this )
-        ::listener = 0;
 }
 
 
