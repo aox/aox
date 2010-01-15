@@ -131,7 +131,7 @@ Postgres::~Postgres()
 
 void Postgres::processQueue()
 {
-    Query *q;
+    Query * q;
     int n = 0;
 
     if ( d->sendingCopy )
@@ -144,6 +144,8 @@ void Postgres::processQueue()
     while ( ( q = l->firstElement() ) != 0 ) {
         if ( q->state() != Query::Submitted )
             break;
+        if ( ::listener == this && q->transaction && numHandles() > 1 )
+            return;
 
         l->shift();
         q->setState( Query::Executing );
@@ -1111,8 +1113,7 @@ bool Postgres::usable() const
 {
     return ( d->active && !d->startup &&
              !( state() == Connecting || state() == Broken ) &&
-             d->queries.isEmpty() &&
-             ::listener != this );
+             d->queries.isEmpty() );
 }
 
 
