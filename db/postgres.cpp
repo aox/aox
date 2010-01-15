@@ -144,7 +144,7 @@ void Postgres::processQueue()
     while ( ( q = l->firstElement() ) != 0 ) {
         if ( q->state() != Query::Submitted )
             break;
-        if ( ::listener == this && q->transaction && numHandles() > 1 )
+        if ( ::listener == this && q->transaction() && numHandles() > 1 )
             return;
 
         l->shift();
