@@ -91,6 +91,8 @@ TlsThread::TlsThread()
 
         SSL_CTX_set_cipher_list( ctx, "ALL:!LOW" );
 
+        SSL_CTX_set_timeout( ctx, 86400 );
+
         EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
         if ( keyFile.isEmpty() ) {
             keyFile = Configuration::compiledIn( Configuration::LibDir );
