@@ -14,6 +14,16 @@
   The schema downgrade code is good (downgrade.pl etc)
 
 
+Plaintext passwords work, sort of
+
+  allow-plaintext-passwords almost works. But if we get a cleartext
+  password and that's disallowed, we ought to treat it as bad, and
+  notify the admin that a change of passwords is necessary.
+
+  Send email to Timo when that works, he suggested the feature
+  (unknowingly).
+
+
 P/W: Stuff we may want to keep
 
   List::take()->remove() was good
