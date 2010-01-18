@@ -24,6 +24,7 @@ public:
     EString isoTime() const;
     int offset() const;
     EString isoDateTime() const;
+    void setIsoDateTime( const EString & isoDateTime );
 
     void setDate( uint, uint, uint, uint, uint, uint, int );
     void setDate( uint, const EString &, uint, uint, uint,

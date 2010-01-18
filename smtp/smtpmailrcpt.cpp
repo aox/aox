@@ -154,7 +154,12 @@ void SmtpMailFrom::addParam( const EString & name, const EString & value )
         server()->sieve()->setForwardingDate( tmp );
     }
     else if ( name == "holduntil" && server()->dialect() == SMTP::Submit ) {
-        respond( 501, "Syntax problem wrt. internet-style-date-time-utc" );
+        Date * tmp = new Date;
+        tmp->setIsoDateTime( value );
+        if ( tmp->valid() )
+            server()->sieve()->setForwardingDate( tmp );
+        else
+            respond( 501, "Syntax problem wrt. ISO 8601 date-time" );
     }
     else {
         respond( 501,
