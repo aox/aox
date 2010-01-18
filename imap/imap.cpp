@@ -185,10 +185,11 @@ void IMAP::react( Event e )
 
     case Error:
     case Close:
-        if ( state() != Logout && Connection::state() != Closing )
+        if ( d->session ) {
             log( "Unexpected close by client" );
-        endSession();
-        Database::cancelQueries( log() );
+            Database::cancelQueries( log() );
+            endSession();
+        }
         break;
 
     case Shutdown:
