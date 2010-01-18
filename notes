@@ -1,9 +1,7 @@
 3.1.3: 2009-08-xx
 
   Schema 90 should now be complete. It provides smart delays for
-  auto-submitted mail, plus 4865 HOLDFOR. It does not provide
-  HOLDUNTIL, but that'll be simple once there's an erratum fixing the
-  missing ABNF.
+  auto-submitted mail, plus 4865 HOLDFOR and HOLDUNTIL.
 
   The better SpoolManager etc. has to go in here.
 
