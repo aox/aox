@@ -138,9 +138,13 @@ EString Schema::serverVersion() const
 void Schema::execute()
 {
     if ( d->state == 0 ) {
-        d->lock =
-            new Query( "select version() as version, revision from "
-                       "mailstore for update", this );
+        if ( d->upgrade )
+            d->lock =
+                new Query( "select version() as version, revision from "
+                           "mailstore for update", this );
+        else
+                new Query( "select version() as version, revision from "
+                           "mailstore", this );
         d->t->enqueue( d->lock );
         d->t->execute();
         d->state = 1;
