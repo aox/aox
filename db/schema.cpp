@@ -143,6 +143,7 @@ void Schema::execute()
                 new Query( "select version() as version, revision from "
                            "mailstore for update", this );
         else
+            d->lock =
                 new Query( "select version() as version, revision from "
                            "mailstore", this );
         d->t->enqueue( d->lock );
