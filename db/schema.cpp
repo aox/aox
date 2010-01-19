@@ -148,7 +148,7 @@ void Schema::execute()
             "join pg_database d on (d.oid=l.database) "
             "join pg_class c on (l.relation=c.oid) "
             "join pg_stat_activity a on (l.pid=a.procpid) "
-            "where not relname like 'pg_%' and d.datname=$1", this );
+            "where d.datname=$1 and not relname like 'pg_%'", this );
         d->lockSanity->bind( 1, Configuration::text( Configuration::DbName ) );
         d->lockSanity->execute();
         
