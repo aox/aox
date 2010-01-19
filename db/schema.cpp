@@ -27,7 +27,9 @@ public:
     SchemaData()
         : l( new Log ),
           state( 0 ), substate( 0 ), revision( 0 ),
-          lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
+          lock( 0 ), seq( 0 ), update( 0 ), q( 0 ),
+          lockSanity( 0 ),
+          t( 0 ),
           result( 0 ), unparsed( 0 ), upgrade( false ), commit( true ),
           quid( 0 ), undel( 0 ), row( 0 ), lastMailbox( 0 ), count( 0 ),
           uidnext( 0 ), nextmodseq( 0 ), granter( 0 )
@@ -41,6 +43,7 @@ public:
     int substate;
     uint revision;
     Query *lock, *seq, *update, *q;
+    Query * lockSanity;
     Transaction *t;
     Query * result;
     Query * unparsed;
@@ -138,6 +141,17 @@ EString Schema::serverVersion() const
 void Schema::execute()
 {
     if ( d->state == 0 ) {
+        d->lockSanity = new Query(
+            "select relname,pid,mode,granted,current_query,"
+            "extract(epoch from current_timestamp-a.query_start) as lock_age "
+            "from pg_locks l "
+            "join pg_database d on (d.oid=l.database) "
+            "join pg_class c on (l.relation=c.oid) "
+            "join pg_stat_activity a on (l.pid=a.procpid) "
+            "where not relname like 'pg_%' and d.datname=$1", this );
+        d->lockSanity->bind( 1, Configuration::text( Configuration::DbName ) );
+        d->lockSanity->execute();
+        
         if ( d->upgrade ) {
             d->lock =
                 new Query( "select version() as version, revision from "
@@ -152,6 +166,23 @@ void Schema::execute()
             d->lock->execute();
         }
         d->state = 1;
+    }
+
+    if ( d->lockSanity->hasResults() ) {
+        Row * r = d->lockSanity->nextRow();
+        EString age;
+        if ( r->isNull( "lock_age" ) )
+            age = "(unknown; missing privileges?)";
+        else
+            age = fn( r->getInt( "lock_age" ) );
+        log( "Unexpected lock seen at startup."
+             " Table: " + r->getEString( "relname" ).quoted() + 
+             " PID: " + r->getEString( "pid" ).quoted() + 
+             " Mode: " + r->getEString( "mode" ).quoted() + 
+             " Granted: " + ( r->getBoolean( "granted" ) ? "yes" : "no" ) +
+             " Query: " + r->getEString( "current_query" ).quoted() +
+             " Lock age: " + age,
+             Log::Significant );
     }
 
     if ( d->state == 1 ) {
