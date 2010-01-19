@@ -451,6 +451,7 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
             if ( !c->canRead() ) {
                 c->setState( Connection::Closing );
                 c->react( Connection::Close );
+                c->close();
             }
 
             w = true;
@@ -461,6 +462,7 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
             if ( c->writeBuffer()->error() != 0 ) {
                 c->setState( Connection::Closing );
                 c->react( Connection::Close );
+                c->close();
             }
             else if ( c->writeBuffer()->size() > 0 ) {
                 c->log( "Still have " +
