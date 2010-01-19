@@ -138,16 +138,19 @@ EString Schema::serverVersion() const
 void Schema::execute()
 {
     if ( d->state == 0 ) {
-        if ( d->upgrade )
+        if ( d->upgrade ) {
             d->lock =
                 new Query( "select version() as version, revision from "
                            "mailstore for update", this );
-        else
+            d->t->enqueue( d->lock );
+            d->t->execute();
+        }
+        else {
             d->lock =
                 new Query( "select version() as version, revision from "
                            "mailstore", this );
-        d->t->enqueue( d->lock );
-        d->t->execute();
+            d->lock->execute();
+        }
         d->state = 1;
     }
 
@@ -170,13 +173,14 @@ void Schema::execute()
             d->state = 7;
         }
         else if ( d->revision == Database::currentRevision() ) {
-            if ( d->upgrade )
+            if ( d->upgrade ) {
                 d->l->log( "Schema is already at revision " +
                            fn( Database::currentRevision() ) +
                            ", no upgrade necessary.",
                            Log::Significant );
+                d->t->commit();
+            }
             d->result->setState( Query::Completed );
-            d->t->commit();
             d->state = 7;
         }
         else if ( d->upgrade && d->revision > Database::currentRevision() &&
@@ -220,7 +224,9 @@ void Schema::execute()
         }
     }
 
-    if ( d->revision >= 85 && d->revision > Database::currentRevision() ) {
+    if ( d->upgrade &&
+         d->revision >= 85 &&
+         d->revision > Database::currentRevision() ) {
         while ( d->revision > Database::currentRevision() ) {
             EString function( "downgrade_to_" + fn( d->revision - 1 ) + "()" );
             d->l->log( "Invoking stored function " + function );
@@ -333,6 +339,7 @@ void Schema::execute()
             if ( !d->commit )
                 s.append( ", but not committed" );
             s.append( "." );
+
 
             d->l->log( s, Log::Significant );
             d->result->setState( Query::Completed );
