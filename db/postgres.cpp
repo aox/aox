@@ -137,6 +137,11 @@ void Postgres::processQueue()
     if ( d->sendingCopy )
         return;
 
+    if ( !::listener ) {
+        ::listener = this;
+        sendListen();
+    }
+
     List< Query > *l = Database::queries;
     if ( d->transaction )
         l = d->transaction->enqueuedQueries();
@@ -279,13 +284,6 @@ void Postgres::react( Event e )
         if ( d->needNotify )
             d->needNotify->notify();
         d->needNotify = 0;
-
-        if ( d->authenticated &&
-             Connection::state() == Connected &&
-             !::listener ) {
-            ::listener = this;
-            sendListen();
-        }
 
         if ( usable() ) {
             processQueue();
