@@ -69,6 +69,41 @@ static void * trampoline( void * t )
 static SSL_CTX * ctx = 0;
 
 
+/*!
+
+*/
+
+void TlsThread::setup()
+{
+    SSL_load_error_strings();
+    SSL_library_init();
+
+    ctx = ::SSL_CTX_new( SSLv23_server_method() );
+    int options = SSL_OP_ALL;
+    SSL_CTX_set_options( ctx, options );
+
+    SSL_CTX_set_cipher_list( ctx, "ALL:!LOW" );
+
+    EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
+    if ( keyFile.isEmpty() ) {
+        keyFile = Configuration::compiledIn( Configuration::LibDir );
+        keyFile.append( "/automatic-key.pem" );
+    }
+    keyFile = File::chrooted( keyFile );
+    if ( !SSL_CTX_use_certificate_chain_file( ctx, keyFile.cstr() ) ||
+         !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
+                                          SSL_FILETYPE_PEM ) )
+        log( "OpenSSL needs both the certificate and "
+             "private key in this file: " + keyFile,
+             Log::Disaster );
+    // we go on anyway; the disaster will take down the server in
+    // a hurry.
+
+    // we don't ask for a client cert
+    SSL_CTX_set_verify( ctx, SSL_VERIFY_NONE, NULL );
+}
+
+
 /*! \class TlsThread tlsthread.h
     Creates and manages a thread for TLS processing using openssl
 */
@@ -81,36 +116,6 @@ static SSL_CTX * ctx = 0;
 TlsThread::TlsThread()
     : d( new TlsThreadData )
 {
-    if ( !ctx ) {
-        // everyone does this...
-        SSL_load_error_strings();
-        SSL_library_init();
-
-        ctx = ::SSL_CTX_new( SSLv23_server_method() );
-        int options = SSL_OP_ALL;
-        SSL_CTX_set_options( ctx, options );
-
-        SSL_CTX_set_cipher_list( ctx, "ALL:!LOW" );
-
-        EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
-        if ( keyFile.isEmpty() ) {
-            keyFile = Configuration::compiledIn( Configuration::LibDir );
-            keyFile.append( "/automatic-key.pem" );
-        }
-        keyFile = File::chrooted( keyFile );
-        if ( !SSL_CTX_use_certificate_chain_file( ctx, keyFile.cstr() ) ||
-             !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
-                                              SSL_FILETYPE_PEM ) )
-            log( "OpenSSL needs both the certificate and "
-                 "private key in this file: " + keyFile,
-                 Log::Disaster );
-        // we go on anyway; the disaster will take down the server in
-        // a hurry.
-
-        // we don't ask for a client cert
-        SSL_CTX_set_verify( ctx, SSL_VERIFY_NONE, NULL );
-    }
-
     d->ssl = ::SSL_new( ctx );
     SSL_set_accept_state( d->ssl );
 

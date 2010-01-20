@@ -13,9 +13,11 @@ public:
     TlsThread();
     ~TlsThread();
 
+    static void setup();
+
     void setServerFD( int );
     void setClientFD( int );
-    
+
     void start();
 
     bool broken() const;

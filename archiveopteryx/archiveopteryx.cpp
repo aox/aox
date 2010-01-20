@@ -10,6 +10,8 @@
 
 #if defined(USE_CRYPTLIB)
 #include "tls.h"
+#else
+#include "tlsthread.h"
 #endif
 #include "flag.h"
 #include "event.h"
@@ -191,6 +193,12 @@ int main( int argc, char *argv[] )
         "SMTPS", Configuration::toggle( Configuration::UseSmtps ),
         Configuration::SmtpsAddress, Configuration::SmtpsPort
     );
+
+#if !defined(USE_CRYPTLIB)
+    if ( Configuration::toggle( Configuration::UseTls ) ) {
+        TlsThread::setup();
+    }
+#endif
 
     s.setup( Server::LogStartup );
 
