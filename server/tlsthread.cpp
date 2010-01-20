@@ -2,6 +2,7 @@
 
 #include "tlsthread.h"
 
+#include "file.h"
 #include "estring.h"
 #include "configuration.h"
 
@@ -96,6 +97,7 @@ TlsThread::TlsThread()
             keyFile = Configuration::compiledIn( Configuration::LibDir );
             keyFile.append( "/automatic-key.pem" );
         }
+        keyFile = File::chrooted( keyFile );
         if ( !SSL_CTX_use_certificate_chain_file( ctx, keyFile.cstr() ) ||
              !SSL_CTX_use_RSAPrivateKey_file( ctx, keyFile.cstr(),
                                               SSL_FILETYPE_PEM ) )
