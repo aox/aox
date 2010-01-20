@@ -569,6 +569,10 @@ static void checkMiscellaneous()
         error( "smarthost-address/port are the same as "
                "smtp-submit-address/port" );
     }
+
+    if ( Configuration::scalar( Configuration::DbMaxHandles ) < 2 ) {
+        fprintf( stderr, "db-max-address should be at least 2, 3 is better\n" );
+    }
 }
 
 
