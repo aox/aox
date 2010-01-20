@@ -312,7 +312,16 @@ static void checkFilePermissions()
     if ( Configuration::text( Configuration::MessageCopy ).lower() != "none" )
         addPath( Path::WritableDir, Configuration::MessageCopyDir );
     addPath( Path::JailDir, Configuration::JailDir );
-    addPath( Path::ReadableFile, Configuration::TlsCertFile );
+    if ( Configuration::toggle( Configuration::UseTls ) ) {
+        EString c = Configuration::text( Configuration::TlsCertFile );
+#if !defined(USE_CRYPTLIB)
+        if ( c.isEmpty() ) {
+            c = Configuration::compiledIn( Configuration::LibDir );
+            c.append( "/automatic-key.pem" );
+        }
+#endif
+        addPath( Path::ReadableFile, Configuration::TlsCertFile );
+    }
     addPath( Path::ExistingSocket, Configuration::EntropySource );
     EString lf = Configuration::text( Configuration::LogFile );
     if ( lf != "-" && !lf.startsWith( "syslog/" ) )
