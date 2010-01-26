@@ -69,8 +69,8 @@ static void * trampoline( void * t )
 static SSL_CTX * ctx = 0;
 
 
-/*!
-
+/*! Perform any OpenSSL initialisation needed to enable us to create
+    TlsThreads later.
 */
 
 void TlsThread::setup()
@@ -110,8 +110,7 @@ void TlsThread::setup()
 
 
 
-/*!  Constructs an empty
-*/
+/*! Constructs an empty TlsThread */
 
 TlsThread::TlsThread()
     : d( new TlsThreadData )
