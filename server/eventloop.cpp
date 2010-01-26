@@ -448,10 +448,12 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
 
         if ( r ) {
             bool gone = false;
-            int a = 0;
-            int r = ioctl( c->fd(), FIONREAD, &a );
-            if ( r >= 0 && a == 0 )
-                gone = true;
+            if ( !c->hasProperty( Connection::Listens ) ) {
+                int a = 0;
+                int r = ioctl( c->fd(), FIONREAD, &a );
+                if ( r >= 0 && a == 0 )
+                    gone = true;
+            }
 
             c->read();
             c->react( Connection::Read );
