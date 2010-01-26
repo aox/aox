@@ -173,14 +173,14 @@ void Schema::execute()
         Row * r = d->lockSanity->nextRow();
         EString age;
         if ( r->isNull( "lock_age" ) ||
-             d->getInt( "lock_age" ) > 3 ) {
+             r->getInt( "lock_age" ) > 3 ) {
             if ( r->isNull( "lock_age" ) )
                 age = "(unknown; missing privileges?)";
             else
                 age = fn( r->getInt( "lock_age" ) );
             log( "Unexpected lock seen at startup."
                  " Table: " + r->getEString( "relname" ).quoted() +
-                 " PID: " + r->getInt( "pid" ) +
+                 " PID: " + fn( r->getInt( "pid" ) ) +
                  " Mode: " + r->getEString( "mode" ).quoted() +
                  " Granted: " + ( r->getBoolean( "granted" ) ? "yes" : "no" ) +
                  " Query: " + r->getEString( "current_query" ).quoted() +
