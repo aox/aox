@@ -440,10 +440,21 @@ void Transaction::commit()
     if ( d->submittedCommit )
         return;
 
-    if ( d->parent )
-        (void)new SubtransactionTrampoline( d->savepoint, this );
-    else
+    if ( failed() ) {
+        // rollback() contains release to savepoint, so reuse that
+        rollback();
+        return;
+    }
+
+    if ( d->parent ) {
+        Query * q = new Query( "release savepoint " + d->savepoint, d->owner );
+        enqueue( q );
+        // the "release savepoint" has to shift control to the parent.
+        q->setTransaction( d->parent );
+    }
+    else {
         enqueue( new Query( "commit", 0 ) );
+    }
     d->submittedCommit = true;
 
     execute();
