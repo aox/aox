@@ -26,6 +26,8 @@
 #include <sys/socket.h>
 // read, select
 #include <unistd.h>
+// ioctl, FIONREAD
+#include <sys/ioctl.h>
 
 // memset (for FD_* under OpenBSD)
 #include <string.h>
@@ -445,10 +447,16 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
         }
 
         if ( r ) {
+            bool gone = false;
+            int a = 0;
+            int r = ioctl( c->fd(), FIONREAD, &a );
+            if ( r >= 0 && a == 0 )
+                gone = true;
+
             c->read();
             c->react( Connection::Read );
 
-            if ( !c->canRead() ) {
+            if ( gone ) {
                 c->setState( Connection::Closing );
                 c->react( Connection::Close );
             }
