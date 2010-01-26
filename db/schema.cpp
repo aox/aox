@@ -142,8 +142,9 @@ void Schema::execute()
 {
     if ( d->state == 0 ) {
         d->lockSanity = new Query(
-            "select relname:text,pid:text,mode,granted,current_query,"
-            "extract(epoch from current_timestamp-a.query_start):int as lock_age "
+            "select relname::text,pid::int,mode,granted,current_query,"
+            "extract(epoch from current_timestamp-a.query_start)::int "
+            "as lock_age "
             "from pg_locks l "
             "join pg_database d on (d.oid=l.database) "
             "join pg_class c on (l.relation=c.oid) "
