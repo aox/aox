@@ -142,8 +142,8 @@ void Schema::execute()
 {
     if ( d->state == 0 ) {
         d->lockSanity = new Query(
-            "select relname,pid,mode,granted,current_query,"
-            "extract(epoch from current_timestamp-a.query_start) as lock_age "
+            "select relname:text,pid:text,mode,granted,current_query,"
+            "extract(epoch from current_timestamp-a.query_start):int as lock_age "
             "from pg_locks l "
             "join pg_database d on (d.oid=l.database) "
             "join pg_class c on (l.relation=c.oid) "
@@ -151,7 +151,7 @@ void Schema::execute()
             "where d.datname=$1 and not relname like 'pg_%'", this );
         d->lockSanity->bind( 1, Configuration::text( Configuration::DbName ) );
         d->lockSanity->execute();
-        
+
         if ( d->upgrade ) {
             d->lock =
                 new Query( "select version() as version, revision from "
@@ -176,9 +176,9 @@ void Schema::execute()
         else
             age = fn( r->getInt( "lock_age" ) );
         log( "Unexpected lock seen at startup."
-             " Table: " + r->getEString( "relname" ).quoted() + 
-             " PID: " + r->getEString( "pid" ).quoted() + 
-             " Mode: " + r->getEString( "mode" ).quoted() + 
+             " Table: " + r->getEString( "relname" ).quoted() +
+             " PID: " + r->getEString( "pid" ).quoted() +
+             " Mode: " + r->getEString( "mode" ).quoted() +
              " Granted: " + ( r->getBoolean( "granted" ) ? "yes" : "no" ) +
              " Query: " + r->getEString( "current_query" ).quoted() +
              " Lock age: " + age,
