@@ -571,6 +571,10 @@ EventHandler *Query::owner() const
 
 void Query::notify()
 {
+    if ( d->error.isEmpty() && d->transaction &&
+         !d->transaction->error().isEmpty() )
+        d->transaction->clearError();
+
     if ( !d->owner ) {
         if ( failed() && d->transaction )
             d->transaction->notify();

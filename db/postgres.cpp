@@ -142,6 +142,11 @@ void Postgres::processQueue()
         sendListen();
     }
 
+    while ( d->transaction &&
+            ( d->transaction->state() == Transaction::Completed ||
+              d->transaction->state() == Transaction::RolledBack ) )
+        d->transaction = d->transaction->parent();
+
     List< Query > *l = Database::queries;
     if ( d->transaction )
         l = d->transaction->enqueuedQueries();
@@ -596,25 +601,6 @@ void Postgres::process( char type )
     case 'Z':
         {
             PgReady msg( readBuffer() );
-
-            if ( state() == InTransaction ||
-                 state() == FailedTransaction )
-            {
-                if ( msg.state() == FailedTransaction ) {
-                    d->transaction->setState( Transaction::Failed );
-                }
-                else if ( msg.state() == Idle ) {
-                    if ( !d->transaction->failed() )
-                        d->transaction->setState( Transaction::Completed );
-                    d->transaction->notify();
-                    d->transaction = d->transaction->parent();
-                }
-                else if ( state() == FailedTransaction ) {
-                    if ( msg.state() == InTransaction || msg.state() == Idle )
-                        d->transaction->clearError();
-                }
-            }
-
             setState( msg.state() );
 
         }
@@ -1279,6 +1265,11 @@ bool Postgres::blocked( const class Transaction * transaction ) const
 {
     if ( !transaction )
         return false;
+
+    while ( d->transaction &&
+            ( d->transaction->state() == Transaction::Completed ||
+              d->transaction->state() == Transaction::RolledBack ) )
+        d->transaction = d->transaction->parent();
 
     Transaction * t = d->transaction;
     if ( t == transaction )

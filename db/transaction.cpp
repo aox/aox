@@ -17,6 +17,7 @@ public:
     TransactionData()
         : state( Transaction::Inactive ), parent( 0 ), children( 0 ),
           submittedCommit( false ), submittedBegin( false ),
+          committing( false ),
           owner( 0 ), db( 0 ), queries( 0 ), failedQuery( 0 )
     {}
 
@@ -26,6 +27,7 @@ public:
     uint children;
     bool submittedCommit;
     bool submittedBegin;
+    bool committing;
     EventHandler *owner;
     Database *db;
 
@@ -33,6 +35,22 @@ public:
 
     Query * failedQuery;
     EString error;
+
+    class CommitBouncer
+        : public EventHandler
+    {
+    public:
+        CommitBouncer( Transaction * t ): q( 0 ), me( t ) {}
+
+        void execute () {
+            me->finalizeTransaction( q );
+        }
+
+        Query * q;
+
+    private:
+        Transaction * me;
+    };
 };
 
 
@@ -169,7 +187,9 @@ bool Transaction::failed() const
 
 bool Transaction::done() const
 {
-    return d->state == Completed || d->state == Failed;
+    return d->state == Completed ||
+        d->state == Failed ||
+        d->state == RolledBack;
 }
 
 
@@ -182,7 +202,6 @@ void Transaction::clearError()
     d->failedQuery = 0;
     d->error.truncate();
     d->state = Executing;
-
 }
 
 
@@ -338,21 +357,20 @@ void Transaction::rollback()
     else if ( d->parent ) {
         // if we're a subtransaction, then what we need to do is roll
         // back to the savepoint, then release it...
-        Query * q = new Query( "rollback to " + d->savepoint, 0 );
+        enqueue( new Query( "rollback to " + d->savepoint, 0 ) );
+        TransactionData::CommitBouncer * cb = 
+            new TransactionData::CommitBouncer( this );
+        Query * q = new Query( "release savepoint " + d->savepoint, cb );
+        cb->q = q;
         enqueue( q );
-        q = new Query( "release savepoint " + d->savepoint, d->owner );
-        enqueue( q );
-        // ... and make the "release savepoint" shift control to the
-        // parent.
-        q->setTransaction( d->parent );
         execute();
-        // rollback() completes this transaction
-        setState( Completed );
-        d->parent->notify();
     }
     else {
-        enqueue( new Query( "rollback", d->owner ) );
-        // shouldn't this set the state to Completed too? XXX
+        TransactionData::CommitBouncer * cb = 
+            new TransactionData::CommitBouncer( this );
+        Query * q = new Query( "rollback", cb );
+        cb->q = q;
+        enqueue( q );
         execute();
     }
     d->submittedCommit = true;
@@ -386,46 +404,42 @@ void Transaction::restart()
 }
 
 
-class SubtransactionTrampoline
-    : public EventHandler
+/*! This private function handles whatever needs to happen when a
+    subtransaction finishes. There are three cases:
+
+    If the commit/rollback works, we restart the parent.
+
+    If a subtransaction is rolled back and the rollback fails, we're
+    in real trouble.
+
+    If a subtransaction should commit and the release savepoint fails,
+    we roll the subtransaction back and should eventually hand over to
+    the parent transaction.
+*/
+
+void Transaction::finalizeTransaction( Query * q )
 {
-private:
-    Transaction * t;
-    Query * q;
-
-public:
-    SubtransactionTrampoline( const EString & sp, Transaction * transaction )
-        : t( transaction ), q ( 0 )
-    {
-        q = new Query( "release savepoint " + sp, this );
-        t->enqueue( q );
-        // this statement has to shift control to the parent transaction
-        q->setTransaction( t->parent() );
+    if ( !q->failed() ) {
+        if ( d->committing )
+            setState( Completed );
+        else
+            setState( RolledBack );
+        notify();
+        if ( parent() )
+            parent()->execute();
     }
-
-    void execute ()
-    {
-        if ( !q->done() )
-            return;
-
-        if ( !t->failed() && q->failed() )
-            // if releasing the savepoint failed, so did the subtransaction
-            t->setError( q, q->error() );
-
-        if ( t->failed() ) {
-            // if the subtransaction failed, it couldn't be committed,
-            // and in that case, the parent fails, too.
-            t->parent()->setError( t->failedQuery(), t->error() );
-        }
-        else {
-            // if the subtransaction works, all is fine.
-            t->setState( Transaction::Completed );
-            // the parent may have a queue it needs to service.
-            t->parent()->execute();
-        }
-        t->notify();
+    else if ( d->committing ) {
+        d->committing = false;
+        d->submittedCommit = false;
+        rollback();
+        setError( q, q->error() );
+        notify();
     }
-};
+    else {
+        setError( q, q->error() );
+        notify();
+    }
+}
 
 
 /*! Issues a COMMIT to complete the Transaction (after sending any
@@ -440,22 +454,22 @@ void Transaction::commit()
     if ( d->submittedCommit )
         return;
 
-    if ( failed() ) {
-        // rollback() contains release to savepoint, so reuse that
-        rollback();
-        return;
-    }
-
     if ( d->parent ) {
-        Query * q = new Query( "release savepoint " + d->savepoint, d->owner );
+        TransactionData::CommitBouncer * cb = 
+            new TransactionData::CommitBouncer( this );
+        Query * q = new Query( "release savepoint " + d->savepoint, cb );
+        cb->q = q;
         enqueue( q );
-        // the "release savepoint" has to shift control to the parent.
-        q->setTransaction( d->parent );
     }
     else {
-        enqueue( new Query( "commit", 0 ) );
+        TransactionData::CommitBouncer * cb = 
+            new TransactionData::CommitBouncer( this );
+        Query * q = new Query( "commit", cb );
+        cb->q = q;
+        enqueue( q );
     }
     d->submittedCommit = true;
+    d->committing = true;
 
     execute();
 }

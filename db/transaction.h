@@ -19,7 +19,7 @@ public:
     Transaction( EventHandler * );
     void setDatabase( Database * );
 
-    enum State { Inactive, Executing, Completed, Failed };
+    enum State { Inactive, Executing, Completed, RolledBack, Failed };
     void setState( State );
     State state() const;
     bool blocked() const;
@@ -46,6 +46,8 @@ public:
 
     Transaction * subTransaction( EventHandler * );
     Transaction * parent() const;
+
+    void finalizeTransaction( Query * );
 
 private:
     class TransactionData *d;
