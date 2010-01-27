@@ -405,7 +405,8 @@ void Transaction::restart()
 
 
 /*! This private function handles whatever needs to happen when a
-    subtransaction finishes. There are three cases:
+    transaction finishes; \a q is the finishing query (typically
+    commit, rollback or release savepoint). There are three cases:
 
     If the commit/rollback works, we restart the parent.
 
