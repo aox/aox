@@ -40,13 +40,13 @@ public:
     char ctrb[bs];
     // the offset at which cleartext data starts
     int ctrbo;
-    // and the buffer size (of ...o=...s, the buffer contains no data)
+    // and the buffer size (if ...o=...s, the buffer contains no data)
     int ctrbs;
     // clear-text write buffer, ie. data going to aox
     char ctwb[bs];
     int ctwbo;
     int ctwbs;
-    // the cleartext fd, ie. the fd for talking toa xo
+    // the cleartext fd, ie. the fd for talking to aox
     int ctfd;
     // encrypted read buffer, ie. data coming from the peer
     char encrb[bs];
@@ -206,7 +206,7 @@ void TlsThread::start()
             finish = true;
         }
         if ( encgone && d->ctwbs == 0 ) {
-            // if the enfd is gone and we have nothing to write to ct,
+            // if the encfd is gone and we have nothing to write to ct,
             // finish
             finish = true;
         }
