@@ -472,11 +472,6 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
                 c->setState( Connection::Closing );
                 c->react( Connection::Close );
             }
-            else if ( c->writeBuffer()->size() > 0 ) {
-                c->log( "Still have " +
-                        EString::humanNumber( c->writeBuffer()->size() ) +
-                        " bytes to write", Log::Debug );
-            }
         }
     }
     catch ( Exception e ) {

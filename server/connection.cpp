@@ -41,6 +41,7 @@ class ConnectionData
 public:
     ConnectionData()
         : fd( -1 ), timeout( 0 ), r( 0 ), w( 0 ),
+          wbt( 0 ), wbs( 0 ),
           state( Connection::Invalid ),
           type( Connection::Client ),
           tls( false ), pending( false ),
@@ -50,6 +51,7 @@ public:
     int fd;
     uint timeout;
     Buffer *r, *w;
+    uint wbt, wbs;
     Connection::State state;
 
     Connection::Type type;
@@ -542,8 +544,28 @@ void Connection::read()
 
 void Connection::write()
 {
-    if ( valid() )
-        d->w->write( d->fd );
+    if ( !valid() )
+        return;
+
+    d->w->write( d->fd );
+    uint wbs = d->w->size();
+    if ( wbs && !d->wbs ) {
+        d->wbt = time( 0 );
+        d->wbs = wbs;
+        log( "Cannot write all data to client (" + 
+             EString::humanNumber( d->wbs ) + " bytes queued" );
+    }
+    else if ( d->wbt && !wbs ) {
+        uint now = time( 0 );
+        if ( now > d->wbt + 1 ) {
+            log( "Wrote " +
+                 EString::humanNumber( d->wbs ) +
+                 " to client in " + fn( now - d->wbt ) +
+                 " seconds" );
+        }
+        d->wbt = 0;
+        d->wbs = 0;
+    }
 }
 
 
