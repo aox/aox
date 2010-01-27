@@ -552,15 +552,16 @@ void Connection::write()
     if ( wbs && !d->wbs ) {
         d->wbt = time( 0 );
         d->wbs = wbs;
-        log( "Cannot write all data to client (" + 
-             EString::humanNumber( d->wbs ) + " bytes queued" );
+        if ( d->wbs > 16384 )
+            log( "Have to queue " + 
+                 EString::humanNumber( d->wbs ) + " output bytes " );
     }
-    else if ( d->wbt && !wbs ) {
+    else if ( d->wbs && !wbs ) {
         uint now = time( 0 );
         if ( now > d->wbt + 1 ) {
             log( "Wrote " +
                  EString::humanNumber( d->wbs ) +
-                 " to client in " + fn( now - d->wbt ) +
+                 " bytes to client in " + fn( now - d->wbt ) +
                  " seconds" );
         }
         d->wbt = 0;
