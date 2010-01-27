@@ -23,7 +23,6 @@ public:
 
     int read( char *, uint, Buffer * );
     int write( char *, uint, Buffer * );
-    void flush( Buffer * );
     z_stream s;
 };
 
@@ -60,27 +59,12 @@ int DeflateFilter::write( char * data, uint len, Buffer * next )
         s.next_in = (Bytef*)(data + done);
         s.next_out = (Bytef*)buffer;
         s.avail_out = bufsiz;
-        r = ::deflate( &s, Z_NO_FLUSH );
+        r = ::deflate( &s, Z_SYNC_FLUSH );
         uint wrote = (len-done)-s.avail_in;
         done += wrote;
         next->append( buffer, bufsiz - s.avail_out );
     }
     return done;
-}
-
-
-void DeflateFilter::flush( Buffer * next )
-{
-    char hack[1];
-    hack[0] = '\0';
-    s.avail_in = 0;
-    s.next_in = (Bytef*)(hack);
-    s.next_out = (Bytef*)buffer;
-    s.avail_out = bufsiz;
-    int r = ::deflate( &s, Z_SYNC_FLUSH );
-    if ( r != Z_OK )
-        log( "zlib deflate( Z_SYNC_FLUSH ) retuned an error", Log::Error );
-    next->append( buffer, bufsiz - s.avail_out );
 }
 
 
