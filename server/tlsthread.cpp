@@ -36,22 +36,31 @@ public:
 
     SSL * ssl;
 
+    // clear-text read buffer, ie. data coming from aox
     char ctrb[bs];
+    // the offset at which cleartext data starts
     int ctrbo;
+    // and the buffer size (of ...o=...s, the buffer contains no data)
     int ctrbs;
+    // clear-text write buffer, ie. data going to aox
     char ctwb[bs];
     int ctwbo;
     int ctwbs;
+    // the cleartext fd, ie. the fd for talking toa xo
     int ctfd;
+    // encrypted read buffer, ie. data coming from the peer
     char encrb[bs];
     int encrbo;
     int encrbs;
+    // encrypted write buffer, ie. data going to the peer
     char encwb[bs];
     int encwbo;
     int encwbs;
     int encfd;
 
+    // where we read/write encrypted data
     BIO * networkBio;
+    // where openssl reads/writes ditto
     BIO * sslBio;
 
     pthread_t thread;
