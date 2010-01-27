@@ -95,7 +95,7 @@ void SmtpClient::react( Event e )
     case Timeout:
         log( "SMTP server timed out", Log::Error );
         d->error = "Server timeout.";
-        finish();
+        finish( "4.4.1" );
         close();
         break;
 
@@ -255,7 +255,7 @@ void SmtpClient::sendCommand()
                 d->state = SmtpClientData::Data;
             }
             else {
-                finish();
+                finish( "4.5.0" );
                 send = "rset";
                 d->state = SmtpClientData::Rset;
             }
@@ -275,13 +275,13 @@ void SmtpClient::sendCommand()
                 ++i;
             }
         }
-        finish();
+        finish( "4.5.0" );
         send = "rset";
         d->state = SmtpClientData::Rset;
         break;
 
     case SmtpClientData::Rset:
-        finish();
+        finish( "4.5.0" );
         delete d->closeTimer;
         if ( idleClient() == this )
             d->closeTimer = new Timer( d->timerCloser, 298 );
@@ -290,7 +290,7 @@ void SmtpClient::sendCommand()
         return;
 
     case SmtpClientData::Error:
-        finish();
+        finish( "4.5.0" );
         send = "rset";
         d->state = SmtpClientData::Rset;
         break;
@@ -302,7 +302,7 @@ void SmtpClient::sendCommand()
 
     if ( send.isEmpty() )
         return;
-    
+
     log( "Sending: " + send, Log::Debug );
     enqueue( send + "\r\n" );
     d->sent = send;
@@ -538,14 +538,13 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
 
 
 /*! Finishes message sending activities, however they turned out, and
-    notifies the user. If \a status is supplied and nonempty, \a
-    status is used as Recipient::status() for all unhandled
-    recipients.
+    notifies the user. \a status is used as Recipient::status() for
+    all unhandled recipients.
 */
 
 void SmtpClient::finish( const char * status )
 {
-    if ( status && *status && d->dsn ) {
+    if ( d->dsn ) {
         List<Recipient>::Iterator i( d->dsn->recipients() );
         while ( i ) {
             if ( i->action() == Recipient::Unknown )

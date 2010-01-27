@@ -39,11 +39,11 @@ private:
     void parse();
     void sendCommand();
     void handleFailure( const EString & );
-    void finish( const char * status = 0 );
+    void finish( const char * status );
     void recordExtension( const EString & );
 
     static EString dotted( const EString & );
-    
+
     static SmtpClient * idleClient();
 };
 
