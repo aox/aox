@@ -50,15 +50,12 @@ actions together Prepare
 }
 
 
-Prepare $(INSTALLROOT)$(BINDIR) ;
-Prepare $(INSTALLROOT)$(MANDIR) ;
 Prepare $(INSTALLROOT)$(JAILDIR) ;
 Prepare $(INSTALLROOT)$(MESSAGEDIR) ;
 Prepare $(INSTALLROOT)$(PIDFILEDIR) ;
 Prepare $(INSTALLROOT)$(CONFIGDIR) ;
-Prepare $(INSTALLROOT)$(LIBDIR) ;
 Prepare $(INSTALLROOT)$(LIBDIR)/contrib ;
-if ( $(LOGFILE:D) != "syslog" ) {
+if ( $(LOGFILE:D) != "" && $(LOGFILE:D) != "syslog" ) {
     Prepare $(INSTALLROOT)$(LOGFILE:D) ;
 }
 if ( $(USE_CRYPTLIB) = "yes" ) {
