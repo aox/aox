@@ -636,25 +636,44 @@ bool EString::boring( Boring b ) const
     if ( isEmpty() )
         return false; // empty strings aren't boring - they may need quoting
     uint i = 0;
-    char c = d->str[i];
-    while ( i < length() &&
-            ( ( c >= 'a' && c <= 'z' ) ||
-              ( c >= 'A' && c <= 'Z' ) ||
-              ( c >= '0' && c <= '9' ) ||
-              ( c == '!' || c == '#' ||
-                c == '$' || c == '&' ||
-                c == '+' || c == '-' ) ||
-              // XXX: The MIME case is probably 100% untested
-              ( b == MIME &&
-                ( c == '.' ))))
-    {
-        i++;
-        c = d->str[i];
-    }
-    if ( i < length() )
-        return false; // strings with strange characters aren't boring
+    bool exciting = false;
+    while ( i < length() && !exciting ) {
+        switch ( d->str[i] ) {
+        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':
+        case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N':
+        case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
+        case 'V': case 'W': case 'X': case 'Y': case 'Z':
 
-    return true; // strings with only the usual suspects are
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
+        case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
+        case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
+        case 'v': case 'w': case 'x': case 'y': case 'z': 
+
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+        
+        case '!':
+        case '#':
+        case '$':
+        case '&':
+        case '+':
+        case '-':
+            break;
+
+        case '.':
+            if ( b != MIME )
+                exciting = true;
+            break;
+        
+        default:
+            exciting = true;
+            break;
+        }
+        i++;
+    }
+    if ( exciting ) // if we saw an exiting character...
+        return false;
+    return true;
 }
 
 
@@ -1306,7 +1325,7 @@ static bool maybeBoundary( const EString & s, uint i ) {
         return false;
     if ( s[i] != '-' || s[i+1] != '-' )
         return false;
-    
+
     while ( i < s.length() && s[i] >= ' ' ) {
         //bchars := bcharsnospace / " "
         //bcharsnospace := DIGIT / ALPHA / "'" / "(" / ")" /
@@ -1322,7 +1341,7 @@ static bool maybeBoundary( const EString & s, uint i ) {
         case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
         case 'V': case 'W': case 'X': case 'Y': case 'Z':
         case '0': case '1': case '2': case '3': case '4': case '5': case '6':
-        case '7': case '8': case '9':             
+        case '7': case '8': case '9':
         case '\'':
         case '(': case ')': case '+': case '_': case ',': case '-': case '.':
         case '/': case ':': case '=': case '?':
