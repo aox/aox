@@ -87,7 +87,7 @@ void SaslConnection::close()
         "syntaxerrors,started_at,ended_at,userid) "
         "values ($1,$2,$3,$4,$5,$6,"
         "$7::interval + 'epoch'::timestamptz,"
-        "$8::interval + 'epoch'::timestamptz),$9", 0
+        "$8::interval + 'epoch'::timestamptz,$9)", 0
     );
 
     q->bind( 1, u->login() );
