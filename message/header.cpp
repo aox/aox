@@ -1709,7 +1709,7 @@ void Header::repair( Multipart * p, const EString & body )
 
     // If Content-Base or Content-Location is/are bad, we just drop it/them
 
-    while ( field( "Content-Base" ) || field( "Content-Location" ) ) {
+    if ( field( "Content-Base" ) || field( "Content-Location" ) ) {
         List<HeaderField>::Iterator i( d->fields );
         while ( i ) {
             if ( !i->valid() && ( i->name() == "Content-Base" ||
