@@ -78,7 +78,7 @@ LINKFLAGS = -g ;
 
 EXEMODE ?= 555 ;
 
-# Uncomment the next line to use cryptlib instead of stunnel. This
+# Uncomment the next line to use cryptlib instead of openssl. This
 # setting will be removed in the near future.
 # USE_CRYPTLIB = yes ;
 

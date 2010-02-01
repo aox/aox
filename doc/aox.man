@@ -1,5 +1,5 @@
 .\" Copyright 2009 The Archiveopteryx Developers <info@aox.org>
-.TH aox 8 2009-12-09 aox.org "Archiveopteryx Documentation"
+.TH aox 8 2010-02-01 aox.org "Archiveopteryx Documentation"
 .SH NAME
 aox - management tool for Archiveopteryx.
 .SH SYNOPSIS
@@ -242,7 +242,7 @@ There is no command-line option to set the configuration file.
 .SH AUTHOR
 The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
-This man page covers Archiveopteryx version 3.1.3, released 2009-12-09,
+This man page covers Archiveopteryx version 3.1.3, released 2010-02-01,
 http://www.archiveopteryx.org/3.1.3
 .SH SEE ALSO
 .BR archiveopteryx (8),
