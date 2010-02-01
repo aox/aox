@@ -71,14 +71,10 @@ void SaslConnection::setUser( User * user, const EString & mechanism )
 
 void SaslConnection::close()
 {
-    if ( state() == Invalid )
-        return;
-
     Endpoint client = peer();
     Connection::close();
 
-    if ( !u || client.protocol() == Endpoint::Unix ||
-         !Configuration::toggle( Configuration::Security ) )
+    if ( !u || !client.valid() || client.protocol() == Endpoint::Unix )
         return;
 
     Query * q = new Query(
@@ -100,6 +96,8 @@ void SaslConnection::close()
     q->bind( 8, (uint)time( 0 ) );
     q->bind( 9, u->id() );
     q->execute();
+
+    u = 0;
 }
 
 
