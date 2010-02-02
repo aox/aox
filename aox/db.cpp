@@ -666,10 +666,10 @@ static EString rowSummary( class Query * q ) {
                 s.append( "false" );
             break;
         case Column::Integer:
-            s.append( r->getInt( name.cstr() ) );
+            s.append( fn( r->getInt( name.cstr() ) ) );
             break;
         case Column::Bigint:
-            s.append( r->getBigint( name.cstr() ) );
+            s.append( fn( r->getBigint( name.cstr() ) ) );
             break;
         case Column::Bytes:
             s.append( r->getEString( name.cstr() ).quoted() );
