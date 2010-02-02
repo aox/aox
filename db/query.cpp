@@ -10,6 +10,7 @@
 #include "ustring.h"
 #include "database.h"
 #include "eventloop.h"
+#include "pgmessage.h"
 #include "integerset.h"
 #include "estringlist.h"
 #include "transaction.h"
@@ -778,13 +779,12 @@ Row *Query::nextRow()
 */
 
 
-/*! Creates a row of data based on the columns \a c, presumed to be
-    named \a nameMap. The keys in \a nameMap point to unsigned
-    integers; each of which must exist in \a c.
+/*! Creates a row of data based on the columns \a c, named as in \a
+    desc.
 */
 
-Row::Row( const PatriciaTree<int> * nameMap, Column * c )
-    : names( nameMap ), data( c )
+Row::Row( const PgRowDescription * desc, Column * c )
+    : data( c ), layout( desc )
 {
 }
 
@@ -803,7 +803,7 @@ extern "C" {
 
 const Column * Row::fetch( const char * f, Column::Type type, bool warn ) const
 {
-    int * x = names->find( f, strlen( f ) * 8 );
+    int * x = layout->names.find( f, strlen( f ) * 8 );
     if ( !x ) {
         if ( warn )
             log( "Note: Column " + EString( f ).quoted() + " does not exist",
@@ -923,6 +923,35 @@ bool Row::hasColumn( const char * f ) const
     if ( c )
         return true;
     return false;
+}
+
+
+/*! Returns the type of \a f, or Column::Unknown if \a is not a valid
+    column name.
+*/
+
+Column::Type Row::columnType( const char * f ) const
+{
+    const Column * c = fetch( f, Column::Null, false );
+    if ( c )
+        return c->type;
+    return Column::Unknown;
+}
+
+
+/*! Returns a pointer to a list of this Row's columns. The list may be
+    empty, but the pointer is never null.
+*/
+
+EStringList * Row::columnNames() const
+{
+    EStringList * r = new EStringList;
+    List<PgRowDescription::Column>::Iterator i( layout->columns );
+    while ( i ) {
+        r->append( i->name );
+        ++i;
+    }
+    return r;
 }
 
 

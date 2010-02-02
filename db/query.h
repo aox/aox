@@ -146,7 +146,7 @@ class Row
     : public Garbage
 {
 public:
-    Row( const PatriciaTree<int> *, Column * );
+    Row( const class PgRowDescription *, Column * );
 
     bool isNull( const char * ) const;
     int getInt( const char * ) const;
@@ -155,10 +155,13 @@ public:
     EString getEString( const char * ) const;
     UString getUString( const char * ) const;
     bool hasColumn( const char * ) const;
+    Column::Type columnType( const char * ) const;
+
+    EStringList * columnNames() const;
 
 private:
-    const PatriciaTree<int> * names;
     const Column * data;
+    const class PgRowDescription * layout;
 
     const Column * fetch( const char *, Column::Type, bool ) const;
 };

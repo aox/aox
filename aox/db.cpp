@@ -647,10 +647,52 @@ void CheckDatabase::expectEmpty( const char * query )
 }
 
 
+static EString rowSummary( class Query * q ) {
+    EString s;
+    Row * r = q->nextRow();
+    EStringList::Iterator i( r->columnNames() );
+    while ( i ) {
+        EString name = *i;
+        s.append( name.quoted() );
+        s.append( ": " );
+        switch ( r->columnType( name.cstr() ) ) {
+        case Column::Unknown:
+            s.append( "(unknown type)" );
+            break;
+        case Column::Boolean:
+            if ( r->getBoolean( name.cstr() ) )
+                s.append( "true" );
+            else
+                s.append( "false" );
+            break;
+        case Column::Integer:
+            s.append( r->getInt( name.cstr() ) );
+            break;
+        case Column::Bigint:
+            s.append( r->getBigint( name.cstr() ) );
+            break;
+        case Column::Bytes:
+            s.append( r->getEString( name.cstr() ).quoted() );
+            break;
+        case Column::Timestamp:
+            s.append( "(timestamptz)" );
+            break;
+        case Column::Null:
+            s.append( "null" );
+            break;
+        }
+        ++i;
+        if ( i )
+            s.append( ", " );
+    }
+    return s;
+}
+
+
 /*! Screams that \a q gave a BAD UGLY result. */
 
 void CheckDatabase::scream( class Query * q )
 {
-    error( "Unexpected rows in the database. Contact info@aox.org. "
-           "Query: " + q->string() );
+    error( "Unexpected row in the database. Contact info@aox.org. "
+           "Query: " + q->string() + " Result row: " + rowSummary( q ) );
 }

@@ -962,7 +962,7 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
     }
     end();
 
-    r = new Row( &d->names, columns );
+    r = new Row( d, columns );
 }
 
 
