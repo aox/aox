@@ -239,6 +239,9 @@ EString Parser::type()
     uint j = type( i );
     EString r = t.mid( i, j-i ).simplified(); // simplified() is not quite right
     i = j;
+    while ( r.startsWith( "class " ) )
+        r = r.mid( 6 );
+    r.replace( " class ", " " );
     return r;
 }
 
