@@ -19,7 +19,8 @@
 /*! Creates an Inactive \a type connection using \a fd. */
 
 SaslConnection::SaslConnection( int fd, Type type )
-    : Connection( fd, type )
+    : Connection( fd, type ),
+      u( 0 ), af( 0 ), sf( 0 ), s( 0 ), logged( false )
 {
 }
 
@@ -74,8 +75,11 @@ void SaslConnection::close()
     Endpoint client = peer();
     Connection::close();
 
-    if ( !u || !client.valid() || client.protocol() == Endpoint::Unix )
+    if ( !u || logged ||
+         !client.valid() || client.protocol() == Endpoint::Unix )
         return;
+
+    logged = true;
 
     Query * q = new Query(
         "insert into connections "
@@ -97,7 +101,6 @@ void SaslConnection::close()
     q->bind( 9, u->id() );
     q->execute();
 
-    u = 0;
 }
 
 

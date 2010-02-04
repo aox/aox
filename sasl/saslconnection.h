@@ -31,6 +31,7 @@ private:
     uint af;
     uint sf;
     uint s;
+    bool logged;
 };
 
 
