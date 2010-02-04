@@ -1370,9 +1370,9 @@ EString Selector::whereHeader()
 
 static EString matchTsvector( const EString & col, uint n )
 {
-    EString s( "length(" );
+    EString s( "octet_length(" );
     s.append( col );
-    s.append( ")<1024*1024 and to_tsvector(" );
+    s.append( ")<640000 and to_tsvector(" );
     s.append( *tsconfig );
     s.append( ", " );
     s.append( col );

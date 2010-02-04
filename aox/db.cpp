@@ -393,7 +393,7 @@ struct TunableIndex {
     { "b_text", "bodyparts",
       "CREATE INDEX b_text ON bodyparts "
       "USING gin (to_tsvector('simple'::regconfig, text)) "
-      "WHERE (length(text) < (1024 * 1024))",
+      "WHERE (octet_length(text) < (640000))",
       false, false, true },
     { 0, 0, 0, false, false, false }
 };
