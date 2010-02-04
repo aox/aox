@@ -926,7 +926,7 @@ bool Row::hasColumn( const char * f ) const
 }
 
 
-/*! Returns the type of \a f, or Column::Unknown if \a is not a valid
+/*! Returns the type of \a f, or Column::Unknown if \a f is not a valid
     column name.
 */
 
