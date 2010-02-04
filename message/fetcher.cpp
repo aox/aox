@@ -12,8 +12,10 @@
 #include "mailbox.h"
 #include "message.h"
 #include "ustring.h"
+#include "buffer.h"
 #include "query.h"
 #include "scope.h"
+#include "timer.h"
 #include "utf.h"
 #include "map.h"
 
@@ -39,7 +41,8 @@ public:
           lastBatchStarted( 0 ),
           addresses( 0 ), otherheader( 0 ),
           body( 0 ), trivia( 0 ),
-          partnumbers( 0 )
+          partnumbers( 0 ),
+          throttler( 0 )
     {}
 
     List<Message> messages;
@@ -129,15 +132,17 @@ public:
         void setDone( Message * );
         bool isDone( Message * ) const;
     };
+
+    Buffer * throttler;
 };
 
 
 /*! \class Fetcher fetcher.h
 
     The Fetcher class retrieves Message data for some/all messages in
-    a Mailbox. It's an abstract base class that manages the Message
-    and Mailbox aspects of the job; subclasses provide the Query or
-    PreparedStatement necessary to fetch specific data.
+    a Mailbox. It's a management class to do Message and Mailbox
+    aspects of the job; internal classes provide the Query or
+    PreparedStatement objects necessary to fetch specific data.
 
     A Fetcher lives for a while, fetching data about a range of
     messages. Whenever it finishes its current retrieval, it finds the
@@ -149,14 +154,16 @@ public:
 
 
 /*! Constructs an empty Fetcher which will fetch \a messages and
-    notify \a e when it's done. */
+    notify \a e when it's done, taking care to keep \a buffer short. */
 
-Fetcher::Fetcher( List<Message> * messages, EventHandler * e )
+Fetcher::Fetcher( List<Message> * messages, EventHandler * e,
+                  Buffer * buffer )
     : EventHandler(), d( new FetcherData )
 {
     setLog( new Log );
     d->owner = e;
     d->f = this;
+    d->throttler = buffer;
     addMessages( messages );
 }
 
@@ -349,6 +356,9 @@ void Fetcher::waitForEnd()
         d->state = Done;
         if ( d->transaction )
             d->transaction->commit();
+    }
+    else if ( d->throttler && d->throttler->size() > 1024*1024 ) {
+        (void)new Timer( this, 2 );
     }
     else {
         prepareBatch();

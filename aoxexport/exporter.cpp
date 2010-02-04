@@ -96,7 +96,7 @@ void Exporter::execute()
             m->setDatabaseId( r->getInt( "message" ) );
             d->messages->append( m );
         }
-        d->fetcher = new Fetcher( d->messages, this );
+        d->fetcher = new Fetcher( d->messages, this, 0 );
         d->fetcher->fetch( Fetcher::Addresses );
         d->fetcher->fetch( Fetcher::OtherHeader );
         d->fetcher->fetch( Fetcher::Body );

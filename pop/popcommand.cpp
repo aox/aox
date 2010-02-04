@@ -526,7 +526,7 @@ bool PopCommand::fetch822Size()
 
     if ( !d->sentFetch ) {
         d->sentFetch = true;
-        Fetcher * mtf = new Fetcher( l, this );
+        Fetcher * mtf = new Fetcher( l, this, 0 );
         mtf->fetch( Fetcher::Trivia );
         mtf->execute();
     }

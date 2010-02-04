@@ -338,17 +338,17 @@ void ImapUrlFetcher::execute()
             h = false;
         }
         if ( !al->isEmpty() ) {
-            Fetcher * f = new Fetcher( al, this );
+            Fetcher * f = new Fetcher( al, this, 0 );
             f->fetch( Fetcher::Addresses );
             d->fetchers->append( f );
         }
         if ( !hl->isEmpty() ) {
-            Fetcher * f = new Fetcher( al, this );
+            Fetcher * f = new Fetcher( al, this, 0 );
             f->fetch( Fetcher::OtherHeader );
             d->fetchers->append( f );
         }
         if ( !bl->isEmpty() ) {
-            Fetcher * f = new Fetcher( al, this );
+            Fetcher * f = new Fetcher( al, this, 0 );
             f->fetch( Fetcher::Body );
             d->fetchers->append( f );
         }

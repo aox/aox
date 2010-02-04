@@ -850,7 +850,7 @@ void Fetch::sendFetchQueries()
         l->append( m );
     }
 
-    Fetcher * f = new Fetcher( l, this );
+    Fetcher * f = new Fetcher( l, this, imap()->writeBuffer() );
     if ( d->needsAddresses && !haveAddresses )
         f->fetch( Fetcher::Addresses );
     if ( d->needsHeader && !haveHeader )
