@@ -203,6 +203,52 @@ void Vacuum::execute()
                        "(b.id=p.bodypart) where bodypart is null)", 0 );
         t->enqueue( q );
 
+        // delete some unnecessary addresses rows. not all: that would
+        // be too much work. would lock the database for too long. we
+        // select 1024 rows at random, mark the used ones, and then
+        // delete the unused ones.
+        t->enqueue( "create temporary table au "
+                    "( address integer, used boolean )" );
+        // pick some candidates at random
+        t->enqueue(
+            "insert into au (address, used) "
+            "select id, false from addresses "
+            "where id > floor( random() * (select max(id) from addresses) ) "
+            "limit 1024" );
+        // make sure noone can add new references to those rows
+        t->enqueue(
+            "select id from addresses where id in (select id from au) "
+            "for update" );
+        // create an index: the next update and last delete need it
+        t->enqueue(
+            "create index af_a on address_fields using btree(address)" );
+        // mark those addresses that are used by something
+        t->enqueue(
+            "update au set used=true from address_fields "
+            "where au.address=address_fields.address" );
+        t->enqueue(
+            "update au set used=true from aliases "
+            "where au.address=aliases.address" );
+        t->enqueue(
+            "update au set used=true from deliveries "
+            "where au.address=deliveries.sender" );
+        t->enqueue(
+            "update au set used=true from delivery_recipients "
+            "where au.address=delivery_recipients.recipient" );
+        t->enqueue(
+            "update au set used=true from autoresponses "
+            "where au.address=autoresponses.sent_from" );
+        t->enqueue(
+            "update au set used=true from autoresponses "
+            "where au.address=autoresponses.sent_to" );
+        // delete all those we know are unused
+        t->enqueue(
+            "delete from addresses where id in "
+            "(select address from au where not used)" );
+        // the index has to go away again
+        t->enqueue( "drop table au" );
+        t->enqueue( "drop index af_a" );
+
         r = new RetentionSelector( t, this );
         r->execute();
 
