@@ -550,29 +550,20 @@ void Transaction::execute()
     if ( blocked() )
         return;
 
+    // we can send some of our own queries
     List< Query >::Iterator it( d->queries );
     while ( it && it->transaction() == this ) {
         it->setState( Query::Submitted );
         ++it;
     }
 
-    Transaction * activeChild = 0;
-
     // after that, we can send a single query that'll shift control to
     // a subtransaction
-    if ( it && it->transaction() && it->transaction()->parent() == this ) {
-        // shift to subtransaction
+    if ( it && it->transaction() && it->transaction()->parent() == this )
         it->setState( Query::Submitted );
-        activeChild = it->transaction();
-    }
 
-    if ( d->db ) {
-        // if we've a handle already, it can work
-        d->db->processQueue();
-        if ( activeChild )
-            d->activeChild = activeChild;
-    }
-    else if ( !d->submittedBegin ) {
+    // we may need to set up queries in order to start
+    if ( !d->submittedBegin ) {
         // if not, we have to obtain one
         bool parentDone = false;
         Transaction * p = d->parent;
@@ -587,6 +578,7 @@ void Transaction::execute()
                 i->setError( "Transaction started after parent finished" );
                 ++i;
             }
+            return;
         }
         else if ( d->parent ) {
             // we ask to borrow our parent's handle
@@ -609,6 +601,13 @@ void Transaction::execute()
         }
         d->submittedBegin = true;
     }
+
+    // if we have a database, poke it
+    Transaction * t = this;
+    while ( t->d->parent )
+        t = t->d->parent;
+    if ( t->d->db )
+        t->d->db->processQueue();
 }
 
 
