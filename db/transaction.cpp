@@ -372,20 +372,12 @@ void Transaction::rollback()
     // log clutter.
     List<Query>::Iterator i( d->queries );
     while ( i ) {
-        if ( i->state() == Query::Inactive ||
-             i->state() == Query::Submitted ) {
-            i->setError( "Transaction rolled back, query aborted." );
-            d->queries->take( i );
-        }
-        else {
-            ++i;
-        }
+        i->setError( "Transaction rolled back, query aborted." );
+        ++i;
     }
+    d->queries = 0;
 
-    if ( !d->submittedBegin ) {
-        // if we haven't started, stopping is no work
-    }
-    else if ( d->parent ) {
+    if ( d->parent ) {
         // if we're a subtransaction, then what we need to do is roll
         // back to the savepoint, then release it...
         enqueue( new Query( "rollback to " + d->savepoint, 0 ) );
