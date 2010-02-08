@@ -131,6 +131,9 @@ Postgres::~Postgres()
 
 void Postgres::processQueue()
 {
+    if ( !d->queries.isEmpty() )
+        return;
+
     int n = 0;
 
     if ( d->sendingCopy )
