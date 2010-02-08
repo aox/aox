@@ -441,6 +441,8 @@ void Transaction::restart()
 void Transaction::finalizeBegin( Query * q )
 {
     if ( q->failed() ) {
+        if ( d->parent->d->activeChild == this )
+            d->parent->d->activeChild = 0;
         if ( d->parent )
             setError( q, "Savepoint failed" );
         else
@@ -451,6 +453,8 @@ void Transaction::finalizeBegin( Query * q )
             ++i;
         }
         notify();
+        if ( d->parent )
+            d->parent->execute();
     }
     else {
         setState( Executing );
@@ -496,6 +500,7 @@ void Transaction::finalizeTransaction( Query * q )
     else {
         setError( q, q->error() );
         notify();
+        // a rollback failed. how is this even possible? what to do?
     }
 }
 
