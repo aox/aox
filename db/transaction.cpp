@@ -434,7 +434,7 @@ void Transaction::restart()
 void Transaction::finalizeBegin( Query * q )
 {
     if ( q->failed() ) {
-        if ( d->parent->d->activeChild == this )
+        if ( d->parent && d->parent->d->activeChild == this )
             d->parent->d->activeChild = 0;
         if ( d->parent )
             setError( q, "Savepoint failed" );
