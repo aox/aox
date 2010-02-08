@@ -22,7 +22,6 @@ public:
     enum State { Inactive, Executing, Completed, RolledBack, Failed };
     void setState( State );
     State state() const;
-    bool blocked() const;
     bool failed() const;
     bool done() const;
 
@@ -40,7 +39,7 @@ public:
     void restart();
     void commit();
 
-    List< Query > * submittedQueries() const;
+    List< Query > * submittedQueries();
     EventHandler * owner() const;
     void notify();
 

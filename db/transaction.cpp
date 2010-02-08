@@ -90,9 +90,7 @@ public:
 
     When you call subTransaction(), you get a new Transaction which
     isn't yet active. The subtransaction becomes active when you
-    execute() or commit() it. At that point it blocks its parent, and
-    the parent remains blocked() until the subtransaction commits or
-    rolls back.
+    execute() or commit() it.
 
     It's possible to use a Transaction for any combination of
     subtransactions and queries. A Query enqueued in the parent waits
@@ -270,20 +268,6 @@ void Transaction::setError( Query * query, const EString &s )
 EString Transaction::error() const
 {
     return d->error;
-}
-
-
-/*! Returns true if this transaction is executing, but blocked by a
-    subtransaction, and false in all other cases.
-*/
-
-bool Transaction::blocked() const
-{
-    if ( !d->db )
-        return false;
-    if ( d->activeChild )
-        return true;
-    return false;
 }
 
 
@@ -545,8 +529,6 @@ void Transaction::execute()
 {
     if ( !d->queries || d->queries->isEmpty() )
         return;
-    if ( blocked() )
-        return;
 
     // we may need to set up queries in order to start
     if ( !d->submittedBegin ) {
@@ -660,6 +642,8 @@ void Transaction::notify()
 Transaction * Transaction::activeSubTransaction()
 {
     Transaction * t = this;
+    while ( t->d->parent )
+        t = t->d->parent;
     while ( t->d->activeChild )
         t = t->d->activeChild;
     return t;
@@ -673,22 +657,21 @@ Transaction * Transaction::activeSubTransaction()
     The returned pointer is never null, but the list may be empty.
 */
 
-List< Query > * Transaction::submittedQueries() const
+List< Query > * Transaction::submittedQueries()
 {
     List<Query> * r = new List<Query>();
 
-    if ( blocked() )
-        return r;
+    Transaction * t = activeSubTransaction();
 
-    while ( d->queries && !d->queries->isEmpty() &&
-            d->queries->firstElement()->transaction() == this )
-        r->append( d->queries->shift() );
+    while ( t->d->queries && !t->d->queries->isEmpty() &&
+            t->d->queries->firstElement()->transaction() == t )
+        r->append( t->d->queries->shift() );
 
-    if ( !d->queries->isEmpty() &&
-         d->queries->firstElement()->transaction()->parent() == this ) {
-        Query * q = d->queries->shift();
+    if ( !t->d->queries->isEmpty() &&
+         t->d->queries->firstElement()->transaction()->parent() == t ) {
+        Query * q = t->d->queries->shift();
         r->append( q );
-        d->activeChild = q->transaction();
+        t->d->activeChild = q->transaction();
     }
 
     return r;

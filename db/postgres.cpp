@@ -149,7 +149,7 @@ void Postgres::processQueue()
 
     List< Query > * l = 0;
     if ( d->transaction ) {
-        l = d->transaction->activeSubTransaction()->submittedQueries();
+        l = d->transaction->submittedQueries();
     }
     else {
         l = Database::firstSubmittedQuery( ::listener != this ||
