@@ -566,7 +566,8 @@ void Transaction::execute()
             }
             return;
         }
-        else if ( d->parent ) {
+        d->submittedBegin = true;
+        if ( d->parent ) {
             // we ask to borrow our parent's handle
             TransactionData::BeginBouncer * b
                 = new TransactionData::BeginBouncer( this );
@@ -585,7 +586,6 @@ void Transaction::execute()
             b->q->setTransaction( this );
             Database::submit( b->q );
         }
-        d->submittedBegin = true;
     }
 
     // if we have a database, poke it
