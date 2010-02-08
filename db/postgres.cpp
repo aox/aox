@@ -131,7 +131,6 @@ Postgres::~Postgres()
 
 void Postgres::processQueue()
 {
-    Query * q;
     int n = 0;
 
     if ( d->sendingCopy )
@@ -142,30 +141,26 @@ void Postgres::processQueue()
         sendListen();
     }
 
-    while ( d->transaction &&
-            ( d->transaction->state() == Transaction::Completed ||
-              d->transaction->state() == Transaction::RolledBack ) )
-        d->transaction = d->transaction->parent();
+    if ( d->transaction && d->transaction->done() )
+        d->transaction = 0;
 
-    List< Query > *l = Database::queries;
-    if ( d->transaction )
-        l = d->transaction->enqueuedQueries();
+    List< Query > * l = 0;
+    if ( d->transaction ) {
+        l = d->transaction->activeSubTransaction()->submittedQueries();
+    }
+    else {
+        l = Database::firstSubmittedQuery( ::listener != this ||
+                                           numHandles() == 1 );
+    }
 
-    while ( ( q = l->firstElement() ) != 0 ) {
-        if ( q->state() != Query::Submitted )
-            break;
-        if ( ::listener == this && q->transaction() && numHandles() > 1 )
-            return;
-
-        l->shift();
+    while ( !l->isEmpty() ) {
+        Query * q = l->shift();
         q->setState( Query::Executing );
 
         Transaction * t = q->transaction();
-        if ( t && t != d->transaction ) {
+        if ( t && !d->transaction ) {
             d->transaction = t;
-            t->setState( Transaction::Executing );
             t->setDatabase( this );
-            l = t->enqueuedQueries();
         }
 
         if ( !d->error ) {
@@ -177,9 +172,6 @@ void Postgres::processQueue()
                 d->sendingCopy = true;
                 break;
             }
-
-            if ( !d->transaction )
-                break;
         }
         else {
             q->setError( "Database handle no longer usable." );
@@ -743,7 +735,12 @@ void Postgres::unknown( char type )
 }
 
 
-/*! This function handles errors and other messages from the server. */
+/*! This function handles errors and other messages from the server.
+
+    Uses the sqlstates specified
+    http://www.postgresql.org/docs/current/static/protocol.html
+    extensively.
+*/
 
 void Postgres::serverMessage()
 {
@@ -1056,10 +1053,9 @@ void Postgres::shutdown()
     PgTerminate msg;
     msg.enqueue( writeBuffer() );
 
-    while ( d->transaction ) {
+    if ( d->transaction ) {
         d->transaction->setError( 0, "Database connection shutdown" );
         d->transaction->notify();
-        d->transaction = d->transaction->parent();
     }
     List< Query >::Iterator q( d->queries );
     while ( q ) {
@@ -1258,29 +1254,6 @@ EString Postgres::queryString( Query * q )
     }
 
     return s;
-}
-
-
-bool Postgres::blocked( const class Transaction * transaction ) const
-{
-    if ( !transaction )
-        return false;
-
-    while ( d->transaction &&
-            ( d->transaction->state() == Transaction::Completed ||
-              d->transaction->state() == Transaction::RolledBack ) )
-        d->transaction = d->transaction->parent();
-
-    Transaction * t = d->transaction;
-    if ( t == transaction )
-        return false;
-    while ( t ) {
-        t = t->parent();
-        if ( t == transaction )
-            return true;
-    }
-
-    return false;
 }
 
 

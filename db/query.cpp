@@ -700,7 +700,7 @@ void Query::setError( const EString &s )
     Scope x( log() );
     d->error = s;
     setState( Failed );
-    if ( d->transaction )
+    if ( d->transaction && !canFail() )
         d->transaction->setError( this, s );
     else if ( canFail() )
         ::log( s, Log::Debug );

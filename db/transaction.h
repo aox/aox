@@ -40,14 +40,17 @@ public:
     void restart();
     void commit();
 
-    List< Query > *enqueuedQueries() const;
+    List< Query > * submittedQueries() const;
     EventHandler * owner() const;
     void notify();
 
     Transaction * subTransaction( EventHandler * );
     Transaction * parent() const;
 
+    void finalizeBegin( Query * );
     void finalizeTransaction( Query * );
+
+    Transaction * activeSubTransaction();
 
 private:
     class TransactionData *d;

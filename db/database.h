@@ -48,7 +48,6 @@ public:
     static void notifyWhenIdle( class EventHandler * );
     static bool idle();
 
-    virtual bool blocked( const class Transaction * ) const = 0;
     virtual void cancel( Query * ) = 0;
 
     static void cancelQueries( Log * );
@@ -57,6 +56,8 @@ public:
 protected:
     static List< Query > *queries;
     virtual List< Query > * activeQueries() const = 0;
+
+    List< Query > * firstSubmittedQuery( bool transactionOK );
 
     void setState( State );
     State state() const;

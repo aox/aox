@@ -656,15 +656,6 @@ uint Database::handlesNeeded()
 }
 
 
-/*! \fn bool Database::blocked( const class Transaction * transaction ) const
-
-    Returns true if \a transaction is currently being processed, but
-    is blocked by a subtransaction.
-
-    Returns false if \a transaction is not blocked, as well as if it
-    not being processed.
-*/
-
 /*! \fn void Database::cancel( class Query * query )
     Cancels the given \a query if it is being executed by this database object.
     Does nothing otherwise.
@@ -739,4 +730,28 @@ void Database::cancelQuery( Query * q )
 uint Database::currentRevision()
 {
     return 92;
+}
+
+
+/*! Removes a submitted transaction from the global list and returns a
+    list contains just that transaction.
+
+    If \a transactionOK is true, the list is permitted to start a
+    Transaction. If not, only standalone queries are considered.
+
+    Returns an empty list if no suitable queries can be found.
+*/
+
+List< Query > * Database::firstSubmittedQuery( bool transactionOK )
+{
+    List<Query>::Iterator i( queries );
+    if ( !transactionOK )
+        while ( i && i->transaction() )
+            ++i;
+    List<Query> * r = new List<Query>();
+    if ( i ) {
+        r->append( i );
+        queries->take( i );
+    }
+    return r;
 }

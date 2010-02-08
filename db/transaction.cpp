@@ -15,7 +15,8 @@ class TransactionData
 {
 public:
     TransactionData()
-        : state( Transaction::Inactive ), parent( 0 ), children( 0 ),
+        : state( Transaction::Inactive ), parent( 0 ), activeChild( 0 ),
+          children( 0 ),
           submittedCommit( false ), submittedBegin( false ),
           committing( false ),
           owner( 0 ), db( 0 ), queries( 0 ), failedQuery( 0 )
@@ -23,12 +24,13 @@ public:
 
     Transaction::State state;
     Transaction * parent;
+    Transaction * activeChild;
     EString savepoint;
     uint children;
     bool submittedCommit;
     bool submittedBegin;
     bool committing;
-    EventHandler *owner;
+    EventHandler * owner;
     Database *db;
 
     List< Query > *queries;
@@ -44,6 +46,22 @@ public:
 
         void execute () {
             me->finalizeTransaction( q );
+        }
+
+        Query * q;
+
+    private:
+        Transaction * me;
+    };
+
+    class BeginBouncer
+        : public EventHandler
+    {
+    public:
+        BeginBouncer( Transaction * t ): q( 0 ), me( t ) {}
+
+        void execute () {
+            me->finalizeBegin( q );
         }
 
         Query * q;
@@ -145,9 +163,11 @@ void Transaction::setDatabase( Database *db )
         return;
     d->queries = new List<Query>;
     if ( !d->submittedBegin ) {
-        Query * begin = new Query( "begin", 0 );
-        begin->setTransaction( this );
-        d->queries->append( begin );
+        TransactionData::BeginBouncer * b 
+            = new TransactionData::BeginBouncer( this );
+        b->q = new Query( "begin", b );
+        b->q->setTransaction( this );
+        d->queries->append( b->q );
         d->submittedBegin = true;
     }
 }
@@ -261,7 +281,9 @@ bool Transaction::blocked() const
 {
     if ( !d->db )
         return false;
-    return d->db->blocked( this );
+    if ( d->activeChild )
+        return true;
+    return false;
 }
 
 
@@ -289,6 +311,7 @@ Query * Transaction::failedQuery() const
 
 void Transaction::enqueue( Query *q )
 {
+    Scope x( d->owner->log() );
     if ( d->submittedCommit ) {
         q->setError( "Query submitted after commit/rollback: " + q->string() );
         return;
@@ -334,6 +357,13 @@ void Transaction::rollback()
 {
     if ( state() == Completed ) {
         log( "rollback() called after commit" );
+        return;
+    }
+
+    if ( !d->submittedBegin ) {
+        d->submittedBegin = true;
+        d->submittedCommit = true;
+        setState( RolledBack );
         return;
     }
 
@@ -404,6 +434,31 @@ void Transaction::restart()
 }
 
 
+/*! Handles whatever needs to happen when a BEGIN or SAVEPOINT
+    finishes; \a q is the begin query.
+*/
+
+void Transaction::finalizeBegin( Query * q )
+{
+    if ( q->failed() ) {
+        if ( d->parent )
+            setError( q, "Savepoint failed" );
+        else
+            setError( q, "Begin failed (huh?)" );
+        List<Query>::Iterator i( d->queries );
+        while ( i ) {
+            i->setError( "Transaction unable to start" );
+            ++i;
+        }
+        notify();
+    }
+    else {
+        setState( Executing );
+        execute();
+    }
+}
+
+
 /*! This private function handles whatever needs to happen when a
     transaction finishes; \a q is the finishing query (typically
     commit, rollback or release savepoint). There are three cases:
@@ -426,8 +481,10 @@ void Transaction::finalizeTransaction( Query * q )
         else
             setState( RolledBack );
         notify();
-        if ( parent() )
+        if ( d->parent ) {
+            d->parent->d->activeChild = 0;
             parent()->execute();
+        }
     }
     else if ( d->committing ) {
         d->committing = false;
@@ -454,6 +511,14 @@ void Transaction::commit()
 {
     if ( d->submittedCommit )
         return;
+
+    if ( !d->submittedBegin &&
+         ( !d->queries || d->queries->isEmpty() ) ) {
+        d->submittedBegin = true;
+        d->submittedCommit = true;
+        setState( Completed );
+        return;
+    }
 
     if ( d->parent ) {
         TransactionData::CommitBouncer * cb = 
@@ -482,79 +547,68 @@ void Transaction::execute()
 {
     if ( !d->queries || d->queries->isEmpty() )
         return;
-    if ( d->db && d->db->blocked( this ) )
+    if ( blocked() )
         return;
 
-    // we can send all the queries that are simply ours
     List< Query >::Iterator it( d->queries );
     while ( it && it->transaction() == this ) {
         it->setState( Query::Submitted );
         ++it;
     }
 
+    Transaction * activeChild = 0;
+
     // after that, we can send a single query that'll shift control to
-    // a subtransaction or to our parent.
+    // a subtransaction
     if ( it && it->transaction() && it->transaction()->parent() == this ) {
         // shift to subtransaction
         it->setState( Query::Submitted );
-    }
-    else if ( it && it->transaction() && parent() == it->transaction() ) {
-        // shift to parent
-        it->setState( Query::Submitted );
+        activeChild = it->transaction();
     }
 
     if ( d->db ) {
         // if we've a handle already, it can work
         d->db->processQueue();
+        if ( activeChild )
+            d->activeChild = activeChild;
     }
     else if ( !d->submittedBegin ) {
         // if not, we have to obtain one
-        Query * begin;
-        if ( d->parent ) {
-            // we ask to borrow our parent's handle
-            begin = new Query( "savepoint " + d->savepoint, 0 );
-            d->parent->enqueue( begin );
-            begin->setTransaction( this );
-            d->parent->execute();
-            if ( begin->failed() ) {
-                // if the parent has failed or succeeded, or perhaps
-                // for other reasons, then we couldn't borrow the
-                // handle, so we need to fail all our queries.
-                setError( begin, "Savepoint failed" );
-                List<Query>::Iterator i( d->queries );
-                while ( i ) {
-                    i->setError( "Failed due to earlier query" );
-                    ++i;
-                }
+        bool parentDone = false;
+        Transaction * p = d->parent;
+        while ( p && !parentDone ) {
+            if ( p->d->committing || p->done() )
+                parentDone = true;
+            p = p->d->parent;
+        }
+        if ( parentDone ) {
+            List<Query>::Iterator i( d->queries );
+            while ( i ) {
+                i->setError( "Transaction started after parent finished" );
+                ++i;
             }
+        }
+        else if ( d->parent ) {
+            // we ask to borrow our parent's handle
+            TransactionData::BeginBouncer * b
+                = new TransactionData::BeginBouncer( this );
+            b->q = new Query( "savepoint " + d->savepoint, b );
+            d->parent->enqueue( b->q );
+            b->q->setTransaction( this );
+            d->parent->execute();
         }
         else {
             // if we're an ordinary transaction, we queue a begin in
             // the open pool...
-            begin = new Query( "begin", 0 );
+            TransactionData::BeginBouncer * b
+                = new TransactionData::BeginBouncer( this );
+            b->q = new Query( "begin", b );
             // ... and tell the db to shift control to us.
-            begin->setTransaction( this );
-            Database::submit( begin );
+            b->q->setTransaction( this );
+            Database::submit( b->q );
         }
         d->submittedBegin = true;
     }
-}
-
-
-/*! Returns a pointer to the List of queries that have been enqueue()d
-    within this Transaction, but not yet processed by the database. The
-    pointer will not be 0 after the first query has been enqueued. The
-    state of each Query will be Submitted if execute() has been called
-    after it was enqueued. Queries are removed from the list once they
-    have been processed.
-
-    This function is meant for use by the Database, in order to retrieve
-    the Queries that need processing.
-*/
-
-List< Query > *Transaction::enqueuedQueries() const
-{
-    return d->queries;
 }
 
 
@@ -611,4 +665,47 @@ void Transaction::notify()
          d->parent->d->queries &&
          d->parent->d->queries->isEmpty() )
         d->parent->notify();
+}
+
+
+/*! Returns a pointer to the currently active subtransaction, or to
+    this transaction is no subtransaction is active.
+*/
+
+Transaction * Transaction::activeSubTransaction()
+{
+    Transaction * t = this;
+    while ( t->d->activeChild )
+        t = t->d->activeChild;
+    return t;
+}
+
+
+/*! Removes all submitted queries from the front of the queue and
+    returns them. May change activeSubTransaction() as a side effect,
+    if the last query starts a subtransaction.
+    
+    The returned pointer is never null, but the list may be empty.
+*/
+
+List< Query > * Transaction::submittedQueries() const
+{
+    List<Query> * r = new List<Query>();
+
+    if ( blocked() )
+        return r;
+
+    while ( d->queries && !d->queries->isEmpty() &&
+            d->queries->firstElement()->state() == Query::Submitted &&
+            d->queries->firstElement()->transaction() == this )
+        r->append( d->queries->shift() );
+
+    if ( !d->queries->isEmpty() &&
+         d->queries->firstElement()->transaction()->parent() == this ) {
+        Query * q = d->queries->shift();
+        r->append( q );
+        d->activeChild = q->transaction();
+    }
+
+    return r;
 }
