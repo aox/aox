@@ -320,6 +320,7 @@ void Transaction::enqueue( Query *q )
         d->queries = new List< Query >;
     q->setTransaction( this );
     d->queries->append( q );
+    q->setState( Query::Submitted );
 }
 
 
@@ -555,18 +556,6 @@ void Transaction::execute()
     if ( blocked() )
         return;
 
-    // we can send some of our own queries
-    List< Query >::Iterator it( d->queries );
-    while ( it && it->transaction() == this ) {
-        it->setState( Query::Submitted );
-        ++it;
-    }
-
-    // after that, we can send a single query that'll shift control to
-    // a subtransaction
-    if ( it && it->transaction() && it->transaction()->parent() == this )
-        it->setState( Query::Submitted );
-
     // we may need to set up queries in order to start
     if ( !d->submittedBegin ) {
         // if not, we have to obtain one
@@ -700,7 +689,6 @@ List< Query > * Transaction::submittedQueries() const
         return r;
 
     while ( d->queries && !d->queries->isEmpty() &&
-            d->queries->firstElement()->state() == Query::Submitted &&
             d->queries->firstElement()->transaction() == this )
         r->append( d->queries->shift() );
 
