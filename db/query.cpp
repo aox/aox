@@ -518,6 +518,10 @@ void Query::setString( const EString &s )
     if ( d->state != Inactive )
         return;
 
+    if ( d->owner )
+        Scope x( d->owner->log() );
+    ::log( "String: " + s );
+
     d->query = s;
     if ( s.lower().endsWith( "with binary" ) )
         d->format = Binary;
