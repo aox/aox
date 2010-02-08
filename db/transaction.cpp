@@ -463,7 +463,8 @@ void Transaction::finalizeTransaction( Query * q )
             setState( RolledBack );
         notify();
         if ( d->parent ) {
-            d->parent->d->activeChild = 0;
+            if ( d->parent->d->activeChild == this )
+                d->parent->d->activeChild = 0;
             parent()->execute();
         }
     }
@@ -672,6 +673,12 @@ List< Query > * Transaction::submittedQueries()
         Query * q = t->d->queries->shift();
         r->append( q );
         t->d->activeChild = q->transaction();
+
+        t = q->transaction();
+
+        while ( t->d->queries && !t->d->queries->isEmpty() &&
+                t->d->queries->firstElement()->transaction() == t )
+            r->append( t->d->queries->shift() );
     }
 
     return r;
