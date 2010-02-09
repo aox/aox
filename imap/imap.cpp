@@ -215,7 +215,6 @@ void IMAP::react( Event e )
     }
 
     runCommands();
-    expireCommands();
 
     d->bytesArrived -= readBuffer()->size();
 
@@ -583,16 +582,7 @@ void IMAP::runCommands()
     }
 
     d->runningCommands = false;
-}
 
-
-/*! Removes all commands that have finished executing from
-    d->commands. If the server is shutting down and this removes the
-    last command, expireCommands() also closes the connection.
-*/
-
-void IMAP::expireCommands()
-{
     List< Command >::Iterator i( d->commands );
     while ( i ) {
         if ( i->state() == Command::Retired )

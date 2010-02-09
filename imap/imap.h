@@ -68,7 +68,6 @@ private:
 
     void addCommand();
     void runCommands();
-    void expireCommands();
     void run( Command * );
 };
 
