@@ -651,9 +651,9 @@ Transaction * Transaction::activeSubTransaction()
 }
 
 
-/*! Removes all submitted queries from the front of the queue and
-    returns them. May change activeSubTransaction() as a side effect,
-    if the last query starts a subtransaction.
+/*! Removes all queries that can be sent to the server from the front
+    of the queue and returns them. May change activeSubTransaction()
+    as a side effect, if the last query starts a subtransaction.
     
     The returned pointer is never null, but the list may be empty.
 */
@@ -664,21 +664,24 @@ List< Query > * Transaction::submittedQueries()
 
     Transaction * t = activeSubTransaction();
 
-    while ( t->d->queries && !t->d->queries->isEmpty() &&
-            t->d->queries->firstElement()->transaction() == t )
-        r->append( t->d->queries->shift() );
+    if ( !t->d->queries )
+        return r;
 
-    if ( !t->d->queries->isEmpty() &&
-         t->d->queries->firstElement()->transaction()->parent() == t ) {
+    bool last = false;
+    while ( !t->d->queries->isEmpty() && !last ) {
         Query * q = t->d->queries->shift();
         r->append( q );
-        t->d->activeChild = q->transaction();
-
-        t = q->transaction();
-
-        while ( t->d->queries && !t->d->queries->isEmpty() &&
-                t->d->queries->firstElement()->transaction() == t )
-            r->append( t->d->queries->shift() );
+        // if we change to a subtransaction, we start picking queries
+        // there, and don't send anything more yet
+        if ( q->transaction() != t ) {
+            t->d->activeChild = q->transaction();
+            last = true;
+        }
+        // if the query is a copy, we have to let it finish before we
+        // can send more queries.
+        if ( q->inputLines() ) {
+            last = true;
+        }
     }
 
     return r;
