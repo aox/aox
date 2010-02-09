@@ -152,43 +152,38 @@ void Postgres::processQueue()
         l = d->transaction->submittedQueries();
     }
     else {
-        l = Database::firstSubmittedQuery( ::listener != this ||
-                                           numHandles() == 1 );
-    }
+        if ( listener != this && numHandles() > 1 )
+            l = Database::firstSubmittedQuery( false );
+        else
+            l = Database::firstSubmittedQuery( true );
 
-    while ( !l->isEmpty() ) {
-        Query * q = l->shift();
-        q->setState( Query::Executing );
-
-        Transaction * t = q->transaction();
-        if ( t && !d->transaction ) {
+        if ( l->firstElement() && l->firstElement()->transaction() ) {
+            Transaction * t = l->firstElement()->transaction();
             d->transaction = t;
             t->setDatabase( this );
         }
+    }
 
+    Query * q = l->shift();
+    while ( q ) {
+        q->setState( Query::Executing );
         if ( !d->error ) {
             d->queries.append( q );
             processQuery( q );
             n++;
-
-            if ( q->inputLines() ) {
-                d->sendingCopy = true;
-                break;
-            }
         }
         else {
             q->setError( "Database handle no longer usable." );
             q->notify();
         }
+        q = l->shift();
     }
 
-    if ( n > 0 ) {
+    if ( n > 0 )
         extendTimeout( Configuration::scalar( Configuration::DbHandleInterval ) );
-        write();
-    }
-    else {
+    else
         reactToIdleness();
-    }
+    write();
 }
 
 
