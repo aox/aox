@@ -19,6 +19,7 @@
 #include "eventmap.h"
 #include "command.h"
 #include "cache.h"
+#include "date.h"
 #include "user.h"
 #if defined(USE_CRYPTLIB)
 #include "tls.h"
@@ -1025,5 +1026,7 @@ void IMAP::defeatNat()
 
     d->nextOkTime = now + 64;
     (void)new Timer( new IMAPData::NatDefeater( this ), d->nextOkTime - now );
-    enqueue( "* OK (NAT !OK)\r\n" );
+    Date x;
+    x.setUnixTime( now );
+    enqueue( "* OK (NAT keepalive: " + x.isoTime() + ")\r\n" );
 }
