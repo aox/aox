@@ -539,7 +539,10 @@ void Transaction::execute()
         while ( p && !parentDone ) {
             if ( p->d->committing || p->done() )
                 parentDone = true;
-            p = p->d->parent;
+            if ( p->state() == Inactive )
+                p = p->d->parent;
+            else
+                p = 0;
         }
         if ( parentDone ) {
             List<Query>::Iterator i( d->queries );
