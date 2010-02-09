@@ -90,13 +90,20 @@ public:
 
     When you call subTransaction(), you get a new Transaction which
     isn't yet active. The subtransaction becomes active when you
-    execute() or commit() it.
+    execute() or commit() it. Becoming active, in this context, means
+    that it enqueues a "savepoint" in its parent, and when that
+    completes, the subtransaction is active. The parent becomes active
+    again when the subtransaction finishes, with commit() ("release
+    savepoint") or rollback() ("rollback so savepoint; release
+    savepoint").
 
     It's possible to use a Transaction for any combination of
     subtransactions and queries. A Query enqueued in the parent waits
     until any active subtransaction finishes. Similarly, if you
     execute() one subtransaction while another is active, the new
-    subtransaction will wait.
+    subtransaction will wait. The parent executes its queries in the
+    order submitted, including the "savepoint" queries that activate a
+    subtransaction.
 */
 
 
