@@ -8,7 +8,9 @@
 
 class Buffer;
 
-class Filter {
+class Filter
+    : public Garbage
+{
 public:
     Filter();
     virtual ~Filter();
