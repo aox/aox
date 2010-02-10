@@ -298,7 +298,7 @@ void TlsThread::start()
                 FD_SET( d->encfd, &r );
             if (  d->ctfd >= 0 && d->ctwbs )
                 FD_SET( d->ctfd, &w );
-            if ( d->ctfd >= 0 && d->encwbs )
+            if ( d->encfd >= 0 && d->encwbs )
                 FD_SET( d->encfd, &w );
             maxfd = d->ctfd;
             if ( maxfd < d->encfd )
