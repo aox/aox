@@ -84,7 +84,7 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "CHILDREN" );
     }
     // should we advertise COMPRESS only if not compressed?
-    // c.append( "COMPRESS=DEFLATE" );
+    c.append( "COMPRESS=DEFLATE" );
     if ( all || login )
         c.append( "CONDSTORE" );
     c.append( "ENABLE" );
