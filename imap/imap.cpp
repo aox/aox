@@ -202,7 +202,6 @@ void IMAP::react( Event e )
     case Close:
         if ( d->session ) {
             log( "Unexpected close by client" );
-            Database::cancelQueries( log() );
             endSession();
         }
         break;
@@ -211,7 +210,6 @@ void IMAP::react( Event e )
         enqueue( "* BYE server shutdown\r\n" );
         if ( d->session && d->commands.isEmpty() )
             endSession();
-        Database::cancelQueries( log() );
         break;
     }
 

@@ -29,8 +29,6 @@ public:
 private:
     class PgData *d;
 
-    List< Query > * activeQueries() const;
-
     void processQuery( Query * );
     void authentication( char );
     void backendStartup( char );

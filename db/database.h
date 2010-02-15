@@ -50,12 +50,10 @@ public:
 
     virtual void cancel( Query * ) = 0;
 
-    static void cancelQueries( Log * );
     static void cancelQuery( Query * );
 
 protected:
     static List< Query > *queries;
-    virtual List< Query > * activeQueries() const = 0;
 
     List< Query > * firstSubmittedQuery( bool transactionOK );
 

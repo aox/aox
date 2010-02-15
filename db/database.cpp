@@ -661,53 +661,6 @@ uint Database::handlesNeeded()
     Does nothing otherwise.
 */
 
-/*! Cancels all Query and Transaction objects that use \a l or a child
-    of \a l.
-
-    When a Connection goes away, it can use this function to cancel
-    all queries that somehow belong to it.
-*/
-
-void Database::cancelQueries( Log * l )
-{
-    if ( !l )
-        return;
-    Scope x( l );
-
-    List< List<Query > > total;
-    total.append( queries );
-    if ( handles && !handles->isEmpty() ) {
-        List<Database>::Iterator h( handles );
-        while ( h ) {
-            total.append( h->activeQueries() );
-            ++h;
-        }
-    }
-
-    List< List<Query> >::Iterator ql( total );
-    while ( ql ) {
-        List<Query>::Iterator i( ql );
-        while ( i ) {
-            List<Query>::Iterator q = i;
-            ++i;
-            EString s = q->string();
-            if ( q->log() && q->log()->isChildOf( l ) &&
-                 s != "rollback" && s != "commit" ) {
-                ql->remove( q );
-                q->cancel();
-            }
-        }
-        ++ql;
-    }
-}
-
-
-/*! \fn List< Query > * Database:: activeQueries() const
-
-    Returns a list of Queries that this object has sent to the
-    RDBMS. Used by cancelQueries().
-*/
-
 
 /*! This function issues a cancel request for the query \a q, if it is
     currently being executed. If not, it does nothing.

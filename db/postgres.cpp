@@ -1255,12 +1255,6 @@ EString Postgres::queryString( Query * q )
 }
 
 
-List< Query > * Postgres::activeQueries() const
-{
-    return & d->queries;
-}
-
-
 class PgCanceller
     : public Postgres
 {
