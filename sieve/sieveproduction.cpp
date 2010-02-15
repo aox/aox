@@ -1545,7 +1545,8 @@ void SieveTest::parse()
         setError( "Unknown test: " + identifier() );
     }
 
-    arguments()->flagUnparsedAsBad();
+    if ( arguments() )
+        arguments()->flagUnparsedAsBad();
 
     // if the ihave was correctly parsed and names something we don't
     // support, then we have to suppress some errors.
