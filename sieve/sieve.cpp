@@ -615,6 +615,40 @@ void Sieve::evaluate()
 }
 
 
+static bool magicallyFlowable( const UString & s ) {
+    uint i = 0;
+    while ( i < s.length() ) {
+        if ( s[i] == '\n' ) {
+            if ( i > 0 && s[i-1] == ' ' )
+                return false; //newline follows space: not flowable
+            if ( i > 2 && s[i-2] == ' ' && s[i-1] == '\r' )
+                return false; //newline follows space: not flowable
+            uint c = s[i+1];
+            if ( c != '\r' && c != '\n' &&
+                 !UString::isLetter( c ) && !UString::isDigit( c ) )
+                return false; //strange start of line: be safe and say no
+        }
+        ++i;
+    }
+    return true;
+}
+
+
+static UString magicallyFlowed( const UString & s ) {
+    UString r;
+    uint i = 0;
+    while ( i < s.length() ) {
+        if ( i > 0 && s[i] == '\n' &&
+             !( s[i-1] == '\n' || s[i-1] == '\r' ) &&
+             !( s[i+1] == '\n' || s[i+1] == '\r' ) )
+            r.append( 32 );
+        r.append( s[i] );
+        i++;
+    }
+    return r;
+}
+
+
 bool SieveData::Recipient::evaluate( SieveCommand * c )
 {
     if ( c->identifier() == "if" ||
@@ -901,9 +935,21 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             reply->parse( reptext );
         }
         else {
-            if ( !reason.isAscii() )
-                reptext.append( "Content-Type: text/plain; charset=utf-8\r\n"
+            if ( magicallyFlowable( reason ) ) {
+                if ( reason.isAscii() )
+                    reptext.append( "Content-Type: text/plain; "
+                                    "format=flowed\r\n"
+                                    "Mime-Version: 1.0\r\n" );
+                else
+                    reptext.append( "Content-Type: text/plain; "
+                                    "charset=utf-8; format=flowed\r\n"
                                 "Mime-Version: 1.0\r\n" );
+                reason = magicallyFlowed( reason );
+            }
+            else if ( !reason.isAscii() ) {
+                reptext.append( "Content-Type: text/plain; charset=utf-8\r\n"
+                                "Mime-Version: 1.0\r\n" );                
+            }
             reptext.append( "\r\n" );
             reptext.append( reason.utf8() );
             reply = new Injectee;
