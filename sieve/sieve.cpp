@@ -310,6 +310,8 @@ void Sieve::execute()
 
             List<Address> * remote = new List<Address>;
             remote->append( i->recipientAddress() );
+            if ( Configuration::toggle( Configuration::SubmitCopyToSender ) )
+                remote->append( i->senderAddress() );
             d->injector->addDelivery( i->message(),
                                       new Address( "", "", "" ),
                                       remote );
