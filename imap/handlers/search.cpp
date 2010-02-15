@@ -410,6 +410,21 @@ void Search::execute()
     if ( state() != Executing )
         return;
 
+    if ( d->query && 
+         ( d->query->state() == Query::Submitted ||
+           d->query->state() == Query::Executing ) ) {
+        if ( imap()->Connection::state() != Connection::Connected ) {
+            Database::cancelQuery( d->query );
+            error( No, "Client disconnected" );
+            return;
+        }
+        else if ( imap()->state() == IMAP::Logout ) {
+            Database::cancelQuery( d->query );
+            error( No, "Client logged out" );
+            return;
+        }
+    }
+
     ImapSession * s = session();
 
     if ( !d->query ) {
