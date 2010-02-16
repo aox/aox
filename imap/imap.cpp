@@ -350,7 +350,7 @@ void IMAP::addCommand()
     }
 
     d->commands.append( cmd );
-    d->nextOkTime = time( 0 ) + 64;
+    d->nextOkTime = time( 0 ) + 117;
 
     Scope x( cmd->log() );
     if ( name.lower() != "login" && name.lower() != "authenticate" )
@@ -1021,7 +1021,7 @@ void IMAP::defeatNat()
     if ( now < d->nextOkTime )
         return;
 
-    d->nextOkTime = now + 64;
+    d->nextOkTime = now + 117;
     (void)new Timer( new IMAPData::NatDefeater( this ), d->nextOkTime - now );
     Date x;
     x.setUnixTime( now );
