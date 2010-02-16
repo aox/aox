@@ -350,6 +350,7 @@ void IMAP::addCommand()
     }
 
     d->commands.append( cmd );
+    d->nextOkTime = time( 0 ) + 64;
 
     Scope x( cmd->log() );
     if ( name.lower() != "login" && name.lower() != "authenticate" )
