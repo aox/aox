@@ -656,6 +656,21 @@ uint Database::handlesNeeded()
 }
 
 
+/*! Returns the number of completely idle handles at the moment. */
+
+uint Database::idleHandles()
+{
+    uint r = 0;
+    List< Database >::Iterator it( handles );
+    while ( it ) {
+        if ( it->state() == Idle )
+            r++;
+        ++it;
+    }
+    return r;
+}
+
+
 /*! \fn void Database::cancel( class Query * query )
     Cancels the given \a query if it is being executed by this database object.
     Does nothing otherwise.

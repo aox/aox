@@ -36,6 +36,7 @@ public:
 
     static uint numHandles();
     static uint handlesNeeded();
+    static uint idleHandles();
     static EString type();
 
     uint connectionNumber() const;

@@ -164,6 +164,12 @@ void Postgres::processQueue()
         }
     }
 
+    uint interval =
+        Configuration::scalar( Configuration::DbHandleInterval );
+    if ( ::listener == this )
+        interval = interval * 2;
+    uint patience = 0;
+
     Query * q = l->shift();
     while ( q ) {
         q->setState( Query::Executing );
@@ -171,6 +177,10 @@ void Postgres::processQueue()
             d->queries.append( q );
             processQuery( q );
             n++;
+            if ( q->canBeSlow() )
+                patience += ( interval < 60 ? 60 : interval );
+            else
+                patience += ( interval > 10 ? 10 : interval );
         }
         else {
             q->setError( "Database handle no longer usable." );
@@ -180,7 +190,7 @@ void Postgres::processQueue()
     }
 
     if ( n > 0 )
-        extendTimeout( Configuration::scalar( Configuration::DbHandleInterval ) );
+        setTimeoutAfter( patience );
     else
         reactToIdleness();
     write();
@@ -287,6 +297,9 @@ void Postgres::react( Event e )
                     Configuration::scalar( Configuration::DbHandleInterval );
                 if ( ::listener == this )
                     interval = interval * 2;
+                else if ( d->transaction && idleHandles() < 2 &&
+                          interval > 20 )
+                    interval = 20;
                 setTimeoutAfter( interval );
             }
         }
@@ -306,46 +319,32 @@ void Postgres::react( Event e )
         if ( !d->active || d->startup ) {
             error( "Timeout negotiating connection to PostgreSQL." );
         }
-        else if ( d->transaction || !d->queries.isEmpty() ) {
-            Query * q = d->queries.firstElement();
-            Scope x;
-            if ( q )
-                x.setLog( q->log() );
-            if ( q && q->canBeSlow() ) {
-                extendTimeout( 10 );
+        else if ( d->transaction ) {
+            if ( d->transaction )
+                error( "Transaction timeout on backend " +
+                       fn( connectionNumber() ) );
+
+            if ( d->queries.isEmpty() ) {
+                d->transaction->rollback();
+            }
+            else if ( server().protocol() == Endpoint::Unix ) {
+                // what to do? let's try a rollback anyway.
+                d->transaction->rollback();
             }
             else {
-                if ( d->transaction )
-                    error( "Transaction timeout on backend " +
-                           fn( connectionNumber() ) );
-                else
-                    error( "Request timeout on backend " +
-                           fn( connectionNumber() ) );
-
-                Transaction * t = d->transaction;
-                d->transaction = 0;
-
-                List< Query >::Iterator q( d->queries );
-                if ( q && server().protocol() != Endpoint::Unix )
-                    cancel( q );
-
-                while ( t ) {
-                    t->setError( 0, "Transaction timeout" );
-                    t->notify();
-                    t = t->parent();
-                }
-
-                while ( q ) {
-                    if ( !q->done() ) {
-                        q->setError( "Query timeout" );
-                        q->notify();
-                    }
-                    ++q;
-                }
-                d->queries.clear();
-                if ( server().protocol() != Endpoint::Unix )
-                    shutdown();
+                cancel( d->queries.firstElement() );
+                d->transaction->setError( 0, "Transaction timeout" );
+                shutdown();
             }
+        }
+        else if ( !d->queries.isEmpty() ) {
+            Query * q = d->queries.firstElement();
+            Scope x;
+            x.setLog( q->log() );
+            error( "Request timeout on backend " + fn( connectionNumber() ) );
+
+            if ( server().protocol() != Endpoint::Unix )
+                cancel( q );
         }
         else if ( server().protocol() != Endpoint::Unix &&
                   ::listener != this &&
@@ -592,7 +591,6 @@ void Postgres::process( char type )
         {
             PgReady msg( readBuffer() );
             setState( msg.state() );
-
         }
         break;
 
