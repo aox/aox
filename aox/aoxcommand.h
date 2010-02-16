@@ -46,6 +46,7 @@ private:
 
 
 class AoxCommandMap
+// NOT a Garbage inheritor. created early, not on the heap
 {
 public:
     AoxCommandMap( const char * verb, const char * noun,
