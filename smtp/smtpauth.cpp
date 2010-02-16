@@ -78,6 +78,12 @@ SmtpAuth::SmtpAuth( SMTP * s, SmtpParser * p )
 void SmtpAuth::execute()
 {
     if ( !d->m ) {
+        if ( server()->dialect() == SMTP::Lmtp ) {
+            respond( 503, "Will not authenticate for LMTP", "5.5.0" );
+            finish();
+            return;
+        }
+
         if ( server()->user() ) {
             respond( 503, "Already authenticated", "5.0.0" );
             finish();

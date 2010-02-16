@@ -38,10 +38,12 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         return;
     respond( 250, Configuration::hostname() );
     if ( t == Ehlo || t == Lhlo ) {
-        EString auth( SaslMechanism::allowedMechanisms( "", s->hasTls() ) );
-        respond( 0, "AUTH " + auth );
-        // should we also send AUTH=?
-        // respond( 0, "AUTH=" + auth );
+        if ( s->dialect() != SMTP::Lmtp ) {
+            EString a( SaslMechanism::allowedMechanisms( "", s->hasTls() ) );
+            respond( 0, "AUTH " + a );
+            // should we also send AUTH=?
+            // respond( 0, "AUTH=" + a );
+        }
         respond( 0, "BURL IMAP IMAP://" + Configuration::hostname() );
         if ( s->dialect() == SMTP::Submit ) {
             int delay = 1901520000 - ::time( 0 );
