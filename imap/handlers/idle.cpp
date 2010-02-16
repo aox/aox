@@ -44,7 +44,6 @@ void Idle::execute()
 
     imap()->reserve( this );
     imap()->enqueue( "+ idling\r\n" );
-    imap()->write();
     idling = true;
 }
 

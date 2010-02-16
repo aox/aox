@@ -892,8 +892,6 @@ void IMAP::emitResponses()
         else
             ++r;
     }
-    if ( n )
-        write();
 
     if ( !any )
         return;

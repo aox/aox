@@ -148,8 +148,6 @@ void LogClient::send( const EString &id, Log::Severity s, const EString & m )
     t.append( m.simplified() );
     t.append( "\r\n" );
     d->enqueue( t );
-    if ( d->state() == Connection::Connected )
-        d->write();
 }
 
 

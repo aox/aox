@@ -336,7 +336,6 @@ void SmtpStarttls::execute()
         startedTls = true;
         log( "Negotiating TLS", Log::Debug );
         server()->enqueue( "220 2.0.0 Start negotiating TLS now.\r\n" );
-        server()->write();
         server()->startTls( tlsServer );
         finish();
     }
@@ -344,7 +343,6 @@ void SmtpStarttls::execute()
     startedTls = true;
     log( "Negotiating TLS", Log::Debug );
     server()->enqueue( "220 2.0.0 Start negotiating TLS now.\r\n" );
-    server()->write();
     server()->startTls( tlsServer );
     finish();
 #endif

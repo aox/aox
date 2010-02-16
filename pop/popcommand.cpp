@@ -100,7 +100,6 @@ PopCommand::PopCommand( POP * pop, Command cmd, EStringList * args )
 void PopCommand::finish()
 {
     d->done = true;
-    d->pop->write();
     d->pop->runCommands();
 }
 
@@ -254,7 +253,6 @@ bool PopCommand::startTls()
     log( "STLS Command" );
 #endif
     d->pop->ok( "Done" );
-    d->pop->write();
     d->pop->startTls( d->tlsServer );
 
     return true;

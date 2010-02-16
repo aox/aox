@@ -243,7 +243,6 @@ void ManageSieveCommand::execute()
         }
         d->sieve->enqueue( "\r\n" );
     };
-    d->sieve->write();
     d->sieve->runCommands();
 }
 
@@ -287,7 +286,6 @@ bool ManageSieveCommand::startTls()
 #endif
 
         d->sieve->enqueue( "OK\r\n" );
-        d->sieve->write();
         d->sieve->startTls( d->tlsServer );
         d->sieve->capabilities();
         return true;

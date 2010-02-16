@@ -715,8 +715,6 @@ void Command::emitResponses()
     log( t );
     t.append( "\r\n" );
     imap()->enqueue( t );
-
-    imap()->write();
 }
 
 
@@ -1069,7 +1067,7 @@ uint Command::msn()
         r = nzNumber();
     }
 
-    if ( r > star ) { 
+    if ( r > star ) {
         respond( "OK MSN " + fn( r ) + " is too large. "
                  "I hope you mean " + fn( star ) +
                  " and will act accordingly." );

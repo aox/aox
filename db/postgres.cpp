@@ -193,7 +193,6 @@ void Postgres::processQueue()
         setTimeoutAfter( patience );
     else
         reactToIdleness();
-    write();
 }
 
 
