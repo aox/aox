@@ -168,7 +168,7 @@ void Transaction::setDatabase( Database *db )
         return;
     d->queries = new List<Query>;
     if ( !d->submittedBegin ) {
-        TransactionData::BeginBouncer * b 
+        TransactionData::BeginBouncer * b
             = new TransactionData::BeginBouncer( this );
         b->q = new Query( "begin", b );
         b->q->setTransaction( this );
@@ -213,7 +213,6 @@ bool Transaction::failed() const
 bool Transaction::done() const
 {
     return d->state == Completed ||
-        d->state == Failed ||
         d->state == RolledBack;
 }
 
@@ -372,7 +371,7 @@ void Transaction::rollback()
         // if we're a subtransaction, then what we need to do is roll
         // back to the savepoint, then release it...
         enqueue( new Query( "rollback to " + d->savepoint, 0 ) );
-        TransactionData::CommitBouncer * cb = 
+        TransactionData::CommitBouncer * cb =
             new TransactionData::CommitBouncer( this );
         Query * q = new Query( "release savepoint " + d->savepoint, cb );
         cb->q = q;
@@ -380,7 +379,7 @@ void Transaction::rollback()
         execute();
     }
     else {
-        TransactionData::CommitBouncer * cb = 
+        TransactionData::CommitBouncer * cb =
             new TransactionData::CommitBouncer( this );
         Query * q = new Query( "rollback", cb );
         cb->q = q;
@@ -511,14 +510,14 @@ void Transaction::commit()
     }
 
     if ( d->parent ) {
-        TransactionData::CommitBouncer * cb = 
+        TransactionData::CommitBouncer * cb =
             new TransactionData::CommitBouncer( this );
         Query * q = new Query( "release savepoint " + d->savepoint, cb );
         cb->q = q;
         enqueue( q );
     }
     else {
-        TransactionData::CommitBouncer * cb = 
+        TransactionData::CommitBouncer * cb =
             new TransactionData::CommitBouncer( this );
         Query * q = new Query( "commit", cb );
         cb->q = q;
@@ -664,7 +663,7 @@ Transaction * Transaction::activeSubTransaction()
 /*! Removes all queries that can be sent to the server from the front
     of the queue and returns them. May change activeSubTransaction()
     as a side effect, if the last query starts a subtransaction.
-    
+
     The returned pointer is never null, but the list may be empty.
 */
 
