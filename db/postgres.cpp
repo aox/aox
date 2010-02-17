@@ -302,6 +302,13 @@ void Postgres::react( Event e )
                 setTimeoutAfter( interval );
             }
         }
+        else if ( d->transaction && d->queries.isEmpty() &&
+                  state() == Broken ) {
+            // if the transaction doesn't send rollback pretty
+            // quickly, we have rollback for it in order to free the
+            // handle for better work
+            setTimeoutAfter( 5 );
+        }
 
         break;
 
@@ -315,6 +322,9 @@ void Postgres::react( Event e )
         break;
 
     case Timeout:
+        if ( d->transaction && d->transaction->done() )
+            d->transaction = 0;
+
         if ( !d->active || d->startup ) {
             error( "Timeout negotiating connection to PostgreSQL." );
         }
@@ -353,9 +363,7 @@ void Postgres::react( Event e )
             shutdown();
         }
         else {
-            uint interval =
-                Configuration::scalar( Configuration::DbHandleTimeout );
-            extendTimeout( interval );
+            log( "Timed out, don't know how to respond", Log::Debug );
         }
         break;
 
@@ -1079,9 +1087,6 @@ static bool hasMessage( Buffer *b )
 /*! Returns true if this handle is willing to process new queries: i.e.
     if it has an active and error-free connection to the server, and no
     outstanding queries; and false otherwise.
-
-    This tries to keep the NOTIFY listener free, so that no
-    transactions can possibly interfere with LISTENing.
 */
 
 bool Postgres::usable() const
