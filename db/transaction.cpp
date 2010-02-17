@@ -213,6 +213,7 @@ bool Transaction::failed() const
 bool Transaction::done() const
 {
     return d->state == Completed ||
+        d->state == Failed ||
         d->state == RolledBack;
 }
 

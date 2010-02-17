@@ -144,7 +144,9 @@ void Postgres::processQueue()
         sendListen();
     }
 
-    if ( d->transaction && d->transaction->done() )
+    if ( d->transaction &&
+         ( d->transaction->state() == Transaction::Completed ||
+           d->transaction->state() == Transaction::RolledBack ) )
         d->transaction = 0;
 
     List< Query > * l = 0;
@@ -322,7 +324,9 @@ void Postgres::react( Event e )
         break;
 
     case Timeout:
-        if ( d->transaction && d->transaction->done() )
+        if ( d->transaction &&
+             ( d->transaction->state() == Transaction::Completed ||
+               d->transaction->state() == Transaction::RolledBack ) )
             d->transaction = 0;
 
         if ( !d->active || d->startup ) {
