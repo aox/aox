@@ -366,9 +366,6 @@ void Postgres::react( Event e )
                  fn( numHandles()-1 ) + " remaining)" );
             shutdown();
         }
-        else {
-            log( "Timed out, don't know how to respond", Log::Debug );
-        }
         break;
 
     case Shutdown:
