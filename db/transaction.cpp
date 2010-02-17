@@ -464,10 +464,11 @@ void Transaction::finalizeBegin( Query * q )
 void Transaction::finalizeTransaction( Query * q )
 {
     if ( !q->failed() ) {
-        if ( d->committing )
-            setState( Completed );
-        else
+        if ( !d->committing )
             setState( RolledBack );
+        else if ( d->state != Failed )
+            setState( Completed );
+        // the third case would be if ( failed ) setstate( failed )
         notify();
         if ( d->parent ) {
             if ( d->parent->d->activeChild == this )
