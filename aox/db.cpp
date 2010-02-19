@@ -214,6 +214,7 @@ void Vacuum::execute()
             "insert into au (address, used) "
             "select id, false from addresses "
             "where id > floor( random() * (select max(id) from addresses) ) "
+            "order by id "
             "limit 1024" );
         // make sure noone can add new references to those rows
         t->enqueue(
