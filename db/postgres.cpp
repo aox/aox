@@ -119,7 +119,6 @@ Postgres::Postgres()
         setTimeoutAfter( 10 );
         EventLoop::global()->addConnection( this );
     }
-    addHandle( this );
 }
 
 
@@ -445,6 +444,7 @@ void Postgres::backendStartup( char type )
     case 'Z':
         setTimeout( 0 );
         d->startup = false;
+        addHandle( this );
 
         // This successfully concludes connection startup. We'll leave
         // this message unparsed, so that process() can handle it like
