@@ -772,16 +772,7 @@ void Postgres::serverMessage()
         if ( ::listener == this )
             ::listener = 0;
         close();
-        if ( d->transaction ) {
-            error( "PostgreSQL server shut down" );
-        }
-        else {
-            List< Query >::Iterator q( d->queries );
-            while ( q ) {
-                submit( q );
-                ++q;
-            }
-        }
+        error( "PostgreSQL server shut down" );
     }
     else if ( code == "28000" && m.lower().containsWord( "ident" ) ) {
         int b = m.find( '"' );
