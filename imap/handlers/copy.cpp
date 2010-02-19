@@ -15,17 +15,21 @@ class CopyData
 {
 public:
     CopyData() :
-        uid( false ),
+        uid( false ), move( false ),
         mailbox( 0 ), transaction( 0 ),
         findUid( 0 ),
         report( 0 )
     {}
     bool uid;
+    bool move;
     IntegerSet set;
     Mailbox * mailbox;
     Transaction * transaction;
     Query * findUid;
     Query * report;
+    uint toUid;
+    int64 toMs;
+    int64 fromMs;
 };
 
 
@@ -50,6 +54,17 @@ Copy::Copy( bool uid )
 }
 
 
+/*! Tells the Copy handler to expunge the messages after copying, in
+    effect turning Copy into Move.
+
+*/
+
+void Copy::setMove()
+{
+    d->move = true;
+}
+
+
 void Copy::parse()
 {
     space();
@@ -64,6 +79,10 @@ void Copy::parse()
 
     requireRight( d->mailbox, Permissions::Insert );
     requireRight( d->mailbox, Permissions::Write );
+    if ( d->move ) {
+        requireRight( session()->mailbox(), Permissions::Expunge );
+        requireRight( session()->mailbox(), Permissions::DeleteMessages );
+    }
 
     log( "Will copy " + fn( d->set.count() ) +
          " messages to " + d->mailbox->name().ascii() );
@@ -86,28 +105,35 @@ void Copy::execute()
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
 
-        d->findUid = new Query( "select uidnext,nextmodseq from mailboxes "
-                                "where id=$1 for update",
+        d->findUid = new Query( "select id,uidnext,nextmodseq from mailboxes "
+                                "where id=$1 or id=$2 order by id for update",
                                 this );
         d->findUid->bind( 1, d->mailbox->id() );
+        if ( d->move )
+            d->findUid->bind( 2, session()->mailbox()->id() );
+        else
+            d->findUid->bind( 2, d->mailbox->id() );
         d->transaction->enqueue( d->findUid );
         d->transaction->execute();
+    }
+
+    while ( d->findUid->hasResults() ) {
+        Row * r = d->findUid->nextRow();
+        if ( (uint)r->getInt( "id" ) == d->mailbox->id() ) {
+            d->toUid = r->getInt( "uidnext" );
+            d->toMs = r->getBigint( "nextmodseq" );
+        }
+        else {
+            d->fromMs = r->getBigint( "nextmodseq" );
+        }
     }
 
     if ( !d->findUid->done() )
         return;
 
     if ( !d->report ) {
-        uint firstUid = 0;
-        int64 modseq = 0;
-        Row * r = d->findUid->nextRow();
-        if ( r ) {
-            firstUid = r->getInt( "uidnext" );
-            modseq = r->getBigint( "nextmodseq" );
-        }
-        else {
+        if ( !d->toMs )
             error( No, "Could not allocate UID and modseq in target mailbox" );
-        }
 
         if ( !ok() ) {
             d->transaction->rollback();
@@ -125,7 +151,7 @@ void Copy::execute()
                        ")", 0 );
         d->transaction->enqueue( q );
 
-        q = new Query( "create temporary sequence s start " + fn( firstUid ),
+        q = new Query( "create temporary sequence s start " + fn( d->toUid ),
                        0 );
         d->transaction->enqueue( q );
 
@@ -142,7 +168,7 @@ void Copy::execute()
                        "set uidnext=nextval('s'), nextmodseq=$1 "
                        "where id=$2",
                        this );
-        q->bind( 1, modseq+1 );
+        q->bind( 1, d->toMs+1 );
         q->bind( 2, d->mailbox->id() );
         d->transaction->enqueue( q );
 
@@ -153,7 +179,7 @@ void Copy::execute()
                        "select $1, t.nuid, message, $2, t.seen, false "
                        "from t", 0 );
         q->bind( 1, d->mailbox->id() );
-        q->bind( 2, modseq );
+        q->bind( 2, d->toMs );
         d->transaction->enqueue( q );
 
         q = new Query( "insert into flags "
@@ -174,6 +200,27 @@ void Copy::execute()
 
         d->report = new Query( "select uid, nuid from t", 0 );
         d->transaction->enqueue( d->report );
+
+        if ( d->move ) {
+            q = new Query(
+                "insert into deleted_messages "
+                "(mailbox,uid,message,modseq,deleted_by,reason) "
+                "select $1, t.uid, t.message, $2, $3"
+                " 'moved to mailbox '||$4||' uid '||t.nuid "
+                "from t", 0 );
+            q->bind( 1, session()->mailbox()->id() );
+            q->bind( 2, d->fromMs );
+            q->bind( 3, imap()->user()->id() );
+            q->bind( 4, d->mailbox->name() );
+            d->transaction->enqueue( q );
+            q = new Query( "update mailboxes "
+                           "set uidnext=nextmodseq=$1 "
+                           "where id=$2",
+                           0 );
+            q->bind( 1, d->fromMs+1 );
+            q->bind( 2, session()->mailbox()->id() );
+            d->transaction->enqueue( q );
+        }
 
         d->transaction->enqueue( new Query( "drop table t", 0 ) );
 

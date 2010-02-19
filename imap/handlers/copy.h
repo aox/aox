@@ -15,6 +15,9 @@ public:
     void parse();
     void execute();
 
+protected:
+    void setMove();
+
 private:
     class CopyData * d;
 };

@@ -20,6 +20,7 @@ Build imap :
     login.cpp
     logout.cpp
     lsub.cpp
+    move.cpp
     namespace.cpp
     noop.cpp
     notify.cpp

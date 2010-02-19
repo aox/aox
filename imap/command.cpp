@@ -33,6 +33,7 @@
 #include "handlers/login.h"
 #include "handlers/logout.h"
 #include "handlers/lsub.h"
+#include "handlers/move.h"
 #include "handlers/namespace.h"
 #include "handlers/notify.h"
 #include "handlers/noop.h"
@@ -276,6 +277,8 @@ Command * Command::create( IMAP * imap,
             c = new Unselect;
         else if ( n == "sort" )
             c = new Sort( uid );
+        else if ( n == "copy" && uid )
+            c = new Move();
 
         if ( c )
             selected = true;
