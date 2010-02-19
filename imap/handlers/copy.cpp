@@ -214,7 +214,7 @@ void Copy::execute()
             q->bind( 4, d->mailbox->name() );
             d->transaction->enqueue( q );
             q = new Query( "update mailboxes "
-                           "set uidnext=nextmodseq=$1 "
+                           "set nextmodseq=$1 "
                            "where id=$2",
                            0 );
             q->bind( 1, d->fromMs+1 );

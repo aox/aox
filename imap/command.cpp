@@ -277,7 +277,7 @@ Command * Command::create( IMAP * imap,
             c = new Unselect;
         else if ( n == "sort" )
             c = new Sort( uid );
-        else if ( n == "copy" && uid )
+        else if ( n == "move" && uid )
             c = new Move();
 
         if ( c )
