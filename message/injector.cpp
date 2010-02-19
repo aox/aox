@@ -379,55 +379,6 @@ void Injector::execute()
     }
     while ( last != d->state && d->state != Done && !d->failed );
 
-    if ( d->failed && !d->retried && d->transaction ) {
-        // Sometimes injection fails for temporary reasons, such as
-        // Postgres shutting down and restarting. If that happens, the
-        // best response is to retry the entire transaction.
-
-        // If Injector is correct, then all injection errors belong to
-        // the class above. Since we don't know about the bugs, we
-        // treat all problems as temporary. But just in case there
-        // really are bugs, we retry only once.
-
-        log( "Injection failed. Retrying once." );
-
-        InjectorData * old = d;
-        d = new InjectorData;
-        d->retried = true;
-        d->injectables.append( old->injectables );
-        d->deliveries.append( old->deliveries );
-        d->owner = old->owner;
-
-        if ( old->transaction->parent() ) {
-            // The Injector is part of a larger transaction, which we
-            // need to continue using.
-            d->transaction = old->transaction;
-            // We have to find out whether what failed was our
-            // subtransaction or the bigger transaction.
-            d->transaction->restart();
-            // To do that we send a bogus query. If it fails, the
-            // transaction will be set to Failed again, and we'll fail
-            // permanently when we wake up in a few seconds.
-            d->transaction->enqueue( new Query( "select 42 as a", this ) );
-            d->transaction->execute();
-        }
-        else {
-            // The transaction was independent. Roll it back
-            // explicitly, then discard it.
-            old->transaction->rollback();
-        }
-        // We try again in five seconds, that should be enough for
-        // Postgres to shut down if that's what it's doing. Database
-        // will wait for pg to come back up.
-        (void)new Timer( this, 5 );
-
-        // And just to make sure there's no evil cache effect
-        // involving obliteration, we clear all caches completely.
-        Cache::clearAllCaches( true );
-
-        return;
-    }
-
     if ( d->state == Done && d->owner ) {
         if ( d->failed )
             log( "Injection failed: " + error() );
