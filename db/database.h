@@ -65,6 +65,7 @@ protected:
 
     static void addHandle( Database * );
     static void removeHandle( Database * );
+    static void addInitialHandles( uint = 3);
 
     static Endpoint server();
     static EString address();

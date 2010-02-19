@@ -67,8 +67,8 @@ Database::Database()
     to the best of its limited ability (since connection negotiation
     must be left to subclasses). It logs a disaster if it fails.
 
-    It creates \a desired database handles (3 by default) at startup
-    and will log in as \a user with the password \a pass.
+    It creates \a desired database handles at startup and will log in
+    as \a user with the password \a pass.
 
     This function expects to be called from ::main().
 */
@@ -105,6 +105,15 @@ void Database::setup( uint desired, const EString & user,
         return;
     }
 
+    addInitialHandles( desired );
+}
+
+
+/*! Creates \a desired connections to the database.
+*/
+
+void Database::addInitialHandles( uint desired )
+{
     Endpoint srv( Configuration::DbAddress, Configuration::DbPort );
 
     if ( desired == 0 ) {
@@ -121,6 +130,7 @@ void Database::setup( uint desired, const EString & user,
         newHandle();
         desired--;
     }
+    
 }
 
 
@@ -270,7 +280,7 @@ void Database::runQueue()
     // We create at most one new handle per interval, unless we have no
     // handles at all.
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
-    if ( !handles->isEmpty() && time( 0 ) - lastCreated < interval )
+    if ( time( 0 ) - lastCreated < interval )
         return;
 
     // If we don't have too many, we can create another handle!
@@ -327,15 +337,8 @@ void Database::removeHandle( Database * d )
     if ( !handles->isEmpty() )
         return;
 
-    if ( handlesNeeded() < handles->count() )
-        handles->lastElement()->setTimeoutAfter( 5 );
-
-    List< Query >::Iterator q( queries );
-    while ( q ) {
-        q->setError( "No available database handles." );
-        q->notify();
-        queries->take( q );
-    }
+    if ( !EventLoop::global()->inShutdown() )
+        addInitialHandles( 3 );
 
     if ( server().protocol() == Endpoint::Unix &&
          !server().address().startsWith( File::root() ) )
