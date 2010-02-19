@@ -273,10 +273,6 @@ void Database::runQueue()
     if ( !handles->isEmpty() && time( 0 ) - lastCreated < interval )
         return;
 
-    // If one or more handles are still connecting, we let them finish first.
-    if ( connecting )
-        return;
-
     // If we don't have too many, we can create another handle!
     uint max = Configuration::scalar( Configuration::DbMaxHandles );
     if ( handles->count() < max )
