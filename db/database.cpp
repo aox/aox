@@ -260,10 +260,10 @@ void Database::runQueue()
 
     queryQueueLength->setValue( queries->count() );
     busyDbConnections->setValue( busy );
-
-    // We'll check if we need to add new handles only if we couldn't
-    // dispatch any outstanding queries.
-    if ( first != queries->firstElement() )
+    
+    // If there's nothing to do, or we did get something done, then we
+    // don't even consider opening a new database connection.
+    if ( queries->isEmpty() || first != queries->firstElement() )
         return;
 
     // Even if we want to, we cannot create unix-domain handles when
@@ -277,8 +277,7 @@ void Database::runQueue()
     if ( EventLoop::global()->inShutdown() )
         return;
 
-    // We create at most one new handle per interval, unless we have no
-    // handles at all.
+    // We create at most one new handle per interval.
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
     if ( time( 0 ) - lastCreated < interval )
         return;
