@@ -536,9 +536,6 @@ void Database::reactToIdleness()
     if ( !idle() )
         return;
 
-    if ( handlesNeeded() < handles->count() )
-        handles->lastElement()->setTimeoutAfter( 5 );
-
     List<EventHandler>::Iterator i( ::whenIdle );
     Allocator::removeEternal( ::whenIdle );
     ::whenIdle = 0;
