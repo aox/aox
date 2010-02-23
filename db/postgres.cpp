@@ -142,10 +142,10 @@ void Postgres::processQueue()
            d->transaction->state() == Transaction::RolledBack ) )
         d->transaction = 0;
 
-    if ( !::listener && !d->transaction ) {
+    if ( !::listener && !d->transaction )
         ::listener = this;
+    if ( ::listener == this )
         sendListen();
-    }
 
     List< Query > * l = 0;
     if ( d->transaction ) {
