@@ -22,7 +22,7 @@ public:
 
     static uint version();
 
-    static void sendListen();
+    void sendListen();
 
     void cancel( Query * );
 
