@@ -164,6 +164,10 @@ void Transaction::setDatabase( Database *db )
 {
     d->db = db;
 
+    Scope x( d->owner->log() );
+    log( "Using database connection " + fn( db->connectionNumber() ),
+         Log::Debug );
+
     if ( d->queries )
         return;
     d->queries = new List<Query>;
