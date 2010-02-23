@@ -51,7 +51,6 @@ DatabaseSignal::DatabaseSignal( const EString & name, EventHandler * owner )
     }
     signals->append( this );
     log( "Listening for database signal " + name );
-    Postgres::sendListen();
 }
 
 
