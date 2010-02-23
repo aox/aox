@@ -893,6 +893,13 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             EString s = d->message->header()->subject().simplified();
             while ( s.lower().startsWith( "auto:" ) )
                 s = s.mid( 5 ).simplified();
+            while ( s[2] == ':' && s[3] == ' ' &&
+                    ( ( s[0] >= 'A' && s[0] <= 'Z' ) ||
+                      ( s[0] >= 'a' && s[0] <= 'z' ) ) &&
+                    ( ( s[1] >= 'A' && s[2] <= 'Z' ) ||
+                      ( s[1] >= 'a' && s[2] <= 'z' ) ) &&
+                    !s.mid( 4 ).isEmpty() )
+                s = s.mid( 4 );
             reptext.append( "Auto: " );
             if ( s.isEmpty() )
                 reptext.append( "Vacation" );
@@ -949,7 +956,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             }
             else if ( !reason.isAscii() ) {
                 reptext.append( "Content-Type: text/plain; charset=utf-8\r\n"
-                                "Mime-Version: 1.0\r\n" );                
+                                "Mime-Version: 1.0\r\n" );
             }
             reptext.append( "\r\n" );
             reptext.append( reason.utf8() );
