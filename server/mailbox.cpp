@@ -166,6 +166,8 @@ void MailboxReader::execute() {
         return;
 
     done = true;
+    if ( q->transaction() )
+        q->transaction()->commit();
     ::readers->remove( this );
     ::wiped = false;
     if ( q->failed() && !EventLoop::global()->inShutdown() ) {
@@ -738,7 +740,7 @@ void Mailbox::refreshMailboxes( class Transaction * t )
     Transaction * s = t->subTransaction( mr );
     s->enqueue( mr->q );
     s->enqueue( new Query( "notify mailboxes_updated", 0 ) );
-    s->commit();
+    s->execute();
 }
 
 
