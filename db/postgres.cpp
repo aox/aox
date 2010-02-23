@@ -332,8 +332,7 @@ void Postgres::react( Event e )
         }
         else if ( d->transaction ) {
             if ( d->transaction )
-                error( "Transaction timeout on backend " +
-                       fn( connectionNumber() ) );
+                error( "Transaction timeout" );
 
             if ( d->queries.isEmpty() ) {
                 d->transaction->rollback();
@@ -352,7 +351,7 @@ void Postgres::react( Event e )
             Query * q = d->queries.firstElement();
             Scope x;
             x.setLog( q->log() );
-            error( "Request timeout on backend " + fn( connectionNumber() ) );
+            error( "Request timeout" );
 
             if ( server().protocol() != Endpoint::Unix )
                 cancel( q );
