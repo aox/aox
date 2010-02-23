@@ -898,7 +898,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                       ( s[0] >= 'a' && s[0] <= 'z' ) ) &&
                     ( ( s[1] >= 'A' && s[2] <= 'Z' ) ||
                       ( s[1] >= 'a' && s[2] <= 'z' ) ) &&
-                    !s.mid( 4 ).isEmpty() )
+                    s.length() > 4 )
                 s = s.mid( 4 );
             reptext.append( "Auto: " );
             if ( s.isEmpty() )
