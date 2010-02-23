@@ -331,8 +331,7 @@ void Postgres::react( Event e )
             error( "Timeout negotiating connection to PostgreSQL." );
         }
         else if ( d->transaction ) {
-            if ( d->transaction )
-                error( "Transaction timeout" );
+            error( "Transaction timeout" );
 
             if ( d->queries.isEmpty() ) {
                 d->transaction->rollback();
