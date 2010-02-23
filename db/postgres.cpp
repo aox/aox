@@ -41,7 +41,7 @@ public:
           unknownMessage( false ), identBreakageSeen( false ),
           setSessionAuthorisation( false ),
           sendingCopy( false ), error( false ),
-          mustSendListen( false ), keydata( 0 ),
+          keydata( 0 ),
           description( 0 ), transaction( 0 ),
           needNotify( 0 )
     {}
@@ -54,7 +54,6 @@ public:
     bool setSessionAuthorisation;
     bool sendingCopy;
     bool error;
-    bool mustSendListen;
     EStringList listening;
 
     PgKeyData *keydata;
@@ -138,15 +137,15 @@ void Postgres::processQueue()
     if ( d->sendingCopy )
         return;
 
-    if ( !::listener ) {
-        ::listener = this;
-        sendListen();
-    }
-
     if ( d->transaction &&
          ( d->transaction->state() == Transaction::Completed ||
            d->transaction->state() == Transaction::RolledBack ) )
         d->transaction = 0;
+
+    if ( !::listener && !d->transaction ) {
+        ::listener = this;
+        sendListen();
+    }
 
     List< Query > * l = 0;
     if ( d->transaction ) {
@@ -175,7 +174,6 @@ void Postgres::processQueue()
     while ( q ) {
         q->setState( Query::Executing );
         if ( !d->error ) {
-            d->queries.append( q );
             processQuery( q );
             n++;
             if ( q->canBeSlow() )
@@ -204,6 +202,7 @@ void Postgres::processQueue()
 void Postgres::processQuery( Query * q )
 {
     Scope x( q->log() );
+    d->queries.append( q );
     EString s( "Sent " );
     if ( q->name() == "" ||
          !d->prepared.contains( q->name() ) )
@@ -450,13 +449,9 @@ void Postgres::backendStartup( char type )
         // this message unparsed, so that process() can handle it like
         // any other PgReady.
 
-        if ( d->setSessionAuthorisation ) {
-            Query * q =
-                new Query( "SET SESSION AUTHORIZATION " +
-                           Database::user(), 0 );
-            d->queries.append( q );
-            processQuery( q );
-        }
+        if ( d->setSessionAuthorisation )
+            processQuery( new Query( "SET SESSION AUTHORIZATION " +
+                                     Database::user(), 0 ) );
 
         break;
 
@@ -1135,23 +1130,15 @@ uint Postgres::version()
 
 void Postgres::sendListen()
 {
-    if ( !::listener )
-        return;
-    ::listener->d->mustSendListen = true;
-    if ( ::listener->state() != Idle || ::listener->d->transaction )
-        return;
-    ::listener->d->mustSendListen = false;
     EStringList::Iterator s( DatabaseSignal::names() );
     while ( s ) {
         EString name = *s;
         ++s;
-        if ( !::listener->d->listening.contains( name ) ) {
-            ::listener->d->listening.append( name );
+        if ( !d->listening.contains( name ) ) {
+            d->listening.append( name );
             if ( !name.boring() )
                 name = name.quoted();
-            Query * q = new Query( "listen " + name, 0 );
-            ::listener->d->queries.append( q );
-            ::listener->processQuery( q );
+            processQuery( new Query( "listen " + name, 0 ) );
         }
     }
 }
