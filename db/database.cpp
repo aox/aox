@@ -37,6 +37,14 @@ static List<EventHandler> * whenIdle;
 
 static void newHandle()
 {
+    Scope x;
+    if ( !handles.isEmpty() ) {
+        Log * l = handles.firstElement()->log();
+        if ( l->parent() )
+            l = l->parent();
+        if ( l )
+            x.setLog( l );
+    }
     (void)new Postgres;
 }
 
