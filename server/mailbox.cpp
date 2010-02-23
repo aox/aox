@@ -169,14 +169,13 @@ void MailboxReader::execute() {
     ::readers->remove( this );
     ::wiped = false;
     if ( q->failed() && !EventLoop::global()->inShutdown() ) {
-        if ( q->transaction() )
+        List<Mailbox> * c = Mailbox::root()->children();
+        if ( c && !c->isEmpty() )
             log( "Couldn't update mailbox tree: " + q->error() );
         else
             log( "Couldn't create mailbox tree: " + q->error(),
                  Log::Disaster );
     }
-    if ( q->transaction() )
-        q->transaction()->commit();
     if ( owner )
         owner->execute();
 };
@@ -739,7 +738,7 @@ void Mailbox::refreshMailboxes( class Transaction * t )
     Transaction * s = t->subTransaction( mr );
     s->enqueue( mr->q );
     s->enqueue( new Query( "notify mailboxes_updated", 0 ) );
-    s->execute();
+    s->commit();
 }
 
 
