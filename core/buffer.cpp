@@ -134,7 +134,7 @@ void Buffer::write( int fd )
 {
     int written = 1;
 
-    while ( written ) {
+    while ( written > 0 ) {
         Vector * v = vecs.firstElement();
 
         int max = 0;
