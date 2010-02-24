@@ -260,6 +260,8 @@ void EventLoop::start()
             tv.tv_usec = 200000;
 
         if ( select( maxfd+1, &r, &w, 0, &tv ) < 0 ) {
+            // r and w are undefined. we clear them, and dispatch()
+            // won't jump to conclusions
             FD_ZERO( &r );
             FD_ZERO( &w );
         }
