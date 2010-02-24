@@ -59,10 +59,20 @@ public:
         : public EventHandler
     {
     public:
-        Stopper( uint s ) { (void)new Timer( this, s ); }
-        void execute() { if ( EventLoop::global() ) {
-                EventLoop::global()->stop(); }
+        Stopper( uint s ): stage2( false ) {
+            (void)new Timer( this, s );
+            if ( s <= 10 )
+                stage2 = true;
         }
+        void execute() {
+            if ( !EventLoop::global() || EventLoop::global()->inShutdown() )
+                return;
+            if ( stage2 )
+                EventLoop::global()->stop();
+            else
+                EventLoop::global()->stop( 10 );
+        }
+        bool stage2;
     };
 };
 
@@ -505,7 +515,7 @@ void EventLoop::stop( uint s )
                 c->react( Connection::Shutdown );
                 c->close();
             }
-            else if ( !c->hasProperty( Connection::Internal ) ) {
+            else if ( s <= 10 && !c->hasProperty( Connection::Internal ) ) {
                 c->react( Connection::Shutdown );
             }
         } catch ( Exception e ) {

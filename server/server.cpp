@@ -313,7 +313,7 @@ static void shutdownLoop( int )
 {
     Server::killChildren();
     if ( EventLoop::global() )
-        EventLoop::global()->stop( 2 );
+        EventLoop::global()->stop( 10800 );
 }
 
 
