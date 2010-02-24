@@ -132,8 +132,6 @@ void Postgres::processQueue()
     if ( !d->queries.isEmpty() )
         return;
 
-    int n = 0;
-
     if ( d->sendingCopy )
         return;
 
@@ -175,7 +173,6 @@ void Postgres::processQueue()
         q->setState( Query::Executing );
         if ( !d->error ) {
             processQuery( q );
-            n++;
             if ( q->canBeSlow() )
                 patience += ( interval < 60 ? 60 : interval );
             else
@@ -188,7 +185,7 @@ void Postgres::processQueue()
         q = l->shift();
     }
 
-    if ( n > 0 )
+    if ( patience )
         setTimeoutAfter( patience );
     else
         reactToIdleness();
@@ -509,6 +506,9 @@ void Postgres::process( char type )
         {
             PgCopyInResponse msg( readBuffer() );
             if ( q && q->inputLines() ) {
+                log( "Sending " + fn( q->inputLines()->count() ) +
+                     " data rows",
+                     Log::Debug );
                 PgCopyData cd( q );
                 PgCopyDone e;
 
