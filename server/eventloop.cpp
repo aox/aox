@@ -153,6 +153,19 @@ void EventLoop::removeConnection( Connection *c )
     if ( d->connections.remove( c ) == 0 )
         return;
     setConnectionCounts();
+
+    if ( d->stop )
+        return;
+
+    List< Connection >::Iterator it( d->connections );
+    while ( it ) {
+        if ( !it->hasProperty( Connection::Internal ) )
+            return;
+        ++it;
+    }
+    log( "No listeners or external connections left; exiting",
+         Log::Significant );
+    stop( 2 );
 }
 
 
