@@ -163,8 +163,6 @@ void EventLoop::removeConnection( Connection *c )
             return;
         ++it;
     }
-    log( "No listeners or external connections left; exiting",
-         Log::Significant );
     stop( 2 );
 }
 
