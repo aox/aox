@@ -217,18 +217,20 @@ void EventLoop::start()
         while ( it ) {
             c = it;
             ++it;
-
-            if ( c->active() &&
-                 !( inStartup() && c->type() == Connection::Listener ) )
-            {
-                int fd = c->fd();
+            
+            int fd = c->fd();
+            if ( fd < 0 ) {
+                removeConnection( c );
+            }
+            else if ( c->type() == Connection::Listener && inStartup() ) {
+                // we don't accept new connections until we've
+                // completed startup
+            }
+            else {
                 if ( fd > maxfd )
                     maxfd = fd;
-                if ( c->state() != Connection::Closing )
-                    FD_SET( fd, &r );
-                if ( c->canWrite() ||
-                     c->state() == Connection::Connecting ||
-                     c->state() == Connection::Closing )
+                FD_SET( fd, &r );
+                if ( c->canWrite() || c->state() == Connection::Connecting )
                     FD_SET( fd, &w );
                 if ( c->timeout() > 0 && c->timeout() < timeout )
                     timeout = c->timeout();
@@ -255,47 +257,20 @@ void EventLoop::start()
         if ( tv.tv_sec > 60 )
             tv.tv_sec = 60;
 
-        // we never ask the OS to sleep shorter than two milliseconds
+        // we never ask the OS to sleep shorter than .2 seconds
         if ( tv.tv_sec < 1 )
-            tv.tv_usec = 2000;
+            tv.tv_usec = 200000;
 
-        int n = select( maxfd+1, &r, &w, 0, &tv );
+        if ( select( maxfd+1, &r, &w, 0, &tv ) < 0 ) {
+            FD_ZERO( &r );
+            FD_ZERO( &w );
+        }
         time_t now = time( 0 );
 
         // Graph our size before processing events
         if ( !sizeinram )
             sizeinram = new GraphableNumber( "memory-used" );
         sizeinram->setValue( Allocator::inUse() + Allocator::allocated() );
-
-        if ( n < 0 ) {
-            if ( errno == EINTR ) {
-                // We should see this only for signals we've handled,
-                // and we don't need to do anything further.
-            }
-            else if ( errno == EBADF ) {
-                // one of the FDs was closed. we react by forgetting
-                // that connection, letting the rest of the server go
-                // on.
-                List< Connection >::Iterator it( d->connections );
-                while ( it ) {
-                    Connection * c = it;
-                    ++it;
-                    // we check the window size for each socket to see
-                    // which ones are bad.
-                    int dummy;
-                    if ( ::setsockopt( c->fd(), SOL_SOCKET, SO_RCVBUF,
-                                       (char*)&dummy, sizeof(dummy) ) < 0 ) {
-                        removeConnection( c );
-                    }
-                }
-            }
-            else {
-                log( "select() returned errno " + fn( errno ), Log::Disaster );
-                return;
-            }
-            FD_ZERO( &r );
-            FD_ZERO( &w );
-        }
 
         // Any interesting timers?
 
@@ -408,17 +383,29 @@ void EventLoop::start()
     state, the time \a now and the results from select: \a r is true
     if the FD may be read, and \a w is true if we know that the FD may
     be written to. If \a now is past that Connection's timeout, we
-    must sent a Timeout event.
+    must send a Timeout event.
 */
 
-void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
+void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
 {
+    int dummy1;
+    socklen_t dummy2;
+    dummy2 = sizeof(dummy1);
+    if ( ::getsockopt( c->fd(), SOL_SOCKET, SO_RCVBUF,
+                       &dummy1, &dummy2 ) < 0 ) {
+        removeConnection( c );
+        return;
+    }
+
     try {
         Scope x( c->log() );
         if ( c->timeout() != 0 && now >= c->timeout() ) {
             c->setTimeout( 0 );
             c->react( Connection::Timeout );
         }
+
+        if ( !r && !w )
+            return;
 
         if ( c->state() == Connection::Connecting ) {
             bool error = false;
