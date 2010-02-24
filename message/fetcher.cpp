@@ -919,7 +919,6 @@ void Fetcher::setTransaction( class Transaction * t )
 
 void Fetcher::submit( Query * q )
 {
-    q->allowSlowness();
     if ( d->transaction )
         d->transaction->enqueue( q );
     else

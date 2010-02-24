@@ -680,9 +680,6 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             q.append( " order by m.idate" );
     }
 
-    if ( d->needBodyparts )
-        d->query->allowSlowness();
-
     d->query->setString( q );
     return d->query;
 }

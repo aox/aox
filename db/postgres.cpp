@@ -162,21 +162,11 @@ void Postgres::processQueue()
         }
     }
 
-    uint interval =
-        Configuration::scalar( Configuration::DbHandleInterval );
-    if ( ::listener == this )
-        interval = interval * 2;
-    uint patience = 0;
-
     Query * q = l->shift();
     while ( q ) {
         q->setState( Query::Executing );
         if ( !d->error ) {
             processQuery( q );
-            if ( q->canBeSlow() )
-                patience += ( interval < 60 ? 60 : interval );
-            else
-                patience += ( interval > 10 ? 10 : interval );
         }
         else {
             q->setError( "Database handle no longer usable." );
@@ -185,9 +175,7 @@ void Postgres::processQueue()
         q = l->shift();
     }
 
-    if ( patience )
-        setTimeoutAfter( patience );
-    else
+    if ( d->queries.isEmpty() )
         reactToIdleness();
 }
 
@@ -288,13 +276,12 @@ void Postgres::react( Event e )
 
         if ( usable() ) {
             processQueue();
-            if ( d->queries.isEmpty() ) {
+            if ( d->queries.isEmpty() && !d->transaction ) {
                 uint interval =
                     Configuration::scalar( Configuration::DbHandleInterval );
                 if ( ::listener == this )
                     interval = interval * 2;
-                else if ( d->transaction && idleHandles() < 2 &&
-                          interval > 20 )
+                else if ( idleHandles() > 2 && interval > 20 )
                     interval = 20;
                 setTimeoutAfter( interval );
             }
@@ -333,17 +320,9 @@ void Postgres::react( Event e )
             else
                 log( "Transaction unexpectedly slow; continuing " );
         }
-        else if ( !d->queries.isEmpty() ) {
-            Query * q = d->queries.firstElement();
-            Scope x;
-            x.setLog( q->log() );
-            error( "Request timeout" );
-
-            if ( server().protocol() != Endpoint::Unix )
-                cancel( q );
-        }
-        else if ( server().protocol() != Endpoint::Unix &&
+        else if ( d->queries.isEmpty() && 
                   ::listener != this &&
+                  server().protocol() != Endpoint::Unix &&
                   handlesNeeded() < numHandles() ) {
             log( "Closing idle database handle (" +
                  fn( numHandles()-1 ) + " remaining)" );
