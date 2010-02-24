@@ -687,9 +687,9 @@ void SmtpData::makeCopy( bool soft ) const
         f.write( "\n"
                  "Fate: " );
         if ( soft )
-            f.write( "soft error (MTA will retry" );
+            f.write( "soft error (MTA will retry)" );
         else
-            f.write( "hard error (MTA will NOT retry" );
+            f.write( "hard error (MTA will NOT retry)" );
         f.write( "\n" );
     }
     else {
