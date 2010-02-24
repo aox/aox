@@ -36,8 +36,8 @@ public:
     Query::InputLine *values;
     List< Query::InputLine > *inputLines;
 
-    Transaction *transaction;
-    EventHandler *owner;
+    Transaction * transaction;
+    EventHandler * owner;
     List< Row > rows;
     uint totalRows;
 
@@ -227,7 +227,7 @@ void Query::allowSlowness()
     with, or 0 if this Query is self-contained.
 */
 
-Transaction *Query::transaction() const
+Transaction * Query::transaction() const
 {
     return d->transaction;
 }

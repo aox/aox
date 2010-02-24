@@ -25,8 +25,6 @@ public:
     void read( int );
     void write( int );
 
-    bool eof() const;
-    uint error() const;
     uint size() const { return bytes; }
     void remove( uint );
     EString string( uint ) const;
@@ -63,9 +61,7 @@ private:
     Filter * filter;
     Buffer * next;
     uint firstused, firstfree;
-    bool seenEOF;
     uint bytes;
-    uint err;
 };
 
 

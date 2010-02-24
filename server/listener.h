@@ -27,7 +27,6 @@ public:
 
     void read() {}
     void write() {}
-    bool canRead() { return true; }
     bool canWrite() { return false; }
     EString description() const {
         return svc + " " + Connection::description();

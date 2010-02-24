@@ -201,7 +201,7 @@ void EventLoop::start()
                 int fd = c->fd();
                 if ( fd > maxfd )
                     maxfd = fd;
-                if ( c->canRead() && c->state() != Connection::Closing )
+                if ( c->state() != Connection::Closing )
                     FD_SET( fd, &r );
                 if ( c->canWrite() ||
                      c->state() == Connection::Connecting ||
@@ -262,19 +262,6 @@ void EventLoop::start()
                     int dummy;
                     if ( ::setsockopt( c->fd(), SOL_SOCKET, SO_RCVBUF,
                                        (char*)&dummy, sizeof(dummy) ) < 0 ) {
-                        if ( c->state() == Connection::Closing ) {
-                            // if a socket is closed by the peer while
-                            // we're trying to close it, we smile and
-                            // go on our way.
-                        }
-                        else {
-                            c->log( "Socket " + fn( c->fd() ) +
-                                    " was unexpectedly closed: "
-                                    "Removing corresponding connection: " +
-                                    c->description(), Log::Error );
-                            c->log( "Please notify info@aox.org about what "
-                                    "happened with this connection" );
-                        }
                         removeConnection( c );
                     }
                 }
@@ -283,6 +270,8 @@ void EventLoop::start()
                 log( "select() returned errno " + fn( errno ), Log::Disaster );
                 return;
             }
+            FD_ZERO( &r );
+            FD_ZERO( &w );
         }
 
         // Any interesting timers?
@@ -321,7 +310,7 @@ void EventLoop::start()
 
         // Collect garbage if someone asks for it, or if we've passed
         // the memory usage goal. This has to be at the end of the
-        // scope, since anything pointed by by local variables might
+        // scope, since anything referenced by local variables might
         // be freed here.
 
         if ( !d->stop ) {
@@ -406,7 +395,6 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
         if ( c->timeout() != 0 && now >= c->timeout() ) {
             c->setTimeout( 0 );
             c->react( Connection::Timeout );
-            w = true;
         }
 
         if ( c->state() == Connection::Connecting ) {
@@ -437,12 +425,11 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
             if ( connected ) {
                 c->setState( Connection::Connected );
                 c->react( Connection::Connect );
-                w = true;
             }
             else if ( error ) {
                 c->react( Connection::Error );
                 c->setState( Connection::Closing );
-                w = r = false;
+                r = false;
             }
         }
 
@@ -462,17 +449,9 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
                 c->setState( Connection::Closing );
                 c->react( Connection::Close );
             }
-
-            w = true;
         }
 
-        if ( w ) {
-            c->write();
-            if ( c->writeBuffer()->error() != 0 ) {
-                c->setState( Connection::Closing );
-                c->react( Connection::Close );
-            }
-        }
+        c->write();
     }
     catch ( Exception e ) {
         EString s;

@@ -69,7 +69,6 @@ public:
     virtual void close();
     virtual void read();
     virtual void write();
-    virtual bool canRead();
     virtual bool canWrite();
 
     void enqueue( const EString & );

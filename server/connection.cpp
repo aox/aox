@@ -553,7 +553,7 @@ void Connection::write()
         d->wbt = time( 0 );
         d->wbs = wbs;
         if ( d->wbs > 16384 )
-            log( "Have to queue " + 
+            log( "Have to queue " +
                  EString::humanNumber( d->wbs ) + " output bytes " );
     }
     else if ( d->wbs && !wbs ) {
@@ -570,21 +570,11 @@ void Connection::write()
 }
 
 
-/*! Returns true unless we have encountered an EOF while reading from
-    our peer.
-*/
-
-bool Connection::canRead()
-{
-    return !d->r->eof() && d->r->error() == 0;
-}
-
-
 /*! Returns true if we have any data to send. */
 
 bool Connection::canWrite()
 {
-    return d->w->size() > 0 && d->w->error() == 0;
+    return d->w->size() > 0;
 }
 
 

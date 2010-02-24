@@ -7,8 +7,6 @@
 #include "estring.h"
 #include "allocator.h"
 
-// errno
-#include <errno.h>
 // open, O_CREAT|O_RDWR|O_EXCL
 #include <fcntl.h>
 // read, write, unlink, lseek, close
@@ -36,8 +34,8 @@
 
 Buffer::Buffer()
     : filter( 0 ), next( 0 ),
-      firstused( 0 ), firstfree( 0 ), seenEOF( false ),
-      bytes( 0 ), err( 0 )
+      firstused( 0 ), firstfree( 0 ),
+      bytes( 0 )
 {
 }
 
@@ -122,20 +120,8 @@ void Buffer::read( int fd )
             n = filter->read( buf, 8184, next );
         else
             n = ::read( fd, &buf, 8184 );
-
-        if ( n > 0 ) {
-            seenEOF = false;
+        if ( n > 0 )
             append( buf, n );
-        }
-        else if ( errno == ECONNRESET )
-        {
-            seenEOF = true;
-        }
-        else if ( errno != EAGAIN &&
-                  errno != EWOULDBLOCK )
-        {
-            err = errno;
-        }
     } while ( n > 0 );
 }
 
@@ -158,49 +144,20 @@ void Buffer::write( int fd )
             max = firstfree;
         int n = max - firstused;
 
-        written = 0;
-        if ( !n || !v )
-            ;
+        if ( n <= 0 || !v )
+            written = 0;
         else if ( filter )
             written = filter->write( (char*)v->base+firstused, n, next );
         else
             written = ::write( fd, v->base+firstused, n );
-        if ( written > 0 ) {
+        if ( written > 0 )
             remove( written );
-        }
-        else if ( written < 0 ) {
-            if ( errno != EAGAIN )
-                err = errno;
-            written = 0;
-        }
     }
 
     if ( filter )
         filter->flush( next );
     if ( next )
         next->write( fd );
-}
-
-
-/*! Have we encountered EOF when reading into this buffer? */
-
-bool Buffer::eof() const
-{
-    if ( next )
-        return next->eof();
-    return seenEOF;
-}
-
-
-/*! Returns the errno value for the last error value encountered during
-    IO on this Buffer, or 0 if there was no error.
-*/
-
-uint Buffer::error() const
-{
-    if ( next )
-        return next->error();
-    return err;
 }
 
 
