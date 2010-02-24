@@ -328,20 +328,10 @@ void Postgres::react( Event e )
             error( "Timeout negotiating connection to PostgreSQL." );
         }
         else if ( d->transaction ) {
-            error( "Transaction timeout" );
-
-            if ( d->queries.isEmpty() ) {
+            if ( d->queries.isEmpty() )
                 d->transaction->rollback();
-            }
-            else if ( server().protocol() == Endpoint::Unix ) {
-                // what to do? let's try a rollback anyway.
-                d->transaction->rollback();
-            }
-            else {
-                cancel( d->queries.firstElement() );
-                d->transaction->setError( 0, "Transaction timeout" );
-                shutdown();
-            }
+            else
+                log( "Transaction unexpectedly slow; continuing " );
         }
         else if ( !d->queries.isEmpty() ) {
             Query * q = d->queries.firstElement();
