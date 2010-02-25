@@ -18,6 +18,6 @@ void Logout::execute()
     // instead of at once, to avoid problems with squirrelmail.
     // squirrelmail reacts to the EOF before it has reacted to the
     // prior BYE, if they arrive in the same packet.
-    imap()->setTimeoutAfter( 0 );
+    imap()->setTimeoutAfter( 1 );
     finish();
 }

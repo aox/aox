@@ -991,6 +991,9 @@ void IMAP::recordSyntaxError()
 
 void IMAP::restartNatDefeater()
 {
+    if ( state() == NotAuthenticated || state() == Logout )
+        return;
+
     uint now = time( 0 );
     uint next = now + 4;
     // if we've already set up a suitable timer, just quit
