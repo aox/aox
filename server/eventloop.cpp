@@ -228,7 +228,9 @@ void EventLoop::start()
                 if ( fd > maxfd )
                     maxfd = fd;
                 FD_SET( fd, &r );
-                if ( c->canWrite() || c->state() == Connection::Connecting )
+                if ( c->canWrite() ||
+                     c->state() == Connection::Connecting ||
+                     c->state() == Connection::Closing )
                     FD_SET( fd, &w );
                 if ( c->timeout() > 0 && c->timeout() < timeout )
                     timeout = c->timeout();
@@ -403,9 +405,6 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
             c->setTimeout( 0 );
             c->react( Connection::Timeout );
         }
-
-        if ( !r && !w )
-            return;
 
         if ( c->state() == Connection::Connecting ) {
             bool error = false;
