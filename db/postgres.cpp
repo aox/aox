@@ -93,14 +93,14 @@ public:
         void execute() {
             while ( q->hasResults() ) {
                 Row * r = q->nextRow();
-                log( "Transaction could not acquire a lock of type " +
-                     r->getEString( "locktype" ).quoted() + " and will wait. "
-                     "The following identifies who holds the lock now. "
+                log( "Transaction is waiting for a lock of type " +
+                     r->getEString( "locktype" ).quoted() + ". "
+                     "The following points to the lock's current holder. "
                      "PID: " + fn( r->getInt( "pid" ) ) + " "
-                     "Transaction started: " + r->getEString( "xact_start" ) + " "
+                     "Transaction start time: " + r->getEString( "xact_start" ) + " "
                      "Username: " + r->getEString( "usename" ) + " "
                      "Client address: " + r->getEString( "client_addr" ) + " "
-                     "Query: " + r->getEString( "current_query" ).quoted(),
+                     "Current query: " + r->getEString( "current_query" ).quoted(),
                      Log::Significant );
             }
         }
