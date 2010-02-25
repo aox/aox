@@ -43,8 +43,8 @@ public:
           sendingCopy( false ), error( false ),
           keydata( 0 ),
           description( 0 ), transaction( 0 ),
-          needNotify( 0 )
-    {}
+          needNotify( 0 ), backendPid( 0 )
+        {}
 
     bool active;
     bool startup;
@@ -66,6 +66,46 @@ public:
     Query * needNotify;
 
     EString user;
+
+    uint backendPid;
+
+    class LockSpotter
+        : public EventHandler {
+    public:
+        LockSpotter( uint p, Transaction * t ): EventHandler(), q( 0 ) {
+            setLog( new Log( t->owner()->log() ) );
+            Scope x( log() );
+            q = new Query( 
+                "select h.pid::int, a.xact_start::text,"
+                " a.client_addr::text, a.current_query::text,"
+                " a.usename::text, a.client_addr,"
+                " a.current_query,"
+                " w.locktype::text "
+                "from pg_locks h join pg_locks w using (locktype) "
+                "join pg_stat_activity a on (h.pid=a.procpid) "
+                "where h.granted and not w.granted and w.pid=$1 and "
+                "coalesce(h.relation, h.page, h.tuple, h.transactionid, h.virtualxid)="
+                "coalesce(w.relation, w.page, w.tuple, w.transactionid, w.virtualxid)",
+                this );
+            q->bind( 1, p );
+            q->execute();
+        }
+        void execute() {
+            while ( q->hasResults() ) {
+                Row * r = q->nextRow();
+                log( "Transaction could not acquire a lock of type " +
+                     r->getEString( "locktype" ).quoted() + " and will wait. "
+                     "The following identifies who holds the lock now. "
+                     "PID: " + fn( r->getInt( "pid" ) ) + " "
+                     "Transaction started: " + r->getEString( "xact_start" ) + " "
+                     "Username: " + r->getEString( "usename" ) + " "
+                     "Client address: " + r->getEString( "client_addr" ) + " "
+                     "Query: " + r->getEString( "current_query" ).quoted(),
+                     Log::Significant );
+            }
+        }
+        Query * q;
+    };
 };
 
 
@@ -317,6 +357,8 @@ void Postgres::react( Event e )
         else if ( d->transaction ) {
             if ( d->queries.isEmpty() )
                 d->transaction->rollback();
+            else if ( d->backendPid )
+                new PgData::LockSpotter( d->backendPid, d->transaction );
             else
                 log( "Transaction unexpectedly slow; continuing " );
         }
@@ -423,6 +465,7 @@ void Postgres::backendStartup( char type )
         d->keydata = new PgKeyData( readBuffer() );
         log( "Postgres backend " + fn( connectionNumber() ) +
              " has pid " + fn( d->keydata->pid() ), Log::Debug );
+        d->backendPid = d->keydata->pid();
         break;
 
     default:
