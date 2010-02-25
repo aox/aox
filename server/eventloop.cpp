@@ -461,7 +461,14 @@ void EventLoop::dispatch( Connection * c, bool r, bool w, uint now )
             }
         }
 
+        uint s = c->writeBuffer()->size();
         c->write();
+        // if we're closing anyway, and we can't write any of what we
+        // want to write, then just forget the buffered data and go on
+        // with the close
+        if ( c->state() == Connection::Closing &&
+             s && s == c->writeBuffer()->size() )
+            c->writeBuffer()->remove( s );
     }
     catch ( Exception e ) {
         EString s;
