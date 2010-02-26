@@ -204,6 +204,18 @@ void IMAP::react( Event e )
             log( "Unexpected close by client" );
             endSession();
         }
+        if ( !d->commands.isEmpty() ) {
+            List<Command>::Iterator i( d->commands );
+            while ( i ) {
+                Command * c = i;
+                ++i;
+                if ( c->state() == Command::Unparsed ||
+                     c->state() == Command::Blocked ||
+                     c->state() == Command::Executing )
+                    c->error( Command::No,
+                              "Unexpected close by client" );
+            }
+        }
         break;
 
     case Shutdown:
