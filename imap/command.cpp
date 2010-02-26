@@ -452,8 +452,9 @@ void Command::setState( State s )
         (void)::gettimeofday( &d->started, 0 );
         if ( d->permittedStates & ( 1 << imap()->state() ) ) {
             log( "Executing", Log::Debug );
-            if ( imap()->session() )
-                imap()->session()->emitUpdates( 0 );
+            d->session = imap()->session();
+            if ( d->session )
+                d->session->emitUpdates( 0 );
         }
         else {
             error( Bad, "" );
