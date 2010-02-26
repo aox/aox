@@ -33,12 +33,11 @@ class GenUrlauthData
 {
 public:
     GenUrlauthData()
-        : state( 0 ), urlKeys( 0 ), t( 0 )
+        : state( 0 ), urlKeys( 0 )
     {}
 
     uint state;
     List<UrlKey> * urlKeys;
-    Transaction * t;
 };
 
 
@@ -109,10 +108,10 @@ void GenUrlauth::execute()
     }
 
     if ( d->state == 1 ) {
-        d->t = new Transaction( this );
+        setTransaction( new Transaction( this ) );
 
         Query * q = new Query( "lock access_keys in exclusive mode", this );
-        d->t->enqueue( q );
+        transaction()->enqueue( q );
 
         List<UrlKey>::Iterator it( d->urlKeys );
         while ( it ) {
@@ -120,11 +119,11 @@ void GenUrlauth::execute()
                                "and mailbox=$2", this );
             it->q->bind( 1, imap()->user()->id() );
             it->q->bind( 2, it->mailbox->id() );
-            d->t->enqueue( it->q );
+            transaction()->enqueue( it->q );
             ++it;
         }
 
-        d->t->execute();
+        transaction()->execute();
         d->state = 2;
     }
 
@@ -148,22 +147,22 @@ void GenUrlauth::execute()
                 q->bind( 1, imap()->user()->id() );
                 q->bind( 2, it->mailbox->id() );
                 q->bind( 3, it->key );
-                d->t->enqueue( q );
+                transaction()->enqueue( q );
             }
 
             ++it;
         }
 
-        d->t->commit();
+        transaction()->commit();
         d->state = 3;
     }
 
     if ( d->state == 3 ) {
-        if ( !d->t->done() )
+        if ( !transaction()->done() )
             return;
 
-        if ( d->t->failed() ) {
-            error( No, "Database error: " + d->t->error() );
+        if ( transaction()->failed() ) {
+            error( No, "Database error: " + transaction()->error() );
             return;
         }
 

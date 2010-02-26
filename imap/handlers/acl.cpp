@@ -18,7 +18,7 @@ class AclData
 public:
     AclData()
         : state( 0 ), type( Acl::SetAcl ), mailbox( 0 ),
-          permissions( 0 ), user( 0 ), q( 0 ), t( 0 ),
+          permissions( 0 ), user( 0 ), q( 0 ),
           setOp( 0 )
     {}
 
@@ -33,7 +33,6 @@ public:
     Permissions * permissions;
     User * user;
     Query * q;
-    Transaction * t;
 
     int setOp;
 };
@@ -189,15 +188,15 @@ void Acl::execute()
                 return;
             }
 
-            d->t = new Transaction( this );
+            setTransaction( new Transaction( this ) );
             d->q = new Query( "lock permissions in exclusive mode", this );
-            d->t->enqueue( d->q );
+            transaction()->enqueue( d->q );
             d->q = new Query( "select * from permissions where "
                               "mailbox=$1 and identifier=$2", this );
             d->q->bind( 1, d->mailbox->id() );
             d->q->bind( 2, d->authid );
-            d->t->enqueue( d->q );
-            d->t->execute();
+            transaction()->enqueue( d->q );
+            transaction()->execute();
         }
 
         d->state = 3;
@@ -239,7 +238,7 @@ void Acl::execute()
                 d->q->bind( 1, d->mailbox->id() );
                 d->q->bind( 2, d->authid );
                 d->q->bind( 3, target->string() );
-                d->t->enqueue( d->q );
+                transaction()->enqueue( d->q );
             }
             else if ( d->setOp != 2 ) {
                 d->q = new Query( "insert into permissions "
@@ -248,7 +247,7 @@ void Acl::execute()
                 d->q->bind( 1, d->mailbox->id() );
                 d->q->bind( 2, d->authid );
                 d->q->bind( 3, d->rights );
-                d->t->enqueue( d->q );
+                transaction()->enqueue( d->q );
             }
             else {
                 // We can't remove rights from a non-existent entry.
@@ -256,15 +255,15 @@ void Acl::execute()
             }
 
             d->state = 4;
-            d->t->commit();
+            transaction()->commit();
         }
     }
 
     if ( d->state == 4 ) {
-        if ( !d->t->done() )
+        if ( !transaction()->done() )
             return;
-        if ( d->t->failed() )
-            error( No, d->t->error() );
+        if ( transaction()->failed() )
+            error( No, transaction()->error() );
     }
 
     finish();

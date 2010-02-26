@@ -14,11 +14,10 @@ class NotifyData
     : public Garbage
 {
 public:
-    NotifyData(): status( false ), events( new EventMap ), transaction( 0 ) {}
+    NotifyData(): status( false ), events( new EventMap ) {}
 
     bool status;
     EventMap * events;
-    Transaction * transaction;
 };
 
 
@@ -184,12 +183,12 @@ void Notify::execute()
 {
     if ( state() != Executing || !imap()->user() )
         return;
-    if ( !d->transaction ) {
-        d->transaction = new Transaction( this );
-        d->events->refresh( d->transaction, imap()->user() );
-        d->transaction->commit();
+    if ( !transaction() ) {
+        setTransaction( new Transaction( this ) );
+        d->events->refresh( transaction(), imap()->user() );
+        transaction()->commit();
     }
-    if ( !d->transaction->done() )
+    if ( !transaction()->done() )
         return;
     if ( d->status ) {
         List<Mailbox> * m = d->events->mailboxes();

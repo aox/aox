@@ -15,11 +15,10 @@ class DeleteData
     : public Garbage
 {
 public:
-    DeleteData(): m( 0 ), messages( 0 ), t( 0 ), first( true ) {}
+    DeleteData(): m( 0 ), messages( 0 ), first( true ) {}
 
     Mailbox * m;
     Query * messages;
-    Transaction * t;
     bool first;
 };
 
@@ -74,12 +73,12 @@ void Delete::execute()
     if ( !permitted() )
         return;
 
-    if ( !d->t ) {
-        d->t = new Transaction( this );
+    if ( !transaction() ) {
+        setTransaction( new Transaction( this ) );
         Query * lock = new Query( "select * from mailboxes "
                                   "where id=$1 for update", 0 );
         lock->bind( 1, d->m->id() );
-        d->t->enqueue( lock );
+        transaction()->enqueue( lock );
 
         d->messages = new Query( "select count(mm.uid)::bigint as messages "
                                  "from mailbox_messages mm "
@@ -92,8 +91,8 @@ void Delete::execute()
         Date now;
         now.setCurrentTime();
         d->messages->bind( 2, now.unixTime() - 20 );
-        d->t->enqueue( d->messages );
-        d->t->execute();
+        transaction()->enqueue( d->messages );
+        transaction()->execute();
     }
 
     if ( d->messages ) {
@@ -113,18 +112,18 @@ void Delete::execute()
                    " messages exist" );
         d->messages = 0;
 
-        if ( ok() && d->m->remove( d->t ) == 0 )
+        if ( ok() && d->m->remove( transaction() ) == 0 )
             error( No, "Cannot delete mailbox " + d->m->name().ascii() );
 
-        Mailbox::refreshMailboxes( d->t );
-        d->t->commit();
+        Mailbox::refreshMailboxes( transaction() );
+        transaction()->commit();
     }
 
-    if ( !d->t->done() )
+    if ( !transaction()->done() )
         return;
 
-    if ( d->t->failed() ) {
-        error( No, "Database error: " + d->t->error() );
+    if ( transaction()->failed() ) {
+        error( No, "Database error: " + transaction()->error() );
         return;
     }
 

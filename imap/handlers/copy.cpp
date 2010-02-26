@@ -16,7 +16,7 @@ class CopyData
 public:
     CopyData() :
         uid( false ), move( false ),
-        mailbox( 0 ), transaction( 0 ),
+        mailbox( 0 ),
         findUid( 0 ),
         report( 0 )
     {}
@@ -24,7 +24,6 @@ public:
     bool move;
     IntegerSet set;
     Mailbox * mailbox;
-    Transaction * transaction;
     Query * findUid;
     Query * report;
     uint toUid;
@@ -102,8 +101,8 @@ void Copy::execute()
     if ( !permitted() )
         return;
 
-    if ( !d->transaction ) {
-        d->transaction = new Transaction( this );
+    if ( !transaction() ) {
+        setTransaction( new Transaction( this ) );
 
         d->findUid = new Query( "select id,uidnext,nextmodseq from mailboxes "
                                 "where id=$1 or id=$2 order by id for update",
@@ -113,8 +112,8 @@ void Copy::execute()
             d->findUid->bind( 2, session()->mailbox()->id() );
         else
             d->findUid->bind( 2, d->mailbox->id() );
-        d->transaction->enqueue( d->findUid );
-        d->transaction->execute();
+        transaction()->enqueue( d->findUid );
+        transaction()->execute();
     }
 
     while ( d->findUid->hasResults() ) {
@@ -135,11 +134,6 @@ void Copy::execute()
         if ( !d->toMs )
             error( No, "Could not allocate UID and modseq in target mailbox" );
 
-        if ( !ok() ) {
-            d->transaction->rollback();
-            return;
-        }
-
         Query * q;
 
         q = new Query( "create temporary table t ("
@@ -149,11 +143,11 @@ void Copy::execute()
                        "nuid integer,"
                        "seen boolean"
                        ")", 0 );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
         q = new Query( "create temporary sequence s start " + fn( d->toUid ),
                        0 );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
         q = new Query( "insert into t "
                        "(mailbox, uid, message, nuid, seen) "
@@ -162,7 +156,7 @@ void Copy::execute()
                        "where mailbox=$1 and uid=any($2) order by uid", 0 );
         q->bind( 1, session()->mailbox()->id() );
         q->bind( 2, d->set );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
         q = new Query( "update mailboxes "
                        "set uidnext=nextval('s'), nextmodseq=$1 "
@@ -170,9 +164,9 @@ void Copy::execute()
                        this );
         q->bind( 1, d->toMs+1 );
         q->bind( 2, d->mailbox->id() );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
-        d->transaction->enqueue( new Query( "drop sequence s", 0 ) );
+        transaction()->enqueue( new Query( "drop sequence s", 0 ) );
 
         q = new Query( "insert into mailbox_messages "
                        "(mailbox, uid, message, modseq, seen, deleted) "
@@ -180,14 +174,14 @@ void Copy::execute()
                        "from t", 0 );
         q->bind( 1, d->mailbox->id() );
         q->bind( 2, d->toMs );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
         q = new Query( "insert into flags "
                        "(mailbox, uid, flag) "
                        "select $1, t.nuid, f.flag "
                        "from flags f join t using (mailbox, uid)", 0 );
         q->bind( 1, d->mailbox->id() );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
         q = new Query( "insert into annotations "
                        "(mailbox, uid, owner, name, value) "
@@ -196,10 +190,10 @@ void Copy::execute()
                        "where a.owner is null or a.owner=$2", 0 );
         q->bind( 1, d->mailbox->id() );
         q->bind( 2, imap()->user()->id() );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
         d->report = new Query( "select uid, nuid from t", 0 );
-        d->transaction->enqueue( d->report );
+        transaction()->enqueue( d->report );
 
         if ( d->move ) {
             q = new Query(
@@ -212,28 +206,28 @@ void Copy::execute()
             q->bind( 2, d->fromMs );
             q->bind( 3, imap()->user()->id() );
             q->bind( 4, d->mailbox->name() );
-            d->transaction->enqueue( q );
+            transaction()->enqueue( q );
             q = new Query( "update mailboxes "
                            "set nextmodseq=$1 "
                            "where id=$2",
                            0 );
             q->bind( 1, d->fromMs+1 );
             q->bind( 2, session()->mailbox()->id() );
-            d->transaction->enqueue( q );
+            transaction()->enqueue( q );
         }
 
-        d->transaction->enqueue( new Query( "drop table t", 0 ) );
+        transaction()->enqueue( new Query( "drop table t", 0 ) );
 
-        Mailbox::refreshMailboxes( d->transaction );
+        Mailbox::refreshMailboxes( transaction() );
 
-        d->transaction->commit();
+        transaction()->commit();
     }
 
-    if ( !d->transaction->done() )
+    if ( !transaction()->done() )
         return;
 
-    if ( d->transaction->failed() ) {
-        error( No, "Database failure: " + d->transaction->error() );
+    if ( transaction()->failed() ) {
+        error( No, "Database failure: " + transaction()->error() );
         return;
     }
 

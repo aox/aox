@@ -10,6 +10,7 @@
 #include "mailbox.h"
 #include "integerset.h"
 #include "imapparser.h"
+#include "transaction.h"
 #include "imapsession.h"
 #include "mailboxgroup.h"
 
@@ -72,7 +73,8 @@ public:
           permittedStates( 0 ),
           imap( 0 ), session( 0 ), checker( 0 ),
           mailbox( 0 ), mailboxGroup( 0 ),
-          checkedMailboxGroup( false )
+          checkedMailboxGroup( false ),
+          transaction( 0 )
     {
         (void)::gettimeofday( &started, 0 );
     }
@@ -107,6 +109,8 @@ public:
     Mailbox * mailbox;
     MailboxGroup * mailboxGroup;
     bool checkedMailboxGroup;
+
+    Transaction * transaction;
 };
 
 
@@ -624,6 +628,8 @@ void Command::error( Error e, const EString & t )
         };
     }
     d->error = true;
+    if ( d->transaction )
+        d->transaction->rollback();
     finish();
 }
 
@@ -1397,4 +1403,22 @@ MailboxGroup * Command::mailboxGroup()
     }
 
     return d->mailboxGroup;
+}
+
+
+/*! Returns this Command's Transaction, if any was set using
+    setTransaction(). Returns a null pointer if not.
+*/
+
+class Transaction * Command::transaction() const
+{
+    return d->transaction;
+}
+
+
+/*! Records that this Command uses \a t for its database work. */
+
+void Command::setTransaction( class Transaction * t )
+{
+    d->transaction = t;
 }

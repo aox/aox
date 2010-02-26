@@ -21,7 +21,7 @@ class ExpungeData
 public:
     ExpungeData()
         : uid( false ), commit( false ), modseq( 0 ), s( 0 ),
-          findUids( 0 ), findModseq( 0 ), expunge( 0 ), t( 0 ), r( 0 )
+          findUids( 0 ), findModseq( 0 ), expunge( 0 ), r( 0 )
     {}
 
     bool uid;
@@ -31,7 +31,6 @@ public:
     Query * findUids;
     Query * findModseq;
     Query * expunge;
-    Transaction * t;
     IntegerSet requested;
     IntegerSet marked;
     RetentionSelector * r;
@@ -110,13 +109,13 @@ void Expunge::execute()
         d->r->execute();
     }
 
-    if ( !d->t ) {
-        d->t = new Transaction( this );
+    if ( !transaction() ) {
+        setTransaction( new Transaction( this ) );
 
         d->findModseq = new Query( "select nextmodseq from mailboxes "
                                    "where id=$1 for update", this );
         d->findModseq->bind( 1, d->s->mailbox()->id() );
-        d->t->enqueue( d->findModseq );
+        transaction()->enqueue( d->findModseq );
 
         d->findUids = new Query( "", this );
         d->findUids->bind( 1, d->s->mailbox()->id() );
@@ -128,9 +127,9 @@ void Expunge::execute()
         }
         query.append( " order by uid for update" );
         d->findUids->setString( query );
-        d->t->enqueue( d->findUids );
+        transaction()->enqueue( d->findUids );
 
-        d->t->execute();
+        transaction()->execute();
     }
 
     while ( d->findUids->hasResults() ) {
@@ -150,7 +149,7 @@ void Expunge::execute()
         return;
 
     if ( d->marked.isEmpty() ) {
-        d->t->commit();
+        transaction()->commit();
         finish();
         return;
     }
@@ -190,8 +189,8 @@ void Expunge::execute()
         d->expunge->bind( ub, imap()->user()->id() );
         d->expunge->bind( rb,
                           "IMAP expunge " + Scope::current()->log()->id() );
-        d->t->enqueue( d->expunge );
-        d->t->execute();
+        transaction()->enqueue( d->expunge );
+        transaction()->execute();
     }
 
     if ( !d->expunge->done() )
@@ -215,22 +214,22 @@ void Expunge::execute()
             q->bind( 1, d->modseq );
             q->bind( 2, d->s->mailbox()->id() );
             q->bind( 3, d->marked );
-            d->t->enqueue( q );
+            transaction()->enqueue( q );
         }
 
         Query * q = new Query( "update mailboxes set nextmodseq=$1 "
                                "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, d->s->mailbox()->id() );
-        d->t->enqueue( q );
-        Mailbox::refreshMailboxes( d->t );
-        d->t->commit();
+        transaction()->enqueue( q );
+        Mailbox::refreshMailboxes( transaction() );
+        transaction()->commit();
     }
 
-    if ( !d->t->done() )
+    if ( !transaction()->done() )
         return;
 
-    if ( d->t->failed() )
+    if ( transaction()->failed() )
         error( No, "Database error. Messages not expunged." );
     finish();
 }

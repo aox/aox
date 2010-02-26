@@ -37,8 +37,7 @@ public:
           modSeqQuery( 0 ), obtainModSeq( 0 ), findSet( 0 ),
           presentFlags( 0 ), present( 0 ),
           flagCreator( 0 ),
-          annotationNameCreator( 0 ),
-          transaction( 0 ), session( 0 ),
+          annotationNameCreator( 0 ), session( 0 ),
           changeSeen( false ), changeDeleted( false ),
           newSeen( false ), newDeleted( false ),
           sentNextModSeq( false ), modseqUpdate( 0 )
@@ -68,8 +67,6 @@ public:
     Map<IntegerSet> * present;
     FlagCreator * flagCreator;
     AnnotationNameCreator * annotationNameCreator;
-
-    Transaction * transaction;
 
     ImapSession * session;
 
@@ -139,7 +136,7 @@ Store::Store( IMAP * imap, const IntegerSet & set, bool silent,
     d->flagNames.append( "\\seen" );
     setAllowedState( IMAP::Selected );
     if ( transaction )
-        d->transaction = transaction->subTransaction( this );
+        setTransaction( transaction->subTransaction( this ) );
 }
 
 
@@ -374,14 +371,14 @@ void Store::execute()
         return;
 
     if ( !d->obtainModSeq ) {
-        if ( !d->transaction )
-            d->transaction = new Transaction( this );
+        if ( !transaction() )
+            setTransaction( new Transaction( this ) );
 
         d->obtainModSeq
             = new Query( "select nextmodseq from mailboxes "
                          "where id=$1 for update", this );
         d->obtainModSeq->bind( 1, m->id() );
-        d->transaction->enqueue( d->obtainModSeq );
+        transaction()->enqueue( d->obtainModSeq );
 
         Selector * work = new Selector;
         work->add( new Selector( d->specified ) );
@@ -396,7 +393,7 @@ void Store::execute()
         EString s = d->findSet->string();
         s.append( " order by mm.uid for update" );
         d->findSet->setString( s );
-        d->transaction->enqueue( d->findSet );
+        transaction()->enqueue( d->findSet );
 
         if  (d->op == StoreData::AddFlags ||
              d->op == StoreData::RemoveFlags ||
@@ -421,11 +418,11 @@ void Store::execute()
                 d->presentFlags->bind( 1, m->id() );
                 d->presentFlags->bind( 2, d->specified );
                 d->presentFlags->bind( 3, s );
-                d->transaction->enqueue( d->presentFlags );
+                transaction()->enqueue( d->presentFlags );
             }
         }
 
-        d->transaction->execute();
+        transaction()->execute();
     }
 
     while ( d->findSet->hasResults() )
@@ -470,7 +467,7 @@ void Store::execute()
         }
 
         if ( d->s.isEmpty() ) {
-            d->transaction->commit();
+            transaction()->commit();
             if ( !d->silent && !d->expunged.isEmpty() )
                 error( No, "Cannot store on expunged messages" );
             finish();
@@ -499,12 +496,12 @@ void Store::execute()
 
         if ( !work && !d->changeSeen && !d->changeDeleted ) {
             // there's no actual work to be done.
-            d->transaction->commit();
+            transaction()->commit();
             finish();
             return;
         }
 
-        d->transaction->execute();
+        transaction()->execute();
     }
 
     if ( !d->obtainModSeq->done() )
@@ -514,7 +511,6 @@ void Store::execute()
         Row * r = d->obtainModSeq->nextRow();
         if ( !r ) {
             error( No, "Could not obtain modseq" );
-            d->transaction->rollback();
             return;
         }
         d->modseq = r->getBigint( "nextmodseq" );
@@ -582,8 +578,8 @@ void Store::execute()
             uq.append( ")" );
         }
         d->modseqUpdate->setString( uq );
-        d->transaction->enqueue( d->modseqUpdate );
-        d->transaction->execute();
+        transaction()->enqueue( d->modseqUpdate );
+        transaction()->execute();
     }
 
     if ( !d->modseqUpdate->done() )
@@ -593,7 +589,7 @@ void Store::execute()
         if ( !d->modseqUpdate->rows() ) {
             // we updated zero mailbox_messages rows, so we also
             // should not consume a modseq.
-            d->transaction->commit();
+            transaction()->commit();
             finish();
             return;
         }
@@ -603,18 +599,18 @@ void Store::execute()
                                "where id=$2", 0 );
         q->bind( 1, d->modseq + 1 );
         q->bind( 2, m->id() );
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
-        Mailbox::refreshMailboxes( d->transaction );
-        d->transaction->commit();
+        Mailbox::refreshMailboxes( transaction() );
+        transaction()->commit();
 
         if ( d->silent )
             d->session->ignoreModSeq( d->modseq );
     }
 
-    if ( !d->transaction->done() )
+    if ( !transaction()->done() )
         return;
-    if ( d->transaction->failed() ) {
+    if ( transaction()->failed() ) {
         error( No, "Database error. Rolling transaction back" );
         finish();
         return;
@@ -649,7 +645,7 @@ bool Store::processFlagNames()
     if ( d->flagCreator )
         return d->flagCreator->done();
 
-    d->flagCreator = new FlagCreator( d->flagNames, d->transaction );
+    d->flagCreator = new FlagCreator( d->flagNames, transaction() );
     d->flagCreator->execute();
     return d->flagCreator->done();
 }
@@ -673,7 +669,7 @@ bool Store::processAnnotationNames()
     l.removeDuplicates( true );
 
     d->annotationNameCreator
-        = new AnnotationNameCreator( l, d->transaction );
+        = new AnnotationNameCreator( l, transaction() );
     d->annotationNameCreator->execute();
     return d->annotationNameCreator->done();
 
@@ -741,7 +737,7 @@ bool Store::removeFlags( bool opposite )
     q->bind( 1, d->session->mailbox()->id() );
     q->bind( 2, d->s );
     q->bind( 3, flags );
-    d->transaction->enqueue( q );
+    transaction()->enqueue( q );
     return true;
 }
 
@@ -794,7 +790,7 @@ bool Store::addFlags()
         }
     }
     if ( work )
-        d->transaction->enqueue( q );
+        transaction()->enqueue( q );
 
     return work;
 }
@@ -850,7 +846,7 @@ void Store::replaceAnnotations()
             q->bind( 3, aid );
             if ( it->ownerId() )
                 q->bind( 4, u->id() );
-            d->transaction->enqueue( q );
+            transaction()->enqueue( q );
         }
         else {
             EString o( "owner=$5" );
@@ -865,7 +861,7 @@ void Store::replaceAnnotations()
             q->bind( 4, aid );
             if ( it->ownerId() )
                 q->bind( 5, u->id() );
-            d->transaction->enqueue( q );
+            transaction()->enqueue( q );
 
             q = new Query( "insert into annotations "
                            "(mailbox, uid, name, value, owner) "
@@ -882,7 +878,7 @@ void Store::replaceAnnotations()
                 q->bind( 5, it->ownerId() );
             else
                 q->bindNull( 5 );
-            d->transaction->enqueue( q );
+            transaction()->enqueue( q );
         }
         ++it;
     }

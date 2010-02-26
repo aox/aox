@@ -50,8 +50,7 @@ class FetchData
 public:
     FetchData()
         : state( 0 ), peek( true ), processed( 0 ),
-          changedSince( 0 ),
-          transaction( 0 ), those( 0 ), findIds( 0 ),
+          changedSince( 0 ), those( 0 ), findIds( 0 ),
           store( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
@@ -72,7 +71,6 @@ public:
     Map<Message> messages;
     uint processed;
     int64 changedSince;
-    Transaction * transaction;
     Query * those;
     Query * findIds;
     Store * store;
@@ -164,7 +162,7 @@ Fetch::Fetch( bool f, bool a, const IntegerSet & set,
     d->changedSince = limit;
     d->modseq = i->clientSupports( IMAP::Condstore );
     if ( t )
-        d->transaction = t->subTransaction( this );
+        setTransaction( t->subTransaction( this ) );
 
     d->peek = true;
 
@@ -660,10 +658,10 @@ void Fetch::execute()
         d->peek = true;
 
     if ( d->state == 0 ) {
-        if ( !d->transaction &&
+        if ( !transaction() &&
              ( !d->peek ||
                ( d->modseq && ( d->flags || d->annotation ) ) ) )
-            d->transaction = new Transaction( this );
+            setTransaction( new Transaction( this ) );
         Mailbox * mb = s->mailbox();
         if ( !d->those ) {
             if ( d->changedSince ) {
@@ -712,15 +710,15 @@ void Fetch::execute()
                                                "from mailboxes "
                                                "where id=$1 for update", 0 );
                         q->bind( 1, mb->id() );
-                        d->transaction->enqueue( q );
+                        transaction()->enqueue( q );
                     }
                     EString s = d->those->string();
                     s.append( " order by uid for update" );
                     d->those->setString( s );
                 }
                 enqueue( d->those );
-                if ( d->transaction )
-                    d->transaction->execute();
+                if ( transaction() )
+                    transaction()->execute();
             }
         }
         if ( d->those && !d->those->done() )
@@ -763,8 +761,8 @@ void Fetch::execute()
         d->state = 2;
         if ( d->set.isEmpty() ) {
             d->state = 5;
-            if ( d->transaction )
-                d->transaction->commit();
+            if ( transaction() )
+                transaction()->commit();
         }
     }
 
@@ -777,7 +775,7 @@ void Fetch::execute()
                 List<Command>::Iterator c = imap()->commands()->find( this );
                 if ( c ) {
                     d->store = new Store( imap(), d->set, d->flags,
-                                          d->transaction );
+                                          transaction() );
                     d->store->setState( Executing );
                     imap()->commands()->insert( c, d->store );
                     // should we feed the Store a subtransaction, if
@@ -800,8 +798,8 @@ void Fetch::execute()
             sendAnnotationsQuery();
         if ( d->modseq )
             sendModSeqQuery();
-        if ( d->transaction )
-            d->transaction->commit();
+        if ( transaction() )
+            transaction()->commit();
     }
 
     if ( d->state < 4 )
@@ -1792,8 +1790,8 @@ void Fetch::sendModSeqQuery()
 
 void Fetch::enqueue( Query * q )
 {
-    if ( d->transaction )
-        d->transaction->enqueue( q );
+    if ( transaction() )
+        transaction()->enqueue( q );
     else
         q->execute();
 }

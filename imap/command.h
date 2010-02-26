@@ -103,6 +103,9 @@ public:
 
     MailboxGroup * mailboxGroup();
 
+    class Transaction * transaction() const;
+    void setTransaction( class Transaction * );
+
 private:
     class CommandData *d;
 

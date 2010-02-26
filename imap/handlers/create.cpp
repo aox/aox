@@ -12,9 +12,8 @@ class CreateData
     : public Garbage
 {
 public:
-    CreateData(): t( 0 ), m( 0 ), parent( 0 ) {}
+    CreateData(): m( 0 ), parent( 0 ) {}
     UString name;
-    Transaction * t;
     Mailbox * m;
     Mailbox * parent;
 };
@@ -64,27 +63,27 @@ void Create::execute()
     if ( !permitted() )
         return;
 
-    if ( !d->t ) {
+    if ( !transaction() ) {
         d->m = Mailbox::obtain( d->name, true );
-        d->t = new Transaction( this );
+        setTransaction( new Transaction( this ) );
         if ( !d->m ) {
             error( No, d->name.ascii() + " is not a valid mailbox name" );
             return;
         }
-        else if ( d->m->create( d->t, imap()->user() ) == 0 ) {
+        else if ( d->m->create( transaction(), imap()->user() ) == 0 ) {
             error( No, d->name.ascii() + " already exists" );
             setRespTextCode( "ALREADYEXISTS" );
             return;
         }
-        Mailbox::refreshMailboxes( d->t );
-        d->t->commit();
+        Mailbox::refreshMailboxes( transaction() );
+        transaction()->commit();
     }
 
-    if ( !d->t->done() )
+    if ( !transaction()->done() )
         return;
 
-    if ( d->t->failed() ) {
-        error( No, "Database error: " + d->t->error() );
+    if ( transaction()->failed() ) {
+        error( No, "Database error: " + transaction()->error() );
         return;
     }
 

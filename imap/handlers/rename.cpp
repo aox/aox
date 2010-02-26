@@ -17,13 +17,12 @@ class RenameData
 {
 public:
     RenameData()
-        : c( 0 ), t( 0 ), ready( false ) {}
+        : c( 0 ), ready( false ) {}
 public:
     Mailbox * from;
     UString toName;
 
     Rename * c;
-    Transaction * t;
     bool ready;
 
     class MailboxPair
@@ -42,7 +41,7 @@ public:
 
     List<MailboxPair> renames;
 
-    void process( MailboxPair * p, MailboxPair * parent );
+    void process( MailboxPair * p, MailboxPair * parent, Transaction * t );
 };
 
 
@@ -85,7 +84,8 @@ void Rename::parse()
 }
 
 
-void RenameData::process( MailboxPair * p, MailboxPair * parent )
+void RenameData::process( MailboxPair * p, MailboxPair * parent,
+                          Transaction * t )
 {
     c->requireRight( p->from, Permissions::DeleteMailbox );
     if ( !parent || parent->toParent != p->toParent )
@@ -151,7 +151,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
         cp->from = c;
         cp->toName = p->toName + c->name().mid( p->from->name().length() );
         cp->toParent = Mailbox::closestParent( cp->toName );
-        process( cp, p );
+        process( cp, p, t );
         ++c;
     }
 }
@@ -162,14 +162,14 @@ void Rename::execute()
     if ( state() != Executing )
         return;
 
-    if ( !d->t ) {
-        d->t = new Transaction( this );
+    if ( !transaction() ) {
+        setTransaction( new Transaction( this ) );
 
         RenameData::MailboxPair * p = new RenameData::MailboxPair;
         p->from = d->from;
         p->toName = imap()->user()->mailboxName( d->toName );
         p->toParent = Mailbox::closestParent( p->toName );
-        d->process( p, 0 );
+        d->process( p, 0, transaction() );
 
         if ( ok() && d->from == imap()->user()->inbox() ) {
             Query * q =
@@ -179,12 +179,12 @@ void Rename::execute()
 
             q->bind( 1, d->from->name() );
             q->bind( 2, d->from->id() );
-            d->t->enqueue( q );
+            transaction()->enqueue( q );
             q = new Query( "update mailboxes set deleted='f',owner=$2 "
                            "where name=$1", 0 );
             q->bind( 1, d->from->name() );
             q->bind( 2, imap()->user()->id() );
-            d->t->enqueue( q );
+            transaction()->enqueue( q );
         }
     }
 
@@ -192,16 +192,16 @@ void Rename::execute()
         return;
 
     if ( !d->ready ) {
-        Mailbox::refreshMailboxes( d->t );
-        d->t->commit();
+        Mailbox::refreshMailboxes( transaction() );
+        transaction()->commit();
         d->ready = true;
     }
 
-    if ( !d->t->done() )
+    if ( !transaction()->done() )
         return;
 
-    if ( d->t->failed() ) {
-        error( No, "Database failure: " + d->t->error() );
+    if ( transaction()->failed() ) {
+        error( No, "Database failure: " + transaction()->error() );
         return;
     }
 
