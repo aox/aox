@@ -263,11 +263,6 @@ void TlsThread::start()
                 d->ctrbs = 0;
             }
         }
-        if ( d->encwbs == 0 ) {
-            d->encwbs = BIO_read( d->networkBio, d->encwb, bs );
-            if ( d->encwbs < 0 )
-                d->encwbs = 0;
-        }
         if ( d->ctwbs == 0 ) {
             d->ctwbs = SSL_read( d->ssl, d->ctwb, bs );
             if ( d->ctwbs < 0 ) {
@@ -275,6 +270,11 @@ void TlsThread::start()
                     finish = sslErrorSeriousness( d->ctwbs );
                 d->ctwbs = 0;
             }
+        }
+        if ( d->encwbs == 0 ) {
+            d->encwbs = BIO_read( d->networkBio, d->encwb, bs );
+            if ( d->encwbs < 0 )
+                d->encwbs = 0;
         }
 
         if ( !finish ) {
