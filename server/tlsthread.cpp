@@ -124,6 +124,9 @@ void TlsThread::setup()
 TlsThread::TlsThread()
     : d( new TlsThreadData )
 {
+    if ( !ctx )
+        setup();
+
     d->ssl = ::SSL_new( ctx );
     SSL_set_accept_state( d->ssl );
 
@@ -173,14 +176,14 @@ void TlsThread::start()
         // so, try to read
         if ( crct ) {
             d->ctrbs = ::read( d->ctfd, d->ctrb, bs );
-            if ( d->ctrbs < 0 ) {
+            if ( d->ctrbs <= 0 ) {
                 ctgone = true;
                 d->ctrbs = 0;
             }
         }
         if ( crenc ) {
             d->encrbs = ::read( d->encfd, d->encrb, bs );
-            if ( d->encrbs < 0 ) {
+            if ( d->encrbs <= 0 ) {
                 encgone = true;
                 d->encrbs = 0;
             }
