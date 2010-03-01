@@ -314,26 +314,6 @@ void Postgres::react( Event e )
             d->needNotify->notify();
         d->needNotify = 0;
 
-        if ( usable() ) {
-            processQueue();
-            if ( d->queries.isEmpty() && !d->transaction ) {
-                uint interval =
-                    Configuration::scalar( Configuration::DbHandleInterval );
-                if ( ::listener == this )
-                    interval = interval * 2;
-                else if ( idleHandles() > 2 && interval > 20 )
-                    interval = 20;
-                setTimeoutAfter( interval );
-            }
-        }
-        else if ( d->transaction && d->queries.isEmpty() &&
-                  state() == Broken ) {
-            // if the transaction doesn't send rollback pretty
-            // quickly, we have rollback for it in order to free the
-            // handle for better work
-            setTimeoutAfter( 5 );
-        }
-
         break;
 
     case Error:
@@ -375,6 +355,26 @@ void Postgres::react( Event e )
     case Shutdown:
         shutdown();
         break;
+    }
+
+    if ( usable() ) {
+        processQueue();
+        if ( d->queries.isEmpty() && !d->transaction ) {
+            uint interval =
+                Configuration::scalar( Configuration::DbHandleInterval );
+            if ( ::listener == this )
+                interval = interval * 2;
+            else if ( idleHandles() > 2 && interval > 20 )
+                interval = 20;
+            setTimeoutAfter( interval );
+        }
+    }
+    else if ( d->transaction && d->queries.isEmpty() &&
+              state() == Broken ) {
+        // if the transaction doesn't send rollback pretty
+        // quickly, we have rollback for it in order to free the
+        // handle for better work
+        setTimeoutAfter( 5 );
     }
 }
 
