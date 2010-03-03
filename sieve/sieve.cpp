@@ -832,6 +832,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                      n.startsWith( "List-" ) ||
                      n == "Precedence" ||
                      n == "X-Beenthere" ||
+                     n == "Errors-To" ||
                      n == "X-Loop" )
                     wantToReply = false;
                 ++i;
