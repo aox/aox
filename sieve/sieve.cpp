@@ -914,6 +914,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         reptext.append( "\r\n"
                         "Date: " );
         Date replyDate;
+        replyDate.setCurrentTime();
         if ( d->message->header()->field( HeaderField::Received ) ) {
             EString v = d->message->header()->
                        field( HeaderField::Received )->rfc822();
@@ -926,9 +927,6 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 if ( tmp.valid() )
                     replyDate = tmp;
             }
-        }
-        else {
-            replyDate.setCurrentTime();
         }
 
         reptext.append( replyDate.rfc822() );
@@ -953,7 +951,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 else
                     reptext.append( "Content-Type: text/plain; "
                                     "charset=utf-8; format=flowed\r\n"
-                                "Mime-Version: 1.0\r\n" );
+                                    "Mime-Version: 1.0\r\n" );
                 reason = magicallyFlowed( reason );
             }
             else if ( !reason.isAscii() ) {
