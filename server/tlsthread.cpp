@@ -124,6 +124,9 @@ void TlsThread::setup()
 TlsThread::TlsThread()
     : d( new TlsThreadData )
 {
+    if ( !ctx )
+        setup();
+
     d->ssl = ::SSL_new( ctx );
     SSL_set_accept_state( d->ssl );
 
@@ -161,39 +164,29 @@ TlsThread::~TlsThread()
 
 void TlsThread::start()
 {
-    bool again = true;
     bool crct = false;
     bool crenc = false;
+    bool cwct = false;
+    bool cwenc = false;
     bool ctgone = false;
     bool encgone = false;
     bool finish = false;
-    while ( again && !finish ) {
-        again = false;
-
-        // are our read buffers empty? if so, try to read
-        if ( d->ctfd >= 0 && d->ctrbs == 0 ) {
+    while ( !finish ) {
+        // are our read buffers empty, and select said we can read? if
+        // so, try to read
+        if ( crct ) {
             d->ctrbs = ::read( d->ctfd, d->ctrb, bs );
-            if ( d->ctrbs > 0 )
-                again = true;
-            else if ( d->ctrbs == 0 && crct )
+            if ( d->ctrbs <= 0 ) {
                 ctgone = true;
-            else if ( d->ctrbs < 0 &&
-                      ( errno == EAGAIN || errno == EWOULDBLOCK ) )
                 d->ctrbs = 0;
-            else if ( d->ctrbs < 0 )
-                ctgone = true;
+            }
         }
-        if ( d->encfd >= 0 && d->encrbs == 0 ) {
+        if ( crenc ) {
             d->encrbs = ::read( d->encfd, d->encrb, bs );
-            if ( d->encrbs > 0 )
-                again = true;
-            else if ( d->encrbs == 0 && crenc )
+            if ( d->encrbs <= 0 ) {
                 encgone = true;
-            else if ( d->encrbs < 0 &&
-                      ( errno == EAGAIN || errno == EWOULDBLOCK ) )
                 d->encrbs = 0;
-            else if ( d->encrbs < 0 )
-                encgone = true;
+            }
         }
         if ( ctgone && encgone ) {
             // if both file descriptors are gone, there's nothing left
@@ -211,32 +204,37 @@ void TlsThread::start()
             finish = true;
         }
 
-        // is there something in our write buffers? if so, try to write
-        if ( d->ctfd >= 0 && d->ctwbs > 0 ) {
+        // is there something in our write buffers, and select() told
+        // us we can write it?
+        if ( cwct ) {
             int r = ::write( d->ctfd,
                              d->ctwb + d->ctwbo,
                              d->ctwbs - d->ctwbo );
-            if ( r >= 0 )
-                d->ctwbo += r;
-            else if ( errno != EAGAIN && errno != EWOULDBLOCK )
+            if ( r <= 0 ) {
+                // select said we could, but we couldn't. parachute time.
                 finish = true;
-            if ( d->ctwbo == d->ctwbs ) {
-                d->ctwbs = 0;
-                d->ctwbo = 0;
-                again = true;
+            }
+            else {
+                d->ctwbo += r;
+                if ( d->ctwbo == d->ctwbs ) {
+                    d->ctwbs = 0;
+                    d->ctwbo = 0;
+                }
             }
         }
-        if ( d->encfd >= 0 && d->encwbs > 0 ) {
+        if ( cwenc ) {
             int r = ::write( d->encfd,
                              d->encwb + d->encwbo,
                              d->encwbs - d->encwbo );
-            if ( r >= 0 )
-                d->encwbo += r;
-            else if ( errno != EAGAIN && errno != EWOULDBLOCK )
+            if ( r <= 0 ) {
                 finish = true;
-            if ( d->encwbo == d->encwbs ) {
-                d->encwbs = 0;
-                d->encwbo = 0;
+            }
+            else {
+                d->encwbo += r;
+                if ( d->encwbo == d->encwbs ) {
+                    d->encwbs = 0;
+                    d->encwbo = 0;
+                }
             }
         }
 
@@ -250,7 +248,6 @@ void TlsThread::start()
             if ( d->encrbo >= d->encrbs ) {
                 d->encrbo = 0;
                 d->encrbs = 0;
-                again = true;
             }
         }
         if ( d->ctrbs > 0 && d->ctrbo < d->ctrbs ) {
@@ -264,66 +261,79 @@ void TlsThread::start()
             if ( d->ctrbo >= d->ctrbs ) {
                 d->ctrbo = 0;
                 d->ctrbs = 0;
-                again = true;
             }
-        }
-        if ( d->encwbs == 0 ) {
-            d->encwbs = BIO_read( d->networkBio, d->encwb, bs );
-            if ( d->encwbs >= 0 )
-                again = true;
-            else
-                d->encwbs = 0;
         }
         if ( d->ctwbs == 0 ) {
             d->ctwbs = SSL_read( d->ssl, d->ctwb, bs );
-            if ( d->ctwbs >= 0 ) {
-                again = true;
-            }
-            else {
-                if ( d->ctwbs < 0 && !finish )
+            if ( d->ctwbs < 0 ) {
+                if ( !finish )
                     finish = sslErrorSeriousness( d->ctwbs );
                 d->ctwbs = 0;
             }
         }
+        if ( d->encwbs == 0 ) {
+            d->encwbs = BIO_read( d->networkBio, d->encwb, bs );
+            if ( d->encwbs < 0 )
+                d->encwbs = 0;
+        }
 
-        if ( !finish && !again ) {
-            int maxfd = -1;
-
+        if ( !finish ) {
+            bool any = false;
             fd_set r, w;
             FD_ZERO( &r );
             FD_ZERO( &w );
-            if ( d->ctfd >= 0 )
-                FD_SET( d->ctfd, &r );
-            if ( d->encfd >= 0 )
-                FD_SET( d->encfd, &r );
-            if (  d->ctfd >= 0 && d->ctwbs )
-                FD_SET( d->ctfd, &w );
-            if ( d->encfd >= 0 && d->encwbs )
-                FD_SET( d->encfd, &w );
-            maxfd = d->ctfd;
+            if ( d->ctfd >= 0 ) {
+                if ( d->ctrbs == 0 ) {
+                    FD_SET( d->ctfd, &r );
+                    any = true;
+                }
+                if ( d->ctwbs ) {
+                    any = true;
+                    FD_SET( d->ctfd, &w );
+                }
+            }
+            if ( d->encfd >= 0 ) {
+                if ( d->encrbs == 0  ) {
+                    any = true;
+                    FD_SET( d->encfd, &r );
+                }
+                if ( d->encwbs ) {
+                    any = true;
+                    FD_SET( d->encfd, &w );
+                }
+            }
+            int maxfd = -1;
+            if ( maxfd < d->ctfd )
+                maxfd = d->ctfd;
             if ( maxfd < d->encfd )
                 maxfd = d->encfd;
-
             struct timeval tv;
-            tv.tv_sec = 3600;
-            tv.tv_usec = 0;
             if ( maxfd < 0 ) {
-                // if we don't have any fds yet, we wait only for 0.05s
+                // if we don't have any fds yet, we wait for exactly 0.05s.
                 tv.tv_sec = 0;
                 tv.tv_usec = 50000; // 0.05s
-                maxfd = -1;
+            }
+            else if ( any ) {
+                // if we think there's something to do, we wait for an hour.
+                tv.tv_sec = 3600;
+                tv.tv_usec = 0;
+            }
+            else {
+                // we aren't going to read, we can't write. no point
+                // in prolonging the agony.
+                finish = true;
+                tv.tv_sec = 0;
+                tv.tv_usec = 0;
             }
 
             int n = select( maxfd+1, &r, &w, 0, &tv );
-            if ( n < 0 && errno == EBADF )
+            if ( n < 0 )
                 finish = true;
 
             crct = FD_ISSET( d->ctfd, &r );
+            cwct = FD_ISSET( d->ctfd, &w );
             crenc = FD_ISSET( d->encfd, &r );
-            if ( crct || crenc // if we can read something
-                 || n > 0 // or something happened in select
-                 || maxfd < 0 ) // or we don't have FDs yet
-                again = true; // then try again
+            cwenc = FD_ISSET( d->encfd, &w );
         }
     }
 
