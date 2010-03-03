@@ -31,6 +31,7 @@ public:
     void add( HeaderField * );
     void add( const EString &, const EString & );
     void removeField( HeaderField::Type );
+    void removeField( const char * );
 
     List< HeaderField > * fields() const;
     HeaderField * field( HeaderField::Type, uint = 0 ) const;

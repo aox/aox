@@ -87,6 +87,7 @@ private:
     void parseMimeVersion( const EString & );
     void parseContentLocation( const EString & );
     void parseContentBase( const EString & );
+    void parseErrorsTo( const EString & );
 };
 
 
