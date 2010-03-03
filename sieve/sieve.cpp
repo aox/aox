@@ -820,7 +820,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
         else if ( slp == "subs-reminder" ||
                   slp == "root" || slp == "ftp" ||
-                  slp == "www" || slp == "www-data" 
+                  slp == "www" || slp == "www-data" ||
                   slp == "postmaster" )
             wantToReply = false;
 
