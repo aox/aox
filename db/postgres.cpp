@@ -75,7 +75,7 @@ public:
         LockSpotter( uint p, Transaction * t ): EventHandler(), q( 0 ) {
             setLog( new Log( t->owner()->log() ) );
             Scope x( log() );
-            q = new Query( 
+            q = new Query(
                 "select h.pid::int, a.xact_start::text,"
                 " a.client_addr::text, a.current_query::text,"
                 " a.usename::text, a.client_addr,"
@@ -342,7 +342,7 @@ void Postgres::react( Event e )
             else
                 log( "Transaction unexpectedly slow; continuing " );
         }
-        else if ( d->queries.isEmpty() && 
+        else if ( d->queries.isEmpty() &&
                   ::listener != this &&
                   server().protocol() != Endpoint::Unix &&
                   handlesNeeded() < numHandles() ) {
@@ -369,12 +369,15 @@ void Postgres::react( Event e )
             setTimeoutAfter( interval );
         }
     }
-    else if ( d->transaction && d->queries.isEmpty() &&
-              state() == Broken ) {
-        // if the transaction doesn't send rollback pretty
-        // quickly, we have rollback for it in order to free the
-        // handle for better work
-        setTimeoutAfter( 5 );
+    if ( d->transaction && d->queries.isEmpty() ) {
+        // if the transaction doesn't do anything, just sits there
+        // holding its handle, we have to rollback() in order to free
+        // the handle for better work. we do it more quickly for a
+        // broken transaction than for one that seems fine.
+        if ( d->transaction->state() == Transaction::Failed )
+            setTimeoutAfter( 5 );
+        else
+            setTimeoutAfter( 20 );
     }
 }
 
