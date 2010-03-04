@@ -612,9 +612,9 @@ void HeaderField::parseContentBase( const EString & s )
 }
 
 
-/*! Parses Errors-To. Stores localpart@domain if it looks like a
-    single address (and reasonably error-free) and an empty value if
-    there's any doubt what to store.
+/*! Parses Errors-To field \a s. Stores localpart@domain if it looks
+    like a single address (and reasonably error-free) and an empty
+    value if there's any doubt what to store.
 */
 
 void HeaderField::parseErrorsTo( const EString & s )
