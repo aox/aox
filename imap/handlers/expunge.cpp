@@ -229,7 +229,8 @@ void Expunge::execute()
     if ( !transaction()->done() )
         return;
 
-    if ( transaction()->failed() )
+    if ( transaction()->failed() ||
+         transaction()->state() == Transaction::RolledBack )
         error( No, "Database error. Messages not expunged." );
     finish();
 }
