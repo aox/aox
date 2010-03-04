@@ -396,6 +396,8 @@ void HeaderField::parse( const EString &s )
     case Other:
         if ( name() == "Content-Base" )
             parseContentBase( s );
+        else if ( name() == "Errors-To" )
+            parseErrorsTo( s );
         else
             parseOther( s );
         break;
@@ -607,6 +609,27 @@ void HeaderField::parseContentBase( const EString & s )
         return;
     if ( !value().contains( ":" ) )
         setError( "URL has no scheme" );
+}
+
+
+/*! Parses Errors-To. Stores localpart@domain if it looks like a
+    single address (and reasonably error-free) and an empty value if
+    there's any doubt what to store.
+*/
+
+void HeaderField::parseErrorsTo( const EString & s )
+{
+    AddressParser ap( s );
+    
+    if ( !ap.error().isEmpty() || ap.addresses()->count() != 1 )
+        return;
+
+    Address * a = ap.addresses()->firstElement();
+    if ( a->type() != Address::Normal )
+        return;
+        
+    AsciiCodec ac;
+    setValue( ac.toUnicode( a->lpdomain() ) );
 }
 
 

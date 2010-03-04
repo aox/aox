@@ -820,7 +820,8 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             wantToReply = false;
         else if ( slp == "subs-reminder" ||
                   slp == "root" || slp == "ftp" ||
-                  slp == "www" || slp == "www-data" )
+                  slp == "www" || slp == "www-data" ||
+                  slp == "postmaster" )
             wantToReply = false;
 
         // look for header fields we don't like
@@ -832,6 +833,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                      n.startsWith( "List-" ) ||
                      n == "Precedence" ||
                      n == "X-Beenthere" ||
+                     n == "Errors-To" ||
                      n == "X-Loop" )
                     wantToReply = false;
                 ++i;
@@ -912,6 +914,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
         reptext.append( "\r\n"
                         "Date: " );
         Date replyDate;
+        replyDate.setCurrentTime();
         if ( d->message->header()->field( HeaderField::Received ) ) {
             EString v = d->message->header()->
                        field( HeaderField::Received )->rfc822();
@@ -924,9 +927,6 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 if ( tmp.valid() )
                     replyDate = tmp;
             }
-        }
-        else {
-            replyDate.setCurrentTime();
         }
 
         reptext.append( replyDate.rfc822() );
@@ -951,7 +951,7 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
                 else
                     reptext.append( "Content-Type: text/plain; "
                                     "charset=utf-8; format=flowed\r\n"
-                                "Mime-Version: 1.0\r\n" );
+                                    "Mime-Version: 1.0\r\n" );
                 reason = magicallyFlowed( reason );
             }
             else if ( !reason.isAscii() ) {

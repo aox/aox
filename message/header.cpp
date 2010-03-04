@@ -160,8 +160,7 @@ void Header::add( const EString &name, const EString &value )
 }
 
 
-/*! This private helper removes all fields with type \a t from the
-    header.
+/*! Removes all fields with type \a t from the header.
 */
 
 void Header::removeField( HeaderField::Type t )
@@ -169,6 +168,24 @@ void Header::removeField( HeaderField::Type t )
     List<HeaderField>::Iterator it( d->fields );
     while ( it ) {
         if ( it->type() == t )
+            d->fields.take( it );
+        else
+            ++it;
+    }
+    d->verified = false;
+}
+
+
+/*! Removes all fields named \a n from this header.
+  
+    Works only if \a n is header-cased (ie. this function is case-sensitive).
+*/
+
+void Header::removeField( const char * n )
+{
+    List<HeaderField>::Iterator it( d->fields );
+    while ( it ) {
+        if ( it->name() == n )
             d->fields.take( it );
         else
             ++it;
@@ -612,6 +629,14 @@ void Header::simplify()
            ct->type() == "image" || ct->type() == "audio" ||
            ct->type() == "video" ) )
         ct->removeParameter( "charset" );
+
+    if ( field( "Errors-To" ) ) {
+        EString et = field( "Errors-To" )->value().ascii();
+        List<Address> * rp = addresses( HeaderField::ReturnPath );
+        if ( rp && rp->count() == 1 &&
+             rp->firstElement()->lpdomain().lower() == et.lower() )
+            removeField( "Errors-To" );
+    }
 
     HeaderField *m = field( HeaderField::MessageId );
     if ( m && m->rfc822().isEmpty() )
