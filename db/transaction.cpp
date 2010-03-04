@@ -363,15 +363,6 @@ void Transaction::rollback()
         return;
     }
 
-    // hm... is dropping these queries really worth it? it does reduce
-    // log clutter.
-    List<Query>::Iterator i( d->queries );
-    while ( i ) {
-        i->setError( "Transaction rolled back, query aborted." );
-        ++i;
-    }
-    d->queries = 0;
-
     if ( d->parent ) {
         // if we're a subtransaction, then what we need to do is roll
         // back to the savepoint, then release it...
