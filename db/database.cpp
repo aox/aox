@@ -138,7 +138,6 @@ void Database::addInitialHandles( uint desired )
         newHandle();
         desired--;
     }
-    
 }
 
 
@@ -268,7 +267,7 @@ void Database::runQueue()
 
     queryQueueLength->setValue( queries->count() );
     busyDbConnections->setValue( busy );
-    
+
     // If there's nothing to do, or we did get something done, then we
     // don't even consider opening a new database connection.
     if ( queries->isEmpty() || first != queries->firstElement() )
@@ -633,7 +632,7 @@ void Database::checkAccess( EventHandler * owner )
 
 
 /*! Returns the number of handles we think we need at this
-    time. Mostly computed based on recent work.
+    time. Mostly computed based on recent workload.
 */
 
 uint Database::handlesNeeded()
@@ -643,19 +642,28 @@ uint Database::handlesNeeded()
 
     uint i = Configuration::scalar( Configuration::DbHandleInterval );
     uint t = (uint)time( 0 );
-    // the maximum number we've needed in the past four minutes
+
+    // we start by looking at the maximum number we've needed in the
+    // past four minutes
     uint needed = ::busyDbConnections->maximumSince( t - 2*i );
-    // the minimum number we had in the past two minutes
+
+    // if we're dropping, wait for a while at the lowest level we've
+    // had in the past two minutes
     uint had = ::totalDbConnections->minimumSince( t - i );
+    if ( had - 1 > needed )
+        needed = had - 1;
 
-    // need all that we had?
-    if ( needed >= had )
-        return needed;
+    // we drop only once per five seconds
+    uint recent = ::totalDbConnections->maximumSince( t - 5 );
+    if ( needed < recent-1 )
+        needed = recent - 1;
 
-    // we pretend to "need" a number somewhere between what we've
-    // needed and what we had, so that the number of handles will
-    // drop slowly.
-    return needed + (had-needed)*2/3;
+    // we do need a handle
+    if ( needed < 1 )
+        needed = 1;
+
+    // now that we know...
+    return needed;
 }
 
 
