@@ -363,6 +363,10 @@ void SmtpData::checkField( HeaderField::Type t )
 
     This may also do some of the submission-time changes suggested by
     RFC 4409.
+    
+    The prepended Received field uses the transmission information
+    specified by RFC 3848. In general it includes little information
+    if the message came from a logged-in user, much more if not.
 */
 
 Injectee * SmtpData::message( const EString & body )
