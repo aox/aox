@@ -371,37 +371,47 @@ Injectee * SmtpData::message( const EString & body )
         return d->message;
 
     EString received( "Received: from " );
-    if ( server()->user() )
+    if ( server()->user() ) {
         received.append( server()->user()->address()->lpdomain() );
-    else
+    }
+    else {
         received.append( server()->peer().address() );
-    received.append( " (HELO " );
-    received.append( server()->heloName() );
-    received.append( ")" );
+        received.append( " (HELO " );
+        received.append( server()->heloName() );
+        received.append( ")" );
+    }
     received.append( " by " );
     received.append( Configuration::hostname() );
     received.append( " (Archiveopteryx " );
     received.append( Configuration::compiledIn( Configuration::Version )  );
     received.append( ")" );
+
     switch ( server()->dialect() ) {
-    case SMTP::Smtp:
-        received.append( " with esmtp" );
-        break;
     case SMTP::Lmtp:
         received.append( " with lmtp" );
         break;
+    case SMTP::Smtp:
     case SMTP::Submit:
         received.append( " with esmtp" );
         break;
     }
+    if ( server()->hasTls() )
+        received.append( "s" );
+    if ( server()->user() )
+        received.append( "a" );
+
     if ( server()->sieve()->forwardingDate() )
         received.append( " (delay until " +
                          server()->sieve()->forwardingDate()->isoDateTime() +
                          " requested)" );
+
     received.append( " id " );
     received.append( server()->transactionId() );
     uint recipients = server()->rcptTo()->count();
-    if ( recipients == 1 ) {
+    if ( server()->user() ) {
+        // reveal nothing
+    }
+    else if ( recipients == 1 ) {
         Address * a = server()->rcptTo()->firstElement()->address();
         received.append( " for " + a->localpart() + "@" + a->domain() );
     }
