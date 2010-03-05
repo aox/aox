@@ -100,6 +100,8 @@ uint GraphableNumber::maximumSince( uint t ) const
     uint max = 0;
     if ( t < d->min )
         t = d->min;
+    if ( t > d->max )
+        t = d->max;
     while ( t <= d->max ) {
         if ( d->values[t%graphableHistorySize] > max )
             max = d->values[t%graphableHistorySize];
@@ -116,6 +118,8 @@ uint GraphableNumber::minimumSince( uint t ) const
     uint min = UINT_MAX;
     if ( t < d->min )
         t = d->min;
+    if ( t > d->max )
+        t = d->max;
     while ( t <= d->max ) {
         if ( d->values[t%graphableHistorySize] < min )
             min = d->values[t%graphableHistorySize];
@@ -133,6 +137,8 @@ uint GraphableNumber::averageSince( uint t ) const
     uint n = 0;
     if ( t < d->min )
         t = d->min;
+    if ( t > d->max )
+        t = d->max;
     while ( t <= d->max ) {
         s += d->values[t%graphableHistorySize];
         n++;
