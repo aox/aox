@@ -346,8 +346,8 @@ void Postgres::react( Event e )
                   ::listener != this &&
                   server().protocol() != Endpoint::Unix &&
                   handlesNeeded() < numHandles() ) {
-            log( "Closing idle database handle (" +
-                 fn( numHandles()-1 ) + " remaining)" );
+            log( "Closing idle database backend " + fn( connectionNumber() ) +
+                 " (" + fn( numHandles()-1 ) + " remaining)" );
             shutdown();
         }
         break;
