@@ -647,16 +647,10 @@ uint Database::handlesNeeded()
     // past four minutes
     uint needed = ::busyDbConnections->maximumSince( t - 2*i );
 
-    // if we're dropping, wait for a while at the lowest level we've
-    // had in the past two minutes
-    uint had = ::totalDbConnections->minimumSince( t - i );
-    if ( had - 1 > needed )
-        needed = had - 1;
-
     // we drop only once per five seconds
-    uint recent = ::totalDbConnections->maximumSince( t - 5 );
-    if ( needed < recent-1 )
-        needed = recent - 1;
+    uint recently = ::totalDbConnections->maximumSince( t - 5 );
+    if ( needed < recently - 1 )
+        needed = recently - 1;
 
     // we do need a handle
     if ( needed < 1 )
