@@ -367,6 +367,15 @@ List< Address > *AddressField::addresses() const
 }
 
 
+/*! Records \a addr as the new list of addresses in this address. */
+
+void AddressField::setAddresses( List<Address>* addr )
+{
+    a->clear();
+    a->append( addr );
+}
+
+
 /*! Checks whether '<>' is present in this address field, and records
     an error if it is. '<>' is legal in Return-Path, but as of April
     2005, not in any other field.

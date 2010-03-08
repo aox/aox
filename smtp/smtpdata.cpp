@@ -166,10 +166,12 @@ void SmtpData::execute()
             checkField( HeaderField::ResentFrom );
             checkField( HeaderField::ReturnPath );
             EString e = d->message->error();
-            if ( e.isEmpty() &&
-                 !addressPermitted( server()->sieve()->sender() ) )
-                e = "Not authorised to use this SMTP sender address: " +
-                    server()->sieve()->sender()->lpdomain();
+            Sieve * s = server()->sieve();
+            if ( e.isEmpty() && !addressPermitted( s->sender() ) ) {
+                log( "SMTP sender address replaced with " +
+                     server()->user()->address()->lpdomain() );
+                s->setSender( server()->user()->address() );
+            }
             if ( !e.isEmpty() ) {
                 respond( 554, e, "5.7.0" );
                 finish();
@@ -346,15 +348,33 @@ bool SmtpData::addressPermitted( Address * a ) const
 
 void SmtpData::checkField( HeaderField::Type t )
 {
-    List<Address>::Iterator a( d->message->header()->addresses( t ) );
-    while ( a && addressPermitted( a ) )
-        ++a;
-    if ( !a )
+    AddressField * af = d->message->header()->addressField( t );
+    if ( !af )
         return;
-    HeaderField * hf = d->message->header()->field( t );
-    if ( hf )
-        hf->setError( "Not authorised to use this address: " + a->lpdomain() );
-    d->message->recomputeError();
+
+    List<Address> * ok = new List<Address>;
+    bool bad = false;
+    List<Address>::Iterator a( af->addresses() );
+    while ( a ) {
+        if ( addressPermitted( a ) ) {
+            ok->append( a );
+        }
+        else {
+            log( "Removing/replacing disallowed " +
+                 af->name() + " address " + a->lpdomain() );
+            bad = true;
+        }
+        ++a;
+    }
+    if ( !bad )
+        return;
+
+    if ( ok->isEmpty() && server()->user() ) {
+        log( "No allowed " + af->name() + " addressed left; using " + 
+             server()->user()->address()->lpdomain() );
+        ok->append( server()->user()->address() );
+    }
+    af->setAddresses( ok );
 }
 
 
@@ -363,7 +383,7 @@ void SmtpData::checkField( HeaderField::Type t )
 
     This may also do some of the submission-time changes suggested by
     RFC 4409.
-    
+
     The prepended Received field uses the transmission information
     specified by RFC 3848. In general it includes little information
     if the message came from a logged-in user, much more if not.

@@ -20,7 +20,8 @@ public:
     EString rfc822() const;
     UString value() const;
 
-    List< Address > *addresses() const;
+    List<Address> *addresses() const;
+    void setAddresses( List<Address>* );
 
 protected:
     void parseAddressList( const EString & );
