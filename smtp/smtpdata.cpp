@@ -317,20 +317,32 @@ bool SmtpData::addressPermitted( Address * a ) const
 
     bool sub = Configuration::toggle( Configuration::UseSubaddressing );
 
-    if ( a->type() ==  Address::Normal ) {
-        EString ad = a->domain().lower();
-        EString al = a->localpart().lower();
-        if ( sub )
-            al = al.section( Configuration::text(
-                                 Configuration::AddressSeparator ), 1 );
-        List<Address>::Iterator p( server()->permittedAddresses() );
-        while ( p &&
-                ( al != p->localpart().lower() ||
-                  ad != p->domain().lower() ) )
-                ++p;
-        if ( !p )
-            return false;
+    if ( a->type() !=  Address::Normal )
+        return false;
+
+    EString ad = a->domain().lower();
+    EString al = a->localpart().lower();
+    if ( sub ) {
+        EString sep( Configuration::text( Configuration::AddressSeparator ) );
+        if ( sep.isEmpty() ) {
+            EString al1 = al.section( "+", 1 );
+            EString al2 = al.section( "-", 1 );
+            if ( al1.length() < al2.length() && !al1.isEmpty() )
+                al = al1;
+            else if ( !al2.isEmpty() )
+                al = al2;
+        }
+        else {
+            al = al.section( sep, 1 );
+        }
     }
+    List<Address>::Iterator p( server()->permittedAddresses() );
+    while ( p &&
+            ( al != p->localpart().lower() ||
+              ad != p->domain().lower() ) )
+        ++p;
+    if ( !p )
+        return false;
     return true;
 }
 
