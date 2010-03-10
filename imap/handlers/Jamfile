@@ -24,6 +24,7 @@ Build imap :
     namespace.cpp
     noop.cpp
     notify.cpp
+    quota.cpp
     rename.cpp
     resetkey.cpp
     search.cpp

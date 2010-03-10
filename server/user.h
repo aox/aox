@@ -40,6 +40,8 @@ public:
     void setAddress( Address * );
     Address * address();
 
+    int64 quota() const;
+
     Mailbox * home() const;
     Mailbox * mailbox( const UString & ) const;
     UString mailboxName( const UString & ) const;

@@ -38,6 +38,7 @@
 #include "handlers/namespace.h"
 #include "handlers/notify.h"
 #include "handlers/noop.h"
+#include "handlers/quota.h"
 #include "handlers/rename.h"
 #include "handlers/resetkey.h"
 #include "handlers/search.h"
@@ -253,6 +254,14 @@ Command * Command::create( IMAP * imap,
             c = new Notify;
         else if ( n == "compress" )
             c = new Compress;
+        else if ( n == "getquota" )
+            c = new GetQuota();
+        else if ( n == "setquota" )
+            c = new SetQuota();
+        else if ( n == "getquotaroot" )
+            c = new GetQuotaRoot();
+        else if ( n == "setquotaroot" )
+            c = new SetQuotaRoot();
 
         if ( c ) {
             authenticated = true;

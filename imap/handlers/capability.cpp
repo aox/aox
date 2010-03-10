@@ -18,6 +18,7 @@
 
     We announce the following standard capabilities:
 
+    RFC 2087: QUOTA,
     RFC 3501: IMAP4rev1, STARTTLS, LOGINDISABLED,
     RFC 3502: MULTIAPPEND,
     RFC 2086: ACL,
@@ -107,8 +108,10 @@ EString Capability::capabilities( IMAP * i, bool all )
         c.append( "NAMESPACE" );
         //c.append( "NOTIFY" );
     }
-    if ( all || login )
+    if ( all || login ) {
+        c.append( "QUOTA" );
         c.append( "RIGHTS=ekntx" );
+    }        
     if ( all || !login )
         c.append( "SASL-IR" );
     if ( all || login ) {

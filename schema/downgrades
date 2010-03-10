@@ -90,3 +90,10 @@ begin
     alter table connections drop userid;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_92()
+returns int as $$
+begin
+    alter table users drop quota;
+    return 0;
+end;$$ language 'plpgsql';

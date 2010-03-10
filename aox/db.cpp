@@ -31,7 +31,7 @@ static const char * versions[] = {
     "2.10", "2.10", "2.10", "2.11", "2.11", "2.11", // 70-75
     "2.12", "2.13", "2.13", "2.14", "3.0.6", "3.1.0", // 76-81
     "3.1.0", "3.1.0", "3.1.0", "3.1.0", "3.1.0", "3.1.0", // 82-87
-    "3.1.1", "3.1.3", "3.1.3", "3.1.3", "3.1.3" // 88-92
+    "3.1.1", "3.1.3", "3.1.3", "3.1.3", "3.1.3", "3.1.4" // 88-93
 };
 static int nv = sizeof( versions ) / sizeof( versions[0] );
 
@@ -207,7 +207,7 @@ void Vacuum::execute()
             // delete the unnecessary addresses rows. this locks the
             // database for quite a while (seconds, perhaps even a
             // minute), so this isn't in the regular vacuum.
-            
+
             t->enqueue( "create temporary table au "
                         "( address integer, used boolean )" );
             // pick some candidates at random
@@ -247,10 +247,10 @@ void Vacuum::execute()
             t->enqueue( "drop table au" );
             t->enqueue( "drop index af_a" );
         }
-        
+
         r = new RetentionSelector( t, this );
         r->execute();
-        
+
         t->execute();
     }
 

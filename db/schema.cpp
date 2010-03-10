@@ -613,6 +613,8 @@ bool Schema::singleStep()
         c = stepTo91(); break;
     case 91:
         c = stepTo92(); break;
+    case 92:
+        c = stepTo93(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4310,5 +4312,21 @@ bool Schema::stepTo92()
     describeStep( "Restoring connections.userid." );
     d->t->enqueue( "alter table connections "
                    "add userid integer" );
+    return true;
+}
+
+
+/*! Add users.quota, and set it to the 32-bit uint_max. A bigger value
+    might tickle some clients, and a smaller value should really not
+    be the default.
+*/
+
+bool Schema::stepTo93()
+{
+    describeStep( "Adding users.quota." );
+    d->t->enqueue( "alter table users "
+                   "add quota bigint not null" );
+    d->t->enqueue( "update users "
+                   "set quota=2147483647" );
     return true;
 }

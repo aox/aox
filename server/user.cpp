@@ -15,7 +15,7 @@ class UserData
 {
 public:
     UserData()
-        : id( 0 ), inbox( 0 ), inboxId( 0 ), home( 0 ), address( 0 ),
+        : id( 0 ), inbox( 0 ), inboxId( 0 ), home( 0 ), address( 0 ), quota( 0 ),
           q( 0 ), result( 0 ), t( 0 ), user( 0 ),
           state( User::Unverified ),
           mode( LoungingAround )
@@ -29,6 +29,7 @@ public:
     uint inboxId;
     Mailbox * home;
     Address * address;
+    int64 quota;
     Query * q;
     Query * result;
     Transaction * t;
@@ -277,7 +278,7 @@ void User::refresh( EventHandler * user )
     if ( !psl ) {
         psl = new PreparedStatement(
             "select u.id, u.login, u.secret, u.ldapdn, "
-            "a.name, a.localpart, a.domain, "
+            "a.name, a.localpart, a.domain, u.quota, "
             "al.mailbox as inbox, n.name as parentspace "
             "from users u "
             "join namespaces n on (u.parentspace=n.id) "
@@ -288,7 +289,7 @@ void User::refresh( EventHandler * user )
 
         psa = new PreparedStatement(
             "select u.id, u.login, u.secret, u.ldapdn, "
-            "a.name, a.localpart, a.domain, "
+            "a.name, a.localpart, a.domain, u.quota, "
             "al.mailbox as inbox, n.name as parentspace "
             "from users u "
             "join namespaces n on (u.parentspace=n.id) "
@@ -351,6 +352,7 @@ void User::refreshHelper()
             EString h = r->getEString( "domain" );
             d->address = new Address( n, l, h );
         }
+        d->quota = r->getBigint( "quota" );
         d->state = Refreshed;
     }
     if ( d->user )
@@ -430,18 +432,18 @@ void User::createHelper()
 
         Query * q1
             = new Query( "insert into aliases (address, mailbox) values "
-                         "($1, (select id from mailboxes where name=$2))",
-                         this );
+                         "($1, (select id from mailboxes where name=$2))", 0 );
         q1->bind( 1, a->id() );
         q1->bind( 2, m );
         d->t->enqueue( q1 );
 
         Query * q2
             = new Query( "insert into users "
-                         "(alias,parentspace,login,secret) values "
-                         "((select id from aliases where address=$1),"
-                         "(select max(id) from namespaces),$2,$3)",
-                         this );
+                         "(alias,parentspace,login,secret,quota) values "
+                         "((select id from aliases where address=$1), "
+                         "(select max(id) from namespaces), $2, $3, "
+                         "coalesce((select quota from users group by quota"
+                         " order by count(*) desc limit 1), 2147483647))", 0 );
         q2->bind( 1, a->id() );
         q2->bind( 2, d->login );
         q2->bind( 3, d->secret );
@@ -450,7 +452,7 @@ void User::createHelper()
         Query *q3 =
             new Query( "update mailboxes set "
                        "owner=(select id from users where login=$1) "
-                       "where name=$2 or name like $2||'/%'", this );
+                       "where name=$2 or name like $2||'/%'", 0 );
         q3->bind( 1, d->login );
         q3->bind( 2, m );
         d->t->enqueue( q3 );
@@ -559,4 +561,12 @@ bool User::valid()
 EString User::error() const
 {
     return d->error;
+}
+
+
+/*! Returns the user's database quota, as recorderd by users.quota. */
+
+int64 User::quota() const
+{
+    return d->quota;
 }
