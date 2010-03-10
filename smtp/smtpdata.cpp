@@ -382,7 +382,7 @@ void SmtpData::checkField( HeaderField::Type t )
         return;
 
     if ( ok->isEmpty() && server()->user() ) {
-        log( "No allowed " + af->name() + " addressed left; using " + 
+        log( "No allowed " + af->name() + " addresses left; using " +
              server()->user()->address()->lpdomain() );
         ok->append( server()->user()->address() );
     }
