@@ -8,7 +8,7 @@
 
 
 /*! \class GetQuota quota.h
-  
+
     The GetQuota command implements the GETQUOTA command defined by
     RFC 2087. It is the only part Archiveopteryx really implements; we
     want to report usage, not impose quotas.
@@ -18,7 +18,7 @@
     for storing the mail (at one site by a factor of four), but it'll
     do for reporting usage.
 */
-    
+
 void GetQuota::parse()
 {
     space();
@@ -32,7 +32,9 @@ void GetQuota::parse()
 void GetQuota::execute()
 {
     if ( !q ) {
-        q = new Query( "select count(*) as c, sum(rfc822size::bigint) as s from "
+        q = new Query( "select count(*) as c,"
+                       " sum(rfc822size::bigint)::bigint as s "
+                       "from "
                        "(select distinct on (m.id) rfc822size from messages m"
                        " join mailbox_messages mm on (m.id=mm.message)"
                        " join mailboxes mb on (mm.mailbox=mb.id)"
@@ -54,13 +56,13 @@ void GetQuota::execute()
     if ( r )
         respond( "QUOTA \"\" ("
                  "STORAGE " + fn( r->getBigint( "s" ) ) + " " + quota + " "
-                 "MESSAGE " + fn( r->getInt( "c" ) ) + "  " + quota + ")" );
+                 "MESSAGE " + fn( r->getBigint( "c" ) ) + "  " + quota + ")" );
     finish();
 }
 
 
 /*! \class SetQuota quota.h
-  
+
     We don't allow setting quotas within IMAP, so this class is a no-op.
 */
 
@@ -78,7 +80,7 @@ void SetQuota::execute()
 
 
 /*! \class GetQuotaRoot quota.h
-  
+
     The GetQuota command implements the GETQUOTAROOT command defined by
     RFC 2087, a slightly fancier version of GETQUOTA.
 */
@@ -115,7 +117,7 @@ void GetQuotaRoot::execute()
 
 
 /*! \class SetQuotaRoot quota.h
-  
+
     We don't allow setting quotas via IMAP, so this handler just
     returns an error.
 */
