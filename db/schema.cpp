@@ -4325,8 +4325,6 @@ bool Schema::stepTo93()
 {
     describeStep( "Adding users.quota." );
     d->t->enqueue( "alter table users "
-                   "add quota bigint not null" );
-    d->t->enqueue( "update users "
-                   "set quota=2147483647" );
+                   "add quota bigint not null default 2147483647" );
     return true;
 }
