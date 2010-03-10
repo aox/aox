@@ -4316,7 +4316,7 @@ bool Schema::stepTo92()
 }
 
 
-/*! Add users.quota, and set it to the 32-bit uint_max. A bigger value
+/*! Add users.quota, and set it to the 31-bit int_max. A bigger value
     might tickle some clients, and a smaller value should really not
     be the default.
 */
