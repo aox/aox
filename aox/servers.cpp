@@ -1101,7 +1101,7 @@ static void selfSignCertificate()
         return; // could verify here, for the expiry date
 
     File osslcf( "/tmp/aox-ossl.conf", File::Write );
-    osslcf.write( "[ req ]"
+    osslcf.write( "[ req ]\n"
                   " default_bits = 1024\n"
                   " default_keyfile = privkey.pem\n"
                   " distinguished_name = req_distinguished_name\n"
