@@ -88,7 +88,7 @@ void TlsThread::setup()
     SSL_library_init();
 
     ctx = ::SSL_CTX_new( SSLv23_server_method() );
-    int options = SSL_OP_ALL;
+    int options = SSL_OP_ALL | SSL_OP_CIPHER_SERVER_PREFERENCE;
     SSL_CTX_set_options( ctx, options );
 
     SSL_CTX_set_cipher_list( ctx, "ALL:!LOW" );
