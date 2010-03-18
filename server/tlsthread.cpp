@@ -88,10 +88,15 @@ void TlsThread::setup()
     SSL_library_init();
 
     ctx = ::SSL_CTX_new( SSLv23_server_method() );
-    int options = SSL_OP_ALL | SSL_OP_CIPHER_SERVER_PREFERENCE;
+    int options = SSL_OP_ALL 
+                  // also try to pick the same ciphers suites more often
+                  | SSL_OP_CIPHER_SERVER_PREFERENCE
+                  // and don't use SSLv2, even if the client wants to
+                  | SSL_OP_NO_SSLv2
+                  ;
     SSL_CTX_set_options( ctx, options );
 
-    SSL_CTX_set_cipher_list( ctx, "ALL:!LOW" );
+    SSL_CTX_set_cipher_list( ctx, "HIGH:MEDIUM:!LOW:!EXPORT:+AES" );
 
     EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
     if ( keyFile.isEmpty() ) {
