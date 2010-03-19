@@ -603,9 +603,6 @@ TLS client support (smtp, postgresql)
   points from it. It could also be that we'll improve the code itself.
 
 
-Play with PITR and write /ams/pitr.html
-
-
 Document IPC structure
 
   Some man page, or some web page, or both, should say who's
