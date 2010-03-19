@@ -603,12 +603,6 @@ TLS client support (smtp, postgresql)
   points from it. It could also be that we'll improve the code itself.
 
 
-Document IPC structure
-
-  Some man page, or some web page, or both, should say who's
-  connecting to who and why.
-
-
 Faster mapping from unicode to 8-bit encodings
 
   At the moment, we use a while loop to find the right codepoint in an
