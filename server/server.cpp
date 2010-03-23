@@ -312,8 +312,13 @@ void Server::logSetup()
 static void shutdownLoop( int )
 {
     Server::killChildren();
-    if ( EventLoop::global() )
-        EventLoop::global()->stop( 10800 );
+    if ( !EventLoop::global() ) {
+        (void)alarm( 60 );
+        return;
+    }
+
+    EventLoop::global()->stop( 10800 );
+    (void)alarm( 10800 );
 }
 
 
@@ -372,6 +377,10 @@ void Server::loop()
     // a custom signal to dump core and go on
     sa.sa_handler = dumpCoreAndGoOn;
     ::sigaction( SIGUSR1, &sa, 0 );
+
+    // a custom signal to die, quickly, for last-resort exit
+    sa.sa_handler = ::exit;
+    ::sigaction( SIGALRM, &sa, 0 );
 }
 
 
