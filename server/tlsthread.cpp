@@ -96,7 +96,7 @@ void TlsThread::setup()
                   ;
     SSL_CTX_set_options( ctx, options );
 
-    SSL_CTX_set_cipher_list( ctx, "HIGH:MEDIUM:!LOW:!EXPORT:+AES" );
+    SSL_CTX_set_cipher_list( ctx, "HIGH:MEDIUM:!LOW:!EXPORT" );
 
     EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
     if ( keyFile.isEmpty() ) {
