@@ -13,10 +13,10 @@
     RFC 2087. It is the only part Archiveopteryx really implements; we
     want to report usage, not impose quotas.
 
-    Usage is defined as the sum of RFC822-format size. This is usually
-    much bigger than the actual number of bytes used by the database
-    for storing the mail (at one site by a factor of four), but it'll
-    do for reporting usage.
+    Usage is defined as the sum of RFC822-format size, in kb. This is
+    usually much bigger than the actual number of kilobytes used by
+    the database for storing the mail (at one site by a factor of
+    four), but it'll do for reporting usage.
 */
 
 void GetQuota::parse()
@@ -33,7 +33,7 @@ void GetQuota::execute()
 {
     if ( !q ) {
         q = new Query( "select count(*) as c,"
-                       " sum(rfc822size::bigint)::bigint as s "
+                       " sum(rfc822size::bigint)::bigint / 1024 as s "
                        "from "
                        "(select distinct on (m.id) rfc822size from messages m"
                        " join mailbox_messages mm on (m.id=mm.message)"
