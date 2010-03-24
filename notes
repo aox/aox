@@ -1,17 +1,8 @@
-3.1.3: 2009-08-xx
+3.1.4: 2009-08-xx
 
-  Schema 90 should now be complete. It provides smart delays for
-  auto-submitted mail, plus 4865 HOLDFOR and HOLDUNTIL.
+  IMAP QUOTA works.
 
-  The better SpoolManager etc. has to go in here.
-
-  aox check database now seems to work.
-
-  managesieve-port = 4190 can go into 3.1.3; the rfc is on its way
-
-  The schema downgrade code is good (downgrade.pl etc)
-
-
+  
 Plaintext passwords work, sort of
 
   allow-plaintext-passwords almost works. But if we get a cleartext
@@ -61,72 +52,6 @@ Functions and views
   - Change password, given old and new password, checking
   - Enable/disable alias
   - Add/delete/rename alias
-
-
-Release cycle
-
-  Five weeks, t-35 to t (a Monday).
-
-  t-38: we decide on a feature list for the release.
-
-  t-14: Whatever hasn't been started is dropped, whatever cannot be
-  completed before t-7 is laid aside for the next release. Write the
-  announcement text.
-
-  t-7: Fork the release and remove any code that needs to be removed.
-
-  t-4: Roll the tarball and do the release chores.
-
-  t-3: See t-38 above.
-
-  t-0: A crontab does what it needs to do.
-
-
-The value of features
-
-  Archiveopteryx provides online archiving. We want the features we
-  add to improve one or more of these:
-  - adding mail to the archive
-  - accessing the archive
-  - managing the archive
-
-  For nontechnical reasons I add a fourth goal:
-  - making current users happy
-
-  Each new feature should help in some way; the new features that help
-  the most are the ones we need most (in the long term - in the short
-  term we also need to help existing users).
-
-
-The next eight months
-
-  - Message retention
-      User interface
-      Message identification
-      Logging changes to the message
-  - aoximport improvements
-  - Full text search
-  - More documentation
-      aox operations guide
-      best practice papers
-  - Better documentation
-  - VIEW improvements
-      INTHREAD
-      multi-mailbox searches
-      miscellaneous
-  - Account management
-      ACL management
-      VIEW management
-  - Recording the fate of outgoing mail
-  - Proper full-text searching
-  - Better exploratory search
-  - Useful webmail
-  - Address search
-      Web UI
-      IMAP X-extension
-      Exporting to addressbooks
-  - Monitoring
-      Graphing
 
 
 Installer doesn't take steps to ensure that the installation is usable
@@ -191,41 +116,6 @@ aox check schema
   repurposed to do other things besides. so that means more static
   functions in Schema and separate EventHandlers to do the
   checking/granting/whatevering. but that's okay.
-
-
-Items for web site
-
-  In addition to stuff in the operations guide:
-
-  - List/description of IMAP/POP/SMTP extensions
-  - RFC pages
-  - man pages (old ones too)
-  - Source documentation
-  - Best practices
-  - FAQ
-  - Version-specific pages
-  - Download-specific pages
-  - Client-specific pages
-
-
-Various TODO items from earlier releases.
-
-  Message retention policy
-
-  - Soft-quota/archival stuff too?
-  - Message arrival tag (for archiving)
-
-  Miscellaneous:
-
-  - Database replication support (local mirror)
-
-  THREAD?
-
-  Basic administration using the httpd
-
-  Indexing for DOC bodyparts
-
-  aox backup/restore (or similarly helpful procedure)
 
 
 The \Answered flag
@@ -384,21 +274,6 @@ Bounces and DSNs
   (Another trick we can/should use is to see whether the host we
   deliver to seems to be the final destination based on earlier
   (answered) messages.)
-
-
-Memory use for common operations
-
-  Some use _vastly_ too much memory. I saw a single IMAP FETCH for a
-  mere 4200 messages use 173MB yesterday. (Later note: This should be
-  gone, gone, gone, but it would still be good to check that these
-  problems don't reappear, reappear, reappear.)
-
-  The most elegant way to solve that would be to supervise memory
-  usage for a known sequence. Inject these ten thousand messages,
-  check memory use (via the grapher), connect to the imap port run
-  this and that, check again, connect to the imap port run this and
-  that, check again, connect to the imap port run this and that, check
-  again... just a bunch of checks. Ignore output.
 
 
 RFC 2554
@@ -641,43 +516,6 @@ Using rrdtool
   via the web interface.
 
 
-Box features
-
-  1. web ui to set up view mailboxes (and to search the archive
-     generally)
-
-  2. web ui to configure sieve
-
-  3. web administration, to add users, etc.
-
-  4. i18n for all web-accessible anythings, and after that, for aox.
-
-  5. rrd stuff available next to aox in the boxes, perhaps nagios
-     stuff too
-
-
-SASL NTLM authentication
-
-  It may be odd and undocumented, and it may not be as strong as
-  DIGEST-MD5, but it's implemented in Certain Clients ;)
-
-  http://www.innovation.ch/java/ntlm.html seems to be a reasonable
-  description. Cyrus also implements it.
-
-  http://davenport.sourceforge.net/ntlm.html ?
-
-
-Split the folder view into pages.
-
-  Need to decide on what a page is. "Most recent 25 threads" is a
-  slippery concept when a new thread is created between page views.
-
-  One probably good way: Use "after" and "before", so "next" would
-  point to "most recent 25 threads after the last one on this
-  page". Doable, not bad, and with the aid if a new Session subclass
-  we can even include a note when there's new activity.
-
-
 We should be able to use a read-only local database mirror.
 
   That way, we can play nicely with most replication systems.
@@ -763,59 +601,6 @@ TLS client support (smtp, postgresql)
 
   We need to look at ISBN 0735617228 and improve security.html with
   points from it. It could also be that we'll improve the code itself.
-
-
-Play with PITR and write /ams/pitr.html
-
-
-Document IPC structure
-
-  Some man page, or some web page, or both, should say who's
-  connecting to who and why.
-
-
-Add a web page about the charset encoding.
-
-  It's a novel and good algorithm, so we can make a good page about
-  it. We also can link to data sources there.
-
-  The documentation for Codec::byString() should mention that page's
-  URL.
-
-
-Make a web page about our licensing
-
-  Not sure what to say there. the purpose of the page would be to
-  direct people to one of the two others, really. and to be linked to
-  from the home page.
-
-
-The "Database" link on home page
-
-  Where should it go? People might click it wondering why to use a
-  database instead of flat files and wanting to know what we do with
-  databases.
-
-
-Search ourselves, not via google
-
-  Or maybe farm that out, get google to search with an approximation
-  of our design. http://www.google.com/faq_freewebsearch.html may be
-  interesting.
-
-
-Logging to syslog
-
-  The logd HUP handler can switch to syslog if it can't reopen the
-  logfile instead of exiting.
-
-
-Rendering webmail HTML is presumably good, but...
-
-  We have a potential security hole: A malevolent HTML bodypart is
-  forwarded as is on the "download bodypart" page.
-
-  See http://ha.ckers.org/xss.html
 
 
 Faster mapping from unicode to 8-bit encodings
@@ -910,12 +695,6 @@ Delaying seen-flag setting
   command nicely.
 
 
-The web interface should offer a download link for attachments.
-
-  For patches attached as text/plain with the right Content-Disposition,
-  for example.
-
-
 Sending forged From despite check-sender-addresses
 
   vacation :from and notify :mailto :from don't check
@@ -947,14 +726,6 @@ The subaddress specification says foo@ != foo+@ wrt. :detail
   sequence of private-use unicode characters, or even to
   Entropy::string( 8 ) if there is no separator. The chance of that
   appearing in an address is negligible.)
-
-
-Distribution packages
-
-  - RPM: silug has offered to help.
-  - FreeBSD port: devin (Tod McQuillin) has offered to help.
-  - Debian: ? (license problems, but we could provide a .deb).
-  - Ubuntu: ?
 
 
 SMTP extensions
@@ -1006,28 +777,6 @@ We need to be able to disable users
   - a group admin cannot unblock an overall blockage
 
 
-Showing email addresses in public archives is... well...
-
-  There are three common solutions:
-
-  1. Show the address. What we do now. Gives addresses to spammers,
-     which is undesirable.
-
-  2. Replace @ with at or some other easily reversible change. I
-     assume gigamega.com, litefinder.net and other address scrapers
-     already detect the common obfuscations, so this is pointless.
-
-  3. Show part of the address, e.g. arnt@ory... or
-     ar...@oryx.co... for arnt@oryx.com. Isn't reversible, so the
-     spammers can't undo it, but also makes the archive less usable
-     for people.
-
-  We might change to 3, but with a captcha-protected option to show
-  1. That would give us all the advantages and no serious disadvantage.
-  But we would have to implement captchas somehow, which would be a
-  moderate pain.
-
-
 aox.org/badmail/
 
   Explain that aox can't store everything, why not (in short), that it
@@ -1063,49 +812,6 @@ aox.org/badmail/
   pages.
 
 
-Some unfortunate logging
-
-  This is the tail end of a connection Thunderbird used to save
-  something to the Sent folder, rewrapped for easier reading:
-
-    imap/info: 2/1/1/2442/6: 2008-06-18 12:53:54.109
-        Execution time 550ms
-    imap/debug: 2/1/1/2442/6: 2008-06-18 12:53:54.109
-        Finished
-    imap/debug: 2/1/1/2442: 2008-06-18 12:53:54.109
-        IMAP::runCommands, 1 commands
-    imap/info: 2/1/1/2442/6: 2008-06-18 12:53:54.109
-        Result: OK [APPENDUID 19] done
-    imap/debug: 2/1/1/2442/6: 2008-06-18 12:53:54.110
-        Retired
-    imap/debug: 2/1/1/2442: 2008-06-18 12:53:54.110
-        IMAP::runCommands, 0 commands
-    imap/info: 2/1/1/2442: 2008-06-18 13:23:53.458
-        Idle timeout
-    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
-        Closing: IMAP server 195.30.37.30:143
-                 connected to client 195.30.37.9:52209, on fd 26
-    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
-        IMAP::runCommands, 0 commands
-    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
-        IMAP::runCommands, 0 commands
-    imap/info: 2/1/1/2442: 2008-06-18 13:23:53.459
-        Unexpected close by client
-    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.459
-        IMAP::runCommands, 0 commands
-    general/debug: 2/1/1/2442/2/2/2: 2008-06-18 13:23:53.461
-        Closing: Byte forwarder 127.0.0.1:56695
-                 connected to client 127.0.0.1:2061, on fd 27
-    general/info: 2/1/1/2442/2/2/2: 2008-06-18 13:23:53.461
-        Shutting down byte forwarder due to peer close.
-    imap/info: 2/1/1/2442: 2008-06-18 13:23:53.464
-        Unexpected close by client
-    imap/debug: 2/1/1/2442: 2008-06-18 13:23:53.464
-        IMAP::runCommands, 0 commands
-
-  Hardly unexpected. Will fix later, not sure how.
-
-
 Dynamically preparing often-used queries
 
   We can prepare queries cleverly.
@@ -1121,22 +827,6 @@ Dynamically preparing often-used queries
   If a preparable query is used more than n times before the cache is
   discarded, we prepare the query and keep the PreparedStatement
   around.
-
-
-aox.org/clients/
-
-  Move the list of clients from /imap/ and /pop here. Make a per-client
-  page, e.g. /clients/outlook, with notes.
-
-  1. Which protocols can you use? Usually IMAP+Submit.
-
-  2. Any bugs worth speaking of?
-
-  3. Any particular configuration advice? for /clients/outlook we say
-     "enable use-smtps". For /clients/applemail we point to that IDLE
-     plugin.
-
-  That's it, right?
 
 
 Defending against PGP Desktop and similar
@@ -1240,28 +930,6 @@ Axel, /Unable to fetch 12MB mail
   Some sort of loop in the fetcher? I didn't look.
 
 
-Axel, /2.10 status
-
-  Mail.app occasionally shows a panel, saying "SSL error: Identity of
-  mail3.chaos1.de can't be verified, hit "continue" or "abort".
-
-
-Simon, /Segfault when accessing web-archive
-
-  Not looked yet, but probably the same as the one on archives. Will fix
-  with the other known bugs.
-
-
-Caches that aren't
-
-  There's a session "cache" in HTTP.
-
-
-Mike Geiger's Thunderbird problems
-
-  TLS breakage (not yet reproduced) and copy-to-sent hanging.
-
-
 Problems found in 3.0.0 by Timo
 
   - SEARCH SENTON/SENTBEFORE/SENTAFTER have some bugs.
@@ -1276,42 +944,6 @@ Use current_setting('server_version_num') instead of parsing version()
   (But only under 8.2+)
 
 
-HTML representation of selectors
-
-  We need:
-
-    - An HTML representation of selectors.
-
-      Should be easy to generate, display reasonably even without CSS,
-      and easy to parse when we see it again.
-
-        <div id=1>
-         <span class=selector>and 2 3</span>
-         <span class=translated>Alle Begingungen müssen für jede Nachricht zutreffen</span>
-         <div id=2>
-          <span class=selector>header 4</span>
-          <span class=translated>Headers enthalten <span id=4>arnt</span></span>
-         </div>
-         <div id=3>
-          <span class=selector>body 5</span>
-          <span class=translated>Körpertext enthält <span id=5>expunge</span></span>
-         </div>
-        </div>
-
-      (We don't want to parse translated text because of the ambiguity
-      in mapping between texts and conditions if e.g. two conditions map
-      to the same Bangla text. Hence the selector/translated split.)
-
-    - A parser to turn HTML into a selector; and a way to turn a
-      selector into HTML (plus tests for the conversion).
-
-      We have HtmlParser.
-
-    - A component to display a view, and a component to edit a view
-      (complete with evil Javascript) and a magic URL to accept the
-      edited representation.
-
-
 Caching search results
 
   If a selector is !dynamic(), its results can be cached until the next
@@ -1322,11 +954,3 @@ Bugs
 
   - "aox start" doesn't complain when there's a schema mismatch error.
   - aox -v -v is broken by the syslog change.
-
-
-APOP
-
-  Some mobile devices want to use it.
-
-
-
