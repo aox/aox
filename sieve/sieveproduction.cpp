@@ -199,11 +199,11 @@ EString SieveProduction::error() const
 /*! Returns a list of all supported sieve extensions. The list is
     allocated for the purpose, so the caller can modify it at will.
 
-    The extensions are: BODY from RFC 5173. DATE from RFC 5260.
-    EREJECT from RFC 5429, IHAVE from RFC 5463. RFC 5228 defines several
-    optional capabilities, we implement all (I think).  RELATIONAL is
-    from RFC 5231, SUBADDRESS is from RFC 5233 and VACATION from RFC
-    5230.
+    The extensions are: BODY from RFC 5173. COPY from RFC 3894. DATE
+    from RFC 5260.  EREJECT from RFC 5429, IHAVE from RFC 5463. RFC
+    5228 defines several optional capabilities, we implement all (I
+    think).  RELATIONAL is from RFC 5231, SUBADDRESS is from RFC 5233
+    and VACATION from RFC 5230.
 
     RFC 5260 also defines INDEX, which we don't implement, it doesn't
     seem useful.
@@ -221,6 +221,7 @@ EStringList * SieveProduction::supportedExtensions()
         r->append( name );
         ++c;
     }
+    r->append( "copy" );
     r->append( "date" );
     r->append( "ereject" );
     r->append( "envelope" );
@@ -1154,6 +1155,7 @@ void SieveCommand::parse( const EString & previous )
     }
     else if ( i == "fileinto" ) {
         require( "fileinto" );
+        (void)arguments()->findTag( ":copy" );
         arguments()->numberRemainingArguments();
         UString mailbox = arguments()->takeString( 1 );
         UString p;
@@ -1175,6 +1177,7 @@ void SieveCommand::parse( const EString & previous )
         }
     }
     else if ( i == "redirect" ) {
+        (void)arguments()->findTag( ":copy" );
         arguments()->numberRemainingArguments();
         EString s = arguments()->takeString( 1 ).utf8();
         AddressParser ap( s );

@@ -722,12 +722,14 @@ bool SieveData::Recipient::evaluate( SieveCommand * c )
             done = true;
         }
         else {
-            implicitKeep = false;
+            if ( !c->arguments()->findTag( ":copy" ) )
+                implicitKeep = false;
         }
         actions.append( a );
     }
     else if ( c->identifier() == "redirect" ) {
-        implicitKeep = false;
+        if ( !c->arguments()->findTag( ":copy" ) )
+            implicitKeep = false;
         SieveAction * a = new SieveAction( SieveAction::Redirect );
         UString arg = c->arguments()->takeString( 1 );
         AddressParser ap( arg.utf8() );
