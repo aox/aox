@@ -24,10 +24,14 @@ public:
     TlsThreadData()
         : Garbage(),
           ssl( 0 ),
+          ctrb( 0 ),
           ctrbo( 0 ), ctrbs( 0 ),
+          ctwb( 0 ),
           ctwbo( 0 ), ctwbs( 0 ),
           ctfd( -1 ),
+          encrb( 0 ),
           encrbo( 0 ), encrbs( 0 ),
+          encwb( 0 ),
           encwbo( 0 ), encwbs( 0 ),
           encfd( -1 ),
           networkBio( 0 ), sslBio( 0 ), thread( 0 ),
@@ -140,6 +144,11 @@ TlsThread::TlsThread()
     }
     ::SSL_set_bio( d->ssl, d->sslBio, d->sslBio );
 
+    d->ctrb = (char*)Allocator::alloc( bs, 0 );
+    d->ctwb = (char*)Allocator::alloc( bs, 0 );
+    d->encwb = (char*)Allocator::alloc( bs, 0 );
+    d->encwb = (char*)Allocator::alloc( bs, 0 );
+
     int r = pthread_create( &d->thread, 0, trampoline, (void*)this );
     if ( r ) {
         log( "pthread_create returned nonzero (" + fn( r ) + ")" );
@@ -147,11 +156,6 @@ TlsThread::TlsThread()
         ::SSL_free( d->ssl );
         d->ssl = 0;
     }
-
-    d->ctrb = (char*)Allocator::alloc( bs, 0 );
-    d->ctwb = (char*)Allocator::alloc( bs, 0 );
-    d->encwb = (char*)Allocator::alloc( bs, 0 );
-    d->encwb = (char*)Allocator::alloc( bs, 0 );
 }
 
 
