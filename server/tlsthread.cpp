@@ -37,23 +37,23 @@ public:
     SSL * ssl;
 
     // clear-text read buffer, ie. data coming from aox
-    char ctrb[bs];
+    char * ctrb;
     // the offset at which cleartext data starts
     int ctrbo;
     // and the buffer size (if ...o=...s, the buffer contains no data)
     int ctrbs;
     // clear-text write buffer, ie. data going to aox
-    char ctwb[bs];
+    char * ctwb;
     int ctwbo;
     int ctwbs;
     // the cleartext fd, ie. the fd for talking to aox
     int ctfd;
     // encrypted read buffer, ie. data coming from the peer
-    char encrb[bs];
+    char * encrb;
     int encrbo;
     int encrbs;
     // encrypted write buffer, ie. data going to the peer
-    char encwb[bs];
+    char * encwb;
     int encwbo;
     int encwbs;
     int encfd;
@@ -147,6 +147,11 @@ TlsThread::TlsThread()
         ::SSL_free( d->ssl );
         d->ssl = 0;
     }
+
+    d->ctrb = (char*)Allocator::alloc( bs, 0 );
+    d->ctwb = (char*)Allocator::alloc( bs, 0 );
+    d->encwb = (char*)Allocator::alloc( bs, 0 );
+    d->encwb = (char*)Allocator::alloc( bs, 0 );
 }
 
 
