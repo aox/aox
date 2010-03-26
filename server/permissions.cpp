@@ -187,7 +187,7 @@ void Permissions::execute()
         // For everyone else, we have to check.
         d->q = new Query( "select * from permissions "
                           "where mailbox=any($1) and "
-                          "(identifier=$1 or"
+                          "(identifier=$2 or"
                           " identifier='anyone' or"
                           " identifier in ("
                           "select g.name from groups g "
