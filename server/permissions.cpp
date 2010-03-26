@@ -190,12 +190,12 @@ void Permissions::execute()
                           "(identifier=$1 or"
                           " identifier='anyone' or"
                           " identifier in ("
-                          "select g.groupname from groups g "
-                          "join group_members gm on (g.id=gm.group)"
-                          "join users u on (gm.member=u.id)"
+                          "select g.name from groups g "
+                          "join group_members gm on (g.id=gm.groupname) "
+                          "join users u on (gm.member=u.id) "
                           "where u.login=$1))",
                           this );
-          
+
         IntegerSet r;
         Mailbox * m = d->mailbox;
         while ( m ) {
