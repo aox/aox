@@ -146,7 +146,7 @@ TlsThread::TlsThread()
 
     d->ctrb = (char*)Allocator::alloc( bs, 0 );
     d->ctwb = (char*)Allocator::alloc( bs, 0 );
-    d->encwb = (char*)Allocator::alloc( bs, 0 );
+    d->encrb = (char*)Allocator::alloc( bs, 0 );
     d->encwb = (char*)Allocator::alloc( bs, 0 );
 
     int r = pthread_create( &d->thread, 0, trampoline, (void*)this );
