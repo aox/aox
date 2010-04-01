@@ -93,7 +93,7 @@ void ShowCounts::execute()
         if ( opt( 'f' ) == 0 ) {
             printf( "Messages: %d", r->getInt( "messages" ) );
             if ( r->getInt( "dm" ) != 0 )
-                printf( " (%d marked for deletion)", r->getInt( "dm" ) );
+                printf( " (%d deleted)", r->getInt( "dm" ) );
             printf( " (estimated)\n" );
             printf( "Bodyparts: %d (estimated)\n",
                     r->getInt( "bodyparts" ) );
@@ -106,7 +106,9 @@ void ShowCounts::execute()
 
         d->query =
             new Query( "select count(*)::int as messages, "
-                       "sum(rfc822size)::bigint as totalsize, "
+                       "coalesce(sum(rfc822size)::bigint,0) as totalsize, "
+                       "(select count(*) from mailbox_messages)::int "
+                       "as mm, "
                        "(select count(*) from deleted_messages)::int "
                        "as dm from messages", this );
         d->query->execute();
@@ -121,19 +123,22 @@ void ShowCounts::execute()
         if ( d->query->failed() || !r )
             error( "Couldn't fetch messages/deleted_messages counts." );
 
-        int m = r->getInt( "messages" );
+        int um = r->getInt( "messages" );
+        int mm = r->getInt( "mm" );
         int dm = r->getInt( "dm" );
 
-        printf( "Messages: %d", m-dm );
+        printf( "Messages: %d unique", um );
+        printf( " (%d in mailboxes", mm );
         if ( dm != 0 )
-            printf( " (%d marked for deletion)", dm );
-        printf( " (total size: %s)\n",
+            printf( ", %d deleted", dm );
+        printf( ", total size: %s",
                 EString::humanNumber( r->getBigint( "totalsize" ) ).cstr() );
+        printf( ")\n" );
 
         d->query =
             new Query( "select count(*)::int as bodyparts,"
-                       "sum(length(text))::bigint as textsize,"
-                       "sum(length(data))::bigint as datasize "
+                       "coalesce(sum(length(text))::bigint,0) as textsize,"
+                       "coalesce(sum(length(data))::bigint,0) as datasize "
                        "from bodyparts", this );
         d->query->execute();
         d->state = 3;
