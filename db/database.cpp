@@ -702,7 +702,7 @@ void Database::cancelQuery( Query * q )
 
 uint Database::currentRevision()
 {
-    return 93;
+    return 94;
 }
 
 
