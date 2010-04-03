@@ -5,7 +5,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (92);
+insert into mailstore (revision) values (93);
 
 
 -- One entry for each unique address we've encountered.
@@ -38,7 +38,8 @@ create table users (
     login       text,
     secret      text,
     ldapdn      text,
-    parentspace integer not null references namespaces(id)
+    parentspace integer not null references namespaces(id),
+    quota       bigint not null default 2147483647
 );
 create unique index u_l on users (lower(login));
 
