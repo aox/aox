@@ -1,3 +1,5 @@
+-- See http://www.archiveopteryx.org/db/ for documentation
+
 -- This table contains information internal to the mailstore.
 -- For now, its only purpose is to coordinate schema updates.
 
