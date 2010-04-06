@@ -632,9 +632,6 @@ Recognising spam
   They seem to work that way, but with n different protocols.
 
 
-TLS client support (smtp, postgresql)
-
-
 "Writing Secure Code"
 
   We have a page about security, /mailstore/security.html, and a
