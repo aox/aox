@@ -191,7 +191,7 @@ void Permissions::execute()
                           " identifier='anyone' or"
                           " identifier in ("
                           "select g.name from groups g "
-                          "join group_members gm on (g.id=gm.groupname) "
+                          "join group_members gm on (g.id=gm.groupid) "
                           "join users u on (gm.member=u.id) "
                           "where u.login=$1))",
                           this );

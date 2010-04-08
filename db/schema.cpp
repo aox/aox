@@ -615,6 +615,8 @@ bool Schema::singleStep()
         c = stepTo92(); break;
     case 92:
         c = stepTo93(); break;
+    case 93:
+        c = stepTo94(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4326,5 +4328,15 @@ bool Schema::stepTo93()
     describeStep( "Adding users.quota." );
     d->t->enqueue( "alter table users "
                    "add quota bigint not null default 2147483647" );
+    return true;
+}
+
+
+/*! Rename group_members.groupname to groupid */
+
+bool Schema::stepTo94()
+{
+    describeStep( "Renaming group_members.groupname to groupid" );
+    d->t->enqueue( "alter table group_members rename groupname to groupid" );
     return true;
 }

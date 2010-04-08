@@ -1,3 +1,12 @@
+-- See http://www.archiveopteryx.org/db/ for documentation.
+
+-- Each table is documented in an eponymous /db/ page. For example,
+-- http://www.archiveopteryx.org/db/addresses describes the addresses
+-- table.
+
+-- Finally, http://www.archiveopteryx.org/schema is a quick overview.
+
+
 -- This table contains information internal to the mailstore.
 -- For now, its only purpose is to coordinate schema updates.
 
@@ -5,7 +14,7 @@ create table mailstore (
     -- Grant: select, update
     revision    integer not null primary key
 );
-insert into mailstore (revision) values (92);
+insert into mailstore (revision) values (94);
 
 
 -- One entry for each unique address we've encountered.
@@ -38,7 +47,8 @@ create table users (
     login       text,
     secret      text,
     ldapdn      text,
-    parentspace integer not null references namespaces(id)
+    parentspace integer not null references namespaces(id),
+    quota       bigint not null default 2147483647
 );
 create unique index u_l on users (lower(login));
 
@@ -54,9 +64,9 @@ create table groups (
 -- One entry for each group member.
 
 create table group_members (
-    groupname   integer not null references groups(id),
+    groupid     integer not null references groups(id),
     member      integer not null references users(id),
-    primary key (groupname, member)
+    primary key (groupid, member)
 );
 
 

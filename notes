@@ -2,6 +2,19 @@
 
   IMAP QUOTA works.
 
+
+Open Bug: aox add view broken
+
+  Ron Peterson reports that aox add view breaks.
+
+  aox add view /users/auser/someone /users/auser/archive auser address someone@gmail.com
+  aox: Can't create view named /users/auser/someone
+
+  No idea what's wrong (yet).
+
+  Notify: Ron Peterson <rpeterso@mtholyoke.edu>
+  Message-Id: <20100405132205.GL27702@mtholyoke.edu>
+
   
 Plaintext passwords work, sort of
 
@@ -11,6 +24,34 @@ Plaintext passwords work, sort of
 
   Send email to Timo when that works, he suggested the feature
   (unknowingly).
+
+
+Open bug format blah
+
+  I envision the format thus:
+
+  "Open Bug: " as headline prefix to mark it for the processor.
+
+  The rest of the headline must never change; it'll be used to look up
+  the web page. This is basically the bug ID. IDs can be reused as
+  soon as the bug is closed, though.
+
+  The body text contains plain old text, which will be exported, and
+  which may be changed at will.
+
+  Lines matching "Notify: " specify an email address. The email
+  address is not published on the web site.
+
+  When a commit affects a note, the script sends a notification to all
+  specified addresses. It doesn't include the patch though. When a
+  commit removes a note, the script says tells people "fixed".
+
+  We could try to set the References field on responses... but I don't
+  care to. It would be neat, but I don't care enough to do it. Or
+  maybe I do. If there's a Message-ID field, we use that in
+  References, otherwise we skip it?
+
+  Is this good?
 
 
 P/W: Stuff we may want to keep
@@ -589,9 +630,6 @@ Recognising spam
 
   We can connect to a local server to ask whether a message is spam.
   They seem to work that way, but with n different protocols.
-
-
-TLS client support (smtp, postgresql)
 
 
 "Writing Secure Code"
