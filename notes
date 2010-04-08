@@ -76,6 +76,15 @@ P/W: Stuff we may want to keep
   each one. None soon.
 
 
+A web page about spam filtering
+
+  Containing neat queries, such as "tell me whether the user with
+  address x has mail from y not tagged as spam", or "tell me whether
+  user x has sent mail to domain y".
+
+  With aox that can be done, uniquely. So mention it.
+
+
 Functions and views
 
   Views that'll be good for people:
