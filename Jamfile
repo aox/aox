@@ -19,9 +19,6 @@ SubInclude TOP extractors ;
 SubInclude TOP archiveopteryx ;
 SubInclude TOP aoximport ;
 SubInclude TOP aoxexport ;
-if ( $(USE_CRYPTLIB) = "yes" ) {
-    SubInclude TOP tlsproxy ;
-}
 
 
 if ( $(BUILDDOC) ) {
@@ -57,9 +54,6 @@ Prepare $(INSTALLROOT)$(CONFIGDIR) ;
 Prepare $(INSTALLROOT)$(LIBDIR)/contrib ;
 if ( $(LOGFILE:D) != "" && $(LOGFILE:D) != "syslog" ) {
     Prepare $(INSTALLROOT)$(LOGFILE:D) ;
-}
-if ( $(USE_CRYPTLIB) = "yes" ) {
-    Prepare $(INSTALLROOT)$(LIBDIR)/tlsproxy/var/run ;
 }
 
 

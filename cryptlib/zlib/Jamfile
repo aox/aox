@@ -1,4 +1,0 @@
-SubDir TOP cryptlib zlib ;
-
-Build cryptlib : adler32.c deflate.c inffast.c inflate.c inftrees.c trees.c
-    zutil.c ;

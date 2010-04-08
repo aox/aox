@@ -21,9 +21,6 @@
 #include "cache.h"
 #include "date.h"
 #include "user.h"
-#if defined(USE_CRYPTLIB)
-#include "tls.h"
-#endif
 
 #include "time.h"
 
@@ -741,15 +738,9 @@ IMAPS::IMAPS( int s )
     EString * tmp = writeBuffer()->removeLine();
     if ( tmp )
         d->banner = *tmp;
-#if defined(USE_CRYPTLIB)
-    d->helper = new ImapsHelper( this );
-    d->tlsServer = new TlsServer( d->helper, peer(), "IMAPS" );
-    EventLoop::global()->removeConnection( this );
-#else
     d->tlsServer = 0;
     startTls( 0 );
     enqueue( d->banner + "\r\n" );
-#endif
 }
 
 
@@ -757,18 +748,6 @@ IMAPS::IMAPS( int s )
 
 void IMAPS::finish()
 {
-#if defined(USE_CRYPTLIB)
-    if ( !d->tlsServer->done() )
-        return;
-    if ( !d->tlsServer->ok() ) {
-        log( "Cannot negotiate TLS", Log::Error );
-        close();
-        return;
-    }
-
-    startTls( d->tlsServer );
-    enqueue( d->banner + "\r\n" );
-#endif
 }
 
 

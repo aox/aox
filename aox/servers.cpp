@@ -36,9 +36,6 @@ static const char * buildinfo[] = {
 
 static const char * servers[] = {
     "logd",
-#if defined(USE_CRYPTLIB)
-    "tlsproxy",
-#endif
     "archiveopteryx"
 };
 static const int nservers = sizeof( servers ) / sizeof( servers[0] );
@@ -314,12 +311,10 @@ static void checkFilePermissions()
     addPath( Path::JailDir, Configuration::JailDir );
     if ( Configuration::toggle( Configuration::UseTls ) ) {
         EString c = Configuration::text( Configuration::TlsCertFile );
-#if !defined(USE_CRYPTLIB)
         if ( c.isEmpty() ) {
             c = Configuration::compiledIn( Configuration::LibDir );
             c.append( "/automatic-key.pem" );
         }
-#endif
         addPath( Path::ReadableFile, Configuration::TlsCertFile );
     }
     addPath( Path::ExistingSocket, Configuration::EntropySource );
@@ -497,14 +492,6 @@ static void checkInetAddresses()
         Configuration::ManageSievePort,
         "managesieve-address:port"
     );
-
-#if defined(USE_CRYPTLIB)
-    checkListener(
-        Configuration::toggle( Configuration::UseTls ),
-        Configuration::TlsProxyAddress, Configuration::TlsProxyPort,
-        "tlsproxy-address:port"
-    );
-#endif
 }
 
 
@@ -742,16 +729,14 @@ void Starter::execute()
 
 
 /*! Returns true if \a service is needed, and false if not (typically
-    due to configuration, e.g. use-tls for tlsproxy).
+    due to configuration, e.g. use-imap for logd).
 */
 
 bool Starter::needed( const EString & service )
 {
     bool use = true;
 
-    if ( service == "tlsproxy" )
-        use = Configuration::toggle( Configuration::UseTls );
-    else if ( service == "logd" )
+    if ( service == "logd" )
         use = Configuration::present( Configuration::LogFile ) &&
               !Configuration::text(
                   Configuration::LogFile ).startsWith( "syslog/" );
@@ -1021,12 +1006,6 @@ void Stopper::execute()
                 d->pingers->append(
                     new ServerPinger( Configuration::ImapAddress,
                                       Configuration::ImapPort, this ) );
-#if defined(USE_CRYPTLIB)
-            if ( Configuration::toggle( Configuration::UseTls ) )
-                d->pingers->append(
-                    new ServerPinger( Configuration::TlsProxyAddress,
-                                      Configuration::TlsProxyPort, this ) );
-#endif
             if ( Configuration::present( Configuration::LogFile ) &&
                  !Configuration::text(
                      Configuration::LogFile ).startsWith( "syslog/" ) )
@@ -1088,7 +1067,6 @@ bool Stopper::failed() const
 
 static void selfSignCertificate()
 {
-#if !defined(USE_CRYPTLIB)
     EString keyFile( Configuration::text( Configuration::TlsCertFile ) );
 
     if ( keyFile.isEmpty() ) {
@@ -1140,7 +1118,6 @@ static void selfSignCertificate()
             "Please verify that file's permissions.\n",
             Configuration::hostname().cstr(),
             keyFile.cstr() );
-#endif
 }
 
 

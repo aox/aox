@@ -1,5 +1,0 @@
-SubDir TOP cryptlib io ;
-
-Build cryptlib :
-    cmp_tcp.c dns.c file.c http_rd.c http_wr.c memory.c net.c
-    stream.c tcp.c ;

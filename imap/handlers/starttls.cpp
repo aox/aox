@@ -2,9 +2,6 @@
 
 #include "starttls.h"
 
-#if defined(USE_CRYPTLIB)
-#include "tls.h"
-#endif
 #include "imap.h"
 #include "capability.h"
 
@@ -44,19 +41,6 @@ void StartTLS::execute()
         finish();
         return;
     }
-
-#if defined(USE_CRYPTLIB)    
-    if ( !tlsServer )
-        tlsServer = new TlsServer( this, imap()->peer(), "IMAP" );
-
-    if ( !tlsServer->done() )
-        return;
-
-    if ( !tlsServer->ok() ) {
-        error( No, "Internal error starting TLS engine" );
-        return;
-    }
-#endif
 
     finish();
 }

@@ -587,28 +587,9 @@ If
 .I tls-certificate
 is not specified, tlsproxy generates a private key and a self-signed
 certificate at runtime and stores both in
-.IR $CONFIGDIR/automatic-key.p15 .
+.IR $CONFIGDIR/automatic-key.pem .
 .IP tls-certificate-label
-is a label that uniquely identifies the key and certificate to use in
-the PKCS #15 key file identified by
-.I tls-certificate
-(which can contain multiple key pairs). By default, this
-is empty, and the current hostname is used as a label.
-.IP tls-certificate-secret
-is a secret password used to access the appropriate key and certificate
-in the PKCS #15 key file identified by
-.IR tls-certificate .
-.IP tlsproxy-address
-is the address where
-.BR tlsproxy (8)
-listens for new connections. The default is
-.IR 127.0.0.1 .
-.IP tlsproxy-port
-is the port where
-.BR tlsproxy (8)
-accepts connections,
-.I 2061
-by default.
+is not used in 3.1.4.
 .SH SYNTAX
 .PP
 The name is case insensitive, as shown:
@@ -677,5 +658,4 @@ http://www.archiveopteryx.org/3.1.3
 .BR archiveopteryx (8),
 .BR deliver (8),
 .BR logd (8),
-.BR tlsproxy (8),
 http://www.archiveopteryx.org

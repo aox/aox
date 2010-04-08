@@ -8,11 +8,7 @@
 #include "smtp.h"
 #include "graph.h"
 
-#if defined(USE_CRYPTLIB)
-#include "tls.h"
-#else
 #include "tlsthread.h"
-#endif
 #include "flag.h"
 #include "event.h"
 #include "cache.h"
@@ -194,11 +190,9 @@ int main( int argc, char *argv[] )
         Configuration::SmtpsAddress, Configuration::SmtpsPort
     );
 
-#if !defined(USE_CRYPTLIB)
     if ( Configuration::toggle( Configuration::UseTls ) ) {
         TlsThread::setup();
     }
-#endif
 
     s.setup( Server::LogStartup );
 
@@ -222,9 +216,6 @@ int main( int argc, char *argv[] )
     EventLoop::global()->setStartup( true );
     Mailbox::setup( w );
 
-#if defined(USE_CRYPTLIB)
-    TlsServer::setup();
-#endif
     SpoolManager::setup();
     Selector::setup();
     Flag::setup();

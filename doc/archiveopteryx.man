@@ -66,23 +66,18 @@ Archiveopteryx. See e.g. http://www.archiveopteryx.org/postfix for
 .SH ARCHITECTURE
 .PP
 Archiveopteryx consists of a number of frontend servers, each of which uses
-four backend servers:
+backend servers:
 .IP RDBMS
 The RDBMS is where all the mail is stored. At present only PostgreSQL
 is supported.
 .IP logd
 The log server is an internal server which filters log entries so
 useful messages are logged while noise is suppressed.
-.IP tlsproxy
-This proxy performs TLS certificate and encryption services for the
-other servers. It's based on Cryptlib.
 .PP
 Each server is described more fully in its own man page:
 .BR logd (8),
 .BR postgres (1)
 and
-.BR tlsproxy (8)
-for the backends, and
 .BR archiveopteryx (8)
 for the frontend server, which serves IMAP, POP3, LMTP and/or SMTP and
 perhaps webmail.
@@ -91,8 +86,9 @@ Normally, there is one
 .BR logd (8)
 process running. In addition there will be at least one
 .BR postgres (1)
-process running. There may be an arbitrary number of frontend server
-and tlsproxy processes.
+and one
+.BR archiveopteryx (8)
+process.
 .PP
 The servers use TCP to communicate internally, so they can be
 distributed across a server cluster. Generally, one host will run the
@@ -110,11 +106,8 @@ All Archiveopteryx servers run in chroot directories.
 The user-facing servers run in a special jail directory. They have
 neither read nor write access to this directory.
 .PP
-The internal servers, ie.
 .BR logd (8)
-and
-.BR tlsproxy (8),
-run chrooted to other directories. All of the servers close all open
+runs chrooted to another directories. All of the servers close all open
 files at startup and drop root privileges. By default they run as user
 .IR $AOXUSER ,
 group
@@ -213,10 +206,9 @@ settings.
 .SH FILES
 .IP $CONFIGDIR/archiveopteryx.conf
 contains the Archiveopteryx configuration.
-.IP $LIBDIR/automatic-key.p15
+.IP $LIBDIR/automatic-key.pem
 contains a private key and self-signed certificate used by
-.BR tlsproxy (8)
-(and indirectly by the other servers).
+.BR openssl (3).
 .SH AUTHOR
 The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
@@ -227,5 +219,4 @@ http://www.archiveopteryx.org/3.1.3
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
-.BR tlsproxy (8),
 http://www.archiveopteryx.org

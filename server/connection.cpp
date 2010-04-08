@@ -2,11 +2,7 @@
 
 #include "connection.h"
 
-#if defined(USE_CRYPTLIB)
-#include "tls.h"
-#else
 #include "tlsthread.h"
-#endif
 
 #include "log.h"
 #include "file.h"
@@ -650,35 +646,6 @@ void Connection::startTls( TlsServer * s )
 
     write();
 
-#if defined(USE_CRYPTLIB)
-
-    EventLoop::global()->removeConnection( this );
-    EventLoop::global()->removeConnection( s->serverSide() );
-    EventLoop::global()->removeConnection( s->userSide() );
-
-    Scope x( log() );
-    ByteForwarder * b1 = new ByteForwarder( d->fd, this, true );
-    ByteForwarder * b2 = new ByteForwarder( s->userSide()->fd(), this, false );
-    d->fd = s->serverSide()->fd();
-
-    b1->setState( state() );
-    b2->setState( s->userSide()->state() );
-    setState( s->serverSide()->state() );
-
-    b1->setSibling( b2 );
-
-    s->userSide()->d->fd = -1;
-    s->serverSide()->d->fd = -1;
-
-    EventLoop::global()->addConnection( b1 );
-    EventLoop::global()->addConnection( b2 );
-    EventLoop::global()->addConnection( this );
-
-    log( "Negotiating TLS for client " + b1->peer().string(),
-         Log::Debug );
-
-#else
-
     log( "Negotiating TLS for client " + peer().string(),
          Log::Debug );
 
@@ -717,8 +684,6 @@ void Connection::startTls( TlsServer * s )
 
     if ( s )
         log( "Note: TlsServer was created and need not be", Log::Debug );
-
-#endif
 
     d->tls = true;
 }

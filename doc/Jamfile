@@ -26,4 +26,4 @@ Man 5 : archiveopteryx.conf.man aoxsuper.conf.man ;
 
 Man 8 :
     aoximport.man aox.man archiveopteryx.man deliver.man installer.man
-    logd.man recorder.man tlsproxy.man ;
+    logd.man recorder.man ;

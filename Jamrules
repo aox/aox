@@ -44,14 +44,6 @@ else {
     }
 }
 
-if ( $(USE_CRYPTLIB) = "yes" ) {
-    BUILD = $(BUILD)-cl ;
-}
-else {
-    BUILD = $(BUILD)-ossl ;
-}
-
-
 LINK = $(C++) ;
 
 rule SubInclude

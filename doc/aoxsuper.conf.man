@@ -66,5 +66,4 @@ http://www.archiveopteryx.org/3.1.3
 .BR archiveopteryx (8),
 .BR deliver (8),
 .BR logd (8),
-.BR tlsproxy (8),
 http://www.archiveopteryx.org

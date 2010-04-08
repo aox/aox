@@ -11,8 +11,3 @@ Build archiveopteryx : archiveopteryx.cpp ;
 Server archiveopteryx :
     archiveopteryx imap pop sieve smtp database message server
     sasl mailbox core encodings user extractors abnf collations ;
-
-
-if ( $(USE_CRYPTLIB) = "yes" ) {
-    ObjectDefines archiveopteryx.cpp : USE_CRYPTLIB=1 ;
-}

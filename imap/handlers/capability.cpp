@@ -8,9 +8,6 @@
 #include "estringlist.h"
 #include "log.h"
 #include "mechanism.h"
-#if defined(USE_CRYPTLIB)
-#include "tls.h"
-#endif
 
 
 /*! \class Capability capability.h
@@ -111,7 +108,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( all || login ) {
         c.append( "QUOTA" );
         c.append( "RIGHTS=ekntx" );
-    }        
+    }
     if ( all || !login )
         c.append( "SASL-IR" );
     if ( all || login ) {

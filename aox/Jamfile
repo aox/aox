@@ -32,8 +32,3 @@ Build cmdsearch : searchsyntax.cpp ;
 Program aox :
     aox cmdsearch database server mailbox message user core
     encodings extractors abnf ;
-
-if ( $(USE_CRYPTLIB) = "yes" ) {
-    ObjectDefines servers.cpp :
-         USE_CRYPTLIB=1 ;
-}

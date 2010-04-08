@@ -25,13 +25,9 @@ Build mailbox :
 
 Build user : user.cpp ;
 
-if ( $(USE_CRYPTLIB) = "yes" ) {
-    ObjectDefines connection.cpp tls.cpp : USE_CRYPTLIB=1 ;
-    Build server : tls.cpp byteforwarder.cpp ;
-} else {
-    Build server : tlsthread.cpp ;
-    UseLibrary tlsthread.cpp : ssl ;
-    # UseLibrary tlsthread.cpp : pthread ;
-    C++FLAGS += -pthread ;
-    LINKFLAGS += -pthread ;
-}
+Build server : tlsthread.cpp ;
+UseLibrary tlsthread.cpp : ssl ;
+# UseLibrary tlsthread.cpp : pthread ;
+C++FLAGS += -pthread ;
+LINKFLAGS += -pthread ;
+
