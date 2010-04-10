@@ -533,3 +533,16 @@ EString POP::challenge() const
 {
     return d->challenge;
 }
+
+
+/*! \class POPS pop.h
+    Implements SSL-wrapped POP3
+*/
+
+POPS::POPS( int s )
+    : POP( s )
+{
+    EString * tmp = writeBuffer()->removeLine();
+    startTls( 0 );
+    enqueue( *tmp + "\r\n" );
+}

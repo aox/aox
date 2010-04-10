@@ -55,4 +55,12 @@ private:
 };
 
 
+class POPS
+    : public POP
+{
+public:
+    POPS( int );
+};
+
+
 #endif

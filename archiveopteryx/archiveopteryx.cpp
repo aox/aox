@@ -169,6 +169,10 @@ int main( int argc, char *argv[] )
         "POP3", Configuration::toggle( Configuration::UsePop ),
         Configuration::PopAddress, Configuration::PopPort
     );
+    Listener< POPS >::create(
+        "POP3S", Configuration::toggle( Configuration::UsePops ),
+        Configuration::PopsAddress, Configuration::PopsPort
+    );
     Listener< ManageSieve >::create(
         "Sieve", Configuration::toggle( Configuration::UseSieve ),
         Configuration::ManageSieveAddress, Configuration::ManageSievePort
