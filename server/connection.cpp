@@ -13,7 +13,6 @@
 #include "estring.h"
 #include "endpoint.h"
 #include "eventloop.h"
-#include "byteforwarder.h"
 #include "allocator.h"
 #include "resolver.h"
 #include "user.h"
