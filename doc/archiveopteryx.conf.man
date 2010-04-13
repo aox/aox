@@ -51,7 +51,7 @@ Most of the servers need to know the fully-qualified hostname. The
 default is computed at runtime and is normally acceptable.
 .IP
 Note that if the name is "localhost", there may be problems with
-TLS. An IMAP/POP/SMTP/HTTP client may refuse a server certificate for
+TLS. An IMAP/POP/SMTP client may refuse a server certificate for
 "localhost" if it already has seen a different certificate for
 "localhost". We strongly suggest using a different
 .IR hostname .
@@ -68,7 +68,7 @@ is the number of days a message can be undeleted after being deleted,
 .I 49
 by default.
 .IP server-processes
-is the number of processes started to serve IMAP/POP/HTTP clients. This is
+is the number of processes started to serve IMAP/POP clients. This is
 .I 1
 by default. 1 is suitable for a small server.
 .IP
@@ -487,82 +487,6 @@ is the port where
 accepts connections,
 .I 110
 by default.
-.SS HTTP
-.IP use-http
-decides whether Archiveopteryx offers HTTP service at all, and is
-.I no
-by default.
-.IP http-address
-is the address where
-.BR archiveopteryx (8)
-listens for new connections. The default is
-.IR 127.0.0.1 .
-.IP http-port
-is the port where
-.BR archiveopteryx (8)
-accepts connections,
-.I 8808
-by default.
-.IP use-https
-decides whether Archiveopteryx offers HTTPS (SSL-wrapped HTTP) service,
-and is
-.I no
-by default.
-.IP https-address
-is the address where
-.BR archiveopteryx (8)
-listens for new HTTPS connections. The default is
-.IR 127.0.0.1 .
-.IP https-port
-is the port where
-.BR archiveopteryx (8)
-accepts connections,
-.I 8443
-by default.
-.IP accept-any-http-host
-decides whether
-.BR archiveopteryx (8)
-accepts any hostname supplied by the client, and is
-.I enabled
-by default. Properly speaking, it would be better to disable this, but
-that would add complexity without giving anything in return.
-.IP use-web-archive
-decides whether archiveopteryx provides web-visible archives of
-world-readable mailboxes. The default is
-.I false
-and for the moment we recommend leaving it at false. This code is not
-ready for production use.
-.IP archive-prefix
-is the common prefix for all URLs offering archive access to mailboxes
-via the web. These mailboxes must be readable by the anonymous user.
-The default value is empty.
-.IP use-webmail
-ldecides whether archiveopteryx provides webmail access. The default is
-.I false
-and we strongly recommend leaving it at false. Don't enable this.
-.IP webmail-prefix
-is the common prefix for all URLs offering authenticated webmail access
-to mailboxes via the web. The default value is
-.IR /webmail .
-.IP webmail-css-url
-points to the style sheet used for webmail and archive pages.
-The default value is
-.IR http://www.archiveopteryx.org/webmail/default.css .
-By using a different URL you can change the appearance of the pages
-completely.
-.IP webmail-js-url
-points to a javascript which will be included in all webmail and
-archive pages. The default is an empty string, which means to not
-include any external javascript. This can be used together with
-.I webmail-css-url
-to change the behaviour of the webmail and archive pages.
-.IP favicon-url
-is the URL of the favicon displayed for your site by many web browsers.
-The default value is
-.IR http://www.archiveopteryx.org/favicon.ico ,
-but you can change it to anything. When the browser requests the favicon,
-.BR archiveopteryx (8)
-responds with a redirect to this URL.
 .SS SIEVE
 .IP use-sieve
 controls whether or not the
