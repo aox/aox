@@ -460,7 +460,7 @@ recommended instead).
 .IP imaps-address
 is the address where
 .BR archiveopteryx (8)
-listens for new SSL-wrapped connections. As for
+listens for new SSL-wrapped connections. As with
 .IR imap-address ,
 the default is an empty string, which means all available IPv4 and
 IPv6 addresses.
@@ -486,6 +486,26 @@ is the port where
 .BR archiveopteryx (8)
 accepts connections,
 .I 110
+by default.
+.IP use-pops
+controls whether
+.BR archiveopteryx (8)
+should also accept SSL-wrapped POP connections. The default is
+.I false
+(and the use of STARTTLS over the standard POP port is strongly
+recommended instead).
+.IP pops-address
+is the address where
+.BR archiveopteryx (8)
+listens for new SSL-wrapped connections. As with
+.IR pop-address ,
+the default is an empty string, which means all available IPv4 and
+IPv6 addresses.
+.IP pops-port
+is the port where
+.BR archiveopteryx (8)
+accepts SSL-wrapped connections,
+.I 995
 by default.
 .SS SIEVE
 .IP use-sieve
