@@ -339,6 +339,8 @@ void Database::removeHandle( Database * d )
         return;
 
     handles->remove( d );
+    if ( !totalDbConnections )
+        totalDbConnections = new GraphableNumber( "total-db-connections" );
     totalDbConnections->setValue( handles->count() );
     if ( !handles->isEmpty() )
         return;
