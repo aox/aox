@@ -99,12 +99,9 @@ void CreateView::execute()
         if ( !d->ms || d->ms->deleted() )
             error( "Can't create view on " + d->source.utf8() );
 
-        d->mv = Mailbox::obtain( d->name );
-        if ( !d->mv || !d->mv->deleted() )
-            error( "Can't create view named " + d->name.utf8() );
-
         d->t = new Transaction( this );
 
+        d->mv = Mailbox::obtain( d->name );
         Query * q = d->mv->create( d->t, d->user );
         if ( !q )
             error( "Couldn't create view named " + d->name.utf8() );
