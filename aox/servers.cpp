@@ -171,7 +171,9 @@ Path::Path( const EString & s, Type t )
       name( s ), type( t )
 {
     EString pn = parentOf( name );
-    if ( pn.length() < name.length() ) {
+    if ( pn.length() < name.length() &&
+         pn != Configuration::text( Configuration::JailDir ) )
+    {
         Path * p = paths.find( pn );
         if ( !p ) {
             if ( t == CreatableFile ||
@@ -269,8 +271,8 @@ void Path::check()
     case JailDir:
         if ( !isdir )
             message = "is not a directory";
-        if ( rights )
-            message = "is accessible and should not be";
+        if ( rights != 1 )
+            message = "has more than the required o+x permissions";
         break;
     }
 
