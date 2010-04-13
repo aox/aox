@@ -483,12 +483,6 @@ static void checkInetAddresses()
     );
 
     checkListener(
-        Configuration::toggle( Configuration::UseHttp ),
-        Configuration::HttpAddress, Configuration::HttpPort,
-        "http-address:port"
-    );
-
-    checkListener(
         Configuration::toggle( Configuration::UseSieve ),
         Configuration::ManageSieveAddress,
         Configuration::ManageSievePort,
@@ -640,15 +634,6 @@ void Checker::execute()
                      "anon@example.org\n" );
     }
 
-    if ( Configuration::toggle( Configuration::UseHttp ) ||
-         Configuration::toggle( Configuration::UseWebmail ) ||
-         Configuration::toggle( Configuration::UseWebArchive ) )
-    {
-        fprintf( stderr, "Note: Archiveopteryx no longer ships with a web "
-                 "server included, so the\nuse-http, use-webmail, and "
-                 "use-web-archive settings will be ignored.\n" );
-    }
-
     d->done = true;
     d->owner->execute();
 }
@@ -747,7 +732,6 @@ bool Starter::needed( const EString & service )
               Configuration::toggle( Configuration::UseImaps ) ||
               Configuration::toggle( Configuration::UseSmtp ) ||
               Configuration::toggle( Configuration::UseLmtp ) ||
-              Configuration::toggle( Configuration::UseHttp ) ||
               Configuration::toggle( Configuration::UsePop );
     return use;
 }

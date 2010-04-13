@@ -180,8 +180,7 @@ bool Connection::hasProperty( Property p ) const
     if ( p == StartsSSL ) {
         uint port = self().port();
         if ( port == Configuration::scalar( Configuration::ImapsPort ) ||
-             port == Configuration::scalar( Configuration::SmtpsPort ) ||
-             port == Configuration::scalar( Configuration::HttpsPort ) )
+             port == Configuration::scalar( Configuration::SmtpsPort ) )
             ssl = true;
     }
 
