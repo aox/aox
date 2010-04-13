@@ -12,6 +12,9 @@ Open Bug: aox add view broken
 
   No idea what's wrong (yet).
 
+  1b149d fixed the immediate view creation problem, but the view doesn't
+  work yet. -- AMS 20100413
+
   Notify: Ron Peterson <rpeterso@mtholyoke.edu>
   Message-Id: <20100405132205.GL27702@mtholyoke.edu>
 
