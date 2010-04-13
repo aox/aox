@@ -38,7 +38,6 @@ public:
 
     enum Scalar {
         DbPort,
-        TlsProxyPort,
         LogPort,
         PopPort,
         ImapPort,
@@ -83,7 +82,6 @@ public:
         AllowPlaintextPasswords,
         AllowPlaintextAccess,
         LogFile,
-        TlsProxyAddress,
         LogAddress,
         PopAddress,
         ImapAddress,

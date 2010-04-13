@@ -146,7 +146,6 @@ static struct {
     uint value;
 } scalarDefaults[Configuration::NumScalars] = {
     { "db-port", Configuration::DbPort, 5432 },
-    { "tlsproxy-port", Configuration::TlsProxyPort, 2061 },
     { "log-port", Configuration::LogPort, 2054 },
     { "pop-port", Configuration::PopPort, 110 },
     { "imap-port", Configuration::ImapPort, 143 },
@@ -193,7 +192,6 @@ static struct {
     { "allow-plaintext-access", Configuration::AllowPlaintextAccess,
         "always" },
     { "logfile", Configuration::LogFile, LOGFILE },
-    { "tlsproxy-address", Configuration::TlsProxyAddress, "127.0.0.1" },
     { "log-address", Configuration::LogAddress, "127.0.0.1" },
     { "pop-address", Configuration::PopAddress, "" },
     { "imap-address", Configuration::ImapAddress, "" },
