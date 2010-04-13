@@ -722,16 +722,6 @@ BURL
   part needs encoding. Or else switch to a different body.
 
 
-Cybertec replicator
-
-  Is it good? What are people saying about it? What should we do about it?
-
-  Ewald Geschwinde on IRC (the first time I've seen him; 2007-07-11) said:
-  *egeschwinde* When I have time I will test your product on our
-  multimaster cluster
-  *egeschwinde* maybe also on the queuing system
-
-
 Delaying seen-flag setting
 
   We can move the seenflagsetter to imapsession, build up flags to
