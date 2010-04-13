@@ -45,7 +45,7 @@ JAILDIR = $(PREFIX)/jail ;
 
 # This is the default message-copy-directory.
 #
-MESSAGEDIR = $(PREFIX)/messages ;
+MESSAGEDIR = $(JAILDIR)/messages ;
 
 # The directory where the configuration file is located.
 #

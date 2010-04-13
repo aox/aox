@@ -48,6 +48,7 @@ actions together Prepare
 
 
 Prepare $(INSTALLROOT)$(JAILDIR) ;
+Prepare $(INSTALLROOT)$(JAILDIR)/var/run ;
 Prepare $(INSTALLROOT)$(MESSAGEDIR) ;
 Prepare $(INSTALLROOT)$(PIDFILEDIR) ;
 Prepare $(INSTALLROOT)$(CONFIGDIR) ;
@@ -58,7 +59,7 @@ if ( $(LOGFILE:D) != "" && $(LOGFILE:D) != "syslog" ) {
 
 
 # if we make JAILDIR, we should chmod it so noone can read it:
-MODE on $(INSTALLROOT)$(JAILDIR) = 700 ;
+MODE on $(INSTALLROOT)$(JAILDIR) = 701 ;
 Chmod $(INSTALLROOT)$(JAILDIR) ;
 
 # if we make MESSAGEDIR, we should chmod it similarly. AOXUSER needs to

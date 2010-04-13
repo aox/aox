@@ -525,17 +525,8 @@ void Server::secure()
 
     EString root;
     switch ( d->chrootMode ) {
-    case MessageCopyDir:
-        root = Configuration::text( Configuration::MessageCopyDir );
-        break;
     case JailDir:
         root = Configuration::text( Configuration::JailDir );
-        break;
-    case TlsProxyDir:
-        root = Configuration::compiledIn( Configuration::LibDir );
-        if ( !root.endsWith( "/" ) )
-            root.append( "/" );
-        root.append( "tlsproxy" );
         break;
     case LogDir:
         root = Configuration::text( Configuration::LogFile );
@@ -596,21 +587,6 @@ void Server::secure()
              "failed with error " + fn( errno ),
              Log::Disaster );
         exit( 1 );
-    }
-
-    if ( d->chrootMode == JailDir ) {
-        // check that the jail directory really is a jail
-        DIR * slash = opendir( "/" ); // checks 'x' access
-        int fd = open( "/does/not/exist", O_RDONLY ); // checks 'r'
-        if ( slash || fd >= 0 || errno != EACCES ) {
-            log( "Cannot secure server " + d->name +
-                 " since jail directory " + root +
-                 " is accessible to user " + user,
-                 Log::Disaster );
-            exit( 1 );
-        }
-        if ( fd >= 0 ) {
-        }
     }
 
     // one final check...

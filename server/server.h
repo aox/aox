@@ -16,7 +16,7 @@ public:
     Server( const char *, int, char *[] );
 
     enum ChrootMode {
-        JailDir, LogDir, MessageCopyDir, TlsProxyDir
+        JailDir, LogDir
     };
 
     void setChrootMode( ChrootMode );

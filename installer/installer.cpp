@@ -2125,7 +2125,7 @@ void permissions()
                         mcd.cstr() );
 
             if ( chmod( mcd.cstr(), 0700 ) < 0 )
-                fprintf( stderr, "Could not \"chmod 0600 %s\" (-%d).\n",
+                fprintf( stderr, "Could not \"chmod 0700 %s\" (-%d).\n",
                          mcd.cstr(), errno );
 
             if ( chown( mcd.cstr(), p->pw_uid, g->gr_gid ) < 0 )
@@ -2143,12 +2143,12 @@ void permissions()
              !( p && st.st_uid != p->pw_uid ) ) ||
            ( st.st_gid != 0 &&
              !( g && (gid_t)st.st_gid != (gid_t)g->gr_gid ) ) ||
-           ( st.st_mode & S_IRWXO ) != 0 ) )
+           ( st.st_mode & S_IRWXO ) != 1 ) )
     {
         if ( report ) {
             todo++;
             printf( " - Set permissions and ownership on %s.\n\n"
-                    "chmod 0700 %s\n"
+                    "chmod 0701 %s\n"
                     "chown root:root %s\n\n",
                     jd.cstr(), jd.cstr(), jd.cstr() );
         }
@@ -2157,8 +2157,8 @@ void permissions()
                 printf( "Setting ownership and permissions on %s\n",
                         jd.cstr() );
 
-            if ( chmod( jd.cstr(), 0700 ) < 0 )
-                fprintf( stderr, "Could not \"chmod 0600 %s\" (-%d).\n",
+            if ( chmod( jd.cstr(), 0701 ) < 0 )
+                fprintf( stderr, "Could not \"chmod 0701 %s\" (-%d).\n",
                          jd.cstr(), errno );
 
             if ( chown( jd.cstr(), 0, 0 ) < 0 )

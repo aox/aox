@@ -19,6 +19,8 @@
 #include "selector.h"
 #include "managesieve.h"
 #include "spoolmanager.h"
+#include "entropy.h"
+#include "egd.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -75,8 +77,12 @@ int main( int argc, char *argv[] )
     Server s( "archiveopteryx", argc, argv );
     s.setup( Server::Report );
 
+    bool security( Configuration::toggle( Configuration::Security ) );
+    EString root( Configuration::text( Configuration::JailDir ) );
+
     if ( Configuration::toggle( Configuration::UseSmtp ) ||
-         Configuration::toggle( Configuration::UseLmtp ) ) {
+         Configuration::toggle( Configuration::UseLmtp ) )
+    {
         EString mc( Configuration::text( Configuration::MessageCopy ) );
         EString mcd( Configuration::text( Configuration::MessageCopyDir ) );
         if ( mc == "all" || mc == "errors" || mc == "delivered" ) {
@@ -86,7 +92,9 @@ int main( int argc, char *argv[] )
             else if ( ::stat( mcd.cstr(), &st ) < 0 || !S_ISDIR( st.st_mode ) )
                 log( "Inaccessible message-copy-directory: " + mcd,
                      Log::Disaster );
-            s.setChrootMode( Server::MessageCopyDir );
+            else if ( security && !mcd.startsWith( root ) )
+                log( "message-copy-directory must be under jail directory " +
+                     root, Log::Disaster );
         }
         else if ( mc == "none" ) {
             if ( Configuration::present( Configuration::MessageCopyDir ) )
@@ -156,6 +164,24 @@ int main( int argc, char *argv[] )
         ::log( "allow-plaintext-access is 'never', but use-tls is 'false'",
                Log::Disaster );
 
+    // set up an EGD server for openssl
+    Entropy::setup();
+    EString egd( root );
+    if ( !egd.endsWith( "/" ) )
+        egd.append( "/" );
+    egd.append( "var/run/egd-pool" );
+    (void)new Listener< EntropyProvider >( Endpoint( egd, 0 ), "EGD" );
+    if ( !security ) {
+        struct stat st;
+        if ( stat( "/var/run/edg-pool", &st ) < 0 ) {
+            log( "Security is disabled and /var/run/edg-pool does not exist. "
+                 "Creating it just in case openssl wants to access it." );
+            (void)new Listener< EntropyProvider >(
+                Endpoint( "/var/run/edg-pool", 0 ), "EGD(/)" );
+        }
+    }
+    if ( ::chmod( egd.cstr(), 0666 ) < 0 )
+        log( "Could not grant r/w access to EGD socket", Log::Disaster );
 
     Listener< IMAP >::create(
         "IMAP", Configuration::toggle( Configuration::UseImap ),
@@ -215,7 +241,7 @@ int main( int argc, char *argv[] )
     StartupWatcher * w = new StartupWatcher;
 
     Database::checkSchema( w );
-    if ( Configuration::toggle( Configuration::Security ) )
+    if ( security )
         Database::checkAccess( w );
     EventLoop::global()->setStartup( true );
     Mailbox::setup( w );
@@ -225,7 +251,7 @@ int main( int argc, char *argv[] )
     Flag::setup();
     IMAP::setup();
 
-    if ( !Configuration::toggle( Configuration::Security ) )
+    if ( !security )
         (void)new ConnectionObliterator;
 
     s.run();
