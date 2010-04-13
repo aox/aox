@@ -125,7 +125,7 @@ static const struct {
 } expectedColumns[] = {
     { 0, 0, 0, false }
 };
-     
+
 
 /*! Checks that the columns we ought to have match those we found in
     the db.

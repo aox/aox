@@ -215,7 +215,7 @@ void EventLoop::start()
         while ( it ) {
             c = it;
             ++it;
-            
+
             int fd = c->fd();
             if ( fd < 0 ) {
                 removeConnection( c );

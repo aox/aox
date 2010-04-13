@@ -4,7 +4,6 @@
 
 
 /*! \class Move move.h
-  
     A thin wrapper around Move to provide an UID MOVE command.
 */
 

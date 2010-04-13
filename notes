@@ -15,7 +15,7 @@ Open Bug: aox add view broken
   Notify: Ron Peterson <rpeterso@mtholyoke.edu>
   Message-Id: <20100405132205.GL27702@mtholyoke.edu>
 
-  
+
 Plaintext passwords work, sort of
 
   allow-plaintext-passwords almost works. But if we get a cleartext
@@ -371,22 +371,22 @@ Threads in Archiveopteryx 4.0
     Linux, Solaris, & AIX (per comments):
         numCPU = sysconf( _SC_NPROCESSORS_ONLN );
 
-    FreeBSD, macosx, NetBSD, OpenBSD, etc.: 
+    FreeBSD, macosx, NetBSD, OpenBSD, etc.:
         int mib[4];
-        size_t len; 
-        
+        size_t len;
+
         /* set the mib for hw.ncpu */
         mib[0] = CTL_HW;
         mib[1] = HW_AVAILCPU;  // alternatively, try HW_NCPU;
-        
+
         /* get the number of CPUs from the system */
         sysctl(mib, 2, &numCPU, &len, NULL, 0);
-        
-        if( numCPU < 1 ) 
+
+        if( numCPU < 1 )
         {
              mib[1] = HW_NCPU;
              sysctl( mib, 2, &numCPU, &len, NULL, 0 );
-        
+
              if( numCPU < 1 )
                   numCPU = 1;
         }

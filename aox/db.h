@@ -77,7 +77,7 @@ public:
     void execute();
     void expectEmpty( const char * );
     void scream( class Query * );
-    
+
 private:
     Transaction * t;
 };

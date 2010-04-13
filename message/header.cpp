@@ -177,7 +177,7 @@ void Header::removeField( HeaderField::Type t )
 
 
 /*! Removes all fields named \a n from this header.
-  
+
     Works only if \a n is header-cased (ie. this function is case-sensitive).
 */
 

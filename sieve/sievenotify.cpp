@@ -34,11 +34,11 @@ public:
 
 
 /*! \class SieveNotifyMethod sievenotify.h
-  
+
     The SieveNotifyMethod class takes care of the Sieve-specific parts
     of notifying: Parsing an URL, adding in From etc., constructing
     the message.
-    
+
     It does not actually notify. That will be left for another class,
     to be implemented. I think that other class will also be fed by
     Log, perhaps indirectly.

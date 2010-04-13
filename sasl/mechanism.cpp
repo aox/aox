@@ -317,11 +317,11 @@ void SaslMechanism::execute()
         case User::Unverified:
             return;
             break;
-            
+
         case User::Nonexistent:
             setState( Failed );
             break;
-            
+
         case User::Refreshed:
             setStoredSecret( d->user->secret() );
             verify();

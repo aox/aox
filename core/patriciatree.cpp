@@ -29,14 +29,14 @@
 
 
 /*! \fn PatriciaTree::PatriciaTree()
-  
+
     Creates an empty tree.
 */
 
 
 
 /*! \fn void PatriciaTree::find( const char * k, uint l )
-  
+
     Looks up the item with key \a k of length \a l. A one-byte key
     must have \a l 8.
 
@@ -45,7 +45,7 @@
 
 
 /*! \fn T * PatriciaTree::remove( const char * k, uint l )
-  
+
     Removes the item with key \a k of length \a l. A one-byte key
     must have \a l 8.
 
@@ -55,7 +55,7 @@
 
 
 /*! \fn void PatriciaTree::insert( const char * k, uint l, T * t )
-  
+
     Inserts the item \a t using key \a k of length \a l. A one-byte key
     must have \a l 8.
 
@@ -76,16 +76,16 @@
 
 
 /*! \fn void PatriciaTree::clear()
-  
+
     Instantly forgets everything in the tree.
 */
 
 
 /*! \fn void PatriciaTree::free( PatriciaTree::Node * n )
-  
+
     This virtual function is called when \a n is no longer needed.
 */
 /*! \fn PatriciaTree::Node * PatriciaTree::node()
-  
+
     This virtual function allocates and returns a new tree node.
 */

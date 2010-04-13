@@ -410,7 +410,7 @@ void Search::execute()
     if ( state() != Executing )
         return;
 
-    if ( d->query && 
+    if ( d->query &&
          ( d->query->state() == Query::Submitted ||
            d->query->state() == Query::Executing ) ) {
         if ( imap()->Connection::state() != Connection::Connected ) {

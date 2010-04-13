@@ -31,7 +31,7 @@ public:
     void execute();
     bool done() const;
     bool failed() const;
-    
+
     static bool needed( const EString & );
 
 private:

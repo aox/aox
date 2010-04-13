@@ -620,14 +620,14 @@ void HeaderField::parseContentBase( const EString & s )
 void HeaderField::parseErrorsTo( const EString & s )
 {
     AddressParser ap( s );
-    
+
     if ( !ap.error().isEmpty() || ap.addresses()->count() != 1 )
         return;
 
     Address * a = ap.addresses()->firstElement();
     if ( a->type() != Address::Normal )
         return;
-        
+
     AsciiCodec ac;
     setValue( ac.toUnicode( a->lpdomain() ) );
 }

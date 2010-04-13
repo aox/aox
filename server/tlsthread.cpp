@@ -92,7 +92,7 @@ void TlsThread::setup()
     SSL_library_init();
 
     ctx = ::SSL_CTX_new( SSLv23_server_method() );
-    int options = SSL_OP_ALL 
+    int options = SSL_OP_ALL
                   // also try to pick the same ciphers suites more often
                   | SSL_OP_CIPHER_SERVER_PREFERENCE
                   // and don't use SSLv2, even if the client wants to
