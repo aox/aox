@@ -118,7 +118,7 @@ EString Capability::capabilities( IMAP * i, bool all )
     if ( Configuration::toggle( Configuration::UseTls ) && !i->hasTls() )
         c.append( "STARTTLS" );
     if ( all || login ) {
-        // also THREAD=...
+        c.append( "THREAD=ORDEREDSUBJECT" );
         c.append( "UIDPLUS" );
         c.append( "UNSELECT" );
         c.append( "URLAUTH" );
