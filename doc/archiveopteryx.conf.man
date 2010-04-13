@@ -196,9 +196,9 @@ is
 .I $JAILDIR
 by default. On startup, each secure server uses
 .BR chroot (2)
-to jail themselves into this directory, which should be empty and
-unreadable to
-.IR jail-user .
+to jail themselves into this directory, to which the
+.I jail-user
+should have minimal rights (only o+x permissions).
 .IP jail-user
 is the user name under which the servers run, and is
 .I $AOXUSER
@@ -331,6 +331,11 @@ specifies a directory to which mail delivered via LMTP/SMTP is copied, if
 .I message-copy
 is set. Its default value is
 .IR $MESSAGEDIR .
+If you set
+.IR use-security ,
+.I message-copy-directory
+must be a subdirectory of
+.IR jail-directory .
 .IP
 If
 .I message-copy-directory
