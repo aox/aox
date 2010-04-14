@@ -993,4 +993,3 @@ Caching search results
 Bugs
 
   - "aox start" doesn't complain when there's a schema mismatch error.
-  - aox -v -v is broken by the syslog change.

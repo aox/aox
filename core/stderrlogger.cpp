@@ -2,6 +2,8 @@
 
 #include "stderrlogger.h"
 
+#include "log.h"
+
 #include <stdio.h> // fprintf
 #include <stdlib.h> // exit
 #include <sysexits.h> // all the exit codes
@@ -23,20 +25,26 @@
 StderrLogger::StderrLogger( const EString & name, uint verbosity )
     : Logger(), n( name ), v( verbosity )
 {
+    Log::Severity ls;
+
+    if ( v == 0 )
+        ls = Log::Significant;
+    else if ( v == 1 )
+        ls = Log::Info;
+    else
+        ls = Log::Debug;
+
+    Log::setLogLevel( ls );
 }
 
 
 void StderrLogger::send( const EString &, Log::Severity s, const EString & m )
 {
     // we don't need to handle Disaster, Log already has done that
-    if ( s == Log::Error ||
-         s == Log::Significant ||
-         ( s == Log::Info && v >= 1 ) ||
-         ( s == Log::Debug && v >= 2 ) )
+    if ( s != Log::Disaster ) {
         fprintf( stderr, "%s: %s\n", name().cstr(), m.cstr() );
-
-    // and in case of a disaster, we quit. the hard way.
-    if ( s == Log::Disaster ) {
+    }
+    else {
         fprintf( stderr, "%s: Fatal error. Exiting.\n", name().cstr() );
         exit( EX_UNAVAILABLE );
     }

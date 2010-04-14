@@ -23,6 +23,7 @@ public:
     Log * parent() const;
     bool isChildOf( Log * ) const;
 
+    static void setLogLevel( Severity );
     static const char * severity( Severity );
     static bool disastersYet();
 
