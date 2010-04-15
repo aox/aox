@@ -77,11 +77,6 @@ class IMAPS
 {
 public:
     IMAPS( int );
-
-    void finish();
-
-private:
-    class IMAPSData * d;
 };
 
 
