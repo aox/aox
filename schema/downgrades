@@ -97,3 +97,10 @@ begin
     alter table users drop quota;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_93()
+returns int as $$
+begin
+    alter table group_members rename groupid to groupname;
+    return 0;
+end;$$ language 'plpgsql';
