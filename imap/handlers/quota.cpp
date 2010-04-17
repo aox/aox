@@ -32,8 +32,8 @@ void GetQuota::parse()
 void GetQuota::execute()
 {
     if ( !q ) {
-        q = new Query( "select count(*) as c,"
-                       " sum(rfc822size::bigint)::bigint / 1024 as s "
+        q = new Query( "select count(*) as c, "
+                       "coalesce(sum(rfc822size::bigint),0)::bigint/1024 as s "
                        "from "
                        "(select distinct on (m.id) rfc822size from messages m"
                        " join mailbox_messages mm on (m.id=mm.message)"
