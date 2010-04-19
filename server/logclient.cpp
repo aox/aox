@@ -237,6 +237,22 @@ void LogClient::setup( const EString & n )
         client->d->enqueue( "name " + client->name() + "\r\n" );
         EventLoop::global()->addConnection( client->d );
     }
+
+    Log::Severity ls;
+    EString ll( Configuration::text( Configuration::LogLevel ) );
+    if ( ll == Log::severity( Log::Disaster ) )
+        ls = Log::Disaster;
+    else if ( ll == Log::severity( Log::Error ) )
+        ls = Log::Error;
+    else if ( ll == Log::severity( Log::Significant ) )
+        ls = Log::Significant;
+    else if ( ll == Log::severity( Log::Info ) )
+        ls = Log::Info;
+    else if ( ll == Log::severity( Log::Debug ) )
+        ls = Log::Debug;
+    else
+        ls = Log::Significant; // hm. silent failure
+    Log::setLogLevel( ls );
 }
 
 

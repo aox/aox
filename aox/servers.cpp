@@ -271,8 +271,10 @@ void Path::check()
     case JailDir:
         if ( !isdir )
             message = "is not a directory";
-        if ( rights != 1 )
-            message = "has more than the required o+x permissions";
+        if ( rights == 0 )
+            message = "does not have the required 001 (o+x) permissions";
+        else if ( rights != 1 )
+            message = "has more than the required 001 (o+x) permissions";
         break;
     }
 

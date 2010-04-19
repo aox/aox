@@ -701,26 +701,6 @@ void IMAP::endSession()
 }
 
 
-class IMAPSData
-    : public Garbage
-{
-public:
-    IMAPSData() : tlsServer( 0 ), helper( 0 ) {}
-    TlsServer * tlsServer;
-    EString banner;
-    class ImapsHelper * helper;
-};
-
-class ImapsHelper: public EventHandler
-{
-public:
-    ImapsHelper( IMAPS * connection ) : c( connection ) {}
-    void execute() { c->finish(); }
-
-private:
-    IMAPS * c;
-};
-
 /*! \class IMAPS imap.h
 
     The IMAPS class implements the old wrapper trick still commonly
@@ -733,21 +713,11 @@ private:
 */
 
 IMAPS::IMAPS( int s )
-    : IMAP( s ), d( new IMAPSData )
+    : IMAP( s )
 {
     EString * tmp = writeBuffer()->removeLine();
-    if ( tmp )
-        d->banner = *tmp;
-    d->tlsServer = 0;
     startTls( 0 );
-    enqueue( d->banner + "\r\n" );
-}
-
-
-/*! Handles completion of TLS negotiation and sends the banner. */
-
-void IMAPS::finish()
-{
+    enqueue( *tmp + "\r\n" );
 }
 
 
