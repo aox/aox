@@ -393,7 +393,12 @@ void DeliveryAgent::updateDelivery()
         q->bind( 2, r->status() );
         q->bind( 3, d->deliveryId );
         q->bind( 4, r->finalRecipient()->id() );
-        d->t->enqueue( q );
+        if ( d->t->state() == Transaction::Executing )
+            d->t->enqueue( q );
+        else if ( r->action() == Recipient::Delivered ||
+                  r->action() == Recipient::Relayed ||
+                  r->action() == Recipient::Expanded )
+            q->execute();
     }
 
     if ( d->dsn->allOk() ) {
