@@ -51,7 +51,7 @@ SpoolManager::SpoolManager()
 
     Query * q = new Query( "update deliveries "
                            "set expires_at=current_timestamp+interval '900 s' "
-                           "where expires_at<=current_timestamp "
+                           "where expires_at<current_timestamp+interval '900 s' "
                            "and id in "
                            "(select delivery from delivery_recipients"
                            " where action=$1 or action=$2)",
