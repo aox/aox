@@ -36,7 +36,7 @@ f( "list", "rights", "Display permissions on a mailbox.",
    "    ls is an acceptable abbreviation for list.\n\n"
    "    Examples:\n\n"
    "      aox list rights /archives/mailstore-users anonymous\n"
-   "      aox light right /users/xyzzy/shared\n" );
+   "      aox list rights /users/xyzzy/shared\n" );
 
 
 /*! \class ListRights rights.h
@@ -154,7 +154,7 @@ public:
 
 
 static AoxFactory<SetAcl>
-f2( "setacl", "", "Manipulate prmissions on a mailbox.",
+f2( "setacl", "", "Manipulate permissions on a mailbox.",
     "    Synopsis: setacl [-d] <mailbox> <identifier> <rights>\n\n"
     "    Assigns the specified rights to the given identifier on the\n"
     "    mailbox. If the rights begin with + or -, the specified rights\n"
