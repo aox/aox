@@ -12,6 +12,8 @@
 #include "eventloop.h"
 #include "address.h"
 #include "message.h"
+// time
+#include <time.h>
 
 
 class SmtpClientData
@@ -21,6 +23,7 @@ public:
     SmtpClientData()
         : state( Invalid ), dsn( 0 ),
           owner( 0 ), log( 0 ), sentMail( false ),
+          wbt( 0 ), wbs( 0 ),
           enhancedstatuscodes( false )
     {}
 
@@ -38,6 +41,8 @@ public:
     bool sentMail;
     List<Recipient>::Iterator rcptTo;
     List<Recipient> accepted;
+
+    uint wbt, wbs;
 
     bool enhancedstatuscodes;
     Timer * closeTimer;
@@ -93,6 +98,33 @@ void SmtpClient::react( Event e )
         break;
 
     case Timeout:
+        if ( d->wbs && writeBuffer()->size() &&
+             d->wbs > writeBuffer()->size() ) {
+            uint wbs = writeBuffer()->size();
+            uint wbt = (uint)::time( 0 );
+            bool ok = false;
+            if ( d->wbt >= wbt ) {
+                // someone set the clock back?
+                ok = true;
+            }
+            else if ( d->wbs > wbs ) {
+                // we wrote something; log what and proceed
+                ok = true;
+                log( "Wrote " +
+                     EString::humanNumber( ( d->wbs - wbs ) /
+                                           ( wbt - d->wbt ) ) +
+                     " per second to the SMTP server",
+                     Log::Debug );
+            }
+
+            d->wbt = wbt;
+            d->wbs = wbs;
+            if ( ok ) {
+                setTimeoutAfter( 300 );
+                return;
+            }
+                
+        }
         log( "SMTP server timed out", Log::Error );
         d->error = "Server timeout.";
         finish( "4.4.1" );
@@ -171,6 +203,8 @@ void SmtpClient::parse()
                 if ( d->state == SmtpClientData::Data ) {
                     log( "Sending body.", Log::Debug );
                     enqueue( dotted( d->dsn->message()->rfc822() ) );
+                    d->wbs = writeBuffer()->size();
+                    d->wbt = (uint)::time( 0 );
                     d->state = SmtpClientData::Body;
                 }
                 else {
