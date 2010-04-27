@@ -3,6 +3,13 @@
   IMAP QUOTA works.
 
 
+DWIM, the 80% way
+
+  A new configuration variable, use-inbox-flag-views. If that's set,
+  then setting a flag in an inbox implicitly creates an eponymous view
+  onto the inbox.
+
+
 Open Bug: aox add view broken
 
   Ron Peterson reports that aox add view breaks.
