@@ -706,8 +706,14 @@ void SessionInitialiser::findViewChanges()
                                 d->viewnms ) );
     sel->simplify();
 
+    EStringList * want = new EStringList;
+    want->append( "uid" );
+    want->append( "modseq" );
+    want->append( "message" );
+    want->append( "idate" );
 
-    d->messages = sel->query( 0, d->mailbox->source(), 0, this );
+    d->messages = sel->query( 0, d->mailbox->source(), 0, this,
+                              true, want, false );
     uint vid = sel->placeHolder();
     d->messages->bind( vid, d->mailbox->id() );
     uint vnms = sel->placeHolder();
