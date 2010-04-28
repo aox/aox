@@ -710,7 +710,6 @@ void SessionInitialiser::findViewChanges()
     want->append( "uid" );
     want->append( "modseq" );
     want->append( "message" );
-    want->append( "idate" );
 
     d->messages = sel->query( 0, d->mailbox->source(), 0, this,
                               true, want, false );
@@ -722,7 +721,7 @@ void SessionInitialiser::findViewChanges()
     EString s( "select m.id, "
               "v.uid as vuid, v.modseq as vmodseq, "
               "s.uid as suid, s.modseq as smodseq, "
-              "s.message as smessage, s.idate as sidate "
+              "s.message as smessage "
               "from messages m "
               "left join mailbox_messages v "
               " on (m.id=v.message and v.mailbox=$" + fn( vid ) + ") "
@@ -783,15 +782,14 @@ void SessionInitialiser::writeViewChanges()
             // want to add it to the db
             if ( !add )
                 add = new Query ( "copy mailbox_messages "
-                                  "(mailbox,uid,message,idate,modseq) "
+                                  "(mailbox,uid,message,modseq) "
                                   "from stdin with binary", 0 );
             vuid = d->newUidnext;
             d->newUidnext++;
             add->bind( 1, d->mailbox->id() );
             add->bind( 2, vuid );
             add->bind( 3, r->getInt( "smessage" ) );
-            add->bind( 4, r->getInt( "sidate" ) );
-            add->bind( 5, d->newModSeq-1 );
+            add->bind( 4, d->newModSeq-1 );
             add->submitLine();
             addToSessions( vuid, d->newModSeq-1 );
         }
