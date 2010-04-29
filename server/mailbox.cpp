@@ -613,12 +613,7 @@ void Mailbox::setUidnextAndNextModSeq( uint n, int64 m, Transaction * t )
 
     List<Mailbox>::Iterator v( d->views );
     while ( v ) {
-        // d->views is only added to, never pared down, so check
-        if ( v->source() == this && v->d->sessions ) {
-            v->d->nextModSeq = n; // is this line right? not sure.
-            (void)new SessionInitialiser( v, t );
-        }
-
+        (void)new SessionInitialiser( v, t );
         ++v;
     }
 }
@@ -754,8 +749,6 @@ void Mailbox::addSession( Session * s )
 {
     if ( d->source ) {
         Mailbox * sm = source();
-        if ( sm && sm->d->nextModSeq > d->nextModSeq )
-            d->nextModSeq = sm->d->nextModSeq;
         if ( sm && !sm->d->views )
             sm->d->views = new List<Mailbox>;
         if ( sm && !sm->d->views->find( this ) )
@@ -787,6 +780,13 @@ void Mailbox::removeSession( Session * s )
     if ( d->sessions->isEmpty() ) {
         d->sessions = 0;
         d->threader = 0;
+    }
+    if ( d->source ) {
+        Mailbox * sm = source();
+        if ( sm->d->views )
+            sm->d->views->remove( this );
+        if ( sm->d->views->isEmpty() )
+            sm->d->views = 0;
     }
 }
 
