@@ -3,6 +3,12 @@
   IMAP QUOTA works.
 
 
+SEARCH=ADDRESS
+
+  Hack roundcube to use S=A, S=I and blah in order to present
+  gmail-like a thread/address view.
+
+
 DWIM, the 80% way
 
   A new configuration variable, use-inbox-flag-views. If that's set,
