@@ -78,7 +78,8 @@ public:
           lockUidnext( 0 ), select( 0 ), insert( 0 ),
           substate( 0 ), subtransaction( 0 ),
           findParents( 0 ), findReferences( 0 ),
-          findBlah( 0 ), findMessagesInOutlookThreads( 0 )
+          findBlah( 0 ), findMessagesInOutlookThreads( 0 ),
+          threadRoots( 0 ), findThreadRoots( 0 )
     {}
 
     struct Delivery
@@ -94,7 +95,7 @@ public:
         Date * later;
     };
 
-    List<Message> messages;
+    List<Injectee> messages;
     List<Injectee> injectables;
     List<Delivery> deliveries;
 
@@ -154,6 +155,19 @@ public:
         EString references;
         EString messageId;
     };
+
+    // for insertThreadRoots
+    struct ThreadRootInfo
+        : public Garbage
+    {
+    public:
+        ThreadRootInfo(): Garbage(), threadRoot( 0 ) {}
+
+        EString messageId;
+        uint threadRoot;
+    };
+    Dict<ThreadRootInfo> * threadRoots;
+    Query * findThreadRoots;
 };
 
 
@@ -241,7 +255,7 @@ EString Injector::error() const
     if ( !d->failed )
         return "";
 
-    List<Message>::Iterator it( d->messages );
+    List<Injectee>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
         if ( !m->valid() )
@@ -485,7 +499,7 @@ void Injector::findDependencies()
 
     List<Header> * l = new List<Header>;
 
-    List<Message>::Iterator it( d->messages );
+    List<Injectee>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
         ++it;
@@ -672,7 +686,7 @@ void Injector::convertInReplyTo()
 {
     EStringList ids;
     if ( d->outlooks.isEmpty() ) {
-        List<Message>::Iterator i( d->messages );
+        List<Injectee>::Iterator i( d->messages );
         while ( i ) {
             Header * h = i->header();
             if ( !h->field( HeaderField::References ) ) {
@@ -817,7 +831,7 @@ void Injector::convertInReplyTo()
 void Injector::addMoreReferences()
 {
     List<Message> queue;
-    List<Message>::Iterator m( d->messages );
+    List<Injectee>::Iterator m( d->messages );
     while ( m ) {
         if ( m->header()->field( HeaderField::References ) )
             queue.append( m );
@@ -853,7 +867,7 @@ void Injector::convertThreadIndex()
 {
     EStringList ids;
     if ( d->outlooks.isEmpty() ) {
-        List<Message>::Iterator i( d->messages );
+        List<Injectee>::Iterator i( d->messages );
         while ( i ) {
             Header * h = i->header();
             if ( !h->field( HeaderField::References ) ) {
@@ -1019,7 +1033,7 @@ void Injector::insertThreadIndexes()
     Query * q = new Query( "copy thread_indexes (message, thread_index) "
                            "from stdin with binary", 0 );
 
-    List<Message>::Iterator m( d->messages );
+    List<Injectee>::Iterator m( d->messages );
     while ( m ) {
         HeaderField * ti = m->header()->field( "Thread-Index" );
         if ( ti ) {
@@ -1037,6 +1051,152 @@ void Injector::insertThreadIndexes()
 }
 
 
+/*! Inserts rows into the thread_rows table and records to which
+    thread_rows row each Injectee belong.
+*/
+
+void Injector::insertThreadRoots()
+{
+    if ( !d->threadRoots ) {
+        EStringList messageIds;
+        EStringList referencedIds;
+        List<Injectee>::Iterator m( d->injectables );
+        while ( m ) {
+            messageIds.append( m->header()->messageId() );
+            AddressField * ref 
+                = m->header()->addressField( HeaderField::References );
+            if ( ref ) {
+                List<Address>::Iterator ai( ref->addresses() );
+                while ( ai ) {
+                    referencedIds.append( ai->lpdomain() );
+                    ++ai;
+                }
+            }
+            ++m;
+        }
+        messageIds.removeDuplicates();
+        referencedIds.removeDuplicates();
+        d->threadRoots = new Dict<InjectorData::ThreadRootInfo>();
+        EStringList::Iterator i( messageIds );
+        while ( i ) {
+            InjectorData::ThreadRootInfo * r
+                = new InjectorData::ThreadRootInfo;
+            r->messageId = *i;
+            d->threadRoots->insert( r->messageId, r );
+        }
+        i = referencedIds.first();
+        while ( i ) {
+            InjectorData::ThreadRootInfo * r = 
+                d->threadRoots->find( *i );
+            if ( !i ) {
+                r = new InjectorData::ThreadRootInfo;
+                r->messageId = *i;
+                d->threadRoots->insert( r->messageId, r );
+            }
+        }
+        if ( !messageIds.isEmpty() && !referencedIds.isEmpty() ) {
+            d->findThreadRoots = new Query(
+                "select id, messageid from thread_roots "
+                "where messageid=any($1::text[]) "
+                "union "
+                "select m.thread_root as id, v.value as messageid "
+                "from messages m join header_fields hf on "
+                "(m.id=hf.message and hf.field=13) "
+                "where hf.value=any($2::text[])",
+                this );
+            d->findThreadRoots->bind( 1, messageIds );
+            d->findThreadRoots->bind( 2, referencedIds );
+        }
+        else if ( !messageIds.isEmpty() ) {
+            d->findThreadRoots = new Query(
+                "select id, messageid from thread_roots "
+                "where messageid=any($1::text[])",
+                this );
+            d->findThreadRoots->bind( 1, messageIds );
+        }
+        else if ( !referencedIds.isEmpty() ) {
+            d->findThreadRoots = new Query(
+                "select m.thread_root as id, v.value as messageid "
+                "from messages m join header_fields hf on "
+                "(m.id=hf.message and hf.field=13) "
+                "where hf.value=any($1::text[])",
+                this );
+            d->findThreadRoots->bind( 1, referencedIds );
+        }
+        if ( d->findThreadRoots ) {
+            d->transaction->enqueue( d->findThreadRoots );
+            d->transaction->execute();
+        }
+    }
+
+    while ( d->findThreadRoots && d->findThreadRoots->hasResults() ) {
+        Row * r = d->findThreadRoots->nextRow();
+        EString msgid = r->getEString( "messageid" );
+        InjectorData::ThreadRootInfo * tr = d->threadRoots->find( msgid );
+        if ( tr )
+            tr->threadRoot = r->getInt( "id" );
+    }
+
+    if ( d->findThreadRoots && d->findThreadRoots->done() ) {
+        // we've received some answers. do we have an answer for each
+        // message? collect a list of message-ids for which we don't
+        // have an answer, and for which we really want one.
+        EStringList missing;
+        List<Injectee>::Iterator m( d->injectables );
+        while ( m ) {
+            EString id = m->header()->messageId();
+            AddressField * ref = 0;
+            InjectorData::ThreadRootInfo * t = d->threadRoots->find( id );
+            if ( t && t->threadRoot ) {
+                m->setThreadRoot( t->threadRoot );
+                id.truncate();
+            }
+            else {
+                ref = m->header()->addressField( HeaderField::References );
+            }
+            if ( ref ) {
+                List<Address>::Iterator ai( ref->addresses() );
+                while ( ai && !id.isEmpty() ) {
+                    id = ai->lpdomain();
+                    t = d->threadRoots->find( id );
+                    if ( t && t->threadRoot )
+                        id.truncate();
+                    ++ai;
+                }
+            }
+            if ( !id.isEmpty() )
+                missing.append( id );
+            ++m;
+        }
+        missing.removeDuplicates();
+
+        if ( missing.isEmpty() ) {
+            // lovely. we're done.
+            next();
+        }
+        else {
+
+            Query * q = new Query( "copy thread_roots( messageid ) "
+                                   "from stdin with binary", 0 );
+            List<EString>::Iterator i( missing );
+            while ( i ) {
+                q->bind( 1, *i );
+                q->submitLine();
+            }
+            d->transaction->enqueue( q );
+
+            d->findThreadRoots = new Query(
+                "select id, messageid from thread_roots "
+                "where messageid=any($1::text[])",
+                this );
+            d->findThreadRoots->bind( 1, missing );
+            d->transaction->enqueue( d->findThreadRoots );
+            d->transaction->execute();
+        }
+    }
+}
+
+
 /*! Inserts all unique bodyparts in the messages into the bodyparts
     table, and updates the in-memory objects with the newly-created
     bodyparts.ids. */
@@ -1049,7 +1209,7 @@ void Injector::insertBodyparts()
         last = d->substate;
 
         if ( d->substate == 0 ) {
-            List<Message>::Iterator it( d->messages );
+            List<Injectee>::Iterator it( d->messages );
             while ( it ) {
                 Message * m = it;
                 List<Bodypart>::Iterator bi( m->allBodyparts() );
@@ -1291,10 +1451,11 @@ void Injector::selectMessageIds()
     if ( d->select->failed() )
         return;
 
-    Query * copy = new Query( "copy messages (id,rfc822size,idate) "
-                              "from stdin with binary", this );
+    Query * copy 
+        = new Query( "copy messages (id,rfc822size,idate,thread_root) "
+                     "from stdin with binary", this );
 
-    List<Message>::Iterator m( d->messages );
+    List<Injectee>::Iterator m( d->messages );
     while ( m && d->select->hasResults() ) {
         Row * r = d->select->nextRow();
         m->setDatabaseId( r->getInt( "id" ) );
@@ -1304,7 +1465,11 @@ void Injector::selectMessageIds()
             m->setTriviaFetched( true );
         }
         copy->bind( 2, m->rfc822Size() );
-        copy->bind( 2, internalDate( m ) );
+        copy->bind( 3, internalDate( m ) );
+        if ( m->threadRoot() )
+            copy->bind( 4, m->threadRoot() );
+        else
+            copy->bindNull( 4 );
         copy->submitLine();
         ++m;
     }
@@ -1469,7 +1634,7 @@ void Injector::insertMessages()
     uint mailboxes = 0;
     uint annotations = 0;
 
-    List<Message>::Iterator it( d->messages );
+    List<Injectee>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
         uint mid = m->databaseId();
@@ -1944,6 +2109,8 @@ class InjecteeData
     : public Garbage
 {
 public:
+    InjecteeData(): Garbage(), threadRoot( 0 ) {}
+
     class Mailbox
         : public Garbage
     {
@@ -1960,6 +2127,7 @@ public:
     };
 
     List<Mailbox> mailboxes;
+    uint threadRoot;
 
     Mailbox * mailbox( ::Mailbox * mb, bool create = false ) {
         if ( mailboxes.firstElement() &&
@@ -2276,4 +2444,24 @@ Injectee * Injectee::wrapUnparsableMessage( const EString & message,
     m->parse( wrapper );
     m->setWrapped( true );
     return m;
+}
+
+
+/*! Records that this Injectee has thread root number \a n. \a n must
+    not be 0.
+*/
+
+void Injectee::setThreadRoot( uint n )
+{
+    d->threadRoot = n;
+}
+
+
+/*! Returns what setThreadRoot() recorded, or 0 if setThreadRoot() has
+    not been called.
+*/
+
+uint Injectee::threadRoot() const
+{
+    return d->threadRoot;
 }
