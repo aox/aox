@@ -182,8 +182,7 @@ create table messages (
     -- Grant: select, insert
     id          serial primary key,
     idate       integer not null,
-    rfc822size  integer,
-    thread_root integer references thread_roots(id)
+    rfc822size  integer
 );
 
 
@@ -323,6 +322,9 @@ create table thread_roots (
     id          serial primary key,
     messageid   text not null unique
 );
+
+
+alter table messages add thread_root integer references thread_roots(id);
 
 
 -- One entry per user-defined flag name to be used in flags.
