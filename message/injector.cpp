@@ -94,7 +94,7 @@ public:
         Date * later;
     };
 
-    List<Message> messages;
+    List<Injectee> messages;
     List<Injectee> injectables;
     List<Delivery> deliveries;
 
@@ -241,7 +241,7 @@ EString Injector::error() const
     if ( !d->failed )
         return "";
 
-    List<Message>::Iterator it( d->messages );
+    List<Injectee>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
         if ( !m->valid() )
@@ -485,7 +485,7 @@ void Injector::findDependencies()
 
     List<Header> * l = new List<Header>;
 
-    List<Message>::Iterator it( d->messages );
+    List<Injectee>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
         ++it;
@@ -672,7 +672,7 @@ void Injector::convertInReplyTo()
 {
     EStringList ids;
     if ( d->outlooks.isEmpty() ) {
-        List<Message>::Iterator i( d->messages );
+        List<Injectee>::Iterator i( d->messages );
         while ( i ) {
             Header * h = i->header();
             if ( !h->field( HeaderField::References ) ) {
@@ -817,7 +817,7 @@ void Injector::convertInReplyTo()
 void Injector::addMoreReferences()
 {
     List<Message> queue;
-    List<Message>::Iterator m( d->messages );
+    List<Injectee>::Iterator m( d->messages );
     while ( m ) {
         if ( m->header()->field( HeaderField::References ) )
             queue.append( m );
@@ -853,7 +853,7 @@ void Injector::convertThreadIndex()
 {
     EStringList ids;
     if ( d->outlooks.isEmpty() ) {
-        List<Message>::Iterator i( d->messages );
+        List<Injectee>::Iterator i( d->messages );
         while ( i ) {
             Header * h = i->header();
             if ( !h->field( HeaderField::References ) ) {
@@ -1019,7 +1019,7 @@ void Injector::insertThreadIndexes()
     Query * q = new Query( "copy thread_indexes (message, thread_index) "
                            "from stdin with binary", 0 );
 
-    List<Message>::Iterator m( d->messages );
+    List<Injectee>::Iterator m( d->messages );
     while ( m ) {
         HeaderField * ti = m->header()->field( "Thread-Index" );
         if ( ti ) {
@@ -1049,7 +1049,7 @@ void Injector::insertBodyparts()
         last = d->substate;
 
         if ( d->substate == 0 ) {
-            List<Message>::Iterator it( d->messages );
+            List<Injectee>::Iterator it( d->messages );
             while ( it ) {
                 Message * m = it;
                 List<Bodypart>::Iterator bi( m->allBodyparts() );
@@ -1294,7 +1294,7 @@ void Injector::selectMessageIds()
     Query * copy = new Query( "copy messages (id,rfc822size,idate) "
                               "from stdin with binary", this );
 
-    List<Message>::Iterator m( d->messages );
+    List<Injectee>::Iterator m( d->messages );
     while ( m && d->select->hasResults() ) {
         Row * r = d->select->nextRow();
         m->setDatabaseId( r->getInt( "id" ) );
@@ -1469,7 +1469,7 @@ void Injector::insertMessages()
     uint mailboxes = 0;
     uint annotations = 0;
 
-    List<Message>::Iterator it( d->messages );
+    List<Injectee>::Iterator it( d->messages );
     while ( it ) {
         Message * m = it;
         uint mid = m->databaseId();
