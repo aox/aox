@@ -1063,7 +1063,7 @@ void Injector::insertThreadRoots()
         List<Injectee>::Iterator m( d->injectables );
         while ( m ) {
             messageIds.append( m->header()->messageId() );
-            AddressField * ref 
+            AddressField * ref
                 = m->header()->addressField( HeaderField::References );
             if ( ref ) {
                 List<Address>::Iterator ai( ref->addresses() );
@@ -1086,7 +1086,7 @@ void Injector::insertThreadRoots()
         }
         i = referencedIds.first();
         while ( i ) {
-            InjectorData::ThreadRootInfo * r = 
+            InjectorData::ThreadRootInfo * r =
                 d->threadRoots->find( *i );
             if ( !i ) {
                 r = new InjectorData::ThreadRootInfo;
@@ -1451,7 +1451,7 @@ void Injector::selectMessageIds()
     if ( d->select->failed() )
         return;
 
-    Query * copy 
+    Query * copy
         = new Query( "copy messages (id,rfc822size,idate,thread_root) "
                      "from stdin with binary", this );
 
