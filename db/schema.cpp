@@ -617,6 +617,8 @@ bool Schema::singleStep()
         c = stepTo93(); break;
     case 93:
         c = stepTo94(); break;
+    case 94:
+        c = stepTo95(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -4338,5 +4340,18 @@ bool Schema::stepTo94()
 {
     describeStep( "Renaming group_members.groupname to groupid" );
     d->t->enqueue( "alter table group_members rename groupname to groupid" );
+    return true;
+}
+
+
+/*! Create and link to thread_roots for THREAD=REFS support. */
+
+bool Schema::stepTo95()
+{
+    describeStep( "Adding thread_roots table for THREAD=REFS support" );
+    d->t->enqueue( "create table thread_roots (id serial primary key, "
+                   "messageid text not null unique)" );
+    d->t->enqueue( "alter table messages add thread_root integer "
+                   "references thread_roots(id)" );
     return true;
 }

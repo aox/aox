@@ -104,3 +104,11 @@ begin
     alter table group_members rename groupid to groupname;
     return 0;
 end;$$ language 'plpgsql';
+
+create or replace function downgrade_to_94()
+returns int as $$
+begin
+    alter table messages drop thread_root;
+    drop table thread_roots;
+    return 0;
+end;$$ language 'plpgsql';
