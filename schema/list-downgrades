@@ -8,7 +8,7 @@ $m = 1;
 
 foreach $f ( split( /\n(?=create or replace function downgrade_to_)/s, $all ) ) {
     if ( $f =~ /downgrade_to_([0-9]+)/ ) {
-	$n = 1+$1;
+	$n = $1;
         $functions{$n} = $f;
 	if ( $n > $m ) {
 	    $m = $n;
