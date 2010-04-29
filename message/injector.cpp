@@ -1304,7 +1304,7 @@ void Injector::selectMessageIds()
             m->setTriviaFetched( true );
         }
         copy->bind( 2, m->rfc822Size() );
-        copy->bind( 2, internalDate( m ) );
+        copy->bind( 3, internalDate( m ) );
         copy->submitLine();
         ++m;
     }
