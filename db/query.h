@@ -118,6 +118,8 @@ public:
 
     class Log * log() const;
 
+    void checkParameters();
+
 private:
     class QueryData *d;
 };
