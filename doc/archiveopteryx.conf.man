@@ -218,7 +218,7 @@ Archiveopteryx never uses anything less than perfectly random
 numbers. In this case, make sure that there's enough entropy, or else
 a series of rapid login attempts can block the entire server.
 .SS "User Authentication"
-http://www.archiveopteryx.org/sasl describes SASL and
+http://archiveopteryx.org/sasl describes SASL and
 authentication in more detail.
 .IP allow-plaintext-passwords
 controls whether the servers permit plaintext passwords, and how such
@@ -602,9 +602,9 @@ hostname=stuff.nonsense.example.com # also a comment
 The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.3, released 2010-03-10,
-http://www.archiveopteryx.org/3.1.3
+http://archiveopteryx.org/3.1.3
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR deliver (8),
 .BR logd (8),
-http://www.archiveopteryx.org
+http://archiveopteryx.org

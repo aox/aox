@@ -15,7 +15,7 @@ access to mail stored in a relational database (PostgreSQL).
 .SH "GETTING STARTED"
 The following five steps should suffice to install Archiveopteryx. If they
 don't, or if anything is unclear, more detailed instructions are
-available at http://www.archiveopteryx.org/installation
+available at http://archiveopteryx.org/installation
 .SS "1. Install Archiveopteryx"
 Usually, this is as simple as:
 .IP
@@ -25,7 +25,7 @@ Usually, this is as simple as:
 .B "portinstall archiveopteryx"
 (on FreeBSD)
 .PP
-http://www.archiveopteryx.org/installation explains what to do in
+http://archiveopteryx.org/installation explains what to do in
 other cases.
 .PP
 Use
@@ -61,7 +61,7 @@ The normal way to deliver mail from your MTA into Archiveopteryx is via LMTP.
 By default, Archiveopteryx listens on 127.0.0.1 port 2026.
 .PP
 On aox.org we describe how to configure some common MTAs to work with
-Archiveopteryx. See e.g. http://www.archiveopteryx.org/postfix for
+Archiveopteryx. See e.g. http://archiveopteryx.org/postfix for
 .BR postfix (1).
 .SH ARCHITECTURE
 .PP
@@ -152,13 +152,13 @@ recipients is not a problem, because it's stored just once.
 Archiveopteryx is available under two
 licences, namely the OSL 3.0 license and a commercial software license.
 .PP
-The OSL 3.0 (see http://www.archiveopteryx.org/opensource) is a fairly
+The OSL 3.0 (see http://archiveopteryx.org/opensource) is a fairly
 restrictive open source license similar to the more well-known GNU
 licenses. It includes a disclaimer of responsibility.
 .PP
 Our commercial license offers more flexibility than the OSL and a full
 warranty. There are also extra services. Contact info@aox.org for
-more details, or see http://www.archiveopteryx.org/commercial
+more details, or see http://archiveopteryx.org/commercial
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
 .IP SBINDIR
@@ -213,10 +213,10 @@ contains a private key and self-signed certificate used by
 The Archiveopteryx Developers, info@aox.org.
 .SH VERSION
 This man page covers Archiveopteryx version 3.1.3, released 2010-03-10,
-http://www.archiveopteryx.org/3.1.3
+http://archiveopteryx.org/3.1.3
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
-http://www.archiveopteryx.org
+http://archiveopteryx.org
