@@ -595,6 +595,9 @@ void SmtpClient::finish( const char * status )
 }
 
 
+static uint observedSize = 0;
+
+
 /*! Parses \a line assuming it is an extension announcement, and
     records the extensions found. Parse errors, unknown extensions and
     so on are silently ignored.
@@ -611,6 +614,8 @@ void SmtpClient::recordExtension( const EString & line )
 
     if ( w == "enhancedstatuscodes" )
         d->enhancedstatuscodes = true;
+    else if ( w == "size" )
+        ::observedSize = w.mid( s ).simplified().number( 0 );
 }
 
 
@@ -703,5 +708,16 @@ SmtpClient * SmtpClient::idleClient()
         }
         ++c;
     }
+    return 0;
+}
+
+
+/*! Returns the SIZE argument provided by the smarthost, or 0 if we
+    haven't connected to the smarthost, or if the smarthost sent
+    something shady.
+*/
+
+uint SmtpClient::observedSize()
+{
     return 0;
 }

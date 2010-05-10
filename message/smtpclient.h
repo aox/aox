@@ -33,6 +33,8 @@ public:
 
     EString error() const;
 
+    static uint observedSize();
+
 private:
     class SmtpClientData * d;
 
