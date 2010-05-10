@@ -55,8 +55,7 @@ SmtpHelo::SmtpHelo( SMTP * s, SmtpParser * p, Type t )
         if ( !Configuration::toggle( Configuration::Security ) )
             respond( 0, "X-ORYX-TESTING-1" );
         if ( SmtpClient::observedSize() > 0 && s->dialect() == SMTP::Submit )
-            respond( 0, "SIZE " +
-                     fn( ( SmtpClient::observedSize()-700)&~1023 ) );
+            respond( 0, "SIZE " + fn( SmtpClient::observedSize() ) );
         respond( 0, "BINARYMIME" );
         respond( 0, "PIPELINING" );
         respond( 0, "8BITMIME" );
