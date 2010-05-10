@@ -719,5 +719,5 @@ SmtpClient * SmtpClient::idleClient()
 
 uint SmtpClient::observedSize()
 {
-    return 0;
+    return ::observedSize;
 }
