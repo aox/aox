@@ -606,16 +606,12 @@ static uint observedSize = 0;
 void SmtpClient::recordExtension( const EString & line )
 {
     EString l = line.mid( 4 ).simplified();
-    EString w = l;
-    int s = l.find( ' ' );
-    if ( s > 0 )
-        w = w.mid( 0, s );
-    w = w.lower();
+    EString w = l.section( " ", 1 ).lower();
 
     if ( w == "enhancedstatuscodes" )
         d->enhancedstatuscodes = true;
     else if ( w == "size" )
-        ::observedSize = w.mid( s ).simplified().number( 0 );
+        ::observedSize = l.section( " ", 2 ).number( 0 );
 }
 
 
