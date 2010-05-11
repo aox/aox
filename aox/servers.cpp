@@ -1441,7 +1441,7 @@ void ShowBuild::execute()
     end();
 
     printf( "Archiveopteryx version %s, "
-            "http://www.archiveopteryx.org/%s\n",
+            "http://archiveopteryx.org/%s\n",
             Configuration::compiledIn( Configuration::Version ),
             Configuration::compiledIn( Configuration::Version ) );
 

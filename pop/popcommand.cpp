@@ -143,7 +143,7 @@ void PopCommand::execute()
                       "RESP-CODES\r\n"
                       "PIPELINING\r\n"
                       "IMPLEMENTATION Archiveopteryx POP3 Server, "
-                      "http://www.archiveopteryx.org.\r\n" );
+                      "http://archiveopteryx.org.\r\n" );
             if ( Configuration::toggle( Configuration::UseTls ) )
                 c.append( "STLS\r\n" );
             c.append( ".\r\n" );

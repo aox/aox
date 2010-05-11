@@ -10,7 +10,7 @@
 
 static const char * prologue =
     "%!PS-Adobe-3.0\n"
-    "%%Creator: udoc, http://www.archiveopteryx.org/udoc/\n"
+    "%%Creator: udoc, http://archiveopteryx.org/udoc/\n"
     "%%PageOrder: Ascend\n"
     "%%DocumentMedia:\n"
     "%%BoundingBox: 0 0 595 841\n"

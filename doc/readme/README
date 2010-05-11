@@ -1,9 +1,9 @@
 Archiveopteryx
-http://www.archiveopteryx.org
+http://archiveopteryx.org
 
 
-See http://www.archiveopteryx.org/overview for an introduction
-and http://www.archiveopteryx.org/$VERSION for information about
+See http://archiveopteryx.org/overview for an introduction
+and http://archiveopteryx.org/$VERSION for information about
 version $VERSION.
 
 
@@ -14,14 +14,14 @@ You need g++ (and associated packages) to build this software.
 
 You need to have PostgreSQL installed to use Archiveopteryx. We
 recommend the latest 8.x version (but anything newer than 8.1.0
-should work; see http://www.archiveopteryx.org/postgresql/).
+should work; see http://archiveopteryx.org/postgresql/).
 
 
 Installation
 ------------
 
 For detailed installation instructions, see:
-http://www.archiveopteryx.org/installation
+http://archiveopteryx.org/installation
 
 Here's a brief overview of the steps to follow while installing
 Archiveopteryx for the first time (see below if you're upgrading):
@@ -72,7 +72,7 @@ Archiveopteryx for the first time (see below if you're upgrading):
 
 6. Configure your MTA to deliver incoming mail into Archiveopteryx via
    LMTP (or via bin/deliver, if your MTA doesn't speak LMTP). See, e.g.
-   http://www.archiveopteryx.org/postfix and .../exim for details.
+   http://archiveopteryx.org/postfix and .../exim for details.
 
 7. Add an entry to root's crontab to run "aox vacuum" daily. Remember to
    enable PostgreSQL's "autovacuum" feature too (strongly recommended),
