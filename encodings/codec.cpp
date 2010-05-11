@@ -16,6 +16,7 @@
 #include "unknown.h"
 #include "gb2312.h"
 #include "viscii.h"
+#include "ebcdic.h"
 #include "cp932.h"
 #include "cp949.h"
 #include "cp950.h"

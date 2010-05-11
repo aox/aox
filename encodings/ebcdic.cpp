@@ -275,8 +275,8 @@ static const uint ebcdictable[256] = {
 /*!  Constructs a codec for the EBCDIC character set/encoding. */
 
 EbcdicCodec::EbcdicCodec()
-    : TableCodec( ebcdictable, "ebcdic" )
+    : TableCodec( ebcdictable, "IBM038" )
 {
 }
 
-//codec ebcdic EbcdicCodec
+//codec IBM038 EbcdicCodec
