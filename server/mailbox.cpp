@@ -60,6 +60,7 @@ public:
 
     uint source;
     EString selector;
+    int64 viewnms;
 
     List<Mailbox> * views;
 };
@@ -151,8 +152,9 @@ void MailboxReader::execute() {
         if ( m->type() == Mailbox::View ) {
             m->d->source = r->getInt( "source" );
             m->d->selector = r->getEString( "selector" );
+            m->d->viewnms = r->getBigint( "viewnms" );
             m->setUidnextAndNextModSeq( r->getInt( "uidnext" ),
-                                        r->getBigint( "viewnms" ),
+                                        r->getBigint( "nextmodseq" ),
                                         q->transaction() );
         }
         else {
@@ -381,6 +383,22 @@ bool Mailbox::deleted() const
 bool Mailbox::view() const
 {
     return d->type == View;
+}
+
+
+/*! Returns true if this mailbox is a view and may require an
+    update. Returns false if it isn't a view, or if it is known not to
+    require an update.
+*/
+
+bool Mailbox::needsUpdate() const
+{
+    Mailbox * s = source();
+    if ( !s )
+        return false;
+    if ( s->nextModSeq() <= d->viewnms )
+        return false;
+    return true;
 }
 
 

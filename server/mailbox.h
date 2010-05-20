@@ -36,6 +36,8 @@ public:
     bool deleted() const;
     bool view() const;
 
+    bool needsUpdate() const;
+
     bool isHome() const;
     uint owner() const;
 

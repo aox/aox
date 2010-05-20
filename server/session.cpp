@@ -541,9 +541,17 @@ void SessionInitialiser::findSessions()
                 d->oldModSeq = s->nextModSeq();
         }
     }
-    if ( d->newUidnext <= d->oldUidnext &&
-         d->newModSeq <= d->oldModSeq )
+    // if some session is behind the mailbox, carry out an update
+    if ( d->newUidnext > d->oldUidnext ||
+         d->newModSeq > d->oldModSeq )
+        return;
+    // if none are, and the mailbox is ordinary, we don't need anything
+    if ( d->mailbox->ordinary() )
         d->sessions.clear();
+    // if none are, and the view is up to date, we don't need anything
+    if ( !d->mailbox->needsUpdate() )
+        d->sessions.clear();
+    // otherwise we may need to do work
 }
 
 
