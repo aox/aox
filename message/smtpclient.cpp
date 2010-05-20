@@ -24,7 +24,8 @@ public:
         : state( Invalid ), dsn( 0 ),
           owner( 0 ), log( 0 ), sentMail( false ),
           wbt( 0 ), wbs( 0 ),
-          enhancedstatuscodes( false )
+          enhancedstatuscodes( false ),
+          size( false )
     {}
 
     enum State { Invalid,
@@ -36,6 +37,7 @@ public:
     EString sent;
     EString error;
     DSN * dsn;
+    EString dotted;
     EventHandler * owner;
     Log * log;
     bool sentMail;
@@ -45,6 +47,7 @@ public:
     uint wbt, wbs;
 
     bool enhancedstatuscodes;
+    bool size;
     Timer * closeTimer;
     class TimerCloser
         : public EventHandler
@@ -123,7 +126,7 @@ void SmtpClient::react( Event e )
                 setTimeoutAfter( 300 );
                 return;
             }
-                
+
         }
         log( "SMTP server timed out", Log::Error );
         d->error = "Server timeout.";
@@ -202,7 +205,10 @@ void SmtpClient::parse()
             case 3:
                 if ( d->state == SmtpClientData::Data ) {
                     log( "Sending body.", Log::Debug );
-                    enqueue( dotted( d->dsn->message()->rfc822() ) );
+                    if ( d->dotted.isEmpty() )
+                        d->dotted = dotted( d->dsn->message()->rfc822() );
+                    enqueue( d->dotted );
+                    d->dotted.truncate();
                     d->wbs = writeBuffer()->size();
                     d->wbt = (uint)::time( 0 );
                     d->state = SmtpClientData::Body;
@@ -265,6 +271,12 @@ void SmtpClient::sendCommand()
         if ( d->dsn->sender()->type() == Address::Normal )
             send.append( d->dsn->sender()->lpdomain() );
         send.append( ">" );
+        if ( d->size ) {
+            if ( d->dotted.isEmpty() )
+                d->dotted = dotted( d->dsn->message()->rfc822() );
+            send.append( " size=" );
+            send.append( fn( d->dotted.length() ) );
+        }
 
         d->state = SmtpClientData::MailFrom;
         break;
@@ -561,6 +573,7 @@ void SmtpClient::send( DSN * dsn, EventHandler * user )
     log( s );
 
     d->dsn = dsn;
+    d->dotted.truncate();
     d->owner = user;
     d->sentMail = false;
     delete d->closeTimer;
@@ -590,6 +603,7 @@ void SmtpClient::finish( const char * status )
     if ( d->owner )
         d->owner->notify();
     d->dsn = 0;
+    d->dotted.truncate();
     d->owner = 0;
     d->log = 0;
 }
@@ -608,10 +622,13 @@ void SmtpClient::recordExtension( const EString & line )
     EString l = line.mid( 4 ).simplified();
     EString w = l.section( " ", 1 ).lower();
 
-    if ( w == "enhancedstatuscodes" )
+    if ( w == "enhancedstatuscodes" ) {
         d->enhancedstatuscodes = true;
-    else if ( w == "size" )
+    }
+    else if ( w == "size" ) {
+        d->size = true;
         ::observedSize = l.section( " ", 2 ).number( 0 );
+    }
 }
 
 
