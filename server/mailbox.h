@@ -85,6 +85,9 @@ public:
 
     static bool refreshing();
 
+    void writeBackMessageState();
+    void addWriteBackMessages( const IntegerSet & );
+
 private:
     class MailboxData * d;
     friend class MailboxReader;

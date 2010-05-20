@@ -3,6 +3,12 @@
   IMAP QUOTA works.
   Smarthost SIZE is forwarded to SMTP submit clients.
 
+  When The Seen flag is changed in a view, the change is eventually
+  propagated to the backing mailbox. Not at once. Probably when the
+  client closes. However, a bug appears to prevent seen-based views
+  from deleting the relevant message from themselves when the backing
+  mailbox' seen changes.
+
 
 SEARCH=ADDRESS
 

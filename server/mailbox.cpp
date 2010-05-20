@@ -61,8 +61,15 @@ public:
     uint source;
     EString selector;
     int64 viewnms;
+    IntegerSet modifiedMessages;
 
     List<Mailbox> * views;
+
+    class Ignorer
+        : public EventHandler {
+    public:
+        void execute() {};
+    };
 };
 
 
@@ -800,6 +807,7 @@ void Mailbox::removeSession( Session * s )
         d->threader = 0;
     }
     if ( d->source ) {
+        writeBackMessageState();
         Mailbox * sm = source();
         if ( sm->d->views )
             sm->d->views->remove( this );
@@ -958,4 +966,64 @@ void Mailbox::abortSessions()
         ++it;
         s->abort();
     }
+}
+
+
+
+/*! Updates the backing mailbox with flag and annotation changes made
+    in this mailbox. Does not update the backing mailbox' "\deleted"
+    flag, and only updates those messages for which
+    addWriteBackMessages() have been called.
+*/
+
+void Mailbox::writeBackMessageState()
+{
+    if ( d->modifiedMessages.isEmpty() )
+        return;
+    Mailbox * s = source();
+    if ( !s )
+        return;
+
+    // we don't really care about this transaction. we do want it to
+    // go through, but nothing very bad happens if it fails, so we
+    // just ignore its results.
+    Transaction * t = new Transaction( new MailboxData::Ignorer );
+
+    Query * q 
+        = new Query( "select * from mailboxes where id=$1 for update", 0 );
+    q->bind( 1, s->id() );
+    t->enqueue( q );
+
+    q = new Query( "update mailbox_messages mm "
+                   "set seen=vmm.seen, modseq=mb.nextmodseq "
+                   "from messages m, mailbox_messages vmm, mailboxes mb "
+                   "where mm.message=vmm.message and "
+                   "vmm.mailbox=$1 and vmm.uid=any($2) and mm.mailbox=$3 and "
+                   "mb.id=mm.mailbox", 0 );
+    q->bind( 1, id() );
+    q->bind( 2, d->modifiedMessages );
+    q->bind( 3, s->id() );
+    t->enqueue( q );
+
+    q = new Query( "update mailboxes "
+                   "set nextmodseq=nextmodseq+1 "
+                   "where id=$1", 0 );
+    q->bind( 1, s->id() );
+    t->enqueue( q );
+
+    t->commit();
+
+    d->modifiedMessages.clear();
+}
+
+
+/*! Records that the messages in \a s have been changed in this
+    Mailbox, and that the changes should eventually be propagated back
+    to the backing mailbox. Does nothing if this message isn't a view.
+*/
+
+void Mailbox::addWriteBackMessages( const IntegerSet & s )
+{
+    if ( d->type == View )
+        d->modifiedMessages.add( s );
 }

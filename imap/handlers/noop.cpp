@@ -2,6 +2,9 @@
 
 #include "noop.h"
 
+#include "mailbox.h"
+#include "imapsession.h"
+
 
 /*! \class Noop noop.h
     NOOP does nothing (RFC 3501 section 6.1.2)
@@ -20,10 +23,17 @@ void Noop::execute()
 /*! \class Check noop.h
     Performs a checkpoint of the selected mailbox (RFC 3501 section 6.4.1)
 
-    This command needs to do nothing in our implementation.
+    In our implementation, all this does it write "\seen" flags from a
+    view to its backing mailbox.
 */
 
 void Check::execute()
 {
+    Mailbox * m = 0;
+    if ( imap()->session() )
+        m = imap()->session()->mailbox();
+    if ( m )
+        m->writeBackMessageState();
+
     finish();
 }
