@@ -1011,6 +1011,8 @@ void Mailbox::writeBackMessageState()
     q->bind( 1, s->id() );
     t->enqueue( q );
 
+    t->enqueue( "notify mailboxes_updated" );
+
     t->commit();
 
     d->modifiedMessages.clear();
