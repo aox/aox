@@ -1051,15 +1051,37 @@ void Injector::insertThreadIndexes()
 }
 
 
-/*! Inserts rows into the thread_rows table and records to which
-    thread_rows row each Injectee belong.
+/*! This private helper merges two threads, updating both in-RAM data
+    structures and the messages table. \a to is to be kept, \a from is
+    to be dereferenced.
+*/
+
+void Injector::mergeThreads( uint to, uint from )
+{
+    if ( !d->threadRoots )
+        return;
+    Dict<InjectorData::ThreadRootInfo>::Iterator i( d->threadRoots );
+    while ( i ) {
+        if ( i->threadRoot == from )
+            i->threadRoot = to;
+        ++i;
+    }
+
+    Query * q = new Query( "merge_threads( $1, $2 )", 0 );
+    q->bind( 1, to );
+    q->bind( 2, from );
+    d->transaction->enqueue( q );
+}
+
+
+/*! Inserts rows into the thread_roots table and records to which
+    thread_roots row each Injectee belong.
 */
 
 void Injector::insertThreadRoots()
 {
     if ( !d->threadRoots ) {
         EStringList messageIds;
-        EStringList referencedIds;
         List<Injectee>::Iterator m( d->injectables );
         while ( m ) {
             messageIds.append( m->header()->messageId() );
@@ -1068,14 +1090,13 @@ void Injector::insertThreadRoots()
             if ( ref ) {
                 List<Address>::Iterator ai( ref->addresses() );
                 while ( ai ) {
-                    referencedIds.append( ai->lpdomain() );
+                    messageIds.append( ai->lpdomain() );
                     ++ai;
                 }
             }
             ++m;
         }
         messageIds.removeDuplicates();
-        referencedIds.removeDuplicates();
         d->threadRoots = new Dict<InjectorData::ThreadRootInfo>();
         EStringList::Iterator i( messageIds );
         while ( i ) {
@@ -1084,17 +1105,7 @@ void Injector::insertThreadRoots()
             r->messageId = *i;
             d->threadRoots->insert( r->messageId, r );
         }
-        i = referencedIds.first();
-        while ( i ) {
-            InjectorData::ThreadRootInfo * r =
-                d->threadRoots->find( *i );
-            if ( !i ) {
-                r = new InjectorData::ThreadRootInfo;
-                r->messageId = *i;
-                d->threadRoots->insert( r->messageId, r );
-            }
-        }
-        if ( !messageIds.isEmpty() && !referencedIds.isEmpty() ) {
+        if ( !messageIds.isEmpty() ) {
             d->findThreadRoots = new Query(
                 "select id, messageid from thread_roots "
                 "where messageid=any($1::text[]) "
@@ -1102,28 +1113,9 @@ void Injector::insertThreadRoots()
                 "select m.thread_root as id, v.value as messageid "
                 "from messages m join header_fields hf on "
                 "(m.id=hf.message and hf.field=13) "
-                "where hf.value=any($2::text[])",
-                this );
-            d->findThreadRoots->bind( 1, messageIds );
-            d->findThreadRoots->bind( 2, referencedIds );
-        }
-        else if ( !messageIds.isEmpty() ) {
-            d->findThreadRoots = new Query(
-                "select id, messageid from thread_roots "
-                "where messageid=any($1::text[])",
-                this );
-            d->findThreadRoots->bind( 1, messageIds );
-        }
-        else if ( !referencedIds.isEmpty() ) {
-            d->findThreadRoots = new Query(
-                "select m.thread_root as id, v.value as messageid "
-                "from messages m join header_fields hf on "
-                "(m.id=hf.message and hf.field=13) "
                 "where hf.value=any($1::text[])",
                 this );
-            d->findThreadRoots->bind( 1, referencedIds );
-        }
-        if ( d->findThreadRoots ) {
+            d->findThreadRoots->bind( 1, messageIds );
             d->transaction->enqueue( d->findThreadRoots );
             d->transaction->execute();
         }
@@ -1144,28 +1136,35 @@ void Injector::insertThreadRoots()
         EStringList missing;
         List<Injectee>::Iterator m( d->injectables );
         while ( m ) {
-            EString id = m->header()->messageId();
-            AddressField * ref = 0;
-            InjectorData::ThreadRootInfo * t = d->threadRoots->find( id );
-            if ( t && t->threadRoot ) {
-                m->setThreadRoot( t->threadRoot );
-                id.truncate();
-            }
-            else {
-                ref = m->header()->addressField( HeaderField::References );
-            }
+            EStringList l;
+            l.append( m->header()->messageId() );
+            AddressField * ref
+                = m->header()->addressField( HeaderField::References );
             if ( ref ) {
                 List<Address>::Iterator ai( ref->addresses() );
-                while ( ai && !id.isEmpty() ) {
-                    id = ai->lpdomain();
-                    t = d->threadRoots->find( id );
-                    if ( t && t->threadRoot )
-                        id.truncate();
+                while ( ai ) {
+                    l.append( ai->lpdomain() );
                     ++ai;
                 }
             }
-            if ( !id.isEmpty() )
-                missing.append( id );
+            uint root = 0;
+            EString oldestId;
+            EStringList::Iterator s( l );
+            while ( s ) {
+                if ( !s->isEmpty() ) {
+                    InjectorData::ThreadRootInfo * t 
+                        = d->threadRoots->find( *s );
+                    if ( !t || !t->threadRoot )
+                        oldestId = *s;
+                    else if ( !root )
+                        root = t->threadRoot;
+                    else if ( root != t->threadRoot )
+                        mergeThreads( root, t->threadRoot );
+                }
+                ++s;
+            }
+            if ( !root && !oldestId.isEmpty() )
+                missing.append( oldestId );
             ++m;
         }
         missing.removeDuplicates();
@@ -1175,7 +1174,6 @@ void Injector::insertThreadRoots()
             next();
         }
         else {
-
             Query * q = new Query( "copy thread_roots( messageid ) "
                                    "from stdin with binary", 0 );
             List<EString>::Iterator i( missing );
