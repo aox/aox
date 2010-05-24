@@ -136,6 +136,9 @@ void Session::end()
     if ( d->mailbox->sessions() )
         return;
 
+    if ( d->readOnly )
+        return;
+
     if ( !::cache )
         ::cache = new SessionData::SessionCache;
     SessionData::CachedData * cd = ::cache->data.find( d->mailbox->id() );
@@ -145,17 +148,8 @@ void Session::end()
     }
     cd->uidnext = d->uidnext;
     cd->msns = d->msns;
+    cd->nextModSeq = d->nextModSeq;
     cd->msns.remove( d->expunges );
-
-    // the session initialiser assumes that if it has all the messages
-    // and the modseq, then it also has the recent ones. but if this
-    // session is readonly and contains recent messages, then the next
-    // one may also need to set recent on something, even if no new
-    // mail has arrived.
-    if ( d->readOnly && !d->recent.isEmpty() )
-        cd->nextModSeq = d->nextModSeq - 1;
-    else
-        cd->nextModSeq = d->nextModSeq;
 }
 
 
